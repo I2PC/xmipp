@@ -25,8 +25,8 @@
 #ifndef _PROG_IMAGE_ROTATIONAL_PCA
 #define _PROG_IMAGE_ROTATIONAL_PCA
 
-#include <data/metadata.h>
-#include <data/xmipp_program.h>
+#include <core/metadata.h>
+#include <core/xmipp_program.h>
 #include <data/xmipp_threads.h>
 #include <classification/pca.h>
 

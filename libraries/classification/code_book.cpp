@@ -29,7 +29,7 @@
 
 
 #include "code_book.h"
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 
 /**
  * This class implements a codebook.

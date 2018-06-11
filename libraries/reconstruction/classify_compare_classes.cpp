@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "classify_compare_classes.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 // Evaluate classes program -------------------------------------------
 void ProgCompareClass::readParams()

@@ -25,7 +25,7 @@
 
 
 #include "program_image_residuals.h"
-#include <data/filters.h>
+#include <core/filters.h>
 
 void ProgImageResiduals::defineParams()
 {

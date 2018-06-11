@@ -31,7 +31,7 @@
 
 #include <Python.h>
 #include <numpy/ndarrayobject.h>
-#include <data/multidim_array.h>
+#include <core/multidim_array.h>
 
 /**@defgroup FRMInterface Fast Rotational Matching
    @ingroup InterfaceLibrary */

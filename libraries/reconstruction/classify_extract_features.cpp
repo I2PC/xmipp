@@ -25,9 +25,9 @@
 
 #include "classify_extract_features.h"
 
-#include <data/xmipp_funcs.h>
-#include <data/mask.h>
-#include <data/filters.h>
+#include <core/xmipp_funcs.h>
+#include <core/mask.h>
+#include <core/filters.h>
 #include <vector>
 #include <string>
 

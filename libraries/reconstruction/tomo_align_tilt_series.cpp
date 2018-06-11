@@ -25,11 +25,11 @@
 
 #include "tomo_align_tilt_series.h"
 
-#include <data/args.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/filters.h>
 #include <data/xmipp_fftw.h>
-#include <data/metadata.h>
-#include <data/numerical_tools.h>
+#include <core/metadata.h>
+#include <core/numerical_tools.h>
 #include <data/morphology.h>
 #include <fstream>
 #include <queue>

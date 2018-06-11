@@ -26,7 +26,7 @@
 #include "project_crystal.h"
 #include "art_crystal.h"
 
-#include <data/args.h>
+#include <core/args.h>
 
 /* Empty constructor ======================================================= */
 Crystal_Projection_Parameters::Crystal_Projection_Parameters()

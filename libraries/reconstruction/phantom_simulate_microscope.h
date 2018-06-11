@@ -27,7 +27,7 @@
 
 #include "fourier_filter.h"
 
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 /**@defgroup MicroscopeProgram phantom_simulate_microscope (Microscope simulation)
    @ingroup ReconsLibrary */

@@ -27,7 +27,7 @@
 #define XMIPP__AHC_CLASSIFIER_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include <data/matrix2d.h>
+#include <core/matrix2d.h>
 
 /**@defgroup AHCClassifier Agglomerative Hierarchical Clustering
    @ingroup ClassificationLibrary */

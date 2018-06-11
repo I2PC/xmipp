@@ -31,9 +31,9 @@
 #include <vector>
 #include <cmath>
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
-#include <data/histogram.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
+#include <core/histogram.h>
 
 /**@defgroup NaiveBayesClassifier Naive Bayes Classifier
    @ingroup ClassificationLibrary */

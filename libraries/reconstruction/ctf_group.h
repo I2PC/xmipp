@@ -26,12 +26,12 @@
 #ifndef _CTF_GROUP_HH
 #define _CTF_GROUP_HH
 
-#include <data/args.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/filters.h>
 #include "fourier_filter.h"
 #include <data/ctf.h>
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup CTFGroup ctf_group
    @ingroup ReconsLibrary */

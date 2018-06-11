@@ -25,7 +25,7 @@
 
 #ifndef CTF_PHASE_FLIPPING_H
 #define CTF_PHASE_FLIPPING_H
-#include <data/args.h>
+#include <core/args.h>
 #include <data/micrograph.h>
 #include <data/xmipp_fftw.h>
 #include <data/ctf.h>

@@ -24,7 +24,7 @@
  ***************************************************************************/
 #include "angular_estimate_tilt_axis.h"
 #include <data/micrograph.h>
-#include <data/xmipp_filename.h>
+#include <core/xmipp_filename.h>
 #include <string>
 
 //#define DEBUG

@@ -27,7 +27,7 @@
 #ifndef ANGULAR_ESTIMATE_TILT_AXIS_H
 #define ANGULAR_ESTIMATE_TILT_AXIS_H
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <data/micrograph.h>
 
 /**@defgroup AngularEstimateTiltAxis Estimate the tilt axis position in a pair of micrographs

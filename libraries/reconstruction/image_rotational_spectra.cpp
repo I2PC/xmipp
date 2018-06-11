@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "image_rotational_spectra.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 // Usage -------------------------------------------------------------------
 void ProgMakeSpectra::defineParams()

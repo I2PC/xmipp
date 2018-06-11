@@ -26,10 +26,10 @@
 #include "ml_refine3d.h"
 
 #include <data/xmipp_fft.h>
-#include <data/args.h>
-#include <data/xmipp_funcs.h>
-#include <data/filters.h>
-#include <data/mask.h>
+#include <core/args.h>
+#include <core/xmipp_funcs.h>
+#include <core/filters.h>
+#include <core/mask.h>
 #include <data/morphology.h>
 #include <data/grids.h>
 #include <data/blobs.h>

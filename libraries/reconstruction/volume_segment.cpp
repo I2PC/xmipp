@@ -23,9 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/args.h>
+#include <core/args.h>
 #include <data/morphology.h>
-#include <data/filters.h>
+#include <core/filters.h>
 #include "volume_segment.h"
 
 // Read arguments ==========================================================

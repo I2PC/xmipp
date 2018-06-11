@@ -27,8 +27,8 @@
 #define XMIPP__KSVD_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 #include <vector>
 
 /**@defgroup kSVD kSVD

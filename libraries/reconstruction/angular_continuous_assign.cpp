@@ -38,10 +38,10 @@
 #include <bilib/headers/changebasis.h>
 #include <bilib/headers/dft.h>
 
-#include <data/xmipp_funcs.h>
-#include <data/args.h>
+#include <core/xmipp_funcs.h>
+#include <core/args.h>
 #include <data/xmipp_fft.h>
-#include <data/mask.h>
+#include <core/mask.h>
 
 /* ------------------------------------------------------------------------- */
 // Prototypes

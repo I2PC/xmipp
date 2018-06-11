@@ -27,10 +27,10 @@
 #ifndef _CONVERT_VOL2PSEUDO_HH
 #define _CONVERT_VOL2PSEUDO_HH
 
-#include <data/xmipp_image.h>
-#include <data/mask.h>
+#include <core/xmipp_image.h>
+#include <core/mask.h>
 #include <data/xmipp_threads.h>
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <vector>
 #include "fourier_filter.h"
 

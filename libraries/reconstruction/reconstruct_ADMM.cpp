@@ -32,7 +32,7 @@
 
 #include "reconstruct_ADMM.h"
 #include "symmetrize.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 #define SYMMETRIZE_PROJECTIONS
 

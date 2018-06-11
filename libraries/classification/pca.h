@@ -25,9 +25,9 @@
 #include "data_types.h"
 #include "training_vector.h"
 
-#include <data/xmipp_funcs.h>
-#include <data/matrix2d.h>
-#include <data/multidim_array.h>
+#include <core/xmipp_funcs.h>
+#include <core/matrix2d.h>
+#include <core/multidim_array.h>
 
 /**@defgroup PCA Principal Component Analysis
    @ingroup ClassificationLibrary */

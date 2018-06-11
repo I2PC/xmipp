@@ -26,7 +26,7 @@
 #ifndef SCORE_MICROGRAPH_H_
 #define SCORE_MICROGRAPH_H_
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include "ctf_estimate_from_micrograph.h"
 #include "ctf_estimate_from_psd.h"
 #include "ctf_sort_psds.h"

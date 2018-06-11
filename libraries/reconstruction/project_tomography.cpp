@@ -26,7 +26,7 @@
 #include "project_tomography.h"
 #include "directions.h"
 
-#include <data/args.h>
+#include <core/args.h>
 
 void ProgProjectTomography::defineParams()
 {

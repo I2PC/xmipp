@@ -25,7 +25,7 @@
 
 #include "radon.h"
 
-#include <data/geometry.h>
+#include <core/geometry.h>
 
 void Radon_Transform(const MultidimArray<double> &vol, double rot, double tilt,
 		MultidimArray<double> &RT)

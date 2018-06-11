@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "reconstruct_wbp.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 ProgRecWbp::ProgRecWbp()
 {

@@ -26,10 +26,10 @@
 #ifndef _PROG_ANGULAR_COMMON_LINES
 #define _PROG_ANGULAR_COMMON_LINES
 
-#include <data/xmipp_funcs.h>
-#include <data/metadata.h>
-#include <data/numerical_tools.h>
-#include <data/matrix2d.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata.h>
+#include <core/numerical_tools.h>
+#include <core/matrix2d.h>
 #include <vector>
 #include <data/symmetries.h>
 

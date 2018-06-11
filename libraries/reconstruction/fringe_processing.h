@@ -26,9 +26,9 @@
 #ifndef FRINGEPROCESSING_H_
 #define FRINGEPROCESSING_H_
 
-#include <data/multidim_array.h>
-#include <data/matrix2d.h>
-#include <data/histogram.h>
+#include <core/multidim_array.h>
+#include <core/matrix2d.h>
+#include <core/histogram.h>
 #include <data/xmipp_fftw.h>
 
 /** @defgroup FringeProcessing Routines to work with fringes

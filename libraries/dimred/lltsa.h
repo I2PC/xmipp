@@ -25,8 +25,8 @@
 #ifndef LLTSA_H_
 #define LLTSA_H_
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 #include "dimred_tools.h"
 #include "ltsa.h"
 

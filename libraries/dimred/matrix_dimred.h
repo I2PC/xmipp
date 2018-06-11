@@ -26,7 +26,7 @@
 #ifndef _MATRIX_DIMRED
 #define _MATRIX_DIMRED
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include "pca.h"
 #include "npe.h"
 #include "spe.h"

@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
 
-#include <alglib/src/dataanalysis.h>
+#include <core/alglib/dataanalysis.h>
 
 #include "ahc_classifier.h"
 

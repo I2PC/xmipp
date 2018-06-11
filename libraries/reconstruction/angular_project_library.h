@@ -27,15 +27,15 @@
 
 #include <data/sampling.h>
 #include <data/symmetries.h>
-#include <data/args.h>
+#include <core/args.h>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <data/projection.h>
-#include <data/xmipp_image.h>
-#include <data/xmipp_funcs.h>
-#include <data/xmipp_program.h>
-#include <data/metadata_extension.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_funcs.h>
+#include <core/xmipp_program.h>
+#include <core/metadata_extension.h>
 #include <reconstruction/project_real_shears.h>
 #include <reconstruction/fourier_projection.h>
 #include <reconstruction/project.h>

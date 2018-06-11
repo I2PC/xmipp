@@ -26,11 +26,11 @@
 #ifndef _PROG_RECONSTRUCT_ADMM_HH
 #define _PROG_RECONSTRUCT_ADMM_HH
 
-#include <data/xmipp_program.h>
-#include <data/matrix1d.h>
+#include <core/xmipp_program.h>
+#include <core/matrix1d.h>
 #include <data/xmipp_fftw.h>
 #include <data/ctf.h>
-#include <data/mask.h>
+#include <core/mask.h>
 #include <data/symmetries.h>
 
 /**@defgroup ReconstructADMMProgram Reconstruct Alternating Direction Method of Multipliers

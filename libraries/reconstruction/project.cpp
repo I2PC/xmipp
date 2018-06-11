@@ -28,7 +28,7 @@
 #include "project_real_shears.h"
 #include "fourier_projection.h"
 
-#include <data/args.h>
+#include <core/args.h>
 
 /* Read from command line ================================================== */
 void ProgProject::readParams()

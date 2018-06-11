@@ -33,8 +33,8 @@
 #include "ctf_enhance_psd.h"
 #include "fourier_filter.h"
 
-#include <data/args.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/filters.h>
 #include <data/xmipp_fft.h>
 
 /* Read parameters --------------------------------------------------------- */

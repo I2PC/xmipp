@@ -26,8 +26,8 @@
 
 #include "spider.h"
 
-#include <data/args.h>
-#include <data/geometry.h>
+#include <core/args.h>
+#include <core/geometry.h>
 
 // Generate Count File -----------------------------------------------------
 void generate_Spider_count(int imax, DocFile &DF_out)

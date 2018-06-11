@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "classify_evaluate_classes.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 ClassEvaluation::ClassEvaluation()
 {

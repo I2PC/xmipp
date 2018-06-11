@@ -26,7 +26,7 @@
 
 #include "angular_projection_matching.h"
 
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 
 //#define DEBUG
 //#define TIMING

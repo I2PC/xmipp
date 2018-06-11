@@ -29,11 +29,11 @@
 #include <vector>
 #include <string>
 
-#include <data/args.h>
-#include <data/matrix1d.h>
-#include <data/matrix2d.h>
-#include <data/xmipp_image.h>
-#include <data/metadata.h>
+#include <core/args.h>
+#include <core/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/xmipp_image.h>
+#include <core/metadata.h>
 
 // Forward declaration
 class DocFile;

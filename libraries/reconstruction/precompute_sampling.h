@@ -27,7 +27,7 @@
 
 #include <data/sampling.h>
 #include <data/symmetries.h>
-#include <data/args.h>
+#include <core/args.h>
 #include <fstream>
 #include <iostream>
 #include <string>

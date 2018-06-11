@@ -24,9 +24,9 @@
  ***************************************************************************/
 
 #include "movie_alignment_correlation.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 #include <data/xmipp_fftw.h>
-#include <data/filters.h>
+#include <core/filters.h>
 
 
 #define OUTSIDE_WRAP 0

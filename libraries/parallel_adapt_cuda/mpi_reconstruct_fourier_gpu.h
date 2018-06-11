@@ -28,12 +28,12 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction_adapt_cuda/reconstruct_fourier_gpu.h>
 
-#include <data/args.h>
+#include <core/args.h>
 #include <data/projection.h>
 #include <cstring>
 #include <cstdlib>
-#include <data/xmipp_funcs.h>
-#include <data/matrix2d.h>
+#include <core/xmipp_funcs.h>
+#include <core/matrix2d.h>
 #include <sys/time.h>
 #include <iostream>
 #include <sstream>

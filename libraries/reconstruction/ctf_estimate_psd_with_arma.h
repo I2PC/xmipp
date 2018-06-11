@@ -30,8 +30,8 @@
 #define MA        1   // parameter, or sigma in the output ARMAParameters matrix
 #define SIGMA       2   // returned by functions.
 
-#include <data/multidim_array.h>
-#include <data/xmipp_program.h>
+#include <core/multidim_array.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup SpARMA Spectrum modelling by ARMA filters
    @ingroup ReconsLibrary */

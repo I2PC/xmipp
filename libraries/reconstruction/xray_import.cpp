@@ -24,8 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/args.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/filters.h>
 #include <data/xmipp_image_extension.h>
 #include "xray_import.h"
 

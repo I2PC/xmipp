@@ -31,9 +31,9 @@
 #include <string.h>
 #include <algorithm>
 
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 #include "selfile.h"
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 
 /*****************************************************************************/
 /* SEL FILE LINE                                                 */

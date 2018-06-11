@@ -26,7 +26,7 @@
 
 #include "volume_from_pdb.h"
 
-#include <data/args.h>
+#include <core/args.h>
 
 #include <fstream>
 

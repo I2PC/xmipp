@@ -28,14 +28,14 @@
 #include <ctime>        // std::time
 #include <algorithm>
 #include <iostream>
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 #include <data/micrograph.h>
 #include <delaunay/delaunay.h>
 #include <delaunay/dcel.h>
 #include <geometry.h>
 //#include <relion-1.3/include/relion-1.3/src/matrix1d.h>
-#include <data/matrix1d.h>
-//#include <data/multidim_array.h>
+#include <core/matrix1d.h>
+//#include <core/multidim_array.h>
 
 void ProgassignmentTiltPair::readParams()
 {

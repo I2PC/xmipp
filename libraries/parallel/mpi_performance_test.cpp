@@ -27,8 +27,8 @@
 
 #include <mpi.h>
 #include "mpi_performance_test.h"
-#include <data/mask.h>
-#include <data/metadata_extension.h>
+#include <core/mask.h>
+#include <core/metadata_extension.h>
 
 
 // Empty constructor =======================================================

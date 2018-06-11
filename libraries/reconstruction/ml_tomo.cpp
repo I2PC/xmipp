@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "ml_tomo.h"
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 //#define JM_DEBUG
 

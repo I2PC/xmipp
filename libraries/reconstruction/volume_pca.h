@@ -25,11 +25,11 @@
 #ifndef _PROG_VOLUME_PCA
 #define _PROG_VOLUME_PCA
 
-#include <data/xmipp_funcs.h>
-#include <data/xmipp_image.h>
-#include <data/xmipp_program.h>
-#include <data/mask.h>
-#include <data/basic_pca.h>
+#include <core/xmipp_funcs.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_program.h>
+#include <core/mask.h>
+#include <core/basic_pca.h>
 
 ///@defgroup VolumePCA Volume PCA
 ///@ingroup ReconsLibrary

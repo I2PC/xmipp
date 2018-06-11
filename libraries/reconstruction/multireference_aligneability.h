@@ -27,12 +27,12 @@
 #define MULTIREFERENCE_ALIGNEABILITY_H_
 #define PI 3.14159265
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include "validation_nontilt.h"
 #include <math.h>
-#include <data/metadata.h>
+#include <core/metadata.h>
 #include <string.h>
-#include <data/mask.h>
+#include <core/mask.h>
 #include <data/symmetries.h>
 
 

@@ -26,7 +26,7 @@
 #ifndef _PROG_COORDINATES_NOISY_ZONES_FILTER_HH
 #define _PROG_COORDINATES_NOISY_ZONES_FILTER_HH
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <data/micrograph.h>
 #include <data/morphology.h>
 

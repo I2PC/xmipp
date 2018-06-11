@@ -26,7 +26,7 @@
 #ifndef _PROJECTXRAY_H_
 #define _PROJECTXRAY_H_
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <data/xmipp_threads.h>
 #include <data/psf_xr.h>
 

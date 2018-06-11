@@ -25,11 +25,11 @@
  ***************************************************************************/
 #include <math.h>
 #include "micrograph_automatic_picking2.h"
-#include <data/filters.h>
+#include <core/filters.h>
 #include <data/rotational_spectrum.h>
 #include <reconstruction/denoise.h>
 #include <data/xmipp_fft.h>
-#include <data/xmipp_filename.h>
+#include <core/xmipp_filename.h>
 #include <algorithm>
 #include <classification/uniform.h>
 

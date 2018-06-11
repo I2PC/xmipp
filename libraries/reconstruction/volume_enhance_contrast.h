@@ -29,9 +29,9 @@
 
 #include <string>
 #include <data/morphology.h>
-#include <data/filters.h>
-#include <data/transformations.h>
-#include <data/xmipp_program.h>
+#include <core/filters.h>
+#include <core/transformations.h>
+#include <core/xmipp_program.h>
 
 
 #include <queue>

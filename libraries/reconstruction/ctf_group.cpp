@@ -27,8 +27,8 @@
 
 #include "ctf_group.h"
 #include <data/xmipp_fft.h>
-#include <data/metadata_extension.h>
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
+#include <core/metadata_extension.h>
 
 /* Read parameters from command line. -------------------------------------- */
 void ProgCtfGroup::readParams()

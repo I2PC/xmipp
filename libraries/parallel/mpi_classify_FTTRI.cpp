@@ -26,12 +26,12 @@
  ***************************************************************************/
 
 #include "mpi_classify_FTTRI.h"
-#include <data/metadata_extension.h>
-#include <data/numerical_tools.h>
+#include <core/metadata_extension.h>
+#include <core/numerical_tools.h>
 #include <data/xmipp_fftw.h>
 #include <data/polar.h>
-#include <data/histogram.h>
-#include <data/filters.h>
+#include <core/histogram.h>
+#include <core/filters.h>
 
 //#define FTTRI_ALREADY_COMPUTED
 

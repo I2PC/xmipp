@@ -25,9 +25,9 @@
 #ifndef _FOURIER_FOURIER_PROJECTION_H
 #define _FOURIER_FOURIER_PROJECTION_H
 
-#include <data/xmipp_image.h>
-#include <data/xmipp_program.h>
-#include <data/filters.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_program.h>
+#include <core/filters.h>
 #include <data/xmipp_fftw.h>
 #include <data/projection.h>
 

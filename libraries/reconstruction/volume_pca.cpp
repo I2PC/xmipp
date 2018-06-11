@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/args.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/filters.h>
 #include "volume_pca.h"
 
 // Read arguments ==========================================================

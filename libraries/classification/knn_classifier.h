@@ -27,7 +27,7 @@
 #define KNN_CLASSIFIER_HH
 
 /* Includes-----------------------------------------------------------------*/
-#include <data/multidim_array.h>
+#include <core/multidim_array.h>
 
 /**@defgroup KNN Classifier
    @ingroup ClassificationLibrary */

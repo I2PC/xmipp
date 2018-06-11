@@ -25,11 +25,11 @@
 #ifndef _PROG_THRESHOLD_HH
 #define _PROG_THRESHOLD_HH
 
-#include <data/xmipp_funcs.h>
-#include <data/xmipp_image.h>
-#include <data/mask.h>
+#include <core/xmipp_funcs.h>
+#include <core/xmipp_image.h>
+#include <core/mask.h>
 #include <data/symmetries.h>
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup ThresholdProgram Threshold
    @ingroup ReconsLibrary */

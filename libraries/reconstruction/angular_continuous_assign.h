@@ -28,7 +28,7 @@
 #define _PROG_ANGULAR_PREDICT_CONTINUOUS
 
 #include "data/xmipp_program.h"
-#include "data/xmipp_image.h"
+#include <core/xmipp_image.h>
 #include "data/mask.h"
 #include "data/metadata.h"
 

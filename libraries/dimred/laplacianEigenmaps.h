@@ -26,8 +26,8 @@
 #ifndef AUTOENCODER_H_
 #define AUTOENCODER_H_
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 #include "dimred_tools.h"
 
 /**@defgroup LaplacianEigenmap Laplacian Eigenmap

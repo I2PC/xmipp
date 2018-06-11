@@ -26,7 +26,7 @@
 
 #include "pdb_reduce_pseudoatoms.h"
 #include <data/pdb.h>
-#include <data/args.h>
+#include <core/args.h>
 #include <fstream>
 
 ProgPdbReduce::ProgPdbReduce()

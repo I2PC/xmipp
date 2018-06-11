@@ -28,9 +28,9 @@
 #include "ctf_estimate_from_psd.h"
 #include "ctf_enhance_psd.h"
 
-#include <data/args.h>
-#include <data/histogram.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/histogram.h>
+#include <core/filters.h>
 #include <data/xmipp_fft.h>
 
 /* prototypes */

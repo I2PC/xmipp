@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "gplvm.h"
-#include <data/numerical_tools.h>
+#include <core/numerical_tools.h>
 
 void GPLVM::setSpecificParameters(double sigma)
 {

@@ -32,7 +32,7 @@
 #include "data/sampling.h"
 #include "project.h"
 #include <string>
-#include <data/metadata.h>
+#include <core/metadata.h>
 
 
 MultireferenceAligneability::MultireferenceAligneability()

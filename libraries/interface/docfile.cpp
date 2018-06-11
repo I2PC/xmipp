@@ -28,7 +28,7 @@
 #include <cstdio>
 
 #include "docfile.h"
-#include <data/args.h>
+#include <core/args.h>
 
 DocLine::DocLine(const DocLine& line)
 {

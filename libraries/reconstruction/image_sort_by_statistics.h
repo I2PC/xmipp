@@ -26,11 +26,11 @@
 #ifndef _PROG_IMAGE_SORT
 #define _PROG_IMAGE_SORT
 
-#include <data/xmipp_program.h>
-#include <data/basic_pca.h>
-#include <data/histogram.h>
+#include <core/xmipp_program.h>
+#include <core/basic_pca.h>
+#include <core/histogram.h>
 #include <reconstruction/fringe_processing.h>
-#include <data/filters.h>
+#include <core/filters.h>
 #include <math.h>
 
 

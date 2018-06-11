@@ -26,9 +26,9 @@
 
 #include "ctf_estimate_psd_with_arma.h"
 
-#include <data/args.h>
+#include <core/args.h>
 #include <data/xmipp_fftw.h>
-#include <data/filters.h>
+#include <core/filters.h>
 
 /* Read parameters from command line --------------------------------------- */
 void ARMA_parameters::readParams(XmippProgram *program)

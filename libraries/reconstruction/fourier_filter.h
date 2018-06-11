@@ -28,7 +28,7 @@
 
 #include <data/ctf.h>
 #include <data/xmipp_fftw.h>
-#include <data/filters.h>
+#include <core/filters.h>
 
 /**@defgroup FourierMasks Masks in Fourier space
    @ingroup ReconsLibrary */

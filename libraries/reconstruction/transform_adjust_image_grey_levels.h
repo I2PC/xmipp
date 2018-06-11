@@ -26,7 +26,7 @@
 #ifndef _PROG_TRANSFORM_IMAGE_GRAY_VALUES
 #define _PROG_TRANSFORM_IMAGE_GRAY_VALUES
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include "fourier_projection.h"
 #include "fourier_filter.h"
 

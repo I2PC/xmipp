@@ -26,7 +26,7 @@
 #ifndef __VOLUME_INITIAL_H_H
 #define __VOLUME_INITIAL_H_H
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <data/xmipp_threads.h>
 #include "reconstruct_fourier.h"
 #include "angular_project_library.h"

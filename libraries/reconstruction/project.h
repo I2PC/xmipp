@@ -25,10 +25,10 @@
 #ifndef _PROG_PROJECTION_HH
 #define _PROG_PROJECTION_HH
 
-#include <data/xmipp_funcs.h>
-#include <data/metadata.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata.h>
 #include <data/projection.h>
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <data/pdb.h>
 
 #include <data/phantom.h>

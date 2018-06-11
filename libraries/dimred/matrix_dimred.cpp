@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "matrix_dimred.h"
-#include <data/matrix2d.h>
+#include <core/matrix2d.h>
 
 ProgDimRed::ProgDimRed()
 {

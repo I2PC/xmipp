@@ -25,10 +25,10 @@
 
 #include "resolution_ssnr.h"
 
-#include <data/args.h>
+#include <core/args.h>
 #include <data/projection.h>
 #include <data/xmipp_fftw.h>
-#include <data/metadata_extension.h>
+#include <core/metadata_extension.h>
 #include "reconstruct_art.h"
 #include "fourier_projection.h"
 

@@ -28,15 +28,15 @@
 #define ALIGN_TILT_PAIRS_H
 
 #include <data/xmipp_fftw.h>
-#include <data/args.h>
-#include <data/xmipp_funcs.h>
+#include <core/args.h>
+#include <core/xmipp_funcs.h>
 
-#include <data/metadata.h>
-#include <data/metadata_extension.h>
-#include <data/xmipp_image.h>
-#include <data/geometry.h>
-#include <data/filters.h>
-#include <data/xmipp_program.h>
+#include <core/metadata.h>
+#include <core/metadata_extension.h>
+#include <core/xmipp_image.h>
+#include <core/geometry.h>
+#include <core/filters.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup Centilt align_tilt_pairs (Align tilted and untilted images in a random conical tilt experiment)
    @ingroup ReconsLibrary */

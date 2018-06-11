@@ -93,7 +93,7 @@ def addLib(name, **kwargs):
     # COSS kwargs['installDir'] = '#software/lib'
     # Add always the xmipp path as -I for include and also xmipp/libraries
     incs = kwargs.get('incs', []) + [join(XMIPP_PATH, 'external'),
-                                     join(XMIPP_PATH, 'libraries')]
+                                     join(XMIPP_PATH, 'libraries'), join(env['XMIPP_BUNDLE'],'xmippCore')]
     kwargs['incs'] = incs
 
     deps = kwargs.get('deps', [])
@@ -124,18 +124,11 @@ def addLib(name, **kwargs):
 # code is because try to use .h files to make the final .so library
 
 addLib('XmippExternal',
-       dirs=['external','external'],
-       patterns=['condor/*.cpp','delaunay/*.cpp'])
+       dirs=['external','external','external'],
+       patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc'],
+       libs=['pthread'])
 
-# Gtest
-addLib('XmippGtest',
-       dirs=['external'],
-       patterns=['gtest/*.cc'],
-       default=gtest,
-       libs=['pthread']
-       )
-
-EXT_LIBS = ['XmippExternal','XmippCore']
+EXT_LIBS = ['XmippExternal']
 env.Alias('XmippExternal', EXT_LIBS)
 
 

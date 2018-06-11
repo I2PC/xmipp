@@ -29,11 +29,11 @@
 #ifndef _XMIPP_SPIDER_HH
 #define _XMIPP_SPIDER_HH
 
-#include <data/metadata.h>
+#include <core/metadata.h>
 
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 #include <interface/docfile.h>
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 
 /**@defgroup SpiderInterface Spider
    @ingroup InterfaceLibrary */

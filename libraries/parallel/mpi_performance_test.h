@@ -26,7 +26,7 @@
 #define _PROG_PERFORMANCE_TEST
 
 #include <parallel/xmipp_mpi.h>
-#include <data/metadata.h>
+#include <core/metadata.h>
 #include <classification/pca.h>
 
 

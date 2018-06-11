@@ -27,7 +27,7 @@
 #ifndef _PROG_ESTIMATE_GAIN_HH
 #define _PROG_ESTIMATE_GAIN_HH
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup EstimateGainProgram Estimate gain from a movie
    @ingroup ReconsLibrary */

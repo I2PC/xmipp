@@ -29,12 +29,12 @@
 
 #endif /* VOLUME_VALIDATE_PCA_H_ */
 
-#include <data/xmipp_program.h>
-#include <data/metadata.h>
+#include <core/xmipp_program.h>
+#include <core/metadata.h>
 #include "reconstruct_fourier.h"
 #include "angular_project_library.h"
 #include "dimred/pca.h"
-#include <data/metadata.h>
+#include <core/metadata.h>
 
 /**@defgroup VolumeValidatePCA Validation of volume consistency with respect to the provided classes
    @ingroup ReconsLibrary */

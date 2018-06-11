@@ -25,7 +25,7 @@
 #ifndef _PROG_GPU_UTILS
 #define _PROG_GPU_UTILS
 
-#include <data/multidim_array.h>
+#include <core/multidim_array.h>
 #include <reconstruction_cuda/cuda_gpu_correlation.h>
 #include <reconstruction_cuda/cuda_xmipp_utils.h>
 

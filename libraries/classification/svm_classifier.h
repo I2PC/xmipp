@@ -28,7 +28,7 @@
 #define XMIPP__SVM_CLASSIFIER_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include "svm.h"
 
 /**@defgroup SVMClassifier SVM Classifier

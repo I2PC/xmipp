@@ -25,8 +25,8 @@
 
 #include "angular_break_symmetry.h"
 
-#include <data/args.h>
-#include <data/histogram.h>
+#include <core/args.h>
+#include <core/histogram.h>
 
 // Read arguments ==========================================================
 void ProgAngularBreakSymmetry::readParams()

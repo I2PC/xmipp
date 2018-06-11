@@ -25,9 +25,9 @@
 
 #include "fourier_filter.h"
 
-#include <data/args.h>
-#include <data/xmipp_image.h>
-#include <data/mask.h>
+#include <core/args.h>
+#include <core/xmipp_image.h>
+#include <core/mask.h>
 #include <data/xmipp_fft.h>
 
 /* Clear ------------------------------------------------------------------- */

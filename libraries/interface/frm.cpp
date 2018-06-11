@@ -25,8 +25,8 @@
  ***************************************************************************/
 
 #include "frm.h"
-#include <data/geometry.h>
-#include <data/transformations.h>
+#include <core/geometry.h>
+#include <core/transformations.h>
 
 void initializeScipionPython(String &scipionPython)
 {
@@ -87,7 +87,7 @@ PyObject * getPointerToPythonGeneralWedgeClass()
 
 #define DEBUG
 #ifdef DEBUG
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 #endif
 void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, MultidimArray<double> &I,
 		PyObject *Imask,

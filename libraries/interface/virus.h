@@ -29,8 +29,8 @@
 #ifndef _XMIPP_VIRUS_HH
 #define _XMIPP_VIRUS_HH
 
-#include <data/xmipp_funcs.h>
-#include <data/matrix2d.h>
+#include <core/xmipp_funcs.h>
+#include <core/matrix2d.h>
 
 #define Vir_Eq_Views 60
 #define Vir_Com_Lin_Pairs 37

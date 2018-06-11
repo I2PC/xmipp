@@ -37,7 +37,7 @@
 #include "training_set.h"
 #include "data_set.h"
 
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 
 /**@defgroup BaseAlgorithm Base Algorithm
    @ingroup ClassificationLibrary */

@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 #include "tomo_align_dual_tilt_series.h"
-#include <data/args.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/filters.h>
 #include <data/xmipp_fftw.h>
 
 double wrapperDualAligment(double *p, void *prm)

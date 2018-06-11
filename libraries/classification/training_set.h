@@ -40,7 +40,7 @@
 #include "data_types.h"
 #include "vector_ops.h"
 
-#include <data/args.h>
+#include <core/args.h>
 
 /**@defgroup TrainingSets Training Sets
    @ingroup ClassificationLibrary */

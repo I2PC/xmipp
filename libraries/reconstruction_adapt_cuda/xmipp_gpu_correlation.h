@@ -25,7 +25,7 @@
 #ifndef _PROG_GPU_CORRELATION
 #define _PROG_GPU_CORRELATION
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 class ProgGpuCorrelation: public XmippProgram
 {

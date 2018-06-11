@@ -27,9 +27,9 @@
 #define _PROG_SSNR
 
 #include <iostream>
-#include <data/xmipp_program.h>
-#include <data/xmipp_image.h>
-#include <data/metadata.h>
+#include <core/xmipp_program.h>
+#include <core/xmipp_image.h>
+#include <core/metadata.h>
 #include <data/xmipp_fft.h>
 
 /**@defgroup SSNR resolution_ssnr (Spectral Signal to Noise Ratio)

@@ -28,13 +28,13 @@
 #define MPI_RECONSTRUCT_FOURIER_H_
 
 #include "xmipp_mpi.h"
-#include <data/args.h>
+#include <core/args.h>
 #include <reconstruction/reconstruct_fourier.h>
 #include <data/projection.h>
 #include <cstring>
 #include <cstdlib>
-#include <data/xmipp_funcs.h>
-#include <data/matrix2d.h>
+#include <core/xmipp_funcs.h>
+#include <core/matrix2d.h>
 #include <sys/time.h>
 #include <iostream>
 #include <sstream>

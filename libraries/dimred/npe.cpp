@@ -25,8 +25,8 @@
  ***************************************************************************/
 
 #include "npe.h"
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 
 void NPE::setSpecificParameters(int k){
 	this->k=k;

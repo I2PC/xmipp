@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "nca.h"
-#include <data/numerical_tools.h>
+#include <core/numerical_tools.h>
 
 void NeighbourhoodCA::setLabels(const Matrix1D<unsigned char> &labels)
 {

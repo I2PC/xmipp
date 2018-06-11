@@ -27,8 +27,8 @@
 #ifndef _NPE
 #define _NPE
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 #include "dimred_tools.h"
 
 class NPE: public DimRedAlgorithm

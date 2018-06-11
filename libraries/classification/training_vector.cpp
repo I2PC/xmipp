@@ -30,8 +30,8 @@
 #include <cmath>
 
 #include "training_vector.h"
-#include <data/args.h>
-#include <data/metadata.h>
+#include <core/args.h>
+#include <core/metadata.h>
 
 /**
  * TrainingSet for ClassicTrainingVectors

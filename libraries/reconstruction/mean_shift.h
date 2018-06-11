@@ -28,10 +28,10 @@
 #define _MEAN_SHIFT_H
 
 #include <string>
-#include <data/filters.h>
-#include <data/xmipp_funcs.h>
+#include <core/filters.h>
+#include <core/xmipp_funcs.h>
 #include <data/xmipp_threads.h>
-#include <data/histogram.h>
+#include <core/histogram.h>
 
 /// @defgroup Denoise Image denoising
 /// @ingroup ReconsLibrary

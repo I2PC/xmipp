@@ -26,10 +26,10 @@
 #ifndef _TRANSFROM_DIMRED
 #define _TRANSFROM_DIMRED
 
-#include <data/metadata.h>
-#include <data/xmipp_program.h>
-#include <data/mask.h>
-#include <data/filters.h>
+#include <core/metadata.h>
+#include <core/xmipp_program.h>
+#include <core/mask.h>
+#include <core/filters.h>
 #include "matrix_dimred.h"
 
 /**@defgroup ProgTransformDimRed Obtain image distances between images in metadata

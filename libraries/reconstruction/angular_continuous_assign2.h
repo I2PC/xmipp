@@ -26,7 +26,7 @@
 #ifndef _PROG_ANGULAR_PREDICT_CONTINOUOS2
 #define _PROG_ANGULAR_PREDICT_CONTINUOUS2
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <data/ctf.h>
 #include "fourier_projection.h"
 #include "fourier_filter.h"

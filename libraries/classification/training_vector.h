@@ -31,7 +31,7 @@
 #define XMIPPCTVECTORS_H
 
 #include <sstream>
-#include <data/xmipp_filename.h>
+#include <core/xmipp_filename.h>
 #include "data_types.h"
 #include "training_set.h"
 #include "vector_ops.h"

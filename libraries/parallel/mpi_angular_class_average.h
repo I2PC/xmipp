@@ -28,17 +28,17 @@
 
 //mpirun -np 5 xmipp_mpi_angular_class_average --nJobs 70
 #include <parallel/xmipp_mpi.h>
-#include <data/xmipp_funcs.h>
-#include <data/xmipp_program.h>
-#include <data/metadata.h>
+#include <core/xmipp_funcs.h>
+#include <core/xmipp_program.h>
+#include <core/metadata.h>
 
 #include <data/xmipp_fftw.h>
-#include <data/args.h>
-#include <data/xmipp_image.h>
-#include <data/filters.h>
-#include <data/mask.h>
+#include <core/args.h>
+#include <core/xmipp_image.h>
+#include <core/filters.h>
+#include <core/mask.h>
 #include <data/polar.h>
-#include <data/basic_pca.h>
+#include <core/basic_pca.h>
 #include <data/sampling.h>
 
 //Tags already defined in xmipp

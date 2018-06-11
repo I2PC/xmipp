@@ -196,6 +196,7 @@ for path in ['MPI_LIBDIR', 'MPI_INCLUDE', 'MPI_BINDIR']:
     if not os.path.isdir(os.environ.get(path, '')):
         Exit('Path to $%s (%s) should exist, but it does not. Stopping.\n'% (path, os.environ.get(path, '')))
 
+env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
 env['MPI_CC'] = os.environ.get('MPI_CC')
 env['MPI_CXX'] = os.environ.get('MPI_CXX')
 env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')

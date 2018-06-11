@@ -26,14 +26,14 @@
 #ifndef CTF_CORRECT_WIENER2D_H_
 #define CTF_CORRECT_WIENER2D_H_
 
-#include <data/xmipp_program.h>
-#include <data/xmipp_funcs.h>
-#include <data/metadata.h>
+#include <core/xmipp_program.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata.h>
 #include <data/xmipp_fftw.h>
-#include <data/args.h>
+#include <core/args.h>
 #include <data/ctf.h>
-#include <data/xmipp_image.h>
-#include <data/filters.h>
+#include <core/xmipp_image.h>
+#include <core/filters.h>
 
 /**@defgroup Correct CTF by Wiener filter in 2D
    @ingroup ReconsLibrary */

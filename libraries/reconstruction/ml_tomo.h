@@ -28,20 +28,20 @@
 
 #include <data/xmipp_fftw.h>
 #include <data/xmipp_fft.h>
-#include <data/args.h>
-#include <data/xmipp_funcs.h>
-#include <data/metadata_extension.h>
-#include <data/xmipp_image.h>
-#include <data/geometry.h>
-#include <data/filters.h>
-#include <data/mask.h>
+#include <core/args.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata_extension.h>
+#include <core/xmipp_image.h>
+#include <core/geometry.h>
+#include <core/filters.h>
+#include <core/mask.h>
 #include <data/ctf.h>
 #include <data/sampling.h>
 #include <data/symmetries.h>
 #include "symmetrize.h"
 #include <data/xmipp_threads.h>
 #include <vector>
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 #define SIGNIFICANT_WEIGHT_LOW 1e-8
 #undef SMALLANGLE

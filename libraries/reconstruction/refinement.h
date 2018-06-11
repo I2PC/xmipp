@@ -26,9 +26,9 @@
 #ifndef _REFINEMENT_HH
 #define _REFINEMENT_HH
 
-#include <data/xmipp_image.h>
-#include <data/xmipp_funcs.h>
-#include <data/multidim_array.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_funcs.h>
+#include <core/multidim_array.h>
 #include <data/xmipp_fftw.h>
 
 #include <data/projection.h>

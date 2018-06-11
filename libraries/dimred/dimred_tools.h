@@ -25,8 +25,8 @@
 #ifndef _DIMRED_TOOLS
 #define _DIMRED_TOOLS
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 
 /**@defgroup DimRedTools Tools for dimensionality reduction
    @ingroup DimRedLibrary */

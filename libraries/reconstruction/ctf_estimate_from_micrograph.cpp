@@ -27,13 +27,13 @@
 #include "ctf_estimate_from_micrograph.h"
 #include "ctf_enhance_psd.h" //Al final hay una funcion que lo necesita. Pero es necesaria?
 
-#include <data/args.h>
+#include <core/args.h>
 #include <data/micrograph.h>
-#include <data/metadata.h>
-#include <data/xmipp_image.h>
+#include <core/metadata.h>
+#include <core/xmipp_image.h>
 #include <data/xmipp_fft.h>
 #include <data/xmipp_threads.h>
-#include <data/basic_pca.h>
+#include <core/basic_pca.h>
 #include <data/normalize.h>
 
 /* Read parameters ========================================================= */

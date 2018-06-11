@@ -26,12 +26,12 @@
 #define _PROG_ALIGN2D
 
 #include <data/xmipp_fftw.h>
-#include <data/args.h>
-#include <data/xmipp_funcs.h>
-#include <data/metadata_extension.h>
-#include <data/metadata.h>
-#include <data/xmipp_image.h>
-#include <data/xmipp_program.h>
+#include <core/args.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata_extension.h>
+#include <core/metadata.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_program.h>
 #include <vector>
 
 /**@defgroup Align2DProgram align2d (Align a set of 2D images)

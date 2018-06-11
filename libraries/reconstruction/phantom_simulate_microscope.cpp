@@ -25,7 +25,7 @@
 
 #include "phantom_simulate_microscope.h"
 
-#include <data/args.h>
+#include <core/args.h>
 
 /* Read parameters --------------------------------------------------------- */
 void ProgSimulateMicroscope::readParams()

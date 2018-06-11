@@ -26,8 +26,8 @@
 // Translated from MATLAB code by Yoel Shkolnisky
 
 #include "mpi_image_rotational_pca.h"
-#include <data/mask.h>
-#include <data/metadata_extension.h>
+#include <core/mask.h>
+#include <core/metadata_extension.h>
 
 // Empty constructor =======================================================
 MpiProgImageRotationalPCA::MpiProgImageRotationalPCA(int argc, char **argv)

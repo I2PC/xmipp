@@ -26,10 +26,10 @@
 #define _PROG_ANGULAR_ASSIGN_FOR_TILTSERIES
 
 #include <vector>
-#include <data/matrix1d.h>
-#include <data/metadata.h>
-#include <data/metadata_extension.h>
-#include <data/xmipp_program.h>
+#include <core/matrix1d.h>
+#include <core/metadata.h>
+#include <core/metadata_extension.h>
+#include <core/xmipp_program.h>
 #include <pthread.h>
 
 /**@defgroup AngularAssignTiltSeries angular_assign_for_tilt_series

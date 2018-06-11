@@ -29,8 +29,8 @@
 
 #include "refinement.h"
 
-#include <data/xmipp_funcs.h>
-#include <data/geometry.h>
+#include <core/xmipp_funcs.h>
+#include <core/geometry.h>
 #include <data/xmipp_fft.h>
 
 //-------------------------------------------------------------------------

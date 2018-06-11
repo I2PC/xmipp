@@ -28,7 +28,7 @@
 #define BASE_ART_RECONS_H_
 
 #include "basic_art.h"
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup common ART Reconstruction stuff
    @ingroup ReconsLibrary

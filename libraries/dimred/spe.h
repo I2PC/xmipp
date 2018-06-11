@@ -26,8 +26,8 @@
 #ifndef _SPE
 #define _SPE
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 #include "dimred_tools.h"
 
 /**@defgroup SPE Stochastic Proximity Embedding

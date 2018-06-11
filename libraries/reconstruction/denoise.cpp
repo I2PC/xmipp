@@ -24,10 +24,10 @@
  ***************************************************************************/
 
 #include "denoise.h"
-#include <data/args.h>
+#include <core/args.h>
 #include <data/wavelet.h>
-#include <data/histogram.h>
-#include <data/filters.h>
+#include <core/histogram.h>
+#include <core/filters.h>
 
 #include <iomanip>
 

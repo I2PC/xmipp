@@ -24,12 +24,12 @@
  ***************************************************************************/
 
 #include <data/xmipp_fft.h>
-#include <data/args.h>
-#include <data/xmipp_funcs.h>
-#include <data/metadata_extension.h>
-#include <data/xmipp_image.h>
+#include <core/args.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata_extension.h>
+#include <core/xmipp_image.h>
 #include <data/projection.h>
-#include <data/filters.h>
+#include <core/filters.h>
 
 #include <reconstruction/recons.h>
 

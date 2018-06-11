@@ -33,7 +33,7 @@
 #include <ctime>
 
 #include "gaussian_kerdensom.h"
-#include <data/metadata.h>
+#include <core/metadata.h>
 
 #define  MAXZ -11282
 

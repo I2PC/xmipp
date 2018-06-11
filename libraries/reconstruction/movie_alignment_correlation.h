@@ -26,7 +26,7 @@
 #ifndef _PROG_MOVIE_ALIGNMENT_CORRELATION
 #define _PROG_MOVIE_ALIGNMENT_CORRELATION
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup MovieAlignmentCorrelation Movie alignment by correlation
    @ingroup ReconsLibrary */

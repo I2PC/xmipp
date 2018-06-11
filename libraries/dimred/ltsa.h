@@ -25,8 +25,8 @@
 #ifndef LTSA_H_
 #define LTSA_H_
 
-#include <data/matrix2d.h>
-#include <data/matrix1d.h>
+#include <core/matrix2d.h>
+#include <core/matrix1d.h>
 #include "dimred_tools.h"
 
 /**@defgroup LTSA Local Tangent Space Alignment

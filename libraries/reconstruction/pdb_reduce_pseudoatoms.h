@@ -26,7 +26,7 @@
 #ifndef _PROG_PDB_REDUCE_PSEUDOATOMS_H_ /*SOFTWARE_EM_XMIPP_LIBRARIES_RECONSTRUCTION_PDB_REDUCE_PSEUDOATOMS_H_*/
 #define _PROG_PDB_REDUCE_PSEUDOATOMS_H_ /*SOFTWARE_EM_XMIPP_LIBRARIES_RECONSTRUCTION_PDB_REDUCE_PSEUDOATOMS_H_*/
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 class ProgPdbReduce: public XmippProgram
 {

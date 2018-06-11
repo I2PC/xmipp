@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "validation_tilt_pairs.h"
-#include <data/metadata.h>
-#include <data/metadata_extension.h>
+#include <core/metadata.h>
+#include <core/metadata_extension.h>
 #include <complex>
 //#include <cmath>
 

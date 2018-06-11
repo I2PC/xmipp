@@ -26,7 +26,7 @@
 #ifndef __RECONSTRUCT_SIGNIFICANT_H
 #define __RECONSTRUCT_SIGNIFICANT_H
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include "angular_project_library.h"
 #include "volume_initial_simulated_annealing.h"
 

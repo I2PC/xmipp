@@ -25,13 +25,13 @@
 
 #include "xmipp_gpu_correlation.h"
 
-#include <data/xmipp_image.h>
-#include <data/mask.h>
+#include <core/xmipp_image.h>
+#include <core/mask.h>
 #include <data/xmipp_fftw.h>
-#include <data/transformations.h>
-#include <data/metadata_extension.h>
-#include <data/filters.h>
-#include <data/xmipp_funcs.h>
+#include <core/transformations.h>
+#include <core/metadata_extension.h>
+#include <core/filters.h>
+#include <core/xmipp_funcs.h>
 //#include <data/xmipp_threads.h>
 
 #include "xmipp_gpu_utils.h"

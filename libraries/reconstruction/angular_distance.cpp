@@ -25,8 +25,8 @@
 
 #include "angular_distance.h"
 
-#include <data/args.h>
-#include <data/histogram.h>
+#include <core/args.h>
+#include <core/histogram.h>
 
 // Read arguments ==========================================================
 void ProgAngularDistance::readParams()

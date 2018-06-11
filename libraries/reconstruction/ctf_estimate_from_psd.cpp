@@ -30,9 +30,9 @@
 #include "fourier_filter.h"
 #include "fringe_processing.h"
 
-#include <data/args.h>
-#include <data/histogram.h>
-#include <data/filters.h>
+#include <core/args.h>
+#include <core/histogram.h>
+#include <core/filters.h>
 #include <data/xmipp_fft.h>
 
 /* prototypes */

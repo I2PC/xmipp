@@ -26,11 +26,11 @@
 #ifndef _PROG_COMMONLINES_HH
 #  define _PROG_COMMONLINES_HH
 
-#include <data/xmipp_funcs.h>
-#include <data/metadata.h>
-#include <data/multidim_array.h>
-#include <data/numerical_tools.h>
-#include <data/xmipp_program.h>
+#include <core/xmipp_funcs.h>
+#include <core/metadata.h>
+#include <core/multidim_array.h>
+#include <core/numerical_tools.h>
+#include <core/xmipp_program.h>
 #include <iostream>
 
 /**@defgroup CommonLinesProgram Common Lines (find common lines between projections)

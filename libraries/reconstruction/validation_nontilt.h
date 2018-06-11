@@ -27,7 +27,7 @@
 #define VALIDATION_NONTILT_H_
 #define PI 3.14159265
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 #include <math.h>
 
 /**@defgroup Validation without tilt

@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "volume_halves_restoration.h"
-#include <data/numerical_tools.h>
+#include <core/numerical_tools.h>
 
 // Read arguments ==========================================================
 void ProgVolumeHalvesRestoration::readParams()

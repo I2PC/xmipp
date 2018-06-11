@@ -25,7 +25,7 @@
 #ifndef _PROG_CONSTRUCT_DICTIONARY_HH
 #define _PROG_CONSTRUCT_DICTIONARY_HH
 
-#include <data/xmipp_program.h>
+#include <core/xmipp_program.h>
 
 /**@defgroup PDBConstructDictionary Construct a low and high resolution dictionary
    @ingroup ReconsLibrary */
