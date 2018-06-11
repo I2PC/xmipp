@@ -38,9 +38,6 @@ Import('env')
 
 AddOption('--no-opencv', dest='opencv', action='store_false', default=True,
           help='Avoid compilation of opencv programs')
-AddOption('--no-scipy', dest='scipy', action='store_false', default=True,
-          help='Avoid compilation with scipy support')
-
 
 
 # Define some variables used by Scons. Note that some of
@@ -122,36 +119,13 @@ def addLib(name, **kwargs):
     return lib
 
 
-# Includes of bilib library
-bilib_incs = ['external/bilib' + s for s in ['', '/headers', '/types']]
-alglib_incs = ['external/alglib/src']
-
 # Add first external libraries (alglib, bilib, condor)
 #NOTE: for alglib and condor, the dir can not be where the source
 # code is because try to use .h files to make the final .so library
 
-addLib('XmippAlglib',
-       dirs=['external/alglib'],
-       patterns=['src/*.cpp'])
-
-addLib('XmippBilib',
-       dirs=['external/bilib/sources'],
-       patterns=['*.cc'],
-       incs=bilib_incs
-       )
-
-addLib('XmippCondor',
-       dirs=['external'],
-       patterns=['condor/*.cpp'])
-
-addLib('XmippDelaunay',
-       dirs=['external'],
-       patterns=['delaunay/*.cpp'])
-
-addLib('XmippSqliteExt',
-       dirs=['external/sqliteExt'],
-       patterns=['extension-functions.c'],
-       libs=['m'])
+addLib('XmippExternal',
+       dirs=['external','external'],
+       patterns=['condor/*.cpp','delaunay/*.cpp'])
 
 # Gtest
 addLib('XmippGtest',
@@ -161,8 +135,7 @@ addLib('XmippGtest',
        libs=['pthread']
        )
 
-EXT_LIBS = ['XmippAlglib', 'XmippBilib', 'XmippCondor', 'XmippDelaunay']
-EXT_LIBS2 = ['XmippAlglib', 'XmippBilib', 'XmippCondor', 'XmippDelaunay', 'XmippSqliteExt']
+EXT_LIBS = ['XmippExternal','XmippCore']
 env.Alias('XmippExternal', EXT_LIBS)
 
 
@@ -170,36 +143,25 @@ env.Alias('XmippExternal', EXT_LIBS)
 #TODO: checklib rt?????
 addLib('XmippData',
        dirs=['libraries'],
-       patterns=['data/*.cpp'],
-       libs=['fftw3', 'fftw3_threads',
-             'hdf5','hdf5_cpp',
-             'tiff',
-             'jpeg',
-             'sqlite3',
-             'pthread',
-             'rt',
-             'XmippAlglib', 'XmippBilib'])
+       patterns=['data/*.cpp'])
 
 # Classification
 addLib('XmippClassif',
        dirs=['libraries'],
        patterns=['classification/*.cpp'],
-       libs=['XmippData', 'XmippAlglib', 'XmippBilib'])
+       libs=['XmippData'])
 
 # Dimred
 addLib('XmippDimred',
        dirs=['libraries'],
        patterns=['dimred/*.cpp'],
-       libs=['XmippData', 'XmippBilib'])
+       libs=['XmippData'])
 
 # Reconstruction
 addLib('XmippRecons',
        dirs=['libraries'],
        patterns=['reconstruction/*.cpp'],
-       incs=bilib_incs,
-       libs=['hdf5', 'hdf5_cpp', 'pthread',
-             'fftw3_threads',  
-             'XmippData', 'XmippClassif', 'XmippBilib', 'XmippCondor', 'XmippDelaunay'])
+       libs=['XmippData', 'XmippClassif', 'XmippExternal'])
 
 
 # Reconstruction CUDA
@@ -220,7 +182,7 @@ if cuda:
        dirs=['libraries'],
        patterns=['parallel_adapt_cuda/*.cpp'],
        incs=bilib_incs,
-       libs=['pthread', 'XmippData', 'XmippClassif', 'XmippRecons', 'XmippBilib', 'XmippReconsCuda', 'XmippReconsAdaptCuda'],
+       libs=['pthread', 'XmippData', 'XmippClassif', 'XmippRecons', 'XmippExternal', 'XmippReconsCuda', 'XmippReconsAdaptCuda'],
        mpi=True)
 
 
@@ -245,7 +207,7 @@ addLib('XmippParallel',
               dirs=['libraries'],
               patterns=['parallel/*.cpp'],
               libs=['pthread', 'fftw3_threads',
-                    'XmippData', 'XmippClassif', 'XmippRecons', 'XmippBilib'],
+                    'XmippData', 'XmippClassif', 'XmippRecons'],
               mpi=True)
 
 # Python binding
@@ -253,172 +215,8 @@ addLib('xmipp.so',
        dirs=['libraries/bindings'],
        patterns=['python/*.cpp'],
        incs=python_incdirs,
-       libs=['python2.7', 'XmippData', 'XmippRecons', 'XmippBilib'],
+       libs=['python2.7', 'XmippData', 'XmippRecons'],
        prefix='', target='xmipp')
-
-# Java binding
-addLib('XmippJNI',
-       dirs=['libraries/bindings'],
-       patterns=['java/*.cpp'],
-       incs=env['JNI_CPPPATH'],
-       libs=['pthread', 'XmippData', 'XmippRecons','XmippClassif', 'XmippBilib'])
-
-
-#  ***********************************************************************
-#  *                      Java Libraries                                 *
-#  ***********************************************************************
-
-# Helper functions so we don't write so much.
-fpath = lambda path: File('%s' % path).abspath
-dpath = lambda path: Dir('%s' % path).abspath
-epath = lambda path: Entry('%s' % path).abspath
-
-javaEnumDict = {
-    'ImageWriteMode': [fpath('libraries/data/xmipp_image_base.h'), 'WRITE_'],
-    'CastWriteMode': [fpath('libraries/data/xmipp_image_base.h'), 'CW_'],
-    'MDLabel': [fpath('libraries/data/metadata_label.h'), ['MDL_', 'RLN_', 'BSOFT']],
-    'XmippError': [fpath('libraries/data/xmipp_error.h'), 'ERR_']}
-
-
-def WriteJavaEnum(class_name, header_file, pattern, log):
-    java_file = fpath('java/src/xmipp/jni/%s.java' % class_name)
-    env.Depends(java_file, header_file)
-    fOut = open(java_file, 'w+')
-    counter = 0;
-    if isinstance(pattern, basestring):
-        patternList = [pattern]
-    elif isinstance(pattern, list):
-        patternList = pattern
-    else:
-        raise Exception("Invalid input pattern type: %s" % type(pattern))
-    last_label_pattern = patternList[0] + "LAST_LABEL"
-    fOut.write("""package xmipp.jni;
-
-public class %s {
-""" % class_name)
-
-    for line in open(header_file):
-        l = line.strip();
-        for p in patternList:
-            if not l.startswith(p):
-                continue
-            if '///' in l:
-                l, comment = l.split('///')
-            else:
-                comment = ''
-            if l.startswith(last_label_pattern):
-                l = l.replace(last_label_pattern, last_label_pattern + " = " + str(counter) + ";")
-            if (l.find("=") == -1):
-                l = l.replace(",", " = %d;" % counter)
-                counter = counter + 1;
-            else:
-                l = l.replace(",", ";")
-
-            fOut.write("   public static final int %s /// %s\n" % (l, comment))
-    fOut.write("}\n")
-    fOut.close()
-    # Write log file
-    if log:
-        log.write("Java file '%s' successful generated at %s\n" %
-                  (java_file, datetime.now()))
-
-
-def ExtractEnumFromHeader(env, target, source):
-    log = open(str(target[0]), 'w+')
-    for (class_name, list) in javaEnumDict.iteritems():
-        WriteJavaEnum(class_name, list[0], list[1], log)
-
-    log.close()
-    return None
-
-
-env['JAVADIR'] = 'java'
-env['JAVA_BUILDPATH'] = 'java/build'
-env['JAVA_LIBPATH'] = 'java/lib'
-env['JAVA_SOURCEPATH'] = 'java/src'
-env['ENV']['LANG'] = 'en_GB.UTF-8'
-env['JARFLAGS'] = '-Mcf'    # Default "cf". "M" = Do not add a manifest file.
-# Set -g debug options if debugging
-if debug:
-    env['JAVAC'] = 'javac -g'  # TODO: check how to add -g without changing JAVAC
-
-javaBuild = Execute(Mkdir(epath('java/build')))
-
-# Update enums in java files from C++ headers. If they don't exist, generate them.
-log = open(fpath('java/build/javaLog'), 'w+')
-for class_name, class_list in javaEnumDict.iteritems():
-    WriteJavaEnum(class_name, class_list[0], class_list[1], log)
-
-javaExtractCommand = env.Command(
-    epath('libraries/bindings/java/src/xmipp/jni/enums.changelog'),
-    [fpath('libraries/data/xmipp_image_base.h'),
-     fpath('libraries/data/metadata_label.h')],
-    ExtractEnumFromHeader)
-
-javaEnums = env.Alias('javaEnums', javaExtractCommand)
-
-imagejUntar = env.Untar(
-    fpath('external/imagej/ij.jar'), fpath('external/imagej.tgz'),
-    cdir=dpath('external'))
-#env.Depends(imagejUntar, javaEnums)
-
-ijLink = env.SymLink(fpath('java/lib/ij.jar'), imagejUntar[0].abspath)
-env.Depends(ijLink, imagejUntar)
-env.Default(ijLink)
-
-xmippJavaJNI = env.AddJavaLibrary(
-    'XmippJNI', 'xmipp/jni',
-    deps=[ijLink, javaEnums])
-
-xmippJavaUtils = env.AddJavaLibrary(
-    'XmippUtils', 'xmipp/utils',
-    deps=[ijLink, xmippJavaJNI])
-
-xmippIJ = env.AddJavaLibrary(
-    'XmippIJ', 'xmipp/ij/commons',
-    deps=[xmippJavaUtils])
-
-xmippViewer = env.AddJavaLibrary(
-    'XmippViewer', 'xmipp/viewer',
-    deps=[xmippIJ])
-
-xmippTest = env.AddJavaLibrary(
-    'XmippTest', 'xmipp/test',
-    deps=[xmippViewer])
-
-
-# FIXME: the environment used for the rest of SCons is imposible to
-# use to compile java code. Why?
-# In the meanwhile we'll use an alternative environment.
-env2 = Environment(ENV=os.environ)
-env2.AppendUnique(JAVACLASSPATH='"%s/*"' % dpath('java/lib'))
-javaExtraFileTypes = env2.Java(epath('java/build/HandleExtraFileTypes.class'),
-                               fpath('java/src/HandleExtraFileTypes.java'))
-env2.Depends(javaExtraFileTypes, epath('java/lib/XmippViewer.jar'))
-env2.Default(javaExtraFileTypes)
-
-# FIXME: For any yet unknown issue, java is being compiled putting in
-# -d flag the class name, producing a folder with the same name as the
-# class and putting the class file inside
-fileTypesInstallation = env.Install(
-    dpath('external/imagej/plugins/'),
-    epath('java/build/HandleExtraFileTypes.class/HandleExtraFileTypes.class'))
-#env.Depends(fileTypesInstallation, pluginLink)
-env.Default(fileTypesInstallation)
-
-# Java tests
-AddOption('--run-java-tests', dest='run_java_tests', action='store_true',
-          help='Run all Java tests (not only default ones)')
-
-env.AddJavaTest('FilenameTest', 'XmippTest.jar')
-env.AddJavaTest('ImageGenericTest', 'XmippTest.jar')
-env.AddJavaTest('MetadataTest', 'XmippTest.jar')
-
-env.Alias('xmipp-java', [xmippJavaJNI,
-                         xmippJavaUtils,
-                         xmippIJ,
-                         xmippViewer,
-                         xmippTest])
 
 
 #  ***********************************************************************
@@ -428,10 +226,7 @@ env.Alias('xmipp-java', [xmippJavaJNI,
 XMIPP_LIBS = ['XmippData', 'XmippRecons', 'XmippClassif']
 PROG_DEPS = EXT_LIBS + XMIPP_LIBS
 
-PROG_LIBS = EXT_LIBS + XMIPP_LIBS + ['sqlite3',
-                                     'fftw3', 'fftw3_threads',
-                                     'tiff', 'jpeg', 'png',
-                                     'hdf5', 'hdf5_cpp']
+PROG_LIBS = EXT_LIBS + XMIPP_LIBS
 
 def addRunTest(testName, prog):
     """ Add a Scons target for running xmipp tests. """
@@ -796,13 +591,9 @@ def addBatch(batchName, script, scriptFolder='applications/scripts'):
 
 addBatch('apropos', 'apropos/batch_apropos.py')
 addBatch('compile', 'compile/batch_compile.py')
-addBatch('metadata_plot', 'metadata_plot/batch_metadata_plot.py')
 addBatch('metadata_selfile_create', 'metadata_selfile_create/batch_metadata_selfile_create.py')
-addBatch('showj', 'showj/batch_showj.py')
-addBatch('tomoj', 'tomoj/batch_tomoj.py')
 addBatch('volume_align', 'volume_align/batch_volume_align.sh')
 addBatch('mpi_classify_CLTomo', 'mpi_classify_CLTomo/batch_mpi_classify_CLTomo.sh')
-addBatch('imagej', 'runImageJ', 'external')
 
 # # Python tests
 # testPythonInterface = env.SymLink('bin/xmipp_test_pythoninterface', 'applications/tests/test_pythoninterface/batch_test_pythoninterface.py')
@@ -879,8 +670,7 @@ if matlab:
 
 XmippAlias = env.Alias('xmipp', ['xmipp-libs',
                                  'xmipp-programs',
-                                 'xmipp-batchs',
-                                 'xmipp-java'])
+                                 'xmipp-batchs'])
 
 
 Return('XmippAlias')

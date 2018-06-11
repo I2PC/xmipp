@@ -192,11 +192,9 @@ os.environ['CXXFLAGS'] = cxxFlags # FIXME use only env or os.environ in the rest
 env['LINKFLAGS'] = os.environ.get('LINKFLAGS', '').split()
 
 
-for path in ['MPI_LIBDIR', 'MPI_INCLUDE', 'MPI_BINDIR',
-             'JAVA_HOME', 'JAVA_BINDIR']:
+for path in ['MPI_LIBDIR', 'MPI_INCLUDE', 'MPI_BINDIR']:
     if not os.path.isdir(os.environ.get(path, '')):
-        Exit('Path to $%s (%s) should exist, but it does not. Stopping.\n'
-             'Please run "scipion config"' % (path, os.environ.get(path, '')))
+        Exit('Path to $%s (%s) should exist, but it does not. Stopping.\n'% (path, os.environ.get(path, '')))
 
 env['MPI_CC'] = os.environ.get('MPI_CC')
 env['MPI_CXX'] = os.environ.get('MPI_CXX')
@@ -211,18 +209,6 @@ env['NVCC_INCLUDE'] = os.environ.get('NVCC_INCLUDE')
 env['NVCC_LIBDIR'] = os.environ.get('NVCC_LIBDIR')
 env['CUDA_LIB'] = os.environ.get('CUDA_LIB')
 
-# Java related environment variables, probably the main one
-# that need to be modified is JAVA_HOME
-env['JAVA_HOME'] = os.environ['JAVA_HOME']
-env['JAVA_BINDIR'] = os.environ['JAVA_BINDIR']
-env['JAVAC'] = os.environ.get('JAVAC')
-env['JAR'] = os.environ.get('JAR')
-env['JNI_CPPPATH'] = os.environ.get('JNI_CPPPATH').split(':')
-
-
-AddOption('--with-all-packages', dest='withAllPackages', action='store_true',
-          help='Get all EM packages')
-
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
                   'SCONSCRIPT': xmippPath
@@ -235,30 +221,6 @@ env['PACKAGE'] = {'NAME': 'xmipp',
 #  *                                                                      *
 #  ************************************************************************
 
-# We have several "Pseudo-Builders" http://www.scons.org/doc/HTML/scons-user/ch20.html
-#
-# They are:
-#   addCppLibrary - install a EM package library
-#   addJavaLibrary    - install a java jar
-#   addProgram        - install a EM package program
-#
-# Their structure is similar:
-#   * Define reasonable defaults
-#   * Set --with-<name> option as appropriate
-#   * Concatenate builders
-#
-# For the last step we concatenate the builders this way:
-#   target1 = Builder1(env, target1, source1)
-#   SideEffect('dummy', target1)
-#   target2 = Builder2(env, target2, source2=target1)
-#   SideEffect('dummy', target2)
-#   ...
-#
-# So each target becomes the source of the next builder, and the
-# dependency is solved. Also, we use SideEffect('dummy', ...) to
-# ensure it works in a parallel build (see
-# http://www.scons.org/wiki/SConsMethods/SideEffect), and does not try
-# to do one step while the previous one is still running in the background.
 def remove_prefix(text, prefix):
     return text[text.startswith(prefix) and len(prefix):]
 
@@ -513,89 +475,6 @@ def CreateFileList(path, pattern, filename, root='', root2=''):
     fOut.writelines(files)
     fOut.close()
     
-    
-def CompileJavaJar(target, source, env):  
-    """Add self-made and compiled java library to the compilation process """  
-    srcDir = str(source[0])
-    print "Compiling jar: ", target[0]
-    buildDir = join(env['PACKAGE']['SCONSCRIPT'], env['JAVA_BUILDPATH'])
-    classPath = "'%s/*'" % join(env['PACKAGE']['SCONSCRIPT'], env['JAVA_LIBPATH'])
-    globalSrcDir = join(env['PACKAGE']['SCONSCRIPT'], env['JAVA_SOURCEPATH'])
-    jarfile = str(target[0])
-    name = os.path.basename(jarfile)
-    listfile = join(buildDir, name+'_source.txt')
-    classfile = join(buildDir, name+'_classes.txt')
-    CreateFileList(srcDir, '*.java', listfile)
-    Cmd(env['JAVAC'] + ' -cp %(classPath)s -d %(buildDir)s -sourcepath %(srcDir)s @%(listfile)s' % locals())
-    
-    classDir = join(buildDir, os.path.relpath(srcDir, globalSrcDir))
-    # This is needed for compiling IJ plugins
-    # where the file 'plugins.config' need to be include in the final .jar file
-    configFile = 'plugins.config'
-    pluginDest = ''
-    if os.path.exists(join(srcDir, configFile)):
-        pluginDest = join(classDir, configFile)
-        Cmd('cp %s %s' % (join(srcDir, configFile), pluginDest))
-    CreateFileList(classDir, '*.class', classfile, buildDir + '/', '-C %(buildDir)s ' % locals())
-    jarFlags = env['JARFLAGS']
-    Cmd(env['JAR'] + ' %(jarFlags)s %(jarfile)s @%(classfile)s %(pluginDest)s' % locals())
-
-
-def addJavaLibrary(env, name, path, deps=[], default=True):
-    """ Add self-made and compiled java library to the compilation process
-    This pseudobuilder access given directory, compiles it
-    and installs it. It also tells SCons about it dependencies.
-
-    If default=False, the library will not be built unless the option
-    --with-<name> is used.
-
-    Returns the final targets, the ones that Make will create.
-    """
-    libPath = join(env['PACKAGE']['SCONSCRIPT'], env['JAVA_LIBPATH'])
-    srcPath = join(env['PACKAGE']['SCONSCRIPT'], env['JAVA_SOURCEPATH'])
-
-    # Get all java files inside the source 
-    libSrcPath = join(srcPath, path)
-    sources = Glob(libSrcPath, "*.java")
-
-    jar = '%s.jar' % name
-    jarfile = join(libPath, jar)
-    jarCreation = env.Command(jarfile, [libSrcPath], CompileJavaJar)
-    
-    for sd in sources + deps:
-        env.Depends(jarCreation, sd)
-
-    env.Alias(jar, jarCreation)
-    if default:
-        env.Default(jar)
-    
-    packageName = env['PACKAGE']['NAME']
-    env.Alias(packageName+'-java', jarCreation)
-    
-    return jarCreation
-    
-
-def addJavaTest(env, name, source, installDir=None, default=True):
-    """Add java test to the compilation process
-    
-    This pseudobuilder executes a java test using the Command builder.
-
-    If default=False, the test will not be done unless the option
-    --with-java-tests is used.
-
-    Returns the final targets, the ones that Command returns.
-    """
-    if not env.TargetInBuild('run_java_tests'):
-        return ''
-    installDir = installDir or 'java/lib'
-    classPath = ":".join(glob(join(Dir(installDir).abspath,'*.jar')))
-    cmd = '%s -cp %s org.junit.runner.JUnitCore xmipp.test.%s' % (join(env['JAVA_BINDIR'], 'java'), classPath, name)
-    runTest = env.Command(name, join(installDir, source), cmd)
-    env.Alias('run_java_tests', runTest)
-    env.Default(runTest)
-    
-    return runTest
-
 
 def addProgram(env, name, src=None, pattern=None, installDir=None, 
                libPaths=[], incs=[], libs=[], cxxflags=[], linkflags=[], 
@@ -724,9 +603,7 @@ env.AddMethod(untar, 'Untar')
 env.AddMethod(compilerConfig, 'CompilerConfig')
 env.AddMethod(addCppLibrary, 'AddCppLibrary')
 env.AddMethod(addCppLibraryCuda, 'AddCppLibraryCuda')
-env.AddMethod(addJavaLibrary, 'AddJavaLibrary')
 env.AddMethod(symLink, 'SymLink')
-env.AddMethod(addJavaTest, 'AddJavaTest')
 env.AddMethod(addProgram, 'AddProgram')
 env.AddMethod(targetInBuild, 'TargetInBuild')
 
