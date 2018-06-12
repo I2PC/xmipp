@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 
 #include <core/xmipp_image.h>
 #include <core/metadata.h>

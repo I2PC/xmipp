@@ -27,7 +27,7 @@
 #define _PROG_VOLUME_HALVES_RESTORATION
 
 #include <core/xmipp_program.h>
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/xmipp_fftw.h>
 
 /**@defgroup VolumeHalvesRestoration Restoration of a volume given two halves

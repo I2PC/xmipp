@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/metadata_extension.h>
 
 class ProgImageVectorize: public XmippProgram

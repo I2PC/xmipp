@@ -25,7 +25,7 @@
 
 // Translated from MATLAB code by Yoel Shkolnisky
 #include "image_rotational_pca.h"
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/metadata_extension.h>
 
 // Empty constructor =======================================================

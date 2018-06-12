@@ -25,9 +25,9 @@
 
 
 #include "program_filter.h"
-#include "reconstruction/fourier_filter.h"
-#include "reconstruction/denoise.h"
-#include "reconstruction/mean_shift.h"
+#include <data/fourier_filter.h>
+#include "denoise.h"
+#include "mean_shift.h"
 
 ProgFilter::ProgFilter(){}
 

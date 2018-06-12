@@ -25,7 +25,7 @@
 #ifndef _BASIC_ART_HH
 #define _BASIC_ART_HH
 
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/symmetries.h>
 
 /**@defgroup BasicART Parameters and common ART Reconstruction stuff

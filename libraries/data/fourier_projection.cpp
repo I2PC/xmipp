@@ -26,6 +26,57 @@
 #include "fourier_projection.h"
 #include <core/xmipp_fft.h>
 
+/* Empty constructor ======================================================= */
+Projection::Projection(): Image<double>()
+{}
+
+/* Reset =================================================================== */
+void Projection::reset(int Ydim, int Xdim)
+{
+    data.initZeros(Ydim, Xdim);
+    data.setXmippOrigin();
+}
+
+/* Set angles ============================================================== */
+void Projection::setAngles(double _rot, double _tilt, double _psi)
+{
+    setEulerAngles(_rot, _tilt, _psi);
+    Euler_angles2matrix(_rot, _tilt, _psi, euler);
+    eulert = euler.transpose();
+    euler.getRow(2, direction);
+    direction.selfTranspose();
+}
+
+/* Read ==================================================================== */
+void Projection::read(const FileName &fn, const bool only_apply_shifts,
+                      DataMode datamode , MDRow * row)
+{
+    Image<double>::read(fn, datamode);
+    if (row != NULL)
+        applyGeo(*row, only_apply_shifts);
+    Euler_angles2matrix(rot(), tilt(), psi(), euler);
+    eulert = euler.transpose();
+    euler.getRow(2, direction);
+    direction.selfTranspose();
+}
+
+/* Assignment ============================================================== */
+Projection & Projection::operator = (const Projection &P)
+{
+    // Esto hay que ponerlo mas elegantemente accediendo al = del padre
+    *(Image<double> *)this = * ((Image<double> *) & P);
+    direction = P.direction;
+    euler     = P.euler;
+    eulert    = P.eulert;
+    return *this;
+}
+
+/* Another function for assignment ========================================= */
+void Projection::assign(const Projection &P)
+{
+    *this = P;
+}
+
 FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
 {
     volume = &V;

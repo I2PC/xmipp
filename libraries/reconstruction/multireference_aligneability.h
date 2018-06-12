@@ -32,7 +32,7 @@
 #include <math.h>
 #include <core/metadata.h>
 #include <string.h>
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/symmetries.h>
 
 

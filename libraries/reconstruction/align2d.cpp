@@ -26,8 +26,8 @@
 #include "align2d.h"
 
 #include <core/xmipp_funcs.h>
-#include <core/mask.h>
-#include <core/filters.h>
+#include <data/mask.h>
+#include <data/filters.h>
 
 // Read arguments ==========================================================
 void ProgAlign2d::readParams()

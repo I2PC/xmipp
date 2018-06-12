@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "angular_commonline.h"
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/geometry.h>
 #include <core/xmipp_image.h>
 #include <reconstruction/radon.h>

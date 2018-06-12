@@ -26,7 +26,7 @@
 #include "program_extension.h"
 
 //Needed includes for instantiate programs
-#include <core/filters.h>
+#include <data/filters.h>
 #include "angular_project_library.h"
 #include "angular_projection_matching.h"
 #include "angular_discrete_assign.h"
@@ -35,7 +35,7 @@
 #include "angular_continuous_assign.h"
 #include "micrograph_automatic_picking2.h"
 #include "program_filter.h"
-#include <core/mask.h>
+#include <data/mask.h>
 #include <classification/analyze_cluster.h>
 
 void runSystem(const String &program, const String &arguments, bool useSystem) {

@@ -26,16 +26,16 @@
 #include "tomo_align_tilt_series.h"
 
 #include <core/args.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/xmipp_fftw.h>
 #include <core/metadata.h>
-#include <core/numerical_tools.h>
-#include <core/morphology.h>
+#include <data/numerical_tools.h>
+#include <data/morphology.h>
 #include <fstream>
 #include <queue>
 #include <iostream>
 
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 
 /* Generate mask ----------------------------------------------------------- */
 //#define DEBUG

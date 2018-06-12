@@ -22,18 +22,97 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _FOURIER_FOURIER_PROJECTION_H
-#define _FOURIER_FOURIER_PROJECTION_H
+#ifndef _CORE_FOURIER_FOURIER_PROJECTION_H
+#define _CORE_FOURIER_FOURIER_PROJECTION_H
 
 #include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
-#include <core/filters.h>
 #include <core/xmipp_fftw.h>
-#include <core/projection.h>
 
 /**@defgroup FourierProjection Fourier projection
    @ingroup ReconsLibrary */
 //@{
+
+/// @defgroup Projections Projections (2D Image + Euler angles)
+/// @ingroup DataLibrary
+//@{
+/** Projection class.
+ *
+ * A projection is a 2D, double Image plus some information (about the direction
+ * of projection) which makes it suitable for 3D reconstruction. A projection
+ * is supposed to have the point (0,0) at the center of the image and not in
+ * the corners as usual matrices have.
+ *
+ * The normal use of a projection is:
+ *
+ * @code
+ * Projection P; // Create variable
+ * P.reset(65, 65); // Init with zeros and set right origin
+ * P.set_angles(30, 45, -50); // Set Euler angles
+ * @endcode
+ *
+ * From now on, the projection can be treated as any other Image.
+ */
+class Projection: public Image<double>
+{
+public:
+    /** Empty constructor */
+    Projection();
+
+    /** Vector perpendicular to the projection plane.
+     * It is calculated as a function of rot and tilt.
+     */
+    Matrix1D< double > direction;
+
+    /** Matrix used to pass from the Universal coordinate system to the
+     * projection coordinate system.
+     *
+     * @code
+     * Rp = euler * Ru
+     * @endcode
+     */
+    Matrix2D< double > euler;
+
+    /** Just the opposite.
+     *
+     * @code
+     * Ru = eulert * Rp.
+     * @endcode
+     */
+    Matrix2D< double > eulert;
+
+    /** Init_zeros and move origin to center.
+     *
+     * This function initialises the projection plane with 0's, and then moves
+     * the logical origin of the image to the physical center of the image
+     * (using the Xmipp conception of image center).
+     */
+    void reset(int Ydim, int Xdim);
+
+    /** Set Euler angles for this projection.
+     *
+     * The Euler angles are stored in the Xmipp header, then the pass matrices
+     * (Universe <---> Projection coordinate system) are computed, and the
+     * vector perpendicular to this projection plane is also calculated.
+     */
+    void setAngles(double _rot, double _tilt, double _psi);
+
+    /** Read a Projection from file.
+      *
+      * When a projection is read, the Euler matrices and perpendicular
+      * direction is computed and stored in the Projection structure.
+      */
+    void read(const FileName& fn, const bool only_apply_shifts = false,
+              DataMode datamode = DATA, MDRow * row = NULL );
+
+    /** Assignment.
+     */
+    Projection& operator=(const Projection& P);
+
+    /** Another function for assignment.
+     */
+    void assign(const Projection& P);
+};
 
 /** Program class to create projections in Fourier space */
 class FourierProjector

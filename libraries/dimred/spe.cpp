@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include "spe.h"
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 
 void SPE::setSpecificParameters(bool global, int k)
 {

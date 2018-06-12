@@ -25,9 +25,9 @@
 
 #include "denoise.h"
 #include <core/args.h>
-#include <core/wavelet.h>
+#include <data/wavelet.h>
 #include <core/histogram.h>
-#include <core/filters.h>
+#include <data/filters.h>
 
 #include <iomanip>
 

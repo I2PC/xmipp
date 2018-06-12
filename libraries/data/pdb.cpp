@@ -27,10 +27,10 @@
 #include "fstream"
 #include <core/args.h>
 #include <core/matrix2d.h>
-#include <core/mask.h>
 #include <core/xmipp_fftw.h>
-#include <core/integration.h>
-#include <core/numerical_tools.h>
+#include <data/mask.h>
+#include <data/integration.h>
+#include <data/numerical_tools.h>
 
 /* Atom charge ------------------------------------------------------------- */
 int atomCharge(const std::string &atom)

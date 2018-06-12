@@ -27,8 +27,8 @@
 #define _PROG_CLASSIFICATION_FIRST_SPLIT
 
 #include <core/xmipp_program.h>
-#include <core/mask.h>
-#include <core/basic_pca.h>
+#include <data/mask.h>
+#include <data/basic_pca.h>
 
 /**@defgroup ClassificationFirstSplit Classification first split
    @ingroup ReconsLibrary */

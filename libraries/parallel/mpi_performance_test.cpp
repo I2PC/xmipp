@@ -27,7 +27,7 @@
 
 #include <mpi.h>
 #include "mpi_performance_test.h"
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/metadata_extension.h>
 
 

@@ -25,7 +25,7 @@
  ***************************************************************************/
 #include <math.h>
 #include "micrograph_automatic_picking2.h"
-#include <core/filters.h>
+#include <data/filters.h>
 #include <data/rotational_spectrum.h>
 #include <reconstruction/denoise.h>
 #include <core/xmipp_fft.h>

@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/normalize.h>
+#include <data/normalize.h>
 
 RUN_XMIPP_PROGRAM(ProgNormalize)

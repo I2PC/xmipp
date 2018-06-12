@@ -26,7 +26,7 @@
 #include "project.h"
 #include "directions.h"
 #include "project_real_shears.h"
-#include "fourier_projection.h"
+#include <data/fourier_projection.h>
 
 #include <core/args.h>
 

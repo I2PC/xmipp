@@ -33,11 +33,11 @@
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_funcs.h>
 #include <core/xmipp_image.h>
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/xmipp_threads.h>
-#include <core/blobs.h>
+#include <data/blobs.h>
 #include <core/metadata.h>
-#include <core/ctf.h>
+#include <data/ctf.h>
 
 #include <core/args.h>
 #include <core/xmipp_fft.h>

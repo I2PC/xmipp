@@ -27,10 +27,10 @@
 #define _PROG_IMAGE_SORT
 
 #include <core/xmipp_program.h>
-#include <core/basic_pca.h>
+#include <data/basic_pca.h>
 #include <core/histogram.h>
-#include <core/fringe_processing.h>
-#include <core/filters.h>
+#include "fringe_processing.h"
+#include <data/filters.h>
 #include <math.h>
 
 

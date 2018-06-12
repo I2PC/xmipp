@@ -27,8 +27,8 @@
 
 #include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
-#include <core/projection.h>
-#include "fourier_filter.h"
+#include <data/projection.h>
+#include <data/fourier_filter.h>
 
 /**@defgroup IDR ctf_correct_idr (Iterative Data Refinement for CTF amplitude correction)
    @ingroup ReconsLibrary */

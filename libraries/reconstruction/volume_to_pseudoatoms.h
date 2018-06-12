@@ -28,11 +28,11 @@
 #define _CONVERT_VOL2PSEUDO_HH
 
 #include <core/xmipp_image.h>
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/xmipp_threads.h>
 #include <core/xmipp_program.h>
 #include <vector>
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 
 /**@defgroup ConvertVol2Pseudo ConvertVol2Pseudo
    @ingroup ReconsLibrary */

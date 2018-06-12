@@ -25,8 +25,8 @@
 
 #include "angular_continuous_assign2.h"
 #include "program_image_residuals.h"
-#include <core/mask.h>
-#include <core/numerical_tools.h>
+#include <data/mask.h>
+#include <data/numerical_tools.h>
 
 // Empty constructor =======================================================
 ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()

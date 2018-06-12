@@ -27,13 +27,13 @@
 
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/xmipp_program.h>
 #include <data/pdb.h>
 
 #include <data/phantom.h>
 #include "project_crystal.h"
-#include <core/ctf.h>
+#include <data/ctf.h>
 
 /**@defgroup ProjectionProgram project (Generate projections from a volume)
    @ingroup ReconsLibrary */

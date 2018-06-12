@@ -28,7 +28,7 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
 #include <core/metadata_extension.h>
-#include <core/basic_pca.h>
+#include <data/basic_pca.h>
 #include <core/xmipp_program.h>
 
 /**@defgroup AnalyzeClusterProgram Analyze cluster

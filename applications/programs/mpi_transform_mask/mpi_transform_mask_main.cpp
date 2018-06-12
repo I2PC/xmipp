@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <parallel/xmipp_mpi.h>
-#include <core/mask.h>
+#include <data/mask.h>
 
 
 CREATE_MPI_METADATA_PROGRAM(ProgMask, MpiProgMask)

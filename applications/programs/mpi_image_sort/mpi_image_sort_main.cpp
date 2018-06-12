@@ -25,9 +25,9 @@
 
 //#include <mpi.h>
 #include <parallel/xmipp_mpi.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/xmipp_image.h>
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/metadata.h>
 #include <core/xmipp_program.h>
 

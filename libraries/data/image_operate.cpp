@@ -26,7 +26,7 @@
 
 #include "image_operate.h"
 #include <core/metadata_extension.h>
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 
 void minus(Image<double> &op1, const Image<double> &op2)
 {

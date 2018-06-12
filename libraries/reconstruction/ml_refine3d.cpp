@@ -28,17 +28,17 @@
 #include <core/xmipp_fft.h>
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
-#include <core/filters.h>
-#include <core/mask.h>
-#include <core/morphology.h>
-#include <core/grids.h>
-#include <core/blobs.h>
+#include <data/filters.h>
+#include <data/mask.h>
+#include <data/morphology.h>
+#include <data/grids.h>
+#include <data/blobs.h>
 #include <core/symmetries.h>
-#include <core/projection.h>
+#include <data/projection.h>
 #include "directions.h"
 #include "reconstruct_art.h"
 #include "reconstruct_fourier.h"
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 #include "symmetrize.h"
 #include "volume_segment.h"
 

@@ -35,10 +35,10 @@
 #include <core/xmipp_fftw.h>
 #include <core/args.h>
 #include <core/xmipp_image.h>
-#include <core/filters.h>
-#include <core/mask.h>
-#include <core/polar.h>
-#include <core/basic_pca.h>
+#include <data/filters.h>
+#include <data/mask.h>
+#include <data/polar.h>
+#include <data/basic_pca.h>
 #include <data/sampling.h>
 
 //Tags already defined in xmipp

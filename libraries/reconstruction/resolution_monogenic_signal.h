@@ -36,8 +36,8 @@
 #include <math.h>
 #include <limits>
 #include <complex>
-#include "fourier_filter.h"
-#include <core/filters.h>
+#include <data/fourier_filter.h>
+#include <data/filters.h>
 #include <string>
 #include "symmetrize.h"
 

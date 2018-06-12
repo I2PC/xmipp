@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/args.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include "volume_pca.h"
 
 // Read arguments ==========================================================

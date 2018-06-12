@@ -38,7 +38,7 @@
 
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
-#include <core/normalize.h>
+#include <data/normalize.h>
 #include <core/xmipp_fftw.h>
 
 #include <reconstruction/movie_filter_dose.h>

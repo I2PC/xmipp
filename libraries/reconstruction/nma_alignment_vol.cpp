@@ -28,7 +28,7 @@
 #include <condor/tools.h>
 
 #include <core/metadata_extension.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
 

@@ -33,9 +33,9 @@
 #include <core/metadata.h>
 #include <core/xmipp_image.h>
 #include <core/geometry.h>
-#include <core/filters.h>
-#include <core/mask.h>
-#include <core/ctf.h>
+#include <data/filters.h>
+#include <data/mask.h>
+#include <data/ctf.h>
 #include <data/sampling.h>
 #include <core/symmetries.h>
 #include "symmetrize.h"

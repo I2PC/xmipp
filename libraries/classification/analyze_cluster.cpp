@@ -25,8 +25,8 @@
 
 #include "analyze_cluster.h"
 #include <core/args.h>
-#include <core/filters.h>
-#include <core/mask.h>
+#include <data/filters.h>
+#include <data/mask.h>
 
 // Minimum number of images to perform a PCA
 const size_t Nmin=10;

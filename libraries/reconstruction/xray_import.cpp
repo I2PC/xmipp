@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include <core/args.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/xmipp_image_extension.h>
 #include "xray_import.h"
 

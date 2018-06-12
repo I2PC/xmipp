@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/mask.h>
+#include <data/mask.h>
 
 RUN_XMIPP_PROGRAM(ProgMask)
 

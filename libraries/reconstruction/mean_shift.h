@@ -28,7 +28,7 @@
 #define _MEAN_SHIFT_H
 
 #include <string>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/xmipp_funcs.h>
 #include <core/xmipp_threads.h>
 #include <core/histogram.h>

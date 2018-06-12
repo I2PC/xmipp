@@ -26,7 +26,7 @@
 #include "movie_filter_dose.h"
 #include <core/metadata_extension.h>
 #include <core/xmipp_fftw.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <typeinfo>
 
 #define OUTSIDE_WRAP 0

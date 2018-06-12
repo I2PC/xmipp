@@ -29,7 +29,7 @@
 #include <algorithm>
 #include <iostream>
 #include <core/xmipp_image.h>
-#include <core/micrograph.h>
+#include <data/micrograph.h>
 #include <delaunay/delaunay.h>
 #include <delaunay/dcel.h>
 #include <core/geometry.h>

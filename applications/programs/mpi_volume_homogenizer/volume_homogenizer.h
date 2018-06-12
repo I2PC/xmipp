@@ -24,9 +24,9 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/multidim_array.h>
-#include <reconstruction/fourier_filter.h>
+#include <data/fourier_filter.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/video.hpp>
 

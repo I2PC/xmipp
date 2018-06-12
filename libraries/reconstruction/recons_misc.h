@@ -29,8 +29,8 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
 #include <core/symmetries.h>
-#include <core/projection.h>
-#include <core/grids.h>
+#include <data/projection.h>
+#include <data/grids.h>
 #include "basic_art.h"
 
 

@@ -31,7 +31,7 @@
 #include <core/multidim_array.h>
 #include <core/xmipp_fftw.h>
 
-#include <core/projection.h>
+#include <data/projection.h>
 
 /**@defgroup ShiftRefinement refinement (Shift refinement)
    @ingroup ReconsLibrary */

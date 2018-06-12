@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include <parallel/xmipp_mpi.h>
-#include <core/normalize.h>
+#include <data/normalize.h>
 
 
 CREATE_MPI_METADATA_PROGRAM(ProgNormalize, MpiProgNormalize)

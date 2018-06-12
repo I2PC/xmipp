@@ -26,11 +26,11 @@
 #include "resolution_ssnr.h"
 
 #include <core/args.h>
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/xmipp_fftw.h>
 #include <core/metadata_extension.h>
 #include "reconstruct_art.h"
-#include "fourier_projection.h"
+#include <data/fourier_projection.h>
 
 void ProgSSNR::defineParams()
 {

@@ -32,9 +32,9 @@
 #include <vector>
 
 #include <core/multidim_array.h>
-#include <core/blobs.h>
-#include <core/projection.h>
 #include <core/metadata_label.h>
+#include <data/blobs.h>
+#include <data/projection.h>
 
 /**@defgroup Phantoms Phantoms
  * @ingroup DataLibrary

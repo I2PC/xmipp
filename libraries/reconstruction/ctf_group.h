@@ -27,9 +27,9 @@
 #define _CTF_GROUP_HH
 
 #include <core/args.h>
-#include <core/filters.h>
-#include "fourier_filter.h"
-#include <core/ctf.h>
+#include <data/filters.h>
+#include <data/fourier_filter.h>
+#include <data/ctf.h>
 
 #include <core/xmipp_program.h>
 

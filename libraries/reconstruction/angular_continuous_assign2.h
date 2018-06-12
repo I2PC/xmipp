@@ -27,9 +27,9 @@
 #define _PROG_ANGULAR_PREDICT_CONTINUOUS2
 
 #include <core/xmipp_program.h>
-#include <core/ctf.h>
-#include "fourier_projection.h"
-#include "fourier_filter.h"
+#include <data/ctf.h>
+#include <data/fourier_projection.h>
+#include <data/fourier_filter.h>
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */

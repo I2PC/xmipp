@@ -26,8 +26,8 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <core/morphology.h>
-#include <core/filters.h>
+#include <data/morphology.h>
+#include <data/filters.h>
 
 class ProgMorphology: public XmippMetadataProgram
 {

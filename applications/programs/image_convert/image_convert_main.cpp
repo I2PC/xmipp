@@ -24,6 +24,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_image_convert.h>
+#include <data/xmipp_image_convert.h>
 
 RUN_XMIPP_PROGRAM(ProgConvImg)

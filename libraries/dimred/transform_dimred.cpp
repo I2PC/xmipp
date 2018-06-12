@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include "transform_dimred.h"
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
 #include <time.h>

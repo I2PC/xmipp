@@ -28,10 +28,10 @@
 #include <parallel/xmipp_mpi.h>
 #include <core/metadata.h>
 #include <core/metadata_extension.h>
-#include <core/polar.h>
+#include <data/polar.h>
 #include <core/xmipp_fftw.h>
 #include <core/histogram.h>
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 #include <core/xmipp_program.h>
 #include <vector>
 

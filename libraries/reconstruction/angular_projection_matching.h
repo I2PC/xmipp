@@ -31,17 +31,17 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
 #include <core/xmipp_image.h>
-#include <core/filters.h>
-#include <core/mask.h>
-#include <core/polar.h>
+#include <data/filters.h>
+#include <data/mask.h>
+#include <data/polar.h>
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_threads.h>
 #include <pthread.h>
 
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/symmetries.h>
 #include <data/sampling.h>
-#include <core/ctf.h>
+#include <data/ctf.h>
 
 #include <core/xmipp_program.h>
 

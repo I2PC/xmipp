@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/ctf_estimate_from_psd_fast.h>
+#include <reconstruction/ctf_estimate_from_psd_fast.h>
 
 RUN_XMIPP_PROGRAM(ProgCTFEstimateFromPSDFast)

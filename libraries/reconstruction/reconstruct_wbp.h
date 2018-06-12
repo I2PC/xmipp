@@ -28,8 +28,8 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata_extension.h>
 #include <core/xmipp_image.h>
-#include <core/projection.h>
-#include <core/filters.h>
+#include <data/projection.h>
+#include <data/filters.h>
 
 #include <reconstruction/recons.h>
 

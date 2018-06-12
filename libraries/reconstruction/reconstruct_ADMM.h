@@ -29,8 +29,8 @@
 #include <core/xmipp_program.h>
 #include <core/matrix1d.h>
 #include <core/xmipp_fftw.h>
-#include <core/ctf.h>
-#include <core/mask.h>
+#include <data/ctf.h>
+#include <data/mask.h>
 #include <core/symmetries.h>
 
 /**@defgroup ReconstructADMMProgram Reconstruct Alternating Direction Method of Multipliers

@@ -27,7 +27,7 @@
 
 #include <core/xmipp_funcs.h>
 #include <core/xmipp_image.h>
-#include <core/mask.h>
+#include <data/mask.h>
 #include <core/symmetries.h>
 #include <core/xmipp_program.h>
 

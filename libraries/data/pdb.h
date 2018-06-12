@@ -31,7 +31,7 @@
 
 #include <string>
 #include <core/matrix1d.h>
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/histogram.h>
 
 /**@defgroup PDBinterface PDB

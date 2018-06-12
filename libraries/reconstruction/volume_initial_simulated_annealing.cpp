@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "volume_initial_simulated_annealing.h"
+#include <data/filters.h>
 
 // Define params
 void ProgVolumeInitialSimulatedAnnealing::defineParams()

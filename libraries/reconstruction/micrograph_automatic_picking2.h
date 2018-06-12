@@ -27,21 +27,21 @@
 #ifndef MICROGRAPH_AUTOMATIC_PICKING2_H
 #define MICROGRAPH_AUTOMATIC_PICKING2_H
 
-#include <core/micrograph.h>
-#include <core/mask.h>
+#include <data/micrograph.h>
+#include <data/mask.h>
 #include <core/xmipp_program.h>
 #include <data/transform_geometry.h>
-#include <reconstruction/fourier_filter.h>
+#include <data/fourier_filter.h>
 #include <classification/naive_bayes.h>
 #include <classification/svm_classifier.h>
 #include <classification/knn_classifier.h>
 #include <reconstruction/image_rotational_pca.h>
 
 #include <core/xmipp_image.h>
-#include <core/polar.h>
-#include <core/normalize.h>
-#include <core/basic_pca.h>
-#include <core/morphology.h>
+#include <data/polar.h>
+#include <data/normalize.h>
+#include <data/basic_pca.h>
+#include <data/morphology.h>
 
 class FeaturesThread;
 

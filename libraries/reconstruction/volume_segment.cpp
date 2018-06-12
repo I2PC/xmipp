@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 #include <core/args.h>
-#include <core/morphology.h>
-#include <core/filters.h>
+#include <data/morphology.h>
+#include <data/filters.h>
 #include "volume_segment.h"
 
 // Read arguments ==========================================================

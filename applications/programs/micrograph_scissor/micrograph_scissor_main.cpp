@@ -25,7 +25,7 @@
 
 #include <core/argsparser.h>
 #include <core/xmipp_program.h>
-#include <core/micrograph.h>
+#include <data/micrograph.h>
 #include <core/args.h>
 #include <core/metadata_extension.h>
 

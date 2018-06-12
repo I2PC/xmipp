@@ -29,7 +29,7 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
 #include <core/multidim_array.h>
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 #include <core/xmipp_program.h>
 #include <iostream>
 

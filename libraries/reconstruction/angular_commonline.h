@@ -28,7 +28,7 @@
 
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 #include <core/matrix2d.h>
 #include <vector>
 #include <core/symmetries.h>

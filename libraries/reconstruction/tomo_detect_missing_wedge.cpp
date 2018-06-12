@@ -26,7 +26,7 @@
 #include "tomo_detect_missing_wedge.h"
 #include <core/args.h>
 #include <core/xmipp_fftw.h>
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 
 // Evaluate plane ----------------------------------------------------------
 double evaluatePlane(double rot, double tilt,

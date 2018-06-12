@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <core/filters.h>
+#include <data/filters.h>
 
 class ProgCenterImage: public XmippMetadataProgram
 {

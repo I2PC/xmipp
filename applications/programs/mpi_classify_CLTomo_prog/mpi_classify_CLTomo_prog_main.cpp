@@ -24,9 +24,9 @@
  ***************************************************************************/
 
 #include "mpi_classify_CLTomo.h"
-#include <core/mask.h>
-#include <core/polar.h>
-#include <core/filters.h>
+#include <data/mask.h>
+#include <data/polar.h>
+#include <data/filters.h>
 #include <core/xmipp_image_generic.h>
 #include <reconstruction/symmetrize.h>
 

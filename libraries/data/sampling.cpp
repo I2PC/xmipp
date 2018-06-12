@@ -24,6 +24,8 @@
  ***************************************************************************/
 #include "sampling.h"
 #include <core/matrix2d.h>
+#include <core/geometry.h>
+#include <core/xmipp_image.h>
 
 /* Default Constructor */
 Sampling::Sampling()

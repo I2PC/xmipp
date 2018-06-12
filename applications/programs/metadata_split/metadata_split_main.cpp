@@ -26,7 +26,7 @@
 #include <core/metadata.h>
 #include <core/args.h>
 #include <core/xmipp_program.h>
-#include <core/numerical_tools.h>
+#include <data/numerical_tools.h>
 #include <classification/ahc_classifier.h>
 
 class ProgMetadataSplit: public XmippProgram

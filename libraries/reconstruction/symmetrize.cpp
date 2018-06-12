@@ -26,6 +26,7 @@
 #include "symmetrize.h"
 
 #include <core/args.h>
+#include <data/symmetries.h>
 
 /* Read parameters --------------------------------------------------------- */
 void ProgSymmetrize::readParams()

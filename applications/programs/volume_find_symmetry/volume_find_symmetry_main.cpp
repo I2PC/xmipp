@@ -24,12 +24,13 @@
  ***************************************************************************/
 
 #include <core/args.h>
-#include <core/mask.h>
-#include <core/filters.h>
+#include <data/mask.h>
+#include <data/filters.h>
 #include <core/geometry.h>
 #include <core/symmetries.h>
 #include <core/xmipp_program.h>
 #include <core/xmipp_threads.h>
+#include <data/symmetries.h>
 
 #include <cstdio>
 

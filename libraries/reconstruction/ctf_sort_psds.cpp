@@ -24,10 +24,10 @@
 
 #include <vector>
 #include "ctf_sort_psds.h"
-#include <core/ctf_enhance_psd.h>
-#include <core/ctf_estimate_from_micrograph.h>
+#include "ctf_enhance_psd.h"
+#include "ctf_estimate_from_micrograph.h"
 #include <core/args.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/transformations.h>
 #include <core/histogram.h>
 

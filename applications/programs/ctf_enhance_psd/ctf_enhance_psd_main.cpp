@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/ctf_enhance_psd.h>
+#include <reconstruction/ctf_enhance_psd.h>
 
 int main(int argc, char **argv)
 {

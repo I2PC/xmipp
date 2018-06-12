@@ -27,8 +27,8 @@
 #include "art_crystal.h"
 //#include "art_xray.h"
 #include "denoise.h"
-#include "fourier_filter.h"
-#include <core/wavelet.h>
+#include <data/fourier_filter.h>
+#include <data/wavelet.h>
 #include <sys/time.h>
 
 

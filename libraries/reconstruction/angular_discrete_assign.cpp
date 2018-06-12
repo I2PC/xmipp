@@ -24,14 +24,14 @@
  ***************************************************************************/
 
 #include "angular_discrete_assign.h"
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 
 #include <core/args.h>
 #include <core/histogram.h>
 #include <core/geometry.h>
-#include <core/wavelet.h>
-#include <core/mask.h>
-#include <core/filters.h>
+#include <data/wavelet.h>
+#include <data/mask.h>
+#include <data/filters.h>
 #include <algorithm>
 
 // Empty constructor =======================================================

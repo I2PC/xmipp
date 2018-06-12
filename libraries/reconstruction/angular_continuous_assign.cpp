@@ -41,7 +41,7 @@
 #include <core/xmipp_funcs.h>
 #include <core/args.h>
 #include <core/xmipp_fft.h>
-#include <core/mask.h>
+#include <data/mask.h>
 
 /* ------------------------------------------------------------------------- */
 // Prototypes

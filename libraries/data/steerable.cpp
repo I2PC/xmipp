@@ -27,8 +27,8 @@
 #include "steerable.h"
 #include <core/xmipp_fftw.h>
 #include <core/histogram.h>
-#include <core/filters.h>
-#include <core/morphology.h>
+#include <data/filters.h>
+#include <data/morphology.h>
 
 // Remove wedge ------------------------------------------------------------
 void MissingWedge::removeWedge(MultidimArray<double> &V) const

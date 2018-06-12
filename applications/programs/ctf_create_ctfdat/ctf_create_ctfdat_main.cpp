@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/metadata.h>
-#include <core/ctf.h>
+#include <data/ctf.h>
 
 #include <core/xmipp_program.h>
 

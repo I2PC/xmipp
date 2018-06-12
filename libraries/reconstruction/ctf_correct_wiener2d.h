@@ -31,9 +31,9 @@
 #include <core/metadata.h>
 #include <core/xmipp_fftw.h>
 #include <core/args.h>
-#include <core/ctf.h>
+#include <data/ctf.h>
 #include <core/xmipp_image.h>
-#include <core/filters.h>
+#include <data/filters.h>
 
 /**@defgroup Correct CTF by Wiener filter in 2D
    @ingroup ReconsLibrary */

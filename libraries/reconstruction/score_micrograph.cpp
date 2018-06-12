@@ -24,12 +24,12 @@
  ***************************************************************************/
 
 #include <core/args.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/xmipp_fft.h>
 
 #include "score_micrograph.h"
-#include <core/fourier_filter.h>
-#include <core/fringe_processing.h>
+#include <data/fourier_filter.h>
+#include "fringe_processing.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgScoreMicrograph::readParams()

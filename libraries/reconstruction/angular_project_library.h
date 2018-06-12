@@ -31,13 +31,13 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <core/projection.h>
+#include <data/projection.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_funcs.h>
 #include <core/xmipp_program.h>
 #include <core/metadata_extension.h>
 #include <reconstruction/project_real_shears.h>
-#include <reconstruction/fourier_projection.h>
+#include <data/fourier_projection.h>
 #include <reconstruction/project.h>
 
 /**@name Projection library program */

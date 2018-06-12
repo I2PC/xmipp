@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_image.h>
-#include <core/filters.h>
+#include <data/filters.h>
 #include <core/xmipp_program.h>
 
 class ProgSeparateObjects: public XmippProgram

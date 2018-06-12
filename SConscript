@@ -91,7 +91,7 @@ def addLib(name, **kwargs):
     # COSS kwargs['installDir'] = '#software/lib'
     # Add always the xmipp path as -I for include and also xmipp/libraries
     incs = kwargs.get('incs', []) + [join(XMIPP_PATH, 'external'),
-                                     join(XMIPP_PATH, 'libraries'), join(env['XMIPP_BUNDLE'],'xmippCore')]
+                                     join(XMIPP_PATH, 'libraries'), join(XMIPP_BUNDLE,'xmippCore')]
     kwargs['incs'] = incs
 
     deps = kwargs.get('deps', [])
@@ -108,7 +108,7 @@ def addLib(name, **kwargs):
     kwargs['patterns'] = patterns
     
     libpath = kwargs.get('libpath', [])
-    kwargs['libpath'] = libpath+[join(env['XMIPP_BUNDLE'],'xmippCore','lib'),join(env['XMIPP_BUNDLE'],'xmipp','lib')]
+    kwargs['libpath'] = libpath+[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
 
     if 'cuda' in kwargs and kwargs['cuda']:
     	lib = env.AddCppLibraryCuda(name, **kwargs)
@@ -208,12 +208,12 @@ def addProg(progName, **kwargs):
 
     # Add always the xmipp path as -I for include and also xmipp/libraries
     incs = kwargs.get('incs', []) + [join(XMIPP_PATH, 'external'),
-                                     join(XMIPP_PATH, 'libraries'), join(env['XMIPP_BUNDLE'],'xmippCore')]
+                                     join(XMIPP_PATH, 'libraries'), join(XMIPP_BUNDLE,'xmippCore')]
     kwargs['incs'] = incs
     if 'libPaths' in kwargs:
-        kwargs['libPaths'] +=[join(env['XMIPP_BUNDLE'],'xmippCore','lib'),join(env['XMIPP_BUNDLE'],'xmipp','lib')]
+        kwargs['libPaths'] +=[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
     else:
-        kwargs['libPaths'] =[join(env['XMIPP_BUNDLE'],'xmippCore','lib'),join(env['XMIPP_BUNDLE'],'xmipp','lib')]
+        kwargs['libPaths'] =[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
 
     if progName.startswith('mpi_'):
         kwargs['mpi'] = True

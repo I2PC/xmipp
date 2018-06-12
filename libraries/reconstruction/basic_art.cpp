@@ -30,7 +30,7 @@
    implementation (single particles, crystals, ...) */
 
 #include "basic_art.h"
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 #include "recons_misc.h"
 
 /* Desctructor */
