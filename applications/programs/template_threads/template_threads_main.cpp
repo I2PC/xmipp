@@ -39,7 +39,7 @@
 #include <unistd.h>
 #include <iomanip> //for print pi with more decimals
 #include <core/xmipp_threads.h>
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 
 using namespace std;
 

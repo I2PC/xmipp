@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <data/transformations.h>
-#include <data/matrix2d.h>
+#include <core/transformations.h>
+#include <core/matrix2d.h>
 
 
 class ProgAngularRotate: public XmippProgram

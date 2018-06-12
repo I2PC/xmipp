@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/metadata.h>
-#include <data/ctf.h>
+#include <core/metadata.h>
+#include <core/ctf.h>
 
 #include <core/xmipp_program.h>
 

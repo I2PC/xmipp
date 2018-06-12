@@ -29,7 +29,7 @@
 #include <core/xmipp_program.h>
 #include <core/basic_pca.h>
 #include <core/histogram.h>
-#include <reconstruction/fringe_processing.h>
+#include <core/fringe_processing.h>
 #include <core/filters.h>
 #include <math.h>
 

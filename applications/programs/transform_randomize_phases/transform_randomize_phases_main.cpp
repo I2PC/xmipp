@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 
 class ProgRandomizePhases: public XmippMetadataProgram
 {

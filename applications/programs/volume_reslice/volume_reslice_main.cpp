@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <data/transformations.h>
+#include <core/transformations.h>
 
 class ProgResliceVol : public XmippProgram
 {

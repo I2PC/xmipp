@@ -23,15 +23,15 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/argsparser.h>
+#include <core/argsparser.h>
 #include <core/xmipp_program.h>
 #include <string.h>
-#include <data/metadata.h>
+#include <core/metadata.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <iostream>
 #include <fstream>
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 
 class ProgMetadataUtilities: public XmippProgram
 {

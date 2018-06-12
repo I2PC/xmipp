@@ -128,7 +128,8 @@ def addLib(name, **kwargs):
 
 addLib('XmippExternal',
        dirs=['external','external','external'],
-       patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc'])
+       patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc'],
+       libs=['pthread'])
 
 EXT_LIBS = ['XmippExternal']
 
@@ -188,7 +189,7 @@ addLib('XmippInterface',
        patterns=['interface/*.cpp'],
        incs=python_incdirs,
        libs=[ 'pthread', 'python2.7',
-             'XmippData', 'XmippBilib'])
+             'XmippData'])
 
 # Parallelization
 addLib('XmippParallel',
@@ -198,14 +199,6 @@ addLib('XmippParallel',
                     'XmippData', 'XmippClassif', 'XmippRecons'],
               mpi=True)
 
-# Python binding
-addLib('xmipp.so',
-       dirs=['libraries/bindings'],
-       patterns=['python/*.cpp'],
-       incs=python_incdirs,
-       libs=['python2.7', 'XmippData', 'XmippRecons'],
-       prefix='', target='xmipp')
-
 
 #  ***********************************************************************
 #  *                      Xmipp Programs and Tests                       *
@@ -214,7 +207,7 @@ addLib('xmipp.so',
 XMIPP_LIBS = ['XmippData', 'XmippRecons', 'XmippClassif']
 PROG_DEPS = EXT_LIBS + XMIPP_LIBS
 
-PROG_LIBS = EXT_LIBS + XMIPP_LIBS
+PROG_LIBS = EXT_LIBS + XMIPP_LIBS + ['hdf5']
 
 def addRunTest(testName, prog):
     """ Add a Scons target for running xmipp tests. """
@@ -283,7 +276,6 @@ def addProg(progName, **kwargs):
     xmippProgName = 'xmipp_%s' % progName
 
     if progName.startswith('test_'):
-        kwargs['libs'] += ['XmippGtest']
         env.Alias('xmipp-tests', xmippProgName)
         addRunTest(progName, xmippProgName)
 

@@ -22,7 +22,7 @@
  *  All comments concerning this program package may be sent to the    
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
-#include <data/args.h>
+#include <core/args.h>
 #include <interface/spider.h>
 #include <core/xmipp_program.h>
 

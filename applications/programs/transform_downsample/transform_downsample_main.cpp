@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "data/transform_downsample.h"
+#include <core/transform_downsample.h>
 
 RUN_XMIPP_PROGRAM(ProgTransformDownsample)

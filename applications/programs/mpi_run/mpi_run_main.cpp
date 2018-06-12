@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <parallel/xmipp_mpi.h>
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 #include <core/xmipp_program.h>
 
 #define TAG_WORK   0

@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/ctf_estimate_from_micrograph.h>
+#include <core/ctf_estimate_from_micrograph.h>
 
 int main(int argc, char *argv[])
 {

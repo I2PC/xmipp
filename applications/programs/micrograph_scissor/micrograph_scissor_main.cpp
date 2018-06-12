@@ -23,10 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/argsparser.h>
+#include <core/argsparser.h>
 #include <core/xmipp_program.h>
-#include <data/micrograph.h>
-#include <data/args.h>
+#include <core/micrograph.h>
+#include <core/args.h>
 #include <core/metadata_extension.h>
 
 class ProgMicrographScissor: public XmippProgram

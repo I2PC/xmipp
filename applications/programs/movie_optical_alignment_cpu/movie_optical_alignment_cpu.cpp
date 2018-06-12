@@ -28,18 +28,18 @@
 #include <fstream>
 #include <time.h>
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/video/video.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/video/video.hpp>
 
 #ifdef GPU
 #include "opencv2/gpu/gpu.hpp"
 #endif
 
-#include <data/multidim_array.h>
-#include <data/xmipp_image.h>
+#include <core/multidim_array.h>
+#include <core/xmipp_image.h>
 #include <core/normalize.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 
 #include <reconstruction/movie_filter_dose.h>
 

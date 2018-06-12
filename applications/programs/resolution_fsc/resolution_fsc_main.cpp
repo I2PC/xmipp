@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/metadata_extension.h>
 
 class ProgResolutionFsc : public XmippProgram

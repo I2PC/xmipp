@@ -23,9 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/xmipp_image.h>
-#include <data/metadata.h>
-#include <data/mask.h>
+#include <core/xmipp_image.h>
+#include <core/metadata.h>
+#include <core/mask.h>
 #include <core/histogram.h>
 
 class ProgHistogram: public XmippProgram

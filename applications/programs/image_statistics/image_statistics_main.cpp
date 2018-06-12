@@ -27,9 +27,9 @@
 
 #include <cstdio>
 #include <core/xmipp_program.h>
-#include <data/xmipp_image_generic.h>
-#include <data/metadata.h>
-#include <data/mask.h>
+#include <core/xmipp_image_generic.h>
+#include <core/metadata.h>
+#include <core/mask.h>
 
 /* PROGRAM ----------------------------------------------------------------- */
 class ProgStatistics: public XmippMetadataProgram

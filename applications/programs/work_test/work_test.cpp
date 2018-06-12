@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/xmipp_program.h>
-#include <data/xmipp_funcs.h>
+#include <core/xmipp_funcs.h>
 
 
 class ProgTestWork: public XmippProgram
