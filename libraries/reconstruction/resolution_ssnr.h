@@ -30,7 +30,7 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 
 /**@defgroup SSNR resolution_ssnr (Spectral Signal to Noise Ratio)
    @ingroup ReconsLibrary */

@@ -29,7 +29,7 @@
 #include <core/args.h>
 #include <core/histogram.h>
 #include <core/geometry.h>
-#include <data/wavelet.h>
+#include <core/wavelet.h>
 #include <core/mask.h>
 #include <core/filters.h>
 #include <algorithm>

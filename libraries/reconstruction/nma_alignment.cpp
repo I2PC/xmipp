@@ -28,7 +28,7 @@
 #include <condor/Solver.h>
 #include <condor/tools.h>
 
-#include "data/metadata_extension.h"
+#include <core/metadata_extension.h>
 #include "program_extension.h"
 #include "nma_alignment.h"
 

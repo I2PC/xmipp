@@ -29,10 +29,10 @@
 #include <algorithm>
 #include <iostream>
 #include <core/xmipp_image.h>
-#include <data/micrograph.h>
+#include <core/micrograph.h>
 #include <delaunay/delaunay.h>
 #include <delaunay/dcel.h>
-#include <geometry.h>
+#include <core/geometry.h>
 //#include <relion-1.3/include/relion-1.3/src/matrix1d.h>
 #include <core/matrix1d.h>
 //#include <core/multidim_array.h>

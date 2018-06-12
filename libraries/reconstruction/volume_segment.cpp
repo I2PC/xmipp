@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <core/args.h>
-#include <data/morphology.h>
+#include <core/morphology.h>
 #include <core/filters.h>
 #include "volume_segment.h"
 

@@ -29,7 +29,7 @@
 #include <reconstruction_adapt_cuda/reconstruct_fourier_gpu.h>
 
 #include <core/args.h>
-#include <data/projection.h>
+#include <core/projection.h>
 #include <cstring>
 #include <cstdlib>
 #include <core/xmipp_funcs.h>

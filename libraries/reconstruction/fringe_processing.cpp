@@ -24,11 +24,11 @@
  ***************************************************************************/
 
 #include "fringe_processing.h"
-#include <data/xmipp_polynomials.h>
+#include <core/xmipp_polynomials.h>
 #include <core/xmipp_image.h>
 #include <core/multidim_array.h>
 #include <core/xmipp_funcs.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include "fourier_filter.h"
 
 #include <queue>

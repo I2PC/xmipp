@@ -25,7 +25,7 @@
 
 #include "movie_filter_dose.h"
 #include <core/metadata_extension.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/filters.h>
 #include <typeinfo>
 

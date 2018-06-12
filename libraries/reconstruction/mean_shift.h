@@ -30,7 +30,7 @@
 #include <string>
 #include <core/filters.h>
 #include <core/xmipp_funcs.h>
-#include <data/xmipp_threads.h>
+#include <core/xmipp_threads.h>
 #include <core/histogram.h>
 
 /// @defgroup Denoise Image denoising

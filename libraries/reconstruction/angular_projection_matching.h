@@ -33,15 +33,15 @@
 #include <core/xmipp_image.h>
 #include <core/filters.h>
 #include <core/mask.h>
-#include <data/polar.h>
-#include <data/xmipp_fftw.h>
-#include <data/xmipp_threads.h>
+#include <core/polar.h>
+#include <core/xmipp_fftw.h>
+#include <core/xmipp_threads.h>
 #include <pthread.h>
 
-#include <data/projection.h>
-#include <data/symmetries.h>
+#include <core/projection.h>
+#include <core/symmetries.h>
 #include <data/sampling.h>
-#include <data/ctf.h>
+#include <core/ctf.h>
 
 #include <core/xmipp_program.h>
 

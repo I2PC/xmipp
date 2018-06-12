@@ -27,7 +27,7 @@
 
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
-#include <data/projection.h>
+#include <core/projection.h>
 #include <core/xmipp_program.h>
 
 /**@defgroup ProjectionTomographyProgram projectTomograpy (project for tilt series)

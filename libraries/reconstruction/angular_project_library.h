@@ -26,12 +26,12 @@
 #define _PROG_ANGULAR_PROJECT_LIBRARY_HH
 
 #include <data/sampling.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 #include <core/args.h>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <data/projection.h>
+#include <core/projection.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_funcs.h>
 #include <core/xmipp_program.h>

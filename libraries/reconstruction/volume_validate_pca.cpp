@@ -25,7 +25,7 @@
 
 #include "volume_validate_pca.h"
 #include <numeric>
-#include "data/geometry.h"
+#include <core/geometry.h>
 
 // Define params
 void ProgVolumeValidationPCA::defineParams()

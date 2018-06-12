@@ -28,7 +28,7 @@
 //#include "art_xray.h"
 #include "denoise.h"
 #include "fourier_filter.h"
-#include <data/wavelet.h>
+#include <core/wavelet.h>
 #include <sys/time.h>
 
 

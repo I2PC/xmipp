@@ -28,7 +28,7 @@
 #include <core/xmipp_image.h>
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 #include "base_art_recons.h"
 

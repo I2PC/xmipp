@@ -29,9 +29,9 @@
 #include <core/xmipp_image.h>
 #include <core/xmipp_funcs.h>
 #include <core/multidim_array.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 
-#include <data/projection.h>
+#include <core/projection.h>
 
 /**@defgroup ShiftRefinement refinement (Shift refinement)
    @ingroup ReconsLibrary */

@@ -27,12 +27,12 @@
 
 #include <core/xmipp_image.h>
 #include <core/mask.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/transformations.h>
 #include <core/metadata_extension.h>
 #include <core/filters.h>
 #include <core/xmipp_funcs.h>
-//#include <data/xmipp_threads.h>
+//#include <core/xmipp_threads.h>
 
 #include "xmipp_gpu_utils.h"
 #include <reconstruction_cuda/cuda_gpu_correlation.h>

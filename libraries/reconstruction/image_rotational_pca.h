@@ -27,7 +27,7 @@
 
 #include <core/metadata.h>
 #include <core/xmipp_program.h>
-#include <data/xmipp_threads.h>
+#include <core/xmipp_threads.h>
 #include <classification/pca.h>
 
 #define IS_MASTER (rank == 0)

@@ -28,8 +28,8 @@
 #include "mpi_classify_FTTRI.h"
 #include <core/metadata_extension.h>
 #include <core/numerical_tools.h>
-#include <data/xmipp_fftw.h>
-#include <data/polar.h>
+#include <core/xmipp_fftw.h>
+#include <core/polar.h>
 #include <core/histogram.h>
 #include <core/filters.h>
 

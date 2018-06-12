@@ -25,7 +25,7 @@
 
 #include "ctf_correct_wiener3d.h"
 
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 
 #define OVERSAMPLE 8
 

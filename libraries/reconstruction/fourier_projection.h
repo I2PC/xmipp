@@ -28,8 +28,8 @@
 #include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
 #include <core/filters.h>
-#include <data/xmipp_fftw.h>
-#include <data/projection.h>
+#include <core/xmipp_fftw.h>
+#include <core/projection.h>
 
 /**@defgroup FourierProjection Fourier projection
    @ingroup ReconsLibrary */

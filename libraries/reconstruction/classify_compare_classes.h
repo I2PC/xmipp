@@ -25,7 +25,7 @@
 #ifndef _PROG_COMPARE_CLASSES
 #define _PROG_COMPARE_CLASSES
 
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/metadata.h>
 #include <core/xmipp_program.h>
 

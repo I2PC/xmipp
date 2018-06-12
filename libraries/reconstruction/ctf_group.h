@@ -29,7 +29,7 @@
 #include <core/args.h>
 #include <core/filters.h>
 #include "fourier_filter.h"
-#include <data/ctf.h>
+#include <core/ctf.h>
 
 #include <core/xmipp_program.h>
 

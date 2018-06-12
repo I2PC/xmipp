@@ -33,8 +33,8 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include "data/xmipp_threads.h"
-#include "data/xmipp_program.h"
+#include <core/xmipp_threads.h>
+#include <core/xmipp_program.h>
 
 #define XMIPP_MPI_SIZE_T MPI_UNSIGNED_LONG
 

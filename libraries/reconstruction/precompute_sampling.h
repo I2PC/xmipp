@@ -26,7 +26,7 @@
 #define _PRECOMPUTE_SAMPLING_H
 
 #include <data/sampling.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 #include <core/args.h>
 #include <fstream>
 #include <iostream>

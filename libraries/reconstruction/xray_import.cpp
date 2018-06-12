@@ -26,7 +26,7 @@
 
 #include <core/args.h>
 #include <core/filters.h>
-#include <data/xmipp_image_extension.h>
+#include <core/xmipp_image_extension.h>
 #include "xray_import.h"
 
 // usage ===================================================================

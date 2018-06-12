@@ -25,7 +25,7 @@
 
 #include "angular_accuracy_pca.h"
 #include <math.h>
-#include"data/transformations.h"
+#include <core/transformations.h>
 
 ProgAngularAccuracyPCA::ProgAngularAccuracyPCA()
 {

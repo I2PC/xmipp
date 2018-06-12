@@ -26,8 +26,8 @@
 #ifndef _MLTOMO_H
 #define _MLTOMO_H
 
-#include <data/xmipp_fftw.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
+#include <core/xmipp_fft.h>
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
 #include <core/metadata_extension.h>
@@ -35,11 +35,11 @@
 #include <core/geometry.h>
 #include <core/filters.h>
 #include <core/mask.h>
-#include <data/ctf.h>
+#include <core/ctf.h>
 #include <data/sampling.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 #include "symmetrize.h"
-#include <data/xmipp_threads.h>
+#include <core/xmipp_threads.h>
 #include <vector>
 #include <core/xmipp_program.h>
 

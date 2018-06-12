@@ -25,7 +25,7 @@
 
 #include "movie_alignment_correlation.h"
 #include <core/metadata_extension.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/filters.h>
 
 

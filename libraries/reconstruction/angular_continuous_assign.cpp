@@ -26,21 +26,21 @@
 
 #include "angular_continuous_assign.h"
 
-#include <bilib/configs.h>
-#include <bilib/headers/linearalgebra.h>
-#include <bilib/headers/error.h>
-#include <bilib/headers/messagedisplay.h>
-#include <bilib/headers/getputd.h>
-#include <bilib/headers/kernel.h>
-#include <bilib/headers/kerneldiff1.h>
-#include <bilib/types/tsplinebasis.h>
-#include <bilib/types/tboundaryconvention.h>
-#include <bilib/headers/changebasis.h>
-#include <bilib/headers/dft.h>
+#include <core/bilib/configs.h>
+#include <core/bilib/linearalgebra.h>
+#include <core/bilib/error.h>
+#include <core/bilib/messagedisplay.h>
+#include <core/bilib/getputd.h>
+#include <core/bilib/kernel.h>
+#include <core/bilib/kerneldiff1.h>
+#include <core/bilib/tsplinebasis.h>
+#include <core/bilib/tboundaryconvention.h>
+#include <core/bilib/changebasis.h>
+#include <core/bilib/dft.h>
 
 #include <core/xmipp_funcs.h>
 #include <core/args.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 #include <core/mask.h>
 
 /* ------------------------------------------------------------------------- */

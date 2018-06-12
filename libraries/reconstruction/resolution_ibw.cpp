@@ -25,7 +25,7 @@
 #include <iostream>
 #include "resolution_ibw.h"
 #include <core/filters.h>
-#include <data/morphology.h>
+#include <core/morphology.h>
 
 /* Read parameters --------------------------------------------------------- */
 void ProgResolutionIBW::readParams()

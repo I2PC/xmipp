@@ -31,7 +31,7 @@
 #ifndef __PROJECTION_REAL_SHEARS_H__
 #define __PROJECTION_REAL_SHEARS_H__
 
-#include <data/projection.h>
+#include <core/projection.h>
 
 /**@name ProjRealShears Projection library program using Real-Shears */
 //@{

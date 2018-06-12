@@ -26,7 +26,7 @@
 #ifndef VALIDATE_TILT_PAIRS_H
 #define VALIDATE_TILT_PAIRS_H
 
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
 

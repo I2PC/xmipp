@@ -28,7 +28,7 @@
 #include <core/args.h>
 #include <core/xmipp_image.h>
 #include <core/mask.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 
 /* Clear ------------------------------------------------------------------- */
 void FourierFilter::init()

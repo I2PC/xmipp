@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "classify_first_split.h"
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 // Read arguments ==========================================================
 void ProgClassifyFirstSplit::readParams()

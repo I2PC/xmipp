@@ -27,8 +27,8 @@
 #define VOLUME_CORRECT_BFACTOR_H
 
 #include <core/geometry.h>
-#include <data/xmipp_fft.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
 

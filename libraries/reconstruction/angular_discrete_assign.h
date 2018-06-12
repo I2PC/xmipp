@@ -25,7 +25,6 @@
 #ifndef _PROG_ANGULAR_PREDICT
 #define _PROG_ANGULAR_PREDICT
 
-#include <core/xmipp_funcs.h>
 #include <core/xmipp_program.h>
 #include <core/metadata.h>
 #include <core/metadata_extension.h>
@@ -33,7 +32,7 @@
 #include <classification/pca.h>
 
 #include "angular_distance.h"
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 #include <map>
 #include <algorithm>

@@ -28,8 +28,8 @@
 #include <condor/ObjectiveFunction.h>
 #include <condor/Vector.h>
 
-#include "data/xmipp_program.h"
-#include "data/metadata.h"
+#include <core/xmipp_program.h>
+#include <core/metadata.h>
 #include <core/xmipp_image.h>
 #include "volume_from_pdb.h"
 

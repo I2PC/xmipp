@@ -28,7 +28,7 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
 #include <core/xmipp_program.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 /**@defgroup AngularDistance angular_distance (Distance between two angular assignments)
    @ingroup ReconsLibrary */

@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "xmipp_mpi.h"
-#include "data/xmipp_log.h"
+#include <core/xmipp_log.h>
 
 
 MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize,

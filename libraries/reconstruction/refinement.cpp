@@ -31,7 +31,7 @@
 
 #include <core/xmipp_funcs.h>
 #include <core/geometry.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 
 //-------------------------------------------------------------------------
 /* Correlate two projections and find the maximum of the correlation matrix -- */

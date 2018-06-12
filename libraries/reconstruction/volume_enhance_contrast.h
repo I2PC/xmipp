@@ -28,7 +28,7 @@
 #define VOLUME_ENHANCE_CONTRAST_H
 
 #include <string>
-#include <data/morphology.h>
+#include <core/morphology.h>
 #include <core/filters.h>
 #include <core/transformations.h>
 #include <core/xmipp_program.h>

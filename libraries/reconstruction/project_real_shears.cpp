@@ -28,9 +28,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <bilib/headers/getputd.h>
-#include <bilib/headers/changebasis.h>
-#include <bilib/configs.h>
+#include <core/bilib/getputd.h>
+#include <core/bilib/changebasis.h>
+#include <core/bilib/configs.h>
 
 #include "project_real_shears.h"
 

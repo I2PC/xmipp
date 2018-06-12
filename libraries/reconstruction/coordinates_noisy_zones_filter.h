@@ -27,8 +27,8 @@
 #define _PROG_COORDINATES_NOISY_ZONES_FILTER_HH
 
 #include <core/xmipp_program.h>
-#include <data/micrograph.h>
-#include <data/morphology.h>
+#include <core/micrograph.h>
+#include <core/morphology.h>
 
 
 /**@defgroup CoordinatesMicrographFilters Coordinates Micrograph Filter

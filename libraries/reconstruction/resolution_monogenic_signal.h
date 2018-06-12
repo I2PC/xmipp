@@ -31,8 +31,8 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
-#include <data/xmipp_fft.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
 #include <math.h>
 #include <limits>
 #include <complex>

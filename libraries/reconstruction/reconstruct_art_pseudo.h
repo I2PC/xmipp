@@ -28,8 +28,8 @@
    @ingroup ReconsLibrary */
 //@{
 
-#include "data/xmipp_program.h"
-#include "data/xmipp_filename.h"
+#include <core/xmipp_program.h>
+#include <core/xmipp_filename.h>
 
 /** Parameters for reconstructing with pseudoatoms. */
 class ProgARTPseudo: public XmippProgram

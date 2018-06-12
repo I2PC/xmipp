@@ -30,7 +30,7 @@
 #include "xmipp_mpi.h"
 #include <core/args.h>
 #include <reconstruction/reconstruct_fourier.h>
-#include <data/projection.h>
+#include <core/projection.h>
 #include <cstring>
 #include <cstdlib>
 #include <core/xmipp_funcs.h>

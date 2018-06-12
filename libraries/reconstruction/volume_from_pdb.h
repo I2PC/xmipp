@@ -25,7 +25,7 @@
 #ifndef _PROG_VOLUME_FROM_PDB_HH
 #  define _PROG_VOLUME_FROM_PDB_HH
 
-#include <data/blobs.h>
+#include <core/blobs.h>
 #include <data/pdb.h>
 #include <core/xmipp_program.h>
 

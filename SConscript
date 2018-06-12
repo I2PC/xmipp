@@ -83,7 +83,7 @@ XMIPP_PATH = Dir('.').abspath
 #  *                      Xmipp C++ Libraries                            *
 #  ***********************************************************************
 
-ALL_LIBS = {'fftw3', 'tiff', 'jpeg', 'sqlite3', 'hdf5'}
+ALL_LIBS = {'fftw3', 'tiff', 'jpeg', 'sqlite3', 'hdf5', 'XmippCore'}
 
 # Create a shortcut and customized function
 # to add the Xmipp CPP libraries
@@ -109,6 +109,9 @@ def addLib(name, **kwargs):
     patterns = kwargs.get('patterns', '*.cpp')
     kwargs['patterns'] = patterns
     
+    libpath = kwargs.get('libpath', [])
+    kwargs['libpath'] = libpath+[join(env['XMIPP_BUNDLE'],'xmippCore','lib'),join(env['XMIPP_BUNDLE'],'xmipp','lib')]
+
     if 'cuda' in kwargs and kwargs['cuda']:
     	lib = env.AddCppLibraryCuda(name, **kwargs)
     else:    	
@@ -125,15 +128,11 @@ def addLib(name, **kwargs):
 
 addLib('XmippExternal',
        dirs=['external','external','external'],
-       patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc'],
-       libs=['pthread'])
+       patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc'])
 
 EXT_LIBS = ['XmippExternal']
-env.Alias('XmippExternal', EXT_LIBS)
-
 
 # Data
-#TODO: checklib rt?????
 addLib('XmippData',
        dirs=['libraries'],
        patterns=['data/*.cpp'])
@@ -162,20 +161,16 @@ if cuda:
     addLib('XmippReconsCuda',
        dirs=['libraries'],
        patterns=['reconstruction_cuda/*.cpp'],
-       incs=bilib_incs, cuda=True,
-       libs=['pthread'])
+       cuda=True)
        
     addLib('XmippReconsAdaptCuda',
        dirs=['libraries'],
-       patterns=['reconstruction_adapt_cuda/*.cpp'],
-       incs=bilib_incs,
-       libs=['pthread'])
+       patterns=['reconstruction_adapt_cuda/*.cpp'])
        
     addLib('XmippParallelAdaptCuda',
        dirs=['libraries'],
        patterns=['parallel_adapt_cuda/*.cpp'],
-       incs=bilib_incs,
-       libs=['pthread', 'XmippData', 'XmippClassif', 'XmippRecons', 'XmippExternal', 'XmippReconsCuda', 'XmippReconsAdaptCuda'],
+       libs=['XmippData', 'XmippClassif', 'XmippRecons', 'XmippExternal', 'XmippReconsCuda', 'XmippReconsAdaptCuda'],
        mpi=True)
 
 
@@ -257,13 +252,17 @@ def addProg(progName, **kwargs):
 
     kwargs['src'] = src
     # Add all xmipp libraries just in case
-    kwargs['libs'] = kwargs.get('libs', []) + PROG_LIBS
+    kwargs['libs'] = kwargs.get('libs', []) + PROG_LIBS + ['XmippCore']
     kwargs['deps'] = PROG_DEPS
 
     # Add always the xmipp path as -I for include and also xmipp/libraries
     incs = kwargs.get('incs', []) + [join(XMIPP_PATH, 'external'),
-                                     join(XMIPP_PATH, 'libraries')]
+                                     join(XMIPP_PATH, 'libraries'), join(env['XMIPP_BUNDLE'],'xmippCore')]
     kwargs['incs'] = incs
+    if 'libPaths' in kwargs:
+        kwargs['libPaths'] +=[join(env['XMIPP_BUNDLE'],'xmippCore','lib'),join(env['XMIPP_BUNDLE'],'xmipp','lib')]
+    else:
+        kwargs['libPaths'] =[join(env['XMIPP_BUNDLE'],'xmippCore','lib'),join(env['XMIPP_BUNDLE'],'xmipp','lib')]
 
     if progName.startswith('mpi_'):
         kwargs['mpi'] = True

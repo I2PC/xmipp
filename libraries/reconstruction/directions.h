@@ -29,7 +29,7 @@
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
 
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 /**@defgroup Directions Operations for projection directions
    @ingroup ReconsLibrary */

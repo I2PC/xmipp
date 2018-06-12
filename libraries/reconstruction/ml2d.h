@@ -29,8 +29,8 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <vector>
-#include <data/xmipp_fftw.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
+#include <core/xmipp_fft.h>
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
 #include <core/metadata_extension.h>
@@ -38,10 +38,10 @@
 #include <core/geometry.h>
 #include <core/filters.h>
 #include <core/mask.h>
-#include <data/ctf.h>
-#include <data/xmipp_threads.h>
+#include <core/ctf.h>
+#include <core/xmipp_threads.h>
 #include <core/xmipp_program.h>
-#include <data/xmipp_log.h>
+#include <core/xmipp_log.h>
 
 
 #define SIGNIFICANT_WEIGHT_LOW 1e-8

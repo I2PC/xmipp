@@ -29,9 +29,9 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/args.h>
-#include <data/ctf.h>
+#include <core/ctf.h>
 #include <core/xmipp_image.h>
 #include <core/filters.h>
 

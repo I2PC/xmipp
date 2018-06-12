@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "fourier_projection.h"
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 
 FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
 {

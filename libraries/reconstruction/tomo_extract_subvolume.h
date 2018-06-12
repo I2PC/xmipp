@@ -26,8 +26,8 @@
 #ifndef _TOMO_EXTRACT_SUBVOLUME_H
 #define _TOMO_EXTRACT_SUBVOLUME_H
 
-#include <data/xmipp_fftw.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
+#include <core/xmipp_fft.h>
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
 #include <core/metadata.h>
@@ -35,9 +35,9 @@
 #include <core/geometry.h>
 #include <core/filters.h>
 #include <core/mask.h>
-#include <data/ctf.h>
+#include <core/ctf.h>
 #include <data/sampling.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 #include "symmetrize.h"
 #include <pthread.h>
 #include <vector>

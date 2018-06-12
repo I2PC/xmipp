@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "reconstruct_art_xray.h"
-#include "data/metadata_extension.h"
+#include <core/metadata_extension.h>
 
 //ProgReconsXrayART::ProgReconsXrayART()
 //{

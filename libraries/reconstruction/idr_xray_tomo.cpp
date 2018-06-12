@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 #include "idr_xray_tomo.h"
-#include "data/xmipp_image_convert.h"
-#include "data/filters.h"
+#include <core/xmipp_image_convert.h>
+#include <core/filters.h>
 #include "reconstruct_fourier.h"
 #include "reconstruct_art.h"
 

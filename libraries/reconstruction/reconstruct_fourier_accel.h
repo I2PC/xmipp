@@ -32,17 +32,17 @@
 
 #include <iostream>
 #include <limits>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/xmipp_funcs.h>
 #include <core/xmipp_image.h>
-#include <data/projection.h>
-#include <data/xmipp_threads.h>
-#include <data/blobs.h>
+#include <core/projection.h>
+#include <core/xmipp_threads.h>
+#include <core/blobs.h>
 #include <core/metadata.h>
-#include <data/ctf.h>
+#include <core/ctf.h>
 #include <data/array_2D.h>
 #include <core/args.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 #include <sys/time.h>
 #include <core/metadata.h>
 #include "recons.h"

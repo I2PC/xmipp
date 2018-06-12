@@ -28,7 +28,7 @@
 
 #include <core/xmipp_program.h>
 #include <core/mask.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 
 /**@defgroup VolumeHalvesRestoration Restoration of a volume given two halves
    @ingroup ReconsLibrary */

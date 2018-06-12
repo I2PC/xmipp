@@ -29,7 +29,7 @@
 #include <core/xmipp_program.h>
 #include <math.h>
 #include <core/basic_pca.h>
-#include <data/projection.h>
+#include <core/projection.h>
 #include <core/filters.h>
 
 

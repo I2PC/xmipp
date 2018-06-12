@@ -25,7 +25,7 @@
 
 #include "adjust_volume_grey_levels.h"
 #include <core/numerical_tools.h>
-#include <data/projection.h>
+#include <core/projection.h>
 #include <core/xmipp_image.h>
 #include <core/args.h>
 

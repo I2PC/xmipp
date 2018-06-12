@@ -31,8 +31,8 @@
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
-#include "data/xmipp_hdf5.h"
-#include <data/xmipp_threads.h>
+#include <core/xmipp_hdf5.h>
+#include <core/xmipp_threads.h>
 
 ///@defgroup XrayImport Xray import
 ///@ingroup ReconsLibrary

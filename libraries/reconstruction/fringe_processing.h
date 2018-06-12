@@ -29,7 +29,7 @@
 #include <core/multidim_array.h>
 #include <core/matrix2d.h>
 #include <core/histogram.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 
 /** @defgroup FringeProcessing Routines to work with fringes
  *  @ingroup ReconsLibrary

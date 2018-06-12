@@ -26,14 +26,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <bilib/headers/messagedisplay.h>
-#include <bilib/headers/error.h>
-#include <bilib/configs.h>
-
-#include "data/metadata_extension.h"
+#include <core/metadata_extension.h>
+#include <core/bilib/messagedisplay.h>
+#include <core/bilib/error.h>
+#include <core/bilib/configs.h>
 #include "flexible_alignment.h"
-#include "program_extension.h"
 #include "pdb_nma_deform.h"
+#include "program_extension.h"
 
 
 // Empty constructor =======================================================

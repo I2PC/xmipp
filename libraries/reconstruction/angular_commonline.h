@@ -31,7 +31,7 @@
 #include <core/numerical_tools.h>
 #include <core/matrix2d.h>
 #include <vector>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 /**@defgroup AngularCommonLines angular_common_lines
     (angular assignment through common lines)

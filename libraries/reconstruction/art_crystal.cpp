@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/projection.h>
+#include <core/projection.h>
 #include "art_crystal.h"
 #include "project_crystal.h"
 #include "refinement.h"

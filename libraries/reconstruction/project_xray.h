@@ -27,7 +27,7 @@
 #define _PROJECTXRAY_H_
 
 #include <core/xmipp_program.h>
-#include <data/xmipp_threads.h>
+#include <core/xmipp_threads.h>
 #include <data/psf_xr.h>
 
 /**@defgroup ProjectionXRProgram project_xr (project for tilt series)

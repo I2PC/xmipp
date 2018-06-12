@@ -27,10 +27,10 @@
 
 #include <core/args.h>
 #include <core/filters.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 #include <core/metadata.h>
 #include <core/numerical_tools.h>
-#include <data/morphology.h>
+#include <core/morphology.h>
 #include <fstream>
 #include <queue>
 #include <iostream>

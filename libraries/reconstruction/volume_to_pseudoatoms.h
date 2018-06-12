@@ -29,7 +29,7 @@
 
 #include <core/xmipp_image.h>
 #include <core/mask.h>
-#include <data/xmipp_threads.h>
+#include <core/xmipp_threads.h>
 #include <core/xmipp_program.h>
 #include <vector>
 #include "fourier_filter.h"

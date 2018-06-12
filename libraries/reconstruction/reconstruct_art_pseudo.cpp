@@ -26,7 +26,7 @@
 
 #include <fstream>
 
-#include "data/histogram.h"
+#include <core/histogram.h>
 #include "reconstruct_art_pseudo.h"
 
 #define FORWARD   1

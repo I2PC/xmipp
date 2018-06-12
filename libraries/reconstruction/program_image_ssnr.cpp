@@ -26,7 +26,7 @@
 
 #include "program_image_ssnr.h"
 #include <core/mask.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fftw.h>
 
 void ProgImageSSNR::defineParams()
 {

@@ -28,7 +28,7 @@
 #include <core/filters.h>
 #include <data/rotational_spectrum.h>
 #include <reconstruction/denoise.h>
-#include <data/xmipp_fft.h>
+#include <core/xmipp_fft.h>
 #include <core/xmipp_filename.h>
 #include <algorithm>
 #include <classification/uniform.h>

@@ -29,7 +29,7 @@
 #include <core/metadata.h>
 #include <core/xmipp_program.h>
 
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 /**@defgroup ProjectionNeighbourhood angular_neighbourhood (Projection neighbourhood)
    @ingroup ReconsLibrary */

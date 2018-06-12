@@ -28,10 +28,10 @@
 
 #include <core/xmipp_program.h>
 #include <core/matrix1d.h>
-#include <data/xmipp_fftw.h>
-#include <data/ctf.h>
+#include <core/xmipp_fftw.h>
+#include <core/ctf.h>
 #include <core/mask.h>
-#include <data/symmetries.h>
+#include <core/symmetries.h>
 
 /**@defgroup ReconstructADMMProgram Reconstruct Alternating Direction Method of Multipliers
    @ingroup ReconsLibrary */

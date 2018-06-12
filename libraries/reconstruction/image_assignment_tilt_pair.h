@@ -27,9 +27,9 @@
 #define ASSIGNMENT_TILT_PAIR_H_
 #define PI 3.14159265
 
-#include <core/xmipp_program.h>
 #include <math.h>
-#include <alglib/src/ap.h>
+#include <core/xmipp_program.h>
+#include <core/alglib/ap.h>
 
 class ProgassignmentTiltPair: public XmippProgram
 {

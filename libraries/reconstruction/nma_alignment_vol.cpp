@@ -27,8 +27,8 @@
 #include <condor/Solver.h>
 #include <condor/tools.h>
 
-#include "data/metadata_extension.h"
-#include "data/filters.h"
+#include <core/metadata_extension.h>
+#include <core/filters.h>
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
 
