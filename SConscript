@@ -32,9 +32,7 @@ from os.path import join
 from glob import glob
 from datetime import datetime
 
-
 Import('env')
-
 
 AddOption('--no-opencv', dest='opencv', action='store_false', default=True,
           help='Avoid compilation of opencv programs')
@@ -56,7 +54,6 @@ opencv = env.GetOption('opencv') and get('OPENCV')
 
 if opencv:
     opencvLibs = ['opencv_core',
-                  # 'opencv_legacy',
                   'opencv_imgproc',
                   'opencv_video',
                   'libopencv_calib3d']
@@ -77,6 +74,7 @@ MACOSX = env['PLATFORM'] == 'darwin'
 MINGW = env['PLATFORM'] == 'win32'
 
 XMIPP_PATH = Dir('.').abspath
+XMIPP_BUNDLE = Dir('..').abspath
 
 
 #  ***********************************************************************
@@ -126,56 +124,6 @@ def addLib(name, **kwargs):
 #NOTE: for alglib and condor, the dir can not be where the source
 # code is because try to use .h files to make the final .so library
 
-addLib('XmippExternal',
-       dirs=['external','external','external'],
-       patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc'],
-       libs=['pthread'])
-
-EXT_LIBS = ['XmippExternal']
-
-# Data
-addLib('XmippData',
-       dirs=['libraries'],
-       patterns=['data/*.cpp'])
-
-# Classification
-addLib('XmippClassif',
-       dirs=['libraries'],
-       patterns=['classification/*.cpp'],
-       libs=['XmippData'])
-
-# Dimred
-addLib('XmippDimred',
-       dirs=['libraries'],
-       patterns=['dimred/*.cpp'],
-       libs=['XmippData'])
-
-# Reconstruction
-addLib('XmippRecons',
-       dirs=['libraries'],
-       patterns=['reconstruction/*.cpp'],
-       libs=['XmippData', 'XmippClassif', 'XmippExternal'])
-
-
-# Reconstruction CUDA
-if cuda:
-    addLib('XmippReconsCuda',
-       dirs=['libraries'],
-       patterns=['reconstruction_cuda/*.cpp'],
-       cuda=True)
-       
-    addLib('XmippReconsAdaptCuda',
-       dirs=['libraries'],
-       patterns=['reconstruction_adapt_cuda/*.cpp'])
-       
-    addLib('XmippParallelAdaptCuda',
-       dirs=['libraries'],
-       patterns=['parallel_adapt_cuda/*.cpp'],
-       libs=['XmippData', 'XmippClassif', 'XmippRecons', 'XmippExternal', 'XmippReconsCuda', 'XmippReconsAdaptCuda'],
-       mpi=True)
-
-
-# Interface
 def remove_prefix(text, prefix):
     return text[text.startswith(prefix) and len(prefix):]
 env['PYTHONINCFLAGS'] = os.environ.get('PYTHONINCFLAGS', '').split()
@@ -184,30 +132,40 @@ if len(env["PYTHONINCFLAGS"])>0:
 else:
     python_incdirs = []
 
-addLib('XmippInterface',
-       dirs=['libraries'],
-       patterns=['interface/*.cpp'],
-       incs=python_incdirs,
-       libs=[ 'pthread', 'python2.7',
-             'XmippData'])
+# Basic libraries
+dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
+patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
+		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
+if cuda:
+       dirs+=['libraries']
+       patterns+=['reconstruction_adapt_cuda/*.cpp']
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
 
-# Parallelization
-addLib('XmippParallel',
-              dirs=['libraries'],
-              patterns=['parallel/*.cpp'],
-              libs=['pthread', 'fftw3_threads',
-                    'XmippData', 'XmippClassif', 'XmippRecons'],
-              mpi=True)
+
+# CUDA
+if cuda:
+    addLib('XmippReconsCuda',
+       dirs=['libraries'],
+       patterns=['reconstruction_cuda/*.cpp'],
+       cuda=True)
+
+# MPI
+dirs = ['libraries']
+patterns=['parallel/*.cpp']
+if cuda:
+	dirs+=['libraries']
+	patterns+=['parallel_adapt_cuda/*.cpp']
+addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['pthread', 'fftw3_threads','Xmipp'], mpi=True)
 
 
 #  ***********************************************************************
 #  *                      Xmipp Programs and Tests                       *
 #  ***********************************************************************
 
-XMIPP_LIBS = ['XmippData', 'XmippRecons', 'XmippClassif']
-PROG_DEPS = EXT_LIBS + XMIPP_LIBS
+XMIPP_LIBS = ['Xmipp']
+PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = EXT_LIBS + XMIPP_LIBS + ['hdf5','hdf5_cpp']
+PROG_LIBS = XMIPP_LIBS + ['hdf5','hdf5_cpp']
 
 def addRunTest(testName, prog):
     """ Add a Scons target for running xmipp tests. """
@@ -261,17 +219,15 @@ def addProg(progName, **kwargs):
         kwargs['mpi'] = True
         kwargs['libs'] += ['mpi', 'mpi_cxx', 'XmippParallel']
 
-    #AJ
     if progName.startswith('cuda_'):
         kwargs['cuda'] = True
         #kwargs['nvcc'] = True
-        kwargs['libs'] += ['XmippReconsAdaptCuda', 'XmippReconsCuda']
+        kwargs['libs'] += ['XmippReconsCuda']
 
     if progName.startswith('mpi_cuda_'):
         kwargs['cuda'] = True
         #kwargs['nvcc'] = True
-        kwargs['libs'] += ['XmippReconsAdaptCuda', 'XmippReconsCuda','XmippParallelAdaptCuda']
-    #FIN AJ
+        kwargs['libs'] += ['XmippReconsCuda','XmippParallelAdaptCuda']
 
     xmippProgName = 'xmipp_%s' % progName
 
@@ -285,279 +241,31 @@ def addProg(progName, **kwargs):
     env.Alias(xmippProgName, prog)
     env.Alias('xmipp-programs', prog)
 
-
     return prog
 
-
 # Define the list of all programs
-for p in ['angular_break_symmetry',
-          'angular_commonline',
-          'angular_continuous_assign',
-          'angular_continuous_assign2',
-          'angular_accuracy_pca',
-          'angular_discrete_assign',
-          'angular_distance',
-          'angular_distribution_show',
-          'angular_estimate_tilt_axis',
-          'angular_neighbourhood',
-          'angular_projection_matching',
-          'angular_project_library',
-          'angular_rotate',
-
-          'classify_analyze_cluster',
-          'classify_compare_classes',
-          'classify_evaluate_classes',
-          'classify_extract_features',
-          'classify_first_split',
-          'classify_kerdensom',
-          'coordinates_noisy_zones_filter',
-	        'ctf_correct_wiener2d',
-          'ctf_correct_wiener3d',
-          'ctf_correct_idr',
-          'ctf_create_ctfdat',
-          'ctf_enhance_psd',
-          'ctf_estimate_from_micrograph',
-          'ctf_estimate_from_psd',
-          'ctf_estimate_from_psd_fast',
-          'ctf_group',
-          'ctf_phase_flip',
-          'ctf_show',
-          'ctf_sort_psds',
-
-          'evaluate_coordinates',
-
-          'idr_xray_tomo',
-
-          'flexible_alignment',
-          'image_align',
-          'image_align_tilt_pairs',
-          'image_assignment_tilt_pair',
-          'image_common_lines',
-          'image_convert',
-          'image_eliminate_empty_particles',
-          'image_find_center',
-          'image_header',
-          'image_histogram',
-          'image_operate',
-          'image_rotational_pca',
-          'image_residuals',
-          'image_resize',
-          'image_rotational_spectra',
-          'image_separate_objects',
-          'image_sort_by_statistics',
-          'image_ssnr',
-          'image_statistics',
-          'image_vectorize',
-
-          ('matrix_dimred', ['XmippDimred']),
-          #'metadata_convert_to_spider',
-          'metadata_histogram',
-          'metadata_import',
-          'metadata_split',
-          'metadata_split_3D',
-          'metadata_utilities',
-          'metadata_xml',
-          'micrograph_scissor',
-          'micrograph_automatic_picking',
-          'ml_align2d',
-          'mlf_align2d',
-          'ml_refine3d',
-          'mlf_refine3d',
-          'ml_tomo',
-          'movie_alignment_correlation',
-          'movie_filter_dose',
-          'movie_estimate_gain',
-          'mrc_create_metadata',
-          'multireference_aligneability',
-          'nma_alignment',
-          'nma_alignment_vol',
-
-          'pdb_analysis',
-          'pdb_construct_dictionary',
-          'pdb_nma_deform',
-          'pdb_restore_with_dictionary',
-          'pdb_reduce_pseudoatoms',
-          'phantom_create',
-          'phantom_project',
-          'phantom_simulate_microscope',
-          'phantom_transform',
-
-          'reconstruct_admm',
-          'reconstruct_art',
-          'reconstruct_art_pseudo',
-          'reconstruct_art_xray',
-          'reconstruct_fourier',
-          'reconstruct_fourier_accel',
-          'reconstruct_significant',
-          'reconstruct_wbp',
-          'resolution_fsc',
-          'resolution_ibw',
-          'resolution_monogenic_signal',
-          'resolution_ssnr',
-          'score_micrograph',
-
-          'work_test',
-
-          'transform_add_noise',
-	        'transform_adjust_image_grey_levels',
-          'transform_adjust_volume_grey_levels',
-          'transform_center_image',
-          ('transform_dimred', ['XmippDimred']),
-          'transform_downsample',
-          'transform_filter',
-          'transform_geometry',
-          'transform_mask',
-          'transform_mirror',
-          'transform_morphology',
-          'transform_normalize',
-          'transform_randomize_phases',
-          'transform_range_adjust',
-          'transform_symmetrize',
-	      'transform_threshold',
-          'transform_window',
-          'tomo_align_dual_tilt_series',
-          'tomo_align_refinement',
-
-          'tomo_align_tilt_series',
-          'tomo_detect_missing_wedge',
-          'tomo_project',
-          'tomo_remove_fluctuations',
-          'tomo_extract_subvolume',
-          'validation_nontilt',
-          'validation_tilt_pairs',
-
-          'volume_center',
-          'volume_correct_bfactor',
-          'volume_enhance_contrast',
-          'volume_find_symmetry',
-          'volume_from_pdb',
-          'volume_halves_restoration',
-          'volume_initial_simulated_annealing',
-          'volume_validate_pca',
-          'volume_pca',
-          'volume_reslice',
-          'volume_segment',
-          'volume_structure_factor',
-          'volume_to_pseudoatoms',
-          'volume_to_web',
-
-          'xray_import',
-          'xray_psf_create',
-          'xray_project',
-
-          # MPI programs, the mpi_ prefix set mpi=True flag.
-          'mpi_angular_class_average',
-          'mpi_angular_continuous_assign',
-          'mpi_angular_continuous_assign2',
-          'mpi_angular_accuracy_pca',
-          'mpi_angular_discrete_assign',
-          'mpi_angular_projection_matching',
-          'mpi_angular_project_library',
-          'mpi_classify_CL2D',
-          'mpi_classify_CL2D_core_analysis',
-          'mpi_ctf_correct_idr',
-          'mpi_ctf_sort_psds',
-          'mpi_ctf_correct_wiener2d',
-          'mpi_image_operate',
-          'mpi_image_rotational_pca',
-          'mpi_image_resize',
-          'mpi_image_sort',
-          'mpi_image_ssnr',
-          'mpi_ml_align2d',
-          'mpi_ml_tomo',
-          'mpi_mlf_align2d',
-          'mpi_ml_refine3d',
-          'mpi_mlf_refine3d',
-          'mpi_multireference_aligneability',
-          'mpi_nma_alignment',
-          'mpi_performance_test',
-          'mpi_reconstruct_art',
-          'mpi_reconstruct_fourier',
-          'mpi_reconstruct_fourier_accel',
-          'mpi_reconstruct_wbp',
-          'mpi_reconstruct_significant',
-          'mpi_reconstruct_admm',
-          'mpi_run',
-          'mpi_tomo_extract_subvolume',
-	  'mpi_transform_adjust_image_grey_levels',
-          'mpi_transform_filter',
-          'mpi_transform_symmetrize',
-          'mpi_transform_geometry',
-          'mpi_transform_mask',
-          'mpi_transform_normalize',
-          'mpi_transform_threshold',
-          'mpi_xray_project',
-	      'mpi_validation_nontilt',	  
-          'mpi_write_test',
-
-          # Unittest for Xmipp libraries
-          'test_ctf',
-          ('test_dimred', ['XmippDimred']),
-          'test_euler',
-          'test_fftw',
-          'test_filename',
-          'test_filters',
-          'test_fringe_processing',
-          'test_funcs',
-          'test_geometry',
-          'test_image',
-          'test_image_generic',
-          'test_matrix',
-          'test_metadata',
-          'test_movie_filter_dose',
-          'test_multidim',
-          'test_polar',
-          'test_polynomials',
-          'test_resolution_frc',
-          'test_sampling',
-          'test_symmetries',
-          'test_transformation',
-          'test_transform_window',
-          'test_wavelets'
-          ]:
-    # Allow to add specific libs for indiviual programs
-    # by using a tuple instead of string
-    if isinstance(p, tuple):
-        addProg(p[0], libs=p[1])
-    else:
-        addProg(p)
-
-
-# Programs with specials needs
-# This programs need python lib to compile
-addProg('volume_align_prog',
-         incs=python_incdirs,
-         libs=['python2.7', 'XmippInterface'])
-addProg('mpi_classify_CLTomo_prog',
-         incs=python_incdirs,
-         libs=['python2.7', 'XmippInterface'])
-
-# Optical Alignment program, that depends on opencv (cpu version)
-if opencv:
-    addProg('movie_optical_alignment_cpu',
-            libs=opencvLibs,
-            deps=['opencv'])
-    addProg('mpi_volume_homogenizer',
-            libs=opencvLibs,
-            deps=['opencv'])
-    if cuda: # also the gpu version
-        opencvLibs.append('opencv_gpu')
-        addProg('movie_optical_alignment_gpu',
-                libs=opencvLibs,
-                deps=['opencv'], cuda=True)
-
-
-if cuda:
-    addProg('cuda_correlation')
-    addProg('cuda_reconstruct_fourier')
-    addProg('mpi_cuda_reconstruct_fourier')
+PROGRAMS_WITH_PYTHON = ['volume_align_prog','mpi_classify_CLTomo_prog']
+PROGRAMS_WITH_OPENCV = ['movie_optical_alignment_cpu','mpi_volume_homogenizer']
+PROGRAMS_WITH_OPENCV_AND_CUDA = ['movie_optical_alignment_gpu']
+for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
+	pname = os.path.basename(p)
+	if pname in PROGRAMS_WITH_PYTHON:
+		addProg(pname,incs=python_incdirs,libs=['python2.7'])
+	elif pname in PROGRAMS_WITH_OPENCV:
+		addProg(pname,libs=opencvLibs,deps=['opencv'])
+	elif pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
+		if cuda:
+			addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
+	elif  'cuda' in pname:
+		if cuda:
+			addProg(pname)
+	else:
+		addProg(pname)
 
 
 #  ***********************************************************************
 #  *                      Xmipp Scripts                                  *
 #  ***********************************************************************
-
-
 def addBatch(batchName, script, scriptFolder='applications/scripts'):
     """ Add a link to xmipp/bin folder prepending xmipp_ prefix.
     The script should be located in from xmipp root,
@@ -572,12 +280,9 @@ def addBatch(batchName, script, scriptFolder='applications/scripts'):
 
 
 # Batches (apps)
-
-addBatch('apropos', 'apropos/batch_apropos.py')
-addBatch('compile', 'compile/batch_compile.py')
-addBatch('metadata_selfile_create', 'metadata_selfile_create/batch_metadata_selfile_create.py')
-addBatch('volume_align', 'volume_align/batch_volume_align.sh')
-addBatch('mpi_classify_CLTomo', 'mpi_classify_CLTomo/batch_mpi_classify_CLTomo.sh')
+for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*.[ps]*')):
+	dirName = os.path.basename(os.path.dirname(scriptName))
+	addBatch(dirName,scriptName)
 
 # # Python tests
 # testPythonInterface = env.SymLink('bin/xmipp_test_pythoninterface', 'applications/tests/test_pythoninterface/batch_test_pythoninterface.py')
@@ -600,10 +305,7 @@ def compileMatlabBinding(target, source, env):
                                             os.path.join(XMIPP_PATH, 'external')]+env['EXTERNAL_INCDIRS'] )
     libStr = ' '.join('-L%s' % p for p in env['EXTERNAL_LIBDIRS'])
 
-    libs = ' '.join('-l%s' % lib for lib in ['XmippData',
-                                             'XmippRecons',
-                                             'XmippBilib',
-                                             'XmippAlglib'])
+    libs = ' '.join('-l%s' % lib for lib in ['Xmipp','XmippCore'])
 
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
     command = '%s -O CFLAGS="\$CFLAGS -std=c99 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
@@ -623,38 +325,13 @@ def addMatlabBinding(name):
     return cmdTarget
 
 if matlab:
-    bindings = [#'tom_xmipp_adjust_ctf',
-                'tom_xmipp_align2d',
-                'tom_xmipp_ctf_correct_phase',
-                'tom_xmipp_mask',
-                'tom_xmipp_mirror',
-                'tom_xmipp_morphology',
-                'tom_xmipp_normalize',
-                'tom_xmipp_psd_enhance',
-                'tom_xmipp_resolution',
-                'tom_xmipp_rotate',
-                'tom_xmipp_scale',
-                'tom_xmipp_scale_pyramid',
-                'tom_xmipp_volume_segment',
-
-                'mirt3D_mexinterp',
-
-                'xmipp_ctf_generate_filter',
-                'xmipp_nma_read_alignment',
-                'xmipp_nma_save_cluster',
-                'xmipp_read',
-                'xmipp_read_structure_factor',
-                'xmipp_write',
-                ]
-    for b in bindings:
-        addMatlabBinding(b)
-
-    env.Default('xmipp-matlab')
-    env.Alias('xmipp', 'xmipp-matlab')
+	for pname in glob(os.path.join(XMIPP_PATH,'libraries','bindings','*.cpp')):
+		addMatlabBinding(pname)
+	env.Default('xmipp-matlab')
+	env.Alias('xmipp', 'xmipp-matlab')
 
 XmippAlias = env.Alias('xmipp', ['xmipp-libs',
                                  'xmipp-programs',
                                  'xmipp-batchs'])
-
 
 Return('XmippAlias')
