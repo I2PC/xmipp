@@ -83,7 +83,7 @@ XMIPP_PATH = Dir('.').abspath
 #  *                      Xmipp C++ Libraries                            *
 #  ***********************************************************************
 
-ALL_LIBS = {'fftw3', 'tiff', 'jpeg', 'sqlite3', 'hdf5', 'XmippCore'}
+ALL_LIBS = {'fftw3', 'tiff', 'jpeg', 'sqlite3', 'hdf5', 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
 # to add the Xmipp CPP libraries
@@ -207,7 +207,7 @@ addLib('XmippParallel',
 XMIPP_LIBS = ['XmippData', 'XmippRecons', 'XmippClassif']
 PROG_DEPS = EXT_LIBS + XMIPP_LIBS
 
-PROG_LIBS = EXT_LIBS + XMIPP_LIBS + ['hdf5']
+PROG_LIBS = EXT_LIBS + XMIPP_LIBS + ['hdf5','hdf5_cpp']
 
 def addRunTest(testName, prog):
     """ Add a Scons target for running xmipp tests. """
