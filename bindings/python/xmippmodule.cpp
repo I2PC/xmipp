@@ -384,6 +384,47 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }
 
+/* projectVolumeDouble */
+PyObject *
+Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    PyObject *pvol = NULL;
+    ImageObject * result = NULL;
+    double rot, tilt, psi;
+
+    if (PyArg_ParseTuple(args, "Oddd", &pvol, &rot,&tilt,&psi))
+    {
+        try
+        {
+            // We use the following macro to release the Python Interpreter Lock (GIL)
+            // while running this C extension code and allows threads to run concurrently.
+            // See: https://docs.python.org/2.7/c-api/init.html for details.
+            Py_BEGIN_ALLOW_THREADS
+            Projection P;
+			ImageObject *vol = (ImageObject*) pvol;
+            MultidimArray<double> * mVolume;
+            vol->image->data->getMultidimArrayPointer(mVolume);
+            ArrayDim aDim;
+            mVolume->getDimensions(aDim);
+            mVolume->setXmippOrigin();
+            projectVolume(*mVolume, P, aDim.xdim, aDim.ydim,rot, tilt, psi);
+            result = PyObject_New(ImageObject, &ImageType);
+            Image <double> I;
+            result->image = new ImageGeneric();
+            result->image->setDatatype(DT_Double);
+            result->image->data->setImage(MULTIDIM_ARRAY(P));
+            Py_END_ALLOW_THREADS
+            return (PyObject *)result;
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return NULL;
+}//function Image_projectVolumeDouble
+
+
 static PyMethodDef
 xmipp_methods[] =
     {
@@ -409,6 +450,8 @@ xmipp_methods[] =
 		  "I2aligned=image_align(I1,I2), align I2 to resemble I1." },
 		{ "applyCTF", (PyCFunction) Image_applyCTF, METH_VARARGS,
 		  "Apply CTF to this image. Ts is the sampling rate of the image." },
+		{ "projectVolumeDouble", (PyCFunction) Image_projectVolumeDouble, METH_VARARGS,
+		  "project a volume using Euler angles" },
         { NULL } /* Sentinel */
     };//xmipp_methods
 

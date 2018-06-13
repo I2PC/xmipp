@@ -29,7 +29,7 @@
 
 #include "Python.h"
 #include <reconstruction/ctf_estimate_from_micrograph.h>
-#include <data/fourier_projection.h>
+#include <data/projection.h>
 
 #include "python_fourierprojector.h"
 
