@@ -262,7 +262,13 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 	else:
 		addProg(pname)
 
-
+addLib('xmipp.so',
+       dirs=['bindings'],
+       patterns=['python/*.cpp'],
+       incs=python_incdirs,
+       libs=['python2.7', 'XmippCore', 'Xmipp'],
+       prefix='', target='xmipp')
+       
 #  ***********************************************************************
 #  *                      Xmipp Scripts                                  *
 #  ***********************************************************************
@@ -299,7 +305,7 @@ for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*.[ps]*
 
 
 def compileMatlabBinding(target, source, env):
-    matlabDir = join(XMIPP_PATH, 'libraries', 'bindings', 'matlab')
+    matlabDir = join(XMIPP_PATH, 'bindings', 'matlab')
 
     incStr = ' '.join('-I%s' % p for p in [os.path.join(XMIPP_PATH, 'libraries'),
                                             os.path.join(XMIPP_PATH, 'external')]+env['EXTERNAL_INCDIRS'] )
@@ -315,7 +321,7 @@ def compileMatlabBinding(target, source, env):
 # Matlab programs
 def addMatlabBinding(name):
     """ Add options to compile xmipp-Matlab bindings. """
-    matlabDir = join(XMIPP_PATH, 'libraries', 'bindings', 'matlab')
+    matlabDir = join(XMIPP_PATH, 'bindings', 'matlab')
     source = join(matlabDir, name + ".cpp")
     target = join(matlabDir, name + ".mexa64")
 
@@ -325,7 +331,7 @@ def addMatlabBinding(name):
     return cmdTarget
 
 if matlab:
-	for pname in glob(os.path.join(XMIPP_PATH,'libraries','bindings','*.cpp')):
+	for pname in glob(os.path.join(XMIPP_PATH,'bindings','matlab','*.cpp')):
 		addMatlabBinding(pname)
 	env.Default('xmipp-matlab')
 	env.Alias('xmipp', 'xmipp-matlab')
