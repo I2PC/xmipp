@@ -24,7 +24,7 @@
 
 /*xmipp includes */
 #include "tom_xmipp_helpers.h"
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 #include <reconstruction/volume_segment.h>
 
 #define VOXEL_MASS 1

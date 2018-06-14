@@ -20,7 +20,7 @@
  *=================================================================*/
 
 #include <mex.h>
-#include <data/multidim_array.h>
+#include <core/multidim_array.h>
 
 template <class T>
    void getMatrix1D(const mxArray* prhs, MultidimArray<T> &output)

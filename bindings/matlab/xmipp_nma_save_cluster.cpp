@@ -1,5 +1,5 @@
 #include <mex.h>
-#include <data/metadata.h>
+#include <core/metadata.h>
 
 /* the gateway function */
 /* xmipp_nma_save_cluster(NMAdirectory,clusterName,inCluster) */

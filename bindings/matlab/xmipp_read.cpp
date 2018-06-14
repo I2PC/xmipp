@@ -1,5 +1,5 @@
 #include <mex.h>
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[],

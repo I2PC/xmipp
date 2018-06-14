@@ -24,7 +24,7 @@
 
 /*xmipp includes */
 #include "tom_xmipp_helpers.h"
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 #include <data/normalize.h>
 
 #define NONE 0

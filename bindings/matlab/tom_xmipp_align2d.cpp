@@ -23,7 +23,7 @@
  *=================================================================*/
 
 /*xmipp includes */
-#include <data/xmipp_image.h>
+#include <core/xmipp_image.h>
 #include <data/polar.h>
 #include <data/filters.h>
 #include "tom_xmipp_helpers.h"

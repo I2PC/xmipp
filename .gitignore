@@ -4,6 +4,7 @@
 *.lo
 *.o
 *.os
+*.mexa64
 
 ### Python binaries
 *.pyc
