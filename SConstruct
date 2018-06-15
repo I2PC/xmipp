@@ -118,45 +118,6 @@ def appendUnique(elist, element):
             elist.append(element)
 
 
-def CheckMPI(context, mpi_inc, mpi_libpath, mpi_lib, mpi_cc, mpi_cxx, mpi_link, replace):
-    context.Message('* Checking for MPI ... ')
-
-    lastLIBS = context.env.get('LIBS', '')
-    lastLIBPATH = context.env['LIBPATH']
-    lastCPPPATH = context.env['CPPPATH']
-    lastCC = context.env['CC']
-    lastCXX = context.env['CXX']
-
-    # TODO Replace() also here?
-    context.env.Append(LIBS=mpi_lib, LIBPATH=mpi_libpath,
-                       CPPPATH=mpi_inc)
-    context.env.Replace(LINK=mpi_link)
-    context.env.Replace(CC=mpi_cc, CXX=mpi_cxx)
-
-    # Test only C++ mpi compiler
-    ret = context.TryLink('''
-    #include <mpi.h>
-    int main(int argc, char** argv)
-    {
-        MPI_Init(0, 0);
-        MPI_Finalize();
-        return 0;
-    }
-    ''', '.cpp')
-
-    # NOTE: We don't want MPI flags for not-mpi programs (always revert)
-    # env['mpi'] remains 1 so those can be enabled again when needed
-    if not replace:
-        context.env.Replace(LIBS=lastLIBS)
-        context.env.Replace(LIBPATH=lastLIBPATH)
-        context.env.Replace(CPPPATH=lastCPPPATH)
-        context.env.Replace(CC=lastCC)
-        context.env.Replace(CXX=lastCXX)
-
-    context.Result(ret)
-    return ret
-
-
 #  ************************************************************************
 #  *                                                                      *
 #  *                            Extra options                             *
@@ -181,7 +142,7 @@ env['CC'] = os.environ.get('CC')
 env['CXX'] = os.environ.get('CXX')
 env['LINKERFORPROGRAMS'] = os.environ.get('LINKERFORPROGRAMS')
 env['CCFLAGS'] = os.environ.get('CCFLAGS', '').split()
-cxxFlags = os.environ.get('CXXFLAGS', '') 
+cxxFlags = os.environ.get('CXXFLAGS', '')
 if os.environ.get('DEBUG', '0') == 'True': #FIXME, use 1, true, yes...
    cxxFlags += ' -g'
 else:
@@ -192,18 +153,12 @@ os.environ['CXXFLAGS'] = cxxFlags # FIXME use only env or os.environ in the rest
 env['LINKFLAGS'] = os.environ.get('LINKFLAGS', '').split()
 
 
-for path in ['MPI_LIBDIR', 'MPI_INCLUDE', 'MPI_BINDIR']:
-    if not os.path.isdir(os.environ.get(path, '')):
-        Exit('Path to $%s (%s) should exist, but it does not. Stopping.\n'% (path, os.environ.get(path, '')))
-
 env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
 env['MPI_CC'] = os.environ.get('MPI_CC')
 env['MPI_CXX'] = os.environ.get('MPI_CXX')
 env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
-env['MPI_LIB'] = os.environ.get('MPI_LIB')
-env['MPI_LIBDIR'] = os.environ['MPI_LIBDIR']
-env['MPI_INCLUDE'] = os.environ['MPI_INCLUDE']
-env['MPI_BINDIR'] = os.environ['MPI_BINDIR']
+env['MPI_CXXFLAGS'] = os.environ.get('MPI_CXXFLAGS').split()
+env['MPI_LINKFLAGS'] = os.environ['MPI_LINKFLAGS'].split()
 env['MATLAB_DIR'] = os.environ.get('MATLAB_DIR')
 env['NVCC'] = os.environ.get('NVCC')
 env['NVCC_INCLUDE'] = os.environ.get('NVCC_INCLUDE')
@@ -284,22 +239,16 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
 
     mpiArgs = {}
     if mpi:
-        _libpath.append(env['MPI_LIBDIR'])
-        _libs.append(env['MPI_LIB']) 
-        _incs.append(env['MPI_INCLUDE'])
-               
+	if not 'CXXFLAGS' in env2['ENV']:
+		env2['ENV']['CXXFLAGS']=[]
+	if not 'LINKFLAGS' in env2['ENV']:
+		env2['ENV']['LINKFLAGS']=[]
+        env2['ENV']['CXXFLAGS']+=env['MPI_CXXFLAGS']
+        env2['ENV']['LINKFLAGS']+=env['MPI_LINKFLAGS']
         mpiArgs = {'CC': env['MPI_CC'],
                    'CXX': env['MPI_CXX'],
-                   'LINK': env['MPI_LINKERFORPROGRAMS']}
-#         conf = Configure(env, custom_tests = {'CheckMPI': CheckMPI})
-#         if not conf.CheckMPI(env['MPI_INCLUDE'], env['MPI_LIBDIR'], 
-#                              env['MPI_LIB'], env['MPI_CC'], env['MPI_CXX'], 
-#                              env['MPI_LINKERFORPROGRAMS'], False):
-#             print >> sys.stderr, 'ERROR: MPI is not properly working. Exiting...'
-#             Exit(1)
-#         env = conf.Finish()
-        env2.PrependENVPath('PATH', env['MPI_BINDIR'])
-    
+                   'LINK': env['MPI_LINKERFORPROGRAMS']
+		   }
 
     _incs.append(env['CPPPATH'])
 
@@ -370,14 +319,16 @@ def addCppLibraryCuda(env, name, dirs=[], tars=[], untarTargets=['configure'], p
 
     mpiArgs = {}
     if mpi:
-        _libpath.append(env['MPI_LIBDIR'])
-        _libs.append(env['MPI_LIB'])
-        _incs.append(env['MPI_INCLUDE'])
-
+	if not 'CXXFLAGS' in env2['ENV']:
+		env2['ENV']['CXXFLAGS']=[]
+	if not 'LINKFLAGS' in env2['ENV']:
+		env2['ENV']['LINKFLAGS']=[]
+        env2['ENV']['CXXFLAGS']+=env['MPI_CXXFLAGS']
+        env2['ENV']['LINKFLAGS']+=env['MPI_LINKFLAGS']
         mpiArgs = {'CC': env['MPI_CC'],
                    'CXX': env['MPI_CXX'],
-                   'LINK': env['MPI_LINKERFORPROGRAMS']}
-        env2.PrependENVPath('PATH', env['MPI_BINDIR'])
+                   'LINK': env['MPI_LINKERFORPROGRAMS']
+		   }
 
     # AJ
     elif cuda:
@@ -521,17 +472,12 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     linkCopy = env['MPI_LINKERFORPROGRAMS'] if mpi else env['LINKERFORPROGRAMS']
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs
-    cxxflagsCopy = cxxflags + env['CXXFLAGS']
-    linkflagsCopy = linkflags + env['LINKFLAGS']
+    cxxflagsCopy = cxxflags + env['MPI_CXXFLAGS'] if mpi else env['CXXFLAGS']
+    linkflagsCopy = linkflags + env['MPI_LINKFLAGS'] if mpi else env['LINKFLAGS']
     ldLibraryPathCopy = [env['LIBPATH']]
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
     appendUnique(libPathsCopy, external_libdirs)
     env2 = Environment()
-    if mpi: 
-        appendUnique(incsCopy, env['MPI_INCLUDE'])
-        appendUnique(libPathsCopy, env['MPI_LIBDIR'])
-        appendUnique(libsCopy, env['MPI_LIB'])
-        appendUnique(ldLibraryPathCopy, env['MPI_LIBDIR'])
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
 

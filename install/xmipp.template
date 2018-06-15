@@ -5,8 +5,8 @@
 CC = gcc
 CXX = g++
 LINKERFORPROGRAMS = g++
-INCDIRFLAGS = -I/usr/lib/include -I$SCIPION_HOME/software/include
-LIBDIRFLAGS = -L/usr/lib -L$SCIPION_HOME/software/lib
+INCDIRFLAGS = -I$SCIPION_HOME/software/include
+LIBDIRFLAGS = -L$SCIPION_HOME/software/lib
 CCFLAGS = -std=c99
 CXXFLAGS = -std=c++11
 LINKFLAGS = 
@@ -16,10 +16,8 @@ PYTHONINCFLAGS = -I$SCIPION_HOME/software/include/python2.7 -I$SCIPION_HOME/soft
 MPI_CC = mpicc
 MPI_CXX = mpiCC
 MPI_LINKERFORPROGRAMS = mpiCC
-MPI_LIB = mpi
-MPI_LIBDIR = /usr/lib/openmpi//lib
-MPI_INCLUDE = /usr/lib/openmpi/include
-MPI_BINDIR = /usr/bin
+MPI_CXXFLAGS =
+MPI_LINKFLAGS =
 
 # NVCC (CUDA) variables
 # Default CUDA path if not defined for a certain package
@@ -32,7 +30,6 @@ NVCC_LIBDIR = CUDA_LIB
 MATLAB_DIR = /usr/local/MATLAB/R2011a
 
 # Modules to compile
-GTEST = False
 CUDA = False
 DEBUG = False
 MATLAB = False
