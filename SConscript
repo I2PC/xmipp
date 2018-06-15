@@ -37,13 +37,6 @@ Import('env')
 AddOption('--no-opencv', dest='opencv', action='store_false', default=True,
           help='Avoid compilation of opencv programs')
 
-
-# Define some variables used by Scons. Note that some of
-# the variables will be passed by Scipion in the environment (env).
-
-env['CUDA_SDK_PATH'] = os.environ.get('CUDA_SDK_PATH', '')
-env['CUDA_LIB_PATH'] = os.environ.get('CUDA_LIB_PATH', '')
-
 get = lambda x: os.environ.get(x, '0').lower() in ['true', 'yes', 'y', '1']
 
 gtest = get('GTEST')
@@ -221,12 +214,10 @@ def addProg(progName, **kwargs):
 
     if progName.startswith('cuda_'):
         kwargs['cuda'] = True
-        #kwargs['nvcc'] = True
         kwargs['libs'] += ['XmippReconsCuda']
 
     if progName.startswith('mpi_cuda_'):
         kwargs['cuda'] = True
-        #kwargs['nvcc'] = True
         kwargs['libs'] += ['XmippReconsCuda','XmippParallelAdaptCuda']
 
     xmippProgName = 'xmipp_%s' % progName

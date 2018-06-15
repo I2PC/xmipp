@@ -161,9 +161,8 @@ env['MPI_CXXFLAGS'] = os.environ.get('MPI_CXXFLAGS').split()
 env['MPI_LINKFLAGS'] = os.environ['MPI_LINKFLAGS'].split()
 env['MATLAB_DIR'] = os.environ.get('MATLAB_DIR')
 env['NVCC'] = os.environ.get('NVCC')
-env['NVCC_INCLUDE'] = os.environ.get('NVCC_INCLUDE')
-env['NVCC_LIBDIR'] = os.environ.get('NVCC_LIBDIR')
-env['CUDA_LIB'] = os.environ.get('CUDA_LIB')
+env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS')
+env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS')
 
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
@@ -317,27 +316,24 @@ def addCppLibraryCuda(env, name, dirs=[], tars=[], untarTargets=['configure'], p
     env2 = Environment()
     env2['ENV']['PATH'] = env['ENV']['PATH']
 
-    mpiArgs = {}
+    extraArgs = {}
     if mpi:
-	if not 'CXXFLAGS' in env2['ENV']:
-		env2['ENV']['CXXFLAGS']=[]
-	if not 'LINKFLAGS' in env2['ENV']:
-		env2['ENV']['LINKFLAGS']=[]
+        if not 'CXXFLAGS' in env2['ENV']:
+            env2['ENV']['CXXFLAGS']=[]
+        if not 'LINKFLAGS' in env2['ENV']:
+            env2['ENV']['LINKFLAGS']=[]
         env2['ENV']['CXXFLAGS']+=env['MPI_CXXFLAGS']
         env2['ENV']['LINKFLAGS']+=env['MPI_LINKFLAGS']
-        mpiArgs = {'CC': env['MPI_CC'],
-                   'CXX': env['MPI_CXX'],
-                   'LINK': env['MPI_LINKERFORPROGRAMS']
-		   }
-
-    # AJ
-    elif cuda:
+        extraArgs = {'CC': env['MPI_CC'], 'CXX': env['MPI_CXX'], 'LINK': env['MPI_LINKERFORPROGRAMS']}
+    if cuda:
+        if not 'CXXFLAGS' in env2['ENV']:
+            env2['ENV']['CXXFLAGS']=[]
+        if not 'LINKFLAGS' in env2['ENV']:
+            env2['ENV']['LINKFLAGS']=[]
+        env2['ENV']['CXXFLAGS']+=env['NVCC_CXXFLAGS']
+        env2['ENV']['LINKFLAGS']+=env['NVCC_LINKFLAGS']
         _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt'])
-        _incs.append(env['NVCC_INCLUDE'])
-        _libpath.append(env['NVCC_LIBDIR'])
-        mpiArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
-    # FIN AJ
-
+        extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
 
@@ -352,7 +348,7 @@ def addCppLibraryCuda(env, name, dirs=[], tars=[], untarTargets=['configure'], p
         SHLIBSUFFIX=suffix,
         CXXFLAGS=env['CXXFLAGS'],
         LINKFLAGS=env['LINKFLAGS'],
-        **mpiArgs)
+        **extraArgs)
     SideEffect('dummy', library)
     env.Depends(library, sources)
 
