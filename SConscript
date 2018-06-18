@@ -50,7 +50,9 @@ if opencv:
                   'opencv_imgproc',
                   'opencv_video',
                   'libopencv_calib3d']
-                  
+    if cuda:
+        opencvLibs+=['libopencv_gpu']
+            
 else:
     opencvLibs = []
 
