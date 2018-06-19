@@ -158,27 +158,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp']
-
-def addRunTest(testName, prog):
-    """ Add a Scons target for running xmipp tests. """
-    xmippTestName = 'xmipp_' + testName
-    xmlFileName = join(XMIPP_PATH, 'applications', 'tests', 'OUTPUT',
-                       xmippTestName+".xml")
-    if os.path.exists(xmlFileName):
-        os.remove(xmlFileName)
-    testCase = env.Command(
-        xmlFileName,
-        join(XMIPP_PATH, 'bin/%s' % xmippTestName),
-        "$SOURCE --gtest_output=xml:$TARGET")
-    env.Alias('run_' + testName, testCase)
-    env.Depends(testCase, prog)
-    env.Alias('xmipp-runtests', testCase)
-
-    AlwaysBuild(testCase)
-
-    return testCase
-
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3']
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -188,11 +168,10 @@ def addProg(progName, **kwargs):
         if 'src' not in kwargs, add: 'applications/programs/progName' by default.
         if progName starts with 'mpi_' then mpi will be set to True.
     """
-    isTest = progName.startswith('test_')
-
-    progsFolder = 'tests' if isTest else 'programs'
-
-    src = kwargs.get('src', [join('applications', progsFolder, progName)])
+    if progName.startswith('test_'):
+        src = kwargs.get('src', [join('applications', 'tests', 'function_tests', progName+".cpp")])
+    else:
+        src = kwargs.get('src', [join('applications', 'programs', progName)])
 
     kwargs['src'] = src
     # Add all xmipp libraries just in case
@@ -222,10 +201,6 @@ def addProg(progName, **kwargs):
 
     xmippProgName = 'xmipp_%s' % progName
 
-    if progName.startswith('test_'):
-        env.Alias('xmipp-tests', xmippProgName)
-        addRunTest(progName, xmippProgName)
-
     prog = env.AddProgram(xmippProgName, **kwargs)
 
     # Add some aliases before return
@@ -252,6 +227,10 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 			addProg(pname)
 	else:
 		addProg(pname)
+
+for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
+    pname = os.path.basename(p).replace('.cpp','')
+    addProg(pname)
 
 addLib('xmippLib.so',
        dirs=['bindings'],

@@ -378,7 +378,10 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
 
     sources = []
     for s, p in izip(src, pattern):
-        sources += glob(join(s, p))
+         if os.path.isdir(s):
+             sources += glob(join(s, p))
+         else:
+             sources += [s]
 
     cxxflagsCopy = list(cxxflags)+env['CXXFLAGS']
     linkflagsCopy = list(linkflags)
