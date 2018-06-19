@@ -253,12 +253,12 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 	else:
 		addProg(pname)
 
-addLib('xmipp.so',
+addLib('xmippLib.so',
        dirs=['bindings'],
        patterns=['python/*.cpp'],
        incs=python_incdirs,
        libs=['python2.7', 'XmippCore', 'Xmipp'],
-       prefix='', target='xmipp')
+       prefix='', target='xmippLib')
        
 #  ***********************************************************************
 #  *                      Xmipp Scripts                                  *
