@@ -36,7 +36,7 @@
 /* Read parameters --------------------------------------------------------- */
 void ProgCTFBasicParams::readBasicParams(XmippProgram *program)
 {
-	downsampleFactor = program->getDoubleParam("--downSamplingPerformed");
+    downsampleFactor = program->getDoubleParam("--downSamplingPerformed");
     show_optimization = program->checkParam("--show_optimization");
     min_freq = program->getDoubleParam("--min_freq");
     max_freq = program->getDoubleParam("--max_freq");
@@ -179,9 +179,11 @@ void ProgCTFBasicParams::defineParams()
 /* Produce side information ------------------------------------------------ */
 void ProgCTFBasicParams::produceSideInfo()
 {
+    penalty=32.0;
+
     // Resize the frequency
-	x_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
-	y_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
+    x_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
+    y_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
     w_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
     w_digfreq_r.initZeros(YSIZE(*f), XSIZE(*f) / 2);
     x_contfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);

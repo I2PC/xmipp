@@ -50,7 +50,9 @@ if opencv:
                   'opencv_imgproc',
                   'opencv_video',
                   'libopencv_calib3d']
-                  
+    if cuda:
+        opencvLibs+=['libopencv_gpu']
+            
 else:
     opencvLibs = []
 
@@ -103,11 +105,7 @@ def addLib(name, **kwargs):
     libpath = kwargs.get('libpath', [])
     kwargs['libpath'] = libpath+[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
 
-    if 'cuda' in kwargs and kwargs['cuda']:
-    	lib = env.AddCppLibraryCuda(name, **kwargs)
-    else:    	
-    	lib = env.AddCppLibrary(name, **kwargs)
-    	
+    lib = env.AddCppLibrary(name, **kwargs)	
     env.Alias('xmipp-libs', lib)
 
     return lib
@@ -129,26 +127,20 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-if cuda:
-       dirs+=['libraries']
-       patterns+=['reconstruction_adapt_cuda/*.cpp']
 addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
 
 
 # CUDA
 if cuda:
-    addLib('XmippReconsCuda',
-       dirs=['libraries'],
-       patterns=['reconstruction_cuda/*.cpp'],
-       cuda=True)
+    addLib('XmippInterfaceCuda', dirs=['libraries'], patterns=['reconstruction_adapt_cuda/*.cpp'], libs=['Xmipp'])
+    addLib('XmippCuda', dirs=['libraries'], patterns=['reconstruction_cuda/*.cpp'], nvcc=True, suffix=".a")
+    addLib('XmippParallelCuda', dirs=['libraries'], patterns=['parallel_adapt_cuda/*.cpp'],
+           libs=['Xmipp','XmippInterfaceCuda','XmippCuda'], mpi=True)
 
 # MPI
 dirs = ['libraries']
 patterns=['parallel/*.cpp']
-if cuda:
-	dirs+=['libraries']
-	patterns+=['parallel_adapt_cuda/*.cpp']
-addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['pthread', 'fftw3_threads','Xmipp'], mpi=True)
+addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 
 
 #  ***********************************************************************
@@ -214,11 +206,11 @@ def addProg(progName, **kwargs):
 
     if progName.startswith('cuda_'):
         kwargs['cuda'] = True
-        kwargs['libs'] += ['XmippReconsCuda']
+        kwargs['libs'] += ['XmippInterfaceCuda','XmippCuda']
 
     if progName.startswith('mpi_cuda_'):
         kwargs['cuda'] = True
-        kwargs['libs'] += ['XmippReconsCuda','XmippParallelAdaptCuda']
+        kwargs['libs'] += ['XmippInterfaceCuda','XmippCuda','XmippParallelCuda']
 
     xmippProgName = 'xmipp_%s' % progName
 

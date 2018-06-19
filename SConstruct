@@ -160,9 +160,10 @@ env['MPI_LINKERFORPROGRAMS'] = os.environ.get('MPI_LINKERFORPROGRAMS')
 env['MPI_CXXFLAGS'] = os.environ.get('MPI_CXXFLAGS').split()
 env['MPI_LINKFLAGS'] = os.environ['MPI_LINKFLAGS'].split()
 env['MATLAB_DIR'] = os.environ.get('MATLAB_DIR')
+env['CUDA'] = os.environ.get('CUDA')
 env['NVCC'] = os.environ.get('NVCC')
-env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS')
-env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS')
+env['NVCC_CXXFLAGS'] = os.environ.get('NVCC_CXXFLAGS').split()
+env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS').split()
 
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
@@ -197,7 +198,7 @@ env['EXTERNAL_LIBDIRS'] = external_libdirs
 
 def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patterns=[], incs=[], 
                       libs=[], prefix=None, suffix=None, installDir=None, libpath=['lib'], deps=[], 
-                      mpi=False, cuda=False, default=True, target=None):
+                      mpi=False, nvcc=False, default=True, target=None):
     """Add self-made and compiled shared library to the compilation process
     
     This pseudobuilder access given directory, compiles it
@@ -210,14 +211,12 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
     """
     _libs = list(libs)
     _libpath = list(libpath)+external_libdirs
-    if name == "XmippReconsAdaptCuda":
-        _libs.append("XmippReconsCuda")
+    if name == "XmippInterfaceCuda":
+        _libs.append("XmippCuda")
+    if "Cuda" in name:
         _libs.append("cudart")
         _libs.append("cuda")
         _libs.append("cufft")
-        _libpath.append(env['CUDA_LIB'])
-    if name == "XmippParallel" and cuda==True:
-        _libs.append("XmippReconsAdaptCuda")
     _incs = list(incs)+external_incdirs
     lastTarget = deps
     prefix = 'lib' if prefix is None else prefix
@@ -235,135 +234,62 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
 
     env2 = Environment()
     env2['ENV']['PATH'] = env['ENV']['PATH']
-
-    mpiArgs = {}
-    if mpi:
-	if not 'CXXFLAGS' in env2['ENV']:
-		env2['ENV']['CXXFLAGS']=[]
-	if not 'LINKFLAGS' in env2['ENV']:
-		env2['ENV']['LINKFLAGS']=[]
-        env2['ENV']['CXXFLAGS']+=env['MPI_CXXFLAGS']
-        env2['ENV']['LINKFLAGS']+=env['MPI_LINKFLAGS']
-        mpiArgs = {'CC': env['MPI_CC'],
-                   'CXX': env['MPI_CXX'],
-                   'LINK': env['MPI_LINKERFORPROGRAMS']
-		   }
-
-    _incs.append(env['CPPPATH'])
-
-    library = env2.SharedLibrary(
-              target=targetName,
-              #source=lastTarget,
-              source=sources,
-              CPPPATH=_incs,
-              LIBPATH=_libpath,
-              LIBS=_libs,
-              SHLIBPREFIX=prefix,
-              SHLIBSUFFIX=suffix,
-              CXXFLAGS=env['CXXFLAGS']+env['INCDIRFLAGS'],
-              LINKFLAGS=env['LINKFLAGS']+env['LIBDIRFLAGS'],
-              **mpiArgs
-              )
-    SideEffect('dummy', library)
-    env.Depends(library, sources)
-    
-    if installDir:
-        install = env.Install(installDir, library)
-        SideEffect('dummy', install)
-        lastTarget = install
-    else:
-        lastTarget = library
-    env.Default(lastTarget)
-
-    for dep in deps:
-        env.Depends(sources, dep)
-
-    env.Alias(name, lastTarget)
-
-    return lastTarget
-
-def addCppLibraryCuda(env, name, dirs=[], tars=[], untarTargets=['configure'], patterns=[], incs=[],
-                  libs=[], prefix=None, suffix=None, installDir=None, libpath=['lib'], deps=[],
-                  mpi=False, cuda=False, default=True, target=None):
-    """Add self-made and compiled shared library to the compilation process
-
-    This pseudobuilder access given directory, compiles it
-    and installs it. It also tells SCons about it dependencies.
-
-    If default=False, the library will not be built unless the option
-    --with-<name> is used.
-
-    Returns the final targets, the ones that Make will create.
-    """
-    _libs = list(libs)
-    _libpath = list(libpath)+external_libdirs
-    _incs = list(incs)+external_incdirs
-    lastTarget = deps
-    prefix = 'lib' if prefix is None else prefix
-    suffix = '.so' if suffix is None else suffix
-
-    basedir = 'lib'
-    targetName = join(basedir, target if target else prefix + name)
-    sources = []
-
-    for d, p in izip(dirs, patterns):
-        sources += glob(join(env['PACKAGE']['SCONSCRIPT'], d, p))
-
-    if not sources and env.TargetInBuild(name):
-        Exit('No sources found for Library: %s. Exiting!!!' % name)
-
-    # FIXME: There must be a key in env dictionary that breaks the compilation. Please find it to make it more beautiful
-    env2 = Environment()
-    env2['ENV']['PATH'] = env['ENV']['PATH']
+    env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer 
+    env2['LINKFLAGS']=list(env['LINKFLAGS'])
+    if "Cuda" in name or nvcc:
+        env2['LINKFLAGS']+=env['NVCC_LINKFLAGS']
 
     extraArgs = {}
     if mpi:
-        if not 'CXXFLAGS' in env2['ENV']:
-            env2['ENV']['CXXFLAGS']=[]
-        if not 'LINKFLAGS' in env2['ENV']:
-            env2['ENV']['LINKFLAGS']=[]
-        env2['ENV']['CXXFLAGS']+=env['MPI_CXXFLAGS']
-        env2['ENV']['LINKFLAGS']+=env['MPI_LINKFLAGS']
+        if not 'CXXFLAGS' in env2:
+            env2['CXXFLAGS']=[]
+        if not 'LINKFLAGS' in env2:
+            env2['LINKFLAGS']=[]
+        env2['CXXFLAGS']+=env['MPI_CXXFLAGS']
+        env2['LINKFLAGS']+=env['MPI_LINKFLAGS']
         extraArgs = {'CC': env['MPI_CC'], 'CXX': env['MPI_CXX'], 'LINK': env['MPI_LINKERFORPROGRAMS']}
-    if cuda:
-        if not 'CXXFLAGS' in env2['ENV']:
-            env2['ENV']['CXXFLAGS']=[]
-        if not 'LINKFLAGS' in env2['ENV']:
-            env2['ENV']['LINKFLAGS']=[]
-        env2['ENV']['CXXFLAGS']+=env['NVCC_CXXFLAGS']
-        env2['ENV']['LINKFLAGS']+=env['NVCC_LINKFLAGS']
+    if nvcc:
+        if not 'CXXFLAGS' in env2:
+            env2['CXXFLAGS']=[]
+        if not 'LINKFLAGS' in env2:
+            env2['LINKFLAGS']=[]
+        env2['CXXFLAGS']+=env['NVCC_CXXFLAGS']
         _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt'])
         extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
 
-    library = env2.Library(
-        target=targetName,
-        # source=lastTarget,
-        source=sources,
-        CPPPATH=_incs,
-        LIBPATH=_libpath,
-        LIBS=_libs,
-        SHLIBPREFIX=prefix,
-        SHLIBSUFFIX=suffix,
-        CXXFLAGS=env['CXXFLAGS'],
-        LINKFLAGS=env['LINKFLAGS'],
-        **extraArgs)
-    SideEffect('dummy', library)
-    env.Depends(library, sources)
 
+    libraryArgs = {
+        'target':      targetName,
+        'source':      sources,
+        'CPPPATH':     _incs,
+        'LIBPATH':     _libpath,
+        'LIBS':        _libs,
+        'SHLIBPREFIX': prefix,
+        'SHLIBSUFFIX': suffix,
+        'CXXFLAGS':    env2['CXXFLAGS']+env['INCDIRFLAGS'],
+        'LINKFLAGS':   env2['LINKFLAGS']+env['LIBDIRFLAGS']
+    }
+    libraryArgs.update(extraArgs)
+    if nvcc:
+        library=env2.Library(**libraryArgs)
+    else:
+        library = env2.SharedLibrary(**libraryArgs)
+    env2.Depends(library, sources)
+    
     if installDir:
-        install = env.Install(installDir, library)
+        install = env2.Install(installDir, library)
         SideEffect('dummy', install)
         lastTarget = install
     else:
         lastTarget = library
-    env.Default(lastTarget)
+    env2.Default(lastTarget)
 
     for dep in deps:
-        env.Depends(sources, dep)
+        env2.Depends(sources, dep)
 
-    env.Alias(name, lastTarget)
+    env2.Alias(name, lastTarget)
 
     return lastTarget
 
@@ -451,25 +377,36 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     incsCopy = list(incs) or []
     if cuda or nvcc:
         libs += ['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt']
-        incsCopy += [env['NVCC_INCLUDE']]
-        libPathsCopy += [env['NVCC_LIBDIR']]
+
     sources = []
     for s, p in izip(src, pattern):
         sources += glob(join(s, p))
 
-    if mpi: ccCopy = env['MPI_CC']
-    elif nvcc: ccCopy = env['NVCC']
-    else: ccCopy = env['CC']
+    cxxflagsCopy = list(cxxflags)+env['CXXFLAGS']
+    linkflagsCopy = list(linkflags)
+    if mpi: 
+        ccCopy = str(env['MPI_CC'])
+        cxxCopy = str(env['MPI_CXX'])
+        linkCopy = env['MPI_LINKERFORPROGRAMS']
+        cxxflagsCopy += env['MPI_CXXFLAGS']
+        linkflagsCopy += env['MPI_LINKFLAGS']
+    elif nvcc:
+        ccCopy = str(env['NVCC'])
+        cxxCopy = str(env['NVCC'])
+        linkCopy = env['NVCC']
+        cxxflagsCopy += env['NVCC_CXXFLAGS']
+        linkflagsCopy += env['NVCC_LINKFLAGS']
+    else:
+        ccCopy = str(env['CC'])
+        cxxCopy = str(env['CXX'])
+        linkCopy = env['LINKERFORPROGRAMS']
+        linkflagsCopy += env['LINKFLAGS']
 
-    if mpi: cxxCopy = env['MPI_CXX']
-    elif nvcc: cxxCopy = env['NVCC']
-    else: cxxCopy = env['CXX']
+    if cuda:
+        linkflagsCopy += env['NVCC_LINKFLAGS']
 
-    linkCopy = env['MPI_LINKERFORPROGRAMS'] if mpi else env['LINKERFORPROGRAMS']
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs
-    cxxflagsCopy = cxxflags + env['MPI_CXXFLAGS'] if mpi else env['CXXFLAGS']
-    linkflagsCopy = linkflags + env['MPI_LINKFLAGS'] if mpi else env['LINKFLAGS']
     ldLibraryPathCopy = [env['LIBPATH']]
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
     appendUnique(libPathsCopy, external_libdirs)
@@ -545,7 +482,6 @@ def libraryTest(env, name, lang='c'):
 env.AddMethod(untar, 'Untar')
 env.AddMethod(compilerConfig, 'CompilerConfig')
 env.AddMethod(addCppLibrary, 'AddCppLibrary')
-env.AddMethod(addCppLibraryCuda, 'AddCppLibraryCuda')
 env.AddMethod(symLink, 'SymLink')
 env.AddMethod(addProgram, 'AddProgram')
 env.AddMethod(targetInBuild, 'TargetInBuild')
