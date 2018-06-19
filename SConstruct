@@ -135,8 +135,6 @@ if not 'BUILD' in cf.sections():
     print("Cannot find section BUILD in install/xmipp.conf")
 os.environ.update(dict(cf.items('BUILD')))
 
-env['SCIPION_HOME'] = os.environ['SCIPION_HOME']
-
 env['CPPPATH'] = os.environ.get('CPPPATH', [])
 env['CC'] = os.environ.get('CC')
 env['CXX'] = os.environ.get('CXX')
@@ -217,7 +215,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         _libs.append("cudart")
         _libs.append("cuda")
         _libs.append("cufft")
-    _incs = list(incs)+external_incdirs
+    _incs = list(incs)#+external_incdirs
     lastTarget = deps
     prefix = 'lib' if prefix is None else prefix
     suffix = '.so' if suffix is None else suffix
