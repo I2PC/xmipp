@@ -1,3 +1,3 @@
 from xmippCore import *
-from xmipp import *
+from xmippLib import *
 
