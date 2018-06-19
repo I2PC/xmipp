@@ -76,7 +76,15 @@ XMIPP_BUNDLE = Dir('..').abspath
 #  *                      Xmipp C++ Libraries                            *
 #  ***********************************************************************
 
-ALL_LIBS = {'fftw3', 'tiff', 'jpeg', 'sqlite3', 'hdf5', 'hdf5_cpp','XmippCore'}
+def getHdf5Name(libdirs):
+    for dir in libdirs:
+        if os.path.exists(os.path.join(dir.strip(),"libhdf5.so")):
+            return "hdf5"
+        elif os.path.exists(os.path.join(dir.strip(),"libhdf5_serial.so")):
+            return "hdf5_serial"
+    return "hdf5"
+
+ALL_LIBS = {'fftw3', 'tiff', 'jpeg', 'sqlite3', getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
 # to add the Xmipp CPP libraries
@@ -150,7 +158,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + ['hdf5','hdf5_cpp']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp']
 
 def addRunTest(testName, prog):
     """ Add a Scons target for running xmipp tests. """
@@ -162,7 +170,7 @@ def addRunTest(testName, prog):
     testCase = env.Command(
         xmlFileName,
         join(XMIPP_PATH, 'bin/%s' % xmippTestName),
-        "%s/scipion run $SOURCE --gtest_output=xml:$TARGET" % os.environ['SCIPION_HOME'])
+        "$SOURCE --gtest_output=xml:$TARGET")
     env.Alias('run_' + testName, testCase)
     env.Depends(testCase, prog)
     env.Alias('xmipp-runtests', testCase)

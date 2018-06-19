@@ -5,12 +5,12 @@
 CC = gcc
 CXX = g++
 LINKERFORPROGRAMS = g++
-INCDIRFLAGS = -I$SCIPION_HOME/software/include
-LIBDIRFLAGS = -L$SCIPION_HOME/software/lib
+INCDIRFLAGS = 
+LIBDIRFLAGS = 
 CCFLAGS = -std=c99
 CXXFLAGS = -std=c++11
 LINKFLAGS = 
-PYTHONINCFLAGS = -I$SCIPION_HOME/software/include/python2.7 -I$SCIPION_HOME/software/lib/python2.7/site-packages -I$SCIPION_HOME/software/lib/python2.7/site-packages/numpy/core/include
+PYTHONINCFLAGS = 
 
 # MPI variables
 MPI_CC = mpicc
@@ -25,7 +25,7 @@ NVCC = nvcc
 NVCC_CXXFLAGS = --x cu -D_FORCE_INLINES -Xcompiler -fPIC -Wno-deprecated-gpu-targets
 NVCC_LINKFLAGS =
 
-MATLAB_DIR = /usr/local/MATLAB/R2011a
+MATLAB_DIR = 
 
 # Modules to compile
 CUDA = False
