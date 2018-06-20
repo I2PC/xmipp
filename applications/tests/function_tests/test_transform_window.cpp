@@ -137,7 +137,8 @@ TEST_F( TransformWindowTest, unitcell)
     	ASSERT_TRUE(false);
     	return;
     }
-    write(fd, ico_i2,sizeof(ico_i2));
+    if (write(fd, ico_i2,sizeof(ico_i2)) == -1) FAIL() << "Could not write to file " << filename;
+
 	Phantom           phantom;
     Image<double>     vol;
     const char  inFn[] = "/tmp/inTransformWindowTest.mrc";
@@ -155,7 +156,7 @@ TEST_F( TransformWindowTest, unitcell)
 	snprintf(commandBuff, sizeof(commandBuff),
 			"xmipp_transform_window -i %s -o %s --unitcell i2 80 140 .25 0",
 			inFn, outFn);
-    system(commandBuff);
+    ASSERT_EQ(0, system(commandBuff));
 #ifdef DEBUG
     std::cerr << "commandBuff: " << commandBuff << std::endl;
 #endif
