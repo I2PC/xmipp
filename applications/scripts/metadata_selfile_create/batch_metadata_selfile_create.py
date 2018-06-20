@@ -27,7 +27,7 @@
 #!/usr/bin/env python
 
 import os
-import pyworkflow.em.packages.xmipp3 as xmipp3
+import xmipp3
 
 class ScriptCreateMetadata(xmipp3.XmippScript):
     def __init__(self):
