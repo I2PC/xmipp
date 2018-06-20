@@ -23,7 +23,8 @@ If you want to include this tools in any commercial product,
 you can contact the author at fvandenb@iridia.ulb.ac.be
 
 */
-#include <stdio.h>
+#include <iostream>
+#include <fstream>
 #include <memory.h>
 #include <string.h> // for memmove: microsoft bug
 #include "Vector.h"
@@ -430,11 +431,11 @@ void Vector::addInPlace(double a, int i, Matrix m)
 Vector::Vector(char *filename)
 {
     unsigned _n;
-    FILE *f=fopen(filename,"rb");
-    fread(&_n, sizeof(int),1, f);
+    std::ifstream ifp(filename, std::ios::in | std::ios::binary);
+    ifp.read(reinterpret_cast<char*>(&_n), sizeof(int));
     alloc(_n,_n);
-    fread(d->p, d->n*sizeof(double),1, f);
-    fclose(f);
+    ifp.read(reinterpret_cast<char*>(d->p), d->n*sizeof(double));
+    ifp.close();
 }
 
 void Vector::save(char *filename, char ascii)
@@ -631,7 +632,9 @@ void Vector::appendToMatrixFile(char *saveFileName, char **names)
     fwrite(d->p,sizeof(double)*nc,1,f);
     unsigned nlfile;
     fseek(f,13,SEEK_SET);
-    fread(&nlfile,sizeof(int),1,f); 
+    if (fread(&nlfile,sizeof(int),1,f) != sizeof(int)) {
+        std::cerr << "error while appending to file " << saveFileName << std::endl; exit(255);    
+    } 
     nlfile++;
     fseek(f,13,SEEK_SET);
     fwrite(&nlfile, sizeof(unsigned), 1, f);
