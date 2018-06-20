@@ -481,7 +481,7 @@ void KerDenSOM::printV(FuzzyMap* _som, const TS* _ts, FileName& _fname)
     {
         if (_ts->getNormalizationInfo().size() != _som->theItems[0].size())
         {
-            std::ostrstream msg;
+            std::stringstream msg;
             msg << "Normalization information does not coincide with codebook structure";
             throw std::runtime_error(msg.str());
         }

@@ -221,7 +221,7 @@ void SOM::readSelf(std::istream& _is)
     }
     catch (std::exception& e)
     {
-        std::ostrstream msg;
+        std::stringstream msg;
         msg << e.what() << std::endl << "Error reading the SOM algorithm";
         throw std::runtime_error(msg.str());
     }
@@ -298,7 +298,7 @@ void Descent::readSelf(std::istream& _is)
     }
     catch (std::exception& e)
     {
-        std::ostrstream msg;
+        std::stringstream msg;
         msg << e.what() << std::endl << "Error reading Descent class";
         throw std::runtime_error(msg.str());
     }

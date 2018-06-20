@@ -25,7 +25,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <strstream>
+#include <sstream>
 
 #ifdef __sun
 #include <ieeefp.h>
@@ -396,7 +396,7 @@ std::istream& operator >> (std::istream &in, PCAAnalyzer &PC)
     sscanf(read_line.c_str(), "Mean vector: (%d) --->", &size);
     read_line.erase(0, read_line.find('>') + 1); // remove until --->
     PC.mean.resize(size);
-    std::istrstream istr1(read_line.c_str());
+    std::istringstream istr1(read_line.c_str());
     for (int j = 0; j < size; j++)
         istr1 >> PC.mean[j];
 
@@ -408,7 +408,7 @@ std::istream& operator >> (std::istream &in, PCAAnalyzer &PC)
         PC.eigenval[i] = f;
         read_line.erase(0, read_line.find('>') + 1); // remove until --->
         PC.eigenvec[i].resize(size);
-        std::istrstream istr2(read_line.c_str());
+        std::istringstream istr2(read_line.c_str());
         for (int j = 0; j < size; j++)
             istr2 >> PC.eigenvec[i][j];
     }
