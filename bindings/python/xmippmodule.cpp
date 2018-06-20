@@ -294,6 +294,7 @@ Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }//function Image_convertPSD
 
+extern PyTypeObject ImageType;
 /* I2aligned=align(I1,I2) */
 PyObject *
 Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
