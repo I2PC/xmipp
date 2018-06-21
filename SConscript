@@ -44,6 +44,7 @@ cuda = get('CUDA')
 debug = get('DEBUG')
 matlab = get('MATLAB')
 opencv = env.GetOption('opencv') and get('OPENCV')
+opencv_3 = get('OPENCV_3')
 
 if opencv:
     opencvLibs = ['opencv_core',
@@ -51,7 +52,11 @@ if opencv:
                   'opencv_video',
                   'libopencv_calib3d']
     if cuda:
-        opencvLibs+=['libopencv_gpu']
+        if opencv_3:
+            opencvLibs+=['libopencv_cudaoptflow', 'libopencv_cudaarithm']
+        else:
+            opencvLibs+=['libopencv_gpu'] 
+
             
 else:
     opencvLibs = []
