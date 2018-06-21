@@ -26,7 +26,7 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 
 #include <memory.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <iostream>
 #include <string.h>
 #include <math.h>
 #include "Matrix.h"
@@ -96,6 +96,7 @@ Matrix::Matrix(int _nLine,int _nColumn,int _extLine,int _extColumn)
 
 Matrix::Matrix(const char *filename, char ascii)
 {
+    // FIXME refactor
     int _nLine,_nColumn;
     char c[13];
     FILE *f=fopen(filename,"rb");
@@ -112,18 +113,26 @@ Matrix::Matrix(const char *filename, char ascii)
         {
             printf("not a ASCII matrix.\n"); exit(255);
         }
-        fgets(line,30000,f);
+        if (fgets(line,30000,f) != line) {
+            std::cerr << "error while reading " << filename << std::endl; exit(255);  
+        }
         _nLine=atol(line);
-        fgets(line,30000,f);
+        if (fgets(line,30000,f) != line)  {
+            std::cerr << "error while reading " << filename << std::endl; exit(255);  
+        }
         _nColumn=atol(line);
         init(_nLine,_nColumn,_nLine,_nColumn);
-        fgets(line,30000,f);
+        if (fgets(line,30000,f) != line)  {
+            std::cerr << "error while reading " << filename << std::endl; exit(255);  
+        }
         setColNames(getNameTable(line,&_nColumn));
         Vector tt(_nColumn);
         int i;
         for (i=0; i<_nLine; i++)
         {
-            fgets(line,30000,f);
+            if (fgets(line,30000,f) != line) {
+                std::cerr << "error while reading " << filename << std::endl; exit(255);  
+            }
             tt.getFromLine(line);
             setLine(i,tt);
         }
@@ -134,16 +143,24 @@ Matrix::Matrix(const char *filename, char ascii)
     {
         printf("not a binary matrix.\n"); exit(255);
     }
-    fread(&_nLine, sizeof(unsigned), 1, f);
-    fread(&_nColumn, sizeof(unsigned), 1, f);
+    if (fread(&_nLine, sizeof(unsigned), 1, f) != sizeof(unsigned))  {
+        std::cerr << "error while reading " << filename << std::endl; exit(255);  
+    }
+    if (fread(&_nColumn, sizeof(unsigned), 1, f) != sizeof(unsigned))  {
+        std::cerr << "error while reading " << filename << std::endl; exit(255);  
+    }
     init(_nLine,_nColumn,_nLine,_nColumn);
     int i,j=0;
-    fread(&i, sizeof(int), 1, f);
+    if (fread(&i, sizeof(int), 1, f) != sizeof(int))   {
+        std::cerr << "error while reading " << filename << std::endl; exit(255);  
+    }
     if (i)
     {
         char **names=(char**)malloc(_nColumn*sizeof(char**)),
             *n=(char*)malloc(i);
-        fread(n,i,1,f);
+        if (fread(n,i,1,f) != i) {
+            std::cerr << "error while reading " << filename << std::endl; exit(255);  
+        }
         for (j=0;j<_nColumn-1;j++)
         {
             names[j]=n;
@@ -153,8 +170,11 @@ Matrix::Matrix(const char *filename, char ascii)
         setColNames(names);
         free(*names);free(names);
     }
-    if (d->nColumn*d->nLine)
-        fread(*d->p,sizeof(double)*d->nColumn*d->nLine,1,f);
+    size_t noOfLines = d->nColumn*d->nLine;
+    if (noOfLines)
+        if (fread(*d->p,sizeof(double)*noOfLines,1,f) != sizeof(double)*noOfLines){
+            std::cerr << "error while reading " << filename << std::endl; exit(255);  
+        }
     fclose(f);
 }
 
@@ -328,6 +348,7 @@ void Matrix::save(FILE *f,char ascii)
 
 void Matrix::updateSave(char *saveFileName)
 {
+    // FIXME refactor
     FILE *f=fopen(saveFileName,"rb+");
     if (f==NULL)
     {
@@ -343,7 +364,9 @@ void Matrix::updateSave(char *saveFileName)
     }
     int nc=d->nColumn, nlfile, nl=d->nLine, i;
     fseek(f,13,SEEK_SET);
-    fread(&nlfile,sizeof(int),1,f);
+    if (fread(&nlfile,sizeof(int),1,f) != sizeof(int)) {
+        std::cerr << "error while updating file " << saveFileName << std::endl; exit(255);
+    }
     fseek(f,13,SEEK_SET);
     fwrite(&d->nLine, sizeof(unsigned), 1, f);
     fseek(f,0,SEEK_END);

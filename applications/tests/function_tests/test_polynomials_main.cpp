@@ -16,7 +16,8 @@ protected:
     virtual void SetUp()
     {
         //get example down1_42_Periodogramavg.psd
-        chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str());
+        const char *path = (getXmippPath() + (String)"/resources/test").c_str();
+        if (chdir(path) != 0 ) FAIL() << "Could not change path to: " << path;
         imageName =  "polynomials/down1_42_Periodogramavg.psd";
         try
         {
