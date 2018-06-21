@@ -580,20 +580,20 @@ void Polynomial::translate(Vector translation)
 
 void Polynomial::save(char *name)
 {
-    FILE *f=fopen(name,"wb");
-    fwrite(&d->dim, sizeof(int),1, f);
-    fwrite(&d->deg, sizeof(int),1, f);
-    fwrite(d->coeff, d->n*sizeof(double),1, f);
-    fclose(f);
+    std::ofstream ofp(name, std::ios::out | std::ios::binary);
+    ofp.write(reinterpret_cast<const char*>(&d->dim), sizeof(int));
+    ofp.write(reinterpret_cast<const char*>(&d->deg), sizeof(int));
+    ofp.write(reinterpret_cast<const char*>(d->coeff), d->n*sizeof(double));
+    ofp.close();
 }
 
 Polynomial::Polynomial(char *name)
 {
     unsigned _dim,_deg;
-    FILE *f=fopen(name,"rb");
-    fread(&_dim, sizeof(int),1, f);
-    fread(&_deg, sizeof(int),1, f);
+    std::ifstream ifp(name, std::ios::in | std::ios::binary);
+    ifp.read(reinterpret_cast<char*>(&_dim), sizeof(int));
+    ifp.read(reinterpret_cast<char*>(&_deg), sizeof(int));
     init(_dim,_deg);
-    fread(d->coeff, d->n*sizeof(double),1, f);
-    fclose(f);
+    ifp.read(reinterpret_cast<char*>(d->coeff), d->n*sizeof(double));
+    ifp.close();
 }

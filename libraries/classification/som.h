@@ -263,8 +263,7 @@ public:
     */
     SOM& operator= (const SOM &op1)
     {
-        std::strstreambuf bf;
-        std::iostream _str(&bf);
+        std::stringstream _str;
         op1.printSelf(_str);
         readSelf(_str);
         return *this;
