@@ -217,7 +217,6 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &phantom, XRayPSF &ps
 {
 
     int iniXdim, iniYdim, iniZdim, newXdim, newYdim, newZdim, rotXdim, rotZdim;
-    int yinit, xinit;
 
     iniXdim = XSIZE(MULTIDIM_ARRAY(phantom.iniVol));
     iniYdim = YSIZE(MULTIDIM_ARRAY(phantom.iniVol));
@@ -255,10 +254,8 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &phantom, XRayPSF &ps
     //        newZdim = rotZdim;
     //    }
     //    else
-    {
-        rotXdim = iniXdim;
-        rotZdim = iniZdim;
-    }
+	rotXdim = iniXdim;
+	rotZdim = iniZdim;
 
     newXdim = (int)(rotXdim + 2*fabs(XX(offsetNV)));
     newYdim = (int)(iniYdim + 2*fabs(YY(offsetNV)));
@@ -267,16 +264,7 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &phantom, XRayPSF &ps
     // We set the dimensions only to obtain the values of starting X,Y,Z
     //    phantom.rotVol.setDimensions(rotXdim, rotYdim, rotZdim, 1);
     phantom.rotVol.setDimensions(newXdim, newYdim, newZdim, 1);
-
     phantom.rotVol.setXmippOrigin();
-
-    yinit = STARTINGY((phantom.rotVol));
-    if (YY(offsetNV) > 0)
-        yinit -= (int)(2 * YY(offsetNV));
-
-    xinit = STARTINGX((phantom.rotVol));
-    if (XX(offsetNV) > 0)
-        xinit -= (int)(2 * XX(offsetNV));
 
     if (psf.verbose > 1)
     {

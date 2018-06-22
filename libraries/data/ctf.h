@@ -1098,7 +1098,6 @@ public:
     inline double getValuePureNoDampingNoPrecomputedAt(double X, double Y) const
     {
         double u2 = X * X + Y * Y;
-        double u = sqrt(u2);
         //if(u2 > freq_max) return 0;
         double u4 = u2 * u2;
         double deltaf = getDeltafNoPrecomputed(X, Y);

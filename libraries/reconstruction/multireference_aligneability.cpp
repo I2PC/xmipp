@@ -337,17 +337,14 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
 	size_t trials=500;
     double xRan,yRan,zRan;
     double x,y;
-    double sumWRan;
     double * xRanArray = new double[num];
     double * yRanArray = new double[num];
     double * zRanArray  = new double[num];
-    double a;
+
     sumw=0;
-    a = 0;
 
     for (size_t n=0; n < trials; n++)
     {
-        sumWRan = 0;
         for (size_t nS=0; nS<num; nS++)
         {
              /*
@@ -375,10 +372,10 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
             zRanArray[nS] = zRan;
         }
 
-        double WRan, tempWRan, tempW1, tempW2;
-        WRan = 0;
+        double WRan = 0.;
         for (size_t nS1=0; nS1<num; nS1++)
         {
+        	double a;
             for (size_t nS2=0; nS2<num; nS2++)
             {
                 a = std::abs(std::acos(xRanArray[nS1]*xRanArray[nS2]+yRanArray[nS1]*yRanArray[nS2]+zRanArray[nS1]*zRanArray[nS2]));
@@ -391,6 +388,9 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
     }
 
     sumw /= trials;
+    delete[] xRanArray;
+    delete[] yRanArray;
+    delete[] zRanArray;
 }
 
 
@@ -407,7 +407,6 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
     double * rotArray = new double[num];
     double * tiltArray = new double[num];
     double * psiArray  = new double[num];
-    double a;
     double rot,tilt,psi,w;
     bool mirror;
     sumWRan = 0;
@@ -455,8 +454,7 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
 #endif
 #undef DEBUG
 
-		double tempW1, tempW2, temp;
-        a = 0;
+        double a = 0;
         for (size_t nS1=0; nS1<num; nS1++)
         {
             for (size_t nS2=0; nS2<num; nS2++)
@@ -480,10 +478,10 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
 #endif
 #undef DEBUG
 
-    delete tiltArray;
-    delete rotArray;
-    delete psiArray;
-    delete indxArray;
+    delete[] tiltArray;
+    delete[] rotArray;
+    delete[] psiArray;
+    delete[] indxArray;
 
 
 }
@@ -507,8 +505,6 @@ void MultireferenceAligneability::obtainAngularAccuracy(const MetaData & tempMd,
 
     accuracyMirror = 0;
     accuracy = 0;
-	tempAccuracy = 0;
-	tempAccuracyMirror = 0;
 	sumOfW = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(tempMd)

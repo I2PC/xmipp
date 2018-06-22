@@ -395,8 +395,8 @@ void ProgCommonLine::processBlock(int i, int j)
         pthread_join(*(th_ids + nt), NULL);
 
     // Threads structures are not needed any more
-    delete (th_ids);
-    delete (th_args);
+    delete[] th_ids;
+    delete[] th_args;
 }
 
 /* Qualify common lines ---------------------------------------------------- */

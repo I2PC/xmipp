@@ -538,7 +538,7 @@ inline void ProgRecFourierAccel::preloadCTF(LoadThreadParams* threadParams,
 		// since Y axis is shifted to center, we have to use different calculation
 		freqY = (y - (parent->paddedImgSize / 2.f)) / (float) parent->paddedImgSize;
 		for (int x = 0; x < CTF->getXSize(); x++) {
-			CTFVal = modulatorVal = 1.f;
+			modulatorVal = 1.f;
 			// get respective frequency
 			FFT_IDX2DIGFREQ(x, parent->paddedImgSize, freqX);
 			ctf.precomputeValues(freqX * parent->iTs, freqY * parent->iTs);
@@ -982,7 +982,6 @@ void ProgRecFourierAccel::processBuffer(ProjectionData* buffer)
 	int repaint = (int)ceil((double)SF.size()/60);
 	for ( int i = 0 ; i < bufferSize; i++ ) {
 		ProjectionData* projData = &buffer[i];
-		Array2D<std::complex<float> >* myPaddedFourier = projData->img;
 		if (projData->skip) {
 			continue;
 		}
@@ -1001,7 +1000,7 @@ void ProgRecFourierAccel::processBuffer(ProjectionData* buffer)
 			float transfInv[3][3];
 			convert(A_SL, transf);
 			convert(A_SLInv, transfInv);
-			processProjection(//tempVolume, tempWeights, size,
+			processProjection(
 					projData, transf, transfInv);
 		}
 		projData->clean();
