@@ -515,7 +515,9 @@ def install(dirname):
     createDir(dirname+"/bindings/java")
     runJob("cp -Lr src/xmippViz/java/lib "+dirname+"/bindings/java")
     runJob("cp -Lr src/xmippViz/java/build "+dirname+"/bindings/java")
+    runJob("cp -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java")
     runJob("cp src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python")
+
 
     runJob("cp src/xmippScipion/bindings/python/xmipp3.py "+dirname+"/bindings/python")
 
@@ -546,12 +548,14 @@ def install(dirname):
     fhFish.write("set -x PYTHONPATH %s/bin $PYTHONPATH\n"%XMIPP_HOME)
 
     fhBash.write('\n')
+    fhBash.write("alias x='xmipp'\n")
     fhBash.write("alias xsj='xmipp_showj'\n")
     fhBash.write("alias xio='xmipp_image_operate'\n")
     fhBash.write("alias xis='xmipp_image_statistics'\n")
     fhBash.write("alias xih='xmipp_image_header'\n")
     fhBash.write("alias xmu='xmipp_metadata_utilities'\n")
     fhFish.write('\n')
+    fhFish.write("alias x 'xmipp'\n")
     fhFish.write("alias xsj 'xmipp_showj'\n")
     fhFish.write("alias xio 'xmipp_image_operate'\n")
     fhFish.write("alias xis 'xmipp_image_statistics'\n")
