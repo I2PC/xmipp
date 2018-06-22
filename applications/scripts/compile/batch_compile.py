@@ -27,7 +27,8 @@
 """
 
 import os
-from pyworkflow.em.packages.xmipp3 import XmippScript
+import sys
+from xmipp import XmippScript
 
 class ScriptCompile(XmippScript):
     def __init__(self):
@@ -43,6 +44,27 @@ class ScriptCompile(XmippScript):
         self.addExampleLine('Compile myprogram.cpp', False)
         self.addExampleLine('xmipp_compile myprogram.cpp')
 
+    def getFlags(self):
+        try:
+            from ConfigParser import ConfigParser, ParsingError
+        except ImportError:
+            from configparser import ConfigParser, ParsingError  # Python 3
+        if not 'XMIPP_SRC' in os.environ:
+            print("Cannot find the environment variable XMIPP_SRC. Make sure you have sourced the xmipp.bashrc or equivalent")
+            sys.exit(1)
+        xmippSrc=os.environ['XMIPP_SRC']
+        cf = ConfigParser()
+        cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
+        try:
+            cf.read(os.path.join(xmippSrc,"xmipp","install","xmipp.conf"))
+        except ParsingError:
+            sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
+        flagDict=dict(cf.items('BUILD'))
+
+        flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
+              flagDict["CXXFLAGS"]+" "+flagDict["LIBDIRFLAGS"]
+        return flags
+
     def run(self):        
         fn = self.getParam('-i')
         from os.path import splitext, join
@@ -52,16 +74,9 @@ class ScriptCompile(XmippScript):
         command='g++ ';
         if self.checkParam("--debug"):
             command +="-g -pg";
-        scipionDir=os.environ['SCIPION_HOME']
-        xmippDir=join(scipionDir,"software","em","xmipp")
-        command+=" -o "+fnBase+" "+fn+" -O -D_LINUX "+\
-                 "-L"+xmippDir+"/lib "+\
-                 "-I"+xmippDir+"/libraries "+\
-                 "-I"+xmippDir+" "+\
-                 "-lXmippClassif -lXmippData -lXmippInterface -lXmippRecons -lXmippDimred -lXmippBilib -lfftw3 -lfftw3_threads -lsqlite3 -ltiff -ljpeg"
-        command +=" -I"+xmippDir+"/external/python/Python-2.7.2/Include -I"+xmippDir+"/external/python/Python-2.7.2 -L"+\
-                  xmippDir+"/external/python/Python-2.7.2 -lpython2.7 -I"+xmippDir+"/lib/python2.7/site-packages/numpy/core/include"+\
-		  " -I"+xmippDir+"/external"+" -I"+scipionDir+"/software/include -L"+scipionDir+"/software/lib"
+        xmippHome=os.environ['XMIPP_HOME']
+        command+=" -o "+fnBase+" "+fn+" -O -D_LINUX -L"+xmippHome+"/lib "+self.getFlags()
+        print(command)
         os.system(command)
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 from xmippLib import *
+import sys
 
 class XmippScript():
     ''' This class will serve as wrapper around the XmippProgram class
