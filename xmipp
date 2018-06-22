@@ -609,7 +609,7 @@ if __name__ == '__main__':
               "\n"
               "For developers:\n"
               "   create_devel_paths:  Create bashrc files for devel\n"
-              "   gitstatus:           Git status\n"
+              "   git ...:             Git command\n"
               )
         sys.exit(0)
     if n>=2:
