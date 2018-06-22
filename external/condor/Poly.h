@@ -32,6 +32,7 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 //#include "tools.h"
 #include "Vector.h"
 #include "Matrix.h"
+#include <fstream>
 
 // ORDER BY DEGREE !
 class Polynomial {

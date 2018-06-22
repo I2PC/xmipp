@@ -29,6 +29,7 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 
 #include "Vector.h"
 #include "VectorInt.h"
+#include <iosfwd>
 
 #ifndef NOMATRIXTRIANGLE
 #include "MatrixTriangle.h"

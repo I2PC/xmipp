@@ -23,12 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
+
 #include <core/xmipp_image.h>
 #include <data/filters.h>
 #include <core/geometry.h>
 #include <data/mask.h>
 #include <core/xmipp_program.h>
-#include <interface/frm.h>
 #include <fstream>
 
 // Alignment parameters needed by fitness ----------------------------------

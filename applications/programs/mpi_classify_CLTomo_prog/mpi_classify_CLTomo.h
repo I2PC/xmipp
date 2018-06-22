@@ -25,6 +25,8 @@
 #ifndef _PROG_VQ_VOLUMES
 #define _PROG_VQ_VOLUMES
 
+#include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
+
 #include <parallel/xmipp_mpi.h>
 #include <core/metadata.h>
 #include <core/metadata_extension.h>
@@ -35,7 +37,6 @@
 #include <data/numerical_tools.h>
 #include <core/xmipp_program.h>
 #include <core/symmetries.h>
-#include <interface/frm.h>
 #include <vector>
 
 /**@defgroup VQforVolumes Vector Quantization for Volumes

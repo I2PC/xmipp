@@ -32,6 +32,7 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 #define _MPI_TOOLS_H_
 
 #include <math.h>
+#include <iosfwd>
 
 //#define SWAP(a,b) {tempr=(a); (a)=(b); (b)=tempr;}
 

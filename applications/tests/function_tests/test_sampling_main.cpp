@@ -9,7 +9,8 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-        chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str());
+        const char *path = (getXmippPath() + (String)"/resources/test").c_str();
+        if (chdir(path) != 0 ) FAIL() << "Could not change path to: " << path;
         fn_root = "sampling/";
 
         //Create the sampling
