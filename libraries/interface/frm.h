@@ -39,7 +39,7 @@
    @ingroup InterfaceLibrary */
 //@{
 /// Initialize Python to be used from C++
-void initializeScipionPython(String &scipionPython);
+void initializePython(String &whichPython);
 
 /// Convert from MultidimArray to numpy array
 PyObject* convertToNumpy(const MultidimArray<double> &I);
