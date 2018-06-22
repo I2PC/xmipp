@@ -26,11 +26,6 @@
 #include <core/metadata.h>
 #include <core/metadata_extension.h>
 #include <complex>
-//#include <cmath>
-
-/*
- * xmipp_validation_tilt_pairs --tilt /home/vilas/ScipionUserData/projects/rct/Runs/001623_XmippProtValidateTilt/extra/tilted/angles_iter001_00.xmd --untilt /home/vilas/ScipionUserData/projects/rct/Runs/001623_XmippProtValidateTilt/extra/untilted/angles_iter001_00.xmd -o caca
- * */
 
 //Define Program parameters
 void ProgValidationTiltPairs::defineParams()

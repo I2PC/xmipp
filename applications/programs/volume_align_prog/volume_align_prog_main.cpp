@@ -395,8 +395,8 @@ public:
         }
         else if (useFRM)
         {
-    		String scipionPython;
-    		initializeScipionPython(scipionPython);
+    		String whichPython;
+    		initializePython(whichPython);
     		PyObject * pFunc = getPointerToPythonFRMFunction();
     		double rot,tilt,psi,x,y,z,score;
     		Matrix2D<double> A;

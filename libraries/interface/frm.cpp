@@ -28,13 +28,23 @@
 #include <core/geometry.h>
 #include <core/transformations.h>
 
-void initializeScipionPython(String &scipionPython)
+void findWhichPython(String &whichPython)
 {
-	String scipionHome=getenv("SCIPION_HOME");
-	if (scipionHome=="")
-		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot access to $SCIPION_HOME");
-	scipionPython=scipionHome+"/software/bin/python2.7";
-	Py_SetProgramName((char *)scipionPython.c_str());
+    char path[1035];
+    FILE *fp = popen("which python", "r");
+    if (fp == NULL)
+        REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot execute which python");
+    if (fgets(path, sizeof(path)-1, fp) != NULL)
+        whichPython=path;
+    else
+        REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot find python");
+    pclose(fp);
+}
+
+void initializePython(String &whichPython)
+{
+    findWhichPython(whichPython);
+	Py_SetProgramName((char *)whichPython.c_str());
 	Py_Initialize();
 	import_array(); // For working with numpy
 }
@@ -66,7 +76,7 @@ PyObject * getPointerToPythonFRMFunction()
 	PyObject * pName = PyString_FromString("sh_alignment.frm"); // Import sh_alignment.frm
 	PyObject * pModule = PyImport_Import(pName);
 	if (pModule==NULL)
-		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot import sh_alignment. Please, run 'scipion install sh_alignment'");
+		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot import sh_alignment.");
 	PyObject * pFunc = PyObject_GetAttrString(pModule, "frm_align");
 	Py_DECREF(pName);
 	Py_DECREF(pModule);

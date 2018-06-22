@@ -1470,8 +1470,8 @@ void ProgClassifyCL3D::produceSideInfo()
 
 void ProgClassifyCL3D::run()
 {
-    String scipionPython;
-	initializeScipionPython(scipionPython);
+    String whichPython;
+	initializePython(whichPython);
     frmFunc = getPointerToPythonFRMFunction();
     wedgeClass = getPointerToPythonGeneralWedgeClass();
 
