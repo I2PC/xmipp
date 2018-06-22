@@ -256,7 +256,7 @@ def addBatch(batchName, script, scriptFolder='applications/scripts'):
 
 
 # Batches (apps)
-for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*.[ps]*')):
+for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*','*.[ps]*')):
 	dirName = os.path.basename(os.path.dirname(scriptName))
 	addBatch(dirName,scriptName)
 
