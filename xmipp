@@ -517,7 +517,7 @@ def install(dirname):
     runJob("cp -Lr src/xmippViz/java/build "+dirname+"/bindings/java")
     runJob("cp -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java")
     runJob("cp src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python")
-
+    runJob("cp -Lr src/xmippViz/resources "+dirname+"/resources")
 
     runJob("cp src/xmippScipion/bindings/python/xmipp3.py "+dirname+"/bindings/python")
 
