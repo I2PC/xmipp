@@ -1,6 +1,6 @@
 # xmipp
 
-To install Xmipp download [this file](https://github.com/I2PC/xmipp/blob/master/xmipp), and do:
+To install Xmipp download [this file](https://raw.githubusercontent.com/I2PC/xmipp/master/xmipp), and do:
 
 ```
 chmod 755 xmipp
