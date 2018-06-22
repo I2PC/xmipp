@@ -34,7 +34,7 @@
 // STL includes
 #include <algorithm>
 #include <vector>
-#include <strstream>
+#include <sstream>
 
 // xmipp includes
 #include "code_book.h"
@@ -242,8 +242,7 @@ public:
     */
     ClassificationMap& operator= (const ClassificationMap &op1)
     {
-        std::strstreambuf bf;
-        std::iostream _str(&bf);
+	std::stringstream _str;
         op1.printSelf(_str);
         readSelf(_str);
         return *this;
@@ -498,8 +497,7 @@ public:
     */
     FuzzyMap& operator= (const FuzzyMap &op1)
     {
-        std::strstreambuf bf;
-        std::iostream _str(&bf);
+        std::stringstream _str;
         op1.printSelf(_str);
         readSelf(_str);
         return *this;

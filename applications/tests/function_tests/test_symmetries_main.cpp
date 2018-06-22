@@ -10,7 +10,8 @@ protected:
     virtual void SetUp()
     {
         //there is some overlapping with test_sampling
-        chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str());
+        const char *path = (getXmippPath() + (String)"/resources/test").c_str();
+        if (chdir(path) != 0 ) FAIL() << "Could not change path to: " << path;
         fn_root = "symmetries/";
         FileName fnExperimentalImages(fn_root + "experimental_images.xmd");
 

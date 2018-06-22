@@ -28,7 +28,8 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 #define _INCLUDE_VECTOR_H
 
 //#include <stdlib.h> // for the declaration of NULL
-#include <stdio.h> // for the declaration of FILE*
+#include <cstdio> // for the declaration of FILE*
+#include <iosfwd>
 #include "VectorInt.h"
 
 class Matrix;

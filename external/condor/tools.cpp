@@ -27,7 +27,7 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 //	Various tools and auxiliary functions
 //
 #include <stdlib.h>
-#include <stdio.h>
+#include <iostream>
 #include <time.h>
 #include <string.h>
 #include "tools.h"
@@ -269,7 +269,9 @@ char *loadFile(FILE *f)
     int l=ftell(f);
     fseek(f,0,SEEK_SET);
     char *buf=(char*)malloc(l+1);
-    fread(buf,l,1,f);
+    if (fread(buf,l,1,f) != l) {
+        std::cerr << "error while loading file (no more info available)" << std::endl; exit(255); // FIXME implement properly
+    }
     fclose(f);
     buf[l]=0;
     return buf;
