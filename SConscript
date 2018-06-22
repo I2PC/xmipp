@@ -132,8 +132,8 @@ else:
     python_incdirs = []
 
 # Basic libraries
-dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
-patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
+dirs = ['external','external','external','external','external','libraries','libraries','libraries','libraries','libraries']
+patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','sh_alignment/*.cpp','sh_alignment/SpharmonicKit27/*.cpp','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
 addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
 
