@@ -6,6 +6,8 @@ import os
 import shutil
 import sys
 import unittest
+import subprocess
+
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -21,6 +23,14 @@ def createDir(dirname):
 def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","Manjaro/Arch"]
 
+    osInfo = subprocess.Popen(["lsb_release", "--id"],
+                              stdout=subprocess.PIPE).stdout.read()
+    osName = osInfo.split('\t')[1].strip('\n')
+    osId = -1  # no default OS
+    for idx, system in enumerate(systems):
+        if osName in system:
+            osId = idx
+
     systemInstructions = {}
     systemInstructions["git"] = ["sudo apt-get -y install git","sudo pacman -Syu --noconfirm git"]
     systemInstructions["gcc"] = ["sudo apt-get -y install gcc","sudo pacman -Syu --noconfirm gcc"]
@@ -29,6 +39,7 @@ def checkProgram(programName, show=True):
     systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["scons"] = ['sudo apt-get -y install scons or that Scipion Scons is on the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["java"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
+    systemInstructions["rsync"] = ["sudo apt-get -y rsync" , "sudo pacman -Syu --noconfirm rsync"]
 
     ok=True
     if not whereis(programName):
@@ -36,10 +47,13 @@ def checkProgram(programName, show=True):
             print(red("Cannot find %s."%programName))
             idx=0
             if programName in systemInstructions:
-                print(red("Do:"))
-                for instructions in systemInstructions[programName]:
-                    print(red("   In %s: %s"%(systems[idx],instructions)))
-                    idx+=1
+                if osId >= 0:
+                    print(red(" - Do: %s"%systemInstructions[programName][osId]))
+                else:
+                    for instructions in systemInstructions[programName]:
+                        print(red("   Do:"))
+                        print(red("    - In %s: %s"%(systems[idx],instructions)))
+                        idx+=1
         ok = False
     return ok
 
@@ -48,6 +62,9 @@ def green(text):
 
 def red(text):
     return "\033[91m "+text+"\033[0m"
+
+def blue(text):
+    return "\033[34m "+text+"\033[0m"
 
 def runJob(cmd):
     print(green(cmd))
@@ -423,7 +440,10 @@ def config():
     configCuda(configDict)
     configMatlab(configDict)
 
-    writeConfig(configDict)
+    with open("xmipp.conf", "w") as configFile:
+        configFile.write("[BUILD]\n")
+        for label in sorted(configDict.keys()):
+            configFile.write("%s=%s\n"%(label,configDict[label]))
     return True
 
 def checkConfig():
@@ -469,26 +489,106 @@ def compile(Nproc):
         return False
     return True
 
-def runTests(testName):
-    print("Testig ----------------------------------------------")
-    tests = unittest.TestSuite()
-    # os.chdir('src/xmipp')
 
-    # new_module = __import__('.'.join(testName[0].split('.')[0:-1]))
-    if testName == 'all':
-        pass
+def discoverTests(self, tests, paths, pattern):
+    """ Return tests discovered in paths that follow the given pattern """
+    for path in [os.path.join('pyworkflow', x) for x in paths]:
+        tests.addTests(unittest.defaultTestLoader.discover(
+            path, pattern=pattern, top_level_dir=HOME))
+
+
+
+def visitTests(tests):
+    """ Show the list of tests available """
+
+    # First flatten the list of tests.
+    testsFlat = []
+    toCheck = [t for t in tests]
+    while toCheck:
+        test = toCheck.pop()
+        if isinstance(test, unittest.TestSuite):
+            toCheck += [t for t in test]
+        else:
+            testsFlat.append(test)
+
+    # Follow the flattened list of tests and show the module, class
+    # and name, in a nice way.
+    lastClass = None
+    lastModule = None
+    
+    for t in testsFlat:
+        moduleName, className, testName = t.id().rsplit('.', 2)
+        
+        # If there is a failure loading the test, show it
+        if moduleName.startswith('unittest.loader.ModuleImportFailure'):
+            print red(moduleName), "  test:", t.id()
+            continue
+
+        def _hasLabels():
+            if self.labels is None:
+                return True
+
+            # Check if class has a label that matches input labels.
+            import importlib
+            my_module = importlib.import_module(moduleName)
+            MyClass = getattr(my_module, className)
+
+            return pwtests.hasLabel(MyClass, self.labels)
+
+        if _hasLabels():
+
+            if moduleName != lastModule:
+                lastModule = moduleName
+                newItemCallback(MODULE, moduleName)
+
+            if className != lastClass:
+                lastClass = className
+                print(CLASS, "%s.%s" % (moduleName, className))
+
+            newItemCallback(TEST, "%s.%s.%s" % (moduleName, className, testName))
+
+
+def runTests(testNames):
+    print("Testing ---------------------------------------------")
+    checkProgram('rsync')
+
+    os.environ['PYTHONPATH'] = ':'.join([
+                         os.path.join(os.environ.get('XMIPP_SRC', ''), 'xmipp'),
+                         os.environ['PYTHONPATH'] ])
+    try:
+        testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
+    except:
+        raise Exception(red('XMIPP_SRC is not in the path.') + '\nDo: ' +
+                        green('source build/xmipp.bashrc'))
+    dataSetPath = os.path.join(testsPath, 'data')
+    os.environ["TEST_DATA"] = dataSetPath
+
+    if not os.path.exists(dataSetPath):
+        createDir(dataSetPath)
+
+    remoteLoc = 'scipion@scipion.cnb.csic.es'
+    remoteFolder = '/services/scipion/data/downloads/scipion/data/tests/xmipp_programs/'
+
+    print(blue('  Downloading test data.. (it can take a while)'))
+    subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
+                     '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
+    
+    if '--show' in testNames:
+        visitTests(test)
+
+    if 'all' in testNames:
+        testNames = ['tests.test_programs_xmipp']
     else:
-        for test in testName:
-            try:
-                print 'OUH YEAH!'
-                tests.addTests(unittest.defaultTestLoader.loadTestsFromName(test))
-            except Exception as e:
-                print 'Cannot find test %s -- skipping' % test
-                print 'error: ', e
+        for idx, name in enumerate(testNames):
+            testNames[idx] = 'tests.test_programs_xmipp.' + name
 
-        result = unittest.TestResult()
-        tests.run(result)
+    try:
+        python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
+    except:
+        raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
+                        green('export SCIPION_HOME=<scipion_home>'))
 
+    runJob("cd %s; %s base.py "%(testsPath, python) + ' '.join(testNames))
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -637,11 +737,8 @@ if __name__ == '__main__':
         else:
             dir="build"
         install(dir)
-    elif mode=="test":
-        if n>=3:
-            runTests(sys.argv[2:])
-        else:
-            runTests("all")
+    elif mode=="tests":
+        runTests(sys.argv[2:])
     elif mode=="all":
         ok=getSources()
         if ok:
