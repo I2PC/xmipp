@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "basis.h"
+#include "numerical_tools.h"
 #include <core/xmipp_fftw.h>
 
 Basis::Basis()
@@ -394,4 +395,37 @@ double Basis::projectionAt(const Matrix1D<double> & u, const Matrix1D<double> & 
         break;
     }
     return 0.0;
+}
+
+void createZernike3DBasis(const MultidimArray<double> &Vin, MultidimArray<double> &Vbasis, int l, int n, int m, int Rmax)
+{
+	Vbasis.initZeros(Vin);
+	Vbasis.setXmippOrigin();
+	if (Rmax<0)
+		Rmax=XSIZE(Vin)/2;
+	double Rmax2=Rmax*Rmax;
+	double iRmax=1.0/Rmax;
+	for (int k=STARTINGZ(Vbasis); k<=FINISHINGZ(Vbasis); k++)
+	{
+		double k2=k*k;
+		if (k2>Rmax2)
+			continue;
+		double kr=k*iRmax;
+		for (int i=STARTINGY(Vbasis); i<=FINISHINGY(Vbasis); i++)
+		{
+			double k2i2=k2+i*i;
+			if (k2i2>Rmax2)
+				continue;
+			double ir=i*iRmax;
+			for (int j=STARTINGX(Vbasis); j<=FINISHINGX(Vbasis); j++)
+			{
+				double r2=k2i2+j*j;
+				if (r2>Rmax2)
+					continue;
+				double jr=j*iRmax;
+				A3D_ELEM(Vbasis,k,i,j)=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,sqrt(r2)*iRmax);
+			}
+		}
+
+	}
 }
