@@ -353,9 +353,9 @@ public:
 
     /** Another function for access to array of 8 bits.*/
     //This is never used consider delete
-    void get_arrayUChar(unsigned char * _m8)
+    void get_arrayUChar(unsigned char ** _m8) __attribute__ ((deprecated))
     {
-        _m8 = (*IUChar)().data;
+        *_m8 = (*IUChar)().data;
     }
 
     /** Access to array of 16 bits. */
@@ -365,9 +365,9 @@ public:
     }
 
     /** Another function for access to array of 16 bits.*/
-    void get_arrayShort(short int * _m16)
+    void get_arrayShort(short int ** _m16) __attribute__ ((deprecated))
     {
-        _m16 = (*IShort)().data;
+        *_m16 = (*IShort)().data;
     }
 
     /** Access to unsigned array of 16 bits. */
@@ -377,9 +377,9 @@ public:
     }
 
     /** Another function for access to unsigned array of 16 bits.*/
-    void get_arrayUShort(unsigned short int * _um16)
+    void get_arrayUShort(unsigned short int ** _um16) __attribute__ ((deprecated))
     {
-        _um16 = (*IUShort)().data;
+        *_um16 = (*IUShort)().data;
     }
     /** Access to array of 32 bits int. */
     int * arrayInt() const
@@ -388,9 +388,9 @@ public:
     }
 
     /** Another function for access to array of 32 bits int.*/
-    void get_arrayInt(int * _m32)
+    void get_arrayInt(int ** _m32) __attribute__ ((deprecated))
     {
-        _m32 = (*IInt)().data;
+        *_m32 = (*IInt)().data;
     }
 
     /** Access to unsigned array of 32 bits unsig int. */
@@ -400,9 +400,9 @@ public:
     }
 
     /** Another function for access to unsigned array of 32 bits unsigned int.*/
-    void get_arrayUInt(unsigned int * _um32)
+    void get_arrayUInt(unsigned int ** _um32) __attribute__ ((deprecated))
     {
-        _um32 = (*IUInt)().data;
+        *_um32 = (*IUInt)().data;
     }
 
     /** Access to array of 32 bits. */
@@ -412,9 +412,9 @@ public:
     }
 
     /** Another function for access to array of 32 bits.*/
-    void get_arrayfloat(float * _mf32)
+    void get_arrayfloat(float ** _mf32) __attribute__ ((deprecated))
     {
-        _mf32 = (*IFloat)().data;
+        *_mf32 = (*IFloat)().data;
     }
 
     /** Pixel access for reading.

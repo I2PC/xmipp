@@ -1403,7 +1403,8 @@ void covarianceMatrix(const MultidimArray<double> &I, Matrix2D<double> &C)
 double bestShift(MultidimArray<double> &Mcorr,
                double &shiftX, double &shiftY, const MultidimArray<int> *mask, int maxShift)
 {
-    int imax, jmax, i_actual, j_actual;
+    int imax = INT_MIN;
+    int jmax, i_actual, j_actual;
     double xmax, ymax, avecorr, stdcorr, dummy;
     bool neighbourhood = true;
 
@@ -3677,6 +3678,7 @@ void RetinexFilter::apply(MultidimArray<double> &img)
     }
     std::sort(sortedValues,sortedValues+Nsorted);
     double threshold=sortedValues[(size_t)(percentile*Nsorted)];
+    delete[] sortedValues;
 
     // Apply threshold
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(img)

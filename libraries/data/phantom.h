@@ -506,7 +506,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled sphere.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a sphere.
         See \ref Feature::intersection to know more about the parameters
@@ -609,7 +609,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled Blob.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a blob.
         See \ref Feature::intersection to know more about the parameters
@@ -707,7 +707,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled Blob.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a Gaussian.
         See \ref Feature::intersection to know more about the parameters
@@ -821,7 +821,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled cylinder.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a cylinder.
         See \ref Feature::intersection to know more about the parameters
@@ -955,7 +955,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled double cylinder.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a double cylinder.
         See \ref Feature::intersection to know more about the parameters
@@ -1075,7 +1075,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled cube.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a cube, NOT IMPLEMENTED!!!.
         See \ref Feature::intersection to know more about the parameters
@@ -1195,7 +1195,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled elliposoid.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with an ellipsoid.
         See \ref Feature::intersection to know more about the parameters
@@ -1313,7 +1313,7 @@ public:
     Feature *scale(double factor) const;
 
     /** Another function for return a scaled cone.*/
-    void scale(double factor, Feature *_f) const;
+    __attribute__ ((deprecated)) void scale(double factor, Feature **_f) const;
 
     /** Intersection of a ray with a cone, NOT IMPLEMENTED!!!!.
         See \ref Feature::intersection to know more about the parameters

@@ -53,7 +53,6 @@ void PolyZernikes::create(const Matrix1D<int> & coef)
             // Note that the paper starts in n=1 and we start in n=0
             int n = (size_t)ZERNIKE_ORDER(nZ);
             int l = 2*nZ-n*(n+2);
-            int m = (n-l)/2;
 
             Matrix2D<int> testM(n+1,n+1);
             fMatT = new Matrix2D<int>(n+1,n+1);
@@ -61,7 +60,7 @@ void PolyZernikes::create(const Matrix1D<int> & coef)
             int p = (l>0);
             int q = ((n % 2 != 0) ? (abs(l)-1)/2 : (( l > 0 ) ? abs(l)/2-1 : abs(l)/2 ) );
             l = abs(l); //We want the positive value of l
-            m = (n-l)/2;
+            int m = (n-l)/2;
 
             for (int i = 0; i <= q; ++i)
             {
@@ -183,8 +182,6 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, M
 
         ++pixel_idx;
     }
-
-    pixel_idx=0;
 
     if (verbose > 0)
     {

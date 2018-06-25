@@ -1273,7 +1273,6 @@ void ART_voxels2blobs_single_step(
         {
             pthread_join(*(th_ids+c),NULL);
         }
-
         free( slices_status );
         //        blobs2voxels_SimpleGrid((*vol_out)(i)(), (*vol_out).grid(i), blob,
         //                                theo_vol, D, 50, corr_vol, mask_vol, BACKWARD, eq_mode);
@@ -1285,6 +1284,8 @@ void ART_voxels2blobs_single_step(
 #endif
 
     }
+	free(threads_d);
+	free(th_ids);
 #ifdef DEBUG
     char c;
     std::cout << "Press any key to continue\n";
