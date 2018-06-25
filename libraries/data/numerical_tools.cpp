@@ -811,3 +811,256 @@ double checkRandomness(const std::string &sequence)
     double z=(R-m)/s;
     return ABS(z);
 }
+
+double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r)
+{
+	// General variables
+	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
+
+	// Zernike polynomial
+	double R=0.0;
+
+	switch (l)
+	{
+	case 0:
+		R = 1.0;
+		break;
+	case 1:
+		R = r;
+		break;
+	case 2:
+		switch (n)
+		{
+		case 0:
+			R = -1+2*r2;
+			break;
+		case 2:
+			R = r2;
+			break;
+		} break;
+	case 3:
+		switch (n)
+		{
+		case 1:
+			R = 3*r2*r-2*r;
+			break;
+		case 3:
+			R = r2*r;
+		} break;
+	case 4:
+		switch (n)
+		{
+		case 0:
+			R = 6*r2*r2-6*r2+1;
+			break;
+		case 2:
+			R = 4*r2*r2-3*r2;
+			break;
+		case 4:
+			R = r2*r2;
+			break;
+		} break;
+	}
+
+	// Spherical harmonic
+	double Y=0.0;
+
+	switch (l)
+	{
+	case 0:
+		Y = (1.0/2.0)*sqrt(1.0/PI);
+		break;
+	case 1:
+		switch (m)
+		{
+		case -1:
+			Y = sqrt(3.0/(4.0*PI))*yr;
+			break;
+		case 0:
+			Y = sqrt(3.0/(4.0*PI))*zr;
+			break;
+		case 1:
+			Y = sqrt(3.0/(4.0*PI))*xr;
+			break;
+		} break;
+	case 2:
+		switch (m)
+		{
+		case -2:
+			Y = sqrt(15.0/(4.0*PI))*xr*yr;
+			break;
+		case -1:
+			Y = sqrt(15.0/(4.0*PI))*zr*yr;
+			break;
+		case 0:
+			Y = sqrt(5.0/(16.0*PI))*(-xr2-yr2+2.0*zr2);
+			break;
+		case 1:
+			Y = sqrt(15.0/(4.0*PI))*xr*zr;
+			break;
+		case 2:
+			Y = sqrt(15.0/(16.0*PI))*(xr2-yr2);
+			break;
+		} break;
+	case 3:
+		switch (m)
+		{
+		case -3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*yr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt(105.0/(4.0*PI))*zr*yr*xr;
+			break;
+		case -1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*yr*(4.0*zr2-xr2-yr2);
+			break;
+		case 0:
+			Y = sqrt(7.0/(16.0*PI))*zr*(2.0*zr2-3.0*xr2-3.0*yr2);
+			break;
+		case 1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*xr*(4.0*zr2-xr2-yr2);
+			break;
+		case 2:
+			Y = sqrt(105.0/(16.0*PI))*zr*(xr2-yr2);
+			break;
+		case 3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*xr*(xr2-3.0*yr2);
+			break;
+		} break;
+	case 4:
+		switch (m)
+		{
+		case -4:
+			Y = sqrt((35.0*9.0)/(16.0*PI))*yr*xr*(xr2-yr2);
+			break;
+		case -3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*yr*zr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt((9.0*5.0)/(16.0*PI))*yr*xr*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case -1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*yr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 0:
+			Y = sqrt(9.0/(16.0*16.0*PI))*(35.0*zr2*zr2-30.0*zr2+3.0);
+			break;
+		case 1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*xr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 2:
+			Y = sqrt((9.0*5.0)/(8.0*8.0*PI))*(xr2-yr2)*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case 3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*xr*zr*(xr2-3.0*yr2);
+			break;
+		case 4:
+			Y = sqrt((9.0*35.0)/(16.0*16.0*PI))*(xr2*(xr2-3.0*yr2)-yr2*(3.0*xr2-yr2));
+			break;
+		} break;
+	}
+
+	return R*Y;
+}
+
+void spherical_index2lnm(int idx, int &l, int &n, int &m)
+{
+	if (idx==0)
+	{
+		l=0; n=0; n=0;
+	}
+	else if (idx<=3)
+	{
+		l=1; n=1; m=idx-2;
+	}
+	else if (idx<=13)
+	{
+		l=2;
+		if (idx<=8)
+		{
+			n=0; m=idx-6;
+		}
+		else
+		{
+			n=2; m=idx-11;
+		}
+
+	}
+	else if (idx<=27)
+	{
+		l=3;
+		if (idx<=20)
+		{
+			n=1; m=idx-17;
+		}
+		else
+		{
+			n=3; m=idx-24;
+		}
+	}
+	else if (idx<=54)
+	{
+		l=4;
+		if (idx<=36)
+		{
+			n=0; m=idx-32;
+		}
+		else if (idx>36&idx<=45)
+		{
+			n=2; m=idx-41;
+		}
+		else
+		{
+			n=4; m = idx-50;
+		}
+	}
+}
+
+int spherical_lnm2index(int l, int n, int m)
+{
+	int idx=0;
+
+	switch (l)
+	{
+	case 0:
+		idx=0;
+		break;
+	case 1:
+		idx=m+2;
+		break;
+	case 2:
+		switch (n)
+		{
+		case 0:
+			idx=m+6;
+			break;
+		case 2:
+			idx=m+11;
+			break;
+		}break;
+	case 3:
+		switch (n)
+		{
+		case 1:
+			idx=m+17;
+			break;
+		case 3:
+			idx=m+24;
+			break;
+		}break;
+	case 4:
+		switch (n)
+		{
+		case 0:
+			idx=m+32;
+			break;
+		case 2:
+			idx=m+41;
+			break;
+		case 4:
+			idx=m+50;
+			break;
+		}break;
+	}
+	return idx;
+}
