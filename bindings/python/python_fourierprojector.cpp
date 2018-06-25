@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "xmippmodule.h"
-#include <bindings/python/python_image.h>
+#include "python_image.h"
 
 /***************************************************************/
 /*                            FourierProjector                         */

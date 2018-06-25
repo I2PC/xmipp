@@ -1,0 +1,4 @@
+Original code from Yuxiang Chen FRM package
+to produce swig_frm.py and frm_wrap.c do in this directory
+
+swig -python frm.i

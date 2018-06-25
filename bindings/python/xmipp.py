@@ -1,5 +1,31 @@
-from xmippCore import *
 from xmippLib import *
+import os
+import sys
+
+def xmippExists(path):
+    return FileName(path).exists()
+
+def getXmippPath(*paths):
+    '''Return the path the the Xmipp installation folder
+    if a subfolder is provided, will be concatenated to the path'''
+    if os.environ.has_key('XMIPP_HOME'):
+        return os.path.join(os.environ['XMIPP_HOME'], *paths)  
+    else:
+        raise Exception('XMIPP_HOME environment variable not set')
+    
+def getMatlabEnviron(*toolPaths):
+    """ Return an Environment prepared for launching Matlab
+    scripts using the Xmipp binding.
+    """
+    env = getEnviron()
+    env.set('PATH', os.environ['MATLAB_BINDIR'], Environ.BEGIN)
+    env.set('LD_LIBRARY_PATH', os.environ['MATLAB_LIBDIR'], Environ.BEGIN)
+    for toolpath in toolPaths:
+        env.set('MATLABPATH', toolpath, Environ.BEGIN)
+    env.set('MATLABPATH', os.path.join(os.environ['XMIPP_HOME'], 'libraries', 'bindings', 'matlab'),
+            Environ.BEGIN)
+    
+    return env
 
 class XmippScript():
     ''' This class will serve as wrapper around the XmippProgram class
