@@ -864,7 +864,6 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)
         {
             double fx = f * cosinus;
-            double fy = f * sinus;
 
             // Compute current frequencies.
             precomputeValues(fx);

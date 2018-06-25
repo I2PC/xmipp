@@ -61,7 +61,6 @@ void dilate2D_step(const MultidimArray<double> &in, MultidimArray<double> &out, 
             {
                 A2D_ELEM(out, i, j) = A2D_ELEM(in,i, j);
             }
-            sum = 0;
         }
 }
 
@@ -97,7 +96,6 @@ void erode2D_step(const MultidimArray<double> &in, MultidimArray<double> &out, i
             {
                 A2D_ELEM(out, i, j) = A2D_ELEM(in, i, j);
             }
-            sum = 0;
         }
 }
 
@@ -333,7 +331,6 @@ void dilate3D_step(const MultidimArray<double> &in, MultidimArray<double> &out, 
                 {
                     A3D_ELEM(out,k, i, j) = A3D_ELEM(in,k, i, j);
                 }
-                sum = 0;
             }
 }
 
@@ -387,7 +384,6 @@ void erode3D_step(const MultidimArray<double> &in, MultidimArray<double> &out, i
                 {
                     A3D_ELEM(out,k, i, j) = A3D_ELEM(in,k, i, j);
                 }
-                sum = 0;
             }
 
 }

@@ -254,7 +254,6 @@ void ProgValidationTiltPairs::run()
 				break;
 
 			// Grab all the angles in DF1 associated to this id
-			anotherIteration=false;
 			do
 			{
 				DF1sorted.getValue(MDL_ITEM_ID,id1,iter1.objId);
