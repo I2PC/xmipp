@@ -30,11 +30,111 @@
 #include "Python.h"
 #include <reconstruction/ctf_estimate_from_micrograph.h>
 #include <data/projection.h>
+#include <core/metadata_extension.h>
+#include <core/xmipp_image_generic.h>
+#include <core/xmipp_image_extension.h>
+#include <core/xmipp_color.h>
+#include <core/symmetries.h>
 
 #include "python_fourierprojector.h"
+#include "python_filename.h"
+#include "python_image.h"
+#include "python_program.h"
+#include "python_metadata.h"
+#include "python_symmetry.h"
 
 extern PyObject * PyXmippError;
 
+#define SymList_Check(v) (((v)->ob_type == &SymListType))
+#define SymList_Value(v)  ((*((SymListObject*)(v))->symlist))
+
+/***************************************************************/
+/*                            Global methods                   */
+/***************************************************************/
+/* readMetaDataWithTwoPossibleImages */
+PyObject *
+xmipp_readMetaDataWithTwoPossibleImages(PyObject *obj, PyObject *args,
+                                        PyObject *kwargs);
+
+/* substituteOriginalImages */
+PyObject *
+xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+bool validateInputImageString(PyObject * pyImage, PyObject *pyStrFn, FileName &fn);
+
+PyObject *
+xmipp_compareTwoMetadataFiles(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* dump metadatas to database*/
+PyObject *
+xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_Euler_direction(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+MetaData_activateMathExtensions(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+void addIntConstant(PyObject * dict, const char * name, const long &value);
+void addLabels(PyObject * dict);
+
+PyObject *
+xmipp_str2Label(PyObject *obj, PyObject *args);
+
+PyObject *
+xmipp_label2Str(PyObject *obj, PyObject *args);
+
+PyObject *
+xmipp_colorStr(PyObject *obj, PyObject *args);
+
+PyObject *
+xmipp_labelType(PyObject *obj, PyObject *args);
+
+PyObject *
+xmipp_labelHasTag(PyObject *obj, PyObject *args);
+
+PyObject *
+xmipp_labelIsImage(PyObject *obj, PyObject *args);
+
+/* isInStack */
+PyObject *
+xmipp_isValidLabel(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* createEmptyFile */
+PyObject *
+xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* getImageSize */
+PyObject *
+xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* ImgSize (from metadata filename)*/
+PyObject *
+xmipp_ImgSize(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_CheckImageFileSize(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_CheckImageCorners(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyObject *
+xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 /***************************************************************/
 /*                   Some specific utility functions           */

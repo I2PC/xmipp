@@ -138,6 +138,11 @@ patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruct
 addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
 
 
+# FRM library
+dirs = ['external','external']
+patterns=['sh_alignment/*.cpp','sh_alignment/SpharmonicKit27/*.cpp']
+addLib('swig_frm', prefix="_", dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['fftw3'])
+
 # CUDA
 if cuda:
     addLib('XmippInterfaceCuda', dirs=['libraries'], patterns=['reconstruction_adapt_cuda/*.cpp'], libs=['Xmipp'])
@@ -256,7 +261,7 @@ def addBatch(batchName, script, scriptFolder='applications/scripts'):
 
 
 # Batches (apps)
-for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*.[ps]*')):
+for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*','*.[ps]*')):
 	dirName = os.path.basename(os.path.dirname(scriptName))
 	addBatch(dirName,scriptName)
 

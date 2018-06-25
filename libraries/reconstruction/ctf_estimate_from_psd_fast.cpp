@@ -1103,8 +1103,6 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		std::cout << "First defocus Fit:\n" << ctfmodel_defoci << std::endl;
 		saveIntermediateResults_fast("step03a_first_defocus_fit_fast", true);
 	}
-	//saveIntermediateResults_fast("/home/javiermota/scipion/step03a_first_defocus_fit_fast", true);
-
 }
 
 // Estimate second gaussian parameters -------------------------------------

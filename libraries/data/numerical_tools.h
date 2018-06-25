@@ -466,4 +466,27 @@ private:
  *  + and -, 0 and 1, A and B, ...
  */
 double checkRandomness(const std::string &sequence);
+
+/** Spherical harmonics.
+ * This function calculates R_l^n(r)Y_l^m(xr,yr,zr) where R_l^m is the Zernike polynomial,
+ * l is the degree and n goes over odd or even values depending on the value of l. For instance,
+ * l=0 (n=0), l=1 (n=1), l=2 (n=0,2), l=3 (n=1,3), l=4 (n=0,2,4), ... The Y_l^m is the real spherical
+ * harmonic. l is the degree, and m=-l,...,l. For the specific formulas see
+ * https://en.wikipedia.org/wiki/Zernike_polynomials#Radial_polynomials and
+ * https://en.wikipedia.org/wiki/Table_of_spherical_harmonics#Real_spherical_harmonics.
+ * The cartesian coordinates xr, yr and zr are supposed to be normalized between -1 and 1, that is,
+ * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1. */
+double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r);
+
+/** Index to Spherical harmonics index.
+ * Given an integer consecutive index (0,1,2,3,...) this function returns the corresponding (n,l,m)
+ * for the spherical harmonics basis.
+ */
+void spherical_index2lnm(int idx, int &l, int &n, int &m);
+
+/** Index to Spherical harmonics index.
+ * Given the corresponding (n,l,m), this function returns an integer consecutive index (0,1,2,3,...)
+ * for the spherical harmonics basis.
+ */
+int spherical_lnm2index(int l, int n, int m);
 #endif
