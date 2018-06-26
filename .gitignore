@@ -50,7 +50,7 @@ gmon.out
 /bin
 /lib
 /install/xmipp.conf
-/tests
+/tests/data
 
 # Ignore version file
 .devel_version

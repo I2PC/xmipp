@@ -490,68 +490,10 @@ def compile(Nproc):
     return True
 
 
-def discoverTests(self, tests, paths, pattern):
-    """ Return tests discovered in paths that follow the given pattern """
-    for path in [os.path.join('pyworkflow', x) for x in paths]:
-        tests.addTests(unittest.defaultTestLoader.discover(
-            path, pattern=pattern, top_level_dir=HOME))
-
-
-
-def visitTests(tests):
-    """ Show the list of tests available """
-
-    # First flatten the list of tests.
-    testsFlat = []
-    toCheck = [t for t in tests]
-    while toCheck:
-        test = toCheck.pop()
-        if isinstance(test, unittest.TestSuite):
-            toCheck += [t for t in test]
-        else:
-            testsFlat.append(test)
-
-    # Follow the flattened list of tests and show the module, class
-    # and name, in a nice way.
-    lastClass = None
-    lastModule = None
-    
-    for t in testsFlat:
-        moduleName, className, testName = t.id().rsplit('.', 2)
-        
-        # If there is a failure loading the test, show it
-        if moduleName.startswith('unittest.loader.ModuleImportFailure'):
-            print red(moduleName), "  test:", t.id()
-            continue
-
-        def _hasLabels():
-            if self.labels is None:
-                return True
-
-            # Check if class has a label that matches input labels.
-            import importlib
-            my_module = importlib.import_module(moduleName)
-            MyClass = getattr(my_module, className)
-
-            return pwtests.hasLabel(MyClass, self.labels)
-
-        if _hasLabels():
-
-            if moduleName != lastModule:
-                lastModule = moduleName
-                newItemCallback(MODULE, moduleName)
-
-            if className != lastClass:
-                lastClass = className
-                print(CLASS, "%s.%s" % (moduleName, className))
-
-            newItemCallback(TEST, "%s.%s.%s" % (moduleName, className, testName))
 
 
 def runTests(testNames):
     print("Testing ---------------------------------------------")
-    checkProgram('rsync')
-
     os.environ['PYTHONPATH'] = ':'.join([
                          os.path.join(os.environ.get('XMIPP_SRC', ''), 'xmipp'),
                          os.environ['PYTHONPATH'] ])
@@ -559,34 +501,29 @@ def runTests(testNames):
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
     except:
         raise Exception(red('XMIPP_SRC is not in the path.') + '\nDo: ' +
-                        green('source build/xmipp.bashrc'))
+                        blue('source build/xmipp.bashrc'))
+
     dataSetPath = os.path.join(testsPath, 'data')
-    os.environ["TEST_DATA"] = dataSetPath
+    os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
-    if not os.path.exists(dataSetPath):
-        createDir(dataSetPath)
+    if not '--show' in testNames:
+        checkProgram('rsync')
 
-    remoteLoc = 'scipion@scipion.cnb.csic.es'
-    remoteFolder = '/services/scipion/data/downloads/scipion/data/tests/xmipp_programs/'
+        if not os.path.exists(dataSetPath):
+            createDir(dataSetPath)
 
-    print(blue('  Downloading test data.. (it can take a while)'))
-    subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
-                     '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
-    
-    if '--show' in testNames:
-        visitTests(test)
+        remoteLoc = 'scipion@scipion.cnb.csic.es'
+        remoteFolder = '/services/scipion/data/downloads/scipion/data/tests/xmipp_programs/'
 
-    if 'all' in testNames:
-        testNames = ['tests.test_programs_xmipp']
-    else:
-        for idx, name in enumerate(testNames):
-            testNames[idx] = 'tests.test_programs_xmipp.' + name
-
+        print(blue('  Downloading test data.. (it can take a while)'))
+        subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
+                         '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
+        
     try:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
     except:
         raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
-                        green('export SCIPION_HOME=<scipion_home>'))
+                        blue('export SCIPION_HOME=<scipion_home>'))
 
     runJob("cd %s; %s base.py "%(testsPath, python) + ' '.join(testNames))
 
