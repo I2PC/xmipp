@@ -152,10 +152,6 @@ void remap_eulers (double *psi_out, double *theta_out, double *phi_out,
   double curr_psi, curr_theta, curr_phi;
   double new_psi, new_theta, new_phi;
 
-  int i,j;
-  double testa,testb;
-  double dump[3][3];
-
   /* bring psi, theta, phi, within 2 PI of reference */
 
   curr_psi = psi_in - psi_ref; 

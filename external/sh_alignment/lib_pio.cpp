@@ -62,7 +62,7 @@ void readpdb(char *pdb_file, int *numAtoms, PDB **Atoms)
   }
   
   for(;;) {
-    char* nread=fgets(line, 100, file_ref);
+    fgets(line, 100, file_ref);
     if (feof(file_ref) || i+1 > MAXPDB) break;
     if (sscanf(line, "%6s", recdName) != 1) continue;
     if (strcmp(recdName,"ATOM")==0 || strcmp(recdName,"HETATM")==0 || strcmp(recdName,"LABEL")==0 ) {

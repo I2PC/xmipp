@@ -157,16 +157,12 @@ void PCAMahalanobisAnalyzer::reconsFromPCA(const Matrix2D<double> &CtY, std::vec
 
     for (int ii=0; ii<N; ii++)
     {
-        const MultidimArray<float> &Iii=v[ii];
-
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(recons[ii])
         for (int jj=0; jj<NPCA; jj++)
         {
             const MultidimArray<double> &Ijj=PCAbasis[jj];
             DIRECT_A1D_ELEM(recons[ii],i)= DIRECT_A1D_ELEM(Ijj,i)*MAT_ELEM(CtY,jj,ii)+(float)DIRECT_A1D_ELEM(avg,i);
         }
-
-
     }
 }
 

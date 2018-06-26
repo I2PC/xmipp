@@ -830,7 +830,6 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & _centre,
 
 		//for all points in the enclosing box
 		//check if they are inside the expanded unit cell
-		int ii, jj, kk; //expandedUnitCell
 		for (int k = iMinZ; k <= iMaxZ; ++k)
 			for (int i = iMinY; i <= iMaxY; ++i)
 				for (int j = iMinX; j <= iMaxX; ++j) {
