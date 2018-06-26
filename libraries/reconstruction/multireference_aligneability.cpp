@@ -85,7 +85,6 @@ void MultireferenceAligneability::run()
 	fnOutCL = fnDir+"/pruned_particles_alignability.xmd";
 	fnOutQ = fnDir+"/validationAlignability.xmd";
 
-    int symmetry, sym_order;
     SL.readSymmetryFile(fnSym.c_str());
 
 	mdInputParticles.read(fnParticles);
@@ -140,7 +139,6 @@ void MultireferenceAligneability::run()
 	double accuracyMirror = 0.;
 	double accuracyMirrorRef = 0.;
 
-	char hold;
 	FileName imagePath;
 
 	for (size_t i=0; i<=maxNImg;i++)
@@ -400,15 +398,13 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
 	//In the distance calculation the distance of a point with itself gives no distance.
 	const size_t numGallery= mdGallery.size()+1;
 	const double trials = 500;
-    double xRan,yRan,zRan;
     size_t indx;
     size_t * indxArray = new size_t[numGallery];
     double sumWRan;
     double * rotArray = new double[num];
     double * tiltArray = new double[num];
     double * psiArray  = new double[num];
-    double rot,tilt,psi,w;
-    bool mirror;
+    double rot,tilt,psi;
     sumWRan = 0;
 
     if (numGallery < num)

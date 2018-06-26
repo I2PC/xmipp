@@ -384,7 +384,7 @@ void ProgMonogenicSignalRes::firstMonoResEstimation(MultidimArray< std::complex<
 {
 	amplitudeMonogenicSignal3D(myfftV, freq, freqH, freqL, amplitude, count, fnDebug);
 
-	double sumS=0, sumS2=0, sumN=0, sumN2=0, NN = 0, NS = 0;
+	double sumS=0, sumN=0, NN = 0, NS = 0;
 	MultidimArray<int> &pMask = mask();
 	std::vector<double> noiseValues;
 
@@ -461,7 +461,7 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 	double filling_value = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
 	double trimming_value = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
 
-	double freq, res, init_res, last_res;
+	double init_res, last_res;
 
 	init_res = list[0];
 	last_res = list[(list.size()-1)];
@@ -605,7 +605,7 @@ void ProgMonogenicSignalRes::run()
 	double criticalW=-1;
 	double resolution, resolution_2, last_resolution = 10000;  //A huge value for achieving
 												//last_resolution < resolution
-	double freq, freqH, freqL, resVal, counter;
+	double freq, freqH, freqL;
 	double max_meanS = -1e38;
 	double cut_value = 0.025;
 
@@ -630,10 +630,9 @@ void ProgMonogenicSignalRes::run()
 		w0 = sampling/maxRes;
 		wF = sampling/minRes;
 	}
-	double w=w0;
 	bool doNextIteration=true;
 	bool lefttrimming = false;
-	int fourier_idx, last_fourier_idx = -1, fourier_idx_2;
+	int fourier_idx, last_fourier_idx = -1;
 
 	//A first MonoRes estimation to get an accurate mask
 
@@ -1034,7 +1033,6 @@ void ProgMonogenicSignalRes::run()
 	amplitudeMN.clear();
 	amplitudeMS.clear();
 
-	double last_resolution_2 = resolution;
 	if (fnSym!="c1")
 	{
 		SymList SL;

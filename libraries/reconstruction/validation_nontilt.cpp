@@ -388,7 +388,7 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     std::vector<double> weightV;
     double a;
 
-    double rot,tilt,w;
+    double rot,tilt;
     bool mirror;
 
     for (size_t n=0; n<sum_u.size(); n++)

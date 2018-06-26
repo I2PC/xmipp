@@ -288,7 +288,7 @@ void ProgRecFourierAccel::preloadBuffer(LoadThreadParams* threadParams,
 		threadParams->buffer1 = new ProjectionData[parent->bufferSize];
 	}
 	for (int bIndex = 0; bIndex < parent->bufferSize; bIndex++) {
-		double rot, tilt, psi, weight;
+		double rot, tilt, psi;
 		Projection proj;
 		Matrix2D<double> localA(3, 3);
 		int imgIndex = threadParams->startImageIndex + bIndex;

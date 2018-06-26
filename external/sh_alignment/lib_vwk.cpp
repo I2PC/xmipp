@@ -545,7 +545,7 @@ void relax_laplacian (double **phi, unsigned extx, unsigned exty, unsigned extz,
 /* assumes that phi has been thresholded and contains some non-zero densities */
 
   double average[27]={0.,0.,0.,0.,1/6.,0.,0.,0.,0.,0.,1/6.,0.,1/6.,0.,1/6.,0.,1/6.,0.,0.,0.,0.,0.,1/6.,0.,0.,0.,0.};
-  double  *nextphi, diff, norm, epsilon;
+  double  *nextphi, diff, norm;
   unsigned long nvox, indv, indw, threscount, maskcount;
   char *mask; 
   unsigned indx, indy, indz;

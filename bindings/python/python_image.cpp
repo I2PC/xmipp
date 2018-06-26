@@ -1496,7 +1496,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
                 item  = PyList_GetItem(list, i);
                 MAT_ELEM(A,i/4,i%4 ) = PyFloat_AsDouble(item);
             }
-            double scale, shiftX, shiftY, shiftZ, rot,tilt, psi;
+            double scale, shiftX, shiftY, rot,tilt, psi;
             bool flip;
             transformationMatrix2Parameters2D(A, flip, scale, shiftX, shiftY, psi);//, shiftZ, rot,tilt, psi);
             double _rot;

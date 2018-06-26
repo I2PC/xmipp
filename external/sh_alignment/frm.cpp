@@ -50,15 +50,12 @@ int frm(double *f, int dim1, double *g, int dim2, double *res, int dim3)
 	 return -1;
   }
 
-  long i, j, k, l, m,  ind1, ind2, ind3, size2;
-  long ncorr, npeaks;
+  long i, j, k, l, ind1, ind2, ind3, size2;
+  long npeaks;
   
 
-  int log2s;       /* log2 of size */
   int size;        /* no. of points in each coordinate = 2*bw */
   int cut_naive;   /* switch from semi-naive to naive at order bw - cut_naive */
-
-  int ifit;
 
   fftw_plan plan_fftw;     /* plan for the FFTW routine */
   
@@ -308,26 +305,11 @@ int frm_corr(double *f, int dim1, double *g, int dim2, double *coef_corr, int di
 	return -1;
   }
 
-  long i, j, k, l, m,  ind1, ind2, ind3, size2;
-  long ncorr, npeaks;
-  
-
-  int log2s;       /* log2 of size */
   int size;        /* no. of points in each coordinate = 2*bw */
   int cut_naive;   /* switch from semi-naive to naive at order bw - cut_naive */
 
-  int ifit;
-
   fftw_plan plan_fftw;     /* plan for the FFTW routine */
   
-  double temp, tempi, tempj, tempk;
-  double f000, f100, f200, f010, f020, f001, f002;
-
-  double phi, th, psi;        /* Euler angles */
-  double phe, phc, ohm;       /* angular parameters */
-  
-  // double dist_cut = 3.0;            /* cutoff distance for eliminating nearby peaks */
-
   double *seminaive_naive_tablespace, *workspace;
   double **seminaive_naive_table;
 
@@ -344,7 +326,6 @@ int frm_corr(double *f, int dim1, double *g, int dim2, double *coef_corr, int di
 //  fprintf(stderr, "frmr> Doing precomputations for FST and d-matrices...\n");
 
   size=2*bw;
-  size2=size*size;
   cut_naive=bw;
 
   do_vect(&seminaive_naive_tablespace, Reduced_Naive_TableSize(bw,cut_naive) +
@@ -434,30 +415,13 @@ int frm_fourier_corr(double *fr, int dim1, double *fi, int dim2, double *gr, int
 	return -1;
   }
 
-  long i, j, k, l, m,  ind1, ind2, ind3, size2;
-  long ncorr, npeaks;
-  
-
-  int log2s;       /* log2 of size */
   int size;        /* no. of points in each coordinate = 2*bw */
   int cut_naive;   /* switch from semi-naive to naive at order bw - cut_naive */
 
-  int ifit;
-
   fftw_plan plan_fftw;     /* plan for the FFTW routine */
   
-  double temp, tempi, tempj, tempk;
-  double f000, f100, f200, f010, f020, f001, f002;
-
-  double phi, th, psi;        /* Euler angles */
-  double phe, phc, ohm;       /* angular parameters */
-  
-  // double dist_cut = 3.0;            /* cutoff distance for eliminating nearby peaks */
-
   double *seminaive_naive_tablespace, *workspace;
   double **seminaive_naive_table;
-
-//  double *idata;      /* imaginary data (0) */
 
   double *coeffr_hi, *coeffi_hi;  /* spherical harmonics coefficients for high res. map */
   double *coeffr_lo, *coeffi_lo;  /* spherical harmonics coefficients for low res. map */
@@ -470,7 +434,6 @@ int frm_fourier_corr(double *fr, int dim1, double *fi, int dim2, double *gr, int
 //  fprintf(stderr, "frmr> Doing precomputations for FST and d-matrices...\n");
 
   size=2*bw;
-  size2=size*size;
   cut_naive=bw;
 
   do_vect(&seminaive_naive_tablespace, Reduced_Naive_TableSize(bw,cut_naive) +
@@ -781,7 +744,7 @@ int find_topn_angles(double *coef_corr, int dim1, int bw, double *res, int dim2,
     }
 
     double *corr[4];
-    long i, j, k, l, m,  ind1, ind2, ind3;
+    long i, j, k, l, ind1, ind2, ind3;
     long npeaks;
     int size=2*bw;        /* no. of points in each coordinate = 2*bw */
     long size2=size*size;
