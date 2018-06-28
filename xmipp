@@ -510,8 +510,7 @@ def runTests(testNames):
     if not '--show' in testNames:
         checkProgram('rsync')
 
-        if not os.path.exists(dataSetPath):
-            createDir(dataSetPath)
+        createDir(dataSetPath)
 
         remoteLoc = 'scipion@scipion.cnb.csic.es'
         remoteFolder = '/services/scipion/data/downloads/scipion/data/tests/xmipp_programs/'
@@ -675,7 +674,7 @@ if __name__ == '__main__':
         else:
             dir="build"
         install(dir)
-    elif mode=="tests":
+    elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
         ok=getSources()

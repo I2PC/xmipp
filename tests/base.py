@@ -32,6 +32,7 @@ import unittest
 import threading
 import subprocess
 import sys
+import shutil
 from traceback import format_exception
 
 # from pyworkflow.tests import *
@@ -133,15 +134,12 @@ class ProgramTest(unittest.TestCase):
         self.outputDirAbs = os.path.join(self._testDir, self.outputDir)
         self.goldDir = os.path.join(self._testDir, 'gold', '%s_%02d' % (self.program, _counter))
         
-        # Clean and create the program output folder if not exists
-        # print ' - to clean : ', self.outputDirAbs
-        # pwutils.cleanPath(self.outputDirAbs)
-        # pwutils.makePath(self.outputDirAbs)
-
         # Change to tests root folder (self._testDir)
         cwd = os.getcwd()
         os.chdir(self._testDir)
-        
+        # Clean and create the program output folder if not exists
+        createDir(self.outputDir, clean=True)
+
         if preruns:
             self._runCommands(preruns, 'preruns')
             
@@ -153,22 +151,21 @@ class ProgramTest(unittest.TestCase):
         args = self._parseArgs(args)
         
         if changeDir:
-            stderrFn = "stderr.txt"
-            cmd = "cd %s ; %s %s > stdout.txt 2> %s" % (self.outputDir, cmd, args, stderrFn)
+            cmd = "cd %s ; %s %s > stdout.txt 2> stderr.txt" % (self.outputDir, cmd, args)
         else:
-            stderrFn = "%s/stderr.txt" % self.outputDir
-            cmd = "%s %s > %s/stdout.txt 2> %s" % (cmd, args, self.outputDir, stderrFn)
+            
+            cmd = "%s %s > %s/stdout.txt 2> %s/stderr.txt" % (cmd, args, self.outputDir, self.outputDir)
         print "    Command: "
         print "       ", blue(cmd)
-
         #run the test itself
-        command = Command(cmd, env= os.environ)
+        command = Command(cmd, env=os.environ)
         self._command = command
         try:
             command.run(timeout=self._timeout)
         except KeyboardInterrupt:
             command.terminate()
 
+        stderrFn = "%s/stderr.txt" % self.outputDir
         if os.path.exists(stderrFn):
             errFile = open(stderrFn, 'r')
             errStr = errFile.read()
@@ -200,7 +197,7 @@ class ProgramTest(unittest.TestCase):
             self.assertTrue(os.path.exists(outFile), red(msg))
             
             if random:
-                print("WARNING: %s was created using a random seed, check skipped\n " % outFile)
+                print(yellow("WARNING: %s was created using a random seed, check skipped..." % outFile))
             else:
                 fnGoldStd = xmippCore.FileName(fileGoldStd)
                 if fnGoldStd.isImage():
@@ -236,7 +233,7 @@ class GTestResult(unittest.TestResult):
 
     def doReport(self):
         secs = time.time() - self.startTimeAll
-        sys.stderr.write("\n%s run %d tests (%0.3f secs)\n" %
+        sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), self.numberTests, secs))
         if self.testFailed:
             print >> sys.stderr, red("[  FAILED  ]") + " %d tests" % self.testFailed
@@ -263,12 +260,12 @@ class GTestResult(unittest.TestResult):
 
     def addSuccess(self, test):
         secs = self.toc()
-        sys.stderr.write("%s %s (%0.3f secs)\n" % (green('[ RUN   OK ]'), self.getTestName(test), secs))
+        sys.stderr.write("%s %s (%0.3f secs)\n\n" % (green('[ RUN   OK ]'), self.getTestName(test), secs))
 
     def reportError(self, test, err):
-        sys.stderr.write("%s %s\n" % (red('[   FAILED ]'),
-                                      self.getTestName(test)))
         sys.stderr.write("\n%s" % ("".join(format_exception(*err))))
+        sys.stderr.write("%s %s\n\n" % (red('[  FAILED  ]'),
+                                      self.getTestName(test)))
         self.testFailed += 1
 
     def addError(self, test, err):
@@ -285,6 +282,14 @@ def red(text):
 
 def blue(text):
     return "\033[34m "+text+"\033[0m"
+
+def yellow(text):
+    return "\033[93m "+text+"\033[0m"
+
+def createDir(dirname, clean=False):
+    if clean and os.path.exists(dirname):
+        shutil.rmtree(dirname)
+    os.makedirs(dirname)
 
 
 def visitTests(tests, grepStr=''):
@@ -307,7 +312,7 @@ def visitTests(tests, grepStr=''):
     lastClass = None
     lastModule = None
     
-    grepPrint = '' if grepStr is None else red(' (grep: %s)'%grepStr)
+    grepPrint = '' if grepStr is '' else red(' (grep: %s)'%grepStr)
 
     for t in testsFlat:
         moduleName, className, testName = t.id().rsplit('.', 2)
@@ -324,7 +329,7 @@ def visitTests(tests, grepStr=''):
 
         if className != lastClass:
             lastClass = className
-            print("  xmipp tests %s" % className)
+            print("  xmipp test %s" % className)
 
 
 
@@ -333,7 +338,6 @@ if __name__ == "__main__":
 
     tests = unittest.TestSuite()
     if '--show' in testNames or '--all' in testNames:
-        print(blue("\n    > >  You can run any of the following tests by:\n"))
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
@@ -343,12 +347,20 @@ if __name__ == "__main__":
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
 
         if '--show' in testNames:
+            print(blue("\n    > >  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)
         elif '--all' in testNames:
             result = GTestResult()
             tests.run(result)
             result.doReport()
+    elif '--Cfuncs' in testNames:
+        xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')
+        for file in os.listdir(xmippBinDir):
+            if file.startswith("xmipp_test_"):
+                print(blue(">> Running %s:"  % file))
+                os.system(os.path.join(xmippBinDir, file))
+                print('\n')
     else:
         for test in testNames:
             test = 'tests.test_programs_xmipp.' + test
