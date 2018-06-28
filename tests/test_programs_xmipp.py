@@ -40,6 +40,7 @@ class XmippProgramTest(ProgramTest):
         cls.program = cls.getProgram()
         # cls.env = xmipp3.getEnviron()
         # cls.dataset = DataSet.getDataSet('xmipp_programs') # ----------------------------------------------
+        print(' ')
         print(">>>>> OWNER: %s" % cls._owner)
         #cls._counter = 0 # count number of cases per test
         
@@ -329,8 +330,6 @@ class CtfGroup(XmippProgramTest):
 
     #  FIXME: replace ctf2_* to ctf_* from -o arg and outputs
     def test_case1(self):
-
-        print ' > > >  H E R E  < <'
         self.runCase("--ctfdat input/ctf_group/all_images_new.ctfdat -o %o/ctf2 --wiener --wc -1 --pad 2 --phase_flipped --error 0.5 --resol 5.6",
                 outputs=["ctf2_ctf.xmp","ctf2Info.xmd","ctf2_wien.xmp"])
     def test_case2(self):
