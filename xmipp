@@ -88,6 +88,7 @@ def getSources():
             ok=ok and runJob("git clone https://github.com/I2PC/xmippScipion.git src/xmippScipion")
     else:
         ok=False
+    os.environ['PATH'] = '$PATH:/home/buildbot-slave/data/slave/devel_Protocol_Tests/build/software/bin'
     ok=ok and checkProgram("scons")
     if not ok:
         print(red("Cannot get the sources"))
