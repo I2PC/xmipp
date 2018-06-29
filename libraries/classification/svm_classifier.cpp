@@ -24,6 +24,7 @@
  ***************************************************************************/
 #include "svm_classifier.h"
 
+#ifdef UNUSED // detected as unused 29.6.2018
 bool findElementIn1DArray(MultidimArray<double> &inputArray,double element)
 {
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(inputArray)
@@ -31,6 +32,7 @@ bool findElementIn1DArray(MultidimArray<double> &inputArray,double element)
         return true;
     return false;
 }
+#endif
 
 void SVMClassifier::setParameters(double c,double gamma)
 {
@@ -139,8 +141,11 @@ void SVMClassifier::LoadModel(const FileName &fnModel)
 {
     model=svm_load_model(fnModel.c_str());
 }
+
+#ifdef UNUSED // detected as unused 29.6.2018
 int SVMClassifier::getNumClasses()
 {
     return svm_get_nr_class(model);
 }
+#endif
 

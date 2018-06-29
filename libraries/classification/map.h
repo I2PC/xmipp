@@ -152,12 +152,14 @@ public:
      */
     unsigned height() const;
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns a code vector given its position
      * Parameter: _pos  The position of the code vector
      * @exception out_of _range   If _pos is out of range
      */
     SomIn& itemAtPos(const SomPos& _pos);
+#endif
 
     /**
      * Returns a const reference to a code vector given its position
@@ -166,11 +168,13 @@ public:
      */
     const SomIn& itemAtPos(const SomPos& _pos) const;
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns the target of a code vector given its position
      * Parameter: _pos  The position of the code vector
      */
     Label& targetAtPos(const SomPos& _pos);
+#endif
 
     /**
      * Returns a const target of a code vector given its position
@@ -206,12 +210,14 @@ public:
      */
     SomPos codVecPos(SomIn& _v);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns the position of the code vector that represents the input in the
      * som
      * Parameter: _in  Sample to classify
      */
     SomPos applyPos(const SomIn& _in);
+#endif
 
     /*
      * Standard output for a som
