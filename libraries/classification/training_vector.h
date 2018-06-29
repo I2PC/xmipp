@@ -86,10 +86,12 @@ public:
     {}
     ;
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns the amount of features (cases)
      */
     unsigned featureSize() const;
+#endif
 
     /**
      * Returns the dimension of the vectors (number of features)
@@ -133,12 +135,13 @@ public:
      */
     virtual void loadObject(std::istream& _is);
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Deletes a variable (feature) from Training set
      * Parameter: _var variable index
      */
     void deleteVariable(int _var);
+#endif
 
     /**
      * Operator "="
@@ -146,7 +149,7 @@ public:
      */
     ClassicTrainingVectors& operator= (const ClassicTrainingVectors &op1);
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
     /** Copy the structure from another TS but leave it empty.
     * Parameter: _ts ClassicTrainingVectors
     * @note  Just the structure is copied, not the items or targets.
@@ -165,7 +168,7 @@ public:
     * Parameter: _idx   row to be deleted
     */
     bool deleteRow(unsigned int _idx);
-
+#endif
 
     /**
     * Normalize a feature in the training set
@@ -184,10 +187,12 @@ public:
     */
     virtual void unNormalize();
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
     * returns normalized variable in the original scale
     */
     virtual double getUnormalizedVar(unsigned _item, unsigned _var) const;
+#endif
 
     /**
     * Returns TRUE if recordset is normalized.
@@ -208,12 +213,13 @@ public:
      */
     void getFeatureStats(unsigned _i, floatFeature& _mean, floatFeature& _sd);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
     * Returns a vector containing the average (item 0) and SD (item 1)
     */
 
     ClassicTrainingVectors getStatVector();
-
+#endif
 
 protected:
     std::vector <statsStruct>  varStats;

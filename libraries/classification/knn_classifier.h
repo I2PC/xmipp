@@ -66,11 +66,13 @@ public:
     /// Compute the K nearest neighbors to the sample
     void KNearestNeighbors(MultidimArray<double> &sample);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /// Save the model for the classifier
     void saveModel(const FileName &fn);
 
     /// Load the model for the classifier
     void loadModel(const FileName &fn);
+#endif
 
     /// Method for setting the K
     void setK(int k);
@@ -79,8 +81,10 @@ private:
     /// Compute the euclidean distance
     double euclideanDistance(MultidimArray<double> &sample,int index,double maximumDist);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /// Compute the City Block (Manhattan) distance
     double cityBlockDistance(MultidimArray<double> &sample,int index,double maximumDist);
+#endif
 
     /// This function find the index of maximum value in an 1D-array
     int findMaxIndex(MultidimArray<double> &inputArray);

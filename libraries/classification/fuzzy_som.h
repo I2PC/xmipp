@@ -65,6 +65,7 @@ public:
     virtual ~FuzzySOM()
     {};
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Sets the number of training steps
      * Parameter: _nSteps  Number of training steps
@@ -98,7 +99,7 @@ public:
      * Parameter: _reg
      */
     void regularization(const double& _reg);
-
+#endif
 
     /**
      * Trains the Fuzzy SOM
@@ -149,13 +150,13 @@ private:
     unsigned dim;
     std::vector<double> tmpV, tmpD, tmpDens;
     std::vector < std::vector<double> > tmpMap;
-
+#ifdef UNUSED // detected as unused 29.6.2018
     void showX(const TS& _ts);
 
     void showV(FuzzyMap& _som);
 
     void showU(FuzzyMap& _som, const TS& _ts);
-
+#endif
 
 };
 //@}
