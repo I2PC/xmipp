@@ -44,10 +44,12 @@ def checkProgram(programName, show=True):
     systemInstructions["rsync"] = ["sudo apt-get -y rsync" , "sudo pacman -Syu --noconfirm rsync"]
 
     ok=True
+    cont = True
     if not whereis(programName):
-        if programName("scons"):
+        if programName == "scons":
             try:
                 runJob("pip install scons")
+                cont = False
             except:
                 cont = True
         if cont:
