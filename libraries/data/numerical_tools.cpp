@@ -963,6 +963,211 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 	return R*Y;
 }
 
+double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr, double r)
+{
+	// General variables
+	double rp=2*r-1;
+	double rp2=rp*rp,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
+	double pol=sqrt(1-rp2);
+	double pol2=pol*pol;
+
+	// Associated Legendre polynomial
+	double R=0.0;
+
+	switch (l)
+	{
+	case 0:
+		R=1.0;
+		break;
+	case 1:
+		switch (m)
+		{
+		case -1:
+			R=-(1.0/4.0)*pol;
+			break;
+		case 0:
+			R=(1.0/2.0)*pol;
+			break;
+		case 1:
+			R=(1.0/2.0)*pol;
+			break;
+		}break;
+	case 2:
+		switch (m)
+		{
+		case -2:
+			R=(1.0/(2.0*24.0))*3.0*pol2;
+			break;
+		case -1:
+			R=(1.0/12.0)*rp*pol;
+			break;
+		case 0:
+			R=(1.0/4.0)*(3*rp2-1.0);
+			break;
+		case 1:
+			R=-3*rp*pol;
+			break;
+		case 2:
+			R=3*pol2;
+		}break;
+	case 3:
+		switch (m)
+		{
+		case -3:
+			R=(1.0/(2.0*720.0))*15.0*pol2*pol;
+			break;
+		case -2:
+			R=(1.0/240.0)*15.0*rp*pol2;
+			break;
+		case -1:
+			R=(1.0/24.0)*(3.0/2.0)*(5.0*rp2-1.0)*pol;
+			break;
+		case 0:
+			R=(1.0/4.0)*(5.0*rp2*rp-3.0*rp);
+			break;
+		case 1:
+			R=-(3.0/4.0)*(5.0*rp2-1.0)*pol;
+			break;
+		case 2:
+			R=(15.0/2.0)*rp*pol2;
+			break;
+		case 3:
+			R=-15.0*pol2*pol;
+			break;
+		}break;
+	case 4:
+		switch (m)
+		{
+		case -4:
+			R=(1.0/(2.0*40320.0))*105.0*pol2*pol2;
+			break;
+		case -3:
+			R=(1.0/(5040.0*2.0))*105.0*rp*pol2*pol;
+			break;
+		case -2:
+			R=(1.0/(2.0*360.0))*(15.0/2.0)*(7.0*rp2-1.0)*pol2;
+			break;
+		case -1:
+			R=(1.0/40.0)*(5.0/2.0)*(7.0*rp2*rp-3.0*rp)*pol;
+			break;
+		case 0:
+			R=(1.0/16.0)*(35.0*rp2*rp2-30.0*rp2+3.0);
+			break;
+		case 1:
+			R=-(5.0/4.0)*(7.0*rp2*rp-3*rp)*pol;
+			break;
+		case 2:
+			R=(15.0/4.0)*(7.0*rp2-1)*pol2;
+			break;
+		case 3:
+			R=-(105.0/2.0)*rp*pol2*pol;
+			break;
+		case 4:
+			R=(105.0/2.0)*pol2*pol2;
+		}break;
+	}
+
+	// Spherical harmonic
+	double Y=0.0;
+
+	switch (l)
+	{
+	case 0:
+		Y = (1.0/2.0)*sqrt(1.0/PI);
+		break;
+	case 1:
+		switch (m)
+		{
+		case -1:
+			Y = sqrt(3.0/(4.0*PI))*yr;
+			break;
+		case 0:
+			Y = sqrt(3.0/(4.0*PI))*zr;
+			break;
+		case 1:
+			Y = sqrt(3.0/(4.0*PI))*xr;
+			break;
+		} break;
+	case 2:
+		switch (m)
+		{
+		case -2:
+			Y = sqrt(15.0/(4.0*PI))*xr*yr;
+			break;
+		case -1:
+			Y = sqrt(15.0/(4.0*PI))*zr*yr;
+			break;
+		case 0:
+			Y = sqrt(5.0/(16.0*PI))*(-xr2-yr2+2.0*zr2);
+			break;
+		case 1:
+			Y = sqrt(15.0/(4.0*PI))*xr*zr;
+			break;
+		case 2:
+			Y = sqrt(15.0/(16.0*PI))*(xr2-yr2);
+			break;
+		} break;
+	case 3:
+		switch (m)
+		{
+		case -3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*yr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt(105.0/(4.0*PI))*zr*yr*xr;
+			break;
+		case -1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*yr*(4.0*zr2-xr2-yr2);
+			break;
+		case 0:
+			Y = sqrt(7.0/(16.0*PI))*zr*(2.0*zr2-3.0*xr2-3.0*yr2);
+			break;
+		case 1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*xr*(4.0*zr2-xr2-yr2);
+			break;
+		case 2:
+			Y = sqrt(105.0/(16.0*PI))*zr*(xr2-yr2);
+			break;
+		case 3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*xr*(xr2-3.0*yr2);
+			break;
+		} break;
+	case 4:
+		switch (m)
+		{
+		case -4:
+			Y = sqrt((35.0*9.0)/(16.0*PI))*yr*xr*(xr2-yr2);
+			break;
+		case -3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*yr*zr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt((9.0*5.0)/(16.0*PI))*yr*xr*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case -1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*yr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 0:
+			Y = sqrt(9.0/(16.0*16.0*PI))*(35.0*zr2*zr2-30.0*zr2+3.0);
+			break;
+		case 1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*xr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 2:
+			Y = sqrt((9.0*5.0)/(8.0*8.0*PI))*(xr2-yr2)*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case 3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*xr*zr*(xr2-3.0*yr2);
+			break;
+		case 4:
+			Y = sqrt((9.0*35.0)/(16.0*16.0*PI))*(xr2*(xr2-3.0*yr2)-yr2*(3.0*xr2-yr2));
+			break;
+		} break;
+	}
+
+	return R*Y;
+}
+
 void spherical_index2lnm(int idx, int &l, int &n, int &m)
 {
 	if (idx==0)

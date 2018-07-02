@@ -56,6 +56,8 @@ public:
 public:
 	Image<double> VI, VR, VO;
 	Matrix1D<double> clnm;
+	double deformation;
+	bool applyTransformation;
 
 public:
     /// Define params
@@ -68,10 +70,19 @@ public:
     void show();
 
     /// Distance
-    double distance(double *pclnm) const;
+    double distance(double *pclnm);
 
     /// Run
     void run();
+
+    /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
+    void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
+
+    /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
+    void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
+
+    ///Compute the number of spherical harmonics in l=0,1,...,depth
+    void Numsph(Matrix1D<double> &sphD);
 };
 
 //@}

@@ -54,3 +54,4 @@ gmon.out
 
 # Ignore version file
 .devel_version
+/Debug/
