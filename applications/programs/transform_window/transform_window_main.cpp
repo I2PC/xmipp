@@ -217,6 +217,7 @@ public:
 			physical_coords = false;
 		} else if (checkParam("--unitcell")) {
 			int nparams = getCountParam("--unitcell");
+			if (nparams != 9) REPORT_ERROR(ERR_ARG_INCORRECT, "Incorrect number of arguments after --unitcell");
 			sym = getParam("--unitcell", 0);
 			rmin = getDoubleParam("--unitcell", 1);
 			rmax = getDoubleParam("--unitcell", 2);

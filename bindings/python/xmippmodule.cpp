@@ -281,7 +281,7 @@ xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
     PyObject *input = NULL, *pyStr = NULL;
-    char *str = NULL, *strBlock = NULL;
+    char *str = NULL;
     if (PyArg_ParseTuple(args, "O", &input))
     {
         try
@@ -474,7 +474,6 @@ xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *input1, *input2;
     double tolerance=0.;
-    int index1=0, index2=0;
 
     if (PyArg_ParseTuple(args, "OO|d", &input1, &input2, &tolerance))
 
@@ -756,7 +755,6 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_Euler_direction(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject * input;
     double rot, tilt, psi;
     if (PyArg_ParseTuple(args, "ddd", &rot,&tilt,&psi))
     {

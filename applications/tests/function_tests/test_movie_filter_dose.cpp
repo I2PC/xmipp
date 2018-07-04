@@ -8,11 +8,8 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-    	int a=0;
+    	// nothing to do
     }
-
-    // virtual void TearDown() {}//Destructor
-
 };
 
 TEST_F( MovieFilterDoseTest, doseFilter)
@@ -52,7 +49,6 @@ TEST_F( MovieFilterDoseTest, movieFilterDose)
 TEST_F( MovieFilterDoseTest, criticalDose)
 {
 	double acceleration_voltage = 300;
-	double voltage_scaling_factor = 1;
 	ProgMovieFilterDose pmfdProg(acceleration_voltage);
     double criticalDose2;
 	double criticalDose=  412084.3;

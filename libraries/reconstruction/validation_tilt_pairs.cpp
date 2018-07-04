@@ -90,7 +90,6 @@ void ProgValidationTiltPairs::InversefromPaulibasis(std::complex<double> Origina
 
 	std::complex<double> Inver_matrix[4], mat[4];
 	std::complex<double> NOriginal;
-	double aux=0.5;
 
 	Paulibasis2matrix(Original,mat);
 
@@ -254,7 +253,6 @@ void ProgValidationTiltPairs::run()
 				break;
 
 			// Grab all the angles in DF1 associated to this id
-			anotherIteration=false;
 			do
 			{
 				DF1sorted.getValue(MDL_ITEM_ID,id1,iter1.objId);
@@ -346,7 +344,7 @@ void ProgValidationTiltPairs::run()
 		anotherImageIn2=iter2.hasNext();
 	}
 
-	std::complex<double> qu[4], qt[4], M[4], Inv_qu[4], test[4], P1[4], P2[4], Inv_quu[4];
+	std::complex<double> qu[4], qt[4], M[4], Inv_qu[4], P1[4], Inv_quu[4];
 	double rotu=34*PI/180, tiltu=10*PI/180, psiu=5*PI/180;
 	double rott=25*PI/180, tiltt=15*PI/180, psit=40*PI/180;
 

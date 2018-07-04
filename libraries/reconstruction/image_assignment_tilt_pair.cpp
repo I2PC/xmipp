@@ -330,7 +330,6 @@ void ProgassignmentTiltPair::run()
 	Matrix2D<double> A_coarse;
 	Matrix1D<double> T_coarse, def_T, t_test(2), u(2), dist_vec, dist_vec2;
 
-	double trace_A, det_A, sqrt_aux, Eig_A1, Eig_A2, discriminant_A, dist, estimator;
 	struct Point_T t_dist, t_closest;
 	//////////// DEFINING PARAMETERS FOR SEARCH_AFFINE_TRANSFORM
 
@@ -420,6 +419,7 @@ void ProgassignmentTiltPair::run()
 			t_test = A_coarse*u + T_coarse;
 			t_dist.x = VEC_ELEM(t_test,0);
 			t_dist.y = VEC_ELEM(t_test,1);
+			double dist;
 			if (!select_Closest_Point(&delaunay_tilt, &t_dist, &t_closest, &dist) )
 			{
 				//std::cerr << "WARNING IN TRIANGULATION OR CLOSEST NEIGHBOUR (in Coarse Phase)" << std::endl;
@@ -496,7 +496,6 @@ void ProgassignmentTiltPair::run()
 			double window_t=window *(1-0.34);  //0.34 (approx 0.3) is cos(70), tilts higher than 70 degrees are not considered
 			std::vector<Matrix1D<double> > allTrianglesU;
 			Matrix1D<double> triangleu(7);
-			bool contingency = true;
 			for (int k = 0; k< len_u; k++)
 			{
 				VEC_ELEM(triangleu,0)=VEC_ELEM(ux,k);
@@ -600,6 +599,7 @@ void ProgassignmentTiltPair::run()
 			t_test = def_A*u + def_T;
 			t_dist.x = VEC_ELEM(t_test,0);
 			t_dist.y = VEC_ELEM(t_test,1);
+			double dist;
 			if (!select_Closest_Point(&delaunay_tilt, &t_dist, &t_closest, &dist) )
 			{
 				//std::cerr << "WARNING IN TRIANGULATION OR CLOSEST NEIGHBOUR (in writing phase)" << std::endl;
