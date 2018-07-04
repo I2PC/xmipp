@@ -387,7 +387,6 @@ void CosPmlTableGenLim( int bw,
     double *prev, *prevprev, *temp1, *temp2, *temp3, *temp4, *x_i, *eval_args;
     double *tableptr, *cosres, *cosworkspace;
     int i, j, k;
-    double *CoswSave;
 
     prevprev = workspace;
     prev = prevprev + bw;

@@ -97,9 +97,9 @@ void ProgMLF2D::readParams()
     FileName restart_imgmd, restart_refmd;
     int restart_iter, restart_seed;
 
-    if (checkParam("--restart"))
+    do_restart = checkParam("--restart");
+    if (do_restart)
     {
-        do_restart = true;
         MetaData MDrestart;
         char *copy  = NULL;
 
@@ -117,7 +117,6 @@ void ProgMLF2D::readParams()
     else
     {
         // no restart, just copy argc to argc2 and argv to argv2
-        do_restart = false;
         argc2 = argc;
         argv2 = (char **)argv;
         for (int i = 1; i < argc2; i++)
@@ -1604,7 +1603,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
 
     std::vector<double> refw(model.n_ref), refw2(model.n_ref), refw_mirror(model.n_ref), Pmax_refmir(2*model.n_ref);
 
-    double aux, fracpdf, pdf, weight, weight2=0.;
+    double aux, fracpdf, weight, weight2=0.;
     double tmpr, tmpi, sum_refw = 0.;
     double diff, maxweight = -99.e99, mindiff2 = 99.e99;
     double logsigma2, ldim, ref_scale = 1.;
@@ -1680,7 +1679,6 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
                 }
 
                 fracpdf = (iflip < nr_nomirror_flips) ? 1. - mirror_fraction[refno] : mirror_fraction[refno];
-                pdf =  alpha_k[refno] * fracpdf * A2D_ELEM(P_phi, iy, ix);
                 // get the starting point in the Fimg_trans vector
                 img_start = point_trans*4*dnr_points_2d + (iflip%nr_nomirror_flips)*dnr_points_2d;
 
@@ -1752,7 +1750,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
                 ix = (int)round(opt_offsets_ref[2*irefmir]);
                 iy = (int)round(opt_offsets_ref[2*irefmir+1]);
                 fracpdf = (iflip < nr_nomirror_flips) ? 1. - mirror_fraction[refno] : mirror_fraction[refno];
-                pdf =  alpha_k[refno] * fracpdf * A2D_ELEM(P_phi, iy, ix);
+                double pdf =  alpha_k[refno] * fracpdf * A2D_ELEM(P_phi, iy, ix);
                 // get the starting point in the Fimg_trans vector
                 img_start = point_trans*4*dnr_points_2d + (iflip%nr_nomirror_flips)*dnr_points_2d;
 
@@ -1891,7 +1889,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
                                     std::cerr<<"point_trans = "<<point_trans<<" ix= "<<ix<<" iy= "<<iy<<std::endl;
                                     REPORT_ERROR(ERR_INDEX_OUTOFBOUNDS,"mlf_align2d BUG: point_trans < 0 or > dim2");
                                 }
-                                pdf =  alpha_k[refno] * fracpdf * A2D_ELEM(P_phi, iy, ix);
+                                double pdf =  alpha_k[refno] * fracpdf * A2D_ELEM(P_phi, iy, ix);
                                 if (pdf > 0)
                                 {
                                     // get the starting point in the Fimg_trans vector

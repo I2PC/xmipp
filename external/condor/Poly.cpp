@@ -404,6 +404,7 @@ double Polynomial::operator()( Vector Point )
   int i,j;
 
   if (Point==Vector::emptyVector) return *d->coeff;
+  if (deg==0) return *d->coeff;
 
   if ( dim != (unsigned)Point.sz() )
   {
@@ -437,8 +438,6 @@ double Polynomial::operator()( Vector Point )
       getchar(); exit( -1 );
     }
   }
-
-  if (deg==0) return *d->coeff;
 
   // Initialize
   MultInd *mic=cacheMultInd.get( dim, deg );

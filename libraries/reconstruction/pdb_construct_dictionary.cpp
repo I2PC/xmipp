@@ -595,7 +595,6 @@ void ProgConstructPDBDictionary::run()
     MultidimArray<double> patchLow, patchHigh, canonicalPatch;
     Matrix1D<double> alpha, canonicalSignature;
     patchSize_2=patchSize/2;
-    size_t canonicalIdx;
 
     if (mode==0)
     	patchLow.resize(patchSize,patchSize,patchSize);

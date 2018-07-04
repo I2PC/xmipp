@@ -234,6 +234,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
     env2['ENV']['PATH'] = env['ENV']['PATH']
     env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer 
     env2['LINKFLAGS']=list(env['LINKFLAGS'])
+    env2['CXX'] = env['CXX']
     if "Cuda" in name or nvcc:
         env2['LINKFLAGS']+=env['NVCC_LINKFLAGS']
 
@@ -251,7 +252,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
             env2['CXXFLAGS']=[]
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
-        env2['CXXFLAGS']+=env['NVCC_CXXFLAGS']
+        env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
         _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt'])
         extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 

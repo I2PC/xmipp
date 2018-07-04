@@ -33,7 +33,7 @@ void readvol(char *vol_file, double *width, double *gridx, double *gridy, double
   }
 
   /* read header and print information */
-  int nread=fscanf(fin, "%le %le %le %le %d %d %d", &dwidth, &dgridx, &dgridy, &dgridz, extx, exty, extz);
+  fscanf(fin, "%le %le %le %le %d %d %d", &dwidth, &dgridx, &dgridy, &dgridz, extx, exty, extz);
   *width = dwidth; *gridx = dgridx; *gridy = dgridy; *gridz = dgridz;
   printf ("lib_vio> File %s - Header information: \n", vol_file);
   printf ("lib_vio> Columns, rows, and sections: x=1-%d, y=1-%d, z=1-%d\n",*extx,*exty,*extz);
