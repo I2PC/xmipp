@@ -407,7 +407,7 @@ class TestXmippPythonInterface(unittest.TestCase):
     def test_Image_project(self):
         vol=Image(testFile('progVol.vol'))
         vol.convert2DataType(DT_DOUBLE)
-        proj=vol.projectVolumeDouble(0.,0.,0.)
+        proj=projectVolumeDouble(vol,0.,0.,0.)
         self.assertEqual(1,1)
 
     def test_Image_projectFourier(self):
