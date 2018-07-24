@@ -65,7 +65,7 @@ void ProgAngularContinuousAssign2::readParams()
     optimizeDefocus = checkParam("--optimizeDefocus");
     originalImageLabel = getParam("--applyTo");
     phaseFlipped = checkParam("--phaseFlipped");
-    penalization = getDoubleParam("--penalization");
+    // penalization = getDoubleParam("--penalization");
     fnResiduals = getParam("--oresiduals");
     fnProjections = getParam("--oprojections");
 }
@@ -95,7 +95,7 @@ void ProgAngularContinuousAssign2::show()
     << "Optimize defocus:    " << optimizeDefocus    << std::endl
     << "Apply to:            " << originalImageLabel << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
-    << "Penalization:        " << penalization       << std::endl
+    // << "Penalization:        " << penalization       << std::endl
     << "Output residuals:    " << fnResiduals        << std::endl
     << "Output projections:  " << fnProjections      << std::endl
     ;
@@ -128,7 +128,7 @@ void ProgAngularContinuousAssign2::defineParams()
     addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
     addParamsLine("  [--applyTo <label=image>]    : Which is the source of images to apply the final transformation");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
-    addParamsLine("  [--penalization <l=100>]     : Penalization for the average term");
+    // addParamsLine("  [--penalization <l=100>]     : Penalization for the average term");
     addParamsLine("  [--oresiduals <stack=\"\">]  : Output stack for the residuals");
     addParamsLine("  [--oprojections <stack=\"\">] : Output stack for the projections");
     addExampleLine("A typical use is:",false);

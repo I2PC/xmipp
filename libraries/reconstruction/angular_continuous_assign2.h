@@ -83,7 +83,7 @@ public:
     // Phase Flipped
     bool phaseFlipped;
     // Penalization for the average
-    double penalization;
+    // double penalization;
 public:
     // 2D mask in real space
     MultidimArray<int> mask2D;
