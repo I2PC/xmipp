@@ -53,10 +53,19 @@ public:
 
     /// Maximum radius for the transformation
 	double Rmax;
+
 public:
+	/// Degree of the spherical harmonic
+	int L, prevL;
+
 	Image<double> VI, VR, VO;
+
+	//Vector containing the degree of the Zernike-Spherical harmonics
 	Matrix1D<double> clnm;
+
+	//Deformation in pixels
 	double deformation;
+
 	bool applyTransformation;
 
 public:
@@ -82,7 +91,7 @@ public:
     void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
 
     ///Compute the number of spherical harmonics in l=0,1,...,depth
-    void Numsph(Matrix1D<double> &sphD);
+    void Numsph(Matrix1D<int> &sphD);
 };
 
 //@}
