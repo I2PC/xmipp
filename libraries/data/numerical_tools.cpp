@@ -817,6 +817,16 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 	// General variables
 	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
 
+	//Variables needed for l>=5
+	double tht=0.0,phi=0.0,cost=0.0,sint=0.0,cost2=0.0,sint2=0.0;
+	if (l>=5)
+	{
+		tht = atan2(yr,xr);
+		phi = atan2(zr,sqrt(xr2 + yr2));
+		sint = sin(phi); cost = cos(tht);
+		sint2 = sint*sint; cost2 = cost*cost;
+	}
+
 	// Zernike polynomial
 	double R=0.0;
 
@@ -860,6 +870,19 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 			R = r2*r2;
 			break;
 		} break;
+	case 5:
+		switch (n)
+		{
+		case 1:
+			R = 10.0*r2*r2*r-12.0*r2*r+3.0*r;;
+			break;
+		case 3:
+			R = 5.0*r2*r2*r-4.0*r2*r;
+			break;
+		case 5:
+			R = r2*r2*r;
+			break;
+		}break;
 	}
 
 	// Spherical harmonic
@@ -958,17 +981,55 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
 			Y = sqrt((9.0*35.0)/(16.0*16.0*PI))*(xr2*(xr2-3.0*yr2)-yr2*(3.0*xr2-yr2));
 			break;
 		} break;
+	case 5:
+		switch (m)
+		{
+		case -5:
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*sin(5.0*phi);
+			break;
+		case -4:
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*sin(4.0*phi);
+			break;
+		case -3:
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*sin(3.0*phi);
+			break;
+		case -2:
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*sin(2.0*phi);
+			break;
+		case -1:
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
+			break;
+		case 0:
+			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*cost2*cost2*cost-70.0*cost2*cost+15.0*cost);
+			break;
+		case 1:
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
+			break;
+		case 2:
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*cos(2.0*phi);
+			break;
+		case 3:
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*cos(3.0*phi);
+			break;
+		case 4:
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*cos(4.0*phi);
+			break;
+		case 5:
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*cos(5.0*phi);
+			break;
+		}break;
 	}
 
 	return R*Y;
 }
 
+#ifdef NEVERDEFINED
 double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr, double r)
 {
 	// General variables
-	double rp=2*r-1;
+	double rp=2.0*r-1.0;
 	double rp2=rp*rp,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
-	double pol=sqrt(1-rp2);
+	double pol=sqrt(1.0-rp2);
 	double pol2=pol*pol;
 
 	// Associated Legendre polynomial
@@ -977,19 +1038,19 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
 	switch (l)
 	{
 	case 0:
-		R=1.0;
+		R=1.0/2.0;
 		break;
 	case 1:
 		switch (m)
 		{
 		case -1:
-			R=-(1.0/4.0)*pol;
+			R=(1.0/4.0)*pol;
 			break;
 		case 0:
 			R=(1.0/2.0)*pol;
 			break;
 		case 1:
-			R=(1.0/2.0)*pol;
+			R=-(1.0/2.0)*pol;
 			break;
 		}break;
 	case 2:
@@ -1005,10 +1066,10 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
 			R=(1.0/4.0)*(3*rp2-1.0);
 			break;
 		case 1:
-			R=-3*rp*pol;
+			R=-3.0*rp*pol;
 			break;
 		case 2:
-			R=3*pol2;
+			R=3.0*pol2;
 		}break;
 	case 3:
 		switch (m)
@@ -1167,6 +1228,7 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
 
 	return R*Y;
 }
+#endif
 
 void spherical_index2lnm(int idx, int &l, int &n, int &m)
 {

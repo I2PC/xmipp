@@ -478,6 +478,7 @@ double checkRandomness(const std::string &sequence);
  * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1. */
 double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r);
 
+#ifdef NEVERDEFINED
 /** Spherical harmonics.
  * This function calculates R_l^m(r)Y_l^m(xr,yr,zr) where R_l^m is the Associated Legendre polynomial,
  * l is the degree and m=-l,...,l. For instance, l=0 (n=0), l=1 (n=1), l=2 (n=0,2), l=3 (n=1,3), l=4 (n=0,2,4), ...
@@ -488,7 +489,8 @@ double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, doub
  * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1.
  * The Associated Legendre polynomials have been transformed to fit in the interval [0,1] by the following
  * relation: R'_l^m(r')=0.5*R_l^m(2r-1)*/
-double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr, double r);
+double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr, double rr);
+#endif
 
 /** Index to Spherical harmonics index.
  * Given an integer consecutive index (0,1,2,3,...) this function returns the corresponding (n,l,m)
