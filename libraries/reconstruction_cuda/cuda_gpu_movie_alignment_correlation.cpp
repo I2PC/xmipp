@@ -189,7 +189,7 @@ void computeCorrelations(size_t centerSize, size_t noOfImgs, std::complex<T>* h_
     size_t singleFFTPixels = fftSizeX * fftSizeY;
     size_t singleFFTBytes = singleFFTPixels * sizeof(T) * 2;
 
-    result = new T[noOfCorrelations * centerSize * centerSize];
+    result = new T[noOfCorrelations * centerSize * centerSize]();
 
     size_t buffer1Size = std::min(maxFFTsInBuffer, noOfImgs);
     void* d_fftBuffer1;
@@ -277,8 +277,8 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
                         counter, centerSize);
 
                 copyInRightOrder((T*)ffts.d_data, result,
-                        centerSize, centerSize, counter,
-                        isWithin, origI, i, origJ, j, in1Offset, in2Offset, noOfImgs);
+                        centerSize, centerSize,
+                        isWithin, origI, i, origJ, j, in2Size, in1Offset, in2Offset, noOfImgs);
 
                 origI = i;
                 origJ = j;
