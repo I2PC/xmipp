@@ -25,6 +25,16 @@ void gpuCopyFromCPUToGPU(void* data, void* d_data, size_t Nbytes);
 void gpuCopyFromGPUToCPU(void* d_data, void* data, size_t Nbytes);
 int gridFromBlock(int tasks, int Nthreads);
 
+template<typename T>
+T* loadToGPU(const T* data, size_t items);
+
+template<typename T>
+void release(T* data);
+
+size_t getFreeMem(int device);
+
+void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize, int &xSize, int &ySize,
+        int reserveMem = 0, bool verbose = false, int device = 0);
 
 struct ioTime
 {
@@ -64,6 +74,8 @@ void cuda_check_gpu_properties(int* maxGridSize);
 class mycufftHandle {
 public:
 	void *ptr;
+
+	~mycufftHandle() { clear(); }
 
 	mycufftHandle(){
 			ptr=NULL;
@@ -300,6 +312,11 @@ public:
 	void copyToGpu(T* data)
 	{
 		gpuCopyFromCPUToGPU((void *)data, (void *)d_data, nzyxdim*sizeof(T));
+	}
+
+	void copyToCpu(T* data)
+	{
+		gpuCopyFromGPUToCPU((void *)d_data, (void *)data, nzyxdim*sizeof(T));
 	}
 
 	void copyToGpuStream(T* data, myStreamHandle &myStream)

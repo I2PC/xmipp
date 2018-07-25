@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,6 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/movie_alignment_correlation.h>
+/**
+ * This file includes all cuda-specific files.
+ * It is a HACK to necessary to properly build the cuda files, which are
+ * separated into multiple files. Currently, the build system does not support
+ * adding additional cuda-linking step.
+ */
 
-RUN_XMIPP_PROGRAM(ProgMovieAlignmentCorrelation<double>)
+#include "cuda_gpu_bilib.cu"
+#include "cuda_gpu_geo_transformer.cu"
+#include "cuda_gpu_iirconvolve.cu"
+#include "cuda_gpu_multidim_array.cu"
