@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+ * Authors:     David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/movie_alignment_correlation.h>
+#include <reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h>
 
-RUN_XMIPP_PROGRAM(ProgMovieAlignmentCorrelation<double>)
+RUN_XMIPP_PROGRAM(ProgMovieAlignmentCorrelationGPU<float>)
+

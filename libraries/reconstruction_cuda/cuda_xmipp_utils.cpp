@@ -11,6 +11,9 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "cuFFTAdvisor/advisor.h"
+#include <cuFFTAdvisor/cudaUtils.h>
+
 #define PI 3.14159265
 
 struct pointwiseMult{
@@ -95,6 +98,28 @@ void createPlanFFT(size_t Xdim, size_t Ydim, size_t Ndim, size_t Zdim, bool forw
 
 }
 
+void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize, int &xSize, int &ySize, int reserveMem,
+        bool verbose, int device) {
+
+    size_t freeMem = getFreeMem(device);
+    std::vector<cuFFTAdvisor::BenchmarkResult const *> *results =
+            cuFFTAdvisor::Advisor::find(10, device,
+                    origXSize, origYSize, 1, imgsToProcess,
+                    cuFFTAdvisor::Tristate::TRUE,
+                    cuFFTAdvisor:: Tristate::TRUE,
+                    cuFFTAdvisor::Tristate::TRUE,
+                    cuFFTAdvisor::Tristate::FALSE,
+                    cuFFTAdvisor::Tristate::TRUE, INT_MAX,
+                    freeMem - reserveMem, false, true);
+
+    batchSize = results->at(0)->transform->N;
+    xSize = results->at(0)->transform->X;
+    ySize = results->at(0)->transform->Y;
+    if (verbose) {
+        results->at(0)->print(stdout);
+        printf("\n");
+    }
+}
 
 void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,
 		bool forward, cufftHandle *plan, myStreamHandle &myStream){
@@ -347,6 +372,27 @@ __device__ void CB_pointwiseMultiplicationComplexKernelStore(void *dataOut, size
 }
 __device__ cufftCallbackStoreC d_pointwiseMultiplicationComplexKernelStore = CB_pointwiseMultiplicationComplexKernelStore;
 
+
+template float* loadToGPU<float>(const float* data, size_t items);
+template std::complex<float>* loadToGPU<std::complex<float> >(const std::complex<float>* data, size_t items);
+template<typename T>
+T* loadToGPU(const T* data, size_t items) {
+T* d_data;
+size_t bytes = items * sizeof(T);
+gpuErrchk(cudaMalloc(&d_data, bytes));
+gpuErrchk(cudaMemcpy(d_data, data, bytes, cudaMemcpyHostToDevice));
+return d_data;
+}
+
+template void release<float>(float* data);
+template<typename T>
+void release(T* data) {
+gpuErrchk(cudaFree(data));
+}
+
+size_t getFreeMem(int device) {
+return cuFFTAdvisor::toMB(cuFFTAdvisor::getFreeMemory(device));
+}
 
 template<>
 template<>
