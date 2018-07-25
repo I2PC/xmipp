@@ -160,8 +160,6 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "             value             : Fill borders with a specific value v");
     addExampleLine("A typical example", false);
-    addExampleLine(
-            "xmipp_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc");
     addSeeAlsoLine("xmipp_movie_optical_alignment_cpu");
 }
 

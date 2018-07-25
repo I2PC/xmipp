@@ -25,6 +25,8 @@ void gpuCopyFromCPUToGPU(void* data, void* d_data, size_t Nbytes);
 void gpuCopyFromGPUToCPU(void* d_data, void* data, size_t Nbytes);
 int gridFromBlock(int tasks, int Nthreads);
 
+void setDevice(int device);
+
 template<typename T>
 T* loadToGPU(const T* data, size_t items);
 

@@ -34,7 +34,9 @@
 /** Movie alignment correlation Parameters. */
 template<typename T>
 class ProgMovieAlignmentCorrelation: public AProgMovieAlignmentCorrelation<T> {
-
+public:
+    /// Define parameters
+    void defineParams();
 private:
     /**
      * After running this method, all relevant images from the movie are

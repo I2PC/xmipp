@@ -26,6 +26,27 @@
 #include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
 
 template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
+    AProgMovieAlignmentCorrelation<T>::defineParams();
+    this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
+    this->addExampleLine(
+                "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
+    this->addSeeAlsoLine("xmipp_movie_alignment_correlation");
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::show() {
+    std::cout << "Device:              " << device << std::endl;
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
+    AProgMovieAlignmentCorrelation<T>::readParams();
+    device = this->getIntParam("--device");
+}
+
+
+template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
@@ -192,9 +213,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> frame,
     if (this->verbose)
         std::cerr << "Benchmarking cuFFT ..." << std::endl; // FIXME add support for storing user data on drive
 
-    int device = 0;
-
-    size_t availableMemMB = getFreeMem(device); // FIXME pass device
+    size_t availableMemMB = getFreeMem(device);
     size_t noOfCorrelations = (noOfImgs * (noOfImgs - 1)) / 2;
     correlationBufferSizeMB = availableMemMB / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
 
@@ -1023,6 +1042,9 @@ template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::loadData(const MetaData& movie,
         const Image<T>& dark, const Image<T>& gain, T targetOccupancy,
         const MultidimArray<T>& lpf) {
+
+    setDevice(device);
+
     bool cropInput = (this->yDRcorner != -1);
     int noOfImgs = this->nlast - this->nfirst + 1;
 
@@ -1048,6 +1070,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::loadData(const MetaData& movie,
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t N,
         const Matrix1D<T>& bX, const Matrix1D<T>& bY, const Matrix2D<T>& A) {
+    setDevice(device);
 
     T* correlations;
     size_t centerSize = std::ceil(this->maxShift * 2 + 1);
