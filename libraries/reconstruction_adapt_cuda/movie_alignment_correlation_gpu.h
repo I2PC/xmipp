@@ -33,6 +33,16 @@
 
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
+public:
+    /// Read argument from command line
+    void readParams();
+
+    /// Show
+    void show();
+
+    /// Define parameters
+    void defineParams();
+
 private:
     /**
      * After running this method, all relevant images from the movie are
@@ -129,6 +139,8 @@ private:
 private:
     // downscaled Fourier transforms of the input images
     std::complex<T>* frameFourier;
+
+    int device;
 
     /**
      * Optimal sizes of the input images, i.e. images loaded from HDD

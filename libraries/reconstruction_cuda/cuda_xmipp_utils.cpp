@@ -22,6 +22,11 @@ struct pointwiseMult{
 };
 
 
+void setDevice(int device) {
+    cudaSetDevice(device);
+    gpuErrchk( cudaPeekAtLastError() );
+}
+
 void myStreamDestroy(void *ptr)
 {
 	cudaStream_t *streamPtr = (cudaStream_t *)ptr;

@@ -27,6 +27,14 @@
 #include "reconstruction/movie_alignment_correlation.h"
 
 template<typename T>
+void ProgMovieAlignmentCorrelation<T>::defineParams() {
+    AProgMovieAlignmentCorrelation<T>::defineParams();
+    this->addExampleLine(
+                "xmipp_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc");
+    this->addSeeAlsoLine("xmipp_cuda_movie_alignment_correlation");
+}
+
+template<typename T>
 void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         const Image<T>& dark, const Image<T>& gain, T targetOccupancy,
         const MultidimArray<T>& lpf) {
