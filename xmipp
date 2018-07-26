@@ -93,6 +93,22 @@ def getSources():
         print(red("Cannot get the sources"))
     return ok
 
+def getDependencies():
+    # FIXME David move cuFFTAdvisor to public repo 
+    print("Getting Dependencies -------------------------------------")
+    createDir("src/xmipp/lib")
+    ok=True
+    if checkProgram("git"):
+        if not os.path.exists("src/xmipp"):
+            ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
+    else:
+        ok=False
+    ok = ok and runJob("pushd src/xmipp/external/cuFFTAdvisor && make all && popd") 
+    ok=ok and checkProgram("scons")
+    if not ok:
+        print(red("Cannot get/build dependencies"))
+    return ok
+
 def getScipionHome():
     if "SCIPION_HOME" in os.environ:
         return os.environ["SCIPION_HOME"]
@@ -345,7 +361,7 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -Wno-deprecated-gpu-targets"
+            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -Wno-deprecated-gpu-targets -std=c++11"
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -372,8 +388,8 @@ def checkCuda(configDict):
         with open("xmipp_cuda_test.cpp", "w") as cppFile:
             cppFile.write(cppProg)
 
-        if not runJob("%s -c -w %s %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
-                  (configDict["NVCC"],configDict["CXXFLAGS"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
+        if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
+                  (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
             print(red("Check the NVCC, CXXFLAGS, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
         if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
@@ -632,6 +648,7 @@ if __name__ == '__main__':
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
         print("Usage: xmipp_installer [options]\n"\
               "   all:                 (Default) Retrieve, configure, check, compile, install in build\n"
+              "   get_dependencies:    Retrieve dependencies from github\n"
               "   get_devel_sources:   Retrieve development sources from github\n"
               "   clean:               Delete source directories\n"
               "   config:              Configure compilation variables\n"
@@ -655,6 +672,8 @@ if __name__ == '__main__':
         mode = "all"
     if mode=="clean":
         cleanSources()
+    elif mode=="get_dependencies" and checkProgram("git"):
+        getDependencies()
     elif mode=="get_devel_sources" and checkProgram("git"):
         getSources()
     elif mode=="config":
@@ -676,7 +695,9 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        ok=getSources()
+        ok=getDependencies()
+        if ok:
+           ok=getSources()
         if ok:
            ok=config()
         if ok:
@@ -706,4 +727,5 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmipp/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippScipion/.git/config")
+
 
