@@ -103,7 +103,14 @@ def getDependencies():
             ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
     else:
         ok=False
-    ok = ok and runJob("pushd src/xmipp/external/cuFFTAdvisor && make all && popd") 
+    if ok:
+        currDir = os.getcwd()
+        advisorDir = "src/xmipp/external/cuFFTAdvisor/" 
+        libDir = "src/xmipp/lib/" 
+        os.chdir(advisorDir)
+        ok = runJob("make all")
+        os.chdir(currDir)
+        ok = ok and runJob("cp " + advisorDir + "libcuFFTAdvisor.so" + " " + libDir)
     ok=ok and checkProgram("scons")
     if not ok:
         print(red("Cannot get/build dependencies"))
