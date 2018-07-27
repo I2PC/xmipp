@@ -14,8 +14,6 @@
 #include "cuFFTAdvisor/advisor.h"
 #include <cuFFTAdvisor/cudaUtils.h>
 
-#define PI 3.14159265
-
 struct pointwiseMult{
 	int normFactor;
 	cufftComplex *data;

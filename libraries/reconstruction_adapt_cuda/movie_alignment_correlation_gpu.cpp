@@ -58,7 +58,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     int j = 0;
     int n = 0;
     Ninitial = N = 0;
-    GeoTransformer<T> transformer;
+    GeoShiftTransformer<T> transformer;
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirstSum && n <= this->nlastSum) {
@@ -104,10 +104,10 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
             if (this->fnAligned != "" || this->fnAvg != "") {
                 if (this->outsideMode == OUTSIDE_WRAP) {
-                    Matrix2D<T> tmp;
-                    translation2DMatrix(shift, tmp, true);
+//                    Matrix2D<T> tmp;
+//                    translation2DMatrix(shift, tmp, true);
                     transformer.initLazy(croppedFrame().xdim,
-                            croppedFrame().ydim);
+                            croppedFrame().ydim, 1, device);
                     transformer.applyShift(shiftedFrame(), croppedFrame(), XX(shift), YY(shift));
 //                    transformer.applyGeometry(this->BsplineOrder,
 //                            shiftedFrame(), croppedFrame(), tmp, IS_INV, WRAP);

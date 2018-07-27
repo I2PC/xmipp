@@ -6,6 +6,9 @@
 #include <complex>
 
 class myStreamHandle;
+#ifndef PI
+#define PI 3.14159265359
+#endif
 
 void mycufftDestroy(void *ptr);
 void myStreamDestroy(void *ptr);

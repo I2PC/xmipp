@@ -1,3 +1,28 @@
+/***************************************************************************
+ *
+ * Authors:    David Strelak (davidstrelak@gmail.com)
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
 #include "cuda_gpu_geo_transformer.h"
 #include "cuda_utils.h"
 #include <cuda_runtime_api.h>
@@ -38,104 +63,17 @@ void GeoTransformer<T>::initLazy(size_t x, size_t y, size_t z) {
 }
 
 template<typename T>
-template<typename T_IN>
-void GeoTransformer<T>::applyShift(MultidimArray<T> &output,
-        const MultidimArray<T_IN> &input, T shiftX, T shiftY) {
-    if (output.xdim == 0) {
-        output.resize(Z, Y, X);
-    }
-    if (shiftX == 0 && shiftY == 0) {
-        typeCast(input, output);
-        return;
-    }
-
-    static MultidimArray<T> tmp; // FIXME shouldnt be static
-    typeCast(input, tmp);
-    static GpuMultidimArrayAtGpu<T> img(input.xdim, input.ydim); // FIXME shouldnt be static
-    img.copyToGpu(tmp.data);
-    static GpuMultidimArrayAtGpu<std::complex<float> > fft; // FIXME shouldnt be static
-    mycufftHandle handle;
-    img.fft(fft, handle);
-    handle.clear();
-
-    dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
-    dim3 dimGrid(ceil(fft.Xdim / (T) dimBlock.x), ceil(fft.Ydim / (T) dimBlock.y));
-    // perform row-wise pass
-    shiftFFT2D<true><<<dimGrid, dimBlock>>>(
-            (float2*)fft.d_data, 1, fft.Xdim, img.Xdim, img.Ydim, shiftX, shiftY);
-    gpuErrchk(cudaPeekAtLastError());
-//
-//    Image<T> nevim(fft.Xdim, fft.Ydim);
-//    std::complex<T>* data = new std::complex<T>[fft.yxdim];
-//    fft.copyToCpu(data);
-//    for (size_t i = 0; i < fft.yxdim; i++) {
-//        T r = data[i].real();
-//        if (std::abs(r) < 10)
-//        nevim.data.data[i] = r;
-//    }nevim.write("FFT.vol");
-
-    fft.ifft(img, handle);
-    img.copyToCpu(output.data);
-}
-
-void testShift() {
-    int offsetX = 5;
-    int offsetY = 7;
-    size_t xSize = 2048;
-    size_t ySize = 3072;
-    MultidimArray<float> resGpu(ySize, xSize);
-    MultidimArray<float> expected(ySize, xSize);
-    MultidimArray<float> input(ySize, xSize);
-    for (int y = 10; y < 15; ++y) {
-        for (int x = 10; x < 15; ++x) {
-            int indexIn = (y * input.xdim) + x;
-            int indexExp = ((y + offsetY) * input.xdim) + (x + offsetX);
-            input.data[indexIn] = 10;
-            expected.data[indexExp] = 10;
-        }
-    }
-
-    GeoTransformer<float> tr;
-    tr.initLazy(input.xdim, input.ydim);
-    tr.applyShift(resGpu, input, offsetX, offsetY);
-
-    bool error = false;
-    for (int y = 0; y < expected.ydim; ++y) {
-        for (int x = 0; x < expected.xdim; ++x) {
-            int index = (y * input.xdim) + x;
-            float gpu = resGpu.data[index];
-            float cpu = expected.data[index];
-            float threshold = std::max(gpu, cpu) / 1000.f;
-            float diff = std::abs(cpu - gpu);
-            if (diff > threshold && diff > 0.001) {
-                error = true;
-                printf("%d gpu %.4f cpu %.4f (%f > %f)\n", index, gpu, cpu, diff, threshold);
-            }
-        }
-    }
-
-    Image<float> img(expected.xdim, expected.ydim);
-    img.data = expected;
-    img.write("expected.vol");
-    img.data = resGpu;
-    img.write("resGpu.vol");
-
-    printf("\n SHIFT %s\n", error ? "FAILED" : "OK");
-}
-
-template<typename T>
 void GeoTransformer<T>::test() {
-    testShift();
-//    testCoeffsRow();
-//    testTranspose();
-//    testCoeffs();
-//
-//    Matrix1D<T> shift(2);
-//    shift.vdata[0] = 0.45;
-//    shift.vdata[1] = 0.62;
-//    Matrix2D<T> transform;
-//    translation2DMatrix(shift, transform, true);
-//    test(transform);
+    testCoeffsRow();
+    testTranspose();
+    testCoeffs();
+
+    Matrix1D<T> shift(2);
+    shift.vdata[0] = 0.45;
+    shift.vdata[1] = 0.62;
+    Matrix2D<T> transform;
+    translation2DMatrix(shift, transform, true);
+    test(transform);
 }
 
 template<typename T>
