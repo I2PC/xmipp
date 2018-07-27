@@ -41,8 +41,10 @@
 #include <exception>
 #include "core/multidim_array.h"
 #include "core/transformations.h"
+#include "core/xmipp_image.h" // for tests only
 #include "core/bilib/iirconvolve.h" // for tests only
 #include "reconstruction/gpu_geo_transformer_defines.h"
+#include "cuda_xmipp_utils.h"
 
 template<typename T>
 class GeoTransformer {
@@ -101,6 +103,10 @@ public:
             const MultidimArray<T_IN> &input, const Matrix2D<T_MAT> &transform,
             bool isInv, bool wrap, T outside = 0,
             const MultidimArray<T> *bCoeffsPtr = NULL);
+
+    template<typename T_IN>
+    void applyShift(MultidimArray<T> &output,
+            const MultidimArray<T_IN> &input, T shiftX, T shiftY);
 
     void test();
 

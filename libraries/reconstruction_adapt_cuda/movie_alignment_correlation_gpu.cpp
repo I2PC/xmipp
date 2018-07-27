@@ -108,8 +108,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                     translation2DMatrix(shift, tmp, true);
                     transformer.initLazy(croppedFrame().xdim,
                             croppedFrame().ydim);
-                    transformer.applyGeometry(this->BsplineOrder,
-                            shiftedFrame(), croppedFrame(), tmp, IS_INV, WRAP);
+                    transformer.applyShift(shiftedFrame(), croppedFrame(), XX(shift), YY(shift));
+//                    transformer.applyGeometry(this->BsplineOrder,
+//                            shiftedFrame(), croppedFrame(), tmp, IS_INV, WRAP);
                 } else if (this->outsideMode == OUTSIDE_VALUE)
                     translate(this->BsplineOrder, shiftedFrame(),
                             croppedFrame(), shift, DONT_WRAP,
@@ -169,10 +170,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadToRAM(const MetaData& movie,
     // enough to store either all FFTs or all input images
     T* imgs = new T[noOfImgs * inputOptSizeY
             * std::max(inputOptSizeX, inputOptSizeFFTX * 2)]();
-    Image<T> frame, gainF, darkF;
-    // copy image correction data, convert to float
-    gainF.data.resize(gain(), true);
-    darkF.data.resize(dark(), true);
+    Image<T> frame;
 
     int movieImgIndex = -1;
     FOR_ALL_OBJECTS_IN_METADATA(movie)
@@ -186,10 +184,10 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadToRAM(const MetaData& movie,
 
         // load image
         loadFrame(movie, __iter.objId, cropInput, frame);
-        if (XSIZE(darkF()) > 0)
-            frame() -= darkF();
-        if (XSIZE(gainF()) > 0)
-            frame() *= gainF();
+        if (XSIZE(dark()) > 0)
+            frame() -= dark();
+        if (XSIZE(gain()) > 0)
+            frame() *= gain();
 
         // copy line by line, adding offset at the end of each line
         // result is the same image, padded in the X and Y dimensions
