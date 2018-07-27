@@ -38,7 +38,7 @@ def checkProgram(programName, show=True):
     systemInstructions["mpicc"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["scons"] = ['sudo apt-get -y install scons or that Scipion Scons is on the path',"sudo pacman -Syu --noconfirm scons"]
-    systemInstructions["java"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
+    systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y rsync" , "sudo pacman -Syu --noconfirm rsync"]
 
     ok=True
@@ -289,6 +289,7 @@ def configJava(configDict):
         if javaProgramPath:
             javaProgramPath=os.path.dirname(os.path.realpath(javaProgramPath))
             javaHomeDir = javaProgramPath.replace("/jre/bin","")
+            javaHomeDir = javaHomeDir.replace("/bin","")
         if javaHomeDir:
             configDict["JAVA_HOME"]=javaHomeDir
 
@@ -302,7 +303,7 @@ def configJava(configDict):
         configDict["JNI_CPPPATH"]="%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
 
 def checkJava(configDict):
-    if not checkProgram("java"):
+    if not checkProgram("javac"):
         return False
 
     javaProg="""
