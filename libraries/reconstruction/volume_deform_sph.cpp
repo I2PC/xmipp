@@ -109,8 +109,12 @@ double ProgVolDeformSph::distance(double *pclnm)
 					double r2=k2i2+j*j;
 					double jr=j*iRmax;
 					double rr=sqrt(r2)*iRmax;
-					spherical_index2lnm(idx,l,n,m);
-					double zsph=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,rr);
+					double zsph=0.0;
+					if (r2<Rmax2)
+					{
+						spherical_index2lnm(idx,l,n,m);
+						zsph=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,rr);
+					}
 
 #ifdef NEVERDEFINED
 					if (ir!=0&jr!=0&rr!=0)
@@ -145,7 +149,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 				diff2+=absVoxelR*diff*diff;
 				modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
 //				Ncount++;
-				totalVal = totalVal+absVoxelR;
+				totalVal += absVoxelR;
 			}
 		}
 	}
@@ -185,7 +189,7 @@ void ProgVolDeformSph::run() {
 	VI.read(fnVolI);
 	VR.read(fnVolR);
 	if (Rmax<0)
-		Rmax=XSIZE(VI());
+		Rmax=XSIZE(VI())/2;
 
 	VI().setXmippOrigin();
 	VR().setXmippOrigin();

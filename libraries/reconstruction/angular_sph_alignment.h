@@ -59,11 +59,15 @@ public:
     bool optimizeDeformation;
     // Phase Flipped
     bool phaseFlipped;
+    // Regularization weight
+    double lambda;
+    // Maximum radius for the deformation
+    int RmaxDef;
 public:
     // 2D mask in real space
     MultidimArray<int> mask2D;
     // Inverse of the sum of Mask2D
-    double iMask2Dsum;
+//    double iMask2Dsum;
     // Volume size
     size_t Xdim;
     // Input image
@@ -83,19 +87,21 @@ public:
 //	// CTF
 //	CTFDescription ctf;
 	// CTF image
-	MultidimArray<double> *ctfImage;
+//	MultidimArray<double> *ctfImage;
 	// Degree of the spherical harmonic
 	int prevL, L;
 	// Vector position
 	int pos;
 	// Vector containing the degree of the spherical harmonics
 	Matrix1D<double> clnm;
-	// Debug
-//	bool debug;
 	//Normalization coefficient for the deformation
 	double normClnm;
+	//Total Deformation
+	double totalDeformation;
 	//Penalization
-	bool penalization;
+//	bool penalization;
+	// Show optimization
+	bool showOptimization;
 
 public:
     /// Empty constructor
@@ -132,7 +138,8 @@ public:
     void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV);
+//    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def, double &totaldef);
+    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def);
 
     //double continuousSphCost(double *x, void *_prm);
 
@@ -140,7 +147,7 @@ public:
     		                Matrix2D<double> &A);
 
     /// Compute the average of a vector
-    void avgVector(Matrix1D<double> &vect, double &avg);
+    double penalizationFunction(Matrix1D<double> &vect);
 
     /// Compute numerator of the normalization coefficient for the deformation
     void computeNum(Matrix1D<double> &vect, double &mod, double &num);
