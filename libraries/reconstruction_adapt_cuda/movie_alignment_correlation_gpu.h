@@ -28,7 +28,7 @@
 
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
-#include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
+#include "reconstruction_cuda/cuda_gpu_geo_shift_transformer.h"
 #include "data/filters.h"
 
 template<typename T>
