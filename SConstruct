@@ -215,6 +215,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         _libs.append("cudart")
         _libs.append("cuda")
         _libs.append("cufft")
+        _libs.append("nvidia-ml")
         _libs.append("cuFFTAdvisor")
     _incs = list(incs)#+external_incdirs
     lastTarget = deps

@@ -30,6 +30,7 @@
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_gpu_geo_shift_transformer.h"
 #include "data/filters.h"
+#include "core/userSettings.h"
 
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
@@ -112,7 +113,31 @@ private:
      * @param frame reference frame
      * @param noOfImgs to process
      */
-    void setSizes(Image<T> frame, int noOfImgs);
+    void setSizes(Image<T> &frame, int noOfImgs);
+
+    /**
+     * Method will run the benchmark and set proper sizes of the data.
+     * @param frame size reference
+     * @param noOfImgs to process
+     * @param uuid of the GPU
+     */
+    void runBenchmark(Image<T> &frame, int noOfImgs, std::string &uuid);
+
+    /**
+     * Method will try to load proper sizes from long-term storage
+     * @param frame size reference
+     * @param noOfImgs to process
+     * @param uuid of the GPU
+     * @return true if loading was sucessful (i.e. no benchmark needs to be run)
+     */
+    bool getStoredSizes(Image<T> &frame, int noOfImgs, std::string &uuid);
+
+    /**
+     * Method permanently saves the optimal settings for the input
+     * @param frame size reference
+     * @param uuid of the GPU
+     */
+    void storeSizes(Image<T> &frame, std::string &uuid);
 
     /**
      * Estimates maximal size of the filter for given frame
@@ -136,6 +161,19 @@ private:
 
     void testFilterAndScale();
 
+    /**
+     * Convenience method to generate a key used for permanent storage
+     * @param uuid of the GPU
+     * @param keyword to use (e.g. xDimSize)
+     * @param size to specify key (e.g. 2048)
+     * @return key (e.g. xDimSize2048, i.e. 'best xDimSize for input of size 2048')
+     */
+    std::string const getKey(std::string &uuid, std::string &keyword, size_t size) {
+        std::stringstream ss;
+        ss << uuid << keyword << size;
+       return ss.str();
+    }
+
 private:
     // downscaled Fourier transforms of the input images
     std::complex<T>* frameFourier;
@@ -151,6 +189,16 @@ private:
     int inputOptSizeY;
     int inputOptSizeFFTX;
     int inputOptBatchSize;
+
+    /**
+     * Keywords representing optimal settings of the algorithm.
+     */
+    std::string inputOptSizeXStr = "inputOptSizeX";
+    std::string inputOptSizeYStr = "inputOptSizeY";
+    std::string inputOptBatchSizeStr = "inputOptBatchSize";
+    std::string croppedOptSizeXStr = "croppedOptSizeX";
+    std::string croppedOptSizeYStr = "croppedOptSizeY";
+    std::string croppedOptBatchSizeStr = "croppedOptBatchSize";
 
     /**
      * Optimal sizes of the down-scaled images used for e.g. cross-correlation

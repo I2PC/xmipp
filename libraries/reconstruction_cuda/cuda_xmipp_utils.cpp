@@ -7,6 +7,7 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include <cuComplex.h>
+#include <nvml.h>
 
 #include <time.h>
 #include <sys/time.h>
@@ -106,7 +107,7 @@ void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchS
 
     size_t freeMem = getFreeMem(device);
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *results =
-            cuFFTAdvisor::Advisor::find(10, device,
+            cuFFTAdvisor::Advisor::find(30, device,
                     origXSize, origYSize, 1, imgsToProcess,
                     cuFFTAdvisor::Tristate::TRUE,
                     cuFFTAdvisor:: Tristate::TRUE,
@@ -395,6 +396,28 @@ gpuErrchk(cudaFree(data));
 
 size_t getFreeMem(int device) {
 return cuFFTAdvisor::toMB(cuFFTAdvisor::getFreeMemory(device));
+}
+
+/**
+ * Get UUID of the GPU
+ * @param devIndex of the GPU
+ * @return either UUID of the GPU OR devIndex (if UUID is not available)
+ */
+std::string getUUID(int devIndex) {
+    std::stringstream ss;
+    nvmlDevice_t device;
+    // https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html#group__nvmlDeviceQueries_1g84dca2d06974131ccec1651428596191
+    if (NVML_SUCCESS == nvmlInit()) {
+        if (NVML_SUCCESS == nvmlDeviceGetHandleByIndex(devIndex, &device)) {
+            char uuid[80];
+            if (NVML_SUCCESS == nvmlDeviceGetUUID(device, uuid, 80)) {
+                ss <<  uuid;
+                return ss.str();
+            }
+        }
+    }
+    ss << devIndex;
+    return ss.str();
 }
 
 template<>
