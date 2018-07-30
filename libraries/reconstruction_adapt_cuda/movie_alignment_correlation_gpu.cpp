@@ -204,16 +204,34 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadToRAM(const MetaData& movie,
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> frame,
+void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> &frame,
         int noOfImgs) {
+
+    std::string UUID = getUUID(device);
+
+    int maxFilterSize = getMaxFilterSize(frame);
+    size_t availableMemMB = getFreeMem(device);
+    correlationBufferSizeMB = availableMemMB / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
+
+    if (! getStoredSizes(frame, noOfImgs, UUID)) {
+        runBenchmark(frame, noOfImgs, UUID);
+        storeSizes(frame, UUID);
+    }
+
+    T corrSizeMB = ((size_t) croppedOptSizeFFTX * croppedOptSizeY
+            * sizeof(std::complex<T>)) / (1024 * 1024.);
+    correlationBufferImgs = std::ceil(correlationBufferSizeMB / corrSizeMB);
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(Image<T> &frame,
+        int noOfImgs, std::string &uuid) {
     // get best sizes
     int maxFilterSize = getMaxFilterSize(frame);
     if (this->verbose)
-        std::cerr << "Benchmarking cuFFT ..." << std::endl; // FIXME add support for storing user data on drive
+        std::cerr << "Benchmarking cuFFT ..." << std::endl;
 
-    size_t availableMemMB = getFreeMem(device);
     size_t noOfCorrelations = (noOfImgs * (noOfImgs - 1)) / 2;
-    correlationBufferSizeMB = availableMemMB / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
 
     // we also need enough memory for filter
     getBestFFTSize(noOfImgs, frame.data.xdim, frame.data.ydim, inputOptBatchSize,
@@ -226,10 +244,51 @@ void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> frame,
             correlationBufferSizeMB * 2, this->verbose, device);
 
     croppedOptSizeFFTX = croppedOptSizeX / 2 + 1;
+}
 
-    T corrSizeMB = ((size_t) croppedOptSizeFFTX * croppedOptSizeY
-            * sizeof(std::complex<T>)) / (1024 * 1024.);
-    correlationBufferImgs = std::ceil(correlationBufferSizeMB / corrSizeMB);
+
+template<typename T>
+bool ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(Image<T> &frame,
+        int noOfImgs, std::string &uuid) {
+    bool res = true;
+    res = res && UserSettings::get().find(*this,
+        getKey(uuid, inputOptSizeXStr, frame.data.xdim), inputOptSizeX);
+    res = res && UserSettings::get().find(*this,
+        getKey(uuid, inputOptSizeYStr, frame.data.ydim), inputOptSizeY);
+    res = res && UserSettings::get().find(*this,
+        getKey(uuid, inputOptBatchSizeStr, inputOptSizeX * inputOptSizeY), inputOptBatchSize);
+    inputOptSizeFFTX =  inputOptSizeX / 2 + 1;
+
+    res = res && UserSettings::get().find(*this,
+        getKey(uuid, croppedOptSizeXStr, this->newXdim), croppedOptSizeX);
+    res = res && UserSettings::get().find(*this,
+        getKey(uuid, croppedOptSizeYStr, this->newYdim), croppedOptSizeY);
+    res = res && UserSettings::get().find(*this,
+        getKey(uuid, croppedOptBatchSizeStr, croppedOptSizeX * croppedOptSizeY),
+        croppedOptBatchSize);
+    croppedOptSizeFFTX =  croppedOptSizeX / 2 + 1;
+
+    return res;
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(Image<T> &frame,
+        std::string &uuid) {
+    UserSettings::get().insert(*this,
+            getKey(uuid, inputOptSizeXStr, frame.data.xdim), inputOptSizeX);
+    UserSettings::get().insert(*this,
+            getKey(uuid, inputOptSizeYStr, frame.data.ydim), inputOptSizeY);
+    UserSettings::get().insert(*this,
+            getKey(uuid, inputOptBatchSizeStr, inputOptSizeX * inputOptSizeY),
+            inputOptBatchSize);
+
+    UserSettings::get().insert(*this,
+            getKey(uuid, croppedOptSizeXStr, this->newXdim), croppedOptSizeX);
+    UserSettings::get().insert(*this,
+            getKey(uuid, croppedOptSizeYStr, this->newYdim), croppedOptSizeY);
+    UserSettings::get().insert(*this,
+            getKey(uuid, croppedOptBatchSizeStr,
+                    croppedOptSizeX * croppedOptSizeY), croppedOptBatchSize);
 }
 
 template<typename T>

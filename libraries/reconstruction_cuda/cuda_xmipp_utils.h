@@ -30,6 +30,13 @@ int gridFromBlock(int tasks, int Nthreads);
 
 void setDevice(int device);
 
+/**
+ * Get UUID of the GPU
+ * @param devIndex of the GPU
+ * @return either UUID of the GPU OR devIndex (if UUID is not available)
+ */
+std::string getUUID(int devIndex);
+
 template<typename T>
 T* loadToGPU(const T* data, size_t items);
 
