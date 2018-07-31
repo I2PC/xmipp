@@ -29,6 +29,7 @@ template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     AProgMovieAlignmentCorrelation<T>::defineParams();
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
+    this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
     this->addSeeAlsoLine("xmipp_movie_alignment_correlation");
@@ -36,13 +37,16 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::show() {
+    AProgMovieAlignmentCorrelation<T>::show();
     std::cout << "Device:              " << device << std::endl;
+    std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     AProgMovieAlignmentCorrelation<T>::readParams();
     device = this->getIntParam("--device");
+    storage = this->getParam("--storage");
 }
 
 
@@ -251,19 +255,19 @@ template<typename T>
 bool ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(Image<T> &frame,
         int noOfImgs, std::string &uuid) {
     bool res = true;
-    res = res && UserSettings::get().find(*this,
+    res = res && UserSettings::get(storage).find(*this,
         getKey(uuid, inputOptSizeXStr, frame.data.xdim), inputOptSizeX);
-    res = res && UserSettings::get().find(*this,
+    res = res && UserSettings::get(storage).find(*this,
         getKey(uuid, inputOptSizeYStr, frame.data.ydim), inputOptSizeY);
-    res = res && UserSettings::get().find(*this,
+    res = res && UserSettings::get(storage).find(*this,
         getKey(uuid, inputOptBatchSizeStr, inputOptSizeX * inputOptSizeY), inputOptBatchSize);
     inputOptSizeFFTX =  inputOptSizeX / 2 + 1;
 
-    res = res && UserSettings::get().find(*this,
+    res = res && UserSettings::get(storage).find(*this,
         getKey(uuid, croppedOptSizeXStr, this->newXdim), croppedOptSizeX);
-    res = res && UserSettings::get().find(*this,
+    res = res && UserSettings::get(storage).find(*this,
         getKey(uuid, croppedOptSizeYStr, this->newYdim), croppedOptSizeY);
-    res = res && UserSettings::get().find(*this,
+    res = res && UserSettings::get(storage).find(*this,
         getKey(uuid, croppedOptBatchSizeStr, croppedOptSizeX * croppedOptSizeY),
         croppedOptBatchSize);
     croppedOptSizeFFTX =  croppedOptSizeX / 2 + 1;
@@ -274,19 +278,19 @@ bool ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(Image<T> &frame,
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(Image<T> &frame,
         std::string &uuid) {
-    UserSettings::get().insert(*this,
+    UserSettings::get(storage).insert(*this,
             getKey(uuid, inputOptSizeXStr, frame.data.xdim), inputOptSizeX);
-    UserSettings::get().insert(*this,
+    UserSettings::get(storage).insert(*this,
             getKey(uuid, inputOptSizeYStr, frame.data.ydim), inputOptSizeY);
-    UserSettings::get().insert(*this,
+    UserSettings::get(storage).insert(*this,
             getKey(uuid, inputOptBatchSizeStr, inputOptSizeX * inputOptSizeY),
             inputOptBatchSize);
 
-    UserSettings::get().insert(*this,
+    UserSettings::get(storage).insert(*this,
             getKey(uuid, croppedOptSizeXStr, this->newXdim), croppedOptSizeX);
-    UserSettings::get().insert(*this,
+    UserSettings::get(storage).insert(*this,
             getKey(uuid, croppedOptSizeYStr, this->newYdim), croppedOptSizeY);
-    UserSettings::get().insert(*this,
+    UserSettings::get(storage).insert(*this,
             getKey(uuid, croppedOptBatchSizeStr,
                     croppedOptSizeX * croppedOptSizeY), croppedOptBatchSize);
 }

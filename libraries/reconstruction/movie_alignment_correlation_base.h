@@ -52,13 +52,13 @@ class AProgMovieAlignmentCorrelation: public XmippProgram {
 
 public:
     /// Read argument from command line
-    void readParams();
+    virtual void readParams();
 
     /// Show
-    void show();
+    virtual void show();
 
     /// Define parameters
-    void defineParams();
+    virtual void defineParams();
 
     /// Run
     void run();
