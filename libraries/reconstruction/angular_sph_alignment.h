@@ -94,14 +94,12 @@ public:
 	int pos;
 	// Vector containing the degree of the spherical harmonics
 	Matrix1D<double> clnm;
-	//Normalization coefficient for the deformation
-	double normClnm;
 	//Total Deformation
 	double totalDeformation;
-	//Penalization
-//	bool penalization;
 	// Show optimization
 	bool showOptimization;
+	// Correlation
+	double correlation;
 
 public:
     /// Empty constructor
@@ -138,19 +136,10 @@ public:
     void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
-//    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def, double &totaldef);
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def);
-
-    //double continuousSphCost(double *x, void *_prm);
 
     double tranformImageSph(ProgAngularSphAlignment *prm, double *pclnm, double rot, double tilt, double psi,
     		                Matrix2D<double> &A);
-
-    /// Compute the average of a vector
-    double penalizationFunction(Matrix1D<double> &vect);
-
-    /// Compute numerator of the normalization coefficient for the deformation
-    void computeNum(Matrix1D<double> &vect, double &mod, double &num);
 
 };
 //@}
