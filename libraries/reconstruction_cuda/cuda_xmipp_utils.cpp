@@ -398,11 +398,6 @@ size_t getFreeMem(int device) {
 return cuFFTAdvisor::toMB(cuFFTAdvisor::getFreeMemory(device));
 }
 
-/**
- * Get UUID of the GPU
- * @param devIndex of the GPU
- * @return either UUID of the GPU OR devIndex (if UUID is not available)
- */
 std::string getUUID(int devIndex) {
     std::stringstream ss;
     nvmlDevice_t device;

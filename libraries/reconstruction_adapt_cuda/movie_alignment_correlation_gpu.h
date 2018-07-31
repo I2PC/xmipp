@@ -180,6 +180,9 @@ private:
 
     int device;
 
+    /** Path to file where results of the benchmark might be stored */
+    std::string storage;
+
     /**
      * Optimal sizes of the input images, i.e. images loaded from HDD
      * This might differ from actual size of the images, because these

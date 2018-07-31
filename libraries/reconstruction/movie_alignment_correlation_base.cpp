@@ -65,7 +65,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     useInputShifts = checkParam("--useInputShifts");
     bin = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
-    show();
 
     String outside = getParam("--outside");
     if (outside == "wrap")
@@ -472,6 +471,7 @@ void AProgMovieAlignmentCorrelation<T>::correctLoopIndices(
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::run() {
+    show();
     // preprocess input data
     MetaData movie;
     readMovie(movie);
