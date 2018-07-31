@@ -45,8 +45,8 @@ public:
     /// Output Volume (deformed input volume)
     FileName fnVolOut;
 
-    /// Align volumes
-    bool alignVolumes;
+    /// Save the deformation of each voxel for local strain and rotation analysis
+    bool analyzeStrain;
 
     /// Degree of Zernike polynomials and spherical harmonics
     int depth;
@@ -58,7 +58,7 @@ public:
 	/// Degree of the spherical harmonic
 	int L, prevL;
 
-	Image<double> VI, VR, VO;
+	Image<double> VI, VR, VO, Gx, Gy, Gz;
 
 	//Vector containing the degree of the Zernike-Spherical harmonics
 	Matrix1D<double> clnm;
@@ -66,7 +66,11 @@ public:
 	//Deformation in pixels
 	double deformation;
 
+	// Save output volume
 	bool applyTransformation;
+
+	// Save the values of gx, gy and gz for local strain and rotation analysis
+	bool saveDeformation;
 
 public:
     /// Define params

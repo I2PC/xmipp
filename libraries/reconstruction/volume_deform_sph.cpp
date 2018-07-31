@@ -32,8 +32,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("   -r <volume>                         : Reference volume");
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
 	addParamsLine("                                       : By default, the input file is rewritten");
-	addParamsLine("  [--alignVolumes]                     : Align the deformed volume to the reference volume before comparing");
-	addParamsLine("                                       : You need to compile Xmipp with SHALIGNMENT support (see install.sh)");
+	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--depth <d=1>]                      : Harmonical depth of the deformation=1,2,3,...");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
 	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
@@ -47,7 +46,7 @@ void ProgVolDeformSph::readParams() {
 	fnVolOut = getParam("-o");
 	if (fnVolOut=="")
 		fnVolOut=fnVolI;
-	alignVolumes=checkParam("--alignVolumes");
+	analyzeStrain=checkParam("--analyzeStrain");
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
 }
@@ -61,7 +60,7 @@ void ProgVolDeformSph::show() {
 			<< "Reference volume:     " << fnVolR       << std::endl
 			<< "Output volume:        " << fnVolOut     << std::endl
 			<< "Depth:                " << depth        << std::endl
-			<< "Align volumes:        " << alignVolumes << std::endl
+			<< "Save deformation:     " << analyzeStrain << std::endl
 	;
 
 }
@@ -150,6 +149,13 @@ double ProgVolDeformSph::distance(double *pclnm)
 				modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
 //				Ncount++;
 				totalVal += absVoxelR;
+
+				if (saveDeformation)
+				{
+					Gx(k,i,j)=gx;
+					Gy(k,i,j)=gy;
+					Gz(k,i,j)=gz;
+				}
 			}
 		}
 	}
@@ -184,6 +190,7 @@ void ProgVolDeformSph::run() {
 	nh.initConstant(0);
 	nh(1)=1;
 
+	saveDeformation=false;
 	Numsph(nh);
 
 	VI.read(fnVolI);
@@ -202,7 +209,7 @@ void ProgVolDeformSph::run() {
     	prevsteps=steps;
     	steps.clear();
     	std::cout<<std::endl;
-    	std::cout<<"Spherical harmonic depth: "<<h<<" --------------------------"<<std::endl;
+    	std::cout<<"-------------------------- Spherical harmonic depth: "<<h<<" --------------------------"<<std::endl;
         steps.initConstant(4*L,1);
     	if (h==0)
     	{
@@ -258,6 +265,16 @@ void ProgVolDeformSph::run() {
         std::cout << "Deformation " << deformation << std::endl;
     }
     applyTransformation=true;
+    if (analyzeStrain)
+    {
+    	saveDeformation=true;
+    	Gx().initZeros(VR());
+    	Gy().initZeros(VR());
+    	Gz().initZeros(VR());
+    	Gx().setXmippOrigin();
+    	Gy().setXmippOrigin();
+    	Gz().setXmippOrigin();
+    }
     distance(x.adaptForNumericalRecipes()); // To save the output volume
 }
 
