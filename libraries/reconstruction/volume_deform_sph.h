@@ -96,6 +96,9 @@ public:
 
     ///Compute the number of spherical harmonics in l=0,1,...,depth
     void Numsph(Matrix1D<int> &sphD);
+
+    /// Compute strain
+    void computeStrain();
 };
 
 //@}

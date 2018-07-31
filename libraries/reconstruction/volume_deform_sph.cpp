@@ -22,8 +22,9 @@
  ***************************************************************************/
 
 #include "volume_deform_sph.h"
-#include "data/numerical_tools.h"
-#include "data/basis.h"
+#include <data/numerical_tools.h>
+#include <data/basis.h>
+#include <data/fourier_filter.h>
 
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {
@@ -276,6 +277,9 @@ void ProgVolDeformSph::run() {
     	Gz().setXmippOrigin();
     }
     distance(x.adaptForNumericalRecipes()); // To save the output volume
+
+    if (analyzeStrain)
+    	computeStrain();
 }
 
 // Copy Vectors ============================================================
@@ -318,6 +322,80 @@ void ProgVolDeformSph::Numsph(Matrix1D<int> &sphD)
 	    {
 	    	sphD(d+1) = sphD(d)+(((d-1)/2)+1)*(2*d+1);
 	    }
+	}
+}
+
+// Number Spherical Harmonics ==============================================
+#define Dx(V) (A3D_ELEM(V,k,i,jm2)-8*A3D_ELEM(V,k,i,jm1)+8*A3D_ELEM(V,k,i,jp1)-A3D_ELEM(V,k,i,jp2))/12.0
+#define Dy(V) (A3D_ELEM(V,k,im2,j)-8*A3D_ELEM(V,k,im1,j)+8*A3D_ELEM(V,k,ip1,j)-A3D_ELEM(V,k,ip2,j))/12.0
+#define Dz(V) (A3D_ELEM(V,km2,i,j)-8*A3D_ELEM(V,km1,i,j)+8*A3D_ELEM(V,kp1,i,j)-A3D_ELEM(V,kp2,i,j))/12.0
+
+void ProgVolDeformSph::computeStrain()
+{
+	Image<double> LS, LR;
+	LS().initZeros(Gx());
+	LR().initZeros(Gx());
+
+	// Gaussian filter of the derivatives
+    FourierFilter f;
+    f.FilterBand=LOWPASS;
+    f.FilterShape=REALGAUSSIAN;
+    f.w1=2;
+    f.applyMaskSpace(Gx());
+    f.applyMaskSpace(Gy());
+    f.applyMaskSpace(Gz());
+
+	Gx.write("PPPGx.vol");
+	Gy.write("PPPGy.vol");
+	Gz.write("PPPGz.vol");
+
+	MultidimArray<double> &mLS=LS();
+	MultidimArray<double> &mLR=LR();
+	MultidimArray<double> &mGx=Gx();
+	MultidimArray<double> &mGy=Gy();
+	MultidimArray<double> &mGz=Gz();
+	Matrix2D<double> U(3,3), D(3,3), H(3,3);
+	H.initZeros();
+	for (int k=STARTINGZ(mLS)+2; k<=FINISHINGZ(mLS)-2; ++k)
+	{
+		int km1=k-1;
+		int kp1=k+1;
+		int km2=k-2;
+		int kp2=k+2;
+		for (int i=STARTINGY(mLS)+2; i<=FINISHINGY(mLS)-2; ++i)
+		{
+			int im1=i-1;
+			int ip1=i+1;
+			int im2=i-2;
+			int ip2=i+2;
+			for (int j=STARTINGX(mLS)+2; j<=FINISHINGX(mLS)-2; ++j)
+			{
+				int jm1=j-1;
+				int jp1=j+1;
+				int jm2=j-2;
+				int jp2=j+2;
+				MAT_ELEM(U,0,0)=Dx(mGx); MAT_ELEM(U,0,1)=Dy(mGx); MAT_ELEM(U,0,2)=Dz(mGx);
+				MAT_ELEM(U,1,0)=Dx(mGy); MAT_ELEM(U,1,1)=Dy(mGy); MAT_ELEM(U,1,2)=Dz(mGy);
+				MAT_ELEM(U,2,0)=Dx(mGz); MAT_ELEM(U,2,1)=Dy(mGz); MAT_ELEM(U,2,2)=Dz(mGz);
+
+				MAT_ELEM(D,0,0) = MAT_ELEM(U,0,0);
+				MAT_ELEM(D,0,1) = MAT_ELEM(D,1,0) = 0.5*(MAT_ELEM(U,0,1)+MAT_ELEM(U,1,0));
+				MAT_ELEM(D,0,2) = MAT_ELEM(D,2,0) = 0.5*(MAT_ELEM(U,0,2)+MAT_ELEM(U,2,0));
+				MAT_ELEM(D,1,1) = MAT_ELEM(U,1,1);
+				MAT_ELEM(D,1,2) = MAT_ELEM(D,2,1) = 0.5*(MAT_ELEM(U,1,2)+MAT_ELEM(U,2,1));
+				MAT_ELEM(D,2,2) = MAT_ELEM(U,2,2);
+
+				MAT_ELEM(H,0,1) = 0.5*(MAT_ELEM(U,0,1)-MAT_ELEM(U,1,0));
+				MAT_ELEM(H,0,2) = 0.5*(MAT_ELEM(U,0,2)-MAT_ELEM(U,2,0));
+				MAT_ELEM(H,1,2) = 0.5*(MAT_ELEM(U,1,2)-MAT_ELEM(U,2,1));
+				MAT_ELEM(H,1,0) = -MAT_ELEM(H,0,1);
+				MAT_ELEM(H,2,0) = -MAT_ELEM(H,2,0);
+				MAT_ELEM(H,2,1) = -MAT_ELEM(H,1,2);
+
+				A3D_ELEM(mLS,k,i,j)=std::abs(D.det());
+			}
+		}
+		LS.write(fnVolOut.withoutExtension()+"_strain.mrc");
 	}
 }
 
