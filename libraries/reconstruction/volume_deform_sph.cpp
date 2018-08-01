@@ -260,7 +260,7 @@ void ProgVolDeformSph::run() {
         int iter;
         double fitness;
         powellOptimizer(x, 1, VEC_XSIZE(steps), &volDeformSphGoal, this,
-		                0.5, fitness, iter, steps, true);
+		                0.01, fitness, iter, steps, true);
 
         std::cout<<std::endl;
         std::cout << "Deformation " << deformation << std::endl;
@@ -355,6 +355,7 @@ void ProgVolDeformSph::computeStrain()
 	MultidimArray<double> &mGy=Gy();
 	MultidimArray<double> &mGz=Gz();
 	Matrix2D<double> U(3,3), D(3,3), H(3,3);
+	std::vector< std::complex<double> > eigs;
 	H.initZeros();
 	for (int k=STARTINGZ(mLS)+2; k<=FINISHINGZ(mLS)-2; ++k)
 	{
@@ -389,13 +390,24 @@ void ProgVolDeformSph::computeStrain()
 				MAT_ELEM(H,0,2) = 0.5*(MAT_ELEM(U,0,2)-MAT_ELEM(U,2,0));
 				MAT_ELEM(H,1,2) = 0.5*(MAT_ELEM(U,1,2)-MAT_ELEM(U,2,1));
 				MAT_ELEM(H,1,0) = -MAT_ELEM(H,0,1);
-				MAT_ELEM(H,2,0) = -MAT_ELEM(H,2,0);
+				MAT_ELEM(H,2,0) = -MAT_ELEM(H,0,2);
 				MAT_ELEM(H,2,1) = -MAT_ELEM(H,1,2);
 
 				A3D_ELEM(mLS,k,i,j)=std::abs(D.det());
+				allEigs(H,eigs);
+				for (size_t n=0; n < eigs.size(); n++)
+				{
+					double imagabs=std::abs(eigs[n].imag());
+					if (imagabs>1e-6)
+					{
+						A3D_ELEM(mLR,k,i,j)=imagabs*180/PI;
+						break;
+					}
+				}
 			}
 		}
 		LS.write(fnVolOut.withoutExtension()+"_strain.mrc");
+		LR.write(fnVolOut.withoutExtension()+"_rotation.mrc");
 	}
 }
 
