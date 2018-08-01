@@ -166,22 +166,19 @@ double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,do
 	double corr=correlationIndex(mIfilteredp,mP,&mMask2D);
 	cost=-corr;
 
-#ifdef NEVERDEFINED
-   if (debug)
-   {
-		std::cout << "A=" << A << std::endl;
-		Image<double> save;
-		save()=prm->P();
-		save.write("PPPtheo.xmp");
-		save()=prm->Ifilteredp();
-		save.write("PPPfilteredp.xmp");
-		save()=prm->Ifiltered();
-		save.write("PPPfiltered.xmp");
-		Vdeformed.write("PPPVdeformed.vol");
-		std::cout << "Cost=" << cost << std::endl;
-		std::cout << "Press any key" << std::endl;
-		char c; std::cin >> c;
-    }
+#ifdef DEBUG
+	std::cout << "A=" << A << std::endl;
+	Image<double> save;
+	save()=prm->P();
+	save.write("PPPtheo.xmp");
+	save()=prm->Ifilteredp();
+	save.write("PPPfilteredp.xmp");
+	save()=prm->Ifiltered();
+	save.write("PPPfiltered.xmp");
+	Vdeformed.write("PPPVdeformed.vol");
+	std::cout << "Cost=" << cost << " deformation=" << deformation << std::endl;
+	std::cout << "Press any key" << std::endl;
+	char c; std::cin >> c;
 #endif
 
    if (showOptimization)
@@ -225,7 +222,7 @@ double continuousSphCost(double *x, void *_prm)
 }
 
 // Predict =================================================================
-//#define DEBUG
+#define DEBUG
 void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
 	if (depth==0)
@@ -320,11 +317,13 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 			}
 			powellOptimizer(p, 1, pos+5, &continuousSphCost, this, 0.01, cost, iter, steps, verbose>=2);
 
-#ifdef DEBUG
-			showOptimization = true;
-			continuousSphCost(p.adaptForNumericalRecipes(),this);
-			showOptimization = false;
-#endif
+			if (verbose>=3)
+			{
+				showOptimization = true;
+				continuousSphCost(p.adaptForNumericalRecipes(),this);
+				showOptimization = false;
+			}
+
 			if (cost>0)
 			{
 				rowOut.setValue(MDL_ENABLED,-1);
@@ -361,6 +360,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 				}
 				std::cout << " Dshift=(" << p(pos) << "," << p(pos+1) << ") "
 						  << "Drot=" << p(pos+2) << " Dtilt=" << p(pos+3) << " Dpsi=" << p(pos+4) << std::endl;
+				std::cout << " Total deformation=" << totalDeformation << std::endl;
 				std::cout<<std::endl;
 		}
 		catch (XmippError XE)
@@ -483,7 +483,7 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 				}
 				mVD(k,i,j) = mV.interpolatedElement3D(j+gx,i+gy,k+gz);
 				double voxelR=A3D_ELEM(mV,k,i,j);
-				double absVoxelR=abs(voxelR);
+				double absVoxelR=std::abs(voxelR);
 				voxModg += absVoxelR*(gx*gx+gy*gy+gz*gz);
 				totalVal += absVoxelR;
 
@@ -494,7 +494,8 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 		}
 	}
 
-	def=5e-3*sqrt(diff2/totalVal)+sqrt(voxModg/totalVal);
+	// COSS def=5e-3*sqrt(diff2/totalVal)+sqrt(voxModg/totalVal);
+	def=sqrt(voxModg/totalVal);
 	totalDeformation = sqrt(voxModg/totalVal);
 }
 
