@@ -556,8 +556,6 @@ def install(dirname):
     runJob("cp src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python")
     runJob("cp -Lr src/xmippViz/resources "+dirname+"/resources")
 
-    runJob("cp src/xmippScipion/bindings/python/xmipp3.py "+dirname+"/bindings/python")
-
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
     fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -628,7 +626,10 @@ def writeDevelPaths(dirname):
     fhBash.close()
 
 if __name__ == '__main__':
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
+    # os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
         print("Usage: xmipp_installer [options]\n"\
