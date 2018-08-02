@@ -35,12 +35,13 @@ SizeOptimizer::SizeOptimizer(CudaVersion::CudaVersion version,
 
 std::vector<const Transform *> *SizeOptimizer::optimize(size_t nBest,
                                                         int maxPercIncrease,
-                                                        int maxMemMB, bool squareOnly) {
+                                                        int maxMemMB,
+                                                        bool squareOnly,
+                                                        bool crop) {
   std::vector<GeneralTransform> preoptimized;
-  size_t origSize = input.size();
-  for (size_t i = 0; i < origSize; ++i) {
+  for (auto in : input) {
     std::vector<GeneralTransform> *tmp =
-        optimizeXYZ(input.at(i), nBest, maxPercIncrease, squareOnly);
+        optimizeXYZ(in, nBest, maxPercIncrease, squareOnly, crop);
     preoptimized.insert(preoptimized.end(), tmp->begin(), tmp->end());
     delete tmp;
   }
@@ -76,23 +77,15 @@ bool SizeOptimizer::perfSort(const Transform *l, const Transform *r) {
 std::vector<const Transform *> *SizeOptimizer::optimizeN(
     std::vector<GeneralTransform> *transforms, size_t maxMem, size_t nBest) {
   std::vector<const Transform *> *result = new std::vector<const Transform *>();
-  size_t noOfTransforms = transforms->size();
-  for (size_t i = 0; i < noOfTransforms; i++) {
-    GeneralTransform gt = transforms->at(i);
-    //		gt.print();
+  for (auto& gt : *transforms) {
     if (Tristate::isNot(gt.isBatched)) {
       collapse(gt, false, gt.N, maxMem, result);
     }
-    //		printf("\t---------------------------- end of noBatch \n");
     if (Tristate::is(gt.isBatched)) {
       collapseBatched(gt, maxMem, result);
     }
   }
-  //	printf("\nabout to sort\n\n");
   std::sort(result->begin(), result->end(), perfSort);
-  //	for (size_t i = 0; i < result->size(); i++) {
-  //		result->at(i)->print();
-  //	}
   while (result->size() > nBest) {
     delete result->back();
     result->pop_back();
@@ -149,26 +142,34 @@ bool SizeOptimizer::collapse(GeneralTransform &gt, bool isBatched, size_t N,
   return updated;
 }
 
-size_t SizeOptimizer::getMaxSize(GeneralTransform &tr, int maxPercIncrease, bool squareOnly) {
+size_t SizeOptimizer::getMaxSize(GeneralTransform &tr, int maxPercIncrease,
+        bool squareOnly, bool crop) {
   size_t maxXPow2 = std::ceil(log(tr.X) * log_2);
   size_t maxX = std::pow(2, maxXPow2);
   size_t maxYPow2 = squareOnly ? maxXPow2 : std::ceil(log(tr.Y) * log_2);
   size_t maxY = squareOnly ? maxX : std::pow(2, maxYPow2);
   size_t maxZPow2 = squareOnly ? maxXPow2 : std::ceil(log(tr.Z) * log_2);
   size_t maxZ = squareOnly? maxX : std::pow(2, maxZPow2);
+  size_t afterPercInc = tr.getDimSize() * ((maxPercIncrease / 100.f) + 1);
+  if (crop) tr.getDimSize(); // we cannot exceed original size
+  return std::min(maxX * maxY * maxZ, afterPercInc);
+}
 
-  return std::min(maxX * maxY * maxZ,
-                  (size_t)(tr.getDimSize() * ((maxPercIncrease / 100.f) + 1)));
+size_t SizeOptimizer::getMinSize(GeneralTransform &tr, int maxPercDecrease, bool crop) {
+  if ( ! crop) return tr.getDimSize(); // we cannot get under original size
+  float afterPercInc = tr.getDimSize() * (1 - (maxPercDecrease / 100.f));
+  return std::max(0.f, afterPercInc);
 }
 
 std::vector<GeneralTransform> *SizeOptimizer::optimizeXYZ(GeneralTransform &tr,
                                                           size_t nBest,
                                                           int maxPercIncrease,
-                                                          bool squareOnly) {
-  std::vector<Polynom> *polysX = generatePolys(tr.X, tr.isFloat);
+                                                          bool squareOnly,
+                                                          bool crop) {
+  std::vector<Polynom> *polysX = generatePolys(tr.X, tr.isFloat, crop);
   std::vector<Polynom> *polysY;
   std::vector<Polynom> *polysZ;
-  std::set<Polynom, valueComparator> *recPolysX = filterOptimal(polysX);
+  std::set<Polynom, valueComparator> *recPolysX = filterOptimal(polysX, crop);
   std::set<Polynom, valueComparator> *recPolysY;
   std::set<Polynom, valueComparator> *recPolysZ;
 
@@ -177,8 +178,8 @@ std::vector<GeneralTransform> *SizeOptimizer::optimizeXYZ(GeneralTransform &tr,
     polysY = polysX;
     recPolysY = recPolysX;
   } else {
-    polysY = generatePolys(tr.Y, tr.isFloat);
-    recPolysY = filterOptimal(polysY);
+    polysY = generatePolys(tr.Y, tr.isFloat, crop);
+    recPolysY = filterOptimal(polysY, crop);
   }
 
   if ((tr.X == tr.Z)
@@ -189,30 +190,28 @@ std::vector<GeneralTransform> *SizeOptimizer::optimizeXYZ(GeneralTransform &tr,
     polysZ = polysY;
     recPolysZ = recPolysY;
   } else {
-    polysZ = generatePolys(tr.Z, tr.isFloat);
-    recPolysZ = filterOptimal(polysZ);
+    polysZ = generatePolys(tr.Z, tr.isFloat, crop);
+    recPolysZ = filterOptimal(polysZ, crop);
   }
 
-  size_t maxSize = getMaxSize(tr, maxPercIncrease, squareOnly);
+  size_t minSize = getMinSize(tr, maxPercIncrease, crop);
+  size_t maxSize = getMaxSize(tr, maxPercIncrease, squareOnly, crop);
 
   std::vector<GeneralTransform> *result = new std::vector<GeneralTransform>;
-  std::set<Polynom>::iterator x;
-  std::set<Polynom>::iterator y;
-  std::set<Polynom>::iterator z;
   size_t found = 0;
-  for (x = recPolysX->begin(); x != recPolysX->end(); ++x) {
-    for (y = recPolysY->begin(); y != recPolysY->end(); ++y) {
-      if (squareOnly && (x->value != y->value) && (y->value != 1)) continue;
-      size_t xy = x->value * y->value;
+  for (auto& x : *recPolysX) {
+    for (auto& y : *recPolysY) {
+      if (squareOnly && (x.value != y.value) && (y.value != 1)) continue;
+      size_t xy = x.value * y.value;
       if (xy > maxSize)
         break;  // polynoms are sorted by size, we're already above the limit
-      for (z = recPolysZ->begin(); z != recPolysZ->end(); ++z) {
-        if (squareOnly && (x->value != z->value) && (z->value != 1)) continue;
-        size_t xyz = xy * z->value;
-        if ((found < nBest) && (xyz <= maxSize) && (xyz >= tr.getDimSize())) {
+      for (auto& z : *recPolysZ) {
+        if (squareOnly && (x.value != z.value) && (z.value != 1)) continue;
+        size_t xyz = xy * z.value;
+        if ((found < nBest) && (xyz >= minSize) && (xyz <= maxSize)) {
           // we can take nbest only, as others very probably won't be faster
           found++;
-          GeneralTransform t((int)x->value, (int)y->value, (int)z->value, tr);
+          GeneralTransform t((int)x.value, (int)y.value, (int)z.value, tr);
           result->push_back(t);
         }
       }
@@ -283,21 +282,23 @@ int SizeOptimizer::getInvocations(Polynom &poly, bool isFloat) {
 }
 
 std::vector<SizeOptimizer::Polynom> *SizeOptimizer::generatePolys(
-    size_t num, bool isFloat) {
+    size_t num, bool isFloat, bool crop) {
   std::vector<Polynom> *result = new std::vector<Polynom>();
   size_t maxPow2 = std::ceil(log(num) * log_2);
   size_t max = std::pow(2, maxPow2);
   size_t maxPow3 = std::ceil(std::log(max) * log_3);
   size_t maxPow5 = std::ceil(std::log(max) * log_5);
   size_t maxPow7 = std::ceil(std::log(max) * log_7);
-  for (size_t a = 1; a <= maxPow2;
-       a++) {  // we want at least one multiple of two
+
+  for (size_t a = 1; a <= maxPow2; a++) {  // we want at least one multiple of two
     for (size_t b = 0; b <= maxPow3; b++) {
       for (size_t c = 0; c <= maxPow5; c++) {
         for (size_t d = 0; d <= maxPow7; d++) {
-          size_t value =
-              std::pow(2, a) * std::pow(3, b) * std::pow(5, c) * std::pow(7, d);
-          if ((value >= num) && (value <= max)) {
+          size_t value = std::pow(2, a) * std::pow(3, b)
+            * std::pow(5, c) * std::pow(7, d);
+          bool incCond = !crop && ((value >= num) && (value <= max));
+          bool decrCond = crop && (value <= num);
+          if (incCond || decrCond) {
             Polynom p;
             p.value = value;
             p.exponent2 = a;
@@ -316,17 +317,19 @@ std::vector<SizeOptimizer::Polynom> *SizeOptimizer::generatePolys(
 }
 
 std::set<SizeOptimizer::Polynom, SizeOptimizer::valueComparator>
-    *SizeOptimizer::filterOptimal(std::vector<SizeOptimizer::Polynom> *input) {
+    *SizeOptimizer::filterOptimal(std::vector<SizeOptimizer::Polynom> *input,
+    bool crop) {
+
   std::set<Polynom, valueComparator> *result =
-      new std::set<Polynom, valueComparator>();
-  // there are always polynoms with power of 2
-  // we want polynoms where at least two other primes are zero
+    new std::set<Polynom, valueComparator>(!crop);
+
   size_t size = input->size();
   if (0 == size) {
     result->insert(UNIT);
     return result;
   }
 
+  // add the most near polynom
   Polynom &minInv = input->at(0);
   Polynom &closest = minInv;
   for (size_t i = 1; i < size; i++) {
@@ -339,14 +342,13 @@ std::set<SizeOptimizer::Polynom, SizeOptimizer::valueComparator>
       closest = tmp;
     }
   }
-
   result->insert(closest);
 
-  // filter
+  // add all polynoms which have a minimal number of kernel invocations
   for (size_t i = 0; i < size; i++) {
     Polynom &tmp = input->at(i);
-    if ((tmp.invocations <= (minInv.invocations + 1)) &&
-        (tmp.noOfPrimes <= 2)) {
+    if ((tmp.invocations <= (minInv.invocations + 2)) &&
+        (tmp.noOfPrimes <= 4)) {
       result->insert(tmp);
     }
   }
