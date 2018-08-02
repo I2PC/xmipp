@@ -102,7 +102,7 @@ void ProgAngularSphAlignment::defineParams()
     addParamsLine("  [--optimizeAlignment]        : Optimize alignment");
     addParamsLine("  [--optimizeDeformation]      : Optimize deformation");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
-    addParamsLine("  [--regularization <l=0>]  : Regularization weight");
+    addParamsLine("  [--regularization <l=0.005>] : Regularization weight");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
