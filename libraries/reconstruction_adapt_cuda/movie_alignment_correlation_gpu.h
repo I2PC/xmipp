@@ -135,9 +135,10 @@ private:
     /**
      * Method permanently saves the optimal settings for the input
      * @param frame size reference
+     * @param noOfImgs to process
      * @param uuid of the GPU
      */
-    void storeSizes(Image<T> &frame, std::string &uuid);
+    void storeSizes(Image<T> &frame, int noOfImgs, std::string &uuid);
 
     /**
      * Estimates maximal size of the filter for given frame
@@ -165,14 +166,33 @@ private:
      * Convenience method to generate a key used for permanent storage
      * @param uuid of the GPU
      * @param keyword to use (e.g. xDimSize)
-     * @param size to specify key (e.g. 2048)
-     * @return key (e.g. xDimSize2048, i.e. 'best xDimSize for input of size 2048')
+     * @param frame for sizes(e.g. 2048)
+     * @param noOfFrames in the movie
+     * @param crop should the frame be cropped?
+     * @return key for benchmark load/storage
      */
-    std::string const getKey(std::string &uuid, std::string &keyword, size_t size) {
+    std::string const getKey(std::string &uuid, std::string &keyword,
+            Image<T> &frame, size_t noOfFrames, bool crop) {
+        return getKey(uuid, keyword, frame().xdim, frame().ydim, noOfFrames, crop);
+    }
+
+    /**
+     * Convenience method to generate a key used for permanent storage
+     * @param uuid of the GPU
+     * @param keyword to use (e.g. xDimSize)
+     * @param xdim of the key
+     * @param ydim of the key
+     * @param noOfFrames in the movie
+     * @param crop should the frame be cropped?
+     * @return key for benchmark load/storage
+     */
+    std::string const getKey(std::string &uuid, std::string &keyword,
+            size_t xdim, size_t ydim, size_t noOfFrames, bool crop) {
         std::stringstream ss;
-        ss << uuid << keyword << size;
+        ss << uuid << keyword << xdim << ydim << noOfFrames << crop;
        return ss.str();
     }
+
 
 private:
     // downscaled Fourier transforms of the input images
@@ -196,6 +216,7 @@ private:
     /**
      * Keywords representing optimal settings of the algorithm.
      */
+    std::string availableMemoryStr = "availableMem";
     std::string inputOptSizeXStr = "inputOptSizeX";
     std::string inputOptSizeYStr = "inputOptSizeY";
     std::string inputOptBatchSizeStr = "inputOptBatchSize";

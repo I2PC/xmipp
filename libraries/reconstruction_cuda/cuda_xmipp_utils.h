@@ -45,8 +45,10 @@ void release(T* data);
 
 size_t getFreeMem(int device);
 
-void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize, int &xSize, int &ySize,
-        int reserveMem = 0, bool verbose = false, int device = 0);
+bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
+        bool crop,
+        int &xSize, int &ySize, int reserveMem,
+        bool verbose, int device, bool squareOnly, int sigPercChange);
 
 struct ioTime
 {
