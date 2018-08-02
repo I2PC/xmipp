@@ -57,6 +57,8 @@ public:
     bool optimizeAlignment;
     //Optimize deformation
     bool optimizeDeformation;
+    //Radius optimization
+    bool optimizeRadius;
     // Phase Flipped
     bool phaseFlipped;
     // Regularization weight

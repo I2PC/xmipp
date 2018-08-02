@@ -55,6 +55,7 @@ void ProgAngularSphAlignment::readParams()
     RmaxDef = getIntParam("--RDef");
     optimizeAlignment = checkParam("--optimizeAlignment");
     optimizeDeformation = checkParam("--optimizeDeformation");
+    optimizeRadius = checkParam("--optimizeRadius");
     phaseFlipped = checkParam("--phaseFlipped");
     depth = getIntParam("--depth");
     lambda = getDoubleParam("--regularization");
@@ -73,12 +74,13 @@ void ProgAngularSphAlignment::show()
     << "Max. Resolution:     " << maxResol           << std::endl
     << "Sampling:            " << Ts                 << std::endl
     << "Max. Radius:         " << Rmax               << std::endl
-	<< "Max. Radius Deform.  " << RmaxDef            << std::endl
-	<< "Depth:               " << depth              << std::endl
+    << "Max. Radius Deform.  " << RmaxDef            << std::endl
+    << "Depth:               " << depth              << std::endl
     << "Optimize alignment:  " << optimizeAlignment  << std::endl
-	<< "Optimize deformation " << optimizeDeformation<< std::endl
+    << "Optimize deformation " << optimizeDeformation<< std::endl
+    << "Optimize radius      " << optimizeRadius     << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
-	<< "Regularization:      " << lambda             << std::endl
+    << "Regularization:      " << lambda             << std::endl
     ;
 }
 
@@ -101,6 +103,7 @@ void ProgAngularSphAlignment::defineParams()
     addParamsLine("  [--depth <depth=1>]          : Harmonical depth of the deformation=1,2,3,...");
     addParamsLine("  [--optimizeAlignment]        : Optimize alignment");
     addParamsLine("  [--optimizeDeformation]      : Optimize deformation");
+    addParamsLine("  [--optimizeRadius]           : Optimize the radius of each spherical harmonic");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.005>] : Regularization weight");
     addExampleLine("A typical use is:",false);
@@ -198,6 +201,7 @@ double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,do
 		char c; std::cin >> c;
     }
 
+    // std::cout << cost << " " << deformation << " " << lambda*deformation << " " << cost+lambda*deformation << std::endl;
 	return cost+lambda*deformation;
 }
 
@@ -211,7 +215,7 @@ double continuousSphCost(double *x, void *_prm)
 	double deltaPsi=x[prm->pos+5];
 	if (prm->maxShift>0 && deltax*deltax+deltay*deltay>prm->maxShift*prm->maxShift)
 		return 1e38;
-	if (fabs(deltaRot)>prm->maxAngularChange || fabs(deltaTilt)>prm->maxAngularChange || fabs(deltaPsi)>prm->maxAngularChange)
+	if (prm->maxAngularChange>0 && (fabs(deltaRot)>prm->maxAngularChange || fabs(deltaTilt)>prm->maxAngularChange || fabs(deltaPsi)>prm->maxAngularChange))
 		return 1e38;
 
 	MAT_ELEM(prm->A,0,2)=prm->old_shiftX+deltax;
@@ -222,7 +226,7 @@ double continuousSphCost(double *x, void *_prm)
 }
 
 // Predict =================================================================
-#define DEBUG
+//#define DEBUG
 void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
 	if (depth==0)
@@ -305,13 +309,23 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 					{
 						steps(i)=1.;
 					}
-					minimizepos(steps);
+					if (optimizeRadius)
+						minimizepos(steps);
 				}
 				else
 				{
-					for (int i=0;i<pos;i++)
+					if (optimizeRadius){
+						for (int i=0;i<pos;i++)
+						{
+							steps(i) = 1.;
+						}
+					}
+					else
 					{
-						steps(i) = 1.;
+						for (int i=0;i<3*pos/4;i++)
+						{
+							steps(i) = 1.;
+						}
 					}
 				}
 			}

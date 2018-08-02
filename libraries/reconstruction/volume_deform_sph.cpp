@@ -34,6 +34,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
 	addParamsLine("                                       : By default, the input file is rewritten");
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
+	addParamsLine("  [--optimizeRadius]                   : Optimize the radius of each spherical harmonic");
 	addParamsLine("  [--depth <d=1>]                      : Harmonical depth of the deformation=1,2,3,...");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
 	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
@@ -48,6 +49,7 @@ void ProgVolDeformSph::readParams() {
 	if (fnVolOut=="")
 		fnVolOut=fnVolI;
 	analyzeStrain=checkParam("--analyzeStrain");
+	optimizeRadius=checkParam("--optimizeRadius");
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
 }
@@ -160,6 +162,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 			}
 		}
 	}
+
 	deformation=sqrt(modg/(totalVal));
 
 #ifdef DEBUG
@@ -276,6 +279,7 @@ void ProgVolDeformSph::run() {
     	Gy().setXmippOrigin();
     	Gz().setXmippOrigin();
     }
+
     distance(x.adaptForNumericalRecipes()); // To save the output volume
 
     if (analyzeStrain)
@@ -304,9 +308,16 @@ void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &
 	size_t olditems = VEC_XSIZE(prevpos)/groups;
 	size_t newitems = VEC_XSIZE(vectpos)/groups;
 	for (int i=0;i<olditems;i++)
+	{
+		vectpos(3*newitems+i) = 0;
+	}
+	if (!optimizeRadius)
+	{
+		for (int j=olditems;j<newitems;j++)
 		{
-			vectpos(3*newitems+i) = 0;
+			vectpos(3*newitems+j) = 0;
 		}
+	}
 }
 
 // Number Spherical Harmonics ==============================================

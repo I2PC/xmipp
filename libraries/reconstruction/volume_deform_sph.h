@@ -48,6 +48,9 @@ public:
     /// Save the deformation of each voxel for local strain and rotation analysis
     bool analyzeStrain;
 
+    /// Radius optimization
+    bool optimizeRadius;
+
     /// Degree of Zernike polynomials and spherical harmonics
     int depth;
 
