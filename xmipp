@@ -380,7 +380,7 @@ def configCuda(configDict):
                     candidateDir = dirName.replace("bin","lib64")
                     ok=os.path.exists(candidateDir+"/libcudart.so")
             if ok:
-                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir
+                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir + " -L%s"%candidateDir + "/stubs" # nvidia-ml is in stubs folder
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
