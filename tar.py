@@ -33,14 +33,14 @@ version = sys.argv[2]
 
 def makeTarget(target, label):
     os.mkdir(target)
-    shutil.copytree(MODES[label], join(target, MODES[label]), symlinks=True)
+    shutil.copytree(MODES[label], join(target, target), symlinks=True)
 
 
 excludeTgz = ''
 tgzPath = "xmipp%s-%s"
 if label == 'Binaries':
-    target = tgzPath % (label, version)
-    if not os.path.isdir(join(XMIPP_PATH, 'build')):
+    target = tgzPath % ('', version)
+    if not os.path.isfile(join(XMIPP_PATH, 'build', 'bin', 'xmipp_reconstruct_significant')):
         print("\n"
               "     ERROR: %s not found. \n"
               "            Xmipp needs to be compiled to make the binaries.tgz."
@@ -50,7 +50,7 @@ if label == 'Binaries':
     makeTarget(target, label)
 elif label == 'Sources':
     # We use Sources as Default, so no label is added
-    target = tgzPath % ('', version)
+    target = tgzPath % ('Src', version)
     makeTarget(target, label)
 else:
     usage("Incorrect <mode>")
