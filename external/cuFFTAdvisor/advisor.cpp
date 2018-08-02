@@ -28,7 +28,7 @@ std::vector<Transform const *> *Advisor::recommend(
     Tristate::Tristate isBatched, Tristate::Tristate isFloat,
     Tristate::Tristate isForward, Tristate::Tristate isInPlace,
     Tristate::Tristate isReal, int maxSignalInc, int maxMemory,
-    bool allowTransposition, bool squareOnly) {
+    bool allowTransposition, bool squareOnly, bool crop) {
   Validator::validate(device);
   maxMemory = getMaxMemory(device, maxMemory);
   Validator::validate(x, y, z, n, device, maxSignalInc, maxMemory, allowTransposition, squareOnly);
@@ -37,7 +37,7 @@ std::vector<Transform const *> *Advisor::recommend(
 
   SizeOptimizer optimizer(CudaVersion::V_8, tr, allowTransposition);
   std::vector<const Transform *> *result =
-      optimizer.optimize(howMany, maxSignalInc, maxMemory, squareOnly);
+      optimizer.optimize(howMany, maxSignalInc, maxMemory, squareOnly, crop);
   resetDevice();
   return result;
 }
@@ -47,10 +47,11 @@ std::vector<BenchmarkResult const *> *Advisor::find(
     Tristate::Tristate isBatched, Tristate::Tristate isFloat,
     Tristate::Tristate isForward, Tristate::Tristate isInPlace,
     Tristate::Tristate isReal, int maxSignalInc, int maxMemory,
-    bool allowTransposition, bool squareOnly) {
+    bool allowTransposition, bool squareOnly, bool crop) {
   std::vector<Transform const *> *candidates =
       recommend(howMany, device, x, y, z, n, isBatched, isFloat, isForward,
-                isInPlace, isReal, maxSignalInc, maxMemory, allowTransposition, squareOnly);
+                isInPlace, isReal, maxSignalInc, maxMemory, allowTransposition,
+                squareOnly, crop);
   std::vector<BenchmarkResult const *> *result = benchmark(*candidates);
   std::sort(result->begin(), result->end(), BenchmarkResult::execSort);
   delete candidates;

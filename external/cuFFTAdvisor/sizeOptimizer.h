@@ -25,8 +25,11 @@ class SizeOptimizer {
   };
 
   struct valueComparator {
+    bool asc;
+    valueComparator(bool asc) : asc(asc) {};
     bool operator()(const Polynom &l, const Polynom &r) {
-      return l.value < r.value;
+      if (asc) return l.value < r.value;
+      return l.value > r.value;
     }
   };
 
@@ -40,12 +43,12 @@ class SizeOptimizer {
 
  public:
   SizeOptimizer(CudaVersion::CudaVersion version, GeneralTransform &tr,
-                bool allowTrans = false);
+                bool allowTrans);
   std::vector<const Transform *> *optimize(size_t nBest, int maxPercIncrease,
-                                           int maxMemMB, bool squareOnly);
+                                           int maxMemMB, bool squareOnly,
+                                           bool crop);
 
  private:
-  void generatePolys(size_t num, std::vector<Polynom *> &result);
   int getNoOfPrimes(Polynom &poly);
   int getInvocations(int maxPower, size_t num);
   std::vector<Triplet<int> *> optimize(GeneralTransform &tr, size_t nBest,
@@ -54,10 +57,11 @@ class SizeOptimizer {
   int getInvocations(Polynom &poly, bool isFloat);
   int getInvocationsV8(Polynom &poly, bool isFloat);
   std::set<Polynom, valueComparator> *filterOptimal(
-      std::vector<Polynom> *input);
-  std::vector<Polynom> *generatePolys(size_t num, bool isFloat);
+      std::vector<Polynom> *input, bool crop);
+  std::vector<Polynom> *generatePolys(size_t num, bool isFloat, bool crop);
   std::vector<GeneralTransform> *optimizeXYZ(GeneralTransform &tr, size_t nBest,
-                                             int maxPercIncrease, bool squareOnly);
+                                             int maxPercIncrease, bool squareOnly,
+                                             bool crop);
   std::vector<const Transform *> *optimizeN(
       std::vector<GeneralTransform> *transforms, size_t maxMem, size_t nBest);
   void collapseBatched(GeneralTransform &gt, size_t maxMem,
@@ -65,7 +69,9 @@ class SizeOptimizer {
   static bool perfSort(const Transform *l, const Transform *r);
   bool collapse(GeneralTransform &gt, bool isBatched, size_t N, size_t maxMemMB,
                 std::vector<const Transform *> *result);
-  size_t getMaxSize(GeneralTransform &tr, int maxPercIncrease, bool squareOnly);
+  size_t getMaxSize(GeneralTransform &tr, int maxPercIncrease, bool squareOnly,
+          bool crop);
+  size_t getMinSize(GeneralTransform &tr, int maxPercDecrease, bool crop);
   static bool sizeSort(const Transform *l, const Transform *r);
 
  private:

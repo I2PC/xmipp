@@ -26,7 +26,8 @@ class Advisor {
       Tristate::Tristate isReal = Tristate::TRUE, int maxSignalInc = INT_MAX,
       int maxMemory = INT_MAX,
       bool allowTransposition = false,
-      bool squareOnly = false);
+      bool squareOnly = false,
+      bool crop = false);
 
   static std::vector<BenchmarkResult const *> *find(
       int howMany, int device, int x, int y = 1, int z = 1, int n = 1,
@@ -37,7 +38,8 @@ class Advisor {
       Tristate::Tristate isReal = Tristate::TRUE, int maxSignalInc = INT_MAX,
       int maxMemory = INT_MAX,
       bool allowTransposition = false,
-      bool squareOnly = false);
+      bool squareOnly = false,
+      bool crop = false);
 
  private:
   static int getMaxMemory(int device, int size);

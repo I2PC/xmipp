@@ -20,6 +20,7 @@ class InputParser {
   int maxMemMB;
   bool allowTransposition;
   bool squareOnly;
+  bool crop;
   Tristate::Tristate isBatched;
   Tristate::Tristate isFloat;
   Tristate::Tristate isForward;
@@ -35,6 +36,7 @@ class InputParser {
   int parseMaxMemMB();
   bool parseAllowTransposition();
   bool parseSquareOnly();
+  bool parseCrop();
   Tristate::Tristate parseIsReal();
   Tristate::Tristate parseIsFloat();
   Tristate::Tristate parseIsForward();

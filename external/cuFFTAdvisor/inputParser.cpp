@@ -22,6 +22,7 @@ InputParser::InputParser(int argc, char **argv) {
   maxMemMB = parseMaxMemMB();
   allowTransposition = parseAllowTransposition();
   squareOnly = parseSquareOnly();
+  crop = parseCrop();
 }
 
 InputParser::~InputParser() {
@@ -197,6 +198,16 @@ bool InputParser::parseAllowTransposition() {
 bool InputParser::parseSquareOnly() {
   for (int i = 0; i < argc; i++) {
     if (safeEquals(argv[i], "--squareOnly")) {
+      argv[i] = NULL;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool InputParser::parseCrop() {
+  for (int i = 0; i < argc; i++) {
+    if (safeEquals(argv[i], "--crop")) {
       argv[i] = NULL;
       return true;
     }
