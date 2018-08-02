@@ -102,8 +102,10 @@ void createPlanFFT(size_t Xdim, size_t Ydim, size_t Ndim, size_t Zdim, bool forw
 
 }
 
-void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize, int &xSize, int &ySize, int reserveMem,
-        bool verbose, int device) {
+bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
+        bool crop,
+        int &xSize, int &ySize, int reserveMem,
+        bool verbose, int device, bool squareOnly, int sigPercChange) {
 
     size_t freeMem = getFreeMem(device);
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *results =
@@ -113,9 +115,21 @@ void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchS
                     cuFFTAdvisor:: Tristate::TRUE,
                     cuFFTAdvisor::Tristate::TRUE,
                     cuFFTAdvisor::Tristate::FALSE,
-                    cuFFTAdvisor::Tristate::TRUE, INT_MAX,
-                    freeMem - reserveMem, false, true);
+                    cuFFTAdvisor::Tristate::TRUE, sigPercChange,
+                    freeMem - reserveMem, false, squareOnly, crop);
 
+    if (results->size() == 0) {
+        if (verbose) {
+            fprintf(stderr, "Search did not return any results. "
+                "Too strict search?\n");
+            printf("Using original values as search did not return better"
+                    "results.\n");
+        }
+        xSize = origXSize;
+        ySize = origYSize;
+        batchSize = std::floor((freeMem - reserveMem) / (xSize * ySize * sizeof(float)));
+        return false;
+    }
     batchSize = results->at(0)->transform->N;
     xSize = results->at(0)->transform->X;
     ySize = results->at(0)->transform->Y;
@@ -123,6 +137,9 @@ void getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchS
         results->at(0)->print(stdout);
         printf("\n");
     }
+    for (auto& it : *results) delete it;
+    delete results;
+    return true;
 }
 
 void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,

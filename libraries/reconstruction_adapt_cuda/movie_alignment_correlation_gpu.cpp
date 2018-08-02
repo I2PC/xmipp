@@ -198,10 +198,10 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadToRAM(const MetaData& movie,
         T* dest = imgs
                 + ((movieImgIndex - this->nfirst) * inputOptSizeX
                         * inputOptSizeY); // points to first float in the image
-        for (size_t i = 0; i < frame.data.ydim; ++i) {
+        for (size_t i = 0; i < inputOptSizeY; ++i) {
             memcpy(dest + (inputOptSizeX * i),
                     frame.data.data + i * frame.data.xdim,
-                    frame.data.xdim * sizeof(T));
+                    inputOptSizeX * sizeof(T));
         }
     }
     return imgs;
@@ -219,7 +219,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> &frame,
 
     if (! getStoredSizes(frame, noOfImgs, UUID)) {
         runBenchmark(frame, noOfImgs, UUID);
-        storeSizes(frame, UUID);
+        storeSizes(frame, noOfImgs, UUID);
     }
 
     T corrSizeMB = ((size_t) croppedOptSizeFFTX * croppedOptSizeY
@@ -239,13 +239,16 @@ void ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(Image<T> &frame,
 
     // we also need enough memory for filter
     getBestFFTSize(noOfImgs, frame.data.xdim, frame.data.ydim, inputOptBatchSize,
-            inputOptSizeX, inputOptSizeY, maxFilterSize, this->verbose, device);
+            true,
+            inputOptSizeX, inputOptSizeY, maxFilterSize, this->verbose, device,
+            frame().xdim == frame().ydim, 10); // allow max 10% change
 
     inputOptSizeFFTX = inputOptSizeX / 2 + 1;
 
     getBestFFTSize(noOfCorrelations, this->newXdim, this->newYdim,
-            croppedOptBatchSize, croppedOptSizeX, croppedOptSizeY,
-            correlationBufferSizeMB * 2, this->verbose, device);
+            croppedOptBatchSize, false, croppedOptSizeX, croppedOptSizeY,
+            correlationBufferSizeMB * 2, this->verbose, device,
+            this->newXdim == this->newYdim, 10);
 
     croppedOptSizeFFTX = croppedOptSizeX / 2 + 1;
 }
@@ -255,44 +258,59 @@ template<typename T>
 bool ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(Image<T> &frame,
         int noOfImgs, std::string &uuid) {
     bool res = true;
+    size_t neededMem;
     res = res && UserSettings::get(storage).find(*this,
-        getKey(uuid, inputOptSizeXStr, frame.data.xdim), inputOptSizeX);
+        getKey(uuid, inputOptSizeXStr, frame, noOfImgs, true), inputOptSizeX);
     res = res && UserSettings::get(storage).find(*this,
-        getKey(uuid, inputOptSizeYStr, frame.data.ydim), inputOptSizeY);
+        getKey(uuid, inputOptSizeYStr, frame, noOfImgs, true), inputOptSizeY);
     res = res && UserSettings::get(storage).find(*this,
-        getKey(uuid, inputOptBatchSizeStr, inputOptSizeX * inputOptSizeY), inputOptBatchSize);
+        getKey(uuid, inputOptBatchSizeStr, frame, noOfImgs, true), inputOptBatchSize);
     inputOptSizeFFTX =  inputOptSizeX / 2 + 1;
+    res = res && UserSettings::get(storage).find(*this,
+        getKey(uuid, availableMemoryStr, frame, noOfImgs, true), neededMem);
+    res = res && neededMem <= getFreeMem(device);
 
     res = res && UserSettings::get(storage).find(*this,
-        getKey(uuid, croppedOptSizeXStr, this->newXdim), croppedOptSizeX);
+        getKey(uuid, croppedOptSizeXStr, this->newXdim, this->newYdim, noOfImgs, false), croppedOptSizeX);
     res = res && UserSettings::get(storage).find(*this,
-        getKey(uuid, croppedOptSizeYStr, this->newYdim), croppedOptSizeY);
+        getKey(uuid, croppedOptSizeYStr, this->newXdim, this->newYdim, noOfImgs, false), croppedOptSizeY);
     res = res && UserSettings::get(storage).find(*this,
-        getKey(uuid, croppedOptBatchSizeStr, croppedOptSizeX * croppedOptSizeY),
+        getKey(uuid, croppedOptBatchSizeStr, this->newXdim, this->newYdim, noOfImgs, false),
         croppedOptBatchSize);
     croppedOptSizeFFTX =  croppedOptSizeX / 2 + 1;
+    res = res && UserSettings::get(storage).find(*this,
+        getKey(uuid, availableMemoryStr, this->newXdim, this->newYdim, noOfImgs, false), neededMem);
+    res = res && neededMem <= getFreeMem(device);
 
     return res;
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(Image<T> &frame,
-        std::string &uuid) {
+        int noOfImgs, std::string &uuid) {
     UserSettings::get(storage).insert(*this,
-            getKey(uuid, inputOptSizeXStr, frame.data.xdim), inputOptSizeX);
+        getKey(uuid, inputOptSizeXStr, frame, noOfImgs, true), inputOptSizeX);
     UserSettings::get(storage).insert(*this,
-            getKey(uuid, inputOptSizeYStr, frame.data.ydim), inputOptSizeY);
+        getKey(uuid, inputOptSizeYStr, frame, noOfImgs, true), inputOptSizeY);
     UserSettings::get(storage).insert(*this,
-            getKey(uuid, inputOptBatchSizeStr, inputOptSizeX * inputOptSizeY),
-            inputOptBatchSize);
+        getKey(uuid, inputOptBatchSizeStr, frame, noOfImgs, true),
+        inputOptBatchSize);
+    UserSettings::get(storage).insert(*this,
+        getKey(uuid, availableMemoryStr, frame, noOfImgs, true), getFreeMem(device));
 
     UserSettings::get(storage).insert(*this,
-            getKey(uuid, croppedOptSizeXStr, this->newXdim), croppedOptSizeX);
+        getKey(uuid, croppedOptSizeXStr, this->newXdim, this->newYdim, noOfImgs, false),
+        croppedOptSizeX);
     UserSettings::get(storage).insert(*this,
-            getKey(uuid, croppedOptSizeYStr, this->newYdim), croppedOptSizeY);
+        getKey(uuid, croppedOptSizeYStr, this->newXdim, this->newYdim, noOfImgs, false),
+        croppedOptSizeY);
     UserSettings::get(storage).insert(*this,
-            getKey(uuid, croppedOptBatchSizeStr,
-                    croppedOptSizeX * croppedOptSizeY), croppedOptBatchSize);
+        getKey(uuid, croppedOptBatchSizeStr,
+        this->newXdim, this->newYdim, noOfImgs, false),
+        croppedOptBatchSize);
+    UserSettings::get(storage).insert(*this,
+        getKey(uuid, availableMemoryStr, this->newXdim, this->newYdim, noOfImgs, false),
+        getFreeMem(device));
 }
 
 template<typename T>
@@ -1141,8 +1159,10 @@ void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t N,
 
     // since we are using different size of FFT, we need to scale results to
     // 'expected' size
-    T localSizeFactor = this->sizeFactor
-            / (croppedOptSizeX / (T) inputOptSizeX); // assuming using square images
+    T localSizeFactorX = this->sizeFactor
+            / (croppedOptSizeX / (T) inputOptSizeX);
+    T localSizeFactorY = this->sizeFactor
+            / (croppedOptSizeY / (T) inputOptSizeY);
 
     int idx = 0;
     MultidimArray<T> Mcorr(centerSize, centerSize);
@@ -1152,8 +1172,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t N,
             Mcorr.data = correlations + offset;
             Mcorr.setXmippOrigin();
             bestShift(Mcorr, bX(idx), bY(idx), NULL, this->maxShift);
-            bX(idx) *= localSizeFactor; // scale to expected size
-            bY(idx) *= localSizeFactor;
+            bX(idx) *= localSizeFactorX; // scale to expected size
+            bY(idx) *= localSizeFactorY;
             if (this->verbose)
                 std::cerr << "Frame " << i + this->nfirst << " to Frame "
                         << j + this->nfirst << " -> ("
