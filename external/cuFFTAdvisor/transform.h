@@ -3,6 +3,7 @@
 
 #include <cufft.h>
 #include <cstdio>
+#include <stdexcept>
 #include "utils.h"
 
 namespace cuFFTAdvisor {
