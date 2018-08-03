@@ -38,7 +38,7 @@
 #define CUDA_GEO_TRANSFORMER
 
 #include <assert.h>
-#include <exception>
+#include <stdexcept>
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_image.h" // for tests only

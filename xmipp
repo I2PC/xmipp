@@ -37,7 +37,7 @@ def checkProgram(programName, show=True):
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
     systemInstructions["mpicc"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
-    systemInstructions["scons"] = ['sudo apt-get -y install scons or that Scipion Scons is on the path',"sudo pacman -Syu --noconfirm scons"]
+    systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["java"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y rsync" , "sudo pacman -Syu --noconfirm rsync"]
 
@@ -96,17 +96,18 @@ def getSources():
 def getDependencies():
     # FIXME David move cuFFTAdvisor to public repo 
     print("Getting Dependencies -------------------------------------")
-    createDir("src/xmipp/lib")
+    
     ok=True
+    advisorDir = "src/xmipp/external/cuFFTAdvisor/" 
     if checkProgram("git"):
-        if not os.path.exists("src/xmipp"):
+        if not os.path.exists("advisorDir"):
             ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
     else:
         ok=False
     if ok:
         currDir = os.getcwd()
-        advisorDir = "src/xmipp/external/cuFFTAdvisor/" 
         libDir = "src/xmipp/lib/" 
+        createDir(libDir)
         os.chdir(advisorDir)
         ok = runJob("make all")
         os.chdir(currDir)

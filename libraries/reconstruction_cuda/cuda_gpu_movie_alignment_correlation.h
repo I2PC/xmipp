@@ -32,6 +32,7 @@
 #include "reconstruction_cuda/cuda_xmipp_utils.h"
 #include "core/multidim_array.h"
 #include <type_traits>
+#include <stdexcept>
 
 /**
  * This function performs FFT and scale (with filter) of the input images
