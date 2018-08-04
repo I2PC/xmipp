@@ -118,6 +118,7 @@ void ProgAngularSphAlignment::preProcess()
     V().setXmippOrigin();
     Xdim=XSIZE(V());
     Vdeformed().initZeros(V());
+    sumV=V().sum();
 
     Ip().initZeros(Xdim,Xdim);
     Ifilteredp().initZeros(Xdim,Xdim);
@@ -201,8 +202,11 @@ double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,do
 		char c; std::cin >> c;
     }
 
-    // std::cout << cost << " " << deformation << " " << lambda*deformation << " " << cost+lambda*deformation << std::endl;
-	return cost+lambda*deformation;
+    double massDiff=std::abs(sumV-sumVd)/sumV*100;
+    double retval=cost+lambda*(deformation+massDiff*massDiff);
+	if (verbose>=3)
+		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << sumVd << " " << massDiff << " " << retval << std::endl;
+	return retval;
 }
 
 double continuousSphCost(double *x, void *_prm)
@@ -244,37 +248,42 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	pos = 4*L;
 	Matrix1D<double> p(pos+5), steps(pos+5);
 	clnm.initZeros(pos+5);
+
+	rowOut=rowIn;
+
+	// Read input image and initial parameters
+//  ApplyGeoParams geoParams;
+//	geoParams.only_apply_shifts=false;
+//	geoParams.wrap=DONT_WRAP;
+
+	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
+	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
+	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
+	rowIn.getValue(MDL_SHIFT_X,old_shiftX);
+	rowIn.getValue(MDL_SHIFT_Y,old_shiftY);
+	rowIn.getValue(MDL_FLIP,old_flip);
+
+	if (verbose>=2)
+		std::cout << "Processing " << fnImg << std::endl;
+	I.read(fnImg);
+	I().setXmippOrigin();
+
+	Ifiltered()=I();
+	filter.applyMaskSpace(Ifiltered());
+
 	for (int h=1;h<VEC_XSIZE(nh)-1;h++)
 	{
-		std::cout<<std::endl;
-		std::cout<<"------------------------------ Spherical harmonic depth: "<<h<<" ----------------------------"<<std::endl;
+		if (verbose>=2)
+		{
+			std::cout<<std::endl;
+			std::cout<<"------------------------------ Spherical harmonic depth: "<<h<<" ----------------------------"<<std::endl;
+		}
 		if (h!=1)
 		{
 			L = nh(h+1);
 			prevL = nh(h);
 			pos = 4*L;
 		}
-
-		rowOut=rowIn;
-
-		// Read input image and initial parameters
-	//  ApplyGeoParams geoParams;
-	//	geoParams.only_apply_shifts=false;
-	//	geoParams.wrap=DONT_WRAP;
-
-		rowIn.getValue(MDL_ANGLE_ROT,old_rot);
-		rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
-		rowIn.getValue(MDL_ANGLE_PSI,old_psi);
-		rowIn.getValue(MDL_SHIFT_X,old_shiftX);
-		rowIn.getValue(MDL_SHIFT_Y,old_shiftY);
-		rowIn.getValue(MDL_FLIP,old_flip);
-
-		std::cout << "Processing " << fnImg << std::endl;
-		I.read(fnImg);
-		I().setXmippOrigin();
-
-		Ifiltered()=I();
-		filter.applyMaskSpace(Ifiltered());
 
     	if (h!=1)
     	{
@@ -346,6 +355,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 			cost=-cost;
 			correlation=cost;
 			if (verbose>=2)
+			{
 				std::cout<<std::endl;
 				for (int j=1;j<5;j++)
 				{
@@ -376,6 +386,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 						  << "Drot=" << p(pos+2) << " Dtilt=" << p(pos+3) << " Dpsi=" << p(pos+4) << std::endl;
 				std::cout << " Total deformation=" << totalDeformation << std::endl;
 				std::cout<<std::endl;
+			}
 		}
 		catch (XmippError XE)
 		{
@@ -462,6 +473,7 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 	def=0.0;
 	size_t idxZ0=2*idxY0;
 	size_t idxR=3*idxY0;
+	sumVd=0.0;
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
 	{
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
@@ -504,6 +516,7 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 				double voxelI=A3D_ELEM(mVD,k,i,j);
 				double diff=voxelR-voxelI;
 				diff2+=absVoxelR*diff*diff;
+				sumVd+=voxelI;
 			}
 		}
 	}

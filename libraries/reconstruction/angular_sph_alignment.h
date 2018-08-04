@@ -96,8 +96,8 @@ public:
 	int pos;
 	// Vector containing the degree of the spherical harmonics
 	Matrix1D<double> clnm;
-	//Total Deformation
-	double totalDeformation;
+	//Total Deformation, sumV, sumVd
+	double totalDeformation, sumV, sumVd;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
