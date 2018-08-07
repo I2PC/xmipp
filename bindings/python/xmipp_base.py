@@ -68,6 +68,7 @@ class XmippScript():
         self._prog.addParamsLine(line)
     
     def run(self):
+        # type: () -> object
         ''' This function should be overwrited by subclasses and
         it the main body of the script'''   
         pass
@@ -91,10 +92,10 @@ def createMetaDataFromPattern(pattern, isStack=False, label="image"):
     files = glob.glob(pattern)
     files.sort()
 
-    label = xmipp.str2Label(label) #Check for label value
+    label = xmippLib.str2Label(label) #Check for label value
     
-    mD = xmipp.MetaData()
-    inFile = xmipp.FileName()
+    mD = xmippLib.MetaData()
+    inFile = xmippLib.FileName()
     
     nSize = 1
     for file in files:
@@ -102,17 +103,17 @@ def createMetaDataFromPattern(pattern, isStack=False, label="image"):
         if isStack:
             if file.endswith(".mrc"):
                 fileAux=file+":mrcs"
-            x, x, x, nSize = xmipp.getImageSize(fileAux)
+            x, x, x, nSize = xmippLib.getImageSize(fileAux)
         if nSize != 1:
             counter = 1
             for jj in range(nSize):
                 inFile.compose(counter, fileAux)
                 objId = mD.addObject()
                 mD.setValue(label, inFile, objId)
-                mD.setValue(xmipp.MDL_ENABLED, 1, objId)
+                mD.setValue(xmippLib.MDL_ENABLED, 1, objId)
                 counter += 1
         else:
             objId = mD.addObject()
             mD.setValue(label, fileAux, objId)
-            mD.setValue(xmipp.MDL_ENABLED, 1, objId)
+            mD.setValue(xmippLib.MDL_ENABLED, 1, objId)
     return mD            

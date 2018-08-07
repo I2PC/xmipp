@@ -75,6 +75,7 @@ class ScriptApropos(xmipp3.XmippScript):
         return False 
             
     def run(self):
+        # type: () -> object
         if self.checkParam('-u'):
             prog.createProgramsDb()
             prog.createProgramsAutocomplete()

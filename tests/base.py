@@ -56,6 +56,7 @@ class Command(object):
         self.env = env
 
     def run(self, timeout):
+        # type: (object) -> object
         def target():
             self.process = subprocess.Popen(self.cmd, shell=True, env=self.env)
             self.process.communicate()

@@ -28,7 +28,7 @@
 
 import os
 import sys
-from xmipp import XmippScript
+from xmipp_base import XmippScript
 
 class ScriptCompile(XmippScript):
     def __init__(self):
@@ -65,7 +65,8 @@ class ScriptCompile(XmippScript):
               flagDict["CXXFLAGS"]+" "+flagDict["LIBDIRFLAGS"]
         return flags
 
-    def run(self):        
+    def run(self):
+        # type: () -> object
         fn = self.getParam('-i')
         from os.path import splitext, join
         [fnBase,ext]=splitext(fn)
