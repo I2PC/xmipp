@@ -91,8 +91,8 @@ def getSources():
             ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
         if not os.path.exists("src/xmippViz"):
             ok=ok and runJob("git clone https://github.com/I2PC/xmippViz.git src/xmippViz")
-        if not os.path.exists("src/scipion-em-xmipp3"):
-            ok=ok and runJob("git clone https://github.com/scipion-em/scipion-em-xmipp3.git src/scipion-em-xmipp3")
+        if not os.path.exists("src/scipion-em-xmipp"):
+            ok=ok and runJob("git clone https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp")
     else:
         ok=False
     ok=ok and checkProgram("scons")
@@ -715,12 +715,12 @@ if __name__ == '__main__':
         runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
-        runJob("(cd src/scipion-em-xmipp3; git %s)"%" ".join(sys.argv[2:]))
+        runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
     elif mode=="gitConfig":
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmipp/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp3/.git/config")
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='tar':
         import tar
         tar.run(sys.argv[2], sys.argv[3])
