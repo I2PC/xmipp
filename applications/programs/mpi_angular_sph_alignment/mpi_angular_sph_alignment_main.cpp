@@ -75,13 +75,17 @@ public:
     {
         return getTaskToProcess(objId, objIndex);
     }
-    void finishProcessing()
+    void gatherMetadatas()
     {
         node->gatherMetadatas(*getOutputMd(), fn_out);
     	MetaData MDaux;
     	MDaux.sort(*getOutputMd(), MDL_GATHER_ID);
         MDaux.removeLabel(MDL_GATHER_ID);
         *getOutputMd()=MDaux;
+    }
+    void finishProcessing()
+    {
+    	gatherMetadatas();
         if (node->isMaster())
             ProgAngularSphAlignment::finishProcessing();
     }
