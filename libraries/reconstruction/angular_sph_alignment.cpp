@@ -32,7 +32,7 @@
 ProgAngularSphAlignment::ProgAngularSphAlignment()
 {
     produces_a_metadata = true;
-    each_image_produces_an_output = true;
+    each_image_produces_an_output = false;
     showOptimization = false;
 //    ctfImage = NULL;
 }
