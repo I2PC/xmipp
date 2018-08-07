@@ -11,10 +11,10 @@ from tempfile import NamedTemporaryFile
 from time import time
 
 from base import *
-import xmipp
+import xmippLib
 
 # from pyworkflow.tests import *
-# from xmipp import *
+# from xmipp_base import *
 # from pyworkflow.em.packages.xmipp3 import getXmippPath
 # import pyworkflow.utils as pwutils
 
