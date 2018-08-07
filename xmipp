@@ -681,7 +681,7 @@ if __name__ == '__main__':
         if n==3:
             compile(Nproc)
         else:
-            compileModule(Nproc,sys.argv[2])
+            compileModule(Nproc,sys.argv[3])
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
