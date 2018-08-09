@@ -632,6 +632,30 @@ def writeDevelPaths(dirname):
 
     fhBash.close()
 
+def usage():
+    print("Usage: xmipp_installer [options]\n"
+          "   all [N=processors]:   (Default) Retrieve, configure, check, compile N=8, install in build\n"
+          "   get_devel_sources:    Retrieve development sources from github\n"
+          "   clean:                Delete source directories\n"
+          "   cleanBin:             Clean already compiled files\n"
+          "   config:               Configure compilation variables\n"
+          "   check_config:         Check that the configuration is correct\n"
+          "   compile N:            Compile all modules with N processors\n"
+          "   compile N xmippCore:  Compile xmippCore\n"
+          "   compile N xmipp:      Compile xmipp\n"
+          "   compile N xmippViz:   Compile xmippViz\n"
+          "   install dir:          Install at dir (by default, ./build)\n"
+          "   test testName:        Run tests to check Xmipp programs (by default, all).\n"
+          "\n"
+          "For developers:\n"
+          "   create_devel_paths:   Create bashrc files for devel\n"
+          "   git ...:              Git command to all 4 repositories\n"
+          "   gitConfig:            Change the git config from https to git\n"
+          "   tar <mode> <version>: Create a bundle of the xmipp\n"
+          "                            <mode> can be 'Sources' or 'Binaries'\n"
+          "                            <version> usually X.YY.MM\n"
+          )
+
 if __name__ == '__main__':
 
     # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
@@ -639,28 +663,7 @@ if __name__ == '__main__':
 
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
-        print("Usage: xmipp_installer [options]\n"\
-              "   all:                  (Default) Retrieve, configure, check, compile, install in build\n"
-              "   get_devel_sources:    Retrieve development sources from github\n"
-              "   clean:                Delete source directories\n"
-              "   cleanBin:             Clean already compiled files\n"
-              "   config:               Configure compilation variables\n"
-              "   check_config:         Check that the configuration is correct\n"
-              "   compile N:            Compile all modules with N processors\n"
-              "   compile N xmippCore:  Compile xmippCore\n"
-              "   compile N xmipp:      Compile xmipp\n"
-              "   compile N xmippViz:   Compile xmippViz\n"
-              "   install dir:          Install at dir (by default, ./build)\n"
-              "   test testName:        Run tests to check Xmipp programs (by default, all).\n"
-              "\n"
-              "For developers:\n"
-              "   create_devel_paths:   Create bashrc files for devel\n"
-              "   git ...:              Git command\n"
-              "   gitConfig:            Change the git config from https to git\n"
-              "   tar <mode> <version>: Create a bundle of the xmipp\n"
-              "                            <mode> can be 'Sources' or 'Binaries'\n"
-              "                            <version> usually X.YY.MM\n"
-              )
+        usage()
         sys.exit(0)
     if n>=2:
         mode = sys.argv[1]
@@ -697,11 +700,17 @@ if __name__ == '__main__':
         if ok:
            ok=checkConfig()
         if ok:
-           ok=compile(8)
+           Nproc = sys.argv[2] if n==3 else 8
+           ok=compile(Nproc)
         if ok:
            ok=install("build")
         if ok:
-           print("We have successfully installed Xmipp")
+           print("\n"
+                 "  *********************************************\n"
+                 "  *                                           *\n"
+                 "  *  Xmipp have been successfully installed!  *\n"
+                 "  *                                           *\n"
+                 "  *********************************************\n\n")
            sys.exit(0)
         else:
            sys.exit(1)
@@ -724,4 +733,6 @@ if __name__ == '__main__':
     elif mode=='tar':
         import tar
         tar.run(sys.argv[2], sys.argv[3])
-
+    else:
+        print(" -> option not found <- \n")
+        usage()
