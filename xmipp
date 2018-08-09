@@ -550,6 +550,7 @@ def install(dirname):
 
     createDir(dirname+"/bindings/python")
     runJob("cp src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python")
+    runJob("cp src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python")
     runJob("cp src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python")
     runJob("cp src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python")
     runJob("cp -r src/xmipp/external/sh_alignment/python "+dirname+"/bindings/python/sh_alignment")
