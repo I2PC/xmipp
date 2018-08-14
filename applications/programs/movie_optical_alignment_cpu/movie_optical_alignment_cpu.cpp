@@ -28,17 +28,18 @@
 #include <fstream>
 #include <time.h>
 
+#include <opencv2/core/version.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/video/video.hpp>
 
 #ifdef GPU
-#ifdef OPENCV_3
+#if CV_MAJOR_VERSION>=3
 #include <opencv2/cudaoptflow.hpp>
 #include <opencv2/cudaarithm.hpp>
 #else
-#include <opencv2/gpu/cuda.hpp>
-#endif // OPENCV_3
+#include <opencv2/core/cuda.hpp>
+#endif 
 #endif // GPU
 
 #include <core/multidim_array.h>
@@ -445,12 +446,12 @@ public:
     	Image<float> undeformedGroupAverage, uncompensatedMic;
 
 #ifdef GPU
-#ifdef OPENCV_3
+#ifdef CV_MAJOR_VERSION>=3
         // Matrices required in GPU part
         cv::cuda::GpuMat d_currentReference8, d_currentGroupAverage8;
 #else
 	cv::gpu::GpuMat d_flowx, d_flowy, d_currentReference8, d_currentGroupAverage8;
-#endif // OPENCV_3
+#endif 
 #else
         cv::Mat flow;
 #endif // GPU
@@ -463,7 +464,7 @@ public:
 
         meanStdev.initZeros(4);
 #ifdef GPU
-#ifdef OPENCV_3
+#ifdef CV_MAJOR_VERSION>=3
         cv::cuda::setDevice(gpuDevice);
 	cv::Ptr<cv::cuda::FarnebackOpticalFlow> d_calc = cv::cuda::FarnebackOpticalFlow::create(
 		6, // numLevels
@@ -487,7 +488,7 @@ public:
         d_calc.polyN=5;
         d_calc.polySigma=1.1;
         d_calc.flags=0;
-#endif // OPENCV_3
+#endif
 #endif // GPU
 
         computeAvg(nfirst, nlast, cvCurrentReference);
@@ -537,7 +538,7 @@ public:
 
 #ifdef GPU
                 d_currentGroupAverage8.upload(cvCurrentGroupAverage8);
-#ifdef OPENCV_3
+#ifdef CV_MAJOR_VERSION>=3
  		cv::cuda::GpuMat d_flow(cvCurrentGroupAverage8.size(), CV_32FC2);
 		cv::cuda::GpuMat planes[2];
 		if (numberOfGroups>2)
@@ -565,7 +566,7 @@ public:
                 d_currentGroupAverage8.release();
                 d_flowx.release();
                 d_flowy.release();
-#endif // OPENCV_3
+#endif
 #else
                 int ofFlags=0;
                 // Check if we should use the flows from the previous steps
