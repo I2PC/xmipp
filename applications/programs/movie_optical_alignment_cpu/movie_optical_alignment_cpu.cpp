@@ -34,7 +34,7 @@
 #include <opencv2/video/video.hpp>
 
 #ifdef GPU
-#if CV_MAJOR_VERSION>=3
+#ifndef CV_VERSION_EPOCH // == version 3 or newer
 #include <opencv2/cudaoptflow.hpp>
 #include <opencv2/cudaarithm.hpp>
 #else
@@ -446,7 +446,7 @@ public:
     	Image<float> undeformedGroupAverage, uncompensatedMic;
 
 #ifdef GPU
-#ifdef CV_MAJOR_VERSION>=3
+#ifndef CV_VERSION_EPOCH // version 3 or newer
         // Matrices required in GPU part
         cv::cuda::GpuMat d_currentReference8, d_currentGroupAverage8;
 #else
@@ -464,7 +464,7 @@ public:
 
         meanStdev.initZeros(4);
 #ifdef GPU
-#ifdef CV_MAJOR_VERSION>=3
+#ifndef CV_VERSION_EPOCH // version 3 or newer
         cv::cuda::setDevice(gpuDevice);
 	cv::Ptr<cv::cuda::FarnebackOpticalFlow> d_calc = cv::cuda::FarnebackOpticalFlow::create(
 		6, // numLevels
@@ -538,7 +538,7 @@ public:
 
 #ifdef GPU
                 d_currentGroupAverage8.upload(cvCurrentGroupAverage8);
-#ifdef CV_MAJOR_VERSION>=3
+#ifndef CV_VERSION_EPOCH // version 3 or newer
  		cv::cuda::GpuMat d_flow(cvCurrentGroupAverage8.size(), CV_32FC2);
 		cv::cuda::GpuMat planes[2];
 		if (numberOfGroups>2)
@@ -567,7 +567,7 @@ public:
                 d_flowx.release();
                 d_flowy.release();
 #endif
-#else
+#else // CPU version
                 int ofFlags=0;
                 // Check if we should use the flows from the previous steps
                 if (numberOfGroups==2)
@@ -580,6 +580,7 @@ public:
                     ofFlags=cv::OPTFLOW_USE_INITIAL_FLOW;
 
                 merge(flowCurrentGroup,2,flow);
+
                 calcOpticalFlowFarneback(cvCurrentReference8, cvCurrentGroupAverage8, flow, 0.5, 6, winSize, 1, 5, 1.1, ofFlags);
                 split(flow, flowCurrentGroup);
 #endif
