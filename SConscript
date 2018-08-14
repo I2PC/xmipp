@@ -45,6 +45,7 @@ debug = get('DEBUG')
 matlab = get('MATLAB')
 opencv = env.GetOption('opencv') and get('OPENCV')
 opencv_3 = get('OPENCV_3')
+opencvsupportscuda = get('OPENCVSUPPORTSCUDA')
 
 if opencv:
     opencvLibs = ['opencv_core',
@@ -227,11 +228,10 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 	pname = os.path.basename(p)
 	if pname in PROGRAMS_WITH_PYTHON:
 		addProg(pname,incs=python_incdirs,libs=['python2.7'])
-	elif pname in PROGRAMS_WITH_OPENCV:
+	elif opencv and pname in PROGRAMS_WITH_OPENCV:
 		addProg(pname,libs=opencvLibs,deps=['opencv'])
-	elif pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
-		if cuda:
-			addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
+	elif opencv and cuda and opencvsupportscuda and pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
+		addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
 	elif  'cuda' in pname:
 		if cuda:
 			addProg(pname)
