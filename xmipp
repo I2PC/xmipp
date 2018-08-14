@@ -165,14 +165,21 @@ def configOpenCV(configDict):
         configDict["OPENCVSUPPORTSCUDA"]=False
     else:
         configDict["OPENCV"]=True
-        cppProg="#include <opencv2/core/gpu.hpp>\n"
+        cppProg="#include <opencv2/core/version.hpp>\n"
+        cppProg+="#if CV_MAJOR_VERSION>=3\n"
+        cppProg+="   #include <opencv2/cudaoptflow.hpp>\n"
+        cppProg+="#else\n"
+        cppProg+="    #include <opencv2/core/cuda.hpp>\n"
+        cppProg+="#endif\n"
         cppProg+="int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
         if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
            configDict["OPENCVSUPPORTSCUDA"]=False
         else:
            configDict["OPENCVSUPPORTSCUDA"]=True
-    runJob("rm xmipp_test_opencv*")
+    #runJob("rm xmipp_test_opencv*")
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
