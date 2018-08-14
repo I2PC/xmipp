@@ -132,7 +132,7 @@ def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
-              'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA',
+              'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
               'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH']
     configDict = {}
     for label in labels:
@@ -159,12 +159,15 @@ def configOpenCV(configDict):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
         configDict["OPENCV"]=False
         configDict["OPENCVSUPPORTSCUDA"]=False
+        configDict["OPENCV3"]=False
     else:
         configDict["OPENCV"]=True
+
+        # Check CUDA Support
         cppProg="#include <opencv2/core/version.hpp>\n"
         cppProg+="#if CV_MAJOR_VERSION>=3\n"
         cppProg+="   #include <opencv2/cudaoptflow.hpp>\n"
@@ -174,12 +177,28 @@ def configOpenCV(configDict):
         cppProg+="int main(){}\n"
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
             cppFile.write(cppProg)
-        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
            configDict["OPENCVSUPPORTSCUDA"]=False
         else:
            configDict["OPENCVSUPPORTSCUDA"]=True
-    #runJob("rm xmipp_test_opencv*")
+
+        # Check version
+	cppProg="#include <opencv2/core/version.hpp>\n"
+	cppProg+="#include <fstream>\n"
+        cppProg+='int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n'
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+	if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+            configDict["OPENCV3"]=False
+        else:
+            runJob("./xmipp_test_opencv")
+            f=open("xmipp_test_opencv.txt")
+            version=int(f.readline())
+            f.close()
+            configDict["OPENCV3"]=version>=3
+    runJob("rm xmipp_test_opencv*")
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
@@ -199,8 +218,6 @@ def configCompiler(configDict):
 
     if configDict["DEBUG"]=="":
         configDict["DEBUG"]="False"
-    if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"]:
-        configOpenCV(configDict)
 
     if configDict["LIBDIRFLAGS"]=="":
         scipionHomeDir = getScipionHome()
@@ -237,6 +254,8 @@ def configCompiler(configDict):
             if findFileInDirList("Python.h",["/usr/include/python2.7"]):
                 configDict["PYTHONINCFLAGS"]+=" -I/usr/include/python2.7"
                 incDirs+=["/usr/include/python2.7"]
+    if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
+        configOpenCV(configDict)
 
 def getHdf5Name(libdirflags):
     libdirs=libdirflags.split("-L")
@@ -261,6 +280,11 @@ def checkCompiler(configDict):
     """
     if configDict["OPENCV"]=="True":
         cppProg+="#include <opencv2/core/core.hpp>\n"
+        if configDict["OPENCVSUPPORTSCUDA"]=="True":
+            if configDict["OPENCV3"]=="True":
+                cppProg+="#include <opencv2/cudaoptflow.hpp>\n"
+            else:
+                cppProg+="#include <opencv2/core/cuda.hpp>\n"
     cppProg+="\n int main(){}\n"
     with open("xmipp_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
