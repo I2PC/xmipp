@@ -44,7 +44,6 @@ cuda = get('CUDA')
 debug = get('DEBUG')
 matlab = get('MATLAB')
 opencv = env.GetOption('opencv') and get('OPENCV')
-opencv_3 = get('OPENCV_3')
 opencvsupportscuda = get('OPENCVSUPPORTSCUDA')
 
 if opencv:
