@@ -132,7 +132,7 @@ def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
-              'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV',
+              'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA',
               'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH']
     configDict = {}
     for label in labels:
@@ -152,6 +152,27 @@ def findFileInDirList(fnH,dirlist):
            return True
     return False
 
+def configOpenCV(configDict):
+    print("Checking compiler configuration ...")
+    cppProg="#include <opencv2/core/core.hpp>\n"
+    cppProg+="int main(){}\n"
+    with open("xmipp_test_opencv.cpp", "w") as cppFile:
+        cppFile.write(cppProg)
+
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+        configDict["OPENCV"]=False
+        configDict["OPENCVSUPPORTSCUDA"]=False
+    else:
+        configDict["OPENCV"]=True
+        cppProg="#include <opencv2/core/gpu.hpp>\n"
+        cppProg+="int main(){}\n"
+        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+           configDict["OPENCVSUPPORTSCUDA"]=False
+        else:
+           configDict["OPENCVSUPPORTSCUDA"]=True
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -170,8 +191,8 @@ def configCompiler(configDict):
 
     if configDict["DEBUG"]=="":
         configDict["DEBUG"]="False"
-    if configDict["OPENCV"]=="":
-        configDict["OPENCV"]="True"
+    if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"]:
+        configOpenCV(configDict)
 
     if configDict["LIBDIRFLAGS"]=="":
         scipionHomeDir = getScipionHome()
