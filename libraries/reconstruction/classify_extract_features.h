@@ -38,14 +38,17 @@ public:
     /**  Filename output root */
     FileName fnOut;
 
-    /**  Parameter for turning off denoising */
-    bool noDenoising;
+    /**  Parameter for turning on denoising */
+    bool applyDenoising;
 
     /**  Parameter for using entropy features */
     bool useEntropy;
 
-    /**  Parameter for using entropy features */
+    /**  Parameter for using granulometry-based features */
     bool useGranulo;
+
+    /**  Parameter for using histogram distances features */
+    bool useHistDist;
 
     /**  Parameter for using LBP */
     bool useLBP;
@@ -80,6 +83,9 @@ public:
 
     /// Extracting granulometry features
     void extractGranulo(const MultidimArray<double> &I, std::vector<double> &fv);
+
+    /// Extracting histogram distances
+    void extractHistDist(const MultidimArray<double> &I, std::vector<double> &fv);
 
     /// Extracting LBP features
     /// See method at Ojala, Timo, Matti Pietikainen, and Topi Maenpaa.
