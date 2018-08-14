@@ -419,7 +419,6 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     double lowerLimit = 1.1 * min_freq_psd;
     double upperLimit = 0.9 * max_freq_psd;
     const MultidimArray<double>& local_enhanced_ctf = psd_exp_enhanced_radial;
-    int XdimW=XSIZE(w_digfreq);
     corr13=0;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(w_digfreq)
     {
@@ -430,7 +429,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 		current_ctfmodel.precomputeValues(i);
 		double bg = current_ctfmodel.getValueNoiseAt();
 
-		double envelope=0, ctf_without_damping, ctf_with_damping=0, current_envelope = 0;
+		double envelope=0, ctf_without_damping, ctf_with_damping=0;
 		double ctf2_th=0;
 		switch (action)
 		{

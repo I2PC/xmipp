@@ -161,7 +161,6 @@ TEST_F( GeometryTest, normalize_ramp)
     img.setXmippOrigin();
     FOR_ALL_ELEMENTS_IN_ARRAY2D(img)
     A2D_ELEM(img, i,j) = i+j;
-    double a,b,c;
     normalize_ramp(img);
     img.selfABS();
     EXPECT_NEAR(img.sum(),0,XMIPP_EQUAL_ACCURACY);

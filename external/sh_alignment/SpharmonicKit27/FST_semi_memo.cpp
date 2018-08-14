@@ -383,7 +383,6 @@ void InvFST_semi_memo(double *rcoeffs, double *icoeffs,
   double *sin_values, *eval_pts;
   int l, dummy ;
   double tmpA, tmpB ;
-  FILE *fp;
 
   bw = size/2;
 
