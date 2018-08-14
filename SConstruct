@@ -213,7 +213,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         _libs.append("XmippCuda")
     if "Cuda" in name:
         _libs.append("cudart")
-        _libs.append("cuda")
+        #_libs.append("cuda")
         _libs.append("cufft")
     _incs = list(incs)#+external_incdirs
     lastTarget = deps
