@@ -232,7 +232,7 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 		if opencv:
 			addProg(pname,libs=opencvLibs,deps=['opencv'])
 	elif pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
-		if opencv and cuda and opencvsupportscuda:
+		if opencv and opencvsupportscuda:
 			addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
 	elif 'cuda' in pname:
 		if cuda:
