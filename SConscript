@@ -45,13 +45,14 @@ debug = get('DEBUG')
 matlab = get('MATLAB')
 opencv = env.GetOption('opencv') and get('OPENCV')
 opencvsupportscuda = get('OPENCVSUPPORTSCUDA')
+opencv_3 = get('OPENCV3')
 
 if opencv:
     opencvLibs = ['opencv_core',
                   'opencv_imgproc',
                   'opencv_video',
                   'libopencv_calib3d']
-    if cuda:
+    if opencvsupportscuda:
         if opencv_3:
             opencvLibs+=['libopencv_cudaoptflow', 'libopencv_cudaarithm']
         else:
@@ -227,11 +228,13 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 	pname = os.path.basename(p)
 	if pname in PROGRAMS_WITH_PYTHON:
 		addProg(pname,incs=python_incdirs,libs=['python2.7'])
-	elif opencv and pname in PROGRAMS_WITH_OPENCV:
-		addProg(pname,libs=opencvLibs,deps=['opencv'])
-	elif opencv and cuda and opencvsupportscuda and pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
-		addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
-	elif  'cuda' in pname:
+	elif pname in PROGRAMS_WITH_OPENCV:
+		if opencv:
+			addProg(pname,libs=opencvLibs,deps=['opencv'])
+	elif pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
+		if opencv and cuda and opencvsupportscuda:
+			addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
+	elif 'cuda' in pname:
 		if cuda:
 			addProg(pname)
 	else:
