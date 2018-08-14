@@ -410,8 +410,8 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs
     ldLibraryPathCopy = [env['LIBPATH']]
+    appendUnique(libPathsCopy, external_libdirs) # This order is important, because if we should use Scipion libs, these will be before the system libs
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
-    appendUnique(libPathsCopy, external_libdirs)
     env2 = Environment()
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
