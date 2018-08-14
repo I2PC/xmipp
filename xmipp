@@ -172,6 +172,7 @@ def configOpenCV(configDict):
            configDict["OPENCVSUPPORTSCUDA"]=False
         else:
            configDict["OPENCVSUPPORTSCUDA"]=True
+    runJob("rm xmipp_test_opencv*")
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
