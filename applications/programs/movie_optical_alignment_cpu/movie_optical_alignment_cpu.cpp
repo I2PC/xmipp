@@ -34,10 +34,10 @@
 
 #ifdef GPU
 #ifdef OPENCV_3
-#include "opencv2/cudaoptflow.hpp"
-#include "opencv2/cudaarithm.hpp"
+#include <opencv2/cudaoptflow.hpp>
+#include <opencv2/cudaarithm.hpp>
 #else
-#include "opencv2/gpu/gpu.hpp"
+#include <opencv2/gpu/cuda.hpp>
 #endif // OPENCV_3
 #endif // GPU
 
