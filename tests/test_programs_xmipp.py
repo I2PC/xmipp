@@ -26,9 +26,9 @@
 import os
 
 # import pyworkflow.utils as pwutils
-# import pyworkflow.em.packages.xmipp3 as xmipp3
+# import xmipp3
 # from pyworkflow.tests import DataSet
-from base import *
+from .base import *
 
 
 
