@@ -582,10 +582,11 @@ def runTests(testNames):
     try:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
     except:
-        raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
-                        blue('export SCIPION_HOME=<scipion_home>'))
+        python = 'python'
+        # raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
+        #                 blue('export SCIPION_HOME=<scipion_home>'))
 
-    runJob("cd %s; %s base.py "%(testsPath, python) + ' '.join(testNames))
+    runJob("cd %s; %s base.py " % (testsPath, python) + ' '.join(testNames))
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -688,26 +689,27 @@ def writeDevelPaths(dirname):
 
 def usage():
     print("Usage: xmipp_installer [options]\n"
-          "   all [N=processors]:   (Default) Retrieve, configure, check, compile N=8, install in build\n"
-          "   get_devel_sources:    Retrieve development sources from github\n"
-          "   clean:                Delete source directories\n"
-          "   cleanBin:             Clean already compiled files\n"
-          "   config:               Configure compilation variables\n"
-          "   check_config:         Check that the configuration is correct\n"
-          "   compile N:            Compile all modules with N processors\n"
-          "   compile N xmippCore:  Compile xmippCore\n"
-          "   compile N xmipp:      Compile xmipp\n"
-          "   compile N xmippViz:   Compile xmippViz\n"
-          "   install dir:          Install at dir (by default, ./build)\n"
-          "   test testName:        Run tests to check Xmipp programs (by default, all).\n"
-          "\n"
+          "   all [N=processors]:     (Default) Retrieve, configure, check, compile N=8, install in build\n"
+          "   get_devel_sources:      Retrieve development sources from github\n"
+          "   clean:                  Delete source directories\n"
+          "   cleanBin:               Clean already compiled files\n"
+          "   config:                 Configure compilation variables\n"
+          "   check_config:           Check that the configuration is correct\n"
+          "   compile N:              Compile all modules with N processors\n"
+          "   compile N xmippCore:    Compile xmippCore\n"
+          "   compile N xmipp:        Compile xmipp\n"
+          "   compile N xmippViz:     Compile xmippViz\n"
+          "   install dir:            Install at dir (by default, ./build)\n"
+          "   test [--show] testName: Run tests to check Xmipp programs (by default, all).\n"
+          "                             if --show is activated without testName all are shown, \n"
+          "                             instead a grep of testName is done \n"
           "For developers:\n"
-          "   create_devel_paths:   Create bashrc files for devel\n"
-          "   git ...:              Git command to all 4 repositories\n"
-          "   gitConfig:            Change the git config from https to git\n"
-          "   tar <mode> <version>: Create a bundle of the xmipp\n"
-          "                            <mode> can be 'Sources' or 'Binaries'\n"
-          "                            <version> usually X.YY.MM\n"
+          "   create_devel_paths:     Create bashrc files for devel\n"
+          "   git ...:                Git command to all 4 repositories\n"
+          "   gitConfig:              Change the git config from https to git\n"
+          "   tar <mode> <version>:   Create a bundle of the xmipp\n"
+          "                              <mode> can be 'Sources' or 'Binaries'\n"
+          "                              <version> usually X.YY.MM\n"
           )
 
 if __name__ == '__main__':
