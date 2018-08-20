@@ -348,7 +348,8 @@ public:
         {
             gain.read(fnGain);
             applyWindow(gain());
-            gain() = 1.0/gain();
+            // Pablo with coss: Consistency with other alignment methods
+            //gain() = 1.0/gain();
             double avg = gain().computeAvg();
             if (std::isinf(avg) || std::isnan(avg))
                 REPORT_ERROR(ERR_ARG_INCORRECT,
