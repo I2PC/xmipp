@@ -215,6 +215,7 @@ double lasso(const Matrix1D<double> &x,
     return sqrt(ABS(approximationError));
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /* ------------------------------------------------------------------------- */
 /* kSVD                                                                      */
 /* ------------------------------------------------------------------------- */
@@ -403,3 +404,4 @@ double kSVD(const std::vector< Matrix1D<double> > &X, int S,
     return currentError;
 }
 #undef DEBUG
+#endif

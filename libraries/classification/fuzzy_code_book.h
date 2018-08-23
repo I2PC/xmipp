@@ -124,6 +124,7 @@ public:
     /** Fuctions to access the Fuzzy Membership Matrix
     */
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns a const reference to the specified item
      * Parameter: _ci  cluster index
@@ -131,6 +132,7 @@ public:
      * @exception out_of_range If _i is out of range
      */
     floatFeature membAt(unsigned _di, unsigned _ci) const;
+#endif
 
     /**
      * Returns a  reference to the specified item
@@ -166,11 +168,13 @@ public:
      */
     virtual unsigned fuzzyTestIndex(unsigned _in) const;
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns the label associated to an input
      * Parameter: _in  Index to the sample to be classified
      */
     virtual Label fuzzyApply(unsigned _in) const;
+
 
     /**
      * Calibrates the code book
@@ -179,6 +183,7 @@ public:
      * @exception runtime_error  If the training set is not calibrated
      */
     virtual void fuzzyCalibrate(ClassicTrainingVectors& _ts, Label _def = Label());
+#endif
 
     /**
      * Returns the index of the codevector closest to an input.
@@ -201,13 +206,14 @@ public:
      */
     virtual void classify(const ClassicTrainingVectors* _ts);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
     * Hard partition the Fuzzy membership matrix
     * using the Nearest Maximum Membership conversion
     */
 
     virtual void hardPartition();
-
+#endif
 
     /**
      * Returns the alpha-core set (also called alpha-level set or simply "core")
@@ -255,12 +261,13 @@ public:
      */
     virtual void readSelf(std::istream& _is, const unsigned _size = 0);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Prints the density values of each Fuzzy codevector.
      * Parameter: _os  The the output stream
      */
     virtual void printDensity(std::ostream& _os) const;
-
+#endif
 
 private:
 
