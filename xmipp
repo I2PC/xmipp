@@ -167,37 +167,31 @@ def configOpenCV(configDict):
     else:
         configDict["OPENCV"]=True
 
-        # Check CUDA Support
-        cppProg="#include <opencv2/core/version.hpp>\n"
-        cppProg+="#if CV_MAJOR_VERSION>=3\n"
-        cppProg+="   #include <opencv2/cudaoptflow.hpp>\n"
-        cppProg+="#else\n"
-        cppProg+="    #include <opencv2/core/cuda.hpp>\n"
-        cppProg+="#endif\n"
-        cppProg+="int main(){}\n"
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
-           configDict["OPENCVSUPPORTSCUDA"]=False
-        else:
-           configDict["OPENCVSUPPORTSCUDA"]=True
-
         # Check version
-	cppProg="#include <opencv2/core/version.hpp>\n"
-	cppProg+="#include <fstream>\n"
-        cppProg+='int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n'
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
+	    cppFile.write('#include <opencv2/core/version.hpp>\n')
+	    cppFile.write('#include <fstream>\n')
+            cppFile.write('int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n')
 	if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
             configDict["OPENCV3"]=False
         else:
             runJob("./xmipp_test_opencv")
             f=open("xmipp_test_opencv.txt")
-            version=int(f.readline())
+            versionStr=f.readline()
             f.close()
+            version=int(versionStr.split('.',1)[0])
             configDict["OPENCV3"]=version>=3
+
+        # Check CUDA Support
+        cppProg="#include <opencv2/core/version.hpp>\n"
+        cppProg+= "#include <opencv2/cudaoptflow.hpp>\n" if configDict["OPENCV3"] else "#include <opencv2/core/cuda.hpp>\n"
+        cppProg+="int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+        configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]))
+
     runJob("rm xmipp_test_opencv*")
 
 def configCompiler(configDict):
@@ -792,3 +786,4 @@ if __name__ == '__main__':
     else:
         print(" -> option not found <- \n")
         usage()
+
