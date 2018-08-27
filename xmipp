@@ -572,7 +572,7 @@ def runTests(testNames):
         print(blue('  Downloading test data.. (it can take a while)'))
         subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
                          '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
-        
+
     try:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
     except:
@@ -580,7 +580,9 @@ def runTests(testNames):
         # raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
         #                 blue('export SCIPION_HOME=<scipion_home>'))
 
-    runJob("cd %s; %s base.py " % (testsPath, python) + ' '.join(testNames))
+    print(testNames)
+    testsToDo = '--all' if len(testNames)==0 else ' '.join(testNames)
+    runJob("cd %s; %s base.py %s" % (testsPath, python, testsToDo))
 
 def install(dirname):
     print("Installing ------------------------------------------")
