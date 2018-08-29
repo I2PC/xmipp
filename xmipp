@@ -551,7 +551,7 @@ def runTests(testNames):
     print("Testing ---------------------------------------------")
     os.environ['PYTHONPATH'] = ':'.join([
                          os.path.join(os.environ.get('XMIPP_SRC', ''), 'xmipp'),
-                         os.environ['PYTHONPATH'] ])
+                         os.environ.get('PYTHONPATH', '')])
     try:
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
     except:
@@ -773,6 +773,9 @@ if __name__ == '__main__':
             dir="."
         writeDevelPaths(dir)
     elif mode=="git":
+        for idx, arg in enumerate(sys.argv):
+            if ' ' in arg:  # to preserve "string"
+                sys.argv[idx] = '"%s"'%sys.argv[idx]
         runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
