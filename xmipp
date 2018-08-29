@@ -717,6 +717,9 @@ if __name__ == '__main__':
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
         usage()
         sys.exit(0)
+    for idx, arg in enumerate(sys.argv):
+        if ' ' in arg:  # to preserve "string"
+            sys.argv[idx] = '"%s"' % sys.argv[idx]
     if n>=2:
         mode = sys.argv[1]
     else:
@@ -773,9 +776,6 @@ if __name__ == '__main__':
             dir="."
         writeDevelPaths(dir)
     elif mode=="git":
-        for idx, arg in enumerate(sys.argv):
-            if ' ' in arg:  # to preserve "string"
-                sys.argv[idx] = '"%s"'%sys.argv[idx]
         runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
