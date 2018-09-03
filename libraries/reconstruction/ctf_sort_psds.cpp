@@ -332,7 +332,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	evaluation.maxDampingAtBorder=XMIPP_MAX(evaluation.maxDampingAtBorder,damping);
 
         int idx = 0;
-    	for (double w=0; w<wmax; w+=wmax/100.0)
+    	for (double w=0; w<wmax; w+=wmax/99.0)
     	{
         	wx=w*XX(u);
         	wy=w*YY(u);
@@ -355,7 +355,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 
     size_t objId2 = mdEnvelope.firstObject();
     int idx=0;
-	for (double w=0; w<wmax; w+=wmax/100.0)
+	for (double w=0; w<wmax; w+=wmax/99.0)
 	{
 		mdEnvelope.setValue(MDL_RESOLUTION_FREQ,w,objId2);
 		mdEnvelope.setValue(MDL_CTF_ENVELOPE,VEC_ELEM(envelope,idx)/Nalpha,objId2);

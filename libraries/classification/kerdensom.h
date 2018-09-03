@@ -71,11 +71,12 @@ public:
      */
     void nSteps(const unsigned long& _nSteps);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Gets the Kernel Width
      */
     virtual double getSigma();
-
+#endif
 
     /**
      * Sets the number of deterministic annealing training steps
@@ -108,13 +109,14 @@ public:
      */
     virtual double functional(const TS* _examples, const FuzzyMap* _som, double _sigma, double _reg, double& _likelihood, double& _penalty) = 0;
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Determines the Random Approximation of GVC
      * (For determining the optimal Regularization Factor)
      */
 
     virtual double randApproxGVC(const TS* _examples, const FuzzyMap* _som, double _dataSD, double _reg);
-
+#endif
 
 protected:
 
@@ -149,9 +151,10 @@ protected:
     // Estimate the PD (Method 1: Using the code vectors)
     virtual double codeDens(const FuzzyMap* _som, const FeatureVector* _example, double _sigma) const = 0;
 
+#ifdef UNUSED // detected as unused 29.6.2018
     // Estimate the PD (Method 2: Using the data)
     virtual double dataDens(const TS* _examples, const FeatureVector* _example, double _sigma) const = 0;
-
+#endif
 
     /* Some other common methods */
 
@@ -177,7 +180,9 @@ protected:
     void showX(const TS* _ts);
     void showV(FuzzyMap* _som);
     void showU(FuzzyMap* _som, const TS* _ts);
+#ifdef UNUSED // detected as unused 29.6.2018
     void printV(FuzzyMap* _som, const TS* _ts, FileName& _fname);
+#endif
 
 };
 

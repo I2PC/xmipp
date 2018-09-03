@@ -145,6 +145,7 @@ FuzzyCodeBook::FuzzyCodeBook(std::istream& _is, const unsigned _size)
 /** Fuctions to access the Fuzzy Membership Matrix
 */
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns a const reference to the specified item
  * Parameter: _ci  cluster index
@@ -162,6 +163,7 @@ floatFeature FuzzyCodeBook::membAt(unsigned _di, unsigned _ci) const
 
     return memb[_di][_ci];
 }
+#endif
 
 /**
  * Returns a  reference to the specified item
@@ -245,6 +247,7 @@ unsigned FuzzyCodeBook::fuzzyTestIndex(unsigned _in) const
     return best;
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns the label associated to an input
  * Parameter: _in  Index to the sample to be classified
@@ -276,6 +279,7 @@ void FuzzyCodeBook::fuzzyCalibrate(ClassicTrainingVectors& _ts, Label _def)
     else
         calibrated(false);
 }
+#endif
 
 /**
  * Returns the index of the codevector closest to an input.
@@ -325,7 +329,7 @@ void FuzzyCodeBook::classify(const ClassicTrainingVectors* _ts)
 
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
 * Hard partition the Fuzzy membership matrix
 * using the Nearest Maximum Membership conversion
@@ -353,7 +357,7 @@ void FuzzyCodeBook::hardPartition()
         } // for i
     } // for k
 }
-
+#endif
 
 /**
  * Returns the alpha-core set (also called alpha-level set or simply "core")
@@ -483,7 +487,7 @@ void FuzzyCodeBook::loadObject(std::istream& _is)
     CodeBook::loadObject(_is);
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Prints the density values of each Fuzzy codevector.
  * Parameter: _os  The the output stream
@@ -499,6 +503,7 @@ void FuzzyCodeBook::printDensity(std::ostream& _os) const
         _os << j << " " << sumDens << std::endl;
     }
 }
+#endif
 
 //-----------------------------------------------------------------------------
 

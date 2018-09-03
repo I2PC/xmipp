@@ -58,7 +58,6 @@ void ProgAngularEstimateTiltAxis::run()
 	TiltPairAligner aligner;
 	MetaData mdOut;
 	size_t id;
-	int count;
 	double alphaU, alphaT, gamma;
 	if (mdU.size()==0)
 	{

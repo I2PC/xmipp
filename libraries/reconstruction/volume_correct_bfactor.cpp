@@ -324,7 +324,8 @@ void ProgVolumeCorrectBfactor::bfactor_correction(MultidimArray< double > &m1,
 {
     MultidimArray< std::complex< double > > FT1, FT2;
     FourierTransformer transformer;
-    double slope, intercept;
+    double slope;
+    double intercept = 0.;
     std::vector<fit_point2D>  guinierin, guinierweighted, guinierref, guinierdiff;
     std::vector<double> snr;
 

@@ -2430,17 +2430,19 @@ void svm_cross_validation(const svm_problem *prob, const svm_parameter *param, i
 	free(perm);	
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 int svm_get_svm_type(const svm_model *model)
 {
 	return model->param.svm_type;
 }
+#endif
 
 int svm_get_nr_class(const svm_model *model)
 {
 	return model->nr_class;
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 void svm_get_labels(const svm_model *model, int* label)
 {
 	if (model->label != NULL)
@@ -2459,6 +2461,7 @@ double svm_get_svr_probability(const svm_model *model)
 		return 0;
 	}
 }
+#endif
 
 double svm_predict_values(const svm_model *model, const svm_node *x, double* dec_values)
 {
@@ -3099,6 +3102,7 @@ const char *svm_check_parameter(const svm_problem *prob, const svm_parameter *pa
 	return NULL;
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 int svm_check_probability_model(const svm_model *model)
 {
 	return ((model->param.svm_type == C_SVC || model->param.svm_type == NU_SVC) &&
@@ -3114,3 +3118,4 @@ void svm_set_print_string_function(void (*print_func)(const char *))
 	else
 		svm_print_string = print_func;
 }
+#endif

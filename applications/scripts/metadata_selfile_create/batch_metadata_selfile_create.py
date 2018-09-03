@@ -46,6 +46,7 @@ class ScriptCreateMetadata(xmipp3.XmippScript):
         self.addExampleLine('   xmipp_metadata_selfile_create -p "Images/*xmp" -o all_images.sel -isstack')
             
     def run(self):
+        # type: () -> object
         pattern = self.getParam('--pattern')
         isStack = self.checkParam('-s')
         label = self.getParam('-l')

@@ -199,7 +199,6 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
 
     for (size_t n=0; n<sum_u.size(); n++)
     {
-        sumWRan = 0;
         for (size_t nS=0; nS<tempMd.size(); nS++)
         {
              /*
@@ -292,9 +291,9 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
         }
     }
 
-    delete xRanArray;
-    delete yRanArray;
-    delete zRanArray;
+    delete[] xRanArray;
+    delete[] yRanArray;
+    delete[] zRanArray;
 
 }
 
@@ -389,13 +388,11 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     std::vector<double> weightV;
     double a;
 
-    double rot,tilt,w;
+    double rot,tilt;
     bool mirror;
 
     for (size_t n=0; n<sum_u.size(); n++)
     {
-        sumWRan = 0;
-
         for (size_t nS=0; nS<tempMd.size(); nS++)
         {
 			indx = (size_t) (double( std::rand())*numGallery)/RAND_MAX;
@@ -469,9 +466,9 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
         }
     }
 
-    delete xRanArray;
-    delete yRanArray;
-    delete zRanArray;
+    delete[] xRanArray;
+    delete[] yRanArray;
+    delete[] zRanArray;
 
 }
 
