@@ -554,7 +554,8 @@ void unwrapping(const MultidimArray<double> & wrappedPhase, MultidimArray<double
     //First we perform some setup stuff
     double minQuality = 0.05;
 
-    int imax, jmax, i, j, max_levels=10;
+    int imax, jmax, max_levels=10;
+    size_t i, j;
 
     //We look for the maximun value of qualityMap
     qualityMap.selfABS();
@@ -596,8 +597,12 @@ void unwrapping(const MultidimArray<double> & wrappedPhase, MultidimArray<double
     while(!queueToProcess.empty())
     {
         p=queueToProcess.top();
-        i=p.i;
-        j=p.j;
+        if ((p.i <=0) || (p.j <= 0)) {
+        	REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)"Access to these elements will cause size_t underflow");
+        }
+        i=(size_t)p.i;
+        j=(size_t)p.j;
+
         queueToProcess.pop();
 
         size_t indi[8] = {i-1,i-1,i-1,i,i,i+1,i+1,i+1};
