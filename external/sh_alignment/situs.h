@@ -1,50 +1,33 @@
 /*********************************************************************
 *                           s i t u s . h                            *
 **********************************************************************
-* Header file for the Situs package    URL: http://situs.scripps.edu *
-* (c) Willy Wriggers and Pablo Chacon, 1998-2002                     *
+* Header file for Situs C programs (c) Willy Wriggers, 1998-2015     *
+* URL: situs.biomachina.org                                          *
 **********************************************************************
 * See legal statement for terms of distribution                      *
 *********************************************************************/
 
+/* widely used in most C programs */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <float.h>
-#include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <time.h>
+#include <dirent.h>
+#include <unistd.h>
 
 #ifndef SITUS_H
 #define SITUS_H
 
-/********************************************************************/
-/**** Warning: changes in the following affect the performance ******/
-/**** of the programs. See documentation for more information. ******/
-/********************************************************************/
+/* used in colores, collage, eul2pdb, pdbsymm, lib_vio, and lib_eul: */
+#define PI 3.14159265358979323846
 
-#define NNMIN 2       /* minimum possible # of codebook vectors     */
-#define NNMAX 20      /* maximum possible # of codebook vectors     */
-#define NHMAX 200     /* max. pos # of codeb. vectors for helices   */
-#define MAXCYCLE 8    /* max # of cycles in cluster analysis        */
-#define MAXMON 20     /* max # of monomers for helices              */
-#define SMAXS 100000  /* # of neural gas iteration steps            */
-#define SMAXH 1000000 /* # of neural gas iteration steps f. helices */      
-#define MAXPDB 100000 /* maximum number of lines in pdb file        */
-#define BINS 50       /* number of voxel histogram bins             */
-#define BARL 70       /* available space for histogram bars         */
-#define FLENGTH 1000  /* file name length                           */
+/* used in colores, collage, eul2pdb, and lib_eul: */
+#define ROT_CONV (PI/180.0)
 
-/********************************************************************/
-/***** Warning: changes below this line are not recommended! ********/
-/********************************************************************/
-
-#define MAXDT (NNMAX*MAXCYCLE) 
-#define MAXDH (NHMAX*MAXMON) 
-#define PI 3.1415926535
-#define ROT_CONV 0.017453293 
-#define	TRUE 1
-#define	FALSE 0
 #define SWAPPING(_a,_b,_type) \
 {\
   _type _tmp;\
@@ -54,70 +37,30 @@
   (_b) = _tmp;\
 }
 
-typedef struct
-{ char  recdName[7];    /*       1 -  6 */
-  int   serial;         /*       7 - 11 */
-  char  atomType[3];
-  char  atomLoc[3];
-  char  altLoc[2];      /*           17 */
-  char  resName[5];     /*      18 - 21 */
-  char  chainID[2];     /*           22 */
-  int   resSeq;         /*      23 - 26 */
-  char  iCode[2];       /*           27 */
-  float x;              /*      31 - 38 */
-  float y;              /*      39 - 46 */
-  float z;              /*      47 - 54 */
-  float occupancy;      /*      55 - 60 */
-  float tempFactor;     /*      61 - 66 */
-  int   ftNote;         /*      68 - 70 */
-  char  segID[5];       /*      73 - 76 */
-  char  element[3];     /*      77 - 78 */
-  char  charge[3];      /*      79 - 80 */
-  float weight;         /* mass of atom */
+/* PDB structure. Widely used in Situs C programs.
+ * Note: members of this structure are NOT in the same order as in the
+ * ASCII PDB files. This saves 4 bytes per structure. */
+typedef struct {        /* 72-byte struct */
+  int   serial;         /*  bytes 0 -  3 */
+  int   seq;            /*        4 -  7 */
+  float x;              /*        8 - 11 */
+  float y;              /*       12 - 15 */
+  float z;              /*       16 - 19 */
+  float occupancy;      /*       20 - 23 */
+  float beta;           /*       24 - 27 */
+  int   footnote;       /*       28 - 31 */
+  float weight;         /*       32 - 35 */
+  char  recd[7];        /*       36 - 42 */
+  char  type[3];        /*       43 - 45 */
+  char  loc[3];         /*       46 - 48 */
+  char  alt[2];         /*       49 - 50 */
+  char  res[5];         /*       51 - 55 */
+  char  chain[2];       /*       56 - 57 */
+  char  icode[2];       /*       58 - 59 */
+  char  segid[5];       /*       60 - 64 */
+  char  element[3];     /*       65 - 67 */
+  char  charge[3];      /*       68 - 70;*/
+  char  padding;        /*            71 */
 } PDB;
 
-typedef struct {
-  double score;
-  double pos[3];
-  double euler[3];
-} FIT;    
-
-typedef struct{
-  unsigned eu;
-  float score;
-} SAV;
-
-typedef struct{
-  unsigned long ifft;
-  unsigned long ireal;
-  unsigned ix;
-  unsigned iy;
-  unsigned iz;
-} POS;
-
-
-typedef double Rmat3 [3][3];
-typedef int Iseq3 [3];
-typedef double Rseq3 [3];
-typedef Rseq3 Rmat3NN [NNMAX];
-typedef Rseq3 Rmat3NH [NHMAX];
-typedef Rseq3 Rmat3DT [MAXDT];
-typedef Rseq3 Rmat3DH [MAXDH];
-typedef int IseqNN [NNMAX];
-typedef int IseqNH [NHMAX];
-typedef double RseqNN [NNMAX];
-typedef double RseqNH [NHMAX];
-typedef int ImatNNDT [NNMAX][MAXDT];
-typedef int ImatNHDH [NHMAX][MAXDH];
-
-typedef struct timeval the_time;
-
 #endif
-
-
-
-
-
-
-
-
