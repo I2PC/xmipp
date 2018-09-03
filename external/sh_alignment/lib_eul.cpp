@@ -136,7 +136,6 @@ void remap_eulers(double *psi_out, double *theta_out, double *phi_out,
   double curr_psi, curr_theta, curr_phi;
   double new_psi, new_theta, new_phi;
 
-
   /* bring psi, theta, phi, within 2 PI of reference */
   curr_psi = psi_in - psi_ref;
   if (curr_psi >= 0) new_psi = fmod(curr_psi, 2 * PI) + psi_ref;

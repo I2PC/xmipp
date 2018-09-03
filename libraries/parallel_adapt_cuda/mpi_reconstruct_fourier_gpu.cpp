@@ -113,7 +113,7 @@ void ProgMPIRecFourierGPU::run()
     MPI_Group  orig_group, new_group;
     MPI_Comm   new_comm;
     long int total_usecs;
-    double total_time_processing=0., total_time_communicating=0., total_time;
+    double total_time_processing=0., total_time_communicating=0.;
     int * ranks;
 
     // Real workers, rank=0 is the master, does not work

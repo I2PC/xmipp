@@ -34,7 +34,7 @@
 #include <ieeefp.h>
 #endif
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 //-----------------------------------------------------------------------------
 /**
  * Sets the number of training steps
@@ -66,7 +66,6 @@ void FuzzySOM::finalFuzzyMembership(const double& _m1)
     m1 = _m1;
 }
 
-
 //-----------------------------------------------------------------------------
 /**
  * Sets the number of deterministic annealing training steps
@@ -87,7 +86,7 @@ void FuzzySOM::regularization(const double& _reg)
 {
     reg = _reg;
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 /**
@@ -372,7 +371,7 @@ double FuzzySOM::functional(const TS& _examples, const FuzzyMap& _som, double _m
     return (_fidelity - _reg*_penalty);
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 //-----------------------------------------------------------------------------
 void FuzzySOM::showX(const TS& _ts)
 {
@@ -385,7 +384,6 @@ void FuzzySOM::showX(const TS& _ts)
         }
     }
 }
-
 
 //-----------------------------------------------------------------------------
 void FuzzySOM::showV(FuzzyMap& _som)
@@ -416,3 +414,4 @@ void FuzzySOM::showU(FuzzyMap& _som, const TS& _ts)
 
 
 }
+#endif

@@ -178,8 +178,7 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
     }
     else
     {
-        double adjustedStddev=sqrt(meanVariance)*cosTilt;
-        adjustedStddev=stddev*cosTilt;
+        double adjustedStddev=stddev*cosTilt;
         double iAdjustedStddev=1.0/adjustedStddev;
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
         switch (A2D_ELEM(mask,i,j))

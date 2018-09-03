@@ -318,7 +318,6 @@ void PDBRichPhantom::read(const FileName &fnPDB, double pseudoatoms, double thre
     std::string line, kind;
 
     RichAtom atom;
-    int num = 0;
     while (!fh_in.eof())
     {
         // Read an ATOM line

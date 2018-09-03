@@ -109,20 +109,23 @@ public:
 
     /** Average of the ei vectors */
     std::vector<double> avg_ei;
-
+#ifdef UNUSED // detected as unused 29.6.2018
     /**Set identity matrix as eigenvector matrix
      Parameter: n The number of eigenvectors*/
     void setIdentity(int n);
+#endif
 
     /** Clear.
     Clean the eigenvector, eigenvalues and D */
     void clear();
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /** Prepare for correlation.
     This function computes the inner products emong the ei,
     and the mean vector, among the ei, and the average of all
     vectors*/
     void prepare_for_correlation();
+#endif
 
     /** Set the number of relevant eigenvalues. */
     void set_Dimension(int _D)
@@ -145,6 +148,7 @@ public:
             return 0;
     }
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /** Number of components for a given accuracy explanation.
     This function returns the number of components to be taken
     if th_var% of the variance should be explained */
@@ -158,6 +162,7 @@ public:
     An exception is thrown if the input vectors are not of the same size
     as the PCA ones.*/
     void Project(FeatureVector &input, FeatureVector &output);
+#endif
 
     /** Defines Listener class
       */
@@ -190,9 +195,11 @@ public:
     /** Destructor */
     ~PCA_set();
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /** Create empty PCA.
         Creates space for n new PCA and returns the index of the first one */
     int create_empty_PCA(int n = 1);
+#endif
 
     /** Returns the number of PCA analysis.*/
     int PCANo() const
@@ -246,8 +253,10 @@ public:
         dimension of the sample vectors. */
     Running_PCA(int _J, int _d);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /** Update estimates with a new sample. */
     void new_sample(const Matrix1D<double> &sample);
+#endif
 
     /** Project a sample vector on the PCA space. */
     void project(const Matrix1D<double> &input, Matrix1D<double> &output) const;

@@ -24,10 +24,11 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+
 import os
 import subprocess
 
-from base import BaseTest
+from .base import BaseTest
 # import pyworkflow.em.packages.xmipp3 as xmipp3
 
 

@@ -857,14 +857,12 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
 
     for (double angle = 0.0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
     {
-        double sinus = sin(angle);
         double cosinus = cos(angle);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)
         {
             double fx = f * cosinus;
-            double fy = f * sinus;
 
             // Compute current frequencies.
             precomputeValues(fx);

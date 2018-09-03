@@ -141,15 +141,12 @@ void ProgVolumeHomogenizer::run()
 	Image<double> inV, refV;
 	Image<double> imgIn, imgCorr;
 	MetaData setOfImgIn, setOfImgOut;
-	double rot, tilt, psi, xShift, yShift;
+	double rot, tilt, psi;
 	bool flip;
 	Projection projIn, projRef;
 	cv::Mat ProjIn, ProjRef, ProjIn8, ProjRef8, ImgIn;
 	cv::Mat flow, ImgCorr;
 	cv::Mat planes[]={flow, flow};
-	size_t objId;
-	int count = 0;
-	int projIdx = FIRST_IMAGE;
     FileName stackName = fnSetOfImgOut.removeAllExtensions() + ".stk";
     FileName mdName = fnSetOfImgOut.removeAllExtensions() + ".xmd";
     MDRow rowInput;

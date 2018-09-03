@@ -833,8 +833,7 @@ void Prog_Angular_CommonLine::optimize(Matrix1D<double> &solution)
                                                      clusterBestAssignment[0]](1);
                     currentSolution(3*besti+2) = bestEulerAngles[
                                                      clusterBestAssignment[0]](2);
-                    double energy=realignCurrentSolution();
-                    bestEnergy=energy;
+                    realignCurrentSolution();
                     bestCluster=0;
                     bestCurrentSolution=currentSolution;
                     bestCurrentImgAvgCorrelation=currentImgAvgCorrelation;

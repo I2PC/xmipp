@@ -54,7 +54,9 @@ public:
     void SaveModel(const FileName &fnModel);
     void LoadModel(const FileName &fnModel);
     void setParameters(double c,double gamma);
+#ifdef UNUSED // detected as unused 29.6.2018
     int getNumClasses();
+#endif
 };
 //@}
 #endif
