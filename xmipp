@@ -169,10 +169,10 @@ def configOpenCV(configDict):
 
         # Check version
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
-	    cppFile.write('#include <opencv2/core/version.hpp>\n')
-	    cppFile.write('#include <fstream>\n')
+            cppFile.write('#include <opencv2/core/version.hpp>\n')
+            cppFile.write('#include <fstream>\n')
             cppFile.write('int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n')
-	if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
+        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
             configDict["OPENCV3"]=False
         else:
@@ -222,7 +222,7 @@ def configCompiler(configDict):
         if not findFileInDirList("libhdf5*",libDirs):
             if findFileInDirList("libhdf5*",["/usr/lib/x86_64-linux-gnu"]):
                 configDict["LIBDIRFLAGS"]+=" -L/usr/lib/x86_64-linux-gnu"
-                libDirs+=["/usr/lib/x86_64-linux-gnu"]
+                # libDirs+=["/usr/lib/x86_64-linux-gnu"]
     if configDict["INCDIRFLAGS"]=="":
         incDirs=[]
         scipionHomeDir = getScipionHome()
