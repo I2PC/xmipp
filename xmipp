@@ -21,10 +21,10 @@ def createDir(dirname):
         os.makedirs(dirname)
 
 def checkProgram(programName, show=True):
-    systems = ["Ubuntu/Debian","Manjaro/Arch"]
+    systems = ["Ubuntu/Debian","ManjaroLinux"]
 
     osInfo = subprocess.Popen(["lsb_release", "--id"],
-                              stdout=subprocess.PIPE).stdout.read()
+                              stdout=subprocess.PIPE, encoding='utf8').stdout.read()
     osName = osInfo.split('\t')[1].strip('\n')
     osId = -1  # no default OS
     for idx, system in enumerate(systems):
@@ -248,6 +248,9 @@ def configCompiler(configDict):
             if findFileInDirList("Python.h",["/usr/include/python2.7"]):
                 configDict["PYTHONINCFLAGS"]+=" -I/usr/include/python2.7"
                 incDirs+=["/usr/include/python2.7"]
+            if findFileInDirList("ndarraytypes.h",["/usr/lib/python2.7/site-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/lib/python2.7/site-packages/numpy/core/include/"
+                incDirs+=["usr/lib/python2.7/site-packages/numpy/core/include/"]
     if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
         configOpenCV(configDict)
 
@@ -510,6 +513,7 @@ def checkConfig():
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
                   "python-numpy python-scipy python-mpi4py")
+            print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             return False
         if not checkMPI(configDict):
             print(red("Cannot compile with MPI or use it"))
