@@ -28,18 +28,18 @@
 #define _PROG_RES_DIR
 
 #include <iostream>
-#include <data/xmipp_program.h>
-#include <data/xmipp_image.h>
+#include <core/xmipp_program.h>
+#include <core/xmipp_image.h>
 //#include <data/symmetries.h>
 #include <data/sampling.h>
-#include <data/metadata.h>
+#include <core/metadata.h>
 //#include <data/matrix2d.h>
-#include <data/xmipp_fft.h>
-#include <data/xmipp_fftw.h>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
 #include <math.h>
 #include <limits>
 #include <complex>
-#include "fourier_filter.h"
+#include <data/fourier_filter.h>
 #include <data/filters.h>
 #include <string>
 #include "symmetrize.h"
