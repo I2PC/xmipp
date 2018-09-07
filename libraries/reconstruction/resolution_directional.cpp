@@ -51,6 +51,8 @@ void ProgResDir::readParams()
 	fnMeanResolution = getParam("--resolutionAvg");
 	fnHighestResolution = getParam("--highestResolutionVol");
 	fnLowestResolution = getParam("--lowestResolutionVol");
+	fnDoa1 = getParam("--doa1");
+	fnDoa2 = getParam("--doa2");
 	fnMDThr = getParam("--radialAzimuthalThresholds");
 	fnMonoRes = getParam("--monores");
 	fnAniRes = getParam("--aniRes");
@@ -450,11 +452,8 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 
 //	amplitude.resizeNoCopy(VRiesz);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
-	{
-//		DIRECT_MULTIDIM_ELEM(amplitude,n)=DIRECT_MULTIDIM_ELEM(VRiesz,n)*DIRECT_MULTIDIM_ELEM(VRiesz,n);
 		DIRECT_MULTIDIM_ELEM(amplitude,n) *= DIRECT_MULTIDIM_ELEM(amplitude,n);
 
-	}
 
 	// Calculate first component of Riesz vector
 	double ux;
@@ -473,6 +472,8 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 	}
 
 	transformer_inv.inverseFourierTransform(fftVRiesz, VRiesz);
+
+	//This loop can be introduced in next loop saving time
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
 	{
@@ -496,12 +497,11 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 			}
 		}
 	}
+
 	transformer_inv.inverseFourierTransform(fftVRiesz, VRiesz);
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
-	{
 		DIRECT_MULTIDIM_ELEM(amplitude,n) += DIRECT_MULTIDIM_ELEM(VRiesz,n)*DIRECT_MULTIDIM_ELEM(VRiesz,n);
-	}
 
 	transformer_inv.inverseFourierTransform(fftVRiesz_aux, VRiesz);
 
@@ -558,11 +558,6 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftVRiesz)
 	{
 		double un=1.0/DIRECT_MULTIDIM_ELEM(iu,n);
-//		size_t j=n%XSIZE(fftVRiesz);
-//		size_t ki=n/XSIZE(fftVRiesz);
-//		size_t i=ki%YSIZE(fftVRiesz);
-//		size_t k=ki/YSIZE(fftVRiesz);
-//		std::cout << "un = " << un << "  freqL = " << freqL << " freq = " << freq << std::endl;
 		if ((freqL)>=un && un>=freq)
 		{
 			DIRECT_MULTIDIM_ELEM(fftVRiesz,n) *= 0.5*(1 + cos(raised_w*(un-freq)));
@@ -768,6 +763,8 @@ void ProgResDir::resolution2eval_(int &fourier_idx, double min_step,
 void ProgResDir::removeOutliers(Matrix2D<double> &anglesMat,
 		Matrix2D<double> &resolutionMat)
 {
+	std::cout << "Removing outliers..." << std::endl;
+
 	double x1, y1, z1, x2, y2, z2, distance, resolution, sigma,
 				rot, tilt, threshold, sigma2, lastMinDistance;
 	double meandistance = 0, distance_2 = 0;
@@ -870,6 +867,31 @@ void ProgResDir::removeOutliers(Matrix2D<double> &anglesMat,
 
 	}
 }
+
+
+//void ProgResDir::doaVolume(Matrix2D<double> &resolutionMat, Matrix2D<double> &axis)
+//{
+//	int numberdirections = angles.mdimx;
+//	int counter;
+//
+//	for (int k = 0; k<NVoxelsOriginalMask; ++k)
+//	{
+//		counter = 0;
+//		std::vector<double> resolutionlist;
+//		for (int i = 0; i<numberdirections; ++i)
+//		{
+//			double resi = MAT_ELEM(resolutionMat, i, k);
+//			if (resi>0)
+//			{
+//				resolutionlist.push_back(resi);
+//				std::sort(resolutionlist.begin(),resolutionlist.end());
+//
+//			}
+//		}
+//		thresholdNoise = resolutionlist[size_t(resolutionlist.size()*significance)];
+//	}
+//
+//}
 
 
 void ProgResDir::ellipsoidFitting(Matrix2D<double> &anglesMat,
@@ -1054,64 +1076,6 @@ void ProgResDir::ellipsoidFitting(Matrix2D<double> &anglesMat,
 	}
 }
 
-//void ProgResDir::radialAverageInMask(MultidimArray<int> &mask, MultidimArray<double> &inputVol, MetaData &md)
-//{
-//		double u_inf, u_sup, u;
-//
-//		MultidimArray<int> &pMask = mask;
-//		int step = 1;
-//
-//		double N;
-//		MultidimArray<double> radialAvg(XSIZE(inputVol)*0.5);
-//		MultidimArray<double> test_ring;
-//		test_ring.initZeros(inputVol);
-//		//DIRECT_MULTIDIM_ELEM(radialAvg,0) = sqrt(real(conj(A3D_ELEM(fftV, 0,0,0))*A3D_ELEM(fftV, 0,0,0)));
-////		std::cout << "XSIZE = " << XSIZE(inputVol) << std::endl;
-//
-//		int uk, uj, ui;
-//
-//		int siz = XSIZE(inputVol);
-//		size_t objId;
-//
-//		inputVol.setXmippOrigin();
-//		pMask.setXmippOrigin();
-//
-//		for(size_t kk=1; kk<siz*0.5; ++kk)
-//		{
-//			double cum_mean = 0;
-//			N = 0;
-//			u_sup = kk + step;
-//			u_inf = kk - step;
-//
-//			FOR_ALL_ELEMENTS_IN_ARRAY3D(pMask)
-//			{
-//				 if (A3D_ELEM(pMask, k, i, j)>0)
-//				{
-//				  //std::cout << "entro " << std::endl;
-//					u = sqrt(k*k + i*i + j*j);
-//					if ((u<u_sup) && (u>=u_inf))
-//					{
-//						cum_mean += A3D_ELEM(inputVol, k, i, j);
-//						N = N + 1;
-//					}
-//
-//				 }
-//			}
-//
-//			objId = md.addObject();
-//			if (cum_mean==0)
-//			{
-//				md.setValue(MDL_IDX, kk, objId);
-//				md.setValue(MDL_AVG, cum_mean, objId);
-//			}
-//			else
-//			{
-//				md.setValue(MDL_IDX, kk, objId);
-//				md.setValue(MDL_AVG, (cum_mean/N), objId);
-//			}
-//		}
-//}
-
 
 void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 		MultidimArray<double> &inputVol_1, MultidimArray<double> &inputVol_2,
@@ -1293,6 +1257,8 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		MultidimArray<double> &meanResolution,
 		MultidimArray<double> &lowestResolution,
 		MultidimArray<double> &highestResolution,
+		MultidimArray<double> &doaResolution_1,
+		MultidimArray<double> &doaResolution_2,
 		double &radial_Thr, double &azimuthal_Thr,
 		MetaData &mdprefDirs)
 {
@@ -1356,8 +1322,6 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			}
 
-
-
 //			std::cout << "count_radial = " << count_radial << std::endl;
 //			std::cout << "count_azimuthal = " << count_azimuthal << std::endl;
 //			std::cout << "  " << std::endl;
@@ -1365,8 +1329,19 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 //			A3D_ELEM(meanResolution,k,i,j) = meanRes[(size_t) floor(0.5*meanRes.size())];
 			std::sort(ResList.begin(),ResList.end());
 
-			A3D_ELEM(lowestResolution,k,i,j) = ResList[ (size_t) floor(0.95*ResList.size()) ];
-			A3D_ELEM(highestResolution,k,i,j) = ResList[ (size_t) floor(0.03*ResList.size()) ];
+			double Mres, mres;
+
+			Mres = ResList[ (size_t) floor(0.95*ResList.size()) ];
+			A3D_ELEM(lowestResolution,k,i,j) = Mres;
+
+			mres = ResList[ (size_t) floor(0.03*ResList.size()) ];
+			A3D_ELEM(highestResolution,k,i,j) = mres
+
+			A3D_ELEM(doaResolution_1,k,i,j) = (Mres - mres)/(Mres + mres);
+
+			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
+
+
 
 			double highres = A3D_ELEM(highestResolution,k,i,j);
 
@@ -1964,77 +1939,22 @@ void ProgResDir::run()
 		std::cout << "----------------direction-finished----------------" << std::endl;
 	}
 
+
+
+
 	////////////////////////////////////////////
 
 	int maskPos = 0;
-
-	////////////////////////////////////////////
-/*
-	Image<double> saveImg;
-	saveImg.read("resolution_dir_1.vol");
-	int count_n = 0;
-	int indi = 0;
-	double myres;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(saveImg())
-	{
-		size_t j=n%XSIZE(saveImg());
-		size_t ki=n/XSIZE(saveImg());
-		size_t i=ki%YSIZE(saveImg());
-		size_t k=ki/YSIZE(saveImg());
-		if (DIRECT_MULTIDIM_ELEM(mask(), n) == 1)
-		{
-			myres = MAT_ELEM(resolutionMatrix, 0, maskPos);
-			++maskPos;
-		}
-		if(DIRECT_MULTIDIM_ELEM(saveImg(),n)>0)
-			std::cout << "res=" << myres << " res=" << DIRECT_MULTIDIM_ELEM(saveImg(),n) << " maskPos= "<< maskPos-1 << " n=" << count_n << "  k=" << k << "  i=" << i << "  j=" << j << std::endl;
-		count_n++;
-	}
-*/
-
-//	}
-//	else
-//	{
-//		std::cout << "antes del for" << std::endl;
-//		N_directions=angles.mdimx;
-//		trigProducts.initZeros(3, N_directions);
-//		for (size_t dir=0; dir<N_directions; dir++)
-//		{
-////			std::cout << "dir = " << dir + 1 << std::endl;
-//			double rot = MAT_ELEM(angles, 0, dir);
-//			double tilt = MAT_ELEM(angles, 1, dir);
-//			MAT_ELEM(trigProducts, 0, dir) = sin(tilt*PI/180)*cos(rot*PI/180);
-//			MAT_ELEM(trigProducts, 1, dir) = sin(tilt*PI/180)*sin(rot*PI/180);
-//			MAT_ELEM(trigProducts, 2, dir) = cos(tilt*PI/180);
-//			Image<double> img;
-//			FileName fnres = formatString("resolution_dir_%i.vol", dir+1);
-//			img.read(fnres);
-//			img().setXmippOrigin();
-//
-//			int maskPos = 0;
-//
-//			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(img())
-//			{
-//				if (DIRECT_MULTIDIM_ELEM(mask(), n) == 1)
-//				{
-//
-//					MAT_ELEM(resolutionMatrix, dir, maskPos) = DIRECT_MULTIDIM_ELEM(img(), n);
-//					++maskPos;
-//				}
-//			}
-//		}
 
 	//Remove outliers
 	removeOutliers(trigProducts, resolutionMatrix);
 	//Second step of cleaning
 //	removeOutliers(trigProducts, resolutionMatrix);
-//	removeOutliers(angles, resolutionMatrix);
+
 
 	//Ellipsoid fitting
 	Matrix2D<double> axis;
 	ellipsoidFitting(trigProducts, resolutionMatrix, axis);
-//	ellipsoidFitting(angles, resolutionMatrix, axis);
-//	}
 
 	Image<double> doaVol;
 	MultidimArray<double> &pdoaVol = doaVol();
@@ -2042,11 +1962,203 @@ void ProgResDir::run()
 	pdoaVol.initZeros(NSIZE(mask()),ZSIZE(mask()), YSIZE(mask()), XSIZE(mask()));
 
 
-
 	int idx = 0;
-//	std::cout << "antes del for = " << MAT_ELEM(axis, 0, 0) << std::endl;
 	std::cout << "NVoxelsOriginalMask = " << NVoxelsOriginalMask << std::endl;
 
+	double niquist;
+
+	niquist = 2*sampling;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pdoaVol)
+	{
+		if (DIRECT_MULTIDIM_ELEM(mask(), n) >0 ) //before ==1
+		{
+
+			double a = MAT_ELEM(axis, 0, idx);
+			double c = MAT_ELEM(axis, 2, idx);
+//			if (idx<100)
+//				std::cout << c << " " << a << ";" << std::endl;
+			DIRECT_MULTIDIM_ELEM(pdoaVol, n) = (c)/(a);
+			++idx;
+		}
+	}
+
+
+
+	Image<double> imgdoa;
+	imgdoa = pdoaVol;
+	imgdoa.write(fnDoA);
+
+	MultidimArray<double> radial, azimuthal, meanResolution, lowestResolution, highestResolution, doavol1, doavol2;
+	MetaData prefDir;
+
+	double radialThr, azimuthalThr;
+	radialAzimuthalResolution(resolutionMatrix, mask(), radial, azimuthal, meanResolution,
+			lowestResolution, highestResolution, doavol1, doavol2, radialThr, azimuthalThr, prefDir);
+
+
+	imgdoa = radial;
+	imgdoa.write(fnradial);
+	imgdoa = azimuthal;
+	imgdoa.write(fnazimuthal);
+	imgdoa = lowestResolution;
+	imgdoa.write(fnLowestResolution);
+	imgdoa = highestResolution;
+	imgdoa.write(fnHighestResolution);
+	imgdoa = doavol1;
+	imgdoa.write(fnDoa1);
+	imgdoa = doavol2;
+	imgdoa.write(fnDoa2);
+
+	MetaData mdRadialAzimuthalThr;
+	size_t objIdx;
+	objIdx = mdRadialAzimuthalThr.addObject();
+	mdRadialAzimuthalThr.setValue(MDL_RESOLUTION_FREQ, radialThr, objIdx);
+	mdRadialAzimuthalThr.setValue(MDL_RESOLUTION_FREQ2, azimuthalThr, objIdx);
+
+	mdRadialAzimuthalThr.write(fnMDThr);
+
+	std::cout << "radial = " << radialThr << "  azimuthal = " << azimuthalThr << std::endl;
+	std::cout << "Calculating the radial and azimuthal resolution " << std::endl;
+
+
+	MetaData mdRadial, mdAvg, mdHighest, mdLowest;
+
+	Image<double> monores;
+	monores.read(fnMonoRes);
+	MultidimArray<double> monoresVol;
+	monoresVol = monores();
+	radialAverageInMask(mask(), radial, azimuthal, highestResolution, lowestResolution, monoresVol, mdAvg);
+
+	mdAvg.write(fnMDazimuthal);
+
+
+	double lambda_1, lambda_2, lambda_3, doa;
+	double direction_x, direction_y, direction_z;
+	int counter = 0;
+	Matrix2D<double> eigenvectors;
+	Matrix1D<double> eigenvalues, r0_1(3), rF_1(3), r0_2(3), rF_2(3), r0_3(3), rF_3(3), r(3);
+	MultidimArray<int> arrows;
+	arrows.initZeros(mask());
+	const int gridStep=10;
+	size_t n=0;
+	maskPos=0;
+
+	idx = 0;
+	int siz;
+	siz = XSIZE(arrows);
+	double xcoor, ycoor, zcoor, rad, rot, tilt;
+	MetaData md, mdAniRes;
+	size_t objId, objIdAniRes;
+	FileName fn_md, fn_AniRes;
+
+	imgdoa.read(fnDoA);
+	monores().setXmippOrigin();
+
+	FOR_ALL_ELEMENTS_IN_ARRAY3D(arrows)
+	{
+		if (A3D_ELEM(mask(),k,i,j) > 0 ) //before ==1
+		{
+			double doa = A3D_ELEM(imgdoa(),k,i,j);
+			double res = A3D_ELEM(monores(),k,i,j);
+
+			objIdAniRes = mdAniRes.addObject();
+			mdAniRes.setValue(MDL_COST, doa, objIdAniRes);
+			mdAniRes.setValue(MDL_RESOLUTION_SSNR, res, objIdAniRes);
+
+
+
+			//lambda_3 is assumed as the least eigenvalue
+			if ( (i%gridStep==0) && (j%gridStep==0) && (k%gridStep==0) )
+			{
+				double lambda_1 = MAT_ELEM(axis, 0, idx);
+				double lambda_3 = MAT_ELEM(axis, 2, idx);
+
+				xcoor = MAT_ELEM(axis, 3, idx);
+				ycoor = MAT_ELEM(axis, 4, idx);
+				zcoor = MAT_ELEM(axis, 5, idx);
+
+				rot = atan2(ycoor, xcoor)*180/PI;
+				tilt = acos(zcoor)*180/PI;
+
+				double sc;
+				sc = lambda_1/8.0;
+//					std::cout << "a = " << lambda_3 << "  c= " << lambda_1 << std::endl;
+//					std::cout << "sc = " << sc << "  c/sc= " << lambda_1/sc << std::endl;
+
+				//write md with values!
+				objId = md.addObject();
+				md.setValue(MDL_ANGLE_ROT, rot, objId);
+				md.setValue(MDL_ANGLE_TILT, tilt, objId);
+				md.setValue(MDL_XCOOR, (int) j, objId);
+				md.setValue(MDL_YCOOR, (int) i, objId);
+				md.setValue(MDL_ZCOOR, (int) k, objId);
+				md.setValue(MDL_MAX, 7.0, objId);
+				md.setValue(MDL_MIN, lambda_3/sc, objId);
+				md.setValue(MDL_INTSCALE, lambda_3/lambda_1, objId);
+			}
+			++idx;
+		}
+		++n;
+	}
+
+	md.write(fnDirections);
+	mdAniRes.write(fnAniRes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	/*
+
+	////////////////////////////////////////////
+
+	int maskPos = 0;
+
+	//Remove outliers
+	removeOutliers(trigProducts, resolutionMatrix);
+	//Second step of cleaning
+//	removeOutliers(trigProducts, resolutionMatrix);
+
+
+	//Ellipsoid fitting
+	Matrix2D<double> axis;
+	ellipsoidFitting(trigProducts, resolutionMatrix, axis);
+
+	Image<double> doaVol;
+	MultidimArray<double> &pdoaVol = doaVol();
+
+	pdoaVol.initZeros(NSIZE(mask()),ZSIZE(mask()), YSIZE(mask()), XSIZE(mask()));
+
+
+	int idx = 0;
+	std::cout << "NVoxelsOriginalMask = " << NVoxelsOriginalMask << std::endl;
 
 	double niquist;
 
@@ -2111,8 +2223,6 @@ void ProgResDir::run()
 	mdAvg.write(fnMDazimuthal);
 
 
-///////////////////////
-
 	double lambda_1, lambda_2, lambda_3, doa;
 	double direction_x, direction_y, direction_z;
 	int counter = 0;
@@ -2123,7 +2233,6 @@ void ProgResDir::run()
 	const int gridStep=10;
 	size_t n=0;
 	maskPos=0;
-///////////////////////
 
 	idx = 0;
 	int siz;
@@ -2162,10 +2271,6 @@ void ProgResDir::run()
 				rot = atan2(ycoor, xcoor)*180/PI;
 				tilt = acos(zcoor)*180/PI;
 
-
-//					rotation3DMatrix(double ang, const Matrix1D<double> &axis,
-//					                      Matrix2D<double> &result, bool homogeneous)
-
 				double sc;
 				sc = lambda_1/8.0;
 //					std::cout << "a = " << lambda_3 << "  c= " << lambda_1 << std::endl;
@@ -2191,5 +2296,5 @@ void ProgResDir::run()
 	mdAniRes.write(fnAniRes);
 
 
-
+*/
 }
