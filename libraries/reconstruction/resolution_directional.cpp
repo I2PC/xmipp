@@ -83,6 +83,8 @@ void ProgResDir::defineParams()
 	addParamsLine("  [--resolutionAvg <vol_file=\"\">]  : Output mean resolution map");
 	addParamsLine("  [--highestResolutionVol <vol_file=\"\">]  : Output highest resolution map");
 	addParamsLine("  [--lowestResolutionVol <vol_file=\"\">]  : Output lowest resolution map");
+	addParamsLine("  [--doa1 <vol_file=\"\">]  : Output doa1 map");
+	addParamsLine("  [--doa2 <vol_file=\"\">]  : Output doa2 map");
 	addParamsLine("  [--radialAvg <vol_file=\"\">]  : Radial Average of the radial resolution map");
 	addParamsLine("  [--radialAzimuthalThresholds <vol_file=\"\">]  : Radial and azimuthal threshold for representation resolution maps");
 	addParamsLine("  [--azimuthalAvg <vol_file=\"\">]  : Radial Average of the azimuthal resolution map");
