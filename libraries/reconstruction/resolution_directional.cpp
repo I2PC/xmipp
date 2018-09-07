@@ -1267,6 +1267,9 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 	azimuthal.initZeros(pmask);
 	lowestResolution.initZeros(pmask);
 	highestResolution.initZeros(pmask);
+	doaResolution_1.initZeros(pmask);
+	doaResolution_2.initZeros(pmask);
+
 	double radial_angle = 20*PI/180;
 	double azimuthal_resolution = 0;
 	double radial_resolution = 0;
@@ -1335,9 +1338,10 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 			A3D_ELEM(lowestResolution,k,i,j) = Mres;
 
 			mres = ResList[ (size_t) floor(0.03*ResList.size()) ];
-			A3D_ELEM(highestResolution,k,i,j) = mres
 
-			A3D_ELEM(doaResolution_1,k,i,j) = (Mres - mres)/(Mres + mres);
+			A3D_ELEM(highestResolution,k,i,j) = mres;
+
+			A3D_ELEM(doaResolution_1,k,i,j) = ((Mres - mres)/(Mres + mres));
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
