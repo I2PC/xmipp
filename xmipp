@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import distutils.spawn
 import glob
@@ -24,7 +24,7 @@ def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","ManjaroLinux"]
 
     osInfo = subprocess.Popen(["lsb_release", "--id"],
-                              stdout=subprocess.PIPE, encoding='utf8').stdout.read()
+                              stdout=subprocess.PIPE).stdout.read()
     osName = osInfo.split('\t')[1].strip('\n')
     osId = -1  # no default OS
     for idx, system in enumerate(systems):
@@ -403,7 +403,9 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -Wno-deprecated-gpu-targets"
+            if checkProgram("g++-5", False):
+                configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5"
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
