@@ -360,31 +360,6 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	MAT_ELEM(angles, 0, 81) = 27.132791;	 MAT_ELEM(angles, 1, 81) = -75.219088;
 }
 
-//	amplitude.setXmippOrigin();
-//
-//
-//    double raised_w = PI/(freqL-freq);
-//
-//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftVRiesz)
-//	{
-//			double un=1.0/DIRECT_MULTIDIM_ELEM(iu,n);
-//			if (freqL>=un && un>=freq)
-//				DIRECT_MULTIDIM_ELEM(fftVRiesz,n) *= 0.5*(1 + cos(raised_w*(un-freq)));
-//			else
-//				if (un>freqL)
-//					DIRECT_MULTIDIM_ELEM(fftVRiesz,n) = 0;
-//	}
-//	transformer_inv.inverseFourierTransform();
-//
-//
-//	if (fnDebug.c_str() != "")
-//	{
-//
-//		saveImg2 = amplitude;
-//		FileName iternumber = formatString("_Filtered_Amplitude_%i_%i.vol", dir, count);
-//		saveImg2.write(fnDebug+iternumber);
-//	}
-//	saveImg2.clear();
 
 
 void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::complex<double> > &myfftV,
@@ -392,8 +367,8 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 		double rot, double tilt)
 {
 	fftVRiesz.initZeros(myfftV);
-	MultidimArray<double> coneVol;
-	coneVol.initZeros(myfftV);
+//	MultidimArray<double> coneVol;
+//	coneVol.initZeros(myfftV);
 	fftVRiesz_aux.initZeros(myfftV);
 	std::complex<double> J(0,1);
 
@@ -426,7 +401,7 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) = -J;
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) *= DIRECT_MULTIDIM_ELEM(fftVRiesz, n);
 					DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n) *= iun;
-					DIRECT_MULTIDIM_ELEM(coneVol, n) =  real(DIRECT_MULTIDIM_ELEM(myfftV, n)*conj(DIRECT_MULTIDIM_ELEM(myfftV, n)));
+//					DIRECT_MULTIDIM_ELEM(coneVol, n) =  real(DIRECT_MULTIDIM_ELEM(myfftV, n)*conj(DIRECT_MULTIDIM_ELEM(myfftV, n)));
 				}
 				++n;
 			}
@@ -1343,7 +1318,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
-			A3D_ELEM(doaResolution_1,k,i,j) = ((Mres - mres)/(Mres + mres));
+			A3D_ELEM(doaResolution_1,k,i,j) = ((Mres - mres)/(Mres + mres))*((Mres + 2*sampling)/(Mres - 2*sampling));
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
