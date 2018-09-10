@@ -216,7 +216,7 @@ unsigned CodeBook::testIndex(const FeatureVector& _in) const
 
     return bestIndex;
 }
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns the index of the codevector closest to an input.
  * This is the method used to classify inputs
@@ -227,7 +227,7 @@ unsigned CodeBook::winner(const ClassicTrainingVectors& _ts, unsigned _in) const
 {
     return testIndex(_ts.theItems[_in]);
 }
-
+#endif
 
 /**
  * Fills the classifVectors with the list of the best input vectors associated to it.

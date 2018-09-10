@@ -289,7 +289,7 @@ double FuzzyCMeans::H(const FuzzyCodeBook& _xmippDS) const
     return (-H / (double)(_xmippDS.membVectors()));
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Calculates Non-fuzzy index (NFI) validity functional
  * Parameter: _xmippDS Data structure to train, a codeBook in this case
@@ -312,7 +312,7 @@ double FuzzyCMeans::NFI(const FuzzyCodeBook& _xmippDS) const
     double NFI = (((double)(_xmippDS.membClusters()) * F - (double)(_xmippDS.membVectors())) / (double)(_xmippDS.membVectors())) / (double)(_xmippDS.membClusters() - 1);
     return NFI;
 }
-
+#endif
 
 /**
  * Calculates Compactness and separation index (S) validity functional
