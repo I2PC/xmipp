@@ -80,7 +80,7 @@ ClassicTrainingVectors::ClassicTrainingVectors(const ClassicTrainingVectors &op1
 
 
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns amount of features
  */
@@ -88,6 +88,7 @@ unsigned ClassicTrainingVectors::featureSize() const
 {
     return itemAt(0).size();
 }
+#endif
 
 /**
  * Returns dimension (the same as above)
@@ -262,7 +263,7 @@ void ClassicTrainingVectors::loadObject(std::istream& _is)
 }
 
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Deletes variable from Training set
  * Parameter: _var variable index
@@ -273,7 +274,7 @@ void ClassicTrainingVectors::deleteVariable(int _var)
     for (unsigned int it = 0; it < size(); it++)
         itemAt(it).erase(itemAt(it).begin() + _var);
 }
-
+#endif
 
 /**
  * Operator "="
@@ -300,7 +301,7 @@ ClassicTrainingVectors& ClassicTrainingVectors::operator= (const ClassicTraining
     return *this;
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /** Copy the structure from another TS but leave it empty.
 * Parameter: _ts ClassicTrainingVectors
 * @note  Just the structure is copied, not the items or targets.
@@ -348,7 +349,7 @@ bool ClassicTrainingVectors::deleteRow(unsigned int _idx)
 {
     return remove(_idx);
 }
-
+#endif
 
 /**
  * Normalize all features in the training set
@@ -438,7 +439,7 @@ void ClassicTrainingVectors::unNormalize()
     normalized = false;
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * returns normalized variable in the original scale
  */
@@ -473,6 +474,7 @@ double ClassicTrainingVectors::getUnormalizedVar(unsigned _item, unsigned _var) 
 
     return t;
 }
+#endif
 
 /**
  * Returns TRUE if recordset is normalized.
@@ -532,6 +534,7 @@ void ClassicTrainingVectors::getFeatureStats(unsigned _i, floatFeature& _mean, f
     _sd = sqrt(_sd / (floatFeature)(nn - 1));
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns a vector containing the average (item 0) and SD (item 1)
  */
@@ -549,7 +552,7 @@ ClassicTrainingVectors ClassicTrainingVectors::getStatVector()
     myStatVector.theTargets[1] = "SD ";
     return myStatVector;
 }
-
+#endif
 
 
 //-----------------------------------------------------------------------------

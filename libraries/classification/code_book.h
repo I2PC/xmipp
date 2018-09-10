@@ -130,7 +130,7 @@ public:
      */
     virtual unsigned testIndex(const FeatureVector& _in) const;
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Returns the index of the codevector closest to an input.
      * This is the method used to classify inputs
@@ -138,7 +138,7 @@ public:
      * Parameter: _in  Index to the Sample to be classified
      */
     virtual unsigned winner(const ClassicTrainingVectors& _ts, unsigned _in) const;
-
+#endif
 
     /**
      * Fills the classifVectors with the list of the best input vectors associated to it.

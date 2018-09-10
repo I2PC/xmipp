@@ -94,10 +94,10 @@ protected:
 
     // Estimate the PD (Method 1: Using the code vectors)
     virtual double codeDens(const FuzzyMap* _som, const FeatureVector* _example, double _sigma) const;
-
+#ifdef UNUSED // detected as unused 29.6.2018
     // Estimate the PD (Method 2: Using the data)
     virtual double dataDens(const TS* _examples, const FeatureVector* _example, double _sigma) const;
-
+#endif
 };
 
 //@}

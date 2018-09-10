@@ -21,10 +21,10 @@ def createDir(dirname):
         os.makedirs(dirname)
 
 def checkProgram(programName, show=True):
-    systems = ["Ubuntu/Debian","Manjaro/Arch"]
+    systems = ["Ubuntu/Debian","ManjaroLinux"]
 
     osInfo = subprocess.Popen(["lsb_release", "--id"],
-                              stdout=subprocess.PIPE).stdout.read()
+                              stdout=subprocess.PIPE, encoding='utf8').stdout.read()
     osName = osInfo.split('\t')[1].strip('\n')
     osId = -1  # no default OS
     for idx, system in enumerate(systems):
@@ -167,37 +167,31 @@ def configOpenCV(configDict):
     else:
         configDict["OPENCV"]=True
 
-        # Check CUDA Support
-        cppProg="#include <opencv2/core/version.hpp>\n"
-        cppProg+="#if CV_MAJOR_VERSION>=3\n"
-        cppProg+="   #include <opencv2/cudaoptflow.hpp>\n"
-        cppProg+="#else\n"
-        cppProg+="    #include <opencv2/core/cuda.hpp>\n"
-        cppProg+="#endif\n"
-        cppProg+="int main(){}\n"
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
-           configDict["OPENCVSUPPORTSCUDA"]=False
-        else:
-           configDict["OPENCVSUPPORTSCUDA"]=True
-
         # Check version
-	cppProg="#include <opencv2/core/version.hpp>\n"
-	cppProg+="#include <fstream>\n"
-        cppProg+='int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n'
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-	if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
+            cppFile.write('#include <opencv2/core/version.hpp>\n')
+            cppFile.write('#include <fstream>\n')
+            cppFile.write('int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n')
+        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
             configDict["OPENCV3"]=False
         else:
             runJob("./xmipp_test_opencv")
             f=open("xmipp_test_opencv.txt")
-            version=int(f.readline())
+            versionStr=f.readline()
             f.close()
+            version=int(versionStr.split('.',1)[0])
             configDict["OPENCV3"]=version>=3
+
+        # Check CUDA Support
+        cppProg="#include <opencv2/core/version.hpp>\n"
+        cppProg+= "#include <opencv2/cudaoptflow.hpp>\n" if configDict["OPENCV3"] else "#include <opencv2/core/cuda.hpp>\n"
+        cppProg+="int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+        configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]))
+
     runJob("rm xmipp_test_opencv*")
 
 def configCompiler(configDict):
@@ -228,7 +222,7 @@ def configCompiler(configDict):
         if not findFileInDirList("libhdf5*",libDirs):
             if findFileInDirList("libhdf5*",["/usr/lib/x86_64-linux-gnu"]):
                 configDict["LIBDIRFLAGS"]+=" -L/usr/lib/x86_64-linux-gnu"
-                libDirs+=["/usr/lib/x86_64-linux-gnu"]
+                # libDirs+=["/usr/lib/x86_64-linux-gnu"]
     if configDict["INCDIRFLAGS"]=="":
         incDirs=[]
         scipionHomeDir = getScipionHome()
@@ -254,6 +248,9 @@ def configCompiler(configDict):
             if findFileInDirList("Python.h",["/usr/include/python2.7"]):
                 configDict["PYTHONINCFLAGS"]+=" -I/usr/include/python2.7"
                 incDirs+=["/usr/include/python2.7"]
+            if findFileInDirList("ndarraytypes.h",["/usr/lib/python2.7/site-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/lib/python2.7/site-packages/numpy/core/include/"
+                incDirs+=["usr/lib/python2.7/site-packages/numpy/core/include/"]
     if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
         configOpenCV(configDict)
 
@@ -516,6 +513,7 @@ def checkConfig():
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
                   "python-numpy python-scipy python-mpi4py")
+            print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             return False
         if not checkMPI(configDict):
             print(red("Cannot compile with MPI or use it"))
@@ -557,7 +555,7 @@ def runTests(testNames):
     print("Testing ---------------------------------------------")
     os.environ['PYTHONPATH'] = ':'.join([
                          os.path.join(os.environ.get('XMIPP_SRC', ''), 'xmipp'),
-                         os.environ['PYTHONPATH'] ])
+                         os.environ.get('PYTHONPATH', '')])
     try:
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
     except:
@@ -578,14 +576,17 @@ def runTests(testNames):
         print(blue('  Downloading test data.. (it can take a while)'))
         subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
                          '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
-        
+
     try:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
     except:
-        raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
-                        blue('export SCIPION_HOME=<scipion_home>'))
+        python = 'python'
+        # raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
+        #                 blue('export SCIPION_HOME=<scipion_home>'))
 
-    runJob("cd %s; %s base.py "%(testsPath, python) + ' '.join(testNames))
+    print(testNames)
+    testsToDo = '--all' if len(testNames)==0 else ' '.join(testNames)
+    runJob("cd %s; %s base.py %s" % (testsPath, python, testsToDo))
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -688,26 +689,27 @@ def writeDevelPaths(dirname):
 
 def usage():
     print("Usage: xmipp_installer [options]\n"
-          "   all [N=processors]:   (Default) Retrieve, configure, check, compile N=8, install in build\n"
-          "   get_devel_sources:    Retrieve development sources from github\n"
-          "   clean:                Delete source directories\n"
-          "   cleanBin:             Clean already compiled files\n"
-          "   config:               Configure compilation variables\n"
-          "   check_config:         Check that the configuration is correct\n"
-          "   compile N:            Compile all modules with N processors\n"
-          "   compile N xmippCore:  Compile xmippCore\n"
-          "   compile N xmipp:      Compile xmipp\n"
-          "   compile N xmippViz:   Compile xmippViz\n"
-          "   install dir:          Install at dir (by default, ./build)\n"
-          "   test testName:        Run tests to check Xmipp programs (by default, all).\n"
-          "\n"
+          "   all [N=processors]:     (Default) Retrieve, configure, check, compile N=8, install in build\n"
+          "   get_devel_sources:      Retrieve development sources from github\n"
+          "   cleanBin:               Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
+          "   clean:                  Delete all (sources and build directories)\n"
+          "   config:                 Configure compilation variables\n"
+          "   check_config:           Check that the configuration is correct\n"
+          "   compile N:              Compile all modules with N processors\n"
+          "   compile N xmippCore:    Compile xmippCore\n"
+          "   compile N xmipp:        Compile xmipp\n"
+          "   compile N xmippViz:     Compile xmippViz\n"
+          "   install dir:            Install at dir (by default, ./build)\n"
+          "   test [--show] testName: Run tests to check Xmipp programs (by default, all).\n"
+          "                             if --show is activated without testName all are shown, \n"
+          "                             instead a grep of testName is done \n"
           "For developers:\n"
-          "   create_devel_paths:   Create bashrc files for devel\n"
-          "   git ...:              Git command to all 4 repositories\n"
-          "   gitConfig:            Change the git config from https to git\n"
-          "   tar <mode> <version>: Create a bundle of the xmipp\n"
-          "                            <mode> can be 'Sources' or 'Binaries'\n"
-          "                            <version> usually X.YY.MM\n"
+          "   create_devel_paths:     Create bashrc files for devel\n"
+          "   git ...:                Git command to all 4 repositories\n"
+          "   gitConfig:              Change the git config from https to git\n"
+          "   tar <mode> <version>:   Create a bundle of the xmipp\n"
+          "                              <mode> can be 'Sources' or 'Binaries'\n"
+          "                              <version> usually X.YY.MM\n"
           )
 
 if __name__ == '__main__':
@@ -719,6 +721,9 @@ if __name__ == '__main__':
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
         usage()
         sys.exit(0)
+    for idx, arg in enumerate(sys.argv):
+        if ' ' in arg:  # to preserve "string"
+            sys.argv[idx] = '"%s"' % sys.argv[idx]
     if n>=2:
         mode = sys.argv[1]
     else:
@@ -790,3 +795,4 @@ if __name__ == '__main__':
     else:
         print(" -> option not found <- \n")
         usage()
+
