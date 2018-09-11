@@ -64,7 +64,7 @@ class ScriptPDBCenter(xmipp_base.XmippScript):
             xsum /= N
             ysum /= N
             zsum /= N
-            print("Center of mass (x,y,z)=(%f,%f,%f)"%(xsum,ysum,zsum))
+            # print("Center of mass (x,y,z)=(%f,%f,%f)"%(xsum,ysum,zsum))
 
         newLines = []
         for line in self.lines:
