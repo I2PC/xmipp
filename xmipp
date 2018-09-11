@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import distutils.spawn
 import glob
@@ -24,7 +24,7 @@ def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","ManjaroLinux"]
 
     osInfo = subprocess.Popen(["lsb_release", "--id"],
-                              stdout=subprocess.PIPE, encoding='utf8').stdout.read()
+                              stdout=subprocess.PIPE).stdout.read()
     osName = osInfo.split('\t')[1].strip('\n')
     osId = -1  # no default OS
     for idx, system in enumerate(systems):
