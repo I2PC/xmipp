@@ -5,7 +5,7 @@ To install Xmipp follow this instructions:
 ```
 mkdir <xmipp-bundle>
 cd <xmipp-bundle>
-wget https://raw.githubusercontent.com/I2PC/xmipp/master/xmipp -O xmipp
+wget https://raw.githubusercontent.com/I2PC/xmipp/devel/xmipp -O xmipp
 chmod 755 xmipp
 ./xmipp [all N]
 ln -sf src/xmipp/xmipp xmipp  # optional but recommended to have always the last version of the xmipp script
