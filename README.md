@@ -8,7 +8,7 @@ cd <xmipp-bundle>
 wget https://raw.githubusercontent.com/I2PC/xmipp/master/xmipp -O xmipp
 chmod 755 xmipp
 ./xmipp [all N]
-ln -sf src/xmipp/xmipp xmipp  # optional but recommended to have the last version of the xmipp script
+ln -sf src/xmipp/xmipp xmipp  # optional but recommended to have always the last version of the xmipp script
 ```
 where N (8 by default) is the number of processors that you want to use for compile.
 
