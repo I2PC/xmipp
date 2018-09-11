@@ -206,7 +206,6 @@ void ProgCorrectWiener2D::processImage(const FileName &fnImg, const FileName &fn
 
 	img.read(fnImg);
 	ctf.readFromMdRow(rowIn);
-	ctf.phase_shift = (ctf.phase_shift*PI)/180;
 	img().setXmippOrigin();
 	Ydim = YSIZE(img());
 	Xdim = XSIZE(img());

@@ -389,7 +389,8 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
             std::cout << "Too large defocus\n";
         return heavy_penalization;
     }
-    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation)
+
+    if (initial_ctfmodel.Defocus != 0 && action >= 3)
     {
         // If there is an initial model, the true solution
         // cannot be too far
@@ -406,13 +407,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 
         }
     }
-    if ((initial_ctfmodel.phase_shift != 0.0 || initial_ctfmodel.phase_shift != 1.57079) && action >= 5)
-    {
-    	if (fabs(initial_ctfmodel.phase_shift - current_ctfmodel.phase_shift) > 0.26)
-    	{
-    		return heavy_penalization;
-    	}
-    }
+
     // Now the 1D error
     double distsum = 0;
     int N = 0, Ncorr = 0;
@@ -424,7 +419,6 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     double lowerLimit = 1.1 * min_freq_psd;
     double upperLimit = 0.9 * max_freq_psd;
     const MultidimArray<double>& local_enhanced_ctf = psd_exp_enhanced_radial;
-    int XdimW=XSIZE(w_digfreq);
     corr13=0;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(w_digfreq)
     {
@@ -435,8 +429,31 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 		current_ctfmodel.precomputeValues(i);
 		double bg = current_ctfmodel.getValueNoiseAt();
 
-		double envelope=0, ctf_without_damping, ctf_with_damping=0, current_envelope = 0;
+		double envelope=0, ctf_without_damping, ctf_with_damping=0;
 		double ctf2_th=0;
+		switch (action)
+		{
+		case 0:
+		case 1:
+			ctf2_th = bg;
+			break;
+		case 2:
+			envelope = current_ctfmodel.getValueDampingAt();
+			ctf2_th = bg + envelope * envelope;
+			break;
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+			envelope = current_ctfmodel.getValueDampingAt();
+			ctf_without_damping = current_ctfmodel.getValuePureWithoutDampingAt();
+			ctf_with_damping = envelope * ctf_without_damping;
+			ctf2_th = bg + ctf_with_damping * ctf_with_damping;
+			break;
+
+		}
+		// Compute distance
 		double ctf2 = DIRECT_A1D_ELEM(psd_exp_radial, i);
 		double dist = 0;
 		double ctf_with_damping2;
@@ -444,14 +461,13 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 		{
 		case 0:
 		case 1:
-			ctf2_th = bg;
 			dist = fabs(ctf2 - bg);
 			if (penalize && bg > ctf2 && DIRECT_A1D_ELEM(w_digfreq, i) > max_gauss_freq)
 				dist *= current_penalty;
+			if (penalize && bg < ctf2 && DIRECT_A1D_ELEM(w_digfreq, i) > max_gauss_freq)
+				dist *= 5;
 			break;
 		case 2:
-			envelope = current_ctfmodel.getValueDampingAt();
-			ctf2_th = bg + envelope * envelope;
 			dist = fabs(ctf2 - ctf2_th);
 			if (penalize && ctf2_th < ctf2 && DIRECT_A1D_ELEM(w_digfreq, i)	> max_gauss_freq)
 				dist *= current_penalty;
@@ -461,14 +477,8 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 		case 5:
 		case 6:
 		case 7:
-			envelope = current_ctfmodel.getValueDampingAt();
-			ctf_without_damping = current_ctfmodel.getValuePureWithoutDampingAt();
-
-			ctf_with_damping = envelope * ctf_without_damping;
-			ctf2_th = bg + ctf_with_damping * ctf_with_damping;
-
 			if (DIRECT_A1D_ELEM(w_digfreq,i) < upperLimit
-							&& DIRECT_A1D_ELEM(w_digfreq,i) > lowerLimit)
+				&& DIRECT_A1D_ELEM(w_digfreq,i) > lowerLimit)
 			{
 				if  (action == 3 ||
 					 (action == 4 && DIRECT_A1D_ELEM(mask_between_zeroes,i) == 1) ||
@@ -504,9 +514,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 			//   ------- - ------- = -------
 			//    env^2     env^2     env^2
 			break;
-
 		}
-
 		distsum += dist * DIRECT_A1D_ELEM(mask,i);
 		N++;
 	}
@@ -1078,82 +1086,12 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 	steps.initConstant(1);
 	steps(1) = 0; // Do not optimize kV
 	steps(2) = 0; // Do not optimize K
-	if(!selfEstimation)
-	{
-		(*adjust_params)(0) = initial_ctfmodel.Defocus;
-		(*adjust_params)(2) = current_ctfmodel.K;
-		powellOptimizer(*adjust_params, FIRST_DEFOCUS_PARAMETER + 1,
+	(*adjust_params)(0) = initial_ctfmodel.Defocus;
+	(*adjust_params)(2) = current_ctfmodel.K;
+	powellOptimizer(*adjust_params, FIRST_DEFOCUS_PARAMETER + 1,
 								DEFOCUS_PARAMETERS, CTF_fitness_fast, global_prm, 0.05,
 								fitness, iter, steps, false);
-	}
-	else
-	{
-		/*
-		 * Defocus estimation s² stigmator
-		 *
-		 * CTF = sin(PI*lambda*defocus*R²)
-		 * CTF = sin(PI*lambda*defocus*w²/Ts²)
-		 * w² = omega
-		 * omega = 2*K0/Xdim   K0: position of the maximum of the psd in fourier
-		 *
-		 * Defocus = 2*K0*(2*Ts)²/lambda
-		 */
-		MultidimArray<double> psd_exp_radial2;
-		MultidimArray<double> background;
-		MultidimArray<double> psd_background;
-		action = 1;
-		generateModelSoFar_fast(background, false);
-		action = 3;
-		psd_background.initZeros(background);
-		FOR_ALL_ELEMENTS_IN_ARRAY1D(background)
-		{
-			if(w_digfreq(i)>min_freq && w_digfreq(i)<max_freq)
-				psd_background(i)= background(i)-psd_exp_radial(i);
-		}
-		psd_exp_radial2.initZeros(psd_exp_radial);
 
-		double deltaW=1.0/(2*XSIZE(w_digfreq)*current_ctfmodel.Tm);
-		double deltaW2=1.0/(XSIZE(w_digfreq)*pow(2*current_ctfmodel.Tm,2));
-		FOR_ALL_ELEMENTS_IN_ARRAY1D(psd_exp_radial2)
-		{
-			double w2=i*deltaW2;
-			double w=sqrt(w2);
-			double widx=w/deltaW;
-			size_t lowerIdx=floor(widx);
-			double weight=widx-floor(widx);
-			double value =(1-weight)*A1D_ELEM(psd_background,lowerIdx)
-												 +weight*A1D_ELEM(psd_background,lowerIdx+1);
-
-			A1D_ELEM(psd_exp_radial2,i) = value*value;
-		}
-
-		FourierTransformer FourierPSD;
-		FourierPSD.FourierTransform(psd_exp_radial2, psd_fft, false);
-
-		int startIndex = 7;
-		if (current_ctfmodel.VPP_radius != 0.0)
-			startIndex = 10; //avoid low frequencies
-		FOR_ALL_ELEMENTS_IN_ARRAY1D(psd_fft)
-		{
-			if(i>=startIndex)
-				amplitud.push_back(abs(psd_fft[i]));
-
-		}
-
-		double maxValue = *max_element(amplitud.rbegin(),amplitud.rend());
-		int finalIndex = 0;
-		for(size_t i=0;i<amplitud.size();i++)
-		{
-			if(maxValue == amplitud[i])
-			{
-				current_ctfmodel.Defocus = (floor((finalIndex+startIndex+1))*pow(2*current_ctfmodel.Tm,2))/
-												current_ctfmodel.lambda;
-				break;
-			}
-			finalIndex++;
-		}
-
-	}
 	// Keep the result in adjust
 	current_ctfmodel.forcePhysicalMeaning();
 	COPY_ctfmodel_TO_CURRENT_GUESS;
@@ -1558,10 +1496,6 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 		prm2D->saveIntermediateResults(fn_rootMODEL, false);
 		prm2D->current_ctfmodel.Tm /= prm2D->downsampleFactor;
 		prm2D->current_ctfmodel.azimuthal_angle = std::fmod(prm2D->current_ctfmodel.azimuthal_angle,360.);
-		prm2D->current_ctfmodel.phase_shift = (prm2D->current_ctfmodel.phase_shift*180)/3.14;
-		if(prm2D->current_ctfmodel.phase_shift<0.0)
-			prm2D->current_ctfmodel.phase_shift = 0.0;
-
 		prm2D->current_ctfmodel.write(fn_rootCTFPARAM + ".ctfparam_tmp");
 		MetaData MD;
 		MD.read(fn_rootCTFPARAM + ".ctfparam_tmp");
