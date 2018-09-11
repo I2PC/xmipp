@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import distutils.spawn
 import glob
@@ -403,7 +403,9 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -Wno-deprecated-gpu-targets"
+            if checkProgram("g++-5", False):
+                configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5"
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -522,11 +524,11 @@ def checkConfig():
             print(red("Cannot compile with Java"))
             return False
         if not checkCuda(configDict):
-            print(red("Cannot compile with NVCC"))
-            return False
+            print(red("Cannot compile with NVCC, continuing without CUDA"))
+            configDict["CUDA"]="False"
         if not checkMatlab(configDict):
-            print(red("Cannot compile with Matlab"))
-            return False
+            print(red("Cannot compile with Matlab, continuing without Matlab"))
+            configDict["MATLAB"]="False"
         configDict['VERIFIED']="True"
         writeConfig(configDict)
     return True
