@@ -39,8 +39,8 @@ class ScriptPDBSelect(xmipp_base.XmippScript):
         ## params
         self.addParamsLine(' -i <pdb>          : PDB file to process')
         self.addParamsLine(' -o <pdb>          : Output PDB')
-        self.addParamsLine('[--keep_alpha]     : Keep alpha helices')
-        self.addParamsLine('[--keep_beta]      : Keep beta helices')
+        self.addParamsLine('[--keep_alpha <N=10>] : Keep alpha helices at least of this length')
+        self.addParamsLine('[--keep_beta  <N=10>] : Keep beta helices at least of this length')
         self.addParamsLine('[--exclude_alpha]  : Exclude alpha helices')
         self.addParamsLine('[--exclude_beta]   : Exclude beta helices')
         ## examples
@@ -58,9 +58,15 @@ class ScriptPDBSelect(xmipp_base.XmippScript):
                 if line.startswith('ATOM '):
                     self.allAtoms.append(line)
                 elif line.startswith('HELIX '):
-                    self.sse.append(('Helix',line[19],int(line[21:25]),int(line[33:37])))
+                    ss0 = int(line[21:25])
+                    ssF = int(line[33:37])
+                    if ssF-ss0>self.N:
+                        self.sse.append(('Helix',line[19],ss0,ssF))
                 elif line.startswith('SHEET '):
-                    self.sse.append(('Sheet',line[21],int(line[22:26]),int(line[33:37])))
+                    ss0 = int(line[22:26])
+                    ssF = int(line[33:37])
+                    if ssF-ss0>self.N:
+                        self.sse.append(('Sheet',line[21],ss0,ssF))
             except:
                 pass
 
@@ -95,8 +101,13 @@ class ScriptPDBSelect(xmipp_base.XmippScript):
     def run(self):
         fnIn = self.getParam('-i')
         fnOut = self.getParam('-o')
+        self.N = 0
         self.keep_alpha = self.checkParam('--keep_alpha')
+        if self.keep_alpha:
+            self.N = self.getIntParam("--keep_alpha")
         self.keep_beta = self.checkParam('--keep_beta')
+        if self.keep_beta:
+            self.N = self.getIntParam("--keep_beta")
         self.exclude_alpha = self.checkParam('--exclude_alpha')
         self.exclude_beta = self.checkParam('--exclude_beta')
         self.readPDB(fnIn)
