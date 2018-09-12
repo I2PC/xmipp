@@ -1,0 +1,19 @@
+sudo: true
+dist: trusty
+env: TRAVIS=1
+addons:
+  apt:
+    sources: ubuntu-toolchain-r-test
+    packages: g++-5
+  sonarcloud:
+# See https://docs.travis-ci.com/user/sonarcloud/
+    organization: "i2pc"
+    token:
+        secure: $SONAR_TOKEN
+
+before_install:
+ - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
+script: 
+ - python ./scripts/travis_before_script
+ - build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp
+ - sonar-scanner
