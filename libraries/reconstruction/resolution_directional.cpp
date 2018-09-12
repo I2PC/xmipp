@@ -275,15 +275,15 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	}
 	//TODO: check if the angles output are correct
 	*/
-	angles.initZeros(2,82);
-	MAT_ELEM(angles, 0, 0) = 0.000000;	 MAT_ELEM(angles, 1, 0) = 0.000000;
-	MAT_ELEM(angles, 0, 1) = 36.000000;	 MAT_ELEM(angles, 1, 1) = 15.858741;
-	MAT_ELEM(angles, 0, 2) = 36.000000;	 MAT_ELEM(angles, 1, 2) = 31.717482;
-	MAT_ELEM(angles, 0, 3) = 36.000000;	 MAT_ELEM(angles, 1, 3) = 47.576224;
-	MAT_ELEM(angles, 0, 4) = 36.000000;	 MAT_ELEM(angles, 1, 4) = 63.434965;
-	MAT_ELEM(angles, 0, 5) = 62.494295;	 MAT_ELEM(angles, 1, 5) = -76.558393;
-	MAT_ELEM(angles, 0, 6) = 54.000000;	 MAT_ELEM(angles, 1, 6) = 90.000000;
-	MAT_ELEM(angles, 0, 7) = 45.505705;	 MAT_ELEM(angles, 1, 7) = 76.558393;
+	angles.initZeros(2,81);
+	MAT_ELEM(angles, 0, 0) = 0.000000;	 	 MAT_ELEM(angles, 1, 0) = 0.000000;
+	MAT_ELEM(angles, 0, 1) = 36.000000;	 	 MAT_ELEM(angles, 1, 1) = 15.858741;
+	MAT_ELEM(angles, 0, 2) = 36.000000;	 	 MAT_ELEM(angles, 1, 2) = 31.717482;
+	MAT_ELEM(angles, 0, 3) = 36.000000;	 	 MAT_ELEM(angles, 1, 3) = 47.576224;
+	MAT_ELEM(angles, 0, 4) = 36.000000;	 	 MAT_ELEM(angles, 1, 4) = 63.434965;
+	MAT_ELEM(angles, 0, 5) = 62.494295;	 	 MAT_ELEM(angles, 1, 5) = -76.558393;
+	MAT_ELEM(angles, 0, 6) = 54.000000;	 	 MAT_ELEM(angles, 1, 6) = 90.000000;
+	MAT_ELEM(angles, 0, 7) = 45.505705;	 	 MAT_ELEM(angles, 1, 7) = 76.558393;
 	MAT_ELEM(angles, 0, 8) = 108.000000;	 MAT_ELEM(angles, 1, 8) = 15.858741;
 	MAT_ELEM(angles, 0, 9) = 108.000000;	 MAT_ELEM(angles, 1, 9) = 31.717482;
 	MAT_ELEM(angles, 0, 10) = 108.000000;	 MAT_ELEM(angles, 1, 10) = 47.576224;
@@ -305,17 +305,17 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	MAT_ELEM(angles, 0, 26) = 98.494295;	 MAT_ELEM(angles, 1, 26) = 76.558393;
 	MAT_ELEM(angles, 0, 27) = 90.000000;	 MAT_ELEM(angles, 1, 27) = 90.000000;
 	MAT_ELEM(angles, 0, 28) = 81.505705;	 MAT_ELEM(angles, 1, 28) = -76.558393;
-	MAT_ELEM(angles, 0, 29) = 0.000000;	 MAT_ELEM(angles, 1, 29) = -15.858741;
-	MAT_ELEM(angles, 0, 30) = 0.000000;	 MAT_ELEM(angles, 1, 30) = -31.717482;
-	MAT_ELEM(angles, 0, 31) = 0.000000;	 MAT_ELEM(angles, 1, 31) = -47.576224;
-	MAT_ELEM(angles, 0, 32) = 0.000000;	 MAT_ELEM(angles, 1, 32) = -63.434965;
+	MAT_ELEM(angles, 0, 29) = 0.000000;	 	 MAT_ELEM(angles, 1, 29) = -15.858741;
+	MAT_ELEM(angles, 0, 30) = 0.000000;	 	 MAT_ELEM(angles, 1, 30) = -31.717482;
+	MAT_ELEM(angles, 0, 31) = 0.000000;	 	 MAT_ELEM(angles, 1, 31) = -47.576224;
+	MAT_ELEM(angles, 0, 32) = 0.000000;	 	 MAT_ELEM(angles, 1, 32) = -63.434965;
 	MAT_ELEM(angles, 0, 33) = 26.494295;	 MAT_ELEM(angles, 1, 33) = 76.558393;
 	MAT_ELEM(angles, 0, 34) = 18.000000;	 MAT_ELEM(angles, 1, 34) = 90.000000;
-	MAT_ELEM(angles, 0, 35) = 9.505705;	 MAT_ELEM(angles, 1, 35) = -76.558393;
+	MAT_ELEM(angles, 0, 35) = 9.505705;	 	 MAT_ELEM(angles, 1, 35) = -76.558393;
 	MAT_ELEM(angles, 0, 36) = 12.811021;	 MAT_ELEM(angles, 1, 36) = 42.234673;
 	MAT_ELEM(angles, 0, 37) = 18.466996;	 MAT_ELEM(angles, 1, 37) = 59.620797;
-	MAT_ELEM(angles, 0, 38) = 0.000000;	 MAT_ELEM(angles, 1, 38) = 90.000000;
-	MAT_ELEM(angles, 0, 39) = 8.867209;	 MAT_ELEM(angles, 1, 39) = 75.219088;
+	MAT_ELEM(angles, 0, 38) = 0.000000;	 	 MAT_ELEM(angles, 1, 38) = 90.000000;
+	MAT_ELEM(angles, 0, 39) = 8.867209;	 	 MAT_ELEM(angles, 1, 39) = 75.219088;
 	MAT_ELEM(angles, 0, 40) = 72.000000;	 MAT_ELEM(angles, 1, 40) = 26.565058;
 	MAT_ELEM(angles, 0, 41) = 59.188979;	 MAT_ELEM(angles, 1, 41) = 42.234673;
 	MAT_ELEM(angles, 0, 42) = 84.811021;	 MAT_ELEM(angles, 1, 42) = 42.234673;
@@ -338,26 +338,25 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	MAT_ELEM(angles, 0, 59) = 167.188979;	 MAT_ELEM(angles, 1, 59) = -42.234673;
 	MAT_ELEM(angles, 0, 60) = 180.000000;	 MAT_ELEM(angles, 1, 60) = -58.282544;
 	MAT_ELEM(angles, 0, 61) = 161.533003;	 MAT_ELEM(angles, 1, 61) = -59.620797;
-	MAT_ELEM(angles, 0, 62) = 180.000000;	 MAT_ELEM(angles, 1, 62) = 90.000000;
-	MAT_ELEM(angles, 0, 63) = 171.132791;	 MAT_ELEM(angles, 1, 63) = -75.219088;
-	MAT_ELEM(angles, 0, 64) = 108.000000;	 MAT_ELEM(angles, 1, 64) = -26.565058;
-	MAT_ELEM(angles, 0, 65) = 120.811021;	 MAT_ELEM(angles, 1, 65) = -42.234673;
-	MAT_ELEM(angles, 0, 66) = 95.188979;	 MAT_ELEM(angles, 1, 66) = -42.234673;
-	MAT_ELEM(angles, 0, 67) = 126.466996;	 MAT_ELEM(angles, 1, 67) = -59.620797;
-	MAT_ELEM(angles, 0, 68) = 108.000000;	 MAT_ELEM(angles, 1, 68) = -58.282544;
-	MAT_ELEM(angles, 0, 69) = 89.533003;	 MAT_ELEM(angles, 1, 69) = -59.620797;
-	MAT_ELEM(angles, 0, 70) = 108.000000;	 MAT_ELEM(angles, 1, 70) = 90.000000;
-	MAT_ELEM(angles, 0, 71) = 116.867209;	 MAT_ELEM(angles, 1, 71) = -75.219088;
-	MAT_ELEM(angles, 0, 72) = 99.132791;	 MAT_ELEM(angles, 1, 72) = -75.219088;
-	MAT_ELEM(angles, 0, 73) = 36.000000;	 MAT_ELEM(angles, 1, 73) = -26.565058;
-	MAT_ELEM(angles, 0, 74) = 48.811021;	 MAT_ELEM(angles, 1, 74) = -42.234673;
-	MAT_ELEM(angles, 0, 75) = 23.188979;	 MAT_ELEM(angles, 1, 75) = -42.234673;
-	MAT_ELEM(angles, 0, 76) = 54.466996;	 MAT_ELEM(angles, 1, 76) = -59.620797;
-	MAT_ELEM(angles, 0, 77) = 36.000000;	 MAT_ELEM(angles, 1, 77) = -58.282544;
-	MAT_ELEM(angles, 0, 78) = 17.533003;	 MAT_ELEM(angles, 1, 78) = -59.620797;
-	MAT_ELEM(angles, 0, 79) = 36.000000;	 MAT_ELEM(angles, 1, 79) = 90.000000;
-	MAT_ELEM(angles, 0, 80) = 44.867209;	 MAT_ELEM(angles, 1, 80) = -75.219088;
-	MAT_ELEM(angles, 0, 81) = 27.132791;	 MAT_ELEM(angles, 1, 81) = -75.219088;
+	MAT_ELEM(angles, 0, 62) = 171.132791;	 MAT_ELEM(angles, 1, 63) = -75.219088;
+	MAT_ELEM(angles, 0, 63) = 108.000000;	 MAT_ELEM(angles, 1, 63) = -26.565058;
+	MAT_ELEM(angles, 0, 64) = 120.811021;	 MAT_ELEM(angles, 1, 64) = -42.234673;
+	MAT_ELEM(angles, 0, 65) = 95.188979;	 MAT_ELEM(angles, 1, 65) = -42.234673;
+	MAT_ELEM(angles, 0, 66) = 126.466996;	 MAT_ELEM(angles, 1, 66) = -59.620797;
+	MAT_ELEM(angles, 0, 67) = 108.000000;	 MAT_ELEM(angles, 1, 67) = -58.282544;
+	MAT_ELEM(angles, 0, 68) = 89.533003;	 MAT_ELEM(angles, 1, 68) = -59.620797;
+	MAT_ELEM(angles, 0, 69) = 108.000000;	 MAT_ELEM(angles, 1, 69) = 90.000000;
+	MAT_ELEM(angles, 0, 70) = 116.867209;	 MAT_ELEM(angles, 1, 70) = -75.219088;
+	MAT_ELEM(angles, 0, 71) = 99.132791;	 MAT_ELEM(angles, 1, 71) = -75.219088;
+	MAT_ELEM(angles, 0, 72) = 36.000000;	 MAT_ELEM(angles, 1, 72) = -26.565058;
+	MAT_ELEM(angles, 0, 73) = 48.811021;	 MAT_ELEM(angles, 1, 73) = -42.234673;
+	MAT_ELEM(angles, 0, 74) = 23.188979;	 MAT_ELEM(angles, 1, 74) = -42.234673;
+	MAT_ELEM(angles, 0, 75) = 54.466996;	 MAT_ELEM(angles, 1, 75) = -59.620797;
+	MAT_ELEM(angles, 0, 76) = 36.000000;	 MAT_ELEM(angles, 1, 76) = -58.282544;
+	MAT_ELEM(angles, 0, 77) = 17.533003;	 MAT_ELEM(angles, 1, 77) = -59.620797;
+	MAT_ELEM(angles, 0, 78) = 36.000000;	 MAT_ELEM(angles, 1, 78) = 90.000000;
+	MAT_ELEM(angles, 0, 79) = 44.867209;	 MAT_ELEM(angles, 1, 79) = -75.219088;
+	MAT_ELEM(angles, 0, 80) = 27.132791;	 MAT_ELEM(angles, 1, 80) = -75.219088;
 }
 
 
@@ -1888,31 +1887,31 @@ void ProgResDir::run()
 //		amplitudeMS.clear();
 //		fftVRiesz.clear();
 
-		size_t maskPos=0;
-		Image<double> ResolutionVol;
-		MultidimArray<double> &pResolutionVol = ResolutionVol();
-
-		pResolutionVol.initZeros(amplitudeMS);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pResolutionVol)
-		{
-			if (DIRECT_MULTIDIM_ELEM(mask(), n) == 1)
-			{
-				double myres = MAT_ELEM(resolutionMatrix, dir, maskPos);
-				DIRECT_MULTIDIM_ELEM(pResolutionVol, n) = myres;
-//				if (n == 14621798)
-//					std::cout << maskPos << std::endl;
-				++maskPos;
-			}
-		}
+//		size_t maskPos=0;
+//		Image<double> ResolutionVol;
+//		MultidimArray<double> &pResolutionVol = ResolutionVol();
+//
+//		pResolutionVol.initZeros(amplitudeMS);
+//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pResolutionVol)
+//		{
+//			if (DIRECT_MULTIDIM_ELEM(mask(), n) == 1)
+//			{
+//				double myres = MAT_ELEM(resolutionMatrix, dir, maskPos);
+//				DIRECT_MULTIDIM_ELEM(pResolutionVol, n) = myres;
+////				if (n == 14621798)
+////					std::cout << maskPos << std::endl;
+//				++maskPos;
+//			}
+//		}
 		//#endif
 //		#ifdef DEBUG_DIR
-		Image<double> saveImg;
-		saveImg = pResolutionVol;
-		FileName fnres = formatString("resolution_dir_%i.vol", dir+1);
-		saveImg.write(fnres);
-		saveImg.clear();
+//		Image<double> saveImg;
+//		saveImg = pResolutionVol;
+//		FileName fnres = formatString("resolution_dir_%i.vol", dir+1);
+//		saveImg.write(fnres);
+//		saveImg.clear();
 //		#endif
-		pResolutionVol.clear();
+//		pResolutionVol.clear();
 		list.clear();
 
 		std::cout << "----------------direction-finished----------------" << std::endl;
@@ -1967,7 +1966,7 @@ void ProgResDir::run()
 	imgdoa = pdoaVol;
 	imgdoa.write(fnDoA);
 */
-	MultidimArray<double> radial, azimuthal, meanResolution, lowestResolution, highestResolution, doavol1, doavol2;
+	MultidimArray<double> radial, azimuthal, lowestResolution, highestResolution, doavol1, doavol2;
 	MetaData prefDir;
 
 	double radialThr, azimuthalThr;
@@ -2087,193 +2086,4 @@ void ProgResDir::run()
 */
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*
-
-	////////////////////////////////////////////
-
-	int maskPos = 0;
-
-	//Remove outliers
-	removeOutliers(trigProducts, resolutionMatrix);
-	//Second step of cleaning
-//	removeOutliers(trigProducts, resolutionMatrix);
-
-
-	//Ellipsoid fitting
-	Matrix2D<double> axis;
-	ellipsoidFitting(trigProducts, resolutionMatrix, axis);
-
-	Image<double> doaVol;
-	MultidimArray<double> &pdoaVol = doaVol();
-
-	pdoaVol.initZeros(NSIZE(mask()),ZSIZE(mask()), YSIZE(mask()), XSIZE(mask()));
-
-
-	int idx = 0;
-	std::cout << "NVoxelsOriginalMask = " << NVoxelsOriginalMask << std::endl;
-
-	double niquist;
-
-	niquist = 2*sampling;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pdoaVol)
-	{
-		if (DIRECT_MULTIDIM_ELEM(mask(), n) >0 ) //before ==1
-		{
-
-			double a = MAT_ELEM(axis, 0, idx);
-			double c = MAT_ELEM(axis, 2, idx);
-//			if (idx<100)
-//				std::cout << c << " " << a << ";" << std::endl;
-			DIRECT_MULTIDIM_ELEM(pdoaVol, n) = (c)/(a);
-			++idx;
-		}
-	}
-
-
-
-	Image<double> imgdoa;
-	imgdoa = pdoaVol;
-	imgdoa.write(fnDoA);
-
-	MultidimArray<double> radial, azimuthal, meanResolution, lowestResolution, highestResolution;
-	MetaData prefDir;
-
-	double radialThr, azimuthalThr;
-	radialAzimuthalResolution(resolutionMatrix, mask(), radial, azimuthal, meanResolution,
-			lowestResolution, highestResolution, radialThr, azimuthalThr, prefDir);
-
-
-	imgdoa = radial;
-	imgdoa.write(fnradial);
-	imgdoa = azimuthal;
-	imgdoa.write(fnazimuthal);
-	imgdoa = lowestResolution;
-	imgdoa.write(fnLowestResolution);
-	imgdoa = highestResolution;
-	imgdoa.write(fnHighestResolution);
-
-	MetaData mdRadialAzimuthalThr;
-	size_t objIdx;
-	objIdx = mdRadialAzimuthalThr.addObject();
-	mdRadialAzimuthalThr.setValue(MDL_RESOLUTION_FREQ, radialThr, objIdx);
-	mdRadialAzimuthalThr.setValue(MDL_RESOLUTION_FREQ2, azimuthalThr, objIdx);
-
-	mdRadialAzimuthalThr.write(fnMDThr);
-
-	std::cout << "radial = " << radialThr << "  azimuthal = " << azimuthalThr << std::endl;
-	std::cout << "Calculating the radial and azimuthal resolution " << std::endl;
-
-
-	MetaData mdRadial, mdAvg, mdHighest, mdLowest;
-
-	Image<double> monores;
-	monores.read(fnMonoRes);
-	MultidimArray<double> monoresVol;
-	monoresVol = monores();
-	radialAverageInMask(mask(), radial, azimuthal, highestResolution, lowestResolution, monoresVol, mdAvg);
-
-	mdAvg.write(fnMDazimuthal);
-
-
-	double lambda_1, lambda_2, lambda_3, doa;
-	double direction_x, direction_y, direction_z;
-	int counter = 0;
-	Matrix2D<double> eigenvectors;
-	Matrix1D<double> eigenvalues, r0_1(3), rF_1(3), r0_2(3), rF_2(3), r0_3(3), rF_3(3), r(3);
-	MultidimArray<int> arrows;
-	arrows.initZeros(mask());
-	const int gridStep=10;
-	size_t n=0;
-	maskPos=0;
-
-	idx = 0;
-	int siz;
-	siz = XSIZE(arrows);
-	double xcoor, ycoor, zcoor, rad, rot, tilt;
-	MetaData md, mdAniRes;
-	size_t objId, objIdAniRes;
-	FileName fn_md, fn_AniRes;
-
-	imgdoa.read(fnDoA);
-	monores().setXmippOrigin();
-
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(arrows)
-	{
-		if (A3D_ELEM(mask(),k,i,j) > 0 ) //before ==1
-		{
-			double doa = A3D_ELEM(imgdoa(),k,i,j);
-			double res = A3D_ELEM(monores(),k,i,j);
-
-			objIdAniRes = mdAniRes.addObject();
-			mdAniRes.setValue(MDL_COST, doa, objIdAniRes);
-			mdAniRes.setValue(MDL_RESOLUTION_SSNR, res, objIdAniRes);
-
-
-
-			//lambda_3 is assumed as the least eigenvalue
-			if ( (i%gridStep==0) && (j%gridStep==0) && (k%gridStep==0) )
-			{
-				double lambda_1 = MAT_ELEM(axis, 0, idx);
-				double lambda_3 = MAT_ELEM(axis, 2, idx);
-
-				xcoor = MAT_ELEM(axis, 3, idx);
-				ycoor = MAT_ELEM(axis, 4, idx);
-				zcoor = MAT_ELEM(axis, 5, idx);
-
-				rot = atan2(ycoor, xcoor)*180/PI;
-				tilt = acos(zcoor)*180/PI;
-
-				double sc;
-				sc = lambda_1/8.0;
-//					std::cout << "a = " << lambda_3 << "  c= " << lambda_1 << std::endl;
-//					std::cout << "sc = " << sc << "  c/sc= " << lambda_1/sc << std::endl;
-
-				//write md with values!
-				objId = md.addObject();
-				md.setValue(MDL_ANGLE_ROT, rot, objId);
-				md.setValue(MDL_ANGLE_TILT, tilt, objId);
-				md.setValue(MDL_XCOOR, (int) j, objId);
-				md.setValue(MDL_YCOOR, (int) i, objId);
-				md.setValue(MDL_ZCOOR, (int) k, objId);
-				md.setValue(MDL_MAX, 7.0, objId);
-				md.setValue(MDL_MIN, lambda_3/sc, objId);
-				md.setValue(MDL_INTSCALE, lambda_3/lambda_1, objId);
-			}
-			++idx;
-		}
-		++n;
-	}
-
-	md.write(fnDirections);
-	mdAniRes.write(fnAniRes);
-
-
-*/
 }
