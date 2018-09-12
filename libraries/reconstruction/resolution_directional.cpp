@@ -1223,15 +1223,13 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 		Image<double> zVolumesave;
 		zVolumesave = zVolume;
 		zVolumesave.write(fnZscore);
-
-
 }
 
 void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		MultidimArray<int> &pmask,
 		MultidimArray<double> &radial,
 		MultidimArray<double> &azimuthal,
-		MultidimArray<double> &meanResolution,
+//		MultidimArray<double> &meanResolution,
 		MultidimArray<double> &lowestResolution,
 		MultidimArray<double> &highestResolution,
 		MultidimArray<double> &doaResolution_1,
@@ -1260,7 +1258,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 	Matrix1D<int> PrefferredDirHist;
 	PrefferredDirHist.initZeros(xrows);
 
-	meanResolution.initZeros(pmask);
+//	meanResolution.initZeros(pmask);
 	size_t objId;
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(pmask)
 	{
@@ -1318,7 +1316,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
-			A3D_ELEM(doaResolution_1,k,i,j) = ((Mres - mres)/(Mres + mres))*((Mres + 2*sampling)/(Mres - 2*sampling));
+			A3D_ELEM(doaResolution_1,k,i,j) = 1 - ((Mres - mres)/(Mres + mres))*((Mres + 2*sampling)/(Mres - 2*sampling));
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
@@ -1345,12 +1343,12 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		}
 
 		if (count_radial<1)
-			A3D_ELEM(radial,k,i,j) = A3D_ELEM(meanResolution,k,i,j);
+			A3D_ELEM(radial,k,i,j) = A3D_ELEM(doaResolution_2,k,i,j);
 		else
 			A3D_ELEM(radial,k,i,j) = radial_resolution/count_radial;
 
 		if (count_azimuthal<1)
-			A3D_ELEM(azimuthal,k,i,j) = A3D_ELEM(meanResolution,k,i,j);
+			A3D_ELEM(azimuthal,k,i,j) = A3D_ELEM(doaResolution_2,k,i,j);
 		else
 			A3D_ELEM(azimuthal,k,i,j) = azimuthal_resolution/count_azimuthal;
 
@@ -1932,7 +1930,7 @@ void ProgResDir::run()
 	//Second step of cleaning
 //	removeOutliers(trigProducts, resolutionMatrix);
 
-
+/*
 	//Ellipsoid fitting
 	Matrix2D<double> axis;
 	ellipsoidFitting(trigProducts, resolutionMatrix, axis);
@@ -1968,15 +1966,15 @@ void ProgResDir::run()
 	Image<double> imgdoa;
 	imgdoa = pdoaVol;
 	imgdoa.write(fnDoA);
-
+*/
 	MultidimArray<double> radial, azimuthal, meanResolution, lowestResolution, highestResolution, doavol1, doavol2;
 	MetaData prefDir;
 
 	double radialThr, azimuthalThr;
-	radialAzimuthalResolution(resolutionMatrix, mask(), radial, azimuthal, meanResolution,
+	radialAzimuthalResolution(resolutionMatrix, mask(), radial, azimuthal,
 			lowestResolution, highestResolution, doavol1, doavol2, radialThr, azimuthalThr, prefDir);
 
-
+	Image<double> imgdoa;
 	imgdoa = radial;
 	imgdoa.write(fnradial);
 	imgdoa = azimuthal;
@@ -2012,7 +2010,7 @@ void ProgResDir::run()
 
 	mdAvg.write(fnMDazimuthal);
 
-
+/*
 	double lambda_1, lambda_2, lambda_3, doa;
 	double direction_x, direction_y, direction_z;
 	int counter = 0;
@@ -2086,7 +2084,7 @@ void ProgResDir::run()
 	mdAniRes.write(fnAniRes);
 
 
-
+*/
 
 
 

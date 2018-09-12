@@ -110,7 +110,6 @@ public:
     		MultidimArray<int> &pmask,
     		MultidimArray<double> &radial,
     		MultidimArray<double> &azimuthal,
-    		MultidimArray<double> &meanResolution,
     		MultidimArray<double> &lowestResolution,
     		MultidimArray<double> &highestResolution,
 			MultidimArray<double> &doaResolution_1,
