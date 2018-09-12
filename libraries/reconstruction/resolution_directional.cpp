@@ -357,6 +357,57 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	MAT_ELEM(angles, 0, 78) = 36.000000;	 MAT_ELEM(angles, 1, 78) = 90.000000;
 	MAT_ELEM(angles, 0, 79) = 44.867209;	 MAT_ELEM(angles, 1, 79) = -75.219088;
 	MAT_ELEM(angles, 0, 80) = 27.132791;	 MAT_ELEM(angles, 1, 80) = -75.219088;
+
+
+//
+//	angles.initZeros(2,47);
+//	MAT_ELEM(angles, 0,1) =0;    MAT_ELEM(angles, 1,1) =0;
+//	MAT_ELEM(angles, 0,2) =36;    MAT_ELEM(angles, 1,2) =21.145;
+//	MAT_ELEM(angles, 0,3) =36;    MAT_ELEM(angles, 1,3) =42.29;
+//	MAT_ELEM(angles, 0,4) =36;    MAT_ELEM(angles, 1,4) =63.435;
+//	MAT_ELEM(angles, 0,5) =59.6043;    MAT_ELEM(angles, 1,5) =-81.0207;
+//	MAT_ELEM(angles, 0,6) =48.3957;    MAT_ELEM(angles, 1,6) =81.0207;
+//	MAT_ELEM(angles, 0,7) =108;    MAT_ELEM(angles, 1,7) =21.145;
+//	MAT_ELEM(angles, 0,8) =108;    MAT_ELEM(angles, 1,8) =42.29;
+//	MAT_ELEM(angles, 0,9) =108;    MAT_ELEM(angles, 1,9) =63.435;
+//	MAT_ELEM(angles, 0,10) =131.6043;    MAT_ELEM(angles, 1,10) =-81.0207;
+//	MAT_ELEM(angles, 0,11) =120.3957;    MAT_ELEM(angles, 1,11) =81.0207;
+//	MAT_ELEM(angles, 0,12) =144;    MAT_ELEM(angles, 1,12) =-21.145;
+//	MAT_ELEM(angles, 0,13) =144;    MAT_ELEM(angles, 1,13) =-42.29;
+//	MAT_ELEM(angles, 0,14) =144;    MAT_ELEM(angles, 1,14) =-63.435;
+//	MAT_ELEM(angles, 0,15) =167.6043;    MAT_ELEM(angles, 1,15) =81.0207;
+//	MAT_ELEM(angles, 0,16) =156.3957;    MAT_ELEM(angles, 1,16) =-81.0207;
+//	MAT_ELEM(angles, 0,17) =72;    MAT_ELEM(angles, 1,17) =-21.145;
+//	MAT_ELEM(angles, 0,18) =72;    MAT_ELEM(angles, 1,18) =-42.29;
+//	MAT_ELEM(angles, 0,19) =72;    MAT_ELEM(angles, 1,19) =-63.435;
+//	MAT_ELEM(angles, 0,20) =95.6043;    MAT_ELEM(angles, 1,20) =81.0207;
+//	MAT_ELEM(angles, 0,21) =84.3957;    MAT_ELEM(angles, 1,21) =-81.0207;
+//	MAT_ELEM(angles, 0,22) =0;    MAT_ELEM(angles, 1,22) =-21.145;
+//	MAT_ELEM(angles, 0,23) =0;    MAT_ELEM(angles, 1,23) =-42.29;
+//	MAT_ELEM(angles, 0,24) =0;    MAT_ELEM(angles, 1,24) =-63.435;
+//	MAT_ELEM(angles, 0,25) =23.6043;    MAT_ELEM(angles, 1,25) =81.0207;
+//	MAT_ELEM(angles, 0,26) =12.3957;    MAT_ELEM(angles, 1,26) =-81.0207;
+//	MAT_ELEM(angles, 0,27) =12.3756;    MAT_ELEM(angles, 1,27) =58.8818;
+//	MAT_ELEM(angles, 0,28) =72;    MAT_ELEM(angles, 1,28) =36.349;
+//	MAT_ELEM(angles, 0,29) =59.6244;    MAT_ELEM(angles, 1,29) =58.8818;
+//	MAT_ELEM(angles, 0,30) =84.3756;    MAT_ELEM(angles, 1,30) =58.8818;
+//	MAT_ELEM(angles, 0,31) =72;    MAT_ELEM(angles, 1,31) =80.2161;
+//	MAT_ELEM(angles, 0,32) =144;    MAT_ELEM(angles, 1,32) =36.349;
+//	MAT_ELEM(angles, 0,33) =131.6244;    MAT_ELEM(angles, 1,33) =58.8818;
+//	MAT_ELEM(angles, 0,34) =156.3756;    MAT_ELEM(angles, 1,34) =58.8818;
+//	MAT_ELEM(angles, 0,35) =144;    MAT_ELEM(angles, 1,35) =80.2161;
+//	MAT_ELEM(angles, 0,36) =180;    MAT_ELEM(angles, 1,36) =-36.349;
+//	MAT_ELEM(angles, 0,37) =167.6244;    MAT_ELEM(angles, 1,37) =-58.8818;
+//	MAT_ELEM(angles, 0,38) =180;    MAT_ELEM(angles, 1,38) =-80.2161;
+//	MAT_ELEM(angles, 0,39) =108;    MAT_ELEM(angles, 1,39) =-36.349;
+//	MAT_ELEM(angles, 0,40) =120.3756;    MAT_ELEM(angles, 1,40) =-58.8818;
+//	MAT_ELEM(angles, 0,41) =95.6244;    MAT_ELEM(angles, 1,41) =-58.8818;
+//	MAT_ELEM(angles, 0,42) =108;    MAT_ELEM(angles, 1,42) =-80.2161;
+//	MAT_ELEM(angles, 0,43) =36;    MAT_ELEM(angles, 1,43) =-36.349;
+//	MAT_ELEM(angles, 0,44) =48.3756;    MAT_ELEM(angles, 1,44) =-58.8818;
+//	MAT_ELEM(angles, 0,45) =23.6244;    MAT_ELEM(angles, 1,45) =-58.8818;
+//	MAT_ELEM(angles, 0,46) =36;    MAT_ELEM(angles, 1,46) =-80.2161;
+
 }
 
 
@@ -448,8 +499,6 @@ void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::compl
 	}
 
 	transformer_inv.inverseFourierTransform(fftVRiesz, VRiesz);
-
-	//This loop can be introduced in next loop saving time
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
 	{
@@ -845,30 +894,6 @@ void ProgResDir::removeOutliers(Matrix2D<double> &anglesMat,
 }
 
 
-//void ProgResDir::doaVolume(Matrix2D<double> &resolutionMat, Matrix2D<double> &axis)
-//{
-//	int numberdirections = angles.mdimx;
-//	int counter;
-//
-//	for (int k = 0; k<NVoxelsOriginalMask; ++k)
-//	{
-//		counter = 0;
-//		std::vector<double> resolutionlist;
-//		for (int i = 0; i<numberdirections; ++i)
-//		{
-//			double resi = MAT_ELEM(resolutionMat, i, k);
-//			if (resi>0)
-//			{
-//				resolutionlist.push_back(resi);
-//				std::sort(resolutionlist.begin(),resolutionlist.end());
-//
-//			}
-//		}
-//		thresholdNoise = resolutionlist[size_t(resolutionlist.size()*significance)];
-//	}
-//
-//}
-
 
 void ProgResDir::ellipsoidFitting(Matrix2D<double> &anglesMat,
 									Matrix2D<double> &resolutionMat,
@@ -1060,7 +1085,6 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 {
 		double u_inf, u_sup, u;
 
-		MultidimArray<int> &pMask = mask;
 		int step = 1;
 
 		double N, NN;
@@ -1079,6 +1103,7 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 		zVolume.initZeros(inputVol_1);
 		zVolume.setXmippOrigin();
 
+		MultidimArray<int> &pMask = mask;
 		pMask.setXmippOrigin();
 
 		Matrix2D<double> std_mean_Radial_1, std_mean_Radial_2, std_mean_Radial_3,
@@ -1178,7 +1203,8 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/(N) - cum_mean_4*cum_mean_4);
 				MAT_ELEM(std_mean_Radial_5,0, kk) = sqrt(cum2_mean_5/(N) - cum_mean_5*cum_mean_5);
 
-				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
+				std::cout << "cum2_mean_4/(N) = " << cum2_mean_4/(N)  << " " << "cum_mean_4*cum_mean_4) = " << cum_mean_4*cum_mean_4 << std::endl;
+ 				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
 				std::cout << "MAT_ELEM(std_mean_Radial_1,1, kk) = " << MAT_ELEM(std_mean_Radial_1,1, kk) << " "  << MAT_ELEM(std_mean_Radial_2,1, kk) << " " << MAT_ELEM(std_mean_Radial_3,1, kk) << " " << MAT_ELEM(std_mean_Radial_4,1, kk) << " " << MAT_ELEM(std_mean_Radial_5,1, kk)<< std::endl;
 
 			}
@@ -1306,22 +1332,20 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 //			A3D_ELEM(meanResolution,k,i,j) = meanRes[(size_t) floor(0.5*meanRes.size())];
 			std::sort(ResList.begin(),ResList.end());
 
-			double Mres, mres;
+			double Mres, mres, medianResol;
 
 			Mres = ResList[ (size_t) floor(0.95*ResList.size()) ];
 			A3D_ELEM(lowestResolution,k,i,j) = Mres;
 
 			mres = ResList[ (size_t) floor(0.03*ResList.size()) ];
 
+			//medianResol = ResList[ (size_t) floor(0.5*ResList.size()) ];
+
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
 			A3D_ELEM(doaResolution_1,k,i,j) = 1 - ((Mres - mres)/(Mres + mres))*((Mres + 2*sampling)/(Mres - 2*sampling));
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
-
-
-
-			double highres = A3D_ELEM(highestResolution,k,i,j);
 
 			ResList.clear();
 
@@ -1333,7 +1357,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 				if (resolution>0)
 				{
-					if ((highres>(resolution-0.1)) && (highres<(resolution+0.1)))
+					if ((mres>(resolution-0.1)) && (mres<(resolution+0.1)))
 						VEC_ELEM(PrefferredDirHist,ii) += 1;
 				}
 
@@ -1362,7 +1386,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		objId = mdprefDirs.addObject();
 		size_t con;
 		con = (size_t) VEC_ELEM(PrefferredDirHist,ii);
-		std::cout << ii << " " << con << std::endl;
+//		std::cout << ii << " " << con << std::endl;
 		double rot = MAT_ELEM(angles, 0, ii);
 		double tilt = MAT_ELEM(angles, 1, ii);
 
