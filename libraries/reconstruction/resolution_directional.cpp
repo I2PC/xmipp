@@ -1200,13 +1200,12 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 				MAT_ELEM(std_mean_Radial_1,0, kk) = sqrt(cum2_mean_1/(N) - cum_mean_1*cum_mean_1);
 				MAT_ELEM(std_mean_Radial_2,0, kk) = sqrt(cum2_mean_2/(N) - cum_mean_2*cum_mean_2);
 				MAT_ELEM(std_mean_Radial_3,0, kk) = sqrt(cum2_mean_3/(N) - cum_mean_3*cum_mean_3);
-				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/(N) - cum_mean_4*cum_mean_4);
+				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/(N) - cum_mean_4*cum_mean_4+0.001);
 				MAT_ELEM(std_mean_Radial_5,0, kk) = sqrt(cum2_mean_5/(N) - cum_mean_5*cum_mean_5);
 
 				std::cout << "cum2_mean_4/(N) = " << cum2_mean_4/(N)  << " " << "cum_mean_4*cum_mean_4) = " << cum_mean_4*cum_mean_4 << std::endl;
  				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
 				std::cout << "MAT_ELEM(std_mean_Radial_1,1, kk) = " << MAT_ELEM(std_mean_Radial_1,1, kk) << " "  << MAT_ELEM(std_mean_Radial_2,1, kk) << " " << MAT_ELEM(std_mean_Radial_3,1, kk) << " " << MAT_ELEM(std_mean_Radial_4,1, kk) << " " << MAT_ELEM(std_mean_Radial_5,1, kk)<< std::endl;
-
 			}
 
 
