@@ -57,7 +57,7 @@ void calculateFFTPlanSize(mycufftHandle &myhandle){
 }
 
 
-void createPlanFFT(size_t Xdim, size_t Ydim, size_t Ndim, size_t Zdim, bool forward, cufftHandle *plan){
+void createPlanFFT(int Xdim, int Ydim, int Ndim, int Zdim, bool forward, cufftHandle *plan){
 
 	int Xfdim=(Xdim/2)+1;
 

@@ -62,8 +62,10 @@ public:
     LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
         int _discrete_levels=8);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /// Get number of levels
     int getNumberOfLevels();
+#endif
 
     /// Assign probability to a value within the PDF of a given class
     double assignProbability(double value, int k) const;
@@ -166,11 +168,13 @@ public:
         MultidimArray<int> &votes,
 		Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts);
 
+#ifdef UNUSED // detected as unused 29.6.2018
     /** Do inference for a given class.
      * It returns the number of votes for that class and the associated cost.
      */
     int doInferenceForClass(int classNumber, const Matrix1D<double> &newFeatures, double &cost,
     						Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts);
+#endif
 };
 //@}
 #endif

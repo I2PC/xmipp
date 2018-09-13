@@ -28,8 +28,8 @@
 import os
 
 import pyworkflow.utils as pwutils
-import pyworkflow.em.packages.xmipp3 as xmipp3
-import pyworkflow.em.packages.xmipp3.programs as prog
+import xmipp3
+import xmipp3.programs as prog
 
 
 class ScriptApropos(xmipp3.XmippScript):

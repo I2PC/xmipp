@@ -10,13 +10,13 @@ from os.path import exists #join
 from tempfile import NamedTemporaryFile
 from time import time
 
-from base import *
-import xmipp
+from .base import *
+from xmippLib import *
 
 # from pyworkflow.tests import *
-# from xmipp import *
-# from pyworkflow.em.packages.xmipp3 import getXmippPath
-# import pyworkflow.utils as pwutils
+from xmipp_base import *
+from xmipp3 import getXmippPath
+import pyworkflow.utils as pwutils
 
 
 def testFile(filename):

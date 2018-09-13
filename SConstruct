@@ -96,8 +96,8 @@ else:
 
 
 # Python and SCons versions are fixed
-env.EnsurePythonVersion(2,7)
-env.EnsureSConsVersion(2,3,2)
+#env.EnsurePythonVersion(2,7)
+#env.EnsureSConsVersion(2,3,0)
 # TODO: see after all is clean and crispy if we can avoid fixing the versions.
 # We can specify a range of valid version after we check it works with them.
 
@@ -143,7 +143,7 @@ env['CCFLAGS'] = os.environ.get('CCFLAGS', '').split()
 cxxFlags = os.environ.get('CXXFLAGS', '')
 if os.environ.get('DEBUG', '0') == 'True': #FIXME, use 1, true, yes...
    cxxFlags += ' -g'
-else:
+elif 'TRAVIS' not in os.environ: # don't optimize on Travis, as it slows down the build
     if cxxFlags.find("-O")==-1:
         cxxFlags += " -O3"
 env['CXXFLAGS'] = cxxFlags.split()
@@ -213,7 +213,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         _libs.append("XmippCuda")
     if "Cuda" in name:
         _libs.append("cudart")
-        _libs.append("cuda")
+        #_libs.append("cuda")
         _libs.append("cufft")
         _libs.append("nvidia-ml")
         _libs.append("cuFFTAdvisor")
@@ -412,8 +412,8 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     incsCopy += env['CPPPATH']+external_incdirs
     libsCopy = libs
     ldLibraryPathCopy = [env['LIBPATH']]
+    appendUnique(libPathsCopy, external_libdirs) # This order is important, because if we should use Scipion libs, these will be before the system libs
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
-    appendUnique(libPathsCopy, external_libdirs)
     env2 = Environment()
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
