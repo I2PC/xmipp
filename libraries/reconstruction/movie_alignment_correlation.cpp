@@ -50,6 +50,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         init_progress_bar(movie.size());
     }
 
+			//gain()=1.0/gain();
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirst && n <= this->nlast) {

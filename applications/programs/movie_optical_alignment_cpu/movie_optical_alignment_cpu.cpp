@@ -28,17 +28,18 @@
 #include <fstream>
 #include <time.h>
 
+#include <opencv2/core/version.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/video/video.hpp>
 
 #ifdef GPU
-#ifdef OPENCV_3
-#include "opencv2/cudaoptflow.hpp"
-#include "opencv2/cudaarithm.hpp"
+#ifndef CV_VERSION_EPOCH // == version 3 or newer
+#include <opencv2/cudaoptflow.hpp>
+#include <opencv2/cudaarithm.hpp>
 #else
-#include "opencv2/gpu/gpu.hpp"
-#endif // OPENCV_3
+#include <opencv2/core/cuda.hpp>
+#endif 
 #endif // GPU
 
 #include <core/multidim_array.h>
@@ -347,7 +348,8 @@ public:
         {
             gain.read(fnGain);
             applyWindow(gain());
-            gain() = 1.0/gain();
+            // Pablo with coss: Consistency with other alignment methods
+            //gain() = 1.0/gain();
             double avg = gain().computeAvg();
             if (std::isinf(avg) || std::isnan(avg))
                 REPORT_ERROR(ERR_ARG_INCORRECT,
@@ -445,12 +447,12 @@ public:
     	Image<float> undeformedGroupAverage, uncompensatedMic;
 
 #ifdef GPU
-#ifdef OPENCV_3
+#ifndef CV_VERSION_EPOCH // version 3 or newer
         // Matrices required in GPU part
         cv::cuda::GpuMat d_currentReference8, d_currentGroupAverage8;
 #else
 	cv::gpu::GpuMat d_flowx, d_flowy, d_currentReference8, d_currentGroupAverage8;
-#endif // OPENCV_3
+#endif 
 #else
         cv::Mat flow;
 #endif // GPU
@@ -463,7 +465,7 @@ public:
 
         meanStdev.initZeros(4);
 #ifdef GPU
-#ifdef OPENCV_3
+#ifndef CV_VERSION_EPOCH // version 3 or newer
         cv::cuda::setDevice(gpuDevice);
 	cv::Ptr<cv::cuda::FarnebackOpticalFlow> d_calc = cv::cuda::FarnebackOpticalFlow::create(
 		6, // numLevels
@@ -487,7 +489,7 @@ public:
         d_calc.polyN=5;
         d_calc.polySigma=1.1;
         d_calc.flags=0;
-#endif // OPENCV_3
+#endif
 #endif // GPU
 
         computeAvg(nfirst, nlast, cvCurrentReference);
@@ -537,7 +539,7 @@ public:
 
 #ifdef GPU
                 d_currentGroupAverage8.upload(cvCurrentGroupAverage8);
-#ifdef OPENCV_3
+#ifndef CV_VERSION_EPOCH // version 3 or newer
  		cv::cuda::GpuMat d_flow(cvCurrentGroupAverage8.size(), CV_32FC2);
 		cv::cuda::GpuMat planes[2];
 		if (numberOfGroups>2)
@@ -565,8 +567,8 @@ public:
                 d_currentGroupAverage8.release();
                 d_flowx.release();
                 d_flowy.release();
-#endif // OPENCV_3
-#else
+#endif
+#else // CPU version
                 int ofFlags=0;
                 // Check if we should use the flows from the previous steps
                 if (numberOfGroups==2)
@@ -579,6 +581,7 @@ public:
                     ofFlags=cv::OPTFLOW_USE_INITIAL_FLOW;
 
                 merge(flowCurrentGroup,2,flow);
+
                 calcOpticalFlowFarneback(cvCurrentReference8, cvCurrentGroupAverage8, flow, 0.5, 6, winSize, 1, 5, 1.1, ofFlags);
                 split(flow, flowCurrentGroup);
 #endif

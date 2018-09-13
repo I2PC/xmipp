@@ -27,6 +27,8 @@
 #ifndef _PYTHON_IMAGE_H
 #define _PYTHON_IMAGE_H
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION // this code is NumPy 1.8 compliant (i.e. we don't need API deprecated in 1.7)
+
 #include "Python.h"
 #include "python_metadata.h"
 #include <numpy/ndarraytypes.h>

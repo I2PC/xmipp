@@ -228,11 +228,13 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
     }
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /* Get the number of levels ------------------------------------------------ */
 int LeafNode::getNumberOfLevels()
 {
     return __discreteLevels;
 }
+#endif
 
 /* Assign probability ------------------------------------------------------ */
 double LeafNode::assignProbability(double value, int k) const
@@ -575,6 +577,7 @@ int EnsembleNaiveBayes::doInference(const Matrix1D<double> &newFeatures,
     return bestClass;
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /* Do inference for class ------------------------------------------------- */
 int EnsembleNaiveBayes::doInferenceForClass(int classNumber, const Matrix1D<double> &newFeatures, double &cost,
         Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts)
@@ -612,3 +615,4 @@ int EnsembleNaiveBayes::doInferenceForClass(int classNumber, const Matrix1D<doub
         cost=minCost;
     return votes;
 }
+#endif
