@@ -60,6 +60,7 @@ void ProgResDir::readParams()
 	fnZscore = getParam("--zScoremap");
 	Nthr = getIntParam("--threads");
 	checkellipsoids = checkParam("--checkellipsoids");
+	fastCompute = checkParam("--fast");
 }
 
 
@@ -94,6 +95,7 @@ void ProgResDir::defineParams()
 	addParamsLine("  [--threads <s=4>]          : Number of threads");
 	addParamsLine("  [--zScoremap <vol_file=\"\">]          : Zscore map");
 	addParamsLine("  [--checkellipsoids]          : only for debug");
+	addParamsLine("  [--fast]          : Fast computation");
 }
 
 void ProgResDir::produceSideInfo()
@@ -275,6 +277,8 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	}
 	//TODO: check if the angles output are correct
 	*/
+	if (fastCompute == false)
+	{
 	angles.initZeros(2,81);
 	MAT_ELEM(angles, 0, 0) = 0.000000;	 	 MAT_ELEM(angles, 1, 0) = 0.000000;
 	MAT_ELEM(angles, 0, 1) = 36.000000;	 	 MAT_ELEM(angles, 1, 1) = 15.858741;
@@ -357,56 +361,57 @@ void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
 	MAT_ELEM(angles, 0, 78) = 36.000000;	 MAT_ELEM(angles, 1, 78) = 90.000000;
 	MAT_ELEM(angles, 0, 79) = 44.867209;	 MAT_ELEM(angles, 1, 79) = -75.219088;
 	MAT_ELEM(angles, 0, 80) = 27.132791;	 MAT_ELEM(angles, 1, 80) = -75.219088;
-
-
-//
-//	angles.initZeros(2,47);
-//	MAT_ELEM(angles, 0,1) =0;    MAT_ELEM(angles, 1,1) =0;
-//	MAT_ELEM(angles, 0,2) =36;    MAT_ELEM(angles, 1,2) =21.145;
-//	MAT_ELEM(angles, 0,3) =36;    MAT_ELEM(angles, 1,3) =42.29;
-//	MAT_ELEM(angles, 0,4) =36;    MAT_ELEM(angles, 1,4) =63.435;
-//	MAT_ELEM(angles, 0,5) =59.6043;    MAT_ELEM(angles, 1,5) =-81.0207;
-//	MAT_ELEM(angles, 0,6) =48.3957;    MAT_ELEM(angles, 1,6) =81.0207;
-//	MAT_ELEM(angles, 0,7) =108;    MAT_ELEM(angles, 1,7) =21.145;
-//	MAT_ELEM(angles, 0,8) =108;    MAT_ELEM(angles, 1,8) =42.29;
-//	MAT_ELEM(angles, 0,9) =108;    MAT_ELEM(angles, 1,9) =63.435;
-//	MAT_ELEM(angles, 0,10) =131.6043;    MAT_ELEM(angles, 1,10) =-81.0207;
-//	MAT_ELEM(angles, 0,11) =120.3957;    MAT_ELEM(angles, 1,11) =81.0207;
-//	MAT_ELEM(angles, 0,12) =144;    MAT_ELEM(angles, 1,12) =-21.145;
-//	MAT_ELEM(angles, 0,13) =144;    MAT_ELEM(angles, 1,13) =-42.29;
-//	MAT_ELEM(angles, 0,14) =144;    MAT_ELEM(angles, 1,14) =-63.435;
-//	MAT_ELEM(angles, 0,15) =167.6043;    MAT_ELEM(angles, 1,15) =81.0207;
-//	MAT_ELEM(angles, 0,16) =156.3957;    MAT_ELEM(angles, 1,16) =-81.0207;
-//	MAT_ELEM(angles, 0,17) =72;    MAT_ELEM(angles, 1,17) =-21.145;
-//	MAT_ELEM(angles, 0,18) =72;    MAT_ELEM(angles, 1,18) =-42.29;
-//	MAT_ELEM(angles, 0,19) =72;    MAT_ELEM(angles, 1,19) =-63.435;
-//	MAT_ELEM(angles, 0,20) =95.6043;    MAT_ELEM(angles, 1,20) =81.0207;
-//	MAT_ELEM(angles, 0,21) =84.3957;    MAT_ELEM(angles, 1,21) =-81.0207;
-//	MAT_ELEM(angles, 0,22) =0;    MAT_ELEM(angles, 1,22) =-21.145;
-//	MAT_ELEM(angles, 0,23) =0;    MAT_ELEM(angles, 1,23) =-42.29;
-//	MAT_ELEM(angles, 0,24) =0;    MAT_ELEM(angles, 1,24) =-63.435;
-//	MAT_ELEM(angles, 0,25) =23.6043;    MAT_ELEM(angles, 1,25) =81.0207;
-//	MAT_ELEM(angles, 0,26) =12.3957;    MAT_ELEM(angles, 1,26) =-81.0207;
-//	MAT_ELEM(angles, 0,27) =12.3756;    MAT_ELEM(angles, 1,27) =58.8818;
-//	MAT_ELEM(angles, 0,28) =72;    MAT_ELEM(angles, 1,28) =36.349;
-//	MAT_ELEM(angles, 0,29) =59.6244;    MAT_ELEM(angles, 1,29) =58.8818;
-//	MAT_ELEM(angles, 0,30) =84.3756;    MAT_ELEM(angles, 1,30) =58.8818;
-//	MAT_ELEM(angles, 0,31) =72;    MAT_ELEM(angles, 1,31) =80.2161;
-//	MAT_ELEM(angles, 0,32) =144;    MAT_ELEM(angles, 1,32) =36.349;
-//	MAT_ELEM(angles, 0,33) =131.6244;    MAT_ELEM(angles, 1,33) =58.8818;
-//	MAT_ELEM(angles, 0,34) =156.3756;    MAT_ELEM(angles, 1,34) =58.8818;
-//	MAT_ELEM(angles, 0,35) =144;    MAT_ELEM(angles, 1,35) =80.2161;
-//	MAT_ELEM(angles, 0,36) =180;    MAT_ELEM(angles, 1,36) =-36.349;
-//	MAT_ELEM(angles, 0,37) =167.6244;    MAT_ELEM(angles, 1,37) =-58.8818;
-//	MAT_ELEM(angles, 0,38) =180;    MAT_ELEM(angles, 1,38) =-80.2161;
-//	MAT_ELEM(angles, 0,39) =108;    MAT_ELEM(angles, 1,39) =-36.349;
-//	MAT_ELEM(angles, 0,40) =120.3756;    MAT_ELEM(angles, 1,40) =-58.8818;
-//	MAT_ELEM(angles, 0,41) =95.6244;    MAT_ELEM(angles, 1,41) =-58.8818;
-//	MAT_ELEM(angles, 0,42) =108;    MAT_ELEM(angles, 1,42) =-80.2161;
-//	MAT_ELEM(angles, 0,43) =36;    MAT_ELEM(angles, 1,43) =-36.349;
-//	MAT_ELEM(angles, 0,44) =48.3756;    MAT_ELEM(angles, 1,44) =-58.8818;
-//	MAT_ELEM(angles, 0,45) =23.6244;    MAT_ELEM(angles, 1,45) =-58.8818;
-//	MAT_ELEM(angles, 0,46) =36;    MAT_ELEM(angles, 1,46) =-80.2161;
+	}
+	else
+	{
+	angles.initZeros(2,47);
+	MAT_ELEM(angles, 0,1) =0;    MAT_ELEM(angles, 1,1) =0;
+	MAT_ELEM(angles, 0,2) =36;    MAT_ELEM(angles, 1,2) =21.145;
+	MAT_ELEM(angles, 0,3) =36;    MAT_ELEM(angles, 1,3) =42.29;
+	MAT_ELEM(angles, 0,4) =36;    MAT_ELEM(angles, 1,4) =63.435;
+	MAT_ELEM(angles, 0,5) =59.6043;    MAT_ELEM(angles, 1,5) =-81.0207;
+	MAT_ELEM(angles, 0,6) =48.3957;    MAT_ELEM(angles, 1,6) =81.0207;
+	MAT_ELEM(angles, 0,7) =108;    MAT_ELEM(angles, 1,7) =21.145;
+	MAT_ELEM(angles, 0,8) =108;    MAT_ELEM(angles, 1,8) =42.29;
+	MAT_ELEM(angles, 0,9) =108;    MAT_ELEM(angles, 1,9) =63.435;
+	MAT_ELEM(angles, 0,10) =131.6043;    MAT_ELEM(angles, 1,10) =-81.0207;
+	MAT_ELEM(angles, 0,11) =120.3957;    MAT_ELEM(angles, 1,11) =81.0207;
+	MAT_ELEM(angles, 0,12) =144;    MAT_ELEM(angles, 1,12) =-21.145;
+	MAT_ELEM(angles, 0,13) =144;    MAT_ELEM(angles, 1,13) =-42.29;
+	MAT_ELEM(angles, 0,14) =144;    MAT_ELEM(angles, 1,14) =-63.435;
+	MAT_ELEM(angles, 0,15) =167.6043;    MAT_ELEM(angles, 1,15) =81.0207;
+	MAT_ELEM(angles, 0,16) =156.3957;    MAT_ELEM(angles, 1,16) =-81.0207;
+	MAT_ELEM(angles, 0,17) =72;    MAT_ELEM(angles, 1,17) =-21.145;
+	MAT_ELEM(angles, 0,18) =72;    MAT_ELEM(angles, 1,18) =-42.29;
+	MAT_ELEM(angles, 0,19) =72;    MAT_ELEM(angles, 1,19) =-63.435;
+	MAT_ELEM(angles, 0,20) =95.6043;    MAT_ELEM(angles, 1,20) =81.0207;
+	MAT_ELEM(angles, 0,21) =84.3957;    MAT_ELEM(angles, 1,21) =-81.0207;
+	MAT_ELEM(angles, 0,22) =0;    MAT_ELEM(angles, 1,22) =-21.145;
+	MAT_ELEM(angles, 0,23) =0;    MAT_ELEM(angles, 1,23) =-42.29;
+	MAT_ELEM(angles, 0,24) =0;    MAT_ELEM(angles, 1,24) =-63.435;
+	MAT_ELEM(angles, 0,25) =23.6043;    MAT_ELEM(angles, 1,25) =81.0207;
+	MAT_ELEM(angles, 0,26) =12.3957;    MAT_ELEM(angles, 1,26) =-81.0207;
+	MAT_ELEM(angles, 0,27) =12.3756;    MAT_ELEM(angles, 1,27) =58.8818;
+	MAT_ELEM(angles, 0,28) =72;    MAT_ELEM(angles, 1,28) =36.349;
+	MAT_ELEM(angles, 0,29) =59.6244;    MAT_ELEM(angles, 1,29) =58.8818;
+	MAT_ELEM(angles, 0,30) =84.3756;    MAT_ELEM(angles, 1,30) =58.8818;
+	MAT_ELEM(angles, 0,31) =72;    MAT_ELEM(angles, 1,31) =80.2161;
+	MAT_ELEM(angles, 0,32) =144;    MAT_ELEM(angles, 1,32) =36.349;
+	MAT_ELEM(angles, 0,33) =131.6244;    MAT_ELEM(angles, 1,33) =58.8818;
+	MAT_ELEM(angles, 0,34) =156.3756;    MAT_ELEM(angles, 1,34) =58.8818;
+	MAT_ELEM(angles, 0,35) =144;    MAT_ELEM(angles, 1,35) =80.2161;
+	MAT_ELEM(angles, 0,36) =180;    MAT_ELEM(angles, 1,36) =-36.349;
+	MAT_ELEM(angles, 0,37) =167.6244;    MAT_ELEM(angles, 1,37) =-58.8818;
+	MAT_ELEM(angles, 0,38) =180;    MAT_ELEM(angles, 1,38) =-80.2161;
+	MAT_ELEM(angles, 0,39) =108;    MAT_ELEM(angles, 1,39) =-36.349;
+	MAT_ELEM(angles, 0,40) =120.3756;    MAT_ELEM(angles, 1,40) =-58.8818;
+	MAT_ELEM(angles, 0,41) =95.6244;    MAT_ELEM(angles, 1,41) =-58.8818;
+	MAT_ELEM(angles, 0,42) =108;    MAT_ELEM(angles, 1,42) =-80.2161;
+	MAT_ELEM(angles, 0,43) =36;    MAT_ELEM(angles, 1,43) =-36.349;
+	MAT_ELEM(angles, 0,44) =48.3756;    MAT_ELEM(angles, 1,44) =-58.8818;
+	MAT_ELEM(angles, 0,45) =23.6244;    MAT_ELEM(angles, 1,45) =-58.8818;
+	MAT_ELEM(angles, 0,46) =36;    MAT_ELEM(angles, 1,46) =-80.2161;
+	}
 
 }
 
