@@ -1203,9 +1203,9 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 				MAT_ELEM(std_mean_Radial_4,0, kk) = sqrt(cum2_mean_4/(N) - cum_mean_4*cum_mean_4+0.001);
 				MAT_ELEM(std_mean_Radial_5,0, kk) = sqrt(cum2_mean_5/(N) - cum_mean_5*cum_mean_5);
 
-				std::cout << "cum2_mean_4/(N) = " << cum2_mean_4/(N)  << " " << "cum_mean_4*cum_mean_4) = " << cum_mean_4*cum_mean_4 << std::endl;
- 				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
-				std::cout << "MAT_ELEM(std_mean_Radial_1,1, kk) = " << MAT_ELEM(std_mean_Radial_1,1, kk) << " "  << MAT_ELEM(std_mean_Radial_2,1, kk) << " " << MAT_ELEM(std_mean_Radial_3,1, kk) << " " << MAT_ELEM(std_mean_Radial_4,1, kk) << " " << MAT_ELEM(std_mean_Radial_5,1, kk)<< std::endl;
+//				std::cout << "cum2_mean_4/(N) = " << cum2_mean_4/(N)  << " " << "cum_mean_4*cum_mean_4) = " << cum_mean_4*cum_mean_4 << std::endl;
+// 				std::cout << "MAT_ELEM(std_mean_Radial_1,0, kk) = " << MAT_ELEM(std_mean_Radial_1,0, kk) << " " << MAT_ELEM(std_mean_Radial_2,0, kk) << " " << MAT_ELEM(std_mean_Radial_3,0, kk) << " " << MAT_ELEM(std_mean_Radial_4,0, kk) << " " << MAT_ELEM(std_mean_Radial_5,0, kk)<< std::endl;
+//				std::cout << "MAT_ELEM(std_mean_Radial_1,1, kk) = " << MAT_ELEM(std_mean_Radial_1,1, kk) << " "  << MAT_ELEM(std_mean_Radial_2,1, kk) << " " << MAT_ELEM(std_mean_Radial_3,1, kk) << " " << MAT_ELEM(std_mean_Radial_4,1, kk) << " " << MAT_ELEM(std_mean_Radial_5,1, kk)<< std::endl;
 			}
 
 
@@ -1342,7 +1342,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
-			A3D_ELEM(doaResolution_1,k,i,j) = 1 - ((Mres - mres)/(Mres + mres))*((Mres + 2*sampling)/(Mres - 2*sampling));
+			A3D_ELEM(doaResolution_1,k,i,j) = 1 - ( (Mres - mres)/(Mres + mres) );
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
