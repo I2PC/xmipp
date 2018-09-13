@@ -67,7 +67,7 @@ public:
 	double N_freq, significance;
 
 	/** Analyze radial and azimuthal resolutoin */
-	bool checkellipsoids;
+	bool checkellipsoids, fastCompute;
 
 public:
 
