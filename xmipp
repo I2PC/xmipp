@@ -69,13 +69,13 @@ def blue(text):
 def runJob(cmd, cwd='./'):
     print(green(cmd))
     p = subprocess.Popen(cmd.split(), cwd=cwd,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     while True:
         output = p.stdout.readline()
         if output == '' and p.poll() is not None:
             break
         if output:
-            print(output.strip())
+            print(output.rstrip())
     rc = p.poll()
     return p.poll() == 0
 
@@ -95,11 +95,11 @@ def getSources():
     ok=True
     if checkProgram("git"):
         if not os.path.exists("src/xmippCore"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmippCore.git src/xmippCore")
+            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPU https://github.com/I2PC/xmippCore.git src/xmippCore")
         if not os.path.exists("src/xmipp"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
+            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPU https://github.com/I2PC/xmipp.git src/xmipp")
         if not os.path.exists("src/xmippViz"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmippViz.git src/xmippViz")
+            ok=ok and runJob("git clone --branch=devel https://github.com/I2PC/xmippViz.git src/xmippViz")
         if not os.path.exists("src/scipion-em-xmipp"):
             ok=ok and runJob("git clone https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp")
     else:
@@ -110,27 +110,16 @@ def getSources():
     return ok
 
 def getDependencies():
-    # FIXME David move cuFFTAdvisor to public repo 
     print("Getting Dependencies -------------------------------------")
-    
     ok=True
-    advisorDir = "src/xmipp/external/cuFFTAdvisor/" 
-    if checkProgram("git"):
-        if not os.path.exists("advisorDir"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
-    else:
-        ok=False
-    if ok:
-        currDir = os.getcwd()
-        libDir = "src/xmipp/lib/" 
-        createDir(libDir)
-        os.chdir(advisorDir)
-        ok = runJob("make all")
-        os.chdir(currDir)
-        ok = ok and runJob("cp " + advisorDir + "libcuFFTAdvisor.so" + " " + libDir)
-    ok=ok and checkProgram("scons")
+    advisorDir = "src/cuFFTAdvisor/" 
+    ok = checkProgram("git")
+    if ok and not os.path.exists(advisorDir):
+        createDir(advisorDir)
+        ok=runJob("git clone https://github.com/DStrelak/cuFFTAdvisor.git " + advisorDir)
+
     if not ok:
-        print(red("Cannot get/build dependencies"))
+        print(red("Cannot get dependencies"))
     return ok
 
 def getScipionHome():
@@ -227,6 +216,9 @@ def configOpenCV(configDict):
 
     runJob("rm xmipp_test_opencv*")
 
+def getDependenciesInclude():
+    return ['../']
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -258,6 +250,7 @@ def configCompiler(configDict):
                 # libDirs+=["/usr/lib/x86_64-linux-gnu"]
     if configDict["INCDIRFLAGS"]=="":
         incDirs=[]
+        configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
         scipionHomeDir = getScipionHome()
         if scipionHomeDir:
             configDict["INCDIRFLAGS"]="-I%s/software/include"%scipionHomeDir
@@ -438,7 +431,7 @@ def configCuda(configDict):
         if configDict["NVCC_CXXFLAGS"]=="":
             if checkProgram("g++-5", False):
                 configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
-                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5"
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5 -std=c++11"
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -571,6 +564,23 @@ def compileModule(Nproc,module):
     ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
 
+def compileDependencies(Nproc):
+    print("Building Dependencies -------------------------------------")
+    if not checkProgram("nvcc",False):
+        print(red('Dependencies not installed as they need NVCC, which has not been found in the PATH.\nDepending on other settings, build might crash eventually.'))
+        return True
+
+    advisorDir = "src/cuFFTAdvisor/" 
+    currDir = os.getcwd()
+    libDir = "src/xmipp/lib/"
+    createDir(libDir)
+    os.chdir(advisorDir)
+    ok = runJob("make all")
+    os.chdir(currDir)
+    ok = ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
+    if not ok:
+        print(red("Cannot build dependencies"))
+    return ok
 
 def compile(Nproc):
     print("Compiling -------------------------------------------")
@@ -727,13 +737,14 @@ def writeDevelPaths(dirname):
 def usage():
     print("Usage: xmipp_installer [options]\n"
           "   all [N=processors]:     (Default) Retrieve, configure, check, compile N=8, install in build\n"
-              "   get_dependencies:    Retrieve dependencies from github\n"
+          "   get_dependencies:    Retrieve dependencies from github\n"
           "   get_devel_sources:      Retrieve development sources from github\n"
           "   cleanBin:               Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
           "   clean:                  Delete all (sources and build directories)\n"
           "   config:                 Configure compilation variables\n"
           "   check_config:           Check that the configuration is correct\n"
           "   compile N:              Compile all modules with N processors\n"
+          "   compile N dependencies: Compile dependencies\n"
           "   compile N xmippCore:    Compile xmippCore\n"
           "   compile N xmipp:        Compile xmipp\n"
           "   compile N xmippViz:     Compile xmippViz\n"
@@ -782,6 +793,8 @@ if __name__ == '__main__':
         Nproc=sys.argv[2]
         if n==3:
             compile(Nproc)
+        elif sys.argv[2] == 'dependencies':
+            compileDependencies(Nproc)
         else:
             compileModule(Nproc,sys.argv[3])
     elif mode=="install":
@@ -793,18 +806,14 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        ok=getDependencies()
-        if ok:
-           ok=getSources()
-        if ok:
-           ok=config()
-        if ok:
-           ok=checkConfig()
-        if ok:
-           Nproc = sys.argv[2] if n==3 else 8
-           ok=compile(Nproc)
-        if ok:
-           ok=install("build")
+        Nproc = sys.argv[2] if n==3 else 8
+        ok = (getDependencies()
+            and getSources()
+            and config()
+            and checkConfig()
+            and compileDependencies(Nproc)
+            and compile(Nproc)
+            and install('build'))
         if ok:
            print("\n"
                  "  *********************************************\n"
