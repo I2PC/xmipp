@@ -53,12 +53,12 @@ class ProgResDir : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnVol, fnMask, fnDoA, fnDirections, fnradial, fnazimuthal, fnMonoRes, fnAniRes,
-	fnMDradial, fnMDazimuthal, fnMeanResolution, fnMDThr, fnLowestResolution, fnHighestResolution,
+	FileName fnOut, fnVol, fnMask, fnradial, fnazimuthal, fnMonoRes,
+	fnRadialAvG, fnMDThr, fnLowestResolution, fnHighestResolution,
 	fnprefMin, fnZscore, fnDoa1, fnDoa2;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
-	double sampling, minRes, maxRes, R, ang_sampling, N_directions, Rparticle, res_step;
+	double sampling, minRes, maxRes, R, N_directions, Rparticle, res_step;
 
 	/** Is the volume previously masked?*/
 	int NVoxelsOriginalMask, Nvoxels, Nthr;
@@ -97,8 +97,7 @@ public:
     double firstMonoResEstimation(MultidimArray< std::complex<double> > &myfftV,
     		double w1, double w1l, MultidimArray<double> &amplitude);
 
-    void generateGridProjectionMatching(FileName fnVol_, double smprt,
-    		Matrix2D<double> &angles);
+    void generateGridProjectionMatching(Matrix2D<double> &angles);
 
     void removeOutliers(Matrix2D<double> &anglesMat, Matrix2D<double> &resolutionMat);
 
@@ -128,15 +127,14 @@ public:
     void run();
 
 public:
-    Image<int> mask;
+    MultidimArray< std::complex<double> > fftVRiesz, fftVRiesz_aux;
     MultidimArray<double> iu, VRiesz; // Inverse of the frequency
-	MultidimArray< std::complex<double> > fftV, conefilter; // Fourier transform of the input volume
-	FourierTransformer transformer_inv;
-	MultidimArray< std::complex<double> > fftVRiesz, fftVRiesz_aux;
-	int N_smoothing;
+    FourierTransformer transformer_inv;
+    MultidimArray< std::complex<double> > fftV, conefilter; // Fourier transform of the input volume
 	Matrix2D<double> angles, resolutionMatrix, maskMatrix, trigProducts;
 	Matrix1D<double> freq_fourier;
-
+	Image<int> mask;
+	int N_smoothing;
 };
 //@}
 #endif
