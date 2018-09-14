@@ -38,24 +38,18 @@ void ProgResDir::readParams()
 	fnOut = getParam("-o");
 	fnMask = getParam("--mask");
 	sampling = getDoubleParam("--sampling_rate");
-	ang_sampling = getDoubleParam("--angular_sampling");
 	R = getDoubleParam("--volumeRadius");
 	significance = getDoubleParam("--significance");
 	res_step = getDoubleParam("--resStep");
-	fnDoA = getParam("--doa_vol");
-	fnDirections = getParam("--directions");
 	fnradial = getParam("--radialRes");
 	fnazimuthal = getParam("--azimuthalRes");
-	fnMDradial = getParam("--radialAvg");
-	fnMDazimuthal = getParam("--azimuthalAvg");
-	fnMeanResolution = getParam("--resolutionAvg");
+	fnRadialAvG = getParam("--radialAvG");
 	fnHighestResolution = getParam("--highestResolutionVol");
 	fnLowestResolution = getParam("--lowestResolutionVol");
 	fnDoa1 = getParam("--doa1");
 	fnDoa2 = getParam("--doa2");
 	fnMDThr = getParam("--radialAzimuthalThresholds");
 	fnMonoRes = getParam("--monores");
-	fnAniRes = getParam("--aniRes");
 	fnprefMin = getParam("--prefMin");
 	fnZscore = getParam("--zScoremap");
 	Nthr = getIntParam("--threads");
@@ -66,34 +60,26 @@ void ProgResDir::readParams()
 void ProgResDir::defineParams()
 {
 	addUsageLine("This function determines the local resolution of a map");
-	addParamsLine("  --vol <vol_file=\"\">        : Input volume");
-	addParamsLine("  [--mask <vol_file=\"\">]     : Mask defining the macromolecule");
-	addParamsLine("                               :+ If two half volume are given, the noise is estimated from them");
-	addParamsLine("                               :+ Otherwise the noise is estimated outside the mask");
-	addParamsLine("  [-o <output=\"MGresolution.vol\">]: Local resolution volume (in Angstroms)");
-	addParamsLine("  [--sampling_rate <s=1>]      : Sampling rate (A/px)");
-	addParamsLine("  [--angular_sampling <s=15>]  : Angular Sampling rate (degrees)");
-	addParamsLine("  [--resStep <s=0.5>]  		  : resolution step (precision) in A");
-	addParamsLine("  [--volumeRadius <s=100>]     : This parameter determines the radius of a sphere where the volume is");
-	addParamsLine("  [--significance <s=0.95>]    : The level of confidence for the hypothesis test.");
-	addParamsLine("  [--doa_vol <vol_file=\"\">]  : Output filename with DoA volume");
-	addParamsLine("  [--directions <vol_file=\"\">]  : Output preffered directions");
-	addParamsLine("  [--radialRes <vol_file=\"\">]  : Output radial resolution map");
-	addParamsLine("  [--azimuthalRes <vol_file=\"\">]  : Output azimuthal resolution map");
-	addParamsLine("  [--resolutionAvg <vol_file=\"\">]  : Output mean resolution map");
-	addParamsLine("  [--highestResolutionVol <vol_file=\"\">]  : Output highest resolution map");
-	addParamsLine("  [--lowestResolutionVol <vol_file=\"\">]  : Output lowest resolution map");
-	addParamsLine("  [--doa1 <vol_file=\"\">]  : Output doa1 map");
-	addParamsLine("  [--doa2 <vol_file=\"\">]  : Output doa2 map");
-	addParamsLine("  [--radialAvg <vol_file=\"\">]  : Radial Average of the radial resolution map");
-	addParamsLine("  [--radialAzimuthalThresholds <vol_file=\"\">]  : Radial and azimuthal threshold for representation resolution maps");
-	addParamsLine("  [--azimuthalAvg <vol_file=\"\">]  : Radial Average of the azimuthal resolution map");
-	addParamsLine("  [--monores <vol_file=\"\">]  : Local resolution map");
-	addParamsLine("  [--aniRes <vol_file=\"\">]  : metadata of anisotropy and resolution");
-	addParamsLine("  [--prefMin <vol_file=\"\">]  : metadata of highest resolution per direction");
-	addParamsLine("  [--threads <s=4>]          : Number of threads");
-	addParamsLine("  [--zScoremap <vol_file=\"\">]          : Zscore map");
-	addParamsLine("  [--fast]          : Fast computation");
+	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
+	addParamsLine("  --mask <vol_file=\"\">                  : Mask defining the macromolecule");
+	addParamsLine("  -o <output=\"MGresolution.vol\">        : Local resolution volume (in Angstroms)");
+	addParamsLine("  [--sampling_rate <s=1>]                 : Sampling rate (A/px)");
+	addParamsLine("  [--resStep <s=0.5>]  		             : Resolution step (precision) in A");
+	addParamsLine("  [--volumeRadius <s=100>]                : This parameter determines the radius of a sphere where the volume is");
+	addParamsLine("  [--significance <s=0.95>]               : The level of confidence for the hypothesis test.");
+	addParamsLine("  --radialRes <vol_file=\"\">             : Output radial resolution map");
+	addParamsLine("  --azimuthalRes <vol_file=\"\">          : Output azimuthal resolution map");
+	addParamsLine("  --highestResolutionVol <vol_file=\"\">  : Output highest resolution map");
+	addParamsLine("  --lowestResolutionVol <vol_file=\"\">  : Output lowest resolution map");
+	addParamsLine("  --doa1 <vol_file=\"\">                  : Output doa1 map");
+	addParamsLine("  --doa2 <vol_file=\"\">                  : Output doa2 map");
+	addParamsLine("  --radialAzimuthalThresholds <vol_file=\"\">  : Radial and azimuthal threshold for representation resolution maps");
+	addParamsLine("  --radialAvG <md_file=\"\">              : Radial Average of higesht, lowest, azimuthal, and radial, and local resolution map");
+	addParamsLine("  --monores <vol_file=\"\">             : Local resolution map");
+	addParamsLine("  --prefMin <vol_file=\"\">               : Metadata of highest resolution per direction");
+	addParamsLine("  [--threads <s=4>]                       : Number of threads");
+	addParamsLine("  --zScoremap <vol_file=\"\">             : Local zScore map, voxel with zscore higher than 3 are weird");
+	addParamsLine("  [--fast]                                : Fast computation");
 }
 
 void ProgResDir::produceSideInfo()
@@ -108,7 +94,7 @@ void ProgResDir::produceSideInfo()
 
 	//Sweeping the projection sphere
 	std::cout << "Obtaining angular projections..." << std::endl;
-	generateGridProjectionMatching(fnVol, ang_sampling, angles);
+	generateGridProjectionMatching(angles);
 
 	FourierTransformer transformer;
 
@@ -164,13 +150,6 @@ void ProgResDir::produceSideInfo()
 		exit(0);
 	}
 
-//	//use the mask for preparing resolution volumes
-//	Image<double> AvgResoltion;
-//	AvgResoltion().resizeNoCopy(inputVol);
-//	AvgResoltion().initZeros();
-//	AvgResoltion.write(fnOut);
-//	AvgResoltion.clear();
-
 	N_smoothing = 7;
 	NVoxelsOriginalMask = 0;
 	double radius = 0;
@@ -223,59 +202,13 @@ void ProgResDir::produceSideInfo()
 	{
 		FFT_IDX2DIGFREQ(k,size, u);
 		VEC_ELEM(freq_fourier,k) = u;
-//		std::cout << "freq_fourier = " << sampling/u  << std::endl;
 	}
 }
 
 
-void ProgResDir::generateGridProjectionMatching(FileName fnVol_, double smprt,
-												Matrix2D<double> &angles)
+void ProgResDir::generateGridProjectionMatching(Matrix2D<double> &angles)
 {
-  /*
-	FileName fnGallery;
-	FileName fnanglesmd = "angles.doc";
-	// Generate projections
-	fnGallery=formatString("angles.stk");
-	String args=formatString("-i %s -o %s --sampling_rate %f",
-			fnVol_.c_str(), fnGallery.c_str(), smprt); //fnGallery.c_str(),smprt);
-	String cmd=(String)"xmipp_angular_project_library " + args;
-	std::cout << cmd << std::endl;
-	system(cmd.c_str());
-	MetaData md;
-	md.read(fnanglesmd);
-	size_t md_size = md.size();
-	//				if ((fabs(uz) <= 0.1) || (fabs(uy) <= 0.1) )//|| (fabs(uz) <= 0.1))
-	//					DIRECT_MULTIDIM_ELEM(iu,n) = ux;
-	Matrix2D<double> aux_angles(2,md_size);
-	size_t count = 0;
-	double rot, tilt;
-	FOR_ALL_OBJECTS_IN_METADATA(md)
-	{
-		md.getValue(MDL_ANGLE_ROT, rot, __iter.objId);
-		md.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
-		if ( (rot>=0) && (tilt>=0) )
-		{
-			MAT_ELEM(aux_angles,0, count) = rot;
-			if (tilt>90)
-				MAT_ELEM(aux_angles,1, count) = tilt-180;
-			else
-				MAT_ELEM(aux_angles,1, count) = tilt;
-			++count;
-		}
-	}
-	N_directions = count;
-	angles.initZeros(4,N_directions);
-	//The loop beging in 1 instead of 0 avoiding the repeated direction rot=0 tilt=0.
-	for (size_t k = 1; k<(N_directions); k++)
-	{
-		MAT_ELEM(angles, 0, k) = MAT_ELEM(aux_angles,0, k);
-		MAT_ELEM(angles, 1, k) = MAT_ELEM(aux_angles,1, k);
-		std::cout << "k=" << k << "  rot = "  << MAT_ELEM(angles, 0, k) <<
-								  "  tilt = " << MAT_ELEM(angles, 1, k) << std::endl;
-	}
-	//TODO: check if the angles output are correct
-	*/
-	if (fastCompute == false)
+  	if (fastCompute == false)
 	{
 		angles.initZeros(2,81);
 		MAT_ELEM(angles, 0, 0) = 0.000000;	 	 MAT_ELEM(angles, 1, 0) = 0.000000;
@@ -1597,15 +1530,11 @@ double ProgResDir::firstMonoResEstimation(MultidimArray< std::complex<double> > 
 
 void ProgResDir::run()
 {
-
-
 	produceSideInfo();
 	bool continueIter = false, breakIter = false;
 	double criticalZ=icdf_gauss(significance);
 
-	double range = maxRes-minRes;
-	double step = range/N_freq;
-
+	double step;
 	step = res_step;
 
 	std::cout << "Analyzing directions " << std::endl;
@@ -1618,8 +1547,6 @@ void ProgResDir::run()
 
 	double w, wH;
 	int volsize = ZSIZE(VRiesz);
-//	FFT_IDX2DIGFREQ(10, volsize, w);
-//	FFT_IDX2DIGFREQ(11, volsize, wH); //Frequency chosen for a first estimation
 
 	//Checking with MonoRes at 50A;
 	int aux_idx;
@@ -1682,7 +1609,7 @@ void ProgResDir::run()
 		std::cout << "direction = " << dir+1 << "   rot = " << rot << "   tilt = " << tilt << std::endl;
 
 
-		std::vector<double> noiseValues;
+		std::vector<float> noiseValues;
 		FileName fnDebug;
 		double last_resolution = 0;
 
@@ -1705,10 +1632,6 @@ void ProgResDir::run()
 			if (continueIter)
 				continue;
 
-			std::cout << "resolution = " << resolution << "  resolutionL = " << sampling/freqL << "  resolutionH = " << sampling/freqH << " iter = " << iter << std::endl;
-//			std::cout << "resolution = " << freq 	   << "  resolutionL = " << freqL 		   << "  resolutionH = " << freqH << std::endl;
-
-
 			list.push_back(resolution);
 
 			if (iter<2)
@@ -1719,12 +1642,10 @@ void ProgResDir::run()
 			fnDebug = "Signal";
 
 			amplitudeMonogenicSignal3D_fast(conefilter, freq, freqH, freqL, amplitudeMS, iter, dir, fnDebug, rot, tilt);
-			//amplitudeMonogenicSignal3D_fast(fftV, freq, freqH, freqL, amplitudeMS, iter, dir, fnDebug, rot, tilt);
 
 			double sumS=0, sumS2=0, sumN=0, sumN2=0, NN = 0, NS = 0;
 			noiseValues.clear();
 
-			double amplitudeValue;
 
 			double x_dir = sin(tilt*PI/180)*cos(rot*PI/180);
 			double y_dir = sin(tilt*PI/180)*sin(rot*PI/180);
@@ -1732,9 +1653,6 @@ void ProgResDir::run()
 
 			double uz, uy, ux;
 
-			//TODO: check if can be taken out side the loop
-//			MultidimArray<double> coneVol;
-//			coneVol.initZeros(amplitudeMS);
 			int n=0;
 			int z_size = ZSIZE(amplitudeMS);
 			int x_size = XSIZE(amplitudeMS);
@@ -1743,17 +1661,14 @@ void ProgResDir::run()
 			size_t idx_mask;
 			idx_mask = 0;
 
-
+			double amplitudeValue;
 
 			for(int k=0; k<z_size; ++k)
 			{
-//				std::cout << " k = " << k  <<std::endl;
 				for(int i=0; i<y_size; ++i)
 				{
 					for(int j=0; j<x_size; ++j)
 					{
-
-
 						if (DIRECT_MULTIDIM_ELEM(pMask, n)>=1)
 						{
 							if (MAT_ELEM(maskMatrix, 0, idx_mask) >0)
@@ -1785,7 +1700,7 @@ void ProgResDir::run()
 							{
 //								DIRECT_MULTIDIM_ELEM(coneVol, n) = 1;
 								amplitudeValue=DIRECT_MULTIDIM_ELEM(amplitudeMS, n);
-								noiseValues.push_back(amplitudeValue);
+								noiseValues.push_back((float) amplitudeValue);
 								sumN  += amplitudeValue;
 								sumN2 += amplitudeValue*amplitudeValue;
 								++NN;
@@ -1796,29 +1711,24 @@ void ProgResDir::run()
 				}
 			}
 
-//			#ifdef DEBUG_DIR
-//				if (iter == 0)
-//				{
-//				Image<double> img;
-//
-//				FileName iternumber;
-//				iternumber = formatString("cone_noise_%i_%i.vol", dir, iter);
-//				img = coneVol;
-//				img.write(iternumber);
-//				}
-//			#endif
+			#ifdef DEBUG_DIR
+				if (iter == 0)
+				{
+				Image<double> img;
 
-//				std::cout << "NS = " << NS << std::endl;
+				FileName iternumber;
+				iternumber = formatString("cone_noise_%i_%i.vol", dir, iter);
+				img = coneVol;
+				img.write(iternumber);
+				}
+			#endif
+
 			if ( (NS/(double) NVoxelsOriginalMask)<cut_value ) //when the 2.5% is reached then the iterative process stops
 			{
 				std::cout << "Search of resolutions stopped due to mask has been completed" << std::endl;
 				doNextIteration =false;
 				Nvoxels = 0;
-//				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitudeMS)
-//				{
-//				  if (DIRECT_MULTIDIM_ELEM(pOutputResolution, n) > 0)
-//					DIRECT_MULTIDIM_ELEM(pMask, n) = 1;
-//				}
+
 				#ifdef DEBUG_MASK
 				mask.write("partial_mask.vol");
 				#endif
@@ -1856,14 +1766,13 @@ void ProgResDir::run()
 					//thresholdNoise = meanN+criticalZ*sqrt(sigma2N);
 
 					std::sort(noiseValues.begin(),noiseValues.end());
-					thresholdNoise = noiseValues[size_t(noiseValues.size()*significance)];
+					thresholdNoise = (double) noiseValues[size_t(noiseValues.size()*significance)];
 
 					//std::cout << "thr="<< thresholdNoise << " " << meanN+criticalZ*sqrt(sigma2N) << " " << NN << std::endl;
 					noiseValues.clear();
 
-//					#ifdef DEBUG
-					  std::cout << "Iteration = " << iter << ",   Resolution= " << resolution << ",   Signal = " << meanS << ",   Noise = " << meanN << ",  Threshold = " << thresholdNoise <<std::endl;
-//					#endif
+					std::cout << "Iteration = " << iter << ",   Resolution= " << resolution << ",   Signal = " << meanS << ",   Noise = " << meanN << ",  Threshold = " << thresholdNoise <<std::endl;
+
 
 					size_t maskPos = 0;
 					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitudeMS)
@@ -1874,7 +1783,6 @@ void ProgResDir::run()
 							{
 								if (DIRECT_MULTIDIM_ELEM(amplitudeMS, n)>thresholdNoise)
 								{
-	//								DIRECT_MULTIDIM_ELEM(pOutputResolution, n) = resolution;//sampling/freq;
 									MAT_ELEM(resolutionMatrix, dir, maskPos) = resolution;
 									MAT_ELEM(maskMatrix, 0, maskPos) = 1;
 								}
@@ -1885,19 +1793,12 @@ void ProgResDir::run()
 									{
 										MAT_ELEM(maskMatrix, 0, maskPos) = 0;
 										MAT_ELEM(resolutionMatrix, dir, maskPos) = resolution_2;
-	//									DIRECT_MULTIDIM_ELEM(pOutputResolution, n) = resolution_2; //resolution + counter*step;
 									}
 								}
 							}
 							++maskPos;
 						}
 					}
-
-					//#ifdef DEBUG
-//						std::cout << "thresholdNoise = " << thresholdNoise << std::endl;
-//						std::cout << "  meanS= " << meanS << " NS= " << NS << std::endl;
-//						std::cout << "  meanN= " << meanN << " sigma2N= " << sigma2N << " NN= " << NN << std::endl;
-					//#endif
 
 					if (doNextIteration)
 						if (resolution <= (minRes-0.001))
@@ -1927,7 +1828,6 @@ void ProgResDir::run()
 //				++maskPos;
 //			}
 //		}
-		//#endif
 //		#ifdef DEBUG_DIR
 //		Image<double> saveImg;
 //		saveImg = pResolutionVol;
@@ -1950,46 +1850,7 @@ void ProgResDir::run()
 
 	//Remove outliers
 	removeOutliers(trigProducts, resolutionMatrix);
-	//Second step of cleaning
-//	removeOutliers(trigProducts, resolutionMatrix);
 
-/*
-	//Ellipsoid fitting
-	Matrix2D<double> axis;
-	ellipsoidFitting(trigProducts, resolutionMatrix, axis);
-
-	Image<double> doaVol;
-	MultidimArray<double> &pdoaVol = doaVol();
-
-	pdoaVol.initZeros(NSIZE(mask()),ZSIZE(mask()), YSIZE(mask()), XSIZE(mask()));
-
-
-	int idx = 0;
-	std::cout << "NVoxelsOriginalMask = " << NVoxelsOriginalMask << std::endl;
-
-	double niquist;
-
-	niquist = 2*sampling;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pdoaVol)
-	{
-		if (DIRECT_MULTIDIM_ELEM(mask(), n) >0 ) //before ==1
-		{
-
-			double a = MAT_ELEM(axis, 0, idx);
-			double c = MAT_ELEM(axis, 2, idx);
-//			if (idx<100)
-//				std::cout << c << " " << a << ";" << std::endl;
-			DIRECT_MULTIDIM_ELEM(pdoaVol, n) = (c)/(a);
-			++idx;
-		}
-	}
-
-
-
-	Image<double> imgdoa;
-	imgdoa = pdoaVol;
-	imgdoa.write(fnDoA);
-*/
 	MultidimArray<double> radial, azimuthal, lowestResolution, highestResolution, doavol1, doavol2;
 	MetaData prefDir;
 
@@ -2031,83 +1892,5 @@ void ProgResDir::run()
 	monoresVol = monores();
 	radialAverageInMask(mask(), radial, azimuthal, highestResolution, lowestResolution, monoresVol, mdAvg);
 
-	mdAvg.write(fnMDazimuthal);
-
-/*
-	double lambda_1, lambda_2, lambda_3, doa;
-	double direction_x, direction_y, direction_z;
-	int counter = 0;
-	Matrix2D<double> eigenvectors;
-	Matrix1D<double> eigenvalues, r0_1(3), rF_1(3), r0_2(3), rF_2(3), r0_3(3), rF_3(3), r(3);
-	MultidimArray<int> arrows;
-	arrows.initZeros(mask());
-	const int gridStep=10;
-	size_t n=0;
-	maskPos=0;
-
-	idx = 0;
-	int siz;
-	siz = XSIZE(arrows);
-	double xcoor, ycoor, zcoor, rad, rot, tilt;
-	MetaData md, mdAniRes;
-	size_t objId, objIdAniRes;
-	FileName fn_md, fn_AniRes;
-
-	imgdoa.read(fnDoA);
-	monores().setXmippOrigin();
-
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(arrows)
-	{
-		if (A3D_ELEM(mask(),k,i,j) > 0 ) //before ==1
-		{
-			double doa = A3D_ELEM(imgdoa(),k,i,j);
-			double res = A3D_ELEM(monores(),k,i,j);
-
-			objIdAniRes = mdAniRes.addObject();
-			mdAniRes.setValue(MDL_COST, doa, objIdAniRes);
-			mdAniRes.setValue(MDL_RESOLUTION_SSNR, res, objIdAniRes);
-
-
-
-			//lambda_3 is assumed as the least eigenvalue
-			if ( (i%gridStep==0) && (j%gridStep==0) && (k%gridStep==0) )
-			{
-				double lambda_1 = MAT_ELEM(axis, 0, idx);
-				double lambda_3 = MAT_ELEM(axis, 2, idx);
-
-				xcoor = MAT_ELEM(axis, 3, idx);
-				ycoor = MAT_ELEM(axis, 4, idx);
-				zcoor = MAT_ELEM(axis, 5, idx);
-
-				rot = atan2(ycoor, xcoor)*180/PI;
-				tilt = acos(zcoor)*180/PI;
-
-				double sc;
-				sc = lambda_1/8.0;
-//					std::cout << "a = " << lambda_3 << "  c= " << lambda_1 << std::endl;
-//					std::cout << "sc = " << sc << "  c/sc= " << lambda_1/sc << std::endl;
-
-				//write md with values!
-				objId = md.addObject();
-				md.setValue(MDL_ANGLE_ROT, rot, objId);
-				md.setValue(MDL_ANGLE_TILT, tilt, objId);
-				md.setValue(MDL_XCOOR, (int) j, objId);
-				md.setValue(MDL_YCOOR, (int) i, objId);
-				md.setValue(MDL_ZCOOR, (int) k, objId);
-				md.setValue(MDL_MAX, 7.0, objId);
-				md.setValue(MDL_MIN, lambda_3/sc, objId);
-				md.setValue(MDL_INTSCALE, lambda_3/lambda_1, objId);
-			}
-			++idx;
-		}
-		++n;
-	}
-
-	md.write(fnDirections);
-	mdAniRes.write(fnAniRes);
-
-
-*/
-
-
+	mdAvg.write(fnRadialAvG);
 }
