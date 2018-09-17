@@ -374,6 +374,11 @@ protected:
         }
         else if (operation == "lineal")
             generator = new MDLinealGenerator(getDoubleParam("--fill", 2), getDoubleParam("--fill", 3));
+        else {
+        	std::cerr << "Unsupported operation (" << operation
+        			<< "). If you believe this is an error, please contact developers." << std::endl;
+        	return;
+        }
 
         //Fill columns
         for (size_t i = 0; i < labels.size(); ++i)
