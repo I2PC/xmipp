@@ -336,6 +336,11 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
                 ++N;
             }
         }
+        if (0 == N) {
+        	std::cerr << "This should never happen. If you know how to reproduce"
+        			"thiss issue, please contact developers." << std::endl;
+        	return;
+        }
         corrRS /= N;
         corrSR /= N;
     }
