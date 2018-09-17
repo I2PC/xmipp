@@ -44,6 +44,10 @@ void KeepBests::init()
     double *t;
     ctable=(cell*)malloc(n*sizeof(cell));
     if (optionalN) t=(double*)malloc(optionalN*n*sizeof(double));
+    if (NULL == t) {
+    	printf("Error while allocating memory\n");
+    	return;
+    }
     for (i=0; i<n; i++)
     {
         if (optionalN)
@@ -65,6 +69,10 @@ void KeepBests::setOptionalN(int _optionalN)
     double *t;
     if (optionalN) t=(double*)realloc(ctable[0].optValue,_optionalN*n*sizeof(double));
     else t=(double*)malloc(_optionalN*n*sizeof(double));
+    if (NULL == t) {
+    	printf("Error while allocating memory\n");
+    	return;
+    }
     for (i=0; i<n; i++) 
     {
         ctable[i].optValue=t;
