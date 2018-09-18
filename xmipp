@@ -101,7 +101,7 @@ def getSources():
         if not os.path.exists("src/xmippViz"):
             ok=ok and runJob("git clone --branch=devel https://github.com/I2PC/xmippViz.git src/xmippViz")
         if not os.path.exists("src/scipion-em-xmipp"):
-            ok=ok and runJob("git clone https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp")
+            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPU https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp")
     else:
         ok=False
     ok=ok and checkProgram("scons")
