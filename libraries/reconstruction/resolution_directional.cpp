@@ -1217,8 +1217,9 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 	double count_radial, count_azimuthal;
 
-	Matrix1D<int> PrefferredDirHist;
+	Matrix1D<int> PrefferredDirHist, resolutionMeanVector;
 	PrefferredDirHist.initZeros(xrows);
+	resolutionMeanVector.initZeros(xrows);
 
 //	meanResolution.initZeros(pmask);
 	size_t objId;
@@ -1295,7 +1296,10 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 				if (resolution>0)
 				{
 					if ((mres>(resolution-0.1)) && (mres<(resolution+0.1)))
+					{
 						VEC_ELEM(PrefferredDirHist,ii) += 1;
+						VEC_ELEM(resolutionMeanVector,ii) += resolution;
+					}
 				}
 
 			}
@@ -1332,11 +1336,14 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 			tilt = abs(tilt);
 			rot = rot + 180;
 		}
+		double meanRes;
 
+		meanRes = VEC_ELEM(resolutionMeanVector,ii)/((double) VEC_ELEM(PrefferredDirHist,ii));
 
 		mdprefDirs.setValue(MDL_ANGLE_ROT, rot, objId);
 		mdprefDirs.setValue(MDL_ANGLE_TILT, tilt, objId);
 		mdprefDirs.setValue(MDL_WEIGHT, (double) con, objId);
+		mdprefDirs.setValue(MDL_RESOLUTION_FREQ, meanRes, objId);
 		mdprefDirs.setValue(MDL_X, (double) ii, objId);
 		mdprefDirs.setValue(MDL_COUNT, con, objId);
 	}
