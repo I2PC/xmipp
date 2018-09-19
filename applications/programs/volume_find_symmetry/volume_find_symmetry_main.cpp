@@ -213,11 +213,10 @@ public:
             {
                 if (verbose>0)
                     std::cerr << "Searching symmetry axis ...\n";
-                for (int rot = 0; rot <= std::floor(rotF - rot0); ++rot)
-                    for (int tilt = 0; tilt <= std::floor(tiltF - tilt0); ++tilt)
-                    {
-                        rotVector.push_back(rot0 + rot* step_rot);
-                        tiltVector.push_back(tilt0 + tilt * step_tilt);
+                for (double rot = rot0; rot <= rotF; rot += step_rot)
+                    for (double tilt = tilt0; tilt <= tiltF; tilt += step_tilt)                    {
+                        rotVector.push_back(rot);
+                        tiltVector.push_back(tilt);
                     }
                 vbest_corr.resizeNoCopy(numberOfThreads);
                 vbest_corr.initConstant(-1e38);
