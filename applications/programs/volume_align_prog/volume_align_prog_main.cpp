@@ -317,7 +317,48 @@ public:
                 std::cout << "#grey_factor rot tilt psi scale z y x fitness\n";
 
             // Iterate
-			first = iterate(times, best_fit, first, best_align);
+            int itime = 0;
+            int step_time = CEIL((double)times / 60.0);
+            Matrix1D<double> r(3);
+            Matrix1D<double> trial(9);
+            for (double grey_scale = grey_scale0; grey_scale <= grey_scaleF ; grey_scale += step_grey)
+                for (double grey_shift = grey_shift0; grey_shift <= grey_shiftF ; grey_shift += step_grey_shift)
+                    for (double rot = rot0; rot <= rotF ; rot += step_rot)
+                        for (double tilt = tilt0; tilt <= tiltF ; tilt += step_tilt)
+                            for (double psi = psi0; psi <= psiF ; psi += step_psi)
+                                for (double scale = scale0; scale <= scaleF ; scale += step_scale)
+                                    for (ZZ(r) = z0; ZZ(r) <= zF ; ZZ(r) += step_z)
+                                        for (YY(r) = y0; YY(r) <= yF ; YY(r) += step_y)
+                                            for (XX(r) = x0; XX(r) <= xF ; XX(r) += step_x)
+                                            {
+                                                // Form trial vector
+                                                trial(0) = grey_scale;
+                                                trial(1) = grey_shift;
+                                                trial(2) = rot;
+                                                trial(3) = tilt;
+                                                trial(4) = psi;
+                                                trial(5) = scale;
+                                                trial(6) = ZZ(r);
+                                                trial(7) = YY(r);
+                                                trial(8) = XX(r);
+                                                // Evaluate
+                                                double fit = fitness(MATRIX1D_ARRAY(trial));
+                                                // The best?
+                                                if (fit < best_fit || first)
+                                                {
+                                                    best_fit = fit;
+                                                    best_align = trial;
+                                                    first = false;
+                                                    if (tell)
+                                                    	std::cout << "Best so far\n";
+                                                }
+                                                // Show fit
+                                                if (tell)
+                                                    std::cout << trial << " " << fit << std::endl;
+                                                else
+                                                    if (++itime % step_time == 0)
+                                                        progress_bar(itime);
+                                            }
             if (!tell)
                 progress_bar(times);
         }
@@ -426,56 +467,6 @@ public:
             params.V2.write(fnOut);
         }
     }
-
-private:
-	bool iterate(int times, double& best_fit, bool first,
-			Matrix1D<double>& best_align) {
-		// Iterate
-		int itime = 0;
-		int step_time = CEIL((double )times / 60.0);
-		Matrix1D<double> r(3);
-		Matrix1D<double> trial(9);
-		for (int grey_scale = 0; grey_scale <= std::floor(grey_scaleF - grey_scale0);
-				++grey_scale)
-			for (int grey_shift = 0; grey_shift <= std::floor(grey_shiftF - grey_shift0);
-					++grey_shift)
-				for (int rot = 0; rot <= std::floor(rotF - rot0); ++rot)
-					for (int tilt = tilt0; tilt <= std::floor(tiltF - tilt0); ++tilt)
-						for (int psi = psi0; psi <= std::floor(psiF - psi0); ++psi)
-							for (int scale = 0; scale <= std::floor(scaleF - scale0);
-									++scale)
-								for (ZZ(r)= z0;ZZ(r) <= zF;ZZ(r) += step_z)
-								for (YY(r) = y0;YY(r) <= yF;YY(r) += step_y)
-								for (XX(r) = x0;XX(r) <= xF;XX(r) += step_x) {
-									// Form trial vector
-									trial(0) = grey_scale0 + grey_scale * step_grey;
-									trial(1) = grey_shift0 + grey_shift * step_grey_shift;
-									trial(2) = rot0 + rot * step_rot;
-									trial(3) = tilt0 + tilt * step_tilt;
-									trial(4) = psi0 + psi * step_psi;
-									trial(5) = scale0 + scale * step_scale;
-									trial(6) = ZZ(r);
-									trial(7) = YY(r);
-									trial(8) = XX(r);
-									// Evaluate
-									double fit = fitness(MATRIX1D_ARRAY(trial));
-									// The best?
-									if (fit < best_fit || first) {
-										best_fit = fit;
-										best_align = trial;
-										first = false;
-										if (tell)
-										std::cout << "Best so far\n";
-									}
-									// Show fit
-									if (tell)
-									std::cout << trial << " " << fit << std::endl;
-									else
-									if (++itime % step_time == 0)
-									progress_bar(itime);
-								}
-		return first;
-	}
 };
 
 int main(int argc, char **argv)

@@ -290,7 +290,7 @@ public:
         //rank 1 has already xdim and ydim.
         if (rank == 1)
         {
-            int  numberProjections = std::floor(360.0 / psi_sampling);
+            int  numberProjections = std::ceil(360.0 / psi_sampling);
             numberProjections *= mysampling.no_redundant_sampling_points_angles.size();
             std::cerr   << "creating Blank file: "
             << output_file << " for "
@@ -383,7 +383,7 @@ public:
                 size_t myCounter = 0;
                 size_t id;
                 int ref;
-                for (int i = 0; i < std::floor(360.0 / psi_sampling); ++i)
+                for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i)
                     //for (int i=0;i<=mysampling.no_redundant_sampling_points_angles.size()-1;i++)
                     FOR_ALL_OBJECTS_IN_METADATA(mySFin)
                 {
