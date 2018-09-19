@@ -1102,16 +1102,18 @@ void ProgResDir::radialAverageInMask(MultidimArray<int> &mask,
 
 
 			objId = md.addObject();
-			if ((cum_mean_1==0) || (cum_mean_2==0) || (cum_mean_3==0) || (cum_mean_4==0) || (cum_mean_5==0))
-			{
-				md.setValue(MDL_IDX, kk, objId);
-				md.setValue(MDL_VOLUME_SCORE1, cum_mean_1, objId);
-				md.setValue(MDL_VOLUME_SCORE2, cum_mean_2, objId);
-				md.setValue(MDL_VOLUME_SCORE3, cum_mean_3, objId);
-				md.setValue(MDL_VOLUME_SCORE4, cum_mean_4, objId);
-				md.setValue(MDL_AVG, cum_mean_5, objId);
-			}
-			else
+//			if ((cum_mean_1==0) || (cum_mean_2==0) || (cum_mean_3==0) || (cum_mean_4==0) || (cum_mean_5==0))
+//			{
+//				md.setValue(MDL_IDX, kk, objId);
+//				md.setValue(MDL_VOLUME_SCORE1, cum_mean_1, objId);
+//				md.setValue(MDL_VOLUME_SCORE2, cum_mean_2, objId);
+//				md.setValue(MDL_VOLUME_SCORE3, cum_mean_3, objId);
+//				md.setValue(MDL_VOLUME_SCORE4, cum_mean_4, objId);
+//				md.setValue(MDL_AVG, cum_mean_5, objId);
+//			}
+//			else
+//			{
+			if ((cum_mean_1>0) || (cum_mean_2>0) || (cum_mean_3>0) || (cum_mean_4>0) || (cum_mean_5>0))
 			{
 				cum_mean_1 = (cum_mean_1/N);
 				cum_mean_2 = (cum_mean_2/N);
