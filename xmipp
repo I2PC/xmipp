@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import distutils.spawn
 import glob
@@ -66,9 +66,18 @@ def red(text):
 def blue(text):
     return "\033[34m "+text+"\033[0m"
 
-def runJob(cmd):
+def runJob(cmd, cwd='./', show_output=True):
     print(green(cmd))
-    return os.system(cmd)==0
+    p = subprocess.Popen(cmd, cwd=cwd,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    while True:
+        output = p.stdout.readline()
+        if output == '' and p.poll() is not None:
+            break
+        if output and show_output:
+            print(output.rstrip())
+    rc = p.poll()
+    return p.poll() == 0
 
 def cleanSources():
     runJob("rm -rf xmipp.conf build src")
@@ -80,19 +89,19 @@ def cleanBinaries():
     runJob("rm -rf xmipp.conf build")
 
 
-def getSources():
+def getSources(branch='devel'):
     print("Getting sources -------------------------------------")
     createDir("src")
     ok=True
     if checkProgram("git"):
         if not os.path.exists("src/xmippCore"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmippCore.git src/xmippCore")
+            ok=ok and runJob("git clone -b %s https://github.com/I2PC/xmippCore.git src/xmippCore" % branch)
         if not os.path.exists("src/xmipp"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmipp.git src/xmipp")
+            ok=ok and runJob("git clone -b %s https://github.com/I2PC/xmipp.git src/xmipp" % branch)
         if not os.path.exists("src/xmippViz"):
-            ok=ok and runJob("git clone https://github.com/I2PC/xmippViz.git src/xmippViz")
+            ok=ok and runJob("git clone -b %s https://github.com/I2PC/xmippViz.git src/xmippViz" % branch)
         if not os.path.exists("src/scipion-em-xmipp"):
-            ok=ok and runJob("git clone https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp")
+            ok=ok and runJob("git clone -b %s https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp" % branch)
     else:
         ok=False
     ok=ok and checkProgram("scons")
@@ -159,8 +168,8 @@ def configOpenCV(configDict):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False):
         configDict["OPENCV"]=False
         configDict["OPENCVSUPPORTSCUDA"]=False
         configDict["OPENCV3"]=False
@@ -172,8 +181,8 @@ def configOpenCV(configDict):
             cppFile.write('#include <opencv2/core/version.hpp>\n')
             cppFile.write('#include <fstream>\n')
             cppFile.write('int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n')
-        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]),show_output=False):
             configDict["OPENCV3"]=False
         else:
             runJob("./xmipp_test_opencv")
@@ -189,10 +198,10 @@ def configOpenCV(configDict):
         cppProg+="int main(){}\n"
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
             cppFile.write(cppProg)
-        configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]))
+        configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False)
 
-    runJob("rm xmipp_test_opencv*")
+    runJob("rm -v xmipp_test_opencv*",show_output=False)
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
@@ -403,7 +412,9 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler -fPIC -Wno-deprecated-gpu-targets"
+            if checkProgram("g++-5", False):
+                configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5"
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -522,21 +533,20 @@ def checkConfig():
             print(red("Cannot compile with Java"))
             return False
         if not checkCuda(configDict):
-            print(red("Cannot compile with NVCC"))
-            return False
+            print(red("Cannot compile with NVCC, continuing without CUDA"))
+            configDict["CUDA"]="False"
         if not checkMatlab(configDict):
-            print(red("Cannot compile with Matlab"))
-            return False
+            print(red("Cannot compile with Matlab, continuing without Matlab"))
+            configDict["MATLAB"]="False"
         configDict['VERIFIED']="True"
         writeConfig(configDict)
     return True
 
 def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
-    os.chdir("src/%s"%module)
-    ok=runJob("scons -j%s"%Nproc)
-    os.chdir("../..")
+    ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
+
 
 def compile(Nproc):
     print("Compiling -------------------------------------------")
@@ -662,6 +672,9 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
+    print("install done\n")
+    return True
+
 def writeDevelPaths(dirname):
     fhBash = open(dirname+"/xmipp.bashrc","w")
 
@@ -688,21 +701,21 @@ def writeDevelPaths(dirname):
     fhBash.close()
 
 def usage():
-    print("Usage: xmipp_installer [options]\n"
-          "   all [N=processors]:     (Default) Retrieve, configure, check, compile N=8, install in build\n"
-          "   get_devel_sources:      Retrieve development sources from github\n"
-          "   cleanBin:               Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
-          "   clean:                  Delete all (sources and build directories)\n"
-          "   config:                 Configure compilation variables\n"
-          "   check_config:           Check that the configuration is correct\n"
-          "   compile N:              Compile all modules with N processors\n"
-          "   compile N xmippCore:    Compile xmippCore\n"
-          "   compile N xmipp:        Compile xmipp\n"
-          "   compile N xmippViz:     Compile xmippViz\n"
-          "   install dir:            Install at dir (by default, ./build)\n"
-          "   test [--show] testName: Run tests to check Xmipp programs (by default, all).\n"
-          "                             if --show is activated without testName all are shown, \n"
-          "                             instead a grep of testName is done \n"
+    print("Usage: xmipp [options]\n"
+          "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
+          "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
+          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
+          "   clean:                      Delete all (sources and build directories)\n"
+          "   config:                     Configure compilation variables\n"
+          "   check_config:               Check that the configuration is correct\n"
+          "   compile [N]:                Compile all modules with N processors (8 by default)\n"
+          "   compile  N xmippCore:       Compile xmippCore\n"
+          "   compile  N xmipp:           Compile xmipp\n"
+          "   compile  N xmippViz:        Compile xmippViz\n"
+          "   install [dir]:              Install at dir (./build by default)\n"
+          "   test [--show] testName:     Run tests to check Xmipp programs (by default, all).\n"
+          "                                 if --show is activated without testName all are shown, \n"
+          "                                 instead a grep of testName is done \n"
           "For developers:\n"
           "   create_devel_paths:     Create bashrc files for devel\n"
           "   git ...:                Git command to all 4 repositories\n"
@@ -722,28 +735,30 @@ if __name__ == '__main__':
         usage()
         sys.exit(0)
     for idx, arg in enumerate(sys.argv):
-        if ' ' in arg:  # to preserve "string"
+        if ' ' in arg:  # to preserve spaces between "comas"
             sys.argv[idx] = '"%s"' % sys.argv[idx]
     if n>=2:
         mode = sys.argv[1]
     else:
         mode = "all"
+
     if mode=="clean":
         cleanSources()
     if mode=="cleanBin":
         cleanBinaries()
     elif mode=="get_devel_sources" and checkProgram("git"):
-        getSources()
+        branch = "devel" if n==2 else sys.argv[2]
+        getSources(branch)
     elif mode=="config":
         config()
     elif mode=="check_config":
         checkConfig()
     elif mode=="compile":
-        Nproc=sys.argv[2]
-        if n==3:
+        Nproc = 8 if n<3 else sys.argv[2]
+        if n<=3:
             compile(Nproc)
         else:
-            compileModule(Nproc,sys.argv[3])
+            compileModule(Nproc, sys.argv[3])
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
@@ -753,16 +768,29 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        ok=getSources()
+        Nproc = 8
+        branch = 'devel'
+        buildDir = 'build'
+        for arg in sys.argv[2:]:
+            if arg.startswith("N="):
+                Nproc = int(arg[2:])
+            elif arg.startswith("br="):
+                branch = arg[3:]
+            elif arg.startswith("dir="):
+                buildDir = arg[4:]
+            else:
+                print("Unknown %s argument"%arg)
+                usage()
+
+        ok = getSources(branch)
         if ok:
            ok=config()
         if ok:
            ok=checkConfig()
         if ok:
-           Nproc = sys.argv[2] if n==3 else 8
            ok=compile(Nproc)
         if ok:
-           ok=install("build")
+           ok=install(buildDir)
         if ok:
            print("\n"
                  "  *********************************************\n"
@@ -795,4 +823,5 @@ if __name__ == '__main__':
     else:
         print(" -> option not found <- \n")
         usage()
+
 

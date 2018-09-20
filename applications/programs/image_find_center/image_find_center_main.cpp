@@ -204,9 +204,6 @@ void imfree(char **image, int row, int  col, int format)
     tot_size = ((long) element_size) * ((long) row) * ((long) col);
     no_blocks = tot_size / all_size;
 
-    if (image == NULL)  /* No allocation at the moment */
-        return;
-
     /*************************** Free most blocks *******************************/
 
     for (i = 0; i < no_blocks; i++)

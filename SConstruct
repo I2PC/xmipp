@@ -96,8 +96,8 @@ else:
 
 
 # Python and SCons versions are fixed
-env.EnsurePythonVersion(2,7)
-env.EnsureSConsVersion(2,3,2)
+#env.EnsurePythonVersion(2,7)
+#env.EnsureSConsVersion(2,3,0)
 # TODO: see after all is clean and crispy if we can avoid fixing the versions.
 # We can specify a range of valid version after we check it works with them.
 
@@ -143,7 +143,7 @@ env['CCFLAGS'] = os.environ.get('CCFLAGS', '').split()
 cxxFlags = os.environ.get('CXXFLAGS', '')
 if os.environ.get('DEBUG', '0') == 'True': #FIXME, use 1, true, yes...
    cxxFlags += ' -g'
-else:
+elif 'TRAVIS' not in os.environ: # don't optimize on Travis, as it slows down the build
     if cxxFlags.find("-O")==-1:
         cxxFlags += " -O3"
 env['CXXFLAGS'] = cxxFlags.split()
