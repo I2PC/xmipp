@@ -652,7 +652,7 @@ int InterPolynomial::maybeAdd(Vector pointToAdd, unsigned k, double rho, double 
 {
 
     unsigned i,N=nPtsUsed;
-    int j;
+    int j = 0;
     Vector *xx=NewtonPoints, xk=xx[k];
     double distMax=-1.0,dd;
  /*
