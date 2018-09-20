@@ -66,9 +66,18 @@ def red(text):
 def blue(text):
     return "\033[34m "+text+"\033[0m"
 
-def runJob(cmd):
+def runJob(cmd, cwd='./', show_output=True):
     print(green(cmd))
-    return os.system(cmd)==0
+    p = subprocess.Popen(cmd, cwd=cwd,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    while True:
+        output = p.stdout.readline()
+        if output == '' and p.poll() is not None:
+            break
+        if output and show_output:
+            print(output.rstrip())
+    rc = p.poll()
+    return p.poll() == 0
 
 def cleanSources():
     runJob("rm -rf xmipp.conf build src")
@@ -159,8 +168,8 @@ def configOpenCV(configDict):
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+    if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False):
         configDict["OPENCV"]=False
         configDict["OPENCVSUPPORTSCUDA"]=False
         configDict["OPENCV3"]=False
@@ -172,8 +181,8 @@ def configOpenCV(configDict):
             cppFile.write('#include <opencv2/core/version.hpp>\n')
             cppFile.write('#include <fstream>\n')
             cppFile.write('int main() {std::ofstream fh; fh.open("xmipp_test_opencv.txt"); fh << CV_MAJOR_VERSION << std::endl; fh.close();}\n')
-        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"])):
+        if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]),show_output=False):
             configDict["OPENCV3"]=False
         else:
             runJob("./xmipp_test_opencv")
@@ -189,10 +198,10 @@ def configOpenCV(configDict):
         cppProg+="int main(){}\n"
         with open("xmipp_test_opencv.cpp", "w") as cppFile:
             cppFile.write(cppProg)
-        configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s >/dev/null 2>/dev/null"%\
-              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]))
+        configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
+              (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False)
 
-    runJob("rm xmipp_test_opencv*")
+    runJob("rm -v xmipp_test_opencv*",show_output=False)
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
@@ -535,10 +544,9 @@ def checkConfig():
 
 def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
-    os.chdir("src/%s"%module)
-    ok=runJob("scons -j%s"%Nproc)
-    os.chdir("../..")
+    ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
+
 
 def compile(Nproc):
     print("Compiling -------------------------------------------")
@@ -663,6 +671,9 @@ def install(dirname):
 
     fhBash.close()
     fhFish.close()
+
+    print("install done\n")
+    return True
 
 def writeDevelPaths(dirname):
     fhBash = open(dirname+"/xmipp.bashrc","w")
@@ -812,4 +823,5 @@ if __name__ == '__main__':
     else:
         print(" -> option not found <- \n")
         usage()
+
 
