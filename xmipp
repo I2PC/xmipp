@@ -771,7 +771,7 @@ if __name__ == '__main__':
         Nproc = 8
         branch = 'devel'
         buildDir = 'build'
-        for arg in sys.argv:
+        for arg in sys.argv[2:]:
             if arg.startswith("N="):
                 Nproc = int(arg[2:])
             elif arg.startswith("br="):
@@ -779,7 +779,7 @@ if __name__ == '__main__':
             elif arg.startswith("dir="):
                 buildDir = arg[4:]
             else:
-                print("Unonkn %s argument"%arg)
+                print("Unknown %s argument"%arg)
                 usage()
 
         ok = getSources(branch)
