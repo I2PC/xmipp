@@ -1,0 +1,24 @@
+#/usr/bin/env python
+import os, shutil
+from distutils.dir_util import copy_tree
+
+folder = './'
+xmipp_folder = './src/xmipp'
+xmipp_script = 'xmipp'
+sonar_script = 'sonar-project.properties'
+# get folder relative to home dir and strip os.path separators
+script_dir = os.path.dirname(os.path.realpath(__file__)).split(os.getcwd())[1][1:]
+white_list = [xmipp_script, script_dir, sonar_script, xmipp_folder]
+os.makedirs(xmipp_folder)
+for item in os.listdir(folder):
+    item_path = os.path.join(folder, item)
+    try:
+        if item not in white_list:
+            shutil.move(item_path, xmipp_folder)
+        else:
+            if os.path.isdir(item_path):
+                copy_tree(item_path, xmipp_folder)
+            else:
+                shutil.copy(item_path, xmipp_folder)
+    except Exception as e:
+        print(e)
