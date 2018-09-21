@@ -692,7 +692,12 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
-    print("install done\n")
+    print("\n"
+          "  *********************************************\n"
+          "  *                                           *\n"
+          "  *  Xmipp have been successfully installed!  *\n"
+          "  *                                           *\n"
+          "  *********************************************\n\n")
     return True
 
 def writeDevelPaths(dirname):
@@ -803,6 +808,7 @@ if __name__ == '__main__':
             else:
                 print("Unknown %s argument"%arg)
                 usage()
+                sys.exit(1)
 
         ok = getSources(branch, doPull)
         if ok:
@@ -814,12 +820,6 @@ if __name__ == '__main__':
         if ok:
            ok=install(buildDir)
         if ok:
-           print("\n"
-                 "  *********************************************\n"
-                 "  *                                           *\n"
-                 "  *  Xmipp have been successfully installed!  *\n"
-                 "  *                                           *\n"
-                 "  *********************************************\n\n")
            sys.exit(0)
         else:
            sys.exit(1)
