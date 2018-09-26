@@ -159,8 +159,8 @@ void ProgMonoTomo::produceSideInfo()
 	{
 		if (A3D_ELEM(pMask, k, i, j) == 1)
 			++NVoxelsOriginalMask;
-		if (i*i+j*j+k*k > R*R)
-			A3D_ELEM(pMask, k, i, j) = -1;
+//		if (i*i+j*j+k*k > R*R)
+//			A3D_ELEM(pMask, k, i, j) = -1;
 	}
 
 //	#ifdef DEBUG_MASK
@@ -210,13 +210,21 @@ void ProgMonoTomo::produceSideInfo()
 				ux = (j - siz_x);
 
 				if (abs(ux)>=limit_distance_x)
+				{
 					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
+				}
 
 				if (abs(uy)>=limit_distance_y)
+				{
 					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
-
+					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
+				}
 				if (abs(uz)>=limit_distance_z)
+				{
 					DIRECT_MULTIDIM_ELEM(V1(), n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+					DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
+				}
 				++n;
 			}
 		}
@@ -231,17 +239,39 @@ void ProgMonoTomo::produceSideInfo()
 	V.clear();
 
 	double u;
-	int size_fourier = ZSIZE(fftV);
-	freq_fourier.initZeros(size_fourier);
 
-	int size = ZSIZE(pMask);
+	freq_fourier_z.initZeros(ZSIZE(fftV));
+	freq_fourier_x.initZeros(XSIZE(fftV));
+	freq_fourier_y.initZeros(YSIZE(fftV));
 
-	VEC_ELEM(freq_fourier,0) = 1e-38;
-	for(size_t k=0; k<size_fourier; ++k)
+	//TODO: check if the frequency assignmen is right with the mask
+
+	VEC_ELEM(freq_fourier_z,0) = 1e-38;
+	for(size_t k=0; k<ZSIZE(fftV); ++k)
 	{
-		FFT_IDX2DIGFREQ(k,size, u);
-		VEC_ELEM(freq_fourier,k) = u;
+		FFT_IDX2DIGFREQ(k,ZSIZE(pMask), u);
+		VEC_ELEM(freq_fourier_z,k) = u;
 	}
+
+	VEC_ELEM(freq_fourier_y,0) = 1e-38;
+	for(size_t k=0; k<YSIZE(fftV); ++k)
+	{
+		FFT_IDX2DIGFREQ(k,YSIZE(pMask), u);
+		VEC_ELEM(freq_fourier_y,k) = u;
+	}
+
+	VEC_ELEM(freq_fourier_x,0) = 1e-38;
+	for(size_t k=0; k<XSIZE(fftV); ++k)
+	{
+		FFT_IDX2DIGFREQ(k,XSIZE(pMask), u);
+		VEC_ELEM(freq_fourier_x,k) = u;
+	}
+
+
+
+
+
+
 }
 
 
@@ -309,7 +339,7 @@ void ProgMonoTomo::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double
 		{
 			for(size_t j=0; j<XSIZE(myfftV); ++j)
 			{
-				ux = VEC_ELEM(freq_fourier,j);
+				ux = VEC_ELEM(freq_fourier_x,j);
 				DIRECT_MULTIDIM_ELEM(fftVRiesz, n) = ux*DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n);
 				++n;
 			}
@@ -323,10 +353,10 @@ void ProgMonoTomo::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double
 	n=0;
 	for(size_t k=0; k<ZSIZE(myfftV); ++k)
 	{
-		uz = VEC_ELEM(freq_fourier,k);
+		uz = VEC_ELEM(freq_fourier_z,k);
 		for(size_t i=0; i<YSIZE(myfftV); ++i)
 		{
-			uy = VEC_ELEM(freq_fourier,i);
+			uy = VEC_ELEM(freq_fourier_y,i);
 			for(size_t j=0; j<XSIZE(myfftV); ++j)
 			{
 				DIRECT_MULTIDIM_ELEM(fftVRiesz, n) = uy*DIRECT_MULTIDIM_ELEM(fftVRiesz_aux, n);
@@ -484,26 +514,35 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 	double Nyquist;
 	Nyquist = 2*sampling;
 
+
+	double lowest_res;
+	lowest_res = list[0];
+
 	// Count number of voxels with resolution
 	size_t N=0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) //the value 0.001 is a tolerance
+		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
 			++N;
-
-
 
 	// Get all resolution values
 	MultidimArray<double> resolutions(N);
 	size_t N_iter=0;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001))
+		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res))
+		{
 			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+		}
+
+//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
 
 	// Sort value and get threshold
 	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
 	double filling_value = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
 	double trimming_value = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
+
+	std::cout << "last_res = " << filling_value << std::endl;
+	std::cout << "last_res = " << trimming_value << std::endl;
 
 	double init_res, last_res;
 
@@ -534,16 +573,40 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n) > trimming_value)
 		{
 		  DIRECT_MULTIDIM_ELEM(pMask,n) = 0;
-		  DIRECT_MULTIDIM_ELEM(resolutionVol, n) = filling_value;
+		  DIRECT_MULTIDIM_ELEM(resolutionVol, n) = trimming_value;
 		  DIRECT_MULTIDIM_ELEM(resolutionChimera, n) = filling_value;
 		}
 	}
 
-	#ifdef DEBUG_MASK
+	N=0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
+	if (DIRECT_MULTIDIM_ELEM(pMask, n) >=1)
+		{
+		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) //the value 0.001 is a tolerance
+			++N;
+		}
+
+	MultidimArray<double> resolutions2(N);
+	N_iter=0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
+	{
+		if (DIRECT_MULTIDIM_ELEM(pMask, n) >=1)
+			{
+			if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001))
+				DIRECT_MULTIDIM_ELEM(resolutions2,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+			}
+	}
+
+	// Sort value and get threshold
+	std::sort(&A1D_ELEM(resolutions2,0),&A1D_ELEM(resolutions2,N));
+	std::cout << "median Resolution = " << A1D_ELEM(resolutions2, (int)(0.5*N)) << std::endl;
+
+//	#ifdef DEBUG_MASK
 	Image<int> imgMask;
 	imgMask = pMask;
 	imgMask.write(fnMaskOut);
-	#endif
+//	#endif
 }
 
 void ProgMonoTomo::resolution2eval(int &count_res, double step,

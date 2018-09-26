@@ -103,7 +103,7 @@ public:
 	FourierFilter lowPassFilter, FilterBand;
 	bool halfMapsGiven;
 	Image<double> Vfiltered, VresolutionFiltered;
-	Matrix1D<double> freq_fourier;
+	Matrix1D<double> freq_fourier_z, freq_fourier_y, freq_fourier_x;
 	Matrix2D<double> resolutionMatrix, maskMatrix;
 };
 //@}
