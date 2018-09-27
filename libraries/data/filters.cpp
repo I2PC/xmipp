@@ -527,7 +527,6 @@ void regionGrowing3DEqualValue(const MultidimArray<double> &V_in, MultidimArray<
         int J=j; \
         int K=k; \
   if (INSIDEXYZ(V_out,J,I,K))  { \
-   double voxel=A3D_ELEM(V_in,K,I,J); \
    if (A3D_ELEM(V_in,K,I,J)==bgColor && A3D_ELEM(V_out,K,I,J)==1) { \
      coord.ii=I; \
      coord.jj=J; \
@@ -770,8 +769,7 @@ void varianceFilter(MultidimArray<double> &I, int kernelSize, bool relative)
     // std::cout << " Creating the variance matrix " << std::endl;
     MultidimArray<double> mVar(YSIZE(I),XSIZE(I));
     mVar.setXmippOrigin();
-    double stdKernel, varKernel, avgKernel, min_val, max_val;
-    double stdImg, avgImg, min_im, max_im;
+    double stdKernel, avgKernel, min_val, max_val;
     int x0, y0, xF, yF;
 
     // I.computeStats(avgImg, stdImg, min_im, max_im);    
@@ -1403,7 +1401,8 @@ void covarianceMatrix(const MultidimArray<double> &I, Matrix2D<double> &C)
 double bestShift(MultidimArray<double> &Mcorr,
                double &shiftX, double &shiftY, const MultidimArray<int> *mask, int maxShift)
 {
-    int imax, jmax, i_actual, j_actual;
+    int imax = INT_MIN;
+    int jmax, i_actual, j_actual;
     double xmax, ymax, avecorr, stdcorr, dummy;
     bool neighbourhood = true;
 
@@ -1528,9 +1527,6 @@ double bestShift(const MultidimArray<double> &I1, const MultidimArray< std::comp
     I1.checkDimension(2);
     I2.checkDimension(2);
 
-    int imax, jmax, i_actual, j_actual;
-    double xmax, ymax, avecorr, stdcorr, dummy;
-    bool neighbourhood = true;
     MultidimArray<double> Mcorr;
 
     correlation_matrix(FFTI1, I2, Mcorr, aux);
@@ -3677,6 +3673,7 @@ void RetinexFilter::apply(MultidimArray<double> &img)
     }
     std::sort(sortedValues,sortedValues+Nsorted);
     double threshold=sortedValues[(size_t)(percentile*Nsorted)];
+    delete[] sortedValues;
 
     // Apply threshold
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(img)

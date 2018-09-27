@@ -130,6 +130,7 @@ double KNN::euclideanDistance(MultidimArray<double> &sample,int index,double max
     return sqrt(dist);
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 double KNN::cityBlockDistance(MultidimArray<double> &sample,int index,double maximumDist)
 {
     double dist=0;
@@ -186,6 +187,7 @@ void KNN::loadModel(const FileName &fn)
     }
     fh.close();
 }
+#endif
 
 void KNN::setK(int k)
 {

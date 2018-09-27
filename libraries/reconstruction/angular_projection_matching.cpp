@@ -539,7 +539,6 @@ void * threadRotationallyAlignOneImage( void * data )
     double *opt_psi = thread_data->opt_psi;
     bool *opt_flip = thread_data->opt_flip;
     double *maxcorr = thread_data->maxcorr;
-    size_t result_Index=0;
 
     // Local variables
     MultidimArray<double>       Maux;

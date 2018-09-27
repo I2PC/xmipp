@@ -84,12 +84,10 @@ PyObject *
 SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
     Matrix2D<double>  L(4, 4), R(4, 4);
-    SymListObject *self = (SymListObject*) obj;
     PyObject * symMatrices;
     PyObject * symMatrix;
     PyObject * row;
     char * str = NULL;
-    double d;
 
     if (PyArg_ParseTuple(args, "s", &str))
     {

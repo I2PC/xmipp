@@ -282,6 +282,7 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                     {
                         PyErr_SetString(PyExc_TypeError,
                                         "Program arguments should be of type string");
+                        delete[] argv;
                         return NULL;
                     }
 

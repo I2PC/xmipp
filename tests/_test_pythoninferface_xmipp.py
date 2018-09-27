@@ -10,13 +10,13 @@ from os.path import exists #join
 from tempfile import NamedTemporaryFile
 from time import time
 
-from base import *
-import xmipp
+from .base import *
+from xmippLib import *
 
 # from pyworkflow.tests import *
-# from xmipp import *
-# from pyworkflow.em.packages.xmipp3 import getXmippPath
-# import pyworkflow.utils as pwutils
+from xmipp_base import *
+from xmipp3 import getXmippPath
+import pyworkflow.utils as pwutils
 
 
 def testFile(filename):
@@ -407,7 +407,7 @@ class TestXmippPythonInterface(unittest.TestCase):
     def test_Image_project(self):
         vol=Image(testFile('progVol.vol'))
         vol.convert2DataType(DT_DOUBLE)
-        proj=vol.projectVolumeDouble(0.,0.,0.)
+        proj=projectVolumeDouble(vol,0.,0.,0.)
         self.assertEqual(1,1)
 
     def test_Image_projectFourier(self):

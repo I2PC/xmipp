@@ -269,7 +269,6 @@ void ProgRecFourierGPU::cropAndShift(
 		RecFourierBufferData* buffer,
 		float* dest) {
 	int sizeX = buffer->fftSizeX;
-	int sizeY = buffer->fftSizeY;
 
 	// convert image (shift to center and remove high frequencies)
 	std::complex<double> paddedFourierTmp;
@@ -310,7 +309,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 	RecFourierBufferData* buffer = threadParams->buffer;
 	buffer->noOfImages = 0; // 'clean' buffer
 	for (int projIndex = 0; projIndex < parent->bufferSize; projIndex++) {
-		double rot, tilt, psi, weight;
+		double rot, tilt, psi;
 		Projection proj;
 		Matrix2D<double> Ainv(3, 3);
 		int imgIndex = threadParams->startImageIndex + projIndex;
@@ -734,7 +733,6 @@ void ProgRecFourierGPU::processWeights() {
 		for (int y = 0; y <= maxVolumeIndexYZ; y++) {
 			for (int x = 0; x <= maxVolumeIndexX; x++) {
 				float weight = tempWeights[z][y][x];
-				std::complex<float> val = tempVolume[z][y][x];
 				if (fabs(weight) > 1e-3) {
 					weight = 1.f/weight;
 				}

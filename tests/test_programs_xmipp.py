@@ -26,9 +26,9 @@
 import os
 
 # import pyworkflow.utils as pwutils
-# import pyworkflow.em.packages.xmipp3 as xmipp3
+# import xmipp3
 # from pyworkflow.tests import DataSet
-from base import *
+from .base import *
 
 
 
@@ -819,7 +819,7 @@ class PhantomSimulateMicroscope(XmippProgramTest):
 
     def test_case1(self):
         self.runCase("-i input/projectionsBacteriorhodopsin.stk -o %o/smallStackPlusCtf.stk --ctf input/input.ctfparam --noNoise",
-                outputs=["smallStackPlusCtf.stk"])
+                outputs=["smallStackPlusCtf.stk"],errorthreshold=0.05)
     def test_case2(self):
         self.runCase("-i input/projectionsBacteriorhodopsin.stk -o %o/smallStackPlusCtf.stk --ctf input/input.ctfparam --targetSNR 0.3",
                 outputs=["smallStackPlusCtf.stk"],random=True)
