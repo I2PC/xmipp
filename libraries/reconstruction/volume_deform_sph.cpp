@@ -110,7 +110,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 					double ir=i*iRmax;
 					double r2=k2i2+j*j;
 					double jr=j*iRmax;
-					double rr=sqrt(r2)*iRmax;
+					double rr=std::sqrt(r2)*iRmax;
 					double zsph=0.0;
 					if (r2<Rmax2)
 					{
@@ -121,9 +121,9 @@ double ProgVolDeformSph::distance(double *pclnm)
 #ifdef NEVERDEFINED
 					if (ir!=0&jr!=0&rr!=0)
 					{
-						x = zsph*(ir/sqrt(ir*ir+jr*jr))*(kr/rr);
+						x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
 						y = zsph*(ir/rr);
-						z = zsph*(jr/sqrt(ir*ir+jr*jr));
+						z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
 						gx += VEC_ELEM(clnm,idx)      *x;
 						gy += VEC_ELEM(clnm,idx+idxY0)*y;
 						gz += VEC_ELEM(clnm,idx+idxZ0)*z;
@@ -143,7 +143,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 					}
 				}
 				double voxelR=A3D_ELEM(mVR,k,i,j);
-				double absVoxelR=abs(voxelR);
+				double absVoxelR=fabs(voxelR);
 				double voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
                 if (applyTransformation)
                 	VO(k,i,j)=voxelI;
@@ -163,7 +163,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 		}
 	}
 
-	deformation=sqrt(modg/(totalVal));
+	deformation=std::sqrt(modg/(totalVal));
 
 #ifdef DEBUG
 	save.write("PPPIdeformed.vol");
@@ -171,13 +171,13 @@ double ProgVolDeformSph::distance(double *pclnm)
 	save.write("PPPdiff.vol");
 	save()=VR();
 	save.write("PPPR.vol");
-	std::cout << "Error=" << sqrt(diff2/Ncount) << " " << sqrt(modg/Ncount) << std::endl;
+	std::cout << "Error=" << std::sqrt(diff2/Ncount) << " " << std::sqrt(modg/Ncount) << std::endl;
 	std::cout << "Press any key\n";
 	char c; std::cin >> c;
 #endif
 	if (applyTransformation)
 		VO.write(fnVolOut);
-	return sqrt(diff2/totalVal);
+	return std::sqrt(diff2/totalVal);
 }
 #undef DEBUG
 
@@ -267,6 +267,11 @@ void ProgVolDeformSph::run() {
 
         std::cout<<std::endl;
         std::cout << "Deformation " << deformation << std::endl;
+        std::ofstream deformFile;
+        deformFile.open ("./deformation.txt");
+        deformFile << deformation;
+        deformFile.close();
+
     }
     applyTransformation=true;
     if (analyzeStrain)
@@ -404,11 +409,11 @@ void ProgVolDeformSph::computeStrain()
 				MAT_ELEM(H,2,0) = -MAT_ELEM(H,0,2);
 				MAT_ELEM(H,2,1) = -MAT_ELEM(H,1,2);
 
-				A3D_ELEM(mLS,k,i,j)=std::abs(D.det());
+				A3D_ELEM(mLS,k,i,j)=fabs(D.det());
 				allEigs(H,eigs);
 				for (size_t n=0; n < eigs.size(); n++)
 				{
-					double imagabs=std::abs(eigs[n].imag());
+					double imagabs=fabs(eigs[n].imag());
 					if (imagabs>1e-6)
 					{
 						A3D_ELEM(mLR,k,i,j)=imagabs*180/PI;
