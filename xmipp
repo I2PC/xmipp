@@ -593,6 +593,8 @@ def runTests(testNames):
                         blue('source build/xmipp.bashrc'))
 
     dataSetPath = os.path.join(testsPath, 'data')
+    if not os.path.isdir(dataSetPath):
+        createDir(dataSetPath)
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
     if not '--show' in testNames:
