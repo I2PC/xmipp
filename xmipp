@@ -33,7 +33,7 @@ def checkProgram(programName, show=True):
     except:
         osId = -1
 
-    systemInstructions = {}
+    systemInstructions = {}   #        Ubuntu/Debian          ;      ManjaroLinux
     systemInstructions["git"] = ["sudo apt-get -y install git","sudo pacman -Syu --noconfirm git"]
     systemInstructions["gcc"] = ["sudo apt-get -y install gcc","sudo pacman -Syu --noconfirm gcc"]
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
@@ -58,7 +58,9 @@ def checkProgram(programName, show=True):
                 idx=0
                 if programName in systemInstructions:
                     if osId >= 0:
-                        print(red(" - Do: %s"%systemInstructions[programName][osId]))
+                        print(red(" - %s OS detected, please try: %s"
+                                  % (systems[osId],
+                                     systemInstructions[programName][osId])))
                     else:
                         print(red("   Do:"))
                         for instructions in systemInstructions[programName]:
