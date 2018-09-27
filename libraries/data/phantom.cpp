@@ -1567,9 +1567,9 @@ Feature * Sphere::scale(double factor) const
     return (Feature *)f;
 }
 
-void Sphere::scale(double factor, Feature *_f) const
+void Sphere::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale a blob ---------------------------------------------------------- */
@@ -1586,9 +1586,9 @@ Feature * Blob::scale(double factor) const
     return (Feature *)f;
 }
 
-void Blob::scale(double factor, Feature *_f) const
+void Blob::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale a Gaussian -------------------------------------------------------- */
@@ -1603,9 +1603,9 @@ Feature * Gaussian::scale(double factor) const
     return (Feature *)f;
 }
 
-void Gaussian::scale(double factor, Feature *_f) const
+void Gaussian::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale a cylinder -------------------------------------------------------- */
@@ -1623,9 +1623,9 @@ Feature * Cylinder::scale(double factor) const
     return (Feature *)f;
 }
 
-void Cylinder::scale(double factor, Feature *_f) const
+void Cylinder::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale a double cylinder ------------------------------------------------- */
@@ -1644,9 +1644,9 @@ Feature * DCylinder::scale(double factor) const
     return (Feature *)f;
 }
 
-void DCylinder::scale(double factor, Feature *_f) const
+void DCylinder::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale a cube ------------------------------------------------------------ */
@@ -1664,9 +1664,9 @@ Feature * Cube::scale(double factor) const
     return (Feature *)f;
 }
 
-void Cube::scale(double factor, Feature *_f) const
+void Cube::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale an ellipsoid ------------------------------------------------------ */
@@ -1684,9 +1684,9 @@ Feature * Ellipsoid::scale(double factor) const
     return (Feature *)f;
 }
 
-void Ellipsoid::scale(double factor, Feature *_f) const
+void Ellipsoid::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 /* Scale a cone ------------------------------------------------------------ */
@@ -1703,9 +1703,9 @@ Feature * Cone::scale(double factor) const
     return (Feature *)f;
 }
 
-void Cone::scale(double factor, Feature *_f) const
+void Cone::scale(double factor, Feature **_f) const
 {
-    _f = scale(factor);
+    *_f = scale(factor);
 }
 
 #undef COPY_COMMON_PART
@@ -2170,7 +2170,7 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
     Cone       *con;
     Feature    *feat, *scaled_feat;
     std::string feat_type;
-    double     scale;          // The scale factor is not stored
+    double     scale = 1.;          // The scale factor is not stored
     char       straux[6];
 
     // Clear actual phantom

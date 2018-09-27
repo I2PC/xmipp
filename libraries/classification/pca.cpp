@@ -265,6 +265,7 @@ void PCAAnalyzer::reset(ClassicTrainingVectors const &ts, std::vector<unsigned> 
     REPORT_ERROR(ERR_NUMERICAL, "too many Jacobi iterations");
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /* Prepare for correlation ------------------------------------------------- */
 void PCAAnalyzer::prepare_for_correlation()
 {
@@ -350,6 +351,7 @@ void PCAAnalyzer::Project(FeatureVector &input, FeatureVector &output)
             output[i] += input[j] * eigenvec[i][j];
     }
 }
+#endif
 
 /* Clear ------------------------------------------------------------------- */
 void PCAAnalyzer::clear()
@@ -424,6 +426,7 @@ PCA_set::~PCA_set()
         delete PCA[i];
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /* Create empty PCA -------------------------------------------------------- */
 int PCA_set::create_empty_PCA(int n)
 {
@@ -433,6 +436,7 @@ int PCA_set::create_empty_PCA(int n)
         PCA[retval+i] = new PCAAnalyzer;
     return retval;
 }
+#endif
 
 /* Show/Read PCAset -------------------------------------------------------- */
 std::ostream& operator << (std::ostream &out, const PCA_set &PS)
@@ -472,6 +476,7 @@ Running_PCA::Running_PCA(int _J, int _d)
     eigenvectors.initZeros(d, J);
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /* Update with new sample -------------------------------------------------- */
 void Running_PCA::new_sample(const Matrix1D<double> &sample)
 {
@@ -542,6 +547,7 @@ void Running_PCA::new_sample(const Matrix1D<double> &sample)
         }
     }
 }
+#endif
 
 /* Project a sample vector on the PCA space -------------------------------- */
 void Running_PCA::project(const Matrix1D<double> &input,

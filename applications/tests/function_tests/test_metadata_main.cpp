@@ -175,8 +175,6 @@ TEST_F( MetadataTest, AddRows)
 
 TEST_F( MetadataTest, AddRowsPerformance)
 {
-    int 	i,j;				// Loop counters.
-    bool	inserted;			// Insertion return value.
     MetaData md, md2, md3;
     MDRow 	row;	// Sample row
 
@@ -205,19 +203,17 @@ TEST_F( MetadataTest, AddRowsPerformance)
 
     Timer t;
     size_t s1, s2, s3;
-    float r;
-
 
     t.tic();
 
-    for (i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
+    for (int i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
     {
     	md.addRow(row);
     }
     s1 = t.toc("Time original:", false);
 
     t.tic();
-    for (i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
+    for (int i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
     {
     	md2.addRow2(row);
     }
@@ -230,7 +226,7 @@ TEST_F( MetadataTest, AddRowsPerformance)
     if (md3.initAddRow(row))
     {
         // Add rows loop.
-    	i=0;
+    	int i=0;
     	do
     	{
     		// Insert row and increase number of insertions.

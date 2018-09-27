@@ -27,6 +27,7 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 #include "KeepBests.h"
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 
 KeepBests::KeepBests(int _n): n(_n), optionalN(0)
 {
@@ -44,6 +45,10 @@ void KeepBests::init()
     double *t;
     ctable=(cell*)malloc(n*sizeof(cell));
     if (optionalN) t=(double*)malloc(optionalN*n*sizeof(double));
+    if (NULL == t) {
+    	std::cerr << "Error while allocating memory" << std::endl;
+    	exit(-1);
+    }
     for (i=0; i<n; i++)
     {
         if (optionalN)
@@ -65,6 +70,10 @@ void KeepBests::setOptionalN(int _optionalN)
     double *t;
     if (optionalN) t=(double*)realloc(ctable[0].optValue,_optionalN*n*sizeof(double));
     else t=(double*)malloc(_optionalN*n*sizeof(double));
+    if (NULL == t) {
+    	std::cerr << "Error while allocating memory" << std::endl;
+    	exit(-1);
+    }
     for (i=0; i<n; i++) 
     {
         ctable[i].optValue=t;

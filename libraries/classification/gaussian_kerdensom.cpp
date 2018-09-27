@@ -352,7 +352,7 @@ double GaussianKerDenSOM::codeDens(const FuzzyMap* _som, const FeatureVector* _e
 }
 
 //-----------------------------------------------------------------------------
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Estimate the PD (Method 2: Using the data)
  */
@@ -375,7 +375,7 @@ double GaussianKerDenSOM::dataDens(const TS* _examples, const FeatureVector* _ex
     double tmp = (double) dim / 2.0;
     return (double)(pow((double)(2*PI*_sigma), -tmp)*s / (double)numVectors);
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 

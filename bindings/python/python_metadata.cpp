@@ -1161,7 +1161,6 @@ MetaData_addLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_addItemId(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    int label, pos = -1;
     try
     {
         MetaDataObject *self = (MetaDataObject*) obj;
@@ -1850,7 +1849,6 @@ PyObject *
 MetaData_join1(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int labelLeft;
-    int labelRight;
     PyObject *pyMdLeft = NULL;
     PyObject *pyMdright = NULL;
     JoinType jt=LEFT;

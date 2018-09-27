@@ -38,7 +38,7 @@ from traceback import format_exception
 # from pyworkflow.tests import *
 # import pyworkflow.utils as pwutils
 
-import xmippCore
+import xmippLib
 
 VAHID = "vahid"
 RM = 'rmarabini'
@@ -56,6 +56,7 @@ class Command(object):
         self.env = env
 
     def run(self, timeout):
+        # type: (object) -> object
         def target():
             self.process = subprocess.Popen(self.cmd, shell=True, env=self.env)
             self.process.communicate()
@@ -199,19 +200,19 @@ class ProgramTest(unittest.TestCase):
             if random:
                 print(yellow("WARNING: %s was created using a random seed, check skipped..." % outFile))
             else:
-                fnGoldStd = xmippCore.FileName(fileGoldStd)
+                fnGoldStd = xmippLib.FileName(fileGoldStd)
                 if fnGoldStd.isImage():
-                    im1 = xmippCore.Image(fileGoldStd)
-                    im2 = xmippCore.Image(outFile)
+                    im1 = xmippLib.Image(fileGoldStd)
+                    im2 = xmippLib.Image(outFile)
                     msg = "Images are not equal (+-%f):\n  output: %s\n  gold: %s" % \
                           (errorthreshold, outFile, fileGoldStd)
                     self.assertTrue(im1.equal(im2, errorthreshold), red(msg))
                 elif fnGoldStd.isMetaData():
                     msg = "MetaDatas are not equal:\n  output: %s\n  gold: %s" % (outFile, fileGoldStd)
-                    self.assertTrue(xmippCore.compareTwoMetadataFiles(outFile, fileGoldStd), red(msg))
+                    self.assertTrue(xmippLib.compareTwoMetadataFiles(outFile, fileGoldStd), red(msg))
                 else:
                     msg = "Files are not equal:\n  output: %s\n  gold: %s" % (outFile, fileGoldStd)
-                    self.assertTrue(xmippCore.compareTwoFiles(outFile, fileGoldStd, 0), red(msg))
+                    self.assertTrue(xmippLib.compareTwoFiles(outFile, fileGoldStd, 0), red(msg))
 
 
 class GTestResult(unittest.TestResult):

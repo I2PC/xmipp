@@ -58,7 +58,6 @@ void UnitCell::doOctahedral(int symmetry) {
 }
 
 void UnitCell::doIcosahedral(int symmetry) {
-	double phi = (1. + sqrt(5.)) / 2.;
 	Matrix1D<double> _centre, _5f, _5fp, _5fpp;
 	_centre = vectorR3(0., 0., 0.);
 	if (symmetry == pg_I1) {
@@ -602,12 +601,11 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & _centre,
 					minZ = - rmax;
 					maxX = rmax;
 					maxY = rmax;
-					maxZ = rmax;
 				}
 			} else if (symmetry != pg_CN && symmetry != pg_DN) {
 				maxY = rmin;
 			}
-			 maxZ = _maxZ;
+			maxZ = _maxZ;
 			Matrix1D<double> minVector, maxVector;
 			for (std::vector<Matrix1D<double> >::iterator it =
 					expandedUnitCell.begin(); it != expandedUnitCell.end();
@@ -832,7 +830,6 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & _centre,
 
 		//for all points in the enclosing box
 		//check if they are inside the expanded unit cell
-		int ii, jj, kk; //expandedUnitCell
 		for (int k = iMinZ; k <= iMaxZ; ++k)
 			for (int i = iMinY; i <= iMaxY; ++i)
 				for (int j = iMinX; j <= iMaxX; ++j) {

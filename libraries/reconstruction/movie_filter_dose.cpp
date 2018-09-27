@@ -132,10 +132,9 @@ void ProgMovieFilterDose::applyDoseFilterToImage(
 		int Ydim, int Xdim,
 		const MultidimArray<std::complex<double> > &FFT1,
 		const double dose_start, const double dose_finish) {
-	double * ptrv = (double *) MULTIDIM_ARRAY(FFT1);
 	std::complex<double> complex_zero = 0;
 	double x, y;
-	double xx, yy;
+	double yy;
 	double current_critical_dose, current_optimal_dose;
 	int sizeX_2 = Xdim / 2;
 	double ixsize = 1.0 / Xdim;

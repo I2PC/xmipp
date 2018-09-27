@@ -409,6 +409,7 @@ int partialpfunction(Matrix1D<double>  &Parameters,
 {
     int     psi_max = (int)(sqrt(3)*128/(global_flexible_prog->sampling_rate));
     double  help, a0,a1,a2;
+    help = NAN;
     double  *help_v,*coord_gaussian,*coord_img;
     double  *ModeValues;
     int     Line_number = 0;
@@ -537,6 +538,8 @@ int partialpfunction(Matrix1D<double>  &Parameters,
         {
             WRITE_ERROR(partialpfunction, "Error returned by MatrixMultiply");
             free(help_v);
+            free(ModeValues);
+            free(coord_img);
             return(ERROR);
         }
 
@@ -659,7 +662,7 @@ int return_gradhesscost(
           {
               double  phi,theta,psi,x0,y0;
               double  *Rz1,*Ry,*Rz2,*R,*DRz1,*DRy,*DRz2,*DR0,*DR1,*DR2,*Tr;
-              double  *hlp,*helpgr;
+              double  *hlp;
               int     i,j;
               double  difference;
               double  SinPhi,CosPhi,SinPsi,CosPsi,SinTheta,CosTheta;
@@ -671,8 +674,6 @@ int return_gradhesscost(
 
               //global_flexible_prog->costfunctionvalue = 0.0;
 
-
-              helpgr = (double *)malloc((size_t)(dim +5) * sizeof(double));
               for (int i = 0; i < dim + 5; i++)
               {
                   global_flexible_prog->trial(i) = Parameters(i);
@@ -1052,8 +1053,8 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
                   return(ERROR);
               }
 
-              helpgr = (double *)malloc((size_t)((long)trialSize) * sizeof(double));
-              if (helpgr == (double *)NULL)
+              double *helpgr = (double *)malloc((size_t)((long)trialSize) * sizeof(double));
+              if (helpgr == NULL)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for helpgr");
                   free(Rz1);
@@ -1209,6 +1210,10 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               double   wmax, thresh;
               int      i, j;
               long     ma = (long) VEC_XSIZE(global_flexible_prog->trial);
+              if (ma <=0) {
+            	  WRITE_ERROR(levenberg_cst2, "ERROR - degenerated vector");
+            	  return(ERROR);
+              }
               double   hlp;
               double   *costchanged=NULL,max_defamp;
               int      dim = global_flexible_prog->numberOfModes;
@@ -1419,6 +1424,8 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
                   free(u);
                   free(da);
                   free(v);*/
+                  free(a); // FIXME this variable might be pointing elsewhere
+                  free(costchanged);
                   return(!ERROR);
               }
 
@@ -1472,6 +1479,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               std::cout << "1800 cost" << global_flexible_prog->costfunctionvalue_cst<<std::endl;
               free(da);
               std::cout << "1801 cost" << global_flexible_prog->costfunctionvalue_cst<<std::endl;*/
+              free(costchanged);
               return(!ERROR);
           } /* End of levenberg_cst2 */
 
@@ -1491,7 +1499,6 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               int             DoDesProj, IteratingStop, FlagMaxIter;
               long            MaxIter, MaxIter1, iter;
               long            MaxNumberOfFailures, SatisfNumberOfSuccesses, nSuccess, nFailure;
-              double          *pntr_FailureIter=NULL;
               double          LambdaScale=2., OldCost, tol_angle, tol_shift,tol_defamp;
               double          OneIterInSeconds, *Gradient, *Hessian;
               time_t          time1, time2, *tp1 = NULL, *tp2 = NULL;
@@ -1585,8 +1592,6 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
 
               do
               {
-                  time1 = time(tp1);
-
                   std::cout << "1992 *cost = " << global_flexible_prog->costfunctionvalue_cst << " cost = " << global_flexible_prog->costfunctionvalue_cst << std::endl;
                   std::cout << "cost = " << global_flexible_prog->costfunctionvalue_cst << std::endl;
                   if (levenberg_cst2(cst_P_mu_image,P_esp_image,centerOfMass,Gradient, Hessian,  Parameters,OldCost, &lambda, LambdaScale, &iter, tol_angle, tol_shift, tol_defamp,&IteratingStop,Xwidth,Ywidth) == ERROR)
@@ -1598,13 +1603,11 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
                       return(ERROR);
                   }
                   std::cout << "2002 *cost = " << global_flexible_prog->costfunctionvalue_cst  << " cost = " << global_flexible_prog->costfunctionvalue_cst  << std::endl;
-                  time2 = time(tp2);
 
                   if (global_flexible_prog->costfunctionvalue_cst < OldCost)
                   {
                       OldCost = global_flexible_prog->costfunctionvalue_cst;
                       nSuccess++;
-                      pntr_FailureIter++;
                       if (nSuccess >= SatisfNumberOfSuccesses)
                       {
                           break;
@@ -1617,7 +1620,6 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
                   else
                   {
                       nFailure++;
-                      *pntr_FailureIter++ = (iter + 1L);
                   }
 
               }
@@ -2082,7 +2084,7 @@ std::cout << "2074" << fnDown << std::endl;
               << " at stage: " << currentStage << std::endl;
 #endif
 
-              double fitness=eval();
+              eval(); // FIXME is this call necessary?
               bestStage1 = trial = parameters = trial_best;
 
               currentStage = 2;
@@ -2093,7 +2095,7 @@ std::cout << "2074" << fnDown << std::endl;
               << " at stage: " << currentStage << std::endl;
 #endif
 
-              fitness=eval();
+              double fitness=eval();
 
 std::cout << "step1" << std::endl;
 
