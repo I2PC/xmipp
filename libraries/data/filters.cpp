@@ -1218,6 +1218,9 @@ double fastCorrentropy(const MultidimArray<double> &x,
             ++maskSum;
         }
     }
+    if (0 == maskSum) {
+        REPORT_ERROR(ERR_NUMERICAL, "maskSum is zero (0), which would lead to division by zero");
+    }
     return (retvalxy / maskSum);
 }
 

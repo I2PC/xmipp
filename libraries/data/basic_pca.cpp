@@ -368,6 +368,9 @@ void PCAMahalanobisAnalyzer::computeStatistics(MultidimArray<double> & avg,
         aux*=aux;
         stddev+=aux;
     }
+    if (1 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N was 1 (one), which would lead to division by zero\n");
+    }
     double iN_1=1.0/(N-1);
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(stddev)
     DIRECT_A1D_ELEM(stddev,i)=sqrt(DIRECT_A1D_ELEM(stddev,i)*iN_1);
