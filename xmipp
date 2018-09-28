@@ -705,10 +705,11 @@ def usage():
           "   all [N=processors]:     (Default) Retrieve, configure, check, compile N=8, install in build\n"
           "   get_devel_sources:      Retrieve development sources from github\n"
           "   cleanBin:               Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
-          "   clean:                  Delete all (sources and build directories)\n"
+          "   cleanAll:               Delete all (sources and build directories)\n"
           "   config:                 Configure compilation variables\n"
           "   check_config:           Check that the configuration is correct\n"
           "   compile N:              Compile all modules with N processors\n"
+          "   compileAndInstall N:    Compile all modules with N processors and install in the default directory\n"
           "   compile N xmippCore:    Compile xmippCore\n"
           "   compile N xmipp:        Compile xmipp\n"
           "   compile N xmippViz:     Compile xmippViz\n"
@@ -741,9 +742,18 @@ if __name__ == '__main__':
         mode = sys.argv[1]
     else:
         mode = "all"
-    if mode=="clean":
-        cleanSources()
-    if mode=="cleanBin":
+    if mode=="cleanAll":
+        print("WARNING: This will DELETE ALL content from src and build")
+        print("Are you sure you want to do this? (YeS/No)")
+        yesno = raw_input()
+        if yesno == "YeS":
+            print("Cleaning everything")
+            cleanSources()
+        else:
+            print("Nothing cleaned")
+            if yesno.lower()=="yes":
+                print("Pay attention to capital letters of YeS")
+    elif mode=="cleanBin":
         cleanBinaries()
     elif mode=="get_devel_sources" and checkProgram("git"):
         getSources()
@@ -757,6 +767,10 @@ if __name__ == '__main__':
             compile(Nproc)
         else:
             compileModule(Nproc,sys.argv[3])
+    elif mode=="compileAndInstall":
+        Nproc=sys.argv[2]
+        compile(Nproc)
+        install("build")
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
