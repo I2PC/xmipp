@@ -1281,7 +1281,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
-			A3D_ELEM(doaResolution_1,k,i,j) = (medianResol/mres) - 1;//1 - ( (Mres - mres)/(Mres + mres) );
+			A3D_ELEM(doaResolution_1,k,i,j) = ( (Mres - mres)/(Mres + mres) );
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
