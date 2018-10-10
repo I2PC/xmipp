@@ -106,9 +106,9 @@ def cloneOrCheckout(repo, branch, doPull, ok):
             gitStBr = gitSt.split("\n")[0]
             currentBranch = gitStBr.split("On branch ")[1]
             if currentBranch != branch:
-                ok and runJob("git checkout %s" % branch)
+                ok = ok and runJob("git checkout %s" % branch)
             if doPull:
-                ok and runJob("git pull")
+                ok = ok and runJob("git pull")
         else:
             print("working branch detected: aborting git checkout and git pull")
 
