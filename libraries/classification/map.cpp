@@ -189,6 +189,7 @@ unsigned ClassificationMap::height() const
     return somHeight;
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns a code vector given its position
  * Parameter: _pos  The position of the code vector
@@ -205,7 +206,7 @@ SomIn& ClassificationMap::itemAtPos(const SomPos& _pos)
 
     return itemAt((somWidth * _pos.second) + _pos.first);
 }
-
+#endif
 
 
 /**
@@ -225,7 +226,7 @@ const SomIn& ClassificationMap::itemAtPos(const SomPos& _pos) const
     return itemAt((somWidth * _pos.second) + _pos.first);
 }
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns the target of a code vector given its position
  * Parameter: _pos  The position of the code vector
@@ -249,7 +250,7 @@ Label& ClassificationMap::targetAtPos(const SomPos& _pos)
 
     return targetAt((somWidth * _pos.second) + _pos.first);
 }
-
+#endif
 
 /**
  * Returns a const target of a code vector given its position
@@ -335,6 +336,7 @@ SomPos ClassificationMap::codVecPos(SomIn& _v)
     return indexToPos(&_v - &(itemAt(0)));
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Returns the position of the code vector that represents the input in the
  * som
@@ -344,7 +346,7 @@ SomPos ClassificationMap::applyPos(const SomIn& _in)
 {
     return codVecPos(test(_in));
 }
-
+#endif
 
 /**
  * Standard output for a SOM

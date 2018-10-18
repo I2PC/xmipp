@@ -129,7 +129,7 @@ public:
 
     double H(const FuzzyCodeBook& _xmippDS) const;
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
     /**
      * Calculates Non-fuzzy index (NFI) validity functional
      * Parameter: _xmippDS Data structure to train, a codeBook in this case
@@ -141,6 +141,7 @@ public:
      */
 
     double NFI(const FuzzyCodeBook& _xmippDS) const;
+#endif
 
     /**
      * Calculates Compactness and separation index (S) validity functional

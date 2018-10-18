@@ -70,6 +70,8 @@ double lasso(const Matrix1D<double> &x,
 
 #define OMP_PROJECTION 1
 #define LASSO_PROJECTION 2
+
+#ifdef UNUSED // detected as unused 29.6.2018
 /** kSVD
  * @ingroup kSVD
  *  This function optimizes the dictionary input and the representation
@@ -85,4 +87,6 @@ double kSVD(const std::vector< Matrix1D<double> > &X, int S,
     bool keepFirstColumn=true, int maxIter=20, double minChange=0.005,
     int projectionMethod=OMP_PROJECTION, double lambda=0.2);
 //@}
+#endif
+
 #endif

@@ -42,6 +42,7 @@ void KerDenSOM::nSteps(const unsigned long& _nSteps)
     somNSteps = _nSteps;
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Gets the sigma (Kernel Width)
  */
@@ -49,7 +50,7 @@ double KerDenSOM::getSigma()
 {
     return sigma;
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -344,7 +345,7 @@ void KerDenSOM::initU(FuzzyMap* _som)
 
 //-----------------------------------------------------------------------------
 
-
+#ifdef UNUSED // detected as unused 29.6.2018
 /**
  * Determines the Random Approximation of GVC
  * (Determines the optimal Regularization Factor)
@@ -401,6 +402,7 @@ double KerDenSOM::randApproxGVC(const TS* _examples, const FuzzyMap* _som, doubl
     else
         return 0.;
 }
+#endif
 
 //-----------------------------------------------------------------------------
 /**************** Visualization methods ***************************************/
@@ -462,6 +464,7 @@ void KerDenSOM::showU(FuzzyMap* _som, const TS* _ts)
     }
 }
 
+#ifdef UNUSED // detected as unused 29.6.2018
 //-----------------------------------------------------------------------------
 /**
  * Prints the Us ("Membership")
@@ -509,5 +512,5 @@ void KerDenSOM::printV(FuzzyMap* _som, const TS* _ts, FileName& _fname)
     fclose(F);
 
 }
-
+#endif
 //-----------------------------------------------------------------------------
