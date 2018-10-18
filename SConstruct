@@ -97,7 +97,7 @@ else:
 
 # Python and SCons versions are fixed
 env.EnsurePythonVersion(2,7)
-env.EnsureSConsVersion(2,3,2)
+env.EnsureSConsVersion(2,3,1)
 # TODO: see after all is clean and crispy if we can avoid fixing the versions.
 # We can specify a range of valid version after we check it works with them.
 
