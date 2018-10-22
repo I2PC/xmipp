@@ -51,7 +51,7 @@ class ProgMonoTomo : public XmippProgram
 public:
 	 /** Filenames */
 	FileName fnOut, fnVol, fnVol2, fnMask, fnchim, fnSpatial,
-	fnMeanVol, fnMaskOut, fnMd;
+	fnMeanVol, fnMaskOut, fnMd, fnFilt;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
 	double sampling, minRes, maxRes, R;
@@ -83,15 +83,22 @@ public:
 
     void median3x3x3(MultidimArray<double> vol, MultidimArray<double> &filtered);
 
+    void localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize);
+
     void postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
     		std::vector<double> &list, MultidimArray<double> &resolutionChimera,
-    		double &cut_value, MultidimArray<int> &pMask);
+    		double &cut_value, MultidimArray<int> &pMask, double &resolutionThreshold);
+
     void resolution2eval(int &count_res, double step,
     								double &resolution, double &last_resolution,
     								double &freq, double &freqL,
     								int &last_fourier_idx,
     								bool &continueIter,	bool &breakIter,
     								bool &doNextIteration);
+
+    void lowestResolutionbyPercentile(MultidimArray<double> &resolutionVol,
+    								std::vector<double> &list,	double &cut_value, double &resolutionThreshold);
+
     void run();
 
 public:
