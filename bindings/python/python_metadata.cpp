@@ -192,7 +192,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
 
-    int label;
+    int label, type;
     PyObject *input = NULL;
     PyObject *pyStr = NULL;
     PyObject *pyReplace = Py_False;
@@ -200,7 +200,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     bool replace = true;
 
 
-    if (PyArg_ParseTuple(args, "iO|O", &label, &input, &pyReplace))
+    if (PyArg_ParseTuple(args, "iO|Oi", &label, &input, &pyReplace, &type))
     {
         try
         {
@@ -209,7 +209,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 replace = pyReplace == Py_True;
                 str = PyString_AsString(pyStr);
-                MDL::addLabelAlias((MDLabel)label,(String)str, replace);
+                MDL::addLabelAlias((MDLabel)label,(String)str, replace, (MDLabelType)type);
                 Py_RETURN_NONE;
             }
         }
