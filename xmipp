@@ -22,16 +22,18 @@ def createDir(dirname):
 
 def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","ManjaroLinux"]
+    try:
+        osInfo = subprocess.Popen(["lsb_release", "--id"],
+                                   stdout=subprocess.PIPE).stdout.read()
+        osName = osInfo.split('\t')[1].strip('\n')
+        osId = -1  # no default OS
+        for idx, system in enumerate(systems):
+            if osName in system:
+                osId = idx
+    except:
+        osId = -1
 
-    osInfo = subprocess.Popen(["lsb_release", "--id"],
-                              stdout=subprocess.PIPE).stdout.read()
-    osName = osInfo.split('\t')[1].strip('\n')
-    osId = -1  # no default OS
-    for idx, system in enumerate(systems):
-        if osName in system:
-            osId = idx
-
-    systemInstructions = {}
+    systemInstructions = {}   #        Ubuntu/Debian          ;      ManjaroLinux
     systemInstructions["git"] = ["sudo apt-get -y install git","sudo pacman -Syu --noconfirm git"]
     systemInstructions["gcc"] = ["sudo apt-get -y install gcc","sudo pacman -Syu --noconfirm gcc"]
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
@@ -42,19 +44,29 @@ def checkProgram(programName, show=True):
     systemInstructions["rsync"] = ["sudo apt-get -y rsync" , "sudo pacman -Syu --noconfirm rsync"]
 
     ok=True
+    cont = True
     if not whereis(programName):
-        if show:
-            print(red("Cannot find %s."%programName))
-            idx=0
-            if programName in systemInstructions:
-                if osId >= 0:
-                    print(red(" - Do: %s"%systemInstructions[programName][osId]))
-                else:
-                    for instructions in systemInstructions[programName]:
+        if programName == "scons":
+            try:
+                runJob("pip install scons")
+                cont = False
+            except:
+                cont = True
+        if cont:
+            if show:
+                print(red("Cannot find %s."%programName))
+                idx=0
+                if programName in systemInstructions:
+                    if osId >= 0:
+                        print(red(" - %s OS detected, please try: %s"
+                                  % (systems[osId],
+                                     systemInstructions[programName][osId])))
+                    else:
                         print(red("   Do:"))
-                        print(red("    - In %s: %s"%(systems[idx],instructions)))
-                        idx+=1
-        ok = False
+                        for instructions in systemInstructions[programName]:
+                            print(red("    - In %s: %s"%(systems[idx],instructions)))
+                            idx+=1
+            ok = False
     return ok
 
 def green(text):
@@ -126,6 +138,7 @@ def getSources(branch='', doPull=True):
         ok = cloneOrCheckout("scipion-em-xmipp", branch, doPull, ok)
     else:
         ok=False
+
     ok=ok and checkProgram("scons")
     if not ok:
         print(red("Cannot get the sources"))
