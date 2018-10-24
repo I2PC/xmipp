@@ -619,6 +619,9 @@ int partialpfunction(Matrix1D<double>  &Parameters,
     system(command.c_str());
     command=(std::string)"rm -f downimg_"+fnRandom+".xmp";
     system(command.c_str());*/
+    free(ModeValues);
+    free(help_v);
+    free(coord_img);
     return(!ERROR);
 }/*end of partialpfunction*/
 

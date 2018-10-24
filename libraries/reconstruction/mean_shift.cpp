@@ -353,4 +353,6 @@ void MeanShiftFilter::apply(MultidimArray<double> &input)
         //update input for next iteration
         input = output;
     }
+    delete[] th_ids;
+    delete[] th_args;
 }
