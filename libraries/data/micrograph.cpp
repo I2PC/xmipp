@@ -825,6 +825,9 @@ void TiltPairAligner::computeGamma()
         gamma += acos(tilted_area / untilted_area);
         triang++;
     }
+    if (0 == triang) {
+        REPORT_ERROR(ERR_NUMERICAL, "triang is zero (0), which would lead to division by zero");
+    }
     gamma /= triang;
     gamma = RAD2DEG(gamma);
     if (triang < 100)

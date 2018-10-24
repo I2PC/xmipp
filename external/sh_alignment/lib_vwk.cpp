@@ -786,6 +786,10 @@ void relax_laplacian(double **phi, unsigned extx, unsigned exty,
       norm += *(*phi + indv);
     } else if (*(mask + indv) == 0) ++maskcount;
   }
+  if (0 == threscount) {
+    printf("threscount was 0 (zero)\n");
+    exit(-1);
+  }
   norm /= (double)threscount; /* average density for thresholded volume, assuming threscount>0 */
   norm *= maskcount;/* density total one would get if mask=0 was filled with average */
 
