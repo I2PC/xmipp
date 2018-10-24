@@ -101,6 +101,8 @@ PyMethodDef Image_methods[] =
           "Read image preview, downsample in Fourier space" },
         { "equal", (PyCFunction) Image_equal, METH_VARARGS,
           "return true if both images are equal up to precision" },
+        { "convertPSD", (PyCFunction) Image_convertPSD, METH_VARARGS,
+          "Convert to PSD: center FFT and use logarithm" },
         { "readApplyGeo", (PyCFunction) Image_readApplyGeo, METH_VARARGS,
           "Read image from disk applying geometry in referring metadata" },
         { "write", (PyCFunction) Image_write, METH_VARARGS,
