@@ -234,7 +234,7 @@ void ProgMovieEstimateGain::computeHistograms(const MultidimArray<int> &Iframe)
 			for(size_t i=0; i<Ydim; i++)
 				A2D_ELEM(columnH,i,j)=auxElemC[i];
 		}
-		delete auxElemC;
+		delete[] auxElemC;
 
 		for(size_t i=0; i<YSIZE(rowH); i++)
 		{
@@ -242,7 +242,7 @@ void ProgMovieEstimateGain::computeHistograms(const MultidimArray<int> &Iframe)
 			std::sort(auxElemR, auxElemR+Xdim);
 			memcpy(&A2D_ELEM(rowH,i,0),auxElemR,Xdim*sizeof(int));
 		}
-		delete auxElemR;
+		delete[] auxElemR;
 
 
 #ifdef NEVER_DEFINED
