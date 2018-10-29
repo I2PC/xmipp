@@ -1021,7 +1021,10 @@ void ProgMonoTomo::run()
 			#endif
 
 			// Is the mean inside the signal significantly different from the noise?
-			z=(meanS-meanN)/sqrt(sigma2S/NS+sigma2N/NN);
+
+			/*z=(meanS-meanN)/sqrt(sigma2S/NS+sigma2N/NN);
+			 *
+
 			#ifdef DEBUG
 				std::cout << "thresholdNoise = " << thresholdNoise << std::endl;
 				std::cout << "  meanS= " << meanS << " sigma2S= " << sigma2S << " NS= " << NS << std::endl;
@@ -1034,6 +1037,7 @@ void ProgMonoTomo::run()
 				std::cout << "Search stopped due to z>Z (hypothesis test)" << std::endl;
 				doNextIteration=false;
 			}
+			*/
 			if (doNextIteration)
 			{
 				if (resolution <= (minRes-0.001))
@@ -1082,6 +1086,9 @@ void ProgMonoTomo::run()
 	{
 		if ( (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold) && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(pOutputResolution, n)) )
 			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(pOutputResolution, n);
+
+		if ( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist)
+			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
 	}
 
 	realGaussianFilter(FilteredResolution, sigma);
@@ -1104,6 +1111,8 @@ void ProgMonoTomo::run()
 	{
 		if ( (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold) && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(pOutputResolution, n)) )
 			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(pOutputResolution, n);
+		if ( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist)
+			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
 	}
 
 	realGaussianFilter(FilteredResolution, sigma);
@@ -1113,6 +1122,8 @@ void ProgMonoTomo::run()
 	{
 		if ((DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold)  && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(pOutputResolution, n)))
 			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(pOutputResolution, n);
+		if ( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist)
+			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
 	}
 
 //	pOutputResolution = FilteredResolution;
