@@ -263,7 +263,7 @@ void ProgMovieAlignmentCorrelation::run()
 			if (yDRcorner!=-1)
 				gain().selfWindow(yLTcorner, xLTcorner, yDRcorner, xDRcorner);
 			// Pablo with coss: Consistency with other alignment methods
-			//gain()=1.0/gain();
+			//Do not divide by the gain: gain()=1.0/gain();
 			double avg=gain().computeAvg();
 			if (std::isinf(avg) || std::isnan(avg))
 				REPORT_ERROR(ERR_ARG_INCORRECT,"The input gain image is incorrect, its inverse produces infinite or nan");

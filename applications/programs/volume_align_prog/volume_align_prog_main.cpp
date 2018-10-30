@@ -341,10 +341,8 @@ public:
                                                 trial(6) = ZZ(r);
                                                 trial(7) = YY(r);
                                                 trial(8) = XX(r);
-
                                                 // Evaluate
                                                 double fit = fitness(MATRIX1D_ARRAY(trial));
-
                                                 // The best?
                                                 if (fit < best_fit || first)
                                                 {
@@ -354,7 +352,6 @@ public:
                                                     if (tell)
                                                     	std::cout << "Best so far\n";
                                                 }
-
                                                 // Show fit
                                                 if (tell)
                                                     std::cout << trial << " " << fit << std::endl;

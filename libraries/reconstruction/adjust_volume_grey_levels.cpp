@@ -160,7 +160,9 @@ double ProgAdjustVolume::mismatching(double a, double b)
     //TODO Review this
     //    while (SF.nextObject()!= NO_MORE_OBJECTS)
     //        ;
-
+    if (0 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N is zero (0), which would lead to division by zero");
+    }
     return retval / N;
 }
 #undef DEBUG

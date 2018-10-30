@@ -731,8 +731,9 @@ void BasicARTParameters::computeCAVWeights(GridVolume &vol_basis0,
             Neq += (*GVNeq)(n)(k, i, j);
             Nunk++;
         }
+        double redundancy = (0 == Neq) ? 0 : (100.0 - 100.0*Nunk / Neq);
         std::cerr << "There are " << Neq << " equations and " << Nunk
-        << " unknowns (redundancy=" << 100.0 - 100.0*Nunk / Neq << ")\n";
+        << " unknowns (redundancy=" << redundancy << ")\n";
     }
 }
 

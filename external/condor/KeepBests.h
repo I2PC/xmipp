@@ -29,6 +29,8 @@ you can contact the author at fvandenb@iridia.ulb.ac.be
 
 #define INF 1.7E+308 
 
+#include <iosfwd>
+
 typedef struct cell_tag
     {
         double K;

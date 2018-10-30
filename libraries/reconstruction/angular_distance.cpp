@@ -249,6 +249,9 @@ void ProgAngularDistance::run()
 
         i++;
     }
+    if (0 == i) {
+        REPORT_ERROR(ERR_NUMERICAL, "i is zero (0), which would lead to division by zero");
+    }
     angular_distance /= i;
     shift_distance /=i;
 
