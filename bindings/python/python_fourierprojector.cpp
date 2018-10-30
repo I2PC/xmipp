@@ -140,8 +140,8 @@ PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObje
           {
               PyErr_SetString(PyXmippError, xe.msg.c_str());
           }
-          Py_RETURN_NONE;
       }
+      Py_RETURN_NONE;
 }
 
 

@@ -115,7 +115,8 @@ void ProgEvaluateCoordinates::run()
 
     std::cout << "How many relevant particles are picked:" << std::endl;
     std::cout << "True positive rate: ";
-    std::cout << (double) truePosivites / totalGT << std::endl << std::endl;
+    double truePositiveRate = (0 == totalGT) ? 0 : (double) truePosivites / totalGT;
+    std::cout << truePositiveRate << std::endl << std::endl;
 
     std::cout << "Ratio of wrongly picked particles and all picked particles:";
     std::cout << std::endl;

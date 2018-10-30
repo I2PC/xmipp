@@ -214,8 +214,7 @@ public:
                 if (verbose>0)
                     std::cerr << "Searching symmetry axis ...\n";
                 for (double rot = rot0; rot <= rotF; rot += step_rot)
-                    for (double tilt = tilt0; tilt <= tiltF; tilt += step_tilt)
-                    {
+                    for (double tilt = tilt0; tilt <= tiltF; tilt += step_tilt)                    {
                         rotVector.push_back(rot);
                         tiltVector.push_back(tilt);
                     }

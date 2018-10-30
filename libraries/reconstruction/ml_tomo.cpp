@@ -2915,6 +2915,8 @@ ProgMLTomo::expectation(MetaData &MDimg, std::vector<Image<double> > &Iref,
     }
     //Free some memory
     delete distributor;
+    free(threads_d);
+    free(th_ids);
 
     //FIXME
     // Send back output in the form of a MetaData
