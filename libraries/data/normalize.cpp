@@ -119,6 +119,9 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
         A2D_ELEM(localVariance,i,j)=variancePiece;
         meanVariance+=variancePiece;
     }
+    if (0 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N is zero (0), which would lead to division by zero");
+    }
     meanVariance*=1.0/N;
 
     // Test the hypothesis that the variance in this piece is
@@ -406,6 +409,9 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
         }
     }
     // average and standard deviation
+    if (0 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N is zero (0), which would lead to division by zero");
+    }
     aux = sum1 / (double) N;
     newstddev = sqrt(fabs(sum2 / N - aux*aux) * N / (N - 1));
 

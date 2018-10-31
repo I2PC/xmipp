@@ -290,11 +290,7 @@ public:
         //rank 1 has already xdim and ydim.
         if (rank == 1)
         {
-            int  numberProjections=0;
-            for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
-            {
-                    ++numberProjections;
-            }
+            int  numberProjections = std::ceil(360.0 / psi_sampling);
             numberProjections *= mysampling.no_redundant_sampling_points_angles.size();
             std::cerr   << "creating Blank file: "
             << output_file << " for "
@@ -387,7 +383,7 @@ public:
                 size_t myCounter = 0;
                 size_t id;
                 int ref;
-                for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
+                for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i)
                     //for (int i=0;i<=mysampling.no_redundant_sampling_points_angles.size()-1;i++)
                     FOR_ALL_OBJECTS_IN_METADATA(mySFin)
                 {
@@ -409,7 +405,7 @@ public:
 
                     mySF.setValue(MDL_ANGLE_ROT,rot, id);
                     mySF.setValue(MDL_ANGLE_TILT,tilt, id);
-                    mySF.setValue(MDL_ANGLE_PSI,psi+mypsi, id);
+                    mySF.setValue(MDL_ANGLE_PSI,psi + i * psi_sampling, id);
                     mySF.setValue(MDL_X,x, id);
                     mySF.setValue(MDL_Y,y, id);
                     mySF.setValue(MDL_Z,z, id);
