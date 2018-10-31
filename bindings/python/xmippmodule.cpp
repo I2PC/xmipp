@@ -1038,13 +1038,13 @@ xmipp_errorMaxFreqCTFs2D(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-	PyObject *pyImage;
-    if (PyArg_ParseTuple(args, "O", &pyImage))
+    ImageObject *self = (ImageObject*) obj;
+
+    if (self != NULL)
     {
-        ImageObject *img=(ImageObject *)pyImage;
         try
         {
-            ImageGeneric *image = img->image;
+            ImageGeneric *image = self->image;
             image->convert2Datatype(DT_Double);
             MultidimArray<double> *in;
             MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);

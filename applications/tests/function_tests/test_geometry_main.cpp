@@ -26,20 +26,21 @@ TEST_F(GeometryTest, angles2Matrix2Angles)
 {
     double xrad, yrad, zrad;
 
-
-    for (double _z = 0; _z < 360; _z += 30)
-        for (double _y = 0; _y < 360; _y += 30)
-            for (double _x = 0; _x < 360; _x += 30)
+    int step = 30;
+    int repetitions = std::ceil(360.0 / step);
+    for (int _z = 0; _z < repetitions; ++_z)
+        for (int _y = 0; _y < repetitions; ++_y)
+            for (int _x = 0; _x < repetitions; ++_x)
             {
-                Euler_angles2matrix(_x, _y, _z, eulerMatrix);
+                Euler_angles2matrix(_x * step, _y * step, _z * step, eulerMatrix);
                 Euler_matrix2angles(eulerMatrix, rot, tilt, psi);
 
                 rot = DEG2RAD(rot);
                 tilt = DEG2RAD(tilt);
                 psi = DEG2RAD(psi);
-                xrad = DEG2RAD(_x);
-                yrad = DEG2RAD(_y);
-                zrad = DEG2RAD(_z);
+                xrad = DEG2RAD(_x * step);
+                yrad = DEG2RAD(_y * step);
+                zrad = DEG2RAD(_z * step);
 
                 double r11 = cos(psi)*cos(tilt)*cos(rot)-sin(psi)*sin(rot);
                 double r12 = cos(psi)*cos(tilt)*sin(rot)+sin(psi)*cos(rot)     ;

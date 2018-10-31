@@ -688,6 +688,9 @@ void ProgCTFEstimateFromPSDFast::estimate_background_sqrt_parameters_fast()
         N++;
         base_line += psd_exp_radial(i);
     }
+    if (0 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N is zero (0), which would lead to division by zero");
+    }
     current_ctfmodel.base_line = base_line / N;
 
     // Find the linear least squares solution for the sqrt part
