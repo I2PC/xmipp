@@ -252,7 +252,6 @@ void ProgVolumeCorrectBfactor::get_snr_weights(std::vector<double> &snr)
     {
         md.getValue(MDL_RESOLUTION_FRC, fsc, __iter.objId);
         double mysnr = XMIPP_MAX( (2*fsc) / (1+fsc), 0.);
-        std::cout << fsc << " " << mysnr << std::endl;
         snr.push_back( sqrt(mysnr) );
     }
 }
