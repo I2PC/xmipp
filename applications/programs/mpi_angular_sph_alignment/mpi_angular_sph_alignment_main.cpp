@@ -30,6 +30,12 @@
 
 class MpiProgAngularSphAlignment: public ProgAngularSphAlignment, public MpiMetadataProgram
 {
+
+//AJ new
+private:
+	MpiFileMutex *fileMutex;
+//END AJ
+
 public:
     void defineParams()
     {
@@ -43,6 +49,9 @@ public:
     }
     void read(int argc, char **argv, bool reportErrors = true)
     {
+    	//AJ new
+    	fileMutex = new MpiFileMutex(node);
+    	//END AJ
         MpiMetadataProgram::read(argc,argv);
     }
     void showProgress()
@@ -53,14 +62,28 @@ public:
             ProgAngularSphAlignment::showProgress();
         }
     }
-    void preProcess()
+    /*void preProcess()
     {
     	ProgAngularSphAlignment::preProcess();
-
         MetaData &mdIn = *getInputMd();
         mdIn.addLabel(MDL_GATHER_ID);
         mdIn.fillLinear(MDL_GATHER_ID,1,1);
         createTaskDistributor(mdIn, blockSize);
+    }*/
+    void createWorkFiles()
+    {
+        //Master node should prepare some stuff before start working
+        MetaData &mdIn = *getInputMd(); //get a reference to input metadata
+
+        if (node->isMaster())
+        {
+        	ProgAngularSphAlignment::createWorkFiles();
+            mdIn.write(fnOutDir + "/sphTodo.xmd");
+        }
+        node->barrierWait();//Sync all before start working
+        mdIn.read(fnOutDir + "/sphTodo.xmd");
+        mdIn.findObjects(imgsId);//get objects ids
+        distributor = new MpiTaskDistributor(mdIn.size(), 1, node);
     }
     void startProcessing()
     {
@@ -73,9 +96,23 @@ public:
     }
     bool getImageToProcess(size_t &objId, size_t &objIndex)
     {
-        return getTaskToProcess(objId, objIndex);
+        //return getTaskToProcess(objId, objIndex);
+        size_t first, last;
+        bool moreTasks = distributor->getTasks(first, last);
+
+        if (moreTasks)
+        {
+            time_bar_done = first + 1;
+            objIndex = first;
+            objId = imgsId[first];
+            return true;
+        }
+        time_bar_done = getInputMd()->size();
+        objId = BAD_OBJID;
+        objIndex = BAD_INDEX;
+        return false;
     }
-    void gatherMetadatas()
+    /*void gatherMetadatas()
     {
         node->gatherMetadatas(*getOutputMd(), fn_out);
     	MetaData MDaux;
@@ -88,7 +125,25 @@ public:
     	gatherMetadatas();
         if (node->isMaster())
             ProgAngularSphAlignment::finishProcessing();
+    }*/
+    void finishProcessing()
+    {
+    	distributor->wait();
+
+        //All nodes wait for each other
+        node->barrierWait();
+        if (node->isMaster())
+        	ProgAngularSphAlignment::finishProcessing();
+        node->barrierWait();
     }
+    //AJ new
+    void writeImageParameters(const FileName &fnImg)
+    {
+        fileMutex->lock();
+        ProgAngularSphAlignment::writeImageParameters(fnImg);
+        fileMutex->unlock();
+    }
+    //END AJ
     void wait()
     {
 		distributor->wait();

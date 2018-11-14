@@ -41,6 +41,8 @@ class ProgAngularSphAlignment: public XmippMetadataProgram
 public:
     /** Filename of the reference volume */
     FileName fnVolR;
+    /// Output directory
+    FileName fnOutDir;
     /** Degree of Zernike polynomials and spherical harmonics */
     int depth;
     /** Maximum shift allowed */
@@ -65,7 +67,13 @@ public:
     double lambda;
     // Maximum radius for the deformation
     int RmaxDef;
+
+    Matrix1D<double> p;
+    int flagEnabled;
+
 public:
+    /** Resume computations */
+    bool resume;
     // 2D mask in real space
     MultidimArray<int> mask2D;
     // Inverse of the sum of Mask2D
@@ -123,6 +131,13 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
+    /** Create the processing working files.
+     * The working files are:
+     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
+     * nmaDone.xmd image already processed (could exists from a previous run)
+     */
+    virtual void createWorkFiles();
+
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
@@ -142,6 +157,14 @@ public:
 
     double tranformImageSph(ProgAngularSphAlignment *prm, double *pclnm, double rot, double tilt, double psi,
     		                Matrix2D<double> &A);
+
+    //AJ new
+    /** Write the final parameters. */
+    virtual void finishProcessing();
+
+    /** Write the parameters found for one image */
+    virtual void writeImageParameters(const FileName &fnImg);
+    //END AJ
 
 };
 //@}

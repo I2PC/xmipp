@@ -27,10 +27,13 @@
 #include "program_image_residuals.h"
 #include <data/mask.h>
 #include <data/numerical_tools.h>
+#include <iostream>
+#include <fstream>
 
 // Empty constructor =======================================================
 ProgAngularSphAlignment::ProgAngularSphAlignment()
 {
+	resume = false;
     produces_a_metadata = true;
     each_image_produces_an_output = false;
     showOptimization = false;
@@ -47,6 +50,7 @@ void ProgAngularSphAlignment::readParams()
 {
 	XmippMetadataProgram::readParams();
 	fnVolR = getParam("--ref");
+	fnOutDir = getParam("--odir");
     maxShift = getDoubleParam("--max_shift");
     maxAngularChange = getDoubleParam("--max_angular_change");
     maxResol = getDoubleParam("--max_resolution");
@@ -59,6 +63,7 @@ void ProgAngularSphAlignment::readParams()
     phaseFlipped = checkParam("--phaseFlipped");
     depth = getIntParam("--depth");
     lambda = getDoubleParam("--regularization");
+	resume = checkParam("--resume");
 }
 
 // Show ====================================================================
@@ -68,6 +73,7 @@ void ProgAngularSphAlignment::show()
         return;
 	XmippMetadataProgram::show();
     std::cout
+    << "Output directory:     " << fnOutDir << std::endl
     << "Reference volume:    " << fnVolR             << std::endl
     << "Max. Shift:          " << maxShift           << std::endl
     << "Max. Angular Change: " << maxAngularChange   << std::endl
@@ -94,6 +100,7 @@ void ProgAngularSphAlignment::defineParams()
 	defaultComments["-o"].addComment("Metadata with the angular alignment and deformation parameters");
     XmippMetadataProgram::defineParams();
     addParamsLine("   --ref <volume>              : Reference volume");
+	addParamsLine("  [--odir <outputDir=\".\">]           : Output directory");
     addParamsLine("  [--max_shift <s=-1>]         : Maximum shift allowed in pixels");
     addParamsLine("  [--max_angular_change <a=5>] : Maximum angular change allowed (in degrees)");
     addParamsLine("  [--max_resolution <f=4>]     : Maximum resolution (A)");
@@ -106,11 +113,38 @@ void ProgAngularSphAlignment::defineParams()
     addParamsLine("  [--optimizeRadius]           : Optimize the radius of each spherical harmonic");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.005>] : Regularization weight");
+	addParamsLine("  [--resume]                           : Resume processing");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
 
 // Produce side information ================================================
+void ProgAngularSphAlignment::createWorkFiles() {
+	MetaData *pmdIn = getInputMd();
+	MetaData mdTodo, mdDone;
+	mdTodo = *pmdIn;
+	FileName fn(fnOutDir+"/sphDone.xmd");
+	if (fn.exists() && resume) {
+		mdDone.read(fn);
+		mdTodo.subtraction(mdDone, MDL_IMAGE);
+	} else //if not exists create metadata only with headers
+	{
+		mdDone.addLabel(MDL_IMAGE);
+		mdDone.addLabel(MDL_ENABLED);
+		mdDone.addLabel(MDL_ANGLE_ROT);
+		mdDone.addLabel(MDL_ANGLE_TILT);
+		mdDone.addLabel(MDL_ANGLE_PSI);
+		mdDone.addLabel(MDL_SHIFT_X);
+		mdDone.addLabel(MDL_SHIFT_Y);
+		mdDone.addLabel(MDL_FLIP);
+		mdDone.addLabel(MDL_SPH_DEFORMATION);
+		mdDone.addLabel(MDL_SPH_COEFFICIENTS);
+		mdDone.addLabel(MDL_COST);
+		mdDone.write(fn);
+	}
+	*pmdIn = mdTodo;
+}
+
 void ProgAngularSphAlignment::preProcess()
 {
     // Read the reference volume
@@ -141,6 +175,13 @@ void ProgAngularSphAlignment::preProcess()
 
     // Transformation matrix
     A.initIdentity(3);
+
+    createWorkFiles();
+}
+
+void ProgAngularSphAlignment::finishProcessing() {
+	XmippMetadataProgram::finishProcessing();
+	rename((fnOutDir+"/sphDone.xmd").c_str(), fn_out.c_str());
 }
 
 //#define DEBUG
@@ -246,10 +287,13 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	L = nh(2);
 	prevL = nh(1);
 	pos = 4*L;
-	Matrix1D<double> p(pos+5), steps(pos+5);
+	p.resize(pos+5);
+	Matrix1D<double> steps(pos+5);
 	clnm.initZeros(pos+5);
 
 	rowOut=rowIn;
+
+	flagEnabled=1;
 
 	// Read input image and initial parameters
 //  ApplyGeoParams geoParams;
@@ -349,7 +393,8 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 
 			if (cost>0)
 			{
-				rowOut.setValue(MDL_ENABLED,-1);
+				//rowOut.setValue(MDL_ENABLED,-1);
+				flagEnabled=-1;
 				p.initZeros();
 			}
 			cost=-cost;
@@ -392,29 +437,46 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 		{
 			std::cerr << XE << std::endl;
 			std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
-			rowOut.setValue(MDL_ENABLED,-1);
+			//rowOut.setValue(MDL_ENABLED,-1);
+			flagEnabled=-1;
 		}
 	}
-		rowOut.setValue(MDL_ANGLE_ROT,   old_rot+p(pos+2));
-		rowOut.setValue(MDL_ANGLE_TILT,  old_tilt+p(pos+3));
-		rowOut.setValue(MDL_ANGLE_PSI,   old_psi+p(pos+4));
-		rowOut.setValue(MDL_SHIFT_X,     old_shiftX+p(pos+0));
-		rowOut.setValue(MDL_SHIFT_Y,     old_shiftY+p(pos+1));
-		rowOut.setValue(MDL_FLIP,        old_flip);
-		rowOut.setValue(MDL_COST,        correlation);
-		rowOut.setValue(MDL_SPH_DEFORMATION, totalDeformation);
 
-		std::vector<double> vectortemp;
-
-		for (int j = 0; j < VEC_XSIZE(clnm); j++)
-		{
-			vectortemp.push_back(clnm(j));
-		}
-
-		rowOut.setValue(MDL_SPH_COEFFICIENTS, vectortemp);
+		//AJ NEW
+		writeImageParameters(fnImg);
+		//END AJ
 
 }
 #undef DEBUG
+
+void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
+	MetaData md;
+	size_t objId = md.addObject();
+	//std::cout << "AQUIIIII " << objId << " " << flagEnabled << std::endl;
+	md.setValue(MDL_IMAGE, fnImg, objId);
+	if (flagEnabled==1){
+		//std::cout << "ENABLED" << std::endl;
+		md.setValue(MDL_ENABLED, 1, objId);
+	}else{
+		//std::cout << "NOT ENABLED" << std::endl;
+		md.setValue(MDL_ENABLED, -1, objId);
+	}
+	md.setValue(MDL_ANGLE_ROT,   old_rot+p(pos+2), objId);
+	md.setValue(MDL_ANGLE_TILT,  old_tilt+p(pos+3), objId);
+	md.setValue(MDL_ANGLE_PSI,   old_psi+p(pos+4), objId);
+	md.setValue(MDL_SHIFT_X,     old_shiftX+p(pos+0), objId);
+	md.setValue(MDL_SHIFT_Y,     old_shiftY+p(pos+1), objId);
+	md.setValue(MDL_FLIP,        old_flip, objId);
+	md.setValue(MDL_SPH_DEFORMATION, totalDeformation, objId);
+	std::vector<double> vectortemp;
+	for (int j = 0; j < VEC_XSIZE(clnm); j++)
+	{
+		vectortemp.push_back(clnm(j));
+	}
+	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
+	md.setValue(MDL_COST,        correlation, objId);
+	md.append(fnOutDir+"/sphDone.xmd");
+}
 
 void ProgAngularSphAlignment::Numsph(Matrix1D<int> &sphD)
 {
