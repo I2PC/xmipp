@@ -20,6 +20,6 @@ where you can replace `N=4` for `N=#processors` and `br=master` for `br=devel` i
 **If you want to use it as a Scipion package**, please visit [this](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-software).
 
 
-USING Scipion libraries
+### Using Scipion libraries
 
 If you want xmipp to pick up SCIPION libraries define SCIPION_HOME=\<path to scipion\>
