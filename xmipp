@@ -97,7 +97,7 @@ def getSources():
         if not os.path.exists("src/xmippCore"):
             ok=ok and runJob("git clone --branch=ds_movieAlignmentGPU https://github.com/I2PC/xmippCore.git src/xmippCore")
         if not os.path.exists("src/xmipp"):
-            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPU https://github.com/I2PC/xmipp.git src/xmipp")
+            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPULocal https://github.com/I2PC/xmipp.git src/xmipp")
         if not os.path.exists("src/xmippViz"):
             ok=ok and runJob("git clone --branch=devel https://github.com/I2PC/xmippViz.git src/xmippViz")
         if not os.path.exists("src/scipion-em-xmipp"):

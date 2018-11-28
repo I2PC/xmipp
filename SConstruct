@@ -231,7 +231,10 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         
     if not sources and env.TargetInBuild(name):
         Exit('No sources found for Library: %s. Exiting!!!' % name)
-
+    sources.sort() # XXX HACK this is to have a fixed order of the files we compile
+    # the reason is a compilation error for CUDA, which results in a multiple symbol detection
+    # when the order is different. This has to be fixed in the future by changing the CUDA
+    # build system FIXME David Strelak
     env2 = Environment()
     env2['ENV']['PATH'] = env['ENV']['PATH']
     env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer 
