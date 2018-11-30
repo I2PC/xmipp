@@ -1277,12 +1277,12 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 
 			mres = ResList[ (size_t) floor(0.05*ResList.size()) ];
 
-			res75 = ResList[ (size_t) floor(0.75*ResList.size()) ];
-			res25 = ResList[ (size_t) floor(0.25*ResList.size()) ];
+			res75 = ResList[ (size_t) floor(0.17*ResList.size()) ];
+			res25 = ResList[ (size_t) floor(0.83*ResList.size()) ];
 
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
-			A3D_ELEM(doaResolution_1,k,i,j) = res75 - res25;//( (Mres - mres)/(Mres + mres) );
+			A3D_ELEM(doaResolution_1,k,i,j) = 0.5*(res75 - res25);//( (Mres - mres)/(Mres + mres) );
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
