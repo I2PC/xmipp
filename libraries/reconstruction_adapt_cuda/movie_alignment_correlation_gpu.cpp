@@ -51,6 +51,93 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::align(T* data,
+        const FFTSettings<T> &in, const FFTSettings<T> &downscale,
+        MultidimArray<T> &filter,
+        core::optional<size_t> &refFrame,
+        size_t maxShift, size_t framesInCorrelationBuffer) {
+    assert(nullptr != data);
+    size_t N = in.n;
+    // scale and transform to FFT on GPU
+    performFFTAndScale<T>(data, N, in.x_spacial, in.y, in.batch,
+            downscale.x_freq, downscale.y, filter);
+
+    auto scale = std::make_pair(in.x_spacial / (T) downscale.x_spacial,
+            in.y / (T) downscale.y);
+
+    return computeShifts(maxShift, (std::complex<T>*) data, downscale, scale,
+            framesInCorrelationBuffer, refFrame);
+}
+
+template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t maxShift,
+        std::complex<T>* data, const FFTSettings<T>& settings,
+        std::pair<T, T>& scale,
+        size_t framesInCorrelationBuffer,
+        const core::optional<size_t>& refFrame) {
+    // compute correlations (each frame with following ones)
+    T* correlations;
+    size_t centerSize = std::ceil(maxShift * 2 + 1);
+    computeCorrelations(centerSize, settings.n, data, settings.x_freq,
+            settings.x_spacial, settings.y, framesInCorrelationBuffer,
+            settings.batch, correlations);
+    // result is a centered correlation function with (hopefully) a cross
+    // indicating the requested shift
+
+    size_t N = settings.n;
+    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
+    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
+
+    // find the actual shift (max peak) for each pair of frames
+    // and create a set or equations
+    size_t idx = 0;
+    MultidimArray<T> Mcorr(centerSize, centerSize);
+    T* origData = Mcorr.data;
+
+    for (size_t i = 0; i < N - 1; ++i) {
+        for (size_t j = i + 1; j < N; ++j) {
+            size_t offset = idx * centerSize * centerSize;
+            Mcorr.data = correlations + offset;
+            Mcorr.setXmippOrigin();
+            bestShift(Mcorr, bX(idx), bY(idx), NULL,
+                    maxShift / scale.first);
+            bX(idx) *= scale.first; // scale to expected size
+            bY(idx) *= scale.second;
+            if (this->verbose) {
+                std::cerr << "Frame " << i << " to Frame " << j << " -> ("
+                        << bX(idx) << "," << bY(idx) << ")" << std::endl;
+            }
+            for (int ij = i; ij < j; ij++) {
+                A(idx, ij) = 1;
+            }
+            idx++;
+        }
+    }
+    Mcorr.data = origData;
+
+    // now get the estimated shift (from the equation system)
+    // from each frame to successing frame
+    Matrix1D<T> shiftX, shiftY;
+    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
+
+    // prepare result
+    AlignmentResult < T > result;
+    result.refFrame =
+            refFrame ?
+                    refFrame.value() :
+                    this->findReferenceImage(N, shiftX, shiftY);
+    result.shifts.reserve(settings.n);
+
+    // compute total shift in respect to reference frame
+    for (size_t i = 0; i < settings.n; ++i) {
+        T x, y;
+        this->computeTotalShift(result.refFrame, i, shiftX, shiftY, x, y);
+        result.shifts.emplace_back(x, y);
+    }
+    return result;
+}
+
+template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,

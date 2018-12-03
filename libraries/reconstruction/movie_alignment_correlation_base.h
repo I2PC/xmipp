@@ -43,6 +43,12 @@
 #include "core/xmipp_fftw.h"
 
 template<typename T>
+struct AlignmentResult {
+    std::vector<std::pair<T, T>> shifts;
+    size_t refFrame;
+};
+
+template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
 
     /** wrapping strategy constants */
@@ -76,6 +82,40 @@ protected:
      */
     void scaleLPF(const MultidimArray<T>& lpf, int xSize, int ySize,
             T targetOccupancy, MultidimArray<T>& result);
+
+    /**
+     * Method finds a reference image, i.e. an image which has smallest relative
+     * shift to all other images.
+     * @param N no of images
+     * @param shiftX relative X shift of each image
+     * @param shiftY relative Y shift of each image
+     */
+    int findReferenceImage(size_t N, const Matrix1D<T>& shiftX,
+            const Matrix1D<T>& shiftY);
+
+    /**
+     * Method computes absolute shifts from relative shifts
+     * @param bX relative shifts in X dim
+     * @param bY relative shifts in Y dim
+     * @param A system matrix to be used
+     * @param shiftX absolute shifts in X dim
+     * @param shiftY absolute shifts in Y dim
+     */
+    void solveEquationSystem(Matrix1D<T>& bX, Matrix1D<T>& bY, Matrix2D<T>& A,
+            Matrix1D<T>& shiftX, Matrix1D<T>& shiftY);
+
+    /**
+     * Method to compute sum of shifts of some image in respect to a reference
+     * image
+     * @param iref index of the reference image
+     * @param j index of the queried image
+     * @param shiftX relative shifts in X dim
+     * @param shiftY relative shifts in Y dim
+     * @param totalShiftX resulting shift in X dim
+     * @param totalShiftY resulting shift in Y dim
+     */
+    void computeTotalShift(int iref, int j, const Matrix1D<T> &shiftX,
+            const Matrix1D<T> &shiftY, T &totalShiftX, T &totalShiftY);
 
 private:
     /**
@@ -123,27 +163,6 @@ private:
      * @param targetOccupancy max frequency (in Fourier domain) to preserve
      */
     void computeSizeFactor(T& targetOccupancy);
-
-    /**
-     * Method finds a reference image, i.e. an image which has smallest relative
-     * shift to all other images.
-     * @param N no of images
-     * @param shiftX relative X shift of each image
-     * @param shiftY relative Y shift of each image
-     */
-    int findReferenceImage(size_t N, const Matrix1D<T>& shiftX,
-            const Matrix1D<T>& shiftY);
-
-    /**
-     * Method computes absolute shifts from relative shifts
-     * @param bX relative shifts in X dim
-     * @param bY relative shifts in Y dim
-     * @param A system matrix to be used
-     * @param shiftX absolute shifts in X dim
-     * @param shiftY absolute shifts in Y dim
-     */
-    void solveEquationSystem(Matrix1D<T>& bX, Matrix1D<T>& bY, Matrix2D<T>& A,
-            Matrix1D<T>& shiftX, Matrix1D<T>& shiftY);
 
     /**
      * Method loads dark correction image
@@ -219,19 +238,6 @@ private:
      * @param movie to be used for correction
      */
     void correctLoopIndices(const MetaData& movie);
-
-    /**
-     * Method to compute sum of shifts of some image in respect to a reference
-     * image
-     * @param iref index of the reference image
-     * @param j index of the queried image
-     * @param shiftX relative shifts in X dim
-     * @param shiftY relative shifts in Y dim
-     * @param totalShiftX resulting shift in X dim
-     * @param totalShiftY resulting shift in Y dim
-     */
-    void computeTotalShift(int iref, int j, const Matrix1D<T> &shiftX,
-            const Matrix1D<T> &shiftY, T &totalShiftX, T &totalShiftY);
 
 protected:
     // Target size of the frames
