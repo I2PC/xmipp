@@ -30,7 +30,9 @@
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_gpu_geo_shift_transformer.h"
 #include "data/filters.h"
+#include "data/fft_settings.h"
 #include "core/userSettings.h"
+#include <core/optional.h>
 
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
@@ -192,6 +194,16 @@ private:
         ss << uuid << keyword << xdim << ydim << noOfFrames << crop;
        return ss.str();
     }
+
+    auto align(T* data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
+            MultidimArray<T> &filter, core::optional<size_t> &refFrame,
+            size_t maxShift,
+            size_t framesInCorrelationBuffer);
+
+    auto computeShifts(size_t maxShift, std::complex<T>* data,
+            const FFTSettings<T> &settings, std::pair<T, T> &scale,
+            size_t framesInCorrelationBuffer,
+            const core::optional<size_t>& refFrame);
 
 
 private:
