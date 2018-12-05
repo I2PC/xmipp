@@ -26,7 +26,7 @@
 #!/usr/bin/env python
 
 import os
-#import xmipp3
+import xmipp3
 
 import xmippLib as xmipp
 import csv
