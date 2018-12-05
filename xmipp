@@ -1,4 +1,27 @@
 #!/usr/bin/env python2
+# ***************************************************************************
+# * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+# *              David Maluenda (dmaluenda@cnb.csic.es)
+# *
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 2 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'scipion@cnb.csic.es'
+# ***************************************************************************/
 
 import distutils.spawn
 import glob
@@ -7,7 +30,35 @@ import shutil
 import sys
 import unittest
 import subprocess
+from datetime import datetime
 
+# --K-E-E-P--U-P-D-A-T-E-D-- #
+##############################
+XMIPP_VERSION = '3.18.08'    #
+RELEASE_DATA = '24/08/2018'  #
+##############################
+
+def getVersion(getCompilation=True):
+    """ Prints the version of XMIPP
+    """
+    versionList = []
+    versionList.append("Xmipp version: %s" % XMIPP_VERSION)
+    versionList.append("Release date: %s" % RELEASE_DATA)
+
+    if getCompilation:
+        lastCompFn = os.path.join("src", "xmipp", "bin", "xmipp_version")
+        if os.path.exists(lastCompFn):
+            with open(lastCompFn, 'r') as f:
+                binaryStr = f.read()
+            lastCompStr = 'No compilation date found.'
+            for line in binaryStr.split('\n'):
+                if 'Last compilation:' in line:
+                    lastCompStr = line.strip('print ').strip("'")
+            versionList.append(lastCompStr)
+        else:
+            versionList.append('No compilation date found.')
+
+    return versionList
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -580,6 +631,8 @@ def checkConfig():
 def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
+    if module == "xmipp":
+        stampVersion()
     return ok
 
 
@@ -593,8 +646,18 @@ def compile(Nproc):
         return False
     return True
 
+def stampVersion():
+    LAST_COMPILATION = datetime.now()
+    lastComp = "Last compilation: %s" % LAST_COMPILATION.strftime("%d/%m/%Y")
+    lastCompFn = os.path.join('src', 'xmipp', 'bin', 'xmipp_version')
 
+    with open(lastCompFn, 'w+') as f:
+        f.write("#!/usr/bin/env python2\n")
+        f.write("print '%s'\n" % getVersion(getCompilation=False)[0])
+        f.write("print '%s'\n" % getVersion(getCompilation=False)[1])
+        f.write("print '%s'\n" % lastComp)
 
+    os.chmod(lastCompFn, 0o777)
 
 def runTests(testNames):
     print("Testing ---------------------------------------------")
@@ -744,6 +807,7 @@ def writeDevelPaths(dirname):
 
 def usage():
     print("Usage: xmipp [options]\n"
+          "   version                     Returns the version information\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
@@ -797,6 +861,8 @@ if __name__ == '__main__':
                 print("Pay attention to capital letters of YeS")
     elif mode=="cleanBin":
         cleanBinaries()
+    elif mode=="version":
+        print('\n'.join(getVersion()))
     elif mode=="get_devel_sources" and checkProgram("git"):
         branch = "devel" if n==2 else sys.argv[2]
         getSources(branch)

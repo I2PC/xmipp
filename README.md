@@ -17,4 +17,9 @@ ln -sf src/xmipp/xmipp xmipp  # optional but recommended to have always the last
 ```
 where you can replace `N=4` for `N=#processors` and `br=master` for `br=devel` if you want the development version of Xmipp. You can see the whole usage of the xmipp script with `./xmipp --help`
 
-If you want to use it as a Scipion package, please visit [this](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-software).
+**If you want to use it as a Scipion package**, please visit [this](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-plugin).
+
+
+### Using Scipion libraries
+
+If you want xmipp to pick up SCIPION libraries define SCIPION_HOME=\<path to scipion\>
