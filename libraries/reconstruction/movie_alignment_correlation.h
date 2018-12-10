@@ -76,6 +76,9 @@ private:
     void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
             const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
             Image<T>& averageMicrograph, size_t& N);
+
+    void computeGlobalAlignment(const MetaData &movie, const Image<T> &dark,
+            const Image<T> &gain);
 private:
     /**
      *  Fourier transforms of the input images, after cropping, gain and dark

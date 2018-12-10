@@ -117,6 +117,15 @@ protected:
     void computeTotalShift(int iref, int j, const Matrix1D<T> &shiftX,
             const Matrix1D<T> &shiftY, T &totalShiftX, T &totalShiftY);
 
+    /**
+     * Method computes an internal (down)scale factor of the micrographs
+     * @param targetOccupancy max frequency (in Fourier domain) to preserve
+     */
+    T computeSizeFactor();
+
+    MultidimArray<T> createLPF(T targetOccupancy, size_t xSize, size_t xFFTSize,
+            size_t ySize);
+
 private:
     /**
      * After running this method, all relevant images from the movie should
@@ -157,12 +166,17 @@ private:
             const Image<T>& dark, const Image<T>& gain, Image<T>& initialMic,
             size_t& Ninitial, Image<T>& averageMicrograph, size_t& N) = 0;
 
+    virtual void computeGlobalAlignment(const MetaData &movie,
+            const Image<T> &dark, const Image<T> &gain) = 0;
+
 private:
     /**
      * Method computes an internal (down)scale factor of the micrographs
      * @param targetOccupancy max frequency (in Fourier domain) to preserve
      */
     void computeSizeFactor(T& targetOccupancy);
+
+
 
     /**
      * Method loads dark correction image
@@ -175,6 +189,13 @@ private:
      *  @param gain correction will be stored here
      */
     void loadGainCorrection(Image<T>& gain);
+
+    /**
+     * Method to construct 1D low-pass filter profile
+     * @param targetOccupancy max frequency to preserve
+     * @param lpf filter will be stored here
+     */
+    void constructLPFold(T targetOccupancy, const MultidimArray<T>& lpf);
 
     /**
      * Method to construct 1D low-pass filter profile
