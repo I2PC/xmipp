@@ -40,6 +40,22 @@ void AProgMovieAlignmentCorrelation<T>::scaleLPF(const MultidimArray<T>& lpf,
     }
 }
 
+template<typename T>
+MultidimArray<T> AProgMovieAlignmentCorrelation<T>::createLPF(T targetOccupancy,
+        size_t xSize,
+        size_t xFFTSize,
+        size_t ySize) {
+    // Construct 1D profile of the lowpass filter
+    MultidimArray<T> lpf(xSize);
+    constructLPF(targetOccupancy, lpf);
+
+    MultidimArray<T> result;
+    result.initZeros(ySize, xFFTSize);
+
+    scaleLPF(lpf, xSize, ySize, targetOccupancy, result);
+    return result;
+}
+
 // Read arguments ==========================================================
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::readParams() {
@@ -301,7 +317,7 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& gain) {
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
+void AProgMovieAlignmentCorrelation<T>::constructLPFold(T targetOccupancy,
         const MultidimArray<T>& lpf) {
     T iNewXdim = 1.0 / newXdim;
     T sigma = targetOccupancy / 6; // So that from -targetOccupancy to targetOccupancy there is 6 sigma
@@ -311,6 +327,19 @@ void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
         A1D_ELEM(lpf, i) = exp(K * (w * w));
     }
 }
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
+        const MultidimArray<T>& lpf) {
+    T iNewXdim = 1.0 / lpf.xdim;
+    T sigma = targetOccupancy / 6; // So that from -targetOccupancy to targetOccupancy there is 6 sigma
+    T K = -0.5 / (sigma * sigma);
+    for (int i = STARTINGX(lpf); i <= FINISHINGX(lpf); ++i) {
+        T w = i * iNewXdim;
+        A1D_ELEM(lpf, i) = exp(K * (w * w));
+    }
+}
+
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::computeSizeFactor(T& targetOccupancy) {
@@ -328,6 +357,24 @@ void AProgMovieAlignmentCorrelation<T>::computeSizeFactor(T& targetOccupancy) {
         sizeFactor = 1.0 / bin;
         targetOccupancy = 2 * newTs / maxFreq;
     }
+}
+
+template<typename T>
+T AProgMovieAlignmentCorrelation<T>::computeSizeFactor() {
+    if (bin < 0) {
+        T targetOccupancy = 0.9; // Set to 1 if you want fmax maps onto 1/(2*newTs)
+        // Determine target size of the images
+        newTs = targetOccupancy * maxFreq / 2;
+        newTs = std::max(newTs, Ts);
+
+        sizeFactor = Ts / newTs;
+        std::cout << "Estimated binning factor = " << 1 / sizeFactor
+                << std::endl;
+    } else {
+        newTs = bin * Ts;
+        sizeFactor = 1.0 / bin;
+    }
+    return sizeFactor;
 }
 
 template<typename T>
@@ -414,7 +461,7 @@ int AProgMovieAlignmentCorrelation<T>::findShiftsAndStore(MetaData& movie,
     setNewDimensions(movie);
     // Construct 1D profile of the lowpass filter
     MultidimArray<T> lpf(newXdim / 2);
-    constructLPF(targetOccupancy, lpf);
+    constructLPFold(targetOccupancy, lpf);
 
     size_t N = nlast - nfirst + 1; // no of images to process
     Matrix2D<T> A(N * (N - 1) / 2, N - 1);
@@ -487,6 +534,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
             setZeroShift(movie);
         }
     } else {
+        computeGlobalAlignment(movie, dark, gain);
         bestIref = findShiftsAndStore(movie, dark, gain);
     }
 

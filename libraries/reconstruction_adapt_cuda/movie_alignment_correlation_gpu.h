@@ -32,6 +32,7 @@
 #include "data/filters.h"
 #include "data/fft_settings.h"
 #include "core/userSettings.h"
+#include "gpu.h"
 #include <core/optional.h>
 
 template<typename T>
@@ -106,7 +107,7 @@ private:
      * @param crop flag stating if the image should be cropped
      * @param out loaded frame
      */
-    void loadFrame(const MetaData& movie, size_t objId, bool crop,
+    void loadFrame(const MetaData& movie, size_t objId,
             Image<T>& out);
 
     /**
@@ -148,7 +149,7 @@ private:
      * @frame reference frame
      * @return max MB necessary for filter
      */
-    int getMaxFilterSize(Image<T> &frame);
+    int getMaxFilterSize(const Image<T> &frame);
 
     void testFFT();
     void testFFTAndScale();
@@ -173,8 +174,8 @@ private:
      * @param crop should the frame be cropped?
      * @return key for benchmark load/storage
      */
-    std::string const getKey(std::string &uuid, std::string &keyword,
-            Image<T> &frame, size_t noOfFrames, bool crop) {
+    std::string const getKey(const std::string &uuid, std::string &keyword,
+            const Image<T> &frame, size_t noOfFrames, bool crop) {
         return getKey(uuid, keyword, frame().xdim, frame().ydim, noOfFrames, crop);
     }
 
@@ -188,7 +189,7 @@ private:
      * @param crop should the frame be cropped?
      * @return key for benchmark load/storage
      */
-    std::string const getKey(std::string &uuid, std::string &keyword,
+    std::string const getKey(const std::string &uuid, std::string &keyword,
             size_t xdim, size_t ydim, size_t noOfFrames, bool crop) {
         std::stringstream ss;
         ss << uuid << keyword << xdim << ydim << noOfFrames << crop;
@@ -204,6 +205,34 @@ private:
             const FFTSettings<T> &settings, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
+
+    core::optional<FFTSettings<T>> getStoredMovieSettings(Image<T> &frame,
+            int noOfImgs, std::string &uuid);
+
+    core::optional<FFTSettings<T>> getStoredCropSettings(
+            const FFTSettings<T> &orig,
+            const std::string &uuid);
+
+    void storeMovieSettings(const Image<T> &frame,
+            const FFTSettings<T>& settings, const std::string &uuid);
+
+    auto getMovieSettings(const MetaData &movie, const GPU &gpu);
+
+    auto getCropSettings(const FFTSettings<T> &orig, const GPU &gpu,
+            const std::pair<T, T> &downscale);
+
+    auto runMovieBenchmark(const Image<T> &frame, int noOfImgs,
+            const std::string &uuid);
+
+    auto runCropBenchmark(const FFTSettings<T> &orig, const GPU &gpu);
+
+    void computeGlobalAlignment(const MetaData &movie, const Image<T> &dark,
+            const Image<T> &gain);
+
+    void storeSizes(const FFTSettings<T> &s,
+            const GPU &gpu);
+
+    auto getCropHint(const FFTSettings<T> &s, const std::pair<T, T> &downscale);
 
 
 private:
