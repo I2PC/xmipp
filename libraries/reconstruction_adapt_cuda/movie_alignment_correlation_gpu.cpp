@@ -78,7 +78,7 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredMov
 }
 
 template<typename T>
-core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredCropSettings(
+core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredCorrelationSettings(
         const FFTSettings<T> &hint, const std::string &uuid) {
     size_t x, y, batch, neededMem;
     bool res = true;
@@ -101,7 +101,7 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredCro
     res = res && neededMem <= getFreeMem(device);
     if (res) {
         return core::optional<FFTSettings<T>>(
-                FFTSettings<T>(x, y, 1, (hint.n * hint.n - 1) / 2, batch, true));
+                FFTSettings<T>(x, y, 1, hint.n, batch, true));
     } else {
         return core::optional<FFTSettings<T>>();
     }
@@ -127,7 +127,8 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getCropHint(const FFTSettings<T> &s,
+auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
+        const FFTSettings<T> &s,
         const std::pair<T, T> &downscale) {
     // we need odd size of the input, to be able to
     // compute FFT more efficiently (and e.g. perform shift by multiplication)
@@ -135,20 +136,21 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getCropHint(const FFTSettings<T> &s,
         return (int(v * downscale) / 2) * 2;
     };
     FFTSettings<T> result(scaleEven(s.x_spacial, downscale.first),
-            scaleEven(s.y, downscale.second), s.z, s.n, s.batch, s.isInPlace);
+            scaleEven(s.y, downscale.second), s.z, (s.n * (s.n - 1)) / 2, // number of correlations
+            s.batch, s.isInPlace);
     return result;
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getCropSettings(
+auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &orig, const GPU &gpu,
         const std::pair<T, T> &downscale) {
-    auto hint = getCropHint(orig, downscale);
-    auto optSetting = getStoredCropSettings(hint, gpu.UUID);
+    auto hint = getCorrelationHint(orig, downscale);
+    auto optSetting = getStoredCorrelationSettings(hint, gpu.UUID);
     FFTSettings<T> result =
             optSetting ?
                     optSetting.value() :
-                    runCropBenchmark(hint, gpu);
+                    runCorrelationBenchmark(hint, gpu);
     if (!optSetting) {
         storeSizes(result, gpu);
     }
@@ -186,25 +188,23 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const FFTSettings<T> &s,
     UserSettings::get(storage).insert(*this,
             getKey(gpu.UUID, availableMemoryStr, s.x_spacial, s.y, s.n, true),
             gpu.lastFreeMem);
-    UserSettings::get(storage).store(); // write changes
+    UserSettings::get(storage).store(); // write changes immediatelly
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::runCropBenchmark(
+auto ProgMovieAlignmentCorrelationGPU<T>::runCorrelationBenchmark(
         const FFTSettings<T> &hint, const GPU &gpu) {
     if (this->verbose) std::cerr
-            << "Benchmarking cuFFT (optimal cropped size) ..." << std::endl;
+            << "Benchmarking cuFFT (correlation) ..."
+            << std::endl;
     // take additional memory requirement into account
     int x, y, batch;
-    size_t noOfCorrelations = (hint.n * (hint.n - 1)) / 2;
     size_t correlationBufferSizeMB = gpu.lastFreeMem / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
-    std::cout << correlationBufferSizeMB << std::endl;
-    std::cout << gpu.lastFreeMem << std::endl;
-    getBestFFTSize(noOfCorrelations, hint.x_spacial, hint.y, batch, false, x, y,
+    getBestFFTSize(hint.n, hint.x_spacial, hint.y, batch, false, x, y,
             correlationBufferSizeMB * 2, this->verbose, gpu.device,
             hint.x_spacial == hint.y, 10); // allow max 10% change
 
-    return FFTSettings<T>(x, y, 1, noOfCorrelations, batch, true);
+    return FFTSettings<T>(x, y, 1, hint.n, batch, true);
 }
 
 template<typename T>
@@ -213,17 +213,27 @@ void ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     auto gpu = GPU(device);
     auto movieSettings = this->getMovieSettings(movie, gpu);
     T sizeFactor = this->computeSizeFactor();
-    auto cropSettings = this->getCropSettings(movieSettings, gpu,
+    auto correlationSetting = this->getCorrelationSettings(movieSettings, gpu,
             std::make_pair(sizeFactor, sizeFactor));
-    std::cout << movieSettings << std::endl << cropSettings << std::endl;
 
-    MultidimArray<T> filter = this->createLPF(0.9, cropSettings.x_spacial,
-            cropSettings.x_freq,
-            cropSettings.y);
-    Image<T> tmp(filter.xdim, filter.ydim);
-    tmp.data.data = filter.data;
-    tmp.write("filter_new.vol");
-    tmp.data.data = NULL;
+    MultidimArray<T> filter = this->createLPF(0.9, correlationSetting.x_spacial,
+            correlationSetting.x_freq, correlationSetting.y);
+
+    T corrSizeMB = ((size_t) correlationSetting.x_freq * correlationSetting.y
+            * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
+    size_t framesInBuffer = std::ceil((gpu.lastFreeMem / 3) / corrSizeMB);
+
+    auto reference = core::optional<size_t>();
+
+    T* data = loadMovie(movie, movieSettings, dark, gain);
+    auto result = align(data, movieSettings, correlationSetting,
+                    filter, reference,
+            this->maxShift, framesInBuffer);
+
+    for (auto &r : result.shifts) {
+        std::cout << r.first << " " << r.second << std::endl;
+    }
+
 }
 
 template<typename T>
@@ -241,26 +251,62 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T* data,
     auto scale = std::make_pair(in.x_spacial / (T) downscale.x_spacial,
             in.y / (T) downscale.y);
 
-    return computeShifts(maxShift, (std::complex<T>*) data, downscale, scale,
-            framesInCorrelationBuffer, refFrame);
+    return computeShifts(maxShift, (std::complex<T>*) data, downscale, in.n,
+            scale, framesInCorrelationBuffer, refFrame);
+}
+
+template<typename T>
+T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
+        const FFTSettings<T> &settings, const Image<T>& dark,
+        const Image<T>& gain) {
+    // allocate enough memory for the images. Since it will be reused, it has to be big
+    // enough to store either all FFTs or all input images
+    T* imgs = new T[std::max(settings.bytesFreq(), settings.bytesSpacial())]();
+    Image<T> frame;
+
+    int movieImgIndex = -1;
+    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    {
+        // update variables
+        movieImgIndex++;
+        if (movieImgIndex < this->nfirst) continue;
+        if (movieImgIndex > this->nlast) break;
+
+        // load image
+        loadFrame(movie, __iter.objId, frame);
+        if (XSIZE(dark()) > 0) frame() -= dark();
+        if (XSIZE(gain()) > 0) frame() *= gain();
+
+        // copy line by line, adding offset at the end of each line
+        // result is the same image, padded in the X and Y dimensions
+        T* dest = imgs
+                + ((movieImgIndex - this->nfirst) * settings.x_spacial
+                        * settings.y); // points to first float in the image
+        for (size_t i = 0; i < settings.y; ++i) {
+            memcpy(dest + (settings.x_spacial * i),
+                    frame.data.data + i * frame.data.xdim,
+                    settings.x_spacial * sizeof(T));
+        }
+    }
+    return imgs;
 }
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t maxShift,
-        std::complex<T>* data, const FFTSettings<T>& settings,
+        std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
         std::pair<T, T>& scale,
         size_t framesInCorrelationBuffer,
         const core::optional<size_t>& refFrame) {
+    // N is number of images, n is number of correlations
     // compute correlations (each frame with following ones)
     T* correlations;
     size_t centerSize = std::ceil(maxShift * 2 + 1);
-    computeCorrelations(centerSize, settings.n, data, settings.x_freq,
+    computeCorrelations(centerSize, N, data, settings.x_freq,
             settings.x_spacial, settings.y, framesInCorrelationBuffer,
             settings.batch, correlations);
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
-    size_t N = settings.n;
     Matrix2D<T> A(N * (N - 1) / 2, N - 1);
     Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
 
