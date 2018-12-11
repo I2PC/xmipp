@@ -49,6 +49,8 @@ gmon.out
 /config/*.conf
 /bin
 /lib
+/models/*
+!/models/models.list
 /install/xmipp.conf
 /tests/data
 
