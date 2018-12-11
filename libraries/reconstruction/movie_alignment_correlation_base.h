@@ -44,8 +44,11 @@
 
 template<typename T>
 struct AlignmentResult {
-    std::vector<std::pair<T, T>> shifts;
     size_t refFrame;
+    // these are shifts from the reference frame in X/Y dimension,
+    // i.e. if you want to compensate for the shift,
+    // you have to shift in opposite direction (negate these values)
+    std::vector<std::pair<T, T>> shifts;
 };
 
 template<typename T>

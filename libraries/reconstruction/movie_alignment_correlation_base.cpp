@@ -217,7 +217,8 @@ int AProgMovieAlignmentCorrelation<T>::findReferenceImage(size_t N,
         }
     }
     if (verbose)
-        std::cout << "Reference frame: " << bestIref + 1 + nfirst << std::endl;
+        std::cout << "Reference frame: " << bestIref + nfirst
+            << std::endl;
 
     return bestIref;
 }
