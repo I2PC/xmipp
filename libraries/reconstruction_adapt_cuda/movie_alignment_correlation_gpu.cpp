@@ -348,12 +348,13 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t maxShift,
             refFrame ?
                     refFrame.value() :
                     this->findReferenceImage(N, shiftX, shiftY);
-    result.shifts.reserve(settings.n);
+    result.shifts.reserve(N);
 
     // compute total shift in respect to reference frame
-    for (size_t i = 0; i < settings.n; ++i) {
+    for (size_t i = 0; i < N; ++i) {
         T x, y;
-        this->computeTotalShift(result.refFrame, i, shiftX, shiftY, x, y);
+        this->computeTotalShift(result.refFrame,
+        i, shiftX, shiftY, x, y);
         result.shifts.emplace_back(x, y);
     }
     return result;
