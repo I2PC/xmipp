@@ -26,19 +26,19 @@ struct FFTSettings {
     size_t batch;
     bool isInPlace;
 
-    size_t elemsSpacial() {
+    size_t elemsSpacial() const {
         return x_spacial * y * z * n;
     }
 
-    size_t bytesSpacial() {
+    size_t bytesSpacial() const {
         return sizeof(T) * elemsSpacial();
     }
 
-    size_t elemsFreq() {
+    size_t elemsFreq() const {
         return x_freq * y * z * n;
     }
 
-    size_t bytesFreq() {
+    size_t bytesFreq() const {
         return sizeof(std::complex<T>) * elemsFreq();
     }
 

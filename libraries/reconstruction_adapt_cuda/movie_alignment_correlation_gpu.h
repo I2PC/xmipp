@@ -202,15 +202,15 @@ private:
             size_t framesInCorrelationBuffer);
 
     auto computeShifts(size_t maxShift, std::complex<T>* data,
-            const FFTSettings<T> &settings, std::pair<T, T> &scale,
+            const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
 
     core::optional<FFTSettings<T>> getStoredMovieSettings(Image<T> &frame,
             int noOfImgs, std::string &uuid);
 
-    core::optional<FFTSettings<T>> getStoredCropSettings(
-            const FFTSettings<T> &orig,
+    core::optional<FFTSettings<T>> getStoredCorrelationSettings(
+            const FFTSettings<T> &hitn,
             const std::string &uuid);
 
     void storeMovieSettings(const Image<T> &frame,
@@ -218,13 +218,13 @@ private:
 
     auto getMovieSettings(const MetaData &movie, const GPU &gpu);
 
-    auto getCropSettings(const FFTSettings<T> &orig, const GPU &gpu,
+    auto getCorrelationSettings(const FFTSettings<T> &orig, const GPU &gpu,
             const std::pair<T, T> &downscale);
 
     auto runMovieBenchmark(const Image<T> &frame, int noOfImgs,
             const std::string &uuid);
 
-    auto runCropBenchmark(const FFTSettings<T> &orig, const GPU &gpu);
+    auto runCorrelationBenchmark(const FFTSettings<T> &orig, const GPU &gpu);
 
     void computeGlobalAlignment(const MetaData &movie, const Image<T> &dark,
             const Image<T> &gain);
@@ -232,7 +232,11 @@ private:
     void storeSizes(const FFTSettings<T> &s,
             const GPU &gpu);
 
-    auto getCropHint(const FFTSettings<T> &s, const std::pair<T, T> &downscale);
+    auto getCorrelationHint(const FFTSettings<T> &s,
+            const std::pair<T, T> &downscale);
+
+    T* loadMovie(const MetaData& movie, const FFTSettings<T> &settings,
+            const Image<T>& dark, const Image<T>& gain);
 
 
 private:
