@@ -698,6 +698,95 @@ def runTests(testNames):
     testsToDo = '--all' if len(testNames)==0 else ' '.join(testNames)
     runJob("cd %s; %s base.py %s" % (testsPath, python, testsToDo))
 
+def readModelsFile():
+    with open(os.path.join("src", "xmipp", "models", "models.list"), 'r') as f:
+        lines = f.readlines()
+        return [line.strip('\n') for line in lines if not line.startswith('#')]
+
+def addDeepLearninModel(modelPath, update=False):
+    """ Takes the folder from modelPath and makes a .tgz,
+        uploads the .tgz to scipion web and
+        adds the modelName to the model.list.
+    """
+    if not os.path.isdir(modelPath):
+        print("modelPathDir must be a folder. \n"
+              "The name of the model will be that folder name.\n")
+        usage()
+        sys.exit(1)
+
+    modelName = os.path.basename(modelPath)
+    modelList = readModelsFile()
+    if modelName in modelList:
+        print(red("'%s' model name is already used. " % modelName))
+        if update:
+            print("Are you sure that you want to OVERWRITE that model: (yes/NO)")
+            yesno = raw_input()
+            if yesno.lower() != 'yes':
+                sys.exit(1)
+        else:
+            print("Please, choose one skipping the following list:")
+            for line in modelList:
+                print(' - ' + line)
+            print(blue("If you want to overwrite the existing model "
+                       "add the '--update' option."))
+            sys.exit(1)
+
+    print("You will add a new model with the name: %s" % modelName)
+    print("Do you agree? (YES/no)")
+    yesno = raw_input()
+    if yesno.lower() == 'no':
+        print("The name is took from the folder name.")
+        sys.exit(1)
+
+    dirPath = os.path.dirname(modelPath)
+    print("Creating the '%s.tgz' model." % modelName)
+    runJob("cd %s ; tar czf %s.tgz %s ; cd - ; mv %s/%s.tgz %s.tgz"
+           % (dirPath, modelName, modelName, dirPath, modelName, modelName))
+
+    print("Trying to upload the model:")
+    login = "scipion@scipion.cnb.csic.es"
+    depositionPath = "/services/scipion/data/downloads/scipion/software/em/"
+    remoteFn = "xmipp_models_%s.tgz" % modelName
+    remotePath = os.path.join(depositionPath, remoteFn)
+    uploadOk = runJob("scp %s.tgz %s:%s" % (modelName, login, remotePath))
+
+    if uploadOk:
+        print(" Upload finished")
+        runJob("rm %s.tgz" % modelName)
+        print("Adding the %s model to the models.list." % modelName)
+        with open(os.path.join("src", "xmipp", "models", "models.list"), 'a') as f:
+            f.write(modelName+'\n')
+        print("Please," + red("commit and push the model.list file ") +
+              "to the devel branch!")
+    else:
+        print(red("You have no permissions to upload data in Scipion Web:\n") +
+                  " Please contact to 'scipion@cnb.csic.es' to upload the model"
+                  "placed at '%s'." % os.path.join(os.getcwd(), modelName+'.tgz'))
+
+def downloadDeepLearningModels(destination):
+
+    modelsList = readModelsFile()
+
+    templateUrl = ("http://scipion.cnb.csic.es/downloads/scipion/"
+                   "software/em/xmipp_models_%s.tgz")
+
+    srcModels = os.path.join("src", "xmipp", "models")
+    createDir(destination)
+    createDir(srcModels)
+    print("Downloading Deep Learning models:")
+    for model in modelsList:
+        url = templateUrl % model
+        path = os.path.join(srcModels, model)
+        if os.path.exists(path):
+            print(blue(" skipping %s model download: Target already exist"
+                       % model))
+        else:
+            runJob('wget -nv -c -O %s.part %s\n'
+                   'mv -v %s.part %s.tgz' % (path, url, path, path))
+            runJob('(cd %s ; tar -xzf %s.tgz)'
+                   % (os.path.dirname(path), os.path.basename(path)))
+        runJob("cp -r %s/%s %s/%s" % (srcModels, model, destination, model))
+
 def install(dirname):
     print("Installing ------------------------------------------")
     createDir(dirname)
@@ -727,6 +816,8 @@ def install(dirname):
     runJob("cp -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java")
     runJob("cp src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python")
     runJob("cp -Lr src/xmippViz/resources "+dirname+"/resources")
+
+    downloadDeepLearningModels(dirname + "/models")
 
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
@@ -821,15 +912,17 @@ def usage():
           "   compile  N xmippViz:        Compile xmippViz\n"
           "   install [dir]:              Install at dir (./build by default)\n"
           "   test [--show] testName:     Run tests to check Xmipp programs (by default, all).\n"
-          "                                 if --show is activated without testName all are shown, \n"
-          "                                 instead a grep of testName is done \n"
+          "                                   if --show is activated without testName all are shown, \n"
+          "                                   instead a grep of testName is done \n"
           "For developers:\n"
-          "   create_devel_paths:     Create bashrc files for devel\n"
-          "   git ...:                Git command to all 4 repositories\n"
-          "   gitConfig:              Change the git config from https to git\n"
-          "   tar <mode> <version>:   Create a bundle of the xmipp\n"
-          "                              <mode> can be 'Sources' or 'Binaries'\n"
-          "                              <version> usually X.YY.MM\n"
+          "   create_devel_paths:         Create bashrc files for devel\n"
+          "   git ...:                    Git command to all 4 repositories\n"
+          "   gitConfig:                  Change the git config from https to git\n"
+          "   addModel modelDirPath:      Takes a deepLearning model from path, makes a tgz, uploads the tgz and \n"
+          "                                   adds the model to the models.list. The modelDirPath must be a folder.\n"
+          "   tar <mode> <version>:       Create a bundle of the xmipp\n"
+          "                                   <mode> can be 'Sources' or 'Binaries'\n"
+          "                                   <version> usually X.YY.MM\n"
           )
 
 if __name__ == '__main__':
@@ -935,6 +1028,20 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmipp/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
+    elif mode=='addModel':
+        update = False
+        if n<3 or n>4:
+            print("Incorrect number of parameters.\n")
+            usage()
+            sys.exit(1)
+        elif n==4:
+            if sys.argv[3] == '--update':
+                update = True
+            else:
+                print("Incorrect number of parameters.\n")
+                usage()
+                sys.exit(1)
+        addDeepLearninModel(sys.argv[2], update)
     elif mode=='tar':
         import tar
         tar.run(sys.argv[2], sys.argv[3])
