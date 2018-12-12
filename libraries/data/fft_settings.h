@@ -9,25 +9,23 @@
 #define FFTSETTINGS_H_
 
 #include <iostream>
+#include "dimensions.h"
 
 template<typename T>
 struct FFTSettings {
-    FFTSettings(size_t x_spacial = 0, size_t y = 0, size_t z = 0, size_t n = 0,
+    FFTSettings(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
             size_t batch = 0, bool isInPlace = false) :
-            x_spacial(x_spacial), x_freq(x_spacial / 2 + 1), y(y), z(z), n(n), batch(
+            dim(x, y, z, n), x_freq(x / 2 + 1), batch(
                     batch), isInPlace(isInPlace) {
     }
     ;
-    size_t x_spacial;
-    size_t x_freq;
-    size_t y;
-    size_t z;
-    size_t n;
+    const size_t x_freq;
+    const Dimensions dim;
     size_t batch;
     bool isInPlace;
 
     size_t elemsSpacial() const {
-        return x_spacial * y * z * n;
+        return dim.size();
     }
 
     size_t bytesSpacial() const {
@@ -35,7 +33,7 @@ struct FFTSettings {
     }
 
     size_t elemsFreq() const {
-        return x_freq * y * z * n;
+        return x_freq * dim.y * dim.z * dim.n;
     }
 
     size_t bytesFreq() const {
@@ -45,8 +43,9 @@ struct FFTSettings {
     friend std::ostream& operator<<(std::ostream &os,
             const FFTSettings<T> &s) {
 
-        os << s.x_spacial << "(" << s.x_freq << ")" << " * " << s.y << " * "
-                << s.z << " * " << s.n << ", batch: " << s.batch << ", inPlace:"
+        os << s.dim.x << "(" << s.x_freq << ")" << " * " << s.dim.y << " * "
+                << s.dim.z << " * " << s.dim.n << ", batch: " << s.batch
+                << ", inPlace:"
                 << std::to_string(s.isInPlace) << std::endl;
 
         return os;

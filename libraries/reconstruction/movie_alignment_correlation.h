@@ -77,7 +77,8 @@ private:
             const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
             Image<T>& averageMicrograph, size_t& N);
 
-    void computeGlobalAlignment(const MetaData &movie, const Image<T> &dark,
+    void computeGlobalAlignmentAndStore(const MetaData &movie,
+            const Image<T> &dark,
             const Image<T> &gain);
 private:
     /**

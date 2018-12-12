@@ -129,6 +129,14 @@ protected:
     MultidimArray<T> createLPF(T targetOccupancy, size_t xSize, size_t xFFTSize,
             size_t ySize);
 
+    /**
+     * Method to store relative shifts computed for the movie
+     * @param alignment result to store
+     * @param movie to be updated
+     */
+    void storeGlobalShifts(const AlignmentResult<T> &alignment,
+            MetaData &movie);
+
 private:
     /**
      * After running this method, all relevant images from the movie should
@@ -169,7 +177,7 @@ private:
             const Image<T>& dark, const Image<T>& gain, Image<T>& initialMic,
             size_t& Ninitial, Image<T>& averageMicrograph, size_t& N) = 0;
 
-    virtual void computeGlobalAlignment(const MetaData &movie,
+    virtual void computeGlobalAlignmentAndStore(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain) = 0;
 
 private:
@@ -219,16 +227,6 @@ private:
      * @param movie where the input should be stored
      */
     void readMovie(MetaData& movie);
-
-    /**
-     * Method to store relative shifts computed for the movie
-     * @param bestIref index of the reference image
-     * @param shiftX relative shifts in X dim to reference image
-     * @param shiftY relative shifts in Y dim to reference image
-     * @param movie to be stored
-     */
-    void storeRelativeShifts(int bestIref, const Matrix1D<T>& shiftX,
-            const Matrix1D<T>& shiftY, MetaData& movie);
 
     /**
      * Sets all shifts in the movie to zero (0)
