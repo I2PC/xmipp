@@ -33,7 +33,7 @@
 #include "data/fft_settings.h"
 #include "core/userSettings.h"
 #include "gpu.h"
-#include <core/optional.h>
+#include "core/optional.h"
 
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
@@ -195,6 +195,18 @@ private:
         ss << uuid << keyword << xdim << ydim << noOfFrames << crop;
        return ss.str();
     }
+////////////////////////////////////////////////////////////////////////////////////////////////////
+    auto getSettingsOrBenchmark(const Dimensions &d, size_t extraMem,
+            const GPU &gpu, bool crop);
+
+    std::string const getKey(const std::string &keyword, const GPU &gpu,
+            const Dimensions &dim, bool crop) {
+        std::stringstream ss;
+        ss << gpu.UUID << keyword << dim << crop;
+        return ss.str();
+    }
+
+    auto getMovieSettings(const MetaData &movie, const GPU &gpu);
 
     auto align(T* data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
@@ -206,31 +218,15 @@ private:
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
 
-    core::optional<FFTSettings<T>> getStoredMovieSettings(Image<T> &frame,
-            int noOfImgs, std::string &uuid);
-
-    core::optional<FFTSettings<T>> getStoredCorrelationSettings(
-            const FFTSettings<T> &hitn,
-            const std::string &uuid);
-
-    void storeMovieSettings(const Image<T> &frame,
-            const FFTSettings<T>& settings, const std::string &uuid);
-
-    auto getMovieSettings(const MetaData &movie, const GPU &gpu);
-
     auto getCorrelationSettings(const FFTSettings<T> &orig, const GPU &gpu,
             const std::pair<T, T> &downscale);
 
-    auto runMovieBenchmark(const Image<T> &frame, int noOfImgs,
-            const std::string &uuid);
-
-    auto runCorrelationBenchmark(const FFTSettings<T> &orig, const GPU &gpu);
-
-    void computeGlobalAlignment(const MetaData &movie, const Image<T> &dark,
+    void computeGlobalAlignmentAndStore(MetaData &movie,
+            const Image<T> &dark,
             const Image<T> &gain);
 
-    void storeSizes(const FFTSettings<T> &s,
-            const GPU &gpu);
+    void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
+            const GPU &gpu, bool applyCrop);
 
     auto getCorrelationHint(const FFTSettings<T> &s,
             const std::pair<T, T> &downscale);
@@ -238,7 +234,13 @@ private:
     T* loadMovie(const MetaData& movie, const FFTSettings<T> &settings,
             const Image<T>& dark, const Image<T>& gain);
 
+    auto getStoredSizes(const Dimensions &dim,
+            const GPU &gpu, bool applyCrop);
 
+    auto runBenchmark(const Dimensions &d, const GPU &gpu, size_t extraMem,
+            bool crop);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
     // downscaled Fourier transforms of the input images
     std::complex<T>* frameFourier;
@@ -261,13 +263,10 @@ private:
     /**
      * Keywords representing optimal settings of the algorithm.
      */
-    std::string availableMemoryStr = "availableMem";
-    std::string inputOptSizeXStr = "inputOptSizeX";
-    std::string inputOptSizeYStr = "inputOptSizeY";
-    std::string inputOptBatchSizeStr = "inputOptBatchSize";
-    std::string croppedOptSizeXStr = "croppedOptSizeX";
-    std::string croppedOptSizeYStr = "croppedOptSizeY";
-    std::string croppedOptBatchSizeStr = "croppedOptBatchSize";
+    std::string minMemoryStr = "minMem";
+    std::string optSizeXStr = "optSizeX";
+    std::string optSizeYStr = "optSizeY";
+    std::string optBatchSizeStr = "optBatchSize";
 
     /**
      * Optimal sizes of the down-scaled images used for e.g. cross-correlation

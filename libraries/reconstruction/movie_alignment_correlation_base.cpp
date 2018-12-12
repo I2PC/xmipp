@@ -418,20 +418,19 @@ void AProgMovieAlignmentCorrelation<T>::readMovie(MetaData& movie) {
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::storeRelativeShifts(int bestIref,
-        const Matrix1D<T>& shiftX, const Matrix1D<T>& shiftY, MetaData& movie) {
+void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
+        const AlignmentResult<T> &alignment, MetaData &movie) {
     int j = 0;
     int n = 0;
-    Matrix1D<T> shift(2);
+    auto negateToDouble = [] (T v) {return (double) (v * -1);};
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= nfirst && n <= nlast) {
-            computeTotalShift(bestIref, j, shiftX, shiftY, XX(shift),
-                    YY(shift));
-            shift /= sizeFactor;
-            shift *= -1;
-            movie.setValue(MDL_SHIFT_X, (double) XX(shift), __iter.objId);
-            movie.setValue(MDL_SHIFT_Y, (double) YY(shift), __iter.objId);
+            auto shift = alignment.shifts.at(j);
+            movie.setValue(MDL_SHIFT_X, negateToDouble(shift.first),
+                    __iter.objId);
+            movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.second),
+                    __iter.objId);
             j++;
             movie.setValue(MDL_ENABLED, 1, __iter.objId);
         } else {
@@ -481,7 +480,7 @@ int AProgMovieAlignmentCorrelation<T>::findShiftsAndStore(MetaData& movie,
 
     // Choose reference image as the minimax of shifts
     int bestIref = findReferenceImage(N, shiftX, shiftY);
-    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
+//    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
     return bestIref;
 }
 
@@ -529,14 +528,12 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     loadDarkCorrection(dark);
     loadGainCorrection(gain);
 
-    int bestIref;
     if (useInputShifts) {
         if (!movie.containsLabel(MDL_SHIFT_X)) {
             setZeroShift(movie);
         }
     } else {
-        computeGlobalAlignment(movie, dark, gain);
-        bestIref = findShiftsAndStore(movie, dark, gain);
+        computeGlobalAlignmentAndStore(movie, dark, gain);
     }
 
     size_t N, Ninitial;
@@ -545,6 +542,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial,
             averageMicrograph, N);
 
+    int bestIref = 0;
     storeResults(initialMic, Ninitial, averageMicrograph, N, movie, bestIref);
 }
 
