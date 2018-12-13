@@ -154,8 +154,8 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
 
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignmentAndStore(
-        MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
+AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
+        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
     auto gpu = GPU(device);
     auto movieSettings = this->getMovieSettings(movie, gpu);
     T sizeFactor = this->computeSizeFactor();
@@ -176,8 +176,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignmentAndStore(
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer);
-
-    this->storeGlobalShifts(result, movie);
 }
 
 template<typename T>

@@ -35,7 +35,7 @@ void ProgMovieAlignmentCorrelation<T>::defineParams() {
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelation<T>::computeGlobalAlignmentAndStore(
+AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
     throw std::logic_error("Not implemented");
 }

@@ -528,13 +528,18 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     loadDarkCorrection(dark);
     loadGainCorrection(gain);
 
+    AlignmentResult<T> globalAlignment;
     if (useInputShifts) {
         if (!movie.containsLabel(MDL_SHIFT_X)) {
             setZeroShift(movie);
         }
+        // FIXME load from file
     } else {
-        computeGlobalAlignmentAndStore(movie, dark, gain);
+        globalAlignment = computeGlobalAlignment(movie, dark, gain);
     }
+
+    // FIXME if -o, store global alignment
+    // FIXME local alignment
 
     size_t N, Ninitial;
     Image<T> initialMic, averageMicrograph;

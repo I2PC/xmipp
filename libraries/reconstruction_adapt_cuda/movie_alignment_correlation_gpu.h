@@ -221,7 +221,7 @@ private:
     auto getCorrelationSettings(const FFTSettings<T> &orig, const GPU &gpu,
             const std::pair<T, T> &downscale);
 
-    void computeGlobalAlignmentAndStore(MetaData &movie,
+    AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
             const Image<T> &gain);
 
