@@ -628,10 +628,10 @@ def checkConfig():
         writeConfig(configDict)
     return True
 
-def compileModule(Nproc,module):
+def compileModule(Nproc,module,printFinish=False):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
-    if module == "xmipp":
+    if module == "xmipp" and ok:
         stampVersion()
     return ok
 
@@ -873,9 +873,16 @@ if __name__ == '__main__':
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         if n<=3:
-            compile(Nproc)
+            ok = compile(Nproc)
+            module = 'Xmipp'
         else:
-            compileModule(Nproc,sys.argv[3])
+            ok = compileModule(Nproc,sys.argv[3])
+            module = sys.argv[3]
+        if ok:
+            print("\n"
+                  "  * %s have been successfully compile * \n"
+                  "    > > > Don't forget to install! < < <   \n\n"
+                  % module)
     elif mode=="compileAndInstall":
         Nproc=sys.argv[2]
         compile(Nproc)
