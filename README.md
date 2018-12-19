@@ -12,7 +12,7 @@ mkdir XmippBundle
 cd XmippBundle
 wget https://raw.githubusercontent.com/I2PC/xmipp/master/xmipp -O xmipp
 chmod 755 xmipp
-./xmipp all N=4 br=master
+./xmipp all N=4 br=devel
 ln -sf src/xmipp/xmipp xmipp  # optional but recommended to have always the last version of the xmipp script
 ```
 where you can replace `N=4` for `N=#processors` and `br=master` for `br=devel` if you want the development version of Xmipp. You can see the whole usage of the xmipp script with `./xmipp --help`
