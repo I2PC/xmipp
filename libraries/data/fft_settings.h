@@ -13,7 +13,7 @@
 
 template<typename T>
 struct FFTSettings {
-    FFTSettings(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
+    explicit FFTSettings(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
             size_t batch = 0, bool isInPlace = false) :
             dim(x, y, z, n), x_freq(x / 2 + 1), batch(
                     batch), isInPlace(isInPlace) {
@@ -21,8 +21,8 @@ struct FFTSettings {
     ;
     const size_t x_freq;
     const Dimensions dim;
-    size_t batch;
-    bool isInPlace;
+    const size_t batch;
+    const bool isInPlace;
 
     size_t elemsSpacial() const {
         return dim.size();
@@ -45,8 +45,7 @@ struct FFTSettings {
 
         os << s.dim.x << "(" << s.x_freq << ")" << " * " << s.dim.y << " * "
                 << s.dim.z << " * " << s.dim.n << ", batch: " << s.batch
-                << ", inPlace:"
-                << std::to_string(s.isInPlace) << std::endl;
+                << ", inPlace: " << (s.isInPlace ? "yes" : "no");
 
         return os;
     }

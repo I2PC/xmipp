@@ -64,14 +64,18 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
-        const MetaData &movie, const GPU &gpu) {
+        const MetaData &movie, const GPU &gpu, bool optimize) {
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
     loadFrame(movie, movie.firstObject(), frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
     int maxFilterSize = getMaxFilterSize(frame);
 
-    return getSettingsOrBenchmark(dim, maxFilterSize, gpu, true);
+    if (optimize) {
+        return getSettingsOrBenchmark(dim, maxFilterSize, gpu, true);
+    } else {
+        return FFTSettings<T>(dim.x, dim.y, dim.z, dim.n, 1, false);
+    }
 }
 
 template<typename T>
@@ -100,6 +104,43 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 }
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
+        const FFTSettings<T> &orig, const GPU &gpu) {
+    Dimensions hint(512, 512, // this should be a trade-off between speed and present signal
+            // but check the speed to make sure
+            orig.dim.z, (orig.dim.n * (orig.dim.n - 1)) / 2); // number of correlations);
+    size_t correlationBufferSizeMB = gpu.lastFreeMem / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
+
+    return getSettingsOrBenchmark(hint, 2 * correlationBufferSizeMB, gpu, false);
+}
+
+template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getPatches(
+        const FFTSettings<T> &movie, const FFTSettings<T> &patch) {
+    size_t patchesX = 20;
+    size_t patchesY = 20;
+    T corrX = std::ceil(
+            ((patchesX * patch.dim.x) - (T) movie.dim.x) / (T) (patchesX - 1));
+    T corrY = std::ceil(
+            ((patchesY * patch.dim.y) - (T) movie.dim.y) / (T) (patchesY - 1));
+    size_t stepX = patch.dim.x - corrX;
+    size_t stepY = patch.dim.y - corrY;
+    std::vector<Rectangle<Point2D<T>>> result;
+    for (size_t y = 0; y < patchesY; ++y) {
+        for (size_t x = 0; x < patchesX; ++x) {
+            T tlx = 0 + x * stepX; // Top Left
+            T tly = 0 + y * stepY;
+            T brx = patch.dim.x + x * stepX - 1; // Bottom Right
+            T bry = patch.dim.y + y * stepY - 1; // -1 for indexing
+            Point2D<T> tl(tlx, tly);
+            Point2D<T> br(brx, bry);
+            result.emplace_back(tl, br);
+        }
+    }
+    return result;
+}
+
+template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
         const FFTSettings<T> &s, const GPU &gpu, bool applyCrop) {
     UserSettings::get(storage).insert(*this,
@@ -110,7 +151,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
             getKey(optBatchSizeStr, gpu, dim, applyCrop), s.batch);
     UserSettings::get(storage).insert(*this,
             getKey(minMemoryStr, gpu, dim, applyCrop), gpu.lastFreeMem);
-    UserSettings::get(storage).store(); // write changes immediatelly
+    UserSettings::get(storage).store(); // write changes immediately
 }
 
 template<typename T>
@@ -152,17 +193,34 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
     return FFTSettings<T>(x, y, 1, d.n, batch, true);
 }
 
+template<typename T>
+LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
+        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
+    auto gpu = GPU(device);
+    auto movieSettings = this->getMovieSettings(movie, gpu, false);
+    auto patchSetting = this->getPatchSettings(movieSettings, gpu);
+    auto patchDistribution = this->getPatches(movieSettings,
+            patchSetting);
+
+    for (auto&& r : patchDistribution) {
+        std::cout << r.tl.x << " " << r.tl.y << "(" << r.br.x << " " << r.br.y
+                << ")" << std::endl;
+    }
+}
 
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
     auto gpu = GPU(device);
-    auto movieSettings = this->getMovieSettings(movie, gpu);
+    auto movieSettings = this->getMovieSettings(movie, gpu, true);
     T sizeFactor = this->computeSizeFactor();
+    if (this->verbose) {
+        std::cout << "Settings for the movie:" << movieSettings << std::endl;
+    }
     auto correlationSetting = this->getCorrelationSettings(movieSettings, gpu,
             std::make_pair(sizeFactor, sizeFactor));
 
-    MultidimArray<T> filter = this->createLPF(0.9, correlationSetting.dim.x,
+    MultidimArray<T> filter = this->createLPF(0.9, correlationSetting.dim.x, // FIXME 0.9 should come from some function
             correlationSetting.x_freq, correlationSetting.dim.y);
 
     T corrSizeMB = ((size_t) correlationSetting.x_freq

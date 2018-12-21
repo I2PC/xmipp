@@ -81,6 +81,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     useInputShifts = checkParam("--useInputShifts");
     bin = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
+    processLocalShifts = checkParam("--processLocalShifts");
 
     String outside = getParam("--outside");
     if (outside == "wrap")
@@ -115,7 +116,9 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << yLTcorner << ") " << "(" << xDRcorner << ", " << yDRcorner
             << ") " << std::endl << "Use input shifts:    " << useInputShifts
             << std::endl << "Binning factor:      " << bin << std::endl
-            << "Bspline:             " << BsplineOrder << std::endl;
+            << "Bspline:             " << BsplineOrder << std::endl
+            << "Local shift correction: " << (processLocalShifts ? "yes" : "no")
+            << std::endl;
 }
 
 // usage ===================================================================
@@ -174,6 +177,8 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "             avg               : Fill borders with the average of the frame");
     addParamsLine(
             "             value             : Fill borders with a specific value v");
+    addParamsLine(
+            "  [--processLocalShifts]           : Calculate and correct local shifts");
     addExampleLine("A typical example", false);
     addSeeAlsoLine("xmipp_movie_optical_alignment_cpu");
 }
@@ -345,7 +350,7 @@ void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::computeSizeFactor(T& targetOccupancy) {
     if (bin < 0) {
-        targetOccupancy = 0.9; // Set to 1 if you want fmax maps onto 1/(2*newTs)
+        targetOccupancy = 0.9; // Set to 1 if you want fmax maps onto 1/(2*newTs) // FIXME make function
         // Determine target size of the images
         newTs = targetOccupancy * maxFreq / 2;
         newTs = std::max(newTs, Ts);
@@ -427,9 +432,9 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
     {
         if (n >= nfirst && n <= nlast) {
             auto shift = alignment.shifts.at(j);
-            movie.setValue(MDL_SHIFT_X, negateToDouble(shift.first),
+            movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x),
                     __iter.objId);
-            movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.second),
+            movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y),
                     __iter.objId);
             j++;
             movie.setValue(MDL_ENABLED, 1, __iter.objId);
@@ -539,12 +544,15 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     }
 
     // FIXME if -o, store global alignment
-    // FIXME local alignment
+//    core::optional<LocalAlignmentResult<T>> localAlignment;
+    if (processLocalShifts) {
+        computeLocalAlignment(movie, dark, gain);
+    }
 
     size_t N, Ninitial;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
-    applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial,
+    applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial, // FIXME implement for local alignment
             averageMicrograph, N);
 
     int bestIref = 0;

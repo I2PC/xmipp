@@ -206,7 +206,7 @@ private:
         return ss.str();
     }
 
-    auto getMovieSettings(const MetaData &movie, const GPU &gpu);
+    auto getMovieSettings(const MetaData &movie, const GPU &gpu, bool optimize);
 
     auto align(T* data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
@@ -221,9 +221,14 @@ private:
     auto getCorrelationSettings(const FFTSettings<T> &orig, const GPU &gpu,
             const std::pair<T, T> &downscale);
 
+    auto getPatchSettings(const FFTSettings<T> &orig, const GPU &gpu);
+
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
             const Image<T> &gain);
+
+    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
+            const Image<T> &dark, const Image<T> &gain);
 
     void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
             const GPU &gpu, bool applyCrop);
@@ -239,6 +244,8 @@ private:
 
     auto runBenchmark(const Dimensions &d, const GPU &gpu, size_t extraMem,
             bool crop);
+
+    auto getPatches(const FFTSettings<T> &movie, const FFTSettings<T> &patch);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
