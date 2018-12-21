@@ -41,6 +41,10 @@
 #include "core/xmipp_program.h"
 #include "core/metadata_extension.h"
 #include "core/xmipp_fftw.h"
+#include "data/point2D.h"
+#include "data/point3D.h"
+#include "data/rectangle.h"
+#include "core/optional.h"
 
 template<typename T>
 struct AlignmentResult {
@@ -48,7 +52,19 @@ struct AlignmentResult {
     // these are shifts from the reference frame in X/Y dimension,
     // i.e. if you want to compensate for the shift,
     // you have to shift in opposite direction (negate these values)
-    std::vector<std::pair<T, T>> shifts;
+    std::vector<Point2D<T>> shifts;
+};
+
+template<typename T>
+using FramePatch = Rectangle<Point3D<T>>;
+
+template<typename T>
+struct LocalAlignmentResult {
+    AlignmentResult<T> globalHint;
+    // these are shifts from the reference frame in X/Y dimension,
+    // i.e. if you want to compensate for the shift,
+    // you have to shift in opposite direction (negate these values)
+    std::vector<std::pair<FramePatch<T>, Point2D<T>>> shifts;
 };
 
 template<typename T>
@@ -180,6 +196,9 @@ private:
     virtual AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain) = 0;
 
+    virtual LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
+            const Image<T> &dark, const Image<T> &gain) = 0;
+
 private:
     /**
      * Method computes an internal (down)scale factor of the micrographs
@@ -297,6 +316,7 @@ protected:
     T outsideValue;
     /** size factor between original size of the images and downscaled images) */
     T sizeFactor;
+    bool processLocalShifts;
 
 private:
     // Target sampling rate

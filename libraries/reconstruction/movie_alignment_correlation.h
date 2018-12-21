@@ -80,6 +80,9 @@ private:
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
             const Image<T> &gain);
+
+    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
+            const Image<T> &dark, const Image<T> &gain);
 private:
     /**
      *  Fourier transforms of the input images, after cropping, gain and dark

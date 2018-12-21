@@ -41,6 +41,12 @@ AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
 }
 
 template<typename T>
+LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
+        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
+    throw std::logic_error("Not implemented");
+}
+
+template<typename T>
 void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         const Image<T>& dark, const Image<T>& gain, T targetOccupancy,
         const MultidimArray<T>& lpf) {
