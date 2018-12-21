@@ -59,6 +59,9 @@ template<typename T>
 using FramePatch = Rectangle<Point3D<T>>;
 
 template<typename T>
+using Rec2D = Rectangle<Point2D<T>>;
+
+template<typename T>
 struct LocalAlignmentResult {
     AlignmentResult<T> globalHint;
     // these are shifts from the reference frame in X/Y dimension,
@@ -197,7 +200,8 @@ private:
             const Image<T> &dark, const Image<T> &gain) = 0;
 
     virtual LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &gain) = 0;
+            const Image<T> &dark, const Image<T> &gain,
+            const AlignmentResult<T> &globAlignment) = 0;
 
 private:
     /**

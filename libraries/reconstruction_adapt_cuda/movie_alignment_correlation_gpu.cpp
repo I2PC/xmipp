@@ -115,29 +115,59 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getPatches(
+auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
+        const std::pair<T, T> &borders,
         const FFTSettings<T> &movie, const FFTSettings<T> &patch) {
-    size_t patchesX = 20;
-    size_t patchesY = 20;
+    size_t patchesX = 10;
+    size_t patchesY = 10;
+    size_t windowXSize = movie.dim.x - 2 * borders.first;
+    size_t windowYSize = movie.dim.y - 2 * borders.second;
     T corrX = std::ceil(
-            ((patchesX * patch.dim.x) - (T) movie.dim.x) / (T) (patchesX - 1));
+            ((patchesX * patch.dim.x) - windowXSize) / (T) (patchesX - 1));
     T corrY = std::ceil(
-            ((patchesY * patch.dim.y) - (T) movie.dim.y) / (T) (patchesY - 1));
+            ((patchesY * patch.dim.y) - windowYSize) / (T) (patchesY - 1));
     size_t stepX = patch.dim.x - corrX;
     size_t stepY = patch.dim.y - corrY;
     std::vector<Rectangle<Point2D<T>>> result;
     for (size_t y = 0; y < patchesY; ++y) {
         for (size_t x = 0; x < patchesX; ++x) {
-            T tlx = 0 + x * stepX; // Top Left
-            T tly = 0 + y * stepY;
-            T brx = patch.dim.x + x * stepX - 1; // Bottom Right
-            T bry = patch.dim.y + y * stepY - 1; // -1 for indexing
+            T tlx = borders.first + x * stepX; // Top Left
+            T tly = borders.second + y * stepY;
+            T brx = tlx + patch.dim.x - 1; // Bottom Right
+            T bry = tly + patch.dim.y - 1; // -1 for indexing
             Point2D<T> tl(tlx, tly);
             Point2D<T> br(brx, bry);
             result.emplace_back(tl, br);
         }
     }
     return result;
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
+        const Rec2D<T> &patch, const AlignmentResult<T> &globAlignment,
+        const FFTSettings<T> &movie, T *result) {
+    size_t n = movie.dim.n;
+    auto patchSize = patch.getSize();
+    auto copyPatchData = [&](size_t srcFrameIdx, size_t destFrameIdx) {
+        size_t frameOffset = srcFrameIdx * movie.dim.x * movie.dim.y;
+        size_t patchOffset = destFrameIdx * patchSize.x * patchSize.y;
+        int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
+        int yShift = std::round(globAlignment.shifts.at(srcFrameIdx).y);
+        for (size_t y = 0; y < patchSize.y; ++y) {
+            size_t srcY = (patch.tl.y + y) - yShift; // assuming shift is smaller than offset
+            size_t srcIndex = (frameOffset + (srcY * movie.dim.x) + patch.tl.x) - xShift;
+            size_t destIndex = patchOffset + y * patchSize.x;
+            for (size_t x = 0; x < patchSize.x; ++x) {
+                result[destIndex + x] += allFrames[srcIndex + x];
+            }
+        }
+    };
+    for (size_t i = 0; i < n; ++i) {
+        copyPatchData(i, i);
+        if (i > 0) copyPatchData(i - 1, i);
+        if ((i + 1) < n) copyPatchData(i + 1, i);
+    }
 }
 
 template<typename T>
@@ -194,18 +224,66 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
 }
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
+        const AlignmentResult<T> &globAlignment) {
+    T minX = std::numeric_limits<T>::max();
+    T maxX = std::numeric_limits<T>::min();
+    T minY = std::numeric_limits<T>::max();
+    T maxY = std::numeric_limits<T>::min();
+    for (const auto& s : globAlignment.shifts) {
+        std::cout << s.x << " " << s.y << std::endl;
+        minX = std::min(std::floor(s.x), minX);
+        maxX = std::max(std::ceil(s.x), maxX);
+        minY = std::min(std::floor(s.y), minY);
+        maxY = std::max(std::ceil(s.y), maxY);
+    }
+    auto res = std::make_pair(std::abs(maxX - minX), std::abs(maxY - minY));
+    if (this->verbose) {
+        std::cout << "Movie borders: x=" << res.first << " y=" << res.second
+                << std::endl;
+    }
+    return res;
+}
+
+template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
+        const MetaData &movie, const Image<T> &dark, const Image<T> &gain,
+        const AlignmentResult<T> &globAlignment) {
     auto gpu = GPU(device);
     auto movieSettings = this->getMovieSettings(movie, gpu, false);
     auto patchSetting = this->getPatchSettings(movieSettings, gpu);
-    auto patchDistribution = this->getPatches(movieSettings,
+    auto borders = getMovieBorders(globAlignment);
+    auto patchesLocation = this->getPatchesLocation(borders, movieSettings,
             patchSetting);
 
-    for (auto&& r : patchDistribution) {
+    for (auto&& r : patchesLocation) {
         std::cout << r.tl.x << " " << r.tl.y << "(" << r.br.x << " " << r.br.y
                 << ")" << std::endl;
     }
+    // load movie to memory
+    T* movieData = loadMovie(movie, movieSettings, dark, gain);
+
+    // allocate additional memory for the patches
+    size_t patchesElements = movieSettings.dim.n * patchSetting.dim.y
+            * std::max(patchSetting.dim.x, patchSetting.x_freq * 2);
+    T *patchesData = new T[patchesElements];
+
+    // get alignment for all patches
+    for (auto &&p : patchesLocation) {
+            memset(patchesData, 0, patchesElements * sizeof(T));
+        getPatchData(movieData, p, globAlignment, movieSettings,
+                patchesData);
+
+        Image<T> tmp(patchSetting.dim.x, patchSetting.dim.y, 1,
+                movieSettings.dim.n);
+        tmp.data.data = patchesData;
+        tmp.write(
+                "patches" + std::to_string(p.tl.x) + "_"
+                        + std::to_string(p.tl.y) + ".vol");
+        tmp.data.data = nullptr;
+    }
+    delete[] movieData;
+    delete[] patchesData;
 }
 
 template<typename T>
@@ -234,6 +312,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer);
+    delete[] data;
+    return result;
 }
 
 template<typename T>

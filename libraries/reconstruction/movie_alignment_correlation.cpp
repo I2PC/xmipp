@@ -42,7 +42,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
 
 template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
+        const MetaData &movie, const Image<T> &dark, const Image<T> &gain,
+        const AlignmentResult<T> &globAlignment) {
     throw std::logic_error("Not implemented");
 }
 

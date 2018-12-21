@@ -228,7 +228,8 @@ private:
             const Image<T> &gain);
 
     LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &gain);
+            const Image<T> &dark, const Image<T> &gain,
+            const AlignmentResult<T> &globAlignment);
 
     void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
             const GPU &gpu, bool applyCrop);
@@ -245,7 +246,15 @@ private:
     auto runBenchmark(const Dimensions &d, const GPU &gpu, size_t extraMem,
             bool crop);
 
-    auto getPatches(const FFTSettings<T> &movie, const FFTSettings<T> &patch);
+    auto getPatchesLocation(const std::pair<T, T> &borders,
+            const FFTSettings<T> &movie,
+            const FFTSettings<T> &patch);
+
+    auto getMovieBorders(const AlignmentResult<T> &globAlignment);
+
+    void getPatchData(const T *allFrames, const Rec2D<T> &patch,
+            const AlignmentResult<T> &globAlignment,
+            const FFTSettings<T> &movie, T *result);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
