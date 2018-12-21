@@ -26,6 +26,10 @@ public:
         return (tl + br) / 2;
     }
 
+    constexpr T getSize() const {
+        return (br - tl) + 1;
+    }
+
     const T tl; // top left corner
     const T br; // bottom right corner
 };

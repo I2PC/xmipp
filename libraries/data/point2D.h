@@ -21,12 +21,36 @@ public:
     const T x;
     const T y;
 
-    Point2D& operator/=(const T &rhs) const {
+    Point2D& operator/=(T rhs) const {
         return Point2D(x / rhs, y / rhs);
     }
 
     friend Point2D operator/(const Point2D &lhs, T rhs) {
         return lhs /= rhs;
+    }
+
+    Point2D operator-=(T rhs) const {
+        return Point2D(x - rhs, y - rhs);
+    }
+
+    Point2D operator+=(T rhs) const {
+        return Point2D(x + rhs, y + rhs);
+    }
+
+    Point2D operator-=(const Point2D &rhs) const {
+        return Point2D(x - rhs.x, y - rhs.y);
+    }
+
+    friend Point2D operator-(const Point2D &lhs, T rhs) {
+        return lhs -= rhs;
+    }
+
+    friend Point2D operator+(const Point2D &lhs, T rhs) {
+        return lhs += rhs;
+    }
+
+    friend Point2D operator-(const Point2D &lhs, const Point2D &rhs) {
+        return lhs -= rhs;
     }
 };
 

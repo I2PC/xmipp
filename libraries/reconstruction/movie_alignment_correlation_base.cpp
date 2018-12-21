@@ -546,7 +546,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     // FIXME if -o, store global alignment
 //    core::optional<LocalAlignmentResult<T>> localAlignment;
     if (processLocalShifts) {
-        computeLocalAlignment(movie, dark, gain);
+        computeLocalAlignment(movie, dark, gain, globalAlignment);
     }
 
     size_t N, Ninitial;
