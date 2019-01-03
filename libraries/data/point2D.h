@@ -21,7 +21,7 @@ public:
     const T x;
     const T y;
 
-    Point2D& operator/=(T rhs) const {
+    Point2D operator/=(T rhs) const {
         return Point2D(x / rhs, y / rhs);
     }
 
