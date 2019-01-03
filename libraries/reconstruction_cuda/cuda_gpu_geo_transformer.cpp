@@ -254,6 +254,27 @@ void GeoTransformer<T>::test(const Matrix2D<T> &transform) {
 }
 
 template<typename T>
+void GeoTransformer<T>::applyLocalShift(
+        MultidimArray<T> &output, const MultidimArray<T> &input,
+        const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs, size_t frameIdx) {
+    loadOutput(output, (T)0);
+    produceAndLoadCoeffs(3, input);
+
+    loadCoefficients(coefs.first, coefs.second);
+
+    dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
+    dim3 dimGrid(ceil(X / (T) dimBlock.x), ceil(Y / (T) dimBlock.y));
+
+    applyLocalShiftGeometryKernel<T, 3,true><<<dimGrid, dimBlock>>>(d_coefsX, d_coefsY,
+                d_out, (int)X, (int)Y, d_in, (int)X, (int)Y, frameIdx);
+    gpuErrchk(cudaPeekAtLastError());
+
+    gpuErrchk(
+            cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
+                    cudaMemcpyDeviceToHost));
+}
+
+template<typename T>
 template<typename T_IN, typename T_MAT>
 void GeoTransformer<T>::applyGeometry(int splineDegree,
         MultidimArray<T> &output, const MultidimArray<T_IN> &input,
@@ -292,6 +313,10 @@ void GeoTransformer<T>::applyGeometry(int splineDegree,
             cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
                     cudaMemcpyDeviceToHost));
 
+    cudaFree(d_coefsX);
+    cudaFree(d_coefsY);
+    d_coefsX = d_coefsY = nullptr;
+
 }
 
 template<typename T>
@@ -304,6 +329,21 @@ void GeoTransformer<T>::loadTransform(const Matrix2D<T_MAT> &transform,
     gpuErrchk(
             cudaMemcpy(d_trInv, tmp.mdata, tmp.mdim * sizeof(T),
                     cudaMemcpyHostToDevice));
+}
+
+template<typename T>
+void GeoTransformer<T>::loadCoefficients(const Matrix1D<T> &X,
+        const Matrix1D<T> &Y) {
+     gpuErrchk(cudaMalloc((void** ) &d_coefsX, X.vdim * sizeof(T)));
+     gpuErrchk(cudaMalloc((void** ) &d_coefsY, Y.vdim * sizeof(T)));
+
+     gpuErrchk(
+                 cudaMemcpy(d_coefsX, X.vdata, X.vdim * sizeof(T),
+                         cudaMemcpyHostToDevice));
+
+     gpuErrchk(
+                 cudaMemcpy(d_coefsY, Y.vdata, Y.vdim * sizeof(T),
+                         cudaMemcpyHostToDevice));
 }
 
 template<typename T>

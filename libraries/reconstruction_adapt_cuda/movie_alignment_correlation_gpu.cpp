@@ -413,11 +413,57 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     }
     auto coefs = computeBSplineCoefs(movieSettings.dim, result);
-    interpolateTest(movieSettings.dim, patchSettings.dim, movieData, coefs);
+//    interpolateTest(movieSettings.dim, patchSettings.dim, movieData, coefs);
+
+    applyShiftsComputeAverage(movie, dark, gain, coefs);
 
     delete[] movieData;
     delete[] patchesData;
 }
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+    std::pair<Matrix1D<T>, Matrix1D<T>> &coefs) {
+    // Apply shifts and compute average
+    Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
+    Image<T> averageMicrograph;
+    Matrix1D<T> shift(2);
+    FileName fnFrame;
+    int j = 0;
+    int n = 0;
+    size_t Ninitial = 0;
+    size_t N = 0;
+    GeoTransformer<T> transformer;
+    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    {
+        if (n >= this->nfirstSum && n <= this->nlastSum) {
+            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+            frame.read(fnFrame);
+            if (XSIZE(dark()) > 0)
+                frame() -= dark();
+            if (XSIZE(gain()) > 0)
+                frame() *= gain();
+            croppedFrame() = frame();
+            transformer.initLazy(croppedFrame().xdim,
+                    croppedFrame().ydim, 1);
+            std::cout << "processing frame " << j << std::endl;
+            transformer.applyLocalShift(shiftedFrame(), croppedFrame(), coefs, j);
+                    if (j == 0) {
+                        averageMicrograph() = shiftedFrame();
+                        std::cout << "initializing shifted frame" << std::endl;
+                    } else {
+                        averageMicrograph() += shiftedFrame();
+                        std::cout << "adding shifted frame" << std::endl;
+                    }
+                    N++;
+            j++;
+        }
+        n++;
+    }
+    averageMicrograph.write("avg_test.vol");
+}
+
 
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
