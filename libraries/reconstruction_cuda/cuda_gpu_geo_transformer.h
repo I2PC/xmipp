@@ -104,6 +104,10 @@ public:
             bool isInv, bool wrap, T outside = 0,
             const MultidimArray<T> *bCoeffsPtr = NULL);
 
+    void applyLocalShift(
+            MultidimArray<T> &output, const MultidimArray<T> &input,
+            const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs, size_t frameIdx);
+
     template<typename T_IN>
     void applyShift(MultidimArray<T> &output,
             const MultidimArray<T_IN> &input, T shiftX, T shiftY);
@@ -168,12 +172,18 @@ private:
 
     void testCoeffsRow();
 
+    void loadCoefficients(const Matrix1D<T> &X,
+            const Matrix1D<T> &Y);
+
 private:
     bool isReady;
 
-    T* d_trInv; // memory on GPU with inverse transfomration (dest->src)
+    T* d_trInv; // memory on GPU with inverse transformation (dest->src)
     T* d_in; // memory on GPU with input data
     T* d_out; // memory in GPU with output data
+
+    T *d_coefsX;
+    T *d_coefsY;
 
     /** dimensions of the output data */
     size_t X, Y, Z;

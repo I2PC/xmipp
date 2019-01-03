@@ -29,6 +29,7 @@
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_gpu_geo_shift_transformer.h"
+#include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
 #include "data/filters.h"
 #include "data/fft_settings.h"
 #include "core/userSettings.h"
@@ -294,6 +295,10 @@ private:
                 + vfc * ((T)1 - xw) * yw
                 + vcc * xw * yw;
     }
+
+    void applyShiftsComputeAverage(
+            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+        std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
