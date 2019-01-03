@@ -108,7 +108,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig, const GPU &gpu) {
     Dimensions hint(512, 512, // this should be a trade-off between speed and present signal
             // but check the speed to make sure
-            orig.dim.z, (orig.dim.n * (orig.dim.n - 1)) / 2); // number of correlations);
+            orig.dim.z, orig.dim.n);
     size_t correlationBufferSizeMB = gpu.lastFreeMem / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
 
     return getSettingsOrBenchmark(hint, 2 * correlationBufferSizeMB, gpu, false);
@@ -128,7 +128,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
             ((patchesY * patch.dim.y) - windowYSize) / (T) (patchesY - 1));
     size_t stepX = patch.dim.x - corrX;
     size_t stepY = patch.dim.y - corrY;
-    std::vector<Rectangle<Point2D<T>>> result;
+    std::vector<FramePatchMeta<T>> result;
     for (size_t y = 0; y < patchesY; ++y) {
         for (size_t x = 0; x < patchesX; ++x) {
             T tlx = borders.first + x * stepX; // Top Left
@@ -137,7 +137,10 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
             T bry = tly + patch.dim.y - 1; // -1 for indexing
             Point2D<T> tl(tlx, tly);
             Point2D<T> br(brx, bry);
-            result.emplace_back(tl, br);
+            Rectangle<Point2D<T>> r(tl, br);
+            result.emplace_back(
+                    FramePatchMeta<T> { .rec = r, .id_x = x, .id_y =
+                    y });
         }
     }
     return result;
@@ -149,24 +152,34 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
         const FFTSettings<T> &movie, T *result) {
     size_t n = movie.dim.n;
     auto patchSize = patch.getSize();
-    auto copyPatchData = [&](size_t srcFrameIdx, size_t destFrameIdx) {
+    auto copyPatchData = [&](size_t srcFrameIdx, size_t t) {
         size_t frameOffset = srcFrameIdx * movie.dim.x * movie.dim.y;
-        size_t patchOffset = destFrameIdx * patchSize.x * patchSize.y;
+        size_t patchOffset = t * patchSize.x * patchSize.y;
         int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
         int yShift = std::round(globAlignment.shifts.at(srcFrameIdx).y);
         for (size_t y = 0; y < patchSize.y; ++y) {
-            size_t srcY = (patch.tl.y + y) - yShift; // assuming shift is smaller than offset
-            size_t srcIndex = (frameOffset + (srcY * movie.dim.x) + patch.tl.x) - xShift;
+            size_t srcY = patch.tl.y + y;
+            if (yShift < 0) {
+                srcY -= (size_t)std::abs(yShift); // assuming shift is smaller than offset
+            } else {
+                srcY += yShift;
+            }
+            size_t srcIndex = frameOffset + (srcY * movie.dim.x) + (size_t)patch.tl.x;
+            if (xShift < 0) {
+                srcIndex -= (size_t)std::abs(xShift);
+            } else {
+                srcIndex += xShift;
+            }
             size_t destIndex = patchOffset + y * patchSize.x;
             for (size_t x = 0; x < patchSize.x; ++x) {
                 result[destIndex + x] += allFrames[srcIndex + x];
             }
         }
     };
-    for (size_t i = 0; i < n; ++i) {
-        copyPatchData(i, i);
-        if (i > 0) copyPatchData(i - 1, i);
-        if ((i + 1) < n) copyPatchData(i + 1, i);
+    for (size_t t = 0; t < n; ++t) {
+        copyPatchData(t, t);
+        if (t > 0) copyPatchData(t - 1, t);
+        if ((t + 1) < n) copyPatchData(t + 1, t);
     }
 }
 
@@ -251,10 +264,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         const AlignmentResult<T> &globAlignment) {
     auto gpu = GPU(device);
     auto movieSettings = this->getMovieSettings(movie, gpu, false);
-    auto patchSetting = this->getPatchSettings(movieSettings, gpu);
+    auto patchSettings = this->getPatchSettings(movieSettings, gpu);
+    auto correlationSettings = this->getCorrelationSettings(patchSettings, gpu,
+            std::make_pair(1, 1));
     auto borders = getMovieBorders(globAlignment);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings,
-            patchSetting);
+            patchSettings);
 
     for (auto&& r : patchesLocation) {
         std::cout << r.tl.x << " " << r.tl.y << "(" << r.br.x << " " << r.br.y
@@ -264,24 +279,53 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     T* movieData = loadMovie(movie, movieSettings, dark, gain);
 
     // allocate additional memory for the patches
-    size_t patchesElements = movieSettings.dim.n * patchSetting.dim.y
-            * std::max(patchSetting.dim.x, patchSetting.x_freq * 2);
+    size_t patchesElements = correlationSettings.dim.n
+            * correlationSettings.dim.y
+            * std::max(correlationSettings.dim.x,
+                    correlationSettings.x_freq * 2);
     T *patchesData = new T[patchesElements];
+
+    MultidimArray<T> filter = this->createLPF(0.9, correlationSettings.dim.x, // FIXME 0.25 should come from some function
+            correlationSettings.x_freq, correlationSettings.dim.y);
+    T corrSizeMB = ((size_t) correlationSettings.x_freq
+            * correlationSettings.dim.y
+            * sizeof(std::complex<T>))
+            / ((T) 1024 * 1024);
+    size_t framesInBuffer = std::ceil((gpu.lastFreeMem / 3) / corrSizeMB);
+
+    LocalAlignmentResult < T > result { .globalHint = globAlignment };
+    auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
     // get alignment for all patches
     for (auto &&p : patchesLocation) {
-            memset(patchesData, 0, patchesElements * sizeof(T));
-        getPatchData(movieData, p, globAlignment, movieSettings,
+        memset(patchesData, 0, patchesElements * sizeof(T));
+        getPatchData(movieData, p.rec, globAlignment, movieSettings,
                 patchesData);
 
-        Image<T> tmp(patchSetting.dim.x, patchSetting.dim.y, 1,
+        Image<T> tmp(patchSettings.dim.x, patchSettings.dim.y, 1,
                 movieSettings.dim.n);
         tmp.data.data = patchesData;
         tmp.write(
                 "patches" + std::to_string(p.tl.x) + "_"
                         + std::to_string(p.tl.y) + ".vol");
         tmp.data.data = nullptr;
+        auto alignment = align(patchesData, patchSettings, correlationSettings,
+                filter, refFrame,
+                this->maxShift, framesInBuffer, true);
+        for (size_t i = 0; i < movieSettings.dim.n; ++i) {
+            FramePatchMeta<T> tmp = p;
+            tmp.id_t = i;
+            // total shift is global shift + local shift
+            std::cout << "shift in alignment: " << alignment.shifts.at(i).x
+                    << " " << alignment.shifts.at(i).y << std::endl;
+            result.shifts.emplace_back(tmp, alignment.shifts.at(i));
+        }
+
+    for (auto &r : result.shifts) {
+        std::cout << r.first.id_x << " " << r.first.id_y << " " << r.first.id_t
+                << ": " << r.second.x << " " << r.second.y << std::endl;
     }
+
     delete[] movieData;
     delete[] patchesData;
 }
@@ -311,7 +355,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     T* data = loadMovie(movie, movieSettings, dark, gain);
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
-            this->maxShift, framesInBuffer);
+            this->maxShift, framesInBuffer, this->verbose);
     delete[] data;
     return result;
 }
@@ -321,7 +365,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T* data,
         const FFTSettings<T> &in, const FFTSettings<T> &downscale,
         MultidimArray<T> &filter,
         core::optional<size_t> &refFrame,
-        size_t maxShift, size_t framesInCorrelationBuffer) {
+        size_t maxShift, size_t framesInCorrelationBuffer, bool verbose) {
     assert(nullptr != data);
     size_t N = in.dim.n;
     // scale and transform to FFT on GPU
@@ -331,7 +375,8 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T* data,
     auto scale = std::make_pair(in.dim.x / (T) downscale.dim.x,
             in.dim.y / (T) downscale.dim.y);
 
-    return computeShifts(maxShift, (std::complex<T>*) data, downscale, in.dim.n,
+    return computeShifts(verbose, maxShift, (std::complex<T>*) data, downscale,
+            in.dim.n,
             scale, framesInCorrelationBuffer, refFrame);
 }
 
@@ -372,7 +417,8 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t maxShift,
+auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
+        size_t maxShift,
         std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
         std::pair<T, T>& scale,
         size_t framesInCorrelationBuffer,
@@ -406,7 +452,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t maxShift,
                     maxShift / scale.first);
             bX(idx) *= scale.first; // scale to expected size
             bY(idx) *= scale.second;
-            if (this->verbose) {
+            if (verbose) {
                 std::cerr << "Frame " << i << " to Frame " << j << " -> ("
                         << bX(idx) << "," << bY(idx) << ")" << std::endl;
             }

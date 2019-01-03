@@ -56,18 +56,23 @@ struct AlignmentResult {
 };
 
 template<typename T>
-using FramePatch = Rectangle<Point3D<T>>;
+struct FramePatchMeta {
+    Rectangle<Point2D<T>> rec;
+    size_t id_x;
+    size_t id_y;
+    size_t id_t;
+};
 
 template<typename T>
 using Rec2D = Rectangle<Point2D<T>>;
 
 template<typename T>
 struct LocalAlignmentResult {
-    AlignmentResult<T> globalHint;
+    const AlignmentResult<T> &globalHint;
     // these are shifts from the reference frame in X/Y dimension,
     // i.e. if you want to compensate for the shift,
     // you have to shift in opposite direction (negate these values)
-    std::vector<std::pair<FramePatch<T>, Point2D<T>>> shifts;
+    std::vector<std::pair<FramePatchMeta<T>, Point2D<T>>> shifts;
 };
 
 template<typename T>

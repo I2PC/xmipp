@@ -37,6 +37,10 @@ public:
         return Point2D(x + rhs, y + rhs);
     }
 
+    Point2D operator+=(const Point2D &rhs) const {
+        return Point2D(x + rhs.x, y + rhs.y);
+    }
+
     Point2D operator-=(const Point2D &rhs) const {
         return Point2D(x - rhs.x, y - rhs.y);
     }
@@ -46,6 +50,10 @@ public:
     }
 
     friend Point2D operator+(const Point2D &lhs, T rhs) {
+        return lhs += rhs;
+    }
+
+    friend Point2D operator+(const Point2D &lhs, const Point2D &rhs) {
         return lhs += rhs;
     }
 

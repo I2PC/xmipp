@@ -211,9 +211,9 @@ private:
     auto align(T* data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
-            size_t framesInCorrelationBuffer);
+            size_t framesInCorrelationBuffer, bool verbose);
 
-    auto computeShifts(size_t maxShift, std::complex<T>* data,
+    auto computeShifts(bool verbose, size_t maxShift, std::complex<T>* data,
             const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
