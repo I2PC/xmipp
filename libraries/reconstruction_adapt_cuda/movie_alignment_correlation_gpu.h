@@ -208,7 +208,7 @@ private:
 
     auto getMovieSettings(const MetaData &movie, const GPU &gpu, bool optimize);
 
-    auto align(T* data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
+    auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
             size_t framesInCorrelationBuffer, bool verbose);
@@ -255,6 +255,46 @@ private:
     void getPatchData(const T *allFrames, const Rec2D<T> &patch,
             const AlignmentResult<T> &globAlignment,
             const FFTSettings<T> &movie, T *result);
+
+    auto computeBSplineCoefs(const Dimensions &movieSize,
+            const LocalAlignmentResult<T> &alignment);
+
+    std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
+
+    auto interpolateTest(const Dimensions &size, const Dimensions &patchSize,
+            const T *data, const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
+
+    bool inRangeX(T x, const Dimensions &dim) { return (x >= 0) && (x < dim.x); };
+    bool inRangeY(T y, const Dimensions &dim) { return (y >= 0) && (y < dim.y); };
+    bool inRange(T x, T y, const Dimensions &dim) { return inRangeX(x, dim) && inRangeY(y, dim); };
+
+    T getValue(const T *src, T x, T y, const Dimensions &dim)
+    {
+        if (inRange(x, y, dim)) {
+            size_t index = (size_t)y * dim.x + (size_t)x;
+            return src[index];
+        }
+        return (T)0;
+    }
+
+    T bilinearInterpolation(const T *src, T x, T y, const Dimensions &dim)
+    {
+        T xf = std::floor(x);
+        T xc = std::ceil(x);
+        T yf = std::floor(y);
+        T yc = std::ceil(y);
+        T xw = x - xf;
+        T yw = y - yf;
+        T vff = getValue(src, xf, yf, dim);
+        T vfc = getValue(src, xf, yc, dim);
+        T vcf = getValue(src, xc, yf, dim);
+        T vcc = getValue(src, xc, yc, dim);
+        return vff * ((T)1 - xw) * ((T)1 - yw)
+                + vcf * xw * ((T)1 - yw)
+                + vfc * ((T)1 - xw) * yw
+                + vcc * xw * yw;
+    }
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
