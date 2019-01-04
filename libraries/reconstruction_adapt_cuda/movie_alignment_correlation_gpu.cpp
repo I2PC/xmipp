@@ -152,7 +152,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
         const FFTSettings<T> &movie, T *result) {
     size_t n = movie.dim.n;
     auto patchSize = patch.getSize();
-    auto copyPatchData = [&](size_t srcFrameIdx, size_t t) {
+    auto copyPatchData = [&](size_t srcFrameIdx, size_t t, bool add) {
         size_t frameOffset = srcFrameIdx * movie.dim.x * movie.dim.y;
         size_t patchOffset = t * patchSize.x * patchSize.y;
         int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
@@ -171,15 +171,19 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
                 srcIndex += xShift;
             }
             size_t destIndex = patchOffset + y * patchSize.x;
-            for (size_t x = 0; x < patchSize.x; ++x) {
-                result[destIndex + x] += allFrames[srcIndex + x];
+            if (add) {
+                for (size_t x = 0; x < patchSize.x; ++x) {
+                    result[destIndex + x] += allFrames[srcIndex + x];
+                }
+            } else {
+                memcpy(result + destIndex, allFrames + srcIndex, patchSize.x * sizeof(T));
             }
         }
     };
     for (size_t t = 0; t < n; ++t) {
-        copyPatchData(t, t);
-        if (t > 0) copyPatchData(t - 1, t);
-        if ((t + 1) < n) copyPatchData(t + 1, t);
+        copyPatchData(t, t, false);
+        if (t > 0) copyPatchData(t - 1, t, true);
+        if ((t + 1) < n) copyPatchData(t + 1, t, true);
     }
 }
 
@@ -262,15 +266,16 @@ template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &movieSize,
         const LocalAlignmentResult<T> &alignment) {
     // get coefficients fo the BSpline that can represent the shifts (formula  from the paper)
-    int L = 4;
-    int Lt = 3;
+    int lX = localAlignmentControlPoints.x;
+    int lY = localAlignmentControlPoints.y;
+    int lT = localAlignmentControlPoints.n;
     int noOfPatchesXY = localAlignPatches.first*localAlignPatches.second;
-    Matrix2D<T>A(noOfPatchesXY*movieSize.n, (L+2)*(L+2)*(Lt+2));
+    Matrix2D<T>A(noOfPatchesXY*movieSize.n, (lX+2)*(lY+2)*(lT+2));
     Matrix1D<T>bX(noOfPatchesXY*movieSize.n);
     Matrix1D<T>bY(noOfPatchesXY*movieSize.n);
-    T hX = movieSize.x / (T)(L-1);
-    T hY = movieSize.y / (T)(L-1);
-    T hT = movieSize.n / (T)(Lt-1);
+    T hX = movieSize.x / (T)(lX-1);
+    T hY = movieSize.y / (T)(lY-1);
+    T hT = movieSize.n / (T)(lT-1);
 
     for (auto &&r : alignment.shifts) {
         auto meta = r.first;
@@ -283,11 +288,11 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
         int tileCenterY = meta.rec.getCenter().y;
         int i = (tileIdxY * localAlignPatches.first) + tileIdxX;
 
-        for (int j = 0; j < (Lt+2)*(L+2)*(L+2); ++j) {
-            int controlIdxT = j/((L+2)*(L+2))-1;
-            int XY=j%((L+2)*(L+2));
-            int controlIdxY = (XY/(L+2)) -1;
-            int controlIdxX = (XY%(L+2)) -1;
+        for (int j = 0; j < (lT+2)*(lY+2)*(lX+2); ++j) {
+            int controlIdxT = j/((lY+2)*(lY+2))-1;
+            int XY=j%((lY+2)*(lX+2));
+            int controlIdxY = (XY/(lX+2)) -1;
+            int controlIdxX = (XY%(lY+2)) -1;
             // note: if control point is not in the tile vicinity, val == 0 and can be skipped
             T val = Bspline03((tileCenterX / (T)hX) - controlIdxX) *
                     Bspline03((tileCenterY / (T)hY) - controlIdxY) *
