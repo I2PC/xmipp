@@ -302,6 +302,8 @@ private:
 
     const Dimensions localAlignmentControlPoints = Dimensions(4+2, 4+2, 1, 3+2); // + 2 end points
 
+    auto computeShifts(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
+            const core::optional<size_t> &refFrame, size_t N);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:

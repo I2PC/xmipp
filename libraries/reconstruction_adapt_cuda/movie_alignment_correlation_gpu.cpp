@@ -419,6 +419,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 
+
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
@@ -506,6 +507,28 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
+        Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
+        const core::optional<size_t> &refFrame, size_t N) {
+    // now get the estimated shift (from the equation system)
+    // from each frame to successing frame
+    Matrix1D<T> shiftX, shiftY;
+    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
+    // prepare result
+    AlignmentResult<T> result {.refFrame = refFrame ?
+                    refFrame.value() :
+                    this->findReferenceImage(N, shiftX, shiftY)};
+    result.shifts.reserve(N);
+    // compute total shift in respect to reference frame
+    for (size_t i = 0; i < N; ++i) {
+        T x, y;
+        this->computeTotalShift(result.refFrame, i, shiftX, shiftY, x, y);
+        result.shifts.emplace_back(x, y);
+    }
+    return result;
+}
+
+template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
         size_t maxShift,
         std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
@@ -555,24 +578,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
 
     // now get the estimated shift (from the equation system)
     // from each frame to successing frame
-    Matrix1D<T> shiftX, shiftY;
-    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
-
-    // prepare result
-    AlignmentResult < T > result;
-    result.refFrame =
-            refFrame ?
-                    refFrame.value() :
-                    this->findReferenceImage(N, shiftX, shiftY);
-    result.shifts.reserve(N);
-
-    // compute total shift in respect to reference frame
-    for (size_t i = 0; i < N; ++i) {
-        T x, y;
-        this->computeTotalShift(result.refFrame,
-        i, shiftX, shiftY, x, y);
-        result.shifts.emplace_back(x, y);
-    }
+    AlignmentResult<T> result = computeShifts(bX, bY, A, refFrame, N);
     return result;
 }
 
