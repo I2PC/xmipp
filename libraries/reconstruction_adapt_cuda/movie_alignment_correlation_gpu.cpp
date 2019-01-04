@@ -445,10 +445,10 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             if (XSIZE(gain()) > 0)
                 frame() *= gain();
             croppedFrame() = frame();
-            transformer.initLazy(croppedFrame().xdim,
-                    croppedFrame().ydim, 1);
+            transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, 50,
+                    4, 4, 3); // FIXME
             std::cout << "processing frame " << j << std::endl;
-            transformer.applyLocalShift(shiftedFrame(), croppedFrame(), coefs, j);
+            transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
                     if (j == 0) {
                         averageMicrograph() = shiftedFrame();
                         std::cout << "initializing shifted frame" << std::endl;
