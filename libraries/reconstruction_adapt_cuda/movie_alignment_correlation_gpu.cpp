@@ -307,58 +307,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
     // solve the equation system for the spline coefficients
     Matrix1D<T> coefsX, coefsY;
     this->solveEquationSystem(bX, bY, A, coefsX, coefsY);
-    std::cout << coefsX << std::endl;
-    std::cout << coefsY << std::endl;
-
     return std::make_pair(coefsX, coefsY);
-}
-
-template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::interpolateTest(const Dimensions &size, const Dimensions &patchSize,
-        const T *data, const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs) {
-    // try to interpolate input data using the BSPline
-    auto t1 = std::chrono::high_resolution_clock::now();
-    T delta = 0.0001;
-    int L = 4; // FIXME keep consistent
-    int Lt = 3; // FIXME keep consistent
-    T hX = size.x / (T)(L-1);
-    T hY = size.y / (T)(L-1);
-    T hT = size.n / (T)(Lt-1);
-    Image<T> final(size.x, size.y);
-    size_t counter = 0;
-    for(size_t frame = 0; frame < size.n; ++frame) {
-        size_t frameOffset = frame * size.y * size.x;
-        for (size_t y = 0; y < 400; ++y) {
-            size_t lineOffset = y * size.x;
-            for (size_t x = 0; x < 400; ++x) {
-                size_t srcOffset = frameOffset + lineOffset + x;
-                T shiftX = 0;
-                T shiftY = 0;
-                for (int j = 0; j < (Lt+2)*(L+2)*(L+2); ++j) {
-                    int controlIdxT = j/((L+2)*(L+2))-1;
-                    int XY=j%((L+2)*(L+2));
-                    int controlIdxY = (XY/(L+2)) -1;
-                    int controlIdxX = (XY%(L+2)) -1;
-                    // note: if control point is not in the tile vicinity, val == 0 and can be skipped
-                    T tmp = Bspline03((x / (T)hX) - controlIdxX) *
-                            Bspline03((y / (T)hY) - controlIdxY) *
-                            Bspline03((frame / (T)hT) - controlIdxT);
-                    if (std::abs(tmp) > delta) {
-                        int tileIdxX = x / patchSize.x;
-                        int tileIdxY = y / patchSize.y;
-                        size_t coeffOffset = (controlIdxT+1) * (L+2)*(L+2) + (controlIdxY+1) * (L+2) + (controlIdxX+1);//frame*noOfPatchesXY + (tileIdxY*noOfPatchesX + tileIdxX);//
-                        shiftX -= VEC_ELEM(coefs.first, coeffOffset) * tmp;// this is just a test, we need the fractional shift!
-                        shiftY -= VEC_ELEM(coefs.second, coeffOffset) * tmp;
-                    }
-                }
-                    final.data.data[y * size.x + x] += bilinearInterpolation(data + frameOffset, x - shiftX, y - shiftY, size);
-            }
-        }
-    }
-    final.write("result.vol");
-    auto t2 = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>( t2 - t1 ).count();
-    std::cout << "interpolation: " << duration << std::endl;
 }
 
 template<typename T>
@@ -374,10 +323,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings,
             patchSettings);
 
-    for (auto&& r : patchesLocation) {
-        std::cout << r.tl.x << " " << r.tl.y << "(" << r.br.x << " " << r.br.y
-                << ")" << std::endl;
-    }
     // load movie to memory
     T* movieData = loadMovie(movie, movieSettings, dark, gain);
 
@@ -388,39 +333,43 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                     correlationSettings.x_freq * 2);
     T *patchesData = new T[patchesElements];
 
+    // prepare filter
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x,
             correlationSettings.x_freq, correlationSettings.dim.y);
+
+    // compute max of frames in buffer
     T corrSizeMB = ((size_t) correlationSettings.x_freq
             * correlationSettings.dim.y
             * sizeof(std::complex<T>))
             / ((T) 1024 * 1024);
     size_t framesInBuffer = std::ceil((gpu.lastFreeMem / 3) / corrSizeMB);
 
-    LocalAlignmentResult < T > result { .globalHint = globAlignment };
+    // prepare result
+    LocalAlignmentResult<T> result { .globalHint = globAlignment };
     result.shifts.reserve(patchesLocation.size() * movieSettings.dim.n);
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
     // get alignment for all patches
     for (auto &&p : patchesLocation) {
+        // get data
         memset(patchesData, 0, patchesElements * sizeof(T));
         getPatchData(movieData, p.rec, globAlignment, movieSettings,
                 patchesData);
-
+        // get alignment
         auto alignment = align(patchesData, patchSettings, correlationSettings,
                 filter, refFrame,
                 this->maxShift, framesInBuffer, false);
+        // process it
         for (size_t i = 0; i < movieSettings.dim.n; ++i) {
             FramePatchMeta<T> tmp = p;
             tmp.id_t = i;
             // total shift is global shift + local shift
             result.shifts.emplace_back(tmp, globAlignment.shifts.at(i) + alignment.shifts.at(i));
         }
-
     }
-    auto coefs = computeBSplineCoefs(movieSettings.dim, result);
-//    interpolateTest(movieSettings.dim, patchSettings.dim, movieData, coefs);
 
-    applyShiftsComputeAverage(movie, dark, gain, coefs);
+    auto coefs = computeBSplineCoefs(movieSettings.dim, result); // FIXME move to final function
+    applyShiftsComputeAverage(movie, dark, gain, coefs); // FIXME move to final function
 
     delete[] movieData;
     delete[] patchesData;
