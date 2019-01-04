@@ -322,6 +322,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto borders = getMovieBorders(globAlignment);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings,
             patchSettings);
+    if (this->verbose) {
+        std::cout << "Settings for the patches: " << patchSettings << std::endl;
+    }
+    if (this->verbose) {
+        std::cout << "Settings for the patches: " << correlationSettings << std::endl;
+    }
 
     // load movie to memory
     T* movieData = loadMovie(movie, movieSettings, dark, gain);
@@ -351,6 +357,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // get alignment for all patches
     for (auto &&p : patchesLocation) {
+        std::cout << "Processing patch " << p.id_x << " " << p.id_y << std::endl;
         // get data
         memset(patchesData, 0, patchesElements * sizeof(T));
         getPatchData(movieData, p.rec, globAlignment, movieSettings,
@@ -366,6 +373,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             // total shift is global shift + local shift
             result.shifts.emplace_back(tmp, globAlignment.shifts.at(i) + alignment.shifts.at(i));
         }
+        std::cout << endl;
     }
 
     auto coefs = computeBSplineCoefs(movieSettings.dim, result); // FIXME move to final function
@@ -427,10 +435,13 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     auto movieSettings = this->getMovieSettings(movie, gpu, true);
     T sizeFactor = this->computeSizeFactor();
     if (this->verbose) {
-        std::cout << "Settings for the movie:" << movieSettings << std::endl;
+        std::cout << "Settings for the movie: " << movieSettings << std::endl;
     }
     auto correlationSetting = this->getCorrelationSettings(movieSettings, gpu,
             std::make_pair(sizeFactor, sizeFactor));
+    if (this->verbose) {
+        std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
+    }
 
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSetting.dim.x,
             correlationSetting.x_freq, correlationSetting.dim.y);

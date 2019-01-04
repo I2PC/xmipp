@@ -252,7 +252,7 @@ void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
     bY.computeMeanAndStddev(mean, varbY);
     varbY *= varbY;
     if (verbose)
-        std::cout << "\nSolving for the shifts ...\n";
+        std::cout << "Solving for the shifts ...\n";
     do {
         // Solve the equation system
         helper.b = bX;
