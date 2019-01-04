@@ -27,7 +27,7 @@
  * This class is able to apply geometrical transformation on given image(s),
  * using GPU.
  * Internally, it processes each pixel of the resulting image.
- * Typical workflowis as follows:
+ * Typical workflow is as follows:
  * 1. - create instance of this class
  * 2. - initialize it
  * 3. - (in loop) apply transformation
@@ -51,11 +51,7 @@ class GeoTransformer {
 
 public:
     /** Constructor */
-    GeoTransformer() :
-            X(0), Y(0), Z(0), isReady(false), d_in(NULL), d_out(NULL), d_trInv(
-                    NULL) {
-    }
-    ;
+    GeoTransformer() { setDefaultValues(); };
 
     ~GeoTransformer() {
         release();
@@ -69,15 +65,35 @@ public:
      * @param y dim of the resulting image
      * @param z dim (outer-most) of the resulting image
      */
-    void init(size_t x, size_t y, size_t z);
+    void initForMatrix(size_t x, size_t y, size_t z);
 
     /**
-     * Similar as init(), except this method has no effect should the instance
+     * Similar as other init() function, except this method has no effect should the instance
      * be already initialized.
      * It is useful for example in a for loop, where first call will initialize
      * resources and following calls will be ignored
      */
-    void initLazy(size_t x, size_t y = 1, size_t z = 1);
+    void initLazyForMatrix(size_t x, size_t y = 1, size_t z = 1);
+
+    /**
+     * Release previously obtained resources and initialize the transformer
+     * for processing images using BSpline coefficients. It also allocates all resources on
+     * GPU.
+     * @param sizes of the input images and number of images to be processed
+     * @param number of BSpline control points. Underlying code adds/expects additional
+     * end points (i.e. if you use all together 5 control points, pass 3)
+     */
+    void initForBSpline(size_t inX, size_t inY, size_t inN,
+            size_t splineX, size_t splineY, size_t splineN);
+
+    /**
+     * Similar as the other init() function, except this method has no effect should the instance
+     * be already initialized.
+     * It is useful for example in a for loop, where first call will initialize
+     * resources and following calls will be ignored
+     */
+    void initLazyForBSpline(size_t inX, size_t inY, size_t inN,
+            size_t splineX, size_t splineY, size_t splineN);
 
     /**
      * Release all resources hold by this instance
@@ -104,13 +120,19 @@ public:
             bool isInv, bool wrap, T outside = 0,
             const MultidimArray<T> *bCoeffsPtr = NULL);
 
-    void applyLocalShift(
+    /**
+     * Apply local transformation defined by a BSpline
+     * @param splineDegree used for interpolation
+     * @param output where resulting image will be stored
+     * @param input to process
+     * @param coeffs for the X and Y dimension of the input
+     * @param imageIdx index of the current image. This function assumes that
+     * multiple calls will be done and that interpolation is done also over time
+     * @param outside value of the output, where the interpolation does not store anything
+     */
+    void applyBSplineTransform(int splineDegree,
             MultidimArray<T> &output, const MultidimArray<T> &input,
-            const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs, size_t frameIdx);
-
-    template<typename T_IN>
-    void applyShift(MultidimArray<T> &output,
-            const MultidimArray<T_IN> &input, T shiftX, T shiftY);
+            const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
 
     void test();
 
@@ -125,6 +147,18 @@ private:
     template<typename T_IN, typename T_MAT>
     void checkRestrictions(int splineDegree, MultidimArray<T> &output,
             const MultidimArray<T_IN> &input, const Matrix2D<T_MAT> &transform);
+
+    /**
+     *  Make sure that there's no logical mistake in the transformation
+     * @param splineDegree of the transform
+     * @param output image
+     * @param input image
+     * @param coefficients of the transformation
+     * @param imageIdx index of the frame
+     */
+    void checkRestrictions(int splineDegree,
+            MultidimArray<T> &output, const MultidimArray<T> &input,
+            const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t frameIdx);
 
     /**
      * Makes sure that output is big enough and sets default value
@@ -147,7 +181,7 @@ private:
     void applyGeometry_2D_wrap(int SplineDegree);
 
     /**
-     * Computes spline coefficients and load them to GPU
+     * Computes spline coefficients of the image and load them to GPU
      * @param splineDegree to be used
      * @param input image used to generate the coefficients
      */
@@ -164,6 +198,12 @@ private:
     template<typename T_MAT>
     void loadTransform(const Matrix2D<T_MAT> &transform, bool isInv);
 
+    /**
+     * Set default values to all private fields
+     */
+    void setDefaultValues();
+
+
     void test(const Matrix2D<T> &transform);
 
     void testCoeffs();
@@ -172,21 +212,34 @@ private:
 
     void testCoeffsRow();
 
+    /**
+     * Load BSpline interpolation coefficients to GPU
+     */
     void loadCoefficients(const Matrix1D<T> &X,
             const Matrix1D<T> &Y);
 
+
 private:
-    bool isReady;
+    bool isReadyForMatrix;
+    bool isReadyForBspline;
 
-    T* d_trInv; // memory on GPU with inverse transformation (dest->src)
-    T* d_in; // memory on GPU with input data
-    T* d_out; // memory in GPU with output data
+    T *d_trInv; // memory on GPU with inverse transformation (dest->src)
+    T *d_in; // memory on GPU with input data
+    T *d_out; // memory in GPU with output data
 
-    T *d_coefsX;
-    T *d_coefsY;
+    T *d_coeffsX; // coefficients of the BSpline transformation, X direction
+    T *d_coeffsY; // coefficients of the BSpline transformation, Y direction
 
-    /** dimensions of the output data */
-    size_t X, Y, Z;
+    // dimensions of the input/output data
+    size_t inX;
+    size_t inY;
+    size_t inZ;
+    size_t inN;
+
+    // dimension of the coefficients control points
+    size_t splineX;
+    size_t splineY;
+    size_t splineN;
 };
 
 #endif // CUDA_GEO_TRANSFORMER

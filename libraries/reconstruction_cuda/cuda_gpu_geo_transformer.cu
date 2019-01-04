@@ -38,11 +38,12 @@ void applyGeometryKernel_2D_wrap(const T* trInv, T minxpp, T maxxpp, T minypp,
         case 2:
             assert("degree 0..2 not implemented");
             break;
-        case 3:
-            T res = interpolatedElementBSpline2D_Degree3(xp, yp, coefsXDim,
+        case 3: {
+			T res = interpolatedElementBSpline2D_Degree3(xp, yp, coefsXDim,
                     coefsYDim, coefs);
             size_t index = i * xdim + j;
             data[index] = res;
+        }
             break;
         default:
             printf("Degree %d is not supported\n", degree);
@@ -52,11 +53,12 @@ void applyGeometryKernel_2D_wrap(const T* trInv, T minxpp, T maxxpp, T minypp,
     }
 }
 
-template<typename T, int degree, bool wrap>
+template<typename T, int degree>
 __global__
 void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
-	T* data, int xdim,
-        int ydim, T* coefs, int coefsXDim, int coefsYDim, int curFrame) {
+	T* output, int xdim, int ydim, int ndim,
+	T* input, int curFrame,
+	int lX, int lY, int lN) { // number of control points in each dim
     // assign output pixel to thread
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -68,40 +70,44 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
     // geometrical transformation
     
     T delta = 0.0001;
-    int L = 4; // FIXME keep consistent
-    int Lt = 3; // FIXME keep consistent
-    
-    T hX = xdim / (T)(L-1);
-    T hY = ydim / (T)(L-1);
-    T hT = 50 / (T)(Lt-1); // FIXME pass N
+    T hX = xdim / (T)(lX-1);
+    T hY = ydim / (T)(lY-1);
+    T hT = ndim / (T)(lN-1);
     
 	T shiftX = 0;
 	T shiftY = 0;
-	for (int j = 0; j < (Lt+2)*(L+2)*(L+2); ++j) {
-	    int controlIdxT = j/((L+2)*(L+2))-1;
-	    int XY=j%((L+2)*(L+2));
-	    int controlIdxY = (XY/(L+2)) -1;
-	    int controlIdxX = (XY%(L+2)) -1;
+	// compute influence of each control point
+	for (int j = 0; j < (lN+2)*(lY+2)*(lX+2); ++j) {
+	    int controlIdxT = j/((lY+2)*(lX+2))-1;
+	    int XY=j%((lX+2)*(lY+2));
+	    int controlIdxY = (XY/(lX+2)) -1;
+	    int controlIdxX = (XY%(lX+2)) -1;
 	    // note: if control point is not in the tile vicinity, val == 0 and can be skipped
 	    T tmp = bspline03((x / (T)hX) - controlIdxX) *
 	            bspline03((y / (T)hY) - controlIdxY) *
 	            bspline03((curFrame / (T)hT) - controlIdxT);
-	    if (std::abs(tmp) > delta) {
-	        size_t coeffOffset = (controlIdxT+1) * (L+2)*(L+2) + (controlIdxY+1) * (L+2) + (controlIdxX+1);//frame*noOfPatchesXY + (tileIdxY*noOfPatchesX + tileIdxX);//
-	        shiftX += coefsX[coeffOffset] * tmp;// this is just a test, we need the fractional shift!
+	    if (fabsf(tmp) > delta) {
+	        size_t coeffOffset = (controlIdxT+1) * (lX+2)*(lY+2) + (controlIdxY+1) * (lX+2) + (controlIdxX+1);
+	        shiftX += coefsX[coeffOffset] * tmp;
 	        shiftY += coefsY[coeffOffset] * tmp;
 	    }
 	}
-	/**
-	if (x == 20) {
-	if (y == 30) {
-		printf("\tCUDA: shift: %f %f\n", shiftX, shiftY);
-	}
-	}
-	**/
-	T res = interpolatedElementBSpline2D_Degree3(x + shiftX, y + shiftY, coefsXDim,
-                    coefsYDim, coefs);
-    size_t index = y * xdim + x;
-    data[index] = res;
+	
+	switch (degree) {
+        case 0:
+        case 1:
+        case 2:
+            assert("degree 0..2 not implemented");
+            break;
+        case 3: {
+			T res = interpolatedElementBSpline2D_Degree3(x + shiftX, y + shiftY, xdim,
+			                    ydim, input);
+		    size_t index = y * xdim + x;
+		    output[index] = res;
+	    }
+            break;
+        default:
+            printf("Degree %d is not supported\n", degree);
+        }
 }
 
