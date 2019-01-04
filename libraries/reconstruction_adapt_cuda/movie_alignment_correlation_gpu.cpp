@@ -295,8 +295,8 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
             MAT_ELEM(A,tileIdxT*noOfPatchesXY + i,j) = val;
 
         }
-        VEC_ELEM(bX,tileIdxT*noOfPatchesXY + i) = shift.x;
-        VEC_ELEM(bY,tileIdxT*noOfPatchesXY + i) = shift.y;
+        VEC_ELEM(bX,tileIdxT*noOfPatchesXY + i) = -shift.x; // we want the BSPline describing opposite transformation,
+        VEC_ELEM(bY,tileIdxT*noOfPatchesXY + i) = -shift.y; // so that we can use it to compensate for the shift
     }
 
     // solve the equation system for the spline coefficients
@@ -383,7 +383,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                     correlationSettings.x_freq * 2);
     T *patchesData = new T[patchesElements];
 
-    MultidimArray<T> filter = this->createLPF(0.9, correlationSettings.dim.x, // FIXME 0.25 should come from some function
+    MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x,
             correlationSettings.x_freq, correlationSettings.dim.y);
     T corrSizeMB = ((size_t) correlationSettings.x_freq
             * correlationSettings.dim.y
@@ -477,7 +477,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     auto correlationSetting = this->getCorrelationSettings(movieSettings, gpu,
             std::make_pair(sizeFactor, sizeFactor));
 
-    MultidimArray<T> filter = this->createLPF(0.9, correlationSetting.dim.x, // FIXME 0.9 should come from some function
+    MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSetting.dim.x,
             correlationSetting.x_freq, correlationSetting.dim.y);
 
     T corrSizeMB = ((size_t) correlationSetting.x_freq
