@@ -100,7 +100,7 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
             assert("degree 0..2 not implemented");
             break;
         case 3: {
-			T res = interpolatedElementBSpline2D_Degree3(x + shiftX, y + shiftY, xdim,
+			T res = interpolatedElementBSpline2D_Degree3(x - shiftX, y - shiftY, xdim,
 			                    ydim, input);
 		    size_t index = y * xdim + x;
 		    output[index] = res;

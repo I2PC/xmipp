@@ -161,6 +161,12 @@ protected:
     void storeGlobalShifts(const AlignmentResult<T> &alignment,
             MetaData &movie);
 
+    /**
+     * Returns occupancy that can be used for filter generation
+     */
+    T getTargetOccupancy();
+
+
 private:
     /**
      * After running this method, all relevant images from the movie should

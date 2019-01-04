@@ -346,6 +346,14 @@ void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
     }
 }
 
+template<typename T>
+T AProgMovieAlignmentCorrelation<T>::getTargetOccupancy() {
+    if (bin < 0) {
+        return (T)0.9;
+    } else {
+        return 2 * newTs / maxFreq;
+    }
+}
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::computeSizeFactor(T& targetOccupancy) {
