@@ -270,12 +270,12 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
     int lY = localAlignmentControlPoints.y;
     int lT = localAlignmentControlPoints.n;
     int noOfPatchesXY = localAlignPatches.first*localAlignPatches.second;
-    Matrix2D<T>A(noOfPatchesXY*movieSize.n, (lX+2)*(lY+2)*(lT+2));
+    Matrix2D<T>A(noOfPatchesXY*movieSize.n, lX * lY * lT);
     Matrix1D<T>bX(noOfPatchesXY*movieSize.n);
     Matrix1D<T>bY(noOfPatchesXY*movieSize.n);
-    T hX = movieSize.x / (T)(lX-1);
-    T hY = movieSize.y / (T)(lY-1);
-    T hT = movieSize.n / (T)(lT-1);
+    T hX = (lX == 3) ? movieSize.x : (movieSize.x / (T)(lX-3));
+    T hY = (lY == 3) ? movieSize.y : (movieSize.y / (T)(lY-3));
+    T hT = (lT == 3) ? movieSize.n : (movieSize.n / (T)(lT-3));
 
     for (auto &&r : alignment.shifts) {
         auto meta = r.first;
@@ -288,11 +288,11 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
         int tileCenterY = meta.rec.getCenter().y;
         int i = (tileIdxY * localAlignPatches.first) + tileIdxX;
 
-        for (int j = 0; j < (lT+2)*(lY+2)*(lX+2); ++j) {
-            int controlIdxT = j/((lY+2)*(lY+2))-1;
-            int XY=j%((lY+2)*(lX+2));
-            int controlIdxY = (XY/(lX+2)) -1;
-            int controlIdxX = (XY%(lY+2)) -1;
+        for (int j = 0; j < (lT * lY * lX); ++j) {
+            int controlIdxT = (j / (lY * lX)) - 1;
+            int XY = j % (lY * lX);
+            int controlIdxY = (XY / lX) -1;
+            int controlIdxX = (XY % lX) -1;
             // note: if control point is not in the tile vicinity, val == 0 and can be skipped
             T val = Bspline03((tileCenterX / (T)hX) - controlIdxX) *
                     Bspline03((tileCenterY / (T)hY) - controlIdxY) *
@@ -451,7 +451,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 frame() *= gain();
             croppedFrame() = frame();
             transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, 50,
-                    4, 4, 3); // FIXME
+                    localAlignmentControlPoints.x, localAlignmentControlPoints.y, localAlignmentControlPoints.n);
             std::cout << "processing frame " << j << std::endl;
             transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
                     if (j == 0) {
