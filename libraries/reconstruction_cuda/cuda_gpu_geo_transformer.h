@@ -80,8 +80,7 @@ public:
      * for processing images using BSpline coefficients. It also allocates all resources on
      * GPU.
      * @param sizes of the input images and number of images to be processed
-     * @param number of BSpline control points. Underlying code adds/expects additional
-     * end points (i.e. if you use all together 5 control points, pass 3)
+     * @param number of BSpline control points, including end points
      */
     void initForBSpline(size_t inX, size_t inY, size_t inN,
             size_t splineX, size_t splineY, size_t splineN);

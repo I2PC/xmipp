@@ -70,24 +70,25 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
     // geometrical transformation
     
     T delta = 0.0001;
-    T hX = xdim / (T)(lX-1);
-    T hY = ydim / (T)(lY-1);
-    T hT = ndim / (T)(lN-1);
+    // take into account end poits
+    T hX = (lX == 3) ? xdim : (xdim / (T)(lX-3));
+    T hY = (lY == 3) ? ydim : (ydim / (T)(lY-3));
+    T hT = (lN == 3) ? ndim : (ndim / (T)(lN-3));
     
 	T shiftX = 0;
 	T shiftY = 0;
 	// compute influence of each control point
-	for (int j = 0; j < (lN+2)*(lY+2)*(lX+2); ++j) {
-	    int controlIdxT = j/((lY+2)*(lX+2))-1;
-	    int XY=j%((lX+2)*(lY+2));
-	    int controlIdxY = (XY/(lX+2)) -1;
-	    int controlIdxX = (XY%(lX+2)) -1;
+	for (int j = 0; j < (lN * lY * lX); ++j) {
+	    int controlIdxT = (j / (lY * lX)) - 1;
+	    int XY = j % (lX * lY);
+	    int controlIdxY = (XY / lX) - 1;
+	    int controlIdxX = (XY % lX) - 1;
 	    // note: if control point is not in the tile vicinity, val == 0 and can be skipped
 	    T tmp = bspline03((x / (T)hX) - controlIdxX) *
 	            bspline03((y / (T)hY) - controlIdxY) *
 	            bspline03((curFrame / (T)hT) - controlIdxT);
 	    if (fabsf(tmp) > delta) {
-	        size_t coeffOffset = (controlIdxT+1) * (lX+2)*(lY+2) + (controlIdxY+1) * (lX+2) + (controlIdxX+1);
+	        size_t coeffOffset = (controlIdxT+1) * (lX * lY) + (controlIdxY+1) * lX + (controlIdxX+1);
 	        shiftX += coefsX[coeffOffset] * tmp;
 	        shiftY += coefsY[coeffOffset] * tmp;
 	    }

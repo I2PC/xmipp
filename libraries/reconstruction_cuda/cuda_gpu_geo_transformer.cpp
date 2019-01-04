@@ -82,7 +82,7 @@ void GeoTransformer<T>::initForBSpline(size_t inX, size_t inY, size_t inN,
     this->splineY = splineY;
     this->splineN = splineN;
     // take into account end control points
-    size_t coeffsSize = (splineX + 2) * (splineY + 2) * (splineN + 2);
+    size_t coeffsSize = splineX * splineY * splineN;
     size_t inOutSize = inX * inY;
     gpuErrchk(cudaMalloc((void** ) &d_coeffsX, coeffsSize * sizeof(T)));
     gpuErrchk(cudaMalloc((void** ) &d_coeffsY, coeffsSize * sizeof(T)));
@@ -518,10 +518,9 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
                 "The input array cannot be the same as the output array");
     if (frameIdx > inN)
         throw std::invalid_argument("Frame index is out of bound");
-    size_t coeffsElems = (splineX+2) * (splineY+2) * (splineN+2);
+    size_t coeffsElems = splineX * splineY * splineN;
     if ((coeffs.first.size() != coeffsElems) || (coeffs.second.size() != coeffsElems))
         throw std::invalid_argument("Number of coefficients does not fit. "
-                "To init function, pass N control points. The rest of the code"
-                "assumes that you actually wanted to use N+2 points");
+                "To init function, pass N control points.");
 }
 

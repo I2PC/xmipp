@@ -300,7 +300,7 @@ private:
             const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
         std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
 
-    const Dimensions localAlignmentControlPoints = Dimensions(4, 4, 1, 3);
+    const Dimensions localAlignmentControlPoints = Dimensions(4+2, 4+2, 1, 3+2); // + 2 end points
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
