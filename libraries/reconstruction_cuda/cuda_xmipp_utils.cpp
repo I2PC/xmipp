@@ -774,18 +774,17 @@ void GpuMultidimArrayAtGpu< std::complex<float> >::ifft(GpuMultidimArrayAtGpu<fl
 			auxOutFFT.resize(realSpace.Xdim,realSpace.Ydim,realSpace.Zdim, NdimNew);
 		}
 
-		cufftHandle *planBptr = new cufftHandle;
-		cufftHandle *planAuxBptr = new cufftHandle;
+		cufftHandle *planBptr = nullptr;
+		cufftHandle *planAuxBptr = nullptr;
 		if(auxNdim!=NdimNew){
+		    planAuxBptr = new cufftHandle;
 			createPlanFFT(Xdim, Ydim, NdimNew, Zdim, false, planAuxBptr);
 		}else{
-			if(myhandle.ptr == NULL){
+			if(nullptr == myhandle.ptr){
+				myhandle.ptr = planBptr = new cufftHandle;
 				createPlanFFT(realSpace.Xdim, realSpace.Ydim, NdimNew, Zdim, false, planBptr);
-				myhandle.ptr = (void *)planBptr;
-				planBptr=(cufftHandle *)myhandle.ptr;
-			}else{
-				planBptr=(cufftHandle *)myhandle.ptr;
 			}
+            planBptr=(cufftHandle *)myhandle.ptr;
 		}
 
 		if(auxNdim==NdimNew){
@@ -819,8 +818,8 @@ void GpuMultidimArrayAtGpu< std::complex<float> >::ifft(GpuMultidimArrayAtGpu<fl
 		if(aux<NdimNew)
 			NdimNew=aux;
 
-		if(auxNdim!=NdimNew && NdimNew!=0)
-			cufftDestroy(*planAuxBptr);
+		if(nullptr != planAuxBptr)
+			cufftDestroy(*planAuxBptr); // destroy if created
 
 	}//AJ end while
 
