@@ -221,6 +221,9 @@ private:
             const AlignmentResult<T> &globAlignment) = 0;
 
 private:
+
+    auto loadGlobalShifts(MetaData &movie);
+
     /**
      * Method computes an internal (down)scale factor of the micrographs
      * @param targetOccupancy max frequency (in Fourier domain) to preserve
