@@ -74,32 +74,32 @@ private:
 //    void computeShifts(size_t N, const Matrix1D<T>& bX, const Matrix1D<T>& bY,
 //            const Matrix2D<T>& A);
 
-    /**
-     * This method applies shifts stored in the metadata and computes 'average'
-     * image
-     * @param movie input
-     * @param dark correction to be used
-     * @param gain correction to be used
-     * @param initialMic sum of the unaligned micrographs
-     * @param Ninitial will store number of micrographs used for unaligned sum
-     * @param averageMicrograph sum of the aligned micrographs
-     * @param N will store number of micrographs used for aligned sum
-     */
-    void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
-            const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
-            Image<T>& averageMicrograph, size_t& N);
+//    /**
+//     * This method applies shifts stored in the metadata and computes 'average'
+//     * image
+//     * @param movie input
+//     * @param dark correction to be used
+//     * @param gain correction to be used
+//     * @param initialMic sum of the unaligned micrographs
+//     * @param Ninitial will store number of micrographs used for unaligned sum
+//     * @param averageMicrograph sum of the aligned micrographs
+//     * @param N will store number of micrographs used for aligned sum
+//     */
+//    void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
+//            const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
+//            Image<T>& averageMicrograph, size_t& N);
 
-    /**
-     * This method loads images, applies crop, gain and dark correction.
-     * @param movie to load
-     * @param noOfImgs to load from movie
-     * @param dark correction
-     * @param gain correction
-     * @param cropInput flag stating if the images should be cropped
-     * @return pointer to all loaded images
-     */
-    T* loadToRAM(const MetaData& movie, int noOfImgs, const Image<T>& dark,
-            const Image<T>& gain, bool cropInput);
+//    /**
+//     * This method loads images, applies crop, gain and dark correction.
+//     * @param movie to load
+//     * @param noOfImgs to load from movie
+//     * @param dark correction
+//     * @param gain correction
+//     * @param cropInput flag stating if the images should be cropped
+//     * @return pointer to all loaded images
+//     */
+//    T* loadToRAM(const MetaData& movie, int noOfImgs, const Image<T>& dark,
+//            const Image<T>& gain, bool cropInput);
 
     /**
      * Method loads a single image from the movie
@@ -111,38 +111,38 @@ private:
     void loadFrame(const MetaData& movie, size_t objId,
             Image<T>& out);
 
-    /**
-     * Method sets sizes used for processing, e.g. proper sizes of the images,
-     * batches etc.
-     * @param frame reference frame
-     * @param noOfImgs to process
-     */
-    void setSizes(Image<T> &frame, int noOfImgs);
+//    /**
+//     * Method sets sizes used for processing, e.g. proper sizes of the images,
+//     * batches etc.
+//     * @param frame reference frame
+//     * @param noOfImgs to process
+//     */
+//    void setSizes(Image<T> &frame, int noOfImgs);
 
-    /**
-     * Method will run the benchmark and set proper sizes of the data.
-     * @param frame size reference
-     * @param noOfImgs to process
-     * @param uuid of the GPU
-     */
-    void runBenchmark(Image<T> &frame, int noOfImgs, std::string &uuid);
+//    /**
+//     * Method will run the benchmark and set proper sizes of the data.
+//     * @param frame size reference
+//     * @param noOfImgs to process
+//     * @param uuid of the GPU
+//     */
+//    void runBenchmark(Image<T> &frame, int noOfImgs, std::string &uuid);
 
-    /**
-     * Method will try to load proper sizes from long-term storage
-     * @param frame size reference
-     * @param noOfImgs to process
-     * @param uuid of the GPU
-     * @return true if loading was sucessful (i.e. no benchmark needs to be run)
-     */
-    bool getStoredSizes(Image<T> &frame, int noOfImgs, std::string &uuid);
+//    /**
+//     * Method will try to load proper sizes from long-term storage
+//     * @param frame size reference
+//     * @param noOfImgs to process
+//     * @param uuid of the GPU
+//     * @return true if loading was sucessful (i.e. no benchmark needs to be run)
+//     */
+//    bool getStoredSizes(Image<T> &frame, int noOfImgs, std::string &uuid);
 
-    /**
-     * Method permanently saves the optimal settings for the input
-     * @param frame size reference
-     * @param noOfImgs to process
-     * @param uuid of the GPU
-     */
-    void storeSizes(Image<T> &frame, int noOfImgs, std::string &uuid);
+//    /**
+//     * Method permanently saves the optimal settings for the input
+//     * @param frame size reference
+//     * @param noOfImgs to process
+//     * @param uuid of the GPU
+//     */
+//    void storeSizes(Image<T> &frame, int noOfImgs, std::string &uuid);
 
     /**
      * Estimates maximal size of the filter for given frame
@@ -152,62 +152,62 @@ private:
      */
     int getMaxFilterSize(const Image<T> &frame);
 
-    void testFFT();
-    void testFFTAndScale();
-    void testScalingCpuOO();
-    void testScalingCpuOE();
-    void testScalingCpuEO();
-    void testScalingCpuEE();
+//    void testFFT();
+//    void testFFTAndScale();
+//    void testScalingCpuOO();
+//    void testScalingCpuOE();
+//    void testScalingCpuEO();
+//    void testScalingCpuEE();
+//
+//    void testScalingGpuOO();
+//    void testScalingGpuOE();
+//    void testScalingGpuEO();
+//    void testScalingGpuEE();
+//
+//    void testFilterAndScale();
 
-    void testScalingGpuOO();
-    void testScalingGpuOE();
-    void testScalingGpuEO();
-    void testScalingGpuEE();
+//    /**
+//     * Convenience method to generate a key used for permanent storage
+//     * @param uuid of the GPU
+//     * @param keyword to use (e.g. xDimSize)
+//     * @param frame for sizes(e.g. 2048)
+//     * @param noOfFrames in the movie
+//     * @param crop should the frame be cropped?
+//     * @return key for benchmark load/storage
+//     */
+//    std::string const getKey(const std::string &uuid, std::string &keyword,
+//            const Image<T> &frame, size_t noOfFrames, bool crop) {
+//        return getKey(uuid, keyword, frame().xdim, frame().ydim, noOfFrames, crop);
+//    }
 
-    void testFilterAndScale();
-
-    /**
-     * Convenience method to generate a key used for permanent storage
-     * @param uuid of the GPU
-     * @param keyword to use (e.g. xDimSize)
-     * @param frame for sizes(e.g. 2048)
-     * @param noOfFrames in the movie
-     * @param crop should the frame be cropped?
-     * @return key for benchmark load/storage
-     */
-    std::string const getKey(const std::string &uuid, std::string &keyword,
-            const Image<T> &frame, size_t noOfFrames, bool crop) {
-        return getKey(uuid, keyword, frame().xdim, frame().ydim, noOfFrames, crop);
-    }
-
-    /**
-     * Convenience method to generate a key used for permanent storage
-     * @param uuid of the GPU
-     * @param keyword to use (e.g. xDimSize)
-     * @param xdim of the key
-     * @param ydim of the key
-     * @param noOfFrames in the movie
-     * @param crop should the frame be cropped?
-     * @return key for benchmark load/storage
-     */
-    std::string const getKey(const std::string &uuid, std::string &keyword,
-            size_t xdim, size_t ydim, size_t noOfFrames, bool crop) {
-        std::stringstream ss;
-        ss << uuid << keyword << xdim << ydim << noOfFrames << crop;
-       return ss.str();
-    }
+//    /**
+//     * Convenience method to generate a key used for permanent storage
+//     * @param uuid of the GPU
+//     * @param keyword to use (e.g. xDimSize)
+//     * @param xdim of the key
+//     * @param ydim of the key
+//     * @param noOfFrames in the movie
+//     * @param crop should the frame be cropped?
+//     * @return key for benchmark load/storage
+//     */
+//    std::string const getKey(const std::string &uuid, std::string &keyword,
+//            size_t xdim, size_t ydim, size_t noOfFrames, bool crop) {
+//        std::stringstream ss;
+//        ss << uuid << keyword << xdim << ydim << noOfFrames << crop;
+//       return ss.str();
+//    }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
     auto getSettingsOrBenchmark(const Dimensions &d, size_t extraMem,
-            const GPU &gpu, bool crop);
+            bool crop);
 
-    std::string const getKey(const std::string &keyword, const GPU &gpu,
+    std::string const getKey(const std::string &keyword,
             const Dimensions &dim, bool crop) {
         std::stringstream ss;
-        ss << gpu.UUID << keyword << dim << crop;
+        ss << gpu.value().UUID() << keyword << dim << crop;
         return ss.str();
     }
 
-    auto getMovieSettings(const MetaData &movie, const GPU &gpu, bool optimize);
+    auto getMovieSettings(const MetaData &movie, bool optimize);
 
     auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &crop,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
@@ -219,10 +219,13 @@ private:
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
 
-    auto getCorrelationSettings(const FFTSettings<T> &orig, const GPU &gpu,
+    auto computeShifts(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
+            const core::optional<size_t> &refFrame, size_t N);
+
+    auto getCorrelationSettings(const FFTSettings<T> &orig,
             const std::pair<T, T> &downscale);
 
-    auto getPatchSettings(const FFTSettings<T> &orig, const GPU &gpu);
+    auto getPatchSettings(const FFTSettings<T> &orig);
 
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
@@ -233,7 +236,7 @@ private:
             const AlignmentResult<T> &globAlignment);
 
     void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
-            const GPU &gpu, bool applyCrop);
+            bool applyCrop);
 
     auto getCorrelationHint(const FFTSettings<T> &s,
             const std::pair<T, T> &downscale);
@@ -242,9 +245,9 @@ private:
             const Image<T>& dark, const Image<T>& gain);
 
     auto getStoredSizes(const Dimensions &dim,
-            const GPU &gpu, bool applyCrop);
+            bool applyCrop);
 
-    auto runBenchmark(const Dimensions &d, const GPU &gpu, size_t extraMem,
+    auto runBenchmark(const Dimensions &d, size_t extraMem,
             bool crop);
 
     auto getPatchesLocation(const std::pair<T, T> &borders,
@@ -262,50 +265,46 @@ private:
             const LocalAlignmentResult<T> &alignment,
             const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches);
 
-    std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
 
-    auto interpolateTest(const Dimensions &size, const Dimensions &patchSize,
-            const T *data, const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
+//    auto interpolateTest(const Dimensions &size, const Dimensions &patchSize,
+//            const T *data, const std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
 
-    bool inRangeX(T x, const Dimensions &dim) { return (x >= 0) && (x < dim.x); };
-    bool inRangeY(T y, const Dimensions &dim) { return (y >= 0) && (y < dim.y); };
-    bool inRange(T x, T y, const Dimensions &dim) { return inRangeX(x, dim) && inRangeY(y, dim); };
+//    bool inRangeX(T x, const Dimensions &dim) { return (x >= 0) && (x < dim.x); };
+//    bool inRangeY(T y, const Dimensions &dim) { return (y >= 0) && (y < dim.y); };
+//    bool inRange(T x, T y, const Dimensions &dim) { return inRangeX(x, dim) && inRangeY(y, dim); };
+//
+//    T getValue(const T *src, T x, T y, const Dimensions &dim)
+//    {
+//        if (inRange(x, y, dim)) {
+//            size_t index = (size_t)y * dim.x + (size_t)x;
+//            return src[index];
+//        }
+//        return (T)0;
+//    }
+//
+//    T bilinearInterpolation(const T *src, T x, T y, const Dimensions &dim)
+//    {
+//        T xf = std::floor(x);
+//        T xc = std::ceil(x);
+//        T yf = std::floor(y);
+//        T yc = std::ceil(y);
+//        T xw = x - xf;
+//        T yw = y - yf;
+//        T vff = getValue(src, xf, yf, dim);
+//        T vfc = getValue(src, xf, yc, dim);
+//        T vcf = getValue(src, xc, yf, dim);
+//        T vcc = getValue(src, xc, yc, dim);
+//        return vff * ((T)1 - xw) * ((T)1 - yw)
+//                + vcf * xw * ((T)1 - yw)
+//                + vfc * ((T)1 - xw) * yw
+//                + vcc * xw * yw;
+//    }
 
-    T getValue(const T *src, T x, T y, const Dimensions &dim)
-    {
-        if (inRange(x, y, dim)) {
-            size_t index = (size_t)y * dim.x + (size_t)x;
-            return src[index];
-        }
-        return (T)0;
-    }
+//    void applyShiftsComputeAverage(
+//            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+//        std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
 
-    T bilinearInterpolation(const T *src, T x, T y, const Dimensions &dim)
-    {
-        T xf = std::floor(x);
-        T xc = std::ceil(x);
-        T yf = std::floor(y);
-        T yc = std::ceil(y);
-        T xw = x - xf;
-        T yw = y - yf;
-        T vff = getValue(src, xf, yf, dim);
-        T vfc = getValue(src, xf, yc, dim);
-        T vcf = getValue(src, xc, yf, dim);
-        T vcc = getValue(src, xc, yc, dim);
-        return vff * ((T)1 - xw) * ((T)1 - yw)
-                + vcf * xw * ((T)1 - yw)
-                + vfc * ((T)1 - xw) * yw
-                + vcc * xw * yw;
-    }
 
-    void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
-        std::pair<Matrix1D<T>, Matrix1D<T>> &coefs);
-
-    const Dimensions localAlignmentControlPoints = Dimensions(4+2, 4+2, 1, 3+2); // + 2 end points
-
-    auto computeShifts(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
-            const core::optional<size_t> &refFrame, size_t N);
 
     auto localFromGlobal(
             const MetaData& movie,
@@ -321,26 +320,31 @@ private:
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment);
 
+    std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
+    const Dimensions localAlignmentControlPoints = Dimensions(4+2, 4+2, 1, 3+2); // + 2 end points
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
-    // downscaled Fourier transforms of the input images
-    std::complex<T>* frameFourier;
+//    // downscaled Fourier transforms of the input images
+//    std::complex<T>* frameFourier;
 
-    int device;
+//    int device;
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
 
-    /**
-     * Optimal sizes of the input images, i.e. images loaded from HDD
-     * This might differ from actual size of the images, because these
-     * values are optimized for further processing
-     */
-    int inputOptSizeX;
-    int inputOptSizeY;
-    int inputOptSizeFFTX;
-    int inputOptBatchSize;
+    core::optional<GPU> gpu;
+
+//    /**
+//     * Optimal sizes of the input images, i.e. images loaded from HDD
+//     * This might differ from actual size of the images, because these
+//     * values are optimized for further processing
+//     */
+//    int inputOptSizeX;
+//    int inputOptSizeY;
+//    int inputOptSizeFFTX;
+//    int inputOptBatchSize;
 
     /**
      * Keywords representing optimal settings of the algorithm.
@@ -350,19 +354,19 @@ private:
     std::string optSizeYStr = "optSizeY";
     std::string optBatchSizeStr = "optBatchSize";
 
-    /**
-     * Optimal sizes of the down-scaled images used for e.g. cross-correlation
-     *
-     */
-    int croppedOptSizeX;
-    int croppedOptSizeY;
-    int croppedOptSizeFFTX;
-    int croppedOptBatchSize;
+//    /**
+//     * Optimal sizes of the down-scaled images used for e.g. cross-correlation
+//     *
+//     */
+//    int croppedOptSizeX;
+//    int croppedOptSizeY;
+//    int croppedOptSizeFFTX;
+//    int croppedOptBatchSize;
 
-    /** Memory available for one cross-correlation batch */
-    int correlationBufferSizeMB;
-    /** No of images in one cross-correlation batch */
-    int correlationBufferImgs;
+//    /** Memory available for one cross-correlation batch */
+//    int correlationBufferSizeMB;
+//    /** No of images in one cross-correlation batch */
+//    int correlationBufferImgs;
 };
 
 #endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */

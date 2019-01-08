@@ -14,14 +14,19 @@
 class GPU {
 public:
     GPU(size_t device) :
-            device(device), UUID(getUUID(device)), lastFreeMem(
+            m_device(device), m_UUID(getUUID(device)), m_lastFreeMem(
                     getFreeMem(device)) {
     }
     ;
 
-    const size_t device;
-    const std::string UUID;
-    size_t lastFreeMem;
+    size_t device() const { return m_device; };
+    std::string UUID() const { return m_UUID; };
+    size_t lastFreeMem() const { return m_lastFreeMem; };
+
+private:
+    const size_t m_device;
+    const std::string m_UUID;
+    const size_t m_lastFreeMem;
 };
 
 
