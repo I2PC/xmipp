@@ -205,7 +205,13 @@ private:
      */
     virtual void applyShiftsComputeAverage(const MetaData& movie,
             const Image<T>& dark, const Image<T>& gain, Image<T>& initialMic,
-            size_t& Ninitial, Image<T>& averageMicrograph, size_t& N) = 0;
+            size_t& Ninitial, Image<T>& averageMicrograph, size_t& N,
+            const AlignmentResult<T> &globAlignment) = 0;
+
+    virtual void applyShiftsComputeAverage(
+            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+            size_t& N, const LocalAlignmentResult<T> &alignment) = 0;
 
     virtual AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain) = 0;

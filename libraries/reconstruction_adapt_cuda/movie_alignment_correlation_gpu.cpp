@@ -242,7 +242,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
-        const AlignmentResult<T> &globAlignment) {
+        const AlignmentResult<T> &globAlignment, bool verbose) {
     T minX = std::numeric_limits<T>::max();
     T maxX = std::numeric_limits<T>::min();
     T minY = std::numeric_limits<T>::max();
@@ -255,7 +255,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
         maxY = std::max(std::ceil(s.y), maxY);
     }
     auto res = std::make_pair(std::abs(maxX - minX), std::abs(maxY - minY));
-    if (this->verbose) {
+    if (verbose) {
         std::cout << "Movie borders: x=" << res.first << " y=" << res.second
                 << std::endl;
     }
@@ -264,12 +264,13 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &movieSize,
-        const LocalAlignmentResult<T> &alignment) {
+        const LocalAlignmentResult<T> &alignment,
+        const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches) {
     // get coefficients fo the BSpline that can represent the shifts (formula  from the paper)
-    int lX = localAlignmentControlPoints.x;
-    int lY = localAlignmentControlPoints.y;
-    int lT = localAlignmentControlPoints.n;
-    int noOfPatchesXY = localAlignPatches.first*localAlignPatches.second;
+    int lX = controlPoints.x;
+    int lY = controlPoints.y;
+    int lT = controlPoints.n;
+    int noOfPatchesXY = noOfPatches.first * noOfPatches.second;
     Matrix2D<T>A(noOfPatchesXY*movieSize.n, lX * lY * lT);
     Matrix1D<T>bX(noOfPatchesXY*movieSize.n);
     Matrix1D<T>bY(noOfPatchesXY*movieSize.n);
@@ -286,7 +287,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
         int tileIdxY = meta.id_y;
         int tileCenterX = meta.rec.getCenter().x;
         int tileCenterY = meta.rec.getCenter().y;
-        int i = (tileIdxY * localAlignPatches.first) + tileIdxX;
+        int i = (tileIdxY * noOfPatches.first) + tileIdxX;
 
         for (int j = 0; j < (lT * lY * lX); ++j) {
             int controlIdxT = (j / (lY * lX)) - 1;
@@ -298,7 +299,6 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoefs(const Dimensions &
                     Bspline03((tileCenterY / (T)hY) - controlIdxY) *
                     Bspline03((tileCenterT / (T)hT) - controlIdxT);
             MAT_ELEM(A,tileIdxT*noOfPatchesXY + i,j) = val;
-
         }
         VEC_ELEM(bX,tileIdxT*noOfPatchesXY + i) = -shift.x; // we want the BSPline describing opposite transformation,
         VEC_ELEM(bY,tileIdxT*noOfPatchesXY + i) = -shift.y; // so that we can use it to compensate for the shift
@@ -319,7 +319,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto patchSettings = this->getPatchSettings(movieSettings, gpu);
     auto correlationSettings = this->getCorrelationSettings(patchSettings, gpu,
             std::make_pair(1, 1));
-    auto borders = getMovieBorders(globAlignment);
+    auto borders = getMovieBorders(globAlignment, this->verbose);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings,
             patchSettings);
     if (this->verbose) {
@@ -373,59 +373,214 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             // total shift is global shift + local shift
             result.shifts.emplace_back(tmp, globAlignment.shifts.at(i) + alignment.shifts.at(i));
         }
-        std::cout << endl;
+        std::cout << std::endl;
     }
-
-    auto coefs = computeBSplineCoefs(movieSettings.dim, result); // FIXME move to final function
-    applyShiftsComputeAverage(movie, dark, gain, coefs); // FIXME move to final function
 
     delete[] movieData;
     delete[] patchesData;
+    return result;
+}
+
+template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
+        const MetaData& movie,
+        const AlignmentResult<T> &globAlignment) {
+    auto gpu = GPU(device);
+    auto movieSettings = getMovieSettings(movie, gpu, false);
+    LocalAlignmentResult<T> result { .globalHint = globAlignment };
+    auto patchSettings = this->getPatchSettings(movieSettings, gpu);
+    auto borders = getMovieBorders(globAlignment);
+    auto patchesLocation = this->getPatchesLocation(borders, movieSettings,
+            patchSettings);
+    // get alignment for all patches
+    for (auto &&p : patchesLocation) {
+        // process it
+        for (size_t i = 0; i < movieSettings.dim.n; ++i) {
+            FramePatchMeta<T> tmp = p;
+            tmp.id_t = i;
+            result.shifts.emplace_back(tmp, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
+        }
+    }
+    return result;
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
-    std::pair<Matrix1D<T>, Matrix1D<T>> &coefs) {
+        Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+        size_t& N, const AlignmentResult<T> &globAlignment) {
+    applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial, averageMicrograph,
+            N, localFromGlobal(movie, globAlignment));
+}
+
+template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+        Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+        size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
     Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
-    Image<T> averageMicrograph;
-    Matrix1D<T> shift(2);
     FileName fnFrame;
     int j = 0;
     int n = 0;
-    size_t Ninitial = 0;
-    size_t N = 0;
+    Ninitial = N = 0;
     GeoTransformer<T> transformer;
+    auto gpu = GPU(device);
+    auto movieSettings = getMovieSettings(movie, gpu, false);
+    auto coefs = computeBSplineCoefs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches);
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirstSum && n <= this->nlastSum) {
             movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+
+            // load frame
             frame.read(fnFrame);
-            if (XSIZE(dark()) > 0)
-                frame() -= dark();
-            if (XSIZE(gain()) > 0)
-                frame() *= gain();
-            croppedFrame() = frame();
-            transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, 50,
+            if (XSIZE(dark()) > 0) frame() -= dark();
+            if (XSIZE(gain()) > 0) frame() *= gain();
+            if (this->yDRcorner != -1) {
+                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
+                        this->yDRcorner, this->xDRcorner);
+            } else croppedFrame() = frame();
+
+            if (this->fnInitialAvg != "") {
+                throw std::invalid_argument("fnInitialAvg is currently not supported. "
+                        "If you need it, please contact developers or use xmipp_image_statistics program");
+            }
+
+            if (this->fnAligned != "" || this->fnAvg != "") {
+                transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, movieSettings.dim.n,
                     localAlignmentControlPoints.x, localAlignmentControlPoints.y, localAlignmentControlPoints.n);
-            std::cout << "processing frame " << j << std::endl;
-            transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
-                    if (j == 0) {
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
+
+                if (this->bin > 0) {
+                    // FIXME add templates to respective functions/classes to avoid type casting
+                    Image<double> shiftedFrameDouble;
+                    Image<double> reducedFrameDouble;
+                    typeCast(shiftedFrame(), shiftedFrameDouble());
+
+                    scaleToSizeFourier(1, floor(YSIZE(shiftedFrame()) / this->bin),
+                            floor(XSIZE(shiftedFrame()) / this->bin),
+                            shiftedFrameDouble(), reducedFrameDouble());
+
+                    typeCast(reducedFrameDouble(), reducedFrame());
+
+                    shiftedFrame() = reducedFrame();
+                }
+
+                if (this->fnAligned != "")
+                    shiftedFrame.write(this->fnAligned, j + 1, true,
+                            WRITE_REPLACE);
+                if (this->fnAvg != "") {
+                    if (j == 0)
                         averageMicrograph() = shiftedFrame();
-                        std::cout << "initializing shifted frame" << std::endl;
-                    } else {
+                    else
                         averageMicrograph() += shiftedFrame();
-                        std::cout << "adding shifted frame" << std::endl;
-                    }
                     N++;
+                }
+            }
+            std::cout << fnFrame << " processed." << std::endl;
             j++;
         }
         n++;
     }
-    averageMicrograph.write("avg_test.vol");
 }
 
+//
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+//        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+//        const AlignmentResult<T> &globAlignment) {
+//
+//
+//
+//
+//    auto cPoints = localAlignmentControlPoints;
+//    auto patches = localAlignPatches;
+//
+//    auto coefs = computeBSplineCoefs(movieSettings.dim, result, cPoints, patches); // FIXME move to final function
+//
+//
+//    // Apply shifts and compute average
+//    Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
+//    Image<T> averageMicrograph;
+//    Matrix1D<T> shift(2);
+//    FileName fnFrame;
+//    int j = 0;
+//    int n = 0;
+//    size_t Ninitial = 0;
+//    size_t N = 0;
+//    GeoTransformer<T> transformer;
+//    FOR_ALL_OBJECTS_IN_METADATA(movie)
+//    {
+//        if (n >= this->nfirstSum && n <= this->nlastSum) {
+//            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+//            frame.read(fnFrame);
+//            if (XSIZE(dark()) > 0)
+//                frame() -= dark();
+//            if (XSIZE(gain()) > 0)
+//                frame() *= gain();
+//            croppedFrame() = frame();
+//            transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, movieSettings.dim.n,
+//                    cPoints.x, cPoints.y, cPoints.n);
+//            std::cout << "processing frame " << j << std::endl;
+//            transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
+//                    if (j == 0) {
+//                        averageMicrograph() = shiftedFrame();
+//                        std::cout << "initializing shifted frame" << std::endl;
+//                    } else {
+//                        averageMicrograph() += shiftedFrame();
+//                        std::cout << "adding shifted frame" << std::endl;
+//                    }
+//                    N++;
+//            j++;
+//        }
+//        n++;
+//    }
+//    averageMicrograph.write("avg_test.vol");
+//}
+//
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+//        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+//    std::pair<Matrix1D<T>, Matrix1D<T>> &coefs) {
+//    // Apply shifts and compute average
+//    Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
+//    Image<T> averageMicrograph;
+//    Matrix1D<T> shift(2);
+//    FileName fnFrame;
+//    int j = 0;
+//    int n = 0;
+//    size_t Ninitial = 0;
+//    size_t N = 0;
+//    GeoTransformer<T> transformer;
+//    FOR_ALL_OBJECTS_IN_METADATA(movie)
+//    {
+//        if (n >= this->nfirstSum && n <= this->nlastSum) {
+//            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+//            frame.read(fnFrame);
+//            if (XSIZE(dark()) > 0)
+//                frame() -= dark();
+//            if (XSIZE(gain()) > 0)
+//                frame() *= gain();
+//            croppedFrame() = frame();
+//            transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, 50,
+//                    localAlignmentControlPoints.x, localAlignmentControlPoints.y, localAlignmentControlPoints.n);
+//            std::cout << "processing frame " << j << std::endl;
+//            transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
+//                    if (j == 0) {
+//                        averageMicrograph() = shiftedFrame();
+//                        std::cout << "initializing shifted frame" << std::endl;
+//                    } else {
+//                        averageMicrograph() += shiftedFrame();
+//                        std::cout << "adding shifted frame" << std::endl;
+//                    }
+//                    N++;
+//            j++;
+//        }
+//        n++;
+//    }
+//    averageMicrograph.write("avg_test.vol");
+//}
 
 
 template<typename T>

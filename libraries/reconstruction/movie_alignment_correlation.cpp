@@ -41,6 +41,14 @@ AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
 }
 
 template<typename T>
+void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
+            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+            size_t& N, const LocalAlignmentResult<T> &alignment) {
+    throw std::logic_error("Not implemented");
+}
+
+template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain,
         const AlignmentResult<T> &globAlignment) {
@@ -138,7 +146,7 @@ template<typename T>
 void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
-        size_t& N) {
+        size_t& N, const AlignmentResult<T> &globAlignment) {
     // Apply shifts and compute average
     Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
     Matrix1D<T> shift(2);
