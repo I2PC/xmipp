@@ -251,14 +251,16 @@ private:
             const FFTSettings<T> &movie,
             const FFTSettings<T> &patch);
 
-    auto getMovieBorders(const AlignmentResult<T> &globAlignment);
+    auto getMovieBorders(const AlignmentResult<T> &globAlignment,
+            bool verbose = false);
 
     void getPatchData(const T *allFrames, const Rec2D<T> &patch,
             const AlignmentResult<T> &globAlignment,
             const FFTSettings<T> &movie, T *result);
 
     auto computeBSplineCoefs(const Dimensions &movieSize,
-            const LocalAlignmentResult<T> &alignment);
+            const LocalAlignmentResult<T> &alignment,
+            const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches);
 
     std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
 
@@ -304,6 +306,21 @@ private:
 
     auto computeShifts(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
             const core::optional<size_t> &refFrame, size_t N);
+
+    auto localFromGlobal(
+            const MetaData& movie,
+            const AlignmentResult<T> &globAlignment);
+
+    void applyShiftsComputeAverage(
+            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+            size_t& N, const AlignmentResult<T> &globAlignment);
+
+    void applyShiftsComputeAverage(
+            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+            size_t& N, const LocalAlignmentResult<T> &alignment);
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:

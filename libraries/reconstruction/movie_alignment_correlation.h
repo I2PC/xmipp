@@ -75,7 +75,13 @@ private:
      */
     void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
             const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
-            Image<T>& averageMicrograph, size_t& N);
+            Image<T>& averageMicrograph, size_t& N,
+            const AlignmentResult<T> &globAlignment);
+
+    void applyShiftsComputeAverage(
+                const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+                Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+                size_t& N, const LocalAlignmentResult<T> &alignment);
 
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,

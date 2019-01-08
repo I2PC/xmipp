@@ -523,10 +523,10 @@ void AProgMovieAlignmentCorrelation<T>::correctLoopIndices(
     nfirst = std::max(nfirst, 0);
     nfirstSum = std::max(nfirstSum, 0);
     if (nlast < 0)
-        nlast = movie.size();
+        nlast = movie.size() - 1;
 
     if (nlastSum < 0)
-        nlastSum = movie.size();
+        nlastSum = movie.size() - 1;
 }
 
 template<typename T>
@@ -552,16 +552,17 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     }
 
     // FIXME if -o, store global alignment
-//    core::optional<LocalAlignmentResult<T>> localAlignment;
-    if (processLocalShifts) {
-        computeLocalAlignment(movie, dark, gain, globalAlignment);
-    }
-
     size_t N, Ninitial;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
-    applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial, // FIXME implement for local alignment
-            averageMicrograph, N);
+    if (processLocalShifts) {
+        auto localAlignment = computeLocalAlignment(movie, dark, gain, globalAlignment);
+        applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial,
+                    averageMicrograph, N, localAlignment);
+    } else {
+        applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial,
+                    averageMicrograph, N, globalAlignment);
+    }
 
     int bestIref = 0;
     storeResults(initialMic, Ninitial, averageMicrograph, N, movie, bestIref);
