@@ -757,95 +757,95 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
-        Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
-        size_t& N) {
-    // Apply shifts and compute average
-    Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
-    Matrix1D<T> shift(2);
-    FileName fnFrame;
-    int j = 0;
-    int n = 0;
-    Ninitial = N = 0;
-    GeoShiftTransformer<T> transformer;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
-    {
-        if (n >= this->nfirstSum && n <= this->nlastSum) {
-            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
-            movie.getValue(MDL_SHIFT_X, XX(shift), __iter.objId);
-            movie.getValue(MDL_SHIFT_Y, YY(shift), __iter.objId);
-
-            std::cout << fnFrame << " shiftX=" << XX(shift) << " shiftY="
-                    << YY(shift) << std::endl;
-            frame.read(fnFrame);
-            if (XSIZE(dark()) > 0)
-                frame() -= dark();
-            if (XSIZE(gain()) > 0)
-                frame() *= gain();
-            if (this->yDRcorner != -1)
-                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
-                        this->yDRcorner, this->xDRcorner);
-            else
-                croppedFrame() = frame();
-            if (this->bin > 0) {
-                // FIXME add templates to respective functions/classes to avoid type casting
-                Image<double> croppedFrameDouble;
-                Image<double> reducedFrameDouble;
-                typeCast(croppedFrame(), croppedFrameDouble());
-
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
-                        floor(XSIZE(croppedFrame()) / this->bin),
-                        croppedFrameDouble(), reducedFrameDouble());
-
-                typeCast(reducedFrameDouble(), reducedFrame());
-
-                shift /= this->bin;
-                croppedFrame() = reducedFrame();
-            }
-
-            if (this->fnInitialAvg != "") {
-                if (j == 0)
-                    initialMic() = croppedFrame();
-                else
-                    initialMic() += croppedFrame();
-                Ninitial++;
-            }
-
-            if (this->fnAligned != "" || this->fnAvg != "") {
-                if (this->outsideMode == OUTSIDE_WRAP) {
-//                    Matrix2D<T> tmp;
-//                    translation2DMatrix(shift, tmp, true);
-                    transformer.initLazy(croppedFrame().xdim,
-                            croppedFrame().ydim, 1, device);
-                    transformer.applyShift(shiftedFrame(), croppedFrame(), XX(shift), YY(shift));
-//                    transformer.applyGeometry(this->BsplineOrder,
-//                            shiftedFrame(), croppedFrame(), tmp, IS_INV, WRAP);
-                } else if (this->outsideMode == OUTSIDE_VALUE)
-                    translate(this->BsplineOrder, shiftedFrame(),
-                            croppedFrame(), shift, DONT_WRAP,
-                            this->outsideValue);
-                else
-                    translate(this->BsplineOrder, shiftedFrame(),
-                            croppedFrame(), shift, DONT_WRAP,
-                            (T) croppedFrame().computeAvg());
-                if (this->fnAligned != "")
-                    shiftedFrame.write(this->fnAligned, j + 1, true,
-                            WRITE_REPLACE);
-                if (this->fnAvg != "") {
-                    if (j == 0)
-                        averageMicrograph() = shiftedFrame();
-                    else
-                        averageMicrograph() += shiftedFrame();
-                    N++;
-                }
-            }
-            j++;
-        }
-        n++;
-    }
-}
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+//        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+//        Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+//        size_t& N) {
+//    // Apply shifts and compute average
+//    Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
+//    Matrix1D<T> shift(2);
+//    FileName fnFrame;
+//    int j = 0;
+//    int n = 0;
+//    Ninitial = N = 0;
+//    GeoShiftTransformer<T> transformer;
+//    FOR_ALL_OBJECTS_IN_METADATA(movie)
+//    {
+//        if (n >= this->nfirstSum && n <= this->nlastSum) {
+//            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+//            movie.getValue(MDL_SHIFT_X, XX(shift), __iter.objId);
+//            movie.getValue(MDL_SHIFT_Y, YY(shift), __iter.objId);
+//
+//            std::cout << fnFrame << " shiftX=" << XX(shift) << " shiftY="
+//                    << YY(shift) << std::endl;
+//            frame.read(fnFrame);
+//            if (XSIZE(dark()) > 0)
+//                frame() -= dark();
+//            if (XSIZE(gain()) > 0)
+//                frame() *= gain();
+//            if (this->yDRcorner != -1)
+//                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
+//                        this->yDRcorner, this->xDRcorner);
+//            else
+//                croppedFrame() = frame();
+//            if (this->bin > 0) {
+//                // FIXME add templates to respective functions/classes to avoid type casting
+//                Image<double> croppedFrameDouble;
+//                Image<double> reducedFrameDouble;
+//                typeCast(croppedFrame(), croppedFrameDouble());
+//
+//                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
+//                        floor(XSIZE(croppedFrame()) / this->bin),
+//                        croppedFrameDouble(), reducedFrameDouble());
+//
+//                typeCast(reducedFrameDouble(), reducedFrame());
+//
+//                shift /= this->bin;
+//                croppedFrame() = reducedFrame();
+//            }
+//
+//            if (this->fnInitialAvg != "") {
+//                if (j == 0)
+//                    initialMic() = croppedFrame();
+//                else
+//                    initialMic() += croppedFrame();
+//                Ninitial++;
+//            }
+//
+//            if (this->fnAligned != "" || this->fnAvg != "") {
+//                if (this->outsideMode == OUTSIDE_WRAP) {
+////                    Matrix2D<T> tmp;
+////                    translation2DMatrix(shift, tmp, true);
+//                    transformer.initLazy(croppedFrame().xdim,
+//                            croppedFrame().ydim, 1, device);
+//                    transformer.applyShift(shiftedFrame(), croppedFrame(), XX(shift), YY(shift));
+////                    transformer.applyGeometry(this->BsplineOrder,
+////                            shiftedFrame(), croppedFrame(), tmp, IS_INV, WRAP);
+//                } else if (this->outsideMode == OUTSIDE_VALUE)
+//                    translate(this->BsplineOrder, shiftedFrame(),
+//                            croppedFrame(), shift, DONT_WRAP,
+//                            this->outsideValue);
+//                else
+//                    translate(this->BsplineOrder, shiftedFrame(),
+//                            croppedFrame(), shift, DONT_WRAP,
+//                            (T) croppedFrame().computeAvg());
+//                if (this->fnAligned != "")
+//                    shiftedFrame.write(this->fnAligned, j + 1, true,
+//                            WRITE_REPLACE);
+//                if (this->fnAvg != "") {
+//                    if (j == 0)
+//                        averageMicrograph() = shiftedFrame();
+//                    else
+//                        averageMicrograph() += shiftedFrame();
+//                    N++;
+//                }
+//            }
+//            j++;
+//        }
+//        n++;
+//    }
+//}
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::loadFrame(const MetaData& movie,
@@ -874,148 +874,148 @@ int ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterSize(
     return bytes / (1024 * 1024);
 }
 
-template<typename T>
-T* ProgMovieAlignmentCorrelationGPU<T>::loadToRAM(const MetaData& movie,
-        int noOfImgs, const Image<T>& dark, const Image<T>& gain,
-        bool cropInput) {
-    // allocate enough memory for the images. Since it will be reused, it has to be big
-    // enough to store either all FFTs or all input images
-    T* imgs = new T[noOfImgs * inputOptSizeY
-            * std::max(inputOptSizeX, inputOptSizeFFTX * 2)]();
-    Image<T> frame;
-
-    int movieImgIndex = -1;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
-    {
-        // update variables
-        movieImgIndex++;
-        if (movieImgIndex < this->nfirst) continue;
-        if (movieImgIndex > this->nlast) break;
-
-        // load image
-        loadFrame(movie, __iter.objId, frame);
-        if (XSIZE(dark()) > 0) frame() -= dark();
-        if (XSIZE(gain()) > 0) frame() *= gain();
-
-        // copy line by line, adding offset at the end of each line
-        // result is the same image, padded in the X and Y dimensions
-        T* dest = imgs
-                + ((movieImgIndex - this->nfirst) * inputOptSizeX
-                        * inputOptSizeY); // points to first float in the image
-        for (size_t i = 0; i < inputOptSizeY; ++i) {
-            memcpy(dest + (inputOptSizeX * i),
-                    frame.data.data + i * frame.data.xdim,
-                    inputOptSizeX * sizeof(T));
-        }
-    }
-    return imgs;
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> &frame,
-        int noOfImgs) {
-
-    std::string UUID = getUUID(device);
-
-    int maxFilterSize = getMaxFilterSize(frame);
-    size_t availableMemMB = getFreeMem(device);
-    correlationBufferSizeMB = availableMemMB / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
-
-    if (! getStoredSizes(frame, noOfImgs, UUID)) {
-        runBenchmark(frame, noOfImgs, UUID);
-        storeSizes(frame, noOfImgs, UUID);
-    }
-
-    T corrSizeMB = ((size_t) croppedOptSizeFFTX * croppedOptSizeY
-            * sizeof(std::complex<T>)) / (1024 * 1024.);
-    correlationBufferImgs = std::ceil(correlationBufferSizeMB / corrSizeMB);
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(Image<T> &frame,
-        int noOfImgs, std::string &uuid) {
-    // get best sizes
-    int maxFilterSize = getMaxFilterSize(frame);
-    if (this->verbose)
-        std::cerr << "Benchmarking cuFFT ..." << std::endl;
-
-    size_t noOfCorrelations = (noOfImgs * (noOfImgs - 1)) / 2;
-
-    // we also need enough memory for filter
-    getBestFFTSize(noOfImgs, frame.data.xdim, frame.data.ydim, inputOptBatchSize,
-            true,
-            inputOptSizeX, inputOptSizeY, maxFilterSize, this->verbose, device,
-            frame().xdim == frame().ydim, 10); // allow max 10% change
-
-    inputOptSizeFFTX = inputOptSizeX / 2 + 1;
-
-    getBestFFTSize(noOfCorrelations, this->newXdim, this->newYdim,
-            croppedOptBatchSize, false, croppedOptSizeX, croppedOptSizeY,
-            correlationBufferSizeMB * 2, this->verbose, device,
-            this->newXdim == this->newYdim, 10);
-
-    croppedOptSizeFFTX = croppedOptSizeX / 2 + 1;
-}
-
-
-template<typename T>
-bool ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(Image<T> &frame,
-        int noOfImgs, std::string &uuid) {
-    bool res = true;
-//    size_t neededMem;
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, inputOptSizeXStr, frame, noOfImgs, true), inputOptSizeX);
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, inputOptSizeYStr, frame, noOfImgs, true), inputOptSizeY);
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, inputOptBatchSizeStr, frame, noOfImgs, true), inputOptBatchSize);
-//    inputOptSizeFFTX =  inputOptSizeX / 2 + 1;
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, availableMemoryStr, frame, noOfImgs, true), neededMem);
-//    res = res && neededMem <= getFreeMem(device);
+//template<typename T>
+//T* ProgMovieAlignmentCorrelationGPU<T>::loadToRAM(const MetaData& movie,
+//        int noOfImgs, const Image<T>& dark, const Image<T>& gain,
+//        bool cropInput) {
+//    // allocate enough memory for the images. Since it will be reused, it has to be big
+//    // enough to store either all FFTs or all input images
+//    T* imgs = new T[noOfImgs * inputOptSizeY
+//            * std::max(inputOptSizeX, inputOptSizeFFTX * 2)]();
+//    Image<T> frame;
 //
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, croppedOptSizeXStr, this->newXdim, this->newYdim, noOfImgs, false), croppedOptSizeX);
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, croppedOptSizeYStr, this->newXdim, this->newYdim, noOfImgs, false), croppedOptSizeY);
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, croppedOptBatchSizeStr, this->newXdim, this->newYdim, noOfImgs, false),
-//        croppedOptBatchSize);
-//    croppedOptSizeFFTX =  croppedOptSizeX / 2 + 1;
-//    res = res && UserSettings::get(storage).find(*this,
-//        getKey(uuid, availableMemoryStr, this->newXdim, this->newYdim, noOfImgs, false), neededMem);
-//    res = res && neededMem <= getFreeMem(device);
-
-    return res;
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(Image<T> &frame,
-        int noOfImgs, std::string &uuid) {
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, inputOptSizeXStr, frame, noOfImgs, true), inputOptSizeX);
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, inputOptSizeYStr, frame, noOfImgs, true), inputOptSizeY);
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, inputOptBatchSizeStr, frame, noOfImgs, true),
-//        inputOptBatchSize);
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, availableMemoryStr, frame, noOfImgs, true), getFreeMem(device));
+//    int movieImgIndex = -1;
+//    FOR_ALL_OBJECTS_IN_METADATA(movie)
+//    {
+//        // update variables
+//        movieImgIndex++;
+//        if (movieImgIndex < this->nfirst) continue;
+//        if (movieImgIndex > this->nlast) break;
 //
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, croppedOptSizeXStr, this->newXdim, this->newYdim, noOfImgs, false),
-//        croppedOptSizeX);
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, croppedOptSizeYStr, this->newXdim, this->newYdim, noOfImgs, false),
-//        croppedOptSizeY);
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, croppedOptBatchSizeStr,
-//        this->newXdim, this->newYdim, noOfImgs, false),
-//        croppedOptBatchSize);
-//    UserSettings::get(storage).insert(*this,
-//        getKey(uuid, availableMemoryStr, this->newXdim, this->newYdim, noOfImgs, false),
-//        getFreeMem(device));
-}
+//        // load image
+//        loadFrame(movie, __iter.objId, frame);
+//        if (XSIZE(dark()) > 0) frame() -= dark();
+//        if (XSIZE(gain()) > 0) frame() *= gain();
+//
+//        // copy line by line, adding offset at the end of each line
+//        // result is the same image, padded in the X and Y dimensions
+//        T* dest = imgs
+//                + ((movieImgIndex - this->nfirst) * inputOptSizeX
+//                        * inputOptSizeY); // points to first float in the image
+//        for (size_t i = 0; i < inputOptSizeY; ++i) {
+//            memcpy(dest + (inputOptSizeX * i),
+//                    frame.data.data + i * frame.data.xdim,
+//                    inputOptSizeX * sizeof(T));
+//        }
+//    }
+//    return imgs;
+//}
+
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::setSizes(Image<T> &frame,
+//        int noOfImgs) {
+//
+//    std::string UUID = getUUID(device);
+//
+//    int maxFilterSize = getMaxFilterSize(frame);
+//    size_t availableMemMB = getFreeMem(device);
+//    correlationBufferSizeMB = availableMemMB / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
+//
+//    if (! getStoredSizes(frame, noOfImgs, UUID)) {
+//        runBenchmark(frame, noOfImgs, UUID);
+//        storeSizes(frame, noOfImgs, UUID);
+//    }
+//
+//    T corrSizeMB = ((size_t) croppedOptSizeFFTX * croppedOptSizeY
+//            * sizeof(std::complex<T>)) / (1024 * 1024.);
+//    correlationBufferImgs = std::ceil(correlationBufferSizeMB / corrSizeMB);
+//}
+
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(Image<T> &frame,
+//        int noOfImgs, std::string &uuid) {
+//    // get best sizes
+//    int maxFilterSize = getMaxFilterSize(frame);
+//    if (this->verbose)
+//        std::cerr << "Benchmarking cuFFT ..." << std::endl;
+//
+//    size_t noOfCorrelations = (noOfImgs * (noOfImgs - 1)) / 2;
+//
+//    // we also need enough memory for filter
+//    getBestFFTSize(noOfImgs, frame.data.xdim, frame.data.ydim, inputOptBatchSize,
+//            true,
+//            inputOptSizeX, inputOptSizeY, maxFilterSize, this->verbose, device,
+//            frame().xdim == frame().ydim, 10); // allow max 10% change
+//
+//    inputOptSizeFFTX = inputOptSizeX / 2 + 1;
+//
+//    getBestFFTSize(noOfCorrelations, this->newXdim, this->newYdim,
+//            croppedOptBatchSize, false, croppedOptSizeX, croppedOptSizeY,
+//            correlationBufferSizeMB * 2, this->verbose, device,
+//            this->newXdim == this->newYdim, 10);
+//
+//    croppedOptSizeFFTX = croppedOptSizeX / 2 + 1;
+//}
+
+
+//template<typename T>
+//bool ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(Image<T> &frame,
+//        int noOfImgs, std::string &uuid) {
+//    bool res = true;
+////    size_t neededMem;
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, inputOptSizeXStr, frame, noOfImgs, true), inputOptSizeX);
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, inputOptSizeYStr, frame, noOfImgs, true), inputOptSizeY);
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, inputOptBatchSizeStr, frame, noOfImgs, true), inputOptBatchSize);
+////    inputOptSizeFFTX =  inputOptSizeX / 2 + 1;
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, availableMemoryStr, frame, noOfImgs, true), neededMem);
+////    res = res && neededMem <= getFreeMem(device);
+////
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, croppedOptSizeXStr, this->newXdim, this->newYdim, noOfImgs, false), croppedOptSizeX);
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, croppedOptSizeYStr, this->newXdim, this->newYdim, noOfImgs, false), croppedOptSizeY);
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, croppedOptBatchSizeStr, this->newXdim, this->newYdim, noOfImgs, false),
+////        croppedOptBatchSize);
+////    croppedOptSizeFFTX =  croppedOptSizeX / 2 + 1;
+////    res = res && UserSettings::get(storage).find(*this,
+////        getKey(uuid, availableMemoryStr, this->newXdim, this->newYdim, noOfImgs, false), neededMem);
+////    res = res && neededMem <= getFreeMem(device);
+//
+//    return res;
+//}
+
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(Image<T> &frame,
+//        int noOfImgs, std::string &uuid) {
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, inputOptSizeXStr, frame, noOfImgs, true), inputOptSizeX);
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, inputOptSizeYStr, frame, noOfImgs, true), inputOptSizeY);
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, inputOptBatchSizeStr, frame, noOfImgs, true),
+////        inputOptBatchSize);
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, availableMemoryStr, frame, noOfImgs, true), getFreeMem(device));
+////
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, croppedOptSizeXStr, this->newXdim, this->newYdim, noOfImgs, false),
+////        croppedOptSizeX);
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, croppedOptSizeYStr, this->newXdim, this->newYdim, noOfImgs, false),
+////        croppedOptSizeY);
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, croppedOptBatchSizeStr,
+////        this->newXdim, this->newYdim, noOfImgs, false),
+////        croppedOptBatchSize);
+////    UserSettings::get(storage).insert(*this,
+////        getKey(uuid, availableMemoryStr, this->newXdim, this->newYdim, noOfImgs, false),
+////        getFreeMem(device));
+//}
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::testFFT() {
@@ -1821,77 +1821,77 @@ void ProgMovieAlignmentCorrelationGPU<T>::testFFTAndScale() {
     delete[] tmpFFTGpuOut;
 }
 
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::loadData(const MetaData& movie,
-        const Image<T>& dark, const Image<T>& gain, T targetOccupancy,
-        const MultidimArray<T>& lpf) {
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::loadData(const MetaData& movie,
+//        const Image<T>& dark, const Image<T>& gain, T targetOccupancy,
+//        const MultidimArray<T>& lpf) {
+//
+//    setDevice(device);
+//
+//    bool cropInput = (this->yDRcorner != -1);
+//    int noOfImgs = this->nlast - this->nfirst + 1;
+//
+//    // get frame info
+//    Image<T> frame;
+//    loadFrame(movie, movie.firstObject(), frame);
+//    setSizes(frame, noOfImgs);
+//    // prepare filter
+//    MultidimArray<T> filter;
+//    filter.initZeros(croppedOptSizeY, croppedOptSizeFFTX);
+//    this->scaleLPF(lpf, croppedOptSizeX, croppedOptSizeY, targetOccupancy,
+//            filter);
+//
+//    // load all frames to RAM
+//    // reuse memory
+//    frameFourier = (std::complex<T>*)loadToRAM(movie, noOfImgs, dark, gain, cropInput);
+//    // scale and transform to FFT on GPU
+//    performFFTAndScale((T*)frameFourier, noOfImgs, inputOptSizeX,
+//            inputOptSizeY, inputOptBatchSize, croppedOptSizeFFTX,
+//            croppedOptSizeY, filter);
+//}
 
-    setDevice(device);
-
-    bool cropInput = (this->yDRcorner != -1);
-    int noOfImgs = this->nlast - this->nfirst + 1;
-
-    // get frame info
-    Image<T> frame;
-    loadFrame(movie, movie.firstObject(), frame);
-    setSizes(frame, noOfImgs);
-    // prepare filter
-    MultidimArray<T> filter;
-    filter.initZeros(croppedOptSizeY, croppedOptSizeFFTX);
-    this->scaleLPF(lpf, croppedOptSizeX, croppedOptSizeY, targetOccupancy,
-            filter);
-
-    // load all frames to RAM
-    // reuse memory
-    frameFourier = (std::complex<T>*)loadToRAM(movie, noOfImgs, dark, gain, cropInput);
-    // scale and transform to FFT on GPU
-    performFFTAndScale((T*)frameFourier, noOfImgs, inputOptSizeX,
-            inputOptSizeY, inputOptBatchSize, croppedOptSizeFFTX,
-            croppedOptSizeY, filter);
-}
-
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t N,
-        const Matrix1D<T>& bX, const Matrix1D<T>& bY, const Matrix2D<T>& A) {
-    setDevice(device);
-
-    T* correlations;
-    size_t centerSize = std::ceil(this->maxShift * 2 + 1);
-    computeCorrelations(centerSize, N, frameFourier, croppedOptSizeFFTX,
-            croppedOptSizeX, croppedOptSizeY, correlationBufferImgs,
-            croppedOptBatchSize, correlations);
-
-    // since we are using different size of FFT, we need to scale results to
-    // 'expected' size
-    T localSizeFactorX = this->sizeFactor
-            / (croppedOptSizeX / (T) inputOptSizeX);
-    T localSizeFactorY = this->sizeFactor
-            / (croppedOptSizeY / (T) inputOptSizeY);
-
-    int idx = 0;
-    MultidimArray<T> Mcorr(centerSize, centerSize);
-    for (size_t i = 0; i < N - 1; ++i) {
-        for (size_t j = i + 1; j < N; ++j) {
-            size_t offset = idx * centerSize * centerSize;
-            Mcorr.data = correlations + offset;
-            Mcorr.setXmippOrigin();
-            bestShift(Mcorr, bX(idx), bY(idx), NULL, this->maxShift);
-            bX(idx) *= localSizeFactorX; // scale to expected size
-            bY(idx) *= localSizeFactorY;
-            if (this->verbose)
-                std::cerr << "Frame " << i + this->nfirst << " to Frame "
-                        << j + this->nfirst << " -> ("
-                        << bX(idx) / this->sizeFactor << ","
-                        << bY(idx) / this->sizeFactor << ")" << std::endl;
-            for (int ij = i; ij < j; ij++)
-                A(idx, ij) = 1;
-
-            idx++;
-        }
-    }
-    Mcorr.data = NULL;
-    delete[] frameFourier;
-}
+//template<typename T>
+//void ProgMovieAlignmentCorrelationGPU<T>::computeShifts(size_t N,
+//        const Matrix1D<T>& bX, const Matrix1D<T>& bY, const Matrix2D<T>& A) {
+//    setDevice(device);
+//
+//    T* correlations;
+//    size_t centerSize = std::ceil(this->maxShift * 2 + 1);
+//    computeCorrelations(centerSize, N, frameFourier, croppedOptSizeFFTX,
+//            croppedOptSizeX, croppedOptSizeY, correlationBufferImgs,
+//            croppedOptBatchSize, correlations);
+//
+//    // since we are using different size of FFT, we need to scale results to
+//    // 'expected' size
+//    T localSizeFactorX = this->sizeFactor
+//            / (croppedOptSizeX / (T) inputOptSizeX);
+//    T localSizeFactorY = this->sizeFactor
+//            / (croppedOptSizeY / (T) inputOptSizeY);
+//
+//    int idx = 0;
+//    MultidimArray<T> Mcorr(centerSize, centerSize);
+//    for (size_t i = 0; i < N - 1; ++i) {
+//        for (size_t j = i + 1; j < N; ++j) {
+//            size_t offset = idx * centerSize * centerSize;
+//            Mcorr.data = correlations + offset;
+//            Mcorr.setXmippOrigin();
+//            bestShift(Mcorr, bX(idx), bY(idx), NULL, this->maxShift);
+//            bX(idx) *= localSizeFactorX; // scale to expected size
+//            bY(idx) *= localSizeFactorY;
+//            if (this->verbose)
+//                std::cerr << "Frame " << i + this->nfirst << " to Frame "
+//                        << j + this->nfirst << " -> ("
+//                        << bX(idx) / this->sizeFactor << ","
+//                        << bY(idx) / this->sizeFactor << ")" << std::endl;
+//            for (int ij = i; ij < j; ij++)
+//                A(idx, ij) = 1;
+//
+//            idx++;
+//        }
+//    }
+//    Mcorr.data = NULL;
+//    delete[] frameFourier;
+//}
 
 // explicit specialization
 template class ProgMovieAlignmentCorrelationGPU<float> ;

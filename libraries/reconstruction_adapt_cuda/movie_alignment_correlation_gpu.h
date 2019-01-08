@@ -49,30 +49,30 @@ public:
     void defineParams();
 
 private:
-    /**
-     * After running this method, all relevant images from the movie are
-     * loaded in 'frameFourier' (CPU) and ready for further processing.
-     * Scaling and FT is done on GPU
-     * @param movie input
-     * @param dark correction to be used
-     * @param gain correction to be used
-     * @param targetOccupancy max frequency to be preserved in FT
-     * @param lpf 1D profile of the low-pass filter
-     */
-    void loadData(const MetaData& movie, const Image<T>& dark,
-            const Image<T>& gain, T targetOccupancy,
-            const MultidimArray<T>& lpf);
+//    /**
+//     * After running this method, all relevant images from the movie are
+//     * loaded in 'frameFourier' (CPU) and ready for further processing.
+//     * Scaling and FT is done on GPU
+//     * @param movie input
+//     * @param dark correction to be used
+//     * @param gain correction to be used
+//     * @param targetOccupancy max frequency to be preserved in FT
+//     * @param lpf 1D profile of the low-pass filter
+//     */
+//    void loadData(const MetaData& movie, const Image<T>& dark,
+//            const Image<T>& gain, T targetOccupancy,
+//            const MultidimArray<T>& lpf);
 
-    /**
-     * Computes shifts of all images in the 'frameFourier'
-     * FT and cross-correlation is computed on GPU
-     * @param N number of images to process
-     * @param bX pair-wise shifts in X dimension
-     * @param bY pair-wise shifts in Y dimension
-     * @param A system matrix to be used
-     */
-    void computeShifts(size_t N, const Matrix1D<T>& bX, const Matrix1D<T>& bY,
-            const Matrix2D<T>& A);
+//    /**
+//     * Computes shifts of all images in the 'frameFourier'
+//     * FT and cross-correlation is computed on GPU
+//     * @param N number of images to process
+//     * @param bX pair-wise shifts in X dimension
+//     * @param bY pair-wise shifts in Y dimension
+//     * @param A system matrix to be used
+//     */
+//    void computeShifts(size_t N, const Matrix1D<T>& bX, const Matrix1D<T>& bY,
+//            const Matrix2D<T>& A);
 
     /**
      * This method applies shifts stored in the metadata and computes 'average'

@@ -168,29 +168,29 @@ protected:
 
 
 private:
-    /**
-     * After running this method, all relevant images from the movie should
-     * be loaded and ready for further processing
-     * @param movie input
-     * @param dark correction to be used
-     * @param gain correction to be used
-     * @param targetOccupancy max frequency to be preserved in FT
-     * @param lpf 1D profile of the low-pass filter
-     */
-    virtual void loadData(const MetaData& movie, const Image<T>& dark,
-            const Image<T>& gain, T targetOccupancy,
-            const MultidimArray<T>& lpf) = 0;
+//    /**
+//     * After running this method, all relevant images from the movie should
+//     * be loaded and ready for further processing
+//     * @param movie input
+//     * @param dark correction to be used
+//     * @param gain correction to be used
+//     * @param targetOccupancy max frequency to be preserved in FT
+//     * @param lpf 1D profile of the low-pass filter
+//     */
+//    virtual void loadData(const MetaData& movie, const Image<T>& dark,
+//            const Image<T>& gain, T targetOccupancy,
+//            const MultidimArray<T>& lpf) = 0;
 
-    /**
-     * After running this method, shifts (pair-wise) of all images loaded in
-     * the 'loadData' * method should be determined
-     * @param N number of images to process
-     * @param bX pair-wise shifts in X dimension
-     * @param bY pair-wise shifts in Y dimension
-     * @param A system matrix to be filled
-     */
-    virtual void computeShifts(size_t N, const Matrix1D<T>& bX,
-            const Matrix1D<T>& bY, const Matrix2D<T>& A) = 0;
+//    /**
+//     * After running this method, shifts (pair-wise) of all images loaded in
+//     * the 'loadData' * method should be determined
+//     * @param N number of images to process
+//     * @param bX pair-wise shifts in X dimension
+//     * @param bY pair-wise shifts in Y dimension
+//     * @param A system matrix to be filled
+//     */
+//    virtual void computeShifts(size_t N, const Matrix1D<T>& bX,
+//            const Matrix1D<T>& bY, const Matrix2D<T>& A) = 0;
 
     /**
      * This method applies shifts stored in the metadata and computes 'average'
@@ -274,13 +274,13 @@ private:
      */
     void setZeroShift(MetaData& movie);
 
-    /**
-     * Method finds shifts of images in the micrograph and stores them
-     * @param movie to be processed
-     * @param dark correction
-     * @param gain correction
-     */
-    int findShiftsAndStore(MetaData& movie, Image<T>& dark, Image<T>& gain);
+//    /**
+//     * Method finds shifts of images in the micrograph and stores them
+//     * @param movie to be processed
+//     * @param dark correction
+//     * @param gain correction
+//     */
+//    int findShiftsAndStore(MetaData& movie, Image<T>& dark, Image<T>& gain);
 
     /**
      * Method to store all computed results to hard drive
