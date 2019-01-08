@@ -454,6 +454,30 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
         movie.setValue(MDL_WEIGHT, 1.0, __iter.objId);
         n++;
     }
+    MetaData mdIref;
+    mdIref.setValue(MDL_REF, (int)(nfirst + alignment.refFrame), mdIref.addObject());
+    mdIref.write((FileName) ("referenceFrame@") + fnOut, MD_APPEND);
+}
+
+template<typename T>
+auto AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
+    AlignmentResult<T> alignment;
+    int n = 0;
+    T shiftX;
+    T shiftY;
+    auto negateToDouble = [] (T v) {return (double) (v * -1);};
+    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    {
+        if (n >= nfirst && n <= nlast) {
+            movie.getValue(MDL_SHIFT_X, shiftX, __iter.objId);
+            movie.getValue(MDL_SHIFT_Y, shiftY, __iter.objId);
+
+            alignment.shifts.emplace_back(shiftX, shiftY);
+        }
+        n++;
+    }
+//    FIXME load reference frame
+    return alignment;
 }
 
 template<typename T>
@@ -510,11 +534,6 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
         averageMicrograph.write(fnAvg);
     }
     movie.write((FileName) ("frameShifts@") + fnOut);
-    if (bestIref >= 0) {
-        MetaData mdIref;
-        mdIref.setValue(MDL_REF, nfirst + bestIref, mdIref.addObject());
-        mdIref.write((FileName) ("referenceFrame@") + fnOut, MD_APPEND);
-    }
 }
 
 template<typename T>
@@ -546,12 +565,15 @@ void AProgMovieAlignmentCorrelation<T>::run() {
         if (!movie.containsLabel(MDL_SHIFT_X)) {
             setZeroShift(movie);
         }
-        // FIXME load from file
+        globalAlignment = loadGlobalShifts(movie);
     } else {
         globalAlignment = computeGlobalAlignment(movie, dark, gain);
     }
 
-    // FIXME if -o, store global alignment
+    if ( ! fnOut.isEmpty()) {
+        storeGlobalShifts(globalAlignment, movie);
+    }
+
     size_t N, Ninitial;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
@@ -564,8 +586,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
                     averageMicrograph, N, globalAlignment);
     }
 
-    int bestIref = 0;
-    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, bestIref);
+    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);
 }
 
 template class AProgMovieAlignmentCorrelation<float> ;
