@@ -741,6 +741,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
         }
     }
     Mcorr.data = origData;
+    delete[] correlations;
 
     // now get the estimated shift (from the equation system)
     // from each frame to successing frame
