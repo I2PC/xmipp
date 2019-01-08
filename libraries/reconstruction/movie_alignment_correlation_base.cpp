@@ -465,37 +465,37 @@ void AProgMovieAlignmentCorrelation<T>::setZeroShift(MetaData& movie) {
     movie.fillConstant(MDL_SHIFT_Y, "0.0");
 }
 
-template<typename T>
-int AProgMovieAlignmentCorrelation<T>::findShiftsAndStore(MetaData& movie,
-        Image<T>& dark, Image<T>& gain) {
-    T targetOccupancy = 1.0; // Set to 1 if you want fmax maps onto 1/(2*newTs)
-
-    computeSizeFactor(targetOccupancy);
-    setNewDimensions(movie);
-    // Construct 1D profile of the lowpass filter
-    MultidimArray<T> lpf(newXdim / 2);
-    constructLPFold(targetOccupancy, lpf);
-
-    size_t N = nlast - nfirst + 1; // no of images to process
-    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
-    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
-    if (verbose)
-        std::cout << "Loading frames ..." << std::endl;
-    // Compute the Fourier transform of all input images
-    loadData(movie, dark, gain, targetOccupancy, lpf);
-    if (verbose)
-        std::cout << "Computing shifts between frames ..." << std::endl;
-    // Now compute all shifts
-    computeShifts(N, bX, bY, A); // notice that the shifts bX and bY are scaled by the sizeFactor
-
-    Matrix1D<T> shiftX, shiftY;
-    solveEquationSystem(bX, bY, A, shiftX, shiftY);
-
-    // Choose reference image as the minimax of shifts
-    int bestIref = findReferenceImage(N, shiftX, shiftY);
-//    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
-    return bestIref;
-}
+//template<typename T>
+//int AProgMovieAlignmentCorrelation<T>::findShiftsAndStore(MetaData& movie,
+//        Image<T>& dark, Image<T>& gain) {
+//    T targetOccupancy = 1.0; // Set to 1 if you want fmax maps onto 1/(2*newTs)
+//
+//    computeSizeFactor(targetOccupancy);
+//    setNewDimensions(movie);
+//    // Construct 1D profile of the lowpass filter
+//    MultidimArray<T> lpf(newXdim / 2);
+//    constructLPFold(targetOccupancy, lpf);
+//
+//    size_t N = nlast - nfirst + 1; // no of images to process
+//    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
+//    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
+//    if (verbose)
+//        std::cout << "Loading frames ..." << std::endl;
+//    // Compute the Fourier transform of all input images
+//    loadData(movie, dark, gain, targetOccupancy, lpf);
+//    if (verbose)
+//        std::cout << "Computing shifts between frames ..." << std::endl;
+//    // Now compute all shifts
+//    computeShifts(N, bX, bY, A); // notice that the shifts bX and bY are scaled by the sizeFactor
+//
+//    Matrix1D<T> shiftX, shiftY;
+//    solveEquationSystem(bX, bY, A, shiftX, shiftY);
+//
+//    // Choose reference image as the minimax of shifts
+//    int bestIref = findReferenceImage(N, shiftX, shiftY);
+////    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
+//    return bestIref;
+//}
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
