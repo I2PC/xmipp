@@ -101,15 +101,7 @@ private:
 //    T* loadToRAM(const MetaData& movie, int noOfImgs, const Image<T>& dark,
 //            const Image<T>& gain, bool cropInput);
 
-    /**
-     * Method loads a single image from the movie
-     * @param movie to load from
-     * @param objId id of the image to load
-     * @param crop flag stating if the image should be cropped
-     * @param out loaded frame
-     */
-    void loadFrame(const MetaData& movie, size_t objId,
-            Image<T>& out);
+
 
 //    /**
 //     * Method sets sizes used for processing, e.g. proper sizes of the images,
@@ -219,8 +211,7 @@ private:
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
 
-    auto computeShifts(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
-            const core::optional<size_t> &refFrame, size_t N);
+
 
     auto getCorrelationSettings(const FFTSettings<T> &orig,
             const std::pair<T, T> &downscale);

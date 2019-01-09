@@ -70,7 +70,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
-    loadFrame(movie, movie.firstObject(), frame);
+    this->loadFrame(movie, movie.firstObject(), frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
     int maxFilterSize = getMaxFilterSize(frame);
 
@@ -251,7 +251,6 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
     T minY = std::numeric_limits<T>::max();
     T maxY = std::numeric_limits<T>::min();
     for (const auto& s : globAlignment.shifts) {
-        std::cout << s.x << " " << s.y << std::endl;
         minX = std::min(std::floor(s.x), minX);
         maxX = std::max(std::ceil(s.x), maxX);
         minY = std::min(std::floor(s.y), minY);
@@ -344,7 +343,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // prepare filter
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x,
-            correlationSettings.x_freq, correlationSettings.dim.y);
+            correlationSettings.dim.y);
 
     // compute max of frames in buffer
     T corrSizeMB = ((size_t) correlationSettings.x_freq
@@ -422,8 +421,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
-    Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
-    FileName fnFrame;
+    Image<T> croppedFrame, reducedFrame, shiftedFrame;
     int j = 0;
     int n = 0;
     Ninitial = N = 0;
@@ -434,41 +432,37 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirstSum && n <= this->nlastSum) {
-            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
-
             // load frame
-            frame.read(fnFrame);
-            if (XSIZE(dark()) > 0) frame() -= dark();
-            if (XSIZE(gain()) > 0) frame() *= gain();
-            if (this->yDRcorner != -1) {
-                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
-                        this->yDRcorner, this->xDRcorner);
-            } else croppedFrame() = frame();
+            this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
 
-            if (this->fnInitialAvg != "") {
-                throw std::invalid_argument("fnInitialAvg is currently not supported. "
-                        "If you need it, please contact developers or use xmipp_image_statistics program");
+            if (this->bin > 0) {
+                // FIXME add templates to respective functions/classes to avoid type casting
+                Image<double> croppedFrameDouble;
+                Image<double> reducedFrameDouble;
+                typeCast(croppedFrame(), croppedFrameDouble());
+
+                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
+                        floor(XSIZE(croppedFrame()) / this->bin),
+                        croppedFrameDouble(), reducedFrameDouble());
+
+                typeCast(reducedFrameDouble(), reducedFrame());
+
+                croppedFrame() = reducedFrame();
+            }
+
+            if ( ! this->fnInitialAvg.isEmpty()) {
+                if (j == 0)
+                    initialMic() = croppedFrame();
+                else
+                    initialMic() += croppedFrame();
+                Ninitial++;
             }
 
             if (this->fnAligned != "" || this->fnAvg != "") {
-                transformer.initLazyForBSpline(frame.data.xdim, frame.data.ydim, movieSettings.dim.n,
+                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, movieSettings.dim.n,
                     localAlignmentControlPoints.x, localAlignmentControlPoints.y, localAlignmentControlPoints.n);
                 transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
 
-                if (this->bin > 0) {
-                    // FIXME add templates to respective functions/classes to avoid type casting
-                    Image<double> shiftedFrameDouble;
-                    Image<double> reducedFrameDouble;
-                    typeCast(shiftedFrame(), shiftedFrameDouble());
-
-                    scaleToSizeFourier(1, floor(YSIZE(shiftedFrame()) / this->bin),
-                            floor(XSIZE(shiftedFrame()) / this->bin),
-                            shiftedFrameDouble(), reducedFrameDouble());
-
-                    typeCast(reducedFrameDouble(), reducedFrame());
-
-                    shiftedFrame() = reducedFrame();
-                }
 
                 if (this->fnAligned != "")
                     shiftedFrame.write(this->fnAligned, j + 1, true,
@@ -481,7 +475,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                     N++;
                 }
             }
-            std::cout << fnFrame << " processed." << std::endl;
+            std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
             j++;
         }
         n++;
@@ -602,7 +596,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     }
 
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSetting.dim.x,
-            correlationSetting.x_freq, correlationSetting.dim.y);
+            correlationSetting.dim.y);
 
     T corrSizeMB = ((size_t) correlationSetting.x_freq
             * correlationSetting.dim.y
@@ -657,9 +651,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        loadFrame(movie, __iter.objId, frame);
-        if (XSIZE(dark()) > 0) frame() -= dark();
-        if (XSIZE(gain()) > 0) frame() *= gain();
+        this->loadFrame(movie, dark, gain, __iter.objId, frame);
 
         // copy line by line, adding offset at the end of each line
         // result is the same image, padded in the X and Y dimensions
@@ -675,27 +667,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
     return imgs;
 }
 
-template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(
-        Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
-        const core::optional<size_t> &refFrame, size_t N) {
-    // now get the estimated shift (from the equation system)
-    // from each frame to successing frame
-    Matrix1D<T> shiftX, shiftY;
-    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
-    // prepare result
-    AlignmentResult<T> result {.refFrame = refFrame ?
-                    refFrame.value() :
-                    this->findReferenceImage(N, shiftX, shiftY)};
-    result.shifts.reserve(N);
-    // compute total shift in respect to reference frame
-    for (size_t i = 0; i < N; ++i) {
-        T x, y;
-        this->computeTotalShift(result.refFrame, i, shiftX, shiftY, x, y);
-        result.shifts.emplace_back(x, y);
-    }
-    return result;
-}
+
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
@@ -748,7 +720,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
 
     // now get the estimated shift (from the equation system)
     // from each frame to successing frame
-    AlignmentResult<T> result = computeShifts(bX, bY, A, refFrame, N);
+    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N);
     return result;
 }
 
@@ -850,20 +822,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
 //    }
 //}
 
-template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::loadFrame(const MetaData& movie,
-        size_t objId, Image<T>& out) {
-    FileName fnFrame;
-    movie.getValue(MDL_IMAGE, fnFrame, objId);
-    if (-1 != this->yDRcorner) {
-        Image<T> tmp;
-        tmp.read(fnFrame);
-        tmp().window(out(), this->yLTcorner, this->xLTcorner, this->yDRcorner,
-                this->xDRcorner);
-    } else {
-        out.read(fnFrame);
-    }
-}
+
 
 template<typename T>
 int ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterSize(
