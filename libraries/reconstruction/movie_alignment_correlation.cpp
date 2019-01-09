@@ -37,7 +37,69 @@ void ProgMovieAlignmentCorrelation<T>::defineParams() {
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
-    throw std::logic_error("Not implemented");
+    loadData(movie, dark, gain);
+    //    T targetOccupancy = 1.0; // Set to 1 if you want fmax maps onto 1/(2*newTs)
+    //
+    //    computeSizeFactor(targetOccupancy);
+    //    setNewDimensions(movie);
+    //    // Construct 1D profile of the lowpass filter
+    //    MultidimArray<T> lpf(newXdim / 2);
+    //    constructLPFold(targetOccupancy, lpf);
+    //
+    size_t N = this->nlast - this->nfirst + 1; // no of images to process
+    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
+    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
+
+    //    if (verbose)
+    //        std::cout << "Loading frames ..." << std::endl;
+    //    // Compute the Fourier transform of all input images
+    //    loadData(movie, dark, gain, targetOccupancy, lpf);
+    if (this->verbose)
+        std::cout << "Computing shifts between frames ..." << std::endl;
+    // Now compute all shifts
+    computeShifts(N, bX, bY, A);
+//
+//    Matrix1D<T> shiftX, shiftY;
+//    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
+
+    // Choose reference image as the minimax of shifts
+    auto ref = core::optional<size_t>();
+    return this->computeAlignment(bX, bY, A, ref, N);
+//    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
+    //    return bestIref;
+
+//    auto movieSettings = this->getMovieSettings(movie, true);
+//    T sizeFactor = this->computeSizeFactor();
+//    if (this->verbose) {
+//        std::cout << "Settings for the movie: " << movieSettings << std::endl;
+//    }
+//    auto correlationSetting = this->getCorrelationSettings(movieSettings,
+//            std::make_pair(sizeFactor, sizeFactor));
+//    if (this->verbose) {
+//        std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
+//    }
+//
+//    MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSetting.dim.x,
+//            correlationSetting.x_freq, correlationSetting.dim.y);
+//
+//    T corrSizeMB = ((size_t) correlationSetting.x_freq
+//            * correlationSetting.dim.y
+//            * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
+//    size_t framesInBuffer = std::ceil((gpu.value().lastFreeMem() / 3) / corrSizeMB);
+//
+//    auto reference = core::optional<size_t>();
+//
+//    T* data = loadMovie(movie, movieSettings, dark, gain);
+//    auto result = align(data, movieSettings, correlationSetting,
+//                    filter, reference,
+//            this->maxShift, framesInBuffer, this->verbose);
+//    delete[] data;
+//    return result;
+
+
+
+
+
 }
 
 template<typename T>
@@ -57,38 +119,41 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
 
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
-        const Image<T>& dark, const Image<T>& gain, T targetOccupancy,
-        const MultidimArray<T>& lpf) {
+        const Image<T>& dark, const Image<T>& gain) {
+    sizeFactor = this->computeSizeFactor();
     MultidimArray<T> filter;
     FourierTransformer transformer;
     bool firstImage = true;
     int n = 0;
     FileName fnFrame;
-    Image<T> frame, croppedFrame, reducedFrame;
+    Image<T> croppedFrame, reducedFrame;
 
     if (this->verbose) {
         std::cout << "Computing Fourier transform of frames ..." << std::endl;
         init_progress_bar(movie.size());
     }
 
-			//gain()=1.0/gain();
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirst && n <= this->nlast) {
-            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
-            if (this->yDRcorner == -1)
-                croppedFrame.read(fnFrame);
-            else {
-                frame.read(fnFrame);
-                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
-                        this->yDRcorner, this->xDRcorner);
+            this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
+//
+//            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
+//            if (this->yDRcorner == -1)
+//                croppedFrame.read(fnFrame);
+//            else {
+//                frame.read(fnFrame);
+//                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
+//                        this->yDRcorner, this->xDRcorner);
+//            }
+
+            if (firstImage) {
+                newXdim = croppedFrame().xdim * sizeFactor;
+                newYdim = croppedFrame().ydim * sizeFactor;
             }
-            if (XSIZE(dark()) > 0)
-                croppedFrame() -= dark();
-            if (XSIZE(gain()) > 0)
-                croppedFrame() *= gain();
+
             // Reduce the size of the input frame
-            scaleToSizeFourier(1, this->newYdim, this->newXdim, croppedFrame(),
+            scaleToSizeFourier(1, newYdim, newXdim, croppedFrame(),
                     reducedFrame());
 
             // Now do the Fourier transform and filter
@@ -98,9 +163,8 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     true);
             if (firstImage) {
                 firstImage = false;
-                filter.initZeros(*reducedFrameFourier);
-                this->scaleLPF(lpf, this->newXdim, this->newYdim,
-                        targetOccupancy, filter);
+                filter = this->createLPF(this->getTargetOccupancy(), newXdim,
+                    newYdim);
             }
             for (size_t nn = 0; nn < filter.nzyxdim; ++nn) {
                 T wlpf = DIRECT_MULTIDIM_ELEM(filter, nn);
@@ -120,19 +184,22 @@ template<typename T>
 void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
         const Matrix1D<T>& bX, const Matrix1D<T>& bY, const Matrix2D<T>& A) {
     int idx = 0;
+    assert(frameFourier.size() > 0);
     MultidimArray<T> Mcorr;
-    Mcorr.resizeNoCopy(this->newYdim, this->newXdim);
+    Mcorr.resizeNoCopy(newYdim, newXdim);
     Mcorr.setXmippOrigin();
     CorrelationAux aux;
     for (size_t i = 0; i < N - 1; ++i) {
         for (size_t j = i + 1; j < N; ++j) {
             bestShift(*frameFourier[i], *frameFourier[j], Mcorr, bX(idx),
-                    bY(idx), aux, NULL, this->maxShift);
+                    bY(idx), aux, NULL, this->maxShift * sizeFactor);
+            bX(idx) /= sizeFactor; // scale to expected size
+            bY(idx) /= sizeFactor;
             if (this->verbose)
                 std::cerr << "Frame " << i + this->nfirst << " to Frame "
                         << j + this->nfirst << " -> ("
-                        << bX(idx) / this->sizeFactor << ","
-                        << bY(idx) / this->sizeFactor << ")\n";
+                        << bX(idx) << ","
+                        << bY(idx) << ")\n";
             for (int ij = i; ij < j; ij++)
                 A(idx, ij) = 1;
 
@@ -157,31 +224,20 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirstSum && n <= this->nlastSum) {
-            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
-            movie.getValue(MDL_SHIFT_X, XX(shift), __iter.objId);
-            movie.getValue(MDL_SHIFT_Y, YY(shift), __iter.objId);
-            std::cout << fnFrame << " shiftX=" << XX(shift) << " shiftY="
-                    << YY(shift) << std::endl;
+            // get shifts
+            XX(shift) = -globAlignment.shifts.at(n).x; // we want to compensate
+            YY(shift) = -globAlignment.shifts.at(n).y; // the shift
 
-            frame.read(fnFrame);
-            if (XSIZE(dark()) > 0)
-                frame() -= dark();
-            if (XSIZE(gain()) > 0)
-                frame() *= gain();
-            if (this->yDRcorner != -1)
-                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
-                        this->yDRcorner, this->xDRcorner);
-            else
-                croppedFrame() = frame();
+            // load frame
+            this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
             if (this->bin > 0) {
                 scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
                         floor(XSIZE(croppedFrame()) / this->bin),
                         croppedFrame(), reducedFrame());
-                shift /= this->bin;
                 croppedFrame() = reducedFrame();
             }
 
-            if (this->fnInitialAvg != "") {
+            if ( ! this->fnInitialAvg.isEmpty()) {
                 if (j == 0)
                     initialMic() = croppedFrame();
                 else
@@ -212,6 +268,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     N++;
                 }
             }
+            std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
             j++;
         }
         n++;

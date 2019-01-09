@@ -97,6 +97,10 @@ public:
     void run();
 
 protected:
+
+    AlignmentResult<T> computeAlignment(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
+            const core::optional<size_t> &refFrame, size_t N);
+
     /**
      * Method will create a 2D Low-Pass Filter from the 1D
      * profile, that can be used in Fourier domain
@@ -150,8 +154,23 @@ protected:
      */
     T computeSizeFactor();
 
-    MultidimArray<T> createLPF(T targetOccupancy, size_t xSize, size_t xFFTSize,
+    MultidimArray<T> createLPF(T targetOccupancy, size_t xSize,
             size_t ySize);
+
+    /**
+     * Method loads a single image from the movie
+     * @param movie to load from
+     * @param objId id of the image to load
+     * @param crop flag stating if the image should be cropped
+     * @param out loaded frame
+     */
+    void loadFrame(const MetaData& movie, size_t objId,
+            Image<T>& out);
+
+
+    void loadFrame(const MetaData &movie, const Image<T> &dark,
+            const Image<T> &gain, size_t objId,
+            Image<T> &out);
 
     /**
      * Method to store relative shifts computed for the movie
@@ -304,9 +323,11 @@ private:
      */
     void correctLoopIndices(const MetaData& movie);
 
+    void printGlobalShift(const AlignmentResult<T> &globAlignment);
+
 protected:
-    // Target size of the frames
-    int newXdim, newYdim;
+//    // Target size of the frames
+//    int newXdim, newYdim;
     /** First and last frame (inclusive)*/
     int nfirst, nlast;
     /** Max shift */
@@ -338,8 +359,8 @@ protected:
     int outsideMode;
     /** Outside value */
     T outsideValue;
-    /** size factor between original size of the images and downscaled images) */
-    T sizeFactor;
+//    /** size factor between original size of the images and downscaled images) */
+//    T sizeFactor;
     bool processLocalShifts;
 
 private:

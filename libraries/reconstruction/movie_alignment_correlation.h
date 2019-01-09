@@ -48,8 +48,7 @@ private:
      * @param lpf 1D profile of the low-pass filter
      */
     void loadData(const MetaData& movie, const Image<T>& dark,
-            const Image<T>& gain, T targetOccupancy,
-            const MultidimArray<T>& lpf);
+            const Image<T>& gain);
 
     /**
      * Computes shifts of all images in the 'frameFourier'
@@ -96,6 +95,11 @@ private:
      *  correction
      */
     std::vector<MultidimArray<std::complex<T> > *> frameFourier;
+
+    int newXdim;
+    int newYdim;
+
+    T sizeFactor;
 };
 
 #endif
