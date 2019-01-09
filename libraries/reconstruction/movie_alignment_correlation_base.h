@@ -57,19 +57,18 @@ struct AlignmentResult {
 
 template<typename T>
 struct FramePatchMeta {
+    // rectangle representing the patch
     Rectangle<Point2D<T>> rec;
+    // logical id of the patch
     size_t id_x;
     size_t id_y;
     size_t id_t;
 };
 
 template<typename T>
-using Rec2D = Rectangle<Point2D<T>>;
-
-template<typename T>
 struct LocalAlignmentResult {
     const AlignmentResult<T> &globalHint;
-    // these are shifts from the reference frame in X/Y dimension,
+    // these are shifts (including global shift) of all patches in X/Y dimension,
     // i.e. if you want to compensate for the shift,
     // you have to shift in opposite direction (negate these values)
     std::vector<std::pair<FramePatchMeta<T>, Point2D<T>>> shifts;
@@ -98,21 +97,17 @@ public:
 
 protected:
 
-    AlignmentResult<T> computeAlignment(Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
-            const core::optional<size_t> &refFrame, size_t N);
-
     /**
-     * Method will create a 2D Low-Pass Filter from the 1D
-     * profile, that can be used in Fourier domain
-     * @param lpf 1D profile
-     * @param xSize size of full image (space domain)
-     * @param ySize size of full image (space/frequency domain)
-     * @param targetOccupancy maximal frequency to be preserved
-     * @param result resulting 2D filter. Must be of proper size, i.e.
-     * xdim == xSize/2+1, ydim = ySize
+     * Compute alignment of the each frame from frame-to-frame shifts
+     * @param bX frame-to-frame shift in X dim
+     * @param bY frame-to-frame shift in Y dim
+     * @param A system matrix to be used
+     * @param refFrame reference frame
+     * @param N no of frames
      */
-    void scaleLPF(const MultidimArray<T>& lpf, int xSize, int ySize,
-            T targetOccupancy, MultidimArray<T>& result);
+    AlignmentResult<T> computeAlignment(
+            Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
+            const core::optional<size_t> &refFrame, size_t N);
 
     /**
      * Method finds a reference image, i.e. an image which has smallest relative
@@ -150,70 +145,48 @@ protected:
 
     /**
      * Method computes an internal (down)scale factor of the micrographs
-     * @param targetOccupancy max frequency (in Fourier domain) to preserve
      */
     T computeSizeFactor();
 
+    /**
+     * Method will create a 2D Low Pass Filter with given properties
+     * @param targetOccupancy should be <0, 1.0>
+     * @param xSize of the filter
+     * @param ySize of the filter
+     */
     MultidimArray<T> createLPF(T targetOccupancy, size_t xSize,
             size_t ySize);
 
     /**
-     * Method loads a single image from the movie
+     * Method loads a single frame from the movie
      * @param movie to load from
      * @param objId id of the image to load
-     * @param crop flag stating if the image should be cropped
      * @param out loaded frame
      */
     void loadFrame(const MetaData& movie, size_t objId,
             Image<T>& out);
 
-
+    /**
+     * Method loads a single frame from the movie and apply gain and dark
+     * pixel correction
+     * @param movie to load from
+     * @param dark pixel correction
+     * @param gain correction
+     * @param objId id of the image to load
+     * @param out loaded frame
+     */
     void loadFrame(const MetaData &movie, const Image<T> &dark,
             const Image<T> &gain, size_t objId,
             Image<T> &out);
-
-    /**
-     * Method to store relative shifts computed for the movie
-     * @param alignment result to store
-     * @param movie to be updated
-     */
-    void storeGlobalShifts(const AlignmentResult<T> &alignment,
-            MetaData &movie);
 
     /**
      * Returns occupancy that can be used for filter generation
      */
     T getTargetOccupancy();
 
-
-private:
-//    /**
-//     * After running this method, all relevant images from the movie should
-//     * be loaded and ready for further processing
-//     * @param movie input
-//     * @param dark correction to be used
-//     * @param gain correction to be used
-//     * @param targetOccupancy max frequency to be preserved in FT
-//     * @param lpf 1D profile of the low-pass filter
-//     */
-//    virtual void loadData(const MetaData& movie, const Image<T>& dark,
-//            const Image<T>& gain, T targetOccupancy,
-//            const MultidimArray<T>& lpf) = 0;
-
-//    /**
-//     * After running this method, shifts (pair-wise) of all images loaded in
-//     * the 'loadData' * method should be determined
-//     * @param N number of images to process
-//     * @param bX pair-wise shifts in X dimension
-//     * @param bY pair-wise shifts in Y dimension
-//     * @param A system matrix to be filled
-//     */
-//    virtual void computeShifts(size_t N, const Matrix1D<T>& bX,
-//            const Matrix1D<T>& bY, const Matrix2D<T>& A) = 0;
-
     /**
-     * This method applies shifts stored in the metadata and computes 'average'
-     * image
+     * This method applies global shifts and can also produce 'average'
+     * image (micrograph)
      * @param movie input
      * @param dark correction to be used
      * @param gain correction to be used
@@ -221,35 +194,77 @@ private:
      * @param Ninitial will store number of micrographs used for unaligned sum
      * @param averageMicrograph sum of the aligned micrographs
      * @param N will store number of micrographs used for aligned sum
+     * @param globAlignment to apply
      */
     virtual void applyShiftsComputeAverage(const MetaData& movie,
             const Image<T>& dark, const Image<T>& gain, Image<T>& initialMic,
             size_t& Ninitial, Image<T>& averageMicrograph, size_t& N,
             const AlignmentResult<T> &globAlignment) = 0;
 
+    /**
+     * This method applies local shifts and can also produce 'average'
+     * image (micrograph)
+     * @param movie input
+     * @param dark correction to be used
+     * @param gain correction to be used
+     * @param initialMic sum of the unaligned micrographs
+     * @param Ninitial will store number of micrographs used for unaligned sum
+     * @param averageMicrograph sum of the aligned micrographs
+     * @param N will store number of micrographs used for aligned sum
+     * @param alignment to apply
+     */
     virtual void applyShiftsComputeAverage(
             const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment) = 0;
 
+    /**
+     * This method computes global shift of the frames of the movie
+     * @param movie to process
+     * @param dark pixel correction
+     * @param gain correction
+     */
     virtual AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain) = 0;
 
+    /**
+     * This method computes local shift of the frames of the movie
+     * @param movie to process
+     * @param dark pixel correction
+     * @param gain correction
+     */
     virtual LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain,
             const AlignmentResult<T> &globAlignment) = 0;
 
 private:
 
-    auto loadGlobalShifts(MetaData &movie);
+    /**
+     * Method will create a 2D Low-Pass Filter from the 1D
+     * profile, that can be used in Fourier domain
+     * @param lpf 1D profile
+     * @param xSize size of full image (space domain)
+     * @param ySize size of full image (space/frequency domain)
+     * @param targetOccupancy maximal frequency to be preserved, should be <0, 1.0>
+     * @param result resulting 2D filter. Must be of proper size, i.e.
+     * xdim == xSize/2+1, ydim = ySize
+     */
+    void scaleLPF(const MultidimArray<T>& lpf, int xSize, int ySize,
+            T targetOccupancy, MultidimArray<T>& result);
 
     /**
-     * Method computes an internal (down)scale factor of the micrographs
-     * @param targetOccupancy max frequency (in Fourier domain) to preserve
+     * Method to store global (frame) shifts computed for the movie
+     * @param alignment result to store
+     * @param movie to be updated
      */
-    void computeSizeFactor(T& targetOccupancy);
+    void storeGlobalShifts(const AlignmentResult<T> &alignment,
+            MetaData &movie);
 
-
+    /**
+     * Method loads global shift from the given movie
+     * @param movie where shifts are stored
+     */
+    auto loadGlobalShifts(MetaData &movie);
 
     /**
      * Method loads dark correction image
@@ -268,21 +283,7 @@ private:
      * @param targetOccupancy max frequency to preserve
      * @param lpf filter will be stored here
      */
-    void constructLPFold(T targetOccupancy, const MultidimArray<T>& lpf);
-
-    /**
-     * Method to construct 1D low-pass filter profile
-     * @param targetOccupancy max frequency to preserve
-     * @param lpf filter will be stored here
-     */
     void constructLPF(T targetOccupancy, const MultidimArray<T>& lpf);
-
-    /**
-     * Internally, images are processed in smaller resolution. This function
-     * sets proper variables
-     * @param movie to obtain sizes from
-     */
-    void setNewDimensions(const MetaData& movie);
 
     /**
      * Loads movie from the file
@@ -295,14 +296,6 @@ private:
      * @param movie to update
      */
     void setZeroShift(MetaData& movie);
-
-//    /**
-//     * Method finds shifts of images in the micrograph and stores them
-//     * @param movie to be processed
-//     * @param dark correction
-//     * @param gain correction
-//     */
-//    int findShiftsAndStore(MetaData& movie, Image<T>& dark, Image<T>& gain);
 
     /**
      * Method to store all computed results to hard drive
@@ -323,11 +316,18 @@ private:
      */
     void correctLoopIndices(const MetaData& movie);
 
+    /**
+     * Outputs global shift values to standard output
+     * @param globAlignment to show
+     */
     void printGlobalShift(const AlignmentResult<T> &globAlignment);
 
+    /**
+     * Returns sampling rate that user requested
+     */
+    T getRequestedSamplingRate();
+
 protected:
-//    // Target size of the frames
-//    int newXdim, newYdim;
     /** First and last frame (inclusive)*/
     int nfirst, nlast;
     /** Max shift */
@@ -359,13 +359,10 @@ protected:
     int outsideMode;
     /** Outside value */
     T outsideValue;
-//    /** size factor between original size of the images and downscaled images) */
-//    T sizeFactor;
+    /** if true, local alignment should be performed */
     bool processLocalShifts;
 
 private:
-    // Target sampling rate
-    T newTs;
     /** Filename of movie metadata */
     FileName fnMovie;
     /** Correction images */

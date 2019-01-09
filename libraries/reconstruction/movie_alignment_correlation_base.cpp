@@ -27,60 +27,6 @@
 #include "reconstruction/movie_alignment_correlation_base.h"
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::scaleLPF(const MultidimArray<T>& lpf,
-        int xSize, int ySize, T targetOccupancy, MultidimArray<T>& result) {
-    Matrix1D<T> w(2);
-    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(result)
-    {
-        FFT_IDX2DIGFREQ(i, ySize, YY(w));
-        FFT_IDX2DIGFREQ(j, xSize, XX(w));
-        T wabs = w.module();
-        if (wabs <= targetOccupancy)
-            A2D_ELEM(result, i, j) = lpf.interpolatedElement1D(wabs * xSize);
-    }
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData& movie,
-        size_t objId, Image<T>& out) {
-    FileName fnFrame;
-    movie.getValue(MDL_IMAGE, fnFrame, objId);
-    if (-1 != this->yDRcorner) {
-        Image<T> tmp;
-        tmp.read(fnFrame);
-        tmp().window(out(), this->yLTcorner, this->xLTcorner, this->yDRcorner,
-                this->xDRcorner);
-    } else {
-        out.read(fnFrame);
-    }
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
-        const Image<T> &dark, const Image<T> &gain, size_t objId,
-            Image<T> &out) {
-    loadFrame(movie, objId, out);
-    if (XSIZE(dark()) > 0) out() -= dark();
-    if (XSIZE(gain()) > 0) out() *= gain();
-}
-
-template<typename T>
-MultidimArray<T> AProgMovieAlignmentCorrelation<T>::createLPF(T targetOccupancy,
-        size_t xSize,
-        size_t ySize) {
-    // Construct 1D profile of the lowpass filter
-    MultidimArray<T> lpf(xSize);
-    constructLPF(targetOccupancy, lpf);
-
-    MultidimArray<T> result;
-    result.initZeros(ySize, (xSize / 2) + 1);
-
-    scaleLPF(lpf, xSize, ySize, targetOccupancy, result);
-    return result;
-}
-
-// Read arguments ==========================================================
-template<typename T>
 void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnMovie = getParam("-i");
     fnOut = getParam("-o");
@@ -117,7 +63,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     }
 }
 
-// Show ====================================================================
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::show() {
     if (!verbose)
@@ -144,7 +89,6 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << std::endl;
 }
 
-// usage ===================================================================
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addUsageLine("Align a set of frames by cross-correlation of the frames");
@@ -204,6 +148,59 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "  [--processLocalShifts]           : Calculate and correct local shifts");
     addExampleLine("A typical example", false);
     addSeeAlsoLine("xmipp_movie_optical_alignment_cpu");
+}
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::scaleLPF(const MultidimArray<T>& lpf,
+        int xSize, int ySize, T targetOccupancy, MultidimArray<T>& result) {
+    Matrix1D<T> w(2);
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(result)
+    {
+        FFT_IDX2DIGFREQ(i, ySize, YY(w));
+        FFT_IDX2DIGFREQ(j, xSize, XX(w));
+        T wabs = w.module();
+        if (wabs <= targetOccupancy)
+            A2D_ELEM(result, i, j) = lpf.interpolatedElement1D(wabs * xSize);
+    }
+}
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData& movie,
+        size_t objId, Image<T>& out) {
+    FileName fnFrame;
+    movie.getValue(MDL_IMAGE, fnFrame, objId);
+    if (-1 != this->yDRcorner) {
+        Image<T> tmp;
+        tmp.read(fnFrame);
+        tmp().window(out(), this->yLTcorner, this->xLTcorner, this->yDRcorner,
+                this->xDRcorner);
+    } else {
+        out.read(fnFrame);
+    }
+}
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
+        const Image<T> &dark, const Image<T> &gain, size_t objId,
+            Image<T> &out) {
+    loadFrame(movie, objId, out);
+    if (XSIZE(dark()) > 0) out() -= dark();
+    if (XSIZE(gain()) > 0) out() *= gain();
+}
+
+template<typename T>
+MultidimArray<T> AProgMovieAlignmentCorrelation<T>::createLPF(T targetOccupancy,
+        size_t xSize,
+        size_t ySize) {
+    // Construct 1D profile of the lowpass filter
+    MultidimArray<T> lpf(xSize);
+    constructLPF(targetOccupancy, lpf);
+
+    MultidimArray<T> result;
+    result.initZeros(ySize, (xSize / 2) + 1);
+
+    scaleLPF(lpf, xSize, ySize, targetOccupancy, result);
+    return result;
 }
 
 template<typename T>
@@ -305,11 +302,11 @@ void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
                 VEC_ELEM(helper.w, i) = 0.0;
         double newWeightSum = helper.w.sum();
         if (newWeightSum == oldWeightSum) {
-            std::cout << "No outlier found\n";
+            std::cout << "No outlier found\n\n";
             break;
         } else
             std::cout << "Found " << (int) (oldWeightSum - newWeightSum)
-                    << " outliers\n";
+                    << " outliers\n\n";
 
         it++;
     } while (it < solverIterations);
@@ -342,18 +339,6 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& gain) {
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::constructLPFold(T targetOccupancy,
-        const MultidimArray<T>& lpf) {
-//    T iNewXdim = 1.0 / newXdim;
-//    T sigma = targetOccupancy / 6; // So that from -targetOccupancy to targetOccupancy there is 6 sigma
-//    T K = -0.5 / (sigma * sigma);
-//    for (int i = STARTINGX(lpf); i <= FINISHINGX(lpf); ++i) {
-//        T w = i * iNewXdim;
-//        A1D_ELEM(lpf, i) = exp(K * (w * w));
-//    }
-}
-
-template<typename T>
 void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
         const MultidimArray<T>& lpf) {
     T iNewXdim = 1.0 / lpf.xdim;
@@ -370,62 +355,35 @@ T AProgMovieAlignmentCorrelation<T>::getTargetOccupancy() {
     if (bin < 0) {
         return (T)0.9;
     } else {
-        return 2 * newTs / maxFreq;
+        return 2 * getRequestedSamplingRate() / maxFreq;
     }
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::computeSizeFactor(T& targetOccupancy) {
-//    if (bin < 0) {
-//        targetOccupancy = 0.9; // Set to 1 if you want fmax maps onto 1/(2*newTs) // FIXME make function
-//        // Determine target size of the images
-//        newTs = targetOccupancy * maxFreq / 2;
-//        newTs = std::max(newTs, Ts);
-//
-//        sizeFactor = Ts / newTs;
-//        std::cout << "Estimated binning factor = " << 1 / sizeFactor
-//                << std::endl;
-//    } else {
-//        newTs = bin * Ts;
-//        sizeFactor = 1.0 / bin;
-//        targetOccupancy = 2 * newTs / maxFreq;
-//    }
+T AProgMovieAlignmentCorrelation<T>::getRequestedSamplingRate() {
+    T newTs;
+    if (bin < 0) {
+        T targetOccupancy = getTargetOccupancy();
+        // Determine target size of the images
+        newTs = targetOccupancy * maxFreq / 2;
+        newTs = std::max(newTs, Ts);
+    } else {
+        newTs = bin * Ts;
+    }
+    return newTs;
 }
 
 template<typename T>
 T AProgMovieAlignmentCorrelation<T>::computeSizeFactor() {
     T sizeFactor;
     if (bin < 0) {
-        T targetOccupancy = getTargetOccupancy(); // Set to 1 if you want fmax maps onto 1/(2*newTs)
-        // Determine target size of the images
-        newTs = targetOccupancy * maxFreq / 2;
-        newTs = std::max(newTs, Ts);
-
-        sizeFactor = Ts / newTs;
+        sizeFactor = Ts / getRequestedSamplingRate();
         std::cout << "Estimated binning factor = " << 1 / sizeFactor
                 << std::endl;
     } else {
-        newTs = bin * Ts;
         sizeFactor = 1.0 / bin;
     }
     return sizeFactor;
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::setNewDimensions(
-        const MetaData& movie) {
-//
-//    size_t Xdim, Ydim, Zdim, Ndim;
-//    getImageSize(movie, Xdim, Ydim, Zdim, Ndim);
-//    if (yDRcorner != -1) {
-//        Xdim = xDRcorner - xLTcorner + 1;
-//        Ydim = yDRcorner - yLTcorner + 1;
-//    }
-//    if (Zdim != 1)
-//        REPORT_ERROR(ERR_ARG_INCORRECT,
-//                "This program is meant to align 2D frames, not 3D");
-//    newXdim = (int(Xdim * sizeFactor) / 2) * 2; // we need odd size of the input, to be able to
-//    newYdim = (int(Ydim * sizeFactor) / 2) * 2; // compute FFT more efficiently (and e.g. perform shift by multiplication)
 }
 
 template<typename T>
@@ -509,44 +467,12 @@ void AProgMovieAlignmentCorrelation<T>::setZeroShift(MetaData& movie) {
     movie.fillConstant(MDL_SHIFT_Y, "0.0");
 }
 
-//template<typename T>
-//int AProgMovieAlignmentCorrelation<T>::findShiftsAndStore(MetaData& movie,
-//        Image<T>& dark, Image<T>& gain) {
-//    T targetOccupancy = 1.0; // Set to 1 if you want fmax maps onto 1/(2*newTs)
-//
-//    computeSizeFactor(targetOccupancy);
-//    setNewDimensions(movie);
-//    // Construct 1D profile of the lowpass filter
-//    MultidimArray<T> lpf(newXdim / 2);
-//    constructLPFold(targetOccupancy, lpf);
-//
-//    size_t N = nlast - nfirst + 1; // no of images to process
-//    Matrix2D<T> A(N * (N - 1) / 2, N - 1);
-//    Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
-//    if (verbose)
-//        std::cout << "Loading frames ..." << std::endl;
-//    // Compute the Fourier transform of all input images
-//    loadData(movie, dark, gain, targetOccupancy, lpf);
-//    if (verbose)
-//        std::cout << "Computing shifts between frames ..." << std::endl;
-//    // Now compute all shifts
-//    computeShifts(N, bX, bY, A); // notice that the shifts bX and bY are scaled by the sizeFactor
-//
-//    Matrix1D<T> shiftX, shiftY;
-//    solveEquationSystem(bX, bY, A, shiftX, shiftY);
-//
-//    // Choose reference image as the minimax of shifts
-//    int bestIref = findReferenceImage(N, shiftX, shiftY);
-////    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
-//    return bestIref;
-//}
-
 template<typename T>
 AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
         Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
         const core::optional<size_t> &refFrame, size_t N) {
     // now get the estimated shift (from the equation system)
-    // from each frame to successing frame
+    // from each frame to successive frame
     Matrix1D<T> shiftX, shiftY;
     this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
     // prepare result

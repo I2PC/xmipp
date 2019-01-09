@@ -248,7 +248,7 @@ private:
     auto getMovieBorders(const AlignmentResult<T> &globAlignment,
             bool verbose = false);
 
-    void getPatchData(const T *allFrames, const Rec2D<T> &patch,
+    void getPatchData(const T *allFrames, const Rectangle<Point2D<T>> &patch,
             const AlignmentResult<T> &globAlignment,
             const FFTSettings<T> &movie, T *result);
 
