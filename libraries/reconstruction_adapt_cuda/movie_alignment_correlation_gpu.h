@@ -280,9 +280,6 @@ private:
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment);
 
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
     /** Number of patches used for local alignment */
     std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
