@@ -104,6 +104,7 @@ protected:
      * @param A system matrix to be used
      * @param refFrame reference frame
      * @param N no of frames
+     * @return respective global alignment
      */
     AlignmentResult<T> computeAlignment(
             Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
@@ -115,6 +116,7 @@ protected:
      * @param N no of images
      * @param shiftX relative X shift of each image
      * @param shiftY relative Y shift of each image
+     * @return position of the reference frame
      */
     int findReferenceImage(size_t N, const Matrix1D<T>& shiftX,
             const Matrix1D<T>& shiftY);
@@ -153,6 +155,7 @@ protected:
      * @param targetOccupancy should be <0, 1.0>
      * @param xSize of the filter
      * @param ySize of the filter
+     * @return requested LPF
      */
     MultidimArray<T> createLPF(T targetOccupancy, size_t xSize,
             size_t ySize);
@@ -223,6 +226,7 @@ protected:
      * @param movie to process
      * @param dark pixel correction
      * @param gain correction
+     * @return global alignment of the movie
      */
     virtual AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain) = 0;
@@ -232,6 +236,7 @@ protected:
      * @param movie to process
      * @param dark pixel correction
      * @param gain correction
+     * @return local alignment of the movie
      */
     virtual LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain,
@@ -263,6 +268,7 @@ private:
     /**
      * Method loads global shift from the given movie
      * @param movie where shifts are stored
+     * @return global alignment as stored in the movie
      */
     auto loadGlobalShifts(MetaData &movie);
 
