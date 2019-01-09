@@ -151,7 +151,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
-        const Rec2D<T> &patch, const AlignmentResult<T> &globAlignment,
+        const Rectangle<Point2D<T>> &patch, const AlignmentResult<T> &globAlignment,
         const FFTSettings<T> &movie, T *result) {
     size_t n = movie.dim.n;
     auto patchSize = patch.getSize();
