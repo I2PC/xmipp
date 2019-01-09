@@ -11,7 +11,6 @@
 #include "dimensions.h"
 #include "point2D.h"
 #include <assert.h>
-#include "template_helper.h"
 
 template<typename T>
 class Rectangle {
