@@ -44,8 +44,6 @@ private:
      * @param movie input
      * @param dark correction to be used
      * @param gain correction to be used
-     * @param targetOccupancy max frequency to be preserved in FT
-     * @param lpf 1D profile of the low-pass filter
      */
     void loadData(const MetaData& movie, const Image<T>& dark,
             const Image<T>& gain);
@@ -62,30 +60,31 @@ private:
             const Matrix2D<T>& A);
 
     /**
-     * This method applies shifts stored in the metadata and computes 'average'
-     * image
-     * @param movie input
-     * @param dark correction to be used
-     * @param gain correction to be used
-     * @param initialMic sum of the unaligned micrographs
-     * @param Ninitial will store number of micrographs used for unaligned sum
-     * @param averageMicrograph sum of the aligned micrographs
-     * @param N will store number of micrographs used for aligned sum
+     * Inherited, see parent
      */
     void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
             const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
             Image<T>& averageMicrograph, size_t& N,
             const AlignmentResult<T> &globAlignment);
 
+    /**
+     * Inherited, see parent
+     */
     void applyShiftsComputeAverage(
                 const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
                 Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
                 size_t& N, const LocalAlignmentResult<T> &alignment);
 
+    /**
+     * Inherited, see parent
+     */
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
             const Image<T> &gain);
 
+    /**
+     * Inherited, see parent
+     */
     LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain,
             const AlignmentResult<T> &globAlignment);
@@ -96,9 +95,11 @@ private:
      */
     std::vector<MultidimArray<std::complex<T> > *> frameFourier;
 
+    /** Sizes of the correlation */
     int newXdim;
     int newYdim;
 
+    /** Scale factor of the correlation and original frame size */
     T sizeFactor;
 };
 

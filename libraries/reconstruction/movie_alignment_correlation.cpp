@@ -38,68 +38,18 @@ template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
     loadData(movie, dark, gain);
-    //    T targetOccupancy = 1.0; // Set to 1 if you want fmax maps onto 1/(2*newTs)
-    //
-    //    computeSizeFactor(targetOccupancy);
-    //    setNewDimensions(movie);
-    //    // Construct 1D profile of the lowpass filter
-    //    MultidimArray<T> lpf(newXdim / 2);
-    //    constructLPFold(targetOccupancy, lpf);
-    //
     size_t N = this->nlast - this->nfirst + 1; // no of images to process
     Matrix2D<T> A(N * (N - 1) / 2, N - 1);
     Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
 
-    //    if (verbose)
-    //        std::cout << "Loading frames ..." << std::endl;
-    //    // Compute the Fourier transform of all input images
-    //    loadData(movie, dark, gain, targetOccupancy, lpf);
     if (this->verbose)
         std::cout << "Computing shifts between frames ..." << std::endl;
     // Now compute all shifts
     computeShifts(N, bX, bY, A);
-//
-//    Matrix1D<T> shiftX, shiftY;
-//    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
 
     // Choose reference image as the minimax of shifts
     auto ref = core::optional<size_t>();
     return this->computeAlignment(bX, bY, A, ref, N);
-//    storeRelativeShifts(bestIref, shiftX, shiftY, movie);
-    //    return bestIref;
-
-//    auto movieSettings = this->getMovieSettings(movie, true);
-//    T sizeFactor = this->computeSizeFactor();
-//    if (this->verbose) {
-//        std::cout << "Settings for the movie: " << movieSettings << std::endl;
-//    }
-//    auto correlationSetting = this->getCorrelationSettings(movieSettings,
-//            std::make_pair(sizeFactor, sizeFactor));
-//    if (this->verbose) {
-//        std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
-//    }
-//
-//    MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSetting.dim.x,
-//            correlationSetting.x_freq, correlationSetting.dim.y);
-//
-//    T corrSizeMB = ((size_t) correlationSetting.x_freq
-//            * correlationSetting.dim.y
-//            * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
-//    size_t framesInBuffer = std::ceil((gpu.value().lastFreeMem() / 3) / corrSizeMB);
-//
-//    auto reference = core::optional<size_t>();
-//
-//    T* data = loadMovie(movie, movieSettings, dark, gain);
-//    auto result = align(data, movieSettings, correlationSetting,
-//                    filter, reference,
-//            this->maxShift, framesInBuffer, this->verbose);
-//    delete[] data;
-//    return result;
-
-
-
-
-
 }
 
 template<typename T>
@@ -137,15 +87,6 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
     {
         if (n >= this->nfirst && n <= this->nlast) {
             this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
-//
-//            movie.getValue(MDL_IMAGE, fnFrame, __iter.objId);
-//            if (this->yDRcorner == -1)
-//                croppedFrame.read(fnFrame);
-//            else {
-//                frame.read(fnFrame);
-//                frame().window(croppedFrame(), this->yLTcorner, this->xLTcorner,
-//                        this->yDRcorner, this->xDRcorner);
-//            }
 
             if (firstImage) {
                 newXdim = croppedFrame().xdim * sizeFactor;
