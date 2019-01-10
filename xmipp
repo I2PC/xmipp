@@ -911,7 +911,7 @@ if __name__ == '__main__':
         checkConfig()
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
-		compileDependencies(Nproc)
+        compileDependencies(Nproc)
         if n<=3:
             ok = compile(Nproc)
             module = 'Xmipp'
