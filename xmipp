@@ -1,4 +1,27 @@
 #!/usr/bin/env python2
+# ***************************************************************************
+# * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+# *              David Maluenda (dmaluenda@cnb.csic.es)
+# *
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 2 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'scipion@cnb.csic.es'
+# ***************************************************************************/
 
 import distutils.spawn
 import glob
@@ -7,7 +30,35 @@ import shutil
 import sys
 import unittest
 import subprocess
+from datetime import datetime
 
+# --K-E-E-P--U-P-D-A-T-E-D-- #
+##############################
+XMIPP_VERSION = '3.18.08'    #
+RELEASE_DATA = '24/08/2018'  #
+##############################
+
+def getVersion(getCompilation=True):
+    """ Prints the version of XMIPP
+    """
+    versionList = []
+    versionList.append("Xmipp version: %s" % XMIPP_VERSION)
+    versionList.append("Release date: %s" % RELEASE_DATA)
+
+    if getCompilation:
+        lastCompFn = os.path.join("src", "xmipp", "bin", "xmipp_version")
+        if os.path.exists(lastCompFn):
+            with open(lastCompFn, 'r') as f:
+                binaryStr = f.read()
+            lastCompStr = 'No compilation date found.'
+            for line in binaryStr.split('\n'):
+                if 'Last compilation:' in line:
+                    lastCompStr = line.strip('print ').strip("'")
+            versionList.append(lastCompStr)
+        else:
+            versionList.append('No compilation date found.')
+
+    return versionList
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -22,16 +73,18 @@ def createDir(dirname):
 
 def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","ManjaroLinux"]
+    try:
+        osInfo = subprocess.Popen(["lsb_release", "--id"],
+                                   stdout=subprocess.PIPE).stdout.read()
+        osName = osInfo.split('\t')[1].strip('\n')
+        osId = -1  # no default OS
+        for idx, system in enumerate(systems):
+            if osName in system:
+                osId = idx
+    except:
+        osId = -1
 
-    osInfo = subprocess.Popen(["lsb_release", "--id"],
-                              stdout=subprocess.PIPE).stdout.read()
-    osName = osInfo.split('\t')[1].strip('\n')
-    osId = -1  # no default OS
-    for idx, system in enumerate(systems):
-        if osName in system:
-            osId = idx
-
-    systemInstructions = {}
+    systemInstructions = {}   #        Ubuntu/Debian          ;      ManjaroLinux
     systemInstructions["git"] = ["sudo apt-get -y install git","sudo pacman -Syu --noconfirm git"]
     systemInstructions["gcc"] = ["sudo apt-get -y install gcc","sudo pacman -Syu --noconfirm gcc"]
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
@@ -39,22 +92,33 @@ def checkProgram(programName, show=True):
     systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
-    systemInstructions["rsync"] = ["sudo apt-get -y rsync" , "sudo pacman -Syu --noconfirm rsync"]
-
+    systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
+    systemInstructions["pip"] = ["sudo apt-get -y install python-pip" , "sudo pacman -Syu --noconfirm rsync"]
     ok=True
+    cont = True
     if not whereis(programName):
-        if show:
-            print(red("Cannot find %s."%programName))
-            idx=0
-            if programName in systemInstructions:
-                if osId >= 0:
-                    print(red(" - Do: %s"%systemInstructions[programName][osId]))
-                else:
-                    for instructions in systemInstructions[programName]:
+        if programName == "scons":
+            if checkProgram("pip"):
+                cont=runJob("pip install scons")
+            else:
+                ok = False
+        if cont:
+            if show:
+                print(red("Cannot find %s."%programName))
+                idx=0
+                if programName in systemInstructions:
+                    if osId >= 0:
+                        print(red(" - %s OS detected, please try: %s"
+                                  % (systems[osId],
+                                     systemInstructions[programName][osId])))
+                    else:
                         print(red("   Do:"))
-                        print(red("    - In %s: %s"%(systems[idx],instructions)))
-                        idx+=1
-        ok = False
+                        for instructions in systemInstructions[programName]:
+                            print(red("    - In %s: %s"%(systems[idx],instructions)))
+                            idx+=1
+            ok = False
+        else:
+            ok = False
     return ok
 
 def green(text):
@@ -88,22 +152,45 @@ def cleanBinaries():
     runJob('find . -iname "*.pyc" -delete')
     runJob("rm -rf xmipp.conf build")
 
+def cloneOrCheckout(repo, branch, doPull, ok):
+    repoDir = "src/%s"%repo
+    print("...on %s" % repoDir)
+    if not os.path.exists(repoDir):
+    # If the repo doesn't exist, just clone the whole repo
+        branch = 'devel' if branch=='' else branch
+        ok = ok and runJob("git clone -b %s https://github.com/I2PC/%s.git %s"
+                           % (branch, repo, repoDir))
+    elif branch != '':
+        workDir = os.getcwd()
+        os.chdir(repoDir)
+        gitSt = subprocess.Popen(["git", "status"],
+                                 stdout=subprocess.PIPE).stdout.read()
+        if "working directory clean" in gitSt or \
+                "working tree clean" in gitSt:
+            gitStBr = gitSt.split("\n")[0]
+            currentBranch = gitStBr.split("On branch ")[1]
+            if currentBranch != branch:
+                ok = ok and runJob("git checkout %s" % branch)
+            if doPull:
+                ok = ok and runJob("git pull")
+        else:
+            print("working branch detected: aborting git checkout and git pull")
 
-def getSources():
+        os.chdir(workDir)
+    return ok
+
+def getSources(branch='', doPull=True):
     print("Getting sources -------------------------------------")
     createDir("src")
     ok=True
     if checkProgram("git"):
-        if not os.path.exists("src/xmippCore"):
-            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPULocal https://github.com/I2PC/xmippCore.git src/xmippCore")
-        if not os.path.exists("src/xmipp"):
-            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPULocal https://github.com/I2PC/xmipp.git src/xmipp")
-        if not os.path.exists("src/xmippViz"):
-            ok=ok and runJob("git clone --branch=devel https://github.com/I2PC/xmippViz.git src/xmippViz")
-        if not os.path.exists("src/scipion-em-xmipp"):
-            ok=ok and runJob("git clone --branch=ds_movieAlignmentGPU https://github.com/I2PC/scipion-em-xmipp.git src/scipion-em-xmipp")
+        ok = cloneOrCheckout("xmippCore", branch, doPull, ok)
+        ok = cloneOrCheckout("xmipp", branch, doPull, ok)
+        ok = cloneOrCheckout("xmippViz", branch, doPull, ok)
+        ok = cloneOrCheckout("scipion-em-xmipp", branch, doPull, ok)
     else:
         ok=False
+
     ok=ok and checkProgram("scons")
     if not ok:
         print(red("Cannot get the sources"))
@@ -559,9 +646,11 @@ def checkConfig():
         writeConfig(configDict)
     return True
 
-def compileModule(Nproc,module):
+def compileModule(Nproc,module,printFinish=False):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
+    if module == "xmipp" and ok:
+        stampVersion()
     return ok
 
 def compileDependencies(Nproc):
@@ -592,8 +681,18 @@ def compile(Nproc):
         return False
     return True
 
+def stampVersion():
+    LAST_COMPILATION = datetime.now()
+    lastComp = "Last compilation: %s" % LAST_COMPILATION.strftime("%d/%m/%Y")
+    lastCompFn = os.path.join('src', 'xmipp', 'bin', 'xmipp_version')
 
+    with open(lastCompFn, 'w+') as f:
+        f.write("#!/usr/bin/env python2\n")
+        f.write("print '%s'\n" % getVersion(getCompilation=False)[0])
+        f.write("print '%s'\n" % getVersion(getCompilation=False)[1])
+        f.write("print '%s'\n" % lastComp)
 
+    os.chmod(lastCompFn, 0o777)
 
 def runTests(testNames):
     print("Testing ---------------------------------------------")
@@ -607,6 +706,8 @@ def runTests(testNames):
                         blue('source build/xmipp.bashrc'))
 
     dataSetPath = os.path.join(testsPath, 'data')
+    if not os.path.isdir(dataSetPath):
+        createDir(dataSetPath)
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
     if not '--show' in testNames:
@@ -706,7 +807,12 @@ def install(dirname):
     fhBash.close()
     fhFish.close()
 
-    print("install done\n")
+    print("\n"
+          "  *********************************************\n"
+          "  *                                           *\n"
+          "  *  Xmipp have been successfully installed!  *\n"
+          "  *                                           *\n"
+          "  *********************************************\n\n")
     return True
 
 def writeDevelPaths(dirname):
@@ -735,23 +841,25 @@ def writeDevelPaths(dirname):
     fhBash.close()
 
 def usage():
-    print("Usage: xmipp_installer [options]\n"
-          "   all [N=processors]:     (Default) Retrieve, configure, check, compile N=8, install in build\n"
+    print("Usage: xmipp [options]\n"
+          "   version                     Returns the version information\n"
+          "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
           "   get_dependencies:    Retrieve dependencies from github\n"
-          "   get_devel_sources:      Retrieve development sources from github\n"
-          "   cleanBin:               Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
-          "   clean:                  Delete all (sources and build directories)\n"
-          "   config:                 Configure compilation variables\n"
-          "   check_config:           Check that the configuration is correct\n"
-          "   compile N:              Compile all modules with N processors\n"
+          "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
+          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
+          "   cleanAll:                   Delete all (sources and build directories)\n"
+          "   config:                     Configure compilation variables\n"
+          "   check_config:               Check that the configuration is correct\n"
+          "   compile [N]:                Compile all modules with N processors (8 by default)\n"
           "   compile N dependencies: Compile dependencies\n"
-          "   compile N xmippCore:    Compile xmippCore\n"
-          "   compile N xmipp:        Compile xmipp\n"
-          "   compile N xmippViz:     Compile xmippViz\n"
-          "   install dir:            Install at dir (by default, ./build)\n"
-          "   test [--show] testName: Run tests to check Xmipp programs (by default, all).\n"
-          "                             if --show is activated without testName all are shown, \n"
-          "                             instead a grep of testName is done \n"
+          "   compileAndInstall N:        Compile all modules with N processors and install in the default directory\n"
+          "   compile  N xmippCore:       Compile xmippCore\n"
+          "   compile  N xmipp:           Compile xmipp\n"
+          "   compile  N xmippViz:        Compile xmippViz\n"
+          "   install [dir]:              Install at dir (./build by default)\n"
+          "   test [--show] testName:     Run tests to check Xmipp programs (by default, all).\n"
+          "                                 if --show is activated without testName all are shown, \n"
+          "                                 instead a grep of testName is done \n"
           "For developers:\n"
           "   create_devel_paths:     Create bashrc files for devel\n"
           "   git ...:                Git command to all 4 repositories\n"
@@ -771,32 +879,55 @@ if __name__ == '__main__':
         usage()
         sys.exit(0)
     for idx, arg in enumerate(sys.argv):
-        if ' ' in arg:  # to preserve "string"
+        if ' ' in arg:  # to preserve spaces between "comas"
             sys.argv[idx] = '"%s"' % sys.argv[idx]
     if n>=2:
         mode = sys.argv[1]
     else:
         mode = "all"
-    if mode=="clean":
-        cleanSources()
+    if mode=="cleanAll":
+        print("WARNING: This will DELETE ALL content from src and build")
+        print("Are you sure you want to do this? (YeS/No)")
+        yesno = raw_input()
+        if yesno == "YeS":
+            print("Cleaning everything")
+            cleanSources()
+        else:
+            print("Nothing cleaned")
+            if yesno.lower()=="yes":
+                print("Pay attention to capital letters of YeS")
     elif mode=="get_dependencies" and checkProgram("git"):
         getDependencies()
-    if mode=="cleanBin":
+    elif mode=="cleanBin":
         cleanBinaries()
+    elif mode=="version":
+        print('\n'.join(getVersion()))
     elif mode=="get_devel_sources" and checkProgram("git"):
-        getSources()
+        branch = "devel" if n==2 else sys.argv[2]
+        getSources(branch)
     elif mode=="config":
         config()
     elif mode=="check_config":
         checkConfig()
     elif mode=="compile":
-        Nproc=sys.argv[2]
-        if n==3:
-            compile(Nproc)
-        elif sys.argv[2] == 'dependencies':
-            compileDependencies(Nproc)
+        Nproc = 8 if n<3 else sys.argv[2]
+		compileDependencies(Nproc)
+        if n<=3:
+            ok = compile(Nproc)
+            module = 'Xmipp'
         else:
-            compileModule(Nproc,sys.argv[3])
+            ok = compileModule(Nproc,sys.argv[3])
+            module = sys.argv[3]
+        if ok:
+            print("\n"
+                  "  * %s have been successfully compile * \n"
+                  "    > > > Don't forget to install! < < <   \n\n"
+                  % module)
+    elif mode=="compileAndInstall":
+        Nproc=sys.argv[2]
+        compileDependencies(Nproc)
+        compile(Nproc)
+        install("build")
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
@@ -806,7 +937,24 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        Nproc = sys.argv[2] if n==3 else 8
+        Nproc = 8
+        branch = ''
+        doPull = False
+        buildDir = 'build'
+        for arg in sys.argv[2:]:
+            if arg.startswith("N="):
+                Nproc = int(arg[2:])
+            elif arg.startswith("br="):
+                branch = arg[3:]
+                doPull = True
+            elif arg.startswith("dir="):
+                buildDir = arg[4:]
+            else:
+                print("Unknown %s argument"%arg)
+                usage()
+                sys.exit(1)
+
+        ok = getSources(branch, doPull)
         ok = (getDependencies()
             and getSources()
             and config()
@@ -815,12 +963,6 @@ if __name__ == '__main__':
             and compile(Nproc)
             and install('build'))
         if ok:
-           print("\n"
-                 "  *********************************************\n"
-                 "  *                                           *\n"
-                 "  *  Xmipp have been successfully installed!  *\n"
-                 "  *                                           *\n"
-                 "  *********************************************\n\n")
            sys.exit(0)
         else:
            sys.exit(1)
