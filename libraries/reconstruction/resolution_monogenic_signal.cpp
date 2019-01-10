@@ -1082,6 +1082,7 @@ void ProgMonogenicSignalRes::run()
 	objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnOut, objId);
 	md.setValue(MDL_COUNT, (size_t) NVoxelsOriginalMask, objId);
+	md.setValue(MDL_SCALE, R, objId);
 	md.setValue(MDL_COUNT2, (size_t) Nvoxels, objId);
 
 	md.write(fnMd);

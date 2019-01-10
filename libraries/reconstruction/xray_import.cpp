@@ -485,7 +485,10 @@ void ProgXrayImport::getFlatfield(const FileName &fnFFinput,
 
     darkFix = false; // We reset just in case there is no dark field for tomo images
 
-    mdaIavg*=1.0/N;
+    if (0 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N is zero (0), which would lead to division by zero");
+    }
+    mdaIavg/=N;
 
     /* Create a mask with zero valued pixels to apply boundaries median filter
      * to avoid dividing by zero when normalizing */
