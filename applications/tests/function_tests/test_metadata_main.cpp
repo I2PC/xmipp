@@ -1,4 +1,4 @@
-#include <unistd.h> 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <core/metadata_extension.h>
@@ -247,13 +247,25 @@ TEST_F( MetadataTest, AddRowsPerformance)
 }
 
 TEST_F( MetadataTest, addLabelAlias)
+{	
+    //metada with no xmipp labels	    //metada with no xmipp labels
+    FileName fnNonXmippSTAR = (String)"metadata/noXmipp.xmd";
+    MDL::addLabelAlias(MDL_Y,(String)"noExixtingLabel");	    
+    MetaData md = MetaData(fnNonXmippSTAR);
+    EXPECT_EQ(mDsource, md);
+}
+
+TEST_F( MetadataTest, getNewAlias)
 {
     //metada with no xmipp labels
-    FileName fnNonXmippSTAR =(String)"metadata/noXmipp.xmd";
-    MDL::addLabelAlias(MDL_Y,(String)"noExixtingLabel");
+    FileName fnNonXmippSTAR = (String)"metadata/noXmipp.xmd";
+    String labelStr("noExixtingLabel");
+    MDLabel newLabel = MDL::getNewAlias(labelStr);
+    EXPECT_EQ(newLabel, BUFFER_01);
+    EXPECT_EQ(MDL::label2Str(newLabel), labelStr);
     MetaData md = MetaData(fnNonXmippSTAR);
-    EXPECT_EQ(mDsource,md);
-}
+    EXPECT_EQ(mDsource, md);
+}	
 
 TEST_F( MetadataTest, Aggregate1)
 {
