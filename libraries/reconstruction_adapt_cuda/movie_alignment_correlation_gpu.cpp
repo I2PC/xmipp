@@ -158,6 +158,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
     auto copyPatchData = [&](size_t srcFrameIdx, size_t t, bool add) {
         size_t frameOffset = srcFrameIdx * movie.x * movie.y;
         size_t patchOffset = t * patchSize.x * patchSize.y;
+        // keep the shift consistent while adding local shift
         int xShift = std::round(globAlignment.shifts.at(srcFrameIdx).x);
         int yShift = std::round(globAlignment.shifts.at(srcFrameIdx).y);
         for (size_t y = 0; y < patchSize.y; ++y) {
@@ -334,10 +335,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     T* movieData = loadMovie(movie, movieSettings, dark, gain);
 
     // allocate additional memory for the patches
-    size_t patchesElements = correlationSettings.dim.n
-            * correlationSettings.dim.y
-            * std::max(correlationSettings.dim.x,
-                    correlationSettings.x_freq * 2);
+    size_t patchesElements = std::max(correlationSettings.elemsFreq(), correlationSettings.elemsSpacial()); // correlationSettings.dim.n
     T *patchesData = new T[patchesElements];
 
     // prepare filter
@@ -370,9 +368,13 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         // process it
         for (size_t i = 0; i < movieSettings.dim.n; ++i) {
             FramePatchMeta<T> tmp = p;
+            // keep consistent with data loading
+            int globShiftX = std::round(globAlignment.shifts.at(i).x);
+            int globShiftY = std::round(globAlignment.shifts.at(i).y);
             tmp.id_t = i;
             // total shift is global shift + local shift
-            result.shifts.emplace_back(tmp, globAlignment.shifts.at(i) + alignment.shifts.at(i));
+            result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
+                    + alignment.shifts.at(i));
         }
         std::cout << std::endl;
     }
@@ -537,7 +539,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         const Image<T>& gain) {
     // allocate enough memory for the images. Since it will be reused, it has to be big
     // enough to store either all FFTs or all input images
-    T* imgs = new T[std::max(settings.bytesFreq(), settings.bytesSpacial())]();
+    T* imgs = new T[std::max(settings.elemsFreq(), settings.elemsSpacial())]();
     Image<T> frame;
 
     int movieImgIndex = -1;

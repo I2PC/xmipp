@@ -51,7 +51,7 @@ struct FFTSettings {
     }
 
     size_t elemsFreq() const {
-        return x_freq * dim.y * dim.z * dim.n;
+        return x_freq * dim.y * dim.z * dim.n * 2; // * 2 for complex numbers
     }
 
     size_t bytesFreq() const {
