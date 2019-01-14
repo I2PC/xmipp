@@ -85,6 +85,11 @@ private:
     /**
      * Inherited, see parent
      */
+    void releaseAll() { /* nothing to do */ };
+
+    /**
+     * Inherited, see parent
+     */
     LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
             const Image<T> &dark, const Image<T> &gain,
             const AlignmentResult<T> &globAlignment);

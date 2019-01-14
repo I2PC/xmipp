@@ -332,7 +332,11 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     }
 
     // load movie to memory
-    T* movieData = loadMovie(movie, movieSettings, dark, gain);
+    if (nullptr == movieRawData) {
+        movieRawData = loadMovie(movie, movieSettings, dark, gain);
+    }
+    T* movieData = movieRawData;
+    movieRawData = nullptr; // currently, raw movie data are needed after local alignment
 
     // allocate additional memory for the patches
     size_t patchesElements = std::max(correlationSettings.elemsFreq(), correlationSettings.elemsSpacial()); // correlationSettings.dim.n
@@ -505,7 +509,15 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     auto reference = core::optional<size_t>();
 
-    T* data = loadMovie(movie, movieSettings, dark, gain);
+
+    // load movie to memory
+    if (nullptr == movieRawData) {
+        movieRawData = loadMovie(movie, movieSettings, dark, gain);
+    }
+    size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
+    T* data = new T[elems];
+    memcpy(data, movieRawData, elems * sizeof(T));
+
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);

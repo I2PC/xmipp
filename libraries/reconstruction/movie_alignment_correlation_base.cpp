@@ -568,6 +568,8 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     }
 
     storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);
+
+    releaseAll();
 }
 
 template class AProgMovieAlignmentCorrelation<float> ;

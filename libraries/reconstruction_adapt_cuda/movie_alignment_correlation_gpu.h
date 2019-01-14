@@ -49,6 +49,15 @@ public:
     void defineParams();
 
 private:
+
+    /**
+     * Inherited, see parent
+     */
+    void releaseAll() {
+        delete[] movieRawData;
+        movieRawData = nullptr;
+    };
+
     /**
      * Estimates maximal size of the filter for given frame
      * Might be use to estimate memory requirements
@@ -291,6 +300,9 @@ private:
     std::string storage;
 
     core::optional<GPU> gpu;
+
+    /** contains the loaded movie, with consecutive data padded for in-place FFT */
+    T* movieRawData = nullptr;
 
     /**
      * Keywords representing optimal settings of the algorithm.
