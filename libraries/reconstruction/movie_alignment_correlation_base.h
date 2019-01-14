@@ -242,6 +242,11 @@ protected:
             const Image<T> &dark, const Image<T> &gain,
             const AlignmentResult<T> &globAlignment) = 0;
 
+    /**
+     * This method releases all resources allocated so far
+     */
+    virtual void releaseAll() = 0;
+
 private:
 
     /**
