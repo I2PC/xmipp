@@ -72,9 +72,9 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
     int noOfImgs = this->nlast - this->nfirst + 1;
     this->loadFrame(movie, movie.firstObject(), frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
-    int maxFilterSize = getMaxFilterSize(frame);
 
     if (optimize) {
+        int maxFilterSize = getMaxFilterSize(frame);
         return getSettingsOrBenchmark(dim, maxFilterSize, true);
     } else {
         return FFTSettings<T>(dim.x, dim.y, dim.z, dim.n, 1, false);
@@ -201,7 +201,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
     UserSettings::get(storage).insert(*this,
             getKey(optBatchSizeStr, dim, applyCrop), s.batch);
     UserSettings::get(storage).insert(*this,
-            getKey(minMemoryStr, dim, applyCrop), gpu.value().lastFreeMem());
+            getKey(minMemoryStr, dim, applyCrop), gpu.value().lastFreeMem()); // FIXME update
     UserSettings::get(storage).store(); // write changes immediately
 }
 
@@ -269,6 +269,8 @@ template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoeffs(const Dimensions &movieSize,
         const LocalAlignmentResult<T> &alignment,
         const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches) {
+
+    if(this->verbose) std::cout << "Computing BSpline coefficients" << std::endl;
     // get coefficients fo the BSpline that can represent the shifts (formula  from the paper)
     int lX = controlPoints.x;
     int lY = controlPoints.y;
@@ -338,9 +340,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     T* movieData = movieRawData;
     movieRawData = nullptr; // currently, raw movie data are needed after local alignment
 
-    // allocate additional memory for the patches
-    size_t patchesElements = std::max(correlationSettings.elemsFreq(), correlationSettings.elemsSpacial()); // correlationSettings.dim.n
-    T *patchesData = new T[patchesElements];
+
 
     // prepare filter
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x,
@@ -358,33 +358,52 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     result.shifts.reserve(patchesLocation.size() * movieSettings.dim.n);
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
+    // allocate additional memory for the patches
+    size_t patchesElements = std::max(correlationSettings.elemsFreq(), correlationSettings.elemsSpacial()); // correlationSettings.dim.n
+    T *patchesData1 = new T[patchesElements];
+    T *patchesData2 = new T[patchesElements];
+
+    std::thread  processThread;
+
+    // use additional thread that would load the data at the background
     // get alignment for all patches
     for (auto &&p : patchesLocation) {
-        std::cout << "Processing patch " << p.id_x << " " << p.id_y << std::endl;
         // get data
-        memset(patchesData, 0, patchesElements * sizeof(T));
+        memset(patchesData1, 0, patchesElements * sizeof(T));
         getPatchData(movieData, p.rec, globAlignment, movieSettings.dim,
-                patchesData);
-        // get alignment
-        auto alignment = align(patchesData, patchSettings, correlationSettings,
-                filter, refFrame,
-                this->maxShift, framesInBuffer, false);
-        // process it
-        for (size_t i = 0; i < movieSettings.dim.n; ++i) {
-            FramePatchMeta<T> tmp = p;
-            // keep consistent with data loading
-            int globShiftX = std::round(globAlignment.shifts.at(i).x);
-            int globShiftY = std::round(globAlignment.shifts.at(i).y);
-            tmp.id_t = i;
-            // total shift is global shift + local shift
-            result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
-                    + alignment.shifts.at(i));
-        }
-        std::cout << std::endl;
+                patchesData1);
+        // wait for processing thread to finish
+        if (processThread.joinable()) processThread.join();
+        // swap buffers
+        auto tmp = patchesData2;
+        patchesData2 = patchesData1;
+        patchesData1 = tmp;
+        // run processing thread on the background
+        processThread = std::thread([&]() {
+            std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
+            // get alignment
+            auto alignment = align(patchesData2, patchSettings,
+                    correlationSettings, filter, refFrame,
+                    this->maxShift, framesInBuffer, false);
+            // process it
+            for (size_t i = 0;i < movieSettings.dim.n;++i) {
+                FramePatchMeta<T> tmp = p;
+                // keep consistent with data loading
+                int globShiftX = std::round(globAlignment.shifts.at(i).x);
+                int globShiftY = std::round(globAlignment.shifts.at(i).y);
+                tmp.id_t = i;
+                // total shift is global shift + local shift
+                result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
+                        + alignment.shifts.at(i));
+            }
+        });
     }
+    // wait for the last processing thread
+    processThread.join();
 
     delete[] movieData;
-    delete[] patchesData;
+    delete[] patchesData1;
+    delete[] patchesData2;
     return result;
 }
 
