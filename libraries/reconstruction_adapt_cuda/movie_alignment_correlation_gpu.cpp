@@ -363,7 +363,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     T *patchesData1 = new T[patchesElements];
     T *patchesData2 = new T[patchesElements];
 
-    std::thread  processThread;
+    std::vector<std::thread> threads;
 
     // use additional thread that would load the data at the background
     // get alignment for all patches
@@ -372,14 +372,16 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         memset(patchesData1, 0, patchesElements * sizeof(T));
         getPatchData(movieData, p.rec, globAlignment, movieSettings.dim,
                 patchesData1);
-        // wait for processing thread to finish
-        if (processThread.joinable()) processThread.join();
+        // don't swap buffers while some thread is accessing its content
+        alignDataMutex.lock();
         // swap buffers
         auto tmp = patchesData2;
         patchesData2 = patchesData1;
         patchesData1 = tmp;
         // run processing thread on the background
-        processThread = std::thread([&]() {
+        threads.push_back(std::thread([&]() {
+            // delay locking, but not for too long
+            alignDataMutex.try_lock_for(std::chrono::seconds(1));
             std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
             // get alignment
             auto alignment = align(patchesData2, patchSettings,
@@ -396,10 +398,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
                         + alignment.shifts.at(i));
             }
-        });
+        }));
+        // thread should be created now, let it work and load new buffer meanwhile
+        alignDataMutex.unlock();
     }
     // wait for the last processing thread
-    processThread.join();
+    for (auto &e : threads) {
+        e.join();
+    }
 
     delete[] movieData;
     delete[] patchesData1;
@@ -537,6 +543,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     T* data = new T[elems];
     memcpy(data, movieRawData, elems * sizeof(T));
 
+    // lock the data processing (as alignment will unlock it)
+    alignDataMutex.lock();
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);
@@ -616,6 +624,8 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
     // result is a centered correlation function with (hopefully) a cross
     // indicating the requested shift
 
+    // we are done with the input data, so release it
+    alignDataMutex.unlock();
     Matrix2D<T> A(N * (N - 1) / 2, N - 1);
     Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
 
