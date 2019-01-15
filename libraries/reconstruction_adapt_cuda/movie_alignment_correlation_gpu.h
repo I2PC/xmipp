@@ -27,6 +27,8 @@
 #define MOVIE_ALIGNMENT_CORRELATION_GPU
 
 #include <thread>
+#include <shared_mutex>
+#include <future>
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_gpu_geo_shift_transformer.h"
@@ -304,6 +306,9 @@ private:
 
     /** contains the loaded movie, with consecutive data padded for in-place FFT */
     T* movieRawData = nullptr;
+
+    /** mutex indicating when a thread can access data array used for alignment */
+    mutable std::shared_timed_mutex alignDataMutex;
 
     /**
      * Keywords representing optimal settings of the algorithm.
