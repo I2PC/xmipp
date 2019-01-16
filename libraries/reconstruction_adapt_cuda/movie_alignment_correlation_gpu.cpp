@@ -316,13 +316,21 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoeffs(const Dimensions 
 }
 
 template<typename T>
+auto ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
+        const Dimensions &patchDim, T maxShift) {
+    T minX = ((maxShift * 2) + 1) / patchDim.x;
+    T minY = ((maxShift * 2) + 1) / patchDim.y;
+    return std::make_pair(std::max(minX, (T)0.25), std::max(minY, (T)0.25));
+}
+
+template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &gain,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
     auto correlationSettings = this->getCorrelationSettings(patchSettings,
-            std::make_pair(1, 1));
+            getLocalAlignmentCorrelationDownscale(patchSettings.dim, this->maxShift));
     auto borders = getMovieBorders(globAlignment, this->verbose);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
             patchSettings.dim);
@@ -339,8 +347,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     }
     T* movieData = movieRawData;
     movieRawData = nullptr; // currently, raw movie data are needed after local alignment
-
-
 
     // prepare filter
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x,
