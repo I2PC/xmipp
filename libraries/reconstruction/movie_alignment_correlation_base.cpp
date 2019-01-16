@@ -79,8 +79,8 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Aligned micrograph:  " << fnAvg << std::endl
             << "Unaligned micrograph: " << fnInitialAvg << std::endl
             << "Frame range alignment: " << nfirst << " " << nlast << std::endl
-            << "Frame range sum:       " << nfirstSum << " " << nlastSum
-            << std::endl << "Crop corners  " << "(" << xLTcorner << ", "
+            << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
+            << "Crop corners  " << "(" << xLTcorner << ", "
             << yLTcorner << ") " << "(" << xDRcorner << ", " << yDRcorner
             << ") " << std::endl << "Use input shifts:    " << useInputShifts
             << std::endl << "Binning factor:      " << bin << std::endl
