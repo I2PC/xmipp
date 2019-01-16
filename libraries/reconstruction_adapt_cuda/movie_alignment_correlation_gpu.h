@@ -303,7 +303,7 @@ private:
     std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
 
     /** Control points used for local alignment */
-    const Dimensions localAlignmentControlPoints = Dimensions(4+2, 4+2, 1, 3+2); // + 2 end points
+    Dimensions localAlignmentControlPoints = Dimensions(0);
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;

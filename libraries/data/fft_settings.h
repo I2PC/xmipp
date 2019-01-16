@@ -37,6 +37,13 @@ struct FFTSettings {
                     batch), isInPlace(isInPlace) {
     }
     ;
+
+    explicit FFTSettings(const Dimensions &d,
+            size_t batch = 0, bool isInPlace = false) :
+            dim(d), x_freq(d.x() / 2 + 1), batch(
+                    batch), isInPlace(isInPlace) {
+    }
+    ;
     const size_t x_freq;
     const Dimensions dim;
     const size_t batch;
@@ -51,7 +58,7 @@ struct FFTSettings {
     }
 
     size_t elemsFreq() const {
-        return x_freq * dim.y * dim.z * dim.n * 2; // * 2 for complex numbers
+        return x_freq * dim.y() * dim.z() * dim.n() * 2; // * 2 for complex numbers
     }
 
     size_t bytesFreq() const {
@@ -61,8 +68,8 @@ struct FFTSettings {
     friend std::ostream& operator<<(std::ostream &os,
             const FFTSettings<T> &s) {
 
-        os << s.dim.x << "(" << s.x_freq << ")" << " * " << s.dim.y << " * "
-                << s.dim.z << " * " << s.dim.n << ", batch: " << s.batch
+        os << s.dim.x() << "(" << s.x_freq << ")" << " * " << s.dim.y() << " * "
+                << s.dim.z() << " * " << s.dim.n() << ", batch: " << s.batch
                 << ", inPlace: " << (s.isInPlace ? "yes" : "no");
 
         return os;

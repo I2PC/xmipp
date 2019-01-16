@@ -31,23 +31,41 @@
 class Dimensions {
 public:
     explicit Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1) :
-            x(x), y(y), z(z), n(n) {
+            m_x(x), m_y(y), m_z(z), m_n(n) {
     }
     ;
 
-    constexpr size_t size() const {
-        return x * y * z * n;
+    inline constexpr size_t x() const {
+        return m_x;
     }
 
-    const size_t x;
-    const size_t y;
-    const size_t z;
-    const size_t n;
+    inline constexpr size_t y() const {
+        return m_y;
+    }
+
+    inline constexpr size_t z() const {
+        return m_z;
+    }
+
+    inline constexpr size_t n() const {
+        return m_n;
+    }
+
+    constexpr size_t size() const {
+        return m_x * m_y * m_z * m_n;
+    }
+
 
     friend std::ostream& operator<<(std::ostream &os, const Dimensions &d) {
-        os << d.x << " * " << d.y << " * " << d.z << " * " << d.n;
+        os << d.x() << " * " << d.y() << " * " << d.z() << " * " << d.n();
         return os;
     }
+
+private:
+    size_t m_x;
+    size_t m_y;
+    size_t m_z;
+    size_t m_n;
 };
 
 
