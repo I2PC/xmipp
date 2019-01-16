@@ -300,7 +300,7 @@ private:
             const Dimensions &patchDim, T maxShift);
 private:
     /** Number of patches used for local alignment */
-    std::pair<size_t, size_t> localAlignPatches = std::make_pair(10, 10);
+    std::pair<size_t, size_t> localAlignPatches;
 
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);

@@ -31,6 +31,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
+    this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
 
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
@@ -44,16 +45,22 @@ void ProgMovieAlignmentCorrelationGPU<T>::show() {
     std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().UUID() << ")" << std::endl;
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
     std::cout << "Control points:      " << localAlignmentControlPoints << std::endl;
+    std::cout << "Patches:             " << localAlignPatches.first << " x " << localAlignPatches.second << std::endl;
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     AProgMovieAlignmentCorrelation<T>::readParams();
+
+    // read GPU
     int device = this->getIntParam("--device");
+    assert(device >= 0);
     gpu = std::move(core::optional<GPU>(GPU(device)));
-    std::cout << "gpu set: " << (gpu.has_value() ? "yes" : "no") << std::endl;
+
+    // read permanent storage
     storage = this->getParam("--storage");
 
+    // read control points
     Dimensions cPoints(
             this->getIntParam("--controlPoints", 0),
             this->getIntParam("--controlPoints", 1),
@@ -61,6 +68,12 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
             this->getIntParam("--controlPoints", 2));
     assert(cPoints.x() >= 3 && cPoints.y() >= 3 && cPoints.n() >= 3);
     localAlignmentControlPoints = cPoints;
+
+    // read patches
+    localAlignPatches = std::make_pair(
+            this->getIntParam("--patches", 0),
+            this->getIntParam("--patches", 1));
+    assert(localAlignPatches.first > 0 && localAlignPatches.second > 0);
 }
 
 template<typename T>
@@ -134,14 +147,14 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
         const Dimensions &movie, const Dimensions &patch) {
     size_t patchesX = localAlignPatches.first;
     size_t patchesY = localAlignPatches.second;
-    size_t windowXSize = movie.x() - 2 * borders.first;
-    size_t windowYSize = movie.y() - 2 * borders.second;
+    T windowXSize = movie.x() - 2 * borders.first;
+    T windowYSize = movie.y() - 2 * borders.second;
     T corrX = std::ceil(
             ((patchesX * patch.x()) - windowXSize) / (T) (patchesX - 1));
     T corrY = std::ceil(
             ((patchesY * patch.y()) - windowYSize) / (T) (patchesY - 1));
-    size_t stepX = patch.x() - corrX;
-    size_t stepY = patch.y() - corrY;
+    T stepX = (T)patch.x() - corrX;
+    T stepY = (T)patch.y() - corrY;
     std::vector<FramePatchMeta<T>> result;
     for (size_t y = 0; y < patchesY; ++y) {
         for (size_t x = 0; x < patchesX; ++x) {
