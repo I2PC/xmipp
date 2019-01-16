@@ -31,7 +31,7 @@
 
 class GPU {
 public:
-    GPU(size_t device) :
+    explicit GPU(size_t device) :
         m_device(device), m_UUID(getUUID(device)),
         m_lastFreeMem(getFreeMem(device)) {};
 
