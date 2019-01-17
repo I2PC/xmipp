@@ -33,6 +33,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
+    this->addParamsLine("  [--oBSpline <fn=\"\">]             : Path to file that can be used to store BSpline coefficients");
 
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
@@ -80,6 +81,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
     assert(patchesAvg >= 1);
+
+    // read BSpline coefficients storage
+    fnBSplinePath = this->getParam("--oBSpline");
 }
 
 template<typename T>
@@ -494,6 +498,17 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs) {
+    if (fnBSplinePath.isEmpty()) return;
+
+    auto fnX = FileName(fnBSplinePath.getBaseName() + "X", fnBSplinePath.getExtension());
+    auto fnY = FileName(fnBSplinePath.getBaseName() + "Y", fnBSplinePath.getExtension());
+
+    coeffs.first.write(fnX);
+    coeffs.second.write(fnY);
+}
+
+template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
@@ -505,7 +520,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     Ninitial = N = 0;
     GeoTransformer<T> transformer;
     auto movieSettings = getMovieSettings(movie, false);
-    auto coefs = computeBSplineCoeffs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches);
+
+    auto coeffs = computeBSplineCoeffs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches);
+    storeCoefficients(coeffs);
+
+
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirstSum && n <= this->nlastSum) {
@@ -538,7 +557,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             if (this->fnAligned != "" || this->fnAvg != "") {
                 transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, movieSettings.dim.n(),
                     localAlignmentControlPoints.x(), localAlignmentControlPoints.y(), localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coefs, j);
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, j);
 
 
                 if (this->fnAligned != "")

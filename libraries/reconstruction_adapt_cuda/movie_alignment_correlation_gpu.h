@@ -298,6 +298,11 @@ private:
      */
     auto getLocalAlignmentCorrelationDownscale(
             const Dimensions &patchDim, T maxShift);
+    /**
+     * Method for storing BSpline  coefficients
+     */
+    void storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs);
+
 private:
     /** Number of patches used for local alignment */
     std::pair<size_t, size_t> localAlignPatches;
@@ -310,6 +315,9 @@ private:
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
+
+    /** Path to file where BSpline coeffs might be stored */
+    FileName fnBSplinePath;
 
     core::optional<GPU> gpu;
 
