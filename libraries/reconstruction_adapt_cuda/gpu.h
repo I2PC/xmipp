@@ -39,10 +39,19 @@ public:
     std::string UUID() const { return m_UUID; };
     size_t lastFreeMem() const { return m_lastFreeMem; };
 
+    /**
+     * Method checks currently available free GPU memory
+     * Obtained value is stored in this instance
+     */
+    size_t checkFreeMem() {
+        m_lastFreeMem = getFreeMem(m_device);
+        return m_lastFreeMem;
+    }
+
 private:
     const size_t m_device;
     const std::string m_UUID;
-    const size_t m_lastFreeMem;
+    size_t m_lastFreeMem;
 };
 
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */

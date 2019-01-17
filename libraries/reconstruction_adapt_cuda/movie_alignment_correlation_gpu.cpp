@@ -244,7 +244,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
     UserSettings::get(storage).insert(*this,
             getKey(optBatchSizeStr, dim, applyCrop), s.batch);
     UserSettings::get(storage).insert(*this,
-            getKey(minMemoryStr, dim, applyCrop), gpu.value().lastFreeMem()); // FIXME update
+            getKey(minMemoryStr, dim, applyCrop), gpu.value().lastFreeMem());
     UserSettings::get(storage).store(); // write changes immediately
 }
 
@@ -265,7 +265,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
     res = res
             && UserSettings::get(storage).find(*this,
                     getKey(minMemoryStr, dim, applyCrop), neededMem);
-    res = res && neededMem <= getFreeMem(gpu.value().device());
+    res = res && neededMem <= gpu.value().checkFreeMem();
     if (res) {
         return core::optional<FFTSettings<T>>(
                 FFTSettings<T>(x, y, 1, dim.n(), batch, true));
