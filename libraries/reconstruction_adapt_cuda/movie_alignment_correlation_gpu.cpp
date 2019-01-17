@@ -34,6 +34,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
     this->addParamsLine("  [--oBSpline <fn=\"\">]             : Path to file that can be used to store BSpline coefficients");
+    this->addParamsLine("  [--locCorrDownscale <x=4> <y=4>]   : Donwscale coefficient of the correlations used for local alignment");
 
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
@@ -84,6 +85,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
     // read BSpline coefficients storage
     fnBSplinePath = this->getParam("--oBSpline");
+
+    // read local alignment correlations scale
+    localCorrelationDownscale = std::make_pair(
+            (T)1 / this->getIntParam("--locCorrDownscale", 0),
+            (T)1 / this->getIntParam("--locCorrDownscale", 1));
 }
 
 template<typename T>
@@ -367,7 +373,9 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
         const Dimensions &patchDim, T maxShift) {
     T minX = ((maxShift * 2) + 1) / patchDim.x();
     T minY = ((maxShift * 2) + 1) / patchDim.y();
-    return std::make_pair(std::max(minX, (T)0.25), std::max(minY, (T)0.25));
+    return std::make_pair(
+            std::max(minX, localCorrelationDownscale.first),
+            std::max(minY, localCorrelationDownscale.second));
 }
 
 template<typename T>
