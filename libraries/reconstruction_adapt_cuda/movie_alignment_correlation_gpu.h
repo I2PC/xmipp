@@ -302,6 +302,9 @@ private:
     /** Number of patches used for local alignment */
     std::pair<size_t, size_t> localAlignPatches;
 
+    /** No of frames used for averaging a single patch */
+    int patchesAvg;
+
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
 

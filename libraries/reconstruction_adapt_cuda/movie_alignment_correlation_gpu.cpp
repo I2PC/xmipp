@@ -32,6 +32,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
+    this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
 
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
@@ -46,6 +47,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::show() {
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
     std::cout << "Control points:      " << localAlignmentControlPoints << std::endl;
     std::cout << "Patches:             " << localAlignPatches.first << " x " << localAlignPatches.second << std::endl;
+    std::cout << "Patches avg:         " << patchesAvg << std::endl;
 }
 
 template<typename T>
@@ -74,6 +76,10 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
             this->getIntParam("--patches", 0),
             this->getIntParam("--patches", 1));
     assert(localAlignPatches.first > 0 && localAlignPatches.second > 0);
+
+    // read patch averaging
+    patchesAvg = this->getIntParam("--patchesAvg");
+    assert(patchesAvg >= 1);
 }
 
 template<typename T>
@@ -208,10 +214,23 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
             }
         }
     };
-    for (size_t t = 0; t < n; ++t) {
+    for (int t = 0; t < n; ++t) {
+        // copy the data from specific frame
         copyPatchData(t, t, false);
-        if (t > 0) copyPatchData(t - 1, t, true);
-        if ((t + 1) < n) copyPatchData(t + 1, t, true);
+        // add data from frames with lower indices
+        // while averaging odd num of frames, use copy equally from previous and following frames
+        // otherwise prefer following frames
+        for (int b = 1; b <= ((patchesAvg - 1) / 2); ++b) {
+            if (t >= b) {
+                copyPatchData(t - b, t, true);
+            }
+        }
+        // add data from frames with higher indices
+        for (int f = 1; f <= (patchesAvg / 2); ++f) {
+            if ((t + f) < n) {
+                copyPatchData(t + f, t, true);
+            }
+        }
     }
 }
 
