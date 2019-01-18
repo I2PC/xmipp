@@ -1,26 +1,27 @@
-// https://devblogs.nvidia.com/efficient-matrix-transpose-cuda-cc/
+// inspired by https://devblogs.nvidia.com/efficient-matrix-transpose-cuda-cc/
 // TILE_DIM=32, BLOCK_ROWS=8
 // No bank-conflict transpose
 // Same as transposeCoalesced except the first tile dimension is padded
 // to avoid shared memory bank conflicts.
+// can be used to transpose non-square 2D arrays
 __global__
-void transposeNoBankConflicts(float *odata, const float *idata) {
+void transposeNoBankConflicts32x8(float *odata, const float *idata, int xdim, int ydim) {
     __shared__ float tile[32][32 + 1];
 
     int x = blockIdx.x * 32 + threadIdx.x;
+    if (x >= xdim) return;
     int y = blockIdx.y * 32 + threadIdx.y;
-    int width = gridDim.x * 32;
+    if (y >= ydim) return;
 
-    for (int j = 0; j < 32; j += 8)
-        tile[threadIdx.y + j][threadIdx.x] = idata[(y + j) * width + x];
+    int maxJ = min(32, ydim - y);
+    for (int j = 0; j < maxJ; j += 8) {
+        tile[threadIdx.y + j][threadIdx.x] = idata[(y + j) * xdim + x];
+    }
 
     __syncthreads();
-
-    x = blockIdx.y * 32 + threadIdx.x;  // transpose block offset
-    y = blockIdx.x * 32 + threadIdx.y;
-
-    for (int j = 0; j < 32; j += 8)
-        odata[(y + j) * width + x] = tile[threadIdx.x][threadIdx.y + j];
+    for (int j = 0; j < maxJ; j += 8) {
+        odata[x * ydim + y + j] = tile[threadIdx.y + j][threadIdx.x];
+    }
 }
 
 __global__
