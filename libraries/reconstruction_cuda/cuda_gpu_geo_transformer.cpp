@@ -173,13 +173,13 @@ void GeoTransformer<T>::testCoeffsRow() {
 
 template<typename T>
 void GeoTransformer<T>::testTranspose() {
-    MultidimArray<T> resGpu(32, 32);
-    MultidimArray<T> expected(32, 32);
-    MultidimArray<T> input(32, 32); // size must be square, multiple of 32
+    MultidimArray<T> input(33, 52);
+    MultidimArray<T> resGpu(input.xdim, input.ydim);
+    MultidimArray<T> expected(input.xdim, input.ydim);
     for (int i = 0; i < input.ydim; ++i) {
         for (int j = 0; j < input.xdim; ++j) {
-            input.data[i * input.xdim + j] = i * 100 + j;
-            expected.data[j * input.xdim + i] = i * 100 + j;
+            input.data[i * input.xdim + j] = i * input.xdim + j;
+            expected.data[j * input.ydim + i] = i * input.xdim + j;
         }
     }
 
@@ -191,9 +191,9 @@ void GeoTransformer<T>::testTranspose() {
             cudaMemcpy(d_input, input.data, input.yxdim * sizeof(T),
                     cudaMemcpyHostToDevice));
 
-    dim3 dimGrid(input.xdim / 32, input.ydim / 32, 1); // FIXME this will work only for multiples of 32
-    dim3 dimBlock(32, 8, 1);
-    transposeNoBankConflicts<<<dimGrid, dimBlock>>>(d_output, d_input);
+    dim3 dimGrid(std::ceil(input.xdim / transposeTileDim), std::ceil(input.ydim / transposeTileDim), 1);
+    dim3 dimBlock(transposeTileDim, transposeBlockRow, 1);
+    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_output, d_input, input.xdim, input.ydim);
         gpuErrchk(cudaPeekAtLastError());
 
     gpuErrchk(
@@ -215,7 +215,6 @@ void GeoTransformer<T>::testTranspose() {
     }
 
     fprintf(stderr, "test Transpose result: %s\n", failed ? "FAIL" : "OK");
-
 }
 
 template<typename T>
@@ -406,9 +405,9 @@ void GeoTransformer<T>::produceAndLoadCoeffs(int splineDegree,
     gpuErrchk(cudaPeekAtLastError());
 
     // transpose data
-    dim3 dimGrid(input.xdim / 32, input.ydim / 32, 1); // FIXME this will work only for multiples of 32
-    dim3 dimBlock(32, 8, 1);
-    transposeNoBankConflicts<<<dimGrid, dimBlock>>>(d_in, d_out);
+    dim3 dimGrid(std::ceil(tmpIn.xdim / transposeTileDim), std::ceil(tmpIn.ydim / transposeTileDim), 1);
+    dim3 dimBlock(transposeTileDim, transposeBlockRow, 1);
+    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_in, d_out, tmpIn.xdim, tmpIn.ydim);
     gpuErrchk(cudaPeekAtLastError());
 
     // perform column-wise pass (notice input/output is swapped)
@@ -418,7 +417,7 @@ void GeoTransformer<T>::produceAndLoadCoeffs(int splineDegree,
     gpuErrchk(cudaPeekAtLastError());
 
     // transpose data to row-wise again
-    transposeNoBankConflicts<<<dimGrid, dimBlock>>>(d_in, d_out);
+    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_in, d_out, tmpIn.ydim, tmpIn.xdim);
         gpuErrchk(cudaPeekAtLastError());
 }
 

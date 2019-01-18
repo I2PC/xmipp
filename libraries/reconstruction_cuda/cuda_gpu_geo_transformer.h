@@ -239,6 +239,9 @@ private:
     size_t splineX;
     size_t splineY;
     size_t splineN;
+
+    constexpr static const T transposeTileDim = (T)32;
+    constexpr static const T transposeBlockRow = (T)8;
 };
 
 #endif // CUDA_GEO_TRANSFORMER
