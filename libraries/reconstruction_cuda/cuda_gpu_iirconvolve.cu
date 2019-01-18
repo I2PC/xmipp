@@ -7,20 +7,26 @@
 __global__
 void transposeNoBankConflicts32x8(float *odata, const float *idata, int xdim, int ydim) {
     __shared__ float tile[32][32 + 1];
+    int tilex = blockIdx.x * 32;
+    int tiley = blockIdx.y * 32;
+    int x = tilex + threadIdx.x;
+    int y = tiley + threadIdx.y;
 
-    int x = blockIdx.x * 32 + threadIdx.x;
-    if (x >= xdim) return;
-    int y = blockIdx.y * 32 + threadIdx.y;
-    if (y >= ydim) return;
-
-    int maxJ = min(32, ydim - y);
-    for (int j = 0; j < maxJ; j += 8) {
-        tile[threadIdx.y + j][threadIdx.x] = idata[(y + j) * xdim + x];
+    for (int j = 0; j < 32; j += 8) {
+        int index = (y + j) * xdim + x;
+        if (index < (xdim*ydim)) {
+            tile[threadIdx.y + j][threadIdx.x] = idata[index];
+        }
     }
 
     __syncthreads();
+    x = tiley + threadIdx.x; // transpose tiles
+    y = tilex + threadIdx.y; // transpose tiles
+    if (x >= ydim) return; // output matrix has y columns
+    int maxJ = min(32, xdim - y); // output matrix has x rows
     for (int j = 0; j < maxJ; j += 8) {
-        odata[x * ydim + y + j] = tile[threadIdx.y + j][threadIdx.x];
+        int index = (y+j) * ydim + x;
+        odata[index] = tile[threadIdx.x][threadIdx.y + j];
     }
 }
 
