@@ -275,7 +275,9 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
     res = res
             && UserSettings::get(storage).find(*this,
                     getKey(minMemoryStr, dim, applyCrop), neededMem);
-    res = res && neededMem <= gpu.value().checkFreeMem();
+    // check available memory
+    gpu.value().checkFreeMem();
+    res = res && (neededMem <= gpu.value().lastFreeMem());
     if (res) {
         return core::optional<FFTSettings<T>>(
                 FFTSettings<T>(x, y, 1, dim.n(), batch, true));
