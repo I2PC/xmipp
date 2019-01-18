@@ -1268,6 +1268,13 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
       if (PyArg_ParseTuple(args, "O", &other) &&
           Image_Check(other))
       {
+		  STARTINGX(MULTIDIM_ARRAY_BASE(Image_Value(self)))=
+				  STARTINGX(MULTIDIM_ARRAY_BASE(Image_Value(other)));
+    	  STARTINGY(MULTIDIM_ARRAY_BASE(Image_Value(self)))=
+    			  STARTINGY(MULTIDIM_ARRAY_BASE(Image_Value(other)));
+    	  STARTINGZ(MULTIDIM_ARRAY_BASE(Image_Value(self)))=
+    			  STARTINGZ(MULTIDIM_ARRAY_BASE(Image_Value(other)));
+
         Image_Value(self).add(Image_Value(other));
         Py_RETURN_NONE;
       }
