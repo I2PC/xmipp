@@ -103,6 +103,7 @@ void GeoTransformer<T>::initLazyForBSpline(size_t inX, size_t inY, size_t inZ,
 template<typename T>
 void GeoTransformer<T>::test() {
     testCoeffsRow();
+    testCoeffsRowNew();
     testTranspose();
     testCoeffs();
 
@@ -115,15 +116,84 @@ void GeoTransformer<T>::test() {
 }
 
 template<typename T>
-void GeoTransformer<T>::testCoeffsRow() {
-    MultidimArray<T> resGpu(32, 32);
-    MultidimArray<double> resCpu(32, 32);
-    MultidimArray<double> inputDouble(32, 32); // size must be square, multiple of 32
-    MultidimArray<T> inputFloat(32, 32); // size must be square, multiple of 32
+void GeoTransformer<T>::testCoeffsRowNew() {
+    MultidimArray<double> inputDouble(53, 62);
+    MultidimArray<T> resGpu(inputDouble.ydim, inputDouble.xdim);
+    MultidimArray<double> resCpu(inputDouble.ydim, inputDouble.xdim);
+    MultidimArray<T> inputFloat(inputDouble.ydim, inputDouble.xdim);
     for (int i = 0; i < inputFloat.ydim; ++i) {
         for (int j = 0; j < inputFloat.xdim; ++j) {
-            inputDouble.data[i * inputFloat.xdim + j] = i * 100 + j;
-            inputFloat.data[i * inputFloat.xdim + j] = i * 100 + j;
+            inputDouble.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
+            inputFloat.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
+        }
+    }
+
+    T* d_output;
+    gpuErrchk(cudaMalloc(&d_output, resGpu.yxdim * sizeof(T)));
+    T* d_input;
+    gpuErrchk(cudaMalloc(&d_input, inputFloat.yxdim * sizeof(T)));
+    gpuErrchk(
+            cudaMemcpy(d_input, inputFloat.data, inputFloat.yxdim * sizeof(T),
+                    cudaMemcpyHostToDevice));
+
+    //
+    dim3 dimGrid(std::ceil(inputFloat.xdim / transposeTileDim), std::ceil(inputFloat.ydim / transposeTileDim), 1);
+    dim3 dimBlock(transposeTileDim, transposeBlockRow, 1);
+    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_output, d_input, inputFloat.xdim, inputFloat.ydim);
+    gpuErrchk(cudaPeekAtLastError());
+
+
+    dim3 dimBlockConv(BLOCK_DIM_X, 1);
+    dim3 dimGridConv(ceil(inputFloat.xdim / (T) dimBlockConv.x));
+    // perform row-wise pass
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundNew<<<dimGridConv, dimBlockConv>>>(
+        d_output, d_input,
+        (int)resGpu.xdim, (int)resGpu.ydim);
+    gpuErrchk(cudaPeekAtLastError());
+
+    // transform back
+    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_output, d_input, inputFloat.ydim, inputFloat.xdim);
+    gpuErrchk(cudaPeekAtLastError());
+
+    gpuErrchk(
+            cudaMemcpy(resGpu.data, d_output, resGpu.yxdim * sizeof(T),
+                    cudaMemcpyDeviceToHost));
+    double pole = sqrt(3) - 2.0;
+
+    for (int i = 0; i < inputFloat.ydim; i++) {
+        ::IirConvolvePoles(inputDouble.data + (i * inputDouble.xdim),
+                resCpu.data + (i * inputDouble.xdim), inputDouble.xdim, &pole,
+                1, MirrorOffBounds, 0.0001);
+    }
+
+    bool failed = false;
+    for (int i = 0; i < inputFloat.ydim; ++i) {
+        for (int j = 0; j < inputFloat.xdim; ++j) {
+            int index = i * inputFloat.xdim + j;
+            T gpu = resGpu[index];
+            T cpu = resCpu[index];
+            if (std::abs(cpu - gpu) > 0.001) {
+                failed = true;
+                fprintf(stderr, "error testCoeffsRow [%d]: GPU %.4f CPU %.4f\n",
+                        index, gpu, cpu);
+            }
+        }
+    }
+
+    fprintf(stderr, "testCoeffsRowNew result: %s\n", failed ? "FAIL" : "OK");
+}
+
+
+template<typename T>
+void GeoTransformer<T>::testCoeffsRow() {
+    MultidimArray<double> inputDouble(53, 62);
+    MultidimArray<T> resGpu(inputDouble.ydim, inputDouble.xdim);
+    MultidimArray<double> resCpu(inputDouble.ydim, inputDouble.xdim);
+    MultidimArray<T> inputFloat(inputDouble.ydim, inputDouble.xdim);
+    for (int i = 0; i < inputFloat.ydim; ++i) {
+        for (int j = 0; j < inputFloat.xdim; ++j) {
+            inputDouble.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
+            inputFloat.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
         }
     }
 
@@ -220,7 +290,7 @@ void GeoTransformer<T>::testTranspose() {
 template<typename T>
 void GeoTransformer<T>::testCoeffs() {
     srand(42);
-    MultidimArray<T> input(4096, 4096); // size must be square, multiple of 32
+    MultidimArray<T> input(52, 130);
     MultidimArray<T> resGpu(input.ydim, input.xdim);
     MultidimArray<double> resCpu;
     for (int i = 0; i < input.ydim; ++i) {
@@ -395,30 +465,36 @@ void GeoTransformer<T>::produceAndLoadCoeffs(int splineDegree,
             cudaMemcpy(d_in, tmpIn.data, input.yxdim * sizeof(T),
                     cudaMemcpyHostToDevice));
 
+    // transpose data, because the kernel is faster that way
+    dim3 dimGridTransF(std::ceil(tmpIn.xdim / transposeTileDim), std::ceil(tmpIn.ydim / transposeTileDim), 1);
+    dim3 dimBlockTransF(transposeTileDim, transposeBlockRow, 1);
+    transposeNoBankConflicts32x8<<<dimGridTransF, dimBlockTransF>>>
+            (d_out, d_in, tmpIn.xdim, tmpIn.ydim);
+    gpuErrchk(cudaPeekAtLastError());
+
     // apply line-wise filter
-    dim3 dimBlockConv(1, BLOCK_DIM_X);
-    dim3 dimGridConv(1, ceil(input.ydim / (T) dimBlockConv.y));
+    dim3 dimBlockConvL(BLOCK_DIM_X, 1);
+    dim3 dimGridConvL(ceil(input.ydim / (T) dimBlockConvL.x), 1);
     // perform row-wise pass
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound<<<dimGridConv, dimBlockConv>>>(
-            d_in, d_out,
-            input.xdim, input.ydim);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundNew<<<dimGridConvL, dimBlockConvL>>>(
+            d_out, d_in,
+            tmpIn.xdim, tmpIn.ydim);
     gpuErrchk(cudaPeekAtLastError());
 
     // transpose data
-    dim3 dimGrid(std::ceil(tmpIn.xdim / transposeTileDim), std::ceil(tmpIn.ydim / transposeTileDim), 1);
-    dim3 dimBlock(transposeTileDim, transposeBlockRow, 1);
-    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_in, d_out, tmpIn.xdim, tmpIn.ydim);
+    dim3 dimGridTransI(dimGridTransF.y, dimGridTransF.x);
+    dim3 dimBlockTransI(transposeTileDim, transposeBlockRow, 1);
+    transposeNoBankConflicts32x8<<<dimGridTransI, dimBlockTransI>>>
+            (d_out, d_in, tmpIn.ydim, tmpIn.xdim);
     gpuErrchk(cudaPeekAtLastError());
 
-    // perform column-wise pass (notice input/output is swapped)
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound<<<dimGridConv, dimBlockConv>>>(
-        d_in, d_out,
-        input.xdim, input.ydim);
+    // perform column-wise pass
+    dim3 dimBlockConvC(BLOCK_DIM_X, 1);
+    dim3 dimGridConvC(ceil(input.xdim / (T) dimBlockConvL.x), 1);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundNew<<<dimGridConvC, dimBlockConvC>>>(
+        d_out, d_in,
+        input.ydim, input.xdim);
     gpuErrchk(cudaPeekAtLastError());
-
-    // transpose data to row-wise again
-    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_in, d_out, tmpIn.ydim, tmpIn.xdim);
-        gpuErrchk(cudaPeekAtLastError());
 }
 
 template<typename T>

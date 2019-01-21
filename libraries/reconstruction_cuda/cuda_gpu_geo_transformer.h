@@ -211,6 +211,8 @@ private:
 
     void testCoeffsRow();
 
+    void testCoeffsRowNew();
+
     /**
      * Load BSpline interpolation coefficients to GPU
      */
