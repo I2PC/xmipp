@@ -28,7 +28,7 @@ import os
 # import pyworkflow.utils as pwutils
 # import xmipp3
 # from pyworkflow.tests import DataSet
-from .base import *
+from .test import *
 
 
 

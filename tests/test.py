@@ -331,12 +331,13 @@ def visitTests(tests, grepStr=''):
 
         if moduleName != lastModule:
             lastModule = moduleName
-            print("From  %s.py" % '/'.join(moduleName.split('.')) + grepPrint)
+            print(" - From  %s.py (to run all use --allPrograms)"
+                  % '/'.join(moduleName.split('.')) + grepPrint)
 
 
         if className != lastClass:
             lastClass = className
-            print("  xmipp test %s" % className)
+            print("  ./xmipp test %s" % className)
 
 
 def download(destination=None, url=None, verbose=False):
@@ -501,8 +502,11 @@ if __name__ == "__main__":
         task = download
     task(destination=datasetPath, url=url)
 
+    cTests = subprocess.check_output('compgen -ac | grep xmipp_test_', shell=True,
+                                     executable='/bin/bash').splitlines()
+
     tests = unittest.TestSuite()
-    if '--show' in testNames or '--all' in testNames:
+    if '--show' in testNames or '--allPrograms' in testNames:
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
@@ -515,17 +519,36 @@ if __name__ == "__main__":
             print(blue("\n    > >  You can run any of the following tests by:\n"))
             grepStr = '' if len(testNames)<2 else testNames[1]
             visitTests(tests, grepStr)
-        elif '--all' in testNames:
+            print("\n - From applications/function_tests (to run all use --allFuncs):")
+            for test in cTests:
+                print("  %s" % test)
+        elif '--allPrograms' in testNames:
             result = GTestResult()
             tests.run(result)
             result.doReport()
-    elif '--Cfuncs' in testNames:
+    elif '--allFuncs' in testNames:
         xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')
-        for file in os.listdir(xmippBinDir):
-            if file.startswith("xmipp_test_"):
-                print(blue(">> Running %s:"  % file))
-                os.system(os.path.join(xmippBinDir, file))
-                print('\n')
+        errors = []
+        startTimeAll = time.time()
+        for test in cTests:
+            sys.stdout.write(blue("\n\n>> Running %s:\n" % test))
+            sys.stdout.flush()
+            result = os.system(test)
+            sys.stdout.flush()
+            if result != 0:
+                errors.append(test)
+
+        secs = time.time() - startTimeAll
+        sys.stderr.write(blue("\n -- End of all function tests -- \n\n"))
+        sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
+                         (green("[==========]"), len(cTests), secs))
+        print >> sys.stdout, green("[  PASSED  ]") + " %d tests" % (len(cTests) - len(errors))
+        sys.stdout.flush()
+        if errors:
+            print >> sys.stderr, red("[  FAILED  ]") + " %d tests:" % len(errors)
+        for fail in errors:
+            print(red(" - %s" % fail))
+        sys.stdout.flush()
     else:
         for test in testNames:
             test = 'tests.test_programs_xmipp.' + test
