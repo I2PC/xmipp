@@ -661,15 +661,27 @@ def stampVersion():
     os.chmod(lastCompFn, 0o777)
 
 def runTests(testNames):
+    if len(testNames)==0 or 'help' in  testNames or '--help' in testNames:
+        print("Usage: xmipp test op\n"
+              "\n"
+              "         op = --show: Show how to invoke all available tests\n"
+              "              --allPrograms: Run all program tests\n"
+              "              --allFuncs: Run all function tests\n"
+              "              'testName': Run certain test (more than one is available)."
+              "\n")
+        return
+
     print("Testing ---------------------------------------------")
-    try:
+
+    if os.environ.get('XMIPP_SRC', None):
         os.environ['PYTHONPATH'] = ':'.join([
             os.path.join(os.environ['XMIPP_SRC'], 'xmipp'),
             os.environ.get('PYTHONPATH', '')])
 
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
-    except:
-        raise Exception(red('XMIPP_SRC is not in the path.') + '\nDo: ' +
+    else:
+        raise Exception(red('XMIPP_SRC is not in the enviroment.') +
+                        '\nTo run the tests you need to run: ' +
                         blue('source build/xmipp.bashrc'))
 
     dataSetPath = os.path.join(testsPath, 'data')
@@ -684,8 +696,7 @@ def runTests(testNames):
         python = 'python'
 
     print(" Tests to do: %s" % ', '.join(testNames))
-    testsToDo = '--all' if len(testNames)==0 else ' '.join(testNames)
-    runJob("(cd %s; %s base.py %s)" % (testsPath, python, testsToDo))
+    runJob("(cd %s; %s test.py %s)" % (testsPath, python, ' '.join(testNames)))
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -708,6 +719,7 @@ def install(dirname):
     runJob("cp src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python")
     runJob("cp -r src/xmipp/external/sh_alignment/python "+dirname+"/bindings/python/sh_alignment")
     runJob("cp -r src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment")
+    runJob("cp -r src/xmipp/resources/* "+dirname+"/resources")
 
     runJob("cp -r src/xmippViz/bindings/chimera "+dirname+"/bindings")
     createDir(dirname+"/bindings/java")
@@ -809,7 +821,7 @@ def usage():
           "   compile  N xmipp:           Compile xmipp\n"
           "   compile  N xmippViz:        Compile xmippViz\n"
           "   install [dir]:              Install at dir (./build by default)\n"
-          "   test [--show] testName:     Run tests to check Xmipp programs (by default, all).\n"
+          "   test [--show] testName:     Run tests to check Xmipp programs (without args, it shows a detailed help).\n"
           "                                 if --show is activated without testName all are shown, \n"
           "                                 instead a grep of testName is done \n"
           "For developers:\n"
