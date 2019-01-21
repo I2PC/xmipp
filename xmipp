@@ -662,10 +662,11 @@ def stampVersion():
 
 def runTests(testNames):
     print("Testing ---------------------------------------------")
-    os.environ['PYTHONPATH'] = ':'.join([
-                         os.path.join(os.environ.get('XMIPP_SRC', ''), 'xmipp'),
-                         os.environ.get('PYTHONPATH', '')])
     try:
+        os.environ['PYTHONPATH'] = ':'.join([
+            os.path.join(os.environ['XMIPP_SRC'], 'xmipp'),
+            os.environ.get('PYTHONPATH', '')])
+
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
     except:
         raise Exception(red('XMIPP_SRC is not in the path.') + '\nDo: ' +
@@ -676,28 +677,15 @@ def runTests(testNames):
         createDir(dataSetPath)
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
-    if not '--show' in testNames:
-        checkProgram('rsync')
-
-        createDir(dataSetPath)
-
-        remoteLoc = 'scipion@scipion.cnb.csic.es'
-        remoteFolder = '/services/scipion/data/downloads/scipion/data/tests/xmipp_programs/'
-
-        print(blue('  Downloading test data.. (it can take a while)'))
-        subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
-                         '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
-
-    try:
+    scipionHome = getScipionHome()
+    if scipionHome is not None:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
-    except:
+    else:
         python = 'python'
-        # raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
-        #                 blue('export SCIPION_HOME=<scipion_home>'))
 
-    print(testNames)
+    print(" Tests to do: %s" % ', '.join(testNames))
     testsToDo = '--all' if len(testNames)==0 else ' '.join(testNames)
-    runJob("cd %s; %s base.py %s" % (testsPath, python, testsToDo))
+    runJob("(cd %s; %s base.py %s)" % (testsPath, python, testsToDo))
 
 def install(dirname):
     print("Installing ------------------------------------------")
