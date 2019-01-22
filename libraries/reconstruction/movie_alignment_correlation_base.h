@@ -111,6 +111,13 @@ protected:
             const core::optional<size_t> &refFrame, size_t N);
 
     /**
+     * Method does a sanity check on the settings of the program,
+     * reporting found issues to stderr.
+     * @return success of the check
+     */
+    bool checkSettings();
+
+    /**
      * Method finds a reference image, i.e. an image which has smallest relative
      * shift to all other images.
      * @param N no of images

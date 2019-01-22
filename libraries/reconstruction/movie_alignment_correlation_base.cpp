@@ -64,6 +64,18 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
 }
 
 template<typename T>
+bool AProgMovieAlignmentCorrelation<T>::checkSettings() {
+    bool isOK = true;
+    if ((nfirstSum < nfirst) || (nlastSum > nlast)) {
+        isOK = false;
+        std::cerr << "Summing frames that were not aligned is not allowed. "
+                "Check the intervals of the alignment and summation "
+                "(--frameRange and --frameRangeSum)." << std::endl;
+    }
+    return isOK;
+}
+
+template<typename T>
 void AProgMovieAlignmentCorrelation<T>::show() {
     if (!verbose)
         return;
@@ -530,6 +542,7 @@ void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::run() {
     show();
+    if ( ! checkSettings()) return;
     // preprocess input data
     MetaData movie;
     readMovie(movie);
