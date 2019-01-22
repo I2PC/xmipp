@@ -422,14 +422,20 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
     // allocate additional memory for the patches
-    size_t patchesElements = std::max(correlationSettings.elemsFreq(), correlationSettings.elemsSpacial());
+    // we reuse the data, so we need enough space for the patches data
+    // and for the resulting
+    size_t patchesElements = std::max({
+        correlationSettings.elemsFreq(),
+        correlationSettings.elemsSpacial(),
+        patchSettings.elemsFreq(),
+        patchSettings.elemsSpacial()});
     T *patchesData1 = new T[patchesElements];
     T *patchesData2 = new T[patchesElements];
 
     std::vector<std::thread> threads;
 
     // use additional thread that would load the data at the background
-    // get alignment for all patches
+    // get alignment for all patches and resulting correlations
     for (auto &&p : patchesLocation) {
         // get data
         memset(patchesData1, 0, patchesElements * sizeof(T));
