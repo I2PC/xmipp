@@ -8,13 +8,18 @@
 To install Xmipp follow this instructions:
 
 ```
-mkdir <xmipp-bundle>
-cd <xmipp-bundle>
+mkdir xmipp-bundle
+cd xmipp-bundle
 wget https://raw.githubusercontent.com/I2PC/xmipp/devel/xmipp -O xmipp
 chmod 755 xmipp
-./xmipp all N=4 br=master
+./xmipp all N=4 br=devel
 ln -sf src/xmipp/xmipp xmipp  # optional but recommended to have always the last version of the xmipp script
 ```
 where you can replace `N=4` for `N=#processors` and `br=master` for `br=devel` if you want the development version of Xmipp. You can see the whole usage of the xmipp script with `./xmipp --help`
 
-If you want to use it as a Scipion package, please visit [this](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-software).
+**If you want to use it as a Scipion package**, please visit [this](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-plugin).
+
+
+### Using Scipion libraries
+
+If you want xmipp to pick up SCIPION libraries define SCIPION_HOME=\<path to scipion\>
