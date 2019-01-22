@@ -115,18 +115,18 @@ private:
      * @param maxShift where the maximum correlation should be searched
      * @param framesInCorrrelationBuffer max number of frames that can be stored
      * in a single buffer on the GPU
-     * @param verbose if true, more detailed progress is outputed
+     * @param verbose level
      * @return global alignment of each frame
      */
     auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
-            size_t framesInCorrelationBuffer, bool verbose);
+            size_t framesInCorrelationBuffer, int verbose);
 
     /**
      * Method computes shifts of each frame in respect to some reference frame
      * using cross-correlation on GPU
-     * @param verbose if true, more detailed progress is outputed
+     * @param verbose level
      * @param maxShift where the maximum correlation should be searched
      * @param data where data (in frequency domain) are stored
      * consecutively. This memory will be reused!
@@ -139,7 +139,7 @@ private:
      * @param refFrame reference frame, if any
      * @return alignment of the data
      */
-    auto computeShifts(bool verbose, size_t maxShift, std::complex<T>* data,
+    auto computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
             const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
@@ -236,11 +236,11 @@ private:
      * by all frames, and edge area where at least one frame does not contribute.
      * This method computes the size of that area.
      * @param globAlignment to use
-     * @param verbose flag
+     * @param verbose level
      * @return no of pixels in X (Y) dimension where there might NOT be data from each frame
      */
     auto getMovieBorders(const AlignmentResult<T> &globAlignment,
-            bool verbose = false);
+            int verbose);
 
     /**
      * Method returns a 'window'/'view' of each and all frames, aligned (to int positions)

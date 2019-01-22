@@ -104,11 +104,12 @@ protected:
      * @param A system matrix to be used
      * @param refFrame reference frame
      * @param N no of frames
+     * @param verbose level
      * @return respective global alignment
      */
     AlignmentResult<T> computeAlignment(
             Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
-            const core::optional<size_t> &refFrame, size_t N);
+            const core::optional<size_t> &refFrame, size_t N, int verbose);
 
     /**
      * Method does a sanity check on the settings of the program,
@@ -135,9 +136,10 @@ protected:
      * @param A system matrix to be used
      * @param shiftX absolute shifts in X dim
      * @param shiftY absolute shifts in Y dim
+     * @param verbose level
      */
     void solveEquationSystem(Matrix1D<T>& bX, Matrix1D<T>& bY, Matrix2D<T>& A,
-            Matrix1D<T>& shiftX, Matrix1D<T>& shiftY);
+            Matrix1D<T>& shiftX, Matrix1D<T>& shiftY, int verbose);
 
     /**
      * Method to compute sum of shifts of some image in respect to a reference

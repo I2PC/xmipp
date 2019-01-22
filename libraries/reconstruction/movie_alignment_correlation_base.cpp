@@ -259,7 +259,7 @@ int AProgMovieAlignmentCorrelation<T>::findReferenceImage(size_t N,
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
         Matrix1D<T>& bYt, Matrix2D<T>& At, Matrix1D<T>& shiftXt,
-        Matrix1D<T>& shiftYt) {
+        Matrix1D<T>& shiftYt, int verbose) {
     Matrix1D<double> ex, ey;
     WeightedLeastSquaresHelper helper;
     Matrix2D<double> A;
@@ -279,7 +279,7 @@ void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
     varbX *= varbX;
     bY.computeMeanAndStddev(mean, varbY);
     varbY *= varbY;
-    if (verbose)
+    if (verbose > 1)
         std::cout << "Solving for the shifts ...\n";
     do {
         // Solve the equation system
@@ -300,7 +300,7 @@ void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
         vareY *= vareY;
         double R2x = 1 - vareX / varbX;
         double R2y = 1 - vareY / varbY;
-        if (verbose)
+        if (verbose > 1)
             std::cout << "Iteration " << it << " R2x=" << R2x << " R2y=" << R2y
                     << std::endl;
 
@@ -313,10 +313,10 @@ void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
                     || fabs(VEC_ELEM(ey, i)) > 3 * stddeveY)
                 VEC_ELEM(helper.w, i) = 0.0;
         double newWeightSum = helper.w.sum();
-        if (newWeightSum == oldWeightSum) {
+        if ((newWeightSum == oldWeightSum) && (verbose > 1)){
             std::cout << "No outlier found\n\n";
             break;
-        } else
+        } else if (verbose > 1)
             std::cout << "Found " << (int) (oldWeightSum - newWeightSum)
                     << " outliers\n\n";
 
@@ -482,11 +482,11 @@ void AProgMovieAlignmentCorrelation<T>::setZeroShift(MetaData& movie) {
 template<typename T>
 AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
         Matrix1D<T> &bX, Matrix1D<T> &bY, Matrix2D<T> &A,
-        const core::optional<size_t> &refFrame, size_t N) {
+        const core::optional<size_t> &refFrame, size_t N, int verbose) {
     // now get the estimated shift (from the equation system)
     // from each frame to successive frame
     Matrix1D<T> shiftX, shiftY;
-    this->solveEquationSystem(bX, bY, A, shiftX, shiftY);
+    this->solveEquationSystem(bX, bY, A, shiftX, shiftY, verbose);
     // prepare result
     AlignmentResult<T> result {.refFrame = refFrame ?
                     refFrame.value() :
@@ -534,7 +534,7 @@ void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
     std::cout << "Estimated global shifts (must be negated to compensate them):\n";
     for (auto &&s : globAlignment.shifts) {
-        std::cout << "X: " << s.x << " Y: " << s.y << "\n";
+        printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
     }
     std::cout << std::endl;
 }
