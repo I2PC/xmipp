@@ -21,4 +21,4 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
-from base import ProgramTest
+from test import ProgramTest
