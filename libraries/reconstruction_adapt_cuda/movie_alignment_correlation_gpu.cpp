@@ -301,7 +301,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
 
 template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
-        const AlignmentResult<T> &globAlignment, bool verbose) {
+        const AlignmentResult<T> &globAlignment, int verbose) {
     T minX = std::numeric_limits<T>::max();
     T maxX = std::numeric_limits<T>::min();
     T minY = std::numeric_limits<T>::max();
@@ -313,7 +313,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
         maxY = std::max(std::ceil(s.y), maxY);
     }
     auto res = std::make_pair(std::abs(maxX - minX), std::abs(maxY - minY));
-    if (verbose) {
+    if (verbose > 1) {
         std::cout << "Movie borders: x=" << res.first << " y=" << res.second
                 << std::endl;
     }
@@ -366,7 +366,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoeffs(const Dimensions 
 
     // solve the equation system for the spline coefficients
     Matrix1D<T> coefsX, coefsY;
-    this->solveEquationSystem(bX, bY, A, coefsX, coefsY);
+    this->solveEquationSystem(bX, bY, A, coefsX, coefsY, this->verbose + 1);
     return std::make_pair(coefsX, coefsY);
 }
 
@@ -388,13 +388,13 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto patchSettings = this->getPatchSettings(movieSettings);
     auto correlationSettings = this->getCorrelationSettings(patchSettings,
             getLocalAlignmentCorrelationDownscale(patchSettings.dim, this->maxShift));
-    auto borders = getMovieBorders(globAlignment, this->verbose);
+    auto borders = getMovieBorders(globAlignment, this->verbose > 1);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
             patchSettings.dim);
-    if (this->verbose) {
+    if (this->verbose > 1) {
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
     }
-    if (this->verbose) {
+    if (this->verbose > 1) {
         std::cout << "Settings for the patches: " << correlationSettings << std::endl;
     }
 
@@ -445,11 +445,13 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         threads.push_back(std::thread([&]() {
             // delay locking, but not for too long
             alignDataMutex.try_lock_for(std::chrono::seconds(1));
-            std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
+            if (this->verbose > 1) {
+                std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
+            }
             // get alignment
             auto alignment = align(patchesData2, patchSettings,
                     correlationSettings, filter, refFrame,
-                    this->maxShift, framesInBuffer, false);
+                    this->maxShift, framesInBuffer, this->verbose);
             // process it
             for (size_t i = 0;i < movieSettings.dim.n();++i) {
                 FramePatchMeta<T> tmp = p;
@@ -483,7 +485,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
     auto movieSettings = getMovieSettings(movie, false);
     LocalAlignmentResult<T> result { .globalHint = globAlignment };
     auto patchSettings = this->getPatchSettings(movieSettings);
-    auto borders = getMovieBorders(globAlignment);
+    auto borders = getMovieBorders(globAlignment, 0);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
             patchSettings.dim);
     // get alignment for all patches
@@ -581,7 +583,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                     N++;
                 }
             }
-            std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
+            if (this->verbose > 1) {
+                std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
+            }
             j++;
         }
         n++;
@@ -635,7 +639,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         const FFTSettings<T> &in, const FFTSettings<T> &correlation,
         MultidimArray<T> &filter,
         core::optional<size_t> &refFrame,
-        size_t maxShift, size_t framesInCorrelationBuffer, bool verbose) {
+        size_t maxShift, size_t framesInCorrelationBuffer, int verbose) {
     assert(nullptr != data);
     size_t N = in.dim.n();
     // scale and transform to FFT on GPU
@@ -685,7 +689,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
+auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
         size_t maxShift,
         std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
         std::pair<T, T>& scale,
@@ -722,7 +726,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
                     maxShift / scale.first);
             bX(idx) *= scale.first; // scale to expected size
             bY(idx) *= scale.second;
-            if (verbose) {
+            if (verbose > 1) {
                 std::cerr << "Frame " << i << " to Frame " << j << " -> ("
                         << bX(idx) << "," << bY(idx) << ")" << std::endl;
             }
@@ -737,7 +741,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(bool verbose,
 
     // now get the estimated shift (from the equation system)
     // from each frame to successing frame
-    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N);
+    AlignmentResult<T> result = this->computeAlignment(bX, bY, A, refFrame, N, verbose);
     return result;
 }
 

@@ -49,7 +49,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
 
     // Choose reference image as the minimax of shifts
     auto ref = core::optional<size_t>();
-    return this->computeAlignment(bX, bY, A, ref, N);
+    return this->computeAlignment(bX, bY, A, ref, N, this->verbose);
 }
 
 template<typename T>
