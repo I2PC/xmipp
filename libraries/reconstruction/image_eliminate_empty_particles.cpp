@@ -1,6 +1,6 @@
 /***************************************************************************
- * Authors:     Tomas Majtner (tmajtner@cnb.csic.es)
  *
+ * Author:     Tomas Majtner (tmajtner@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "image_eliminate_empty_particles.h"
+#include "data/fourier_filter.h"
 #include "classify_extract_features.h"
 #include <data/filters.h>
 #include <fstream>
@@ -104,7 +105,8 @@ void ProgEliminateEmptyParticles::run()
     	centerImageTranslationally(I(), aux);
 
         if (useDenoising)
-    	    denoiseTVFilter(I(), denoise);
+    	    realGaussianFilter(I(), denoise);
+    	    bandpassFilter(I(), 0, 0.1, 0.02);
 
         ef.extractVariance(I(), fv);
 
