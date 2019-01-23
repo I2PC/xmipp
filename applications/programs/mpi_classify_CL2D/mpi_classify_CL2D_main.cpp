@@ -1095,6 +1095,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
 
         // Some report
         size_t idMdChanges=0;
+        int finish=0;
         if (prm->node->rank == 1)
         {
             progress_bar(Nimgs);
@@ -1102,13 +1103,22 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
             if (avgSimilarity==0)
             {
             	std::cerr << colorString("The average correlation is 0.0, make sure that the maximum allowed shift is enough\n",RED);
-            	MPI_Abort(MPI_COMM_WORLD,ERR_UNCLASSIFIED);
+                   
+            	//MPI_Abort(MPI_COMM_WORLD,ERR_UNCLASSIFIED);
+                finish=1;
             }
             std::cout << "\nAverage correlation with input vectors=" << avgSimilarity << std::endl;
             idMdChanges = MDChanges.addObject();
             MDChanges.setValue(MDL_ITER, iter, idMdChanges);
             MDChanges.setValue(MDL_CL2D_SIMILARITY, avgSimilarity, idMdChanges);
         }
+        MPI_Bcast(&finish,1, MPI_INT, 1, MPI_COMM_WORLD);
+        if (finish)
+        {
+            MPI_Finalize();
+            exit(ERR_UNCLASSIFIED);
+        }
+
 
         // Count changes
         SF->getColumnValues(MDL_REF, newAssignment);
@@ -1261,6 +1271,7 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
     prm->classicalMultiref = false;
     bool finish;
     bool success = true;
+    int splitTrials=0;
     do
     {
         minAllowedSize = (size_t)(prm->PminSize/2 * 0.01 * node->currentListImg.size());
@@ -1559,6 +1570,12 @@ void CL2D::splitNode(CL2DClass *node, CL2DClass *&node1, CL2DClass *&node2,
             node1 = new CL2DClass();
             finish = false;
         }
+        splitTrials++;
+        if (splitTrials>=prm->NSplitTrials)
+        {
+            success = false;
+            finish = true;  
+        }
     }
     while (!finish);
     for (size_t i = 0; i < toDelete.size(); i++)
@@ -1641,6 +1658,7 @@ void ProgClassifyCL2D::readParams()
     useCorrelation = aux == "correlation";
     classicalMultiref = checkParam("--classicalMultiref");
     classicalSplit = checkParam("--classicalSplit");
+    NSplitTrials = getIntParam("--maxSplitTrials");
     maxShift = getDoubleParam("--maxShift");
 	classifyAllImages = checkParam("--classifyAllImages");
 	normalizeImages = !checkParam("--dontNormalizeImages");
@@ -1666,6 +1684,7 @@ void ProgClassifyCL2D::show() const {
 			<< "Use Correlation:         " << useCorrelation << std::endl
 			<< "Classical Multiref:      " << classicalMultiref << std::endl
 			<< "Classical Split:         " << classicalSplit << std::endl
+                        << "Max. Split trials:       " << NSplitTrials << std::endl
 			<< "Maximum shift:           " << maxShift << std::endl
 			<< "Classify all images:     " << classifyAllImages << std::endl
 			<< "Normalize images:        " << normalizeImages << std::endl
@@ -1709,6 +1728,7 @@ void ProgClassifyCL2D::defineParams()
     addParamsLine("                       correntropy correlation: See CL2D paper for the definition of correntropy");
     addParamsLine("   [--classicalMultiref]     : Instead of enhanced clustering");
     addParamsLine("   [--classicalSplit]        : Instead of enhanced clustering at the split iterations");
+    addParamsLine("   [--maxSplitTrials <n=5>]  : Maximum number of trials to split before giving up");
     addParamsLine("   [--maxShift <d=10>]       : Maximum allowed shift");
 	addParamsLine("   [--classifyAllImages]     : By default, some images may not be classified. Use this option to classify them all.");
 	addParamsLine("   [--dontNormalizeImages]   : By default, input images are normalized to have 0 mean and standard deviation 1");
