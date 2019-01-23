@@ -21,28 +21,54 @@
 # *  All comments concerning this program package may be sent to the
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
+import subprocess
 
 import sys
 import os
 import shutil
 from os.path import dirname, realpath, join, isfile, exists
 
+VERSION_TAG = 'Xmipp version'
+VERSION_CMD = "build/bin/xmipp_version"
 
 def usage(error):
     print ("\n"
            "    ERROR: %s\n"
            "\n"
-           "    Usage: python tar.py <mode> <version>\n"
+           "    Usage: python tar.py <mode> [version]\n"
            "\n"
            "             mode: Binaries: Just the binaries \n"
            "                   Sources: Just the source code.\n"
            "\n"
            "             version: X.YY.MM  (version, year and month)\n"
-           "    ") % error
+           "                      the default version is taken from %s\n"
+           "    ") % (error, VERSION_CMD)
     sys.exit(1)
 
+def getVersion():
+    try:
+        result = subprocess.check_output(VERSION_CMD).splitlines()
+    except:
+        raise Exception("The '%s' file (containing the '%s') do NOT exist."
+                        % (VERSION_CMD, VERSION_TAG))
+    for line in result:
 
-def run(label, version):
+        if line.startswith(VERSION_TAG):
+            print(line)
+            return line.split(": ")[1]
+    raise Exception("'xmipp_version' is not returning the '%s' information"
+                    % VERSION_TAG)
+
+def run(*argv):
+    if len(argv) == 1:
+        label = argv[0]
+        version = getVersion()
+    elif len(argv) == 2:
+        label = argv[0]
+        version = argv[1]
+    else:
+        print("Incorrect number of parameters")
+        return
 
     XMIPP_PATH = realpath(dirname(dirname(dirname(realpath(__file__)))))
     MODES = {'Binaries': 'build', 'Sources': 'src'}
@@ -59,11 +85,12 @@ def run(label, version):
     if label == 'Binaries':
         print("Recompiling to make sure that last version is there...")
         try:
+            # doing compilation and install separately to skip config
             os.system("./xmipp compile 4")
             os.system("./xmipp install")
         except:
             print("  ...some error occurred during the compilation.\nFollowing with the bundle creation.")
-        target = tgzPath % ('', version)
+        target = tgzPath % ('Bin', version)
         if not isfile(join(XMIPP_PATH, 'build', 'bin', 'xmipp_reconstruct_significant')):
             print("\n"
                   "     ERROR: %s not found. \n"
@@ -101,10 +128,10 @@ def run(label, version):
 
 if __name__  == '__main__':
 
-    if len(sys.argv) != 3:
+    if not (len(sys.argv) == 2 or len(sys.argv) == 3):
         usage("Incorrect number of input parameters")
 
     label = sys.argv[1]
-    version = sys.argv[2]
+    version = sys.argv[2] if len(sys.argv) == 3 else getVersion()
 
     run(label, version)
