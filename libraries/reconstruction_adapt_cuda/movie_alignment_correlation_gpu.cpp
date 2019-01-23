@@ -400,10 +400,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // load movie to memory
     if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, movieSettings, dark, gain);
+        movieRawData = loadMovie(movie, dark, gain);
     }
-    T* movieData = movieRawData;
-    movieRawData = nullptr; // currently, raw movie data are needed after local alignment
+    // we need to work with full-size movie, with no cropping
+    assert(movieSettings.dim == rawMovieDim);
 
     // prepare filter
     MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x(),
@@ -423,12 +423,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // allocate additional memory for the patches
     // we reuse the data, so we need enough space for the patches data
-    // and for the resulting
-    size_t patchesElements = std::max({
-        correlationSettings.elemsFreq(),
-        correlationSettings.elemsSpacial(),
+    // and for the resulting correlations, which cannot be bigger than (padded) input data
+    size_t patchesElements = std::max(
         patchSettings.elemsFreq(),
-        patchSettings.elemsSpacial()});
+        patchSettings.elemsSpacial());
     T *patchesData1 = new T[patchesElements];
     T *patchesData2 = new T[patchesElements];
 
@@ -439,7 +437,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     for (auto &&p : patchesLocation) {
         // get data
         memset(patchesData1, 0, patchesElements * sizeof(T));
-        getPatchData(movieData, p.rec, globAlignment, movieSettings.dim,
+        getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
                 patchesData1);
         // don't swap buffers while some thread is accessing its content
         alignDataMutex.lock();
@@ -478,7 +476,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         e.join();
     }
 
-    delete[] movieData;
     delete[] patchesData1;
     delete[] patchesData2;
     return result;
@@ -532,7 +529,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
-    Image<T> croppedFrame, reducedFrame, shiftedFrame;
+    Image<T> croppedFrame(rawMovieDim.x(), rawMovieDim.y());
+    T *croppedFrameData = croppedFrame.data.data;
+    Image<T> reducedFrame, shiftedFrame;
     int j = 0;
     int n = 0;
     Ninitial = N = 0;
@@ -546,11 +545,18 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirstSum && n <= this->nlastSum) {
+            // user might want to align frames 3..10, but sum only 4..6
+            int frameOffset = this->nfirstSum - this->nfirst + j;
             // load frame
-            this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
+            // we can point to proper part of the already loaded movie
+            croppedFrame.data.data = movieRawData + (frameOffset * rawMovieDim.xy());
 
             if (this->bin > 0) {
                 // FIXME add templates to respective functions/classes to avoid type casting
+                /**
+                 * WARNING
+                 * As a side effect, raw movie data will get corrupted
+                 */
                 Image<double> croppedFrameDouble;
                 Image<double> reducedFrameDouble;
                 typeCast(croppedFrame(), croppedFrameDouble());
@@ -596,6 +602,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         }
         n++;
     }
+    // assign original data to avoid memory leak
+    croppedFrame.data.data = croppedFrameData;
 }
 
 template<typename T>
@@ -625,11 +633,11 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     // load movie to memory
     if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, movieSettings, dark, gain);
+        movieRawData = loadMovie(movie, dark, gain);
     }
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    T* data = new T[elems];
-    memcpy(data, movieRawData, elems * sizeof(T));
+    T *data = new T[elems];
+    getCroppedMovie(movieSettings, data);
 
     // lock the data processing (as alignment will unlock it)
     alignDataMutex.lock();
@@ -661,12 +669,23 @@ auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
 }
 
 template<typename T>
+void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
+        T *output) {
+    for (size_t n = 0; n < settings.dim.n(); ++n) {
+        T *src = movieRawData + (n * rawMovieDim.xy()); // points to first float in the image
+        T *dest = output + (n * settings.dim.xy()); // points to first float in the image
+        for (size_t y = 0; y < settings.dim.y(); ++y) {
+            memcpy(dest + (settings.dim.x() * y),
+                    src + (rawMovieDim.x() * y),
+                    settings.dim.x() * sizeof(T));
+        }
+    }
+}
+
+template<typename T>
 T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
-        const FFTSettings<T> &settings, const Image<T>& dark,
-        const Image<T>& gain) {
-    // allocate enough memory for the images. Since it will be reused, it has to be big
-    // enough to store either all FFTs or all input images
-    T* imgs = new T[std::max(settings.elemsFreq(), settings.elemsSpacial())]();
+        const Image<T>& dark, const Image<T>& gain) {
+    T* imgs = nullptr;
     Image<T> frame;
 
     int movieImgIndex = -1;
@@ -680,16 +699,18 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         // load image
         this->loadFrame(movie, dark, gain, __iter.objId, frame);
 
-        // copy line by line, adding offset at the end of each line
-        // result is the same image, padded in the X and Y dimensions
-        T* dest = imgs
-                + ((movieImgIndex - this->nfirst) * settings.dim.x()
-                        * settings.dim.y()); // points to first float in the image
-        for (size_t i = 0; i < settings.dim.y(); ++i) {
-            memcpy(dest + (settings.dim.x() * i),
-                    frame.data.data + i * frame.data.xdim,
-                    settings.dim.x() * sizeof(T));
+        if (nullptr == imgs) {
+            rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
+                    this->nlast - this->nfirst + 1);
+            auto settings = FFTSettings<T>(rawMovieDim, 1, false);
+            imgs = new T[std::max(settings.elemsFreq(), settings.elemsSpacial())]();
         }
+
+        // copy all frames to memory, consecutively. There will be a space behind
+        // in case we need to reuse the memory for FT
+        T* dest = imgs
+                + ((movieImgIndex - this->nfirst) * rawMovieDim.xy()); // points to first float in the image
+        memcpy(dest, frame.data.data, rawMovieDim.xy() * sizeof(T));
     }
     return imgs;
 }
