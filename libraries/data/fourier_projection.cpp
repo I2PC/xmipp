@@ -77,15 +77,29 @@ void Projection::assign(const Projection &P)
     *this = P;
 }
 
-FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
+
+FourierProjector::FourierProjector(double paddFactor, double maxFreq, int degree)
 {
-    volume = &V;
-    volumeSize=XSIZE(*volume);
     paddingFactor = paddFactor;
     maxFrequency = maxFreq;
     BSplineDeg = degree;
+}
+
+FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
+{
+    paddingFactor = paddFactor;
+    maxFrequency = maxFreq;
+    BSplineDeg = degree;
+    updateVolume(V);
+}
+
+void FourierProjector::updateVolume(MultidimArray<double> &V)
+{
+    volume = &V;
+    volumeSize=XSIZE(*volume);
     produceSideInfo();
 }
+
 
 void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
