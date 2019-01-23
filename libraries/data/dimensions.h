@@ -51,6 +51,10 @@ public:
         return m_n;
     }
 
+    inline constexpr size_t xy() const {
+        return m_x * m_y;
+    }
+
     constexpr size_t size() const {
         return m_x * m_y * m_z * m_n;
     }
@@ -59,6 +63,13 @@ public:
     friend std::ostream& operator<<(std::ostream &os, const Dimensions &d) {
         os << d.x() << " * " << d.y() << " * " << d.z() << " * " << d.n();
         return os;
+    }
+
+    constexpr bool operator==(const Dimensions &b) const {
+        return (m_x == b.m_x)
+                && (m_y == b.m_y)
+                && (m_z == b.m_z)
+                && (m_n == b.m_n);
     }
 
 private:

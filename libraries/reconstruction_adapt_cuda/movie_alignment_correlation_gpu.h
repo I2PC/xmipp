@@ -195,11 +195,10 @@ private:
     /**
      * Loads whole movie to the RAM
      * @param movie to load
-     * @param settings to use while loading
      * @param dark pixel correction
      * @param gain correction
      */
-    T* loadMovie(const MetaData& movie, const FFTSettings<T> &settings,
+    T* loadMovie(const MetaData& movie,
             const Image<T>& dark, const Image<T>& gain);
 
     /**
@@ -286,6 +285,8 @@ private:
 
     /**
      * Inherited, see parent
+     * WARNING !!!
+     * As a side effect, raw movie data might get corrupted. See the implementation.
      */
     void applyShiftsComputeAverage(
             const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
@@ -302,6 +303,14 @@ private:
      * Method for storing BSpline  coefficients
      */
     void storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs);
+
+    /**
+     * Method copies raw movie data according to the settings
+     * @param settings new sizes of the movie
+     * @param output where 'windowed' movie should be copied
+     */
+    void getCroppedMovie(const FFTSettings<T> &settings,
+            T *output);
 
 private:
     /** Number of patches used for local alignment */
@@ -325,7 +334,10 @@ private:
     core::optional<GPU> gpu;
 
     /** contains the loaded movie, with consecutive data padded for in-place FFT */
-    T* movieRawData = nullptr;
+    T *movieRawData = nullptr;
+
+    /** contains dimensions of the movie stored in movieRawData */
+    Dimensions rawMovieDim = Dimensions(0);
 
     /** mutex indicating when a thread can access data array used for alignment */
     mutable std::shared_timed_mutex alignDataMutex;
