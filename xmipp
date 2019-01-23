@@ -58,6 +58,19 @@ def getVersion(getCompilation=True):
         else:
             versionList.append('No compilation date found.')
 
+    def getLastCommit(repo):
+        repoPath = 'src/%s' % repo
+        workDir = os.getcwd()
+        os.chdir(repoPath)
+        cmt = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
+                            stdout=subprocess.PIPE).stdout.read().split('\n')[0]
+        os.chdir(workDir)
+        return cmt
+
+    for repo in ['xmipp', 'xmippCore', 'xmippViz']:
+        versionList.append('Last commit for %s repo: %s'
+                           % (repo, getLastCommit(repo)))
+
     return versionList
 
 def whereis(program):
@@ -652,23 +665,39 @@ def stampVersion():
     lastComp = "Last compilation: %s" % LAST_COMPILATION.strftime("%d/%m/%Y")
     lastCompFn = os.path.join('src', 'xmipp', 'bin', 'xmipp_version')
 
+    version = getVersion(getCompilation=False)
     with open(lastCompFn, 'w+') as f:
         f.write("#!/usr/bin/env python2\n")
-        f.write("print '%s'\n" % getVersion(getCompilation=False)[0])
-        f.write("print '%s'\n" % getVersion(getCompilation=False)[1])
+        f.write("print '%s'\n" % version[0])
+        f.write("print '%s'\n" % version[1])
         f.write("print '%s'\n" % lastComp)
+        for line in version[2:]:
+            f.write("print '%s'\n" % line)
 
     os.chmod(lastCompFn, 0o777)
 
 def runTests(testNames):
+    if len(testNames)==0 or 'help' in  testNames or '--help' in testNames:
+        print("Usage: xmipp test op\n"
+              "\n"
+              "         op = --show: Show how to invoke all available tests\n"
+              "              --allPrograms: Run all program tests\n"
+              "              --allFuncs: Run all function tests\n"
+              "              'testName': Run certain test (more than one is available)."
+              "\n")
+        return
+
     print("Testing ---------------------------------------------")
-    os.environ['PYTHONPATH'] = ':'.join([
-                         os.path.join(os.environ.get('XMIPP_SRC', ''), 'xmipp'),
-                         os.environ.get('PYTHONPATH', '')])
-    try:
+
+    if os.environ.get('XMIPP_SRC', None):
+        os.environ['PYTHONPATH'] = ':'.join([
+            os.path.join(os.environ['XMIPP_SRC'], 'xmipp'),
+            os.environ.get('PYTHONPATH', '')])
+
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
-    except:
-        raise Exception(red('XMIPP_SRC is not in the path.') + '\nDo: ' +
+    else:
+        raise Exception(red('XMIPP_SRC is not in the enviroment.') +
+                        '\nTo run the tests you need to run: ' +
                         blue('source build/xmipp.bashrc'))
 
     dataSetPath = os.path.join(testsPath, 'data')
@@ -676,28 +705,14 @@ def runTests(testNames):
         createDir(dataSetPath)
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
-    if not '--show' in testNames:
-        checkProgram('rsync')
-
-        createDir(dataSetPath)
-
-        remoteLoc = 'scipion@scipion.cnb.csic.es'
-        remoteFolder = '/services/scipion/data/downloads/scipion/data/tests/xmipp_programs/'
-
-        print(blue('  Downloading test data.. (it can take a while)'))
-        subprocess.call(['rsync', '-razh', '--progress', '--chmod=a+r',
-                         '%s:%s' % (remoteLoc, remoteFolder), dataSetPath])
-
-    try:
+    scipionHome = getScipionHome()
+    if scipionHome is not None:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
-    except:
+    else:
         python = 'python'
-        # raise Exception(red('SCIPION_HOME is not in the path.') + '\nDo: ' +
-        #                 blue('export SCIPION_HOME=<scipion_home>'))
 
-    print(testNames)
-    testsToDo = '--all' if len(testNames)==0 else ' '.join(testNames)
-    runJob("cd %s; %s base.py %s" % (testsPath, python, testsToDo))
+    print(" Tests to do: %s" % ', '.join(testNames))
+    runJob("(cd %s; %s test.py %s)" % (testsPath, python, ' '.join(testNames)))
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -720,6 +735,7 @@ def install(dirname):
     runJob("cp src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python")
     runJob("cp -r src/xmipp/external/sh_alignment/python "+dirname+"/bindings/python/sh_alignment")
     runJob("cp -r src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment")
+    runJob("cp -r src/xmipp/resources/* "+dirname+"/resources")
 
     runJob("cp -r src/xmippViz/bindings/chimera "+dirname+"/bindings")
     createDir(dirname+"/bindings/java")
@@ -806,7 +822,8 @@ def writeDevelPaths(dirname):
 
     fhBash.close()
 
-def usage():
+def usage(msg):
+    print(msg)
     print("Usage: xmipp [options]\n"
           "   version                     Returns the version information\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
@@ -821,16 +838,16 @@ def usage():
           "   compile  N xmipp:           Compile xmipp\n"
           "   compile  N xmippViz:        Compile xmippViz\n"
           "   install [dir]:              Install at dir (./build by default)\n"
-          "   test [--show] testName:     Run tests to check Xmipp programs (by default, all).\n"
+          "   test [--show] testName:     Run tests to check Xmipp programs (without args, it shows a detailed help).\n"
           "                                 if --show is activated without testName all are shown, \n"
           "                                 instead a grep of testName is done \n"
           "For developers:\n"
           "   create_devel_paths:     Create bashrc files for devel\n"
           "   git ...:                Git command to all 4 repositories\n"
           "   gitConfig:              Change the git config from https to git\n"
-          "   tar <mode> <version>:   Create a bundle of the xmipp\n"
+          "   tar <mode> [version]:   Create a bundle of the xmipp\n"
           "                              <mode> can be 'Sources' or 'Binaries'\n"
-          "                              <version> usually X.YY.MM\n"
+          "                              [version] usually X.YY.MM (default: from 'xmipp_version' program)\n"
           )
 
 if __name__ == '__main__':
@@ -881,7 +898,7 @@ if __name__ == '__main__':
             module = sys.argv[3]
         if ok:
             print("\n"
-                  "  * %s have been successfully compile * \n"
+                  "  * %s have been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
     elif mode=="compileAndInstall":
@@ -945,7 +962,11 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='tar':
         import tar
-        tar.run(sys.argv[2], sys.argv[3])
+        print len(sys.argv)
+        if not (len(sys.argv) == 3 or len(sys.argv) == 4):
+            usage("Incorrect number of input parameters")
+        else:
+            tar.run(*sys.argv[2:])
     else:
         print(" -> option not found <- \n")
         usage()
