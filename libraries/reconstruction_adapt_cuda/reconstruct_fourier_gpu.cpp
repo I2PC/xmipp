@@ -483,9 +483,8 @@ void ProgRecFourierGPU::computeAABB(Point3D<float>* AABB, Point3D<float>* cuboid
 	float maxX, float maxY, float maxZ) {
 	AABB[0].x = AABB[0].y = AABB[0].z = std::numeric_limits<float>::max();
 	AABB[1].x = AABB[1].y = AABB[1].z = std::numeric_limits<float>::min();
-	Point3D<float> tmp;
 	for (int i = 0; i < 8; i++) {
-		tmp = cuboid[i];
+        Point3D<float> tmp = cuboid[i];
 		if (AABB[0].x > tmp.x) AABB[0].x = tmp.x;
 		if (AABB[0].y > tmp.y) AABB[0].y = tmp.y;
 		if (AABB[0].z > tmp.z) AABB[0].z = tmp.z;
@@ -750,7 +749,8 @@ void ProgRecFourierGPU::computeTraverseSpace(int imgSizeX, int imgSizeY, int pro
 		MATRIX& transform, MATRIX& transformInv, RecFourierProjectionTraverseSpace* space) {
 	Point3D<float> cuboid[8];
 	Point3D<float> AABB[2];
-	Point3D<float> origin = {maxVolumeIndexX/2.f, maxVolumeIndexYZ/2.f, maxVolumeIndexYZ/2.f};
+    Point3D<float> origin(maxVolumeIndexX / 2.f, maxVolumeIndexYZ / 2.f,
+            maxVolumeIndexYZ / 2.f);
 	createProjectionCuboid(cuboid, imgSizeX, imgSizeY, useFast ? 0.f : blob.radius);
 	rotateCuboid(cuboid, transform);
 	translateCuboid(cuboid, origin);

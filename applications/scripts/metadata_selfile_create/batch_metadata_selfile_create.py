@@ -27,11 +27,11 @@
 #!/usr/bin/env python
 
 import os
-import xmipp_base
+from xmipp_base import XmippScript, createMetaDataFromPattern
 
-class ScriptCreateMetadata(xmipp_base.XmippScript):
+class ScriptCreateMetadata(XmippScript):
     def __init__(self):
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Create a metadata from a file pattern.')
@@ -50,7 +50,7 @@ class ScriptCreateMetadata(xmipp_base.XmippScript):
         pattern = self.getParam('--pattern')
         isStack = self.checkParam('-s')
         label = self.getParam('-l')
-        mD = xmipp_base.createMetaDataFromPattern(pattern, isStack, label)
+        mD = createMetaDataFromPattern(pattern, isStack, label)                
         outFile = self.getParam('-o')
         mD.write(outFile)
 
