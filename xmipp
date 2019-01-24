@@ -808,17 +808,16 @@ def install(dirname):
     runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
 
     createDir(dirname+"/resources/")
-    runJob(cpCmd+" -r src/xmipp/resources/* "+dirname+"/resources/")
-    runJob(cpCmd+" -r src/xmippViz/bindings/chimera "+dirname+"/bindings/")
+    runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
 
+    runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
     createDir(dirname+"/bindings/java")
     runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
     runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
     runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
     runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
-    runJob(cpCmd+" -Lr src/xmippViz/resources/* "+dirname+"/resources/")
 
-    runJob(cpCmd+" src/xmipp/models/* "+dirname+"/models/ --exclude *.tgz --exclude MANIFEST")
+    runJob(cpCmd+" -r src/xmipp/models/* "+dirname+"/models/ --exclude *.tgz --exclude MANIFEST")
 
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
