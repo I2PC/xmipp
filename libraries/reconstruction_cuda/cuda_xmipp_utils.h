@@ -6,9 +6,6 @@
 #include <complex>
 
 class myStreamHandle;
-#ifndef PI
-#define PI 3.14159265359
-#endif
 
 void mycufftDestroy(void *ptr);
 void myStreamDestroy(void *ptr);
@@ -28,27 +25,6 @@ void gpuCopyFromCPUToGPU(void* data, void* d_data, size_t Nbytes);
 void gpuCopyFromGPUToCPU(void* d_data, void* data, size_t Nbytes);
 int gridFromBlock(int tasks, int Nthreads);
 
-void setDevice(int device);
-
-/**
- * Get UUID of the GPU
- * @param devIndex of the GPU
- * @return either UUID of the GPU OR devIndex (if UUID is not available)
- */
-std::string getUUID(int devIndex);
-
-template<typename T>
-T* loadToGPU(const T* data, size_t items);
-
-template<typename T>
-void release(T* data);
-
-size_t getFreeMem(int device);
-
-bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
-        bool crop,
-        int &xSize, int &ySize, int reserveMem,
-        bool verbose, int device, bool squareOnly, int sigPercChange);
 
 struct ioTime
 {
@@ -88,8 +64,6 @@ void cuda_check_gpu_properties(int* maxGridSize);
 class mycufftHandle {
 public:
 	void *ptr;
-
-	~mycufftHandle() { clear(); }
 
 	mycufftHandle(){
 			ptr=NULL;
@@ -326,11 +300,6 @@ public:
 	void copyToGpu(T* data)
 	{
 		gpuCopyFromCPUToGPU((void *)data, (void *)d_data, nzyxdim*sizeof(T));
-	}
-
-	void copyToCpu(T* data)
-	{
-		gpuCopyFromGPUToCPU((void *)d_data, (void *)data, nzyxdim*sizeof(T));
 	}
 
 	void copyToGpuStream(T* data, myStreamHandle &myStream)
