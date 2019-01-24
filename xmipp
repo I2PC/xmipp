@@ -58,6 +58,19 @@ def getVersion(getCompilation=True):
         else:
             versionList.append('No compilation date found.')
 
+    def getLastCommit(repo):
+        repoPath = 'src/%s' % repo
+        workDir = os.getcwd()
+        os.chdir(repoPath)
+        cmt = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
+                            stdout=subprocess.PIPE).stdout.read().split('\n')[0]
+        os.chdir(workDir)
+        return cmt
+
+    for repo in ['xmipp', 'xmippCore', 'xmippViz']:
+        versionList.append('Last commit for %s repo: %s'
+                           % (repo, getLastCommit(repo)))
+
     return versionList
 
 def whereis(program):
@@ -90,7 +103,7 @@ def checkProgram(programName, show=True):
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
     systemInstructions["mpicc"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
-    systemInstructions["scons"] = ['sudo apt-get -y install scons or that Scipion Scons is on the path',"sudo pacman -Syu --noconfirm scons"]
+    systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
     systemInstructions["pip"] = ["sudo apt-get -y install python-pip" , "sudo pacman -Syu --noconfirm rsync"]
@@ -196,6 +209,19 @@ def getSources(branch='', doPull=True):
         print(red("Cannot get the sources"))
     return ok
 
+def getDependencies():
+    print("Getting Dependencies -------------------------------------")
+    ok=True
+    advisorDir = "src/cuFFTAdvisor/" 
+    ok = checkProgram("git")
+    if ok and not os.path.exists(advisorDir):
+        createDir(advisorDir)
+        ok=runJob("git clone https://github.com/DStrelak/cuFFTAdvisor.git " + advisorDir)
+
+    if not ok:
+        print(red("Cannot get dependencies"))
+    return ok
+
 def getScipionHome():
     if "SCIPION_HOME" in os.environ:
         return os.environ["SCIPION_HOME"]
@@ -290,6 +316,9 @@ def configOpenCV(configDict):
 
     runJob("rm -v xmipp_test_opencv*",show_output=False)
 
+def getDependenciesInclude():
+    return ['../']
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -303,7 +332,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if configDict["CXX"]=="g++":
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std=c++11"
+            configDict["CXXFLAGS"]+=" -std=c++14"
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -321,6 +350,7 @@ def configCompiler(configDict):
                 # libDirs+=["/usr/lib/x86_64-linux-gnu"]
     if configDict["INCDIRFLAGS"]=="":
         incDirs=[]
+        configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
         scipionHomeDir = getScipionHome()
         if scipionHomeDir:
             configDict["INCDIRFLAGS"]="-I%s/software/include"%scipionHomeDir
@@ -347,6 +377,12 @@ def configCompiler(configDict):
             if findFileInDirList("ndarraytypes.h",["/usr/lib/python2.7/site-packages/numpy/core/include/numpy"]):
                 configDict["PYTHONINCFLAGS"]+=" -I/usr/lib/python2.7/site-packages/numpy/core/include/"
                 incDirs+=["usr/lib/python2.7/site-packages/numpy/core/include/"]
+            elif findFileInDirList("ndarraytypes.h",["/usr/lib/python2.7/dist-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/lib/python2.7/dist-packages/numpy/core/include/"
+                incDirs+=["usr/lib/python2.7/dist-packages/numpy/core/include/"]
+            elif findFileInDirList("ndarraytypes.h",["/usr/local/lib/python2.7/dist-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/local/lib/python2.7/dist-packages/numpy/core/include/"
+                incDirs+=["usr/local/lib/python2.7/dist-packages/numpy/core/include/"]
     if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
         configOpenCV(configDict)
 
@@ -501,7 +537,7 @@ def configCuda(configDict):
         if configDict["NVCC_CXXFLAGS"]=="":
             if checkProgram("g++-5", False):
                 configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
-                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5"
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5 -std=c++11"
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -513,7 +549,7 @@ def configCuda(configDict):
                     candidateDir = dirName.replace("bin","lib64")
                     ok=os.path.exists(candidateDir+"/libcudart.so")
             if ok:
-                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir
+                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir + " -L%s"%candidateDir + "/stubs" # nvidia-ml is in stubs folder
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
@@ -528,8 +564,8 @@ def checkCuda(configDict):
         with open("xmipp_cuda_test.cpp", "w") as cppFile:
             cppFile.write(cppProg)
 
-        if not runJob("%s -c -w %s %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
-                  (configDict["NVCC"],configDict["CXXFLAGS"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
+        if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
+                  (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
             print(red("Check the NVCC, CXXFLAGS, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
         if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
@@ -636,6 +672,23 @@ def compileModule(Nproc,module,printFinish=False):
         stampVersion()
     return ok
 
+def compileDependencies(Nproc):
+    print("Building Dependencies -------------------------------------")
+    if not checkProgram("nvcc",False):
+        print(red('Dependencies not installed as they need NVCC, which has not been found in the PATH.\nDepending on other settings, build might crash eventually.'))
+        return True
+
+    advisorDir = "src/cuFFTAdvisor/" 
+    currDir = os.getcwd()
+    libDir = "src/xmipp/lib/"
+    createDir(libDir)
+    os.chdir(advisorDir)
+    ok = runJob("make all")
+    os.chdir(currDir)
+    ok = ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
+    if not ok:
+        print(red("Cannot build dependencies"))
+    return ok
 
 def compile(Nproc):
     print("Compiling -------------------------------------------")
@@ -652,11 +705,14 @@ def stampVersion():
     lastComp = "Last compilation: %s" % LAST_COMPILATION.strftime("%d/%m/%Y")
     lastCompFn = os.path.join('src', 'xmipp', 'bin', 'xmipp_version')
 
+    version = getVersion(getCompilation=False)
     with open(lastCompFn, 'w+') as f:
         f.write("#!/usr/bin/env python2\n")
-        f.write("print '%s'\n" % getVersion(getCompilation=False)[0])
-        f.write("print '%s'\n" % getVersion(getCompilation=False)[1])
+        f.write("print '%s'\n" % version[0])
+        f.write("print '%s'\n" % version[1])
         f.write("print '%s'\n" % lastComp)
+        for line in version[2:]:
+            f.write("print '%s'\n" % line)
 
     os.chmod(lastCompFn, 0o777)
 
@@ -806,16 +862,19 @@ def writeDevelPaths(dirname):
 
     fhBash.close()
 
-def usage():
+def usage(msg):
+    print(msg)
     print("Usage: xmipp [options]\n"
           "   version                     Returns the version information\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
+          "   get_dependencies:    Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config:                     Configure compilation variables\n"
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
+          "   compile N dependencies: Compile dependencies\n"
           "   compileAndInstall N:        Compile all modules with N processors and install in the default directory\n"
           "   compile  N xmippCore:       Compile xmippCore\n"
           "   compile  N xmipp:           Compile xmipp\n"
@@ -828,9 +887,9 @@ def usage():
           "   create_devel_paths:     Create bashrc files for devel\n"
           "   git ...:                Git command to all 4 repositories\n"
           "   gitConfig:              Change the git config from https to git\n"
-          "   tar <mode> <version>:   Create a bundle of the xmipp\n"
+          "   tar <mode> [version]:   Create a bundle of the xmipp\n"
           "                              <mode> can be 'Sources' or 'Binaries'\n"
-          "                              <version> usually X.YY.MM\n"
+          "                              [version] usually X.YY.MM (default: from 'xmipp_version' program)\n"
           )
 
 if __name__ == '__main__':
@@ -860,6 +919,8 @@ if __name__ == '__main__':
             print("Nothing cleaned")
             if yesno.lower()=="yes":
                 print("Pay attention to capital letters of YeS")
+    elif mode=="get_dependencies" and checkProgram("git"):
+        getDependencies()
     elif mode=="cleanBin":
         cleanBinaries()
     elif mode=="version":
@@ -873,6 +934,7 @@ if __name__ == '__main__':
         checkConfig()
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
+        compileDependencies(Nproc)
         if n<=3:
             ok = compile(Nproc)
             module = 'Xmipp'
@@ -881,11 +943,12 @@ if __name__ == '__main__':
             module = sys.argv[3]
         if ok:
             print("\n"
-                  "  * %s have been successfully compile * \n"
+                  "  * %s have been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
     elif mode=="compileAndInstall":
         Nproc=sys.argv[2]
+        compileDependencies(Nproc)
         compile(Nproc)
         install("build")
     elif mode=="install":
@@ -915,14 +978,13 @@ if __name__ == '__main__':
                 sys.exit(1)
 
         ok = getSources(branch, doPull)
-        if ok:
-           ok=config()
-        if ok:
-           ok=checkConfig()
-        if ok:
-           ok=compile(Nproc)
-        if ok:
-           ok=install(buildDir)
+        ok = (getDependencies()
+            and getSources()
+            and config()
+            and checkConfig()
+            and compileDependencies(Nproc)
+            and compile(Nproc)
+            and install('build'))
         if ok:
            sys.exit(0)
         else:
@@ -945,7 +1007,11 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='tar':
         import tar
-        tar.run(sys.argv[2], sys.argv[3])
+        print len(sys.argv)
+        if not (len(sys.argv) == 3 or len(sys.argv) == 4):
+            usage("Incorrect number of input parameters")
+        else:
+            tar.run(*sys.argv[2:])
     else:
         print(" -> option not found <- \n")
         usage()

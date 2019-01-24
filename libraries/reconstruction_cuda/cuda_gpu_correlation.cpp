@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include <vector>
 
-#define PI 3.14159265
+#define PI 3.14159265359
 
 
 __global__ void calcAbsKernel(cufftComplex *d_in, float *d_out, int dim){

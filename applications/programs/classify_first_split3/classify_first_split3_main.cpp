@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Strelak (davidstrelak@gmail.com)
+ * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,34 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+#include "../../../libraries/reconstruction/classify_first_split3.h"
 
-#include "point.h"
-#include "cuda_compatibility.h"
-
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
-public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
-    }
-    ;
-    T x;
-    T y;
-    T z;
-
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
-    }
-
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
-    }
-};
-
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+RUN_XMIPP_PROGRAM(ProgClassifyFirstSplit3)
