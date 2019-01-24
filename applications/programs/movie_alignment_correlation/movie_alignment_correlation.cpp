@@ -25,4 +25,4 @@
 
 #include <reconstruction/movie_alignment_correlation.h>
 
-RUN_XMIPP_PROGRAM(ProgMovieAlignmentCorrelation)
+RUN_XMIPP_PROGRAM(ProgMovieAlignmentCorrelation<double>)
