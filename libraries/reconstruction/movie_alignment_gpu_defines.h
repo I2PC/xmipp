@@ -23,34 +23,15 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+#ifndef MOVIE_ALIGNMENT_GPU_DEFINES
+#define MOVIE_ALIGNMENT_GPU_DEFINES
 
-#include "point.h"
-#include "cuda_compatibility.h"
+#define PASCAL
 
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
-public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
-    }
-    ;
-    T x;
-    T y;
-    T z;
+#ifdef PASCAL
+// GPU specific
+#define BLOCK_DIM_X 32
+#define TILE 8
+#endif
 
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
-    }
-
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
-    }
-};
-
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+#endif /* MOVIE_ALIGNMENT_GPU_DEFINES */
