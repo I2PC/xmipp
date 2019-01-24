@@ -779,41 +779,46 @@ def downloadDeepLearningModels(skipModel=''):
 
     print("Uncompressing models")
     for tgz in tgzFiles:
-        runJob('(cd %s ; tar -xzf %s)'
-               % (modelsPath, tgz))
+        runJob('(cd %s ; tar -xzf %s)' % (modelsPath, tgz))
 
 def install(dirname):
     print("Installing ------------------------------------------")
+    cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
+
     createDir(dirname)
 
     createDir(dirname+"/lib")
-    runJob("rsync -a src/*/lib/lib* "+dirname+"/lib")
+    runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
 
     createDir(dirname+"/bin")
-    runJob("rsync -a src/*/bin/* "+dirname+"/bin")
+    runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
-    runJob("rsync -a src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab")
+    runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
 
     createDir(dirname+"/bindings/python")
-    runJob("rsync -a src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python")
-    runJob("rsync -a src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python")
-    runJob("rsync -a src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python")
-    runJob("rsync -a src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python")
-    runJob("rsync -a src/xmipp/external/sh_alignment/python "+dirname+"/bindings/python/sh_alignment")
-    runJob("rsync -a src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment")
-    runJob("rsync -a src/xmipp/resources/* "+dirname+"/resources")
+    runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
+    runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
+    runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
+    runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
-    runJob("rsync -a src/xmippViz/bindings/chimera "+dirname+"/bindings")
+    createDir(dirname+"/bindings/python/sh_alignment")
+    runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
+    runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
+
+    createDir(dirname+"/resources/")
+    runJob(cpCmd+" -r src/xmipp/resources/* "+dirname+"/resources/")
+    runJob(cpCmd+" -r src/xmippViz/bindings/chimera "+dirname+"/bindings/")
+
     createDir(dirname+"/bindings/java")
-    runJob("rsync -Lr src/xmippViz/java/lib "+dirname+"/bindings/java")
-    runJob("rsync -Lr src/xmippViz/java/build "+dirname+"/bindings/java")
-    runJob("rsync -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java")
-    runJob("rsync -a src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python")
-    runJob("rsync -Lr src/xmippViz/resources "+dirname+"/resources")
+    runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
+    runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
+    runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
+    runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
+    runJob(cpCmd+" -Lr src/xmippViz/resources/* "+dirname+"/resources/")
 
-    runJob("rsync -a src/xmipp/models/* "+dirname+"/models/ --exclude *.tgz --exclude MANIFEST")
+    runJob(cpCmd+" src/xmipp/models/* "+dirname+"/models/ --exclude *.tgz --exclude MANIFEST")
 
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")

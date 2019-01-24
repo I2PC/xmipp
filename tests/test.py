@@ -25,10 +25,8 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-import hashlib
+
 import os
-from os.path import join, relpath
-from urllib2 import urlopen
 
 import time
 import unittest
@@ -37,9 +35,6 @@ import subprocess
 import sys
 import shutil
 from traceback import format_exception
-
-# from pyworkflow.tests import *
-# import pyworkflow.utils as pwutils
 
 import xmippLib
 
