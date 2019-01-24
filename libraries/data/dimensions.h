@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Strelak (davidstrelak@gmail.com)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,34 +23,51 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+#ifndef LIBRARIES_DATA_DIMENSIONS_H_
+#define LIBRARIES_DATA_DIMENSIONS_H_
 
-#include "point.h"
-#include "cuda_compatibility.h"
+#include <cstddef>
 
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
+class Dimensions {
 public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
+    explicit Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1) :
+            m_x(x), m_y(y), m_z(z), m_n(n) {
     }
     ;
-    T x;
-    T y;
-    T z;
 
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
+    inline constexpr size_t x() const {
+        return m_x;
     }
 
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
+    inline constexpr size_t y() const {
+        return m_y;
     }
+
+    inline constexpr size_t z() const {
+        return m_z;
+    }
+
+    inline constexpr size_t n() const {
+        return m_n;
+    }
+
+    constexpr size_t size() const {
+        return m_x * m_y * m_z * m_n;
+    }
+
+
+    friend std::ostream& operator<<(std::ostream &os, const Dimensions &d) {
+        os << d.x() << " * " << d.y() << " * " << d.z() << " * " << d.n();
+        return os;
+    }
+
+private:
+    size_t m_x;
+    size_t m_y;
+    size_t m_z;
+    size_t m_n;
 };
 
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+
+
+#endif /* LIBRARIES_DATA_DIMENSIONS_H_ */

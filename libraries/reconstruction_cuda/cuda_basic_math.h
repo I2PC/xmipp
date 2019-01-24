@@ -89,6 +89,28 @@ inline __host__ __device__ void operator*=(float2 &a, float s)
 {
     a.x *= s; a.y *= s;
 }
+inline __host__ __device__ double2 operator*(double2 a, double2 b)
+{
+    return make_double2(a.x * b.x, a.y * b.y);
+}
+inline __host__ __device__ void operator*=(double2 &a, double2 b)
+{
+    a.x *= b.x;
+    a.y *= b.y;
+}
+inline __host__ __device__ double2 operator*(double2 a, float s)
+{
+    return make_double2(a.x * s, a.y * s);
+}
+inline __host__ __device__ double2 operator*(float s, double2 a)
+{
+    return make_double2(a.x * s, a.y * s);
+}
+inline __host__ __device__ void operator*=(double2 &a, float s)
+{
+    a.x *= s; a.y *= s;
+}
+
 
 // divide
 inline __host__ __device__ float2 operator/(float2 a, float2 b)
@@ -102,14 +124,18 @@ inline __host__ __device__ float2 operator/(float2 a, float s)
 }
 inline __host__ __device__ float2 operator/(float s, float2 a)  //Danny
 {
-	return make_float2(s / a.x, s / a.y);
+    return make_float2(s / a.x, s / a.y);
 }
 inline __host__ __device__ void operator/=(float2 &a, float s)
 {
     float inv = 1.0f / s;
     a *= inv;
 }
-
+inline __host__ __device__ void operator/=(double2 &a, float s)
+{
+    double inv = 1.0 / s;
+    a *= inv;
+}
 // dot product
 inline __host__ __device__ float dot(float2 a, float2 b)
 {
