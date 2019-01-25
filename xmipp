@@ -653,6 +653,7 @@ def compileModule(Nproc,module,printFinish=False):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
     if module == "xmipp" and ok:
+        downloadDeepLearningModels()
         stampVersion()
     return ok
 
@@ -733,16 +734,16 @@ def runTests(testNames):
     runJob("(cd %s; %s test.py %s)" % (testsPath, python, ' '.join(testNames)))
 
 def addDeepLearninModel(login, modelName):
-    """ Takes the folder from modelPath and makes a .tgz,
-        uploads the .tgz to scipion web and
-        adds the modelName to the model.list.
+    """ Takes the folder name modelName from models dir and
+        makes a .tgz, uploads the .tgz to scipion web.
     """
     modelsDir = os.path.join("src", "xmipp", "models")
     tgzFn = "xmipp_model_%s.tgz"%modelName
     modelPath = os.path.join(modelsDir, modelName)
     tgzPath = os.path.join(modelsDir, tgzFn)
     if not os.path.isdir(modelPath):
-        print("modelPathDir must be a folder. \n"
+        print("'modelName' must coincide with a directory "
+              "placed at 'src/xmipp/models/'. \n"
               "The name of the model will be that folder name.\n")
         usage()
         sys.exit(1)
@@ -764,22 +765,19 @@ def addDeepLearninModel(login, modelName):
     remotePath = "scipion_em_packages/"
     sync_data.upload(login, tgzPath, remotePath, isDLmodel=True)
 
-def downloadDeepLearningModels(skipModel=''):
+def downloadDeepLearningModels():
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
     modelsPath = os.path.join("src", "xmipp", "models")
 
-    # downloading/updating the dataset
+    # downloading/updating the DLmodels
     if os.path.isdir(modelsPath):
         print(blue("Updating the Deep Learning models"))
         task = sync_data.update
     else:
         print(blue("Downloading Deep Learning models"))
         task = sync_data.download
-    tgzFiles = task(modelsPath, url, isDLmodel=True)
+    task(modelsPath, url, isDLmodel=True)
 
-    print("Uncompressing models")
-    for tgz in tgzFiles:
-        runJob('(cd %s ; tar -xzf %s)' % (modelsPath, tgz))
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -807,7 +805,7 @@ def install(dirname):
     runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
     runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
 
-    createDir(dirname+"/resources/")
+    createDir(dirname+"/resources")
     runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
 
     runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
@@ -817,7 +815,8 @@ def install(dirname):
     runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
     runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
 
-    runJob(cpCmd+" -r src/xmipp/models/* "+dirname+"/models/ --exclude *.tgz --exclude MANIFEST")
+    createDir(dirname+"/models")
+    runJob("cat src/xmipp/models/xmipp_model_*.tgz | tar xzf - -i --directory="+dirname+"/models")
 
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
@@ -896,7 +895,7 @@ def writeDevelPaths(dirname):
 
     fhBash.close()
 
-def usage(msg):
+def usage(msg=''):
     print(msg)
     print("Usage: xmipp [options]\n"
           "   version                     Returns the version information\n"

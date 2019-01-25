@@ -90,7 +90,6 @@ def download(destination=None, url=None, dataset=None, isDLmodel=False):
             if raw_input("Continue downloading? (y/[n]): ").lower() != 'y':
                 sys.exit()
     print
-    return md5sRemote.keys()
 
 def update(destination=None, url=None, dataset=None, isDLmodel=False):
     """ Update local dataset with the contents of the remote one.
@@ -133,18 +132,18 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
     oldPartial = 100
     for fname in md5sRemote:
         fpath = join(destination, fname)
-        # try:
-        if os.path.exists(fpath) and md5sLocal[fname] == md5sRemote[fname]:
-            pass  # just to emphasize that we do nothing in this case
-        else:
-            if not os.path.isdir(os.path.dirname(fpath)):
-                os.makedirs(os.path.dirname(fpath))
-            open(fpath, 'w').writelines(
-                urlopen('%s%s/%s' % (url, inFolder, fname)))
-            filesUpdated.append(fname)
-        # except Exception as e:
-        #     print "\nError while updating %s: %s" % (fname, e)
-        #     taintedMANIFEST = True  # if we don't update, it can be wrong
+        try:
+            if os.path.exists(fpath) and md5sLocal[fname] == md5sRemote[fname]:
+                pass  # just to emphasize that we do nothing in this case
+            else:
+                if not os.path.isdir(os.path.dirname(fpath)):
+                    os.makedirs(os.path.dirname(fpath))
+                open(fpath, 'w').writelines(
+                    urlopen('%s%s/%s' % (url, inFolder, fname)))
+                filesUpdated.append(fname)
+        except Exception as e:
+            print "\nError while updating %s: %s" % (fname, e)
+            taintedMANIFEST = True  # if we don't update, it can be wrong
         done += inc
         partial = int(done*10)
         if int(done*100%10) == 0 and partial != oldPartial:
@@ -157,13 +156,11 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
 
     # Save the new MANIFEST file in the folder of the downloaded dataset
     if len(filesUpdated) > 0:
-        open(join(destination, 'MANIFEST'), 'w').writelines(manifest)
+        open(join(destination, 'MANIFEST'), 'w').writelines(urlopen(remoteManifest).readlines())
 
     if taintedMANIFEST:
         print "Some files could not be updated. Regenerating local MANIFEST ..."
         createMANIFEST(destination)
-
-    return md5sRemote.keys()
 
 
 def upload(login, localFn, remoteFolder, isDLmodel=False):
