@@ -264,7 +264,13 @@ TEST_F( MetadataTest, getNewAlias)
     EXPECT_EQ(newLabel, BUFFER_01);
     EXPECT_EQ(MDL::label2Str(newLabel), labelStr);
     MetaData md = MetaData(fnNonXmippSTAR);
-    EXPECT_EQ(mDsource, md);
+
+    std::vector<double> yValues;
+    std::vector<std::string> y2Values;
+    mDsource.getColumnValues(MDL_Y, yValues);
+    md.getColumnValues(newLabel, y2Values);
+    for (int i = 0; i < yValues.size(); ++i)
+        EXPECT_FLOAT_EQ(yValues[i], textToFloat(y2Values[i]));
 }	
 
 TEST_F( MetadataTest, Aggregate1)
