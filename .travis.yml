@@ -15,8 +15,8 @@ addons:
 
 before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
-install: export CXX="g++-5"
 script:
+ - export CXX="g++-5"        
  - g++ -v 
  - python ./scripts/travis_before_script
  - build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp
