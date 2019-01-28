@@ -197,7 +197,7 @@ void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
             Image<T> &out) {
     loadFrame(movie, objId, out);
     if (XSIZE(dark()) > 0) out() -= dark();
-    if (XSIZE(gain()) > 0) out() *= gain();
+    if (XSIZE(gain()) > 0) out() /= gain();
 }
 
 template<typename T>
