@@ -15,8 +15,8 @@ before_install:
  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
  - sudo apt-get update -qq
 script:
- - sudo apt-get install -qq g++-6
- - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 90       
+ - sudo apt-get install -qq g++-5
+ - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90       
  - g++ -v 
  - python ./scripts/travis_before_script
  - build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp
