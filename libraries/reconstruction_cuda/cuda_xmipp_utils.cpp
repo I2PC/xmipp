@@ -122,12 +122,21 @@ bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchS
         if (verbose) {
             fprintf(stderr, "Search did not return any results. "
                 "Too strict search?\n");
-            printf("Using original values as search did not return better"
+            printf("Using original values as search did not return better "
                     "results.\n");
         }
         xSize = origXSize;
         ySize = origYSize;
-        batchSize = std::floor((freeMem - reserveMem) / (xSize * ySize * sizeof(float)));
+        int imgElems = std::max(xSize * ySize, (xSize / 2 + 1) * ySize * 2); // * 2 for complex numbers
+        float imgMBBytes = imgElems * sizeof(float) / (1024 * 1024.f);
+        // this makes sure we have enough memory for the FFT plan, which is
+        // typically of the size of the input data
+        float cudaPlanMemoryCoefficient = 2.1f;
+        batchSize = std::floor((freeMem - reserveMem) / (cudaPlanMemoryCoefficient * imgMBBytes));
+        // we don't need batch bigger than num of imgs to process
+        batchSize = std::min(batchSize, imgsToProcess);
+        // but we should manage at least one image
+        batchSize = std::max(batchSize, 1);
         return false;
     }
     batchSize = results->at(0)->transform->N;
