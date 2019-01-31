@@ -28,49 +28,23 @@ import os
 import shutil
 from os.path import dirname, realpath, join, isfile, exists
 
-VERSION_TAG = 'Xmipp version'
-VERSION_CMD = "build/bin/xmipp_version"
 
-def usage(error):
-    print ("\n"
-           "    ERROR: %s\n"
-           "\n"
-           "    Usage: python tar.py <mode> [version]\n"
-           "\n"
-           "             mode: Binaries: Just the binaries \n"
-           "                   Sources: Just the source code.\n"
-           "\n"
-           "             version: X.YY.MM  (version, year and month)\n"
-           "                      the default version is taken from %s\n"
-           "    ") % (error, VERSION_CMD)
+def usage(error=''):
+    errorStr = 'error\n' if error else ''
+    print("\n"
+          "    %s"
+          "\n"
+          "    Usage: python tar.py <mode> [version]\n"
+          "\n"
+          "             mode: Binaries: Just the binaries \n"
+          "                   Sources: Just the source code.\n"
+          "\n"
+          "             version: X.YY.MM  (version, year and month)\n"
+          "    " % errorStr)
     sys.exit(1)
 
-def getVersion():
-    try:
-        result = subprocess.check_output(VERSION_CMD).splitlines()
-    except:
-        raise Exception("The '%s' file (containing the '%s') do NOT exist."
-                        % (VERSION_CMD, VERSION_TAG))
-    for line in result:
 
-        if line.startswith(VERSION_TAG):
-            print(line)
-            return line.split(": ")[1]
-    raise Exception("'xmipp_version' is not returning the '%s' information"
-                    % VERSION_TAG)
-
-def run(*argv):
-    if len(argv) == 1:
-        label = argv[0]
-        version = getVersion()
-    elif len(argv) == 2:
-        label = argv[0]
-        version = argv[1]
-    else:
-        print("Incorrect number of parameters")
-        return
-
-    XMIPP_PATH = realpath(dirname(dirname(dirname(realpath(__file__)))))
+def run(label, version):
     MODES = {'Binaries': 'build', 'Sources': 'src'}
 
     def makeTarget(target, label):
@@ -84,21 +58,23 @@ def run(*argv):
     tgzPath = "xmipp%s-%s"
     if label == 'Binaries':
         print("Recompiling to make sure that last version is there...")
+        target = tgzPath % ('Bin', version)
         try:
             # doing compilation and install separately to skip config
             os.system("./xmipp compile 4")
-            os.system("./xmipp install")
+            os.system("./xmipp install %s" % target)
         except:
-            print("  ...some error occurred during the compilation.\nFollowing with the bundle creation.")
-        target = tgzPath % ('Bin', version)
-        if not isfile(join(XMIPP_PATH, 'build', 'bin', 'xmipp_reconstruct_significant')):
+            raise Exception("  ...some error occurred during the compilation!!!\n")
+        checkFile = isfile(join(target, 'bin', 'xmipp_reconstruct_significant'))
+        if not checkFile:
             print("\n"
                   "     ERROR: %s not found. \n"
                   "            Xmipp needs to be compiled to make the binaries.tgz."
-                  % target)
+                  % checkFile)
             sys.exit(1)
-        excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' --exclude='*.java'"
-        makeTarget(target, label)
+        excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' " \
+                     "--exclude='*.java' --exclude='resources/test' " \
+                     "--exclude='*xmipp_test*main'"
     elif label == 'Sources':
         target = tgzPath % ('Src', version)
         os.mkdir(target)
@@ -111,14 +87,14 @@ def run(*argv):
             'target': target}
 
     cmdStr = "tar czf %(target)s.tgz --exclude=.git --exclude='software/tmp/*' " \
-             "--exclude='*.o' --exclude='*.os' --exclude='*pyc' " \
-             "--exclude='*.mrc' --exclude='*.stk' --exclude='*.gz' %(excludeTgz)s" \
+             "--exclude='*.o' --exclude='*.os' --exclude='*pyc' --exclude='*.gz' " \
+             "--exclude='*.bashrc' --exclude='*.fish' %(excludeTgz)s" \
              "--exclude='*.scons*' --exclude='config/*.conf' %(target)s"
 
     cmd = cmdStr % args
 
     if exists(target+'.tgz'):
-        print("%s.tgz already exists. Removing it...")
+        print("%s.tgz already exists. Removing it..." % target)
         os.system("rm -rf %s.tgz" % target)
 
     print(cmd)

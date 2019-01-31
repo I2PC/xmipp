@@ -34,45 +34,59 @@ from datetime import datetime
 import sync_data
 
 # --K-E-E-P--U-P-D-A-T-E-D-- #
+VERSION_TAG = "Xmipp version"
 ##############################
 XMIPP_VERSION = '3.18.08'    #
 RELEASE_DATA = '24/08/2018'  #
 ##############################
 
-def getVersion(getCompilation=True):
-    """ Prints the version of XMIPP
-    """
-    versionList = []
-    versionList.append("Xmipp version: %s" % XMIPP_VERSION)
-    versionList.append("Release date: %s" % RELEASE_DATA)
 
-    if getCompilation:
-        lastCompFn = os.path.join("src", "xmipp", "bin", "xmipp_version")
-        if os.path.exists(lastCompFn):
-            with open(lastCompFn, 'r') as f:
-                binaryStr = f.read()
-            lastCompStr = 'No compilation date found.'
-            for line in binaryStr.split('\n'):
-                if 'Last compilation:' in line:
-                    lastCompStr = line.strip('print ').strip("'")
-            versionList.append(lastCompStr)
-        else:
-            versionList.append('No compilation date found.')
+def stampVersion():
+    LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
 
-    def getLastCommit(repo):
-        repoPath = 'src/%s' % repo
-        workDir = os.getcwd()
-        os.chdir(repoPath)
-        cmt = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
-                            stdout=subprocess.PIPE).stdout.read().split('\n')[0]
-        os.chdir(workDir)
-        return cmt
+    def getCommit(repo):
+        currDir = os.getcwd()
+        os.chdir('src/%s'%repo)
+        branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+        hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
+        os.chdir(currDir)
+        return "%s (%s)" % (branch.strip('\n'), hash.strip('\n'))
 
-    for repo in ['xmipp', 'xmippCore', 'xmippViz']:
-        versionList.append('Last commit for %s repo: %s'
-                           % (repo, getLastCommit(repo)))
+    versionBinFn = os.path.join('src', 'xmipp', 'applications', 'programs',
+                                'version', 'version.cpp')
+    createDir(os.path.dirname(versionBinFn))
+    with open(versionBinFn, 'w') as f:
+        f.write("""// Auto-generated code to get compilation Info
+#include <sys/utsname.h>
+#include <iostream>
+using namespace std;
 
-    return versionList
+int main(){
+    struct utsname utsname; // stores the data returned by uname()
+    struct utsname *utsname_ptr = &utsname; // pointer to the struct holding the data returned by uname()
+
+    int ret;
+    ret = uname(utsname_ptr);
+
+    std::cout << std::endl;
+    std::cout << "  \033[4m%s\033[24m: \033[1m%s\033[0m" << std::endl;
+    std::cout << std::endl;
+    std::cout << "  Release date:     %s" << std::endl;
+    std::cout << "  Xmipp branch:     %s" << std::endl;
+    std::cout << "  Plugin branch:    %s" << std::endl;
+    std::cout << "  Core branch :     %s" << std::endl;
+    std::cout << "  Viz branch:       %s" << std::endl;
+    std::cout << "  Compilation date: %s" << std::endl;
+    std::cout << "  Compiler:         g++ " << __VERSION__ << std::endl;
+    std::cout << "  Compiling system: " << utsname.machine << " " << utsname.sysname
+              << " " << utsname.release << std::endl 
+              << "                    " << utsname.version << std::endl;
+    std::cout << std::endl;
+    return 0;
+}
+""" % (VERSION_TAG, XMIPP_VERSION, RELEASE_DATA, getCommit('xmipp'),
+       getCommit('scipion-em-xmipp'), getCommit('xmippCore'), getCommit('xmippViz'),
+       LAST_COMPILATION))
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -576,6 +590,7 @@ def configMatlab(configDict):
                 configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
 
 def checkMatlab(configDict):
+    ans = True
     if configDict["MATLAB"]=="True":
         if not checkProgram("matlab"):
             return False
@@ -589,9 +604,9 @@ def checkMatlab(configDict):
 
         if not runJob("%s/bin/mex -silent xmipp_mex.cpp"%configDict["MATLAB_DIR"]):
             print(red("Check the MATLAB_DIR"))
-            return False
+            ans = False
         runJob("rm xmipp_mex*")
-    return True
+    return ans
 
 def writeConfig(configDict):
     with open("xmipp.conf", "w") as configFile:
@@ -641,6 +656,7 @@ def checkConfig():
             return False
         if not checkCuda(configDict):
             print(red("Cannot compile with NVCC, continuing without CUDA"))
+            runJob("rm xmipp_cuda_test*")  # if fails, the test files remains
             configDict["CUDA"]="False"
         if not checkMatlab(configDict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
@@ -649,12 +665,12 @@ def checkConfig():
         writeConfig(configDict)
     return True
 
-def compileModule(Nproc,module,printFinish=False):
+def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
-    ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
-    if module == "xmipp" and ok:
+    if module == "xmipp":
         downloadDeepLearningModels()
         stampVersion()
+    ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
 
 
@@ -667,22 +683,6 @@ def compile(Nproc):
     if not compileModule(Nproc,"xmippViz"):
         return False
     return True
-
-def stampVersion():
-    LAST_COMPILATION = datetime.now()
-    lastComp = "Last compilation: %s" % LAST_COMPILATION.strftime("%d/%m/%Y")
-    lastCompFn = os.path.join('src', 'xmipp', 'bin', 'xmipp_version')
-
-    version = getVersion(getCompilation=False)
-    with open(lastCompFn, 'w+') as f:
-        f.write("#!/usr/bin/env python2\n")
-        f.write("print '%s'\n" % version[0])
-        f.write("print '%s'\n" % version[1])
-        f.write("print '%s'\n" % lastComp)
-        for line in version[2:]:
-            f.write("print '%s'\n" % line)
-
-    os.chmod(lastCompFn, 0o777)
 
 def runTests(testNames):
     if len(testNames)==0 or 'help' in  testNames or '--help' in testNames:
@@ -697,20 +697,22 @@ def runTests(testNames):
 
     print("Testing ---------------------------------------------")
 
-    if os.environ.get('XMIPP_SRC', None):
+    xmippSrc = os.environ.get('XMIPP_SRC', None)
+    if xmippSrc and os.path.isdir(xmippSrc):
         os.environ['PYTHONPATH'] = ':'.join([
             os.path.join(os.environ['XMIPP_SRC'], 'xmipp'),
             os.environ.get('PYTHONPATH', '')])
 
         testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
     else:
-        raise Exception(red('XMIPP_SRC is not in the enviroment.') +
-                        '\nTo run the tests you need to run: ' +
-                        blue('source build/xmipp.bashrc'))
+        print(red('XMIPP_SRC is not in the enviroment.') +
+              '\nTo run the tests you need to run: ' +
+              blue('source build/xmipp.bashrc'))
+        sys.exit(1)
 
     dataSetPath = os.path.join(testsPath, 'data')
-    if not os.path.isdir(dataSetPath):
-        createDir(dataSetPath)
+    # if not os.path.isdir(dataSetPath):
+    #     createDir(dataSetPath)
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
     scipionHome = getScipionHome()
@@ -751,8 +753,8 @@ def addDeepLearninModel(login, modelName):
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
     remoteModels = sync_data.readManifest(url+'/xmipp_models_MANIFEST', True).keys()
     for model in remoteModels:
-        if modelName == model.lstrip('xmipp_model_').rstrip('.tgz'):
-            print("Warning: The '%s' name already exists.\n")
+        if modelName == model.replace('xmipp_model_', "").replace('.tgz',""):
+            print("Warning: The '%s' name already exists.\n" % modelName)
             if raw_input(" > Are you sure to OVERRIDE it? yes/NO < ").lower()!='yes':
                 sys.exit("Change the model name by changing the folder name in "
                          "'src/xmipp/models'.")
@@ -896,7 +898,8 @@ def writeDevelPaths(dirname):
     fhBash.close()
 
 def usage(msg=''):
-    print(msg)
+    if msg != '':
+        print(red(msg))
     print("Usage: xmipp [options]\n"
           "   version                     Returns the version information\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
@@ -925,6 +928,21 @@ def usage(msg=''):
           "                                   <mode> can be 'Sources' or 'Binaries'\n"
           "                                   <version> usually X.YY.MM\n"
           )
+
+
+def getVersion(onlyNumbers=False):
+    import re  # To clean colors and format
+    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+
+    lines = subprocess.check_output(["src/xmipp/bin/xmipp_version"])
+    verInfo = [line for line in lines.splitlines() if VERSION_TAG in line]
+    cleanInfo = ansi_escape.sub('', verInfo[0])
+
+    if onlyNumbers:
+        cleanInfo = cleanInfo.split(':')[1]
+
+    return cleanInfo.strip(' ')
+
 
 if __name__ == '__main__':
 
@@ -956,7 +974,10 @@ if __name__ == '__main__':
     elif mode=="cleanBin":
         cleanBinaries()
     elif mode=="version":
-        print('\n'.join(getVersion()))
+        if n>2 and sys.argv[2]=='--short':
+            print getVersion()
+        else:
+            runJob("src/xmipp/bin/xmipp_version")
     elif mode=="get_devel_sources" and checkProgram("git"):
         branch = "devel" if n==2 else sys.argv[2]
         getSources(branch)
@@ -1003,8 +1024,7 @@ if __name__ == '__main__':
             elif arg.startswith("dir="):
                 buildDir = arg[4:]
             else:
-                print("Unknown %s argument"%arg)
-                usage()
+                usage("Unknown %s argument"%arg)
                 sys.exit(1)
 
         ok = getSources(branch, doPull)
@@ -1045,13 +1065,13 @@ if __name__ == '__main__':
         addDeepLearninModel(sys.argv[2], sys.argv[3])
     elif mode=='tar':
         import tar
-        print len(sys.argv)
-        if not (len(sys.argv) == 3 or len(sys.argv) == 4):
+        if not len(sys.argv) in (3, 4):
             usage("Incorrect number of input parameters")
+        elif len(sys.argv) == 3:
+            tar.run(sys.argv[2], getVersion(onlyNumbers=True))
         else:
             tar.run(*sys.argv[2:])
     else:
-        print(" -> option not found <- \n")
-        usage()
+        usage(" -> option not found <- \n")
 
 
