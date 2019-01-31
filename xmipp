@@ -31,6 +31,7 @@ import sys
 import unittest
 import subprocess
 from datetime import datetime
+import sync_data
 
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 ##############################
@@ -652,6 +653,7 @@ def compileModule(Nproc,module,printFinish=False):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
     if module == "xmipp" and ok:
+        downloadDeepLearningModels()
         stampVersion()
     return ok
 
@@ -717,39 +719,104 @@ def runTests(testNames):
     else:
         python = 'python'
 
+    # downloading/updating the dataset
+    url = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
+    dataset = 'xmipp_programs'
+    if os.path.isdir(dataSetPath):
+        print(blue("Updating the test files"))
+        task = sync_data.update
+    else:
+        print(blue("Downloading the test files"))
+        task = sync_data.download
+    task(dataSetPath, url, dataset=dataset)
+
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd %s; %s test.py %s)" % (testsPath, python, ' '.join(testNames)))
 
+def addDeepLearninModel(login, modelName):
+    """ Takes the folder name modelName from models dir and
+        makes a .tgz, uploads the .tgz to scipion web.
+    """
+    modelsDir = os.path.join("src", "xmipp", "models")
+    tgzFn = "xmipp_model_%s.tgz"%modelName
+    modelPath = os.path.join(modelsDir, modelName)
+    tgzPath = os.path.join(modelsDir, tgzFn)
+    if not os.path.isdir(modelPath):
+        print("'modelName' must coincide with a directory "
+              "placed at 'src/xmipp/models/'. \n"
+              "The name of the model will be that folder name.\n")
+        usage()
+        sys.exit(1)
+
+    url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+    remoteModels = sync_data.readManifest(url+'/xmipp_models_MANIFEST', True).keys()
+    for model in remoteModels:
+        if modelName == model.lstrip('xmipp_model_').rstrip('.tgz'):
+            print("Warning: The '%s' name already exists.\n")
+            if raw_input(" > Are you sure to OVERRIDE it? yes/NO < ").lower()!='yes':
+                sys.exit("Change the model name by changing the folder name in "
+                         "'src/xmipp/models'.")
+
+    print("Creating the '%s' model." % tgzFn)
+    runJob("(cd %s ; tar czf %s %s)"
+           % (modelsDir, tgzFn, modelName))
+
+    print("Trying to upload the model:")
+    remotePath = "scipion_em_packages/"
+    sync_data.upload(login, tgzPath, remotePath, isDLmodel=True)
+
+def downloadDeepLearningModels():
+    url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+    modelsPath = os.path.join("src", "xmipp", "models")
+
+    # downloading/updating the DLmodels
+    if os.path.isdir(modelsPath):
+        print(blue("Updating the Deep Learning models"))
+        task = sync_data.update
+    else:
+        print(blue("Downloading Deep Learning models"))
+        task = sync_data.download
+    task(modelsPath, url, isDLmodel=True)
+
+
 def install(dirname):
     print("Installing ------------------------------------------")
+    cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
+
     createDir(dirname)
 
     createDir(dirname+"/lib")
-    runJob("cp src/*/lib/lib* "+dirname+"/lib")
+    runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
 
     createDir(dirname+"/bin")
-    runJob("cp src/*/bin/* "+dirname+"/bin")
+    runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
-    runJob("cp src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab")
+    runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
 
     createDir(dirname+"/bindings/python")
-    runJob("cp src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python")
-    runJob("cp src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python")
-    runJob("cp src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python")
-    runJob("cp src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python")
-    runJob("cp -r src/xmipp/external/sh_alignment/python "+dirname+"/bindings/python/sh_alignment")
-    runJob("cp -r src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment")
-    runJob("cp -r src/xmipp/resources/* "+dirname+"/resources")
+    runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
+    runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
+    runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
+    runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
-    runJob("cp -r src/xmippViz/bindings/chimera "+dirname+"/bindings")
+    createDir(dirname+"/bindings/python/sh_alignment")
+    runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
+    runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
+
+    createDir(dirname+"/resources")
+    runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
+
+    runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
     createDir(dirname+"/bindings/java")
-    runJob("cp -Lr src/xmippViz/java/lib "+dirname+"/bindings/java")
-    runJob("cp -Lr src/xmippViz/java/build "+dirname+"/bindings/java")
-    runJob("cp -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java")
-    runJob("cp src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python")
-    runJob("cp -Lr src/xmippViz/resources "+dirname+"/resources")
+    runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
+    runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
+    runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
+    runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
+
+    createDir(dirname+"/models")
+    runJob("cat src/xmipp/models/xmipp_model_*.tgz | tar xzf - -i --directory="+dirname+"/models")
 
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
@@ -848,12 +915,15 @@ def usage(msg=''):
           "                                 if --show is activated without testName all are shown, \n"
           "                                 instead a grep of testName is done \n"
           "For developers:\n"
-          "   create_devel_paths:     Create bashrc files for devel\n"
-          "   git ...:                Git command to all 4 repositories\n"
-          "   gitConfig:              Change the git config from https to git\n"
-          "   tar <mode> [version]:   Create a bundle of the xmipp\n"
-          "                              <mode> can be 'Sources' or 'Binaries'\n"
-          "                              [version] usually X.YY.MM (default: from 'xmipp_version' program)\n"
+          "   create_devel_paths:         Create bashrc files for devel\n"
+          "   git ...:                    Git command to all 4 repositories\n"
+          "   gitConfig:                  Change the git config from https to git\n"
+          "   addModel login modelName:   Takes a deepLearning model from the src/xmipp/models/<modelName>, makes a tgz, \n"
+          "                                   uploads the .tgz according to the <login>. \n"
+          "                                   Note that login=usr@server must have write permisions to Nolan machine.\n"
+          "   tar <mode> <version>:       Create a bundle of the xmipp\n"
+          "                                   <mode> can be 'Sources' or 'Binaries'\n"
+          "                                   <version> usually X.YY.MM\n"
           )
 
 if __name__ == '__main__':
@@ -966,6 +1036,13 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmipp/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
+    elif mode=='addModel':
+        update = False
+        if n != 4:
+            print("Incorrect number of parameters.\n")
+            usage()
+            sys.exit(1)
+        addDeepLearninModel(sys.argv[2], sys.argv[3])
     elif mode=='tar':
         import tar
         print len(sys.argv)
