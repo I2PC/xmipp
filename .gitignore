@@ -55,3 +55,4 @@ gmon.out
 
 # Ignore version file
 .devel_version
+applications/programs/version
