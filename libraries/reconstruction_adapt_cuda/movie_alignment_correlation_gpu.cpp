@@ -58,7 +58,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
     // read GPU
     int device = this->getIntParam("--device");
-    assert(device >= 0);
+    if (device < 0)
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "Invalid GPU device");
     gpu = std::move(core::optional<GPU>(GPU(device)));
 
     // read permanent storage
@@ -70,18 +72,24 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
             this->getIntParam("--controlPoints", 1),
             1,
             this->getIntParam("--controlPoints", 2));
-    assert(cPoints.x() >= 3 && cPoints.y() >= 3 && cPoints.n() >= 3);
+    if ((cPoints.x() < 3) || (cPoints.y() < 3) || (cPoints.n() < 3))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "All control points has to be bigger than 2");
     localAlignmentControlPoints = cPoints;
 
     // read patches
     localAlignPatches = std::make_pair(
             this->getIntParam("--patches", 0),
             this->getIntParam("--patches", 1));
-    assert(localAlignPatches.first > 0 && localAlignPatches.second > 0);
+    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "At least one patch has to be used in each dimension.");
 
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
-    assert(patchesAvg >= 1);
+    if (patchesAvg < 1)
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "Patch averaging has to be at least one.");
 
     // read BSpline coefficients storage
     fnBSplinePath = this->getParam("--oBSpline");
@@ -382,7 +390,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
 
 template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &gain,
+        const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
@@ -400,7 +408,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     // load movie to memory
     if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, gain);
+        movieRawData = loadMovie(movie, dark, igain);
     }
     // we need to work with full-size movie, with no cropping
     assert(movieSettings.dim == rawMovieDim);
@@ -505,10 +513,10 @@ auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const AlignmentResult<T> &globAlignment) {
-    applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial, averageMicrograph,
+    applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial, averageMicrograph,
             N, localFromGlobal(movie, globAlignment));
 }
 
@@ -525,7 +533,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeCoefficients(std::pair<Matrix1D<T
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
@@ -608,7 +616,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
+        const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
     auto movieSettings = this->getMovieSettings(movie, true);
     T sizeFactor = this->computeSizeFactor();
     if (this->verbose) {
@@ -633,7 +641,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 
     // load movie to memory
     if (nullptr == movieRawData) {
-        movieRawData = loadMovie(movie, dark, gain);
+        movieRawData = loadMovie(movie, dark, igain);
     }
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
     T *data = new T[elems];
@@ -684,7 +692,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &
 
 template<typename T>
 T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
-        const Image<T>& dark, const Image<T>& gain) {
+        const Image<T>& dark, const Image<T>& igain) {
     T* imgs = nullptr;
     Image<T> frame;
 
@@ -697,7 +705,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, gain, __iter.objId, frame);
+        this->loadFrame(movie, dark, igain, __iter.objId, frame);
 
         if (nullptr == imgs) {
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,

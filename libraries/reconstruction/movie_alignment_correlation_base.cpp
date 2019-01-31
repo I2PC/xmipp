@@ -142,7 +142,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--cropDRCorner <x=-1> <y=-1>]    : crop down right corner (unit=px, index starts at 0), -1 -> no crop");
     addParamsLine("  [--dark <fn=\"\">]           : Dark correction image");
-    addParamsLine("  [--gain <fn=\"\">]           : Gain correction image");
+    addParamsLine("  [--gain <fn=\"\">]           : Gain correction image (we will multiply by it)");
     addParamsLine(
             "  [--useInputShifts]           : Do not calculate shifts and use the ones in the input file");
     addParamsLine(
@@ -193,11 +193,25 @@ void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData& movie,
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
-        const Image<T> &dark, const Image<T> &gain, size_t objId,
+        const Image<T> &dark, const Image<T> &igain, size_t objId,
             Image<T> &out) {
     loadFrame(movie, objId, out);
-    if (XSIZE(dark()) > 0) out() -= dark();
-    if (XSIZE(gain()) > 0) out() /= gain();
+    if (XSIZE(dark()) > 0) {
+        if ((XSIZE(dark()) != XSIZE(out()))
+                || (YSIZE(dark()) != YSIZE(out()))) {
+            REPORT_ERROR(ERR_ARG_INCORRECT,
+                            "The dark image size does not match the movie frame size.");
+        }
+        out() -= dark();
+    }
+    if (XSIZE(igain()) > 0) {
+        if ((XSIZE(igain()) != XSIZE(out()))
+                || (YSIZE(igain()) != YSIZE(out()))) {
+            REPORT_ERROR(ERR_ARG_INCORRECT,
+                            "The gain image size does not match the movie frame size.");
+        }
+        out() *= igain();
+    }
 }
 
 template<typename T>
@@ -337,17 +351,16 @@ void AProgMovieAlignmentCorrelation<T>::loadDarkCorrection(Image<T>& dark) {
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& gain) {
+void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
     if (fnGain.isEmpty())
         return;
-    gain.read(fnGain);
+    igain.read(fnGain);
     if (yDRcorner != -1)
-        gain().selfWindow(yLTcorner, xLTcorner, yDRcorner, xDRcorner);
-    gain() = (T) 1 / gain();
-    T avg = gain().computeAvg();
+        igain().selfWindow(yLTcorner, xLTcorner, yDRcorner, xDRcorner);
+    T avg = igain().computeAvg();
     if (std::isinf(avg) || std::isnan(avg))
         REPORT_ERROR(ERR_ARG_INCORRECT,
-                "The input gain image is incorrect, its inverse produces infinite or nan");
+                "The input gain image is incorrect, it contains infinite or nan");
 }
 
 template<typename T>
@@ -548,9 +561,9 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     readMovie(movie);
     correctLoopIndices(movie);
 
-    Image<T> dark, gain;
+    Image<T> dark, igain;
     loadDarkCorrection(dark);
-    loadGainCorrection(gain);
+    loadGainCorrection(igain);
 
     AlignmentResult<T> globalAlignment;
     if (useInputShifts) {
@@ -559,7 +572,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
         }
         globalAlignment = loadGlobalShifts(movie);
     } else {
-        globalAlignment = computeGlobalAlignment(movie, dark, gain);
+        globalAlignment = computeGlobalAlignment(movie, dark, igain);
     }
 
     if ( ! fnOut.isEmpty()) {
@@ -572,11 +585,11 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
     if (processLocalShifts) {
-        auto localAlignment = computeLocalAlignment(movie, dark, gain, globalAlignment);
-        applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial,
+        auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
+        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
     } else {
-        applyShiftsComputeAverage(movie, dark, gain, initialMic, Ninitial,
+        applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, globalAlignment);
     }
 

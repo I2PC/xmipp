@@ -43,10 +43,10 @@ private:
      * loaded in 'frameFourier' and ready for further processing
      * @param movie input
      * @param dark correction to be used
-     * @param gain correction to be used
+     * @param igain correction to be used
      */
     void loadData(const MetaData& movie, const Image<T>& dark,
-            const Image<T>& gain);
+            const Image<T>& igain);
 
     /**
      * Computes shifts of all images in the 'frameFourier'
@@ -63,7 +63,7 @@ private:
      * Inherited, see parent
      */
     void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
-            const Image<T>& gain, Image<T>& initialMic, size_t& Ninitial,
+            const Image<T>& igain, Image<T>& initialMic, size_t& Ninitial,
             Image<T>& averageMicrograph, size_t& N,
             const AlignmentResult<T> &globAlignment);
 
@@ -71,7 +71,7 @@ private:
      * Inherited, see parent
      */
     void applyShiftsComputeAverage(
-                const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+                const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
                 Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
                 size_t& N, const LocalAlignmentResult<T> &alignment);
 
@@ -80,7 +80,7 @@ private:
      */
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
-            const Image<T> &gain);
+            const Image<T> &igain);
 
     /**
      * Inherited, see parent
@@ -91,7 +91,7 @@ private:
      * Inherited, see parent
      */
     LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &gain,
+            const Image<T> &dark, const Image<T> &igain,
             const AlignmentResult<T> &globAlignment);
 private:
     /**

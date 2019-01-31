@@ -165,13 +165,13 @@ private:
      */
     AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
             const Image<T> &dark,
-            const Image<T> &gain);
+            const Image<T> &igain);
 
     /**
      * Inherited, see parent
      */
     LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &gain,
+            const Image<T> &dark, const Image<T> &igain,
             const AlignmentResult<T> &globAlignment);
 
     /**
@@ -196,10 +196,10 @@ private:
      * Loads whole movie to the RAM
      * @param movie to load
      * @param dark pixel correction
-     * @param gain correction
+     * @param igain correction
      */
     T* loadMovie(const MetaData& movie,
-            const Image<T>& dark, const Image<T>& gain);
+            const Image<T>& dark, const Image<T>& igain);
 
     /**
      * Loads setting for given dimensions from permanent storage
@@ -279,7 +279,7 @@ private:
      * Inherited, see parent
      */
     void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const AlignmentResult<T> &globAlignment);
 
@@ -289,7 +289,7 @@ private:
      * As a side effect, raw movie data might get corrupted. See the implementation.
      */
     void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment);
 

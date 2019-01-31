@@ -183,12 +183,12 @@ protected:
      * pixel correction
      * @param movie to load from
      * @param dark pixel correction
-     * @param gain correction
+     * @param igain inverse gain correction
      * @param objId id of the image to load
      * @param out loaded frame
      */
     void loadFrame(const MetaData &movie, const Image<T> &dark,
-            const Image<T> &gain, size_t objId,
+            const Image<T> &igain, size_t objId,
             Image<T> &out);
 
     /**
@@ -201,7 +201,7 @@ protected:
      * image (micrograph)
      * @param movie input
      * @param dark correction to be used
-     * @param gain correction to be used
+     * @param igain correction to be used
      * @param initialMic sum of the unaligned micrographs
      * @param Ninitial will store number of micrographs used for unaligned sum
      * @param averageMicrograph sum of the aligned micrographs
@@ -209,7 +209,7 @@ protected:
      * @param globAlignment to apply
      */
     virtual void applyShiftsComputeAverage(const MetaData& movie,
-            const Image<T>& dark, const Image<T>& gain, Image<T>& initialMic,
+            const Image<T>& dark, const Image<T>& igain, Image<T>& initialMic,
             size_t& Ninitial, Image<T>& averageMicrograph, size_t& N,
             const AlignmentResult<T> &globAlignment) = 0;
 
@@ -218,7 +218,7 @@ protected:
      * image (micrograph)
      * @param movie input
      * @param dark correction to be used
-     * @param gain correction to be used
+     * @param igain correction to be used
      * @param initialMic sum of the unaligned micrographs
      * @param Ninitial will store number of micrographs used for unaligned sum
      * @param averageMicrograph sum of the aligned micrographs
@@ -226,7 +226,7 @@ protected:
      * @param alignment to apply
      */
     virtual void applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment) = 0;
 
@@ -234,21 +234,21 @@ protected:
      * This method computes global shift of the frames of the movie
      * @param movie to process
      * @param dark pixel correction
-     * @param gain correction
+     * @param igain correction
      * @return global alignment of the movie
      */
     virtual AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &gain) = 0;
+            const Image<T> &dark, const Image<T> &igain) = 0;
 
     /**
      * This method computes local shift of the frames of the movie
      * @param movie to process
      * @param dark pixel correction
-     * @param gain correction
+     * @param igain correction
      * @return local alignment of the movie
      */
     virtual LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
-            const Image<T> &dark, const Image<T> &gain,
+            const Image<T> &dark, const Image<T> &igain,
             const AlignmentResult<T> &globAlignment) = 0;
 
     /**
@@ -296,7 +296,7 @@ private:
      *  Method loads gain correction image
      *  @param gain correction will be stored here
      */
-    void loadGainCorrection(Image<T>& gain);
+    void loadGainCorrection(Image<T>& igain);
 
     /**
      * Method to construct 1D low-pass filter profile
