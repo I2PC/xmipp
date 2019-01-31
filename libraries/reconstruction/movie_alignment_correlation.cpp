@@ -36,8 +36,8 @@ void ProgMovieAlignmentCorrelation<T>::defineParams() {
 
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &gain) {
-    loadData(movie, dark, gain);
+        const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
+    loadData(movie, dark, igain);
     size_t N = this->nlast - this->nfirst + 1; // no of images to process
     Matrix2D<T> A(N * (N - 1) / 2, N - 1);
     Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
@@ -54,7 +54,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeGlobalAlignment(
 
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
-            const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+            const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
             Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
             size_t& N, const LocalAlignmentResult<T> &alignment) {
     throw std::logic_error("Not implemented");
@@ -62,14 +62,14 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
 
 template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
-        const MetaData &movie, const Image<T> &dark, const Image<T> &gain,
+        const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
         const AlignmentResult<T> &globAlignment) {
     throw std::logic_error("Not implemented");
 }
 
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
-        const Image<T>& dark, const Image<T>& gain) {
+        const Image<T>& dark, const Image<T>& igain) {
     sizeFactor = this->computeSizeFactor();
     MultidimArray<T> filter;
     FourierTransformer transformer;
@@ -86,7 +86,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= this->nfirst && n <= this->nlast) {
-            this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
+            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
 
             if (firstImage) {
                 newXdim = croppedFrame().xdim * sizeFactor;
@@ -152,7 +152,7 @@ void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
 
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
-        const MetaData& movie, const Image<T>& dark, const Image<T>& gain,
+        const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const AlignmentResult<T> &globAlignment) {
     // Apply shifts and compute average
@@ -170,7 +170,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
             YY(shift) = -globAlignment.shifts.at(n).y; // the shift
 
             // load frame
-            this->loadFrame(movie, dark, gain, __iter.objId, croppedFrame);
+            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
             if (this->bin > 0) {
                 scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
                         floor(XSIZE(croppedFrame()) / this->bin),
