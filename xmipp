@@ -828,7 +828,7 @@ def writeDevelPaths(dirname):
 
     fhBash.close()
 
-def usage(msg):
+def usage(msg=''):
     print(msg)
     print("Usage: xmipp [options]\n"
           "   version                     Returns the version information\n"
