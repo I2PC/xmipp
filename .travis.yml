@@ -16,4 +16,4 @@ before_install:
 script: 
  - python ./scripts/travis_before_script
  - build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp
- - sonar-scanner
+# - sonar-scanner # turning off analysis, as it takes too much time and all builds are failing
