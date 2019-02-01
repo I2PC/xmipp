@@ -31,7 +31,14 @@ import sys
 import unittest
 import subprocess
 from datetime import datetime
-import sync_data
+
+try:  # If repository is not there yet, we cannot import from src/xmipp/sync_data.py
+    import sync_data
+    sync_dataOk = True
+except:
+    print("sync_data.py is not found in src/xmipp.\n"
+          "Please, update the repository to use a mode using it.")
+    sync_dataOk = False
 
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
@@ -724,6 +731,8 @@ def runTests(testNames):
     # downloading/updating the dataset
     url = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
     dataset = 'xmipp_programs'
+    if not sync_dataOk:
+        sys.exit(1)
     if os.path.isdir(dataSetPath):
         print(blue("Updating the test files"))
         task = sync_data.update
@@ -751,6 +760,8 @@ def addDeepLearninModel(login, modelName):
         sys.exit(1)
 
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+    if not sync_dataOk:
+        sys.exit(1)
     remoteModels = sync_data.readManifest(url+'/xmipp_models_MANIFEST', True).keys()
     for model in remoteModels:
         if modelName == model.replace('xmipp_model_', "").replace('.tgz',""):
@@ -772,13 +783,16 @@ def downloadDeepLearningModels():
     modelsPath = os.path.join("src", "xmipp", "models")
 
     # downloading/updating the DLmodels
-    if os.path.isdir(modelsPath):
-        print(blue("Updating the Deep Learning models"))
-        task = sync_data.update
+    if sync_dataOk:
+        if os.path.isdir(modelsPath):
+            print(blue("Updating the Deep Learning models"))
+            task = sync_data.update
+        else:
+            print(blue("Downloading Deep Learning models"))
+            task = sync_data.download
+        task(modelsPath, url, isDLmodel=True)
     else:
-        print(blue("Downloading Deep Learning models"))
-        task = sync_data.download
-    task(modelsPath, url, isDLmodel=True)
+        print("Skipping the download of Deep Learning Models.")
 
 
 def install(dirname):
