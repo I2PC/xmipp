@@ -32,13 +32,6 @@ import unittest
 import subprocess
 from datetime import datetime
 
-try:  # If repository is not there yet, we cannot import from src/xmipp/sync_data.py
-    import sync_data
-    sync_dataOk = True
-except:
-    print("sync_data.py is not found in src/xmipp.\n"
-          "Please, update the repository to use a mode using it.")
-    sync_dataOk = False
 
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
@@ -725,36 +718,37 @@ def runTests(testNames):
     #     createDir(dataSetPath)
     os.environ["XMIPP_TEST_DATA"] = dataSetPath
 
+    # downloading/updating the dataset
+    url = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
+    dataset = 'xmipp_programs'
+    if os.path.isdir(dataSetPath):
+        print(blue("Updating the test files"))
+        task = "update"
+    else:
+        print(blue("Downloading the test files"))
+        task = "download"
+    args = "%s %s %s" % ("tests/data", url, dataset)
+    runJob("(cd src/xmipp; %s sync_data.py %s %s)" % (getPython(), task, args))
+
+    print(" Tests to do: %s" % ', '.join(testNames))
+    runJob("(cd src/xmipp/tests; %s test.py %s)"
+           % (getPython(), ' '.join(testNames)))
+
+def getPython():
     scipionHome = getScipionHome()
     if scipionHome is not None:
         python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
     else:
         python = 'python'
+    return python
 
-    # downloading/updating the dataset
-    url = "http://scipion.cnb.csic.es/downloads/scipion/data/tests"
-    dataset = 'xmipp_programs'
-    if not sync_dataOk:
-        sys.exit(1)
-    if os.path.isdir(dataSetPath):
-        print(blue("Updating the test files"))
-        task = sync_data.update
-    else:
-        print(blue("Downloading the test files"))
-        task = sync_data.download
-    task(dataSetPath, url, dataset=dataset)
-
-    print(" Tests to do: %s" % ', '.join(testNames))
-    runJob("(cd %s; %s test.py %s)" % (testsPath, python, ' '.join(testNames)))
-
-def addDeepLearninModel(login, modelName):
+def addDeepLearninModel(login, modelName, update=None):
     """ Takes the folder name modelName from models dir and
         makes a .tgz, uploads the .tgz to scipion web.
     """
     modelsDir = os.path.join("src", "xmipp", "models")
     tgzFn = "xmipp_model_%s.tgz"%modelName
     modelPath = os.path.join(modelsDir, modelName)
-    tgzPath = os.path.join(modelsDir, tgzFn)
     if not os.path.isdir(modelPath):
         print("'modelName' must coincide with a directory "
               "placed at 'src/xmipp/models/'. \n"
@@ -762,40 +756,35 @@ def addDeepLearninModel(login, modelName):
         usage()
         sys.exit(1)
 
-    url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
-    if not sync_dataOk:
-        sys.exit(1)
-    remoteModels = sync_data.readManifest(url+'/xmipp_models_MANIFEST', True).keys()
-    for model in remoteModels:
-        if modelName == model.replace('xmipp_model_', "").replace('.tgz',""):
-            print("Warning: The '%s' name already exists.\n" % modelName)
-            if raw_input(" > Are you sure to OVERRIDE it? yes/NO < ").lower()!='yes':
-                sys.exit("Change the model name by changing the folder name in "
-                         "'src/xmipp/models'.")
-
     print("Creating the '%s' model." % tgzFn)
     runJob("(cd %s ; tar czf %s %s)"
            % (modelsDir, tgzFn, modelName))
 
-    print("Trying to upload the model:")
     remotePath = "scipion_em_packages/"
-    sync_data.upload(login, tgzPath, remotePath, isDLmodel=True)
+    print "Warning: Uploading, please BE CAREFUL! This can be dangerous."
+    print ('You are going to be connected to "%s" to write in folder '
+           '"%s".' % (login, remotePath))
+    if raw_input("Continue? YES/no").lower() == 'no':
+        sys.exit()
+
+    print("Trying to upload the model:")
+    args = "%s %s %s %s" % (login, tgzFn, remotePath, update)
+    runJob("(cd src/xmipp; %s sync_data.py upload %s)" % (getPython(), args))
 
 def downloadDeepLearningModels():
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
     modelsPath = os.path.join("src", "xmipp", "models")
+    dataSet = "DLmodels"
 
     # downloading/updating the DLmodels
-    if sync_dataOk:
-        if os.path.isdir(modelsPath):
-            print(blue("Updating the Deep Learning models"))
-            task = sync_data.update
-        else:
-            print(blue("Downloading Deep Learning models"))
-            task = sync_data.download
-        task(modelsPath, url, isDLmodel=True)
+    if os.path.isdir(modelsPath):
+        print(blue("Updating the Deep Learning models"))
+        task = "update"
     else:
-        print("Skipping the download of Deep Learning Models.")
+        print(blue("Downloading Deep Learning models"))
+        task = "download"
+    args = "models %s %s" % (url, dataSet)
+    runJob("(cd src/xmipp; %s sync_data.py %s %s)" % (getPython(), task, args))
 
 
 def install(dirname):
@@ -1075,11 +1064,11 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='addModel':
         update = False
-        if n != 4:
+        if not (n == 4 or (n==5 and sys.argv[4] == '--update')):
             print("Incorrect number of parameters.\n")
             usage()
             sys.exit(1)
-        addDeepLearninModel(sys.argv[2], sys.argv[3])
+        addDeepLearninModel(*sys.argv[2:])
     elif mode=='tar':
         import tar
         if not len(sys.argv) in (3, 4):

@@ -33,9 +33,10 @@ from urllib2 import urlopen
 import time
 
 
-def download(destination=None, url=None, dataset=None, isDLmodel=False):
+def download(destination=None, url=None, dataset=None):
     """ Download all the data files mentioned in url/dataset/MANIFEST
     """
+    isDLmodel = dataset=="DLmodels"
     if not isDLmodel:
         # First make sure that we ask for a known dataset.
         if dataset not in [x.strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
@@ -78,9 +79,9 @@ def download(destination=None, url=None, dataset=None, isDLmodel=False):
                 "Bad md5. Expected: %s Computed: %s" % (md5Remote, md5)
 
             done += inc
-            partial = int(done * 10)
-            if int(done * 100 % 10) == 0 and partial != oldPartial:
-                sys.stdout.write("%3d%%..." % (100 * done))
+            partial = int(done*10)
+            if int((done-inc)*100%10) == 0 and partial != oldPartial:
+                print("%3d%%..." % (100 * done))
                 sys.stdout.flush()
                 oldPartial = partial
         except Exception as e:
@@ -91,11 +92,12 @@ def download(destination=None, url=None, dataset=None, isDLmodel=False):
                 sys.exit()
     print
 
-def update(destination=None, url=None, dataset=None, isDLmodel=False):
+def update(destination=None, url=None, dataset=None):
     """ Update local dataset with the contents of the remote one.
     It compares the md5 of remote files in url/dataset/MANIFEST with the
     ones in workingCopy/dataset/MANIFEST, and downloads only when necessary.
     """
+    isDLmodel = dataset=="DLmodels"
     prefix = "xmipp_models_" if isDLmodel else ''
     inFolder = "" if isDLmodel else "/%s" % dataset
 
@@ -117,10 +119,10 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
                       '> MANIFEST)' % destination)
         else:
             createMANIFEST(destination)
+
     md5sLocal = dict(x.split() for x in open(join(destination, 'MANIFEST')))
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sLocal = {v: k for k, v in md5sLocal.iteritems()}
-
     # Check that all the files mentioned in MANIFEST are up-to-date
     print "Verifying MD5s..."
 
@@ -146,12 +148,13 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
             taintedMANIFEST = True  # if we don't update, it can be wrong
         done += inc
         partial = int(done*10)
-        if int(done*100%10) == 0 and partial != oldPartial:
-                sys.stdout.write("%3d%%..." % (100 * done))
-                sys.stdout.flush()
-                oldPartial = partial
+        if int((done-inc)*100%10) == 0 and partial != oldPartial:
+            print("%3d%%..." % (100 * done))
+            sys.stdout.flush()
+            oldPartial = partial
 
-    sys.stdout.write("\n...done. Updated files: %d\n" % len(filesUpdated))
+
+    print("\n...done. Updated files: %d\n" % len(filesUpdated))
     sys.stdout.flush()
 
     # Save the new MANIFEST file in the folder of the downloaded dataset
@@ -163,17 +166,24 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
         createMANIFEST(destination)
 
 
-def upload(login, localFn, remoteFolder, isDLmodel=False):
+def upload(login, tgzName, remoteFolder, update):
     """ Upload a dataset to our repository
     """
+    localFn = os.path.join("models", tgzName)
     if not os.path.exists(localFn):
         sys.exit("ERROR: local folder/file %s does not exist." % localFn)
 
-    print "Warning: Uploading, please BE CAREFUL! This can be dangerous."
-    print ('You are going to be connected to "%s" to write in folder '
-           '"%s".' % (login, remoteFolder))
-    if raw_input("Continue? YES/no").lower() == 'no':
-        sys.exit()
+    modelName = os.path.basename(localFn)
+    isDLmodel = modelName.startswith("xmipp_model_")
+    url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+    remoteModels = readManifest(url+'/xmipp_models_MANIFEST', True).keys()
+
+    if update != "--update":
+        for model in remoteModels:
+            if modelName == model:
+                print("\nError: The '%s' name already exists." % modelName)
+                print("       Add '--update' to OVERRIDE it.\n")
+                sys.exit(1)
 
     # Upload the dataset files (with rsync)
     try:
@@ -219,3 +229,14 @@ def readManifest(remoteManifest, isDLmodel):
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sRemote = {v: k for k, v in md5sRemote.iteritems()}
     return md5sRemote
+
+if __name__ == '__main__':
+
+    mode = sys.argv[1]
+
+    if mode == 'download':
+        download(*sys.argv[2:])
+    elif mode == 'update':
+        update(*sys.argv[2:])
+    elif mode == 'upload':
+        upload(*sys.argv[2:])
