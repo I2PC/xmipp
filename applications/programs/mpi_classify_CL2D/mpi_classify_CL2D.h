@@ -248,6 +248,9 @@ public:
     /// Use ClassicalCriterion at split
     bool classicalSplit;
 
+    /// MaxTrials to split
+    int NSplitTrials;
+
     /// Maximum shift
     double maxShift;
 
