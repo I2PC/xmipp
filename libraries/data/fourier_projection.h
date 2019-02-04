@@ -153,6 +153,9 @@ public:
     // Euler matrix
     Matrix2D<double> E;
 public:
+    /* Empty constructor */
+    FourierProjector(double paddFactor, double maxFreq, int degree);
+
     /*
      * The constructor of the class
      */
@@ -162,6 +165,9 @@ public:
      * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
      */
     void project(double rot, double tilt, double psi, const MultidimArray<double> *ctf=NULL);
+
+    /** Update volume */
+    void updateVolume(MultidimArray<double> &V);
 private:
     /*
      * This is a private method which provides the values for the class variable
