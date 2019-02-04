@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Strelak (davidstrelak@gmail.com)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,34 +23,35 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
+#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
 
-#include "point.h"
-#include "cuda_compatibility.h"
+#include <string>
+#include "reconstruction_cuda/cuda_xmipp_utils.h"
 
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
+class GPU {
 public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
-    }
-    ;
-    T x;
-    T y;
-    T z;
+    explicit GPU(size_t device) :
+        m_device(device), m_UUID(getUUID(device)),
+        m_lastFreeMem(getFreeMem(device)) {};
 
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
+    size_t device() const { return m_device; };
+    std::string UUID() const { return m_UUID; };
+    size_t lastFreeMem() const { return m_lastFreeMem; };
+
+    /**
+     * Method checks currently available free GPU memory
+     * Obtained value is stored in this instance
+     */
+    size_t checkFreeMem() {
+        m_lastFreeMem = getFreeMem(m_device);
+        return m_lastFreeMem;
     }
 
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
-    }
+private:
+    const size_t m_device;
+    const std::string m_UUID;
+    size_t m_lastFreeMem;
 };
 
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */
