@@ -669,7 +669,7 @@ def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     scipionHome = getScipionHome()
     if scipionHome:
-        os.environ.update({'PATH', '%s/software/bin'%scipionHome})
+        os.environ.update({'PATH': '%s/software/bin'%scipionHome})
     if module == "xmipp":
         downloadDeepLearningModels()
         stampVersion()
