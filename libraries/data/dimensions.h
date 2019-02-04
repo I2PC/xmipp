@@ -30,7 +30,7 @@
 
 class Dimensions {
 public:
-    explicit Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1) :
+    explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1) :
             m_x(x), m_y(y), m_z(z), m_n(n) {
     }
     ;
