@@ -2372,7 +2372,7 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 	rotation3DMatrix(180,'X',AX,true);
 	applyGeometry(LINEAR,V180,Vin,AX,IS_NOT_INV,DONT_WRAP);
 	double bestCorr, bestRot, bestZ;
-	bestCorr = bestRot = bestZ = NAN;
+	bestCorr = bestRot = bestZ = std::numeric_limits<double>::min();
 	for (double rot=-180; rot<180; rot+=rotStep)
 	{
 		rotation3DMatrix(rot,'Z',AZ,true);
