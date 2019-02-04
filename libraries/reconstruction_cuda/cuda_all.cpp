@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Strelak (davidstrelak@gmail.com)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,34 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+/**
+ * This file includes all cuda-specific files.
+ * It is a HACK to necessary to properly build the cuda files, which are
+ * separated into multiple files. Currently, the build system does not support
+ * adding additional cuda-linking step.
+ */
 
-#include "point.h"
-#include "cuda_compatibility.h"
-
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
-public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
-    }
-    ;
-    T x;
-    T y;
-    T z;
-
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
-    }
-
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
-    }
-};
-
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+#include "cuda_gpu_bilib.cu"
+#include "cuda_gpu_geo_transformer.cu"
+#include "cuda_gpu_iirconvolve.cu"
+#include "cuda_gpu_multidim_array.cu"
