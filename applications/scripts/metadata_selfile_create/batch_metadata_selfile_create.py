@@ -50,7 +50,7 @@ class ScriptCreateMetadata(XmippScript):
         pattern = self.getParam('--pattern')
         isStack = self.checkParam('-s')
         label = self.getParam('-l')
-        mD = createMetaDataFromPattern(pattern, isStack, label)                
+        mD = createMetaDataFromPattern(pattern, isStack, label)
         outFile = self.getParam('-o')
         mD.write(outFile)
 
