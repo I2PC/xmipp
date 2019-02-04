@@ -40,7 +40,7 @@ def download(destination=None, url=None, dataset=None):
     if not isDLmodel:
         # First make sure that we ask for a known dataset.
         if dataset not in [x.strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
-            print "Unknown dataset/model: %s" % dataset
+            print("Unknown dataset/model: %s" % dataset)
             return
         remoteManifest = '%s/%s/MANIFEST' % (url, dataset)
         inFolder = "/%s" % dataset
