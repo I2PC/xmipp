@@ -33,13 +33,14 @@ from urllib2 import urlopen
 import time
 
 
-def download(destination=None, url=None, dataset=None, isDLmodel=False):
+def download(destination=None, url=None, dataset=None):
     """ Download all the data files mentioned in url/dataset/MANIFEST
     """
+    isDLmodel = dataset=="DLmodels"
     if not isDLmodel:
         # First make sure that we ask for a known dataset.
         if dataset not in [x.strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
-            print "Unknown dataset/model: %s" % dataset
+            print("Unknown dataset/model: %s" % dataset)
             return
         remoteManifest = '%s/%s/MANIFEST' % (url, dataset)
         inFolder = "/%s" % dataset
@@ -52,14 +53,14 @@ def download(destination=None, url=None, dataset=None, isDLmodel=False):
     os.makedirs(destination)
     manifest = join(destination, 'MANIFEST')
     try:
-        print "Retrieving MANIFEST file"
+        print("Retrieving MANIFEST file")
         open(manifest, 'w').writelines(
             urlopen(remoteManifest))
     except Exception as e:
         sys.exit("ERROR reading %s (%s)" % (remoteManifest, e))
 
     # Now retrieve all of the files mentioned in MANIFEST, and check their md5.
-    print 'Fetching files...'
+    print('Fetching files...')
     md5sRemote = readManifest(remoteManifest, isDLmodel)
     done = 0.0  # fraction already done
     inc = 1.0 / len(md5sRemote)  # increment, how much each iteration represents
@@ -78,24 +79,25 @@ def download(destination=None, url=None, dataset=None, isDLmodel=False):
                 "Bad md5. Expected: %s Computed: %s" % (md5Remote, md5)
 
             done += inc
-            partial = int(done * 10)
-            if int(done * 100 % 10) == 0 and partial != oldPartial:
-                sys.stdout.write("%3d%%..." % (100 * done))
+            partial = int(done*10)
+            if int((done-inc)*100%10) == 0 and partial != oldPartial:
+                print("%3d%%..." % (100 * done))
                 sys.stdout.flush()
                 oldPartial = partial
         except Exception as e:
-            print "\nError in %s (%s)" % (fname, e)
-            print "URL: %s/%s/%s" % (url, dataset, fname)
-            print "Destination: %s" % fpath
+            print("\nError in %s (%s)" % (fname, e))
+            print("URL: %s/%s/%s" % (url, dataset, fname))
+            print("Destination: %s" % fpath)
             if raw_input("Continue downloading? (y/[n]): ").lower() != 'y':
                 sys.exit()
     print
 
-def update(destination=None, url=None, dataset=None, isDLmodel=False):
+def update(destination=None, url=None, dataset=None):
     """ Update local dataset with the contents of the remote one.
     It compares the md5 of remote files in url/dataset/MANIFEST with the
     ones in workingCopy/dataset/MANIFEST, and downloads only when necessary.
     """
+    isDLmodel = dataset=="DLmodels"
     prefix = "xmipp_models_" if isDLmodel else ''
     inFolder = "" if isDLmodel else "/%s" % dataset
 
@@ -111,18 +113,18 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
         t_manifest = os.stat(join(destination, 'MANIFEST')).st_mtime
         assert t_manifest > last and time.time() - t_manifest < 60*60*24*7
     except (OSError, IOError, AssertionError) as e:
-        print "Regenerating local MANIFEST..."
+        print("Regenerating local MANIFEST...")
         if isDLmodel:
             os.system('(cd %s ; md5sum xmipp_model_*.tgz '
                       '> MANIFEST)' % destination)
         else:
             createMANIFEST(destination)
+
     md5sLocal = dict(x.split() for x in open(join(destination, 'MANIFEST')))
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sLocal = {v: k for k, v in md5sLocal.iteritems()}
-
     # Check that all the files mentioned in MANIFEST are up-to-date
-    print "Verifying MD5s..."
+    print("Verifying MD5s...")
 
     filesUpdated = []  # number of files that have been updated
     taintedMANIFEST = False  # can MANIFEST be out of sync?
@@ -142,16 +144,17 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
                     urlopen('%s%s/%s' % (url, inFolder, fname)))
                 filesUpdated.append(fname)
         except Exception as e:
-            print "\nError while updating %s: %s" % (fname, e)
+            print("\nError while updating %s: %s" % (fname, e))
             taintedMANIFEST = True  # if we don't update, it can be wrong
         done += inc
         partial = int(done*10)
-        if int(done*100%10) == 0 and partial != oldPartial:
-                sys.stdout.write("%3d%%..." % (100 * done))
-                sys.stdout.flush()
-                oldPartial = partial
+        if int((done-inc)*100%10) == 0 and partial != oldPartial:
+            print("%3d%%..." % (100 * done))
+            sys.stdout.flush()
+            oldPartial = partial
 
-    sys.stdout.write("\n...done. Updated files: %d\n" % len(filesUpdated))
+
+    print("\n...done. Updated files: %d\n" % len(filesUpdated))
     sys.stdout.flush()
 
     # Save the new MANIFEST file in the folder of the downloaded dataset
@@ -159,25 +162,32 @@ def update(destination=None, url=None, dataset=None, isDLmodel=False):
         open(join(destination, 'MANIFEST'), 'w').writelines(urlopen(remoteManifest).readlines())
 
     if taintedMANIFEST:
-        print "Some files could not be updated. Regenerating local MANIFEST ..."
+        print("Some files could not be updated. Regenerating local MANIFEST ...")
         createMANIFEST(destination)
 
 
-def upload(login, localFn, remoteFolder, isDLmodel=False):
+def upload(login, tgzName, remoteFolder, update):
     """ Upload a dataset to our repository
     """
+    localFn = os.path.join("models", tgzName)
     if not os.path.exists(localFn):
         sys.exit("ERROR: local folder/file %s does not exist." % localFn)
 
-    print "Warning: Uploading, please BE CAREFUL! This can be dangerous."
-    print ('You are going to be connected to "%s" to write in folder '
-           '"%s".' % (login, remoteFolder))
-    if raw_input("Continue? YES/no").lower() == 'no':
-        sys.exit()
+    modelName = os.path.basename(localFn)
+    isDLmodel = modelName.startswith("xmipp_model_")
+    url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
+    remoteModels = readManifest(url+'/xmipp_models_MANIFEST', True).keys()
+
+    if update != "--update":
+        for model in remoteModels:
+            if modelName == model:
+                print("\nError: The '%s' name already exists." % modelName)
+                print("       Add '--update' to OVERRIDE it.\n")
+                sys.exit(1)
 
     # Upload the dataset files (with rsync)
     try:
-        print "Uploading files..."
+        print("Uploading files...")
         call(['rsync', '-rlv', '--chmod=a+r', localFn,
               '%s:%s' % (login, remoteFolder)])
     except:
@@ -190,7 +200,7 @@ def upload(login, localFn, remoteFolder, isDLmodel=False):
         # This is a file that just contains the name of the xmipp_models
         # in remoteFolder. Nothing to do with the MANIFEST files in
         # the datasets, which contain file names and md5s.
-        print "Regenerating remote MANIFEST file..."
+        print("Regenerating remote MANIFEST file...")
         call(['ssh', login,
               'cd %s && md5sum xmipp_model_*.tgz > xmipp_models_MANIFEST'
               % remoteFolder])
@@ -219,3 +229,14 @@ def readManifest(remoteManifest, isDLmodel):
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sRemote = {v: k for k, v in md5sRemote.iteritems()}
     return md5sRemote
+
+if __name__ == '__main__':
+
+    mode = sys.argv[1]
+
+    if mode == 'download':
+        download(*sys.argv[2:])
+    elif mode == 'update':
+        update(*sys.argv[2:])
+    elif mode == 'upload':
+        upload(*sys.argv[2:])
