@@ -14,6 +14,6 @@ addons:
 before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
 script: 
- - python ./scripts/travis_before_script
+ - python ./scripts/travis_before_script.py
  - build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp
 # - sonar-scanner # turning off analysis, as it takes too much time and all builds are failing
