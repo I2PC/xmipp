@@ -24,8 +24,8 @@
 #include "SpharmonicKit27/FST_semi_memo.h"
 
 /* external general library funtions */
-extern void do_vect (double **, unsigned long);
-extern void get_rot_matrix (double [3][3], double, double, double);
+#include "lib_eul.h"
+#include "lib_vec.h"
 
 /* functions defined in this file */
 static void wigner(int, double, double *);

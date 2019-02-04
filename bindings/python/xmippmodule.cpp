@@ -1085,6 +1085,11 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 			MultidimArray<double> *mimg1;
 			MULTIDIM_ARRAY_GENERIC(*img1->image).getMultidimArrayPointer(mimg1);
 
+			//AJ testing
+			MULTIDIM_ARRAY_GENERIC(*img1->image).setXmippOrigin();
+			MULTIDIM_ARRAY_GENERIC(*result->image).setXmippOrigin();
+			//END AJ
+
 			Matrix2D<double> M;
 			alignImagesConsideringMirrors(*mimg1, *mimgResult, M, true);
 		}

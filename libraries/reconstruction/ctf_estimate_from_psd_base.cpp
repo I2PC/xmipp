@@ -334,6 +334,8 @@ void ProgCTFBasicParams::produceSideInfo()
 
 double evaluateIceness(MultidimArray<double> &psd, double Tm)
 {
+    if (Tm>1.8)
+        return 0.0; // We cannot measure at 3.6A, if the Tm>1.8A
 	double R4_4=floor(XSIZE(psd)*Tm/4.4);
 	double R4_0=floor(XSIZE(psd)*Tm/4.0);
 	double R3_6=floor(XSIZE(psd)*Tm/3.6);
