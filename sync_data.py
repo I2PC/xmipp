@@ -53,14 +53,14 @@ def download(destination=None, url=None, dataset=None):
     os.makedirs(destination)
     manifest = join(destination, 'MANIFEST')
     try:
-        print "Retrieving MANIFEST file"
+        print("Retrieving MANIFEST file")
         open(manifest, 'w').writelines(
             urlopen(remoteManifest))
     except Exception as e:
         sys.exit("ERROR reading %s (%s)" % (remoteManifest, e))
 
     # Now retrieve all of the files mentioned in MANIFEST, and check their md5.
-    print 'Fetching files...'
+    print('Fetching files...')
     md5sRemote = readManifest(remoteManifest, isDLmodel)
     done = 0.0  # fraction already done
     inc = 1.0 / len(md5sRemote)  # increment, how much each iteration represents
@@ -85,9 +85,9 @@ def download(destination=None, url=None, dataset=None):
                 sys.stdout.flush()
                 oldPartial = partial
         except Exception as e:
-            print "\nError in %s (%s)" % (fname, e)
-            print "URL: %s/%s/%s" % (url, dataset, fname)
-            print "Destination: %s" % fpath
+            print("\nError in %s (%s)" % (fname, e))
+            print("URL: %s/%s/%s" % (url, dataset, fname))
+            print("Destination: %s" % fpath)
             if raw_input("Continue downloading? (y/[n]): ").lower() != 'y':
                 sys.exit()
     print
@@ -113,7 +113,7 @@ def update(destination=None, url=None, dataset=None):
         t_manifest = os.stat(join(destination, 'MANIFEST')).st_mtime
         assert t_manifest > last and time.time() - t_manifest < 60*60*24*7
     except (OSError, IOError, AssertionError) as e:
-        print "Regenerating local MANIFEST..."
+        print("Regenerating local MANIFEST...")
         if isDLmodel:
             os.system('(cd %s ; md5sum xmipp_model_*.tgz '
                       '> MANIFEST)' % destination)
@@ -124,7 +124,7 @@ def update(destination=None, url=None, dataset=None):
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sLocal = {v: k for k, v in md5sLocal.iteritems()}
     # Check that all the files mentioned in MANIFEST are up-to-date
-    print "Verifying MD5s..."
+    print("Verifying MD5s...")
 
     filesUpdated = []  # number of files that have been updated
     taintedMANIFEST = False  # can MANIFEST be out of sync?
@@ -144,7 +144,7 @@ def update(destination=None, url=None, dataset=None):
                     urlopen('%s%s/%s' % (url, inFolder, fname)))
                 filesUpdated.append(fname)
         except Exception as e:
-            print "\nError while updating %s: %s" % (fname, e)
+            print("\nError while updating %s: %s" % (fname, e))
             taintedMANIFEST = True  # if we don't update, it can be wrong
         done += inc
         partial = int(done*10)
@@ -162,7 +162,7 @@ def update(destination=None, url=None, dataset=None):
         open(join(destination, 'MANIFEST'), 'w').writelines(urlopen(remoteManifest).readlines())
 
     if taintedMANIFEST:
-        print "Some files could not be updated. Regenerating local MANIFEST ..."
+        print("Some files could not be updated. Regenerating local MANIFEST ...")
         createMANIFEST(destination)
 
 
@@ -187,7 +187,7 @@ def upload(login, tgzName, remoteFolder, update):
 
     # Upload the dataset files (with rsync)
     try:
-        print "Uploading files..."
+        print("Uploading files...")
         call(['rsync', '-rlv', '--chmod=a+r', localFn,
               '%s:%s' % (login, remoteFolder)])
     except:
@@ -200,7 +200,7 @@ def upload(login, tgzName, remoteFolder, update):
         # This is a file that just contains the name of the xmipp_models
         # in remoteFolder. Nothing to do with the MANIFEST files in
         # the datasets, which contain file names and md5s.
-        print "Regenerating remote MANIFEST file..."
+        print("Regenerating remote MANIFEST file...")
         call(['ssh', login,
               'cd %s && md5sum xmipp_model_*.tgz > xmipp_models_MANIFEST'
               % remoteFolder])
