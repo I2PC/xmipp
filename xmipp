@@ -1073,9 +1073,8 @@ if __name__ == '__main__':
                 usage("Unknown %s argument"%arg)
                 sys.exit(1)
 
-        ok = getSources(branch, doPull)
         ok = (getDependencies()
-            and getSources()
+            and getSources(branch, doPull)
             and config()
             and checkConfig()
             and compileDependencies(Nproc)
