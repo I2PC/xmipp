@@ -88,6 +88,10 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* convert to psd */
+PyObject *
+Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* readApplyGeo */
 PyObject *
 Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs);
@@ -102,6 +106,10 @@ DataType npyType2Datatype(int npy);
 /* getData */
 PyObject *
 Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* projectVolumeDouble */
+PyObject *
+Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 /* setData */
 PyObject *
@@ -126,6 +134,10 @@ Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs);
 /* applyTransforMatScipion */
 PyObject *
 Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* applyTransforMatScipion */
+PyObject *
+Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 /* initRandom */
 PyObject *
@@ -194,6 +206,10 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs);
 /* I1-adjusted(I2) */
 PyObject *
 Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+/* corr(I1,I2) */
+PyObject *
+Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2);
