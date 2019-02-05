@@ -184,10 +184,15 @@ def cloneOrCheckout(repo, branch, doPull, ok):
     repoDir = "src/%s"%repo
     print("...on %s" % repoDir)
     if not os.path.exists(repoDir):
-    # If the repo doesn't exist, just clone the whole repo
+        # If the repo doesn't exist, just clone the whole repo
         branch = 'devel' if branch=='' else branch
         ok = ok and runJob("git clone -b %s https://github.com/I2PC/%s.git %s"
                            % (branch, repo, repoDir))
+        if not ok:
+            print("Clone failed on '%s' repo for '%s' branch. "
+                  "Trying the default branch." % (repo, branch))
+            ok = runJob("git clone https://github.com/I2PC/%s.git %s"
+                        % (repo, repoDir))
     elif branch != '':
         workDir = os.getcwd()
         os.chdir(repoDir)
@@ -198,7 +203,10 @@ def cloneOrCheckout(repo, branch, doPull, ok):
             gitStBr = gitSt.split("\n")[0]
             currentBranch = gitStBr.split("On branch ")[1]
             if currentBranch != branch:
-                ok = ok and runJob("git checkout %s" % branch)
+                if runJob("git checkout %s" % branch):
+                    print("Checkout failed to '%s' branch. "
+                          "Remaining in the '%s' branch."
+                          % (branch, currentBranch))
             if doPull:
                 ok = ok and runJob("git pull")
         else:
