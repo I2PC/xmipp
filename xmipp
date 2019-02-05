@@ -125,11 +125,11 @@ def checkProgram(programName, show=True):
     ok=True
     cont = True
     if not whereis(programName):
-        if programName == "scons":
-            if checkProgram("pip"):
-                cont=runJob("pip install scons")
-            else:
-                ok = False
+        # if programName == "scons":
+        #     if checkProgram("pip"):
+        #         cont=runJob("pip install scons")
+        #     else:
+        #         ok = False
         if cont:
             if show:
                 print(red("Cannot find %s."%programName))
@@ -184,10 +184,15 @@ def cloneOrCheckout(repo, branch, doPull, ok):
     repoDir = "src/%s"%repo
     print("...on %s" % repoDir)
     if not os.path.exists(repoDir):
-    # If the repo doesn't exist, just clone the whole repo
+        # If the repo doesn't exist, just clone the whole repo
         branch = 'devel' if branch=='' else branch
         ok = ok and runJob("git clone -b %s https://github.com/I2PC/%s.git %s"
                            % (branch, repo, repoDir))
+        if not ok:
+            print("Clone failed on '%s' repo for '%s' branch. "
+                  "Trying the default branch." % (repo, branch))
+            ok = runJob("git clone https://github.com/I2PC/%s.git %s"
+                        % (repo, repoDir))
     elif branch != '':
         workDir = os.getcwd()
         os.chdir(repoDir)
@@ -198,7 +203,10 @@ def cloneOrCheckout(repo, branch, doPull, ok):
             gitStBr = gitSt.split("\n")[0]
             currentBranch = gitStBr.split("On branch ")[1]
             if currentBranch != branch:
-                ok = ok and runJob("git checkout %s" % branch)
+                if runJob("git checkout %s" % branch):
+                    print("Checkout failed to '%s' branch. "
+                          "Remaining in the '%s' branch."
+                          % (branch, currentBranch))
             if doPull:
                 ok = ok and runJob("git pull")
         else:
@@ -684,13 +692,10 @@ def checkConfig():
 
 def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
-    scipionHome = getScipionHome()
-    if scipionHome:
-        os.environ.update({'PATH': '%s/software/bin'%scipionHome})
     if module == "xmipp":
         downloadDeepLearningModels()
         stampVersion()
-    ok=runJob("scons -j%s"%Nproc, "src/%s"%module)
+    ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
 
 def compileDependencies(Nproc):
@@ -1004,7 +1009,11 @@ if __name__ == '__main__':
         mode = "all"
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
-        print("Are you sure you want to do this? (YeS/No)")
+        print("         Notice that if you have unpushed changes, \n"
+              "           they will be deleted.\n"
+              "         Still, if ./xmipp is a link to src/xmipp/xmipp, \n"
+              "           it will also be deleted.")
+        print("Are you sure you want to do this? (YeS/No) -case sensitive-")
         yesno = raw_input()
         if yesno == "YeS":
             print("Cleaning everything")
