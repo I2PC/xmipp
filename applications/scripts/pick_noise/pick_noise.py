@@ -72,9 +72,11 @@ class ScriptPickNoise(xmipp_base.XmippScript):
         
         micsBaseToFullName= { }
         for micName in os.listdir(micrographsPath):
-          baseName= os.path.basename( micName).split(".")[0]
-          micsBaseToFullName[baseName]= os.path.join(micrographsPath, micName)
-        
+          if micName.endswith(".mrc") or micName.endswith(".tif"):
+            baseName= os.path.basename( micName).split(".")[0]
+            micsBaseToFullName[baseName]= os.path.join(micrographsPath, micName)
+            print(baseName)
+        print(baseName)
         I= xmippLib.Image()
         I.read(micsBaseToFullName[baseName])
         micShape= I.getData().shape
