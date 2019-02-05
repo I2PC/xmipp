@@ -203,7 +203,7 @@ def cloneOrCheckout(repo, branch, doPull, ok):
             gitStBr = gitSt.split("\n")[0]
             currentBranch = gitStBr.split("On branch ")[1]
             if currentBranch != branch:
-                if runJob("git checkout %s" % branch):
+                if not runJob("git checkout %s" % branch):
                     print("Checkout failed to '%s' branch. "
                           "Remaining in the '%s' branch."
                           % (branch, currentBranch))
