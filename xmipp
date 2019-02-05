@@ -562,9 +562,9 @@ def checkCuda(configDict):
         with open("xmipp_cuda_test.cpp", "w") as cppFile:
             cppFile.write(cppProg)
 
-        if not runJob("%s -c -w %s %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
-                  (configDict["NVCC"],configDict["CXXFLAGS"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
-            print(red("Check the NVCC, CXXFLAGS, NVCC_CXXFLAGS and INCDIRFLAGS"))
+        if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
+                  (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
+            print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
         if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
                   (configDict["NVCC"], configDict["NVCC_LINKFLAGS"])):

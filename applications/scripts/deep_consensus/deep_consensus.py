@@ -187,7 +187,8 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
         try:
             from workers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, DeepTFSupervised, 
                                                               DataManager, tf_intarnalError)
-        except ImportError:
+        except ImportError as e:
+            print(e)
             raise ValueError(BAD_IMPORT_MSG)
 
         dataShape_nTrue_numModels= loadNetShape(netDataPath)
@@ -273,11 +274,11 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
             print("Evaluating test set")
             global_auc, global_acc, y_labels, y_pred_all = nnet.evaluateNet(testDataManager)
             if WRITE_TEST_SCORES:
-                makeFilePath(os.path.join(netDataPath, "testPredictions.txt"))
-            with open(os.path.join(netDataPath, "testPredictions.txt"), "w") as f:
-                f.write("label score\n")
-                for l, s in zip(y_labels, y_pred_all):
-                    f.write("%d %f\n" % (l, s))
+#                makeFilePath(os.path.join(netDataPath, "testPredictions.txt"))
+              with open(os.path.join(netDataPath, "testPredictions.txt"), "w") as f:
+                  f.write("label score\n")
+                  for l, s in zip(y_labels, y_pred_all):
+                      f.write("%d %f\n" % (l, s))
 
 BAD_IMPORT_MSG='''
 Error, tensorflow is not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
