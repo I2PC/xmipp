@@ -23,6 +23,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+
 import distutils.spawn
 import glob
 import os
@@ -203,7 +204,7 @@ def cloneOrCheckout(repo, branch, doPull, ok):
             gitStBr = gitSt.split("\n")[0]
             currentBranch = gitStBr.split("On branch ")[1]
             if currentBranch != branch:
-                if runJob("git checkout %s" % branch):
+                if not runJob("git checkout %s" % branch):
                     print("Checkout failed to '%s' branch. "
                           "Remaining in the '%s' branch."
                           % (branch, currentBranch))
@@ -693,7 +694,8 @@ def checkConfig():
 def compileModule(Nproc,module):
     shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
     if module == "xmipp":
-        downloadDeepLearningModels()
+        if 'TRAVIS' not in os.environ:
+            downloadDeepLearningModels()
         stampVersion()
     ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
@@ -810,6 +812,7 @@ def addDeepLearninModel(login, modelName, update=None):
     args = "%s %s %s %s" % (login, tgzFn, remotePath, update)
     runJob("(cd src/xmipp; %s sync_data.py upload %s)" % (getPython(), args))
 
+pDLdownload = None
 def downloadDeepLearningModels():
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
     modelsPath = os.path.join("src", "xmipp", "models")
@@ -817,53 +820,67 @@ def downloadDeepLearningModels():
 
     # downloading/updating the DLmodels
     if os.path.isdir(modelsPath):
-        print(blue("Updating the Deep Learning models"))
+        print(blue("Updating the Deep Learning models (in backgound)"))
         task = "update"
     else:
-        print(blue("Downloading Deep Learning models"))
+        print(blue("Downloading Deep Learning models (in backgound)"))
         task = "download"
-    args = "models %s %s" % (url, dataSet)
-    runJob("(cd src/xmipp; %s sync_data.py %s %s)" % (getPython(), task, args))
-
+    global pDLdownload
+    pDLdownload = subprocess.Popen([getPython(), "sync_data.py", task, "models",
+                                    url, dataSet], cwd="src/xmipp")
+    return pDLdownload
 
 def install(dirname):
     print("Installing ------------------------------------------")
     cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
+    ok = True
 
     createDir(dirname)
 
     createDir(dirname+"/lib")
-    runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
+    ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
 
     createDir(dirname+"/bin")
-    runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
+    ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
-    runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
 
     createDir(dirname+"/bindings/python")
-    runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
-    runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
-    runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
-    runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
 
     createDir(dirname+"/bindings/python/sh_alignment")
-    runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
-    runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
+    ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
+    ok = ok and runJob(cpCmd+" src/xmipp/external/sh_alignment/swig_frm.py "+dirname+"/bindings/python/sh_alignment/")
 
     createDir(dirname+"/resources")
-    runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
+    ok = ok and runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
 
-    runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
+    ok = ok and runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
     createDir(dirname+"/bindings/java")
-    runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
-    runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
-    runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
-    runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
+    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
+    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
+    ok = ok and runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
+    ok = ok and runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
 
-    createDir(dirname+"/models")
-    runJob("cat src/xmipp/models/xmipp_model_*.tgz | tar xzf - -i --directory="+dirname+"/models")
+    if 'TRAVIS' not in os.environ:
+        firstTime = True
+        global pDLdownload
+        while pDLdownload is not None and pDLdownload.poll() is None:
+            if firstTime:
+                print(blue("The download of some Deep Learning models is not "
+                           "finish yet. Continuing the download in the foregroung..."))
+                firstTime = False
+        createDir(dirname+"/models")
+        ok = ok and runJob("cat src/xmipp/models/xmipp_model_*.tgz | tar xzf - -i --directory="+dirname+"/models")
+
+    if not ok:
+        print(red("\nSome error occurred during the installation.\n"))
+        sys.exit(1)
 
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
@@ -1052,6 +1069,9 @@ if __name__ == '__main__':
                   "  * %s have been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
+        else:
+            print(red("\nSome error occurred during the compilation\n"))
+            sys.exit(1)
     elif mode=="compileAndInstall":
         Nproc=sys.argv[2]
         compileDependencies(Nproc)
