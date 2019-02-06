@@ -7,17 +7,24 @@
 #include <cufft.h>
 #include <cufftXt.h>
 #include <cuComplex.h>
+#include <nvml.h>
 
 #include <time.h>
 #include <sys/time.h>
 
-#define PI 3.14159265
+#include "cuFFTAdvisor/advisor.h"
+#include <cuFFTAdvisor/cudaUtils.h>
 
 struct pointwiseMult{
 	int normFactor;
 	cufftComplex *data;
 };
 
+
+void setDevice(int device) {
+    cudaSetDevice(device);
+    gpuErrchk( cudaPeekAtLastError() );
+}
 
 void myStreamDestroy(void *ptr)
 {
@@ -95,6 +102,54 @@ void createPlanFFT(int Xdim, int Ydim, int Ndim, int Zdim, bool forward, cufftHa
 
 }
 
+bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
+        bool crop,
+        int &xSize, int &ySize, int reserveMem,
+        bool verbose, int device, bool squareOnly, int sigPercChange) {
+
+    size_t freeMem = getFreeMem(device);
+    std::vector<cuFFTAdvisor::BenchmarkResult const *> *results =
+            cuFFTAdvisor::Advisor::find(30, device,
+                    origXSize, origYSize, 1, imgsToProcess,
+                    cuFFTAdvisor::Tristate::TRUE,
+                    cuFFTAdvisor:: Tristate::TRUE,
+                    cuFFTAdvisor::Tristate::TRUE,
+                    cuFFTAdvisor::Tristate::FALSE,
+                    cuFFTAdvisor::Tristate::TRUE, sigPercChange,
+                    freeMem - reserveMem, false, squareOnly, crop);
+
+    if (results->size() == 0) {
+        if (verbose) {
+            fprintf(stderr, "Search did not return any results. "
+                "Too strict search?\n");
+            printf("Using original values as search did not return better "
+                    "results.\n");
+        }
+        xSize = origXSize;
+        ySize = origYSize;
+        int imgElems = std::max(xSize * ySize, (xSize / 2 + 1) * ySize * 2); // * 2 for complex numbers
+        float imgMBBytes = imgElems * sizeof(float) / (1024 * 1024.f);
+        // this makes sure we have enough memory for the FFT plan, which is
+        // typically of the size of the input data
+        float cudaPlanMemoryCoefficient = 2.1f;
+        batchSize = std::floor((freeMem - reserveMem) / (cudaPlanMemoryCoefficient * imgMBBytes));
+        // we don't need batch bigger than num of imgs to process
+        batchSize = std::min(batchSize, imgsToProcess);
+        // but we should manage at least one image
+        batchSize = std::max(batchSize, 1);
+        return false;
+    }
+    batchSize = results->at(0)->transform->N;
+    xSize = results->at(0)->transform->X;
+    ySize = results->at(0)->transform->Y;
+    if (verbose) {
+        results->at(0)->print(stdout);
+        printf("\n");
+    }
+    for (auto& it : *results) delete it;
+    delete results;
+    return true;
+}
 
 void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,
 		bool forward, cufftHandle *plan, myStreamHandle &myStream){
@@ -347,6 +402,44 @@ __device__ void CB_pointwiseMultiplicationComplexKernelStore(void *dataOut, size
 }
 __device__ cufftCallbackStoreC d_pointwiseMultiplicationComplexKernelStore = CB_pointwiseMultiplicationComplexKernelStore;
 
+
+template float* loadToGPU<float>(const float* data, size_t items);
+template std::complex<float>* loadToGPU<std::complex<float> >(const std::complex<float>* data, size_t items);
+template<typename T>
+T* loadToGPU(const T* data, size_t items) {
+T* d_data;
+size_t bytes = items * sizeof(T);
+gpuErrchk(cudaMalloc(&d_data, bytes));
+gpuErrchk(cudaMemcpy(d_data, data, bytes, cudaMemcpyHostToDevice));
+return d_data;
+}
+
+template void release<float>(float* data);
+template<typename T>
+void release(T* data) {
+gpuErrchk(cudaFree(data));
+}
+
+size_t getFreeMem(int device) {
+return cuFFTAdvisor::toMB(cuFFTAdvisor::getFreeMemory(device));
+}
+
+std::string getUUID(int devIndex) {
+    std::stringstream ss;
+    nvmlDevice_t device;
+    // https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html#group__nvmlDeviceQueries_1g84dca2d06974131ccec1651428596191
+    if (NVML_SUCCESS == nvmlInit()) {
+        if (NVML_SUCCESS == nvmlDeviceGetHandleByIndex(devIndex, &device)) {
+            char uuid[80];
+            if (NVML_SUCCESS == nvmlDeviceGetUUID(device, uuid, 80)) {
+                ss <<  uuid;
+                return ss.str();
+            }
+        }
+    }
+    ss << devIndex;
+    return ss.str();
+}
 
 template<>
 template<>
@@ -690,18 +783,17 @@ void GpuMultidimArrayAtGpu< std::complex<float> >::ifft(GpuMultidimArrayAtGpu<fl
 			auxOutFFT.resize(realSpace.Xdim,realSpace.Ydim,realSpace.Zdim, NdimNew);
 		}
 
-		cufftHandle *planBptr = new cufftHandle;
-		cufftHandle *planAuxBptr = new cufftHandle;
+		cufftHandle *planBptr = nullptr;
+		cufftHandle *planAuxBptr = nullptr;
 		if(auxNdim!=NdimNew){
+		    planAuxBptr = new cufftHandle;
 			createPlanFFT(Xdim, Ydim, NdimNew, Zdim, false, planAuxBptr);
 		}else{
-			if(myhandle.ptr == NULL){
+			if(nullptr == myhandle.ptr){
+				myhandle.ptr = planBptr = new cufftHandle;
 				createPlanFFT(realSpace.Xdim, realSpace.Ydim, NdimNew, Zdim, false, planBptr);
-				myhandle.ptr = (void *)planBptr;
-				planBptr=(cufftHandle *)myhandle.ptr;
-			}else{
-				planBptr=(cufftHandle *)myhandle.ptr;
 			}
+            planBptr=(cufftHandle *)myhandle.ptr;
 		}
 
 		if(auxNdim==NdimNew){
@@ -735,8 +827,8 @@ void GpuMultidimArrayAtGpu< std::complex<float> >::ifft(GpuMultidimArrayAtGpu<fl
 		if(aux<NdimNew)
 			NdimNew=aux;
 
-		if(auxNdim!=NdimNew && NdimNew!=0)
-			cufftDestroy(*planAuxBptr);
+		if(nullptr != planAuxBptr)
+			cufftDestroy(*planAuxBptr); // destroy if created
 
 	}//AJ end while
 

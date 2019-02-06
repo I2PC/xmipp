@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Strelak (davidstrelak@gmail.com)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,34 +23,32 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+#ifndef LIBRARIES_DATA_RECTANGLE_H_
+#define LIBRARIES_DATA_RECTANGLE_H_
 
-#include "point.h"
-#include "cuda_compatibility.h"
+#include "dimensions.h"
+#include "point2D.h"
+#include <assert.h>
 
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
+template<typename T>
+class Rectangle {
 public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
+    explicit Rectangle(T &topLeftCorner, T &bottomRightCorner) :
+            tl(std::move(topLeftCorner)), br(std::move(bottomRightCorner)) {
+        static_assert(std::is_base_of<Point, T>::value, "T must inherit from Point");
     }
     ;
-    T x;
-    T y;
-    T z;
 
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
+    constexpr T getCenter() const {
+        return (tl + br) / 2;
     }
 
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
+    constexpr T getSize() const {
+        return (br - tl) + 1;
     }
+
+    const T tl; // top left corner
+    const T br; // bottom right corner
 };
 
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+#endif /* LIBRARIES_DATA_RECTANGLE_H_ */
