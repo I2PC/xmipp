@@ -452,7 +452,7 @@ void ProgCTFEstimateFromPSD::saveIntermediateResults(const FileName &fn_root, bo
         radial_N(r)++;
     }
 
-    FOR_ALL_ELEMENTS_IN_ARRAY1D(radial_CTFmodel_avg)
+    FOR_ALL_ELEMENTS_IN_ARRAY1D (radial_CTFmodel_avg)
     {
         if (radial_N(i) == 0)
             continue;
@@ -707,14 +707,13 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
             std::cout << "Too large defocus\n";
         return heavy_penalization;
     }
-    /*if (initial_ctfmodel.DeltafU != 0 && action >= 3)
+    if (initial_ctfmodel.DeltafU != 0 && action >= 3)
     {
         // If there is an initial model, the true solution
         // cannot be too far
-
         if (fabs(initial_ctfmodel.DeltafU - current_ctfmodel.DeltafU) > defocus_range ||
             fabs(initial_ctfmodel.DeltafV - current_ctfmodel.DeltafV) > defocus_range)
-        {std::cout << "Entra2" << std::endl;
+        {
             if (show_inf >= 2)
             {
                 std::cout << "Too far from hint: Initial (" << initial_ctfmodel.DeltafU << "," << initial_ctfmodel.DeltafV << ")"
@@ -723,15 +722,7 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
             }
             return heavy_penalization;
         }
-    }*/
-
-    /*if ((initial_ctfmodel.phase_shift != 0.0 || initial_ctfmodel.phase_shift != 1.57079) && action >= 5)
-        {
-        	if (fabs(initial_ctfmodel.phase_shift - current_ctfmodel.phase_shift) > 0.05)
-        	{
-        		return heavy_penalization;
-        	}
-        }*/
+    }
 
     // Now the 2D error
     double distsum = 0;
@@ -759,28 +750,16 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
             double bg = current_ctfmodel.getValueNoiseAt();
             double envelope=0, ctf_without_damping, ctf_with_damping=0;
             double ctf2_th=0;
-            double ctf2 = DIRECT_A2D_ELEM(*f, i, j);
-			double dist = 0;
-			double ctf_with_damping2;
+
             switch (action)
             {
             case 0:
             case 1:
                 ctf2_th = bg;
-                dist = fabs(ctf2 - bg);
-				if (penalize && bg > ctf2
-					&& DIRECT_A2D_ELEM(w_digfreq, i, j)
-					> max_gauss_freq)
-					dist *= current_penalty;
                 break;
             case 2:
                 envelope = current_ctfmodel.getValueDampingAt();
                 ctf2_th = bg + envelope * envelope;
-                dist = fabs(ctf2 - ctf2_th);
-				if (penalize && ctf2_th < ctf2
-					&& DIRECT_A2D_ELEM(w_digfreq, i, j)
-					> max_gauss_freq)
-					dist *= current_penalty;
                 break;
             case 3:
             case 4:
@@ -792,48 +771,74 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
                 		current_ctfmodel.getValuePureWithoutDampingAt();
                 ctf_with_damping = envelope * ctf_without_damping;
                 ctf2_th = bg + ctf_with_damping * ctf_with_damping;
-
-                if (DIRECT_A2D_ELEM(w_digfreq,i, j) < upperLimit
-                                    && DIRECT_A2D_ELEM(w_digfreq,i, j) > lowerLimit)
-				{
-					if  (action == 3 ||
-						 (action == 4 && DIRECT_A2D_ELEM(mask_between_zeroes,i,j) == 1) ||
-						 (action == 7 && DIRECT_A2D_ELEM(mask_between_zeroes,i,j) == 1))
-					{
-						double enhanced_ctf =
-							DIRECT_A2D_ELEM(local_enhanced_ctf, i, j);
-						ctf_with_damping2 = ctf_with_damping * ctf_with_damping;
-						enhanced_model += enhanced_ctf * ctf_with_damping2;
-						enhanced2 += enhanced_ctf * enhanced_ctf;
-						model2 += ctf_with_damping2 * ctf_with_damping2;
-						enhanced_avg += enhanced_ctf;
-						model_avg += ctf_with_damping2;
-						Ncorr++;
-
-						if (action==3)
-						{
-							int r = A2D_ELEM(w_digfreq_r,i, j);
-							A1D_ELEM(psd_theo_radial,r) += ctf2_th;
-						}
-					}
-				}
-				if (envelope > 1e-2)
-					dist = fabs(ctf2 - ctf2_th) / (envelope * envelope);
-				else
-					dist = fabs(ctf2 - ctf2_th);
-				// This expression comes from mapping any value so that
-				// bg becomes 0, and bg+envelope^2 becomes 1
-				// This is the transformation
-				//        (x-bg)      x-bg
-				//    -------------=-------
-				//    (bg+env^2-bg)  env^2
-				// If we subtract two of this scaled values
-				//    x-bg      y-bg       x-y
-				//   ------- - ------- = -------
-				//    env^2     env^2     env^2
                 break;
             }
+            // Compute distance
+            double ctf2 = DIRECT_A2D_ELEM(*f, i, j);
+            double dist = 0;
+            double ctf_with_damping2;
+            switch (action)
+            {
+            case 0:
+            case 1:
+                dist = fabs(ctf2 - bg);
+                if (penalize && bg > ctf2
+                    && DIRECT_A2D_ELEM(w_digfreq, i, j)
+                    > max_gauss_freq)
+                    dist *= current_penalty;
+                break;
+            case 2:
+                dist = fabs(ctf2 - ctf2_th);
+                if (penalize && ctf2_th < ctf2
+                    && DIRECT_A2D_ELEM(w_digfreq, i, j)
+                    > max_gauss_freq)
+                    dist *= current_penalty;
+                break;
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                if (DIRECT_A2D_ELEM(w_digfreq,i, j) < upperLimit
+                    && DIRECT_A2D_ELEM(w_digfreq,i, j) > lowerLimit)
+                {
+                    if  (action == 3 ||
+                         (action == 4 && DIRECT_A2D_ELEM(mask_between_zeroes,i,j) == 1) ||
+                         (action == 7 && DIRECT_A2D_ELEM(mask_between_zeroes,i,j) == 1))
+                    {
+                        double enhanced_ctf =
+                            DIRECT_A2D_ELEM(local_enhanced_ctf, i, j);
+                        ctf_with_damping2 = ctf_with_damping * ctf_with_damping;
+                        enhanced_model += enhanced_ctf * ctf_with_damping2;
+                        enhanced2 += enhanced_ctf * enhanced_ctf;
+                        model2 += ctf_with_damping2 * ctf_with_damping2;
+                        enhanced_avg += enhanced_ctf;
+                        model_avg += ctf_with_damping2;
+                        Ncorr++;
 
+                        if (action==3)
+                        {
+                            int r = A2D_ELEM(w_digfreq_r,i, j);
+                            A1D_ELEM(psd_theo_radial,r) += ctf2_th;
+                        }
+                    }
+                }
+                if (envelope > 1e-2)
+                    dist = fabs(ctf2 - ctf2_th) / (envelope * envelope);
+                else
+                    dist = fabs(ctf2 - ctf2_th);
+                // This expression comes from mapping any value so that
+                // bg becomes 0, and bg+envelope^2 becomes 1
+                // This is the transformation
+                //        (x-bg)      x-bg
+                //    -------------=-------
+                //    (bg+env^2-bg)  env^2
+                // If we subtract two of this scaled values
+                //    x-bg      y-bg       x-y
+                //   ------- - ------- = -------
+                //    env^2     env^2     env^2
+                break;
+            }
             distsum += dist * DIRECT_A2D_ELEM(mask,i,j);
             N++;
         }

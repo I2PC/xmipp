@@ -40,7 +40,7 @@ void ProgMovieEstimateGain::defineParams()
     addParamsLine(" [--sigmaStep <s=0.5>]: Step size for sigma");
     addParamsLine(" [--singleRef] : Use a single histogram reference");
     addParamsLine("               :+This assumes that there is no image contamination or carbon holes");
-    addParamsLine(" [--gainImage <fn=\"\">] : Reference to external gain image");
+    addParamsLine(" [--gainImage <fn=\"\">] : Reference to external gain image (we will multiply by it)");
     addParamsLine(" [--applyGain] : Flag for using external gain image");
     addParamsLine("               : applyGain=True will use external gain image");
 }
@@ -135,14 +135,14 @@ void ProgMovieEstimateGain::run()
 	FileName fnFrame;
 	Image<int> Iframe;
 	MultidimArray<int> IframeTransformed, IframeIdeal, IframeMA;
-	MultidimArray<double> sumIdeal, gainMA;
+	MultidimArray<double> sumIdeal, igainMA;
 	MultidimArray<double> &mICorrection=ICorrection();
-    Image<double> gain;
+    Image<double> igain;
 
 	if (applyGain && fnGain != "")
 	{
-	    gain.read(fnGain);
-	    gainMA = gain();
+	    igain.read(fnGain);
+	    igainMA = igain();
 
         FOR_ALL_OBJECTS_IN_METADATA(mdIn)
         {
@@ -150,7 +150,7 @@ void ProgMovieEstimateGain::run()
             Iframe.read(fnFrame);
             IframeMA = Iframe();
             FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IframeMA)
-                DIRECT_MULTIDIM_ELEM(mICorrection,n) = (DIRECT_MULTIDIM_ELEM(IframeMA,n) / DIRECT_MULTIDIM_ELEM(gainMA,n));
+                DIRECT_MULTIDIM_ELEM(mICorrection,n) = (DIRECT_MULTIDIM_ELEM(IframeMA,n) * DIRECT_MULTIDIM_ELEM(igainMA,n));
         }
 	}
     else

@@ -32,6 +32,8 @@ from urllib2 import urlopen
 
 import time
 
+def blue(text):
+    return "\033[34m"+text+"\033[0m"
 
 def download(destination=None, url=None, dataset=None):
     """ Download all the data files mentioned in url/dataset/MANIFEST
@@ -40,7 +42,7 @@ def download(destination=None, url=None, dataset=None):
     if not isDLmodel:
         # First make sure that we ask for a known dataset.
         if dataset not in [x.strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
-            print("Unknown dataset/model: %s" % dataset)
+            print(blue("Unknown dataset/model: %s)" % dataset))
             return
         remoteManifest = '%s/%s/MANIFEST' % (url, dataset)
         inFolder = "/%s" % dataset
@@ -53,14 +55,14 @@ def download(destination=None, url=None, dataset=None):
     os.makedirs(destination)
     manifest = join(destination, 'MANIFEST')
     try:
-        print("Retrieving MANIFEST file")
+        print(blue("Retrieving MANIFEST file"))
         open(manifest, 'w').writelines(
             urlopen(remoteManifest))
     except Exception as e:
         sys.exit("ERROR reading %s (%s)" % (remoteManifest, e))
 
     # Now retrieve all of the files mentioned in MANIFEST, and check their md5.
-    print('Fetching files...')
+    print(blue('Fetching files...'))
     md5sRemote = readManifest(remoteManifest, isDLmodel)
     done = 0.0  # fraction already done
     inc = 1.0 / len(md5sRemote)  # increment, how much each iteration represents
@@ -81,16 +83,15 @@ def download(destination=None, url=None, dataset=None):
             done += inc
             partial = int(done*10)
             if int((done-inc)*100%10) == 0 and partial != oldPartial:
-                print("%3d%%..." % (100 * done))
+                print(blue("%3d%%..." % (100 * done)))
                 sys.stdout.flush()
                 oldPartial = partial
         except Exception as e:
-            print("\nError in %s (%s)" % (fname, e))
-            print("URL: %s/%s/%s" % (url, dataset, fname))
-            print("Destination: %s" % fpath)
+            print(blue("\nError in %s (%s)" % (fname, e)))
+            print(blue("URL: %s/%s/%s" % (url, dataset, fname)))
+            print(blue("Destination: %s" % fpath))
             if raw_input("Continue downloading? (y/[n]): ").lower() != 'y':
                 sys.exit()
-    print
 
 def update(destination=None, url=None, dataset=None):
     """ Update local dataset with the contents of the remote one.
@@ -113,7 +114,7 @@ def update(destination=None, url=None, dataset=None):
         t_manifest = os.stat(join(destination, 'MANIFEST')).st_mtime
         assert t_manifest > last and time.time() - t_manifest < 60*60*24*7
     except (OSError, IOError, AssertionError) as e:
-        print("Regenerating local MANIFEST...")
+        print(blue("Regenerating local MANIFEST..."))
         if isDLmodel:
             os.system('(cd %s ; md5sum xmipp_model_*.tgz '
                       '> MANIFEST)' % destination)
@@ -124,7 +125,7 @@ def update(destination=None, url=None, dataset=None):
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sLocal = {v: k for k, v in md5sLocal.iteritems()}
     # Check that all the files mentioned in MANIFEST are up-to-date
-    print("Verifying MD5s...")
+    print(blue("Verifying MD5s..."))
 
     filesUpdated = []  # number of files that have been updated
     taintedMANIFEST = False  # can MANIFEST be out of sync?
@@ -144,17 +145,17 @@ def update(destination=None, url=None, dataset=None):
                     urlopen('%s%s/%s' % (url, inFolder, fname)))
                 filesUpdated.append(fname)
         except Exception as e:
-            print("\nError while updating %s: %s" % (fname, e))
+            print(blue("\nError while updating %s: %s" % (fname, e)))
             taintedMANIFEST = True  # if we don't update, it can be wrong
         done += inc
         partial = int(done*10)
         if int((done-inc)*100%10) == 0 and partial != oldPartial:
-            print("%3d%%..." % (100 * done))
+            print(blue("%3d%%..." % (100 * done)))
             sys.stdout.flush()
             oldPartial = partial
 
 
-    print("\n...done. Updated files: %d\n" % len(filesUpdated))
+    print(blue("...done. Updated files: %d" % len(filesUpdated)))
     sys.stdout.flush()
 
     # Save the new MANIFEST file in the folder of the downloaded dataset
@@ -162,7 +163,7 @@ def update(destination=None, url=None, dataset=None):
         open(join(destination, 'MANIFEST'), 'w').writelines(urlopen(remoteManifest).readlines())
 
     if taintedMANIFEST:
-        print("Some files could not be updated. Regenerating local MANIFEST ...")
+        print(blue("Some files could not be updated. Regenerating local MANIFEST ..."))
         createMANIFEST(destination)
 
 
