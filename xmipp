@@ -867,8 +867,13 @@ def install(dirname):
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
-    createDir(dirname+"/pylib")
-    runJob(cpCmd+" src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/")
+    modulesDir = dirname + "/pylib/xmippPyModules"
+    createDir(modulesDir)
+    initFn = modulesDir + "/__init__.py"
+    if not os.path.isfile(initFn):
+        with open(initFn, 'w') as f:
+            pass
+    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/xmippPyModules/")
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
