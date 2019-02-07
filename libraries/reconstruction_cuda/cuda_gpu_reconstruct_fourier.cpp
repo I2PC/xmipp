@@ -1181,11 +1181,6 @@ void processBufferGPU_(float* tempVolumeGPU, float* tempWeightsGPU,
    }
 }
 
-void setDevice(int device) {
-	cudaSetDevice(device);
-	gpuErrchk( cudaPeekAtLastError() );
-}
-
 void processBufferGPU(float* tempVolumeGPU, float* tempWeightsGPU,
 		RecFourierBufferData* buffer,
 		float blobRadius, int maxVolIndexYZ, bool useFast,

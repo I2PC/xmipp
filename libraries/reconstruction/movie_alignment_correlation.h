@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Carlos Oscar Sanchez Sorzano coss@cnb.csic.es
+ *             David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -26,85 +27,85 @@
 #ifndef _PROG_MOVIE_ALIGNMENT_CORRELATION
 #define _PROG_MOVIE_ALIGNMENT_CORRELATION
 
-#include <core/xmipp_program.h>
-
-/**@defgroup MovieAlignmentCorrelation Movie alignment by correlation
-   @ingroup ReconsLibrary */
-//@{
+#include "data/filters.h"
+#include "core/xmipp_fftw.h"
+#include "reconstruction/movie_alignment_correlation_base.h"
 
 /** Movie alignment correlation Parameters. */
-class ProgMovieAlignmentCorrelation: public XmippProgram
-{
+template<typename T>
+class ProgMovieAlignmentCorrelation: public AProgMovieAlignmentCorrelation<T> {
 public:
-    /** Filename of movie metadata */
-    FileName fnMovie;
-    /** Correction images */
-    FileName fnDark, fnGain;
-    /** Max shift */
-    double maxShift;
-    /** Sampling rate */
-    double Ts;
-    /** Max freq. */
-    double maxFreq;
-    /** Solver iterations */
-    int solverIterations;
-    /** Aligned movie */
-    FileName fnAligned;
-    /** Aligned micrograph */
-    FileName fnAvg;
-    /** Aligned micrograph */
-    FileName fnInitialAvg;
-    /** Metadata with shifts */
-    FileName fnOut;
-    /** First and last frame*/
-    int nfirst, nlast;
-    /** First and last frame*/
-    int nfirstSum, nlastSum;
-    /** Do not calculate and use the input shifts */
-    bool useInputShifts;
-    /** Binning factor */
-    double bin;
-    /** Bspline order */
-    int BsplineOrder;
-    /** Outside mode */
-    int outsideMode;
-    /** Outside value */
-    double outsideValue;
-
-    /*****************************/
-    /** crop corner **/
-    /*****************************/
-    /** x left top corner **/
-    int xLTcorner;
-    /** y left top corner **/
-    int yLTcorner;
-    /** x right down corner **/
-    int xDRcorner;
-    /** y right down corner **/
-    int yDRcorner;
-
-public:
-    // Fourier transforms of the input images
-	std::vector< MultidimArray<std::complex<double> > * > frameFourier;
-
-	// Target sampling rate
-	double newTs;
-
-	// Target size of the frames
-	int newXdim, newYdim;
-public:
-    /// Read argument from command line
-    void readParams();
-
-    /// Show
-    void show();
-
     /// Define parameters
     void defineParams();
+private:
+    /**
+     * After running this method, all relevant images from the movie are
+     * loaded in 'frameFourier' and ready for further processing
+     * @param movie input
+     * @param dark correction to be used
+     * @param igain correction to be used
+     */
+    void loadData(const MetaData& movie, const Image<T>& dark,
+            const Image<T>& igain);
 
-    /// Run
-    void run();
+    /**
+     * Computes shifts of all images in the 'frameFourier'
+     * Method uses one thread to calculate correlations.
+     * @param N number of images to process
+     * @param bX pair-wise shifts in X dimension
+     * @param bY pair-wise shifts in Y dimension
+     * @param A system matrix to be used
+     */
+    void computeShifts(size_t N, const Matrix1D<T>& bX, const Matrix1D<T>& bY,
+            const Matrix2D<T>& A);
 
+    /**
+     * Inherited, see parent
+     */
+    void applyShiftsComputeAverage(const MetaData& movie, const Image<T>& dark,
+            const Image<T>& igain, Image<T>& initialMic, size_t& Ninitial,
+            Image<T>& averageMicrograph, size_t& N,
+            const AlignmentResult<T> &globAlignment);
+
+    /**
+     * Inherited, see parent
+     */
+    void applyShiftsComputeAverage(
+                const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
+                Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
+                size_t& N, const LocalAlignmentResult<T> &alignment);
+
+    /**
+     * Inherited, see parent
+     */
+    AlignmentResult<T> computeGlobalAlignment(const MetaData &movie,
+            const Image<T> &dark,
+            const Image<T> &igain);
+
+    /**
+     * Inherited, see parent
+     */
+    void releaseAll() { /* nothing to do */ };
+
+    /**
+     * Inherited, see parent
+     */
+    LocalAlignmentResult<T> computeLocalAlignment(const MetaData &movie,
+            const Image<T> &dark, const Image<T> &igain,
+            const AlignmentResult<T> &globAlignment);
+private:
+    /**
+     *  Fourier transforms of the input images, after cropping, gain and dark
+     *  correction
+     */
+    std::vector<MultidimArray<std::complex<T> > *> frameFourier;
+
+    /** Sizes of the correlation */
+    int newXdim;
+    int newYdim;
+
+    /** Scale factor of the correlation and original frame size */
+    T sizeFactor;
 };
-//@}
+
 #endif

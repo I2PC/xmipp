@@ -26,10 +26,31 @@
 #ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
 #define XMIPP_LIBRARIES_DATA_POINT3D_H_
 
-/** Struct represents a point in 3D */
+#include "point.h"
+#include "cuda_compatibility.h"
+
+/** Class represents a point in 3D */
 template <typename T>
-struct Point3D {
-	T x, y, z;
+class Point3D: Point {
+public:
+    CUDA_HD
+    Point3D(T x = 0, T y = 0, T z = 0) :
+            x(x), y(y), z(z) {
+    }
+    ;
+    T x;
+    T y;
+    T z;
+
+    CUDA_H
+    Point3D& operator/=(const T &rhs) const {
+        return Point3D(x / rhs, y / rhs, z / rhs);
+    }
+
+    CUDA_H
+    friend Point3D operator/(const Point3D &lhs, T rhs) {
+        return lhs /= rhs;
+    }
 };
 
 #endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */

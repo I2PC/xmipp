@@ -24,7 +24,6 @@ public:
 	Image<double>        enhanced_ctftomodel_fullsize;
 	/// Show convergence values
 	bool                 show_optimization;
-	bool                 selfEstimation;
 	/// X dimension of particle projections (-1=the same as the psd)
 	int                  ctfmodelSize;
 	/// Bootstrap estimation
@@ -63,15 +62,12 @@ public:
 	///PSD data
 	MultidimArray<double> psd_exp_radial;
 	MultidimArray<double> psd_exp_enhanced_radial;
-	MultidimArray<double> psd_exp_enhanced_radial_2;
 	MultidimArray<double> psd_exp_enhanced_radial_derivative;
 	MultidimArray<double> psd_theo_radial_derivative;
 	MultidimArray<double> psd_exp_radial_derivative;
 	MultidimArray<double> psd_theo_radial;
 	MultidimArray<double> w_digfreq_r_iN;
 	MultidimArray<double> w_digfreq_r;
-	MultidimArray<std::complex<double> > psd_fft;
-	std::vector<double> amplitud;
 	///Masks
 	MultidimArray<double> mask;
 	MultidimArray<double> mask_between_zeroes;
@@ -111,7 +107,7 @@ public:
 	// Penalization for forbidden values of the parameters
 	double heavy_penalization;
 	double current_penalty;
-	static constexpr double penalty = 32.0; // Maximum penalization
+	double penalty; // Maximum penalization
 	//Some aliases
 	MultidimArray<double> *f; // The CTF to model
 	Matrix1D<double> *adjust_params; // Current theoretical adjustment
