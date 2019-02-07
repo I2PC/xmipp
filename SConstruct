@@ -215,6 +215,8 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         _libs.append("cudart")
         #_libs.append("cuda")
         _libs.append("cufft")
+        _libs.append("nvidia-ml")
+        _libs.append("cuFFTAdvisor")
     _incs = list(incs)#+external_incdirs
     lastTarget = deps
     prefix = 'lib' if prefix is None else prefix
@@ -229,7 +231,10 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         
     if not sources and env.TargetInBuild(name):
         Exit('No sources found for Library: %s. Exiting!!!' % name)
-
+    sources.sort() # XXX HACK this is to have a fixed order of the files we compile
+    # the reason is a compilation error for CUDA, which results in a multiple symbol detection
+    # when the order is different. This has to be fixed in the future by changing the CUDA
+    # build system FIXME David Strelak
     env2 = Environment()
     env2['ENV']['PATH'] = env['ENV']['PATH']
     env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer 
@@ -253,7 +258,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
         env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
-        _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt'])
+        _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt', 'nvidia-ml','cuFFTAdvisor'])
         extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
@@ -375,7 +380,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     libPathsCopy = libPaths + [Dir('lib').abspath]
     incsCopy = list(incs) or []
     if cuda or nvcc:
-        libs += ['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt']
+        libs += ['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt','nvidia-ml', 'cuFFTAdvisor']
 
     sources = []
     for s, p in izip(src, pattern):
