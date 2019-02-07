@@ -27,6 +27,8 @@
 int main(int argc, char **argv)
 {
 
+    int a[5];
+    a[200] = 42;     
     ProgRecFourier program;
     program.read(argc, argv);
     return program.tryRun();
