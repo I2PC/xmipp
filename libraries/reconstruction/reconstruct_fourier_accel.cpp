@@ -118,7 +118,7 @@ void ProgRecFourierAccel::run()
 {
     int a[5];
     a[200] = 42;
-    if (a[500] > 3) return 0;
+    if (a[500] > 3) return;
     show();
     produceSideinfo();
     // Process all images in the selfile
