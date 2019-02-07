@@ -14,7 +14,6 @@ git_folder = '.git'
 script_dir = os.path.dirname(os.path.realpath(__file__)).split(os.getcwd())[1][1:]
 copy_list = [xmipp_script, script_dir, sonar_script, sync_script]
 if 'TRAVIS' in os.environ:
-    print("Travis detected\n")
     # we need git folder so that SonarCloud can use it for PR decoration
     copy_list.append(git_folder)
 black_list = [src_folder_name]
@@ -28,7 +27,6 @@ for item in os.listdir(folder):
             shutil.move(item_path, xmipp_folder)
         else:
             if os.path.isdir(item_path):
-                print("copying dir " + str(item_path) + " to " + str(xmipp_folder) + "\n")
                 copy_tree(item_path, os.path.join(xmipp_folder, item))
             else:
                 shutil.copy(item_path, xmipp_folder)
