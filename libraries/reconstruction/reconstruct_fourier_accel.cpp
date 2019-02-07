@@ -116,6 +116,8 @@ void ProgRecFourierAccel::show()
 // Main routine ------------------------------------------------------------
 void ProgRecFourierAccel::run()
 {
+    int a[5];
+    a[200] = 42;
     show();
     produceSideinfo();
     // Process all images in the selfile
