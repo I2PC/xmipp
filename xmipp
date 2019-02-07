@@ -377,7 +377,7 @@ def configCompiler(configDict):
         configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
         scipionHomeDir = getScipionHome()
         if scipionHomeDir:
-            configDict["INCDIRFLAGS"]="-I%s/software/include"%scipionHomeDir
+            configDict["INCDIRFLAGS"] += " -I%s/software/include"%scipionHomeDir
             incDirs+=["%s/software/include"%scipionHomeDir]
         if not findFileInDirList("hdf5.h",incDirs):
             if findFileInDirList("hdf5.h",["/usr/include/hdf5/serial"]):
