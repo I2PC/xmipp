@@ -37,10 +37,6 @@ from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, reca
 import xmippLib as xmipp
 import pyworkflow.em.metadata as md
 
-#from matplotlib import pyplot as plt
-
-
-
 import keras
 import tensorflow as tf
 from keras import backend as K

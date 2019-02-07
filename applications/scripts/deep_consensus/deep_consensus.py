@@ -28,7 +28,7 @@
 import sys, os
 import xmipp_base
 import xmippLib
-
+import traceback
 
 WRITE_TEST_SCORES= True
 
@@ -189,6 +189,7 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
                                                               DataManager, tf_intarnalError)
         except ImportError as e:
             print(e)
+            print(traceback.format_exc())        
             raise ValueError(BAD_IMPORT_MSG)
 
         dataShape_nTrue_numModels= loadNetShape(netDataPath)
@@ -255,7 +256,7 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
                 raise e
 
         y_pred, label_Id_dataSetNumIterator = nnet.predictNet(predictDataManager)
-        print("Returning to helper"); sys.stdout.flush()
+
         metadataPosList, metadataNegList = predictDataManager.getMetadata(None)
         for score, (isPositive, mdId, dataSetNumber) in zip(y_pred, label_Id_dataSetNumIterator):
             if isPositive==True:
@@ -281,11 +282,12 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
                       f.write("%d %f\n" % (l, s))
 
 BAD_IMPORT_MSG='''
-Error, tensorflow is not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
-If gpu version of tensorflow desired, install cuda 8.0 and cudnn 6 or cuda 9.0 and cudnn 7 add to SCIPION_DIR/config/scipion.conf
+Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
+If gpu version of tensorflow desired, install cuda 8.0 and cudnn 6 or cuda 9.0 and cudnn 7 and then
+add to SCIPION_DIR/config/scipion.conf
 CUDA = True
 CUDA_VERSION = 8.0  or 9.0
-CUDA_HOME = /path/to/cuda-8
+CUDA_HOME = /path/to/cuda-X
 CUDA_BIN = %(CUDA_HOME)s/bin
 CUDA_LIB = %(CUDA_HOME)s/lib64
 CUDNN_VERSION = 6 or 7

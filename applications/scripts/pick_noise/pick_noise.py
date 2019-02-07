@@ -26,12 +26,14 @@
 """
 
 import sys, os
+from joblib import delayed, Parallel
+from scipy.spatial.distance import cdist
+
+import numpy as np
 import xmipp_base
 import xmippLib
-from joblib import delayed, Parallel
-import numpy as np
-from scipy.spatial.distance import cdist
-from xmipp3.convert import writeSetOfCoordinates, readSetOfCoordinates
+from xmipp3.convert import writeSetOfCoordinates, writeMicCoordinates, readPosCoordinates
+from pyworkflow.em.data import Coordinate, Micrograph
 
 class ScriptPickNoise(xmipp_base.XmippScript):
     def __init__(self):
@@ -75,8 +77,7 @@ class ScriptPickNoise(xmipp_base.XmippScript):
           if micName.endswith(".mrc") or micName.endswith(".tif"):
             baseName= os.path.basename( micName).split(".")[0]
             micsBaseToFullName[baseName]= os.path.join(micrographsPath, micName)
-            print(baseName)
-        print(baseName)
+
         I= xmippLib.Image()
         I.read(micsBaseToFullName[baseName])
         micShape= I.getData().shape
@@ -92,49 +93,17 @@ class ScriptPickNoise(xmipp_base.XmippScript):
         Parallel(n_jobs= numberOfThreads, backend="multiprocessing", verbose=1)(
                     delayed(pickNoiseOneMic, check_pickle=False)(*arg) for arg in argsList)
 
-def readPosCoords(fname):
-
-  inLoop=False
-  i=-1
-  _xcoor= None
-  _ycoor= None
-  coords=[]
-  with open(fname) as f:
-    for line in f:
-      line= line.strip()
-      if line.startswith("loop_") :
-        inLoop=True
-        i= -1
-      elif inLoop:
-        i+=1
-        if line.startswith("_xcoor"):
-          _xcoor=i
-        elif line.startswith("_ycoor"):
-          _ycoor=i
-        elif not line.startswith("_"):
-          inLoop=False
-      elif line.startswith("_") :
-          continue
-      elif not _xcoor is None:
-        lineArray= line.split()
-        if len(lineArray)<2:
-          continue
-
-        x= int(lineArray[_xcoor])
-        y= int(lineArray[_ycoor])
-        coords.append((x,y) )
-  print("N coords: %d"%(len(coords) ))
-  return coords
-  
+   
 def pickNoiseOneMic(baseName, mic_fname, posName, mic_shape, outputRoot,
                   extractNoiseNumber, boxSize):
 
   """ Pick noise from one micrograph 
   """
   
-  print(baseName, mic_fname, posName, mic_shape, outputRoot, extractNoiseNumber, boxSize)   
+  print("pick noise one mic %s %s %s %s %s %s %s"%(baseName, mic_fname, posName, mic_shape, 
+                                                   outputRoot, extractNoiseNumber, boxSize) )
 
-  coords_in_mic_list= readPosCoords(posName)
+  coords_in_mic_list= readPosCoordsFromFName(posName)
   
   extractNoiseNumber= extractNoiseNumber if extractNoiseNumber!=-1 else  len(coords_in_mic_list)
 
@@ -155,12 +124,49 @@ def pickNoiseOneMic(baseName, mic_fname, posName, mic_shape, outputRoot,
       good_new_coords.append(g_n_c )
       if n_good_coords>= extractNoiseNumber:
         break
-    good_new_coords= np.concatenate(good_new_coords)[:extractNoiseNumber]    
-    with open(os.path.join(outputRoot, baseName+"_raw_coords.txt"), "w") as f:
-        f.write("%s %s\n"%(baseName, mic_fname))
-        for x, y in good_new_coords:
-          f.write("%d %d\n"%(x, y))
-          
+    good_new_coords= np.concatenate(good_new_coords)[:extractNoiseNumber]
+    writeCoordsListToPosFname(mic_fname, good_new_coords, outputRoot)
+
+
+def writeCoordsListToPosFname(mic_fname, list_x_y, outputRoot):
+
+  s = """# XMIPP_STAR_1 *
+#
+data_header
+loop_
+ _pickingMicrographState
+Auto
+data_particles
+loop_
+ _xcoor
+ _ycoor
+"""
+  baseName= os.path.basename(mic_fname).split(".")[0]
+  print("%d %s %s"%(len(list_x_y), mic_fname, os.path.join(outputRoot, baseName+".pos")))
+
+  if len(list_x_y)>0:
+    with open(os.path.join(outputRoot, baseName+".pos"), "w") as f:
+        f.write(s)
+        for x, y in list_x_y:
+          f.write(" %d %d\n"%(x,y) )
+
+def writeCoordsListToRawText(mic_fname, list_x_y, outputRoot):
+  baseName= os.path.basename(mic_fname).split(".")[0]
+  with open(os.path.join(outputRoot, baseName+"_raw_coords.txt"), "w") as f:
+      f.write("#%s %s\n"%(baseName, mic_fname))
+      for x, y in list_x_y:
+        f.write("%d %d\n"%(x, y))
+        
+def readPosCoordsFromFName(fname):
+  mData= readPosCoordinates(fname)
+  coords=[]
+  for mdId in mData:
+    x=  int( mData.getValue( xmippLib.MDL_XCOOR, mdId) )
+    y=  int( mData.getValue( xmippLib.MDL_XCOOR, mdId) )
+    coords.append((x,y) )
+  print("N coords: %d"%(len(coords) ))
+  return coords 
+  
 if __name__ == '__main__':
 
     exitCode=ScriptPickNoise().tryRun()
