@@ -325,10 +325,11 @@ private:
      * @param N no of images in alined sum
      * @param movie to be stored
      * @param bestIref index of the reference image
+     * @param localRating ranking of the local alignment
      */
     void storeResults(Image<T>& initialMic, size_t Ninitial,
             Image<T>& averageMicrograph, size_t N, const MetaData& movie,
-            int bestIref);
+            int bestIref, core::optional<double> &localRating);
 
     /**
      * Method to correct indices of the images in the micrograph
@@ -346,6 +347,13 @@ private:
      * Returns sampling rate that user requested
      */
     T getRequestedSamplingRate();
+
+    /**
+     * Returns rating of the local alignment (amount of 'how much' alignment we have to do)
+     * @param alignment to use
+     * @return single value
+     */
+    auto computeRating(const LocalAlignmentResult<T> &alignment);
 
 protected:
     /** First and last frame (inclusive)*/
