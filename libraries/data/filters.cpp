@@ -1401,8 +1401,10 @@ void covarianceMatrix(const MultidimArray<double> &I, Matrix2D<double> &C)
 }
 
 /* Best shift -------------------------------------------------------------- */
-double bestShift(MultidimArray<double> &Mcorr,
-               double &shiftX, double &shiftY, const MultidimArray<int> *mask, int maxShift)
+template float bestShift(MultidimArray<float>&, float&, float&, const MultidimArray<int>*, int);
+template<typename T>
+T bestShift(MultidimArray<T> &Mcorr,
+               T &shiftX, T &shiftY, const MultidimArray<int> *mask, int maxShift)
 {
     int imax = INT_MIN;
     int jmax, i_actual, j_actual;
