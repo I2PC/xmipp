@@ -517,7 +517,7 @@ AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
         size_t Ninitial, Image<T>& averageMicrograph, size_t N,
-        const MetaData& movie, int bestIref) {
+        const MetaData& movie, int bestIref, core::optional<double> &localRating) {
     if (fnInitialAvg != "") {
         initialMic() /= Ninitial;
         initialMic.write(fnInitialAvg);
@@ -526,7 +526,12 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
         averageMicrograph() /= N;
         averageMicrograph.write(fnAvg);
     }
-    movie.write((FileName) ("frameShifts@") + fnOut);
+    if (localRating && ( ! fnOut.isEmpty())) {
+        MetaData mdIref;
+        mdIref.setValue(MDL_LOCAL_ALIGNMENT_RATING, localRating.value(), mdIref.addObject());
+        mdIref.write((FileName) ("rating@") + fnOut, MD_APPEND);
+    }
+    movie.write((FileName) ("frameShifts@") + fnOut, MD_APPEND);
 }
 
 template<typename T>
@@ -551,6 +556,18 @@ void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
     }
     std::cout << std::endl;
 }
+
+template<typename T>
+auto AProgMovieAlignmentCorrelation<T>::computeRating(
+        const LocalAlignmentResult<T> &alignment) {
+    double result = 0;
+    for(auto &&r : alignment.shifts) {
+        // compute cartesian distance
+        result += hypot(r.second.x, r.second.y);
+    }
+    return core::optional<double>(result);
+}
+
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::run() {
@@ -582,18 +599,20 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     if (verbose) printGlobalShift(globalAlignment);
 
     size_t N, Ninitial;
+    core::optional<double> localAlignmnentRating;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
     if (processLocalShifts) {
         auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
+        localAlignmnentRating = computeRating(localAlignment);
     } else {
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, globalAlignment);
     }
 
-    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);
+    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame, localAlignmnentRating);
 
     releaseAll();
 }
