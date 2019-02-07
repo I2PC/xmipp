@@ -867,6 +867,9 @@ def install(dirname):
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
+    createDir(dirname+"/pylib")
+    runJob(cpCmd+" src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/")
+
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
