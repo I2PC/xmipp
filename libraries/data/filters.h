@@ -457,6 +457,10 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, double &shiftZ, CorrelationAux &aux,
                const MultidimArray<int> *mask=NULL);
 
+template<typename T>
+T bestShift(MultidimArray<T> &Mcorr,
+               T &shiftX, T &shiftY, const MultidimArray<int> *mask, int maxShift);
+
 /** Translational search (non-wrapping)
  * @ingroup Filters
  *

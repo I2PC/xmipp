@@ -49,9 +49,14 @@ gmon.out
 /config/*.conf
 /bin
 /lib
+/models/*
 /install/xmipp.conf
 /tests/data
 
 # Ignore version file
 .devel_version
+<<<<<<< HEAD
 /Debug/
+=======
+applications/programs/version
+>>>>>>> devel

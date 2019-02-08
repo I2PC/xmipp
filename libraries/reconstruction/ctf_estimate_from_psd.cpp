@@ -1086,6 +1086,9 @@ void ProgCTFEstimateFromPSD::estimate_background_sqrt_parameters()
         base_line += (*f)(i, j);
 
     }
+    if (0 == N) {
+        REPORT_ERROR(ERR_NUMERICAL, "N is zero (0), which would lead to division by zero");
+    }
     current_ctfmodel.base_line = base_line / N;
     // Find the linear least squares solution for the sqrt part
     Matrix2D<double> A(2, 2);

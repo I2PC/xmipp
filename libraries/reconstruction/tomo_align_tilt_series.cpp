@@ -1669,8 +1669,8 @@ void ProgTomographAlignment::generateLandmarkSet()
             }
             delete th_args[nt].chainList;
         }
-        delete( th_ids );
-        delete( th_args );
+        delete[] th_ids;
+        delete[] th_args;
 
         // Add blind landmarks
         if (blindSeqLength>0)
@@ -1695,8 +1695,8 @@ void ProgTomographAlignment::generateLandmarkSet()
                 }
                 delete th_args[nt].chainList;
             }
-            delete( th_ids );
-            delete( th_args );
+            delete[] th_ids;
+            delete[] th_args;
         }
 
         // Generate the landmark "matrix"

@@ -409,7 +409,7 @@ int partialpfunction(Matrix1D<double>  &Parameters,
 {
     int     psi_max = (int)(sqrt(3)*128/(global_flexible_prog->sampling_rate));
     double  help, a0,a1,a2;
-    help = NAN;
+    help = 0.0;
     double  *help_v,*coord_gaussian,*coord_img;
     double  *ModeValues;
     int     Line_number = 0;
@@ -619,6 +619,9 @@ int partialpfunction(Matrix1D<double>  &Parameters,
     system(command.c_str());
     command=(std::string)"rm -f downimg_"+fnRandom+".xmp";
     system(command.c_str());*/
+    free(ModeValues);
+    free(help_v);
+    free(coord_img);
     return(!ERROR);
 }/*end of partialpfunction*/
 
