@@ -118,6 +118,8 @@ void ProgRecFourierAccel::run()
 {
     int a[5];
     a[200] = 42;
+    int* aaaaa = NULL;
+    a[300] = *aaaaa;
     if (a[500] > 3) return;
     show();
     produceSideinfo();
