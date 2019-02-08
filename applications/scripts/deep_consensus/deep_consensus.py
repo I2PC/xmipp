@@ -30,6 +30,28 @@ import xmipp_base
 import xmippLib
 import traceback
 
+BAD_IMPORT_MSG='''
+Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
+If gpu version of tensorflow desired, install cuda 8.0 and cudnn 6 or cuda 9.0 and cudnn 7 and then
+add to SCIPION_DIR/config/scipion.conf
+CUDA = True
+CUDA_VERSION = 8.0  or 9.0
+CUDA_HOME = /path/to/cuda-X
+CUDA_BIN = %(CUDA_HOME)s/bin
+CUDA_LIB = %(CUDA_HOME)s/lib64
+CUDNN_VERSION = 6 or 7
+'''
+
+try:
+  from deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, DeepTFSupervised, 
+                                                    DataManager, tf_intarnalError)
+except ImportError:
+  try:
+    from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, 
+                                                    DeepTFSupervised, DataManager, tf_intarnalError)
+  except ImportError:
+    raise ValueError(BAD_IMPORT_MSG)
+        
 WRITE_TEST_SCORES= True
 
 class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
@@ -183,14 +205,6 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
               numberOfThreads = multiprocessing.cpu_count()
 
         updateEnviron(gpuToUse)
-                    
-        try:
-            from workers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, DeepTFSupervised, 
-                                                              DataManager, tf_intarnalError)
-        except ImportError as e:
-            print(e)
-            print(traceback.format_exc())        
-            raise ValueError(BAD_IMPORT_MSG)
 
         dataShape_nTrue_numModels= loadNetShape(netDataPath)
         if dataShape_nTrue_numModels:
@@ -237,12 +251,6 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
 
         updateEnviron(gpuToUse)
 
-        try:
-            from workers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, DeepTFSupervised, 
-                                                              DataManager, tf_intarnalError)
-        except ImportError:
-            raise ValueError(BAD_IMPORT_MSG)
-
         predictDataManager = DataManager(posSetDict=predictDict, negSetDict=None)
         dataShape, nTrue, numModels = loadNetShape(netDataPath)
         try:
@@ -275,23 +283,10 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
             print("Evaluating test set")
             global_auc, global_acc, y_labels, y_pred_all = nnet.evaluateNet(testDataManager)
             if WRITE_TEST_SCORES:
-#                makeFilePath(os.path.join(netDataPath, "testPredictions.txt"))
               with open(os.path.join(netDataPath, "testPredictions.txt"), "w") as f:
                   f.write("label score\n")
                   for l, s in zip(y_labels, y_pred_all):
                       f.write("%d %f\n" % (l, s))
-
-BAD_IMPORT_MSG='''
-Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
-If gpu version of tensorflow desired, install cuda 8.0 and cudnn 6 or cuda 9.0 and cudnn 7 and then
-add to SCIPION_DIR/config/scipion.conf
-CUDA = True
-CUDA_VERSION = 8.0  or 9.0
-CUDA_HOME = /path/to/cuda-X
-CUDA_BIN = %(CUDA_HOME)s/bin
-CUDA_LIB = %(CUDA_HOME)s/lib64
-CUDNN_VERSION = 6 or 7
-'''
 
 def updateEnviron(gpuNum=None):
   """ Create the needed environment for TensorFlow programs. """
