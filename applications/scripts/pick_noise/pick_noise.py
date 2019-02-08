@@ -58,11 +58,10 @@ class ScriptPickNoise(xmipp_base.XmippScript):
         self.addParamsLine('[ -t <numThreads>  <N=1>  ]   : Number of threads')
 
         ## examples
-#        self.addExampleLine('trainNet net:  xmipp_deep_screen -n ./netData --train_mode -p trueParticles.xmd -f '
-#                            'falseParticles1.xmd:falseParticles2.xmd -g 0')
+        self.addExampleLine('  xmipp_pick_noise -i path/to/mics -c path/to/coords -o path/to/noiseCoords '
+                            ' -s 128 -t 2')
 
-#        self.addExampleLine('predict particles:  xmipp_deep_screen -n ./netData --score_mode -i unknownParticles.xmd -o '
-#                            'unknownPredictions.txt -g 0')
+
     def run(self):
     
         numberOfThreads= self.getIntParam('-t')
@@ -150,12 +149,7 @@ loop_
         for x, y in list_x_y:
           f.write(" %d %d\n"%(x,y) )
 
-def writeCoordsListToRawText(mic_fname, list_x_y, outputRoot):
-  baseName= os.path.basename(mic_fname).split(".")[0]
-  with open(os.path.join(outputRoot, baseName+"_raw_coords.txt"), "w") as f:
-      f.write("#%s %s\n"%(baseName, mic_fname))
-      for x, y in list_x_y:
-        f.write("%d %d\n"%(x, y))
+
         
 def readPosCoordsFromFName(fname):
   mData= readPosCoordinates(fname)
