@@ -44,7 +44,7 @@ from .deepConsensus_networkDef import main_network
 tf_intarnalError= tf.errors.InternalError
 
 BATCH_SIZE= 64
-CHECK_POINT_AT= 20 #In batches
+CHECK_POINT_AT= 50 #In batches
 
 WRITE_TEST_SCORES= True
 
@@ -178,10 +178,10 @@ class DeepTFSupervised(object):
       cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_acc', verbose=1,
                 save_best_only=True, save_weights_only=False, period=1) ]
       if auto_stop:
-        cBacks+= [ keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0.0001, patience=7, verbose=1) ]
+        cBacks+= [ keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0.0001, patience=10, verbose=1) ]
 
-      cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, min_lr= learningRate*1e-3,
-                 verbose=1) ]
+      cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, cooldown=1, 
+                 min_lr= learningRate*1e-3, verbose=1) ]
 
       self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
                                  validation_data=dataManagerTrain.getValidationIterator( batchesPerEpoch= n_batches_per_epoch_val), 
