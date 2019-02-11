@@ -60,7 +60,7 @@ def run(label, version):
         print("Recompiling to make sure that last version is there...")
         target = tgzPath % ('Bin', version)
         try:
-            # doing compilation and install separately to skip config
+            # doing compilation and install separately to skip overwriting config
             os.system("./xmipp compile 4")
             os.system("./xmipp install %s" % target)
         except:
@@ -72,6 +72,7 @@ def run(label, version):
                   "            Xmipp needs to be compiled to make the binaries.tgz."
                   % checkFile)
             sys.exit(1)
+        os.system("cp xmipp.conf %s/xmipp.conf" % target)
         excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' " \
                      "--exclude='*.java' --exclude='resources/test' " \
                      "--exclude='*xmipp_test*main'"
@@ -102,7 +103,7 @@ def run(label, version):
     os.system("rm -rf %s" % target)
 
 
-if __name__  == '__main__':
+if __name__ == '__main__':
 
     if not (len(sys.argv) == 2 or len(sys.argv) == 3):
         usage("Incorrect number of input parameters")
