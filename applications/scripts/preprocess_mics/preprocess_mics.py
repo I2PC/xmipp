@@ -42,7 +42,7 @@ class ScriptPreproMics(xmipp_base.XmippScript):
       
       self.addParamsLine('-i <inputFile>         : A file that contains the path of input micrograph and possibly CTFs')
 
-      self.addParamsLine('-s <samplingRate>            : sampling rate of the micrographs')
+      self.addParamsLine('-s <samplingRate>            : sampling rate of the micrographs Angstroms/pixel')
       
       self.addParamsLine('-d <donwsampleFactor> <D=1>  : Downsamplig factor')
 

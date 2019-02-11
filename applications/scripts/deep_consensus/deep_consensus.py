@@ -49,7 +49,8 @@ except ImportError:
   try:
     from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, 
                                                     DeepTFSupervised, DataManager, tf_intarnalError)
-  except ImportError:
+  except ImportError as e:
+    print(e)
     raise ValueError(BAD_IMPORT_MSG)
         
 WRITE_TEST_SCORES= True
