@@ -262,7 +262,7 @@ def getCurrentBranch(cwd='./'):
     runJob('git rev-parse HEAD', cwd=cwd, 
         show_output=False, show_command=False, log=commit)
     result = runJob('git name-rev ' + commit[0], cwd=cwd,
-        show_output=True, show_command=True, log=log)
+        show_output=False, show_command=False log=log)
     if log:
         return (True, log[0].split()[1].strip()) # log contains commit_space_branchName
     print(red('Cannot get current branch'))
