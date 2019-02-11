@@ -253,8 +253,8 @@ def cloneOrCheckout(repo, branch, doPull):
 
 def getCurrentBranch():
     log = []
-    result = runJob('git symbolic-ref --short HEAD', cwd=TMP_DIR,
-        show_output=False, show_command=False, log=log)
+    result = runJob('git symbolic-ref --short HEAD',
+        show_output=True, show_command=True, log=log)
     if log:
         return (True, log[0].strip())
     print(red('Cannot get current branch'))
