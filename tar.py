@@ -80,7 +80,7 @@ def run(label, version):
         target = tgzPath % ('Src', version)
         os.mkdir(target)
         makeTarget(join(target, 'src'), label)
-        excludeTgz = " --exclude='models/*'"
+        excludeTgz = " --exclude='models/*' --exclude='src/*/bin/*' --exclude='*.so'"
     else:
         usage("Incorrect <mode>")
 
@@ -90,7 +90,7 @@ def run(label, version):
 
     cmdStr = "tar czf %(target)s.tgz --exclude=.git --exclude='software/tmp/*' " \
              "--exclude='*.o' --exclude='*.os' --exclude='*pyc' --exclude='*.gz' " \
-             "--exclude='*.bashrc' --exclude='*.fish' %(excludeTgz)s " \
+             "--exclude='*.bashrc' --exclude='*.fish' --exclude=tests/data %(excludeTgz)s " \
              "--exclude='*.scons*' --exclude='config/*.conf' %(target)s"
 
     cmd = cmdStr % args
