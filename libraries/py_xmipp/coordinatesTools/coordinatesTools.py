@@ -33,7 +33,7 @@ def readPosCoordsFromFName(fname):
   coords=[]
   for mdId in mData:
     x=  int( mData.getValue( xmippLib.MDL_XCOOR, mdId) )
-    y=  int( mData.getValue( xmippLib.MDL_XCOOR, mdId) )
+    y=  int( mData.getValue( xmippLib.MDL_YCOOR, mdId) )
     coords.append((x,y) )
   print("N coords: %d"%(len(coords) ))
   return coords 
