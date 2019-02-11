@@ -927,10 +927,10 @@ def install(dirname):
         fhFish.write("set -x LD_LIBRARY_PATH $SCIPION_HOME/software/lib $LD_LIBRARY_PATH\n")
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhBash.write("export PYTHONPATH=%s/bindings/python:$PYTHONPATH\n"%XMIPP_HOME)
+    fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhFish.write("set -x PATH %s/bin $PATH\n"%XMIPP_HOME)
     fhFish.write("set -x LD_LIBRARY_PATH %s/lib %s/bindings/python $LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhFish.write("set -x PYTHONPATH %s/bin $PYTHONPATH\n"%XMIPP_HOME)
+    fhFish.write("set -x PYTHONPATH %s/bindings %s/pylib $PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
 
     fhBash.write('\n')
     fhBash.write("alias x='xmipp'\n")
