@@ -282,7 +282,7 @@ def getDefaultBranch(repo):
     log = []
     key = 'HEAD branch:'
     result = runJob('git remote show %s' % REPOSITORIES[repo],
-        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+        cwd=TMP_DIR, show_output=True, log=log, show_command=True)
     if result:
         for l in log:
             if key in l:
