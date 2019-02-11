@@ -1164,13 +1164,13 @@ if __name__ == '__main__':
             sys.exit(1)
         addDeepLearninModel(*sys.argv[2:])
     elif mode=='tar':
-        import tar
         if not len(sys.argv) in (3, 4):
             usage("Incorrect number of input parameters")
         elif len(sys.argv) == 3:
-            tar.run(sys.argv[2], getVersion(onlyNumbers=True))
+            runJob("src/xmipp/tar.py %s %s" % (sys.argv[2],
+                                               getVersion(onlyNumbers=True)))
         else:
-            tar.run(*sys.argv[2:])
+            runJob("src/xmipp/tar.py %s" % ' '.join(sys.argv[2:]))
     else:
         usage(" -> option not found <- \n")
 
