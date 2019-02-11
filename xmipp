@@ -41,11 +41,17 @@ XMIPP_VERSION = '3.18.08'    #
 RELEASE_DATA = '24/08/2018'  #
 ##############################
 
-REPOSITORIES = {'xmipp': 'https://github.com/I2PC/xmipp.git',
-                                    'xmippCore' : 'https://github.com/I2PC/xmippCore.git',
-                                    'xmippViz': 'https://github.com/I2PC/xmippViz.git',
-                                    'scipion-em-xmipp': 'https://github.com/I2PC/scipion-em-xmipp.git',
-                                    'cuFFTAdvisor': 'https://github.com/DStrelak/cuFFTAdvisor.git'}
+XMIPP = 'xmipp'
+XMIPP_CORE = 'xmippCore'
+XMIPP_VIZ = 'xmippViz'
+SCIPION_EM_XMIPP = 'scipion-em-xmipp'
+CUFFTADVISOR = 'cuFFTAdvisor'
+
+REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
+                                    XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
+                                    XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
+                                    SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
+                                    CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git'}
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 
@@ -117,8 +123,8 @@ int main(int argc, char** argv){
     return 0;
 }
 """ % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATA,
-       getCommit('xmipp'), getCommit('scipion-em-xmipp'),
-       getCommit('xmippCore'), getCommit('xmippViz'), LAST_COMPILATION))
+       getCommit(XMIPP), getCommit(SCIPION_EM_XMIPP),
+       getCommit(XMIPP_CORE), getCommit(XMIPP_VIZ), LAST_COMPILATION))
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -251,11 +257,12 @@ def cloneOrCheckout(repo, branch, doPull):
         os.chdir(workDir)
         return res
 
-def getCurrentBranch():
+def getCurrentBranch(cwd='./'):
     log = []
     commit = []
-    runJob('git rev-parse HEAD', show_output=False, show_command=False, log=commit)
-    result = runJob('git name-rev ' + commit[0],
+    runJob('git rev-parse HEAD', cwd=cwd, 
+        show_output=False, show_command=False, log=commit)
+    result = runJob('git name-rev ' + commit[0], cwd=cwd,
         show_output=True, show_command=True, log=log)
     if log:
         return (True, log[0].split()[1].strip()) # log contains commit_space_branchName
@@ -275,7 +282,7 @@ def getAllBranches(repo):
 
 def getBranch(repo):
     if 'TRAVIS' in os.environ:
-        r1, branchHint = getCurrentBranch()
+        r1, branchHint = getCurrentBranch('./src/xmipp/')
         r2, branches = getAllBranches(repo)
         if r1 and r2 and branchHint in branches:
             return (True, branchHint)
@@ -310,7 +317,7 @@ def getSources(branch='', doPull=True):
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
     createDir("src")
-    if cloneOrCheckout("cuFFTAdvisor", None, doPull):
+    if cloneOrCheckout(CUFFTADVISOR, getDefaultBranch(CUFFTADVISOR), doPull):
         return True
     print(red("Cannot get dependencies"))
     return False
@@ -813,10 +820,10 @@ def runTests(testNames):
     xmippSrc = os.environ.get('XMIPP_SRC', None)
     if xmippSrc and os.path.isdir(xmippSrc):
         os.environ['PYTHONPATH'] = ':'.join([
-            os.path.join(os.environ['XMIPP_SRC'], 'xmipp'),
+            os.path.join(os.environ['XMIPP_SRC'], XMIPP),
             os.environ.get('PYTHONPATH', '')])
 
-        testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
+        testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
     else:
         print(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
