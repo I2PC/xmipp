@@ -237,6 +237,7 @@ def checkout(branch, doPull):
 
 def cloneOrCheckout(repo, branch, doPull):
     branch = branch or getBranch(repo)[1]
+    print("cloneOrCheckout branch:" + str(branch) + "\n")
     repoDir = os.path.join('src', repo)
     if not os.path.exists(repoDir):
         # If the repo doesn't exist, just clone the whole repo
@@ -283,6 +284,7 @@ def getDefaultBranch(repo):
     key = 'HEAD branch:'
     result = runJob('git remote show %s' % REPOSITORIES[repo],
         cwd=TMP_DIR, show_output=True, log=log, show_command=True)
+    print("getDefaultBranch log:" + str(log) + "\n")
     if result:
         for l in log:
             if key in l:
@@ -294,6 +296,7 @@ def getDefaultBranch(repo):
 def getSources(branch='', doPull=True):
     print("Getting sources -------------------------------------")
     createDir("src")
+    print("getSources branch:" + str(branch) + "\n")
     ok = (cloneOrCheckout("xmippCore", branch, doPull)
         and cloneOrCheckout("xmipp", branch, doPull)
         and cloneOrCheckout("xmippViz", branch, doPull)
