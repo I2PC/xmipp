@@ -243,7 +243,6 @@ def checkout(branch, doPull):
 
 def cloneOrCheckout(repo, branch, doPull):
     branch = branch or getBranch(repo)[1]
-    print("cloneOrCheckout branch:" + str(branch) + "\n")
     repoDir = os.path.join('src', repo)
     if not os.path.exists(repoDir):
         # If the repo doesn't exist, just clone the whole repo
@@ -252,7 +251,7 @@ def cloneOrCheckout(repo, branch, doPull):
     else:
         workDir = os.getcwd()
         os.chdir(repoDir)
-        print(green(repo + ' ...'))
+        print(green(('Pulling ' if doPull else 'Checkouting ') + repo + ' ...'))
         res = checkout(branch, doPull)
         os.chdir(workDir)
         return res
@@ -282,6 +281,7 @@ def getAllBranches(repo):
 
 def getBranch(repo):
     if 'TRAVIS' in os.environ:
+        # we need to get current branch of the xmipp
         r1, branchHint = getCurrentBranch('./src/xmipp/')
         r2, branches = getAllBranches(repo)
         if r1 and r2 and branchHint in branches:
@@ -292,8 +292,7 @@ def getDefaultBranch(repo):
     log = []
     key = 'HEAD branch:'
     result = runJob('git remote show %s' % REPOSITORIES[repo],
-        cwd=TMP_DIR, show_output=True, log=log, show_command=True)
-    print("getDefaultBranch log:" + str(log) + "\n")
+        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
     if result:
         for l in log:
             if key in l:
@@ -305,7 +304,6 @@ def getDefaultBranch(repo):
 def getSources(branch='', doPull=True):
     print("Getting sources -------------------------------------")
     createDir("src")
-    print("getSources branch:" + str(branch) + "\n")
     ok = (cloneOrCheckout("xmippCore", branch, doPull)
         and cloneOrCheckout("xmipp", branch, doPull)
         and cloneOrCheckout("xmippViz", branch, doPull)
