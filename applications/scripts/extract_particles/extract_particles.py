@@ -43,7 +43,7 @@ class ScriptExtractParticles(xmipp_base.XmippScript):
       self.addParamsLine('-i <inputFile>   : A file that contains the path of input micrograph and associated '
                          ' coordinates (pos files)')
 
-      self.addParamsLine('-s <particleSize>            : particle size in Angstroms')
+      self.addParamsLine('-s <particleSize>            : particle size in pixels')
       
       self.addParamsLine('-d <donwsampleFactor> <D=1>  : Downsamplig factor')
 
