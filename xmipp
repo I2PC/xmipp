@@ -253,10 +253,12 @@ def cloneOrCheckout(repo, branch, doPull):
 
 def getCurrentBranch():
     log = []
-    result = runJob('git symbolic-ref --short HEAD',
+    commit = []
+    runJob('git rev-parse HEAD', show_output=False, show_command=False, log=commit)
+    result = runJob('git name-rev ' + commit[0],
         show_output=True, show_command=True, log=log)
     if log:
-        return (True, log[0].strip())
+        return (True, log[0].split()[1].strip()) # log contains commit_space_branchName
     print(red('Cannot get current branch'))
     return (False, None)
 
