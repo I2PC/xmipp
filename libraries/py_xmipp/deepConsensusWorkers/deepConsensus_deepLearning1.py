@@ -178,7 +178,7 @@ class DeepTFSupervised(object):
       cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_acc', verbose=1,
                 save_best_only=True, save_weights_only=False, period=1) ]
       if auto_stop:
-        cBacks+= [ keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0.0001, patience=10, verbose=1) ]
+        cBacks+= [ keras.callbacks.EarlyStopping(monitor='val_acc', min_delta=0.001, patience=10, verbose=1) ]
 
       cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, cooldown=1, 
                  min_lr= learningRate*1e-3, verbose=1) ]
