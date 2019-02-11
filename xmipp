@@ -1167,8 +1167,7 @@ if __name__ == '__main__':
         if not len(sys.argv) in (3, 4):
             usage("Incorrect number of input parameters")
         elif len(sys.argv) == 3:
-            runJob("src/xmipp/tar.py %s %s" % (sys.argv[2],
-                                               getVersion(onlyNumbers=True)))
+            runJob("src/xmipp/tar.py %s %s" % (sys.argv[2], XMIPP_VERSION))
         else:
             runJob("src/xmipp/tar.py %s" % ' '.join(sys.argv[2:]))
     else:
