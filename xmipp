@@ -38,7 +38,7 @@ from datetime import datetime
 VERSION_TAG = "Xmipp version"
 ##############################
 XMIPP_VERSION = '3.19.02'    #
-RELEASE_DATA = '11/02/2019'  #
+RELEASE_DATE = '11/02/2019'  #
 ##############################
 
 
@@ -109,7 +109,7 @@ int main(int argc, char** argv){
     }
     return 0;
 }
-""" % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATA,
+""" % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATE,
        getCommit('xmipp'), getCommit('scipion-em-xmipp'),
        getCommit('xmippCore'), getCommit('xmippViz'), LAST_COMPILATION))
 
