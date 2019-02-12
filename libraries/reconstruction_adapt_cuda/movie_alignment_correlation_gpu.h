@@ -36,6 +36,7 @@
 #include "data/filters.h"
 #include "data/fft_settings.h"
 #include "core/userSettings.h"
+#include "reconstruction/bspline_helper.h"
 #include "gpu.h"
 #include "core/optional.h"
 
@@ -253,18 +254,6 @@ private:
     void getPatchData(const T *allFrames, const Rectangle<Point2D<T>> &patch,
             const AlignmentResult<T> &globAlignment,
             const Dimensions &movie, T *result);
-
-    /**
-     * Computes BSpline coefficients from given data
-     * @param movieSize
-     * @param alignment to use
-     * @param controlPoints of the resulting spline
-     * @param noOfPatches used for generating the alignment
-     * @return coefficients of the BSpline representing the local shifts
-     */
-    auto computeBSplineCoeffs(const Dimensions &movieSize,
-            const LocalAlignmentResult<T> &alignment,
-            const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches);
 
     /**
      * Create local alignment from global alignment

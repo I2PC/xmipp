@@ -271,77 +271,6 @@ int AProgMovieAlignmentCorrelation<T>::findReferenceImage(size_t N,
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
-        Matrix1D<T>& bYt, Matrix2D<T>& At, Matrix1D<T>& shiftXt,
-        Matrix1D<T>& shiftYt, int verbose) {
-    Matrix1D<double> ex, ey;
-    WeightedLeastSquaresHelper helper;
-    Matrix2D<double> A;
-    Matrix1D<double> bX, bY, shiftX, shiftY;
-    typeCast(At, helper.A);
-    typeCast(bXt, bX);
-    typeCast(bYt, bY);
-    typeCast(shiftXt, shiftX);
-    typeCast(shiftYt, shiftY);
-
-    helper.w.initZeros(VEC_XSIZE(bX));
-    helper.w.initConstant(1);
-
-    int it = 0;
-    double mean, varbX, varbY;
-    bX.computeMeanAndStddev(mean, varbX);
-    varbX *= varbX;
-    bY.computeMeanAndStddev(mean, varbY);
-    varbY *= varbY;
-    if (verbose > 1)
-        std::cout << "Solving for the shifts ...\n";
-    do {
-        // Solve the equation system
-        helper.b = bX;
-        weightedLeastSquares(helper, shiftX);
-        helper.b = bY;
-        weightedLeastSquares(helper, shiftY);
-
-        // Compute residuals
-        ex = bX - helper.A * shiftX;
-        ey = bY - helper.A * shiftY;
-
-        // Compute R2
-        double mean, vareX, vareY;
-        ex.computeMeanAndStddev(mean, vareX);
-        vareX *= vareX;
-        ey.computeMeanAndStddev(mean, vareY);
-        vareY *= vareY;
-        double R2x = 1 - vareX / varbX;
-        double R2y = 1 - vareY / varbY;
-        if (verbose > 1)
-            std::cout << "Iteration " << it << " R2x=" << R2x << " R2y=" << R2y
-                    << std::endl;
-
-        // Identify outliers
-        double oldWeightSum = helper.w.sum();
-        double stddeveX = sqrt(vareX);
-        double stddeveY = sqrt(vareY);
-        FOR_ALL_ELEMENTS_IN_MATRIX1D (ex)
-            if (fabs(VEC_ELEM(ex, i)) > 3 * stddeveX
-                    || fabs(VEC_ELEM(ey, i)) > 3 * stddeveY)
-                VEC_ELEM(helper.w, i) = 0.0;
-        double newWeightSum = helper.w.sum();
-        if ((newWeightSum == oldWeightSum) && (verbose > 1)){
-            std::cout << "No outlier found\n\n";
-            break;
-        } else if (verbose > 1)
-            std::cout << "Found " << (int) (oldWeightSum - newWeightSum)
-                    << " outliers\n\n";
-
-        it++;
-    } while (it < solverIterations);
-
-    typeCast(shiftX, shiftXt);
-    typeCast(shiftY, shiftYt);
-}
-
-template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadDarkCorrection(Image<T>& dark) {
     if (fnDark.isEmpty())
         return;
@@ -499,7 +428,7 @@ AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
     // now get the estimated shift (from the equation system)
     // from each frame to successive frame
     Matrix1D<T> shiftX, shiftY;
-    this->solveEquationSystem(bX, bY, A, shiftX, shiftY, verbose);
+    EquationSystemSolver::solve(bX, bY, A, shiftX, shiftY, verbose, solverIterations);
     // prepare result
     AlignmentResult<T> result {.refFrame = refFrame ?
                     refFrame.value() :

@@ -328,56 +328,6 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoeffs(const Dimensions &movieSize,
-        const LocalAlignmentResult<T> &alignment,
-        const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches) {
-
-    if(this->verbose) std::cout << "Computing BSpline coefficients" << std::endl;
-    // get coefficients fo the BSpline that can represent the shifts (formula  from the paper)
-    int lX = controlPoints.x();
-    int lY = controlPoints.y();
-    int lT = controlPoints.n();
-    int noOfPatchesXY = noOfPatches.first * noOfPatches.second;
-    Matrix2D<T>A(noOfPatchesXY*movieSize.n(), lX * lY * lT);
-    Matrix1D<T>bX(noOfPatchesXY*movieSize.n());
-    Matrix1D<T>bY(noOfPatchesXY*movieSize.n());
-    T hX = (lX == 3) ? movieSize.x() : (movieSize.x() / (T)(lX-3));
-    T hY = (lY == 3) ? movieSize.y() : (movieSize.y() / (T)(lY-3));
-    T hT = (lT == 3) ? movieSize.n() : (movieSize.n() / (T)(lT-3));
-
-    for (auto &&r : alignment.shifts) {
-        auto meta = r.first;
-        auto shift = r.second;
-        int tileIdxT = meta.id_t;
-        int tileCenterT = tileIdxT * 1 + 0 + 0;
-        int tileIdxX = meta.id_x;
-        int tileIdxY = meta.id_y;
-        int tileCenterX = meta.rec.getCenter().x;
-        int tileCenterY = meta.rec.getCenter().y;
-        int i = (tileIdxY * noOfPatches.first) + tileIdxX;
-
-        for (int j = 0; j < (lT * lY * lX); ++j) {
-            int controlIdxT = (j / (lY * lX)) - 1;
-            int XY = j % (lY * lX);
-            int controlIdxY = (XY / lX) -1;
-            int controlIdxX = (XY % lX) -1;
-            // note: if control point is not in the tile vicinity, val == 0 and can be skipped
-            T val = Bspline03((tileCenterX / (T)hX) - controlIdxX) *
-                    Bspline03((tileCenterY / (T)hY) - controlIdxY) *
-                    Bspline03((tileCenterT / (T)hT) - controlIdxT);
-            MAT_ELEM(A,tileIdxT*noOfPatchesXY + i,j) = val;
-        }
-        VEC_ELEM(bX,tileIdxT*noOfPatchesXY + i) = -shift.x; // we want the BSPline describing opposite transformation,
-        VEC_ELEM(bY,tileIdxT*noOfPatchesXY + i) = -shift.y; // so that we can use it to compensate for the shift
-    }
-
-    // solve the equation system for the spline coefficients
-    Matrix1D<T> coefsX, coefsY;
-    this->solveEquationSystem(bX, bY, A, coefsX, coefsY, this->verbose + 1);
-    return std::make_pair(coefsX, coefsY);
-}
-
-template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
         const Dimensions &patchDim, T maxShift) {
     T minX = ((maxShift * 2) + 1) / patchDim.x();
@@ -545,7 +495,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     GeoTransformer<T> transformer;
     auto movieSettings = getMovieSettings(movie, false);
 
-    auto coeffs = computeBSplineCoeffs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches);
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches,
+            this->verbose, this->solverIterations);
     storeCoefficients(coeffs);
 
 
