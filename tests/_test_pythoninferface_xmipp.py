@@ -10,12 +10,12 @@ from os.path import exists #join
 from tempfile import NamedTemporaryFile
 from time import time
 
-from .base import *
+from .test import *
 from xmippLib import *
 
 # from pyworkflow.tests import *
 from xmipp_base import *
-from xmipp3 import getXmippPath
+# from xmipp3 import getXmippPath
 import pyworkflow.utils as pwutils
 
 
@@ -42,7 +42,7 @@ def binaryFileComparison(nameo, namet):
     return True
 
 
-from base import ProgramTest
+from test import ProgramTest
 from test_programs_xmipp import XmippProgramTest
 
 class AngularDiscreteAssign(XmippProgramTest):

@@ -44,6 +44,7 @@ void ProgCTFBasicParams::readBasicParams(XmippProgram *program)
     modelSimplification = program->getIntParam("--model_simplification");
     bootstrap = program->checkParam("--bootstrapFit");
     fastDefocusEstimate = program->checkParam("--fastDefocus");
+    selfEstimation = program->checkParam("--selfEstimation");
     if (fastDefocusEstimate)
     {
         lambdaPhase=program->getDoubleParam("--fastDefocus",0);
@@ -157,6 +158,8 @@ void ProgCTFBasicParams::defineBasicParams(XmippProgram * program)
     program->addParamsLine(
         "   [--enhance_max_freq <f2>]    : Bandpass cutoff. Normalized to 0.5.");
     program->addParamsLine(
+        "   [--selfEstimation]           : Estimate defocus without previous estimation");
+    program->addParamsLine(
         "                                : If fmax>0.35, f2 default=0.08");
     program->addParamsLine(
         "                                : If fmax<0.35, f2 default=0.15");
@@ -179,8 +182,6 @@ void ProgCTFBasicParams::defineParams()
 /* Produce side information ------------------------------------------------ */
 void ProgCTFBasicParams::produceSideInfo()
 {
-    penalty=32.0;
-
     // Resize the frequency
     x_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
     y_digfreq.initZeros(YSIZE(*f), XSIZE(*f) / 2);
@@ -270,7 +271,6 @@ void ProgCTFBasicParams::produceSideInfo()
 	Filter.generateMask(enhanced_ctftomodel());
 	Filter.applyMaskSpace(enhanced_ctftomodel());
 	STARTINGX(enhanced_ctftomodel()) = STARTINGY(enhanced_ctftomodel()) = 0;
-	//global_prm->enhanced_ctftomodel()= enhanced_ctftomodel();
 
 	// Compute now radial average of the enhanced_ctftomodel
 	psd_exp_enhanced_radial_derivative.initZeros(XSIZE(enhanced_ctftomodel()));
@@ -334,6 +334,8 @@ void ProgCTFBasicParams::produceSideInfo()
 
 double evaluateIceness(MultidimArray<double> &psd, double Tm)
 {
+    if (Tm>1.8)
+        return 0.0; // We cannot measure at 3.6A, if the Tm>1.8A
 	double R4_4=floor(XSIZE(psd)*Tm/4.4);
 	double R4_0=floor(XSIZE(psd)*Tm/4.0);
 	double R3_6=floor(XSIZE(psd)*Tm/3.6);

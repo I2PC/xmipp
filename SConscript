@@ -169,7 +169,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff']
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -266,7 +266,10 @@ def addBatch(batchName, script, scriptFolder='applications/scripts'):
 
     return batchLink
 
-
+# Removing broken links (deprecated scripts)
+for file in glob(os.path.join(XMIPP_PATH, 'bin', '*')):
+    if os.path.islink(file) and not os.path.exists(file):
+        os.remove(file)
 # Batches (apps)
 for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*','*.[ps]*')):
 	dirName = os.path.basename(os.path.dirname(scriptName))

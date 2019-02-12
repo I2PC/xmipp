@@ -24,6 +24,8 @@
  ***************************************************************************/
 
 #include "xmippmodule.h"
+#include <data/ctf.h>
+#include <data/filters.h>
 
 /***************************************************************/
 /*                            Image                         */
@@ -101,6 +103,8 @@ PyMethodDef Image_methods[] =
           "Read image preview, downsample in Fourier space" },
         { "equal", (PyCFunction) Image_equal, METH_VARARGS,
           "return true if both images are equal up to precision" },
+        { "convertPSD", (PyCFunction) Image_convertPSD, METH_VARARGS,
+          "Convert to PSD: center FFT and use logarithm" },
         { "readApplyGeo", (PyCFunction) Image_readApplyGeo, METH_VARARGS,
           "Read image from disk applying geometry in referring metadata" },
         { "write", (PyCFunction) Image_write, METH_VARARGS,
@@ -154,7 +158,8 @@ PyMethodDef Image_methods[] =
           "Compute image statistics, return mean, dev, min and max" },
         { "adjustAndSubtract", (PyCFunction) Image_adjustAndSubtract, METH_VARARGS,
           "I1=I1-adjusted(I2)" },
-		/* Equivalent methods to inplace operations, but without creating new instances of Image */
+		{ "correlation", (PyCFunction) Image_correlation, METH_VARARGS,
+		  "correlation(I1,I2)" },
         { "inplaceAdd", (PyCFunction) Image_inplaceAdd, METH_VARARGS,
           "Add another image to self (does not create another Image instance)" },
         { "inplaceSubtract", (PyCFunction) Image_inplaceSubtract, METH_VARARGS,
@@ -504,6 +509,7 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }//function Image_readPreviewSmooth
 
+
 NPY_TYPES datatype2NpyType(DataType dt)
 {
     switch (dt)
@@ -619,6 +625,7 @@ Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return NULL;
 }//function Image_getData
+
 
 
 /* setData */
@@ -1171,6 +1178,42 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
     return (PyObject *)result;
 }//function Image_adjustAndSubtract
 
+/* Return image dimensions as a tuple */
+PyObject *
+Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (self != NULL)
+    {
+        try
+        {
+            PyObject *pimg2 = NULL;
+            if (PyArg_ParseTuple(args, "O", &pimg2))
+            {
+	            ImageGeneric *image = self->image;
+	            image->convert2Datatype(DT_Double);
+	            MultidimArray<double> * pImage=NULL;
+	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
+
+	            ImageObject *img2=(ImageObject *)pimg2;
+	            ImageGeneric *image2 = img2->image;
+	            image2->convert2Datatype(DT_Double);
+	            MultidimArray<double> * pImage2=NULL;
+	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
+
+	            double corr=correlationIndex(*pImage,*pImage2);
+                return Py_BuildValue("f", corr);
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return NULL;
+}//function Image_computeStats
+
+
 /* Add two images, operator + */
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2)
@@ -1225,6 +1268,13 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
       if (PyArg_ParseTuple(args, "O", &other) &&
           Image_Check(other))
       {
+		  STARTINGX(MULTIDIM_ARRAY_BASE(Image_Value(self)))=
+				  STARTINGX(MULTIDIM_ARRAY_BASE(Image_Value(other)));
+    	  STARTINGY(MULTIDIM_ARRAY_BASE(Image_Value(self)))=
+    			  STARTINGY(MULTIDIM_ARRAY_BASE(Image_Value(other)));
+    	  STARTINGZ(MULTIDIM_ARRAY_BASE(Image_Value(self)))=
+    			  STARTINGZ(MULTIDIM_ARRAY_BASE(Image_Value(other)));
+
         Image_Value(self).add(Image_Value(other));
         Py_RETURN_NONE;
       }
