@@ -1,6 +1,8 @@
 sudo: true
 dist: trusty
 env: TRAVIS=1
+git:
+    depth: false
 addons:
   apt:
     sources: ubuntu-toolchain-r-test
