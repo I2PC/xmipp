@@ -309,13 +309,15 @@ def getDefaultBranch(repo):
 def getSources(branch='', doPull=True):
     print("Getting sources -------------------------------------")
     createDir("src")
-    ok = (cloneOrCheckout("xmippCore", branch, doPull)
-        and cloneOrCheckout("xmipp", branch, doPull)
-        and cloneOrCheckout("xmippViz", branch, doPull)
-        and cloneOrCheckout("scipion-em-xmipp", branch, doPull))
-    if not ok:
-        print(red("Cannot get the sources"))
-    return ok
+    repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
+    if 'TRAVIS' not in os.environ: 
+        # on Travis, do not change current commit
+        repos.append(XMIPP)
+    for r in repos:
+        if not cloneOrCheckout(r, branch, doPull):
+            print(red("Cannot get the sources"))
+            return False
+    return True
 
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
