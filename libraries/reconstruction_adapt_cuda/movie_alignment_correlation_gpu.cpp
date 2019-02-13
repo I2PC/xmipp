@@ -33,7 +33,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
-    this->addParamsLine("  [--oBSpline <fn=\"\">]             : Path to file that can be used to store BSpline coefficients");
     this->addParamsLine("  [--locCorrDownscale <x=4> <y=4>]   : Downscale coefficient of the correlations used for local alignment");
 
     this->addExampleLine(
@@ -46,8 +45,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
     std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().UUID() << ")" << std::endl;
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
-    std::cout << "Control points:      " << localAlignmentControlPoints << std::endl;
-    std::cout << "Patches:             " << localAlignPatches.first << " x " << localAlignPatches.second << std::endl;
+    std::cout << "Control points:      " << this->localAlignmentControlPoints << std::endl;
+    std::cout << "Patches:             " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
     std::cout << "Patches avg:         " << patchesAvg << std::endl;
 }
 
@@ -65,33 +64,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     // read permanent storage
     storage = this->getParam("--storage");
 
-    // read control points
-    Dimensions cPoints(
-            this->getIntParam("--controlPoints", 0),
-            this->getIntParam("--controlPoints", 1),
-            1,
-            this->getIntParam("--controlPoints", 2));
-    if ((cPoints.x() < 3) || (cPoints.y() < 3) || (cPoints.n() < 3))
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "All control points has to be bigger than 2");
-    localAlignmentControlPoints = cPoints;
-
-    // read patches
-    localAlignPatches = std::make_pair(
-            this->getIntParam("--patches", 0),
-            this->getIntParam("--patches", 1));
-    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "At least one patch has to be used in each dimension.");
-
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
     if (patchesAvg < 1)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Patch averaging has to be at least one.");
-
-    // read BSpline coefficients storage
-    fnBSplinePath = this->getParam("--oBSpline");
 
     // read local alignment correlations scale
     localCorrelationDownscale = std::make_pair(
@@ -168,8 +145,8 @@ template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
         const std::pair<T, T> &borders,
         const Dimensions &movie, const Dimensions &patch) {
-    size_t patchesX = localAlignPatches.first;
-    size_t patchesY = localAlignPatches.second;
+    size_t patchesX = this->localAlignPatches.first;
+    size_t patchesY = this->localAlignPatches.second;
     T windowXSize = movie.x() - 2 * borders.first;
     T windowYSize = movie.y() - 2 * borders.second;
     T corrX = std::ceil(
@@ -374,7 +351,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     size_t framesInBuffer = std::ceil((gpu.value().lastFreeMem() / 3) / corrSizeMB);
 
     // prepare result
-    LocalAlignmentResult<T> result { .globalHint = globAlignment };
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim};
     result.shifts.reserve(patchesLocation.size() * movieSettings.dim.n());
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
@@ -435,6 +412,13 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     delete[] patchesData1;
     delete[] patchesData2;
+
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+            this->localAlignmentControlPoints, this->localAlignPatches,
+            this->verbose, this->solverIterations);
+    result.bsplineRep = core::optional<BSplineGrid<T>>(
+            BSplineGrid<T>(this->localAlignmentControlPoints, coeffs.first, coeffs.second));
+
     return result;
 }
 
@@ -443,7 +427,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
         const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = getMovieSettings(movie, false);
-    LocalAlignmentResult<T> result { .globalHint = globAlignment };
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim };
     auto patchSettings = this->getPatchSettings(movieSettings);
     auto borders = getMovieBorders(globAlignment, 0);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
@@ -470,17 +454,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs) {
-    if (fnBSplinePath.isEmpty()) return;
-
-    auto fnX = FileName(fnBSplinePath.getBaseName() + "X", fnBSplinePath.getExtension());
-    auto fnY = FileName(fnBSplinePath.getBaseName() + "Y", fnBSplinePath.getExtension());
-
-    coeffs.first.write(fnX);
-    coeffs.second.write(fnY);
-}
-
-template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
@@ -493,12 +466,13 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     int n = 0;
     Ninitial = N = 0;
     GeoTransformer<T> transformer;
-    auto movieSettings = getMovieSettings(movie, false);
+    if ( ! alignment.bsplineRep) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT,
+            "Missing BSpline representation. This should not happen. Please contact developers.");
+    }
 
-    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches,
-            this->verbose, this->solverIterations);
-    storeCoefficients(coeffs);
-
+    auto coeffs = std::make_pair(alignment.bsplineRep.value().getCoeffsX(),
+        alignment.bsplineRep.value().getCoeffsY());
 
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
@@ -537,8 +511,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             }
 
             if (this->fnAligned != "" || this->fnAvg != "") {
-                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, movieSettings.dim.n(),
-                    localAlignmentControlPoints.x(), localAlignmentControlPoints.y(), localAlignmentControlPoints.n());
+                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, alignment.movieDim.n(),
+                        this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n());
                 transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, j);
 
 

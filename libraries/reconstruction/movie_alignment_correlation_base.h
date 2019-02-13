@@ -45,6 +45,7 @@
 #include "core/xmipp_fftw.h"
 #include "core/optional.h"
 #include "eq_system_solver.h"
+#include "bspline_helper.h"
 
 template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
@@ -216,6 +217,10 @@ protected:
      */
     virtual void releaseAll() = 0;
 
+    /**
+     * Method to store all computed alignment to hard drive
+     */
+    void storeResults(const LocalAlignmentResult<T> &alignment);
 private:
 
     /**
@@ -285,11 +290,10 @@ private:
      * @param N no of images in alined sum
      * @param movie to be stored
      * @param bestIref index of the reference image
-     * @param localRating ranking of the local alignment
      */
     void storeResults(Image<T>& initialMic, size_t Ninitial,
             Image<T>& averageMicrograph, size_t N, const MetaData& movie,
-            int bestIref, core::optional<double> &localRating);
+            int bestIref);
 
     /**
      * Method to correct indices of the images in the micrograph
@@ -307,13 +311,6 @@ private:
      * Returns sampling rate that user requested
      */
     T getRequestedSamplingRate();
-
-    /**
-     * Returns rating of the local alignment (amount of 'how much' alignment we have to do)
-     * @param alignment to use
-     * @return single value
-     */
-    auto computeRating(const LocalAlignmentResult<T> &alignment);
 
 protected:
     /** First and last frame (inclusive)*/
@@ -353,6 +350,11 @@ protected:
     int solverIterations;
     /** Metadata with shifts */
     FileName fnOut;
+    /** Number of patches used for local alignment */
+    std::pair<size_t, size_t> localAlignPatches;
+    /** Control points used for local alignment */
+    Dimensions localAlignmentControlPoints = Dimensions(0);
+
 
 private:
     /** Filename of movie metadata */
