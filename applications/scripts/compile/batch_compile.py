@@ -70,8 +70,8 @@ class ScriptCompile(XmippScript):
         fn = self.getParam('-i')
         from os.path import splitext, join
         [fnBase,ext]=splitext(fn)
-        if ext!=".cpp":
-            reportError(fn+" is not a .cpp file")
+        if ext!=".cpp" or ext!=".cc":
+            raise Exception(fn+" is not a .cpp or .cc file")
         command='g++ ';
         if self.checkParam("--debug"):
             command +="-g -pg";

@@ -438,7 +438,7 @@ void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> 
 		std::cout << "Error: The tomogram in x-direction or y-direction is too small" << std::endl;
 
 
-	int step = 1000;
+	int step = 47;
 	std::vector<double> noiseVector;
 
 	noiseVector.resize(step,0);
@@ -732,7 +732,7 @@ void ProgMonoTomo::run()
 	double freq, freqH, freqL;
 	double max_meanS = -1e38;
 	double cut_value = 0.025;
-	int boxsize = 100;
+	int boxsize = 50;
 
 
 	double R_ = freq_step;
