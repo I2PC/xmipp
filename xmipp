@@ -320,7 +320,7 @@ def getSources(branch='', doPull=True):
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
     createDir("src")
-    if cloneOrCheckout(CUFFTADVISOR, None, doPull):
+    if cloneOrCheckout(CUFFTADVISOR, None, True):
         return True
     print(red("Cannot get dependencies"))
     return False
