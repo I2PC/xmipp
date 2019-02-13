@@ -37,8 +37,8 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.18.08'    #
-RELEASE_DATA = '24/08/2018'  #
+XMIPP_VERSION = '3.19.02'    #
+RELEASE_DATE = '11/02/2019'  #
 ##############################
 
 XMIPP = 'xmipp'
@@ -61,10 +61,15 @@ def stampVersion():
     def getCommit(repo):
         currDir = os.getcwd()
         os.chdir('src/%s'%repo)
-        branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-        hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
+        if os.path.exists('.git'):
+            branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
+            hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
+            repoInfo = "%s (%s)" % (branch.strip('\n'), hash.strip('\n'))
+        else:
+            repoInfo = "(no git repo detected)"
         os.chdir(currDir)
-        return "%s (%s)" % (branch.strip('\n'), hash.strip('\n'))
+
+        return repoInfo
 
     versionBinFn = os.path.join('src', 'xmipp', 'applications', 'programs',
                                 'version', 'version.cpp')
@@ -122,7 +127,7 @@ int main(int argc, char** argv){
     }
     return 0;
 }
-""" % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATA,
+""" % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATE,
        getCommit(XMIPP), getCommit(SCIPION_EM_XMIPP),
        getCommit(XMIPP_CORE), getCommit(XMIPP_VIZ), LAST_COMPILATION))
 
@@ -917,6 +922,14 @@ def install(dirname):
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
+    modulesDir = dirname + "/pylib/xmippPyModules"
+    createDir(modulesDir)
+    initFn = modulesDir + "/__init__.py"
+    if not os.path.isfile(initFn):
+        with open(initFn, 'w') as f:
+            pass  # just to create a init file to be able to import it as module
+    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/xmippPyModules/")
+
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/matlab/*.m* "+dirname+"/bindings/matlab/")
@@ -977,10 +990,10 @@ def install(dirname):
         fhFish.write("set -x LD_LIBRARY_PATH $SCIPION_HOME/software/lib $LD_LIBRARY_PATH\n")
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhBash.write("export PYTHONPATH=%s/bindings/python:$PYTHONPATH\n"%XMIPP_HOME)
+    fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhFish.write("set -x PATH %s/bin $PATH\n"%XMIPP_HOME)
     fhFish.write("set -x LD_LIBRARY_PATH %s/lib %s/bindings/python $LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhFish.write("set -x PYTHONPATH %s/bin $PYTHONPATH\n"%XMIPP_HOME)
+    fhFish.write("set -x PYTHONPATH %s/bindings %s/pylib $PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
 
     fhBash.write('\n')
     fhBash.write("alias x='xmipp'\n")
@@ -1039,14 +1052,14 @@ def usage(msg=''):
     print("Usage: xmipp [options]\n"
           "   version                     Returns the version information\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
-          "   get_dependencies:    Retrieve dependencies from github\n"
+          "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config:                     Configure compilation variables\n"
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
-          "   compile N dependencies: Compile dependencies\n"
+          "   compile N dependencies:     Compile dependencies\n"
           "   compileAndInstall N:        Compile all modules with N processors and install in the default directory\n"
           "   compile  N xmippCore:       Compile xmippCore\n"
           "   compile  N xmipp:           Compile xmipp\n"
@@ -1222,13 +1235,12 @@ if __name__ == '__main__':
             sys.exit(1)
         addDeepLearninModel(*sys.argv[2:])
     elif mode=='tar':
-        import tar
         if not len(sys.argv) in (3, 4):
             usage("Incorrect number of input parameters")
         elif len(sys.argv) == 3:
-            tar.run(sys.argv[2], getVersion(onlyNumbers=True))
+            runJob("src/xmipp/tar.py %s %s" % (sys.argv[2], XMIPP_VERSION))
         else:
-            tar.run(*sys.argv[2:])
+            runJob("src/xmipp/tar.py %s" % ' '.join(sys.argv[2:]))
     else:
         usage(" -> option not found <- \n")
 
