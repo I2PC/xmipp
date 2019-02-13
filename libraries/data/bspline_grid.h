@@ -23,34 +23,34 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_LOCAL_ALIGNMENT_RESULT_H_
-#define LIBRARIES_DATA_LOCAL_ALIGNMENT_RESULT_H_
+#ifndef LIBRARIES_DATA_BSPLINE_GRID_H_
+#define LIBRARIES_DATA_BSPLINE_GRID_H_
 
-#include "rectangle.h"
-#include "alignment_result.h"
-#include "core/optional.h"
-#include "bspline_grid.h"
+#include "dimensions.h"
+#include "core/matrix1d.h"
 
 template<typename T>
-struct FramePatchMeta {
-    // rectangle representing the patch
-    Rectangle<Point2D<T>> rec;
-    // logical id of the patch
-    size_t id_x;
-    size_t id_y;
-    size_t id_t;
+class BSplineGrid {
+public:
+    BSplineGrid(Dimensions &dim, Matrix1D<T> &coeffsX, Matrix1D<T> &coeffsY):
+        dim(dim), coeffsX(coeffsX), coeffsY(coeffsY) {}
+
+    auto constexpr getDim() const {
+        return dim;
+    }
+
+    const auto getCoeffsX() const {
+        return coeffsX;
+    }
+
+    const auto getCoeffsY() const {
+        return coeffsY;
+    }
+
+private:
+    Dimensions dim;
+    Matrix1D<T> coeffsX;
+    Matrix1D<T> coeffsY;
 };
 
-template<typename T>
-struct LocalAlignmentResult {
-    const AlignmentResult<T> &globalHint;
-    Dimensions movieDim;
-    // these are shifts (including global shift) of all patches in X/Y dimension,
-    // i.e. if you want to compensate for the shift,
-    // you have to shift in opposite direction (negate these values)
-    std::vector<std::pair<FramePatchMeta<T>, Point2D<T>>> shifts;
-    core::optional<BSplineGrid<T>> bsplineRep;
-};
-
-
-#endif /* LIBRARIES_DATA_LOCAL_ALIGNMENT_RESULT_H_ */
+#endif /* LIBRARIES_DATA_BSPLINE_GRID_H_ */

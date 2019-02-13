@@ -61,6 +61,25 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
         outsideMode = OUTSIDE_VALUE;
         outsideValue = getDoubleParam("--outside", 1);
     }
+
+    // read control points
+    Dimensions cPoints(
+            this->getIntParam("--controlPoints", 0),
+            this->getIntParam("--controlPoints", 1),
+            1,
+            this->getIntParam("--controlPoints", 2));
+    if ((cPoints.x() < 3) || (cPoints.y() < 3) || (cPoints.n() < 3))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "All control points has to be bigger than 2");
+    localAlignmentControlPoints = cPoints;
+
+    // read patches
+    localAlignPatches = std::make_pair(
+            this->getIntParam("--patches", 0),
+            this->getIntParam("--patches", 1));
+    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "At least one patch has to be used in each dimension.");
 }
 
 template<typename T>
@@ -446,7 +465,7 @@ AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
         size_t Ninitial, Image<T>& averageMicrograph, size_t N,
-        const MetaData& movie, int bestIref, core::optional<double> &localRating) {
+        const MetaData& movie, int bestIref) {
     if (fnInitialAvg != "") {
         initialMic() /= Ninitial;
         initialMic.write(fnInitialAvg);
@@ -455,12 +474,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
         averageMicrograph() /= N;
         averageMicrograph.write(fnAvg);
     }
-    if (localRating && ( ! fnOut.isEmpty())) {
-        MetaData mdIref;
-        mdIref.setValue(MDL_LOCAL_ALIGNMENT_RATING, localRating.value(), mdIref.addObject());
-        mdIref.write((FileName) ("rating@") + fnOut, MD_APPEND);
-    }
-    movie.write((FileName) ("frameShifts@") + fnOut, MD_APPEND);
+    movie.write((FileName) "frameShifts@" + fnOut, MD_APPEND);
 }
 
 template<typename T>
@@ -487,16 +501,53 @@ void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
 }
 
 template<typename T>
-auto AProgMovieAlignmentCorrelation<T>::computeRating(
+void AProgMovieAlignmentCorrelation<T>::storeResults(
         const LocalAlignmentResult<T> &alignment) {
-    double result = 0;
-    for(auto &&r : alignment.shifts) {
-        // compute cartesian distance
-        result += hypot(r.second.x, r.second.y);
+    if (fnOut.isEmpty()) {
+        return;
     }
-    return core::optional<double>(result);
+    if ( ! alignment.bsplineRep) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT,
+            "Missing BSpline representation. This should not happen. Please contact developers.");
+    }
+    // Store sum and average
+    double sum = 0;
+    for (auto &&p : alignment.shifts) {
+        int tileCenterX = p.first.rec.getCenter().x;
+        int tileCenterY = p.first.rec.getCenter().y;
+        int tileIdxT = p.first.id_t;
+        auto shift = BSplineHelper::getShift(
+                alignment.bsplineRep.value(), alignment.movieDim,
+                tileCenterX, tileCenterY, tileIdxT);
+        sum += hypot(shift.first, shift.second);
+    }
+    MetaData mdIref;
+    size_t id = mdIref.addObject();
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_RATING, sum, id);
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_AVG, sum / alignment.shifts.size(), id);
+    // Store patches
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_PATCHES,
+        std::vector<size_t>{localAlignPatches.first, localAlignPatches.second}, id);
+    // Store coefficients
+    std::vector<double> tmpX;
+    std::vector<double> tmpY;
+    size_t size = alignment.bsplineRep.value().getCoeffsX().size();
+    for (int i = 0; i < size; ++i) {
+        tmpX.push_back(alignment.bsplineRep.value().getCoeffsX()(i));
+        tmpY.push_back(alignment.bsplineRep.value().getCoeffsY()(i));
+    }
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_COEFFS_X, tmpX, id);
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_COEFFS_Y, tmpY, id);
+    // Store control points
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_CONTROL_POINTS,
+            std::vector<size_t>{
+                localAlignmentControlPoints.x(),
+                localAlignmentControlPoints.y(),
+                localAlignmentControlPoints.n()},
+            id);
+    // Safe to file
+    mdIref.write((FileName) ("localAlignment@") + fnOut, MD_APPEND);
 }
-
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::run() {
@@ -528,20 +579,19 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     if (verbose) printGlobalShift(globalAlignment);
 
     size_t N, Ninitial;
-    core::optional<double> localAlignmnentRating;
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
     if (processLocalShifts) {
         auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
-        localAlignmnentRating = computeRating(localAlignment);
+        storeResults(localAlignment);
     } else {
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, globalAlignment);
     }
 
-    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame, localAlignmnentRating);
+    storeResults(initialMic, Ninitial, averageMicrograph, N, movie, globalAlignment.refFrame);
 
     releaseAll();
 }

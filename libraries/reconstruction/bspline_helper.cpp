@@ -79,3 +79,67 @@ std::pair<Matrix1D<T>, Matrix1D<T>> BSplineHelper::computeBSplineCoeffs(const Di
         EquationSystemSolver::solve(bX, bY, A, coefsX, coefsY, verbosity + 1, solverIters);
         return std::make_pair(coefsX, coefsY);
 }
+
+template
+std::pair<float, float> BSplineHelper::getShift(const BSplineGrid<float> &grid, Dimensions dim,
+        size_t x, size_t y, size_t n);
+template
+std::pair<double, double> BSplineHelper::getShift(const BSplineGrid<double> &grid, Dimensions dim,
+        size_t x, size_t y, size_t n);
+template<typename T>
+std::pair<T, T> BSplineHelper::getShift(const BSplineGrid<T> &grid, Dimensions dim,
+        size_t x, size_t y, size_t n) {
+    T shiftX = 0;
+    T shiftY = 0;
+    getShift(grid.getDim().x(), grid.getDim().y(), grid.getDim().n(),
+            dim.x(), dim.y(), dim.n(),
+            x, y, n,
+            shiftX, shiftY,
+            grid.getCoeffsX().vdata, grid.getCoeffsY().vdata);
+
+    return std::make_pair(shiftX, shiftY);
+}
+
+template<typename T>
+void BSplineHelper::getShift(int lX, int lY, int lN,
+        int xdim, int ydim, int ndim,
+        int x, int y, int n,
+        T &shiftY, T &shiftX,
+        const T *coeffsX, const T *coeffsY) {
+    using std::max;
+    using std::min;
+
+    T delta = 0.0001;
+    // take into account end points
+    T hX = (lX == 3) ? xdim : (xdim / (T) ((lX - 3)));
+    T hY = (lY == 3) ? ydim : (ydim / (T) ((lY - 3)));
+    T hT = (lN == 3) ? ndim : (ndim / (T) ((lN - 3)));
+    // index of the 'cell' where pixel is located (<0, N-3> for N control points)
+    T xPos = x / hX;
+    T yPos = y / hY;
+    T tPos = n / hT;
+    // indices of the control points are from -1 .. N-2 for N points
+    // pixel in 'cell' 0 may be influenced by points with indices <-1,2>
+    for (int idxT = max(-1, (int) (tPos) - 1);
+            idxT <= min((int) (tPos) + 2, lN - 2);
+            ++idxT) {
+        T tmpT = Bspline03(tPos - idxT);
+        for (int idxY = max(-1, (int) (yPos) - 1);
+                idxY <= min((int) (yPos) + 2, lY - 2);
+                ++idxY) {
+            T tmpY = Bspline03(yPos - idxY);
+            for (int idxX = max(-1, (int) (xPos) - 1);
+                    idxX <= min((int) (xPos) + 2, lX - 2);
+                    ++idxX) {
+                T tmpX = Bspline03(xPos - idxX);
+                T tmp = tmpX * tmpY * tmpT;
+                if (fabsf(tmp) > delta) {
+                    size_t coeffOffset = (idxT + 1) * (lX * lY)
+                            + (idxY + 1) * lX + (idxX + 1);
+                    shiftX += coeffsX[coeffOffset] * tmp;
+                    shiftY += coeffsY[coeffOffset] * tmp;
+                }
+            }
+        }
+    }
+}
