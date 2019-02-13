@@ -79,7 +79,8 @@ std::pair<Matrix1D<T>, Matrix1D<T>> BSplineHelper::computeBSplineCoeffs(const Di
         }
 
         // solve the equation system for the spline coefficients
-        Matrix1D<T> coefsX, coefsY;
+        Matrix1D<T> coefsX;
+        Matrix1D<T> coefsY;
         EquationSystemSolver::solve(bX, bY, A, coefsX, coefsY, verbosity + 1, solverIters);
         return std::make_pair(coefsX, coefsY);
 }

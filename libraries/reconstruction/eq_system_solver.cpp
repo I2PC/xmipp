@@ -36,10 +36,14 @@ template<typename T>
 void EquationSystemSolver::solve(Matrix1D<T>& bXt,
         Matrix1D<T>& bYt, Matrix2D<T>& At, Matrix1D<T>& shiftXt,
         Matrix1D<T>& shiftYt, int verbosity, int iterations) {
-    Matrix1D<double> ex, ey;
+    Matrix1D<double> ex;
+    Matrix1D<double> ey;
     WeightedLeastSquaresHelper helper;
     Matrix2D<double> A;
-    Matrix1D<double> bX, bY, shiftX, shiftY;
+    Matrix1D<double> bX;
+    Matrix1D<double> bY;
+    Matrix1D<double> shiftX;
+    Matrix1D<double> shiftY;
     typeCast(At, helper.A);
     typeCast(bXt, bX);
     typeCast(bYt, bY);
@@ -50,7 +54,9 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
     helper.w.initConstant(1);
 
     int it = 0;
-    double mean, varbX, varbY;
+    double mean;
+    double varbX;
+    double varbY;
     bX.computeMeanAndStddev(mean, varbX);
     varbX *= varbX;
     bY.computeMeanAndStddev(mean, varbY);
@@ -69,9 +75,10 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
         ey = bY - helper.A * shiftY;
 
         // Compute R2
-        double mean, vareX, vareY;
+        double vareX;
         ex.computeMeanAndStddev(mean, vareX);
         vareX *= vareX;
+        double vareY;
         ey.computeMeanAndStddev(mean, vareY);
         vareY *= vareY;
         double R2x = 1 - vareX / varbX;

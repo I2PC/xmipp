@@ -510,7 +510,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
         REPORT_ERROR(ERR_VALUE_INCORRECT,
             "Missing BSpline representation. This should not happen. Please contact developers.");
     }
-    // Store sum and average
+    // Store average
     double sum = 0;
     for (auto &&p : alignment.shifts) {
         int tileCenterX = p.first.rec.getCenter().x;
@@ -519,11 +519,11 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
         auto shift = BSplineHelper::getShift(
                 alignment.bsplineRep.value(), alignment.movieDim,
                 tileCenterX, tileCenterY, tileIdxT);
-        sum += hypot(shift.first, shift.second);
+        auto globalShift = alignment.globalHint.shifts.at(tileIdxT);
+        sum += hypot(shift.first - globalShift.x, shift.second - globalShift.y);
     }
     MetaData mdIref;
     size_t id = mdIref.addObject();
-    mdIref.setValue(MDL_LOCAL_ALIGNMENT_RATING, sum, id);
     mdIref.setValue(MDL_LOCAL_ALIGNMENT_AVG, sum / alignment.shifts.size(), id);
     // Store patches
     mdIref.setValue(MDL_LOCAL_ALIGNMENT_PATCHES,
