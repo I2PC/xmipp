@@ -25,6 +25,7 @@
 
 #include "classify_first_split.h"
 #include <core/symmetries.h>
+#include <data/filters.h>
 
 // Read arguments ==========================================================
 void ProgClassifyFirstSplit::readParams()
@@ -77,8 +78,8 @@ void ProgClassifyFirstSplit::run()
 
     // Generate the mean
     std::cerr << "Reconstructing average" << std::endl;
-    String command=formatString("xmipp_reconstruct_fourier -i %s -o %s_avg.vol --max_resolution 0.25 -v 0",fnClasses.c_str(),fnRoot.c_str());
-    int ok=system(command.c_str());
+    String command=formatString("xmipp_reconstruct_fourier -i %s -o %s_avg.vol --max_resolution 0.25 --sym %s -v 0",fnClasses.c_str(),fnRoot.c_str(), fnSym.c_str());
+    int retval=system(command.c_str());
     Image<double> Vavg;
     Vavg.read(fnRoot+"_avg.vol");
     Vavg().setXmippOrigin();
@@ -126,7 +127,7 @@ void ProgClassifyFirstSplit::run()
     	mdRec.write(fnSubset);
 
     	// Perform reconstruction
-    	ok=system(command.c_str());
+    	retval=system(command.c_str());
     	V.read(fnSubsetVol);
     	V().setXmippOrigin();
 //    	V.write(formatString("%s_%05d.vol",fnRoot.c_str(),n));
@@ -170,6 +171,31 @@ void ProgClassifyFirstSplit::run()
     vectorToVolume(v,Vdiff());
     V2()+=Vdiff();
     V2.write(fnRoot+"_v2.vol");
+
+    // Check if the mirrored volume is better
+    double corr=correlationIndex(V1(),V2());
+    V2().selfReverseX();
+    V2.write(fnRoot+"_v2mirrored.vol");
+    command="xmipp_volume_align --i1 "+fnRoot+"_v1.vol --i2 "+fnRoot+"_v2mirrored.vol --rot 0 360 15 --tilt 0 360 15 --psi 0 360 15 --apply";
+    std::cout << command << std::endl;
+    system(command.c_str());
+    command="xmipp_volume_align --i1 "+fnRoot+"_v1.vol --i2 "+fnRoot+"_v2mirrored.vol --local --apply";
+    std::cout << command << std::endl;
+    system(command.c_str());
+    V2.read(fnRoot+"_v2mirrored.vol");
+    double corrM=correlationIndex(V1(),V2());
+    std::cout << "Correlation unmirrored: " << corr << std::endl;
+    std::cout << "Correlation   mirrored: " << corrM << std::endl;
+    if (corrM>corr)
+    	copyImage(fnRoot+"_v2mirrored.vol",fnRoot+"_v2.vol");
+	deleteFile(fnRoot+"_v2mirrored.vol");
+
+    V2.read(fnRoot+"_v2.vol");
+    V1().setXmippOrigin();
+    V2().setXmippOrigin();
+    Vdiff()=V1();
+    Vdiff()-=V2();
+    Vdiff.write(fnRoot+"_pc1.vol");
 }
 
 void ProgClassifyFirstSplit::volumeToVector(const MultidimArray<double> &V, MultidimArray<double> &v)

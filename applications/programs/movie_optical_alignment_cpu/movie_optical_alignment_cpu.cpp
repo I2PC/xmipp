@@ -105,7 +105,7 @@ public:
         addParamsLine("   [--groupSize <int=1>]        : the depth of pyramid for optical flow algorithm");
         addParamsLine("   [--outMovie <fn=\"\">]       : save corrected, dose compensated stack");
         addParamsLine("   [--dark <fn=\"\">]           : Dark correction image");
-        addParamsLine("   [--gain <fn=\"\">]           : Gain correction image");
+        addParamsLine("   [--gain <fn=\"\">]           : Gain correction image (we will multiply by it)");
         addParamsLine("   [--inmemory]                 : Do not write a temporary file with the ");
         addParamsLine("   [--doseCorrection <dosePerFrame=0> <Ts=1> <kV=200> <previousDose=0> <mode=\"pre\">] : Set dosePerFrame to 0 if you do not want to correct by the dose");
         addParamsLine("                                : Dose in e/A^2, Sampling rate (Ts) in A. Valid modes are pre and post");
@@ -337,7 +337,7 @@ public:
             REPORT_ERROR(ERR_ARG_INCORRECT,"This program is meant to align 2D frames, not 3D");
 
         // Dark and gain images
-        Image<double> dark, gain;
+        Image<double> dark, igain;
         if (fnDark!="")
         {
             dark.read(fnDark);
@@ -346,14 +346,14 @@ public:
 
         if (fnGain!="")
         {
-            gain.read(fnGain);
-            applyWindow(gain());
+            igain.read(fnGain);
+            applyWindow(igain());
             // Pablo with coss: Consistency with other alignment methods
-            //Do not divide by the gain: gain() = 1.0/gain();
-            double avg = gain().computeAvg();
+            // Do not divide by the gain, as the gain is expected to be inverted already
+            double avg = igain().computeAvg();
             if (std::isinf(avg) || std::isnan(avg))
                 REPORT_ERROR(ERR_ARG_INCORRECT,
-                             "The input gain image is incorrect, its inverse produces infinite or nan");
+                             "The input gain image is incorrect, it contains infinite or nan");
         }
 
         // Count the number of frames to process
@@ -397,8 +397,8 @@ public:
 
                 if (XSIZE(dark())>0)
                 	frameImage()-=dark();
-                if (XSIZE(gain())>0)
-                	frameImage()*=gain();
+                if (XSIZE(igain())>0)
+                	frameImage()*=igain();
 
                 if (movie.containsLabel(MDL_SHIFT_X))
                 {

@@ -28,7 +28,7 @@
 import os
 import subprocess
 
-from .base import BaseTest
+from .test import BaseTest
 # import pyworkflow.em.packages.xmipp3 as xmipp3
 
 
