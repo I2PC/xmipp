@@ -59,16 +59,20 @@ std::pair<Matrix1D<T>, Matrix1D<T>> BSplineHelper::computeBSplineCoeffs(const Di
             int tileCenterY = meta.rec.getCenter().y;
             int i = (tileIdxY * noOfPatches.first) + tileIdxX;
 
-            for (int j = 0; j < (lT * lY * lX); ++j) {
-                int controlIdxT = (j / (lY * lX)) - 1;
-                int XY = j % (lY * lX);
-                int controlIdxY = (XY / lX) -1;
-                int controlIdxX = (XY % lX) -1;
-                // note: if control point is not in the tile vicinity, val == 0 and can be skipped
-                T val = Bspline03((tileCenterX / hX) - controlIdxX) *
-                        Bspline03((tileCenterY / hY) - controlIdxY) *
-                        Bspline03((tileCenterT / hT) - controlIdxT);
-                MAT_ELEM(A,tileIdxT*noOfPatchesXY + i,j) = val;
+            for(int controlIdxT = -1; controlIdxT < (lT - 1); ++controlIdxT) {
+                T tmpT = Bspline03((tileCenterT / hT) - controlIdxT);
+                if (tmpT == (T)0) continue;
+                for(int controlIdxY = -1; controlIdxY < (lY - 1); ++controlIdxY) {
+                    T tmpY = Bspline03((tileCenterY / hY) - controlIdxY);
+                    if (tmpY == (T)0) continue;
+                    for(int controlIdxX = -1; controlIdxX < (lX - 1); ++controlIdxX) {
+                        T tmpX = Bspline03((tileCenterX / hX) - controlIdxX);
+                        T val = tmpT * tmpY * tmpX;
+                        int j = ((controlIdxT + 1) * lX * lY) +
+                                ((controlIdxY + 1) * lX) + (controlIdxX + 1);
+                        MAT_ELEM(A,tileIdxT*noOfPatchesXY + i, j) = val;
+                    }
+                }
             }
             VEC_ELEM(bX,tileIdxT*noOfPatchesXY + i) = -shift.x; // we want the BSPline describing opposite transformation,
             VEC_ELEM(bY,tileIdxT*noOfPatchesXY + i) = -shift.y; // so that we can use it to compensate for the shift
