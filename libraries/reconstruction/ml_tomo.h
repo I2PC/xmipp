@@ -245,9 +245,6 @@ public:
     /** FFTW objects */
     FourierTransformer transformer;
 
-    /** debug flag */
-    int debug;
-
     /** the vector with the images id in MetaData */
     std::vector<size_t> imgs_id;
 
