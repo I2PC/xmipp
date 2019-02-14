@@ -60,8 +60,9 @@ void Euler::toXYZVector(Matrix1D<double> v) const
 {
     int i,j,k;
     angleMapping(i,j,k);
-    v=vectorR3(vec3(i),vec3(j),vec3(k));
-    //    return Vec3<T>((*this)[i],(*this)[j],(*this)[k]);
+    VEC_ELEM(v, 0) = vec3(i);
+    VEC_ELEM(v, 0) = vec3(j);
+    VEC_ELEM(v, 0) = vec3(k);
 }
 
 void Euler::init(void)
