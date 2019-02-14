@@ -39,6 +39,7 @@ double orthogonalMatchingPursuit(const Matrix1D<double> &x,
 
     // Initialize the number of available atoms
     int N=D.Ydim(); // Dimension of each atom
+    if (0 == N) REPORT_ERROR(ERR_PARAM_INCORRECT, "Ydim of each atom must not be zero (0)");
     int K=D.Xdim(); // Number of atoms in the dictionary
     Matrix1D<int> availableAtoms;
     availableAtoms.initZeros(K);
