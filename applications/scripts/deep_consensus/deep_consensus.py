@@ -111,7 +111,8 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
         self.addParamsLine('[ -s <autoStop>  ]                      : Do not stop training when convengercy is '
                            'detected')          
         self.addParamsLine('[ -m <numberOfModels> <N=2> ]           : Number of models used as ensemble')
-              
+        self.addParamsLine('[ --effective_data_size <numberOfModels> <N=-1> ] : Number of effective data points for '
+                           ' training. If -1 use the number of true particles')        
         
         ## examples
         self.addExampleLine('trainNet net:  xmipp_deep_screen -n ./netData --train_mode -p trueParticles.xmd -f '
@@ -155,13 +156,13 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
             auto_stop= False
           
           numModels=self.getIntParam('-m')
-          
+          effective_data_size= self.getIntParam("--effective_data_size")
           posTrainDict= {path: weight for path, weight in zip(trueDataPaths, trueWeights) }
           negTrainDict= { path: weight for path, weight in zip(falseDataPaths, falseWeights) }
           trainArgs={"netDataPath":netDataPath, "posTrainDict":posTrainDict, "negTrainDict":negTrainDict, 
-                     "nEpochs":nEpochs, "learningRate":learningRate,"l2RegStrength":l2RegStrength,
-                     "auto_stop":auto_stop, "numModels":numModels , "gpuToUse": gpuToUse, 
-                     "numberOfThreads":numberOfThreads}
+                     "nEpochs":nEpochs, "learningRate":learningRate, "l2RegStrength":l2RegStrength,
+                     "auto_stop":auto_stop, "numModels":numModels , "effective_data_size":effective_data_size,
+                     "gpuToUse": gpuToUse, "numberOfThreads":numberOfThreads}
           print("TRAIN ARGS: %s"%(trainArgs) )
           ScriptDeepScreeningTrain.trainWorker(**trainArgs)
         elif mode in predictKeyWords:
@@ -174,8 +175,8 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
             negTestDict= { self.getParam('--testingFalse'):1 }
                   
           scoringArgs={"netDataPath":netDataPath, "predictDict":predictDict, "outParticlesPath":outParticlesPath, 
-                     "posTestDict":posTestDict, "negTestDict":negTestDict, "gpuToUse": gpuToUse, 
-                     "numberOfThreads":numberOfThreads}
+                     "posTestDict":posTestDict, "negTestDict":negTestDict,
+                     "gpuToUse": gpuToUse, "numberOfThreads":numberOfThreads}
           print("SCORING ARGS: %s"%(scoringArgs) )
           ScriptDeepScreeningTrain.predictWorker(**scoringArgs)
         else:
@@ -183,7 +184,7 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
 
     @staticmethod
     def trainWorker(netDataPath, posTrainDict, negTrainDict, nEpochs, learningRate,
-                    l2RegStrength, auto_stop, numModels, gpuToUse,
+                    l2RegStrength, auto_stop, numModels, effective_data_size, gpuToUse,
                     numberOfThreads):
         '''
             netDataPath=self._getExtraPath("nnetData")
@@ -191,42 +192,38 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
                       e.g. : {'Runs/006003_XmippProtScreenDeepLearning1/extra/negativeSet_1.xmd': 1}
             learningRate: float
         '''
-#        raise ValueError(" PETA")
-        sys.stdout.flush() 
-        if nEpochs == 0:
-            print("training is not required. If desired select more epochs '-e'")
-            return
  
         if gpuToUse >= 0:
-            numberOfThreads = None
+          numberOfThreads = None
 
         else:
-            gpuToUse = None
-            if numberOfThreads < 0:
-              import multiprocessing          
-              numberOfThreads = multiprocessing.cpu_count()
+          gpuToUse = None
+          if numberOfThreads < 0:
+            import multiprocessing          
+            numberOfThreads = multiprocessing.cpu_count()
 
         updateEnviron(gpuToUse)
 
-        dataShape_nTrue_numModels= loadNetShape(netDataPath)
-        if dataShape_nTrue_numModels:
-            dataShape, nTrue, numModels= dataShape_nTrue_numModels
-        else:
-            if nEpochs == 0:
-                raise ValueError("Number of epochs must be >0 if not continuing from trained model")
-                
         trainDataManager = DataManager(posSetDict=posTrainDict,
                                        negSetDict=negTrainDict)
+                                       
+        dataShape_nTrue_numModels= loadNetShape(netDataPath)
         if dataShape_nTrue_numModels:
-            assert dataShape == trainDataManager.shape, \
-                    "Error, data shape mismatch in input data compared to previous model"
+          dataShape, nTrue, numModels= dataShape_nTrue_numModels
+          assert dataShape == trainDataManager.shape, \
+                  "Error, data shape mismatch in input data compared to previous model"
+        else:
+          nTrue= effective_data_size if effective_data_size>0 else trainDataManager.nTrue
 
-        writeNetShape(netDataPath, trainDataManager.shape, trainDataManager.nTrue, numModels)
+        writeNetShape(netDataPath, trainDataManager.shape, nTrue, numModels)
+        if nEpochs == 0:
+          print("training is not required. If more training desired select more epochs '-e'")
+          return
+          
         assert numModels >=1, "Error, nModels<1"
         try:
-            nnet = DeepTFSupervised(numberOfThreads= numberOfThreads,
-                                    rootPath= netDataPath,
-                                    numberOfModels=numModels)
+            nnet = DeepTFSupervised(numberOfThreads= numberOfThreads, rootPath= netDataPath,
+                                    numberOfModels=numModels, effective_data_size=effective_data_size)
             nnet.trainNet(nEpochs, trainDataManager, learningRate,
                           l2RegStrength, auto_stop)
         except tf_intarnalError as e:
