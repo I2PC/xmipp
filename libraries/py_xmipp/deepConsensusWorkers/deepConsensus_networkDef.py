@@ -7,7 +7,7 @@ from keras import backend as K
 
 MODEL_DEPTH= 4
 DROPOUT_KEEP_PROB= 0.5
-
+DESIRED_INPUT_SIZE=128
 def main_network(input_shape, nData, l2RegStrength=1e-5, num_labels=2):
   '''
     input_shape: tuple:int,  ( height, width, nChanns )
@@ -24,10 +24,11 @@ def main_network(input_shape, nData, l2RegStrength=1e-5, num_labels=2):
     nFiltersInit=2
     
   print("Model depth: %d"%MODEL_DEPTH)
-  if input_shape!=(128,128, 1):
+  if input_shape!=(DESIRED_INPUT_SIZE,DESIRED_INPUT_SIZE, 1):
     network_input= keras.layers.Input(shape= (None, None, input_shape[-1]))
     assert keras.backend.backend() == 'tensorflow', 'Resize_bicubic_layer is compatible only with tensorflow'
-    network= keras.layers.Lambda( lambda x: K.tf.image.resize_images(x, (128, 128)), name="resize_tf")(network_input)
+    network= keras.layers.Lambda( lambda x: K.tf.image.resize_images(x, (DESIRED_INPUT_SIZE, DESIRED_INPUT_SIZE)),
+                                                                     name="resize_tf")(network_input)
   else:
     network_input= keras.layers.Input(shape= input_shape)  
     network= network_input

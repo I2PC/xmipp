@@ -35,7 +35,7 @@ import random
 
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, matthews_corrcoef
 import xmippLib as xmipp
-import pyworkflow.em.metadata as md
+import pyworkflow.em.metadata as MD
 
 import keras
 import tensorflow as tf
@@ -72,12 +72,11 @@ def writeNetShape(netDataPath, shape, nTrue, nModels):
     netInfoFname = os.path.join(netDataPath, "nnetInfo.txt")
     if not os.path.exists(netDataPath):
       os.makedirs(netDataPath )
-#    makeFilePath(netInfoFname)
     with open(netInfoFname, "w" ) as f:
         f.write("inputShape: %d %d %d\ninputNTrue: %d\nnModels: %d" % (shape+(nTrue, nModels)))
         
 class DeepTFSupervised(object):
-  def __init__(self, numberOfThreads, rootPath, numberOfModels=1):
+  def __init__(self, numberOfThreads, rootPath, numberOfModels=1, effective_data_size=-1):
     '''
       @param numberOfThreads: int or None if use gpu
       @param rootPath: str. Root directory where neural net data will be saved.
@@ -91,6 +90,7 @@ class DeepTFSupervised(object):
     self.numberOfThreads= numberOfThreads
     self.rootPath= rootPath
     self.numberOfModels= numberOfModels
+    self.effective_data_size= effective_data_size
     
     checkPointsName= os.path.join(rootPath,"tfchkpoints_%d")
     for modelNum in range(self.numberOfModels): 
@@ -169,7 +169,8 @@ class DeepTFSupervised(object):
         print("loading previosly saved model %s"%(currentCheckPointName))
         self.loadNNet( currentCheckPointName, keepTraining=True, learningRate= learningRate, l2RegStrength=1e-5)
       else:
-        self.createNet(dataManagerTrain.shape[0], dataManagerTrain.shape[1], dataManagerTrain.shape[2], dataManagerTrain.nTrue,
+        effective_data_size= self.effective_data_size if self.effective_data_size>0 else dataManagerTrain.nTrue
+        self.createNet(dataManagerTrain.shape[0], dataManagerTrain.shape[1], dataManagerTrain.shape[2], effective_data_size,
                        learningRate, l2RegStrength)
 #      print(self.nNetModel.summary())
       
@@ -302,9 +303,9 @@ class DataManager(object):
       assert shapeFalse== self.shape, "Negative images and positive images have different shape"
       self.trainingIdsNeg= np.random.choice( self.nFalse,  int((1-validationFraction)*self.nFalse), False)
       self.validationIdsNeg= np.array(list(set(range(self.nFalse)).difference(self.trainingIdsNeg)))
-      if validationFraction>0 and not self.trainingIdsNeg is None:
-          assert len(self.trainingIdsPos)<=  len(self.trainingIdsNeg), "Error, the number of positive particles must be <= negative particles"
-
+#      if validationFraction>0 and not self.trainingIdsNeg is None:
+#        assert len(self.trainingIdsPos)<=  len(self.trainingIdsNeg), "Error, the number of positive particles "+\
+#        "must be <= negative particles ( %d / %d)"%(len(self.trainingIdsPos), len(self.trainingIdsNeg))
         
   def colectMetadata(self, dictData):
 
@@ -315,11 +316,11 @@ class DataManager(object):
     shapeParticles=(None, None, 1)
     for fnameXMDF in sorted(dictData):
       weight= dictData[fnameXMDF]    
-      mdObject  = md.MetaData(fnameXMDF)
+      mdObject  = MD.MetaData(fnameXMDF)
       I= xmipp.Image()
-      I.read(mdObject.getValue(md.MDL_IMAGE, mdObject.firstObject()))
+      I.read(mdObject.getValue(MD.MDL_IMAGE, mdObject.firstObject()))
       xdim, ydim= I.getData().shape
-      imgFnames = mdObject.getColumnValues(md.MDL_IMAGE)
+      imgFnames = mdObject.getColumnValues(MD.MDL_IMAGE)
       mdList+= [mdObject]
       fnamesList_merged+= imgFnames
       tmpShape= (xdim,ydim,1)
@@ -333,7 +334,7 @@ class DataManager(object):
           for fnameXMDF_2 in sorted(dictData):
               weight_2= dictData[fnameXMDF_2]
               if weight_2>0:
-                  otherParticlesNum+=  md.MetaData(fnameXMDF_2).size()
+                  otherParticlesNum+= MD.MetaData(fnameXMDF_2).size()
           weight= max(1, otherParticlesNum // tmpNumParticles)
       weightsList_merged+= [ weight  for elem in imgFnames]
       nParticles+= tmpNumParticles
@@ -440,7 +441,7 @@ class DataManager(object):
     for dataSetNum in range(len(self.mdListTrue)):
       mdTrue= self.mdListTrue[dataSetNum]
       for objId in mdTrue:
-        fnImage = mdTrue.getValue(md.MDL_IMAGE, objId)
+        fnImage = mdTrue.getValue(MD.MDL_IMAGE, objId)
         I.read(fnImage)
         batchStack[n,...]= np.expand_dims(I.getData(),-1)
         batchLabels[n, 1]= 1
@@ -458,7 +459,7 @@ class DataManager(object):
       for dataSetNum in range(len(self.mdListFalse)):
         mdFalse= self.mdListFalse[dataSetNum]
         for objId in mdFalse:
-          fnImage = mdFalse.getValue(md.MDL_IMAGE, objId)
+          fnImage = mdFalse.getValue(MD.MDL_IMAGE, objId)
           I.read(fnImage)
           batchStack[n,...]= np.expand_dims(I.getData(),-1)
           batchLabels[n, 0]= 1
