@@ -128,7 +128,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--solverIterations <N=2>]   : Number of robust least squares iterations");
     addParamsLine(
-            "  [--oaligned <fn=\"\">]       : Give the name of a stack if you want to generate an aligned movie");
+            "  [--oaligned <fn=\"\">]       : Aligned movie consists of aligned frames used for micrograph generation");
     addParamsLine(
             "  [--oavgInitial <fn=\"\">]    : Give the name of a micrograph to generate an unaligned (initial) micrograph");
     addParamsLine(
