@@ -84,14 +84,15 @@ def run(label, version):
     else:
         usage("Incorrect <mode>")
 
+    # FIXME: This is breaking the Sources bundle. Please, use a clean dir and skip this
+    # excludeTgz += " --exclude='*.o' --exclude='*.os' --exclude='*pyc'"
+    # excludeTgz += " --exclude='*.gz' --exclude='*.bashrc' --exclude='*.fish'"
+    # excludeTgz += " --exclude=tests/data --exclude='*.scons*' --exclude=.git"
+    excludeTgz = "--exclude=.git"
 
-    args = {'excludeTgz': excludeTgz,
-            'target': target}
+    cmdStr = "tar czf %(target)s.tgz %(excludeTgz)s %(target)s"
 
-    cmdStr = "tar czf %(target)s.tgz --exclude=.git --exclude='software/tmp/*' " \
-             "--exclude='*.o' --exclude='*.os' --exclude='*pyc' --exclude='*.gz' " \
-             "--exclude='*.bashrc' --exclude='*.fish' --exclude=tests/data %(excludeTgz)s " \
-             "--exclude='*.scons*' --exclude='config/*.conf' %(target)s"
+    args = {'excludeTgz': excludeTgz, 'target': target}
 
     cmd = cmdStr % args
 
