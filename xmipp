@@ -41,6 +41,19 @@ XMIPP_VERSION = '3.19.02'    #
 RELEASE_DATE = '11/02/2019'  #
 ##############################
 
+XMIPP = 'xmipp'
+XMIPP_CORE = 'xmippCore'
+XMIPP_VIZ = 'xmippViz'
+SCIPION_EM_XMIPP = 'scipion-em-xmipp'
+CUFFTADVISOR = 'cuFFTAdvisor'
+
+REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
+                                    XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
+                                    XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
+                                    SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
+                                    CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git'}
+
+TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 
 def stampVersion():
     LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
@@ -115,8 +128,8 @@ int main(int argc, char** argv){
     return 0;
 }
 """ % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATE,
-       getCommit('xmipp'), getCommit('scipion-em-xmipp'),
-       getCommit('xmippCore'), getCommit('xmippViz'), LAST_COMPILATION))
+       getCommit(XMIPP), getCommit(SCIPION_EM_XMIPP),
+       getCommit(XMIPP_CORE), getCommit(XMIPP_VIZ), LAST_COMPILATION))
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -188,18 +201,23 @@ def red(text):
 def blue(text):
     return "\033[34m "+text+"\033[0m"
 
-def runJob(cmd, cwd='./', show_output=True):
-    print(green(cmd))
+def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True):
+    if show_command:
+        print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
     while True:
         output = p.stdout.readline()
         if output == '' and p.poll() is not None:
             break
-        if output and show_output:
-            print(output.rstrip())
+        if output:
+            l = output.rstrip()
+            if show_output:
+                print(l)
+            if log is not None:
+                log.append(l)
     rc = p.poll()
-    return p.poll() == 0
+    return rc == 0
 
 def cleanSources():
     runJob("rm -rf xmipp.conf build src")
@@ -210,70 +228,104 @@ def cleanBinaries():
     runJob('find . -iname "*.pyc" -delete')
     runJob("rm -rf xmipp.conf build")
 
-def cloneOrCheckout(repo, branch, doPull, ok):
-    repoDir = "src/%s"%repo
-    print("...on %s" % repoDir)
+def checkout(branch, doPull):
+    log = []
+    words = ['working directory clean', 'working tree clean']
+    runJob('git status', show_output=False, show_command=False, log=log)
+    if not any(w in l for w in words for l in log):
+        print(red('working branch detected: aborting git checkout and git pull'))
+        return False
+    else:
+        r, currentBranch = getCurrentBranch()
+        if currentBranch != branch:
+            if not runJob("git checkout %s" % branch):
+                print(red("Cannot checkout branch '%s'. Remaining on the branch '%s'."
+                      % (branch, currentBranch)))
+                return False
+        if doPull:
+            return runJob("git pull")
+    return True
+
+def cloneOrCheckout(repo, branch, doPull):
+    branch = branch or getBranch(repo)[1]
+    repoDir = os.path.join('src', repo)
     if not os.path.exists(repoDir):
         # If the repo doesn't exist, just clone the whole repo
-        branch = 'devel' if branch=='' else branch
-        ok = ok and runJob("git clone -b %s https://github.com/I2PC/%s.git %s"
-                           % (branch, repo, repoDir))
-        if not ok:
-            print("Clone failed on '%s' repo for '%s' branch. "
-                  "Trying the default branch." % (repo, branch))
-            ok = runJob("git clone https://github.com/I2PC/%s.git %s"
-                        % (repo, repoDir))
-    elif branch != '':
+        return runJob("git clone -b %s %s %s"
+                           % (branch, REPOSITORIES[repo], repoDir))
+    else:
         workDir = os.getcwd()
         os.chdir(repoDir)
-        gitSt = subprocess.Popen(["git", "status"],
-                                 stdout=subprocess.PIPE).stdout.read()
-        if "working directory clean" in gitSt or \
-                "working tree clean" in gitSt:
-            gitStBr = gitSt.split("\n")[0]
-            currentBranch = gitStBr.split("On branch ")[1]
-            if currentBranch != branch:
-                if not runJob("git checkout %s" % branch):
-                    print("Checkout failed to '%s' branch. "
-                          "Remaining in the '%s' branch."
-                          % (branch, currentBranch))
-            if doPull:
-                ok = ok and runJob("git pull")
-        else:
-            print("working branch detected: aborting git checkout and git pull")
-
+        print(green(('Pulling ' if doPull else 'Checkouting ') + repo + ' ...'))
+        res = checkout(branch, doPull)
         os.chdir(workDir)
-    return ok
+        return res
+
+def getCurrentBranch(cwd='./'):
+    log = []
+    commit = []
+    runJob('git rev-parse HEAD', cwd=cwd, 
+        show_output=False, show_command=False, log=commit)
+    result = runJob('git name-rev ' + commit[0], cwd=cwd,
+        show_output=False, show_command=False, log=log)
+    if log:
+        return (True, log[0].split()[1].strip()) # log contains commit_space_branchName
+    print(red('Cannot get current branch'))
+    return (False, None)
+
+def getAllBranches(repo):
+    log = []
+    prefix = 'refs/heads/'
+    result = runJob('git ls-remote -h %s' % REPOSITORIES[repo],
+        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+    if result:
+        branches = [l.split(prefix)[1] for l in log]
+        return (True, branches)
+    print(red('Cannot listl branches for ' + repo))
+    return (False, None)
+
+def getBranch(repo):
+    if 'TRAVIS' in os.environ:
+        # we need to get current branch of the xmipp
+        r1, branchHint = getCurrentBranch('./src/xmipp/')
+        r2, branches = getAllBranches(repo)
+        if r1 and r2 and branchHint in branches:
+            return (True, branchHint)
+    return getDefaultBranch(repo)
+
+def getDefaultBranch(repo):
+    log = []
+    key = 'HEAD branch:'
+    result = runJob('git remote show %s' % REPOSITORIES[repo],
+        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+    if result:
+        for l in log:
+            if key in l:
+                branch = l.split(key)[1] # HEAD branch: devel
+                return (True, branch.strip())
+    print(red('Cannot get defaul branch for ' + repo))
+    return (False, None)
 
 def getSources(branch='', doPull=True):
     print("Getting sources -------------------------------------")
     createDir("src")
-    ok=True
-    if checkProgram("git"):
-        ok = cloneOrCheckout("xmippCore", branch, doPull, ok)
-        ok = cloneOrCheckout("xmipp", branch, doPull, ok)
-        ok = cloneOrCheckout("xmippViz", branch, doPull, ok)
-        ok = cloneOrCheckout("scipion-em-xmipp", branch, doPull, ok)
-    else:
-        ok=False
-
-    ok=ok and checkProgram("scons")
-    if not ok:
-        print(red("Cannot get the sources"))
-    return ok
+    repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
+    if 'TRAVIS' not in os.environ: 
+        # on Travis, do not change current commit
+        repos.append(XMIPP)
+    for r in repos:
+        if not cloneOrCheckout(r, branch, doPull):
+            print(red("Cannot get the sources"))
+            return False
+    return True
 
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
-    ok=True
-    advisorDir = "src/cuFFTAdvisor/" 
-    ok = checkProgram("git")
-    if ok and not os.path.exists(advisorDir):
-        createDir(advisorDir)
-        ok=runJob("git clone https://github.com/DStrelak/cuFFTAdvisor.git " + advisorDir)
-
-    if not ok:
-        print(red("Cannot get dependencies"))
-    return ok
+    createDir("src")
+    if cloneOrCheckout(CUFFTADVISOR, None, True):
+        return True
+    print(red("Cannot get dependencies"))
+    return False
 
 def getScipionHome():
     if "SCIPION_HOME" in os.environ:
@@ -735,7 +787,7 @@ def compileDependencies(Nproc):
         print(red('Dependencies not installed as they need NVCC, which has not been found in the PATH.\nDepending on other settings, build might crash eventually.'))
         return True
 
-    advisorDir = "src/cuFFTAdvisor/" 
+    advisorDir = "src/cuFFTAdvisor/"
     currDir = os.getcwd()
     libDir = "src/xmipp/lib/"
     createDir(libDir)
@@ -773,10 +825,10 @@ def runTests(testNames):
     xmippSrc = os.environ.get('XMIPP_SRC', None)
     if xmippSrc and os.path.isdir(xmippSrc):
         os.environ['PYTHONPATH'] = ':'.join([
-            os.path.join(os.environ['XMIPP_SRC'], 'xmipp'),
+            os.path.join(os.environ['XMIPP_SRC'], XMIPP),
             os.environ.get('PYTHONPATH', '')])
 
-        testsPath = os.path.join(os.environ['XMIPP_SRC'], 'xmipp', 'tests')
+        testsPath = os.path.join(os.environ['XMIPP_SRC'], XMIPP, 'tests')
     else:
         print(red('XMIPP_SRC is not in the enviroment.') +
               '\nTo run the tests you need to run: ' +
@@ -1044,11 +1096,22 @@ def getVersion(onlyNumbers=False):
 
     return cleanInfo.strip(' ')
 
+def ensureGit():
+    createDir(TMP_DIR)
+    if not checkProgram('git'):
+        print(red('Git not found'))
+        return False
+    if not runJob('git init', cwd=TMP_DIR, show_output=False, show_command=False):
+        print(red('Cannot create temporal git repository in ' + TMP_DIR))
+        return False
+    return True
 
 if __name__ == '__main__':
-
     # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
     # os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    if not ensureGit():
+        sys.exit(-1)
 
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
@@ -1076,7 +1139,7 @@ if __name__ == '__main__':
             print("Nothing cleaned")
             if yesno.lower()=="yes":
                 print("Pay attention to capital letters of YeS")
-    elif mode=="get_dependencies" and checkProgram("git"):
+    elif mode=="get_dependencies":
         getDependencies()
     elif mode=="cleanBin":
         cleanBinaries()
@@ -1085,7 +1148,7 @@ if __name__ == '__main__':
             runJob("src/xmipp/bin/xmipp_version --short")
         else:
             runJob("src/xmipp/bin/xmipp_version")
-    elif mode=="get_devel_sources" and checkProgram("git"):
+    elif mode=="get_devel_sources":
         branch = "devel" if n==2 else sys.argv[2]
         getSources(branch)
     elif mode=="config":
