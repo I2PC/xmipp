@@ -481,12 +481,11 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			}
 			else
 			{
-				//AJ calculating several similarity measures between P and Ifilteredp (correlations and imed)
+				//Calculating several similarity measures between P and Ifilteredp (correlations and imed)
 				corrIdx = correlationIndex(P(), Ifilteredp());
 				corrMask = correlationMasked(P(), Ifilteredp());
 				corrWeight = correlationWeighted(P(), Ifilteredp());
 				imedDist = imedDistance(P(), Ifilteredp());
-				//END AJ
 
 				if (fnResiduals!="")
 				{
@@ -589,7 +588,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     	if (old_defocusU+p(10)<0 || old_defocusU+p(11)<0)
     		rowOut.setValue(MDL_ENABLED,-1);
     }
-    //AJ saving correlation and imed values in the metadata
+    //Saving correlation and imed values in the metadata
     rowOut.setValue(MDL_CORRELATION_IDX, corrIdx);
     rowOut.setValue(MDL_CORRELATION_MASK, corrMask);
     rowOut.setValue(MDL_CORRELATION_WEIGHT, corrWeight);

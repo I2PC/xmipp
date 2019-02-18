@@ -1349,7 +1349,7 @@ double imedNormalizedDistance(const MultidimArray<double>& I1, const MultidimArr
 
 
 
-/* Correlation measured inside a mask defined by the standard deviation value of the pixels of every image ---- */
+/* Correlation measured inside a mask defined by the standard deviation value of the pixels of first image ---- */
 double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<double>& I2)
 {
 	double mean1, std1, th1;
