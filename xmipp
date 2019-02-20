@@ -866,10 +866,29 @@ def getPython():
         python = 'python'
     return python
 
-def addDeepLearninModel(login, modelName, update=None):
+def addDeepLearninModel(login, modelName='', update=None):
     """ Takes the folder name modelName from models dir and
         makes a .tgz, uploads the .tgz to scipion web.
     """
+    if login == '--help':
+        print("""
+        XMIPP addModel help:
+        
+        This mode is used to upload a model folder to the Scipion/Xmipp server.
+        Usually the model folder contains big files used to fed deep learning procedures
+        with pretrained data. All the models stored in the server will be downloads
+        during the compilation/installation time.
+        
+        Usage: -> ./xmipp addModel usr@server modelName [--update]
+        
+        Behaviour: 1. Packing in xmipp_model_modelName.tgz
+                   2. Check if that model already exists (use --update to override an existing model)
+                   3. Upload the model to the server.
+                   4. Update the MANIFEST file.
+                   
+        Please, use a descriptive modelName.
+        """)
+        sys.exit(0)
     modelsDir = os.path.join("src", "xmipp", "models")
     tgzFn = "xmipp_model_%s.tgz"%modelName
     modelPath = os.path.join(modelsDir, modelName)
@@ -891,7 +910,7 @@ def addDeepLearninModel(login, modelName, update=None):
     if raw_input("Continue? YES/no").lower() == 'no':
         sys.exit()
 
-    print("Trying to upload the model:")
+    print("Trying to upload the model using '%s' as login" % login)
     args = "%s %s %s %s" % (login, tgzFn, remotePath, update)
     runJob("(cd src/xmipp; %s sync_data.py upload %s)" % (getPython(), args))
 
@@ -1233,7 +1252,7 @@ if __name__ == '__main__':
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='addModel':
         update = False
-        if not (n == 4 or (n==5 and sys.argv[4] == '--update')):
+        if not (n == 4 or (n==5 and sys.argv[4] == '--update') or (n==3 and sys.argv[2] == '--help')):
             print("Incorrect number of parameters.\n")
             usage()
             sys.exit(1)
