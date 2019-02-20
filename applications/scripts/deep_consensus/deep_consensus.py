@@ -251,14 +251,18 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
         updateEnviron(gpuToUse)
 
         predictDataManager = DataManager(posSetDict=predictDict, negSetDict=None)
-        dataShape, nTrue, numModels = loadNetShape(netDataPath)
+        dataShape_nTrue_numModels = loadNetShape(netDataPath)
+        if dataShape_nTrue_numModels:
+          numModels= dataShape_nTrue_numModels[-1]
+        else:
+          numModels=1
         try:
             nnet = DeepTFSupervised(numberOfThreads=numberOfThreads,
                                     rootPath=netDataPath,
                                     numberOfModels=numModels)
         except tf_intarnalError as e:
             if e._error_code == 13:
-                raise Exception("Out of gpu Memory. gpu # %d" % (gpuToUse))
+                raise Exception("Out of GPU Memory. GPU # %d" % (gpuToUse))
             else:
                 raise e
 
