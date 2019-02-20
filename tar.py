@@ -60,7 +60,7 @@ def run(label, version):
         print("Recompiling to make sure that last version is there...")
         target = tgzPath % ('Bin', version)
         try:
-            # doing compilation and install separately to skip config
+            # doing compilation and install separately to skip overwriting config
             os.system("./xmipp compile 4")
             os.system("./xmipp install %s" % target)
         except:
@@ -72,6 +72,7 @@ def run(label, version):
                   "            Xmipp needs to be compiled to make the binaries.tgz."
                   % checkFile)
             sys.exit(1)
+        os.system("cp xmipp.conf %s/xmipp.conf" % target)
         excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' " \
                      "--exclude='*.java' --exclude='resources/test' " \
                      "--exclude='*xmipp_test*main'"
@@ -79,17 +80,19 @@ def run(label, version):
         target = tgzPath % ('Src', version)
         os.mkdir(target)
         makeTarget(join(target, 'src'), label)
+        excludeTgz = " --exclude='models/*' --exclude='src/*/bin/*' --exclude='*.so'"
     else:
         usage("Incorrect <mode>")
 
+    # FIXME: This is breaking the Sources bundle. Please, use a clean dir and skip this
+    # excludeTgz += " --exclude='*.o' --exclude='*.os' --exclude='*pyc'"
+    # excludeTgz += " --exclude='*.gz' --exclude='*.bashrc' --exclude='*.fish'"
+    # excludeTgz += " --exclude=tests/data --exclude='*.scons*' --exclude=.git"
+    excludeTgz = "--exclude=.git"
 
-    args = {'excludeTgz': excludeTgz,
-            'target': target}
+    cmdStr = "tar czf %(target)s.tgz %(excludeTgz)s %(target)s"
 
-    cmdStr = "tar czf %(target)s.tgz --exclude=.git --exclude='software/tmp/*' " \
-             "--exclude='*.o' --exclude='*.os' --exclude='*pyc' --exclude='*.gz' " \
-             "--exclude='*.bashrc' --exclude='*.fish' %(excludeTgz)s" \
-             "--exclude='*.scons*' --exclude='config/*.conf' %(target)s"
+    args = {'excludeTgz': excludeTgz, 'target': target}
 
     cmd = cmdStr % args
 
@@ -102,7 +105,7 @@ def run(label, version):
     os.system("rm -rf %s" % target)
 
 
-if __name__  == '__main__':
+if __name__ == '__main__':
 
     if not (len(sys.argv) == 2 or len(sys.argv) == 3):
         usage("Incorrect number of input parameters")
