@@ -1347,6 +1347,126 @@ double imedNormalizedDistance(const MultidimArray<double>& I1, const MultidimArr
 	return imed/sqrt((imed1+imed2)/2);
 }
 
+
+
+/* Correlation measured inside a mask defined by the standard deviation value of the pixels of first image ---- */
+double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<double>& I2)
+{
+	double mean1, std1, th1;
+	I1.computeAvgStdev(mean1,std1);
+	th1 = std1;
+
+	// Estimate the mean and stddev within the mask
+	double N1=0;
+	double sumMI1=0, sumMI2=0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)
+	{
+		double p1=DIRECT_MULTIDIM_ELEM(I1,n);
+		double p2=DIRECT_MULTIDIM_ELEM(I2,n);
+		if(p1>th1){
+			sumMI1+=p1;
+			sumMI2+=p2;
+			N1+=1.0;
+		}
+	}
+
+	double sumMI1I2=0.0, sumMI1I1=0.0, sumMI2I2=0.0;
+	double iN1, avgM1, avgM2, corrM1M2;
+	if (N1>0){
+		iN1=1.0/N1;
+		avgM1=sumMI1*iN1;
+		avgM2=sumMI2*iN1;
+	}
+	double p1a, p2a;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)
+	{
+		double p1=DIRECT_MULTIDIM_ELEM(I1,n);
+		double p2=DIRECT_MULTIDIM_ELEM(I2,n);
+		if (p1>th1){
+			p1a=p1-avgM1;
+			p2a=p2-avgM2;
+			sumMI1I1 +=p1a*p1a;
+			sumMI2I2 +=p2a*p2a;
+			sumMI1I2+=p1a*p2a;
+		}
+	}
+	sumMI1I2*=iN1;
+	corrM1M2=sumMI1I2/sqrt(sumMI1I1*sumMI1I2);
+
+	return corrM1M2;
+}
+
+
+
+/* Weighted correlation measured with a weight defined by the difference between both images ---- */
+double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
+{
+
+	MultidimArray<double> Idiff, I2Aligned;
+	Matrix2D<double> M;
+
+	I1.setXmippOrigin();
+	I2.setXmippOrigin();
+	I2Aligned=I2;
+	alignImages(I1, I2Aligned, M, false);
+	Idiff=I1;
+	Idiff-=I2Aligned;
+
+	double mean, std;
+	Idiff.computeAvgStdev(mean,std);
+	Idiff.selfABS();
+	double threshold=std;
+
+	// Estimate the mean and stddev within the mask
+	double N=0;
+	double sumWI1=0, sumWI2=0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
+	{
+		if (DIRECT_MULTIDIM_ELEM(Idiff,n)>threshold)
+		{
+			double p1=DIRECT_MULTIDIM_ELEM(I1,n);
+			double p2Alg=DIRECT_MULTIDIM_ELEM(I2Aligned,n);
+			sumWI1+=p1;
+			sumWI2+=p2Alg;
+			N+=1.0;
+		}
+	}
+
+	double sumWI1I2=0.0, sumWI1I1=0.0, sumWI2I2=0.0;
+	double iN, avgW1, avgW2, corrW1W2;
+	if(N>0){
+		iN=1.0/N;
+		avgW1=sumWI1*iN;
+		avgW2=sumWI2*iN;
+	}
+	double p1a, p2a;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)
+	{
+		if (DIRECT_MULTIDIM_ELEM(Idiff,n)>threshold)
+		{
+			double p1=DIRECT_MULTIDIM_ELEM(I1,n);
+			double p2Alg=DIRECT_MULTIDIM_ELEM(I2Aligned,n);
+			p1a=p1-avgW1;
+			p2a=p2Alg-avgW2;
+
+			double w=DIRECT_MULTIDIM_ELEM(Idiff,n);
+			double wp1a=w*p1a;
+			double wp2a=w*p2a;
+
+			sumWI1I1 +=wp1a*p1a;
+			sumWI2I2 +=wp2a*p2a;
+			sumWI1I2 +=wp1a*p2a;
+		}
+	}
+	sumWI1I2*=iN;
+	corrW1W2=sumWI1I2/sqrt(sumWI1I1*sumWI1I2);
+
+	return corrW1W2;
+}
+
+
+
+
 double svdCorrelation(const MultidimArray<double>& I1, const MultidimArray<double>& I2, const MultidimArray< int >* mask)
 {
 	// Copy input images into matrix2Ds
