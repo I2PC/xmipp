@@ -57,19 +57,18 @@ class ScriptCordsConsensus(xmipp_base.XmippScript):
       self.addParamsLine('-d <diameterTolerance> <F=0.1>  : Distance between 2 coordinates'
                          ' to be considered the same, measured as fraction of particleSize')
 
-      self.addParamsLine('-o <pathToExtractedParticles>  : A path to the directory where preprocessed extracted '
-                         'particles will be saved')
+      self.addParamsLine('-o <pathToExtractedParticles>  : A path to the directory where consensus coordiantes '
+                         ' will be saved')
                                                 
       self.addParamsLine('[ -t <numThreads>  <N=1>  ]   : Number of threads')
 
       ## examples
-#      self.addExampleLine('  xmipp_extract_particles -i path/to/inputs/file.txt -d 4 -s 128 -t 2 -o path/to/outDir')
-#      self.addExampleLine('  path/to/inputs/file.txt:\n'
-#                         '#mic coords\n'
-#                         'Runs/004986_XmippProtScreenDeepConsensus/extra/preProcMics/010_movie_aligned.mrc Runs/004986_XmippProtScreenDeepConsensus/tmp/010_movie_aligned.pos\n'
-#                         'Runs/004986_XmippProtScreenDeepConsensus/extra/preProcMics/100_movie_aligned.mrc Runs/004986_XmippProtScreenDeepConsensus/tmp/100_movie_aligned.pos\n'
-#                         'Runs/004986_XmippProtScreenDeepConsensus/extra/preProcMics/107_movie_aligned.mrc Runs/004986_XmippProtScreenDeepConsensus/tmp/107_movie_aligned.pos\n'
-#                         )
+      self.addExampleLine('  coordinates_consensus -i path/to/inputs/file.txt -d 0.05 -s 128 -t 2 -o path/to/outDir')
+      self.addExampleLine('  path/to/inputs/file.txt:\n'
+                         '#micName micId pos1 pos2\n'
+                         'Runs/import/tmp/010_movie_aligned.mrc 010 Runs/picker1/tmp/010_movie_aligned.pos Runs/picker2/tmp/010_movie_aligned.pos\n'
+                         'Runs/import/tmp/110_movie_aligned.mrc 110 Runs/picker1/tmp/110_movie_aligned.pos Runs/picker2/tmp/110_movie_aligned.pos\n'
+                         )
 
 
     def run(self):
@@ -99,6 +98,7 @@ class ScriptCordsConsensus(xmipp_base.XmippScript):
    
 def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCriterium, outDir):
   """ Compute consensus of coordiantes for the same micrograph
+      @param  coords_files [mic1_p1.pos, mic2_p2.pos,...]
   """
   baseName=  os.path.basename(coords_files[0]).split(".")[0]
   out_name= os.path.join(outDir, baseName+".pos") #VOY POR AQUI
@@ -106,12 +106,16 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
   coords=[]
   Ncoords=0
   n=0
+  micIds=set([])
   for fname in coords_files:
-    x_y_array= np.asarray(readPosCoordsFromFName(fname), dtype=int)
+    x_y_list, micId= readPosCoordsFromFName(fname, returnAlsoMicId=True)
+    micIds.add(micId)
+    x_y_array= np.asarray(x_y_list, dtype=int)
     coords.append(x_y_array)
     Ncoords += x_y_array.shape[0]
     n += 1
-  
+  if len(micIds)>1:
+    raise ValueError("Error, inconsistency in micIds, all files should belong to the same micId: %s"%(str(coords_files)))
   allCoords = np.zeros([Ncoords, 2])
   votes = np.zeros(Ncoords)
   
@@ -153,7 +157,7 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
   consensusCoords = allCoords[votes >= consensusCriterium, :]
   # Write the consensus file only if there are some coordinates (size > 0)
   if consensusCoords.size>0:
-      writeCoordsListToPosFname(out_name, consensusCoords, outputRoot=outDir)
+      writeCoordsListToPosFname(out_name, consensusCoords, outputRoot=outDir, micId= micId)
             
 if __name__ == '__main__':
 

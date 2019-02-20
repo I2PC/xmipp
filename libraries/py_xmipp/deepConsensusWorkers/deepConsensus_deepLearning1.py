@@ -40,7 +40,7 @@ import pyworkflow.em.metadata as MD
 import keras
 import tensorflow as tf
 from keras import backend as K
-from .deepConsensus_networkDef import main_network
+from .deepConsensus_networkDef import main_network, DESIRED_INPUT_SIZE
 tf_intarnalError= tf.errors.InternalError
 
 BATCH_SIZE= 64
@@ -115,7 +115,7 @@ class DeepTFSupervised(object):
     self.nNetModel.compile( self.optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
 
   def loadNNet(self, kerasModelFname, keepTraining=True, learningRate=1e-4, l2RegStrength=1e-5):
-    self.nNetModel= keras.models.load_model( kerasModelFname )
+    self.nNetModel= keras.models.load_model( kerasModelFname , custom_objects={"DESIRED_INPUT_SIZE":DESIRED_INPUT_SIZE})
     self.optimizer= self.nNetModel.optimizer
     if keepTraining:
         K.set_value(self.nNetModel.optimizer.lr, learningRate)    
