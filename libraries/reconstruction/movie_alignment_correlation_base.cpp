@@ -439,15 +439,16 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
     int j = 0;
     int n = 0;
     auto negateToDouble = [] (T v) {return (double) (v * -1);};
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
-    {
-        if (n >= nfirst && n <= nlast) {
-            auto shift = alignment.shifts.at(j);
-            movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x),
-                    __iter.objId);
-            movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y),
-                    __iter.objId);
-            j++;
+        FOR_ALL_OBJECTS_IN_METADATA(movie)
+        {
+            if (n >= nfirst && n <= nlast) {
+                auto shift = alignment.shifts.at(j);
+                // we should store shift that should be applied
+                movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x),
+                        __iter.objId);
+                movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y),
+                        __iter.objId);
+                j++;
             movie.setValue(MDL_ENABLED, 1, __iter.objId);
         } else {
             movie.setValue(MDL_ENABLED, -1, __iter.objId);
@@ -475,7 +476,9 @@ auto AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
             movie.getValue(MDL_SHIFT_X, shiftX, __iter.objId);
             movie.getValue(MDL_SHIFT_Y, shiftY, __iter.objId);
 
-            alignment.shifts.emplace_back(shiftX, shiftY);
+            // loaded values are shift that should be applied
+            // so we have to negate it
+            alignment.shifts.emplace_back(-shiftX, -shiftY);
         }
         n++;
     }
@@ -550,7 +553,8 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
         const AlignmentResult<T> &globAlignment) {
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
-    std::cout << "Estimated global shifts (must be negated to compensate them):\n";
+    std::cout << (useInputShifts ? "Loaded" : "Estimated")
+            << " global shifts (from the reference frame):\n";
     for (auto &&s : globAlignment.shifts) {
         printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
     }
