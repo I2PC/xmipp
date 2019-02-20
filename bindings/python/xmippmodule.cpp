@@ -1085,6 +1085,11 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 			MultidimArray<double> *mimg1;
 			MULTIDIM_ARRAY_GENERIC(*img1->image).getMultidimArrayPointer(mimg1);
 
+			//AJ testing
+			MULTIDIM_ARRAY_GENERIC(*img1->image).setXmippOrigin();
+			MULTIDIM_ARRAY_GENERIC(*result->image).setXmippOrigin();
+			//END AJ
+
 			Matrix2D<double> M;
 			alignImagesConsideringMirrors(*mimg1, *mimgResult, M, true);
 		}
@@ -1230,7 +1235,9 @@ xmipp_methods[] =
         { "MDValueRange", (PyCFunction) xmipp_MDValueRange,
           METH_VARARGS, "Construct a range query" },
         { "addLabelAlias", (PyCFunction) xmipp_addLabelAlias,
-          METH_VARARGS, "Add lable alias dinamically in run time. Use for reading non xmipp star files" },
+          METH_VARARGS, "Add a label alias dinamically in run time. Use for reading non xmipp star files" },
+        { "getNewAlias", (PyCFunction) xmipp_getNewAlias,
+          METH_VARARGS, "Add a label dinamically in run time. Use for reading non xmipp star files" },
         { "createEmptyFile", (PyCFunction) xmipp_createEmptyFile,
           METH_VARARGS, "create empty stack (speed up things)" },
         { "getImageSize", (PyCFunction) xmipp_getImageSize,
