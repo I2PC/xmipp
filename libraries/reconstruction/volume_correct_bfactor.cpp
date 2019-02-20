@@ -200,7 +200,8 @@ void  ProgVolumeCorrectBfactor::make_guinier_plot(MultidimArray< std::complex< d
     }
 }
 
-void ProgVolumeCorrectBfactor::get_snr_weights(std::vector<double> &snr)
+/*
+void ProgVolumeCorrectBfactor::get_snr_weights_old(std::vector<double> &snr)
 {
     std::ifstream  fh;
     std::string    line;
@@ -234,6 +235,27 @@ void ProgVolumeCorrectBfactor::get_snr_weights(std::vector<double> &snr)
         REPORT_ERROR(ERR_VALUE_INCORRECT,"ERROR: invalid FSC file");
     }
 }
+*/
+
+void ProgVolumeCorrectBfactor::get_snr_weights(std::vector<double> &snr)
+{
+
+	MetaData md;
+	md.read(fn_fsc);
+
+    double fsc;
+    int line_no = 0;
+
+    snr.clear();
+
+    FOR_ALL_OBJECTS_IN_METADATA(md)
+    {
+        md.getValue(MDL_RESOLUTION_FRC, fsc, __iter.objId);
+        double mysnr = XMIPP_MAX( (2*fsc) / (1+fsc), 0.);
+        snr.push_back( sqrt(mysnr) );
+    }
+}
+
 
 void  ProgVolumeCorrectBfactor::apply_snr_weights(MultidimArray< std::complex< double > > &FT1,
         std::vector<double> &snr)
