@@ -178,10 +178,10 @@ void ProgClassifyFirstSplit::run()
     V2.write(fnRoot+"_v2mirrored.vol");
     command="xmipp_volume_align --i1 "+fnRoot+"_v1.vol --i2 "+fnRoot+"_v2mirrored.vol --rot 0 360 15 --tilt 0 360 15 --psi 0 360 15 --apply";
     std::cout << command << std::endl;
-    system(command.c_str());
+    int ok=system(command.c_str());
     command="xmipp_volume_align --i1 "+fnRoot+"_v1.vol --i2 "+fnRoot+"_v2mirrored.vol --local --apply";
     std::cout << command << std::endl;
-    system(command.c_str());
+    ok=system(command.c_str());
     V2.read(fnRoot+"_v2mirrored.vol");
     double corrM=correlationIndex(V1(),V2());
     std::cout << "Correlation unmirrored: " << corr << std::endl;
