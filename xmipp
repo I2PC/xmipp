@@ -253,13 +253,15 @@ def cloneOrCheckout(repo, branch, doPull):
         # If the repo doesn't exist, just clone the whole repo
         return runJob("git clone -b %s %s %s"
                            % (branch, REPOSITORIES[repo], repoDir))
-    else:
+    elif doPull:
         workDir = os.getcwd()
         os.chdir(repoDir)
         print(green(('Pulling ' if doPull else 'Checkouting ') + repo + ' ...'))
         res = checkout(branch, doPull)
         os.chdir(workDir)
         return res
+    else:
+        return True
 
 def getCurrentBranch(cwd='./'):
     log = []
