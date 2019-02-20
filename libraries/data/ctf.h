@@ -565,7 +565,7 @@ public:
 			std::cout << "   K1,K2,sin=" << K1 << " " << K2 << " "
 			<< std::endl;
 			std::cout << "   Q0=" << Q0 << std::endl;
-			std::cout << " VPP =" << VPP << std::endl;
+			std::cout << "   VPP=" << VPP << std::endl;
 			std::cout << "   CTF without damping="
 			<< -(Ksin*sine_part - Kcos*cosine_part) << std::endl;
 		}
