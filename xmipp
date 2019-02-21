@@ -1134,7 +1134,8 @@ if __name__ == '__main__':
     if not ensureGit():
         sys.exit(-1)
 
-    print(os.environ['TRAVIS_BRANCH'])
+    print("travis branch:" + str(os.environ['TRAVIS_BRANCH']))
+    print("travis PR branch:" + str(os.environ['TRAVIS_PULL_REQUEST_BRANCH']))
 
 
     n = len(sys.argv)
