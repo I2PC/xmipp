@@ -263,6 +263,17 @@ def cloneOrCheckout(repo, branch, doPull):
     else:
         return True
 
+def getCurrentTravisBranch():
+    # see https://docs.travis-ci.com/user/environment-variables/
+    # On Travis, PR will have the TRAVIS_PULL_REQUEST_BRANCH variable non-empty
+    # otherwise the TRAVIS_BRANCH will hold the name of the current branch
+    if 'TRAVIS_PULL_REQUEST_BRANCH' in os.environ and 'TRAVIS_BRANCH' in os.environ:
+        current_branch = os.environ['TRAVIS_PULL_REQUEST_BRANCH'] or os.environ['TRAVIS_BRANCH']
+        print(green("Detected branch: " + current_branch))
+        return True, current_branch
+    return False, None
+
+
 def getCurrentBranch(cwd='./'):
     log = []
     commit = []
@@ -289,7 +300,7 @@ def getAllBranches(repo):
 def getBranch(repo):
     if 'TRAVIS' in os.environ:
         # we need to get current branch of the xmipp
-        r1, branchHint = getCurrentBranch('./src/xmipp/')
+        r1, branchHint = getCurrentTravisBranch()
         r2, branches = getAllBranches(repo)
         if r1 and r2 and branchHint in branches:
             return (True, branchHint)
