@@ -511,7 +511,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
             "Missing BSpline representation. This should not happen. Please contact developers.");
     }
     // Store average
-    double sum = 0;
+    std::vector<double> shifts;
     for (auto &&p : alignment.shifts) {
         int tileCenterX = p.first.rec.getCenter().x;
         int tileCenterY = p.first.rec.getCenter().y;
@@ -520,11 +520,16 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
                 alignment.bsplineRep.value(), alignment.movieDim,
                 tileCenterX, tileCenterY, tileIdxT);
         auto globalShift = alignment.globalHint.shifts.at(tileIdxT);
-        sum += hypot(shift.first - globalShift.x, shift.second - globalShift.y);
+        shifts.emplace_back(hypot(shift.first - globalShift.x, shift.second - globalShift.y));
     }
     MetaData mdIref;
     size_t id = mdIref.addObject();
-    mdIref.setValue(MDL_LOCAL_ALIGNMENT_AVG, sum / alignment.shifts.size(), id);
+    // Store confidence interval
+    std::sort(shifts.begin(), shifts.end(), std::less<double>());
+    size_t indexL = shifts.size() * 0.025;
+    size_t indexU = shifts.size() * 0.975;
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_CONF_2_5_PERC, shifts.at(indexL), id);
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_CONF_97_5_PERC, shifts.at(indexU), id);
     // Store patches
     mdIref.setValue(MDL_LOCAL_ALIGNMENT_PATCHES,
         std::vector<size_t>{localAlignPatches.first, localAlignPatches.second}, id);
