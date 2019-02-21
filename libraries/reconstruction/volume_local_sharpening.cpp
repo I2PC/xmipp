@@ -110,7 +110,7 @@ void ProgLocSharpening::produceSideInfo()
     resolutionVolume().clear();
 
 	maxMinResolution(resVol, maxRes, minRes);
-	std::cout << "maxRes = " << maxRes << "  minRes = " << minRes << std::endl;
+//	std::cout << "maxRes = " << maxRes << "  minRes = " << minRes << std::endl;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resVol)
 	{

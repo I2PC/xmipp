@@ -85,7 +85,12 @@ private:
     /**
      * Inherited, see parent
      */
-    void releaseAll() { /* nothing to do */ };
+    void releaseAll() {
+        for (auto f : frameFourier) {
+            delete f;
+        }
+        frameFourier.clear();
+    };
 
     /**
      * Inherited, see parent
