@@ -1134,6 +1134,9 @@ if __name__ == '__main__':
     if not ensureGit():
         sys.exit(-1)
 
+    print(os.environ['TRAVIS_BRANCH'])
+
+
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
         usage()
