@@ -46,6 +46,7 @@
 #include "core/optional.h"
 #include "eq_system_solver.h"
 #include "bspline_helper.h"
+#include "data/point2D.h"
 
 template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
