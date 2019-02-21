@@ -222,6 +222,37 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }
 
+/* add labels in run time */
+PyObject *
+xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+
+
+    int type;
+    PyObject *input = NULL;
+    PyObject *pyStr = NULL;
+    char *str = NULL;
+
+
+    if (PyArg_ParseTuple(args, "Oi", &input, &type))
+    {
+        try
+        {
+            if ((pyStr = PyObject_Str(input)) != NULL )
+            {
+                str = PyString_AsString(pyStr);
+                return PyLong_FromLong(MDL::getNewAlias((String)str, (MDLabelType)type));
+                
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+
+    return NULL;
+}
 /***************************************************************/
 /*                            MetaData                         */
 /**************************************************************/

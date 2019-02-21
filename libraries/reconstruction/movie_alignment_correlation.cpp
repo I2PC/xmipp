@@ -74,7 +74,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
     MultidimArray<T> filter;
     FourierTransformer transformer;
     bool firstImage = true;
-    int n = 0;
+    int n = -1;
     FileName fnFrame;
     Image<T> croppedFrame, reducedFrame;
 
@@ -85,12 +85,16 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
 
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
+        ++n;
         if (n >= this->nfirst && n <= this->nlast) {
             this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
 
             if (firstImage) {
+                firstImage = false;
                 newXdim = croppedFrame().xdim * sizeFactor;
                 newYdim = croppedFrame().ydim * sizeFactor;
+                filter = this->createLPF(this->getTargetOccupancy(), newXdim,
+                    newYdim);
             }
 
             // Reduce the size of the input frame
@@ -102,18 +106,12 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     new MultidimArray<std::complex<T> >;
             transformer.FourierTransform(reducedFrame(), *reducedFrameFourier,
                     true);
-            if (firstImage) {
-                firstImage = false;
-                filter = this->createLPF(this->getTargetOccupancy(), newXdim,
-                    newYdim);
-            }
             for (size_t nn = 0; nn < filter.nzyxdim; ++nn) {
                 T wlpf = DIRECT_MULTIDIM_ELEM(filter, nn);
                 DIRECT_MULTIDIM_ELEM(*reducedFrameFourier,nn) *= wlpf;
             }
             frameFourier.push_back(reducedFrameFourier);
         }
-        ++n;
         if (this->verbose)
             progress_bar(n);
     }
@@ -146,7 +144,6 @@ void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
 
             idx++;
         }
-        delete frameFourier[i];
     }
 }
 
@@ -159,15 +156,18 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     Image<T> frame, croppedFrame, reducedFrame, shiftedFrame;
     Matrix1D<T> shift(2);
     FileName fnFrame;
-    int j = 0;
-    int n = 0;
+    int frameIndex = -1;
     Ninitial = N = 0;
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
-        if (n >= this->nfirstSum && n <= this->nlastSum) {
+        frameIndex++;
+        if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
+            // user might want to align frames 3..10, but sum only 4..6
+            // by deducting the first frame that was aligned, we get proper offset to the stored memory
+            int frameOffset = frameIndex - this->nfirst;
             // get shifts
-            XX(shift) = -globAlignment.shifts.at(n).x; // we want to compensate
-            YY(shift) = -globAlignment.shifts.at(n).y; // the shift
+            XX(shift) = -globAlignment.shifts.at(frameOffset).x; // we want to compensate
+            YY(shift) = -globAlignment.shifts.at(frameOffset).y; // the shift
 
             // load frame
             this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
@@ -179,7 +179,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
             }
 
             if ( ! this->fnInitialAvg.isEmpty()) {
-                if (j == 0)
+                if (frameIndex == this->nfirstSum)
                     initialMic() = croppedFrame();
                 else
                     initialMic() += croppedFrame();
@@ -199,20 +199,20 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                             croppedFrame(), shift, DONT_WRAP,
                             croppedFrame().computeAvg());
                 if (this->fnAligned != "")
-                    shiftedFrame.write(this->fnAligned, j + 1, true,
-                            WRITE_REPLACE);
+                    shiftedFrame.write(this->fnAligned, frameOffset + 1, true,
+                        WRITE_REPLACE);
                 if (this->fnAvg != "") {
-                    if (j == 0)
+                    if (frameIndex == this->nfirstSum)
                         averageMicrograph() = shiftedFrame();
                     else
                         averageMicrograph() += shiftedFrame();
                     N++;
                 }
             }
-            std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
-            j++;
+            if (this->verbose > 1) {
+                std::cout << "Frame " << std::to_string(frameIndex) << " processed." << std::endl;
+            }
         }
-        n++;
     }
 }
 
