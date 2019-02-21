@@ -299,14 +299,14 @@ def getCurrentTravisBranch():
 def getCurrentBranch(cwd='./'):
     log = []
     commit = []
-    runJob('git rev-parse HEAD', cwd=cwd, 
-        show_output=False, show_command=False, log=commit)
-    result = runJob('git name-rev ' + commit[0], cwd=cwd,
-        show_output=False, show_command=False, log=log)
+    if not os.path.exists(cwd):
+        return False, None
+    runJob('git rev-parse HEAD', cwd=cwd, show_output=False, show_command=False, log=commit)
+    runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False, show_command=False, log=log)
     if log:
-        return (True, log[0].split()[1].strip()) # log contains commit_space_branchName
+        return True, log[0].split()[1].strip()  # log contains commit_space_branchName
     print(red('Cannot get current branch'))
-    return (False, None)
+    return False, None
 
 def getAllBranches(repo):
     log = []
@@ -325,8 +325,11 @@ def getBranch(repo, repo_dir):
         r1, branchHint = getCurrentTravisBranch()
         r2, branches = getAllBranches(repo)
         if r1 and r2 and branchHint in branches:
-            return (True, branchHint)
-    return getCurrentBranch(repo_dir) or getDefaultBranch(repo)
+            return True, branchHint
+    r, branch = getCurrentBranch(repo_dir)
+    if r:
+        return r, branch
+    return  getDefaultBranch(repo)
 
 def getDefaultBranch(repo):
     log = []
