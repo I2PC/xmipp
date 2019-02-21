@@ -269,15 +269,16 @@ def pull():
         return runJob("git pull", show_command=False)
     return True  # meaning that this is a local branch or we are offline, so pull doesn't make sense
 
+
 def cloneOrCheckout(repo, branch):
-    branch = branch or getBranch(repo)[1]
-    repoDir = os.path.join('src', repo)
-    if not os.path.exists(repoDir):
+    repo_dir = os.path.join('src', repo)
+    branch = branch or getBranch(repo, repo_dir)[1]
+    if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
-        return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repoDir))
+        return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
     else:
         workDir = os.getcwd()
-        os.chdir(repoDir)
+        os.chdir(repo_dir)
         print(green('Checkouting ' + repo + ' ...'))
         res = checkout(branch) and pull()
         os.chdir(workDir)
@@ -318,14 +319,14 @@ def getAllBranches(repo):
     print(red('Cannot listl branches for ' + repo))
     return (False, None)
 
-def getBranch(repo):
+def getBranch(repo, repo_dir):
     if 'TRAVIS' in os.environ:
         # we need to get current branch of the xmipp
         r1, branchHint = getCurrentTravisBranch()
         r2, branches = getAllBranches(repo)
         if r1 and r2 and branchHint in branches:
             return (True, branchHint)
-    return getDefaultBranch(repo)
+    return getCurrentBranch(repo_dir) or getDefaultBranch(repo)
 
 def getDefaultBranch(repo):
     log = []
@@ -341,7 +342,7 @@ def getDefaultBranch(repo):
     return (False, None)
 
 
-def getSources(branch=None):
+def getSources(branch):
     print("Getting sources -------------------------------------")
     createDir("src")
     repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
