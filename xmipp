@@ -267,7 +267,10 @@ def getCurrentTravisBranch():
     # see https://docs.travis-ci.com/user/environment-variables/
     # On Travis, PR will have the TRAVIS_PULL_REQUEST_BRANCH variable non-empty
     # otherwise the TRAVIS_BRANCH will hold the name of the current branch
-    return os.environ['TRAVIS_PULL_REQUEST_BRANCH'] or os.environ['TRAVIS_BRANCH']
+    branch = os.environ['TRAVIS_PULL_REQUEST_BRANCH'] or os.environ['TRAVIS_BRANCH']
+    print(green("Detected branch: " + branch))
+    return branch
+
 
 def getCurrentBranch(cwd='./'):
     log = []
