@@ -539,8 +539,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     Image<T> croppedFrame(rawMovieDim.x(), rawMovieDim.y());
     T *croppedFrameData = croppedFrame.data.data;
     Image<T> reducedFrame, shiftedFrame;
-    int j = 0;
-    int n = 0;
+    int frameIndex = -1;
     Ninitial = N = 0;
     GeoTransformer<T> transformer;
     auto movieSettings = getMovieSettings(movie, false);
@@ -551,9 +550,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
-        if (n >= this->nfirstSum && n <= this->nlastSum) {
+        frameIndex++;
+        if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
             // user might want to align frames 3..10, but sum only 4..6
-            int frameOffset = this->nfirstSum - this->nfirst + j;
+            // by deducting the first frame that was aligned, we get proper offset to the stored memory
+            int frameOffset = frameIndex - this->nfirst;
             // load frame
             // we can point to proper part of the already loaded movie
             croppedFrame.data.data = movieRawData + (frameOffset * rawMovieDim.xy());
@@ -578,7 +579,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             }
 
             if ( ! this->fnInitialAvg.isEmpty()) {
-                if (j == 0)
+                if (frameIndex == this->nfirstSum)
                     initialMic() = croppedFrame();
                 else
                     initialMic() += croppedFrame();
@@ -588,14 +589,14 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             if (this->fnAligned != "" || this->fnAvg != "") {
                 transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, movieSettings.dim.n(),
                     localAlignmentControlPoints.x(), localAlignmentControlPoints.y(), localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, j);
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, frameOffset);
 
 
                 if (this->fnAligned != "")
-                    shiftedFrame.write(this->fnAligned, j + 1, true,
+                    shiftedFrame.write(this->fnAligned, frameOffset + 1, true,
                             WRITE_REPLACE);
                 if (this->fnAvg != "") {
-                    if (j == 0)
+                    if (frameIndex == this->nfirstSum)
                         averageMicrograph() = shiftedFrame();
                     else
                         averageMicrograph() += shiftedFrame();
@@ -603,11 +604,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 }
             }
             if (this->verbose > 1) {
-                std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
+                std::cout << "Frame " << std::to_string(frameIndex) << " processed." << std::endl;
             }
-            j++;
         }
-        n++;
     }
     // assign original data to avoid memory leak
     croppedFrame.data.data = croppedFrameData;
