@@ -24,7 +24,7 @@ def retrieveModelsForDeepConsensus(destDir):
 if __name__=="__main__":
   '''
     usage.
-    python updateModels /path/where/downloadedStuffGoes
+    python build/pylib/xmippPyModules/deepConsensusWorkers/updateModels.py src/xmipp/models/deepConsensus
   '''
   retrieveModelsForDeepConsensus(sys.argv[1])
   
