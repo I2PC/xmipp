@@ -760,11 +760,14 @@ def writeConfig(configDict):
         for label in sorted(configDict.keys()):
             configFile.write("%s=%s\n"%(label,configDict[label]))
 
-def config():
+def config(useScipion=False):
     print("Configuring -----------------------------------------")
     configDict = createEmptyConfig()
     updateConfigDict(configDict, readConfigFile("xmipp.conf"))
     scipionHomeDir = getScipionHome()
+    if useScipion and not scipionHomeDir:
+        print(red("$SCIPION_HOME is not set and scipion is not in the path. Use './xmipp config --noscipion' to configure without scipion"))
+        return False
     if scipionHomeDir:
         updateConfigDict(configDict, readConfigFile(os.path.join(scipionHomeDir,"config","scipion.conf")))
     updateConfigDict(configDict, readConfigFile(os.path.join("src","xmippCore","install")))
@@ -1116,7 +1119,7 @@ def usage(msg=''):
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
-          "   config:                     Configure compilation variables\n"
+          "   config [--noscipion]:       Configure compilation variables\n"
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
           "   compile N dependencies:     Compile dependencies\n"
@@ -1210,7 +1213,10 @@ if __name__ == '__main__':
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
     elif mode=="config":
-        config()
+        useScipion=True
+        if n==3 and sys.argv[2]=="--noscipion":
+            useScipion=False
+        config(useScipion)
     elif mode=="check_config":
         checkConfig()
     elif mode=="compile":
@@ -1260,7 +1266,7 @@ if __name__ == '__main__':
 
         ok = (getDependencies()
             and getSources(branch)
-            and config()
+            and config(useScipion=True)
             and checkConfig()
             and compileDependencies(Nproc)
             and compile(Nproc)
