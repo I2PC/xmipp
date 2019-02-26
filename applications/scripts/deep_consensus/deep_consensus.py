@@ -295,8 +295,8 @@ def updateEnviron(gpuNum=None):
   """ Create the needed environment for TensorFlow programs. """
   print("updating environ to select gpu %s"%(gpuNum) )
   if not gpuNum is None:
-    os.environ['LD_LIBRARY_PATH']= os.environ['CUDA_LIB']+":"+os.environ['CUDA_HOME']+"/extras/CUPTI/lib64"
-    os.environ['LD_LIBRARY_PATH']= os.environ['CUDA_LIB']
+    # os.environ['LD_LIBRARY_PATH']= os.environ['CUDA_LIB']+":"+os.environ['CUDA_HOME']+"/extras/CUPTI/lib64"
+    # os.environ['LD_LIBRARY_PATH']= os.environ['CUDA_LIB']
     os.environ['CUDA_VISIBLE_DEVICES']=str(gpuNum)  #THIS IS FOR USING JUST one GPU:# must be changed to select desired gpu
   else:
     os.environ['CUDA_VISIBLE_DEVICES']="-1"
