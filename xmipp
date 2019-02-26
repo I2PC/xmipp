@@ -361,11 +361,15 @@ def getSources(branch):
     return True
 
 
+def is_config_true(key):
+    return configDict and (key in configDict) and (configDict[key] == 'True')
+
+
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
     createDir("src")
     result = True
-    if configDict and 'CUDA' in configDict:
+    if is_config_true('CUDA'):
         result = cloneOrCheckout(CUFFTADVISOR, None)
     if not result:
         print(red("Cannot get dependencies"))
@@ -399,6 +403,7 @@ def readConfigFile(fnConfig):
     except:
         sys.exit("%s\nPlease fix the configuration file %s." % (sys.exc_info()[1],fnConfig))
     return retval
+
 
 def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
@@ -615,6 +620,7 @@ int main(){}
 
     return ok
 
+
 def configJava(configDict):
     if configDict["JAVA_HOME"]=="":
         javaProgramPath = distutils.spawn.find_executable("java")
@@ -754,6 +760,7 @@ def checkMatlab(configDict):
         runJob("rm xmipp_mex*")
     return ans
 
+
 def writeConfig(configDict):
     with open(CONFIG_FILE_NAME, "w") as configFile:
         configFile.write("[BUILD]\n")
@@ -776,11 +783,10 @@ def config():
     configJava(new_config_dict)
     configCuda(new_config_dict)
     configMatlab(new_config_dict)
+    config_DL(new_config_dict)
 
-    with open(CONFIG_FILE_NAME, "w") as configFile:
-        configFile.write("[BUILD]\n")
-        for label in sorted(new_config_dict.keys()):
-            configFile.write("%s=%s\n"%(label,new_config_dict[label]))
+    writeConfig(new_config_dict)
+
     return new_config_dict
 
 
@@ -816,7 +822,7 @@ def checkConfig(config_dict):
 def compileModule(Nproc,module):
     shutil.copyfile(CONFIG_FILE_NAME,"src/%s/install/%s" % (module, CONFIG_FILE_NAME))
     if module == "xmipp":
-        if (configDict['USE_DL'] == 'True') and ('TRAVIS' not in os.environ):
+        if is_config_true('USE_DL') and ('TRAVIS' not in os.environ):
             downloadDeepLearningModels()
         stampVersion()
     ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
@@ -1276,7 +1282,10 @@ if __name__ == '__main__':
                 usage("Unknown %s argument"%arg)
                 sys.exit(1)
 
-        configDict = config()
+        # create config
+        config()
+        # HACK: re-read it from file to resolve paths
+        configDict = readConfigFile(CONFIG_FILE_NAME)
         ok = (checkConfig(configDict)
             and getDependencies()
             and getSources(branch)
