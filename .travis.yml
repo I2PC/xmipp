@@ -13,6 +13,10 @@ addons:
     token:
         secure: $SONAR_TOKEN
 
+cache:
+    directories:
+    - /home/travis/.sonar/cache
+
 before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
 script:
