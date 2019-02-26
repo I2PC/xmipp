@@ -54,6 +54,8 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                                     CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git'}
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
+CONFIG_FILE_NAME = "xmipp.conf"
+
 
 
 def checkGithubConnection():
@@ -234,13 +236,13 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True):
     return 0 == p.poll()
 
 def cleanSources():
-    runJob("rm -rf xmipp.conf build src")
+    runJob("rm -rf %s build src" % CONFIG_FILE_NAME)
 
 def cleanBinaries():
     for ext in ['so', 'os', 'o']:
         runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
     runJob('find . -iname "*.pyc" -delete')
-    runJob("rm -rf xmipp.conf build")
+    runJob("rm -rf %s build" % CONFIG_FILE_NAME)
 
 
 def checkout(branch):
@@ -358,13 +360,16 @@ def getSources(branch):
             return False
     return True
 
+
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
     createDir("src")
-    if cloneOrCheckout(CUFFTADVISOR, None):
-        return True
-    print(red("Cannot get dependencies"))
-    return False
+    result = True
+    if configDict and 'CUDA' in configDict:
+        result = cloneOrCheckout(CUFFTADVISOR, None)
+    if not result:
+        print(red("Cannot get dependencies"))
+    return result
 
 def getScipionHome():
     if "SCIPION_HOME" in os.environ:
@@ -381,8 +386,8 @@ def readConfigFile(fnConfig):
     cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
     try:
         if os.path.isdir(fnConfig):
-            if os.path.exists(os.path.join(fnConfig,"xmipp.conf")):
-                fnConfig = os.path.join(fnConfig,"xmipp.conf")
+            if os.path.exists(os.path.join(fnConfig,CONFIG_FILE_NAME)):
+                fnConfig = os.path.join(fnConfig,CONFIG_FILE_NAME)
             else:
                 fnConfig = os.path.join(fnConfig, "xmipp.template")
         if os.path.exists(fnConfig):
@@ -393,24 +398,19 @@ def readConfigFile(fnConfig):
             return dict(cf.items('BUILD'))
     except:
         sys.exit("%s\nPlease fix the configuration file %s." % (sys.exc_info()[1],fnConfig))
+    return retval
 
 def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL']
     configDict = {}
     for label in labels:
         configDict[label]=""
     return configDict
 
-def updateConfigDict(configDict1,configDict2):
-    return
-    if configDict2:
-        for label in configDict1:
-            if configDict1[label]=="" and label in configDict2:
-                configDict1[label] = configDict2[label]
 
 def findFileInDirList(fnH,dirlist):
     for dir in dirlist:
@@ -755,77 +755,75 @@ def checkMatlab(configDict):
     return ans
 
 def writeConfig(configDict):
-    with open("xmipp.conf", "w") as configFile:
+    with open(CONFIG_FILE_NAME, "w") as configFile:
         configFile.write("[BUILD]\n")
         for label in sorted(configDict.keys()):
             configFile.write("%s=%s\n"%(label,configDict[label]))
+
+
+def config_DL(configDict):
+    k = 'USE_DL'
+    if (k in configDict) and (configDict[k] != 'False'):
+        configDict[k] = 'True'
+
 
 def config():
     print("Configuring -----------------------------------------")
-    configDict = createEmptyConfig()
-    updateConfigDict(configDict, readConfigFile("xmipp.conf"))
-    scipionHomeDir = getScipionHome()
-    if scipionHomeDir:
-        updateConfigDict(configDict, readConfigFile(os.path.join(scipionHomeDir,"config","scipion.conf")))
-    updateConfigDict(configDict, readConfigFile(os.path.join("src","xmippCore","install")))
-    updateConfigDict(configDict, readConfigFile(os.path.join("src","xmipp","install")))
-    updateConfigDict(configDict, readConfigFile(os.path.join("src","xmippViz","install")))
+    new_config_dict = createEmptyConfig()
 
-    configCompiler(configDict)
-    configMPI(configDict)
-    configJava(configDict)
-    configCuda(configDict)
-    configMatlab(configDict)
+    configCompiler(new_config_dict)
+    configMPI(new_config_dict)
+    configJava(new_config_dict)
+    configCuda(new_config_dict)
+    configMatlab(new_config_dict)
 
-    with open("xmipp.conf", "w") as configFile:
+    with open(CONFIG_FILE_NAME, "w") as configFile:
         configFile.write("[BUILD]\n")
-        for label in sorted(configDict.keys()):
-            configFile.write("%s=%s\n"%(label,configDict[label]))
-    return True
+        for label in sorted(new_config_dict.keys()):
+            configFile.write("%s=%s\n"%(label,new_config_dict[label]))
+    return new_config_dict
 
-def checkConfig():
+
+def checkConfig(config_dict):
     print("Checking configuration ------------------------------")
-    configDict = readConfigFile("xmipp.conf")
-    if not 'VERIFIED' in configDict:
-        if not checkCompiler(configDict):
+    ensureConfig()
+    if not 'VERIFIED' in config_dict:
+        if not checkCompiler(config_dict):
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
                   "python-numpy python-scipy python-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
-            return False
-        if not checkMPI(configDict):
+            return config_dict
+        if not checkMPI(config_dict):
             print(red("Cannot compile with MPI or use it"))
             return False
-        if not checkJava(configDict):
+        if not checkJava(config_dict):
             print(red("Cannot compile with Java"))
             return False
-        if not checkCuda(configDict):
+        if not checkCuda(config_dict):
             print(red("Cannot compile with NVCC, continuing without CUDA"))
             runJob("rm xmipp_cuda_test*")  # if fails, the test files remains
-            configDict["CUDA"]="False"
-        if not checkMatlab(configDict):
+            config_dict["CUDA"]="False"
+        if not checkMatlab(config_dict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
-            configDict["MATLAB"]="False"
-        configDict['VERIFIED']="True"
-        writeConfig(configDict)
+            config_dict["MATLAB"]="False"
+        config_dict['VERIFIED']="True"
+        writeConfig(config_dict)
     return True
 
+
 def compileModule(Nproc,module):
-    shutil.copyfile("xmipp.conf","src/%s/install/xmipp.conf"%module)
+    shutil.copyfile(CONFIG_FILE_NAME,"src/%s/install/%s" % (module, CONFIG_FILE_NAME))
     if module == "xmipp":
-        if 'TRAVIS' not in os.environ:
+        if (configDict['USE_DL'] == 'True') and ('TRAVIS' not in os.environ):
             downloadDeepLearningModels()
         stampVersion()
     ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
 
-def compileDependencies(Nproc):
-    print("Building Dependencies -------------------------------------")
-    if not checkProgram("nvcc",False):
-        print(red('Dependencies not installed as they need NVCC, which has not been found in the PATH.\nDepending on other settings, build might crash eventually.'))
-        return True
 
+def compile_cuFFTAdvisor():
     advisorDir = "src/cuFFTAdvisor/"
     currDir = os.getcwd()
     libDir = "src/xmipp/lib/"
@@ -833,13 +831,22 @@ def compileDependencies(Nproc):
     os.chdir(advisorDir)
     ok = runJob("make all")
     os.chdir(currDir)
-    ok = ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
-    if not ok:
+    return ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
+
+
+def compileDependencies(Nproc):
+    print("Building Dependencies -------------------------------------")
+    result = True
+    if configDict and 'CUDA' in configDict:
+        result = result and compile_cuFFTAdvisor()
+    if not result:
         print(red("Cannot build dependencies"))
-    return ok
+    return result
+
 
 def compile(Nproc):
     print("Compiling -------------------------------------------")
+    ensureConfig()
     if not compileModule(Nproc,"xmippCore"):
         return False
     if not compileModule(Nproc,"xmipp"):
@@ -1114,7 +1121,7 @@ def usage(msg=''):
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
-          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and xmipp.conf)\n"
+          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + CONFIG_FILE_NAME + ")\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config:                     Configure compilation variables\n"
           "   check_config:               Check that the configuration is correct\n"
@@ -1154,6 +1161,15 @@ def getVersion(onlyNumbers=False):
 
     return cleanInfo.strip(' ')
 
+
+def ensureConfig():
+    # assuming the config file is not loaded in the main, i.e. it does not exists yet and has not been created
+    # by another function
+    if not configDict:
+        print(red("There is no config file. Make sure to run config"))
+        sys.exit(-6)
+
+
 def ensureGit():
     createDir(TMP_DIR)
     if not checkProgram('git'):
@@ -1170,6 +1186,8 @@ if __name__ == '__main__':
 
     if not ensureGit():
         sys.exit(-1)
+
+    configDict = readConfigFile(CONFIG_FILE_NAME)
 
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
@@ -1210,9 +1228,9 @@ if __name__ == '__main__':
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
     elif mode=="config":
-        config()
+        configDict = config()
     elif mode=="check_config":
-        checkConfig()
+        checkConfig(configDict)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
@@ -1258,10 +1276,10 @@ if __name__ == '__main__':
                 usage("Unknown %s argument"%arg)
                 sys.exit(1)
 
-        ok = (getDependencies()
+        configDict = config()
+        ok = (checkConfig(configDict)
+            and getDependencies()
             and getSources(branch)
-            and config()
-            and checkConfig()
             and compileDependencies(Nproc)
             and compile(Nproc)
             and install('build'))
