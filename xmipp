@@ -790,32 +790,32 @@ def config():
     return new_config_dict
 
 
-def checkConfig(config_dict):
+def checkConfig():
     print("Checking configuration ------------------------------")
     ensureConfig()
-    if not 'VERIFIED' in config_dict:
-        if not checkCompiler(config_dict):
+    if not 'VERIFIED' in configDict:
+        if not checkCompiler(configDict):
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
                   "python-numpy python-scipy python-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
-            return config_dict
-        if not checkMPI(config_dict):
+            return False
+        if not checkMPI(configDict):
             print(red("Cannot compile with MPI or use it"))
             return False
-        if not checkJava(config_dict):
+        if not checkJava(configDict):
             print(red("Cannot compile with Java"))
             return False
-        if not checkCuda(config_dict):
+        if not checkCuda(configDict):
             print(red("Cannot compile with NVCC, continuing without CUDA"))
             runJob("rm xmipp_cuda_test*")  # if fails, the test files remains
-            config_dict["CUDA"]="False"
-        if not checkMatlab(config_dict):
+            configDict["CUDA"]="False"
+        if not checkMatlab(configDict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
             config_dict["MATLAB"]="False"
-        config_dict['VERIFIED']="True"
-        writeConfig(config_dict)
+        configDict['VERIFIED']="True"
+        writeConfig(configDict)
     return True
 
 
@@ -1236,7 +1236,7 @@ if __name__ == '__main__':
     elif mode=="config":
         configDict = config()
     elif mode=="check_config":
-        checkConfig(configDict)
+        checkConfig()
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
@@ -1286,7 +1286,7 @@ if __name__ == '__main__':
         config()
         # HACK: re-read it from file to resolve paths
         configDict = readConfigFile(CONFIG_FILE_NAME)
-        ok = (checkConfig(configDict)
+        ok = (checkConfig()
             and getDependencies()
             and getSources(branch)
             and compileDependencies(Nproc)
