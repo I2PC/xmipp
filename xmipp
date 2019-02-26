@@ -843,7 +843,7 @@ def compile_cuFFTAdvisor():
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
-    if configDict and 'CUDA' in configDict:
+    if is_config_true('CUDA'):
         result = result and compile_cuFFTAdvisor()
     if not result:
         print(red("Cannot build dependencies"))
