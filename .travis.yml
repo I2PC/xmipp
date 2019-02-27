@@ -1,6 +1,6 @@
 sudo: true
 dist: trusty
-env: TRAVIS=1
+env: TRAVIS=1 XMIPP_NOSCIPION=True
 git:
     depth: false
 addons:
@@ -19,6 +19,5 @@ script:
  - |
      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90 && \
      python ./scripts/travis_before_script.py && \
-     export XMIPP_NOSCIPION=True && \
      build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp && \
      sonar-scanner
