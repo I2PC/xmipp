@@ -760,11 +760,12 @@ def writeConfig(configDict):
         for label in sorted(configDict.keys()):
             configFile.write("%s=%s\n"%(label,configDict[label]))
 
-def config(useScipion=False):
+def config():
     print("Configuring -----------------------------------------")
     configDict = createEmptyConfig()
     updateConfigDict(configDict, readConfigFile("xmipp.conf"))
     scipionHomeDir = getScipionHome()
+    useScipion = not ('XMIPP_NOSCIPION' in os.environ)
     if useScipion and not scipionHomeDir:
         print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
         return False
@@ -1214,10 +1215,7 @@ if __name__ == '__main__':
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
     elif mode=="config":
-        useScipion=True
-        if 'XMIPP_NOSCIPION' in os.environ:
-            useScipion=False
-        config(useScipion)
+        config()
     elif mode=="check_config":
         checkConfig()
     elif mode=="compile":
@@ -1267,7 +1265,7 @@ if __name__ == '__main__':
 
         ok = (getDependencies()
             and getSources(branch)
-            and config(useScipion=True)
+            and config()
             and checkConfig()
             and compileDependencies(Nproc)
             and compile(Nproc)
