@@ -2,7 +2,7 @@ sudo: true
 dist: trusty
 env: TRAVIS=1
 git:
-    depth: false
+    depth: false # to get blame information for SonarCloud
 addons:
   apt:
     sources: ubuntu-toolchain-r-test
@@ -16,6 +16,7 @@ addons:
 cache:
     directories:
     - /home/travis/.sonar/cache
+    ccache: true
 
 before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
