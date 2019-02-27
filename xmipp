@@ -714,7 +714,7 @@ def checkCuda(configDict):
 
         if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
                   (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
-            print(red("Check the NVCC, CXXFLAGS, NVCC_CXXFLAGS and INCDIRFLAGS"))
+            print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
         if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
                   (configDict["NVCC"], configDict["NVCC_LINKFLAGS"])):
@@ -992,6 +992,7 @@ def install(dirname):
     if not os.path.isfile(initFn):
         with open(initFn, 'w') as f:
             pass  # just to create a init file to be able to import it as module
+
     runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/xmippPyModules/")
 
     createDir(dirname+"/bindings")
