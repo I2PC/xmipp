@@ -1,6 +1,6 @@
 sudo: true
 dist: trusty
-env: TRAVIS=1
+env: TRAVIS=1 XMIPP_NOSCIPION=True
 git:
     depth: false # to get blame information for SonarCloud
 addons:
