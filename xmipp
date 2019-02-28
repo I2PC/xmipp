@@ -467,7 +467,11 @@ def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
     if configDict["CXX"]=="":
-        configDict["CXX"]="g++" if checkProgram("g++") else ""
+        if 'TRAVIS' in os.environ:
+            # on TRAVIS, we can use cache to speed up the build
+            configDict["CXX"]="ccache g++" if checkProgram("g++") else ""
+        else:
+            configDict["CXX"]="g++" if checkProgram("g++") else "" 
     if configDict["LINKERFORPROGRAMS"]=="":
         configDict["LINKERFORPROGRAMS"]="g++" if checkProgram("g++") else ""
 
@@ -846,6 +850,7 @@ def compile(Nproc):
     print("Compiling -------------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
+    runJob('ccache -s', show_output=True, show_command=True)
     if not compileModule(Nproc,"xmipp"):
         return False
     if not compileModule(Nproc,"xmippViz"):
