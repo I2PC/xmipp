@@ -1,8 +1,8 @@
 sudo: true
 dist: trusty
-env: TRAVIS=1
+env: TRAVIS=1 XMIPP_NOSCIPION=True
 git:
-    depth: false
+    depth: false # to get blame information for SonarCloud
 addons:
   apt:
     sources: ubuntu-toolchain-r-test
@@ -19,5 +19,6 @@ script:
  - |
      sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90 && \
      python ./scripts/travis_before_script.py && \
-     build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp && \
-     sonar-scanner
+     ./xmipp
+     #build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp && \
+     #sonar-scanner
