@@ -850,7 +850,6 @@ def compile(Nproc):
     print("Compiling -------------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
         return False
-    runJob('ccache -s', show_output=True, show_command=True)
     if not compileModule(Nproc,"xmipp"):
         return False
     if not compileModule(Nproc,"xmippViz"):
