@@ -33,7 +33,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
-    this->addParamsLine("  [--oBSpline <fn=\"\">]             : Path to file that can be used to store BSpline coefficients");
     this->addParamsLine("  [--locCorrDownscale <x=4> <y=4>]   : Downscale coefficient of the correlations used for local alignment");
 
     this->addExampleLine(
@@ -46,8 +45,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
     std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().UUID() << ")" << std::endl;
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
-    std::cout << "Control points:      " << localAlignmentControlPoints << std::endl;
-    std::cout << "Patches:             " << localAlignPatches.first << " x " << localAlignPatches.second << std::endl;
+    std::cout << "Control points:      " << this->localAlignmentControlPoints << std::endl;
+    std::cout << "Patches:             " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
     std::cout << "Patches avg:         " << patchesAvg << std::endl;
 }
 
@@ -65,33 +64,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     // read permanent storage
     storage = this->getParam("--storage");
 
-    // read control points
-    Dimensions cPoints(
-            this->getIntParam("--controlPoints", 0),
-            this->getIntParam("--controlPoints", 1),
-            1,
-            this->getIntParam("--controlPoints", 2));
-    if ((cPoints.x() < 3) || (cPoints.y() < 3) || (cPoints.n() < 3))
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "All control points has to be bigger than 2");
-    localAlignmentControlPoints = cPoints;
-
-    // read patches
-    localAlignPatches = std::make_pair(
-            this->getIntParam("--patches", 0),
-            this->getIntParam("--patches", 1));
-    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "At least one patch has to be used in each dimension.");
-
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
     if (patchesAvg < 1)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Patch averaging has to be at least one.");
-
-    // read BSpline coefficients storage
-    fnBSplinePath = this->getParam("--oBSpline");
 
     // read local alignment correlations scale
     localCorrelationDownscale = std::make_pair(
@@ -168,8 +145,8 @@ template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
         const std::pair<T, T> &borders,
         const Dimensions &movie, const Dimensions &patch) {
-    size_t patchesX = localAlignPatches.first;
-    size_t patchesY = localAlignPatches.second;
+    size_t patchesX = this->localAlignPatches.first;
+    size_t patchesY = this->localAlignPatches.second;
     T windowXSize = movie.x() - 2 * borders.first;
     T windowYSize = movie.y() - 2 * borders.second;
     T corrX = std::ceil(
@@ -328,56 +305,6 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeBSplineCoeffs(const Dimensions &movieSize,
-        const LocalAlignmentResult<T> &alignment,
-        const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches) {
-
-    if(this->verbose) std::cout << "Computing BSpline coefficients" << std::endl;
-    // get coefficients fo the BSpline that can represent the shifts (formula  from the paper)
-    int lX = controlPoints.x();
-    int lY = controlPoints.y();
-    int lT = controlPoints.n();
-    int noOfPatchesXY = noOfPatches.first * noOfPatches.second;
-    Matrix2D<T>A(noOfPatchesXY*movieSize.n(), lX * lY * lT);
-    Matrix1D<T>bX(noOfPatchesXY*movieSize.n());
-    Matrix1D<T>bY(noOfPatchesXY*movieSize.n());
-    T hX = (lX == 3) ? movieSize.x() : (movieSize.x() / (T)(lX-3));
-    T hY = (lY == 3) ? movieSize.y() : (movieSize.y() / (T)(lY-3));
-    T hT = (lT == 3) ? movieSize.n() : (movieSize.n() / (T)(lT-3));
-
-    for (auto &&r : alignment.shifts) {
-        auto meta = r.first;
-        auto shift = r.second;
-        int tileIdxT = meta.id_t;
-        int tileCenterT = tileIdxT * 1 + 0 + 0;
-        int tileIdxX = meta.id_x;
-        int tileIdxY = meta.id_y;
-        int tileCenterX = meta.rec.getCenter().x;
-        int tileCenterY = meta.rec.getCenter().y;
-        int i = (tileIdxY * noOfPatches.first) + tileIdxX;
-
-        for (int j = 0; j < (lT * lY * lX); ++j) {
-            int controlIdxT = (j / (lY * lX)) - 1;
-            int XY = j % (lY * lX);
-            int controlIdxY = (XY / lX) -1;
-            int controlIdxX = (XY % lX) -1;
-            // note: if control point is not in the tile vicinity, val == 0 and can be skipped
-            T val = Bspline03((tileCenterX / (T)hX) - controlIdxX) *
-                    Bspline03((tileCenterY / (T)hY) - controlIdxY) *
-                    Bspline03((tileCenterT / (T)hT) - controlIdxT);
-            MAT_ELEM(A,tileIdxT*noOfPatchesXY + i,j) = val;
-        }
-        VEC_ELEM(bX,tileIdxT*noOfPatchesXY + i) = -shift.x; // we want the BSPline describing opposite transformation,
-        VEC_ELEM(bY,tileIdxT*noOfPatchesXY + i) = -shift.y; // so that we can use it to compensate for the shift
-    }
-
-    // solve the equation system for the spline coefficients
-    Matrix1D<T> coefsX, coefsY;
-    this->solveEquationSystem(bX, bY, A, coefsX, coefsY, this->verbose + 1);
-    return std::make_pair(coefsX, coefsY);
-}
-
-template<typename T>
 auto ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
         const Dimensions &patchDim, T maxShift) {
     T minX = ((maxShift * 2) + 1) / patchDim.x();
@@ -424,7 +351,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     size_t framesInBuffer = std::ceil((gpu.value().lastFreeMem() / 3) / corrSizeMB);
 
     // prepare result
-    LocalAlignmentResult<T> result { .globalHint = globAlignment };
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim};
     result.shifts.reserve(patchesLocation.size() * movieSettings.dim.n());
     auto refFrame = core::optional<size_t>(globAlignment.refFrame);
 
@@ -485,6 +412,13 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     delete[] patchesData1;
     delete[] patchesData2;
+
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+            this->localAlignmentControlPoints, this->localAlignPatches,
+            this->verbose, this->solverIterations);
+    result.bsplineRep = core::optional<BSplineGrid<T>>(
+            BSplineGrid<T>(this->localAlignmentControlPoints, coeffs.first, coeffs.second));
+
     return result;
 }
 
@@ -493,7 +427,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
         const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = getMovieSettings(movie, false);
-    LocalAlignmentResult<T> result { .globalHint = globAlignment };
+    LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim };
     auto patchSettings = this->getPatchSettings(movieSettings);
     auto borders = getMovieBorders(globAlignment, 0);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
@@ -520,17 +454,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs) {
-    if (fnBSplinePath.isEmpty()) return;
-
-    auto fnX = FileName(fnBSplinePath.getBaseName() + "X", fnBSplinePath.getExtension());
-    auto fnY = FileName(fnBSplinePath.getBaseName() + "Y", fnBSplinePath.getExtension());
-
-    coeffs.first.write(fnX);
-    coeffs.second.write(fnY);
-}
-
-template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
@@ -539,21 +462,24 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     Image<T> croppedFrame(rawMovieDim.x(), rawMovieDim.y());
     T *croppedFrameData = croppedFrame.data.data;
     Image<T> reducedFrame, shiftedFrame;
-    int j = 0;
-    int n = 0;
+    int frameIndex = -1;
     Ninitial = N = 0;
     GeoTransformer<T> transformer;
-    auto movieSettings = getMovieSettings(movie, false);
+    if ( ! alignment.bsplineRep) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT,
+            "Missing BSpline representation. This should not happen. Please contact developers.");
+    }
 
-    auto coeffs = computeBSplineCoeffs(movieSettings.dim, alignment, localAlignmentControlPoints, localAlignPatches);
-    storeCoefficients(coeffs);
-
+    auto coeffs = std::make_pair(alignment.bsplineRep.value().getCoeffsX(),
+        alignment.bsplineRep.value().getCoeffsY());
 
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
-        if (n >= this->nfirstSum && n <= this->nlastSum) {
+        frameIndex++;
+        if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
             // user might want to align frames 3..10, but sum only 4..6
-            int frameOffset = this->nfirstSum - this->nfirst + j;
+            // by deducting the first frame that was aligned, we get proper offset to the stored memory
+            int frameOffset = frameIndex - this->nfirst;
             // load frame
             // we can point to proper part of the already loaded movie
             croppedFrame.data.data = movieRawData + (frameOffset * rawMovieDim.xy());
@@ -578,7 +504,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             }
 
             if ( ! this->fnInitialAvg.isEmpty()) {
-                if (j == 0)
+                if (frameIndex == this->nfirstSum)
                     initialMic() = croppedFrame();
                 else
                     initialMic() += croppedFrame();
@@ -586,16 +512,16 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             }
 
             if (this->fnAligned != "" || this->fnAvg != "") {
-                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, movieSettings.dim.n(),
-                    localAlignmentControlPoints.x(), localAlignmentControlPoints.y(), localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, j);
+                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, alignment.movieDim.n(),
+                        this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n());
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, frameOffset);
 
 
                 if (this->fnAligned != "")
-                    shiftedFrame.write(this->fnAligned, j + 1, true,
+                    shiftedFrame.write(this->fnAligned, frameOffset + 1, true,
                             WRITE_REPLACE);
                 if (this->fnAvg != "") {
-                    if (j == 0)
+                    if (frameIndex == this->nfirstSum)
                         averageMicrograph() = shiftedFrame();
                     else
                         averageMicrograph() += shiftedFrame();
@@ -603,11 +529,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 }
             }
             if (this->verbose > 1) {
-                std::cout << "Frame " << std::to_string(j) << " processed." << std::endl;
+                std::cout << "Frame " << std::to_string(frameIndex) << " processed." << std::endl;
             }
-            j++;
         }
-        n++;
     }
     // assign original data to avoid memory leak
     croppedFrame.data.data = croppedFrameData;

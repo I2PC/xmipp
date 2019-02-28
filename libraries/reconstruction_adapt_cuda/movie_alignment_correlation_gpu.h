@@ -35,7 +35,9 @@
 #include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
 #include "data/filters.h"
 #include "data/fft_settings.h"
+#include "data/bspline_grid.h"
 #include "core/userSettings.h"
+#include "reconstruction/bspline_helper.h"
 #include "gpu.h"
 #include "core/optional.h"
 
@@ -255,18 +257,6 @@ private:
             const Dimensions &movie, T *result);
 
     /**
-     * Computes BSpline coefficients from given data
-     * @param movieSize
-     * @param alignment to use
-     * @param controlPoints of the resulting spline
-     * @param noOfPatches used for generating the alignment
-     * @return coefficients of the BSpline representing the local shifts
-     */
-    auto computeBSplineCoeffs(const Dimensions &movieSize,
-            const LocalAlignmentResult<T> &alignment,
-            const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches);
-
-    /**
      * Create local alignment from global alignment
      * @param movie to use
      * @param globAlignment to use
@@ -299,10 +289,6 @@ private:
      */
     auto getLocalAlignmentCorrelationDownscale(
             const Dimensions &patchDim, T maxShift);
-    /**
-     * Method for storing BSpline  coefficients
-     */
-    void storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs);
 
     /**
      * Method copies raw movie data according to the settings
@@ -313,8 +299,6 @@ private:
             T *output);
 
 private:
-    /** Number of patches used for local alignment */
-    std::pair<size_t, size_t> localAlignPatches;
 
     /** downscale to be used for local alignment correlation (<1) */
     std::pair<T,T> localCorrelationDownscale;
@@ -322,14 +306,9 @@ private:
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 
-    /** Control points used for local alignment */
-    Dimensions localAlignmentControlPoints = Dimensions(0);
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
-
-    /** Path to file where BSpline coeffs might be stored */
-    FileName fnBSplinePath;
 
     core::optional<GPU> gpu;
 

@@ -23,61 +23,34 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_DIMENSIONS_H_
-#define LIBRARIES_DATA_DIMENSIONS_H_
+#ifndef LIBRARIES_DATA_BSPLINE_GRID_H_
+#define LIBRARIES_DATA_BSPLINE_GRID_H_
 
-#include <ostream>
+#include "dimensions.h"
+#include "core/matrix1d.h"
 
-class Dimensions {
+template<typename T>
+class BSplineGrid {
 public:
-    explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1) :
-            m_x(x), m_y(y), m_z(z), m_n(n) {
-    }
-    ;
+    BSplineGrid(Dimensions &dim, Matrix1D<T> &coeffsX, Matrix1D<T> &coeffsY):
+        dim(dim), coeffsX(coeffsX), coeffsY(coeffsY) {}
 
-    inline constexpr size_t x() const {
-        return m_x;
+    auto constexpr getDim() const {
+        return dim;
     }
 
-    inline constexpr size_t y() const {
-        return m_y;
+    const auto getCoeffsX() const {
+        return coeffsX;
     }
 
-    inline constexpr size_t z() const {
-        return m_z;
-    }
-
-    inline constexpr size_t n() const {
-        return m_n;
-    }
-
-    inline constexpr size_t xy() const {
-        return m_x * m_y;
-    }
-
-    constexpr size_t size() const {
-        return m_x * m_y * m_z * m_n;
-    }
-
-    friend std::ostream& operator<<(std::ostream &os, const Dimensions &d) {
-        os << d.x() << " * " << d.y() << " * " << d.z() << " * " << d.n();
-        return os;
-    }
-
-    constexpr bool operator==(const Dimensions &b) const {
-        return (m_x == b.m_x)
-                && (m_y == b.m_y)
-                && (m_z == b.m_z)
-                && (m_n == b.m_n);
+    const auto getCoeffsY() const {
+        return coeffsY;
     }
 
 private:
-    size_t m_x;
-    size_t m_y;
-    size_t m_z;
-    size_t m_n;
+    Dimensions dim;
+    Matrix1D<T> coeffsX;
+    Matrix1D<T> coeffsY;
 };
 
-
-
-#endif /* LIBRARIES_DATA_DIMENSIONS_H_ */
+#endif /* LIBRARIES_DATA_BSPLINE_GRID_H_ */
