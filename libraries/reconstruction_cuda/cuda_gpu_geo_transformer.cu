@@ -53,6 +53,44 @@ void applyGeometryKernel_2D_wrap(const T* trInv, T minxpp, T maxxpp, T minypp,
     }
 }
 
+// FIXME unify with C++ implementation
+template<typename T>
+__device__
+void getShift(int lX, int lY, int lN, int xdim, int ydim, int ndim, int x,
+        int y, int curFrame, T &shiftY, T &shiftX, const T* coefsX,
+        const T* coefsY) {
+    T delta = 0.0001;
+    // take into account end poits
+    T hX = (lX == 3) ? xdim : (xdim / (T) ((lX - 3)));
+    T hY = (lY == 3) ? ydim : (ydim / (T) ((lY - 3)));
+    T hT = (lN == 3) ? ndim : (ndim / (T) ((lN - 3)));
+    // index of the 'cell' where pixel is located (<0, N-3> for N control points)
+    T xPos = x / hX;
+    T yPos = y / hY;
+    T tPos = curFrame / hT;
+    // indices of the control points are from -1 .. N-2 for N points
+    // pixel in 'cell' 0 may be influenced by points with indices <-1,2>
+    for (int idxT = max(-1, (int) (tPos) - 1);
+            idxT <= min((int) (tPos) + 2, lN - 2); ++idxT) {
+        T tmpT = bspline03(tPos - idxT);
+        for (int idxY = max(-1, (int) (yPos) - 1);
+                idxY <= min((int) (yPos) + 2, lY - 2); ++idxY) {
+            T tmpY = bspline03(yPos - idxY);
+            for (int idxX = max(-1, (int) (xPos) - 1);
+                    idxX <= min((int) (xPos) + 2, lX - 2); ++idxX) {
+                T tmpX = bspline03(xPos - idxX);
+                T tmp = tmpX * tmpY * tmpT;
+                if (fabsf(tmp) > delta) {
+                    size_t coeffOffset = (idxT + 1) * (lX * lY)
+                            + (idxY + 1) * lX + (idxX + 1);
+                    shiftX += coefsX[coeffOffset] * tmp;
+                    shiftY += coefsY[coeffOffset] * tmp;
+                }
+            }
+        }
+    }
+}
+
 template<typename T, int degree>
 __global__
 void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
@@ -68,38 +106,11 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
 
     // Calculate this position in the input image according to the
     // geometrical transformation
-    
-    T delta = 0.0001;
-    // take into account end poits
-    T hX = (lX == 3) ? xdim : (xdim / (T)(lX-3));
-    T hY = (lY == 3) ? ydim : (ydim / (T)(lY-3));
-    T hT = (lN == 3) ? ndim : (ndim / (T)(lN-3));
-    
-    // index of the 'cell' where pixel is located (<0, N-3> for N control points)
-    T xPos = x / hX;
-    T yPos = y / hY;
-    T tPos = curFrame / hT;
-
 	T shiftX = 0;
 	T shiftY = 0;
-	// indices of the control points are from -1 .. N-2 for N points
-	// pixel in 'cell' 0 may be influenced by points with indices <-1,2>
-	for (int idxT = max(-1, (int)tPos-1); idxT <= min((int)tPos+2,lN-2); ++idxT) {
-	    T tmpT = bspline03(tPos - idxT);
-	    for (int idxY = max(-1, (int)yPos-1); idxY <= min((int)yPos+2,lY-2); ++idxY) {
-	        T tmpY = bspline03(yPos - idxY);
-            for (int idxX = max(-1, (int)xPos-1); idxX <= min((int)xPos+2,lX-2); ++idxX) {
-                T tmpX = bspline03(xPos - idxX);
-                T tmp = tmpX * tmpY * tmpT;
-                if (fabsf(tmp) > delta) {
-                    size_t coeffOffset = (idxT+1) * (lX * lY) + (idxY+1) * lX + (idxX+1);
-                    shiftX += coefsX[coeffOffset] * tmp;
-                    shiftY += coefsY[coeffOffset] * tmp;
-                }
-            }
-        }
-	}
-	
+    getShift(lX, lY, lN, xdim, ydim, ndim, x, y, curFrame, shiftY, shiftX,
+            coefsX, coefsY);
+
 	switch (degree) {
         case 0:
         case 1:
