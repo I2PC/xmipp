@@ -479,7 +479,7 @@ def configCompiler(configDict):
     if configDict["CC"]=="gcc":
         if not "-std=c99" in configDict["CCFLAGS"]:
             configDict["CCFLAGS"]+=" -std=c99"
-    if configDict["CXX"]=="g++":
+    if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
             configDict["CXXFLAGS"]+=" -std=c++14"
     # Nothing special to add to LINKFLAGS
@@ -716,7 +716,7 @@ def checkCuda(configDict):
 
         if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
                   (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
-            print(red("Check the NVCC, CXXFLAGS, NVCC_CXXFLAGS and INCDIRFLAGS"))
+            print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
         if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
                   (configDict["NVCC"], configDict["NVCC_LINKFLAGS"])):
@@ -777,6 +777,10 @@ def config_DL(configDict):
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
+    useScipion = not ('XMIPP_NOSCIPION' in os.environ)
+    if useScipion and not scipionHomeDir:
+        print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
+        return False
 
     configCompiler(new_config_dict)
     configMPI(new_config_dict)
@@ -1001,6 +1005,7 @@ def install(dirname):
     if not os.path.isfile(initFn):
         with open(initFn, 'w') as f:
             pass  # just to create a init file to be able to import it as module
+
     runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/xmippPyModules/")
 
     createDir(dirname+"/bindings")
@@ -1129,7 +1134,8 @@ def usage(msg=''):
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + CONFIG_FILE_NAME + ")\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
-          "   config:                     Configure compilation variables\n"
+          "   config:                     Configure compilation variables. Set the environment variable XMIPP_NOSCIPION=True\n"
+          "                               for compiling using system libraries\n"
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
           "   compile N dependencies:     Compile dependencies\n"

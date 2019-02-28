@@ -82,10 +82,12 @@ class XmippScript():
             if doRun:
                 self.readParams()
                 self.run()
+            return 0
         except Exception:
             import traceback
             traceback.print_exc(file=sys.stderr)
-
+            return 1
+            
 def createMetaDataFromPattern(pattern, isStack=False, label="image"):
     ''' Create a metadata from files matching pattern'''
     import glob
