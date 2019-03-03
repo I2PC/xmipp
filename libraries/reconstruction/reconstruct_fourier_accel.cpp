@@ -34,7 +34,7 @@ void ProgRecFourierAccel::defineParams()
 {
     //usage
     addUsageLine("Generate 3D reconstructions from projections using direct Fourier interpolation with arbitrary geometry.");
-    addUsageLine("Kaisser-windows are used for interpolation in Fourier space.");
+    addUsageLine("Kaisser-windows test test test are used for interpolation in Fourier space.");
     //params
     addParamsLine("   -i <md_file>                : Metadata file with input projections");
     addParamsLine("  [-o <volume_file=\"rec_fourier.vol\">]  : Filename for output volume");
@@ -116,6 +116,7 @@ void ProgRecFourierAccel::show()
 // Main routine ------------------------------------------------------------
 void ProgRecFourierAccel::run()
 {
+    std::cout << "Reconstruct_fourier_accel" << std::endl;	
     show();
     produceSideinfo();
     // Process all images in the selfile
