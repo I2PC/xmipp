@@ -170,8 +170,8 @@ void PhantomMovie<T>::addShift()
 		memcpy(tmp.data.data, &(movie.data[n * framePixels]), frameBytes);
 		for (size_t y = 0; y < ydim; ++y) {
 			for (size_t x = 0; x < xdim; ++x) {
-				T x_new = x + 2*n; // 'reverse' the order (see doc)
-				T y_new = y + 3*n; // 'reverse' the order (see doc)
+				T x_new = x + shiftX(ndim - n - 1); // 'reverse' the order (see doc)
+				T y_new = y + shiftY(ndim - n - 1); // 'reverse' the order (see doc)
 				size_t index = n * ydim * xdim + y * xdim + x;
 				movie.data[index] = bilinearInterpolation(tmp, x_new, y_new);
 			}
