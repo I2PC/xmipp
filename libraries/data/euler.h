@@ -154,7 +154,7 @@ public:
     //Matrix1D<double>  toMatrix33() const;
     //Matrix44<T>  toMatrix44() const;
     /////Quat<T>  toQuat() const;
-    void toXYZVector(Matrix1D<double> v) const;
+    void toXYZVector(Matrix1D<double> &v) const;
 
     //---------------------------------------------------
     // Use this function to unpack angles from ijk form
