@@ -61,7 +61,6 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
         outsideMode = OUTSIDE_VALUE;
         outsideValue = getDoubleParam("--outside", 1);
     }
-
     // read control points
     Dimensions cPoints(
             this->getIntParam("--controlPoints", 0),
@@ -116,8 +115,9 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << ") " << std::endl << "Use input shifts:    " << useInputShifts
             << std::endl << "Binning factor:      " << bin << std::endl
             << "Bspline:             " << BsplineOrder << std::endl
-            << "Local shift correction: " << (processLocalShifts ? "yes" : "no")
-            << std::endl;
+            << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
+            << "Control points:      " << this->localAlignmentControlPoints << std::endl
+            << "Patches:             " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
 }
 
 template<typename T>
@@ -176,7 +176,11 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "             value             : Fill borders with a specific value v");
     addParamsLine(
-            "  [--processLocalShifts]           : Calculate and correct local shifts");
+            "  [--processLocalShifts]       : Calculate and correct local shifts");
+    addParamsLine(
+            "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
+    addParamsLine(
+            "  [--patches <x=10> <y=10>]    : Number of patches to use for local alignment estimation");
     addExampleLine("A typical example", false);
     addSeeAlsoLine("xmipp_movie_optical_alignment_cpu");
 }
