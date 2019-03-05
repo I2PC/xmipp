@@ -88,7 +88,7 @@ def run(label, version):
     # excludeTgz += " --exclude='*.o' --exclude='*.os' --exclude='*pyc'"
     # excludeTgz += " --exclude='*.gz' --exclude='*.bashrc' --exclude='*.fish'"
     # excludeTgz += " --exclude=tests/data --exclude='*.scons*' --exclude=.git"
-    excludeTgz = "--exclude=.git"
+    excludeTgz = "--exclude=.git --exclude='xmipp.bashrc' --exclude='xmipp.fish'"
 
     cmdStr = "tar czf %(target)s.tgz %(excludeTgz)s %(target)s"
 
