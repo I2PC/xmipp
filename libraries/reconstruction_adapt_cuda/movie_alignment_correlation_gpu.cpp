@@ -30,8 +30,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     AProgMovieAlignmentCorrelation<T>::defineParams();
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
-    this->addParamsLine("  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
-    this->addParamsLine("  [--patches <x=10> <y=10>]          : Number of patches to use for local alignment estimation");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
     this->addParamsLine("  [--locCorrDownscale <x=4> <y=4>]   : Downscale coefficient of the correlations used for local alignment");
 
@@ -45,8 +43,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
     std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().UUID() << ")" << std::endl;
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
-    std::cout << "Control points:      " << this->localAlignmentControlPoints << std::endl;
-    std::cout << "Patches:             " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
     std::cout << "Patches avg:         " << patchesAvg << std::endl;
 }
 
@@ -441,6 +437,13 @@ auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
             result.shifts.emplace_back(tmp, Point2D<T>(globAlignment.shifts.at(i).x, globAlignment.shifts.at(i).y));
         }
     }
+
+    auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
+            this->localAlignmentControlPoints, this->localAlignPatches,
+            this->verbose, this->solverIterations);
+    result.bsplineRep = core::optional<BSplineGrid<T>>(
+            BSplineGrid<T>(this->localAlignmentControlPoints, coeffs.first, coeffs.second));
+
     return result;
 }
 
