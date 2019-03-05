@@ -200,14 +200,14 @@ def upload(login, tgzName, remoteFolder, update):
                 sys.exit(1)
 
     # Upload the dataset files (with rsync)
-    try:
-        print("Uploading files...")
-        call(['rsync', '-rlv', '--chmod=a+r', localFn,
-              '%s:%s' % (login, remoteFolder)])
-    except:
-        sys.exit("Uload failed, you may have a permissions issues.\n"
-                 "Please check the login introduced or contact to "
-                 "'scipion@cnb.csic.es' to upload the model.")
+    print("Uploading files...")
+    callResult = call(['rsync', '-rlv', '--chmod=a+r', localFn,
+                       '%s:%s' % (login, remoteFolder)])
+    if callResult != 0:
+        sys.exit("\n > Upload failed, you may have no permissions.\n\n"
+                 "   Please check the login introduced or contact to "
+                 "'scipion@cnb.csic.es' \n"
+                 "   for uploading the model placed at '%s'.\n" % localFn)
 
     # Regenerate remote MANIFEST (which contains a list of datasets)
     if isDLmodel:
