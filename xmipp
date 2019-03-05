@@ -218,12 +218,13 @@ def blue(text):
     return "\033[34m "+text+"\033[0m"
 
 
-def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True):
+def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
+           inParallel=False):
     if show_command:
         print(green(cmd))
     p = subprocess.Popen(cmd, cwd=cwd,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-    while True:
+    while not inParallel:
         output = p.stdout.readline()
         if output == '' and p.poll() is not None:
             break
@@ -233,7 +234,10 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True):
                 print(l)
             if log is not None:
                 log.append(l)
-    return 0 == p.poll()
+    if inParallel:
+        return p
+    else:
+        return 0 == p.poll()
 
 def cleanSources():
     runJob("rm -rf %s build src" % CONFIG_FILE_NAME)
@@ -770,15 +774,15 @@ def writeConfig(configDict):
 
 def config_DL(configDict):
     k = 'USE_DL'
-    if (k in configDict) and (configDict[k] != 'False'):
-        configDict[k] = 'True'
+    if (k in configDict) and (configDict[k] != 'True'):
+        configDict[k] = 'False'
 
 
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
     useScipion = not ('XMIPP_NOSCIPION' in os.environ)
-    if useScipion and not scipionHomeDir:
+    if useScipion and not getScipionHome():
         print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
         return False
 
@@ -817,7 +821,7 @@ def checkConfig():
             configDict["CUDA"]="False"
         if not checkMatlab(configDict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
-            config_dict["MATLAB"]="False"
+            configDict["MATLAB"]="False"
         configDict['VERIFIED']="True"
         writeConfig(configDict)
     return True
@@ -826,8 +830,6 @@ def checkConfig():
 def compileModule(Nproc,module):
     shutil.copyfile(CONFIG_FILE_NAME,"src/%s/install/%s" % (module, CONFIG_FILE_NAME))
     if module == "xmipp":
-        if is_config_true('USE_DL') and ('TRAVIS' not in os.environ):
-            downloadDeepLearningModels()
         stampVersion()
     ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
     return ok
@@ -906,7 +908,7 @@ def runTests(testNames):
         print(blue("Downloading the test files"))
         task = "download"
     args = "%s %s %s" % ("tests/data", url, dataset)
-    runJob("(cd src/xmipp; %s sync_data.py %s %s)" % (getPython(), task, args))
+    runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp/bin')
 
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd src/xmipp/tests; %s test.py %s)"
@@ -966,25 +968,37 @@ def addDeepLearninModel(login, modelName='', update=None):
 
     print("Trying to upload the model using '%s' as login" % login)
     args = "%s %s %s %s" % (login, tgzFn, remotePath, update)
+    # runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp/bin')
     runJob("(cd src/xmipp; %s sync_data.py upload %s)" % (getPython(), args))
 
 pDLdownload = None
-def downloadDeepLearningModels():
+def downloadDeepLearningModels(cwd, dedicatedMode=False):
+    if not is_config_true('USE_DL') and not dedicatedMode:
+        return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
-    modelsPath = os.path.join("src", "xmipp", "models")
+    dest = "models"
+    modelsPath = os.path.join(cwd, dest)
     dataSet = "DLmodels"
 
     # downloading/updating the DLmodels
     if os.path.isdir(modelsPath):
-        print(blue("Updating the Deep Learning models (in backgound)"))
+        print("Updating the Deep Learning models (in backgound)")
         task = "update"
     else:
-        print(blue("Downloading Deep Learning models (in backgound)"))
+        print("Downloading Deep Learning models (in backgound)")
         task = "download"
     global pDLdownload
-    pDLdownload = subprocess.Popen([getPython(), "sync_data.py", task, "models",
-                                    url, dataSet], cwd="src/xmipp")
-    return pDLdownload
+
+    # using Popen instead of runJob in order to download in parallel
+    pDLdownload = runJob("bin/xmipp_sync_data %s %s %s %s"
+                         % (task, dest, url, dataSet),
+                         cwd=cwd, show_command=False,
+                         inParallel=not dedicatedMode)
+    if dedicatedMode:
+        ok = pDLdownload
+    else:  # in parallel poll() is None untill finished
+        ok = pDLdownload.poll() is None or pDLdownload.poll() == 0
+    return ok
 
 def install(dirname):
     print("Installing ------------------------------------------")
@@ -1031,17 +1045,6 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
     ok = ok and runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
-
-    if 'TRAVIS' not in os.environ:
-        firstTime = True
-        global pDLdownload
-        while pDLdownload is not None and pDLdownload.poll() is None:
-            if firstTime:
-                print(blue("The download of some Deep Learning models is not "
-                           "finish yet. Continuing the download in the foregroung..."))
-                firstTime = False
-        createDir(dirname+"/models")
-        ok = ok and runJob("cat src/xmipp/models/xmipp_model_*.tgz | tar xzf - -i --directory="+dirname+"/models")
 
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
@@ -1139,11 +1142,12 @@ def usage(msg=''):
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
           "   compile N dependencies:     Compile dependencies\n"
-          "   compileAndInstall N:        Compile all modules with N processors and install in the default directory\n"
+          "   compileAndInstall [N]:      Compile all modules with N processors (8 by default) and install in the default directory\n"
           "   compile  N xmippCore:       Compile xmippCore\n"
           "   compile  N xmipp:           Compile xmipp\n"
           "   compile  N xmippViz:        Compile xmippViz\n"
           "   install [dir]:              Install at dir (./build by default)\n"
+          "   get_models [dir]:           Download the Deep Learning Models at dir/models (./build/models by default).\n"
           "   test [--show] testName:     Run tests to check Xmipp programs (without args, it shows a detailed help).\n"
           "                                 if --show is activated without testName all are shown, \n"
           "                                 instead a grep of testName is done \n"
@@ -1261,8 +1265,12 @@ if __name__ == '__main__':
             print(red("\nSome error occurred during the compilation\n"))
             sys.exit(1)
     elif mode=="compileAndInstall":
-        Nproc=sys.argv[2]
+        if n>2:
+            Nproc=sys.argv[2]
+        else:
+            Nproc=8
         compileDependencies(Nproc)
+        downloadDeepLearningModels("build")
         compile(Nproc)
         install("build")
     elif mode=="install":
@@ -1271,6 +1279,9 @@ if __name__ == '__main__':
         else:
             dir="build"
         install(dir)
+    elif mode=="get_models":
+        modelsDir = 'build' if n==2 else sys.argv[2]
+        downloadDeepLearningModels(modelsDir, dedicatedMode=True)
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
@@ -1288,11 +1299,13 @@ if __name__ == '__main__':
                 usage("Unknown %s argument"%arg)
                 sys.exit(1)
 
-        # create config
-        config()
+        # create config if not there
+        if not os.path.isfile(CONFIG_FILE_NAME):
+            config()
         # HACK: re-read it from file to resolve paths
         configDict = readConfigFile(CONFIG_FILE_NAME)
         ok = (checkConfig()
+            and downloadDeepLearningModels('build')
             and getDependencies()
             and getSources(branch)
             and compileDependencies(Nproc)
