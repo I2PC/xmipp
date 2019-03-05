@@ -61,6 +61,25 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
         outsideMode = OUTSIDE_VALUE;
         outsideValue = getDoubleParam("--outside", 1);
     }
+
+    // read control points
+    Dimensions cPoints(
+            this->getIntParam("--controlPoints", 0),
+            this->getIntParam("--controlPoints", 1),
+            1,
+            this->getIntParam("--controlPoints", 2));
+    if ((cPoints.x() < 3) || (cPoints.y() < 3) || (cPoints.n() < 3))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "All control points has to be bigger than 2");
+    localAlignmentControlPoints = cPoints;
+
+    // read patches
+    localAlignPatches = std::make_pair(
+            this->getIntParam("--patches", 0),
+            this->getIntParam("--patches", 1));
+    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "At least one patch has to be used in each dimension.");
 }
 
 template<typename T>
@@ -128,7 +147,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--solverIterations <N=2>]   : Number of robust least squares iterations");
     addParamsLine(
-            "  [--oaligned <fn=\"\">]       : Give the name of a stack if you want to generate an aligned movie");
+            "  [--oaligned <fn=\"\">]       : Aligned movie consists of aligned frames used for micrograph generation");
     addParamsLine(
             "  [--oavgInitial <fn=\"\">]    : Give the name of a micrograph to generate an unaligned (initial) micrograph");
     addParamsLine(
@@ -271,77 +290,6 @@ int AProgMovieAlignmentCorrelation<T>::findReferenceImage(size_t N,
 }
 
 template<typename T>
-void AProgMovieAlignmentCorrelation<T>::solveEquationSystem(Matrix1D<T>& bXt,
-        Matrix1D<T>& bYt, Matrix2D<T>& At, Matrix1D<T>& shiftXt,
-        Matrix1D<T>& shiftYt, int verbose) {
-    Matrix1D<double> ex, ey;
-    WeightedLeastSquaresHelper helper;
-    Matrix2D<double> A;
-    Matrix1D<double> bX, bY, shiftX, shiftY;
-    typeCast(At, helper.A);
-    typeCast(bXt, bX);
-    typeCast(bYt, bY);
-    typeCast(shiftXt, shiftX);
-    typeCast(shiftYt, shiftY);
-
-    helper.w.initZeros(VEC_XSIZE(bX));
-    helper.w.initConstant(1);
-
-    int it = 0;
-    double mean, varbX, varbY;
-    bX.computeMeanAndStddev(mean, varbX);
-    varbX *= varbX;
-    bY.computeMeanAndStddev(mean, varbY);
-    varbY *= varbY;
-    if (verbose > 1)
-        std::cout << "Solving for the shifts ...\n";
-    do {
-        // Solve the equation system
-        helper.b = bX;
-        weightedLeastSquares(helper, shiftX);
-        helper.b = bY;
-        weightedLeastSquares(helper, shiftY);
-
-        // Compute residuals
-        ex = bX - helper.A * shiftX;
-        ey = bY - helper.A * shiftY;
-
-        // Compute R2
-        double mean, vareX, vareY;
-        ex.computeMeanAndStddev(mean, vareX);
-        vareX *= vareX;
-        ey.computeMeanAndStddev(mean, vareY);
-        vareY *= vareY;
-        double R2x = 1 - vareX / varbX;
-        double R2y = 1 - vareY / varbY;
-        if (verbose > 1)
-            std::cout << "Iteration " << it << " R2x=" << R2x << " R2y=" << R2y
-                    << std::endl;
-
-        // Identify outliers
-        double oldWeightSum = helper.w.sum();
-        double stddeveX = sqrt(vareX);
-        double stddeveY = sqrt(vareY);
-        FOR_ALL_ELEMENTS_IN_MATRIX1D (ex)
-            if (fabs(VEC_ELEM(ex, i)) > 3 * stddeveX
-                    || fabs(VEC_ELEM(ey, i)) > 3 * stddeveY)
-                VEC_ELEM(helper.w, i) = 0.0;
-        double newWeightSum = helper.w.sum();
-        if ((newWeightSum == oldWeightSum) && (verbose > 1)){
-            std::cout << "No outlier found\n\n";
-            break;
-        } else if (verbose > 1)
-            std::cout << "Found " << (int) (oldWeightSum - newWeightSum)
-                    << " outliers\n\n";
-
-        it++;
-    } while (it < solverIterations);
-
-    typeCast(shiftX, shiftXt);
-    typeCast(shiftY, shiftYt);
-}
-
-template<typename T>
 void AProgMovieAlignmentCorrelation<T>::loadDarkCorrection(Image<T>& dark) {
     if (fnDark.isEmpty())
         return;
@@ -439,15 +387,16 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
     int j = 0;
     int n = 0;
     auto negateToDouble = [] (T v) {return (double) (v * -1);};
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
-    {
-        if (n >= nfirst && n <= nlast) {
-            auto shift = alignment.shifts.at(j);
-            movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x),
-                    __iter.objId);
-            movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y),
-                    __iter.objId);
-            j++;
+        FOR_ALL_OBJECTS_IN_METADATA(movie)
+        {
+            if (n >= nfirst && n <= nlast) {
+                auto shift = alignment.shifts.at(j);
+                // we should store shift that should be applied
+                movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x),
+                        __iter.objId);
+                movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y),
+                        __iter.objId);
+                j++;
             movie.setValue(MDL_ENABLED, 1, __iter.objId);
         } else {
             movie.setValue(MDL_ENABLED, -1, __iter.objId);
@@ -475,7 +424,9 @@ auto AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
             movie.getValue(MDL_SHIFT_X, shiftX, __iter.objId);
             movie.getValue(MDL_SHIFT_Y, shiftY, __iter.objId);
 
-            alignment.shifts.emplace_back(shiftX, shiftY);
+            // loaded values are shift that should be applied
+            // so we have to negate it
+            alignment.shifts.emplace_back(-shiftX, -shiftY);
         }
         n++;
     }
@@ -499,7 +450,7 @@ AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::computeAlignment(
     // now get the estimated shift (from the equation system)
     // from each frame to successive frame
     Matrix1D<T> shiftX, shiftY;
-    this->solveEquationSystem(bX, bY, A, shiftX, shiftY, verbose);
+    EquationSystemSolver::solve(bX, bY, A, shiftX, shiftY, verbose, solverIterations);
     // prepare result
     AlignmentResult<T> result {.refFrame = refFrame ?
                     refFrame.value() :
@@ -526,7 +477,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(Image<T>& initialMic,
         averageMicrograph() /= N;
         averageMicrograph.write(fnAvg);
     }
-    movie.write((FileName) ("frameShifts@") + fnOut);
+    movie.write((FileName) "frameShifts@" + fnOut, MD_APPEND);
 }
 
 template<typename T>
@@ -545,11 +496,66 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::printGlobalShift(
         const AlignmentResult<T> &globAlignment) {
     std::cout << "Reference frame: " << globAlignment.refFrame << "\n";
-    std::cout << "Estimated global shifts (must be negated to compensate them):\n";
+    std::cout << (useInputShifts ? "Loaded" : "Estimated")
+            << " global shifts (from the reference frame):\n";
     for (auto &&s : globAlignment.shifts) {
         printf("X: %07.4f Y: %07.4f\n", s.x, s.y);
     }
     std::cout << std::endl;
+}
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::storeResults(
+        const LocalAlignmentResult<T> &alignment) {
+    if (fnOut.isEmpty()) {
+        return;
+    }
+    if ( ! alignment.bsplineRep) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT,
+            "Missing BSpline representation. This should not happen. Please contact developers.");
+    }
+    // Store average
+    std::vector<double> shifts;
+    for (auto &&p : alignment.shifts) {
+        int tileCenterX = p.first.rec.getCenter().x;
+        int tileCenterY = p.first.rec.getCenter().y;
+        int tileIdxT = p.first.id_t;
+        auto shift = BSplineHelper::getShift(
+                alignment.bsplineRep.value(), alignment.movieDim,
+                tileCenterX, tileCenterY, tileIdxT);
+        auto globalShift = alignment.globalHint.shifts.at(tileIdxT);
+        shifts.emplace_back(hypot(shift.first - globalShift.x, shift.second - globalShift.y));
+    }
+    MetaData mdIref;
+    size_t id = mdIref.addObject();
+    // Store confidence interval
+    std::sort(shifts.begin(), shifts.end(), std::less<double>());
+    size_t indexL = shifts.size() * 0.025;
+    size_t indexU = shifts.size() * 0.975;
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_CONF_2_5_PERC, shifts.at(indexL), id);
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_CONF_97_5_PERC, shifts.at(indexU), id);
+    // Store patches
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_PATCHES,
+        std::vector<size_t>{localAlignPatches.first, localAlignPatches.second}, id);
+    // Store coefficients
+    std::vector<double> tmpX;
+    std::vector<double> tmpY;
+    size_t size = alignment.bsplineRep.value().getCoeffsX().size();
+    for (int i = 0; i < size; ++i) {
+        tmpX.push_back(alignment.bsplineRep.value().getCoeffsX()(i));
+        tmpY.push_back(alignment.bsplineRep.value().getCoeffsY()(i));
+    }
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_COEFFS_X, tmpX, id);
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_COEFFS_Y, tmpY, id);
+    // Store control points
+    mdIref.setValue(MDL_LOCAL_ALIGNMENT_CONTROL_POINTS,
+            std::vector<size_t>{
+                localAlignmentControlPoints.x(),
+                localAlignmentControlPoints.y(),
+                localAlignmentControlPoints.n()},
+            id);
+    // Safe to file
+    mdIref.write((FileName) ("localAlignment@") + fnOut, MD_APPEND);
 }
 
 template<typename T>
@@ -588,6 +594,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
         auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
+        storeResults(localAlignment);
     } else {
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, globalAlignment);

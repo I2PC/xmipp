@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
+ * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2018)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -1270,18 +1270,19 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 //			A3D_ELEM(meanResolution,k,i,j) = meanRes[(size_t) floor(0.5*meanRes.size())];
 			std::sort(ResList.begin(),ResList.end());
 
-			double Mres, mres, medianResol;
+			double Mres, mres, medianResol, res75, res25;
 
 			Mres = ResList[ (size_t) floor(0.95*ResList.size()) ];
 			A3D_ELEM(lowestResolution,k,i,j) = Mres;
 
-			mres = ResList[ (size_t) floor(0.03*ResList.size()) ];
+			mres = ResList[ (size_t) floor(0.05*ResList.size()) ];
 
-			medianResol = ResList[ (size_t) floor(0.5*ResList.size()) ];
+			res75 = ResList[ (size_t) floor(0.83*ResList.size()) ];
+			res25 = ResList[ (size_t) floor(0.17*ResList.size()) ];
 
 			A3D_ELEM(highestResolution,k,i,j) = mres;
 
-			A3D_ELEM(doaResolution_1,k,i,j) = ( (Mres - mres)/(Mres + mres) );
+			A3D_ELEM(doaResolution_1,k,i,j) = 0.5*(res75 - res25);//( (Mres - mres)/(Mres + mres) );
 
 			A3D_ELEM(doaResolution_2,k,i,j) = 0.5*( (Mres + mres) );
 
