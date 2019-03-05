@@ -27,6 +27,7 @@
 #define _PROG_EXTRACT_FEATURES
 
 #include <core/xmipp_program.h>
+#include <set>
 
 
 class ProgExtractFeatures: public XmippProgram

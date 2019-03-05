@@ -29,7 +29,6 @@
 #include <data/mask.h>
 #include <data/filters.h>
 #include <vector>
-#include <set>
 #include <string>
 
 ProgExtractFeatures::ProgExtractFeatures(): XmippProgram()
