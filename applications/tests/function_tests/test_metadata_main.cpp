@@ -472,46 +472,31 @@ TEST_F( MetadataTest, MDInfo)
 
 TEST_F( MetadataTest,multiWrite)
 {
-/*
-	char sfnStar[64] = "";
-	char sfnSqlite[64] = "";
-	char sfnXML[64] = "";
-    strncpy(sfnStar, "/tmp/testReadMultipleBlocks_XXXXXX.xmd", sizeof sfnStar);
-    if (mkstemps(sfnStar,4)==-1)
-	    REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary STAR file");
-    strncpy(sfnSqlite, "/tmp/testReadMultipleBlocks_XXXXXX.sqlite", sizeof sfnSqlite);
-    if (mkstemps(sfnSqlite,7)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary SQLITE file");
-    strncpy(sfnXML, "/tmp/testReadMultipleBlocks_XXXXXX.xml", sizeof sfnXML);
-    if (mkstemps(sfnXML,4)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary XML file");
-*/
-
     FileName fn   ;
-    FileName fnDB   ;
+    // FileName fnDB   ;
     FileName fnXML  ;
     FileName fnSTAR ;
     fn.initUniqueName("/tmp/testReadMultipleBlocks_XXXXXX");
-    fnDB = fn + ".sqlite";
+    // fnDB = fn + ".sqlite";
     fnXML = fn + ".xml";
     fnSTAR = fn + ".xmd";
     
-    FileName fnDBref   =(String)"metadata/mDsource.sqlite";
+    // FileName fnDBref   =(String)"metadata/mDsource.sqlite";
     FileName fnXMLref  =(String)"metadata/mDsource.xml";
     FileName fnSTARref =(String)"metadata/mDsource.xmd";
 
     XMIPP_TRY
-    mDsource.write((String)"myblock@"+fnDB);
+    // mDsource.write((String)"myblock@"+fnDB);
     mDsource.write((String)"myblock@"+fnXML);
     mDsource.write((String)"myblock@"+fnSTAR);
     XMIPP_CATCH
 
-    EXPECT_TRUE(compareTwoFiles(fnDB, fnDBref));
+    // EXPECT_TRUE(compareTwoFiles(fnDB, fnDBref));
     EXPECT_TRUE(compareTwoFiles(fnXML, fnXMLref));
     EXPECT_TRUE(compareTwoFiles(fnSTAR, fnSTARref));
 
     unlink(fn.c_str());
-    unlink(fnDB.c_str());
+    // unlink(fnDB.c_str());
     unlink(fnXML.c_str());
     unlink(fnSTAR.c_str());
 }
