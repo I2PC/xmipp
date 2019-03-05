@@ -25,7 +25,11 @@
 #ifndef _PROG_KMEANS2DCLUSTERING
 #define _PROG_KMEANS2DCLUSTERING
 
+#include <numeric>
 #include <core/xmipp_program.h>
+#include <data/filters.h>
+#include <data/morphology.h>
+#include "classify_extract_features.h"
 
 class ProgClassifyKmeans2D: public XmippProgram
 {
