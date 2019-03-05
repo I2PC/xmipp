@@ -24,7 +24,6 @@
  ***************************************************************************/
 
 #include "image_eliminate_empty_particles.h"
-#include "data/fourier_filter.h"
 #include "classify_extract_features.h"
 #include <data/filters.h>
 #include <fstream>
