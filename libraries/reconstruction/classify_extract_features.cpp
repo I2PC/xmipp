@@ -25,12 +25,6 @@
 
 #include "classify_extract_features.h"
 
-#include <core/xmipp_funcs.h>
-#include <data/mask.h>
-#include <data/filters.h>
-#include <vector>
-#include <string>
-
 ProgExtractFeatures::ProgExtractFeatures(): XmippProgram()
 {
 	fitPoints=NULL;
@@ -47,9 +41,10 @@ void ProgExtractFeatures::readParams()
 {
     fnSel = getParam("-i");
     fnOut = getParam("-o");
-    noDenoising = checkParam("--noDenoising");
+    applyDenoising = checkParam("--applyDenoising");
     useEntropy = checkParam("--entropy");
     useGranulo = checkParam("--granulo");
+    useHistDist = checkParam("--histdist");
     useLBP = checkParam("--lbp");
     useRamp = checkParam("--ramp");
     useVariance = checkParam("--variance");
@@ -62,15 +57,16 @@ void ProgExtractFeatures::show()
     if (verbose==0)
         return;
     std::cerr
-    << "Input selfile:             " << fnSel        << std::endl
-    << "Output selfile:            " << fnOut        << std::endl
-    << "Turn off denoising:        " << noDenoising  << std::endl
-    << "Extract entropy features:  " << useEntropy   << std::endl
-    << "Extract granulo features:  " << useGranulo   << std::endl
-    << "Extract LBP features:      " << useLBP       << std::endl
-    << "Extract ramp coefficients: " << useRamp      << std::endl
-    << "Extract variance features: " << useVariance  << std::endl
-    << "Extract Zernike moments:   " << useZernike   << std::endl
+    << "Input selfile:             " << fnSel          << std::endl
+    << "Output selfile:            " << fnOut          << std::endl
+    << "Turn on denoising:         " << applyDenoising << std::endl
+    << "Extract entropy features:  " << useEntropy     << std::endl
+    << "Extract granulo features:  " << useGranulo     << std::endl
+    << "Extract histog. distances: " << useHistDist    << std::endl
+    << "Extract LBP features:      " << useLBP         << std::endl
+    << "Extract ramp coefficients: " << useRamp        << std::endl
+    << "Extract variance features: " << useVariance    << std::endl
+    << "Extract Zernike moments:   " << useZernike     << std::endl
     ;
 }
 
@@ -78,15 +74,16 @@ void ProgExtractFeatures::show()
 void ProgExtractFeatures::defineParams()
 {
     addUsageLine("Clusters a set of images");
-    addParamsLine("  -i <selfile>                  : Selfile containing images to be clustered");
-    addParamsLine("  [-o <selfile=\"\">]           : Output selfile");
-    addParamsLine("  [--noDenoising]               : Turn off denoising");
-    addParamsLine("  [--entropy]                   : Extract entropy features");
-    addParamsLine("  [--granulo]                   : Extract granulo features");
-    addParamsLine("  [--lbp]                       : Extract LBP features");
-    addParamsLine("  [--ramp]                      : Extract Ramp coefficients");
-    addParamsLine("  [--variance]                  : Extract variance features");
-    addParamsLine("  [--zernike]                   : Extract Zernike moments");
+    addParamsLine("  -i <selfile>             : Images to be clustered");
+    addParamsLine("  [-o <selfile=\"\">]      : Output selfile");
+    addParamsLine("  [--applyDenoising]       : Turn on denoising");
+    addParamsLine("  [--entropy]              : Extract entropy features");
+    addParamsLine("  [--granulo]              : Extract granulo features");
+    addParamsLine("  [--histdist]             : Extract histogram distances");
+    addParamsLine("  [--lbp]                  : Extract LBP features");
+    addParamsLine("  [--ramp]                 : Extract Ramp coefficients");
+    addParamsLine("  [--variance]             : Extract variance features");
+    addParamsLine("  [--zernike]              : Extract Zernike moments");
 }
 
 
@@ -183,7 +180,7 @@ void ProgExtractFeatures::extractEntropy(const MultidimArray<double> &I,
 
         double entropy = 0;
         for (int i = 0; i < 256; i++)
-            entropy += std::max(hist[i], 1) * log2((std::max(hist[i], 1)));
+            entropy += std::max(hist[i], 1) * log2(std::max(hist[i], 1));
 
         fv.push_back(-1*entropy);
     }
@@ -265,6 +262,102 @@ void ProgExtractFeatures::extractGranulo(const MultidimArray<double> &I,
             }
         }
         fv.push_back(sum);
+    }
+}
+
+
+void ProgExtractFeatures::extractHistDist(const MultidimArray<double> &I,
+                                          std::vector<double> &fv)
+{
+    MultidimArray<double> Ipart;
+    Ipart.resize(XSIZE(I)/3, YSIZE(I)/3);
+    for (int yy = 1; yy <= 3; yy++)
+    {
+        int y_max = YSIZE(I) / 3 * yy;
+        int y_min = YSIZE(I) / 3 * (yy-1);
+        for (int xx = 1; xx <= 3; xx++)
+        {
+            int x_max = XSIZE(I) / 3 * xx;
+            int x_min = XSIZE(I) / 3 * (xx-1);
+            int ypart = 0;
+            for (int y = y_min; y < y_max; y++)
+            {
+                int xpart = 0;
+                for (int x = x_min; x < x_max; x++)
+                {
+                    DIRECT_A2D_ELEM(Ipart, ypart, xpart) =
+                        DIRECT_A2D_ELEM(I, y, x);
+                    xpart++;
+                }
+                ypart++;
+            }
+
+            int count = XSIZE(Ipart) + YSIZE(Ipart);
+            int hist[256] = {};
+            int low_thresh, high_thresh;
+            int low_thresh_cnt = 0, high_thresh_cnt = 0;
+            typedef std::pair<int, int> pairs;
+            std::set<pairs> low_inten_pts, high_inten_pts;
+
+            int temp;
+            double m, M;
+            Ipart.computeDoubleMinMax(m, M);
+            FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipart)
+            {
+                temp = floor(((DIRECT_MULTIDIM_ELEM(Ipart, n)- m)*255.0) / (M-m));
+                hist[temp]++;
+                DIRECT_MULTIDIM_ELEM(Ipart, n) = temp;
+            }
+
+            for (low_thresh = 0; low_thresh_cnt < count; low_thresh++)
+                low_thresh_cnt += hist[low_thresh];
+            for (high_thresh = 255; high_thresh_cnt < count; high_thresh--)
+                high_thresh_cnt += hist[high_thresh];
+
+            FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Ipart)
+            {
+                if (DIRECT_A2D_ELEM(Ipart, i, j) < low_thresh)
+                    low_inten_pts.insert(std::make_pair(i, j));
+                else if (DIRECT_A2D_ELEM(Ipart, i, j) > high_thresh)
+                    high_inten_pts.insert(std::make_pair(i, j));
+            }
+
+            double dist_high = 0.0, dist_low = 0.0;
+            int comparisons = 0;
+
+            for (std::set<pairs>:: iterator it1 = high_inten_pts.begin();
+                 it1 != --high_inten_pts.end(); ++it1)
+            {
+                pairs p1 = *it1;
+                for (std::set<pairs>::iterator it2 = ++it1;
+                     it2 != high_inten_pts.end(); ++it2)
+                {
+                    pairs p2 = *it2;
+                    dist_high += sqrt((p1.first - p2.first) * (p1.first - p2.first) +
+                                      (p1.second - p2.second) * (p1.second - p2.second));
+                    comparisons++;
+                }
+                --it1;
+            }
+            fv.push_back(dist_high / comparisons);
+
+            comparisons = 0;
+            for (std::set<pairs>:: iterator it1 = low_inten_pts.begin();
+                 it1 != --low_inten_pts.end(); ++it1)
+            {
+                pairs p1 = *it1;
+                for (std::set<pairs>::iterator it2 = ++it1;
+                     it2 != low_inten_pts.end(); ++it2)
+                {
+                    pairs p2 = *it2;
+                    dist_low += sqrt((p1.first - p2.first) * (p1.first - p2.first) +
+                                     (p1.second - p2.second) * (p1.second - p2.second));
+                    comparisons++;
+                }
+                --it1;
+            }
+            fv.push_back(dist_low / comparisons);
+        }
     }
 }
 
@@ -498,8 +591,9 @@ void ProgExtractFeatures::run()
     	I().setXmippOrigin();
     	centerImageTranslationally(I(), aux);
 
-    	if (!noDenoising)
-    	    denoiseTVFilter(I(), 50);
+    	if (applyDenoising)
+    	    denoiseTVFilter(I(), 200);
+
         if (useEntropy)
         {
             extractEntropy(I(), Imasked(), fv);
@@ -510,6 +604,12 @@ void ProgExtractFeatures::run()
         {
             extractGranulo(I(), fv);
             SF.setValue(MDL_SCORE_BY_GRANULO, fv, __iter.objId);
+            fv.clear();
+        }
+        if (useHistDist)
+        {
+            extractHistDist(I(), fv);
+            SF.setValue(MDL_SCORE_BY_HISTDIST, fv, __iter.objId);
             fv.clear();
         }
         if (useLBP)
@@ -536,14 +636,12 @@ void ProgExtractFeatures::run()
             SF.setValue(MDL_SCORE_BY_ZERNIKE, fv, __iter.objId);
             fv.clear();
         }
+
         idx++;
         if (idx%100==0 && verbose>0)
         	progress_bar(idx);
     }
-	if (verbose>0)
-		progress_bar(SF.size());
-
+	if (verbose>0) progress_bar(SF.size());
 	if (fnOut == "") fnOut = fnSel;
-
 	SF.write(fnOut, MD_APPEND);
 }
