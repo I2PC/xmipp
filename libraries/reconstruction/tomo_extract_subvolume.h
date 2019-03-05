@@ -83,7 +83,6 @@ public:
     SymList SL;
 
     //Some local variables
-    FileName fn_out;
     Image<double> vol, volout;
     Matrix1D<double> center, doccenter;
     Matrix2D<double> A, R, I;
