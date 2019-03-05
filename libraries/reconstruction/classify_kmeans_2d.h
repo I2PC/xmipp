@@ -1,5 +1,6 @@
 /***************************************************************************
- * Authors:     Tomas Majtner (tmajtner@cnb.csic.es)
+ *
+ * Authors:    Tomas Majtner           tmajtner@cnb.csic.es (2017)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -21,49 +22,47 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#ifndef _PROG_KMEANS2DCLUSTERING
+#define _PROG_KMEANS2DCLUSTERING
 
-#ifndef _PROG_ELIMINATE_EMPTY_PARTICLES
-#define _PROG_ELIMINATE_EMPTY_PARTICLES
-
+#include <numeric>
 #include <core/xmipp_program.h>
-#include <data/fourier_filter.h>
+#include <data/filters.h>
+#include <data/morphology.h>
+#include "classify_extract_features.h"
 
-class ProgEliminateEmptyParticles: public XmippProgram
+class ProgClassifyKmeans2D: public XmippProgram
 {
 public:
-	/// Name of the input metadata
-    FileName fnIn;
+    /** Filename selection file containing the images */
+    FileName fnSel;
 
-    /// Name of the output metadata
+    /**  Filename output root */
     FileName fnOut;
 
-    /// Name of the eliminated particle metadata
-    FileName fnElim;
+    /**  Filename clusters */
+    FileName fnClusters;
 
-    /// Threshold for variance of variance
-    float threshold;
+    /**  Filename points */
+    FileName fnPoints;
 
-    /// Add features
-    bool addFeatures;
+    /**  Number of clusters */
+    int K;
 
-    /// Turning on denoising
-    bool useDenoising;
-
-    /// Param for denoising
-    int denoise;
+    /**  Maximum number of objects used for clustering */
+    int maxObjects;
 
 public:
-    /// Read input parameters
+    /// Read argument
     void readParams();
 
     /// Show
     void show();
 
-    /// Define input parameters
+    /// Define parameters
     void defineParams();
 
-    /// Execute
+    /// Main routine
     void run();
 };
-
 #endif
