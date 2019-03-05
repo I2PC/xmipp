@@ -24,11 +24,6 @@
  ***************************************************************************/
 
 #include "classify_kmeans_2d.h"
-#include "classify_extract_features.h"
-#include <data/filters.h>
-#include <data/morphology.h>
-#include <numeric>
-
 
 // Read arguments ==========================================================
 void ProgClassifyKmeans2D::readParams()
@@ -72,7 +67,8 @@ void ProgClassifyKmeans2D::defineParams()
 class Point
 {
 private:
-	int id_point, id_cluster;
+	int id_point;
+	int id_cluster;
 	std::vector<double> values;
 	int total_values;
 

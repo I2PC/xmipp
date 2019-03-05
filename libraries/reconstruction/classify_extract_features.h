@@ -27,6 +27,11 @@
 #define _PROG_EXTRACT_FEATURES
 
 #include <core/xmipp_program.h>
+#include <core/xmipp_funcs.h>
+#include <data/mask.h>
+#include <data/filters.h>
+#include <vector>
+#include <string>
 #include <set>
 
 
