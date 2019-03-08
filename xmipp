@@ -549,6 +549,14 @@ def getHdf5Name(libdirflags):
 
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
+
+    if configDict["CXX"].startswith("g++"):
+        gccVersion = subprocess.Popen([configDict["CXX"], "-dumpversion"],
+                                   stdout=subprocess.PIPE).stdout.read()
+        if int(gccVersion)<5:
+            print(red("GCC version should be >= 5"))
+            return False
+
     cppProg="""
 #include <fftw3.h>
 #include <hdf5.h>
@@ -803,7 +811,7 @@ def checkConfig():
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
-                  "python-numpy python-scipy python-mpi4py")
+                  "python-numpy python-scipy python-mpi4py cpp-5")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             return False
         if not checkMPI(configDict):
