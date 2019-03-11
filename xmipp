@@ -926,7 +926,7 @@ def runTests(testNames):
         print(blue("Downloading the test files"))
         task = "download"
     args = "%s %s %s" % ("tests/data", url, dataset)
-    runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp/bin')
+    runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd src/xmipp/tests; %s test.py %s)"
