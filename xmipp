@@ -562,7 +562,7 @@ def checkCompiler(configDict):
     if configDict["CXX"].startswith("g++"):
         gccVersion = subprocess.Popen([configDict["CXX"], "-dumpversion"],
                                    stdout=subprocess.PIPE).stdout.read()
-        if int(gccVersion)<5:
+        if int(gccVersion.split('.')[0])<5:
             print(red("GCC version should be >= 5"))
             return False
 
