@@ -1280,7 +1280,9 @@ if __name__ == '__main__':
     elif mode=="config":
         configDict = config()
     elif mode=="check_config":
-        checkConfig()
+        if not checkConfig():
+            print(red("\nCheck failed! Something wrong with the configuration.\n"))
+            sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
