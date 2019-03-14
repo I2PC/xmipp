@@ -1204,6 +1204,8 @@ def ensureCompilerVersion(compiler):
 
 
 def ensureGCC_GPPVersion(compiler):
+    if 'TRAVIS' in os.environ:
+        return  # skip detection on TRAVIS
     log = []
     if not checkProgram(compiler, True):
         sys.exit(-7)
