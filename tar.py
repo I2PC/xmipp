@@ -34,7 +34,7 @@ def usage(error=''):
     print("\n"
           "    %s"
           "\n"
-          "    Usage: python tar.py <mode> [version]\n"
+          "    Usage: python tar.py <mode> <version>\n"
           "\n"
           "             mode: Binaries: Just the binaries \n"
           "                   Sources: Just the source code.\n"
@@ -88,7 +88,8 @@ def run(label, version):
     # excludeTgz += " --exclude='*.o' --exclude='*.os' --exclude='*pyc'"
     # excludeTgz += " --exclude='*.gz' --exclude='*.bashrc' --exclude='*.fish'"
     # excludeTgz += " --exclude=tests/data --exclude='*.scons*' --exclude=.git"
-    excludeTgz = "--exclude=.git --exclude='xmipp.bashrc' --exclude='xmipp.fish'"
+    excludeTgz = ("--exclude=.git --exclude=.idea "
+                  "--exclude='xmipp.bashrc' --exclude='xmipp.fish'")
 
     cmdStr = "tar czf %(target)s.tgz %(excludeTgz)s %(target)s"
 
@@ -107,10 +108,10 @@ def run(label, version):
 
 if __name__ == '__main__':
 
-    if not (len(sys.argv) == 2 or len(sys.argv) == 3):
+    if not len(sys.argv) == 3:
         usage("Incorrect number of input parameters")
 
     label = sys.argv[1]
-    version = sys.argv[2] if len(sys.argv) == 3 else getVersion()
+    version = sys.argv[2]
 
     run(label, version)
