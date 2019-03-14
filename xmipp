@@ -556,8 +556,11 @@ def getHdf5Name(libdirflags):
             return "hdf5_serial"
     return "hdf5"
 
+
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
+    ensureCompilerVersion(configDict["CXX"])
+
     cppProg="""
 #include <fftw3.h>
 #include <hdf5.h>
@@ -1194,8 +1197,34 @@ def getVersion(onlyNumbers=False):
     return cleanInfo.strip(' ')
 
 
+def ensureCompilerVersion(compiler):
+    if 'g++' in compiler or 'gcc' in compiler:
+        ensureGCC_GPPVersion(compiler)
+    else:
+        print(red('Version detection for \'' + compiler + '\' is not implemented.'))
+
+
+def ensureGCC_GPPVersion(compiler):
+    log = []
+    if not checkProgram(compiler, True):
+        sys.exit(-7)
+    runJob(compiler + " -v", show_output=False, show_command=False, log=log)
+    for l in log:
+        # search for line:
+        # gcc version 5.5.0 20171010 (Ubuntu 5.5.0-12ubuntu1)
+        if compiler + ' version' in l:
+            version = l.split('version')[1] # get text behind 'version'
+            print(version)
+            version = version.split()[0].strip() # get first token
+            print(version)
+            tokens = version.split('.') # parse version
+            if (int(tokens[0]) < 4):
+                print(red('Detected ' + compiler + " in version " + version + '. Version 5+ is required.'))
+                sys.exit(-8)
+
+
 def ensureConfig():
-    # assuming the config file is not loaded in the main, i.e. it does not exists yet and has not been created
+    # assuming the config file is not loaded in the main(), i.e. it does not exists yet and has not been created
     # by another function
     if not configDict:
         print(red("There is no config file. Make sure to run config"))
