@@ -37,7 +37,7 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.03'    #
+XMIPP_VERSION = '3.19.03b'   #
 RELEASE_DATE = '05/03/2019'  #
 ##############################
 
@@ -1084,6 +1084,7 @@ def install(dirname):
         print(red("\nSome error occurred during the installation.\n"))
         sys.exit(1)
 
+    runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
     fhBash.write("# This script is valid for bash and zsh\n\n")
