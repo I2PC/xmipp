@@ -1212,14 +1212,16 @@ def ensureGCC_GPPVersion(compiler):
         # search for line:
         # gcc version 5.5.0 20171010 (Ubuntu 5.5.0-12ubuntu1)
         if compiler + ' version' in l:
-            version = l.split('version')[1] # get text behind 'version'
+            version = l.split('version')[1]  # get text behind 'version'
             print(version)
-            version = version.split()[0].strip() # get first token
+            version = version.split()[0].strip()  # get first token
             print(version)
-            tokens = version.split('.') # parse version
-            if (int(tokens[0]) < 4):
+            tokens = version.split('.')  # parse version
+            if int(tokens[0]) < 5:
                 print(red('Detected ' + compiler + " in version " + version + '. Version 5+ is required.'))
                 sys.exit(-8)
+            else:
+                print(green(compiler + ' ' + version + ' detected'))
 
 
 def ensureConfig():
