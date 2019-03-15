@@ -29,6 +29,8 @@ public:
 	int                  ctfmodelSize;
 	/// Bootstrap estimation
 	bool                 bootstrap;
+	/// Refine amplitude contrast
+	bool                 refineAmplitudeContrast;
 	/// Fast defocus estimate
 	bool                 fastDefocusEstimate;
 	/// Regularization factor for the phase direction and unwrapping estimates (used in Zernike estimate)
