@@ -2375,6 +2375,16 @@ double ROUT_Adjust_CTF(ProgCTFEstimateFromPSD &prm, CTFDescription &output_ctfmo
     prm.current_ctfmodel.forcePhysicalMeaning();
     COPY_ctfmodel_TO_CURRENT_GUESS;
 
+    if (prm.refineAmplitudeContrast)
+    {
+        std::cout << "Refining amplitude contrast ..." << std::endl;
+        steps(15) = 1; // Q0
+        powellOptimizer(*prm.adjust_params, 0 + 1, ALL_CTF_PARAMETERS, CTF_fitness,
+                         global_prm, 0.005, fitness, iter, steps, prm.show_optimization);
+        prm.current_ctfmodel.forcePhysicalMeaning();
+        COPY_ctfmodel_TO_CURRENT_GUESS;
+    }
+
     if (prm.show_optimization)
     {
         std::cout << "Best fit:\n" << prm.current_ctfmodel << std::endl;
