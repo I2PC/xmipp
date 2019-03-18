@@ -472,6 +472,15 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
+def getStdCXX(compiler):
+    if compiler.startswith("g++"):
+        gccVersion = subprocess.Popen([compiler, "-dumpversion"],
+                                      stdout=subprocess.PIPE).stdout.read()
+        if int(gccVersion.split('.')[0]) < 5:
+            return "c++11"
+        else:
+            return "c++14"
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -493,7 +502,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std=c++14"
+            configDict["CXXFLAGS"]+=" -std="+getStdCXX(configDict["CXX"])
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -558,13 +567,6 @@ def getHdf5Name(libdirflags):
 
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
-
-    if configDict["CXX"].startswith("g++"):
-        gccVersion = subprocess.Popen([configDict["CXX"], "-dumpversion"],
-                                   stdout=subprocess.PIPE).stdout.read()
-        if int(gccVersion.split('.')[0])<5:
-            print(red("GCC version should be >= 5"))
-            return False
 
     cppProg="""
 #include <fftw3.h>
