@@ -326,8 +326,7 @@ XmippAlias = env.Alias('xmipp', ['xmipp-libs',
                                  'xmipp-programs',
                                  'xmipp-batchs'])
 
-if not 'TRAVIS' in os.environ:
-    with open(os.path.join(XMIPP_PATH, 'bin', 'DONE'), 'w') as f:
-        f.write("")
+with open(os.path.join(XMIPP_PATH, 'bin', 'DONE'), 'w+') as f:
+    f.write("")
 
 Return('XmippAlias')
