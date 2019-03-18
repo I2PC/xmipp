@@ -326,7 +326,6 @@ XmippAlias = env.Alias('xmipp', ['xmipp-libs',
                                  'xmipp-programs',
                                  'xmipp-batchs'])
 
-with open(os.path.join(XMIPP_PATH, 'bin', 'DONE'), 'w+') as f:
-    f.write("")
+os.system("touch %s" % os.path.join(XMIPP_PATH, 'bin', 'DONE'))
 
 Return('XmippAlias')
