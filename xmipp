@@ -480,6 +480,7 @@ def getStdCXX(compiler):
             return "c++11"
         else:
             return "c++14"
+    return "c++14"  # for Travis FIXME!!
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
