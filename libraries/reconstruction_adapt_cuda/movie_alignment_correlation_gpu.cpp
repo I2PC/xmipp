@@ -260,7 +260,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
     res = res && (neededMem <= gpu.value().lastFreeMem());
     if (res) {
         return core::optional<FFTSettings<T>>(
-                FFTSettings<T>(x, y, 1, dim.n(), batch, true));
+                FFTSettings<T>(x, y, 1, dim.n(), batch, false));
     } else {
         return core::optional<FFTSettings<T>>();
     }
@@ -276,7 +276,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
     getBestFFTSize(d.n(), d.x(), d.y(), batch, crop, x, y, extraMem, this->verbose,
             gpu.value().device(), d.x() == d.y(), 10); // allow max 10% change
 
-    return FFTSettings<T>(x, y, 1, d.n(), batch, true);
+    return FFTSettings<T>(x, y, 1, d.n(), batch, false);
 }
 
 template<typename T>
