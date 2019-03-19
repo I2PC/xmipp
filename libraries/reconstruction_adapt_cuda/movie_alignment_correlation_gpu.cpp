@@ -73,7 +73,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
+FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
         const Dimensions &d, size_t extraMem, bool crop) {
     auto optSetting = getStoredSizes(d, crop);
     FFTSettings<T> result =
@@ -86,7 +86,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
+FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
@@ -102,7 +102,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
+Dimensions ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
         const FFTSettings<T> &s,
         const std::pair<T, T> &downscale) {
     // we need odd size of the input, to be able to
@@ -117,7 +117,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
+FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &orig,
         const std::pair<T, T> &downscale) {
     auto hint = getCorrelationHint(orig, downscale);
@@ -127,7 +127,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
+FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
     Dimensions hint(512, 512, // this should be a trade-off between speed and present signal
             // but check the speed to make sure
@@ -138,7 +138,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
+std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
         const std::pair<T, T> &borders,
         const Dimensions &movie, const Dimensions &patch) {
     size_t patchesX = this->localAlignPatches.first;
@@ -239,7 +239,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
+core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
         const Dimensions &dim, bool applyCrop) {
     size_t x, y, batch, neededMem;
     bool res = true;
@@ -268,7 +268,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
 
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
+FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
         size_t extraMem, bool crop) {
     if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
     // take additional memory requirement into account
@@ -280,7 +280,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
+std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
         const AlignmentResult<T> &globAlignment, int verbose) {
     T minX = std::numeric_limits<T>::max();
     T maxX = std::numeric_limits<T>::min();
@@ -301,7 +301,7 @@ auto ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
+std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
         const Dimensions &patchDim, T maxShift) {
     T minX = ((maxShift * 2) + 1) / patchDim.x();
     T minY = ((maxShift * 2) + 1) / patchDim.y();
@@ -378,7 +378,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         // run processing thread on the background
         threads.push_back(std::thread([&]() {
             // delay locking, but not for too long
-            alignDataMutex.try_lock_for(std::chrono::seconds(1));
             if (this->verbose > 1) {
                 std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
             }
@@ -397,9 +396,9 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
                         + alignment.shifts.at(i));
             }
+            // thread should be created now, let it work and load new buffer meanwhile
+            alignDataMutex.unlock();
         }));
-        // thread should be created now, let it work and load new buffer meanwhile
-        alignDataMutex.unlock();
     }
     // wait for the last processing thread
     for (auto &e : threads) {
@@ -419,7 +418,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
+LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
         const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = getMovieSettings(movie, false);
@@ -583,7 +582,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
+AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
         const FFTSettings<T> &in, const FFTSettings<T> &correlation,
         MultidimArray<T> &filter,
         core::optional<size_t> &refFrame,
@@ -650,7 +649,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template<typename T>
-auto ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
+AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
         size_t maxShift,
         std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
         std::pair<T, T>& scale,

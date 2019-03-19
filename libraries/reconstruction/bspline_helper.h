@@ -72,7 +72,7 @@ public:
      */
     // FIXME unify with CUDA implementation
     template<typename T>
-    static constexpr inline T Bspline03(T argument)    {
+    static inline T Bspline03(T argument) {
 
         static_assert(std::is_same<float, T>::value
                 || std::is_same<double, T>::value, "T must be either float or double");
