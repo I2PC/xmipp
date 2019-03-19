@@ -37,8 +37,8 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.03'    #
-RELEASE_DATE = '05/03/2019'  #
+XMIPP_VERSION = '3.19.03b3'  #
+RELEASE_DATE = '18/03/2019'  #
 ##############################
 
 XMIPP = 'xmipp'
@@ -472,6 +472,16 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
+def getStdCXX(compiler):
+    if compiler.startswith("g++"):
+        gccVersion = subprocess.Popen([compiler, "-dumpversion"],
+                                      stdout=subprocess.PIPE).stdout.read()
+        if int(gccVersion.split('.')[0]) < 5:
+            return "c++11"
+        else:
+            return "c++14"
+    return "c++14"  # for Travis FIXME!!
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -493,7 +503,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std=c++14"
+            configDict["CXXFLAGS"]+=" -std="+getStdCXX(configDict["CXX"])
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -558,6 +568,7 @@ def getHdf5Name(libdirflags):
 
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
+
     cppProg="""
 #include <fftw3.h>
 #include <hdf5.h>
@@ -687,8 +698,9 @@ int dummy(){}
     return True
 
 def configCuda(configDict):
+    configDict["CUDA"] = os.environ.get("CUDA", "")
     if configDict["CUDA"]=="":
-        if checkProgram("nvcc",False):
+        if checkProgram("nvcc", False):
             configDict["CUDA"]="True"
         else:
             configDict["CUDA"]="False"
@@ -704,14 +716,23 @@ def configCuda(configDict):
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
                 dirName=os.path.dirname(nvccPath)
-                ok = False
                 candidateDir = dirName.replace("bin","lib")
                 ok=os.path.exists(candidateDir+"/libcudart.so")
                 if not ok:
                     candidateDir = dirName.replace("bin","lib64")
                     ok=os.path.exists(candidateDir+"/libcudart.so")
-            if ok:
-                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir + " -L%s"%candidateDir + "/stubs" # nvidia-ml is in stubs folder
+                if ok:
+                    configDict["NVCC_LINKFLAGS"] = ("-L%s"%candidateDir +
+                                                    " -L%s/stubs"%candidateDir)  # nvidia-ml is in stubs folder
+                else:
+                    print("WARNING: system libraries for CUDA not found!\n"
+                          "         If cuda code is not compiling, "
+                          "please, find 'libcudart.so' and manually add\n"
+                          "         the containing folder (e.g. 'myCudaLib') at %s\n"
+                          "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
+                          "         If the problem persist, 'export CUDA=False' before "
+                          "compiling to skip cuda compilation."
+                          % CONFIG_FILE_NAME)
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
@@ -814,7 +835,7 @@ def checkConfig():
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
-                  "python-numpy python-scipy python-mpi4py")
+                  "python-numpy python-scipy python-mpi4py cpp-5")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             return False
         if not checkMPI(configDict):
@@ -916,7 +937,7 @@ def runTests(testNames):
         print(blue("Downloading the test files"))
         task = "download"
     args = "%s %s %s" % ("tests/data", url, dataset)
-    runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp/bin')
+    runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd src/xmipp/tests; %s test.py %s)"
@@ -1066,6 +1087,7 @@ def install(dirname):
         print(red("\nSome error occurred during the installation.\n"))
         sys.exit(1)
 
+    runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
     fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -1262,7 +1284,9 @@ if __name__ == '__main__':
     elif mode=="config":
         configDict = config()
     elif mode=="check_config":
-        checkConfig()
+        if not checkConfig():
+            print(red("\nCheck failed! Something wrong with the configuration.\n"))
+            sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
