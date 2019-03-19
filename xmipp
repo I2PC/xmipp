@@ -493,7 +493,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std=c++14"
+            configDict["CXXFLAGS"]+=" -std=c++11"
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":

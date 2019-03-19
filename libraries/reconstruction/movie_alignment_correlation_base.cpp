@@ -416,7 +416,7 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
 }
 
 template<typename T>
-auto AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
+AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
     AlignmentResult<T> alignment;
     int n = 0;
     T shiftX;
