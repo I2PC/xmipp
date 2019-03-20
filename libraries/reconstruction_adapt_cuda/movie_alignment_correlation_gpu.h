@@ -324,10 +324,10 @@ private:
     /**
      * Keywords representing optimal settings of the algorithm.
      */
-    std::string minMemoryStr = "minMem";
-    std::string optSizeXStr = "optSizeX";
-    std::string optSizeYStr = "optSizeY";
-    std::string optBatchSizeStr = "optBatchSize";
+    std::string minMemoryStr = std::string("minMem");
+    std::string optSizeXStr = std::string("optSizeX");
+    std::string optSizeYStr = std::string("optSizeY");
+    std::string optBatchSizeStr = std::string("optBatchSize");
 };
 
 #endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */
