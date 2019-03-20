@@ -697,9 +697,8 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            if checkProgram("g++-5", False):
-                configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
-                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5 -std=c++11"
+            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin %s -std=c++11" % configDict["CXX"]
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
