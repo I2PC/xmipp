@@ -91,6 +91,7 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
         bytesToCopyFromGPU = tmp;
     }
     handle.clear();
+    delete[] h_tmpStore;
     cudaFree(d_filter);
 }
 
