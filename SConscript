@@ -202,7 +202,7 @@ def addProg(progName, **kwargs):
         kwargs['mpi'] = True
         kwargs['libs'] += ['XmippParallel']
 
-    if progName.startswith('cuda_'):
+    if progName.startswith('cuda_') or progName.startswith('test_cuda'):
         kwargs['cuda'] = True
         kwargs['libs'] += ['XmippInterfaceCuda','XmippCuda']
 
