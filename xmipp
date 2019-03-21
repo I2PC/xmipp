@@ -1209,22 +1209,16 @@ def ensureGCC_GPPVersion(compiler):
     log = []
     if not checkProgram(compiler, True):
         sys.exit(-7)
-    runJob(compiler + " -v", show_output=False, show_command=False, log=log)
-    for l in log:
-        # search for line:
-        # gcc version 5.5.0 20171010 (Ubuntu 5.5.0-12ubuntu1)
-        if compiler + ' version' in l:
-            version = l.split('version')[1]  # get text behind 'version'
-            print(version)
-            version = version.split()[0].strip()  # get first token
-            print(version)
-            tokens = version.split('.')  # parse version
-            if int(tokens[0]) < 5:
-                print(red('Detected ' + compiler + " in version " + version + '. Version 5+ is required.'))
-                sys.exit(-8)
-            else:
-                print(green(compiler + ' ' + version + ' detected'))
-
+    runJob(compiler + " --version", show_output=False, show_command=False, log=log)
+    # expected first line format:
+    # gcc (Ubuntu 4.8.4-2ubuntu1~14.04.4) 4.8.4
+    full_version = log[0].split()[3].strip()  # get 4.8.4 text, notice extra space after OS name
+    tokens = full_version.split('.')
+    if float(str(tokens[0] + '.' + tokens[1])) < 4.8:  # join first two numbers, i.e. major and minor version
+        print(red('Detected ' + compiler + " in version " + full_version + '. Version 4.8 or higher is required.'))
+        sys.exit(-8)
+    else:
+        print(green(compiler + ' ' + full_version + ' detected'))
 
 def ensureConfig():
     # assuming the config file is not loaded in the main(), i.e. it does not exists yet and has not been created
