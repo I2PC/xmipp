@@ -39,6 +39,7 @@
 
 #include <assert.h>
 #include <stdexcept>
+#include <memory>
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_image.h" // for tests only
