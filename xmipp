@@ -1214,6 +1214,8 @@ def ensureGCC_GPPVersion(compiler):
     # 5.5.0
     full_version = log[0].strip()
     tokens = full_version.split('.')
+    if len(tokens) < 2:
+        tokens.append('0')  # for version 5.0, only '5' is returned
     if float(str(tokens[0] + '.' + tokens[1])) < 4.8:  # join first two numbers, i.e. major and minor version
         print(red('Detected ' + compiler + " in version " + full_version + '. Version 4.8 or higher is required.'))
         sys.exit(-8)
