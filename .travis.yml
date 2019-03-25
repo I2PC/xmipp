@@ -5,9 +5,9 @@ env: TRAVIS=1 XMIPP_NOSCIPION=True CCACHE_COMPILERCHECK=content
 git:
     depth: false # to get blame information for SonarCloud
 addons:
-  apt:
-    sources: ubuntu-toolchain-r-test
-    packages: g++-5
+#  apt:  gcc5 is no longer necessary
+#    sources: ubuntu-toolchain-r-test
+#    packages: g++-5
   sonarcloud:
 # See https://docs.travis-ci.com/user/sonarcloud/
     organization: "i2pc"
@@ -20,7 +20,7 @@ before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
 script:
  - |
-     sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90 && \
+#     sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90 && \  we don't need gcc5 anymore
      python ./scripts/travis_before_script.py && \
      ./xmipp && \
      ccache -s
