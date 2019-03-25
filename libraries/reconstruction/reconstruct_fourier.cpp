@@ -119,6 +119,12 @@ void ProgRecFourier::show()
 // Main routine ------------------------------------------------------------
 void ProgRecFourier::run()
 {
+
+    int* aaa = nullptr;
+    int bbb = *aaa;
+    if (bbb) return 0;
+    return 1;    
+
     show();
     produceSideinfo();
     // Process all images in the selfile
