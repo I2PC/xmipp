@@ -139,11 +139,12 @@ bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchS
         batchSize = std::max(batchSize, 1);
         return false;
     }
-    batchSize = results->at(0)->transform->N;
-    xSize = results->at(0)->transform->X;
-    ySize = results->at(0)->transform->Y;
+    auto res = results->at(0);
+    batchSize = res->transform->N / res->transform->repetitions;
+    xSize = res->transform->X;
+    ySize = res->transform->Y;
     if (verbose) {
-        results->at(0)->print(stdout);
+        res->print(stdout);
         printf("\n");
     }
     for (auto& it : *results) delete it;
