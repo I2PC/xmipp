@@ -5,9 +5,6 @@ env: TRAVIS=1 XMIPP_NOSCIPION=True CCACHE_COMPILERCHECK=content
 git:
     depth: false # to get blame information for SonarCloud
 addons:
-#  apt:  gcc5 is no longer necessary
-#    sources: ubuntu-toolchain-r-test
-#    packages: g++-5
   sonarcloud:
 # See https://docs.travis-ci.com/user/sonarcloud/
     organization: "i2pc"
