@@ -37,8 +37,8 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.02'    #
-RELEASE_DATE = '11/02/2019'  #
+XMIPP_VERSION = '3.19.03b3'  #
+RELEASE_DATE = '18/03/2019'  #
 ##############################
 
 XMIPP = 'xmipp'
@@ -472,6 +472,7 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -627,11 +628,13 @@ int main(){}
 
     ok = False
     if checkProgram("mpirun",False):
-        ok=runJob("mpirun -np 4 echo mpirun works 4 times")
+        ok=(runJob("mpirun -np 4 echo mpirun works 4 times") or
+            runJob("mpirun -np 4 --allow-run-as-root echo mpirun works 4 times"))
     elif checkProgram("mpiexec",False):
-        ok=runJob("mpiexec -np 4 echo mpiexec works 4 times")
+        ok=(runJob("mpiexec -np 4 echo mpiexec works 4 times") or
+            runJob("mpiexec -np 4 --allow-run-as-root echo mpiexec works 4 times"))
     else:
-        print(red("Cannot find mpirun or mpiexec in the path for parallel execution"))
+        print(red("mpirun or mpiexec have failed."))
 
     return ok
 
@@ -690,8 +693,9 @@ int dummy(){}
     return True
 
 def configCuda(configDict):
+    configDict["CUDA"] = os.environ.get("CUDA", "")
     if configDict["CUDA"]=="":
-        if checkProgram("nvcc",False):
+        if checkProgram("nvcc", False):
             configDict["CUDA"]="True"
         else:
             configDict["CUDA"]="False"
@@ -706,14 +710,23 @@ def configCuda(configDict):
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
                 dirName=os.path.dirname(nvccPath)
-                ok = False
                 candidateDir = dirName.replace("bin","lib")
                 ok=os.path.exists(candidateDir+"/libcudart.so")
                 if not ok:
                     candidateDir = dirName.replace("bin","lib64")
                     ok=os.path.exists(candidateDir+"/libcudart.so")
-            if ok:
-                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir + " -L%s"%candidateDir + "/stubs" # nvidia-ml is in stubs folder
+                if ok:
+                    configDict["NVCC_LINKFLAGS"] = ("-L%s"%candidateDir +
+                                                    " -L%s/stubs"%candidateDir)  # nvidia-ml is in stubs folder
+                else:
+                    print("WARNING: system libraries for CUDA not found!\n"
+                          "         If cuda code is not compiling, "
+                          "please, find 'libcudart.so' and manually add\n"
+                          "         the containing folder (e.g. 'myCudaLib') at %s\n"
+                          "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
+                          "         If the problem persist, 'export CUDA=False' before "
+                          "compiling to skip cuda compilation."
+                          % CONFIG_FILE_NAME)
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
@@ -918,7 +931,7 @@ def runTests(testNames):
         print(blue("Downloading the test files"))
         task = "download"
     args = "%s %s %s" % ("tests/data", url, dataset)
-    runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp/bin')
+    runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd src/xmipp/tests; %s test.py %s)"
@@ -1068,6 +1081,7 @@ def install(dirname):
         print(red("\nSome error occurred during the installation.\n"))
         sys.exit(1)
 
+    runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
     fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -1290,7 +1304,9 @@ if __name__ == '__main__':
     elif mode=="config":
         configDict = config()
     elif mode=="check_config":
-        checkConfig()
+        if not checkConfig():
+            print(red("\nCheck failed! Something wrong with the configuration.\n"))
+            sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
