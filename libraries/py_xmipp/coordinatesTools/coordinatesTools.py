@@ -36,13 +36,16 @@ loop_
 def readPosCoordsFromFName(fname, returnAlsoMicId=False):
   mData= readPosCoordinates(fname)
   coords=[]
+  mdId=None
+  micId=None
   for mdId in mData:
     x=  int( mData.getValue( xmippLib.MDL_XCOOR, mdId) )
     y=  int( mData.getValue( xmippLib.MDL_YCOOR, mdId) )
     coords.append((x,y) )
   print("N coords: %d"%(len(coords) ))
   if returnAlsoMicId:
-    micId= mData.getValue( xmippLib.MDL_MICROGRAPH_ID, mdId)
+    if mdId:
+      micId= mData.getValue( xmippLib.MDL_MICROGRAPH_ID, mdId)
     return coords, micId
   else:
     return coords 
