@@ -28,8 +28,6 @@
 #include <cuda_runtime_api.h>
 #include "cuda_all.cpp"
 
-template class GeoTransformer<float> ;
-
 template<typename T>
 void GeoTransformer<T>::release() {
     cudaFree(d_in);
@@ -599,3 +597,4 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
                 "To init function, pass N control points.");
 }
 
+template class GeoTransformer<float>;

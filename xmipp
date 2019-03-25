@@ -175,8 +175,8 @@ def checkProgram(programName, show=True):
     systemInstructions["git"] = ["sudo apt-get -y install git","sudo pacman -Syu --noconfirm git"]
     systemInstructions["gcc"] = ["sudo apt-get -y install gcc","sudo pacman -Syu --noconfirm gcc"]
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
-    systemInstructions["mpicc"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
-    systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
+    systemInstructions["mpicc"] = ["sudo apt-get -y install libopenmpi-dev","sudo pacman -Syu --noconfirm openmpi"]
+    systemInstructions["mpiCC"] = ["sudo apt-get -y install libopenmpi-dev","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
@@ -472,15 +472,6 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
-def getStdCXX(compiler):
-    if compiler.startswith("g++"):
-        gccVersion = subprocess.Popen([compiler, "-dumpversion"],
-                                      stdout=subprocess.PIPE).stdout.read()
-        if int(gccVersion.split('.')[0]) < 5:
-            return "c++11"
-        else:
-            return "c++14"
-    return "c++14"  # for Travis FIXME!!
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
@@ -503,7 +494,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std="+getStdCXX(configDict["CXX"])
+            configDict["CXXFLAGS"]+=" -std=c++11"
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -566,8 +557,10 @@ def getHdf5Name(libdirflags):
             return "hdf5_serial"
     return "hdf5"
 
+
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
+    ensureCompilerVersion(configDict["CXX"])
 
     cppProg="""
 #include <fftw3.h>
@@ -709,9 +702,8 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            if checkProgram("g++-5", False):
-                configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
-                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5 -std=c++11"
+            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
+                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin %s -std=c++11" % configDict["CXX"]
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -835,7 +827,7 @@ def checkConfig():
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
-                  "python-numpy python-scipy python-mpi4py cpp-5")
+                  "python-numpy python-scipy python-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             return False
         if not checkMPI(configDict):
@@ -1216,8 +1208,34 @@ def getVersion(onlyNumbers=False):
     return cleanInfo.strip(' ')
 
 
+def ensureCompilerVersion(compiler):
+    if 'g++' in compiler or 'gcc' in compiler:
+        ensureGCC_GPPVersion(compiler)
+    else:
+        print(red('Version detection for \'' + compiler + '\' is not implemented.'))
+
+
+def ensureGCC_GPPVersion(compiler):
+    if 'TRAVIS' in os.environ:
+        return  # skip detection on TRAVIS
+    log = []
+    if not checkProgram(compiler, True):
+        sys.exit(-7)
+    runJob(compiler + " -dumpversion", show_output=False, show_command=False, log=log)
+    # expected first line format:
+    # 5.5.0
+    full_version = log[0].strip()
+    tokens = full_version.split('.')
+    if len(tokens) < 2:
+        tokens.append('0')  # for version 5.0, only '5' is returned
+    if float(str(tokens[0] + '.' + tokens[1])) < 4.8:  # join first two numbers, i.e. major and minor version
+        print(red('Detected ' + compiler + " in version " + full_version + '. Version 4.8 or higher is required.'))
+        sys.exit(-8)
+    else:
+        print(green(compiler + ' ' + full_version + ' detected'))
+
 def ensureConfig():
-    # assuming the config file is not loaded in the main, i.e. it does not exists yet and has not been created
+    # assuming the config file is not loaded in the main(), i.e. it does not exists yet and has not been created
     # by another function
     if not configDict:
         print(red("There is no config file. Make sure to run config"))

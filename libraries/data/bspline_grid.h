@@ -35,15 +35,15 @@ public:
     BSplineGrid(Dimensions &dim, Matrix1D<T> &coeffsX, Matrix1D<T> &coeffsY):
         dim(dim), coeffsX(coeffsX), coeffsY(coeffsY) {}
 
-    auto constexpr getDim() const {
+    constexpr const Dimensions& getDim() const {
         return dim;
     }
 
-    const auto getCoeffsX() const {
+    constexpr const Matrix1D<T>& getCoeffsX() const {
         return coeffsX;
     }
 
-    const auto getCoeffsY() const {
+    constexpr const Matrix1D<T>& getCoeffsY() const {
         return coeffsY;
     }
 
