@@ -17,7 +17,6 @@ before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
 script:
  - |
-#     sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90 && \  we don't need gcc5 anymore
      python ./scripts/travis_before_script.py && \
      ./xmipp && \
      ccache -s
