@@ -472,15 +472,6 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
-def getStdCXX(compiler):
-    if compiler.startswith("g++"):
-        gccVersion = subprocess.Popen([compiler, "-dumpversion"],
-                                      stdout=subprocess.PIPE).stdout.read()
-        if int(gccVersion.split('.')[0]) < 5:
-            return "c++11"
-        else:
-            return "c++14"
-    return "c++14"  # for Travis FIXME!!
 
 def configCompiler(configDict):
     if configDict["CC"]=="":
@@ -503,7 +494,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std="+getStdCXX(configDict["CXX"])
+            configDict["CXXFLAGS"]+=" -std=c++11"
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -835,7 +826,7 @@ def checkConfig():
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
-                  "python-numpy python-scipy python-mpi4py cpp-5")
+                  "python-numpy python-scipy python-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             return False
         if not checkMPI(configDict):
