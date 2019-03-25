@@ -122,8 +122,8 @@ void ProgRecFourier::run()
 
     int* aaa = nullptr;
     int bbb = *aaa;
-    if (bbb) return 0;
-    return 1;    
+    if (bbb) return;
+    return;    
 
     show();
     produceSideinfo();
