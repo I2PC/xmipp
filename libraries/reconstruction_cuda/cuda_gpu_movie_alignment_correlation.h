@@ -33,6 +33,7 @@
 #include "core/multidim_array.h"
 #include <type_traits>
 #include <stdexcept>
+#include <cassert>
 
 /**
  * This function performs FFT and scale (with filter) of the input images

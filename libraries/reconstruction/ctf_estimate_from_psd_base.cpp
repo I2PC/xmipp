@@ -43,6 +43,7 @@ void ProgCTFBasicParams::readBasicParams(XmippProgram *program)
     defocus_range = program->getDoubleParam("--defocus_range");
     modelSimplification = program->getIntParam("--model_simplification");
     bootstrap = program->checkParam("--bootstrapFit");
+    refineAmplitudeContrast = program->checkParam("--refine_amplitude_contrast");
     fastDefocusEstimate = program->checkParam("--fastDefocus");
     selfEstimation = program->checkParam("--selfEstimation");
     if (fastDefocusEstimate)
@@ -75,19 +76,20 @@ void ProgCTFBasicParams::show()
     if (verbose==0)
         return;
     std::cout
-    << "PSD file:            " << fn_psd << std::endl
-    << "Downsampling:        " << downsampleFactor << std::endl
-    << "Min Freq.:           " << min_freq << std::endl
-    << "Max Freq.:           " << max_freq << std::endl
-    << "Sampling:            " << Tm << std::endl
-    << "Defocus range:       " << defocus_range << std::endl
-    << "ctfmodelSize:        " << ctfmodelSize << std::endl
-    << "Enhance min freq:    " << f1 << std::endl
-    << "Enhance max freq:    " << f2 << std::endl
-    << "Enhance weight:      " << enhanced_weight << std::endl
-    << "Model simplification:" << modelSimplification << std::endl
-    << "Bootstrap:           " << bootstrap << std::endl
-    << "Fast defocus:        " << fastDefocusEstimate << std::endl
+    << "PSD file:                  " << fn_psd << std::endl
+    << "Downsampling:              " << downsampleFactor << std::endl
+    << "Min Freq.:                 " << min_freq << std::endl
+    << "Max Freq.:                 " << max_freq << std::endl
+    << "Sampling:                  " << Tm << std::endl
+    << "Defocus range:             " << defocus_range << std::endl
+    << "ctfmodelSize:              " << ctfmodelSize << std::endl
+    << "Enhance min freq:          " << f1 << std::endl
+    << "Enhance max freq:          " << f2 << std::endl
+    << "Enhance weight:            " << enhanced_weight << std::endl
+    << "Model simplification:      " << modelSimplification << std::endl
+    << "Bootstrap:                 " << bootstrap << std::endl
+    << "Fast defocus:              " << fastDefocusEstimate << std::endl
+    << "Refine amplitude contrast: " << refineAmplitudeContrast << std::endl
     ;
     if (fastDefocusEstimate)
         std::cout
@@ -125,6 +127,8 @@ void ProgCTFBasicParams::defineBasicParams(XmippProgram * program)
         "                                :+During the estimation, the phase values are averaged within a window of this size");
     program->addParamsLine(
         "   [--defocus_range <D=8000>]   : Defocus range in Angstroms");
+    program->addParamsLine(
+        "   [--refine_amplitude_contrast]  : Refine amplitude contrast with respect to the input one");
     program->addParamsLine(
         "   [--show_optimization+]       : Show optimization process");
     program->addParamsLine(

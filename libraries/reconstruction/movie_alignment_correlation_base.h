@@ -250,7 +250,7 @@ private:
      * @param movie where shifts are stored
      * @return global alignment as stored in the movie
      */
-    auto loadGlobalShifts(MetaData &movie);
+    AlignmentResult<T> loadGlobalShifts(MetaData &movie);
 
     /**
      * Method loads dark correction image
