@@ -122,6 +122,9 @@ void ProgRecFourier::run()
 
     int* aaa = nullptr;
     int bbb = *aaa;
+    std::cout << "expecting issue" << std::endl;
+    int array[5];
+    std::cout << array[25] << std::endl;
     if (bbb) return;
     return;    
 
