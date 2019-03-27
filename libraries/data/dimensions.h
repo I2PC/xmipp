@@ -55,7 +55,11 @@ public:
         return m_x * m_y;
     }
 
-    constexpr size_t size() const {
+    inline constexpr size_t xyz() const {
+        return m_x * m_y * m_z;
+    }
+
+    inline constexpr size_t size() const {
         return m_x * m_y * m_z * m_n;
     }
 
