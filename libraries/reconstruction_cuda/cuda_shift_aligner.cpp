@@ -75,14 +75,12 @@ void CudaShiftAligner<T>::computeCorrelations2DOneToN(
     gpuErrchk(cudaFree(d_ref));
 }
 
-
 template<typename T>
 std::vector<Point2D<T>> CudaShiftAligner<T>::computeShift2DOneToN(
         T *h_others,
         T *h_ref,
         FFTSettingsNew<T> &dims,
-        size_t maxShift,
-        size_t batch) {
+        size_t maxShift) {
     // transform reference signal
     GpuMultidimArrayAtGpu<T> d_ref(dims.sDim().x(), dims.sDim().y());
     d_ref.copyToGpu(h_ref);
@@ -190,6 +188,7 @@ std::vector<Point2D<T>> CudaShiftAligner<T>::computeShifts2DOneToN(
     cropSquareInCenter<<<dimGridCrop, dimBlockCrop>>>(
             spatial.d_data, (T*)ft.d_data,
             xDimS, yDimF, nDim, centerSize);
+    // FIXME make sure that spatial_d_data is big enough, there is invalid memory access now
 
     // copy data back
     gpuErrchk(cudaMemcpy(h_centers, ft.d_data,
