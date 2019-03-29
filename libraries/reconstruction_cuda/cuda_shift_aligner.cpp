@@ -25,7 +25,6 @@
 
 #include <cuda_runtime_api.h>
 #include "reconstruction_cuda/cuda_utils.h"
-#include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_shift_aligner.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation_kernels.cu"
 
@@ -34,21 +33,14 @@ namespace Alignment {
 template<typename T>
 void CudaShiftAligner<T>::computeCorrelations2DOneToN(
         std::complex<T> *h_inOut,
-        std::complex<T> *h_ref,
-        FFTSettingsNew<T> &dims,
-        bool copyToHost) {
+        const std::complex<T> *h_ref,
+        const FFTSettingsNew<T> &dims) {
     // FIXME make sure that dim is less than 4GB
     // allocate and copy reference signal
     std::complex<T> *d_ref;
     gpuErrchk(cudaMalloc(&d_ref, dims.fBytesSingle()));
     gpuErrchk(cudaMemcpy(d_ref, h_ref, dims.fBytesSingle(),
             cudaMemcpyHostToDevice));
-
-    // compute kernel size
-    dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
-    dim3 dimGrid(
-            ceil(dims.fDim().x()/(float)dimBlock.x),
-            ceil(dims.fDim().y()/(float)dimBlock.y));
 
     // allocate memory for other signals
     std::complex<T> *d_inOut;
@@ -66,18 +58,16 @@ void CudaShiftAligner<T>::computeCorrelations2DOneToN(
                 toProcess * dims.fBytesSingle(),
                     cudaMemcpyHostToDevice));
 
-        computeCorrelations2DOneToN<false>(&dimBlock, &dimGrid, // FIXME handle center template
+        computeCorrelations2DOneToN<false>(// FIXME handle center template
                 d_inOut, d_ref,
                 dims.fDim().x(), dims.fDim().y(), toProcess);
 
-        // copy data back if requested
-        if (copyToHost) {
-            gpuErrchk(cudaMemcpy(
-                    h_inOut + offset * dims.fDim().xy(),
-                    d_inOut,
-                    toProcess * dims.fBytesSingle(),
-                    cudaMemcpyDeviceToHost));
-        }
+        // copy data back
+        gpuErrchk(cudaMemcpy(
+                h_inOut + offset * dims.fDim().xy(),
+                d_inOut,
+                toProcess * dims.fBytesSingle(),
+                cudaMemcpyDeviceToHost));
     }
 
     // release memory
@@ -88,18 +78,22 @@ void CudaShiftAligner<T>::computeCorrelations2DOneToN(
 template<typename T>
 template<bool center>
 void CudaShiftAligner<T>::computeCorrelations2DOneToN(
-        void *dimBlock, void *dimGrid,
         std::complex<T> *d_inOut,
-        std::complex<T> *d_ref,
+        const std::complex<T> *d_ref,
         size_t xDim, size_t yDim, size_t nDim) {
+    // compute kernel size
+    dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
+    dim3 dimGrid(
+            ceil(xDim / (float)dimBlock.x),
+            ceil(yDim / (float)dimBlock.y));
     if (std::is_same<T, float>::value) {
         computeCorrelations2DOneToNKernel<float2, center>
-            <<<*(dim3*)dimGrid, *(dim3*)dimBlock>>> (
+            <<<dimGrid, dimBlock>>> (
                 (float2*)d_inOut, (float2*)d_ref,
                 xDim, yDim, nDim);
     } else if (std::is_same<T, double>::value) {
         computeCorrelations2DOneToNKernel<double2, center>
-            <<<*(dim3*)dimGrid, *(dim3*)dimBlock>>> (
+            <<<dimGrid, dimBlock>>> (
                 (double2*)d_inOut, (double2*)d_ref,
                 xDim, yDim, nDim);
     } else {
