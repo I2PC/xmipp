@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <random>
 #include "reconstruction_cuda/cuda_shift_aligner.h"
 
 template<typename T>
@@ -79,12 +80,110 @@ TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched2)
     correlate2D<TypeParam>(6, 3);
 }
 
+template<typename T>
+void drawCross(T *data, size_t xDim, size_t yDim, T xPos, T yPos) {
+    for (size_t y = 0; y < yDim; ++y) {
+        for (size_t x = 0; x < xDim; ++x) {
+            size_t index = y * xDim + x;
+            data[index] = (xPos == x) || (yPos == y);
+             // draw wave with crossing line
+//            data[index] = std::cos((M_PI * 2.f * (x - xPos)) / (xDim / 16.f) ) * std::exp(-std::pow((x-xPos)/2,2.0));// || (yPos == y);
+//            if (yPos == y) {
+//                data[index] = 1;
+//            }
+        }
+    }
+}
+
+
+template<typename T>
+void shift2D(FFTSettingsNew<T> &dims)
+{
+    using Alignment::CudaShiftAligner;
+    // max shift cannot be more than half of the size
+    auto maxShift = std::min(dims.sDim().x() / 2, dims.sDim().y() / 2);
+    auto maxShiftSq = maxShift * maxShift;
+    // generate random shifts
+    int seed = 42;
+    std::mt19937 mt(seed);
+//    mt.seed(seed);
+    std::uniform_int_distribution<> dist(0, maxShift);
+    auto shifts = std::vector<Point2D<T>>();
+    shifts.reserve(dims.fDim().n());
+    for(size_t n = 0; n < dims.fDim().n(); ++n) {
+        // generate shifts so that the Eucledian distance is smaller than max shift
+        int shiftX = dist(mt);
+        int shiftXSq = shiftX * shiftX;
+        int maxShiftY = std::floor(sqrt(maxShiftSq - shiftXSq));
+        int shiftY = dist(mt) % maxShiftY;
+        shifts.emplace_back(shiftX, shiftY);
+    }
+
+    auto others = new T[dims.sDim().size()];
+    auto ref = new T[dims.sDim().xy()];
+    T centerX = dims.sDim().x() / 2;
+    T centerY = dims.sDim().y() / 2;
+    drawCross(ref, dims.sDim().x(), dims.sDim().y(), centerX, centerY);
+    for (size_t n = 0; n < dims.fDim().n(); ++n) {
+        drawCross(others + n * dims.sDim().xy(),
+                dims.sDim().x(), dims.sDim().y(),
+                centerX + shifts.at(n).x, centerY + shifts.at(n).y);
+    }
+
+    auto result = CudaShiftAligner<T>::computeShift2DOneToN(others, ref, dims, maxShift);
+
+    EXPECT_EQ(shifts.size(), result.size());
+    for (size_t n = 0; n < shifts.size(); ++n) {
+        EXPECT_EQ(shifts.at(n).x, - result.at(n).x); // notice the -1 multiplication
+        EXPECT_EQ(shifts.at(n).y, - result.at(n).y); // notice the -1 multiplication
+//        std::cout << "expected " << "(" << shifts.at(n).x << "," << shifts.at(n).y << "), got "
+//            << "(" << result.at(n).x << "," << result.at(n).y << ")\n";
+    }
+
+    delete[] others;
+    delete[] ref;
+}
+
+TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToOne)
+{
+    // test one reference vs one image
+    FFTSettingsNew<TypeParam> dims(100, 50);
+    shift2D(dims);
+}
+
+TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToMany)
+{
+    // check that n == batch works properly
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 5);
+    shift2D(dims);
+}
+
+
+TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToManyBatched1)
+{
+    // test that n mod batch != 0 works
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 3);
+    shift2D(dims);
+}
+
+TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToManyBatched2)
+{
+    // test that n mod batch = 0 works
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 6, 3);
+    shift2D(dims);
+}
+
+
 REGISTER_TYPED_TEST_CASE_P(CudaShiftAlignerTest,
     correlate2DOneToOne,
     correlate2DOneToMany,
     correlate2DOneToManyBatched1,
-    correlate2DOneToManyBatched2
+    correlate2DOneToManyBatched2,
+    shift2DOneToOne,
+    shift2DOneToMany,
+    shift2DOneToManyBatched1,
+    shift2DOneToManyBatched2
 );
 
-typedef ::testing::Types<float, double> TestTypes;
+typedef ::testing::Types<float> TestTypes; // FIXME add double
 INSTANTIATE_TYPED_TEST_CASE_P(SomeRandomText, CudaShiftAlignerTest, TestTypes);
