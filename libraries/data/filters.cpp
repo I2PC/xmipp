@@ -1567,11 +1567,11 @@ T bestShift(MultidimArray<T> &Mcorr,
     else
     {
     	int maxShift2=maxShift*maxShift;
-    	double bestCorr=-1e38;
+    	double bestCorr=std::numeric_limits<T>::min();
     	for (int i=-maxShift; i<=maxShift; i++)
     		for (int j=-maxShift; j<=maxShift; j++)
     		{
-    			if (i*i+j*j>maxShift2)
+    			if (i*i+j*j>maxShift2) // continue if the eucledian distance is too far
     				continue;
     			else if (A2D_ELEM(Mcorr, i, j)>bestCorr)
     			{
