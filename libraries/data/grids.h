@@ -1493,7 +1493,7 @@ public:
 
     /** Show volume.
         \\Ex: std::cout << V; */
-    friend std::ostream& operator <<< > (std::ostream &o, const GridVolumeT &GV);
+//    friend std::ostream& operator <<< > (std::ostream &o, const GridVolumeT &GV);
     //@}
 };
 
