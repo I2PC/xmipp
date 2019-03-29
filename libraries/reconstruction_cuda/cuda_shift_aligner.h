@@ -27,9 +27,13 @@
 #define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_
 
 #include <type_traits>
+#include <vector>
 //#include "reconstruction/ashift_aligner.h"
 #include "data/fft_settings_new.h"
 #include "core/xmipp_error.h"
+#include "data/point2D.h"
+#include "data/filters.h"
+#include "reconstruction_cuda/cuda_xmipp_utils.h"
 //#include "reconstruction_adapt_cuda/cuda_compatibility.h"
 
 namespace Alignment {
@@ -39,16 +43,15 @@ class CudaShiftAligner {
 public:
     static void computeCorrelations2DOneToN(
         std::complex<T> *h_inOut,
-        std::complex<T> *h_ref,
-        FFTSettingsNew<T> &dim,
-        bool copyToHost = false);
+        const std::complex<T> *h_ref,
+        const FFTSettingsNew<T> &dims);
 
     template<bool center>
     static void computeCorrelations2DOneToN(
-            void *dimBlock, void *dimGrid,
-            std::complex<T> *d_inOut,
-            std::complex<T> *d_ref,
-            size_t xDim, size_t yDim, size_t nDim);
+        std::complex<T> *d_inOut,
+        const std::complex<T> *d_ref,
+        size_t xDim, size_t yDim, size_t nDim);
+
 };
 
 

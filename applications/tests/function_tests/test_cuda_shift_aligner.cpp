@@ -6,7 +6,7 @@ class CudaShiftAlignerTest : public ::testing::Test { };
 TYPED_TEST_CASE_P(CudaShiftAlignerTest);
 
 template<typename T>
-void correlate2D(FFTSettingsNew<T> &dims) {
+void correlate2D(const FFTSettingsNew<T> &dims) {
     using std::complex;
     using Alignment::CudaShiftAligner;
 
@@ -25,7 +25,7 @@ void correlate2D(FFTSettingsNew<T> &dims) {
         }
     }
 
-    CudaShiftAligner<T>::computeCorrelations2DOneToN(inOut, ref, dims, true);
+    CudaShiftAligner<T>::computeCorrelations2DOneToN(inOut, ref, dims);
 
     T delta = 0.0001;
     for (int n = 0; n < dims.fDim().n(); ++n) {
@@ -45,32 +45,38 @@ void correlate2D(FFTSettingsNew<T> &dims) {
     delete[] ref;
 }
 
+template<typename T>
+void correlate2D(size_t n, size_t batch) {
+    correlate2D<T>(FFTSettingsNew<T>(29, 13, 1, n, batch)); // odd, odd
+    correlate2D<T>(FFTSettingsNew<T>(29, 14, 1, n, batch)); // odd, even
+    correlate2D<T>(FFTSettingsNew<T>(30, 13, 1, n, batch)); // even, odd
+    correlate2D<T>(FFTSettingsNew<T>(30, 14, 1, n, batch)); // even, even
+}
+
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToOne)
 {
     // test one reference vs one image
-    FFTSettingsNew<TypeParam> dims(29, 13);
+    correlate2D<TypeParam>(1, 1);
 }
 
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToMany)
 {
     // check that n == batch works properly
-    FFTSettingsNew<TypeParam> dims(29, 13, 1, 5, 5);
+    correlate2D<TypeParam>(5, 5);
 }
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
-    FFTSettingsNew<TypeParam> dims(29, 13, 1, 5, 3);
-    correlate2D(dims);
+    correlate2D<TypeParam>(5, 3);
 }
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched2)
 {
     // test that n mod batch = 0 works
-    FFTSettingsNew<TypeParam> dims(29, 13, 1, 6, 3);
-    correlate2D(dims);
+    correlate2D<TypeParam>(6, 3);
 }
 
 REGISTER_TYPED_TEST_CASE_P(CudaShiftAlignerTest,

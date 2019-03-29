@@ -27,6 +27,7 @@
 #define CUDA_GPU_MOVIE_CORRELATION_KERNELS
 
 #include "reconstruction/movie_alignment_gpu_defines.h"
+#include "reconstruction_cuda/cuda_basic_math.h"
 
 /**
  * Kernel performing scaling of the 2D FFT images, with possible normalization,
@@ -113,7 +114,7 @@ void computeCorrelations2DOneToNKernel(
         tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
         tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
         if (center) {
-            otherVal *= centerCoeff;
+            tmp *= centerCoeff;
         }
         inOut[offset + elem] = tmp;
     }
@@ -187,13 +188,14 @@ void correlate(const T* __restrict__ in1, const T* __restrict__ in2,
  * @param in input images
  * @param out output images
  * @param xDim input X dim
- * @param yDim output Y dim
+ * @param yDim input Y dim
  * @param noOfImgs no if images to process
- * @param outDim output dimension
+ * @param outDim output dimension(s)
  */
 template<typename T>
 __global__
-void cropSquareInCenter(const T* __restrict__ in, T* out, int xDim, int yDim, int noOfImgs,
+void cropSquareInCenter(const T* __restrict__ in, T* __restrict__ out,
+        int xDim, int yDim, int noOfImgs,
         int outDim) {
     // assign pixel to thread
     int idx = blockIdx.x*blockDim.x + threadIdx.x;
