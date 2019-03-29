@@ -41,6 +41,31 @@ namespace Alignment {
 template<typename T>
 class CudaShiftAligner {
 public:
+    static std::vector<Point2D<T>> computeShift2DOneToN(
+        T *h_others,
+        T *h_ref,
+        FFTSettingsNew<T> &dims,
+        size_t maxShift,
+        size_t batch = 1);
+
+    static std::vector<Point2D<T>> computeShift2DOneToN(
+        std::complex<T> *h_others,
+        std::complex<T> *h_ref,
+        FFTSettingsNew<T> &dims,
+        size_t maxShift);
+
+    static std::vector<Point2D<T>> computeShifts2DOneToN(
+        std::complex<T> *d_othersF,
+        std::complex<T> *d_ref,
+        size_t xDimF, size_t yDimF, size_t nDim,
+        T *d_othersS, mycufftHandle handle,
+        size_t xDimS,
+        T *h_centers, MultidimArray<T> &helper, size_t maxShift);
+
+    static std::vector<Point2D<T>> computeShiftFromCorrelations2D(
+        T *h_centers, MultidimArray<T> &helper, size_t nDim,
+        size_t centerSize, size_t maxShift);
+
     static void computeCorrelations2DOneToN(
         std::complex<T> *h_inOut,
         const std::complex<T> *h_ref,
