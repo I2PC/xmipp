@@ -45,8 +45,7 @@ public:
         T *h_others,
         T *h_ref,
         FFTSettingsNew<T> &dims,
-        size_t maxShift,
-        size_t batch = 1);
+        size_t maxShift);
 
     static std::vector<Point2D<T>> computeShift2DOneToN(
         std::complex<T> *h_others,

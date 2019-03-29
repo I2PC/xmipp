@@ -115,7 +115,7 @@ void shift2D(FFTSettingsNew<T> &dims)
         int shiftX = dist(mt);
         int shiftXSq = shiftX * shiftX;
         int maxShiftY = std::floor(sqrt(maxShiftSq - shiftXSq));
-        int shiftY = dist(mt) % maxShiftY;
+        int shiftY = (0 == maxShiftY) ? 0 : dist(mt) % maxShiftY;
         shifts.emplace_back(shiftX, shiftY);
     }
 
