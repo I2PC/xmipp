@@ -104,8 +104,9 @@ template<typename T>
 void shift2D(FFTSettingsNew<T> &dims)
 {
     using Alignment::CudaShiftAligner;
-    // max shift cannot be more than half of the size
-    auto maxShift = std::min(dims.sDim().x() / 2, dims.sDim().y() / 2);
+    using Alignment::AlignType;
+    // max shift must be sharply less than half of the size
+    auto maxShift = std::min(dims.sDim().x() / 2, dims.sDim().y() / 2) - 1;
     auto maxShiftSq = maxShift * maxShift;
     // generate random shifts
     int seed = 42;
@@ -134,7 +135,10 @@ void shift2D(FFTSettingsNew<T> &dims)
                 centerX + shifts.at(n).x, centerY + shifts.at(n).y);
     }
 
-    auto result = CudaShiftAligner<T>::computeShift2DOneToN(others, ref, dims, maxShift);
+    auto aligner = CudaShiftAligner<T>();
+    aligner.init2D(AlignType::OneToN, dims, maxShift, true);
+    aligner.load2DReferenceOneToN(ref);
+    auto result = aligner.computeShift2DOneToN(others);
 
     EXPECT_EQ(shifts.size(), result.size());
     for (size_t n = 0; n < shifts.size(); ++n) {
