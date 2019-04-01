@@ -2,6 +2,8 @@
 import os, shutil, subprocess
 from distutils.dir_util import copy_tree
 
+def green(text):
+    return "\033[92m "+text+"\033[0m"
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            inParallel=False):
