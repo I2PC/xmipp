@@ -412,7 +412,7 @@ def readConfigFile(fnConfig):
 def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
-              'MPI_LINKFLAGS','NVCC','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
+              'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
               'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL']
     configDict = {}
@@ -702,10 +702,29 @@ def configCuda(configDict):
     if configDict["CUDA"]=="True":
         if configDict["NVCC"]=="":
             if checkProgram("nvcc"):
+                nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
+                if nvccVersion != 8.0:
+                    print(red('Detected CUDA-' + nvccFullVersion + '. Version 8.0 is required.'))
+                    print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default.'"))
+                    configDict["CUDA"] = 'False'
+                    return
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
-                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin %s -std=c++11" % configDict["CXX"]
+            cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
+            if cxxVersion > 5:
+                print(red("%s version later than 5 detected. Finding alternative..." % configDict["CXX"]))
+                if checkProgram(configDict["CXX"]+"-5"):
+                    configDict["CXX_CUDA"] = configDict["CXX"]+"-5"
+                elif checkProgram(configDict["CXX"]+"-4.8"):
+                    configDict["CXX_CUDA"] = configDict["CXX"]+"-4.8"
+                else:
+                    print(red("No alternative found. Skipping CUDA compilation.\n"
+                              "If an alternative exists, please set 'CXX_CUDA' in 'xmipp.conf' to point to there."))
+                    configDict["CUDA"] = "False"
+                    return
+                print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
+            configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                                           "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -1209,6 +1228,26 @@ def getVersion(onlyNumbers=False):
 
     return cleanInfo.strip(' ')
 
+def getCudaVersion(nvcc):
+    log = []
+    runJob(nvcc + " --version", show_output=False, show_command=False, log=log)
+    # expected lst line: 'Cuda compilation tools, release 8.0, V8.0.61'
+    full_version = log[-1].strip().split(', ')[-1].lstrip('V')
+    tokens = full_version.split('.')
+    if len(tokens) < 2:
+        tokens.append('0')  # for version 5.0, only '5' is returned
+    nvccVersion = float(str(tokens[0] + '.' + tokens[1]))
+    return nvccVersion, full_version
+
+def getGccVersion(compiler):
+    log = []
+    runJob(compiler + " -dumpversion", show_output=False, show_command=False, log=log)
+    full_version = log[0].strip()
+    tokens = full_version.split('.')
+    if len(tokens) < 2:
+        tokens.append('0')  # for version 5.0, only '5' is returned
+    gccVersion = float(str(tokens[0] + '.' + tokens[1]))
+    return gccVersion, full_version
 
 def ensureCompilerVersion(compiler):
     if 'g++' in compiler or 'gcc' in compiler:
@@ -1220,21 +1259,15 @@ def ensureCompilerVersion(compiler):
 def ensureGCC_GPPVersion(compiler):
     if 'TRAVIS' in os.environ:
         return  # skip detection on TRAVIS
-    log = []
     if not checkProgram(compiler, True):
         sys.exit(-7)
-    runJob(compiler + " -dumpversion", show_output=False, show_command=False, log=log)
-    # expected first line format:
-    # 5.5.0
-    full_version = log[0].strip()
-    tokens = full_version.split('.')
-    if len(tokens) < 2:
-        tokens.append('0')  # for version 5.0, only '5' is returned
-    if float(str(tokens[0] + '.' + tokens[1])) < 4.8:  # join first two numbers, i.e. major and minor version
-        print(red('Detected ' + compiler + " in version " + full_version + '. Version 4.8 or higher is required.'))
+    gccVersion, fullVersion = getGccVersion(compiler)
+
+    if gccVersion < 4.8:  # join first two numbers, i.e. major and minor version
+        print(red('Detected ' + compiler + " in version " + fullVersion + '. Version 4.8 or higher is required.'))
         sys.exit(-8)
     else:
-        print(green(compiler + ' ' + full_version + ' detected'))
+        print(green(compiler + ' ' + fullVersion + ' detected'))
 
 def ensureConfig():
     # assuming the config file is not loaded in the main(), i.e. it does not exists yet and has not been created
