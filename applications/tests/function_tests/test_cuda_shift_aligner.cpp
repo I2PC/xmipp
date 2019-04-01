@@ -7,9 +7,10 @@ class CudaShiftAlignerTest : public ::testing::Test { };
 TYPED_TEST_CASE_P(CudaShiftAlignerTest);
 
 template<typename T>
-void correlate2D(const FFTSettingsNew<T> &dims) {
+void correlate2DNoCenter(const FFTSettingsNew<T> &dims) {
     using std::complex;
     using Alignment::CudaShiftAligner;
+    using Alignment::AlignType;
 
     // allocate and prepare data
     auto inOut = new complex<T>[dims.fDim().size()];
@@ -26,7 +27,10 @@ void correlate2D(const FFTSettingsNew<T> &dims) {
         }
     }
 
-    CudaShiftAligner<T>::computeCorrelations2DOneToN(inOut, ref, dims);
+    CudaShiftAligner<T> aligner;
+    aligner.init2D(AlignType::OneToN, dims);
+    aligner.load2DReferenceOneToN(ref);
+    aligner.template computeCorrelations2DOneToN<false>(inOut);
 
     T delta = 0.0001;
     for (int n = 0; n < dims.fDim().n(); ++n) {
@@ -48,10 +52,10 @@ void correlate2D(const FFTSettingsNew<T> &dims) {
 
 template<typename T>
 void correlate2D(size_t n, size_t batch) {
-    correlate2D<T>(FFTSettingsNew<T>(29, 13, 1, n, batch)); // odd, odd
-    correlate2D<T>(FFTSettingsNew<T>(29, 14, 1, n, batch)); // odd, even
-    correlate2D<T>(FFTSettingsNew<T>(30, 13, 1, n, batch)); // even, odd
-    correlate2D<T>(FFTSettingsNew<T>(30, 14, 1, n, batch)); // even, even
+    correlate2DNoCenter<T>(FFTSettingsNew<T>(29, 13, 1, n, batch)); // odd, odd
+    correlate2DNoCenter<T>(FFTSettingsNew<T>(29, 14, 1, n, batch)); // odd, even
+    correlate2DNoCenter<T>(FFTSettingsNew<T>(30, 13, 1, n, batch)); // even, odd
+    correlate2DNoCenter<T>(FFTSettingsNew<T>(30, 14, 1, n, batch)); // even, even
 }
 
 
@@ -186,4 +190,4 @@ REGISTER_TYPED_TEST_CASE_P(CudaShiftAlignerTest,
 );
 
 typedef ::testing::Types<float> TestTypes; // FIXME add double
-INSTANTIATE_TYPED_TEST_CASE_P(SomeRandomText, CudaShiftAlignerTest, TestTypes);
+INSTANTIATE_TYPED_TEST_CASE_P(Alignment, CudaShiftAlignerTest, TestTypes);
