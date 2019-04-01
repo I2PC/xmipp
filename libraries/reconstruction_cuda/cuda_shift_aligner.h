@@ -27,20 +27,39 @@
 #define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_
 
 #include <type_traits>
-#include <vector>
-//#include "reconstruction/ashift_aligner.h"
+//#include <vector>
+#include "reconstruction/ashift_aligner.h"
 #include "data/fft_settings_new.h"
 #include "core/xmipp_error.h"
-#include "data/point2D.h"
-#include "data/filters.h"
+//#include "data/point2D.h"
+//#include "data/filters.h"
 #include "reconstruction_cuda/cuda_xmipp_utils.h"
-//#include "reconstruction_adapt_cuda/cuda_compatibility.h"
 
 namespace Alignment {
 
 template<typename T>
-class CudaShiftAligner {
+class CudaShiftAligner : public AShiftAligner<T> {
 public:
+    CudaShiftAligner() : m_dims(0) {
+        setDefault();
+    }
+
+    ~CudaShiftAligner() {
+        release();
+    }
+
+
+    void init2D(AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0, bool includingFT=false);
+
+    void release();
+
+    void load2DReferenceOneToN(const std::complex<T> *h_ref);
+
+    template<bool center>
+    void computeCorrelations2DOneToN(
+        std::complex<T> *h_inOut);
+
+
     static std::vector<Point2D<T>> computeShift2DOneToN(
         T *h_others,
         T *h_ref,
@@ -61,14 +80,6 @@ public:
         size_t xDimS,
         T *h_centers, MultidimArray<T> &helper, size_t maxShift);
 
-    static std::vector<Point2D<T>> computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift);
-
-    static void computeCorrelations2DOneToN(
-        std::complex<T> *h_inOut,
-        const std::complex<T> *h_ref,
-        const FFTSettingsNew<T> &dims);
 
     template<bool center>
     static void computeCorrelations2DOneToN(
@@ -76,6 +87,26 @@ public:
         const std::complex<T> *d_ref,
         size_t xDim, size_t yDim, size_t nDim);
 
+private:
+    FFTSettingsNew<T> m_dims;
+    size_t m_maxShift;
+    AlignType m_type;
+
+    // device memory
+    std::complex<T> *m_d_single_FT;
+    T *m_d_ref_S;
+    std::complex<T> *m_d_batch_FT;
+
+    // host memory
+
+    // flags
+    bool m_includingFT;
+    bool m_isInit;
+    bool m_is_d_ref_FT_loaded;
+
+    void check();
+    void init2DOneToN();
+    void setDefault();
 };
 
 

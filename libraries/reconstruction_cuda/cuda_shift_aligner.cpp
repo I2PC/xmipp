@@ -31,48 +31,121 @@
 namespace Alignment {
 
 template<typename T>
+void CudaShiftAligner<T>::init2D(AlignType type,
+        const FFTSettingsNew<T> &dims, size_t maxShift, bool includingFT) {
+    release();
+
+    m_type = type;
+    m_dims = dims;
+    m_maxShift = maxShift;
+    m_includingFT = includingFT;
+
+    check();
+
+    switch (type) {
+        case AlignType::OneToN:
+            init2DOneToN();
+            break;
+        default:
+            REPORT_ERROR(ERR_NOT_IMPLEMENTED, "This alignment type is not supported yet");
+    }
+
+
+
+    m_isInit = true;
+
+}
+
+template<typename T>
+void CudaShiftAligner<T>::setDefault() {
+    m_dims = FFTSettingsNew<T>(0);
+    m_maxShift = 0;
+
+    // device memory
+    m_d_single_FT = nullptr;
+    m_d_ref_S = nullptr;
+    m_d_batch_FT = nullptr;
+
+    // host memory
+
+    // flags
+    m_includingFT = false;
+    m_isInit = false;
+    m_is_d_ref_FT_loaded = false;
+}
+
+template<typename T>
+void CudaShiftAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref) {
+    if (m_isInit && (AlignType::OneToN == m_type)) {
+        gpuErrchk(cudaMemcpy(m_d_single_FT, h_ref, m_dims.fBytesSingle(),
+                cudaMemcpyHostToDevice));
+    } else {
+        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to load a reference signal");
+    }
+}
+
+template<typename T>
+void CudaShiftAligner<T>::release() {
+    // device memory
+    gpuErrchk(cudaFree(m_d_single_FT));
+    gpuErrchk(cudaFree(m_d_ref_S));
+    gpuErrchk(cudaFree(m_d_batch_FT));
+
+    // host memory
+
+    setDefault();
+}
+
+template<typename T>
+void CudaShiftAligner<T>::init2DOneToN() {
+    gpuErrchk(cudaMalloc(&m_d_single_FT, m_dims.fBytesSingle()));
+    gpuErrchk(cudaMalloc(&m_d_batch_FT, m_dims.fBytesBatch()));
+}
+
+template<typename T>
+void CudaShiftAligner<T>::check() {
+    if (m_dims.fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) {
+       REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
+    }
+    if ((0 == m_dims.fDim().size())
+        || (0 == m_dims.sDim().size())) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Fourier or Spatial domain dimension is zero (0)");
+    }
+}
+
+template<typename T>
+template<bool center>
 void CudaShiftAligner<T>::computeCorrelations2DOneToN(
-        std::complex<T> *h_inOut,
-        const std::complex<T> *h_ref,
-        const FFTSettingsNew<T> &dims) {
-    // FIXME make sure that dim is less than 4GB
-    // allocate and copy reference signal
-    std::complex<T> *d_ref;
-    gpuErrchk(cudaMalloc(&d_ref, dims.fBytesSingle()));
-    gpuErrchk(cudaMemcpy(d_ref, h_ref, dims.fBytesSingle(),
-            cudaMemcpyHostToDevice));
+        std::complex<T> *h_inOut) {
+    bool isReady = (m_isInit && (AlignType::OneToN == m_type));
 
-    // allocate memory for other signals
-    std::complex<T> *d_inOut;
-    gpuErrchk(cudaMalloc(&d_inOut, dims.fBytesBatch()));
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to execute. Call init() before");
+    }
 
-    // process other signals
-    for (size_t offset = 0; offset < dims.fDim().n(); offset += dims.batch()) {
+    // process signals in batches
+    for (size_t offset = 0; offset < m_dims.fDim().n(); offset += m_dims.batch()) {
         // how many signals to process
-        size_t toProcess = std::min(dims.batch(), dims.fDim().n() - offset);
+        size_t toProcess = std::min(m_dims.batch(), m_dims.fDim().n() - offset);
 
         // copy memory
         gpuErrchk(cudaMemcpy(
-                d_inOut,
-                h_inOut + offset * dims.fDim().xy(),
-                toProcess * dims.fBytesSingle(),
+                m_d_batch_FT,
+                h_inOut + offset * m_dims.fDim().xy(),
+                toProcess * m_dims.fBytesSingle(),
                     cudaMemcpyHostToDevice));
 
-        computeCorrelations2DOneToN<false>(// FIXME handle center template
-                d_inOut, d_ref,
-                dims.fDim().x(), dims.fDim().y(), toProcess);
+        CudaShiftAligner<T>::computeCorrelations2DOneToN<center>(
+                m_d_batch_FT, m_d_single_FT,
+                m_dims.fDim().x(), m_dims.fDim().y(), toProcess);
 
         // copy data back
         gpuErrchk(cudaMemcpy(
-                h_inOut + offset * dims.fDim().xy(),
-                d_inOut,
-                toProcess * dims.fBytesSingle(),
+                h_inOut + offset * m_dims.fDim().xy(),
+                m_d_batch_FT,
+                toProcess * m_dims.fBytesSingle(),
                 cudaMemcpyDeviceToHost));
     }
-
-    // release memory
-    gpuErrchk(cudaFree(d_inOut));
-    gpuErrchk(cudaFree(d_ref));
 }
 
 template<typename T>
@@ -138,27 +211,6 @@ std::vector<Point2D<T>> CudaShiftAligner<T>::computeShift2DOneToN(
 }
 
 template<typename T>
-std::vector<Point2D<T>> CudaShiftAligner<T>::computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift) {
-    assert(centerSize == (2 * maxShift + 1));
-    assert(helper.xdim == helper.ydim);
-    assert(helper.xdim == centerSize);
-    T x;
-    T y;
-    auto result = std::vector<Point2D<T>>();
-    helper.setXmippOrigin(); // tell the array that the 'center' is in the center
-    for (size_t n = 0; n < nDim; ++n) {
-        helper.data = h_centers + n * centerSize * centerSize;
-        bestShift(helper, x, y, nullptr, maxShift);
-        result.emplace_back(x, y);
-    }
-    // avoid data corruption
-    helper.data = nullptr;
-    return result;
-}
-
-template<typename T>
 std::vector<Point2D<T>> CudaShiftAligner<T>::computeShifts2DOneToN(
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
@@ -200,7 +252,8 @@ std::vector<Point2D<T>> CudaShiftAligner<T>::computeShifts2DOneToN(
     spatial.d_data = nullptr;
 
     // compute shifts
-    return computeShiftFromCorrelations2D(h_centers, helper, nDim, centerSize, maxShift);
+    return AShiftAligner<T>::computeShiftFromCorrelations2D( // FIXME should be 'this->'
+            h_centers, helper, nDim, centerSize, maxShift);
 }
 
 template<typename T>
@@ -294,6 +347,8 @@ void CudaShiftAligner<T>::computeCorrelations2DOneToN(
     }
 }
 
+// explicit instantiation
+template void CudaShiftAligner<float>::computeCorrelations2DOneToN<false>(std::complex<float>*);
 template class CudaShiftAligner<float>;
 //template class CudaShiftAligner<double>;
 

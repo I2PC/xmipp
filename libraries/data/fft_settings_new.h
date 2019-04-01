@@ -42,6 +42,7 @@ public:
             m_batch(batch),
             m_isInPlace(isInPlace) {
         assert(batch <= n);
+        assert(batch > 0);
     };
 
     explicit FFTSettingsNew(const Dimensions &spatial,
@@ -52,6 +53,7 @@ public:
             m_batch(batch),
             m_isInPlace(isInPlace) {
         assert(batch <= spatial.n());
+        assert(batch > 0);
     };
 
     inline constexpr Dimensions sDim() const {
