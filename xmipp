@@ -414,7 +414,7 @@ def createEmptyConfig():
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED']
     configDict = {}
     for label in labels:
         configDict[label]=""
@@ -813,6 +813,10 @@ def writeConfig(configDict):
         for label in sorted(configDict.keys()):
             configFile.write("%s=%s\n"%(label,configDict[label]))
 
+def updateConfig(updatingDict):
+    cmdTemplate = 'sed -i -e "s/%s=.*/%s=%s/" %s'
+    for k, v in updatingDict.iteritems():
+        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME))
 
 def config_DL(configDict):
     k = 'USE_DL'
@@ -827,6 +831,9 @@ def config():
     if useScipion and not getScipionHome():
         print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
         return False
+
+    if new_config_dict['VERIFIED'] == '':
+        new_config_dict['VERIFIED'] = 'False'
 
     configCompiler(new_config_dict)
     configMPI(new_config_dict)
@@ -843,7 +850,9 @@ def config():
 def checkConfig():
     print("Checking configuration ------------------------------")
     ensureConfig()
-    if not 'VERIFIED' in configDict:
+    newConf = {}  # to update the config if something fails
+    print configDict['VERIFIED']
+    if configDict['VERIFIED'] != 'True':
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
             print("Possible solutions")
@@ -860,12 +869,12 @@ def checkConfig():
         if not checkCuda(configDict):
             print(red("Cannot compile with NVCC, continuing without CUDA"))
             runJob("rm xmipp_cuda_test*")  # if fails, the test files remains
-            configDict["CUDA"]="False"
+            newConf["CUDA"]="False"
         if not checkMatlab(configDict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
-            configDict["MATLAB"]="False"
-        configDict['VERIFIED']="True"
-        writeConfig(configDict)
+            newConf["MATLAB"]="False"
+        newConf['VERIFIED']="True"
+        updateConfig(newConf)
     return True
 
 
