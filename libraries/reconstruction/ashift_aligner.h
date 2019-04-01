@@ -26,9 +26,7 @@
 #ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_
 
-//#include <complex>
 #include <vector>
-//#include "data/dimensions.h"
 #include "data/point2D.h"
 #include "data/filters.h"
 #include <cassert>
