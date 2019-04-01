@@ -712,7 +712,8 @@ def configCuda(configDict):
                 nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
                 if nvccVersion != 8.0:
                     print(red('Detected CUDA-' + nvccFullVersion + '. Version 8.0 is required.'))
-                    print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default.'"))
+                    print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
+                              "to be able to use Xmipp Cuda programs.'"))
                     configDict["CUDA"] = 'False'
                     return
                 configDict["NVCC"] = "nvcc"
@@ -730,6 +731,8 @@ def configCuda(configDict):
                     configDict["CUDA"] = "False"
                     return
                 print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
+            else:
+                configDict["CXX_CUDA"] = configDict["CXX"]
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                            "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
         if configDict["NVCC_LINKFLAGS"]=="":
@@ -890,7 +893,7 @@ def compileModule(Nproc,module, tries=0):
         stampVersion()
     log = []
     ok = runJob("scons -j%s"%Nproc, "src/%s"%module, log=log)
-    if not ok:
+    if not ok and tries < 6:
         newConf = {}
         for l in log[-30:]:  # inspecting last 30 lines
             # expected error: 'scons: *** [some/program/to/compile] Error 1'
@@ -901,7 +904,7 @@ def compileModule(Nproc,module, tries=0):
                         print(red("Some error during compiling '%s' program." % failingBin.group(1).split('/')[-1]))
                         print(green("Trying with '%s=%s' to skip that programs." % (v[0], v[1])))
                         newConf.update({v[0]: v[1]})
-        if newConf and tries < 6:
+        if newConf:
             updateConfig(newConf)
             tries += 1
             ok = compileModule(Nproc, module, tries)
