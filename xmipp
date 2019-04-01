@@ -27,6 +27,7 @@
 import distutils.spawn
 import glob
 import os
+import re
 import shutil
 import sys
 import unittest
@@ -56,6 +57,12 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 CONFIG_FILE_NAME = "xmipp.conf"
 
+# if a skippable compilation fails (if 'key' in the error log),
+#   xmipp.conf file will be updated following the value[0]=value[1]
+#   and the compilation is re-tried.
+SKIPPABLE_BINS = {"optical_alignment": ("OPENCV", "False"),
+                  "volume_homogenizer": ("OPENCV", "False"),
+                  "cuda": ("CUDA", "False")}
 
 
 def checkGithubConnection():
@@ -712,7 +719,7 @@ def configCuda(configDict):
         if configDict["NVCC_CXXFLAGS"]=="":
             cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
             if cxxVersion > 5:
-                print(red("%s version later than 5 detected. Finding alternative..." % configDict["CXX"]))
+                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % configDict["CXX"]))
                 if checkProgram(configDict["CXX"]+"-5"):
                     configDict["CXX_CUDA"] = configDict["CXX"]+"-5"
                 elif checkProgram(configDict["CXX"]+"-4.8"):
@@ -814,7 +821,7 @@ def writeConfig(configDict):
             configFile.write("%s=%s\n"%(label,configDict[label]))
 
 def updateConfig(updatingDict):
-    cmdTemplate = 'sed -i -e "s/%s=.*/%s=%s/" %s'
+    cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
     for k, v in updatingDict.iteritems():
         runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME))
 
@@ -851,7 +858,6 @@ def checkConfig():
     print("Checking configuration ------------------------------")
     ensureConfig()
     newConf = {}  # to update the config if something fails
-    print configDict['VERIFIED']
     if configDict['VERIFIED'] != 'True':
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
@@ -878,13 +884,28 @@ def checkConfig():
     return True
 
 
-def compileModule(Nproc,module):
+def compileModule(Nproc,module, tries=0):
     shutil.copyfile(CONFIG_FILE_NAME,"src/%s/install/%s" % (module, CONFIG_FILE_NAME))
     if module == "xmipp":
         stampVersion()
-    ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
+    log = []
+    ok = runJob("scons -j%s"%Nproc, "src/%s"%module, log=log)
+    if not ok:
+        newConf = {}
+        for l in log[-30:]:  # inspecting last 30 lines
+            # expected error: 'scons: *** [some/program/to/compile] Error 1'
+            failingBin = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
+            if failingBin:
+                for k, v in SKIPPABLE_BINS.iteritems():
+                    if k in failingBin.group(1):
+                        print(red("Some error during compiling '%s' program." % failingBin.group(1).split('/')[-1]))
+                        print(green("Trying with '%s=%s' to skip that programs." % (v[0], v[1])))
+                        newConf.update({v[0]: v[1]})
+        if newConf and tries < 6:
+            updateConfig(newConf)
+            tries += 1
+            ok = compileModule(Nproc, module, tries)
     return ok
-
 
 def compile_cuFFTAdvisor():
     advisorDir = "src/cuFFTAdvisor/"
