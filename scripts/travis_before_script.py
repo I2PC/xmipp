@@ -1,6 +1,29 @@
 #/usr/bin/env python
-import os, shutil
+import os, shutil, subprocess
 from distutils.dir_util import copy_tree
+
+
+def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
+           inParallel=False):
+    if show_command:
+        print(green(cmd))
+    p = subprocess.Popen(cmd, cwd=cwd,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    while not inParallel:
+        output = p.stdout.readline()
+        if output == '' and p.poll() is not None:
+            break
+        if output:
+            l = output.rstrip()
+            if show_output:
+                print(l)
+            if log is not None:
+                log.append(l)
+    if inParallel:
+        return p
+    else:
+        return 0 == p.poll()
+
 
 folder = './'
 src_folder_name = 'src'
@@ -24,7 +47,7 @@ for item in os.listdir(folder):
     item_path = os.path.join(folder, item)
     try:
         if item not in copy_list:
-            shutil.move(item_path, xmipp_folder)
+            runJob('git mv ' + item_path + ' ' + xmipp_folder)
         else:
             if os.path.isdir(item_path):
                 copy_tree(item_path, os.path.join(xmipp_folder, item))
@@ -33,3 +56,4 @@ for item in os.listdir(folder):
     except Exception as e:
         print(e)
 
+runJob('git commit -m \'mv files\'')
