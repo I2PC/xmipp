@@ -111,7 +111,7 @@ void shift2D(FFTSettingsNew<T> &dims)
     auto shifts = std::vector<Point2D<T>>();
     shifts.reserve(dims.fDim().n());
     for(size_t n = 0; n < dims.fDim().n(); ++n) {
-        // generate shifts so that the Eucledian distance is smaller than max shift
+        // generate shifts so that the Euclidean distance is smaller than max shift
         int shiftX = dist(mt);
         int shiftXSq = shiftX * shiftX;
         int maxShiftY = std::floor(sqrt(maxShiftSq - shiftXSq));
