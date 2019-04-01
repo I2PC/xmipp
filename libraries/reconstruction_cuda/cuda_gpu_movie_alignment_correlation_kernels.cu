@@ -198,8 +198,8 @@ void cropSquareInCenter(const T* __restrict__ in, T* __restrict__ out,
         int xDim, int yDim, int noOfImgs,
         int outDim) {
     // assign pixel to thread
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    int idy = blockIdx.y*blockDim.y + threadIdx.y;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idy = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (idx >= outDim || idy >= outDim ) return;
 
