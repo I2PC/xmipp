@@ -1571,7 +1571,7 @@ T bestShift(MultidimArray<T> &Mcorr,
     	for (int i=-maxShift; i<=maxShift; i++)
     		for (int j=-maxShift; j<=maxShift; j++)
     		{
-    			if (i*i+j*j>maxShift2) // continue if the eucledian distance is too far
+    			if (i*i+j*j>maxShift2) // continue if the Euclidean distance is too far
     				continue;
     			else if (A2D_ELEM(Mcorr, i, j)>bestCorr)
     			{
