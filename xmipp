@@ -826,7 +826,9 @@ def writeConfig(configDict):
 def updateConfig(updatingDict):
     cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
     for k, v in updatingDict.iteritems():
-        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME))
+        print(blue("Setting %s=%s" % (k, v)))
+        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME),
+               show_command=False)
 
 def config_DL(configDict):
     k = 'USE_DL'
@@ -908,6 +910,9 @@ def compileModule(Nproc,module, tries=0):
             updateConfig(newConf)
             tries += 1
             ok = compileModule(Nproc, module, tries)
+    if not ok:
+        print(red("\nSome error occurred during the compilation of '%s'.\n" % module))
+        sys.exit(1)
     return ok
 
 def compile_cuFFTAdvisor():
@@ -1396,7 +1401,6 @@ if __name__ == '__main__':
         else:
             Nproc=8
         compileDependencies(Nproc)
-        downloadDeepLearningModels("build")
         compile(Nproc)
         install("build")
     elif mode=="install":
