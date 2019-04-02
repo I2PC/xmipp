@@ -36,22 +36,26 @@ class FFTSettingsNew {
 public:
     explicit FFTSettingsNew(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
             size_t batch = 1, // meaning no batch processing
-            bool isInPlace = false) :
+            bool isInPlace = false,
+            bool isForward = true) :
             m_spatial(Dimensions(x, y, z, n)),
             m_freq(x / 2 + 1, y, z, n),
             m_batch(batch),
-            m_isInPlace(isInPlace) {
+            m_isInPlace(isInPlace),
+            m_isForward(isForward) {
         assert(batch <= n);
         assert(batch > 0);
     };
 
     explicit FFTSettingsNew(const Dimensions &spatial,
             size_t batch = 1, // meaning no batch processing
-            bool isInPlace = false) :
+            bool isInPlace = false,
+            bool isForward = true) :
             m_spatial(spatial),
             m_freq(spatial.x() / 2 + 1, spatial.y(), spatial.z(), spatial.n()),
             m_batch(batch),
-            m_isInPlace(isInPlace) {
+            m_isInPlace(isInPlace),
+            m_isForward(isForward) {
         assert(batch <= spatial.n());
         assert(batch > 0);
     };
@@ -92,11 +96,20 @@ public:
         return m_spatial.xyz() * m_batch * sizeof(T);
     }
 
+    inline constexpr bool isForward() const {
+        return m_isForward;
+    }
+
+    inline constexpr bool isInPlace() const {
+        return m_isInPlace;
+    }
+
 private:
     Dimensions m_spatial;
     Dimensions m_freq;
     size_t m_batch;
-    size_t m_isInPlace;
+    bool m_isInPlace;
+    bool m_isForward;
 };
 
 #endif /* FFTSETTINGS_NEW_H_ */
