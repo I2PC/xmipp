@@ -994,7 +994,7 @@ def runTests(testNames):
     noCudaStr = '--noCuda' if configDict['CUDA'] != 'True' else ''
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-           % (getPython(), ' '.join(testNames), noCudaStr))  # noCudaStr must be the last
+           % (getPython(), ' '.join(testNames), noCudaStr))
 
 def getPython():
     scipionHome = getScipionHome()
