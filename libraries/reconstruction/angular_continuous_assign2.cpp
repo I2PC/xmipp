@@ -585,6 +585,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     	rowOut.setValue(MDL_CTF_DEFOCUSU,old_defocusU+p(10));
     	rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusV+p(11));
     	rowOut.setValue(MDL_CTF_DEFOCUS_ANGLE,old_defocusAngle+p(12));
+    	rowOut.setValue(MDL_CTF_DEFOCUS_CHANGE,0.5*(p(10)+p(11)));
     	if (old_defocusU+p(10)<0 || old_defocusU+p(11)<0)
     		rowOut.setValue(MDL_ENABLED,-1);
     }
