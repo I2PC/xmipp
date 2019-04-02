@@ -904,8 +904,8 @@ def compileModule(Nproc,module):
                     if k in failingBin.group(1):
                         print(red("\nSome error found compiling '%s' program."
                                   % failingBin.group(1).split('/')[-1]))
-                        print(red("You can skip this program running 'export %s' "
-                                  "or including '%s' in the config file." % (v, v)))
+                        print(red("You can skip this program by including '%s' "
+                                  "in the config file." % (v)))
         print(red("\nSome error occurred during the compilation of '%s'.\n" % module))
         sys.exit(1)
     return ok
