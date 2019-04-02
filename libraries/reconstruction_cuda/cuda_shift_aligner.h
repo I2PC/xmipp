@@ -82,10 +82,10 @@ private:
     AlignType m_type;
 
     // device memory
-    std::complex<T> *m_d_single_FT; // FIXME rename to FD
-    std::complex<T> *m_d_batch_FT;
-    T *m_d_single_S; // FIXME rename to SD
-    T *m_d_batch_S; // FIXME allocate this big enought to hold also the centers
+    std::complex<T> *m_d_single_FD;
+    std::complex<T> *m_d_batch_FD;
+    T *m_d_single_SD;
+    T *m_d_batch_SD;
 
     // host memory
     T *m_h_centers;
@@ -93,14 +93,14 @@ private:
     T *m_origHelperData;
 
     // FT data
-    mycufftHandle m_singleToFT;
-    mycufftHandle m_batchToFT;
+    mycufftHandle m_singleToFD;
+    mycufftHandle m_batchToFD;
     mycufftHandle m_batchToSD;
 
     // flags
     bool m_includingFT;
     bool m_isInit;
-    bool m_is_d_single_FT_loaded;
+    bool m_is_d_single_FD_loaded;
 
     void check();
     void init2DOneToN();
