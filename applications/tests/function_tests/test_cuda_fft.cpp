@@ -129,5 +129,5 @@ REGISTER_TYPED_TEST_CASE_P(CudaFFTTest,
     fft1DManyBatched2OOP
 );
 
-typedef ::testing::Types<float> TestTypes; // FIXME add double
+typedef ::testing::Types<float, double> TestTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(Cuda, CudaFFTTest, TestTypes);

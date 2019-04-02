@@ -122,12 +122,12 @@ cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
         n = {(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
         idist = settings.sDim().xyz();
         odist = settings.fDim().xyz();
-        type = CUFFT_R2C;
+        type = std::is_same<T, float>::value ? CUFFT_R2C : CUFFT_D2Z;
     } else {
         n ={(int)settings.fDim().z(), (int)settings.fDim().y(), (int)settings.fDim().x()};
         idist = settings.fDim().xyz();
         odist = settings.sDim().xyz();
-        type = CUFFT_C2R;
+        type = std::is_same<T, float>::value ? CUFFT_C2R : CUFFT_Z2D;
     }
     int rank = 3;
     if (settings.sDim().z() == 1) rank--;
@@ -142,3 +142,4 @@ cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
 
 // explicit instantiation
 template class CudaFFT<float>;
+template class CudaFFT<double>;
