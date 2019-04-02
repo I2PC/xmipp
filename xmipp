@@ -38,7 +38,7 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.03b3'  #
+XMIPP_VERSION = '3.19.03b4'  #
 RELEASE_DATE = '18/03/2019'  #
 ##############################
 
@@ -1244,9 +1244,9 @@ def usage(msg=''):
           "   addModel login modelName:   Takes a deepLearning model from the src/xmipp/models/<modelName>, makes a tgz, \n"
           "                                   uploads the .tgz according to the <login>. \n"
           "                                   Note that login=usr@server must have write permisions to Nolan machine.\n"
-          "   tar <mode> <version>:       Create a bundle of the xmipp\n"
-          "                                   <mode> can be 'Sources' or 'Binaries'\n"
-          "                                   <version> usually X.YY.MM\n"
+          "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
+          "                                   <mode> can be 'Sources' or 'Binaries, when Sources put a branch (default: master).'\n"
+          "                                   <ver> usually X.YY.MM\n"
           )
 
 
@@ -1467,12 +1467,19 @@ if __name__ == '__main__':
             sys.exit(1)
         addDeepLearninModel(*sys.argv[2:])
     elif mode=='tar':
-        if not len(sys.argv) in (3, 4):
-            usage("Incorrect number of input parameters")
-        elif len(sys.argv) == 3:
-            runJob("src/xmipp/tar.py %s %s" % (sys.argv[2], XMIPP_VERSION))
-        else:
-            runJob("src/xmipp/tar.py %s" % ' '.join(sys.argv[2:]))
+        if len(sys.argv) < 3:
+            runJob("src/xmipp/tar.py --help")
+            sys.exit(0)
+        ver = XMIPP_VERSION
+        br = 'master'
+        mode = sys.argv[2]
+        for arg in sys.argv[3:]:
+            if arg.startswith('br='):
+                br = arg.split('br=')[1]
+            if arg.startswith('v='):
+                ver = arg.split('v=')[1]
+        runJob("src/xmipp/tar.py %s %s %s" % (mode, ver, br))
+
     else:
         usage(" -> option not found <- \n")
 
