@@ -986,7 +986,7 @@ def runTests(testNames):
     runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
     configDict = readConfigFile(CONFIG_FILE_NAME)
-    noCudaStr = '--noCuda' if configDict['CUDA'] != 'True' else ''
+    noCudaStr = '--noCuda' if not is_config_true('CUDA') else ''
     print(" Tests to do: %s" % ', '.join(testNames))
     runJob("(cd src/xmipp/tests; %s test.py %s %s)"
            % (getPython(), ' '.join(testNames), noCudaStr))
@@ -1264,6 +1264,7 @@ def getVersion(onlyNumbers=False):
     return cleanInfo.strip(' ')
 
 def getCudaVersion(nvcc):
+    # FIXME: Refator/unify this with getGccVersion()
     log = []
     runJob(nvcc + " --version", show_output=False, show_command=False, log=log)
     # expected lst line: 'Cuda compilation tools, release 8.0, V8.0.61'
