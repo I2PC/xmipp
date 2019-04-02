@@ -1270,7 +1270,7 @@ def getCudaVersion(nvcc):
     full_version = log[-1].strip().split(', ')[-1].lstrip('V')
     tokens = full_version.split('.')
     if len(tokens) < 2:
-        tokens.append('0')  # for version 5.0, only '5' is returned
+        tokens.append('0')  # just in case when only one digit is returned
     nvccVersion = float(str(tokens[0] + '.' + tokens[1]))
     return nvccVersion, full_version
 
