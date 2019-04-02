@@ -948,7 +948,7 @@ def compile(Nproc):
     return True
 
 def runTests(testNames):
-    if len(testNames)==0 or 'help' in  testNames or '--help' in testNames:
+    if len(testNames)==0 or 'help' in testNames or '--help' in testNames:
         print("Usage: xmipp test op\n"
               "\n"
               "         op = --show: Show how to invoke all available tests\n"
@@ -990,9 +990,11 @@ def runTests(testNames):
     args = "%s %s %s" % ("tests/data", url, dataset)
     runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
+    configDict = readConfigFile(CONFIG_FILE_NAME)
+    noCudaStr = '--noCuda' if configDict['CUDA'] != 'True' else ''
     print(" Tests to do: %s" % ', '.join(testNames))
-    runJob("(cd src/xmipp/tests; %s test.py %s)"
-           % (getPython(), ' '.join(testNames)))
+    runJob("(cd src/xmipp/tests; %s test.py %s %s)"
+           % (getPython(), ' '.join(testNames), noCudaStr))  # noCudaStr must be the last
 
 def getPython():
     scipionHome = getScipionHome()
