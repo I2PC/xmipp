@@ -7,10 +7,12 @@ class CudaShiftAlignerTest : public ::testing::Test { };
 TYPED_TEST_CASE_P(CudaShiftAlignerTest);
 
 template<typename T>
-void correlate2DNoCenter(const FFTSettingsNew<T> &dims) {
+void correlate2DNoCenter(size_t n, size_t batch) {
     using std::complex;
     using Alignment::CudaShiftAligner;
     using Alignment::AlignType;
+
+    FFTSettingsNew<T> dims(30, 14, 1, n, batch); // only even sizes are supported
 
     // allocate and prepare data
     auto inOut = new complex<T>[dims.fDim().size()];
@@ -50,38 +52,29 @@ void correlate2DNoCenter(const FFTSettingsNew<T> &dims) {
     delete[] ref;
 }
 
-template<typename T>
-void correlate2D(size_t n, size_t batch) {
-    correlate2DNoCenter<T>(FFTSettingsNew<T>(29, 13, 1, n, batch)); // odd, odd
-    correlate2DNoCenter<T>(FFTSettingsNew<T>(29, 14, 1, n, batch)); // odd, even
-    correlate2DNoCenter<T>(FFTSettingsNew<T>(30, 13, 1, n, batch)); // even, odd
-    correlate2DNoCenter<T>(FFTSettingsNew<T>(30, 14, 1, n, batch)); // even, even
-}
-
-
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToOne)
 {
     // test one reference vs one image
-    correlate2D<TypeParam>(1, 1);
+    correlate2DNoCenter<TypeParam>(1, 1);
 }
 
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToMany)
 {
     // check that n == batch works properly
-    correlate2D<TypeParam>(5, 5);
+    correlate2DNoCenter<TypeParam>(5, 5);
 }
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
-    correlate2D<TypeParam>(5, 3);
+    correlate2DNoCenter<TypeParam>(5, 3);
 }
 
 TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched2)
 {
     // test that n mod batch = 0 works
-    correlate2D<TypeParam>(6, 3);
+    correlate2DNoCenter<TypeParam>(6, 3);
 }
 
 template<typename T>
