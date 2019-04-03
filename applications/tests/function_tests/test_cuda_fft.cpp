@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <random>
+#include <set>
 #include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
@@ -9,6 +10,10 @@ TYPED_TEST_CASE_P(CudaFFTTest);
 template<typename T>
 void testFTInpulseShifted(const FFTSettingsNew<T> &s) {
     using std::complex;
+
+    // this test needs at least two elements in X dim
+    if (s.sDim().x() == 1) return;
+
     auto in = new T[s.sDim().sizePadded()]();
     complex<T> *out;
     if (s.isInPlace()) {
@@ -26,6 +31,7 @@ void testFTInpulseShifted(const FFTSettingsNew<T> &s) {
     ft.init(s);
     ft.fft(in, out);
 
+//    printf("\nShifted:\n");
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
         // ... will result in constant magnitude
@@ -62,6 +68,7 @@ void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     ft.init(s);
     ft.fft(in, out);
 
+//    printf("\nOrigin:\n");
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
         // ... will result in constant real value, and no imag value
@@ -76,135 +83,367 @@ void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     }
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DSingleOOP)
-{
-    // test a forward transform of a single 1D signal, out of place
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto l : len) {
-        testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l));
-        testFTInpulseShifted(FFTSettingsNew<TypeParam>(l));
-    }
-}
+//template<typename T, typename F>
+//void generateAndTest(F condition) {
+//    size_t executed = 0;
+//    size_t skippedSize = 0;
+//    size_t skippedCondition = 0;
+//    auto batch = std::vector<size_t>{1, 2, 3, 5, 6, 7, 8, 10, 23};
+//    auto nSet = std::vector<size_t>{1, 2, 4, 5, 6, 8, 10, 12, 14, 23, 24};
+//    auto zSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+//    auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+//    auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+//    auto inPlace = std::vector<bool>{true, false};
+//    auto isForward = std::vector<bool>{true, false};
+//    for (auto n : nSet) {
+//        for (auto b : batch) {
+//            if (b > n) continue;
+//            for (auto z : zSet) {
+//                for (auto y : ySet) {
+//                    for (auto x : xSet) {
+//                        for (auto p : inPlace) {
+//                            for (auto f : isForward) {
+//                                auto settings = FFTSettingsNew<T>(x, y, z, n, b, p, f);
+//                                if (settings.fBytesBatch() > std::numeric_limits<int>::max()) {
+////                                    printf("Skipping %lu %lu %lu %lu %lu %s %s (too big [%luGB])\n",
+////                                            x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft",
+////                                            settings.fBytesBatch() / 1024 / 1024 / 1024);
+//                                    skippedSize++;
+//                                    continue;
+//                                }
+//                                if (condition(x, y, z, n, b, p, f)) {
+//                                    printf("Testing %lu %lu %lu %lu %lu %s %s\n",
+//                                            x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft");
+//                                    testFTInpulseOrigin(settings);
+//                                    testFTInpulseShifted(settings);
+//                                    executed++;
+//                                } else {
+//                                    skippedCondition++;
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    std::cout << "Executed: " << executed
+//            << "\nSkipped (condition): " << skippedCondition
+//            << "\nSkipped (size):" << skippedSize << std::endl;
+//}
 
-TYPED_TEST_P( CudaFFTTest, fft1DManyOOP)
-{
-    // test a forward transform of many 1D signals, out of place
-    // check that n == batch works properly
-    auto batches = std::vector<size_t>{1, 3, 4, 11, 12};
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto b : batches) {
-        for (auto l : len) {
-            testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, b, b));
-            testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, b, b));
+template<typename T, typename F>
+void generateAndTest(F condition) {
+    size_t executed = 0;
+    size_t skippedSize = 0;
+    size_t skippedCondition = 0;
+    auto batch = std::vector<size_t>{1, 2, 3, 5, 6, 7, 8, 10, 23};
+    auto nSet = std::vector<size_t>{1, 2, 4, 5, 6, 8, 10, 12, 14, 23, 24};
+    auto zSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+    auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+    auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+
+    auto comp = [](const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
+      return ((l.sDim().x() >= r.sDim().x())
+              && (l.sDim().y() >= r.sDim().y())
+              && (l.sDim().z() >= r.sDim().z())
+              && (l.sDim().n() >= r.sDim().n())
+              && (l.batch() >= r.batch()));
+    };
+    auto tested = std::set<FFTSettingsNew<T>,decltype(comp)>(comp);
+
+    int seed = 42;
+    std::mt19937 mt(seed);
+    std::uniform_int_distribution<> dist(0, 4097);
+    while (executed < 20) {
+        size_t x = xSet.at(dist(mt) % xSet.size());
+        size_t y = ySet.at(dist(mt) % ySet.size());
+        size_t z = zSet.at(dist(mt) % zSet.size());
+        size_t n = nSet.at(dist(mt) % nSet.size());
+        size_t b = batch.at(dist(mt) % batch.size());
+        if (b > n) continue; // batch must be smaller than n
+        bool inPlace = dist(mt) % 2;
+        bool isForward = dist(mt) % 2;
+        auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
+
+        if (settings.fBytesBatch() > std::numeric_limits<int>::max()/3) { // FIXME make less strict once the plan size can be obtained
+//            printf("Skipping %lu %lu %lu %lu %lu %s %s (too big [%luGB])\n",
+//                    x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft",
+//                    settings.fBytesBatch() / 1024 / 1024 / 1024);
+            skippedSize++;
+            continue;
+        }
+        if (condition(x, y, z, n, b, inPlace, isForward)) {
+            // make sure we did not test this before
+            auto result = tested.insert(settings);
+            if ( ! result.second) continue;
+
+            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
+                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
+            testFTInpulseOrigin(settings);
+            testFTInpulseShifted(settings);
+            executed++;
+        } else {
+            skippedCondition++;
         }
     }
+    std::cout << "Executed: " << executed
+            << "\nSkipped (condition): " << skippedCondition
+            << "\nSkipped (size):" << skippedSize << std::endl;
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DManyBatched1OOP)
+//template<typename T, typename F>
+//void generateAndTest(F condition) {
+//    int counter = 0;
+//    int seed = 42;
+//    std::mt19937 mt(seed);
+//    std::uniform_int_distribution<> dist(0, 4097);
+//    while (counter < 20) {
+//        size_t x = dist(mt);
+//        size_t y = dist(mt);
+//        size_t z = dist(mt);
+//        size_t n = dist(mt) % 100 + 1;
+//        size_t b = dist(mt) % n + 1; // batch must not be bigger than n
+//        bool inPlace = dist(mt) % 2;
+//        bool isForward = dist(mt) % 2;
+//        auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
+//        if (settings.fBytesBatch() > std::numeric_limits<int>::max()) {
+////            printf("Skipping %lu %lu %lu %lu %lu %s %s (too big [%luGB])\n",
+////                    x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft",
+////                    settings.fBytesBatch() / 1024 / 1024 / 1024);
+//            continue;
+//        }
+//        if (condition(x, y, z, n, b, inPlace, isForward)) {
+//            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
+//                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
+//            testFTInpulseOrigin(settings);
+//            testFTInpulseShifted(settings);
+//            counter++;
+////        } else {
+////            printf("Skipping %lu %lu %lu %lu %lu %s %s\n",
+////                                x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
+////            fflush(stdout);
+//        }
+//    }
+//}
+
+
+auto is1D = [] (size_t x, size_t y, size_t z) {
+    return (z == 1) && (y == 1);
+};
+
+auto is2D = [] (size_t x, size_t y, size_t z) {
+    return z == 1;
+};
+
+auto isBatchMultiple = [] (size_t n, size_t batch) {
+    return 0 == (n % batch);
+};
+
+//*******************************************
+//              1D out of place FFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, fft_OOP_1D_Single)
 {
-    // test a forward transform of many 1D signals, out of place
-    // test that n mod batch != 0 works
-    auto sizes = std::vector<size_t>{3, 4, 5, 7};
-    auto batches = std::vector<size_t>{2, 3, 4, 11, 12};
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto s : sizes ) {
-        for (auto b : batches) {
-            if (b > s) continue;
-            for (auto l : len) {
-                testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, b, b));
-                testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, b, b));
-            }
-        }
-    }
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return isForward && (!inPlace) && is1D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DManyBatched2OOP)
+TYPED_TEST_P( CudaFFTTest, fft_OOP_1D_Batch1)
 {
-    // test a forward transform of many 1D signals, out of place
-    // test that n mod batch = 0 works
-    auto sizes = std::vector<size_t>{3, 4, 5, 6, 7, 9, 16, 22};
-    auto batches = std::vector<size_t>{2, 3, 4, 11};
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto s : sizes ) {
-        for (auto b : batches) {
-            if (0 != (s % b)) continue;
-            for (auto l : len) {
-                testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, b, b));
-                testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, b, b));
-            }
-        }
-    }
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return isForward && (!inPlace) && is1D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DSingleIP)
+TYPED_TEST_P( CudaFFTTest, fft_OOP_1D_Batch2)
 {
-    // test a forward transform of a single 1D signal, out of place
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto l : len) {
-        testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, 1, 1, true));
-        testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, 1, 1, true));
-    }
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return isForward && (!inPlace) && is1D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DManyIP)
+TYPED_TEST_P( CudaFFTTest, fft_OOP_1D_Batch3)
 {
-    // test a forward transform of many 1D signals, out of place
-    // check that n == batch works properly
-    auto batches = std::vector<size_t>{1, 3, 4, 11, 12};
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto b : batches) {
-        for (auto l : len) {
-            testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, b, b, true));
-            testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, b, b, true));
-        }
-    }
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return isForward && (!inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
+    };
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DManyBatched1IP)
+//*******************************************
+//              1D in place FFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_1D_Single)
 {
-    // test a forward transform of many 1D signals, out of place
-    // test that n mod batch != 0 works
-    auto sizes = std::vector<size_t>{3, 4, 5, 7};
-    auto batches = std::vector<size_t>{2, 3, 4, 11, 12};
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto s : sizes ) {
-        for (auto b : batches) {
-            if (b > s) continue;
-            for (auto l : len) {
-                testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, b, b, true));
-                testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, b, b, true));
-            }
-        }
-    }
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return isForward && (inPlace) && is1D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
 }
 
-TYPED_TEST_P( CudaFFTTest, fft1DManyBatched2IP)
+TYPED_TEST_P( CudaFFTTest, fft_IP_1D_Batch1)
 {
-    // test a forward transform of many 1D signals, out of place
-    // test that n mod batch = 0 works
-    auto sizes = std::vector<size_t>{3, 4, 5, 6, 7, 9, 16, 22};
-    auto batches = std::vector<size_t>{2, 3, 4, 11};
-    auto len = std::vector<size_t>{8, 15, 32, 42, 106, 2048, 2049};
-    for (auto s : sizes ) {
-        for (auto b : batches) {
-            if (0 != (s % b)) continue;
-            for (auto l : len) {
-                testFTInpulseOrigin(FFTSettingsNew<TypeParam>(l, 1, 1, b, b, true));
-                testFTInpulseShifted(FFTSettingsNew<TypeParam>(l, 1, 1, b, b, true));
-            }
-        }
-    }
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return isForward && (inPlace) && is1D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_1D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return isForward && (inPlace) && is1D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_1D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return isForward && (inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
+    };
+}
+
+//*******************************************
+//              2D out of place FFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, fft_OOP_2D_Single)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return isForward && (!inPlace) && is2D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_OOP_2D_Batch1)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return isForward && (!inPlace) && is2D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_OOP_2D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return isForward && (!inPlace) && is2D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_OOP_2D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return isForward && (!inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
+    };
+}
+
+//*******************************************
+//              2D in place FFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_2D_Single)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return isForward && (inPlace) && is2D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_2D_Batch1)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return isForward && (inPlace) && is2D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_2D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return isForward && (inPlace) && is2D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, fft_IP_2D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return isForward && (inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
+    };
 }
 
 REGISTER_TYPED_TEST_CASE_P(CudaFFTTest,
-    fft1DSingleOOP,
-    fft1DManyOOP,
-    fft1DManyBatched1OOP,
-    fft1DManyBatched2OOP,
-    fft1DSingleIP,
-    fft1DManyIP,
-    fft1DManyBatched1IP,
-    fft1DManyBatched2IP
+    fft_OOP_1D_Single,
+    fft_OOP_1D_Batch1,
+    fft_OOP_1D_Batch2,
+    fft_OOP_1D_Batch3,
+
+    fft_IP_1D_Single,
+    fft_IP_1D_Batch1,
+    fft_IP_1D_Batch2,
+    fft_IP_1D_Batch3,
+
+    fft_OOP_2D_Single,
+    fft_OOP_2D_Batch1,
+    fft_OOP_2D_Batch2,
+    fft_OOP_2D_Batch3,
+
+    fft_IP_2D_Single,
+    fft_IP_2D_Batch1,
+    fft_IP_2D_Batch2,
+    fft_IP_2D_Batch3
 );
 
 typedef ::testing::Types<float, double> TestTypes;
