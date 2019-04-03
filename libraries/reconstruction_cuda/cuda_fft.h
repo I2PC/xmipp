@@ -40,13 +40,17 @@ typedef int cufftHandle;
 template<typename T>
 class CudaFFT {
 public:
-    CudaFFT(): m_settings(0) {};
+    CudaFFT(): m_settings(0) {
+        setDefault();
+    };
     ~CudaFFT() {
         release();
     }
     void init(const FFTSettingsNew<T> &settings);
     void release();
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
+    std::complex<T>* fft(T *h_inOut);
+
 
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);

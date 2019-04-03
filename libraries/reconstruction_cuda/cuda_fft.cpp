@@ -32,17 +32,46 @@ void CudaFFT<T>::init(const FFTSettingsNew<T> &settings) {
     m_settings = settings;
     m_plan = createPlan(m_settings);
 
+    // allocate input data storage
+    gpuErrchk(cudaMalloc(&m_d_SD, m_settings.sBytesBatch()));
     if (m_settings.isInPlace()) {
-        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "In place transformations are not yet available. "
-                "Stay tuned!");
+        // input data holds also the output
+        m_d_FD = (std::complex<T>*)m_d_SD;
     } else {
+        // allocate also the output buffer
         gpuErrchk(cudaMalloc(&m_d_FD, m_settings.fBytesBatch()));
-        gpuErrchk(cudaMalloc(&m_d_SD, m_settings.sBytesBatch()));
     }
 
     m_isInit = true;
 }
 
+template<typename T>
+void CudaFFT<T>::setDefault() {
+    m_settings = FFTSettingsNew<T>(0);
+    m_isInit = false;
+    m_d_SD = nullptr;
+    m_d_FD = nullptr;
+}
+
+template<typename T>
+void CudaFFT<T>::release() {
+    gpuErrchk(cudaFree(m_d_SD));
+    if ((void*)m_d_FD != (void*)m_d_SD) {
+        gpuErrchk(cudaFree(m_d_FD));
+    }
+    gpuErrchkFFT(cufftDestroy(m_plan));
+    setDefault();
+}
+
+template<typename T>
+std::complex<T>* CudaFFT<T>::fft(T *d_inOut) {
+    return fft(d_inOut, (std::complex<T>*) d_inOut);
+}
+
+template<typename T>
+std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, T *d_inOut) {
+    return fft(plan, d_inOut, (std::complex<T>*) d_inOut);
+}
 
 template<typename T>
 std::complex<T>* CudaFFT<T>::fft(const T *h_in,
@@ -61,7 +90,7 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
         // copy memory
         gpuErrchk(cudaMemcpy(
                 m_d_SD,
-                h_in + offset * m_settings.sDim().xyz(),
+                h_in + offset * m_settings.sDim().xyzPadded(),
                 toProcess * m_settings.sBytesSingle(),
                     cudaMemcpyHostToDevice));
 
@@ -69,28 +98,12 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
 
         // copy data back
         gpuErrchk(cudaMemcpy(
-                h_out + offset * m_settings.fDim().xyz(),
+                h_out + offset * m_settings.fDim().xyzPadded(),
                 m_d_FD,
                 toProcess * m_settings.fBytesSingle(),
                 cudaMemcpyDeviceToHost));
     }
     return h_out;
-}
-
-
-template<typename T>
-void CudaFFT<T>::setDefault() {
-    m_settings = FFTSettingsNew<T>(0);
-    m_isInit = false;
-    m_d_SD = nullptr;
-    m_d_FD = nullptr;
-}
-
-template<typename T>
-void CudaFFT<T>::release() {
-    gpuErrchk(cudaFree(m_d_SD));
-    gpuErrchk(cudaFree(m_d_FD));
-    setDefault();
 }
 
 template<typename T>
@@ -107,26 +120,20 @@ std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, const T *d_in,
 }
 
 template<typename T>
-std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, T *d_inOut) {
-    return fft(plan, d_inOut, (std::complex<T>*) d_inOut);
-}
-
-template<typename T>
 cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
     std::array<int, 3> n;
     int idist;
     int odist;
-    cufftHandle plan;
     cufftType type;
     if (settings.isForward()) {
         n = {(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
-        idist = settings.sDim().xyz();
-        odist = settings.fDim().xyz();
+        idist = settings.sDim().xyzPadded();
+        odist = settings.fDim().xyzPadded();
         type = std::is_same<T, float>::value ? CUFFT_R2C : CUFFT_D2Z;
     } else {
         n ={(int)settings.fDim().z(), (int)settings.fDim().y(), (int)settings.fDim().x()};
-        idist = settings.fDim().xyz();
-        odist = settings.sDim().xyz();
+        idist = settings.fDim().xyzPadded();
+        odist = settings.sDim().xyzPadded();
         type = std::is_same<T, float>::value ? CUFFT_C2R : CUFFT_Z2D;
     }
     int rank = 3;
@@ -135,6 +142,7 @@ cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
 
     int offset = 3 - rank;
 
+    cufftHandle plan;
     gpuErrchkFFT(cufftPlanMany(&plan, rank, &n[offset], nullptr,
         1, idist, nullptr, 1, odist, type, settings.batch()));
     return plan;
