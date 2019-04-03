@@ -39,7 +39,7 @@ from datetime import datetime
 VERSION_TAG = "Xmipp version"
 ##############################
 XMIPP_VERSION = '3.19.03b4'  #
-RELEASE_DATE = '18/03/2019'  #
+RELEASE_DATE = '03/04/2019'  #
 ##############################
 
 XMIPP = 'xmipp'
