@@ -116,6 +116,12 @@ public:
         return sBytesBatch() + (m_isInPlace ? 0 :fBytesBatch());
     }
 
+    inline FFTSettingsNew<T> createInverse() const {
+        auto copy = FFTSettingsNew<T>(*this);
+        copy.m_isForward = ! this->m_isForward;
+        return copy;
+    }
+
 private:
     Dimensions m_spatial;
     Dimensions m_freq;
