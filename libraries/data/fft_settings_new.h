@@ -112,6 +112,10 @@ public:
         return m_isInPlace;
     }
 
+    inline constexpr size_t maxBytesBatch() const {
+        return sBytesBatch() + (m_isInPlace ? 0 :fBytesBatch());
+    }
+
 private:
     Dimensions m_spatial;
     Dimensions m_freq;

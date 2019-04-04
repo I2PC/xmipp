@@ -107,6 +107,20 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
 }
 
 template<typename T>
+size_t CudaFFT<T>::estimatePlanSize(const FFTSettingsNew<T> &settings) {
+    size_t size = 0;
+    auto f = [&] (int rank, int *n, int *inembed,
+            int istride, int idist, int *onembed, int ostride,
+            int odist, cufftType type, int batch) {
+        gpuErrchkFFT(cufftEstimateMany(rank, n, inembed,
+                istride, idist, onembed, ostride,
+                odist, type, batch, &size));
+    };
+    manyHelper(settings, f);
+    return size;
+}
+
+template<typename T>
 std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, const T *d_in,
         std::complex<T> *d_out) {
     if (std::is_same<T, float>::value) {
@@ -120,7 +134,8 @@ std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, const T *d_in,
 }
 
 template<typename T>
-cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
+template<typename F>
+void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
     std::array<int, 3> n;
     int idist;
     int odist;
@@ -141,10 +156,21 @@ cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
     if (settings.sDim().y() == 1) rank--;
 
     int offset = 3 - rank;
+    function(rank, &n[offset], nullptr,
+            1, idist, nullptr, 1, odist, type, settings.batch());
+}
 
+template<typename T>
+cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
     cufftHandle plan;
-    gpuErrchkFFT(cufftPlanMany(&plan, rank, &n[offset], nullptr,
-        1, idist, nullptr, 1, odist, type, settings.batch()));
+    auto f = [&] (int rank, int *n, int *inembed,
+            int istride, int idist, int *onembed, int ostride,
+            int odist, cufftType type, int batch) {
+        gpuErrchkFFT(cufftPlanMany(&plan, rank, n, inembed,
+                istride, idist, onembed, ostride,
+                odist, type, batch));
+    };
+    manyHelper(settings, f);
     return plan;
 }
 

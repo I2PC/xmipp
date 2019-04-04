@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <random>
 #include <set>
+#include "core/utils/memory_utils.h"
+#include "reconstruction_adapt_cuda/gpu.h"
 #include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
@@ -134,6 +136,8 @@ void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
 
 template<typename T, typename F>
 void generateAndTest(F condition) {
+    using memoryUtils::MB;
+    using memoryUtils::GB;
     size_t executed = 0;
     size_t skippedSize = 0;
     size_t skippedCondition = 0;
@@ -142,20 +146,24 @@ void generateAndTest(F condition) {
     auto zSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
     auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
     auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
+    size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
 
-    auto comp = [](const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
+    auto settingsComparator = [] (const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
       return ((l.sDim().x() >= r.sDim().x())
               && (l.sDim().y() >= r.sDim().y())
               && (l.sDim().z() >= r.sDim().z())
               && (l.sDim().n() >= r.sDim().n())
               && (l.batch() >= r.batch()));
     };
-    auto tested = std::set<FFTSettingsNew<T>,decltype(comp)>(comp);
+    auto tested = std::set<FFTSettingsNew<T>,decltype(settingsComparator)>(settingsComparator);
 
     int seed = 42;
     std::mt19937 mt(seed);
     std::uniform_int_distribution<> dist(0, 4097);
-    while (executed < 20) {
+    GPU gpu(0);
+    T availableMem = gpu.lastFreeMem();
+    while ((executed < 20)
+            && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
         size_t x = xSet.at(dist(mt) % xSet.size());
         size_t y = ySet.at(dist(mt) % ySet.size());
         size_t z = zSet.at(dist(mt) % zSet.size());
@@ -165,11 +173,7 @@ void generateAndTest(F condition) {
         bool inPlace = dist(mt) % 2;
         bool isForward = dist(mt) % 2;
         auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
-
-        if (settings.fBytesBatch() > std::numeric_limits<int>::max()/3) { // FIXME make less strict once the plan size can be obtained
-//            printf("Skipping %lu %lu %lu %lu %lu %s %s (too big [%luGB])\n",
-//                    x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft",
-//                    settings.fBytesBatch() / 1024 / 1024 / 1024);
+        if (settings.fBytesBatch() > std::numeric_limits<int>::max()) {
             skippedSize++;
             continue;
         }
@@ -177,6 +181,9 @@ void generateAndTest(F condition) {
             // make sure we did not test this before
             auto result = tested.insert(settings);
             if ( ! result.second) continue;
+            // make sure we have enough memory
+            T size = MB(CudaFFT<T>::estimatePlanSize(settings)) + MB(settings.maxBytesBatch());
+            if (availableMem < size) continue;
 
             printf("Testing %lu %lu %lu %lu %lu %s %s\n",
                     x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
@@ -187,9 +194,9 @@ void generateAndTest(F condition) {
             skippedCondition++;
         }
     }
-    std::cout << "Executed: " << executed
-            << "\nSkipped (condition): " << skippedCondition
-            << "\nSkipped (size):" << skippedSize << std::endl;
+//    std::cout << "Executed: " << executed
+//            << "\nSkipped (condition): " << skippedCondition
+//            << "\nSkipped (size):" << skippedSize << std::endl;
 }
 
 //template<typename T, typename F>

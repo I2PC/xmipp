@@ -52,6 +52,7 @@ public:
     std::complex<T>* fft(T *h_inOut);
 
 
+    static size_t estimatePlanSize(const FFTSettingsNew<T> &settings);
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);
     static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
@@ -65,6 +66,8 @@ private:
     bool m_isInit;
 
     void setDefault();
+    template<typename F>
+    static void manyHelper(const FFTSettingsNew<T> &settings, F function);
 };
 
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FFT_H_ */
