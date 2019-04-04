@@ -10,7 +10,7 @@ class CudaFFTTest : public ::testing::Test { };
 TYPED_TEST_CASE_P(CudaFFTTest);
 
 template<typename T>
-void testFTInpulseShifted(const FFTSettingsNew<T> &s) {
+void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
     using std::complex;
 
     // this test needs at least two elements in X dim
@@ -33,7 +33,6 @@ void testFTInpulseShifted(const FFTSettingsNew<T> &s) {
     ft.init(s);
     ft.fft(in, out);
 
-//    printf("\nShifted:\n");
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
         // ... will result in constant magnitude
@@ -41,7 +40,6 @@ void testFTInpulseShifted(const FFTSettingsNew<T> &s) {
         T im = out[i].imag();
         T mag = (re * re) + (im * im);
         EXPECT_NEAR((T)1, std::sqrt(mag), delta);
-//        printf("%f %f\n", out[i].real(), out[i].imag());
     }
 
     delete[] in;
@@ -51,8 +49,9 @@ void testFTInpulseShifted(const FFTSettingsNew<T> &s) {
 }
 
 template<typename T>
-void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     using std::complex;
+
     auto in = new T[s.sDim().sizePadded()]();
     complex<T> *out;
     if (s.isInPlace()) {
@@ -70,13 +69,57 @@ void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     ft.init(s);
     ft.fft(in, out);
 
-//    printf("\nOrigin:\n");
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
         // ... will result in constant real value, and no imag value
         EXPECT_NEAR((T)1, out[i].real(), delta);
         EXPECT_NEAR((T)0, out[i].imag(), delta);
-//        printf("%f %f\n", out[i].real(), out[i].imag());
+    }
+
+    delete[] in;
+    if ((void*)in != (void*)out) {
+        delete[] out;
+    }
+}
+
+template<typename T>
+void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+    using std::complex;
+
+    auto in = new complex<T>[s.fDim().sizePadded()]();
+    T *out;
+    if (s.isInPlace()) {
+        out = (T*)in;
+    } else {
+        out = new T[s.sDim().sizePadded()]();
+    }
+
+    for (size_t n = 0; n < s.fDim().sizePadded(); ++n) {
+        // constant real value, and no imag value ...
+        in[n] = {T(1), 0};
+    }
+
+    CudaFFT<T> ft;
+    ft.init(s);
+    ft.ifft(in, out);
+
+    T delta = (T)0.0001;
+    for (size_t n = 0; n < s.sDim().n(); ++n) {
+        size_t offset = n * s.sDim().xyzPadded();
+        // ... will result in impulse at the origin ...
+        // normalize signal to get 1
+        EXPECT_NEAR((T)1, out[0] / s.sDim().xyz(), delta);
+        // skip the padding area, it can contain garbage data
+        for (size_t z = 0; z < s.sDim().z(); ++z) {
+            for (size_t y = 0; y < s.sDim().y(); ++y) {
+                for (size_t x = 1; x < s.sDim().x(); ++x) {
+                    size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
+                    // ... and zeros elsewhere
+                    // output is not normalized, so normalize it to make the the test more stable
+                    EXPECT_NEAR((T)0, out[index] / s.sDim().xyz(), delta);
+                }
+            }
+        }
     }
 
     delete[] in;
@@ -88,6 +131,7 @@ void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
 template<typename T, typename F>
 void generateAndTest(F condition) {
     using namespace memoryUtils;
+
     size_t executed = 0;
     size_t skippedSize = 0;
     size_t skippedCondition = 0;
@@ -99,11 +143,11 @@ void generateAndTest(F condition) {
     size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
 
     auto settingsComparator = [] (const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
-      return ((l.sDim().x() >= r.sDim().x())
-              && (l.sDim().y() >= r.sDim().y())
-              && (l.sDim().z() >= r.sDim().z())
-              && (l.sDim().n() >= r.sDim().n())
-              && (l.batch() >= r.batch()));
+      return ((l.sDim().x() < r.sDim().x())
+              || (l.sDim().y() < r.sDim().y())
+              || (l.sDim().z() < r.sDim().z())
+              || (l.sDim().n() < r.sDim().n())
+              || (l.batch() < r.batch()));
     };
     auto tested = std::set<FFTSettingsNew<T>,decltype(settingsComparator)>(settingsComparator);
 
@@ -134,10 +178,15 @@ void generateAndTest(F condition) {
             auto result = tested.insert(settings);
             if ( ! result.second) continue;
 
-            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
-                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
-            testFTInpulseOrigin(settings);
-            testFTInpulseShifted(settings);
+//            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
+//                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
+            if (isForward) {
+                testFFTInpulseOrigin(settings);
+                testFFTInpulseShifted(settings);
+            } else {
+                testIFFTInpulseOrigin(settings);
+            }
+
             executed++;
         } else {
             skippedCondition++;
@@ -204,6 +253,7 @@ TYPED_TEST_P( CudaFFTTest, fft_OOP_1D_Batch3)
         // test that n mod batch = 0 works
         return isForward && (!inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
+    generateAndTest<TypeParam>(condition);
 }
 
 //*******************************************
@@ -250,6 +300,7 @@ TYPED_TEST_P( CudaFFTTest, fft_IP_1D_Batch3)
         // test that n mod batch = 0 works
         return isForward && (inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
     };
+    generateAndTest<TypeParam>(condition);
 }
 
 //*******************************************
@@ -296,6 +347,7 @@ TYPED_TEST_P( CudaFFTTest, fft_OOP_2D_Batch3)
         // test that n mod batch = 0 works
         return isForward && (!inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
+    generateAndTest<TypeParam>(condition);
 }
 
 //*******************************************
@@ -342,6 +394,195 @@ TYPED_TEST_P( CudaFFTTest, fft_IP_2D_Batch3)
         // test that n mod batch = 0 works
         return isForward && (inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
     };
+    generateAndTest<TypeParam>(condition);
+}
+
+//*******************************************
+//              1D out of place IFFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_1D_Single)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return (!isForward) && (!inPlace) && is1D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_1D_Batch1)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return (!isForward) && (!inPlace) && is1D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_1D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return (!isForward) && (!inPlace) && is1D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_1D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return (!isForward) && (!inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+//*******************************************
+//              1D in place IFFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_1D_Single)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return (!isForward) && (inPlace) && is1D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_1D_Batch1)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return (!isForward) && (inPlace) && is1D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_1D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return (!isForward) && (inPlace) && is1D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_1D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return (!isForward) && (inPlace) && is1D(x, y, z) && (isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+//*******************************************
+//              2D out of place IFFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_2D_Single)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return (!isForward) && (!inPlace) && is2D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_2D_Batch1)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return (!isForward) && (!inPlace) && is2D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_2D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return (!isForward) && (!inPlace) && is2D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_OOP_2D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return (!isForward) && (!inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+//*******************************************
+//              2D in place IFFT tests
+//*******************************************
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_2D_Single)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of a single 1D signal,
+        return (!isForward) && (inPlace) && is2D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_2D_Batch1)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward , out of place transform of many 1D signals,
+        // check that n == batch works properly
+        return (!isForward) && (inPlace) && is2D(x, y, z) && (n == batch);
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_2D_Batch2)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch != 0 works
+        return (!isForward) && (inPlace) && is2D(x, y, z) && (!isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
+}
+
+TYPED_TEST_P( CudaFFTTest, ifft_IP_2D_Batch3)
+{
+    auto condition = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        // test a forward transform of many 1D signals, out of place
+        // test that n mod batch = 0 works
+        return (!isForward) && (inPlace) && is2D(x, y, z) && (isBatchMultiple(n, batch));
+    };
+    generateAndTest<TypeParam>(condition);
 }
 
 REGISTER_TYPED_TEST_CASE_P(CudaFFTTest,
@@ -363,7 +604,29 @@ REGISTER_TYPED_TEST_CASE_P(CudaFFTTest,
     fft_IP_2D_Single,
     fft_IP_2D_Batch1,
     fft_IP_2D_Batch2,
-    fft_IP_2D_Batch3
+    fft_IP_2D_Batch3,
+
+    // IFFT
+
+    ifft_OOP_1D_Single,
+    ifft_OOP_1D_Batch1,
+    ifft_OOP_1D_Batch2,
+    ifft_OOP_1D_Batch3,
+
+    ifft_IP_1D_Single,
+    ifft_IP_1D_Batch1,
+    ifft_IP_1D_Batch2,
+    ifft_IP_1D_Batch3,
+
+    ifft_OOP_2D_Single,
+    ifft_OOP_2D_Batch1,
+    ifft_OOP_2D_Batch2,
+    ifft_OOP_2D_Batch3,
+
+    ifft_IP_2D_Single,
+    ifft_IP_2D_Batch1,
+    ifft_IP_2D_Batch2,
+    ifft_IP_2D_Batch3
 );
 
 typedef ::testing::Types<float, double> TestTypes;

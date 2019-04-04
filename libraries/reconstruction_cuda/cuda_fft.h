@@ -48,14 +48,20 @@ public:
     }
     void init(const FFTSettingsNew<T> &settings);
     void release();
-    std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
     std::complex<T>* fft(T *h_inOut);
+    std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
+
+    T* ifft(std::complex<T> *h_inOut);
+    T* ifft(const std::complex<T> *h_in, T *h_out);
 
 
     static size_t estimatePlanSize(const FFTSettingsNew<T> &settings);
+    static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);
-    static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
+    static T* ifft(cufftHandle plan, std::complex<T> *d_inOut);
+    static T* ifft(cufftHandle plan,
+            const std::complex<T> *d_in, T *d_out);
     static cufftHandle createPlan(const FFTSettingsNew<T> &settings);
 private:
     cufftHandle m_plan;

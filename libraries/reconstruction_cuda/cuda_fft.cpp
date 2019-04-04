@@ -29,6 +29,8 @@
 
 template<typename T>
 void CudaFFT<T>::init(const FFTSettingsNew<T> &settings) {
+    release();
+
     m_settings = settings;
     m_plan = createPlan(m_settings);
 
@@ -59,7 +61,9 @@ void CudaFFT<T>::release() {
     if ((void*)m_d_FD != (void*)m_d_SD) {
         gpuErrchk(cudaFree(m_d_FD));
     }
-    gpuErrchkFFT(cufftDestroy(m_plan));
+    if (m_isInit) { // avoid destroying empty plan
+        gpuErrchkFFT(cufftDestroy(m_plan));
+    }
     setDefault();
 }
 
@@ -70,13 +74,23 @@ std::complex<T>* CudaFFT<T>::fft(T *d_inOut) {
 
 template<typename T>
 std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, T *d_inOut) {
-    return fft(plan, d_inOut, (std::complex<T>*) d_inOut);
+    return fft(plan, d_inOut, (std::complex<T>*)d_inOut);
+}
+
+template<typename T>
+T* CudaFFT<T>::ifft(std::complex<T> *d_inOut) {
+    return ifft(d_inOut, (T*)d_inOut);
+}
+
+template<typename T>
+T* CudaFFT<T>::ifft(cufftHandle plan, std::complex<T> *d_inOut) {
+    return ifft(plan, d_inOut, (T*)d_inOut);
 }
 
 template<typename T>
 std::complex<T>* CudaFFT<T>::fft(const T *h_in,
         std::complex<T> *h_out) {
-    auto isReady = (m_isInit);
+    auto isReady = m_isInit && m_settings.isForward();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to perform Fourier Transform. "
                 "Call init function first");
@@ -101,6 +115,39 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
                 h_out + offset * m_settings.fDim().xyzPadded(),
                 m_d_FD,
                 toProcess * m_settings.fBytesSingle(),
+                cudaMemcpyDeviceToHost));
+    }
+    return h_out;
+}
+
+template<typename T>
+T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
+        T *h_out) {
+    auto isReady = m_isInit && ( ! m_settings.isForward());
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to perform Inverse Fourier Transform. "
+                "Call init function first");
+    }
+
+    // process signals in batches
+    for (size_t offset = 0; offset < m_settings.fDim().n(); offset += m_settings.batch()) {
+        // how many signals to process
+        size_t toProcess = std::min(m_settings.batch(), m_settings.fDim().n() - offset);
+
+        // copy memoryvim
+        gpuErrchk(cudaMemcpy(
+                m_d_FD,
+                h_in + offset * m_settings.fDim().xyzPadded(),
+                toProcess * m_settings.fBytesSingle(),
+                    cudaMemcpyHostToDevice));
+
+        ifft(m_plan, m_d_FD, m_d_SD);
+
+        // copy data back
+        gpuErrchk(cudaMemcpy(
+                h_out + offset * m_settings.sDim().xyzPadded(),
+                m_d_SD,
+                toProcess * m_settings.sBytesSingle(),
                 cudaMemcpyDeviceToHost));
     }
     return h_out;
@@ -134,19 +181,30 @@ std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, const T *d_in,
 }
 
 template<typename T>
+T* CudaFFT<T>::ifft(cufftHandle plan, const std::complex<T> *d_in,
+        T *d_out) {
+    if (std::is_same<T, float>::value) {
+        gpuErrchkFFT(cufftExecC2R(plan, (cufftComplex*)d_in, (cufftReal*)d_out));
+    } else if (std::is_same<T, double>::value){
+        gpuErrchkFFT(cufftExecZ2D(plan, (cufftDoubleComplex*)d_in, (cufftDoubleReal*)d_out));
+    } else {
+        REPORT_ERROR(ERR_TYPE_INCORRECT, "Not implemented");
+    }
+    return d_out;
+}
+
+template<typename T>
 template<typename F>
 void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
-    std::array<int, 3> n;
+    auto n = std::array<int, 3>{(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
     int idist;
     int odist;
     cufftType type;
     if (settings.isForward()) {
-        n = {(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
         idist = settings.sDim().xyzPadded();
         odist = settings.fDim().xyzPadded();
         type = std::is_same<T, float>::value ? CUFFT_R2C : CUFFT_D2Z;
     } else {
-        n ={(int)settings.fDim().z(), (int)settings.fDim().y(), (int)settings.fDim().x()};
         idist = settings.fDim().xyzPadded();
         odist = settings.sDim().xyzPadded();
         type = std::is_same<T, float>::value ? CUFFT_C2R : CUFFT_Z2D;
