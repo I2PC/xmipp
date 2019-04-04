@@ -85,59 +85,9 @@ void testFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     }
 }
 
-//template<typename T, typename F>
-//void generateAndTest(F condition) {
-//    size_t executed = 0;
-//    size_t skippedSize = 0;
-//    size_t skippedCondition = 0;
-//    auto batch = std::vector<size_t>{1, 2, 3, 5, 6, 7, 8, 10, 23};
-//    auto nSet = std::vector<size_t>{1, 2, 4, 5, 6, 8, 10, 12, 14, 23, 24};
-//    auto zSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
-//    auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
-//    auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
-//    auto inPlace = std::vector<bool>{true, false};
-//    auto isForward = std::vector<bool>{true, false};
-//    for (auto n : nSet) {
-//        for (auto b : batch) {
-//            if (b > n) continue;
-//            for (auto z : zSet) {
-//                for (auto y : ySet) {
-//                    for (auto x : xSet) {
-//                        for (auto p : inPlace) {
-//                            for (auto f : isForward) {
-//                                auto settings = FFTSettingsNew<T>(x, y, z, n, b, p, f);
-//                                if (settings.fBytesBatch() > std::numeric_limits<int>::max()) {
-////                                    printf("Skipping %lu %lu %lu %lu %lu %s %s (too big [%luGB])\n",
-////                                            x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft",
-////                                            settings.fBytesBatch() / 1024 / 1024 / 1024);
-//                                    skippedSize++;
-//                                    continue;
-//                                }
-//                                if (condition(x, y, z, n, b, p, f)) {
-//                                    printf("Testing %lu %lu %lu %lu %lu %s %s\n",
-//                                            x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft");
-//                                    testFTInpulseOrigin(settings);
-//                                    testFTInpulseShifted(settings);
-//                                    executed++;
-//                                } else {
-//                                    skippedCondition++;
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    std::cout << "Executed: " << executed
-//            << "\nSkipped (condition): " << skippedCondition
-//            << "\nSkipped (size):" << skippedSize << std::endl;
-//}
-
 template<typename T, typename F>
 void generateAndTest(F condition) {
-    using memoryUtils::MB;
-    using memoryUtils::GB;
+    using namespace memoryUtils;
     size_t executed = 0;
     size_t skippedSize = 0;
     size_t skippedCondition = 0;
@@ -173,17 +123,16 @@ void generateAndTest(F condition) {
         bool inPlace = dist(mt) % 2;
         bool isForward = dist(mt) % 2;
         auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
-        if (settings.fBytesBatch() > std::numeric_limits<int>::max()) {
-            skippedSize++;
-            continue;
-        }
         if (condition(x, y, z, n, b, inPlace, isForward)) {
+            // make sure we have enough memory
+            T size = MB(CudaFFT<T>::estimatePlanSize(settings)) + MB(settings.maxBytesBatch());
+            if (availableMem < size) {
+                skippedSize++;
+                continue;
+            }
             // make sure we did not test this before
             auto result = tested.insert(settings);
             if ( ! result.second) continue;
-            // make sure we have enough memory
-            T size = MB(CudaFFT<T>::estimatePlanSize(settings)) + MB(settings.maxBytesBatch());
-            if (availableMem < size) continue;
 
             printf("Testing %lu %lu %lu %lu %lu %s %s\n",
                     x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
@@ -198,42 +147,6 @@ void generateAndTest(F condition) {
 //            << "\nSkipped (condition): " << skippedCondition
 //            << "\nSkipped (size):" << skippedSize << std::endl;
 }
-
-//template<typename T, typename F>
-//void generateAndTest(F condition) {
-//    int counter = 0;
-//    int seed = 42;
-//    std::mt19937 mt(seed);
-//    std::uniform_int_distribution<> dist(0, 4097);
-//    while (counter < 20) {
-//        size_t x = dist(mt);
-//        size_t y = dist(mt);
-//        size_t z = dist(mt);
-//        size_t n = dist(mt) % 100 + 1;
-//        size_t b = dist(mt) % n + 1; // batch must not be bigger than n
-//        bool inPlace = dist(mt) % 2;
-//        bool isForward = dist(mt) % 2;
-//        auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
-//        if (settings.fBytesBatch() > std::numeric_limits<int>::max()) {
-////            printf("Skipping %lu %lu %lu %lu %lu %s %s (too big [%luGB])\n",
-////                    x, y, z, n, b, p ? "inPlace" : "outOfPlace", f ? "fft" : "ifft",
-////                    settings.fBytesBatch() / 1024 / 1024 / 1024);
-//            continue;
-//        }
-//        if (condition(x, y, z, n, b, inPlace, isForward)) {
-//            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
-//                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
-//            testFTInpulseOrigin(settings);
-//            testFTInpulseShifted(settings);
-//            counter++;
-////        } else {
-////            printf("Skipping %lu %lu %lu %lu %lu %s %s\n",
-////                                x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", isForward ? "fft" : "ifft");
-////            fflush(stdout);
-//        }
-//    }
-//}
-
 
 auto is1D = [] (size_t x, size_t y, size_t z) {
     return (z == 1) && (y == 1);
