@@ -39,7 +39,7 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
         T re = out[i].real();
         T im = out[i].imag();
         T mag = (re * re) + (im * im);
-        EXPECT_NEAR((T)1, std::sqrt(mag), delta);
+        ASSERT_NEAR((T)1, std::sqrt(mag), delta);
     }
 
     delete[] in;
@@ -72,8 +72,8 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
         // ... will result in constant real value, and no imag value
-        EXPECT_NEAR((T)1, out[i].real(), delta);
-        EXPECT_NEAR((T)0, out[i].imag(), delta);
+        ASSERT_NEAR((T)1, out[i].real(), delta);
+        ASSERT_NEAR((T)0, out[i].imag(), delta);
     }
 
     delete[] in;
@@ -108,7 +108,7 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         size_t offset = n * s.sDim().xyzPadded();
         // ... will result in impulse at the origin ...
         // normalize signal to get 1
-        EXPECT_NEAR((T)1, out[0] / s.sDim().xyz(), delta);
+        ASSERT_NEAR((T)1, out[0] / s.sDim().xyz(), delta);
         // skip the padded area, it can contain garbage data
         for (size_t z = 0; z < s.sDim().z(); ++z) {
             for (size_t y = 0; y < s.sDim().y(); ++y) {
@@ -116,7 +116,7 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
                     size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
                     // ... and zeros elsewhere
                     // output is not normalized, so normalize it to make the the test more stable
-                    EXPECT_NEAR((T)0, out[index] / s.sDim().xyz(), delta);
+                    ASSERT_NEAR((T)0, out[index] / s.sDim().xyz(), delta);
                 }
             }
         }
@@ -310,7 +310,7 @@ TYPED_TEST_P( CudaFFTTest, fft_OOP_Single)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, fft_OOP_Batch1)
@@ -331,7 +331,7 @@ TYPED_TEST_P( CudaFFTTest, fft_OOP_Batch1)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, fft_OOP_Batch2)
@@ -352,7 +352,7 @@ TYPED_TEST_P( CudaFFTTest, fft_OOP_Batch2)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, fft_OOP_Batch3)
@@ -373,7 +373,7 @@ TYPED_TEST_P( CudaFFTTest, fft_OOP_Batch3)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 //***********************************************
@@ -397,7 +397,7 @@ TYPED_TEST_P( CudaFFTTest, fft_IP_Single)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, fft_IP_Batch1)
@@ -418,7 +418,7 @@ TYPED_TEST_P( CudaFFTTest, fft_IP_Batch1)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, fft_IP_Batch2)
@@ -439,7 +439,7 @@ TYPED_TEST_P( CudaFFTTest, fft_IP_Batch2)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, fft_IP_Batch3)
@@ -460,9 +460,8 @@ TYPED_TEST_P( CudaFFTTest, fft_IP_Batch3)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
-
 
 //***********************************************
 //              Out of place IFFT tests
@@ -485,7 +484,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_OOP_Single)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, ifft_OOP_Batch1)
@@ -506,7 +505,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_OOP_Batch1)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, ifft_OOP_Batch2)
@@ -527,7 +526,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_OOP_Batch2)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, ifft_OOP_Batch3)
@@ -548,7 +547,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_OOP_Batch3)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 //***********************************************
@@ -572,7 +571,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_IP_Single)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, ifft_IP_Batch1)
@@ -593,7 +592,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_IP_Batch1)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, ifft_IP_Batch2)
@@ -614,7 +613,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_IP_Batch2)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 TYPED_TEST_P( CudaFFTTest, ifft_IP_Batch3)
@@ -635,7 +634,7 @@ TYPED_TEST_P( CudaFFTTest, ifft_IP_Batch3)
     };
     generateAndTest<TypeParam>(condition1D);
     generateAndTest<TypeParam>(condition2D);
-    //generateAndTest<TypeParam>(condition3D);
+    generateAndTest<TypeParam>(condition3D);
 }
 
 //***********************************************
@@ -659,7 +658,7 @@ TYPED_TEST_P( CudaFFTTest, OOP_Single)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 TYPED_TEST_P( CudaFFTTest, OOP_Batch1)
@@ -680,7 +679,7 @@ TYPED_TEST_P( CudaFFTTest, OOP_Batch1)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 TYPED_TEST_P( CudaFFTTest, OOP_Batch2)
@@ -701,7 +700,7 @@ TYPED_TEST_P( CudaFFTTest, OOP_Batch2)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 TYPED_TEST_P( CudaFFTTest, OOP_Batch3)
@@ -722,7 +721,7 @@ TYPED_TEST_P( CudaFFTTest, OOP_Batch3)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 //***********************************************
@@ -746,7 +745,7 @@ TYPED_TEST_P( CudaFFTTest, IP_Single)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 TYPED_TEST_P( CudaFFTTest, IP_Batch1)
@@ -767,7 +766,7 @@ TYPED_TEST_P( CudaFFTTest, IP_Batch1)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 TYPED_TEST_P( CudaFFTTest, IP_Batch2)
@@ -788,7 +787,7 @@ TYPED_TEST_P( CudaFFTTest, IP_Batch2)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 TYPED_TEST_P( CudaFFTTest, IP_Batch3)
@@ -809,7 +808,7 @@ TYPED_TEST_P( CudaFFTTest, IP_Batch3)
     };
     generateAndTest<TypeParam>(condition1D, true);
     generateAndTest<TypeParam>(condition2D, true);
-    //generateAndTest<TypeParam>(condition3D, true);
+    generateAndTest<TypeParam>(condition3D, true);
 }
 
 

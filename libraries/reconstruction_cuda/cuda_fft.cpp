@@ -211,7 +211,7 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
     }
     int rank = 3;
     if (settings.sDim().z() == 1) rank--;
-    if (settings.sDim().y() == 1) rank--;
+    if ((2 == rank) && (settings.sDim().y() == 1)) rank--;
 
     int offset = 3 - rank;
     function(rank, &n[offset], nullptr,
