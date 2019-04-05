@@ -1073,6 +1073,9 @@ void ProgCTFEstimateFromPSDFast::estimate_envelope_parameters_fast()
 }
 
 // Estimate defoci ---------------------------------------------------------
+//#define DEBUG
+#define OUTLIERS
+//#define FILTER
 void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 {
 	double fitness;
@@ -1094,12 +1097,12 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		/*
 		 * Defocus estimation s² stigmator
 		 *
-		 * CTF = sin(PI*lambda*defocus*R²)
-		 * CTF = sin(PI*lambda*defocus*w²/Ts²)
-		 * w² = omega
+		 * CTF = sin(PI*lambda*defocus*R^2)
+		 * CTF = sin(PI*lambda*defocus*w^2/Ts^2)
+		 * w^2 = omega
 		 * omega = 2*K0/Xdim   K0: position of the maximum of the psd in fourier
 		 *
-		 * Defocus = 2*K0*(2*Ts)²/lambda
+		 * Defocus = 2*K0*(2*Ts)^2/lambda
 		 */
 		MultidimArray<double> psd_exp_radial2;
 		MultidimArray<double> background;
@@ -1113,6 +1116,26 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 			if(w_digfreq(i)>min_freq && w_digfreq(i)<max_freq)
 				psd_background(i)= background(i)-psd_exp_radial(i);
 		}
+#ifdef FILTER
+		double alpha = 0.1;
+		Matrix1D<double> A_coeff(2);
+		VEC_ELEM(A_coeff,0) = 1;
+		VEC_ELEM(A_coeff,1) = alpha-1;
+		Matrix1D<double> B_coeff(2);
+		VEC_ELEM(B_coeff,0) = 1-alpha;
+		VEC_ELEM(B_coeff,1) = alpha-1;
+		MultidimArray<double> psd_background_filter;
+		MultidimArray<double> aux_filter;
+		psd_background_filter.initZeros(psd_background);
+		aux_filter.initZeros(psd_background);
+		filter(B_coeff,A_coeff,psd_background,psd_background_filter,aux_filter);
+		psd_background = psd_background_filter;
+#endif
+
+#ifdef DEBUG
+		std::cout << "psdbackground\n" << psd_background << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
+#endif
 		psd_exp_radial2.initZeros(psd_exp_radial);
 
 		double deltaW=1.0/(2*XSIZE(w_digfreq)*current_ctfmodel.Tm);
@@ -1124,38 +1147,85 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 			double widx=w/deltaW;
 			size_t lowerIdx=floor(widx);
 			double weight=widx-floor(widx);
-			double value =(1-weight)*A1D_ELEM(psd_background,lowerIdx)
-												 +weight*A1D_ELEM(psd_background,lowerIdx+1);
+			if(i < XSIZE(psd_exp_radial2)-1)
+			{
+				double value =(1-weight)*A1D_ELEM(psd_background,lowerIdx)
+													 +weight*A1D_ELEM(psd_background,lowerIdx+1);
 
-			A1D_ELEM(psd_exp_radial2,i) = value*value;
+				A1D_ELEM(psd_exp_radial2,i) = value*value;
+			}
 		}
-
+#ifdef DEBUG
+		std::cout << "psd_exp_radial2\n" << psd_exp_radial2 << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
+#endif
 		FourierTransformer FourierPSD;
 		FourierPSD.FourierTransform(psd_exp_radial2, psd_fft, false);
 
-		int startIndex = 7;
+		const double minDefocus=2000;
+		int startIndex = std::max((double)7,minDefocus*current_ctfmodel.lambda/(2*pow(2*current_ctfmodel.Tm,2)));
+#ifdef DEBUG
+		std::cout << "Start index=" << minDefocus*current_ctfmodel.lambda/(2*pow(2*current_ctfmodel.Tm,2)) << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
+#endif
 		if (current_ctfmodel.VPP_radius != 0.0)
 			startIndex = 10; //avoid low frequencies
 		FOR_ALL_ELEMENTS_IN_ARRAY1D(psd_fft)
 		{
-			if(i>=startIndex)
+			if(i>=startIndex) {
 				amplitud.push_back(abs(psd_fft[i]));
-
+#ifdef DEBUG
+		std::cout << abs(psd_fft[i]) << std::endl;
+#endif
+			}
 		}
+#ifdef DEBUG
+		std::cout << "--------------------------------------" << std::endl;
+#endif
 
-		double maxValue = *max_element(amplitud.rbegin(),amplitud.rend());
-		int finalIndex = 0;
+		//Remove outliers
+#ifdef OUTLIERS
+		double totalSum = 0;
+		for(size_t i=0;i<amplitud.size();i++){
+			totalSum += amplitud[i];
+		}
+		double amplitudMean = totalSum / amplitud.size();
+		double sdSum = 0;
 		for(size_t i=0;i<amplitud.size();i++)
 		{
-			if(maxValue == amplitud[i])
-			{
-				current_ctfmodel.Defocus = (floor((finalIndex+startIndex+1))*pow(2*current_ctfmodel.Tm,2))/
-												current_ctfmodel.lambda;
-				break;
+			double diff=amplitud[i]-amplitudMean;
+			sdSum += diff*diff;
+		}
+		double amplitudSD = sqrt(sdSum/amplitud.size());
+		double differenceSD = 3*amplitudSD;
+		for(size_t i=0;i<amplitud.size();i++){
+			if(std::abs(amplitud[i]-amplitudMean)>differenceSD){
+				amplitud[i] = amplitudMean;
 			}
-			finalIndex++;
+		}
+#endif
+
+		double maxValue=-1e38;
+		int finalIndex=-1;
+		for (size_t i=1; i<amplitud.size()-1; i++)
+		{
+			if (amplitud[i]>maxValue && amplitud[i]>amplitud[i-1] && amplitud[i]>amplitud[i+1])
+			{
+				maxValue=amplitud[i];
+				finalIndex=i;
+			}
 		}
 
+		//double maxValue = *max_element(amplitud.begin(),amplitud.end());
+		//int finalIndex = distance(amplitud.begin(),max_element(amplitud.begin(),amplitud.end()));
+		current_ctfmodel.Defocus = (floor((finalIndex+startIndex+1))*pow(2*current_ctfmodel.Tm,2))/
+												current_ctfmodel.lambda;
+
+#ifdef DEBUG
+		std::cout << "maxValue: " << maxValue << std::endl;
+		std::cout << "finalIndex: " << finalIndex << std::endl;
+		std::cout << "defocus: " << current_ctfmodel.Defocus << std::endl;
+#endif
 	}
 	// Keep the result in adjust
 	current_ctfmodel.forcePhysicalMeaning();
@@ -1168,6 +1238,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		saveIntermediateResults_fast("step03a_first_defocus_fit_fast", true);
 	}
 }
+#undef DEBUG
 
 // Estimate second gaussian parameters -------------------------------------
 //#define DEBUG
