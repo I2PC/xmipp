@@ -26,6 +26,7 @@
 #include "cuda_fft.h"
 #include <cufft.h>
 #include "cuda_utils.h"
+#include "cuFFTAdvisor/advisor.h"
 
 template<typename T>
 void CudaFFT<T>::init(const FFTSettingsNew<T> &settings) {
@@ -92,7 +93,7 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
         std::complex<T> *h_out) {
     auto isReady = m_isInit && m_settings.isForward();
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to perform Fourier Transform. "
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Fourier Transform. "
                 "Call init function first");
     }
 
@@ -125,7 +126,7 @@ T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
         T *h_out) {
     auto isReady = m_isInit && ( ! m_settings.isForward());
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to perform Inverse Fourier Transform. "
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Inverse Fourier Transform. "
                 "Call init function first");
     }
 
@@ -154,7 +155,7 @@ T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
 }
 
 template<typename T>
-size_t CudaFFT<T>::estimatePlanSize(const FFTSettingsNew<T> &settings) {
+size_t CudaFFT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
     size_t size = 0;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
@@ -165,6 +166,14 @@ size_t CudaFFT<T>::estimatePlanSize(const FFTSettingsNew<T> &settings) {
     };
     manyHelper(settings, f);
     return size;
+}
+
+template<typename T>
+size_t CudaFFT<T>::estimateTotalBytes(const FFTSettingsNew<T> &settings) {
+    size_t planBytes = estimatePlanBytes(settings);
+    size_t dataBytes = settings.sBytesBatch()
+            + (settings.isInPlace() ? 0 : settings.fBytesBatch());
+    return planBytes + dataBytes;
 }
 
 template<typename T>
@@ -230,6 +239,68 @@ cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
     };
     manyHelper(settings, f);
     return plan;
+}
+
+template<typename T>
+FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const GPU &gpu,
+        const FFTSettingsNew<T> &settings,
+        size_t reserveBytes) {
+    size_t freeBytes = gpu.lastFreeBytes();
+    if (reserveBytes > freeBytes) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "You want to reserve more memory than is currently available");
+    }
+    size_t availableBytes = freeBytes - reserveBytes;
+    size_t singleBytes = settings.sBytesSingle() + (settings.isInPlace() ? 0 : settings.fBytesSingle());
+    size_t batch = (availableBytes / singleBytes) + 1; // + 1 will be deducted in the while loop
+    while (batch > 1) {
+        batch--;
+        auto tmp = FFTSettingsNew<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
+        size_t totalBytes = estimateTotalBytes(tmp);
+        if (totalBytes <= availableBytes) {
+            return tmp;
+        }
+    }
+    REPORT_ERROR(ERR_GPU_MEMORY, "Estimated batch size is 0(zero). "
+            "This probably means you don't have enough GPU memory for even a single transformation.");
+}
+
+template<typename T>
+core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
+        const FFTSettingsNew<T> &settings,
+        size_t reserveBytes, bool squareOnly, int sigPercChange,
+        bool crop, bool verbose) {
+    using cuFFTAdvisor::Tristate::TRUE;
+    using cuFFTAdvisor::Tristate::FALSE;
+    using core::optional;
+    size_t freeBytes = gpu.lastFreeBytes();
+    std::vector<cuFFTAdvisor::BenchmarkResult const *> *options =
+            cuFFTAdvisor::Advisor::find(30, gpu.device(),
+                    settings.sDim().x(), settings.sDim().y(), settings.sDim().z(), settings.sDim().n(),
+                    TRUE, // use batch
+                    std::is_same<T, float>::value ? TRUE : FALSE,
+                    settings.isForward() ? TRUE : FALSE,
+                    settings.isInPlace() ? TRUE : FALSE,
+                    cuFFTAdvisor::Tristate::TRUE, // is real
+                    sigPercChange, memoryUtils::MB(freeBytes - reserveBytes),
+                    false, // allow transposition
+                    squareOnly, crop);
+
+    auto result = optional<FFTSettingsNew<T>>();
+    if (0 != options->size()) {
+        auto res = options->at(0);
+        auto optSetting = FFTSettingsNew<T>(
+                res->transform->X,
+                res->transform->Y,
+                res->transform->Z,
+                settings.sDim().n(),
+                res->transform->N / res->transform->repetitions,
+                settings.isInPlace(),
+                settings.isForward());
+        result = optional<FFTSettingsNew<T>>(optSetting);
+    }
+    for (auto& it : *options) delete it;
+    delete options;
+    return result;
 }
 
 // explicit instantiation

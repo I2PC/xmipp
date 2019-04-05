@@ -217,7 +217,7 @@ void generateAndTest(F condition, bool bothDirections = false) {
     std::mt19937 mt(seed);
     std::uniform_int_distribution<> dist(0, 4097);
     GPU gpu(0);
-    T availableMem = gpu.lastFreeMem();
+    T availableBytes = gpu.lastFreeBytes();
     while ((executed < 20)
             && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
         size_t x = xSet.at(dist(mt) % xSet.size());
@@ -231,8 +231,8 @@ void generateAndTest(F condition, bool bothDirections = false) {
         auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
         if (condition(x, y, z, n, b, inPlace, isForward)) {
             // make sure we have enough memory
-            T size = MB(CudaFFT<T>::estimatePlanSize(settings)) + MB(settings.maxBytesBatch());
-            if (availableMem < size) {
+            T totalBytes = CudaFFT<T>::estimateTotalBytes(settings);
+            if (availableBytes < totalBytes) {
                 skippedSize++;
                 continue;
             }

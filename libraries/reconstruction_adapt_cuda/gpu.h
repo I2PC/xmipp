@@ -33,11 +33,13 @@ class GPU {
 public:
     explicit GPU(size_t device) :
         m_device(device), m_UUID(getUUID(device)),
-        m_lastFreeMem(getFreeMem(device)) {};
+        m_lastFreeMem(getFreeMem(device)),
+        m_lastFreeBytes(getFreeMem(device) * 1024 * 1024) {};
 
     size_t device() const { return m_device; };
     std::string UUID() const { return m_UUID; };
-    size_t lastFreeMem() const { return m_lastFreeMem; };
+    size_t lastFreeMem() const { return m_lastFreeMem; }; // FIXME DS remove
+    size_t lastFreeBytes() const { return m_lastFreeBytes; };
 
     /**
      * Method checks currently available free GPU memory
@@ -48,10 +50,16 @@ public:
         return m_lastFreeMem;
     }
 
+    size_t checkFreeBytes() {
+        m_lastFreeMem = getFreeMem(m_device); // FIXME reimplement
+        return m_lastFreeBytes;
+    }
+
 private:
     const size_t m_device;
     const std::string m_UUID;
-    size_t m_lastFreeMem;
+    size_t m_lastFreeMem; // FIXME ds remove
+    size_t m_lastFreeBytes;
 };
 
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */

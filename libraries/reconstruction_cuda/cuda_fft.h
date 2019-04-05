@@ -30,7 +30,10 @@
 #include <array>
 #include <type_traits>
 #include "core/xmipp_error.h"
+#include "reconstruction_adapt_cuda/gpu.h"
+#include "core/utils/memory_utils.h"
 #include "data/fft_settings_new.h"
+#include "core/optional.h"
 
 // XXX HACK to avoid including cufft.h in this header
 // https://docs.nvidia.com/cuda/cufft/index.html#cuffthandle says that type is
@@ -55,7 +58,8 @@ public:
     T* ifft(const std::complex<T> *h_in, T *h_out);
 
 
-    static size_t estimatePlanSize(const FFTSettingsNew<T> &settings);
+    static size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
+    static size_t estimateTotalBytes(const FFTSettingsNew<T> &settings);
     static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);
@@ -63,6 +67,13 @@ public:
     static T* ifft(cufftHandle plan,
             const std::complex<T> *d_in, T *d_out);
     static cufftHandle createPlan(const FFTSettingsNew<T> &settings);
+    static core::optional<FFTSettingsNew<T>> findOptimal(GPU &gpu,
+            const FFTSettingsNew<T> &settings,
+            size_t reserveBytes, bool squareOnly, int sigPercChange,
+            bool crop, bool verbose);
+    static FFTSettingsNew<T> findMaxBatch(const GPU &gpu,
+            const FFTSettingsNew<T> &settings,
+            size_t reserveBytes);
 private:
     cufftHandle m_plan;
     FFTSettingsNew<T> m_settings;
