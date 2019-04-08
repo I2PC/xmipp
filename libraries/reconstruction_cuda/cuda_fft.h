@@ -85,6 +85,7 @@ private:
     void setDefault();
     template<typename F>
     static void manyHelper(const FFTSettingsNew<T> &settings, F function);
+    void check();
 };
 
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FFT_H_ */

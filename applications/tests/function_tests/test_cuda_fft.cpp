@@ -106,17 +106,19 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     T delta = (T)0.0001;
     for (size_t n = 0; n < s.sDim().n(); ++n) {
         size_t offset = n * s.sDim().xyzPadded();
-        // ... will result in impulse at the origin ...
-        // normalize signal to get 1
-        ASSERT_NEAR((T)1, out[0] / s.sDim().xyz(), delta);
         // skip the padded area, it can contain garbage data
         for (size_t z = 0; z < s.sDim().z(); ++z) {
             for (size_t y = 0; y < s.sDim().y(); ++y) {
-                for (size_t x = 1; x < s.sDim().x(); ++x) {
+                for (size_t x = 0; x < s.sDim().x(); ++x) {
                     size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
-                    // ... and zeros elsewhere
                     // output is not normalized, so normalize it to make the the test more stable
-                    ASSERT_NEAR((T)0, out[index] / s.sDim().xyz(), delta);
+                    if (index == offset) {
+                        // ... will result in impulse at the origin ...
+                        ASSERT_NEAR((T)1, out[index] / s.sDim().xyz(), delta);
+                    } else {
+                        // ... and zeros elsewhere
+                        ASSERT_NEAR((T)0, out[index] / s.sDim().xyz(), delta);
+                    }
                 }
             }
         }
@@ -177,7 +179,7 @@ void testFFTIFFT(const FFTSettingsNew<T> &s) {
             for (size_t y = 0; y < s.sDim().y(); ++y) {
                 for (size_t x = 0; x < s.sDim().x(); ++x) {
                     size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
-                    EXPECT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta);
+                    ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta);
                 }
             }
         }
@@ -270,11 +272,11 @@ auto is1D = [] (size_t x, size_t y, size_t z) {
 };
 
 auto is2D = [] (size_t x, size_t y, size_t z) {
-    return (z == 1) && (y != 1);
+    return (z == 1) && (y != 1) && (x != 1);
 };
 
 auto is3D = [] (size_t x, size_t y, size_t z) {
-    return z != 1;
+    return (z != 1) && (y != 1) && (x != 1);
 };
 
 auto isBatchMultiple = [] (size_t n, size_t batch) {

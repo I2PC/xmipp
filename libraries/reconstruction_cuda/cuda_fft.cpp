@@ -33,6 +33,9 @@ void CudaFFT<T>::init(const FFTSettingsNew<T> &settings) {
     release();
 
     m_settings = settings;
+
+    check();
+
     m_plan = createPlan(m_settings);
 
     // allocate input data storage
@@ -46,6 +49,21 @@ void CudaFFT<T>::init(const FFTSettingsNew<T> &settings) {
     }
 
     m_isInit = true;
+}
+
+template<typename T>
+void CudaFFT<T>::check() {
+    if (m_settings.sDim().x() < 1) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 1 (one)");
+    }
+    if ((m_settings.sDim().y() > 1)
+            && (m_settings.sDim().x() < 2)) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 2 (two) for 2D/3D transformations");
+    }
+    if ((m_settings.sDim().z() > 1)
+            && (m_settings.sDim().y() < 2)) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Y dim must be at least 2 (two) for 3D transformations");
+    }
 }
 
 template<typename T>
