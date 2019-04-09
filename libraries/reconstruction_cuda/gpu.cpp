@@ -23,27 +23,24 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "gpu_new.h"
+#include "gpu.h"
+
 #include <cuda_runtime.h>
 #include "cuda_utils.h"
 #include <nvml.h>
 
-void GPUNew::check() const {
-    if ( ! m_isSet) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "You have to set() this GPU before using it");
-    }
-}
-
-GPUNew::~GPUNew() {
+GPU::~GPU() {
     if (m_isSet) {
         auto s = (cudaStream_t*)m_stream;
         gpuErrchk(cudaStreamDestroy(*s));
         delete (cudaStream_t*)m_stream;
         m_stream = nullptr;
+        m_uuid = std::string();
     }
+    m_isSet = false;
 }
 
-void GPUNew::set() {
+void GPU::set() {
     if (m_isSet) {
         return;
     }
@@ -55,13 +52,14 @@ void GPUNew::set() {
     gpuErrchk(cudaStreamCreate((cudaStream_t*)m_stream));
     // remember the state
     m_isSet = true;
-    // get memory info
+    // get additional info
     updateMemoryInfo();
+    obtainUUID();
 
     peekLastError();
 }
 
-void GPUNew::obtainUUID() {
+void GPU::obtainUUID() {
     std::stringstream ss;
     nvmlDevice_t device;
     // https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html#group__nvmlDeviceQueries_1g84dca2d06974131ccec1651428596191
@@ -78,40 +76,40 @@ void GPUNew::obtainUUID() {
     m_uuid = ss.str();
 }
 
-void GPUNew::updateMemoryInfo() {
+void GPU::updateMemoryInfo() {
     check();
     gpuErrchk(cudaMemGetInfo(&m_lastFreeBytes, &m_totalBytes));
 }
 
-void GPUNew::peekLastError() const {
+void GPU::peekLastError() const {
     check();
     gpuErrchk(cudaPeekAtLastError());
 }
 
-void GPUNew::pinMemory(void *h_mem, size_t bytes,
+void GPU::pinMemory(void *h_mem, size_t bytes,
         unsigned int flags) const {
     check();
     assert(0 == cudaHostRegisterDefault); // default value should be 0
     gpuErrchk(cudaHostRegister(h_mem, bytes, flags));
 }
 
-void GPUNew::unpinMemory(void *h_mem) const {
+void GPU::unpinMemory(void *h_mem) const {
     check();
     gpuErrchk(cudaHostUnregister(h_mem));
 }
 
-int GPUNew::getDeviceCount() {
+int GPU::getDeviceCount() {
     int deviceCount = 0;
     gpuErrchk(cudaGetDeviceCount(&deviceCount));
     return deviceCount;
 }
 
-void GPUNew::synch() const {
+void GPU::synch() const {
     check();
     gpuErrchk(cudaDeviceSynchronize());
 }
 
-void GPUNew::synchStream() const {
+void GPU::synchStream() const {
     check();
     auto stream = (cudaStream_t*)m_stream;
     gpuErrchk(cudaStreamSynchronize(*stream));
