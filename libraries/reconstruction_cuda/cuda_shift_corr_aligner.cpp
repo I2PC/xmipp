@@ -107,7 +107,7 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const T *h_ref) {
             cudaMemcpyHostToDevice));
 
     // perform FT
-    CudaFFT<T>::fft(m_singleToFD, m_d_single_SD, m_d_single_FD);
+    CudaFFT<T>::fft(*m_singleToFD, m_d_single_SD, m_d_single_FD);
 
     // update state
     m_is_d_single_FD_loaded = true;
@@ -251,14 +251,14 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShift2DOneToN(
                cudaMemcpyHostToDevice));
 
         // perform FT
-       CudaFFT<T>::fft(m_batchToFD, m_d_batch_SD, m_d_batch_FD);
+       CudaFFT<T>::fft(*m_batchToFD, m_d_batch_SD, m_d_batch_FD);
 
         // compute shifts
         auto shifts = computeShifts2DOneToN(
                 m_d_batch_FD,
                 m_d_single_FD,
                 m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess,
-                m_d_batch_SD, m_batchToSD,
+                m_d_batch_SD, *m_batchToSD,
                 m_settingsInv->sDim().x(),
                 m_h_centers, m_helper, m_maxShift);
 
