@@ -63,10 +63,12 @@ void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool re
 }
 
 template<typename T>
-void CudaFFT<T>::release(cufftHandle plan) {
-    // no check on purpose. Either the plan is valid and call
-    // will succeed or it's not valid and then we should ignore it
-    cufftDestroy(plan);
+void CudaFFT<T>::release(cufftHandle *plan) {
+    if (nullptr != plan) {
+        cufftDestroy(*plan);
+        delete plan;
+        plan = nullptr;
+    }
 }
 
 template<typename T>
@@ -92,6 +94,7 @@ void CudaFFT<T>::setDefault() {
     m_d_SD = nullptr;
     m_d_FD = nullptr;
     m_gpu = nullptr;
+    m_plan = nullptr;
 }
 
 template<typename T>
@@ -145,7 +148,7 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
                 toProcess * m_settings->sBytesSingle(),
                 cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
-        fft(m_plan, m_d_SD, m_d_FD);
+        fft(*m_plan, m_d_SD, m_d_FD);
 
         // copy data back
         gpuErrchk(cudaMemcpyAsync(
@@ -178,7 +181,7 @@ T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
                 toProcess * m_settings->fBytesSingle(),
                 cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
-        ifft(m_plan, m_d_FD, m_d_SD);
+        ifft(*m_plan, m_d_FD, m_d_SD);
 
         // copy data back
         gpuErrchk(cudaMemcpyAsync(
@@ -264,17 +267,17 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
 }
 
 template<typename T>
-cufftHandle CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
-    cufftHandle plan;
+cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
+    auto plan = new cufftHandle;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
             int odist, cufftType type, int batch) {
-        gpuErrchkFFT(cufftPlanMany(&plan, rank, n, inembed,
+        gpuErrchkFFT(cufftPlanMany(plan, rank, n, inembed,
                 istride, idist, onembed, ostride,
                 odist, type, batch));
     };
     manyHelper(settings, f);
-    gpuErrchkFFT(cufftSetStream(plan, *(cudaStream_t*)gpu.stream()));
+    gpuErrchkFFT(cufftSetStream(*plan, *(cudaStream_t*)gpu.stream()));
     return plan;
 }
 
