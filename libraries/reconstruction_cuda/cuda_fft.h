@@ -49,7 +49,7 @@ public:
     ~CudaFFT() {
         release();
     }
-    void init(const GPU &gpu, const FFTSettingsNew<T> &settings);
+    void init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool reuse=true);
     void release();
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
@@ -74,6 +74,8 @@ public:
             bool crop, bool verbose);
     static FFTSettingsNew<T> findMaxBatch(const FFTSettingsNew<T> &settings,
             size_t maxBytes);
+
+    static void release(cufftHandle plan);
 private:
     cufftHandle m_plan;
     const FFTSettingsNew<T> *m_settings;
