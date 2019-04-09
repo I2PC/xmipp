@@ -31,6 +31,7 @@
 
 GPU::~GPU() {
     if (m_isSet) {
+        synchStream();
         auto s = (cudaStream_t*)m_stream;
         gpuErrchk(cudaStreamDestroy(*s));
         delete (cudaStream_t*)m_stream;
