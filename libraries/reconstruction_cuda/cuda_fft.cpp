@@ -38,10 +38,8 @@ void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool re
     if (mustAllocate) {
         release();
     }
-    if (m_isInit) {
-        // previous plan has to be released, otherwise we will get GPU memory leak
-        release(m_plan);
-    }
+    // previous plan has to be released, otherwise we will get GPU memory leak
+    release(m_plan);
 
     m_settings = &settings;
     m_gpu = &gpu;
@@ -66,14 +64,14 @@ void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool re
 
 template<typename T>
 void CudaFFT<T>::release(cufftHandle plan) {
-    gpuErrchkFFT(cufftDestroy(plan));
+    // no check on purpose. Either the plan is valid and call
+    // will succeed or it's not valid and then we should ignore it
+    cufftDestroy(plan);
 }
 
 template<typename T>
 void CudaFFT<T>::check() {
-    if ( ! m_gpu->isSet()) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "GPU is not yet set for the transformer");
-    }
+    m_gpu->forceSet();
     if (m_settings->sDim().x() < 1) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 1 (one)");
     }
@@ -102,9 +100,7 @@ void CudaFFT<T>::release() {
     if ((void*)m_d_FD != (void*)m_d_SD) {
         gpuErrchk(cudaFree(m_d_FD));
     }
-    if (m_isInit) { // avoid destroying empty plan
-        release(m_plan);
-    }
+    release(m_plan);
     setDefault();
 }
 
