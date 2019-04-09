@@ -66,7 +66,7 @@ public:
     static T* ifft(cufftHandle plan, std::complex<T> *d_inOut);
     static T* ifft(cufftHandle plan,
             const std::complex<T> *d_in, T *d_out);
-    static cufftHandle createPlan(const GPU &gpu,
+    static cufftHandle* createPlan(const GPU &gpu,
             const FFTSettingsNew<T> &settings);
     static core::optional<FFTSettingsNew<T>> findOptimal(GPU &gpu,
             const FFTSettingsNew<T> &settings,
@@ -75,9 +75,9 @@ public:
     static FFTSettingsNew<T> findMaxBatch(const FFTSettingsNew<T> &settings,
             size_t maxBytes);
 
-    static void release(cufftHandle plan);
+    static void release(cufftHandle *plan);
 private:
-    cufftHandle m_plan;
+    cufftHandle *m_plan;
     const FFTSettingsNew<T> *m_settings;
     T *m_d_SD;
     std::complex<T> *m_d_FD;

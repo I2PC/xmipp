@@ -96,9 +96,9 @@ private:
     T *m_origHelperData;
 
     // FT plans
-    cufftHandle m_singleToFD;
-    cufftHandle m_batchToFD;
-    cufftHandle m_batchToSD;
+    cufftHandle *m_singleToFD;
+    cufftHandle *m_batchToFD;
+    cufftHandle *m_batchToSD;
 
     // flags
     bool m_includingBatchFT;
