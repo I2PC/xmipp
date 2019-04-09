@@ -10,7 +10,7 @@ class CudaFFTTest : public ::testing::Test { };
 TYPED_TEST_CASE_P(CudaFFTTest);
 
 template<typename T>
-void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
+void testFFTInpulseShifted(const GPU &gpu, const FFTSettingsNew<T> &s) {
     using std::complex;
 
     // this test needs at least two elements in X dim
@@ -29,8 +29,6 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
         in[n * s.sDim().xyzPadded() + 1] = T(1);
     }
 
-    auto gpu = GPU();
-    gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, s);
     ft.fft(in, out);
@@ -52,7 +50,7 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
 }
 
 template<typename T>
-void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+void testFFTInpulseOrigin(const GPU &gpu, const FFTSettingsNew<T> &s) {
     using std::complex;
 
     auto in = new T[s.sDim().sizePadded()]();
@@ -68,8 +66,6 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         in[n * s.sDim().xyzPadded()] = T(1);
     }
 
-    auto gpu = GPU();
-    gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, s);
     ft.fft(in, out);
@@ -89,7 +85,7 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
 }
 
 template<typename T>
-void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+void testIFFTInpulseOrigin(const GPU &gpu, const FFTSettingsNew<T> &s) {
     using std::complex;
 
     auto in = new complex<T>[s.fDim().sizePadded()]();
@@ -105,8 +101,6 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         in[n] = {T(1), 0};
     }
 
-    auto gpu = GPU();
-    gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, s);
     ft.ifft(in, out);
@@ -140,7 +134,7 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
 }
 
 template<typename T>
-void testFFTIFFT(const FFTSettingsNew<T> &s) {
+void testFFTIFFT(const GPU &gpu, const FFTSettingsNew<T> &s) {
     using std::complex;
 
     // allocate data
@@ -172,8 +166,6 @@ void testFFTIFFT(const FFTSettingsNew<T> &s) {
 
     auto forward = s.isForward() ? s : s.createInverse();
     auto inverse = s.isForward() ? s.createInverse() : s;
-    auto gpu = GPU();
-    gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, forward);
     ft.fft(inOut, fd);
@@ -259,13 +251,13 @@ void generateAndTest(F condition, bool bothDirections = false) {
 //            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
 //                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", dir);
             if (bothDirections) {
-                testFFTIFFT(settings);
+                testFFTIFFT(gpu, settings);
             } else {
                 if (isForward) {
-                    testFFTInpulseOrigin(settings);
-                    testFFTInpulseShifted(settings);
+                    testFFTInpulseOrigin(gpu, settings);
+                    testFFTInpulseShifted(gpu, settings);
                 } else {
-                    testIFFTInpulseOrigin(settings);
+                    testIFFTInpulseOrigin(gpu, settings);
                 }
             }
 
