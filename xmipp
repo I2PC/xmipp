@@ -209,6 +209,8 @@ def checkProgram(programName, show=True):
                         for instructions in systemInstructions[programName]:
                             print(red("    - In %s: %s"%(systems[idx],instructions)))
                             idx+=1
+                    print("\nRemember to re-run './xmipp config' after install new software in order to "
+                          "take into account the new system configuration.")
             ok = False
         else:
             ok = False
@@ -870,6 +872,10 @@ def checkConfig():
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
                   "python-numpy python-scipy python-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
+            print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
+                  "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
+            print("\nRemember to re-run './xmipp config' after installing libraries in order to "
+                  "take into account the new system configuration.")
             return False
         if not checkMPI(configDict):
             print(red("Cannot compile with MPI or use it"))
