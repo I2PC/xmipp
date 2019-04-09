@@ -12,7 +12,7 @@ void correlate2DNoCenter(size_t n, size_t batch) {
     using Alignment::CudaShiftCorrAligner;
     using Alignment::AlignType;
 
-    FFTSettingsNew<T> dims(30, 14, 1, n, batch); // only even sizes are supported
+    FFTSettingsNew<T> dims(30, 14, 1, n, batch, false, false); // only even sizes are supported
 
     // allocate and prepare data
     auto inOut = new complex<T>[dims.fDim().size()];
@@ -30,7 +30,9 @@ void correlate2DNoCenter(size_t n, size_t batch) {
     }
 
     CudaShiftCorrAligner<T> aligner;
-    aligner.init2D(AlignType::OneToN, dims);
+    auto gpu = GPU();
+    gpu.set();
+    aligner.init2D(gpu, AlignType::OneToN, dims);
     aligner.load2DReferenceOneToN(ref);
     aligner.template computeCorrelations2DOneToN<false>(inOut);
 
@@ -55,7 +57,9 @@ void correlate2DNoCenter(size_t n, size_t batch) {
 TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToOne)
  {
      // test one reference vs one image
+    XMIPP_TRY
     correlate2DNoCenter<TypeParam>(1, 1);
+    XMIPP_CATCH
 }
 
 TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToMany)
@@ -128,7 +132,9 @@ void shift2D(FFTSettingsNew<T> &dims)
     }
 
     auto aligner = CudaShiftCorrAligner<T>();
-    aligner.init2D(AlignType::OneToN, dims, maxShift, true);
+    auto gpu = GPU();
+    gpu.set();
+    aligner.init2D(gpu, AlignType::OneToN, dims, maxShift, true, true);
     aligner.load2DReferenceOneToN(ref);
     auto result = aligner.computeShift2DOneToN(others);
 
@@ -147,14 +153,14 @@ void shift2D(FFTSettingsNew<T> &dims)
 TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToOne)
 {
     // test one reference vs one image
-    FFTSettingsNew<TypeParam> dims(100, 50);
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 1, 1, false, false);
     shift2D(dims);
 }
 
 TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToMany)
 {
     // check that n == batch works properly
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 5);
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 5, false, false);
     shift2D(dims);
 }
 
@@ -162,14 +168,14 @@ TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToMany)
 TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 3);
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 3, false, false);
     shift2D(dims);
 }
 
 TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToManyBatched2)
 {
     // test that n mod batch = 0 works
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 6, 3);
+    FFTSettingsNew<TypeParam> dims(100, 50, 1, 6, 3, false, false);
     shift2D(dims);
 }
 
