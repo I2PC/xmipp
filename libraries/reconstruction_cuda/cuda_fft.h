@@ -30,7 +30,7 @@
 #include <array>
 #include <type_traits>
 #include "core/xmipp_error.h"
-#include "reconstruction_adapt_cuda/gpu.h"
+#include "gpu_new.h"
 #include "core/utils/memory_utils.h"
 #include "data/fft_settings_new.h"
 #include "core/optional.h"
@@ -49,7 +49,7 @@ public:
     ~CudaFFT() {
         release();
     }
-    void init(const FFTSettingsNew<T> &settings);
+    void init(const GPUNew &gpu, const FFTSettingsNew<T> &settings);
     void release();
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
@@ -66,19 +66,21 @@ public:
     static T* ifft(cufftHandle plan, std::complex<T> *d_inOut);
     static T* ifft(cufftHandle plan,
             const std::complex<T> *d_in, T *d_out);
-    static cufftHandle createPlan(const FFTSettingsNew<T> &settings);
-    static core::optional<FFTSettingsNew<T>> findOptimal(GPU &gpu,
+    static cufftHandle createPlan(const GPUNew &gpu,
+            const FFTSettingsNew<T> &settings);
+    static core::optional<FFTSettingsNew<T>> findOptimal(GPUNew &gpu,
             const FFTSettingsNew<T> &settings,
             size_t reserveBytes, bool squareOnly, int sigPercChange,
             bool crop, bool verbose);
-    static FFTSettingsNew<T> findMaxBatch(const GPU &gpu,
-            const FFTSettingsNew<T> &settings,
-            size_t reserveBytes);
+    static FFTSettingsNew<T> findMaxBatch(const FFTSettingsNew<T> &settings,
+            size_t maxBytes);
 private:
     cufftHandle m_plan;
     FFTSettingsNew<T> m_settings;
     T *m_d_SD;
     std::complex<T> *m_d_FD;
+
+    GPUNew m_gpu;
 
     bool m_isInit;
 

@@ -29,9 +29,12 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
         in[n * s.sDim().xyzPadded() + 1] = T(1);
     }
 
-    CudaFFT<T> ft;
-    ft.init(s);
+    auto gpu = GPUNew();
+    gpu.set();
+    auto ft = CudaFFT<T>();
+    ft.init(gpu, s);
     ft.fft(in, out);
+    gpu.synch();
 
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
@@ -65,9 +68,12 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         in[n * s.sDim().xyzPadded()] = T(1);
     }
 
-    CudaFFT<T> ft;
-    ft.init(s);
+    auto gpu = GPUNew();
+    gpu.set();
+    auto ft = CudaFFT<T>();
+    ft.init(gpu, s);
     ft.fft(in, out);
+    gpu.synch();
 
     T delta = (T)0.00001;
     for (size_t i = 0; i < s.fDim().size(); ++i) {
@@ -99,9 +105,12 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         in[n] = {T(1), 0};
     }
 
-    CudaFFT<T> ft;
-    ft.init(s);
+    auto gpu = GPUNew();
+    gpu.set();
+    auto ft = CudaFFT<T>();
+    ft.init(gpu, s);
     ft.ifft(in, out);
+    gpu.synch();
 
     T delta = (T)0.0001;
     for (size_t n = 0; n < s.sDim().n(); ++n) {
@@ -163,11 +172,14 @@ void testFFTIFFT(const FFTSettingsNew<T> &s) {
 
     auto forward = s.isForward() ? s : s.createInverse();
     auto inverse = s.isForward() ? s.createInverse() : s;
-    CudaFFT<T> ft;
-    ft.init(forward);
+    auto gpu = GPUNew();
+    gpu.set();
+    auto ft = CudaFFT<T>();
+    ft.init(gpu, forward);
     ft.fft(inOut, fd);
-    ft.init(inverse);
+    ft.init(gpu, inverse);
     ft.ifft(fd, inOut);
+    gpu.synch();
 
     // compare the results
     T delta = (T)0.00001;
