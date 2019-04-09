@@ -88,8 +88,8 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref
     }
 
     // copy reference to GPU
-    gpuErrchk(cudaMemcpy(m_d_single_FD, h_ref, m_settingsInv->fBytesSingle(),
-            cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpyAsync(m_d_single_FD, h_ref, m_settingsInv->fBytesSingle(),
+            cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
     // update state
     m_is_d_single_FD_loaded = true;
@@ -103,8 +103,8 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const T *h_ref) {
     }
 
     // copy reference to GPU
-    gpuErrchk(cudaMemcpy(m_d_single_SD, h_ref, m_settingsInv->sBytesSingle(),
-            cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpyAsync(m_d_single_SD, h_ref, m_settingsInv->sBytesSingle(),
+            cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
     // perform FT
     CudaFFT<T>::fft(*m_singleToFD, m_d_single_SD, m_d_single_FD);
@@ -201,28 +201,30 @@ void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
 
+    auto stream = *(cudaStream_t*)m_gpu->stream();
     // process signals in batches
     for (size_t offset = 0; offset < m_settingsInv->fDim().n(); offset += m_settingsInv->batch()) {
         // how many signals to process
         size_t toProcess = std::min(m_settingsInv->batch(), m_settingsInv->fDim().n() - offset);
 
         // copy memory
-        gpuErrchk(cudaMemcpy(
+        gpuErrchk(cudaMemcpyAsync(
                 m_d_batch_FD,
                 h_inOut + offset * m_settingsInv->fDim().xy(),
                 toProcess * m_settingsInv->fBytesSingle(),
-                    cudaMemcpyHostToDevice));
+                cudaMemcpyHostToDevice, stream));
 
         CudaShiftCorrAligner<T>::computeCorrelations2DOneToN<center>(
+                *m_gpu,
                 m_d_batch_FD, m_d_single_FD,
                 m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess);
 
         // copy data back
-        gpuErrchk(cudaMemcpy(
+        gpuErrchk(cudaMemcpyAsync(
                 h_inOut + offset * m_settingsInv->fDim().xy(),
                 m_d_batch_FD,
                 toProcess * m_settingsInv->fBytesSingle(),
-                cudaMemcpyDeviceToHost));
+                cudaMemcpyDeviceToHost, stream));
     }
 }
 
@@ -244,17 +246,18 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShift2DOneToN(
         size_t toProcess = std::min(m_settingsInv->batch(), m_settingsInv->fDim().n() - offset);
 
         // copy memory
-       gpuErrchk(cudaMemcpy(
+       gpuErrchk(cudaMemcpyAsync(
                m_d_batch_SD,
                h_others + offset * m_settingsInv->sDim().xy(),
                toProcess * m_settingsInv->sBytesSingle(),
-               cudaMemcpyHostToDevice));
+               cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
         // perform FT
        CudaFFT<T>::fft(*m_batchToFD, m_d_batch_SD, m_d_batch_FD);
 
         // compute shifts
         auto shifts = computeShifts2DOneToN(
+                *m_gpu,
                 m_d_batch_FD,
                 m_d_single_FD,
                 m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess,
@@ -271,6 +274,7 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShift2DOneToN(
 
 template<typename T>
 std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
+        const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
         size_t xDimF, size_t yDimF, size_t nDim,
@@ -279,26 +283,30 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
         T *h_centers, MultidimArray<T> &helper, size_t maxShift) {
     size_t centerSize = maxShift * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
-    computeCorrelations2DOneToN<true>(
+    computeCorrelations2DOneToN<true>(gpu,
             d_othersF, d_ref,
             xDimF, yDimF, nDim);
 
     // perform IFT
     CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
 
+    auto stream = *(cudaStream_t*)gpu.stream();
+
     // crop images in spatial domain, use memory for FT to avoid reallocation
     dim3 dimBlockCrop(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGridCrop(
             std::ceil(centerSize / (float)dimBlockCrop.x),
             std::ceil(centerSize / (float)dimBlockCrop.y));
-    cropSquareInCenter<<<dimGridCrop, dimBlockCrop>>>(
+    cropSquareInCenter<<<dimGridCrop, dimBlockCrop, 0, stream>>>(
             d_othersS, (T*)d_othersF,
             xDimS, yDimF, nDim, centerSize);
 
     // copy data back
-    gpuErrchk(cudaMemcpy(h_centers, d_othersF,
+    gpuErrchk(cudaMemcpyAsync(h_centers, d_othersF,
             nDim * centerSize * centerSize * sizeof(T),
-            cudaMemcpyDeviceToHost));
+            cudaMemcpyDeviceToHost, stream));
+
+    gpu.synchStream();
 
     // compute shifts
     return AShiftAligner<T>::computeShiftFromCorrelations2D(
@@ -308,9 +316,11 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
 template<typename T>
 template<bool center>
 void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
+        const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
         size_t xDim, size_t yDim, size_t nDim) {
+    auto stream = *(cudaStream_t*)gpu.stream();
     // compute kernel size
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGrid(
@@ -318,12 +328,12 @@ void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
             ceil(yDim / (float)dimBlock.y));
     if (std::is_same<T, float>::value) {
         computeCorrelations2DOneToNKernel<float2, center>
-            <<<dimGrid, dimBlock>>> (
+            <<<dimGrid, dimBlock, 0, stream>>> (
                 (float2*)d_inOut, (float2*)d_ref,
                 xDim, yDim, nDim);
     } else if (std::is_same<T, double>::value) {
         computeCorrelations2DOneToNKernel<double2, center>
-            <<<dimGrid, dimBlock>>> (
+            <<<dimGrid, dimBlock, 0, stream>>> (
                 (double2*)d_inOut, (double2*)d_ref,
                 xDim, yDim, nDim);
     } else {

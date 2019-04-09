@@ -63,6 +63,7 @@ public:
         T *h_others);
 
     static std::vector<Point2D<T>> computeShifts2DOneToN(
+        const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
         size_t xDimF, size_t yDimF, size_t nDim,
@@ -73,6 +74,7 @@ public:
 
     template<bool center>
     static void computeCorrelations2DOneToN(
+        const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
         size_t xDim, size_t yDim, size_t nDim);
