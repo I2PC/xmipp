@@ -41,7 +41,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
-    std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().UUID() << ")" << std::endl;
+    std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().getUUID() << ")" << std::endl;
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
     std::cout << "Patches avg:         " << patchesAvg << std::endl;
 }
@@ -55,7 +55,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     if (device < 0)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Invalid GPU device");
-    gpu = std::move(core::optional<GPU>(GPU(device)));
+    auto tmp = GPU(device);
+    tmp.set();
+    gpu = core::optional<GPU>(tmp);
 
     // read permanent storage
     storage = this->getParam("--storage");
@@ -121,7 +123,8 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &orig,
         const std::pair<T, T> &downscale) {
     auto hint = getCorrelationHint(orig, downscale);
-    size_t correlationBufferSizeMB = gpu.value().lastFreeMem() / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
+    // divide available memory to 3 parts (2 buffers + 1 FFT)
+    size_t correlationBufferSizeMB = memoryUtils::MB(gpu.value().lastFreeBytes() / 3);
 
     return getSettingsOrBenchmark(hint, 2 * correlationBufferSizeMB, false);
 }
@@ -132,7 +135,8 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
     Dimensions hint(512, 512, // this should be a trade-off between speed and present signal
             // but check the speed to make sure
             orig.dim.z(), orig.dim.n());
-    size_t correlationBufferSizeMB = gpu.value().lastFreeMem() / 3; // divide available memory to 3 parts (2 buffers + 1 FFT)
+    // divide available memory to 3 parts (2 buffers + 1 FFT)
+    size_t correlationBufferSizeMB = memoryUtils::MB(gpu.value().lastFreeBytes() / 3);
 
     return getSettingsOrBenchmark(hint, 2 * correlationBufferSizeMB, false);
 }
@@ -234,14 +238,14 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
     UserSettings::get(storage).insert(*this,
             getKey(optBatchSizeStr, dim, applyCrop), s.batch);
     UserSettings::get(storage).insert(*this,
-            getKey(minMemoryStr, dim, applyCrop), gpu.value().lastFreeMem());
+            getKey(minMemoryStr, dim, applyCrop), memoryUtils::MB(gpu.value().lastFreeBytes()));
     UserSettings::get(storage).store(); // write changes immediately
 }
 
 template<typename T>
 core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
         const Dimensions &dim, bool applyCrop) {
-    size_t x, y, batch, neededMem;
+    size_t x, y, batch, neededMB;
     bool res = true;
     res = res
             && UserSettings::get(storage).find(*this,
@@ -254,10 +258,10 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
                     getKey(optBatchSizeStr, dim, applyCrop), batch);
     res = res
             && UserSettings::get(storage).find(*this,
-                    getKey(minMemoryStr, dim, applyCrop), neededMem);
+                    getKey(minMemoryStr, dim, applyCrop), neededMB);
     // check available memory
-    gpu.value().checkFreeMem();
-    res = res && (neededMem <= gpu.value().lastFreeMem());
+    gpu.value().updateMemoryInfo();
+    res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
     if (res) {
         return core::optional<FFTSettings<T>>(
                 FFTSettings<T>(x, y, 1, dim.n(), batch, false));
@@ -314,6 +318,7 @@ template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
         const AlignmentResult<T> &globAlignment) {
+    using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
     auto correlationSettings = this->getCorrelationSettings(patchSettings,
@@ -340,11 +345,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             correlationSettings.dim.y());
 
     // compute max of frames in buffer
-    T corrSizeMB = ((size_t) correlationSettings.x_freq
+    T corrSizeMB = MB<T>((size_t) correlationSettings.x_freq
             * correlationSettings.dim.y()
-            * sizeof(std::complex<T>))
-            / ((T) 1024 * 1024);
-    size_t framesInBuffer = std::ceil((gpu.value().lastFreeMem() / 3) / corrSizeMB);
+            * sizeof(std::complex<T>));
+    size_t framesInBuffer = std::ceil(MB(gpu.value().lastFreeBytes() / 3) / corrSizeMB);
 
     // prepare result
     LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim};
@@ -542,6 +546,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 template<typename T>
 AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
+    using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, true);
     T sizeFactor = this->computeSizeFactor();
     if (this->verbose) {
@@ -559,7 +564,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     T corrSizeMB = ((size_t) correlationSetting.x_freq
             * correlationSetting.dim.y()
             * sizeof(std::complex<T>)) / ((T) 1024 * 1024);
-    size_t framesInBuffer = std::ceil((gpu.value().lastFreeMem() / 3) / corrSizeMB);
+    size_t framesInBuffer = std::ceil((MB(gpu.value().lastFreeBytes() / 3)) / corrSizeMB);
 
     auto reference = core::optional<size_t>();
 

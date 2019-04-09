@@ -30,10 +30,10 @@
 #include <array>
 #include <type_traits>
 #include "core/xmipp_error.h"
-#include "gpu_new.h"
 #include "core/utils/memory_utils.h"
 #include "data/fft_settings_new.h"
 #include "core/optional.h"
+#include "gpu.h"
 
 // XXX HACK to avoid including cufft.h in this header
 // https://docs.nvidia.com/cuda/cufft/index.html#cuffthandle says that type is
@@ -49,7 +49,7 @@ public:
     ~CudaFFT() {
         release();
     }
-    void init(const GPUNew &gpu, const FFTSettingsNew<T> &settings);
+    void init(const GPU &gpu, const FFTSettingsNew<T> &settings);
     void release();
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
@@ -66,9 +66,9 @@ public:
     static T* ifft(cufftHandle plan, std::complex<T> *d_inOut);
     static T* ifft(cufftHandle plan,
             const std::complex<T> *d_in, T *d_out);
-    static cufftHandle createPlan(const GPUNew &gpu,
+    static cufftHandle createPlan(const GPU &gpu,
             const FFTSettingsNew<T> &settings);
-    static core::optional<FFTSettingsNew<T>> findOptimal(GPUNew &gpu,
+    static core::optional<FFTSettingsNew<T>> findOptimal(GPU &gpu,
             const FFTSettingsNew<T> &settings,
             size_t reserveBytes, bool squareOnly, int sigPercChange,
             bool crop, bool verbose);
@@ -80,7 +80,7 @@ private:
     T *m_d_SD;
     std::complex<T> *m_d_FD;
 
-    GPUNew m_gpu;
+    GPU m_gpu;
 
     bool m_isInit;
 

@@ -23,21 +23,21 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_CUDA_GPU_NEW_H_
-#define LIBRARIES_RECONSTRUCTION_CUDA_GPU_NEW_H_
+#ifndef LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_
+#define LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_
 
 #include <cstddef>
 #include <assert.h>
 #include "core/xmipp_error.h"
 
-class GPUNew {
+class GPU {
 public:
-    explicit GPUNew(int device = 0, int stream = 0):
+    explicit GPU(int device = 0, int stream = 0):
         m_lastFreeBytes(0), m_totalBytes(0), m_device(device),
         m_streamId(stream), m_stream(nullptr),
         m_isSet(false) {};
 
-    ~GPUNew();
+    ~GPU();
 
     inline int device() const {
         return m_device;
@@ -102,9 +102,13 @@ private:
 
     std::string m_uuid;
 
-    void check() const;
+    inline void check() const {
+        if ( ! m_isSet) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "You have to set() this GPU before using it");
+        };
+    }
 
     void obtainUUID();
 };
 
-#endif /* LIBRARIES_RECONSTRUCTION_CUDA_GPU_NEW_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_ */
