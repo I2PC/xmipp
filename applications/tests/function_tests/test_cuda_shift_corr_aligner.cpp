@@ -35,6 +35,7 @@ void correlate2DNoCenter(size_t n, size_t batch) {
     aligner.init2D(gpu, AlignType::OneToN, dims);
     aligner.load2DReferenceOneToN(ref);
     aligner.template computeCorrelations2DOneToN<false>(inOut);
+    gpu.synchStream();
 
     T delta = 0.0001;
     for (int n = 0; n < dims.fDim().n(); ++n) {
@@ -57,9 +58,7 @@ void correlate2DNoCenter(size_t n, size_t batch) {
 TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToOne)
  {
      // test one reference vs one image
-    XMIPP_TRY
     correlate2DNoCenter<TypeParam>(1, 1);
-    XMIPP_CATCH
 }
 
 TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToMany)
