@@ -31,15 +31,18 @@
 namespace Alignment {
 
 template<typename T>
-void CudaShiftCorrAligner<T>::init2D(AlignType type,
-        const FFTSettingsNew<T> &dims, size_t maxShift, bool includingFT) {
+void CudaShiftCorrAligner<T>::init2D(const GPU &gpu, AlignType type,
+        const FFTSettingsNew<T> &settings, size_t maxShift,
+        bool includingBatchFT, bool includingSingleFT) {
     release();
 
     m_type = type;
-    m_dims = dims;
+    m_settingsInv = &settings;
     m_maxShift = maxShift;
-    m_includingFT = includingFT;
+    m_includingBatchFT = includingBatchFT;
+    m_includingSingleFT = includingSingleFT;
     m_centerSize = 2 * maxShift + 1;
+    m_gpu = &gpu;
 
     check();
 
@@ -56,7 +59,7 @@ void CudaShiftCorrAligner<T>::init2D(AlignType type,
 
 template<typename T>
 void CudaShiftCorrAligner<T>::setDefault() {
-    m_dims = FFTSettingsNew<T>(0);
+    m_settingsInv = nullptr;
     m_maxShift = 0;
     m_centerSize = 0;
 
@@ -71,9 +74,10 @@ void CudaShiftCorrAligner<T>::setDefault() {
     m_origHelperData = nullptr;
 
     // flags
-    m_includingFT = false;
-    m_isInit = false;
+    m_includingBatchFT = false;
+    m_includingSingleFT = false;
     m_is_d_single_FD_loaded = false;
+    m_isInit = false;
 }
 
 template<typename T>
@@ -84,7 +88,7 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref
     }
 
     // copy reference to GPU
-    gpuErrchk(cudaMemcpy(m_d_single_FD, h_ref, m_dims.fBytesSingle(),
+    gpuErrchk(cudaMemcpy(m_d_single_FD, h_ref, m_settingsInv->fBytesSingle(),
             cudaMemcpyHostToDevice));
 
     // update state
@@ -93,26 +97,20 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref
 
 template<typename T>
 void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const T *h_ref) {
-    auto isReady = (m_isInit && (AlignType::OneToN == m_type) && m_includingFT);
+    auto isReady = (m_isInit && (AlignType::OneToN == m_type) && m_includingSingleFT);
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
     }
 
     // copy reference to GPU
-    gpuErrchk(cudaMemcpy(m_d_single_SD, h_ref, m_dims.sBytesSingle(),
+    gpuErrchk(cudaMemcpy(m_d_single_SD, h_ref, m_settingsInv->sBytesSingle(),
             cudaMemcpyHostToDevice));
 
     // perform FT
-    auto spatial = GpuMultidimArrayAtGpu<T>(m_dims.sDim().x(), m_dims.sDim().y(), 1, 1, m_d_single_SD);
-    auto freq = GpuMultidimArrayAtGpu<std::complex<T>>(m_dims.fDim().x(), m_dims.fDim().y(), 1, 1, m_d_single_FD);
-    spatial.fft(freq, m_singleToFD);
+    CudaFFT<T>::fft(m_singleToFD, m_d_single_SD, m_d_single_FD);
 
     // update state
     m_is_d_single_FD_loaded = true;
-
-    // unbind data
-    spatial.d_data = nullptr;
-    freq.d_data = nullptr;
 }
 
 template<typename T>
@@ -128,10 +126,10 @@ void CudaShiftCorrAligner<T>::release() {
     m_helper.data = m_origHelperData;
     m_helper.clear();
 
-    // FT data
-    m_singleToFD.clear();
-    m_batchToFD.clear();
-    m_batchToSD.clear();
+    // FT plans
+    CudaFFT<T>::release(m_singleToFD);
+    CudaFFT<T>::release(m_batchToFD);
+    CudaFFT<T>::release(m_batchToSD);
 
     setDefault();
 }
@@ -139,42 +137,58 @@ void CudaShiftCorrAligner<T>::release() {
 template<typename T>
 void CudaShiftCorrAligner<T>::init2DOneToN() {
     // allocate space for data in Fourier domain
-    gpuErrchk(cudaMalloc(&m_d_single_FD, m_dims.fBytesSingle()));
-    gpuErrchk(cudaMalloc(&m_d_batch_FD, m_dims.fBytesBatch()));
+    gpuErrchk(cudaMalloc(&m_d_single_FD, m_settingsInv->fBytesSingle()));
+    gpuErrchk(cudaMalloc(&m_d_batch_FD, m_settingsInv->fBytesBatch()));
 
-    if (m_includingFT) {
-        // allocate space for data in Spatial domain
-        gpuErrchk(cudaMalloc(&m_d_single_SD, m_dims.sBytesSingle()));
-        gpuErrchk(cudaMalloc(&m_d_batch_SD, m_dims.sBytesBatch()));
+    // allocate space for data in Spatial domain
+    if (m_includingBatchFT) {
+        gpuErrchk(cudaMalloc(&m_d_single_SD, m_settingsInv->sBytesSingle()));
+    }
+    if (m_includingSingleFT) {
+        gpuErrchk(cudaMalloc(&m_d_batch_SD, m_settingsInv->sBytesBatch()));
+    }
+
+    // allocate plans
+    m_batchToSD = CudaFFT<T>::createPlan(*m_gpu, *m_settingsInv);
+    auto settingsForw = m_settingsInv->createInverse();
+    if (m_includingBatchFT) {
+        m_batchToFD = CudaFFT<T>::createPlan(*m_gpu, settingsForw);
+    }
+    if (m_includingSingleFT) {
+        m_singleToFD = CudaFFT<T>::createPlan(*m_gpu, settingsForw.createSingle());
     }
 
     // allocate helper objects
-    m_h_centers = new T[m_centerSize * m_centerSize * m_dims.batch()];
+    m_h_centers = new T[m_centerSize * m_centerSize * m_settingsInv->batch()];
     m_helper = MultidimArray<T>(m_centerSize, m_centerSize);
     m_origHelperData = m_helper.data;
 }
 
 template<typename T>
 void CudaShiftCorrAligner<T>::check() {
-    if (m_dims.fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) {
+    m_gpu->forceSet();
+    if (m_settingsInv->isForward()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
+    }
+    if (m_settingsInv->fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) {
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
     }
-    if ((0 == m_dims.fDim().size())
-        || (0 == m_dims.sDim().size())) {
+    if ((0 == m_settingsInv->fDim().size())
+        || (0 == m_settingsInv->sDim().size())) {
             REPORT_ERROR(ERR_VALUE_INCORRECT, "Fourier or Spatial domain dimension is zero (0)");
     }
-    if ((m_centerSize > m_dims.sDim().x())
-        || m_centerSize > m_dims.sDim().y()) {
+    if ((m_centerSize > m_settingsInv->sDim().x())
+        || m_centerSize > m_settingsInv->sDim().y()) {
             REPORT_ERROR(ERR_VALUE_INCORRECT, "The maximum shift (and hence the shift area: 2 * shift + 1) "
                 "must be sharply smaller than the smallest dimension");
     }
-    if ((0 != (m_dims.sDim().x() % 2))
-        || (0 != (m_dims.sDim().y() % 2))) {
+    if ((0 != (m_settingsInv->sDim().x() % 2))
+        || (0 != (m_settingsInv->sDim().y() % 2))) {
         // while performing IFT of the correlation, we center the signal using multiplication
         // in the FD. This, however, works only for even signal.
             REPORT_ERROR(ERR_VALUE_INCORRECT,
                     "The X and Y dimensions have to be multiple of two. Crop your signal");
-        }
+    }
 }
 
 template<typename T>
@@ -188,26 +202,26 @@ void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
     }
 
     // process signals in batches
-    for (size_t offset = 0; offset < m_dims.fDim().n(); offset += m_dims.batch()) {
+    for (size_t offset = 0; offset < m_settingsInv->fDim().n(); offset += m_settingsInv->batch()) {
         // how many signals to process
-        size_t toProcess = std::min(m_dims.batch(), m_dims.fDim().n() - offset);
+        size_t toProcess = std::min(m_settingsInv->batch(), m_settingsInv->fDim().n() - offset);
 
         // copy memory
         gpuErrchk(cudaMemcpy(
                 m_d_batch_FD,
-                h_inOut + offset * m_dims.fDim().xy(),
-                toProcess * m_dims.fBytesSingle(),
+                h_inOut + offset * m_settingsInv->fDim().xy(),
+                toProcess * m_settingsInv->fBytesSingle(),
                     cudaMemcpyHostToDevice));
 
         CudaShiftCorrAligner<T>::computeCorrelations2DOneToN<center>(
                 m_d_batch_FD, m_d_single_FD,
-                m_dims.fDim().x(), m_dims.fDim().y(), toProcess);
+                m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess);
 
         // copy data back
         gpuErrchk(cudaMemcpy(
-                h_inOut + offset * m_dims.fDim().xy(),
+                h_inOut + offset * m_settingsInv->fDim().xy(),
                 m_d_batch_FD,
-                toProcess * m_dims.fBytesSingle(),
+                toProcess * m_settingsInv->fBytesSingle(),
                 cudaMemcpyDeviceToHost));
     }
 }
@@ -221,46 +235,36 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShift2DOneToN(
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
 
-    // prepare for FT in batch
-    auto d_others = GpuMultidimArrayAtGpu<T>(
-            m_dims.sDim().x(), m_dims.sDim().y(), m_dims.sDim().z(), m_dims.batch(), m_d_batch_SD);
-    auto d_others_FD = GpuMultidimArrayAtGpu<std::complex<T>>(
-            m_dims.fDim().x(), m_dims.fDim().y(), m_dims.fDim().z(), m_dims.batch(), m_d_batch_FD);
-
     // reserve enough space for shifts
     auto result = std::vector<Point2D<T>>();
-    result.reserve(m_dims.fDim().n());
+    result.reserve(m_settingsInv->fDim().n());
     // process signals
-    for (size_t offset = 0; offset < m_dims.fDim().n(); offset += m_dims.batch()) {
+    for (size_t offset = 0; offset < m_settingsInv->fDim().n(); offset += m_settingsInv->batch()) {
         // how many signals to process
-        size_t toProcess = std::min(m_dims.batch(), m_dims.fDim().n() - offset);
+        size_t toProcess = std::min(m_settingsInv->batch(), m_settingsInv->fDim().n() - offset);
 
         // copy memory
        gpuErrchk(cudaMemcpy(
                m_d_batch_SD,
-               h_others + offset * m_dims.sDim().xy(),
-               toProcess * m_dims.sBytesSingle(),
+               h_others + offset * m_settingsInv->sDim().xy(),
+               toProcess * m_settingsInv->sBytesSingle(),
                cudaMemcpyHostToDevice));
 
         // perform FT
-        d_others.fft(d_others_FD, m_batchToFD);
+       CudaFFT<T>::fft(m_batchToFD, m_d_batch_SD, m_d_batch_FD);
 
         // compute shifts
         auto shifts = computeShifts2DOneToN(
                 m_d_batch_FD,
                 m_d_single_FD,
-                m_dims.fDim().x(), m_dims.fDim().y(), toProcess,
+                m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess,
                 m_d_batch_SD, m_batchToSD,
-                m_dims.sDim().x(),
+                m_settingsInv->sDim().x(),
                 m_h_centers, m_helper, m_maxShift);
 
         // append shifts to existing results
         result.insert(result.end(), shifts.begin(), shifts.end());
     }
-
-    // unbind data
-    d_others.d_data = nullptr;
-    d_others_FD.d_data = nullptr;
 
     return result;
 }
@@ -270,7 +274,7 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
         size_t xDimF, size_t yDimF, size_t nDim,
-        T *d_othersS, mycufftHandle handle,
+        T *d_othersS, cufftHandle plan,
         size_t xDimS,
         T *h_centers, MultidimArray<T> &helper, size_t maxShift) {
     size_t centerSize = maxShift * 2 + 1;
@@ -280,11 +284,7 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
             xDimF, yDimF, nDim);
 
     // perform IFT
-    GpuMultidimArrayAtGpu<std::complex<T>> ft(
-            xDimF, yDimF, 1, nDim, d_othersF);
-    GpuMultidimArrayAtGpu<T> spatial(
-            xDimS, yDimF, 1, nDim, d_othersS);
-    ft.ifft(spatial, handle);
+    CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
 
     // crop images in spatial domain, use memory for FT to avoid reallocation
     dim3 dimBlockCrop(BLOCK_DIM_X, BLOCK_DIM_X);
@@ -292,17 +292,13 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
             std::ceil(centerSize / (float)dimBlockCrop.x),
             std::ceil(centerSize / (float)dimBlockCrop.y));
     cropSquareInCenter<<<dimGridCrop, dimBlockCrop>>>(
-            spatial.d_data, (T*)ft.d_data,
+            d_othersS, (T*)d_othersF,
             xDimS, yDimF, nDim, centerSize);
 
     // copy data back
-    gpuErrchk(cudaMemcpy(h_centers, ft.d_data,
+    gpuErrchk(cudaMemcpy(h_centers, d_othersF,
             nDim * centerSize * centerSize * sizeof(T),
             cudaMemcpyDeviceToHost));
-
-    // unbind the memory, otherwise the destructor would release it
-    ft.d_data = nullptr;
-    spatial.d_data = nullptr;
 
     // compute shifts
     return AShiftAligner<T>::computeShiftFromCorrelations2D(

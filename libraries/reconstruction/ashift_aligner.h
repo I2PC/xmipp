@@ -28,7 +28,7 @@
 
 #include <vector>
 #include "data/point2D.h"
-#include "data/filters.h"
+#include "data/filters.h" // FIXME DS remove (eventually)
 #include <cassert>
 
 namespace Alignment {
