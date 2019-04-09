@@ -2,7 +2,7 @@
 #include <random>
 #include <set>
 #include "core/utils/memory_utils.h"
-#include "reconstruction_adapt_cuda/gpu.h"
+#include "reconstruction_cuda/gpu.h"
 #include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
@@ -29,7 +29,7 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
         in[n * s.sDim().xyzPadded() + 1] = T(1);
     }
 
-    auto gpu = GPUNew();
+    auto gpu = GPU();
     gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, s);
@@ -68,7 +68,7 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         in[n * s.sDim().xyzPadded()] = T(1);
     }
 
-    auto gpu = GPUNew();
+    auto gpu = GPU();
     gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, s);
@@ -105,7 +105,7 @@ void testIFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
         in[n] = {T(1), 0};
     }
 
-    auto gpu = GPUNew();
+    auto gpu = GPU();
     gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, s);
@@ -172,7 +172,7 @@ void testFFTIFFT(const FFTSettingsNew<T> &s) {
 
     auto forward = s.isForward() ? s : s.createInverse();
     auto inverse = s.isForward() ? s.createInverse() : s;
-    auto gpu = GPUNew();
+    auto gpu = GPU();
     gpu.set();
     auto ft = CudaFFT<T>();
     ft.init(gpu, forward);
@@ -230,7 +230,8 @@ void generateAndTest(F condition, bool bothDirections = false) {
     int seed = 42;
     std::mt19937 mt(seed);
     std::uniform_int_distribution<> dist(0, 4097);
-    GPU gpu(0);
+    auto gpu = GPU();
+    gpu.set();
     T availableBytes = gpu.lastFreeBytes();
     while ((executed < 20)
             && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop

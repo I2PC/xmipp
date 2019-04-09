@@ -29,7 +29,7 @@
 #include "cuFFTAdvisor/advisor.h"
 
 template<typename T>
-void CudaFFT<T>::init(const GPUNew &gpu, const FFTSettingsNew<T> &settings) {
+void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings) {
     release();
 
     m_settings = settings;
@@ -76,7 +76,7 @@ void CudaFFT<T>::setDefault() {
     m_isInit = false;
     m_d_SD = nullptr;
     m_d_FD = nullptr;
-    m_gpu = GPUNew();
+    m_gpu = GPU();
 }
 
 template<typename T>
@@ -251,7 +251,7 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
 }
 
 template<typename T>
-cufftHandle CudaFFT<T>::createPlan(const GPUNew &gpu, const FFTSettingsNew<T> &settings) {
+cufftHandle CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
     cufftHandle plan;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
@@ -283,7 +283,7 @@ FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
 }
 
 template<typename T>
-core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPUNew &gpu,
+core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
         const FFTSettingsNew<T> &settings,
         size_t reserveBytes, bool squareOnly, int sigPercChange,
         bool crop, bool verbose) {

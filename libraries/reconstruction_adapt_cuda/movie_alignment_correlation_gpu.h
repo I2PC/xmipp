@@ -38,8 +38,9 @@
 #include "data/bspline_grid.h"
 #include "core/userSettings.h"
 #include "reconstruction/bspline_helper.h"
-#include "gpu.h"
+#include "reconstruction_cuda/gpu.h"
 #include "core/optional.h"
+#include "core/utils/memory_utils.h"
 
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
@@ -93,7 +94,7 @@ private:
     std::string const getKey(const std::string &keyword,
             const Dimensions &dim, bool crop) {
         std::stringstream ss;
-        ss << gpu.value().UUID() << keyword << dim << crop;
+        ss << gpu.value().getUUID() << keyword << dim << crop;
         return ss.str();
     }
 
