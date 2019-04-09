@@ -29,8 +29,19 @@
 #include "cuFFTAdvisor/advisor.h"
 
 template<typename T>
-void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings) {
-    release();
+void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool reuse) {
+    bool canReuse = m_isInit
+            && reuse
+            && (m_settings->sBytesBatch() <= settings.sBytesBatch())
+            && (m_settings->fBytesBatch() <= settings.fBytesBatch());
+    bool mustAllocate = !canReuse;
+    if (mustAllocate) {
+        release();
+    }
+    if (m_isInit) {
+        // previous plan has to be released, otherwise we will get GPU memory leak
+        release(m_plan);
+    }
 
     m_settings = &settings;
     m_gpu = &gpu;
@@ -38,18 +49,24 @@ void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings) {
     check();
 
     m_plan = createPlan(*m_gpu, *m_settings);
-
-    // allocate input data storage
-    gpuErrchk(cudaMalloc(&m_d_SD, m_settings->sBytesBatch()));
-    if (m_settings->isInPlace()) {
-        // input data holds also the output
-        m_d_FD = (std::complex<T>*)m_d_SD;
-    } else {
-        // allocate also the output buffer
-        gpuErrchk(cudaMalloc(&m_d_FD, m_settings->fBytesBatch()));
+    if (mustAllocate) {
+        // allocate input data storage
+        gpuErrchk(cudaMalloc(&m_d_SD, m_settings->sBytesBatch()));
+        if (m_settings->isInPlace()) {
+            // input data holds also the output
+            m_d_FD = (std::complex<T>*)m_d_SD;
+        } else {
+            // allocate also the output buffer
+            gpuErrchk(cudaMalloc(&m_d_FD, m_settings->fBytesBatch()));
+        }
     }
 
     m_isInit = true;
+}
+
+template<typename T>
+void CudaFFT<T>::release(cufftHandle plan) {
+    gpuErrchkFFT(cufftDestroy(plan));
 }
 
 template<typename T>
@@ -72,8 +89,8 @@ void CudaFFT<T>::check() {
 
 template<typename T>
 void CudaFFT<T>::setDefault() {
-    m_settings = nullptr;
     m_isInit = false;
+    m_settings = nullptr;
     m_d_SD = nullptr;
     m_d_FD = nullptr;
     m_gpu = nullptr;
@@ -86,7 +103,7 @@ void CudaFFT<T>::release() {
         gpuErrchk(cudaFree(m_d_FD));
     }
     if (m_isInit) { // avoid destroying empty plan
-        gpuErrchkFFT(cufftDestroy(m_plan));
+        release(m_plan);
     }
     setDefault();
 }
