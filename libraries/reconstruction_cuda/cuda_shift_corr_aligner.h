@@ -35,13 +35,13 @@
 namespace Alignment {
 
 template<typename T>
-class CudaShiftAligner : public AShiftAligner<T> {
+class CudaShiftCorrAligner : public AShiftAligner<T> {
 public:
-    CudaShiftAligner() : m_dims(0) {
+    CudaShiftCorrAligner() : m_dims(0) {
         setDefault();
     }
 
-    ~CudaShiftAligner() {
+    ~CudaShiftCorrAligner() {
         release();
     }
 

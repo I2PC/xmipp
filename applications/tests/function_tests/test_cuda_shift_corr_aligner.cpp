@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
 #include <random>
-#include "reconstruction_cuda/cuda_shift_aligner.h"
+#include "reconstruction_cuda/cuda_shift_corr_aligner.h"
 
 template<typename T>
-class CudaShiftAlignerTest : public ::testing::Test { };
-TYPED_TEST_CASE_P(CudaShiftAlignerTest);
+class CudaShiftCorrAlignerTest : public ::testing::Test { };
+TYPED_TEST_CASE_P(CudaShiftCorrAlignerTest);
 
 template<typename T>
 void correlate2DNoCenter(size_t n, size_t batch) {
     using std::complex;
-    using Alignment::CudaShiftAligner;
+    using Alignment::CudaShiftCorrAligner;
     using Alignment::AlignType;
 
     FFTSettingsNew<T> dims(30, 14, 1, n, batch); // only even sizes are supported
@@ -29,7 +29,7 @@ void correlate2DNoCenter(size_t n, size_t batch) {
         }
     }
 
-    CudaShiftAligner<T> aligner;
+    CudaShiftCorrAligner<T> aligner;
     aligner.init2D(AlignType::OneToN, dims);
     aligner.load2DReferenceOneToN(ref);
     aligner.template computeCorrelations2DOneToN<false>(inOut);
@@ -52,26 +52,25 @@ void correlate2DNoCenter(size_t n, size_t batch) {
     delete[] ref;
 }
 
-TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToOne)
-{
-    // test one reference vs one image
+TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToOne)
+ {
+     // test one reference vs one image
     correlate2DNoCenter<TypeParam>(1, 1);
 }
 
-
-TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToMany)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToMany)
 {
     // check that n == batch works properly
     correlate2DNoCenter<TypeParam>(5, 5);
 }
 
-TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched1)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
     correlate2DNoCenter<TypeParam>(5, 3);
 }
 
-TYPED_TEST_P( CudaShiftAlignerTest, correlate2DOneToManyBatched2)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, correlate2DOneToManyBatched2)
 {
     // test that n mod batch = 0 works
     correlate2DNoCenter<TypeParam>(6, 3);
@@ -96,7 +95,7 @@ void drawCross(T *data, size_t xDim, size_t yDim, T xPos, T yPos) {
 template<typename T>
 void shift2D(FFTSettingsNew<T> &dims)
 {
-    using Alignment::CudaShiftAligner;
+    using Alignment::CudaShiftCorrAligner;
     using Alignment::AlignType;
     // max shift must be sharply less than half of the size
     auto maxShift = std::min(dims.sDim().x() / 2, dims.sDim().y() / 2) - 1;
@@ -128,7 +127,7 @@ void shift2D(FFTSettingsNew<T> &dims)
                 centerX + shifts.at(n).x, centerY + shifts.at(n).y);
     }
 
-    auto aligner = CudaShiftAligner<T>();
+    auto aligner = CudaShiftCorrAligner<T>();
     aligner.init2D(AlignType::OneToN, dims, maxShift, true);
     aligner.load2DReferenceOneToN(ref);
     auto result = aligner.computeShift2DOneToN(others);
@@ -145,14 +144,14 @@ void shift2D(FFTSettingsNew<T> &dims)
     delete[] ref;
 }
 
-TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToOne)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToOne)
 {
     // test one reference vs one image
     FFTSettingsNew<TypeParam> dims(100, 50);
     shift2D(dims);
 }
 
-TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToMany)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToMany)
 {
     // check that n == batch works properly
     FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 5);
@@ -160,14 +159,14 @@ TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToMany)
 }
 
 
-TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToManyBatched1)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
     FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 3);
     shift2D(dims);
 }
 
-TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToManyBatched2)
+TYPED_TEST_P( CudaShiftCorrAlignerTest, shift2DOneToManyBatched2)
 {
     // test that n mod batch = 0 works
     FFTSettingsNew<TypeParam> dims(100, 50, 1, 6, 3);
@@ -175,7 +174,7 @@ TYPED_TEST_P( CudaShiftAlignerTest, shift2DOneToManyBatched2)
 }
 
 
-REGISTER_TYPED_TEST_CASE_P(CudaShiftAlignerTest,
+REGISTER_TYPED_TEST_CASE_P(CudaShiftCorrAlignerTest,
     correlate2DOneToOne,
     correlate2DOneToMany,
     correlate2DOneToManyBatched1,
@@ -187,4 +186,4 @@ REGISTER_TYPED_TEST_CASE_P(CudaShiftAlignerTest,
 );
 
 typedef ::testing::Types<float> TestTypes; // FIXME add double
-INSTANTIATE_TYPED_TEST_CASE_P(Alignment, CudaShiftAlignerTest, TestTypes);
+INSTANTIATE_TYPED_TEST_CASE_P(Alignment, CudaShiftCorrAlignerTest, TestTypes);
