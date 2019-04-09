@@ -30,14 +30,15 @@
 #include "reconstruction/ashift_aligner.h"
 #include "data/fft_settings_new.h"
 #include "core/xmipp_error.h"
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
+#include "cuda_fft.h"
+#include "gpu.h"
 
 namespace Alignment {
 
 template<typename T>
 class CudaShiftCorrAligner : public AShiftAligner<T> {
 public:
-    CudaShiftCorrAligner() : m_dims(0) {
+    CudaShiftCorrAligner() {
         setDefault();
     }
 
@@ -45,7 +46,8 @@ public:
         release();
     }
 
-    void init2D(AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0, bool includingFT=false);
+    void init2D(const GPU &gpu, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0,
+            bool includingBatchFT=false, bool includingSingleFT=false);
 
     void release();
 
@@ -65,7 +67,7 @@ public:
         std::complex<T> *d_ref,
         size_t xDimF, size_t yDimF, size_t nDim,
         T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
-        mycufftHandle handle,
+        cufftHandle plan,
         size_t xDimS,
         T *h_centers, MultidimArray<T> &helper, size_t maxShift);
 
@@ -76,10 +78,11 @@ public:
         size_t xDim, size_t yDim, size_t nDim);
 
 private:
-    FFTSettingsNew<T> m_dims;
+    const FFTSettingsNew<T> *m_settingsInv;
     size_t m_maxShift;
     size_t m_centerSize;
     AlignType m_type;
+    const GPU *m_gpu;
 
     // device memory
     std::complex<T> *m_d_single_FD;
@@ -92,13 +95,14 @@ private:
     MultidimArray<T> m_helper;
     T *m_origHelperData;
 
-    // FT data
-    mycufftHandle m_singleToFD;
-    mycufftHandle m_batchToFD;
-    mycufftHandle m_batchToSD;
+    // FT plans
+    cufftHandle m_singleToFD;
+    cufftHandle m_batchToFD;
+    cufftHandle m_batchToSD;
 
     // flags
-    bool m_includingFT;
+    bool m_includingBatchFT;
+    bool m_includingSingleFT;
     bool m_isInit;
     bool m_is_d_single_FD_loaded;
 
@@ -111,3 +115,4 @@ private:
 } /* namespace Alignment */
 
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_ */
+

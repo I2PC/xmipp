@@ -26,7 +26,6 @@
 #ifndef FFTSETTINGS_NEW_H_
 #define FFTSETTINGS_NEW_H_
 
-//#include <iosfwd>
 #include "dimensions.h"
 #include <cassert>
 #include <complex>
@@ -119,6 +118,12 @@ public:
     inline FFTSettingsNew<T> createInverse() const {
         auto copy = FFTSettingsNew<T>(*this);
         copy.m_isForward = ! this->m_isForward;
+        return copy;
+    }
+
+    inline FFTSettingsNew<T> createSingle() const {
+        auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), 1, 1,
+                this->isInPlace(), this->isForward());
         return copy;
     }
 
