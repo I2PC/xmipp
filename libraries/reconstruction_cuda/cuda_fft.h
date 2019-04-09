@@ -43,7 +43,7 @@ typedef int cufftHandle;
 template<typename T>
 class CudaFFT {
 public:
-    CudaFFT(): m_settings(0) {
+    CudaFFT() {
         setDefault();
     };
     ~CudaFFT() {
@@ -76,11 +76,11 @@ public:
             size_t maxBytes);
 private:
     cufftHandle m_plan;
-    FFTSettingsNew<T> m_settings;
+    const FFTSettingsNew<T> *m_settings;
     T *m_d_SD;
     std::complex<T> *m_d_FD;
 
-    GPU m_gpu;
+    const GPU *m_gpu;
 
     bool m_isInit;
 

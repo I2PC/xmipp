@@ -32,21 +32,21 @@ template<typename T>
 void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings) {
     release();
 
-    m_settings = settings;
-    m_gpu = gpu;
+    m_settings = &settings;
+    m_gpu = &gpu;
 
     check();
 
-    m_plan = createPlan(m_gpu, m_settings);
+    m_plan = createPlan(*m_gpu, *m_settings);
 
     // allocate input data storage
-    gpuErrchk(cudaMalloc(&m_d_SD, m_settings.sBytesBatch()));
-    if (m_settings.isInPlace()) {
+    gpuErrchk(cudaMalloc(&m_d_SD, m_settings->sBytesBatch()));
+    if (m_settings->isInPlace()) {
         // input data holds also the output
         m_d_FD = (std::complex<T>*)m_d_SD;
     } else {
         // allocate also the output buffer
-        gpuErrchk(cudaMalloc(&m_d_FD, m_settings.fBytesBatch()));
+        gpuErrchk(cudaMalloc(&m_d_FD, m_settings->fBytesBatch()));
     }
 
     m_isInit = true;
@@ -54,29 +54,29 @@ void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings) {
 
 template<typename T>
 void CudaFFT<T>::check() {
-    if ( ! m_gpu.isSet()) {
+    if ( ! m_gpu->isSet()) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "GPU is not yet set for the transformer");
     }
-    if (m_settings.sDim().x() < 1) {
+    if (m_settings->sDim().x() < 1) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 1 (one)");
     }
-    if ((m_settings.sDim().y() > 1)
-            && (m_settings.sDim().x() < 2)) {
+    if ((m_settings->sDim().y() > 1)
+            && (m_settings->sDim().x() < 2)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 2 (two) for 2D/3D transformations");
     }
-    if ((m_settings.sDim().z() > 1)
-            && (m_settings.sDim().y() < 2)) {
+    if ((m_settings->sDim().z() > 1)
+            && (m_settings->sDim().y() < 2)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Y dim must be at least 2 (two) for 3D transformations");
     }
 }
 
 template<typename T>
 void CudaFFT<T>::setDefault() {
-    m_settings = FFTSettingsNew<T>(0);
+    m_settings = nullptr;
     m_isInit = false;
     m_d_SD = nullptr;
     m_d_FD = nullptr;
-    m_gpu = GPU();
+    m_gpu = nullptr;
 }
 
 template<typename T>
@@ -114,32 +114,32 @@ T* CudaFFT<T>::ifft(cufftHandle plan, std::complex<T> *d_inOut) {
 template<typename T>
 std::complex<T>* CudaFFT<T>::fft(const T *h_in,
         std::complex<T> *h_out) {
-    auto isReady = m_isInit && m_settings.isForward();
+    auto isReady = m_isInit && m_settings->isForward();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Fourier Transform. "
                 "Call init() function first");
     }
 
     // process signals in batches
-    for (size_t offset = 0; offset < m_settings.sDim().n(); offset += m_settings.batch()) {
+    for (size_t offset = 0; offset < m_settings->sDim().n(); offset += m_settings->batch()) {
         // how many signals to process
-        size_t toProcess = std::min(m_settings.batch(), m_settings.sDim().n() - offset);
+        size_t toProcess = std::min(m_settings->batch(), m_settings->sDim().n() - offset);
 
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
                 m_d_SD,
-                h_in + offset * m_settings.sDim().xyzPadded(),
-                toProcess * m_settings.sBytesSingle(),
-                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu.stream()));
+                h_in + offset * m_settings->sDim().xyzPadded(),
+                toProcess * m_settings->sBytesSingle(),
+                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
         fft(m_plan, m_d_SD, m_d_FD);
 
         // copy data back
         gpuErrchk(cudaMemcpyAsync(
-                h_out + offset * m_settings.fDim().xyzPadded(),
+                h_out + offset * m_settings->fDim().xyzPadded(),
                 m_d_FD,
-                toProcess * m_settings.fBytesSingle(),
-                cudaMemcpyDeviceToHost, *(cudaStream_t*)m_gpu.stream()));
+                toProcess * m_settings->fBytesSingle(),
+                cudaMemcpyDeviceToHost, *(cudaStream_t*)m_gpu->stream()));
     }
     return h_out;
 }
@@ -147,32 +147,32 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
 template<typename T>
 T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
         T *h_out) {
-    auto isReady = m_isInit && ( ! m_settings.isForward());
+    auto isReady = m_isInit && ( ! m_settings->isForward());
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Inverse Fourier Transform. "
                 "Call init() function first");
     }
 
     // process signals in batches
-    for (size_t offset = 0; offset < m_settings.fDim().n(); offset += m_settings.batch()) {
+    for (size_t offset = 0; offset < m_settings->fDim().n(); offset += m_settings->batch()) {
         // how many signals to process
-        size_t toProcess = std::min(m_settings.batch(), m_settings.fDim().n() - offset);
+        size_t toProcess = std::min(m_settings->batch(), m_settings->fDim().n() - offset);
 
         // copy memoryvim
         gpuErrchk(cudaMemcpyAsync(
                 m_d_FD,
-                h_in + offset * m_settings.fDim().xyzPadded(),
-                toProcess * m_settings.fBytesSingle(),
-                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu.stream()));
+                h_in + offset * m_settings->fDim().xyzPadded(),
+                toProcess * m_settings->fBytesSingle(),
+                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
         ifft(m_plan, m_d_FD, m_d_SD);
 
         // copy data back
         gpuErrchk(cudaMemcpyAsync(
-                h_out + offset * m_settings.sDim().xyzPadded(),
+                h_out + offset * m_settings->sDim().xyzPadded(),
                 m_d_SD,
-                toProcess * m_settings.sBytesSingle(),
-                cudaMemcpyDeviceToHost, *(cudaStream_t*)m_gpu.stream()));
+                toProcess * m_settings->sBytesSingle(),
+                cudaMemcpyDeviceToHost, *(cudaStream_t*)m_gpu->stream()));
     }
     return h_out;
 }
