@@ -96,7 +96,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
 
     if (optimize) {
-        int maxFilterBytes = getMaxFilterBytes(frame);
+        size_t maxFilterBytes = getMaxFilterBytes(frame);
         return getSettingsOrBenchmark(dim, maxFilterBytes, true);
     } else {
         return FFTSettings<T>(dim, 1, false);
@@ -713,7 +713,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
 }
 
 template<typename T>
-int ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
+size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
         const Image<T> &frame) {
     size_t maxXPow2 = std::ceil(log(frame.data.xdim) / log(2));
     size_t maxX = std::pow(2, maxXPow2);
