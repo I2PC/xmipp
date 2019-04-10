@@ -220,7 +220,7 @@ void setRotationMatrix(float* d_data, float* ang, int Ndim, myStreamHandle &mySt
 	gpuErrchk(cudaMallocHost((void**)&rad_vector, sizeof(float)*Ndim*9));
 
 	for(int i=0; i<Ndim; i++){
-		float rad = (float)(-ang[i]*PI/180);
+		float rad = (float)(-ang[i]*M_PI/180);
 		float matrix[9] = {cosf(rad), -sinf(rad), 0, sinf(rad), cosf(rad), 0, 0, 0, 1};
 		int offset=i*9;
 		for (int j=0; j<9; j++)
@@ -366,23 +366,6 @@ template void release<float>(float* data);
 template<typename T>
 void release(T* data) {
 gpuErrchk(cudaFree(data));
-}
-
-std::string getUUID(int devIndex) {
-    std::stringstream ss;
-    nvmlDevice_t device;
-    // https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html#group__nvmlDeviceQueries_1g84dca2d06974131ccec1651428596191
-    if (NVML_SUCCESS == nvmlInit()) {
-        if (NVML_SUCCESS == nvmlDeviceGetHandleByIndex(devIndex, &device)) {
-            char uuid[80];
-            if (NVML_SUCCESS == nvmlDeviceGetUUID(device, uuid, 80)) {
-                ss <<  uuid;
-                return ss.str();
-            }
-        }
-    }
-    ss << devIndex;
-    return ss.str();
 }
 
 template<>
