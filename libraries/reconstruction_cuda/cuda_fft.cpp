@@ -337,6 +337,21 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
     return result;
 }
 
+template<typename T>
+FFTSettingsNew<T> CudaFFT<T>::findOptimalSizeOrMaxBatch(GPU &gpu,
+        const FFTSettingsNew<T> &settings,
+        size_t reserveBytes, bool squareOnly, int sigPercChange,
+        bool crop, bool verbose) {
+    auto candidate = findOptimal(gpu, settings, reserveBytes, squareOnly, sigPercChange, crop, verbose);
+    if (candidate.has_value()) {
+        return candidate.value();
+    }
+    if (gpu.lastFreeBytes() > reserveBytes) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "You have less GPU memory then you want to use");
+    }
+    return findMaxBatch(settings, gpu.lastFreeBytes() - reserveBytes);
+}
+
 // explicit instantiation
 template class CudaFFT<float>;
 template class CudaFFT<double>;

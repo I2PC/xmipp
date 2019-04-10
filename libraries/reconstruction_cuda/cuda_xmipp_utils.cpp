@@ -12,9 +12,6 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "cuFFTAdvisor/advisor.h"
-#include <cuFFTAdvisor/cudaUtils.h>
-
 struct pointwiseMult{
 	int normFactor;
 	cufftComplex *data;
@@ -100,56 +97,6 @@ void createPlanFFT(int Xdim, int Ydim, int Ndim, int Zdim, bool forward, cufftHa
 		gpuErrchkFFT(cufftPlanMany(plan, NRANK, nr, nf, fstride, fdist, nr, rstride, rdist, CUFFT_C2R, Ndim));
 	}
 
-}
-
-bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
-        bool crop,
-        int &xSize, int &ySize, int reserveMem,
-        bool verbose, int device, bool squareOnly, int sigPercChange) {
-
-    size_t freeMem = getFreeMem(device);
-    std::vector<cuFFTAdvisor::BenchmarkResult const *> *results =
-            cuFFTAdvisor::Advisor::find(30, device,
-                    origXSize, origYSize, 1, imgsToProcess,
-                    cuFFTAdvisor::Tristate::TRUE,
-                    cuFFTAdvisor:: Tristate::TRUE,
-                    cuFFTAdvisor::Tristate::TRUE,
-                    cuFFTAdvisor::Tristate::FALSE,
-                    cuFFTAdvisor::Tristate::TRUE, sigPercChange,
-                    freeMem - reserveMem, false, squareOnly, crop);
-
-    if (results->size() == 0) {
-        if (verbose) {
-            fprintf(stderr, "Search did not return any results. "
-                "Too strict search?\n");
-            printf("Using original values as search did not return better "
-                    "results.\n");
-        }
-        xSize = origXSize;
-        ySize = origYSize;
-        int imgElems = std::max(xSize * ySize, (xSize / 2 + 1) * ySize * 2); // * 2 for complex numbers
-        float imgMBBytes = imgElems * sizeof(float) / (1024 * 1024.f);
-        // this makes sure we have enough memory for the FFT plan, which is
-        // typically of the size of the input data
-        float cudaPlanMemoryCoefficient = 2.1f;
-        batchSize = std::floor((freeMem - reserveMem) / (cudaPlanMemoryCoefficient * imgMBBytes));
-        // we don't need batch bigger than num of imgs to process
-        batchSize = std::min(batchSize, imgsToProcess);
-        // but we should manage at least one image
-        batchSize = std::max(batchSize, 1);
-        return false;
-    }
-    auto res = results->at(0);
-    batchSize = res->transform->N / res->transform->repetitions;
-    xSize = res->transform->X;
-    ySize = res->transform->Y;
-    if (verbose) {
-        res->print(stdout);
-        printf("\n");
-    }
-    for (auto& it : *results) delete it;
-    delete results;
-    return true;
 }
 
 void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,
@@ -419,10 +366,6 @@ template void release<float>(float* data);
 template<typename T>
 void release(T* data) {
 gpuErrchk(cudaFree(data));
-}
-
-size_t getFreeMem(int device) {
-return cuFFTAdvisor::toMB(cuFFTAdvisor::getFreeMemory(device));
 }
 
 std::string getUUID(int devIndex) {
