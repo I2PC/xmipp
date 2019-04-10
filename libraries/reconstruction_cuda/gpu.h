@@ -71,9 +71,9 @@ public:
 
     void peekLastError() const;
 
-    void pinMemory(void *h_mem, size_t bytes, unsigned int flags = 0) const;
+    static void pinMemory(void *h_mem, size_t bytes, unsigned int flags=0);
 
-    void unpinMemory(void *h_mem) const;
+    static void unpinMemory(void *h_mem);
 
     void set();
 
