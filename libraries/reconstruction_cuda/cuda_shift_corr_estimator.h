@@ -23,11 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_
+#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ESTIMATOR_H_
+#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ESTIMATOR_H_
 
 #include <type_traits>
-#include "reconstruction/ashift_aligner.h"
+#include "reconstruction/ashift_estimator.h"
 #include "data/fft_settings_new.h"
 #include "core/xmipp_error.h"
 #include "cuda_fft.h"
@@ -36,13 +36,13 @@
 namespace Alignment {
 
 template<typename T>
-class CudaShiftCorrAligner : public AShiftAligner<T> {
+class CudaShiftCorrEstimator : public AShiftEstimator<T> {
 public:
-    CudaShiftCorrAligner() {
+    CudaShiftCorrEstimator() {
         setDefault();
     }
 
-    ~CudaShiftCorrAligner() {
+    ~CudaShiftCorrEstimator() {
         release();
     }
 
