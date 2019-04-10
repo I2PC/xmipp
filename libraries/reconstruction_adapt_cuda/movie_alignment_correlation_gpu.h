@@ -71,7 +71,7 @@ private:
      * @frame reference frame
      * @return max bytes necessary for filter
      */
-    int getMaxFilterBytes(const Image<T> &frame);
+    size_t getMaxFilterBytes(const Image<T> &frame);
 
     /**
      * Returns best settings for FFT on GPU. It is either
