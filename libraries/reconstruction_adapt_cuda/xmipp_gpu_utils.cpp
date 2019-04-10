@@ -26,3 +26,15 @@
 
 #include "xmipp_gpu_utils.h"
 
+template<typename T>
+void GpuMultidimArrayAtCpu<T>::clear()
+{
+    if (data!=nullptr){;
+        cpuFree(data);
+    }
+    data=nullptr;
+
+}
+
+// explicit instantiation
+template void GpuMultidimArrayAtCpu<float>::clear();
