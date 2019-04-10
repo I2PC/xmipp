@@ -97,6 +97,9 @@ public:
         }
     }
 
+    // FIXME DS do not use, it's for backward compatibility only
+    static void setDevice(int device);
+
     static inline int getDeviceCount();
 
 private:

@@ -42,6 +42,7 @@
 #include "core/multidim_array.h"
 #include "reconstruction/gpu_geo_transformer_defines.h"
 #include "cuda_xmipp_utils.h"
+#include "gpu.h"
 
 template<typename T>
 class GeoShiftTransformer {
@@ -60,13 +61,14 @@ public:
      * Release previously obtained resources and initialize the transformer
      * for processing images of given size. It also allocates all resources on
      * GPU.
+     * @param gpu to use
      * @param x dim (inner-most) of the resulting image
      * @param y dim (outer-most) of the resulting image
      * @param n no. of images to process in a single batch
      * @param device to be used
      * @param stream to be used. NULL for default
      */
-    void init(size_t x, size_t y, size_t n, int device, myStreamHandle *stream);
+    void init(const GPU &gpu, size_t x, size_t y, size_t n, int device, myStreamHandle *stream);
 
     /**
      * Similar as init(), except this method has no effect should the instance
@@ -75,7 +77,7 @@ public:
      * resources and following calls will be ignored
      * Do NOT use it for reinitialization.
      */
-    void initLazy(size_t x, size_t y, size_t n, int device,
+    void initLazy(const GPU &gpu, size_t x, size_t y, size_t n, int device,
             myStreamHandle *stream = NULL);
 
     /**
@@ -111,6 +113,8 @@ private:
 
     int device;
     myStreamHandle* stream;
+
+    const GPU *m_gpu;
 
     GpuMultidimArrayAtGpu<T> *imgs; // object for FFT
     mycufftHandle fftHandle; // plan of the FFT
