@@ -62,6 +62,8 @@ void CudaShiftCorrAligner<T>::setDefault() {
     m_settingsInv = nullptr;
     m_maxShift = 0;
     m_centerSize = 0;
+    m_type = AlignType::None;
+    m_gpu = nullptr;
 
     // device memory
     m_d_single_FD = nullptr;
@@ -72,6 +74,11 @@ void CudaShiftCorrAligner<T>::setDefault() {
     // host memory
     m_h_centers = nullptr;
     m_origHelperData = nullptr;
+
+    // FT plans
+    m_singleToFD = nullptr;
+    m_batchToFD = nullptr;
+    m_batchToSD = nullptr;
 
     // flags
     m_includingBatchFT = false;
@@ -170,6 +177,9 @@ void CudaShiftCorrAligner<T>::check() {
     if (m_settingsInv->isForward()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
     }
+    if (m_settingsInv->isInPlace()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "In-place transform supported");
+    }
     if (m_settingsInv->fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) {
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
     }
@@ -188,6 +198,14 @@ void CudaShiftCorrAligner<T>::check() {
         // in the FD. This, however, works only for even signal.
             REPORT_ERROR(ERR_VALUE_INCORRECT,
                     "The X and Y dimensions have to be multiple of two. Crop your signal");
+    }
+
+    switch (m_type) {
+        case AlignType::OneToN:
+            break;
+        default:
+            REPORT_ERROR(ERR_VALUE_INCORRECT,
+               "This type is not supported.");
     }
 }
 

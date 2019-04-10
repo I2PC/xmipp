@@ -33,7 +33,7 @@
 
 namespace Alignment {
 
-enum class AlignType { OneToN, NToM, Consecutive };
+enum class AlignType { None, OneToN, NToM, Consecutive };
 
 template<typename T>
 class AShiftAligner {
