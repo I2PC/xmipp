@@ -143,6 +143,19 @@ void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,
 
 }
 
+template<typename T>
+void TransformMatrix<T>::clear()
+{
+    if (d_data!=NULL)
+        gpuFree((void*) d_data);
+    if (h_data!=NULL)
+        gpuErrchk(cudaFreeHost(h_data));
+    Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
+    d_data=NULL;
+    h_data=NULL;
+}
+// explicit instantiation
+template void TransformMatrix<float>::clear();
 
 void gpuMalloc(void** d_data, int Nbytes)
 {
