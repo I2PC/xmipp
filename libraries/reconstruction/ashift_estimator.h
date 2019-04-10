@@ -22,31 +22,30 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include "ashift_aligner.h"
+
+#ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
+#define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
+
+#include <vector>
+#include "data/point2D.h"
+#include "data/filters.h" // FIXME DS remove (eventually)
+#include <cassert>
 
 namespace Alignment {
 
-template<typename T>
-std::vector<Point2D<T>> AShiftAligner<T>::computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift) {
-    assert(centerSize == (2 * maxShift + 1));
-    assert(helper.xdim == helper.ydim);
-    assert(helper.xdim == centerSize);
-    T x;
-    T y;
-    auto result = std::vector<Point2D<T>>();
-    helper.setXmippOrigin(); // tell the array that the 'center' is in the center
-    for (size_t n = 0; n < nDim; ++n) {
-        helper.data = h_centers + n * centerSize * centerSize;
-        bestShift(helper, x, y, nullptr, maxShift);
-        result.emplace_back(x, y);
-    }
-    // avoid data corruption
-    helper.data = nullptr;
-    return result;
-}
+enum class AlignType { None, OneToN, NToM, Consecutive };
 
-template class AShiftAligner<float>;
+template<typename T>
+class AShiftEstimator {
+public:
+    // FIXME the
+    static std::vector<Point2D<T>> computeShiftFromCorrelations2D(
+        T *h_centers, MultidimArray<T> &helper, size_t nDim,
+        size_t centerSize, size_t maxShift);
+
+    virtual void release() = 0;
+};
 
 } /* namespace Alignment */
+
+#endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_ */
