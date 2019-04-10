@@ -1490,11 +1490,6 @@ public:
         }
     }
 #undef DEBUG
-
-    /** Show volume.
-        \\Ex: std::cout << V; */
-    friend std::ostream& operator <<< > (std::ostream &o, const GridVolumeT &GV);
-    //@}
 };
 
 typedef GridVolumeT<double> GridVolume;

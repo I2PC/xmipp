@@ -32,12 +32,13 @@
 template<typename T>
 class Point2D: Point {
 public:
-    explicit Point2D(T x, T y) :
+     Point2D(T x, T y) :
             x(x), y(y) {
     }
     ;
-    const T x;
-    const T y;
+    T x; // FIXME this should be private member with setters / getters
+    T y;
+
 
     Point2D operator/=(T rhs) const {
         return Point2D(x / rhs, y / rhs);
