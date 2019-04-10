@@ -23,34 +23,28 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_BSPLINE_GRID_H_
-#define LIBRARIES_DATA_BSPLINE_GRID_H_
+#ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_
+#define LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_
 
-#include "dimensions.h"
-#include "core/matrix1d.h"
+#include <vector>
+#include "data/point2D.h"
+#include "data/filters.h"
+#include <cassert>
+
+namespace Alignment {
+
+enum class AlignType { OneToN, NToM, Consecutive };
 
 template<typename T>
-class BSplineGrid {
+class AShiftAligner {
 public:
-    BSplineGrid(Dimensions &dim, Matrix1D<T> &coeffsX, Matrix1D<T> &coeffsY):
-        dim(dim), coeffsX(coeffsX), coeffsY(coeffsY) {}
+    static std::vector<Point2D<T>> computeShiftFromCorrelations2D(
+        T *h_centers, MultidimArray<T> &helper, size_t nDim,
+        size_t centerSize, size_t maxShift);
 
-    constexpr const Dimensions& getDim() const {
-        return dim;
-    }
-
-    constexpr const Matrix1D<T>& getCoeffsX() const {
-        return coeffsX;
-    }
-
-    constexpr const Matrix1D<T>& getCoeffsY() const {
-        return coeffsY;
-    }
-
-private:
-    Dimensions dim;
-    Matrix1D<T> coeffsX;
-    Matrix1D<T> coeffsY;
+    virtual void release() = 0;
 };
 
-#endif /* LIBRARIES_DATA_BSPLINE_GRID_H_ */
+} /* namespace Alignment */
+
+#endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_ */

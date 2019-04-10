@@ -109,6 +109,8 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
   micIds=set([])
   for fname in coords_files:
     x_y_list, micId= readPosCoordsFromFName(fname, returnAlsoMicId=True)
+    if micId is None:
+      continue
     micIds.add(micId)
     x_y_array= np.asarray(x_y_list, dtype=int)
     coords.append(x_y_array)
