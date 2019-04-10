@@ -25,7 +25,7 @@
 
 #include "cuda_fft.h"
 #include <cufft.h>
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 #include "cuFFTAdvisor/advisor.h"
 
 template<typename T>

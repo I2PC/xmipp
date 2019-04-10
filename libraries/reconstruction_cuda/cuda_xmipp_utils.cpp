@@ -1,7 +1,7 @@
 
 
 #include "cuda_xmipp_utils.h"
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 
 #include <cuda_runtime.h>
 #include <cufft.h>

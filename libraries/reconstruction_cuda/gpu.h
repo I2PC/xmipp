@@ -27,6 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_
 
 #include <cstddef>
+#include <iosfwd>
 #include <assert.h>
 #include "core/xmipp_error.h"
 
