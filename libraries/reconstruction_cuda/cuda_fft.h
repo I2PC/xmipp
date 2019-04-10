@@ -74,7 +74,10 @@ public:
             bool crop, bool verbose);
     static FFTSettingsNew<T> findMaxBatch(const FFTSettingsNew<T> &settings,
             size_t maxBytes);
-
+    static FFTSettingsNew<T> findOptimalSizeOrMaxBatch(GPU &gpu,
+            const FFTSettingsNew<T> &settings,
+            size_t reserveBytes, bool squareOnly, int sigPercChange,
+            bool crop, bool verbose);
     static void release(cufftHandle *plan);
 private:
     cufftHandle *m_plan;
