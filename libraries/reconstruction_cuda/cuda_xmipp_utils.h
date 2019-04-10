@@ -145,16 +145,7 @@ public:
 		return d_data==NULL && h_data==NULL;
 	}
 
-	void clear()
-	{
-		if (d_data!=NULL)
-			gpuFree((void*) d_data);
-		if (h_data!=NULL)
-			cpuFree((void*) h_data);
-		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
-		d_data=NULL;
-		h_data=NULL;
-	}
+	void clear();
 
 	~TransformMatrix()
 	{
