@@ -8,8 +8,10 @@
 
 
 //CUDA includes
+#include <cuda_runtime.h>
+#include <cufft.h>
+#include "cuda_asserts.h"
 #include "cuda_basic_math.h"
-#include "cuda_utils.h"
 #include <time.h>
 #include <sys/time.h>
 #include <vector>
