@@ -88,14 +88,12 @@ void GPU::peekLastError() const {
 }
 
 void GPU::pinMemory(void *h_mem, size_t bytes,
-        unsigned int flags) const {
-    check();
+        unsigned int flags) {
     assert(0 == cudaHostRegisterDefault); // default value should be 0
     gpuErrchk(cudaHostRegister(h_mem, bytes, flags));
 }
 
-void GPU::unpinMemory(void *h_mem) const {
-    check();
+void GPU::unpinMemory(void *h_mem) {
     gpuErrchk(cudaHostUnregister(h_mem));
 }
 
