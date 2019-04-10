@@ -32,11 +32,11 @@
 template<typename T>
 class Point2D: Point {
 public:
-     Point2D(T x, T y) :
+    explicit Point2D(T x, T y) :
             x(x), y(y) {
     }
     ;
-    T x; // FIXME this should be private member with setters / getters
+    T x; // FIXME DS this should be private member with setters / getters
     T y;
 
 
