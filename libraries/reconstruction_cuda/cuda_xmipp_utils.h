@@ -27,9 +27,6 @@ int gridFromBlock(int tasks, int Nthreads);
 template<typename T>
 T* loadToGPU(const T* data, size_t items);
 
-template<typename T>
-void release(T* data);
-
 void cuda_check_gpu_memory(float* data);
 void cuda_check_gpu_properties(int* maxGridSize);
 
