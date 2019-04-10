@@ -121,7 +121,7 @@ def preproOneMic(mic_fname, samplingRate, out_name, ctf_fname=None, invert_contr
   check_call(cmd, shell=True)
   try:
     os.remove(out_name_tmp)
-  except IOError:
+  except:
     pass
 if __name__ == '__main__':
 

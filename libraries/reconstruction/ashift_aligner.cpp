@@ -22,35 +22,31 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include "ashift_aligner.h"
 
-#ifndef LIBRARIES_DATA_BSPLINE_GRID_H_
-#define LIBRARIES_DATA_BSPLINE_GRID_H_
-
-#include "dimensions.h"
-#include "core/matrix1d.h"
+namespace Alignment {
 
 template<typename T>
-class BSplineGrid {
-public:
-    BSplineGrid(Dimensions &dim, Matrix1D<T> &coeffsX, Matrix1D<T> &coeffsY):
-        dim(dim), coeffsX(coeffsX), coeffsY(coeffsY) {}
-
-    constexpr const Dimensions& getDim() const {
-        return dim;
+std::vector<Point2D<T>> AShiftAligner<T>::computeShiftFromCorrelations2D(
+        T *h_centers, MultidimArray<T> &helper, size_t nDim,
+        size_t centerSize, size_t maxShift) {
+    assert(centerSize == (2 * maxShift + 1));
+    assert(helper.xdim == helper.ydim);
+    assert(helper.xdim == centerSize);
+    T x;
+    T y;
+    auto result = std::vector<Point2D<T>>();
+    helper.setXmippOrigin(); // tell the array that the 'center' is in the center
+    for (size_t n = 0; n < nDim; ++n) {
+        helper.data = h_centers + n * centerSize * centerSize;
+        bestShift(helper, x, y, nullptr, maxShift);
+        result.emplace_back(x, y);
     }
+    // avoid data corruption
+    helper.data = nullptr;
+    return result;
+}
 
-    constexpr const Matrix1D<T>& getCoeffsX() const {
-        return coeffsX;
-    }
+template class AShiftAligner<float>;
 
-    constexpr const Matrix1D<T>& getCoeffsY() const {
-        return coeffsY;
-    }
-
-private:
-    Dimensions dim;
-    Matrix1D<T> coeffsX;
-    Matrix1D<T> coeffsY;
-};
-
-#endif /* LIBRARIES_DATA_BSPLINE_GRID_H_ */
+} /* namespace Alignment */

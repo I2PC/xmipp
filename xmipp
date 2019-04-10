@@ -27,6 +27,7 @@
 import distutils.spawn
 import glob
 import os
+import re
 import shutil
 import sys
 import unittest
@@ -37,8 +38,8 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.03'    #
-RELEASE_DATE = '05/03/2019'  #
+XMIPP_VERSION = '3.19.03b4'  #
+RELEASE_DATE = '03/04/2019'  #
 ##############################
 
 XMIPP = 'xmipp'
@@ -48,14 +49,19 @@ SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
-                                    XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
-                                    XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
-                                    SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
-                                    CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git'}
+                XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
+                XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
+                SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
+                CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git'}
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 CONFIG_FILE_NAME = "xmipp.conf"
 
+# if a skippable compilation fails (if 'key' found in the failed code),
+# a hint is printed in order to export 'value' or edit the config file
+SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
+                  "volume_homogenizer": "OPENCV=False",
+                  "cuda": "CUDA=False"}
 
 
 def checkGithubConnection():
@@ -175,8 +181,8 @@ def checkProgram(programName, show=True):
     systemInstructions["git"] = ["sudo apt-get -y install git","sudo pacman -Syu --noconfirm git"]
     systemInstructions["gcc"] = ["sudo apt-get -y install gcc","sudo pacman -Syu --noconfirm gcc"]
     systemInstructions["g++"] = ["sudo apt-get -y install g++","sudo pacman -Syu --noconfirm g++"]
-    systemInstructions["mpicc"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
-    systemInstructions["mpiCC"] = ["sudo apt-get -y install openmpi","sudo pacman -Syu --noconfirm openmpi"]
+    systemInstructions["mpicc"] = ["sudo apt-get -y install libopenmpi-dev","sudo pacman -Syu --noconfirm openmpi"]
+    systemInstructions["mpiCC"] = ["sudo apt-get -y install libopenmpi-dev","sudo pacman -Syu --noconfirm openmpi"]
     systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
@@ -203,6 +209,8 @@ def checkProgram(programName, show=True):
                         for instructions in systemInstructions[programName]:
                             print(red("    - In %s: %s"%(systems[idx],instructions)))
                             idx+=1
+                    print("\nRemember to re-run './xmipp config' after install new software in order to "
+                          "take into account the new system configuration.")
             ok = False
         else:
             ok = False
@@ -412,9 +420,9 @@ def readConfigFile(fnConfig):
 def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
-              'MPI_LINKFLAGS','NVCC','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
+              'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED']
     configDict = {}
     for label in labels:
         configDict[label]=""
@@ -428,7 +436,7 @@ def findFileInDirList(fnH,dirlist):
     return False
 
 def configOpenCV(configDict):
-    print("Checking compiler configuration ...")
+    print("Checking openCV configuration ...")
     cppProg="#include <opencv2/core/core.hpp>\n"
     cppProg+="int main(){}\n"
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
@@ -472,6 +480,7 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
+
 def configCompiler(configDict):
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
@@ -493,7 +502,7 @@ def configCompiler(configDict):
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std=c++14"
+            configDict["CXXFLAGS"]+=" -std=c++11"
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -544,6 +553,7 @@ def configCompiler(configDict):
             elif findFileInDirList("ndarraytypes.h",["/usr/local/lib/python2.7/dist-packages/numpy/core/include/numpy"]):
                 configDict["PYTHONINCFLAGS"]+=" -I/usr/local/lib/python2.7/dist-packages/numpy/core/include/"
                 incDirs+=["usr/local/lib/python2.7/dist-packages/numpy/core/include/"]
+    configDict["OPENCV"] = os.environ.get("OPENCV", "")
     if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
         configOpenCV(configDict)
 
@@ -556,8 +566,11 @@ def getHdf5Name(libdirflags):
             return "hdf5_serial"
     return "hdf5"
 
+
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
+    ensureCompilerVersion(configDict["CXX"])
+
     cppProg="""
 #include <fftw3.h>
 #include <hdf5.h>
@@ -624,11 +637,13 @@ int main(){}
 
     ok = False
     if checkProgram("mpirun",False):
-        ok=runJob("mpirun -np 4 echo mpirun works 4 times")
+        ok=(runJob("mpirun -np 4 echo mpirun works 4 times") or
+            runJob("mpirun -np 4 --allow-run-as-root echo mpirun works 4 times"))
     elif checkProgram("mpiexec",False):
-        ok=runJob("mpiexec -np 4 echo mpiexec works 4 times")
+        ok=(runJob("mpiexec -np 4 echo mpiexec works 4 times") or
+            runJob("mpiexec -np 4 --allow-run-as-root echo mpiexec works 4 times"))
     else:
-        print(red("Cannot find mpirun or mpiexec in the path for parallel execution"))
+        print(red("mpirun or mpiexec have failed."))
 
     return ok
 
@@ -687,31 +702,62 @@ int dummy(){}
     return True
 
 def configCuda(configDict):
+    configDict["CUDA"] = os.environ.get("CUDA", "")
     if configDict["CUDA"]=="":
-        if checkProgram("nvcc",False):
+        if checkProgram("nvcc", False):
             configDict["CUDA"]="True"
         else:
             configDict["CUDA"]="False"
     if configDict["CUDA"]=="True":
         if configDict["NVCC"]=="":
             if checkProgram("nvcc"):
+                nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
+                if nvccVersion != 8.0:
+                    print(red('Detected CUDA-' + nvccFullVersion + '. Version 8.0 is required.'))
+                    print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
+                              "to be able to use Xmipp Cuda programs.'"))
+                    configDict["CUDA"] = 'False'
+                    return
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            if checkProgram("g++-5", False):
-                configDict["NVCC_CXXFLAGS"] = "--x cu -D_FORCE_INLINES -Xcompiler " \
-                                              "-fPIC -Wno-deprecated-gpu-targets -ccbin g++-5 -std=c++11"
+            cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
+            if cxxVersion > 5:
+                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % configDict["CXX"]))
+                if checkProgram(configDict["CXX"]+"-5"):
+                    configDict["CXX_CUDA"] = configDict["CXX"]+"-5"
+                elif checkProgram(configDict["CXX"]+"-4.8"):
+                    configDict["CXX_CUDA"] = configDict["CXX"]+"-4.8"
+                else:
+                    print(red("No alternative found. Skipping CUDA compilation.\n"
+                              "If an alternative exists, please set 'CXX_CUDA' in 'xmipp.conf' to point to there."))
+                    configDict["CUDA"] = "False"
+                    return
+                print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
+            else:
+                configDict["CXX_CUDA"] = configDict["CXX"]
+            configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                                           "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
                 dirName=os.path.dirname(nvccPath)
-                ok = False
                 candidateDir = dirName.replace("bin","lib")
                 ok=os.path.exists(candidateDir+"/libcudart.so")
                 if not ok:
                     candidateDir = dirName.replace("bin","lib64")
                     ok=os.path.exists(candidateDir+"/libcudart.so")
-            if ok:
-                configDict["NVCC_LINKFLAGS"] = "-L%s"%candidateDir + " -L%s"%candidateDir + "/stubs" # nvidia-ml is in stubs folder
+                if ok:
+                    configDict["NVCC_LINKFLAGS"] = ("-L%s"%candidateDir +
+                                                    " -L%s/stubs"%candidateDir)  # nvidia-ml is in stubs folder
+                else:
+                    print("WARNING: system libraries for CUDA not found!\n"
+                          "         If cuda code is not compiling, "
+                          "please, find 'libcudart.so' and manually add\n"
+                          "         the containing folder (e.g. 'myCudaLib') at %s\n"
+                          "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
+                          "         If the problem persist, 'export CUDA=False' before "
+                          "compiling to skip cuda compilation."
+                          % CONFIG_FILE_NAME)
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
@@ -779,6 +825,12 @@ def writeConfig(configDict):
         for label in sorted(configDict.keys()):
             configFile.write("%s=%s\n"%(label,configDict[label]))
 
+def updateConfig(updatingDict):
+    cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
+    for k, v in updatingDict.iteritems():
+        print(blue("Setting %s=%s" % (k, v)))
+        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME),
+               show_command=False)
 
 def config_DL(configDict):
     k = 'USE_DL'
@@ -793,6 +845,9 @@ def config():
     if useScipion and not getScipionHome():
         print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
         return False
+
+    if new_config_dict['VERIFIED'] == '':
+        new_config_dict['VERIFIED'] = 'False'
 
     configCompiler(new_config_dict)
     configMPI(new_config_dict)
@@ -809,13 +864,18 @@ def config():
 def checkConfig():
     print("Checking configuration ------------------------------")
     ensureConfig()
-    if not 'VERIFIED' in configDict:
+    if configDict['VERIFIED'] != 'True':
+        newConf = {}  # to update the config if something fails
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
             print("Possible solutions")
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
                   "python-numpy python-scipy python-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
+            print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
+                  "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
+            print("\nRemember to re-run './xmipp config' after installing libraries in order to "
+                  "take into account the new system configuration.")
             return False
         if not checkMPI(configDict):
             print(red("Cannot compile with MPI or use it"))
@@ -826,12 +886,12 @@ def checkConfig():
         if not checkCuda(configDict):
             print(red("Cannot compile with NVCC, continuing without CUDA"))
             runJob("rm xmipp_cuda_test*")  # if fails, the test files remains
-            configDict["CUDA"]="False"
+            newConf["CUDA"]="False"
         if not checkMatlab(configDict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
-            configDict["MATLAB"]="False"
-        configDict['VERIFIED']="True"
-        writeConfig(configDict)
+            newConf["MATLAB"]="False"
+        newConf['VERIFIED']="True"
+        updateConfig(newConf)
     return True
 
 
@@ -839,9 +899,22 @@ def compileModule(Nproc,module):
     shutil.copyfile(CONFIG_FILE_NAME,"src/%s/install/%s" % (module, CONFIG_FILE_NAME))
     if module == "xmipp":
         stampVersion()
-    ok = runJob("scons -j%s"%Nproc, "src/%s"%module)
+    log = []
+    ok = runJob("scons -j%s"%Nproc, "src/%s"%module, log=log)
+    if not ok:
+        for l in log[-30:]:  # inspecting last 30 lines
+            # expected error: 'scons: *** [some/program/to/compile] Error 1'
+            failingBin = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
+            if failingBin:
+                for k, v in SKIPPABLE_BINS.iteritems():
+                    if k in failingBin.group(1):
+                        print(red("\nSome error found compiling '%s' program."
+                                  % failingBin.group(1).split('/')[-1]))
+                        print(red("You can skip this program by including '%s' "
+                                  "in the config file." % (v)))
+        print(red("\nSome error occurred during the compilation of '%s'.\n" % module))
+        sys.exit(1)
     return ok
-
 
 def compile_cuFFTAdvisor():
     advisorDir = "src/cuFFTAdvisor/"
@@ -876,7 +949,7 @@ def compile(Nproc):
     return True
 
 def runTests(testNames):
-    if len(testNames)==0 or 'help' in  testNames or '--help' in testNames:
+    if len(testNames)==0 or 'help' in testNames or '--help' in testNames:
         print("Usage: xmipp test op\n"
               "\n"
               "         op = --show: Show how to invoke all available tests\n"
@@ -916,11 +989,13 @@ def runTests(testNames):
         print(blue("Downloading the test files"))
         task = "download"
     args = "%s %s %s" % ("tests/data", url, dataset)
-    runJob("xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp/bin')
+    runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
+    configDict = readConfigFile(CONFIG_FILE_NAME)
+    noCudaStr = '--noCuda' if not is_config_true('CUDA') else ''
     print(" Tests to do: %s" % ', '.join(testNames))
-    runJob("(cd src/xmipp/tests; %s test.py %s)"
-           % (getPython(), ' '.join(testNames)))
+    runJob("(cd src/xmipp/tests; %s test.py %s %s)"
+           % (getPython(), ' '.join(testNames), noCudaStr))
 
 def getPython():
     scipionHome = getScipionHome()
@@ -1066,6 +1141,7 @@ def install(dirname):
         print(red("\nSome error occurred during the installation.\n"))
         sys.exit(1)
 
+    runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
     fhFish = open(dirname+"/xmipp.fish","w")
     fhBash.write("# This script is valid for bash and zsh\n\n")
@@ -1174,9 +1250,9 @@ def usage(msg=''):
           "   addModel login modelName:   Takes a deepLearning model from the src/xmipp/models/<modelName>, makes a tgz, \n"
           "                                   uploads the .tgz according to the <login>. \n"
           "                                   Note that login=usr@server must have write permisions to Nolan machine.\n"
-          "   tar <mode> <version>:       Create a bundle of the xmipp\n"
-          "                                   <mode> can be 'Sources' or 'Binaries'\n"
-          "                                   <version> usually X.YY.MM\n"
+          "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
+          "                                   <mode> can be 'Sources' or 'Binaries, when Sources put a branch (default: master).'\n"
+          "                                   <ver> usually X.YY.MM\n"
           )
 
 
@@ -1193,9 +1269,50 @@ def getVersion(onlyNumbers=False):
 
     return cleanInfo.strip(' ')
 
+def getCudaVersion(nvcc):
+    # FIXME: Refator/unify this with getGccVersion()
+    log = []
+    runJob(nvcc + " --version", show_output=False, show_command=False, log=log)
+    # expected lst line: 'Cuda compilation tools, release 8.0, V8.0.61'
+    full_version = log[-1].strip().split(', ')[-1].lstrip('V')
+    tokens = full_version.split('.')
+    if len(tokens) < 2:
+        tokens.append('0')  # just in case when only one digit is returned
+    nvccVersion = float(str(tokens[0] + '.' + tokens[1]))
+    return nvccVersion, full_version
+
+def getGccVersion(compiler):
+    log = []
+    runJob(compiler + " -dumpversion", show_output=False, show_command=False, log=log)
+    full_version = log[0].strip()
+    tokens = full_version.split('.')
+    if len(tokens) < 2:
+        tokens.append('0')  # for version 5.0, only '5' is returned
+    gccVersion = float(str(tokens[0] + '.' + tokens[1]))
+    return gccVersion, full_version
+
+def ensureCompilerVersion(compiler):
+    if 'g++' in compiler or 'gcc' in compiler:
+        ensureGCC_GPPVersion(compiler)
+    else:
+        print(red('Version detection for \'' + compiler + '\' is not implemented.'))
+
+
+def ensureGCC_GPPVersion(compiler):
+    if 'TRAVIS' in os.environ:
+        return  # skip detection on TRAVIS
+    if not checkProgram(compiler, True):
+        sys.exit(-7)
+    gccVersion, fullVersion = getGccVersion(compiler)
+
+    if gccVersion < 4.8:  # join first two numbers, i.e. major and minor version
+        print(red('Detected ' + compiler + " in version " + fullVersion + '. Version 4.8 or higher is required.'))
+        sys.exit(-8)
+    else:
+        print(green(compiler + ' ' + fullVersion + ' detected'))
 
 def ensureConfig():
-    # assuming the config file is not loaded in the main, i.e. it does not exists yet and has not been created
+    # assuming the config file is not loaded in the main(), i.e. it does not exists yet and has not been created
     # by another function
     if not configDict:
         print(red("There is no config file. Make sure to run config"))
@@ -1262,7 +1379,9 @@ if __name__ == '__main__':
     elif mode=="config":
         configDict = config()
     elif mode=="check_config":
-        checkConfig()
+        if not checkConfig():
+            print(red("\nCheck failed! Something wrong with the configuration.\n"))
+            sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
@@ -1286,7 +1405,6 @@ if __name__ == '__main__':
         else:
             Nproc=8
         compileDependencies(Nproc)
-        downloadDeepLearningModels("build")
         compile(Nproc)
         install("build")
     elif mode=="install":
@@ -1355,12 +1473,19 @@ if __name__ == '__main__':
             sys.exit(1)
         addDeepLearninModel(*sys.argv[2:])
     elif mode=='tar':
-        if not len(sys.argv) in (3, 4):
-            usage("Incorrect number of input parameters")
-        elif len(sys.argv) == 3:
-            runJob("src/xmipp/tar.py %s %s" % (sys.argv[2], XMIPP_VERSION))
-        else:
-            runJob("src/xmipp/tar.py %s" % ' '.join(sys.argv[2:]))
+        if len(sys.argv) < 3:
+            runJob("src/xmipp/tar.py --help")
+            sys.exit(0)
+        ver = XMIPP_VERSION
+        br = 'master'
+        mode = sys.argv[2]
+        for arg in sys.argv[3:]:
+            if arg.startswith('br='):
+                br = arg.split('br=')[1]
+            if arg.startswith('v='):
+                ver = arg.split('v=')[1]
+        runJob("src/xmipp/tar.py %s %s %s" % (mode, ver, br))
+
     else:
         usage(" -> option not found <- \n")
 

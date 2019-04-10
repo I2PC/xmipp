@@ -202,7 +202,7 @@ def addProg(progName, **kwargs):
         kwargs['mpi'] = True
         kwargs['libs'] += ['XmippParallel']
 
-    if progName.startswith('cuda_'):
+    if progName.startswith('cuda_') or progName.startswith('test_cuda'):
         kwargs['cuda'] = True
         kwargs['libs'] += ['XmippInterfaceCuda','XmippCuda']
 
@@ -241,6 +241,8 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 		addProg(pname)
 
 for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
+    if not cuda and 'cuda' in p:
+        continue # if user doesn't want cuda, skip all programs / tests that use it
     pname = os.path.basename(p).replace('.cpp','')
     addProg(pname)
 
