@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <cuda_runtime_api.h>
-#include "reconstruction_cuda/cuda_utils.h" // cannot be in header as it includes cuda headers
+#include "reconstruction_cuda/cuda_asserts.h" // cannot be in header as it includes cuda headers
 #include "cuda_gpu_reconstruct_fourier.h"
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "gpu.h"
