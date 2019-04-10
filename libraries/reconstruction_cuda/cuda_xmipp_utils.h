@@ -43,13 +43,6 @@ T* loadToGPU(const T* data, size_t items);
 template<typename T>
 void release(T* data);
 
-size_t getFreeMem(int device);
-
-bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
-        bool crop,
-        int &xSize, int &ySize, int reserveMem,
-        bool verbose, int device, bool squareOnly, int sigPercChange);
-
 struct ioTime
 {
 	//AJ times for CPU processing
