@@ -370,13 +370,6 @@ gpuErrchk(cudaMemcpy(d_data, data, bytes, cudaMemcpyHostToDevice));
 return d_data;
 }
 
-template void release<float>(float* data);
-template<typename T>
-void release(T* data) {
-gpuErrchk(cudaFree(data));
-}
-
-template<>
 template<>
 void GpuMultidimArrayAtGpu<float>::fftStream(GpuMultidimArrayAtGpu< std::complex<float> > &fourierTransform,
 		mycufftHandle &myhandle, myStreamHandle &myStream, bool useCallback,
