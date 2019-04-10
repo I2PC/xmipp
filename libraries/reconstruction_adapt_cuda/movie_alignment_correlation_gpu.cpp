@@ -76,11 +76,11 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
-        const Dimensions &d, size_t extraMem, bool crop) {
+        const Dimensions &d, size_t extraBytes, bool crop) {
     auto optSetting = getStoredSizes(d, crop);
     FFTSettings<T> result =
             optSetting ?
-                    optSetting.value() : runBenchmark(d, extraMem, crop);
+                    optSetting.value() : runBenchmark(d, extraBytes, crop);
     if (!optSetting) {
         storeSizes(d, result, crop);
     }
@@ -96,8 +96,8 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
 
     if (optimize) {
-        int maxFilterSize = getMaxFilterSize(frame);
-        return getSettingsOrBenchmark(dim, maxFilterSize, true);
+        int maxFilterBytes = getMaxFilterBytes(frame);
+        return getSettingsOrBenchmark(dim, maxFilterBytes, true);
     } else {
         return FFTSettings<T>(dim, 1, false);
     }
@@ -124,9 +124,9 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const std::pair<T, T> &downscale) {
     auto hint = getCorrelationHint(orig, downscale);
     // divide available memory to 3 parts (2 buffers + 1 FFT)
-    size_t correlationBufferSizeMB = memoryUtils::MB(gpu.value().lastFreeBytes() / 3);
+    size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
 
-    return getSettingsOrBenchmark(hint, 2 * correlationBufferSizeMB, false);
+    return getSettingsOrBenchmark(hint, 2 * correlationBufferBytes, false);
 }
 
 template<typename T>
@@ -136,9 +136,9 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
             // but check the speed to make sure
             orig.dim.z(), orig.dim.n());
     // divide available memory to 3 parts (2 buffers + 1 FFT)
-    size_t correlationBufferSizeMB = memoryUtils::MB(gpu.value().lastFreeBytes() / 3);
+    size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
 
-    return getSettingsOrBenchmark(hint, 2 * correlationBufferSizeMB, false);
+    return getSettingsOrBenchmark(hint, 2 * correlationBufferBytes, false);
 }
 
 template<typename T>
@@ -273,14 +273,16 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
 
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
-        size_t extraMem, bool crop) {
+        size_t extraBytes, bool crop) {
     if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
     // take additional memory requirement into account
-    int x, y, batch;
-    getBestFFTSize(d.n(), d.x(), d.y(), batch, crop, x, y, extraMem, this->verbose,
-            gpu.value().device(), d.x() == d.y(), 10); // allow max 10% change
 
-    return FFTSettings<T>(x, y, 1, d.n(), batch, false);
+    // FIXME DS remove tmp
+    auto tmp1 = FFTSettingsNew<T>(d.x(), d.y(), d.z(), d.n(), 1, false);
+    auto tmp =  CudaFFT<T>::findOptimalSizeOrMaxBatch(gpu.value(), tmp1,
+            extraBytes, d.x() == d.y(), 10, // allow max 10% change
+            crop, this->verbose);
+    return FFTSettings<T>(tmp.sDim().x(), tmp.sDim().y(), tmp.sDim().z(), tmp.sDim().n(), tmp.batch(), false);
 }
 
 template<typename T>
@@ -711,7 +713,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
 }
 
 template<typename T>
-int ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterSize(
+int ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
         const Image<T> &frame) {
     size_t maxXPow2 = std::ceil(log(frame.data.xdim) / log(2));
     size_t maxX = std::pow(2, maxXPow2);
@@ -719,7 +721,7 @@ int ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterSize(
     size_t maxYPow2 = std::ceil(log(frame.data.ydim) / log(2));
     size_t maxY = std::pow(2, maxYPow2);
     size_t bytes = maxFFTX * maxY * sizeof(T);
-    return bytes / (1024 * 1024);
+    return bytes;
 }
 
 // explicit specialization
