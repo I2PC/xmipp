@@ -33,29 +33,31 @@ template class GeoShiftTransformer<float> ;
 template<typename T>
 void GeoShiftTransformer<T>::release() {
     delete imgs;
-    imgs = NULL;
+    imgs = nullptr;
     delete ffts;
-    ffts = NULL;
+    ffts = nullptr;
 
     fftHandle.clear();
     ifftHandle.clear();
 
     // do not release stream, it has been passed by pointer, so we don't own it
-    stream = NULL;
+    stream = nullptr;
     device = -1;
+
+    m_gpu = nullptr;
 
     isReady = false;
 }
 
 template<typename T>
-void GeoShiftTransformer<T>::init(size_t x, size_t y, size_t n, int device,
+void GeoShiftTransformer<T>::init(const GPU &gpu, size_t x, size_t y, size_t n, int device,
         myStreamHandle* stream) {
     release();
 
     this->device = device;
     this->stream = stream;
 
-    setDevice(device);
+    m_gpu = &gpu; // FIXME DS implement set() check
     this->imgs = new GpuMultidimArrayAtGpu<T>(x, y, 1, n);
     this->ffts = new GpuMultidimArrayAtGpu<std::complex<T> >(x / 2 + 1, y, 1, n);
 
@@ -73,10 +75,10 @@ void GeoShiftTransformer<T>::init(size_t x, size_t y, size_t n, int device,
 }
 
 template<typename T>
-void GeoShiftTransformer<T>::initLazy(size_t x, size_t y, size_t n, int device,
+void GeoShiftTransformer<T>::initLazy(const GPU &gpu, size_t x, size_t y, size_t n, int device,
         myStreamHandle* stream) {
     if (!isReady) {
-        init(x, y, n, device, stream);
+        init(gpu, x, y, n, device, stream);
     }
 }
 
@@ -144,7 +146,8 @@ void GeoShiftTransformer<T>::test() {
     }
 
     GeoShiftTransformer<float> tr;
-    tr.initLazy(input.xdim, input.ydim, 1, 0);
+    auto gpu = GPU();
+    tr.initLazy(gpu, input.xdim, input.ydim, 1, 0);
     tr.applyShift(resGpu, input, offsetX, offsetY);
 
     bool error = false;

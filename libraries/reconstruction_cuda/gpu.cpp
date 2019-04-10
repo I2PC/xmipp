@@ -46,8 +46,7 @@ void GPU::set() {
         return;
     }
     // set device
-    gpuErrchk(cudaSetDevice(m_device));
-    gpuErrchk(cudaPeekAtLastError());
+    setDevice(m_device);
     // create stream
     m_stream = new cudaStream_t;
     gpuErrchk(cudaStreamCreate((cudaStream_t*)m_stream));
@@ -112,4 +111,9 @@ void GPU::synchStream() const {
     check();
     auto stream = (cudaStream_t*)m_stream;
     gpuErrchk(cudaStreamSynchronize(*stream));
+}
+
+void GPU::setDevice(int device) {
+    gpuErrchk(cudaSetDevice(device));
+    gpuErrchk(cudaPeekAtLastError());
 }
