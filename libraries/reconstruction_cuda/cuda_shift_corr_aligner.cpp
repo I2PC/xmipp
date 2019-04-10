@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <cuda_runtime_api.h>
-#include "reconstruction_cuda/cuda_utils.h"
+#include "reconstruction_cuda/cuda_asserts.h"
 #include "cuda_shift_corr_aligner.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation_kernels.cu"
 

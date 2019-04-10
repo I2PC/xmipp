@@ -24,9 +24,9 @@
  ***************************************************************************/
 
 #include "gpu.h"
-
+#include <sstream>
 #include <cuda_runtime.h>
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 #include <nvml.h>
 
 GPU::~GPU() {
