@@ -25,13 +25,13 @@
 
 #include <cuda_runtime_api.h>
 #include "reconstruction_cuda/cuda_asserts.h"
-#include "cuda_shift_corr_aligner.h"
+#include "cuda_shift_corr_estimator.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation_kernels.cu"
 
 namespace Alignment {
 
 template<typename T>
-void CudaShiftCorrAligner<T>::init2D(const GPU &gpu, AlignType type,
+void CudaShiftCorrEstimator<T>::init2D(const GPU &gpu, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
     release();
@@ -58,7 +58,7 @@ void CudaShiftCorrAligner<T>::init2D(const GPU &gpu, AlignType type,
 }
 
 template<typename T>
-void CudaShiftCorrAligner<T>::setDefault() {
+void CudaShiftCorrEstimator<T>::setDefault() {
     m_settingsInv = nullptr;
     m_maxShift = 0;
     m_centerSize = 0;
@@ -88,7 +88,7 @@ void CudaShiftCorrAligner<T>::setDefault() {
 }
 
 template<typename T>
-void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref) {
+void CudaShiftCorrEstimator<T>::load2DReferenceOneToN(const std::complex<T> *h_ref) {
     auto isReady = (m_isInit && (AlignType::OneToN == m_type));
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
@@ -103,7 +103,7 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref
 }
 
 template<typename T>
-void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const T *h_ref) {
+void CudaShiftCorrEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
     auto isReady = (m_isInit && (AlignType::OneToN == m_type) && m_includingSingleFT);
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
@@ -121,7 +121,7 @@ void CudaShiftCorrAligner<T>::load2DReferenceOneToN(const T *h_ref) {
 }
 
 template<typename T>
-void CudaShiftCorrAligner<T>::release() {
+void CudaShiftCorrEstimator<T>::release() {
     // device memory
     gpuErrchk(cudaFree(m_d_single_FD));
     gpuErrchk(cudaFree(m_d_batch_FD));
@@ -142,7 +142,7 @@ void CudaShiftCorrAligner<T>::release() {
 }
 
 template<typename T>
-void CudaShiftCorrAligner<T>::init2DOneToN() {
+void CudaShiftCorrEstimator<T>::init2DOneToN() {
     // allocate space for data in Fourier domain
     gpuErrchk(cudaMalloc(&m_d_single_FD, m_settingsInv->fBytesSingle()));
     gpuErrchk(cudaMalloc(&m_d_batch_FD, m_settingsInv->fBytesBatch()));
@@ -172,7 +172,7 @@ void CudaShiftCorrAligner<T>::init2DOneToN() {
 }
 
 template<typename T>
-void CudaShiftCorrAligner<T>::check() {
+void CudaShiftCorrEstimator<T>::check() {
     m_gpu->forceSet();
     if (m_settingsInv->isForward()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
@@ -211,7 +211,7 @@ void CudaShiftCorrAligner<T>::check() {
 
 template<typename T>
 template<bool center>
-void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
+void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
         std::complex<T> *h_inOut) {
     bool isReady = (m_isInit && (AlignType::OneToN == m_type) && m_is_d_single_FD_loaded);
 
@@ -232,7 +232,7 @@ void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
                 toProcess * m_settingsInv->fBytesSingle(),
                 cudaMemcpyHostToDevice, stream));
 
-        CudaShiftCorrAligner<T>::computeCorrelations2DOneToN<center>(
+        CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN<center>(
                 *m_gpu,
                 m_d_batch_FD, m_d_single_FD,
                 m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess);
@@ -247,7 +247,7 @@ void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
 }
 
 template<typename T>
-std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShift2DOneToN(
+std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
         T *h_others) {
     bool isReady = (m_isInit && (AlignType::OneToN == m_type) && m_is_d_single_FD_loaded);
 
@@ -291,7 +291,7 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShift2DOneToN(
 }
 
 template<typename T>
-std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
+std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
@@ -327,13 +327,13 @@ std::vector<Point2D<T>> CudaShiftCorrAligner<T>::computeShifts2DOneToN(
     gpu.synchStream();
 
     // compute shifts
-    return AShiftAligner<T>::computeShiftFromCorrelations2D(
+    return AShiftEstimator<T>::computeShiftFromCorrelations2D(
             h_centers, helper, nDim, centerSize, maxShift);
 }
 
 template<typename T>
 template<bool center>
-void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
+void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
@@ -360,7 +360,7 @@ void CudaShiftCorrAligner<T>::computeCorrelations2DOneToN(
 }
 
 // explicit instantiation
-template void CudaShiftCorrAligner<float>::computeCorrelations2DOneToN<false>(std::complex<float>*);
-template class CudaShiftCorrAligner<float>;
+template void CudaShiftCorrEstimator<float>::computeCorrelations2DOneToN<false>(std::complex<float>*);
+template class CudaShiftCorrEstimator<float>;
 
 } /* namespace Alignment */
