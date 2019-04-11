@@ -29,6 +29,7 @@
 #include <vector>
 #include "data/point2D.h"
 #include "data/filters.h" // FIXME DS remove (eventually)
+#include "data/dimensions.h"
 #include <cassert>
 
 namespace Alignment {
@@ -43,6 +44,12 @@ public:
         T *h_centers, MultidimArray<T> &helper, size_t nDim,
         size_t centerSize, size_t maxShift);
 
+
+    static std::vector<T> findMaxShift(
+            const T *data,
+            const Dimensions &dims,
+            const Point2D<size_t> &maxShift,
+            std::vector<Point2D<int>> &shifts);
     virtual void release() = 0;
 };
 
