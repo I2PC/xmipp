@@ -101,6 +101,10 @@ public:
                 && (m_n == b.m_n);
     }
 
+    inline constexpr bool isPadded() const {
+        return (0 != m_pad_x) || (0 != m_pad_y) || (0 != m_pad_z);
+    }
+
 private:
     size_t m_x;
     size_t m_y;
