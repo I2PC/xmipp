@@ -73,7 +73,6 @@ void CudaShiftCorrEstimator<T>::setDefault() {
 
     // host memory
     m_h_centers = nullptr;
-    m_origHelperData = nullptr;
 
     // FT plans
     m_singleToFD = nullptr;
@@ -130,8 +129,6 @@ void CudaShiftCorrEstimator<T>::release() {
 
     // host memory
     delete[] m_h_centers;
-    m_helper.data = m_origHelperData;
-    m_helper.clear();
 
     // FT plans
     CudaFFT<T>::release(m_singleToFD);
@@ -167,8 +164,6 @@ void CudaShiftCorrEstimator<T>::init2DOneToN() {
 
     // allocate helper objects
     m_h_centers = new T[m_centerSize * m_centerSize * m_settingsInv->batch()];
-    m_helper = MultidimArray<T>(m_centerSize, m_centerSize);
-    m_origHelperData = m_helper.data;
 }
 
 template<typename T>
@@ -247,7 +242,7 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 }
 
 template<typename T>
-std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
+std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
         T *h_others) {
     bool isReady = (m_isInit && (AlignType::OneToN == m_type) && m_is_d_single_FD_loaded);
 
@@ -256,7 +251,7 @@ std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     }
 
     // reserve enough space for shifts
-    auto result = std::vector<Point2D<T>>();
+    auto result = std::vector<Point2D<int>>();
     result.reserve(m_settingsInv->fDim().n());
     // process signals
     for (size_t offset = 0; offset < m_settingsInv->fDim().n(); offset += m_settingsInv->batch()) {
@@ -281,7 +276,7 @@ std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
                 m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess,
                 m_d_batch_SD, *m_batchToSD,
                 m_settingsInv->sDim().x(),
-                m_h_centers, m_helper, m_maxShift);
+                m_h_centers, m_maxShift);
 
         // append shifts to existing results
         result.insert(result.end(), shifts.begin(), shifts.end());
@@ -291,14 +286,14 @@ std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
 }
 
 template<typename T>
-std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
+std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
         size_t xDimF, size_t yDimF, size_t nDim,
         T *d_othersS, cufftHandle plan,
         size_t xDimS,
-        T *h_centers, MultidimArray<T> &helper, size_t maxShift) {
+        T *h_centers, size_t maxShift) {
     size_t centerSize = maxShift * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
     computeCorrelations2DOneToN<true>(gpu,
@@ -327,8 +322,10 @@ std::vector<Point2D<T>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     gpu.synchStream();
 
     // compute shifts
-    return AShiftEstimator<T>::computeShiftFromCorrelations2D(
-            h_centers, helper, nDim, centerSize, maxShift);
+    auto result = std::vector<Point2D<int>>();
+    AShiftEstimator<T>::findMaxAroundCenter(
+            h_centers, Dimensions(centerSize, centerSize, 1, nDim), maxShift, result);
+    return result;
 }
 
 template<typename T>
