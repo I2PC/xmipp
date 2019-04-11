@@ -26,11 +26,11 @@
 #ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
 
-#include <vector>
 #include "data/point2D.h"
-#include "data/filters.h" // FIXME DS remove (eventually)
 #include "data/dimensions.h"
+#include <vector>
 #include <cassert>
+#include <limits>
 
 namespace Alignment {
 
@@ -39,16 +39,16 @@ enum class AlignType { None, OneToN, NToM, Consecutive };
 template<typename T>
 class AShiftEstimator {
 public:
-    // FIXME the
-    static std::vector<Point2D<T>> computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift);
-
-
-    static std::vector<T> findMaxShift(
+    static std::vector<T> findMaxAroundCenter(
             const T *data,
             const Dimensions &dims,
             const Point2D<size_t> &maxShift,
+            std::vector<Point2D<int>> &shifts);
+
+    static std::vector<T> findMaxAroundCenter(
+            const T *data,
+            const Dimensions &dims,
+            size_t maxShift,
             std::vector<Point2D<int>> &shifts);
     virtual void release() = 0;
 };
