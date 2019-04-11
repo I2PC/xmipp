@@ -133,8 +133,6 @@ public:
     /// USe t-distribution instead of normal one
     /** Use t-student distribution instead of normal one */
     bool do_student;
-    /** Degrees of freedom for the t-student distribution */
-    double df, df2;
     /** Perform sigma-trick for faster convergence (Mclachlan&Peel, p. 228)*/
     bool do_student_sigma_trick;
 

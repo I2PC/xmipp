@@ -27,7 +27,7 @@
 #define MOVIE_ALIGNMENT_CORRELATION_GPU
 
 #include <thread>
-#include <shared_mutex>
+#include <mutex>
 #include <future>
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
@@ -35,7 +35,9 @@
 #include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
 #include "data/filters.h"
 #include "data/fft_settings.h"
+#include "data/bspline_grid.h"
 #include "core/userSettings.h"
+#include "reconstruction/bspline_helper.h"
 #include "gpu.h"
 #include "core/optional.h"
 
@@ -77,7 +79,7 @@ private:
      * @param crop if true, FFT can be of smaller size
      * @return best FFT setting
      */
-    auto getSettingsOrBenchmark(const Dimensions &d, size_t extraMem,
+    FFTSettings<T> getSettingsOrBenchmark(const Dimensions &d, size_t extraMem,
             bool crop);
 
     /**
@@ -101,7 +103,7 @@ private:
      * @param optimize the sizes?
      * @return optimal FFT setting for the movie
      */
-    auto getMovieSettings(const MetaData &movie, bool optimize);
+    FFTSettings<T> getMovieSettings(const MetaData &movie, bool optimize);
 
     /**
      * Method will align data of given size, using cross-correlation of
@@ -118,7 +120,7 @@ private:
      * @param verbose level
      * @return global alignment of each frame
      */
-    auto align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
+    AlignmentResult<T> align(T *data, const FFTSettings<T> &in, const FFTSettings<T> &correlation,
             MultidimArray<T> &filter, core::optional<size_t> &refFrame,
             size_t maxShift,
             size_t framesInCorrelationBuffer, int verbose);
@@ -139,7 +141,7 @@ private:
      * @param refFrame reference frame, if any
      * @return alignment of the data
      */
-    auto computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
+    AlignmentResult<T> computeShifts(int verbose, size_t maxShift, std::complex<T>* data,
             const FFTSettings<T> &settings, size_t N, std::pair<T, T> &scale,
             size_t framesInCorrelationBuffer,
             const core::optional<size_t>& refFrame);
@@ -150,7 +152,7 @@ private:
      * @param dowscale that should be applied for correlation
      * @return optimal FFT settings
      */
-    auto getCorrelationSettings(const FFTSettings<T> &orig,
+    FFTSettings<T> getCorrelationSettings(const FFTSettings<T> &orig,
             const std::pair<T, T> &downscale);
 
     /**
@@ -158,7 +160,7 @@ private:
      * @param orig movie setting
      * @return optimal setting for each patch
      */
-    auto getPatchSettings(const FFTSettings<T> &orig);
+    FFTSettings<T> getPatchSettings(const FFTSettings<T> &orig);
 
     /**
      * Inherited, see parent
@@ -189,7 +191,7 @@ private:
      * @param requested downscale used during correlation
      * @return FFT setting describing requested correlation
      */
-    auto getCorrelationHint(const FFTSettings<T> &s,
+    Dimensions getCorrelationHint(const FFTSettings<T> &s,
             const std::pair<T, T> &downscale);
 
     /**
@@ -207,7 +209,7 @@ private:
      * @param applyCrop flag
      * @return stored setting, if any
      */
-    auto getStoredSizes(const Dimensions &dim,
+    core::optional<FFTSettings<T>> getStoredSizes(const Dimensions &dim,
             bool applyCrop);
 
     /**
@@ -216,7 +218,7 @@ private:
      * @param extraMem to leave on GPU
      * @param crop flag
      */
-    auto runBenchmark(const Dimensions &d, size_t extraMem,
+    FFTSettings<T> runBenchmark(const Dimensions &d, size_t extraMem,
             bool crop);
 
     /**
@@ -225,7 +227,7 @@ private:
      * @param movie size
      * @param patch size
      */
-    auto getPatchesLocation(const std::pair<T, T> &borders,
+    std::vector<FramePatchMeta<T>> getPatchesLocation(const std::pair<T, T> &borders,
             const Dimensions &movie,
             const Dimensions &patch);
 
@@ -238,7 +240,7 @@ private:
      * @param verbose level
      * @return no of pixels in X (Y) dimension where there might NOT be data from each frame
      */
-    auto getMovieBorders(const AlignmentResult<T> &globAlignment,
+    std::pair<T,T> getMovieBorders(const AlignmentResult<T> &globAlignment,
             int verbose);
 
     /**
@@ -255,23 +257,11 @@ private:
             const Dimensions &movie, T *result);
 
     /**
-     * Computes BSpline coefficients from given data
-     * @param movieSize
-     * @param alignment to use
-     * @param controlPoints of the resulting spline
-     * @param noOfPatches used for generating the alignment
-     * @return coefficients of the BSpline representing the local shifts
-     */
-    auto computeBSplineCoeffs(const Dimensions &movieSize,
-            const LocalAlignmentResult<T> &alignment,
-            const Dimensions &controlPoints, const std::pair<size_t, size_t> &noOfPatches);
-
-    /**
      * Create local alignment from global alignment
      * @param movie to use
      * @param globAlignment to use
      */
-    auto localFromGlobal(
+    LocalAlignmentResult<T> localFromGlobal(
             const MetaData& movie,
             const AlignmentResult<T> &globAlignment);
 
@@ -297,12 +287,8 @@ private:
      * Method returns requested downscale (<1) for the correlations used
      * for local alignment
      */
-    auto getLocalAlignmentCorrelationDownscale(
+    std::pair<T,T> getLocalAlignmentCorrelationDownscale(
             const Dimensions &patchDim, T maxShift);
-    /**
-     * Method for storing BSpline  coefficients
-     */
-    void storeCoefficients(std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs);
 
     /**
      * Method copies raw movie data according to the settings
@@ -313,8 +299,6 @@ private:
             T *output);
 
 private:
-    /** Number of patches used for local alignment */
-    std::pair<size_t, size_t> localAlignPatches;
 
     /** downscale to be used for local alignment correlation (<1) */
     std::pair<T,T> localCorrelationDownscale;
@@ -322,14 +306,9 @@ private:
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 
-    /** Control points used for local alignment */
-    Dimensions localAlignmentControlPoints = Dimensions(0);
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
-
-    /** Path to file where BSpline coeffs might be stored */
-    FileName fnBSplinePath;
 
     core::optional<GPU> gpu;
 
@@ -340,15 +319,15 @@ private:
     Dimensions rawMovieDim = Dimensions(0);
 
     /** mutex indicating when a thread can access data array used for alignment */
-    mutable std::shared_timed_mutex alignDataMutex;
+    mutable std::mutex alignDataMutex;
 
     /**
      * Keywords representing optimal settings of the algorithm.
      */
-    std::string minMemoryStr = "minMem";
-    std::string optSizeXStr = "optSizeX";
-    std::string optSizeYStr = "optSizeY";
-    std::string optBatchSizeStr = "optBatchSize";
+    std::string minMemoryStr = std::string("minMem");
+    std::string optSizeXStr = std::string("optSizeX");
+    std::string optSizeYStr = std::string("optSizeY");
+    std::string optBatchSizeStr = std::string("optBatchSize");
 };
 
 #endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */

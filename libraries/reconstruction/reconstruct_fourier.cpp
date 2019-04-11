@@ -883,8 +883,11 @@ void ProgRecFourier::processImages( int firstImageIndex, int lastImageIndex, boo
             else if ( th_args[nt].read == 1 )
             {
                 processed = true;
-                if (verbose && imgno++%repaint==0)
-                    progress_bar(imgno);
+                if (verbose) {
+                    if (imgno % repaint == 0)
+                        progress_bar(imgno);
+                    imgno++;
+                }
 
                 double weight = th_args[nt].localweight;
                 paddedFourier = th_args[nt].localPaddedFourier;

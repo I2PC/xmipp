@@ -38,41 +38,15 @@
 #ifndef _PROG_MOVIE_ALIGNMENT_CORRELATION_BASE
 #define _PROG_MOVIE_ALIGNMENT_CORRELATION_BASE
 
+#include "data/alignment_result.h"
+#include "data/local_alignment_result.h"
 #include "core/xmipp_program.h"
 #include "core/metadata_extension.h"
 #include "core/xmipp_fftw.h"
-#include "data/point2D.h"
-#include "data/point3D.h"
-#include "data/rectangle.h"
 #include "core/optional.h"
-
-template<typename T>
-struct AlignmentResult {
-    size_t refFrame;
-    // these are shifts from the reference frame in X/Y dimension,
-    // i.e. if you want to compensate for the shift,
-    // you have to shift in opposite direction (negate these values)
-    std::vector<Point2D<T>> shifts;
-};
-
-template<typename T>
-struct FramePatchMeta {
-    // rectangle representing the patch
-    Rectangle<Point2D<T>> rec;
-    // logical id of the patch
-    size_t id_x;
-    size_t id_y;
-    size_t id_t;
-};
-
-template<typename T>
-struct LocalAlignmentResult {
-    const AlignmentResult<T> &globalHint;
-    // these are shifts (including global shift) of all patches in X/Y dimension,
-    // i.e. if you want to compensate for the shift,
-    // you have to shift in opposite direction (negate these values)
-    std::vector<std::pair<FramePatchMeta<T>, Point2D<T>>> shifts;
-};
+#include "eq_system_solver.h"
+#include "bspline_helper.h"
+#include "data/point2D.h"
 
 template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
@@ -128,18 +102,6 @@ protected:
      */
     int findReferenceImage(size_t N, const Matrix1D<T>& shiftX,
             const Matrix1D<T>& shiftY);
-
-    /**
-     * Method computes absolute shifts from relative shifts
-     * @param bX relative shifts in X dim
-     * @param bY relative shifts in Y dim
-     * @param A system matrix to be used
-     * @param shiftX absolute shifts in X dim
-     * @param shiftY absolute shifts in Y dim
-     * @param verbose level
-     */
-    void solveEquationSystem(Matrix1D<T>& bX, Matrix1D<T>& bY, Matrix2D<T>& A,
-            Matrix1D<T>& shiftX, Matrix1D<T>& shiftY, int verbose);
 
     /**
      * Method to compute sum of shifts of some image in respect to a reference
@@ -256,6 +218,10 @@ protected:
      */
     virtual void releaseAll() = 0;
 
+    /**
+     * Method to store all computed alignment to hard drive
+     */
+    void storeResults(const LocalAlignmentResult<T> &alignment);
 private:
 
     /**
@@ -284,7 +250,7 @@ private:
      * @param movie where shifts are stored
      * @return global alignment as stored in the movie
      */
-    auto loadGlobalShifts(MetaData &movie);
+    AlignmentResult<T> loadGlobalShifts(MetaData &movie);
 
     /**
      * Method loads dark correction image
@@ -325,11 +291,10 @@ private:
      * @param N no of images in alined sum
      * @param movie to be stored
      * @param bestIref index of the reference image
-     * @param localRating ranking of the local alignment
      */
     void storeResults(Image<T>& initialMic, size_t Ninitial,
             Image<T>& averageMicrograph, size_t N, const MetaData& movie,
-            int bestIref, core::optional<double> &localRating);
+            int bestIref);
 
     /**
      * Method to correct indices of the images in the micrograph
@@ -347,13 +312,6 @@ private:
      * Returns sampling rate that user requested
      */
     T getRequestedSamplingRate();
-
-    /**
-     * Returns rating of the local alignment (amount of 'how much' alignment we have to do)
-     * @param alignment to use
-     * @return single value
-     */
-    auto computeRating(const LocalAlignmentResult<T> &alignment);
 
 protected:
     /** First and last frame (inclusive)*/
@@ -389,6 +347,15 @@ protected:
     T outsideValue;
     /** if true, local alignment should be performed */
     bool processLocalShifts;
+    /** Solver iterations */
+    int solverIterations;
+    /** Metadata with shifts */
+    FileName fnOut;
+    /** Number of patches used for local alignment */
+    std::pair<size_t, size_t> localAlignPatches;
+    /** Control points used for local alignment */
+    Dimensions localAlignmentControlPoints = Dimensions(0);
+
 
 private:
     /** Filename of movie metadata */
@@ -399,10 +366,6 @@ private:
     T Ts;
     /** Max freq. */
     T maxFreq;
-    /** Solver iterations */
-    int solverIterations;
-    /** Metadata with shifts */
-    FileName fnOut;
     /** Do not calculate and use the input shifts */
     bool useInputShifts;
 

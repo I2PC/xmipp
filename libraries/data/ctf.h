@@ -869,8 +869,6 @@ public:
     double sqV;
     /// Sqrt angle
     double sqrt_angle;
-    /// Gain for the second Gaussian term
-    double gaussian_K2;
     /// Second Gaussian width U
     double sigmaU2;
     /// Second Gaussian width V

@@ -26,7 +26,7 @@
 #ifndef LIBRARIES_DATA_DIMENSIONS_H_
 #define LIBRARIES_DATA_DIMENSIONS_H_
 
-#include <cstddef>
+#include <ostream>
 
 class Dimensions {
 public:
@@ -55,10 +55,13 @@ public:
         return m_x * m_y;
     }
 
-    constexpr size_t size() const {
-        return m_x * m_y * m_z * m_n;
+    inline constexpr size_t xyz() const {
+        return m_x * m_y * m_z;
     }
 
+    inline constexpr size_t size() const {
+        return m_x * m_y * m_z * m_n;
+    }
 
     friend std::ostream& operator<<(std::ostream &os, const Dimensions &d) {
         os << d.x() << " * " << d.y() << " * " << d.z() << " * " << d.n();

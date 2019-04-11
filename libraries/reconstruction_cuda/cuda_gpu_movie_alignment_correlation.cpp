@@ -34,6 +34,8 @@ template void performFFTAndScale<float>(float* inOutData, int noOfImgs, int inX,
 template<typename T>
 void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
         int inBatch, int outFFTX, int outY, MultidimArray<T> &filter) {
+    assert((inX / 2 + 1) >= outFFTX);
+    assert(inY >= outY);
     mycufftHandle handle;
     int counter = 0;
     std::complex<T>* h_result = (std::complex<T>*)inOutData;
@@ -43,21 +45,29 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     size_t bytesFFTs = outFFTX * outY * inBatch * sizeof(T) * 2; // complex
     T* d_data = NULL;
     T* d_filter = NULL;
+    auto h_tmpStore = new std::complex<T>[outFFTX * outY * inBatch];
     gpuErrchk(cudaMalloc(&d_filter, filter.yxdim * sizeof(T)));
     gpuErrchk(cudaMemcpy(d_filter, filter.data, filter.yxdim * sizeof(T), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMalloc(&d_data, std::max(bytesImgs, bytesFFTs)));
     GpuMultidimArrayAtGpu<T> imagesGPU(inX, inY, 1, inBatch, d_data);
     GpuMultidimArrayAtGpu<std::complex<T> > resultingFFT;
 
-    while (counter < noOfImgs) {
+    auto loadImgs = [&](){
         int imgToProcess = std::min(inBatch, noOfImgs - counter);
+        if (imgToProcess < 1) return (size_t)0;
         T* h_imgLoad = inOutData + counter * inX * inY;
         size_t bytesIn = imgToProcess * inX * inY * sizeof(T);
-        size_t bytesOut = imgToProcess * outFFTX * outY * sizeof(std::complex<T>);
         gpuErrchk(cudaMemcpy(imagesGPU.d_data, h_imgLoad, bytesIn, cudaMemcpyHostToDevice));
-        std::complex<T>* h_imgStore = h_result + counter * outFFTX * outY;
+        size_t bytesOut = imgToProcess * outFFTX * outY * sizeof(std::complex<T>);
+        return bytesOut;
+    };
 
-        // pefrorm FFT and scale
+    while (counter < noOfImgs) {
+        size_t bytesToCopyFromGPU;
+        if (0 == counter) { // first iteration
+            bytesToCopyFromGPU = loadImgs();
+        }
+        // perform FFT (out of place) and scale
         imagesGPU.fft(resultingFFT, handle);
         dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
         dim3 dimGrid(ceil(outFFTX/(float)dimBlock.x), ceil(outY/(float)dimBlock.y));
@@ -67,12 +77,21 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
             inBatch, resultingFFT.Xdim, resultingFFT.Ydim,
             outFFTX, outY, d_filter, 1.f/imagesGPU.yxdim, false);
         gpuErrchk( cudaPeekAtLastError() );
-        // copy results back to CPU
-        gpuErrchk(cudaMemcpy((void*)h_imgStore, (void*)imagesGPU.d_data, bytesOut, cudaMemcpyDeviceToHost));
 
+        std::complex<T>* h_imgStore = h_result + counter * outFFTX * outY;
         counter += inBatch;
+        // because the spatial data are consecutive, and FFT might be actually bigger than spatial data
+        // (i.e. they can overlap), we need to copy processed data to extra location
+        gpuErrchk(cudaMemcpy((void*)h_tmpStore, (void*)imagesGPU.d_data, bytesToCopyFromGPU, cudaMemcpyDeviceToHost));
+        // get new data from CPU. Now we can overwrite the location, as we have the results already
+        size_t tmp = loadImgs();
+        // copy results back to CPU, to the original memory location, consecutive
+        memcpy(h_imgStore, h_tmpStore, bytesToCopyFromGPU);
+        // and update the no of bytes we should process next iteration
+        bytesToCopyFromGPU = tmp;
     }
     handle.clear();
+    delete[] h_tmpStore;
     cudaFree(d_filter);
 }
 
