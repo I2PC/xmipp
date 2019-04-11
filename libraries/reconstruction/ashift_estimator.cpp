@@ -27,37 +27,21 @@
 namespace Alignment {
 
 template<typename T>
-std::vector<Point2D<T>> AShiftEstimator<T>::computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift) {
-    assert(centerSize == (2 * maxShift + 1));
-    assert(helper.xdim == helper.ydim);
-    assert(helper.xdim == centerSize);
-    T x;
-    T y;
-    auto result = std::vector<Point2D<T>>();
-    helper.setXmippOrigin(); // tell the array that the 'center' is in the center
-    for (size_t n = 0; n < nDim; ++n) {
-        helper.data = h_centers + n * centerSize * centerSize;
-        bestShift(helper, x, y, nullptr, maxShift);
-        result.emplace_back(x, y);
-    }
-    // avoid data corruption
-    helper.data = nullptr;
-
-template<typename T>
-std::vector<T> AShiftEstimator<T>::findMaxShift(
+std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
         const T *correlations,
         const Dimensions &dims,
         const Point2D<size_t> &maxShift,
         std::vector<Point2D<int>> &shifts) {
+    size_t xHalf = dims.x() / 2;
+    size_t yHalf = dims.y() / 2;
+
     assert(0 == shifts.size());
     assert(2 <= dims.x());
     assert(2 <= dims.y());
     assert(1 == dims.z());
     assert(nullptr != correlations);
-    assert(maxShift.x <= (dims.x() / 2));
-    assert(maxShift.y <= (dims.y() / 2));
+    assert(maxShift.x <= xHalf);
+    assert(maxShift.y <= yHalf);
     assert(0 < maxShift.x);
     assert(0 < maxShift.y);
     assert( ! dims.isPadded());
@@ -65,9 +49,6 @@ std::vector<T> AShiftEstimator<T>::findMaxShift(
     auto result = std::vector<T>();
     shifts.reserve(dims.n());
     result.reserve(dims.n());
-
-    size_t xHalf = dims.x() / 2;
-    size_t yHalf = dims.y() / 2;
 
     size_t maxDist = maxShift.x * maxShift.y;
     for (size_t n = 0; n < dims.n(); ++n) {
@@ -99,6 +80,15 @@ std::vector<T> AShiftEstimator<T>::findMaxShift(
         shifts.emplace_back(maxX, maxY);
     }
     return result;
+}
+
+template<typename T>
+std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
+        const T *correlations,
+        const Dimensions &dims,
+        size_t maxShift,
+        std::vector<Point2D<int>> &shifts) {
+    return findMaxAroundCenter(correlations, dims, Point2D<size_t>(maxShift, maxShift), shifts);
 }
 
 template class AShiftEstimator<float>;
