@@ -59,10 +59,10 @@ public:
     void computeCorrelations2DOneToN(
         std::complex<T> *h_inOut);
 
-    std::vector<Point2D<T>> computeShift2DOneToN(
+    std::vector<Point2D<int>> computeShift2DOneToN(
         T *h_others);
 
-    static std::vector<Point2D<T>> computeShifts2DOneToN(
+    static std::vector<Point2D<int>> computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
@@ -70,7 +70,7 @@ public:
         T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
         cufftHandle plan,
         size_t xDimS,
-        T *h_centers, MultidimArray<T> &helper, size_t maxShift);
+        T *h_centers, size_t maxShift);
 
     template<bool center>
     static void computeCorrelations2DOneToN(
@@ -94,8 +94,6 @@ private:
 
     // host memory
     T *m_h_centers;
-    MultidimArray<T> m_helper;
-    T *m_origHelperData;
 
     // FT plans
     cufftHandle *m_singleToFD;
