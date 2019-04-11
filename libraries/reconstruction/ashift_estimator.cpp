@@ -44,6 +44,60 @@ std::vector<Point2D<T>> AShiftEstimator<T>::computeShiftFromCorrelations2D(
     }
     // avoid data corruption
     helper.data = nullptr;
+
+template<typename T>
+std::vector<T> AShiftEstimator<T>::findMaxShift(
+        const T *correlations,
+        const Dimensions &dims,
+        const Point2D<size_t> &maxShift,
+        std::vector<Point2D<int>> &shifts) {
+    assert(0 == shifts.size());
+    assert(2 <= dims.x());
+    assert(2 <= dims.y());
+    assert(1 == dims.z());
+    assert(nullptr != correlations);
+    assert(maxShift.x <= (dims.x() / 2));
+    assert(maxShift.y <= (dims.y() / 2));
+    assert(0 < maxShift.x);
+    assert(0 < maxShift.y);
+    assert( ! dims.isPadded());
+
+    auto result = std::vector<T>();
+    shifts.reserve(dims.n());
+    result.reserve(dims.n());
+
+    size_t xHalf = dims.x() / 2;
+    size_t yHalf = dims.y() / 2;
+
+    size_t maxDist = maxShift.x * maxShift.y;
+    for (size_t n = 0; n < dims.n(); ++n) {
+        size_t offsetN = n * dims.xyz();
+        // reset values
+        size_t maxX;
+        size_t maxY;
+        T val = std::numeric_limits<T>::lowest();
+        // iterate through the center
+        for (size_t y = yHalf - maxShift.y; y <= yHalf + maxShift.y; ++y) {
+            size_t offsetY = y * dims.x();
+            int logicY = (int)y - yHalf;
+            T ySq = logicY * logicY;
+            for (size_t x = xHalf - maxShift.x; x <= xHalf + maxShift.x; ++x) {
+                int logicX = (int)x - yHalf;
+                // continue if the Euclidean distance is too far
+                if ((ySq + (logicX * logicX)) > maxDist) continue;
+                // get current value and update, if necessary
+                T tmp = correlations[offsetN + offsetY + x];
+                if (tmp > val) {
+                    val = tmp;
+                    maxX = logicX;
+                    maxY = logicY;
+                }
+            }
+        }
+        // store results
+        result.push_back(val);
+        shifts.emplace_back(maxX, maxY);
+    }
     return result;
 }
 
