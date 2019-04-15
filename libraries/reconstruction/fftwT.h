@@ -23,37 +23,34 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
-#define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
+#ifndef LIBRARIES_RECONSTRUCTION_FFTWT_H_
+#define LIBRARIES_RECONSTRUCTION_FFTWT_H_
 
-#include "data/point2D.h"
-#include "data/dimensions.h"
-#include <vector>
-#include <cassert>
-#include <limits>
-#include <complex>
-
-namespace Alignment {
-
-enum class AlignType { None, OneToN, NToM, Consecutive };
+#include <fftw3.h>
+#include <array>
+//#include <type_traits>
+//#include "core/xmipp_error.h"
+#include "data/fft_settings_new.h"
 
 template<typename T>
-class AShiftEstimator {
+class FFTwT {
 public:
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            const Point2D<size_t> &maxShift,
-            std::vector<Point2D<int>> &shifts);
 
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            size_t maxShift,
-            std::vector<Point2D<int>> &shifts);
-    virtual void release() = 0;
+    static std::complex<double>* fft(const fftw_plan plan,
+            const double *in, std::complex<double> *out);
+    static std::complex<float>* fft(const fftwf_plan plan,
+            const float *in, std::complex<float> *out);
+
+    static const fftw_plan createPlan(
+            const FFTSettingsNew<double> &settings);
+    static const fftwf_plan createPlan(
+            const FFTSettingsNew<float> &settings);
+
+private:
+    static void *m_mockOut;
+    template<typename U, typename F>
+    static U planHelper(const FFTSettingsNew<T> &settings, F function);
+
 };
 
-} /* namespace Alignment */
-
-#endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_FFTWT_H_ */
