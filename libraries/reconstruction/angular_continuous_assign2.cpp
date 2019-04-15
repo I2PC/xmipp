@@ -70,7 +70,6 @@ void ProgAngularContinuousAssign2::readParams()
     penalization = getDoubleParam("--penalization");
     fnResiduals = getParam("--oresiduals");
     fnProjections = getParam("--oprojections");
-    focusedCost = checkParam("--focusedCost");
 }
 
 // Show ====================================================================
@@ -99,7 +98,6 @@ void ProgAngularContinuousAssign2::show()
     << "Apply to:            " << originalImageLabel << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
     << "Penalization:        " << penalization       << std::endl
-	<< "Focused cost:        " << focusedCost        << std::endl
     << "Output residuals:    " << fnResiduals        << std::endl
     << "Output projections:  " << fnProjections      << std::endl
     ;
@@ -135,7 +133,6 @@ void ProgAngularContinuousAssign2::defineParams()
     addParamsLine("  [--penalization <l=100>]     : Penalization for the average term");
     addParamsLine("  [--oresiduals <stack=\"\">]  : Output stack for the residuals");
     addParamsLine("  [--oprojections <stack=\"\">] : Output stack for the projections");
-    addParamsLine("  [--focusedCost]              : Evaluate the cost function focusing on the particle");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_continuous_assign2 -i anglesFromDiscreteAssignment.xmd --ref reference.vol -o assigned_angles.stk");
 }
@@ -200,9 +197,7 @@ void ProgAngularContinuousAssign2::preProcess()
     A.initIdentity(3);
 
     // Continuous cost
-    if (focusedCost)
-    	contCost = CONTCOST_FOCUSED;
-    else if (optimizeGrayValues)
+    if (optimizeGrayValues)
     	contCost = CONTCOST_L1;
     else
     	contCost = CONTCOST_CORR;
@@ -260,7 +255,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
     	}
     }
 	projectVolume(*(prm->projector), prm->P, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),  rot, tilt, psi, (const MultidimArray<double> *)prm->ctfImage);
-    double cost=0;
 	if (prm->old_flip)
 	{
 		MAT_ELEM(A,0,0)*=-1;
@@ -274,7 +268,7 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 	MultidimArray<double> &mIfilteredp=prm->Ifilteredp();
 	MultidimArray<double> &mE=prm->E();
 	mE.initZeros();
-	if (prm->contCost==CONTCOST_L1 || prm->contCost==CONTCOST_FOCUSED)
+	if (prm->contCost==CONTCOST_L1)
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mMask2D)
 		{
@@ -283,7 +277,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 				//DIRECT_MULTIDIM_ELEM(mIfilteredp,n)=DIRECT_MULTIDIM_ELEM(mIfilteredp,n);
 				double val=(a*DIRECT_MULTIDIM_ELEM(mP,n)+b)-DIRECT_MULTIDIM_ELEM(mIfilteredp,n);
 				DIRECT_MULTIDIM_ELEM(mE,n)=val;
-				cost+=fabs(val);
 			}
 			else
 				DIRECT_MULTIDIM_ELEM(mIfilteredp,n)=0;
@@ -302,37 +295,26 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 				DIRECT_MULTIDIM_ELEM(mIfilteredp,n)=0;
 		}
 	}
-	if (prm->contCost==CONTCOST_FOCUSED)
+
+	if (prm->hasCTF)
 	{
-		prm->fft2.FourierTransform(mE,prm->fftE,false);
-#ifdef DEBUG2
-		Image<double> save2;
-		save2()=mE;
-		save2.write("PPPe.xmp");
-#endif
+		if (prm->contCost==CONTCOST_L1)
+			prm->fftTransformer.FourierTransform(mE,prm->fftE,false);
+		else
+			prm->fftTransformer.FourierTransform(mIfilteredp,prm->fftE,false);
+
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(prm->fftE)
 			DIRECT_A2D_ELEM(prm->fftE,i,j)*=DIRECT_A2D_ELEM(*(prm->ctfEnvelope),i,j);
-		prm->fft2.inverseFourierTransform();
-#ifdef DEBUG2
-		save2()=mE;
-		save2.write("PPPeEnvelope.xmp");
-#endif
-		cost=0.0;
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mE)
-		{
-			//DIRECT_A2D_ELEM(mE,i,j)*=std::abs(DIRECT_A2D_ELEM(mP,i,j));
-			cost+=fabs(DIRECT_A2D_ELEM(mE,i,j));
-		}
-#ifdef DEBUG2
-		save2()=mE;
-		save2.write("PPPeEnvelopeFocused.xmp");
-		std::cout << "Errors saved. Press any key" << std::endl;
-		char c; std::cin >> c;
-#endif
+		prm->fftTransformer.inverseFourierTransform();
 	}
 
-	if (prm->contCost==CONTCOST_L1 || prm->contCost==CONTCOST_FOCUSED)
+	double cost=0.0;
+	if (prm->contCost==CONTCOST_L1)
+	{
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mE)
+			cost+=fabs(DIRECT_A2D_ELEM(mE,i,j));
 		cost*=prm->iMask2Dsum;
+	}
 	else
 		cost=-correlationIndex(mIfilteredp,mP,&mMask2D);
 
@@ -427,7 +409,7 @@ double continuous2cost(double *x, void *_prm)
 }
 
 // Predict =================================================================
-#define DEBUG
+//#define DEBUG
 void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
     rowOut=rowIn;
@@ -651,7 +633,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     if (hasCTF)
     {
     	rowOut.setValue(MDL_CTF_DEFOCUSU,old_defocusU+p(10));
-    	rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusV+p(11));
+    	rowOut.setValue(MDL_CTF_DEFOCUSV,old_defocusV+p(10)); // p(11)); deltafU=deltafV
     	rowOut.setValue(MDL_CTF_DEFOCUS_ANGLE,old_defocusAngle+p(12));
     	rowOut.setValue(MDL_CTF_DEFOCUS_CHANGE,0.5*(p(10)+p(11)));
     	if (old_defocusU+p(10)<0 || old_defocusU+p(11)<0)
@@ -692,7 +674,7 @@ void ProgAngularContinuousAssign2::postProcess()
 {
 	MetaData &ptrMdOut=*getOutputMd();
 	ptrMdOut.removeDisabled();
-	if (contCost==CONTCOST_L1 || contCost==CONTCOST_FOCUSED)
+	if (contCost==CONTCOST_L1)
 	{
 		double minCost=1e38;
 		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
