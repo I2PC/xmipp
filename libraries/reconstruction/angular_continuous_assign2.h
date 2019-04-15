@@ -37,6 +37,7 @@
 
 #define CONTCOST_CORR 0
 #define CONTCOST_L1 1
+#define CONTCOST_FOCUSED 2
 
 /** Predict Continuous Parameters. */
 class ProgAngularContinuousAssign2: public XmippMetadataProgram
@@ -84,6 +85,8 @@ public:
     bool phaseFlipped;
     // Penalization for the average
     double penalization;
+    // Focused cost
+    bool focusedCost;
 public:
     // 2D mask in real space
     MultidimArray<int> mask2D;
@@ -96,7 +99,7 @@ public:
     // Input image
 	Image<double> I, Ip, E, Ifiltered, Ifilteredp;
 	// Theoretical projection
-	Projection P;
+	Projection P, PnoCTF;
 	// Filter
     FourierFilter filter;
     // Transformation matrix
@@ -124,7 +127,11 @@ public:
 	// Current defoci
 	double currentDefocusU, currentDefocusV, currentAngle;
 	// CTF image
-	MultidimArray<double> *ctfImage;
+	MultidimArray<double> *ctfImage, *ctfEnvelope;
+	// Fourier Transformer
+	FourierTransformer fft1, fft2;
+	// Fourier transforms
+	MultidimArray< std::complex<double> > fftPnoCTF, fftE;
 public:
     /// Empty constructor
     ProgAngularContinuousAssign2();
