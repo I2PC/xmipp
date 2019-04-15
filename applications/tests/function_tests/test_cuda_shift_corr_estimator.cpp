@@ -191,5 +191,5 @@ REGISTER_TYPED_TEST_CASE_P(CudaShiftCorrEstimatorTest,
     shift2DOneToManyBatched2
 );
 
-typedef ::testing::Types<float> TestTypes; // FIXME add double
+typedef ::testing::Types<float, double> TestTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(Alignment, CudaShiftCorrEstimatorTest, TestTypes);
