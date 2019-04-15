@@ -359,5 +359,7 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 // explicit instantiation
 template void CudaShiftCorrEstimator<float>::computeCorrelations2DOneToN<false>(std::complex<float>*);
 template class CudaShiftCorrEstimator<float>;
+template void CudaShiftCorrEstimator<double>::computeCorrelations2DOneToN<false>(std::complex<double>*);
+template class CudaShiftCorrEstimator<double>;
 
 } /* namespace Alignment */
