@@ -214,15 +214,15 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 	if (ctfImage==NULL)
 	{
 		ctfImage = new MultidimArray<double>();
-		ctfImage->resizeNoCopy(projector->projection());
+		ctfImage->resizeNoCopy(I());
 		STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
 
 		ctfEnvelope = new MultidimArray<double>();
-		ctfEnvelope->resizeNoCopy(projector->projection());
+		ctfEnvelope->resizeNoCopy(I());
 		STARTINGY(*ctfEnvelope)=STARTINGX(*ctfEnvelope)=0;
 	}
-	ctf.generateCTF(YSIZE(projector->projection()),XSIZE(projector->projection()),*ctfImage,Ts);
-	ctf.generateEnvelope(YSIZE(projector->projection()),XSIZE(projector->projection()),*ctfEnvelope,Ts);
+	ctf.generateCTF(YSIZE(I()),XSIZE(I()),*ctfImage,Ts);
+	ctf.generateEnvelope(YSIZE(I()),XSIZE(I()),*ctfEnvelope,Ts);
 	if (phaseFlipped)
 		FOR_ALL_ELEMENTS_IN_ARRAY2D(*ctfImage)
 			A2D_ELEM(*ctfImage,i,j)=fabs(A2D_ELEM(*ctfImage,i,j));
@@ -249,10 +249,7 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
     	double defocusV=prm->old_defocusV+deltaDefocusU; // deltaDefocusV;
     	double angle=prm->old_defocusAngle+deltaDefocusAngle;
     	if (defocusU!=prm->currentDefocusU || defocusV!=prm->currentDefocusV || angle!=prm->currentAngle)
-    	{
-    		//std::cout << "Updating CTF " << defocusU << " " << defocusV << " " << angle << std::endl;
     		prm->updateCTFImage(defocusU,defocusV,angle);
-    	}
     }
 	projectVolume(*(prm->projector), prm->P, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),  rot, tilt, psi, (const MultidimArray<double> *)prm->ctfImage);
 	if (prm->old_flip)
@@ -294,18 +291,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 			else
 				DIRECT_MULTIDIM_ELEM(mIfilteredp,n)=0;
 		}
-	}
-
-	if (prm->hasCTF)
-	{
-		if (prm->contCost==CONTCOST_L1)
-			prm->fftTransformer.FourierTransform(mE,prm->fftE,false);
-		else
-			prm->fftTransformer.FourierTransform(mIfilteredp,prm->fftE,false);
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(prm->fftE)
-			DIRECT_A2D_ELEM(prm->fftE,i,j)*=DIRECT_A2D_ELEM(*(prm->ctfEnvelope),i,j);
-		prm->fftTransformer.inverseFourierTransform();
 	}
 
 	double cost=0.0;
@@ -425,6 +410,14 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     double corrWeight = 0.0;
     double imedDist = 0.0;
 
+	if (verbose>=2)
+		std::cout << "Processing " << fnImg << std::endl;
+	I.read(fnImg);
+	I().setXmippOrigin();
+	Istddev=I().computeStddev();
+
+    Ifiltered()=I();
+    filter.applyMaskSpace(Ifiltered());
 
 	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
 	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
@@ -460,18 +453,14 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 		old_defocusU=ctf.DeltafU;
 		old_defocusV=ctf.DeltafV;
 		old_defocusAngle=ctf.azimuthal_angle;
+		updateCTFImage(old_defocusU,old_defocusV,old_defocusAngle);
+		fftTransformer.FourierTransform(Ifiltered(),fftE,false);
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(fftE)
+			DIRECT_A2D_ELEM(fftE,i,j)*=DIRECT_A2D_ELEM(*ctfEnvelope,i,j);
+		fftTransformer.inverseFourierTransform();
 	}
 	else
 		hasCTF=false;
-
-	if (verbose>=2)
-		std::cout << "Processing " << fnImg << std::endl;
-	I.read(fnImg);
-	I().setXmippOrigin();
-	Istddev=I().computeStddev();
-
-    Ifiltered()=I();
-    filter.applyMaskSpace(Ifiltered());
 
     Matrix1D<double> p(13), steps(13);
     // COSS: Gray values are optimized in transform_image_adjust_gray_values
