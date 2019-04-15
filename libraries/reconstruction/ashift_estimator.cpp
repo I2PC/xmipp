@@ -91,6 +91,8 @@ std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
     return findMaxAroundCenter(correlations, dims, Point2D<size_t>(maxShift, maxShift), shifts);
 }
 
+// explicit instantiation
 template class AShiftEstimator<float>;
+template class AShiftEstimator<double>;
 
 } /* namespace Alignment */

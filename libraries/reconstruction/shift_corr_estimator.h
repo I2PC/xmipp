@@ -23,37 +23,34 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
-#define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
+#ifndef LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
+#define LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 
-#include "data/point2D.h"
-#include "data/dimensions.h"
-#include <vector>
-#include <cassert>
-#include <limits>
-#include <complex>
+#include "ashift_estimator.h"
 
 namespace Alignment {
 
-enum class AlignType { None, OneToN, NToM, Consecutive };
-
 template<typename T>
-class AShiftEstimator {
+class ShiftCorrEstimator : public AShiftEstimator<T> {
 public:
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            const Point2D<size_t> &maxShift,
-            std::vector<Point2D<int>> &shifts);
+    template<bool center>
+    static void computeCorrelations2DOneToN(
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        size_t xDim, size_t yDim, size_t nDim);
 
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            size_t maxShift,
-            std::vector<Point2D<int>> &shifts);
-    virtual void release() = 0;
+//    static std::vector<Point2D<int>> computeShifts2DOneToN(
+//        std::complex<T> *d_othersF,
+//        std::complex<T> *d_ref,
+//        size_t xDimF, size_t yDimF, size_t nDim,
+//        T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
+//        cufftHandle plan,
+//        size_t xDimS,
+//        T *h_centers, size_t maxShift);
+
+    virtual void release() {};
 };
 
-} /* namespace Alignment */
+}  /* namespace Alignment */
 
-#endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_ */
