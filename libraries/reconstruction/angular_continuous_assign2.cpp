@@ -259,8 +259,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
     		prm->updateCTFImage(defocusU,defocusV,angle);
     	}
     }
-    if (prm->ctfImage!=NULL && prm->optimizeDefocus)
-    	projectVolume(*(prm->projector), prm->PnoCTF, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),  rot, tilt, psi);
 	projectVolume(*(prm->projector), prm->P, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),  rot, tilt, psi, (const MultidimArray<double> *)prm->ctfImage);
     double cost=0;
 	if (prm->old_flip)
@@ -306,7 +304,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 	}
 	if (prm->contCost==CONTCOST_FOCUSED)
 	{
-		prm->fft1.FourierTransform(prm->PnoCTF(),prm->fftPnoCTF,false);
 		prm->fft2.FourierTransform(mE,prm->fftE,false);
 #ifdef DEBUG2
 		Image<double> save2;
@@ -314,13 +311,12 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 		save2.write("PPPe.xmp");
 #endif
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(prm->fftE)
-			DIRECT_A2D_ELEM(prm->fftE,i,j)*=DIRECT_A2D_ELEM(*(prm->ctfEnvelope),i,j); //*abs(DIRECT_A2D_ELEM(prm->fftPnoCTF,i,j));
+			DIRECT_A2D_ELEM(prm->fftE,i,j)*=DIRECT_A2D_ELEM(*(prm->ctfEnvelope),i,j);
 		prm->fft2.inverseFourierTransform();
 #ifdef DEBUG2
 		save2()=mE;
 		save2.write("PPPeEnvelope.xmp");
 #endif
-		const MultidimArray<double> &mP=prm->PnoCTF();
 		cost=0.0;
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mE)
 		{
@@ -349,11 +345,6 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 	Image<double> save;
 	save()=a*prm->P()+b;
 	save.write("PPPtheo.xmp");
-	if (prm->optimizeDefocus)
-	{
-		save()=prm->PnoCTF();
-		save.write("PPPtheoNoCTF.xmp");
-	}
 	save()=prm->Ifilteredp();
 	save.write("PPPfilteredp.xmp");
 	save()=prm->Ifiltered();
