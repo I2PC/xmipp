@@ -208,7 +208,7 @@ void ProgAngularContinuousAssign2::preProcess()
     	contCost = CONTCOST_CORR;
 }
 
-#define DEBUG
+//#define DEBUG
 void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocusV, double angle)
 {
 	ctf.K=1; // get pure CTF with no envelope
@@ -243,7 +243,7 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 }
 #undef DEBUG
 
-#define DEBUG
+//#define DEBUG
 //#define DEBUG2
 double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt, double psi,
 		double a, double b, Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
@@ -255,7 +255,7 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
     	double angle=prm->old_defocusAngle+deltaDefocusAngle;
     	if (defocusU!=prm->currentDefocusU || defocusV!=prm->currentDefocusV || angle!=prm->currentAngle)
     	{
-    		std::cout << "Updating CTF " << defocusU << " " << defocusV << " " << angle << std::endl;
+    		//std::cout << "Updating CTF " << defocusU << " " << defocusV << " " << angle << std::endl;
     		prm->updateCTFImage(defocusU,defocusV,angle);
     	}
     }
