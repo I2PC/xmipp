@@ -90,7 +90,7 @@ def getHdf5Name(libdirs):
             return "hdf5_serial"
     return "hdf5"
 
-ALL_LIBS = {'fftw3','fftw3f', 'fftw3_threads', 'fftw3f_threads', 'tiff', 'jpeg', 'sqlite3', getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
+ALL_LIBS = {'fftw3', 'fftw3_threads', 'tiff', 'jpeg', 'sqlite3', getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
 # to add the Xmipp CPP libraries
@@ -141,13 +141,13 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7', 'fftw3f'])
 
 
 # FRM library
 dirs = ['external','external']
 patterns=['sh_alignment/*.cpp','sh_alignment/SpharmonicKit27/*.cpp']
-addLib('swig_frm', prefix="_", dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['fftw3', 'fftw3_threads', 'fftw3f'])
+addLib('swig_frm', prefix="_", dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['fftw3', 'fftw3_threads'])
 
 # CUDA
 if cuda:
@@ -169,7 +169,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','fftw3f', 'jpeg','tiff']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff']
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -250,7 +250,7 @@ addLib('xmippLib.so',
        dirs=['bindings'],
        patterns=['python/*.cpp'],
        incs=python_incdirs,
-       libs=['python2.7', 'XmippCore', 'Xmipp'],
+       libs=['python2.7', 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')
        
 #  ***********************************************************************

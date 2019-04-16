@@ -46,6 +46,9 @@ public:
     static const fftwf_plan createPlan(
             const FFTSettingsNew<float> &settings);
 
+    static void release(fftw_plan plan);
+    static void release(fftwf_plan plan);
+
 private:
     static void *m_mockOut;
     template<typename U, typename F>
