@@ -76,7 +76,9 @@ const fftw_plan FFTwT<double>::createPlan(const FFTSettingsNew<double> &settings
                 flags);
         }
     };
-    return planHelper<const fftw_plan>(settings, f);
+    auto result = planHelper<const fftw_plan>(settings, f);
+//    printf("result: %p\n", result);
+    return result;
 }
 
 //template<typename T>
@@ -93,8 +95,15 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function) {
     if ((2 == rank) && (settings.sDim().y() == 1)) rank--;
     int offset = 3 - rank;
 
-    void *in = nullptr;
-    void *out = settings.isInPlace() ? in : m_mockOut;
+    void *in = nullptr;//settings.isForward() ? malloc(settings.sBytesBatch()) : malloc(settings.fBytesBatch());
+//    void *out;
+//    if (settings.isInPlace()) {
+//        out = in;
+//    } else {
+//        out = settings.isForward() ? malloc(settings.fBytesBatch()) : malloc(settings.sBytesBatch());
+//    }
+//    void *in = nullptr;
+    void *out = settings.isInPlace() ? in : &m_mockOut;
 
     auto flags =  FFTW_ESTIMATE |  FFTW_PRESERVE_INPUT |  FFTW_UNALIGNED;
 
@@ -137,16 +146,31 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function) {
 //                    flags);
 //        }
     }
-    return function(rank, &n[offset], settings.batch(),
+    auto tmp = function(rank, &n[offset], settings.batch(),
             in, nullptr,
             1, idist,
             out, nullptr,
             1, odist,
             flags);
+//    free(in);
+//    if ( ! settings.isInPlace()) free(out);
+//    printf("rank %d: howMany %d in %p idist %d out %p odist %d \n",
+//            rank, settings.batch(),
+//            in, idist, out, odist);
+    return tmp;
 }
 
 template<typename T>
-void* FFTwT<T>::m_mockOut;
+void* FFTwT<T>::m_mockOut = {};
+
+template<>
+void FFTwT<float>::release(fftwf_plan plan) {
+    fftwf_destroy_plan(plan);
+}
+template<>
+void FFTwT<double>::release(fftw_plan plan) {
+    fftw_destroy_plan(plan);
+}
 
 template<>
 std::complex<float>* FFTwT<float>::fft(const fftwf_plan plan, const float *in, std::complex<float> *out) {
@@ -164,6 +188,7 @@ template<>
 std::complex<double>* FFTwT<double>::fft(const fftw_plan plan, const double *in, std::complex<double> *out) {
 //    if (std::is_same<T, float>::value) {
         // we can get rid of the const, as the plans we create prohibit reuse of input array
+//        printf("addresses: %p %p %p\n", plan, in, out);
         fftw_execute_dft_r2c(plan, (double*)in, (fftw_complex*) out);
         return out;
 //    } else if (std::is_same<T, double>::value) {
