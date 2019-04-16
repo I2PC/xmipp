@@ -66,7 +66,9 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     }
 
     auto plan = FFTwT<T>::createPlan(s);
+//    printf("plan: %p\n", plan);
     FFTwT<T>::fft(plan, in, out);
+    FFTwT<T>::release(plan);
 //    gpu.synch();
 
     T delta = (T)0.00001;
@@ -194,81 +196,81 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
 //    }
 //}
 //
-//template<typename T, typename F>
-//void generateAndTest(F condition, bool bothDirections = false) {
-//    using namespace memoryUtils;
-//
-//    size_t executed = 0;
-//    size_t skippedSize = 0;
-//    size_t skippedCondition = 0;
-//    auto batch = std::vector<size_t>{1, 2, 3, 5, 6, 7, 8, 10, 23};
-//    auto nSet = std::vector<size_t>{1, 2, 4, 5, 6, 8, 10, 12, 14, 23, 24};
-//    auto zSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
-//    auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
-//    auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 2048, 2049};
-//    size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
-//
-//    auto settingsComparator = [] (const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
-//      return ((l.sDim().x() < r.sDim().x())
-//              || (l.sDim().y() < r.sDim().y())
-//              || (l.sDim().z() < r.sDim().z())
-//              || (l.sDim().n() < r.sDim().n())
-//              || (l.batch() < r.batch()));
-//    };
-//    auto tested = std::set<FFTSettingsNew<T>,decltype(settingsComparator)>(settingsComparator);
-//
-//    int seed = 42;
-//    std::mt19937 mt(seed);
-//    std::uniform_int_distribution<> dist(0, 4097);
+template<typename T, typename F>
+void generateAndTest(F condition, bool bothDirections = false) {
+    using namespace memoryUtils;
+
+    size_t executed = 0;
+    size_t skippedSize = 0;
+    size_t skippedCondition = 0;
+    auto batch = std::vector<size_t>{1, 2, 3, 5, 6, 7, 8, 10, 14};
+    auto nSet = std::vector<size_t>{1, 2, 4, 5, 6, 8, 10, 12, 14};
+    auto zSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513};
+    auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513};
+    auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513};
+    size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
+
+    auto settingsComparator = [] (const FFTSettingsNew<T> &l, const FFTSettingsNew<T> &r) {
+      return ((l.sDim().x() < r.sDim().x())
+              || (l.sDim().y() < r.sDim().y())
+              || (l.sDim().z() < r.sDim().z())
+              || (l.sDim().n() < r.sDim().n())
+              || (l.batch() < r.batch()));
+    };
+    auto tested = std::set<FFTSettingsNew<T>,decltype(settingsComparator)>(settingsComparator);
+
+    int seed = 42;
+    std::mt19937 mt(seed);
+    std::uniform_int_distribution<> dist(0, 4097);
 //    auto gpu = GPU();
 //    gpu.set();
 //    T availableBytes = gpu.lastFreeBytes();
-//    while ((executed < 20)
-//            && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
-//        size_t x = xSet.at(dist(mt) % xSet.size());
-//        size_t y = ySet.at(dist(mt) % ySet.size());
-//        size_t z = zSet.at(dist(mt) % zSet.size());
-//        size_t n = nSet.at(dist(mt) % nSet.size());
-//        size_t b = batch.at(dist(mt) % batch.size());
-//        if (b > n) continue; // batch must be smaller than n
-//        bool inPlace = dist(mt) % 2;
-//        bool isForward = dist(mt) % 2;
-//        auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
-//        if (condition(x, y, z, n, b, inPlace, isForward)) {
-//            // make sure we have enough memory
+    while ((executed < 20)
+            && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
+        size_t x = xSet.at(dist(mt) % xSet.size());
+        size_t y = ySet.at(dist(mt) % ySet.size());
+        size_t z = zSet.at(dist(mt) % zSet.size());
+        size_t n = nSet.at(dist(mt) % nSet.size());
+        size_t b = batch.at(dist(mt) % batch.size());
+        if (b > n) continue; // batch must be smaller than n
+        bool inPlace = dist(mt) % 2;
+        bool isForward = dist(mt) % 2;
+        auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
+        if (condition(x, y, z, n, b, inPlace, isForward)) {
+            // make sure we have enough memory
 //            T totalBytes = CudaFFT<T>::estimateTotalBytes(settings);
 //            if (availableBytes < totalBytes) {
 //                skippedSize++;
 //                continue;
 //            }
-//            // make sure we did not test this before
-//            auto result = tested.insert(settings);
-//            if ( ! result.second) continue;
-//
-////            auto dir = bothDirections ? "both" : (isForward ? "fft" : "ifft");
-////            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
-////                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", dir);
-//            if (bothDirections) {
+            // make sure we did not test this before
+            auto result = tested.insert(settings);
+            if ( ! result.second) continue;
+
+//            auto dir = bothDirections ? "both" : (isForward ? "fft" : "ifft");
+//            printf("Testing %lu %lu %lu %lu %lu %s %s\n",
+//                    x, y, z, n, b, inPlace ? "inPlace" : "outOfPlace", dir);
+            if (bothDirections) {
 //                testFFTIFFT(gpu, settings);
-//            } else {
-//                if (isForward) {
-//                    testFFTInpulseOrigin(gpu, settings);
+            } else {
+                if (isForward) {
+                    testFFTInpulseOrigin(settings);
 //                    testFFTInpulseShifted(gpu, settings);
 //                } else {
 //                    testIFFTInpulseOrigin(gpu, settings);
-//                }
-//            }
-//
-//
-//            executed++;
-//        } else {
-//            skippedCondition++;
-//        }
-//    }
-////    std::cout << "Executed: " << executed
-////            << "\nSkipped (condition): " << skippedCondition
-////            << "\nSkipped (size):" << skippedSize << std::endl;
-//}
+                }
+            }
+
+
+            executed++;
+        } else {
+            skippedCondition++;
+        }
+    }
+//    std::cout << "Executed: " << executed
+//            << "\nSkipped (condition): " << skippedCondition
+//            << "\nSkipped (size):" << skippedSize << std::endl;
+}
 
 auto is1D = [] (size_t x, size_t y, size_t z) {
     return (z == 1) && (y == 1);
@@ -300,25 +302,25 @@ auto isNBatch = [] (size_t n, size_t batch) {
 
 TYPED_TEST_P( FFTTest, fft_OOP_Single)
 {
-    auto s = FFTSettingsNew<TypeParam>(10, 6, 0, 1, 1, false, true);
-    testFFTInpulseOrigin(s);
+//    auto s = FFTSettingsNew<TypeParam>(10, 6, 1, 1, 1, false, true);
+//    testFFTInpulseOrigin(s);
 
-//    // test a forward, out-of-place transform of a single signal,
-//    auto condition1D = []
-//            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
-//        return isForward && (!inPlace) && is1D(x, y, z) && (1 == n);
-//    };
-//    auto condition2D = []
-//            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
-//        return isForward && (!inPlace) && is2D(x, y, z) && (1 == n);
-//    };
-//    auto condition3D = []
-//            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
-//        return isForward && (!inPlace) && is3D(x, y, z) && (1 == n);
-//    };
-//    generateAndTest<TypeParam>(condition1D);
-//    generateAndTest<TypeParam>(condition2D);
-//    generateAndTest<TypeParam>(condition3D);
+    // test a forward, out-of-place transform of a single signal,
+    auto condition1D = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        return isForward && (!inPlace) && is1D(x, y, z) && (1 == n);
+    };
+    auto condition2D = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        return isForward && (!inPlace) && is2D(x, y, z) && (1 == n);
+    };
+    auto condition3D = []
+            (size_t x, size_t y, size_t z, size_t n, size_t batch, size_t inPlace, size_t isForward) {
+        return isForward && (!inPlace) && is3D(x, y, z) && (1 == n);
+    };
+    generateAndTest<TypeParam>(condition1D);
+    generateAndTest<TypeParam>(condition2D);
+    generateAndTest<TypeParam>(condition3D);
 }
 //
 //TYPED_TEST_P( FFTTest, fft_OOP_Batch1)
@@ -855,5 +857,5 @@ REGISTER_TYPED_TEST_CASE_P(FFTTest,
 //    IP_Batch3
 );
 
-typedef ::testing::Types<float> TestTypes; // FIXME DS add double
+typedef ::testing::Types<float, double> TestTypes; // FIXME DS add double
 INSTANTIATE_TYPED_TEST_CASE_P(, FFTTest, TestTypes);
