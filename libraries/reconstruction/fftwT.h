@@ -63,13 +63,17 @@ public:
     }
     void init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reuse=true);
     void release();
-//    std::complex<T>* fft(T *inOut);
+    std::complex<T>* fft(T *inOut);
     std::complex<T>* fft(const T *in, std::complex<T> *out);
 
-    static std::complex<double>* fft(const fftw_plan plan,
-            const double *in, std::complex<double> *out);
-    static std::complex<float>* fft(const fftwf_plan plan,
-            const float *in, std::complex<float> *out);
+
+    template<typename P>
+    static std::complex<T>* fft(const P plan,
+            const T *in, std::complex<T> *out);
+
+    template<typename P>
+    static std::complex<T>* fft(const P plan,
+            T *inOut);
 
     static const fftw_plan createPlan(
             const CPU &cpu,
