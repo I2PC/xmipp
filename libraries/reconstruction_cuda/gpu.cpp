@@ -31,7 +31,7 @@
 
 GPU::~GPU() {
     if (m_isSet) {
-        synchStream();
+        synch();
         auto s = (cudaStream_t*)m_stream;
         gpuErrchk(cudaStreamDestroy(*s));
         delete (cudaStream_t*)m_stream;
@@ -102,12 +102,12 @@ int GPU::getDeviceCount() {
     return deviceCount;
 }
 
-void GPU::synch() const {
+void GPU::synchAll() const {
     check();
     gpuErrchk(cudaDeviceSynchronize());
 }
 
-void GPU::synchStream() const {
+void GPU::synch() const {
     check();
     auto stream = (cudaStream_t*)m_stream;
     gpuErrchk(cudaStreamSynchronize(*stream));
