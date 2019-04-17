@@ -101,6 +101,11 @@ void FFTwT<T>::release() {
 }
 
 template<typename T>
+std::complex<T>* FFTwT<T>::fft(T *inOut) {
+    return fft(inOut, (std::complex<T>*) inOut);
+}
+
+template<typename T>
 std::complex<T>* FFTwT<T>::fft(const T *in,
         std::complex<T> *out) {
     auto isReady = m_isInit && m_settings->isForward();
@@ -232,15 +237,25 @@ void FFTwT<double>::release(fftw_plan plan) {
 }
 
 template<>
+template<>
 std::complex<float>* FFTwT<float>::fft(const fftwf_plan plan, const float *in, std::complex<float> *out) {
+    // we can remove the const cast, as our plans do not touch input array
     fftwf_execute_dft_r2c(plan, (float*)in, (fftwf_complex*) out);
     return out;
 }
 
 template<>
+template<>
 std::complex<double>* FFTwT<double>::fft(const fftw_plan plan, const double *in, std::complex<double> *out) {
+    // we can remove the const cast, as our plans do not touch input array
     fftw_execute_dft_r2c(plan, (double*)in, (fftw_complex*) out);
     return out;
+}
+
+template<typename T>
+template<typename P>
+std::complex<T>* FFTwT<T>::fft(const P plan, T *inOut) {
+    return fft(plan, inOut, (std::complex<T>*)inOut);
 }
 
 // explicit instantiation
