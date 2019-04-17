@@ -36,7 +36,7 @@ void correlate2DNoCenter(size_t n, size_t batch) {
     aligner.init2D(gpu, AlignType::OneToN, dims);
     aligner.load2DReferenceOneToN(ref);
     aligner.template computeCorrelations2DOneToN<false>(inOut);
-    gpu.synchStream();
+    gpu.synch();
 
     T delta = 0.0001;
     for (int n = 0; n < dims.fDim().n(); ++n) {
