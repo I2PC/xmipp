@@ -3,13 +3,15 @@
 #include <set>
 #include "core/utils/memory_utils.h"
 #include "reconstruction/fftwT.h"
+#include <thread>
+#include "data/cpu.h"
 
 template<typename T>
 class FFTTest : public ::testing::Test { };
 TYPED_TEST_CASE_P(FFTTest);
 
 template<typename T>
-void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
+void testFFTInpulseShifted(const CPU &cpu, const FFTSettingsNew<T> &s) {
     using std::complex;
 
     // this test needs at least two elements in X dim
@@ -29,7 +31,7 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
     }
 
     auto ft = FFTwT<T>();
-    ft.init( s);
+    ft.init(cpu, s);
     ft.fft(in, out);
 
     T delta = (T)0.00001;
@@ -48,7 +50,7 @@ void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
 }
 
 template<typename T>
-void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
+void testFFTInpulseOrigin(const CPU &cpu, const FFTSettingsNew<T> &s) {
     using std::complex;
 
     auto in = new T[s.sDim().sizePadded()]();
@@ -65,7 +67,7 @@ void testFFTInpulseOrigin(const FFTSettingsNew<T> &s) {
     }
 
     auto ft = FFTwT<T>();
-    ft.init(s);
+    ft.init(cpu, s);
     ft.fft(in, out);
 
     T delta = (T)0.00001;
@@ -219,6 +221,9 @@ void generateAndTest(F condition, bool bothDirections = false) {
     int seed = 42;
     std::mt19937 mt(seed);
     std::uniform_int_distribution<> dist(0, 4097);
+
+    auto device = CPU(CPU::findCores());
+
 //    auto gpu = GPU();
 //    gpu.set();
 //    T availableBytes = gpu.lastFreeBytes();
@@ -251,8 +256,8 @@ void generateAndTest(F condition, bool bothDirections = false) {
 //                testFFTIFFT(gpu, settings);
             } else {
                 if (isForward) {
-                    testFFTInpulseOrigin(settings);
-                    testFFTInpulseShifted(settings);
+                    testFFTInpulseOrigin(device, settings);
+                    testFFTInpulseShifted(device, settings);
 //                } else {
 //                    testIFFTInpulseOrigin(gpu, settings);
                 }
