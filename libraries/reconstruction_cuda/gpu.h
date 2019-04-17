@@ -29,11 +29,14 @@
 #include <cstddef>
 #include <iosfwd>
 #include <assert.h>
+
+#include "data/hw.h"
 #include "core/xmipp_error.h"
 
-class GPU {
+class GPU : public HW {
 public:
     explicit GPU(int device = 0, int stream = 0):
+        HW(1),
         m_lastFreeBytes(0), m_totalBytes(0), m_device(device),
         m_streamId(stream), m_stream(nullptr),
         m_isSet(false) {};
@@ -78,7 +81,7 @@ public:
 
     void set();
 
-    void synchStream() const;
+    void synchAll() const;
 
     void synch() const;
 
