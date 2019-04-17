@@ -29,12 +29,33 @@
 #include <fftw3.h>
 #include <array>
 //#include <type_traits>
-//#include "core/xmipp_error.h"
+#include "core/xmipp_error.h"
 #include "data/fft_settings_new.h"
+
+
+namespace FFTwT_planType {
+    template<class T>
+    struct plan{ typedef T type; };
+    template<>
+    struct plan<float>{ typedef fftwf_plan type; };
+    template<>
+    struct plan<double>{ typedef fftw_plan type; };
+}
 
 template<typename T>
 class FFTwT {
 public:
+
+    FFTwT() {
+        setDefault();
+    };
+    ~FFTwT() {
+        release();
+    }
+    void init(const FFTSettingsNew<T> &settings, bool reuse=true);
+    void release();
+//    std::complex<T>* fft(T *inOut);
+    std::complex<T>* fft(const T *in, std::complex<T> *out);
 
     static std::complex<double>* fft(const fftw_plan plan,
             const double *in, std::complex<double> *out);
@@ -48,12 +69,27 @@ public:
 
     static void release(fftw_plan plan);
     static void release(fftwf_plan plan);
+    static void release(void* plan);
 
 private:
     static void *m_mockOut;
+
+    void *m_plan;
+    const FFTSettingsNew<T> *m_settings;
+    T *m_SD;
+    std::complex<T> *m_FD;
+
+    bool m_isInit;
+
     template<typename U, typename F>
     static U planHelper(const FFTSettingsNew<T> &settings, F function);
 
+    void setDefault();
+    void check();
+
+    static typename FFTwT_planType::plan<T>::type cast(void *p) {
+        return static_cast<typename FFTwT_planType::plan<T>::type>(p);
+    }
 };
 
 #endif /* LIBRARIES_RECONSTRUCTION_FFTWT_H_ */
