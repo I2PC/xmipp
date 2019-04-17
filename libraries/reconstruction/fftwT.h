@@ -31,6 +31,7 @@
 //#include <type_traits>
 #include "core/xmipp_error.h"
 #include "data/fft_settings_new.h"
+#include "data/cpu.h"
 
 
 namespace FFTwT_planType {
@@ -42,6 +43,14 @@ namespace FFTwT_planType {
     struct plan<double>{ typedef fftw_plan type; };
 }
 
+class FFTwT_Startup {
+public:
+    FFTwT_Startup() { fftw_init_threads(); }
+    ~FFTwT_Startup() { fftw_cleanup_threads(); }
+};
+
+FFTwT_Startup fftwt_startup;
+
 template<typename T>
 class FFTwT {
 public:
@@ -52,7 +61,7 @@ public:
     ~FFTwT() {
         release();
     }
-    void init(const FFTSettingsNew<T> &settings, bool reuse=true);
+    void init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reuse=true);
     void release();
 //    std::complex<T>* fft(T *inOut);
     std::complex<T>* fft(const T *in, std::complex<T> *out);
@@ -63,8 +72,10 @@ public:
             const float *in, std::complex<float> *out);
 
     static const fftw_plan createPlan(
+            const CPU &cpu,
             const FFTSettingsNew<double> &settings);
     static const fftwf_plan createPlan(
+            const CPU &cpu,
             const FFTSettingsNew<float> &settings);
 
     static void release(fftw_plan plan);
@@ -79,10 +90,12 @@ private:
     T *m_SD;
     std::complex<T> *m_FD;
 
+    const CPU *m_cpu;
+
     bool m_isInit;
 
     template<typename U, typename F>
-    static U planHelper(const FFTSettingsNew<T> &settings, F function);
+    static U planHelper(const FFTSettingsNew<T> &settings, F function, int threads);
 
     void setDefault();
     void check();
