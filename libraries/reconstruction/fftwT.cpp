@@ -26,7 +26,7 @@
 #include "fftwT.h"
 
 template<typename T>
-void FFTwT<T>::init(const FFTSettingsNew<T> &settings, bool reuse) {
+void FFTwT<T>::init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
             && (m_settings->sBytesBatch() <= settings.sBytesBatch())
@@ -39,10 +39,11 @@ void FFTwT<T>::init(const FFTSettingsNew<T> &settings, bool reuse) {
     release(m_plan);
 
     m_settings = &settings;
+    m_cpu = &cpu;
 
     check();
 
-    m_plan = createPlan(*m_settings);
+    m_plan = createPlan(*m_cpu, *m_settings);
     if (mustAllocate) {
         // allocate input data storage
         m_SD = (T*)fftw_malloc(m_settings->sBytesBatch());
@@ -129,7 +130,7 @@ std::complex<T>* FFTwT<T>::fft(const T *in,
 }
 
 template<>
-const fftwf_plan FFTwT<float>::createPlan(const FFTSettingsNew<float> &settings) {
+const fftwf_plan FFTwT<float>::createPlan(const CPU &cpu, const FFTSettingsNew<float> &settings) {
     auto f = [&] (int rank, const int *n, int howmany,
             void *in, const int *inembed,
             int istride, int idist,
@@ -152,11 +153,11 @@ const fftwf_plan FFTwT<float>::createPlan(const FFTSettingsNew<float> &settings)
                 flags);
         }
     };
-    return planHelper<const fftwf_plan>(settings, f);
+    return planHelper<const fftwf_plan>(settings, f, cpu.noOfParallUnits());
 }
 
 template<>
-const fftw_plan FFTwT<double>::createPlan(const FFTSettingsNew<double> &settings) {
+const fftw_plan FFTwT<double>::createPlan(const CPU &cpu, const FFTSettingsNew<double> &settings) {
     auto f = [&] (int rank, const int *n, int howmany,
             void *in, const int *inembed,
             int istride, int idist,
@@ -179,13 +180,13 @@ const fftw_plan FFTwT<double>::createPlan(const FFTSettingsNew<double> &settings
                 flags);
         }
     };
-    auto result = planHelper<const fftw_plan>(settings, f);
+    auto result = planHelper<const fftw_plan>(settings, f, cpu.noOfParallUnits());
     return result;
 }
 
 template<typename T>
 template<typename U, typename F>
-U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function) {
+U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function, int threads) {
     auto n = std::array<int, 3>{(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
     int rank = 3;
     if (settings.sDim().z() == 1) rank--;
@@ -206,6 +207,7 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function) {
         idist = settings.fDim().xyzPadded();
         odist = settings.sDim().xyzPadded();
     }
+    fftw_plan_with_nthreads(threads);
     auto tmp = function(rank, &n[offset], settings.batch(),
             in, nullptr,
             1, idist,
@@ -234,8 +236,6 @@ std::complex<float>* FFTwT<float>::fft(const fftwf_plan plan, const float *in, s
     fftwf_execute_dft_r2c(plan, (float*)in, (fftwf_complex*) out);
     return out;
 }
-
-
 
 template<>
 std::complex<double>* FFTwT<double>::fft(const fftw_plan plan, const double *in, std::complex<double> *out) {
