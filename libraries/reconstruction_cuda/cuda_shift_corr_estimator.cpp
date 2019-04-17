@@ -319,7 +319,7 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
             nDim * centerSize * centerSize * sizeof(T),
             cudaMemcpyDeviceToHost, stream));
 
-    gpu.synchStream();
+    gpu.synch();
 
     // compute shifts
     auto result = std::vector<Point2D<int>>();
