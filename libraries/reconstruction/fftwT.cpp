@@ -45,22 +45,41 @@ void FFTwT<T>::init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reus
 
     m_plan = createPlan(*m_cpu, *m_settings);
     if (mustAllocate) {
-        // allocate input data storage
-        m_SD = (T*)fftw_malloc(m_settings->sBytesBatch());
-        if (m_settings->isInPlace()) {
-            // input data holds also the output
-            m_FD = (std::complex<T>*)m_SD;
-        } else {
-            // allocate also the output buffer
-            m_FD = (std::complex<T>*)fftw_malloc(m_settings->fBytesBatch());
-        }
+        allocate();
     }
 
     m_isInit = true;
 }
 
+template<>
+void FFTwT<float>::allocate() {
+    // allocate input data storage
+    m_SD = (float*)fftwf_malloc(m_settings->sBytesBatch());
+    if (m_settings->isInPlace()) {
+        // input data holds also the output
+        m_FD = (std::complex<float>*)m_SD;
+    } else {
+        // allocate also the output buffer
+        m_FD = (std::complex<float>*)fftwf_malloc(m_settings->fBytesBatch());
+    }
+}
+
+template<>
+void FFTwT<double>::allocate() {
+    // allocate input data storage
+    m_SD = (double*)fftw_malloc(m_settings->sBytesBatch());
+    if (m_settings->isInPlace()) {
+        // input data holds also the output
+        m_FD = (std::complex<double>*)m_SD;
+    } else {
+        // allocate also the output buffer
+        m_FD = (std::complex<double>*)fftw_malloc(m_settings->fBytesBatch());
+    }
+}
+
 template<typename T>
-void FFTwT<T>::release(void *plan) {
+template<typename P>
+void FFTwT<T>::release(P plan) {
     if (nullptr != plan) {
         FFTwT<T>::release(cast(plan));
     }
@@ -92,12 +111,25 @@ void FFTwT<T>::setDefault() {
 
 template<typename T>
 void FFTwT<T>::release() {
+    release(m_SD, m_FD);
+    release(m_plan);
+    setDefault();
+}
+
+template<>
+void FFTwT<double>::release(double *SD, std::complex<double> *FD) {
     fftw_free(m_SD);
     if ((void*)m_FD != (void*)m_SD) {
         fftw_free(m_FD);
     }
-    release(m_plan);
-    setDefault();
+}
+
+template<>
+void FFTwT<float>::release(float *SD, std::complex<float> *FD) {
+    fftwf_free(m_SD);
+    if ((void*)m_FD != (void*)m_SD) {
+        fftwf_free(m_FD);
+    }
 }
 
 template<typename T>
@@ -130,6 +162,40 @@ std::complex<T>* FFTwT<T>::fft(const T *in,
         memcpy(out + offset * m_settings->fDim().xyzPadded(),
                 m_FD,
                 toProcess * m_settings->fBytesSingle());
+    }
+    return out;
+}
+
+template<typename T>
+T* FFTwT<T>::ifft(std::complex<T> *inOut) {
+    return ifft(inOut, (T*) inOut);
+}
+
+template<typename T>
+T* FFTwT<T>::ifft(const std::complex<T> *in,
+        T *out) {
+    auto isReady = m_isInit && ( ! m_settings->isForward());
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Inverse Fourier Transform. "
+                "Call init() function first");
+    }
+
+    // process signals in batches
+    for (size_t offset = 0; offset < m_settings->fDim().n(); offset += m_settings->batch()) {
+        // how many signals to process
+        size_t toProcess = std::min(m_settings->batch(), m_settings->fDim().n() - offset);
+
+        // copy memory
+        memcpy(m_FD,
+                in + offset * m_settings->fDim().xyzPadded(),
+                toProcess * m_settings->fBytesSingle());
+
+        ifft(cast(m_plan), m_FD, m_SD);
+
+        // copy data back
+        memcpy(out + offset * m_settings->sDim().xyzPadded(),
+                m_SD,
+                toProcess * m_settings->sBytesSingle());
     }
     return out;
 }
@@ -201,7 +267,9 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function, int thread
     void *in = nullptr;
     void *out = settings.isInPlace() ? in : &m_mockOut;
 
-    auto flags =  FFTW_ESTIMATE |  FFTW_PRESERVE_INPUT |  FFTW_UNALIGNED;
+    // no input-preserving algorithms are implemented for multi-dimensional c2r transforms
+    // see http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags
+    auto flags =  FFTW_ESTIMATE | FFTW_UNALIGNED | (settings.isForward() ? FFTW_PRESERVE_INPUT : FFTW_DESTROY_INPUT);
 
     int idist;
     int odist;
@@ -212,7 +280,10 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function, int thread
         idist = settings.fDim().xyzPadded();
         odist = settings.sDim().xyzPadded();
     }
+    // set threads
     fftw_plan_with_nthreads(threads);
+    fftwf_plan_with_nthreads(threads);
+
     auto tmp = function(rank, &n[offset], settings.batch(),
             in, nullptr,
             1, idist,
@@ -226,10 +297,13 @@ template<typename T>
 void* FFTwT<T>::m_mockOut = {};
 
 template<>
+template<>
 void FFTwT<float>::release(fftwf_plan plan) {
     fftwf_destroy_plan(plan);
     plan = nullptr;
 }
+
+template<>
 template<>
 void FFTwT<double>::release(fftw_plan plan) {
     fftw_destroy_plan(plan);
@@ -256,6 +330,28 @@ template<typename T>
 template<typename P>
 std::complex<T>* FFTwT<T>::fft(const P plan, T *inOut) {
     return fft(plan, inOut, (std::complex<T>*)inOut);
+}
+
+template<>
+template<>
+float* FFTwT<float>::ifft(const fftwf_plan plan, std::complex<float> *in, float *out) {
+    // we can remove the const cast, as our plans do not touch input array
+    fftwf_execute_dft_c2r(plan, (fftwf_complex*)in, (float*) out);
+    return out;
+}
+
+template<>
+template<>
+double* FFTwT<double>::ifft(const fftw_plan plan, std::complex<double> *in, double *out) {
+    // we can remove the const cast, as our plans do not touch input array
+    fftw_execute_dft_c2r(plan, (fftw_complex*)in, (double*) out);
+    return out;
+}
+
+template<typename T>
+template<typename P>
+T* FFTwT<T>::ifft(const P plan, std::complex<T> *inOut) {
+    return fft(plan, inOut, (T*)inOut);
 }
 
 // explicit instantiation
