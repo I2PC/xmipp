@@ -720,13 +720,16 @@ def configCuda(configDict):
                     return
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
+            # in case user specified some wrapper of the compiler
+            # get rid of it: 'ccache g++' -> 'g++'
+            candidate = configDict["CXX"].split()[-1]
+            cxxVersion, cxxStrVersion = getGccVersion(candidate)
             if cxxVersion > 5:
-                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % configDict["CXX"]))
-                if checkProgram(configDict["CXX"]+"-5"):
-                    configDict["CXX_CUDA"] = configDict["CXX"]+"-5"
-                elif checkProgram(configDict["CXX"]+"-4.8"):
-                    configDict["CXX_CUDA"] = configDict["CXX"]+"-4.8"
+                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % candidate))
+                if checkProgram(candidate+"-5"):
+                    configDict["CXX_CUDA"] = candidate+"-5"
+                elif checkProgram(candidate+"-4.8"):
+                    configDict["CXX_CUDA"] = candidate+"-4.8"
                 else:
                     print(red("No alternative found. Skipping CUDA compilation.\n"
                               "If an alternative exists, please set 'CXX_CUDA' in 'xmipp.conf' to point to there."))
@@ -734,7 +737,7 @@ def configCuda(configDict):
                     return
                 print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
             else:
-                configDict["CXX_CUDA"] = configDict["CXX"]
+                configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                            "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
         if configDict["NVCC_LINKFLAGS"]=="":
