@@ -1,7 +1,7 @@
 language: c++
 sudo: true
 dist: trusty
-env: TRAVIS=1 XMIPP_NOSCIPION=True CCACHE_COMPILERCHECK=content
+env: TRAVIS=1 XMIPP_NOSCIPION=True CCACHE_COMPILERCHECK=content CUDA_VER=8.0.61-1 CUDA_INSTALL_EXTRA_LIBS=1
 git:
     depth: false # to get blame information for SonarCloud
 addons:
@@ -15,6 +15,7 @@ cache: ccache
 
 before_install:
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
+ - source scripts/install_cuda_travis.sh
 script:
  - |
      python ./scripts/travis_before_script.py && \
