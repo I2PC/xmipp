@@ -45,8 +45,15 @@ namespace FFTwT_planType {
 
 class FFTwT_Startup {
 public:
-    FFTwT_Startup() { fftw_init_threads(); }
-    ~FFTwT_Startup() { fftw_cleanup_threads(); }
+    FFTwT_Startup() {
+        fftw_init_threads();
+        fftwf_init_threads();}
+    ~FFTwT_Startup() {
+        fftw_cleanup();
+        fftwf_cleanup();
+        fftw_cleanup_threads();
+        fftwf_cleanup_threads();
+    }
 };
 
 FFTwT_Startup fftwt_startup;
@@ -66,14 +73,22 @@ public:
     std::complex<T>* fft(T *inOut);
     std::complex<T>* fft(const T *in, std::complex<T> *out);
 
+    T* ifft(std::complex<T> *inOut);
+    T* ifft(const std::complex<T> *in, T *out);
 
     template<typename P>
     static std::complex<T>* fft(const P plan,
             const T *in, std::complex<T> *out);
-
     template<typename P>
     static std::complex<T>* fft(const P plan,
             T *inOut);
+
+    template<typename P>
+    static T* ifft(const P plan,
+            std::complex<T> *in, T *out); // no const in as it can be overwritten!
+    template<typename P>
+    static T* ifft(const P plan,
+            std::complex<T> *inOut);
 
     static const fftw_plan createPlan(
             const CPU &cpu,
@@ -82,9 +97,8 @@ public:
             const CPU &cpu,
             const FFTSettingsNew<float> &settings);
 
-    static void release(fftw_plan plan);
-    static void release(fftwf_plan plan);
-    static void release(void* plan);
+    template<typename P>
+    static void release(P plan);
 
 private:
     static void *m_mockOut;
@@ -103,6 +117,9 @@ private:
 
     void setDefault();
     void check();
+    void allocate();
+
+    void release(T *SD, std::complex<T> *FD);
 
     static typename FFTwT_planType::plan<T>::type cast(void *p) {
         return static_cast<typename FFTwT_planType::plan<T>::type>(p);
