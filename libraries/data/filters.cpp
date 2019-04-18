@@ -1567,7 +1567,7 @@ T bestShift(MultidimArray<T> &Mcorr,
     else
     {
     	int maxShift2=maxShift*maxShift;
-    	double bestCorr=-1e38;
+    	double bestCorr=std::numeric_limits<T>::lowest();
     	for (int i=-maxShift; i<=maxShift; i++)
     		for (int j=-maxShift; j<=maxShift; j++)
     		{
