@@ -26,20 +26,25 @@
 #include "fftwT.h"
 
 template<typename T>
-void FFTwT<T>::init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reuse) {
+void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
-            && (m_settings->sBytesBatch() <= settings.sBytesBatch())
-            && (m_settings->fBytesBatch() <= settings.fBytesBatch());
+            && (m_settings->sBytesBatch() >= settings.sBytesBatch())
+            && (m_settings->fBytesBatch() >= settings.fBytesBatch());
     bool mustAllocate = !canReuse;
     if (mustAllocate) {
         release();
     }
-    // previous plan has to be released, otherwise we will get GPU memory leak
+    // previous plan has to be released, otherwise we will get CPU memory leak
     release(m_plan);
+    delete m_settings;
 
-    m_settings = &settings;
-    m_cpu = &cpu;
+    m_settings = new FFTSettingsNew<T>(settings);
+    try {
+        m_cpu = &dynamic_cast<const CPU&>(cpu);
+    } catch (std::bad_cast&) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
+    }
 
     check();
 
@@ -49,6 +54,13 @@ void FFTwT<T>::init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reus
     }
 
     m_isInit = true;
+}
+
+template<typename T>
+size_t FFTwT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
+    // FIXME DS measure if this is true
+    // assuming that the plan will need 'batch' size
+    return settings.maxBytesBatch();
 }
 
 template<>
@@ -113,6 +125,7 @@ template<typename T>
 void FFTwT<T>::release() {
     release(m_SD, m_FD);
     release(m_plan);
+    delete m_settings;
     setDefault();
 }
 
