@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_AFFT_TRANSFORMER_H_
-#define LIBRARIES_DATA_AFFT_TRANSFORMER_H_
+#ifndef LIBRARIES_DATA_AFT_H_
+#define LIBRARIES_DATA_AFT_H_
 
 #include <type_traits>
 #include <complex>
@@ -32,8 +32,10 @@
 #include "data/fft_settings_new.h"
 
 template<typename T>
-class AFFTTransformer {
+class AFT {
 public:
+    virtual ~AFT() {}; // do nothing
+
     // utility functions
     virtual void init(const HW &hw, const FFTSettingsNew<T> &settings, bool reuse=true) = 0;
     virtual void release() = 0;
@@ -56,4 +58,4 @@ protected:
     virtual void setDefault() = 0;
 };
 
-#endif /* LIBRARIES_DATA_AFFT_TRANSFORMER_H_ */
+#endif /* LIBRARIES_DATA_AFT_H_ */
