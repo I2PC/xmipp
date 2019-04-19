@@ -28,11 +28,11 @@
 
 
 #include <array>
-#include <type_traits>
+#include <typeinfo>
 #include "core/xmipp_error.h"
 #include "core/utils/memory_utils.h"
-#include "data/fft_settings_new.h"
 #include "core/optional.h"
+#include "data/afft_transformer.h"
 #include "gpu.h"
 
 // XXX HACK to avoid including cufft.h in this header
@@ -41,7 +41,7 @@
 typedef int cufftHandle;
 
 template<typename T>
-class CudaFFT {
+class CudaFFT : public AFFTTransformer<T> {
 public:
     CudaFFT() {
         setDefault();
@@ -49,7 +49,7 @@ public:
     ~CudaFFT() {
         release();
     }
-    void init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool reuse=true);
+    void init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reuse=true);
     void release();
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
@@ -58,8 +58,7 @@ public:
     T* ifft(const std::complex<T> *h_in, T *h_out);
 
 
-    static size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
-    static size_t estimateTotalBytes(const FFTSettingsNew<T> &settings);
+    size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
     static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);
