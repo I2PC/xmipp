@@ -29,9 +29,10 @@
 #include <fftw3.h>
 #include <array>
 #include <typeinfo>
+
+#include "data/aft.h"
 #include "core/xmipp_error.h"
 #include "data/cpu.h"
-#include "data/afft_transformer.h"
 
 
 namespace FFTwT_planType {
@@ -59,7 +60,7 @@ public:
 FFTwT_Startup fftwt_startup;
 
 template<typename T>
-class FFTwT : public AFFTTransformer<T> {
+class FFTwT : public AFT<T> {
 public:
 
     FFTwT() {
