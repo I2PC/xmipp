@@ -27,6 +27,7 @@
 #define LIBRARIES_DATA_CPU_H_
 
 #include <thread>
+#include <unistd.h>
 #include "hw.h"
 
 class CPU : public HW {
@@ -36,6 +37,18 @@ public:
     static unsigned findCores() {
         return std::max(std::thread::hardware_concurrency(), 1u);
     }
+
+    void synch() const {}; // nothing to do
+    void synchAll() const {}; // nothing to do
+
+    void updateMemoryInfo();
+
+protected:
+    void obtainUUID();
+
+private:
+    void native_cpuid(unsigned int *eax, unsigned int *ebx,
+            unsigned int *ecx, unsigned int *edx);
 };
 
 
