@@ -26,7 +26,7 @@ class AFT_Test;
 
 #define EXECUTIONS 20
 
-#include "afft_transformer_tests.h"
+#include "aft_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(Cuda, AFT_Test, TestTypes);
