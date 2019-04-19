@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 #include <random>
 #include <set>
-#include "data/afft_transformer.h"
+
+#include "../../../libraries/data/aft.h"
 
 template<typename T>
 class AFT_Test : public ::testing::Test {
@@ -264,7 +265,7 @@ public:
     }
 
 private:
-    AFFTTransformer<T> *ft;
+    AFT<T> *ft;
     static HW *hw;
 
 };
