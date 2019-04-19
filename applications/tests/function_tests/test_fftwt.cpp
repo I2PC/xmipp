@@ -22,9 +22,9 @@ class AFT_Test;
     auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513}; \
     auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513};
 
-#define EXECUTIONS 2
+#define EXECUTIONS 10
 
-#include "afft_transformer_tests.h"
+#include "aft_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(Cpu, AFT_Test, TestTypes);
