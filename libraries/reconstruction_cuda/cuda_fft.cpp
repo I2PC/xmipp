@@ -29,7 +29,7 @@
 #include "cuFFTAdvisor/advisor.h"
 
 template<typename T>
-void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool reuse) {
+void CudaFFT<T>::init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
             && (m_settings->sBytesBatch() >= settings.sBytesBatch())
@@ -44,7 +44,11 @@ void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool re
     delete m_settings;
 
     m_settings = new FFTSettingsNew<T>(settings);
-    m_gpu = &gpu;
+    try {
+        m_gpu = &dynamic_cast<const GPU&>(gpu);
+    } catch (std::bad_cast&) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
+    }
 
     check();
 
@@ -211,14 +215,6 @@ size_t CudaFFT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
 }
 
 template<typename T>
-size_t CudaFFT<T>::estimateTotalBytes(const FFTSettingsNew<T> &settings) {
-    size_t planBytes = estimatePlanBytes(settings);
-    size_t dataBytes = settings.sBytesBatch()
-            + (settings.isInPlace() ? 0 : settings.fBytesBatch());
-    return planBytes + dataBytes;
-}
-
-template<typename T>
 std::complex<T>* CudaFFT<T>::fft(cufftHandle plan, const T *d_in,
         std::complex<T> *d_out) {
     if (std::is_same<T, float>::value) {
@@ -292,7 +288,7 @@ FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
     while (batch > 1) {
         batch--;
         auto tmp = FFTSettingsNew<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
-        size_t totalBytes = estimateTotalBytes(tmp);
+        size_t totalBytes = CudaFFT<T>().estimateTotalBytes(tmp);
         if (totalBytes <= maxBytes) {
             return tmp;
         }
