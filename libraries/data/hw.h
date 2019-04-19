@@ -26,19 +26,52 @@
 #ifndef LIBRARIES_DATA_HW_H_
 #define LIBRARIES_DATA_HW_H_
 
+#include <string>
+#include <cstddef>
+
+
 class HW {
 public:
-    explicit constexpr HW(unsigned parallelUnits) :
-        m_parallUnits(parallelUnits) {}
-    inline constexpr unsigned noOfParallUnits() const {
+    explicit HW(unsigned parallelUnits) :
+        m_parallUnits(parallelUnits),
+        m_lastFreeBytes(0),
+        m_totalBytes(0) {}
+
+    inline unsigned noOfParallUnits() const {
         return m_parallUnits;
     }
-    virtual void synch() const {}
-    virtual void synchAll() const {}
+
+    virtual void synch() const = 0;
+    virtual void synchAll() const = 0;
+    virtual void set() {
+        updateMemoryInfo();
+        obtainUUID();
+    }
+
+    virtual void updateMemoryInfo() = 0;
+
+    virtual inline size_t lastFreeBytes() const {
+        return m_lastFreeBytes;
+    }
+
+    virtual inline size_t totalBytes() const {
+        return m_totalBytes;
+    }
+
+    virtual inline size_t lastUsedBytes() const {
+        return m_totalBytes - m_lastFreeBytes;
+    }
+
+    virtual std::string getUUID() const {
+        return m_uuid;
+    }
 protected:
     unsigned m_parallUnits;
+    size_t m_totalBytes;
+    size_t m_lastFreeBytes;
+    std::string m_uuid;
+
+    virtual void obtainUUID() = 0;
 };
-
-
 
 #endif /* LIBRARIES_DATA_HW_H_ */
