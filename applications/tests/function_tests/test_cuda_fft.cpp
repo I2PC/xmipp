@@ -2,7 +2,7 @@
 #include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
-class AFFT_Transformer;
+class AFT_Test;
 
 #define SETUP \
     void SetUp() { \
@@ -29,4 +29,4 @@ class AFFT_Transformer;
 #include "afft_transformer_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(Cuda, AFFT_Transformer, TestTypes);
+INSTANTIATE_TYPED_TEST_CASE_P(Cuda, AFT_Test, TestTypes);
