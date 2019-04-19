@@ -6,13 +6,11 @@ class AFT_Test;
 
 #define SETUP \
     void SetUp() { \
-        printf("SetUp\n"); \
         ft = new CudaFFT<T>(); \
     }
 
 #define SETUPTESTCASE \
     static void SetUpTestCase() { \
-        printf("SetUpTestCase\n"); \
         hw = new GPU(); \
         hw->set(); \
     }
