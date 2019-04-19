@@ -28,10 +28,10 @@
 
 #include <fftw3.h>
 #include <array>
-//#include <type_traits>
+#include <typeinfo>
 #include "core/xmipp_error.h"
-#include "data/fft_settings_new.h"
 #include "data/cpu.h"
+#include "data/afft_transformer.h"
 
 
 namespace FFTwT_planType {
@@ -59,7 +59,7 @@ public:
 FFTwT_Startup fftwt_startup;
 
 template<typename T>
-class FFTwT {
+class FFTwT : public AFFTTransformer<T> {
 public:
 
     FFTwT() {
@@ -68,8 +68,9 @@ public:
     ~FFTwT() {
         release();
     }
-    void init(const CPU &cpu, const FFTSettingsNew<T> &settings, bool reuse=true);
+    void init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse=true);
     void release();
+    size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
     std::complex<T>* fft(T *inOut);
     std::complex<T>* fft(const T *in, std::complex<T> *out);
 
