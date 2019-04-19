@@ -53,8 +53,7 @@ void GPU::set() {
     // remember the state
     m_isSet = true;
     // get additional info
-    updateMemoryInfo();
-    obtainUUID();
+    HW::set();
 
     peekLastError();
 }

@@ -20,13 +20,13 @@ public:
 
     static void SetUpTestCase() {
         printf("SetUpTestCase\n");
-        gpu = new GPU();
-        gpu->set();
+        hw = new GPU();
+        hw->set();
     }
 
     static void TearDownTestCase() {
         printf("TearDownTestCase\n");
-        delete gpu;
+        delete hw;
     }
 
     void testFFTInpulseShifted(const FFTSettingsNew<T> &s) {
@@ -48,9 +48,9 @@ public:
             in[n * s.sDim().xyzPadded() + 1] = T(1);
         }
 
-        ft->init(*gpu, s);
+        ft->init(*hw, s);
         ft->fft(in, out);
-        gpu->synch();
+        hw->synch();
 
         T delta = (T)0.00001;
         for (size_t i = 0; i < s.fDim().size(); ++i) {
@@ -83,9 +83,9 @@ public:
             in[n * s.sDim().xyzPadded()] = T(1);
         }
 
-        ft->init(*gpu, s);
+        ft->init(*hw, s);
         ft->fft(in, out);
-        gpu->synch();
+        hw->synch();
 
         T delta = (T)0.00001;
         for (size_t i = 0; i < s.fDim().size(); ++i) {
@@ -116,9 +116,9 @@ public:
             in[n] = {T(1), 0};
         }
 
-        ft->init(*gpu, s);
+        ft->init(*hw, s);
         ft->ifft(in, out);
-        gpu->synch();
+        hw->synch();
 
         T delta = (T)0.0001;
         for (size_t n = 0; n < s.sDim().n(); ++n) {
@@ -179,11 +179,11 @@ public:
 
         auto forward = s.isForward() ? s : s.createInverse();
         auto inverse = s.isForward() ? s.createInverse() : s;
-        ft->init(*gpu, forward);
+        ft->init(*hw, forward);
         ft->fft(inOut, fd);
-        ft->init(*gpu, inverse);
+        ft->init(*hw, inverse);
         ft->ifft(fd, inOut);
-        gpu->synch();
+        hw->synch();
 
         // compare the results
         T delta = (T)0.00001;
@@ -234,8 +234,8 @@ public:
         int seed = 42;
         std::mt19937 mt(seed);
         std::uniform_int_distribution<> dist(0, 4097);
-        size_t availableBytes = gpu->lastFreeBytes();
-        while ((executed < 5)
+        size_t availableBytes = hw->lastFreeBytes();
+        while ((executed < 2)
                 && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
             size_t x = xSet.at(dist(mt) % xSet.size());
             size_t y = ySet.at(dist(mt) % ySet.size());
@@ -248,7 +248,7 @@ public:
             auto settings = FFTSettingsNew<T>(x, y, z, n, b, inPlace, isForward);
             if (condition(x, y, z, n, b, inPlace, isForward)) {
                 // make sure we have enough memory
-                size_t totalBytes = CudaFFT<T>::estimateTotalBytes(settings);
+                size_t totalBytes = ft->estimateTotalBytes(settings);
                 if (availableBytes < totalBytes) {
                     skippedSize++;
                     continue;
@@ -282,13 +282,13 @@ public:
 
 private:
     CudaFFT<T> *ft;
-    static GPU *gpu;
+    static HW *hw;
 
 };
 TYPED_TEST_CASE_P(CudaFFTTest);
 
 template<typename T>
-GPU* CudaFFTTest<T>::gpu;
+HW* CudaFFTTest<T>::hw;
 
 
 auto is1D = [] (size_t x, size_t y, size_t z) {

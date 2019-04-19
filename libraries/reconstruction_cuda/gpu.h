@@ -26,10 +26,7 @@
 #ifndef LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_
 #define LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_
 
-#include <cstddef>
-#include <iosfwd>
 #include <assert.h>
-
 #include "data/hw.h"
 #include "core/xmipp_error.h"
 
@@ -37,7 +34,7 @@ class GPU : public HW {
 public:
     explicit GPU(int device = 0, int stream = 0):
         HW(1),
-        m_lastFreeBytes(0), m_totalBytes(0), m_device(device),
+        m_device(device),
         m_streamId(stream), m_stream(nullptr),
         m_isSet(false) {};
 
@@ -58,17 +55,17 @@ public:
 
     inline size_t lastFreeBytes() const {
         check();
-        return m_lastFreeBytes;
+        return HW::lastFreeBytes();
     }
 
     inline size_t totalBytes() const {
         check();
-        return m_totalBytes;
+        return HW::totalBytes();
     }
 
     inline size_t lastUsedBytes() const {
         check();
-        return m_totalBytes - m_lastFreeBytes;
+        return HW::lastUsedBytes();
     }
 
     void updateMemoryInfo();
@@ -87,7 +84,7 @@ public:
 
     inline std::string getUUID() const {
         check();
-        return m_uuid;
+        return HW::getUUID();
     }
 
     inline bool isSet() const {
@@ -106,14 +103,10 @@ public:
     static inline int getDeviceCount();
 
 private:
-    size_t m_totalBytes;
-    size_t m_lastFreeBytes;
     int m_device;
     int m_streamId;
     void* m_stream;
     bool m_isSet;
-
-    std::string m_uuid;
 
     inline void check() const {
         if ( ! m_isSet) {
