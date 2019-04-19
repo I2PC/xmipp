@@ -32,16 +32,18 @@ template<typename T>
 void CudaFFT<T>::init(const GPU &gpu, const FFTSettingsNew<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
-            && (m_settings->sBytesBatch() <= settings.sBytesBatch())
-            && (m_settings->fBytesBatch() <= settings.fBytesBatch());
+            && (m_settings->sBytesBatch() >= settings.sBytesBatch())
+            && (m_settings->fBytesBatch() >= settings.fBytesBatch());
     bool mustAllocate = !canReuse;
     if (mustAllocate) {
         release();
     }
-    // previous plan has to be released, otherwise we will get GPU memory leak
+    // previous plan and settings has to be released,
+    // otherwise we will get GPU/CPU memory leak
     release(m_plan);
+    delete m_settings;
 
-    m_settings = &settings;
+    m_settings = new FFTSettingsNew<T>(settings);
     m_gpu = &gpu;
 
     check();
@@ -104,6 +106,7 @@ void CudaFFT<T>::release() {
         gpuErrchk(cudaFree(m_d_FD));
     }
     release(m_plan);
+    delete m_settings;
     setDefault();
 }
 
