@@ -37,6 +37,8 @@ public:
         m_lastFreeBytes(0),
         m_totalBytes(0) {}
 
+    virtual ~HW(){};
+
     inline unsigned noOfParallUnits() const {
         return m_parallUnits;
     }
