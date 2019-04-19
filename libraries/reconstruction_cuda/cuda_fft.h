@@ -29,10 +29,11 @@
 
 #include <array>
 #include <typeinfo>
+
+#include "data/aft.h"
 #include "core/xmipp_error.h"
 #include "core/utils/memory_utils.h"
 #include "core/optional.h"
-#include "data/afft_transformer.h"
 #include "gpu.h"
 
 // XXX HACK to avoid including cufft.h in this header
@@ -41,7 +42,7 @@
 typedef int cufftHandle;
 
 template<typename T>
-class CudaFFT : public AFFTTransformer<T> {
+class CudaFFT : public AFT<T> {
 public:
     CudaFFT() {
         setDefault();
