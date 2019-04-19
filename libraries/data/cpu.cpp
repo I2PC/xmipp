@@ -48,10 +48,11 @@ void CPU::updateMemoryInfo() {
 
 void CPU::obtainUUID() {
     // https://stackoverflow.com/a/6491964/5484355
-    unsigned eax;
-    unsigned ebx;
-    unsigned ecx;
-    unsigned edx;
+    unsigned eax = 0;
+    unsigned ebx = 0;
+    unsigned ecx = 0;
+    unsigned edx = 0;
+
     std::stringstream ss;
 
     eax = 1; /* processor info and feature bits */
