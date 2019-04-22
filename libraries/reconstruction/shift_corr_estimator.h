@@ -26,6 +26,7 @@
 #ifndef LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 #define LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 
+#include <typeinfo>
 #include "ashift_corr_estimator.h"
 #include "data/cpu.h"
 
@@ -34,12 +35,37 @@ namespace Alignment {
 template<typename T>
 class ShiftCorrEstimator : public AShiftCorrEstimator<T> {
 public:
+    ShiftCorrEstimator() {
+        setDefault();
+    }
+
+    ~ShiftCorrEstimator() {
+        release();
+    }
+
+    void release() override;
+
+    void computeCorrelations2DOneToN(std::complex<T> *inOut, bool center) override;
+
     void computeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
         size_t xDim, size_t yDim, size_t nDim,
+        bool center) override;
+
+    static void sComputeCorrelations2DOneToN(
+        const HW &hw,
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        size_t xDim, size_t yDim, size_t nDim,
         bool center);
+private:
+    CPU *m_cpu;
+    // host memory
+    std::complex<T> *m_single_FD;
+
+    void setDefault() override;
 };
 
 }  /* namespace Alignment */
