@@ -227,7 +227,7 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
                 toProcess * m_settingsInv->fBytesSingle(),
                 cudaMemcpyHostToDevice, stream));
 
-        CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN<center>(
+        sComputeCorrelations2DOneToN<center>(
                 *m_gpu,
                 m_d_batch_FD, m_d_single_FD,
                 m_settingsInv->fDim().x(), m_settingsInv->fDim().y(), toProcess);
@@ -296,7 +296,7 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         T *h_centers, size_t maxShift) {
     size_t centerSize = maxShift * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
-    computeCorrelations2DOneToN<true>(gpu,
+    sComputeCorrelations2DOneToN<true>(gpu,
             d_othersF, d_ref,
             xDimF, yDimF, nDim);
 
@@ -329,8 +329,27 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
 }
 
 template<typename T>
-template<bool center>
 void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
+        const HW &hw,
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        size_t xDim, size_t yDim, size_t nDim, bool center) {
+    const GPU *gpu;
+    try {
+        gpu = &dynamic_cast<const GPU&>(hw);
+    } catch (std::bad_cast&) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
+    }
+    if (center) {
+        return sComputeCorrelations2DOneToN<true>(*gpu, inOut, ref, xDim,yDim, nDim);
+    } else {
+        return sComputeCorrelations2DOneToN<false>(*gpu, inOut, ref, xDim,yDim, nDim);
+    }
+}
+
+template<typename T>
+template<bool center>
+void CudaShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,

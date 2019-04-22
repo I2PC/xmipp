@@ -27,6 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_CORR_ESTIMATOR_H_
 
 #include "ashift_estimator.h"
+#include "data/hw.h"
 
 namespace Alignment {
 
@@ -34,6 +35,13 @@ template<typename T>
 class AShiftCorrEstimator : public AShiftEstimator<T> {
 public:
     virtual ~AShiftCorrEstimator() {} // nothing to do
+
+    virtual void computeCorrelations2DOneToN(
+            const HW &hw,
+            std::complex<T> *inOut,
+            const std::complex<T> *ref,
+            size_t xDim, size_t yDim, size_t nDim,
+            bool center=false) = 0;
 
     static std::vector<T> findMaxAroundCenter(
             const T *data,
