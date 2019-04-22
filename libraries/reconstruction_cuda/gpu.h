@@ -91,12 +91,6 @@ public:
         return m_isSet;
     }
 
-    inline void forceSet() const {
-        if ( ! m_isSet) {
-            REPORT_ERROR(ERR_LOGIC_ERROR, "You have to set() this GPU before it can be used");
-        }
-    }
-
     // FIXME DS do not use, it's for backward compatibility only
     static void setDevice(int device);
 

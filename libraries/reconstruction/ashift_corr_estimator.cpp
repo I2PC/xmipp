@@ -27,6 +27,98 @@
 namespace Alignment {
 
 template<typename T>
+void AShiftCorrEstimator<T>::setDefault() {
+    m_type = AlignType::None;
+    m_settingsInv = nullptr;
+    m_maxShift = 0;
+    m_centerSize = 0;
+
+    // host memory
+    m_h_centers = nullptr;
+
+    // flags
+    m_includingBatchFT = false;
+    m_includingSingleFT = false;
+    m_is_single_FD_loaded = false;
+    m_isInit = false;
+}
+
+template<typename T>
+void AShiftCorrEstimator<T>::release() {
+    delete m_settingsInv;
+    // host memory
+    delete[] m_h_centers;
+}
+
+template<typename T>
+void AShiftCorrEstimator<T>::init2D(AlignType type,
+        const FFTSettingsNew<T> &dims, size_t maxShift,
+        bool includingBatchFT, bool includingSingleFT) {
+    m_type = type;
+    m_settingsInv = new FFTSettingsNew<T>(dims);
+    m_maxShift = maxShift;
+    m_includingBatchFT = includingBatchFT;
+    m_includingSingleFT = includingSingleFT;
+    m_centerSize = 2 * maxShift + 1;
+
+    check();
+
+    switch (type) {
+        case AlignType::OneToN:
+            init2DOneToN();
+            break;
+        default:
+            REPORT_ERROR(ERR_NOT_IMPLEMENTED, "This alignment type is not supported yet");
+    }
+
+    this->m_isInit = true;
+}
+
+template<typename T>
+void AShiftCorrEstimator<T>::init2DOneToN() {
+    // allocate helper objects
+    m_h_centers = new T[m_centerSize * m_centerSize * m_settingsInv->batch()]();
+}
+
+template<typename T>
+void AShiftCorrEstimator<T>::check() {
+    if (this->m_settingsInv->isForward()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
+    }
+    if (this->m_settingsInv->isInPlace()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "In-place transform only supported");
+    }
+    if (this->m_settingsInv->fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) {
+       REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
+    }
+    if ((0 == this->m_settingsInv->fDim().size())
+        || (0 == this->m_settingsInv->sDim().size())) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "Fourier or Spatial domain dimension is zero (0)");
+    }
+    if ((m_centerSize > this->m_settingsInv->sDim().x())
+        || m_centerSize > this->m_settingsInv->sDim().y()) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "The maximum shift (and hence the shift area: 2 * shift + 1) "
+                "must be sharply smaller than the smallest dimension");
+    }
+    if ((0 != (this->m_settingsInv->sDim().x() % 2))
+        || (0 != (this->m_settingsInv->sDim().y() % 2))) {
+        // while performing IFT of the correlation, we center the signal using multiplication
+        // in the FD. This, however, works only for even signal.
+            REPORT_ERROR(ERR_VALUE_INCORRECT,
+                    "The X and Y dimensions have to be multiple of two. Crop your signal");
+    }
+
+    switch (this->m_type) {
+        case AlignType::OneToN:
+            break;
+        default:
+            REPORT_ERROR(ERR_VALUE_INCORRECT,
+               "This type is not supported.");
+    }
+}
+
+
+template<typename T>
 std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         const T *correlations,
         const Dimensions &dims,
