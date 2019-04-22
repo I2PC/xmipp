@@ -27,14 +27,27 @@
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_CORR_ESTIMATOR_H_
 
 #include "ashift_estimator.h"
+#include "data/fft_settings_new.h"
+#include "core/xmipp_error.h"
 #include "data/hw.h"
-
 namespace Alignment {
 
 template<typename T>
 class AShiftCorrEstimator : public AShiftEstimator<T> {
 public:
-    virtual ~AShiftCorrEstimator() {} // nothing to do
+    AShiftCorrEstimator() {
+        setDefault();
+    }
+    virtual ~AShiftCorrEstimator() {
+        release();
+    }
+
+    virtual void init2D(const HW &hw, AlignType type,
+            const FFTSettingsNew<T> &dims, size_t maxShift,
+            bool includingBatchFT, bool includingSingleFT) = 0;
+
+    virtual void computeCorrelations2DOneToN(
+            std::complex<T> *inOut, bool center) = 0;
 
     virtual void computeCorrelations2DOneToN(
             const HW &hw,
@@ -54,6 +67,29 @@ public:
             const Dimensions &dims,
             size_t maxShift,
             std::vector<Point2D<int>> &shifts);
+    virtual void release() override;
+protected:
+    const FFTSettingsNew<T> *m_settingsInv; // FIXME DS rename
+    size_t m_maxShift;
+    size_t m_centerSize;
+    AlignType m_type;
+
+    // helper objects / memory
+    T *m_h_centers;
+
+    // flags
+    bool m_includingBatchFT;
+    bool m_includingSingleFT;
+    bool m_is_single_FD_loaded;
+    bool m_isInit;
+
+    virtual void setDefault();
+    void init2D(AlignType type,
+            const FFTSettingsNew<T> &dims, size_t maxShift,
+            bool includingBatchFT, bool includingSingleFT);
+
+    virtual void check();
+    virtual void init2DOneToN();
 };
 
 } /* namespace Alignment */
