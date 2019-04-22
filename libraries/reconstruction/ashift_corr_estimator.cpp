@@ -22,12 +22,12 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include "ashift_estimator.h"
+#include "ashift_corr_estimator.h"
 
 namespace Alignment {
 
 template<typename T>
-std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
+std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         const T *correlations,
         const Dimensions &dims,
         const Point2D<size_t> &maxShift,
@@ -83,7 +83,7 @@ std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
 }
 
 template<typename T>
-std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
+std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         const T *correlations,
         const Dimensions &dims,
         size_t maxShift,
@@ -92,7 +92,7 @@ std::vector<T> AShiftEstimator<T>::findMaxAroundCenter(
 }
 
 // explicit instantiation
-template class AShiftEstimator<float>;
-template class AShiftEstimator<double>;
+template class AShiftCorrEstimator<float>;
+template class AShiftCorrEstimator<double>;
 
 } /* namespace Alignment */
