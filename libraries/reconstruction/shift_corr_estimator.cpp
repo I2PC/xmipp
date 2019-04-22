@@ -28,11 +28,11 @@
 namespace Alignment {
 
 template<typename T>
-template<bool center>
 void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
+        const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim) {
+        size_t xDim, size_t yDim, size_t nDim, bool center) {
     if (center) {
         assert(0 == (xDim % 2));
         assert(0 == (yDim % 2));
@@ -56,14 +56,7 @@ void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 }
 
 // explicit instantiation
-template void ShiftCorrEstimator<float>::computeCorrelations2DOneToN<false>(std::complex<float>*,
-        const std::complex<float>*,
-        size_t xDim, size_t yDim, size_t nDim);
 template class ShiftCorrEstimator<float>;
-
-template void ShiftCorrEstimator<double>::computeCorrelations2DOneToN<false>(std::complex<double>*,
-        const std::complex<double>*,
-        size_t xDim, size_t yDim, size_t nDim);
 template class ShiftCorrEstimator<double>;
 
 } /* namespace Alignment */
