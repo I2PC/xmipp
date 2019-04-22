@@ -29,7 +29,6 @@
 #include <type_traits>
 #include "reconstruction/ashift_corr_estimator.h"
 #include "data/fft_settings_new.h"
-#include "core/xmipp_error.h"
 #include "cuda_fft.h"
 #include "gpu.h"
 
@@ -46,8 +45,8 @@ public:
         release();
     }
 
-    void init2D(const GPU &gpu, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0,
-            bool includingBatchFT=false, bool includingSingleFT=false);
+    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0,
+            bool includingBatchFT=false, bool includingSingleFT=false) override;
 
     void release();
 
@@ -55,14 +54,13 @@ public:
 
     void load2DReferenceOneToN(const T *h_ref);
 
-    template<bool center>
     void computeCorrelations2DOneToN(
-        std::complex<T> *h_inOut);
+        std::complex<T> *h_inOut, bool center) override;
 
     void computeCorrelations2DOneToN(const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim, bool center);
+        size_t xDim, size_t yDim, size_t nDim, bool center) override;
 
     std::vector<Point2D<int>> computeShift2DOneToN(
         T *h_others);
@@ -85,10 +83,6 @@ public:
         size_t xDim, size_t yDim, size_t nDim);
 
 private:
-    const FFTSettingsNew<T> *m_settingsInv;
-    size_t m_maxShift;
-    size_t m_centerSize;
-    AlignType m_type;
     const GPU *m_gpu;
 
     // device memory
@@ -97,21 +91,14 @@ private:
     T *m_d_single_SD;
     T *m_d_batch_SD;
 
-    // host memory
-    T *m_h_centers;
-
     // FT plans
     cufftHandle *m_singleToFD;
     cufftHandle *m_batchToFD;
     cufftHandle *m_batchToSD;
 
     // flags
-    bool m_includingBatchFT;
-    bool m_includingSingleFT;
-    bool m_isInit;
-    bool m_is_d_single_FD_loaded;
+    bool &m_is_d_single_FD_loaded = AShiftCorrEstimator<T>::m_is_single_FD_loaded;
 
-    void check();
     void init2DOneToN();
     void setDefault();
 };
