@@ -27,7 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ESTIMATOR_H_
 
 #include <type_traits>
-#include "reconstruction/ashift_estimator.h"
+#include "reconstruction/ashift_corr_estimator.h"
 #include "data/fft_settings_new.h"
 #include "core/xmipp_error.h"
 #include "cuda_fft.h"
@@ -36,7 +36,7 @@
 namespace Alignment {
 
 template<typename T>
-class CudaShiftCorrEstimator : public AShiftEstimator<T> {
+class CudaShiftCorrEstimator : public AShiftCorrEstimator<T> {
 public:
     CudaShiftCorrEstimator() {
         setDefault();
