@@ -27,17 +27,19 @@
 #define LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 
 #include "ashift_corr_estimator.h"
+#include "data/cpu.h"
 
 namespace Alignment {
 
 template<typename T>
 class ShiftCorrEstimator : public AShiftCorrEstimator<T> {
 public:
-    template<bool center>
-    static void computeCorrelations2DOneToN(
+    void computeCorrelations2DOneToN(
+        const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim);
+        size_t xDim, size_t yDim, size_t nDim,
+        bool center);
 };
 
 }  /* namespace Alignment */
