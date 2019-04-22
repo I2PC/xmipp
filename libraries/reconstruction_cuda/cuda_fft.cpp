@@ -79,7 +79,6 @@ void CudaFFT<T>::release(cufftHandle *plan) {
 
 template<typename T>
 void CudaFFT<T>::check() {
-    m_gpu->forceSet();
     if (m_settings->sDim().x() < 1) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 1 (one)");
     }
