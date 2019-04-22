@@ -28,7 +28,58 @@
 namespace Alignment {
 
 template<typename T>
+void ShiftCorrEstimator<T>::release() {
+    AShiftCorrEstimator<T>::release();
+
+    delete[] m_single_FD;
+    delete m_cpu;
+
+    setDefault();
+}
+
+template<typename T>
+void ShiftCorrEstimator<T>::setDefault() {
+    AShiftCorrEstimator<T>::setDefault();
+    m_single_FD = nullptr;
+    m_cpu = nullptr;
+}
+
+
+template<typename T>
 void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
+        std::complex<T> *inOut, bool center) {
+    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_single_FD_loaded);
+
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
+    }
+
+    sComputeCorrelations2DOneToN(
+        *m_cpu,
+        inOut, m_single_FD,
+        this->m_settingsInv->fDim().x(),
+        this->m_settingsInv->fDim().y(),
+        this->m_settingsInv->fDim().n(),
+        center);
+}
+
+template<typename T>
+void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
+        const HW &hw,
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        size_t xDim, size_t yDim, size_t nDim, bool center) {
+    const CPU *cpu;
+    try {
+        cpu = &dynamic_cast<const CPU&>(hw);
+    } catch (std::bad_cast&) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
+    }
+    return sComputeCorrelations2DOneToN(*cpu, inOut, ref, xDim, yDim, nDim, center);
+}
+
+template<typename T>
+void ShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
