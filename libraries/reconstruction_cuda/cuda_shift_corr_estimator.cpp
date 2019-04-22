@@ -323,7 +323,7 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
 
     // compute shifts
     auto result = std::vector<Point2D<int>>();
-    AShiftEstimator<T>::findMaxAroundCenter(
+    AShiftCorrEstimator<T>::findMaxAroundCenter(
             h_centers, Dimensions(centerSize, centerSize, 1, nDim), maxShift, result);
     return result;
 }
