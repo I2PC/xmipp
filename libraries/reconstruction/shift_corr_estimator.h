@@ -26,29 +26,18 @@
 #ifndef LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 #define LIBRARIES_RECONSTRUCTION_SHIFT_CORR_ESTIMATOR_H_
 
-#include "ashift_estimator.h"
+#include "ashift_corr_estimator.h"
 
 namespace Alignment {
 
 template<typename T>
-class ShiftCorrEstimator : public AShiftEstimator<T> {
+class ShiftCorrEstimator : public AShiftCorrEstimator<T> {
 public:
     template<bool center>
     static void computeCorrelations2DOneToN(
         std::complex<T> *inOut,
         const std::complex<T> *ref,
         size_t xDim, size_t yDim, size_t nDim);
-
-//    static std::vector<Point2D<int>> computeShifts2DOneToN(
-//        std::complex<T> *d_othersF,
-//        std::complex<T> *d_ref,
-//        size_t xDimF, size_t yDimF, size_t nDim,
-//        T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
-//        cufftHandle plan,
-//        size_t xDimS,
-//        T *h_centers, size_t maxShift);
-
-    virtual void release() {};
 };
 
 }  /* namespace Alignment */
