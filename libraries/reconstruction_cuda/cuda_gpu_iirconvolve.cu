@@ -76,20 +76,19 @@ __global__ void sum_columns(data_ptr in, int x) {
     sum_warp(in, sdata, col);
 }
 
-template< int shift, bool last >
+template< int shift, bool is_last >
 __device__ void load_to_shared(data_ptr in, shared_type sdata, int x, int block_col) {
     const float gain = shift ? 6.0f : 1.0f;
     const int tid_x = threadIdx.x;
     const int block_row = blockIdx.x * blockDim. x * x;
 
     for (int j = 0; j < BLOCK_SIZE; ++j) {
-        if (last && block_col + tid_x >= x) {
+        if (is_last && (block_col + tid_x >= x)) {
             break;
         }
         sdata[j][tid_x + shift] = in[block_row + block_col + x * j + tid_x] * gain;
     }
     __syncthreads();
-
 }
 
 const auto load_to_shared_forward = load_to_shared<1, false>;
@@ -97,19 +96,18 @@ const auto load_to_shared_forward_last = load_to_shared<1, true>;
 const auto load_to_shared_backward = load_to_shared<0, false>;
 const auto load_to_shared_backward_first = load_to_shared<0, true>;
 
-template< int shift, bool last >
+template< int shift, bool is_last >
 __device__ void store_to_global(data_ptr in, shared_type sdata, int x, int block_col) {
     const int tid_x = threadIdx.x;
     const int block_row = blockIdx.x * blockDim. x * x;
 
     for (int j = 0; j < BLOCK_SIZE; ++j) {
-        if (last && block_col + tid_x >= x) {
+        if (is_last && (block_col + tid_x >= x)) {
             break;
         }
         in[block_row + block_col + x * j + tid_x] = sdata[j][tid_x + shift];
     }
     __syncthreads();
-
 }
 
 const auto store_to_global_forward = store_to_global<1, false>;
@@ -119,12 +117,10 @@ const auto store_to_global_backward_first = store_to_global<0, true>;
 
 __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
     const float z = sqrtf(3.f) - 2.f;
-
     const int tid_x = threadIdx.x;
 
     // i = 0
     {
-
         load_to_shared_forward(in, sdata, x, 0);
 
         sdata[tid_x][1] *= z;
@@ -137,7 +133,6 @@ __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
         __syncthreads();
 
         store_to_global_forward(in, sdata, x, 0);
-
     }
 
     // i > 0
@@ -156,7 +151,6 @@ __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
         __syncthreads();
 
         store_to_global_forward(in, sdata, x, block_col);
-
     }
 
     if (i * BLOCK_SIZE == x) {
@@ -176,25 +170,22 @@ __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
     __syncthreads();
 
     store_to_global_forward_last(in, sdata, x, block_col);
-
 }
 
 __device__ void backward_pass(data_ptr in, shared_type sdata, int x) {
     const float z = sqrtf(3.f) - 2.f;
     const float k = z / (z - 1.f);
-
     const int tid_x = threadIdx.x;
-
     const int block_row = blockIdx.x * blockDim. x * x;
 
     in[block_row + x * tid_x + x - 1] *= k;
     __syncthreads();
 
     int i = x / BLOCK_SIZE;
-    bool first = true;
+    bool is_first_block = true;
 
     if ( i * BLOCK_SIZE != x ) {
-        first = false;
+        is_first_block = false;
         const int block_col = i * BLOCK_SIZE;
 
         load_to_shared_backward_first(in, sdata, x, block_col);
@@ -213,7 +204,7 @@ __device__ void backward_pass(data_ptr in, shared_type sdata, int x) {
     for (int i = x / BLOCK_SIZE - 1; i >= 0; --i) {
             const int block_col = i * BLOCK_SIZE;
 
-            if (!first) {
+            if (!is_first_block) {
                 sdata[tid_x][BLOCK_SIZE] = sdata[tid_x][0];
                 __syncthreads();
             }
@@ -228,7 +219,7 @@ __device__ void backward_pass(data_ptr in, shared_type sdata, int x) {
 
             store_to_global_backward(in, sdata, x, block_col);
 
-            first = false;
+            is_first_block = false;
     }
 }
 
@@ -271,8 +262,8 @@ __global__ void cols_iterate(data_ptr in, int x, int y) {
 */
 void solveGPU(float *in, int x, int y) {
 
-    const int x_padded = x / COL_BLOCK_SIZE * COL_BLOCK_SIZE + COL_BLOCK_SIZE * (x % COL_BLOCK_SIZE != 0);
-    const int y_padded = y / BLOCK_SIZE * BLOCK_SIZE + BLOCK_SIZE * (y % BLOCK_SIZE != 0);
+    const int x_padded = (x / COL_BLOCK_SIZE) * COL_BLOCK_SIZE + COL_BLOCK_SIZE * (x % COL_BLOCK_SIZE != 0);
+    const int y_padded = (y / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE * (y % BLOCK_SIZE != 0);
 
     sum_rows<<<y, WARP_SIZE>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
