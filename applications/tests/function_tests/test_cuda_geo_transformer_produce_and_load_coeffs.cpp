@@ -190,7 +190,16 @@ TEST_F(GeoTransformerProduceAndLoadCoeffsTest, RandomSizeRandomInput) {
     randomly_initialize( in.get(), size );
 
     run_test();
+}
 
+TEST_F(GeoTransformerProduceAndLoadCoeffsTest, OddXEvenYRandomInput) {
+    x = 479;
+    y = 342;
+
+    allocate_arrays();
+    randomly_initialize( in.get(), size );
+
+    run_test();
 }
 
 GTEST_API_ int main(int argc, char **argv)
