@@ -225,35 +225,6 @@ __global__ void rows_iterate(data_ptr in, int x) {
     backward_pass(in, sdata, x);
 }
 
-
-__global__ void cols_iterate_switch(data_ptr in, data_ptr out, int x, int y) {
-    const float z = sqrtf(3.f) - 2.f;
-    const float k = z / (z - 1.f);
-
-    const float gain = 6.0f;
-
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (col < x) {
-        float *myCol = in + col;
-        float *outCol = out + col;
-        float sum = myCol[0];
-
-        outCol[0] = sum * z * gain;
-        #pragma unroll UNROLL
-        for (int j = 1; j < y; ++j) {
-            outCol[j*x] = myCol[j*x] * gain + z * outCol[(j - 1)*x];
-        }
-
-        outCol[(y - 1)*x] *= k;
-        #pragma unroll UNROLL
-        for (int j = y - 2; 0 <= j; --j) {
-            outCol[j*x] = z * (outCol[(j + 1)*x] - outCol[j*x]);
-        }
-    }
-
-}
-
 __global__ void cols_iterate(data_ptr in, int x, int y) {
     const float z = sqrtf(3.f) - 2.f;
     const float k = z / (z - 1.f);
