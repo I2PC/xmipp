@@ -284,7 +284,7 @@ void solveGPU(float *in, int x, int y) {
 
 } // namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels
 
-void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound(float* input,
-        float* output, int xDim, int yDim) {
+void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(float* input,
+                int xDim, int yDim) {
     iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim );
 }
