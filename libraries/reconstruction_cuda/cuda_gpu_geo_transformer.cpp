@@ -260,7 +260,7 @@ void GeoTransformer<T>::produceAndLoadCoeffs(
     gpuErrchk(
         cudaMemcpy(d_in, input_ptr->data, input_ptr->yxdim * sizeof(T), cudaMemcpyHostToDevice));
 
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound(d_in, d_out, input_ptr->xdim, input_ptr->ydim);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input_ptr->xdim, input_ptr->ydim);
 }
 
 template<typename T>
