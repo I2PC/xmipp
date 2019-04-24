@@ -47,23 +47,20 @@ public:
         compare_results( out.get(), gpu_out.get(), size );
     }
 
-    std::pair< size_t, size_t > random_size() {
-        std::random_device rd;
-        std::mt19937 gen;
-        gen.seed(41);
+    std::pair< size_t, size_t > random_size(int seed) {
+        gen.seed( seed );
         std::uniform_int_distribution<> dis( 128, 8192 );
 
         return { dis( gen ), dis( gen ) };
     }
 
-    void randomly_initialize(float* array, int size) {
-    std::mt19937 gen;
-    gen.seed(41);
-    std::uniform_real_distribution<> dis(-1.0, 1.0);
+    void randomly_initialize(float* array, int size, int seed) {
+        gen.seed( seed );
+        std::uniform_real_distribution<> dis(-1.0, 1.0);
 
-    for ( int i = 0; i < size; ++i ) {
-        array[i] = dis(gen);
-    }
+        for ( int i = 0; i < size; ++i ) {
+            array[i] = dis(gen);
+        }
 }
 
 void cpu_reference(const float *in, float *out, int x, int y) {
@@ -143,10 +140,12 @@ void cpu_reference(const float *in, float *out, int x, int y) {
     std::unique_ptr< float[] > in;
     std::unique_ptr< float[] > out;
     std::unique_ptr< float[] > gpu_out;
+
+    std::mt19937 gen;
 };
 
 TEST_F(GeoTransformerProduceAndLoadCoeffsTest, RandomSizeZeroInput) {
-    std::tie( x, y ) = random_size();
+    std::tie( x, y ) = random_size( 41 );
     allocate_arrays();
 
     run_test();
@@ -157,7 +156,7 @@ TEST_F(GeoTransformerProduceAndLoadCoeffsTest, PaddedSizeRandomInput) {
     y = 1024;
     allocate_arrays();
 
-    randomly_initialize( in.get(), size );
+    randomly_initialize( in.get(), size, 53 );
 
     run_test();
 }
@@ -167,7 +166,7 @@ TEST_F(GeoTransformerProduceAndLoadCoeffsTest, PaddedSquareSizeRandomInput) {
     y = x;
     allocate_arrays();
 
-    randomly_initialize( in.get(), size );
+    randomly_initialize( in.get(), size, 67 );
 
     run_test();
 }
@@ -177,17 +176,16 @@ TEST_F(GeoTransformerProduceAndLoadCoeffsTest, SquareSizeRandomInput) {
     y = x;
     allocate_arrays();
 
-    randomly_initialize( in.get(), size );
+    randomly_initialize( in.get(), size, 89 );
 
     run_test();
 }
 
 TEST_F(GeoTransformerProduceAndLoadCoeffsTest, RandomSizeRandomInput) {
-    std::tie( x, y ) = random_size();
-
+    std::tie( x, y ) = random_size( 39 );
     allocate_arrays();
 
-    randomly_initialize( in.get(), size );
+    randomly_initialize( in.get(), size, 19 );
 
     run_test();
 }
@@ -197,7 +195,7 @@ TEST_F(GeoTransformerProduceAndLoadCoeffsTest, OddXEvenYRandomInput) {
     y = 342;
 
     allocate_arrays();
-    randomly_initialize( in.get(), size );
+    randomly_initialize( in.get(), size, 33 );
 
     run_test();
 }
