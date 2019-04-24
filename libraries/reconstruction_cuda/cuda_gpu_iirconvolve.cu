@@ -4,26 +4,42 @@ namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels {
 
 const int WARP_SIZE = 32;
 
+/*
+    Changing these parameters can affect speed on different devices
+    Values in curly brackets are sets of allowed values that can
+    be used
+
+    BLOCK_SIZE = Xdim and Ydim of block in row pass
+    COL_BLOCK_SIZe = Xdim of block in column pass
+*/
+
 const int BLOCK_SIZE = 64; // { 16, 32, 64 }
-const int COL_BLOCK_SIZE = 128; // { 32, 64, 128, 256, 512, 1024} ... above 128 only if it is multiple of dim size
+const int COL_BLOCK_SIZE = 128; // { 32, 64, 128, 256, 512, 1024 } ... above 128 only if it is multiple of dim size
 const int UNROLL = 8;
 
 using shared_type = float[BLOCK_SIZE][BLOCK_SIZE+1];
 using data_ptr = float * __restrict__;
 
-__global__ void sum_lines(data_ptr in, int x) {
+/*
+    For each row computes sum of the row weighted by some numbers,
+    because of limited precision of float/double, it is done only for
+    first 32 columns
+
+    Saves sum to first column in the row
+*/
+__global__ void sum_rows(data_ptr in, int x) {
     const float z = sqrtf(3.f) - 2.f;
     const float z_0 = (1.f + z) / z;
 
-    int line = blockIdx.x * x;
+    int row = blockIdx.x * x;
     int tid = threadIdx.x;
 
     __shared__ volatile float sdata[WARP_SIZE];
     if (tid == 0) {
-         sdata[tid] = in[line + tid] * z_0;
+         sdata[tid] = in[row + tid] * z_0;
     }
     else {
-        sdata[tid] = in[line + tid] * powf(z, tid);
+        sdata[tid] = in[row + tid] * powf(z, tid);
     }
 
     if (tid < 16) sdata[tid] += sdata[tid + 16];
@@ -32,11 +48,16 @@ __global__ void sum_lines(data_ptr in, int x) {
     if (tid < 2)  sdata[tid] += sdata[tid + 2];
 
     if (tid == 0) {
-        in[line] = sdata[0] + sdata[1];
+        in[row] = sdata[0] + sdata[1];
     }
 }
 
-__global__ void sum_cols(data_ptr in, int x) {
+/*
+    Alternative of sum_rows
+
+    Saves sum to first row in the column
+*/
+__global__ void sum_columns(data_ptr in, int x) {
     const float z = sqrtf(3.f) - 2.f;
     const float z_0 = (1.f + z) / z;
 
@@ -260,7 +281,7 @@ void solveGPU(float *in, int x, int y) {
     const int x_padded = x / COL_BLOCK_SIZE * COL_BLOCK_SIZE + COL_BLOCK_SIZE * (x % COL_BLOCK_SIZE != 0);
     const int y_padded = y / BLOCK_SIZE * BLOCK_SIZE + BLOCK_SIZE * (y % BLOCK_SIZE != 0);
 
-    sum_lines<<<y, WARP_SIZE>>>(in, x);
+    sum_rows<<<y, WARP_SIZE>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
@@ -268,7 +289,7 @@ void solveGPU(float *in, int x, int y) {
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
-    sum_cols<<<x, WARP_SIZE>>>(in, x);
+    sum_columns<<<x, WARP_SIZE>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
