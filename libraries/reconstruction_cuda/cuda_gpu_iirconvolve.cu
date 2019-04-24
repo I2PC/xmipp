@@ -19,6 +19,34 @@ const int UNROLL = 8;
 
 using shared_type = float[BLOCK_SIZE][BLOCK_SIZE+1];
 using data_ptr = float * __restrict__;
+using warp_shared_type = volatile float[WARP_SIZE];
+
+template< typename IndexFunc >
+__device__ void load_warp(data_ptr in, warp_shared_type sdata, IndexFunc f) {
+    const float z = sqrtf(3.f) - 2.f;
+    const float z_0 = (1.f + z) / z;
+
+    int tid = threadIdx.x;
+
+    if (tid == 0) {
+        sdata[tid] = in[f(tid)] * z_0;
+    } else {
+        sdata[tid] = in[f(tid)] * powf(z, tid);
+    }
+}
+
+__device__ void sum_warp(data_ptr in, warp_shared_type sdata, int offset) {
+    const int tid = threadIdx.x;
+
+    if (tid < 16) sdata[tid] += sdata[tid + 16];
+    if (tid < 8)  sdata[tid] += sdata[tid + 8];
+    if (tid < 4)  sdata[tid] += sdata[tid + 4];
+    if (tid < 2)  sdata[tid] += sdata[tid + 2];
+
+    if (tid == 0) {
+        in[offset] = sdata[0] + sdata[1];
+    }
+}
 
 /*
     For each row computes sum of the row weighted by some numbers,
@@ -28,28 +56,11 @@ using data_ptr = float * __restrict__;
     Saves sum to first column in the row
 */
 __global__ void sum_rows(data_ptr in, int x) {
-    const float z = sqrtf(3.f) - 2.f;
-    const float z_0 = (1.f + z) / z;
-
     int row = blockIdx.x * x;
-    int tid = threadIdx.x;
+    __shared__ warp_shared_type sdata;
 
-    __shared__ volatile float sdata[WARP_SIZE];
-    if (tid == 0) {
-         sdata[tid] = in[row + tid] * z_0;
-    }
-    else {
-        sdata[tid] = in[row + tid] * powf(z, tid);
-    }
-
-    if (tid < 16) sdata[tid] += sdata[tid + 16];
-    if (tid < 8)  sdata[tid] += sdata[tid + 8];
-    if (tid < 4)  sdata[tid] += sdata[tid + 4];
-    if (tid < 2)  sdata[tid] += sdata[tid + 2];
-
-    if (tid == 0) {
-        in[row] = sdata[0] + sdata[1];
-    }
+    load_warp(in, sdata, [row](int tid) { return row + tid; });
+    sum_warp(in, sdata, row);
 }
 
 /*
@@ -58,29 +69,11 @@ __global__ void sum_rows(data_ptr in, int x) {
     Saves sum to first row in the column
 */
 __global__ void sum_columns(data_ptr in, int x) {
-    const float z = sqrtf(3.f) - 2.f;
-    const float z_0 = (1.f + z) / z;
+    const int col = blockIdx.x;
+    __shared__ warp_shared_type sdata;
 
-    int col = blockIdx.x;
-    int tid = threadIdx.x;
-
-    __shared__ volatile float sdata[WARP_SIZE];
-    if (tid == 0) {
-         sdata[tid] = in[col + tid * x] * z_0;
-    }
-    else {
-        sdata[tid] = in[col + tid * x] * powf(z, tid);
-    }
-
-    if (tid < 16) sdata[tid] += sdata[tid + 16];
-    if (tid < 8)  sdata[tid] += sdata[tid + 8];
-    if (tid < 4)  sdata[tid] += sdata[tid + 4];
-    if (tid < 2)  sdata[tid] += sdata[tid + 2];
-
-    if (tid == 0) {
-        in[col] = sdata[0] + sdata[1];
-    }
-
+    load_warp(in, sdata, [col, x](int tid) { return col + tid * x; });
+    sum_warp(in, sdata, col);
 }
 
 template< int shift, bool last >
