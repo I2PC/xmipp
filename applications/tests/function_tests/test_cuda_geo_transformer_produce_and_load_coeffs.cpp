@@ -49,15 +49,16 @@ public:
 
     std::pair< size_t, size_t > random_size() {
         std::random_device rd;
-        std::mt19937 gen( rd() );
+        std::mt19937 gen;
+        gen.seed(41);
         std::uniform_int_distribution<> dis( 128, 8192 );
 
         return { dis( gen ), dis( gen ) };
     }
 
     void randomly_initialize(float* array, int size) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen;
+    gen.seed(41);
     std::uniform_real_distribution<> dis(-1.0, 1.0);
 
     for ( int i = 0; i < size; ++i ) {
