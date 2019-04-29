@@ -4,27 +4,39 @@ namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels {
 
 const int WARP_SIZE = 32;
 
+/*
+    Changing these parameters can affect speed on different devices
+    Values in curly brackets are sets of allowed values that can
+    be used
+
+    BLOCK_SIZE = Xdim and Ydim of block in row pass
+    COL_BLOCK_SIZe = Xdim of block in column pass
+*/
+
 const int BLOCK_SIZE = 64; // { 16, 32, 64 }
-const int COL_BLOCK_SIZE = 128; // { 32, 64, 128, 256, 512, 1024} ... above 128 only if it is multiple of dim size
+const int COL_BLOCK_SIZE = 128; // { 32, 64, 128, 256, 512, 1024 } ... above 128 only if it is multiple of dim size
 const int UNROLL = 8;
 
 using shared_type = float[BLOCK_SIZE][BLOCK_SIZE+1];
 using data_ptr = float * __restrict__;
+using warp_shared_type = volatile float[WARP_SIZE];
 
-__global__ void sum_lines(data_ptr in, int x) {
+template< typename IndexFunc >
+__device__ void load_warp(data_ptr in, warp_shared_type sdata, IndexFunc f) {
     const float z = sqrtf(3.f) - 2.f;
     const float z_0 = (1.f + z) / z;
 
-    int line = blockIdx.x * x;
     int tid = threadIdx.x;
 
-    __shared__ volatile float sdata[WARP_SIZE];
     if (tid == 0) {
-         sdata[tid] = in[line + tid] * z_0;
+        sdata[tid] = in[f(tid)] * z_0;
+    } else {
+        sdata[tid] = in[f(tid)] * powf(z, tid);
     }
-    else {
-        sdata[tid] = in[line + tid] * powf(z, tid);
-    }
+}
+
+__device__ void sum_warp(data_ptr in, warp_shared_type sdata, int offset) {
+    const int tid = threadIdx.x;
 
     if (tid < 16) sdata[tid] += sdata[tid + 16];
     if (tid < 8)  sdata[tid] += sdata[tid + 8];
@@ -32,50 +44,51 @@ __global__ void sum_lines(data_ptr in, int x) {
     if (tid < 2)  sdata[tid] += sdata[tid + 2];
 
     if (tid == 0) {
-        in[line] = sdata[0] + sdata[1];
+        in[offset] = sdata[0] + sdata[1];
     }
 }
 
-__global__ void sum_cols(data_ptr in, int x) {
-    const float z = sqrtf(3.f) - 2.f;
-    const float z_0 = (1.f + z) / z;
+/*
+    For each row computes sum of the row weighted by some numbers,
+    because of limited precision of float/double, it is done only for
+    first 32 columns
 
-    int col = blockIdx.x;
-    int tid = threadIdx.x;
+    Saves sum to first column in the row
+*/
+__global__ void sum_rows(data_ptr in, int x) {
+    int row = blockIdx.x * x;
+    __shared__ warp_shared_type sdata;
 
-    __shared__ volatile float sdata[WARP_SIZE];
-    if (tid == 0) {
-         sdata[tid] = in[col + tid * x] * z_0;
-    }
-    else {
-        sdata[tid] = in[col + tid * x] * powf(z, tid);
-    }
-
-    if (tid < 16) sdata[tid] += sdata[tid + 16];
-    if (tid < 8)  sdata[tid] += sdata[tid + 8];
-    if (tid < 4)  sdata[tid] += sdata[tid + 4];
-    if (tid < 2)  sdata[tid] += sdata[tid + 2];
-
-    if (tid == 0) {
-        in[col] = sdata[0] + sdata[1];
-    }
-
+    load_warp(in, sdata, [row](int tid) { return row + tid; });
+    sum_warp(in, sdata, row);
 }
 
-template< int shift, bool last >
+/*
+    Alternative of sum_rows
+
+    Saves sum to first row in the column
+*/
+__global__ void sum_columns(data_ptr in, int x) {
+    const int col = blockIdx.x;
+    __shared__ warp_shared_type sdata;
+
+    load_warp(in, sdata, [col, x](int tid) { return col + tid * x; });
+    sum_warp(in, sdata, col);
+}
+
+template< int shift, bool is_last >
 __device__ void load_to_shared(data_ptr in, shared_type sdata, int x, int block_col) {
     const float gain = shift ? 6.0f : 1.0f;
     const int tid_x = threadIdx.x;
     const int block_row = blockIdx.x * blockDim. x * x;
 
     for (int j = 0; j < BLOCK_SIZE; ++j) {
-        if (last && block_col + tid_x >= x) {
+        if (is_last && (block_col + tid_x >= x)) {
             break;
         }
         sdata[j][tid_x + shift] = in[block_row + block_col + x * j + tid_x] * gain;
     }
     __syncthreads();
-
 }
 
 const auto load_to_shared_forward = load_to_shared<1, false>;
@@ -83,19 +96,18 @@ const auto load_to_shared_forward_last = load_to_shared<1, true>;
 const auto load_to_shared_backward = load_to_shared<0, false>;
 const auto load_to_shared_backward_first = load_to_shared<0, true>;
 
-template< int shift, bool last >
+template< int shift, bool is_last >
 __device__ void store_to_global(data_ptr in, shared_type sdata, int x, int block_col) {
     const int tid_x = threadIdx.x;
     const int block_row = blockIdx.x * blockDim. x * x;
 
     for (int j = 0; j < BLOCK_SIZE; ++j) {
-        if (last && block_col + tid_x >= x) {
+        if (is_last && (block_col + tid_x >= x)) {
             break;
         }
         in[block_row + block_col + x * j + tid_x] = sdata[j][tid_x + shift];
     }
     __syncthreads();
-
 }
 
 const auto store_to_global_forward = store_to_global<1, false>;
@@ -105,12 +117,10 @@ const auto store_to_global_backward_first = store_to_global<0, true>;
 
 __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
     const float z = sqrtf(3.f) - 2.f;
-
     const int tid_x = threadIdx.x;
 
     // i = 0
     {
-
         load_to_shared_forward(in, sdata, x, 0);
 
         sdata[tid_x][1] *= z;
@@ -123,7 +133,6 @@ __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
         __syncthreads();
 
         store_to_global_forward(in, sdata, x, 0);
-
     }
 
     // i > 0
@@ -142,7 +151,6 @@ __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
         __syncthreads();
 
         store_to_global_forward(in, sdata, x, block_col);
-
     }
 
     if (i * BLOCK_SIZE == x) {
@@ -162,25 +170,22 @@ __device__ void forward_pass(data_ptr in, shared_type sdata, int x) {
     __syncthreads();
 
     store_to_global_forward_last(in, sdata, x, block_col);
-
 }
 
 __device__ void backward_pass(data_ptr in, shared_type sdata, int x) {
     const float z = sqrtf(3.f) - 2.f;
     const float k = z / (z - 1.f);
-
     const int tid_x = threadIdx.x;
-
     const int block_row = blockIdx.x * blockDim. x * x;
 
     in[block_row + x * tid_x + x - 1] *= k;
     __syncthreads();
 
     int i = x / BLOCK_SIZE;
-    bool first = true;
+    bool is_first_block = true;
 
     if ( i * BLOCK_SIZE != x ) {
-        first = false;
+        is_first_block = false;
         const int block_col = i * BLOCK_SIZE;
 
         load_to_shared_backward_first(in, sdata, x, block_col);
@@ -199,7 +204,7 @@ __device__ void backward_pass(data_ptr in, shared_type sdata, int x) {
     for (int i = x / BLOCK_SIZE - 1; i >= 0; --i) {
             const int block_col = i * BLOCK_SIZE;
 
-            if (!first) {
+            if (!is_first_block) {
                 sdata[tid_x][BLOCK_SIZE] = sdata[tid_x][0];
                 __syncthreads();
             }
@@ -214,7 +219,7 @@ __device__ void backward_pass(data_ptr in, shared_type sdata, int x) {
 
             store_to_global_backward(in, sdata, x, block_col);
 
-            first = false;
+            is_first_block = false;
     }
 }
 
@@ -223,35 +228,6 @@ __global__ void rows_iterate(data_ptr in, int x) {
 
     forward_pass(in, sdata, x);
     backward_pass(in, sdata, x);
-}
-
-
-__global__ void cols_iterate_switch(data_ptr in, data_ptr out, int x, int y) {
-    const float z = sqrtf(3.f) - 2.f;
-    const float k = z / (z - 1.f);
-
-    const float gain = 6.0f;
-
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (col < x) {
-        float *myCol = in + col;
-        float *outCol = out + col;
-        float sum = myCol[0];
-
-        outCol[0] = sum * z * gain;
-        #pragma unroll UNROLL
-        for (int j = 1; j < y; ++j) {
-            outCol[j*x] = myCol[j*x] * gain + z * outCol[(j - 1)*x];
-        }
-
-        outCol[(y - 1)*x] *= k;
-        #pragma unroll UNROLL
-        for (int j = y - 2; 0 <= j; --j) {
-            outCol[j*x] = z * (outCol[(j + 1)*x] - outCol[j*x]);
-        }
-    }
-
 }
 
 __global__ void cols_iterate(data_ptr in, int x, int y) {
@@ -286,10 +262,10 @@ __global__ void cols_iterate(data_ptr in, int x, int y) {
 */
 void solveGPU(float *in, int x, int y) {
 
-    const int x_padded = x / COL_BLOCK_SIZE * COL_BLOCK_SIZE + COL_BLOCK_SIZE * (x % COL_BLOCK_SIZE != 0);
-    const int y_padded = y / BLOCK_SIZE * BLOCK_SIZE + BLOCK_SIZE * (y % BLOCK_SIZE != 0);
+    const int x_padded = (x / COL_BLOCK_SIZE) * COL_BLOCK_SIZE + COL_BLOCK_SIZE * (x % COL_BLOCK_SIZE != 0);
+    const int y_padded = (y / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE * (y % BLOCK_SIZE != 0);
 
-    sum_lines<<<y, WARP_SIZE>>>(in, x);
+    sum_rows<<<y, WARP_SIZE>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
@@ -297,7 +273,7 @@ void solveGPU(float *in, int x, int y) {
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
-    sum_cols<<<x, WARP_SIZE>>>(in, x);
+    sum_columns<<<x, WARP_SIZE>>>(in, x);
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
@@ -308,7 +284,7 @@ void solveGPU(float *in, int x, int y) {
 
 } // namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels
 
-void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound(float* input,
-        float* output, int xDim, int yDim) {
+void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(float* input,
+                int xDim, int yDim) {
     iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim );
 }

@@ -81,8 +81,9 @@ void GeoTransformer<T>::initForBSpline(size_t inX, size_t inY, size_t inN,
     this->splineN = splineN;
     // take into account end control points
 
-    // padding for produceAndLoadCoeffs
-    const int Y_padded = inY / 64 * 64 + 64 * (inY % 64 != 0);
+    // padding for produceAndLoadCoeffs; Y dimension has to be a multiple of BLOCK_SIZE
+    const int BLOCK_SIZE = iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::BLOCK_SIZE;
+    const int Y_padded = (inY / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE * (inY % BLOCK_SIZE != 0);
 
     size_t inOutSize = inX * inY;
     size_t inOutSize_padded = inX* Y_padded;
@@ -188,6 +189,7 @@ void GeoTransformer<T>::applyBSplineTransform(
     gpuErrchk(
             cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
                     cudaMemcpyDeviceToHost));
+
 }
 
 template<typename T>
@@ -313,7 +315,7 @@ template<typename T_IN>
 void GeoTransformer<T>::produceAndLoadCoeffs(
     const MultidimArray<T_IN> &input) {
 
-    // if no cast is needed, then don't copy input to impIn
+    // if no cast is needed, then don't copy input to tmpIn
     const MultidimArray<T> * input_ptr;
     MultidimArray<T> tmpIn;
 
@@ -327,7 +329,7 @@ void GeoTransformer<T>::produceAndLoadCoeffs(
     gpuErrchk(
         cudaMemcpy(d_in, input_ptr->data, input_ptr->yxdim * sizeof(T), cudaMemcpyHostToDevice));
 
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound(d_in, d_out, input_ptr->xdim, input_ptr->ydim);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input_ptr->xdim, input_ptr->ydim);
 }
 
 
