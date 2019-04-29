@@ -133,6 +133,10 @@ public:
             MultidimArray<T> &output, const MultidimArray<T> &input,
             const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
 
+    void applyBSplineTransformNew(int splineDegree,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
+        const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
+
     void test();
 
     std::unique_ptr<float[]> copy_out_d_in( size_t size ) const;
