@@ -102,4 +102,76 @@ T interpolatedElementBSpline2D_Degree3(T x, T y, int xdim, int ydim, T* data)
 
 #undef LOOKUP_TABLE_LEN
 
+#define LOOKUP_TABLE 4
+
+template< typename T, bool Edge >
+__device__
+T interpolatedElementBSpline2D_Degree3MorePixels(T x, T y, int xdim, int ydim, const T* data)
+{
+    const T *ref;
+
+    int l1 = (int)ceil(x - 2);
+    // int l2 = l1 + 3;
+    int m1 = (int)ceil(y - 2);
+    // int m2 = m1 + 3;
+
+    T columns = 0.0;
+
+    T aux_Array[LOOKUP_TABLE];
+    int equivalent_l_array[LOOKUP_TABLE];
+
+    #pragma unroll
+    for ( int i = 0; i < 4; ++i ) {
+        const int l = l1 + i;
+        int equivalent_l = l;
+        if ( Edge ) {
+            if (l<0) {
+                equivalent_l=-l-1;
+            }
+            else if (l>=xdim) {
+                equivalent_l=2*xdim-l-1;
+            }
+        }
+        aux_Array[i] = bspline03( x - (T) l );
+        equivalent_l_array[i] = equivalent_l;
+    }
+
+    #pragma unroll
+    for ( int i = 0; i < 4; ++i )
+    {
+        const int m = m1 + i;
+        int equivalent_m = m;
+        if ( Edge ) {
+            if (m<0)
+                equivalent_m=-m-1;
+            else if (m>=ydim)
+                equivalent_m=2*ydim-m-1;
+        }
+
+        T rows = 0.0;
+        ref = data + (equivalent_m*xdim);
+        #pragma unroll
+        for ( int j = 0; j < 4; ++j ) {
+            const int l = l1 + j;
+            int equivalent_l = l;
+            if ( Edge ) {
+                equivalent_l = equivalent_l_array[j];
+                // if (l<0) {
+                    // equivalent_l=-l-1;
+                // }
+                // else if (l>=xdim) {
+                    // equivalent_l=2*xdim-l-1;
+                // }
+            }
+            rows += ref[equivalent_l] * aux_Array[j];
+        }
+
+        columns += rows * bspline03( y - (T) equivalent_m );
+    }
+
+    return columns;
+}
+
+#undef LOOKUP_TABLE
+
 #endif //* CUDA_GPU_MUTLIDIM_ARRAY_CU */
