@@ -20,7 +20,7 @@ public:
 
     void compare_results( float* true_values, float* approx_values, size_t size ) {
         for ( int i = 0; i < size; ++i ) {
-            ASSERT_NEAR( true_values[i], approx_values[i], 0.00001f );
+            ASSERT_NEAR( true_values[i], approx_values[i], 0.00001f ) << "at index=" << i;
         }
     }
 
