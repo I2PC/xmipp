@@ -13,17 +13,50 @@ class GeoTransformerApplyBSplineTransformTest : public ::testing::Test {
 
 public:
 
+    /*
+    Version that prints out number of errors
+    */
+    // void compare_results( float* true_values, float* approx_values, size_t size ) {
+    //     testing::internal::CaptureStdout();
+
+    //     int errors = 0;
+    //     for ( int i = 0; i < size; ++i ) {
+    //         EXPECT_NEAR( true_values[i], approx_values[i], 0.0001f ) << ( errors++ < 10 ? "at index: " + std::to_string( i ) : "" );
+    //         if ( errors == 10 ) {
+    //             std::cout << "Omitting next errors\n";
+    //         }
+    //     }
+
+    //     std::string output = testing::internal::GetCapturedStdout();
+    //     std::cout << output.substr(0, 100) << std::endl;
+
+    //     if ( errors > 0 ) {
+    //         std::cout << "Total errors: " << errors << std::endl;
+    //     }
+    // }
+
+    /*
+
+    */
     void compare_results( float* true_values, float* approx_values, size_t size ) {
         for ( int i = 0; i < size; ++i ) {
-            ASSERT_NEAR( true_values[i], approx_values[i], 0.0001f );
+            EXPECT_NEAR( true_values[i], approx_values[i], 0.0001f ) << "at index:" << i << ", x=" << i % x << ", y=" << i / x;
         }
     }
+
+
+    // void compare_results( float* true_values, float* approx_values, size_t size ) {
+    //     for ( int i = 0; i < size; ++i ) {
+    //         ASSERT_NEAR( true_values[i], approx_values[i], 0.0001f ) << "at index:" << i;
+    //     }
+    // }
 
     void allocate_arrays() {
         size = x * y;
 
         in.resize( y, x );
         out.resize( y, x );
+        out_ref.resize( y, x );
 
         coeffsX.resize( splineX * splineY * splineN );
         coeffsY.resize( splineX * splineY * splineN );
@@ -32,20 +65,24 @@ public:
     void run_transformation() {
         GeoTransformerTest< float > gt;
         gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
-        gt.applyBSplineTransform( 3, out, in, { coeffsX, coeffsY }, imageIdx, outside );
+        gt.applyBSplineTransformNew( 3, out, in, { coeffsX, coeffsY }, imageIdx, outside );
     }
 
-    std::pair< size_t, size_t > random_size() {
-        std::random_device rd;
-        std::mt19937 gen( rd() );
+    void compute_reference_result() {
+        GeoTransformerTest< float > gt;
+        gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
+        gt.applyBSplineTransform( 3, out_ref, in, { coeffsX, coeffsY }, imageIdx, outside );
+    }
+
+    std::pair< size_t, size_t > random_size( int seed ) {
+        gen.seed( seed );
         std::uniform_int_distribution<> dis( 128, 8192 );
 
         return { dis( gen ), dis( gen ) };
     }
 
-    void randomly_initialize( MultidimArray< float >& array ) {
-        std::random_device rd;
-        std::mt19937 gen( rd() );
+    void randomly_initialize( MultidimArray< float >& array, int seed ) {
+        gen.seed( seed );
         std::uniform_real_distribution<> dis( -1.0, 1.0 );
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY( array ) {
@@ -59,9 +96,8 @@ public:
         }
     }
 
-    void randomly_initialize(Matrix1D< float >& array) {
-        std::random_device rd;
-        std::mt19937 gen(rd());
+    void randomly_initialize(Matrix1D< float >& array, int seed) {
+        gen.seed( seed );
         std::uniform_real_distribution<> dis(-1.0, 1.0);
 
         FOR_ALL_ELEMENTS_IN_MATRIX1D( array ) {
@@ -137,14 +173,29 @@ public:
 
     MultidimArray< float > in;
     MultidimArray< float > out;
+    MultidimArray< float > out_ref;
+
+    std::mt19937 gen;
 };
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, NoChangeIfCoeffsAreZero) {
-    x = 259;
-    y = 311;
+TEST_F(GeoTransformerApplyBSplineTransformTest, ZeroStaysZero) {
+    x = 256;
+    y = 256;
     allocate_arrays();
 
-    randomly_initialize( in );
+    run_transformation();
+
+    compare_results( in.data, out.data, size );
+}
+
+TEST_F(GeoTransformerApplyBSplineTransformTest, NoChangeIfCoeffsAreZeroWithZeroCoeffs) {
+    x = 259;
+    y = 311;
+    // x = 256;
+    // y = 256;
+    allocate_arrays();
+
+    randomly_initialize( in, 13 );
 
     run_transformation();
 
@@ -160,8 +211,8 @@ TEST_F(GeoTransformerApplyBSplineTransformTest, ZeroInputWithNonzeroCoeffsIsZero
     splineN = 4;
     allocate_arrays();
 
-    randomly_initialize( coeffsX );
-    randomly_initialize( coeffsY );
+    randomly_initialize( coeffsX, 19 );
+    randomly_initialize( coeffsY, 17 );
 
     run_transformation();
 
@@ -175,33 +226,65 @@ TEST_F(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroCoeffs) {
     splineY = 5;
     splineN = 4;
     allocate_arrays();
-    in = load_array( "test_RandomInputWithNonzeroCoeffs.input" );
-    coeffsX = load_coeffs( "test_RandomInputWithNonzeroCoeffs.coeffX" );
-    coeffsY = load_coeffs( "test_RandomInputWithNonzeroCoeffs.coeffY" );
+    randomly_initialize( in, 23 );
+    randomly_initialize( coeffsX, 31 );
+    randomly_initialize( coeffsY, 35 );
 
     run_transformation();
+    compute_reference_result();
 
-    MultidimArray< float > true_result = load_array( "test_RandomInputWithNonzeroCoeffs.output" );
+    compare_results( out.data, out_ref.data, size );
+}
 
-    compare_results( out.data, true_result.data, size );
+TEST_F(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroDifferentDimCoeffs) {
+    x = 256;
+    y = 128;
+    splineX = 3;
+    splineY = 8;
+    splineN = 3;
+    allocate_arrays();
+    randomly_initialize( in, 81 );
+    randomly_initialize( coeffsX, 73 );
+    randomly_initialize( coeffsY, 7 );
+
+    run_transformation();
+    compute_reference_result();
+
+    compare_results( out.data, out_ref.data, size );
+}
+
+TEST_F(GeoTransformerApplyBSplineTransformTest, EvenButNotPaddedInput) {
+    x = 322;
+    y = 344;
+    splineX = 6;
+    splineY = 5;
+    splineN = 4;
+    allocate_arrays();
+    randomly_initialize( in, 24 );
+    randomly_initialize( coeffsX, 47 );
+    randomly_initialize( coeffsY, 19 );
+
+    run_transformation();
+    compute_reference_result();
+
+    compare_results( out.data, out_ref.data, size );
 }
 
 TEST_F(GeoTransformerApplyBSplineTransformTest, OddEvenSizedInput) {
     x = 311;
     y = 134;
     splineX = 9;
-    splineY = 2;
+    splineY = 3;
     splineN = 6;
     allocate_arrays();
-    in = load_array( "test_OddEvenSizedInput.input" );
-    coeffsX = load_coeffs( "test_OddEvenSizedInput.coeffX" );
-    coeffsY = load_coeffs( "test_OddEvenSizedInput.coeffY" );
+    randomly_initialize( in, 63 );
+    randomly_initialize( coeffsX, 21 );
+    randomly_initialize( coeffsY, 3 );
 
     run_transformation();
+    compute_reference_result();
 
-    MultidimArray< float > true_result = load_array( "test_OddEvenSizedInput.output" );
-
-    compare_results( out.data, true_result.data, size );
+    compare_results( out.data, out_ref.data, size );
 }
 
 TEST_F(GeoTransformerApplyBSplineTransformTest, EvenOddSizedInput) {
@@ -211,16 +294,49 @@ TEST_F(GeoTransformerApplyBSplineTransformTest, EvenOddSizedInput) {
     splineY = 7;
     splineN = 6;
     allocate_arrays();
-    in = load_array( "test_EvenOddSizedInput.input" );
-    coeffsX = load_coeffs( "test_EvenOddSizedInput.coeffX" );
-    coeffsY = load_coeffs( "test_EvenOddSizedInput.coeffY" );
+    randomly_initialize( in, 10 );
+    randomly_initialize( coeffsX, 31 );
+    randomly_initialize( coeffsY, 97 );
 
     run_transformation();
+    compute_reference_result();
 
-    MultidimArray< float > true_result = load_array( "test_EvenOddSizedInput.output" );
-
-    compare_results( out.data, true_result.data, size );
+    compare_results( out.data, out_ref.data, size );
 }
+
+TEST_F(GeoTransformerApplyBSplineTransformTest, BiggerSize4K) {
+    x = 3840;
+    y = 2160;
+    splineX = 4;
+    splineY = 8;
+    splineN = 6;
+    allocate_arrays();
+    randomly_initialize( in, 11 );
+    randomly_initialize( coeffsX, 33 );
+    randomly_initialize( coeffsY, 98 );
+
+    run_transformation();
+    compute_reference_result();
+
+    compare_results( out.data, out_ref.data, size );
+}
+
+// TEST_F(GeoTransformerApplyBSplineTransformTest, BiggerSizeInOneDimension) {
+//     x = 3840;
+//     y = 256;
+//     splineX = 4;
+//     splineY = 8;
+//     splineN = 6;
+//     allocate_arrays();
+//     randomly_initialize( in, 81 );
+//     randomly_initialize( coeffsX, 7 );
+//     randomly_initialize( coeffsY, 43 );
+
+//     run_transformation();
+//     compute_reference_result();
+
+//     compare_results( out.data, out_ref.data, size );
+// }
 
 GTEST_API_ int main(int argc, char **argv)
 {
