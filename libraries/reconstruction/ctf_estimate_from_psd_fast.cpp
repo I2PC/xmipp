@@ -1163,7 +1163,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		FourierPSD.FourierTransform(psd_exp_radial2, psd_fft, false);
 
 		const double minDefocus=2000;
-		int startIndex = std::max((double)7,minDefocus*current_ctfmodel.lambda/(2*pow(2*current_ctfmodel.Tm,2)));
+		int startIndex = ceil(std::max((double)7,minDefocus*current_ctfmodel.lambda/(2*pow(2*current_ctfmodel.Tm,2))));
 #ifdef DEBUG
 		std::cout << "Start index=" << minDefocus*current_ctfmodel.lambda/(2*pow(2*current_ctfmodel.Tm,2)) << std::endl;
 		std::cout << "--------------------------------------" << std::endl;
@@ -1199,20 +1199,29 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		double amplitudSD = sqrt(sdSum/amplitud.size());
 		double differenceSD = 3*amplitudSD;
 		for(size_t i=0;i<amplitud.size();i++){
-			if(std::abs(amplitud[i]-amplitudMean)>differenceSD){
-				amplitud[i] = amplitudMean;
+			if (amplitud[i]>amplitudMean+differenceSD){
+				amplitud[i] = amplitudMean+differenceSD;
 			}
 		}
 #endif
 
 		double maxValue=-1e38;
 		int finalIndex=-1;
+#ifdef DEBUG
+		std::cout << "Looking for maximum ...\n";
+#endif
 		for (size_t i=1; i<amplitud.size()-1; i++)
 		{
-			if (amplitud[i]>maxValue && amplitud[i]>amplitud[i-1] && amplitud[i]>amplitud[i+1])
+#ifdef DEBUG
+			std::cout << "i=" << i << " amplitude i= " << amplitud[i] << std::endl;
+#endif
+			if (amplitud[i]>maxValue && amplitud[i]>amplitud[i-1] && amplitud[i]>=amplitud[i+1])
 			{
 				maxValue=amplitud[i];
 				finalIndex=i;
+#ifdef DEBUG
+				std::cout << "New maximum " << i << " maxValue=" << maxValue << std::endl;
+#endif
 			}
 		}
 
@@ -1239,6 +1248,8 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 	}
 }
 #undef DEBUG
+#undef FILTER
+#undef OUTLIERS
 
 // Estimate second gaussian parameters -------------------------------------
 //#define DEBUG
@@ -1393,9 +1404,7 @@ void ProgCTFEstimateFromPSDFast::estimate_background_gauss_parameters2_fast()
         saveIntermediateResults_fast("step04a_first_background2_fit_fast", true);
     }
 }
-
 #undef DEBUG
-
 
 /* Main routine ------------------------------------------------------------ */
 //#define DEBUG
