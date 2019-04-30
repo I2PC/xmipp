@@ -11,7 +11,7 @@ class AFT_Test;
 
 #define SETUPTESTCASE \
     static void SetUpTestCase() { \
-        hw = new CPU(); \
+        hw = new CPU(CPU::findCores()); \
         hw->set(); \
     }
 
