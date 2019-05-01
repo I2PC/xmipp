@@ -50,7 +50,7 @@ public:
 
     void release();
 
-    void load2DReferenceOneToN(const std::complex<T> *h_ref);
+    void load2DReferenceOneToN(const std::complex<T> *h_ref) override;
 
     void load2DReferenceOneToN(const T *h_ref);
 
@@ -97,6 +97,7 @@ private:
     cufftHandle *m_batchToSD;
 
     // flags
+    // bind the flag for host with the device flag
     bool &m_is_d_single_FD_loaded = AShiftCorrEstimator<T>::m_is_single_FD_loaded;
 
     void init2DOneToN();
