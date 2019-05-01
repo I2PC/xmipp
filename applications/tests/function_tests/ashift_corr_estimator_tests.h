@@ -37,7 +37,7 @@ public:
             }
         }
 
-        estimator->init2D(*hw, AlignType::OneToN, dims, 0, false, false);
+        estimator->init2D(*hw, AlignType::OneToN, dims, 1, false, false);
         estimator->load2DReferenceOneToN(ref);
         estimator->computeCorrelations2DOneToN(inOut, false);
         hw->synch();
