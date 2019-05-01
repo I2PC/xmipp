@@ -29,6 +29,7 @@
 #include <typeinfo>
 #include "ashift_corr_estimator.h"
 #include "data/cpu.h"
+#include "fftwT.h"
 
 namespace Alignment {
 
@@ -50,6 +51,8 @@ public:
 
     void load2DReferenceOneToN(const std::complex<T> *ref) override;
 
+    void load2DReferenceOneToN(const T *ref) override;
+
     void computeCorrelations2DOneToN(std::complex<T> *inOut, bool center) override;
 
     void computeCorrelations2DOneToN(
@@ -67,9 +70,17 @@ public:
         bool center);
 private:
     const CPU *m_cpu;
-    // host memory
-    const std::complex<T> *m_single_FD;
 
+    // host memory
+    std::complex<T> *m_single_FD;
+    std::complex<T> *m_batch_FD;
+
+    // FT plans
+    void *m_singleToFD;
+    void *m_batchToFD;
+    void *m_batchToSD;
+
+    void init2DOneToN();
     void setDefault() override;
 };
 
