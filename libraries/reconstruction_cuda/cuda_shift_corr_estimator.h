@@ -41,7 +41,7 @@ public:
         setDefault();
     }
 
-    ~CudaShiftCorrEstimator() {
+    virtual ~CudaShiftCorrEstimator() {
         release();
     }
 
@@ -98,10 +98,11 @@ private:
 
     // flags
     // bind the flag for host with the device flag
-    bool &m_is_d_single_FD_loaded = AShiftCorrEstimator<T>::m_is_single_FD_loaded;
+    bool &m_is_d_single_FD_loaded = AShiftCorrEstimator<T>::m_is_ref_FD_loaded;
 
     void init2DOneToN();
     void setDefault();
+    using AShiftEstimator<T>::init2D;
 };
 
 
