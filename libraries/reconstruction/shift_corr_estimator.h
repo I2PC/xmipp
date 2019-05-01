@@ -45,6 +45,11 @@ public:
 
     void release() override;
 
+    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0,
+            bool includingBatchFT=false, bool includingSingleFT=false) override;
+
+    void load2DReferenceOneToN(const std::complex<T> *ref) override;
+
     void computeCorrelations2DOneToN(std::complex<T> *inOut, bool center) override;
 
     void computeCorrelations2DOneToN(
@@ -61,9 +66,9 @@ public:
         size_t xDim, size_t yDim, size_t nDim,
         bool center);
 private:
-    CPU *m_cpu;
+    const CPU *m_cpu;
     // host memory
-    std::complex<T> *m_single_FD;
+    const std::complex<T> *m_single_FD;
 
     void setDefault() override;
 };
