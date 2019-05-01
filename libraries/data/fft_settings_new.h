@@ -91,6 +91,10 @@ public:
         return m_freq.xyzPadded() * m_batch * sizeof(std::complex<T>);
     }
 
+    inline constexpr size_t fElemsBatch() const {
+        return m_freq.xyzPadded() * m_batch;
+    }
+
     inline constexpr size_t sBytesSingle() const {
         return m_spatial.xyzPadded() * sizeof(T);
     }
@@ -101,6 +105,10 @@ public:
 
     inline constexpr size_t sBytesBatch() const {
         return m_spatial.xyzPadded() * m_batch * sizeof(T);
+    }
+
+    inline constexpr size_t sElemsBatch() const {
+        return m_spatial.xyzPadded() * m_batch;
     }
 
     inline constexpr bool isForward() const {

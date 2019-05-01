@@ -46,10 +46,52 @@ void ShiftCorrEstimator<T>::init2D(const HW &hw, AlignType type,
 }
 
 template<typename T>
+void ShiftCorrEstimator<T>::load2DReferenceOneToN(const T *ref) {
+    auto isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_includingSingleFT);
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
+    }
+
+    // perform FT
+    FFTwT<T>::fft(m_singleToFD, ref, m_single_FD);
+
+    // update state
+    this->m_is_ref_FD_loaded = true;
+}
+
+template<typename T>
+void ShiftCorrEstimator<T>::init2DOneToN() {
+    AShiftCorrEstimator<T>::init2DOneToN();
+
+    // allocate plans and space for data in Fourier domain
+    m_batchToSD = FFTwT<T>::createPlan(*m_cpu, *this->m_settingsInv);
+    auto settingsForw = this->m_settingsInv->createInverse();
+    if (this->m_includingBatchFT) {
+        m_batch_FD = new std::complex<T>[this->m_settingsInv->fElemsBatch()];
+        m_batchToFD = FFTwT<T>::createPlan(*m_cpu, settingsForw);
+    }
+    if (this->m_includingSingleFT) {
+        m_single_FD = new std::complex<T>[this->m_settingsInv->fDim().xyzPadded()];
+        m_singleToFD = FFTwT<T>::createPlan(*m_cpu, settingsForw.createSingle());
+    }
+}
+
+template<typename T>
 void ShiftCorrEstimator<T>::release() {
     AShiftCorrEstimator<T>::release();
 
-    // m_single_FD is not deleted, as we don't own the memory
+    // host memory
+    if (this->m_includingSingleFT) {
+        delete[] m_single_FD;
+    }
+    if (this->m_includingBatchFT) {
+        delete[] m_batch_FD;
+    }
+
+    // FT plans
+    FFTwT<T>::release(m_singleToFD);
+    FFTwT<T>::release(m_batchToFD);
+    FFTwT<T>::release(m_batchToSD);
 
     setDefault();
 }
@@ -57,8 +99,17 @@ void ShiftCorrEstimator<T>::release() {
 template<typename T>
 void ShiftCorrEstimator<T>::setDefault() {
     AShiftCorrEstimator<T>::setDefault();
-    m_single_FD = nullptr;
+
     m_cpu = nullptr;
+
+    // host memory
+    m_single_FD = nullptr;
+    m_batch_FD = nullptr;
+
+    // plans
+    m_singleToFD = nullptr;
+    m_batchToFD = nullptr;
+    m_batchToSD = nullptr;
 }
 
 
@@ -70,7 +121,9 @@ void ShiftCorrEstimator<T>::load2DReferenceOneToN(const std::complex<T> *ref) {
     }
 
     // simply remember the pointer. Expect that nobody will change it meanwhile
-    m_single_FD = ref;
+    // We won't change it, but since generally speaking, we do change this pointer
+    // remove the const
+    m_single_FD = const_cast<std::complex<T>*>(ref);
 
     // update state
     this->m_is_ref_FD_loaded = true;
