@@ -28,8 +28,8 @@
 
 #include "ashift_estimator.h"
 #include "data/fft_settings_new.h"
-#include "core/xmipp_error.h"
-#include "data/hw.h"
+#include "data/point2D.h" // FIXME DS remove
+
 namespace Alignment {
 
 template<typename T>
@@ -43,13 +43,13 @@ public:
     }
 
     virtual void init2D(const HW &hw, AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift,
+            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift
             bool includingBatchFT, bool includingSingleFT) = 0;
-
-    virtual void load2DReferenceOneToN(const std::complex<T> *h_ref) = 0;
 
     virtual void computeCorrelations2DOneToN(
             std::complex<T> *inOut, bool center) = 0;
+
+    virtual void load2DReferenceOneToN(const std::complex<T> *ref) = 0;
 
     virtual void computeCorrelations2DOneToN(
             const HW &hw,
@@ -61,20 +61,19 @@ public:
     static std::vector<T> findMaxAroundCenter(
             const T *data,
             const Dimensions &dims,
-            const Point2D<size_t> &maxShift,
+            const Point3D<size_t> &maxShift,
             std::vector<Point2D<int>> &shifts);
 
     static std::vector<T> findMaxAroundCenter(
             const T *data,
             const Dimensions &dims,
-            size_t maxShift,
+            size_t maxShift, // FIXME DS change type of maxShift
             std::vector<Point2D<int>> &shifts);
-    virtual void release() override;
+    void release() override;
+
 protected:
-    const FFTSettingsNew<T> *m_settingsInv; // FIXME DS rename
-    size_t m_maxShift;
+    FFTSettingsNew<T> *m_settingsInv; // FIXME DS rename, but why?
     size_t m_centerSize;
-    AlignType m_type;
 
     // helper objects / memory
     T *m_h_centers;
@@ -82,16 +81,21 @@ protected:
     // flags
     bool m_includingBatchFT;
     bool m_includingSingleFT;
-    bool m_is_single_FD_loaded;
-    bool m_isInit;
+    bool m_is_ref_FD_loaded;
 
-    virtual void setDefault();
-    void init2D(AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift,
+    void setDefault() override;
+    virtual void init2D(AlignType type,
+            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift
             bool includingBatchFT, bool includingSingleFT);
 
-    virtual void check();
+    void check() override;
     virtual void init2DOneToN();
+
+    // parent init functions cannot be used, but cannot be hidden
+    // in private block, to make compiler (NVCC) happy
+    using AShiftEstimator<T>::init2D;
+    void init2D(const HW &hw, AlignType type,
+                   const Dimensions &dims, size_t batch, Point3D<size_t> maxShift) {};
 };
 
 } /* namespace Alignment */

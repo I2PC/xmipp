@@ -26,12 +26,14 @@
 #ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
 
-#include "data/point2D.h"
-#include "data/dimensions.h"
+#include "data/point3D.h"
 #include <vector>
 #include <cassert>
 #include <limits>
 #include <complex>
+#include "data/hw.h"
+#include "data/dimensions.h"
+#include "core/xmipp_error.h"
 
 namespace Alignment {
 
@@ -40,8 +42,47 @@ enum class AlignType { None, OneToN, NToM, Consecutive };
 template<typename T>
 class AShiftEstimator {
 public:
-    virtual ~AShiftEstimator() {} // nothing to do
-    virtual void release() = 0;
+    AShiftEstimator() {
+        setDefault();
+    }
+    virtual ~AShiftEstimator() {
+        release();
+    }
+
+    virtual void init2D(const HW &hw, AlignType type,
+               const Dimensions &dims, size_t batch, Point3D<size_t> maxShift) = 0;
+
+// FIXME DS add function to load reference (in spatial domain)
+
+//    virtual void computeShift2DOneToN(
+//        T *h_others) = 0; // FIXME DS uncomment
+
+    inline std::vector<Point3D<T>> getShifts() {
+        // FIXME DS add check that it's computed
+        return m_shifts;
+    }
+
+    virtual void release();
+
+protected:
+    // various
+    AlignType m_type;
+    const Dimensions *m_dims;
+    size_t m_batch;
+    Point3D<size_t> m_maxShift;
+
+    // computed shifts
+    std::vector<Point3D<T>> m_shifts;
+
+    // flags
+    bool m_is_ref_loaded;
+    bool m_is_shift_computed;
+    bool m_isInit;
+
+    virtual void setDefault();
+    virtual void init2D(AlignType type, const Dimensions &dims,
+               size_t batch, Point3D<size_t> maxShift);
+    virtual void check();
 };
 
 } /* namespace Alignment */
