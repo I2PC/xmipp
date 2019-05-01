@@ -26,14 +26,11 @@
 #ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
 #define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
 
-#include "data/point3D.h"
-#include <vector>
-#include <cassert>
-#include <limits>
-#include <complex>
 #include "data/hw.h"
 #include "data/dimensions.h"
+#include "data/point3D.h"
 #include "core/xmipp_error.h"
+#include <vector>
 
 namespace Alignment {
 
@@ -52,10 +49,9 @@ public:
     virtual void init2D(const HW &hw, AlignType type,
                const Dimensions &dims, size_t batch, Point3D<size_t> maxShift) = 0;
 
-// FIXME DS add function to load reference (in spatial domain)
+    virtual void load2DReferenceOneToN(const T *ref) = 0;
 
-//    virtual void computeShift2DOneToN(
-//        T *h_others) = 0; // FIXME DS uncomment
+//    virtual void computeShift2DOneToN(T *others) = 0;
 
     inline std::vector<Point3D<T>> getShifts() {
         // FIXME DS add check that it's computed
