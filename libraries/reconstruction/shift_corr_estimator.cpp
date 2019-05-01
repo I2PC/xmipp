@@ -41,6 +41,8 @@ void ShiftCorrEstimator<T>::init2D(const HW &hw, AlignType type,
 
     AShiftCorrEstimator<T>::init2D(type, settings, maxShift,
         includingBatchFT, includingSingleFT);
+
+    this->m_isInit = true;
 }
 
 template<typename T>
@@ -71,13 +73,13 @@ void ShiftCorrEstimator<T>::load2DReferenceOneToN(const std::complex<T> *ref) {
     m_single_FD = ref;
 
     // update state
-    this->m_is_single_FD_loaded = true;
+    this->m_is_ref_FD_loaded = true;
 }
 
 template<typename T>
 void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
         std::complex<T> *inOut, bool center) {
-    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_single_FD_loaded);
+    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_FD_loaded);
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
