@@ -25,6 +25,9 @@
 
 #include "fftwT.h"
 
+// Make sure that the class is initialized
+FFTwT_Startup fftwt_startup;
+
 template<typename T>
 void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse) {
     bool canReuse = m_isInit
@@ -90,8 +93,7 @@ void FFTwT<double>::allocate() {
 }
 
 template<typename T>
-template<typename P>
-void FFTwT<T>::release(P plan) {
+void FFTwT<T>::release(void *plan) {
     if (nullptr != plan) {
         FFTwT<T>::release(cast(plan));
     }
