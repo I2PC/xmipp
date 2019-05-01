@@ -52,7 +52,7 @@ public:
 
     void load2DReferenceOneToN(const std::complex<T> *h_ref) override;
 
-    void load2DReferenceOneToN(const T *h_ref);
+    void load2DReferenceOneToN(const T *h_ref) override;
 
     void computeCorrelations2DOneToN(
         std::complex<T> *h_inOut, bool center) override;
