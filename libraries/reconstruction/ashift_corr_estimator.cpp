@@ -28,9 +28,9 @@ namespace Alignment {
 
 template<typename T>
 void AShiftCorrEstimator<T>::setDefault() {
-    m_type = AlignType::None;
+    AShiftEstimator<T>::setDefault();
+
     m_settingsInv = nullptr;
-    m_maxShift = 0;
     m_centerSize = 0;
 
     // host memory
@@ -39,24 +39,28 @@ void AShiftCorrEstimator<T>::setDefault() {
     // flags
     m_includingBatchFT = false;
     m_includingSingleFT = false;
-    m_is_single_FD_loaded = false;
-    m_isInit = false;
+    m_is_ref_FD_loaded = false;
 }
 
 template<typename T>
 void AShiftCorrEstimator<T>::release() {
+    AShiftEstimator<T>::release();
+
     delete m_settingsInv;
     // host memory
     delete[] m_h_centers;
+
+    AShiftCorrEstimator<T>::setDefault();
 }
 
 template<typename T>
 void AShiftCorrEstimator<T>::init2D(AlignType type,
         const FFTSettingsNew<T> &dims, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
-    m_type = type;
+    AShiftEstimator<T>::init2D(type, dims.sDim(), dims.batch(),
+            Point3D<size_t>(maxShift, maxShift, maxShift));
+
     m_settingsInv = new FFTSettingsNew<T>(dims);
-    m_maxShift = maxShift;
     m_includingBatchFT = includingBatchFT;
     m_includingSingleFT = includingSingleFT;
     m_centerSize = 2 * maxShift + 1;
@@ -70,8 +74,6 @@ void AShiftCorrEstimator<T>::init2D(AlignType type,
         default:
             REPORT_ERROR(ERR_NOT_IMPLEMENTED, "This alignment type is not supported yet");
     }
-
-    this->m_isInit = true;
 }
 
 template<typename T>
@@ -88,7 +90,7 @@ void AShiftCorrEstimator<T>::check() {
     if (this->m_settingsInv->isInPlace()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "In-place transform only supported");
     }
-    if (this->m_settingsInv->fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) {
+    if (this->m_settingsInv->fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) { // FIXME DS use _GB
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
     }
     if ((0 == this->m_settingsInv->fDim().size())
@@ -122,7 +124,7 @@ template<typename T>
 std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         const T *correlations,
         const Dimensions &dims,
-        const Point2D<size_t> &maxShift,
+        const Point3D<size_t> &maxShift,
         std::vector<Point2D<int>> &shifts) {
     size_t xHalf = dims.x() / 2;
     size_t yHalf = dims.y() / 2;
@@ -142,6 +144,7 @@ std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
     shifts.reserve(dims.n());
     result.reserve(dims.n());
 
+    // FIXME DS implement support for Z dimension
     size_t maxDist = maxShift.x * maxShift.y;
     for (size_t n = 0; n < dims.n(); ++n) {
         size_t offsetN = n * dims.xyz();
@@ -180,7 +183,7 @@ std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         const Dimensions &dims,
         size_t maxShift,
         std::vector<Point2D<int>> &shifts) {
-    return findMaxAroundCenter(correlations, dims, Point2D<size_t>(maxShift, maxShift), shifts);
+    return findMaxAroundCenter(correlations, dims, Point3D<size_t>(maxShift, maxShift, maxShift), shifts);
 }
 
 // explicit instantiation
