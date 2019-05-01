@@ -28,7 +28,9 @@
 
 #include "ashift_estimator.h"
 #include "data/fft_settings_new.h"
+#include <complex>
 #include "data/point2D.h" // FIXME DS remove
+#include <limits>
 
 namespace Alignment {
 

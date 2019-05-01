@@ -124,10 +124,10 @@ void CudaShiftCorrEstimator<T>::init2DOneToN() {
     gpuErrchk(cudaMalloc(&m_d_batch_FD, this->m_settingsInv->fBytesBatch()));
 
     // allocate space for data in Spatial domain
-    if (this->m_includingBatchFT) {
+    if (this->m_includingSingleFT) {
         gpuErrchk(cudaMalloc(&m_d_single_SD, this->m_settingsInv->sBytesSingle()));
     }
-    if (this->m_includingSingleFT) {
+    if (this->m_includingBatchFT) {
         gpuErrchk(cudaMalloc(&m_d_batch_SD, this->m_settingsInv->sBytesBatch()));
     }
 
