@@ -27,12 +27,27 @@
 
 namespace Alignment {
 
+
+template<typename T>
+void ShiftCorrEstimator<T>::init2D(const HW &hw, AlignType type,
+        const FFTSettingsNew<T> &settings, size_t maxShift,
+        bool includingBatchFT, bool includingSingleFT) {
+    release();
+    try {
+        m_cpu = &dynamic_cast<const CPU&>(hw);
+    } catch (std::bad_cast&) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
+    }
+
+    AShiftCorrEstimator<T>::init2D(type, settings, maxShift,
+        includingBatchFT, includingSingleFT);
+}
+
 template<typename T>
 void ShiftCorrEstimator<T>::release() {
     AShiftCorrEstimator<T>::release();
 
-    delete[] m_single_FD;
-    delete m_cpu;
+    // m_single_FD is not deleted, as we don't own the memory
 
     setDefault();
 }
@@ -44,6 +59,20 @@ void ShiftCorrEstimator<T>::setDefault() {
     m_cpu = nullptr;
 }
 
+
+template<typename T>
+void ShiftCorrEstimator<T>::load2DReferenceOneToN(const std::complex<T> *ref) {
+    auto isReady = (this->m_isInit && (AlignType::OneToN == this->m_type));
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
+    }
+
+    // simply remember the pointer. Expect that nobody will change it meanwhile
+    m_single_FD = ref;
+
+    // update state
+    this->m_is_single_FD_loaded = true;
+}
 
 template<typename T>
 void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(

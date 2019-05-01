@@ -46,6 +46,8 @@ public:
             const FFTSettingsNew<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT) = 0;
 
+    virtual void load2DReferenceOneToN(const std::complex<T> *h_ref) = 0;
+
     virtual void computeCorrelations2DOneToN(
             std::complex<T> *inOut, bool center) = 0;
 
