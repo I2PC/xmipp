@@ -43,6 +43,8 @@ void CudaShiftCorrEstimator<T>::init2D(const HW &hw, AlignType type,
 
     AShiftCorrEstimator<T>::init2D(type, settings, maxShift,
         includingBatchFT, includingSingleFT);
+
+    this->m_isInit = true;
 }
 
 template<typename T>
@@ -218,7 +220,7 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
                 this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(), toProcess,
                 m_d_batch_SD, *m_batchToSD,
                 this->m_settingsInv->sDim().x(),
-                this->m_h_centers, this->m_maxShift);
+                this->m_h_centers, this->m_maxShift.x); // FIXME DS support other dimensions!
 
         // append shifts to existing results
         result.insert(result.end(), shifts.begin(), shifts.end());
