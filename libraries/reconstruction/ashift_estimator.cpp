@@ -31,7 +31,7 @@ template<typename T>
 void AShiftEstimator<T>::release() {
     delete m_dims;
 
-    m_shifts.clear();
+    m_shifts2D.clear();
 
     AShiftEstimator<T>::setDefault();
 }
@@ -43,7 +43,7 @@ void AShiftEstimator<T>::setDefault() {
     m_batch = 0;
     m_maxShift = Point3D<size_t>(0, 0, 0);
 
-    m_shifts.reserve(0);
+    m_shifts2D.reserve(0);
 
     m_isInit = false;
     m_is_ref_loaded = false;
@@ -52,11 +52,11 @@ void AShiftEstimator<T>::setDefault() {
 
 template<typename T>
 void AShiftEstimator<T>::init2D(AlignType type, const Dimensions &dims,
-               size_t batch, Point3D<size_t> maxShift) {
+               size_t batch, Point2D<size_t> maxShift) {
     m_type = type;
     m_dims = new Dimensions(dims);
     m_batch = std::min(batch, m_dims->n());
-    m_maxShift = maxShift;
+    m_maxShift = Point3D<size_t>(maxShift.x, maxShift.y, 1);
 
     AShiftEstimator<T>::check();
 }
