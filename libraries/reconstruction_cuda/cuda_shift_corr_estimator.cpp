@@ -188,7 +188,8 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 template<typename T>
 void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
         T *h_others) {
-    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && m_is_d_single_FD_loaded);
+    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type)
+            && m_is_d_single_FD_loaded && this->m_includingBatchFT);
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
@@ -202,14 +203,14 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
         size_t toProcess = std::min(this->m_settingsInv->batch(), this->m_settingsInv->fDim().n() - offset);
 
         // copy memory
-       gpuErrchk(cudaMemcpyAsync(
+        gpuErrchk(cudaMemcpyAsync(
                m_d_batch_SD,
                h_others + offset * this->m_settingsInv->sDim().xy(),
                toProcess * this->m_settingsInv->sBytesSingle(),
                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
         // perform FT
-       CudaFFT<T>::fft(*m_batchToFD, m_d_batch_SD, m_d_batch_FD);
+        CudaFFT<T>::fft(*m_batchToFD, m_d_batch_SD, m_d_batch_FD);
 
         // compute shifts
         auto shifts = computeShifts2DOneToN(
@@ -298,6 +299,10 @@ void CudaShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
         size_t xDim, size_t yDim, size_t nDim) {
+    if (center) {
+        // we cannot assert xDim, as we don't know if the spatial size was even
+        assert(0 == (yDim % 2));
+    }
     auto stream = *(cudaStream_t*)gpu.stream();
     // compute kernel size
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
