@@ -366,9 +366,10 @@ double* FFTwT<double>::ifft(const fftw_plan plan, std::complex<double> *in, doub
 template<typename T>
 template<typename P>
 T* FFTwT<T>::ifft(const P plan, std::complex<T> *inOut) {
-    return fft(plan, inOut, (T*)inOut);
+    return ifft(plan, inOut, (T*)inOut);
 }
 
 // explicit instantiation
 template class FFTwT<float>;
 template class FFTwT<double>;
+
