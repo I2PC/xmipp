@@ -235,7 +235,8 @@ void ShiftCorrEstimator<T>::computeShift2DOneToN(
                 this->m_settingsInv->batch(), // always process whole batch, as we do it to avoid copying memory
                 m_batch_SD, m_batchToSD,
                 this->m_settingsInv->sDim().x(),
-                this->m_h_centers, this->m_maxShift.x); // FIXME DS support other dimensions!
+                this->m_h_centers,
+                Point2D<size_t>(this->m_maxShift.x, this->m_maxShift.y));
 
         // append shifts to existing results
         this->m_shifts2D.insert(this->m_shifts2D.end(),
@@ -257,12 +258,13 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
         T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
         void *plan,
         size_t xDimS,
-        T *h_centers, size_t maxShift) {
+        T *h_centers, const Point2D<size_t> &maxShift) {
     // we need even input in order to perform the shift (in FD, while correlating) properly
     assert(0 == (xDimS % 2));
     assert(0 == (yDimF % 2));
 
-    size_t centerSize = maxShift * 2 + 1;
+    size_t centerSizeX = maxShift.x * 2 + 1;
+    size_t centerSizeY = maxShift.y * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
     sComputeCorrelations2DOneToN(cpu,
             othersF, ref,
@@ -274,24 +276,26 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
     // FIXME DS extract to some utils class
     // crop the centers of the resulting correlation functions
     int inCenterX = (int)((T) (xDimS) / (T)2);
-    size_t startX = inCenterX - maxShift;
+    size_t startX = inCenterX - maxShift.x;
     int inCenterY = (int)((T) (yDimF) / (T)2);
+    size_t startY = inCenterY - maxShift.y;
     for (size_t n = 0; n < nDim; n++) {
         size_t offsetNIn = n * yDimF * xDimS;
-        size_t offsetNOut = n * centerSize * centerSize;
+        size_t offsetNOut = n * centerSizeX * centerSizeY;
         size_t outY = 0;
-        for (size_t y = inCenterY - maxShift; y < inCenterY + maxShift; ++y, ++outY) {
+        for (size_t y = startY; y < inCenterY + maxShift.y; ++y, ++outY) {
             size_t offsetY = y * xDimS;
-            memcpy(h_centers + offsetNOut + outY * centerSize,
+            memcpy(h_centers + offsetNOut + outY * centerSizeX,
                     othersS + offsetNIn + offsetY + startX,
-                    centerSize * sizeof(float));
+                    centerSizeX * sizeof(float));
         }
     }
 
     // compute shifts
     auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
-            h_centers, Dimensions(centerSize, centerSize, 1, nDim), maxShift, result);
+            h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim),
+            maxShift, result);
     return result;
 }
 

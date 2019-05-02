@@ -72,7 +72,7 @@ public:
         T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
         cufftHandle plan,
         size_t xDimS,
-        T *h_centers, size_t maxShift);
+        T *h_centers, const Point2D<size_t> &maxShift);
 
     template<bool center>
     static void sComputeCorrelations2DOneToN(
