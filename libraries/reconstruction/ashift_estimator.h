@@ -52,7 +52,7 @@ public:
 
     virtual void load2DReferenceOneToN(const T *ref) = 0;
 
-//    virtual void computeShift2DOneToN(T *others) = 0;
+    virtual void computeShift2DOneToN(T *others) = 0;
 
     inline std::vector<Point2D<float>> getShifts2D() {
         // FIXME DS add check that it's computed
