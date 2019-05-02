@@ -40,7 +40,7 @@ public:
         setDefault();
     }
 
-    ~ShiftCorrEstimator() {
+    virtual ~ShiftCorrEstimator() {
         release();
     }
 
@@ -52,6 +52,18 @@ public:
     void load2DReferenceOneToN(const std::complex<T> *ref) override;
 
     void load2DReferenceOneToN(const T *ref) override;
+
+    void computeShift2DOneToN(T *others) override;
+
+    static std::vector<Point2D<float>> computeShifts2DOneToN(
+        const CPU &cpu,
+        std::complex<T> *othersF,
+        std::complex<T> *ref,
+        size_t xDimF, size_t yDimF, size_t nDim,
+        T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
+        void *plan,
+        size_t xDimS,
+        T *h_centers, size_t maxShift);
 
     void computeCorrelations2DOneToN(std::complex<T> *inOut, bool center) override;
 
@@ -74,6 +86,7 @@ private:
     // host memory
     std::complex<T> *m_single_FD;
     std::complex<T> *m_batch_FD;
+    T * m_batch_SD;
 
     // FT plans
     void *m_singleToFD;
