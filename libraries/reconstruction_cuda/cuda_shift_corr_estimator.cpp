@@ -100,8 +100,6 @@ void CudaShiftCorrEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
 
 template<typename T>
 void CudaShiftCorrEstimator<T>::release() {
-    AShiftCorrEstimator<T>::release();
-
     // device memory
     gpuErrchk(cudaFree(m_d_single_FD));
     gpuErrchk(cudaFree(m_d_batch_FD));
@@ -113,7 +111,9 @@ void CudaShiftCorrEstimator<T>::release() {
     CudaFFT<T>::release(m_batchToFD);
     CudaFFT<T>::release(m_batchToSD);
 
-    setDefault();
+    AShiftCorrEstimator<T>::release();
+
+    CudaShiftCorrEstimator<T>::setDefault();
 }
 
 template<typename T>
