@@ -79,8 +79,6 @@ void ShiftCorrEstimator<T>::init2DOneToN() {
 
 template<typename T>
 void ShiftCorrEstimator<T>::release() {
-    AShiftCorrEstimator<T>::release();
-
     // host memory
     if (this->m_includingSingleFT) {
         delete[] m_single_FD;
@@ -95,7 +93,9 @@ void ShiftCorrEstimator<T>::release() {
     FFTwT<T>::release(m_batchToFD);
     FFTwT<T>::release(m_batchToSD);
 
-    setDefault();
+    AShiftCorrEstimator<T>::release();
+
+    ShiftCorrEstimator<T>::setDefault();
 }
 
 template<typename T>
