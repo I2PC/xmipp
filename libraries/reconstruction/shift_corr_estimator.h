@@ -63,7 +63,7 @@ public:
         T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
         void *plan,
         size_t xDimS,
-        T *h_centers, size_t maxShift);
+        T *h_centers, const Point2D<size_t> &maxShift);
 
     void computeCorrelations2DOneToN(std::complex<T> *inOut, bool center) override;
 
