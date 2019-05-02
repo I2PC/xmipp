@@ -149,8 +149,8 @@ std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
     for (size_t n = 0; n < dims.n(); ++n) {
         size_t offsetN = n * dims.xyz();
         // reset values
-        size_t maxX;
-        size_t maxY;
+        float maxX;
+        float maxY;
         T val = std::numeric_limits<T>::lowest();
         // iterate through the center
         for (size_t y = yHalf - maxShift.y; y <= yHalf + maxShift.y; ++y) {

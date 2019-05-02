@@ -68,6 +68,7 @@ void ShiftCorrEstimator<T>::init2DOneToN() {
     auto settingsForw = this->m_settingsInv->createInverse();
     if (this->m_includingBatchFT) {
         m_batch_FD = new std::complex<T>[this->m_settingsInv->fElemsBatch()];
+        m_batch_SD = new T[this->m_settingsInv->sElemsBatch()];
         m_batchToFD = FFTwT<T>::createPlan(*m_cpu, settingsForw);
     }
     if (this->m_includingSingleFT) {
@@ -86,9 +87,10 @@ void ShiftCorrEstimator<T>::release() {
     }
     if (this->m_includingBatchFT) {
         delete[] m_batch_FD;
+        delete[] m_batch_SD;
     }
-
     // FT plans
+
     FFTwT<T>::release(m_singleToFD);
     FFTwT<T>::release(m_batchToFD);
     FFTwT<T>::release(m_batchToSD);
@@ -105,6 +107,7 @@ void ShiftCorrEstimator<T>::setDefault() {
     // host memory
     m_single_FD = nullptr;
     m_batch_FD = nullptr;
+    m_batch_SD = nullptr;
 
     // plans
     m_singleToFD = nullptr;
@@ -169,7 +172,7 @@ void ShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         const std::complex<T> *ref,
         size_t xDim, size_t yDim, size_t nDim, bool center) {
     if (center) {
-        assert(0 == (xDim % 2));
+        // we cannot assert xDim, as we don't know if the spatial size was even
         assert(0 == (yDim % 2));
     }
     for (size_t n = 0; n < nDim; ++n) {
@@ -188,6 +191,108 @@ void ShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
             }
         }
     }
+}
+
+template<typename T>
+void ShiftCorrEstimator<T>::computeShift2DOneToN(
+        T *others) {
+    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type)
+            && this->m_is_ref_FD_loaded && this->m_includingBatchFT);
+
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
+    }
+
+    // reserve enough space for shifts
+    this->m_shifts2D.reserve(this->m_settingsInv->fDim().n());
+    // process signals
+    for (size_t offset = 0; offset < this->m_settingsInv->fDim().n(); offset += this->m_settingsInv->batch()) {
+        // how many signals to process
+        size_t toProcess = std::min(this->m_settingsInv->batch(), this->m_settingsInv->fDim().n() - offset);
+
+        T *batchStart;
+        if (toProcess == this->m_settingsInv->batch()) {
+            // we process whole batch, so we don't need to copy data
+            batchStart = others + offset * this->m_settingsInv->sDim().xyPadded();
+        } else {
+            assert(this->m_settingsInv->batch() <= this->m_settingsInv->sDim().n());
+            // less than 'batch' signals are left, so we need to process last 'batch'
+            // signals to avoid invalid memory access
+            batchStart = others
+                    + (this->m_settingsInv->sDim().n() - this->m_settingsInv->batch())
+                    * this->m_settingsInv->sDim().xy();
+        }
+
+        // perform FT
+        FFTwT<T>::fft(m_batchToFD, batchStart, m_batch_FD);
+
+        // compute shifts
+        auto shifts = computeShifts2DOneToN(
+                *m_cpu,
+                m_batch_FD,
+                m_single_FD,
+                this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(),
+                this->m_settingsInv->batch(), // always process whole batch, as we do it to avoid copying memory
+                m_batch_SD, m_batchToSD,
+                this->m_settingsInv->sDim().x(),
+                this->m_h_centers, this->m_maxShift.x); // FIXME DS support other dimensions!
+
+        // append shifts to existing results
+        this->m_shifts2D.insert(this->m_shifts2D.end(),
+                // in case of the last iteration, take only the shifts we actually need
+                shifts.begin() + this->m_settingsInv->batch() - toProcess,
+                shifts.end());
+    }
+
+    // update state
+    this->m_is_shift_computed = true;
+}
+
+template<typename T>
+std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
+        const CPU &cpu,
+        std::complex<T> *othersF,
+        std::complex<T> *ref,
+        size_t xDimF, size_t yDimF, size_t nDim,
+        T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
+        void *plan,
+        size_t xDimS,
+        T *h_centers, size_t maxShift) {
+    // we need even input in order to perform the shift (in FD, while correlating) properly
+    assert(0 == (xDimS % 2));
+    assert(0 == (yDimF % 2));
+
+    size_t centerSize = maxShift * 2 + 1;
+    // correlate signals and shift FT so that it will be centered after IFT
+    sComputeCorrelations2DOneToN(cpu,
+            othersF, ref,
+            xDimF, yDimF, nDim, true);
+
+    // perform IFT
+    FFTwT<T>::ifft(plan, othersF, othersS);
+
+    // FIXME DS extract to some utils class
+    // crop the centers of the resulting correlation functions
+    int inCenterX = (int)((T) (xDimS) / (T)2);
+    size_t startX = inCenterX - maxShift;
+    int inCenterY = (int)((T) (yDimF) / (T)2);
+    for (size_t n = 0; n < nDim; n++) {
+        size_t offsetNIn = n * yDimF * xDimS;
+        size_t offsetNOut = n * centerSize * centerSize;
+        size_t outY = 0;
+        for (size_t y = inCenterY - maxShift; y < inCenterY + maxShift; ++y, ++outY) {
+            size_t offsetY = y * xDimS;
+            memcpy(h_centers + offsetNOut + outY * centerSize,
+                    othersS + offsetNIn + offsetY + startX,
+                    centerSize * sizeof(float));
+        }
+    }
+
+    // compute shifts
+    auto result = std::vector<Point2D<float>>();
+    AShiftCorrEstimator<T>::findMaxAroundCenter(
+            h_centers, Dimensions(centerSize, centerSize, 1, nDim), maxShift, result);
+    return result;
 }
 
 // explicit instantiation
