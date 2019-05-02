@@ -28,6 +28,7 @@
 
 #include "data/hw.h"
 #include "data/dimensions.h"
+#include "data/point2D.h"
 #include "data/point3D.h"
 #include "core/xmipp_error.h"
 #include <vector>
@@ -47,15 +48,15 @@ public:
     }
 
     virtual void init2D(const HW &hw, AlignType type,
-               const Dimensions &dims, size_t batch, Point3D<size_t> maxShift) = 0;
+               const Dimensions &dims, size_t batch, Point2D<size_t> maxShift) = 0;
 
     virtual void load2DReferenceOneToN(const T *ref) = 0;
 
 //    virtual void computeShift2DOneToN(T *others) = 0;
 
-    inline std::vector<Point3D<T>> getShifts() {
+    inline std::vector<Point2D<float>> getShifts2D() {
         // FIXME DS add check that it's computed
-        return m_shifts;
+        return m_shifts2D;
     }
 
     virtual void release();
@@ -68,7 +69,7 @@ protected:
     Point3D<size_t> m_maxShift;
 
     // computed shifts
-    std::vector<Point3D<T>> m_shifts;
+    std::vector<Point2D<float>> m_shifts2D;
 
     // flags
     bool m_is_ref_loaded;
@@ -77,7 +78,7 @@ protected:
 
     virtual void setDefault();
     virtual void init2D(AlignType type, const Dimensions &dims,
-               size_t batch, Point3D<size_t> maxShift);
+               size_t batch, Point2D<size_t> maxShift);
     virtual void check();
 };
 
