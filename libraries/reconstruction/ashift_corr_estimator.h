@@ -70,6 +70,12 @@ public:
     static std::vector<T> findMaxAroundCenter(
             const T *data,
             const Dimensions &dims,
+            const Point2D<size_t> &maxShift,
+            std::vector<Point2D<float>> &shifts);
+
+    static std::vector<T> findMaxAroundCenter(
+            const T *data,
+            const Dimensions &dims,
             size_t maxShift, // FIXME DS change type of maxShift
             std::vector<Point2D<float>> &shifts);
     void release() override;
