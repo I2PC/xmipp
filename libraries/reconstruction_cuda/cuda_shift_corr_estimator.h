@@ -62,10 +62,9 @@ public:
         const std::complex<T> *ref,
         size_t xDim, size_t yDim, size_t nDim, bool center) override;
 
-    std::vector<Point2D<int>> computeShift2DOneToN(
-        T *h_others);
+    void computeShift2DOneToN(T *h_others);
 
-    static std::vector<Point2D<int>> computeShifts2DOneToN(
+    static std::vector<Point2D<float>> computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
