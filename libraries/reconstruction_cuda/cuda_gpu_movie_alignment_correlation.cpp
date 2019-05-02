@@ -293,7 +293,7 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
                 // crop images in space domain, use memory for FFT to avoid realocation
                 cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)imgs.d_data,
                         (T*)ffts.d_data, imgs.Xdim, imgs.Ydim,
-                        counter, centerSize);
+                        counter, centerSize, centerSize);
 
                 copyInRightOrder((T*)ffts.d_data, result,
                         centerSize, centerSize,

@@ -220,7 +220,8 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
                 this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(), toProcess,
                 m_d_batch_SD, *m_batchToSD,
                 this->m_settingsInv->sDim().x(),
-                this->m_h_centers, this->m_maxShift.x); // FIXME DS support other dimensions!
+                this->m_h_centers,
+                Point2D<size_t>(this->m_maxShift.x, this->m_maxShift.y));
 
         // append shifts to existing results
         this->m_shifts2D.insert(this->m_shifts2D.end(), shifts.begin(), shifts.end());
@@ -238,8 +239,14 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         size_t xDimF, size_t yDimF, size_t nDim,
         T *d_othersS, cufftHandle plan,
         size_t xDimS,
-        T *h_centers, size_t maxShift) {
-    size_t centerSize = maxShift * 2 + 1;
+        T *h_centers,
+        const Point2D<size_t> &maxShift) {
+    // we need even input in order to perform the shift (in FD, while correlating) properly
+    assert(0 == (xDimS % 2));
+    assert(0 == (yDimF % 2));
+
+    size_t centerSizeX = maxShift.x * 2 + 1;
+    size_t centerSizeY = maxShift.y * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
     sComputeCorrelations2DOneToN<true>(gpu,
             d_othersF, d_ref,
@@ -253,15 +260,15 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // crop images in spatial domain, use memory for FT to avoid reallocation
     dim3 dimBlockCrop(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGridCrop(
-            std::ceil(centerSize / (float)dimBlockCrop.x),
-            std::ceil(centerSize / (float)dimBlockCrop.y));
+            std::ceil(centerSizeX / (float)dimBlockCrop.x),
+            std::ceil(centerSizeY / (float)dimBlockCrop.y));
     cropSquareInCenter<<<dimGridCrop, dimBlockCrop, 0, stream>>>(
             d_othersS, (T*)d_othersF,
-            xDimS, yDimF, nDim, centerSize);
+            xDimS, yDimF, nDim, centerSizeX, centerSizeY);
 
     // copy data back
     gpuErrchk(cudaMemcpyAsync(h_centers, d_othersF,
-            nDim * centerSize * centerSize * sizeof(T),
+            nDim * centerSizeX * centerSizeY * sizeof(T),
             cudaMemcpyDeviceToHost, stream));
 
     gpu.synch();
@@ -269,7 +276,7 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // compute shifts
     auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
-            h_centers, Dimensions(centerSize, centerSize, 1, nDim), maxShift, result);
+            h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim), maxShift, result);
     return result;
 }
 
