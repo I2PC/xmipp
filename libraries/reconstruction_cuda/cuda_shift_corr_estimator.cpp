@@ -186,7 +186,7 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 }
 
 template<typename T>
-std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
+void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
         T *h_others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && m_is_d_single_FD_loaded);
 
@@ -195,8 +195,7 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     }
 
     // reserve enough space for shifts
-    auto result = std::vector<Point2D<int>>();
-    result.reserve(this->m_settingsInv->fDim().n());
+    this->m_shifts2D.reserve(this->m_settingsInv->fDim().n());
     // process signals
     for (size_t offset = 0; offset < this->m_settingsInv->fDim().n(); offset += this->m_settingsInv->batch()) {
         // how many signals to process
@@ -223,14 +222,15 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShift2DOneToN(
                 this->m_h_centers, this->m_maxShift.x); // FIXME DS support other dimensions!
 
         // append shifts to existing results
-        result.insert(result.end(), shifts.begin(), shifts.end());
+        this->m_shifts2D.insert(this->m_shifts2D.end(), shifts.begin(), shifts.end());
     }
 
-    return result;
+    // update state
+    this->m_is_shift_computed = true;
 }
 
 template<typename T>
-std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
+std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
@@ -266,7 +266,7 @@ std::vector<Point2D<int>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     gpu.synch();
 
     // compute shifts
-    auto result = std::vector<Point2D<int>>();
+    auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
             h_centers, Dimensions(centerSize, centerSize, 1, nDim), maxShift, result);
     return result;
