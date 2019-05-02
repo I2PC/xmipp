@@ -29,7 +29,6 @@
 #include "ashift_estimator.h"
 #include "data/fft_settings_new.h"
 #include <complex>
-#include "data/point2D.h" // FIXME DS remove
 #include <limits>
 
 namespace Alignment {
@@ -45,13 +44,15 @@ public:
     }
 
     virtual void init2D(const HW &hw, AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift
+            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift to point2D
             bool includingBatchFT, bool includingSingleFT) = 0;
 
     virtual void computeCorrelations2DOneToN(
             std::complex<T> *inOut, bool center) = 0;
 
     virtual void load2DReferenceOneToN(const std::complex<T> *ref) = 0;
+
+    using AShiftEstimator<T>::load2DReferenceOneToN;
 
     virtual void computeCorrelations2DOneToN(
             const HW &hw,
@@ -64,13 +65,13 @@ public:
             const T *data,
             const Dimensions &dims,
             const Point3D<size_t> &maxShift,
-            std::vector<Point2D<int>> &shifts);
+            std::vector<Point2D<float>> &shifts);
 
     static std::vector<T> findMaxAroundCenter(
             const T *data,
             const Dimensions &dims,
             size_t maxShift, // FIXME DS change type of maxShift
-            std::vector<Point2D<int>> &shifts);
+            std::vector<Point2D<float>> &shifts);
     void release() override;
 
 protected:
@@ -87,7 +88,7 @@ protected:
 
     void setDefault() override;
     virtual void init2D(AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift
+            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift to point2D
             bool includingBatchFT, bool includingSingleFT);
 
     void check() override;
@@ -97,7 +98,7 @@ protected:
     // in private block, to make compiler (NVCC) happy
     using AShiftEstimator<T>::init2D;
     void init2D(const HW &hw, AlignType type,
-                   const Dimensions &dims, size_t batch, Point3D<size_t> maxShift) {};
+                   const Dimensions &dims, size_t batch, Point2D<size_t> maxShift) {};
 };
 
 } /* namespace Alignment */
