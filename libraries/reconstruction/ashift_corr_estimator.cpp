@@ -44,11 +44,11 @@ void AShiftCorrEstimator<T>::setDefault() {
 
 template<typename T>
 void AShiftCorrEstimator<T>::release() {
-    AShiftEstimator<T>::release();
-
     delete m_settingsInv;
     // host memory
     delete[] m_h_centers;
+
+    AShiftEstimator<T>::release();
 
     AShiftCorrEstimator<T>::setDefault();
 }
