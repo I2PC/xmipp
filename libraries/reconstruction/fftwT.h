@@ -82,6 +82,7 @@ public:
     template<typename P>
     static std::complex<T>* fft(const P plan,
             T *inOut);
+
     static std::complex<T>* fft(void *plan,
             const T *in, std::complex<T> *out) {
         return fft(cast(plan), in, out);
@@ -96,11 +97,13 @@ public:
     template<typename P>
     static T* ifft(const P plan,
             std::complex<T> *inOut);
-    static std::complex<T>* ifft(void *plan,
-            T *in, std::complex<T> *out) { // no const in as it can be overwritten!
+
+    static T* ifft(void *plan,
+            std::complex<T> *in, T *out) { // no const in as it can be overwritten!
         return ifft(cast(plan), in, out);
     }
-    static std::complex<T>* ifft(void *plan, T *inOut) {
+    static T* ifft(void *plan,
+            std::complex<T> *inOut) {
         return ifft(cast(plan), inOut);
     }
 
