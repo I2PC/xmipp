@@ -186,6 +186,15 @@ std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
     return findMaxAroundCenter(correlations, dims, Point3D<size_t>(maxShift, maxShift, maxShift), shifts);
 }
 
+template<typename T>
+std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
+        const T *correlations,
+        const Dimensions &dims,
+        const Point2D<size_t> &maxShift,
+        std::vector<Point2D<float>> &shifts) {
+    return findMaxAroundCenter(correlations, dims, Point3D<size_t>(maxShift.x, maxShift.y, 1), shifts);
+}
+
 // explicit instantiation
 template class AShiftCorrEstimator<float>;
 template class AShiftCorrEstimator<double>;
