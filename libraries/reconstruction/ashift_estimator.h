@@ -29,7 +29,6 @@
 #include "data/hw.h"
 #include "data/dimensions.h"
 #include "data/point2D.h"
-#include "data/point3D.h"
 #include "core/xmipp_error.h"
 #include <vector>
 
