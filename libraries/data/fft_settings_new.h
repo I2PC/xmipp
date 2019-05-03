@@ -135,6 +135,12 @@ public:
         return copy;
     }
 
+    inline FFTSettingsNew<T> createBatch() const {
+        auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), m_batch, m_batch,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
 private:
     Dimensions m_spatial;
     Dimensions m_freq;
