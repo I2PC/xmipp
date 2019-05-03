@@ -59,33 +59,21 @@ public:
             const HW &hw,
             std::complex<T> *inOut,
             const std::complex<T> *ref,
-            size_t xDim, size_t yDim, size_t nDim,
-            bool center=false) = 0;
+            const Dimensions &dims,
+            bool center) = 0;
 
     static std::vector<T> findMaxAroundCenter(
             const T *data,
             const Dimensions &dims,
-            const Point3D<size_t> &maxShift,
-            std::vector<Point2D<float>> &shifts);
-
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            const Point2D<size_t> &maxShift,
-            std::vector<Point2D<float>> &shifts);
-
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            size_t maxShift, // FIXME DS change type of maxShift
+            size_t maxShift,
             std::vector<Point2D<float>> &shifts);
     void release() override;
 
 protected:
-    FFTSettingsNew<T> *m_settingsInv; // FIXME DS rename, but why?
+    FFTSettingsNew<T> *m_settingsInv;
     size_t m_centerSize;
 
-    // helper objects / memory
+    // helper memory
     T *m_h_centers;
 
     // flags
@@ -95,7 +83,7 @@ protected:
 
     void setDefault() override;
     virtual void init2D(AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift to point2D
+            const FFTSettingsNew<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT);
 
     void check() override;
