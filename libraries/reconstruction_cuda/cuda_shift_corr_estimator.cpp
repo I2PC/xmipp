@@ -164,16 +164,15 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
                 toProcess * this->m_settingsInv->fBytesSingle(),
                 cudaMemcpyHostToDevice, stream));
 
+        auto dims = Dimensions(
+                this->m_settingsInv->fDim().x(),
+                this->m_settingsInv->fDim().y(),
+                1,
+                toProcess);
         if (center) {
-            sComputeCorrelations2DOneToN<true>(
-                *m_gpu,
-                m_d_batch_FD, m_d_single_FD,
-                this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(), toProcess);
+            sComputeCorrelations2DOneToN<true>(*m_gpu, m_d_batch_FD, m_d_single_FD, dims);
         } else {
-            sComputeCorrelations2DOneToN<false>(
-                *m_gpu,
-                m_d_batch_FD, m_d_single_FD,
-                this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(), toProcess);
+            sComputeCorrelations2DOneToN<false>(*m_gpu, m_d_batch_FD, m_d_single_FD, dims);
         }
 
         // copy data back
@@ -236,11 +235,11 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
         std::complex<T> *d_ref,
-        size_t xDimF, size_t yDimF, size_t nDim,
+        size_t xDimF, size_t yDimF, size_t nDim, // FIMXE DS pass Dimensions
         T *d_othersS, cufftHandle plan,
         size_t xDimS,
         T *h_centers,
-        const Point2D<size_t> &maxShift) {
+        const Point2D<size_t> &maxShift) { // FIXME DS maxshift should be single value
     // we need even input in order to perform the shift (in FD, while correlating) properly
     assert(0 == (xDimS % 2));
     assert(0 == (yDimF % 2));
@@ -251,7 +250,7 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // correlate signals and shift FT so that it will be centered after IFT
     sComputeCorrelations2DOneToN<true>(gpu,
             d_othersF, d_ref,
-            xDimF, yDimF, nDim);
+            Dimensions(xDimF, yDimF, 1, nDim));
 
     // perform IFT
     CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
@@ -277,7 +276,7 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // compute shifts
     auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
-            h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim), maxShift, result);
+            h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim), maxShift.x, result);
     return result;
 }
 
@@ -286,7 +285,8 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim, bool center) {
+        const Dimensions &dims,
+        bool center) {
     const GPU *gpu;
     try {
         gpu = &dynamic_cast<const GPU&>(hw);
@@ -294,9 +294,9 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
     }
     if (center) {
-        return sComputeCorrelations2DOneToN<true>(*gpu, inOut, ref, xDim,yDim, nDim);
+        return sComputeCorrelations2DOneToN<true>(*gpu, inOut, ref, dims);
     } else {
-        return sComputeCorrelations2DOneToN<false>(*gpu, inOut, ref, xDim,yDim, nDim);
+        return sComputeCorrelations2DOneToN<false>(*gpu, inOut, ref, dims);
     }
 }
 
@@ -306,29 +306,41 @@ void CudaShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
-        size_t xDim, size_t yDim, size_t nDim) {
+        const Dimensions &dims) {
     if (center) {
         // we cannot assert xDim, as we don't know if the spatial size was even
-        assert(0 == (yDim % 2));
+        assert(0 == (dims.y() % 2));
     }
+    assert(0 < dims.x());
+    assert(0 < dims.y());
+    assert(1 == dims.z());
+    assert(0 < dims.n());
+
     auto stream = *(cudaStream_t*)gpu.stream();
     // compute kernel size
     dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGrid(
-            ceil(xDim / (float)dimBlock.x),
-            ceil(yDim / (float)dimBlock.y));
+            ceil(dims.x() / (float)dimBlock.x),
+            ceil(dims.y() / (float)dimBlock.y));
     if (std::is_same<T, float>::value) {
         computeCorrelations2DOneToNKernel<float2, center>
             <<<dimGrid, dimBlock, 0, stream>>> (
                 (float2*)d_inOut, (float2*)d_ref,
-                xDim, yDim, nDim);
+                dims.x(), dims.y(), dims.n());
     } else if (std::is_same<T, double>::value) {
         computeCorrelations2DOneToNKernel<double2, center>
             <<<dimGrid, dimBlock, 0, stream>>> (
                 (double2*)d_inOut, (double2*)d_ref,
-                xDim, yDim, nDim);
+                dims.x(), dims.y(), dims.n());
     } else {
         REPORT_ERROR(ERR_TYPE_INCORRECT, "Not implemented");
+    }
+}
+
+template<typename T>
+void CudaShiftCorrEstimator<T>::check() {
+    if (this->m_settingsInv->isInPlace()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Only out-of-place transform is supported");
     }
 }
 

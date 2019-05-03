@@ -78,7 +78,7 @@ void AShiftCorrEstimator<T>::init2D(AlignType type,
 template<typename T>
 void AShiftCorrEstimator<T>::init2DOneToN() {
     // allocate helper objects
-    m_h_centers = new T[m_centerSize * m_centerSize * m_settingsInv->batch()]();
+    m_h_centers = new T[m_centerSize * m_centerSize * this->m_batch]();
 }
 
 template<typename T>
@@ -88,20 +88,8 @@ void AShiftCorrEstimator<T>::check() {
     if (this->m_settingsInv->isForward()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
     }
-    if (this->m_settingsInv->isInPlace()) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "In-place transform only supported");
-    }
-    if (this->m_settingsInv->fBytesBatch() >= (4_GB)) {
+    if (this->m_settingsInv->fBytesBatch() >= 4_GB) {
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
-    }
-    if ((0 == this->m_settingsInv->fDim().size())
-        || (0 == this->m_settingsInv->sDim().size())) {
-            REPORT_ERROR(ERR_VALUE_INCORRECT, "Fourier or Spatial domain dimension is zero (0)");
-    }
-    if ((m_centerSize > this->m_settingsInv->sDim().x())
-        || m_centerSize > this->m_settingsInv->sDim().y()) {
-            REPORT_ERROR(ERR_VALUE_INCORRECT, "The maximum shift (and hence the shift area: 2 * shift + 1) "
-                "must be sharply smaller than the smallest dimension");
     }
     if ((0 != (this->m_settingsInv->sDim().x() % 2))
         || (0 != (this->m_settingsInv->sDim().y() % 2))) {
@@ -110,14 +98,6 @@ void AShiftCorrEstimator<T>::check() {
             REPORT_ERROR(ERR_VALUE_INCORRECT,
                     "The X and Y dimensions have to be multiple of two. Crop your signal");
     }
-
-    switch (this->m_type) {
-        case AlignType::OneToN:
-            break;
-        default:
-            REPORT_ERROR(ERR_VALUE_INCORRECT,
-               "This type is not supported.");
-    }
 }
 
 
@@ -125,43 +105,49 @@ template<typename T>
 std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         const T *correlations,
         const Dimensions &dims,
-        const Point3D<size_t> &maxShift,
+        size_t maxShift,
         std::vector<Point2D<float>> &shifts) {
-    size_t xHalf = dims.x() / 2;
-    size_t yHalf = dims.y() / 2;
-
     assert(0 == shifts.size());
-    assert(2 <= dims.x());
-    assert(2 <= dims.y());
-    assert(1 == dims.z());
     assert(nullptr != correlations);
-    assert(maxShift.x <= xHalf);
-    assert(maxShift.y <= yHalf);
-    assert(0 < maxShift.x);
-    assert(0 < maxShift.y);
-    assert( ! dims.isPadded());
+
+    assert(0 < dims.x());
+    assert(0 < dims.y());
+    assert(1 == dims.zPadded());
+    assert(0 < dims.n());
+    assert(0 < maxShift);
 
     auto result = std::vector<T>();
     shifts.reserve(dims.n());
     result.reserve(dims.n());
+    int xHalf = dims.x() / 2;
+    int yHalf = dims.y() / 2;
 
-    // FIXME DS implement support for Z dimension
-    size_t maxDist = maxShift.x * maxShift.y;
+    auto min = std::pair<size_t, size_t>(
+        std::max(0, xHalf - (int)maxShift),
+        std::max(0, yHalf - (int)maxShift)
+    );
+
+    auto max = std::pair<size_t, size_t>(
+        std::min((int)dims.x() - 1, xHalf + (int)maxShift),
+        std::min((int)dims.y() - 1, yHalf + (int)maxShift)
+    );
+
+    size_t maxDistSq = maxShift * maxShift;
     for (size_t n = 0; n < dims.n(); ++n) {
-        size_t offsetN = n * dims.xyz();
+        size_t offsetN = n * dims.xyzPadded();
         // reset values
         float maxX;
         float maxY;
         T val = std::numeric_limits<T>::lowest();
         // iterate through the center
-        for (size_t y = yHalf - maxShift.y; y <= yHalf + maxShift.y; ++y) {
-            size_t offsetY = y * dims.x();
+        for (size_t y = min.second; y <= max.second; ++y) {
+            size_t offsetY = y * dims.xPadded();
             int logicY = (int)y - yHalf;
-            T ySq = logicY * logicY;
-            for (size_t x = xHalf - maxShift.x; x <= xHalf + maxShift.x; ++x) {
+            size_t ySq = logicY * logicY;
+            for (size_t x = min.first; x <= max.first; ++x) {
                 int logicX = (int)x - yHalf;
                 // continue if the Euclidean distance is too far
-                if ((ySq + (logicX * logicX)) > maxDist) continue;
+                if ((ySq + (logicX * logicX)) > maxDistSq) continue;
                 // get current value and update, if necessary
                 T tmp = correlations[offsetN + offsetY + x];
                 if (tmp > val) {
@@ -176,24 +162,6 @@ std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
         shifts.emplace_back(maxX, maxY);
     }
     return result;
-}
-
-template<typename T>
-std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
-        const T *correlations,
-        const Dimensions &dims,
-        size_t maxShift,
-        std::vector<Point2D<float>> &shifts) {
-    return findMaxAroundCenter(correlations, dims, Point3D<size_t>(maxShift, maxShift, maxShift), shifts);
-}
-
-template<typename T>
-std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
-        const T *correlations,
-        const Dimensions &dims,
-        const Point2D<size_t> &maxShift,
-        std::vector<Point2D<float>> &shifts) {
-    return findMaxAroundCenter(correlations, dims, Point3D<size_t>(maxShift.x, maxShift.y, 1), shifts);
 }
 
 // explicit instantiation

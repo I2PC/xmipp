@@ -60,7 +60,8 @@ public:
     void computeCorrelations2DOneToN(const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim, bool center) override;
+        const Dimensions &dims,
+        bool center) override;
 
     void computeShift2DOneToN(T *h_others) override;
 
@@ -79,7 +80,7 @@ public:
         const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
-        size_t xDim, size_t yDim, size_t nDim);
+        const Dimensions &dims);
 
 private:
     const GPU *m_gpu;
@@ -101,6 +102,7 @@ private:
 
     void init2DOneToN();
     void setDefault();
+    void check() override;
     using AShiftEstimator<T>::init2D;
 };
 
