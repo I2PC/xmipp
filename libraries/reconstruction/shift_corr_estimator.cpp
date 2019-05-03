@@ -144,9 +144,7 @@ void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
     sComputeCorrelations2DOneToN(
         *m_cpu,
         inOut, m_single_FD,
-        this->m_settingsInv->fDim().x(),
-        this->m_settingsInv->fDim().y(),
-        this->m_settingsInv->fDim().n(),
+        this->m_settingsInv->fDim(),
         center);
 }
 
@@ -155,14 +153,15 @@ void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim, bool center) {
+        const Dimensions &dims,
+        bool center) {
     const CPU *cpu;
     try {
         cpu = &dynamic_cast<const CPU&>(hw);
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }
-    return sComputeCorrelations2DOneToN(*cpu, inOut, ref, xDim, yDim, nDim, center);
+    return sComputeCorrelations2DOneToN(*cpu, inOut, ref, dims, center);
 }
 
 template<typename T>
@@ -170,16 +169,22 @@ void ShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim, bool center) {
+        const Dimensions &dims,
+        bool center) {
     if (center) {
         // we cannot assert xDim, as we don't know if the spatial size was even
-        assert(0 == (yDim % 2));
+        assert(0 == (dims.y() % 2));
     }
-    for (size_t n = 0; n < nDim; ++n) {
-        size_t offsetN = n * xDim * yDim;
-        for (size_t y = 0; y < yDim; ++y) {
-            size_t offsetY = y * xDim;
-            for (size_t x = 0; x < xDim; ++x) {
+    assert(0 < dims.x());
+    assert(0 < dims.y());
+    assert(1 == dims.z());
+    assert(0 < dims.n());
+
+    for (size_t n = 0; n < dims.n(); ++n) {
+        size_t offsetN = n * dims.xyzPadded();
+        for (size_t y = 0; y < dims.y(); ++y) {
+            size_t offsetY = y * dims.xPadded();
+            for (size_t x = 0; x < dims.x(); ++x) {
                 size_t destIndex = offsetN + offsetY + x;
                 auto r = ref[offsetY + x];
                 auto o = r * std::conj(inOut[destIndex]);
@@ -254,11 +259,11 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
         const CPU &cpu,
         std::complex<T> *othersF,
         std::complex<T> *ref,
-        size_t xDimF, size_t yDimF, size_t nDim,
+        size_t xDimF, size_t yDimF, size_t nDim, // FIXME DS pass Dimensions
         T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
         void *plan,
         size_t xDimS,
-        T *h_centers, const Point2D<size_t> &maxShift) {
+        T *h_centers, const Point2D<size_t> &maxShift) { // FIXME  DS maxShift shoudl be single value
     // we need even input in order to perform the shift (in FD, while correlating) properly
     assert(0 == (xDimS % 2));
     assert(0 == (yDimF % 2));
@@ -269,7 +274,7 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
     // correlate signals and shift FT so that it will be centered after IFT
     sComputeCorrelations2DOneToN(cpu,
             othersF, ref,
-            xDimF, yDimF, nDim, true);
+            Dimensions(xDimF, yDimF, 1, nDim), true);
 
     // perform IFT
     FFTwT<T>::ifft(plan, othersF, othersS);
@@ -296,8 +301,15 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
     auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
             h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim),
-            maxShift, result);
+            maxShift.x, result);
     return result;
+}
+
+template<typename T>
+void ShiftCorrEstimator<T>::check() {
+    if (this->m_settingsInv->isInPlace()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Only out-of-place transform is supported");
+    }
 }
 
 // explicit instantiation
