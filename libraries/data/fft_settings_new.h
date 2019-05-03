@@ -141,6 +141,12 @@ public:
         return copy;
     }
 
+    inline FFTSettingsNew<T> createSubset(size_t n) const {
+        auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), n, n,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
 private:
     Dimensions m_spatial;
     Dimensions m_freq;
