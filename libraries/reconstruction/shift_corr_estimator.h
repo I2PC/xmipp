@@ -46,7 +46,7 @@ public:
 
     void release() override;
 
-    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0,
+    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
             bool includingBatchFT=false, bool includingSingleFT=false) override;
 
     void load2DReferenceOneToN(const std::complex<T> *ref) override;
@@ -58,12 +58,11 @@ public:
     static std::vector<Point2D<float>> computeShifts2DOneToN(
         const CPU &cpu,
         std::complex<T> *othersF,
+        T *othersS,
         std::complex<T> *ref,
-        size_t xDimF, size_t yDimF, size_t nDim,
-        T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
+        const FFTSettingsNew<T> &settings,
         void *plan,
-        size_t xDimS,
-        T *h_centers, const Point2D<size_t> &maxShift);
+        size_t maxShift);
 
     void computeCorrelations2DOneToN(std::complex<T> *inOut, bool center) override;
 
