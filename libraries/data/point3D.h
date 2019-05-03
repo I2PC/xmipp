@@ -28,16 +28,27 @@
 
 #include "point.h"
 #include "cuda_compatibility.h"
+#include <initializer_list>
 
 /** Class represents a point in 3D */
 template <typename T>
 class Point3D: Point {
 public:
-    CUDA_HD
-    Point3D(T x = 0, T y = 0, T z = 0) :
-            x(x), y(y), z(z) {
+     CUDA_HD
+     Point3D(T x = 0, T y = 0, T z = 0) :
+             x(x), y(y), z(z) {
+     }
+
+    Point3D(const std::initializer_list<T> &l) {
+        if (3 == l.size())
+        {
+            auto it = l.begin();
+            x = *it++;
+            y = *it++;
+            z = *it++;
+        }
     }
-    ;
+
     T x;
     T y;
     T z;
