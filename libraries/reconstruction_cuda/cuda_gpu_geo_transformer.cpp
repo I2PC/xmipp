@@ -436,13 +436,17 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
 }
 
 template<typename T>
-std::unique_ptr<float[]> GeoTransformer<T>::copy_out_d_in(size_t size) const {
-        auto copy_in = std::unique_ptr<float[]>(new float[size]);
+std::unique_ptr<T[]> GeoTransformer<T>::copy_out_d_in(size_t size) const {
+        auto copy_in = std::unique_ptr<T[]>(new T[size]);
 
-        cudaMemcpy(copy_in.get(), d_in , sizeof(float) * size, cudaMemcpyDeviceToHost);
+        cudaMemcpy(copy_in.get(), d_in , sizeof(T) * size, cudaMemcpyDeviceToHost);
 
         return copy_in;
     }
 
 template class GeoTransformer<float>;
+<<<<<<< HEAD
 // template class GeoTransformer<double>;
+=======
+template class GeoTransformer<double>;
+>>>>>>> Changing copy_out_d_in to protected from public, adding explicit instantiation of GeoTransformer<double>
