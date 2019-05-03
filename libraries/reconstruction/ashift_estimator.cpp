@@ -41,7 +41,7 @@ void AShiftEstimator<T>::setDefault() {
     m_type = AlignType::None;
     m_dims = nullptr;
     m_batch = 0;
-    m_maxShift = Point3D<size_t>(0, 0, 0);
+    m_maxShift = 0;
 
     m_shifts2D.reserve(0);
 
@@ -52,17 +52,20 @@ void AShiftEstimator<T>::setDefault() {
 
 template<typename T>
 void AShiftEstimator<T>::init2D(AlignType type, const Dimensions &dims,
-               size_t batch, Point2D<size_t> maxShift) {
+               size_t batch, size_t maxShift) {
     m_type = type;
     m_dims = new Dimensions(dims);
     m_batch = std::min(batch, m_dims->n());
-    m_maxShift = Point3D<size_t>(maxShift.x, maxShift.y, 1);
+    m_maxShift = maxShift;
 
     AShiftEstimator<T>::check();
 }
 
 template<typename T>
 void AShiftEstimator<T>::check() {
+    if (AlignType::None == m_type) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "'None' alignment type is set. This is invalid value");
+    }
     if ((0 == m_dims->x()) || (0 == m_dims->y())
             || (0 == m_dims->z()) || (0 == m_dims->n())) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "One of the dimensions is zero (0)");
@@ -70,14 +73,11 @@ void AShiftEstimator<T>::check() {
     if (0 == m_batch) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is zero (0)");
     }
-    if ((0 == m_maxShift.x) || (0 == m_maxShift.y)
-        || (0 == m_maxShift.z)) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Max shift in some dimension is zero (0)");
+    if (m_batch > m_dims->n()) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than N");
     }
-    if ((m_maxShift.x > m_dims->x()) || (m_maxShift.y > m_dims->y())
-        || (m_maxShift.z > m_dims->z())) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Max shift in some dimension is bigger than"
-                "the dimension");
+    if (0 == m_maxShift) {
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Max shift is zero (0)");
     }
 }
 
@@ -85,4 +85,4 @@ void AShiftEstimator<T>::check() {
 template class AShiftEstimator<float>;
 template class AShiftEstimator<double>;
 
-}
+} // namespace

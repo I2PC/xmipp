@@ -57,8 +57,7 @@ template<typename T>
 void AShiftCorrEstimator<T>::init2D(AlignType type,
         const FFTSettingsNew<T> &dims, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
-    AShiftEstimator<T>::init2D(type, dims.sDim(), dims.batch(),
-            Point2D<size_t>(maxShift, maxShift));
+    AShiftEstimator<T>::init2D(type, dims.sDim(), dims.batch(), maxShift);
 
     m_settingsInv = new FFTSettingsNew<T>(dims);
     m_includingBatchFT = includingBatchFT;
