@@ -139,8 +139,6 @@ public:
 
     void test();
 
-    std::unique_ptr<float[]> copy_out_d_in( size_t size ) const;
-
 private:
     /**
      * Make sure that there's no logical mistake in the transformation
@@ -218,6 +216,12 @@ protected:
      */
     template<typename T_IN>
     void produceAndLoadCoeffs(const MultidimArray<T_IN> &input);
+
+    /*
+    * Creates a copy of device input memory
+    * Used in tests
+    */
+    std::unique_ptr<T[]> copy_out_d_in( size_t size ) const;
 
 private:
     bool isReadyForMatrix;
