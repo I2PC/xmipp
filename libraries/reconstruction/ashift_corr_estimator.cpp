@@ -33,9 +33,6 @@ void AShiftCorrEstimator<T>::setDefault() {
     m_settingsInv = nullptr;
     m_centerSize = 0;
 
-    // host memory
-    m_h_centers = nullptr;
-
     // flags
     m_includingBatchFT = false;
     m_includingSingleFT = false;
@@ -45,9 +42,6 @@ void AShiftCorrEstimator<T>::setDefault() {
 template<typename T>
 void AShiftCorrEstimator<T>::release() {
     delete m_settingsInv;
-    // host memory
-    delete[] m_h_centers;
-
     AShiftEstimator<T>::release();
 
     AShiftCorrEstimator<T>::setDefault();
@@ -76,12 +70,6 @@ void AShiftCorrEstimator<T>::init2D(AlignType type,
 }
 
 template<typename T>
-void AShiftCorrEstimator<T>::init2DOneToN() {
-    // allocate helper objects
-    m_h_centers = new T[m_centerSize * m_centerSize * this->m_batch]();
-}
-
-template<typename T>
 void AShiftCorrEstimator<T>::check() {
     using memoryUtils::operator ""_GB;
 
@@ -99,7 +87,6 @@ void AShiftCorrEstimator<T>::check() {
                     "The X and Y dimensions have to be multiple of two. Crop your signal");
     }
 }
-
 
 template<typename T>
 std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
