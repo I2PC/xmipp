@@ -236,7 +236,7 @@ void ShiftCorrEstimator<T>::computeShift2DOneToN(
                 m_batch_SD, m_batchToSD,
                 this->m_settingsInv->sDim().x(),
                 this->m_h_centers,
-                Point2D<size_t>(this->m_maxShift.x, this->m_maxShift.y));
+                Point2D<size_t>(this->m_maxShift, this->m_maxShift));
 
         // append shifts to existing results
         this->m_shifts2D.insert(this->m_shifts2D.end(),
@@ -263,6 +263,7 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
     assert(0 == (xDimS % 2));
     assert(0 == (yDimF % 2));
 
+    // FIXME DS handle maxShift properly
     size_t centerSizeX = maxShift.x * 2 + 1;
     size_t centerSizeY = maxShift.y * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
