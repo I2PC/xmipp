@@ -27,6 +27,7 @@
 #define LIBRARIES_DATA_POINT2D_H_
 
 #include "point.h"
+#include <initializer_list>
 
 /** Struct represents a point in 2D */
 template<typename T>
@@ -35,7 +36,16 @@ public:
     explicit Point2D(T x, T y) :
             x(x), y(y) {
     }
-    ;
+
+    Point2D(const std::initializer_list<T> &l) {
+        if (2 == l.size())
+        {
+            auto it = l.begin();
+            x = *it++;
+            y = *it++;
+        }
+    }
+
     T x; // FIXME DS this should be private member with setters / getters
     T y;
 
