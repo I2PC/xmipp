@@ -9,6 +9,7 @@ class GeoTransformerTest : public GeoTransformer< T > {
 
 };
 
+template< typename T >
 class GeoTransformerApplyBSplineTransformTest : public ::testing::Test {
 
 public:
@@ -16,38 +17,38 @@ public:
     /*
     Version that prints out number of errors
     */
-    // void compare_results( float* true_values, float* approx_values, size_t size ) {
-    //     testing::internal::CaptureStdout();
+    void compare_results( T* true_values, T* approx_values, size_t size ) {
+        testing::internal::CaptureStdout();
 
-    //     int errors = 0;
-    //     for ( int i = 0; i < size; ++i ) {
-    //         EXPECT_NEAR( true_values[i], approx_values[i], 0.0001f ) << ( errors++ < 10 ? "at index: " + std::to_string( i ) : "" );
-    //         if ( errors == 10 ) {
-    //             std::cout << "Omitting next errors\n";
-    //         }
-    //     }
+        int errors = 0;
+        for ( int i = 0; i < size; ++i ) {
+            EXPECT_NEAR( true_values[i], approx_values[i], static_cast< T >( 0.0001 ) ) << ( errors++ < 10 ? "at index: " + std::to_string( i ) : "" );
+            if ( errors == 10 ) {
+                std::cout << "Omitting next errors\n";
+            }
+        }
 
-    //     std::string output = testing::internal::GetCapturedStdout();
-    //     std::cout << output.substr(0, 100) << std::endl;
+        std::string output = testing::internal::GetCapturedStdout();
+        std::cout << output.substr(0, 100) << std::endl;
 
-    //     if ( errors > 0 ) {
-    //         std::cout << "Total errors: " << errors << std::endl;
-    //     }
-    // }
+        if ( errors > 0 ) {
+            std::cout << "Total errors: " << errors << std::endl;
+        }
+    }
 
     /*
 
     */
-    void compare_results( float* true_values, float* approx_values, size_t size ) {
-        for ( int i = 0; i < size; ++i ) {
-            EXPECT_NEAR( true_values[i], approx_values[i], 0.0001f ) << "at index:" << i << ", x=" << i % x << ", y=" << i / x;
-        }
-    }
+    // void compare_results( T* true_values, T* approx_values, size_t size ) {
+        // for ( int i = 0; i < size; ++i ) {
+            // EXPECT_NEAR( true_values[i], approx_values[i], static_cast< T >( 0.00001 ) ) << "at index:" << i << ", x=" << i % x << ", y=" << i / x;
+        // }
+    // }
 
 
-    // void compare_results( float* true_values, float* approx_values, size_t size ) {
+    // void compare_results( T* true_values, T* approx_values, size_t size ) {
     //     for ( int i = 0; i < size; ++i ) {
-    //         ASSERT_NEAR( true_values[i], approx_values[i], 0.0001f ) << "at index:" << i;
+    //         ASSERT_NEAR( true_values[i], approx_values[i], static_cast< T >( 0.0001 ) ) << "at index:" << i;
     //     }
     // }
 
@@ -63,13 +64,13 @@ public:
     }
 
     void run_transformation() {
-        GeoTransformerTest< float > gt;
+        GeoTransformerTest< T > gt;
         gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
         gt.applyBSplineTransformNew( 3, out, in, { coeffsX, coeffsY }, imageIdx, outside );
     }
 
     void compute_reference_result() {
-        GeoTransformerTest< float > gt;
+        GeoTransformerTest< T > gt;
         gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
         gt.applyBSplineTransform( 3, out_ref, in, { coeffsX, coeffsY }, imageIdx, outside );
     }
@@ -81,7 +82,7 @@ public:
         return { dis( gen ), dis( gen ) };
     }
 
-    void randomly_initialize( MultidimArray< float >& array, int seed ) {
+    void randomly_initialize( MultidimArray< T >& array, int seed ) {
         gen.seed( seed );
         std::uniform_real_distribution<> dis( -1.0, 1.0 );
 
@@ -90,13 +91,13 @@ public:
         }
     }
 
-    void set_to_value( MultidimArray< float >& array, float value ) {
+    void set_to_value( MultidimArray< T >& array, T value ) {
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY( array ) {
             DIRECT_MULTIDIM_ELEM( array, n ) = value;
         }
     }
 
-    void randomly_initialize(Matrix1D< float >& array, int seed) {
+    void randomly_initialize(Matrix1D< T >& array, int seed) {
         gen.seed( seed );
         std::uniform_real_distribution<> dis(-1.0, 1.0);
 
@@ -106,30 +107,30 @@ public:
 
     }
 
-    void save_array( const MultidimArray< float >& array, const std::string& filename ) {
+    void save_array( const MultidimArray< T >& array, const std::string& filename ) {
     	std::ofstream out( filename );
 
-    	out << std::setprecision( 7 );
+    	// out << std::setprecision( 7 );
     	out << array;
     }
 
-    void save_coeffs( const Matrix1D< float >& array, const std::string& filename ) {
+    void save_coeffs( const Matrix1D< T >& array, const std::string& filename ) {
     	std::ofstream out( filename );
 
-    	out << std::setprecision( 7 );
+    	// out << std::setprecision( 7 );
     	out << array;
     }
 
-    MultidimArray< float > load_array( const std::string& filename ) {
+    MultidimArray< T > load_array( const std::string& filename ) {
     	std::ifstream input( filename );
 
-    	MultidimArray< float > array;
+    	MultidimArray< T > array;
     	array.resize( y, x );
 
     	size_t index = 0;
 
     	while ( true ) {
-    		float value;
+    		T value;
     		input >> value;
     		if ( input.eof() ) break;
     		DIRECT_MULTIDIM_ELEM( array, index++ ) = value;
@@ -139,16 +140,16 @@ public:
     	return array;
     }
 
-    Matrix1D< float > load_coeffs( const std::string& filename ) {
+    Matrix1D< T > load_coeffs( const std::string& filename ) {
     	std::ifstream input( filename );
 
-    	Matrix1D< float > coeffs;
+    	Matrix1D< T > coeffs;
     	coeffs.resize( splineX * splineY * splineN );
 
     	size_t index = 0;
 
     	while ( true ) {
-    		float value;
+    		T value;
     		input >> value;
     		if ( input.eof() ) break;
     			MATRIX1D_ARRAY( coeffs )[index++] = value;
@@ -166,177 +167,193 @@ public:
     size_t splineN = 1;
     size_t imageIdx = 0;
 
-    float outside = 0;
+    T outside = 0;
 
-    Matrix1D< float > coeffsX;
-    Matrix1D< float > coeffsY;
+    Matrix1D< T > coeffsX;
+    Matrix1D< T > coeffsY;
 
-    MultidimArray< float > in;
-    MultidimArray< float > out;
-    MultidimArray< float > out_ref;
+    MultidimArray< T > in;
+    MultidimArray< T > out;
+    MultidimArray< T > out_ref;
 
     std::mt19937 gen;
 };
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, ZeroStaysZero) {
-    x = 256;
-    y = 256;
-    allocate_arrays();
+TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest);
 
-    run_transformation();
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, ZeroStaysZero) {
+    this->x = 256;
+    this->y = 256;
+    this->allocate_arrays();
 
-    compare_results( in.data, out.data, size );
+    this->run_transformation();
+
+    this->compare_results( this->in.data, this->out.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, NoChangeIfCoeffsAreZeroWithZeroCoeffs) {
-    x = 259;
-    y = 311;
-    // x = 256;
-    // y = 256;
-    allocate_arrays();
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, NoChangeIfCoeffsAreZeroWithZeroCoeffs) {
+    this->x = 259;
+    this->y = 311;
+    this->allocate_arrays();
 
-    randomly_initialize( in, 13 );
+    this->randomly_initialize( this->in, 13 );
 
-    run_transformation();
+    this->run_transformation();
 
-    compare_results( in.data, out.data, size );
+    this->compare_results( this->in.data, this->out.data, this->size );
 
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, ZeroInputWithNonzeroCoeffsIsZeroOutput) {
-    x = 147;
-    y = 147;
-    splineX = 6;
-    splineY = 5;
-    splineN = 4;
-    allocate_arrays();
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, ZeroInputWithNonzeroCoeffsIsZeroOutput) {
+    this->x = 147;
+    this->y = 147;
+    this->splineX = 6;
+    this->splineY = 5;
+    this->splineN = 4;
+    this->allocate_arrays();
 
-    randomly_initialize( coeffsX, 19 );
-    randomly_initialize( coeffsY, 17 );
+    this->randomly_initialize( this->coeffsX, 19 );
+    this->randomly_initialize( this->coeffsY, 17 );
 
-    run_transformation();
+    this->run_transformation();
 
-    compare_results( in.data, out.data, size );
+    this->compare_results( this->in.data, this->out.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroCoeffs) {
-    x = 256;
-    y = 128;
-    splineX = 6;
-    splineY = 5;
-    splineN = 4;
-    allocate_arrays();
-    randomly_initialize( in, 23 );
-    randomly_initialize( coeffsX, 31 );
-    randomly_initialize( coeffsY, 35 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroCoeffs) {
+    this->x = 256;
+    this->y = 128;
+    this->splineX = 6;
+    this->splineY = 5;
+    this->splineN = 4;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 23 );
+    this->randomly_initialize( this->coeffsX, 31 );
+    this->randomly_initialize( this->coeffsY, 35 );
 
-    run_transformation();
-    compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-    compare_results( out.data, out_ref.data, size );
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroDifferentDimCoeffs) {
-    x = 256;
-    y = 128;
-    splineX = 3;
-    splineY = 8;
-    splineN = 3;
-    allocate_arrays();
-    randomly_initialize( in, 81 );
-    randomly_initialize( coeffsX, 73 );
-    randomly_initialize( coeffsY, 7 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroDifferentDimCoeffs) {
+    this->x = 256;
+    this->y = 128;
+    this->splineX = 3;
+    this->splineY = 8;
+    this->splineN = 3;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 81 );
+    this->randomly_initialize( this->coeffsX, 73 );
+    this->randomly_initialize( this->coeffsY, 7 );
 
-    run_transformation();
-    compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-    compare_results( out.data, out_ref.data, size );
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, EvenButNotPaddedInput) {
-    x = 322;
-    y = 344;
-    splineX = 6;
-    splineY = 5;
-    splineN = 4;
-    allocate_arrays();
-    randomly_initialize( in, 24 );
-    randomly_initialize( coeffsX, 47 );
-    randomly_initialize( coeffsY, 19 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, EvenButNotPaddedInput) {
+    this->x = 322;
+    this->y = 344;
+    this->splineX = 6;
+    this->splineY = 5;
+    this->splineN = 4;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 24 );
+    this->randomly_initialize( this->coeffsX, 47 );
+    this->randomly_initialize( this->coeffsY, 19 );
 
-    run_transformation();
-    compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-    compare_results( out.data, out_ref.data, size );
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, OddEvenSizedInput) {
-    x = 311;
-    y = 134;
-    splineX = 9;
-    splineY = 3;
-    splineN = 6;
-    allocate_arrays();
-    randomly_initialize( in, 63 );
-    randomly_initialize( coeffsX, 21 );
-    randomly_initialize( coeffsY, 3 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, OddEvenSizedInput) {
+    this->x = 311;
+    this->y = 134;
+    this->splineX = 9;
+    this->splineY = 3;
+    this->splineN = 6;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 63 );
+    this->randomly_initialize( this->coeffsX, 21 );
+    this->randomly_initialize( this->coeffsY, 3 );
 
-    run_transformation();
-    compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-    compare_results( out.data, out_ref.data, size );
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, EvenOddSizedInput) {
-    x = 260;
-    y = 201;
-    splineX = 7;
-    splineY = 7;
-    splineN = 6;
-    allocate_arrays();
-    randomly_initialize( in, 10 );
-    randomly_initialize( coeffsX, 31 );
-    randomly_initialize( coeffsY, 97 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, EvenOddSizedInput) {
+    this->x = 260;
+    this->y = 201;
+    this->splineX = 7;
+    this->splineY = 7;
+    this->splineN = 6;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 10 );
+    this->randomly_initialize( this->coeffsX, 31 );
+    this->randomly_initialize( this->coeffsY, 97 );
 
-    run_transformation();
-    compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-    compare_results( out.data, out_ref.data, size );
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
 }
 
-TEST_F(GeoTransformerApplyBSplineTransformTest, BiggerSize4K) {
-    x = 3840;
-    y = 2160;
-    splineX = 4;
-    splineY = 8;
-    splineN = 6;
-    allocate_arrays();
-    randomly_initialize( in, 11 );
-    randomly_initialize( coeffsX, 33 );
-    randomly_initialize( coeffsY, 98 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSize4K) {
+    this->x = 3840;
+    this->y = 2160;
+    this->splineX = 4;
+    this->splineY = 8;
+    this->splineN = 6;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 11 );
+    this->randomly_initialize( this->coeffsX, 33 );
+    this->randomly_initialize( this->coeffsY, 98 );
 
-    run_transformation();
-    compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-    compare_results( out.data, out_ref.data, size );
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
 }
 
-// TEST_F(GeoTransformerApplyBSplineTransformTest, BiggerSizeInOneDimension) {
-//     x = 3840;
-//     y = 256;
-//     splineX = 4;
-//     splineY = 8;
-//     splineN = 6;
-//     allocate_arrays();
-//     randomly_initialize( in, 81 );
-//     randomly_initialize( coeffsX, 7 );
-//     randomly_initialize( coeffsY, 43 );
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSizeInOneDimension) {
+    this->x = 3840;
+    this->y = 256;
+    this->splineX = 4;
+    this->splineY = 8;
+    this->splineN = 6;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 81 );
+    this->randomly_initialize( this->coeffsX, 7 );
+    this->randomly_initialize( this->coeffsY, 43 );
 
-//     run_transformation();
-//     compute_reference_result();
+    this->run_transformation();
+    this->compute_reference_result();
 
-//     compare_results( out.data, out_ref.data, size );
-// }
+    this->compare_results( this->out.data, this->out_ref.data, this->size );
+}
+
+REGISTER_TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest,
+    ZeroStaysZero,
+    NoChangeIfCoeffsAreZeroWithZeroCoeffs,
+    ZeroInputWithNonzeroCoeffsIsZeroOutput,
+    RandomInputWithNonzeroCoeffs,
+    RandomInputWithNonzeroDifferentDimCoeffs,
+    EvenButNotPaddedInput,
+    OddEvenSizedInput,
+    EvenOddSizedInput,
+    BiggerSize4K,
+    BiggerSizeInOneDimension
+);
+
+using ScalarTypes = ::testing::Types< float, double >;
+INSTANTIATE_TYPED_TEST_CASE_P(ScalarTypesInstantiation, GeoTransformerApplyBSplineTransformTest, ScalarTypes);
 
 GTEST_API_ int main(int argc, char **argv)
 {
