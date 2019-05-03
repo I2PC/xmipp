@@ -48,15 +48,20 @@ public:
     }
 
     virtual void init2D(const HW &hw, AlignType type,
-               const Dimensions &dims, size_t batch, Point2D<size_t> maxShift) = 0;
+               const Dimensions &dims, size_t batch, size_t maxShift) = 0;
 
     virtual void load2DReferenceOneToN(const T *ref) = 0;
 
     virtual void computeShift2DOneToN(T *others) = 0;
 
     inline std::vector<Point2D<float>> getShifts2D() {
-        // FIXME DS add check that it's computed
-        return m_shifts2D;
+        if ( ! m_is_shift_computed) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Shift has not been yet computed or it has been already retrieved");
+        }
+        auto cpy = std::vector<Point2D<float>>();
+        cpy.swap(m_shifts2D);
+        m_is_shift_computed = false;
+        return cpy;
     }
 
     virtual void release();
@@ -66,7 +71,7 @@ protected:
     AlignType m_type;
     const Dimensions *m_dims;
     size_t m_batch;
-    Point3D<size_t> m_maxShift;
+    size_t m_maxShift;
 
     // computed shifts
     std::vector<Point2D<float>> m_shifts2D;
@@ -78,7 +83,7 @@ protected:
 
     virtual void setDefault();
     virtual void init2D(AlignType type, const Dimensions &dims,
-               size_t batch, Point2D<size_t> maxShift);
+               size_t batch, size_t maxShift);
     virtual void check();
 };
 
