@@ -87,8 +87,8 @@ void ShiftCorrEstimator<T>::release() {
         delete[] m_batch_FD;
         delete[] m_batch_SD;
     }
-    // FT plans
 
+    // FT plans
     FFTwT<T>::release(m_singleToFD);
     FFTwT<T>::release(m_batchToFD);
     FFTwT<T>::release(m_batchToSD);
@@ -235,13 +235,11 @@ void ShiftCorrEstimator<T>::computeShift2DOneToN(
         auto shifts = computeShifts2DOneToN(
                 *m_cpu,
                 m_batch_FD,
+                m_batch_SD,
                 m_single_FD,
-                this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(),
-                this->m_settingsInv->batch(), // always process whole batch, as we do it to avoid copying memory
-                m_batch_SD, m_batchToSD,
-                this->m_settingsInv->sDim().x(),
-                this->m_h_centers,
-                Point2D<size_t>(this->m_maxShift, this->m_maxShift));
+                this->m_settingsInv->createBatch(), // always process whole batch, as we do it to avoid copying memory
+                m_batchToSD,
+                this->m_maxShift);
 
         // append shifts to existing results
         this->m_shifts2D.insert(this->m_shifts2D.end(),
@@ -258,50 +256,29 @@ template<typename T>
 std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
         const CPU &cpu,
         std::complex<T> *othersF,
+        T *othersS,
         std::complex<T> *ref,
-        size_t xDimF, size_t yDimF, size_t nDim, // FIXME DS pass Dimensions
-        T *othersS, // this must be big enough to hold batch * centerSize^2 elements!
+        const FFTSettingsNew<T> &settings,
         void *plan,
-        size_t xDimS,
-        T *h_centers, const Point2D<size_t> &maxShift) { // FIXME  DS maxShift shoudl be single value
+        size_t maxShift) {
     // we need even input in order to perform the shift (in FD, while correlating) properly
-    assert(0 == (xDimS % 2));
-    assert(0 == (yDimF % 2));
+    assert(0 == (settings.sDim().x() % 2));
+    assert(0 == (settings.sDim().y() % 2));
+    assert(1 == settings.sDim().zPadded());
 
-    // FIXME DS handle maxShift properly
-    size_t centerSizeX = maxShift.x * 2 + 1;
-    size_t centerSizeY = maxShift.y * 2 + 1;
     // correlate signals and shift FT so that it will be centered after IFT
     sComputeCorrelations2DOneToN(cpu,
             othersF, ref,
-            Dimensions(xDimF, yDimF, 1, nDim), true);
+            settings.fDim(), true);
 
     // perform IFT
     FFTwT<T>::ifft(plan, othersF, othersS);
 
-    // FIXME DS extract to some utils class
-    // crop the centers of the resulting correlation functions
-    int inCenterX = (int)((T) (xDimS) / (T)2);
-    size_t startX = inCenterX - maxShift.x;
-    int inCenterY = (int)((T) (yDimF) / (T)2);
-    size_t startY = inCenterY - maxShift.y;
-    for (size_t n = 0; n < nDim; n++) {
-        size_t offsetNIn = n * yDimF * xDimS;
-        size_t offsetNOut = n * centerSizeX * centerSizeY;
-        size_t outY = 0;
-        for (size_t y = startY; y < inCenterY + maxShift.y; ++y, ++outY) {
-            size_t offsetY = y * xDimS;
-            memcpy(h_centers + offsetNOut + outY * centerSizeX,
-                    othersS + offsetNIn + offsetY + startX,
-                    centerSizeX * sizeof(float));
-        }
-    }
-
     // compute shifts
     auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
-            h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim),
-            maxShift.x, result);
+            othersS, settings.sDim(),
+            maxShift, result);
     return result;
 }
 
