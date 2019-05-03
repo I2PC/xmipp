@@ -71,7 +71,7 @@ void AShiftCorrEstimator<T>::init2D(AlignType type,
 
 template<typename T>
 void AShiftCorrEstimator<T>::check() {
-    using memoryUtils::operator ""_GB;
+    using memoryUtils::operator "" _GB;
 
     if (this->m_settingsInv->isForward()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
