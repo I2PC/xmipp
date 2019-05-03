@@ -145,7 +145,7 @@ std::vector<T> AShiftCorrEstimator<T>::findMaxAroundCenter(
             int logicY = (int)y - yHalf;
             size_t ySq = logicY * logicY;
             for (size_t x = min.first; x <= max.first; ++x) {
-                int logicX = (int)x - yHalf;
+                int logicX = (int)x - xHalf;
                 // continue if the Euclidean distance is too far
                 if ((ySq + (logicX * logicX)) > maxDistSq) continue;
                 // get current value and update, if necessary
