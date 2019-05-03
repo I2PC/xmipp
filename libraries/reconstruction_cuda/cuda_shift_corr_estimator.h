@@ -45,7 +45,7 @@ public:
         release();
     }
 
-    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0,
+    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
             bool includingBatchFT=false, bool includingSingleFT=false) override;
 
     void release();
@@ -68,12 +68,12 @@ public:
     static std::vector<Point2D<float>> computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
+        T *d_othersS,
         std::complex<T> *d_ref,
-        size_t xDimF, size_t yDimF, size_t nDim,
-        T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
+        const FFTSettingsNew<T> &settings,
         cufftHandle plan,
-        size_t xDimS,
-        T *h_centers, const Point2D<size_t> &maxShift);
+        T *h_centers,
+        size_t maxShift);
 
     template<bool center>
     static void sComputeCorrelations2DOneToN(
@@ -91,6 +91,9 @@ private:
     T *m_d_single_SD;
     T *m_d_batch_SD;
 
+    // host memory
+    T *m_h_centers;
+
     // FT plans
     cufftHandle *m_singleToFD;
     cufftHandle *m_batchToFD;
@@ -100,7 +103,7 @@ private:
     // bind the flag for host with the device flag
     bool &m_is_d_single_FD_loaded = AShiftCorrEstimator<T>::m_is_ref_FD_loaded;
 
-    void init2DOneToN();
+    void init2DOneToN() override;
     void setDefault();
     void check() override;
     using AShiftEstimator<T>::init2D;
