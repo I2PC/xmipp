@@ -45,7 +45,7 @@ public:
     }
 
     virtual void init2D(const HW &hw, AlignType type,
-            const FFTSettingsNew<T> &dims, size_t maxShift, // FIXME DS change type of maxShift to point2D
+            const FFTSettingsNew<T> &dims, size_t maxShift,
             bool includingBatchFT, bool includingSingleFT) = 0;
 
     virtual void computeCorrelations2DOneToN(
@@ -105,7 +105,7 @@ protected:
     // in private block, to make compiler (NVCC) happy
     using AShiftEstimator<T>::init2D;
     void init2D(const HW &hw, AlignType type,
-                   const Dimensions &dims, size_t batch, Point2D<size_t> maxShift) {};
+                   const Dimensions &dims, size_t batch, size_t maxShift) {};
 };
 
 } /* namespace Alignment */
