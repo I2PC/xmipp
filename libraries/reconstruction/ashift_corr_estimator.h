@@ -74,7 +74,7 @@ protected:
     size_t m_centerSize;
 
     // helper memory
-    T *m_h_centers;
+    T *m_h_centers; // shoudl be in Cuda only
 
     // flags
     bool m_includingBatchFT;
