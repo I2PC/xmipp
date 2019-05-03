@@ -17,15 +17,37 @@ public:
         delete hw;
     }
 
-    void shift2D(FFTSettingsNew<T> &dims)
+    void generateAndTest2D(size_t n, size_t batch) {
+
+        std::uniform_int_distribution<> dist1(0, 368);
+        std::uniform_int_distribution<> dist2(369, 768);
+
+            // only even inputs are valid
+            size_t first;
+            size_t second;
+
+            // test x == y
+            first = ((int)dist1(mt) / 2) * 2;
+            shift2D(FFTSettingsNew<T>(first, first, 1, n, batch, false, false));
+
+            // test x > y
+            first = ((int)dist1(mt) / 2) * 2;
+            second = ((int)dist2(mt) / 2) * 2;
+            shift2D(FFTSettingsNew<T>(second, first, 1, n, batch, false, false));
+
+            // test x < y
+            first = ((int)dist1(mt) / 2) * 2;
+            second = ((int)dist2(mt) / 2) * 2;
+            shift2D(FFTSettingsNew<T>(first, second, 1, n, batch, false, false));
+    }
+
+    void shift2D(const FFTSettingsNew<T> &dims)
     {
         using Alignment::AlignType;
         // max shift must be sharply less than half of the size
         auto maxShift = std::min(dims.sDim().x() / 2, dims.sDim().y() / 2) - 1;
         auto maxShiftSq = maxShift * maxShift;
-        // generate random shifts
-        int seed = 42;
-        std::mt19937 mt(seed);
+
         std::uniform_int_distribution<> dist(0, maxShift);
         auto shifts = std::vector<Point2D<T>>();
         shifts.reserve(dims.fDim().n());
@@ -69,6 +91,7 @@ public:
 private:
     Alignment::AShiftEstimator<T> *estimator;
     static HW *hw;
+    static std::mt19937 mt;
 
     void drawCross(T *data, size_t xDim, size_t yDim, T xPos, T yPos) {
         for (size_t y = 0; y < yDim; ++y) {
@@ -89,6 +112,8 @@ TYPED_TEST_CASE_P(AShiftEstimator_Test);
 
 template<typename T>
 HW* AShiftEstimator_Test<T>::hw;
+template<typename T>
+std::mt19937 AShiftEstimator_Test<T>::mt(42); // fixed seed to ensure reproducibility
 
 
 //***********************************************
@@ -99,30 +124,26 @@ HW* AShiftEstimator_Test<T>::hw;
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToOne)
 {
     // test one reference vs one image
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 1, 1, false, false);
-    AShiftEstimator_Test<TypeParam>::shift2D(dims);
+    AShiftEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
 }
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToMany)
 {
     // check that n == batch works properly
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 5, false, false);
-    AShiftEstimator_Test<TypeParam>::shift2D(dims);
+    AShiftEstimator_Test<TypeParam>::generateAndTest2D(5, 5);
 }
 
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 5, 3, false, false);
-    AShiftEstimator_Test<TypeParam>::shift2D(dims);
+    AShiftEstimator_Test<TypeParam>::generateAndTest2D(5, 3);
 }
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched2)
 {
     // test that n mod batch = 0 works
-    FFTSettingsNew<TypeParam> dims(100, 50, 1, 6, 3, false, false);
-    AShiftEstimator_Test<TypeParam>::shift2D(dims);
+    AShiftEstimator_Test<TypeParam>::generateAndTest2D(6, 3);
 }
 
 
