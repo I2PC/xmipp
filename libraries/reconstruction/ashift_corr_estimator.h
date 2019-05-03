@@ -73,9 +73,6 @@ protected:
     FFTSettingsNew<T> *m_settingsInv;
     size_t m_centerSize;
 
-    // helper memory
-    T *m_h_centers; // shoudl be in Cuda only
-
     // flags
     bool m_includingBatchFT;
     bool m_includingSingleFT;
@@ -87,7 +84,7 @@ protected:
             bool includingBatchFT, bool includingSingleFT);
 
     void check() override;
-    virtual void init2DOneToN();
+    virtual void init2DOneToN() {}; // nothing to do
 
     // parent init functions cannot be used, but cannot be hidden
     // in private block, to make compiler (NVCC) happy

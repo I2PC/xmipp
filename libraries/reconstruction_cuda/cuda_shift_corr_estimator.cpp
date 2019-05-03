@@ -59,6 +59,9 @@ void CudaShiftCorrEstimator<T>::setDefault() {
     m_d_single_SD = nullptr;
     m_d_batch_SD = nullptr;
 
+    // host memory
+    m_h_centers = nullptr;
+
     // FT plans
     m_singleToFD = nullptr;
     m_batchToFD = nullptr;
@@ -106,6 +109,9 @@ void CudaShiftCorrEstimator<T>::release() {
     gpuErrchk(cudaFree(m_d_single_SD));
     gpuErrchk(cudaFree(m_d_batch_SD));
 
+    // host memory
+    delete[] m_h_centers;
+
     // FT plans
     CudaFFT<T>::release(m_singleToFD);
     CudaFFT<T>::release(m_batchToFD);
@@ -123,21 +129,18 @@ void CudaShiftCorrEstimator<T>::init2DOneToN() {
     gpuErrchk(cudaMalloc(&m_d_single_FD, this->m_settingsInv->fBytesSingle()));
     gpuErrchk(cudaMalloc(&m_d_batch_FD, this->m_settingsInv->fBytesBatch()));
 
-    // allocate space for data in Spatial domain
-    if (this->m_includingSingleFT) {
-        gpuErrchk(cudaMalloc(&m_d_single_SD, this->m_settingsInv->sBytesSingle()));
-    }
-    if (this->m_includingBatchFT) {
-        gpuErrchk(cudaMalloc(&m_d_batch_SD, this->m_settingsInv->sBytesBatch()));
-    }
+    // allocate host memory
+    m_h_centers = new T[this->m_centerSize * this->m_centerSize * this->m_batch]();
 
-    // allocate plans
+    // allocate plans and additional space needed
     m_batchToSD = CudaFFT<T>::createPlan(*m_gpu, *this->m_settingsInv);
     auto settingsForw = this->m_settingsInv->createInverse();
     if (this->m_includingBatchFT) {
+        gpuErrchk(cudaMalloc(&m_d_batch_SD, this->m_settingsInv->sBytesBatch()));
         m_batchToFD = CudaFFT<T>::createPlan(*m_gpu, settingsForw);
     }
     if (this->m_includingSingleFT) {
+        gpuErrchk(cudaMalloc(&m_d_single_SD, this->m_settingsInv->sBytesSingle()));
         m_singleToFD = CudaFFT<T>::createPlan(*m_gpu, settingsForw.createSingle());
     }
 }
@@ -215,12 +218,12 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
         auto shifts = computeShifts2DOneToN(
                 *m_gpu,
                 m_d_batch_FD,
+                m_d_batch_SD,
                 m_d_single_FD,
-                this->m_settingsInv->fDim().x(), this->m_settingsInv->fDim().y(), toProcess,
-                m_d_batch_SD, *m_batchToSD,
-                this->m_settingsInv->sDim().x(),
+                this->m_settingsInv->createSubset(toProcess),
+                *m_batchToSD,
                 this->m_h_centers,
-                Point2D<size_t>(this->m_maxShift, this->m_maxShift));
+                this->m_maxShift);
 
         // append shifts to existing results
         this->m_shifts2D.insert(this->m_shifts2D.end(), shifts.begin(), shifts.end());
@@ -234,23 +237,26 @@ template<typename T>
 std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
         const GPU &gpu,
         std::complex<T> *d_othersF,
+        T *d_othersS,
         std::complex<T> *d_ref,
-        size_t xDimF, size_t yDimF, size_t nDim, // FIMXE DS pass Dimensions
-        T *d_othersS, cufftHandle plan,
-        size_t xDimS,
+        const FFTSettingsNew<T> &settings,
+        cufftHandle plan,
         T *h_centers,
-        const Point2D<size_t> &maxShift) { // FIXME DS maxshift should be single value
+        size_t maxShift) {
     // we need even input in order to perform the shift (in FD, while correlating) properly
-    assert(0 == (xDimS % 2));
-    assert(0 == (yDimF % 2));
+    assert(0 == (settings.sDim().x() % 2));
+    assert(0 == (settings.sDim().y() % 2));
+    assert(1 == settings.sDim().zPadded());
 
-    // FIXME DS handle maxShift properly
-    size_t centerSizeX = maxShift.x * 2 + 1;
-    size_t centerSizeY = maxShift.y * 2 + 1;
+    size_t centerSize = maxShift * 2 + 1;
+
+    // make sure we have enough memory for centers of the correlation functions
+    assert(settings.fBytesBatch() >= (settings.sDim().n() * centerSize * centerSize * sizeof(T)));
+
     // correlate signals and shift FT so that it will be centered after IFT
     sComputeCorrelations2DOneToN<true>(gpu,
             d_othersF, d_ref,
-            Dimensions(xDimF, yDimF, 1, nDim));
+            settings.fDim());
 
     // perform IFT
     CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
@@ -260,15 +266,15 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // crop images in spatial domain, use memory for FT to avoid reallocation
     dim3 dimBlockCrop(BLOCK_DIM_X, BLOCK_DIM_X);
     dim3 dimGridCrop(
-            std::ceil(centerSizeX / (float)dimBlockCrop.x),
-            std::ceil(centerSizeY / (float)dimBlockCrop.y));
+            std::ceil(centerSize / (float)dimBlockCrop.x),
+            std::ceil(centerSize / (float)dimBlockCrop.y));
     cropSquareInCenter<<<dimGridCrop, dimBlockCrop, 0, stream>>>(
             d_othersS, (T*)d_othersF,
-            xDimS, yDimF, nDim, centerSizeX, centerSizeY);
+            settings.sDim().x(), settings.sDim().y(), settings.sDim().n(), centerSize, centerSize);
 
     // copy data back
     gpuErrchk(cudaMemcpyAsync(h_centers, d_othersF,
-            nDim * centerSizeX * centerSizeY * sizeof(T),
+            settings.sDim().n() * centerSize * centerSize * sizeof(T),
             cudaMemcpyDeviceToHost, stream));
 
     gpu.synch();
@@ -276,7 +282,7 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // compute shifts
     auto result = std::vector<Point2D<float>>();
     AShiftCorrEstimator<T>::findMaxAroundCenter(
-            h_centers, Dimensions(centerSizeX, centerSizeY, 1, nDim), maxShift.x, result);
+            h_centers, Dimensions(centerSize, centerSize, 1, settings.sDim().n()), maxShift, result);
     return result;
 }
 
@@ -341,6 +347,11 @@ template<typename T>
 void CudaShiftCorrEstimator<T>::check() {
     if (this->m_settingsInv->isInPlace()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Only out-of-place transform is supported");
+    }
+    if ((this->m_centerSize * this->m_centerSize * sizeof(T)) > this->m_settingsInv->fBytesBatch()) {
+        // see computeShifts2DOneToN
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "This implementation is not able to handle cases when"
+                "maxShift is more than half of the dimension of the input");
     }
 }
 
