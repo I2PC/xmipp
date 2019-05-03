@@ -92,7 +92,7 @@ private:
     void *m_batchToFD;
     void *m_batchToSD;
 
-    void init2DOneToN();
+    void init2DOneToN() override;
     void check() override;
     void setDefault() override;
 };
