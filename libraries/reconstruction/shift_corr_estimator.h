@@ -71,14 +71,14 @@ public:
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim,
+        const Dimensions &dims,
         bool center) override;
 
     static void sComputeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
-        size_t xDim, size_t yDim, size_t nDim,
+        const Dimensions &dims,
         bool center);
 private:
     const CPU *m_cpu;
@@ -94,6 +94,7 @@ private:
     void *m_batchToSD;
 
     void init2DOneToN();
+    void check() override;
     void setDefault() override;
 };
 
