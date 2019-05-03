@@ -84,13 +84,15 @@ void AShiftCorrEstimator<T>::init2DOneToN() {
 
 template<typename T>
 void AShiftCorrEstimator<T>::check() {
+    using memoryUtils::operator ""_GB;
+
     if (this->m_settingsInv->isForward()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
     }
     if (this->m_settingsInv->isInPlace()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "In-place transform only supported");
     }
-    if (this->m_settingsInv->fBytesBatch() >= ((size_t)4 * 1024 * 1014 * 1024)) { // FIXME DS use _GB
+    if (this->m_settingsInv->fBytesBatch() >= (4_GB)) {
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
     }
     if ((0 == this->m_settingsInv->fDim().size())
