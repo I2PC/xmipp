@@ -637,11 +637,11 @@ int main(){}
 
     ok = False
     if checkProgram("mpirun",False):
-        ok=(runJob("mpirun -np 4 echo mpirun works 4 times") or
-            runJob("mpirun -np 4 --allow-run-as-root echo mpirun works 4 times"))
+        ok=(runJob("mpirun -np 4 --oversubscribe echo mpirun works 4 times") or
+            runJob("mpirun -np 4 --oversubscribe --allow-run-as-root echo mpirun works 4 times"))
     elif checkProgram("mpiexec",False):
-        ok=(runJob("mpiexec -np 4 echo mpiexec works 4 times") or
-            runJob("mpiexec -np 4 --allow-run-as-root echo mpiexec works 4 times"))
+        ok=(runJob("mpiexec -np 4 --oversubscribe echo mpiexec works 4 times") or
+            runJob("mpiexec -np 4 --oversubscribe --allow-run-as-root echo mpiexec works 4 times"))
     else:
         print(red("mpirun or mpiexec have failed."))
 
