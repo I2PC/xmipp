@@ -131,10 +131,6 @@ public:
      * @param outside value of the output, where the interpolation does not store anything
      */
     void applyBSplineTransform(int splineDegree,
-            MultidimArray<T> &output, const MultidimArray<T> &input,
-            const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
-
-    void applyBSplineTransformNew(int splineDegree,
         MultidimArray<T> &output, const MultidimArray<T> &input,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
 
@@ -210,6 +206,13 @@ private:
 
 
 protected:
+    /*
+     * Reference computation used for the testing of a faster kernel
+    */
+    void applyBSplineTransformRef(int splineDegree,
+            MultidimArray<T> &output, const MultidimArray<T> &input,
+            const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
+
         /**
      * Computes spline coefficients of the image and load them to GPU
      * @param splineDegree to be used

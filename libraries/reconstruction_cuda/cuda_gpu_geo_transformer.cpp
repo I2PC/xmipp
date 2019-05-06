@@ -147,7 +147,7 @@ void GeoTransformer<T>::test(const Matrix2D<T> &transform) {
 }
 
 template<typename T>
-void GeoTransformer<T>::applyBSplineTransform(
+void GeoTransformer<T>::applyBSplineTransformRef(
         int splineDegree,
         MultidimArray<T> &output, const MultidimArray<T> &input,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
@@ -163,24 +163,10 @@ void GeoTransformer<T>::applyBSplineTransform(
 
     switch (splineDegree) {
     case 3:
-            {
-            cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        cudaEventRecord(start, 0);
-
         applyLocalShiftGeometryKernel<T, 3><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
                 d_out, (int)inX, (int)inY, (int)inN,
                 d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN);
             gpuErrchk(cudaPeekAtLastError());
-
-            cudaEventRecord(stop, 0);
-        cudaEventSynchronize(stop);
-        float time;
-        cudaEventElapsedTime(&time, start, stop);
-        float speed = (float) (inX * inY) / time / 1e3;
-        std::cout << "Normal ImageIdx: " << imageIdx << " ; megapixels/s: " << speed << std::endl;
-        }
         break;
     default:
         throw std::logic_error("not implemented");
@@ -193,7 +179,7 @@ void GeoTransformer<T>::applyBSplineTransform(
 }
 
 template<typename T>
-void GeoTransformer<T>::applyBSplineTransformNew(
+void GeoTransformer<T>::applyBSplineTransform(
         int splineDegree,
         MultidimArray<T> &output, const MultidimArray<T> &input,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
@@ -205,7 +191,7 @@ void GeoTransformer<T>::applyBSplineTransformNew(
     loadCoefficients(coeffs.first, coeffs.second);
 
     dim3 dimBlock(16, 16);
-    dim3 dimGrid(ceil(inX / (T) dimBlock.x), ceil(inY / (T) dimBlock.y) / PIXELS_PER_THREAD); //more pixels
+    dim3 dimGrid(ceil(inX / (T) dimBlock.x), ceil(inY / (T) dimBlock.y / (T) PIXELS_PER_THREAD)); //more pixels
 
     // take into account end points
     T hX = (splineX == 3) ? inX : (inX / (T) ((splineX - 3)));
@@ -215,26 +201,11 @@ void GeoTransformer<T>::applyBSplineTransformNew(
 
     switch (splineDegree) {
     case 3:
-        {
-            cudaEvent_t start, stop;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        cudaEventRecord(start, 0);
-
         applyLocalShiftGeometryKernelMorePixels<T, 3><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
                 d_out, (int)inX, (int)inY, (int)inN,
                 d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
                 hX, hY, tPos);
             gpuErrchk(cudaPeekAtLastError());
-
-
-        cudaEventRecord(stop, 0);
-        cudaEventSynchronize(stop);
-        float time;
-        cudaEventElapsedTime(&time, start, stop);
-        float speed = (float) (inX * inY) / time / 1e3;
-        std::cout << "Faster ImageIdx: " << imageIdx << " ; megapixels/s: " << speed << std::endl;
-        }
         break;
     default:
         throw std::logic_error("not implemented");
@@ -243,8 +214,6 @@ void GeoTransformer<T>::applyBSplineTransformNew(
     gpuErrchk(
             cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
                     cudaMemcpyDeviceToHost));
-
-    // output.data[0] = 0; // used when trying to fail tests, REMOVE
 }
 
 template<typename T>
