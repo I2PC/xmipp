@@ -104,19 +104,16 @@ T interpolatedElementBSpline2D_Degree3(T x, T y, int xdim, int ydim, T* data)
 
 #define LOOKUP_TABLE 4
 
-template< typename T, bool Edge >
+template< typename T, bool isEdge >
 __device__
 T interpolatedElementBSpline2D_Degree3MorePixels(T x, T y, int xdim, int ydim, const T* data)
 {
     const T *ref;
 
     int l1 = (int)ceil(x - 2);
-    // int l2 = l1 + 3;
     int m1 = (int)ceil(y - 2);
-    // int m2 = m1 + 3;
 
     T columns = 0.0;
-
     T aux_Array[LOOKUP_TABLE];
     int equivalent_l_array[LOOKUP_TABLE];
 
@@ -124,7 +121,7 @@ T interpolatedElementBSpline2D_Degree3MorePixels(T x, T y, int xdim, int ydim, c
     for ( int i = 0; i < 4; ++i ) {
         const int l = l1 + i;
         int equivalent_l = l;
-        if ( Edge ) {
+        if ( isEdge ) {
             if (l<0) {
                 equivalent_l=-l-1;
             }
@@ -141,7 +138,7 @@ T interpolatedElementBSpline2D_Degree3MorePixels(T x, T y, int xdim, int ydim, c
     {
         const int m = m1 + i;
         int equivalent_m = m;
-        if ( Edge ) {
+        if ( isEdge ) {
             if (m<0)
                 equivalent_m=-m-1;
             else if (m>=ydim)
@@ -154,14 +151,8 @@ T interpolatedElementBSpline2D_Degree3MorePixels(T x, T y, int xdim, int ydim, c
         for ( int j = 0; j < 4; ++j ) {
             const int l = l1 + j;
             int equivalent_l = l;
-            if ( Edge ) {
+            if ( isEdge ) {
                 equivalent_l = equivalent_l_array[j];
-                // if (l<0) {
-                    // equivalent_l=-l-1;
-                // }
-                // else if (l>=xdim) {
-                    // equivalent_l=2*xdim-l-1;
-                // }
             }
             rows += ref[equivalent_l] * aux_Array[j];
         }
