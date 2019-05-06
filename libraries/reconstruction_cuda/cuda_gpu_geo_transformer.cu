@@ -3,7 +3,7 @@
 
 #include "cuda_gpu_multidim_array.cu"
 
-#define PIXELS_PER_THREAD 1
+#define PIXELS_PER_THREAD 2
 
 template<typename T, int degree, bool wrap>
 __global__
@@ -225,18 +225,20 @@ void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
         case 3: {
             #pragma unroll
             for (int i = 0; i < PIXELS_PER_THREAD; ++i) {
+                if ( y + i >= ydim ) {
+                    continue;
+                }
                 T x_shifted = x - shiftX[i];
                 T y_shifted = y - shiftY[i];
                 T res;
-                // if ( isEdge( x_shifted, y_shifted, xdim, ydim, 32 ) ) {
-                    // res = interpolatedElementBSpline2D_Degree3MorePixels< T, true >(x_shifted, y_shifted + i, xdim,
-                                // ydim, input);
-                    // res = interpolatedElementBSpline2D_Degree3( x_shifted, y_shifted + i, xdim, ydim, input );
-                // } else {
-                    // res = interpolatedElementBSpline2D_Degree3MorePixels< T, false >(x_shifted, y_shifted + i, xdim,
-                                // ydim, input);
-                // }
-                res = interpolatedElementBSpline2D_Degree3( x_shifted, y_shifted + i, xdim, ydim, input );
+                if ( isEdge( x_shifted, y_shifted, xdim, ydim, 32 ) ) {
+                    res = interpolatedElementBSpline2D_Degree3MorePixels< T, true >(x_shifted, y_shifted + i, xdim,
+                                ydim, input);
+                    res = interpolatedElementBSpline2D_Degree3( x_shifted, y_shifted + i, xdim, ydim, input );
+                } else {
+                    res = interpolatedElementBSpline2D_Degree3MorePixels< T, false >(x_shifted, y_shifted + i, xdim,
+                                ydim, input);
+                }
                 size_t index = (y + i) * xdim + x;
                 output[index] = res;
             }
