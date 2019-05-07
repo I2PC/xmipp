@@ -32,12 +32,10 @@ import numpy as np
 import os
 import sys
 import argparse
-import xmipp
 import xmipp3
-import xmippLib
 
 # The method accepts as input a 3D crioEM map and the mask
-# both with sampling rate of 1 A/pixel
+# both with sampling rate of 1 A/pixel for network 1 or 0.5 A/pixel for network 2
 
 boxDim = 13
 boxDim2 = boxDim//2
@@ -52,8 +50,8 @@ def getBox(V,z,y,x):
 
 class VolumeManager(Sequence):
     def __init__(self, fnVol, fnMask):
-        self.V = xmipp.Image(fnVol).getData()
-        self.M = xmipp.Image(fnMask).getData()
+        self.V = xmipp3.Image(fnVol).getData()
+        self.M = xmipp3.Image(fnMask).getData()
         self.Zdim, self.Ydim, self.Xdim = self.V.shape
 
         #calculate total voxels (inside mask)
@@ -64,11 +62,11 @@ class VolumeManager(Sequence):
                   if self.M[self.z,self.y,self.x]>0.15 and self.V[self.z,self.y,self.x]>0.00015:
                         if ((self.x+self.y+self.z)%2)==0:
                              vx=vx+1
-        print vx
+        #print vx
         self.st=vx/maxSize
         if vx % maxSize >0:
            self.st=self.st+1
-        print self.st
+        #print self.st
 
 
         self.x = boxDim2
@@ -129,8 +127,8 @@ class VolumeManager(Sequence):
 
 
 def produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut):
-    Vxmipp = xmipp.Image(fnVolIn)
-    Mask= xmipp.Image(fnMask)
+    Vxmipp = xmipp3.Image(fnVolIn)
+    Mask= xmipp3.Image(fnMask)
     V = Vxmipp.getData()
     Orig = V
     M = Mask.getData()
