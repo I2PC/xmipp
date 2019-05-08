@@ -87,10 +87,9 @@ protected:
 
     /**
      * Method does a sanity check on the settings of the program,
-     * reporting found issues to stderr.
-     * @return success of the check
+     * reporting found issues and exiting program.
      */
-    bool checkSettings();
+    void checkSettings();
 
     /**
      * Method finds a reference image, i.e. an image which has smallest relative
