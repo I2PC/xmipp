@@ -1422,7 +1422,7 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        Nproc = 1
+        Nproc = 8
         branch = ''
         buildDir = 'build'
         for arg in sys.argv[2:]:
