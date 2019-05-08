@@ -325,7 +325,12 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
     }
     if (this->verbose > 1) {
-        std::cout << "Settings for the patches: " << correlationSettings << std::endl;
+        std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
+    }
+
+    if ((movieSettings.dim.x() < patchSettings.dim.x())
+        || (movieSettings.dim.y() < patchSettings.dim.y())) {
+        REPORT_ERROR(ERR_PARAM_INCORRECT, "Movie is too small for local alignment.");
     }
 
     // load movie to memory
