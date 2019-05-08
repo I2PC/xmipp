@@ -80,7 +80,7 @@ template<typename T>
 void CudaShiftAligner<T>::load2DReferenceOneToN(const std::complex<T> *h_ref) {
     auto isReady = (m_isInit && (AlignType::OneToN == m_type));
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to load a reference signal");
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
     }
 
     // copy reference to GPU
@@ -95,7 +95,7 @@ template<typename T>
 void CudaShiftAligner<T>::load2DReferenceOneToN(const T *h_ref) {
     auto isReady = (m_isInit && (AlignType::OneToN == m_type) && m_includingFT);
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to load a reference signal");
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
     }
 
     // copy reference to GPU
@@ -184,7 +184,7 @@ void CudaShiftAligner<T>::computeCorrelations2DOneToN(
     bool isReady = (m_isInit && (AlignType::OneToN == m_type) && m_is_d_single_FD_loaded);
 
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to execute. Call init() before");
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
 
     // process signals in batches
@@ -218,7 +218,7 @@ std::vector<Point2D<T>> CudaShiftAligner<T>::computeShift2DOneToN(
     bool isReady = (m_isInit && (AlignType::OneToN == m_type) && m_is_d_single_FD_loaded);
 
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGICAL_ERROR, "Not ready to execute. Call init() before");
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
 
     // prepare for FT in batch
