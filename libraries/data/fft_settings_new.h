@@ -26,7 +26,6 @@
 #ifndef FFTSETTINGS_NEW_H_
 #define FFTSETTINGS_NEW_H_
 
-//#include <iosfwd>
 #include "dimensions.h"
 #include <cassert>
 #include <complex>
@@ -92,6 +91,10 @@ public:
         return m_freq.xyzPadded() * m_batch * sizeof(std::complex<T>);
     }
 
+    inline constexpr size_t fElemsBatch() const {
+        return m_freq.xyzPadded() * m_batch;
+    }
+
     inline constexpr size_t sBytesSingle() const {
         return m_spatial.xyzPadded() * sizeof(T);
     }
@@ -102,6 +105,10 @@ public:
 
     inline constexpr size_t sBytesBatch() const {
         return m_spatial.xyzPadded() * m_batch * sizeof(T);
+    }
+
+    inline constexpr size_t sElemsBatch() const {
+        return m_spatial.xyzPadded() * m_batch;
     }
 
     inline constexpr bool isForward() const {
@@ -119,6 +126,24 @@ public:
     inline FFTSettingsNew<T> createInverse() const {
         auto copy = FFTSettingsNew<T>(*this);
         copy.m_isForward = ! this->m_isForward;
+        return copy;
+    }
+
+    inline FFTSettingsNew<T> createSingle() const {
+        auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), 1, 1,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
+    inline FFTSettingsNew<T> createBatch() const {
+        auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), m_batch, m_batch,
+                this->isInPlace(), this->isForward());
+        return copy;
+    }
+
+    inline FFTSettingsNew<T> createSubset(size_t n) const {
+        auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), n, n,
+                this->isInPlace(), this->isForward());
         return copy;
     }
 

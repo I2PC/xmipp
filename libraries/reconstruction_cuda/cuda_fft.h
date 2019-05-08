@@ -28,12 +28,13 @@
 
 
 #include <array>
-#include <type_traits>
+#include <typeinfo>
+
+#include "data/aft.h"
 #include "core/xmipp_error.h"
-#include "reconstruction_adapt_cuda/gpu.h"
 #include "core/utils/memory_utils.h"
-#include "data/fft_settings_new.h"
 #include "core/optional.h"
+#include "gpu.h"
 
 // XXX HACK to avoid including cufft.h in this header
 // https://docs.nvidia.com/cuda/cufft/index.html#cuffthandle says that type is
@@ -41,15 +42,15 @@
 typedef int cufftHandle;
 
 template<typename T>
-class CudaFFT {
+class CudaFFT : public AFT<T> {
 public:
-    CudaFFT(): m_settings(0) {
+    CudaFFT() {
         setDefault();
     };
     ~CudaFFT() {
         release();
     }
-    void init(const FFTSettingsNew<T> &settings);
+    void init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reuse=true);
     void release();
     std::complex<T>* fft(T *h_inOut);
     std::complex<T>* fft(const T *h_in, std::complex<T> *h_out);
@@ -58,27 +59,33 @@ public:
     T* ifft(const std::complex<T> *h_in, T *h_out);
 
 
-    static size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
-    static size_t estimateTotalBytes(const FFTSettingsNew<T> &settings);
+    size_t estimatePlanBytes(const FFTSettingsNew<T> &settings);
     static std::complex<T>* fft(cufftHandle plan, T *d_inOut);
     static std::complex<T>* fft(cufftHandle plan,
             const T *d_in, std::complex<T> *d_out);
     static T* ifft(cufftHandle plan, std::complex<T> *d_inOut);
     static T* ifft(cufftHandle plan,
             const std::complex<T> *d_in, T *d_out);
-    static cufftHandle createPlan(const FFTSettingsNew<T> &settings);
+    static cufftHandle* createPlan(const GPU &gpu,
+            const FFTSettingsNew<T> &settings);
     static core::optional<FFTSettingsNew<T>> findOptimal(GPU &gpu,
             const FFTSettingsNew<T> &settings,
             size_t reserveBytes, bool squareOnly, int sigPercChange,
             bool crop, bool verbose);
-    static FFTSettingsNew<T> findMaxBatch(const GPU &gpu,
+    static FFTSettingsNew<T> findMaxBatch(const FFTSettingsNew<T> &settings,
+            size_t maxBytes);
+    static FFTSettingsNew<T> findOptimalSizeOrMaxBatch(GPU &gpu,
             const FFTSettingsNew<T> &settings,
-            size_t reserveBytes);
+            size_t reserveBytes, bool squareOnly, int sigPercChange,
+            bool crop, bool verbose);
+    static void release(cufftHandle *plan);
 private:
-    cufftHandle m_plan;
-    FFTSettingsNew<T> m_settings;
+    cufftHandle *m_plan;
+    const FFTSettingsNew<T> *m_settings;
     T *m_d_SD;
     std::complex<T> *m_d_FD;
+
+    const GPU *m_gpu;
 
     bool m_isInit;
 

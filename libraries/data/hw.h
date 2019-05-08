@@ -23,43 +23,57 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
+#ifndef LIBRARIES_DATA_HW_H_
+#define LIBRARIES_DATA_HW_H_
 
 #include <string>
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
+#include <cstddef>
 
-class GPU {
+
+class HW {
 public:
-    explicit GPU(size_t device) :
-        m_device(device), m_UUID(getUUID(device)),
-        m_lastFreeMem(getFreeMem(device)),
-        m_lastFreeBytes(getFreeMem(device) * 1024 * 1024) {};
+    explicit HW(unsigned parallelUnits) :
+        m_parallUnits(parallelUnits),
+        m_lastFreeBytes(0),
+        m_totalBytes(0) {}
 
-    size_t device() const { return m_device; };
-    std::string UUID() const { return m_UUID; };
-    size_t lastFreeMem() const { return m_lastFreeMem; }; // FIXME DS remove
-    size_t lastFreeBytes() const { return m_lastFreeBytes; };
+    virtual ~HW(){};
 
-    /**
-     * Method checks currently available free GPU memory
-     * Obtained value is stored in this instance
-     */
-    size_t checkFreeMem() {
-        m_lastFreeMem = getFreeMem(m_device);
-        return m_lastFreeMem;
+    inline unsigned noOfParallUnits() const {
+        return m_parallUnits;
     }
 
-    size_t checkFreeBytes() {
-        m_lastFreeMem = getFreeMem(m_device); // FIXME reimplement
+    virtual void synch() const = 0;
+    virtual void synchAll() const = 0;
+    virtual void set() {
+        updateMemoryInfo();
+        obtainUUID();
+    }
+
+    virtual void updateMemoryInfo() = 0;
+
+    virtual inline size_t lastFreeBytes() const {
         return m_lastFreeBytes;
     }
 
-private:
-    const size_t m_device;
-    const std::string m_UUID;
-    size_t m_lastFreeMem; // FIXME ds remove
+    virtual inline size_t totalBytes() const {
+        return m_totalBytes;
+    }
+
+    virtual inline size_t lastUsedBytes() const {
+        return m_totalBytes - m_lastFreeBytes;
+    }
+
+    virtual std::string getUUID() const {
+        return m_uuid;
+    }
+protected:
+    unsigned m_parallUnits;
+    size_t m_totalBytes;
     size_t m_lastFreeBytes;
+    std::string m_uuid;
+
+    virtual void obtainUUID() = 0;
 };
 
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */
+#endif /* LIBRARIES_DATA_HW_H_ */

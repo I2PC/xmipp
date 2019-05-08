@@ -33,7 +33,7 @@ public:
     explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
             size_t pad_x = 0, size_t pad_y = 0, size_t pad_z = 0) :
             m_x(x), m_y(y), m_z(z), m_n(n),
-            m_pad_x(pad_x), m_pad_y(pad_y), m_pad_z(pad_z){
+            m_pad_x(pad_x), m_pad_y(pad_y), m_pad_z(pad_z) {
     }
     ;
 
@@ -99,6 +99,10 @@ public:
                 && (m_y == b.m_y)
                 && (m_z == b.m_z)
                 && (m_n == b.m_n);
+    }
+
+    inline constexpr bool isPadded() const {
+        return (0 != m_pad_x) || (0 != m_pad_y) || (0 != m_pad_z);
     }
 
 private:

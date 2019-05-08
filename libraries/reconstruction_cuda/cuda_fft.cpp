@@ -25,53 +25,81 @@
 
 #include "cuda_fft.h"
 #include <cufft.h>
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 #include "cuFFTAdvisor/advisor.h"
 
 template<typename T>
-void CudaFFT<T>::init(const FFTSettingsNew<T> &settings) {
-    release();
+void CudaFFT<T>::init(const HW &gpu, const FFTSettingsNew<T> &settings, bool reuse) {
+    bool canReuse = m_isInit
+            && reuse
+            && (m_settings->sBytesBatch() >= settings.sBytesBatch())
+            && (m_settings->fBytesBatch() >= settings.fBytesBatch());
+    bool mustAllocate = !canReuse;
+    if (mustAllocate) {
+        release();
+    }
+    // previous plan and settings has to be released,
+    // otherwise we will get GPU/CPU memory leak
+    release(m_plan);
+    delete m_settings;
 
-    m_settings = settings;
+    m_settings = new FFTSettingsNew<T>(settings);
+    try {
+        m_gpu = &dynamic_cast<const GPU&>(gpu);
+    } catch (std::bad_cast&) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
+    }
 
     check();
 
-    m_plan = createPlan(m_settings);
-
-    // allocate input data storage
-    gpuErrchk(cudaMalloc(&m_d_SD, m_settings.sBytesBatch()));
-    if (m_settings.isInPlace()) {
-        // input data holds also the output
-        m_d_FD = (std::complex<T>*)m_d_SD;
-    } else {
-        // allocate also the output buffer
-        gpuErrchk(cudaMalloc(&m_d_FD, m_settings.fBytesBatch()));
+    m_plan = createPlan(*m_gpu, *m_settings);
+    if (mustAllocate) {
+        // allocate input data storage
+        gpuErrchk(cudaMalloc(&m_d_SD, m_settings->sBytesBatch()));
+        if (m_settings->isInPlace()) {
+            // input data holds also the output
+            m_d_FD = (std::complex<T>*)m_d_SD;
+        } else {
+            // allocate also the output buffer
+            gpuErrchk(cudaMalloc(&m_d_FD, m_settings->fBytesBatch()));
+        }
     }
 
     m_isInit = true;
 }
 
 template<typename T>
+void CudaFFT<T>::release(cufftHandle *plan) {
+    if (nullptr != plan) {
+        cufftDestroy(*plan);
+        delete plan;
+        plan = nullptr;
+    }
+}
+
+template<typename T>
 void CudaFFT<T>::check() {
-    if (m_settings.sDim().x() < 1) {
+    if (m_settings->sDim().x() < 1) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 1 (one)");
     }
-    if ((m_settings.sDim().y() > 1)
-            && (m_settings.sDim().x() < 2)) {
+    if ((m_settings->sDim().y() > 1)
+            && (m_settings->sDim().x() < 2)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "X dim must be at least 2 (two) for 2D/3D transformations");
     }
-    if ((m_settings.sDim().z() > 1)
-            && (m_settings.sDim().y() < 2)) {
+    if ((m_settings->sDim().z() > 1)
+            && (m_settings->sDim().y() < 2)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Y dim must be at least 2 (two) for 3D transformations");
     }
 }
 
 template<typename T>
 void CudaFFT<T>::setDefault() {
-    m_settings = FFTSettingsNew<T>(0);
     m_isInit = false;
+    m_settings = nullptr;
     m_d_SD = nullptr;
     m_d_FD = nullptr;
+    m_gpu = nullptr;
+    m_plan = nullptr;
 }
 
 template<typename T>
@@ -80,9 +108,8 @@ void CudaFFT<T>::release() {
     if ((void*)m_d_FD != (void*)m_d_SD) {
         gpuErrchk(cudaFree(m_d_FD));
     }
-    if (m_isInit) { // avoid destroying empty plan
-        gpuErrchkFFT(cufftDestroy(m_plan));
-    }
+    release(m_plan);
+    delete m_settings;
     setDefault();
 }
 
@@ -109,32 +136,32 @@ T* CudaFFT<T>::ifft(cufftHandle plan, std::complex<T> *d_inOut) {
 template<typename T>
 std::complex<T>* CudaFFT<T>::fft(const T *h_in,
         std::complex<T> *h_out) {
-    auto isReady = m_isInit && m_settings.isForward();
+    auto isReady = m_isInit && m_settings->isForward();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Fourier Transform. "
-                "Call init function first");
+                "Call init() function first");
     }
 
     // process signals in batches
-    for (size_t offset = 0; offset < m_settings.sDim().n(); offset += m_settings.batch()) {
+    for (size_t offset = 0; offset < m_settings->sDim().n(); offset += m_settings->batch()) {
         // how many signals to process
-        size_t toProcess = std::min(m_settings.batch(), m_settings.sDim().n() - offset);
+        size_t toProcess = std::min(m_settings->batch(), m_settings->sDim().n() - offset);
 
         // copy memory
-        gpuErrchk(cudaMemcpy(
+        gpuErrchk(cudaMemcpyAsync(
                 m_d_SD,
-                h_in + offset * m_settings.sDim().xyzPadded(),
-                toProcess * m_settings.sBytesSingle(),
-                    cudaMemcpyHostToDevice));
+                h_in + offset * m_settings->sDim().xyzPadded(),
+                toProcess * m_settings->sBytesSingle(),
+                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
-        fft(m_plan, m_d_SD, m_d_FD);
+        fft(*m_plan, m_d_SD, m_d_FD);
 
         // copy data back
-        gpuErrchk(cudaMemcpy(
-                h_out + offset * m_settings.fDim().xyzPadded(),
+        gpuErrchk(cudaMemcpyAsync(
+                h_out + offset * m_settings->fDim().xyzPadded(),
                 m_d_FD,
-                toProcess * m_settings.fBytesSingle(),
-                cudaMemcpyDeviceToHost));
+                toProcess * m_settings->fBytesSingle(),
+                cudaMemcpyDeviceToHost, *(cudaStream_t*)m_gpu->stream()));
     }
     return h_out;
 }
@@ -142,32 +169,32 @@ std::complex<T>* CudaFFT<T>::fft(const T *h_in,
 template<typename T>
 T* CudaFFT<T>::ifft(const std::complex<T> *h_in,
         T *h_out) {
-    auto isReady = m_isInit && ( ! m_settings.isForward());
+    auto isReady = m_isInit && ( ! m_settings->isForward());
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to perform Inverse Fourier Transform. "
-                "Call init function first");
+                "Call init() function first");
     }
 
     // process signals in batches
-    for (size_t offset = 0; offset < m_settings.fDim().n(); offset += m_settings.batch()) {
+    for (size_t offset = 0; offset < m_settings->fDim().n(); offset += m_settings->batch()) {
         // how many signals to process
-        size_t toProcess = std::min(m_settings.batch(), m_settings.fDim().n() - offset);
+        size_t toProcess = std::min(m_settings->batch(), m_settings->fDim().n() - offset);
 
         // copy memoryvim
-        gpuErrchk(cudaMemcpy(
+        gpuErrchk(cudaMemcpyAsync(
                 m_d_FD,
-                h_in + offset * m_settings.fDim().xyzPadded(),
-                toProcess * m_settings.fBytesSingle(),
-                    cudaMemcpyHostToDevice));
+                h_in + offset * m_settings->fDim().xyzPadded(),
+                toProcess * m_settings->fBytesSingle(),
+                cudaMemcpyHostToDevice, *(cudaStream_t*)m_gpu->stream()));
 
-        ifft(m_plan, m_d_FD, m_d_SD);
+        ifft(*m_plan, m_d_FD, m_d_SD);
 
         // copy data back
-        gpuErrchk(cudaMemcpy(
-                h_out + offset * m_settings.sDim().xyzPadded(),
+        gpuErrchk(cudaMemcpyAsync(
+                h_out + offset * m_settings->sDim().xyzPadded(),
                 m_d_SD,
-                toProcess * m_settings.sBytesSingle(),
-                cudaMemcpyDeviceToHost));
+                toProcess * m_settings->sBytesSingle(),
+                cudaMemcpyDeviceToHost, *(cudaStream_t*)m_gpu->stream()));
     }
     return h_out;
 }
@@ -184,14 +211,6 @@ size_t CudaFFT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
     };
     manyHelper(settings, f);
     return size;
-}
-
-template<typename T>
-size_t CudaFFT<T>::estimateTotalBytes(const FFTSettingsNew<T> &settings) {
-    size_t planBytes = estimatePlanBytes(settings);
-    size_t dataBytes = settings.sBytesBatch()
-            + (settings.isInPlace() ? 0 : settings.fBytesBatch());
-    return planBytes + dataBytes;
 }
 
 template<typename T>
@@ -246,35 +265,30 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
 }
 
 template<typename T>
-cufftHandle CudaFFT<T>::createPlan(const FFTSettingsNew<T> &settings) {
-    cufftHandle plan;
+cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
+    auto plan = new cufftHandle;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
             int odist, cufftType type, int batch) {
-        gpuErrchkFFT(cufftPlanMany(&plan, rank, n, inembed,
+        gpuErrchkFFT(cufftPlanMany(plan, rank, n, inembed,
                 istride, idist, onembed, ostride,
                 odist, type, batch));
     };
     manyHelper(settings, f);
+    gpuErrchkFFT(cufftSetStream(*plan, *(cudaStream_t*)gpu.stream()));
     return plan;
 }
 
 template<typename T>
-FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const GPU &gpu,
-        const FFTSettingsNew<T> &settings,
-        size_t reserveBytes) {
-    size_t freeBytes = gpu.lastFreeBytes();
-    if (reserveBytes > freeBytes) {
-        REPORT_ERROR(ERR_GPU_MEMORY, "You want to reserve more memory than is currently available");
-    }
-    size_t availableBytes = freeBytes - reserveBytes;
+FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
+        size_t maxBytes) {
     size_t singleBytes = settings.sBytesSingle() + (settings.isInPlace() ? 0 : settings.fBytesSingle());
-    size_t batch = (availableBytes / singleBytes) + 1; // + 1 will be deducted in the while loop
+    size_t batch = (maxBytes / singleBytes) + 1; // + 1 will be deducted in the while loop
     while (batch > 1) {
         batch--;
         auto tmp = FFTSettingsNew<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
-        size_t totalBytes = estimateTotalBytes(tmp);
-        if (totalBytes <= availableBytes) {
+        size_t totalBytes = CudaFFT<T>().estimateTotalBytes(tmp);
+        if (totalBytes <= maxBytes) {
             return tmp;
         }
     }
@@ -319,6 +333,21 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
     for (auto& it : *options) delete it;
     delete options;
     return result;
+}
+
+template<typename T>
+FFTSettingsNew<T> CudaFFT<T>::findOptimalSizeOrMaxBatch(GPU &gpu,
+        const FFTSettingsNew<T> &settings,
+        size_t reserveBytes, bool squareOnly, int sigPercChange,
+        bool crop, bool verbose) {
+    auto candidate = findOptimal(gpu, settings, reserveBytes, squareOnly, sigPercChange, crop, verbose);
+    if (candidate.has_value()) {
+        return candidate.value();
+    }
+    if (gpu.lastFreeBytes() > reserveBytes) {
+        REPORT_ERROR(ERR_GPU_MEMORY, "You have less GPU memory then you want to use");
+    }
+    return findMaxBatch(settings, gpu.lastFreeBytes() - reserveBytes);
 }
 
 // explicit instantiation

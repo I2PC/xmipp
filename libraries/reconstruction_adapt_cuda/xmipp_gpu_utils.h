@@ -121,14 +121,7 @@ public:
 		memcpy(data[idx*zyxdim], in.data, zyxdim*sizeof(T));
 	}
 
-	void clear()
-	{
-		if (data!=NULL){;
-			cpuFree(data);
-		}
-		data=NULL;
-
-	}
+	void clear();
 
 	~GpuMultidimArrayAtCpu()
 	{
