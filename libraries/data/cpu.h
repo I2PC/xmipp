@@ -23,28 +23,33 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_
-#define LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_
+#ifndef LIBRARIES_DATA_CPU_H_
+#define LIBRARIES_DATA_CPU_H_
 
-#include <vector>
-#include "data/point2D.h"
-#include "data/filters.h"
-#include <cassert>
+#include <thread>
+#include <unistd.h>
+#include "hw.h"
 
-namespace Alignment {
-
-enum class AlignType { OneToN, NToM, Consecutive };
-
-template<typename T>
-class AShiftAligner {
+class CPU : public HW {
 public:
-    static std::vector<Point2D<T>> computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift);
+    CPU(unsigned cores=1) : HW(cores) {}
 
-    virtual void release() = 0;
+    static unsigned findCores() {
+        return std::max(std::thread::hardware_concurrency(), 1u);
+    }
+
+    void synch() const {}; // nothing to do
+    void synchAll() const {}; // nothing to do
+
+    void updateMemoryInfo();
+
+protected:
+    void obtainUUID();
+
+private:
+    void native_cpuid(unsigned int *eax, unsigned int *ebx,
+            unsigned int *ecx, unsigned int *edx);
 };
 
-} /* namespace Alignment */
 
-#endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ALIGNER_H_ */
+#endif /* LIBRARIES_DATA_CPU_H_ */

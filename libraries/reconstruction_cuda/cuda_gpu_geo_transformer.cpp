@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "cuda_gpu_geo_transformer.h"
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 #include <cuda_runtime_api.h>
 #include "cuda_all.cpp"
 

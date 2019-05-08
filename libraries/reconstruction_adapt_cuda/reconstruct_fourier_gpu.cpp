@@ -402,7 +402,7 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     				|| threadParams->selFile->containsLabel(MDL_CTF_DEFOCUSU));
 
 
-    setDevice(parent->device);
+    GPU::setDevice(parent->device);
 
     // allocate buffer
     threadParams->buffer = new RecFourierBufferData( ! parent->fftOnGPU, hasCTF,
@@ -811,7 +811,7 @@ void ProgRecFourierGPU::logProgress(int increment) {
 void ProgRecFourierGPU::processImages( int firstImageIndex, int lastImageIndex)
 {
 
-	setDevice(device);
+	GPU::setDevice(device);
 
 // initialize GPU
     if (NULL == tempVolumeGPU) {
