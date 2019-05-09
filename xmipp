@@ -722,17 +722,23 @@ def configCuda(configDict):
         if configDict["NVCC_CXXFLAGS"]=="":
             cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
             if cxxVersion > 5:
-                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % configDict["CXX"]))
-                if checkProgram(configDict["CXX"]+"-5"):
-                    configDict["CXX_CUDA"] = configDict["CXX"]+"-5"
-                elif checkProgram(configDict["CXX"]+"-4.8"):
-                    configDict["CXX_CUDA"] = configDict["CXX"]+"-4.8"
-                else:
+                compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
+                print(red("%s version later than 5 detected. Looking for an alternative "
+                          "for CUDA compilations... (g++-v: %s)"
+                          % (configDict["CXX"], ', '.join(compVers))))
+                for ver in compVers:
+                    cxxCudaVer = '-'+ver
+                    if checkProgram(configDict["CXX"]+cxxCudaVer):
+                        configDict["CXX_CUDA"] = configDict["CXX"]+cxxCudaVer
+                        print(green("%s detected! Using it to compile CUDA related code.\n"
+                                    % configDict["CXX_CUDA"]))
+                        break
+                if configDict["CXX_CUDA"] == '':
                     print(red("No alternative found. Skipping CUDA compilation.\n"
-                              "If an alternative exists, please set 'CXX_CUDA' in 'xmipp.conf' to point to there."))
+                              "If an alternative exists, please set 'CXX_CUDA' "
+                              "in 'xmipp.conf' to point to there."))
                     configDict["CUDA"] = "False"
                     return
-                print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
             else:
                 configDict["CXX_CUDA"] = configDict["CXX"]
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
