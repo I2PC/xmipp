@@ -39,6 +39,7 @@
 
 #include <assert.h>
 #include <stdexcept>
+#include <memory>
 #include "core/multidim_array.h"
 #include "core/transformations.h"
 #include "core/xmipp_image.h" // for tests only
@@ -179,14 +180,6 @@ private:
      */
     void applyGeometry_2D_wrap(int SplineDegree);
 
-    /**
-     * Computes spline coefficients of the image and load them to GPU
-     * @param splineDegree to be used
-     * @param input image used to generate the coefficients
-     */
-    template<typename T_IN>
-    void produceAndLoadCoeffs(int splineDegree,
-            const MultidimArray<T_IN> &input);
 
     /**
      * Load transform matrix to GPU
@@ -205,20 +198,27 @@ private:
 
     void test(const Matrix2D<T> &transform);
 
-    void testCoeffs();
-
-    void testTranspose();
-
-    void testCoeffsRow();
-
-    void testCoeffsRowNew();
-
     /**
      * Load BSpline interpolation coefficients to GPU
      */
     void loadCoefficients(const Matrix1D<T> &X,
             const Matrix1D<T> &Y);
 
+
+protected:
+        /**
+     * Computes spline coefficients of the image and load them to GPU
+     * @param splineDegree to be used
+     * @param input image used to generate the coefficients
+     */
+    template<typename T_IN>
+    void produceAndLoadCoeffs(const MultidimArray<T_IN> &input);
+
+    /*
+    * Creates a copy of device input memory
+    * Used in tests
+    */
+    std::unique_ptr<T[]> copy_out_d_in( size_t size ) const;
 
 private:
     bool isReadyForMatrix;
