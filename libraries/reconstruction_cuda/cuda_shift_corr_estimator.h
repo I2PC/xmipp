@@ -23,63 +23,67 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_
+#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ESTIMATOR_H_
+#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ESTIMATOR_H_
 
 #include <type_traits>
-#include "reconstruction/ashift_aligner.h"
+#include "reconstruction/ashift_corr_estimator.h"
 #include "data/fft_settings_new.h"
-#include "core/xmipp_error.h"
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
+#include "cuda_fft.h"
+#include "gpu.h"
 
 namespace Alignment {
 
 template<typename T>
-class CudaShiftAligner : public AShiftAligner<T> {
+class CudaShiftCorrEstimator : public AShiftCorrEstimator<T> {
 public:
-    CudaShiftAligner() : m_dims(0) {
+    CudaShiftCorrEstimator() {
         setDefault();
     }
 
-    ~CudaShiftAligner() {
+    virtual ~CudaShiftCorrEstimator() {
         release();
     }
 
-    void init2D(AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift=0, bool includingFT=false);
+    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+            bool includingBatchFT=false, bool includingSingleFT=false) override;
 
     void release();
 
-    void load2DReferenceOneToN(const std::complex<T> *h_ref);
+    void load2DReferenceOneToN(const std::complex<T> *h_ref) override;
 
-    void load2DReferenceOneToN(const T *h_ref);
+    void load2DReferenceOneToN(const T *h_ref) override;
 
-    template<bool center>
     void computeCorrelations2DOneToN(
-        std::complex<T> *h_inOut);
+        std::complex<T> *h_inOut, bool center) override;
 
-    std::vector<Point2D<T>> computeShift2DOneToN(
-        T *h_others);
+    void computeCorrelations2DOneToN(const HW &hw,
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        const Dimensions &dims,
+        bool center) override;
 
-    static std::vector<Point2D<T>> computeShifts2DOneToN(
+    void computeShift2DOneToN(T *h_others) override;
+
+    static std::vector<Point2D<float>> computeShifts2DOneToN(
+        const GPU &gpu,
         std::complex<T> *d_othersF,
+        T *d_othersS,
         std::complex<T> *d_ref,
-        size_t xDimF, size_t yDimF, size_t nDim,
-        T *d_othersS, // this must be big enough to hold batch * centerSize^2 elements!
-        mycufftHandle handle,
-        size_t xDimS,
-        T *h_centers, MultidimArray<T> &helper, size_t maxShift);
+        const FFTSettingsNew<T> &settings,
+        cufftHandle plan,
+        T *h_centers,
+        size_t maxShift);
 
     template<bool center>
-    static void computeCorrelations2DOneToN(
+    static void sComputeCorrelations2DOneToN(
+        const GPU &gpu,
         std::complex<T> *d_inOut,
         const std::complex<T> *d_ref,
-        size_t xDim, size_t yDim, size_t nDim);
+        const Dimensions &dims);
 
 private:
-    FFTSettingsNew<T> m_dims;
-    size_t m_maxShift;
-    size_t m_centerSize;
-    AlignType m_type;
+    const GPU *m_gpu;
 
     // device memory
     std::complex<T> *m_d_single_FD;
@@ -89,25 +93,24 @@ private:
 
     // host memory
     T *m_h_centers;
-    MultidimArray<T> m_helper;
-    T *m_origHelperData;
 
-    // FT data
-    mycufftHandle m_singleToFD;
-    mycufftHandle m_batchToFD;
-    mycufftHandle m_batchToSD;
+    // FT plans
+    cufftHandle *m_singleToFD;
+    cufftHandle *m_batchToFD;
+    cufftHandle *m_batchToSD;
 
     // flags
-    bool m_includingFT;
-    bool m_isInit;
-    bool m_is_d_single_FD_loaded;
+    // bind the flag for host with the device flag
+    bool &m_is_d_single_FD_loaded = AShiftCorrEstimator<T>::m_is_ref_FD_loaded;
 
-    void check();
-    void init2DOneToN();
+    void init2DOneToN() override;
     void setDefault();
+    void check() override;
+    using AShiftEstimator<T>::init2D;
 };
 
 
 } /* namespace Alignment */
 
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_ */
+

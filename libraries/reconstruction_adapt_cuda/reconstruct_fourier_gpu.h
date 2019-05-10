@@ -52,6 +52,7 @@
 #include <reconstruction/reconstruct_fourier_defines.h>
 #include <reconstruction/reconstruct_fourier_projection_traverse_space.h>
 #include <reconstruction_cuda/cuda_gpu_reconstruct_fourier.h>
+#include "reconstruction_cuda/gpu.h"
 
 /**@defgroup FourierReconstruction Fourier reconstruction
    @ingroup ReconsLibrary */

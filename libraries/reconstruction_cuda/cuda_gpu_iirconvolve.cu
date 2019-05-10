@@ -1,4 +1,4 @@
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 
 namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels {
 

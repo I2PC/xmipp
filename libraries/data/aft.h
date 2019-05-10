@@ -23,35 +23,39 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
+#ifndef LIBRARIES_DATA_AFT_H_
+#define LIBRARIES_DATA_AFT_H_
 
-#include <string>
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
+#include <type_traits>
+#include <complex>
+#include "hw.h"
+#include "data/fft_settings_new.h"
 
-class GPU {
+template<typename T>
+class AFT {
 public:
-    explicit GPU(size_t device) :
-        m_device(device), m_UUID(getUUID(device)),
-        m_lastFreeMem(getFreeMem(device)) {};
+    virtual ~AFT() {}; // do nothing
 
-    size_t device() const { return m_device; };
-    std::string UUID() const { return m_UUID; };
-    size_t lastFreeMem() const { return m_lastFreeMem; };
-
-    /**
-     * Method checks currently available free GPU memory
-     * Obtained value is stored in this instance
-     */
-    size_t checkFreeMem() {
-        m_lastFreeMem = getFreeMem(m_device);
-        return m_lastFreeMem;
+    // utility functions
+    virtual void init(const HW &hw, const FFTSettingsNew<T> &settings, bool reuse=true) = 0;
+    virtual void release() = 0;
+    virtual size_t estimatePlanBytes(const FFTSettingsNew<T> &settings) = 0;
+    virtual size_t estimateTotalBytes(const FFTSettingsNew<T> &settings) {
+        size_t planBytes = estimatePlanBytes(settings);
+        size_t dataBytes = settings.sBytesBatch()
+                + (settings.isInPlace() ? 0 : settings.fBytesBatch());
+        return planBytes + dataBytes;
     }
 
-private:
-    const size_t m_device;
-    const std::string m_UUID;
-    size_t m_lastFreeMem;
+    // Forward FT
+    virtual std::complex<T>* fft(T *inOut) = 0;
+    virtual std::complex<T>* fft(const T *in, std::complex<T> *out) = 0;
+
+    // Inverse FT
+    virtual T* ifft(std::complex<T> *inOut) = 0;
+    virtual T* ifft(const std::complex<T> *in, T *out) = 0;
+protected:
+    virtual void setDefault() = 0;
 };
 
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */
+#endif /* LIBRARIES_DATA_AFT_H_ */

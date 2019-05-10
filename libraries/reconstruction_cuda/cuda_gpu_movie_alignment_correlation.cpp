@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <cuda_runtime_api.h>
-#include "reconstruction_cuda/cuda_utils.h"
+#include "reconstruction_cuda/cuda_asserts.h"
 #include "cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
@@ -293,7 +293,7 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
                 // crop images in space domain, use memory for FFT to avoid realocation
                 cropSquareInCenter<<<dimGridCrop, dimBlock>>>((T*)imgs.d_data,
                         (T*)ffts.d_data, imgs.Xdim, imgs.Ydim,
-                        counter, centerSize);
+                        counter, centerSize, centerSize);
 
                 copyInRightOrder((T*)ffts.d_data, result,
                         centerSize, centerSize,
