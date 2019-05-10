@@ -30,8 +30,10 @@
 
 class Dimensions {
 public:
-    explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1) :
-            m_x(x), m_y(y), m_z(z), m_n(n) {
+    explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
+            size_t pad_x = 0, size_t pad_y = 0, size_t pad_z = 0) :
+            m_x(x), m_y(y), m_z(z), m_n(n),
+            m_pad_x(pad_x), m_pad_y(pad_y), m_pad_z(pad_z) {
     }
     ;
 
@@ -39,12 +41,24 @@ public:
         return m_x;
     }
 
+    inline constexpr size_t xPadded() const {
+        return m_x + m_pad_x;
+    }
+
     inline constexpr size_t y() const {
         return m_y;
     }
 
+    inline constexpr size_t yPadded() const {
+        return m_y + m_pad_y;
+    }
+
     inline constexpr size_t z() const {
         return m_z;
+    }
+
+    inline constexpr size_t zPadded() const {
+        return m_z + m_pad_z;
     }
 
     inline constexpr size_t n() const {
@@ -55,8 +69,24 @@ public:
         return m_x * m_y;
     }
 
-    constexpr size_t size() const {
-        return m_x * m_y * m_z * m_n;
+    inline constexpr size_t xyPadded() const {
+        return (m_x + m_pad_x) * (m_y + m_pad_y);
+    }
+
+    inline constexpr size_t xyz() const {
+        return m_x * m_y * m_z;
+    }
+
+    inline constexpr size_t xyzPadded() const {
+        return (m_x + m_pad_x) * (m_y + m_pad_y) * (m_z + m_pad_z);
+    }
+
+    inline constexpr size_t size() const {
+        return xyz() * m_n;
+    }
+
+    inline constexpr size_t sizePadded() const {
+        return xyzPadded() * m_n;
     }
 
     friend std::ostream& operator<<(std::ostream &os, const Dimensions &d) {
@@ -71,11 +101,19 @@ public:
                 && (m_n == b.m_n);
     }
 
+    inline constexpr bool isPadded() const {
+        return (0 != m_pad_x) || (0 != m_pad_y) || (0 != m_pad_z);
+    }
+
 private:
     size_t m_x;
     size_t m_y;
     size_t m_z;
     size_t m_n;
+
+    size_t m_pad_x;
+    size_t m_pad_y;
+    size_t m_pad_z;
 };
 
 

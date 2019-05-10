@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     David Strelak (davidstrelak@gmail.com)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,45 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef XMIPP_LIBRARIES_DATA_POINT3D_H_
-#define XMIPP_LIBRARIES_DATA_POINT3D_H_
+#ifndef CUDA_ASSERTS_H_
+#define CUDA_ASSERTS_H_
 
-#include "point.h"
-#include "cuda_compatibility.h"
-#include <initializer_list>
+#include "cuFFTAdvisor/cudaAsserts.h"
 
-/** Class represents a point in 3D */
-template <typename T>
-class Point3D: Point {
-public:
-     CUDA_HD
-     Point3D(T x = 0, T y = 0, T z = 0) :
-             x(x), y(y), z(z) {
-     }
+using cuFFTAdvisor::gpuErrchk;
+using cuFFTAdvisor::gpuErrchkFFT;
 
-    Point3D(const std::initializer_list<T> &l) {
-        if (3 == l.size())
-        {
-            auto it = l.begin();
-            x = *it++;
-            y = *it++;
-            z = *it++;
-        }
-    }
 
-    T x;
-    T y;
-    T z;
-
-    CUDA_H
-    Point3D& operator/=(const T &rhs) const {
-        return Point3D(x / rhs, y / rhs, z / rhs);
-    }
-
-    CUDA_H
-    friend Point3D operator/(const Point3D &lhs, T rhs) {
-        return lhs /= rhs;
-    }
-};
-
-#endif /* XMIPP_LIBRARIES_DATA_POINT3D_H_ */
+#endif /* CUDA_ASSERTS_H_ */

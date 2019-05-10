@@ -35,11 +35,13 @@
 #include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
 #include "data/filters.h"
 #include "data/fft_settings.h"
+#include "data/fft_settings_new.h"
 #include "data/bspline_grid.h"
 #include "core/userSettings.h"
 #include "reconstruction/bspline_helper.h"
-#include "gpu.h"
+#include "reconstruction_cuda/gpu.h"
 #include "core/optional.h"
+#include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
@@ -67,19 +69,19 @@ private:
      * Estimates maximal size of the filter for given frame
      * Might be use to estimate memory requirements
      * @frame reference frame
-     * @return max MB necessary for filter
+     * @return max bytes necessary for filter
      */
-    int getMaxFilterSize(const Image<T> &frame);
+    size_t getMaxFilterBytes(const Image<T> &frame);
 
     /**
      * Returns best settings for FFT on GPU. It is either
      * loaded from permanent storage, or GPU benchmark is ru
      * @param d dimension of the FFT
-     * @param extraMem that should be left on GPU
+     * @param extraBytes that should be left on GPU
      * @param crop if true, FFT can be of smaller size
      * @return best FFT setting
      */
-    FFTSettings<T> getSettingsOrBenchmark(const Dimensions &d, size_t extraMem,
+    FFTSettings<T> getSettingsOrBenchmark(const Dimensions &d, size_t extraBytes,
             bool crop);
 
     /**
@@ -93,7 +95,7 @@ private:
     std::string const getKey(const std::string &keyword,
             const Dimensions &dim, bool crop) {
         std::stringstream ss;
-        ss << gpu.value().UUID() << keyword << dim << crop;
+        ss << gpu.value().getUUID() << keyword << dim << crop;
         return ss.str();
     }
 
@@ -215,10 +217,10 @@ private:
     /**
      * Run benchmark to get the best FFT setting for given problem size
      * @param d dimension of the problem
-     * @param extraMem to leave on GPU
+     * @param extraBytes to leave on GPU
      * @param crop flag
      */
-    FFTSettings<T> runBenchmark(const Dimensions &d, size_t extraMem,
+    FFTSettings<T> runBenchmark(const Dimensions &d, size_t extraBytes,
             bool crop);
 
     /**
