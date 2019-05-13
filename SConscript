@@ -141,7 +141,7 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7', 'fftw3f', 'fftw3f_threads'])
 
 
 # FRM library
@@ -169,7 +169,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff', 'fftw3f', 'fftw3f_threads']
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -202,7 +202,7 @@ def addProg(progName, **kwargs):
         kwargs['mpi'] = True
         kwargs['libs'] += ['XmippParallel']
 
-    if progName.startswith('cuda_'):
+    if progName.startswith('cuda_') or progName.startswith('test_cuda'):
         kwargs['cuda'] = True
         kwargs['libs'] += ['XmippInterfaceCuda','XmippCuda']
 
@@ -241,6 +241,8 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 		addProg(pname)
 
 for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
+    if not cuda and 'cuda' in p:
+        continue # if user doesn't want cuda, skip all programs / tests that use it
     pname = os.path.basename(p).replace('.cpp','')
     addProg(pname)
 
@@ -248,7 +250,7 @@ addLib('xmippLib.so',
        dirs=['bindings'],
        patterns=['python/*.cpp'],
        incs=python_incdirs,
-       libs=['python2.7', 'XmippCore', 'Xmipp'],
+       libs=['python2.7', 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')
        
 #  ***********************************************************************

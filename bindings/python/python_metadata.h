@@ -97,6 +97,10 @@ xmipp_MDValueRange(PyObject *obj, PyObject *args, PyObject *kwargs);
    PyObject *
 xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+  /* add new labels at runtime */
+   PyObject *
+xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* MDQuery methods */
 extern PyMethodDef MDQuery_methods[];
 

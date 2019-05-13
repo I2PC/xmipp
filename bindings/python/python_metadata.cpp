@@ -222,6 +222,37 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }
 
+/* add labels in run time */
+PyObject *
+xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+
+
+    int type;
+    PyObject *input = NULL;
+    PyObject *pyStr = NULL;
+    char *str = NULL;
+
+
+    if (PyArg_ParseTuple(args, "Oi", &input, &type))
+    {
+        try
+        {
+            if ((pyStr = PyObject_Str(input)) != NULL )
+            {
+                str = PyString_AsString(pyStr);
+                return PyLong_FromLong(MDL::getNewAlias((String)str, (MDLabelType)type));
+                
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+
+    return NULL;
+}
 /***************************************************************/
 /*                            MetaData                         */
 /**************************************************************/
@@ -562,16 +593,21 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     if (self != NULL)
     {
-        PyObject *input = NULL, *input2 = NULL;
-        PyObject *pyStr = NULL, *pyLabels = NULL, *pySep = NULL;
-        char *str = NULL, *labels = NULL;
+        PyObject *input = NULL;
+        PyObject *input2 = NULL;
+        PyObject *pyStr = NULL;
+        PyObject *pyLabels = NULL;
+        PyObject *pySep = NULL;
+        char *str = NULL;
+        char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
             try
             {
-                if ((pyStr = PyObject_Str(input)) != NULL && (pyLabels
-                        = PyObject_Str(input2)))
+                pyStr = PyObject_Str(input);
+                pyLabels = PyObject_Str(input2);
+                if ((NULL != pyStr) && (NULL != pyLabels))
                 {
                     str = PyString_AsString(pyStr);
                     labels = PyString_AsString(pyLabels);
@@ -599,16 +635,21 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     if (self != NULL)
     {
-        PyObject *input = NULL, *input2 = NULL;
-        PyObject *pyStr = NULL, *pyLabels = NULL, *pySep = NULL;
-        char *str = NULL, *labels = NULL;
+        PyObject *input = NULL;
+        PyObject *input2 = NULL;
+        PyObject *pyStr = NULL;
+        PyObject *pyLabels = NULL;
+        PyObject *pySep = NULL;
+        char *str = NULL;
+        char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
             try
             {
-                if ((pyStr = PyObject_Str(input)) != NULL && (pyLabels
-                        = PyObject_Str(input2)))
+                pyStr = PyObject_Str(input);
+                pyLabels = PyObject_Str(input2);
+                if ((NULL != pyStr) && (NULL != pyLabels))
                 {
                     str = PyString_AsString(pyStr);
                     labels = PyString_AsString(pyLabels);
@@ -636,15 +677,19 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     if (self != NULL)
     {
-        PyObject *input = NULL, *blockName = NULL, *pyStr = NULL, *pyStrBlock =
-                                                 NULL;
-        char *str = NULL, *strBlock = NULL;
+        PyObject *input = NULL;
+        PyObject *blockName = NULL;
+        PyObject *pyStr = NULL;
+        PyObject *pyStrBlock = NULL;
+        char *str = NULL;
+        char *strBlock = NULL;
         if (PyArg_ParseTuple(args, "OO", &input, &blockName))
         {
             try
             {
-                if ((pyStr = PyObject_Str(input)) != NULL && (pyStrBlock
-                        = PyObject_Str(blockName)) != NULL)
+                pyStr = PyObject_Str(input);
+                pyStrBlock = PyObject_Str(blockName);
+                if ((NULL != pyStr) && (NULL != pyStrBlock))
                 {
                     str = PyString_AsString(pyStr);
                     strBlock = PyString_AsString(pyStrBlock);

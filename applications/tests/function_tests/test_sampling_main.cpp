@@ -9,8 +9,8 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-        const char *path = (getXmippPath() + (String)"/resources/test").c_str();
-        if (chdir(path) != 0 ) FAIL() << "Could not change path to: " << path;
+        FileName path = (FileName) getXmippSrcPath() + "/xmipp/resources/test";
+        if (chdir(path.c_str()) != 0 ) FAIL() << "Could not change path to: " << path;
         fn_root = "sampling/";
 
         //Create the sampling
@@ -32,7 +32,6 @@ protected:
         mysampling.setNeighborhoodRadius(angular_distance);
         mysampling.fillExpDataProjectionDirectionByLR(fnExperimentalImages);
         mysampling.removePointsFarAwayFromExperimentalData();
-
     }
 
     FileName fn_root;

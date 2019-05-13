@@ -125,7 +125,10 @@ protected:
         fillBorders = checkParam("--fillBorders");
         extractNoise = checkParam("--extractNoise");
         if (extractNoise)
+        {
+        	randomize_random_generator();
         	Nnoise = getIntParam("--extractNoise",0);
+        }
     }
 public:
     void run()

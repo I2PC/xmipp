@@ -336,10 +336,18 @@ def visitTests(tests, grepStr=''):
 
 
 if __name__ == "__main__":
+
+    cudaTests = True
+    for i, arg in enumerate(sys.argv):
+        if arg == '--noCuda':
+            cudaTests = False
+            sys.argv.pop(i)
+
     testNames = sys.argv[1:]
 
-    cTests = subprocess.check_output('compgen -ac | grep xmipp_test_', shell=True,
-                                     executable='/bin/bash').splitlines()
+    cudaExcludeStr = '| grep -v xmipp_test_cuda_' if not cudaTests else ''
+    cTests = subprocess.check_output('compgen -ac | grep xmipp_test_ %s' % cudaExcludeStr,
+                                     shell=True, executable='/bin/bash').splitlines()
 
     tests = unittest.TestSuite()
     if '--show' in testNames or '--allPrograms' in testNames:
