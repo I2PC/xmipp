@@ -20,7 +20,7 @@ class GeoTransformerApplyBSplineTransformTest : public ::testing::Test {
 public:
     void compare_results( double* true_values, double* approx_values, size_t size ) {
         for ( int i = 0; i < size; ++i ) {
-            ASSERT_NEAR( true_values[i], approx_values[i], 1e-8 ) << "at index:" << i;
+            ASSERT_NEAR( true_values[i], approx_values[i], 1e-12 ) << "at index:" << i;
         }
     }
 
@@ -31,7 +31,7 @@ public:
     */
     void compare_results( float* true_values, float* approx_values, size_t size ) {
         for ( int i = 0; i < size; ++i ) {
-            ASSERT_NEAR( true_values[i], approx_values[i], 0.001f ) << "at index:" << i;
+            ASSERT_NEAR( true_values[i], approx_values[i], 1e-3f ) << "at index:" << i;
         }
     }
 
