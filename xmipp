@@ -38,7 +38,7 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.03b4'  #
+XMIPP_VERSION = '3.19.04'  #
 RELEASE_DATE = '03/04/2019'  #
 ##############################
 
@@ -721,18 +721,24 @@ def configCuda(configDict):
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
             cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
-            if cxxVersion > 5:
-                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % configDict["CXX"]))
-                if checkProgram(configDict["CXX"]+"-5"):
-                    configDict["CXX_CUDA"] = configDict["CXX"]+"-5"
-                elif checkProgram(configDict["CXX"]+"-4.8"):
-                    configDict["CXX_CUDA"] = configDict["CXX"]+"-4.8"
-                else:
+            if cxxVersion >= 6:
+                compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
+                print(red("%s version later than 5 detected. Looking for an alternative "
+                          "for CUDA compilations... (g++-v: %s)"
+                          % (configDict["CXX"], ', '.join(compVers))))
+                for ver in compVers:
+                    cxxCudaVer = '-'+ver
+                    if checkProgram(configDict["CXX"]+cxxCudaVer):
+                        configDict["CXX_CUDA"] = configDict["CXX"]+cxxCudaVer
+                        print(green("%s detected! Using it to compile CUDA related code.\n"
+                                    % configDict["CXX_CUDA"]))
+                        break
+                if configDict["CXX_CUDA"] == '':
                     print(red("No alternative found. Skipping CUDA compilation.\n"
-                              "If an alternative exists, please set 'CXX_CUDA' in 'xmipp.conf' to point to there."))
+                              "If an alternative exists, please set 'CXX_CUDA' "
+                              "in 'xmipp.conf' to point to there."))
                     configDict["CUDA"] = "False"
                     return
-                print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
             else:
                 configDict["CXX_CUDA"] = configDict["CXX"]
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
@@ -1251,7 +1257,7 @@ def usage(msg=''):
           "                                   uploads the .tgz according to the <login>. \n"
           "                                   Note that login=usr@server must have write permisions to Nolan machine.\n"
           "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
-          "                                   <mode> can be 'Sources' or 'Binaries, when Sources put a branch (default: master).'\n"
+          "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
           "                                   <ver> usually X.YY.MM\n"
           )
 

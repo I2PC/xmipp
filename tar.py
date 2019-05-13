@@ -34,7 +34,7 @@ def usage(error=''):
     print("\n"
           "    %s"
           "\n"
-          "    Usage: python tar.py <mode> <version> [branch]\n"
+          "    Usage: python tar.py <mode> <v=version> [br=branch]\n"
           "\n"
           "             mode: Binaries: Just the binaries. \n"
           "                   Sources: Just the source code.\n"
@@ -66,9 +66,14 @@ def run(label, version, branch):
         os.chdir(cwd)
 
     excludeTgz = ''
-    if label == 'Binaries':
+    if label.startswith('Bin'):
         print("Recompiling to make sure that last version is there...")
-        target = 'xmippBin-'+version
+        if label.endswith('Debian'):
+            target = 'xmippBin_Debian-'+version
+        elif label.endswith('Centos'):
+            target = 'xmippBin_Centos-'+version
+        else:
+            raise Exception("mode not recognized. Choose: Sources, BinCentos or BinDebian.")
         try:
             # doing compilation and install separately to skip overwriting config
             os.system("./xmipp compile 4")
@@ -83,6 +88,7 @@ def run(label, version, branch):
                   % checkFile)
             sys.exit(1)
         os.system("cp xmipp.conf %s/xmipp.conf" % target)
+        os.system("touch %s/v%s" % (target, version))
         excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' " \
                      "--exclude='*.java' --exclude='resources/test' " \
                      "--exclude='*xmipp_test*main'"
