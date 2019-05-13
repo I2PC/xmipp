@@ -15,6 +15,11 @@ def cleanOneMic(micFname, inputCoordsFname, outCoordsFname, predictedMaskFname, 
   global MASK_PREDICTOR_HANDLER
   with LOCK:
     if MASK_PREDICTOR_HANDLER is None:
+      if gpus is None or "-1" in gpus:
+        gpus=None
+      else:
+        gpus= [ int(num.strip()) for num in gpus.split(",") ]
+        
       MASK_PREDICTOR_HANDLER= MaskPredictor(deepLearningModel, boxSize, gpus)
       
   maskPredictor= MASK_PREDICTOR_HANDLER

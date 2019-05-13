@@ -23,7 +23,7 @@ def selectGpus(gpusStr):
   if gpusStr == '':
       os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
   else:
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(gpusStr)
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(gpusStr).replace(" ", "")
                                          
 def getFilesInPath(pathsList, extensions):
   if pathsList is None:
@@ -127,12 +127,13 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
                       help='(optional) micrograph downsampling factor to scale coordinates, Default no scaling')
                       
   parser.add_argument('--deepThr', type=getRestricetedFloat(), nargs='?', default=None, required=False,
-                      help='(optional) deep learning threshold to rule out a coordinate. The bigger the more coordiantes'+
-                           'will be rule out. Ranges 0..1. Recommended 0.5')
+                      help='(optional) deep learning threshold to rule out coordinates (coord_score<=deepThr-->accepted). '+
+                           'The smaller the treshold '+
+                           'the more coordinates will be ruled out. Ranges 0..1. Recommended 0.3')
                            
   parser.add_argument('--sizeThr', type=getRestricetedFloat(0,1.), nargs='?', default=0.8, required=False,
                       help='Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
-                           '. Ranges 0..1. Default 0.8')
+                           'Ranges 0..1. Default 0.8')
                            
   parser.add_argument('--predictedMaskDir', type=str, nargs='?', required=False,
                       help='directory to store the predicted masks. If a given mask already existed, it will be used instead'+
@@ -188,10 +189,14 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
   if args["outputCoordsDir"] is None and args["inputCoordsDir"] is not None:
     raise Exception("Error, if outputCoordsDir provided, then inputCoordsDir must also be provided")
     parser.print_help()
+
+  if "-1" in args["gpus"]:
+    args["gpus"]=""
   return args
 
 def commanLineFun():
   main( ** parseArgs() )
+
 if __name__=="__main__":
   '''
 LD_LIBRARY_PATH=/home/rsanchez/app/cuda-9.0/lib64:$LD_LIBRARY_PATH

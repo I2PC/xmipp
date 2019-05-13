@@ -27,18 +27,25 @@
 
 import sys, os
 import xmipp_base
-import xmippLib
-import traceback
 from xmipp3 import Plugin
 import pyworkflow.em.metadata as md
-try:
-  from xmippPyModules.carbon_cleaner_em.cleanMics import main
-except ImportError as e:
-  print(e)
-  raise ValueError(BAD_IMPORT_MSG)
+
+BAD_IMPORT_MSG='''
+Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
+If gpu version of tensorflow desired, install cuda 8.0 or cuda 9.0
+We will try to automatically install cudnn, if unsucesfully, install cudnn and add to LD_LIBRARY_PATH
+add to SCIPION_DIR/config/scipion.conf
+CUDA = True
+CUDA_VERSION = 8.0  or 9.0
+CUDA_HOME = /path/to/cuda-%(CUDA_VERSION)
+CUDA_BIN = %(CUDA_HOME)s/bin
+CUDA_LIB = %(CUDA_HOME)s/lib64
+CUDNN_VERSION = 6 or 7
+'''
 
 class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
     def __init__(self):
+
         xmipp_base.XmippScript.__init__(self)
         
     def defineParams(self):
@@ -54,8 +61,8 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
         self.addParamsLine(' [ -d <deepLearningModel> ]  : (optional) deep learning model filename. If not provided, default model will be used')
         self.addParamsLine('-b <boxSize>     : particles box size in pixels')
         self.addParamsLine('-s <downFactor>   <F=1>   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
-        self.addParamsLine(' [ --deepThr <deepThr> ]: (optional) deep learning threshold to rule out a coordinate. The bigger the more coordiantes'+
-                           'will be rule out. Ranges 0..1. Recommended 0.5')
+        self.addParamsLine(' [ --deepThr <deepThr> ]: (optional) deep learning threshold to rule out a coordinate. The smaller the treshold '+
+                           'the more coordiantes will be rule out. Ranges 0..1. Recommended 0.75')
         self.addParamsLine(' [--sizeThr <sizeThr> <F=0.8> ]: Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
                            '. Ranges 0..1. Default 0.8')
         self.addParamsLine('[ --predictedMaskDir <predictedMaskDir> ] : directory to store the predicted masks. If a given mask already existed, it will be used instead'+
@@ -68,6 +75,15 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
     def run(self):
 
         args={}
+        gpusToUse="0"
+        if self.checkParam('-g'):
+          gpusToUse= self.getParam('-g')
+          if "None" in gpusToUse or "-1" in gpusToUse:
+            gpusToUse=None
+        args["gpus"]=gpusToUse
+
+        updateEnviron(gpusToUse); sys.stdout.flush()
+        
         if not self.checkParam('-i'):
           raise Exception("Error, input micrographs fnames are requried as argument")
         else:
@@ -120,17 +136,20 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
         if args["outputCoordsDir"] is None and args["inputCoordsDir"] is not None:
           raise Exception("Error, if outputCoordsDir provided, then inputCoordsDir must also be provided")
     
-        gpusToUse="0"
-        if self.checkParam('-g'):
-          gpusToUse= self.getParam('-g')
-          
+
         if self.checkParam('-d'):
           args["deepLearningModel"]= self.getParam('-d')
         else:
           args["deepLearningModel"]=Plugin.getModel('deepCarbonCleaner', 'defaultModel.keras')
           
-        updateEnviron(gpusToUse)
+
         print(args)
+        
+        try:
+          from xmippPyModules.carbon_cleaner_em.cleanMics import main
+        except ImportError as e:
+          print(e)
+          raise ValueError(BAD_IMPORT_MSG)
         main(** args)
  
 
