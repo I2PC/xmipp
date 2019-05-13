@@ -24,9 +24,10 @@
  ***************************************************************************/
 
 #include <cuda_runtime_api.h>
-#include "reconstruction_cuda/cuda_utils.h" // cannot be in header as it includes cuda headers
+#include "reconstruction_cuda/cuda_asserts.h" // cannot be in header as it includes cuda headers
 #include "cuda_gpu_reconstruct_fourier.h"
 #include "reconstruction_cuda/cuda_basic_math.h"
+#include "gpu.h"
 
 #if SHARED_BLOB_TABLE
 __shared__ float BLOB_TABLE[BLOB_TABLE_SIZE_SQRT];
@@ -1059,21 +1060,21 @@ void deleteStreams(int count) {
 
 
 void pinMemory(RecFourierBufferData* buffer) {
-	hostRegister(buffer->CTFs, buffer->getMaxByteSize(buffer->CTFs));
-	hostRegister(buffer->FFTs, buffer->getMaxByteSize(buffer->FFTs));
-	hostRegister(buffer->paddedImages, buffer->getMaxByteSize(buffer->paddedImages));
-	hostRegister(buffer->modulators, buffer->getMaxByteSize(buffer->modulators));
-	hostRegister(buffer->spaces, buffer->getMaxByteSize(buffer->spaces));
-	hostRegister(buffer, sizeof(*buffer));
+	GPU::pinMemory(buffer->CTFs, buffer->getMaxByteSize(buffer->CTFs));
+	GPU::pinMemory(buffer->FFTs, buffer->getMaxByteSize(buffer->FFTs));
+	GPU::pinMemory(buffer->paddedImages, buffer->getMaxByteSize(buffer->paddedImages));
+	GPU::pinMemory(buffer->modulators, buffer->getMaxByteSize(buffer->modulators));
+	GPU::pinMemory(buffer->spaces, buffer->getMaxByteSize(buffer->spaces));
+	GPU::pinMemory(buffer, sizeof(*buffer));
 }
 
 void unpinMemory(RecFourierBufferData* buffer) {
-	hostUnregister(buffer->CTFs);
-	hostUnregister(buffer->FFTs);
-	hostUnregister(buffer->paddedImages);
-	hostUnregister(buffer->modulators);
-	hostUnregister(buffer->spaces);
-	hostUnregister(buffer);
+    GPU::unpinMemory(buffer->CTFs);
+    GPU::unpinMemory(buffer->FFTs);
+    GPU::unpinMemory(buffer->paddedImages);
+    GPU::unpinMemory(buffer->modulators);
+    GPU::unpinMemory(buffer->spaces);
+    GPU::unpinMemory(buffer);
 }
 
 

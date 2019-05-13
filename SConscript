@@ -141,7 +141,7 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7'])
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7', 'fftw3f', 'fftw3f_threads'])
 
 
 # FRM library
@@ -169,7 +169,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff', 'fftw3f', 'fftw3f_threads']
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -250,7 +250,7 @@ addLib('xmippLib.so',
        dirs=['bindings'],
        patterns=['python/*.cpp'],
        incs=python_incdirs,
-       libs=['python2.7', 'XmippCore', 'Xmipp'],
+       libs=['python2.7', 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')
        
 #  ***********************************************************************

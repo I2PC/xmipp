@@ -740,7 +740,7 @@ def configCuda(configDict):
                     configDict["CUDA"] = "False"
                     return
             else:
-                configDict["CXX_CUDA"] = configDict["CXX"]
+                configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                            "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
         if configDict["NVCC_LINKFLAGS"]=="":

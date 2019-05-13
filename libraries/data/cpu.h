@@ -23,35 +23,33 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
+#ifndef LIBRARIES_DATA_CPU_H_
+#define LIBRARIES_DATA_CPU_H_
 
-#include <string>
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
+#include <thread>
+#include <unistd.h>
+#include "hw.h"
 
-class GPU {
+class CPU : public HW {
 public:
-    explicit GPU(size_t device) :
-        m_device(device), m_UUID(getUUID(device)),
-        m_lastFreeMem(getFreeMem(device)) {};
+    CPU(unsigned cores=1) : HW(cores) {}
 
-    size_t device() const { return m_device; };
-    std::string UUID() const { return m_UUID; };
-    size_t lastFreeMem() const { return m_lastFreeMem; };
-
-    /**
-     * Method checks currently available free GPU memory
-     * Obtained value is stored in this instance
-     */
-    size_t checkFreeMem() {
-        m_lastFreeMem = getFreeMem(m_device);
-        return m_lastFreeMem;
+    static unsigned findCores() {
+        return std::max(std::thread::hardware_concurrency(), 1u);
     }
 
+    void synch() const {}; // nothing to do
+    void synchAll() const {}; // nothing to do
+
+    void updateMemoryInfo();
+
+protected:
+    void obtainUUID();
+
 private:
-    const size_t m_device;
-    const std::string m_UUID;
-    size_t m_lastFreeMem;
+    void native_cpuid(unsigned int *eax, unsigned int *ebx,
+            unsigned int *ecx, unsigned int *edx);
 };
 
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */
+
+#endif /* LIBRARIES_DATA_CPU_H_ */

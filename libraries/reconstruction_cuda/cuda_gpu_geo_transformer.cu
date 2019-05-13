@@ -1,6 +1,8 @@
 #include "core/xmipp_macros.h"
 #include "assert.h"
 
+#include "cuda_gpu_multidim_array.cu"
+
 template<typename T, int degree, bool wrap>
 __global__
 void applyGeometryKernel_2D_wrap(const T* trInv, T minxpp, T maxxpp, T minypp,
