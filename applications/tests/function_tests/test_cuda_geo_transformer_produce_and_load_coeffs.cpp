@@ -38,10 +38,10 @@ public:
     void run_test() {
         cpu_reference( in.get(), out.get(), x, y );
 
-        MultidimArray< T > tmpIn( y, x );
-        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY( tmpIn ) {
-            DIRECT_MULTIDIM_ELEM( tmpIn, n ) = in[n];
-        }
+        MultidimArray< T > tmpIn;
+        tmpIn.setYdim(y);
+        tmpIn.setXdim(x);
+        tmpIn.data = in.release();
 
         GeoTransformerTest< T > gt;
         gt.initLazyForBSpline( x, y, 1, 1, 1, 1 );
