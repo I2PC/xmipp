@@ -33,11 +33,4 @@ def filterCoords( inputCoords, predictedMask, boxSize, deepThr, sizeThr):
     filteredCoords= inputCoords
   filteredCoords= filteredCoords.assign(goodRegionScore=1-np.array(scores))
   return filteredCoords
-
-
-
-# TODO: Assignar valores a la columna usando el setValue(xmippLib.MDL_GOOD_REGION_SCORE, value)
-# metadataPosList, metadataNegList = predictDataManager.getMetadata(None)
-# for score, (isPositive, mdId, dataSetNumber) in zip(y_pred, label_Id_dataSetNumIterator):
-#   if isPositive == True:
-#     metadataPosList[dataSetNumber].setValue(xmippLib.MDL_ZSCORE_DEEPLEARNING1, score, mdId)
+  
