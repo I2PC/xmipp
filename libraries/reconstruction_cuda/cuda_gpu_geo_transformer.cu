@@ -187,7 +187,7 @@ void getShiftMorePixels(int lX, int lY, int lN, int x,
 
 __device__
 bool isEdge(int x, int y, int xdim, int ydim, int edge_dist = 32) {
-    return x < edge_dist || x >= xdim - edge_dist || y < edge_dist || y >= ydim - edge_dist;
+    return (x < edge_dist) || (x >= xdim - edge_dist) || (y < edge_dist) || (y >= ydim - edge_dist);
 }
 
 /*
