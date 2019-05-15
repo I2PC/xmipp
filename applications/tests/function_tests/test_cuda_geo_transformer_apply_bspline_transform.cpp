@@ -7,19 +7,14 @@
 template< typename T >
 class GeoTransformerTest : public GeoTransformer< T > {
 public:
-
-    void applyBSplineTransformTest(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T> &input,
-        const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
-        GeoTransformer< T >::applyBSplineTransformRef(splineDegree, output, input, coeffs, imageIdx, outside);
-    }
+    using GeoTransformer< T >::applyBSplineTransformRef;
 };
 
 template< typename T >
 class GeoTransformerApplyBSplineTransformTest : public ::testing::Test {
 public:
-    void compare_results( double* true_values, double* approx_values, size_t size ) {
-        for ( int i = 0; i < size; ++i ) {
+    void compare_results( double* true_values, double* approx_values ) {
+        for ( int i = 0; i < y * x; ++i ) {
             ASSERT_NEAR( true_values[i], approx_values[i], 1e-12 ) << "at index:" << i;
         }
     }
@@ -29,15 +24,13 @@ public:
      * from reference values, therefore I test it for lower precision with floats
      * If tested with double values we require high precision
     */
-    void compare_results( float* true_values, float* approx_values, size_t size ) {
-        for ( int i = 0; i < size; ++i ) {
+    void compare_results( float* true_values, float* approx_values ) {
+        for ( int i = 0; i < y * x; ++i ) {
             ASSERT_NEAR( true_values[i], approx_values[i], 1e-3f ) << "at index:" << i;
         }
     }
 
     void allocate_arrays() {
-        size = x * y;
-
         in.resize( y, x );
         out.resize( y, x );
         out_ref.resize( y, x );
@@ -55,7 +48,7 @@ public:
     void compute_reference_result() {
         GeoTransformerTest< T > gt;
         gt.initLazyForBSpline( x, y, 1, splineX, splineY, splineN );
-        gt.applyBSplineTransformTest( 3, out_ref, in, { coeffsX, coeffsY }, imageIdx, outside );
+        gt.applyBSplineTransformRef( 3, out_ref, in, { coeffsX, coeffsY }, imageIdx, outside );
     }
 
     std::pair< size_t, size_t > random_size( int seed ) {
@@ -86,7 +79,6 @@ public:
 
     size_t x;
     size_t y;
-    size_t size;
     size_t splineX = 1;
     size_t splineY = 1;
     size_t splineN = 1;
@@ -113,7 +105,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, ZeroStaysZero) {
 
     this->run_transformation();
 
-    this->compare_results( this->in.data, this->out.data, this->size );
+    this->compare_results( this->in.data, this->out.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, NoChangeIfCoeffsAreZeroWithZeroCoeffs) {
@@ -125,7 +117,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, NoChangeIfCoeffsAreZeroWit
 
     this->run_transformation();
 
-    this->compare_results( this->in.data, this->out.data, this->size );
+    this->compare_results( this->in.data, this->out.data );
 
 }
 
@@ -142,7 +134,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, ZeroInputWithNonzeroCoeffs
 
     this->run_transformation();
 
-    this->compare_results( this->in.data, this->out.data, this->size );
+    this->compare_results( this->in.data, this->out.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroCoeffs) {
@@ -159,7 +151,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroCoef
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroDifferentDimCoeffs) {
@@ -176,7 +168,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, RandomInputWithNonzeroDiff
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, EvenButNotPaddedInput) {
@@ -193,7 +185,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, EvenButNotPaddedInput) {
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, OddEvenSizedInput) {
@@ -210,7 +202,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, OddEvenSizedInput) {
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, EvenOddSizedInput) {
@@ -227,7 +219,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, EvenOddSizedInput) {
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSize4K) {
@@ -244,7 +236,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSize4K) {
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSizeInOneDimension) {
@@ -261,7 +253,7 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSizeInOneDimension) 
     this->run_transformation();
     this->compute_reference_result();
 
-    this->compare_results( this->out.data, this->out_ref.data, this->size );
+    this->compare_results( this->out.data, this->out_ref.data );
 }
 
 REGISTER_TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest,
