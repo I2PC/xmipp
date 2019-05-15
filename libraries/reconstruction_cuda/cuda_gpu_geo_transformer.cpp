@@ -414,12 +414,4 @@ std::unique_ptr<T[]> GeoTransformer<T>::copy_out_d_in(size_t size) const {
     }
 
 template class GeoTransformer<float>;
-<<<<<<< HEAD
-<<<<<<< HEAD
-// template class GeoTransformer<double>;
-=======
 template class GeoTransformer<double>;
->>>>>>> Changing copy_out_d_in to protected from public, adding explicit instantiation of GeoTransformer<double>
-=======
-template class GeoTransformer<double>;
->>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9

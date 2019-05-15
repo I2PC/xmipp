@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-#include "cuda_utils.h"
-=======
+// #include "cuda_utils.h"
 #include "cuda_asserts.h"
->>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9
 
 namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels {
 
@@ -302,8 +299,5 @@ void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(float* input,
 void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(double* input,
                 int xDim, int yDim) {
     iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9
+
