@@ -68,6 +68,7 @@ public:
         }
     }
 
+<<<<<<< HEAD
     void cpu_reference(const float *in, float *out, int x, int y) {
         const float gain = 6.0f;
         const float z = sqrtf(3.f) - 2.f;
@@ -76,6 +77,16 @@ public:
         // process lines
         for (int line = 0; line < y; line++) {
             float* myLine = out + (line * x);
+=======
+    void cpu_reference(const T *in, T *out, int x, int y) {
+        const T gain = 6.0;
+        const T z = sqrt(3.0) - 2.0;
+        T z1;
+
+        // process lines
+        for (int line = 0; line < y; line++) {
+            T* myLine = out + (line * x);
+>>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9
 
             // copy input data
             for (int i = 0; i < x; i++) {
@@ -83,6 +94,7 @@ public:
             }
 
             // compute 'sum'
+<<<<<<< HEAD
             float sum = (myLine[0] + powf(z, x)
                 * myLine[x - 1]) * (1.f + z) / z;
             z1 = z;
@@ -158,6 +170,13 @@ public:
             z1 = z;
             double z2 = pow(z, 2 * x - 2);
             double iz = 1.0 / z;
+=======
+            T sum = (myLine[0] + pow(z, x)
+                * myLine[x - 1]) * (1.0 + z) / z;
+            z1 = z;
+            T z2 = pow(z, 2 * x - 2);
+            T iz = 1.0 / z;
+>>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9
             for (int j = 1; j < (x - 1); ++j) {
                 sum += (z2 + z1) * myLine[j];
                 z1 *= z;
@@ -177,7 +196,11 @@ public:
 
         // process columns
         for (int col = 0; col < x; col++) {
+<<<<<<< HEAD
             double* myCol = out + col;
+=======
+            T* myCol = out + col;
+>>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9
 
             // multiply by gain (input data are already copied)
             for (int i = 0; i < y; i++) {
@@ -185,11 +208,19 @@ public:
             }
 
             // compute 'sum'
+<<<<<<< HEAD
             double sum = (myCol[0*x] + pow(z, y)
                 * myCol[(y - 1)*x]) * (1.0 + z) / z;
             z1 = z;
             double z2 = powf(z, 2 * y - 2);
             double iz = 1.0 / z;
+=======
+            T sum = (myCol[0*x] + pow(z, y)
+                * myCol[(y - 1)*x]) * (1.0 + z) / z;
+            z1 = z;
+            T z2 = pow(z, 2 * y - 2);
+            T iz = 1.0 / z;
+>>>>>>> 6ec84358312ac31594df75206f424ba2fb1b81b9
             for (int j = 1; j < (y - 1); ++j) {
                 sum += (z2 + z1) * myCol[j*x];
                 z1 *= z;
