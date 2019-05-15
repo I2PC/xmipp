@@ -138,8 +138,7 @@ __device__
 void getShiftMorePixels(int lX, int lY, int lN, int x,
         int y, T* shiftY, T* shiftX, const T* coefsX,
         const T* coefsY, T hX, T hY, T tPos) {
-
-    T imax = 1 / 0.666666; // 1 / (maximum value of bspline03)
+    T imax = 1.5; // inverted maximum value of bspline03 function
 
     T delta = 0.0001;
     T deltaX = delta * imax;  //0.00015000015
@@ -171,7 +170,6 @@ void getShiftMorePixels(int lX, int lY, int lN, int x,
             for (int i = 0; i < PIXELS_PER_THREAD; ++i) {
                 T yPos = (y + i) / hY;
                 int yEnd = min((int) (yPos) + 2, lY - 2);
-                #pragma unroll
                 for (int idxY = (int) (yPos) - 1; idxY <= yEnd; ++idxY) {
                     T tmp = bspline03(yPos - idxY) * tmpX;
 
