@@ -231,14 +231,14 @@ void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
                 T x_shifted = x - shiftX[i];
                 T y_shifted = y - shiftY[i];
                 T res;
-                if ( isEdge( x_shifted, y_shifted, xdim, ydim, 32 ) ) {
-                    res = interpolatedElementBSpline2D_Degree3MorePixels< T, true >(x_shifted, y_shifted + i, xdim,
-                                ydim, input);
-                    res = interpolatedElementBSpline2D_Degree3( x_shifted, y_shifted + i, xdim, ydim, input );
-                } else {
-                    res = interpolatedElementBSpline2D_Degree3MorePixels< T, false >(x_shifted, y_shifted + i, xdim,
-                                ydim, input);
-                }
+                // if ( isEdge( x_shifted, y_shifted, xdim, ydim, 32 ) ) {
+                //     res = interpolatedElementBSpline2D_Degree3MorePixels< T, true >(x_shifted, y_shifted + i, xdim,
+                //                 ydim, input);
+                // } else {
+                //     res = interpolatedElementBSpline2D_Degree3MorePixels< T, false >(x_shifted, y_shifted + i, xdim,
+                //                 ydim, input);
+                // }
+                res = interpolatedElementBSpline2D_Degree3( x_shifted, y_shifted + i, xdim, ydim, input );
                 size_t index = (y + i) * xdim + x;
                 output[index] = res;
             }
