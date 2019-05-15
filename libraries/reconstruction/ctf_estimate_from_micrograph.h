@@ -31,6 +31,7 @@
 #include "ctf_estimate_from_psd_fast.h"
 #include "ctf_estimate_psd_with_arma.h"
 #include "ctf_estimate_from_psd_base.h"
+#include <data/basic_pca.h>
 
 /**@defgroup AssignCTF ctf_estimate_from_micrograph (CTF estimation from a micrograph)
    @ingroup ReconsLibrary
@@ -96,6 +97,35 @@ public:
 
     /// Process the whole thing
     void run();
+
+private:
+    void estimateCTFParams(
+            FileName &fn_psd,
+            PCAMahalanobisAnalyzer &pcaAnalyzer,
+            size_t Xdim, size_t Ydim,
+            const MultidimArray<double> &mpsd_std,
+            const MultidimArray<double> &mpsd_avg,
+            Image<double> &psd_std);
+    void assignCTFToParticle(const MultidimArray<double> &defocusPlanefittingU,
+            const MultidimArray<double> &Xm, const MultidimArray<double> &Ym,
+            const MultidimArray<double> &defocusPlanefittingV, size_t Xdim,
+            size_t Ydim, int div_NumberX, const FileName &fn_psd,
+            MetaData &posFile);
+    void computeTheoreticalModel(int N, const FileName &fn_psd,
+            const MDIterator &iterPosFile, size_t piecej, size_t piecei,
+            int blocki, int blockj,
+            const MultidimArray<double> &defocusPlanefittingU,
+            const MultidimArray<double> &efocusPlanefittingV,
+            const MultidimArray<double> &Xm, const MultidimArray<double> &Ym,
+            Image<double> &psd, MetaData &posFile);
+    void performAveraging(int &actualDiv_Number,
+            MultidimArray<double> &mpsd,
+            Image<double> &psd2,
+            Image<double> &psd_avg,
+            Image<double> &psd_std,
+            MultidimArray<int> &PCAmask,
+            MultidimArray<float> &PCAv,
+            PCAMahalanobisAnalyzer &pcaAnalyzer);
 };
 
 /** Fast estimate enhanced PSD.
