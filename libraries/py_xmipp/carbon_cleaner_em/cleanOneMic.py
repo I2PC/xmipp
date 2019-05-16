@@ -7,20 +7,17 @@ LOCK = Lock()
 MASK_PREDICTOR_HANDLER=None
 
 def cleanOneMic(micFname, inputCoordsFname, outCoordsFname, predictedMaskFname, deepLearningModel, boxSize,
-                downFactor=1, deepThr=0.5, sizeThr=0.8, gpus="0"):
+                downFactor=1, deepThr=0.5, sizeThr=0.8, gpus=[0]):
   from .filesManager import loadMic, loadCoords, writeMic, writeCoords
   from .predictMask import MaskPredictor, normalizeImg
   from .filterCoords import filterCoords
 
+  boxSizeInDownMic= boxSize/downFactor
+  
   global MASK_PREDICTOR_HANDLER
   with LOCK:
     if MASK_PREDICTOR_HANDLER is None:
-      if gpus is None or "-1" in gpus:
-        gpus=None
-      else:
-        gpus= [ int(num.strip()) for num in gpus.split(",") ]
-        
-      MASK_PREDICTOR_HANDLER= MaskPredictor(deepLearningModel, boxSize, gpus)
+      MASK_PREDICTOR_HANDLER= MaskPredictor(deepLearningModel, boxSizeInDownMic, gpus)
       
   maskPredictor= MASK_PREDICTOR_HANDLER
 
@@ -35,10 +32,10 @@ def cleanOneMic(micFname, inputCoordsFname, outCoordsFname, predictedMaskFname, 
       writeMic(predictedMaskFname, predictedMask)
   
   if inputCoordsFname is not None:
-    downFactor= float(internalDownFactor* downFactor)
-    boxSize= boxSize/downFactor
-    inputCoords= loadCoords(inputCoordsFname, downFactor)
-    filteredCoords= filterCoords( inputCoords, predictedMask, boxSize, deepThr, sizeThr)
-
-    writeCoords(outCoordsFname, filteredCoords, downFactor)
+    downFactorCombined= float(internalDownFactor* downFactor)
+    inputCoords= loadCoords(inputCoordsFname, downFactorCombined)
+    if deepThr is not None:
+      deepThr= None if deepThr<=0 else deepThr
+    filteredCoords= filterCoords( inputCoords, predictedMask, deepThr, sizeThr)
+    writeCoords(outCoordsFname, filteredCoords, internalDownFactor)
 

@@ -7,7 +7,6 @@ warnings.filterwarnings("ignore","Cannot provide views on a non-contiguous")
 
 try:
   #Import xmipp libraries to read/write files
-  print("Trying to use xmipp libraries")
   import xmippLib
   def loadMic(fname):
     I= xmippLib.Image()      
@@ -21,7 +20,6 @@ try:
      
 except ImportError:
   #Import default libraries to read/write files  
-  print("Not found. Using default libraries instead")
   import mrcfile
   from skimage.io import imsave, imread
 
@@ -63,7 +61,14 @@ def loadCoordsPandas(fname):
     coords.columns= ["xcoor", "ycoord"]+["c%d"%i for i in range(coords.shape[1]-2)]
   return coords
   
-def loadCoordsPos(fname):
+
+def parseStr(i):
+  try:
+    return int(i)
+  except ValueError:
+    return float(i)
+    
+def loadCoordsPos_Star(fname):
   newSectionCounter=-1
   coordsColumns=[None, None]
   dataHeader=[]
@@ -75,19 +80,21 @@ def loadCoordsPos(fname):
         dataHeader=[]
       elif newSectionCounter>=0:
         splitLine= line.split()
-        if len(splitLine)>=2 and splitLine[0].isdigit():
-          coords.append( [ float(elem) for elem in splitLine] )
+        if len(splitLine)==0:
+          continue
+        elif len(splitLine)>=2 and splitLine[0][0].isdigit():
+          coords.append( [ parseStr(elem) for elem in splitLine] )
         else:
           dataHeader.append(line.strip().strip("_"))      
         newSectionCounter+=1
-  assert "ycoor" in dataHeader or "y" in dataHeader, "Error, input format not understood for %s"%(fname)
+  assert "ycoor" in dataHeader or "y" in dataHeader or "rlnCoordinateY #2" in dataHeader, "Error, input format not understood for %s"%(fname)
   coords= pd.DataFrame(coords)
   coords.columns= dataHeader
   return coords
   
 def loadCoords(fname, downFactor):
-  if fname.endswith(".pos"):
-    coordsDf= loadCoordsPos(fname)
+  if fname.endswith(".pos") or fname.endswith(".star"):
+    coordsDf= loadCoordsPos_Star(fname)
   else:
     coordsDf= loadCoordsPandas(fname)
   if downFactor!=1:
@@ -101,10 +108,12 @@ def writeCoords(fname, coordsDf, upFactor):
   if upFactor!=1:
     coordsColNames= getCoordsColNames(coordsDf)
     coordsDf[coordsColNames]*=upFactor
-    coordsDf[coordsColNames]= coordsDf[coordsColNames].round().astype(int)
 
   if fname.endswith(".pos"):
-    writeCoordsPos(fname,  coordsDf)
+    coordsDf[coordsColNames]= coordsDf[coordsColNames].round().astype(int)
+    writeCoordsPos_Star(fname,  coordsDf, xmipp_instead_relion=True  )
+  elif fname.endswith(".star"):
+    writeCoordsPos_Star(fname,  coordsDf, xmipp_instead_relion=False  )
   else:
     writeCoordsPandas(fname,  coordsDf)
   return coordsDf
@@ -114,9 +123,9 @@ def writeCoordsPandas(fname,  coordsDf):
 
 
 
-def writeCoordsPos(fname, coordsDf):
+def writeCoordsPos_Star(fname, coordsDf, xmipp_instead_relion=True):
 
-  s = """# XMIPP_STAR_1 *
+  xmipp_header = """# XMIPP_STAR_1 *
 #
 data_header
 loop_
@@ -125,17 +134,31 @@ Auto
 data_particles
 loop_
 """
+
+  relion_header = """# RELION; version 3.0-beta-2
+
+data_
+
+loop_
+"""
+  if xmipp_instead_relion:
+    s= xmipp_header
+    pattern= "\t%s"
+  else:
+    s= relion_header
+    pattern= "%13s"
   template=""
   colNames= list(coordsDf.columns)
   for colName in colNames:
     s+="_"+str(colName)+"\n"
-    template+="\t%s"
+    template+=pattern
   template+="\n"
   if coordsDf.shape[0]>0:
     with open(fname, "w") as f:
       f.write(s)
       for row in coordsDf.itertuples():
-        f.write(template%tuple(row)[1:] )
+        row= [ "%4.6f"%y if isinstance(y, float) else y for y in row[1:]  ]
+        f.write(template%tuple(row) )
         
 def getCoordsColNames(coordsDf):
   if"xcoor" in coordsDf:
@@ -144,4 +167,9 @@ def getCoordsColNames(coordsDf):
     return ["x","y"]
   else:
     return coordsDf.columns[:2]
-      
+
+
+if __name__=="__main__":
+  coords= loadCoords("/home/rsanchez/tmp/20170629_00021_frameImage_aligned_mic_autopick.star", 1)
+  print( coords.head())
+  writeCoords("/home/rsanchez/tmp/new_20170629_00021_frameImage_aligned_mic_autopick.star", coords, 1)

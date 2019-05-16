@@ -60,7 +60,7 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
         self.addParamsLine(' [ -o <outputCoordsDir> ] : output coordinates directory.')
         self.addParamsLine(' [ -d <deepLearningModel> ]  : (optional) deep learning model filename. If not provided, default model will be used')
         self.addParamsLine('-b <boxSize>     : particles box size in pixels')
-        self.addParamsLine('-s <downFactor>   <F=1>   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
+        self.addParamsLine('-s <downFactor>   <F=1.0>   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
         self.addParamsLine(' [ --deepThr <deepThr> ]: (optional) deep learning threshold to rule out a coordinate. The smaller the treshold '+
                            'the more coordiantes will be rule out. Ranges 0..1. Recommended 0.75')
         self.addParamsLine(' [--sizeThr <sizeThr> <F=0.8> ]: Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
@@ -108,7 +108,7 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
         if self.checkParam('-s'):
           args["downFactor"]= self.getDoubleParam('-s')
         else:
-          args["downFactor"]= 1
+          args["downFactor"]= 1.0
 
         if self.checkParam('--deepThr'):
           thr= self.getDoubleParam('--deepThr')
