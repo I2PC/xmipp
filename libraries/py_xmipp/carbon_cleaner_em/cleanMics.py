@@ -1,6 +1,9 @@
 from __future__ import absolute_import, division, print_function
 import sys, os
 import glob
+os.environ['OPENBLAS_NUM_THREADS']="4"
+os.environ['MKL_NUM_THREADS']="4"
+os.environ['OMP_NUM_THREADS']="4"
 from joblib import Parallel, delayed
 
 DOWNLOAD_MODEL_URL="http://campins.cnb.csic.es/carbon_cleaner/defaultModel.keras.gz"
@@ -8,23 +11,27 @@ DEFAULT_MODEL_PATH=os.path.expanduser("~/.local/share/carbon_cleaner_em/models/"
 def main(inputMicsPath, inputCoordsDir, outputCoordsDir, deepLearningModel, boxSize, downFactor, deepThr,
          sizeThr, predictedMaskDir, gpus="0"):
 
-  selectGpus(gpus)
+  gpus, n_jobs= selectGpus(gpus)
   micsFnames=getFilesInPath(inputMicsPath, ["mrc", "tif"])
   inputCoordsFnames=getFilesInPath(inputCoordsDir, ["txt", "tab", "pos"])
   coordsExtension= inputCoordsFnames[0].split(".")[-1] if inputCoordsFnames is not None else None
   matchingFnames= getMatchingFiles(micsFnames, inputCoordsDir, outputCoordsDir, predictedMaskDir, coordsExtension)
   assert len(matchingFnames)>0, "Error, there are no matching coordinate-micrograph files"
   from .cleanOneMic import cleanOneMic
-  Parallel(n_jobs=1)( delayed(cleanOneMic)( * multipleNames+( deepLearningModel, 
-                                              boxSize, downFactor, deepThr,sizeThr, gpus) )
-                                          for multipleNames in matchingFnames.values() )
+  
+  Parallel(n_jobs= n_jobs)( delayed(cleanOneMic)( * multipleNames+( deepLearningModel, 
+                                              boxSize, downFactor, deepThr,sizeThr, [gpus[i%n_jobs]]) )
+                                            for i, multipleNames in enumerate(sorted(matchingFnames.values() ) ))
 def selectGpus(gpusStr):
   print("updating environ to select gpus %s" % (gpusStr))
-  if gpusStr == '':
+  if gpusStr == '' or gpusStr is None or gpusStr=='-1':
       os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+      return [None], 1
   else:
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpusStr).replace(" ", "")
-                                         
+    gpus= [ int(num.strip()) for num in gpusStr.split(",") ]
+    return gpus, len(gpus)
+    
 def getFilesInPath(pathsList, extensions):
   if pathsList is None:
     return None
@@ -129,7 +136,7 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
   parser.add_argument('--deepThr', type=getRestricetedFloat(), nargs='?', default=None, required=False,
                       help='(optional) deep learning threshold to rule out coordinates (coord_score<=deepThr-->accepted). '+
                            'The smaller the treshold '+
-                           'the more coordinates will be ruled out. Ranges 0..1. Recommended 0.3')
+                           'the more coordinates will be ruled out. Ranges 0..1. Recommended 0.25')
                            
   parser.add_argument('--sizeThr', type=getRestricetedFloat(0,1.), nargs='?', default=0.8, required=False,
                       help='Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
@@ -191,7 +198,7 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
     parser.print_help()
 
   if "-1" in args["gpus"]:
-    args["gpus"]=""
+    args["gpus"]=None
   return args
 
 def commanLineFun():
