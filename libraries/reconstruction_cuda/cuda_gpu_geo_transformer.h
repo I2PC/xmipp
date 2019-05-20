@@ -218,8 +218,7 @@ protected:
      * @param splineDegree to be used
      * @param input image used to generate the coefficients
      */
-    template<typename T_IN>
-    void produceAndLoadCoeffs(const MultidimArray<T_IN> &input);
+    void produceAndLoadCoeffs(const MultidimArray<T> &input);
 
     /*
     * Creates a copy of device input memory

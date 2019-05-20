@@ -280,25 +280,12 @@ void GeoTransformer<T>::loadCoefficients(const Matrix1D<T> &X,
 }
 
 template<typename T>
-template<typename T_IN>
 void GeoTransformer<T>::produceAndLoadCoeffs(
-    const MultidimArray<T_IN> &input) {
-
-    // if no cast is needed, then don't copy input to tmpIn
-    const MultidimArray<T> * input_ptr;
-    MultidimArray<T> tmpIn;
-
-    if (std::is_same< T, T_IN >::value) {
-        input_ptr = &input;
-    } else {
-        typeCast(input, tmpIn);
-        input_ptr = &tmpIn;
-    }
-
+    const MultidimArray<T> &input) {
     gpuErrchk(
-        cudaMemcpy(d_in, input_ptr->data, input_ptr->yxdim * sizeof(T), cudaMemcpyHostToDevice));
+        cudaMemcpy(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice));
 
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input_ptr->xdim, input_ptr->ydim);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input.xdim, input.ydim);
 }
 
 
