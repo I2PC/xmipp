@@ -3,8 +3,6 @@
 
 #include "cuda_gpu_multidim_array.cu"
 
-#define PIXELS_PER_THREAD 2
-
 template<typename T, int degree, bool wrap>
 __global__
 void applyGeometryKernel_2D_wrap(const T* trInv, T minxpp, T maxxpp, T minypp,
@@ -133,7 +131,7 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
         }
 }
 
-template<typename T>
+template<typename T, int pixels_per_thread>
 __device__
 void getShiftMorePixels(int lX, int lY, int lN, int x,
         int y, T* shiftY, T* shiftX, const T* coefsX,
@@ -167,7 +165,7 @@ void getShiftMorePixels(int lX, int lY, int lN, int x,
                 continue;
             }
 
-            for (int i = 0; i < PIXELS_PER_THREAD; ++i) {
+            for (int i = 0; i < pixels_per_thread; ++i) {
                 T yPos = (y + i) / hY;
                 int yEnd = min((int) (yPos) + 2, lY - 2);
                 for (int idxY = (int) (yPos) - 1; idxY <= yEnd; ++idxY) {
@@ -193,7 +191,7 @@ bool isEdge(int x, int y, int xdim, int ydim, int edge_dist = 32) {
 /*
  * One thread computes more pixels in its column
 */
-template<typename T, int degree>
+template<typename T, int degree, int pixels_per_thread>
 __global__
 void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
     T* output, int xdim, int ydim, int ndim,
@@ -201,7 +199,7 @@ void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
     int lX, int lY, int lN, // number of control points in each dim
     T hX, T hY, T tPos) {
     // assign output pixel to thread
-    int y = PIXELS_PER_THREAD * (blockIdx.y * blockDim.y + threadIdx.y);
+    int y = pixels_per_thread * (blockIdx.y * blockDim.y + threadIdx.y);
     int x = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (x >= xdim || y >= ydim)
@@ -209,9 +207,9 @@ void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
 
     // Calculate this position in the input image according to the
     // geometrical transformation
-    T shiftX[PIXELS_PER_THREAD] = { 0 };
-    T shiftY[PIXELS_PER_THREAD] = { 0 };
-    getShiftMorePixels(lX, lY, lN, x, y, shiftY, shiftX,
+    T shiftX[pixels_per_thread] = { 0 };
+    T shiftY[pixels_per_thread] = { 0 };
+    getShiftMorePixels<T, pixels_per_thread>(lX, lY, lN, x, y, shiftY, shiftX,
             coefsX, coefsY, hX, hY, tPos);
 
     switch (degree) {
@@ -222,7 +220,7 @@ void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
             break;
         case 3: {
             #pragma unroll
-            for (int i = 0; i < PIXELS_PER_THREAD; ++i) {
+            for (int i = 0; i < pixels_per_thread; ++i) {
                 if ( y + i >= ydim ) {
                     continue;
                 }

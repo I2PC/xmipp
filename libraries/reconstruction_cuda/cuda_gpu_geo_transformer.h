@@ -251,6 +251,7 @@ private:
 
     constexpr static const T transposeTileDim = (T)32;
     constexpr static const T transposeBlockRow = (T)8;
+    constexpr static const int pixelsPerThread = 2;
 };
 
 #endif // CUDA_GEO_TRANSFORMER
