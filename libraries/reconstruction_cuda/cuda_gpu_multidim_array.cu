@@ -154,6 +154,8 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(T x, T y, int xdim, int ydi
     int equivalent_l_Array[LOOKUP_TABLE_LEN];
     T aux_Array[LOOKUP_TABLE_LEN];
 
+    // precompute values that would have to be computed in the inner for loop
+    // equivalent_l wraps around the edge if `l` is outside of the image
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
         const int l = l1 + i;
@@ -167,6 +169,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(T x, T y, int xdim, int ydi
         equivalent_l_Array[i] = equivalent_l;
     }
 
+    // interpolates the value of (x, y) coordinate using the 4x4 square around the pixel
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
         const int m = m1 + i;
