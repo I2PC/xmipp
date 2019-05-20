@@ -207,13 +207,24 @@ TYPED_TEST_P(GeoTransformerProduceAndLoadCoeffsTest, OddXEvenYRandomInput) {
     this->run_test();
 }
 
+TYPED_TEST_P(GeoTransformerProduceAndLoadCoeffsTest, SmallInput) {
+    this->x = 16;
+    this->y = 16;
+
+    this->allocate_arrays();
+    this->randomly_initialize( this->in.get(), this->size, 29 );
+
+    this->run_test();
+}
+
 REGISTER_TYPED_TEST_CASE_P(GeoTransformerProduceAndLoadCoeffsTest,
     RandomSizeZeroInput,
     PaddedSizeRandomInput,
     PaddedSquareSizeRandomInput,
     SquareSizeRandomInput,
     RandomSizeRandomInput,
-    OddXEvenYRandomInput
+    OddXEvenYRandomInput,
+    SmallInput
 );
 
 using ScalarTypes = ::testing::Types< float, double >;

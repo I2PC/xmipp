@@ -379,6 +379,12 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
     if ((input.getDim() == 3)
             && ((transform.Xdim() != 4) || (transform.Ydim() != 4)))
         throw std::invalid_argument("3D transformation matrix is not 4x4");
+    if (input.xdim < 64 && input.xdim != 32 && input.xdim != 16) {
+        throw std::invalid_argument("Xdim should be at least 64 or multiple of 16");
+    }
+    if (input.ydim < 16) {
+        throw std::invalid_argument("Ydim should be at least 16");
+    }
 }
 
 
@@ -402,6 +408,12 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
     if ((coeffs.first.size() != coeffsElems) || (coeffs.second.size() != coeffsElems))
         throw std::invalid_argument("Number of coefficients does not fit. "
                 "To init function, pass N control points.");
+    if (input.xdim < 64 && input.xdim != 32 && input.xdim != 16) {
+        throw std::invalid_argument("Xdim should be at least 64 or multiple of 16");
+    }
+    if (input.ydim < 16) {
+        throw std::invalid_argument("Ydim should be at least 16");
+    }
 }
 
 template<typename T>

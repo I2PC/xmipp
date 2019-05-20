@@ -256,6 +256,34 @@ TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, BiggerSizeInOneDimension) 
     this->compare_results( this->out.data, this->out_ref.data );
 }
 
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, CheckingXdimSizeRestrictions) {
+    this->x = 17;
+    this->y = 32;
+    this->splineX = 4;
+    this->splineY = 8;
+    this->splineN = 6;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 81 );
+    this->randomly_initialize( this->coeffsX, 7 );
+    this->randomly_initialize( this->coeffsY, 43 );
+
+    ASSERT_THROW( this->run_transformation(), std::invalid_argument );
+}
+
+TYPED_TEST_P(GeoTransformerApplyBSplineTransformTest, CheckingYdimSizeRestrictions) {
+    this->x = 128;
+    this->y = 15;
+    this->splineX = 4;
+    this->splineY = 8;
+    this->splineN = 6;
+    this->allocate_arrays();
+    this->randomly_initialize( this->in, 81 );
+    this->randomly_initialize( this->coeffsX, 7 );
+    this->randomly_initialize( this->coeffsY, 43 );
+
+    ASSERT_THROW( this->run_transformation(), std::invalid_argument );
+}
+
 REGISTER_TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest,
     ZeroStaysZero,
     NoChangeIfCoeffsAreZeroWithZeroCoeffs,
@@ -266,7 +294,9 @@ REGISTER_TYPED_TEST_CASE_P(GeoTransformerApplyBSplineTransformTest,
     OddEvenSizedInput,
     EvenOddSizedInput,
     BiggerSize4K,
-    BiggerSizeInOneDimension
+    BiggerSizeInOneDimension,
+    CheckingXdimSizeRestrictions,
+    CheckingYdimSizeRestrictions
 );
 
 using ScalarTypes = ::testing::Types< float, double >;
