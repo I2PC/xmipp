@@ -185,7 +185,7 @@ void GeoTransformer<T>::applyBSplineTransform(
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
     checkRestrictions(3, output, input, coeffs, imageIdx);
 
-    loadOutput(output, outside);
+    // loadOutput(output, outside);
     produceAndLoadCoeffs(input);
 
     loadCoefficients(coeffs.first, coeffs.second);
