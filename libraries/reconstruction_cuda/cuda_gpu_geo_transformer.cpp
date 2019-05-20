@@ -191,7 +191,7 @@ void GeoTransformer<T>::applyBSplineTransform(
     loadCoefficients(coeffs.first, coeffs.second);
 
     dim3 dimBlock(16, 16);
-    dim3 dimGrid(ceil(inX / (T) dimBlock.x), ceil(inY / (T) dimBlock.y / (T) PIXELS_PER_THREAD)); //more pixels
+    dim3 dimGrid(ceil(inX / (T) dimBlock.x), ceil((inY / (T) dimBlock.y) / (T) pixelsPerThread)); //more pixels
 
     // take into account end points
     T hX = (splineX == 3) ? inX : (inX / (T) ((splineX - 3)));
@@ -201,14 +201,14 @@ void GeoTransformer<T>::applyBSplineTransform(
 
     switch (splineDegree) {
     case 3:
-        applyLocalShiftGeometryKernelMorePixels<T, 3><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
+        applyLocalShiftGeometryKernelMorePixels<T, 3, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
                 d_out, (int)inX, (int)inY, (int)inN,
                 d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
                 hX, hY, tPos);
             gpuErrchk(cudaPeekAtLastError());
         break;
     default:
-        throw std::logic_error("not implemented");
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, formatString("applyBSplineTransform not implemented for spline degree %d.", splineDegree));
     }
 
     gpuErrchk(
