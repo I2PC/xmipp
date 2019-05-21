@@ -68,24 +68,32 @@ template<typename T>
 void PSDEstimator<T>::estimatePSD(const MultidimArray<T> &micrograph,
         float overlap, const Dimensions &patchDim, MultidimArray<T> &psd,
         unsigned fftThreads) {
+    using transformer = FFTwT<T>;
     // get patch positions
     auto patches = getPatchesLocation({0, 0},
             Dimensions(micrograph.xdim, micrograph.ydim),
             patchDim,
             overlap);
 
-    MultidimArray<T> patchData(patchDim.y(), patchDim.x());
+    auto settings = FFTSettingsNew<T>(patchDim);
+
+    // prepare data for FT - set proper sizes and allocate aligned dat for faster execution
+    // XXX HACK
+    MultidimArray<T> patchData;
+    patchData.destroyData = false;
+    patchData.setDimensions(patchDim.x(), patchDim.y(), 1, 1);
+    patchData.nzyxdimAlloc = patchData.nzyxdim;
+    patchData.data = (T*)transformer::allocateAligned(settings.sBytesSingle());
+
     MultidimArray<T> smoother;
     ProgCTFEstimateFromMicrograph::constructPieceSmoother(patchData, smoother);
     smoother.resetOrigin();
 
-    auto settings = FFTSettingsNew<T>(patchDim);
-    auto patchFS = new std::complex<T>[settings.fElemsBatch()];
+    auto patchFS = (std::complex<T>*)transformer::allocateAligned(settings.fBytesBatch());
     auto magnitudes = new T[settings.fElemsBatch()](); // initialize to zero
 
     auto hw = CPU(fftThreads);
-    using transformer = FFTwT<T>;
-    auto plan = transformer::createPlan(hw, settings);
+    auto plan = transformer::createPlan(hw, settings, true);
 
     for (auto &p : patches) {
         // get patch data
@@ -111,8 +119,9 @@ void PSDEstimator<T>::estimatePSD(const MultidimArray<T> &micrograph,
     half2whole(magnitudes, psd.data, settings, [&](bool mirror, T val){return val;});
 
     delete[] magnitudes;
-    delete[] patchFS;
+    transformer::release(patchFS);
     transformer::release(plan);
+    transformer::release(patchData.data);
 }
 
 // explicit instantiation
