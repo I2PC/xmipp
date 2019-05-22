@@ -421,7 +421,7 @@ void ProgCTFEstimateFromMicrograph::run()
 //        		M_in().window(piece, 0, 0, piecei, piecej, 0, 0, piecei + YSIZE(piece) - 1,
 //        				piecej + XSIZE(piece) - 1);
         		window2D( M_in(), piece, piecei, piecej, piecei + YSIZE(piece) - 1, piecej + XSIZE(piece) - 1);
-        		piece.statisticsAdjust(0, 1);
+        		piece.statisticsAdjust(0., 1.);
         		normalize_ramp(piece);
         		piece *= pieceSmoother;
 
@@ -904,7 +904,7 @@ void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
             for (size_t k = 0; k < YSIZE(piece); k++)
                 for (size_t l = 0; l < XSIZE(piece); l++)
                     DIRECT_A2D_ELEM(piece, k, l)= mI(i+k, j+l);
-            piece.statisticsAdjust(0, 1);
+            piece.statisticsAdjust(0., 1.);
             normalize_ramp(piece, &pieceMask);
             piece *= pieceSmoother;
 
