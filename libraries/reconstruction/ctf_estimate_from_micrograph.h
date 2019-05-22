@@ -126,6 +126,9 @@ private:
             MultidimArray<int> &PCAmask,
             MultidimArray<float> &PCAv,
             PCAMahalanobisAnalyzer &pcaAnalyzer);
+    template<typename T>
+    static void constructPieceSmoother(const MultidimArray<T> &piece,
+            MultidimArray<T> &pieceSmoother);
 };
 
 /** Fast estimate enhanced PSD.
