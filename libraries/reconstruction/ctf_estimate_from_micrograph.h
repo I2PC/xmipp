@@ -96,6 +96,10 @@ public:
 
     /// Process the whole thing
     void run();
+
+    template<typename T>
+    static void constructPieceSmoother(const MultidimArray<T> &piece,
+            MultidimArray<T> &pieceSmoother);
 };
 
 /** Fast estimate enhanced PSD.
