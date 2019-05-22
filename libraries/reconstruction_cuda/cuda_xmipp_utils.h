@@ -9,16 +9,16 @@ class myStreamHandle;
 void mycufftDestroy(void *ptr);
 void myStreamDestroy(void *ptr);
 void myStreamCreate(myStreamHandle &myStream);
-void gpuMalloc(void** d_data, int Nbytes);
+void gpuMalloc(void** d_data, size_t Nbytes);
 void gpuFree(void* d_data);
-void cpuMalloc(void** h_data, int Nbytes);
+void cpuMalloc(void** h_data, size_t Nbytes);
 void cpuFree(void* h_data);
 void initializeIdentity(float* d_data, float *h_data, int Ndim, myStreamHandle &myStream);
 void setTranslationMatrix(float* d_data, float* posX, float* posY, int Ndim, myStreamHandle &myStream);
 void setRotationMatrix(float* d_data, float *ang, int Ndim, myStreamHandle &myStream);
-void gpuCopyFromGPUToGPUStream(void* d_dataFrom, void* d_dataTo, int Nbytes, myStreamHandle &myStream);
-void gpuCopyFromCPUToGPUStream(void* data, void* d_data, int Nbytes, myStreamHandle &myStream);
-void gpuCopyFromGPUToCPUStream(void* d_data, void* data, int Nbytes, myStreamHandle &myStream);
+void gpuCopyFromGPUToGPUStream(void* d_dataFrom, void* d_dataTo, size_t Nbytes, myStreamHandle &myStream);
+void gpuCopyFromCPUToGPUStream(void* data, void* d_data, size_t Nbytes, myStreamHandle &myStream);
+void gpuCopyFromGPUToCPUStream(void* d_data, void* data, size_t Nbytes, myStreamHandle &myStream);
 void gpuCopyFromGPUToGPU(void* d_dataFrom, void* d_dataTo, size_t Nbytes);
 void gpuCopyFromCPUToGPU(void* data, void* d_data, size_t Nbytes);
 void gpuCopyFromGPUToCPU(void* d_data, void* data, size_t Nbytes);
@@ -68,11 +68,11 @@ public:
 
 class XmippDim3 {
 public:
-	int x;
-	int y;
-	int z;
+    size_t x;
+    size_t y;
+    size_t z;
 
-	XmippDim3(int _x, int _y, int _z)
+	XmippDim3(size_t _x, size_t _y, size_t _z)
 	{
 		x=_x;
 		y=_y;
@@ -92,7 +92,7 @@ template<typename T>
 class TransformMatrix
 {
 public:
-	int Xdim, Ydim, Zdim, Ndim, yxdim, zyxdim, nzyxdim;
+    size_t Xdim, Ydim, Zdim, Ndim, yxdim, zyxdim, nzyxdim;
     T* d_data;
 	T* h_data;
 
@@ -103,7 +103,7 @@ public:
 		h_data=NULL;
     }
 
-    TransformMatrix(myStreamHandle &myStream, int _Ndim, int _Xdim=3, int _Ydim=3, int _Zdim=1)
+    TransformMatrix(myStreamHandle &myStream, size_t _Ndim, size_t _Xdim=3, size_t _Ydim=3, size_t _Zdim=1)
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
 		d_data=NULL;
@@ -118,24 +118,7 @@ public:
 		resize(myStream, array.Ndim, array.Xdim, array.Ydim, array.Zdim);
 	}
 
-	void resize(myStreamHandle &myStream, int _Ndim, int _Xdim=3, int _Ydim=3, int _Zdim=1)
-    {
-		if (_Xdim*_Ydim*_Zdim*_Ndim==nzyxdim)
-			return;
-
-		clear();
-
-		Xdim=_Xdim;
-		Ydim=_Ydim;
-		Zdim=_Zdim;
-		Ndim=_Ndim;
-        yxdim=_Ydim*_Xdim;
-        zyxdim=yxdim*_Zdim;
-        nzyxdim=zyxdim*_Ndim;
-        gpuMalloc((void**) &d_data,nzyxdim*sizeof(T));
-        cpuMalloc((void**) &h_data,nzyxdim*sizeof(T));
-        initializeIdentity(d_data, h_data, Ndim, myStream);
-    }
+	void resize(myStreamHandle &myStream, size_t _Ndim, size_t _Xdim=3, size_t _Ydim=3, size_t _Zdim=1);
 
 	bool isEmpty()
 	{
@@ -194,7 +177,7 @@ template<typename T>
 class GpuMultidimArrayAtGpu
 {
 public:
-	int Xdim, Ydim, Zdim, Ndim, yxdim, zyxdim, nzyxdim;
+	size_t Xdim, Ydim, Zdim, Ndim, yxdim, zyxdim, nzyxdim;
     T* d_data;
 
 	GpuMultidimArrayAtGpu()
@@ -203,7 +186,7 @@ public:
 		d_data=NULL;
     }
 
-	GpuMultidimArrayAtGpu(int _Xdim, int _Ydim=1, int _Zdim=1, int _Ndim=1)
+	GpuMultidimArrayAtGpu(size_t _Xdim, size_t _Ydim=1, size_t _Zdim=1, size_t _Ndim=1)
     {
 		Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
 		d_data=NULL;
@@ -223,21 +206,7 @@ public:
 		resize(array.Xdim, array.Ydim, array.Zdim, array.Ndim);
 	}
 
-	void resize(int _Xdim, int _Ydim=1, int _Zdim=1, int _Ndim=1)
-    {
-
-		//FIXME what happens if x and y swaps?
-		if (_Xdim*_Ydim*_Zdim*_Ndim==nzyxdim){
-
-			return;
-		}
-
-		clear();
-
-		setDims(_Xdim, _Ydim, _Zdim, _Ndim);
-        gpuMalloc((void**) &d_data,nzyxdim*sizeof(T));
-
-    }
+	void resize(size_t _Xdim, size_t _Ydim=1, size_t _Zdim=1, size_t _Ndim=1);
 
 	bool isEmpty()
 	{
