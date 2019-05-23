@@ -352,26 +352,15 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
         const Matrix2D<T_MAT> &transform) {
     if (!isReadyForMatrix)
         throw std::logic_error("Transformer is not ready yet.");
-    if (!input.xdim)
-        throw std::invalid_argument("Input is empty");
-    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
-        throw std::logic_error(
-                "Transformer has been initialized for a different size of the input");
-    if (&input == (MultidimArray<T_IN>*) &output)
-        throw std::invalid_argument(
-                "The input array cannot be the same as the output array");
+
+    checkRestrictions(output, input);
+
     if ((input.getDim() == 2)
             && ((transform.Xdim() != 3) || (transform.Ydim() != 3)))
         throw std::invalid_argument("2D transformation matrix is not 3x3");
     if ((input.getDim() == 3)
             && ((transform.Xdim() != 4) || (transform.Ydim() != 4)))
         throw std::invalid_argument("3D transformation matrix is not 4x4");
-    if (input.xdim < 64 && input.xdim != 32 && input.xdim != 16) {
-        throw std::invalid_argument("Xdim should be at least 64 or multiple of 16");
-    }
-    if (input.ydim < 16) {
-        throw std::invalid_argument("Ydim should be at least 16");
-    }
 }
 
 
@@ -381,25 +370,36 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t frameIdx) {
     if (!isReadyForBspline)
         throw std::logic_error("Transformer is not ready yet.");
-    if (!input.xdim)
-        throw std::invalid_argument("Input is empty");
-    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
-        throw std::logic_error(
-                "Transformer has been initialized for a different size of the input");
-    if (&input == &output)
-        throw std::invalid_argument(
-                "The input array cannot be the same as the output array");
+
+    checkRestrictions(output, input);
+
     if (frameIdx > inN)
         throw std::invalid_argument("Frame index is out of bound");
     size_t coeffsElems = splineX * splineY * splineN;
     if ((coeffs.first.size() != coeffsElems) || (coeffs.second.size() != coeffsElems))
         throw std::invalid_argument("Number of coefficients does not fit. "
                 "To init function, pass N control points.");
-    if (input.xdim < 64 && input.xdim != 32 && input.xdim != 16) {
+}
+
+template<typename T>
+template<typename T_IN>
+void GeoTransformer<T>::checkRestrictions(const MultidimArray<T> &output,
+                                        const MultidimArray<T_IN> &input) {
+    if (!input.xdim)
+        throw std::invalid_argument("Input is empty");
+    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
+        throw std::logic_error(
+                "Transformer has been initialized for a different size of the input");
+    if (&input == (MultidimArray<T_IN>*) &output)
+        throw std::invalid_argument(
+                "The input array cannot be the same as the output array");
+
+    if (input.xdim < 64) {
         throw std::invalid_argument("Xdim should be at least 64 or multiple of 16");
     }
-    if (input.ydim < 16) {
-        throw std::invalid_argument("Ydim should be at least 16");
+
+    if (input.ydim == 0) {
+        throw std::invalid_argument("Ydim is 0");
     }
 }
 

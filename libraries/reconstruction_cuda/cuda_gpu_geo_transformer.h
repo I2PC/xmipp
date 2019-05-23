@@ -160,6 +160,16 @@ private:
             MultidimArray<T> &output, const MultidimArray<T> &input,
             const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t frameIdx);
 
+
+    /**
+     *  Make sure that there's no logical mistake in the transformation
+     * @param output image
+     * @param input image
+     */
+    template<typename T_IN>
+    void checkRestrictions(const MultidimArray<T> &output,
+                                        const MultidimArray<T_IN> &input);
+
     /**
      * Makes sure that output is big enough and sets default value
      * @param output where result will be stored
