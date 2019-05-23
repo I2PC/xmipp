@@ -26,6 +26,8 @@
 #include "xmippmodule.h"
 #include <data/ctf.h>
 #include <data/filters.h>
+#include "data/dimensions.h"
+#include "reconstruction/psd_estimator.h"
 
 /***************************************************************/
 /*                            Image                         */
@@ -156,6 +158,8 @@ PyMethodDef Image_methods[] =
           "Set value to Header" },
         { "computeStats", (PyCFunction) Image_computeStats, METH_VARARGS,
           "Compute image statistics, return mean, dev, min and max" },
+        { "computePSD", (PyCFunction) Image_computePSD, METH_VARARGS,
+            "Compute PSD for current image, returns the PSD image" },
         { "adjustAndSubtract", (PyCFunction) Image_adjustAndSubtract, METH_VARARGS,
           "I1=I1-adjusted(I2)" },
 		{ "correlation", (PyCFunction) Image_correlation, METH_VARARGS,
@@ -1150,6 +1154,42 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }//function Image_computeStats
 
+PyObject *
+Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (nullptr == self) return nullptr;
+    try {
+        // keep default values consistent with the python
+        float overlap = 0.4f;
+        int dimX = 384;
+        int dimY = 384;
+        unsigned threads = 1;
+        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+        if (PyArg_ParseTuple(args, "|fIIb", &overlap, &dimX, &dimY, &threads)
+                && (nullptr != result)) {
+            // prepare dims
+            auto dims = Dimensions(dimX, dimY);
+            // prepare input image
+            ImageGeneric *image = self->image;
+            image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
+            // prepare output image
+            result->image = new ImageGeneric(DT_Double);
+            MultidimArray<double> *out;
+            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+            // call the estimation
+            PSDEstimator<double>::estimatePSD(*in, overlap, dims, *out, threads);
+        } else {
+            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+        }
+        return (PyObject *)result;
+    } catch (XmippError &xe) {
+        PyErr_SetString(PyXmippError, xe.msg.c_str());
+    }
+}
+
 /* Return image dimensions as a tuple */
 PyObject *
 Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
@@ -1211,7 +1251,7 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     return NULL;
-}//function Image_computeStats
+}//function Image_correlation
 
 
 /* Add two images, operator + */
