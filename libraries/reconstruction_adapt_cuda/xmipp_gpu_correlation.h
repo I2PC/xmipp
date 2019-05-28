@@ -40,6 +40,7 @@ private:
 	double alpha;
 	int maxShift;
 	int sizePad;
+	int device;
 
 public:
     //Input metadata file
