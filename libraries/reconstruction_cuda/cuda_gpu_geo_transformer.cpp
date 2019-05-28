@@ -185,6 +185,7 @@ void GeoTransformer<T>::applyBSplineTransform(
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
     checkRestrictions(3, output, input, coeffs, imageIdx);
 
+    setOutputSize(output);
     produceAndLoadCoeffs(input);
 
     loadCoefficients(coeffs.first, coeffs.second);
@@ -327,9 +328,8 @@ void GeoTransformer<T>::loadInput(const MultidimArray<T_IN> &input) {
 
 template<typename T>
 void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
-    if (output.xdim == 0) {
-        output.resize(inZ, inY, inX);
-    }
+    setOutputSize(output);
+
     if (outside != (T) 0) {
         // Initialize output matrix with value=outside
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(output)
@@ -341,6 +341,12 @@ void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
                         cudaMemcpyHostToDevice));
     } else {
         gpuErrchk(cudaMemset(d_out, 0, output.zyxdim * sizeof(T)));
+    }
+}
+template<typename T>
+void GeoTransformer<T>::setOutputSize(MultidimArray<T> &output) {
+    if (output.xdim == 0) {
+        output.resize(inZ, inY, inX);
     }
 }
 

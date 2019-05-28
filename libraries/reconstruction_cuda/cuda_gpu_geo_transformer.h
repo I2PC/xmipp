@@ -214,6 +214,11 @@ private:
     void loadCoefficients(const Matrix1D<T> &X,
             const Matrix1D<T> &Y);
 
+    /**
+     * Resizes output so it can be used for computations
+    */
+    void setOutputSize(MultidimArray<T> &output);
+
 
 protected:
     /*
