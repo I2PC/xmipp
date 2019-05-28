@@ -185,7 +185,6 @@ void GeoTransformer<T>::applyBSplineTransform(
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
     checkRestrictions(3, output, input, coeffs, imageIdx);
 
-    // loadOutput(output, outside);
     produceAndLoadCoeffs(input);
 
     loadCoefficients(coeffs.first, coeffs.second);
@@ -395,11 +394,11 @@ void GeoTransformer<T>::checkRestrictions(const MultidimArray<T> &output,
                 "The input array cannot be the same as the output array");
 
     if (input.xdim < 64) {
-        throw std::invalid_argument("Xdim should be at least 64 or multiple of 16");
+        throw std::invalid_argument("Xdim should be at least 64");
     }
 
-    if (input.ydim == 0) {
-        throw std::invalid_argument("Ydim is 0");
+    if (input.ydim <= 1) {
+        throw std::invalid_argument("Ydim should be at least 2");
     }
 }
 
