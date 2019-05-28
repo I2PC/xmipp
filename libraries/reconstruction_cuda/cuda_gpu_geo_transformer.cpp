@@ -346,7 +346,7 @@ void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
 template<typename T>
 void GeoTransformer<T>::setOutputSize(MultidimArray<T> &output) {
     if (output.xdim == 0) {
-        output.resize(inZ, inY, inX);
+        output.resizeNoCopy(inZ, inY, inX);
     }
 }
 
