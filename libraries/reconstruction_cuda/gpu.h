@@ -72,9 +72,9 @@ public:
 
     void peekLastError() const;
 
-    static void pinMemory(void *h_mem, size_t bytes, unsigned int flags=0);
+    static void pinMemory(void *h_mem, size_t bytes, unsigned int flags=0); // must not be nullptr
 
-    static void unpinMemory(void *h_mem);
+    static void unpinMemory(void *h_mem); // must not be nullptr
 
     void set();
 

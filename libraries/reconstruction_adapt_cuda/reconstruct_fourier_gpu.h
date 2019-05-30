@@ -52,7 +52,8 @@
 #include <reconstruction/reconstruct_fourier_defines.h>
 #include <reconstruction/reconstruct_fourier_projection_traverse_space.h>
 #include <reconstruction_cuda/cuda_gpu_reconstruct_fourier.h>
-#include "reconstruction_cuda/gpu.h"
+#include <reconstruction_cuda/gpu.h>
+#include <core/utils/memory_utils.h>
 
 /**@defgroup FourierReconstruction Fourier reconstruction
    @ingroup ReconsLibrary */
@@ -442,6 +443,12 @@ private:
      * Thread safe
      */
     void logProgress(int increment);
+
+    /**
+     * Method checks memory requirements and compare them to available memory
+     * Terminates the execution if there is not enough memory.
+     */
+    void checkMemory();
 };
 //@}
 #endif
