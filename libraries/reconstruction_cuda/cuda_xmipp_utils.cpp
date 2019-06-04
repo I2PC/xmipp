@@ -17,6 +17,42 @@ struct pointwiseMult{
 	cufftComplex *data;
 };
 
+template<typename T>
+void TransformMatrix<T>::resize(myStreamHandle &myStream,
+        size_t _Ndim, size_t _Xdim, size_t _Ydim, size_t _Zdim) {
+    if (_Xdim*_Ydim*_Zdim*_Ndim==nzyxdim)
+        return;
+
+    clear();
+
+    Xdim=_Xdim;
+    Ydim=_Ydim;
+    Zdim=_Zdim;
+    Ndim=_Ndim;
+    yxdim=_Ydim*_Xdim;
+    zyxdim=yxdim*_Zdim;
+    nzyxdim=zyxdim*_Ndim;
+    gpuErrchk(cudaMalloc(&d_data,nzyxdim*sizeof(T)));
+    gpuErrchk(cudaMallocHost(&h_data,nzyxdim*sizeof(T)));
+    initializeIdentity(d_data, h_data, Ndim, myStream);
+}
+
+template void TransformMatrix<float>::resize(myStreamHandle &myStream,
+        size_t _Ndim, size_t _Xdim, size_t _Ydim, size_t _Zdim);
+
+template<typename T>
+void GpuMultidimArrayAtGpu<T>::resize(size_t _Xdim, size_t _Ydim, size_t _Zdim, size_t _Ndim)
+{
+    if (_Xdim*_Ydim*_Zdim*_Ndim==nzyxdim){
+
+        return;
+    }
+
+    clear();
+
+    setDims(_Xdim, _Ydim, _Zdim, _Ndim);
+    gpuErrchk(cudaMalloc(&d_data,nzyxdim*sizeof(T)));
+}
 
 void myStreamDestroy(void *ptr)
 {
@@ -157,7 +193,7 @@ void TransformMatrix<T>::clear()
 // explicit instantiation
 template void TransformMatrix<float>::clear();
 
-void gpuMalloc(void** d_data, int Nbytes)
+void gpuMalloc(void** d_data, size_t Nbytes)
 {
 	gpuErrchk(cudaMalloc(d_data, Nbytes));
 }
@@ -167,7 +203,7 @@ void gpuFree(void* d_data)
 	gpuErrchk(cudaFree(d_data));
 }
 
-void cpuMalloc(void** h_data, int Nbytes)
+void cpuMalloc(void** h_data, size_t Nbytes)
 {
 	gpuErrchk(cudaMallocHost(h_data, Nbytes));
 }
@@ -254,7 +290,7 @@ void gpuCopyFromGPUToGPU(void* d_dataFrom, void* d_dataTo, size_t Nbytes)
 	gpuErrchk(cudaMemcpy(d_dataTo, d_dataFrom, Nbytes, cudaMemcpyDeviceToDevice));
 }
 
-void gpuCopyFromCPUToGPUStream(void* data, void* d_data, int Nbytes, myStreamHandle &myStream)
+void gpuCopyFromCPUToGPUStream(void* data, void* d_data, size_t Nbytes, myStreamHandle &myStream)
 {
 	cudaStream_t *stream = (cudaStream_t*) myStream.ptr;
 	gpuErrchk(cudaMemcpyAsync(d_data, data, Nbytes, cudaMemcpyHostToDevice, *stream));
@@ -262,7 +298,7 @@ void gpuCopyFromCPUToGPUStream(void* data, void* d_data, int Nbytes, myStreamHan
 	//gpuErrchk(cudaStreamSynchronize(*stream));
 }
 
-void gpuCopyFromGPUToCPUStream(void* d_data, void* data, int Nbytes, myStreamHandle &myStream)
+void gpuCopyFromGPUToCPUStream(void* d_data, void* data, size_t Nbytes, myStreamHandle &myStream)
 {
 	cudaStream_t *stream = (cudaStream_t*) myStream.ptr;
 	gpuErrchk(cudaMemcpyAsync(data, d_data, Nbytes, cudaMemcpyDeviceToHost, *stream));
@@ -271,7 +307,7 @@ void gpuCopyFromGPUToCPUStream(void* d_data, void* data, int Nbytes, myStreamHan
 	//cudaDeviceSynchronize();
 }
 
-void gpuCopyFromGPUToGPUStream(void* d_dataFrom, void* d_dataTo, int Nbytes, myStreamHandle &myStream)
+void gpuCopyFromGPUToGPUStream(void* d_dataFrom, void* d_dataTo, size_t Nbytes, myStreamHandle &myStream)
 {
 	cudaStream_t *stream = (cudaStream_t*) myStream.ptr;
 	gpuErrchk(cudaMemcpyAsync(d_dataTo, d_dataFrom, Nbytes, cudaMemcpyDeviceToDevice, *stream));

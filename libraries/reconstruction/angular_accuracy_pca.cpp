@@ -244,7 +244,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(P(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.f,1.f);
 		pca.addVector(temp);
 		imgno++;
 
@@ -344,7 +344,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(img(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.f,1.f);
 		pca.addVector(temp);
 		imgno++;
 	}
@@ -416,11 +416,11 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(P(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.f,1.f);
 		temp.setXmippOrigin();
 
 		//Reconstructed Image
-		recons[imgno].statisticsAdjust(0,1);
+		recons[imgno].statisticsAdjust(0.f,1.f);
 		recons[imgno].resize(newYdim*newXdim);
 		recons[imgno].setXmippOrigin();
 
@@ -440,7 +440,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(img(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.f,1.f);
 		temp.setXmippOrigin();
 
 		R2_Exp = correlationIndex(temp,recons[imgno],&ROI);
@@ -465,7 +465,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 			imgRecons().resize(newYdim,newXdim);
 			imgRecons.write("kk_exp.tif");
 
-			recons[imgno].statisticsAdjust(0,1);
+			recons[imgno].statisticsAdjust(0.f,1.f);
 			apply_binary_mask(ROI,recons[imgno],imgRecons());
 			imgRecons().resize(newYdim,newXdim);
 			imgRecons.write("kk_reconstructed.tif");

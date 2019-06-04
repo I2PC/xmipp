@@ -329,6 +329,14 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
                 settings.isInPlace(),
                 settings.isForward());
         result = optional<FFTSettingsNew<T>>(optSetting);
+    } 
+    if (verbose) {
+	   if (result.has_value()) {
+                options->at(0)->printHeader(stdout); printf("\n");
+                options->at(0)->print(stdout); printf("\n");
+	   } else {
+                std::cout << "No result obtained. Maybe too strict search?" << std::endl;
+	   }
     }
     for (auto& it : *options) delete it;
     delete options;

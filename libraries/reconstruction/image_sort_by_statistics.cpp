@@ -191,7 +191,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
 
         MultidimArray<double> &mI=img();
         mI.setXmippOrigin();
-        mI.statisticsAdjust(0,1);
+        mI.statisticsAdjust(0.,1.);
         mask.setXmippOrigin();
         //The size of v1 depends on the image size and must be declared here
         numDescriptors1 = XSIZE(mI)/2; //=100;

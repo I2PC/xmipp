@@ -109,16 +109,21 @@ public:
 
     static const fftw_plan createPlan(
             const CPU &cpu,
-            const FFTSettingsNew<double> &settings);
+            const FFTSettingsNew<double> &settings,
+            bool isDataAligned=false);
     static const fftwf_plan createPlan(
             const CPU &cpu,
-            const FFTSettingsNew<float> &settings);
+            const FFTSettingsNew<float> &settings,
+            bool isDataAligned=false);
 
     template<typename P>
     static void release(P plan);
 
     static void release(void *plan);
 
+    template<typename D>
+    static void release(D *alignedData);
+    static void* allocateAligned(size_t bytes);
 
 private:
     static void *m_mockOut;
@@ -133,7 +138,8 @@ private:
     bool m_isInit;
 
     template<typename U, typename F>
-    static U planHelper(const FFTSettingsNew<T> &settings, F function, int threads);
+    static U planHelper(const FFTSettingsNew<T> &settings, F function,
+            int threads, bool isDataAligned);
 
     void setDefault();
     void check();

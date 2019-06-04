@@ -42,19 +42,17 @@ GPU::~GPU() {
 }
 
 void GPU::set() {
-    if (m_isSet) {
-        return;
-    }
-    // set device
+    // set device (for current context / thread)
     setDevice(m_device);
-    // create stream
-    m_stream = new cudaStream_t;
-    gpuErrchk(cudaStreamCreate((cudaStream_t*)m_stream));
-    // remember the state
-    m_isSet = true;
-    // get additional info
-    HW::set();
-
+    if ( ! m_isSet) {
+        // create stream
+        m_stream = new cudaStream_t;
+        gpuErrchk(cudaStreamCreate((cudaStream_t*)m_stream));
+        // remember the state
+        m_isSet = true;
+        // get additional info
+        HW::set();
+    }
     peekLastError();
 }
 

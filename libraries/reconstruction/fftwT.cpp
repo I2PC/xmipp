@@ -51,7 +51,7 @@ void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse
 
     check();
 
-    m_plan = createPlan(*m_cpu, *m_settings);
+    m_plan = createPlan(*m_cpu, *m_settings, true);
     if (mustAllocate) {
         allocate();
     }
@@ -67,28 +67,62 @@ size_t FFTwT<T>::estimatePlanBytes(const FFTSettingsNew<T> &settings) {
 }
 
 template<>
+void* FFTwT<float>::allocateAligned(size_t bytes) {
+    return fftwf_malloc(bytes);
+}
+
+template<>
+void* FFTwT<double>::allocateAligned(size_t bytes) {
+    return fftw_malloc(bytes);
+}
+
+template<>
+template<>
+void FFTwT<double>::release(double *alignedData) {
+    fftw_free(alignedData);
+}
+
+template<>
+template<>
+void FFTwT<float>::release(float *alignedData) {
+    fftwf_free(alignedData);
+}
+
+template<>
+template<>
+void FFTwT<double>::release(std::complex<double> *alignedData) {
+    fftw_free(alignedData);
+}
+
+template<>
+template<>
+void FFTwT<float>::release(std::complex<float> *alignedData) {
+    fftwf_free(alignedData);
+}
+
+template<>
 void FFTwT<float>::allocate() {
     // allocate input data storage
-    m_SD = (float*)fftwf_malloc(m_settings->sBytesBatch());
+    m_SD = (float*)allocateAligned(m_settings->sBytesBatch());
     if (m_settings->isInPlace()) {
         // input data holds also the output
         m_FD = (std::complex<float>*)m_SD;
     } else {
         // allocate also the output buffer
-        m_FD = (std::complex<float>*)fftwf_malloc(m_settings->fBytesBatch());
+        m_FD = (std::complex<float>*)allocateAligned(m_settings->fBytesBatch());
     }
 }
 
 template<>
 void FFTwT<double>::allocate() {
     // allocate input data storage
-    m_SD = (double*)fftw_malloc(m_settings->sBytesBatch());
+    m_SD = (double*)allocateAligned(m_settings->sBytesBatch());
     if (m_settings->isInPlace()) {
         // input data holds also the output
         m_FD = (std::complex<double>*)m_SD;
     } else {
         // allocate also the output buffer
-        m_FD = (std::complex<double>*)fftw_malloc(m_settings->fBytesBatch());
+        m_FD = (std::complex<double>*)allocateAligned(m_settings->fBytesBatch());
     }
 }
 
@@ -216,7 +250,9 @@ T* FFTwT<T>::ifft(const std::complex<T> *in,
 }
 
 template<>
-const fftwf_plan FFTwT<float>::createPlan(const CPU &cpu, const FFTSettingsNew<float> &settings) {
+const fftwf_plan FFTwT<float>::createPlan(const CPU &cpu,
+        const FFTSettingsNew<float> &settings,
+        bool isDataAligned) {
     auto f = [&] (int rank, const int *n, int howmany,
             void *in, const int *inembed,
             int istride, int idist,
@@ -239,11 +275,13 @@ const fftwf_plan FFTwT<float>::createPlan(const CPU &cpu, const FFTSettingsNew<f
                 flags);
         }
     };
-    return planHelper<const fftwf_plan>(settings, f, cpu.noOfParallUnits());
+    return planHelper<const fftwf_plan>(settings, f, cpu.noOfParallUnits(), isDataAligned);
 }
 
 template<>
-const fftw_plan FFTwT<double>::createPlan(const CPU &cpu, const FFTSettingsNew<double> &settings) {
+const fftw_plan FFTwT<double>::createPlan(const CPU &cpu,
+        const FFTSettingsNew<double> &settings,
+        bool isDataAligned) {
     auto f = [&] (int rank, const int *n, int howmany,
             void *in, const int *inembed,
             int istride, int idist,
@@ -266,13 +304,15 @@ const fftw_plan FFTwT<double>::createPlan(const CPU &cpu, const FFTSettingsNew<d
                 flags);
         }
     };
-    auto result = planHelper<const fftw_plan>(settings, f, cpu.noOfParallUnits());
+    auto result = planHelper<const fftw_plan>(settings, f, cpu.noOfParallUnits(), isDataAligned);
     return result;
 }
 
 template<typename T>
 template<typename U, typename F>
-U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function, int threads) {
+U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function,
+        int threads,
+        bool isDataAligned) {
     auto n = std::array<int, 3>{(int)settings.sDim().z(), (int)settings.sDim().y(), (int)settings.sDim().x()};
     int rank = 3;
     if (settings.sDim().z() == 1) rank--;
@@ -284,7 +324,11 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function, int thread
 
     // no input-preserving algorithms are implemented for multi-dimensional c2r transforms
     // see http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags
-    auto flags =  FFTW_ESTIMATE | FFTW_UNALIGNED | (settings.isForward() ? FFTW_PRESERVE_INPUT : FFTW_DESTROY_INPUT);
+    auto flags =  FFTW_ESTIMATE
+            | (settings.isForward() ? FFTW_PRESERVE_INPUT : FFTW_DESTROY_INPUT);
+    if ( ! isDataAligned) {
+        flags = flags | FFTW_UNALIGNED;
+    }
 
     int idist;
     int odist;
