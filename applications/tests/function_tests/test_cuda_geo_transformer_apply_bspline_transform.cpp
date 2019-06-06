@@ -26,7 +26,7 @@ public:
     */
     void compare_results( float* true_values, float* approx_values ) {
         for ( int i = 0; i < y * x; ++i ) {
-            ASSERT_NEAR( true_values[i], approx_values[i], 1e-3f ) << "at index:" << i;
+            ASSERT_NEAR( true_values[i], approx_values[i], 1e-5f ) << "at index:" << i;
         }
     }
 
@@ -69,7 +69,7 @@ public:
 
     void randomly_initialize(Matrix1D< T >& array, int seed) {
         gen.seed( seed );
-        std::uniform_real_distribution<> dis(-1.0, 1.0);
+        std::uniform_real_distribution<> dis(-10.0, 10.0);
 
         FOR_ALL_ELEMENTS_IN_MATRIX1D( array ) {
             MATRIX1D_ARRAY( array )[i] = dis(gen);

@@ -102,16 +102,102 @@ T interpolatedElementBSpline2D_Degree3(T x, T y, int xdim, int ydim, T* data)
 
 #undef LOOKUP_TABLE_LEN
 
+#define LOOKUP_TABLE_LEN 6
+
+/*
+* This version doesn't subtract shift from position in float and doesn't lose
+* precision with higher values of `x` and `y`
+*/
+
+template<typename T>
+__device__
+T interpolatedElementBSpline2D_Degree3New(int x, int y, T x_shift, T y_shift, int xdim, int ydim, T* data)
+{
+    bool firstTime=true; // Inner loop first time execution flag.
+    T *ref;
+
+    int l1 = x + (int)ceil(-x_shift) - 2;
+    int l2 = l1 + 3;
+    int m1 = y + (int)ceil(-y_shift) - 2;
+    int m2 = m1 + 3;
+
+    T columns = 0.0;
+    T aux;
+
+    int equivalent_l_Array[LOOKUP_TABLE_LEN];
+    T aux_Array[LOOKUP_TABLE_LEN];
+
+    for (int m = m1; m <= m2; m++)
+    {
+        int equivalent_m=m;
+        if      (m<0)
+            equivalent_m=-m-1;
+        else if (m>=ydim)
+            equivalent_m=2*ydim-m-1;
+        T rows = 0.0;
+        int index=0;
+        ref = data + (equivalent_m*xdim);
+        for (int l = l1; l <= l2; l++)
+        {
+            int equivalent_l;
+            // Check if it is first time executing inner loop.
+            if (firstTime)
+            {
+                T xminusl = 2 - (l - l1) - x_shift - (int)ceil(-x_shift);
+                equivalent_l=l;
+                if (l<0)
+                {
+                    equivalent_l=-l-1;
+                }
+                else if (l>=xdim)
+                {
+                    equivalent_l=2*xdim-l-1;
+                }
+
+                equivalent_l_Array[index] = equivalent_l;
+                aux = bspline03(xminusl);
+                aux_Array[index] = aux;
+                index++;
+            }
+            else
+            {
+                equivalent_l = equivalent_l_Array[index];
+                aux = aux_Array[index];
+                index++;
+            }
+
+            T Coeff = ref[equivalent_l];
+            rows += Coeff * aux;
+        }
+
+        // Set first time inner flag is executed to false.
+        firstTime = false;
+
+        T yminusm = 2 - (m - m1) - y_shift - (int)ceil(-y_shift);
+        aux = bspline03(yminusm);
+        columns += rows * aux;
+    }
+
+    return columns;
+}
+
+#undef LOOKUP_TABLE_LEN
+
 #define LOOKUP_TABLE_LEN 4
 
 template< typename T >
 __device__
-T interpolatedElementBSpline2D_Degree3MorePixelsInner(T x, T y, int xdim, int ydim, const T* data)
+T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* data)
 {
     const T *ref;
 
-    int l1 = (int)ceil(x - 2);
-    int m1 = (int)ceil(y - 2);
+    int x_shift_ceiled = static_cast<int>(ceil(-x_shift));
+    int y_shift_ceiled = static_cast<int>(ceil(-y_shift));
+    T x_diff = x_shift + x_shift_ceiled;
+    T y_diff = y_shift + y_shift_ceiled;
+
+    int l1 = x + x_shift_ceiled - 2;
+    int m1 = y + y_shift_ceiled - 2;
 
     T columns = 0.0;
     T aux_Array[LOOKUP_TABLE_LEN];
@@ -119,7 +205,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(T x, T y, int xdim, int yd
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
         const int l = l1 + i;
-        aux_Array[i] = bspline03( x - (T) l );
+        aux_Array[i] = bspline03( 2 - i - x_diff );
     }
 
     #pragma unroll
@@ -134,7 +220,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(T x, T y, int xdim, int yd
             rows += ref[l] * aux_Array[j];
         }
 
-        columns += rows * bspline03( y - (T) m );
+        columns += rows * bspline03( 2 - i - y_diff );
     }
 
     return columns;
@@ -142,12 +228,17 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(T x, T y, int xdim, int yd
 
 template< typename T >
 __device__
-T interpolatedElementBSpline2D_Degree3MorePixelsEdge(T x, T y, int xdim, int ydim, const T* data)
+T interpolatedElementBSpline2D_Degree3MorePixelsEdge(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* data)
 {
     const T* ref;
 
-    int l1 = (int)ceil(x - 2);
-    int m1 = (int)ceil(y - 2);
+    int x_shift_ceiled = static_cast<int>(ceil(-x_shift));
+    int y_shift_ceiled = static_cast<int>(ceil(-y_shift));
+    T x_diff = x_shift + x_shift_ceiled;
+    T y_diff = y_shift + y_shift_ceiled;
+
+    int l1 = x + x_shift_ceiled - 2;
+    int m1 = y + y_shift_ceiled - 2;
 
     T columns = 0.0;
 
@@ -159,7 +250,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(T x, T y, int xdim, int ydi
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
         const int l = l1 + i;
-        aux_Array[i] = bspline03( x - (T) l );
+        aux_Array[i] = bspline03( 2 - i - x_diff );
         int equivalent_l = l;
         if ( l < 0 ) {
             equivalent_l = -l - 1;
@@ -189,7 +280,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(T x, T y, int xdim, int ydi
             rows += ref[equivalent_l] * aux_Array[j];
         }
 
-        columns += rows * bspline03( y - (T) m );
+        columns += rows * bspline03( 2 - i - y_diff );
     }
 
     return columns;
