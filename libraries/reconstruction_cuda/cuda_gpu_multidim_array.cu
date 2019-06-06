@@ -185,7 +185,6 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(T x, T y, int xdim, int ydi
         ref = data + (equivalent_m * xdim);
         #pragma unroll
         for ( int j = 0; j < 4; ++j ) {
-            const int l = l1 + j;
             int equivalent_l = equivalent_l_Array[j];
             rows += ref[equivalent_l] * aux_Array[j];
         }
