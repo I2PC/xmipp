@@ -920,7 +920,8 @@ SelFile compare(SelFile &SF1, SelFile &SF2, const int mode)
     SelFile           result;
     SelLine           temp;
     int               SF1_discarded = 0, SF2_discarded = 0;
-    char              str[10];
+    int maxLen = 15;
+    char              str[maxLen + 1]; // + terminating null character
 
     // Search in File 1
     std::vector<SelLine>::iterator current = SF1.text_line.begin();
@@ -994,25 +995,25 @@ SelFile compare(SelFile &SF1, SelFile &SF2, const int mode)
 	result.text_line.push_back(temp);
 	temp.text = "# -------------------------------------------------------------";
 	result.text_line.push_back(temp);
-	sprintf(str, "%6d", SF1.no_imgs);
+	snprintf(str, maxLen, "%6d", SF1.no_imgs);
 	temp.text = "# File 1: " + SF1.fn_sel + "(VALID: " + str;
-	sprintf(str, "%6d", SF1_discarded);
+	snprintf(str, maxLen, "%6d", SF1_discarded);
 	temp.text += (std::string) " DISCARDED: " + str + ")";
 	result.text_line.push_back(temp);
-	sprintf(str, "%6d", SF2.no_imgs);
+	snprintf(str, maxLen, "%6d", SF2.no_imgs);
 	temp.text = "# File 2: " + SF2.fn_sel + "(VALID: " + str;
-	sprintf(str, "%6d", SF2_discarded);
+	snprintf(str, maxLen, "%6d", SF2_discarded);
 	temp.text += (std::string) " DISCARDED: " + str + ")";
 	result.text_line.push_back(temp);
 	temp.text = "";
 	result.text_line.push_back(temp);
-	sprintf(str, "%6lu", (unsigned long int)in_both.size());
+	snprintf(str, maxLen, "%6lu", (unsigned long int)in_both.size());
 	temp.text = (std::string)"# Matching Files: " + str;
 	result.text_line.push_back(temp);
-	sprintf(str, "%6lu", (unsigned long int)only_in_SF1.size());
+	snprintf(str, maxLen, "%6lu", (unsigned long int)only_in_SF1.size());
 	temp.text = (std::string)"# Only in file 1: " + str;
 	result.text_line.push_back(temp);
-	sprintf(str, "%6lu", (unsigned long int)only_in_SF2.size());
+	snprintf(str, maxLen, "%6lu", (unsigned long int)only_in_SF2.size());
 	temp.text = (std::string)"# Only in file 2: " + str;
 	result.text_line.push_back(temp);
 	temp.text = "# -------------------------------------------------------------";
