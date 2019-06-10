@@ -193,8 +193,8 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T
 
     int x_shift_ceiled = static_cast<int>(ceil(-x_shift));
     int y_shift_ceiled = static_cast<int>(ceil(-y_shift));
-    T x_diff = x_shift + x_shift_ceiled;
-    T y_diff = y_shift + y_shift_ceiled;
+    T x_diff = 2 - (x_shift + x_shift_ceiled);
+    T y_diff = 2 - (y_shift + y_shift_ceiled);
 
     int l1 = x + x_shift_ceiled - 2;
     int m1 = y + y_shift_ceiled - 2;
@@ -205,7 +205,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
         const int l = l1 + i;
-        aux_Array[i] = bspline03( 2 - i - x_diff );
+        aux_Array[i] = bspline03( x_diff - i );
     }
 
     #pragma unroll
@@ -220,7 +220,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T
             rows += ref[l] * aux_Array[j];
         }
 
-        columns += rows * bspline03( 2 - i - y_diff );
+        columns += rows * bspline03( y_diff - i );
     }
 
     return columns;
@@ -234,8 +234,8 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(int x, int y, T x_shift, T 
 
     int x_shift_ceiled = static_cast<int>(ceil(-x_shift));
     int y_shift_ceiled = static_cast<int>(ceil(-y_shift));
-    T x_diff = x_shift + x_shift_ceiled;
-    T y_diff = y_shift + y_shift_ceiled;
+    T x_diff = 2 - (x_shift + x_shift_ceiled);
+    T y_diff = 2 - (y_shift + y_shift_ceiled);
 
     int l1 = x + x_shift_ceiled - 2;
     int m1 = y + y_shift_ceiled - 2;
@@ -250,7 +250,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(int x, int y, T x_shift, T 
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
         const int l = l1 + i;
-        aux_Array[i] = bspline03( 2 - i - x_diff );
+        aux_Array[i] = bspline03( x_diff - i );
         int equivalent_l = l;
         if ( l < 0 ) {
             equivalent_l = -l - 1;
@@ -280,7 +280,7 @@ T interpolatedElementBSpline2D_Degree3MorePixelsEdge(int x, int y, T x_shift, T 
             rows += ref[equivalent_l] * aux_Array[j];
         }
 
-        columns += rows * bspline03( 2 - i - y_diff );
+        columns += rows * bspline03( y_diff - i );
     }
 
     return columns;
