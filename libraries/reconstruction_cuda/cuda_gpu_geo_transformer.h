@@ -114,9 +114,9 @@ public:
      * @param outside value to be used when reading outside of the image and wrap == false
      * @param bCoeffsPtr spline coefficients to use
      */
-    template<typename T_IN, typename T_MAT>
+    template<typename T_MAT>
     void applyGeometry(int splineDegree, MultidimArray<T> &output,
-            const MultidimArray<T_IN> &input, const Matrix2D<T_MAT> &transform,
+            const MultidimArray<T> &input, const Matrix2D<T_MAT> &transform,
             bool isInv, bool wrap, T outside = 0,
             const MultidimArray<T> *bCoeffsPtr = NULL);
 
@@ -144,9 +144,9 @@ private:
      * @param input image
      * @param transform to perform
      */
-    template<typename T_IN, typename T_MAT>
+    template<typename T_MAT>
     void checkRestrictions(int splineDegree, MultidimArray<T> &output,
-            const MultidimArray<T_IN> &input, const Matrix2D<T_MAT> &transform);
+            const MultidimArray<T> &input, const Matrix2D<T_MAT> &transform);
 
     /**
      *  Make sure that there's no logical mistake in the transformation
@@ -166,9 +166,8 @@ private:
      * @param output image
      * @param input image
      */
-    template<typename T_IN>
     void checkRestrictions(const MultidimArray<T> &output,
-                                        const MultidimArray<T_IN> &input);
+                                        const MultidimArray<T> &input);
 
     /**
      * Makes sure that output is big enough and sets default value
@@ -181,8 +180,7 @@ private:
      * Loads input image to GPU
      * @param input to load
      */
-    template<typename T_IN>
-    void loadInput(const MultidimArray<T_IN> &input);
+    void loadInput(const MultidimArray<T> &input);
 
     /**
      * Applies geometry transformation, wrap case

@@ -217,9 +217,9 @@ void GeoTransformer<T>::applyBSplineTransform(
 }
 
 template<typename T>
-template<typename T_IN, typename T_MAT>
+template<typename T_MAT>
 void GeoTransformer<T>::applyGeometry(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T_IN> &input,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
         const Matrix2D<T_MAT> &transform, bool isInv, bool wrap, T outside,
         const MultidimArray<T> *bCoeffsPtr) {
     checkRestrictions(splineDegree, output, input, transform);
@@ -317,12 +317,9 @@ void GeoTransformer<T>::applyGeometry_2D_wrap(int splineDegree) {
 }
 
 template<typename T>
-template<typename T_IN>
-void GeoTransformer<T>::loadInput(const MultidimArray<T_IN> &input) {
-    MultidimArray<T> tmp;
-    typeCast(input, tmp);
+void GeoTransformer<T>::loadInput(const MultidimArray<T> &input) {
     gpuErrchk(
-            cudaMemcpy(d_in, tmp.data, tmp.zyxdim * sizeof(T),
+            cudaMemcpy(d_in, input.data, input.zyxdim * sizeof(T),
                     cudaMemcpyHostToDevice));
 }
 
@@ -351,9 +348,9 @@ void GeoTransformer<T>::setOutputSize(MultidimArray<T> &output) {
 }
 
 template<typename T>
-template<typename T_IN, typename T_MAT>
+template<typename T_MAT>
 void GeoTransformer<T>::checkRestrictions(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T_IN> &input,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
         const Matrix2D<T_MAT> &transform) {
     if (!isReadyForMatrix)
         throw std::logic_error("Transformer is not ready yet.");
@@ -387,15 +384,14 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
 }
 
 template<typename T>
-template<typename T_IN>
 void GeoTransformer<T>::checkRestrictions(const MultidimArray<T> &output,
-                                        const MultidimArray<T_IN> &input) {
+                                        const MultidimArray<T> &input) {
     if (!input.xdim)
         throw std::invalid_argument("Input is empty");
     if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
         throw std::logic_error(
                 "Transformer has been initialized for a different size of the input");
-    if (&input == (MultidimArray<T_IN>*) &output)
+    if (&input == &output)
         throw std::invalid_argument(
                 "The input array cannot be the same as the output array");
 
