@@ -120,8 +120,7 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
             assert("degree 0..2 not implemented");
             break;
         case 3: {
-			T res = interpolatedElementBSpline2D_Degree3(x - shiftX, y - shiftY, xdim,
-			                    ydim, input);
+            T res = interpolatedElementBSpline2D_Degree3New(x, y, shiftX, shiftY, xdim, ydim, input);
 		    size_t index = y * xdim + x;
 		    output[index] = res;
 	    }
@@ -131,3 +130,113 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
         }
 }
 
+template<typename T, int pixels_per_thread>
+__device__
+void getShiftMorePixels(int lX, int lY, int lN, int x,
+        int y, T* __restrict__ shiftY, T* __restrict__ shiftX, const T* __restrict__ coefsX,
+        const T* __restrict__ coefsY, T hX, T hY, T tPos) {
+    T imax = 1.5; // inverted maximum value of bspline03 function
+
+    T delta = 0.0001;
+    T deltaX = delta * imax;  //0.00015000015
+    T deltaT = deltaX * imax; //0.00022500045
+
+    // index of the 'cell' where pixel is located (<0, N-3> for N control points)
+    T xPos = x / hX;
+
+    int tEnd = min((int) (tPos) + 2, lN - 2);
+    int xEnd = min((int) (xPos) + 2, lX - 2);
+
+    // indices of the control points are from -1 .. N-2 for N points
+    // pixel in 'cell' 0 may be influenced by points with indices <-1,2>
+    // for loops in different order
+    for (int idxT = (int) (tPos) - 1; idxT <= tEnd; ++idxT) {
+        T tmpT = bspline03(tPos - idxT);
+
+        if (tmpT < deltaT) {
+            continue;
+        }
+
+         for (int idxX = (int) (xPos) - 1; idxX <= xEnd; ++idxX) {
+            T tmpX = bspline03(xPos - idxX) * tmpT;
+
+            if (tmpX < deltaX) {
+                continue;
+            }
+
+            for (int i = 0; i < pixels_per_thread; ++i) {
+                T yPos = (y + i) / hY;
+                int yEnd = min((int) (yPos) + 2, lY - 2);
+                for (int idxY = (int) (yPos) - 1; idxY <= yEnd; ++idxY) {
+                    T tmp = bspline03(yPos - idxY) * tmpX;
+
+                    if (tmp > delta) {
+                        int coeffOffset = (idxT + 1) * lX * lY
+                                + (idxY + 1) * lX + (idxX + 1);
+                        shiftX[i] += coefsX[coeffOffset] * tmp;
+                        shiftY[i] += coefsY[coeffOffset] * tmp;
+                    }
+                }
+            }
+        }
+    }
+}
+
+__device__
+bool isEdge(int x, int y, int xdim, int ydim, int edge_dist = 32) {
+    return (x < edge_dist) || (x >= xdim - edge_dist) || (y < edge_dist) || (y >= ydim - edge_dist);
+}
+
+/*
+ * One thread computes more pixels in its column
+*/
+template<typename T, int degree, int pixels_per_thread>
+__global__
+void applyLocalShiftGeometryKernelMorePixels(const T* __restrict__ coefsX, const T * __restrict__ coefsY,
+    T* __restrict__ output, int xdim, int ydim, int ndim,
+    const T* __restrict__ input, int curFrame,
+    int lX, int lY, int lN, // number of control points in each dim
+    T hX, T hY, T tPos) {
+    // assign output pixel to thread
+    int y = pixels_per_thread * (blockIdx.y * blockDim.y + threadIdx.y);
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (x >= xdim || y >= ydim)
+        return;
+
+    // Calculate this position in the input image according to the
+    // geometrical transformation
+    T shiftX[pixels_per_thread] = { 0 };
+    T shiftY[pixels_per_thread] = { 0 };
+    getShiftMorePixels<T, pixels_per_thread>(lX, lY, lN, x, y, shiftY, shiftX,
+            coefsX, coefsY, hX, hY, tPos);
+
+    switch (degree) {
+        case 0:
+        case 1:
+        case 2:
+            assert("degree 0..2 not implemented");
+            break;
+        case 3: {
+            #pragma unroll
+            for (int i = 0; i < pixels_per_thread; ++i) {
+                if ( y + i >= ydim ) {
+                    continue;
+                }
+                T res;
+                if ( isEdge( x - shiftX[i], y + i - shiftY[i], xdim, ydim, 32 ) ) {
+                    res = interpolatedElementBSpline2D_Degree3MorePixelsEdge< T >(x, y + i, shiftX[i], shiftY[i], xdim,
+                                ydim, input);
+                } else {
+                    res = interpolatedElementBSpline2D_Degree3MorePixelsInner< T >(x, y + i, shiftX[i], shiftY[i], xdim,
+                                ydim, input);
+                }
+                size_t index = (y + i) * xdim + x;
+                output[index] = res;
+            }
+        }
+            break;
+        default:
+            printf("Degree %d is not supported\n", degree);
+        }
+}
