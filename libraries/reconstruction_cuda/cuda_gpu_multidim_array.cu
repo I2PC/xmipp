@@ -204,7 +204,6 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T
 
     #pragma unroll
     for ( int i = 0; i < 4; ++i ) {
-        const int l = l1 + i;
         aux_Array[i] = bspline03( x_diff - i );
     }
 
