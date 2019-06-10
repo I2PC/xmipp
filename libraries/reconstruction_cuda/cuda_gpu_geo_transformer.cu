@@ -133,8 +133,8 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
 template<typename T, int pixels_per_thread>
 __device__
 void getShiftMorePixels(int lX, int lY, int lN, int x,
-        int y, T* shiftY, T* shiftX, const T* coefsX,
-        const T* coefsY, T hX, T hY, T tPos) {
+        int y, T* shiftY, T* shiftX, const T* __restrict__ coefsX,
+        const T* __restrict__ coefsY, T hX, T hY, T tPos) {
     T imax = 1.5; // inverted maximum value of bspline03 function
 
     T delta = 0.0001;
@@ -192,9 +192,9 @@ bool isEdge(int x, int y, int xdim, int ydim, int edge_dist = 32) {
 */
 template<typename T, int degree, int pixels_per_thread>
 __global__
-void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
+void applyLocalShiftGeometryKernelMorePixels(const T* __restrict__ coefsX, const T * __restrict__ coefsY,
     T* output, int xdim, int ydim, int ndim,
-    /*const*/ T* input, int curFrame,
+    const T* __restrict__ input, int curFrame,
     int lX, int lY, int lN, // number of control points in each dim
     T hX, T hY, T tPos) {
     // assign output pixel to thread

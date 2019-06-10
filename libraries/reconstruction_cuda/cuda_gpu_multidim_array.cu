@@ -187,9 +187,9 @@ T interpolatedElementBSpline2D_Degree3New(int x, int y, T x_shift, T y_shift, in
 
 template< typename T >
 __device__
-T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* data)
+T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* __restrict__ data)
 {
-    const T *ref;
+    const T* __restrict__ ref;
 
     int x_shift_ceiled = static_cast<int>(ceil(-x_shift));
     int y_shift_ceiled = static_cast<int>(ceil(-y_shift));
@@ -227,9 +227,9 @@ T interpolatedElementBSpline2D_Degree3MorePixelsInner(int x, int y, T x_shift, T
 
 template< typename T >
 __device__
-T interpolatedElementBSpline2D_Degree3MorePixelsEdge(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* data)
+T interpolatedElementBSpline2D_Degree3MorePixelsEdge(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* __restrict__ data)
 {
-    const T* ref;
+    const T* __restrict__ ref;
 
     int x_shift_ceiled = static_cast<int>(ceil(-x_shift));
     int y_shift_ceiled = static_cast<int>(ceil(-y_shift));
