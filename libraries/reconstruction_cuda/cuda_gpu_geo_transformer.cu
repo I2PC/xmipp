@@ -120,8 +120,6 @@ void applyLocalShiftGeometryKernel(const T* coefsX, const T *coefsY,
             assert("degree 0..2 not implemented");
             break;
         case 3: {
-			// T res = interpolatedElementBSpline2D_Degree3(x - shiftX, y - shiftY, xdim,
-			                    // ydim, input);
             T res = interpolatedElementBSpline2D_Degree3New(x, y, shiftX, shiftY, xdim, ydim, input);
 		    size_t index = y * xdim + x;
 		    output[index] = res;
@@ -226,7 +224,7 @@ void applyLocalShiftGeometryKernelMorePixels(const T* coefsX, const T *coefsY,
                     continue;
                 }
                 T res;
-                if ( isEdge( x_shifted, y_shifted, xdim, ydim, 32 ) ) {
+                if ( isEdge( x - shiftX[i], y + i - shiftY[i], xdim, ydim, 32 ) ) {
                     res = interpolatedElementBSpline2D_Degree3MorePixelsEdge< T >(x, y + i, shiftX[i], shiftY[i], xdim,
                                 ydim, input);
                 } else {
