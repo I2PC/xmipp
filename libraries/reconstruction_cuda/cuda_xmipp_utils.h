@@ -290,9 +290,8 @@ public:
 	template <typename T1>
 	void ifft(GpuMultidimArrayAtGpu<T1> &realSpace, mycufftHandle &myhandle);
 
-	template <typename T1>
-	void fftStream(GpuMultidimArrayAtGpu<T1> &fourierTransform, mycufftHandle &myhandle, myStreamHandle &myStream,
-			bool useCallback, GpuMultidimArrayAtGpu< std::complex<float> > &dataRef);
+	void fftStream(GpuMultidimArrayAtGpu<std::complex<float>> &fourierTransform, mycufftHandle &myhandle, myStreamHandle &myStream,
+			bool useCallback, GpuMultidimArrayAtGpu< std::complex<float>> &dataRef);
 
 	// RealSpace must already be resized
 	template <typename T1>
