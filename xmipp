@@ -503,6 +503,8 @@ def configCompiler(configDict):
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
             configDict["CXXFLAGS"]+=" -std=c++11"
+        if 'TRAVIS' in os.environ:
+            configDict["CXXFLAGS"] += " -Werror"  # don't tolerate any warnings on build machine
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
