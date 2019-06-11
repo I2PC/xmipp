@@ -25,7 +25,8 @@
  ***************************************************************************/
 """
 
-import sys, os
+import os
+import sys
 import xmipp_base
 from xmipp3 import Plugin
 import pyworkflow.em.metadata as md
@@ -43,7 +44,7 @@ CUDA_LIB = %(CUDA_HOME)s/lib64
 CUDNN_VERSION = 6 or 7
 '''
 
-class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
+class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
     def __init__(self):
 
         xmipp_base.XmippScript.__init__(self)
@@ -70,7 +71,7 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
         self.addParamsLine('[ -g <gpuIds>   <N=0> ] : GPU ids to employ. Comma separated list. E.g. "0,1". Default 0. use -1 for CPU-only computation')
         
         ## examples
-        self.addExampleLine('xmipp_deep_carbon_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
+        self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
         
     def run(self):
 
@@ -140,13 +141,13 @@ class ScriptCarbonCleanerEm(xmipp_base.XmippScript):
         if self.checkParam('-d'):
           args["deepLearningModel"]= self.getParam('-d')
         else:
-          args["deepLearningModel"]=Plugin.getModel('deepCarbonCleaner', 'defaultModel.keras')
+          args["deepLearningModel"]=Plugin.getModel('deepMicrographCleaner', 'defaultModel.keras')
           
 
         print(args)
         
         try:
-          from xmippPyModules.carbon_cleaner_em.cleanMics import main
+          from xmippPyModules.micrograph_cleaner_em.cleanMics import main
         except ImportError as e:
           print(e)
           raise ValueError(BAD_IMPORT_MSG)
@@ -163,8 +164,8 @@ def updateEnviron(gpus=None):
     
 if __name__ == '__main__':
     '''
-scipion python `which xmipp_deep_carbon_cleaner` -g 0 
+scipion python `which xmipp_deep_micrograph_cleaner` -g 0 
     '''
-    exitCode=ScriptCarbonCleanerEm().tryRun()
+    exitCode=ScriptMicrographCleanerEm().tryRun()
     sys.exit(exitCode)
     
