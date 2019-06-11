@@ -7,7 +7,7 @@ os.environ['OMP_NUM_THREADS']="4"
 from joblib import Parallel, delayed
 
 DOWNLOAD_MODEL_URL="http://campins.cnb.csic.es/carbon_cleaner/defaultModel.keras.gz"
-DEFAULT_MODEL_PATH=os.path.expanduser("~/.local/share/carbon_cleaner_em/models/")
+DEFAULT_MODEL_PATH=os.path.expanduser("~/.local/share/micrograph_cleaner_em/models/")
 def main(inputMicsPath, inputCoordsDir, outputCoordsDir, deepLearningModel, boxSize, downFactor, deepThr,
          sizeThr, predictedMaskDir, gpus="0"):
 
@@ -171,7 +171,7 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
           parser.exit()
 
   parser.add_argument('--download', action=_DownloadModel,
-                      help='Download default carbon_cleaner_em model. It will be saved at %s'%(DEFAULT_MODEL_PATH) )
+                      help='Download default micrograph_cleaner_em model. It will be saved at %s'%(DEFAULT_MODEL_PATH) )
                       
   args = vars(parser.parse_args())
 #  print(args)
@@ -208,7 +208,7 @@ if __name__=="__main__":
   '''
 LD_LIBRARY_PATH=/home/rsanchez/app/cuda-9.0/lib64:$LD_LIBRARY_PATH
 
-python -m  carbon_cleaner_em.cleanMics  -c /home/rsanchez/ScipionUserData/projects/2dAverages_embeddings/Runs/008337_XmippParticlePickingAutomatic/extra/ -o ~/tmp/carbon_cleaner_em/coordsCleaned/ -b 180 -s 1   --inputMicsPath  /home/rsanchez/ScipionUserData/projects/2dAverages_embeddings/Runs/002321_ProtImportMicrographs/extra/stack_0021_2x_SumCorr.mrc
+python -m  micrograph_cleaner_em.cleanMics  -c /home/rsanchez/ScipionUserData/projects/2dAverages_embeddings/Runs/008337_XmippParticlePickingAutomatic/extra/ -o ~/tmp/micrograph_cleaner_em/coordsCleaned/ -b 180 -s 1   --inputMicsPath  /home/rsanchez/ScipionUserData/projects/2dAverages_embeddings/Runs/002321_ProtImportMicrographs/extra/stack_0021_2x_SumCorr.mrc
 
   '''
   commanLineFun()
