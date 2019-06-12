@@ -34,9 +34,9 @@ def usage(error=''):
     print("\n"
           "    %s"
           "\n"
-          "    Usage: python tar.py <mode> <v=version> [br=branch]\n"
+          "    Usage: python tar.py <mode> [v=version] [br=branch]\n"
           "\n"
-          "             mode: Binaries: Just the binaries. \n"
+          "             mode: BinXXXX: Just the binaries. (XXXX is a OS label like 'Debian', 'Centos'...) \n"
           "                   Sources: Just the source code.\n"
           "\n"
           "             branch if for the sources (default: master)\n"
@@ -68,27 +68,24 @@ def run(label, version, branch):
     excludeTgz = ''
     if label.startswith('Bin'):
         print("Recompiling to make sure that last version is there...")
-        if label.endswith('Debian'):
-            target = 'xmippBin_Debian-'+version
-        elif label.endswith('Centos'):
-            target = 'xmippBin_Centos-'+version
-        else:
-            raise Exception("mode not recognized. Choose: Sources, BinCentos or BinDebian.")
+        sublabel = label.split('Bin')[1]
+        target = 'xmippBin_%s-%s' % (sublabel, version)
         try:
             # doing compilation and install separately to skip overwriting config
             os.system("./xmipp compile 4")
             os.system("./xmipp install %s" % target)
         except:
             raise Exception("  ...some error occurred during the compilation!!!\n")
-        checkFile = isfile(join(target, 'bin', 'xmipp_reconstruct_significant'))
+        checkFile = isfile(join(target, 'bin', 'xmipp_cuda_movie_alignment_correlation'))
         if not checkFile:
             print("\n"
                   "     ERROR: %s not found. \n"
-                  "            Xmipp needs to be compiled to make the binaries.tgz."
+                  "            Xmipp should be compiled using CUDA to make the binaries.tgz."
                   % checkFile)
             sys.exit(1)
         os.system("cp xmipp.conf %s/xmipp.conf" % target)
-        os.system("touch %s/v%s" % (target, version))
+        os.system("rm %s/v%s" % (target, version))
+        os.system("touch %s/v%s_%s" % (target, version, sublabel))
         excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' " \
                      "--exclude='*.java' --exclude='resources/test' " \
                      "--exclude='*xmipp_test*main'"
