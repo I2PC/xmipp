@@ -388,7 +388,9 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         patchesData1 = tmp;
         // run processing thread on the background
         threads.push_back(std::thread([&]() {
-            // delay locking, but not for too long
+            // make sure to set proper GPU
+            this->gpu.value().set();
+
             if (this->verbose > 1) {
                 std::cout << "\nProcessing patch " << p.id_x << " " << p.id_y << std::endl;
             }

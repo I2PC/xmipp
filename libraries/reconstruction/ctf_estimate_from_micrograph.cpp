@@ -142,42 +142,49 @@ void ProgCTFEstimateFromMicrograph::defineParams()
 }
 
 /* Construct piece smoother =============================================== */
-void constructPieceSmoother(const MultidimArray<double> &piece,
-                            MultidimArray<double> &pieceSmoother)
+template<typename T>
+void ProgCTFEstimateFromMicrograph::constructPieceSmoother(
+        const MultidimArray<T> &piece,
+        MultidimArray<T> &pieceSmoother)
 {
     // Attenuate borders to avoid discontinuities
     pieceSmoother.resizeNoCopy(piece);
     pieceSmoother.initConstant(1);
     pieceSmoother.setXmippOrigin();
-    double iHalfsize = 2.0 / YSIZE(pieceSmoother);
-    const double alpha = 0.025;
-    const double alpha1 = 1 - alpha;
-    const double ialpha = 1.0 / alpha;
-    for (int i = STARTINGY(pieceSmoother); i <= FINISHINGY(pieceSmoother);
-         i++)
-    {
-        double iFraction = fabs(i * iHalfsize);
+    T iHalfsize = (T)2 / YSIZE(pieceSmoother);
+    const T alpha = 0.025;
+    const T alpha1 = 1 - alpha;
+    const T ialpha = 1.0 / alpha;
+
+    auto computeMaskValue = [&] (T fraction) {
+        return 0.5 * (1 + cos(PI * ((fraction - 1) * ialpha + 1)));
+    };
+
+    for (int i = STARTINGY(pieceSmoother);
+            i <= FINISHINGY(pieceSmoother);
+            i++) {
+        T iFraction = fabs(i * iHalfsize);
         if (iFraction > alpha1)
         {
-            double maskValue = 0.5
-                               * (1 + cos(PI * ((iFraction - 1) * ialpha + 1)));
+            T maskValue = computeMaskValue(iFraction);
             for (int j = STARTINGX(pieceSmoother);
-                 j <= FINISHINGX(pieceSmoother); j++)
-                A2D_ELEM(pieceSmoother,i,j)*=maskValue;
+                    j <= FINISHINGX(pieceSmoother); j++) {
+                A2D_ELEM(pieceSmoother,i,j) *= maskValue;
+            }
         }
     }
 
-    for (int j = STARTINGX(pieceSmoother); j <= FINISHINGX(pieceSmoother);
-         j++)
-    {
-        double jFraction = fabs(j * iHalfsize);
+    for (int j = STARTINGX(pieceSmoother);
+            j <= FINISHINGX(pieceSmoother);
+            j++) {
+        T jFraction = fabs(j * iHalfsize);
         if (jFraction > alpha1)
         {
-            double maskValue = 0.5
-                               * (1 + cos(PI * ((jFraction - 1) * ialpha + 1)));
+            T maskValue = computeMaskValue(jFraction);
             for (int i = STARTINGY(pieceSmoother);
-                 i <= FINISHINGY(pieceSmoother); i++)
-                A2D_ELEM(pieceSmoother,i,j)*=maskValue;
+                    i <= FINISHINGY(pieceSmoother); i++) {
+                A2D_ELEM(pieceSmoother,i,j) *= maskValue;
+            }
         }
     }
 }
@@ -414,7 +421,7 @@ void ProgCTFEstimateFromMicrograph::run()
 //        		M_in().window(piece, 0, 0, piecei, piecej, 0, 0, piecei + YSIZE(piece) - 1,
 //        				piecej + XSIZE(piece) - 1);
         		window2D( M_in(), piece, piecei, piecej, piecei + YSIZE(piece) - 1, piecej + XSIZE(piece) - 1);
-        		piece.statisticsAdjust(0, 1);
+        		piece.statisticsAdjust(0., 1.);
         		normalize_ramp(piece);
         		piece *= pieceSmoother;
 
@@ -897,7 +904,7 @@ void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
             for (size_t k = 0; k < YSIZE(piece); k++)
                 for (size_t l = 0; l < XSIZE(piece); l++)
                     DIRECT_A2D_ELEM(piece, k, l)= mI(i+k, j+l);
-            piece.statisticsAdjust(0, 1);
+            piece.statisticsAdjust(0., 1.);
             normalize_ramp(piece, &pieceMask);
             piece *= pieceSmoother;
 
@@ -956,7 +963,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     pieceMask.initConstant(1);
 
     MultidimArray<double> pieceSmoother;
-    constructPieceSmoother(PSD, pieceSmoother);
+    ProgCTFEstimateFromMicrograph::constructPieceSmoother(PSD, pieceSmoother);
 
     // Prepare thread arguments
     Mutex mutex;
@@ -988,3 +995,6 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     enhancedPSD.setXmippOrigin();
     enhancedPSD.selfWindow(firstIndex, firstIndex, lastIndex, lastIndex);
 }
+
+// explicit instantiation
+template void ProgCTFEstimateFromMicrograph::constructPieceSmoother<float>(MultidimArray<float> const&, MultidimArray<float>&);

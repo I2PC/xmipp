@@ -196,7 +196,7 @@ void * threadPrepareImages(void * args)
 			RTFourier.resize(YSIZE(RT), XSIZE(mlineiFourier));
 			for (size_t i = 0; i < YSIZE(RT); i++) {
 				memcpy(&(DIRECT_A1D_ELEM(linei,0)),&DIRECT_A2D_ELEM(RT,i,0),XSIZE(linei)*sizeof(double));
-				linei.statisticsAdjust(0,1);
+				linei.statisticsAdjust(0.,1.);
 				transformer.FourierTransform();
 			    transformer.fReal->initZeros();
 			    transformer.inverseFourierTransform();

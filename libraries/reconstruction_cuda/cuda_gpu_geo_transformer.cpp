@@ -147,7 +147,7 @@ void GeoTransformer<T>::test(const Matrix2D<T> &transform) {
 }
 
 template<typename T>
-void GeoTransformer<T>::applyBSplineTransform(
+void GeoTransformer<T>::applyBSplineTransformRef(
         int splineDegree,
         MultidimArray<T> &output, const MultidimArray<T> &input,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
@@ -179,9 +179,47 @@ void GeoTransformer<T>::applyBSplineTransform(
 }
 
 template<typename T>
-template<typename T_IN, typename T_MAT>
+void GeoTransformer<T>::applyBSplineTransform(
+        int splineDegree,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
+        const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
+    checkRestrictions(3, output, input, coeffs, imageIdx);
+
+    setOutputSize(output);
+    produceAndLoadCoeffs(input);
+
+    loadCoefficients(coeffs.first, coeffs.second);
+
+    dim3 dimBlock(16, 16);
+    dim3 dimGrid(ceil(inX / (T) dimBlock.x), ceil((inY / (T) dimBlock.y) / (T) pixelsPerThread)); //more pixels
+
+    // take into account end points
+    T hX = (splineX == 3) ? inX : (inX / (T) ((splineX - 3)));
+    T hY = (splineY == 3) ? inY : (inY / (T) ((splineY - 3)));
+    T hT = (splineN == 3) ? inN : (inN / (T) ((splineN - 3)));
+    T tPos = imageIdx / hT;
+
+    switch (splineDegree) {
+    case 3:
+        applyLocalShiftGeometryKernelMorePixels<T, 3, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
+                d_out, (int)inX, (int)inY, (int)inN,
+                d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
+                hX, hY, tPos);
+            gpuErrchk(cudaPeekAtLastError());
+        break;
+    default:
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, formatString("applyBSplineTransform not implemented for spline degree %d.", splineDegree));
+    }
+
+    gpuErrchk(
+            cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
+                    cudaMemcpyDeviceToHost));
+}
+
+template<typename T>
+template<typename T_MAT>
 void GeoTransformer<T>::applyGeometry(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T_IN> &input,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
         const Matrix2D<T_MAT> &transform, bool isInv, bool wrap, T outside,
         const MultidimArray<T> *bCoeffsPtr) {
     checkRestrictions(splineDegree, output, input, transform);
@@ -242,26 +280,14 @@ void GeoTransformer<T>::loadCoefficients(const Matrix1D<T> &X,
 }
 
 template<typename T>
-template<typename T_IN>
 void GeoTransformer<T>::produceAndLoadCoeffs(
-    const MultidimArray<T_IN> &input) {
-
-    // if no cast is needed, then don't copy input to tmpIn
-    const MultidimArray<T> * input_ptr;
-    MultidimArray<T> tmpIn;
-
-    if (std::is_same< T, T_IN >::value) {
-        input_ptr = &input;
-    } else {
-        typeCast(input, tmpIn);
-        input_ptr = &tmpIn;
-    }
-
+    const MultidimArray<T> &input) {
     gpuErrchk(
-        cudaMemcpy(d_in, input_ptr->data, input_ptr->yxdim * sizeof(T), cudaMemcpyHostToDevice));
+        cudaMemcpy(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice));
 
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input_ptr->xdim, input_ptr->ydim);
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input.xdim, input.ydim);
 }
+
 
 template<typename T>
 void GeoTransformer<T>::applyGeometry_2D_wrap(int splineDegree) {
@@ -291,20 +317,16 @@ void GeoTransformer<T>::applyGeometry_2D_wrap(int splineDegree) {
 }
 
 template<typename T>
-template<typename T_IN>
-void GeoTransformer<T>::loadInput(const MultidimArray<T_IN> &input) {
-    MultidimArray<T> tmp;
-    typeCast(input, tmp);
+void GeoTransformer<T>::loadInput(const MultidimArray<T> &input) {
     gpuErrchk(
-            cudaMemcpy(d_in, tmp.data, tmp.zyxdim * sizeof(T),
+            cudaMemcpy(d_in, input.data, input.zyxdim * sizeof(T),
                     cudaMemcpyHostToDevice));
 }
 
 template<typename T>
 void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
-    if (output.xdim == 0) {
-        output.resize(inZ, inY, inX);
-    }
+    setOutputSize(output);
+
     if (outside != (T) 0) {
         // Initialize output matrix with value=outside
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(output)
@@ -318,22 +340,23 @@ void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
         gpuErrchk(cudaMemset(d_out, 0, output.zyxdim * sizeof(T)));
     }
 }
+template<typename T>
+void GeoTransformer<T>::setOutputSize(MultidimArray<T> &output) {
+    if (output.xdim == 0) {
+        output.resizeNoCopy(inZ, inY, inX);
+    }
+}
 
 template<typename T>
-template<typename T_IN, typename T_MAT>
+template<typename T_MAT>
 void GeoTransformer<T>::checkRestrictions(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T_IN> &input,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
         const Matrix2D<T_MAT> &transform) {
     if (!isReadyForMatrix)
         throw std::logic_error("Transformer is not ready yet.");
-    if (!input.xdim)
-        throw std::invalid_argument("Input is empty");
-    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
-        throw std::logic_error(
-                "Transformer has been initialized for a different size of the input");
-    if (&input == (MultidimArray<T_IN>*) &output)
-        throw std::invalid_argument(
-                "The input array cannot be the same as the output array");
+
+    checkRestrictions(output, input);
+
     if ((input.getDim() == 2)
             && ((transform.Xdim() != 3) || (transform.Ydim() != 3)))
         throw std::invalid_argument("2D transformation matrix is not 3x3");
@@ -349,6 +372,20 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t frameIdx) {
     if (!isReadyForBspline)
         throw std::logic_error("Transformer is not ready yet.");
+
+    checkRestrictions(output, input);
+
+    if (frameIdx > inN)
+        throw std::invalid_argument("Frame index is out of bound");
+    size_t coeffsElems = splineX * splineY * splineN;
+    if ((coeffs.first.size() != coeffsElems) || (coeffs.second.size() != coeffsElems))
+        throw std::invalid_argument("Number of coefficients does not fit. "
+                "To init function, pass N control points.");
+}
+
+template<typename T>
+void GeoTransformer<T>::checkRestrictions(const MultidimArray<T> &output,
+                                        const MultidimArray<T> &input) {
     if (!input.xdim)
         throw std::invalid_argument("Input is empty");
     if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
@@ -357,12 +394,14 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
     if (&input == &output)
         throw std::invalid_argument(
                 "The input array cannot be the same as the output array");
-    if (frameIdx > inN)
-        throw std::invalid_argument("Frame index is out of bound");
-    size_t coeffsElems = splineX * splineY * splineN;
-    if ((coeffs.first.size() != coeffsElems) || (coeffs.second.size() != coeffsElems))
-        throw std::invalid_argument("Number of coefficients does not fit. "
-                "To init function, pass N control points.");
+
+    if (input.xdim < 64) {
+        throw std::invalid_argument("Xdim should be at least 64");
+    }
+
+    if (input.ydim <= 1) {
+        throw std::invalid_argument("Ydim should be at least 2");
+    }
 }
 
 template<typename T>
