@@ -194,11 +194,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     if (nullptr == shiftedFrame().data) {
                         shiftedFrame().resizeNoCopy(croppedFrame());
                     }
-                    // just swap the pointers
-                    auto tmp = shiftedFrame().data;
-                    shiftedFrame().data = croppedFrame().data;
-                    croppedFrame().data = tmp;
-
+		    std::swap(shiftedFrame().data, croppedFrame().data);
                 } else {
                     if (this->outsideMode == OUTSIDE_WRAP)
                         translate(this->BsplineOrder, shiftedFrame(),
@@ -223,10 +219,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     N++;
                 }
                 if (isZeroShift) {
-                    // swap the pointers back
-                    auto tmp = shiftedFrame().data;
-                    shiftedFrame().data = croppedFrame().data;
-                    croppedFrame().data = tmp;
+		    std::swap(shiftedFrame().data, croppedFrame().data);
                 }
             }
             if (this->verbose > 1) {
