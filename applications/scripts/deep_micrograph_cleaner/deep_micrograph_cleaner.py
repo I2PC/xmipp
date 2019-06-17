@@ -83,7 +83,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
             gpusToUse=None
         args["gpus"]=gpusToUse
 
-        updateEnviron(gpusToUse); sys.stdout.flush()
+        updateEnviron(gpusToUse)
         
         if not self.checkParam('-i'):
           raise Exception("Error, input micrographs fnames are requried as argument")
