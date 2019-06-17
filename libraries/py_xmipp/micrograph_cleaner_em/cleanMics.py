@@ -6,8 +6,10 @@ os.environ['MKL_NUM_THREADS']="4"
 os.environ['OMP_NUM_THREADS']="4"
 from joblib import Parallel, delayed
 
-DOWNLOAD_MODEL_URL="http://campins.cnb.csic.es/carbon_cleaner/defaultModel.keras.gz"
+DOWNLOAD_MODEL_URL= 'http://campins.cnb.csic.es/micrograph_cleaner/defaultModel.keras.gz'
 DEFAULT_MODEL_PATH=os.path.expanduser("~/.local/share/micrograph_cleaner_em/models/")
+
+
 def main(inputMicsPath, inputCoordsDir, outputCoordsDir, deepLearningModel, boxSize, downFactor, deepThr,
          sizeThr, predictedMaskDir, gpus="0"):
 
@@ -18,8 +20,8 @@ def main(inputMicsPath, inputCoordsDir, outputCoordsDir, deepLearningModel, boxS
   matchingFnames= getMatchingFiles(micsFnames, inputCoordsDir, outputCoordsDir, predictedMaskDir, coordsExtension)
   assert len(matchingFnames)>0, "Error, there are no matching coordinate-micrograph files"
   from .cleanOneMic import cleanOneMic
-  
-  Parallel(n_jobs= n_jobs)( delayed(cleanOneMic)( * multipleNames+( deepLearningModel, 
+
+  Parallel(n_jobs= n_jobs)( delayed(cleanOneMic)( * multipleNames+( deepLearningModel,
                                               boxSize, downFactor, deepThr,sizeThr, [gpus[i%n_jobs]]) )
                                             for i, multipleNames in enumerate(sorted(matchingFnames.values() ) ))
 def selectGpus(gpusStr):
@@ -31,11 +33,11 @@ def selectGpus(gpusStr):
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpusStr).replace(" ", "")
     gpus= [ int(num.strip()) for num in gpusStr.split(",") ]
     return gpus, len(gpus)
-    
+
 def getFilesInPath(pathsList, extensions):
   if pathsList is None:
     return None
-  if isinstance(pathsList, str) or len(pathsList)==1:
+  if isinstance(pathsList, str) or 1 == len(pathsList):
     if not isinstance(pathsList, str) and len(pathsList)==1:
       pathsList= pathsList[0]
     if os.path.isdir(pathsList):
@@ -54,7 +56,7 @@ def getFilesInPath(pathsList, extensions):
 def getMatchingFiles(micsFnames, inputCoordsDir, outputCoordsDir, predictedMaskDir, coordsExtension):
   def getMicName(fname):
     return ".".join( os.path.basename( fname).split(".")[:-1]  )
-    
+
   matchingFnames={}
   for fname in micsFnames:
     micName= getMicName(fname)
@@ -67,17 +69,17 @@ def getMatchingFiles(micsFnames, inputCoordsDir, outputCoordsDir, predictedMaskD
           predictedMaskFname= os.path.join(predictedMaskDir, micName+".mrc")
         else:
           predictedMaskFname=None
-        matchingFnames[micName]= (fname, inCoordsFname, outCoordsFname, predictedMaskFname)  
+        matchingFnames[micName]= (fname, inCoordsFname, outCoordsFname, predictedMaskFname)
       else:
         print("Warning, no coordinates for micrograph %s"%(fname))
     else:
         predictedMaskFname= os.path.join(predictedMaskDir, micName+".mrc")
-        matchingFnames[micName]= (fname, None, None, predictedMaskFname)  
+        matchingFnames[micName]= (fname, None, None, predictedMaskFname)
   return matchingFnames
-    
+
 def parseArgs():
   import argparse
-  
+
   example_text = '''examples:
   
   + Donwload deep learning model
@@ -93,7 +95,7 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
   cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOWN_FACTOR  -i  /path/to/micrographs/ --deepThr 0.5
      
 '''
- 
+
   parser = argparse.ArgumentParser(description='Compute goodness score for picked coordinates. Rule out bad coordinates',
                                    epilog=example_text, formatter_class=argparse.RawDescriptionHelpFormatter)
   def getRestricetedFloat(minVal=0, maxVal=1):
@@ -111,7 +113,7 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
     if ext not in choices:
        parser.error("file %s extension not allowed: %s"%( (fname,)+(" ".join(choices),) ))
     return os.path.abspath(os.path.expanduser(fname))
-    
+
   parser.add_argument('-i', '--inputMicsPath',  metavar='MIC_FNAME', type=str,  nargs='+', required=True,
                       help='micrograph(s) filenames where coordinates were picked (.mrc or .tif).\n'+
                       'Linux wildcards or several files are allowed.')
@@ -126,53 +128,60 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
   parser.add_argument('-d', '--deepLearningModel', metavar='MODEL_PATH', type=str,  nargs='?', required=False,
                       help=('(optional) deep learning model filename. If not provided, model at %s '+
                            'will be employed')%(DEFAULT_MODEL_PATH))
-                                                             
+
   parser.add_argument('-b', '--boxSize', metavar='PXLs', type=int,  required=True,
                       help='particles box size in pixels')
-                      
+
   parser.add_argument('-s', '--downFactor', type=float, nargs='?', required=False, default=1,
                       help='(optional) micrograph downsampling factor to scale coordinates, Default no scaling')
-                      
+
   parser.add_argument('--deepThr', type=getRestricetedFloat(), nargs='?', default=None, required=False,
                       help='(optional) deep learning threshold to rule out coordinates (coord_score<=deepThr-->accepted). '+
                            'The smaller the treshold '+
                            'the more coordinates will be ruled out. Ranges 0..1. Recommended 0.25')
-                           
+
   parser.add_argument('--sizeThr', type=getRestricetedFloat(0,1.), nargs='?', default=0.8, required=False,
                       help='Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
                            'Ranges 0..1. Default 0.8')
-                           
+
   parser.add_argument('--predictedMaskDir', type=str, nargs='?', required=False,
                       help='directory to store the predicted masks. If a given mask already existed, it will be used instead'+
                            ' of a new prediction')
 
   parser.add_argument('-g', '--gpus', metavar='GPU_Ids', type=str,  required=False, default="0",
                       help='GPU ids to employ. Comma separated list. E.g. "0,1". Default 0. use -1 for CPU-only computation')
-                      
+
   class _DownloadModel(argparse.Action):
-      def __init__(self, option_strings, dest=argparse.SUPPRESS, default=argparse.SUPPRESS, help=None):
+      def __init__(self, option_strings, dest, nargs=None, const=None, default=None, type=None,
+                   choices=None, required=False, help=None, metavar=None):
         super(_DownloadModel, self).__init__( option_strings=option_strings, dest=dest, default=default,
-                                              nargs=0,  help=help)
+                                              nargs=nargs,  const=const, required=required, help=help, metavar=metavar)
 
       def __call__(self, parser, namespace, values, option_string=None):
           import requests, gzip
           from io import BytesIO
+
           r = requests.get(DOWNLOAD_MODEL_URL)
           if r.status_code!=200:
             raise Exception("It was not possible to download model")
-          if not os.path.exists(DEFAULT_MODEL_PATH):
-            os.makedirs(DEFAULT_MODEL_PATH) 
-          deepLearningModelPath= os.path.join(DEFAULT_MODEL_PATH, "defaultModel.keras")
-          print("DOWNLAODING MODEL at %s"%(DEFAULT_MODEL_PATH) )
+          if len(values)==0:
+            downloadPath=DEFAULT_MODEL_PATH
+          else:
+            downloadPath= os.path.abspath(os.path.expanduser(values[0]))
+          if not os.path.exists(downloadPath):
+            os.makedirs(downloadPath)
+          deepLearningModelPath= os.path.join(downloadPath, "defaultModel.keras")
+          print("DOWNLAODING MODEL at %s"%(downloadPath) )
           with open(deepLearningModelPath , 'wb') as f:
             content= gzip.GzipFile(fileobj=BytesIO(r.content) )
             f.write(content.read())
           print("DOWNLOADED!!")
           parser.exit()
 
-  parser.add_argument('--download', action=_DownloadModel,
-                      help='Download default micrograph_cleaner_em model. It will be saved at %s'%(DEFAULT_MODEL_PATH) )
-                      
+  parser.add_argument('--download', nargs='*', action=_DownloadModel,
+                      help='Download default micrograph_cleaner_em model. '+
+                           'It will be saved at %s if no path provided'%(DEFAULT_MODEL_PATH) )
+
   args = vars(parser.parse_args())
 #  print(args)
   deepLearningModelPath=args["deepLearningModel"]
@@ -192,13 +201,15 @@ cleanMics  -c path/to/inputCoords/ -o path/to/outputCoords/ -b $BOX_SIXE -s $DOW
   if args["inputCoordsDir"] is None and args["outputCoordsDir"] is not None:
     raise Exception("Error, if inputCoordsDir provided, then outputCoordsDir must also be provided")
     parser.print_help()
-    
+
   if args["outputCoordsDir"] is None and args["inputCoordsDir"] is not None:
     raise Exception("Error, if outputCoordsDir provided, then inputCoordsDir must also be provided")
     parser.print_help()
 
   if "-1" in args["gpus"]:
     args["gpus"]=None
+  if "download" in args:
+    del args["download"]
   return args
 
 def commanLineFun():
@@ -212,4 +223,4 @@ python -m  micrograph_cleaner_em.cleanMics  -c /home/rsanchez/ScipionUserData/pr
 
   '''
   commanLineFun()
-  
+
