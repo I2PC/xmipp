@@ -1,4 +1,6 @@
+// #include "cuda_utils.h"
 #include "cuda_asserts.h"
+#include "cuda_basic_math.h"
 
 namespace iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels {
 
@@ -22,14 +24,6 @@ template< typename T >
 using data_ptr = T * __restrict__;
 template< typename T >
 using warp_shared_type = volatile T[WARP_SIZE];
-
-__device__ float power(float base, int exp) {
-    return powf(base, exp);
-}
-
-__device__ double power(double base, int exp) {
-    return pow(base, exp);
-}
 
 template< typename T, typename IndexFunc >
 __device__ void load_warp(data_ptr< T > in, warp_shared_type< T > sdata, IndexFunc f) {
@@ -299,3 +293,4 @@ void iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(double* input,
                 int xDim, int yDim) {
     iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::solveGPU( input, xDim, yDim );
 }
+

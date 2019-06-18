@@ -38,10 +38,10 @@ public:
     void run_test() {
         cpu_reference( in.get(), out.get(), x, y );
 
-        MultidimArray< T > tmpIn( y, x );
-        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY( tmpIn ) {
-            DIRECT_MULTIDIM_ELEM( tmpIn, n ) = in[n];
-        }
+        MultidimArray< T > tmpIn;
+        tmpIn.setYdim(y);
+        tmpIn.setXdim(x);
+        tmpIn.data = in.release();
 
         GeoTransformerTest< T > gt;
         gt.initLazyForBSpline( x, y, 1, 1, 1, 1 );
@@ -99,7 +99,7 @@ public:
             for (int j = 1; j < x; ++j) {
                 myLine[j] += z * myLine[j - 1];
             }
-            myLine[x - 1] *= z / (z - 1.f);
+            myLine[x - 1] *= z / (z - 1.0);
             for (int j = x - 2; 0 <= j; --j) {
                 myLine[j] = z * (myLine[j + 1] - myLine[j]);
             }
@@ -207,13 +207,24 @@ TYPED_TEST_P(GeoTransformerProduceAndLoadCoeffsTest, OddXEvenYRandomInput) {
     this->run_test();
 }
 
+TYPED_TEST_P(GeoTransformerProduceAndLoadCoeffsTest, SmallInput) {
+    this->x = 16;
+    this->y = 16;
+
+    this->allocate_arrays();
+    this->randomly_initialize( this->in.get(), this->size, 29 );
+
+    this->run_test();
+}
+
 REGISTER_TYPED_TEST_CASE_P(GeoTransformerProduceAndLoadCoeffsTest,
     RandomSizeZeroInput,
     PaddedSizeRandomInput,
     PaddedSquareSizeRandomInput,
     SquareSizeRandomInput,
     RandomSizeRandomInput,
-    OddXEvenYRandomInput
+    OddXEvenYRandomInput,
+    SmallInput
 );
 
 using ScalarTypes = ::testing::Types< float, double >;

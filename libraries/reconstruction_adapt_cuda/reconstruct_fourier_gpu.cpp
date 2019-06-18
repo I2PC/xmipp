@@ -150,12 +150,29 @@ void ProgRecFourierGPU::checkDefines() {
 	}
 }
 
+void ProgRecFourierGPU::checkMemory() {
+    size_t typeCoeff = sizeof(std::complex<float>) + sizeof(float);
+    size_t voxels = std::pow((maxVolumeIndexYZ + 1), 3);
+    size_t buffer = (size_t)(bufferSize * maxVolumeIndexX * maxVolumeIndexYZ)
+            * sizeof(std::complex<float>);
+    size_t sum = (voxels * typeCoeff) + (buffer * noOfThreads);
+    auto gpu = GPU(device);
+    gpu.set();
+    size_t available = gpu.lastFreeBytes();
+    std::cout << "Available memory: " << memoryUtils::MB(available) << "MB\n";
+    std::cout << "Required memory (at least): " << memoryUtils::MB(sum) << "MB" << std::endl;
+    if (available < sum) {
+        REPORT_ERROR(ERR_GPU_MEMORY,"You don't have enough memory. Try to decrease the padding, number of threads or buffer size.");
+    }
+}
+
 // Main routine ------------------------------------------------------------
 void ProgRecFourierGPU::run()
 {
     show();
     checkDefines(); // check that there is not a logical error in defines
     produceSideinfo();
+    checkMemory();
     if (verbose) {
 		init_progress_bar(SF.size());
     }

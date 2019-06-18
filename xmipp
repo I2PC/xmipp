@@ -38,7 +38,7 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.03b4'  #
+XMIPP_VERSION = '3.19.04'  #
 RELEASE_DATE = '03/04/2019'  #
 ##############################
 
@@ -641,11 +641,12 @@ int main(){}
 
     ok = False
     if checkProgram("mpirun",False):
-        ok=(runJob("mpirun -np 4 echo mpirun works 4 times") or
-            runJob("mpirun -np 4 --allow-run-as-root echo mpirun works 4 times"))
+        echoString = "This sentence should be printed 4 times if mpi runs fine"
+        ok=(runJob("mpirun -np 4 echo '%s (by mpirun).'" % echoString) or
+            runJob("mpirun -np 4 --allow-run-as-root echo '%s (by mpirun).'" % echoString))
     elif checkProgram("mpiexec",False):
-        ok=(runJob("mpiexec -np 4 echo mpiexec works 4 times") or
-            runJob("mpiexec -np 4 --allow-run-as-root echo mpiexec works 4 times"))
+        ok=(runJob("mpiexec -np 4 echo '%s (by mpiexec).'" % echoString) or
+            runJob("mpiexec -np 4 --allow-run-as-root echo '%s (by mpiexec).'" % echoString))
     else:
         print(red("mpirun or mpiexec have failed."))
 
@@ -728,18 +729,24 @@ def configCuda(configDict):
             # get rid of it: 'ccache g++' -> 'g++'
             candidate = configDict["CXX"].split()[-1]
             cxxVersion, cxxStrVersion = getGccVersion(candidate)
-            if cxxVersion > 5:
-                print(red("%s version later than 5 detected. Finding alternative for CUDA compilations..." % candidate))
-                if checkProgram(candidate+"-5"):
-                    configDict["CXX_CUDA"] = candidate+"-5"
-                elif checkProgram(candidate+"-4.8"):
-                    configDict["CXX_CUDA"] = candidate+"-4.8"
-                else:
+            if cxxVersion >= 6:
+                compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
+                print(red("%s version later than 5 detected. Looking for an alternative "
+                          "for CUDA compilations... (g++-v: %s)"
+                          % (candidate, ', '.join(compVers))))
+                for ver in compVers:
+                    cxxCudaVer = '-'+ver
+                    if checkProgram(candidate+cxxCudaVer):
+                        configDict["CXX_CUDA"] = candidate+cxxCudaVer
+                        print(green("%s detected! Using it to compile CUDA related code.\n"
+                                    % configDict["CXX_CUDA"]))
+                        break
+                if configDict["CXX_CUDA"] == '':
                     print(red("No alternative found. Skipping CUDA compilation.\n"
-                              "If an alternative exists, please set 'CXX_CUDA' in 'xmipp.conf' to point to there."))
+                              "If an alternative exists, please set 'CXX_CUDA' "
+                              "in 'xmipp.conf' to point to there."))
                     configDict["CUDA"] = "False"
                     return
-                print(green("%s detected. Using it to compile CUDA related code." % configDict["CXX_CUDA"]))
             else:
                 configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
@@ -1261,7 +1268,7 @@ def usage(msg=''):
           "                                   uploads the .tgz according to the <login>. \n"
           "                                   Note that login=usr@server must have write permisions to Nolan machine.\n"
           "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
-          "                                   <mode> can be 'Sources' or 'Binaries, when Sources put a branch (default: master).'\n"
+          "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
           "                                   <ver> usually X.YY.MM\n"
           )
 
