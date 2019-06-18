@@ -48,7 +48,16 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
     def __init__(self):
 
         xmipp_base.XmippScript.__init__(self)
-        
+
+    def getDoubleParamWithDefault(self, paramName, conditionFun= lambda x: False, defaultVal=None):
+      if self.checkParam(paramName):
+        x = self.getDoubleParam(paramName)
+        if conditionFun(x):
+          return defaultVal
+        return x
+      else:
+        return defaultVal
+
     def defineParams(self):
         self.addUsageLine('Compute goodness score for picked coordinates. Rule out bad coordinates')
         ## params
@@ -68,7 +77,8 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
                            '. Ranges 0..1. Default 0.8')
         self.addParamsLine('[ --predictedMaskDir <predictedMaskDir> ] : directory to store the predicted masks. If a given mask already existed, it will be used instead'+
                            ' of a new prediction')
-        self.addParamsLine('[ -g <gpuIds>   <N=0> ] : GPU ids to employ. Comma separated list. E.g. "0,1". Default 0. use -1 for CPU-only computation')
+        self.addParamsLine('[ -g <gpuIds>   <N=0> ] : GPU ids to employ. Comma separated list. E.g. "0,1". Default 0. '
+                            'use -1 for CPU-only computation or all to use all found in CUDA_VISIBLE_DEVICES')
         
         ## examples
         self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
@@ -85,19 +95,19 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
 
         updateEnviron(gpusToUse)
         
-        if not self.checkParam('-i'):
-          raise Exception("Error, input micrographs fnames are requried as argument")
-        else:
+        if self.checkParam('-i'):
           mdObj= md.MetaData(os.path.expanduser( self.getParam('-i')))
           args["inputMicsPath"]= []
           for objId in mdObj:
             args["inputMicsPath"]+= [mdObj.getValue(md.MDL_IMAGE, objId)]
-
-        if not self.checkParam('-b'):
-          raise Exception("Error, box size in pixels is required as argument")
         else:
+          raise Exception("Error, input micrographs fnames are requried as argument")
+
+        if self.checkParam('-b'):
           args["boxSize"]=  self.getIntParam('-b')
-          
+        else:
+          raise Exception("Error, box size in pixels is required as argument")
+
         args["inputCoordsDir"], args["outputCoordsDir"], args["predictedMaskDir"]= None, None, None
         if self.checkParam('-c'):
           args["inputCoordsDir"]= os.path.expanduser( self.getParam('-c'))
@@ -106,35 +116,21 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         if self.checkParam('--predictedMaskDir'):
           args["predictedMaskDir"]= os.path.expanduser( self.getParam('--predictedMaskDir'))
 
-        if self.checkParam('-s'):
-          args["downFactor"]= self.getDoubleParam('-s')
-        else:
-          args["downFactor"]= 1.0
 
-        if self.checkParam('--deepThr'):
-          thr= self.getDoubleParam('--deepThr')
-          if thr<=0 or thr>=1:
-            thr=None
-          args["deepThr"]=thr
-        else:
-          args["deepThr"]= None
-                    
-        if self.checkParam('--sizeThr'):
-          thr=  self.getDoubleParam('--sizeThr')
-          if thr<=0 or thr>=1:
-            thr=None
-          args["sizeThr"]=0.8
-        else:
-          args["sizeThr"]= 0.8
+        args["downFactor"]= self.getDoubleParamWithDefault('-s', defaultVal=1.0)
+        args["deepThr"]= self.getDoubleParamWithDefault('--deepThr', conditionFun= lambda x: x <= 0 or x >= 1,
+                                                        defaultVal=None)
+
+        args["sizeThr"]= self.getDoubleParamWithDefault('--sizeThr', conditionFun= lambda x: x <= 0 or x >= 1,
+                                                        defaultVal=0.8)
           
         if args["inputCoordsDir"] is None and args["predictedMaskDir"] is None:
           raise Exception("Either inputCoordsDir or predictedMaskDir (or both) must be provided")
-          parser.print_help()
-        if args["inputCoordsDir"] is None and args["outputCoordsDir"] is not None:
+
+        if args["inputCoordsDir"] is not None and args["outputCoordsDir"] is None:
           raise Exception("Error, if inputCoordsDir provided, then outputCoordsDir must also be provided")
-          parser.print_help()
-          
-        if args["outputCoordsDir"] is None and args["inputCoordsDir"] is not None:
+
+        if args["outputCoordsDir"] is not None and args["inputCoordsDir"] is None:
           raise Exception("Error, if outputCoordsDir provided, then inputCoordsDir must also be provided")
     
 
@@ -157,6 +153,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
 def updateEnviron(gpus=None):
   """ Create the needed environment for TensorFlow programs. """
   print("updating environ to select gpus: %s"%(gpus) )
+  if gpus.startswith("all"): return
   if gpus is not None or gpus is not "":
     os.environ['CUDA_VISIBLE_DEVICES']=str(gpus)
   else:
