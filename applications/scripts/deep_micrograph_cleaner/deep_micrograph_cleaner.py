@@ -72,13 +72,13 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         self.addParamsLine('-b <boxSize>     : particles box size in pixels')
         self.addParamsLine('-s <downFactor>   <F=1.0>   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
         self.addParamsLine(' [ --deepThr <deepThr> ]: (optional) deep learning threshold to rule out a coordinate. The smaller the treshold '+
-                           'the more coordiantes will be rule out. Ranges 0..1. Recommended 0.75')
+                           'the more coordiantes will be rule out. Ranges 0..1. Recommended 0.8')
         self.addParamsLine(' [--sizeThr <sizeThr> <F=0.8> ]: Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
                            '. Ranges 0..1. Default 0.8')
         self.addParamsLine('[ --predictedMaskDir <predictedMaskDir> ] : directory to store the predicted masks. If a given mask already existed, it will be used instead'+
                            ' of a new prediction')
         self.addParamsLine('[ -g <gpuIds>   <N=0> ] : GPU ids to employ. Comma separated list. E.g. "0,1". Default 0. '
-                            'use -1 for CPU-only computation or all to use all found in CUDA_VISIBLE_DEVICES')
+                            'use -1 for CPU-only computation or "all" to use all devices found in CUDA_VISIBLE_DEVICES (option for slurm)')
         
         ## examples
         self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
@@ -104,7 +104,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
           raise Exception("Error, input micrographs fnames are requried as argument")
 
         if self.checkParam('-b'):
-          args["boxSize"]=  self.getIntParam('-b')
+          args["boxSize"]= self.getIntParam('-b')
         else:
           raise Exception("Error, box size in pixels is required as argument")
 
@@ -138,10 +138,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
           args["deepLearningModel"]= self.getParam('-d')
         else:
           args["deepLearningModel"]=Plugin.getModel('deepMicrographCleaner', 'defaultModel.keras')
-          
 
-        print(args)
-        
         try:
           from xmippPyModules.micrograph_cleaner_em.cleanMics import main
         except ImportError as e:
