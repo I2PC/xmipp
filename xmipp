@@ -1125,10 +1125,8 @@ def install(dirname):
             pass  # just to create a init file to be able to import it as module
 
     runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule)
-    sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER)))
-
-    runJob("ln -s "+sourcePathMicClean+" "+destPathPyModule)
-
+    sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER,MICROGRAPH_CLEANER)))
+    runJob(cpCmd+" -r "+sourcePathMicClean+" "+destPathPyModule) #cp instead ln -s for safety reasons
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
