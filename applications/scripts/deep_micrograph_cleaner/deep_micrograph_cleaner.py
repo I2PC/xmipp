@@ -150,7 +150,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
 def updateEnviron(gpus=None):
   """ Create the needed environment for TensorFlow programs. """
   print("updating environ to select gpus: %s"%(gpus) )
-  if gpus.startswith("all"): return
+  if gpus is not None and gpus.startswith("all"): return
   if gpus is not None or gpus is not "":
     os.environ['CUDA_VISIBLE_DEVICES']=str(gpus)
   else:
