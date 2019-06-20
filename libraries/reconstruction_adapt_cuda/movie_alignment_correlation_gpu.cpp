@@ -371,7 +371,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     T *patchesData1 = new T[patchesElements];
     T *patchesData2 = new T[patchesElements];
 
-    std::vector<std::thread> threads;
+    std::thread* processing_thread = nullptr;
 
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
@@ -381,13 +381,19 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
                 patchesData1);
         // don't swap buffers while some thread is accessing its content
-        alignDataMutex.lock();
+        if ( processing_thread ) {
+            processing_thread->join();
+            delete processing_thread;
+            processing_thread = nullptr;
+        }
+
         // swap buffers
         auto tmp = patchesData2;
         patchesData2 = patchesData1;
         patchesData1 = tmp;
         // run processing thread on the background
-        threads.push_back(std::thread([&]() {
+
+        processing_thread = new std::thread([&, p]() {
             // make sure to set proper GPU
             this->gpu.value().set();
 
@@ -409,13 +415,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
                 result.shifts.emplace_back(tmp, Point2D<T>(globShiftX, globShiftY)
                         + alignment.shifts.at(i));
             }
-            // thread should be created now, let it work and load new buffer meanwhile
-            alignDataMutex.unlock();
-        }));
+        });
+
     }
     // wait for the last processing thread
-    for (auto &e : threads) {
-        e.join();
+    if ( processing_thread ) {
+        processing_thread->join();
+        delete processing_thread;
+        processing_thread = nullptr;
     }
 
     delete[] patchesData1;
