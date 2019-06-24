@@ -593,8 +593,6 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     T *data = new T[elems];
     getCroppedMovie(movieSettings, data);
 
-    // lock the data processing (as alignment will unlock it)
-    // alignDataMutex.lock();
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);
@@ -688,7 +686,6 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // indicating the requested shift
 
     // we are done with the input data, so release it
-    // alignDataMutex.unlock();
     Matrix2D<T> A(N * (N - 1) / 2, N - 1);
     Matrix1D<T> bX(N * (N - 1) / 2), bY(N * (N - 1) / 2);
 
