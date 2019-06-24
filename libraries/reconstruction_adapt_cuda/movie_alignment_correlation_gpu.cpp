@@ -373,6 +373,14 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     std::thread* processing_thread = nullptr;
 
+    auto wait_and_delete = [](std::thread*& thread) {
+        if (thread) {
+            thread->join();
+            delete thread;
+            thread = nullptr;
+        }
+    };
+
     // use additional thread that would load the data at the background
     // get alignment for all patches and resulting correlations
     for (auto &&p : patchesLocation) {
@@ -381,11 +389,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         getPatchData(movieRawData, p.rec, globAlignment, movieSettings.dim,
                 patchesData1);
         // don't swap buffers while some thread is accessing its content
-        if ( processing_thread ) {
-            processing_thread->join();
-            delete processing_thread;
-            processing_thread = nullptr;
-        }
+        wait_and_delete(processing_thread);
 
         // swap buffers
         auto tmp = patchesData2;
@@ -419,11 +423,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 
     }
     // wait for the last processing thread
-    if ( processing_thread ) {
-        processing_thread->join();
-        delete processing_thread;
-        processing_thread = nullptr;
-    }
+    wait_and_delete(processing_thread);
 
     delete[] patchesData1;
     delete[] patchesData2;
