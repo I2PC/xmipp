@@ -26,6 +26,7 @@
 #define _PROG_ELIMINATE_EMPTY_PARTICLES
 
 #include <core/xmipp_program.h>
+#include <data/fourier_filter.h>
 
 class ProgEliminateEmptyParticles: public XmippProgram
 {

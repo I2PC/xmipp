@@ -26,7 +26,7 @@ import subprocess
 import sys
 import os
 import shutil
-from os.path import dirname, realpath, join, isfile, exists
+from os.path import join, isfile, exists
 
 
 def usage(error=''):
@@ -34,33 +34,48 @@ def usage(error=''):
     print("\n"
           "    %s"
           "\n"
-          "    Usage: python tar.py <mode> [version]\n"
+          "    Usage: python tar.py <mode> <v=version> [br=branch]\n"
           "\n"
-          "             mode: Binaries: Just the binaries \n"
+          "             mode: Binaries: Just the binaries. \n"
           "                   Sources: Just the source code.\n"
+          "\n"
+          "             branch if for the sources (default: master)\n"
           "\n"
           "             version: X.YY.MM  (version, year and month)\n"
           "    " % errorStr)
     sys.exit(1)
 
 
-def run(label, version):
+def run(label, version, branch):
     MODES = {'Binaries': 'build', 'Sources': 'src'}
 
     def makeTarget(target, label):
         if exists(target):
-            print("%s already exists. Removing it...")
+            print("'%s' already exists. Removing it..." % target)
             os.system("rm -rf %s" % target)
         print("...preparing the bundle...")
-        shutil.copytree(MODES[label], target, symlinks=True)
+        cwd = os.getcwd()
+        os.mkdir(target)
+        shutil.copy('xmipp', target)
+        os.chdir(target)
+        os.environ['CUDA'] = 'True'
+        os.system('./xmipp config')  # just to write the config file
+        os.system('./xmipp get_dependencies')
+        os.system('./xmipp get_devel_sources %s' % branch)
+        os.system('rm -rf tmp xmipp xmipp.conf')
+        os.chdir(cwd)
 
     excludeTgz = ''
-    tgzPath = "xmipp%s-%s"
-    if label == 'Binaries':
+    if label.startswith('Bin'):
         print("Recompiling to make sure that last version is there...")
-        target = tgzPath % ('Bin', version)
+        if label.endswith('Debian'):
+            target = 'xmippBin_Debian-'+version
+        elif label.endswith('Centos'):
+            target = 'xmippBin_Centos-'+version
+        else:
+            raise Exception("mode not recognized. Choose: Sources, BinCentos or BinDebian.")
         try:
-            # doing compilation and install separately to skip config
+            # doing compilation and install separately to skip overwriting config
             os.system("./xmipp compile 4")
             os.system("./xmipp install %s" % target)
         except:
@@ -72,24 +87,28 @@ def run(label, version):
                   "            Xmipp needs to be compiled to make the binaries.tgz."
                   % checkFile)
             sys.exit(1)
+        os.system("cp xmipp.conf %s/xmipp.conf" % target)
+        os.system("touch %s/v%s" % (target, version))
         excludeTgz = "--exclude='*.tgz' --exclude='*.h' --exclude='*.cpp' " \
                      "--exclude='*.java' --exclude='resources/test' " \
                      "--exclude='*xmipp_test*main'"
     elif label == 'Sources':
-        target = tgzPath % ('Src', version)
-        os.mkdir(target)
-        makeTarget(join(target, 'src'), label)
+        target = 'xmippSrc-v'+version
+        makeTarget(target, label)
+        excludeTgz = " --exclude='models/*' --exclude='src/*/bin/*' --exclude='*.so'"
     else:
         usage("Incorrect <mode>")
 
+    # FIXME: This is breaking the Sources bundle. Please, use a clean dir and skip this
+    # excludeTgz += " --exclude='*.o' --exclude='*.os' --exclude='*pyc'"
+    # excludeTgz += " --exclude='*.gz' --exclude='*.bashrc' --exclude='*.fish'"
+    # excludeTgz += " --exclude=tests/data --exclude='*.scons*' --exclude=.git"
+    excludeTgz = ("--exclude=.git --exclude=.idea "
+                  "--exclude='xmipp.bashrc' --exclude='xmipp.fish'")
 
-    args = {'excludeTgz': excludeTgz,
-            'target': target}
+    cmdStr = "tar czf %(target)s.tgz %(excludeTgz)s %(target)s"
 
-    cmdStr = "tar czf %(target)s.tgz --exclude=.git --exclude='software/tmp/*' " \
-             "--exclude='*.o' --exclude='*.os' --exclude='*pyc' --exclude='*.gz' " \
-             "--exclude='*.bashrc' --exclude='*.fish' %(excludeTgz)s" \
-             "--exclude='*.scons*' --exclude='config/*.conf' %(target)s"
+    args = {'excludeTgz': excludeTgz, 'target': target}
 
     cmd = cmdStr % args
 
@@ -102,12 +121,13 @@ def run(label, version):
     os.system("rm -rf %s" % target)
 
 
-if __name__  == '__main__':
+if __name__ == '__main__':
 
-    if not (len(sys.argv) == 2 or len(sys.argv) == 3):
+    if not len(sys.argv) > 3:
         usage("Incorrect number of input parameters")
 
     label = sys.argv[1]
-    version = sys.argv[2] if len(sys.argv) == 3 else getVersion()
+    version = sys.argv[2]
+    branch = sys.argv[3] if len(sys.argv)>3 else 'master'
 
-    run(label, version)
+    run(label, version, branch)
