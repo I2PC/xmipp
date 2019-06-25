@@ -1657,14 +1657,11 @@ public:
  * a and b may be modified either by dividing by a0, or by resizing it.
  * Z is an auxiliary vector that will help to calculate the filter
  * */
-void filter(Matrix1D<double> &B, Matrix1D<double> &A,
+void matlab_filter(Matrix1D<double> &B, Matrix1D<double> &A,
 		    const MultidimArray<double> &X, MultidimArray<double> &Y, MultidimArray<double> &Z);
 
 /* Matlab 1D filtfilt function, y=filtfilt(b,a,x);
  * a(0) is supposed to be 1
  * */
-void filtfilt(const Matrix1D<double> &b, const Matrix1D<double> &a,
-	    const MultidimArray<double> &x, const MultidimArray<double> &y);
-
 
 #endif

@@ -32,6 +32,7 @@
 #include <core/histogram.h>
 #include <data/filters.h>
 #include <core/xmipp_fft.h>
+#include <numeric>
 
 /* prototypes */
 double CTF_fitness_fast(double *, void *);
@@ -1116,6 +1117,8 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 			if(w_digfreq(i)>min_freq && w_digfreq(i)<max_freq)
 				psd_background(i)= background(i)-psd_exp_radial(i);
 		}
+
+		//Uncomment to apply a high-pass FILTER to psd_background
 #ifdef FILTER
 		double alpha = 0.1;
 		Matrix1D<double> A_coeff(2);
@@ -1128,7 +1131,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		MultidimArray<double> aux_filter;
 		psd_background_filter.initZeros(psd_background);
 		aux_filter.initZeros(psd_background);
-		filter(B_coeff,A_coeff,psd_background,psd_background_filter,aux_filter);
+		matlab_filter(B_coeff,A_coeff,psd_background,psd_background_filter,aux_filter);
 		psd_background = psd_background_filter;
 #endif
 
@@ -1183,22 +1186,21 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		std::cout << "--------------------------------------" << std::endl;
 #endif
 
-		//Remove outliers
+		//Uncomment to remove outliers from amplitud
 #ifdef OUTLIERS
-		double totalSum = 0;
-		for(size_t i=0;i<amplitud.size();i++){
-			totalSum += amplitud[i];
-		}
+		double totalSum = std::accumulate(amplitud.begin(), amplitud.end(), 0.0);
+
 		double amplitudMean = totalSum / amplitud.size();
 		double sdSum = 0;
-		for(size_t i=0;i<amplitud.size();i++)
+		for(double i : amplitud)
 		{
 			double diff=amplitud[i]-amplitudMean;
 			sdSum += diff*diff;
 		}
 		double amplitudSD = sqrt(sdSum/amplitud.size());
 		double differenceSD = 3*amplitudSD;
-		for(size_t i=0;i<amplitud.size();i++){
+		for(double i : amplitud)
+		{
 			if (amplitud[i]>amplitudMean+differenceSD){
 				amplitud[i] = amplitudMean+differenceSD;
 			}
@@ -1215,7 +1217,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 #ifdef DEBUG
 			std::cout << "i=" << i << " amplitude i= " << amplitud[i] << std::endl;
 #endif
-			if (amplitud[i]>maxValue && amplitud[i]>amplitud[i-1] && amplitud[i]>=amplitud[i+1])
+			if (amplitud[i]>maxValue && amplitud[i]>=amplitud[i+1])
 			{
 				maxValue=amplitud[i];
 				finalIndex=i;

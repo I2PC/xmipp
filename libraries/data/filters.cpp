@@ -4090,7 +4090,7 @@ void denoiseTVFilter(MultidimArray<double> &xnew, int maxIter)
     }
 }
 
-void filter(Matrix1D<double> &B, Matrix1D<double> &A,
+void matlab_filter(Matrix1D<double> &B, Matrix1D<double> &A,
 		    const MultidimArray<double> &X, MultidimArray<double> &Y, MultidimArray<double> &Z)
 {
 	    if (VEC_ELEM(A,0)!=1.0)
@@ -4122,10 +4122,4 @@ void filter(Matrix1D<double> &B, Matrix1D<double> &A,
 			}
 			DIRECT_A1D_ELEM(Y,i) = VEC_ELEM(B,0) * DIRECT_A1D_ELEM(X,i) + DIRECT_A1D_ELEM(Z,0);
 		}
-}
-
-void filtfilt(const Matrix1D<double> &b, const Matrix1D<double> &a,
-	    const MultidimArray<double> &x, const MultidimArray<double> &y)
-{
-
 }
