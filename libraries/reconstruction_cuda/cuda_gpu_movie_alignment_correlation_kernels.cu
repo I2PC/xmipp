@@ -190,32 +190,34 @@ void correlate(const T* __restrict__ in1, const T* __restrict__ in2,
  * @param xDim input X dim
  * @param yDim input Y dim
  * @param noOfImgs no if images to process
- * @param outDim output dimension(s)
+ * @param outDimX output dimension(s)
+ * @param outDimY output dimension(s)
  */
 template<typename T>
 __global__
 void cropSquareInCenter(const T* __restrict__ in, T* __restrict__ out,
         int xDim, int yDim, int noOfImgs,
-        int outDim) {
+        int outDimX, int outDimY) {
     // assign pixel to thread
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int idy = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (idx >= outDim || idy >= outDim ) return;
+    if (idx >= outDimX || idy >= outDimY) return;
 
     int inputImgSize = xDim * yDim;
-    int outputImgSize = outDim * outDim;
+    int outputImgSize = outDimX * outDimY;
 
     int inCenterX = (int)((T) (xDim) / (T)2);
     int inCenterY = (int)((T) (yDim) / (T)2);
 
-    int outCenter = (int)((T) (outDim) / (T)2);
+    int outCenterX = (int)((T) (outDimX) / (T)2);
+    int outCenterY = (int)((T) (outDimY) / (T)2);
 
     for (int n = 0; n < noOfImgs; n++) {
-        int iX = idx - outCenter + inCenterX;
-        int iY = idy - outCenter + inCenterY;
+        int iX = idx - outCenterX + inCenterX;
+        int iY = idy - outCenterY + inCenterY;
         int inputPixelIdx = (n * inputImgSize) + (iY * xDim) + iX;
-        int outputPixelIdx = (n * outputImgSize) + (idy * outDim) + idx;
+        int outputPixelIdx = (n * outputImgSize) + (idy * outDimX) + idx;
         out[outputPixelIdx] = in[inputPixelIdx];
     }
 }

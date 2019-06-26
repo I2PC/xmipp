@@ -22,31 +22,13 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include "ashift_aligner.h"
 
-namespace Alignment {
+#ifndef CUDA_ASSERTS_H_
+#define CUDA_ASSERTS_H_
 
-template<typename T>
-std::vector<Point2D<T>> AShiftAligner<T>::computeShiftFromCorrelations2D(
-        T *h_centers, MultidimArray<T> &helper, size_t nDim,
-        size_t centerSize, size_t maxShift) {
-    assert(centerSize == (2 * maxShift + 1));
-    assert(helper.xdim == helper.ydim);
-    assert(helper.xdim == centerSize);
-    T x;
-    T y;
-    auto result = std::vector<Point2D<T>>();
-    helper.setXmippOrigin(); // tell the array that the 'center' is in the center
-    for (size_t n = 0; n < nDim; ++n) {
-        helper.data = h_centers + n * centerSize * centerSize;
-        bestShift(helper, x, y, nullptr, maxShift);
-        result.emplace_back(x, y);
-    }
-    // avoid data corruption
-    helper.data = nullptr;
-    return result;
-}
+#include "cuFFTAdvisor/cudaAsserts.h"
 
-template class AShiftAligner<float>;
+#define gpuErrchk(code) { cuFFTAdvisor::gpuErrchk((code), __FILE__, __LINE__); }
+#define gpuErrchkFFT(code) { cuFFTAdvisor::gpuErrchkFFT((code), __FILE__, __LINE__); }
 
-} /* namespace Alignment */
+#endif /* CUDA_ASSERTS_H_ */

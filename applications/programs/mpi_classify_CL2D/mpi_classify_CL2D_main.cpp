@@ -129,7 +129,7 @@ void CL2DClass::transferUpdate(bool centerReference)
         double iNq = 1.0 / nextListImg.size();
         Pupdate *= iNq;
         if (prm->normalizeImages)
-        	Pupdate.statisticsAdjust(0, 1);
+        	Pupdate.statisticsAdjust(0., 1.);
         P = Pupdate;
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P)
         if (!DIRECT_MULTIDIM_ELEM(prm->mask,n))
@@ -724,7 +724,7 @@ void CL2D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
     }
     I().setXmippOrigin();
     if (prm->normalizeImages)
-    	I().statisticsAdjust(0, 1);
+    	I().statisticsAdjust(0., 1.);
 }
 
 /* CL2D initialization ------------------------------------------------ */

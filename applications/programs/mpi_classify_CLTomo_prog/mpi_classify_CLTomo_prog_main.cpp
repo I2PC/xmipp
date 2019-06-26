@@ -231,7 +231,7 @@ void CL3DClass::transferUpdate()
 #endif
 
         // Normalize and remove outside sphere
-        P.statisticsAdjust(0, 1);
+        P.statisticsAdjust(0., 1.);
         const MultidimArray<int> &mask=prm->mask.get_binary_mask();
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P)
         if (!DIRECT_MULTIDIM_ELEM(mask,n))
@@ -564,7 +564,7 @@ void CL3D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
         I.read(fnImg);
     }
     I().setXmippOrigin();
-    I().statisticsAdjust(0, 1);
+    I().statisticsAdjust(0., 1.);
 }
 
 /* CL3D initialization ------------------------------------------------ */

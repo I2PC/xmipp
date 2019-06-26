@@ -168,6 +168,8 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
             // get shifts
             XX(shift) = -globAlignment.shifts.at(frameOffset).x; // we want to compensate
             YY(shift) = -globAlignment.shifts.at(frameOffset).y; // the shift
+            bool isZeroShift = (XX(shift) == YY(shift)) // if shift is the same in both dimensions
+                    && (XX(shift) == (T)0); // and it's zero
 
             // load frame
             this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
@@ -187,17 +189,25 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
             }
 
             if (this->fnAligned != "" || this->fnAvg != "") {
-                if (this->outsideMode == OUTSIDE_WRAP)
-                    translate(this->BsplineOrder, shiftedFrame(),
-                            croppedFrame(), shift, WRAP);
-                else if (this->outsideMode == OUTSIDE_VALUE)
-                    translate(this->BsplineOrder, shiftedFrame(),
-                            croppedFrame(), shift, DONT_WRAP,
-                            this->outsideValue);
-                else
-                    translate(this->BsplineOrder, shiftedFrame(),
-                            croppedFrame(), shift, DONT_WRAP,
-                            croppedFrame().computeAvg());
+                // if there's no shift
+                if (isZeroShift) {
+                    if (nullptr == shiftedFrame().data) {
+                        shiftedFrame().resizeNoCopy(croppedFrame());
+                    }
+		    std::swap(shiftedFrame().data, croppedFrame().data);
+                } else {
+                    if (this->outsideMode == OUTSIDE_WRAP)
+                        translate(this->BsplineOrder, shiftedFrame(),
+                                croppedFrame(), shift, WRAP);
+                    else if (this->outsideMode == OUTSIDE_VALUE)
+                        translate(this->BsplineOrder, shiftedFrame(),
+                                croppedFrame(), shift, DONT_WRAP,
+                                this->outsideValue);
+                    else
+                        translate(this->BsplineOrder, shiftedFrame(),
+                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame().computeAvg());
+                }
                 if (this->fnAligned != "")
                     shiftedFrame.write(this->fnAligned, frameOffset + 1, true,
                         WRITE_REPLACE);
@@ -207,6 +217,9 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     else
                         averageMicrograph() += shiftedFrame();
                     N++;
+                }
+                if (isZeroShift) {
+		    std::swap(shiftedFrame().data, croppedFrame().data);
                 }
             }
             if (this->verbose > 1) {
