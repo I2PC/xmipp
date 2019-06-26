@@ -155,7 +155,7 @@ public:
     ///Deform a volumen using Zernike-Spherical harmonic basis
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def);
 
-    double tranformImageSph(ProgAngularSphAlignment *prm, double *pclnm, double rot, double tilt, double psi,
+    double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
     		                Matrix2D<double> &A);
 
     //AJ new
