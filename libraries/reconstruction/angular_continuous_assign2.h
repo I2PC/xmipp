@@ -78,6 +78,8 @@ public:
     bool optimizeAngles;
     // Optimize defocus
     bool optimizeDefocus;
+    // Ignore CTF
+    bool ignoreCTF;
     // Apply transformation to this image
     String originalImageLabel;
     // Phase Flipped
