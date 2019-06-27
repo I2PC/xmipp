@@ -208,15 +208,10 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 	//std::cout << "A=" << A << std::endl;
 	//std::cout << std::endl;
 
-	Image<double> aux;
-	aux().initZeros(Xdim,Xdim);
-	aux().setXmippOrigin();
-
-	applyGeometry(LINEAR,aux(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
 	const MultidimArray<double> &mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
-	MultidimArray<double> &mIfilteredp=aux();
-	Ifilteredp=aux();
+	MultidimArray<double> &mIfilteredp=Ifilteredp();
 	double corr=correlationIndex(mIfilteredp,mP,&mMask2D);
 	cost=-corr;
 
