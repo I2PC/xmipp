@@ -957,7 +957,7 @@ void ProgMonoTomo::run()
 	outputResolutionImage() = FilteredResolution;
 	outputResolutionImage.write(fnOut);
 
-	if (fnmaskWedge.isEmpty())
+	if (fnmaskWedge != "")
 	{
 		Image<double> maskWedgeImg;
 		MultidimArray<double> maskWedge;
