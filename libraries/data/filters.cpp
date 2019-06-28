@@ -1559,7 +1559,7 @@ T bestShift(MultidimArray<T> &Mcorr,
         }
     }
     else
-        Mcorr.statisticsAdjust(0, 1);
+        Mcorr.statisticsAdjust((T)0, (T)1);
 
     // Look for maximum shift
     if (maxShift==-1)
@@ -1567,11 +1567,11 @@ T bestShift(MultidimArray<T> &Mcorr,
     else
     {
     	int maxShift2=maxShift*maxShift;
-    	double bestCorr=-1e38;
+    	double bestCorr=std::numeric_limits<T>::lowest();
     	for (int i=-maxShift; i<=maxShift; i++)
     		for (int j=-maxShift; j<=maxShift; j++)
     		{
-    			if (i*i+j*j>maxShift2)
+    			if (i*i+j*j>maxShift2) // continue if the Euclidean distance is too far
     				continue;
     			else if (A2D_ELEM(Mcorr, i, j)>bestCorr)
     			{
@@ -1720,7 +1720,7 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
         }
     }
     else
-        Mcorr.statisticsAdjust(0, 1);
+        Mcorr.statisticsAdjust(0., 1.);
     Mcorr.maxIndex(kmax, imax, jmax);
     max = A3D_ELEM(Mcorr, kmax, imax, jmax);
 

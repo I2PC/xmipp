@@ -1,7 +1,7 @@
 
 
 #include "cuda_xmipp_utils.h"
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 
 #include <cuda_runtime.h>
 #include <cufft.h>
@@ -12,18 +12,46 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "cuFFTAdvisor/advisor.h"
-#include <cuFFTAdvisor/cudaUtils.h>
-
 struct pointwiseMult{
 	int normFactor;
 	cufftComplex *data;
 };
 
+template<typename T>
+void TransformMatrix<T>::resize(myStreamHandle &myStream,
+        size_t _Ndim, size_t _Xdim, size_t _Ydim, size_t _Zdim) {
+    if (_Xdim*_Ydim*_Zdim*_Ndim==nzyxdim)
+        return;
 
-void setDevice(int device) {
-    cudaSetDevice(device);
-    gpuErrchk( cudaPeekAtLastError() );
+    clear();
+
+    Xdim=_Xdim;
+    Ydim=_Ydim;
+    Zdim=_Zdim;
+    Ndim=_Ndim;
+    yxdim=_Ydim*_Xdim;
+    zyxdim=yxdim*_Zdim;
+    nzyxdim=zyxdim*_Ndim;
+    gpuErrchk(cudaMalloc(&d_data,nzyxdim*sizeof(T)));
+    gpuErrchk(cudaMallocHost(&h_data,nzyxdim*sizeof(T)));
+    initializeIdentity(d_data, h_data, Ndim, myStream);
+}
+
+template void TransformMatrix<float>::resize(myStreamHandle &myStream,
+        size_t _Ndim, size_t _Xdim, size_t _Ydim, size_t _Zdim);
+
+template<typename T>
+void GpuMultidimArrayAtGpu<T>::resize(size_t _Xdim, size_t _Ydim, size_t _Zdim, size_t _Ndim)
+{
+    if (_Xdim*_Ydim*_Zdim*_Ndim==nzyxdim){
+
+        return;
+    }
+
+    clear();
+
+    setDims(_Xdim, _Ydim, _Zdim, _Ndim);
+    gpuErrchk(cudaMalloc(&d_data,nzyxdim*sizeof(T)));
 }
 
 void myStreamDestroy(void *ptr)
@@ -102,56 +130,6 @@ void createPlanFFT(int Xdim, int Ydim, int Ndim, int Zdim, bool forward, cufftHa
 
 }
 
-bool getBestFFTSize(int imgsToProcess, int origXSize, int origYSize, int &batchSize,
-        bool crop,
-        int &xSize, int &ySize, int reserveMem,
-        bool verbose, int device, bool squareOnly, int sigPercChange) {
-
-    size_t freeMem = getFreeMem(device);
-    std::vector<cuFFTAdvisor::BenchmarkResult const *> *results =
-            cuFFTAdvisor::Advisor::find(30, device,
-                    origXSize, origYSize, 1, imgsToProcess,
-                    cuFFTAdvisor::Tristate::TRUE,
-                    cuFFTAdvisor:: Tristate::TRUE,
-                    cuFFTAdvisor::Tristate::TRUE,
-                    cuFFTAdvisor::Tristate::FALSE,
-                    cuFFTAdvisor::Tristate::TRUE, sigPercChange,
-                    freeMem - reserveMem, false, squareOnly, crop);
-
-    if (results->size() == 0) {
-        if (verbose) {
-            fprintf(stderr, "Search did not return any results. "
-                "Too strict search?\n");
-            printf("Using original values as search did not return better "
-                    "results.\n");
-        }
-        xSize = origXSize;
-        ySize = origYSize;
-        int imgElems = std::max(xSize * ySize, (xSize / 2 + 1) * ySize * 2); // * 2 for complex numbers
-        float imgMBBytes = imgElems * sizeof(float) / (1024 * 1024.f);
-        // this makes sure we have enough memory for the FFT plan, which is
-        // typically of the size of the input data
-        float cudaPlanMemoryCoefficient = 2.1f;
-        batchSize = std::floor((freeMem - reserveMem) / (cudaPlanMemoryCoefficient * imgMBBytes));
-        // we don't need batch bigger than num of imgs to process
-        batchSize = std::min(batchSize, imgsToProcess);
-        // but we should manage at least one image
-        batchSize = std::max(batchSize, 1);
-        return false;
-    }
-    auto res = results->at(0);
-    batchSize = res->transform->N / res->transform->repetitions;
-    xSize = res->transform->X;
-    ySize = res->transform->Y;
-    if (verbose) {
-        res->print(stdout);
-        printf("\n");
-    }
-    for (auto& it : *results) delete it;
-    delete results;
-    return true;
-}
-
 void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,
 		bool forward, cufftHandle *plan, myStreamHandle &myStream){
 
@@ -201,8 +179,21 @@ void createPlanFFTStream(int Xdim, int Ydim, int Ndim, int Zdim,
 
 }
 
+template<typename T>
+void TransformMatrix<T>::clear()
+{
+    if (d_data!=NULL)
+        gpuFree((void*) d_data);
+    if (h_data!=NULL)
+        gpuErrchk(cudaFreeHost(h_data));
+    Xdim=Ydim=Zdim=Ndim=yxdim=zyxdim=nzyxdim=0;
+    d_data=NULL;
+    h_data=NULL;
+}
+// explicit instantiation
+template void TransformMatrix<float>::clear();
 
-void gpuMalloc(void** d_data, int Nbytes)
+void gpuMalloc(void** d_data, size_t Nbytes)
 {
 	gpuErrchk(cudaMalloc(d_data, Nbytes));
 }
@@ -212,7 +203,7 @@ void gpuFree(void* d_data)
 	gpuErrchk(cudaFree(d_data));
 }
 
-void cpuMalloc(void** h_data, int Nbytes)
+void cpuMalloc(void** h_data, size_t Nbytes)
 {
 	gpuErrchk(cudaMallocHost(h_data, Nbytes));
 }
@@ -273,7 +264,7 @@ void setRotationMatrix(float* d_data, float* ang, int Ndim, myStreamHandle &mySt
 	gpuErrchk(cudaMallocHost((void**)&rad_vector, sizeof(float)*Ndim*9));
 
 	for(int i=0; i<Ndim; i++){
-		float rad = (float)(-ang[i]*PI/180);
+		float rad = (float)(-ang[i]*M_PI/180);
 		float matrix[9] = {cosf(rad), -sinf(rad), 0, sinf(rad), cosf(rad), 0, 0, 0, 1};
 		int offset=i*9;
 		for (int j=0; j<9; j++)
@@ -299,7 +290,7 @@ void gpuCopyFromGPUToGPU(void* d_dataFrom, void* d_dataTo, size_t Nbytes)
 	gpuErrchk(cudaMemcpy(d_dataTo, d_dataFrom, Nbytes, cudaMemcpyDeviceToDevice));
 }
 
-void gpuCopyFromCPUToGPUStream(void* data, void* d_data, int Nbytes, myStreamHandle &myStream)
+void gpuCopyFromCPUToGPUStream(void* data, void* d_data, size_t Nbytes, myStreamHandle &myStream)
 {
 	cudaStream_t *stream = (cudaStream_t*) myStream.ptr;
 	gpuErrchk(cudaMemcpyAsync(d_data, data, Nbytes, cudaMemcpyHostToDevice, *stream));
@@ -307,7 +298,7 @@ void gpuCopyFromCPUToGPUStream(void* data, void* d_data, int Nbytes, myStreamHan
 	//gpuErrchk(cudaStreamSynchronize(*stream));
 }
 
-void gpuCopyFromGPUToCPUStream(void* d_data, void* data, int Nbytes, myStreamHandle &myStream)
+void gpuCopyFromGPUToCPUStream(void* d_data, void* data, size_t Nbytes, myStreamHandle &myStream)
 {
 	cudaStream_t *stream = (cudaStream_t*) myStream.ptr;
 	gpuErrchk(cudaMemcpyAsync(data, d_data, Nbytes, cudaMemcpyDeviceToHost, *stream));
@@ -316,7 +307,7 @@ void gpuCopyFromGPUToCPUStream(void* d_data, void* data, int Nbytes, myStreamHan
 	//cudaDeviceSynchronize();
 }
 
-void gpuCopyFromGPUToGPUStream(void* d_dataFrom, void* d_dataTo, int Nbytes, myStreamHandle &myStream)
+void gpuCopyFromGPUToGPUStream(void* d_dataFrom, void* d_dataTo, size_t Nbytes, myStreamHandle &myStream)
 {
 	cudaStream_t *stream = (cudaStream_t*) myStream.ptr;
 	gpuErrchk(cudaMemcpyAsync(d_dataTo, d_dataFrom, Nbytes, cudaMemcpyDeviceToDevice, *stream));
@@ -415,34 +406,6 @@ gpuErrchk(cudaMemcpy(d_data, data, bytes, cudaMemcpyHostToDevice));
 return d_data;
 }
 
-template void release<float>(float* data);
-template<typename T>
-void release(T* data) {
-gpuErrchk(cudaFree(data));
-}
-
-size_t getFreeMem(int device) {
-return cuFFTAdvisor::toMB(cuFFTAdvisor::getFreeMemory(device));
-}
-
-std::string getUUID(int devIndex) {
-    std::stringstream ss;
-    nvmlDevice_t device;
-    // https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html#group__nvmlDeviceQueries_1g84dca2d06974131ccec1651428596191
-    if (NVML_SUCCESS == nvmlInit()) {
-        if (NVML_SUCCESS == nvmlDeviceGetHandleByIndex(devIndex, &device)) {
-            char uuid[80];
-            if (NVML_SUCCESS == nvmlDeviceGetUUID(device, uuid, 80)) {
-                ss <<  uuid;
-                return ss.str();
-            }
-        }
-    }
-    ss << devIndex;
-    return ss.str();
-}
-
-template<>
 template<>
 void GpuMultidimArrayAtGpu<float>::fftStream(GpuMultidimArrayAtGpu< std::complex<float> > &fourierTransform,
 		mycufftHandle &myhandle, myStreamHandle &myStream, bool useCallback,

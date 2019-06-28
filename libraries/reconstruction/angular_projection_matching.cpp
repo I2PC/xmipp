@@ -1063,7 +1063,7 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
             pthread_join(*(th_ids+c),NULL);
 
         //Get optimal refno, psi, flip and maxcorr
-        int * indexThreads = (int *) calloc((size_t)threads,sizeof(int));
+        int * indexThreads = new int[threads](); // init to zero
         size_t bestThreadCorr = 0;
         double tempCorr;
         size_t counterValidCorrs = 0;
@@ -1110,7 +1110,7 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
             }
         }
 
-        free(indexThreads);
+        delete[] indexThreads;
         // Flip order to loop through references
         loop_forward_refs = !loop_forward_refs;
 

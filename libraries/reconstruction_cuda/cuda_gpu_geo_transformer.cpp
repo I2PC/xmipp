@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "cuda_gpu_geo_transformer.h"
-#include "cuda_utils.h"
+#include "cuda_asserts.h"
 #include <cuda_runtime_api.h>
 #include "cuda_all.cpp"
 
@@ -80,11 +80,17 @@ void GeoTransformer<T>::initForBSpline(size_t inX, size_t inY, size_t inN,
     this->splineY = splineY;
     this->splineN = splineN;
     // take into account end control points
-    size_t coeffsSize = splineX * splineY * splineN;
+
+    // padding for produceAndLoadCoeffs; Y dimension has to be a multiple of BLOCK_SIZE
+    const int BLOCK_SIZE = iirConvolve2D_Cardinal_BSpline_3_MirrorOffBoundKernels::BLOCK_SIZE;
+    const int Y_padded = (inY / BLOCK_SIZE) * BLOCK_SIZE + BLOCK_SIZE * (inY % BLOCK_SIZE != 0);
+
     size_t inOutSize = inX * inY;
+    size_t inOutSize_padded = inX* Y_padded;
+    size_t coeffsSize = splineX * splineY * splineN;
     gpuErrchk(cudaMalloc((void** ) &d_coeffsX, coeffsSize * sizeof(T)));
     gpuErrchk(cudaMalloc((void** ) &d_coeffsY, coeffsSize * sizeof(T)));
-    gpuErrchk(cudaMalloc((void** ) &d_in, inOutSize * sizeof(T)));
+    gpuErrchk(cudaMalloc((void** ) &d_in, inOutSize_padded * sizeof(T)));
     gpuErrchk(cudaMalloc((void** ) &d_out, inOutSize * sizeof(T)));
 
     isReadyForBspline = true;
@@ -100,230 +106,12 @@ void GeoTransformer<T>::initLazyForBSpline(size_t inX, size_t inY, size_t inZ,
 
 template<typename T>
 void GeoTransformer<T>::test() {
-    testCoeffsRow();
-    testCoeffsRowNew();
-    testTranspose();
-    testCoeffs();
-
     Matrix1D<T> shift(2);
     shift.vdata[0] = 0.45;
     shift.vdata[1] = 0.62;
     Matrix2D<T> transform;
     translation2DMatrix(shift, transform, true);
     test(transform);
-}
-
-template<typename T>
-void GeoTransformer<T>::testCoeffsRowNew() {
-    MultidimArray<double> inputDouble(53, 62);
-    MultidimArray<T> resGpu(inputDouble.ydim, inputDouble.xdim);
-    MultidimArray<double> resCpu(inputDouble.ydim, inputDouble.xdim);
-    MultidimArray<T> inputFloat(inputDouble.ydim, inputDouble.xdim);
-    for (int i = 0; i < inputFloat.ydim; ++i) {
-        for (int j = 0; j < inputFloat.xdim; ++j) {
-            inputDouble.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
-            inputFloat.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
-        }
-    }
-
-    T* d_output;
-    gpuErrchk(cudaMalloc(&d_output, resGpu.yxdim * sizeof(T)));
-    T* d_input;
-    gpuErrchk(cudaMalloc(&d_input, inputFloat.yxdim * sizeof(T)));
-    gpuErrchk(
-            cudaMemcpy(d_input, inputFloat.data, inputFloat.yxdim * sizeof(T),
-                    cudaMemcpyHostToDevice));
-
-    //
-    dim3 dimGrid(std::ceil(inputFloat.xdim / transposeTileDim), std::ceil(inputFloat.ydim / transposeTileDim), 1);
-    dim3 dimBlock(transposeTileDim, transposeBlockRow, 1);
-    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_output, d_input, inputFloat.xdim, inputFloat.ydim);
-    gpuErrchk(cudaPeekAtLastError());
-
-
-    dim3 dimBlockConv(BLOCK_DIM_X, 1);
-    dim3 dimGridConv(ceil(inputFloat.xdim / (T) dimBlockConv.x));
-    // perform row-wise pass
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundNew<<<dimGridConv, dimBlockConv>>>(
-        d_output, d_input,
-        (int)resGpu.xdim, (int)resGpu.ydim);
-    gpuErrchk(cudaPeekAtLastError());
-
-    // transform back
-    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_output, d_input, inputFloat.ydim, inputFloat.xdim);
-    gpuErrchk(cudaPeekAtLastError());
-
-    gpuErrchk(
-            cudaMemcpy(resGpu.data, d_output, resGpu.yxdim * sizeof(T),
-                    cudaMemcpyDeviceToHost));
-    double pole = sqrt(3) - 2.0;
-
-    for (int i = 0; i < inputFloat.ydim; i++) {
-        ::IirConvolvePoles(inputDouble.data + (i * inputDouble.xdim),
-                resCpu.data + (i * inputDouble.xdim), inputDouble.xdim, &pole,
-                1, MirrorOffBounds, 0.0001);
-    }
-
-    bool failed = false;
-    for (int i = 0; i < inputFloat.ydim; ++i) {
-        for (int j = 0; j < inputFloat.xdim; ++j) {
-            int index = i * inputFloat.xdim + j;
-            T gpu = resGpu[index];
-            T cpu = resCpu[index];
-            if (std::abs(cpu - gpu) > 0.001) {
-                failed = true;
-                fprintf(stderr, "error testCoeffsRow [%d]: GPU %.4f CPU %.4f\n",
-                        index, gpu, cpu);
-            }
-        }
-    }
-
-    fprintf(stderr, "testCoeffsRowNew result: %s\n", failed ? "FAIL" : "OK");
-}
-
-
-template<typename T>
-void GeoTransformer<T>::testCoeffsRow() {
-    MultidimArray<double> inputDouble(53, 62);
-    MultidimArray<T> resGpu(inputDouble.ydim, inputDouble.xdim);
-    MultidimArray<double> resCpu(inputDouble.ydim, inputDouble.xdim);
-    MultidimArray<T> inputFloat(inputDouble.ydim, inputDouble.xdim);
-    for (int i = 0; i < inputFloat.ydim; ++i) {
-        for (int j = 0; j < inputFloat.xdim; ++j) {
-            inputDouble.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
-            inputFloat.data[i * inputFloat.xdim + j] = i * inputFloat.xdim + j;
-        }
-    }
-
-    T* d_output;
-    gpuErrchk(cudaMalloc(&d_output, resGpu.yxdim * sizeof(T)));
-    T* d_input;
-    gpuErrchk(cudaMalloc(&d_input, inputFloat.yxdim * sizeof(T)));
-    gpuErrchk(
-            cudaMemcpy(d_input, inputFloat.data, inputFloat.yxdim * sizeof(T),
-                    cudaMemcpyHostToDevice));
-
-    dim3 dimBlockConv(1, BLOCK_DIM_X);
-    dim3 dimGridConv(1, ceil(inputFloat.ydim / (T) dimBlockConv.y));
-    // perform row-wise pass
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBound<<<dimGridConv, dimBlockConv>>>(
-        d_input, d_output,
-        resGpu.xdim, resGpu.ydim);
-    gpuErrchk(cudaPeekAtLastError());
-
-    gpuErrchk(
-            cudaMemcpy(resGpu.data, d_output, resGpu.yxdim * sizeof(T),
-                    cudaMemcpyDeviceToHost));
-    double pole = sqrt(3) - 2.0;
-
-    for (int i = 0; i < inputFloat.ydim; i++) {
-        ::IirConvolvePoles(inputDouble.data + (i * inputDouble.xdim),
-                resCpu.data + (i * inputDouble.xdim), inputDouble.xdim, &pole,
-                1, MirrorOffBounds, 0.0001);
-    }
-
-    bool failed = false;
-    for (int i = 0; i < inputFloat.ydim; ++i) {
-        for (int j = 0; j < inputFloat.xdim; ++j) {
-            int index = i * inputFloat.xdim + j;
-            T gpu = resGpu[index];
-            T cpu = resCpu[index];
-            if (std::abs(cpu - gpu) > 0.001) {
-                failed = true;
-                fprintf(stderr, "error testCoeffsRow [%d]: GPU %.4f CPU %.4f\n",
-                        index, gpu, cpu);
-            }
-        }
-    }
-
-    fprintf(stderr, "testCoeffsRow result: %s\n", failed ? "FAIL" : "OK");
-}
-
-template<typename T>
-void GeoTransformer<T>::testTranspose() {
-    MultidimArray<T> input(33, 52);
-    MultidimArray<T> resGpu(input.xdim, input.ydim);
-    MultidimArray<T> expected(input.xdim, input.ydim);
-    for (int i = 0; i < input.ydim; ++i) {
-        for (int j = 0; j < input.xdim; ++j) {
-            input.data[i * input.xdim + j] = i * input.xdim + j;
-            expected.data[j * input.ydim + i] = i * input.xdim + j;
-        }
-    }
-
-    T* d_output;
-    gpuErrchk(cudaMalloc(&d_output, resGpu.yxdim * sizeof(T)));
-    T* d_input;
-    gpuErrchk(cudaMalloc(&d_input, input.yxdim * sizeof(T)));
-    gpuErrchk(
-            cudaMemcpy(d_input, input.data, input.yxdim * sizeof(T),
-                    cudaMemcpyHostToDevice));
-
-    dim3 dimGrid(std::ceil(input.xdim / transposeTileDim), std::ceil(input.ydim / transposeTileDim), 1);
-    dim3 dimBlock(transposeTileDim, transposeBlockRow, 1);
-    transposeNoBankConflicts32x8<<<dimGrid, dimBlock>>>(d_output, d_input, input.xdim, input.ydim);
-        gpuErrchk(cudaPeekAtLastError());
-
-    gpuErrchk(
-            cudaMemcpy(resGpu.data, d_output, resGpu.yxdim * sizeof(T),
-                    cudaMemcpyDeviceToHost));
-
-    bool failed = false;
-    for (int i = 0; i < input.ydim; ++i) {
-        for (int j = 0; j < input.xdim; ++j) {
-            int index = i * input.xdim + j;
-            T gpu = resGpu[index];
-            T cpu = expected[index];
-            if (std::abs(cpu - gpu) > 0.001) {
-                failed = true;
-                fprintf(stderr, "error transpose [%d]: GPU %.4f CPU %.4f\n",
-                        index, gpu, cpu);
-            }
-        }
-    }
-
-    fprintf(stderr, "test Transpose result: %s\n", failed ? "FAIL" : "OK");
-}
-
-template<typename T>
-void GeoTransformer<T>::testCoeffs() {
-    srand(42);
-    MultidimArray<T> input(52, 130);
-    MultidimArray<T> resGpu(input.ydim, input.xdim);
-    MultidimArray<double> resCpu;
-    for (int i = 0; i < input.ydim; ++i) {
-        for (int j = 0; j < input.xdim; ++j) {
-            double value = rand() / (RAND_MAX / 2000.);
-            input.data[i * input.xdim + j] = value;
-        }
-    }
-
-    this->initForMatrix(input.xdim, input.ydim, input.zdim);
-    this->produceAndLoadCoeffs(3, input);
-    gpuErrchk(
-            cudaMemcpy(resGpu.data, d_in, resGpu.yxdim * sizeof(T),
-                    cudaMemcpyDeviceToHost));
-    ::produceSplineCoefficients(3, resCpu, input);
-
-    bool failed = false;
-    for (int i = 0; i < input.ydim; ++i) {
-        for (int j = 0; j < input.xdim; ++j) {
-            int index = i * input.xdim + j;
-            T gpu = resGpu[index];
-            T cpu = resCpu[index];
-            T threshold = std::abs(std::max(gpu, cpu)) / 1000.f;
-            T diff = std::abs(cpu - gpu);
-            if (diff > threshold && diff > 0.01) {
-                failed = true;
-                fprintf(stderr,
-                        "error Coeffs [%d]: GPU %.4f CPU %.4f (%f > %f)\n",
-                        index, gpu, cpu, diff, threshold);
-            }
-        }
-    }
-
-    fprintf(stderr, "test Coeffs result: %s\n", failed ? "FAIL" : "OK");
-    this->release();
 }
 
 template<typename T>
@@ -359,14 +147,14 @@ void GeoTransformer<T>::test(const Matrix2D<T> &transform) {
 }
 
 template<typename T>
-void GeoTransformer<T>::applyBSplineTransform(
+void GeoTransformer<T>::applyBSplineTransformRef(
         int splineDegree,
         MultidimArray<T> &output, const MultidimArray<T> &input,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
     checkRestrictions(3, output, input, coeffs, imageIdx);
 
     loadOutput(output, outside);
-    produceAndLoadCoeffs(splineDegree, input);
+    produceAndLoadCoeffs(input);
 
     loadCoefficients(coeffs.first, coeffs.second);
 
@@ -387,12 +175,51 @@ void GeoTransformer<T>::applyBSplineTransform(
     gpuErrchk(
             cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
                     cudaMemcpyDeviceToHost));
+
 }
 
 template<typename T>
-template<typename T_IN, typename T_MAT>
+void GeoTransformer<T>::applyBSplineTransform(
+        int splineDegree,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
+        const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside) {
+    checkRestrictions(3, output, input, coeffs, imageIdx);
+
+    setOutputSize(output);
+    produceAndLoadCoeffs(input);
+
+    loadCoefficients(coeffs.first, coeffs.second);
+
+    dim3 dimBlock(16, 16);
+    dim3 dimGrid(ceil(inX / (T) dimBlock.x), ceil((inY / (T) dimBlock.y) / (T) pixelsPerThread)); //more pixels
+
+    // take into account end points
+    T hX = (splineX == 3) ? inX : (inX / (T) ((splineX - 3)));
+    T hY = (splineY == 3) ? inY : (inY / (T) ((splineY - 3)));
+    T hT = (splineN == 3) ? inN : (inN / (T) ((splineN - 3)));
+    T tPos = imageIdx / hT;
+
+    switch (splineDegree) {
+    case 3:
+        applyLocalShiftGeometryKernelMorePixels<T, 3, pixelsPerThread><<<dimGrid, dimBlock>>>(d_coeffsX, d_coeffsY,
+                d_out, (int)inX, (int)inY, (int)inN,
+                d_in, imageIdx, (int)splineX, (int)splineY, (int)splineN,
+                hX, hY, tPos);
+            gpuErrchk(cudaPeekAtLastError());
+        break;
+    default:
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, formatString("applyBSplineTransform not implemented for spline degree %d.", splineDegree));
+    }
+
+    gpuErrchk(
+            cudaMemcpy(output.data, d_out, output.zyxdim * sizeof(T),
+                    cudaMemcpyDeviceToHost));
+}
+
+template<typename T>
+template<typename T_MAT>
 void GeoTransformer<T>::applyGeometry(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T_IN> &input,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
         const Matrix2D<T_MAT> &transform, bool isInv, bool wrap, T outside,
         const MultidimArray<T> *bCoeffsPtr) {
     checkRestrictions(splineDegree, output, input, transform);
@@ -408,7 +235,7 @@ void GeoTransformer<T>::applyGeometry(int splineDegree,
         if (NULL != bCoeffsPtr) {
             loadInput(*bCoeffsPtr);
         } else {
-            produceAndLoadCoeffs(splineDegree, input);
+            produceAndLoadCoeffs(input);
         }
     } else {
         loadInput(input);
@@ -453,47 +280,14 @@ void GeoTransformer<T>::loadCoefficients(const Matrix1D<T> &X,
 }
 
 template<typename T>
-template<typename T_IN>
-void GeoTransformer<T>::produceAndLoadCoeffs(int splineDegree,
-        const MultidimArray<T_IN> &input) {
-    MultidimArray<T> tmpIn;
-    typeCast(input, tmpIn);
-    // copy data to gpu
+void GeoTransformer<T>::produceAndLoadCoeffs(
+    const MultidimArray<T> &input) {
     gpuErrchk(
-            cudaMemcpy(d_in, tmpIn.data, input.yxdim * sizeof(T),
-                    cudaMemcpyHostToDevice));
+        cudaMemcpy(d_in, input.data, input.yxdim * sizeof(T), cudaMemcpyHostToDevice));
 
-    // transpose data, because the kernel is faster that way
-    dim3 dimGridTransF(std::ceil(tmpIn.xdim / transposeTileDim), std::ceil(tmpIn.ydim / transposeTileDim), 1);
-    dim3 dimBlockTransF(transposeTileDim, transposeBlockRow, 1);
-    transposeNoBankConflicts32x8<<<dimGridTransF, dimBlockTransF>>>
-            (d_out, d_in, tmpIn.xdim, tmpIn.ydim);
-    gpuErrchk(cudaPeekAtLastError());
-
-    // apply line-wise filter
-    dim3 dimBlockConvL(BLOCK_DIM_X, 1);
-    dim3 dimGridConvL(ceil(input.ydim / (T) dimBlockConvL.x), 1);
-    // perform row-wise pass
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundNew<<<dimGridConvL, dimBlockConvL>>>(
-            d_out, d_in,
-            tmpIn.xdim, tmpIn.ydim);
-    gpuErrchk(cudaPeekAtLastError());
-
-    // transpose data
-    dim3 dimGridTransI(dimGridTransF.y, dimGridTransF.x);
-    dim3 dimBlockTransI(transposeTileDim, transposeBlockRow, 1);
-    transposeNoBankConflicts32x8<<<dimGridTransI, dimBlockTransI>>>
-            (d_out, d_in, tmpIn.ydim, tmpIn.xdim);
-    gpuErrchk(cudaPeekAtLastError());
-
-    // perform column-wise pass
-    dim3 dimBlockConvC(BLOCK_DIM_X, 1);
-    dim3 dimGridConvC(ceil(input.xdim / (T) dimBlockConvL.x), 1);
-    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundNew<<<dimGridConvC, dimBlockConvC>>>(
-        d_out, d_in,
-        input.ydim, input.xdim);
-    gpuErrchk(cudaPeekAtLastError());
+    iirConvolve2D_Cardinal_Bspline_3_MirrorOffBoundInplace(d_in, input.xdim, input.ydim);
 }
+
 
 template<typename T>
 void GeoTransformer<T>::applyGeometry_2D_wrap(int splineDegree) {
@@ -523,20 +317,16 @@ void GeoTransformer<T>::applyGeometry_2D_wrap(int splineDegree) {
 }
 
 template<typename T>
-template<typename T_IN>
-void GeoTransformer<T>::loadInput(const MultidimArray<T_IN> &input) {
-    MultidimArray<T> tmp;
-    typeCast(input, tmp);
+void GeoTransformer<T>::loadInput(const MultidimArray<T> &input) {
     gpuErrchk(
-            cudaMemcpy(d_in, tmp.data, tmp.zyxdim * sizeof(T),
+            cudaMemcpy(d_in, input.data, input.zyxdim * sizeof(T),
                     cudaMemcpyHostToDevice));
 }
 
 template<typename T>
 void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
-    if (output.xdim == 0) {
-        output.resize(inZ, inY, inX);
-    }
+    setOutputSize(output);
+
     if (outside != (T) 0) {
         // Initialize output matrix with value=outside
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(output)
@@ -550,22 +340,23 @@ void GeoTransformer<T>::loadOutput(MultidimArray<T> &output, T outside) {
         gpuErrchk(cudaMemset(d_out, 0, output.zyxdim * sizeof(T)));
     }
 }
+template<typename T>
+void GeoTransformer<T>::setOutputSize(MultidimArray<T> &output) {
+    if (output.xdim == 0) {
+        output.resizeNoCopy(inZ, inY, inX);
+    }
+}
 
 template<typename T>
-template<typename T_IN, typename T_MAT>
+template<typename T_MAT>
 void GeoTransformer<T>::checkRestrictions(int splineDegree,
-        MultidimArray<T> &output, const MultidimArray<T_IN> &input,
+        MultidimArray<T> &output, const MultidimArray<T> &input,
         const Matrix2D<T_MAT> &transform) {
     if (!isReadyForMatrix)
         throw std::logic_error("Transformer is not ready yet.");
-    if (!input.xdim)
-        throw std::invalid_argument("Input is empty");
-    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
-        throw std::logic_error(
-                "Transformer has been initialized for a different size of the input");
-    if (&input == (MultidimArray<T_IN>*) &output)
-        throw std::invalid_argument(
-                "The input array cannot be the same as the output array");
+
+    checkRestrictions(output, input);
+
     if ((input.getDim() == 2)
             && ((transform.Xdim() != 3) || (transform.Ydim() != 3)))
         throw std::invalid_argument("2D transformation matrix is not 3x3");
@@ -581,14 +372,9 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
         const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t frameIdx) {
     if (!isReadyForBspline)
         throw std::logic_error("Transformer is not ready yet.");
-    if (!input.xdim)
-        throw std::invalid_argument("Input is empty");
-    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
-        throw std::logic_error(
-                "Transformer has been initialized for a different size of the input");
-    if (&input == &output)
-        throw std::invalid_argument(
-                "The input array cannot be the same as the output array");
+
+    checkRestrictions(output, input);
+
     if (frameIdx > inN)
         throw std::invalid_argument("Frame index is out of bound");
     size_t coeffsElems = splineX * splineY * splineN;
@@ -597,4 +383,35 @@ void GeoTransformer<T>::checkRestrictions(int splineDegree,
                 "To init function, pass N control points.");
 }
 
+template<typename T>
+void GeoTransformer<T>::checkRestrictions(const MultidimArray<T> &output,
+                                        const MultidimArray<T> &input) {
+    if (!input.xdim)
+        throw std::invalid_argument("Input is empty");
+    if ((inX != input.xdim) || (inY != input.ydim) || (inZ != input.zdim))
+        throw std::logic_error(
+                "Transformer has been initialized for a different size of the input");
+    if (&input == &output)
+        throw std::invalid_argument(
+                "The input array cannot be the same as the output array");
+
+    if (input.xdim < 64) {
+        throw std::invalid_argument("Xdim should be at least 64");
+    }
+
+    if (input.ydim <= 1) {
+        throw std::invalid_argument("Ydim should be at least 2");
+    }
+}
+
+template<typename T>
+std::unique_ptr<T[]> GeoTransformer<T>::copy_out_d_in(size_t size) const {
+        auto copy_in = std::unique_ptr<T[]>(new T[size]);
+
+        cudaMemcpy(copy_in.get(), d_in , sizeof(T) * size, cudaMemcpyDeviceToHost);
+
+        return copy_in;
+    }
+
 template class GeoTransformer<float>;
+template class GeoTransformer<double>;

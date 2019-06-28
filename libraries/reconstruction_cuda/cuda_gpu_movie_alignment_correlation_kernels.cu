@@ -27,6 +27,7 @@
 #define CUDA_GPU_MOVIE_CORRELATION_KERNELS
 
 #include "reconstruction/movie_alignment_gpu_defines.h"
+#include "reconstruction_cuda/cuda_basic_math.h"
 
 /**
  * Kernel performing scaling of the 2D FFT images, with possible normalization,
@@ -54,7 +55,7 @@ void scaleFFT2DKernel(const T* __restrict__ in, T* __restrict__ out,
     if (idx >= outX || idy >= outY ) return;
     size_t fIndex = idy*outX + idx; // index within single image
     U filterCoef = filter[fIndex];
-    U centerCoef = 1-2*((idx+idy)&1); // center FFT, input must have be even
+    U centerCoef = 1-2*((idx+idy)&1); // center FT, input must be even
     int yhalf = outY/2;
 
     size_t origY = (idy <= yhalf) ? idy : (inY - (outY-idy)); // take top N/2+1 and bottom N/2 lines
@@ -73,6 +74,52 @@ void scaleFFT2DKernel(const T* __restrict__ in, T* __restrict__ out,
         }
     }
 }
+
+/**
+ * Function computes correlation of one signal and many others.
+ * If 'center', the signal has to be even
+ * @param ref first signal in FT
+ * @param inOut other signals in FT, also output (centered FTs)
+ * @param xDim of the signal
+ * @param yDim of the signal
+ * @param nDim no of other signals
+ */
+template<typename T, bool center> // float2 or double2
+__global__
+void computeCorrelations2DOneToNKernel(
+        T* __restrict__ inOut,
+        const T* __restrict__ ref,
+        int xDim, int yDim, int nDim) {
+    // assign element to thread
+#if TILE > 1
+    int id = threadIdx.y * blockDim.x + threadIdx.x;
+    int tidX = threadIdx.x % TILE + (id / (blockDim.y * TILE)) * TILE;
+    int tidY = (id / TILE) % blockDim.y;
+    int idx = blockIdx.x*blockDim.x + tidX;
+    int idy = blockIdx.y*blockDim.y + tidY;
+#else
+    volatile int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    volatile int idy = blockIdx.y*blockDim.y + threadIdx.y;
+#endif
+    int centerCoeff = 1-2*((idx+idy)&1); // center FT, input must be even
+
+    if (idx >= xDim || idy >= yDim ) return;
+    int elem = idy*xDim + idx;
+    T refVal = ref[elem]; // load reference value
+
+    for (int i = 0; i < nDim; i++) {
+        int offset = i * xDim * yDim;
+        T otherVal = inOut[offset + elem];
+        T tmp;
+        tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
+        tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
+        if (center) {
+            tmp *= centerCoeff;
+        }
+        inOut[offset + elem] = tmp;
+    }
+}
+
 
 /**
  * Function computes correlation between two batches of images
@@ -104,7 +151,7 @@ void correlate(const T* __restrict__ in1, const T* __restrict__ in2,
     volatile int idx = blockIdx.x*blockDim.x + threadIdx.x;
     volatile int idy = blockIdx.y*blockDim.y + threadIdx.y;
 #endif
-    int a = 1-2*((idx+idy)&1); // center FFT, input must have be even
+    int a = 1-2*((idx+idy)&1); // center FFT, input must be even
 
     if (idx >= xDim || idy >= yDim ) return;
     size_t pixelIndex = idy*xDim + idx; // index within single image
@@ -141,33 +188,36 @@ void correlate(const T* __restrict__ in1, const T* __restrict__ in2,
  * @param in input images
  * @param out output images
  * @param xDim input X dim
- * @param yDim output Y dim
+ * @param yDim input Y dim
  * @param noOfImgs no if images to process
- * @param outDim output dimension
+ * @param outDimX output dimension(s)
+ * @param outDimY output dimension(s)
  */
 template<typename T>
 __global__
-void cropSquareInCenter(const T* __restrict__ in, T* out, int xDim, int yDim, int noOfImgs,
-        int outDim) {
+void cropSquareInCenter(const T* __restrict__ in, T* __restrict__ out,
+        int xDim, int yDim, int noOfImgs,
+        int outDimX, int outDimY) {
     // assign pixel to thread
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    int idy = blockIdx.y*blockDim.y + threadIdx.y;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idy = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (idx >= outDim || idy >= outDim ) return;
+    if (idx >= outDimX || idy >= outDimY) return;
 
     int inputImgSize = xDim * yDim;
-    int outputImgSize = outDim * outDim;
+    int outputImgSize = outDimX * outDimY;
 
     int inCenterX = (int)((T) (xDim) / (T)2);
     int inCenterY = (int)((T) (yDim) / (T)2);
 
-    int outCenter = (int)((T) (outDim) / (T)2);
+    int outCenterX = (int)((T) (outDimX) / (T)2);
+    int outCenterY = (int)((T) (outDimY) / (T)2);
 
     for (int n = 0; n < noOfImgs; n++) {
-        int iX = idx - outCenter + inCenterX;
-        int iY = idy - outCenter + inCenterY;
+        int iX = idx - outCenterX + inCenterX;
+        int iY = idy - outCenterY + inCenterY;
         int inputPixelIdx = (n * inputImgSize) + (iY * xDim) + iX;
-        int outputPixelIdx = (n * outputImgSize) + (idy * outDim) + idx;
+        int outputPixelIdx = (n * outputImgSize) + (idy * outDimX) + idx;
         out[outputPixelIdx] = in[inputPixelIdx];
     }
 }

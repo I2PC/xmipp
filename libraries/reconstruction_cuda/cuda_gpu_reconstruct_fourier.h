@@ -26,8 +26,6 @@
 #ifndef XMIPP_LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GPU_RECONSTRUCT_FOURIER_H_
 #define XMIPP_LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GPU_RECONSTRUCT_FOURIER_H_
 
-#include <map>
-
 #include <reconstruction/reconstruct_fourier_projection_traverse_space.h>
 #include <reconstruction/reconstruct_fourier_buffer_data.h>
 #include <reconstruction/reconstruct_fourier_defines.h>
@@ -63,9 +61,6 @@ struct FRecBufferDataGPUWrapper {
 	// object in GPU memory space
 	RecFourierBufferDataGPU* gpuCopy;
 };
-
-/** set device to use for calculation (has to be done by each thread) */
-void setDevice(int device);
 
 /**
  * Method will allocate buffer wrapper for given stream

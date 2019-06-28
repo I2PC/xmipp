@@ -503,6 +503,8 @@ def configCompiler(configDict):
     if 'g++' in configDict["CXX"]:
         if not "-std=c99" in configDict["CXXFLAGS"]:
             configDict["CXXFLAGS"]+=" -std=c++11"
+        if 'TRAVIS' in os.environ:
+            configDict["CXXFLAGS"] += " -Werror"  # don't tolerate any warnings on build machine
     # Nothing special to add to LINKFLAGS
 
     if configDict["DEBUG"]=="":
@@ -637,11 +639,12 @@ int main(){}
 
     ok = False
     if checkProgram("mpirun",False):
-        ok=(runJob("mpirun -np 4 echo mpirun works 4 times") or
-            runJob("mpirun -np 4 --allow-run-as-root echo mpirun works 4 times"))
+        echoString = "This sentence should be printed 4 times if mpi runs fine"
+        ok=(runJob("mpirun -np 4 echo '%s (by mpirun).'" % echoString) or
+            runJob("mpirun -np 4 --allow-run-as-root echo '%s (by mpirun).'" % echoString))
     elif checkProgram("mpiexec",False):
-        ok=(runJob("mpiexec -np 4 echo mpiexec works 4 times") or
-            runJob("mpiexec -np 4 --allow-run-as-root echo mpiexec works 4 times"))
+        ok=(runJob("mpiexec -np 4 echo '%s (by mpiexec).'" % echoString) or
+            runJob("mpiexec -np 4 --allow-run-as-root echo '%s (by mpiexec).'" % echoString))
     else:
         print(red("mpirun or mpiexec have failed."))
 
@@ -720,16 +723,19 @@ def configCuda(configDict):
                     return
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
-            cxxVersion, cxxStrVersion = getGccVersion(configDict["CXX"])
+            # in case user specified some wrapper of the compiler
+            # get rid of it: 'ccache g++' -> 'g++'
+            candidate = configDict["CXX"].split()[-1]
+            cxxVersion, cxxStrVersion = getGccVersion(candidate)
             if cxxVersion >= 6:
                 compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
                 print(red("%s version later than 5 detected. Looking for an alternative "
                           "for CUDA compilations... (g++-v: %s)"
-                          % (configDict["CXX"], ', '.join(compVers))))
+                          % (candidate, ', '.join(compVers))))
                 for ver in compVers:
                     cxxCudaVer = '-'+ver
-                    if checkProgram(configDict["CXX"]+cxxCudaVer):
-                        configDict["CXX_CUDA"] = configDict["CXX"]+cxxCudaVer
+                    if checkProgram(candidate+cxxCudaVer):
+                        configDict["CXX_CUDA"] = candidate+cxxCudaVer
                         print(green("%s detected! Using it to compile CUDA related code.\n"
                                     % configDict["CXX_CUDA"]))
                         break
@@ -740,7 +746,7 @@ def configCuda(configDict):
                     configDict["CUDA"] = "False"
                     return
             else:
-                configDict["CXX_CUDA"] = configDict["CXX"]
+                configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                            "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
         if configDict["NVCC_LINKFLAGS"]=="":
