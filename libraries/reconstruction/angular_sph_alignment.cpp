@@ -154,7 +154,7 @@ void ProgAngularSphAlignment::preProcess()
     Vdeformed().initZeros(V());
     sumV=V().sum();
 
-    Ip().initZeros(Xdim,Xdim);
+    //Ip().initZeros(Xdim,Xdim);
     Ifilteredp().initZeros(Xdim,Xdim);
     Ifilteredp().setXmippOrigin();
 
@@ -185,7 +185,7 @@ void ProgAngularSphAlignment::finishProcessing() {
 }
 
 //#define DEBUG
-double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,double *pclnm, double rot, double tilt, double psi,
+double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, double tilt, double psi,
 		Matrix2D<double> &A)
 {
 	const MultidimArray<double> &mV=V();
@@ -195,19 +195,19 @@ double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,do
 	double deformation=0.0;
 	totalDeformation=0.0;
 	deformVol(mVD, mV, deformation);
-	projectVolume(mVD, prm->P, (int)XSIZE(prm->I()), (int)XSIZE(prm->I()),  rot, tilt, psi);
+	projectVolume(mVD, P, (int)XSIZE(I()), (int)XSIZE(I()),  rot, tilt, psi);
     double cost=0;
-	if (prm->old_flip)
+	if (old_flip)
 	{
 		MAT_ELEM(A,0,0)*=-1;
 		MAT_ELEM(A,0,1)*=-1;
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(LINEAR,prm->Ifilteredp(),prm->Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
-	const MultidimArray<double> &mP=prm->P();
-	const MultidimArray<int> &mMask2D=prm->mask2D;
-	MultidimArray<double> &mIfilteredp=prm->Ifilteredp();
+	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	const MultidimArray<double> &mP=P();
+	const MultidimArray<int> &mMask2D=mask2D;
+	MultidimArray<double> &mIfilteredp=Ifilteredp();
 	double corr=correlationIndex(mIfilteredp,mP,&mMask2D);
 	cost=-corr;
 
@@ -230,11 +230,11 @@ double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,do
    {
 		std::cout << "A=" << A << std::endl;
 		Image<double> save;
-		save()=prm->P();
+		save()=P();
 		save.write("PPPtheo.xmp");
-		save()=prm->Ifilteredp();
+		save()=Ifilteredp();
 		save.write("PPPfilteredp.xmp");
-		save()=prm->Ifiltered();
+		save()=Ifiltered();
 		save.write("PPPfiltered.xmp");
 		Vdeformed.write("PPPVdeformed.vol");
 		std::cout << "Cost=" << cost << " corr=" << corr << std::endl;
@@ -245,7 +245,7 @@ double ProgAngularSphAlignment::tranformImageSph(ProgAngularSphAlignment *prm,do
 
     double massDiff=std::abs(sumV-sumVd)/sumV*100;
     double retval=cost+lambda*(deformation+massDiff*massDiff);
-	if (verbose>=3)
+	if (showOptimization)
 		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << sumVd << " " << massDiff << " " << retval << std::endl;
 	return retval;
 }
@@ -265,8 +265,12 @@ double continuousSphCost(double *x, void *_prm)
 
 	MAT_ELEM(prm->A,0,2)=prm->old_shiftX+deltax;
 	MAT_ELEM(prm->A,1,2)=prm->old_shiftY+deltay;
+	MAT_ELEM(prm->A,0,0)=1;
+	MAT_ELEM(prm->A,0,1)=0;
+	MAT_ELEM(prm->A,1,0)=0;
+	MAT_ELEM(prm->A,1,1)=1;
 
-	return prm->tranformImageSph(prm,x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
+	return prm->tranformImageSph(x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
 			prm->A);
 }
 
@@ -305,7 +309,10 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
 	rowIn.getValue(MDL_SHIFT_X,old_shiftX);
 	rowIn.getValue(MDL_SHIFT_Y,old_shiftY);
-	rowIn.getValue(MDL_FLIP,old_flip);
+	if (rowIn.containsLabel(MDL_FLIP))
+    	rowIn.getValue(MDL_FLIP,old_flip);
+	else
+		old_flip = false;
 
 	if (verbose>=2)
 		std::cout << "Processing " << fnImg << std::endl;
