@@ -369,6 +369,13 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 //	geoParams.only_apply_shifts=false;
 //	geoParams.wrap=DONT_WRAP;
 
+    //AJ some definitions
+    double corrIdx=0.0;
+    double corrMask = 0.0;
+    double corrWeight = 0.0;
+    double imedDist = 0.0;
+
+
 	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
 	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
 	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
@@ -474,6 +481,12 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			}
 			else
 			{
+				//Calculating several similarity measures between P and Ifilteredp (correlations and imed)
+				corrIdx = correlationIndex(P(), Ifilteredp());
+				corrMask = correlationMasked(P(), Ifilteredp());
+				corrWeight = correlationWeighted(P(), Ifilteredp());
+				imedDist = imedDistance(P(), Ifilteredp());
+
 				if (fnResiduals!="")
 				{
 					FileName fnResidual;
@@ -575,6 +588,12 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     	if (old_defocusU+p(10)<0 || old_defocusU+p(11)<0)
     		rowOut.setValue(MDL_ENABLED,-1);
     }
+    //Saving correlation and imed values in the metadata
+    rowOut.setValue(MDL_CORRELATION_IDX, corrIdx);
+    rowOut.setValue(MDL_CORRELATION_MASK, corrMask);
+    rowOut.setValue(MDL_CORRELATION_WEIGHT, corrWeight);
+    rowOut.setValue(MDL_IMED, imedDist);
+
 
 #ifdef DEBUG
     std::cout << "p=" << p << std::endl;

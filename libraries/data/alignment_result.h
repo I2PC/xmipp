@@ -23,35 +23,24 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_
 
-#include <string>
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
+#ifndef LIBRARIES_DATA_ALIGNMENT_RESULT_H_
+#define LIBRARIES_DATA_ALIGNMENT_RESULT_H_
 
-class GPU {
-public:
-    explicit GPU(size_t device) :
-        m_device(device), m_UUID(getUUID(device)),
-        m_lastFreeMem(getFreeMem(device)) {};
+#include "point2D.h"
+#include <vector>
+#include <cstddef>
 
-    size_t device() const { return m_device; };
-    std::string UUID() const { return m_UUID; };
-    size_t lastFreeMem() const { return m_lastFreeMem; };
 
-    /**
-     * Method checks currently available free GPU memory
-     * Obtained value is stored in this instance
-     */
-    size_t checkFreeMem() {
-        m_lastFreeMem = getFreeMem(m_device);
-        return m_lastFreeMem;
-    }
-
-private:
-    const size_t m_device;
-    const std::string m_UUID;
-    size_t m_lastFreeMem;
+template<typename T>
+struct AlignmentResult {
+    size_t refFrame;
+    // these are shifts from the reference frame in X/Y dimension,
+    // i.e. if you want to compensate for the shift,
+    // you have to shift in opposite direction (negate these values)
+    std::vector<Point2D<T>> shifts;
 };
 
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_H_ */
+
+
+#endif /* LIBRARIES_DATA_ALIGNMENT_RESULT_H_ */

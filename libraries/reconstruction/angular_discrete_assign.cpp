@@ -245,7 +245,7 @@ void ProgAngularDiscreteAssign::produce_library()
         library_name.push_back(I.name());
 
         // Make and distribute its DWT coefficients in the different PCA bins
-        I().statisticsAdjust(0, 1);
+        I().statisticsAdjust(0., 1.);
         DWT(I(), I());
         SBidx.initZeros();
         FOR_ALL_ELEMENTS_IN_ARRAY2D(Mask_no)
@@ -388,7 +388,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
         Idwt.push_back(subband);
     }
 
-    I().statisticsAdjust(0, 1);
+    I().statisticsAdjust(0., 1.);
     DWT(I(), I());
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mask_no)
     {

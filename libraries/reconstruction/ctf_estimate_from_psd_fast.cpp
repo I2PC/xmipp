@@ -1485,8 +1485,10 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	prm2D->adjust_params->initZeros();
 	prm2D->assignParametersFromCTF(prm2D->current_ctfmodel,MATRIX1D_ARRAY(*prm2D->adjust_params),0, ALL_CTF_PARAMETERS2D, true);
 
-	powellOptimizer(*prm2D->adjust_params, 0 + 1, ALL_CTF_PARAMETERS2D, CTF_fitness,
-						prm2D, 0.01, fitness, iter, steps, prm2D->show_optimization);
+    if (prm.refineAmplitudeContrast)
+        steps(15) = 1; // Q0
+    powellOptimizer(*prm2D->adjust_params, 0 + 1, ALL_CTF_PARAMETERS2D, CTF_fitness,
+					 prm2D, 0.01, fitness, iter, steps, prm2D->show_optimization);
 
 	prm2D->current_ctfmodel.forcePhysicalMeaning();
 

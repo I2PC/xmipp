@@ -398,6 +398,14 @@ double imedDistance(const MultidimArray<double>& I1, const MultidimArray<double>
 */
 double imedNormalizedDistance(const MultidimArray<double>& I1, const MultidimArray<double>& I2);
 
+/** Masked correlation based on standard deviation values.
+*/
+double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<double>& I2);
+
+/** Weighted correlation based on differences between images.
+*/
+double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2);
+
 /** SVD correlation.
  *
  */
