@@ -320,9 +320,6 @@ private:
     /** contains dimensions of the movie stored in movieRawData */
     Dimensions rawMovieDim = Dimensions(0);
 
-    /** mutex indicating when a thread can access data array used for alignment */
-    mutable std::mutex alignDataMutex;
-
     /**
      * Keywords representing optimal settings of the algorithm.
      */

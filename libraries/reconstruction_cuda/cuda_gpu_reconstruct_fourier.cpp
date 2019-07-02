@@ -44,7 +44,7 @@ extern __shared__ float2 IMG[];
 cudaStream_t* streams;
 
 // Wrapper to hold pointers to GPU memory (and have it also accessible from CPU)
-std::map<int,FRecBufferDataGPUWrapper*> wrappers;
+FRecBufferDataGPUWrapper **wrappers;
 
 // Holding blob coefficient table. Present on GPU
 float* devBlobTableSqrt = NULL;
@@ -1045,6 +1045,7 @@ void waitForGPU() {
 }
 
 void createStreams(int count) {
+    wrappers = new FRecBufferDataGPUWrapper*[count];
 	streams = new cudaStream_t[count];
 	for (int i = 0; i < count; i++) {
 		cudaStreamCreate(&streams[i]);
@@ -1056,6 +1057,7 @@ void deleteStreams(int count) {
 		cudaStreamDestroy(streams[i]);
 	}
 	delete[] streams;
+	delete[] wrappers;
 }
 
 
@@ -1090,6 +1092,7 @@ void unpinMemory(RecFourierBufferData* buffer) {
 
 void allocateWrapper(RecFourierBufferData* buffer, int streamIndex) {
 	wrappers[streamIndex] = new FRecBufferDataGPUWrapper(buffer);
+	gpuErrchk( cudaPeekAtLastError() );
 }
 
 void copyBlobTable(float* blobTableSqrt, int blobTableSize) {
