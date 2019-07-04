@@ -36,7 +36,6 @@
 
 #include "xmipp_gpu_utils.h"
 #include <reconstruction_cuda/cuda_gpu_correlation.h>
-#include <reconstruction_cuda/gpu.h>
 
 #include <algorithm>
 #include <math.h>
@@ -526,7 +525,8 @@ void ProgGpuCorrelation::readParams()
    	fnDir = getParam("--odir");
    	maxShift = getIntParam("--maxShift");
    	sizePad = getIntParam("--sizePad");
-   	device = getIntParam("--device");
+   	int device = getIntParam("--device");
+	gpu = GPU(device);
 
 }
 
@@ -1373,7 +1373,7 @@ void ProgGpuCorrelation::run()
 {
 
 	//Setting the cuda device to use
-	GPU::setDevice(device);
+	gpu.set();
 
 	//PROJECTION IMAGES
 	size_t Xdim, Ydim, Zdim, Ndim;
