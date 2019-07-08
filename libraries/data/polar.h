@@ -551,14 +551,9 @@ public:
                                  std::vector<T> &data,
                                  const double extra_shell = GRIDDING_K/2)
     {
-        double                     twopi, dphi,radius;
-        int                        nsam;
-
         // Only for full circles for now!
         if (mode != FULL_CIRCLES)
             REPORT_ERROR(ERR_VALUE_INCORRECT,"VoronoiArea only implemented for FULL_CIRCLES mode of Polar");
-        else
-            twopi = 2.*PI;
 
         // First fill the vector with the originally sampled coordinates
         x.clear();
@@ -566,15 +561,14 @@ public:
         data.clear();
         for (int i = 0; i < rings.size(); i++)
         {
-            nsam = XSIZE(rings[i]);
-            dphi = twopi/(double)nsam;
-            radius = ring_radius[i];
+            int nsam = XSIZE(rings[i]);
+            float dphi = TWOPI / (float)nsam;
+            float radius = ring_radius[i];
             for (int j = 0; j < nsam; j++)
             {
-                double sine, cosine;
-                sincos(j*dphi,&sine,&cosine);
-                x.push_back(radius*sine);
-                y.push_back(radius*cosine);
+                float tmp = j * dphi;
+                x.push_back(radius * sin(tmp));
+                y.push_back(radius * cos(tmp));
                 data.push_back(rings[i](j));
             }
         }
@@ -584,22 +578,21 @@ public:
         // Set data to zero here
         double first_ring  = ring_radius[0];
         double last_ring   = ring_radius[rings.size()-1];
-        double outer       = last_ring + extra_shell;
-        double inner       = XMIPP_MAX(0.,first_ring - extra_shell);
-        for (radius = 0.; radius < outer; radius +=1.)
+        float outer       = last_ring + extra_shell;
+        float inner       = XMIPP_MAX(0.,first_ring - extra_shell);
+        for (float radius = 0.; radius < outer; radius +=1.)
         {
             if ( (radius >= inner && radius < first_ring) ||
                  ( radius <= outer && radius > last_ring) )
             {
-                nsam = 2 * (int)( 0.5 * oversample * twopi * radius );
+                int nsam = 2 * (int)( 0.5 * oversample * TWOPI * radius );
                 nsam = XMIPP_MAX(1, nsam);
-                dphi = twopi / (double)nsam;
+                float dphi = TWOPI / (float)nsam;
                 for (int j = 0; j < nsam; j++)
                 {
-                    double sine, cosine;
-                    sincos(j*dphi,&sine,&cosine);
-                    x.push_back(radius*sine);
-                    y.push_back(radius*cosine);
+                    float tmp = j * dphi;
+                    x.push_back(radius * sin(tmp));
+                    y.push_back(radius * cos(tmp));
                     data.push_back(0.);
                 }
             }
@@ -625,7 +618,7 @@ public:
                                       double oversample1 = 1., int mode1 = FULL_CIRCLES)
     {
         int nsam;
-        double radius, twopi, dphi, phi;
+        double twopi;
         double xp, yp, minxp, maxxp, minyp, maxyp;
 
         MultidimArray<T> Mring;
@@ -635,7 +628,7 @@ public:
         oversample = oversample1;
 
         if (mode == FULL_CIRCLES)
-            twopi = 2.*PI;
+            twopi = TWOPI;
         else if (mode == HALF_CIRCLES)
             twopi = PI;
         else
@@ -655,11 +648,11 @@ public:
         // Loop over all polar coordinates
         for (int iring = first_ring; iring <= last_ring; iring++)
         {
-            radius = (double) iring;
+            float radius = (float) iring;
             // Non-constant sampling!! (always even for convenient Half2Whole of FTs)
             nsam = 2 * (int)( 0.5 * oversample * twopi * radius );
             nsam = XMIPP_MAX(1, nsam);
-            dphi = twopi / (double)nsam;
+            float dphi = twopi / (float)nsam;
             Mring.resizeNoCopy(nsam);
             int iphi = 0;
 #define VEC_LEN 8
@@ -669,11 +662,9 @@ public:
             {
                 for (int jphi = 0; jphi < VEC_LEN; jphi++) {
                     // from polar to original cartesian coordinates
-                    phi = (iphi+jphi) * dphi;
-                    double sine=sin(phi); // Faster depending on the compiler
-   	                double cosine=cos(phi);
-                    axp[jphi] = sine * radius;
-                    ayp[jphi] = cosine * radius;
+                    float phi = (iphi+jphi) * dphi;
+                    axp[jphi] = sin(phi) * radius;
+                    ayp[jphi] = cos(phi) * radius;
 
                     // Origin offsets
                     axp[jphi] += xoff;
@@ -702,11 +693,9 @@ public:
             for (; iphi < nsam; iphi++)
             {
                 // from polar to original cartesian coordinates
-                phi = iphi * dphi;
-                double sine=sin(phi); // Faster depending on the compiler
-                double cosine=cos(phi);
-                xp = sine * radius;
-                yp = cosine * radius;
+                float phi = iphi * dphi;
+                xp = sin(phi) * radius;
+                yp = cos(phi) * radius;
 
                 // Origin offsets
                 xp += xoff;
@@ -876,7 +865,7 @@ void image_convertCartesianToPolar_ZoomAtCenter(const MultidimArray<double> &in,
 												Matrix1D<double> &R,
 												double zoomFactor,
 												double Rmin, double Rmax, int NRSteps,
-												double angMin, double angMax, int NAngSteps);
+												float angMin, double angMax, int NAngSteps);
 
 /** Produce a cylindrical volume from a cartesian volume.
  * You can give the minimum and maximum radius for the interpolation, the
@@ -885,7 +874,7 @@ void image_convertCartesianToPolar_ZoomAtCenter(const MultidimArray<double> &in,
  * Delta Ang must be in radians. */
 void volume_convertCartesianToCylindrical(const MultidimArray<double> &in, MultidimArray<double> &out,
                                    double Rmin, double Rmax, double deltaR,
-                                   double angMin, double angMax, double deltaAng,
+                                   float angMin, double angMax, float deltaAng,
                                    Matrix1D<double> &axis);
 
 /** Produce a spherical volume from a cartesian voume.

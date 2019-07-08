@@ -174,10 +174,6 @@ void ProgResDir::produceSideInfo()
 	resolutionMatrix.initConstant(xrows, NVoxelsOriginalMask, maxRes);
 
 
-	std::cout << MAT_ELEM(resolutionMatrix, 1, 2) << std::endl;
-
-
-
 	#ifdef DEBUG_MASK
 	std::cout << "-------------DEBUG-----------" <<std::endl;
 	std::cout << "Next number ought to be the same than number of directions"
@@ -1548,12 +1544,6 @@ void ProgResDir::run()
 	step = res_step;
 
 	std::cout << "Analyzing directions " << std::endl;
-	std::cout << "maxRes = " << maxRes << std::endl;
-	std::cout << "minRes = " << minRes << std::endl;
-	std::cout << "N_freq = " << N_freq << std::endl;
-	std::cout << "step = " << step << std::endl;
-	std::cout << "criticalZ = " << criticalZ << std::endl;
-
 
 	double w, wH;
 	int volsize = ZSIZE(VRiesz);
@@ -1574,8 +1564,8 @@ void ProgResDir::run()
 		FFT_IDX2DIGFREQ(4, volsize, w);
 		aux_idx = 3;
 	}
-	std::cout << "fourier idx = " << aux_idx << std::endl;
-	std::cout << "Calling MonoRes core as a first estimation at " << sampling/w << "A." << std::endl;
+	//std::cout << "fourier idx = " << aux_idx << std::endl;
+	//std::cout << "Calling MonoRes core as a first estimation at " << sampling/w << "A." << std::endl;
 
 	MultidimArray<double> amplitudeMS;
 	double AvgNoise;
@@ -1890,7 +1880,7 @@ void ProgResDir::run()
 
 	mdRadialAzimuthalThr.write(fnMDThr);
 
-	std::cout << "radial = " << radialThr << "  azimuthal = " << azimuthalThr << std::endl;
+	//std::cout << "radial = " << radialThr << "  azimuthal = " << azimuthalThr << std::endl;
 	std::cout << "Calculating the radial and azimuthal resolution " << std::endl;
 
 
