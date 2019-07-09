@@ -998,3 +998,4 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
 
 // explicit instantiation
 template void ProgCTFEstimateFromMicrograph::constructPieceSmoother<float>(MultidimArray<float> const&, MultidimArray<float>&);
+template void ProgCTFEstimateFromMicrograph::constructPieceSmoother<double>(MultidimArray<double> const&, MultidimArray<double>&);

@@ -114,9 +114,9 @@ public:
      * @param outside value to be used when reading outside of the image and wrap == false
      * @param bCoeffsPtr spline coefficients to use
      */
-    template<typename T_IN, typename T_MAT>
+    template<typename T_MAT>
     void applyGeometry(int splineDegree, MultidimArray<T> &output,
-            const MultidimArray<T_IN> &input, const Matrix2D<T_MAT> &transform,
+            const MultidimArray<T> &input, const Matrix2D<T_MAT> &transform,
             bool isInv, bool wrap, T outside = 0,
             const MultidimArray<T> *bCoeffsPtr = NULL);
 
@@ -131,8 +131,8 @@ public:
      * @param outside value of the output, where the interpolation does not store anything
      */
     void applyBSplineTransform(int splineDegree,
-            MultidimArray<T> &output, const MultidimArray<T> &input,
-            const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
+        MultidimArray<T> &output, const MultidimArray<T> &input,
+        const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
 
     void test();
 
@@ -144,9 +144,9 @@ private:
      * @param input image
      * @param transform to perform
      */
-    template<typename T_IN, typename T_MAT>
+    template<typename T_MAT>
     void checkRestrictions(int splineDegree, MultidimArray<T> &output,
-            const MultidimArray<T_IN> &input, const Matrix2D<T_MAT> &transform);
+            const MultidimArray<T> &input, const Matrix2D<T_MAT> &transform);
 
     /**
      *  Make sure that there's no logical mistake in the transformation
@@ -160,6 +160,15 @@ private:
             MultidimArray<T> &output, const MultidimArray<T> &input,
             const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t frameIdx);
 
+
+    /**
+     *  Make sure that there's no logical mistake in the transformation
+     * @param output image
+     * @param input image
+     */
+    void checkRestrictions(const MultidimArray<T> &output,
+                                        const MultidimArray<T> &input);
+
     /**
      * Makes sure that output is big enough and sets default value
      * @param output where result will be stored
@@ -171,8 +180,7 @@ private:
      * Loads input image to GPU
      * @param input to load
      */
-    template<typename T_IN>
-    void loadInput(const MultidimArray<T_IN> &input);
+    void loadInput(const MultidimArray<T> &input);
 
     /**
      * Applies geometry transformation, wrap case
@@ -204,15 +212,26 @@ private:
     void loadCoefficients(const Matrix1D<T> &X,
             const Matrix1D<T> &Y);
 
+    /**
+     * Resizes output so it can be used for computations
+    */
+    void setOutputSize(MultidimArray<T> &output);
+
 
 protected:
+    /*
+     * Reference computation used for the testing of a faster kernel
+    */
+    void applyBSplineTransformRef(int splineDegree,
+            MultidimArray<T> &output, const MultidimArray<T> &input,
+            const std::pair<Matrix1D<T>, Matrix1D<T>> &coeffs, size_t imageIdx, T outside = 0);
+
         /**
      * Computes spline coefficients of the image and load them to GPU
      * @param splineDegree to be used
      * @param input image used to generate the coefficients
      */
-    template<typename T_IN>
-    void produceAndLoadCoeffs(const MultidimArray<T_IN> &input);
+    void produceAndLoadCoeffs(const MultidimArray<T> &input);
 
     /*
     * Creates a copy of device input memory
@@ -244,6 +263,7 @@ private:
 
     constexpr static const T transposeTileDim = (T)32;
     constexpr static const T transposeBlockRow = (T)8;
+    constexpr static const int pixelsPerThread = 2;
 };
 
 #endif // CUDA_GEO_TRANSFORMER

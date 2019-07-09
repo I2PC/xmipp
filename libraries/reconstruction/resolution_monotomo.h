@@ -51,7 +51,7 @@ class ProgMonoTomo : public XmippProgram
 public:
 	 /** Filenames */
 	FileName fnOut, fnVol, fnVol2, fnMask, fnchim, fnSpatial,
-	fnMeanVol, fnMaskOut, fnMd, fnFilt;
+	fnMeanVol, fnMaskOut, fnMd, fnFilt, fnmaskWedge;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
 	double sampling, minRes, maxRes, R;
@@ -83,7 +83,9 @@ public:
 
     void median3x3x3(MultidimArray<double> vol, MultidimArray<double> &filtered);
 
-    void localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize);
+    //Computes the noise distribution inside a box with size boxsize, of a given map, and determines the percentile 95
+    // which is stored in thresholdMatrix.
+    void localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize, Matrix2D<double> &thresholdMatrix);
 
     void postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
     		std::vector<double> &list, MultidimArray<double> &resolutionChimera,

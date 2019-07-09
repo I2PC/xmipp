@@ -26,8 +26,6 @@
 #ifndef XMIPP_LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GPU_RECONSTRUCT_FOURIER_H_
 #define XMIPP_LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GPU_RECONSTRUCT_FOURIER_H_
 
-#include <map>
-
 #include <reconstruction/reconstruct_fourier_projection_traverse_space.h>
 #include <reconstruction/reconstruct_fourier_buffer_data.h>
 #include <reconstruction/reconstruct_fourier_defines.h>

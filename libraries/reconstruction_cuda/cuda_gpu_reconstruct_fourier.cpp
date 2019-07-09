@@ -44,7 +44,7 @@ extern __shared__ float2 IMG[];
 cudaStream_t* streams;
 
 // Wrapper to hold pointers to GPU memory (and have it also accessible from CPU)
-std::map<int,FRecBufferDataGPUWrapper*> wrappers;
+FRecBufferDataGPUWrapper **wrappers;
 
 // Holding blob coefficient table. Present on GPU
 float* devBlobTableSqrt = NULL;
@@ -1045,6 +1045,7 @@ void waitForGPU() {
 }
 
 void createStreams(int count) {
+    wrappers = new FRecBufferDataGPUWrapper*[count];
 	streams = new cudaStream_t[count];
 	for (int i = 0; i < count; i++) {
 		cudaStreamCreate(&streams[i]);
@@ -1056,23 +1057,34 @@ void deleteStreams(int count) {
 		cudaStreamDestroy(streams[i]);
 	}
 	delete[] streams;
+	delete[] wrappers;
 }
 
 
 void pinMemory(RecFourierBufferData* buffer) {
-	GPU::pinMemory(buffer->CTFs, buffer->getMaxByteSize(buffer->CTFs));
-	GPU::pinMemory(buffer->FFTs, buffer->getMaxByteSize(buffer->FFTs));
-	GPU::pinMemory(buffer->paddedImages, buffer->getMaxByteSize(buffer->paddedImages));
-	GPU::pinMemory(buffer->modulators, buffer->getMaxByteSize(buffer->modulators));
+    if (buffer->hasCTFs) {
+        GPU::pinMemory(buffer->CTFs, buffer->getMaxByteSize(buffer->CTFs));
+        GPU::pinMemory(buffer->modulators, buffer->getMaxByteSize(buffer->modulators));
+    }
+    if (buffer->hasFFTs) {
+        GPU::pinMemory(buffer->FFTs, buffer->getMaxByteSize(buffer->FFTs));
+    } else {
+        GPU::pinMemory(buffer->paddedImages, buffer->getMaxByteSize(buffer->paddedImages));
+    }
 	GPU::pinMemory(buffer->spaces, buffer->getMaxByteSize(buffer->spaces));
 	GPU::pinMemory(buffer, sizeof(*buffer));
 }
 
 void unpinMemory(RecFourierBufferData* buffer) {
-    GPU::unpinMemory(buffer->CTFs);
-    GPU::unpinMemory(buffer->FFTs);
-    GPU::unpinMemory(buffer->paddedImages);
-    GPU::unpinMemory(buffer->modulators);
+    if (buffer->hasCTFs) {
+        GPU::unpinMemory(buffer->CTFs);
+        GPU::unpinMemory(buffer->modulators);
+    }
+    if (buffer->hasFFTs) {
+        GPU::unpinMemory(buffer->FFTs);
+    } else {
+        GPU::unpinMemory(buffer->paddedImages);
+    }
     GPU::unpinMemory(buffer->spaces);
     GPU::unpinMemory(buffer);
 }
@@ -1080,6 +1092,7 @@ void unpinMemory(RecFourierBufferData* buffer) {
 
 void allocateWrapper(RecFourierBufferData* buffer, int streamIndex) {
 	wrappers[streamIndex] = new FRecBufferDataGPUWrapper(buffer);
+	gpuErrchk( cudaPeekAtLastError() );
 }
 
 void copyBlobTable(float* blobTableSqrt, int blobTableSize) {

@@ -186,16 +186,16 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 // Cartesian to polar -----------------------------------------------------
 void image_convertCartesianToPolar(MultidimArray<double> &in,
 		MultidimArray<double> &out, double Rmin, double Rmax, double deltaR,
-		double angMin, double angMax, double deltaAng) {
+		float angMin, double angMax, float deltaAng) {
 	size_t NAngSteps = (size_t)floor((angMax - angMin) / deltaAng);
 	size_t NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
 	out.initZeros(NAngSteps, NRSteps);
 	for (size_t i = 0; i < NAngSteps; ++i) {
-		double s, c;
-		double angle = angMin + i * deltaAng;
-		sincos(angle, &s, &c);
+		float angle = angMin + i * deltaAng;
+		float s = sin(angle);
+		float c = cos(angle);
 		for (size_t j = 0; j < NRSteps; ++j) {
-			double R = Rmin + j * deltaR;
+			float R = Rmin + j * deltaR;
 			A2D_ELEM(out,i,j) = in.interpolatedElement2D(R * c, R * s);
 		}
 	}
@@ -204,12 +204,12 @@ void image_convertCartesianToPolar(MultidimArray<double> &in,
 // Cartesian to polar -----------------------------------------------------
 void image_convertCartesianToPolar_ZoomAtCenter(const MultidimArray<double> &in,
 		MultidimArray<double> &out, Matrix1D<double> &R, double zoomFactor,
-		double Rmin, double Rmax, int NRSteps, double angMin, double angMax,
+		double Rmin, double Rmax, int NRSteps, float angMin, double angMax,
 		int NAngSteps) {
 	/* Octave
 	 * r=0:64;plot(r,d.^(r/d),r,r,d*((r/d).^2.8));
 	 */
-	double deltaAng = (angMax - angMin + 1) / NAngSteps;
+	float deltaAng = (angMax - angMin + 1) / NAngSteps;
 	double deltaR = (Rmax - Rmin + 1) / NRSteps;
 	out.initZeros(NAngSteps, NRSteps);
 	if (VEC_XSIZE(R) == 0) {
@@ -220,11 +220,11 @@ void image_convertCartesianToPolar_ZoomAtCenter(const MultidimArray<double> &in,
 					+ Rrange * pow(j * deltaR / Rrange, zoomFactor);
 	}
 	for (int i = 0; i < NAngSteps; ++i) {
-		double s, c;
-		double angle = angMin + i * deltaAng;
-		sincos(angle, &s, &c);
+		float angle = angMin + i * deltaAng;
+		float s = sin(angle);
+		float c = cos(angle);
 		for (int j = 0; j < NRSteps; ++j) {
-			double Rj = VEC_ELEM(R,j);
+			float Rj = VEC_ELEM(R,j);
 			A2D_ELEM(out,i,j) = in.interpolatedElement2D(Rj * c, Rj * s);
 		}
 	}
@@ -233,7 +233,7 @@ void image_convertCartesianToPolar_ZoomAtCenter(const MultidimArray<double> &in,
 // Cartesian to cylindrical -----------------------------------------------
 void volume_convertCartesianToCylindrical(const MultidimArray<double> &in,
 		MultidimArray<double> &out, double Rmin, double Rmax, double deltaR,
-		double angMin, double angMax, double deltaAng, Matrix1D<double> &axis) {
+		float angMin, double angMax, float deltaAng, Matrix1D<double> &axis) {
 	size_t NAngSteps = (size_t)floor((angMax - angMin) / deltaAng);
 	size_t NRSteps = (size_t)floor((Rmax - Rmin) / deltaR);
 	out.initZeros(ZSIZE(in), NAngSteps, NRSteps);
@@ -259,15 +259,15 @@ void volume_convertCartesianToCylindrical(const MultidimArray<double> &in,
 	Matrix1D<double> p(3), pc(3);
 	SPEED_UP_temps012;
 	for (size_t i = 0; i < NAngSteps; ++i) {
-		double s, c;
-		double angle = angMin + i * deltaAng;
-		sincos(angle, &s, &c);
+		float angle = angMin + i * deltaAng;
+		float s = sin(angle);
+		float c = cos(angle);
 		for (int k = STARTINGZ(in); k <= FINISHINGZ(in); ++k) {
 			ZZ(p)=k;
 			for (size_t j = 0; j < NRSteps; ++j) {
-				double R = Rmin + j * deltaR;
-				YY(p)=R*s;
-				XX(p)=R*c;
+				float R = Rmin + j * deltaR;
+				YY(p) = R * s;
+				XX(p) = R * c;
 				if (MAT_XSIZE(M)>0)
 				{
 					M3x3_BY_V3x1(pc,M,p);
@@ -292,17 +292,17 @@ void volume_convertCartesianToSpherical(const MultidimArray<double> &in,
 
 	Matrix1D<double> p(3);
 	for (size_t i = 0; i < NRotSteps; ++i) {
-		double srot, crot;
-		double rot = i * deltaRot;
-		sincos(rot, &srot, &crot);
+		float rot = i * deltaRot;
+		float c = cos(rot);
+		float s = sin(rot);
 		for (size_t j = 0; j < NRotSteps; ++j) {
-			double stilt, ctilt;
-			double tilt = j * deltaTilt;
-			sincos(tilt, &stilt, &ctilt);
-			double sc=stilt*crot;
-			double ss=stilt*srot;
+			float tilt = j * deltaTilt;
+			float stilt = sin(tilt);
+			float ctilt = cos(tilt);
+			float sc = stilt * c;
+			float ss = stilt * s;
 			for (size_t k = 0; k<NRSteps; ++k) {
-				double R = Rmin + k * deltaR;
+				float R = Rmin + k * deltaR;
 				ZZ(p)=R*ctilt;
 				YY(p)=R*ss;
 				XX(p)=R*sc;

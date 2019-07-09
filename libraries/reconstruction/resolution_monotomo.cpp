@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2016)
+ * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2019)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -25,8 +25,12 @@
  ***************************************************************************/
 
 #include "resolution_monotomo.h"
+#include <core/bilib/kernel.h>
 //#define DEBUG
 //#define DEBUG_MASK
+//#define TEST_FRINGES
+
+
 
 void ProgMonoTomo::readParams()
 {
@@ -36,16 +40,17 @@ void ProgMonoTomo::readParams()
 	fnOut = getParam("-o");
 	fnFilt = getParam("--filteredMap");
 	fnMask = getParam("--mask");
-	fnMaskOut = getParam("--mask_out");
-	fnchim = getParam("--chimera_volume");
 	sampling = getDoubleParam("--sampling_rate");
+	fnmaskWedge = getParam("--maskWedge");
 	minRes = getDoubleParam("--minRes");
 	maxRes = getDoubleParam("--maxRes");
 	freq_step = getDoubleParam("--step");
 	trimBound = getDoubleParam("--trimmed");
 	significance = getDoubleParam("--significance");
-	fnMd = getParam("--md_outputdata");
 	nthrs = getIntParam("--threads");
+
+
+
 }
 
 
@@ -57,12 +62,10 @@ void ProgMonoTomo::defineParams()
 	addParamsLine("  --vol <vol_file=\"\">   			: Half volume 1");
 	addParamsLine("  --vol2 <vol_file=\"\">				: Half volume 2");
 	addParamsLine("  [--mask <vol_file=\"\">]  			: Mask defining the signal. ");
-	addParamsLine("  [--mask_out <vol_file=\"\">]   	: Sometimes the provided mask is not perfect, and contains voxels out of the particle");
-	addParamsLine("                          			:+ Thus the algorithm calculates a tight mask to the volume");
 	addParamsLine("  -o <output=\"MGresolution.vol\">	: Local resolution volume (in Angstroms)");
-	addParamsLine("  --filteredMap <output=\"filteredMap.vol\">	: Local resolution volume filtered (in Angstroms)");
+	addParamsLine("  [--maskWedge <vol_file=\"\">]	: Mask containing the missing wedge in Fourier space");
+	addParamsLine("  [--filteredMap <vol_file=\"\">]	            : Local resolution volume filtered considering the missing wedge (in Angstroms)");
 	addParamsLine("  --meanVol <vol_file=\"\">			: Mean volume of half1 and half2 (only it is necessary the two haves are used)");
-	addParamsLine("  [--chimera_volume <output=\"Chimera_resolution_volume.vol\">]: Local resolution volume for chimera viewer (in Angstroms)");
 	addParamsLine("  [--sampling_rate <s=1>]   			: Sampling rate (A/px)");
 	addParamsLine("  [--step <s=0.25>]       			: The resolution is computed at a number of frequencies between minimum and");
 	addParamsLine("                            			: maximum resolution px/A. This parameter determines that number");
@@ -70,10 +73,6 @@ void ProgMonoTomo::defineParams()
 	addParamsLine("  [--maxRes <s=1>]         			: Maximum resolution (A)");
 	addParamsLine("  [--trimmed <s=0.5>]       			: Trimming percentile");
 	addParamsLine("  [--significance <s=0.95>]       	: The level of confidence for the hypothesis test.");
-	addParamsLine("  [--md_outputdata <file=\".\">]  	: It is a control file. The provided mask can contain voxels of noise.");
-	addParamsLine("                                  	: Moreover, voxels inside the mask cannot be measured due to an unsignificant");
-	addParamsLine("                                  	: SNR. Thus, a new mask is created. This metadata file, shows, the number of");
-	addParamsLine("                                  	: voxels of the original mask, and the created mask");
 	addParamsLine("  [--threads <s=4>]               	: Number of threads");
 }
 
@@ -84,7 +83,7 @@ void ProgMonoTomo::produceSideInfo()
 	std::cout << "           " << std::endl;
 	std::cout << "IMPORTANT: If the angular step of the tilt series is higher than 3 degrees"<< std::endl;
 	std::cout << "           then, the tomogram is not properly for MonoTomo. Despite this is not "<< std::endl;
-	std::cout << "           desired, MonoTomo will try to compute the local resolution." << std::endl;
+	std::cout << "           optimal, MonoTomo will try to compute the local resolution." << std::endl;
 	std::cout << "           " << std::endl;
 
 	Image<double> V;
@@ -101,6 +100,33 @@ void ProgMonoTomo::produceSideInfo()
 	FourierTransformer transformer;
 	MultidimArray<double> &inputVol = V();
 	VRiesz.resizeNoCopy(inputVol);
+
+	#ifdef TEST_FRINGES
+
+	double modulus, xx, yy, zz;
+
+	long nnn=0;
+	for(size_t k=0; k<ZSIZE(inputVol); ++k)
+	{
+		zz = (k-ZSIZE(inputVol)*0.5)*(k-ZSIZE(inputVol)*0.5);
+		for(size_t i=0; i<YSIZE(inputVol); ++i)
+		{
+			yy = (i-YSIZE(inputVol)*0.5)*(i-YSIZE(inputVol)*0.5);
+			for(size_t j=0; j<XSIZE(inputVol); ++j)
+			{
+				xx = (j-XSIZE(inputVol)*0.5)*(j-XSIZE(inputVol)*0.5);
+				DIRECT_MULTIDIM_ELEM(inputVol,nnn) = cos(0.1*sqrt(xx+yy+zz));
+				++nnn;
+			}
+		}
+	}
+
+	Image<double> saveiu;
+	saveiu = inputVol;
+	saveiu.write("franjas.vol");
+	exit(0);
+	#endif
+
 
 	transformer.FourierTransform(inputVol, fftV);
 	iu.initZeros(fftV);
@@ -168,9 +194,9 @@ void ProgMonoTomo::produceSideInfo()
 //			A3D_ELEM(pMask, k, i, j) = -1;
 	}
 
-//	#ifdef DEBUG_MASK
+	#ifdef DEBUG_MASK
 	mask.write("mask.vol");
-//	#endif
+	#endif
 
 
 	V1.read(fnVol);
@@ -178,8 +204,10 @@ void ProgMonoTomo::produceSideInfo()
 
 	V1()-=V2();
 	V1()/=2;
+
 	fftN=new MultidimArray< std::complex<double> >;
 	FourierTransformer transformer2;
+
 	#ifdef DEBUG
 	  V1.write("diff_volume.vol");
 	#endif
@@ -236,8 +264,6 @@ void ProgMonoTomo::produceSideInfo()
 	freq_fourier_z.initZeros(ZSIZE(fftV));
 	freq_fourier_x.initZeros(XSIZE(fftV));
 	freq_fourier_y.initZeros(YSIZE(fftV));
-
-	//TODO: check if the frequency assignmen is right with the mask
 
 	VEC_ELEM(freq_fourier_z,0) = 1e-38;
 	for(size_t k=0; k<ZSIZE(fftV); ++k)
@@ -365,17 +391,17 @@ void ProgMonoTomo::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double
 		DIRECT_MULTIDIM_ELEM(amplitude,n)+=DIRECT_MULTIDIM_ELEM(VRiesz,n)*DIRECT_MULTIDIM_ELEM(VRiesz,n);
 		DIRECT_MULTIDIM_ELEM(amplitude,n)=sqrt(DIRECT_MULTIDIM_ELEM(amplitude,n));
 	}
-//	#ifdef DEBUG
-//	if (fnDebug.c_str() != "")
-//	{
-//	Image<double> saveImg;
-//	saveImg = amplitude;
-//	FileName iternumber;
-//	iternumber = formatString("_Amplitude_%i.vol", count);
-//	saveImg.write(fnDebug+iternumber);
-//	saveImg.clear();
-//	}
-//	#endif // DEBUG
+	#ifdef DEBUG
+	if (fnDebug.c_str() != "")
+	{
+	Image<double> saveImg;
+	saveImg = amplitude;
+	FileName iternumber;
+	iternumber = formatString("_Amplitude_%i.vol", count);
+	saveImg.write(fnDebug+iternumber);
+	saveImg.clear();
+	}
+	#endif // DEBUG
 //
 	// Low pass filter the monogenic amplitude
 	transformer_inv.FourierTransform(amplitude, fftVRiesz, false);
@@ -401,59 +427,52 @@ void ProgMonoTomo::amplitudeMonogenicSignal3D(MultidimArray< std::complex<double
 	transformer_inv.inverseFourierTransform();
 
 
-//	#ifdef DEBUG
-//	Image<double> saveImg2;
-//	saveImg2 = amplitude;
-//	FileName fnSaveImg2;
-//	if (fnDebug.c_str() != "")
-//	{
-//		iternumber = formatString("_Filtered_Amplitude_%i.vol", count);
-//		saveImg2.write(fnDebug+iternumber);
-//	}
-//	saveImg2.clear();
-//	#endif // DEBUG
+	#ifdef DEBUG
+	Image<double> saveImg2;
+	saveImg2 = amplitude;
+	FileName fnSaveImg2;
+	if (fnDebug.c_str() != "")
+	{
+		iternumber = formatString("_Filtered_Amplitude_%i.vol", count);
+		saveImg2.write(fnDebug+iternumber);
+	}
+	saveImg2.clear();
+	#endif // DEBUG
 }
 
 
-void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize)
+void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize, Matrix2D<double> &thresholdMatrix)
 {
 //	std::cout << "Analyzing local noise" << std::endl;
-
-	//TODO: check this function
-	double kk = 0;
-	int idx_i, idx_j;
 
 	int xdim = XSIZE(noiseMap);
 	int ydim = YSIZE(noiseMap);
 
-
 	int Nx = xdim/boxsize;
 	int Ny = ydim/boxsize;
 
-	STARTINGX(noiseMap);
+	noiseMatrix.initZeros(Ny, Nx);
 
-	noiseMatrix.initZeros(Nx, Ny);
+	// For the spline regression
+	int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
+    WeightedLeastSquaresHelper helper;
+    helper.A.initZeros(Nx*Ny,lX*lY);
+    helper.b.initZeros(Nx*Ny);
+    helper.w.initZeros(Nx*Ny);
+    helper.w.initConstant(1);
+    double hX = xdim / (double)(lX-3);
+    double hY = ydim / (double)(lY-3);
 
 	if ( (xdim<boxsize) || (ydim<boxsize) )
 		std::cout << "Error: The tomogram in x-direction or y-direction is too small" << std::endl;
 
-
-	int step = 47;
-	std::vector<double> noiseVector;
-
-	noiseVector.resize(step,0);
-
-	int halfsize_x = 0.5*boxsize;
-	int halfsize_y = 0.5*boxsize;
+	std::vector<double> noiseVector(1);
+	std::vector<double> x,y,t;
 
 	int xLimit, yLimit, xStart, yStart;
 
-
-	int X_boxIdx=0;
-	int Y_boxIdx=0;
-
-
 	long counter;
+    int idxBox=0;
 
 	for (int X_boxIdx=0; X_boxIdx<Nx; ++X_boxIdx)
 	{
@@ -481,6 +500,8 @@ void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> 
 				yLimit = STARTINGY(noiseMap) + (Y_boxIdx+1)*boxsize;
 			}
 
+
+
 			counter = 0;
 			for (int i = (yStart); i<(yLimit); i++)
 			{
@@ -488,41 +509,102 @@ void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> 
 				{
 					for (int k = STARTINGZ(noiseMap); k<FINISHINGZ(noiseMap); k++)
 					{
-						if (counter%1000 == 0) //we take one voxel each 1000 points to reduce noise data
-						{
-						noiseVector.push_back( A3D_ELEM(noiseMap, k, i, j) );
-						}
+						if (counter%257 == 0) //we take one voxel each 257 (prime number) points to reduce noise data
+							noiseVector.push_back( A3D_ELEM(noiseMap, k, i, j) );
 						++counter;
 					}
 				}
 			}
 
 			std::sort(noiseVector.begin(),noiseVector.end());
-			MAT_ELEM(noiseMatrix,X_boxIdx, Y_boxIdx) = noiseVector[size_t(noiseVector.size()*significance)];
+			MAT_ELEM(noiseMatrix, Y_boxIdx, X_boxIdx) = noiseVector[size_t(noiseVector.size()*significance)];
 
+			double tileCenterY=0.5*(yLimit+yStart)-STARTINGY(noiseMap); // Translated to physical coordinates
+			double tileCenterX=0.5*(xLimit+xStart)-STARTINGX(noiseMap);
+			// Construction of the spline equation system
+			long idxSpline=0;
+			for(int controlIdxY = -1; controlIdxY < (lY - 1); ++controlIdxY)
+			{
+				double tmpY = Bspline03((tileCenterY / hY) - controlIdxY);
+				VEC_ELEM(helper.b,idxBox)=MAT_ELEM(noiseMatrix, Y_boxIdx, X_boxIdx);
+				if (tmpY == 0.0)
+				{
+					idxSpline+=lX;
+					continue;
+				}
+
+				for(int controlIdxX = -1; controlIdxX < (lX - 1); ++controlIdxX)
+				{
+					double tmpX = Bspline03((tileCenterX / hX) - controlIdxX);
+					MAT_ELEM(helper.A,idxBox,idxSpline) = tmpY * tmpX;
+					idxSpline+=1;
+				}
+			}
+			x.push_back(tileCenterX);
+			y.push_back(tileCenterY);
+			t.push_back(MAT_ELEM(noiseMatrix, Y_boxIdx, X_boxIdx));
 			noiseVector.clear();
+			idxBox+=1;
+		}
+	}
+
+
+	// Spline coefficients
+	Matrix1D<double> cij;
+	weightedLeastSquares(helper, cij);
+
+	thresholdMatrix.initZeros(ydim, xdim);
+
+	for (int i=0; i<ydim; ++i)
+	{
+		for (int j=0; j<xdim; ++j)
+		{
+			long idxSpline=0;
+
+			for(int controlIdxY = -1; controlIdxY < (lY - 1); ++controlIdxY)
+			{
+				double tmpY = Bspline03((i / hY) - controlIdxY);
+
+				if (tmpY == 0.0)
+				{
+					idxSpline+=lX;
+					continue;
+				}
+
+				double xContrib=0.0;
+				for(int controlIdxX = -1; controlIdxX < (lX - 1); ++controlIdxX)
+				{
+					double tmpX = Bspline03((j / hX) - controlIdxX);
+					xContrib+=VEC_ELEM(cij,idxSpline) * tmpX;// *tmpY;
+					idxSpline+=1;
+				}
+				MAT_ELEM(thresholdMatrix,i,j)+=xContrib*tmpY;
+			}
 		}
 	}
 }
+
 
 
 void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
 		std::vector<double> &list, MultidimArray<double> &resolutionChimera, double &cut_value, MultidimArray<int> &pMask, double &resolutionThreshold)
 {
 	MultidimArray<double> resolutionVol_aux = resolutionVol;
-	double last_resolution_2 = list[(list.size()-1)];
+	double init_res, last_res;
 
-	double Nyquist;
-	Nyquist = 2*sampling;
-
+	init_res = list[0];
+	last_res = list[(list.size()-1)];
+	
+	double last_resolution_2 = list[last_res];
 
 	double lowest_res;
-	lowest_res = list[0];
+	lowest_res = list[1]; //Example resolutions between 10-300, list(0)=300, list(1)=290, it is used list(1) due to background
+	//is at 300 and the smoothing cast values of 299 and they must be removed.
 
 	// Count number of voxels with resolution
 	size_t N=0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
+		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<=lowest_res) ) //the value 0.001 is a tolerance
 			++N;
 
 	// Get all resolution values
@@ -530,87 +612,20 @@ void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolut
 	size_t N_iter=0;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res))
+		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) && (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<=lowest_res))
 		{
 			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
 		}
 
-//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
+	//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
 
 	// Sort value and get threshold
 	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
-	double filling_value = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
-	double trimming_value = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
+	double medianResolution = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
 
-	std::cout << "last_res = " << filling_value << std::endl;
-	std::cout << "last_res = " << trimming_value << std::endl;
-
-	double init_res, last_res;
-
-	init_res = list[0];
-	last_res = list[(list.size()-1)];
-	
-	std::cout << "--------------------------" << std::endl;
-	std::cout << "last_res = " << last_res << std::endl;
-
-	resolutionChimera = resolutionVol;
-
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-	{
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n) < last_res)
-		{
-			if (DIRECT_MULTIDIM_ELEM(pMask, n) >=1)
-			{
-				DIRECT_MULTIDIM_ELEM(resolutionChimera, n) = filling_value;
-				DIRECT_MULTIDIM_ELEM(resolutionVol, n) = filling_value;
-			}
-			else
-			{
-				DIRECT_MULTIDIM_ELEM(resolutionChimera, n) = filling_value;
-				DIRECT_MULTIDIM_ELEM(pMask,n) = 0;
-			}
-		}
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n) > trimming_value)
-		{
-		  DIRECT_MULTIDIM_ELEM(pMask,n) = 0;
-		  DIRECT_MULTIDIM_ELEM(resolutionVol, n) = trimming_value;
-		  DIRECT_MULTIDIM_ELEM(resolutionChimera, n) = trimming_value;
-		}
-	}
-
-	N=0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-	if (DIRECT_MULTIDIM_ELEM(pMask, n) >=1)
-		{
-		if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) //the value 0.001 is a tolerance
-			++N;
-		}
-
-	MultidimArray<double> resolutions2(N);
-	N_iter=0;
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
-	{
-		if (DIRECT_MULTIDIM_ELEM(pMask, n) >=1)
-			{
-			if (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001))
-				DIRECT_MULTIDIM_ELEM(resolutions2,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
-			}
-	}
-
-	// Sort value and get threshold
-	std::sort(&A1D_ELEM(resolutions2,0),&A1D_ELEM(resolutions2,N));
-
-	std::cout << " " << std::endl;
-
-	std::cout << "median Resolution = " << A1D_ELEM(resolutions2, (int)(0.5*N)) << std::endl;
-
-
-	Image<int> imgMask;
-	imgMask = pMask;
-	imgMask.write(fnMaskOut);
+	std::cout << "median Resolution = " << medianResolution << std::endl;
 }
+
 
 
 void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutionVol,
@@ -645,7 +660,7 @@ void ProgMonoTomo::lowestResolutionbyPercentile(MultidimArray<double> &resolutio
 	double trimming_value = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
 	resolutionThreshold = A1D_ELEM(resolutions, (int)((0.95)*N));
 
-	//std::cout << "resolutionThreshold = " << resolutionThreshold <<  std::endl;
+	std::cout << "resolutionThreshold = " << resolutionThreshold <<  std::endl;
 }
 
 
@@ -708,8 +723,6 @@ void ProgMonoTomo::resolution2eval(int &count_res, double step,
 }
 
 
-
-
 void ProgMonoTomo::run()
 {
 	produceSideInfo();
@@ -725,7 +738,7 @@ void ProgMonoTomo::run()
 	MultidimArray<double> &pVresolutionFiltered = VresolutionFiltered();
 	MultidimArray<double> amplitudeMS, amplitudeMN;
 
-		double criticalZ=icdf_gauss(significance);
+	double criticalZ=icdf_gauss(significance);
 	double criticalW=-1;
 	double resolution, resolution_2, last_resolution = 10000;  //A huge value for achieving
 												//last_resolution < resolution
@@ -759,6 +772,9 @@ void ProgMonoTomo::run()
 	std::cout << "                     " << std::endl;
 	std::vector<double> noiseValues;
 
+	int xdim = XSIZE(pOutputResolution);
+	int ydim = YSIZE(pOutputResolution);
+
 	do
 	{
 		bool continueIter = false;
@@ -788,8 +804,6 @@ void ProgMonoTomo::run()
 		fnDebug = "Signal";
 
 		freqL = freq + 0.01;
-//		if (freqL>=0.5)
-//			freqL = 0.5;
 
 		amplitudeMonogenicSignal3D(fftV, freq, freqH, freqL, amplitudeMS, iter, fnDebug);
 		fnDebug = "Noise";
@@ -797,7 +811,8 @@ void ProgMonoTomo::run()
 
 		Matrix2D<double> noiseMatrix;
 
-		localNoise(amplitudeMN, noiseMatrix, boxsize);
+		Matrix2D<double> thresholdMatrix;
+		localNoise(amplitudeMN, noiseMatrix, boxsize, thresholdMatrix);
 
 
 		double sumS=0, sumS2=0, sumN=0, sumN2=0, NN = 0, NS = 0;
@@ -811,15 +826,12 @@ void ProgMonoTomo::run()
 				double amplitudeValue=DIRECT_MULTIDIM_ELEM(amplitudeMS, n);
 				double amplitudeValueN=DIRECT_MULTIDIM_ELEM(amplitudeMN, n);
 				sumS  += amplitudeValue;
-				sumS2 += amplitudeValue*amplitudeValue;
 				noiseValues.push_back(amplitudeValueN);
 				sumN  += amplitudeValueN;
-				sumN2 += amplitudeValueN*amplitudeValueN;
 				++NS;
 				++NN;
 			}
 		}
-
 	
 		#ifdef DEBUG
 		std::cout << "NS" << NS << std::endl;
@@ -837,16 +849,6 @@ void ProgMonoTomo::run()
 			}
 
 			double meanS=sumS/NS;
-			double sigma2S=sumS2/NS-meanS*meanS;
-			double meanN=sumN/NN;
-			double sigma2N=sumN2/NN-meanN*meanN;
-
-			// Check local resolution
-//			double thresholdNoise;
-//			std::sort(noiseValues.begin(),noiseValues.end());
-//			thresholdNoise = noiseValues[size_t(noiseValues.size()*significance)];
-//			std::cout << "thr Noise " << thresholdNoise << std::endl;
-
 
 			#ifdef DEBUG
 			  std::cout << "Iteration = " << iter << ",   Resolution= " << resolution <<
@@ -854,9 +856,6 @@ void ProgMonoTomo::run()
 					  << thresholdNoise <<std::endl;
 			#endif
 
-			double z=(meanS-meanN)/sqrt(sigma2S/NS+sigma2N/NN);
-
-//			std::cout << "z = " << z << "  zcritical = " << criticalZ << std::endl;
 
 			if (meanS>max_meanS)
 				max_meanS = meanS;
@@ -867,45 +866,28 @@ void ProgMonoTomo::run()
 				break;
 			}
 
-//			pMask.printShape();
-//			amplitudeMS.printShape();
-//			pOutputResolution.printShape();
-
-
-			size_t idx_x_lim, idx_y_lim;
-
-			idx_x_lim = XSIZE(amplitudeMS)/boxsize;
-			idx_y_lim = YSIZE(amplitudeMS)/boxsize;
-
-
 			FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(amplitudeMS)
 			{
 				if (DIRECT_A3D_ELEM(pMask, k,i,j)>=1)
 				{
-					size_t idx_x = (i/boxsize);
-					size_t idx_y = (j/boxsize);
-
-					if (idx_x==idx_x_lim)//9)
-						idx_x = idx_x_lim-1;//8;
-					if (idx_y==idx_y_lim)//9)
-						idx_y = idx_y_lim-1;//8;
-
-					if ( DIRECT_A3D_ELEM(amplitudeMS, k,i,j)>MAT_ELEM(noiseMatrix, idx_x, idx_y) )
+					if ( DIRECT_A3D_ELEM(amplitudeMS, k,i,j)>MAT_ELEM(thresholdMatrix, i, j) )
 					{
 
 						DIRECT_A3D_ELEM(pMask,  k,i,j) = 1;
-						DIRECT_A3D_ELEM(pOutputResolution, k,i,j) = resolution;//sampling/freq;
+						DIRECT_A3D_ELEM(pOutputResolution, k,i,j) = resolution;
 					}
 					else{
 						DIRECT_A3D_ELEM(pMask,  k,i,j) += 1;
 						if (DIRECT_A3D_ELEM(pMask,  k,i,j) >2)
 						{
 							DIRECT_A3D_ELEM(pMask,  k,i,j) = -1;
-							DIRECT_A3D_ELEM(pOutputResolution,  k,i,j) = resolution_2;//maxRes - counter*R_;
+							DIRECT_A3D_ELEM(pOutputResolution,  k,i,j) = resolution_2;
 						}
 					}
 				}
 			}
+
+
 
 			#ifdef DEBUG_MASK
 			FileName fnmask_debug;
@@ -937,43 +919,7 @@ void ProgMonoTomo::run()
 	MultidimArray<double> FilteredResolution = pOutputResolution;
 	double sigma = 25.0;
 
-	realGaussianFilter(FilteredResolution, sigma);
-
 	double resolutionThreshold;
-	lowestResolutionbyPercentile(FilteredResolution, list, cut_value, resolutionThreshold);
-
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredResolution)
-	{
-		if ( (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold) && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(pOutputResolution, n)) )
-			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(pOutputResolution, n);
-
-		if ( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist)
-			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
-	}
-
-	realGaussianFilter(FilteredResolution, sigma);
-
-	lowestResolutionbyPercentile(FilteredResolution, list, cut_value, resolutionThreshold);
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredResolution)
-	{
-		if ( (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold) && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(pOutputResolution, n)) )
-			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(pOutputResolution, n);
-
-		if ( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist)
-			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
-	}
-
-	realGaussianFilter(FilteredResolution, sigma);
-
-
-	Image<double> outputResolutionImage;
-	outputResolutionImage() = FilteredResolution;
-	outputResolutionImage.write(fnFilt);
-
-	FilteredResolution = pOutputResolution;
-
 
 	sigma = 3;
 
@@ -1003,32 +949,31 @@ void ProgMonoTomo::run()
 			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
 	}
 
-//	pOutputResolution = FilteredResolution;
-
+	Image<double> outputResolutionImage;
 	MultidimArray<double> resolutionFiltered, resolutionChimera;
 
-//	postProcessingLocalResolutions(pOutputResolution, list, resolutionChimera, cut_value, pMask, resolutionThreshold);
 	postProcessingLocalResolutions(FilteredResolution, list, resolutionChimera, cut_value, pMask, resolutionThreshold);
 
-
-//	outputResolutionImage() = pOutputResolution;//resolutionFiltered;
 	outputResolutionImage() = FilteredResolution;
 	outputResolutionImage.write(fnOut);
-	outputResolutionImage() = resolutionChimera;
-	outputResolutionImage.write(fnchim);
+
+	if (fnmaskWedge != "")
+	{
+		Image<double> maskWedgeImg;
+		MultidimArray<double> maskWedge;
+		maskWedgeImg.read(fnmaskWedge);
 
 
-	#ifdef DEBUG
-		outputResolution.write("resolution_simple.vol");
-	#endif
+		FourierTransformer transformer;
+		transformer.FourierTransform(outputResolutionImage(), fftV, false);
+		maskWedgeImg().printShape();
+		fftV.printShape();
 
-
-	MetaData md;
-	size_t objId;
-	objId = md.addObject();
-	md.setValue(MDL_IMAGE, fnOut, objId);
-	md.setValue(MDL_COUNT, (size_t) NVoxelsOriginalMask, objId);
-	md.setValue(MDL_COUNT2, (size_t) Nvoxels, objId);
-
-	md.write(fnMd);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftV)
+		{
+			DIRECT_MULTIDIM_ELEM(fftV, n) *= (1 - DIRECT_MULTIDIM_ELEM(maskWedgeImg(), n));
+		}
+		transformer.inverseFourierTransform();
+		outputResolutionImage.write(fnFilt);
+	}
 }

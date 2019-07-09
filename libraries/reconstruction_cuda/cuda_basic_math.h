@@ -33,6 +33,14 @@ typedef signed char schar;
 
 #define Pole (sqrt(3.0f)-2.0f)  //pole for cubic b-spline
 
+inline __host__ __device__ float power(float base, int exp) {
+    return powf(base, exp);
+}
+
+inline __host__ __device__ double power(double base, int exp) {
+    return pow(base, exp);
+}
+
 // float2 functions
 ////////////////////////////////////////////////////////////////////////////////
 

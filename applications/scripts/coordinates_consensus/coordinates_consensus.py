@@ -118,6 +118,8 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
     n += 1
   if len(micIds)>1:
     raise ValueError("Error, inconsistency in micIds, all files should belong to the same micId: %s"%(str(coords_files)))
+  if len(coords)==0:
+    return
   allCoords = np.zeros([Ncoords, 2])
   votes = np.zeros(Ncoords)
   
@@ -134,7 +136,8 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
 
   # Add the rest of coordinates
   Ncurrent = N0
-  for n in range(1, len(coords_files)):
+#  for n in range(1, len(coords_files)):
+  for n in range(len(coords)):
     for coord in coords[n]:
       if Ncurrent > 0:
         dist = np.sum((coord - allCoords[0:Ncurrent])**2, axis=1)
