@@ -1544,12 +1544,6 @@ void ProgResDir::run()
 	step = res_step;
 
 	std::cout << "Analyzing directions " << std::endl;
-	//std::cout << "maxRes = " << maxRes << std::endl;
-	//std::cout << "minRes = " << minRes << std::endl;
-	//std::cout << "N_freq = " << N_freq << std::endl;
-	//std::cout << "step = " << step << std::endl;
-	//std::cout << "criticalZ = " << criticalZ << std::endl;
-
 
 	double w, wH;
 	int volsize = ZSIZE(VRiesz);

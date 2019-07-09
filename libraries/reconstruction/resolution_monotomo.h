@@ -83,6 +83,8 @@ public:
 
     void median3x3x3(MultidimArray<double> vol, MultidimArray<double> &filtered);
 
+    //Computes the noise distribution inside a box with size boxsize, of a given map, and determines the percentile 95
+    // which is stored in thresholdMatrix.
     void localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> &noiseMatrix, int boxsize, Matrix2D<double> &thresholdMatrix);
 
     void postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
