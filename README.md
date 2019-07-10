@@ -5,9 +5,9 @@
 --->
 # xmipp
 
-**If you want to use it as a Scipion package for production proposes**, please visit [this](https://scipion-em.github.io/docs/docs/scipion-modes/install-from-sources#step-4-installing-xmipp3-and-other-em-plugins).
+If you want to use it as a **Scipion package for production proposes**, please visit [this](https://scipion-em.github.io/docs/docs/scipion-modes/install-from-sources#step-4-installing-xmipp3-and-other-em-plugins).
 
-**If you want to use it as a Scipion package for devel proposes**, please visit [this](https://github.com/I2PC/xmipp/wiki/Xmipp-bundle-installtion).
+If you want to use it as a **Scipion package for devel proposes**, please visit [this](https://github.com/I2PC/xmipp/wiki/Xmipp-bundle-installtion).
 
 To install Xmipp in a certain place (e.g. in the `xmipp-bundle` directory) follow this instructions:
 
