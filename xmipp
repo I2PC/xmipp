@@ -38,8 +38,8 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.19.04'  #
-RELEASE_DATE = '03/04/2019'  #
+XMIPP_VERSION = 'devel'  #
+RELEASE_DATE = 'not released yet'  #
 ##############################
 
 XMIPP = 'xmipp'
@@ -47,12 +47,14 @@ XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
+MICROGRAPH_CLEANER= 'micrograph_cleaner_em'
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
-                CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git'}
+                CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
+                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em'}
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 CONFIG_FILE_NAME = "xmipp.conf"
@@ -383,6 +385,8 @@ def getDependencies():
     result = True
     if is_config_true('CUDA'):
         result = cloneOrCheckout(CUFFTADVISOR, None)
+    if result:
+        result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
     if not result:
         print(red("Cannot get dependencies"))
     return result
@@ -482,6 +486,9 @@ def getDependenciesInclude():
 
 
 def configCompiler(configDict):
+    if configDict["DEBUG"]=="":
+        configDict["DEBUG"]="False"
+
     if configDict["CC"]=="":
         configDict["CC"]="gcc" if checkProgram("gcc") else ""
     if configDict["CXX"]=="":
@@ -501,14 +508,18 @@ def configCompiler(configDict):
         if not "-std=c99" in configDict["CCFLAGS"]:
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
-        if not "-std=c99" in configDict["CXXFLAGS"]:
-            configDict["CXXFLAGS"]+=" -std=c++11"
+        configDict["CXXFLAGS"] += " -mtune=native -march=native"  # optimize for current machine
+        if "-std=c99" not in configDict["CXXFLAGS"]:
+            configDict["CXXFLAGS"] += " -std=c++11"
         if 'TRAVIS' in os.environ:
             configDict["CXXFLAGS"] += " -Werror"  # don't tolerate any warnings on build machine
+            configDict["CXXFLAGS"] += " -O0"  # don't optimize on Travis, as it slows down the build
+        else:
+            configDict["CXXFLAGS"] += " -O3"
+        if is_config_true("DEBUG"):
+            configDict["CXXFLAGS"] += " -g"
     # Nothing special to add to LINKFLAGS
 
-    if configDict["DEBUG"]=="":
-        configDict["DEBUG"]="False"
 
     if configDict["LIBDIRFLAGS"]=="":
         scipionHomeDir = getScipionHome()
@@ -1115,15 +1126,16 @@ def install(dirname):
 
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
-
-    modulesDir = dirname + "/pylib/xmippPyModules"
-    createDir(modulesDir)
-    initFn = modulesDir + "/__init__.py"
+    destPathPyModule = os.path.expanduser(os.path.abspath(os.path.join(dirname, "pylib", "xmippPyModules")))
+    createDir(destPathPyModule)
+    initFn = destPathPyModule + "/__init__.py"
     if not os.path.isfile(initFn):
         with open(initFn, 'w') as f:
             pass  # just to create a init file to be able to import it as module
 
-    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+dirname+"/pylib/xmippPyModules/")
+    runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule)
+    sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER,MICROGRAPH_CLEANER)))
+    runJob(cpCmd+" -r "+sourcePathMicClean+" "+destPathPyModule) #cp instead ln -s for safety reasons
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")

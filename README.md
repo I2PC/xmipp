@@ -5,7 +5,9 @@
 --->
 # xmipp
 
-**If you want to use it as a Scipion package**, please visit [this](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-plugin).
+If you want to use it as a **Scipion package for production proposes**, please visit [this](https://scipion-em.github.io/docs/docs/scipion-modes/install-from-sources#step-4-installing-xmipp3-and-other-em-plugins).
+
+If you want to use it as a **Scipion package for devel proposes**, please visit [this](https://github.com/I2PC/xmipp/wiki/Xmipp-bundle-installtion).
 
 To install Xmipp in a certain place (e.g. in the `xmipp-bundle` directory) follow this instructions:
 
@@ -23,3 +25,8 @@ where you can replace `N=4` for `N=#processors` and `br=master` for `br=devel` i
 ### Using Scipion libraries
 
 If you want xmipp to pick up SCIPION libraries define SCIPION_HOME=\<path to scipion\>
+
+**Note**: If some program (like `nvcc`) is not visible from your terminal (`which nvcc` returns nothing), but it is visible by Scipion (`$SCIPION_HOME/scipion run which nvcc` returns the nvcc path). Then, you can use Scipion as wrapper to install Xmipp:
+```
+$SCIPION_HOME/scipion run ./xmipp all N=8 br=devel
+```
