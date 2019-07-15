@@ -1112,6 +1112,15 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 		generateModelSoFar_fast(background, false);
 		action = 3;
 		psd_background.initZeros(background);
+
+#ifdef DEBUG
+		std::cout << "background\n" << background << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
+
+		std::cout << "psd_exp_radial\n" << psd_exp_radial << std::endl;
+		std::cout << "--------------------------------------" << std::endl;
+#endif
+
 		FOR_ALL_ELEMENTS_IN_ARRAY1D(background)
 		{
 			if(w_digfreq(i)>min_freq && w_digfreq(i)<max_freq)
