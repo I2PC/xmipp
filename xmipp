@@ -1173,24 +1173,24 @@ def install(dirname):
 
     XMIPP_HOME = os.path.realpath(dirname)
     fhBash.write("export XMIPP_HOME=%s\n"%XMIPP_HOME)
-    fhFish.write("set -x XMIPP_HOME=%s\n"%XMIPP_HOME)
+    fhFish.write("set -x XMIPP_HOME %s\n"%XMIPP_HOME)
 
     XMIPP_SRC = os.path.realpath("src")
     fhBash.write("export XMIPP_SRC=%s\n"%XMIPP_SRC)
-    fhFish.write("set -x XMIPP_SRC=%s\n"%XMIPP_SRC)
+    fhFish.write("set -x XMIPP_SRC %s\n"%XMIPP_SRC)
 
     SCIPION_HOME = getScipionHome()
     if SCIPION_HOME:
         fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
         fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
-        fhFish.write("set -x PATH $SCIPION_HOME/software/bin $PATH\n")
-        fhFish.write("set -x LD_LIBRARY_PATH $SCIPION_HOME/software/lib $LD_LIBRARY_PATH\n")
+        fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
+        fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhFish.write("set -x PATH %s/bin $PATH\n"%XMIPP_HOME)
-    fhFish.write("set -x LD_LIBRARY_PATH %s/lib %s/bindings/python $LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhFish.write("set -x PYTHONPATH %s/bindings %s/pylib $PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhFish.write("set -px PATH %s/bin\n"%XMIPP_HOME)
+    fhFish.write("set -px LD_LIBRARY_PATH %s/lib %s/bindings/python\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhFish.write("set -px PYTHONPATH %s/bindings %s/pylib\n"%(XMIPP_HOME,XMIPP_HOME))
 
     fhBash.write('\n')
     fhBash.write("alias x='xmipp'\n")
