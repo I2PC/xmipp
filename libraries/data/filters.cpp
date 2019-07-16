@@ -4089,3 +4089,37 @@ void denoiseTVFilter(MultidimArray<double> &xnew, int maxIter)
         fold = fnew;
     }
 }
+
+void matlab_filter(Matrix1D<double> &B, Matrix1D<double> &A,
+		    const MultidimArray<double> &X, MultidimArray<double> &Y, MultidimArray<double> &Z)
+{
+	    if (VEC_ELEM(A,0)!=1.0)
+	    {
+	    	A/=VEC_ELEM(A,0);
+	    	B/=VEC_ELEM(B,0);
+	    }
+
+		size_t input_size = XSIZE(X);
+		size_t filter_order = std::max(VEC_XSIZE(A),VEC_XSIZE(B));
+		if (VEC_XSIZE(B)!=filter_order)
+			B.resize(filter_order);
+		if (VEC_XSIZE(A)!=filter_order)
+			A.resize(filter_order);
+		Y.resize(input_size);
+		Z.initZeros(filter_order);
+
+		for (size_t i = 0; i < input_size; ++i)
+		{
+			size_t order = filter_order - 1;
+			while (order)
+			{
+				if (i >= order)
+				{
+					DIRECT_A1D_ELEM(Z,order - 1) = VEC_ELEM(B,order) * DIRECT_A1D_ELEM(X,i - order) -
+							                       VEC_ELEM(A,order) * DIRECT_A1D_ELEM(Y,i - order) + DIRECT_A1D_ELEM(Z,order);
+				}
+				--order;
+			}
+			DIRECT_A1D_ELEM(Y,i) = VEC_ELEM(B,0) * DIRECT_A1D_ELEM(X,i) + DIRECT_A1D_ELEM(Z,0);
+		}
+}
