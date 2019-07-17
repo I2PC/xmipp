@@ -46,6 +46,7 @@ matlab = get('MATLAB')
 opencv = env.GetOption('opencv') and get('OPENCV')
 opencvsupportscuda = get('OPENCVSUPPORTSCUDA')
 opencv_3 = get('OPENCV3')
+starpu = get('STARPU')
 
 if opencv:
     opencvLibs = ['opencv_core',
@@ -156,6 +157,27 @@ if cuda:
     addLib('XmippParallelCuda', dirs=['libraries'], patterns=['parallel_adapt_cuda/*.cpp'],
            libs=['Xmipp','XmippInterfaceCuda','XmippCuda'], mpi=True)
 
+    if starpu:
+        starpu_include = [os.environ.get('STARPU_INCLUDE')]
+        starpu_lib = ['lib', os.environ.get('STARPU_LIB')]
+        starpu_library = os.environ.get('STARPU_LIBRARY')
+
+        addLib('XmippStarPu',
+               dirs=['libraries'],
+               patterns=['reconstruction_starpu/*.cpp'],
+               incs=starpu_include,
+               nvcc=True,
+               deps=['XmippCuda'],
+               libs=['XmippCuda', starpu_library, 'fftw3f'],
+               libpath=starpu_lib)
+
+        addLib('XmippStarPuMpi', dirs=['libraries'], patterns=['reconstruction_starpu/mpi/*.cpp'],
+               incs=starpu_include,
+               deps=['XmippCuda', 'XmippStarPu'],
+               libs=['XmippCuda', 'XmippStarPu', starpu_library, 'fftw3f'],
+               libpath=starpu_lib,
+               mpi=True)
+
 # MPI
 dirs = ['libraries']
 patterns=['parallel/*.cpp']
@@ -225,20 +247,37 @@ PROGRAMS_WITH_PYTHON = ['volume_align_prog','mpi_classify_CLTomo_prog']
 PROGRAMS_WITH_OPENCV = ['movie_optical_alignment_cpu','mpi_volume_homogenizer']
 PROGRAMS_WITH_OPENCV_AND_CUDA = ['movie_optical_alignment_gpu']
 for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
-	pname = os.path.basename(p)
-	if pname in PROGRAMS_WITH_PYTHON:
-		addProg(pname,incs=python_incdirs,libs=['python2.7'])
-	elif pname in PROGRAMS_WITH_OPENCV:
-		if opencv:
-			addProg(pname,libs=opencvLibs,deps=['opencv'])
-	elif pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
-		if opencv and opencvsupportscuda:
-			addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
-	elif 'cuda' in pname:
-		if cuda:
-			addProg(pname)
-	else:
-		addProg(pname)
+    pname = os.path.basename(p)
+    pnameTokens = pname.split('_')
+    if pname in PROGRAMS_WITH_PYTHON:
+        addProg(pname,incs=python_incdirs,libs=['python2.7'])
+    elif pname in PROGRAMS_WITH_OPENCV:
+        if opencv:
+            addProg(pname,libs=opencvLibs,deps=['opencv'])
+    elif pname in PROGRAMS_WITH_OPENCV_AND_CUDA:
+        if opencv and opencvsupportscuda:
+            addProg(pname,libs=opencvLibs,deps=['opencv'],cuda=True)
+    elif 'starpu' in pnameTokens:
+        if not cuda or not starpu:
+            continue
+        starpu_lib = ['lib', os.environ.get('STARPU_LIB')]
+        starpu_deps = ['XmippStarPu', 'XmippCuda']
+        starpu_libs = ['XmippStarPu', 'XmippCuda', os.environ.get('STARPU_LIBRARY'), 'fftw3f']
+        if 'mpi' in pnameTokens:
+            starpu_deps = ['XmippStarPuMpi'] + starpu_deps
+            starpu_libs = ['XmippStarPuMpi'] + starpu_libs
+        addProg(pname,
+                cuda=True,
+                deps=starpu_deps,
+                libs=starpu_libs,
+                libPaths=starpu_lib,
+                # Ensure, that StarPU's shared libraries are accessible even when not in LD_LIBRARY_PATH
+                linkflags=['-Wl,-rpath=%s' % os.environ.get('STARPU_LIB')])
+    elif 'cuda' in pnameTokens:
+        if cuda:
+            addProg(pname)
+    else:
+        addProg(pname)
 
 for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
     if not cuda and 'cuda' in p:
