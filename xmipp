@@ -56,7 +56,6 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
                 MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em'}
 
-TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 CONFIG_FILE_NAME = "xmipp.conf"
 
 # if a skippable compilation fails (if 'key' found in the failed code),
@@ -328,7 +327,7 @@ def getAllBranches(repo):
     log = []
     prefix = 'refs/heads/'
     result = runJob('git ls-remote -h %s' % REPOSITORIES[repo],
-        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+        show_output=False, log=log, show_command=False)
     if result:
         branches = [l.split(prefix)[1] for l in log]
         return (True, branches)
@@ -351,7 +350,7 @@ def getDefaultBranch(repo):
     log = []
     key = 'HEAD branch:'
     result = runJob('git remote show %s' % REPOSITORIES[repo],
-        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+        show_output=False, log=log, show_command=False)
     if result:
         for l in log:
             if key in l:
@@ -1345,12 +1344,8 @@ def ensureConfig():
 
 
 def ensureGit():
-    createDir(TMP_DIR)
     if not checkProgram('git'):
         print(red('Git not found'))
-        return False
-    if not runJob('git init', cwd=TMP_DIR, show_output=False, show_command=False):
-        print(red('Cannot create temporal git repository in ' + TMP_DIR))
         return False
     return True
 
