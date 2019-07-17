@@ -607,7 +607,8 @@ def checkCompiler(configDict):
 
     if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"],configDict["PYTHONINCFLAGS"])):
-        print(red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS"))
+        print(red("Check the SCIPION_HOME, INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS"))
+        print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev"))
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
     if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \

@@ -468,7 +468,7 @@ private:
 double checkRandomness(const std::string &sequence);
 
 /** Spherical harmonics.
- * This function calculates R_l^n(r)Y_l^m(xr,yr,zr) where R_l^m is the Zernike polynomial,
+ * This function calculates R_l^n(r)Y_l^m(xr,yr,zr) where R_l^n is the Zernike polynomial,
  * l is the degree and n goes over odd or even values depending on the value of l. For instance,
  * l=0 (n=0), l=1 (n=1), l=2 (n=0,2), l=3 (n=1,3), l=4 (n=0,2,4), ... The Y_l^m is the real spherical
  * harmonic. l is the degree, and m=-l,...,l. For the specific formulas see
@@ -477,6 +477,20 @@ double checkRandomness(const std::string &sequence);
  * The cartesian coordinates xr, yr and zr are supposed to be normalized between -1 and 1, that is,
  * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1. */
 double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r);
+
+#ifdef NEVERDEFINED
+/** Spherical harmonics.
+ * This function calculates R_l^m(r)Y_l^m(xr,yr,zr) where R_l^m is the Associated Legendre polynomial,
+ * l is the degree and m=-l,...,l. For instance, l=0 (n=0), l=1 (n=1), l=2 (n=0,2), l=3 (n=1,3), l=4 (n=0,2,4), ...
+ * The Y_l^m is the real spherical harmonic. l is the degree, and m=-l,...,l. For the specific formulas see
+ * https://en.wikipedia.org/wiki/Associated_Legendre_polynomials#The_first_few_associated_Legendre_functions and
+ * https://en.wikipedia.org/wiki/Table_of_spherical_harmonics#Real_spherical_harmonics.
+ * The cartesian coordinates xr, yr and zr are supposed to be normalized between -1 and 1, that is,
+ * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1.
+ * The Associated Legendre polynomials have been transformed to fit in the interval [0,1] by the following
+ * relation: R'_l^m(r')=0.5*R_l^m(2r-1)*/
+double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr, double rr);
+#endif
 
 /** Index to Spherical harmonics index.
  * Given an integer consecutive index (0,1,2,3,...) this function returns the corresponding (n,l,m)

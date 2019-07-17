@@ -45,17 +45,35 @@ public:
     /// Output Volume (deformed input volume)
     FileName fnVolOut;
 
-    /// Align volumes
-    bool alignVolumes;
+    /// Save the deformation of each voxel for local strain and rotation analysis
+    bool analyzeStrain;
+
+    /// Radius optimization
+    bool optimizeRadius;
 
     /// Degree of Zernike polynomials and spherical harmonics
     int depth;
 
     /// Maximum radius for the transformation
 	double Rmax;
+
 public:
-	Image<double> VI, VR, VO;
+	/// Degree of the spherical harmonic
+	int L, prevL;
+
+	Image<double> VI, VR, VO, Gx, Gy, Gz;
+
+	//Vector containing the degree of the Zernike-Spherical harmonics
 	Matrix1D<double> clnm;
+
+	//Deformation in pixels
+	double deformation;
+
+	// Save output volume
+	bool applyTransformation;
+
+	// Save the values of gx, gy and gz for local strain and rotation analysis
+	bool saveDeformation;
 
 public:
     /// Define params
@@ -68,10 +86,22 @@ public:
     void show();
 
     /// Distance
-    double distance(double *pclnm) const;
+    double distance(double *pclnm);
 
     /// Run
     void run();
+
+    /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
+    void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
+
+    /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
+    void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
+
+    ///Compute the number of spherical harmonics in l=0,1,...,depth
+    void Numsph(Matrix1D<int> &sphD);
+
+    /// Compute strain
+    void computeStrain();
 };
 
 //@}
