@@ -26,6 +26,7 @@
 #define _PROG_GPU_CORRELATION
 
 #include <core/xmipp_program.h>
+#include <reconstruction_cuda/gpu.h>
 
 class ProgGpuCorrelation: public XmippProgram
 {
@@ -40,6 +41,7 @@ private:
 	double alpha;
 	int maxShift;
 	int sizePad;
+	GPU gpu;
 
 public:
     //Input metadata file

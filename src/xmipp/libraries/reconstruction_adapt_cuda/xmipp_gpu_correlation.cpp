@@ -524,8 +524,9 @@ void ProgGpuCorrelation::readParams()
    	}
    	fnDir = getParam("--odir");
    	maxShift = getIntParam("--maxShift");
-
    	sizePad = getIntParam("--sizePad");
+   	int device = getIntParam("--device");
+   	gpu = GPU(device);
 
 }
 
@@ -552,8 +553,9 @@ void ProgGpuCorrelation::defineParams()
 	addParamsLine("   [--significance <alpha=0.2>]  	   : To use significance with the indicated value");
 	addParamsLine("   [--odir <outputDir=\".\">]           : Output directory to save the aligned images");
     addParamsLine("   [--maxShift <s=10>]                  : Maximum shift allowed (+-this amount)");
-    addParamsLine("   [--simplifiedMd <b=false>]     : To generate a simplified metadata with only the maximum weight image stores");
+    addParamsLine("   [--simplifiedMd <b=false>]           : To generate a simplified metadata with only the maximum weight image stores");
     addParamsLine("   [--sizePad <pad=100>]    ");
+    addParamsLine("   [--device <dev=0>]                   : GPU device to use. 0th by default");
     addUsageLine("Computes the correlation between a set of experimental images with respect "
     		     "to a set of reference images with CUDA in GPU");
 
@@ -1370,6 +1372,9 @@ void generate_output_classes(MetaData SF, MetaData SFexp, FileName fnDir, size_t
 void ProgGpuCorrelation::run()
 {
 
+	//Setting the cuda device to use
+	gpu.set();
+
 	//PROJECTION IMAGES
 	size_t Xdim, Ydim, Zdim, Ndim;
 	SF.read(fn_ref,NULL);
@@ -1729,6 +1734,7 @@ void ProgGpuCorrelation::run()
 		if(Nref==0)
 			Nref=1;
 	}
+
 
 	calculate_weights(matrixCorrCpu, matrixCorrCpu_mirror, corrTotalRow, weights, Nref, mdExpSize, mdInSize, weightsMax, simplifiedMd,
 			matrixTransCpu, matrixTransCpu_mirror, maxShift);

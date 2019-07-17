@@ -1653,4 +1653,15 @@ public:
     void laplacian(const MultidimArray<double> &img, MultidimArray< std::complex<double> > &fimg, bool direct);
 };
 
+/* Matlab 1D filter function, y=filter(b,a,x);
+ * a and b may be modified either by dividing by a0, or by resizing it.
+ * Z is an auxiliary vector that will help to calculate the filter
+ * */
+void matlab_filter(Matrix1D<double> &B, Matrix1D<double> &A,
+		    const MultidimArray<double> &X, MultidimArray<double> &Y, MultidimArray<double> &Z);
+
+/* Matlab 1D filtfilt function, y=filtfilt(b,a,x);
+ * a(0) is supposed to be 1
+ * */
+
 #endif

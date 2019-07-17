@@ -414,11 +414,10 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
 
 template<typename T>
 AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData &movie) {
-    AlignmentResult<T> alignment;
+    auto alignment = AlignmentResult<T>();
     int n = 0;
     T shiftX;
     T shiftY;
-    auto negateToDouble = [] (T v) {return (double) (v * -1);};
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         if (n >= nfirst && n <= nlast) {
@@ -572,7 +571,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     loadDarkCorrection(dark);
     loadGainCorrection(igain);
 
-    AlignmentResult<T> globalAlignment;
+    auto globalAlignment = AlignmentResult<T>();
     if (useInputShifts) {
         if (!movie.containsLabel(MDL_SHIFT_X)) {
             setZeroShift(movie);

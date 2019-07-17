@@ -59,4 +59,5 @@ gmon.out
 
 # Ignore version file
 .devel_version
+/src/xmipp/Debug/
 /src/xmipp/applications/programs/version

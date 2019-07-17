@@ -63,9 +63,10 @@ void ProgAngularContinuousAssign2::readParams()
     optimizeScale = checkParam("--optimizeScale");
     optimizeAngles = checkParam("--optimizeAngles");
     optimizeDefocus = checkParam("--optimizeDefocus");
+    ignoreCTF = checkParam("--ignoreCTF");
     originalImageLabel = getParam("--applyTo");
     phaseFlipped = checkParam("--phaseFlipped");
-    penalization = getDoubleParam("--penalization");
+    // penalization = getDoubleParam("--penalization");
     fnResiduals = getParam("--oresiduals");
     fnProjections = getParam("--oprojections");
 }
@@ -93,9 +94,10 @@ void ProgAngularContinuousAssign2::show()
     << "Optimize scale:      " << optimizeScale      << std::endl
     << "Optimize angles:     " << optimizeAngles     << std::endl
     << "Optimize defocus:    " << optimizeDefocus    << std::endl
+    << "Ignore CTF:          " << ignoreCTF          << std::endl
     << "Apply to:            " << originalImageLabel << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
-    << "Penalization:        " << penalization       << std::endl
+    // << "Penalization:        " << penalization       << std::endl
     << "Output residuals:    " << fnResiduals        << std::endl
     << "Output projections:  " << fnProjections      << std::endl
     ;
@@ -126,9 +128,10 @@ void ProgAngularContinuousAssign2::defineParams()
     addParamsLine("  [--optimizeScale]            : Optimize scale");
     addParamsLine("  [--optimizeAngles]           : Optimize angles");
     addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
+    addParamsLine("  [--ignoreCTF]                : Ignore CTF");
     addParamsLine("  [--applyTo <label=image>]    : Which is the source of images to apply the final transformation");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
-    addParamsLine("  [--penalization <l=100>]     : Penalization for the average term");
+    // addParamsLine("  [--penalization <l=100>]     : Penalization for the average term");
     addParamsLine("  [--oresiduals <stack=\"\">]  : Output stack for the residuals");
     addParamsLine("  [--oprojections <stack=\"\">] : Output stack for the projections");
     addExampleLine("A typical use is:",false);
@@ -402,7 +405,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 		rowIn.getValue(MDL_CONTINUOUS_GRAY_B,old_grayB);
 	}
 
-	if (rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL))
+	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && !ignoreCTF)
 	{
 		hasCTF=true;
 		ctf.readFromMdRow(rowIn);
