@@ -169,11 +169,13 @@ void ProgRecFourierGPU::checkMemory() {
 // Main routine ------------------------------------------------------------
 void ProgRecFourierGPU::run()
 {
-    show();
-    checkDefines(); // check that there is not a logical error in defines
-    produceSideinfo();
-    checkMemory();
-    if (verbose) {
+//    show();
+ //   checkDefines(); // check that there is not a logical error in defines
+//    produceSideinfo();
+//    checkMemory();
+ 
+	std::cout<<"blablabla" << std::endl;     
+	if (verbose) {
 		init_progress_bar(SF.size());
     }
     //Computing interpolated volume
