@@ -50,7 +50,7 @@ gmon.out
 /build/*
 /src/*
 # except xmipp folder
-!/src/xmipp/*
+!/src/xmipp/
 
 /src/xmipp/bin
 /src/xmipp/lib
