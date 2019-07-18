@@ -177,7 +177,7 @@ void ProgRecFourierGPU::run()
        bool tmp = true;
 	if (true || tmp && tmp) { 
 	 void * p = nullptr;
- 	 printf("%d", (int)(*p));
+ 	 printf("%d", *(int*)p);
 	}	 
 	std::cout<<"blablabla" << std::endl;     
 	if (verbose) {
