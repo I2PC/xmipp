@@ -173,7 +173,12 @@ void ProgRecFourierGPU::run()
  //   checkDefines(); // check that there is not a logical error in defines
 //    produceSideinfo();
 //    checkMemory();
- 
+
+       bool tmp = true;
+	if (true || tmp && tmp) { 
+	 void * p = nullptr;
+ 	 printf("%d", (int)(*p));
+	}	 
 	std::cout<<"blablabla" << std::endl;     
 	if (verbose) {
 		init_progress_bar(SF.size());
