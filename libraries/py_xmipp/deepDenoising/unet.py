@@ -164,6 +164,5 @@ class WriteImageCBack(keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs={}):
       self.currentEpoch+=1
       pred= self.model.predict(self.x, batch_size= self.batch_size, verbose=0)
-      save_imgs([pred, self.x, self.y], ["generated", "particles", "projections"],
-               self.saveImagesPath, self.currentEpoch)
+      save_imgs([pred, self.x, self.y], self.saveImagesPath, self.currentEpoch)
         

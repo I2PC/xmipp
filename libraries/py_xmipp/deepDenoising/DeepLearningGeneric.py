@@ -1,10 +1,9 @@
 import sys, os
 import keras
-import math
 import numpy as np
-from matplotlib import pyplot as plt
 
-from dataGenerator import getDataGenerator,  BATCH_SIZE
+from skimage.io import imsave
+from dataGenerator import getDataGenerator, BATCH_SIZE
 from augmentators import generateReverseNormalizationFunction
 
 
@@ -29,6 +28,12 @@ class DeepLearningModel():
     else:
       raise ValueError("Unrecognized loss type %s"%(generatorLoss))  
 
+  def setTrainingParameters(self):
+    '''
+
+    :return:
+    '''
+    pass #TODO
   def _setShape(self, boxSize):
     raise ValueError("Not implemented yet")
 
@@ -65,8 +70,16 @@ class DeepLearningModel():
     keras.backend.clear_session()
 
 
-  def save_imgs(self, imgs, titles, saveImagesPath,  epoch, plotInstead=False, nImagesToPlot=8): #For debugging purposes
-#    save_imgs( imgs, titles, saveImagesPath,  epoch, plotInstead, nImagesToPlot)
+  def save_imgs(self, imgs, saveImagesPath, epoch, nImagesToPlot=8): #For debugging purposes
+    '''
+
+    :param imgs: A list of different types of matching images. E.g. [noisyStack, denoisedStack]
+    :param saveImagesPath:
+    :param epoch:
+    :param nImagesToPlot:
+    :return:
+    '''
+    save_imgs(imgs, saveImagesPath, epoch, nImagesToPlot)
     return
     
   def takeListMean(self, x):
@@ -77,35 +90,29 @@ class DeepLearningModel():
       
       
       
-def save_imgs( imgs, titles, saveImagesPath,  epoch, plotInstead=False, nImagesToPlot=8):
+def save_imgs(imgs, saveImagesPath, epoch, nImagesToPlot=8):
 
   nTypes= len(imgs)
-  plt.switch_backend('agg')
-  fig, axs = plt.subplots(nImagesToPlot, nTypes)
-  assert nTypes==len(titles)
-  for i in range( nTypes ):
-    axs[0, i].set_title(titles[i])
+  imgSize= np.squeeze(imgs[0][0]).shape
+  out=np.zeros( (nImagesToPlot*imgSize[0], nTypes*imgSize[1]), dtype=np.uint8)
   for i in range(nImagesToPlot):
-    for j in range(nTypes): 
-      axs[i, j].imshow(np.squeeze(imgs[j][i]), cmap='gray')
-      axs[i, j].axis('off')
+    for j in range(nTypes):
+      img=  np.squeeze(imgs[j][i])
+      img= (255*(img-np.min(img))/(np.max(img)-np.min(img))).astype(dtype=np.uint8)
+      out[i*imgSize[0]:(i+1)*imgSize[0], j*imgSize[1]:(j+1)*imgSize[1]] = np.squeeze(img)
 
   fname= os.path.join(saveImagesPath, "denoise_%d.png"% epoch)
   if os.path.exists(fname):
     try:
       os.remove(fname)
-    except IOError, OSError:
+    except (IOError, OSError):
       pass
-  if not plotInstead:
-    plt.savefig( fname)
-    plt.close()
-  else:
-    plt.show()
-  plt.switch_backend('TkAgg')   
+  imsave(fname, out)
+
       
 def generatePerceptualLoss(image_shape):
   import xmipp3
-  from keras.layers import Lambda, Input
+  from keras.layers import Input
   from keras.models import load_model, Model
   import keras.backend as K
   effectiveSize=int(5e4)

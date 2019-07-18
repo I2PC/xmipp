@@ -232,8 +232,7 @@ class GAN(DeepLearningModel):
         print("Validation meanLoss did not improve from %s"%(bestValidationLoss ) )
         roundsNoImprovement+=1
         roundsNoImprovementSinceLRDecay+=1
-      self.save_imgs([generated_imgs, particles_val, projections_val], ["generated", "particles", "projections"],
-                      saveImagesPath, epoch)
+      self.save_imgs([generated_imgs, particles_val, projections_val], saveImagesPath, epoch)
       sys.stdout.flush()
       
       if roundsNoImprovement>= roundsToEarlyStopping:

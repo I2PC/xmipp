@@ -24,30 +24,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
+import re
 
 import sys, os
 import xmipp_base
 import xmippLib
+from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+import numpy as np
 
-BAD_IMPORT_MSG='''
-Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearningToolkit
-If gpu version of tensorflow desired, install cuda 8.0 or cuda 9.0
-We will try to automatically install cudnn, if unsucesfully, install cudnn and add to LD_LIBRARY_PATH
-add to SCIPION_DIR/config/scipion.conf
-CUDA = True
-CUDA_VERSION = 8.0  or 9.0
-CUDA_HOME = /path/to/cuda-%(CUDA_VERSION)
-CUDA_BIN = %(CUDA_HOME)s/bin
-CUDA_LIB = %(CUDA_HOME)s/lib64
-CUDNN_VERSION = 6 or 7
-'''
-from xmippPyModules.deepDenoising.deepDenoising import getModelClass
-
-try:
-  from xmippPyModules.deepDenoising.deepDenoising import getModelClass
-except ImportError as e:
-  print(e)
-  raise ValueError(BAD_IMPORT_MSG)
 
 class ScriptDeepDenoising(xmipp_base.XmippScript):
   def __init__(self):
@@ -57,51 +41,39 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
     self.addUsageLine('Denoise particles Deep Learning. It works in two modes:\n'
                       '* mode 1: Train a neural network using a training dataset of particles and projections. '
                       '* mode 2: Denoise a set of particles using an already trained network')
-    ## params
-    self.addParamsLine(' -n <netDataPath>               : A path where the networks will be saved or loaded. '
-                       'If there is an already created  network in the path, it will be loaded and 2 options can be done:'
-                       '(1) the training continues '
-                       '(2) the putative set of particles can be scored')
 
     self.addParamsLine(' --mode <mode> : "training"|"denoising". Select training or denoising mode')
 
-    self.addParamsLine(' -i <noisyParticles> : Noisy particles to denoise or train network')
-    self.addParamsLine(' [ -p <noisyParticles> ] : Projections to train network (mandatory) or to evaluate denoising')
-    self.addParamsLine(' [ --empty_particles <emptyParticles> ] : Empty particles to make training more robust, optional')
-
+    self.addParamsLine(' -i <noisyParticles> : Noisy particles .xmd to denoise or train network')
+    self.addParamsLine(' [ -p <noisyParticles> ] : Projections .xmd to train network (mandatory) or to evaluate denoising')
+    self.addParamsLine(' [ --empty_particles <emptyParticles> ] : Empty particles .xmd to make training more robust, optional')
+    self.addParamsLine(' [ -o <denoisedParticles> ] : Denoised particles .xmd. Mandatory when mode=="denoising", ignored otherwise')
     self.addParamsLine('[ -c <pathToNetworkConfJson>   ]      : A path to a json file that contains the '
                        'arguments required to create/use the network'
                        'see scipion-em-xmipp/xmipp/protocols/protocol_deep_denoising.')
-
-    self.addParamsLine('[ -g <gpuId>  ]               : GPU Ids. By default no gpu will be used. Comma separated')
-    self.addParamsLine('[ -t <numThreads>  <N=2>  ]   : Number of threads')
-
-    self.addParamsLine("== arguments ==")
-
 
     ## examples
     self.addExampleLine('trainNet net:  xmipp_deep_denoising -n ./netData -i ./params.json')
 
   def run(self):
+    print("running")
+    checkIf_tf_keras_installed()
     import json
 
-    numberOfThreads = self.getIntParam('-t')
-    gpuToUse = None
-    if self.checkParam('-g'):
-      gpuToUse = self.getIntParam('-g')
-      numberOfThreads = None
-
-    gpuList= updateEnviron(gpuToUse)
     netArgsFname = self.getParam('-c')
     assert os.path.isfile(netArgsFname), "Error, %s is not a file"%netArgsFname
     with open(netArgsFname) as f:
       args= json.load(f)
 
+
+    updateEnviron(args["builder"]["gpuList"])
+
     dataPathParticles = self.getParam('-i')
-    dataPathProjections=None
-    dataPathEmpty=None
+
     if self.checkParam('-p'):
       dataPathProjections = self.getParam('-p')
+    else:
+      dataPathProjections = None
 
     if self.checkParam('--empty_particles'):
       dataPathEmpty = self.getParam('--empty_particles')
@@ -111,32 +83,79 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
     mode = self.getParam('--mode')
     trainKeyWords = ["train", "training"]
     predictKeyWords = ["predict", "denoising"]
+
+    if args["builder"]["modelType"] == "U-Net":
+      from xmippPyModules.deepDenoising.unet import UNET as ModelClass
+    elif modelTypeName == "GAN":
+      from xmippPyModules.deepDenoising.gan import GAN as ModelClass
+    else:
+      raise ValueError('modelTypeName must be one of ["GAN", "U-Net"]')
+
+    del args["builder"]["modelType"]
+    model = ModelClass(**args["builder"])
+
     if mode in trainKeyWords:
       print("mode 1: training")
       assert dataPathProjections is not None, "Error, projections must be provided to train the network"
-      ModelClass = getModelClass(args["builder"]["modelType"], gpuList)
-      del args["builder"]["modelType"]
-      model = ModelClass(**args["builder"])
-
       model.train(args["running"]["lr"], args["running"]["nEpochs"], dataPathParticles,
                   dataPathProjections, dataPathEmpty)
       model.clean()
       del model
     elif mode in predictKeyWords:
-      model= loadModel()
+      import pyworkflow.em.metadata as md
+      from xmipp3.utils import getMdSize
+      from scipy.stats import pearsonr
+
+      inputParticlesMdName = dataPathParticles
+      inputParticlesStackName =  re.sub(r"\.xmd$", ".stk", dataPathParticles)
+      outputParticlesMdName = self.getParam('-o')
+      outputParticlesStackName = re.sub(r"\.xmd$", ".stk", outputParticlesMdName)
+
+      useProjections = False
+      if dataPathProjections is not None:
+        useProjections = True
+
+      if useProjections:
+        inputProjectionsStackName = re.sub(r"\.xmd$", ".stk", dataPathProjections)
+        metadataProjections = xmippLib.MetaData(inputProjectionsStackName)
+
+      dimMetadata = getMdSize(inputParticlesMdName)
+      boxSize= args["builder"]["boxSize"]
+      xmippLib.createEmptyFile(outputParticlesStackName, boxSize,boxSize, 1, dimMetadata)
+
+      mdNewParticles = md.MetaData()
+
+      I = xmippLib.Image()
+      i = 1
+      for preds, particles, projections in model.yieldPredictions(inputParticlesMdName, metadataProjections
+                                                                                        if useProjections else None):
+        newRow = md.Row()
+        for pred, particle, projection in zip(preds, particles, projections):
+          outputImgpath = ('%06d@' % (i,)) + outputParticlesStackName
+          I.setData(np.squeeze(pred))
+          I.write(outputImgpath)
+
+          pathNoise = ('%06d@' % (i,)) + inputParticlesStackName
+
+          newRow.setValue(md.MDL_IMAGE, outputImgpath)
+          newRow.setValue(md.MDL_IMAGE_ORIGINAL, pathNoise)
+
+          correlations_input_vs_denoised, _ = pearsonr(pred.ravel(), particle.ravel())
+          newRow.setValue(md.MDL_CORR_DENOISED_NOISY, correlations_input_vs_denoised)
+
+          if useProjections:
+            pathProj = ('%06d@' % (i,)) + inputProjectionsStackName
+            newRow.setValue(md.MDL_IMAGE_REF, pathProj)
+            correlations_proj_vs_denoised, _ = pearsonr(pred.ravel(), projection.ravel())
+            newRow.setValue(md.MDL_CORR_DENOISED_PROJECTION, correlations_proj_vs_denoised)
+
+          newRow.addToMd(mdNewParticles)
+          i += 1
+
+      mdNewParticles.write('particles@' + outputParticlesMdName, xmippLib.MD_APPEND)
     else:
       raise Exception("Error, --mode must be training or denoising")
 
-def updateEnviron(gpus=None):
-  """ Create the needed environment for TensorFlow programs. """
-  print("updating environ to select gpus: %s"%(gpus) )
-  if gpus is not None and gpus.startswith("all"): return None
-  if gpus is not None or gpus is not "":
-    os.environ['CUDA_VISIBLE_DEVICES']=gpus
-    return [int(elem) for elem in gpus]
-  else:
-    os.environ['CUDA_VISIBLE_DEVICES']="-1"
-    return None
 
 if __name__ == '__main__':
   exitCode = ScriptDeepDenoising().tryRun()
