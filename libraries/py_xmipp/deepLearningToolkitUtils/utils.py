@@ -30,12 +30,22 @@ def updateEnviron(gpus=None):
     os.environ['CUDA_VISIBLE_DEVICES']="-1"
     return None
   else:
-    if gpus.startswith("all"):
-      return "all"
-    elif gpus is not "":
-      os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-      if "," in gpus:
-        return [int(elem) for elem in gpus.split(",")]
+    if isinstance(gpus, str):
+      if gpus.startswith("all"):
+        return "all"
+      elif gpus is not "":
+        os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+        if "," in gpus:
+          return [int(elem) for elem in gpus.split(",")]
+        else:
+          return [int(elem) for elem in gpus]
       else:
-        return [int(elem) for elem in gpus.split(",")]
+        os.environ['CUDA_VISIBLE_DEVICES'] = "-1"
+        return None
+    else:
+      os.environ['CUDA_VISIBLE_DEVICES'] = str(gpus)
+      if isinstance(gpus, list):
+        return [int(elem) for elem in gpus]
+      else:
+        return [int(gpus)]
   return None
