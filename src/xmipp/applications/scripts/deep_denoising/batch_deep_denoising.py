@@ -86,7 +86,7 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
 
     if args["builder"]["modelType"] == "U-Net":
       from xmippPyModules.deepDenoising.unet import UNET as ModelClass
-    elif modelTypeName == "GAN":
+    elif args["builder"]["modelType"] == "GAN":
       from xmippPyModules.deepDenoising.gan import GAN as ModelClass
     else:
       raise ValueError('modelTypeName must be one of ["GAN", "U-Net"]')
