@@ -23,12 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
-#define LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_
+#ifndef LIBRARIES_RECONSTRUCTION_AROTATION_ESTIMATOR_H_
+#define LIBRARIES_RECONSTRUCTION_AROTATION_ESTIMATOR_H_
 
 #include "data/hw.h"
 #include "data/dimensions.h"
-#include "data/point2D.h"
 #include "core/xmipp_error.h"
 #include "align_type.h"
 #include <vector>
@@ -36,44 +35,41 @@
 namespace Alignment {
 
 template<typename T>
-class AShiftEstimator {
+class ARotationEstimator {
 public:
-    AShiftEstimator() {
+    ARotationEstimator() {
         setDefault();
     }
-    virtual ~AShiftEstimator() {
-        release();
-    }
 
-    virtual void init2D(const HW &hw, AlignType type,
-               const Dimensions &dims, size_t batch, size_t maxShift) = 0;
+    void init(const HW &hw, AlignType type,
+       const Dimensions &dims, size_t batch, float maxRotDeg);
 
-    virtual void load2DReferenceOneToN(const T *ref) = 0;
+    void loadReference(const T *ref);
 
-    virtual void computeShift2DOneToN(T *others) = 0; // FIXME DS it should erase m_shifts2D
-
-    inline std::vector<Point2D<float>> getShifts2D() {
-        if ( ! m_is_shift_computed) {
-            REPORT_ERROR(ERR_LOGIC_ERROR, "Shift has not been yet computed or it has been already retrieved");
-        }
-        auto cpy = std::vector<Point2D<float>>();
-        cpy.swap(m_shifts2D);
-        m_is_shift_computed = false;
-        return cpy;
-    }
-
-    virtual void release();
+    void compute(T *others);
 
     constexpr bool isInitialized() const {
         return m_isInit;
+    }
+
+    constexpr AlignType getAlignType() const {
+        return m_type;
     }
 
     constexpr Dimensions getDimensions() const {
         return *m_dims;
     }
 
-    constexpr AlignType getAlignType() const {
-        return m_type;
+    inline std::vector<float> getRotations2D() {
+        if ( ! m_is_rotation_computed) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Rotation has not been yet computed");
+        }
+        return m_rotations2D;
+    }
+
+    virtual void release();
+    virtual ~ARotationEstimator() {
+        release();
     }
 
 protected:
@@ -81,22 +77,24 @@ protected:
     AlignType m_type;
     const Dimensions *m_dims;
     size_t m_batch;
-    size_t m_maxShift;
+    float m_maxRotationDeg;
 
     // computed shifts
-    std::vector<Point2D<float>> m_shifts2D;
+    std::vector<float> m_rotations2D;
 
     // flags
     bool m_is_ref_loaded;
-    bool m_is_shift_computed;
+    bool m_is_rotation_computed;
     bool m_isInit;
 
     virtual void setDefault();
-    virtual void init2D(AlignType type, const Dimensions &dims,
-               size_t batch, size_t maxShift);
     virtual void check();
+
+    virtual void init2D(const HW &hw) = 0;
+    virtual void load2DReferenceOneToN(const T *ref) = 0;
+    virtual void computeRotation2DOneToN(T *others) = 0;
 };
 
 } /* namespace Alignment */
 
-#endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_AROTATION_ESTIMATOR_H_ */

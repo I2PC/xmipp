@@ -73,12 +73,25 @@ public:
         const Dimensions &dims,
         bool center) override;
 
-    static void sComputeCorrelations2DOneToN(
+    static inline void sComputeCorrelations2DOneToN(
         const HW &hw,
         std::complex<T> *inOut,
         const std::complex<T> *ref,
         const Dimensions &dims,
-        bool center);
+        bool center) {
+        if (center) {
+            sComputeCorrelations2DOneToN<true>(hw, inOut, ref, dims);
+        } else {
+            sComputeCorrelations2DOneToN<false>(hw, inOut, ref, dims);
+        }
+    }
+
+    template<bool CENTER>
+    static void sComputeCorrelations2DOneToN(
+        const HW &hw,
+        std::complex<T> *inOut,
+        const std::complex<T> *ref,
+        const Dimensions &dims);
 private:
     const CPU *m_cpu;
 

@@ -117,7 +117,7 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
 
 // Compute the normalized Polar Fourier transform --------------------------
 void normalizedPolarFourierTransform(const MultidimArray<double> &in,
-		Polar<std::complex<double> > &out, bool flag, int first_ring,
+		Polar<std::complex<double> > &out, bool conjugated, int first_ring,
 		int last_ring, Polar_fftw_plans *&plans, int BsplineOrder) {
 	Polar<double> polarIn;
 	if (BsplineOrder == 1)
@@ -135,7 +135,7 @@ void normalizedPolarFourierTransform(const MultidimArray<double> &in,
 		plans = new Polar_fftw_plans();
 		polarIn.calculateFftwPlans(*plans);
 	}
-	fourierTransformRings(polarIn, out, *plans, flag);
+	fourierTransformRings(polarIn, out, *plans, conjugated);
 }
 
 // Best rotation -----------------------------------------------------------

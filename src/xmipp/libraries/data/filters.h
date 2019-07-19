@@ -323,7 +323,7 @@ double fastCorrelation(const MultidimArray< T >& x,
                        const MultidimArray< T >& y)
 {
     double retval = 0; 						// Returned value
-    double *refX, *refY;					// Pointer to vectors.
+    T *refX, *refY;					// Pointer to vectors.
     size_t nmax=4*(MULTIDIM_SIZE(x)/4);
 
     // Get reference to first elements in vectors.

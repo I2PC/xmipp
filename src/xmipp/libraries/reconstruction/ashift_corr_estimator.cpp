@@ -53,12 +53,12 @@ void AShiftCorrEstimator<T>::init2D(AlignType type,
         bool includingBatchFT, bool includingSingleFT) {
     AShiftEstimator<T>::init2D(type, dims.sDim(), dims.batch(), maxShift);
 
-    m_settingsInv = new FFTSettingsNew<T>(dims);
+    m_settingsInv = new FFTSettingsNew<T>(dims.isForward() ? dims.createInverse() : dims);
     m_includingBatchFT = includingBatchFT;
     m_includingSingleFT = includingSingleFT;
     m_centerSize = 2 * maxShift + 1;
 
-    check();
+    this->check();
 
     switch (type) {
         case AlignType::OneToN:
@@ -73,9 +73,6 @@ template<typename T>
 void AShiftCorrEstimator<T>::check() {
     using memoryUtils::operator "" _GB;
 
-    if (this->m_settingsInv->isForward()) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Inverse transform expected");
-    }
     if (this->m_settingsInv->fBytesBatch() >= 4_GB) {
        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than max size (4GB)");
     }

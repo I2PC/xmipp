@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <random>
 #include "reconstruction/ashift_corr_estimator.h"
+#include "alignment_test_utils.h"
 
 template<typename T>
 class AShiftEstimator_Test : public ::testing::Test {
@@ -22,43 +23,31 @@ public:
         std::uniform_int_distribution<> dist1(0, 368);
         std::uniform_int_distribution<> dist2(369, 768);
 
-            // only even inputs are valid
-            size_t first;
-            size_t second;
+        // only even inputs are valid
+        size_t first;
+        size_t second;
 
-            // test x == y
-            first = ((int)dist1(mt) / 2) * 2;
-            shift2D(FFTSettingsNew<T>(first, first, 1, n, batch, false, false));
+        // test x == y
+        first = ((int)dist1(mt) / 2) * 2;
+        shift2D(FFTSettingsNew<T>(first, first, 1, n, batch, false, false));
 
-            // test x > y
-            first = ((int)dist1(mt) / 2) * 2;
-            second = ((int)dist2(mt) / 2) * 2;
-            shift2D(FFTSettingsNew<T>(second, first, 1, n, batch, false, false));
+        // test x > y
+        first = ((int)dist1(mt) / 2) * 2;
+        second = ((int)dist2(mt) / 2) * 2;
+        shift2D(FFTSettingsNew<T>(second, first, 1, n, batch, false, false));
 
-            // test x < y
-            first = ((int)dist1(mt) / 2) * 2;
-            second = ((int)dist2(mt) / 2) * 2;
-            shift2D(FFTSettingsNew<T>(first, second, 1, n, batch, false, false));
+        // test x < y
+        first = ((int)dist1(mt) / 2) * 2;
+        second = ((int)dist2(mt) / 2) * 2;
+        shift2D(FFTSettingsNew<T>(first, second, 1, n, batch, false, false));
     }
 
     void shift2D(const FFTSettingsNew<T> &dims)
     {
         using Alignment::AlignType;
         // max shift must be sharply less than half of the size
-        auto maxShift = std::min(dims.sDim().x() / 2, dims.sDim().y() / 2) - 1;
-        auto maxShiftSq = maxShift * maxShift;
-
-        std::uniform_int_distribution<> dist(0, maxShift);
-        auto shifts = std::vector<Point2D<T>>();
-        shifts.reserve(dims.fDim().n());
-        for(size_t n = 0; n < dims.fDim().n(); ++n) {
-            // generate shifts so that the Euclidean distance is smaller than max shift
-            int shiftX = dist(mt);
-            int shiftXSq = shiftX * shiftX;
-            int maxShiftY = std::floor(sqrt(maxShiftSq - shiftXSq));
-            int shiftY = (0 == maxShiftY) ? 0 : dist(mt) % maxShiftY;
-            shifts.emplace_back(shiftX, shiftY);
-        }
+        auto maxShift = getMaxShift(dims.sDim());
+        auto shifts = generateShifts(dims.sDim(), maxShift, mt);
 
         auto others = new T[dims.sDim().size()];
         auto ref = new T[dims.sDim().xy()];
