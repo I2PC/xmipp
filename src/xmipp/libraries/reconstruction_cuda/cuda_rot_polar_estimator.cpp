@@ -52,6 +52,10 @@ void CudaRotPolarEstimator<T>::init2D(const HW &hw) {
             m_polarSettings->sBytesBatch(), // IFT of the samples
             m_polarSettings->fBytesBatch()))); // FT of the samples
 
+    if (std::is_same<T, float>()) { // FIXME DS remove
+        m_dataAux.resize(this->m_dims->y(), this->m_dims->x());
+    }
+
     this->m_isInit = true;
     printf("%p(%lu) %p(%lu)\n",
             m_d_batch_tmp1, std::max(
@@ -76,6 +80,12 @@ void CudaRotPolarEstimator<T>::release() {
     CudaFFT<T>::release(m_batchToFD);
     CudaFFT<T>::release(m_batchToSD);
 
+
+    m_dataAux.clear(); // FIXME DS remove
+    m_refPolarFourierI.clear(); // FIXME DS remove
+    delete m_refPlans; // FIXME DS remove
+    m_rotCorrAux.clear(); // FIXME DS remove
+
     ARotationEstimator<T>::release();
     CudaRotPolarEstimator<T>::setDefault();
 }
@@ -97,6 +107,14 @@ void CudaRotPolarEstimator<T>::setDefault() {
 
     m_firstRing = -1;
     m_lastRing = -1;
+
+
+    m_dataAux.clear(); // FIXME DS remove
+    m_refPolarFourierI.clear(); // FIXME DS remove
+    m_refPlans = nullptr; // FIXME DS remove
+    m_rotCorrAux.clear(); // FIXME DS remove
+
+
     ARotationEstimator<T>::setDefault();
 }
 
@@ -180,7 +198,7 @@ void __attribute__((optimize("O0"))) CudaRotPolarEstimator<T>::computeRotation2D
                 size_t offsetTmp = (i * getNoOfRings() * m_samples) + (row * m_samples);
                 ma.resizeNoCopy(m_samples);
                 for (size_t x = 0; x < m_samples; ++x) {
-                    printf("copying to %lu from %lu (val %f)\n", x, offsetTmp + x, polars[offsetTmp + x]);
+//                    printf("copying to %lu from %lu (val %f)\n", x, offsetTmp + x, polars[offsetTmp + x]);
                     ma.data[x] = (double) polars[offsetTmp + x];
                 }
                 tmp.rings.push_back(ma);
@@ -189,8 +207,8 @@ void __attribute__((optimize("O0"))) CudaRotPolarEstimator<T>::computeRotation2D
             Polar_fftw_plans *m_plans = nullptr;
             normalizedPolarFourierTransform(tmp, m_polarFourierI, true, m_plans);
             delete m_plans;
-//            this->m_rotations2D.emplace_back(
-//                best_rotation(m_refPolarFourierI, m_polarFourierI, m_aux));
+            this->m_rotations2D.emplace_back(
+                best_rotation(m_refPolarFourierI, m_polarFourierI, m_aux));
         }
         delete[] polars;
     }

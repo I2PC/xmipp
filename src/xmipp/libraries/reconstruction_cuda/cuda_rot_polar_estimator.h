@@ -79,7 +79,7 @@ private:
     MultidimArray<double> convert(T *data); // FIXME DS remove
     MultidimArray<double> m_dataAux; // FIXME DS remove
     Polar<std::complex<double>> m_refPolarFourierI; // FIXME DS remove
-    Polar_fftw_plans *m_refPlans; // FIXME DS remove
+    Polar_fftw_plans *m_refPlans = nullptr; // FIXME DS remove
     MultidimArray<double> m_rotCorrAux; // FIXME DS remove
     RotationalCorrelationAux m_aux; // FIXME DS remove
 };

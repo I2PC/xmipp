@@ -57,10 +57,17 @@ public:
         auto result = estimator->getRotations2D();
 
         EXPECT_EQ(rotations.size(), result.size());
-        float maxError = 0.3; // degrees
+        float maxError = 0.3f; // degrees
+        if (dims.x() <= 120) maxError = 0.6f;
+        if (dims.x() <= 65) maxError = 1.1f;
+        if (dims.x() <= 30) maxError = 4;
+        if (dims.x() <= 10) maxError = 10;
+        if (dims.x() <= 5) maxError = 90;
         for (size_t n = 0; n < result.size(); ++n) {
             // we rotated by angle, so we should detect rotation in '360 - angle' degrees
-            EXPECT_NEAR(360 - rotations.at(n), result.at(n), maxError);
+            auto actual = 360 - result.at(n);
+            auto diff = 180 - abs(abs(actual - rotations.at(n)) - 180);
+            EXPECT_NEAR(diff, 0, maxError) << "expected: " << rotations.at(n) << " actual: " << actual;
         }
 
         delete[] others;
