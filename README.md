@@ -8,6 +8,10 @@
 Welcome to Xmipp. Xmipp is a suite of image processing programs, primarily aimed at single-particle 3D electron microscopy.
 
 
+## Notice
+
+Recently we have changed the directory structure. See this wiki [page](https://github.com/I2PC/xmipp/wiki/Transfer-to-new-directory-structure) for more information.
+
 ## Getting started
 **Xmipp as a Scipion package**
 
@@ -28,5 +32,3 @@ You can see the whole usage of the script with `./xmipp --help`. The most useful
 ## FAQ
 
 If you want to use your specific version of Xmipp as a Scipion plugin, see following wiki [page](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-plugin).
-
-Recently we have changed the directory structure. See this wiki [page](https://github.com/I2PC/xmipp/wiki/Transfer-to-new-directory-structure) for more information.
