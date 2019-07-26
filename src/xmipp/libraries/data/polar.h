@@ -834,6 +834,10 @@ void normalizedPolarFourierTransform(const MultidimArray<double> &in,
                                      int first_ring, int last_ring, Polar_fftw_plans *&plans,
                                      int BsplineOrder=3);
 
+// Compute the normalized Polar Fourier transform --------------------------
+void normalizedPolarFourierTransform(Polar<double> &polarIn,
+        Polar<std::complex<double> > &out, bool conjugated,Polar_fftw_plans *&plans);
+
 /** Best rotation between two normalized polar Fourier transforms. */
 double best_rotation(const Polar< std::complex<double> > &I1,
                      const Polar< std::complex<double> > &I2, RotationalCorrelationAux &aux);

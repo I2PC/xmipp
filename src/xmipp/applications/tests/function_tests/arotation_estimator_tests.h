@@ -109,7 +109,13 @@ TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1)
     ASSERT_THROW(ARotationEstimator_Test<TypeParam>::generateAndTest2D(5, 3), XmippError);
 }
 
+TYPED_TEST_P( ARotationEstimator_Test, DEBUG)
+{
+    ARotationEstimator_Test<TypeParam>::rotate2D(Dimensions(7, 7, 1, 2), 1);
+}
+
 REGISTER_TYPED_TEST_CASE_P(ARotationEstimator_Test,
+    DEBUG,
     rotate2DOneToOne,
     rotate2DOneToMany,
     rotate2DOneToManyBatched1

@@ -138,6 +138,20 @@ void normalizedPolarFourierTransform(const MultidimArray<double> &in,
 	fourierTransformRings(polarIn, out, *plans, conjugated);
 }
 
+// Compute the normalized Polar Fourier transform --------------------------
+void normalizedPolarFourierTransform(Polar<double> &polarIn,
+        Polar<std::complex<double> > &out, bool conjugated,
+        Polar_fftw_plans *&plans) {
+    double mean, stddev;
+    polarIn.computeAverageAndStddev(mean, stddev);
+    polarIn.normalize(mean, stddev);
+    if (plans == NULL) {
+        plans = new Polar_fftw_plans();
+        polarIn.calculateFftwPlans(*plans);
+    }
+    fourierTransformRings(polarIn, out, *plans, conjugated);
+}
+
 // Best rotation -----------------------------------------------------------
 double best_rotation(const Polar<std::complex<double> > &I1,
 		const Polar<std::complex<double> > &I2, RotationalCorrelationAux &aux) {

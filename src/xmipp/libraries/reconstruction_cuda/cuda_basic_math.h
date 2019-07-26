@@ -356,4 +356,35 @@ static U clamp(U val, T min, T max) {
 	return (res < min) ? min : res;
 }
 
+/** Linear interpolation */
+template <typename T>
+__host__ __device__
+inline T lerp(T v0, T v1, T t) {
+    return fma(t, v1, fma(-t, v0, v0));
+}
+
+template<typename T>
+__host__ __device__
+inline T biLerp(T x0, T x1, T y0, T y1, T tx, T ty) {
+    T d0 = lerp(x0, x1, tx);
+    T d1 = lerp(y0, y1, tx);
+    return lerp(d0, d1, ty);
+}
+
+template<typename T, typename U>
+__host__ __device__
+inline T biLerp(T *data, int sizeX, int sizeY, U x, U y) {
+    int x0 = floor(x);
+    int x1 = ceil(x);
+    int y0 = floor(y);
+    int y1 = ceil(y);
+    return biLerp(
+            data[(y0 * sizeX) + x0],
+            data[(y0 * sizeX) + x1],
+            data[(y1 * sizeX) + x0],
+            data[(y1 * sizeX) + x1],
+            x - x0,
+            y - y0);
+}
+
 #endif
