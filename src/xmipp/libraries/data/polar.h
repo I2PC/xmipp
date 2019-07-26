@@ -317,7 +317,7 @@ public:
      * std::cout << "Number of rings: " << P.getRingNo() << std::endl;
      * @endcode
      */
-    const int getRingNo() const
+    int getRingNo() const
     {
         return rings.size();
     }
@@ -334,7 +334,7 @@ public:
      * std::cout << "Mode: " << P.getMode() << std::endl;
      * @endcode
      */
-    const int getMode() const
+    int getMode() const
     {
         return mode;
     }
@@ -351,7 +351,7 @@ public:
      * std::cout << "Oversample: " << P.getOversample() << std::endl;
      * @endcode
      */
-    const double getOversample() const
+    double getOversample() const
     {
         return oversample;
     }
@@ -364,7 +364,7 @@ public:
      * std::cout << "Number of samples in second ring: " << P.getSampleNo(1) << std::endl;
      * @endcode
      */
-    const int getSampleNo(int iring) const
+    int getSampleNo(int iring) const
     {
         return XSIZE(rings[iring]);
     }
@@ -377,7 +377,7 @@ public:
      * std::cout << "Number of samples in outer ring: " << P.getSampleNoOuterRing() << std::endl;
      * @endcode
      */
-    const int getSampleNoOuterRing() const
+    int getSampleNoOuterRing() const
     {
         return XSIZE(rings[rings.size()-1]);
     }
@@ -390,7 +390,7 @@ public:
      * std::cout << "Radius of second ring: " << P.getRadius(1) << std::endl;
      * @endcode
      */
-    const double getRadius(int iring) const
+    double getRadius(int iring) const
     {
         return ring_radius[iring];
     }
