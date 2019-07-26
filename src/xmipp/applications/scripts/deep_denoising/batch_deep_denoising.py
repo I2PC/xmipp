@@ -48,7 +48,7 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
     self.addParamsLine(' [ -p <noisyParticles> ] : Projections .xmd to train network (mandatory) or to evaluate denoising')
     self.addParamsLine(' [ --empty_particles <emptyParticles> ] : Empty particles .xmd to make training more robust, optional')
     self.addParamsLine(' [ -o <denoisedParticles> ] : Denoised particles .xmd. Mandatory when mode=="denoising", ignored otherwise')
-    self.addParamsLine('[ -c <pathToNetworkConfJson>   ]      : A path to a json file that contains the '
+    self.addParamsLine(' [ -c <pathToNetworkConfJson>   ]      : A path to a json file that contains the '
                        'arguments required to create/use the network'
                        'see scipion-em-xmipp/xmipp/protocols/protocol_deep_denoising.')
 
