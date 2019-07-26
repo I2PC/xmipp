@@ -61,7 +61,7 @@ class ScriptCompile(XmippScript):
             sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
         flagDict=dict(cf.items('BUILD'))
 
-        flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
+        flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp/libraries -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
               flagDict["CXXFLAGS"]+" "+flagDict["LIBDIRFLAGS"]
         return flags
 
@@ -70,7 +70,7 @@ class ScriptCompile(XmippScript):
         fn = self.getParam('-i')
         from os.path import splitext, join
         [fnBase,ext]=splitext(fn)
-        if ext!=".cpp" or ext!=".cc":
+        if ext!=".cpp" and ext!=".cc":
             raise Exception(fn+" is not a .cpp or .cc file")
         command='g++ ';
         if self.checkParam("--debug"):
