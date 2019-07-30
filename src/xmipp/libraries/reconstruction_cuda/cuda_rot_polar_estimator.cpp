@@ -57,18 +57,10 @@ void CudaRotPolarEstimator<T>::init2D(const HW &hw) {
     }
 
     this->m_isInit = true;
-    printf("%p(%lu) %p(%lu)\n",
-            m_d_batch_tmp1, std::max(
-                    this->m_dims->xy() * this->m_batch * sizeof(T), // Cartesian batch
-                    m_polarSettings->fBytesBatch()),
-            m_d_batch_tmp2, std::max(
-                    m_polarSettings->sBytesBatch(), // IFT of the samples
-                    m_polarSettings->fBytesBatch()));
 }
 
 template<typename T>
 void CudaRotPolarEstimator<T>::release() {
-    printf("release\n");
     delete m_polarSettings;
 
     // device memory
@@ -92,7 +84,6 @@ void CudaRotPolarEstimator<T>::release() {
 
 template<typename T>
 void CudaRotPolarEstimator<T>::setDefault() {
-    printf("setDefault\n");
     m_gpu = nullptr;
     m_polarSettings = nullptr;
 

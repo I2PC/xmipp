@@ -57,12 +57,7 @@ public:
         auto result = estimator->getRotations2D();
 
         EXPECT_EQ(rotations.size(), result.size());
-        float maxError = 0.3f; // degrees
-        if (dims.x() <= 120) maxError = 0.6f;
-        if (dims.x() <= 65) maxError = 1.1f;
-        if (dims.x() <= 30) maxError = 4;
-        if (dims.x() <= 10) maxError = 10;
-        if (dims.x() <= 5) maxError = 90;
+        float maxError = RAD2DEG(atan(2.0 / dims.x())); // degrees per one pixel, i.e. we allow for one pixel error
         for (size_t n = 0; n < result.size(); ++n) {
             // we rotated by angle, so we should detect rotation in '360 - angle' degrees
             auto actual = 360 - result.at(n);
