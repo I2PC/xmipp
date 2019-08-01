@@ -46,19 +46,19 @@ public:
         this->check();
     }
 
-    AlignmentEstimation compute(__restrict const T *ref, __restrict const T *others,
+    AlignmentEstimation compute(const T *ref, const T *others,
             unsigned iters = 3);
 
 
 protected:
     static void sApplyTransform(const Dimensions &dims,
                 const AlignmentEstimation &estimation,
-                __restrict const T *orig, __restrict T *copy);
+                const T *orig, T *copy);
 
 private:
     ARotationEstimator<T> &m_rot_est;
     AShiftEstimator<T> &m_shift_est;
-    const Dimensions &m_dims;
+    const Dimensions m_dims;
     bool m_sameEstimators;
 
     template<typename U, typename F>
@@ -66,13 +66,13 @@ private:
             const U &newVals, const F &func);
 
     void compute(unsigned iters, AlignmentEstimation &est,
-            __restrict const T *ref,
-            __restrict const T *orig,
-            __restrict T *copy,
+            const T *ref,
+            const T *orig,
+            T *copy,
             bool rotationFirst);
 
     void computeCorrelation(AlignmentEstimation &estimation,
-            __restrict const T *orig, __restrict T *copy);
+            const T *orig, T *copy);
 
     void check();
 

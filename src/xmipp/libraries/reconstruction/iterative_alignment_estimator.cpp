@@ -48,7 +48,7 @@ void IterativeAlignmentEstimator<T>::print(const AlignmentEstimation &e) {
 template<typename T>
 void IterativeAlignmentEstimator<T>::sApplyTransform(const Dimensions &dims,
         const AlignmentEstimation &estimation,
-        __restrict const T *orig, __restrict T *copy) {
+        const T * __restrict__ orig, T * __restrict__ copy) {
     static size_t counter = 0;
     const size_t n = dims.n();
     const size_t z = dims.z();
@@ -70,25 +70,23 @@ void IterativeAlignmentEstimator<T>::sApplyTransform(const Dimensions &dims,
 
 template<typename T>
 void IterativeAlignmentEstimator<T>::computeCorrelation(AlignmentEstimation &estimation,
-        __restrict const T *orig, __restrict T *copy) {
+        const T * __restrict__ orig, T * __restrict__ copy) {
     const size_t n = m_dims.n();
     const size_t z = m_dims.z();
     const size_t y = m_dims.y();
     const size_t x = m_dims.x();
-    MultidimArray<T> ref;
-    MultidimArray<T> other;
     for (size_t i = 0; i < n; ++i) {
-        ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
-        other = MultidimArray<T>(1, z, y, x, copy);
+        auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
+        auto other = MultidimArray<T>(1, z, y, x, copy);
         estimation.correlations.at(i) = fastCorrelation(ref, other);
     }
 }
 
 template<typename T>
 void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation &est,
-        __restrict const T *ref,
-        __restrict const T *orig,
-        __restrict T *copy,
+        const T * __restrict__ ref,
+        const T * __restrict__ orig,
+        T * __restrict__ copy,
         bool rotationFirst) {
     auto stepRotation = [&] {
         m_rot_est.compute(copy);
@@ -129,7 +127,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
 
 template<typename T>
 AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
-        __restrict const T *ref, __restrict const T *others,
+        const T *__restrict__ ref, const T * __restrict__ others,
         unsigned iters) {
     m_shift_est.load2DReferenceOneToN(ref);
     if ( ! m_sameEstimators) {
