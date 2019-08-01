@@ -64,6 +64,14 @@ inline __host__ __device__ void operator+=(float2 &a, float2 b)
 {
     a.x += b.x; a.y += b.y;
 }
+inline __host__ __device__ double2 operator+(double2 a, double2 b)
+{
+    return make_double2(a.x + b.x, a.y + b.y);
+}
+inline __host__ __device__ void operator+=(double2 &a, double2 b)
+{
+    a.x += b.x; a.y += b.y;
+}
 
 // subtract
 inline __host__ __device__ float2 operator-(float2 a, float2 b)
