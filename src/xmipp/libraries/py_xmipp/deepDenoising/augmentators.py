@@ -65,17 +65,32 @@ def initPointsRadius(img_shape, aboveInsteadBelow=True, radiusFraction=0.9):
 
   
 def generateReverseNormalizationFunction(img_shape, radiusFraction=0.8):
+  '''
+  This function is used to generate a function that will compute the inverse operation of normalization given an
+  stack of treated images and an stack of the original images.
+  :param img_shape: tuple
+  :param radiusFraction: the fraction of the image size to consider as the radius of the particle
+  :return: function reverseNormalization
+  '''
   pointsBelow= initPointsRadius(img_shape, aboveInsteadBelow=False, radiusFraction=radiusFraction)
   def reverseNormalization(imgs, refs):
-    imgsNorm= np.zeros_like(imgs)
+    '''
+    Given an stack of treated images and an stack of the original images, computes the inverse operation of the
+    normalization
+    :param imgs: stack of treated images (denoised)
+    :param refs: stack of original images
+    :return: stack of denormalized images
+    '''
+    imgsDeNorm= np.zeros_like(imgs)
     for i in range(imgs.shape[0]):
       img, ref= imgs[i], refs[i]
-      innerParRef= ref[ pointsBelow[...,0], pointsBelow[...,1] ]
+      #compute the statistics of the original particles and the background (inside/outside radius)
+      innerParRef= ref[ pointsBelow[...,0], pointsBelow[...,1] ] #pointsBelow are the a matrix of [i,j] that are inside the radius
       innerParImg= img[ pointsBelow[...,0], pointsBelow[...,1] ]
       innerMeanRef, innerStdRef= np.mean(innerParRef), np.std(innerParRef)
       innerMeanImg, innerStdImg= np.mean(innerParImg), np.std(innerParImg)
-      imgsNorm[i]= (img- (innerMeanImg-innerMeanRef))/(innerStdImg/innerStdRef)
-    return imgsNorm
+      imgsDeNorm[i]= (img - (innerMeanImg - innerMeanRef)) / (innerStdImg / innerStdRef)
+    return imgsDeNorm
   return reverseNormalization
     
 def generateEmptyParticlesFunction(img_shape, prob=0.2):

@@ -17,7 +17,7 @@ class DeepLearningModel():
     self.modelDepth= modelDepth
     self.regularizationStrength= regularizationStrength
     self._setShape(boxSize)
-    self.addSyntheticEmpty= True if trainingDataMode=="ParticlesAndSyntheticNoise" else False
+    self.addSyntheticEmpty= (trainingDataMode=="ParticlesAndSyntheticNoise")
     
     if generatorLoss=="MSE":
       self.generatorLoss= keras.losses.mse
@@ -28,12 +28,6 @@ class DeepLearningModel():
     else:
       raise ValueError("Unrecognized loss type %s"%(generatorLoss))  
 
-  def setTrainingParameters(self):
-    '''
-
-    :return:
-    '''
-    pass #TODO
   def _setShape(self, boxSize):
     raise ValueError("Not implemented yet")
 
@@ -74,23 +68,20 @@ class DeepLearningModel():
     '''
 
     :param imgs: A list of different types of matching images. E.g. [noisyStack, denoisedStack]
-    :param saveImagesPath:
-    :param epoch:
-    :param nImagesToPlot:
-    :return:
+    :param saveImagesPath: path where images will be saved
+    :param epoch: the current epoch during training
+    :param nImagesToPlot: number of images to plot
+    :return: None
     '''
-    save_imgs(imgs, saveImagesPath, epoch, nImagesToPlot)
-    return
-    
+    save_imgs(imgs, saveImagesPath, epoch, basenameTemplate="denoise_%d.png", nImagesToPlot=8)
+
   def takeListMean(self, x):
     if len(x)==0:
       return np.nan
     else:
       return np.nanmean(x)
       
-      
-      
-def save_imgs(imgs, saveImagesPath, epoch, nImagesToPlot=8):
+def save_imgs(imgs, saveImagesPath, epoch, basenameTemplate, nImagesToPlot=8):
 
   nTypes= len(imgs)
   imgSize= np.squeeze(imgs[0][0]).shape
@@ -101,7 +92,7 @@ def save_imgs(imgs, saveImagesPath, epoch, nImagesToPlot=8):
       img= (255*(img-np.min(img))/(np.max(img)-np.min(img))).astype(dtype=np.uint8)
       out[i*imgSize[0]:(i+1)*imgSize[0], j*imgSize[1]:(j+1)*imgSize[1]] = np.squeeze(img)
 
-  fname= os.path.join(saveImagesPath, "denoise_%d.png"% epoch)
+  fname= os.path.join(saveImagesPath, basenameTemplate% epoch)
   if os.path.exists(fname):
     try:
       os.remove(fname)
@@ -115,7 +106,7 @@ def generatePerceptualLoss(image_shape):
   from keras.layers import Input
   from keras.models import load_model, Model
   import keras.backend as K
-  effectiveSize=int(5e4)
+  effectiveSize=50000
   ignoreCTF=True
   modelTypeDir= "keras_models/%sPhaseFlip_Invert/nnetData_%d/tfchkpoints_0" % (
                       "no" if ignoreCTF else "", effectiveSize)

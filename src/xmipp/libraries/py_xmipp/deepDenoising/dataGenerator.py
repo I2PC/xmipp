@@ -41,9 +41,9 @@ def getDataGenerator( imgsMdXmd, masksMdXmd, xmdEmptyParts=None, augmentData=Tru
 
   if augmentData:
     augmentFuns= [_random_flip_leftright, _random_flip_updown, _random_90degrees_rotation, _random_rotation ]
-    if simulateEmptyParts==True:
+    if simulateEmptyParts:
       augmentFuns+= [generateEmptyParticlesFunction(shape, prob=0.2)]
-    if addMismatch==True:
+    if addMismatch:
       augmentFuns+= [_mismatch_projection]
     def augmentBatch( batchX, batchY):
       for fun in augmentFuns:
@@ -123,7 +123,7 @@ def extractNBatches(valIterator, maxBatches=-1):
       break
   return ( np.concatenate(x_val, axis=0), np.concatenate(y_val, axis=0 ))
 
-def normalizationV1( img, sigmoidInsteadTanh=True):
+def normalization( img, sigmoidInsteadTanh=True):
   normData= (img -np.min(img))/ (np.max(img)-np.min(img))
   if not sigmoidInsteadTanh:
     normData= 2*normData -1
@@ -131,59 +131,7 @@ def normalizationV1( img, sigmoidInsteadTanh=True):
     normData= np.zeros_like(normData)
   return normData
 
-#from scipy.stats import iqr
-#def normalizationV2(img, sigmoidInsteadTanh=True):
-#  '''
-#  Proposed alternative normalization. Seems to be worse
-#  '''
-#  iqr_val= iqr(img, rng=(10,90) )
-#  if iqr_val==0:
-#      iqr_val= (np.max(img)-np.min(img)) + 1e-12
-#  newImg=(img- np.median(img))/iqr_val
-#  if sigmoidInsteadTanh:
-#    newImg=1 / (1 + np.exp(-newImg))
-#  else:
-#    newImg= np.tanh(newImg)
-#  return newImg
-
-normalization= normalizationV1
-
 def normalizeImgs(batch_img, sigmoidInsteadTanh=True):
   for i in range(batch_img.shape[0]):
     batch_img[i]= normalization(batch_img[i], sigmoidInsteadTanh)
   return batch_img
-  
-if __name__=="__main__":
-  import sys, os
-  import matplotlib.pyplot as plt
-  runsPath="/home/rsanchez/ScipionUserData/projects/tryDenoiser"
-  xmdParticles=os.path.join(runsPath, "Runs/004808_XmippProtDeepDenoising/extra/resizedParticles.xmd")
-  xmdProjections=os.path.join(runsPath,"Runs/004808_XmippProtDeepDenoising/extra/resizedProjections.xmd")
-  xmdEmptyParts=None
-  os.chdir(runsPath)
-  trainIterator, stepsPerEpoch= getDataGenerator(xmdParticles, xmdProjections, xmdEmptyParts=xmdEmptyParts,
-                                                 isTrain=True, augmentData=True,
-                                                 valFraction=0.1, batchSize=32, doTanhNormalize=True)
-
-  for patch_x, patch_y in trainIterator:
-#  for patch_x, patch_y, fnames in one_gen:
-    print(patch_x.shape, patch_y.shape)
-    print(patch_x.mean(), patch_y.mean())
-    for x,y in zip( patch_x, patch_y ):
-#    for x,y,fname in zip( patch_x, patch_y, fnames ):
-      fig, axarr = plt.subplots(1, 3)
-#      fig.suptitle(fname)
-      if len(axarr.shape)==1:
-        axarr= np.expand_dims(axarr, axis=0)
-      k=0
-      axarr[k,0].imshow(  np.squeeze(x), cmap="gray" )
-      axarr[k,0].set_title("particle")
-#      axarr[k,0].axis('off')
-      axarr[k,1].imshow(  np.squeeze(y), cmap="gray" )
-      axarr[k,1].set_title("projection")
-#      axarr[k,1].axis('off')
-      axarr[k,2].imshow(  np.squeeze(x*y), cmap="gray" )
-      axarr[k,2].set_title("particle*projection")
-#      axarr[k,2].axis('off')
-      plt.show()
-  print("DONE")

@@ -61,5 +61,3 @@ gmon.out
 .devel_version
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
-
-xmipp.conf

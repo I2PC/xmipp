@@ -32,11 +32,8 @@ import xmippLib
 from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
 
 checkIf_tf_keras_installed()
-try:
-  from deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, DeepTFSupervised,
-                                                                DataManager, tf_intarnalError)
-except ImportError:
-  from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
+
+from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
                                                                                DeepTFSupervised, DataManager,
                                                                                tf_intarnalError)
 WRITE_TEST_SCORES= True

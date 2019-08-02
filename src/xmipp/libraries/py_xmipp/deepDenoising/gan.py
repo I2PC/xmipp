@@ -268,19 +268,3 @@ def build_discriminator( img_shape, nConvLayers= 4):
   model.add( Dropout(0.5) )
   model.add(Dense(1, activation='sigmoid'))
   return model
-    
-  
-    
-if __name__=="__main__":
-
-  projectRootPath= "/home/rsanchez/ScipionUserData/projects/tryDenoiser"
-  os.chdir(projectRootPath)
-  imgBoxSize= 64
-  gan= GAN(imgBoxSize, saveModelFname=os.path.join(projectRootPath,"Runs/000863_XmippProtDeepDenoising/extra/kerasModel.hdf5"),
-           gpuList="2", batchSize=BATCH_SIZE, trainingDataMode="ParticlesAndSyntheticNoise")
-  xmdParticles=os.path.join(projectRootPath,"Runs/000863_XmippProtDeepDenoising/extra/resizedParticles.xmd")
-  xmdProjections=os.path.join(projectRootPath,"Runs/000863_XmippProtDeepDenoising/extra/resizedProjections.xmd")
-  nEpochs=800
-  learningRate= 1e-4
-  gan.train(learningRate, nEpochs, xmdParticles, xmdProjections, )
-  
