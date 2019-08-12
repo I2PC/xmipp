@@ -1559,7 +1559,7 @@ T bestShift(MultidimArray<T> &Mcorr,
         }
     }
     else
-        Mcorr.statisticsAdjust(0, 1);
+        Mcorr.statisticsAdjust(0.0, 1.0);
 
     // Look for maximum shift
     if (maxShift==-1)
@@ -1720,7 +1720,7 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
         }
     }
     else
-        Mcorr.statisticsAdjust(0, 1);
+        Mcorr.statisticsAdjust(0.0, 1.0);
     Mcorr.maxIndex(kmax, imax, jmax);
     max = A3D_ELEM(Mcorr, kmax, imax, jmax);
 

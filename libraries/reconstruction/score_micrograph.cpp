@@ -118,7 +118,7 @@ void ProgScoreMicrograph::run()
     Image<double> img;
     img.read(fn_micrographDwn);
     im = img();
-    im.statisticsAdjust(0,1);
+    im.statisticsAdjust(0.0,1.0);
     In.resizeNoCopy(im);
     Part.resizeNoCopy(im);
     Ice.resizeNoCopy(im);

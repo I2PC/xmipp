@@ -344,7 +344,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(img(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.0,1.0);
 		pca.addVector(temp);
 		imgno++;
 	}
@@ -416,11 +416,11 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(P(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.0,1.0);
 		temp.setXmippOrigin();
 
 		//Reconstructed Image
-		recons[imgno].statisticsAdjust(0,1);
+		recons[imgno].statisticsAdjust(0.0,1.0);
 		recons[imgno].resize(newYdim*newXdim);
 		recons[imgno].setXmippOrigin();
 
@@ -440,7 +440,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		typeCast(img(), temp);
 		selfScaleToSize(LINEAR,temp,newXdim,newYdim,1);
 		temp.resize(newXdim*newYdim);
-		temp.statisticsAdjust(0,1);
+		temp.statisticsAdjust(0.0,1.0);
 		temp.setXmippOrigin();
 
 		R2_Exp = correlationIndex(temp,recons[imgno],&ROI);
