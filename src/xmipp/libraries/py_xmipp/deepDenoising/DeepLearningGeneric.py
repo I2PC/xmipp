@@ -73,7 +73,7 @@ class DeepLearningModel():
     :param nImagesToPlot: number of images to plot
     :return: None
     '''
-    save_imgs(imgs, saveImagesPath, epoch, basenameTemplate="denoise_%d.png", nImagesToPlot=8)
+    save_imgs(imgs, saveImagesPath, epoch, basenameTemplate="denoise_%d.png", nImagesToPlot=nImagesToPlot)
 
   def takeListMean(self, x):
     if len(x)==0:
