@@ -31,18 +31,8 @@ import xmipp_base
 from xmipp3 import Plugin
 import pyworkflow.em.metadata as md
 
-BAD_IMPORT_MSG='''
-Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearnigToolkit
-If gpu version of tensorflow desired, install cuda 8.0 or cuda 9.0
-We will try to automatically install cudnn, if unsucesfully, install cudnn and add to LD_LIBRARY_PATH
-add to SCIPION_DIR/config/scipion.conf
-CUDA = True
-CUDA_VERSION = 8.0  or 9.0
-CUDA_HOME = /path/to/cuda-%(CUDA_VERSION)
-CUDA_BIN = %(CUDA_HOME)s/bin
-CUDA_LIB = %(CUDA_HOME)s/lib64
-CUDNN_VERSION = 6 or 7
-'''
+from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+
 
 class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
     def __init__(self):
@@ -84,7 +74,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
         
     def run(self):
-
+        checkIf_tf_keras_installed()
         args={}
         gpusToUse="0"
         if self.checkParam('-g'):
@@ -143,19 +133,10 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
           from xmippPyModules.micrograph_cleaner_em.cleanMics import main
         except ImportError as e:
           print(e)
-          raise ValueError(BAD_IMPORT_MSG)
+          raise ValueError("Error, micrograph_cleaner_em packages was not properly imported")
         main(** args)
  
 
-def updateEnviron(gpus=None):
-  """ Create the needed environment for TensorFlow programs. """
-  print("updating environ to select gpus: %s"%(gpus) )
-  if gpus is not None and gpus.startswith("all"): return
-  if gpus is not None or gpus is not "":
-    os.environ['CUDA_VISIBLE_DEVICES']=str(gpus)
-  else:
-    os.environ['CUDA_VISIBLE_DEVICES']="-1"
-    
 if __name__ == '__main__':
     '''
 scipion python `which xmipp_deep_micrograph_cleaner` -g 0 
