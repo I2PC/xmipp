@@ -30,6 +30,8 @@
 #include "reconstruction_cuda/gpu.h"
 #include "cuda_fft.h"
 #include "data/polar.h" // FIXME DS remove
+#include <thread>
+#include <condition_variable>
 
 namespace Alignment {
 
@@ -67,11 +69,16 @@ private:
     std::complex<T> *m_d_ref;
     T *m_d_batch_tmp1;
     T *m_d_batch_tmp2;
+    T *m_d_batch_tmp3;
 
     // FT plans
     cufftHandle *m_singleToFD;
     cufftHandle *m_batchToFD;
     cufftHandle *m_batchToSD;
+
+    std::mutex *m_mutex;
+    std::condition_variable *m_cv;
+    bool m_isDataReady;
 
     void check() override;
     void setDefault() override;
@@ -92,6 +99,8 @@ private:
     Polar_fftw_plans *m_refPlans = nullptr; // FIXME DS remove
     MultidimArray<double> m_rotCorrAux; // FIXME DS remove
     RotationalCorrelationAux m_aux; // FIXME DS remove
+
+    void loadThreadRoutine(T *h_others, void *loadStream);
 };
 
 }/* namespace Alignment */

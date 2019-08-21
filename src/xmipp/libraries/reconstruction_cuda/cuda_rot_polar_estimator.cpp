@@ -50,7 +50,11 @@ void CudaRotPolarEstimator<T>::init2D(const HW &hw) {
 
 
     gpuErrchk(cudaMalloc(&m_d_ref, m_logicalSettings->fBytesSingle())); // FT of the samples
+    // fixme DS change the sizes. We need one buffer for batch data, another for FFT and one for final IFFT
     gpuErrchk(cudaMalloc(&m_d_batch_tmp1, std::max(
+            this->m_dims->xy() * this->m_batch * sizeof(T), // Cartesian batch
+            m_logicalSettings->fBytesBatch()))); // FT of the samples
+    gpuErrchk(cudaMalloc(&m_d_batch_tmp3, std::max(
             this->m_dims->xy() * this->m_batch * sizeof(T), // Cartesian batch
             m_logicalSettings->fBytesBatch()))); // FT of the samples
     gpuErrchk(cudaMalloc(&m_d_batch_tmp2, std::max(
@@ -75,6 +79,7 @@ void CudaRotPolarEstimator<T>::release() {
     // device memory
     gpuErrchk(cudaFree(m_d_batch_tmp1));
     gpuErrchk(cudaFree(m_d_batch_tmp2));
+    gpuErrchk(cudaFree(m_d_batch_tmp3));
     gpuErrchk(cudaFree(m_d_ref));
 
     // FT plans
@@ -101,6 +106,7 @@ void CudaRotPolarEstimator<T>::setDefault() {
     // device memory
     m_d_batch_tmp1 = nullptr;
     m_d_batch_tmp2 = nullptr;
+    m_d_batch_tmp3 = nullptr;
     m_d_ref = nullptr;
 
     // FT plans
@@ -169,7 +175,7 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *ref) {
             settingsSingle.fBytesSingle(),
             cudaMemcpyHostToDevice, stream));
     m_gpu->synch();
-    delete tmp1;
+    delete[] tmp1;
     this->m_is_ref_loaded = true;
 }
 
@@ -202,6 +208,49 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
 }
 
 template<typename T>
+void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
+        void *loadStream) {
+    auto lStream = (cudaStream_t*)loadStream;
+
+    for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
+
+//        printf("in load %d\n", offset); fflush(stdout);
+        // how many signals to process
+        size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
+
+        T *h_src = h_others + offset * this->m_dims->xy();
+        T *d_dst = m_d_batch_tmp1;
+        size_t bytes = toProcess * this->m_dims->xy() * sizeof(T);
+
+        // pin memory for async transfer
+        m_gpu->pinMemory(h_src, bytes);
+
+        // copy memory
+        gpuErrchk(cudaMemcpyAsync(
+                d_dst,
+                h_src,
+                bytes,
+                cudaMemcpyHostToDevice, *lStream));
+
+        // block until data is loaded
+//        gpuErrchk(cudaEventSynchronize(lEvent));
+        cudaStreamSynchronize(*lStream);
+        std::swap(m_d_batch_tmp1, m_d_batch_tmp3);
+        m_isDataReady = true;
+        m_cv->notify_all();
+        m_gpu->unpinMemory(h_src);
+//        {
+//            printf("in load before sync %d\n", offset); fflush(stdout);
+            std::unique_lock<std::mutex> lk(*m_mutex);
+            m_cv->wait(lk, [&]{return !m_isDataReady;});
+//        }
+
+        // block next iteration until the data has been processed
+//        printf("in load after sync%d\n", offset); fflush(stdout);
+    }
+}
+
+template<typename T>
 void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_loaded);
 
@@ -210,29 +259,47 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     }
 
     this->m_rotations2D.reserve(this->m_dims->n());
-    auto stream = *(cudaStream_t*)m_gpu->stream();
+    auto workstream = *(cudaStream_t*)m_gpu->stream();
+    auto loadStream = new cudaStream_t;
+    gpuErrchk(cudaStreamCreate(loadStream));
+
+    m_isDataReady = false;
+
+    std::thread loadingThread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this,
+            h_others, loadStream);
+
+    m_mutex = new std::mutex();
+    m_cv = new std::condition_variable;
+
     // process signals in batches
     for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
+//        printf("in process %d\n", offset); fflush(stdout);
         // how many signals to process
         size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
 
-        // copy memory
-        gpuErrchk(cudaMemcpyAsync(
-                m_d_batch_tmp1,
-                h_others + offset * this->m_dims->xy(),
-                toProcess * this->m_dims->xy() * sizeof(T),
-                cudaMemcpyHostToDevice, stream));
+        {
+            std::unique_lock<std::mutex> lk(*m_mutex);
+            m_cv->wait(lk, [&]{return m_isDataReady;});
+        }
+            // block until data is loaded
+//            printf("in process after sync%d\n", offset); fflush(stdout);
 
-
-        // call polar transformation kernel
-        dim3 dimBlock(32, 32);
-        dim3 dimGrid(
-            ceil(toProcess * m_samples / (float)dimBlock.x),
-            ceil(getNoOfRings() / (float)dimBlock.y));
-        polarFromCartesian<T, true>
-            <<<dimGrid, dimBlock, 0, stream>>> (
-            m_d_batch_tmp1, this->m_dims->x(), this->m_dims->y(),
-            m_d_batch_tmp2, m_samples, getNoOfRings(), m_firstRing, toProcess);
+            // call polar transformation kernel
+            dim3 dimBlock(32, 32);
+            dim3 dimGrid(
+                ceil(toProcess * m_samples / (float)dimBlock.x),
+                ceil(getNoOfRings() / (float)dimBlock.y));
+            polarFromCartesian<T, true>
+                <<<dimGrid, dimBlock, 0, workstream>>> (
+                m_d_batch_tmp1, this->m_dims->x(), this->m_dims->y(),
+                m_d_batch_tmp2, m_samples, getNoOfRings(), m_firstRing, toProcess);
+            // notify that buffer is processed
+            m_gpu->synch();
+//        {
+//            std::unique_lock<std::mutex> lk(*m_mutex);
+            m_isDataReady = false;
+            m_cv->notify_all();
+//        }
 
         // FIXME DS add normalization
 
@@ -254,7 +321,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
                 result,
                 m_d_batch_tmp2,
                 m_samples * toProcess * sizeof(T),
-                cudaMemcpyDeviceToHost, stream));
+                cudaMemcpyDeviceToHost, workstream));
         m_gpu->synch();
         // locate max angle
         for (size_t i = 0; i < toProcess; ++i) {
@@ -272,9 +339,13 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             this->m_rotations2D.emplace_back(angle);
         }
         delete[] result;
+        printf("in process %d done\n", offset); fflush(stdout);
 
     }
+    loadingThread.join();
     this->m_is_rotation_computed = true;
+    delete m_mutex;
+    delete m_cv;
 }
 
 
