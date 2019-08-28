@@ -32,7 +32,7 @@ Otherwise, run `xmipp` script in the root folder via Scipion (it might be necess
 ```
 /<path to scipion>/scipion run ./xmipp
 ```
-Running the script through Scipion will set the enviroment. This script will checkout additional repositories and build Xmipp for you.
+Running the script through Scipion will properly set the enviroment. This script will checkout additional repositories and build Xmipp for you.
 
 You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build.
 
