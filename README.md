@@ -26,9 +26,9 @@ git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
 ```
 
-In case you don't want to import settings from Scipion, set XMIPP_NOSCIPION flag to true (`export XMIPP_NOSCIPION=True`). Otherwise, define SCIPION_HOME=\<path to scipion\>
+In case you don't want to import settings from Scipion, set XMIPP_NOSCIPION flag to true (`export XMIPP_NOSCIPION=True`). 
 
-Next, run `xmipp` script in the root folder via Scipion (it might be necessary to add execute permission via `chmod +x xmipp`)
+Otherwise, run `xmipp` script in the root folder via Scipion (it might be necessary to add execute permission via `chmod +x xmipp`)
 ```
 /<path to scipion>/scipion run ./xmipp
 ```
