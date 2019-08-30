@@ -100,8 +100,12 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
   """ Compute consensus of coordiantes for the same micrograph
       @param  coords_files [mic1_p1.pos, mic2_p2.pos,...]
   """
-  baseName=  os.path.basename(coords_files[0]).split(".")[0]
-  out_name= os.path.join(outDir, baseName+".pos") #VOY POR AQUI
+  baseName_split=  os.path.basename(coords_files[0]).split(".")
+  if len(baseName_split)>1:
+    baseName = ".".join(baseName_split.split(".")[:-1])
+  else:
+    baseName = baseName_split[0]
+  out_name= os.path.join(outDir, baseName+".pos")
   if os.path.isfile(out_name): return
   coords=[]
   Ncoords=0
