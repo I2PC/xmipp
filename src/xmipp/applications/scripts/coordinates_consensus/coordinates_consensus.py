@@ -101,10 +101,7 @@ def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCrite
       @param  coords_files [mic1_p1.pos, mic2_p2.pos,...]
   """
   baseName_split=  os.path.basename(coords_files[0]).split(".")
-  if len(baseName_split)>1:
-    baseName = ".".join(baseName_split.split(".")[:-1])
-  else:
-    baseName = baseName_split[0]
+  baseName = os.path.splitext(os.path.basename(coords_files[0]))[0]
   out_name= os.path.join(outDir, baseName+".pos")
   if os.path.isfile(out_name): return
   coords=[]
