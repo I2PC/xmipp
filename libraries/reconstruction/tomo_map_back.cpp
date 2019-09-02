@@ -69,7 +69,7 @@ void ProgTomoMapBack::defineParams()
 	addUsageLine("   4. Copy a binarized version of the reference onto the tomogram");
     addParamsLine("   -i <tomogram>           : Original tomogram");
     addParamsLine("  [-o <tomogram=\"\">]     : Output tomogram mapped back");
-    addParamsLine("   --geom <geometry>       : Subtomograms coordinates (it must be a metadata)");
+    addParamsLine("   --geom <geometry>       : Subtomograms coordinates and rotation angles (it must be a metadata)");
     addParamsLine("   --ref <reference>       : Subtomogram reference");
     addParamsLine("  [--method <mode=copy>]   : Painting mode");
     addParamsLine("     where <mode>");
@@ -122,17 +122,24 @@ void ProgTomoMapBack::run()
     int x,y,z;
     const MultidimArray<double> &mReference=reference();
     MultidimArray<double> &mTomo=tomo();
+    MultidimArray<double> referenceRotated;
+    Matrix2D<double> A;
+    A.initIdentity(4);
+    MDRow row;
+
     FOR_ALL_OBJECTS_IN_METADATA(mdGeom)
     {
-    	mdGeom.getValue(MDL_XCOOR,x,__iter.objId);
-    	mdGeom.getValue(MDL_YCOOR,y,__iter.objId);
-    	mdGeom.getValue(MDL_ZCOOR,z,__iter.objId);
-    	//std::cout << x << " " << y << " " << z << std::endl;
+    	mdGeom.getRow(row,__iter.objId);
+    	row.getValue(MDL_XCOOR,x);
+    	row.getValue(MDL_YCOOR,y);
+    	row.getValue(MDL_ZCOOR,z);
+    	geo2TransformationMatrix(row,A);
+    	applyGeometry(LINEAR, referenceRotated, mReference, A, IS_NOT_INV, DONT_WRAP);
 
     	double avg=0, avgN=0;
     	if (mode==2)
     	{
-    		FOR_ALL_ELEMENTS_IN_ARRAY3D(mReference)
+    		FOR_ALL_ELEMENTS_IN_ARRAY3D(referenceRotated)
 			{
     			GET_TOMO_COORD
 				avg+=DIRECT_A3D_ELEM(mTomo,zp,yp,xp);
@@ -142,43 +149,26 @@ void ProgTomoMapBack::run()
     			avg/=avgN;
     	}
 
-		FOR_ALL_ELEMENTS_IN_ARRAY3D(mReference)
+		FOR_ALL_ELEMENTS_IN_ARRAY3D(referenceRotated)
 		{
     		GET_TOMO_COORD
-//			std::cout << "get tomo coord" << std::endl;
-			double val=A3D_ELEM(mReference,k,i,j);
+			double val=A3D_ELEM(referenceRotated,k,i,j);
 			switch (mode)
 			{
-//			std::cout << "inside switch" << std::endl;
 			case 1:
-//				std::cout << "case1" << std::endl;
 			case 4:
 				DIRECT_A3D_ELEM(mTomo,zp,yp,xp)=val;
-//				std::cout << "case4" << std::endl;
-				//std::cout << zp << " " << yp << " " << xp << std::endl;
 				break;
 			case 2:
 				if (val>0)
 					DIRECT_A3D_ELEM(mTomo,zp,yp,xp)=avg;
-//				std::cout << "case2" << std::endl;
 				break;
 			case 3:
 				DIRECT_A3D_ELEM(mTomo,zp,yp,xp)+=K*val;
-//				std::cout << "case3" << std::endl;
 				break;
 			}
 		}
     }
-	//FOR_ALL_ELEMENTS_IN_ARRAY3D(mTomo)
-		//DIRECT_A3D_ELEM(mTomo,k,i,j)=200;
-//    std::cout << "writing" << std::endl;
-    reference.write(fn_ref);
+
     tomo.write(fn_out);
 }
-
-
-
-
-
-
-

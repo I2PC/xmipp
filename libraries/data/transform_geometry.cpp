@@ -93,9 +93,7 @@ void ProgTransformGeometry::defineParams()
 
 void ProgTransformGeometry::readParams()
 {
-	std::cout << "------0-------" << std::endl;
     XmippMetadataProgram::readParams();
-	std::cout << "------1-------" << std::endl;
     applyTransform = checkParam("--apply_transform");
     inverse = checkParam("--inverse");
     wrap = ! checkParam("--dont_wrap");
@@ -168,7 +166,6 @@ void ProgTransformGeometry::calculateRotationMatrix()
 
 void ProgTransformGeometry::preProcess()
 {
-	std::cout << "------2-------" << std::endl;
 
     //If zdimOut greater than 1, is a volume and should apply transform
     dim = (isVol = (zdimOut > 1)) ? 3 : 2;
@@ -176,7 +173,6 @@ void ProgTransformGeometry::preProcess()
     applyTransform = applyTransform || isVol || mdInSize == 1;
     R.initIdentity(dim + 1);
     A.initIdentity(dim + 1);
-	std::cout << "------3-------" << std::endl;
 
     MDRow rowGeo;
     rowGeo.setValue(MDL_SHIFT_X, getDoubleParam("--shift", 0));
@@ -186,7 +182,7 @@ void ProgTransformGeometry::preProcess()
     if (isVol)
     {
         if (checkParam("--rotate_volume"))
-            calculateRotationMatrix();
+        	calculateRotationMatrix();
         else
         	mdVol = true;
         rowGeo.setValue(MDL_SHIFT_Z, getDoubleParam("--shift", 2));
@@ -194,7 +190,6 @@ void ProgTransformGeometry::preProcess()
     }
     else
         rowGeo.setValue(MDL_ANGLE_PSI, getDoubleParam("--rotate"));
-	std::cout << "------4-------" << std::endl;
 
     geo2TransformationMatrix(rowGeo, A);
 
@@ -216,7 +211,6 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
                                          const MDRow &rowIn,
                                          MDRow &rowOut)
 {
-	std::cout << "------5-------" << std::endl;
 
     if (checkParam("--matrix"))
     {
@@ -228,11 +222,9 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
     else
     {
       B.initIdentity(dim + 1);
-      std::cout << "------5-------" << std::endl;
-
 
     if (apply_geo || mdVol)
-        geo2TransformationMatrix(rowOut, B);
+    	geo2TransformationMatrix(rowOut, B);
 
       T = A * B;
     }
@@ -245,23 +237,19 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
 
     if (applyTransform)
     {
-    	std::cout << "------6-------" << std::endl;
-
     	img().setXmippOrigin();
         imgOut.setDatatype(img.getDatatype());
         imgOut().resize(1, zdimOut, ydimOut, xdimOut, false);
         imgOut().setXmippOrigin();
         applyGeometry(splineDegree, imgOut(), img(), T, IS_NOT_INV, wrap, 0.);
-    	std::cout << "------7-------" << std::endl;
 
         imgOut.write(fnImgOut);
         rowOut.resetGeo(false);
-    	std::cout << "------8-------" << std::endl;
 
     }
     else
     {
-        transformationMatrix2Geo(T, rowOut);
+    	transformationMatrix2Geo(T, rowOut);
         if (fnImg != fnImgOut )
             img.write(fnImgOut);
     }
