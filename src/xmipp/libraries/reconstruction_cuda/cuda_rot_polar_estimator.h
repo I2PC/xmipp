@@ -67,9 +67,9 @@ private:
 
     // device memory
     std::complex<T> *m_d_ref;
-    T *m_d_batch_tmp1;
-    T *m_d_batch_tmp2;
-    T *m_d_batch_tmp3;
+    T *m_d_batch;
+    T *m_d_batchPolarOrCorr;
+    T *m_d_batchPolarFD;
 
     // FT plans
     cufftHandle *m_singleToFD;

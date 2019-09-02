@@ -44,22 +44,17 @@ void CudaRotPolarEstimator<T>::init2D(const HW &hw) {
 //    m_lastRing = (this->m_dims->x() - 3) / 2; // FIXME DS uncomment // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
     m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
+    // FIXME DS change the names, this doesn't make any sense
     m_logicalSettings = new FFTSettingsNew<T>(m_samples, getNoOfRings(), 1, this->m_dims->n(), this->m_batch);
     m_hwSettings = new FFTSettingsNew<T>(m_samples, 1, 1, this->m_dims->n() * getNoOfRings(), this->m_batch * getNoOfRings());
     m_inverseSettings = new FFTSettingsNew<T>(m_samples, 1, 1, this->m_dims->n(), this->m_batch, false, false);
 
 
     gpuErrchk(cudaMalloc(&m_d_ref, m_logicalSettings->fBytesSingle())); // FT of the samples
-    // fixme DS change the sizes. We need one buffer for batch data, another for FFT and one for final IFFT
-    gpuErrchk(cudaMalloc(&m_d_batch_tmp1, std::max(
-            this->m_dims->xy() * this->m_batch * sizeof(T), // Cartesian batch
-            m_logicalSettings->fBytesBatch()))); // FT of the samples
-    gpuErrchk(cudaMalloc(&m_d_batch_tmp3, std::max(
-            this->m_dims->xy() * this->m_batch * sizeof(T), // Cartesian batch
-            m_logicalSettings->fBytesBatch()))); // FT of the samples
-    gpuErrchk(cudaMalloc(&m_d_batch_tmp2, std::max(
-            m_logicalSettings->sBytesBatch(), // IFT of the samples
-            m_logicalSettings->fBytesBatch()))); // FT of the samples
+    gpuErrchk(cudaMalloc(&m_d_batch, this->m_dims->xy() * this->m_batch * sizeof(T))); // Cartesian batch
+    gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, this->m_dims->xy() * this->m_batch * sizeof(T))); // Cartesian batch
+    gpuErrchk(cudaMalloc(&m_d_batchPolarFD, m_logicalSettings->fBytesBatch())); // FT of the polar samples
+    gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, m_logicalSettings->sBytesBatch())); // IFT of the polar samples
 
     m_batchToFD = CudaFFT<T>::createPlan(*m_gpu, *m_hwSettings);
     m_batchToSD = CudaFFT<T>::createPlan(*m_gpu, *m_inverseSettings);
@@ -77,9 +72,9 @@ void CudaRotPolarEstimator<T>::release() {
     delete m_hwSettings;
 
     // device memory
-    gpuErrchk(cudaFree(m_d_batch_tmp1));
-    gpuErrchk(cudaFree(m_d_batch_tmp2));
-    gpuErrchk(cudaFree(m_d_batch_tmp3));
+    gpuErrchk(cudaFree(m_d_batch));
+    gpuErrchk(cudaFree(m_d_batchPolarOrCorr));
+    gpuErrchk(cudaFree(m_d_batchPolarFD));
     gpuErrchk(cudaFree(m_d_ref));
 
     // FT plans
@@ -104,9 +99,9 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_hwSettings = nullptr;
 
     // device memory
-    m_d_batch_tmp1 = nullptr;
-    m_d_batch_tmp2 = nullptr;
-    m_d_batch_tmp3 = nullptr;
+    m_d_batch = nullptr;
+    m_d_batchPolarOrCorr = nullptr;
+    m_d_batchPolarFD = nullptr;
     m_d_ref = nullptr;
 
     // FT plans
@@ -219,7 +214,6 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
         size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
 
         T *h_src = h_others + offset * this->m_dims->xy();
-        T *d_dst = m_d_batch_tmp1;
         size_t bytes = toProcess * this->m_dims->xy() * sizeof(T);
 
         // pin memory for async transfer
@@ -227,7 +221,7 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
 
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
-                d_dst,
+                m_d_batch,
                 h_src,
                 bytes,
                 cudaMemcpyHostToDevice, *lStream));
@@ -235,7 +229,6 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
         // block until data is loaded
 //        gpuErrchk(cudaEventSynchronize(lEvent));
         cudaStreamSynchronize(*lStream);
-        std::swap(m_d_batch_tmp1, m_d_batch_tmp3);
         m_isDataReady = true;
         m_cv->notify_all();
         m_gpu->unpinMemory(h_src);
@@ -291,8 +284,8 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
                 ceil(getNoOfRings() / (float)dimBlock.y));
             polarFromCartesian<T, true>
                 <<<dimGrid, dimBlock, 0, workstream>>> (
-                m_d_batch_tmp1, this->m_dims->x(), this->m_dims->y(),
-                m_d_batch_tmp2, m_samples, getNoOfRings(), m_firstRing, toProcess);
+                m_d_batch, this->m_dims->x(), this->m_dims->y(),
+                m_d_batchPolarOrCorr, m_samples, getNoOfRings(), m_firstRing, toProcess);
             // notify that buffer is processed
             m_gpu->synch();
 //        {
@@ -303,25 +296,27 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         // FIXME DS add normalization
 
-        CudaFFT<T>::fft(*m_batchToFD, m_d_batch_tmp2, (std::complex<T>*)m_d_batch_tmp1);
+        CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, (std::complex<T>*)m_d_batchPolarFD);
 
         auto dims = Dimensions(
                 this->m_logicalSettings->fDim().x(),
                 this->m_logicalSettings->fDim().y(),
                 1,
                 toProcess);
-        sComputeCorrelationsOneToN(*m_gpu, (std::complex<T>*)m_d_batch_tmp1, m_d_ref, dims, m_firstRing);
+        sComputeCorrelationsOneToN(*m_gpu, (std::complex<T>*)m_d_batchPolarFD, m_d_ref, dims, m_firstRing);
 
-        CudaFFT<T>::ifft(*m_batchToSD, (std::complex<T>*)m_d_batch_tmp1, m_d_batch_tmp2);
+        CudaFFT<T>::ifft(*m_batchToSD, (std::complex<T>*)m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
 
         auto result = new T[m_samples * toProcess]();
         // copy data back
         gpuErrchk(cudaMemcpyAsync(
                 result,
-                m_d_batch_tmp2,
+                m_d_batchPolarOrCorr,
                 m_samples * toProcess * sizeof(T),
                 cudaMemcpyDeviceToHost, workstream));
+
+        // FIXME DS find max and return index can be another kernel (to avoid big memory transfer)
         m_gpu->synch();
         // locate max angle
         for (size_t i = 0; i < toProcess; ++i) {
