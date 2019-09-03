@@ -261,10 +261,9 @@ void CudaRotPolarEstimator<T>::sComputePolarTransform(
         T * __restrict__ h_out,
         int posOfFirstRing) {
 
-    dim3 dimBlock(32, 32);
+    dim3 dimBlock(32);
     dim3 dimGrid(
-        ceil((dimOut.x() * dimOut.n()) / (float)dimBlock.x),
-        ceil(dimOut.y() / (float)dimBlock.y));
+        ceil((dimOut.x() * dimOut.n()) / (float)dimBlock.x));
 
     auto stream = *(cudaStream_t*)gpu.stream();
 

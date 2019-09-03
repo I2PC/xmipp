@@ -32,43 +32,45 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
         T *__restrict__ out, int samples, int rings, int signals, int posOfFirstRing)
 {
     // input is 2D signal - each row is a ring of samples
-    // map thread to pixel in the polar coordinate
+    // map thread to sample in the polar coordinate
     int s = (blockIdx.x*blockDim.x + threadIdx.x) % samples; // sample position == column
     int n = (blockIdx.x*blockDim.x + threadIdx.x) / samples; // signal index
-    int r = blockIdx.y*blockDim.y + threadIdx.y; // ring position == row
 
-    if ((n >= signals)
-        || (s >= samples)
-        || (r >= rings)) return;
+    if ((n >= signals) || (s >= samples)) return;
 
     T piConst = FULL_CIRCLE ? 2 * M_PI : M_PI;
     T dphi = piConst / (T)samples;
     T phi = s * dphi;
 
+    T sinPhi = sin(phi);
+    T cosPhi = cos(phi);
+
     // transform current polar position to cartesian
     // shift origin to center of the input image
-    T cartX = sin(phi) * (T)(r + posOfFirstRing) + (int)(inX / (T)2);
-    T cartY = cos(phi) * (T)(r + posOfFirstRing) + (int)(inY / (T)2);
+    for (int r = 0; r < rings; ++r) {
+        T cartX = sinPhi * (T)(r + posOfFirstRing) + (int)(inX / (T)2);
+        T cartY = cosPhi * (T)(r + posOfFirstRing) + (int)(inY / (T)2);
 
-    int offset = (n * samples * rings) + (r * samples) + s;
-    // Bilinear interpolation
-    // we don't wrap, as we expect that the biggest ring has some edge around, so we cannot read
-    // data out of domain
-    T val = biLerp(in + (n * inX * inY),
-            inX, inY,
-            cartX , cartY);
-//    printf("sample: [%d %d+%d=%d %d] reading from [%f %f] value %f (stored at %d)\n",
-//            s, r,firstRing, r + firstRing, n,
-//            cartX, cartY,
-//            val, offset);
+        int offset = (n * samples * rings) + (r * samples) + s;
+        // Bilinear interpolation
+        // we don't wrap, as we expect that the biggest ring has some edge around, so we cannot read
+        // data out of domain
+        T val = biLerp(in + (n * inX * inY),
+                inX, inY,
+                cartX , cartY);
+//        printf("sample: [%d %d+%d=%d %d] reading from [%f %f] value %f (stored at %d)\n",
+//                s, r,firstRing, r + firstRing, n,
+//                cartX, cartY,
+//                val, offset);
 
-    // Nearest neighbour interpolation
-//    int cartXRound = (int)(cartX + (T)0.5) - FIRST_XMIPP_INDEX(inX);
-//    int cartYRound = (int)(cartY + (T)0.5) - FIRST_XMIPP_INDEX(inY);
-//    T val = in[(n * inX * inY) + (cartYRound * inX) + cartXRound];
-//    printf("sample: [%d %d+%d=%d %d] reading from [%f %f] value %f (stored at %d)\n",
-//            s, r,firstRing, r + firstRing, n,
-//            cartXRound, cartYRound,
-//            val, offset);
-    out[offset] = val;
+        // Nearest neighbour interpolation
+//        int cartXRound = (int)(cartX + (T)0.5) - FIRST_XMIPP_INDEX(inX);
+//        int cartYRound = (int)(cartY + (T)0.5) - FIRST_XMIPP_INDEX(inY);
+//        T val = in[(n * inX * inY) + (cartYRound * inX) + cartXRound];
+//        printf("sample: [%d %d+%d=%d %d] reading from [%f %f] value %f (stored at %d)\n",
+//                s, r,firstRing, r + firstRing, n,
+//                cartXRound, cartYRound,
+//                val, offset);
+        out[offset] = val;
+    }
 }
