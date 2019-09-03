@@ -46,30 +46,29 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
     T phi = s * dphi;
 
     // transform current polar position to cartesian
+    // shift origin to center of the input image
+    T cartX = sin(phi) * (T)(r + posOfFirstRing) + (int)(inX / (T)2);
+    T cartY = cos(phi) * (T)(r + posOfFirstRing) + (int)(inY / (T)2);
+
+    int offset = (n * samples * rings) + (r * samples) + s;
+    // Bilinear interpolation
     // we don't wrap, as we expect that the biggest ring has some edge around, so we cannot read
     // data out of domain
-    T cartX = sin(phi) * (T)(r + posOfFirstRing);
-    T cartY = cos(phi) * (T)(r + posOfFirstRing);
-
-//        printf("thread %d [%d, %d, %d]:"
-//                "\tcart [%f, %f], "
-//                "\tin: [%d, %d], "
-//                "\tout: [%d, %d, %d],"
-//                "\tmin max: [%d, %d] [%d, %d]\n",
-//                (n * samples * rings) + (r * samples) + s,
-//                s, r+firstRing, n,
-//                cartX, cartY,
-//                inX, inY,
-//                samples, rings, n,
-//                FIRST_XMIPP_INDEX(inX), LAST_XMIPP_INDEX(inX), FIRST_XMIPP_INDEX(inY), LAST_XMIPP_INDEX(inY));
-    int offset = (n * samples * rings) + (r * samples) + s;
     T val = biLerp(in + (n * inX * inY),
             inX, inY,
-            cartX - FIRST_XMIPP_INDEX(inX), cartY - FIRST_XMIPP_INDEX(inY));
-//    printf("sample: %d [%d %d %d] reading from [%f %f] value %f (stored at %d)\n",
-//            (n * samples * rings) + (r * samples) + s,
-//            s, r+firstRing, n,
-//            cartX - FIRST_XMIPP_INDEX(inX), cartY - FIRST_XMIPP_INDEX(inY),
+            cartX , cartY);
+//    printf("sample: [%d %d+%d=%d %d] reading from [%f %f] value %f (stored at %d)\n",
+//            s, r,firstRing, r + firstRing, n,
+//            cartX, cartY,
+//            val, offset);
+
+    // Nearest neighbour interpolation
+//    int cartXRound = (int)(cartX + (T)0.5) - FIRST_XMIPP_INDEX(inX);
+//    int cartYRound = (int)(cartY + (T)0.5) - FIRST_XMIPP_INDEX(inY);
+//    T val = in[(n * inX * inY) + (cartYRound * inX) + cartXRound];
+//    printf("sample: [%d %d+%d=%d %d] reading from [%f %f] value %f (stored at %d)\n",
+//            s, r,firstRing, r + firstRing, n,
+//            cartXRound, cartYRound,
 //            val, offset);
     out[offset] = val;
 }
