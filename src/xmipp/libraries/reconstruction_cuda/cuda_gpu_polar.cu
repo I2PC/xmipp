@@ -29,7 +29,7 @@
 template<typename T, bool FULL_CIRCLE>
 __global__
 void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
-        T *__restrict__ out, int samples, int rings, int firstRing, int signals)
+        T *__restrict__ out, int samples, int rings, int signals, int posOfFirstRing)
 {
     // input is 2D signal - each row is a ring of samples
     // map thread to pixel in the polar coordinate
@@ -48,8 +48,8 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
     // transform current polar position to cartesian
     // we don't wrap, as we expect that the biggest ring has some edge around, so we cannot read
     // data out of domain
-    T cartX = sin(phi) * (T)(r + firstRing);
-    T cartY = cos(phi) * (T)(r + firstRing);
+    T cartX = sin(phi) * (T)(r + posOfFirstRing);
+    T cartY = cos(phi) * (T)(r + posOfFirstRing);
 
 //        printf("thread %d [%d, %d, %d]:"
 //                "\tcart [%f, %f], "

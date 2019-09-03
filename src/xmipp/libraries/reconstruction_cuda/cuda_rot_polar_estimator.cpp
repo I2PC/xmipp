@@ -250,6 +250,29 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
 }
 
 template<typename T>
+template<bool FULL_CIRCLE>
+void CudaRotPolarEstimator<T>::sComputePolarTransform(
+        const GPU &gpu,
+        const Dimensions &dimIn,
+        T * __restrict__ h_in,
+        const Dimensions &dimOut,
+        T * __restrict__ h_out,
+        int posOfFirstRing) {
+
+    dim3 dimBlock(32, 32);
+    dim3 dimGrid(
+        ceil((dimOut.x() * dimOut.n()) / (float)dimBlock.x),
+        ceil(dimOut.y() / (float)dimBlock.y));
+
+    auto stream = *(cudaStream_t*)gpu.stream();
+
+    polarFromCartesian<T, FULL_CIRCLE>
+        <<<dimGrid, dimBlock, 0, stream>>> (
+        h_in, dimIn.x(), dimIn.y(),
+        h_out, dimOut.x(), dimOut.y(), dimOut.n(), posOfFirstRing);
+}
+
+template<typename T>
 void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_loaded);
 
@@ -263,8 +286,9 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
     this->m_rotations2D.reserve(this->m_dims->n());
     auto workstream = *(cudaStream_t*)m_gpu->stream();
-    auto loadStream = new cudaStream_t;
-    gpuErrchk(cudaStreamCreate(loadStream));
+    auto loadGPU = GPU();
+    loadGPU.set();
+    auto loadStream = (cudaStream_t*)loadGPU.stream();
 
     m_isDataReady = false;
 
@@ -281,14 +305,12 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         m_cv->wait(lk, [&]{return m_isDataReady;});
 
         // call polar transformation kernel
-        dim3 dimBlock(32, 32);
-        dim3 dimGrid(
-            ceil(toProcess * m_samples / (float)dimBlock.x),
-            ceil(getNoOfRings() / (float)dimBlock.y));
-        polarFromCartesian<T, true>
-            <<<dimGrid, dimBlock, 0, workstream>>> (
-            m_d_batch, this->m_dims->x(), this->m_dims->y(),
-            m_d_batchPolarOrCorr, m_samples, getNoOfRings(), m_firstRing, toProcess);
+        auto inCart = this->m_dims->copyForN(toProcess);
+        auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, toProcess);
+        sComputePolarTransform<true>(*m_gpu,
+                inCart, m_d_batch,
+                outPolar, m_d_batchPolarOrCorr,
+                m_firstRing);
 
         // notify that buffer is processed (new will be loaded on background)
         m_gpu->synch();

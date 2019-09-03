@@ -48,12 +48,21 @@ public :
 
     void release() override;
 
-    void sComputeCorrelationsOneToN(
+    static void sComputeCorrelationsOneToN(
             const GPU &gpu,
             std::complex<T> *d_inOut,
             const std::complex<T> *d_ref,
             const Dimensions &dims,
             int firstRingRadius);
+
+    template<bool FULL_CIRCLE>
+    static void sComputePolarTransform(
+            const GPU &gpu,
+            const Dimensions &dimIn,
+            T * h_in,
+            const Dimensions &dimOut,
+            T * h_out,
+            int posOfFirstRing);
 
     HW& getHW() const override {
         return *m_gpu;
