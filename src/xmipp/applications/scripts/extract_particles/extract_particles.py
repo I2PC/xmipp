@@ -84,7 +84,7 @@ class ScriptExtractParticles(xmipp_base.XmippScript):
             else:
               mic_fname= lineArray[0]
               mic_basename_split=  os.path.basename(mic_fname).split(".")
-              mic_basename= ".".join(mic_basename_split)[:-1] if len(mic_basename_split)>1 else mic_basename_split
+              mic_basename= ".".join(mic_basename_split[:-1]) if len(mic_basename_split)>1 else mic_basename_split[0]
               out_name= os.path.join(outDir, mic_basename)
               pos_fname= lineArray[1]
               if not pos_fname.startswith("particles@"):
