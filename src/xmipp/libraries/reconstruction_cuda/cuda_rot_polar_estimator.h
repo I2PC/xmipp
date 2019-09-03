@@ -64,6 +64,10 @@ public :
             T * h_out,
             int posOfFirstRing);
 
+    template<bool FULL_CIRCLE>
+    static std::vector<T> sFindMaxAngle(const Dimensions &dims,
+            T *polarCorrelations);
+
     HW& getHW() const override {
         return *m_gpu;
     }

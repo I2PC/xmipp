@@ -274,6 +274,26 @@ void CudaRotPolarEstimator<T>::sComputePolarTransform(
 }
 
 template<typename T>
+template<bool FULL_CIRCLE>
+std::vector<T> CudaRotPolarEstimator<T>::sFindMaxAngle(
+        const Dimensions &dims,
+        T *polarCorrelations) {
+    assert(dims.is1D());
+    auto result = std::vector<T>();
+    result.reserve(dims.n());
+
+    // locate max angle
+    for (size_t offset = 0; offset < dims.size(); offset += dims.x()) {
+        auto start = polarCorrelations + offset;
+        auto max = std::max_element(start, start + dims.x());
+        auto pos = std::distance(start, max);
+        T angle = pos * (FULL_CIRCLE ? (T)360 : (T)180) / dims.x();
+        result.emplace_back(angle);
+    }
+    return result;
+}
+
+template<typename T>
 void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_loaded);
     if ( ! isReady) {
@@ -330,23 +350,12 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
                 m_d_batchPolarOrCorr,
                 m_samples * toProcess * sizeof(T),
                 cudaMemcpyDeviceToHost, workstream));
-
         m_gpu->synch();
-        // locate max angle
-        for (size_t i = 0; i < toProcess; ++i) {
-            size_t posun = i * m_samples;
-            size_t index = 0;
-            T max = std::numeric_limits<T>::min();
-            for (size_t x = 0; x < m_samples; ++x) {
-                T v = m_h_batchResult[posun + x];
-                if (max < v) {
-                    max = v;
-                    index = x;
-                }
-            }
-            T angle = index * (T)360 / m_samples;
-            this->m_rotations2D.emplace_back(angle);
-        }
+
+        // extract angles
+        Dimensions resDims(m_samples, 1, 1, toProcess);
+        auto angles = sFindMaxAngle<true>(resDims, m_h_batchResult);
+        this->m_rotations2D.insert(this->m_rotations2D.end(), angles.begin(), angles.end());
     }
     loadingThread.join();
     this->m_is_rotation_computed = true;
