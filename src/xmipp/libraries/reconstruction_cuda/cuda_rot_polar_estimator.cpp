@@ -294,9 +294,12 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         // how many signals to process
         size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
 
-        // block until data is loaded
-        std::unique_lock<std::mutex> lk(*m_mutex);
-        m_cv->wait(lk, [&]{return m_isDataReady;});
+        {
+            // block until data is loaded
+            // mutex will be freed once leaving this block
+            std::unique_lock<std::mutex> lk(*m_mutex);
+            m_cv->wait(lk, [&]{return m_isDataReady;});
+        }
 
         // call polar transformation kernel
         auto inCart = this->m_dims->copyForN(toProcess);
