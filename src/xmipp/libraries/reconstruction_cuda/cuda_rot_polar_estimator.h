@@ -80,9 +80,13 @@ private:
     cufftHandle *m_batchToFD;
     cufftHandle *m_batchToSD;
 
+    // synch primitives
     std::mutex *m_mutex;
     std::condition_variable *m_cv;
     bool m_isDataReady;
+
+    // host memory
+    T *m_h_batchResult;
 
     void check() override;
     void setDefault() override;

@@ -39,6 +39,10 @@ public:
         return Dimensions(m_x, m_y, m_z, 1, m_pad_x, m_pad_y, m_pad_z);
     }
 
+    constexpr Dimensions copyForN(size_t n) const {
+        return Dimensions(m_x, m_y, m_z, n, m_pad_x, m_pad_y, m_pad_z);
+    }
+
     inline constexpr size_t x() const {
         return m_x;
     }
