@@ -222,7 +222,9 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
 template<typename T>
 void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
         void *loadStream) {
-    auto lStream = (cudaStream_t*)loadStream;
+    auto gpu = GPU();
+    gpu.set();
+    auto lStream = (cudaStream_t*)gpu.stream();
     for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
         // how many signals to process
         size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
@@ -275,26 +277,19 @@ void CudaRotPolarEstimator<T>::sComputePolarTransform(
 template<typename T>
 void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_loaded);
-
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
-
     if ( ! GPU::isMemoryPinned(h_others)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
 
-    this->m_rotations2D.reserve(this->m_dims->n());
-    auto workstream = *(cudaStream_t*)m_gpu->stream();
-    auto loadGPU = GPU();
-    loadGPU.set();
-    auto loadStream = (cudaStream_t*)loadGPU.stream();
-
+    // start loading data at the background
     m_isDataReady = false;
+    auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this,
+            h_others, nullptr); // fixme DS remove nullptr / replace by GPU
 
-    std::thread loadingThread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this,
-            h_others, loadStream);
-
+    this->m_rotations2D.reserve(this->m_dims->n());
     // process signals in batches
     for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
         // how many signals to process
@@ -327,6 +322,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         CudaFFT<T>::ifft(*m_batchToSD, (std::complex<T>*)m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
         // copy data back
+        auto workstream = *(cudaStream_t*)m_gpu->stream();
         gpuErrchk(cudaMemcpyAsync(
                 m_h_batchResult,
                 m_d_batchPolarOrCorr,
