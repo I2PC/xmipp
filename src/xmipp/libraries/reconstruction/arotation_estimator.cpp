@@ -28,7 +28,7 @@
 namespace Alignment {
 
 template<typename T>
-void ARotationEstimator<T>::init(const HW &hw, AlignType type,
+void ARotationEstimator<T>::init(HW &hw, AlignType type,
         const Dimensions &dims, size_t batch, float maxRotDeg) {
     this->release();
 

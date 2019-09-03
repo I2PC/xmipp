@@ -16,7 +16,11 @@ class ARotationEstimator_Test;
     }
 
 #define INIT \
-    estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation);
+    estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation); \
+    hw->lockMemory(others, dims.size() * sizeof(T));
+
+#define TEARDOWN \
+    hw->unlockMemory(others);
 
 #include "arotation_estimator_tests.h"
 

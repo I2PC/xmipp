@@ -29,6 +29,7 @@
 #include <thread>
 #include <unistd.h>
 #include "hw.h"
+#include "core/xmipp_error.h"
 
 class CPU : public HW {
 public:
@@ -42,6 +43,18 @@ public:
     void synchAll() const {}; // nothing to do
 
     void updateMemoryInfo();
+
+    void lockMemory(void *h_mem, size_t bytes) override {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
+    }
+
+    void unlockMemory(void *h_mem) override {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
+    }
+
+    bool isMemoryLocked(void *h_mem) override {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
+    }
 
 protected:
     void obtainUUID();

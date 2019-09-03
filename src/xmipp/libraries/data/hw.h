@@ -67,6 +67,12 @@ public:
     virtual std::string getUUID() const {
         return m_uuid;
     }
+
+    virtual void lockMemory(void *h_mem, size_t bytes) = 0;
+
+    virtual void unlockMemory(void *h_mem) = 0;
+
+    virtual bool isMemoryLocked(void *h_mem) = 0;
 protected:
     unsigned m_parallUnits;
     size_t m_totalBytes;

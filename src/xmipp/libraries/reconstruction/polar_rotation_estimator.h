@@ -45,8 +45,12 @@ public:
 
     void release() override;
 
+    HW& getHW() const override {
+        return *m_cpu;
+    }
+
 private:
-    const CPU *m_cpu;
+    CPU *m_cpu;
     Polar<std::complex<double>> m_polarFourierI; // FIXME DS add template
     Polar<std::complex<double>> m_refPolarFourierI; // FIXME DS add template
     MultidimArray<double> m_rotCorrAux;
@@ -62,7 +66,7 @@ private:
 
     MultidimArray<double> convert(T *data); // FIXME DS move to multidimarray.h
 
-    void init2D(const HW &hw) override;
+    void init2D(HW &hw) override;
 
     void load2DReferenceOneToN(const T *ref) override;
 

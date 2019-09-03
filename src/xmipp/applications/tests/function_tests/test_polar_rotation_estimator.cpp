@@ -16,7 +16,9 @@ class ARotationEstimator_Test;
     }
 
 #define INIT \
-    ((Alignment::PolarRotationEstimator<T>*)estimator)->init(*hw, AlignType::OneToN, dims, batch, maxRotation);
+    estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation);
+
+#define TEARDOWN
 
 #include "arotation_estimator_tests.h"
 

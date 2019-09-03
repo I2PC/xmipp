@@ -51,6 +51,7 @@ public:
         }
 //        outputData(others, dims);
 
+        INIT
 
         estimator->loadReference(ref);
         estimator->compute(others);
@@ -64,6 +65,8 @@ public:
             auto diff = 180 - abs(abs(actual - rotations.at(n)) - 180);
             EXPECT_NEAR(diff, 0, maxError) << "expected: " << rotations.at(n) << " actual: " << actual;
         }
+
+        TEARDOWN
 
         delete[] others;
         delete[] ref;

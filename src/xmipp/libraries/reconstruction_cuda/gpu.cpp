@@ -114,3 +114,12 @@ void GPU::setDevice(int device) {
     gpuErrchk(cudaSetDevice(device));
     gpuErrchk(cudaPeekAtLastError());
 }
+
+bool GPU::isMemoryPinned(void *h_mem) {
+    cudaPointerAttributes attr;
+    if (cudaPointerGetAttributes(&attr, h_mem) == cudaErrorInvalidValue) {
+        cudaGetLastError(); // clear out the previous API error
+        return false;
+    }
+    return true;
+}

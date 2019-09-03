@@ -28,9 +28,9 @@
 namespace Alignment {
 
 template<typename T>
-void PolarRotationEstimator<T>::init2D(const HW &hw) {
+void PolarRotationEstimator<T>::init2D(HW &hw) {
     try {
-        m_cpu = &dynamic_cast<const CPU&>(hw);
+        m_cpu = &dynamic_cast<CPU&>(hw);
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }

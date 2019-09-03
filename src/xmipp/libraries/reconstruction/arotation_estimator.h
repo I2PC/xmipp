@@ -41,7 +41,7 @@ public:
         setDefault();
     }
 
-    void init(const HW &hw, AlignType type,
+    void init(HW &hw, AlignType type,
        const Dimensions &dims, size_t batch, float maxRotDeg);
 
     void loadReference(const T *ref);
@@ -72,6 +72,8 @@ public:
         release();
     }
 
+    virtual HW& getHW() const = 0;
+
 protected:
     // various
     AlignType m_type;
@@ -90,7 +92,7 @@ protected:
     virtual void setDefault();
     virtual void check();
 
-    virtual void init2D(const HW &hw) = 0;
+    virtual void init2D(HW &hw) = 0;
     virtual void load2DReferenceOneToN(const T *ref) = 0;
     virtual void computeRotation2DOneToN(T *others) = 0;
 };

@@ -55,8 +55,12 @@ public :
             const Dimensions &dims,
             int firstRingRadius);
 
+    HW& getHW() const override {
+        return *m_gpu;
+    }
+
 private:
-    const GPU *m_gpu;
+    GPU *m_gpu;
     int m_firstRing;
     int m_lastRing;
     int m_samples;
@@ -83,7 +87,7 @@ private:
     void check() override;
     void setDefault() override;
 
-    void init2D(const HW &hw) override;
+    void init2D(HW &hw) override;
 
     void load2DReferenceOneToN(const T *ref) override;
 

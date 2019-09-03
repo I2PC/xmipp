@@ -137,6 +137,8 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
     // allocate memory for signals with applied pose
     size_t elems = m_dims.sizePadded();
     auto copy = new T[elems];
+    // FIXME DS lock memory for other estimater as well
+    m_rot_est.getHW().lockMemory(copy, elems * sizeof(T));
 
     const size_t n = m_dims.n();
     // try rotation -> shift
@@ -148,6 +150,7 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
     memcpy(copy, others, elems * sizeof(T));
     compute(iters, result_SR, ref, others, copy, false);
 
+    m_rot_est.getHW().unlockMemory(copy);
     delete[] copy;
 
     for (size_t i = 0; i < n; ++i) {

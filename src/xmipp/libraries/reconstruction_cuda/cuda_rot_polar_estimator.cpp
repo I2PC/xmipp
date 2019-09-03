@@ -32,9 +32,9 @@
 namespace Alignment {
 
 template<typename T>
-void CudaRotPolarEstimator<T>::init2D(const HW &hw) {
+void CudaRotPolarEstimator<T>::init2D(HW &hw) {
     try {
-        m_gpu = &dynamic_cast<const GPU&>(hw);
+        m_gpu = &dynamic_cast<GPU&>(hw);
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
     }
@@ -43,6 +43,7 @@ void CudaRotPolarEstimator<T>::init2D(const HW &hw) {
     m_lastRing = (this->m_dims->x() - 1) / 2;
 //    m_lastRing = (this->m_dims->x() - 3) / 2; // FIXME DS uncomment // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
+    // FIXME DS number of samples is a candidate for tuning, as for 'big' (256) images resulting in 398 samples (2*199)
     m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
     // FIXME DS change the names, this doesn't make any sense
     m_logicalSettings = new FFTSettingsNew<T>(m_samples, getNoOfRings(), 1, this->m_dims->n(), this->m_batch);
@@ -217,7 +218,6 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
         size_t bytes = toProcess * this->m_dims->xy() * sizeof(T);
 
         // pin memory for async transfer
-        m_gpu->pinMemory(h_src, bytes);
 
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
@@ -231,7 +231,6 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
         cudaStreamSynchronize(*lStream);
         m_isDataReady = true;
         m_cv->notify_all();
-        m_gpu->unpinMemory(h_src);
 //        {
 //            printf("in load before sync %d\n", offset); fflush(stdout);
             std::unique_lock<std::mutex> lk(*m_mutex);
@@ -249,6 +248,10 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
+    }
+
+    if ( ! GPU::isMemoryPinned(h_others)) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
 
     this->m_rotations2D.reserve(this->m_dims->n());

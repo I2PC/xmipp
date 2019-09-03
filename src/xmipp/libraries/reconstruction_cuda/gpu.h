@@ -76,6 +76,8 @@ public:
 
     static void unpinMemory(void *h_mem); // must not be nullptr
 
+    static bool isMemoryPinned(void *h_mem);
+
     void set();
 
     void synchAll() const;
@@ -95,6 +97,18 @@ public:
     static void setDevice(int device);
 
     static inline int getDeviceCount();
+
+    void lockMemory(void *h_mem, size_t bytes) override {
+        GPU::pinMemory(h_mem, bytes, 0);
+    }
+
+    void unlockMemory(void *h_mem) override {
+        GPU::unpinMemory(h_mem);
+    }
+
+    bool isMemoryLocked(void *h_mem) override {
+        return GPU::isMemoryPinned(h_mem);
+    }
 
 private:
     int m_device;
