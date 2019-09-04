@@ -40,8 +40,7 @@ void CudaRotPolarEstimator<T>::init2D(HW &hw) {
     }
 
     m_firstRing = this->m_dims->x() / 5;
-    m_lastRing = (this->m_dims->x() - 1) / 2;
-//    m_lastRing = (this->m_dims->x() - 3) / 2; // FIXME DS uncomment // so that we have some edge around the biggest ring
+    m_lastRing = (this->m_dims->x() - 3) / 2; // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
     // FIXME DS number of samples is a candidate for tuning, as for 'big' (256) images resulting in 398 samples (2*199)
     m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
@@ -364,8 +363,6 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     this->m_is_rotation_computed = true;
 }
 
-
-
 template<typename T>
 void CudaRotPolarEstimator<T>::check() {
     ARotationEstimator<T>::check();
@@ -373,10 +370,10 @@ void CudaRotPolarEstimator<T>::check() {
         // because of the rings
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator can work only with square signal");
     }
-//    if (this->m_dims->x() < 6) {
-//        // we need some edge around the biggest ring, to avoid invalid memory access
-//        REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
-//    } // FIXME DS uncomment
+    if (this->m_dims->x() < 6) {
+        // we need some edge around the biggest ring, to avoid invalid memory access
+        REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
+    }
     if (this->m_dims->isPadded()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Padded signal is not supported");
     }

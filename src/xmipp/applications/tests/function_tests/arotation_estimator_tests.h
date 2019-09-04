@@ -21,7 +21,8 @@ public:
     }
 
     void generateAndTest2D(size_t n, size_t batch) {
-        std::uniform_int_distribution<> distSizeSmall(0, 368);
+        // images bellow 13 x 13 pixels are just too small for processing
+        std::uniform_int_distribution<> distSizeSmall(13, 368);
         std::uniform_int_distribution<> distSizeBig(369, 768);
 
         // only square inputs are valid:
@@ -35,6 +36,9 @@ public:
     {
         using Alignment::AlignType;
         float maxRotation = getMaxRotation();
+
+//        printf("testing: %lu x %lu x %lu (batch %lu)\n",
+//                dims.x(), dims.y(), dims.n(), batch);
 
         estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation);
 
@@ -116,7 +120,7 @@ TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1)
 
 TYPED_TEST_P( ARotationEstimator_Test, DEBUG)
 {
-    ARotationEstimator_Test<TypeParam>::rotate2D(Dimensions(7, 7, 1, 2), 1);
+    ARotationEstimator_Test<TypeParam>::rotate2D(Dimensions(13, 13, 1, 2), 1);
 }
 
 REGISTER_TYPED_TEST_CASE_P(ARotationEstimator_Test,
