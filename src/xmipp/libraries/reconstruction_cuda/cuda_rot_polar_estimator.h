@@ -106,7 +106,7 @@ private:
 
     void init2D(HW &hw) override;
 
-    void load2DReferenceOneToN(const T *ref) override;
+    void load2DReferenceOneToN(const T *h_ref) override;
 
     void computeRotation2DOneToN(T *h_others) override;
 

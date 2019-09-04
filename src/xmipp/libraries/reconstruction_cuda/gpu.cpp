@@ -83,14 +83,16 @@ void GPU::peekLastError() const {
     gpuErrchk(cudaPeekAtLastError());
 }
 
-void GPU::pinMemory(void *h_mem, size_t bytes,
+void GPU::pinMemory(const void *h_mem, size_t bytes,
         unsigned int flags) {
     assert(0 == cudaHostRegisterDefault); // default value should be 0
-    gpuErrchk(cudaHostRegister(h_mem, bytes, flags));
+    // we remove const, but we don't change the data
+    gpuErrchk(cudaHostRegister(const_cast<void*>(h_mem), bytes, flags));
 }
 
-void GPU::unpinMemory(void *h_mem) {
-    gpuErrchk(cudaHostUnregister(h_mem));
+void GPU::unpinMemory(const void *h_mem) {
+    // we remove const, but we don't change the data
+    gpuErrchk(cudaHostUnregister(const_cast<void*>(h_mem)));
 }
 
 int GPU::getDeviceCount() {
@@ -115,7 +117,7 @@ void GPU::setDevice(int device) {
     gpuErrchk(cudaPeekAtLastError());
 }
 
-bool GPU::isMemoryPinned(void *h_mem) {
+bool GPU::isMemoryPinned(const void *h_mem) {
     cudaPointerAttributes attr;
     if (cudaPointerGetAttributes(&attr, h_mem) == cudaErrorInvalidValue) {
         cudaGetLastError(); // clear out the previous API error

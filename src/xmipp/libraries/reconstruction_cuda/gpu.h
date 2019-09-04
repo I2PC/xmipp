@@ -72,11 +72,11 @@ public:
 
     void peekLastError() const;
 
-    static void pinMemory(void *h_mem, size_t bytes, unsigned int flags=0); // must not be nullptr
+    static void pinMemory(const void *h_mem, size_t bytes, unsigned int flags=0); // must not be nullptr
 
-    static void unpinMemory(void *h_mem); // must not be nullptr
+    static void unpinMemory(const void *h_mem); // must not be nullptr
 
-    static bool isMemoryPinned(void *h_mem);
+    static bool isMemoryPinned(const void *h_mem);
 
     void set();
 
@@ -98,15 +98,15 @@ public:
 
     static inline int getDeviceCount();
 
-    void lockMemory(void *h_mem, size_t bytes) override {
+    void lockMemory(const void *h_mem, size_t bytes) override {
         GPU::pinMemory(h_mem, bytes, 0);
     }
 
-    void unlockMemory(void *h_mem) override {
+    void unlockMemory(const void *h_mem) override {
         GPU::unpinMemory(h_mem);
     }
 
-    bool isMemoryLocked(void *h_mem) override {
+    bool isMemoryLocked(const void *h_mem) override {
         return GPU::isMemoryPinned(h_mem);
     }
 

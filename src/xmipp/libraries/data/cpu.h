@@ -44,15 +44,15 @@ public:
 
     void updateMemoryInfo();
 
-    void lockMemory(void *h_mem, size_t bytes) override {
+    void lockMemory(const void *h_mem, size_t bytes) override {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
     }
 
-    void unlockMemory(void *h_mem) override {
+    void unlockMemory(const void *h_mem) override {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
     }
 
-    bool isMemoryLocked(void *h_mem) override {
+    bool isMemoryLocked(const void *h_mem) override {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
     }
 

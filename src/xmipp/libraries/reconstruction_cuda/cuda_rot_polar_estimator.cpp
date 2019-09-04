@@ -56,6 +56,8 @@ void CudaRotPolarEstimator<T>::init2D(HW &hw) {
     gpuErrchk(cudaMalloc(&m_d_batchPolarFD, m_logicalSettings->fBytesBatch())); // FT of the polar samples
     gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, m_logicalSettings->sBytesBatch())); // IFT of the polar samples
 
+    // FT plans
+    m_singleToFD = CudaFFT<T>::createPlan(*m_gpu, m_hwSettings->createSingle());
     m_batchToFD = CudaFFT<T>::createPlan(*m_gpu, *m_hwSettings);
     m_batchToSD = CudaFFT<T>::createPlan(*m_gpu, *m_inverseSettings);
 
@@ -157,37 +159,38 @@ MultidimArray<double> CudaRotPolarEstimator<double>::convert(double *data) { // 
 }
 
 template<typename T> // FIXME DS rework
-void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *ref) {
-    // FIXME DS rework properly
-    MultidimArray<double> tmp = convert(const_cast<T*>(ref));
-    tmp.setXmippOrigin();
-    normalizedPolarFourierTransform(tmp, m_refPolarFourierI, true, // conjugate once
-            m_firstRing, m_lastRing, m_refPlans, 1);
-    m_rotCorrAux.resize(2 * m_refPolarFourierI.getSampleNoOuterRing() - 1);
-    m_aux.local_transformer.setReal(m_rotCorrAux);
-
-    auto settingsSingle = m_logicalSettings->createSingle();
-    auto tmp1 = new std::complex<T>[settingsSingle.fDim().size()];
-    auto position = tmp1;
-//    printf("reference:\n");
-    for (auto &a : m_refPolarFourierI.rings) { // rings are Y (rows)
-//        for (int x = 0; x < a.nzyxdim; ++x) {
-//            std::cout << a.data[x] << " ";
-//        }
-//        printf("\n");
-        std::copy(a.data, a.data + a.nzyxdim, position);
-        position += a.nzyxdim;
-    }
-//    printf("\n");
+void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
+    auto inCart = this->m_dims->copyForN(1);
+    auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, 1);
     auto stream = *(cudaStream_t*)m_gpu->stream();
+
+    bool unlock = false;
+    if ( ! GPU::isMemoryPinned(h_ref)) {
+        unlock = true;
+        m_gpu->lockMemory(h_ref, inCart.size() * sizeof(T));
+    }
+
     // copy memory
     gpuErrchk(cudaMemcpyAsync(
-            m_d_ref,
-            tmp1,
-            settingsSingle.fBytesSingle(),
+            m_d_batch, // reuse memory
+            h_ref,
+            inCart.size() * sizeof(T),
             cudaMemcpyHostToDevice, stream));
+
+    // call polar transformation kernel
+    sComputePolarTransform<true>(*m_gpu,
+            inCart, m_d_batch,
+            outPolar, m_d_batchPolarOrCorr,
+            m_firstRing);
+
+    // FIXME DS add normalization
+    auto settings = m_logicalSettings->createSingle();
+    CudaFFT<T>::fft(*m_singleToFD, m_d_batchPolarOrCorr, m_d_ref);
+
+    if (unlock) {
+        m_gpu->unlockMemory(h_ref);
+    }
     m_gpu->synch();
-    delete[] tmp1;
     this->m_is_ref_loaded = true;
 }
 
