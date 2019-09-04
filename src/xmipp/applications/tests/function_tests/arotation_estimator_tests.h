@@ -40,8 +40,6 @@ public:
 //        printf("testing: %lu x %lu x %lu (batch %lu)\n",
 //                dims.x(), dims.y(), dims.n(), batch);
 
-        estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation);
-
         auto rotations = generateRotations(dims, maxRotation, mt);
         auto others = new T[dims.size()]();
         auto ref = new T[dims.xy()]();

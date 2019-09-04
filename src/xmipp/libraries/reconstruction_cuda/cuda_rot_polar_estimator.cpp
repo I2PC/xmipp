@@ -66,10 +66,6 @@ void CudaRotPolarEstimator<T>::init2D(HW &hw) {
     m_mutex = new std::mutex();
     m_cv = new std::condition_variable;
 
-    if (std::is_same<T, float>()) { // FIXME DS remove
-        m_dataAux.resize(this->m_dims->y(), this->m_dims->x());
-    }
-
     this->m_isInit = true;
 }
 
@@ -94,11 +90,6 @@ void CudaRotPolarEstimator<T>::release() {
     // synch primitives
     delete m_mutex;
     delete m_cv;
-
-    m_dataAux.clear(); // FIXME DS remove
-    m_refPolarFourierI.clear(); // FIXME DS remove
-    delete m_refPlans; // FIXME DS remove
-    m_rotCorrAux.clear(); // FIXME DS remove
 
     ARotationEstimator<T>::release();
     CudaRotPolarEstimator<T>::setDefault();
@@ -132,32 +123,10 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_cv = nullptr;
     m_isDataReady = false;
 
-    m_dataAux.clear(); // FIXME DS remove
-    m_refPolarFourierI.clear(); // FIXME DS remove
-    m_refPlans = nullptr; // FIXME DS remove
-    m_rotCorrAux.clear(); // FIXME DS remove
-
     ARotationEstimator<T>::setDefault();
 }
 
-template<>
-MultidimArray<double> CudaRotPolarEstimator<float>::convert(float *data) { // FIXME remove
-    const size_t s = this->m_dims->xyz();
-    for (size_t i = 0; i < s; ++i) {
-        m_dataAux.data[i] = data[i];
-    }
-    return m_dataAux;
-}
-
-template<>
-MultidimArray<double> CudaRotPolarEstimator<double>::convert(double *data) { // FIXME remove
-    return MultidimArray<double>(
-            this->m_dims->n(), this->m_dims->z(),
-            this->m_dims->y(), this->m_dims->x(),
-            data);
-}
-
-template<typename T> // FIXME DS rework
+template<typename T>
 void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
     auto inCart = this->m_dims->copyForN(1);
     auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, 1);
@@ -241,7 +210,7 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
                 bytes,
                 cudaMemcpyHostToDevice, *lStream));
         // block until data is loaded
-        cudaStreamSynchronize(*lStream);
+        gpu.synch();
 
         // notify processing stream that it can work
         m_isDataReady = true;
@@ -376,9 +345,6 @@ void CudaRotPolarEstimator<T>::check() {
     }
     if (this->m_dims->isPadded()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Padded signal is not supported");
-    }
-    if (m_logicalSettings->sElemsBatch() > std::numeric_limits<int>::max()) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Too big batch. It would cause int overflow in the cuda kernel");
     }
 }
 
