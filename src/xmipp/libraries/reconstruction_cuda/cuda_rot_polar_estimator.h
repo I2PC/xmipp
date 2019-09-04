@@ -78,15 +78,11 @@ private:
     int m_lastRing;
     int m_samples;
 
-    FFTSettingsNew<T> *m_logicalSettings; // each signal is 2D array, rows are rings of samples
-    FFTSettingsNew<T> *m_hwSettings; // we actually need to process signals * rows 1D samples
-    FFTSettingsNew<T> *m_inverseSettings; // we actually need to process signals * N 1D samples
-
     // device memory
     std::complex<T> *m_d_ref;
     T *m_d_batch;
     T *m_d_batchPolarOrCorr;
-    T *m_d_batchPolarFD;
+    std::complex<T> *m_d_batchPolarFD;
 
     // FT plans
     cufftHandle *m_singleToFD;

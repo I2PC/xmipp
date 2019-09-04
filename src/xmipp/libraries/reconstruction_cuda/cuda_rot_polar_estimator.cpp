@@ -44,22 +44,27 @@ void CudaRotPolarEstimator<T>::init2D(HW &hw) {
     // all rings have the same number of samples, to make FT easier
     // FIXME DS number of samples is a candidate for tuning, as for 'big' (256) images resulting in 398 samples (2*199)
     m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
-    // FIXME DS change the names, this doesn't make any sense
-    m_logicalSettings = new FFTSettingsNew<T>(m_samples, getNoOfRings(), 1, this->m_dims->n(), this->m_batch);
-    m_hwSettings = new FFTSettingsNew<T>(m_samples, 1, 1, this->m_dims->n() * getNoOfRings(), this->m_batch * getNoOfRings());
-    m_inverseSettings = new FFTSettingsNew<T>(m_samples, 1, 1, this->m_dims->n(), this->m_batch, false, false);
 
 
-    gpuErrchk(cudaMalloc(&m_d_ref, m_logicalSettings->fBytesSingle())); // FT of the samples
+    auto batchPolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
+            this->m_dims->n() * getNoOfRings(), // each signal has N rings
+            this->m_batch * getNoOfRings()); // so we have to multiply by that
+    auto singlePolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
+            getNoOfRings(), // each signal has N rings
+            getNoOfRings()); // process all at once
+
+    // allocate host memory
+    gpuErrchk(cudaMalloc(&m_d_ref, singlePolar.fBytes())); // FT of the samples
     gpuErrchk(cudaMalloc(&m_d_batch, this->m_dims->xy() * this->m_batch * sizeof(T))); // Cartesian batch
-    gpuErrchk(cudaMalloc(&m_d_batchPolarFD, m_logicalSettings->fBytesBatch())); // FT of the polar samples
-    gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, m_logicalSettings->sBytesBatch())); // IFT of the polar samples
+    gpuErrchk(cudaMalloc(&m_d_batchPolarFD, batchPolar.fBytesBatch())); // FT of the polar samples
+    gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, batchPolar.sBytesBatch())); // IFT of the polar samples
 
     // FT plans
-    m_singleToFD = CudaFFT<T>::createPlan(*m_gpu, m_hwSettings->createSingle());
-    m_batchToFD = CudaFFT<T>::createPlan(*m_gpu, *m_hwSettings);
-    m_batchToSD = CudaFFT<T>::createPlan(*m_gpu, *m_inverseSettings);
+    m_singleToFD = CudaFFT<T>::createPlan(*m_gpu, singlePolar);
+    m_batchToFD = CudaFFT<T>::createPlan(*m_gpu, batchPolar);
+    m_batchToSD = CudaFFT<T>::createPlan(*m_gpu, batchPolar.createInverse());
 
+    // allocate device memory
     m_h_batchResult = new T[m_samples * this->m_batch];
 
     // synch primitives
@@ -71,9 +76,6 @@ void CudaRotPolarEstimator<T>::init2D(HW &hw) {
 
 template<typename T>
 void CudaRotPolarEstimator<T>::release() {
-    delete m_logicalSettings;
-    delete m_hwSettings;
-
     // device memory
     gpuErrchk(cudaFree(m_d_batch));
     gpuErrchk(cudaFree(m_d_batchPolarOrCorr));
@@ -98,8 +100,6 @@ void CudaRotPolarEstimator<T>::release() {
 template<typename T>
 void CudaRotPolarEstimator<T>::setDefault() {
     m_gpu = nullptr;
-    m_logicalSettings = nullptr;
-    m_hwSettings = nullptr;
 
     // device memory
     m_d_batch = nullptr;
@@ -117,6 +117,7 @@ void CudaRotPolarEstimator<T>::setDefault() {
 
     m_firstRing = -1;
     m_lastRing = -1;
+    m_samples = -1;
 
     // synch primitives
     m_mutex = nullptr;
@@ -152,7 +153,6 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
             m_firstRing);
 
     // FIXME DS add normalization
-    auto settings = m_logicalSettings->createSingle();
     CudaFFT<T>::fft(*m_singleToFD, m_d_batchPolarOrCorr, m_d_ref);
 
     if (unlock) {
@@ -172,7 +172,7 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
     auto stream = *(cudaStream_t*)gpu.stream();
     dim3 dimBlock(32);
     dim3 dimGrid(
-        ceil(dims.size() / (float)dimBlock.x));
+        ceil(dims.x() * dims.n() / (float)dimBlock.x));
     if (std::is_same<T, float>::value) {
         computePolarCorrelationsSumOneToNKernel<float2>
             <<<dimGrid, dimBlock, 0, stream>>> (
@@ -284,6 +284,10 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
         // how many signals to process
         size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
+        auto inCart = this->m_dims->copyForN(toProcess);
+        auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, toProcess);
+        auto outPolarFourier = Dimensions(m_samples / 2 + 1, getNoOfRings(), 1, toProcess);
+        auto resSize = Dimensions(m_samples, 1, 1, toProcess);
 
         {
             // block until data is loaded
@@ -293,8 +297,6 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         }
 
         // call polar transformation kernel
-        auto inCart = this->m_dims->copyForN(toProcess);
-        auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, toProcess);
         sComputePolarTransform<true>(*m_gpu,
                 inCart, m_d_batch,
                 outPolar, m_d_batchPolarOrCorr,
@@ -307,25 +309,23 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         // FIXME DS add normalization
 
-        CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, (std::complex<T>*)m_d_batchPolarFD);
+        CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 
-        auto dims = this->m_logicalSettings->fDim().copyForN(toProcess);
-        sComputeCorrelationsOneToN(*m_gpu, (std::complex<T>*)m_d_batchPolarFD, m_d_ref, dims, m_firstRing);
+        sComputeCorrelationsOneToN(*m_gpu, m_d_batchPolarFD, m_d_ref, outPolarFourier, m_firstRing);
 
-        CudaFFT<T>::ifft(*m_batchToSD, (std::complex<T>*)m_d_batchPolarFD, m_d_batchPolarOrCorr);
+        CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
         // copy data back
         auto workstream = *(cudaStream_t*)m_gpu->stream();
         gpuErrchk(cudaMemcpyAsync(
                 m_h_batchResult,
                 m_d_batchPolarOrCorr,
-                m_samples * toProcess * sizeof(T),
+                resSize.size() * sizeof(T),
                 cudaMemcpyDeviceToHost, workstream));
         m_gpu->synch();
 
         // extract angles
-        Dimensions resDims(m_samples, 1, 1, toProcess);
-        auto angles = sFindMaxAngle<true>(resDims, m_h_batchResult);
+        auto angles = sFindMaxAngle<true>(resSize, m_h_batchResult);
         this->m_rotations2D.insert(this->m_rotations2D.end(), angles.begin(), angles.end());
     }
     loadingThread.join();

@@ -113,7 +113,13 @@ TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToMany)
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
-    ASSERT_THROW(ARotationEstimator_Test<TypeParam>::generateAndTest2D(5, 3), XmippError);
+    ARotationEstimator_Test<TypeParam>::generateAndTest2D(5, 3);
+}
+
+TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2)
+{
+    // test that n mod batch == 0 works
+    ARotationEstimator_Test<TypeParam>::generateAndTest2D(12, 4);
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, DEBUG)
@@ -125,5 +131,6 @@ REGISTER_TYPED_TEST_CASE_P(ARotationEstimator_Test,
     DEBUG,
     rotate2DOneToOne,
     rotate2DOneToMany,
-    rotate2DOneToManyBatched1
+    rotate2DOneToManyBatched1,
+    rotate2DOneToManyBatched2
 );
