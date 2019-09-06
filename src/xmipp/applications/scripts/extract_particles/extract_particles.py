@@ -29,7 +29,6 @@ import sys, os
 from joblib import delayed, Parallel
 from subprocess import check_call
 
-import numpy as np
 import xmipp_base
 
 class ScriptExtractParticles(xmipp_base.XmippScript):
@@ -84,7 +83,8 @@ class ScriptExtractParticles(xmipp_base.XmippScript):
               raise ValueError("Error, input file bad format. If -c option, it must have 2 cols: 'micFname coordsFname'")
             else:
               mic_fname= lineArray[0]
-              mic_basename=  os.path.basename(mic_fname).split(".")[0]
+              mic_basename_split=  os.path.basename(mic_fname).split(".")
+              mic_basename= ".".join(mic_basename_split[:-1]) if len(mic_basename_split)>1 else mic_basename_split[0]
               out_name= os.path.join(outDir, mic_basename)
               pos_fname= lineArray[1]
               if not pos_fname.startswith("particles@"):
