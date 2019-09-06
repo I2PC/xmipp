@@ -37,7 +37,9 @@
   */
 class ProgReconsSuper: public XmippProgram
 {
-protected:
+public:
+    FileName fnTiltSeries;
+    int Zsize;
 public:
     ///Functions of common reconstruction interface
     void defineParams();
