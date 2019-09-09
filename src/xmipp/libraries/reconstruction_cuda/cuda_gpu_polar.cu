@@ -33,10 +33,11 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
 {
     // input is 2D signal - each row is a ring of samples
     // map thread to sample in the polar coordinate
-    int s = (blockIdx.x*blockDim.x + threadIdx.x) % samples; // sample position == column
-    int n = (blockIdx.x*blockDim.x + threadIdx.x) / samples; // signal index
+    int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (idx >= (samples * signals)) return;
 
-    if ((n >= signals) || (s >= samples)) return;
+    int s = idx % samples; // sample position == column
+    int n = idx / samples; // signal index
 
     T piConst = FULL_CIRCLE ? 2 * M_PI : M_PI;
     T dphi = piConst / (T)samples;

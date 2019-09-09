@@ -145,7 +145,7 @@ void computePolarCorrelationsSumOneToNKernel(
     if (idx >= (xDim * nDim)) return;
     int indexRef = idx % xDim; // column of the first row
     int n = idx / xDim; // index of the signal for current thread
-    int indexOther = indexRef + (n * (xDim * yDim));
+    int indexOther = indexRef + (n * xDim * yDim);
 
 
     T res = {};

@@ -172,7 +172,7 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
     auto stream = *(cudaStream_t*)gpu.stream();
     dim3 dimBlock(32);
     dim3 dimGrid(
-        ceil(dims.x() * dims.n() / (float)dimBlock.x));
+        ceil((dims.x() * dims.n()) / (float)dimBlock.x));
     if (std::is_same<T, float>::value) {
         computePolarCorrelationsSumOneToNKernel<float2>
             <<<dimGrid, dimBlock, 0, stream>>> (
