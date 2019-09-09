@@ -38,7 +38,7 @@
 
 /**
 **
-** Method to print the input format for running the software
+** Method to print the input format for running the software and adding required arguments.
 **
 */
 void ProgReconsSuper::defineParams()
@@ -46,6 +46,10 @@ void ProgReconsSuper::defineParams()
  addUsageLine("Reconstruction of tomography tilt series using superiorization");
  addParamsLine("  -i <tiltseries>    : Metadata with the set of images in the tilt series, and their tilt angles");
  addParamsLine("  --zsize <z=-1>     : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
+ addParamsLine("  -a <float>         : a variable used to compute the magnitude of the perturbation (beta = b * a^l).");
+ addParamsLine("  -b <float>         : b variable used to compute the magnitude of the perturbation (beta = b * a^l).");
+ addParamsLine("  -N <N = 0>         : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
+ addParamsLine("  --atl <atl = ATL0> : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
 }
 
 /**
@@ -59,8 +63,7 @@ void ProgReconsSuper::readParams()
 
  fnTiltSeries = getParam("-i");
  Zsize = getIntParam("--zsize");
- /*
- l_method=getParam("--l_method");
+ l_method=getParam("--atl");
  if(l_method=="ATL0")
     mode_l = lmode::ATL0;
  else{
@@ -74,12 +77,9 @@ void ProgReconsSuper::readParams()
          }
        }
    }
-   */
- //m_l = getIntParam("--l",m_l);
- //std::cout<< "m_l: " << m_l << std::endl;
-// a = getDoubleParam("-a");
-// b = getDoubleParam("-b");
- innerN = getIntParam("--innerN");
+ a = getDoubleParam("-a");
+ b = getDoubleParam("-b");
+ N = getIntParam("-N");
 }
 
 /**
@@ -95,19 +95,20 @@ void ProgReconsSuper::show()
     std::cout << "Zsize: " << Zsize << std::endl;
     std::cout << "a: " << a << std::endl;
     std::cout << "b: " << b << std::endl;
-    std::cout << "N: " << innerN << std::endl;
+    std::cout << "N: " << N << std::endl;
+    std::cout << "atl: " << l_method << std::endl;
     std::cout << "phi: " << "NA" << std::endl;
+    std::cout << "Pr: " << "NA" << std::endl;
    }
 }
 
 /**
 **
-** Method to initialize variables and status before running
+** Method to initialize variables and status before running but after reading from the command line.
 **
 */
 void ProgReconsSuper::produceSideInfo()
 {
-
 }
 
 /******************************************************************************/
@@ -191,7 +192,7 @@ double beta;
 	    }
      // Preparing the variables for the inner loop
 	 n = 0;
-	 while(n < innerN){
+	 while(n < N){
 //         v = phi.nav(x); // Method to obtain the nonascending vector for phi at x^k
 		 loop = true;
          while(loop){

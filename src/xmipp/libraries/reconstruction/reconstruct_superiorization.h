@@ -41,11 +41,11 @@ private:
 	enum class lmode {ATL0,ATL1,ATL2};
 	lmode mode_l;
 	double a,b;
+	int N;
 public:
     FileName fnTiltSeries;
     int Zsize;
-	int innerN;
-	String phi_method, nav_method, l_method;
+	String phi_method, nav_method, l_method, pr_method;
 public:
     ///Functions of common reconstruction interface
     void defineParams();
