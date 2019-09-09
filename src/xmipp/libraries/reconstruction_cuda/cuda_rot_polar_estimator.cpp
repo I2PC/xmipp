@@ -42,13 +42,25 @@ void CudaRotPolarEstimator<T>::init2D(HW &hw) {
     m_firstRing = this->m_dims->x() / 5;
     m_lastRing = (this->m_dims->x() - 3) / 2; // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
-    // FIXME DS number of samples is a candidate for tuning, as for 'big' (256) images resulting in 398 samples (2*199)
     m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
 
 
     auto batchPolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
             this->m_dims->n() * getNoOfRings(), // each signal has N rings
             this->m_batch * getNoOfRings()); // so we have to multiply by that
+    // try to tune number of samples. We don't mind using more samples (higher precision)
+    // if we can also do it faster!
+    auto proposal = CudaFFT<T>::findOptimal(*m_gpu,
+        // test small batch, as we want the results as soon as possible (should be around 1s)
+        batchPolar.createSubset(std::min((size_t)1000, batchPolar.sDim().n())),
+        0, false, 10, false, false);
+    if (proposal.has_value()) {
+        batchPolar = FFTSettingsNew<T>(proposal.value().sDim().x(), 1, 1, // x, y, z
+                    this->m_dims->n() * getNoOfRings(), // each signal has N rings
+                    this->m_batch * getNoOfRings()); // so we have to multiply by that
+        m_samples = batchPolar.sDim().x();
+    }
+
     auto singlePolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
             getNoOfRings(), // each signal has N rings
             getNoOfRings()); // process all at once
