@@ -45,6 +45,7 @@ void ProgReconsSuper::defineParams()
 {
  addUsageLine("Reconstruction of tomography tilt series using superiorization");
  addParamsLine("  -i <tiltseries>    : Metadata with the set of images in the tilt series, and their tilt angles");
+ addParamsLine("  -o <output>        : Filename for the resulting reconstruction.");
  addParamsLine("  --zsize <z=-1>     : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
  addParamsLine("  -a <float>         : a variable used to compute the magnitude of the perturbation (beta = b * a^l).");
  addParamsLine("  -b <float>         : b variable used to compute the magnitude of the perturbation (beta = b * a^l).");
@@ -62,24 +63,12 @@ void ProgReconsSuper::readParams()
  int m_l;
 
  fnTiltSeries = getParam("-i");
- Zsize = getIntParam("--zsize");
- l_method=getParam("--atl");
- if(l_method=="ATL0")
-    mode_l = lmode::ATL0;
- else{
-    if(l_method=="ATL1")
-       mode_l = lmode::ATL1;
-    else{
-       if(l_method=="ATL2")
-          mode_l = lmode::ATL2;
-       else{
-          std::cout << l_method <<" is not a valid option, ATL0 will be used instead." << std::endl;
-         }
-       }
-   }
- a = getDoubleParam("-a");
- b = getDoubleParam("-b");
- N = getIntParam("-N");
+ fnOut        = getParam("-o");
+ Zsize        = getIntParam("--zsize");
+ l_method     = getParam("--atl");
+ a            = getDoubleParam("-a");
+ b            = getDoubleParam("-b");
+ N            = getIntParam("-N");
 }
 
 /**
@@ -92,6 +81,7 @@ void ProgReconsSuper::show()
  if(verbose > 0){
     std::cout << "Superiorized "<< "NA" << " with the following arguments:" << std::endl;
     std::cout << "Input tilt series: " << fnTiltSeries << std::endl;
+    std::cout << "Output reconstruction: " << fnOut << std::endl;
     std::cout << "Zsize: " << Zsize << std::endl;
     std::cout << "a: " << a << std::endl;
     std::cout << "b: " << b << std::endl;
@@ -107,8 +97,44 @@ void ProgReconsSuper::show()
 ** Method to initialize variables and status before running but after reading from the command line.
 **
 */
+ProgReconsSuper::ProgReconsSuper()
+{
+ mode_l = lmode::ATL0;
+ a = 0.0;
+ b = 0.0;
+ N = 0;
+ Zsize = 0;
+ phi_method = "";
+ nav_method = "";
+ l_method = "";
+ pr_method = "";
+}
+
+/**
+**
+** Method to initialize variables and status before executing algorithm/method but after reading arguments from the command line.
+**
+*/
 void ProgReconsSuper::produceSideInfo()
 {
+ if(l_method=="ATL0")
+    mode_l = lmode::ATL0;
+ else{
+    if(l_method=="ATL1")
+       mode_l = lmode::ATL1;
+    else{
+       if(l_method=="ATL2")
+          mode_l = lmode::ATL2;
+       else{
+         std::cout << l_method <<" is not a valid option, ATL0 will be used instead." << std::endl;
+        }
+      }
+   }
+
+ if(N < 0){
+    std::cerr << "ERROR: N has to be positive" << std::endl;
+    usage("-N", true);
+   }
 }
 
 /******************************************************************************/
@@ -127,9 +153,18 @@ void ProgReconsSuper::produceSideInfo()
 //#define DEBUG
 void ProgReconsSuper::run()
 {
+ //
+ // Processing the input arguments
+ //
  produceSideInfo();
+
+ //
+ // Showing the arguments' values used by the program
  show();
 
+ //
+ // Reading the Input projections through the Metadata file
+ //
  MetaData mdTS;
  FileName fnImg;
  mdTS.read(fnTiltSeries);

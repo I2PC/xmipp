@@ -43,11 +43,12 @@ private:
 	double a,b;
 	int N;
 public:
-    FileName fnTiltSeries;
+    FileName fnTiltSeries, fnOut;
     int Zsize;
 	String phi_method, nav_method, l_method, pr_method;
 public:
     ///Functions of common reconstruction interface
+	ProgReconsSuper();
     void defineParams();
     void readParams();
     void produceSideInfo();
