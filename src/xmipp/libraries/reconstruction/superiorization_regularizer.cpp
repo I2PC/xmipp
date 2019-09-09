@@ -1,5 +1,8 @@
 /***************************************************************************
  *
+ * superiorization_regularizer.cpp
+ *
+ * Created on: Sep 6, 2019
  * Authors:     Edgar Garduno Angeles (edgargar@ieee.org)
  *
  * Department of Computer Science, Institute for Applied Mathematics
@@ -24,36 +27,39 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_SUPER_HH
-#define _PROG_SUPER_HH
 
-#include <core/xmipp_program.h>
 
-/**@defgroup Reconstruction Program Superiorization
-   @ingroup ReconsLibrary */
-//@{
-
-/* The user interface program should make a call to the run routine.
-  */
-class ProgReconsSuper: public XmippProgram
-{
-private:
-	enum class lmode {ATL0,ATL1,ATL2};
-	lmode mode_l;
-	double a,b;
-public:
-    FileName fnTiltSeries;
-    int Zsize;
-	int innerN;
-	String phi_method, nav_method, l_method;
-public:
-    ///Functions of common reconstruction interface
-    void defineParams();
-    void readParams();
-    void produceSideInfo();
-    void show();
-    void run();
-}
-;
-//@}
+#include "superiorization_regularizer.h"
+/*
+ // Iterate over Y 2D subproblems
+ I().resizeNoCopy(ZSIZE(TS),XSIZE(TS));
+ for(int i=0; i<YSIZE(TS); i++){
+     // Extract the 2D subproblem
+     for(int k=0; k<ZSIZE(TS); k++)
+         memcpy(&I(k,0),&A3D_ELEM(TS,k,i,0),sizeof(double)*XSIZE(TS));
+#ifdef DEBUG
+     I.write("PPP2D.xmp");
+     I().printStats();
+     std::cout << "Press any key" << std::endl;
+     char c; std::cin >> c;
 #endif
+    }
+*/
+
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/****************** Definition of Local Methods ********************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+
+/**
+**
+** Method to initialize variables and status before running
+**
+*/
+SuperRegular::SuperRegular()
+{
+
+}

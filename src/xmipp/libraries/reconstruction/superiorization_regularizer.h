@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:     Edgar Garduno Angeles (edgargar@ieee.org)
+ * Created on: Sep 6, 2019
  *
  * Department of Computer Science, Institute for Applied Mathematics
  * and Systems Research (IIMAS), National Autonomous University of
@@ -24,36 +25,39 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_SUPER_HH
-#define _PROG_SUPER_HH
+#ifndef SUPERIORIZATION_REGULARIZER_HH
+#define SUPERIORIZATION_REGULARIZER_HH
 
 #include <core/xmipp_program.h>
 
-/**@defgroup Reconstruction Program Superiorization
-   @ingroup ReconsLibrary */
-//@{
-
-/* The user interface program should make a call to the run routine.
-  */
-class ProgReconsSuper: public XmippProgram
+// template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
+// template< class R, class... Args > class function<R(Args...)>;
+class SuperRegular
 {
-private:
-	enum class lmode {ATL0,ATL1,ATL2};
-	lmode mode_l;
-	double a,b;
-public:
-    FileName fnTiltSeries;
-    int Zsize;
-	int innerN;
-	String phi_method, nav_method, l_method;
-public:
-    ///Functions of common reconstruction interface
-    void defineParams();
-    void readParams();
-    void produceSideInfo();
-    void show();
-    void run();
-}
-;
-//@}
-#endif
+ public:
+	enum classType{ITV,WTV};
+
+ private:
+ //
+ // Methods
+ //
+ public:
+	SuperRegular();
+/*    Affinity(Type const t);
+    void setAffinity(Type const t);
+    string const type()const;
+    void clear();
+    float const operator()(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
+    float const psi(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
+    float const g(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
+    float const g(float const &f_u,float const &f_v)const;
+    void setg(float const val[2],Adjacency::Type const &t);
+    float const h(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
+    float const h(float const &f_u,float const &f_v)const;
+    void seth(float const val[2],Adjacency::Type const &t);
+*/
+ protected:
+
+ private:
+};
+#endif /* SUPERIORIZATION_REGULARIZER_HH */
