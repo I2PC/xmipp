@@ -28,6 +28,8 @@
 #define _PROG_SUPER_HH
 
 #include <core/xmipp_program.h>
+#include "reconstruct_regularizer.h"
+#include "reconstruct_proximity.h"
 
 /**@defgroup Reconstruction Program Superiorization
    @ingroup ReconsLibrary */
@@ -42,10 +44,12 @@ private:
 	lmode mode_l;
 	double a,b;
 	int N;
+	SuperProx P;
+	SuperRegular<double> phi;
 public:
     FileName fnTiltSeries, fnOut;
     int Zsize;
-	String phi_method, nav_method, l_method, pr_method;
+	String phi_method, l_method, pr_method;
 public:
     ///Functions of common reconstruction interface
 	ProgReconsSuper();

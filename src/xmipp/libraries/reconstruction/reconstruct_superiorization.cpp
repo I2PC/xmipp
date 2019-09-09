@@ -31,7 +31,7 @@
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
-/****************** Definition of Local Methods ********************************/
+/****************** Definition of Local Methods *******************************/
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
@@ -44,13 +44,15 @@
 void ProgReconsSuper::defineParams()
 {
  addUsageLine("Reconstruction of tomography tilt series using superiorization");
- addParamsLine("  -i <tiltseries>    : Metadata with the set of images in the tilt series, and their tilt angles");
- addParamsLine("  -o <output>        : Filename for the resulting reconstruction.");
- addParamsLine("  --zsize <z=-1>     : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
- addParamsLine("  -a <float>         : a variable used to compute the magnitude of the perturbation (beta = b * a^l).");
- addParamsLine("  -b <float>         : b variable used to compute the magnitude of the perturbation (beta = b * a^l).");
- addParamsLine("  -N <N = 0>         : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
- addParamsLine("  --atl <atl = ATL0> : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
+ addParamsLine("  -i <tiltseries>      : Metadata with the set of images in the tilt series, and their tilt angles");
+ addParamsLine("  -o <output>          : Filename for the resulting reconstruction.");
+ addParamsLine("  --zsize <z=-1>       : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
+ addParamsLine("  -a <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
+ addParamsLine("  -b <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
+ addParamsLine("  -N <N = 0>           : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
+ addParamsLine("  [--atl <atl = ATL0>] : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
+ addParamsLine("  [--phi <phi = TV>]   : Defines the second criterion. By default, phi is Total Variation (phi = TV).");
+ addParamsLine("  [--Pr <prox = L2SQ>] : Defines the proximity function for the solution. By default, the proximity function is the squared Euclidean norm.");
 }
 
 /**
@@ -79,16 +81,27 @@ void ProgReconsSuper::readParams()
 void ProgReconsSuper::show()
 {
  if(verbose > 0){
+    std::cout << "########################################################" << std::endl;
     std::cout << "Superiorized "<< "NA" << " with the following arguments:" << std::endl;
+    std::cout << "--------------------------------------------------------" << std::endl;
     std::cout << "Input tilt series: " << fnTiltSeries << std::endl;
     std::cout << "Output reconstruction: " << fnOut << std::endl;
     std::cout << "Zsize: " << Zsize << std::endl;
     std::cout << "a: " << a << std::endl;
     std::cout << "b: " << b << std::endl;
     std::cout << "N: " << N << std::endl;
-    std::cout << "atl: " << l_method << std::endl;
+    std::cout << "ATL: ";
+    switch(mode_l){
+        case lmode::ATL0:std::cout << "ATL0" << std::endl;
+             break;
+        case lmode::ATL1:std::cout << "ATL1" << std::endl;
+             break;
+        case lmode::ATL2:std::cout << "ATL2" << std::endl;
+             break;
+       }
     std::cout << "phi: " << "NA" << std::endl;
     std::cout << "Pr: " << "NA" << std::endl;
+    std::cout << "########################################################" << std::endl;
    }
 }
 
@@ -104,10 +117,11 @@ ProgReconsSuper::ProgReconsSuper()
  b = 0.0;
  N = 0;
  Zsize = 0;
- phi_method = "";
- nav_method = "";
- l_method = "";
- pr_method = "";
+ phi_method = "TV";
+ l_method = "ATL0";
+ pr_method = "L2SQ";
+ P.set(std::string("L2SQ"));
+ phi.set(std::string("ITV"));
 }
 
 /**

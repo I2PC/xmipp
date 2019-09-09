@@ -25,14 +25,14 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef SUPERIORIZATION_REGULARIZER_HH
-#define SUPERIORIZATION_REGULARIZER_HH
+#ifndef SUPERIORIZATION_PROXIMITY_HH
+#define SUPERIORIZATION_PROXIMITY_HH
 
 #include <core/xmipp_program.h>
 
 // template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
 // template< class R, class... Args > class function<R(Args...)>;
-class SuperRegular
+class SuperProx
 {
  public:
 	enum classType{ITV,WTV};
@@ -41,8 +41,12 @@ class SuperRegular
  //
  // Methods
  //
+	const double L2SQ(void);
  public:
-	SuperRegular();
+	SuperProx();
+	SuperProx(String &StrType);
+	void set(std::string StrType);
+	const double pr(void);
 /*    Affinity(Type const t);
     void setAffinity(Type const t);
     string const type()const;
@@ -57,7 +61,8 @@ class SuperRegular
     void seth(float const val[2],Adjacency::Type const &t);
 */
  protected:
-
+	std::function<double(void)> prox;
  private:
 };
-#endif /* SUPERIORIZATION_REGULARIZER_HH */
+#endif /* SUPERIORIZATION_PROXIMITY_HH */
+
