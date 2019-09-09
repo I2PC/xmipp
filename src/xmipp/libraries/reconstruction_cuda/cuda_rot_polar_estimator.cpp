@@ -197,6 +197,9 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
     gpu.set();
     auto lStream = (cudaStream_t*)gpu.stream();
     for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
+        std::unique_lock<std::mutex> lk(*m_mutex);
+        // wait till the data is processed
+        m_cv->wait(lk, [&]{return !m_isDataReady;});
         // how many signals to process
         size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
 
@@ -214,11 +217,7 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others,
 
         // notify processing stream that it can work
         m_isDataReady = true;
-        m_cv->notify_all();
-
-        // wait till the data is processed
-        std::unique_lock<std::mutex> lk(*m_mutex);
-        m_cv->wait(lk, [&]{return !m_isDataReady;});
+        m_cv->notify_one();
     }
 }
 
@@ -294,18 +293,17 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             // mutex will be freed once leaving this block
             std::unique_lock<std::mutex> lk(*m_mutex);
             m_cv->wait(lk, [&]{return m_isDataReady;});
+            // call polar transformation kernel
+            sComputePolarTransform<true>(*m_gpu,
+                    inCart, m_d_batch,
+                    outPolar, m_d_batchPolarOrCorr,
+                    m_firstRing);
+
+            // notify that buffer is processed (new will be loaded on background)
+            m_gpu->synch();
+            m_isDataReady = false;
+            m_cv->notify_one();
         }
-
-        // call polar transformation kernel
-        sComputePolarTransform<true>(*m_gpu,
-                inCart, m_d_batch,
-                outPolar, m_d_batchPolarOrCorr,
-                m_firstRing);
-
-        // notify that buffer is processed (new will be loaded on background)
-        m_gpu->synch();
-        m_isDataReady = false;
-        m_cv->notify_all();
 
         // FIXME DS add normalization
 
