@@ -84,7 +84,7 @@ void CudaRotPolarEstimator<T>::init2D(const std::vector<HW*> &hw) {
 
     // synch primitives
     m_mutex = new std::mutex();
-    m_cv = new std::condition_variable;
+    m_cv = new std::condition_variable();
 
     this->m_isInit = true;
 }
@@ -145,6 +145,11 @@ void CudaRotPolarEstimator<T>::setDefault() {
 
 template<typename T>
 void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
+    auto isReady = (this->m_isInit && (AlignType::OneToN == this->m_type));
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
+    }
+
     auto inCart = this->m_dims->copyForN(1);
     auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, 1);
     m_loadStream->set();
@@ -213,7 +218,7 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
 template<typename T>
 void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
     m_loadStream->set();
-    auto lStream = (cudaStream_t*)m_loadStream->stream();
+    auto lStream = *(cudaStream_t*)m_loadStream->stream();
     for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
         std::unique_lock<std::mutex> lk(*m_mutex);
         // wait till the data is processed
@@ -229,7 +234,7 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
                 m_d_batch,
                 h_src,
                 bytes,
-                cudaMemcpyHostToDevice, *lStream));
+                cudaMemcpyHostToDevice, lStream));
         // block until data is loaded
         m_loadStream->synch();
 
