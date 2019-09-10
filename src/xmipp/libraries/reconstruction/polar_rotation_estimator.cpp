@@ -39,8 +39,7 @@ void PolarRotationEstimator<T>::init2D(const std::vector<HW*> &hw) {
     }
 
     m_firstRing = this->m_dims->x() / 5;
-    m_lastRing = (this->m_dims->x() - 1) / 2;
-//    m_lastRing = (this->m_dims->x() - 3) / 2; // FIXME DS uncomment // so that we have some edge around the biggest ring
+    m_lastRing = (this->m_dims->x() - 3) / 2;  // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
     if (std::is_same<T, float>()) {
         m_dataAux.resize(this->m_dims->y(), this->m_dims->x());
@@ -131,10 +130,10 @@ void PolarRotationEstimator<T>::check() {
     if (this->m_dims->isPadded()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Padded signal is not supported");
     }
-    //    if (this->m_dims->x() < 6) {
-    //        // we need some edge around the biggest ring, to avoid invalid memory access
-    //        REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
-    //    } // FIXME DS uncomment
+    if (this->m_dims->x() < 6) {
+        // we need some edge around the biggest ring, to avoid invalid memory access
+        REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
+    }
 }
 
 // explicit instantiation
