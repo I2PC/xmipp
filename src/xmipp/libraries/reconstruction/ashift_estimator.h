@@ -45,7 +45,7 @@ public:
         release();
     }
 
-    virtual void init2D(const HW &hw, AlignType type,
+    virtual void init2D(const std::vector<HW*> &hw, AlignType type,
                const Dimensions &dims, size_t batch, size_t maxShift) = 0;
 
     virtual void load2DReferenceOneToN(const T *ref) = 0;

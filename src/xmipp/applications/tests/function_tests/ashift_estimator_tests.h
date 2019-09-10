@@ -15,7 +15,10 @@ public:
     SETUPTESTCASE
 
     static void TearDownTestCase() {
-        delete hw;
+        for (auto h : hw) {
+            delete h;
+        }
+        hw.clear();
     }
 
     void generateAndTest2D(size_t n, size_t batch) {
@@ -73,13 +76,15 @@ public:
     //            << "(" << result.at(n).x << "," << result.at(n).y << ")\n";
         }
 
+        TEARDOWN
+
         delete[] others;
         delete[] ref;
     }
 
 private:
     Alignment::AShiftEstimator<T> *estimator;
-    static HW *hw;
+    static std::vector<HW*> hw;
     static std::mt19937 mt;
 
     void drawCross(T *data, size_t xDim, size_t yDim, T xPos, T yPos) {
@@ -100,7 +105,7 @@ private:
 TYPED_TEST_CASE_P(AShiftEstimator_Test);
 
 template<typename T>
-HW* AShiftEstimator_Test<T>::hw;
+std::vector<HW*> AShiftEstimator_Test<T>::hw;
 template<typename T>
 std::mt19937 AShiftEstimator_Test<T>::mt(42); // fixed seed to ensure reproducibility
 

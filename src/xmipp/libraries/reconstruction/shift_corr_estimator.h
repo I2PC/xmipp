@@ -46,7 +46,7 @@ public:
 
     void release() override;
 
-    void init2D(const HW &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
+    void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
             bool includingBatchFT=false, bool includingSingleFT=false) override;
 
     void load2DReferenceOneToN(const std::complex<T> *ref) override;

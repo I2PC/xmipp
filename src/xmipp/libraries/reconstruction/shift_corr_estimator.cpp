@@ -29,12 +29,15 @@ namespace Alignment {
 
 
 template<typename T>
-void ShiftCorrEstimator<T>::init2D(const HW &hw, AlignType type,
+void ShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
+    if (1 != hw.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "A single CPU thread expected");
+    }
     release();
     try {
-        m_cpu = &dynamic_cast<const CPU&>(hw);
+        m_cpu = dynamic_cast<const CPU*>(hw.at(0));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }
