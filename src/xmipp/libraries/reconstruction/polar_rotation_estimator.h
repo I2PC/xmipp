@@ -66,7 +66,7 @@ private:
 
     MultidimArray<double> convert(T *data); // FIXME DS move to multidimarray.h
 
-    void init2D(HW &hw) override;
+    void init2D(const std::vector<HW*> &hw) override;
 
     void load2DReferenceOneToN(const T *ref) override;
 

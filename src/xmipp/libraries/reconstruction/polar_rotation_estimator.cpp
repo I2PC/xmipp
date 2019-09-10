@@ -28,9 +28,12 @@
 namespace Alignment {
 
 template<typename T>
-void PolarRotationEstimator<T>::init2D(HW &hw) {
+void PolarRotationEstimator<T>::init2D(const std::vector<HW*> &hw) {
+    if (1 != hw.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Only one CPU thread expected");
+    }
     try {
-        m_cpu = &dynamic_cast<CPU&>(hw);
+        m_cpu = dynamic_cast<CPU*>(hw.at(0));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }

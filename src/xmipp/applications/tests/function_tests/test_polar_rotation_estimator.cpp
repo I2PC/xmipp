@@ -11,12 +11,11 @@ class ARotationEstimator_Test;
 
 #define SETUPTESTCASE \
     static void SetUpTestCase() { \
-        hw = new CPU(); \
-        hw->set(); \
+        hw.push_back(new CPU()); \
     }
 
 #define INIT \
-    estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation);
+    estimator->init(hw, AlignType::OneToN, dims, batch, maxRotation);
 
 #define TEARDOWN
 

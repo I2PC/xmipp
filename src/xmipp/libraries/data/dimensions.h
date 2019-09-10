@@ -87,6 +87,10 @@ public:
         return (m_x + m_pad_x) * (m_y + m_pad_y) * (m_z + m_pad_z);
     }
 
+    inline constexpr size_t sizeSingle() const {
+        return xyz();
+    }
+
     inline constexpr size_t size() const {
         return xyz() * m_n;
     }

@@ -17,7 +17,10 @@ public:
     SETUPTESTCASE
 
     static void TearDownTestCase() {
-        delete hw;
+        for (auto device : hw) {
+            delete device;
+        }
+        hw.clear();
     }
 
     void generateAndTest2D(size_t n, size_t batch) {
@@ -76,7 +79,7 @@ public:
 
 private:
     Alignment::ARotationEstimator<T> *estimator;
-    static HW *hw;
+    static std::vector<HW*> hw;
     static std::mt19937 mt;
 
     void outputData(T *data, const Dimensions &dims) {
@@ -88,7 +91,7 @@ private:
 TYPED_TEST_CASE_P(ARotationEstimator_Test);
 
 template<typename T>
-HW* ARotationEstimator_Test<T>::hw;
+std::vector<HW*> ARotationEstimator_Test<T>::hw;
 template<typename T>
 std::mt19937 ARotationEstimator_Test<T>::mt(42); // fixed seed to ensure reproducibility
 

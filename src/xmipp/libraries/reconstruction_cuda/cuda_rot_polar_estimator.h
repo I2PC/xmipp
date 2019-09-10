@@ -29,9 +29,9 @@
 #include "reconstruction/arotation_estimator.cpp"
 #include "reconstruction_cuda/gpu.h"
 #include "cuda_fft.h"
-#include "data/polar.h" // FIXME DS remove
 #include <thread>
 #include <condition_variable>
+#include <algorithm>
 
 namespace Alignment {
 
@@ -69,11 +69,12 @@ public :
             T *polarCorrelations);
 
     HW& getHW() const override {
-        return *m_gpu;
+        return *m_workStream;
     }
 
 private:
-    GPU *m_gpu;
+    GPU *m_loadStream;
+    GPU *m_workStream;
     int m_firstRing;
     int m_lastRing;
     int m_samples;
@@ -100,7 +101,7 @@ private:
     void check() override;
     void setDefault() override;
 
-    void init2D(HW &hw) override;
+    void init2D(const std::vector<HW*> &hw) override;
 
     void load2DReferenceOneToN(const T *h_ref) override;
 
@@ -110,7 +111,7 @@ private:
         return 1 + m_lastRing - m_firstRing;
     }
 
-    void loadThreadRoutine(T *h_others, void *loadStream);
+    void loadThreadRoutine(T *h_others);
 };
 
 }/* namespace Alignment */

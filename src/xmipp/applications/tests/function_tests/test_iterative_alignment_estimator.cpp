@@ -60,10 +60,11 @@ public:
 
         // prepare aligner
         auto cpu = CPU();
+        auto hw = std::vector<HW*>{&cpu};
         auto shiftAligner = ShiftCorrEstimator<T>();
         auto rotationAligner = PolarRotationEstimator<T>();
         shiftAligner.init2D(cpu, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
-        rotationAligner.init(cpu, AlignType::OneToN, dims, 1, maxRotation); // FIXME DS add test that batch is 1
+        rotationAligner.init(hw, AlignType::OneToN, dims, 1, maxRotation); // FIXME DS add test that batch is 1
         auto aligner = IterativeAlignmentEstimator<T>(rotationAligner, shiftAligner);
 
         auto result  = aligner.compute(ref, others);

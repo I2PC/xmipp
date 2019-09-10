@@ -11,16 +11,19 @@ class ARotationEstimator_Test;
 
 #define SETUPTESTCASE \
     static void SetUpTestCase() { \
-        hw = new GPU(); \
-        hw->set(); \
+        for (int i = 0; i < 2; ++i) { \
+            auto g = new GPU(); \
+            g->set(); \
+            hw.push_back(g); \
+        } \
     }
 
 #define INIT \
-    estimator->init(*hw, AlignType::OneToN, dims, batch, maxRotation); \
-    hw->lockMemory(others, dims.size() * sizeof(T));
+    estimator->init(hw, AlignType::OneToN, dims, batch, maxRotation); \
+    hw.at(0)->lockMemory(others, dims.size() * sizeof(T));
 
 #define TEARDOWN \
-    hw->unlockMemory(others);
+    hw.at(0)->unlockMemory(others);
 
 #include "arotation_estimator_tests.h"
 
