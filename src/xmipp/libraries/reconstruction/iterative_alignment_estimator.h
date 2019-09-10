@@ -32,6 +32,7 @@
 #include "data/alignment_estimation.h"
 #include "core/transformations.h"
 #include "data/filters.h"
+#include <thread>
 
 namespace Alignment {
 

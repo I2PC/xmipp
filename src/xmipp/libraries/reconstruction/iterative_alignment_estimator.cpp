@@ -75,10 +75,25 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(AlignmentEstimation &est
     const size_t z = m_dims.z();
     const size_t y = m_dims.y();
     const size_t x = m_dims.x();
-    for (size_t i = 0; i < n; ++i) {
-        auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
-        auto other = MultidimArray<T>(1, z, y, x, copy);
-        estimation.correlations.at(i) = fastCorrelation(ref, other);
+    int threads = 8;
+
+    auto workers = std::vector<std::thread>();
+    int imgsPerWorker = std::ceil(n / (float)threads);
+
+    auto workload = [&](int id){
+        for (int i = id; i < n; i += imgsPerWorker) {
+            T * address = copy + i * m_dims.sizeSingle();
+            auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
+            auto other = MultidimArray<T>(1, z, y, x, address);
+            estimation.correlations.at(i) = fastCorrelation(ref, other);
+        }
+    };
+
+    for (size_t w = 0; w < threads; ++w) {
+        workers.emplace_back(workload, w);
+    }
+    for (auto &w : workers) {
+        w.join();
     }
 }
 
