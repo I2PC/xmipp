@@ -61,3 +61,8 @@ gmon.out
 .devel_version
 /src/xmipp/Debug/
 /src/xmipp/applications/programs/version
+
+# some ignore
+src/xmipp/install/xmipp.conf
+xmipp.conf
+
