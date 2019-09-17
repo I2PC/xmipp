@@ -99,14 +99,15 @@ public: // Internal members
 
 
     // CCV result matrix
-    MultidimArray<double>                   ccMatrixRot;
-    MultidimArray<double>                   ccVectorRot;
-    int                                     peaksFound = 0; // peaksFound in ccVectorRot
+	//    MultidimArray<double>                   ccMatrixRot; // moved to local variables
+	//    MultidimArray<double>                   ccVectorRot;
+
+	int      peaksFound = 0; // peaksFound in ccVectorRot
 
     // matrix for neighbors and angular distance
-    std::vector< std::vector<int> > neighboursMatrix; // this should be global
+    std::vector< std::vector<int> > neighborsMatrix; // this should be global
     std::vector< std::vector<double> > neighboursDistance; // not sure if necessary this global
-    std::vector< std::vector<double> > neighboursWeights; // this variable should be global
+    std::vector< std::vector<double> > neighborsWeights; // this variable should be global
     int N_neighbors;
 
     size_t idxOut; // index for metadata output file
@@ -114,13 +115,13 @@ public: // Internal members
     int testCounter = 0;
     int testCounter2=0;
 
-    // candidates for each loop
-    std::vector<unsigned int>               candidatesFirstLoop;
-    std::vector<unsigned int>               Idx;
-    std::vector<double>                     candidatesFirstLoopCoeff;
-    std::vector<double>                     bestTx;
-    std::vector<double>                     bestTy;
-    std::vector<double>                     bestPsi;
+//    // candidates for each loop. moved to local variables
+//    std::vector<unsigned int>               candidatesFirstLoop;
+//    std::vector<unsigned int>               Idx;
+//    std::vector<double>                     candidatesFirstLoopCoeff;
+//    std::vector<double>                     bestTx;
+//    std::vector<double>                     bestTy;
+//    std::vector<double>                     bestPsi;
 
     //reference values
     std::vector<double>               referenceRot;
@@ -140,6 +141,7 @@ public: // Internal members
     size_t n_ang2;
     double maxShift;
     double sampling;
+    double angStep;
 
     int Nsim;
 

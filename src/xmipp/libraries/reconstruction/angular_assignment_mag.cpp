@@ -47,6 +47,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [-odir <outputDir=\".\">]   : Output directory");
 	addParamsLine("  [-sym <symfile=c1>]         : Enforce symmetry in projections");
 	addParamsLine("  [-sampling <sampling=1.>]         : sampling");
+	addParamsLine("  [-angleStep <angStep=3.>]         : angStep");
 	//addParamsLine("  [--Nsimultaneous <Nsim=1.>]       : number of simultaneous");
 }
 
@@ -58,6 +59,7 @@ void ProgAngularAssignmentMag::readParams() {
 	fnRef = getParam("-ref");
 	fnDir = getParam("-odir");
 	sampling = getDoubleParam("-sampling");
+	angStep= getDoubleParam("-angleStep");
 	XmippMetadataProgram::oroot = fnDir;
 	fnSym = getParam("-sym");
 	//Nsim=getIntParam("--Nsimultaneous"); //unused when MPI = 1 // FIXME it can't be launched from scipion with MPI = 1
@@ -79,6 +81,7 @@ void ProgAngularAssignmentMag::show() {
 		//        if (fnSym != "")
 		//            std::cout << "Symmetry for projections    : "  << fnSym << std::endl;
 		std::cout << "sampling: " << sampling << std::endl;
+		std::cout << "angleStep: " << angStep << std::endl;
 	}
 }
 
@@ -95,20 +98,6 @@ void ProgAngularAssignmentMag::printSomeValues(MultidimArray<double> &MDa) {
 
 // compute variance respect to principal candidate
 void neighVariance(Matrix1D<double> &neigh, double &retVal) {
-	// todo check if could be some similar in my case, it seems faster
-	//	mean=stddev=0;
-	//    if (vdim == 0)
-	//        return;
-	//
-	//    double sum = 0, sum2 = 0;
-	//    for (size_t j = 0; j < vdim; ++j)
-	//    {
-	//    	double val=VEC_ELEM(*this,j);
-	//        sum+=val;
-	//        sum2+=val*val;
-	//    }
-	//    mean=sum/vdim;
-	//    stddev=sum2/vdim-mean*mean;
 
 	double val;
 	double sum = 0.;
@@ -157,7 +146,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
 
 			// todo check tilt value and if it is outside some range far from tiltj
-			// then don't make distance computation and put a big value, i.e. "possibly not neighbor"
+			//      then don't make distance computation and put a big value, i.e. "possibly not neighbor"
 			Euler_direction(rotjp, tiltjp, psijp, dirjp);
 			VEC_ELEM(distanceToj,jp) = spherical_distance(dirj, dirjp);
 			allNeighborsjp.at(jp) = jp;
@@ -189,8 +178,8 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 		}
 
 		// for this __iter.objId reference image
-		neighboursMatrix.push_back(nearNeighbors);
-		neighboursWeights.push_back(vecNearNeighborsWeights);
+		neighborsMatrix.push_back(nearNeighbors);
+		neighborsWeights.push_back(vecNearNeighborsWeights);
 	}
 }
 
@@ -204,11 +193,13 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> distanceToj;
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
-	double maxSphericalDistance=sampling*2.; // FIXME this value should be related to parameters of sampling of the unary sphere 12 para phantom, 5. virus de 119 (samplig-rate 3.)
+	double maxSphericalDistance=angStep*2.; // FIXME this value should be related to parameters of sampling of the unary sphere 12 para phantom, 5. virus de 119 (samplig-rate 3.)
 	// this parameter should not be much bigger than sampling_rate in xmipp_mpi_angular_project_library
 	printf("processing neighbors graph...\n");
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
-		double rotj, tiltj, psij;
+		double rotj;
+		double tiltj;
+		double psij;
 		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
@@ -305,7 +296,7 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	n_ang = size_t(180);
 	n_ang2 = 2 * n_ang;
-	maxShift = .10 * Xdim; // read maxShift as input parameter    .10 * Xdim;
+	maxShift = .10 * Xdim; // todo read maxShift as input parameter    .10 * Xdim;
 
 	// read reference images
 	FileName fnImgRef;
@@ -411,17 +402,16 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	double Ty;
 	int maxAccepted = 8;
 
-	// todo new changing for local variables. If works, then change name
-	std::vector<unsigned int> candidatesFirstLoop_local(sizeMdRef, 0);
-	std::vector<unsigned int> Idx_local(sizeMdRef, 0);
-	std::vector<double> candidatesFirstLoopCoeff_local(sizeMdRef, 0);
+	std::vector<unsigned int> candidatesFirstLoop(sizeMdRef, 0);
+	std::vector<unsigned int> Idx(sizeMdRef, 0);
+	std::vector<double> candidatesFirstLoopCoeff(sizeMdRef, 0);
 
 	Matrix1D<double> ccvec;
 	ccvec.initZeros(sizeMdRef);
 
-	std::vector<double> bestTx_local(sizeMdRef, 0);
-	std::vector<double> bestTy_local(sizeMdRef, 0);
-	std::vector<double> bestPsi_local(sizeMdRef, 0);
+	std::vector<double> bestTx(sizeMdRef, 0);
+	std::vector<double> bestTy(sizeMdRef, 0);
+	std::vector<double> bestPsi(sizeMdRef, 0);
 
 	MultidimArray<double> ccMatrixRot_local;
 	MultidimArray<double> ccVectorRot_local;
@@ -437,13 +427,13 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		bestCand(MDaIn, MDaInF, vecMDaRef[k], cand, psi, Tx, Ty, cc_coeff);
 
 		// all results are storage for posterior partial_sort
-		Idx_local[k] = k; // for sorting
-		candidatesFirstLoop_local[k] = k; // for access in second loop
-		candidatesFirstLoopCoeff_local[k] = cc_coeff;
+		Idx[k] = k; // for sorting
+		candidatesFirstLoop[k] = k; // for access in second loop
+		candidatesFirstLoopCoeff[k] = cc_coeff;
 		VEC_ELEM(ccvec,k)=cc_coeff;
-		bestTx_local[k] = Tx;
-		bestTy_local[k] = Ty;
-		bestPsi_local[k] = psi;
+		bestTx[k] = Tx;
+		bestTy[k] = Ty;
+		bestPsi[k] = psi;
 	}
 //ccvec.write("/home/jeison/Escritorio/testVectCC.txt");
 
@@ -457,7 +447,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 //ccGFT.write("/home/jeison/Escritorio/testGFT.txt");
 
 	// define filtering base
-	for(int k=10; k<sizeMdRef; ++k){
+	for(int k=10; k<sizeMdRef; ++k){ // TODO check value
 		VEC_ELEM(ccGFT,k)=0.;
 	}
 //ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt");
@@ -466,8 +456,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	Matrix1D<double> ccvec_filt;
 	ccvec_filt=eigenvectors*ccGFT;
 //ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
-//exit(1);
-
 
 	//	/* search rotation with polar real image representation over 10% of reference images
 	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
@@ -478,11 +466,11 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 //exit(1);
 
 //	//ordering using cross-corr coefficient values computed in first loop
-//	std::partial_sort(Idx_local.begin(), Idx_local.begin()+nCand, Idx_local.end(),
-//			[&](int i, int j) {return candidatesFirstLoopCoeff_local[i] > candidatesFirstLoopCoeff_local[j];});
+//	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
+//			[&](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
 
 	// ordering using cross-corr coefficient values filtered using graph signal approach
-	std::partial_sort(Idx_local.begin(), Idx_local.begin()+nCand, Idx_local.end(),
+	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
 			[&](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
 
 	std::vector<unsigned int> candidatesSecondLoop(nCand, 0);
@@ -501,42 +489,42 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	MultidimArray<std::complex<double> > MDaInAuxF;
 	for (int k = 0; k < nCand; ++k) {
 		//apply transform to experimental image
-		double rotVal = -1. * bestPsi_local[Idx_local[k]]; // -1. because I return parameters for reference image instead of experimental
-		double trasXval = -1. * bestTx_local[Idx_local[k]];
-		double trasYval = -1. * bestTy_local[Idx_local[k]];
+		double rotVal = -1. * bestPsi[Idx[k]]; // -1. because I return parameters for reference image instead of experimental
+		double trasXval = -1. * bestTx[Idx[k]];
+		double trasYval = -1. * bestTy[Idx[k]];
 		_applyShiftAndRotation(MDaIn,rotVal,trasXval,trasYval,MDaExpShiftRot2);
 		//fourier experimental image
 		_applyFourierImage2(MDaExpShiftRot2, MDaInF);
 		// polar experimental image
 		inPolar = imToPolar(MDaExpShiftRot2, first, n_rad);
-		_applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, i am using the same transformer that i use in the past loop which have a different size
+		_applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, it uses the same transformer used in the previous loop which have a different size
 
 		// find rotation and shift
-		ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop_local[Idx_local[k]]],ccMatrixRot2);
+		ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop[Idx[k]]],ccMatrixRot2);
 		maxByColumn(ccMatrixRot2, ccVectorRot2);
 		peaksFound = 0;
 		std::vector<double> cand(maxAccepted, 0.);
 		rotCandidates3(ccVectorRot2, cand, XSIZE(ccMatrixRot2));
-		bestCand(MDaExpShiftRot2, MDaInF, vecMDaRef[Idx_local[k]], cand, psi,Tx, Ty, cc_coeff); //
+		bestCand(MDaExpShiftRot2, MDaInF, vecMDaRef[Idx[k]], cand, psi,Tx, Ty, cc_coeff); //
 
 		// if its better and shifts are within range then update
-		double testShiftTx = bestTx_local[Idx_local[k]] + Tx;
-		double testShiftTy = bestTy_local[Idx_local[k]] + Ty;
-		if (cc_coeff > candidatesFirstLoopCoeff_local[Idx_local[k]]
+		double testShiftTx = bestTx[Idx[k]] + Tx;
+		double testShiftTy = bestTy[Idx[k]] + Ty;
+		if (cc_coeff > candidatesFirstLoopCoeff[Idx[k]]
 				&& std::abs(testShiftTx) < maxShift	&& std::abs(testShiftTy) < maxShift) {
 			Idx2[k] = k;
-			candidatesSecondLoop[k] = candidatesFirstLoop_local[Idx_local[k]];
+			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
 			candidatesSecondLoopCoeff[k] = cc_coeff;
 			bestTx2[k] = testShiftTx;
 			bestTy2[k] = testShiftTy;
-			bestPsi2[k] = bestPsi_local[Idx_local[k]] + psi;
+			bestPsi2[k] = bestPsi[Idx[k]] + psi;
 		} else {
 			Idx2[k] = k;
-			candidatesSecondLoop[k] = candidatesFirstLoop_local[Idx_local[k]];
-			candidatesSecondLoopCoeff[k] =candidatesFirstLoopCoeff_local[Idx_local[k]];
-			bestTx2[k] = bestTx_local[Idx_local[k]];
-			bestTy2[k] = bestTy_local[Idx_local[k]];
-			bestPsi2[k] = bestPsi_local[Idx_local[k]];
+			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
+			candidatesSecondLoopCoeff[k] =candidatesFirstLoopCoeff[Idx[k]];
+			bestTx2[k] = bestTx[Idx[k]];
+			bestTy2[k] = bestTy[Idx[k]];
+			bestPsi2[k] = bestPsi[Idx[k]];
 		}
 	}
 
@@ -596,7 +584,10 @@ void ProgAngularAssignmentMag::postProcess() {
 /* Pearson Coeff. ZNCC zero-mean normalized cross-corr*/
 void ProgAngularAssignmentMag::pearsonCorr(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff){
 	// covariance
-	double X_m, Y_m, X_std, Y_std;
+	double X_m;
+	double Y_m;
+	double X_std;
+	double Y_std;
 	arithmetic_mean_and_stddev(X, X_m, X_std);
 	arithmetic_mean_and_stddev(Y, Y_m, Y_std);
 
@@ -1019,7 +1010,10 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(MultidimArray<double> 
 	double delT = 2.0 * pi / n_ang2;
 
 	// loop through rad and ang coordinates
-	double r, t, x_coord, y_coord;
+	double r;
+	double t;
+	double x_coord;
+	double y_coord;
 	for (size_t ri = start; ri < end; ++ri) {
 		for (size_t ti = 0; ti < n_ang2; ++ti) {
 			r = ri * delR;
@@ -1054,7 +1048,10 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar2(
 	double delT = pi / ang;
 
 	// loop through rad and ang coordinates
-	double r, t, x_coord, y_coord;
+	double r;
+	double t;
+	double x_coord;
+	double y_coord;
 	for (size_t ri = 0; ri < rad; ++ri) {
 		for (size_t ti = 0; ti < ang; ++ti) {
 			r = ri * delR;
@@ -1441,8 +1438,7 @@ void ProgAngularAssignmentMag::rotCandidates(MultidimArray<double> &in,
 	std::vector<int> peakIdx(maxNumOfPeaks, 0);
 	int cont = 0;
 	peaksFound = cont;
-	int i;
-	for (i = 89/*1*/; i < 272/*size-1*/; ++i) { // check only the range -90:90
+	for (int i = 89/*1*/; i < 272/*size-1*/; ++i) { // check only the range -90:90
 		if ((dAi(in,i) > dAi(in, i - 1)) && (dAi(in,i) > dAi(in, i + 1))) {
 			peakIdx[cont] = cont; // for posterior ordering
 			peakPos[cont] = i; // position of peak
@@ -1455,20 +1451,18 @@ void ProgAngularAssignmentMag::rotCandidates(MultidimArray<double> &in,
 
 	if (cont) {
 		// sort //todo check if its better to use partial_sort
-		std::sort(peakIdx.begin(), peakIdx.end(),
-				[&](int i, int j) {return dAi(in,i) > dAi(in,j);});
+		// std::sort(peakIdx.begin(), peakIdx.end(),[&](int i, int j) {return dAi(in,i) > dAi(in,j);});
 		//change for partial sort
-		//		std::partial_sort(temp.begin(), temp.begin()+maxAccepted, temp.end(),
-		//				[&](int i, int j){return dAi(in,i) > dAi(in,j); }); //
+		std::partial_sort(peakIdx.begin(), peakIdx.begin()+maxAccepted, peakIdx.end(),
+				[&](int i, int j){return dAi(in,i) > dAi(in,j); }); //
 
 		int tam = 2 * maxAccepted; //
 		peaksFound = tam;
 		double interpIdx; // quadratic interpolated location of peak
-		for (i = 0; i < maxAccepted; ++i) {
+		for (int i = 0; i < maxAccepted; ++i) {
 			interpIdx = quadInterp(peakPos[peakIdx[i]], in);
 			cand[i] = double(size) / 2. - interpIdx;
-			cand[i + maxAccepted] =
-					(cand[i] >= 0) ? cand[i] + 180. : cand[i] - 180.;
+			cand[i + maxAccepted] =	(cand[i] >= 0) ? cand[i] + 180. : cand[i] - 180.;
 		}
 	} else {
 		peaksFound = 0;
@@ -1493,7 +1487,8 @@ const MultidimArray<double> &MDaIn,
 	bestCoeff = 0.0;
 	double rotVar = 0.0;
 	double tempCoeff;
-	double tx, ty;
+	double tx;
+	double ty;
 	MultidimArray<double> MDaRefRot;
 	MultidimArray<double> MDaRefShiftRot;
 	MultidimArray<double> ccMatrixShift;
@@ -1525,7 +1520,9 @@ const MultidimArray<double> &MDaIn,
 			continue;
 
 		//apply transformation to experimental image
-		double expTx, expTy, expPsi;
+		double expTx;
+		double expTy;
+		double expPsi;
 		expPsi = -rotVar;
 		expTx = -tx;
 		expTy = -ty;
@@ -1534,7 +1531,7 @@ const MultidimArray<double> &MDaIn,
 
 		circularWindow(MDaInShiftRot); //circular masked MDaInRotShift
 		// TODO compute another metric and check agreement between them in order to select better candidates
-		// todo probably, candidate selection in first loop is good enough to at least have good candidates in top positions
+		//      probably, candidate selection in first loop is good enough to at least have good candidates in top positions
 		//      then in second loop could be useful to compute another metric, as a "second criteria" like in regularization
 		//      could be useful to check information given by neighbors. e.g. low variance in alignment parameters in each neighborhood
 		pearsonCorr(MDaRef, MDaInShiftRot, tempCoeff);  // Pearson
@@ -1564,7 +1561,8 @@ const MultidimArray<double> &MDaIn,
 	bestCoeff = 0.0;
 	double rotVar = 0.0;
 	double tempCoeff;
-	double tx, ty;
+	double tx;
+	double ty;
 	MultidimArray<double> MDaRefRot;
 	MultidimArray<double> MDaRefShiftRot;
 	MultidimArray<double> ccMatrixShift;
@@ -1599,7 +1597,9 @@ const MultidimArray<double> &MDaIn,
 		//				std::abs(vTx[1]) > maxShift || std::abs(vTy[1]) > maxShift)
 		//			continue;
 
-		double expTx, expTy, expPsi;
+		double expTx;
+		double expTy;
+		double expPsi;
 		expPsi = -rotVar;
 		for (int j = 0; j < 2; ++j) {
 			for (int k = 0; k < 2; ++k) {
@@ -1719,7 +1719,9 @@ void ProgAngularAssignmentMag::_applyRotation(
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang, cosine, sine;
+	double ang;
+	double cosine;
+	double sine;
 	ang = DEG2RAD(rot);
 	cosine = cos(ang);
 	sine = sin(ang);
@@ -1744,7 +1746,9 @@ void ProgAngularAssignmentMag::_applyRotation(MultidimArray<double> &MDaRef,
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang, cosine, sine;
+	double ang;
+	double cosine;
+	double sine;
 	ang = DEG2RAD(rot);
 	cosine = cos(ang);
 	sine = sin(ang);
@@ -1941,7 +1945,9 @@ void ProgAngularAssignmentMag::_applyRotationAndShift(
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang, cosine, sine;
+	double ang;
+	double cosine;
+	double sine;
 	ang = DEG2RAD(rot);
 	cosine = cos(ang);
 	sine = sin(ang);
@@ -1967,7 +1973,9 @@ void ProgAngularAssignmentMag::_applyShiftAndRotation(
 	// Transform matrix
 	Matrix2D<double> A(3, 3);
 	A.initIdentity();
-	double ang, cosine, sine;
+	double ang;
+	double cosine;
+	double sine;
 	ang = DEG2RAD(rot);
 	cosine = cos(ang);
 	sine = sin(ang);
