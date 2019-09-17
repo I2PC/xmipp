@@ -1,7 +1,6 @@
 /***************************************************************************
  *
  * Authors:     Edgar Garduno Angeles (edgargar@ieee.org)
- * Created on: Sep 6, 2019
  *
  * Department of Computer Science, Institute for Applied Mathematics
  * and Systems Research (IIMAS), National Autonomous University of
@@ -25,34 +24,36 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef SUPERIORIZATION_PROXIMITY_HH
-#define SUPERIORIZATION_PROXIMITY_HH
 
-#include <core/xmipp_program.h>
+#include "total_variation_namespace.h"
+#include <core/alglib/ap.h>
 
-// template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
-// template< class R, class... Args > class function<R(Args...)>;
-class SuperProx
+#include <functional>
+
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/****************** Definition of Public Methods ******************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/**
+**
+** Computes the Isometric Total Variation
+**
+*/
+double itv::tv(const MultidimArray<double>& x)
 {
- public:
-	enum classType{L2SQ};
+ return 0.0;
+}
 
- private:
- //
- // Methods
- //
-	double l2SQ(const MultidimArray<double>& x);
- public:
-    SuperProx();
-	SuperProx(String &StrType);
-	void set(std::string StrType);
-	double Pr(const MultidimArray<double>& x);
-	double operator ()(const MultidimArray<double>& x);
- protected:
+/**
+**
+** Computes the normalized non-ascending vector for the Isometric Total Variation
+**
+*/
+void itv::vtv(const MultidimArray<double>& x, MultidimArray<double>& v)
+{
 
- private:
-    classType PrType;
-    std::function<double(const MultidimArray<double>& x)> prox;
-};
-#endif /* SUPERIORIZATION_PROXIMITY_HH */
-
+}
+#undef DEBUG

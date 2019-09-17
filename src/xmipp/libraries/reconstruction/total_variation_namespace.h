@@ -25,34 +25,16 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef SUPERIORIZATION_PROXIMITY_HH
-#define SUPERIORIZATION_PROXIMITY_HH
+#ifndef TV_NAMESPC_HH
+#define TV_NAMESPC_HH
 
 #include <core/xmipp_program.h>
 
-// template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
-// template< class R, class... Args > class function<R(Args...)>;
-class SuperProx
+namespace itv
 {
- public:
-	enum classType{L2SQ};
+ double tv(const MultidimArray<double>& x);
+ void vtv(const MultidimArray<double>& x, MultidimArray<double>& v);
+}; /* namespace for Total Variation functions */
 
- private:
- //
- // Methods
- //
-	double l2SQ(const MultidimArray<double>& x);
- public:
-    SuperProx();
-	SuperProx(String &StrType);
-	void set(std::string StrType);
-	double Pr(const MultidimArray<double>& x);
-	double operator ()(const MultidimArray<double>& x);
- protected:
-
- private:
-    classType PrType;
-    std::function<double(const MultidimArray<double>& x)> prox;
-};
-#endif /* SUPERIORIZATION_PROXIMITY_HH */
+#endif /* TV_NAMESPC_HH */
 

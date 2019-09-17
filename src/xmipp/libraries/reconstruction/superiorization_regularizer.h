@@ -28,7 +28,10 @@
 #ifndef SUPERIORIZATION_REGULARIZER_HH
 #define SUPERIORIZATION_REGULARIZER_HH
 
+#include <functional>
 #include <core/xmipp_program.h>
+
+#include "total_variation_namespace.h"
 
 // template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
 // template< class R, class... Args > class function<R(Args...)>;
@@ -42,31 +45,19 @@ class SuperRegular: public MultidimArray<T>
  //
  // Methods
  //
-	double itv(const MultidimArray<double>& x);
+
  public:
 	SuperRegular();
 	SuperRegular(String &StrType);
 	void set(std::string StrType);
-	double operator ()(const MultidimArray<double>& x);
-/*    Affinity(Type const t);
-    void setAffinity(Type const t);
-    string const type()const;
-    void clear();
-    float const operator()(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
-    float const psi(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
-    float const g(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
-    float const g(float const &f_u,float const &f_v)const;
-    void setg(float const val[2],Adjacency::Type const &t);
-    float const h(float const &f_u,float const &f_v,Adjacency::Type const &t)const;
-    float const h(float const &f_u,float const &f_v)const;
-    void seth(float const val[2],Adjacency::Type const &t);
-*/
+	double operator ()(const MultidimArray<T>& x);
+	void nav(const MultidimArray<T>& x,MultidimArray<T>& v);
  protected:
 
  private:
     classType RegType;
-	std::function<double(const MultidimArray<double>& x)> phi;
-	std::function<void(const MultidimArray<double>& x,MultidimArray<double>& v)> nav;
+	std::function<double(const MultidimArray<T>& x)> phi;
+	std::function<void(const MultidimArray<T>& x,MultidimArray<T>& v)> navPhi;
 };
 
 /******************************************************************************/
@@ -85,9 +76,10 @@ class SuperRegular: public MultidimArray<T>
 template<class T>
 SuperRegular<T>::SuperRegular()
 {
- //std::function<int(const char*)> f = std::atoi;
- phi = std::bind(&SuperRegular<T>::itv,this,std::placeholders::_1);
- nav = std::bind(&SuperRegular<T>::itv.nav,this,std::placeholders::_1,std::placeholders::_2);
+ //phi = std::bind(&itv::tv,this,std::placeholders::_1);
+ //nav = std::bind(&itv::vtv,this,std::placeholders::_1,std::placeholders::_2);
+ phi = itv::tv;
+ navPhi = itv::vtv;
  RegType = SuperRegular::ITV;
 }
 
@@ -100,8 +92,8 @@ template<class T>
 SuperRegular<T>::SuperRegular(String &StrType)
 {
  if(StrType == std::string("ITV")){
-    phi = std::bind(&SuperRegular<T>::itv,this,std::placeholders::_1);
-    nav = std::bind(&SuperRegular<T>::itv.nav,this,std::placeholders::_1,std::placeholders::_2);
+	phi = itv::tv;
+	navPhi = itv::vtv;
     RegType = SuperRegular::ITV;
    }
 }
@@ -115,8 +107,8 @@ template<class T>
 void SuperRegular<T>::set(std::string StrType)
 {
  if(StrType == std::string("ITV")){
-    phi = std::bind(&SuperRegular<T>::itv,this,std::placeholders::_1);
-    nav = std::bind(&SuperRegular<T>::itv.nav,this,std::placeholders::_1,std::placeholders::_2);
+    phi = itv::tv;
+    navPhi = itv::vtv;
     RegType = SuperRegular::ITV;
    }
 }
@@ -127,7 +119,7 @@ void SuperRegular<T>::set(std::string StrType)
 **
 */
 template<class T>
-double SuperRegular<T>::operator ()(const MultidimArray<double>& x)
+double SuperRegular<T>::operator ()(const MultidimArray<T>& x)
 {
  return phi(x);
 }
@@ -138,20 +130,9 @@ double SuperRegular<T>::operator ()(const MultidimArray<double>& x)
 **
 */
 template<class T>
-void SuperRegular<T>::nav(const MultidimArray<double>& x, MultidimArray<double>& v)
+void SuperRegular<T>::nav(const MultidimArray<T>& x, MultidimArray<T>& v)
 {
- return nav(x,v);
-}
-
-/**
-**
-** Method to set the desired function to be used as a second criterion.
-**
-*/
-template<class T>
-double SuperRegular<T>::itv(const MultidimArray<double>& x)
-{
- return 0.0;
+ navPhi(x,v);
 }
 
 #endif /* SUPERIORIZATION_REGULARIZER_HH */

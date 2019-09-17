@@ -46,6 +46,7 @@ void ProgReconsSuper::defineParams()
  addUsageLine("Reconstruction of tomography tilt series using superiorization");
  addParamsLine("  -i <tiltseries>      : Metadata with the set of images in the tilt series, and their tilt angles");
  addParamsLine("  -o <output>          : Filename for the resulting reconstruction.");
+ addParamsLine("  -e <esilon>          : Tolerance value for the reconstruction.");
  addParamsLine("  --zsize <z=-1>       : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
  addParamsLine("  -a <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
  addParamsLine("  -b <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
@@ -66,6 +67,7 @@ void ProgReconsSuper::readParams()
 
  fnTiltSeries = getParam("-i");
  fnOut        = getParam("-o");
+ epsilon      = getDoubleParam("-e");
  Zsize        = getIntParam("--zsize");
  l_method     = getParam("--atl");
  a            = getDoubleParam("-a");
@@ -86,6 +88,7 @@ void ProgReconsSuper::show()
     std::cout << "--------------------------------------------------------" << std::endl;
     std::cout << "Input tilt series: " << fnTiltSeries << std::endl;
     std::cout << "Output reconstruction: " << fnOut << std::endl;
+    std::cout << "Epsilon: " << epsilon << std::endl;
     std::cout << "Zsize: " << Zsize << std::endl;
     std::cout << "a: " << a << std::endl;
     std::cout << "b: " << b << std::endl;
@@ -222,6 +225,9 @@ void ProgReconsSuper::run()
  //
  // Further Initializing variables
  //
+ //x().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
+ //v().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
+ //z().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
 int n = 0;
 int l = 0;
 bool loop;
@@ -242,12 +248,12 @@ double beta;
      // Preparing the variables for the inner loop
 	 n = 0;
 	 while(n < N){
-//         v = phi.nav(x); // Method to obtain the nonascending vector for phi at x^k
+         phi.nav(x,v); // Method to obtain the nonascending vector for phi at x^k
 		 loop = true;
          while(loop){
              beta = b * pow(a,l);
              l += 1;
-//             z = x + beta*v;
+             z = x + beta*v;
              // z in Delta and phi(z)<=phi(x^k)
              if(phi(z) <= phi(x)){
             	n += 1;
@@ -256,9 +262,9 @@ double beta;
                }
             }
         }
-//     recon = B;
+//     B(x,TS,tiltAngles);
      k += 1;
-     if(Pr(x)){
+     if(Pr(x) < epsilon){
         break;
        }
 #ifdef DEBUG

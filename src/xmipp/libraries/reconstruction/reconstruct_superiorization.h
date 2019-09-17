@@ -31,10 +31,6 @@
 #include "superiorization_regularizer.h"
 #include "superiorization_proximity.h"
 
-/**@defgroup Reconstruction Program Superiorization
-   @ingroup ReconsLibrary */
-//@{
-
 /* The user interface program should make a call to the run routine.
   */
 class ProgReconsSuper: public XmippProgram
@@ -42,7 +38,7 @@ class ProgReconsSuper: public XmippProgram
 private:
 	enum class lmode {ATL0,ATL1,ATL2};
 	lmode mode_l;
-	double a,b;
+	double a,b,epsilon;
 	int N;
 	SuperProx Pr;
 	SuperRegular<double> phi;
@@ -58,7 +54,6 @@ public:
     void produceSideInfo();
     void show();
     void run();
-}
-;
-//@}
+};
+
 #endif
