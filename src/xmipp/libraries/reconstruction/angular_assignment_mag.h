@@ -93,6 +93,10 @@ public: // Internal members
 
     MultidimArray<double> C; // circular mask
 
+    // eigenDecomposition
+	Matrix1D<double> eigenvalues;
+	Matrix2D<double> eigenvectors;
+
 
     // CCV result matrix
     MultidimArray<double>                   ccMatrixRot;
@@ -190,8 +194,6 @@ public:
     void computeLaplacianMatrix(Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp);
     void computeCircular();
     void circularWindow(MultidimArray<double> &in);
-
-    void _delayAxes(const size_t &Ydim, const size_t &Xdim, const size_t &n_ang);
 
     void _getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);

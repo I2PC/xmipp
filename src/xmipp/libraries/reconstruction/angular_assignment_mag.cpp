@@ -128,15 +128,15 @@ void neighVariance(Matrix1D<double> &neigh, double &retVal) {
  * nearest 2 neighbors to each direction
  * */
 void ProgAngularAssignmentMag::computingNeighborGraph() {
-//std::ofstream outfile("/home/jeison/Escritorio/testNeighbours.txt");
-//outfile<< "Idx" << "\t" << "distance" <<"    \t    \n\n";
-
 	double factor = 180. / 3.141592653;
 	N_neighbors = 3; // including candidate itself
 	std::vector<int> allNeighborsjp(sizeMdRef, 0); // for ordering
 	std::vector<int> nearNeighbors(N_neighbors, 0);
 	std::vector<double> vecNearNeighborsWeights(N_neighbors, 0.);
-	Matrix1D<double> distanceToj, dirj, dirjp, nearNeighborsDist;
+	Matrix1D<double> distanceToj;
+	Matrix1D<double> dirj;
+	Matrix1D<double> dirjp;
+	Matrix1D<double> nearNeighborsDist;
 	printf("processing neighbors graph...\n");
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		// in case this methods works fine
@@ -176,10 +176,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 		for (int i = 0; i < N_neighbors; ++i) {
 			nearNeighbors.at(i) = allNeighborsjp.at(i); //
 			VEC_ELEM(nearNeighborsDist,i) = distanceToj[nearNeighbors[i]]* factor; // for compute mean and std;
-//outfile<< nearNeighbors[i] << " \t  " << VEC_ELEM(nearNeighborsDist,i) <<"  \t  ";
-//outfile<<nearNeighbors[i]<<"\t";
 		}
-//outfile<<"\n";
 
 		//		double meanAngDist=0.;
 		double varAngDist = 0.;
@@ -189,28 +186,25 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 
 		for (int i = 0; i < N_neighbors; ++i) {
 			vecNearNeighborsWeights.at(i) = exp(-0.5 * VEC_ELEM(nearNeighborsDist, i) / varAngDist);
-//outfile<< nearNeighbors[i] << " \t  " << vecNearNeighborsWeights[i] <<"  \t  ";
 		}
-//outfile<<"\n";
 
 		// for this __iter.objId reference image
 		neighboursMatrix.push_back(nearNeighbors);
 		neighboursWeights.push_back(vecNearNeighborsWeights);
 	}
-//outfile.close();
 }
 
 /*
  * In this method, for each direction, I look for neighbors within certain distance
  * */
 void ProgAngularAssignmentMag::computingNeighborGraph2() {
-std::ofstream outfile("/home/jeison/Escritorio/testNewNeighbours.txt");
-std::ofstream weightsFile("/home/jeison/Escritorio/testNewNeighboursWeights.txt");
     double factor = 180. / 3.141592653;
 	std::vector< std::vector<int> > allNeighborsjp;
 	std::vector< std::vector<double> > allWeightsjp;
-	Matrix1D<double> distanceToj, dirj, dirjp;
-	double maxSphericalDistance=15.; // FIXME this value should be related to parameters of sampling of the unary sphere 12 para phantom, 5. virus de 119 (samplig-rate 3.)
+	Matrix1D<double> distanceToj;
+	Matrix1D<double> dirj;
+	Matrix1D<double> dirjp;
+	double maxSphericalDistance=sampling*2.; // FIXME this value should be related to parameters of sampling of the unary sphere 12 para phantom, 5. virus de 119 (samplig-rate 3.)
 	// this parameter should not be much bigger than sampling_rate in xmipp_mpi_angular_project_library
 	printf("processing neighbors graph...\n");
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
@@ -241,28 +235,23 @@ std::ofstream weightsFile("/home/jeison/Escritorio/testNewNeighboursWeights.txt"
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
-
-// writing outfile to test
-for(std::vector<int>::iterator it=neighborsjp.begin(); it!=neighborsjp.end();++it){
-	outfile<<*it<<"\t";
-}
-outfile<<"\n";
-
-// writing outfile to test
-for(std::vector<double>::iterator it=weightsjp.begin(); it!=weightsjp.end();++it){
-	weightsFile<<*it<<"\t";
-}
-weightsFile<<"\n";
-
 	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
 
-outfile.close();
-weightsFile.close();
-
 	// compute Laplacian Matrix
-
 	DMatrix L_mat;  // Laplacian Matrix. It is a double matrix in case of using weights. But should be integer in case of only adjacency
 	computeLaplacianMatrix(L_mat, allNeighborsjp,allWeightsjp);
+
+	// from diagSymMatrix3x3 method in resolution_directional.cpp
+	std::cout<< "starts Eigen...\n";
+	Matrix2D<double> B;
+	B.resizeNoCopy(L_mat);
+	B.initIdentity();
+	generalizedEigs(L_mat, B, eigenvalues, eigenvectors);
+	std::cout<< "finish\n";
+
+//// imprime eigenvalues y eigenvectors
+//eigenvalues.write("/home/jeison/Escritorio/outEigenVal.txt");
+//eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt");
 
 }
 
@@ -271,9 +260,6 @@ weightsFile.close();
 void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
 		const std::vector< std::vector<int> > &allNeighborsjp,
 		const std::vector< std::vector<double> > &allWeightsjp){
-std::ofstream outfile("/home/jeison/Escritorio/LaplacianMatrix.txt");
-std::ofstream outfile2("/home/jeison/Escritorio/testNewNeighboursLaplacian.txt");
-std::ofstream weightsFile("/home/jeison/Escritorio/testNewNeighboursWeightsLaplacian.txt");
 
 	// set proper size of Laplacian
 	L.initZeros(sizeMdRef,sizeMdRef);
@@ -289,26 +275,13 @@ std::ofstream weightsFile("/home/jeison/Escritorio/testNewNeighboursWeightsLapla
 			indx=(*it);
 			MAT_ELEM(L,i,indx)=-weightsjp[j];
 			sumWeight+=weightsjp[j];
-// write ouput files to check
-outfile2<<*it<<"\t";
-weightsFile<<weightsjp[j]<<"\t";
 		}
 		MAT_ELEM(L,i,i)=sumWeight-1.; // -1 because is necessary to remove the "central" weight
-outfile2<<"\n";
-weightsFile<<"\n";
 	}
 
-// writeout laplacian matrix but errase
-for(int i=0; i<sizeMdRef;++i){
-	for(int j=0; j<sizeMdRef;++j){
-		outfile<<MAT_ELEM(L,i,j)<<"\t";
-	}
-	outfile<<"\n";
-}
+//// write-out Laplacian matrix to check
+//L.write("/home/jeison/Escritorio/LaplacianMatrix.txt");
 
-outfile.close();
-outfile2.close();
-weightsFile.close();
 }
 
 void ProgAngularAssignmentMag::preProcess() {
@@ -401,13 +374,11 @@ void ProgAngularAssignmentMag::preProcess() {
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
 	// Define the neighborhood graph and  Laplacian Matrix
-//computingNeighborGraph();
 	computingNeighborGraph2();
 }
 
-void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
-
-std::ofstream outfile("/home/jeison/Escritorio/testVectCC.txt");
+void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName &fnImgOut,
+		const MDRow &rowIn, MDRow &rowOut) {
 
 	// experimental image related
 	rowOut = rowIn;
@@ -444,6 +415,10 @@ std::ofstream outfile("/home/jeison/Escritorio/testVectCC.txt");
 	std::vector<unsigned int> candidatesFirstLoop_local(sizeMdRef, 0);
 	std::vector<unsigned int> Idx_local(sizeMdRef, 0);
 	std::vector<double> candidatesFirstLoopCoeff_local(sizeMdRef, 0);
+
+	Matrix1D<double> ccvec;
+	ccvec.initZeros(sizeMdRef);
+
 	std::vector<double> bestTx_local(sizeMdRef, 0);
 	std::vector<double> bestTy_local(sizeMdRef, 0);
 	std::vector<double> bestPsi_local(sizeMdRef, 0);
@@ -465,20 +440,50 @@ std::ofstream outfile("/home/jeison/Escritorio/testVectCC.txt");
 		Idx_local[k] = k; // for sorting
 		candidatesFirstLoop_local[k] = k; // for access in second loop
 		candidatesFirstLoopCoeff_local[k] = cc_coeff;
-outfile<<cc_coeff<<"\n";
+		VEC_ELEM(ccvec,k)=cc_coeff;
 		bestTx_local[k] = Tx;
 		bestTy_local[k] = Ty;
 		bestPsi_local[k] = psi;
 	}
-outfile.close();
-exit(1);
+//ccvec.write("/home/jeison/Escritorio/testVectCC.txt");
+
+	// graph signal processing filtered iGFT
+	Matrix1D<double> ccGFT;
+	ccGFT.initZeros(sizeMdRef);
+	std::vector<double> filt_iGFT_cc(sizeMdRef, 0);
+
+	Matrix2D<double> eigenvectorTrans=eigenvectors.transpose();
+	ccGFT=eigenvectorTrans*ccvec;
+//ccGFT.write("/home/jeison/Escritorio/testGFT.txt");
+
+	// define filtering base
+	for(int k=10; k<sizeMdRef; ++k){
+		VEC_ELEM(ccGFT,k)=0.;
+	}
+//ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt");
+
+	// apply filter to ccvec
+	Matrix1D<double> ccvec_filt;
+	ccvec_filt=eigenvectors*ccGFT;
+//ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+//exit(1);
+
 
 	//	/* search rotation with polar real image representation over 10% of reference images
 	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
 	// but for I1 symmetry, for example, should be at least 50%.
 	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
+
+//std::cout<<"nCand: "<<nCand<<"\n";
+//exit(1);
+
+//	//ordering using cross-corr coefficient values computed in first loop
+//	std::partial_sort(Idx_local.begin(), Idx_local.begin()+nCand, Idx_local.end(),
+//			[&](int i, int j) {return candidatesFirstLoopCoeff_local[i] > candidatesFirstLoopCoeff_local[j];});
+
+	// ordering using cross-corr coefficient values filtered using graph signal approach
 	std::partial_sort(Idx_local.begin(), Idx_local.begin()+nCand, Idx_local.end(),
-			[&](int i, int j) {return candidatesFirstLoopCoeff_local[i] > candidatesFirstLoopCoeff_local[j];});
+			[&](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
 
 	std::vector<unsigned int> candidatesSecondLoop(nCand, 0);
 	std::vector<unsigned int> Idx2(nCand, 0);
@@ -534,8 +539,6 @@ exit(1);
 			bestPsi2[k] = bestPsi_local[Idx_local[k]];
 		}
 	}
-
-	// TODO after second alignment I should include the graph signal processing stage
 
 	// choose nCand of the candidates with best corrCoeff
 	int nCand2 = 1;
@@ -1472,29 +1475,6 @@ void ProgAngularAssignmentMag::rotCandidates(MultidimArray<double> &in,
 	}
 }
 
-/* instance of "delay axes" for assign rotation and translation candidates*/
-void ProgAngularAssignmentMag::_delayAxes(const size_t &Ydim,
-		const size_t &Xdim, const size_t &n_ang) {
-	axRot.resize(1, 1, 1, n_ang);
-	axTx.resize(1, 1, 1, Xdim);
-	axTy.resize(1, 1, 1, Ydim);
-
-	double M = double(n_ang - 1) / 2.;
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(axRot)
-	{
-		dAi(axRot,i) = ceil(M - i);
-	}
-	M = double(Xdim - 1) / 2.0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(axTx)
-	{
-		dAi(axTx,i) = ceil(M - i);
-	}
-	M = double(Ydim - 1) / 2.0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(axTy)
-	{
-		dAi(axTy,i) = ceil(M - i);
-	}
-}
 
 /* selection of best candidate to rotation and its corresponding shift
  * called at first loop in "coarse" searching
@@ -1506,8 +1486,8 @@ const MultidimArray<double> &MDaIn,
 		const MultidimArray<std::complex<double> > &MDaInF,
 		const MultidimArray<double> &MDaRef, std::vector<double> &cand,
 		/*outputs*/
-		double &bestPsi, double &shift_x, double &shift_y, double &bestCoeff) {
-	bestPsi = 0;
+		double &psi, double &shift_x, double &shift_y, double &bestCoeff) {
+	psi = 0;
 	shift_x = 0.;
 	shift_y = 0.;
 	bestCoeff = 0.0;
@@ -1565,7 +1545,7 @@ const MultidimArray<double> &MDaIn,
 			bestCoeff = tempCoeff;
 			shift_x = -expTx; //negative because in second loop,when used, this parameters are applied to mdaRef
 			shift_y = -expTy;
-			bestPsi = -expPsi;
+			psi = -expPsi;
 		}
 	}
 }
@@ -1577,8 +1557,8 @@ const MultidimArray<double> &MDaIn,
 		const MultidimArray<std::complex<double> > &MDaInF,
 		const MultidimArray<double> &MDaRef, std::vector<double> &cand,
 		/*outputs*/
-		double &bestPsi, double &shift_x, double &shift_y, double &bestCoeff) {
-	bestPsi = 0;
+		double &psi, double &shift_x, double &shift_y, double &bestCoeff) {
+	psi = 0;
 	shift_x = 0.;
 	shift_y = 0.;
 	bestCoeff = 0.0;
@@ -1635,7 +1615,7 @@ const MultidimArray<double> &MDaIn,
 					bestCoeff = tempCoeff;
 					shift_x = -expTx; //negative because in second loop,when used, this parameters are applied to mdaRef
 					shift_y = -expTy;
-					bestPsi = -expPsi;
+					psi = -expPsi;
 				}
 			}
 		}
