@@ -46,11 +46,12 @@ void ProgReconsSuper::defineParams()
  addUsageLine("Reconstruction of tomography tilt series using superiorization");
  addParamsLine("  -i <tiltseries>      : Metadata with the set of images in the tilt series, and their tilt angles");
  addParamsLine("  -o <output>          : Filename for the resulting reconstruction.");
- addParamsLine("  -e <esilon>          : Tolerance value for the reconstruction.");
+ addParamsLine("  -e <epsilon>         : Tolerance value for the reconstruction.");
  addParamsLine("  --zsize <z=-1>       : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
  addParamsLine("  -a <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
  addParamsLine("  -b <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
  addParamsLine("  -N <N = 0>           : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
+ addParamsLine("  [--rec <rec = ART>]  : Defines the reconstruction algorithm (rec = ART).");
  addParamsLine("  [--atl <atl = ATL0>] : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
  addParamsLine("  [--phi <phi = TV>]   : Defines the second criterion. By default, phi is Total Variation (phi = TV).");
  addParamsLine("  [--Pr <prox = L2SQ>] : Defines the proximity function for the solution. By default, the proximity function is the squared Euclidean norm.");
@@ -69,10 +70,13 @@ void ProgReconsSuper::readParams()
  fnOut        = getParam("-o");
  epsilon      = getDoubleParam("-e");
  Zsize        = getIntParam("--zsize");
- l_method     = getParam("--atl");
  a            = getDoubleParam("-a");
  b            = getDoubleParam("-b");
  N            = getIntParam("-N");
+ rec_method   = getParam("--rec");
+ l_method     = getParam("--atl");
+ phi_method   = getParam("--phi");
+ pr_method    = getParam("--Pr");
 }
 
 /**
@@ -118,13 +122,18 @@ ProgReconsSuper::ProgReconsSuper()
  mode_l = lmode::ATL0;
  a = 0.0;
  b = 0.0;
+ epsilon = 0.0;
  N = 0;
  Zsize = 0;
- phi_method = "TV";
+
+ rec_method = "ART";
+ phi_method = "ITV";
  l_method = "ATL0";
  pr_method = "L2SQ";
- Pr.set(std::string("L2SQ"));
- phi.set(std::string("ITV"));
+
+ Pr.set(pr_method);
+ phi.set(phi_method);
+ //B.set(rec_method);
 }
 
 /**
@@ -134,6 +143,42 @@ ProgReconsSuper::ProgReconsSuper()
 */
 void ProgReconsSuper::produceSideInfo()
 {
+ //
+ // Checking for the existence of input file
+ //
+ std::ifstream ifile(fnTiltSeries.c_str());
+ if((bool)ifile == 0){
+    std::cerr << "ERROR: the input file does not exist." << std::endl;
+    usage("-i", true);
+   }
+
+ //
+ // Checking the value for epsilon
+ //
+ if(epsilon < 0.0){
+	 std::cerr << "ERROR: epsilon has to be positive." << std::endl;
+	 usage("-e",true);
+   }
+
+ //
+ // Checking the value for a
+ //
+ if(a <= 0.0 || a >= 1.0){
+	 std::cerr << "ERROR: a has to meet 0.0 < a < 1.0." << std::endl;
+	 usage("-a",true);
+   }
+
+ //
+ // Checking the value set for N
+ //
+ if(N < 0){
+    std::cerr << "ERROR: N has to be positive" << std::endl;
+    usage("-N", true);
+   }
+
+ //
+ // Setting the method to update l
+ //
  if(l_method=="ATL0")
     mode_l = lmode::ATL0;
  else{
@@ -148,9 +193,28 @@ void ProgReconsSuper::produceSideInfo()
       }
    }
 
- if(N < 0){
-    std::cerr << "ERROR: N has to be positive" << std::endl;
-    usage("-N", true);
+ //
+ // Checking the value for reconstruction
+ //
+ if(B.valid(rec_method) == false){
+    std::cerr << "ERROR: invalid method for reconstruction" << std::endl;
+    usage("--rec", true);
+   }
+
+ //
+ // Checking the value for second criterion (phi)
+ //
+ if(phi.valid(phi_method) == false){
+    std::cerr << "ERROR: invalid second criterion for optimization" << std::endl;
+    usage("--phi", true);
+   }
+
+ //
+ // Checking the value for the proximity function
+ //
+ if(Pr.valid(pr_method) == false){
+    std::cerr << "ERROR: invalid Proximity function." << std::endl;
+    usage("--Pr", true);
    }
 }
 

@@ -45,7 +45,7 @@ private:
 public:
     FileName fnTiltSeries, fnOut;
     int Zsize;
-	String phi_method, l_method, pr_method;
+	String phi_method, l_method, pr_method, rec_method;
 public:
     ///Functions of common reconstruction interface
 	ProgReconsSuper();
