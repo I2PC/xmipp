@@ -381,7 +381,7 @@ inline T biLerp(T x0, T x1, T y0, T y1, T tx, T ty) {
 
 template<typename T, typename U>
 __host__ __device__
-inline T biLerp(T *data, int sizeX, int sizeY, U x, U y) {
+inline T biLerp(const T * __restrict__ data, int sizeX, int sizeY, U x, U y) {
     int x0 = floor(x);
     int x1 = ceil(x);
     int y0 = floor(y);
