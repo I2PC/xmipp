@@ -1,8 +1,9 @@
 /***************************************************************************
  *
- * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+ * Authors:     Jeison Méndez García (jmendez@utp.edu.co)
  *
- * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ * Instituto de Investigaciones en Matemáticas Aplicadas y en Sistemas -- IIMAS
+ * Universidad Nacional Autónoma de México -UNAM
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

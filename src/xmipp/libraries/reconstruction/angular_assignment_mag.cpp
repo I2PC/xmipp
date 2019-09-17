@@ -38,17 +38,14 @@ ProgAngularAssignmentMag::~ProgAngularAssignmentMag() {
 void ProgAngularAssignmentMag::defineParams() {
 	XmippMetadataProgram::defineParams();
 	//usage
-	addUsageLine(
-			"Generates a list of candidates for angular assignment for each experimental image");
-	//params
-	//    addParamsLine("   -i <md_file>               : Metadata file with input experimental projections");
-	//    addParamsLine("   -o <md_file>               : Metadata file with output projections");
+	addUsageLine( "Generates a list of candidates for angular assignment for each experimental image");
 	addParamsLine("   -ref <md_file>             : Metadata file with input reference projections");
 	addParamsLine("  [-odir <outputDir=\".\">]   : Output directory");
 	addParamsLine("  [-sym <symfile=c1>]         : Enforce symmetry in projections");
-	addParamsLine("  [-sampling <sampling=1.>]         : sampling");
-	addParamsLine("  [-angleStep <angStep=3.>]         : angStep");
-	//addParamsLine("  [--Nsimultaneous <Nsim=1.>]       : number of simultaneous");
+	addParamsLine("  [-sampling <sampling=1.>]   : sampling");
+	addParamsLine("  [-angleStep <angStep=3.>]   : angStep");
+	addParamsLine("  [--maxShift <maxShift=-1.>]  : Maximum shift allowed (+-this amount)");
+	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous");
 }
 
 // Read arguments ==========================================================
@@ -62,7 +59,7 @@ void ProgAngularAssignmentMag::readParams() {
 	angStep= getDoubleParam("-angleStep");
 	XmippMetadataProgram::oroot = fnDir;
 	fnSym = getParam("-sym");
-	//Nsim=getIntParam("--Nsimultaneous"); //unused when MPI = 1 // FIXME it can't be launched from scipion with MPI = 1
+	maxShift = getDoubleParam("--maxShift");
 }
 
 // Show ====================================================================
@@ -75,13 +72,10 @@ void ProgAngularAssignmentMag::show() {
 		printf("n_bands= %d\n", int(n_bands));
 
 		XmippMetadataProgram::show();
-		//        std::cout << "Input metadata              : "  << fnIn        << std::endl;
 		std::cout << "Input references: " << fnRef << std::endl;
-		//        std::cout << "Output directory            : "  << fnDir       << std::endl;
-		//        if (fnSym != "")
-		//            std::cout << "Symmetry for projections    : "  << fnSym << std::endl;
-		std::cout << "sampling: " << sampling << std::endl;
-		std::cout << "angleStep: " << angStep << std::endl;
+		std::cout << "Sampling: " << sampling << std::endl;
+		std::cout << "Angular step: " << angStep << std::endl;
+		std::cout << "Maximum shift: " << maxShift << std::endl;
 	}
 }
 
@@ -145,22 +139,19 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
 
-			// todo check tilt value and if it is outside some range far from tiltj
+			//  check tilt value and if it is outside some range far from tiltj
 			//      then don't make distance computation and put a big value, i.e. "possibly not neighbor"
 			Euler_direction(rotjp, tiltjp, psijp, dirjp);
 			VEC_ELEM(distanceToj,jp) = spherical_distance(dirj, dirjp);
 			allNeighborsjp.at(jp) = jp;
 
-			// todo FALTA PONER SIMETRIA
+			//  FALTA PONER SIMETRIA
 		}
 
 		//partial sort
-		// todo check all this lambda functions definition, SonarCloud gave me some hints
+		// todo check all this lambda functions definition, SonarCloud gave me some hints about explicit reference to variables. [&]
 		std::partial_sort(allNeighborsjp.begin(), allNeighborsjp.begin() + N_neighbors, allNeighborsjp.end(),
 				[&](int i, int j) {return VEC_ELEM(distanceToj,i) < VEC_ELEM(distanceToj,j);});
-		//        // full sort
-		//        std::sort(allNeighboursjp.begin(), allNeighboursjp.end(),
-		//                  [&](int i, int j){return VEC_ELEM(distanceToj,i) < VEC_ELEM(distanceToj,j); });
 
 		for (int i = 0; i < N_neighbors; ++i) {
 			nearNeighbors.at(i) = allNeighborsjp.at(i); //
@@ -193,8 +184,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> distanceToj;
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
-	double maxSphericalDistance=angStep*2.; // FIXME this value should be related to parameters of sampling of the unary sphere 12 para phantom, 5. virus de 119 (samplig-rate 3.)
-	// this parameter should not be much bigger than sampling_rate in xmipp_mpi_angular_project_library
+	double maxSphericalDistance=angStep*2.;
 	printf("processing neighbors graph...\n");
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
@@ -296,7 +286,9 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	n_ang = size_t(180);
 	n_ang2 = 2 * n_ang;
-	maxShift = .10 * Xdim; // todo read maxShift as input parameter    .10 * Xdim;
+	if (maxShift==-1.){
+		maxShift = .10 * Xdim;
+	}
 
 	// read reference images
 	FileName fnImgRef;
@@ -1106,11 +1098,11 @@ void ProgAngularAssignmentMag::completeFourierShift(MultidimArray<double> &in,
 	size_t Cf = (size_t) (YSIZE(in) / 2.0 + 0.5); //(Ydim/2.0 + 0.5); //FIXME I think this does not work properly for even/odd images
 	size_t Cc = (size_t) (XSIZE(in) / 2.0 + 0.5); //(Xdim/2.0 + 0.5); // (size_t)( 120 / 2.0 + 0.5) == (size_t)( 119 / 2.0 + 0.5)
 
-	// TODO check this and see how to set proper value for size_t ff, cc
+	//  check this and see how to set proper value for size_t ff, cc
 	//	double Cf = (YSIZE(in) + (YSIZE(in) % 2)) / 2.0; // for odd/even images
 	//	double Cc = (XSIZE(in) + (XSIZE(in) % 2)) / 2.0;
 
-	// TODO check change coordinates as (-1)^k
+	//  check how to change coordinates (a.k.a "centering") as (-1)^k
 
 	size_t ff, cc;
 	for (size_t f = 0; f < YSIZE(in); f++) {
@@ -1450,8 +1442,6 @@ void ProgAngularAssignmentMag::rotCandidates(MultidimArray<double> &in,
 	maxAccepted = (peaksFound < maxAccepted) ? peaksFound : maxAccepted;
 
 	if (cont) {
-		// sort //todo check if its better to use partial_sort
-		// std::sort(peakIdx.begin(), peakIdx.end(),[&](int i, int j) {return dAi(in,i) > dAi(in,j);});
 		//change for partial sort
 		std::partial_sort(peakIdx.begin(), peakIdx.begin()+maxAccepted, peakIdx.end(),
 				[&](int i, int j){return dAi(in,i) > dAi(in,j); }); //
@@ -1530,10 +1520,8 @@ const MultidimArray<double> &MDaIn,
 		_applyShiftAndRotation(MDaIn, expPsi, expTx, expTy, MDaInShiftRot);
 
 		circularWindow(MDaInShiftRot); //circular masked MDaInRotShift
-		// TODO compute another metric and check agreement between them in order to select better candidates
-		//      probably, candidate selection in first loop is good enough to at least have good candidates in top positions
-		//      then in second loop could be useful to compute another metric, as a "second criteria" like in regularization
-		//      could be useful to check information given by neighbors. e.g. low variance in alignment parameters in each neighborhood
+
+		// distance
 		pearsonCorr(MDaRef, MDaInShiftRot, tempCoeff);  // Pearson
 		//		normalized_cc(MDaRef, MDaInShiftRot, tempCoeff); // NCC
 		//		imNormalized_cc(MDaRef, MDaInShiftRot, tempCoeff); // IMNCC
@@ -1592,7 +1580,7 @@ const MultidimArray<double> &MDaIn,
 		maxByRow(ccMatrixShift, ccVectorTy); // ccvMatrix to ccVector
 		getShift2(ccVectorTy, vTy, YSIZE(ccMatrixShift));
 
-		//      // todo In case this approach works properly, then set a condition to "continue"
+		//      // In case this approach works properly, then set a condition to "continue"
 		//		if (std::abs(vTx[0]) > maxShift || std::abs(vTy[0]) > maxShift ||
 		//				std::abs(vTx[1]) > maxShift || std::abs(vTy[1]) > maxShift)
 		//			continue;
@@ -1876,22 +1864,30 @@ void ProgAngularAssignmentMag::getRot(MultidimArray<double> &ccVector,
 		double &rot, const size_t &size) {
 	double maxVal = -10.;
 	int idx;
-	int i;
 	//    int lb= int(size/2-5);
 	//    int hb=int(size/2+5);
 	int lb = 89;
 	int hb = 270;
-	for (i = lb; i < hb + 1; ++i) {
-		if (dAi(ccVector,i) > maxVal) { // fixme must check first if current value is peak value
-			maxVal = dAi(ccVector, i);
-			idx = i;
+	for (int i = lb; i < hb + 1; ++i) {
+		// current value is a peak value?
+		if ((dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1)))
+				&& (dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1)))) {
+			if (dAi(ccVector,i) > maxVal) {
+				maxVal = dAi(ccVector, i);
+				idx = i;
+			}
 		}
 	}
-	// interpolate value
-	double interpIdx;
-	interpIdx = quadInterp(idx, ccVector);
-	//    rot = double( size - 1 )/2. - interpIdx;
-	rot = double(size) / 2. - interpIdx;
+	if(idx!=0){
+		// interpolate value
+		double interpIdx;
+		interpIdx = quadInterp(idx, ccVector);
+		//    rot = double( size - 1 )/2. - interpIdx;
+		rot = double(size) / 2. - interpIdx;
+	}else{
+		std::cout << "no peaks!\n";
+	}
+
 }
 
 /* Structural similarity SSIM index Coeff */
