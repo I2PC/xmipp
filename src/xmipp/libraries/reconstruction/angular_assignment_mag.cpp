@@ -45,7 +45,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [-sampling <sampling=1.>]   : sampling");
 	addParamsLine("  [-angleStep <angStep=3.>]   : angStep");
 	addParamsLine("  [--maxShift <maxShift=-1.>]  : Maximum shift allowed (+-this amount)");
-	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous");
+	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous"); // fixme gives an error as repeated parameter for mpi>1
 }
 
 // Read arguments ==========================================================

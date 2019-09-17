@@ -42,7 +42,7 @@ public:
     {
         ProgAngularAssignmentMag::defineParams();
         MpiMetadataProgram::defineParams();
-        addParamsLine("  [--Nsimultaneous <N=1>]     : Number of simultaneous processes that can enter in preprocessing");
+        //        addParamsLine("  [--Nsimultaneous <N=1>]     : Number of simultaneous processes that can enter in preprocessing");
     }
     void readParams()
     {
