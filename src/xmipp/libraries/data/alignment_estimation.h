@@ -32,11 +32,9 @@ namespace Alignment {
 
 struct AlignmentEstimation {
     AlignmentEstimation(size_t n) {
-        poses.reserve(n);
-        for (size_t i = 0; i < n; ++i) {
-            auto tmp = Matrix2D<double>();
-            tmp.initIdentity(3);
-            poses.emplace_back(tmp);
+        poses.resize(n);
+        for (auto &m : poses) {
+            m.initIdentity(3);
         }
         correlations.resize(n);
     }
