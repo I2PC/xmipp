@@ -109,4 +109,36 @@ double SuperProx::operator ()(const MultidimArray<double>& x)
 {
  return prox(x);
 }
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+bool SuperProx::valid(const String &StrType)
+{
+ if(StrType=="L2SQ")
+    return true;
+
+ return false;
+}
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+String SuperProx::getName(void)
+{
+ switch(PrType){
+     case L2SQ:
+         return "Euclidean Proximity";
+         break;
+     default:
+         return "No Proximity";
+    }
+
+ return "No Proximity";
+}
+
 #undef DEBUG

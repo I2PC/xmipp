@@ -52,6 +52,8 @@ class SuperRegular: public MultidimArray<T>
 	void set(std::string StrType);
 	double operator ()(const MultidimArray<T>& x);
 	void nav(const MultidimArray<T>& x,MultidimArray<T>& v);
+	bool valid(const String &StrType);
+	String getName(void);
  protected:
 
  private:
@@ -133,6 +135,45 @@ template<class T>
 void SuperRegular<T>::nav(const MultidimArray<T>& x, MultidimArray<T>& v)
 {
  navPhi(x,v);
+}
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+template<class T>
+bool SuperRegular<T>::valid(const String &StrType)
+{
+ if(StrType=="ITV")
+    return true;
+
+ if(StrType=="WTV")
+     return true;
+
+ return false;
+}
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+template<class T>
+String SuperRegular<T>::getName(void)
+{
+ switch(RegType){
+     case ITV:
+         return "isotropic TV";
+         break;
+     case WTV:
+         return "weighted TV";
+         break;
+     default:
+         return "No Second Criterion";
+    }
+
+ return "No Second Criterion";
 }
 
 #endif /* SUPERIORIZATION_REGULARIZER_HH */

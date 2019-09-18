@@ -106,7 +106,7 @@ void ProgReconsSuper::show()
         case lmode::ATL2:std::cout << "ATL2" << std::endl;
              break;
        }
-    std::cout << "phi: " << "NA" << std::endl;
+    std::cout << "phi: " << phi.getName() << std::endl;
     std::cout << "Pr: " << "NA" << std::endl;
     std::cout << "########################################################" << std::endl;
    }
@@ -196,10 +196,12 @@ void ProgReconsSuper::produceSideInfo()
  //
  // Checking the value for reconstruction
  //
+ /*
  if(B.valid(rec_method) == false){
     std::cerr << "ERROR: invalid method for reconstruction" << std::endl;
     usage("--rec", true);
    }
+   */
 
  //
  // Checking the value for second criterion (phi)

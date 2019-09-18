@@ -48,6 +48,8 @@ class SuperProx
 	void set(std::string StrType);
 	double Pr(const MultidimArray<double>& x);
 	double operator ()(const MultidimArray<double>& x);
+	bool valid(const String &StrType);
+	String getName(void);
  protected:
 
  private:
