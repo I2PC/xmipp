@@ -85,6 +85,11 @@ void GPU::peekLastError() const {
 
 void GPU::pinMemory(const void *h_mem, size_t bytes,
         unsigned int flags) {
+    if (isMemoryPinned(h_mem)
+            && (isMemoryPinned((char*)h_mem + bytes - 1))) {
+        return;
+    }
+
     assert(0 == cudaHostRegisterDefault); // default value should be 0
     // check that it's aligned properly to the beginning of the page
     if (0 != ((size_t)h_mem % 4096)) {

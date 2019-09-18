@@ -92,8 +92,12 @@ public:
         std::complex<T> *inOut,
         const std::complex<T> *ref,
         const Dimensions &dims);
+
+    HW& getHW() const override {
+        return *m_cpu;
+    }
 private:
-    const CPU *m_cpu;
+    CPU *m_cpu;
 
     // host memory
     std::complex<T> *m_single_FD;

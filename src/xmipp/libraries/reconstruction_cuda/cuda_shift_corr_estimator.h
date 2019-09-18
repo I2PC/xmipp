@@ -84,6 +84,10 @@ public:
         const std::complex<T> *d_ref,
         const Dimensions &dims);
 
+    HW& getHW() const override {
+        return *m_workStream;
+    }
+
 private:
     GPU *m_loadStream;
     GPU *m_workStream;

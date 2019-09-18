@@ -37,7 +37,7 @@ void ShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
     }
     release();
     try {
-        m_cpu = dynamic_cast<const CPU*>(hw.at(0));
+        m_cpu = dynamic_cast<CPU*>(hw.at(0));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }

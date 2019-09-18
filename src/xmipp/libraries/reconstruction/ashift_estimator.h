@@ -76,6 +76,8 @@ public:
         return m_type;
     }
 
+    virtual HW& getHW() const = 0;
+
 protected:
     // various
     AlignType m_type;
