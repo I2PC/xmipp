@@ -8,16 +8,19 @@
 template<typename T>
 class IterativeAlignmentEstimatorHelper : public Alignment::IterativeAlignmentEstimator<T> {
 public:
-    static void applyTransformSingle(const Dimensions &dims, const Point2D<float> &shift, float rotation,
-                __restrict const T *orig, __restrict T *copy) {
-            Alignment::AlignmentEstimation e(1);
-            auto &m = e.poses.at(0);
-            MAT_ELEM(m,0,2) += shift.x;
-            MAT_ELEM(m,1,2) += shift.y;
-            auto r = Matrix2D<double>();
-            rotation2DMatrix(rotation, r);
-            m = r * m;
-            Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, e, orig, copy);
+    static void applyTransform(const Dimensions &dims, const std::vector<Point2D<float>> &shifts, const std::vector<float> &rotations,
+                const T * __restrict__ orig, T * __restrict__ copy) {
+            Alignment::AlignmentEstimation e(dims.n());
+            for (size_t i = 0; i < dims.n(); ++i) {
+                auto &m = e.poses.at(i);
+                auto &s = shifts.at(i);
+                MAT_ELEM(m,0,2) += s.x;
+                MAT_ELEM(m,1,2) += s.y;
+                auto r = Matrix2D<double>();
+                rotation2DMatrix(rotations.at(i), r);
+                m = r * m;
+            }
+            Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, e, orig, copy, true);
         }
 };
 
@@ -51,11 +54,8 @@ public:
         T centerY = dims.y() / 2;
         drawClockArms(ref, dims, centerX, centerY, 0.f);
 
-        for (size_t n = 0; n < dims.n(); ++n) {
-            T *d = others + (n * dims.xyzPadded());
-            IterativeAlignmentEstimatorHelper<T>::applyTransformSingle(
-                    dims.createSingle(), shifts.at(n), rotations.at(n), ref, d);
-        }
+        IterativeAlignmentEstimatorHelper<T>::applyTransform(
+                dims, shifts, rotations, ref, others);
 //        outputData(others, dims);
 
         // prepare aligner

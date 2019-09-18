@@ -48,24 +48,38 @@ void IterativeAlignmentEstimator<T>::print(const AlignmentEstimation &e) {
 template<typename T>
 void IterativeAlignmentEstimator<T>::sApplyTransform(const Dimensions &dims,
         const AlignmentEstimation &estimation,
-        const T * __restrict__ orig, T * __restrict__ copy) {
+        const T * __restrict__ orig, T * __restrict__ copy, bool hasSingleOrig) {
     static size_t counter = 0;
     const size_t n = dims.n();
     const size_t z = dims.z();
     const size_t y = dims.y();
     const size_t x = dims.x();
-    for (size_t i = 0; i < n; ++i) {
-        auto in = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
-        auto out = MultidimArray<T>(1, z, y, x, copy);
-        in.setXmippOrigin();
-        out.setXmippOrigin();
-        // compensate the movement
-        applyGeometry(LINEAR, out, in, estimation.poses.at(i), false, DONT_WRAP);
-        // move pointers
-        orig += dims.xyzPadded();
-        copy += dims.xyzPadded();
-    }
 
+    int threads = 4;
+
+    auto workers = std::vector<std::thread>();
+    int imgsPerWorker = std::ceil(n / (float)threads);
+
+    auto workload = [&](int id){
+        const size_t first = id * imgsPerWorker;
+        const size_t last = std::min(first + imgsPerWorker, n);
+        for (size_t i = first; i < last; ++i) {
+            size_t offset = i * dims.sizeSingle();
+            auto in = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig + (hasSingleOrig ? 0 : offset))); // removing const, but data should not be changed
+            auto out = MultidimArray<T>(1, z, y, x, copy + offset);
+            in.setXmippOrigin();
+            out.setXmippOrigin();
+            // compensate the movement
+            applyGeometry(LINEAR, out, in, estimation.poses.at(i), false, DONT_WRAP);
+        }
+    };
+
+    for (size_t w = 0; w < threads; ++w) {
+        workers.emplace_back(workload, w);
+    }
+    for (auto &w : workers) {
+        w.join();
+    }
 }
 
 template<typename T>
@@ -75,13 +89,16 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(AlignmentEstimation &est
     const size_t z = m_dims.z();
     const size_t y = m_dims.y();
     const size_t x = m_dims.x();
-    int threads = 8;
+
+    int threads = 4;
 
     auto workers = std::vector<std::thread>();
     int imgsPerWorker = std::ceil(n / (float)threads);
 
     auto workload = [&](int id){
-        for (int i = id; i < n; i += imgsPerWorker) {
+        const size_t first = id * imgsPerWorker;
+        const size_t last = std::min(first + imgsPerWorker, n);
+        for (size_t i = first; i < last; ++i) {
             T * address = copy + i * m_dims.sizeSingle();
             auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
             auto other = MultidimArray<T>(1, z, y, x, address);
@@ -110,7 +127,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
             rotation2DMatrix(angle, r);
             lhs = r * lhs;
         });
-        sApplyTransform(m_dims, est, orig, copy);
+        sApplyTransform(m_dims, est, orig, copy, false);
     };
     auto stepShift = [&] {
         m_shift_est.computeShift2DOneToN(copy);
@@ -119,7 +136,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });
-        sApplyTransform(m_dims, est, orig, copy);
+        sApplyTransform(m_dims, est, orig, copy, false);
     };
     for (unsigned i = 0; i < iters; ++i) {
         if (rotationFirst) {

@@ -54,7 +54,7 @@ public:
 protected:
     static void sApplyTransform(const Dimensions &dims,
                 const AlignmentEstimation &estimation,
-                const T *orig, T *copy);
+                const T *orig, T *copy, bool hasSingleOrig);
 
 private:
     ARotationEstimator<T> &m_rot_est;
