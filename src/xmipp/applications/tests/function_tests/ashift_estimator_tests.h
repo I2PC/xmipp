@@ -2,6 +2,7 @@
 #include <random>
 #include "reconstruction/ashift_corr_estimator.h"
 #include "alignment_test_utils.h"
+#include "core/utils/memory_utils.h"
 
 template<typename T>
 class AShiftEstimator_Test : public ::testing::Test {
@@ -52,7 +53,7 @@ public:
         auto maxShift = getMaxShift(dims.sDim());
         auto shifts = generateShifts(dims.sDim(), maxShift, mt);
 
-        auto others = new T[dims.sDim().size()];
+        auto others = memoryUtils::page_aligned_alloc<T>(dims.sDim().size(), true);
         auto ref = new T[dims.sDim().xy()];
         T centerX = dims.sDim().x() / 2;
         T centerY = dims.sDim().y() / 2;
@@ -78,7 +79,7 @@ public:
 
         TEARDOWN
 
-        delete[] others;
+        free(others);
         delete[] ref;
     }
 

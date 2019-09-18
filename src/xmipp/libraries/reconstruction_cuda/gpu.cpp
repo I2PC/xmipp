@@ -86,6 +86,11 @@ void GPU::peekLastError() const {
 void GPU::pinMemory(const void *h_mem, size_t bytes,
         unsigned int flags) {
     assert(0 == cudaHostRegisterDefault); // default value should be 0
+    // check that it's aligned properly to the beginning of the page
+    if (0 != ((size_t)h_mem % 4096)) {
+        // otherwise the cuda-memcheck and cuda-gdb tends to randomly crash (confirmed on cuda 8 - cuda 10)
+        REPORT_ERROR(ERR_PARAM_INCORRECT, "Only pointer aligned to the page size can be registered");
+    }
     // we remove const, but we don't change the data
     gpuErrchk(cudaHostRegister(const_cast<void*>(h_mem), bytes, flags));
 }

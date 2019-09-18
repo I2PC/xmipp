@@ -33,6 +33,7 @@
 #include "core/transformations.h"
 #include "data/filters.h"
 #include <thread>
+#include <core/utils/memory_utils.h>
 
 namespace Alignment {
 

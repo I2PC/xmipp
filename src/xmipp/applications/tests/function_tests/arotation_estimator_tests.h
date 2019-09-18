@@ -4,6 +4,7 @@
 #include "core/transformations.h"
 #include "core/xmipp_image.h"
 #include "alignment_test_utils.h"
+#include "core/utils/memory_utils.h"
 
 template<typename T>
 class ARotationEstimator_Test : public ::testing::Test {
@@ -44,8 +45,8 @@ public:
 //                dims.x(), dims.y(), dims.n(), batch);
 
         auto rotations = generateRotations(dims, maxRotation, mt);
-        auto others = new T[dims.size()]();
-        auto ref = new T[dims.xy()]();
+        auto others = memoryUtils::page_aligned_alloc<T>(dims.size(), true);
+        auto ref = memoryUtils::page_aligned_alloc<T>(dims.xy(), true);
         T centerX = dims.x() / 2;
         T centerY = dims.y() / 2;
         drawClockArms(ref, dims, centerX, centerY, 0.f);
@@ -73,8 +74,8 @@ public:
 
         TEARDOWN
 
-        delete[] others;
-        delete[] ref;
+        free(others);
+        free(ref);
     }
 
 private:
