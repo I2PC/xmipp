@@ -89,7 +89,6 @@ void GPU::pinMemory(const void *h_mem, size_t bytes,
             && (isMemoryPinned((char*)h_mem + bytes - 1))) {
         return;
     }
-
     assert(0 == cudaHostRegisterDefault); // default value should be 0
     // check that it's aligned properly to the beginning of the page
     if (0 != ((size_t)h_mem % 4096)) {
@@ -102,7 +101,10 @@ void GPU::pinMemory(const void *h_mem, size_t bytes,
 
 void GPU::unpinMemory(const void *h_mem) {
     // we remove const, but we don't change the data
-    gpuErrchk(cudaHostUnregister(const_cast<void*>(h_mem)));
+    auto err = cudaHostUnregister(const_cast<void*>(h_mem));
+    if (cudaErrorHostMemoryNotRegistered != err) {
+        gpuErrchk(err);
+    }
 }
 
 int GPU::getDeviceCount() {

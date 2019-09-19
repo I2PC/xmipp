@@ -18,13 +18,6 @@ class ARotationEstimator_Test;
         } \
     }
 
-#define INIT \
-    estimator->init(hw, AlignType::OneToN, dims, batch, maxRotation); \
-    hw.at(0)->lockMemory(others, dims.size() * sizeof(T));
-
-#define TEARDOWN \
-    hw.at(0)->unlockMemory(others);
-
 #include "arotation_estimator_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;

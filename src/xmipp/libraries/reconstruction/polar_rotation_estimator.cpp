@@ -28,40 +28,45 @@
 namespace Alignment {
 
 template<typename T>
-void PolarRotationEstimator<T>::init2D(const std::vector<HW*> &hw) {
-    if (1 != hw.size()) {
+void PolarRotationEstimator<T>::init2D(bool reuse) {
+    // fixme DS implement reuse properly
+    if (1 != this->getSettings().hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Only one CPU thread expected");
     }
     try {
-        m_cpu = dynamic_cast<CPU*>(hw.at(0));
+        m_cpu = dynamic_cast<CPU*>(this->getSettings().hw.at(0));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }
 
-    m_firstRing = this->m_dims->x() / 5;
-    m_lastRing = (this->m_dims->x() - 3) / 2;  // so that we have some edge around the biggest ring
+    auto dims = this->getSettings().refDims;
+
+    m_firstRing = dims.x() / 5;
+    m_lastRing = (dims.x() - 3) / 2;  // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
     if (std::is_same<T, float>()) {
-        m_dataAux.resize(this->m_dims->y(), this->m_dims->x());
+        m_dataAux.resize(dims.y(), dims.x());
     }
-
-    this->m_isInit = true;
 }
 
 template<typename T>
 void PolarRotationEstimator<T>::load2DReferenceOneToN(const T *ref) {
+    auto isReady = this->isInitialized();
+    if ( ! isReady) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
+    }
+
     MultidimArray<double> tmp = convert(const_cast<T*>(ref));
     tmp.setXmippOrigin();
     normalizedPolarFourierTransform(tmp, m_refPolarFourierI, false,
             m_firstRing, m_lastRing, m_refPlans, 1);
     m_rotCorrAux.resize(2 * m_refPolarFourierI.getSampleNoOuterRing() - 1);
     m_aux.local_transformer.setReal(m_rotCorrAux);
-    this->m_is_ref_loaded = true;
 }
 
 template<>
 MultidimArray<double> PolarRotationEstimator<float>::convert(float *data) {
-    const size_t s = this->m_dims->xyz();
+    const size_t s = this->getSettings().otherDims.sizeSingle();
     for (size_t i = 0; i < s; ++i) {
         m_dataAux.data[i] = data[i];
     }
@@ -70,31 +75,31 @@ MultidimArray<double> PolarRotationEstimator<float>::convert(float *data) {
 
 template<>
 MultidimArray<double> PolarRotationEstimator<double>::convert(double *data) {
+    const auto s = this->getSettings().otherDims.copyForN(1);
     return MultidimArray<double>(
-            this->m_dims->n(), this->m_dims->z(),
-            this->m_dims->y(), this->m_dims->x(),
+            s.n(), s.z(),
+            s.y(), s.x(),
             data);
 }
 
 template<typename T>
 void PolarRotationEstimator<T>::computeRotation2DOneToN(T *others) {
-    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_loaded);
+    bool isReady = this->isInitialized() && this->isRefLoaded();
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
 
-    this->m_rotations2D.reserve(this->m_dims->n());
-    for (size_t n = 0; n < this->m_dims->n(); ++n) {
-        size_t offset = n * this->m_dims->xyzPadded();
+    const auto dims = this->getSettings().otherDims;
+    for (size_t n = 0; n < dims.n(); ++n) {
+        size_t offset = n * dims.sizeSingle();
         MultidimArray<double> tmp = convert(others + offset);
         tmp.setXmippOrigin();
         normalizedPolarFourierTransform(tmp, m_polarFourierI, true,
                 m_firstRing, m_lastRing, m_plans, 1);
-        this->m_rotations2D.emplace_back(
+        this->getRotations2D().emplace_back(
                 best_rotation(m_refPolarFourierI, m_polarFourierI, m_aux));
     }
-    this->m_is_rotation_computed = true;
 }
 
 template<typename T>
@@ -103,8 +108,6 @@ void PolarRotationEstimator<T>::release() {
     delete m_refPlans;
     m_rotCorrAux.clear();
     m_dataAux.clear();
-    ARotationEstimator<T>::release();
-    PolarRotationEstimator<T>::setDefault();
 }
 
 template<typename T>
@@ -115,22 +118,21 @@ void PolarRotationEstimator<T>::setDefault() {
     m_refPolarFourierI = Polar<std::complex<double>>();
     m_firstRing = -1;
     m_lastRing = -1;
-    ARotationEstimator<T>::setDefault();
 }
 
 template<typename T>
 void PolarRotationEstimator<T>::check() {
-    ARotationEstimator<T>::check();
-    if (this->m_batch != 1) {
+    const auto s = this->getSettings();
+    if (s.batch != 1) { // FIXME DS show just runtime warning
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator cannot work with batched signals");
     }
-    if (this->m_dims->x() != this->m_dims->y()) {
+    if (s.refDims.x() != s.refDims.y()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator can work only with square signal");
     }
-    if (this->m_dims->isPadded()) {
+    if (s.refDims.isPadded()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Padded signal is not supported");
     }
-    if (this->m_dims->x() < 6) {
+    if (s.refDims.x() < 6) {
         // we need some edge around the biggest ring, to avoid invalid memory access
         REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
     }

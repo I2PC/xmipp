@@ -39,6 +39,7 @@ public:
     void rotate2D(const Dimensions &dims, size_t batch)
     {
         using Alignment::AlignType;
+        using Alignment::ARotationEstimator;
         float maxRotation = getMaxRotation();
 
 //        printf("testing: %lu x %lu x %lu (batch %lu)\n",
@@ -57,11 +58,23 @@ public:
         }
 //        outputData(others, dims);
 
-        INIT
+        auto settings = Alignment::RotationEstimationSetting();
+        settings.hw = hw;
+        settings.type = AlignType::OneToN;
+        settings.refDims = dims.createSingle();
+        settings.otherDims = dims;
+        settings.batch = batch;
+        settings.maxRotDeg = maxRotation;
+        settings.applyRotation = false;
+
+        estimator->init(settings, false); // FIXME DS set to true
+        hw.at(0)->lockMemory(others, dims.size() * sizeof(T));
 
         estimator->loadReference(ref);
         estimator->compute(others);
-        auto result = estimator->getRotations2D();
+
+        const auto *cEst = estimator;
+        auto result = cEst->getRotations2D();
 
         EXPECT_EQ(rotations.size(), result.size());
         float maxError = RAD2DEG(atan(2.0 / dims.x())); // degrees per one pixel, i.e. we allow for one pixel error
@@ -72,7 +85,7 @@ public:
             EXPECT_NEAR(diff, 0, maxError) << "expected: " << rotations.at(n) << " actual: " << actual;
         }
 
-        TEARDOWN
+        hw.at(0)->unlockMemory(others);
 
         free(others);
         free(ref);

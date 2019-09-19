@@ -122,11 +122,14 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         bool rotationFirst) {
     auto stepRotation = [&] {
         m_rot_est.compute(copy);
-        updateEstimation(est, m_rot_est.getRotations2D(), [](float angle, Matrix2D<double> &lhs) {
-            auto r = Matrix2D<double>();
-            rotation2DMatrix(angle, r);
-            lhs = r * lhs;
-        });
+        const auto &cRotEst = m_rot_est;
+        updateEstimation(est,
+            cRotEst.getRotations2D(),
+            [](float angle, Matrix2D<double> &lhs) {
+                auto r = Matrix2D<double>();
+                rotation2DMatrix(angle, r);
+                lhs = r * lhs;
+            });
         sApplyTransform(m_dims, est, orig, copy, false);
     };
     auto stepShift = [&] {
@@ -197,13 +200,10 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
 
 template<typename T>
 void IterativeAlignmentEstimator<T>::check() {
-    if ( ! (m_rot_est.isInitialized() && m_shift_est.isInitialized())) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Estimators are not initialized");
-    }
-    if (m_rot_est.getDimensions() != m_shift_est.getDimensions()) {
+    if (m_rot_est.getSettings().otherDims != m_shift_est.getDimensions()) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Estimators are initialized for different sizes");
     }
-    if (m_rot_est.getAlignType() != m_shift_est.getAlignType()) {
+    if (m_rot_est.getSettings().type != m_shift_est.getAlignType()) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Estimators are initialized for different type of alignment");
     }
 }

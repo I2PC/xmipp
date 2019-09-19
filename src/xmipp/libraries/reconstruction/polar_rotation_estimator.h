@@ -43,12 +43,6 @@ public:
         release();
     }
 
-    void release() override;
-
-    HW& getHW() const override {
-        return *m_cpu;
-    }
-
 private:
     CPU *m_cpu;
     Polar<std::complex<double>> m_polarFourierI; // FIXME DS add template
@@ -56,17 +50,18 @@ private:
     MultidimArray<double> m_rotCorrAux;
     MultidimArray<double> m_dataAux;
     RotationalCorrelationAux m_aux;
-    Polar_fftw_plans *m_plans;
+    Polar_fftw_plans *m_plans; // fixme DS use unique_ptr
     Polar_fftw_plans *m_refPlans;
     int m_firstRing;
     int m_lastRing;
 
+    void release();
+    void setDefault();
     void check() override;
-    void setDefault() override;
 
     MultidimArray<double> convert(T *data); // FIXME DS move to multidimarray.h
 
-    void init2D(const std::vector<HW*> &hw) override;
+    void init2D(bool reuse) override;
 
     void load2DReferenceOneToN(const T *ref) override;
 

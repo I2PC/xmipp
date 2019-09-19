@@ -28,7 +28,7 @@
 
 namespace Alignment {
 
-enum class AlignType { None, OneToN, NToM, Consecutive };
+enum class AlignType { None, OneToN, MToN, Consecutive };
 
 } /* namespace Alignment */
 

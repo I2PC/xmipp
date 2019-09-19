@@ -104,11 +104,36 @@ public:
         return os;
     }
 
-    constexpr bool operator==(const Dimensions &b) const {
+    inline constexpr bool equalSizesIgnorePadding(const Dimensions &b) const {
         return (m_x == b.m_x)
                 && (m_y == b.m_y)
                 && (m_z == b.m_z)
                 && (m_n == b.m_n);
+    }
+
+    inline constexpr bool equalExceptNPadded(const Dimensions &b) const {
+        return (m_x == b.m_x)
+                && (m_y == b.m_y)
+                && (m_z == b.m_z)
+                // && (m_n == b.m_n) ignore on purpose
+                && equalPadding(b);
+    }
+
+    inline constexpr bool equalPadding(const Dimensions &b) const {
+        return (m_pad_x == b.m_pad_x)
+                && (m_pad_y == b.m_pad_y)
+                && (m_pad_z == b.m_pad_z);
+    }
+
+    inline constexpr bool isValid() const {
+        return (0 != m_x)
+                && (0 != m_y)
+                && (0 != m_z)
+                && (0 != m_n);
+    }
+
+    constexpr bool operator==(const Dimensions &b) const {
+        return equalSizesIgnorePadding(b) && equalPadding(b);
     }
 
     constexpr bool operator!=(const Dimensions &b) const {

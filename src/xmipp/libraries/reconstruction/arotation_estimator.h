@@ -31,70 +31,112 @@
 #include "core/xmipp_error.h"
 #include "align_type.h"
 #include <vector>
+#include <assert.h>
 
 namespace Alignment {
+
+struct RotationEstimationSetting {
+    std::vector<HW*> hw;
+    AlignType type;
+    Dimensions refDims = Dimensions(0);
+    Dimensions otherDims = Dimensions(0);
+    size_t batch;
+    float maxRotDeg;
+    bool applyRotation;
+
+    void check() const {
+        if (0 == hw.size()) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "HW contains zero (0) devices");
+        }
+        if ( ! refDims.isValid()) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "'Reference' dimensions are invalid (contain 0)");
+        }
+        if ( ! otherDims.isValid()) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "'Other' dimensions are invalid (contain 0)");
+        }
+        if ( ! refDims.equalExceptNPadded(otherDims)) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Dimensions of the reference and other signals differ");
+        }
+        if (AlignType::None == type) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "'None' alignment type is set. This is invalid value");
+        }
+        if ((AlignType::OneToN == type)
+                && (1 != refDims.n())) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "More than one reference specified for alignment type 1:N");
+        }
+        if ((AlignType::MToN == type)
+                && (1 == refDims.n())) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Single reference specified for alignment type M:N");
+        }
+        if (batch > otherDims.n()) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Batch is bigger than number of signals");
+        }
+        if (0 == batch) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "Batch is zero (0)");
+        }
+        if (0 == maxRotDeg) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "Max rotation is zero (0)");
+        }
+    }
+};
 
 template<typename T>
 class ARotationEstimator {
 public:
-    ARotationEstimator() {
-        setDefault();
-    }
-
-    void init(const std::vector<HW*> &hw, AlignType type,
-       const Dimensions &dims, size_t batch, float maxRotDeg);
+    ARotationEstimator() :
+        m_isInit(false),
+        m_isRefLoaded(false) {};
+    // no reference on purpose, we store a copy anyway
+    void init(const RotationEstimationSetting settings, bool reuse);
 
     void loadReference(const T *ref);
 
     void compute(T *others);
 
-    constexpr bool isInitialized() const {
-        return m_isInit;
-    }
-
-    constexpr AlignType getAlignType() const {
-        return m_type;
-    }
-
-    constexpr Dimensions getDimensions() const {
-        return *m_dims;
-    }
-
-    inline std::vector<float> getRotations2D() {
-        if ( ! m_is_rotation_computed) {
-            REPORT_ERROR(ERR_LOGIC_ERROR, "Rotation has not been yet computed");
-        }
+    inline const std::vector<float> &getRotations2D() const {
         return m_rotations2D;
     }
 
-    virtual void release();
-    virtual ~ARotationEstimator() {
-        release();
+    virtual ~ARotationEstimator() {};
+
+    HW& getHW() const { // FIXME DS remove once we use the new data-centric approach
+        assert(m_isInit);
+        return *m_settings.hw.at(0);
     }
 
-    virtual HW& getHW() const = 0;
+    inline const RotationEstimationSetting &getSettings() const {
+        return m_settings;
+    }
 
 protected:
-    // various
-    AlignType m_type;
-    const Dimensions *m_dims;
-    size_t m_batch;
-    float m_maxRotationDeg;
+    virtual void check() = 0;
+
+    virtual void init2D(bool reuse) = 0;
+    virtual void load2DReferenceOneToN(const T *ref) = 0;
+    virtual void computeRotation2DOneToN(T *others) = 0;
+
+
+    inline std::vector<float> &getRotations2D() {
+        return m_rotations2D;
+    }
+
+    inline constexpr bool isInitialized() const {
+        return m_isInit;
+    }
+
+    inline constexpr bool isRefLoaded() const {
+        return m_isRefLoaded;
+    }
+
+private:
+    RotationEstimationSetting m_settings;
 
     // computed shifts
     std::vector<float> m_rotations2D;
 
     // flags
-    bool m_is_ref_loaded;
-    bool m_is_rotation_computed;
     bool m_isInit;
-
-    virtual void setDefault();
-    virtual void check();
-
-    virtual void init2D(const std::vector<HW*> &hw) = 0;
-    virtual void load2DReferenceOneToN(const T *ref) = 0;
-    virtual void computeRotation2DOneToN(T *others) = 0;
+    bool m_isRefLoaded;
 };
 
 } /* namespace Alignment */

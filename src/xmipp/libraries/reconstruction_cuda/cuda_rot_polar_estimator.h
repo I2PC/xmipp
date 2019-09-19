@@ -46,8 +46,6 @@ public :
         release();
     }
 
-    void release() override;
-
     static void sComputeCorrelationsOneToN(
             const GPU &gpu,
             std::complex<T> *d_inOut,
@@ -67,10 +65,6 @@ public :
     template<bool FULL_CIRCLE>
     static std::vector<T> sFindMaxAngle(const Dimensions &dims,
             T *polarCorrelations);
-
-    HW& getHW() const override {
-        return *m_workStream;
-    }
 
 private:
     GPU *m_loadStream;
@@ -99,9 +93,10 @@ private:
     T *m_h_batchResult;
 
     void check() override;
-    void setDefault() override;
+    void setDefault();
+    void release();
 
-    void init2D(const std::vector<HW*> &hw) override;
+    void init2D(bool reuse) override;
 
     void load2DReferenceOneToN(const T *h_ref) override;
 

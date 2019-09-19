@@ -32,25 +32,28 @@
 namespace Alignment {
 
 template<typename T>
-void CudaRotPolarEstimator<T>::init2D(const std::vector<HW*> &hw) {
-    if (2 != hw.size()) {
+void CudaRotPolarEstimator<T>::init2D(bool reuse) {
+    // FIXME DS implement reuse (properly)
+    release();
+    auto s = this->getSettings();
+    if (2 != s.hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
     try {
-        m_workStream = dynamic_cast<GPU*>(hw.at(0));
-        m_loadStream = dynamic_cast<GPU*>(hw.at(1));
+        m_workStream = dynamic_cast<GPU*>(s.hw.at(0));
+        m_loadStream = dynamic_cast<GPU*>(s.hw.at(1));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
     }
 
-    m_firstRing = this->m_dims->x() / 5;
-    m_lastRing = (this->m_dims->x() - 3) / 2; // so that we have some edge around the biggest ring
+    m_firstRing = s.refDims.x() / 5;
+    m_lastRing = (s.refDims.x() - 3) / 2; // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
     m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
 
     auto batchPolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
-            this->m_dims->n() * getNoOfRings(), // each signal has N rings
-            this->m_batch * getNoOfRings()); // so we have to multiply by that
+            s.otherDims.n() * getNoOfRings(), // each signal has N rings
+            s.batch * getNoOfRings()); // so we have to multiply by that
     // try to tune number of samples. We don't mind using more samples (higher precision)
     // if we can also do it faster!
     auto proposal = CudaFFT<T>::findOptimal(*m_workStream,
@@ -59,8 +62,8 @@ void CudaRotPolarEstimator<T>::init2D(const std::vector<HW*> &hw) {
         0, false, 10, false, false);
     if (proposal.has_value()) {
         batchPolar = FFTSettingsNew<T>(proposal.value().sDim().x(), 1, 1, // x, y, z
-                    this->m_dims->n() * getNoOfRings(), // each signal has N rings
-                    this->m_batch * getNoOfRings()); // so we have to multiply by that
+                    s.otherDims.n() * getNoOfRings(), // each signal has N rings
+                    s.batch * getNoOfRings()); // so we have to multiply by that
         m_samples = batchPolar.sDim().x();
     }
 
@@ -70,7 +73,7 @@ void CudaRotPolarEstimator<T>::init2D(const std::vector<HW*> &hw) {
 
     // allocate host memory
     gpuErrchk(cudaMalloc(&m_d_ref, singlePolar.fBytes())); // FT of the samples
-    gpuErrchk(cudaMalloc(&m_d_batch, this->m_dims->xy() * this->m_batch * sizeof(T))); // Cartesian batch
+    gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.batch * sizeof(T))); // Cartesian batch
     gpuErrchk(cudaMalloc(&m_d_batchPolarFD, batchPolar.fBytesBatch())); // FT of the polar samples
     gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, batchPolar.sBytesBatch())); // IFT of the polar samples
 
@@ -80,13 +83,11 @@ void CudaRotPolarEstimator<T>::init2D(const std::vector<HW*> &hw) {
     m_batchToSD = CudaFFT<T>::createPlan(*m_workStream, batchPolar.createInverse());
 
     // allocate device memory
-    m_h_batchResult = new T[m_samples * this->m_batch];
+    m_h_batchResult = new T[m_samples * s.batch];
 
     // synch primitives
     m_mutex = new std::mutex();
     m_cv = new std::condition_variable();
-
-    this->m_isInit = true;
 }
 
 template<typename T>
@@ -108,8 +109,7 @@ void CudaRotPolarEstimator<T>::release() {
     delete m_mutex;
     delete m_cv;
 
-    ARotationEstimator<T>::release();
-    CudaRotPolarEstimator<T>::setDefault();
+    setDefault();
 }
 
 template<typename T>
@@ -139,18 +139,16 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_mutex = nullptr;
     m_cv = nullptr;
     m_isDataReady = false;
-
-    ARotationEstimator<T>::setDefault();
 }
 
 template<typename T>
 void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
-    auto isReady = (this->m_isInit && (AlignType::OneToN == this->m_type));
+    auto isReady = this->isInitialized();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
     }
 
-    auto inCart = this->m_dims->copyForN(1);
+    auto inCart = this->getSettings().refDims.copyForN(1);
     auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, 1);
     m_loadStream->set();
     m_workStream->set();
@@ -183,8 +181,6 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
 
     // FIXME DS add normalization
     CudaFFT<T>::fft(*m_singleToFD, m_d_batchPolarOrCorr, m_d_ref);
-
-    this->m_is_ref_loaded = true;
 }
 
 template<typename T>
@@ -219,15 +215,16 @@ template<typename T>
 void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
     m_loadStream->set();
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
-    for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
+    auto s = this->getSettings();
+    for (size_t offset = 0; offset < s.otherDims.n(); offset += s.batch) {
         std::unique_lock<std::mutex> lk(*m_mutex);
         // wait till the data is processed
         m_cv->wait(lk, [&]{return !m_isDataReady;});
         // how many signals to process
-        size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
+        size_t toProcess = std::min(s.batch, s.otherDims.n() - offset);
 
-        T *h_src = h_others + offset * this->m_dims->xy();
-        size_t bytes = toProcess * this->m_dims->xy() * sizeof(T);
+        T *h_src = h_others + offset * s.otherDims.sizeSingle();
+        size_t bytes = toProcess * s.otherDims.sizeSingle() * sizeof(T);
 
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
@@ -288,7 +285,8 @@ std::vector<T> CudaRotPolarEstimator<T>::sFindMaxAngle(
 
 template<typename T>
 void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
-    bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type) && this->m_is_ref_loaded);
+    bool isReady = this->isInitialized() && this->isRefLoaded();
+
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
@@ -300,12 +298,12 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     m_isDataReady = false;
     auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, h_others);
 
-    this->m_rotations2D.reserve(this->m_dims->n());
+    auto s = this->getSettings();
     // process signals in batches
-    for (size_t offset = 0; offset < this->m_dims->n(); offset += this->m_batch) {
+    for (size_t offset = 0; offset < s.otherDims.n(); offset += s.batch) {
         // how many signals to process
-        size_t toProcess = std::min(this->m_batch, this->m_dims->n() - offset);
-        auto inCart = this->m_dims->copyForN(toProcess);
+        size_t toProcess = std::min(s.batch, s.otherDims.n() - offset);
+        auto inCart = s.otherDims.copyForN(toProcess);
         auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, toProcess);
         auto outPolarFourier = Dimensions(m_samples / 2 + 1, getNoOfRings(), 1, toProcess);
         auto resSize = Dimensions(m_samples, 1, 1, toProcess);
@@ -347,24 +345,23 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         // extract angles
         auto angles = sFindMaxAngle<true>(resSize, m_h_batchResult);
-        this->m_rotations2D.insert(this->m_rotations2D.end(), angles.begin(), angles.end());
+        this->getRotations2D().insert(this->getRotations2D().end(), angles.begin(), angles.end());
     }
     loadingThread.join();
-    this->m_is_rotation_computed = true;
 }
 
 template<typename T>
 void CudaRotPolarEstimator<T>::check() {
-    ARotationEstimator<T>::check();
-    if (this->m_dims->x() != this->m_dims->y()) {
+    auto dims = this->getSettings().refDims;
+    if (dims.x() != dims.y()) {
         // because of the rings
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator can work only with square signal");
     }
-    if (this->m_dims->x() < 6) {
+    if (dims.x() < 6) {
         // we need some edge around the biggest ring, to avoid invalid memory access
         REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
     }
-    if (this->m_dims->isPadded()) {
+    if (dims.isPadded()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Padded signal is not supported");
     }
 }

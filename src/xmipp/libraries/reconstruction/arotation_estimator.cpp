@@ -28,29 +28,30 @@
 namespace Alignment {
 
 template<typename T>
-void ARotationEstimator<T>::init(const std::vector<HW*> &hw, AlignType type,
-        const Dimensions &dims, size_t batch, float maxRotDeg) {
-    this->release();
-
-    m_type = type;
-    m_dims = new Dimensions(dims);
-    m_batch = std::min(batch, m_dims->n());
-    m_maxRotationDeg = maxRotDeg;
-
-    if (m_dims->is2D()) {
-        this->init2D(hw);
+void ARotationEstimator<T>::init(const RotationEstimationSetting settings, bool reuse) {
+    // check that settings is not completely wrong
+    settings.check();
+    // set it
+    m_settings = settings;
+    // initialize estimator
+    if (m_settings.otherDims.is2D()) {
+        this->init2D(reuse);
     } else {
         REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
     }
-
+    // check that there's no logical problem
     this->check();
+    // no issue found, we're good to go
+    m_isInit = true;
 }
 
 template<typename T>
 void ARotationEstimator<T>::loadReference(const T *ref) {
-    if (m_dims->is2D()) {
-        if (AlignType::OneToN == m_type) {
-            return this->load2DReferenceOneToN(ref);
+    if (m_settings.otherDims.is2D()) {
+        if (AlignType::OneToN == m_settings.type) {
+            this->load2DReferenceOneToN(ref);
+            m_isRefLoaded = true;
+            return;
         }
     }
     REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
@@ -58,56 +59,14 @@ void ARotationEstimator<T>::loadReference(const T *ref) {
 
 template<typename T>
 void ARotationEstimator<T>::compute(T *others) {
-    m_is_rotation_computed = false;
-    if (m_dims->is2D()) {
-        m_rotations2D.clear();
-        if (AlignType::OneToN == m_type) {
+    if (m_settings.otherDims.is2D()) {
+        m_rotations2D.resize(0);
+        m_rotations2D.reserve(m_settings.otherDims.n());
+        if (AlignType::OneToN == m_settings.type) {
             return this->computeRotation2DOneToN(others);
         }
     }
     REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
-}
-
-template<typename T>
-void ARotationEstimator<T>::release() {
-    delete m_dims;
-    m_rotations2D.clear();
-
-    ARotationEstimator<T>::setDefault();
-}
-
-template<typename T>
-void ARotationEstimator<T>::setDefault() {
-    m_type = AlignType::None;
-    m_dims = nullptr;
-    m_batch = 0;
-    m_maxRotationDeg = 0;
-
-    m_rotations2D.reserve(0);
-
-    m_isInit = false;
-    m_is_ref_loaded = false;
-    m_is_rotation_computed = false;
-}
-
-template<typename T>
-void ARotationEstimator<T>::check() {
-    if (AlignType::None == m_type) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "'None' alignment type is set. This is invalid value");
-    }
-    if ((0 == m_dims->x()) || (0 == m_dims->y())
-            || (0 == m_dims->z()) || (0 == m_dims->n())) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "One of the dimensions is zero (0)");
-    }
-    if (0 == m_batch) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is zero (0)");
-    }
-    if (m_batch > m_dims->n()) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Batch is bigger than N");
-    }
-    if (0 == m_maxRotationDeg) {
-        REPORT_ERROR(ERR_VALUE_INCORRECT, "Max shift is zero (0)");
-    }
 }
 
 // explicit instantiation
