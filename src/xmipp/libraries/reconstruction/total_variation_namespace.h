@@ -32,8 +32,8 @@
 
 namespace itv
 {
- double tv(const MultidimArray<double>& x);
- void vtv(const MultidimArray<double>& x, MultidimArray<double>& v);
+ double tv(const MultidimArray<double>& v);
+ void vtv(const MultidimArray<double>& v, MultidimArray<double>& w);
 }; /* namespace for Total Variation functions */
 
 #endif /* TV_NAMESPC_HH */

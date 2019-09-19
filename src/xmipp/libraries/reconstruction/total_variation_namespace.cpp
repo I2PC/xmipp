@@ -42,18 +42,68 @@
 ** Computes the Isometric Total Variation
 **
 */
-double itv::tv(const MultidimArray<double>& x)
+double itv::tv(const MultidimArray<double>& v)
 {
- return 0.0;
+#define P(i,j,k)(i + j*v.xdim + k*v.ydim)
+ double sum = 0.0;
+ double dw,dh,dd;
+ 
+// std::cout<<v.xdim; // "physical" horizontal limit (x direction)
+// std::cout<<v.ydim; // "physical" horizontal limit (y direction)
+// std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ 
+ for(uint k=0; k < v.zdim;k++){        // Depth
+     for(uint j=0;j < v.ydim;j++){     // Height
+         for(uint i=0;i < v.xdim;i++){ // Width
+             dw = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
+             dh = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
+             dd = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
+             sum = sum + sqrt(dw*dw + dh*dh + dd*dd);
+            }
+        }
+    }
+#undef P
+ 
+ return sum;
 }
 
 /**
 **
 ** Computes the normalized non-ascending vector for the Isometric Total Variation
+** TV(x) = SUM of the sqrt( (x(i,j,k) - x(i+1,j,k))^2 + (x(i,j,k) - x(i,j+1,k))^2 +(x(i,j,k) - x(i,j,k+1))^2 ) =
+**       = SUM sqrt( (x_i - x_r)^2 + (x_i - x_u)^2 + (x_i - x_b)^2 )
+** d/dx(i,j,k) TV / || d/dx(i,j,k) TV ||
 **
 */
-void itv::vtv(const MultidimArray<double>& x, MultidimArray<double>& v)
+void itv::vtv(const MultidimArray<double>& v, MultidimArray<double>& w)
 {
-
+#define P(i,j,k)(i + j*v.xdim + k*v.ydim)
+ double denom = 0.0;
+ double dw,dh,dd;
+ 
+// std::cout<<v.xdim; // "physical" horizontal limit (x direction)
+// std::cout<<v.ydim; // "physical" horizontal limit (y direction)
+// std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+ for(uint k=0; k < v.zdim;k++){        // Depth
+     for(uint j=0;j < v.ydim;j++){     // Height
+         for(uint i=0;i < v.xdim;i++){ // Width
+             //
+             // First Case
+             // (d/d x_i) of TV
+             //
+             if((i+1)<v.xdim && (j+1)<v.ydim && (k+1)<v.zdim){
+                dw = v.data[P(i,j,k)] - v.data[P(i+1,j,k)];
+                dh = v.data[P(i,j,k)] - v.data[P(i,j+1,k)];
+                dd = v.data[P(i,j,k)] - v.data[P(i,j,k+1)];
+                //Computing the denominator
+                denom = sqrt(dw*dw + dh*dh + dd*dd);
+                if(denom > 0.0)
+                   v.data[P(i,j,k)] += (3*v.data[P(i,j,k)] - v.data[P(i+1,j,k)] - v.data[P(i,j+1,k)] - v.data[P(i,j,k+1)])/denom;
+               }
+            }
+        }
+    }
+#undef P
 }
 #undef DEBUG
