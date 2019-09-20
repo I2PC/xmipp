@@ -29,6 +29,7 @@
 #include <core/alglib/ap.h>
 
 #include <functional>
+#include <cmath>
 
 /******************************************************************************/
 /******************************************************************************/
@@ -78,32 +79,101 @@ double itv::tv(const MultidimArray<double>& v)
 void itv::vtv(const MultidimArray<double>& v, MultidimArray<double>& w)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
+#define ZERO pow(10,-15)
  double denom = 0.0;
  double dw,dh,dd;
  
-// std::cout<<v.xdim; // "physical" horizontal limit (x direction)
-// std::cout<<v.ydim; // "physical" horizontal limit (y direction)
-// std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ // std::cout<<v.xdim; // "physical" horizontal limit (x direction)
+ // std::cout<<v.ydim; // "physical" horizontal limit (y direction)
+ // std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ 
+ //
+ // Computing the gradient of the total variation function
+ //
  memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
- for(uint k=0; k < v.zdim;k++){        // Depth
-     for(uint j=0;j < v.ydim;j++){     // Height
+ for(uint k=0; k < v.zdim;k++)         // Depth
+     for(uint j=0;j < v.ydim;j++)      // Height
          for(uint i=0;i < v.xdim;i++){ // Width
              //
              // First Case
              // (d/d x_i) of TV
              //
-             if((i+1)<v.xdim && (j+1)<v.ydim && (k+1)<v.zdim){
+             if(i<(v.xdim-1) && j<(v.ydim-1) && k<(v.zdim-1)){
                 dw = v.data[P(i,j,k)] - v.data[P(i+1,j,k)];
                 dh = v.data[P(i,j,k)] - v.data[P(i,j+1,k)];
                 dd = v.data[P(i,j,k)] - v.data[P(i,j,k+1)];
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
-                if(denom > 0.0)
+                if(denom > ZERO)
                    v.data[P(i,j,k)] += (3*v.data[P(i,j,k)] - v.data[P(i+1,j,k)] - v.data[P(i,j+1,k)] - v.data[P(i,j,k+1)])/denom;
                }
+             //
+             // Second Case
+             // (d/d x_r) of TV (x_r is the base and not x_i)
+             //
+             if(i>0 && i<v.xdim && j<(v.ydim-1) && k<(v.zdim-1)){
+                dw = v.data[P(i-1,j,k)] - v.data[P(i,j,k)];
+                dh = v.data[P(i-1,j,k)] - v.data[P(i-1,j+1,k)];
+                dd = v.data[P(i-1,j,k)] - v.data[P(i-1,j,k+1)];
+                //Computing the denominator
+                denom = sqrt(dw*dw + dh*dh + dd*dd);
+                if(denom > ZERO)
+                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i-1,j,k)])/denom;
+               }
+             //
+             // Third Case
+             // (d/d x_u) of TV (x_u is the base and not x_i)
+             //
+             if(i<(v.xdim-1) && j>0 && j<v.ydim && k<(v.zdim-1)){
+                dw = v.data[P(i,j-1,k)] - v.data[P(i+1,j-1,k)];
+                dh = v.data[P(i,j-1,k)] - v.data[P(i,j,k)];
+                dd = v.data[P(i,j-1,k)] - v.data[P(i,j-1,k+1)];
+                //Computing the denominator
+                denom = sqrt(dw*dw + dh*dh + dd*dd);
+                if(denom > ZERO)
+                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j-1,k)])/denom;
+               }
+             //
+             // Fourth Case
+             // (d/d x_b) of TV (x_b is the base and not x_i)
+             //
+             if(i<(v.xdim-1) && j<(v.ydim-1) && k>0 && k<v.zdim){
+                dw = v.data[P(i,j,k-1)] - v.data[P(i+1,j,k-1)];
+                dh = v.data[P(i,j,k-1)] - v.data[P(i,j+1,k-1)];
+                dd = v.data[P(i,j,k-1)] - v.data[P(i,j,k)];
+                //Computing the denominator
+                denom = sqrt(dw*dw + dh*dh + dd*dd);
+                if(denom > ZERO)
+                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j,k-1)])/denom;
+               }
             }
-        }
-    }
+ 
+ //
+ // Failsafe & Finding the norm of the gradient (vector)
+ //
+ denom = 0.0;
+ for(uint k=0; k < v.zdim;k++)         // Depth
+     for(uint j=0;j < v.ydim;j++)      // Height
+         for(uint i=0;i < v.xdim;i++){ // Width
+             if(std::isnan(v.data[P(i,j,k)]))
+                v.data[P(i,j,k)] = 0.0;
+             denom += v.data[P(i,j,k)]*v.data[P(i,j,k)];
+            }
+ 
+ //
+ // Normalizing the resulting vector
+ //
+ if(denom <= ZERO)
+	memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+ else{
+    for(uint k=0; k < v.zdim;k++)         // Depth
+        for(uint j=0;j < v.ydim;j++)      // Height
+            for(uint i=0;i < v.xdim;i++){ // Width
+                v.data[P(i,j,k)] = -1.0 * v.data[P(i,j,k)]/denom;
+               }
+   }
+ 
+#undef ZERO
 #undef P
 }
 #undef DEBUG
