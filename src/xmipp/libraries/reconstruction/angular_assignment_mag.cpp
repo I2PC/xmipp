@@ -45,7 +45,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [-sampling <sampling=1.>]   : sampling");
 	addParamsLine("  [-angleStep <angStep=3.>]   : angStep");
 	addParamsLine("  [--maxShift <maxShift=-1.>]  : Maximum shift allowed (+-this amount)");
-	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous"); // fixme gives an error as repeated parameter for mpi>1
+	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous");
 }
 
 // Read arguments ==========================================================
@@ -151,7 +151,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 		//partial sort
 		// todo check all this lambda functions definition, SonarCloud gave me some hints about explicit reference to variables. [&]
 		std::partial_sort(allNeighborsjp.begin(), allNeighborsjp.begin() + N_neighbors, allNeighborsjp.end(),
-				[&](int i, int j) {return VEC_ELEM(distanceToj,i) < VEC_ELEM(distanceToj,j);});
+				[&distanceToj](int i, int j) {return VEC_ELEM(distanceToj,i) < VEC_ELEM(distanceToj,j);});
 
 		for (int i = 0; i < N_neighbors; ++i) {
 			nearNeighbors.at(i) = allNeighborsjp.at(i); //
@@ -186,10 +186,15 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> dirjp;
 	double maxSphericalDistance=angStep*2.;
 	printf("processing neighbors graph...\n");
+std::ofstream outCoord("/home/jeison/Escritorio/projCoordinates.txt");
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
 		double tiltj;
 		double psij;
+double cx,cy,cz;
+mdRef.getValue(MDL_X,cx,__iter.objId);
+mdRef.getValue(MDL_Y,cy,__iter.objId);
+mdRef.getValue(MDL_Z,cz,__iter.objId);
 		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
@@ -216,7 +221,12 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
+
+		outCoord<<cx<<"\t"<<cy<<"\t"<<cz<<"\n";
+
 	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
+
+outCoord.close();
 
 	// compute Laplacian Matrix
 	DMatrix L_mat;  // Laplacian Matrix. It is a double matrix in case of using weights. But should be integer in case of only adjacency
@@ -230,9 +240,9 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	generalizedEigs(L_mat, B, eigenvalues, eigenvectors);
 	std::cout<< "finish\n";
 
-//// imprime eigenvalues y eigenvectors
-//eigenvalues.write("/home/jeison/Escritorio/outEigenVal.txt");
-//eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt");
+// imprime eigenvalues y eigenvectors
+eigenvalues.write("/home/jeison/Escritorio/outEigenVal.txt");
+eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt");
 
 }
 
@@ -260,15 +270,13 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
 		MAT_ELEM(L,i,i)=sumWeight-1.; // -1 because is necessary to remove the "central" weight
 	}
 
-//// write-out Laplacian matrix to check
-//L.write("/home/jeison/Escritorio/LaplacianMatrix.txt");
+// write-out Laplacian matrix to check
+L.write("/home/jeison/Escritorio/LaplacianMatrix.txt");
 
 }
 
 void ProgAngularAssignmentMag::preProcess() {
-	// I want this method to run using several processors
-	// it looks like runs sequentially N times when mpirun -np N is launched
-	// check in mpi program. Jmendez --> just set --Nsimultaneous in highres protocol
+
 	mdIn.read(fnIn);
 	mdRef.read(fnRef);
 
@@ -360,6 +368,31 @@ void ProgAngularAssignmentMag::preProcess() {
 	computingNeighborGraph2();
 }
 
+/* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
+ * */
+void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut ){
+	// graph signal processing filtered iGFT
+	Matrix1D<double> ccGFT;
+	ccGFT.initZeros(sizeMdRef);
+	std::vector<double> filt_iGFT_cc(sizeMdRef, 0);
+
+	Matrix2D<double> eigenvectorTrans=eigenvectors.transpose();
+	ccGFT=eigenvectorTrans*ccVecIn;
+ccGFT.write("/home/jeison/Escritorio/testGFT.txt");
+
+	// define filtering base
+	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
+	//int cutEig=10;
+	for(int k=cutEig; k<sizeMdRef; ++k){ // TODO check value
+		VEC_ELEM(ccGFT,k)=0.;
+	}
+ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt");
+
+	// apply filter to ccvec
+	ccVecOut=eigenvectors*ccGFT;
+
+}
+
 void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName &fnImgOut,
 		const MDRow &rowIn, MDRow &rowOut) {
 
@@ -427,43 +460,30 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		bestTy[k] = Ty;
 		bestPsi[k] = psi;
 	}
-//ccvec.write("/home/jeison/Escritorio/testVectCC.txt");
+ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
 
-	// graph signal processing filtered iGFT
-	Matrix1D<double> ccGFT;
-	ccGFT.initZeros(sizeMdRef);
-	std::vector<double> filt_iGFT_cc(sizeMdRef, 0);
-
-	Matrix2D<double> eigenvectorTrans=eigenvectors.transpose();
-	ccGFT=eigenvectorTrans*ccvec;
-//ccGFT.write("/home/jeison/Escritorio/testGFT.txt");
-
-	// define filtering base
-	for(int k=10; k<sizeMdRef; ++k){ // TODO check value
-		VEC_ELEM(ccGFT,k)=0.;
-	}
-//ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt");
-
-	// apply filter to ccvec
+// ========================================================================
+ /*  graph filter to ccVect from first loop, using filtered signal
+   //  to sort candidates previous to second loop processing
+// ================ Graph Filter Process =================
 	Matrix1D<double> ccvec_filt;
-	ccvec_filt=eigenvectors*ccGFT;
-//ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+	graphFourierFilter(ccvec,ccvec_filt);
+ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
 
 	//	/* search rotation with polar real image representation over 10% of reference images
 	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
 	// but for I1 symmetry, for example, should be at least 50%.
 	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
 
-//std::cout<<"nCand: "<<nCand<<"\n";
-//exit(1);
+std::cout<<"nCand: "<<nCand<<"\n";
 
 //	//ordering using cross-corr coefficient values computed in first loop
 //	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
-//			[&](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
+//			[&candidatesFirstLoopCoeff](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
 
 	// ordering using cross-corr coefficient values filtered using graph signal approach
 	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
-			[&](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
+			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
 
 	std::vector<unsigned int> candidatesSecondLoop(nCand, 0);
 	std::vector<unsigned int> Idx2(nCand, 0);
@@ -520,10 +540,131 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		}
 	}
 
+// */
+
+// ========================================================================
+///*  second loop, "real search" over percentage of references
+  //  graph filter processing after second loop
+  //  then ccVect after second loop must have sizeMdRef elements
+
+	//	/* search rotation with polar real image representation over 10% of reference images
+	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
+	// but for I1 symmetry, for example, should be at least 50%.
+	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
+
+std::cout<<"nCand: "<<nCand<<"\n";
+
+	// ordering using cross-corr coefficient values computed in first loop
+	// only best reference directions should be refined with polar real-space alignment
+	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
+			[&candidatesFirstLoopCoeff](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
+
+	// same size as in first loop
+	std::vector<unsigned int> candidatesSecondLoop(sizeMdRef, 0);
+	std::vector<unsigned int> Idx2(sizeMdRef, 0);
+	std::vector<unsigned int> Idx3(sizeMdRef, 0); //todo borrar
+	std::vector<double> candidatesSecondLoopCoeff(sizeMdRef, 0.);
+	std::vector<double> bestTx2(sizeMdRef, 0.);
+	std::vector<double> bestTy2(sizeMdRef, 0.);
+	std::vector<double> bestPsi2(sizeMdRef, 0.);
+
+	size_t first = 0;
+	MultidimArray<double> inPolar(n_rad, n_ang2);
+	MultidimArray<double> MDaExpShiftRot2; // transform experimental
+	MDaExpShiftRot2.setXmippOrigin();
+	MultidimArray<double> ccMatrixRot2;
+	MultidimArray<double> ccVectorRot2;
+	MultidimArray<std::complex<double> > MDaInAuxF;
+	for(int k = 0; k < sizeMdRef; ++k) {
+		if(k<nCand){
+			//apply transform to experimental image
+			double rotVal = -1. * bestPsi[Idx[k]]; // -1. because I return parameters for reference image instead of experimental
+			double trasXval = -1. * bestTx[Idx[k]];
+			double trasYval = -1. * bestTy[Idx[k]];
+			_applyShiftAndRotation(MDaIn,rotVal,trasXval,trasYval,MDaExpShiftRot2);
+			//fourier experimental image
+			_applyFourierImage2(MDaExpShiftRot2, MDaInF);
+			// polar experimental image
+			inPolar = imToPolar(MDaExpShiftRot2, first, n_rad);
+			_applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, it uses the same transformer used in the previous loop which have a different size
+
+			// find rotation and shift
+			ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop[Idx[k]]],ccMatrixRot2);
+			maxByColumn(ccMatrixRot2, ccVectorRot2);
+			peaksFound = 0;
+			std::vector<double> cand(maxAccepted, 0.);
+			rotCandidates3(ccVectorRot2, cand, XSIZE(ccMatrixRot2));
+			bestCand(MDaExpShiftRot2, MDaInF, vecMDaRef[Idx[k]], cand, psi,Tx, Ty, cc_coeff); //
+
+			// if its better and shifts are within range then update
+			double testShiftTx = bestTx[Idx[k]] + Tx;
+			double testShiftTy = bestTy[Idx[k]] + Ty;
+			if (cc_coeff > candidatesFirstLoopCoeff[Idx[k]] &&
+					std::abs(testShiftTx) < maxShift	&& std::abs(testShiftTy) < maxShift) {
+				Idx2[k] = k;
+				Idx3[k] = k;
+				candidatesSecondLoop[Idx[k]] = candidatesFirstLoop[Idx[k]];
+				candidatesSecondLoopCoeff[Idx[k]] = cc_coeff;
+				VEC_ELEM(ccvec,Idx[k])=cc_coeff;
+				bestTx2[Idx[k]] = testShiftTx;
+				bestTy2[Idx[k]] = testShiftTy;
+				bestPsi2[Idx[k]] = bestPsi[Idx[k]] + psi;
+			} else {
+				Idx2[k] = k;
+				Idx3[k] = k;
+				candidatesSecondLoop[Idx[k]] = candidatesFirstLoop[Idx[k]];
+				candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
+				VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
+				bestTx2[Idx[k]] = bestTx[Idx[k]];
+				bestTy2[Idx[k]] = bestTy[Idx[k]];
+				bestPsi2[Idx[k]] = bestPsi[Idx[k]];
+			}
+		}// end if(k<nCand)
+		else{
+			Idx2[k] = k;
+			Idx3[k] = k;
+			candidatesSecondLoop[Idx[k]] = candidatesFirstLoop[Idx[k]];
+			candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
+			VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
+			bestTx2[Idx[k]] = bestTx[Idx[k]];
+			bestTy2[Idx[k]] = bestTy[Idx[k]];
+			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
+		}
+	}
+
+ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
+
+	// ================ Graph Filter Process after second loop =================
+	Matrix1D<double> ccvec_filt;
+	graphFourierFilter(ccvec,ccvec_filt);
+ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+
+// */
+
 	// choose nCand of the candidates with best corrCoeff
 	int nCand2 = 1;
+	std::partial_sort(Idx3.begin(), Idx3.begin()+nCand2, Idx3.end(),
+			[&candidatesSecondLoopCoeff](int i, int j) {return candidatesSecondLoopCoeff[i] > candidatesSecondLoopCoeff[j];});
+
+std::cout<<"testIdx3[0]: "<<Idx3[0]<<std::endl;
+std::cout<<"testCand[Idx3[0]]: "<<candidatesSecondLoop[Idx3[0]]<<std::endl;
+std::cout<<"testCandCoeff[Idx3[0]]: "<<candidatesSecondLoopCoeff[Idx3[0]]<<std::endl;
+std::ofstream outCandidateBef("/home/jeison/Escritorio/bestCandidateBefore.txt");
+outCandidateBef<<candidatesSecondLoop[Idx3[0]]<<"\n";
+outCandidateBef.close();
+
+	// choose best candidate direction from graph filtered ccvect signal
 	std::partial_sort(Idx2.begin(), Idx2.begin()+nCand2, Idx2.end(),
-			[&](int i, int j) {return candidatesSecondLoopCoeff[i] > candidatesSecondLoopCoeff[j];});
+			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
+
+
+std::cout<<"testIdx2[0]: "<<Idx2[0]<<std::endl;
+std::cout<<"testCand[Idx2[0]]: "<<candidatesSecondLoop[Idx2[0]]<<std::endl;
+std::cout<<"testCandCoeff[Idx2[0]]: "<<candidatesSecondLoopCoeff[Idx2[0]]<<std::endl;
+std::ofstream outCandidate("/home/jeison/Escritorio/bestCandidateGraph.txt");
+outCandidate<<candidatesSecondLoop[Idx2[0]]<<"\n";
+outCandidate.close();
+exit(1);
 
 	// reading info of reference image candidate
 	double rotRef, tiltRef;
@@ -542,7 +683,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	rowOut.setValue(MDL_SHIFT_X, -bestTx2[Idx2[0]]);
 	rowOut.setValue(MDL_SHIFT_Y, -bestTy2[Idx2[0]]);
 
-	// */
 
 //duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
 //std::cout << "Operation took "<< duration*1000 << "milliseconds" << std::endl;
@@ -1303,12 +1443,8 @@ void ProgAngularAssignmentMag::meanByRow(MultidimArray<double> &in,
 /*quadratic interpolation for location of peak in crossCorr vector*/
 double quadInterp(/*const*/int idx, MultidimArray<double> &in) {
 	int idxBef = idx - 1;
-	int idxAft = idx + 1;
 	if (idxBef < 0)
 		std::cout << "Heeey!!\n";
-	double oneBefore = dAi(in, idxBef);
-	double oneAfter = dAi(in, idxAft);
-	double centralOne = dAi(in, idx);
 	double InterpIdx = idx	- (( dAi(in,idx+1) - dAi(in, idx - 1))/ ( dAi(in,idx+1) + dAi(in, idx - 1) - 2 * dAi(in, idx)))/ 2.;
 	return InterpIdx;
 }
@@ -1367,14 +1503,13 @@ void ProgAngularAssignmentMag::rotCandidates3(MultidimArray<double> &in,
 	int idx1 = 0;
 	double max2 = -1000.;
 	int idx2 = 0;
-	int i;
 	int cont = 0;
 	peaksFound = cont;
 
-	for (i = 89; i < 272; ++i) { // only look for in range 90:-90
+	for (int i = 89; i < 272; ++i) { // only look for in range 90:-90
 		// current value is a peak value?
-		if ((dAi(in,size_t(i)) > dAi(in, size_t(i - 1)))
-				&& (dAi(in,size_t(i)) > dAi(in, size_t(i + 1)))) {
+		if ((dAi(in,size_t(i)) > dAi(in, size_t(i - 1))) &&
+				(dAi(in,size_t(i)) > dAi(in, size_t(i + 1)))) {
 			if ( dAi(in,i) > max1) {
 				max2 = max1;
 				idx2 = idx1;
@@ -1401,15 +1536,10 @@ void ProgAngularAssignmentMag::rotCandidates3(MultidimArray<double> &in,
 			temp[0] = idx1;
 		}
 
-		//		// errase. Just checking what about with only one max
-		//		int maxAccepted=1;
-		//		std::vector<int> temp(maxAccepted);
-		//		temp[0]=idx1;
-
 		int tam = 2 * maxAccepted;
 		peaksFound = tam;
 		double interpIdx; // quadratic interpolated location of peak
-		for (i = 0; i < maxAccepted; ++i) {
+		for (int i = 0; i < maxAccepted; ++i) {
 			interpIdx = quadInterp(temp[i], in);
 			cand[i] = double(size) / 2. - interpIdx;
 			cand[i + maxAccepted] =	(cand[i] >= 0) ? cand[i] + 180. : cand[i] - 180.;
@@ -1444,7 +1574,7 @@ void ProgAngularAssignmentMag::rotCandidates(MultidimArray<double> &in,
 	if (cont) {
 		//change for partial sort
 		std::partial_sort(peakIdx.begin(), peakIdx.begin()+maxAccepted, peakIdx.end(),
-				[&](int i, int j){return dAi(in,i) > dAi(in,j); }); //
+				[&in](int i, int j){return dAi(in,i) > dAi(in,j); }); //
 
 		int tam = 2 * maxAccepted; //
 		peaksFound = tam;

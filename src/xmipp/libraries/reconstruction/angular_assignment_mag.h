@@ -202,6 +202,7 @@ public:
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);
     void getShift2(MultidimArray<double> &ccVector, std::vector<double> &cand, const size_t &size);
     void getRot(MultidimArray<double> &ccVector, double &rot, const size_t &size);
+    void graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut);
 
     void halfFourierShift(MultidimArray<double> &in, MultidimArray<double> &out);
     void hannWindow(MultidimArray<double> &in);
