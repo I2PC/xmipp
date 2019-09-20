@@ -25,7 +25,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "total_variation_namespace.h"
+#include "iso_total_variation_namespace.h"
 #include <core/alglib/ap.h>
 
 #include <functional>
