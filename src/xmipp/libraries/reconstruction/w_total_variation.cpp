@@ -25,7 +25,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "iso_total_variation_namespace.h"
+#include "w_total_variation.h"
 #include <core/alglib/ap.h>
 
 #include <functional>
@@ -43,7 +43,7 @@
 ** Computes the Isometric Total Variation
 **
 */
-double itv::tv(const MultidimArray<double>& v)
+double wtv::phi(const MultidimArray<double>& v)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
  double sum = 0.0;
@@ -52,6 +52,12 @@ double itv::tv(const MultidimArray<double>& v)
 // std::cout<<v.xdim; // "physical" horizontal limit (x direction)
 // std::cout<<v.ydim; // "physical" horizontal limit (y direction)
 // std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ if(w.getArrayPointer() == NULL){
+	size_t Xdim, Ydim, Zdim, Ndim;
+    v.getDimensions(Xdim, Ydim, Zdim, Ndim);
+	w.resize(Ndim,Zdim,Ydim,Xdim);
+	memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
+   }
  
  for(uint k=0; k < v.zdim;k++){        // Depth
      for(uint j=0;j < v.ydim;j++){     // Height
@@ -76,7 +82,7 @@ double itv::tv(const MultidimArray<double>& v)
 ** d/dx(i,j,k) TV / || d/dx(i,j,k) TV ||
 **
 */
-void itv::vtv(const MultidimArray<double>& v, MultidimArray<double>& w)
+void wtv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
 #define ZERO pow(10,-15)

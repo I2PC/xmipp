@@ -25,16 +25,18 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef TV_NAMESPC_HH
-#define TV_NAMESPC_HH
+#ifndef ITV_HH
+#define ITV_HH
 
 #include <core/xmipp_program.h>
 
-namespace itv
+#include "second_criterion.h"
+
+class itv:public secc
 {
- double tv(const MultidimArray<double>& v);
- void vtv(const MultidimArray<double>& v, MultidimArray<double>& w);
-}; /* namespace for Total Variation functions */
+ public:
+    double phi(const MultidimArray<double>& v);
+    void nav(const MultidimArray<double>& v, MultidimArray<double>& w);
+}; /* class for Total Variation functions */
 
-#endif /* TV_NAMESPC_HH */
-
+#endif /* ITV_HH */
