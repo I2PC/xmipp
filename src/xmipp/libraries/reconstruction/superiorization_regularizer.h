@@ -31,7 +31,9 @@
 #include <functional>
 #include <core/xmipp_program.h>
 
-#include "total_variation_namespace.h"
+#include "second_criterion.h"
+#include "iso_total_variation.h"
+#include "w_total_variation.h"
 
 // template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
 // template< class R, class... Args > class function<R(Args...)>;
@@ -58,8 +60,7 @@ class SuperRegular: public MultidimArray<T>
 
  private:
     classType RegType;
-	std::function<double(const MultidimArray<T>& x)> phi;
-	std::function<void(const MultidimArray<T>& x,MultidimArray<T>& v)> navPhi;
+    secc *SecC;
 };
 
 /******************************************************************************/
@@ -80,8 +81,7 @@ SuperRegular<T>::SuperRegular()
 {
  //phi = std::bind(&itv::tv,this,std::placeholders::_1);
  //nav = std::bind(&itv::vtv,this,std::placeholders::_1,std::placeholders::_2);
- phi = itv::tv;
- navPhi = itv::vtv;
+ SecC = new itv;
  RegType = SuperRegular::ITV;
 }
 
@@ -94,9 +94,12 @@ template<class T>
 SuperRegular<T>::SuperRegular(String &StrType)
 {
  if(StrType == std::string("ITV")){
-	phi = itv::tv;
-	navPhi = itv::vtv;
-    RegType = SuperRegular::ITV;
+	 SecC = new itv;
+     RegType = SuperRegular::ITV;
+   }
+ if(StrType == std::string("WTV")){
+	 SecC = new wtv;
+     RegType = SuperRegular::WTV;
    }
 }
 
@@ -109,9 +112,12 @@ template<class T>
 void SuperRegular<T>::set(std::string StrType)
 {
  if(StrType == std::string("ITV")){
-    phi = itv::tv;
-    navPhi = itv::vtv;
+    SecC = new itv;
     RegType = SuperRegular::ITV;
+   }
+ if(StrType == std::string("WTV")){
+    SecC = new wtv;
+    RegType = SuperRegular::WTV;
    }
 }
 
@@ -123,7 +129,7 @@ void SuperRegular<T>::set(std::string StrType)
 template<class T>
 double SuperRegular<T>::operator ()(const MultidimArray<T>& x)
 {
- return phi(x);
+ return SecC->phi(x);
 }
 
 /**
@@ -134,7 +140,7 @@ double SuperRegular<T>::operator ()(const MultidimArray<T>& x)
 template<class T>
 void SuperRegular<T>::nav(const MultidimArray<T>& x, MultidimArray<T>& v)
 {
- navPhi(x,v);
+ SecC->nav(x,v);
 }
 
 /**

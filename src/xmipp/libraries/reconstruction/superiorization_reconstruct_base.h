@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:     Edgar Garduno Angeles (edgargar@ieee.org)
+ * Created on: Sep 6, 2019
  *
  * Department of Computer Science, Institute for Applied Mathematics
  * and Systems Research (IIMAS), National Autonomous University of
@@ -24,38 +25,27 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_SUPER_HH
-#define _PROG_SUPER_HH
+#ifndef REC_BASE_HH
+#define REC_BASE_HH
 
 #include <core/xmipp_program.h>
-#include "superiorization_regularizer.h"
-#include "superiorization_proximity.h"
-#include "superiorization_reconstruct_base.h"
 
-/* The user interface program should make a call to the run routine.
-  */
-class ProgReconsSuper: public XmippProgram
+#include "superiorization_reconstruct_method.h"
+
+class ReconsBase
 {
-private:
-	enum class lmode {ATL0,ATL1,ATL2};
-	lmode mode_l;
-	double a,b,epsilon;
-	int N;
-	SuperProx Pr;
-	SuperRegular<double> phi;
-	ReconsBase B;
-public:
-    FileName fnTiltSeries, fnOut;
-    int Zsize;
-	String phi_method, l_method, pr_method, rec_method;
-public:
-    ///Functions of common reconstruction interface
-	ProgReconsSuper();
-    void defineParams();
-    void readParams();
-    void produceSideInfo();
-    void show();
-    void run();
-};
+ private:
+    enum classType{ART};
+    classType RecType;
+    RecMeth* B;
+ 
+ public:
+    ReconsBase();
+    ReconsBase(const String &StrType);
+    void set(std::string StrType);
+    void operator()(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A);
+    
+}; /* virtual class for second criterion */
 
-#endif
+#endif /* REC_BASE_HH */
+

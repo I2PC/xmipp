@@ -26,6 +26,8 @@
  ***************************************************************************/
 
 #include "reconstruct_superiorization.h"
+
+#include "superiorization_reconstruct_base.h"
 #include <core/alglib/ap.h>
 
 /******************************************************************************/
@@ -328,7 +330,7 @@ double beta;
                }
             }
         }
-//     B(x,TS,tiltAngles);
+     B(x,TS,tiltAngles);
      k += 1;
      if(Pr(x) < epsilon){
         break;

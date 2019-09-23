@@ -24,38 +24,28 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_SUPER_HH
-#define _PROG_SUPER_HH
 
-#include <core/xmipp_program.h>
-#include "superiorization_regularizer.h"
-#include "superiorization_proximity.h"
-#include "superiorization_reconstruct_base.h"
+#include "superiorization_reconstruct_method.h"
 
-/* The user interface program should make a call to the run routine.
-  */
-class ProgReconsSuper: public XmippProgram
+#include <core/alglib/ap.h>
+
+#include <functional>
+#include <cmath>
+
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/****************** Definition of Public Methods ******************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+/**
+**
+** Computes the Second Criterion
+**
+*/
+void RecMeth::B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A)
 {
-private:
-	enum class lmode {ATL0,ATL1,ATL2};
-	lmode mode_l;
-	double a,b,epsilon;
-	int N;
-	SuperProx Pr;
-	SuperRegular<double> phi;
-	ReconsBase B;
-public:
-    FileName fnTiltSeries, fnOut;
-    int Zsize;
-	String phi_method, l_method, pr_method, rec_method;
-public:
-    ///Functions of common reconstruction interface
-	ProgReconsSuper();
-    void defineParams();
-    void readParams();
-    void produceSideInfo();
-    void show();
-    void run();
-};
-
-#endif
+ memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+}
+#undef DEBUG

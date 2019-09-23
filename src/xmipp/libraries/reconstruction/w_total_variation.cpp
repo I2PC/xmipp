@@ -38,6 +38,22 @@
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
+/*
+ * Default Constructor
+ */
+wtv::wtv()
+{
+ eps = 1.00;
+}
+
+/*
+ * Desstructor
+ */
+wtv::~wtv()
+{
+ w.clear();
+}
+
 /**
 **
 ** Computes the Isometric Total Variation
@@ -52,12 +68,11 @@ double wtv::phi(const MultidimArray<double>& v)
 // std::cout<<v.xdim; // "physical" horizontal limit (x direction)
 // std::cout<<v.ydim; // "physical" horizontal limit (y direction)
 // std::cout<<v.zdim; // "physical" horizontal limit (z direction)
- if(w.getArrayPointer() == NULL){
-	size_t Xdim, Ydim, Zdim, Ndim;
-    v.getDimensions(Xdim, Ydim, Zdim, Ndim);
-	w.resize(Ndim,Zdim,Ydim,Xdim);
-	memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
-   }
+
+ // Guaranteeing the array of weights exists and initializes it
+ if(w.getArrayPointer() == NULL)
+	w.resize(v.zdim,v.ydim,v.xdim);
+ memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
  
  for(uint k=0; k < v.zdim;k++){        // Depth
      for(uint j=0;j < v.ydim;j++){     // Height
@@ -92,6 +107,10 @@ void wtv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
  // std::cout<<v.xdim; // "physical" horizontal limit (x direction)
  // std::cout<<v.ydim; // "physical" horizontal limit (y direction)
  // std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ // Guaranteeing the array of weights exists and initializes it
+ if(w.getArrayPointer() == NULL)
+	w.resize(v.zdim,v.ydim,v.xdim);
+ memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
  
  //
  // Computing the gradient of the total variation function

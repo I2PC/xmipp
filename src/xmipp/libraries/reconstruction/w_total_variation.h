@@ -36,7 +36,10 @@ class wtv:public secc
 {
 private:
 	MultidimArray<double> w;
+	double eps;
  public:
+    wtv();
+    ~wtv();
     double phi(const MultidimArray<double>& u);
     void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
 }; /* class for Weighted Total Variation functions */
