@@ -35,13 +35,15 @@
 class wtv:public secc
 {
 private:
-	MultidimArray<double> w;
-	double eps;
+    MultidimArray<double> w;
+    double eps;
  public:
     wtv();
     ~wtv();
     double phi(const MultidimArray<double>& u);
     void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
+    void init(MultidimArray<double>& u);
+    void update(MultidimArray<double>& u);
 }; /* class for Weighted Total Variation functions */
 
 #endif /* WTV_HH */

@@ -54,6 +54,8 @@ class SuperRegular: public MultidimArray<T>
 	void set(std::string StrType);
 	double operator ()(const MultidimArray<T>& x);
 	void nav(const MultidimArray<T>& x,MultidimArray<T>& v);
+	void init(MultidimArray<T>& x);
+	void update(MultidimArray<T>& x);
 	bool valid(const String &StrType);
 	String getName(void);
  protected:
@@ -141,6 +143,28 @@ template<class T>
 void SuperRegular<T>::nav(const MultidimArray<T>& x, MultidimArray<T>& v)
 {
  SecC->nav(x,v);
+}
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+template<class T>
+void SuperRegular<T>::init(MultidimArray<T>& x)
+{
+ SecC->init(x);
+}
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+template<class T>
+void SuperRegular<T>::update(MultidimArray<T>& x)
+{
+ SecC->update(x);
 }
 
 /**

@@ -57,4 +57,24 @@ void secc::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
 {
  memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
 }
+
+/**
+**
+** Computes the normalized non-ascending vector
+**
+*/
+void secc::init(MultidimArray<double>& v)
+{
+ 
+}
+
+/**
+**
+** Computes the normalized non-ascending vector
+**
+*/
+void secc::update(MultidimArray<double>& v)
+{
+ 
+}
 #undef DEBUG

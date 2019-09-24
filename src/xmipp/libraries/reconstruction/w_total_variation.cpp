@@ -56,7 +56,7 @@ wtv::~wtv()
 
 /**
 **
-** Computes the Isometric Total Variation
+** Computes the Weighted Total Variation
 **
 */
 double wtv::phi(const MultidimArray<double>& v)
@@ -68,11 +68,6 @@ double wtv::phi(const MultidimArray<double>& v)
 // std::cout<<v.xdim; // "physical" horizontal limit (x direction)
 // std::cout<<v.ydim; // "physical" horizontal limit (y direction)
 // std::cout<<v.zdim; // "physical" horizontal limit (z direction)
-
- // Guaranteeing the array of weights exists and initializes it
- if(w.getArrayPointer() == NULL)
-	w.resize(v.zdim,v.ydim,v.xdim);
- memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
  
  for(uint k=0; k < v.zdim;k++){        // Depth
      for(uint j=0;j < v.ydim;j++){     // Height
@@ -80,7 +75,7 @@ double wtv::phi(const MultidimArray<double>& v)
              dw = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
              dh = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
              dd = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-             sum = sum + sqrt(dw*dw + dh*dh + dd*dd);
+             sum = sum + w.data[P(i,j,k)]*sqrt(dw*dw + dh*dh + dd*dd);
             }
         }
     }
@@ -91,85 +86,88 @@ double wtv::phi(const MultidimArray<double>& v)
 
 /**
 **
-** Computes the normalized non-ascending vector for the Isometric Total Variation
-** TV(x) = SUM of the sqrt( (x(i,j,k) - x(i+1,j,k))^2 + (x(i,j,k) - x(i,j+1,k))^2 +(x(i,j,k) - x(i,j,k+1))^2 ) =
-**       = SUM sqrt( (x_i - x_r)^2 + (x_i - x_u)^2 + (x_i - x_b)^2 )
+** Computes the normalized non-ascending vector for the Weighted Total Variation
+** TV(x) = SUM of the w(x(i,j,k))*sqrt( (x(i,j,k) - x(i+1,j,k))^2 + (x(i,j,k) - x(i,j+1,k))^2 +(x(i,j,k) - x(i,j,k+1))^2 ) =
+**       = SUM w(x_i)*sqrt( (x_i - x_r)^2 + (x_i - x_u)^2 + (x_i - x_b)^2 )
 ** d/dx(i,j,k) TV / || d/dx(i,j,k) TV ||
 **
 */
-void wtv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
+void wtv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
 #define ZERO pow(10,-15)
  double denom = 0.0;
  double dw,dh,dd;
  
- // std::cout<<v.xdim; // "physical" horizontal limit (x direction)
- // std::cout<<v.ydim; // "physical" horizontal limit (y direction)
- // std::cout<<v.zdim; // "physical" horizontal limit (z direction)
+ // std::cout<<u.xdim; // "physical" horizontal limit (x direction)
+ // std::cout<<u.ydim; // "physical" horizontal limit (y direction)
+ // std::cout<<u.zdim; // "physical" horizontal limit (z direction)
  // Guaranteeing the array of weights exists and initializes it
- if(w.getArrayPointer() == NULL)
-	w.resize(v.zdim,v.ydim,v.xdim);
- memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
  
  //
  // Computing the gradient of the total variation function
  //
  memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
- for(uint k=0; k < v.zdim;k++)         // Depth
-     for(uint j=0;j < v.ydim;j++)      // Height
-         for(uint i=0;i < v.xdim;i++){ // Width
+ for(uint k=0; k < u.zdim;k++)         // Depth
+     for(uint j=0;j < u.ydim;j++)      // Height
+         for(uint i=0;i < u.xdim;i++){ // Width
              //
              // First Case
              // (d/d x_i) of TV
              //
-             if(i<(v.xdim-1) && j<(v.ydim-1) && k<(v.zdim-1)){
-                dw = v.data[P(i,j,k)] - v.data[P(i+1,j,k)];
-                dh = v.data[P(i,j,k)] - v.data[P(i,j+1,k)];
-                dd = v.data[P(i,j,k)] - v.data[P(i,j,k+1)];
+             if(i<(u.xdim-1) && j<(u.ydim-1) && k<(u.zdim-1)){
+                dw = u.data[P(i,j,k)] - u.data[P(i+1,j,k)];
+                dh = u.data[P(i,j,k)] - u.data[P(i,j+1,k)];
+                dd = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (3*v.data[P(i,j,k)] - v.data[P(i+1,j,k)] - v.data[P(i,j+1,k)] - v.data[P(i,j,k+1)])/denom;
+                   v.data[P(i,j,k)] += w.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
+                                        u.data[P(i+1,j,k)] -
+                                        u.data[P(i,j+1,k)] -
+                                        u.data[P(i,j,k+1)])/denom;
                }
              //
              // Second Case
              // (d/d x_r) of TV (x_r is the base and not x_i)
              //
-             if(i>0 && i<v.xdim && j<(v.ydim-1) && k<(v.zdim-1)){
-                dw = v.data[P(i-1,j,k)] - v.data[P(i,j,k)];
-                dh = v.data[P(i-1,j,k)] - v.data[P(i-1,j+1,k)];
-                dd = v.data[P(i-1,j,k)] - v.data[P(i-1,j,k+1)];
+             if(i>0 && i<u.xdim && j<(u.ydim-1) && k<(u.zdim-1)){
+                dw = u.data[P(i-1,j,k)] - u.data[P(i,j,k)];
+                dh = u.data[P(i-1,j,k)] - u.data[P(i-1,j+1,k)];
+                dd = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i-1,j,k)])/denom;
+                   v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
+                                              u.data[P(i-1,j,k)])/denom;
                }
              //
              // Third Case
              // (d/d x_u) of TV (x_u is the base and not x_i)
              //
-             if(i<(v.xdim-1) && j>0 && j<v.ydim && k<(v.zdim-1)){
-                dw = v.data[P(i,j-1,k)] - v.data[P(i+1,j-1,k)];
-                dh = v.data[P(i,j-1,k)] - v.data[P(i,j,k)];
-                dd = v.data[P(i,j-1,k)] - v.data[P(i,j-1,k+1)];
+             if(i<(u.xdim-1) && j>0 && j<u.ydim && k<(u.zdim-1)){
+                dw = u.data[P(i,j-1,k)] - u.data[P(i+1,j-1,k)];
+                dh = u.data[P(i,j-1,k)] - u.data[P(i,j,k)];
+                dd = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j-1,k)])/denom;
+                   v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
+                                              u.data[P(i,j-1,k)])/denom;
                }
              //
              // Fourth Case
              // (d/d x_b) of TV (x_b is the base and not x_i)
              //
-             if(i<(v.xdim-1) && j<(v.ydim-1) && k>0 && k<v.zdim){
-                dw = v.data[P(i,j,k-1)] - v.data[P(i+1,j,k-1)];
-                dh = v.data[P(i,j,k-1)] - v.data[P(i,j+1,k-1)];
-                dd = v.data[P(i,j,k-1)] - v.data[P(i,j,k)];
+             if(i<(u.xdim-1) && j<(u.ydim-1) && k>0 && k<u.zdim){
+                dw = u.data[P(i,j,k-1)] - u.data[P(i+1,j,k-1)];
+                dh = u.data[P(i,j,k-1)] - u.data[P(i,j+1,k-1)];
+                dd = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j,k-1)])/denom;
+                   v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
+                                              u.data[P(i,j,k-1)])/denom;
                }
             }
  
@@ -199,6 +197,42 @@ void wtv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
    }
  
 #undef ZERO
+#undef P
+}
+
+/**
+**
+** Computes the weighting vector
+**
+*/
+void wtv::init(MultidimArray<double>& v)
+{
+ // Guaranteeing the array of weights exists and initializes it
+ if(w.getArrayPointer() == NULL)
+    w.resize(v.zdim,v.ydim,v.xdim);
+ memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
+}
+
+/**
+**
+** Computes the weighting vector
+**
+*/
+void wtv::update(MultidimArray<double>& v)
+{
+#define P(i,j,k)(i + j*v.xdim + k*v.ydim)
+ double dw,dh,dd;
+ 
+ for(uint k=0; k < v.zdim;k++){        // Depth
+     for(uint j=0;j < v.ydim;j++){     // Height
+         for(uint i=0;i < v.xdim;i++){ // Width
+             dw = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
+             dh = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
+             dd = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
+	     w.data[P(i,j,k)] = 1.0/(sqrt(dw*dw + dh*dh + dd*dd) + eps);
+            }
+        }
+    }
 #undef P
 }
 #undef DEBUG
