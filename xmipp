@@ -759,7 +759,13 @@ def configCuda(configDict):
             else:
                 configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                           "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
+                                           "-ccbin %(CXX_CUDA)s -std=c++11 "
+                                           # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                                           "-gencode=arch=compute_30,code=compute_30 "
+                                           "-gencode=arch=compute_35,code=compute_35 "
+                                           "-gencode=arch=compute_50,code=compute_50 "
+                                           "-gencode=arch=compute_60,code=compute_60 "
+                                           "-gencode=arch=compute_61,code=compute_61")
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
