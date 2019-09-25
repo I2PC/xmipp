@@ -759,7 +759,7 @@ def configCuda(configDict):
             else:
                 configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                           "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
+                                           "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda")
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
