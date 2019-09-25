@@ -98,11 +98,6 @@ public: // Internal members
 	Matrix1D<double> eigenvalues;
 	Matrix2D<double> eigenvectors;
 
-
-    // CCV result matrix
-	//    MultidimArray<double>                   ccMatrixRot; // moved to local variables
-	//    MultidimArray<double>                   ccVectorRot;
-
 	int      peaksFound = 0; // peaksFound in ccVectorRot
 
     // matrix for neighbors and angular distance
@@ -115,14 +110,6 @@ public: // Internal members
 
     int testCounter = 0;
     int testCounter2=0;
-
-//    // candidates for each loop. moved to local variables
-//    std::vector<unsigned int>               candidatesFirstLoop;
-//    std::vector<unsigned int>               Idx;
-//    std::vector<double>                     candidatesFirstLoopCoeff;
-//    std::vector<double>                     bestTx;
-//    std::vector<double>                     bestTy;
-//    std::vector<double>                     bestPsi;
 
     //reference values
     std::vector<double>               referenceRot;
@@ -170,27 +157,27 @@ public:
 
     void postProcess();
 
+    void applyCircularMask(const MultidimArray<double> &in, MultidimArray<double> &out);
+    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
+    void applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
+    void applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyFourierImage3(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
+    void applyRotation(const MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
+    void applyRotation(MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
+    void applyShift(MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
+    void applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
+    void applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
+    void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
     void arithmetic_mean_and_stddev(const MultidimArray<double> &data, double &avg, double &stddev);
     void arithmetic_mean_and_stddev(MultidimArray<double> &data, double &avg, double &stddev);
-    void _applyCircularMask(const MultidimArray<double> &in, MultidimArray<double> &out);
-    void _applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void _applyFourierImage(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void _applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData);
-    void _applyFourierImage2(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void _applyFourierImage3(MultidimArray<double> &data, MultidimArray<std::complex<double> > &FourierData, const size_t &ang);
-    void _applyRotation(const MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
-    void _applyRotation(MultidimArray<double> &MDaRef, double &rot, MultidimArray<double> &MDaRefRot);
-    void _applyShift(MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
-    void _applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
-    void _applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
-    void _applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
 
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
     void bestCand2(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
 
     void completeFourierShift(MultidimArray<double> &in, MultidimArray<double> &out);
     void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result);
-    void ccMatrixPCO(MultidimArray<std::complex<double> > &F1, MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result);
+    void ccMatrixPCO(const MultidimArray<std::complex<double> > &F1,const  MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result);
     void computeHann();
     void computingNeighborGraph();
     void computingNeighborGraph2();
@@ -198,10 +185,9 @@ public:
     void computeCircular();
     void circularWindow(MultidimArray<double> &in);
 
-    void _getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
+    void getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);
     void getShift2(MultidimArray<double> &ccVector, std::vector<double> &cand, const size_t &size);
-    void getRot(MultidimArray<double> &ccVector, double &rot, const size_t &size);
     void graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut);
 
     void halfFourierShift(MultidimArray<double> &in, MultidimArray<double> &out);
@@ -220,11 +206,9 @@ public:
     void meanByRow(MultidimArray<double> &in, MultidimArray<double> &out);
     void maxByRow(MultidimArray<double> &in, MultidimArray<double> &out);
 
-    void newApplyGeometry(MultidimArray<double> &in, MultidimArray<double> &out, const double &a, const double &b, const double &c, const double &d, const double &tx, const double &ty);
     void normalized_cc(MultidimArray<double> &X, MultidimArray<double> &Y, double &valor);
     void normalized_cc(const MultidimArray<double> &X, MultidimArray<double> &Y, double &value);
 
-    void printSomeValues(MultidimArray<double> & MDa);
     void pearsonCorr(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
 
     void rotCandidates3(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
@@ -232,7 +216,6 @@ public:
 
     void ssimIndex(MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
     void ssimIndex(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
-    void selectBands(MultidimArray<double> &in, MultidimArray<double> &out);
 
     void _writeTestFile(const MultidimArray<double> &data, const char* fileName,size_t nFil, size_t nCol);
     void _writeTestFile(MultidimArray<double> &data, const char *fileName);
