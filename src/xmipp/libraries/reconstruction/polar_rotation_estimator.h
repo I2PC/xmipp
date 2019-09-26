@@ -43,6 +43,24 @@ public:
         release();
     }
 
+    PolarRotationEstimator(PolarRotationEstimator& o) = delete;
+    PolarRotationEstimator& operator=(const PolarRotationEstimator& other) = delete;
+    PolarRotationEstimator(PolarRotationEstimator &&o) {
+        m_cpu = o.m_cpu;
+        m_polarFourierI = o.m_polarFourierI;
+        m_refPolarFourierI = o.m_refPolarFourierI;
+        m_rotCorrAux = o.m_rotCorrAux;
+        m_dataAux = o.m_dataAux;
+        m_aux = o.m_aux;
+        m_plans = o.m_plans;
+        m_refPlans = o.m_refPlans;
+        m_firstRing = o.m_firstRing;
+        m_lastRing = o.m_lastRing;
+        // remove data from other
+        o.setDefault();
+    }
+    PolarRotationEstimator const & operator=(PolarRotationEstimator &&o) = delete;
+
 private:
     CPU *m_cpu;
     Polar<std::complex<double>> m_polarFourierI; // FIXME DS add template
