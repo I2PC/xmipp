@@ -35,9 +35,11 @@
 class RecART:public RecMeth
 {
  private:
-    
+    double lambda;
  public:
-    void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A);
+    RecART();
+    void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k);
+    void setParam(const double l);
 }; /* virtual class for second criterion */
 
 #endif /* REC_METHOD_ART_HH */

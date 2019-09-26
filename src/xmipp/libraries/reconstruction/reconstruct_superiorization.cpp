@@ -54,8 +54,9 @@ void ProgReconsSuper::defineParams()
  addParamsLine("  -b <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
  addParamsLine("  -N <N = 0>           : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
  addParamsLine("  [--rec <rec = ART>]  : Defines the reconstruction algorithm (rec = ART).");
+ addParamsLine("  [--lart <lart = 1.0>]: Defines the lambda for ART (lambda = 1.0).");
  addParamsLine("  [--atl <atl = ATL0>] : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
- addParamsLine("  [--phi <phi = TV>]   : Defines the second criterion. By default, phi is Total Variation (phi = TV).");
+ addParamsLine("  [--phi <phi = ITV>]  : Defines the second criterion. By default, phi is Total Variation (phi = TV).");
  addParamsLine("  [--Pr <prox = L2SQ>] : Defines the proximity function for the solution. By default, the proximity function is the squared Euclidean norm.");
 }
 
@@ -75,7 +76,9 @@ void ProgReconsSuper::readParams()
  a            = getDoubleParam("-a");
  b            = getDoubleParam("-b");
  N            = getIntParam("-N");
+ 
  rec_method   = getParam("--rec");
+ lart         = getDoubleParam("--lart");
  l_method     = getParam("--atl");
  phi_method   = getParam("--phi");
  pr_method    = getParam("--Pr");
@@ -116,6 +119,7 @@ void ProgReconsSuper::show()
 
 /**
 **
+** Default constructor.
 ** Method to initialize variables and status before running but after reading from the command line.
 **
 */
@@ -127,6 +131,7 @@ ProgReconsSuper::ProgReconsSuper()
  epsilon = 0.0;
  N = 0;
  Zsize = 0;
+ lart = 1.0;
 
  rec_method = "ART";
  phi_method = "ITV";
@@ -135,7 +140,22 @@ ProgReconsSuper::ProgReconsSuper()
 
  Pr.set(pr_method);
  phi.set(phi_method);
- //B.set(rec_method);
+ B.set(rec_method);
+ B.setParam(lart);
+}
+
+/**
+**
+** The Destructor, ha ha ha.
+**
+*/
+ProgReconsSuper::~ProgReconsSuper()
+{
+ /*
+ Pr.set(pr_method);
+ phi.set(phi_method);
+ B.set(rec_method);
+ */
 }
 
 /**
@@ -143,7 +163,7 @@ ProgReconsSuper::ProgReconsSuper()
 ** Method to initialize variables and status before executing algorithm/method but after reading arguments from the command line.
 **
 */
-void ProgReconsSuper::produceSideInfo()
+void ProgReconsSuper::checkArgsInfo()
 {
  //
  // Checking for the existence of input file
@@ -241,7 +261,7 @@ void ProgReconsSuper::run()
  //
  // Processing the input arguments
  //
- produceSideInfo();
+ checkArgsInfo();
 
  //
  // Showing the arguments' values used by the program
@@ -254,16 +274,17 @@ void ProgReconsSuper::run()
  FileName fnImg;
  mdTS.read(fnTiltSeries);
 
+ //
+ // Initialize data, variables,
+ // reconstruction algorithm, second criterion
+ // and proximity function
  /*
   *
-  * Processing the variables according to the input arguments
+  * Load the tilt series into memory
   *
   */
- //
- // Load the tilt series into memory
- //
  Image<double> I, V;
- MultidimArray<double> TS,x,v,z;
+ MultidimArray<double> TS;
  std::vector<double> tiltAngles;
 
  int k=0;
@@ -285,17 +306,40 @@ void ProgReconsSuper::run()
  //for (int k=0; k<ZSIZE(TS); k++)
 //	   std::cout << tiltAngles[k] << std::endl;
 
-/*
- *
- * Superiorization Section
- *
- */
+ /*
+  *
+  * Reconstruction Algorithm
+  *
+  */
+ B.setParam(lart);
+
+ /*
+  *
+  * Allocating memory and resizing the final reconstruction and
+  * the necessary vectors for superiorization (non-ascending and z)
+  *
+  */
+ MultidimArray<double> x,v,z;
+std::cout<<"INPUT SIZE: "<<TS.xdim<<" , "<<TS.ydim<<" , "<<TS.zdim<<std::endl;
+ int side = (TS.xdim - 3)*M_SQRT1_2;
+ x.resize(side,side,TS.ydim);
+ v.resize(side,side,TS.ydim);
+ z.resize(side,side,TS.ydim);
+ exit(0);
+ /*
+  *
+  * Superiorization Section
+  *
+  */
  //
  // Further Initializing variables
  //
  //x().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
  //v().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
  //z().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
+phi.init(x);
+
+k=0;
 int n = 0;
 int l = 0;
 bool loop;
@@ -330,7 +374,8 @@ double beta;
                }
             }
         }
-     B(x,TS,tiltAngles);
+     B(x,TS,tiltAngles,k);
+     phi.update(x);
      k += 1;
      if(Pr(x) < epsilon){
         break;
@@ -339,5 +384,12 @@ double beta;
 	 std::cout << "k: " << k <<std::endl;
 #endif
     }
+ //
+ // Finishing the reconstruction
+ //
+ v.clear();
+ z.clear();
+ x.write(fnOut);
+ x.clear();
 }
 #undef DEBUG

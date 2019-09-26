@@ -39,7 +39,7 @@ class ProgReconsSuper: public XmippProgram
 private:
 	enum class lmode {ATL0,ATL1,ATL2};
 	lmode mode_l;
-	double a,b,epsilon;
+	double a,b,epsilon,lart;
 	int N;
 	SuperProx Pr;
 	SuperRegular<double> phi;
@@ -51,9 +51,10 @@ public:
 public:
     ///Functions of common reconstruction interface
 	ProgReconsSuper();
+	~ProgReconsSuper();
     void defineParams();
     void readParams();
-    void produceSideInfo();
+    void checkArgsInfo();
     void show();
     void run();
 };

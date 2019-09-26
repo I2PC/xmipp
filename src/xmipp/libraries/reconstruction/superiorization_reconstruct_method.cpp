@@ -44,7 +44,7 @@
 ** Computes the Second Criterion
 **
 */
-void RecMeth::B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A)
+void RecMeth::B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k)
 {
  memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
 }

@@ -35,7 +35,7 @@ class RecMeth
  private:
     
  public:
-    virtual void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A);
+    virtual void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k);
 }; /* virtual class for second criterion */
 
 #endif /* REC_METHOD_HH */

@@ -43,7 +43,10 @@ class ReconsBase
     ReconsBase();
     ReconsBase(const String &StrType);
     void set(std::string StrType);
-    void operator()(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A);
+    std::string getName();
+    void setParam(const double v);
+    void operator()(MultidimArray<double>& v,const MultidimArray<double>& P,
+                    const std::vector<double>& A,const int k);
     
 }; /* virtual class for second criterion */
 

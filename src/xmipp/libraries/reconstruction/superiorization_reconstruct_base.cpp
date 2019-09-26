@@ -80,6 +80,37 @@ void ReconsBase::set(std::string StrType)
     B = new RecART;
    }
 }
+
+/**
+**
+** Method to select the desired reconstruction algorithm
+**
+*/
+std::string ReconsBase::getName()
+{
+ if(RecType == ART){
+    return std::string("ART");
+   }
+
+ return std::string("Not Set");
+}
+
+/**
+**
+** Method to select the desired reconstruction algorithm
+**
+*/
+void ReconsBase::setParam(const double v)
+{
+ switch(RecType){
+     case ART:
+        dynamic_cast<RecART*>(B)->setParam(v);
+        break;
+     default:
+        break;
+    }
+}
+
 /**
 **
 ** Calls the selected reconstruction algorithm
@@ -87,7 +118,7 @@ void ReconsBase::set(std::string StrType)
 */
 void ReconsBase::operator()(MultidimArray<double>& v,
                             const MultidimArray<double>& P,
-			    const std::vector<double>& A)
+			    const std::vector<double>& A,const int k)
 {
  
 }
