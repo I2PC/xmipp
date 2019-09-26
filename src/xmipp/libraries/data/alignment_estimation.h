@@ -31,7 +31,7 @@
 namespace Alignment {
 
 struct AlignmentEstimation {
-    AlignmentEstimation(size_t n) {
+    explicit AlignmentEstimation(size_t n) {
         poses.resize(n);
         for (auto &m : poses) {
             m.initIdentity(3);

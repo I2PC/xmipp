@@ -46,6 +46,39 @@ public :
         release();
     }
 
+    CudaRotPolarEstimator(CudaRotPolarEstimator& o) = delete;
+    CudaRotPolarEstimator& operator=(const CudaRotPolarEstimator& other) = delete;
+    CudaRotPolarEstimator(CudaRotPolarEstimator &&o) {
+        m_loadStream = o.m_loadStream;
+        m_workStream = o.m_workStream;
+        m_firstRing = o.m_firstRing;
+        m_lastRing = o.m_lastRing;
+        m_samples = o.m_samples;
+
+        // device memory
+        m_d_ref = o.m_d_ref;
+        m_d_batch = o.m_d_batch;
+        m_d_batchPolarOrCorr = o.m_d_batchPolarOrCorr;
+        m_d_batchPolarFD = o.m_d_batchPolarFD;
+
+        // FT plans
+        m_singleToFD = o.m_singleToFD;
+        m_batchToFD = o.m_batchToFD;
+        m_batchToSD = o.m_batchToSD;
+
+        // synch primitives
+        m_mutex = o.m_mutex;
+        m_cv = o.m_cv;
+        m_isDataReady = o.m_isDataReady;
+
+        // host memory
+        m_h_batchResult = o.m_h_batchResult;
+
+        // remove data from other
+        o.setDefault();
+    }
+    CudaRotPolarEstimator const & operator=(CudaRotPolarEstimator &&o) = delete;
+
     static void sComputeCorrelationsOneToN(
             const GPU &gpu,
             std::complex<T> *d_inOut,
