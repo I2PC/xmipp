@@ -292,9 +292,9 @@ def cloneOrCheckout(repo, branch):
         # If the repo doesn't exist, just clone the whole repo
         if branch is None:
             # let the git client to decide what is the default branch
-            runJob("git clone %s %s" % (REPOSITORIES[repo], repo_dir))
+            return runJob("git clone %s %s" % (REPOSITORIES[repo], repo_dir))
         else:
-            runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
+            return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
     else:
         workDir = os.getcwd()
         os.chdir(repo_dir)
