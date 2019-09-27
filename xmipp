@@ -290,7 +290,11 @@ def cloneOrCheckout(repo, branch):
     branch = branch or getBranch(repo, repo_dir)[1]
     if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
-        return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
+        if branch is None:
+            # let the git client to decide what is the default branch
+            return runJob("git clone %s %s" % (REPOSITORIES[repo], repo_dir))
+        else:
+            return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
     else:
         workDir = os.getcwd()
         os.chdir(repo_dir)
@@ -344,11 +348,15 @@ def getBranch(repo, repo_dir):
     r, branch = getCurrentBranch(repo_dir)
     if r:
         return r, branch
-    return  getDefaultBranch(repo)
+    return getDefaultBranch(repo)
 
 def getDefaultBranch(repo):
     log = []
     key = 'HEAD branch:'
+    # this might not work for git < 1.8.5,
+    # see https://stackoverflow.com/a/32503667/5484355
+    # and https://stackoverflow.com/questions/2832269/git-remote-head-is-ambiguous
+    # In such a case we return None (and during e.g. clone the client should decide what is the default branch)
     result = runJob('git remote show %s' % REPOSITORIES[repo],
         show_output=False, log=log, show_command=False)
     if result:
@@ -356,7 +364,7 @@ def getDefaultBranch(repo):
             if key in l:
                 branch = l.split(key)[1] # HEAD branch: devel
                 return (True, branch.strip())
-    print(red('Cannot get defaul branch for ' + repo))
+    print(red('Cannot auto-detect default branch for ' + repo + '. Maybe git version < 1.8.5?'))
     return (False, None)
 
 
