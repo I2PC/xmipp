@@ -226,8 +226,9 @@ private:
 
     void createFFTPlans() {
         gpu.set();
-        planForward = CudaFFT<T>::createPlan(gpu, FFTSettingsNew<T>{ xdim, ydim, zdim, 1, 1, false, true } );
-        planBackward = CudaFFT<T>::createPlan(gpu, FFTSettingsNew<T>{ xdim, ydim, zdim, 1, 1, false, false } );
+        auto forward_settings = FFTSettingsNew<T>{ xdim, ydim, zdim, 1, 1, false, true };
+        planForward = CudaFFT<T>::createPlan(gpu, forward_settings);
+        planBackward = CudaFFT<T>::createPlan(gpu, forward_settings.createInverse());
     }
 
     void initializeFilter() {
