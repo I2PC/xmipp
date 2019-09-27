@@ -23,7 +23,7 @@ template< typename T >
 void filterS(const T* d_R2, std::complex<T>* d_fVol, size_t volume_size);
 
 template< typename T >
-void maskForCDF(T* d_aux, const T* d_S, const int* d_mask, size_t volume_size);
+void maskForCDF(T* __restrict__ d_aux, const T* __restrict__ d_S, const int* __restrict__ d_mask, size_t volume_size);
 
 template< typename T >
 void maskWithNoiseProbability(T* d_V, const Gpu::CDF<T>& cdf_S, const Gpu::CDF<T>& cdf_N, size_t volume_size);
@@ -41,19 +41,19 @@ template< typename T >
 void normalizeForFFT(T* d_V1, size_t volume_size);
 
 template< typename T >
-void restorationSigmaCostError(T& error, const std::complex<T>* d_fVol, const std::complex<T>* d_fV1, const std::complex<T>* d_fV2, const T* d_R2, T K1, T K2, size_t fourier_size);
+void restorationSigmaCostError(T& error, const std::complex<T>* d_fVol, const std::complex<T>* d_fV1, const std::complex<T>* d_fV2, const T* __restrict__ d_R2, T K1, T K2, size_t fourier_size);
 
 template< typename T >
-void computeDiffAndAverage(const T* d_V1, const T* d_V2, T* d_S, T* d_N, size_t volume_size);
+void computeDiffAndAverage(const T* __restrict__ d_V1, const T* __restrict__ d_V2, T* __restrict__ d_S, T* __restrict__ d_N, size_t volume_size);
 
 template< typename T >
-std::pair<T, T> computeAvgStd(const T* d_N, size_t volume_size);
+std::pair<T, T> computeAvgStd(const T* __restrict__ d_N, size_t volume_size);
 
 template< typename T >
-std::pair<T, T> computeAvgStdWithMask(const T* d_N, const int* d_mask, size_t mask_size, size_t volume_size);
+std::pair<T, T> computeAvgStdWithMask(const T* __restrict__ d_N, const int* __restrict__ d_mask, size_t mask_size, size_t volume_size);
 
 template< typename T >
-void computeDifference(T* d_V1, T* d_V2, const T* d_S, const T* d_N, T k, size_t volume_size);
+void computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __restrict__ d_S, const T* __restrict__ d_N, T k, size_t volume_size);
 
 } // namespace Gpu
 

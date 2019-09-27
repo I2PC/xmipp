@@ -5,8 +5,8 @@
 namespace Gpu {
 
 template< typename T >
-__global__ void computeWeightsKernel(const T* d_Vfiltered1, const T* d_Vfiltered2, T* d_V1r, T* d_V2r, T* d_S,
-			const T* d_x, const T* d_probXLessThanx, const T* d_V, size_t volume_size, size_t Nsteps,
+__global__ void computeWeightsKernel(const T* __restrict__ d_Vfiltered1, const T* __restrict__ d_Vfiltered2, T* __restrict__ d_V1r, T* __restrict__ d_V2r,
+ 						T* __restrict__ d_S, const T* __restrict__ d_x, const T* __restrict__ d_probXLessThanx, const T* __restrict__ d_V, size_t volume_size, size_t Nsteps,
 			T weightPower, int weightFun) {
 
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
@@ -46,7 +46,7 @@ __global__ void computeWeightsKernel(const T* d_Vfiltered1, const T* d_Vfiltered
 }
 
 template< typename T >
-__global__ void filterFourierVolumeKernel(const T* d_R2, const vec2_type<T>* d_fV, vec2_type<T>* d_buffer, size_t volume_size, T w2, T w2Step) {
+__global__ void filterFourierVolumeKernel(const T* __restrict__ d_R2, const vec2_type<T>* __restrict__ d_fV, vec2_type<T>* __restrict__ d_buffer, size_t volume_size, T w2, T w2Step) {
 
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -64,7 +64,7 @@ __global__ void filterFourierVolumeKernel(const T* d_R2, const vec2_type<T>* d_f
 }
 
 template< typename T >
-__global__ void computeAveragePositivityKernel(const T* d_V1, const T* d_V2, T* d_S, size_t volume_size, T inv_size) {
+__global__ void computeAveragePositivityKernel(const T* __restrict__ d_V1, const T* __restrict__ d_V2, T* __restrict__ d_S, size_t volume_size, T inv_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {
@@ -80,7 +80,7 @@ __global__ void computeAveragePositivityKernel(const T* d_V1, const T* d_V2, T* 
 }
 
 template< typename T >
-__global__ void computeAveragePositivityKernel(const T* d_V1, const T* d_V2, T* d_S, const int* d_mask, size_t volume_size, T inv_size) {
+__global__ void computeAveragePositivityKernel(const T* __restrict__ d_V1, const T* __restrict__ d_V2, T* __restrict__ d_S, const int* __restrict__ d_mask, size_t volume_size, T inv_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {
@@ -96,7 +96,7 @@ __global__ void computeAveragePositivityKernel(const T* d_V1, const T* d_V2, T* 
 }
 
 template< typename T >
-__global__ void filterSKernel(const T* d_R2, vec2_type<T>* d_fVol, size_t volume_size) {
+__global__ void filterSKernel(const T* __restrict__ d_R2, vec2_type<T>* __restrict__ d_fVol, size_t volume_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {
@@ -110,8 +110,8 @@ __global__ void filterSKernel(const T* d_R2, vec2_type<T>* d_fVol, size_t volume
 }
 
 template< typename T >
-__global__ void maskWithNoiseProbabilityKernel(T* d_V, const T* d_xS, const T* d_probXLessThanxS, const T* d_VS, size_t NstepsS, size_t Ssize,
-										const T* d_xN, const T* d_probXLessThanxN, const T* d_VN, size_t NstepsN, size_t Nsize) {
+__global__ void maskWithNoiseProbabilityKernel(T* __restrict__ d_V, const T* __restrict__ d_xS, const T* __restrict__ d_probXLessThanxS, const T* __restrict__ d_VS, size_t NstepsS, size_t Ssize,
+										const T* __restrict__ d_xN, const T* __restrict__ d_probXLessThanxN, const T* __restrict__ d_VN, size_t NstepsN, size_t Nsize) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= Nsize) {
@@ -128,7 +128,8 @@ __global__ void maskWithNoiseProbabilityKernel(T* d_V, const T* d_xS, const T* d
 }
 
 template< typename T >
-__global__ void deconvolveRestoredKernel(vec2_type<T>* d_fVol, vec2_type<T>* d_fV1, vec2_type<T>* d_fV2, const T* d_R2, T K1, T K2, T lambda, size_t volume_size, T inv_size) {
+__global__ void deconvolveRestoredKernel(vec2_type<T>* __restrict__ d_fVol, vec2_type<T>* __restrict__ d_fV1, vec2_type<T>* __restrict__ d_fV2,
+							const T* __restrict__ d_R2, T K1, T K2, T lambda, size_t volume_size, T inv_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {
@@ -156,7 +157,7 @@ __global__ void deconvolveRestoredKernel(vec2_type<T>* d_fVol, vec2_type<T>* d_f
 }
 
 template< typename T >
-__global__ void convolveFourierVolumeKernel(vec2_type<T>* d_fVol, const T* d_R2, T K, size_t volume_size) {
+__global__ void convolveFourierVolumeKernel(vec2_type<T>* __restrict__ d_fVol, const T* __restrict__ d_R2, T K, size_t volume_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {
@@ -171,7 +172,7 @@ __global__ void convolveFourierVolumeKernel(vec2_type<T>* d_fVol, const T* d_R2,
 }
 
 template< typename T >
-__global__ void normalizeForFFTKernel(T* d_V1, T* d_V2, size_t volume_size, T inv_size) {
+__global__ void normalizeForFFTKernel(T* __restrict__ d_V1, T* __restrict__ d_V2, size_t volume_size, T inv_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {
@@ -183,7 +184,7 @@ __global__ void normalizeForFFTKernel(T* d_V1, T* d_V2, size_t volume_size, T in
 }
 
 template< typename T >
-__global__ void normalizeForFFTKernel(T* d_V1, size_t volume_size, T inv_size) {
+__global__ void normalizeForFFTKernel(T* __restrict__ d_V1, size_t volume_size, T inv_size) {
 	int n = blockIdx.x * blockDim.x + threadIdx.x;
 
 	if (n >= volume_size) {

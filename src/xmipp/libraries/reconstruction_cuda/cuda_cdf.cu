@@ -8,7 +8,7 @@ T interp(T x, T x0, T y0, T xF, T yF) {
 
 template< typename T >
 __device__
-T getCDFProbability(T xi, const T* x, const T* probXLessThanx, size_t Nsteps, T minVal, T maxVal) {
+T getCDFProbability(T xi, const T* __restrict__ x, const T* __restrict__ probXLessThanx, size_t Nsteps, T minVal, T maxVal) {
 	if (xi > maxVal)
 		return 1;
 	else if (xi < minVal)

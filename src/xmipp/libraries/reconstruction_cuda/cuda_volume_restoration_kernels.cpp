@@ -90,7 +90,7 @@ template void filterS<double>(const double*, std::complex<double>*, size_t);
 template void filterS<float>(const float*, std::complex<float>*, size_t);
 
 template< typename T >
-void maskForCDF(T* d_aux, const T* d_S, const int* d_mask, size_t volume_size) {
+void maskForCDF(T* __restrict__ d_aux, const T* __restrict__ d_S, const int* __restrict__ d_mask, size_t volume_size) {
 	auto k = [] __device__ (int x) {
 		return x;
 	};
@@ -98,8 +98,8 @@ void maskForCDF(T* d_aux, const T* d_S, const int* d_mask, size_t volume_size) {
 	thrust::copy_if(thrust::device, d_S, d_S + volume_size, d_mask, d_aux, k);
 }
 
-template void maskForCDF<double>(double*, const double*, const int*, size_t);
-template void maskForCDF<float>(float*, const float*, const int*, size_t);
+template void maskForCDF<double>(double* __restrict__, const double* __restrict__, const int* __restrict__, size_t);
+template void maskForCDF<float>(float* __restrict__, const float* __restrict__, const int* __restrict__, size_t);
 
 template< typename T >
 void maskWithNoiseProbability(T* d_V, const Gpu::CDF<T>& cdf_S, const Gpu::CDF<T>& cdf_N, size_t volume_size) {
@@ -174,24 +174,24 @@ template void normalizeForFFT<double>(double*, size_t);
 template void normalizeForFFT<float>(float*, size_t);
 
 template< typename T >
-void restorationSigmaCostError(T& error, const std::complex<T>* _d_fVol, const std::complex<T>* _d_fV1, const std::complex<T>* _d_fV2, const T* d_R2, T K1, T K2, size_t fourier_size) {
-	T inv_size = 1.0 / (2 * fourier_size);
+void restorationSigmaCostError(T& error, const std::complex<T>* _d_fVol, const std::complex<T>* _d_fV1, const std::complex<T>* _d_fV2, const T* __restrict__ d_R2, T K1, T K2, size_t fourier_size) {
+	const T inv_size = 1.0 / (2 * fourier_size);
 
-	const vec2_type<T>* d_fVol = (vec2_type<T>*)_d_fVol;
-	const vec2_type<T>* d_fV1 = (vec2_type<T>*)_d_fV1;
-	const vec2_type<T>* d_fV2 = (vec2_type<T>*)_d_fV2;
+	const vec2_type<T>* __restrict__ d_fVol = (vec2_type<T>*)_d_fVol;
+	const vec2_type<T>* __restrict__ d_fV1 = (vec2_type<T>*)_d_fV1;
+	const vec2_type<T>* __restrict__ d_fV2 = (vec2_type<T>*)_d_fV2;
 
 	auto error_func = [=] __device__ (int n) {
-		T R2n = d_R2[n];
+		const T R2n = d_R2[n];
 		if (R2n <= 0.25) {
-			T H1 = exp(K1 * R2n);
-			T H2 = exp(K2 * R2n);
+			const T H1 = exp(K1 * R2n);
+			const T H2 = exp(K2 * R2n);
 
-			T diff1_x = (d_fVol[n].x*H1 - d_fV1[n].x) * inv_size;
-			T diff1_y = (d_fVol[n].y*H1 - d_fV1[n].y) * inv_size;
+			const T diff1_x = (d_fVol[n].x*H1 - d_fV1[n].x) * inv_size;
+			const T diff1_y = (d_fVol[n].y*H1 - d_fV1[n].y) * inv_size;
 
-			T diff2_x = (d_fVol[n].x*H2 - d_fV2[n].x) * inv_size;
-			T diff2_y = (d_fVol[n].y*H2 - d_fV2[n].y) * inv_size;
+			const T diff2_x = (d_fVol[n].x*H2 - d_fV2[n].x) * inv_size;
+			const T diff2_y = (d_fVol[n].y*H2 - d_fV2[n].y) * inv_size;
 
 			return sqrt(diff1_x*diff1_x + diff1_y*diff1_y) + sqrt(diff2_x*diff2_x + diff2_y*diff2_y);
 		}
@@ -202,11 +202,11 @@ void restorationSigmaCostError(T& error, const std::complex<T>* _d_fVol, const s
 	error = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(fourier_size), error_func, static_cast<T>(0), thrust::plus<T>());
 }
 
-template void restorationSigmaCostError<double>(double&, const std::complex<double>*, const std::complex<double>*, const std::complex<double>*, const double*, double, double, size_t);
-template void restorationSigmaCostError<float>(float&, const std::complex<float>*, const std::complex<float>*, const std::complex<float>*, const float*, float, float, size_t);
+template void restorationSigmaCostError<double>(double&, const std::complex<double>*, const std::complex<double>*, const std::complex<double>*, const double* __restrict__, double, double, size_t);
+template void restorationSigmaCostError<float>(float&, const std::complex<float>*, const std::complex<float>*, const std::complex<float>*, const float* __restrict__, float, float, size_t);
 
 template< typename T >
-void computeDiffAndAverage(const T* d_V1, const T* d_V2, T* d_S, T* d_N, size_t volume_size) {
+void computeDiffAndAverage(const T* __restrict__ d_V1, const T* __restrict__ d_V2, T* __restrict__ d_S, T* __restrict__ d_N, size_t volume_size) {
 	auto k = [=] __device__ (int n) {
 		d_N[n] = d_V1[n] - d_V2[n];
 		d_S[n] = (d_V1[n] + d_V2[n]) * static_cast<T>(0.5);
@@ -215,8 +215,8 @@ void computeDiffAndAverage(const T* d_V1, const T* d_V2, T* d_S, T* d_N, size_t 
 	thrust::for_each_n(thrust::device, thrust::counting_iterator<int>(0), volume_size, k);
 }
 
-template void computeDiffAndAverage<double>(const double*, const double*, double*, double*, size_t);
-template void computeDiffAndAverage<float>(const float*, const float*, float*, float*, size_t);
+template void computeDiffAndAverage<double>(const double* __restrict__, const double* __restrict__, double* __restrict__, double* __restrict__, size_t);
+template void computeDiffAndAverage<float>(const float* __restrict__, const float* __restrict__, float* __restrict__, float* __restrict__, size_t);
 
 template< typename T >
 std::pair<T, T> normAvgStd(T avg, T std, size_t size) {
@@ -234,23 +234,23 @@ std::pair<T, T> normAvgStd(T avg, T std, size_t size) {
 }
 
 template< typename T >
-std::pair<T, T> computeAvgStd(const T* d_N, size_t volume_size) {
-	T avg = thrust::reduce(thrust::device, d_N, d_N + volume_size);
+std::pair<T, T> computeAvgStd(const T* __restrict__ d_N, size_t volume_size) {
+	const T avg = thrust::reduce(thrust::device, d_N, d_N + volume_size);
 
 	auto square_kernel = [=] __device__ (T x) {
 		return x * x;
 	};
 
-	T std = thrust::transform_reduce(thrust::device, d_N, d_N + volume_size, square_kernel, static_cast<T>(0), thrust::plus<T>());
+	const T std = thrust::transform_reduce(thrust::device, d_N, d_N + volume_size, square_kernel, static_cast<T>(0), thrust::plus<T>());
 
 	return normAvgStd(avg, std, volume_size);
 }
 
-template std::pair<double, double> computeAvgStd<double>(const double*, size_t);
-template std::pair<float, float> computeAvgStd<float>(const float*, size_t);
+template std::pair<double, double> computeAvgStd<double>(const double* __restrict__, size_t);
+template std::pair<float, float> computeAvgStd<float>(const float* __restrict__, size_t);
 
 template< typename T >
-std::pair<T, T> computeAvgStdWithMask(const T* d_N, const int* d_mask, size_t mask_size, size_t volume_size) {
+std::pair<T, T> computeAvgStdWithMask(const T* __restrict__ d_N, const int* __restrict__ d_mask, size_t mask_size, size_t volume_size) {
 	auto masked_k = [=] __device__ (int n) {
 		if (d_mask[n]) {
 			return d_N[n];
@@ -259,7 +259,7 @@ std::pair<T, T> computeAvgStdWithMask(const T* d_N, const int* d_mask, size_t ma
 		}
 	};
 
-	T avg = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(volume_size), masked_k,
+	const T avg = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(volume_size), masked_k,
 										static_cast<T>(0), thrust::plus<T>());
 
 	auto masked_square_k = [=] __device__ (int n) {
@@ -270,21 +270,21 @@ std::pair<T, T> computeAvgStdWithMask(const T* d_N, const int* d_mask, size_t ma
 		}
 	};
 
-	T std = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(volume_size), masked_square_k,
+	const T std = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(volume_size), masked_square_k,
 										static_cast<T>(0), thrust::plus<T>());
 
 	return normAvgStd(avg, std, mask_size);
 }
 
-template std::pair<double, double> computeAvgStdWithMask<double>(const double*, const int*, size_t, size_t);
-template std::pair<float, float> computeAvgStdWithMask<float>(const float*, const int*, size_t, size_t);
+template std::pair<double, double> computeAvgStdWithMask<double>(const double* __restrict__, const int* __restrict__, size_t, size_t);
+template std::pair<float, float> computeAvgStdWithMask<float>(const float* __restrict__, const int* __restrict__, size_t, size_t);
 
 template< typename T >
-void computeDifference(T* d_V1, T* d_V2, const T* d_S, const T* d_N, T k, size_t volume_size) {
+void computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __restrict__ d_S, const T* __restrict__ d_N, T k, size_t volume_size) {
 	auto ker = [=] __device__ (int n) {
-		T Nn = d_N[n];
-		T w = exp(k * Nn * Nn);
-		T s = d_S[n];
+		const T Nn = d_N[n];
+		const T w = exp(k * Nn * Nn);
+		const T s = d_S[n];
 		d_V1[n] = s + (d_V1[n] - s) * w;
 		d_V2[n] = s + (d_V2[n] - s) * w;
 	};
@@ -292,7 +292,7 @@ void computeDifference(T* d_V1, T* d_V2, const T* d_S, const T* d_N, T k, size_t
 	thrust::for_each_n(thrust::device, thrust::counting_iterator<int>(0), volume_size, ker);
 }
 
-template void computeDifference<double>(double*, double*, const double*, const double*, double, size_t);
-template void computeDifference<float>(float*, float*, const float*, const float*, float, size_t);
+template void computeDifference<double>(double* __restrict__, double* __restrict__, const double* __restrict__, const double* __restrict__, double, size_t);
+template void computeDifference<float>(float* __restrict__, float* __restrict__, const float* __restrict__, const float* __restrict__, float, size_t);
 
 } // namespace Gpu

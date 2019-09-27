@@ -19,9 +19,9 @@ CDF<T>::CDF(size_t volume_size, T multConst /* = 1.0 */, T probStep /* = 0.005 *
 , multConst(multConst)
 , probStep(probStep)
 , Nsteps(round(1.0/probStep)) {
-	gpuErrchk( cudaMalloc((void**)&d_V, volume_size * sizeof(T)) );
-	gpuErrchk( cudaMalloc((void**)&d_x, Nsteps * sizeof(T)) );
-	gpuErrchk( cudaMalloc((void**)&d_probXLessThanx, Nsteps * sizeof(T)) );
+	gpuErrchk( cudaMalloc((void**)&d_V, volume_size * type_size) );
+	gpuErrchk( cudaMalloc((void**)&d_x, Nsteps * type_size) );
+	gpuErrchk( cudaMalloc((void**)&d_probXLessThanx, Nsteps * type_size) );
 }
 
 template< typename T >
@@ -46,9 +46,9 @@ void CDF<T>::calculateCDF(const T* d_S) {
 }
 
 template< typename T >
-void CDF<T>::_calculateDifference(const T* d_filtered1, const T* d_filtered2) {
-	T *d_V = this->d_V;
-	T multConst = this->multConst;
+void CDF<T>::_calculateDifference(const T* __restrict__ d_filtered1, const T* __restrict__ d_filtered2) {
+	T* __restrict__ d_V = this->d_V;
+	const T multConst = this->multConst;
 
 	auto compute_diff = [=] __device__ (int index) {
 		T diff = d_filtered1[index] - d_filtered2[index];
@@ -59,8 +59,8 @@ void CDF<T>::_calculateDifference(const T* d_filtered1, const T* d_filtered2) {
 }
 
 template< typename T >
-void CDF<T>::_calculateDifference(const T* d_S) {
-	T *d_V = this->d_V;
+void CDF<T>::_calculateDifference(const T* __restrict__ d_S) {
+	T* __restrict__ d_V = this->d_V;
 
 	auto k = [=] __host__ __device__ (int index) {
 		T val = d_S[index];
@@ -77,11 +77,11 @@ void CDF<T>::sort() {
 
 template< typename T >
 void CDF<T>::_updateProbabilities() {
-	T *d_V = this->d_V;
-	T *kd_x = this->d_x;
-	T *kd_probXLessThanx = this->d_probXLessThanx;
-	T kprobStep = this->probStep;
-	size_t k_volume_size = this->volume_size;
+	T* __restrict__ d_V = this->d_V;
+	T* __restrict__ kd_x = this->d_x;
+	T* __restrict__ kd_probXLessThanx = this->d_probXLessThanx;
+	const T kprobStep = this->probStep;
+	const size_t k_volume_size = this->volume_size;
 
 	auto k = [d_V, kd_x, kd_probXLessThanx, kprobStep, k_volume_size] __device__ (int index) {
 		int i = 0;
