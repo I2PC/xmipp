@@ -16,6 +16,8 @@
 #include "reconstruction_cuda/cuda_fft.h"
 #include "reconstruction_cuda/cuda_xmipp_utils.h"
 
+#include "reconstruction_cuda/cuda_volume_restoration_denoise.h"
+
 //comment this define to hide time measurements
 // #define TIME_MSR
 
