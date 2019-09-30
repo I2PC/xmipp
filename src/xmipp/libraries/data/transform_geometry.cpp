@@ -166,7 +166,6 @@ void ProgTransformGeometry::calculateRotationMatrix()
 
 void ProgTransformGeometry::preProcess()
 {
-
     //If zdimOut greater than 1, is a volume and should apply transform
     dim = (isVol = (zdimOut > 1)) ? 3 : 2;
 
@@ -182,7 +181,7 @@ void ProgTransformGeometry::preProcess()
     if (isVol)
     {
         if (checkParam("--rotate_volume"))
-        	calculateRotationMatrix();
+            calculateRotationMatrix();
         else
         	mdVol = true;
         rowGeo.setValue(MDL_SHIFT_Z, getDoubleParam("--shift", 2));
@@ -223,8 +222,9 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
     {
       B.initIdentity(dim + 1);
 
+
     if (apply_geo || mdVol)
-    	geo2TransformationMatrix(rowOut, B);
+        geo2TransformationMatrix(rowOut, B);
 
       T = A * B;
     }
@@ -237,19 +237,17 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
 
     if (applyTransform)
     {
-    	img().setXmippOrigin();
+        img().setXmippOrigin();
         imgOut.setDatatype(img.getDatatype());
         imgOut().resize(1, zdimOut, ydimOut, xdimOut, false);
         imgOut().setXmippOrigin();
         applyGeometry(splineDegree, imgOut(), img(), T, IS_NOT_INV, wrap, 0.);
-
         imgOut.write(fnImgOut);
         rowOut.resetGeo(false);
-
     }
     else
     {
-    	transformationMatrix2Geo(T, rowOut);
+        transformationMatrix2Geo(T, rowOut);
         if (fnImg != fnImgOut )
             img.write(fnImgOut);
     }
