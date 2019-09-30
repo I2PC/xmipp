@@ -42,7 +42,7 @@ struct RotationEstimationSetting {
     Dimensions otherDims = Dimensions(0);
     size_t batch;
     float maxRotDeg;
-    bool applyRotation;
+    bool fullCircle;
 
     void check() const {
         if (0 == hw.size()) {

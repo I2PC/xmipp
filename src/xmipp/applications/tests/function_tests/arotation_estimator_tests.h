@@ -65,7 +65,7 @@ public:
         settings.otherDims = dims;
         settings.batch = batch;
         settings.maxRotDeg = maxRotation;
-        settings.applyRotation = false;
+        settings.fullCircle = true;
 
         estimator->init(settings, false); // FIXME DS set to true
         hw.at(0)->lockMemory(others, dims.size() * sizeof(T));

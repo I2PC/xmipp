@@ -120,6 +120,8 @@ private:
     T *m_d_batch;
     T *m_d_batchPolarOrCorr;
     std::complex<T> *m_d_batchPolarFD;
+    T *m_d_sums;
+    T *m_d_sumsSqr;
 
     // FT plans
     cufftHandle *m_singleToFD;
@@ -140,8 +142,12 @@ private:
 
     void init2D(bool reuse) override;
 
+    template<bool FULL_CIRCLE>
+    void load2DReferenceOneToN(const T *h_ref);
     void load2DReferenceOneToN(const T *h_ref) override;
 
+    template<bool FULL_CIRCLE>
+    void computeRotation2DOneToN(T *h_others);
     void computeRotation2DOneToN(T *h_others) override;
 
     constexpr size_t getNoOfRings() const {

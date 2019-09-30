@@ -68,7 +68,7 @@ public:
         rotSettings.otherDims = dims;
         rotSettings.batch = batch;
         rotSettings.maxRotDeg = maxRotation;
-        rotSettings.applyRotation = false;
+        rotSettings.fullCircle = true;
 
 
         auto shiftAligner = ShiftCorrEstimator<T>();
