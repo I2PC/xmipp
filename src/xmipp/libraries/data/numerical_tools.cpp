@@ -35,33 +35,6 @@ void randomPermutation(int N, MultidimArray<int>& result)
     result-=1;
 }
 
-/* Powell's optimizer ------------------------------------------------------ */
-void powellOptimizer(Matrix1D<double> &p, int i0, int n,
-                     double(*f)(double *x, void *), void * prm,
-                     double ftol, double &fret,
-                     int &iter, const Matrix1D<double> &steps, bool show)
-{
-    double *xi = NULL;
-
-    // Adapt indexes of p
-    double *pptr = p.adaptForNumericalRecipes();
-    double *auxpptr = pptr + (i0 - 1);
-
-    // Form direction matrix
-    ask_Tvector(xi, 1, n*n);
-    for (int i = 1, ptr = 1; i <= n; i++)
-        for (int j = 1; j <= n; j++, ptr++)
-            xi[ptr] = (i == j) ? steps(i - 1) : 0;
-
-    // Optimize
-    xi -= n; // This is because NR works with matrices starting at [1,1]
-    powell(auxpptr, xi, n, ftol, iter, fret, f, prm, show);
-    xi += n;
-
-    // Exit
-    free_Tvector(xi, 1, n*n);
-}
-
 /* Gaussian interpolator -------------------------------------------------- */
 void GaussianInterpolator::initialize(double _xmax, int N, bool normalize)
 {

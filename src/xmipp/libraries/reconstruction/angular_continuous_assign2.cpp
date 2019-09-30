@@ -384,7 +384,10 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
 	rowIn.getValue(MDL_SHIFT_X,old_shiftX);
 	rowIn.getValue(MDL_SHIFT_Y,old_shiftY);
-	rowIn.getValue(MDL_FLIP,old_flip);
+	if (rowIn.containsLabel(MDL_FLIP))
+		rowIn.getValue(MDL_FLIP,old_flip);
+	else
+		old_flip = false;
 	double old_scaleX=0, old_scaleY=0, old_scaleAngle=0;
 	old_grayA=1;
 	old_grayB=0;
@@ -599,6 +602,8 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 
 
 #ifdef DEBUG
+    std::cout << "oldrot=" << old_rot << " oldtilt=" << old_tilt << " oldpsi=" << old_psi
+    		  << " oldshiftx=" << old_shiftX << " oldshifty=" << old_shiftY << std::endl;
     std::cout << "p=" << p << std::endl;
     MetaData MDaux;
     MDaux.addRow(rowOut);

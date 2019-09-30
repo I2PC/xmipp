@@ -211,6 +211,10 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* I1-adjusted(I2) */
+PyObject *
+Image_adjustAndSubtractOptimize(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* corr(I1,I2) */
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);

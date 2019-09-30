@@ -46,55 +46,6 @@ template<typename T> class Matrix2D;
  */
 void randomPermutation(int N, MultidimArray<int>& result);
 
-/** Optimize using Powell's method.
-  * @ingroup NumericalTools
-  *
-  * See Numerical Recipes Chapter 10.
-  *
-  * Problem: Minimize f(x) starting at point p. n is the dimension of x.
-  * If changes are smaller than ftol then stop. The number of iterations is
-  * returned in iter, fret contains the function value at the minimum and p
-  * contains the minimum.
-  *
-  * Watch out that the evaluating function f must consider that x starts at
-  * index 1, at least, and goes until n. i0 is used to allow optimization in
-  * large spaces where only one part is going to be optimized. Thus, if in a
-  * vector of dimension 20 you want to optimize the first 3 components then
-  * i0=1, n=3; if you want to optimize it all, i0=1, n=20; and if you want to
-  * optimize the last five components i0=15, n=5.
-  *
-  * The steps define the allowed steps on each variable. When a variable has
-  * large ranges this step should be larger to allow bigger movements. The steps
-  * should have only the dimension of the optimized part (3,20 and 5 in the
-  * examples above).
-  *
-  * The option show forces the routine to show the convergence path
-  *
-  * If your function needs extra parameters you can pass them through
-  * the void pointer prm. If you don't need this feature set it to NULL.
-  *
-  * Example of use:
-  *
-  * @code
-  * MultidimArray<double> x(8), steps(8);
-  * double fitness;
-  * int iter;
-  * steps.initConstant(1);
-  * x.initZeros();
-  * powellOptimizer(x,1,8,&wrapperFitness,NULL,0.01,fitness,iter,steps,true);
-  * @endcode
-  *
-  */
-void powellOptimizer(Matrix1D< double >& p,
-                     int i0, int n,
-                     double(*f)(double* , void *),
-                     void *prm,
-                     double ftol,
-                     double& fret,
-                     int& iter,
-                     const Matrix1D< double >& steps,
-                     bool show = false);
-
 /** Gaussian interpolator
  * @ingroup NumericalTools
  *

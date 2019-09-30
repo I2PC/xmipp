@@ -162,7 +162,9 @@ PyMethodDef Image_methods[] =
             "Compute PSD for current image, returns the PSD image" },
         { "adjustAndSubtract", (PyCFunction) Image_adjustAndSubtract, METH_VARARGS,
           "I1=I1-adjusted(I2)" },
-		{ "correlation", (PyCFunction) Image_correlation, METH_VARARGS,
+	    { "adjustAndSubtractOptimize", (PyCFunction) Image_adjustAndSubtractOptimize, METH_VARARGS,
+	      "I1=I1-adjusted(I2)" },
+	    { "correlation", (PyCFunction) Image_correlation, METH_VARARGS,
 		  "correlation(I1,I2)" },
         { "inplaceAdd", (PyCFunction) Image_inplaceAdd, METH_VARARGS,
           "Add another image to self (does not create another Image instance)" },
@@ -1216,7 +1218,35 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     return (PyObject *)result;
+}//function
+/* Return image dimensions as a tuple */
+PyObject *
+Image_adjustAndSubtractOptimize(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    PyObject *pimg2 = NULL;
+    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    if (self != NULL)
+    {
+        try
+        {
+            if (PyArg_ParseTuple(args, "O", &pimg2))
+            {
+                ImageObject *img2=(ImageObject *)pimg2;
+                result->image = new ImageGeneric(Image_Value(img2));
+                MULTIDIM_ARRAY_GENERIC(*result->image).rangeAdjustOptimize(MULTIDIM_ARRAY_GENERIC(*self->image));
+                MULTIDIM_ARRAY_GENERIC(*result->image) *=-1;
+                MULTIDIM_ARRAY_GENERIC(*result->image) += MULTIDIM_ARRAY_GENERIC(*self->image);
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return (PyObject *)result;
 }//function Image_adjustAndSubtract
+
 
 /* Return image dimensions as a tuple */
 PyObject *
