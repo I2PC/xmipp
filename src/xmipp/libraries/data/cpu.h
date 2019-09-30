@@ -45,15 +45,16 @@ public:
     void updateMemoryInfo();
 
     void lockMemory(const void *h_mem, size_t bytes) override {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
+        // FIXME DS implement
     }
 
     void unlockMemory(const void *h_mem) override {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
+        // FIXME DS implement
     }
 
     bool isMemoryLocked(const void *h_mem) override {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Not implemented");
+        // FIXME DS implement
+        return false;
     }
 
 protected:
