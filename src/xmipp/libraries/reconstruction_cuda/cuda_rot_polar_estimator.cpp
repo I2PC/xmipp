@@ -281,7 +281,7 @@ void CudaRotPolarEstimator<T>::sComputeAvgStdev(
     gpuErrchk(cudaMalloc(&d_outStddev, bytes));
     gpuErrchk(cudaMemset(d_outStddev, 0, bytes));
 
-    dim3 dimBlock(32);
+    dim3 dimBlock(64);
     dim3 dimGrid(
         ceil((dim.x() * dim.n()) / (float)dimBlock.x));
 

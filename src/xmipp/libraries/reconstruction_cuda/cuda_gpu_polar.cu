@@ -88,15 +88,27 @@ void computeSumSumSqr(const T * __restrict__ in,
     // input is 2D signal - each row is a ring of samples
     // map thread to sample in the polar coordinate
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= (samples * signals)) return;
+    int maxThread = samples * signals;
+    if (idx >= maxThread) return;
 
     int s = idx % samples; // sample position == column
     int n = idx / samples; // signal index
 
-#if (CUDART_VERSION >= 9000)
     bool isSameSignalInWarp = false;
+    int warpId = idx / warpSize; // warp has 32 threads
+    int idOfFirstThreadInWarp = warpId * warpSize;
+#if (CUDART_VERSION >= 9000)
     const unsigned mask = 0xffffffff;
-    __match_all_sync(mask, n, &isSameSignalInWarp);
+    if (mask = (__activemask & mask)) {
+        __match_all_sync(mask, n, &isSameSignalInWarp);
+    }
+#else
+    int idOfLastThreadInWarp = idOfFirstThreadInWarp + warpSize - 1;
+    int nForFirst = idOfFirstThreadInWarp / samples;
+    int nForLast = idOfLastThreadInWarp / samples;
+    if ((idOfLastThreadInWarp < maxThread) && (nForFirst == nForLast)) {
+        isSameSignalInWarp = true;
+    }
 #endif
 
     const T piConst = FULL_CIRCLE ? (2 * M_PI) : M_PI;
@@ -114,6 +126,26 @@ void computeSumSumSqr(const T * __restrict__ in,
         sum += w * val;
         sum2 += w * val * val;
     }
+    if (isSameSignalInWarp) {
+        // intrawarp sum
+#if (CUDART_VERSION >= 9000)
+        __syncwarp()
+        for (int offset = 16; offset > 0; offset /= 2) {
+            sum += __shfl_down_sync(mask, sum, offset);
+            sum2 += __shfl_down_sync(mask, sum2, offset);
+        }
+#else
+        for (int offset = 16; offset > 0; offset /= 2) {
+            sum += __shfl_down(sum, offset);
+            sum2 += __shfl_down(sum2, offset);
+        }
+#endif
+        if (idx != idOfFirstThreadInWarp) {
+            // only first thread in the warp will write to the output
+            return;
+        }
+    }
+    // update the result
     atomicAdd(&outSum[n], sum);
     atomicAdd(&outSumSqr[n], sum2);
 }
