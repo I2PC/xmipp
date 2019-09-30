@@ -43,7 +43,7 @@
    @ingroup ReconsLibrary */
 //@{
 
-/** Angular Assignment mag parameters. */
+/** Angular_Assignment_mag parameters. */
 class ProgAngularAssignmentMag: public XmippMetadataProgram
 {
 public:

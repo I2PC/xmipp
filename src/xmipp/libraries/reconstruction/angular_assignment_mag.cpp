@@ -174,15 +174,17 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> dirjp;
 	double maxSphericalDistance=angStep*2.;
 	printf("processing neighbors graph...\n");
-std::ofstream outCoord("/home/jeison/Escritorio/projCoordinates.txt");
+// /*comment
+std::ofstream outCoord("/home/jeison/Escritorio/projCoordinates.txt"); // */
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
 		double tiltj;
 		double psij;
+// /*comment
 double cx,cy,cz;
 mdRef.getValue(MDL_X,cx,__iter.objId);
 mdRef.getValue(MDL_Y,cy,__iter.objId);
-mdRef.getValue(MDL_Z,cz,__iter.objId);
+mdRef.getValue(MDL_Z,cz,__iter.objId); // */
 		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
@@ -211,12 +213,13 @@ mdRef.getValue(MDL_Z,cz,__iter.objId);
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
-
-outCoord<<cx<<"\t"<<cy<<"\t"<<cz<<"\n";
+// /*comment
+outCoord<<cx<<"\t"<<cy<<"\t"<<cz<<"\n"; // */
 
 	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
 
-outCoord.close();
+// /*comment
+outCoord.close(); // */
 
 	// compute Laplacian Matrix
 	DMatrix L_mat;
@@ -230,9 +233,9 @@ outCoord.close();
 	generalizedEigs(L_mat, B, eigenvalues, eigenvectors);
 	std::cout<< "finish\n";
 
-// print eigenvalues y eigenvectors
+// /*comment print eigenvalues y eigenvectors
 eigenvalues.write("/home/jeison/Escritorio/outEigenVal.txt");
-eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt");
+eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt"); // */
 
 }
 
@@ -259,8 +262,8 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
 		MAT_ELEM(L,i,i)=sumWeight-1.; // -1 because is necessary to remove the "central" weight
 	}
 
-// write-out Laplacian matrix to check
-L.write("/home/jeison/Escritorio/LaplacianMatrix.txt");
+// /*comment write-out Laplacian matrix to check
+L.write("/home/jeison/Escritorio/LaplacianMatrix.txt"); // */
 
 }
 
@@ -319,6 +322,8 @@ void ProgAngularAssignmentMag::preProcess() {
 	// try to storage all data related to reference images in memory
 	printf("processing reference library...\n");
 	int j = -1;
+/*time
+double Inicio=std::clock(); // */
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;
 		// reading image
@@ -326,7 +331,9 @@ void ProgAngularAssignmentMag::preProcess() {
 		ImgRef.read(fnImgRef);
 		MDaRef = ImgRef();
 		// store to call in processImage method
-		double rot, tilt, psi;
+		double rot;
+		double tilt;
+		double psi;
 		mdRef.getValue(MDL_ANGLE_ROT, rot, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psi, __iter.objId);
@@ -338,27 +345,29 @@ void ProgAngularAssignmentMag::preProcess() {
 		vecMDaRefF.push_back(MDaRefF);
 		//fourier of polar image in real space
 		refPolar = imToPolar(MDaRef, first, n_rad);
-		// fixme add another transformer for this image size because become slower when polar images have different sizes
-		// ... later this day: check if its correct because i use another transformer and it looks even slower
-		applyFourierImage2(refPolar, MDaRefAuxF, n_ang);
+		applyFourierImage3(refPolar, MDaRefAuxF, n_ang);
 		vecMDaRef_polarF.push_back(MDaRefAuxF);
 		// fourier of polar magnitude spectra
 		transformerImage.getCompleteFourier(MDaRefF2);
 		getComplexMagnitude(MDaRefF2, MDaRefFM);
 		completeFourierShift(MDaRefFM, MDaRefFMs);
-//borrar
+// /*comment
 if(j==0){
 MDaRefFM.write("/home/jeison/Escritorio/FourierMagnitude.txt");
 MDaRefFMs.write("/home/jeison/Escritorio/FourierMagnitudeShifted.txt");
-}
+} // */
 		MDaRefFMs_polarPart = imToPolar(MDaRefFMs, startBand, finalBand);
 		applyFourierImage2(MDaRefFMs_polarPart, MDaRefFMs_polarF, n_ang);
 		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
 	}
 
+/*time
+double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+std::cout << "Operation in preProcess took "<< duration*1000 << "milliseconds" << std::endl; // */
+
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
-	// Define the neighborhood graph and  Laplacian Matrix
+	// Define the neighborhood graph and Laplacian Matrix
 	computingNeighborGraph2();
 }
 
@@ -372,14 +381,16 @@ void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Mat
 
 	Matrix2D<double> eigenvectorTrans=eigenvectors.transpose();
 	ccGFT=eigenvectorTrans*ccVecIn;
-ccGFT.write("/home/jeison/Escritorio/testGFT.txt");
+// /*comment
+ccGFT.write("/home/jeison/Escritorio/testGFT.txt"); // */
 
 	// define filtering base
 	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
 	for(int k=cutEig; k<sizeMdRef; ++k){
 		VEC_ELEM(ccGFT,k)=0.;
 	}
-ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt");
+// /*comment
+ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt"); // */
 
 	// apply filter to ccvec
 	ccVecOut=eigenvectors*ccGFT;
@@ -390,6 +401,9 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		const MDRow &rowIn, MDRow &rowOut) {
 	// experimental image related
 	rowOut = rowIn;
+
+/*time
+double Inicio=std::clock(); // */
 
 	// input image related
 	MDRow rowRef;
@@ -451,7 +465,9 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		bestTy[k] = Ty;
 		bestPsi[k] = psi;
 	}
-ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
+
+// /*comment
+ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt"); // */
 
 //// ========graph filter to ccVect from first loop, using filtered signal================
 ////         to sort candidates previous to second loop processing
@@ -568,11 +584,11 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
 			double trasXval = -1. * bestTx[Idx[k]];
 			double trasYval = -1. * bestTy[Idx[k]];
 			applyShiftAndRotation(MDaIn,rotVal,trasXval,trasYval,MDaExpShiftRot2);
-			//fourier experimental image
+			//Fourier of transformed experimental image
 			applyFourierImage2(MDaExpShiftRot2, MDaInF);
 			// polar experimental image
 			inPolar = imToPolar(MDaExpShiftRot2, first, n_rad);
-			applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, it uses the same transformer used in the previous loop which have a different size
+			applyFourierImage3(inPolar, MDaInAuxF, n_ang);
 
 			// find rotation and shift
 			ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop[Idx[k]]],ccMatrixRot2);
@@ -618,40 +634,47 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
 		}
 	}
 
-ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
+// /*comment
+ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt"); // */
 
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
 	graphFourierFilter(ccvec,ccvec_filt);
-ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+
+// /*comment
+ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt"); // */
 
 	// choose BEST of the candidates
 	int nCand2 = 1;
 	std::partial_sort(Idx2.begin(), Idx2.begin()+nCand2, Idx2.end(),
 			[&candidatesSecondLoopCoeff](int i, int j) {return candidatesSecondLoopCoeff[i] > candidatesSecondLoopCoeff[j];});
 
+// /*comment
 std::cout<<"testIdx2[0]: "<<Idx2[0]<<std::endl;
 std::cout<<"testCand[Idx2[0]]: "<<candidatesSecondLoop[Idx2[0]]<<std::endl;
 std::cout<<"testCandCoeff[Idx2[0]]: "<<candidatesSecondLoopCoeff[Idx2[0]]<<std::endl;
 std::ofstream outCandidateBef("/home/jeison/Escritorio/bestCandidateBefore.txt");
 outCandidateBef<<candidatesSecondLoop[Idx2[0]]<<"\n";
-outCandidateBef.close();
+outCandidateBef.close(); // */
 
 	// choose best candidate direction from graph filtered ccvect signal
 	std::partial_sort(Idx3.begin(), Idx3.begin()+nCand2, Idx3.end(),
 			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
 
+// /*comment
 std::cout<<"testIdx3[0]: "<<Idx3[0]<<std::endl;
 std::cout<<"testCand[Idx3[0]]: "<<candidatesSecondLoop[Idx3[0]]<<std::endl;
 std::cout<<"testCandCoeff[Idx3[0]]: "<<candidatesSecondLoopCoeff[Idx3[0]]<<std::endl;
 std::ofstream outCandidate("/home/jeison/Escritorio/bestCandidateGraph.txt");
 outCandidate<<candidatesSecondLoop[Idx3[0]]<<"\n";
-outCandidate.close();
+outCandidate.close(); // */
 
 	// angular distance between this two direction
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
-	double rotj, tiltj, psij;
+	double rotj;
+	double tiltj;
+	double psij;
 	rotj=referenceRot.at(candidatesSecondLoop[Idx2[0]]);
 	tiltj=referenceTilt.at(candidatesSecondLoop[Idx2[0]]);
 	psij=0.;
@@ -668,6 +691,10 @@ outCandidate.close();
 	if (sphericalDistance>(3.*angStep)){
 		candidatesSecondLoopCoeff[Idx2[0]]=0.;
 	}
+
+/*time
+double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+std::cout << "Operation in processImage took "<< duration*1000 << "milliseconds" << std::endl; // */
 
 std::cout<<"sphericalDistance candidates: "<<sphericalDistance<<std::endl;
 exit(1);
@@ -691,8 +718,6 @@ exit(1);
 	rowOut.setValue(MDL_SHIFT_Y, -bestTy2[Idx2[0]]);
 
 
-//duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-//std::cout << "Operation took "<< duration*1000 << "milliseconds" << std::endl;
 }
 
 void ProgAngularAssignmentMag::postProcess() {
@@ -1283,11 +1308,11 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
 	//result.resizeNoCopy(vecMDaRef[0]); // NO!
 
-//borrar
+// /*comment
 if(testCounter==2){
 std::cout<<"size in ccMatrix of F1: "<< YSIZE(F1) <<" x "<< XSIZE(F1) << std::endl;
 std::cout<<"size in ccMatrix full: "<< YSIZE(F1) <<" x "<< 2 * (XSIZE(F1) - 1) << std::endl;
-}
+} // */
 
 	CorrelationAux aux;
 	aux.transformer1.setReal(result);
@@ -1610,13 +1635,13 @@ const MultidimArray<double> &MDaIn,
 	for (int i = 0; i < peaksFound; ++i) {
 		rotVar = -1. * cand[i];  //negative, because is for reference rotation
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
-		applyFourierImage2(MDaRefRot, MDaRefRotF); //fourier
+		applyFourierImage2(MDaRefRot, MDaRefRotF); //Fourier
 		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift); // cross-correlation matrix
-//borrar
+// /*comment
 testCounter+=1;
 if(testCounter==2){
 std::cout<<"size of ccMatrixShift in bestCand:"<<YSIZE(ccMatrixShift)<<"x"<<XSIZE(ccMatrixShift)<<"\n";
-}
+} // */
 
 		maxByColumn(ccMatrixShift, ccVectorTx); // ccvMatrix to ccVector
 		getShift(ccVectorTx, tx, XSIZE(ccMatrixShift));
