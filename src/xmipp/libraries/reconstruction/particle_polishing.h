@@ -55,6 +55,7 @@ public:
     void similarity (MultidimArray<double> &I1, MultidimArray<double> &I2, double &corrN, double &corrM, double &corrW, double &imed);
     void averagingMovieParticles(MetaData &mdPart, MultidimArray<double> &I, size_t partId, size_t frameId, size_t movieId, int window);
     void calculateFrameWeightPerFreq(MultidimArray<double> &matrixWeights, MultidimArray<double> &weightsperfreq, const MultidimArray<double> &maxvalues);
+    void smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out);
 
 };
 

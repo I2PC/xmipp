@@ -254,15 +254,45 @@ void ProgParticlePolishing::calculateFrameWeightPerFreq(MultidimArray<double> &m
                 for (size_t j=0; j<XSIZE(matrixWeights); ++j){ //loop over movie particles
                 	if(DIRECT_NZYX_ELEM(matrixWeights, l, k, i, j)==0)
                 		continue;
-                	DIRECT_A3D_ELEM(weightsperfreq, l, k, i) += (DIRECT_NZYX_ELEM(matrixWeights, l, k, i, j)/DIRECT_A2D_ELEM(maxvalues,l, k));
-                	std::cerr << "- Movie: " << l << ". Frame: " << k << ". Freq: " << i << ". Valores: " << DIRECT_A3D_ELEM(weightsperfreq, l, k, i) << " , " << DIRECT_NZYX_ELEM(matrixWeights, l, k, i, j) << " , " << DIRECT_A2D_ELEM(maxvalues,l, k) << std::endl;
+                	DIRECT_NZYX_ELEM(weightsperfreq, l, k, i, j) = (DIRECT_NZYX_ELEM(matrixWeights, l, k, i, j)/DIRECT_A1D_ELEM(maxvalues,l));
+                	std::cerr << "- Movie: " << l+1 << ". Frame: " << k+1 << ". Freq: " << i << ". Valores: " << DIRECT_NZYX_ELEM(weightsperfreq, l, k, i, j) << " , " << DIRECT_NZYX_ELEM(matrixWeights, l, k, i, j) << " , " << DIRECT_A1D_ELEM(maxvalues,l) << std::endl;
                 }
-                std::cerr << "- FINAL Movie: " << l << ". Frame: " << k << ". Freq: " << i << ". Weight per freq: " << DIRECT_A3D_ELEM(weightsperfreq, l, k, i) << std::endl;
             }
         }
     }
 
 }
+
+
+void ProgParticlePolishing::smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out){
+
+	std::cerr << "SMOOTHING values..." << std::endl;
+	MultidimArray<double> aux(ZSIZE(in), YSIZE(in), XSIZE(in));
+	MultidimArray<double> coeffs(ZSIZE(in), YSIZE(in), XSIZE(in));
+    for (size_t l=0; l<NSIZE(in); ++l){ //loop over movies
+
+        for (size_t k=0; k<ZSIZE(in); ++k){ //loop over frames
+            for (size_t i=0; i<YSIZE(in); ++i){ //loop over frequencies
+                for (size_t j=0; j<XSIZE(in); ++j){ //loop over movie particles
+                	DIRECT_A3D_ELEM(aux, k, i, j)=DIRECT_NZYX_ELEM(in, l, k, i, j);
+                }
+            }
+        }
+
+    	produceSplineCoefficients(BSPLINE3,coeffs,aux);
+
+        for (size_t k=0; k<ZSIZE(in); ++k){ //loop over frames
+            for (size_t i=0; i<YSIZE(in); ++i){ //loop over frequencies
+                for (size_t j=0; j<XSIZE(in); ++j){ //loop over movie particles
+                	DIRECT_NZYX_ELEM(out, l, k, i, j)=DIRECT_A3D_ELEM(coeffs, k, i, j);
+                }
+            }
+        }
+
+    }
+
+}
+
 
 void ProgParticlePolishing::run()
 {
@@ -297,7 +327,7 @@ void ProgParticlePolishing::run()
 	double step=0.1; //0.05;
 	int Nsteps= int((0.5-inifreq)/step);
 	matrixWeights.initZeros(nMovies, nFrames, Nsteps+1, mdPartSize);
-	maxvalues.initZeros(nMovies, nFrames);
+	maxvalues.initZeros(nMovies);
 	maxvalues-=1.0;
 
 	size_t mvPrev, frPrev, partPrev, mv, fr, mvId, frId, partId;
@@ -359,17 +389,33 @@ void ProgParticlePolishing::run()
 			//TODO: la corrW que viene de Idiff no tiene mucho sentido porque la Idiff en este caso no nos dice nada
 
 			weight = corrN; //TODO
-			if(weight>DIRECT_A2D_ELEM(maxvalues,mvId, frId))
-				DIRECT_A2D_ELEM(maxvalues, mvId, frId)=weight;
+			if(weight>DIRECT_A1D_ELEM(maxvalues,mvId-1))
+				DIRECT_A1D_ELEM(maxvalues, mvId-1)=weight;
 
 			std::cerr << "- Freq: " << cutfreq << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". CorrN: " << corrN << ". CorrM: " << corrM << ". CorrW: " << corrW << ". Imed: " << imed << std::endl;
 
-			DIRECT_NZYX_ELEM(matrixWeights, mvId, frId, n, i) = weight;
+			/*/To align averaged movie particle and projection
+			Matrix2D<double> M;
+			MultidimArray<double> IpartAlign(Ipart());
+			IpartAlign = Ipart();
+			alignImages(projV(), IpartAlign, M, false);
+			MultidimArray<double> shiftXmatrix;
+			shiftXmatrix.initZeros(matrixWeights);
+			MultidimArray<double> shiftYmatrix;
+			shiftYmatrix.initZeros(matrixWeights);
+			if(MAT_ELEM(M,0,2)<10 && MAT_ELEM(M,1,2)<10){
+				DIRECT_NZYX_ELEM(shiftXmatrix, mvId-1, frId-1, n, i) = MAT_ELEM(M,0,2);
+				DIRECT_NZYX_ELEM(shiftYmatrix, mvId-1, frId-1, n, i) = MAT_ELEM(M,1,2);
+			}
+			//std::cerr << "- Transformation matrix: " << M  << std::endl;
+			//std::cerr << MAT_ELEM(M,0,2) << " " << MAT_ELEM(M,1,2) << std::endl;
+			/*/
+
+			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
 			
 			/*/DEBUG
-			projV.write(formatString("projection_%i.mrc", i));
-			Ipart.write(formatString("particle_%i.mrc", i));
-			exit(0);
+			projV.write(formatString("projection_%i_%i.mrc", frId, partId));
+			Ipart.write(formatString("particle_%i_%i.mrc", frId, partId));
 			//END DEBUG/*/
 
 			if(iterPart->hasNext())
@@ -380,7 +426,7 @@ void ProgParticlePolishing::run()
 	} //end frequencies loop
 
 	MultidimArray<double> weightsperfreq;
-	weightsperfreq.initZeros(NSIZE(matrixWeights), ZSIZE(matrixWeights), YSIZE(matrixWeights));
+	weightsperfreq.initZeros(NSIZE(matrixWeights), ZSIZE(matrixWeights), YSIZE(matrixWeights), XSIZE(matrixWeights));
 	calculateFrameWeightPerFreq(matrixWeights, weightsperfreq, maxvalues);
 
 }
