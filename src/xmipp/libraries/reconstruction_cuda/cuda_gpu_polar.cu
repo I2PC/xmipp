@@ -149,3 +149,30 @@ void computeSumSumSqr(const T * __restrict__ in,
     atomicAdd(&outSum[n], sum);
     atomicAdd(&outSumSqr[n], sum2);
 }
+
+template<typename T>
+__global__
+void normalize(T * __restrict__ inOut,
+    int samples, int rings, int signals,
+    T norm,
+    const T * __restrict__ sums,
+    const T * __restrict__ sumsSqr) {
+    // input is 2D signal - each row is a ring of samples
+    // map thread to sample in the polar coordinate
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int maxThread = samples * signals;
+    if (idx >= maxThread) return;
+
+    int s = idx % samples; // sample position == column
+    int n = idx / samples; // signal index
+
+    T avg = sums[n] / norm;
+    T sumSqrNorm = sumsSqr[n] / norm;
+    T stddev = sqrt(abs(sumSqrNorm - (avg * avg)));
+    T istddev = 1 / stddev;
+    for (int r = 0; r < rings; ++r) {
+        int offset = (n * samples * rings) + (r * samples) + s;
+        T val = inOut[offset];
+        inOut[offset] = (val - avg) * istddev;
+    }
+}

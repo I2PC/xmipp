@@ -100,10 +100,10 @@ public :
             T *polarCorrelations);
 
     template<bool FULL_CIRCLE>
-    static void sComputeAvgStdev(
+    static void sNormalize(
             const GPU &gpu,
             const Dimensions &dimIn,
-            const T *d_in,
+            T *d_in,
             T *d_1,
             T *d_2,
             int posOfFirstRing);

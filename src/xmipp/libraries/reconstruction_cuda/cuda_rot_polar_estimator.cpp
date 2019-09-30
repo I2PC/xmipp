@@ -265,10 +265,10 @@ void CudaRotPolarEstimator<T>::sComputePolarTransform(
 
 template<typename T>
 template<bool FULL_CIRCLE>
-void CudaRotPolarEstimator<T>::sComputeAvgStdev(
+void CudaRotPolarEstimator<T>::sNormalize(
         const GPU &gpu,
         const Dimensions &dim,
-        const T * __restrict__ d_in,
+        T * __restrict__ d_in,
         T * __restrict__ d_1,
         T * __restrict__ d_2,
         int posOfFirstRing) {
@@ -292,22 +292,6 @@ void CudaRotPolarEstimator<T>::sComputeAvgStdev(
         d_in, dim.x(), dim.y(), dim.n(),
         d_outAvg, d_outStddev, posOfFirstRing);
 
-    auto h_avg = new T[elems]();
-    auto h_stddev = new T[elems]();
-
-    gpuErrchk(cudaMemcpyAsync(
-        h_avg,
-        d_outAvg,
-        bytes,
-        cudaMemcpyDeviceToHost, stream));
-
-    gpuErrchk(cudaMemcpyAsync(
-        h_stddev,
-        d_outStddev,
-        bytes,
-        cudaMemcpyDeviceToHost, stream));
-    gpu.synch();
-
     const T piConst = FULL_CIRCLE ? (2 * PI) : PI;
     // sum of the first n terms of an arithmetic sequence
     // a1 = first radius (posOfFirstRing)
@@ -315,16 +299,12 @@ void CudaRotPolarEstimator<T>::sComputeAvgStdev(
     // s = n * (a1 + an) / 2
     const T radiiSum = (dim.y() * (2 * posOfFirstRing + dim.y() - 1)) / (T)2;
     T norm = piConst * radiiSum;
-    for (size_t i = 0; i < dim.n(); ++i) {
-        T avg = h_avg[i] / norm;
-        T sumSqrNorm = h_stddev[i] / norm;
-        T stddev = std::sqrt(std::abs(sumSqrNorm - (avg * avg)));
-        printf("sum %f sum2 %f avg %f stddev %f n %f GPU\n",
-                h_avg[i], h_stddev[i],
-                avg,
-                stddev,
-                norm);
-    }
+
+    normalize<T>
+        <<<dimGrid, dimBlock, 0, stream>>> (
+        d_in, dim.x(), dim.y(), dim.n(),
+        norm,
+        d_outAvg, d_outStddev);
 
     gpuErrchk(cudaFree(d_outAvg));
     gpuErrchk(cudaFree(d_outStddev));
@@ -395,7 +375,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         }
 
         // FIXME DS normalize
-        sComputeAvgStdev<fullCircle>(*m_workStream, outPolar, m_d_batchPolarOrCorr, nullptr, nullptr, m_firstRing);
+        sNormalize<fullCircle>(*m_workStream, outPolar, m_d_batchPolarOrCorr, nullptr, nullptr, m_firstRing);
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 
