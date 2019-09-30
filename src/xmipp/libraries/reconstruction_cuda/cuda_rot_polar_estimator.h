@@ -90,14 +90,23 @@ public :
     static void sComputePolarTransform(
             const GPU &gpu,
             const Dimensions &dimIn,
-            T * h_in,
+            T * d_in,
             const Dimensions &dimOut,
-            T * h_out,
+            T * d_out,
             int posOfFirstRing);
 
     template<bool FULL_CIRCLE>
     static std::vector<T> sFindMaxAngle(const Dimensions &dims,
             T *polarCorrelations);
+
+    template<bool FULL_CIRCLE>
+    static void sComputeAvgStdev(
+            const GPU &gpu,
+            const Dimensions &dimIn,
+            const T *d_in,
+            T *d_1,
+            T *d_2,
+            int posOfFirstRing);
 
 private:
     GPU *m_loadStream;

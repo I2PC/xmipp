@@ -25,6 +25,7 @@
 
 #include "cuda_basic_math.h"
 #include "core/xmipp_macros.h"
+#include "cuda_compatibility.h"
 
 template<typename T, bool FULL_CIRCLE>
 __global__
@@ -33,7 +34,7 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
 {
     // input is 2D signal - each row is a ring of samples
     // map thread to sample in the polar coordinate
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= (samples * signals)) return;
 
     int s = idx % samples; // sample position == column
@@ -74,4 +75,45 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
 //                val, offset);
         out[offset] = val;
     }
+}
+
+template<typename T, bool FULL_CIRCLE>
+__global__
+void computeSumSumSqr(const T * __restrict__ in,
+    int samples, int rings, int signals,
+    T * __restrict__ outSum, // must be zero-initialized
+    T * __restrict__ outSumSqr, // must be zero-initialized
+    int posOfFirstRing) {
+
+    // input is 2D signal - each row is a ring of samples
+    // map thread to sample in the polar coordinate
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= (samples * signals)) return;
+
+    int s = idx % samples; // sample position == column
+    int n = idx / samples; // signal index
+
+#if (CUDART_VERSION >= 9000)
+    bool isSameSignalInWarp = false;
+    const unsigned mask = 0xffffffff;
+    __match_all_sync(mask, n, &isSameSignalInWarp);
+#endif
+
+    const T piConst = FULL_CIRCLE ? (2 * M_PI) : M_PI;
+
+    // compute statistics
+    T sum = 0;
+    T sum2 = 0;
+    // shift origin to center of the input image
+    for (int r = 0; r < rings; ++r) {
+        T w = (piConst * (r + posOfFirstRing)) / (T)samples;
+        int offset = (n * samples * rings) + (r * samples) + s;
+        T val = in[offset];
+//        printf("val %f w %f ring %d sample %d sum %f sum2 %f (thread %d)\n",
+//                val, w, r, s, w * val, w * val * val, idx);
+        sum += w * val;
+        sum2 += w * val * val;
+    }
+    atomicAdd(&outSum[n], sum);
+    atomicAdd(&outSumSqr[n], sum2);
 }

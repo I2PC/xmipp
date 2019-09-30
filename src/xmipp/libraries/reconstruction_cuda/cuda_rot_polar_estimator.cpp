@@ -246,9 +246,9 @@ template<bool FULL_CIRCLE>
 void CudaRotPolarEstimator<T>::sComputePolarTransform(
         const GPU &gpu,
         const Dimensions &dimIn,
-        T * __restrict__ h_in,
+        T * __restrict__ d_in,
         const Dimensions &dimOut,
-        T * __restrict__ h_out,
+        T * __restrict__ d_out,
         int posOfFirstRing) {
 
     dim3 dimBlock(32);
@@ -259,8 +259,75 @@ void CudaRotPolarEstimator<T>::sComputePolarTransform(
 
     polarFromCartesian<T, FULL_CIRCLE>
         <<<dimGrid, dimBlock, 0, stream>>> (
-        h_in, dimIn.x(), dimIn.y(),
-        h_out, dimOut.x(), dimOut.y(), dimOut.n(), posOfFirstRing);
+        d_in, dimIn.x(), dimIn.y(),
+        d_out, dimOut.x(), dimOut.y(), dimOut.n(), posOfFirstRing);
+}
+
+template<typename T>
+template<bool FULL_CIRCLE>
+void CudaRotPolarEstimator<T>::sComputeAvgStdev(
+        const GPU &gpu,
+        const Dimensions &dim,
+        const T * __restrict__ d_in,
+        T * __restrict__ d_1,
+        T * __restrict__ d_2,
+        int posOfFirstRing) {
+    T *d_outAvg;
+    T *d_outStddev;
+    size_t elems = dim.x() * dim.n();
+    size_t bytes = elems * sizeof(T);
+    gpuErrchk(cudaMalloc(&d_outAvg, bytes));
+    gpuErrchk(cudaMemset(d_outAvg, 0, bytes));
+    gpuErrchk(cudaMalloc(&d_outStddev, bytes));
+    gpuErrchk(cudaMemset(d_outStddev, 0, bytes));
+
+    dim3 dimBlock(32);
+    dim3 dimGrid(
+        ceil((dim.x() * dim.n()) / (float)dimBlock.x));
+
+    auto stream = *(cudaStream_t*)gpu.stream();
+
+    computeSumSumSqr<T, FULL_CIRCLE>
+        <<<dimGrid, dimBlock, 0, stream>>> (
+        d_in, dim.x(), dim.y(), dim.n(),
+        d_outAvg, d_outStddev, posOfFirstRing);
+
+    auto h_avg = new T[elems]();
+    auto h_stddev = new T[elems]();
+
+    gpuErrchk(cudaMemcpyAsync(
+        h_avg,
+        d_outAvg,
+        bytes,
+        cudaMemcpyDeviceToHost, stream));
+
+    gpuErrchk(cudaMemcpyAsync(
+        h_stddev,
+        d_outStddev,
+        bytes,
+        cudaMemcpyDeviceToHost, stream));
+    gpu.synch();
+
+    const T piConst = FULL_CIRCLE ? (2 * PI) : PI;
+    // sum of the first n terms of an arithmetic sequence
+    // a1 = first radius (posOfFirstRing)
+    // an = last radius (dim.y() - 1 + posOfFirstRing)
+    // s = n * (a1 + an) / 2
+    const T radiiSum = (dim.y() * (2 * posOfFirstRing + dim.y() - 1)) / (T)2;
+    T norm = piConst * radiiSum;
+    for (size_t i = 0; i < dim.n(); ++i) {
+        T avg = h_avg[i] / norm;
+        T sumSqrNorm = h_stddev[i] / norm;
+        T stddev = std::sqrt(std::abs(sumSqrNorm - (avg * avg)));
+        printf("sum %f sum2 %f avg %f stddev %f n %f GPU\n",
+                h_avg[i], h_stddev[i],
+                avg,
+                stddev,
+                norm);
+    }
+
+    gpuErrchk(cudaFree(d_outAvg));
+    gpuErrchk(cudaFree(d_outStddev));
 }
 
 template<typename T>
@@ -298,6 +365,8 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     m_isDataReady = false;
     auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, h_others);
 
+    const bool fullCircle = true;
+
     auto s = this->getSettings();
     // process signals in batches
     for (size_t offset = 0; offset < s.otherDims.n(); offset += s.batch) {
@@ -314,7 +383,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             std::unique_lock<std::mutex> lk(*m_mutex);
             m_cv->wait(lk, [&]{return m_isDataReady;});
             // call polar transformation kernel
-            sComputePolarTransform<true>(*m_workStream,
+            sComputePolarTransform<fullCircle>(*m_workStream,
                     inCart, m_d_batch,
                     outPolar, m_d_batchPolarOrCorr,
                     m_firstRing);
@@ -325,7 +394,8 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             m_cv->notify_one();
         }
 
-        // FIXME DS add normalization
+        // FIXME DS normalize
+        sComputeAvgStdev<fullCircle>(*m_workStream, outPolar, m_d_batchPolarOrCorr, nullptr, nullptr, m_firstRing);
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 
