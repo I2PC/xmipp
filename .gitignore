@@ -46,13 +46,19 @@ gmon.out
 .directory
 .settings
 
-/config/*.conf
-/bin
-/lib
-/models/*
-/install/xmipp.conf
-/tests/data
+# ignore everything in src folder
+/build/*
+/src/*
+# except xmipp folder
+!/src/xmipp/
+
+/src/xmipp/bin
+/src/xmipp/lib
+/src/xmipp/models/*
+/src/xmipp/tests/data
+xmipp.conf
 
 # Ignore version file
 .devel_version
-applications/programs/version
+/src/xmipp/Debug/
+/src/xmipp/applications/programs/version
