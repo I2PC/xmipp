@@ -56,7 +56,6 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
                 MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em'}
 
-TMP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tmp')
 CONFIG_FILE_NAME = "xmipp.conf"
 
 # if a skippable compilation fails (if 'key' found in the failed code),
@@ -291,7 +290,11 @@ def cloneOrCheckout(repo, branch):
     branch = branch or getBranch(repo, repo_dir)[1]
     if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
-        return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
+        if branch is None:
+            # let the git client to decide what is the default branch
+            return runJob("git clone %s %s" % (REPOSITORIES[repo], repo_dir))
+        else:
+            return runJob("git clone -b %s %s %s" % (branch, REPOSITORIES[repo], repo_dir))
     else:
         workDir = os.getcwd()
         os.chdir(repo_dir)
@@ -328,7 +331,7 @@ def getAllBranches(repo):
     log = []
     prefix = 'refs/heads/'
     result = runJob('git ls-remote -h %s' % REPOSITORIES[repo],
-        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+        show_output=False, log=log, show_command=False)
     if result:
         branches = [l.split(prefix)[1] for l in log]
         return (True, branches)
@@ -345,19 +348,23 @@ def getBranch(repo, repo_dir):
     r, branch = getCurrentBranch(repo_dir)
     if r:
         return r, branch
-    return  getDefaultBranch(repo)
+    return getDefaultBranch(repo)
 
 def getDefaultBranch(repo):
     log = []
     key = 'HEAD branch:'
+    # this might not work for git < 1.8.5,
+    # see https://stackoverflow.com/a/32503667/5484355
+    # and https://stackoverflow.com/questions/2832269/git-remote-head-is-ambiguous
+    # In such a case we return None (and during e.g. clone the client should decide what is the default branch)
     result = runJob('git remote show %s' % REPOSITORIES[repo],
-        cwd=TMP_DIR, show_output=False, log=log, show_command=False)
+        show_output=False, log=log, show_command=False)
     if result:
         for l in log:
             if key in l:
                 branch = l.split(key)[1] # HEAD branch: devel
                 return (True, branch.strip())
-    print(red('Cannot get defaul branch for ' + repo))
+    print(red('Cannot auto-detect default branch for ' + repo + '. Maybe git version < 1.8.5?'))
     return (False, None)
 
 
@@ -607,7 +614,8 @@ def checkCompiler(configDict):
 
     if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"],configDict["PYTHONINCFLAGS"])):
-        print(red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS"))
+        print(red("Check the SCIPION_HOME, INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS"))
+        print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev"))
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
     if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
@@ -759,7 +767,13 @@ def configCuda(configDict):
             else:
                 configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                           "-Wno-deprecated-gpu-targets -ccbin %(CXX_CUDA)s -std=c++11")
+                                           "-ccbin %(CXX_CUDA)s -std=c++11 "
+                                           # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                                           "-gencode=arch=compute_30,code=compute_30 "
+                                           "-gencode=arch=compute_35,code=compute_35 "
+                                           "-gencode=arch=compute_50,code=compute_50 "
+                                           "-gencode=arch=compute_60,code=compute_60 "
+                                           "-gencode=arch=compute_61,code=compute_61")
         if configDict["NVCC_LINKFLAGS"]=="":
             nvccPath=distutils.spawn.find_executable("nvcc")
             if nvccPath:
@@ -1173,24 +1187,24 @@ def install(dirname):
 
     XMIPP_HOME = os.path.realpath(dirname)
     fhBash.write("export XMIPP_HOME=%s\n"%XMIPP_HOME)
-    fhFish.write("set -x XMIPP_HOME=%s\n"%XMIPP_HOME)
+    fhFish.write("set -x XMIPP_HOME %s\n"%XMIPP_HOME)
 
     XMIPP_SRC = os.path.realpath("src")
     fhBash.write("export XMIPP_SRC=%s\n"%XMIPP_SRC)
-    fhFish.write("set -x XMIPP_SRC=%s\n"%XMIPP_SRC)
+    fhFish.write("set -x XMIPP_SRC %s\n"%XMIPP_SRC)
 
     SCIPION_HOME = getScipionHome()
     if SCIPION_HOME:
         fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
         fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
-        fhFish.write("set -x PATH $SCIPION_HOME/software/bin $PATH\n")
-        fhFish.write("set -x LD_LIBRARY_PATH $SCIPION_HOME/software/lib $LD_LIBRARY_PATH\n")
+        fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
+        fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhFish.write("set -x PATH %s/bin $PATH\n"%XMIPP_HOME)
-    fhFish.write("set -x LD_LIBRARY_PATH %s/lib %s/bindings/python $LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
-    fhFish.write("set -x PYTHONPATH %s/bindings %s/pylib $PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhFish.write("set -px PATH %s/bin\n"%XMIPP_HOME)
+    fhFish.write("set -px LD_LIBRARY_PATH %s/lib %s/bindings/python\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhFish.write("set -px PYTHONPATH %s/bindings %s/pylib\n"%(XMIPP_HOME,XMIPP_HOME))   
 
     fhBash.write('\n')
     fhBash.write("alias x='xmipp'\n")
@@ -1344,12 +1358,8 @@ def ensureConfig():
 
 
 def ensureGit():
-    createDir(TMP_DIR)
     if not checkProgram('git'):
         print(red('Git not found'))
-        return False
-    if not runJob('git init', cwd=TMP_DIR, show_output=False, show_command=False):
-        print(red('Cannot create temporal git repository in ' + TMP_DIR))
         return False
     return True
 

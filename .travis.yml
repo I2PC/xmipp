@@ -18,7 +18,6 @@ before_install:
  - source scripts/install_cuda_travis.sh
 script:
  - |
-     python ./scripts/travis_before_script.py && \
      build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp && \
      sonar-scanner && \
      ccache -s

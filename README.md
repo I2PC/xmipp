@@ -3,30 +3,40 @@
 [![Technical debt](https://sonarcloud.io/api/project_badges/measure?project=Xmipp&metric=sqale_index)](https://sonarcloud.io/component_measures?id=Xmipp&metric=sqale_index)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=Xmipp&metric=bugs)](https://sonarcloud.io/project/issues?id=Xmipp&resolved=false&types=BUG)
 --->
-# xmipp
+# Xmipp
 
-If you want to use it as a **Scipion package for production proposes**, please visit [this](https://scipion-em.github.io/docs/docs/scipion-modes/install-from-sources#step-4-installing-xmipp3-and-other-em-plugins).
+Welcome to Xmipp. Xmipp is a suite of image processing programs, primarily aimed at single-particle 3D electron microscopy.
 
-If you want to use it as a **Scipion package for devel proposes**, please visit [this](https://github.com/I2PC/xmipp/wiki/Xmipp-bundle-installtion).
 
-To install Xmipp in a certain place (e.g. in the `xmipp-bundle` directory) follow this instructions:
+## Notice
 
+Recently we have changed the directory structure. See this wiki [page](https://github.com/I2PC/xmipp/wiki/Transfer-to-new-directory-structure) for more information.
+
+## Getting started
+**Xmipp as a Scipion package**
+
+The recommended way to use Xmipp is via [Scipion](https://scipion-em.github.io/docs/index.html).
+It can be easily installed using the [Plugin manager](https://scipion-em.github.io/docs/docs/user/plugin-manager.html).
+
+**Xmipp as a standalone bundle (useful for developers)**
+
+Start by cloning the repository from GitHub and go there.
 ```
-mkdir xmipp-bundle
+git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
-wget https://raw.githubusercontent.com/I2PC/xmipp/devel/xmipp -O xmipp
-chmod 755 xmipp
-./xmipp all N=4 br=devel
-ln -sf src/xmipp/xmipp xmipp  # optional, but VERY RECOMMENDED, to have always the last version of the xmipp script
 ```
-where you can replace `N=4` for `N=#processors` and `br=master` for `br=devel` if you want the development version of Xmipp. You can see the whole usage of the xmipp script with `./xmipp --help`
 
+In case you don't want to import settings from Scipion, set XMIPP_NOSCIPION flag to true (`export XMIPP_NOSCIPION=True`). 
 
-### Using Scipion libraries
-
-If you want xmipp to pick up SCIPION libraries define SCIPION_HOME=\<path to scipion\>
-
-**Note**: If some program (like `nvcc`) is not visible from your terminal (`which nvcc` returns nothing), but it is visible by Scipion (`$SCIPION_HOME/scipion run which nvcc` returns the nvcc path). Then, you can use Scipion as wrapper to install Xmipp:
+Otherwise, run `xmipp` script in the root folder via Scipion (it might be necessary to add execute permission via `chmod +x xmipp`)
 ```
-$SCIPION_HOME/scipion run ./xmipp all N=8 br=devel
+/<path to scipion>/scipion run ./xmipp
 ```
+Running the script through Scipion will properly set the enviroment. This script will checkout additional repositories and build Xmipp for you.
+
+You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build.
+
+
+## FAQ
+
+If you want to use your specific version of Xmipp as a Scipion plugin, see following wiki [page](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-plugin).
