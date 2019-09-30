@@ -114,7 +114,9 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 	Matrix1D<double> nearNeighborsDist;
 	printf("processing neighbors graph...\n");
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
-		double rotj, tiltj, psij;
+		double rotj;
+		double tiltj;
+		double psij;
 		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
@@ -124,7 +126,9 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 		int jp = -1;
 		for (MDIterator __iter2(mdRef); __iter2.hasNext(); __iter2.moveNext()) {
 			jp += 1;
-			double rotjp, tiltjp, psijp;
+			double rotjp;
+			double tiltjp;
+			double psijp;
 			mdRef.getValue(MDL_ANGLE_ROT, rotjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
@@ -190,7 +194,9 @@ mdRef.getValue(MDL_Z,cz,__iter.objId);
 		double thisSphericalDistance=0.;
 		for (MDIterator __iter2(mdRef); __iter2.hasNext(); __iter2.moveNext()){
 			jp += 1;
-			double rotjp, tiltjp, psijp;
+			double rotjp;
+			double tiltjp;
+			double psijp;
 			mdRef.getValue(MDL_ANGLE_ROT, rotjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
@@ -264,7 +270,8 @@ void ProgAngularAssignmentMag::preProcess() {
 	mdRef.read(fnRef);
 
 	// size of images
-	size_t Zdim, Ndim;
+	size_t Zdim;
+	size_t Ndim;
 	getImageSize(mdIn, Xdim, Ydim, Zdim, Ndim);
 
 	// some constants
@@ -369,7 +376,6 @@ ccGFT.write("/home/jeison/Escritorio/testGFT.txt");
 
 	// define filtering base
 	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
-	//int cutEig=10;
 	for(int k=cutEig; k<sizeMdRef; ++k){
 		VEC_ELEM(ccGFT,k)=0.;
 	}
@@ -447,92 +453,89 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	}
 ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
 
-// ========================================================================
- /*  graph filter to ccVect from first loop, using filtered signal
-   //  to sort candidates previous to second loop processing
-// ================ Graph Filter Process =================
-	Matrix1D<double> ccvec_filt;
-	graphFourierFilter(ccvec,ccvec_filt);
-ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
-
-	//	/* search rotation with polar real image representation over 10% of reference images
-	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
-	// but for I1 symmetry, for example, should be at least 50%.
-	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
-
-std::cout<<"nCand: "<<nCand<<"\n";
-
-//	//ordering using cross-corr coefficient values computed in first loop
+//// ========graph filter to ccVect from first loop, using filtered signal================
+////         to sort candidates previous to second loop processing
+//
+//// ================ Graph Filter Process =================
+//	Matrix1D<double> ccvec_filt;
+//	graphFourierFilter(ccvec,ccvec_filt);
+//ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+//
+//	// search rotation with polar real image representation over 10% of reference images
+//	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
+//	// but for I1 symmetry, for example, should be at least 50%.
+//	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
+//
+//std::cout<<"nCand: "<<nCand<<"\n";
+//
+////	//ordering using cross-corr coefficient values computed in first loop
+////	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
+////			[&candidatesFirstLoopCoeff](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
+//
+//	// ordering using cross-corr coefficient values filtered using graph signal approach
 //	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
-//			[&candidatesFirstLoopCoeff](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
+//			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
+//
+//	std::vector<unsigned int> candidatesSecondLoop(nCand, 0);
+//	std::vector<unsigned int> Idx2(nCand, 0);
+//	std::vector<double> candidatesSecondLoopCoeff(nCand, 0.);
+//	std::vector<double> bestTx2(nCand, 0.);
+//	std::vector<double> bestTy2(nCand, 0.);
+//	std::vector<double> bestPsi2(nCand, 0.);
+//
+//	size_t first = 0;
+//	MultidimArray<double> inPolar(n_rad, n_ang2);
+//	MultidimArray<double> MDaExpShiftRot2; // transform experimental
+//	MDaExpShiftRot2.setXmippOrigin();
+//	MultidimArray<double> ccMatrixRot2;
+//	MultidimArray<double> ccVectorRot2;
+//	MultidimArray<std::complex<double> > MDaInAuxF;
+//	for (int k = 0; k < nCand; ++k) {
+//		//apply transform to experimental image
+//		double rotVal = -1. * bestPsi[Idx[k]]; // -1. because I return parameters for reference image instead of experimental
+//		double trasXval = -1. * bestTx[Idx[k]];
+//		double trasYval = -1. * bestTy[Idx[k]];
+//		_applyShiftAndRotation(MDaIn,rotVal,trasXval,trasYval,MDaExpShiftRot2);
+//		//fourier experimental image
+//		_applyFourierImage2(MDaExpShiftRot2, MDaInF);
+//		// polar experimental image
+//		inPolar = imToPolar(MDaExpShiftRot2, first, n_rad);
+//		_applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, it uses the same transformer used in the previous loop which have a different size
+//
+//		// find rotation and shift
+//		ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop[Idx[k]]],ccMatrixRot2);
+//		maxByColumn(ccMatrixRot2, ccVectorRot2);
+//		peaksFound = 0;
+//		std::vector<double> cand(maxAccepted, 0.);
+//		rotCandidates3(ccVectorRot2, cand, XSIZE(ccMatrixRot2));
+//		bestCand(MDaExpShiftRot2, MDaInF, vecMDaRef[Idx[k]], cand, psi,Tx, Ty, cc_coeff); //
+//
+//		// if its better and shifts are within range then update
+//		double testShiftTx = bestTx[Idx[k]] + Tx;
+//		double testShiftTy = bestTy[Idx[k]] + Ty;
+//		if (cc_coeff > candidatesFirstLoopCoeff[Idx[k]]
+//				&& std::abs(testShiftTx) < maxShift	&& std::abs(testShiftTy) < maxShift) {
+//			Idx2[k] = k;
+//			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
+//			candidatesSecondLoopCoeff[k] = cc_coeff;
+//			bestTx2[k] = testShiftTx;
+//			bestTy2[k] = testShiftTy;
+//			bestPsi2[k] = bestPsi[Idx[k]] + psi;
+//		} else {
+//			Idx2[k] = k;
+//			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
+//			candidatesSecondLoopCoeff[k] =candidatesFirstLoopCoeff[Idx[k]];
+//			bestTx2[k] = bestTx[Idx[k]];
+//			bestTy2[k] = bestTy[Idx[k]];
+//			bestPsi2[k] = bestPsi[Idx[k]];
+//		}
+//	}
 
-	// ordering using cross-corr coefficient values filtered using graph signal approach
-	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
-			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
+// ==========graph filter processing after second loop=========================
+	//  second loop, "real search" over percentage of references
+	//  then ccVect after second loop must have sizeMdRef elements
 
-	std::vector<unsigned int> candidatesSecondLoop(nCand, 0);
-	std::vector<unsigned int> Idx2(nCand, 0);
-	std::vector<double> candidatesSecondLoopCoeff(nCand, 0.);
-	std::vector<double> bestTx2(nCand, 0.);
-	std::vector<double> bestTy2(nCand, 0.);
-	std::vector<double> bestPsi2(nCand, 0.);
-
-	size_t first = 0;
-	MultidimArray<double> inPolar(n_rad, n_ang2);
-	MultidimArray<double> MDaExpShiftRot2; // transform experimental
-	MDaExpShiftRot2.setXmippOrigin();
-	MultidimArray<double> ccMatrixRot2;
-	MultidimArray<double> ccVectorRot2;
-	MultidimArray<std::complex<double> > MDaInAuxF;
-	for (int k = 0; k < nCand; ++k) {
-		//apply transform to experimental image
-		double rotVal = -1. * bestPsi[Idx[k]]; // -1. because I return parameters for reference image instead of experimental
-		double trasXval = -1. * bestTx[Idx[k]];
-		double trasYval = -1. * bestTy[Idx[k]];
-		_applyShiftAndRotation(MDaIn,rotVal,trasXval,trasYval,MDaExpShiftRot2);
-		//fourier experimental image
-		_applyFourierImage2(MDaExpShiftRot2, MDaInF);
-		// polar experimental image
-		inPolar = imToPolar(MDaExpShiftRot2, first, n_rad);
-		_applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, it uses the same transformer used in the previous loop which have a different size
-
-		// find rotation and shift
-		ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop[Idx[k]]],ccMatrixRot2);
-		maxByColumn(ccMatrixRot2, ccVectorRot2);
-		peaksFound = 0;
-		std::vector<double> cand(maxAccepted, 0.);
-		rotCandidates3(ccVectorRot2, cand, XSIZE(ccMatrixRot2));
-		bestCand(MDaExpShiftRot2, MDaInF, vecMDaRef[Idx[k]], cand, psi,Tx, Ty, cc_coeff); //
-
-		// if its better and shifts are within range then update
-		double testShiftTx = bestTx[Idx[k]] + Tx;
-		double testShiftTy = bestTy[Idx[k]] + Ty;
-		if (cc_coeff > candidatesFirstLoopCoeff[Idx[k]]
-				&& std::abs(testShiftTx) < maxShift	&& std::abs(testShiftTy) < maxShift) {
-			Idx2[k] = k;
-			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
-			candidatesSecondLoopCoeff[k] = cc_coeff;
-			bestTx2[k] = testShiftTx;
-			bestTy2[k] = testShiftTy;
-			bestPsi2[k] = bestPsi[Idx[k]] + psi;
-		} else {
-			Idx2[k] = k;
-			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
-			candidatesSecondLoopCoeff[k] =candidatesFirstLoopCoeff[Idx[k]];
-			bestTx2[k] = bestTx[Idx[k]];
-			bestTy2[k] = bestTy[Idx[k]];
-			bestPsi2[k] = bestPsi[Idx[k]];
-		}
-	}
-
-// */
-
-// ========================================================================
-///*  second loop, "real search" over percentage of references
-  //  graph filter processing after second loop
-  //  then ccVect after second loop must have sizeMdRef elements
-
-	//	/* search rotation with polar real image representation over 10% of reference images
+	// search rotation with polar real image representation over 10% of reference images
 	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
 	// but for I1 symmetry, for example, should be at least 50%.
 	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
@@ -545,7 +548,7 @@ std::cout<<"nCand: "<<nCand<<"\n";
 	// same size as in first loop
 	std::vector<unsigned int> candidatesSecondLoop(sizeMdRef, 0);
 	std::vector<unsigned int> Idx2(sizeMdRef, 0);
-	std::vector<unsigned int> Idx3(sizeMdRef, 0); //todo borrar
+	std::vector<unsigned int> Idx3(sizeMdRef, 0);
 	std::vector<double> candidatesSecondLoopCoeff(sizeMdRef, 0.);
 	std::vector<double> bestTx2(sizeMdRef, 0.);
 	std::vector<double> bestTy2(sizeMdRef, 0.);
@@ -622,9 +625,7 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
 	graphFourierFilter(ccvec,ccvec_filt);
 ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
 
-// */
-
-	// choose nCand of the candidates with best corrCoeff
+	// choose BEST of the candidates
 	int nCand2 = 1;
 	std::partial_sort(Idx2.begin(), Idx2.begin()+nCand2, Idx2.end(),
 			[&candidatesSecondLoopCoeff](int i, int j) {return candidatesSecondLoopCoeff[i] > candidatesSecondLoopCoeff[j];});
@@ -639,7 +640,6 @@ outCandidateBef.close();
 	// choose best candidate direction from graph filtered ccvect signal
 	std::partial_sort(Idx3.begin(), Idx3.begin()+nCand2, Idx3.end(),
 			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
-
 
 std::cout<<"testIdx3[0]: "<<Idx3[0]<<std::endl;
 std::cout<<"testCand[Idx3[0]]: "<<candidatesSecondLoop[Idx3[0]]<<std::endl;
@@ -664,7 +664,7 @@ outCandidate.close();
 	double sphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp));
 
 	// is this direction a reliable candidate?
-	// a condition could be if this direction is within "soft neighborhood" with high coeff values
+	// a condition could be: if this direction is within "soft neighborhood" with high coeff values
 	if (sphericalDistance>(3.*angStep)){
 		candidatesSecondLoopCoeff[Idx2[0]]=0.;
 	}
@@ -673,7 +673,8 @@ std::cout<<"sphericalDistance candidates: "<<sphericalDistance<<std::endl;
 exit(1);
 
 	// reading info of reference image candidate
-	double rotRef, tiltRef;
+	double rotRef;
+	double tiltRef;
 	// reading info of reference image candidate
 	rotRef = referenceRot.at(candidatesSecondLoop[Idx2[0]]);
 	tiltRef = referenceTilt.at(candidatesSecondLoop[Idx2[0]]);
@@ -698,8 +699,7 @@ void ProgAngularAssignmentMag::postProcess() {
 	// from angularContinousAssign2
 	MetaData &ptrMdOut = *getOutputMd();
 	ptrMdOut.removeDisabled();
-	//	/*  // todo ask if this is the correct way to do this weighting, because later in highres protocol there is another weighting step
-	 double maxCC = -1.;
+	double maxCC = -1.;
 	 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
 		 double thisMaxCC;
 		 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
@@ -712,9 +712,8 @@ void ProgAngularAssignmentMag::postProcess() {
 		 double thisMaxCC;
 		 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
 		 ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
-		 ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC,
-				 __iter.objId);
-	 } // */
+		 ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC, __iter.objId);
+	 }
 
 	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 }
@@ -777,12 +776,12 @@ void ::ProgAngularAssignmentMag::normalized_cc(MultidimArray<double> &X,
 	double prodXY = 0;
 	double prodXX = 0;
 	double prodYY = 0;
-	MultidimArray<double> X2, Y2;
+	MultidimArray<double> X2;
+	MultidimArray<double> Y2;
 	X2.resizeNoCopy(X);
 	Y2.resizeNoCopy(Y);
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(X)
-	{
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(X){
 		prodXY += dAij(X,i,j) * dAij(Y, i, j);
 		prodXX += dAij(X,i,j) * dAij(X, i, j);
 		prodYY += dAij(Y,i,j) * dAij(Y, i, j);
@@ -800,12 +799,12 @@ void ::ProgAngularAssignmentMag::normalized_cc(const MultidimArray<double> &X,
 	double prodXY = 0;
 	double prodXX = 0;
 	double prodYY = 0;
-	MultidimArray<double> X2, Y2;
+	MultidimArray<double> X2;
+	MultidimArray<double> Y2;
 	X2.resizeNoCopy(X);
 	Y2.resizeNoCopy(Y);
 
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(X)
-	{
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(X){
 		prodXY += dAij(X,i,j) * dAij(Y, i, j);
 		prodXX += dAij(X,i,j) * dAij(X, i, j);
 		prodYY += dAij(Y,i,j) * dAij(Y, i, j);
@@ -1100,6 +1099,7 @@ void ProgAngularAssignmentMag::applyFourierImage(MultidimArray<double> &data,
 /* get COMPLETE fourier spectrum of polarRepresentation of Magnitude. It should be changed for half */
 void ProgAngularAssignmentMag::applyFourierImage(MultidimArray<double> &data,
 		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
+	(void)ang;
 	transformerPolarImage.completeFourierTransform(data, FourierData);
 }
 
@@ -1112,12 +1112,14 @@ void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
 /* first try one half of fourier spectrum of polarRepresentation of Magnitude*/
 void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
 		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
+	(void)ang;
 	transformerPolarImage.FourierTransform(data, FourierData, true); // false --> true para generar copia
 }
 
 /* first try one half of fourier spectrum of polarRepresentation of image in real space*/
 void ProgAngularAssignmentMag::applyFourierImage3(MultidimArray<double> &data,
 		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
+	(void)ang;
 	transformerPolarRealSpace.FourierTransform(data, FourierData, true); //
 }
 
@@ -1135,8 +1137,6 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(MultidimArray<double> 
 	MultidimArray<double> polarImg(thisNbands, n_ang2);
 	float pi = 3.141592653;
 	// coordinates of center
-	//    double cy = (Ydim+1)/2.0;
-	//    double cx = (Xdim+1)/2.0;
 	double cy = (Ydim + (Ydim % 2)) / 2.0; // for odd/even images
 	double cx = (Xdim + (Xdim % 2)) / 2.0;
 
@@ -1174,7 +1174,7 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar2(
 	MultidimArray<double> polarImg(rad, ang);
 	float pi = 3.141592653;
 	// coordinates of center
-	double cy = 0.5; //(Ydim+1)/2.0;
+	double cy = 0.5;
 	double cx = (Xdim + 1) / 2.0;
 	// scale factors
 	double sfy = (Ydim - 1) / 2.0;
@@ -1244,7 +1244,8 @@ void ProgAngularAssignmentMag::completeFourierShift(MultidimArray<double> &in,
 //	size_t Cf = (size_t) ((YSIZE(in) + (YSIZE(in) % 2)) / 2.0); // it seems not different
 //	size_t Cc = (size_t) ((XSIZE(in) + (XSIZE(in) % 2)) / 2.0);
 
-	size_t ff, cc;
+	size_t ff;
+	size_t cc;
 	for (size_t f = 0; f < YSIZE(in); f++) {
 		ff = (f + Cf) % YSIZE(in);
 		for (size_t c = 0; c < XSIZE(in); c++) {
@@ -1260,7 +1261,8 @@ void ProgAngularAssignmentMag::halfFourierShift(MultidimArray<double> &in,
 	size_t Cf = (size_t) (Ydim / 2.0 + 0.5);
 	out.resizeNoCopy(in);
 
-	size_t ff, cc;
+	size_t ff;
+	size_t cc;
 	for (size_t f = 0; f < Ydim; f++) {
 		ff = (f + Cf) % Ydim;
 		for (size_t c = 0; c < Cf; c++) {
@@ -1287,18 +1289,15 @@ std::cout<<"size in ccMatrix of F1: "<< YSIZE(F1) <<" x "<< XSIZE(F1) << std::en
 std::cout<<"size in ccMatrix full: "<< YSIZE(F1) <<" x "<< 2 * (XSIZE(F1) - 1) << std::endl;
 }
 
-	//    CorrelationAux aux2;
-	//	correlation_matrix(F1,F2,result,aux2);
-
-	//double mdSize=-dSize;
-
 	CorrelationAux aux;
 	aux.transformer1.setReal(result);
 	aux.transformer1.setFourier(F1);
 	// Multiply FFT1 .* FFT2'
-	double a, b, c, d; // a+bi, c+di
+	double a;
+	double b;
+	double c;
+	double d; // a+bi, c+di
 	double dSize = MULTIDIM_SIZE(result);
-	//    double mdSize=-dSize;
 
 	double *ptrFFT2 = (double*) MULTIDIM_ARRAY(F2);
 	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(aux.transformer1.fFourier);
@@ -1308,9 +1307,6 @@ std::cout<<"size in ccMatrix full: "<< YSIZE(F1) <<" x "<< 2 * (XSIZE(F1) - 1) <
 		b = (*(ptrFFT1 + 1)) * dSize;
 		c = (*ptrFFT2++);
 		d = (*ptrFFT2++) * (-1);
-		//        //GCC
-		//        *ptrFFT1++ = a*c-b*d;
-		//        *ptrFFT1++ = b*c+a*d;
 		//Compactly supported correlation. F2 is reference image
 		*ptrFFT1++ = (a * c - b * d) / ((c * c + d * d) + 0.001);
 		*ptrFFT1++ = (b * c + a * d) / ((c * c + d * d) + 0.001);
@@ -1333,7 +1329,10 @@ void ProgAngularAssignmentMag::ccMatrixPCO(const MultidimArray<std::complex<doub
 	aux.transformer1.setReal(result);
 	aux.transformer1.setFourier(F1);
 	// Multiply FFT1 * FFT2'
-	double a, b, c, d; // a+bi, c+di
+	double a;
+	double b;
+	double c;
+	double d; // a+bi, c+di
 	double *ptrFFT2 = (double*) MULTIDIM_ARRAY(F2);
 	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(aux.transformer1.fFourier);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(F1)
@@ -1376,7 +1375,7 @@ void ProgAngularAssignmentMag::maxByColumn(MultidimArray<double> &in,
 void ProgAngularAssignmentMag::meanByColumn(MultidimArray<double> &in,
 		MultidimArray<double> &out) {
 
-	out.resizeNoCopy(1, XSIZE(in));;
+	out.resizeNoCopy(1, XSIZE(in));
 	double val;
 	double val2;
 	int factor = YSIZE(in);
@@ -1669,8 +1668,7 @@ const MultidimArray<double> &MDaIn,
 	bestCoeff = 0.0;
 	double rotVar = 0.0;
 	double tempCoeff;
-	double tx;
-	double ty;
+
 	MultidimArray<double> MDaRefRot;
 	MultidimArray<double> MDaRefShiftRot;
 	MultidimArray<double> ccMatrixShift;
@@ -1818,13 +1816,12 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 	int idx = 0;
 	int lb = int(size / 2 - maxShift);
 	int hb = int(size / 2 + maxShift);
-	for (int i = 1; i < size - 1; ++i) { //i = lb; i < hb; ++i
-		if (( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1))) &&
-				( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1)))) { // is this value a peak value?
-			if (dAi(ccVector,i) > maxVal) { // is the biggest?
-				maxVal = dAi(ccVector, i);
-				idx = i;
-			}
+	for (int i = lb; i < hb; ++i) { //i= lb : hb or i= 1: size-1
+		if (    ( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1))) &&
+				( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1))) && // is this value a peak value?
+				(dAi(ccVector,i) > maxVal) ) {  // is the biggest?
+			maxVal = dAi(ccVector, i);
+			idx = i;
 		}
 	}
 
@@ -1834,7 +1831,7 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 		interpIdx = quadInterp(idx, ccVector);
 		shift = double(size) / 2. - interpIdx;
 	} else {
-		shift = 0.;
+		shift = maxShift+1;
 	}
 
 }
@@ -1890,8 +1887,13 @@ void ProgAngularAssignmentMag::ssimIndex(MultidimArray<double> &X,
 		MultidimArray<double> &Y, double &coeff) {
 
 	// covariance
-	double X_m, Y_m, X_std, Y_std;
-	double c1, c2, L;
+	double X_m;
+	double Y_m;
+	double X_std;
+	double Y_std;
+	double c1;
+	double c2;
+	double L;
 	arithmetic_mean_and_stddev(X, X_m, X_std);
 	arithmetic_mean_and_stddev(Y, Y_m, Y_std);
 
@@ -1903,8 +1905,7 @@ void ProgAngularAssignmentMag::ssimIndex(MultidimArray<double> &X,
 	c2 = (0.03 * L) * (0.03 * L); // for stability
 
 	coeff = ((2 * X_m * Y_m + c1) * (2 * covariace + c2))
-			/ ((X_m * X_m + Y_m * Y_m + c1)
-					* (X_std * X_std + Y_std * Y_std + c2));
+			/ ((X_m * X_m + Y_m * Y_m + c1) * (X_std * X_std + Y_std * Y_std + c2));
 }
 
 /* Structural similarity SSIM index Coeff */
@@ -1912,8 +1913,13 @@ void ProgAngularAssignmentMag::ssimIndex(const MultidimArray<double> &X,
 		MultidimArray<double> &Y, double &coeff) {
 
 	// covariance
-	double X_m, Y_m, X_std, Y_std;
-	double c1, c2, L;
+	double X_m;
+	double Y_m;
+	double X_std;
+	double Y_std;
+	double c1;
+	double c2;
+	double L;
 	arithmetic_mean_and_stddev(X, X_m, X_std);
 	arithmetic_mean_and_stddev(Y, Y_m, Y_std);
 
@@ -1925,8 +1931,7 @@ void ProgAngularAssignmentMag::ssimIndex(const MultidimArray<double> &X,
 	c2 = (0.03 * L) * (0.03 * L); // stability in division
 
 	coeff = ((2 * X_m * Y_m + c1) * (2 * covariace + c2))
-			/ ((X_m * X_m + Y_m * Y_m + c1)
-					* (X_std * X_std + Y_std * Y_std + c2));
+			/ ((X_m * X_m + Y_m * Y_m + c1) * (X_std * X_std + Y_std * Y_std + c2));
 }
 
 /* apply rotation then shift */

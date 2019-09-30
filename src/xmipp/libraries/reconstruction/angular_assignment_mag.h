@@ -27,23 +27,12 @@
 #ifndef __ANGULAR_ASSIGNMENT_MAG_H
 #define __ANGULAR_ASSIGNMENT_MAG_H
 
- /*
-#include <../data/xmipp_program.h>
-#include <../data/xmipp_fftw.h>
-#include <../data/metadata_extension.h>
-#include <../data/multidim_array.h>
-#include <../data/mask.h>
-// */
-
-
-// /*
 #include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
 #include <core/metadata_extension.h>
 #include <core/multidim_array.h>
 #include <data/mask.h>
 #include <data/filters.h>
-// */
 
 #include <vector>
 #include <fstream> 
@@ -59,10 +48,16 @@ class ProgAngularAssignmentMag: public XmippMetadataProgram
 {
 public:
     /** Filenames */
-    FileName fnIn, fnOut, fnDir, fnSym, fnRef;
-public: // Internal members
+    FileName fnIn;
+    FileName fnOut;
+    FileName fnDir;
+    FileName fnSym;
+    FileName fnRef;
+
     // Metadata with input images and input volumes
-    MetaData mdIn, mdRef, mdOut;
+    MetaData mdIn;
+    MetaData mdRef;
+    MetaData mdOut;
 
     // vector of reference images
     std::vector< MultidimArray<double> > vecMDaRef;
@@ -77,18 +72,13 @@ public: // Internal members
     std::vector< MultidimArray< std::complex<double> > > vecMDaRefFMs_polarF;
 
     // Size of the images
-    size_t Xdim, Ydim;
+    size_t Xdim;
+    size_t Ydim;
 
     // Transformer
     FourierTransformer transformerImage;
     FourierTransformer transformerPolarImage;
     FourierTransformer transformerPolarRealSpace;
-
-    // "delay axes"
-    MultidimArray<double> axRot;
-    MultidimArray<double> axTx;
-    MultidimArray<double> axTy;
-
 
     MultidimArray<double> W; // Hann window
 
@@ -106,8 +96,6 @@ public: // Internal members
     std::vector< std::vector<double> > neighborsWeights; // this variable should be global
     int N_neighbors;
 
-    size_t idxOut; // index for metadata output file
-
     int testCounter = 0;
     int testCounter2=0;
 
@@ -122,8 +110,6 @@ public: // Internal members
     size_t n_bands;
     size_t startBand;
     size_t finalBand;
-    //    size_t startBandRef;
-    //    size_t finalBandRef;
     size_t n_rad;
     size_t n_ang;
     size_t n_ang2;
@@ -134,11 +120,8 @@ public: // Internal members
     int Nsim;
 
 
-public:
-    // constructor
     ProgAngularAssignmentMag();
 
-    // destructor
     ~ProgAngularAssignmentMag();
 
     /// Read arguments from command line
@@ -147,10 +130,8 @@ public:
 
     void show();
 
-    /*startProcessing() */
     void startProcessing();
 
-    /// Produce side info: fill arrays with relevant transformation matrices
     void preProcess();
 
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
