@@ -239,7 +239,7 @@ void ProgParticlePolishing::averagingMovieParticles(MetaData &mdPart, MultidimAr
 
 	} //end loop to find the previous and following frames to average the particle
 
-	I/=count;
+	//I/=count;
 
 }
 
@@ -372,6 +372,7 @@ void ProgParticlePolishing::run()
 
 			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
 			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+			//TODO: ver si estamos alineando en sentido correcto la proyeccion
 
 			projV().setXmippOrigin();
 
@@ -413,10 +414,12 @@ void ProgParticlePolishing::run()
 
 			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
 			
-			/*/DEBUG
-			projV.write(formatString("projection_%i_%i.mrc", frId, partId));
-			Ipart.write(formatString("particle_%i_%i.mrc", frId, partId));
-			//END DEBUG/*/
+			//DEBUG
+			if(frId==1){
+				projV.write(formatString("3Newprojection_%i_%i.mrc", frId, partId));
+				Ipart.write(formatString("3Newparticle_%i_%i.mrc", frId, partId));
+			}
+			//END DEBUG//
 
 			if(iterPart->hasNext())
 				iterPart->moveNext();
