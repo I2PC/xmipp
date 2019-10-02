@@ -19,7 +19,7 @@ loop_
 """
   if not micId is None:
     s+=" _micrographId\n"
-  baseName= os.path.basename(mic_fname).split(".")[0]
+  baseName = os.path.splitext(os.path.basename(mic_fname))[0]
   print("%d %s %s"%(len(list_x_y), mic_fname, os.path.join(outputRoot, baseName+".pos")))
 
   if len(list_x_y)>0:
