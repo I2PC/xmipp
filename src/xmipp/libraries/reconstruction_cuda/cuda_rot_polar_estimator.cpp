@@ -85,7 +85,11 @@ void CudaRotPolarEstimator<T>::init2D(bool reuse) {
     // FT plans
     m_singleToFD = CudaFFT<T>::createPlan(*m_workStream, singlePolar);
     m_batchToFD = CudaFFT<T>::createPlan(*m_workStream, batchPolar);
-    m_batchToSD = CudaFFT<T>::createPlan(*m_workStream, batchPolar.createInverse());
+
+    auto inversePolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
+            s.batch, s.batch, // while computing correlation, we also sum the rings,
+            false,false); // i.e. we end up with batch * samples elements
+    m_batchToSD = CudaFFT<T>::createPlan(*m_workStream, inversePolar);
 
     // allocate device memory
     m_h_batchResult = new T[m_samples * s.batch];
