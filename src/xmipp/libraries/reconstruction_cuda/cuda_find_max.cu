@@ -78,12 +78,34 @@ void findMax(
     __syncthreads(); // wait till all threads store their data
     // reduce
 #pragma unroll
-    for (unsigned counter = blockSize / 2; counter != 0; counter /= 2) {
+    for (unsigned counter = blockSize / 2; counter >= 32; counter /= 2) {
         if (tid < counter) {
             sdata[tid] = update(ldata, sdata[tid + counter]);
         }
         __syncthreads();
     }
+    // manually unwrap last warp for better performance
+    // many of these blocks will be optimized out by compiler based on template
+    if ((blockSize >= 32) && (tid < 16)) {
+        sdata[tid] = update(ldata, sdata[tid + 16]);
+    }
+    __syncthreads();
+    if ((blockSize >= 16) && (tid < 8)) {
+        sdata[tid] = update(ldata, sdata[tid + 8]);
+    }
+    __syncthreads();
+    if ((blockSize >= 8) && (tid < 4)) {
+        sdata[tid] = update(ldata, sdata[tid + 4]);
+    }
+    __syncthreads();
+    if ((blockSize >= 4) && (tid < 2)) {
+        sdata[tid] = update(ldata, sdata[tid + 2]);
+    }
+    __syncthreads();
+    if ((blockSize >= 2) && (tid < 1)) {
+        sdata[tid] = update(ldata, sdata[tid + 1]);
+    }
+    __syncthreads();
 
     // last thread now holds the result
     if (tid == 0) {
