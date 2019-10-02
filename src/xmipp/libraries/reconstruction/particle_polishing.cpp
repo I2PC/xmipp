@@ -198,7 +198,7 @@ void ProgParticlePolishing::averagingMovieParticles(MetaData &mdPart, MultidimAr
 	if(window%2==1)
 		window+=1;
 	int w=window/2;
-	double count=0.0;
+	double count=1.0;
 	MDIterator *iterPart = new MDIterator(mdPart);
 	int frameIdI = int(frameId);
 	for(int i=0; i<mdPartSize; i++){
@@ -214,7 +214,7 @@ void ProgParticlePolishing::averagingMovieParticles(MetaData &mdPart, MultidimAr
 					iterPart->moveNext();
 				continue;
 			}
-			if ((newFrameIdI>=(frameIdI-w)) && (newFrameIdI<=(frameIdI+w))){
+			if (newFrameIdI<frameIdI){ //taking into account all the previous frames
 				//std::cerr << count << ". Encuentra frames para el averaging: " << partId << " , " << newPartId << " , " << frameIdI << " , " << newFrameIdI << " , " << movieId << " , " << newMovieId << std::endl;
 				currentRow.getValue(MDL_IMAGE,fnPart);
 				Ipart.read(fnPart);
@@ -267,30 +267,32 @@ void ProgParticlePolishing::calculateFrameWeightPerFreq(MultidimArray<double> &m
 void ProgParticlePolishing::smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out){
 
 	std::cerr << "SMOOTHING values..." << std::endl;
-	MultidimArray<double> aux(ZSIZE(in), YSIZE(in), XSIZE(in));
-	MultidimArray<double> coeffs(ZSIZE(in), YSIZE(in), XSIZE(in));
+	MultidimArray<double> aux(ZSIZE(in), YSIZE(in));
+	MultidimArray<double> coeffs(ZSIZE(in), YSIZE(in));
+
     for (size_t l=0; l<NSIZE(in); ++l){ //loop over movies
 
-        for (size_t k=0; k<ZSIZE(in); ++k){ //loop over frames
-            for (size_t i=0; i<YSIZE(in); ++i){ //loop over frequencies
-                for (size_t j=0; j<XSIZE(in); ++j){ //loop over movie particles
-                	DIRECT_A3D_ELEM(aux, k, i, j)=DIRECT_NZYX_ELEM(in, l, k, i, j);
+    	for (size_t j=0; j<XSIZE(in); ++j){ //loop over movie particles
+    		for (size_t k=0; k<ZSIZE(in); ++k){ //loop over frames
+    			for (size_t i=0; i<YSIZE(in); ++i){ //loop over frequencies
+    				DIRECT_A2D_ELEM(aux, k, i)=DIRECT_NZYX_ELEM(in, l, k, i, j);
                 }
             }
+
         }
 
+        //TODO: change this smoothing by low rank tensor decomposition
     	produceSplineCoefficients(BSPLINE3,coeffs,aux);
 
-        for (size_t k=0; k<ZSIZE(in); ++k){ //loop over frames
-            for (size_t i=0; i<YSIZE(in); ++i){ //loop over frequencies
-                for (size_t j=0; j<XSIZE(in); ++j){ //loop over movie particles
-                	DIRECT_NZYX_ELEM(out, l, k, i, j)=DIRECT_A3D_ELEM(coeffs, k, i, j);
+        for (size_t j=0; j<XSIZE(in); ++j){ //loop over movie particles
+        	for (size_t k=0; k<ZSIZE(in); ++k){ //loop over frames
+        		for (size_t i=0; i<YSIZE(in); ++i){ //loop over frequencies
+                	DIRECT_NZYX_ELEM(out, l, k, i, j)=DIRECT_A2D_ELEM(coeffs, k, i);
                 }
             }
         }
 
     }
-
 }
 
 
@@ -323,7 +325,7 @@ void ProgParticlePolishing::run()
 	Filter.FilterShape=RAISED_COSINE;
 
 	double cutfreq;
-	double inifreq=0.5; //0.05;
+	double inifreq=0.1; //0.05;
 	double step=0.1; //0.05;
 	int Nsteps= int((0.5-inifreq)/step);
 	matrixWeights.initZeros(nMovies, nFrames, Nsteps+1, mdPartSize);
@@ -381,11 +383,17 @@ void ProgParticlePolishing::run()
 			Filter.generateMask(projV());
 			Filter.applyMaskSpace(projV());
 
-			//calculate similarity measures between movie particles and filtered projection
-			double weight;
-			double corrN, corrM, corrW, imed;
+			//averaging movie particle image with the ones in previous frames
 			if(w>1)
 				averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
+
+			//filtering the averaged movie particle
+			Filter.generateMask(Ipart());
+			Filter.applyMaskSpace(Ipart());
+
+			//calculate similarity measures between averaged movie particles and filtered projection
+			double weight;
+			double corrN, corrM, corrW, imed;
 			similarity(projV(), Ipart(), corrN, corrM, corrW, imed);
 			//TODO: la corrW que viene de Idiff no tiene mucho sentido porque la Idiff en este caso no nos dice nada
 
@@ -415,9 +423,9 @@ void ProgParticlePolishing::run()
 			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
 			
 			//DEBUG
-			if(frId==1){
-				projV.write(formatString("3Newprojection_%i_%i.mrc", frId, partId));
-				Ipart.write(formatString("3Newparticle_%i_%i.mrc", frId, partId));
+			if(frId==nFrames){
+				//projV.write(formatString("4Newprojection_%i_%i.mrc", frId, partId));
+				Ipart.write(formatString("4Newparticle_%i_%i.mrc", frId, partId));
 			}
 			//END DEBUG//
 
@@ -430,7 +438,7 @@ void ProgParticlePolishing::run()
 
 	MultidimArray<double> weightsperfreq;
 	weightsperfreq.initZeros(NSIZE(matrixWeights), ZSIZE(matrixWeights), YSIZE(matrixWeights), XSIZE(matrixWeights));
-	calculateFrameWeightPerFreq(matrixWeights, weightsperfreq, maxvalues);
+	//calculateFrameWeightPerFreq(matrixWeights, weightsperfreq, maxvalues);
 
 }
 
