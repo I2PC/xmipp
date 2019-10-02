@@ -27,6 +27,7 @@
 #define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FIND_MAX_CU_
 
 #include <float.h> // FLT_MAX
+#include <type_traits>
 
 template<typename T, typename T2>
  __device__
