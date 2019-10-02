@@ -96,10 +96,6 @@ public :
             int posOfFirstRing);
 
     template<bool FULL_CIRCLE>
-    static std::vector<T> sFindMaxAngle(const Dimensions &dims,
-            T *polarCorrelations);
-
-    template<bool FULL_CIRCLE>
     static void sNormalize(
             const GPU &gpu,
             const Dimensions &dimIn,
@@ -120,7 +116,7 @@ private:
     T *m_d_batch;
     T *m_d_batchPolarOrCorr;
     std::complex<T> *m_d_batchPolarFD;
-    T *m_d_sums;
+    T *m_d_sumsOrMaxPos;
     T *m_d_sumsSqr;
 
     // FT plans

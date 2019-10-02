@@ -39,22 +39,25 @@ unsigned int nextPow2(unsigned int x)
 }
 
 template <typename T, bool dataOnGPU>
-void sFindMax(const T * __restrict__ data,
+void sFindMax(const GPU &gpu,
+        const Dimensions &dims,
+        const T * __restrict__ data,
         T * __restrict__ positions,
-        T * __restrict__ values,
-        unsigned samples, unsigned signals)
+        T * __restrict__ values)
 {
-    assert(samples > 0);
-    assert(signals > 0);
-    // we need at least one warp, max 512 threads
+    assert(dims.sizeSingle() > 0);
+    assert(dims.n() > 0);
+    // we need at most 512 threads (physical limitation)
     size_t maxThreads = 512;
-    size_t threads = (samples < maxThreads) ? nextPow2(samples) : maxThreads;
+    size_t threads = (dims.sizeSingle() < maxThreads) ? nextPow2(dims.sizeSingle()) : maxThreads;
     dim3 dimBlock(threads, 1, 1);
-    dim3 dimGrid(signals, 1, 1);
+    dim3 dimGrid(dims.n(), 1, 1);
 
     T *d_data;
     T *d_positions;
     T *d_values;
+
+    auto stream = *(cudaStream_t*)gpu.stream();
 
     if (dataOnGPU) {
         d_data = (T*)data;
@@ -62,14 +65,14 @@ void sFindMax(const T * __restrict__ data,
         d_values = values;
 
     } else {
-        auto bytesAux = signals * sizeof(T);
-        auto bytesData = samples * signals * sizeof(T);
+        auto bytesAux = dims.n() * sizeof(T);
+        auto bytesData = dims.size() * sizeof(T);
 
         gpuErrchk(cudaMalloc(&d_data, bytesData));
         gpuErrchk(cudaMalloc(&d_positions, bytesAux));
         gpuErrchk(cudaMalloc(&d_values, bytesAux));
 
-        gpuErrchk(cudaMemcpy(d_data, data, bytesData, cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpyAsync(d_data, data, bytesData, cudaMemcpyHostToDevice, stream));
     }
 
     // when there is only one warp per block, we need to allocate two warps
@@ -78,49 +81,49 @@ void sFindMax(const T * __restrict__ data,
     switch (threads)
     {
         case 512:
-            findMax<T, 512><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T, 512><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case 256:
-            findMax<T, 256><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T, 256><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case 128:
-            findMax<T, 128><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T, 128><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case 64:
-            findMax<T,  64><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,  64><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case 32:
-            findMax<T,  32><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,  32><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case 16:
-            findMax<T,  16><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,  16><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case  8:
-            findMax<T,   8><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,   8><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case  4:
-            findMax<T,   4><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,   4><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case  2:
-            findMax<T,   2><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,   2><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
 
         case  1:
-            findMax<T,   1><<< dimGrid, dimBlock, smemSize >>>(d_data, d_positions, d_values, samples);
+            findMax<T,   1><<< dimGrid, dimBlock, smemSize, stream>>>(d_data, d_positions, d_values, dims.sizeSingle());
             break;
     }
     if ( ! dataOnGPU) {
-        auto bytesAux = signals * sizeof(T);
-        gpuErrchk(cudaMemcpy(positions, d_positions, bytesAux, cudaMemcpyDeviceToHost));
-        gpuErrchk(cudaMemcpy(values, d_values, bytesAux, cudaMemcpyDeviceToHost));
+        auto bytesAux = dims.n() * sizeof(T);
+        gpuErrchk(cudaMemcpyAsync(positions, d_positions, bytesAux, cudaMemcpyDeviceToHost, stream));
+        gpuErrchk(cudaMemcpyAsync(values, d_values, bytesAux, cudaMemcpyDeviceToHost, stream));
 
         gpuErrchk(cudaFree(d_data));
         gpuErrchk(cudaFree(d_positions));
@@ -129,24 +132,28 @@ void sFindMax(const T * __restrict__ data,
 }
 
 template
-void sFindMax<float, true>(const float * __restrict__ data,
+void sFindMax<float, true>(const GPU &gpu,
+        const Dimensions &dims,
+        const float * __restrict__ data,
         float * __restrict__ positions,
-        float * __restrict__ values,
-        unsigned samples, unsigned signals);
+        float * __restrict__ values);
 
 template
-void sFindMax<float, false>(const float * __restrict__ data,
+void sFindMax<float, false>(const GPU &gpu,
+        const Dimensions &dims,
+        const float * __restrict__ data,
         float * __restrict__ positions,
-        float * __restrict__ values,
-        unsigned samples, unsigned signals);
+        float * __restrict__ values);
 
 template
-void sFindMax<double, true>(const double * __restrict__ data,
+void sFindMax<double, true>(const GPU &gpu,
+        const Dimensions &dims,
+        const double * __restrict__ data,
         double * __restrict__ positions,
-        double * __restrict__ values,
-        unsigned samples, unsigned signals);
+        double * __restrict__ values);
 template
-void sFindMax<double, false>(const double * __restrict__ data,
+void sFindMax<double, false>(const GPU &gpu,
+        const Dimensions &dims,
+        const double * __restrict__ data,
         double * __restrict__ positions,
-        double * __restrict__ values,
-        unsigned samples, unsigned signals);
+        double * __restrict__ values);

@@ -79,7 +79,7 @@ public:
         std::iota(tc.data.get(), tc.data.get() + tc.dims.size(), 0);
 
         // test
-        sFindMax<T, false>(tc.data.get(), tc.resPos.get(), tc.resVal.get(), tc.dims.x(), tc.dims.n());
+        sFindMax<T, false>(*hw, tc.dims, tc.data.get(), tc.resPos.get(), tc.resVal.get());
 
         // get results and compare
         compare(tc);
@@ -93,8 +93,23 @@ public:
         test_1D_increasing(tc);
     }
 
+    static void TearDownTestCase() {
+        delete hw;
+    }
+
+    static void SetUpTestCase() {
+            hw = new GPU();
+            hw->set();
+        }
+
+private:
+    static GPU *hw;
+
 };
 TYPED_TEST_CASE_P(FindMax_Test);
+
+template<typename T>
+GPU* FindMax_Test<T>::hw;
 
 TYPED_TEST_P( FindMax_Test, debug)
 {
@@ -112,5 +127,5 @@ REGISTER_TYPED_TEST_CASE_P(FindMax_Test,
     debug
 );
 
-typedef ::testing::Types<float> TestTypes;
+typedef ::testing::Types<float, double> TestTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(, FindMax_Test, TestTypes);

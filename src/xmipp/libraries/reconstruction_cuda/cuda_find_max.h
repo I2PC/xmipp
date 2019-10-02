@@ -27,11 +27,14 @@
 #define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_FINDMAX_H_
 
 #include <cassert>
+#include "reconstruction_cuda/gpu.h"
+#include "data/dimensions.h"
 
 template <typename T, bool dataOnGPU>
-void sFindMax(const T * __restrict__ data,
+void sFindMax(const GPU &gpu,
+        const Dimensions &dims,
+        const T * __restrict__ data,
         T * __restrict__ positions,
-        T * __restrict__ values,
-        unsigned samples, unsigned signals);
+        T * __restrict__ values);
 
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_FINDMAX_H_ */

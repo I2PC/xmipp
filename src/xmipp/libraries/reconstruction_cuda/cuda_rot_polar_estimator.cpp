@@ -26,6 +26,8 @@
 #include <cuda_runtime_api.h>
 #include "reconstruction_cuda/cuda_asserts.h"
 #include "cuda_rot_polar_estimator.h"
+
+#include "cuda_find_max.h"
 #include "cuda_gpu_polar.cu"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
 
@@ -77,7 +79,7 @@ void CudaRotPolarEstimator<T>::init2D(bool reuse) {
     gpuErrchk(cudaMalloc(&m_d_batchPolarFD, batchPolar.fBytesBatch())); // FT of the polar samples
     gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, batchPolar.sBytesBatch())); // IFT of the polar samples
     size_t sumsBytes = m_samples * s.batch * sizeof(T);
-    gpuErrchk(cudaMalloc(&m_d_sums, sumsBytes));
+    gpuErrchk(cudaMalloc(&m_d_sumsOrMaxPos, sumsBytes));
     gpuErrchk(cudaMalloc(&m_d_sumsSqr, sumsBytes));
 
     // FT plans
@@ -100,7 +102,7 @@ void CudaRotPolarEstimator<T>::release() {
     gpuErrchk(cudaFree(m_d_batchPolarOrCorr));
     gpuErrchk(cudaFree(m_d_batchPolarFD));
     gpuErrchk(cudaFree(m_d_ref));
-    gpuErrchk(cudaFree(m_d_sums));
+    gpuErrchk(cudaFree(m_d_sumsOrMaxPos));
     gpuErrchk(cudaFree(m_d_sumsSqr));
 
     // FT plans
@@ -127,7 +129,7 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_d_batchPolarOrCorr = nullptr;
     m_d_batchPolarFD = nullptr;
     m_d_ref = nullptr;
-    m_d_sums = nullptr;
+    m_d_sumsOrMaxPos = nullptr;
     m_d_sumsSqr = nullptr;
 
     // host memory
@@ -200,7 +202,7 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
     // normalize data
     sNormalize<FULL_CIRCLE>(*m_workStream,
             outPolar, m_d_batchPolarOrCorr,
-            m_d_sums, m_d_sumsSqr,
+            m_d_sumsOrMaxPos, m_d_sumsSqr,
             m_firstRing);
 
     CudaFFT<T>::fft(*m_singleToFD, m_d_batchPolarOrCorr, m_d_ref);
@@ -322,26 +324,6 @@ void CudaRotPolarEstimator<T>::sNormalize(
 }
 
 template<typename T>
-template<bool FULL_CIRCLE>
-std::vector<T> CudaRotPolarEstimator<T>::sFindMaxAngle(
-        const Dimensions &dims,
-        T *polarCorrelations) {
-    assert(dims.is1D());
-    auto result = std::vector<T>();
-    result.reserve(dims.n());
-
-    // locate max angle
-    for (size_t offset = 0; offset < dims.size(); offset += dims.x()) {
-        auto start = polarCorrelations + offset;
-        auto max = std::max_element(start, start + dims.x());
-        auto pos = std::distance(start, max);
-        T angle = pos * (FULL_CIRCLE ? (T)360 : (T)180) / dims.x();
-        result.emplace_back(angle);
-    }
-    return result;
-}
-
-template<typename T>
 void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     const bool isFullCircle = this->getSettings().fullCircle;
     if (isFullCircle) {
@@ -396,7 +378,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         sNormalize<FULL_CIRCLE>(*m_workStream,
                 outPolar, m_d_batchPolarOrCorr,
-                m_d_sums, m_d_sumsSqr,
+                m_d_sumsOrMaxPos, m_d_sumsSqr,
                 m_firstRing);
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
@@ -405,19 +387,24 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
+        // locate maxima for each signal
+        sFindMax<T, true>(*m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
+
         // copy data back
         m_workStream->synch();
         auto loadStream = *(cudaStream_t*)m_loadStream->stream();
         gpuErrchk(cudaMemcpyAsync(
                 m_h_batchResult,
-                m_d_batchPolarOrCorr,
-                resSize.size() * sizeof(T),
+                m_d_sumsOrMaxPos,
+                resSize.n() * sizeof(T), // one position per signal
                 cudaMemcpyDeviceToHost, loadStream));
         m_loadStream->synch();
 
-        // extract angles
-        auto angles = sFindMaxAngle<true>(resSize, m_h_batchResult);
-        this->getRotations2D().insert(this->getRotations2D().end(), angles.begin(), angles.end());
+        // convert positions of the maxim to angles
+        for (int n = 0; n < resSize.n(); ++n) {
+            auto angle = m_h_batchResult[n] * (FULL_CIRCLE ? (T)360 : (T)180) / resSize.x();
+            this->getRotations2D().emplace_back(angle);
+        }
     }
     loadingThread.join();
 }
