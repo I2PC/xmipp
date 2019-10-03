@@ -3,13 +3,13 @@
 
 template< typename T >
 class VolumeRestorationDenoise {
-	const size_t iterations;
-
-
 public:
 
-	VolumeRestorationDenoise(size_t iterations)
-	: iterations(iterations) {}
+	size_t iterations;
+
+	void apply(T* V1, T* V2) {
+		
+	}
 };
 
 #endif

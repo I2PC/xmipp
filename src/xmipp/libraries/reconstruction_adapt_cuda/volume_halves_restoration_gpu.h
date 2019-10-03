@@ -18,9 +18,6 @@
 
 #include "reconstruction_cuda/cuda_volume_restoration_denoise.h"
 
-//comment this define to hide time measurements
-// #define TIME_MSR
-
 template< typename T >
 class ProgVolumeHalvesRestorationGpu : public XmippProgram {
     static_assert(std::is_floating_point<T>::value, "Only float and double are allowed as template parameters");
