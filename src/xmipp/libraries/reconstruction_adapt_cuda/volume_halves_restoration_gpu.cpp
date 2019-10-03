@@ -68,40 +68,17 @@ void ProgVolumeHalvesRestorationGpu<T>::defineParams() {
 
 template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::run() {
-        std::cout << "Compile time:" << __TIME__ << std::endl;
-
         show();
 
-            auto start_time = std::chrono::high_resolution_clock::now();
         prepareData();
-            auto end_time = std::chrono::high_resolution_clock::now();
-  #ifdef TIME_MSR
-            std::cout << "Prepare data: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-  #endif
-
-            start_time = std::chrono::high_resolution_clock::now();
         denoise();
-            end_time = std::chrono::high_resolution_clock::now();
-  #ifdef TIME_MSR
-            std::cout << "Denoise data: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-  #endif
-            start_time = std::chrono::high_resolution_clock::now();
         deconvolution();
-            end_time = std::chrono::high_resolution_clock::now();
-  #ifdef TIME_MSR
-            std::cout << "Deconvolution: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-  #endif
 
         if (bankStep > 0) {
             filterBank();
         }
 
-            start_time = std::chrono::high_resolution_clock::now();
         difference();
-            end_time = std::chrono::high_resolution_clock::now();
-  #ifdef TIME_MSR
-            std::cout << "Difference: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-  #endif
         saveResults();
 
         freeDeviceMemory(d_R2, d_mask);
@@ -140,7 +117,7 @@ void ProgVolumeHalvesRestorationGpu<T>::readData() {
         gpuMalloc((void**)&d_mask, mask_memsize);
         gpuCopyFromCPUToGPU(pMask->data, d_mask, mask_memsize);
         pMaskSize = pMask->sum();
-    }	
+    }
 }
 
 template< typename T >
@@ -148,7 +125,7 @@ void ProgVolumeHalvesRestorationGpu<T>::checkInputDimensions() {
     if (XSIZE(V1r()) != XSIZE(V2r()) || YSIZE(V1r()) != YSIZE(V2r())
         || ZSIZE(V1r()) != ZSIZE(V2r())) {
         throw std::runtime_error("Input volumes have different dimensions");
-    }	
+    }
 }
 
 template< typename T >
@@ -235,43 +212,16 @@ void ProgVolumeHalvesRestorationGpu<T>::filterBank() {
     gpuMemset(d_S, 0, memsize);
 
     // This loop can be parallelized, but it requires lot of memory, maybe divide to 2 parallel parts
-    for (T w = 0; w < 0.5; w += filterStep)
-    {
-            auto start_time_loop = std::chrono::high_resolution_clock::now();
-            start_time = std::chrono::high_resolution_clock::now();
-
+    for (T w = 0; w < 0.5; w += filterStep) {
         filterBand(d_fV1, d_Vfiltered1, d_fVout, w, fourier_size);
         filterBand(d_fV2, d_Vfiltered2, d_fVout, w, fourier_size);
 
-            end_time = std::chrono::high_resolution_clock::now();
-            #ifdef TIME_MSR
-            std::cout << "Filter bands: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-            #endif
-
-            auto start_time = std::chrono::high_resolution_clock::now();
         cdf_mN.calculateCDF(d_Vfiltered1, d_Vfiltered2);
-            auto end_time = std::chrono::high_resolution_clock::now();
-            #ifdef TIME_MSR
-            std::cout << "CDF calculation: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-            #endif
-
-            start_time = std::chrono::high_resolution_clock::now();
-
-
 
         Gpu::computeWeights(d_Vfiltered1, d_Vfiltered2, d_V1r, d_V2r, d_S, volume_size, cdf_mN, weightPower, weightFun);
 
         progress_bar(++i);
 
-            end_time = std::chrono::high_resolution_clock::now();
-            #ifdef TIME_MSR
-            std::cout << "Compute weights: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time ).count() << " ms" << std::endl;
-            #endif
-
-            auto end_time_loop = std::chrono::high_resolution_clock::now();
-            #ifdef TIME_MSR
-            std::cout << "####filterStepLoop: " << std::chrono::duration_cast<std::chrono::milliseconds>( end_time_loop - start_time_loop ).count() << " ms" << std::endl;
-            #endif
     }
     progress_bar(imax);
 
