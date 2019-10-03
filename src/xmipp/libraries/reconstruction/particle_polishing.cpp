@@ -32,7 +32,7 @@ void ProgParticlePolishing::defineParams()
     addParamsLine(" -vol <volume>: Input volume to generate the reference projections");
     addParamsLine(" --nFrames <nFrames>: Number of frames");
     addParamsLine(" --nMovies <nMovies>: Number of movies");
-    addParamsLine(" --w <window>: Window size. The number of frames to average to correlate that averaged image with the projection.");
+    addParamsLine(" --w <window=1>: Window size. The number of frames to average to correlate that averaged image with the projection.");
     addParamsLine(" [-o <fn=\"out.xmd\">]: Output metadata with weighted particles");
 
 }
@@ -56,12 +56,6 @@ void ProgParticlePolishing::show()
 	<< "Input movie particle metadata:     " << fnPart << std::endl
 	<< "Input volume to generate the reference projections:     " << fnVol << std::endl
 	;
-}
-
-void ProgParticlePolishing::produceSideInfo()
-{
-	int a=0;
-
 }
 
 
@@ -296,11 +290,87 @@ void ProgParticlePolishing::smoothingWeights(MultidimArray<double> &in, Multidim
 }
 
 
+void ProgParticlePolishing::produceSideInfo()
+{
+
+	int a=0;
+	/*
+	//DEBUGING the correct way of applyGeometry
+	size_t Xdim, Ydim, Zdim, Ndim;
+	MetaData mdPart, mdRef;
+	mdRef.read("gallery.xmd");
+	mdPart.read("images_iter001_00.xmd");
+	size_t mdPartSize = mdPart.size();
+	size_t mdRefSize = mdRef.size();
+
+	MDIterator *iterPart = new MDIterator();
+	MDIterator *iterRef = new MDIterator();
+	FileName fnPart, fnRef;
+	Image<double> Ipart, Iref;
+	MDRow currentRow;
+	Matrix2D<double> A;
+
+	iterRef->init(mdRef);
+	iterPart->init(mdPart);
+
+	for (int j=0; j<mdPartSize; j++){
+		mdRef.getRow(currentRow, iterRef->objId);
+		currentRow.getValue(MDL_IMAGE,fnRef);
+		Iref.read(fnRef);
+		Iref().setXmippOrigin();
+		break;
+	}
+
+	double rot, tilt, psi, x, y;
+	for(int i=0; i<mdPartSize; i++){
+		//Project the volume with the parameters in the image
+
+		bool flip;
+		size_t frId, mvId, partId;
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_IMAGE,fnPart);
+		Ipart.read(fnPart);
+		Ipart().setXmippOrigin();
+		currentRow.getValue(MDL_ANGLE_ROT,rot);
+		currentRow.getValue(MDL_ANGLE_TILT,tilt);
+		currentRow.getValue(MDL_ANGLE_PSI,psi);
+		currentRow.getValue(MDL_SHIFT_X,x);
+		currentRow.getValue(MDL_SHIFT_Y,y);
+		currentRow.getValue(MDL_FLIP,flip);
+		currentRow.getValue(MDL_FRAME_ID,frId);
+		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
+		currentRow.getValue(MDL_PARTICLE_ID,partId);
+
+		A.initIdentity(3);
+		MAT_ELEM(A,0,2)=x;
+		MAT_ELEM(A,1,2)=y;
+		if (flip)
+		{
+			MAT_ELEM(A,0,0)*=-1;
+			MAT_ELEM(A,0,1)*=-1;
+			MAT_ELEM(A,0,2)*=-1;
+		}
+	}
+
+	std::cerr << fnRef << ", " << fnPart << ", " << x << ", " << y << ", " << A << std::endl;
+	Image<double> Iout;
+	applyGeometry(LINEAR,Iout(),Iref(),A,IS_INV,DONT_WRAP,0.);
+	Ipart.write("Ipart.mrc");
+	Iref.write("Iref.mrc");
+	Iout.write("Iout.mrc");
+	exit(0);
+	*/
+
+
+}
+
+
 void ProgParticlePolishing::run()
 {
 	produceSideInfo();
 
 	//MOVIE PARTICLES IMAGES
+	MetaData mdPart;
 	size_t Xdim, Ydim, Zdim, Ndim;
 	mdPart.read(fnPart,NULL);
 	size_t mdPartSize = mdPart.size();
@@ -374,9 +444,9 @@ void ProgParticlePolishing::run()
 
 			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
 			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
-			//TODO: ver si estamos alineando en sentido correcto la proyeccion
-
 			projV().setXmippOrigin();
+			//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
+			//TODO: invertir contraste y aplicar ctf, o al reves, no se...
 
 			//filtering the projected particles
 			Filter.w1=cutfreq;
@@ -384,8 +454,7 @@ void ProgParticlePolishing::run()
 			Filter.applyMaskSpace(projV());
 
 			//averaging movie particle image with the ones in previous frames
-			if(w>1)
-				averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
+			averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
 
 			//filtering the averaged movie particle
 			Filter.generateMask(Ipart());
@@ -422,12 +491,12 @@ void ProgParticlePolishing::run()
 
 			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
 			
-			//DEBUG
+			/*/DEBUG
 			if(frId==nFrames){
-				//projV.write(formatString("4Newprojection_%i_%i.mrc", frId, partId));
-				Ipart.write(formatString("5Newparticle_%i_%i.mrc", frId, partId));
+				projV.write(formatString("TESTprojection_%i_%i.mrc", frId, partId));
+				Ipart.write(formatString("TESTparticle_%i_%i.mrc", frId, partId));
 			}
-			//END DEBUG//
+			//END DEBUG/*/
 
 			if(iterPart->hasNext())
 				iterPart->moveNext();
