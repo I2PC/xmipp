@@ -425,7 +425,7 @@ void ProgParticlePolishing::run()
 			//DEBUG
 			if(frId==nFrames){
 				//projV.write(formatString("4Newprojection_%i_%i.mrc", frId, partId));
-				Ipart.write(formatString("4Newparticle_%i_%i.mrc", frId, partId));
+				Ipart.write(formatString("5Newparticle_%i_%i.mrc", frId, partId));
 			}
 			//END DEBUG//
 
