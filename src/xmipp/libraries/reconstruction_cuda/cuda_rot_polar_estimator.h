@@ -28,6 +28,7 @@
 
 #include "reconstruction/arotation_estimator.cpp"
 #include "reconstruction_cuda/gpu.h"
+#include "reconstruction_cuda/cuda_find_extrema.h"
 #include "cuda_fft.h"
 #include <thread>
 #include <condition_variable>

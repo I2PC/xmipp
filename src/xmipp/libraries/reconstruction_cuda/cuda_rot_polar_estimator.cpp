@@ -26,8 +26,6 @@
 #include <cuda_runtime_api.h>
 #include "reconstruction_cuda/cuda_asserts.h"
 #include "cuda_rot_polar_estimator.h"
-
-#include "cuda_find_max.h"
 #include "cuda_gpu_polar.cu"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
 
@@ -392,7 +390,8 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
         // locate maxima for each signal
-        sFindMax1D<T, true>(*m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
+        ExtremaFinder::CudaExtremaFinder<T>::sFindMax(
+                *m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
 
         // copy data back
         m_workStream->synch();
