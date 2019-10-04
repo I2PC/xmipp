@@ -29,6 +29,9 @@
 #include "reconstruction/afind_extrema.h"
 #include "reconstruction_cuda/gpu.h"
 #include <limits>
+#include <thread>
+#include <condition_variable>
+#include <core/utils/memory_utils.h>
 
 namespace ExtremaFinder {
 
@@ -46,7 +49,26 @@ public:
     CudaExtremaFinder(CudaExtremaFinder& o) = delete;
     CudaExtremaFinder& operator=(const CudaExtremaFinder& other) = delete;
     CudaExtremaFinder const & operator=(CudaExtremaFinder &&o) = delete;
-    CudaExtremaFinder(CudaExtremaFinder &&o); // FIXME DS implement
+    CudaExtremaFinder(CudaExtremaFinder &&o) {
+        m_loadStream = o.m_loadStream;
+        m_workStream = o.m_workStream;
+
+        // device memory
+        m_d_values = o.m_d_values;
+        m_d_positions = o.m_d_positions;
+        m_d_batch = o.m_d_batch;
+
+        // synch primitives
+        m_mutex = o.m_mutex;
+        m_cv = o.m_cv;
+        m_isDataReady = o.m_isDataReady;
+
+        // host memory
+        m_h_batchResult = o.m_h_batchResult;
+
+        // clean original
+        o.setDefault();
+    }
 
     static void sFindMax(const GPU &gpu,
         const Dimensions &dims,
@@ -56,9 +78,9 @@ public:
 
     static void sFindMax2DNearCenter(const GPU &gpu,
         const Dimensions &dims,
-        const T * data,
-        T * positions,
-        T * values,
+        const T * d_data,
+        T * d_positions,
+        T * d_values,
         size_t maxDist);
 
     static size_t ceilPow2(size_t x); // FIXME DS move this to somewhere else
@@ -67,15 +89,32 @@ private:
     GPU *m_loadStream;
     GPU *m_workStream;
 
-    void check() override;
+    // device memory
+    T *m_d_values;
+    T *m_d_positions;
+    T *m_d_batch;
+
+    // synch primitives
+    std::mutex *m_mutex;
+    std::condition_variable *m_cv;
+    bool m_isDataReady;
+
+    // host memory
+    T *m_h_batchResult;
+
     void setDefault();
     void release();
 
-    void initMax(bool reuse) override;
-    void findMax(T *data) override;
+    void check() const override;
+    void initMax() override;
+    bool canBeReused(const ExtremaFinderSettings &s) const;
+    void findMax(T *h_data) override;
+    void initMaxAroundCenter() override;
+    void findMaxAroundCenter(T *h_data) override;
 
-    void initMaxAroundCenter(bool reuse) override;
-    void findMaxAroundCenter(T *data) override;
+    void loadThreadRoutine(T *h_data);
+    void downloadPositionsFromGPU(size_t noOfResults);
+    void downloadValuesFromGPU(size_t noOfResults);
 };
 
 } /* namespace ExtremaFinder */

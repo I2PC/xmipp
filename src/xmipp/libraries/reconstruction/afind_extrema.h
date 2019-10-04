@@ -112,14 +112,25 @@ public:
         return m_settings;
     }
 
-protected:
-    virtual void check() = 0;
+    inline const std::vector<T> &getValues() const {
+        return m_values;
+    }
 
-    virtual void initMax(bool reuse) = 0;
+    inline const std::vector<size_t> &getPositions() const {
+        return m_positions;
+    }
+
+
+protected:
+    virtual void check() const = 0;
+
+    virtual void initMax() = 0;
     virtual void findMax(T *data) = 0;
 
-    virtual void initMaxAroundCenter(bool reuse) = 0;
+    virtual void initMaxAroundCenter() = 0;
     virtual void findMaxAroundCenter(T *data) = 0;
+
+    virtual bool canBeReused(const ExtremaFinderSettings &settings) const = 0;
 
     inline std::vector<T> &getValues() {
         return m_values;
@@ -129,9 +140,12 @@ protected:
         return m_positions;
     }
 
+    inline constexpr bool isInitialized() const {
+        return m_isInit;
+    }
+
 private:
     ExtremaFinderSettings m_settings;
-    ExtremaFinderSettings m_oldSettings;
 
     // results
     std::vector<T> m_values;

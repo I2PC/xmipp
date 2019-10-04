@@ -29,26 +29,43 @@ namespace ExtremaFinder {
 
 template<typename T>
 void AExtremaFinder<T>::init(const ExtremaFinderSettings &settings, bool reuse) {
-    // backup original settings for comparison
-    m_oldSettings = m_settings;
     // check that settings is not completely wrong
     settings.check();
+    bool skipInit = m_isInit && reuse && this->canBeReused(settings);
     // set it
     m_settings = ExtremaFinderSettings(settings);
-    // initialize
-    switch (m_settings.searchType) {
-        case SearchType::Max: return this->initMax(reuse);
-        case SearchType::MaxAroundCenter: return this->initMaxAroundCenter(reuse);
-        default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+    if ( ! skipInit) {
+        // initialize
+        switch (m_settings.searchType) {
+            case SearchType::Max: {
+                this->initMax();
+                break;
+            }
+            case SearchType::MaxAroundCenter: {
+                this->initMaxAroundCenter();
+                break;
+            }
+            default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+        }
+        // check that there's no logical problem
+        this->check();
+        // no issue found, we're good to go
+        m_isInit = true;
     }
-    // check that there's no logical problem
-    this->check();
-    // no issue found, we're good to go
-    m_isInit = true;
 }
 
 template<typename T>
 void AExtremaFinder<T>::find(T *data) {
+    if ((ResultType::Position == m_settings.resultType)
+        || (ResultType::Both == m_settings.resultType)) {
+        m_positions.clear();
+        m_positions.reserve(m_settings.dims.n());
+    }
+    if ((ResultType::Value == m_settings.resultType)
+        || (ResultType::Both == m_settings.resultType)) {
+        m_values.clear();
+        m_values.reserve(m_settings.dims.n());
+    }
     switch (m_settings.searchType) {
         case SearchType::Max: return this->findMax(data);
         case SearchType::MaxAroundCenter: return this->findMaxAroundCenter(data);
