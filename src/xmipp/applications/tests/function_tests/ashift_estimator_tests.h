@@ -122,29 +122,29 @@ TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToOne)
     AShiftEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
 }
 
-TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToMany)
-{
-    // check that n == batch works properly
-    AShiftEstimator_Test<TypeParam>::generateAndTest2D(5, 5);
-}
-
-
-TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched1)
-{
-    // test that n mod batch != 0 works
-    AShiftEstimator_Test<TypeParam>::generateAndTest2D(5, 3);
-}
-
-TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched2)
-{
-    // test that n mod batch = 0 works
-    AShiftEstimator_Test<TypeParam>::generateAndTest2D(6, 3);
-}
+//TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToMany)
+//{
+//    // check that n == batch works properly
+//    AShiftEstimator_Test<TypeParam>::generateAndTest2D(5, 5);
+//}
+//
+//
+//TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched1)
+//{
+//    // test that n mod batch != 0 works
+//    AShiftEstimator_Test<TypeParam>::generateAndTest2D(5, 3);
+//}
+//
+//TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched2)
+//{
+//    // test that n mod batch = 0 works
+//    AShiftEstimator_Test<TypeParam>::generateAndTest2D(6, 3);
+//}
 
 
 REGISTER_TYPED_TEST_CASE_P(AShiftEstimator_Test,
-    shift2DOneToOne,
-    shift2DOneToMany,
-    shift2DOneToManyBatched1,
-    shift2DOneToManyBatched2
+    shift2DOneToOne//,
+//    shift2DOneToMany,
+//    shift2DOneToManyBatched1,
+//    shift2DOneToManyBatched2
 );

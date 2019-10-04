@@ -50,11 +50,11 @@ public:
 template<typename T>
 class FindMax_Test : public ::testing::Test {
 public:
-    void compare(const TestData<T> &tc) {
+    void compare1D(const TestData<T> &tc) {
         for (size_t n = 0; n < tc.dims.n(); ++n) {
             size_t offset = n * tc.dims.sizeSingle();
             auto start = tc.data.get() + offset;
-            auto max = std::max_element(start, start + tc.dims.x());
+            auto max = std::max_element(start, start + tc.dims.sizeSingle());
             auto pos = std::distance(start, max);
             ASSERT_EQ(pos, tc.resPos[n]) << "for signal " << n;
             EXPECT_EQ(*max, tc.resVal[n]) << "for signal " << n;
@@ -79,10 +79,11 @@ public:
         std::iota(tc.data.get(), tc.data.get() + tc.dims.size(), 0);
 
         // test
-        sFindMax<T, false>(*hw, tc.dims, tc.data.get(), tc.resPos.get(), tc.resVal.get());
+        sFindMax1D<T, false>(*hw, tc.dims, tc.data.get(), tc.resPos.get(), tc.resVal.get());
 
         // get results and compare
-        compare(tc);
+        compare1D(tc);
+    }
     }
 
 

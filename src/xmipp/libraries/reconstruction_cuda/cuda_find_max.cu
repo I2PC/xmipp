@@ -49,31 +49,14 @@ T update(T &orig, T &cand) {
     return orig;
 }
 
-template <typename T, typename T2, unsigned blockSize>
+
+template<typename T, unsigned blockSize>
 __device__
-void findMax(
-        const T * __restrict__ in,
-        T * __restrict__ outPos,
-        T * __restrict__ outVal,
-        unsigned samples)
-{
-    // one block process one signal
-    // map each thread to some sample of the signal
+void findMaxInSharedMem(T &ldata) {
     unsigned int tid = threadIdx.x;
-    unsigned int signal = blockIdx.x;
-
-    T2 ldata;
-    ldata.x = -FLT_MAX;
-    ldata.y = -1;
-
-    // load data from global memory
-    const T *data = in + (signal * samples);
-    for(unsigned i = tid; i < samples; i += blockSize) {
-        update(ldata, data, i);
-    }
     // we have read all data, one of the thread knows the result
     extern __shared__ char smem[];
-    T2 *sdata = reinterpret_cast<T2*>(smem);
+    T *sdata = reinterpret_cast<T*>(smem);
     sdata[tid] = ldata;
     __syncthreads(); // wait till all threads store their data
     // reduce
@@ -106,6 +89,84 @@ void findMax(
         sdata[tid] = update(ldata, sdata[tid + 1]);
     }
     __syncthreads();
+}
+
+template <typename T, typename T2, unsigned blockSize>
+__device__
+void findMax1D(
+        const T * __restrict__ in,
+        T * __restrict__ outPos,
+        T * __restrict__ outVal,
+        unsigned samples)
+{
+    // one block process one signal
+    // map each thread to some sample of the signal
+    unsigned int tid = threadIdx.x;
+    unsigned int signal = blockIdx.x;
+
+    T2 ldata;
+    ldata.x = -FLT_MAX;
+    ldata.y = -1;
+
+    // load data from global memory
+    const T *data = in + (signal * samples);
+    for(unsigned i = tid; i < samples; i += blockSize) {
+        update(ldata, data, i);
+    }
+
+    findMaxInSharedMem<T2, blockSize>(ldata);
+
+    // last thread now holds the result
+    if (tid == 0) {
+        outVal[signal] = ldata.x;
+        outPos[signal] = ldata.y;
+    }
+}
+
+template <typename T, typename T2, unsigned blockSize>
+__device__
+void findMax2DNearCenter(
+        const T * __restrict__ in,
+        T * __restrict__ outPos,
+        T * __restrict__ outVal,
+        unsigned xSize,
+        unsigned ySize,
+        unsigned maxDist) // we don't check the boundaries, must be checked by caller
+{
+    // one block process one signal
+    // map each thread to some sample of the signal
+    unsigned int tid = threadIdx.x;
+    unsigned int signal = blockIdx.x;
+    unsigned xHalf = xSize / 2;
+    unsigned yHalf = ySize / 2;
+    unsigned maxDistSq = maxDist * maxDist;
+    unsigned yMin = yHalf - maxDist;
+    unsigned yMax = yHalf + maxDist + 1;
+    unsigned xMin = xHalf - maxDist + tid;
+    unsigned xMax = xHalf + maxDist + 1;
+
+    T2 ldata;
+    ldata.x = -FLT_MAX;
+    ldata.y = -1;
+
+    // load data from global memory
+    const T *data = in + (signal * xSize * ySize); // beginning of the signal
+    for(unsigned y = yMin; y < yMax; ++y) {
+        int logicY = (int)y - yHalf;
+        unsigned ySq = logicY * logicY;
+        for(unsigned x = xMin; x < xMax; x += blockSize) {
+            int logicX = (int)x - xHalf;
+            // continue if the Euclidean distance is too far
+            if ((ySq + (logicX * logicX)) > maxDistSq) {
+                continue;
+            }
+            // we are within the proper radius
+            unsigned offset = (y * xSize) + x;
+            update(ldata, data, offset);
+        }
+    }
+
+    findMaxInSharedMem<T2, blockSize>(ldata);
 
     // last thread now holds the result
     if (tid == 0) {
@@ -116,23 +177,47 @@ void findMax(
 
 template <typename T, unsigned blockSize>
 __global__
-void findMax(const T * __restrict__ in,
+void findMax1D(const T * __restrict__ in,
         T * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned samples)
 {
     if (std::is_same<T, float> ::value) {
-        findMax<float, float2, blockSize> (
+        findMax1D<float, float2, blockSize> (
                 (float*)in,
                 (float*)outPos,
                 (float*)outVal,
                 samples);
     } else if (std::is_same<T, double> ::value) {
-        findMax<double, double2, blockSize>(
+        findMax1D<double, double2, blockSize>(
                 (double*)in,
                 (double*)outPos,
                 (double*)outVal,
                 samples);
+    }
+}
+
+template <typename T, unsigned blockSize>
+__global__
+void findMax2DNearCenter(const T * __restrict__ in,
+        T * __restrict__ outPos,
+        T * __restrict__ outVal,
+        unsigned xSize,
+        unsigned ySize,
+        unsigned maxDist)
+{
+    if (std::is_same<T, float> ::value) {
+        findMax2DNearCenter<float, float2, blockSize> (
+                (float*)in,
+                (float*)outPos,
+                (float*)outVal,
+                xSize, ySize, maxDist);
+    } else if (std::is_same<T, double> ::value) {
+        findMax2DNearCenter<double, double2, blockSize>(
+                (double*)in,
+                (double*)outPos,
+                (double*)outVal,
+                xSize, ySize, maxDist);
     }
 }
 

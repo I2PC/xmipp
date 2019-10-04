@@ -392,7 +392,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
         // locate maxima for each signal
-        sFindMax<T, true>(*m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
+        sFindMax1D<T, true>(*m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
 
         // copy data back
         m_workStream->synch();

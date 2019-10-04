@@ -31,10 +31,18 @@
 #include "data/dimensions.h"
 
 template <typename T, bool dataOnGPU>
-void sFindMax(const GPU &gpu,
+void sFindMax1D(const GPU &gpu,
         const Dimensions &dims,
         const T * __restrict__ data,
         T * __restrict__ positions,
         T * __restrict__ values);
+
+template <typename T, bool dataOnGPU>
+void sFindMax2DNear(const GPU &gpu,
+        const Dimensions &dims,
+        const T * __restrict__ data,
+        T * __restrict__ positions,
+        T * __restrict__ values,
+        size_t maxDist);
 
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_GPU_FINDMAX_H_ */
