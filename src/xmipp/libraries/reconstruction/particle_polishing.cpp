@@ -447,6 +447,14 @@ void ProgParticlePolishing::run()
 			projV().setXmippOrigin();
 			//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
 			//TODO: invertir contraste y aplicar ctf, o al reves, no se...
+			//To invert contrast
+			double Dmin, Dmax, irange, val;
+			projV().computeDoubleMinMax(Dmin, Dmax);
+			irange=1.0/(Dmax - Dmin);
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+				val=DIRECT_MULTIDIM_ELEM(projV(),n);
+				DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
+			}
 
 			//filtering the projected particles
 			Filter.w1=cutfreq;
