@@ -1,11 +1,195 @@
 #ifndef CUDA_VOLUME_HALVES_RESTORATOR
 #define CUDA_VOLUME_HALVES_RESTORATOR
 
+#include <iostream>
+
+#include <core/multidim_array.h>
+
+/*
+* Computation for ProgVolumeHalvesRestorationGpu
+* This class does not check validity of parameters, it assumes
+* that they were already checked
+*/
+template< typename T >
 class VolumeHalvesRestorator {
+	static_assert(std::is_floating_point<T>::value, "Only float and double are allowed as template parameters");
+
+	using Complex = std::complex<T>;
+    static constexpr size_t type_size = sizeof(T);
+    static constexpr size_t complex_size = sizeof(Complex);
+
+	const int verbosity;
+
+	/*
+	 * Parameters for denoising
+	*/
+	const unsigned denoisingIters;
+	/*
+	 * Parameters for deconvolution
+	*/
+	const unsigned deconvolutionIters;
+	const T sigma;
+	const T lambda;
+
+	/*
+	 * Parameters for difference
+	*/
+	const unsigned differenceIters;
+	const T Kdiff;
+
+	/*
+	 * Parameters for filter bank
+	*/
+	const T bankStep;
+	const T bankOverlap;
+	const unsigned weightFun;
+	const T weightPower;
+
+	/*
+	* Binary mask
+	*/
+
+	/*
+	* Results of computation
+	*/
+	MultidimArray<T> reconstructedVolume1;
+	MultidimArray<T> reconstructedVolume2;
+	MultidimArray<T> filterBankVolume;
+	MultidimArray<T> deconvolvedS;
+	MultidimArray<T> convolvedS;
+	MultidimArray<T> averageDifference;
 
 public:
-	void apply() {}
+	class Builder;
+	friend std::ostream& operator<< (std::ostream& out, const VolumeHalvesRestorator& r) {
+		out << "VolumeHalvesRestoration parameters:" << std::endl
+	    << "    Denoising Iterations:" << r.denoisingIters << std::endl
+	    << "    Deconvolution Iterations: " << r.deconvolutionIters << std::endl
+	    << "    Sigma0:   " << r.sigma << std::endl
+	    << "    Lambda:   " << r.lambda << std::endl
+	    << "    Bank step:" << r.bankStep << std::endl
+	    << "    Bank overlap:" << r.bankOverlap << std::endl
+	    << "    Weight fun:" << r.weightFun << std::endl
+	    << "    Weight power:" << r.weightPower << std::endl
+	    << "    Difference Iterations: " << r.differenceIters << std::endl
+	    << "    Kdiff: " << r.Kdiff << std::endl
+	    ;
+		return out;
+	}
 
+	VolumeHalvesRestorator(int verbosity, unsigned denoisingIters, unsigned deconvolutionIters, T sigma, T lambda,
+						unsigned differenceIters, T Kdiff, T bankStep, T bankOverlap, unsigned weightFun, T weightPower)
+	: verbosity(verbosity)
+	, denoisingIters(denoisingIters)
+	, deconvolutionIters(deconvolutionIters)
+	, sigma(sigma)
+	, lambda(lambda)
+	, differenceIters(differenceIters)
+	, Kdiff(Kdiff)
+	, bankStep(bankStep)
+	, bankOverlap(bankOverlap)
+	, weightFun(weightFun)
+	, weightPower(weightPower) {}
+
+	/*
+	 * Runs the volume halves restoration algorithm
+	*/
+	void apply(const MultidimArray<T>& volume1, const MultidimArray<T>& volume2, const int* mask) {
+    // denoise();
+    // deconvolution();
+
+    // if (bankStep > 0) {
+    //     filterBank();
+    // }
+
+    // difference();
+
+    // freeDeviceMemory(d_R2, d_mask);
+    // CudaFFT<T>::release(planForward);
+    // CudaFFT<T>::release(planBackward);
+	}
+
+	/*
+	 * Following methods are getters for reconstructed volumes and other results
+	 */
+	const MultidimArray<T>& getReconstructedVolume1() const { return reconstructedVolume1; }
+	const MultidimArray<T>& getReconstructedVolume2() const { return reconstructedVolume2; }
+	const MultidimArray<T>& getFilterBankVolume() const { return filterBankVolume; }
+	const MultidimArray<T>& getDeconvolvedS() const { return deconvolvedS; }
+	const MultidimArray<T>& getConvolvedS() const { return convolvedS; }
+	const MultidimArray<T>& getAverageDifference() const { return averageDifference; }
+
+private:
+
+	void filterBank();
+    void filterBand(const Complex* d_fV, T* d_filtered, Complex* d_buffer, T w, size_t fourier_size);
+
+    void setSizes(const MultidimArray<T>& volume) {
+	   	int xdim = XSIZE(volume);
+	    int ydim = YSIZE(volume);
+	    int zdim = ZSIZE(volume);
+	    int volume_size = xdim * ydim * zdim;
+	    int fourier_size = xdim * ydim * (zdim / 2 + 1);
+	    int memsize = volume_size * type_size;
+	    int fourier_memsize = fourier_size * complex_size;
+    }
+
+};
+
+
+/*
+ * The builder separates the construction of the VolumeHalvesRestorator into
+ * parts, each part represents one step in computation
+*/
+template< typename T >
+struct VolumeHalvesRestorator<T>::Builder {
+	int verbosity;
+	unsigned denoisingIters;
+	unsigned deconvolutionIters;
+	T sigma;
+	T lambda;
+	unsigned differenceIters;
+	T Kdiff;
+	T bankStep;
+	T bankOverlap;
+	unsigned weightFun;
+	T weightPower;
+
+	Builder& setVerbosity(int verbosity) {
+		this->verbosity = verbosity;
+		return *this;
+	}
+
+	Builder& setFilterBank(T bankStep, T bankOverlap, unsigned weightFun, T weightPower) {
+		this->bankStep = bankStep;
+		this->bankOverlap = bankOverlap;
+		this->weightFun = weightFun;
+		this->weightPower = weightPower;
+		return *this;
+	}
+
+	Builder& setDenoising(unsigned denoisingIters) {
+		this->denoisingIters = denoisingIters;
+		return *this;
+	}
+
+	Builder& setDeconvolution(unsigned deconvolutionIters, T sigma, T lambda) {
+		this->deconvolutionIters = deconvolutionIters;
+		this->sigma = sigma;
+		this->lambda = lambda;
+		return *this;
+	}
+
+	Builder& setDifference(unsigned differenceIters, T Kdiff) {
+		this->differenceIters = differenceIters;
+		this->Kdiff = Kdiff;
+		return *this;
+	}
+
+	VolumeHalvesRestorator<T> build() {
+		return { verbosity, denoisingIters, deconvolutionIters, sigma, lambda, differenceIters, Kdiff, bankStep,
+				bankOverlap, weightFun, weightPower };
+	}
 };
 
 #endif // CUDA_VOLUME_HALVES_RESTORATOR

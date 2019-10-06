@@ -18,6 +18,11 @@
 
 #include "reconstruction_cuda/cuda_volume_restoration_denoise.h"
 
+#include "reconstruction_cuda/cuda_volume_halves_restorator.h"
+
+/*
+ * This is GPU implementation of reconstruction/volume_halves_restoration.h
+*/
 template< typename T >
 class ProgVolumeHalvesRestorationGpu : public XmippProgram {
     static_assert(std::is_floating_point<T>::value, "Only float and double are allowed as template parameters");
@@ -29,21 +34,7 @@ class ProgVolumeHalvesRestorationGpu : public XmippProgram {
     /** Filename of the two halves and the output root */
     FileName fnV1, fnV2, fnRoot;
 
-    T bankStep, bankOverlap;
-    /** Weight function */
-    int weightFun;
-    /** Weight power */
-    T weightPower;
-
-    T sigma0, lambda;
-
-    Image<T> V1r, V2r, S, N;
-
-    cufftHandle *planForward, *planBackward;
-
-    int denoiseIterations, deconvolutionIterations, differenceIterations;
-
-    T Kdiff;
+    Image<T> V1, V2;
 
     size_t xdim, ydim, zdim, volume_size, fourier_size;
     size_t memsize, fourier_memsize;
@@ -51,10 +42,11 @@ class ProgVolumeHalvesRestorationGpu : public XmippProgram {
     T* d_R2;
 
     Mask mask;
-    int* d_mask = nullptr;
-    size_t pMaskSize = 0;
+    int* maskData = nullptr;
 
-    GPU gpu;
+    // GPU gpu;
+
+    typename VolumeHalvesRestorator<T>::Builder builder;
 
 public:
     // contains pointers to device memory used in `restorationSigmaCost` function
@@ -65,31 +57,42 @@ public:
         Complex* d_fV2;
     } restorationPointers;
 
-    size_t get_volume_size() const {
-        return MULTIDIM_SIZE(V1r());
-    }
-
-    size_t get_fourier_size() const {
-        return XSIZE(V1r()) * YSIZE(V1r()) * (ZSIZE(V1r()) / 2 + 1);
-    }
-
-    /// Read argument from command line
+    /*
+    * Extract parameters from command line and check their values
+    */
     void readParams() override;
 
-    /// Show
-    void show();
-
-    /// Define parameters
+    /*
+     * Defines parameters
+     */
     void defineParams() override;
 
-    /// Run
+    /*
+     * Runs the actual algorithm
+     */
     void run() override;
 
 private:
 
+    /*
+    * Prints information about program settings to standard output
+    */
+    void show(const VolumeHalvesRestorator<T>& restorator);
+
+    /*
+     * helper methods for readParams
+    */
+    void readFilenames();
+    void readDenoisingParams();
+    void readDeconvolutionParams();
+    void readFilterBankParams();
+    void readDifferenceParams();
+    void readMaskParams();
+
     void setSizes();
     void readData();
     void checkInputDimensions();
+    // void checkParameters();
 
     void createFFTPlans();
 
@@ -101,7 +104,7 @@ private:
     void filterBand(const Complex* d_fV, T* d_filtered, Complex* d_buffer, T w, size_t fourier_size);
 
     void saveFilterBank();
-    void saveResults();
+    void saveResults(const VolumeHalvesRestorator<T>& restorator);
 
     void denoise();
 

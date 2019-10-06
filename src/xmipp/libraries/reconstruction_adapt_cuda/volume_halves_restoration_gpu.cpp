@@ -2,19 +2,77 @@
 
 template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::readParams() {
-	fnV1 = getParam("--i1");
+    readFilenames();
+    readDenoisingParams();
+    readDeconvolutionParams();
+    readFilterBankParams();
+    readDifferenceParams();
+    readMaskParams();
+}
+
+template< typename T >
+void ProgVolumeHalvesRestorationGpu<T>::readFilenames() {
+    fnV1 = getParam("--i1");
     fnV2 = getParam("--i2");
     fnRoot = getParam("--oroot");
-    bankStep = getDoubleParam("--filterBank", 0);
-    bankOverlap = getDoubleParam("--filterBank", 1);
-    weightFun = getIntParam("--filterBank", 2);
-    weightPower = getDoubleParam("--filterBank", 3);
-    denoiseIterations = getIntParam("--denoising");
-    deconvolutionIterations = getIntParam("--deconvolution");
-    sigma0 = getDoubleParam("--deconvolution", 1);
-    lambda = getDoubleParam("--deconvolution", 2);
-    differenceIterations = getIntParam("--difference");
-    Kdiff = getDoubleParam("--difference", 1);
+}
+
+template< typename T >
+void ProgVolumeHalvesRestorationGpu<T>::readDenoisingParams() {
+    const int iters = getIntParam("--denoising");
+    if (iters < 0) {
+        throw std::runtime_error("`denoising N` has to be non-negative integer");
+    }
+
+    builder.setDenoising(iters);
+}
+
+template< typename T >
+void ProgVolumeHalvesRestorationGpu<T>::readDeconvolutionParams() {
+    const int iters = getIntParam("--deconvolution");
+    const T sigma = getDoubleParam("--deconvolution", 1);
+    const T lambda = getDoubleParam("--deconvolution", 2);
+    if (iters < 0) {
+        throw std::runtime_error("`deconvolution N` has to be non-negative integer");
+    }
+
+    builder.setDeconvolution(iters, sigma, lambda);
+}
+
+template< typename T >
+void ProgVolumeHalvesRestorationGpu<T>::readFilterBankParams() {
+    const T bankStep = getDoubleParam("--filterBank", 0);
+    const T bankOverlap = getDoubleParam("--filterBank", 1);
+    const int weightFun = getIntParam("--filterBank", 2);
+    const T weightPower = getDoubleParam("--filterBank", 3);
+    if (bankStep < 0 || bankStep > 0.5001) {
+        throw std::runtime_error("`filterBank step` parameter has to be in interval [0, 0.5].");
+    }
+    if (bankOverlap < 0 || bankOverlap > 1.001) {
+        throw std::runtime_error("`filterBank overlap` parameter has to be in interval [0, 1]");
+    }
+
+    if (weightFun < 0 || weightFun > 3) {
+        throw std::runtime_error("`filterBank weightFun` parameter has to be 0, 1 or 2");
+    }
+
+    builder.setFilterBank(bankStep, bankOverlap, weightFun, weightPower);
+}
+
+template< typename T >
+void ProgVolumeHalvesRestorationGpu<T>::readDifferenceParams() {
+    const int iters = getIntParam("--difference");
+    const T Kdiff = getDoubleParam("--difference", 1);
+    if (iters < 0) {
+        throw std::runtime_error("`difference N` has to be non-negative integer");
+    }
+
+    builder.setDifference(iters, Kdiff);
+}
+
+template< typename T >
+void ProgVolumeHalvesRestorationGpu<T>::readMaskParams() {
+    Mask mask;
     if (checkParam("--mask")) {
         mask.fn_mask = getParam("--mask");
         mask.mask_type = "binary_file";
@@ -29,24 +87,17 @@ void ProgVolumeHalvesRestorationGpu<T>::readParams() {
 }
 
 template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::show() {
+void ProgVolumeHalvesRestorationGpu<T>::show(const VolumeHalvesRestorator<T>& restorator) {
     if (!verbose)
         return;
     std::cout
-    << "Volume1:  " << fnV1 << std::endl
-    << "Volume2:  " << fnV2 << std::endl
-    << "Rootname: " << fnRoot << std::endl
-    << "Denoising Iterations:" << denoiseIterations << std::endl
-    << "Deconvolution Iterations: " << deconvolutionIterations << std::endl
-    << "Sigma0:   " << sigma0 << std::endl
-    << "Lambda:   " << lambda << std::endl
-    << "Bank step:" << bankStep << std::endl
-    << "Bank overlap:" << bankOverlap << std::endl
-    << "Weight fun:" << weightFun << std::endl
-    << "Weight power:" << weightPower << std::endl
-    << "Difference Iterations: " << differenceIterations << std::endl
-    << "Kdiff: " << Kdiff << std::endl
+    << "Input/Ouput filenames:" << std::endl
+    << "    Volume1:  " << fnV1 << std::endl
+    << "    Volume2:  " << fnV2 << std::endl
+    << "    Rootname: " << fnRoot << std::endl
     ;
+    std::cout << restorator;
+
     mask.show();
 }
 
@@ -68,29 +119,24 @@ void ProgVolumeHalvesRestorationGpu<T>::defineParams() {
 
 template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::run() {
-        show();
+    builder.setVerbosity(verbose);
+    auto restorator = builder.build();
 
-        prepareData();
-        denoise();
-        deconvolution();
+    show(restorator);
 
-        if (bankStep > 0) {
-            filterBank();
-        }
+    readData();
+    restorator.apply(V1(), V2(), maskData);
 
-        difference();
-        saveResults();
+    saveResults(restorator);
 
-        freeDeviceMemory(d_R2, d_mask);
-        CudaFFT<T>::release(planForward);
-        CudaFFT<T>::release(planBackward);
+
 }
 
 template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::setSizes() {
-    xdim = XSIZE(V1r());
-    ydim = YSIZE(V1r());
-    zdim = ZSIZE(V1r());
+    xdim = XSIZE(V1());
+    ydim = YSIZE(V1());
+    zdim = ZSIZE(V1());
     volume_size = xdim * ydim * zdim;
     fourier_size = xdim * ydim * (zdim / 2 + 1);
     memsize = volume_size * type_size;
@@ -99,10 +145,10 @@ void ProgVolumeHalvesRestorationGpu<T>::setSizes() {
 
 template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::readData() {
-    V1r.read(fnV1);
-    V2r.read(fnV2);
-    V1r().setXmippOrigin();
-    V2r().setXmippOrigin();
+    V1.read(fnV1);
+    V2.read(fnV2);
+    V1().setXmippOrigin();
+    V2().setXmippOrigin();
 
     checkInputDimensions();
 
@@ -110,366 +156,373 @@ void ProgVolumeHalvesRestorationGpu<T>::readData() {
 
     if (mask.fn_mask != "") {
         mask.generate_mask();
-        auto pMask = &mask.get_binary_mask();
-        std::cout << "pMask size:" << MULTIDIM_SIZE(*pMask) << std::endl;
-        std::cout << "pMask" << pMask << std::endl;
-        const size_t mask_memsize = sizeof(int) * volume_size;
-        gpuMalloc((void**)&d_mask, mask_memsize);
-        gpuCopyFromCPUToGPU(pMask->data, d_mask, mask_memsize);
-        pMaskSize = pMask->sum();
+        maskData = mask.get_binary_mask().data;
     }
 }
 
 template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::checkInputDimensions() {
-    if (XSIZE(V1r()) != XSIZE(V2r()) || YSIZE(V1r()) != YSIZE(V2r())
-        || ZSIZE(V1r()) != ZSIZE(V2r())) {
+    if (XSIZE(V1()) != XSIZE(V2()) || YSIZE(V1()) != YSIZE(V2())
+        || ZSIZE(V1()) != ZSIZE(V2())) {
         throw std::runtime_error("Input volumes have different dimensions");
     }
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::createFFTPlans() {
-    gpu.set();
-    auto forward_settings = FFTSettingsNew<T>{ xdim, ydim, zdim, 1, 1, false, true };
-    planForward = CudaFFT<T>::createPlan(gpu, forward_settings);
-    planBackward = CudaFFT<T>::createPlan(gpu, forward_settings.createInverse());
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::initializeFilter() {
-	MultidimArray<T> R2;
-    R2.resizeNoCopy(zdim, ydim, xdim / 2 + 1);
-    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(R2)
-    {
-        double fz, fy, fx;
-        FFT_IDX2DIGFREQ(k, zdim, fz);
-        FFT_IDX2DIGFREQ(i, ydim, fy);
-        FFT_IDX2DIGFREQ(j, xdim, fx);
-        A3D_ELEM(R2, k, i, j) = fx*fx + fy*fy + fz*fz;
-    }
-
-    gpuMalloc((void**)&d_R2, fourier_memsize);
-    gpuCopyFromCPUToGPU(R2.data, d_R2, fourier_size * type_size);
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::prepareData() {
-    readData();
-
-    S().resizeNoCopy(V1r());
-
-    createFFTPlans();
-
-    initializeFilter();
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::filterBank() {
-
-        auto start_time = std::chrono::high_resolution_clock::now();
-
-    V1r() *= 1.0 / volume_size;
-    V2r() *= 1.0 / volume_size;
-
-    T* d_V;
-    Complex* d_fV1;
-    Complex* d_fV2;
-
-    gpuMalloc((void**)&d_V, memsize);
-    allocateDeviceMemory(fourier_memsize, d_fV1, d_fV2);
-    gpuCopyFromCPUToGPU(V1r().data, d_V, memsize);
-
-    CudaFFT<T>::fft(*planForward, d_V, d_fV1);
-
-    gpuCopyFromCPUToGPU(V2r().data, d_V, memsize);
-
-    CudaFFT<T>::fft(*planForward, d_V, d_fV2);
-
-    gpuFree(d_V);
-
-        auto end_time = std::chrono::high_resolution_clock::now();
-
-    const T filterStep = bankStep * (1 - bankOverlap);
-    S().resizeNoCopy(V1r());
-    int i = 0;
-    const int imax = ceil(0.5 / filterStep);
-    std::cerr << "Calculating filter bank ..." << std::endl;
-    std::cout << "Iterations: " << 0.5 / filterStep << std::endl;
-    init_progress_bar(imax);
-
-    Gpu::CDF<T> cdf_mN(volume_size, 0.5);
-
-    T *d_V1r, *d_V2r, *d_S, *d_Vfiltered1, *d_Vfiltered2;
-
-    allocateDeviceMemory(memsize, d_V1r, d_V2r, d_S, d_Vfiltered1, d_Vfiltered2);
-
-    Complex* d_fVout;
-    gpuMalloc((void**)&d_fVout, fourier_memsize);
-
-    gpuMemset(d_V1r, 0, memsize);
-    gpuMemset(d_V2r, 0, memsize);
-    gpuMemset(d_S, 0, memsize);
-
-    // This loop can be parallelized, but it requires lot of memory, maybe divide to 2 parallel parts
-    for (T w = 0; w < 0.5; w += filterStep) {
-        filterBand(d_fV1, d_Vfiltered1, d_fVout, w, fourier_size);
-        filterBand(d_fV2, d_Vfiltered2, d_fVout, w, fourier_size);
-
-        cdf_mN.calculateCDF(d_Vfiltered1, d_Vfiltered2);
-
-        Gpu::computeWeights(d_Vfiltered1, d_Vfiltered2, d_V1r, d_V2r, d_S, volume_size, cdf_mN, weightPower, weightFun);
-
-        progress_bar(++i);
-
-    }
-    progress_bar(imax);
-
-    gpuCopyFromGPUToCPU(d_S, S().data, memsize);
-    gpuCopyFromGPUToCPU(d_V1r, V1r().data, memsize);
-    gpuCopyFromGPUToCPU(d_V2r, V2r().data, memsize);
-
-    // this to gpu
-    S() *= 1-bankOverlap;
-    V1r() *= 1-bankOverlap;
-    V2r() *= 1-bankOverlap;
-
-    saveFilterBank();
-
-    freeDeviceMemory(d_fVout, d_fV1, d_fV2, d_V1r, d_V2r, d_S, d_Vfiltered1, d_Vfiltered2);
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::filterBand(const Complex* d_fV, T* d_filtered, Complex* d_buffer, T w, size_t fourier_size) {
-    const T w2 = w * w;
-    T w2Step = (w + bankStep) * (w + bankStep);
-
-    Gpu::filterFourierVolume(d_R2, d_fV, d_buffer, fourier_size, w2, w2Step);
-    CudaFFT<T>::ifft(*planBackward, d_buffer, d_filtered);
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::saveFilterBank() {
-	S.write(fnRoot + "_filterBank_gpu.vol");
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::saveResults() {
-	V1r.write(fnRoot + "_restored1_gpu.vol");
-    V2r.write(fnRoot + "_restored2_gpu.vol");
-}
-
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::denoise() {
-    if (denoiseIterations <= 0) {
-        return;
-    }
-
-    // allocate memory for denoising
-    T* d_V1, *d_V2, *d_S, *d_aux;
-    Complex* d_fVol;
-    allocateDeviceMemory(memsize, d_V1, d_V2, d_S);
-    allocateDeviceMemory(pMaskSize * type_size, d_aux);
-    allocateDeviceMemory(fourier_memsize, d_fVol);
-
-    gpuCopyFromCPUToGPU(V1r().data, d_V1, memsize);
-    gpuCopyFromCPUToGPU(V2r().data, d_V2, memsize);
-
-    const size_t S_size = d_mask ? pMaskSize : volume_size;
-
-    Gpu::CDF<T> cdfS(S_size);
-    Gpu::CDF<T> cdfN(volume_size);
-
-    for (int i = 0; i < denoiseIterations; ++i) {
-        estimateS(d_V1, d_V2, d_S, d_fVol, volume_size, fourier_size);
-        Gpu::normalizeForFFT(d_S, volume_size);
-        if (d_mask) {
-            Gpu::maskForCDF(d_aux, d_S, d_mask, volume_size);
-            cdfS.calculateCDF(d_aux);
-        } else {
-            cdfS.calculateCDF(d_S);
+    if (maskData) {
+        auto& maskArray = mask.get_binary_mask();
+        if (XSIZE(V1()) != XSIZE(maskArray) || YSIZE(V1()) != YSIZE(maskArray)
+            || ZSIZE(V1()) != ZSIZE(maskArray)) {
+            throw std::runtime_error("Mask and input volumes have different dimensions");
         }
-        significanceRealSpace(d_V1, d_S, cdfS, cdfN, volume_size);
-        significanceRealSpace(d_V2, d_S, cdfS, cdfN, volume_size);
     }
-
-    gpuCopyFromGPUToCPU(d_V1, V1r().data, memsize);
-    gpuCopyFromGPUToCPU(d_V2, V2r().data, memsize);
-
-    freeDeviceMemory(d_V1, d_V2, d_S, d_fVol, d_aux);
 }
+
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::createFFTPlans() {
+//     gpu.set();
+//     auto forward_settings = FFTSettingsNew<T>{ xdim, ydim, zdim, 1, 1, false, true };
+//     planForward = CudaFFT<T>::createPlan(gpu, forward_settings);
+//     planBackward = CudaFFT<T>::createPlan(gpu, forward_settings.createInverse());
+// }
+
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::initializeFilter() {
+// 	MultidimArray<T> R2;
+//     R2.resizeNoCopy(zdim, ydim, xdim / 2 + 1);
+//     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(R2)
+//     {
+//         double fz, fy, fx;
+//         FFT_IDX2DIGFREQ(k, zdim, fz);
+//         FFT_IDX2DIGFREQ(i, ydim, fy);
+//         FFT_IDX2DIGFREQ(j, xdim, fx);
+//         A3D_ELEM(R2, k, i, j) = fx*fx + fy*fy + fz*fz;
+//     }
+
+//     gpuMalloc((void**)&d_R2, fourier_memsize);
+//     gpuCopyFromCPUToGPU(R2.data, d_R2, fourier_size * type_size);
+// }
+
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::prepareData() {
+//     readData();
+
+//     S().resizeNoCopy(V1r());
+
+//     createFFTPlans();
+
+//     initializeFilter();
+// }
+
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::filterBank() {
+
+//     V1r() *= 1.0 / volume_size;
+//     V2r() *= 1.0 / volume_size;
+
+//     T* d_V;
+//     Complex* d_fV1;
+//     Complex* d_fV2;
+
+//     gpuMalloc((void**)&d_V, memsize);
+//     allocateDeviceMemory(fourier_memsize, d_fV1, d_fV2);
+//     gpuCopyFromCPUToGPU(V1r().data, d_V, memsize);
+
+//     CudaFFT<T>::fft(*planForward, d_V, d_fV1);
+
+//     gpuCopyFromCPUToGPU(V2r().data, d_V, memsize);
+
+//     CudaFFT<T>::fft(*planForward, d_V, d_fV2);
+
+//     gpuFree(d_V);
+
+//     const T filterStep = bankStep * (1 - bankOverlap);
+//     S().resizeNoCopy(V1r());
+//     int i = 0;
+//     const int imax = ceil(0.5 / filterStep);
+//     std::cerr << "Calculating filter bank ..." << std::endl;
+//     std::cout << "Iterations: " << 0.5 / filterStep << std::endl;
+//     init_progress_bar(imax);
+
+//     Gpu::CDF<T> cdf_mN(volume_size, 0.5);
+
+//     T *d_V1r, *d_V2r, *d_S, *d_Vfiltered1, *d_Vfiltered2;
+
+//     allocateDeviceMemory(memsize, d_V1r, d_V2r, d_S, d_Vfiltered1, d_Vfiltered2);
+
+//     Complex* d_fVout;
+//     gpuMalloc((void**)&d_fVout, fourier_memsize);
+
+//     gpuMemset(d_V1r, 0, memsize);
+//     gpuMemset(d_V2r, 0, memsize);
+//     gpuMemset(d_S, 0, memsize);
+
+//     // This loop can be parallelized, but it requires lot of memory, maybe divide to 2 parallel parts
+//     for (T w = 0; w < 0.5; w += filterStep) {
+//         filterBand(d_fV1, d_Vfiltered1, d_fVout, w, fourier_size);
+//         filterBand(d_fV2, d_Vfiltered2, d_fVout, w, fourier_size);
+
+//         cdf_mN.calculateCDF(d_Vfiltered1, d_Vfiltered2);
+
+//         Gpu::computeWeights(d_Vfiltered1, d_Vfiltered2, d_V1r, d_V2r, d_S, volume_size, cdf_mN, weightPower, weightFun);
+
+//         progress_bar(++i);
+
+//     }
+//     progress_bar(imax);
+
+//     gpuCopyFromGPUToCPU(d_S, S().data, memsize);
+//     gpuCopyFromGPUToCPU(d_V1r, V1r().data, memsize);
+//     gpuCopyFromGPUToCPU(d_V2r, V2r().data, memsize);
+
+//     // this to gpu
+//     S() *= 1-bankOverlap;
+//     V1r() *= 1-bankOverlap;
+//     V2r() *= 1-bankOverlap;
+
+//     saveFilterBank();
+
+//     freeDeviceMemory(d_fVout, d_fV1, d_fV2, d_V1r, d_V2r, d_S, d_Vfiltered1, d_Vfiltered2);
+// }
+
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::filterBand(const Complex* d_fV, T* d_filtered, Complex* d_buffer, T w, size_t fourier_size) {
+//     const T w2 = w * w;
+//     T w2Step = (w + bankStep) * (w + bankStep);
+
+//     Gpu::filterFourierVolume(d_R2, d_fV, d_buffer, fourier_size, w2, w2Step);
+//     CudaFFT<T>::ifft(*planBackward, d_buffer, d_filtered);
+// }
+
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::saveFilterBank() {
+// 	S.write(fnRoot + "_filterBank_gpu.vol");
+// }
 
 template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::estimateS(const T* d_V1, const T* d_V2, T* d_S, Complex* d_fVol, size_t size, size_t fourier_size) {
-    if (d_mask) {
-        Gpu::computeAveragePositivity(d_V1, d_V2, d_S, d_mask, size);
-    } else {
-        Gpu::computeAveragePositivity(d_V1, d_V2, d_S, size);
-    }
-
-    CudaFFT<T>::fft(*planForward, d_S, d_fVol);
-    Gpu::filterS(d_R2, d_fVol, fourier_size);
-    CudaFFT<T>::ifft(*planBackward, d_fVol, d_S);
+void ProgVolumeHalvesRestorationGpu<T>::saveResults(const VolumeHalvesRestorator<T>& restorator) {
+    V1() = restorator.getReconstructedVolume1();
+	V1.write(fnRoot + "_restored1.vol");
+    V1() = restorator.getReconstructedVolume2();
+    V1.write(fnRoot + "_restored2.vol");
+    V1() = restorator.getFilterBankVolume();
+    V1.write(fnRoot + "_filterBank.vol");
+    V1() = restorator.getDeconvolvedS();
+    V1.write(fnRoot + "_deconvolved.vol");
+    V1() = restorator.getConvolvedS();
+    V1.write(fnRoot + "_convolved.vol");
+    V1() = restorator.getAverageDifference();
+    V1.write(fnRoot + "_avgDiff.vol");
 }
 
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::significanceRealSpace(T* d_V, const T* d_S, Gpu::CDF<T>& cdfS, Gpu::CDF<T>& cdfN, size_t size) {
-	cdfN.calculateCDF(d_V, d_S);
-    Gpu::maskWithNoiseProbability(d_V, cdfS, cdfN, size);
-}
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::denoise() {
+//     if (denoiseIterations <= 0) {
+//         return;
+//     }
 
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::deconvolution() {
-	if (deconvolutionIterations <= 0) {
-        return;
-    }
+//     // allocate memory for denoising
+//     T* d_V1, *d_V2, *d_S, *d_aux;
+//     Complex* d_fVol;
+//     allocateDeviceMemory(memsize, d_V1, d_V2, d_S);
+//     allocateDeviceMemory(pMaskSize * type_size, d_aux);
+//     allocateDeviceMemory(fourier_memsize, d_fVol);
 
-    T sigmaConv1 = sigma0;
-    T sigmaConv2 = sigma0;
+//     gpuCopyFromCPUToGPU(V1r().data, d_V1, memsize);
+//     gpuCopyFromCPUToGPU(V2r().data, d_V2, memsize);
 
-    // allocate memory for denoising
-    T* d_V1, *d_V2, *d_S;
-    Complex* d_fVol, *d_fV1, *d_fV2;
+//     const size_t S_size = d_mask ? pMaskSize : volume_size;
 
-    allocateDeviceMemory(memsize, d_V1, d_V2, d_S);
-    allocateDeviceMemory(fourier_memsize, d_fVol, d_fV1, d_fV2);
+//     Gpu::CDF<T> cdfS(S_size);
+//     Gpu::CDF<T> cdfN(volume_size);
 
-    updateRestorationPointers(d_fVol, d_fV1, d_fV2);
+//     for (int i = 0; i < denoiseIterations; ++i) {
+//         estimateS(d_V1, d_V2, d_S, d_fVol, volume_size, fourier_size);
+//         Gpu::normalizeForFFT(d_S, volume_size);
+//         if (d_mask) {
+//             Gpu::maskForCDF(d_aux, d_S, d_mask, volume_size);
+//             cdfS.calculateCDF(d_aux);
+//         } else {
+//             cdfS.calculateCDF(d_S);
+//         }
+//         significanceRealSpace(d_V1, d_S, cdfS, cdfN, volume_size);
+//         significanceRealSpace(d_V2, d_S, cdfS, cdfN, volume_size);
+//     }
 
-    gpuCopyFromCPUToGPU(V1r().data, d_V1, memsize);
-    gpuCopyFromCPUToGPU(V2r().data, d_V2, memsize);
+//     gpuCopyFromGPUToCPU(d_V1, V1r().data, memsize);
+//     gpuCopyFromGPUToCPU(d_V2, V2r().data, memsize);
 
-    for (int i = 0; i < deconvolutionIterations; ++i) {
-        estimateS(d_V1, d_V2, d_S, d_fVol,  volume_size, fourier_size);
-        Gpu::normalizeForFFT(d_S, volume_size);
+//     freeDeviceMemory(d_V1, d_V2, d_S, d_fVol, d_aux);
+// }
 
-        CudaFFT<T>::fft(*planForward, d_S, d_fVol);
-        CudaFFT<T>::fft(*planForward, d_V1, d_fV1);
-        CudaFFT<T>::fft(*planForward, d_V2, d_fV2);
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::estimateS(const T* d_V1, const T* d_V2, T* d_S, Complex* d_fVol, size_t size, size_t fourier_size) {
+//     if (d_mask) {
+//         Gpu::computeAveragePositivity(d_V1, d_V2, d_S, d_mask, size);
+//     } else {
+//         Gpu::computeAveragePositivity(d_V1, d_V2, d_S, size);
+//     }
 
-        std::tie(sigmaConv1, sigmaConv2) = optimizeSigma(sigmaConv1, sigmaConv2);
+//     CudaFFT<T>::fft(*planForward, d_S, d_fVol);
+//     Gpu::filterS(d_R2, d_fVol, fourier_size);
+//     CudaFFT<T>::ifft(*planBackward, d_fVol, d_S);
+// }
 
-        deconvolveS(d_fVol, d_fV1, d_fV2, sigmaConv1, sigmaConv2, fourier_size);
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::significanceRealSpace(T* d_V, const T* d_S, Gpu::CDF<T>& cdfS, Gpu::CDF<T>& cdfN, size_t size) {
+// 	cdfN.calculateCDF(d_V, d_S);
+//     Gpu::maskWithNoiseProbability(d_V, cdfS, cdfN, size);
+// }
 
-        CudaFFT<T>::ifft(*planBackward, d_fV1, d_V1);
-        CudaFFT<T>::ifft(*planBackward, d_fV2, d_V2);
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::deconvolution() {
+// 	if (deconvolutionIterations <= 0) {
+//         return;
+//     }
 
-        Gpu::normalizeForFFT(d_V1, d_V2, volume_size);
+//     T sigmaConv1 = sigma0;
+//     T sigmaConv2 = sigma0;
 
-    }
-    gpuCopyFromGPUToCPU(d_S, S().data, memsize);
-    S.write(fnRoot+"_deconvolved.vol");
+//     // allocate memory for denoising
+//     T* d_V1, *d_V2, *d_S;
+//     Complex* d_fVol, *d_fV1, *d_fV2;
 
-    convolveS(d_fVol, sigmaConv1, sigmaConv2, fourier_size);
+//     allocateDeviceMemory(memsize, d_V1, d_V2, d_S);
+//     allocateDeviceMemory(fourier_memsize, d_fVol, d_fV1, d_fV2);
 
-    CudaFFT<T>::ifft(*planBackward, d_fVol, d_S);
+//     updateRestorationPointers(d_fVol, d_fV1, d_fV2);
 
-    Gpu::normalizeForFFT(d_S, volume_size);
+//     gpuCopyFromCPUToGPU(V1r().data, d_V1, memsize);
+//     gpuCopyFromCPUToGPU(V2r().data, d_V2, memsize);
 
-    gpuCopyFromGPUToCPU(d_S, S().data, memsize);
-    S.write(fnRoot+"_convolved.vol");
+//     for (int i = 0; i < deconvolutionIterations; ++i) {
+//         estimateS(d_V1, d_V2, d_S, d_fVol,  volume_size, fourier_size);
+//         Gpu::normalizeForFFT(d_S, volume_size);
 
-    gpuCopyFromGPUToCPU(d_V1, V1r().data, memsize);
-    gpuCopyFromGPUToCPU(d_V2, V2r().data, memsize);
+//         CudaFFT<T>::fft(*planForward, d_S, d_fVol);
+//         CudaFFT<T>::fft(*planForward, d_V1, d_fV1);
+//         CudaFFT<T>::fft(*planForward, d_V2, d_fV2);
 
-    V1r.write(fnRoot+"_deconvolvedV1.vol");
-    V2r.write(fnRoot+"_deconvolvedV2.vol");
+//         std::tie(sigmaConv1, sigmaConv2) = optimizeSigma(sigmaConv1, sigmaConv2);
 
-    freeDeviceMemory(d_V1, d_V2, d_S, d_fVol, d_fV1, d_fV2);
-}
+//         deconvolveS(d_fVol, d_fV1, d_fV2, sigmaConv1, sigmaConv2, fourier_size);
 
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::updateRestorationPointers(Complex* d_fVol, Complex* d_fV1, Complex* d_fV2) {
-    restorationPointers.d_R2 = d_R2;
-    restorationPointers.d_fVol = d_fVol;
-    restorationPointers.d_fV1 = d_fV1;
-    restorationPointers.d_fV2 = d_fV2;
-}
+//         CudaFFT<T>::ifft(*planBackward, d_fV1, d_V1);
+//         CudaFFT<T>::ifft(*planBackward, d_fV2, d_V2);
 
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::deconvolveS(Complex* d_fVol, Complex* d_fV1, Complex* d_fV2, T sigmaConv1, T sigmaConv2, size_t fourier_size) {
-    if (verbose > 0) {
-        std::cout << "   Deconvolving with sigma=" << sigmaConv1  << " " << sigmaConv2 << std::endl;
-    }
+//         Gpu::normalizeForFFT(d_V1, d_V2, volume_size);
 
-    const T K1 = -0.5 / (sigmaConv1 * sigmaConv1);
-    const T K2 = -0.5 / (sigmaConv2 * sigmaConv2);
+//     }
+//     gpuCopyFromGPUToCPU(d_S, S().data, memsize);
+//     S.write(fnRoot+"_deconvolved.vol");
 
-    Gpu::deconvolveRestored(d_fVol, d_fV1, d_fV2, d_R2,
-                        K1, K2, lambda, volume_size, fourier_size);
-}
+//     convolveS(d_fVol, sigmaConv1, sigmaConv2, fourier_size);
 
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::convolveS(Complex* d_fVol, T sigmaConv1, T sigmaConv2, size_t fourier_size) {
-    const T sigmaConv = (sigmaConv1 + sigmaConv2) / 2;
-    const T K = -0.5 / (sigmaConv * sigmaConv);
+//     CudaFFT<T>::ifft(*planBackward, d_fVol, d_S);
 
-    Gpu::convolveFourierVolume(d_fVol, d_R2, K, fourier_size);
-}
+//     Gpu::normalizeForFFT(d_S, volume_size);
 
-template< typename T >
-std::pair<T, T> ProgVolumeHalvesRestorationGpu<T>::optimizeSigma(T sigmaConv1, T sigmaConv2) {
-	Matrix1D<double> p(2), steps(2);
-    p(0) = sigmaConv1;
-    p(1) = sigmaConv2;
-    steps.initConstant(1);
-    double cost;
-    int iter;
-    powellOptimizer(p, 1, 2, &restorationSigmaCost, this, 0.01, cost, iter, steps, verbose >= 2);
+//     gpuCopyFromGPUToCPU(d_S, S().data, memsize);
+//     S.write(fnRoot+"_convolved.vol");
 
-    return { p(0), p(1) };
-}
+//     gpuCopyFromGPUToCPU(d_V1, V1r().data, memsize);
+//     gpuCopyFromGPUToCPU(d_V2, V2r().data, memsize);
 
-template< typename T >
-void ProgVolumeHalvesRestorationGpu<T>::difference() {
-	T *d_V1, *d_V2, *d_S, *d_N;
-    allocateDeviceMemory(memsize, d_V1, d_V2, d_S, d_N);
+//     V1r.write(fnRoot+"_deconvolvedV1.vol");
+//     V2r.write(fnRoot+"_deconvolvedV2.vol");
 
-    gpuCopyFromCPUToGPU(V1r().data, d_V1, memsize);
-    gpuCopyFromCPUToGPU(V2r().data, d_V2, memsize);
+//     freeDeviceMemory(d_V1, d_V2, d_S, d_fVol, d_fV1, d_fV2);
+// }
 
-    for (int i = 0; i < differenceIterations; ++i) {
-        Gpu::computeDiffAndAverage(d_V1, d_V2, d_S, d_N, volume_size);
-        T avg, std;
-        if (d_mask) {
-            std::tie(avg, std) = Gpu::computeAvgStdWithMask(d_N, d_mask, pMaskSize, volume_size);
-        } else {
-            std::tie(avg, std) = Gpu::computeAvgStd(d_N, volume_size);
-        }
-        std *= Kdiff;
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::updateRestorationPointers(Complex* d_fVol, Complex* d_fV1, Complex* d_fV2) {
+//     restorationPointers.d_R2 = d_R2;
+//     restorationPointers.d_fVol = d_fVol;
+//     restorationPointers.d_fV1 = d_fV1;
+//     restorationPointers.d_fV2 = d_fV2;
+// }
 
-        Gpu::computeDifference(d_V1, d_V2, d_S, d_N, -static_cast<T>(0.5) / (std * std), volume_size);
-    }
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::deconvolveS(Complex* d_fVol, Complex* d_fV1, Complex* d_fV2, T sigmaConv1, T sigmaConv2, size_t fourier_size) {
+//     if (verbose > 0) {
+//         std::cout << "   Deconvolving with sigma=" << sigmaConv1  << " " << sigmaConv2 << std::endl;
+//     }
 
-    Gpu::computeDiffAndAverage(d_V1, d_V2, d_S, d_N, volume_size);
+//     const T K1 = -0.5 / (sigmaConv1 * sigmaConv1);
+//     const T K2 = -0.5 / (sigmaConv2 * sigmaConv2);
 
-    gpuCopyFromGPUToCPU(d_V1, V1r().data, memsize);
-    gpuCopyFromGPUToCPU(d_V2, V2r().data, memsize);
-    gpuCopyFromGPUToCPU(d_S, S().data, memsize);
+//     Gpu::deconvolveRestored(d_fVol, d_fV1, d_fV2, d_R2,
+//                         K1, K2, lambda, volume_size, fourier_size);
+// }
 
-    S.write(fnRoot + "_avgDiff_gpu.vol");
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::convolveS(Complex* d_fVol, T sigmaConv1, T sigmaConv2, size_t fourier_size) {
+//     const T sigmaConv = (sigmaConv1 + sigmaConv2) / 2;
+//     const T K = -0.5 / (sigmaConv * sigmaConv);
 
-    freeDeviceMemory(d_V1, d_V2, d_S, d_N);
-}
+//     Gpu::convolveFourierVolume(d_fVol, d_R2, K, fourier_size);
+// }
 
-template< typename T >
-double ProgVolumeHalvesRestorationGpu<T>::restorationSigmaCost(double *x, void *_prm) {
-	ProgVolumeHalvesRestorationGpu<T> *prm = (ProgVolumeHalvesRestorationGpu<T> *) _prm;
-    const double sigma1 = x[1];
-    const double sigma2 = x[2];
-    if (sigma1 < 0 || sigma2 < 0 || sigma1 > 2 || sigma2 > 2)
-        return 1e38;
-    const T K1 = -0.5 / (sigma1 * sigma1);
-    const T K2 = -0.5 / (sigma2 * sigma2);
-    T error = 0;
+// template< typename T >
+// std::pair<T, T> ProgVolumeHalvesRestorationGpu<T>::optimizeSigma(T sigmaConv1, T sigmaConv2) {
+// 	Matrix1D<double> p(2), steps(2);
+//     p(0) = sigmaConv1;
+//     p(1) = sigmaConv2;
+//     steps.initConstant(1);
+//     double cost;
+//     int iter;
+//     powellOptimizer(p, 1, 2, &restorationSigmaCost, this, 0.01, cost, iter, steps, verbose >= 2);
 
-    auto pointers = prm->restorationPointers;
+//     return { p(0), p(1) };
+// }
 
-    Gpu::restorationSigmaCostError(error, pointers.d_fVol, pointers.d_fV1,
-                                pointers.d_fV2, pointers.d_R2, K1, K2, prm->get_fourier_size());
+// template< typename T >
+// void ProgVolumeHalvesRestorationGpu<T>::difference() {
+// 	T *d_V1, *d_V2, *d_S, *d_N;
+//     allocateDeviceMemory(memsize, d_V1, d_V2, d_S, d_N);
 
-    return static_cast<T>(error);
-}
+//     gpuCopyFromCPUToGPU(V1r().data, d_V1, memsize);
+//     gpuCopyFromCPUToGPU(V2r().data, d_V2, memsize);
+
+//     for (int i = 0; i < differenceIterations; ++i) {
+//         Gpu::computeDiffAndAverage(d_V1, d_V2, d_S, d_N, volume_size);
+//         T avg, std;
+//         if (d_mask) {
+//             std::tie(avg, std) = Gpu::computeAvgStdWithMask(d_N, d_mask, pMaskSize, volume_size);
+//         } else {
+//             std::tie(avg, std) = Gpu::computeAvgStd(d_N, volume_size);
+//         }
+//         std *= Kdiff;
+
+//         Gpu::computeDifference(d_V1, d_V2, d_S, d_N, -static_cast<T>(0.5) / (std * std), volume_size);
+//     }
+
+//     Gpu::computeDiffAndAverage(d_V1, d_V2, d_S, d_N, volume_size);
+
+//     gpuCopyFromGPUToCPU(d_V1, V1r().data, memsize);
+//     gpuCopyFromGPUToCPU(d_V2, V2r().data, memsize);
+//     gpuCopyFromGPUToCPU(d_S, S().data, memsize);
+
+//     S.write(fnRoot + "_avgDiff_gpu.vol");
+
+//     freeDeviceMemory(d_V1, d_V2, d_S, d_N);
+// }
+
+// template< typename T >
+// double ProgVolumeHalvesRestorationGpu<T>::restorationSigmaCost(double *x, void *_prm) {
+// 	ProgVolumeHalvesRestorationGpu<T> *prm = (ProgVolumeHalvesRestorationGpu<T> *) _prm;
+//     const double sigma1 = x[1];
+//     const double sigma2 = x[2];
+//     if (sigma1 < 0 || sigma2 < 0 || sigma1 > 2 || sigma2 > 2)
+//         return 1e38;
+//     const T K1 = -0.5 / (sigma1 * sigma1);
+//     const T K2 = -0.5 / (sigma2 * sigma2);
+//     T error = 0;
+
+//     auto pointers = prm->restorationPointers;
+
+//     Gpu::restorationSigmaCostError(error, pointers.d_fVol, pointers.d_fV1,
+//                                 pointers.d_fV2, pointers.d_R2, K1, K2, prm->get_fourier_size());
+
+//     return static_cast<T>(error);
+// }
 
 template class ProgVolumeHalvesRestorationGpu<double>;
 template class ProgVolumeHalvesRestorationGpu<float>;
