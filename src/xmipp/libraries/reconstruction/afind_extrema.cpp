@@ -37,14 +37,12 @@ void AExtremaFinder<T>::init(const ExtremaFinderSettings &settings, bool reuse) 
     if ( ! skipInit) {
         // initialize
         switch (m_settings.searchType) {
-            case SearchType::Max: {
+            case SearchType::Max:
                 this->initMax();
                 break;
-            }
-            case SearchType::MaxAroundCenter: {
+            case SearchType::MaxAroundCenter:
                 this->initMaxAroundCenter();
                 break;
-            }
             default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
         }
         // check that there's no logical problem
