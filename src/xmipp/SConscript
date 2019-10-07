@@ -303,7 +303,7 @@ def compileMatlabBinding(target, source, env):
 
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
     command = '%s -O CFLAGS="\$CFLAGS -std=c99 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
-    print command
+    print(command)
     os.system(command)
 
 # Matlab programs
