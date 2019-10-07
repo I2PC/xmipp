@@ -27,7 +27,7 @@ def getMatlabEnviron(*toolPaths):
     
     return env
 
-class XmippScript():
+class XmippScript:
     ''' This class will serve as wrapper around the XmippProgram class
     to have same facilities from Python scripts'''
     def __init__(self, runWithoutArgs=False):

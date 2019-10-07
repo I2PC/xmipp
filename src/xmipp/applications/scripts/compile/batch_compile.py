@@ -28,7 +28,8 @@
 
 import os
 import sys
-from xmipp_base import XmippScript
+from src.xmipp.bindings.python.xmipp_base import XmippScript
+
 
 class ScriptCompile(XmippScript):
     def __init__(self):

@@ -214,19 +214,19 @@ if __name__ == '__main__':
     usage = './scriptname -v volume -r radius -b bandwidth -c flag_for_convolution -o output_filename'
     
     if len(sys.argv) == 1:
-        print usage
+        print(usage)
         sys.exit()        
     
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hcv:r:b:o:", ["help"])
     except getopt.GetoptError:
-        print 'Command not right. Exit!'
+        print('Command not right. Exit!')
         sys.exit()
     
     conv = False
     for o,a in opts:
         if o in ("-h", "--help"):
-            print usage
+            print(usage)
             sys.exit()
         if o in ("-v"):
             vol_name = a
@@ -239,7 +239,7 @@ if __name__ == '__main__':
         if o in ("-o"):
             filename = a
     
-    from tompy.io import read
+    from ..python.tompy.io import read
     vol = read(vol_name)
     sf = vol2sf(vol, radius, bw)
     sf2file(sf, filename, conv)

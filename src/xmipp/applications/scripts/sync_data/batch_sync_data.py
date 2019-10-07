@@ -28,7 +28,7 @@ import sys
 
 from subprocess import call
 from os.path import join
-from urllib2 import urlopen
+from urllib.request import urlopen
 
 import time
 
@@ -68,7 +68,7 @@ def download(destination=None, url=None, dataset=None):
     done = 0.0  # fraction already done
     inc = 1.0 / len(md5sRemote)  # increment, how much each iteration represents
     oldPartial = 100
-    for fname, md5Remote in md5sRemote.iteritems():
+    for fname, md5Remote in md5sRemote.items():
         fpath = join(destination, fname)
         try:
             # Download content and create file with it.
@@ -134,7 +134,7 @@ def update(destination=None, url=None, dataset=None):
 
     md5sLocal = dict(x.split() for x in open(join(destination, 'MANIFEST')))
     if isDLmodel:  # DLmodels has hashs before fileNames
-        md5sLocal = {v: k for k, v in md5sLocal.iteritems()}
+        md5sLocal = {v: k for k, v in md5sLocal.items()}
     # Check that all the files mentioned in MANIFEST are up-to-date
     print(blue("Verifying MD5s..."))
 
@@ -241,7 +241,7 @@ def readManifest(remoteManifest, isDLmodel):
     manifest = urlopen(remoteManifest).readlines()
     md5sRemote = dict(x.strip().split() for x in manifest)
     if isDLmodel:  # DLmodels has hashs before fileNames
-        md5sRemote = {v: k for k, v in md5sRemote.iteritems()}
+        md5sRemote = {v: k for k, v in md5sRemote.items()}
     return md5sRemote
 
 def unTarModels(dirname):

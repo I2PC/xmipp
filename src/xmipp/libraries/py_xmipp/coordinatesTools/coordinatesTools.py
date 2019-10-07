@@ -1,8 +1,6 @@
 import sys, os
 import xmippLib
 from xmipp3.convert import readPosCoordinates
-from pyworkflow.em.data import Coordinate, Micrograph
-
 
 def writeCoordsListToPosFname(mic_fname, list_x_y, outputRoot, micId=None):
 
