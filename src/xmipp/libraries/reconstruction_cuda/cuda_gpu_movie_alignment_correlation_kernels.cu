@@ -90,33 +90,25 @@ void computeCorrelations2DOneToNKernel(
         T* __restrict__ inOut,
         const T* __restrict__ ref,
         int xDim, int yDim, int nDim) {
-    // assign element to thread
-#if TILE > 1
-    int id = threadIdx.y * blockDim.x + threadIdx.x;
-    int tidX = threadIdx.x % TILE + (id / (blockDim.y * TILE)) * TILE;
-    int tidY = (id / TILE) % blockDim.y;
-    int idx = blockIdx.x*blockDim.x + tidX;
-    int idy = blockIdx.y*blockDim.y + tidY;
-#else
-    volatile int idx = blockIdx.x*blockDim.x + threadIdx.x;
-    volatile int idy = blockIdx.y*blockDim.y + threadIdx.y;
-#endif
-    int centerCoeff = 1-2*((idx+idy)&1); // center FT, input must be even
+    // assign element to thread, we have probably less threads than columns
+    // single block processes single signal
+    unsigned tid = threadIdx.x;
+    unsigned signal = blockIdx.x;
 
-    if (idx >= xDim || idy >= yDim ) return;
-    int elem = idy*xDim + idx;
-    T refVal = ref[elem]; // load reference value
-
-    for (int i = 0; i < nDim; i++) {
-        int offset = i * xDim * yDim;
-        T otherVal = inOut[offset + elem];
-        T tmp;
-        tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
-        tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
-        if (center) {
-            tmp *= centerCoeff;
+    T *dest = inOut + (signal * xDim * yDim);
+    for (unsigned y = 0; y < yDim; ++y) {
+        for (unsigned x = tid; x < xDim; x += blockDim.x) {
+            unsigned index = y * xDim + x;
+            T refVal = ref[index]; // load reference value
+            T otherVal = dest[index];
+            T tmp;
+            tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
+            tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
+            if (center) {
+                tmp *= (int)(1-2*((x + y)&1)); // center FT, input must be even
+            }
+            dest[index] = tmp;
         }
-        inOut[offset + elem] = tmp;
     }
 }
 

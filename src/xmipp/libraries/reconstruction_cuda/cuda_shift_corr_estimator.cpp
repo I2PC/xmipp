@@ -409,12 +409,10 @@ void CudaShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
     assert(1 == dims.z());
     assert(0 < dims.n());
 
+    // create threads / blocks
+    dim3 dimBlock(BLOCK_DIM_X, 1, 1);
+    dim3 dimGrid(dims.n(), 1, 1);
     auto stream = *(cudaStream_t*)gpu.stream();
-    // compute kernel size
-    dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
-    dim3 dimGrid(
-            ceil(dims.x() / (float)dimBlock.x),
-            ceil(dims.y() / (float)dimBlock.y));
     if (std::is_same<T, float>::value) {
         computeCorrelations2DOneToNKernel<float2, center>
             <<<dimGrid, dimBlock, 0, stream>>> (
