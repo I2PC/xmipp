@@ -336,11 +336,15 @@ def Cmd(cmd):
     os.system(cmd)
 
 
-def AddMatchingFiles((pattern, blacklist, sources), directory, files):
-    ''' Callback, adds all matching files in dir '''
-    for filename in fnmatch.filter(files, pattern):
-        if filename not in blacklist:
-            sources.append(join(directory, filename))
+def AddMatchingFiles(params, directory, files):
+    """ Callback, adds all matching files in dir
+        params[0] = pattern
+        params[1] = blacklist
+        params[0] = sources
+    """
+    for filename in fnmatch.filter(files, params[0]):
+        if filename not in params[1]:
+            params[2].append(join(directory, filename))
 
     
 def Glob(path, pattern, blacklist=[]):
