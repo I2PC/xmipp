@@ -57,7 +57,7 @@ public:
     size_t maxDistFromCenter = 0;
 
     Point3D<size_t> getCenter() const {
-        return {dims.x() / 2, dims.y() / 2, dims.z() / 2};
+        return Point3D<size_t>(dims.x() / 2, dims.y() / 2, dims.z() / 2);
     }
 
     void check() const {
@@ -71,7 +71,7 @@ public:
             REPORT_ERROR(ERR_LOGIC_ERROR, "Batch is zero (0)");
         }
         if (SearchType::MaxAroundCenter == searchType) {
-            auto center = getCenter();
+            const auto center = getCenter();
             if (dims.is1D()) {
                 if (maxDistFromCenter >= center.x) {
                     REPORT_ERROR(ERR_LOGIC_ERROR, "'maxDistFromCenter' is bigger than half of the signal's X dimension");
