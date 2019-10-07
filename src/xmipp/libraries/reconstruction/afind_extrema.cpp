@@ -55,6 +55,15 @@ void AExtremaFinder<T>::init(const ExtremaFinderSettings &settings, bool reuse) 
 }
 
 template<typename T>
+bool AExtremaFinder<T>::canBeReused(const ExtremaFinderSettings &s) const {
+    switch (s.searchType) {
+        case SearchType::Max: return this->canBeReusedMax(s);
+        case SearchType::MaxAroundCenter: return this->canBeReusedMaxAroundCenter(s);
+        default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+    }
+}
+
+template<typename T>
 void AExtremaFinder<T>::find(T *data) {
     if ((ResultType::Position == m_settings.resultType)
         || (ResultType::Both == m_settings.resultType)) {

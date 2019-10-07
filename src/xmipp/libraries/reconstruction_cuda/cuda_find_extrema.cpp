@@ -74,7 +74,7 @@ void CudaExtremaFinder<T>::check() const {
 }
 
 template<typename T>
-bool CudaExtremaFinder<T>::canBeReused(const ExtremaFinderSettings &s) const {
+bool CudaExtremaFinder<T>::canBeReusedBasic(const ExtremaFinderSettings &s) const {
     if (2 != s.hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
@@ -95,7 +95,17 @@ bool CudaExtremaFinder<T>::canBeReused(const ExtremaFinderSettings &s) const {
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::initMax() {
+bool CudaExtremaFinder<T>::canBeReusedMax(const ExtremaFinderSettings &s) const {
+    return canBeReusedBasic(s);
+}
+
+template<typename T>
+bool CudaExtremaFinder<T>::canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const {
+    return canBeReusedBasic(s);
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::initBasic() {
     release();
     auto s = this->getSettings();
     if (2 != s.hw.size()) {
@@ -127,7 +137,18 @@ void CudaExtremaFinder<T>::initMax() {
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::findMax(T *h_data) {
+void CudaExtremaFinder<T>::initMax() {
+    return initBasic();
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::initMaxAroundCenter() {
+    return initBasic();
+}
+
+template<typename T>
+template<typename KERNEL>
+void CudaExtremaFinder<T>::findBasic(T *h_data, KERNEL k) {
     bool isReady = this->isInitialized();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() first");
@@ -152,8 +173,8 @@ void CudaExtremaFinder<T>::findMax(T *h_data) {
             // mutex will be freed once leaving this block
             std::unique_lock<std::mutex> lk(*m_mutex);
             m_cv->wait(lk, [&]{return m_isDataReady;});
-            // call polar transformation kernel
-            sFindMax(*m_workStream, batchDims, m_d_batch,
+            // call finding kernel
+            k(*m_workStream, batchDims, m_d_batch,
                    m_d_positions, m_d_values);
 
             // notify that buffer is processed (new will be loaded in background)
@@ -165,6 +186,33 @@ void CudaExtremaFinder<T>::findMax(T *h_data) {
         downloadValuesFromGPU(toProcess);
     }
     loadingThread.join();
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::findMax(T *h_data) {
+    auto kernel = [&](const GPU &gpu,
+            const Dimensions &dims,
+            const T * __restrict__ d_data,
+            T * __restrict__ d_positions,
+            T * __restrict__ d_values) {
+        sFindMax(gpu, dims, d_data, d_positions, d_values);
+    };
+    return findBasic(h_data, kernel);
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::findMaxAroundCenter(T *h_data) {
+    auto kernel2D = [&](const GPU &gpu,
+            const Dimensions &dims,
+            const T * __restrict__ d_data,
+            T * __restrict__ d_positions,
+            T * __restrict__ d_values) {
+        sFindMax2DAroundCenter(gpu, dims, d_data, d_positions, d_values, this->getSettings().maxDistFromCenter);
+    };
+    if (this->getSettings().dims.is2D()) {
+        return findBasic(h_data, kernel2D);
+    }
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
 }
 
 template<typename T>
@@ -231,16 +279,6 @@ void CudaExtremaFinder<T>::loadThreadRoutine(T *h_data) {
         m_isDataReady = true;
         m_cv->notify_one();
     }
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::initMaxAroundCenter() {
-    // FIXME DS implement
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::findMaxAroundCenter(T *data) {
-    // FIXME DS implement
 }
 
 template<typename T>
@@ -312,7 +350,7 @@ void CudaExtremaFinder<T>::sFindMax(const GPU &gpu,
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::sFindMax2DNearCenter(
+void CudaExtremaFinder<T>::sFindMax2DAroundCenter(
         const GPU &gpu,
         const Dimensions &dims,
         const T * d_data,
@@ -335,8 +373,9 @@ void CudaExtremaFinder<T>::sFindMax2DNearCenter(
 
     // prepare threads / blocks
     size_t maxThreads = 512;
+    size_t windowWidth = 2 * maxDist;
     // threads should process a single row of the signal
-    size_t threads = (dims.x() < maxThreads) ? ceilPow2(dims.x()) : maxThreads;
+    size_t threads = (windowWidth < maxThreads) ? ceilPow2(windowWidth) : maxThreads;
     dim3 dimBlock(threads, 1, 1);
     dim3 dimGrid(dims.n(), 1, 1);
     auto stream = *(cudaStream_t*)gpu.stream();

@@ -38,6 +38,7 @@ namespace ExtremaFinder {
 template<typename T>
 class CudaExtremaFinder : public AExtremaFinder<T> {
 public:
+    // FIXME DS add support for min
     CudaExtremaFinder() {
         setDefault();
     }
@@ -76,7 +77,7 @@ public:
         T * __restrict__ d_positions,
         T * __restrict__ d_values);
 
-    static void sFindMax2DNearCenter(const GPU &gpu,
+    static void sFindMax2DAroundCenter(const GPU &gpu,
         const Dimensions &dims,
         const T * d_data,
         T * d_positions,
@@ -107,14 +108,21 @@ private:
 
     void check() const override;
     void initMax() override;
-    bool canBeReused(const ExtremaFinderSettings &s) const;
     void findMax(T *h_data) override;
+    bool canBeReusedMax(const ExtremaFinderSettings &s) const override;
+
     void initMaxAroundCenter() override;
     void findMaxAroundCenter(T *h_data) override;
+    bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const override;
 
     void loadThreadRoutine(T *h_data);
     void downloadPositionsFromGPU(size_t noOfResults);
     void downloadValuesFromGPU(size_t noOfResults);
+
+    void initBasic();
+    template<typename KERNEL>
+    void findBasic(T *h_data, KERNEL k);
+    bool canBeReusedBasic(const ExtremaFinderSettings &s) const;
 };
 
 } /* namespace ExtremaFinder */

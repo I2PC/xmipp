@@ -346,25 +346,30 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     // perform IFT
     CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
 
-    // crop images in spatial domain, use memory for FT to avoid reallocation
-    dim3 dimBlockCrop(BLOCK_DIM_X, BLOCK_DIM_X);
-    dim3 dimGridCrop(
-            std::ceil(centerSize / (float)dimBlockCrop.x),
-            std::ceil(centerSize / (float)dimBlockCrop.y));
-    cropSquareInCenter<<<dimGridCrop, dimBlockCrop, 0, workStream>>>(
-            d_othersS, (T*)d_othersF,
-            settings.sDim().x(), settings.sDim().y(), settings.sDim().n(), centerSize, centerSize);
+    // locate maxima
+    auto p_pos = (T*)d_othersF;
+    auto p_val = ((T*)d_othersF) + settings.batch();
+
+    ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(
+            *workGPU, settings.sDim(), d_othersS, p_pos, p_val, maxShift);
     workGPU->synch();
     // copy data back
-    gpuErrchk(cudaMemcpyAsync(h_centers, d_othersF,
-            settings.sDim().n() * centerSize * centerSize * sizeof(T),
+    gpuErrchk(cudaMemcpyAsync(h_centers, p_pos,
+            settings.batch() * sizeof(T),
             cudaMemcpyDeviceToHost, loadStream));
     loadGPU->synch();
 
-    // compute shifts
+    // convert absolute 1D index to logical 2D index
+    // FIXME DS extract this to some utils
     auto result = std::vector<Point2D<float>>();
-    AShiftCorrEstimator<T>::findMaxAroundCenter(
-            h_centers, Dimensions(centerSize, centerSize, 1, settings.sDim().n()), maxShift, result);
+    result.reserve(settings.sDim().n());
+    for (size_t n = 0; n < settings.batch(); ++n) {
+        float y = (size_t)h_centers[n] / settings.sDim().x();
+        float x = (size_t)h_centers[n] % settings.sDim().x();
+        result.emplace_back(
+            x - settings.sDim().x() / 2,
+            y - settings.sDim().y() / 2);
+    }
     return result;
 }
 

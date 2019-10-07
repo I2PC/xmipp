@@ -37,7 +37,8 @@ namespace ExtremaFinder {
 enum class SearchType {
     Min, // in the whole signal (for each signal)
     Max, // in the whole signal (for each signal)
-    MaxAroundCenter // for each signal
+    MaxAroundCenter, // for each signal, search a circular area around center
+    MaxNearCenter // for each signal, search a square area around center
 };
 
 enum class ResultType {
@@ -94,6 +95,7 @@ public:
 template<typename T>
 class AExtremaFinder {
 public:
+    // FIXME DS add cpu version
     AExtremaFinder() :
         m_isInit(false) {};
 
@@ -126,11 +128,11 @@ protected:
 
     virtual void initMax() = 0;
     virtual void findMax(T *data) = 0;
+    virtual bool canBeReusedMax(const ExtremaFinderSettings &s) const = 0;
 
     virtual void initMaxAroundCenter() = 0;
     virtual void findMaxAroundCenter(T *data) = 0;
-
-    virtual bool canBeReused(const ExtremaFinderSettings &settings) const = 0;
+    virtual bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const = 0;
 
     inline std::vector<T> &getValues() {
         return m_values;
@@ -153,6 +155,8 @@ private:
 
     // flags
     bool m_isInit;
+
+    bool canBeReused(const ExtremaFinderSettings &settings) const;
 };
 
 } /* namespace ExtremaFinder */
