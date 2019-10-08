@@ -86,26 +86,45 @@ public:
                 result, dims, others, othersCorrected);
         outputData(othersCorrected, dims, "dataAfterAlignment.stk");
 
+        printf("Ground truth|shiftX|shiftY|rot|"
+                "New version (CPU)|shiftX|shiftY|rot|Correlation|"
+                "Orig version(up to 3 iter, CPU)|shiftX|shiftY|rot|Correlation||"
+                "shiftX (GT-new)|shiftY(GT-new)|rot(GT-new)|Correlation||"
+                "shiftX (GT-old)|shiftY(GT-old)|rot(GT-old)|Correlation\n");
+
         for (size_t i = 0; i < dims.n(); ++i) {
             auto sE = shifts.at(i);
             auto rE = rotations.at(i);
             auto m = result.poses.at(i);
             auto sA = Point2D<float>(-MAT_ELEM(m, 0, 2), -MAT_ELEM(m, 1, 2));
             auto rA = fmod(360 + RAD2DEG(atan2(MAT_ELEM(m, 1, 0), MAT_ELEM(m, 0, 0))), 360);
-
-            printf("GT: | %f | %f | %f | "
-                   "new: | %f | %f | %f | %f | ",
+            // ground truth, new version
+            printf("| %f | %f | %f ||" // GT
+                   "%f | %f | %f | %f ||", // new
                     sE.x, sE.y, rE,
                     sA.x, sA.y, rA, result.correlations.at(i)
             );
-
+            // original version
             size_t offset = i * dims.xyzPadded();
             double corr = std::numeric_limits<double>::lowest();
             auto M = getReferenceTransform(ref, others + offset, dims, corr);
             auto sR = Point2D<float>(-MAT_ELEM(M, 0, 2), -MAT_ELEM(M, 1, 2));
             auto rR = fmod(360 + RAD2DEG(atan2(MAT_ELEM(M, 1, 0), MAT_ELEM(M, 0, 0))), 360);
-            printf(" old: | %f | %f | %f | %f \n",
+            printf("%f | %f | %f | %f ||", // orig
                     sR.x, sR.y, rR, corr);
+            // comparison GT <-> new
+            printf("%f | %f | %f | %f||",
+                std::abs(sE.x - sA.x),
+                std::abs(sE.y - sA.y),
+                180 - std::abs((std::abs(rA - rE) - 180)),
+                result.correlations.at(i));
+            // comparison GT <-> orig
+            printf("%f | %f | %f | %f\n",
+                std::abs(sE.x - sR.x),
+                std::abs(sE.y - sR.y),
+                180 - std::abs((std::abs(rR - rE) - 180)),
+                corr);
+
         }
 
         delete[] ref;
