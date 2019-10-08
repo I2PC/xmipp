@@ -56,11 +56,15 @@ public:
         auto ref = new T[dims.xy()]();
         T centerX = dims.x() / 2;
         T centerY = dims.y() / 2;
+        // generate data
         drawClockArms(ref, dims, centerX, centerY, 0.f);
-
         IterativeAlignmentEstimatorHelper<T>::applyTransform(
                 dims, shifts, rotations, ref, others);
-//        outputData(others, dims, "dataBeforeAlignment.stk");
+
+        // add noise to data
+        // the reference should be without noise
+        addNoise(others, dims, mt_noise);
+        outputData(others, dims, "dataBeforeAlignment.stk");
 
         // prepare aligner
         auto cpu = CPU();
@@ -77,10 +81,10 @@ public:
         auto shiftAligner = ShiftCorrEstimator<T>();
         auto rotationAligner = PolarRotationEstimator<T>();
         shiftAligner.init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
-        rotationAligner.init(rotSettings, false); // FIXME DS add test that batch is 1 ;  set reuse to true
+        rotationAligner.init(rotSettings, false); // FIXME DS set reuse to true
         auto aligner = IterativeAlignmentEstimator<T>(rotationAligner, shiftAligner);
 
-        auto result = aligner.compute(ref, others, 1);
+        auto result = aligner.compute(ref, others, 5);
 
         IterativeAlignmentEstimatorHelper<T>::compensateTransform(
                 result, dims, others, othersCorrected);
@@ -135,6 +139,7 @@ public:
 
 private:
     static std::mt19937 mt;
+    static std::mt19937 mt_noise;
 
     void outputData(T *data, const Dimensions &dims, const std::string &name) {
         MultidimArray<T>wrapper(dims.n(), dims.z(), dims.y(), dims.x(), data);
@@ -170,10 +175,13 @@ TYPED_TEST_CASE_P(IterativeAlignmentEstimator_Test);
 
 template<typename T>
 std::mt19937 IterativeAlignmentEstimator_Test<T>::mt(42); // fixed seed to ensure reproducibility
+template<typename T>
+std::mt19937 IterativeAlignmentEstimator_Test<T>::mt_noise(23); // fixed seed to ensure reproducibility
 
 TYPED_TEST_P( IterativeAlignmentEstimator_Test, debug)
 {
     XMIPP_TRY
+    //auto dims = Dimensions(256, 256, 1, 50);
     auto dims = Dimensions(64, 64, 1, 50);
     size_t batch = 1;
     IterativeAlignmentEstimator_Test<TypeParam>::test(dims, batch);
