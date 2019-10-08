@@ -59,10 +59,8 @@ void ProgParticlePolishing::show()
 }
 
 
-void ProgParticlePolishing::similarity (MultidimArray<double> &I, MultidimArray<double> &Iexp, double &corrN, double &corrM, double &corrW, double &imed){
+void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const MultidimArray<double> &Iexp, double &corrN, double &corrM, double &corrW, double &imed){
 
-	I.setXmippOrigin();
-	Iexp.setXmippOrigin();
 
 	MultidimArray<double> Idiff;
 	Idiff=I;
@@ -384,6 +382,7 @@ void ProgParticlePolishing::run()
 	MultidimArray<double> maxvalues;
 	Projection PV;
 	Image<double> projV;
+	CTFDescription ctf;
 
 	//INPUT VOLUME
 	V.read(fnVol);
@@ -393,6 +392,8 @@ void ProgParticlePolishing::run()
 	FourierFilter Filter;
 	Filter.FilterBand=LOWPASS;
 	Filter.FilterShape=RAISED_COSINE;
+
+	FourierFilter filterCTF;
 
 	double cutfreq;
 	double inifreq=0.1; //0.05;
@@ -456,7 +457,14 @@ void ProgParticlePolishing::run()
 				DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
 			}
 
-			//filtering the projected particles
+			/*
+			//filtering the projected particles with the ctf
+			filterCTF.ctf.readFromMdRow(currentRow);
+			filterCTF.generateMask(projV());
+			filterCTF.apply(projV());
+			*/
+
+			//filtering the projected particles with the lowpass filter
 			Filter.w1=cutfreq;
 			Filter.generateMask(projV());
 			Filter.applyMaskSpace(projV());
@@ -499,12 +507,12 @@ void ProgParticlePolishing::run()
 
 			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
 			
-			/*/DEBUG
+			//DEBUG
 			if(frId==nFrames){
-				projV.write(formatString("TESTprojection_%i_%i.mrc", frId, partId));
-				Ipart.write(formatString("TESTparticle_%i_%i.mrc", frId, partId));
+				projV.write(formatString("CTFprojection_%i_%i.mrc", frId, partId));
+				Ipart.write(formatString("CTFparticle_%i_%i.mrc", frId, partId));
 			}
-			//END DEBUG/*/
+			//END DEBUG//
 
 			if(iterPart->hasNext())
 				iterPart->moveNext();
