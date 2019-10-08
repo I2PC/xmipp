@@ -44,8 +44,14 @@ void findWhichPython(String &whichPython)
 void initializePython(String &whichPython)
 {
     findWhichPython(whichPython);
-	Py_SetProgramName((char *)whichPython.c_str());
+    wchar_t *program = Py_DecodeLocale(whichPython.c_str(), NULL);
+    if (program == NULL) {
+        fprintf(stderr, "Fatal error: cannot decode the python\n");
+        exit(1);
+    }
+	Py_SetProgramName(program);
 	Py_Initialize();
+    #define NUMPY_IMPORT_ARRAY_RETVAL
 	import_array(); // For working with numpy
 }
 
@@ -73,7 +79,7 @@ PyObject* convertToNumpy(const MultidimArray<int> &I)
 PyObject * getPointerToPythonFRMFunction()
 {
 	String path=getenv("PYTHONPATH");
-	PyObject * pName = PyString_FromString("sh_alignment.frm"); // Import sh_alignment.frm
+	PyObject * pName = PyUnicode_FromString("sh_alignment.frm"); // Import sh_alignment.frm
 	PyObject * pModule = PyImport_Import(pName);
 	if (pModule==NULL)
 		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot import sh_alignment.");
@@ -85,7 +91,7 @@ PyObject * getPointerToPythonFRMFunction()
 
 PyObject * getPointerToPythonGeneralWedgeClass()
 {
-	PyObject * pName = PyString_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
+	PyObject * pName = PyUnicode_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
 	PyObject * pModule = PyImport_Import(pName);
 	PyObject * pDict = PyModule_GetDict(pModule);
 	PyObject * pWedgeClass = PyDict_GetItemString(pDict, "GeneralWedge");
@@ -190,7 +196,9 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		//(see python traceback structure)
 
 		//Get error message
-		std::cout << PyString_AsString(pvalue) << std::endl;
+		PyObject* str = PyUnicode_AsEncodedString(pvalue, "utf-8", "~E~");
+        const char *bytes = PyBytes_AS_STRING(str);
+		std::cout << PyUnicode_FromString(bytes ) << std::endl;
 	}
 }
 #undef DEBUG
