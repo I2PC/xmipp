@@ -460,9 +460,11 @@ void ProgParticlePolishing::run()
 			/*
 			//filtering the projected particles with the ctf
 			filterCTF.ctf.readFromMdRow(currentRow);
+			filterCTF.ctf.produceSideInfo();
 			filterCTF.generateMask(projV());
 			filterCTF.apply(projV());
 			*/
+
 
 			//filtering the projected particles with the lowpass filter
 			Filter.w1=cutfreq;
