@@ -102,7 +102,7 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(AlignmentEstimation &est
             T * address = copy + i * m_dims.sizeSingle();
             auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
             auto other = MultidimArray<T>(1, z, y, x, address);
-            estimation.correlations.at(i) = fastCorrelation(ref, other);
+            estimation.correlations.at(i) = correlationIndex(ref, other); // FIXME DS use fastCorrelation once we normalize data at the beginning
         }
     };
 

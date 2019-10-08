@@ -9,19 +9,22 @@ template<typename T>
 class IterativeAlignmentEstimatorHelper : public Alignment::IterativeAlignmentEstimator<T> {
 public:
     static void applyTransform(const Dimensions &dims, const std::vector<Point2D<float>> &shifts, const std::vector<float> &rotations,
-                const T * __restrict__ orig, T * __restrict__ copy) {
-            Alignment::AlignmentEstimation e(dims.n());
-            for (size_t i = 0; i < dims.n(); ++i) {
-                auto &m = e.poses.at(i);
-                auto &s = shifts.at(i);
-                MAT_ELEM(m,0,2) += s.x;
-                MAT_ELEM(m,1,2) += s.y;
-                auto r = Matrix2D<double>();
-                rotation2DMatrix(rotations.at(i), r);
-                m = r * m;
-            }
-            Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, e, orig, copy, true);
+            const T * __restrict__ orig, T * __restrict__ copy) {
+        Alignment::AlignmentEstimation e(dims.n());
+        for (size_t i = 0; i < dims.n(); ++i) {
+            auto &m = e.poses.at(i);
+            auto &s = shifts.at(i);
+            MAT_ELEM(m,0,2) += s.x;
+            MAT_ELEM(m,1,2) += s.y;
+            auto r = Matrix2D<double>();
+            rotation2DMatrix(rotations.at(i), r);
+            m = r * m;
         }
+        Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, e, orig, copy, true);
+    }
+    static void compensateTransform(const Alignment::AlignmentEstimation &est, const Dimensions &dims, T *in, T *out) {
+        Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, est, in, out, false);
+    }
 };
 
 template<typename T>
@@ -49,6 +52,7 @@ public:
         auto rotations = generateRotations(dims, maxRotation, mt);
 
         auto others = new T[dims.size()]();
+        auto othersCorrected = new T[dims.size()]();
         auto ref = new T[dims.xy()]();
         T centerX = dims.x() / 2;
         T centerY = dims.y() / 2;
@@ -56,7 +60,7 @@ public:
 
         IterativeAlignmentEstimatorHelper<T>::applyTransform(
                 dims, shifts, rotations, ref, others);
-//        outputData(others, dims);
+//        outputData(others, dims, "dataBeforeAlignment.stk");
 
         // prepare aligner
         auto cpu = CPU();
@@ -70,14 +74,17 @@ public:
         rotSettings.maxRotDeg = maxRotation;
         rotSettings.fullCircle = true;
 
-
         auto shiftAligner = ShiftCorrEstimator<T>();
         auto rotationAligner = PolarRotationEstimator<T>();
         shiftAligner.init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
         rotationAligner.init(rotSettings, false); // FIXME DS add test that batch is 1 ;  set reuse to true
         auto aligner = IterativeAlignmentEstimator<T>(rotationAligner, shiftAligner);
 
-        auto result  = aligner.compute(ref, others);
+        auto result = aligner.compute(ref, others, 1);
+
+        IterativeAlignmentEstimatorHelper<T>::compensateTransform(
+                result, dims, others, othersCorrected);
+        outputData(othersCorrected, dims, "dataAfterAlignment.stk");
 
         for (size_t i = 0; i < dims.n(); ++i) {
             auto sE = shifts.at(i);
@@ -86,43 +93,44 @@ public:
             auto sA = Point2D<float>(-MAT_ELEM(m, 0, 2), -MAT_ELEM(m, 1, 2));
             auto rA = fmod(360 + RAD2DEG(atan2(MAT_ELEM(m, 1, 0), MAT_ELEM(m, 0, 0))), 360);
 
-//            printf("exp: | %f | %f | %f | act: | %f | %f | %f ",
-//                    sE.x, sE.y, rE,
-//                    sA.x, sA.y, rA
-//            );
+            printf("GT: | %f | %f | %f | "
+                   "new: | %f | %f | %f | %f | ",
+                    sE.x, sE.y, rE,
+                    sA.x, sA.y, rA, result.correlations.at(i)
+            );
 
-//            size_t offset = i * dims.xyzPadded();
-//            auto M = getReferenceTransform(ref, others + offset, dims);
-//            auto sR = Point2D<float>(-MAT_ELEM(M, 0, 2), -MAT_ELEM(M, 1, 2));
-//            auto rR = fmod(360 + RAD2DEG(atan2(MAT_ELEM(M, 1, 0), MAT_ELEM(M, 0, 0))), 360);
-//            printf("| ref: | %f | %f | %f\n",
-//                    sR.x, sR.y, rR);
-
-//            printf("\n");
+            size_t offset = i * dims.xyzPadded();
+            double corr = std::numeric_limits<double>::lowest();
+            auto M = getReferenceTransform(ref, others + offset, dims, corr);
+            auto sR = Point2D<float>(-MAT_ELEM(M, 0, 2), -MAT_ELEM(M, 1, 2));
+            auto rR = fmod(360 + RAD2DEG(atan2(MAT_ELEM(M, 1, 0), MAT_ELEM(M, 0, 0))), 360);
+            printf(" old: | %f | %f | %f | %f \n",
+                    sR.x, sR.y, rR, corr);
         }
 
         delete[] ref;
         delete[] others;
+        delete[] othersCorrected;
     }
 
 
 private:
     static std::mt19937 mt;
 
-    void outputData(T *data, const Dimensions &dims) {
+    void outputData(T *data, const Dimensions &dims, const std::string &name) {
         MultidimArray<T>wrapper(dims.n(), dims.z(), dims.y(), dims.x(), data);
         Image<T> img(wrapper);
-        img.write("data.stk");
+        img.write(name);
     }
 
-    Matrix2D<double> getReferenceTransform(T *ref, T *other, const Dimensions &dims) {
+    Matrix2D<double> getReferenceTransform(T *ref, T *other, const Dimensions &dims, double &corr) {
         Matrix2D<double> M;
         auto I = convert(other, dims);
         I.setXmippOrigin();
         auto refWrapper = convert(ref, dims);
         refWrapper.setXmippOrigin();
 
-        alignImages(refWrapper, I, M, DONT_WRAP);
+        corr = alignImages(refWrapper, I, M, DONT_WRAP);
         return M;
     }
 
@@ -144,26 +152,35 @@ TYPED_TEST_CASE_P(IterativeAlignmentEstimator_Test);
 template<typename T>
 std::mt19937 IterativeAlignmentEstimator_Test<T>::mt(42); // fixed seed to ensure reproducibility
 
-
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOne)
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, debug)
 {
     XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
+    auto dims = Dimensions(64, 64, 1, 50);
+    size_t batch = 1;
+    IterativeAlignmentEstimator_Test<TypeParam>::test(dims, batch);
     XMIPP_CATCH
 }
 
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToMany)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::generateAndTest2D(100, 50);
-    XMIPP_CATCH
-}
+//TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOne)
+//{
+//    XMIPP_TRY
+//    // test one reference vs one image
+//    IterativeAlignmentEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
+//    XMIPP_CATCH
+//}
+//
+//TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToMany)
+//{
+//    XMIPP_TRY
+//    // test one reference vs one image
+//    IterativeAlignmentEstimator_Test<TypeParam>::generateAndTest2D(100, 50);
+//    XMIPP_CATCH
+//}
 
 REGISTER_TYPED_TEST_CASE_P(IterativeAlignmentEstimator_Test,
-    align2DOneToOne,
-    align2DOneToMany
+    debug
+//    align2DOneToOne,
+//    align2DOneToMany
 );
 
 typedef ::testing::Types<float, double> TestTypes;
