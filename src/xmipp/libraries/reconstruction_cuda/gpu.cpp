@@ -102,7 +102,9 @@ void GPU::pinMemory(const void *h_mem, size_t bytes,
 void GPU::unpinMemory(const void *h_mem) {
     // we remove const, but we don't change the data
     auto err = cudaHostUnregister(const_cast<void*>(h_mem));
-    if (cudaErrorHostMemoryNotRegistered != err) {
+    if (cudaErrorHostMemoryNotRegistered == err) {
+        cudaGetLastError(); // clear out the previous API error
+    } else {
         gpuErrchk(err);
     }
 }
