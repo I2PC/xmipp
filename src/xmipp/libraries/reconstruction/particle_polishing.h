@@ -43,6 +43,7 @@ public:
 	Image<double> V;
 	FourierProjector *projectorV;
 	int nFrames, nMovies, w;
+	double samplingRate;
 
 public:
 
@@ -56,6 +57,7 @@ public:
     void averagingMovieParticles(MetaData &mdPart, MultidimArray<double> &I, size_t partId, size_t frameId, size_t movieId, int window);
     void calculateFrameWeightPerFreq(MultidimArray<double> &matrixWeights, MultidimArray<double> &weightsperfreq, const MultidimArray<double> &maxvalues);
     void smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out);
+    void averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent);
 
 };
 

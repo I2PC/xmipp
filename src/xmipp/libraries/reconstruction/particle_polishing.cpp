@@ -30,10 +30,11 @@ void ProgParticlePolishing::defineParams()
     addUsageLine("Particle polishing from a stack of movie particles");
     addParamsLine(" -i <movie>: Input movie particle metadata");
     addParamsLine(" -vol <volume>: Input volume to generate the reference projections");
+    addParamsLine(" --s <samplingRate=1>: Sampling rate");
     addParamsLine(" --nFrames <nFrames>: Number of frames");
     addParamsLine(" --nMovies <nMovies>: Number of movies");
-    addParamsLine(" --w <window=1>: Window size. The number of frames to average to correlate that averaged image with the projection.");
-    addParamsLine(" [-o <fn=\"out.xmd\">]: Output metadata with weighted particles");
+    addParamsLine(" --w <w=1>: Window size. The number of frames to average to correlate that averaged image with the projection.");
+    addParamsLine(" [-o <fnOut=\"out.xmd\">]: Output metadata with weighted particles");
 
 }
 
@@ -45,6 +46,7 @@ void ProgParticlePolishing::readParams()
 	nFrames=getIntParam("--nFrames");
 	nMovies=getIntParam("--nMovies");
 	w=getIntParam("--w");
+	samplingRate=getDoubleParam("--s");
 }
 
 
@@ -185,7 +187,6 @@ void ProgParticlePolishing::averagingMovieParticles(MetaData &mdPart, MultidimAr
 	FileName fnPart;
 	Image<double> Ipart;
 	size_t newPartId, newFrameId, newMovieId;
-	bool boolFrame;
 	size_t mdPartSize = mdPart.size();
 	if(window%2==1)
 		window+=1;
@@ -292,14 +293,13 @@ void ProgParticlePolishing::produceSideInfo()
 {
 
 	int a=0;
+
 	/*
 	//DEBUGING the correct way of applyGeometry
 	size_t Xdim, Ydim, Zdim, Ndim;
 	MetaData mdPart, mdRef;
-	mdRef.read("gallery.xmd");
 	mdPart.read("images_iter001_00.xmd");
 	size_t mdPartSize = mdPart.size();
-	size_t mdRefSize = mdRef.size();
 
 	MDIterator *iterPart = new MDIterator();
 	MDIterator *iterRef = new MDIterator();
@@ -307,17 +307,14 @@ void ProgParticlePolishing::produceSideInfo()
 	Image<double> Ipart, Iref;
 	MDRow currentRow;
 	Matrix2D<double> A;
+	Projection PV;
 
-	iterRef->init(mdRef);
+	V.read("axes.vol");
+    V().setXmippOrigin();
+	projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
+	int xdim = (int)XSIZE(V());
+
 	iterPart->init(mdPart);
-
-	for (int j=0; j<mdPartSize; j++){
-		mdRef.getRow(currentRow, iterRef->objId);
-		currentRow.getValue(MDL_IMAGE,fnRef);
-		Iref.read(fnRef);
-		Iref().setXmippOrigin();
-		break;
-	}
 
 	double rot, tilt, psi, x, y;
 	for(int i=0; i<mdPartSize; i++){
@@ -350,17 +347,80 @@ void ProgParticlePolishing::produceSideInfo()
 		}
 	}
 
-	std::cerr << fnRef << ", " << fnPart << ", " << x << ", " << y << ", " << A << std::endl;
+	std::cerr << fnRef << ", " << fnPart << ", " << x << ", " << y << ", " << psi << ", " << rot << ", " << tilt << ", " << A << std::endl;
 	Image<double> Iout;
-	applyGeometry(LINEAR,Iout(),Iref(),A,IS_INV,DONT_WRAP,0.);
+	projectVolume(*projectorV, PV, xdim, xdim, rot, tilt, psi);
+	applyGeometry(LINEAR,Iout(),PV(),A,IS_INV,DONT_WRAP,0.);
+	Iout().setXmippOrigin();
 	Ipart.write("Ipart.mrc");
-	Iref.write("Iref.mrc");
-	Iout.write("Iout.mrc");
+	Iout.write("Iout2.mrc");
 	exit(0);
 	*/
 
 
 }
+
+
+
+
+void ProgParticlePolishing::averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent){
+
+
+	MDRow currentRow;
+	FileName fnPart;
+	Image<double> Ipart;
+	size_t newPartId, newFrameId, newMovieId;
+	size_t mdPartSize = mdPart.size();
+	double count;
+
+	//To average the movie particle with all the frames
+	Iout.initZeros(I);
+	if (noCurrent){
+		count=0.0;
+	}else{
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
+				DIRECT_MULTIDIM_ELEM(Iout,n)=DIRECT_MULTIDIM_ELEM(I,n);
+		count=1.0;
+	}
+	MDIterator *iterPart = new MDIterator(mdPart);
+	int frameIdI = int(frameId);
+	for(int i=0; i<mdPartSize; i++){
+
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_PARTICLE_ID, newPartId);
+		currentRow.getValue(MDL_MICROGRAPH_ID, newMovieId);
+		if((newPartId==partId) && (newMovieId==movieId)){
+			currentRow.getValue(MDL_FRAME_ID, newFrameId);
+			int newFrameIdI = int(newFrameId);
+			if(newFrameIdI==frameIdI){
+				if(iterPart->hasNext())
+					iterPart->moveNext();
+				continue;
+			}
+			else{ //averaging with all the frames
+				currentRow.getValue(MDL_IMAGE,fnPart);
+				Ipart.read(fnPart);
+				Ipart().setXmippOrigin();
+				Iout+=Ipart();
+				count+=1.0;
+			}
+		}
+		else{
+			if(iterPart->hasNext())
+				iterPart->moveNext();
+			continue;
+		}
+
+		if(iterPart->hasNext())
+			iterPart->moveNext();
+
+	} //end loop to find the previous and following frames to average the particle
+	Iout/=count;
+
+}
+
+
+
 
 
 void ProgParticlePolishing::run()
@@ -375,13 +435,11 @@ void ProgParticlePolishing::run()
 
 	MDIterator *iterPart = new MDIterator();
 	FileName fnPart;
-	Image<double> Ipart;
+	Image<double> Ipart, projV, Iavg;
 	MDRow currentRow;
 	Matrix2D<double> A;
-	MultidimArray<double> matrixWeights;
-	MultidimArray<double> maxvalues;
+	MultidimArray<double> matrixWeights, maxvalues;
 	Projection PV;
-	Image<double> projV;
 	CTFDescription ctf;
 
 	//INPUT VOLUME
@@ -392,8 +450,6 @@ void ProgParticlePolishing::run()
 	FourierFilter Filter;
 	Filter.FilterBand=LOWPASS;
 	Filter.FilterShape=RAISED_COSINE;
-
-	FourierFilter filterCTF;
 
 	double cutfreq;
 	double inifreq=0.1; //0.05;
@@ -447,32 +503,36 @@ void ProgParticlePolishing::run()
 			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
 			projV().setXmippOrigin();
 			//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
+
 			//TODO: invertir contraste y aplicar ctf, o al reves, no se...
-			//To invert contrast
-			double Dmin, Dmax, irange, val;
+			//To invert contrast in the projections
+			/*double Dmin, Dmax, irange, val;
 			projV().computeDoubleMinMax(Dmin, Dmax);
 			irange=1.0/(Dmax - Dmin);
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
 				val=DIRECT_MULTIDIM_ELEM(projV(),n);
 				DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
-			}
+			}*/
+
+			//filtering the projections with the ctf
+			/*ctf.readFromMdRow(currentRow);
+			ctf.produceSideInfo();
+			ctf.applyCTF(projV(), samplingRate, false);*/
+
+			//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
+			//the movie particles are averaged (all frames) to compare every pixel value
+			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, false);
 
 			/*
-			//filtering the projected particles with the ctf
-			filterCTF.ctf.readFromMdRow(currentRow);
-			filterCTF.ctf.produceSideInfo();
-			filterCTF.generateMask(projV());
-			filterCTF.apply(projV());
-			*/
-
-
 			//filtering the projected particles with the lowpass filter
 			Filter.w1=cutfreq;
 			Filter.generateMask(projV());
 			Filter.applyMaskSpace(projV());
 
 			//averaging movie particle image with the ones in previous frames
-			averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
+			//averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
+			//averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
+			//TODO check how we have to average the movie particles to calculate the correlations
 
 			//filtering the averaged movie particle
 			Filter.generateMask(Ipart());
@@ -490,29 +550,32 @@ void ProgParticlePolishing::run()
 
 			std::cerr << "- Freq: " << cutfreq << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". CorrN: " << corrN << ". CorrM: " << corrM << ". CorrW: " << corrW << ". Imed: " << imed << std::endl;
 
-			/*/To align averaged movie particle and projection
-			Matrix2D<double> M;
-			MultidimArray<double> IpartAlign(Ipart());
-			IpartAlign = Ipart();
-			alignImages(projV(), IpartAlign, M, false);
-			MultidimArray<double> shiftXmatrix;
-			shiftXmatrix.initZeros(matrixWeights);
-			MultidimArray<double> shiftYmatrix;
-			shiftYmatrix.initZeros(matrixWeights);
-			if(MAT_ELEM(M,0,2)<10 && MAT_ELEM(M,1,2)<10){
-				DIRECT_NZYX_ELEM(shiftXmatrix, mvId-1, frId-1, n, i) = MAT_ELEM(M,0,2);
-				DIRECT_NZYX_ELEM(shiftYmatrix, mvId-1, frId-1, n, i) = MAT_ELEM(M,1,2);
-			}
+
+			//To align averaged movie particle and projection
+			//Matrix2D<double> M;
+			//MultidimArray<double> IpartAlign(Ipart());
+			//IpartAlign = Ipart();
+			//alignImages(projV(), IpartAlign, M, false);
+			//MultidimArray<double> shiftXmatrix;
+			//shiftXmatrix.initZeros(matrixWeights);
+			//MultidimArray<double> shiftYmatrix;
+			//shiftYmatrix.initZeros(matrixWeights);
+			//if(MAT_ELEM(M,0,2)<10 && MAT_ELEM(M,1,2)<10){
+			//	DIRECT_NZYX_ELEM(shiftXmatrix, mvId-1, frId-1, n, i) = MAT_ELEM(M,0,2);
+			//	DIRECT_NZYX_ELEM(shiftYmatrix, mvId-1, frId-1, n, i) = MAT_ELEM(M,1,2);
+			//}
 			//std::cerr << "- Transformation matrix: " << M  << std::endl;
 			//std::cerr << MAT_ELEM(M,0,2) << " " << MAT_ELEM(M,1,2) << std::endl;
-			/*/
+
 
 			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
+			*/
 			
 			//DEBUG
 			if(frId==nFrames){
-				projV.write(formatString("CTFprojection_%i_%i.mrc", frId, partId));
-				Ipart.write(formatString("CTFparticle_%i_%i.mrc", frId, partId));
+				projV.write(formatString("projection_%i_%i.tif", frId, partId));
+				Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+				Iavg.write(formatString("average_%i_%i.tif", frId, partId));
 			}
 			//END DEBUG//
 
