@@ -28,8 +28,8 @@
 namespace Alignment {
 
 template<typename T>
-void PolarRotationEstimator<T>::init2D(bool reuse) {
-    // fixme DS implement reuse properly
+void PolarRotationEstimator<T>::init2D() {
+    release();
     if (1 != this->getSettings().hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Only one CPU thread expected");
     }
@@ -108,6 +108,8 @@ void PolarRotationEstimator<T>::release() {
     delete m_refPlans;
     m_rotCorrAux.clear();
     m_dataAux.clear();
+
+    setDefault();
 }
 
 template<typename T>

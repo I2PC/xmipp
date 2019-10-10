@@ -111,9 +111,10 @@ public:
 protected:
     virtual void check() = 0;
 
-    virtual void init2D(bool reuse) = 0;
+    virtual void init2D() = 0;
     virtual void load2DReferenceOneToN(const T *ref) = 0;
     virtual void computeRotation2DOneToN(T *others) = 0;
+    virtual bool canBeReused2D(const RotationEstimationSetting &s) const = 0;
 
 
     inline std::vector<float> &getRotations2D() {
@@ -137,6 +138,8 @@ private:
     // flags
     bool m_isInit;
     bool m_isRefLoaded;
+
+    bool canBeReused(const RotationEstimationSetting &s) const;
 };
 
 } /* namespace Alignment */

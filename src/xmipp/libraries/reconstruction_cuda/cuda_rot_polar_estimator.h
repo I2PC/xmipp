@@ -137,7 +137,10 @@ private:
     void setDefault();
     void release();
 
-    void init2D(bool reuse) override;
+    void init2D() override;
+    bool canBeReused2D(const RotationEstimationSetting &s) const override {
+        return false; // FIXME DS implement
+    }
 
     template<bool FULL_CIRCLE>
     void load2DReferenceOneToN(const T *h_ref);

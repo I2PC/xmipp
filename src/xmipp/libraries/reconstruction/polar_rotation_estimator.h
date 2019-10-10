@@ -79,11 +79,14 @@ private:
 
     MultidimArray<double> convert(T *data); // FIXME DS move to multidimarray.h
 
-    void init2D(bool reuse) override;
+    void init2D() override;
 
     void load2DReferenceOneToN(const T *ref) override;
 
     void computeRotation2DOneToN(T *others) override;
+    bool canBeReused2D(const RotationEstimationSetting &s) const override {
+        return false; // FIXME DS implement
+    }
 };
 
 } /* namespace Alignment */

@@ -32,8 +32,7 @@
 namespace Alignment {
 
 template<typename T>
-void CudaRotPolarEstimator<T>::init2D(bool reuse) {
-    // FIXME DS implement reuse (properly)
+void CudaRotPolarEstimator<T>::init2D() {
     release();
     auto s = this->getSettings();
     if (2 != s.hw.size()) {
