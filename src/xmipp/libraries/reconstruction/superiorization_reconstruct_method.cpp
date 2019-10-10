@@ -41,7 +41,7 @@
 /******************************************************************************/
 /**
 **
-** Computes the Second Criterion
+** Executes the Reconstruction Algorithm
 **
 */
 void RecMeth::B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k)

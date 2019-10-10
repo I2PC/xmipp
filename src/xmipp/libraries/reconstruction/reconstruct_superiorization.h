@@ -43,7 +43,7 @@ private:
 	int N;
 	SuperProx Pr;
 	SuperRegular<double> phi;
-	ReconsBase B;
+	ReconBase B;
 public:
     FileName fnTiltSeries, fnOut;
     int Zsize;

@@ -45,7 +45,7 @@
 ** Default Constructor
 **
 */
-ReconsBase::ReconsBase()
+ReconBase::ReconBase()
 {
  B = 0;
  RecType = ART;
@@ -57,7 +57,7 @@ ReconsBase::ReconsBase()
 ** Constructor with ID for the desired reconstruction algorithm
 **
 */
-ReconsBase::ReconsBase(const String &StrType)
+ReconBase::ReconBase(const String &StrType)
 {
  if(StrType == std::string("ART")){
     RecType = ART;
@@ -70,7 +70,7 @@ ReconsBase::ReconsBase(const String &StrType)
 ** Method to select the desired reconstruction algorithm
 **
 */
-void ReconsBase::set(std::string StrType)
+void ReconBase::set(std::string StrType)
 {
  if(B != 0)
     delete B;
@@ -86,7 +86,7 @@ void ReconsBase::set(std::string StrType)
 ** Method to select the desired reconstruction algorithm
 **
 */
-std::string ReconsBase::getName()
+std::string ReconBase::getName()
 {
  if(RecType == ART){
     return std::string("ART");
@@ -100,7 +100,17 @@ std::string ReconsBase::getName()
 ** Method to select the desired reconstruction algorithm
 **
 */
-void ReconsBase::setParam(const double v)
+ReconBase::classType ReconBase::getType(void)
+{
+ return this->RecType;
+}
+
+/**
+**
+** Method to select the desired reconstruction algorithm
+**
+*/
+void ReconBase::setParam(const double v)
 {
  switch(RecType){
      case ART:
@@ -116,11 +126,11 @@ void ReconsBase::setParam(const double v)
 ** Calls the selected reconstruction algorithm
 **
 */
-void ReconsBase::operator()(MultidimArray<double>& v,
+void ReconBase::operator()(MultidimArray<double>& v,
                             const MultidimArray<double>& P,
 			    const std::vector<double>& A,const int k)
 {
- 
+ B->B(v,P,A,k);
 }
 
 #undef DEBUG

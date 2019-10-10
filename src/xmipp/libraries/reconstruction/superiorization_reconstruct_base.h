@@ -32,23 +32,25 @@
 
 #include "superiorization_reconstruct_method.h"
 
-class ReconsBase
+class ReconBase
 {
- private:
+ public:
     enum classType{ART};
+ private:
     classType RecType;
     RecMeth* B;
  
  public:
-    ReconsBase();
-    ReconsBase(const String &StrType);
+    ReconBase();
+    ReconBase(const String &StrType);
     void set(std::string StrType);
     std::string getName();
+    classType getType(void);
     void setParam(const double v);
     void operator()(MultidimArray<double>& v,const MultidimArray<double>& P,
                     const std::vector<double>& A,const int k);
     
-}; /* virtual class for second criterion */
+}; /* virtual class for reconstruction method */
 
 #endif /* REC_BASE_HH */
 

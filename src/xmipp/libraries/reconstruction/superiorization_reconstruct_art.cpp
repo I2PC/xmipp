@@ -35,6 +35,54 @@
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
+/****************** Definition of Private Methods *****************************/
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
+
+/**
+ **
+ **
+ **
+ **
+ **
+ **/
+bool RecART::GetIntersections(const double angle,const uint p,const uint length,std::vector<partial_inter> list)
+{
+ return false;
+}
+
+/**
+**
+** Carries out the 2D reconstruction with ART
+**
+** x  --- The reconstructed "image".
+** S  --- The 2D sinogram.
+** A  --- List of angles.
+** k  --- Iteration number.
+**
+*/
+void RecART::ART(MultidimArray<double>& x,const MultidimArray<double>& S, const std::vector<double>& A,const int k)
+{
+ const double deg2rad = M_PI/180.0;
+ double angle = 0.0, cosp, sinp;
+ std::vector<partial_inter> I; // Intersections and their weights
+ 
+ for(uint j=0;j<A.size();j++){ // go over the projection angles
+     angle = deg2rad * (A[j]+90.0);
+     cosp  = cos(angle);
+     sinp  = sin(angle);
+     for(uint l=0;l<S.xdim;l++){ // go over the integral lines in a projection
+         if(GetIntersections(angle,l,S.xdim,I)){
+            angle = angle;
+           }
+        }
+    }
+}
+
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
 /****************** Definition of Public Methods ******************************/
 /******************************************************************************/
 /******************************************************************************/
@@ -67,6 +115,42 @@ void RecART::setParam(const double l)
 */
 void RecART::B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k)
 {
- memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+ //
+ // The input 3D array is going to be reconstructed slice by slice
+ // (i.e., divided into several 2D problems) considering how the
+ // data is acquired in Cryo-EM 3D Electron Tomography. For other acquisition
+ // geometries, it might be necessary to use a different implementation of
+ // ART.
+ //
+ 
+ //
+ // A multi-dimensional array V in Xmipp is stored as follows:
+ // V.data[l*V.xdim*V.ydim*V.zdim + k*V.xdim*V.ydim + j*V.xdim + i]
+ //
+ // where i is the counter for the 'x' direction.
+ //       j is the counter for the 'y' direction.
+ //       k is the counter for the 'z' direction.
+ //       l is the counter for the 't' direction (e.g., 'time').
+ //
+ if(k == 0){ // First iteration, allocating the local arrays
+    S.resize(P.zdim,P.xdim);
+    X.resize(v.zdim,v.xdim);
+   }
+ 
+ // Moving along the different 2D planes
+ for(uint jj=0;jj<P.ydim;jj++){
+     // Beginning
+     // Copying the appropriate sinogram plane and reconstruction plane
+     for(uint kk=0;kk<std::max(P.zdim,v.zdim);kk++){
+         if(kk < P.zdim)
+            memcpy(&S.data[kk*S.xdim],&P.data[kk*P.xdim*P.ydim +
+	                                      jj*P.xdim],P.xdim*sizeof(double));
+         if(kk < X.zdim)
+            memcpy(&X.data[kk*X.xdim],&v.data[kk*v.xdim*v.ydim +
+	                                      jj*v.xdim],v.xdim*sizeof(double));
+	}
+     // End of copying section
+     this->ART(X,S,A,k);
+    }
 }
 #undef DEBUG

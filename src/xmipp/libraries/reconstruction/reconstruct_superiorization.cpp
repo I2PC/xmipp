@@ -132,16 +132,18 @@ ProgReconsSuper::ProgReconsSuper()
  N = 0;
  Zsize = 0;
  lart = 1.0;
-
- rec_method = "ART";
- phi_method = "ITV";
+ 
  l_method = "ATL0";
- pr_method = "L2SQ";
-
- Pr.set(pr_method);
- phi.set(phi_method);
+ 
+ rec_method = "ART";
  B.set(rec_method);
  B.setParam(lart);
+ 
+ phi_method = "ITV";
+ phi.set(phi_method);
+ 
+ pr_method = "L2SQ";
+ Pr.set(pr_method);
 }
 
 /**
@@ -303,16 +305,20 @@ void ProgReconsSuper::run()
  // Loading tilting anlges (orientations)
  //
  mdTS.getColumnValues(MDL_ANGLE_TILT,tiltAngles);
- //for (int k=0; k<ZSIZE(TS); k++)
-//	   std::cout << tiltAngles[k] << std::endl;
+// for(int k=0; k<ZSIZE(TS); k++)
+//     std::cout << "Angle[ "<< k <<" ]: "<< tiltAngles[k] << std::endl;
+// 
+// exit(0);
 
  /*
   *
   * Reconstruction Algorithm
   *
   */
- B.setParam(lart);
-
+ if(B.getType() == ReconBase::ART){
+    B.setParam(lart);
+   }
+ 
  /*
   *
   * Allocating memory and resizing the final reconstruction and
@@ -321,20 +327,18 @@ void ProgReconsSuper::run()
   */
  MultidimArray<double> x,v,z;
 std::cout<<"INPUT SIZE: "<<TS.xdim<<" , "<<TS.ydim<<" , "<<TS.zdim<<std::endl;
- int side = (TS.xdim - 3)*M_SQRT1_2;
- x.resize(side,side,TS.ydim);
- v.resize(side,side,TS.ydim);
- z.resize(side,side,TS.ydim);
- exit(0);
+ x.resize(Zsize,TS.ydim,TS.xdim); // resize --> Ndim, Zdim, Ydim, Xdim (Zdim, Ydim, Xdim)
+ v.resize(Zsize,TS.ydim,TS.xdim);
+ z.resize(Zsize,TS.ydim,TS.xdim);
  /*
   *
   * Superiorization Section
   *
   */
  //
- // Further Initializing variables
+ // Initializing Reconstruction
  //
- //x().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
+ memset(x.data,0,x.xdim*x.ydim*x.zdim*sizeof(double)); //x.initZeros(Zsize,TS.ydim,TS.xdim);
  //v().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
  //z().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
 phi.init(x);

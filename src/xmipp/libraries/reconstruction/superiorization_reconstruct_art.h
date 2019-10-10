@@ -35,12 +35,21 @@
 class RecART:public RecMeth
 {
  private:
+    struct partial_inter{
+           uint   p; //pixel ID
+	   double w; // Weight --> amount of intersection between line and pixel
+	  };
     double lambda;
+    MultidimArray<double> S, // sinogram
+                          X;
+ private:
+    bool GetIntersections(const double angle,const uint p,const uint length,std::vector<partial_inter> list);
+    void ART(MultidimArray<double>& x,const MultidimArray<double>& S, const std::vector<double>& A,const int k);
  public:
     RecART();
     void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k);
     void setParam(const double l);
-}; /* virtual class for second criterion */
+}; /* virtual class for ART method */
 
 #endif /* REC_METHOD_ART_HH */
 
