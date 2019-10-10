@@ -119,7 +119,6 @@ public:
 
     int Nsim;
 
-
     ProgAngularAssignmentMag();
 
     ~ProgAngularAssignmentMag();
@@ -165,6 +164,10 @@ public:
     void computeLaplacianMatrix(Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp);
     void computeCircular();
     void circularWindow(MultidimArray<double> &in);
+
+    double energyDistribution(const Matrix1D<double> &dirj,const std::vector<unsigned int> &Idx, const std::vector<double> &ccVector, const std::vector<unsigned int> &candidates);
+    double energyDistribution(const Matrix1D<double> &dirj,const std::vector<unsigned int> &Idx, const Matrix1D<double> &ccVector);
+
 
     void getComplexMagnitude(MultidimArray<std::complex<double> > &FourierData, MultidimArray<double> &FourierMag);
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);

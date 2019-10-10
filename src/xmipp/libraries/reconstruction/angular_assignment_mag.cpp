@@ -174,13 +174,13 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> dirjp;
 	double maxSphericalDistance=angStep*2.;
 	printf("processing neighbors graph...\n");
-// /*comment
+/*comment
 std::ofstream outCoord("/home/jeison/Escritorio/projCoordinates.txt"); // */
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
 		double tiltj;
 		double psij;
-// /*comment
+/*comment
 double cx,cy,cz;
 mdRef.getValue(MDL_X,cx,__iter.objId);
 mdRef.getValue(MDL_Y,cy,__iter.objId);
@@ -213,18 +213,20 @@ mdRef.getValue(MDL_Z,cz,__iter.objId); // */
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
-// /*comment
+/*comment
 outCoord<<cx<<"\t"<<cy<<"\t"<<cz<<"\n"; // */
 
 	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
 
-// /*comment
+/*comment
 outCoord.close(); // */
 
 	// compute Laplacian Matrix
 	DMatrix L_mat;
 	computeLaplacianMatrix(L_mat, allNeighborsjp,allWeightsjp);
 
+/* time
+double Inicio=std::clock();  // */
 	// from diagSymMatrix3x3 method in resolution_directional.cpp
 	std::cout<< "starts Eigen...\n";
 	Matrix2D<double> B;
@@ -232,8 +234,11 @@ outCoord.close(); // */
 	B.initIdentity();
 	generalizedEigs(L_mat, B, eigenvalues, eigenvectors);
 	std::cout<< "finish\n";
+/* time
+double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+std::cout << "Operation of eigen-decomposition took "<< duration*1000 << "milliseconds" << std::endl; // */
 
-// /*comment print eigenvalues y eigenvectors
+/*comment print eigenvalues y eigenvectors
 eigenvalues.write("/home/jeison/Escritorio/outEigenVal.txt");
 eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt"); // */
 
@@ -262,7 +267,7 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
 		MAT_ELEM(L,i,i)=sumWeight-1.; // -1 because is necessary to remove the "central" weight
 	}
 
-// /*comment write-out Laplacian matrix to check
+/*comment write-out Laplacian matrix to check
 L.write("/home/jeison/Escritorio/LaplacianMatrix.txt"); // */
 
 }
@@ -322,7 +327,7 @@ void ProgAngularAssignmentMag::preProcess() {
 	// try to storage all data related to reference images in memory
 	printf("processing reference library...\n");
 	int j = -1;
-/*time
+/* time
 double Inicio=std::clock(); // */
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;
@@ -351,7 +356,7 @@ double Inicio=std::clock(); // */
 		transformerImage.getCompleteFourier(MDaRefF2);
 		getComplexMagnitude(MDaRefF2, MDaRefFM);
 		completeFourierShift(MDaRefFM, MDaRefFMs);
-// /*comment
+/*comment
 if(j==0){
 MDaRefFM.write("/home/jeison/Escritorio/FourierMagnitude.txt");
 MDaRefFMs.write("/home/jeison/Escritorio/FourierMagnitudeShifted.txt");
@@ -361,7 +366,7 @@ MDaRefFMs.write("/home/jeison/Escritorio/FourierMagnitudeShifted.txt");
 		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
 	}
 
-/*time
+/* time
 double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
 std::cout << "Operation in preProcess took "<< duration*1000 << "milliseconds" << std::endl; // */
 
@@ -381,15 +386,15 @@ void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Mat
 
 	Matrix2D<double> eigenvectorTrans=eigenvectors.transpose();
 	ccGFT=eigenvectorTrans*ccVecIn;
-// /*comment
+/*comment
 ccGFT.write("/home/jeison/Escritorio/testGFT.txt"); // */
 
 	// define filtering base
-	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
+	int cutEig=(sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
 	for(int k=cutEig; k<sizeMdRef; ++k){
 		VEC_ELEM(ccGFT,k)=0.;
 	}
-// /*comment
+/*comment
 ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt"); // */
 
 	// apply filter to ccvec
@@ -397,12 +402,57 @@ ccGFT.write("/home/jeison/Escritorio/testGFT_filt.txt"); // */
 
 }
 
+/*  this one gives a value for "spatial energy concentration"
+ * I hope small values for high values energy concentration in only one region over the sphere
+ * */
+double ProgAngularAssignmentMag::energyDistribution(const Matrix1D<double> &dirj,
+		const std::vector<unsigned int> &Idx, const std::vector<double> &ccVector,
+		const std::vector<unsigned int> &candidates){
+
+	double retVal=0;
+	Matrix1D<double> dirk;
+	for(int k=1; k<sizeMdRef; ++k){
+		double rotk, tiltk, psik;
+		rotk=referenceRot.at(Idx[k]);
+		tiltk=referenceTilt.at(Idx[k]);
+		psik=0.;
+		Euler_direction(rotk, tiltk, psik, dirk);
+		double sphericalDistance=RAD2DEG(spherical_distance(dirj, dirk));
+		retVal += sphericalDistance*(1 - ccVector[Idx[k]]);
+if(Idx[k] != candidates[Idx[k]])
+	std::cout<<"Hey, they're different\n";
+	}
+
+	return retVal;
+}
+
+/* this one gives a value for "spatial energy concentration"
+ * I hope small values for high values energy concentration in only one region over the sphere
+ * */
+double ProgAngularAssignmentMag::energyDistribution(const Matrix1D<double> &dirj,
+		const std::vector<unsigned int> &Idx, const Matrix1D<double> &ccVector){
+
+	double retVal=0;
+	Matrix1D<double> dirk;
+	for(int k=1; k<sizeMdRef; ++k){
+		double rotk, tiltk, psik;
+		rotk=referenceRot.at(Idx[k]);
+		tiltk=referenceTilt.at(Idx[k]);
+		psik=0.;
+		Euler_direction(rotk, tiltk, psik, dirk);
+		double sphericalDistance=RAD2DEG(spherical_distance(dirj, dirk));
+		retVal += sphericalDistance*(1 - ccVector[Idx[k]]);
+	}
+
+	return retVal;
+}
+
 void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName &fnImgOut,
 		const MDRow &rowIn, MDRow &rowOut) {
 	// experimental image related
 	rowOut = rowIn;
 
-/*time
+/* time
 double Inicio=std::clock(); // */
 
 	// input image related
@@ -438,6 +488,12 @@ double Inicio=std::clock(); // */
 
 	Matrix1D<double> ccvec;
 	ccvec.initZeros(sizeMdRef);
+Matrix1D<double> txvec;
+txvec.initZeros(sizeMdRef);
+Matrix1D<double> tyvec;
+tyvec.initZeros(sizeMdRef);
+Matrix1D<double> psivec;
+psivec.initZeros(sizeMdRef);
 
 	std::vector<double> bestTx(sizeMdRef, 0);
 	std::vector<double> bestTy(sizeMdRef, 0);
@@ -461,13 +517,20 @@ double Inicio=std::clock(); // */
 		candidatesFirstLoop[k] = k; // for access in second loop
 		candidatesFirstLoopCoeff[k] = cc_coeff;
 		VEC_ELEM(ccvec,k)=cc_coeff;
-		bestTx[k] = Tx;
+		bestTx[k] = Tx; // todo if works then delete std-vectors and keep only Matrix1D
+VEC_ELEM(txvec,k)= Tx;
 		bestTy[k] = Ty;
+VEC_ELEM(tyvec,k)= Ty;
 		bestPsi[k] = psi;
+VEC_ELEM(psivec,k) = psi;
 	}
 
-// /*comment
-ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt"); // */
+/*comment
+ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
+txvec.write("/home/jeison/Escritorio/testVectTx_1stLoop.txt");
+tyvec.write("/home/jeison/Escritorio/testVectTy_1stLoop.txt");
+psivec.write("/home/jeison/Escritorio/testVectPsi_1stLoop.txt");
+// */
 
 //// ========graph filter to ccVect from first loop, using filtered signal================
 ////         to sort candidates previous to second loop processing
@@ -609,8 +672,11 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt"); // */
 				candidatesSecondLoopCoeff[Idx[k]] = cc_coeff;
 				VEC_ELEM(ccvec,Idx[k])=cc_coeff;
 				bestTx2[Idx[k]] = testShiftTx;
+VEC_ELEM(txvec,Idx[k])=testShiftTx;
 				bestTy2[Idx[k]] = testShiftTy;
+VEC_ELEM(tyvec,Idx[k])=testShiftTy;
 				bestPsi2[Idx[k]] = bestPsi[Idx[k]] + psi;
+VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]] + psi, -180., 180.); // realWRAP(bestPsi2[Idx2[0]], -180., 180.)
 			} else {
 				Idx2[k] = k;
 				Idx3[k] = k;
@@ -618,8 +684,11 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt"); // */
 				candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
 				VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
 				bestTx2[Idx[k]] = bestTx[Idx[k]];
+VEC_ELEM(txvec,Idx[k])=bestTx[Idx[k]];
 				bestTy2[Idx[k]] = bestTy[Idx[k]];
+VEC_ELEM(tyvec,Idx[k])=bestTy[Idx[k]];
 				bestPsi2[Idx[k]] = bestPsi[Idx[k]];
+VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]], -180., 180.);
 			}
 		}// end if(k<nCand)
 		else{
@@ -629,45 +698,67 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt"); // */
 			candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
 			VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
 			bestTx2[Idx[k]] = bestTx[Idx[k]];
+VEC_ELEM(txvec,Idx[k])=bestTx[Idx[k]];
 			bestTy2[Idx[k]] = bestTy[Idx[k]];
+VEC_ELEM(tyvec,Idx[k])=bestTy[Idx[k]];
 			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
+VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]], -180., 180.);
 		}
 	}
 
-// /*comment
-ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt"); // */
+/*comment
+ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
+txvec.write("/home/jeison/Escritorio/testVectTx_2ndLoop.txt");
+tyvec.write("/home/jeison/Escritorio/testVectTy_2ndLoop.txt");
+psivec.write("/home/jeison/Escritorio/testVectPsi_2ndLoop.txt");
+// */
 
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
 	graphFourierFilter(ccvec,ccvec_filt);
 
-// /*comment
-ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt"); // */
+Matrix1D<double> txvec_filt;
+graphFourierFilter(txvec,txvec_filt);
 
-	// choose BEST of the candidates
+Matrix1D<double> tyvec_filt;
+graphFourierFilter(tyvec,tyvec_filt);
+
+Matrix1D<double> psivec_filt;
+graphFourierFilter(psivec,psivec_filt);
+
+/*comment
+ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+txvec_filt.write("/home/jeison/Escritorio/test_txVect_filt.txt");
+tyvec_filt.write("/home/jeison/Escritorio/test_tyVect_filt.txt");
+psivec_filt.write("/home/jeison/Escritorio/test_psiVect_filt.txt");
+// */
+
+	// choose best of the candidates after 2nd loop
 	int nCand2 = 1;
 	std::partial_sort(Idx2.begin(), Idx2.begin()+nCand2, Idx2.end(),
 			[&candidatesSecondLoopCoeff](int i, int j) {return candidatesSecondLoopCoeff[i] > candidatesSecondLoopCoeff[j];});
 
-// /*comment
+/*comment
 std::cout<<"testIdx2[0]: "<<Idx2[0]<<std::endl;
 std::cout<<"testCand[Idx2[0]]: "<<candidatesSecondLoop[Idx2[0]]<<std::endl;
 std::cout<<"testCandCoeff[Idx2[0]]: "<<candidatesSecondLoopCoeff[Idx2[0]]<<std::endl;
 std::ofstream outCandidateBef("/home/jeison/Escritorio/bestCandidateBefore.txt");
 outCandidateBef<<candidatesSecondLoop[Idx2[0]]<<"\n";
-outCandidateBef.close(); // */
+outCandidateBef.close();
+// */
 
 	// choose best candidate direction from graph filtered ccvect signal
 	std::partial_sort(Idx3.begin(), Idx3.begin()+nCand2, Idx3.end(),
 			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
 
-// /*comment
+/*comment
 std::cout<<"testIdx3[0]: "<<Idx3[0]<<std::endl;
 std::cout<<"testCand[Idx3[0]]: "<<candidatesSecondLoop[Idx3[0]]<<std::endl;
 std::cout<<"testCandCoeff[Idx3[0]]: "<<candidatesSecondLoopCoeff[Idx3[0]]<<std::endl;
 std::ofstream outCandidate("/home/jeison/Escritorio/bestCandidateGraph.txt");
 outCandidate<<candidatesSecondLoop[Idx3[0]]<<"\n";
-outCandidate.close(); // */
+outCandidate.close();
+// */
 
 	// angular distance between this two direction
 	Matrix1D<double> dirj;
@@ -686,18 +777,60 @@ outCandidate.close(); // */
 	Euler_direction(rotjp, tiltjp, psijp, dirjp);
 	double sphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp));
 
+//double energyConcentration2ndLoop=energyDistribution(dirj,Idx2,candidatesSecondLoopCoeff,candidatesSecondLoop);
+
+//double energyConcentrationFiltered=energyDistribution(dirj,Idx3,ccvec_filt);
+
+
+/*// BAD RESULTS replacing alignment parameters after 2nd loop by filtered values
+if (sphericalDistance<maxDistance){ //replace with alignment parameters from filtered versions
+bestTx2[Idx2[0]]=VEC_ELEM(txvec_filt,Idx2[0]);
+bestTy2[Idx2[0]]=VEC_ELEM(tyvec_filt,Idx2[0]);
+bestPsi2[Idx2[0]]=VEC_ELEM(psivec_filt,Idx2[0]);
+}
+else{
+candidatesSecondLoopCoeff[Idx2[0]]=exp(-.5*sphericalDistance/maxDistance);
+}// */
+
 	// is this direction a reliable candidate?
 	// a condition could be: if this direction is within "soft neighborhood" with high coeff values
-	if (sphericalDistance>(3.*angStep)){
-		candidatesSecondLoopCoeff[Idx2[0]]=0.;
-	}
+	// BETTER RESULTS
+	double maxDistance=3.*angStep;
+	if(sphericalDistance>maxDistance)
+		candidatesSecondLoopCoeff[Idx2[0]]=exp(-.5*sphericalDistance/maxDistance);
 
-/*time
+
+
+/* time
 double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
 std::cout << "Operation in processImage took "<< duration*1000 << "milliseconds" << std::endl; // */
 
-std::cout<<"sphericalDistance candidates: "<<sphericalDistance<<std::endl;
-exit(1);
+/*comment
+std::cout<<"sphericalDistance: "<<sphericalDistance<<std::endl;
+std::cout<<"energyConcentration2ndLoop: "<<energyConcentration2ndLoop/sizeMdRef<<std::endl;
+std::cout<<"energyConcentrationFiltered: "<<energyConcentrationFiltered/sizeMdRef<<std::endl;
+// */
+
+//std::ofstream outTx;
+//std::ofstream outTy;
+//std::ofstream outPsi;
+//outTx.open("/home/jeison/Escritorio/outTx.txt", std::ios::app);
+//outTy.open("/home/jeison/Escritorio/outTy.txt", std::ios::app);
+//outPsi.open("/home/jeison/Escritorio/outPsi.txt", std::ios::app);
+//outTx<<sphericalDistance<<"\t"<<std::abs(bestTx2[Idx2[0]]-VEC_ELEM(txvec_filt,Idx2[0]))<<"\t"<<bestTx2[Idx2[0]]<<"\t"<<VEC_ELEM(txvec_filt,Idx2[0]) << "\n";
+//outTy<<sphericalDistance<<"\t"<<std::abs(bestTy2[Idx2[0]]-VEC_ELEM(tyvec_filt,Idx2[0]))<<"\t"<<bestTy2[Idx2[0]]<<"\t"<<VEC_ELEM(tyvec_filt,Idx2[0]) << "\n";
+//outPsi<<sphericalDistance<<"\t"<<std::abs(bestPsi2[Idx2[0]]-VEC_ELEM(psivec_filt,Idx2[0]))<<"\t"<<bestPsi2[Idx2[0]]<<"\t"<<VEC_ELEM(psivec_filt,Idx2[0]) << "\n";
+//outTx.close();
+//outTy.close();
+//outPsi.close();
+//
+//std::cout<<Idx2[0]<<"-->"<<candidatesSecondLoop[Idx2[0]]<<"\n";
+//std::cout<<"sphericalDistance: "<<sphericalDistance<<"\n";
+
+/*exit
+if(testCounter2==0)
+	exit(1);
+testCounter2+=1;// */
 
 	// reading info of reference image candidate
 	double rotRef;
@@ -1308,7 +1441,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
 	//result.resizeNoCopy(vecMDaRef[0]); // NO!
 
-// /*comment
+/*comment
 if(testCounter==2){
 std::cout<<"size in ccMatrix of F1: "<< YSIZE(F1) <<" x "<< XSIZE(F1) << std::endl;
 std::cout<<"size in ccMatrix full: "<< YSIZE(F1) <<" x "<< 2 * (XSIZE(F1) - 1) << std::endl;
@@ -1637,7 +1770,7 @@ const MultidimArray<double> &MDaIn,
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
 		applyFourierImage2(MDaRefRot, MDaRefRotF); //Fourier
 		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift); // cross-correlation matrix
-// /*comment
+/*comment
 testCounter+=1;
 if(testCounter==2){
 std::cout<<"size of ccMatrixShift in bestCand:"<<YSIZE(ccMatrixShift)<<"x"<<XSIZE(ccMatrixShift)<<"\n";
