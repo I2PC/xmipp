@@ -34,6 +34,7 @@ template<typename T>
 void CudaShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
+    // FIXME DS consider tunning the size of the input (e.g. 436x436x50)
     if (2 != hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
@@ -410,8 +411,10 @@ void CudaShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
     assert(0 < dims.n());
 
     // create threads / blocks
-    dim3 dimBlock(BLOCK_DIM_X, 1, 1);
-    dim3 dimGrid(dims.n(), 1, 1);
+    dim3 dimBlock(64, 1, 1);
+    dim3 dimGrid(
+            std::ceil(dims.x() / (float)dimBlock.x),
+            dims.n(), 1);
     auto stream = *(cudaStream_t*)gpu.stream();
     if (std::is_same<T, float>::value) {
         computeCorrelations2DOneToNKernel<float2, center>
