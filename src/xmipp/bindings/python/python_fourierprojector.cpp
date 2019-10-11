@@ -88,7 +88,7 @@
  FourierProjector_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
  {
 
-     FourierProjectorObject *self = (FourierProjectorObject*) type->tp_alloc(type, 0);
+     FourierProjectorObject *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
      XMIPP_TRY
 
      if (self != NULL)
@@ -110,7 +110,7 @@
      }
      XMIPP_CATCH
 
-     return (PyObject *) self;
+     return (PyObject *)self;
  }
 
  /* Destructor */
@@ -118,7 +118,7 @@
  {
      delete self->fourier_projector;
      //delete self->dims;
-     self->ob_type->tp_free((PyObject*) self);
+     Py_TYPE(self)->tp_free((PyObject*)self);
  }
 
 /* projectVolume */

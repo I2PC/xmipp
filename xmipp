@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
 # *              David Maluenda (dmaluenda@cnb.csic.es)
@@ -87,7 +87,7 @@ def stampVersion():
         if os.path.exists('.git'):
             branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
             hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
-            repoInfo = "%s (%s)" % (branch.strip('\n'), hash.strip('\n'))
+            repoInfo = "%s (%s)" % (branch.decode("utf-8").strip('\n'), hash.decode("utf-8").strip('\n'))
         else:
             repoInfo = "(no git repo detected)"
         os.chdir(currDir)
@@ -487,6 +487,7 @@ def configOpenCV(configDict):
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False)
 
     runJob("rm -v xmipp_test_opencv*",show_output=False)
+
 
 def getDependenciesInclude():
     return ['../']
@@ -900,9 +901,9 @@ def checkConfig():
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
             print("Possible solutions")
-            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
+            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3.5-dev "\
                   "python-numpy python-scipy python-mpi4py")
-            print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
+            print("In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
             print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
                   "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
             print("\nRemember to re-run './xmipp config' after installing libraries in order to "
@@ -1362,8 +1363,8 @@ if __name__ == '__main__':
     # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
     # os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    import time
-    time.sleep(5)
+    # import time
+    # time.sleep(5)
 
     if not ensureGit():
         sys.exit(-1)

@@ -76,7 +76,8 @@ PyTypeObject ProgramType =
     0, /*tp_getattro*/
     0, /*tp_setattro*/
     0, /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT, /*tp_flags*/
+    Py_TPFLAGS_DEFAULT |
+        Py_TPFLAGS_BASETYPE,/*tp_flags*/
     "Python wrapper to Xmipp Program class",/* tp_doc */
     0, /* tp_traverse */
     0, /* tp_clear */
@@ -101,7 +102,7 @@ PyTypeObject ProgramType =
 void Program_dealloc(ProgramObject* self)
 {
     delete self->program;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 /* Constructor */
@@ -128,7 +129,7 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             }
         }
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }
 
 /* addUsageLine */
@@ -273,12 +274,13 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 size_t size = PyList_Size(list);
                 PyObject * item = NULL;
+                PyObject *pyStr1 = NULL, *str_exc_type = NULL;
                 char ** argv = new char*[size];
                 std::vector<double> vValue(size);
                 for (size_t i = 0; i < size; ++i)
                 {
                     item = PyList_GetItem(list, i);
-                    if (!PyString_Check(item))
+                    if (!PyUnicode_Check(item))
                     {
                         PyErr_SetString(PyExc_TypeError,
                                         "Program arguments should be of type string");
@@ -286,7 +288,9 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                         return NULL;
                     }
 
-                    argv[i] = PyString_AsString(item);
+                    str_exc_type = PyObject_Repr(item); //Now a unicode object
+                    pyStr1 = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+                    argv[i] = PyBytes_AS_STRING(pyStr1);
 
                     if (i == 0)
                     {
@@ -346,7 +350,7 @@ Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
             try
             {
                 const char * value = self->program->getParam(param, arg);
-                return PyString_FromString(value);
+                return PyUnicode_FromString(value);
             }
             catch (XmippError &xe)
             {
@@ -375,7 +379,7 @@ Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
                 PyObject * pylist = PyList_New(size);
 
                 for (size_t i = 0; i < size; ++i)
-                    PyList_SetItem(pylist, i, PyString_FromString(list[i].c_str()));
+                    PyList_SetItem(pylist, i, PyUnicode_FromString(list[i].c_str()));
                 return pylist;
             }
             catch (XmippError &xe)

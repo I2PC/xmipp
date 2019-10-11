@@ -44,15 +44,15 @@ void findWhichPython(String &whichPython)
 void initializePython(String &whichPython)
 {
     findWhichPython(whichPython);
-    wchar_t *program = Py_DecodeLocale(whichPython.c_str(), NULL);
-    if (program == NULL) {
-        fprintf(stderr, "Fatal error: cannot decode the python\n");
-        exit(1);
-    }
-	Py_SetProgramName(program);
+//    wchar_t *program = Py_DecodeLocale(whichPython.c_str(), NULL);
+//    if (program == NULL) {
+//        fprintf(stderr, "Fatal error: cannot decode the python\n");
+//        exit(1);
+//    }
+	Py_SetProgramName((wchar_t *)whichPython.c_str());
 	Py_Initialize();
-    #define NUMPY_IMPORT_ARRAY_RETVAL
-	import_array(); // For working with numpy
+//    #define NUMPY_IMPORT_ARRAY_RETVAL
+//	import_array(); // For working with numpy
 }
 
 PyObject* convertToNumpy(const MultidimArray<double> &I)
@@ -196,9 +196,11 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		//(see python traceback structure)
 
 		//Get error message
-		PyObject* str = PyUnicode_AsEncodedString(pvalue, "utf-8", "~E~");
-        const char *bytes = PyBytes_AS_STRING(str);
-		std::cout << PyUnicode_FromString(bytes ) << std::endl;
+//		PyObject* str_exc_type = PyObject_Repr(pvalue); //Now a unicode
+//        PyObject* pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+//        const char *strExcType =  PyBytes_AS_STRING(pyStr);
+//		std::cout << PyUnicode_FromString(strExcType) << std::endl;
+//        std::cout << PyUnicode_FromString(pvalue.c_str()) << std::endl;
 	}
 }
 #undef DEBUG

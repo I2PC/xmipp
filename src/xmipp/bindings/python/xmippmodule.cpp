@@ -22,7 +22,7 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-
+#include "Python.h"
 #include "xmippmodule.h"
 #include <data/ctf.h>
 #include <reconstruction/ctf_enhance_psd.h>
@@ -51,7 +51,7 @@ xmipp_label2Str(PyObject *obj, PyObject *args)
     if (PyArg_ParseTuple(args, "i", &label))
     {
         String labelStr = MDL::label2Str((MDLabel) label);
-        return PyString_FromString(labelStr.c_str());
+        return PyUnicode_FromString(labelStr.c_str());
     }
     return NULL;
 }
@@ -65,7 +65,7 @@ xmipp_colorStr(PyObject *obj, PyObject *args)
     if (PyArg_ParseTuple(args, "is|i", &color, &str, &attrib))
     {
         String labelStr = colorString(str, color, attrib);
-        return PyString_FromString(labelStr.c_str());
+        return PyUnicode_FromString(labelStr.c_str());
     }
     return NULL;
 }
@@ -74,14 +74,19 @@ PyObject *
 xmipp_labelType(PyObject *obj, PyObject *args)
 {
     PyObject * input;
+    PyObject* str_exc_type = NULL;
+    PyObject* pyStr = NULL;
     if (PyArg_ParseTuple(args, "O", &input))
     {
-        if (PyString_Check(input))
-            return Py_BuildValue("i",
-                                 (int) MDL::labelType(PyString_AsString(input)));
-        else if (PyInt_Check(input))
-            return Py_BuildValue("i",
-                                 (int) MDL::labelType((MDLabel) PyInt_AsLong(input)));
+        if (PyUnicode_Check(input))
+           {
+              str_exc_type = PyObject_Repr(input); //Now a unicode object
+              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+              const char *strExcType =  PyBytes_AS_STRING(pyStr);
+              return Py_BuildValue("i", (int) MDL::labelType(strExcType));
+           }
+        else if (PyLong_Check(input))
+            return Py_BuildValue("i", (int) MDL::labelType((MDLabel) PyLong_AsLong(input)));
         else
             PyErr_SetString(PyExc_TypeError,
                             "labelType: Only int or string are allowed as input");
@@ -93,16 +98,23 @@ PyObject *
 xmipp_labelHasTag(PyObject *obj, PyObject *args)
 {
     PyObject * input;
+    PyObject* str_exc_type = NULL;
+    PyObject* pyStr = NULL;
     int tag;
 
     if (PyArg_ParseTuple(args, "Oi", &input, &tag))
     {
         MDLabel label = MDL_UNDEFINED;
 
-        if (PyString_Check(input))
-            label = MDL::str2Label(PyString_AsString(input));
-        else if (PyInt_Check(input))
-            label = (MDLabel) PyInt_AsLong(input);
+        if (PyUnicode_Check(input))
+            {
+              str_exc_type = PyObject_Repr(input); //Now a unicode object
+              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+              const char *strExcType =  PyBytes_AS_STRING(pyStr);
+              label = MDL::str2Label(strExcType);
+             }
+        else if (PyLong_Check(input))
+            label = (MDLabel) PyLong_AsLong(input);
 
         if (label != MDL_UNDEFINED)
         {
@@ -121,17 +133,22 @@ xmipp_labelHasTag(PyObject *obj, PyObject *args)
 PyObject *
 xmipp_labelIsImage(PyObject *obj, PyObject *args)
 {
-    PyObject * input;
+    PyObject * input, *str_exc_type = NULL, *pyStr = NULL ;
     int tag = TAGLABEL_IMAGE;
 
     if (PyArg_ParseTuple(args, "O", &input))
     {
         MDLabel label = MDL_UNDEFINED;
 
-        if (PyString_Check(input))
-            label = MDL::str2Label(PyString_AsString(input));
-        else if (PyInt_Check(input))
-            label = (MDLabel) PyInt_AsLong(input);
+        if (PyUnicode_Check(input))
+           {
+              str_exc_type = PyObject_Repr(input); //Now a unicode object
+              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+              const char *strExcType =  PyBytes_AS_STRING(pyStr);
+              label = MDL::str2Label(strExcType);
+           }
+        else if (PyLong_Check(input))
+            label = (MDLabel) PyLong_AsLong(input);
 
         if (label != MDL_UNDEFINED)
         {
@@ -176,17 +193,20 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     Ndim=1;
     DataType dataType = DT_Float;
 
-    PyObject * input;
+    PyObject * input, *str_exc_type = NULL, *pyStr = NULL ;
     if (PyArg_ParseTuple(args, "Oii|iii", &input, &Xdim, &Ydim, &Zdim,
                          &Ndim, &dataType))
     {
     try
         {
-        String inputStr = PyString_AsString(input);
+
+        str_exc_type = PyObject_Repr(input); //Now a unicode object
+        pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+        String inputStr = PyBytes_AS_STRING(pyStr);
         inputStr += "%";
         inputStr += datatype2Str(dataType);
         createEmptyFile(inputStr, Xdim, Ydim, Zdim, Ndim, true, WRITE_REPLACE);
-//        createEmptyFile(PyString_AsString(input),Xdim,Ydim,Zdim,APPEND_IMAGE,true,WRITE_REPLACE);
+//        createEmptyFile(PyUnicode_AsUTF8String(input),Xdim,Ydim,Zdim,APPEND_IMAGE,true,WRITE_REPLACE);
         Py_RETURN_NONE;
         }
      catch (XmippError &xe)
@@ -200,15 +220,17 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyValue; //Only used to skip label and value
+    PyObject *pyValue, *str_exc_type = NULL, *pyStr1 = NULL; //Only used to skip label and value
 
     if (PyArg_ParseTuple(args, "O", &pyValue))
     {
         try
         {
 
-            PyObject * pyStr = PyObject_Str(pyValue);
-            char * str = PyString_AsString(pyStr);
+            PyObject * pyStr = PyObject_Repr(pyValue);
+            str_exc_type = PyObject_Repr(pyStr); //Now a unicode object
+            pyStr1 = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+            char *str = PyBytes_AS_STRING(pyStr1);
             size_t xdim, ydim, zdim, ndim;
             getImageSize(str, xdim, ydim, zdim, ndim);
             Py_DECREF(pyStr);
@@ -225,6 +247,7 @@ xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *pyValue; //Only used to skip label and value
+    PyObject *pyStr = NULL;
 
     if (PyArg_ParseTuple(args, "O", &pyValue))
     {
@@ -234,9 +257,11 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             size_t size; //number of elements in the metadata
             bool destroyMd = true;
 
-            if (PyString_Check(pyValue))
+            if (PyUnicode_Check(pyValue))
             {
-                char * str = PyString_AsString(pyValue);
+                PyObject* repr = PyObject_Repr(pyValue);
+                pyStr = PyUnicode_AsEncodedString(repr, "utf-8", "Error ~");
+                char * str = PyBytes_AS_STRING(pyStr);
                 md = new MetaData();
                 md->setMaxRows(1);
                 md->read(str);
@@ -280,15 +305,16 @@ PyObject *
 xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
-    PyObject *input = NULL, *pyStr = NULL;
+    PyObject *input = NULL, *pyStr = NULL, *pyStr1 = NULL;
     char *str = NULL;
     if (PyArg_ParseTuple(args, "O", &input))
     {
         try
         {
-            if ((pyStr = PyObject_Str(input)) != NULL )
+            if ((pyStr = PyObject_Repr(input)) != NULL )
             {
-                str = PyString_AsString(pyStr);
+                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
+                str = PyBytes_AS_STRING(pyStr1);
                 if (existsBlockInMetaDataFile( (std::string) str))
                     Py_RETURN_TRUE;
                 else
@@ -316,8 +342,9 @@ xmipp_CheckImageFileSize(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            PyObject * pyStr = PyObject_Str(filename);
-            char * str = PyString_AsString(pyStr);
+            PyObject * pyStr = PyObject_Repr(filename);
+            PyObject *pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
+            char *str = PyBytes_AS_STRING(pyStr1);
             bool result = checkImageFileSize(str);
             Py_DECREF(pyStr);
             if (result)
@@ -342,8 +369,9 @@ xmipp_CheckImageCorners(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            PyObject * pyStr = PyObject_Str(filename);
-            char * str = PyString_AsString(pyStr);
+            PyObject * pyStr = PyObject_Repr(filename);
+            PyObject *pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
+            char * str = PyBytes_AS_STRING(pyStr1);
             bool result = checkImageCorners(str);
             Py_DECREF(pyStr);
             if (result)
@@ -368,11 +396,15 @@ xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            PyObject * pyStr1 = PyObject_Str(filename1);
-            PyObject * pyStr2 = PyObject_Str(filename2);
-            char * str1 = PyString_AsString(pyStr1);
-            char * str2 = PyString_AsString(pyStr2);
-            bool result = compareImage(str1, str2);
+            PyObject * pyStr1 = PyObject_Repr(filename1);
+            PyObject * pyStr2 = PyObject_Repr(filename2);
+
+            PyObject* str1 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "~E~");
+            PyObject* str2 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "~E~");
+
+            char * bytes1 = PyBytes_AS_STRING(str1);
+            char * bytes2 = PyBytes_AS_STRING(str2);
+            bool result = compareImage(bytes1, bytes2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
             if (result)
@@ -397,10 +429,14 @@ xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            PyObject * pyStr1 = PyObject_Str(filename1);
-            PyObject * pyStr2 = PyObject_Str(filename2);
-            char * str1 = PyString_AsString(pyStr1);
-            char * str2 = PyString_AsString(pyStr2);
+            PyObject * pyStr1 = PyObject_Repr(filename1);
+            PyObject * pyStr2 = PyObject_Repr(filename2);
+
+            PyObject *pyStr3 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "Error ~");
+            PyObject *pyStr4 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
+
+            char * str1 = PyBytes_AS_STRING(pyStr3);
+            char * str2 = PyBytes_AS_STRING(pyStr4);
             bool result = compareTwoFiles(str1, str2, offset);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -426,10 +462,13 @@ xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            PyObject * pyStr1 = PyObject_Str(filename1);
-            PyObject * pyStr2 = PyObject_Str(filename2);
-            char * str1 = PyString_AsString(pyStr1);
-            char * str2 = PyString_AsString(pyStr2);
+            PyObject * pyStr1 = PyObject_Repr(filename1);
+            PyObject * pyStr2 = PyObject_Repr(filename2);
+            PyObject *pyStr3 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "Error ~");
+            PyObject *pyStr4 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
+
+            char * str1 = PyBytes_AS_STRING(pyStr3);
+            char * str2 = PyBytes_AS_STRING(pyStr4);
             bsoftRemoveLoopBlock(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -452,10 +491,13 @@ xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            PyObject * pyStr1 = PyObject_Str(filename1);
-            PyObject * pyStr2 = PyObject_Str(filename2);
-            char * str1 = PyString_AsString(pyStr1);
-            char * str2 = PyString_AsString(pyStr2);
+            PyObject * pyStr1 = PyObject_Repr(filename1);
+            PyObject * pyStr2 = PyObject_Repr(filename2);
+            PyObject *pyStr3 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "Error ~");
+            PyObject *pyStr4 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
+
+            char * str1 = PyBytes_AS_STRING(pyStr3);
+            char * str2 = PyBytes_AS_STRING(pyStr4);
             bsoftRestoreLoopBlock(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -488,21 +530,30 @@ xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs)
             if (PyTuple_Check(input1))
             {
               // Get the index and filename from the Python tuple object
-              index1 = PyInt_AsSsize_t(PyTuple_GetItem(input1, 0));
-              fn1 = PyString_AsString(PyObject_Str(PyTuple_GetItem(input1, 1)));
+              index1 = PyLong_AsSsize_t(PyTuple_GetItem(input1, 0));
+              fn1 = PyBytes_AS_STRING(PyObject_Str(PyTuple_GetItem(input1, 1)));
             }
             else
-              fn1 = PyString_AsString(PyObject_Str(input1));
-
+                {
+                  PyObject* repr = PyObject_Repr(input1);
+                  PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+                  fn1 = PyBytes_AS_STRING(str);
+                }
             if (PyTuple_Check(input2))
             {
               // Get the index and filename from the Python tuple object
-              index2 = PyInt_AsSsize_t(PyTuple_GetItem(input2, 0));
-              fn2 = PyString_AsString(PyObject_Str(PyTuple_GetItem(input2, 1)));
+              index2 = PyLong_AsSsize_t(PyTuple_GetItem(input2, 0));
+
+              PyObject* repr = PyObject_Repr(input2);
+              PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+              fn2 = PyBytes_AS_STRING(PyObject_Repr(PyTuple_GetItem(str, 1)));
             }
             else
-              fn2 = PyString_AsString(PyObject_Str(input2));
-
+              {
+                PyObject* repr = PyObject_Repr(input2);
+                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+                fn2 = PyBytes_AS_STRING(str);
+              }
             bool result = compareTwoImageTolerance(fn1, fn2, tolerance, index1, index2);
 
             if (result)
@@ -537,8 +588,8 @@ xmipp_readMetaDataWithTwoPossibleImages(PyObject *obj, PyObject *args,
                                 "Expected MetaData as second argument");
             else
             {
-                if (PyString_Check(pyStr))
-                    readMetaDataWithTwoPossibleImages(PyString_AsString(pyStr),
+                if (PyUnicode_Check(pyStr))
+                    readMetaDataWithTwoPossibleImages(PyBytes_AS_STRING(pyStr),
                                                       MetaData_Value(pyMd));
                 else if (FileName_Check(pyStr))
                     readMetaDataWithTwoPossibleImages(FileName_Value(pyStr),
@@ -570,24 +621,24 @@ xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             FileName fn, fnOrig, fnOut;
-            if (PyString_Check(pyStrFn))
-                fn = PyString_AsString(pyStrFn);
+            if (PyUnicode_Check(pyStrFn))
+                fn = PyBytes_AS_STRING(pyStrFn);
             else if (FileName_Check(pyStrFn))
                 fn = FileName_Value(pyStrFn);
             else
                 PyErr_SetString(PyExc_TypeError,
                                 "Expected string or FileName as first argument");
 
-            if (PyString_Check(pyStrFnOrig))
-                fnOrig = PyString_AsString(pyStrFnOrig);
+            if (PyUnicode_Check(pyStrFnOrig))
+                fnOrig = PyBytes_AS_STRING(pyStrFnOrig);
             else if (FileName_Check(pyStrFnOrig))
                 fnOrig = FileName_Value(pyStrFnOrig);
             else
                 PyErr_SetString(PyExc_TypeError,
                                 "Expected string or FileName as second argument");
 
-            if (PyString_Check(pyStrFnOut))
-                fnOut = PyString_AsString(pyStrFnOut);
+            if (PyUnicode_Check(pyStrFnOut))
+                fnOut = PyBytes_AS_STRING(pyStrFnOut);
             else if (FileName_Check(pyStrFnOut))
                 fnOut = FileName_Value(pyStrFnOut);
             else
@@ -614,8 +665,8 @@ bool validateInputImageString(PyObject * pyImage, PyObject *pyStrFn, FileName &f
                         "bad argument: Expected Image as first argument");
         return false;
     }
-    if (PyString_Check(pyStrFn))
-        fn = PyString_AsString(pyStrFn);
+    if (PyUnicode_Check(pyStrFn))
+        fn = PyBytes_AS_STRING(pyStrFn);
     else if (FileName_Check(pyStrFn))
         fn = FileName_Value(pyStrFn);
     else
@@ -638,16 +689,20 @@ xmipp_compareTwoMetadataFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             FileName fn1, fn2;
 
-            pyStrAux = PyObject_Str(pyStrFn1);
+            pyStrAux = PyObject_Repr(pyStrFn1);
+            PyObject* str = PyUnicode_AsEncodedString(pyStrAux, "utf-8", "~E~");
 
             if (pyStrAux != NULL)
-                fn1 = PyString_AsString(pyStrAux);
+                fn1 = PyBytes_AS_STRING(str);
             else
-                PyErr_SetString(PyExc_TypeError,
-                                "Expected string or FileName as first argument");
-            pyStrAux = PyObject_Str(pyStrFn2);
+                PyErr_SetString(PyExc_TypeError, "Expected string or FileName as first argument");
+
+            pyStrAux = PyObject_Repr(pyStrFn2);
             if (pyStrAux != NULL)
-                fn2 = PyString_AsString(pyStrAux);
+               {
+                  str = PyUnicode_AsEncodedString(pyStrAux, "utf-8", "~E~");
+                  fn2 = PyBytes_AS_STRING(str);
+               }
             else
                 PyErr_SetString(PyExc_TypeError,
                                 "Expected string or FileName as first argument");
@@ -701,7 +756,7 @@ xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs)
         pyStrAux = PyObject_Str(pyStrFn);
         if (pyStrAux != NULL)
         {
-            fn = PyString_AsString(pyStrAux);
+            fn = PyBytes_AS_STRING(pyStrAux);
             MDSql::dumpToFile(fn);
             Py_RETURN_NONE;
         }
@@ -1121,7 +1176,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 				absPhase = pyReplace == Py_True;
 
 			PyObject *pyStr;
-			if (PyString_Check(input) || MetaData_Check(input))
+			if (PyUnicode_Check(input) || MetaData_Check(input))
 			{
 				ImageObject *img = (ImageObject*) pimg;
 				ImageGeneric *image = img->image;
@@ -1139,7 +1194,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 				else
 			   {
 				   pyStr = PyObject_Str(input);
-				   FileName fnCTF = PyString_AsString(pyStr);
+				   FileName fnCTF = PyBytes_AS_STRING(pyStr);
 				   ctf.read(fnCTF);
 			   }
 				ctf.produceSideInfo();
@@ -1308,12 +1363,87 @@ xmipp_methods[] =
 #define INIT_TYPE(type) if (PyType_Ready(&type##Type) < 0) return; Py_INCREF(&type##Type);\
     PyModule_AddObject(module, #type, (PyObject *) &type##Type);
 
-PyMODINIT_FUNC initxmippLib(void)
+
+
+
+struct module_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
+static PyObject *
+error_out(PyObject *m) {
+    struct module_state *st = GETSTATE(m);
+    PyErr_SetString(st->error, "something bad happened");
+    return NULL;
+}
+
+static PyMethodDef myextension_methods[] = {
+    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},
+    {NULL, NULL}
+};
+
+#if PY_MAJOR_VERSION >= 3
+
+static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+}
+
+static int myextension_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+}
+
+
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "myextension",
+        NULL,
+        sizeof(struct module_state),
+        xmipp_methods,
+        NULL,
+        myextension_traverse,
+        myextension_clear,
+        NULL
+};
+
+#define INITERROR return NULL
+
+PyMODINIT_FUNC
+PyInit_myextension(void)
+
+#else
+#define INITERROR return
+
+void
+initxmippLib(void)
+#endif
 {
     //Initialize module variable
-    PyObject* module;
-    module = Py_InitModule3("xmippLib", xmipp_methods,
-                            "Xmipp module as a Python extension.");
+//    PyObject* module;
+//    module = Py_InitModule3("xmippLib", xmipp_methods,
+//                            "Xmipp module as a Python extension.");
+//
+    PyObject *module = PyModule_Create(&moduledef);
+
+
+    if (module == NULL)
+        INITERROR;
+    struct module_state *st = GETSTATE(module);
+
+    st->error = PyErr_NewException("myextension.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
     import_array();
 
     //Check types and add to module
@@ -1334,4 +1464,8 @@ PyMODINIT_FUNC initxmippLib(void)
     //Add MDLabel constants
     PyObject * dict = PyModule_GetDict(module);
     addLabels(dict);
+
+    #if PY_MAJOR_VERSION >= 3
+       return module;
+    #endif
 }

@@ -141,7 +141,7 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python2.7', 'fftw3f', 'fftw3f_threads'])
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['pthread','python3.5m', 'fftw3f', 'fftw3f_threads'])
 
 
 # FRM library
@@ -186,7 +186,7 @@ def addProg(progName, **kwargs):
 
     kwargs['src'] = src
     # Add all xmipp libraries just in case
-    kwargs['libs'] = kwargs.get('libs', []) + PROG_LIBS + ['XmippCore']
+    kwargs['libs'] = kwargs.get('libs', []) + PROG_LIBS + ['XmippCore', 'zstd']
     kwargs['deps'] = PROG_DEPS
 
     # Add always the xmipp path as -I for include and also xmipp/libraries
@@ -227,7 +227,7 @@ PROGRAMS_WITH_OPENCV_AND_CUDA = ['movie_optical_alignment_gpu']
 for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 	pname = os.path.basename(p)
 	if pname in PROGRAMS_WITH_PYTHON:
-		addProg(pname,incs=python_incdirs,libs=['python2.7'])
+		addProg(pname,incs=python_incdirs,libs=['python3.5m'])
 	elif pname in PROGRAMS_WITH_OPENCV:
 		if opencv:
 			addProg(pname,libs=opencvLibs,deps=['opencv'])
@@ -248,9 +248,9 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*
 
 addLib('xmippLib.so',
        dirs=['bindings'],
-       patterns=['python/*.cpp'],
+       patterns=['python3.5m/*.cpp'],
        incs=python_incdirs,
-       libs=['python2.7', 'XmippCore', 'Xmipp', 'fftw3f'],
+       libs=['python3.5m', 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')
        
 #  ***********************************************************************
