@@ -40,7 +40,8 @@ class ProgTransFromVol: public XmippMetadataProgram
 {
 public:
     /** Filenames */
-    FileName fnVol, fnMdIn;
+    FileName fnVol, outVol, fnMdIn, fnMask;
+	bool initvol;
 
     /** Particle size*/
     int boxSize;

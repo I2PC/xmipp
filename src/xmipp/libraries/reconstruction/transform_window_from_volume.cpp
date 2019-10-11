@@ -37,15 +37,20 @@ ProgTransFromVol::ProgTransFromVol()
 void ProgTransFromVol::readParams()
 {
 	XmippMetadataProgram::readParams();
-    fnVol = getParam("--vol");
+//    fnVol = getParam("--vol");
+//    outVol = getParam("--outvol");
+    fnMask = getParam("--mask");
     boxSize = getIntParam("--boxSize");
+//    initvol = checkParam("--vol");
 }
 
 void ProgTransFromVol::defineParams()
 {
 	addUsageLine("Project a center of mass of the map into image stack");
 	XmippMetadataProgram::defineParams();
-    addParamsLine("  --vol <vol_file=\"\">   : Input volume");
+//    addParamsLine("  [--vol <vol_file=\"\">]   : Input volume");
+    addParamsLine("  --mask <vol_file=\"\">   : Input mask");
+//    addParamsLine("  [--outvol <vol_file=\"\">]   : Output resize volume");
     addParamsLine("  --boxSize <box>         : Box size around the projection of the center");
     addExampleLine("Create images centered on the center of mass of the mask and with a size of 50x50: ", false);
     addExampleLine("xmipp_transform_window_from_volume -i particle.xmd --vol mask.vol --boxsize 50 -o particle_window.stk");
@@ -54,8 +59,7 @@ void ProgTransFromVol::defineParams()
 void ProgTransFromVol::show()
 {
 	XmippMetadataProgram::show();
-	std::cout << "Input images: " << fnMdIn << std::endl
-	;
+	std::cout << "Input images: " << fnMdIn << std::endl;
 }
 
 void ProgTransFromVol::startProcessing()
@@ -68,36 +72,68 @@ void ProgTransFromVol::startProcessing()
 
 void ProgTransFromVol::preProcess()
 {
-    Image<double> Vorig;
-	Vorig.read(fnVol);
-	Vorig().setXmippOrigin();
-    Vorig().centerOfMass(center,0.1);
+    Image<double> Vorig, Vmask, Vout;
+	Vmask.read(fnMask);
+	Vmask().setXmippOrigin();
+	Vmask().centerOfMass(center,0.1);
     center.resize(4);
     center(3)=1;
 
     if (verbose>0)
     	std::cout << "Center of mass: " << center << std::endl;
+
+//    if (initvol)
+//    {
+//    	Vorig.read(fnVol);
+//    	Vorig().setXmippOrigin();
+//    	Vout().initZeros(Vorig());
+//
+//		int z0=round(center(0)-boxSize/2);
+//		int y0=round(center(1)-boxSize/2);
+//		int x0=round(center(2)-boxSize/2);
+//		Vorig().window(Vout(),z0,y0,x0,z0+boxSize-1,y0+boxSize-1,x0+boxSize-1);
+//		Vout.write(outVol);
+//    }
 }
 
 void ProgTransFromVol::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
+
+	int dim;
 	Iin.read(fnImg);
 	Iin().setXmippOrigin();
+	dim=Iin().getDim();
+//	std::cout << "dimensions: " << dim << std::endl;
 
-	geo2TransformationMatrix(rowIn, A);
-	projectedCenter=A*center;
+	if (dim==2)
+	{
+		geo2TransformationMatrix(rowIn, A);
+		projectedCenter=A*center;
 
-//    if (verbose>0)
-//    	std::cout << "projectedCenter: " << projectedCenter << std::endl;
+//	    if (verbose>0)
+//	    	std::cout << "projectedCenter: " << projectedCenter << std::endl;
 
-	int y0=round(YY(projectedCenter)-boxSize/2);
-	int x0=round(XX(projectedCenter)-boxSize/2);
-	Iin().window(Iout(),y0,x0,y0+boxSize-1,x0+boxSize-1);
-	Iout.write(fnImgOut);
+		int y0=round(YY(projectedCenter)-boxSize/2);
+		int x0=round(XX(projectedCenter)-boxSize/2);
+		Iin().window(Iout(),y0,x0,y0+boxSize-1,x0+boxSize-1);
+		Iout.write(fnImgOut);
 
-	rowOut=rowIn;
-	rowOut.setValue(MDL_SHIFT_X,0.0);
-	rowOut.setValue(MDL_SHIFT_Y,0.0);
+		rowOut=rowIn;
+		rowOut.setValue(MDL_SHIFT_X,0.0);
+		rowOut.setValue(MDL_SHIFT_Y,0.0);
 
-	rowOut.setValue(MDL_IMAGE,fnImgOut);
+		rowOut.setValue(MDL_IMAGE,fnImgOut);
+	}
+
+	if (dim==3)
+	{
+//    	Iout().initZeros(Iin());
+
+		int z0=round(center(0)-boxSize/2);
+		int y0=round(center(1)-boxSize/2);
+		int x0=round(center(2)-boxSize/2);
+		Iin().window(Iout(),z0,y0,x0,z0+boxSize-1,y0+boxSize-1,x0+boxSize-1);
+		Iout.write(fnImgOut);
+	}
+
 }
