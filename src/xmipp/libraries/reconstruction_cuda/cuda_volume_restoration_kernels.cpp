@@ -17,7 +17,7 @@
 namespace Gpu {
 
 template< typename T >
-void computeWeights(const T* d_Vfiltered1, const T* d_Vfiltered2, T* d_V1r, T* d_V2r, T* d_S, size_t volume_size, const Gpu::CDF<T>& cdf_mN,
+void VolumeRestorationKernels<T>::computeWeights(const T* d_Vfiltered1, const T* d_Vfiltered2, T* d_V1r, T* d_V2r, T* d_S, size_t volume_size, const Gpu::CDF<T>& cdf_mN,
 	T weightPower, int weightFun) {
 
 	unsigned block_size = 256;
@@ -30,11 +30,8 @@ void computeWeights(const T* d_Vfiltered1, const T* d_Vfiltered2, T* d_V1r, T* d
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void computeWeights<double>(const double*, const double*, double*, double*, double*, size_t, const Gpu::CDF<double>&, double, int);
-template void computeWeights<float>(const float*, const float*, float*, float*, float*, size_t, const Gpu::CDF<float>&, float, int);
-
 template< typename T >
-void filterFourierVolume(const T* d_R2, const std::complex<T>* d_fV, std::complex<T>* d_buffer, size_t volume_size, T w2, T w2Step) {
+void VolumeRestorationKernels<T>::filterFourierVolume(const T* d_R2, const std::complex<T>* d_fV, std::complex<T>* d_buffer, size_t volume_size, T w2, T w2Step) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -44,11 +41,8 @@ void filterFourierVolume(const T* d_R2, const std::complex<T>* d_fV, std::comple
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void filterFourierVolume<double>(const double*, const std::complex<double>*, std::complex<double>*, size_t, double, double);
-template void filterFourierVolume<float>(const float*, const std::complex<float>*, std::complex<float>*, size_t, float, float);
-
 template< typename T >
-void computeAveragePositivity(const T* d_V1, const T* d_V2, T* d_S, size_t volume_size) {
+void VolumeRestorationKernels<T>::computeAveragePositivity(const T* d_V1, const T* d_V2, T* d_S, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -58,11 +52,8 @@ void computeAveragePositivity(const T* d_V1, const T* d_V2, T* d_S, size_t volum
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void computeAveragePositivity<double>(const double*, const double*, double*, size_t);
-template void computeAveragePositivity<float>(const float*, const float*, float*, size_t);
-
 template< typename T >
-void computeAveragePositivity(const T* d_V1, const T* d_V2, T* d_S, const int* d_mask, size_t volume_size) {
+void VolumeRestorationKernels<T>::computeAveragePositivity(const T* d_V1, const T* d_V2, T* d_S, const int* d_mask, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -72,11 +63,8 @@ void computeAveragePositivity(const T* d_V1, const T* d_V2, T* d_S, const int* d
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void computeAveragePositivity<double>(const double*, const double*, double*, const int*, size_t);
-template void computeAveragePositivity<float>(const float*, const float*, float*, const int*, size_t);
-
 template< typename T >
-void filterS(const T* d_R2, std::complex<T>* d_fVol, size_t volume_size) {
+void VolumeRestorationKernels<T>::filterS(const T* d_R2, std::complex<T>* d_fVol, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -86,11 +74,8 @@ void filterS(const T* d_R2, std::complex<T>* d_fVol, size_t volume_size) {
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void filterS<double>(const double*, std::complex<double>*, size_t);
-template void filterS<float>(const float*, std::complex<float>*, size_t);
-
 template< typename T >
-void maskForCDF(T* __restrict__ d_aux, const T* __restrict__ d_S, const int* __restrict__ d_mask, size_t volume_size) {
+void VolumeRestorationKernels<T>::maskForCDF(T* __restrict__ d_aux, const T* __restrict__ d_S, const int* __restrict__ d_mask, size_t volume_size) {
 	auto k = [] __device__ (int x) {
 		return x;
 	};
@@ -98,11 +83,8 @@ void maskForCDF(T* __restrict__ d_aux, const T* __restrict__ d_S, const int* __r
 	thrust::copy_if(thrust::device, d_S, d_S + volume_size, d_mask, d_aux, k);
 }
 
-template void maskForCDF<double>(double* __restrict__, const double* __restrict__, const int* __restrict__, size_t);
-template void maskForCDF<float>(float* __restrict__, const float* __restrict__, const int* __restrict__, size_t);
-
 template< typename T >
-void maskWithNoiseProbability(T* d_V, const Gpu::CDF<T>& cdf_S, const Gpu::CDF<T>& cdf_N, size_t volume_size) {
+void VolumeRestorationKernels<T>::maskWithNoiseProbability(T* d_V, const Gpu::CDF<T>& cdf_S, const Gpu::CDF<T>& cdf_N, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -114,11 +96,8 @@ void maskWithNoiseProbability(T* d_V, const Gpu::CDF<T>& cdf_S, const Gpu::CDF<T
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void maskWithNoiseProbability<double>(double*, const Gpu::CDF<double>&, const Gpu::CDF<double>&, size_t);
-template void maskWithNoiseProbability<float>(float*, const Gpu::CDF<float>&, const Gpu::CDF<float>&, size_t);
-
 template< typename T >
-void deconvolveRestored(std::complex<T>* d_fVol, std::complex<T>* d_fV1, std::complex<T>* d_fV2, const T* d_R2, T K1, T K2, T lambda, size_t volume_size, size_t fourier_size) {
+void VolumeRestorationKernels<T>::deconvolveRestored(std::complex<T>* d_fVol, std::complex<T>* d_fV1, std::complex<T>* d_fV2, const T* d_R2, T K1, T K2, T lambda, size_t volume_size, size_t fourier_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -128,11 +107,8 @@ void deconvolveRestored(std::complex<T>* d_fVol, std::complex<T>* d_fV1, std::co
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void deconvolveRestored<double>(std::complex<double>*, std::complex<double>*, std::complex<double>*, const double*, double, double, double, size_t, size_t);
-template void deconvolveRestored<float>(std::complex<float>*, std::complex<float>*, std::complex<float>*, const float*, float, float, float, size_t, size_t);
-
 template< typename T >
-void convolveFourierVolume(std::complex<T>* d_fVol, const T* d_R2, T K, size_t volume_size) {
+void VolumeRestorationKernels<T>::convolveFourierVolume(std::complex<T>* d_fVol, const T* d_R2, T K, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -142,11 +118,8 @@ void convolveFourierVolume(std::complex<T>* d_fVol, const T* d_R2, T K, size_t v
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void convolveFourierVolume<double>(std::complex<double>*, const double*, double, size_t);
-template void convolveFourierVolume<float>(std::complex<float>*, const float*, float, size_t);
-
 template< typename T >
-void normalizeForFFT(T* d_V1, T* d_V2, size_t volume_size) {
+void VolumeRestorationKernels<T>::normalizeForFFT(T* d_V1, T* d_V2, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -156,11 +129,8 @@ void normalizeForFFT(T* d_V1, T* d_V2, size_t volume_size) {
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void normalizeForFFT<double>(double*, double*, size_t);
-template void normalizeForFFT<float>(float*, float*, size_t);
-
 template< typename T >
-void normalizeForFFT(T* d_V1, size_t volume_size) {
+void VolumeRestorationKernels<T>::normalizeForFFT(T* d_V1, size_t volume_size) {
 	unsigned block_size = 256;
 
 	dim3 dimBlock{ block_size };
@@ -170,11 +140,8 @@ void normalizeForFFT(T* d_V1, size_t volume_size) {
 	gpuErrchk(cudaPeekAtLastError());
 }
 
-template void normalizeForFFT<double>(double*, size_t);
-template void normalizeForFFT<float>(float*, size_t);
-
 template< typename T >
-void restorationSigmaCostError(T& error, const std::complex<T>* _d_fVol, const std::complex<T>* _d_fV1, const std::complex<T>* _d_fV2, const T* __restrict__ d_R2, T K1, T K2, size_t fourier_size) {
+void VolumeRestorationKernels<T>::restorationSigmaCostError(T& error, const std::complex<T>* _d_fVol, const std::complex<T>* _d_fV1, const std::complex<T>* _d_fV2, const T* __restrict__ d_R2, T K1, T K2, size_t fourier_size) {
 	const T inv_size = 1.0 / (2 * fourier_size);
 
 	const vec2_type<T>* __restrict__ d_fVol = (vec2_type<T>*)_d_fVol;
@@ -202,11 +169,8 @@ void restorationSigmaCostError(T& error, const std::complex<T>* _d_fVol, const s
 	error = thrust::transform_reduce(thrust::device, thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(fourier_size), error_func, static_cast<T>(0), thrust::plus<T>());
 }
 
-template void restorationSigmaCostError<double>(double&, const std::complex<double>*, const std::complex<double>*, const std::complex<double>*, const double* __restrict__, double, double, size_t);
-template void restorationSigmaCostError<float>(float&, const std::complex<float>*, const std::complex<float>*, const std::complex<float>*, const float* __restrict__, float, float, size_t);
-
 template< typename T >
-void computeDiffAndAverage(const T* __restrict__ d_V1, const T* __restrict__ d_V2, T* __restrict__ d_S, T* __restrict__ d_N, size_t volume_size) {
+void VolumeRestorationKernels<T>::computeDiffAndAverage(const T* __restrict__ d_V1, const T* __restrict__ d_V2, T* __restrict__ d_S, T* __restrict__ d_N, size_t volume_size) {
 	auto k = [=] __device__ (int n) {
 		d_N[n] = d_V1[n] - d_V2[n];
 		d_S[n] = (d_V1[n] + d_V2[n]) * static_cast<T>(0.5);
@@ -214,9 +178,6 @@ void computeDiffAndAverage(const T* __restrict__ d_V1, const T* __restrict__ d_V
 
 	thrust::for_each_n(thrust::device, thrust::counting_iterator<int>(0), volume_size, k);
 }
-
-template void computeDiffAndAverage<double>(const double* __restrict__, const double* __restrict__, double* __restrict__, double* __restrict__, size_t);
-template void computeDiffAndAverage<float>(const float* __restrict__, const float* __restrict__, float* __restrict__, float* __restrict__, size_t);
 
 template< typename T >
 std::pair<T, T> normAvgStd(T avg, T std, size_t size) {
@@ -234,7 +195,7 @@ std::pair<T, T> normAvgStd(T avg, T std, size_t size) {
 }
 
 template< typename T >
-std::pair<T, T> computeAvgStd(const T* __restrict__ d_N, size_t volume_size) {
+std::pair<T, T> VolumeRestorationKernels<T>::computeAvgStd(const T* __restrict__ d_N, size_t volume_size) {
 	const T avg = thrust::reduce(thrust::device, d_N, d_N + volume_size);
 
 	auto square_kernel = [=] __device__ (T x) {
@@ -246,11 +207,8 @@ std::pair<T, T> computeAvgStd(const T* __restrict__ d_N, size_t volume_size) {
 	return normAvgStd(avg, std, volume_size);
 }
 
-template std::pair<double, double> computeAvgStd<double>(const double* __restrict__, size_t);
-template std::pair<float, float> computeAvgStd<float>(const float* __restrict__, size_t);
-
 template< typename T >
-std::pair<T, T> computeAvgStdWithMask(const T* __restrict__ d_N, const int* __restrict__ d_mask, size_t mask_size, size_t volume_size) {
+std::pair<T, T> VolumeRestorationKernels<T>::computeAvgStdWithMask(const T* __restrict__ d_N, const int* __restrict__ d_mask, size_t mask_size, size_t volume_size) {
 	auto masked_k = [=] __device__ (int n) {
 		if (d_mask[n]) {
 			return d_N[n];
@@ -276,11 +234,8 @@ std::pair<T, T> computeAvgStdWithMask(const T* __restrict__ d_N, const int* __re
 	return normAvgStd(avg, std, mask_size);
 }
 
-template std::pair<double, double> computeAvgStdWithMask<double>(const double* __restrict__, const int* __restrict__, size_t, size_t);
-template std::pair<float, float> computeAvgStdWithMask<float>(const float* __restrict__, const int* __restrict__, size_t, size_t);
-
 template< typename T >
-void computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __restrict__ d_S, const T* __restrict__ d_N, T k, size_t volume_size) {
+void VolumeRestorationKernels<T>::computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __restrict__ d_S, const T* __restrict__ d_N, T k, size_t volume_size) {
 	auto ker = [=] __device__ (int n) {
 		const T Nn = d_N[n];
 		const T w = exp(k * Nn * Nn);
@@ -292,21 +247,13 @@ void computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __re
 	thrust::for_each_n(thrust::device, thrust::counting_iterator<int>(0), volume_size, ker);
 }
 
-template void computeDifference<double>(double* __restrict__, double* __restrict__, const double* __restrict__, const double* __restrict__, double, size_t);
-template void computeDifference<float>(float* __restrict__, float* __restrict__, const float* __restrict__, const float* __restrict__, float, size_t);
-
-size_t computeMaskSize(const int* __restrict__ d_mask, size_t volume_size) {
+template< typename T >
+size_t VolumeRestorationKernels<T>::computeMaskSize(const int* __restrict__ d_mask, size_t volume_size) {
 	return thrust::reduce(thrust::device, d_mask, d_mask + volume_size);
 }
 
 template< typename T >
-void multiplyByConstant(T* __restrict__ d_array, T c, size_t volume_size) {
-	// auto k = [ c ] __device__ (int x) {
-	// 	return x * c;
-	// };
-
-	// thrust::transform(thrust::device, d_array, d_array + volume_size, d_array, k);
-
+void VolumeRestorationKernels<T>::multiplyByConstant(T* __restrict__ d_array, T c, size_t volume_size) {
 	auto k = [=] __device__ (int n) {
 		d_array[n] = d_array[n] * c;
 	};
@@ -314,7 +261,7 @@ void multiplyByConstant(T* __restrict__ d_array, T c, size_t volume_size) {
 	thrust::for_each_n(thrust::device, thrust::counting_iterator<int>(0), volume_size, k);
 }
 
-template void multiplyByConstant<double>(double* __restrict__, double, size_t);
-template void multiplyByConstant<float>(float* __restrict__, float, size_t);
+template class VolumeRestorationKernels<double>;
+template class VolumeRestorationKernels<float>;
 
 } // namespace Gpu

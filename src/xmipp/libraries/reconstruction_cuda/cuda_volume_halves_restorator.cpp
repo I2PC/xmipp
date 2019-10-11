@@ -14,7 +14,7 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
 
     size_t mask_size = 0;
     if (d_mask) {
-    	mask_size = Gpu::computeMaskSize(d_mask, volume_size);
+    	mask_size = Gpu::VolumeRestorationKernels<T>::computeMaskSize(d_mask, volume_size);
     }
 
     T* d_S;
@@ -33,9 +33,9 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
 
     for (int i = 0; i < denoisingIters; ++i) {
         estimateS(d_volume1, d_volume2, d_mask, d_S, d_fVol, volume_size, fourier_size);
-        Gpu::normalizeForFFT(d_S, volume_size);
+        Gpu::VolumeRestorationKernels<T>::normalizeForFFT(d_S, volume_size);
         if (d_mask) {
-            Gpu::maskForCDF(d_aux, d_S, d_mask, volume_size);
+            Gpu::VolumeRestorationKernels<T>::maskForCDF(d_aux, d_S, d_mask, volume_size);
             cdfS.calculateCDF(d_aux);
         } else {
             cdfS.calculateCDF(d_S);
@@ -54,20 +54,20 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
 template< typename T >
 void VolumeHalvesRestorator<T>::estimateS(const T* d_volume1, const T* d_volume2, const int* d_mask, T* d_S, Complex* d_fVol, size_t size, size_t fourier_size) {
     if (d_mask) {
-        Gpu::computeAveragePositivity(d_volume1, d_volume2, d_S, d_mask, size);
+        Gpu::VolumeRestorationKernels<T>::computeAveragePositivity(d_volume1, d_volume2, d_S, d_mask, size);
     } else {
-        Gpu::computeAveragePositivity(d_volume1, d_volume2, d_S, size);
+        Gpu::VolumeRestorationKernels<T>::computeAveragePositivity(d_volume1, d_volume2, d_S, size);
     }
 
     CudaFFT<T>::fft(*planForward, d_S, d_fVol);
-    Gpu::filterS(d_R2, d_fVol, fourier_size);
+    Gpu::VolumeRestorationKernels<T>::filterS(d_R2, d_fVol, fourier_size);
     CudaFFT<T>::ifft(*planBackward, d_fVol, d_S);
 }
 
 template< typename T >
 void VolumeHalvesRestorator<T>::significanceRealSpace(T* d_volume, const T* d_S, Gpu::CDF<T>& cdfS, Gpu::CDF<T>& cdfN, size_t size) {
 	cdfN.calculateCDF(d_volume, d_S);
-    Gpu::maskWithNoiseProbability(d_volume, cdfS, cdfN, size);
+    Gpu::VolumeRestorationKernels<T>::maskWithNoiseProbability(d_volume, cdfS, cdfN, size);
 }
 
 // FFT_IDX2DIGFREQ macro from xmipp_fftw.h
@@ -123,7 +123,7 @@ void VolumeHalvesRestorator<T>::deconvolution(T* d_volume1, T* d_volume2) {
 
     for (int i = 0; i < deconvolutionIters; ++i) {
         estimateS(d_volume1, d_volume2, nullptr, d_S, d_fVol,  volume_size, fourier_size);
-        Gpu::normalizeForFFT(d_S, volume_size);
+        Gpu::VolumeRestorationKernels<T>::normalizeForFFT(d_S, volume_size);
 
         CudaFFT<T>::fft(*planForward, d_S, d_fVol);
         CudaFFT<T>::fft(*planForward, d_volume1, d_fV1);
@@ -136,7 +136,7 @@ void VolumeHalvesRestorator<T>::deconvolution(T* d_volume1, T* d_volume2) {
         CudaFFT<T>::ifft(*planBackward, d_fV1, d_volume1);
         CudaFFT<T>::ifft(*planBackward, d_fV2, d_volume2);
 
-        Gpu::normalizeForFFT(d_volume1, d_volume2, volume_size);
+        Gpu::VolumeRestorationKernels<T>::normalizeForFFT(d_volume1, d_volume2, volume_size);
 
     }
 
@@ -145,7 +145,7 @@ void VolumeHalvesRestorator<T>::deconvolution(T* d_volume1, T* d_volume2) {
 
     convolveS(d_fVol, sigmaConv1, sigmaConv2, fourier_size);
     CudaFFT<T>::ifft(*planBackward, d_fVol, d_S);
-    Gpu::normalizeForFFT(d_S, volume_size);
+    Gpu::VolumeRestorationKernels<T>::normalizeForFFT(d_S, volume_size);
 
     convolvedS.resize(zdim, ydim, xdim);
     gpuErrchk( cudaMemcpy(convolvedS.data, d_S, memsize, cudaMemcpyDeviceToHost) );
@@ -191,7 +191,7 @@ double VolumeHalvesRestorator<T>::restorationSigmaCost(double *x, void *_prm) {
 
     auto pointers = prm->restorationPointers;
 
-    Gpu::restorationSigmaCostError(error, pointers.d_fVol, pointers.d_fV1,
+    Gpu::VolumeRestorationKernels<T>::restorationSigmaCostError(error, pointers.d_fVol, pointers.d_fV1,
                                 pointers.d_fV2, pointers.d_R2, K1, K2, pointers.fourier_size);
 
     return static_cast<T>(error);
@@ -206,7 +206,7 @@ void VolumeHalvesRestorator<T>::deconvolveS(Complex* d_fVol, Complex* d_fV1, Com
     const T K1 = -0.5 / (sigmaConv1 * sigmaConv1);
     const T K2 = -0.5 / (sigmaConv2 * sigmaConv2);
 
-    Gpu::deconvolveRestored(d_fVol, d_fV1, d_fV2, d_R2,
+    Gpu::VolumeRestorationKernels<T>::deconvolveRestored(d_fVol, d_fV1, d_fV2, d_R2,
                         K1, K2, lambda, volume_size, fourier_size);
 }
 
@@ -215,7 +215,7 @@ void VolumeHalvesRestorator<T>::convolveS(Complex* d_fVol, T sigmaConv1, T sigma
     const T sigmaConv = (sigmaConv1 + sigmaConv2) / 2;
     const T K = -0.5 / (sigmaConv * sigmaConv);
 
-    Gpu::convolveFourierVolume(d_fVol, d_R2, K, fourier_size);
+    Gpu::VolumeRestorationKernels<T>::convolveFourierVolume(d_fVol, d_R2, K, fourier_size);
 }
 
 template< typename T >
@@ -224,7 +224,7 @@ void VolumeHalvesRestorator<T>::filterBank(T* d_volume1, T* d_volume2) {
 		return;
 	}
 
-	Gpu::normalizeForFFT(d_volume1, d_volume2, volume_size);
+	Gpu::VolumeRestorationKernels<T>::normalizeForFFT(d_volume1, d_volume2, volume_size);
 
     Complex* d_fV1;
     Complex* d_fV2;
@@ -267,7 +267,7 @@ void VolumeHalvesRestorator<T>::filterBank(T* d_volume1, T* d_volume2) {
 
         cdf_mN.calculateCDF(d_Vfiltered1, d_Vfiltered2);
 
-        Gpu::computeWeights(d_Vfiltered1, d_Vfiltered2, d_volume1, d_volume2, d_S, volume_size, cdf_mN, weightPower, weightFun);
+        Gpu::VolumeRestorationKernels<T>::computeWeights(d_Vfiltered1, d_Vfiltered2, d_volume1, d_volume2, d_S, volume_size, cdf_mN, weightPower, weightFun);
 
         if (verbosity > 0) {
         	progress_bar(++i);
@@ -279,9 +279,9 @@ void VolumeHalvesRestorator<T>::filterBank(T* d_volume1, T* d_volume2) {
     }
 
     const T notOverlap = 1 - bankOverlap;
-    Gpu::multiplyByConstant(d_S, notOverlap, volume_size);
-    Gpu::multiplyByConstant(d_volume1, notOverlap, volume_size);
-    Gpu::multiplyByConstant(d_volume2, notOverlap, volume_size);
+    Gpu::VolumeRestorationKernels<T>::multiplyByConstant(d_S, notOverlap, volume_size);
+    Gpu::VolumeRestorationKernels<T>::multiplyByConstant(d_volume1, notOverlap, volume_size);
+    Gpu::VolumeRestorationKernels<T>::multiplyByConstant(d_volume2, notOverlap, volume_size);
 
     filterBankVolume.resize(zdim, ydim, xdim);
     gpuErrchk( cudaMemcpy(filterBankVolume.data, d_S, memsize, cudaMemcpyDeviceToHost) );
@@ -299,7 +299,7 @@ void VolumeHalvesRestorator<T>::filterBand(const Complex* d_fV, T* d_filtered, C
     const T w2 = w * w;
     const T w2Step = (w + bankStep) * (w + bankStep);
 
-    Gpu::filterFourierVolume(d_R2, d_fV, d_buffer, fourier_size, w2, w2Step);
+    Gpu::VolumeRestorationKernels<T>::filterFourierVolume(d_R2, d_fV, d_buffer, fourier_size, w2, w2Step);
     CudaFFT<T>::ifft(*planBackward, d_buffer, d_filtered);
 }
 
@@ -316,23 +316,23 @@ void VolumeHalvesRestorator<T>::difference(T* d_volume1, T* d_volume2, const int
 
 	size_t mask_size = 0;
 	if (d_mask) {
-		mask_size = Gpu::computeMaskSize(d_mask, volume_size);
+		mask_size = Gpu::VolumeRestorationKernels<T>::computeMaskSize(d_mask, volume_size);
 	}
 
     for (int i = 0; i < differenceIters; ++i) {
-        Gpu::computeDiffAndAverage(d_volume1, d_volume2, d_S, d_N, volume_size);
+        Gpu::VolumeRestorationKernels<T>::computeDiffAndAverage(d_volume1, d_volume2, d_S, d_N, volume_size);
         T avg, std;
         if (d_mask) {
-            std::tie(avg, std) = Gpu::computeAvgStdWithMask(d_N, d_mask, mask_size, volume_size);
+            std::tie(avg, std) = Gpu::VolumeRestorationKernels<T>::computeAvgStdWithMask(d_N, d_mask, mask_size, volume_size);
         } else {
-            std::tie(avg, std) = Gpu::computeAvgStd(d_N, volume_size);
+            std::tie(avg, std) = Gpu::VolumeRestorationKernels<T>::computeAvgStd(d_N, volume_size);
         }
         std *= Kdiff;
 
-        Gpu::computeDifference(d_volume1, d_volume2, d_S, d_N, -static_cast<T>(0.5) / (std * std), volume_size);
+        Gpu::VolumeRestorationKernels<T>::computeDifference(d_volume1, d_volume2, d_S, d_N, -static_cast<T>(0.5) / (std * std), volume_size);
     }
 
-    Gpu::computeDiffAndAverage(d_volume1, d_volume2, d_S, d_N, volume_size);
+    Gpu::VolumeRestorationKernels<T>::computeDiffAndAverage(d_volume1, d_volume2, d_S, d_N, volume_size);
 
     averageDifference.resize(zdim, ydim, xdim);
     gpuErrchk( cudaMemcpy(averageDifference.data, d_S, memsize, cudaMemcpyDeviceToHost) );
