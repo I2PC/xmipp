@@ -295,4 +295,26 @@ void computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __re
 template void computeDifference<double>(double* __restrict__, double* __restrict__, const double* __restrict__, const double* __restrict__, double, size_t);
 template void computeDifference<float>(float* __restrict__, float* __restrict__, const float* __restrict__, const float* __restrict__, float, size_t);
 
+size_t computeMaskSize(const int* __restrict__ d_mask, size_t volume_size) {
+	return thrust::reduce(thrust::device, d_mask, d_mask + volume_size);
+}
+
+template< typename T >
+void multiplyByConstant(T* __restrict__ d_array, T c, size_t volume_size) {
+	// auto k = [ c ] __device__ (int x) {
+	// 	return x * c;
+	// };
+
+	// thrust::transform(thrust::device, d_array, d_array + volume_size, d_array, k);
+
+	auto k = [=] __device__ (int n) {
+		d_array[n] = d_array[n] * c;
+	};
+
+	thrust::for_each_n(thrust::device, thrust::counting_iterator<int>(0), volume_size, k);
+}
+
+template void multiplyByConstant<double>(double* __restrict__, double, size_t);
+template void multiplyByConstant<float>(float* __restrict__, float, size_t);
+
 } // namespace Gpu

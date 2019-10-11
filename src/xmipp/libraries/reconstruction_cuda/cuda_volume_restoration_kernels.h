@@ -55,6 +55,11 @@ std::pair<T, T> computeAvgStdWithMask(const T* __restrict__ d_N, const int* __re
 template< typename T >
 void computeDifference(T* __restrict__ d_V1, T* __restrict__ d_V2, const T* __restrict__ d_S, const T* __restrict__ d_N, T k, size_t volume_size);
 
+size_t computeMaskSize(const int* __restrict__ d_mask, size_t volume_size);
+
+template< typename T >
+void multiplyByConstant(T* __restrict__ d_array, T c, size_t volume_size);
+
 } // namespace Gpu
 
 #endif // CUDA_VOLUME_RESTORATION_KERNELS

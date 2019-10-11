@@ -5,6 +5,9 @@
 
 #include <core/multidim_array.h>
 
+#include "reconstruction_cuda/cuda_fft.h"
+#include "cuda_cdf.h"
+
 /*
 * Computation for ProgVolumeHalvesRestorationGpu
 * This class does not check validity of parameters, it assumes
@@ -46,8 +49,26 @@ class VolumeHalvesRestorator {
 	const T weightPower;
 
 	/*
-	* Binary mask
+	* Sizes of allocated arrays on gpu
 	*/
+	size_t xdim;
+	size_t ydim;
+	size_t zdim;
+	size_t volume_size;
+	size_t fourier_size; // size of complex array used in FFT
+	size_t memsize;
+	size_t fourier_memsize;
+
+	/*
+	* Plans for CuFFT
+	*/
+	cufftHandle *planForward, *planBackward;
+	GPU gpu;
+
+	/*
+	* Filter
+	*/
+	T* d_R2;
 
 	/*
 	* Results of computation
@@ -93,21 +114,9 @@ public:
 
 	/*
 	 * Runs the volume halves restoration algorithm
+	 * `volume1`, `volume2`, `mask` must have same dimensions
 	*/
-	void apply(const MultidimArray<T>& volume1, const MultidimArray<T>& volume2, const int* mask) {
-    // denoise();
-    // deconvolution();
-
-    // if (bankStep > 0) {
-    //     filterBank();
-    // }
-
-    // difference();
-
-    // freeDeviceMemory(d_R2, d_mask);
-    // CudaFFT<T>::release(planForward);
-    // CudaFFT<T>::release(planBackward);
-	}
+	void apply(const MultidimArray<T>& volume1, const MultidimArray<T>& volume2, const int* mask);
 
 	/*
 	 * Following methods are getters for reconstructed volumes and other results
@@ -119,20 +128,64 @@ public:
 	const MultidimArray<T>& getConvolvedS() const { return convolvedS; }
 	const MultidimArray<T>& getAverageDifference() const { return averageDifference; }
 
+	/*
+	 * Powell optimizer uses error function, this struct provides
+	 * data for computing the error using restorationSigmaCost static function
+	*/
+	struct {
+        T* d_R2;
+        Complex* d_fVol;
+        Complex* d_fV1;
+        Complex* d_fV2;
+        size_t fourier_size;
+    } restorationPointers;
+
 private:
 
-	void filterBank();
+	void createFFTPlans();
+	void initializeFilter();
+
+	/*
+	 * Filter bank functions
+	*/
+	void filterBank(T* d_volume1, T* d_volume2);
     void filterBand(const Complex* d_fV, T* d_filtered, Complex* d_buffer, T w, size_t fourier_size);
 
+	/*
+	 * Denoising functions
+	*/
+    void denoise(T* d_volume1, T* d_volume2, const int* d_mask);
+    void estimateS(const T* d_volume1, const T* d_volume2, const int* d_mask, T* d_S, Complex* d_fVol, size_t size, size_t fourier_size);
+    void significanceRealSpace(T* d_volume, const T* d_S, Gpu::CDF<T>& cdfS, Gpu::CDF<T>& cdfN, size_t size);
+
+    /*
+	 * Deconvolution functions
+    */
+    void deconvolution(T* d_volume1, T* d_volume2);
+    void updateRestorationPointers(Complex* d_fVol, Complex* d_fV1, Complex* d_fV2);
+    std::pair<T, T> optimizeSigma(T sigmaConv1, T sigmaConv2);
+    void deconvolveS(Complex* d_fVol, Complex* d_fV1, Complex* d_fV2, T sigmaConv1, T sigmaConv2, size_t fourier_size);
+    void convolveS(Complex* d_fVol, T sigmaConv1, T sigmaConv2, size_t fourier_size);
+
+    /*
+	 * Difference functions
+    */
+    void difference(T* d_volume1, T* d_volume2, const int* d_mask);
+
     void setSizes(const MultidimArray<T>& volume) {
-	   	int xdim = XSIZE(volume);
-	    int ydim = YSIZE(volume);
-	    int zdim = ZSIZE(volume);
-	    int volume_size = xdim * ydim * zdim;
-	    int fourier_size = xdim * ydim * (zdim / 2 + 1);
-	    int memsize = volume_size * type_size;
-	    int fourier_memsize = fourier_size * complex_size;
+	   	xdim = XSIZE(volume);
+	    ydim = YSIZE(volume);
+	    zdim = ZSIZE(volume);
+	    volume_size = xdim * ydim * zdim;
+	    fourier_size = xdim * ydim * (zdim / 2 + 1);
+	    memsize = volume_size * type_size;
+	    fourier_memsize = fourier_size * complex_size;
     }
+
+    /*
+	 * Used as cost function for powell optimizer
+    */
+    static double restorationSigmaCost(double *x, void *_prm);
 
 };
 
