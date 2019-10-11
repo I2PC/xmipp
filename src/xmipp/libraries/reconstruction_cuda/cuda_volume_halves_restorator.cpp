@@ -1,10 +1,8 @@
 #include "cuda_volume_halves_restorator.h"
 
-#include <core/xmipp_fftw.h>
 #include <data/numerical_tools.h>
 
 #include "cuda_asserts.h"
-
 
 #include "cuda_volume_restoration_kernels.h"
 
@@ -72,6 +70,11 @@ void VolumeHalvesRestorator<T>::significanceRealSpace(T* d_volume, const T* d_S,
     Gpu::maskWithNoiseProbability(d_volume, cdfS, cdfN, size);
 }
 
+// FFT_IDX2DIGFREQ macro from xmipp_fftw.h
+double fft_idx2digfreq(int idx, size_t size) {
+    return (size<=1)? 0:(( (((int)idx) <= (((int)(size)) >> 1)) ? ((int)(idx)) : -((int)(size)) + ((int)(idx))) / (double)(size));
+}
+
 template< typename T >
 void VolumeHalvesRestorator<T>::initializeFilter() {
 	MultidimArray<T> R2;
@@ -79,9 +82,9 @@ void VolumeHalvesRestorator<T>::initializeFilter() {
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(R2)
     {
         double fz, fy, fx;
-        FFT_IDX2DIGFREQ(k, zdim, fz);
-        FFT_IDX2DIGFREQ(i, ydim, fy);
-        FFT_IDX2DIGFREQ(j, xdim, fx);
+        fz = fft_idx2digfreq(k, zdim);
+        fy = fft_idx2digfreq(i, ydim);
+        fx = fft_idx2digfreq(j, xdim);
         A3D_ELEM(R2, k, i, j) = fx*fx + fy*fy + fz*fz;
     }
 

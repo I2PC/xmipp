@@ -1,22 +1,10 @@
 #ifndef _PROG_VOLUME_HALVES_RESTORATION_GPU
 #define _PROG_VOLUME_HALVES_RESTORATION_GPU
 
-#include <chrono>
 #include <iostream>
-// #include <cuda_runtime_api.h>
 
 #include <core/xmipp_program.h>
-#include <core/xmipp_fftw.h>
-
 #include <data/mask.h>
-#include <data/numerical_tools.h>
-
-#include "reconstruction_cuda/cuda_cdf.h"
-#include "reconstruction_cuda/cuda_volume_restoration_kernels.h"
-#include "reconstruction_cuda/cuda_fft.h"
-#include "reconstruction_cuda/cuda_xmipp_utils.h"
-
-#include "reconstruction_cuda/cuda_volume_restoration_denoise.h"
 
 #include "reconstruction_cuda/cuda_volume_halves_restorator.h"
 
