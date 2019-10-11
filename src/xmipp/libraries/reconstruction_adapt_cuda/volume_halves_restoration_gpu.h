@@ -16,10 +16,6 @@ template< typename T >
 class ProgVolumeHalvesRestorationGpu : public XmippProgram {
     static_assert(std::is_floating_point<T>::value, "Only float and double are allowed as template parameters");
 
-    using Complex = std::complex<T>;
-    static constexpr size_t type_size = sizeof(T);
-    static constexpr size_t complex_size = sizeof(Complex);
-
     /** Filename of the two halves and the output root */
     FileName fnV1, fnV2, fnRoot;
 
