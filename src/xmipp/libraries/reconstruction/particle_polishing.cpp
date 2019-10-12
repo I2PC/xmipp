@@ -360,11 +360,7 @@ void ProgParticlePolishing::produceSideInfo()
 
 }
 
-
-
-
 void ProgParticlePolishing::averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent){
-
 
 	MDRow currentRow;
 	FileName fnPart;
@@ -421,6 +417,47 @@ void ProgParticlePolishing::averagingAll(const MetaData &mdPart, const MultidimA
 
 
 
+void ProgParticlePolishing::calculateCurve(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, double &slope, double &intercept){
+
+	int nStep=30;
+	MultidimArray<double> vectorAvg;
+	vectorAvg.initZeros(2, nStep);
+	double Dmin, Dmax;
+	Iproj.computeDoubleMinMax(Dmin, Dmax);
+	double step = (Dmax-Dmin)/double(nStep);
+	int offset = int(-Dmin/step);
+	//std::cerr << "variables: " << step << ", " << offset << ", " << Dmin << ", " << Dmax <<std::endl;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Iproj){
+		int pos = int(round(DIRECT_MULTIDIM_ELEM(Iproj, n)/step))+offset;
+		if(pos>=nStep)
+			pos=nStep-1;
+		DIRECT_A2D_ELEM(vectorAvg, 0, pos)+=1;
+		DIRECT_A2D_ELEM(vectorAvg, 1, pos)+=DIRECT_MULTIDIM_ELEM(Iavg, n);
+		//if (n==52083){
+		//if (pos==0){
+		//	std::cerr << n << ", " << pos << ", " << DIRECT_MULTIDIM_ELEM(Iproj, n) << ", " << DIRECT_MULTIDIM_ELEM(Iavg, n) << ", " << DIRECT_A2D_ELEM(vectorAvg, 1, pos) << ", " << DIRECT_A2D_ELEM(vectorAvg, 0, pos) << std::endl;
+		//}
+	}
+	//std::cerr << "vectorAvg calculado: " << vectorAvg << std::endl;
+	std::vector<double> x, y;
+	for(int n=0; n<nStep; n++){
+		if (DIRECT_A2D_ELEM(vectorAvg, 0, n)!=0)
+			DIRECT_A2D_ELEM(vectorAvg, 1, n)/=DIRECT_A2D_ELEM(vectorAvg, 0, n);
+		x.push_back(double(n));
+		y.push_back(DIRECT_A2D_ELEM(vectorAvg, 1, n));
+	}
+
+	double xSum=0, ySum=0, xxSum=0, xySum=0;
+	double n = y.size();
+	for (int i = 0; i < n; i++){
+		xSum += x[i];
+		ySum += y[i];
+		xxSum += x[i] * x[i];
+		xySum += x[i] * y[i];
+	}
+	slope = (n * xySum - xSum * ySum) / (n * xxSum - xSum * xSum);
+	intercept = (ySum - slope * xSum) / n;
+}
 
 
 void ProgParticlePolishing::run()
@@ -438,7 +475,7 @@ void ProgParticlePolishing::run()
 	Image<double> Ipart, projV, Iavg;
 	MDRow currentRow;
 	Matrix2D<double> A;
-	MultidimArray<double> matrixWeights, maxvalues;
+	MultidimArray<double> matrixWeights, maxvalues, dataArray;
 	Projection PV;
 	CTFDescription ctf;
 
@@ -452,12 +489,15 @@ void ProgParticlePolishing::run()
 	Filter.FilterShape=RAISED_COSINE;
 
 	double cutfreq;
-	double inifreq=0.1; //0.05;
+	double inifreq=0.5; //0.05;
 	double step=0.1; //0.05;
 	int Nsteps= int((0.5-inifreq)/step);
 	matrixWeights.initZeros(nMovies, nFrames, Nsteps+1, mdPartSize);
 	maxvalues.initZeros(nMovies);
+	dataArray.initZeros(4, mdPartSize);
 	maxvalues-=1.0;
+
+
 
 	size_t mvPrev, frPrev, partPrev, mv, fr, mvId, frId, partId;
 	for(int n=0; n<Nsteps+1; n++){
@@ -465,6 +505,7 @@ void ProgParticlePolishing::run()
 		iterPart->init(mdPart);
 		cutfreq = inifreq + step*n;
 
+		size_t prevMvId, prevPartId;
 		for(int i=0; i<mdPartSize; i++){
 		
 			//Project the volume with the parameters in the image
@@ -485,6 +526,12 @@ void ProgParticlePolishing::run()
 			currentRow.getValue(MDL_FRAME_ID,frId);
 			currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
 			currentRow.getValue(MDL_PARTICLE_ID,partId);
+
+			//Data array will be used to store some results - trying to make it in a smart way - who knows...
+			//Data array with partId in the first column
+			DIRECT_A2D_ELEM(dataArray, 0, i) = partId;
+			//Data array with mvId in the second column
+			DIRECT_A2D_ELEM(dataArray, 1, i) = mvId;
 
 			A.initIdentity(3);
 			MAT_ELEM(A,0,2)=x;
@@ -522,6 +569,11 @@ void ProgParticlePolishing::run()
 			//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
 			//the movie particles are averaged (all frames) to compare every pixel value
 			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, false);
+
+			//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
+			double slope=0, intercept=0;
+			calculateCurve(Iavg(), projV(), slope, intercept);
+			std::cerr << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
 
 			/*
 			//filtering the projected particles with the lowpass filter
@@ -574,7 +626,7 @@ void ProgParticlePolishing::run()
 			//DEBUG
 			if(frId==nFrames){
 				projV.write(formatString("projection_%i_%i.tif", frId, partId));
-				Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+				//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
 				Iavg.write(formatString("average_%i_%i.tif", frId, partId));
 			}
 			//END DEBUG//
