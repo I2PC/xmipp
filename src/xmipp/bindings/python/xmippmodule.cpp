@@ -1422,7 +1422,7 @@ PyInit_xmippLib(void)
 #else
 #define INITERROR return
 
-void
+PyObject *
 initxmippLib(void)
 #endif
 {
