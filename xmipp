@@ -1126,7 +1126,7 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
 def install(dirname):
     print("Installing ------------------------------------------")
     cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
-    cpCmd = "cp -R"
+    #cpCmd = "cp -R"
     ok = True
 
     createDir(dirname)
@@ -1189,12 +1189,12 @@ def install(dirname):
     fhBash.write("export XMIPP_SRC=%s\n"%XMIPP_SRC)
     fhFish.write("set -x XMIPP_SRC %s\n"%XMIPP_SRC)
 
-    # SCIPION_HOME = getScipionHome()
-    # if SCIPION_HOME:
-    #     fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
-    #     fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
-    #     fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
-    #     fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
+    SCIPION_HOME = getScipionHome()
+    if SCIPION_HOME:
+        fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
+        fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
+        #fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
+        fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
