@@ -1384,19 +1384,19 @@ error_out(PyObject *m) {
     return NULL;
 }
 
-static PyMethodDef myextension_methods[] = {
+static PyMethodDef xmippLib_methods[] = {
     {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},
     {NULL, NULL}
 };
 
 #if PY_MAJOR_VERSION >= 3
 
-static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+static int xmippLib_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->error);
     return 0;
 }
 
-static int myextension_clear(PyObject *m) {
+static int xmippLib_clear(PyObject *m) {
     Py_CLEAR(GETSTATE(m)->error);
     return 0;
 }
@@ -1409,8 +1409,8 @@ static struct PyModuleDef moduledef = {
         sizeof(struct module_state),
         xmipp_methods,
         NULL,
-        myextension_traverse,
-        myextension_clear,
+        xmippLib_traverse,
+        xmippLib_clear,
         NULL
 };
 
@@ -1438,7 +1438,7 @@ initxmippLib(void)
         INITERROR;
     struct module_state *st = GETSTATE(module);
 
-    st->error = PyErr_NewException("myextension.Error", NULL, NULL);
+    st->error = PyErr_NewException("xmippLib.Error", NULL, NULL);
     if (st->error == NULL) {
         Py_DECREF(module);
         INITERROR;
