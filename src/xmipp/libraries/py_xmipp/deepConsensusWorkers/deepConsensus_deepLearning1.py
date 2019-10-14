@@ -141,10 +141,6 @@ class DeepTFSupervised(object):
 
     '''
     K.clear_session()
-    del self.nNetModel
-    self.session.close()
-    tf.reset_default_graph()
-    gc.collect()
     
   def trainNet(self, nEpochs, dataManagerTrain, learningRate, l2RegStrength=1e-5, auto_stop=False):
     '''
