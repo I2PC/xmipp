@@ -1360,106 +1360,45 @@ xmipp_methods[] =
         { NULL } /* Sentinel */
     };//xmipp_methods
 
-#define INIT_TYPE(type) if (PyType_Ready(&type##Type) < 0) return; Py_INCREF(&type##Type);\
-    PyModule_AddObject(module, #type, (PyObject *) &type##Type);
-
-
-
-
-struct module_state {
-    PyObject *error;
-};
-
-#if PY_MAJOR_VERSION >= 3
-#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
-#else
-#define GETSTATE(m) (&_state)
-static struct module_state _state;
-#endif
-
-static PyObject *
-error_out(PyObject *m) {
-    struct module_state *st = GETSTATE(m);
-    PyErr_SetString(st->error, "something bad happened");
-    return NULL;
-}
-
-static PyMethodDef xmippLib_methods[] = {
-    {"error_out", (PyCFunction)error_out, METH_NOARGS, NULL},
-    {NULL, NULL}
-};
-
-static int xmippLib_traverse(PyObject *m, visitproc visit, void *arg) {
-    Py_VISIT(GETSTATE(m)->error);
-    return 0;
-}
-
-static int xmippLib_clear(PyObject *m) {
-    Py_CLEAR(GETSTATE(m)->error);
-    return 0;
-}
+//#define INIT_TYPE(type) if (PyType_Ready(&type##Type) < 0) return; Py_INCREF(&type##Type);\
+//    PyModule_AddObject(module, #type, (PyObject *) &type##Type);
 
 
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "xmippLib",
-        NULL,
-        sizeof(struct module_state),
-        xmipp_methods,
-        NULL,
-        xmippLib_traverse,
-        xmippLib_clear,
-        NULL
+        "xmippLib",           /* m_name */
+        "xmippLib objects",   /* m_doc */
+        -1,                   /* m_size */
+        NULL,                 /* m_reload */
+        NULL,                 /* m_traverse */
+        NULL,                 /* m_clear */
+        NULL,                 /* m_free */
+        NULL,                 /* m_free */
 };
 
 PyMODINIT_FUNC
-PyInit_xmippLib(void)
-{
-  return initxmippLib();
-}
-
-
-PyObject *
-initxmippLib(void) {
+PyInit_xmippLib(void) {
     //Initialize module variable
-//    PyObject* module;
-//    module = Py_InitModule3("xmippLib", xmipp_methods,
-//                            "Xmipp module as a Python extension.");
-//
+
     PyObject *module = PyModule_Create(&moduledef);
 
-
-    if (module == NULL)
-        return NULL;
-    struct module_state *st = GETSTATE(module);
-
-    st->error = PyErr_NewException("xmippLib.Error", NULL, NULL);
-    if (st->error == NULL) {
-        Py_DECREF(module);
-        return NULL;
-    }
-
-    import_array();
-
     //Check types and add to module
-    INIT_TYPE(FileName);
-    INIT_TYPE(Image);
-    INIT_TYPE(MDQuery);
-    INIT_TYPE(MetaData);
-    INIT_TYPE(Program);
-    INIT_TYPE(SymList);
-    INIT_TYPE(FourierProjector);
+//    PyModule_AddObject(module, "xmipp_methods", (PyObject *)&xmipp_methods);
+//    PyModule_AddObject(module, "FileName", (PyObject *)&FileName);
+//    PyModule_AddObject(module, "Image", (PyObject *)&Image);
+//    PyModule_AddObject(module, "MDQuery", (PyObject *)&MDQuery);
+//    PyModule_AddObject(module, "MetaData", (PyObject *)&MetaData);
+//    PyModule_AddObject(module, "Program", (PyObject *)&Program);
+//    PyModule_AddObject(module, "SymList", (PyObject *)&SymList);
+//    PyModule_AddObject(module, "FourierProjector", (PyObject *)&FourierProjector);
 
-    //Add PyXmippError
-    char message[32] = "xmipp.XmippError";
-    PyXmippError = PyErr_NewException(message, NULL, NULL);
-    Py_INCREF(PyXmippError);
-    PyModule_AddObject(module, "XmippError", PyXmippError);
-
-    //Add MDLabel constants
-    PyObject *dict = PyModule_GetDict(module);
-    addLabels(dict);
-
+//    INIT_TYPE(FileName);
+//    INIT_TYPE(Image);
+//    INIT_TYPE(MDQuery);
+//    INIT_TYPE(MetaData);
+//    INIT_TYPE(Program);
+//    INIT_TYPE(SymList);
+//    INIT_TYPE(FourierProjector);
 
     return module;
 }

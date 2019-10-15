@@ -249,7 +249,15 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return 0 == p.poll()
 
 def cleanSources():
-    runJob("rm -rf %s build src" % CONFIG_FILE_NAME)
+    runJob("rm -rf %s build" % CONFIG_FILE_NAME)
+    runJob("rm -rf src/micrograph_cleaner_em")
+    runJob("rm -rf src/scipion-em-xmipp")
+    runJob("rm -rf src/xmipp/bin")
+    runJob("rm -rf src/xmipp/lib")
+    runJob("rm -rf src/xmipp/tests/.sconsign.dblite")
+    runJob("rm -rf src/xmippCore")
+    runJob("rm -rf src/xmippViz")
+
 
 def cleanBinaries():
     for ext in ['so', 'os', 'o']:
@@ -523,7 +531,7 @@ def configCompiler(configDict):
             configDict["CXXFLAGS"] += " -Werror"  # don't tolerate any warnings on build machine
             configDict["CXXFLAGS"] += " -O0"  # don't optimize on Travis, as it slows down the build
         else:
-            configDict["CXXFLAGS"] += " -O3"
+            configDict["CXXFLAGS"] += " -O0"
         if is_config_true("DEBUG"):
             configDict["CXXFLAGS"] += " -g"
     # Nothing special to add to LINKFLAGS
@@ -1416,7 +1424,7 @@ if __name__ == '__main__':
             print(red("\nCheck failed! Something wrong with the configuration.\n"))
             sys.exit(1)
     elif mode=="compile":
-        Nproc = 8 if n<3 else sys.argv[2]
+        Nproc = 12 if n<3 else sys.argv[2]
         compileDependencies(Nproc)
         if n<=3:
             ok = compile(Nproc)
@@ -1436,7 +1444,7 @@ if __name__ == '__main__':
         if n>2:
             Nproc=sys.argv[2]
         else:
-            Nproc=8
+            Nproc=12
         compileDependencies(Nproc)
         compile(Nproc)
         install("build")
@@ -1452,7 +1460,7 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        Nproc = 8
+        Nproc = 12
         branch = ''
         buildDir = 'build'
         for arg in sys.argv[2:]:
