@@ -1389,8 +1389,6 @@ static PyMethodDef xmippLib_methods[] = {
     {NULL, NULL}
 };
 
-#if PY_MAJOR_VERSION >= 3
-
 static int xmippLib_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->error);
     return 0;
@@ -1414,18 +1412,15 @@ static struct PyModuleDef moduledef = {
         NULL
 };
 
-#define INITERROR return NULL
-
 PyMODINIT_FUNC
 PyInit_xmippLib(void)
+{
+  return initxmippLib();
+}
 
-#else
-#define INITERROR return
 
 PyObject *
-initxmippLib(void)
-#endif
-{
+initxmippLib(void) {
     //Initialize module variable
 //    PyObject* module;
 //    module = Py_InitModule3("xmippLib", xmipp_methods,
@@ -1435,13 +1430,13 @@ initxmippLib(void)
 
 
     if (module == NULL)
-        INITERROR;
+        return NULL;
     struct module_state *st = GETSTATE(module);
 
     st->error = PyErr_NewException("xmippLib.Error", NULL, NULL);
     if (st->error == NULL) {
         Py_DECREF(module);
-        INITERROR;
+        return NULL;
     }
 
     import_array();
@@ -1456,16 +1451,15 @@ initxmippLib(void)
     INIT_TYPE(FourierProjector);
 
     //Add PyXmippError
-    char message[32]="xmipp.XmippError";
+    char message[32] = "xmipp.XmippError";
     PyXmippError = PyErr_NewException(message, NULL, NULL);
     Py_INCREF(PyXmippError);
     PyModule_AddObject(module, "XmippError", PyXmippError);
 
     //Add MDLabel constants
-    PyObject * dict = PyModule_GetDict(module);
+    PyObject *dict = PyModule_GetDict(module);
     addLabels(dict);
 
-    #if PY_MAJOR_VERSION >= 3
-       return module;
-    #endif
+
+    return module;
 }
