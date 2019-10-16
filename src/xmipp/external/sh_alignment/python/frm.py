@@ -5,7 +5,7 @@ Created on Sep 16, 2011
 '''
 
 import numpy as np
-from ..swig_frm import * # the path of this swig module should be set correctly in $PYTHONPATH
+from src.xmipp.external.sh_alignment.swig_frm import * # the path of this swig module should be set correctly in $PYTHONPATH
 from .vol2sf import vol2sf, fvol2sf
 
 

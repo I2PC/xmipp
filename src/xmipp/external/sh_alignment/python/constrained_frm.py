@@ -1,5 +1,5 @@
 from .frm import *
-from ..swig_frm import *
+from src.xmipp.external.sh_alignment.swig_frm import *
 from pytom.basic.structures import PyTomClass
 
 class AngularConstraint(PyTomClass):
@@ -34,7 +34,8 @@ class AngularConstraint(PyTomClass):
             c.fromXML(xml_obj)
             return c
         except Exception as e:
-            raise e
+            print("Error: ", e)
+            raise
 
 
 class FixedAngleConstraint(AngularConstraint):
@@ -179,7 +180,8 @@ def frm_find_topn_constrained_angles_interp(corr, n=5, dist=3.0, constraint=None
     return frm_find_topn_angles_interp(corr, n, dist)
 
 
-def frm_constrained_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, constraint=None, weights=None, position=None, num_seeds=5):
+def frm_constrained_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, constraint=None, weights=None, position=None, num_seeds=5,
+                          pytom_volume=None):
     """Find the best alignment (translation & rotation) of volume vg (reference) to match vf.
     For details, please check the paper.
 
