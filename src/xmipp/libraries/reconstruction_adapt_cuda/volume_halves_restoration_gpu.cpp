@@ -21,7 +21,7 @@ template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::readDenoisingParams() {
     const int iters = getIntParam("--denoising");
     if (iters < 0) {
-        throw std::runtime_error("`denoising N` has to be non-negative integer");
+        REPORT_ERROR(ERR_ARG_BADCMDLINE, "`denoising N` has to be non-negative integer");
     }
 
     builder.setDenoising(iters);
@@ -33,7 +33,7 @@ void ProgVolumeHalvesRestorationGpu<T>::readDeconvolutionParams() {
     const T sigma = getDoubleParam("--deconvolution", 1);
     const T lambda = getDoubleParam("--deconvolution", 2);
     if (iters < 0) {
-        throw std::runtime_error("`deconvolution N` has to be non-negative integer");
+        REPORT_ERROR(ERR_ARG_BADCMDLINE, "`deconvolution N` has to be non-negative integer");
     }
 
     builder.setDeconvolution(iters, sigma, lambda);
@@ -46,14 +46,14 @@ void ProgVolumeHalvesRestorationGpu<T>::readFilterBankParams() {
     const int weightFun = getIntParam("--filterBank", 2);
     const T weightPower = getDoubleParam("--filterBank", 3);
     if (bankStep < 0 || bankStep > 0.5001) {
-        throw std::runtime_error("`filterBank step` parameter has to be in interval [0, 0.5].");
+        REPORT_ERROR(ERR_ARG_BADCMDLINE, "`filterBank step` parameter has to be in interval [0, 0.5].");
     }
     if (bankOverlap < 0 || bankOverlap > 1.001) {
-        throw std::runtime_error("`filterBank overlap` parameter has to be in interval [0, 1]");
+        REPORT_ERROR(ERR_ARG_BADCMDLINE, "`filterBank overlap` parameter has to be in interval [0, 1]");
     }
 
     if (weightFun < 0 || weightFun > 3) {
-        throw std::runtime_error("`filterBank weightFun` parameter has to be 0, 1 or 2");
+        REPORT_ERROR(ERR_ARG_BADCMDLINE, "`filterBank weightFun` parameter has to be 0, 1 or 2");
     }
 
     builder.setFilterBank(bankStep, bankOverlap, weightFun, weightPower);
@@ -64,7 +64,7 @@ void ProgVolumeHalvesRestorationGpu<T>::readDifferenceParams() {
     const int iters = getIntParam("--difference");
     const T Kdiff = getDoubleParam("--difference", 1);
     if (iters < 0) {
-        throw std::runtime_error("`difference N` has to be non-negative integer");
+        REPORT_ERROR(ERR_ARG_BADCMDLINE, "`difference N` has to be non-negative integer");
     }
 
     builder.setDifference(iters, Kdiff);
@@ -148,13 +148,13 @@ template< typename T >
 void ProgVolumeHalvesRestorationGpu<T>::checkInputDimensions() {
     if (XSIZE(V1()) != XSIZE(V2()) || YSIZE(V1()) != YSIZE(V2())
         || ZSIZE(V1()) != ZSIZE(V2())) {
-        throw std::runtime_error("Input volumes have different dimensions");
+        REPORT_ERROR(ERR_MATRIX_DIM, "Input volumes have different dimensions");
     }
     if (maskData) {
         auto& maskArray = mask.get_binary_mask();
         if (XSIZE(V1()) != XSIZE(maskArray) || YSIZE(V1()) != YSIZE(maskArray)
             || ZSIZE(V1()) != ZSIZE(maskArray)) {
-            throw std::runtime_error("Mask and input volumes have different dimensions");
+            REPORT_ERROR(ERR_MATRIX_DIM, "Mask and input volumes have different dimensions");
         }
     }
 }
