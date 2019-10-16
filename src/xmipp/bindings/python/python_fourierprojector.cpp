@@ -42,7 +42,6 @@
  PyTypeObject FourierProjectorType =
  {
      PyObject_HEAD_INIT(NULL)
-     0, /*ob_size*/
      "xmipp.FourierProjector", /*tp_name*/
      sizeof(FourierProjectorObject), /*tp_basicsize*/
      0, /*tp_itemsize*/

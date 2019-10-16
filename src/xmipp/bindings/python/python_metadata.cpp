@@ -32,7 +32,6 @@
 PyTypeObject MDQueryType =
     {
         PyObject_HEAD_INIT(NULL)
-        0, /*ob_size*/
         "xmipp.MDQuery", /*tp_name*/
         sizeof(MDQueryObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
@@ -429,7 +428,6 @@ PyMethodDef MetaData_methods[] =
 PyTypeObject MetaDataType =
     {
         PyObject_HEAD_INIT(NULL)
-        0, /*ob_size*/
         "xmipp.MetaData", /*tp_name*/
         sizeof(MetaDataObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
@@ -437,7 +435,7 @@ PyTypeObject MetaDataType =
         MetaData_print, /*tp_print*/
         0, /*tp_getattr*/
         0, /*tp_setattr*/
-        MetaData_compare, /*tp_compare*/
+        0, /*tp_compare*/
         MetaData_repr, /*tp_repr*/
         0, /*tp_as_number*/
         0, /*tp_as_sequence*/
@@ -452,7 +450,7 @@ PyTypeObject MetaDataType =
         "Python wrapper to Xmipp MetaData class",/* tp_doc */
         0, /* tp_traverse */
         0, /* tp_clear */
-        0, /* tp_richcompare */
+        MetaData_RichCompareBool, /* tp_richcompare */
         0, /* tp_weaklistoffset */
         MetaData_iter, /* tp_iter */
         MetaData_iternext, /* tp_iternext */
@@ -504,8 +502,8 @@ MetaData_repr(PyObject * obj)
 }
 
 /* MetaData compare function */
-int
-MetaData_compare(PyObject * obj, PyObject * obj2)
+PyObject*
+MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
     MetaDataObject *md2 = (MetaDataObject*) obj2;
@@ -515,15 +513,29 @@ MetaData_compare(PyObject * obj, PyObject * obj2)
     {
         try
         {
-            if (*(self->metadata) == *(md2->metadata))
-                result = 0;
+            if (opid == Py_EQ)
+                {
+                    if (*(self->metadata) == *(md2->metadata))
+                        Py_RETURN_TRUE;
+                    else
+                       Py_RETURN_FALSE;
+                }
+            else if  (opid == Py_NE)
+                    {
+                        if (*(self->metadata) == *(md2->metadata))
+                            Py_RETURN_FALSE;
+                        else
+                            Py_RETURN_TRUE;
+                    }
+            else
+                return Py_NotImplemented;
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return result;
+    return NULL;
 }
 
 /* read */

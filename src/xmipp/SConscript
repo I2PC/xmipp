@@ -248,7 +248,7 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*
 
 addLib('xmippLib.so',
        dirs=['bindings'],
-       patterns=['python3.5m/*.cpp'],
+       patterns=['python/*.cpp'],
        incs=python_incdirs,
        libs=['python3.5m', 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')

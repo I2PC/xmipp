@@ -56,40 +56,11 @@ PyNumberMethods Image_NumberMethods =
         0, //unaryfunc nb_positive;
         0, //unaryfunc nb_absolute;
         0, //inquiry nb_nonzero;       /* Used by PyObject_IsTrue */
-        0, //unaryfunc nb_invert;
-        0, //binaryfunc  nb_lshift;
-        0, //binaryfunc  nb_rshift;
-        0, //binaryfunc  nb_and;
-        0, //binaryfunc  nb_xor;
-        0, //binaryfunc  nb_or;
-        0, //coercion nb_coerce;       /* Used by the coerce() function */
-        0, //unaryfunc nb_int;
-        0, //unaryfunc nb_long;
-        0, //unaryfunc nb_float;
-        0, //unaryfunc nb_oct;
-        0, //unaryfunc nb_hex;
-
         /* Added in release 2.0 */
         Image_iadd, //binaryfunc  nb_inplace_add;
         Image_isubtract, //binaryfunc  nb_inplace_subtract;
         Image_imultiply, //binaryfunc  nb_inplace_multiply;
         Image_idivide, //binaryfunc  nb_inplace_divide;
-        0, //binaryfunc  nb_inplace_remainder;
-        0, //ternaryfunc nb_inplace_power;
-        0, //binaryfunc  nb_inplace_lshift;
-        0, //binaryfunc  nb_inplace_rshift;
-        0, //binaryfunc  nb_inplace_and;
-        0, //binaryfunc  nb_inplace_xor;
-        0, //binaryfunc  nb_inplace_or;
-
-        /* Added in release 2.2 */
-        0, //binaryfunc  nb_floor_divide;
-        0, //binaryfunc  nb_true_divide;
-        0, //binaryfunc  nb_inplace_floor_divide;
-        0, //binaryfunc  nb_inplace_true_divide;
-
-        /* Added in release 2.5 */
-        0 //unaryfunc nb_index;
     };//Image_NumberMethods
 
 /* Image methods */
@@ -181,7 +152,6 @@ PyMethodDef Image_methods[] =
 /*Image Type */
 PyTypeObject ImageType = {
                              PyObject_HEAD_INIT(NULL)
-                             0, /*ob_size*/
                              "xmipp.Image", /*tp_name*/
                              sizeof(ImageObject), /*tp_basicsize*/
                              0, /*tp_itemsize*/
@@ -189,7 +159,7 @@ PyTypeObject ImageType = {
                              0, /*tp_print*/
                              0, /*tp_getattr*/
                              0, /*tp_setattr*/
-                             Image_compare, /*tp_compare*/
+                             0, /*tp_compare*/
                              Image_repr, /*tp_repr*/
                              &Image_NumberMethods, /*tp_as_number*/
                              0, /*tp_as_sequence*/
@@ -200,11 +170,11 @@ PyTypeObject ImageType = {
                              0, /*tp_getattro*/
                              0, /*tp_setattro*/
                              0, /*tp_as_buffer*/
-                             Py_TPFLAGS_DEFAULT | 0, /*tp_flags*/
+                             Py_TPFLAGS_DEFAULT, /*tp_flags*/
                              "Python wrapper to Xmipp Image class",/* tp_doc */
                              0, /* tp_traverse */
                              0, /* tp_clear */
-                             0, /* tp_richcompare */
+                             Image_RichCompareBool, /* tp_richcompare */
                              0, /* tp_weaklistoffset */
                              0, /* tp_iter */
                              0, /* tp_iternext */
@@ -218,7 +188,7 @@ PyTypeObject ImageType = {
                              0, /* tp_dictoffset */
                              0, /* tp_init */
                              0, /* tp_alloc */
-                             Image_new /* tp_new */
+                             Image_new, /* tp_new */
                          };//ImageType
 
 /* Constructor */
@@ -289,24 +259,37 @@ Image_repr(PyObject * obj)
 }//function Image_repr
 
 /* Image compare function */
-int
-Image_compare(PyObject * obj, PyObject * obj2)
+PyObject*
+Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
 {
-    int result = -1;
-
     if (obj != NULL && obj2 != NULL)
     {
         try
         {
-            if (Image_Value(obj) == Image_Value(obj2))
-                result = 0;
+            if (opid == Py_EQ)
+                {
+                    if (Image_Value(obj) == Image_Value(obj2))
+                        Py_RETURN_TRUE;
+                    else
+                       Py_RETURN_FALSE;
+                }
+            else if  (opid == Py_NE)
+                    {
+                        if (Image_Value(obj) == Image_Value(obj2))
+                            Py_RETURN_FALSE;
+                        else
+                           Py_RETURN_TRUE;
+                    }
+            else
+                return Py_NotImplemented;
+
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return result;
+    return NULL;
 }//function Image_compare
 
 /* Compare two images up to a precision */
@@ -594,7 +577,7 @@ class NumpyStaticImport
 public:
     NumpyStaticImport()
     {
-        import_array();
+        //import_array();
     }
 }
 ;//class NumpyStaticImport

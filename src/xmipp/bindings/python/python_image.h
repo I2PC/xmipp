@@ -63,8 +63,8 @@ PyObject *
 Image_repr(PyObject * obj);
 
 /* Image compare function */
-int
-Image_compare(PyObject * obj, PyObject * obj2);
+PyObject*
+Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
 
 
 /* Compare two images up to a precision */

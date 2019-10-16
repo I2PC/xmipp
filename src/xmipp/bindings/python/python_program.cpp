@@ -57,7 +57,6 @@ PyMethodDef Program_methods[] =
 PyTypeObject ProgramType =
 {
     PyObject_HEAD_INIT(NULL)
-    0, /*ob_size*/
     "xmipp.Program", /*tp_name*/
     sizeof(ProgramObject), /*tp_basicsize*/
     0, /*tp_itemsize*/

@@ -65,7 +65,6 @@ PyMethodDef FileName_methods[] =
 PyTypeObject FileNameType =
 {
    PyObject_HEAD_INIT(NULL)
-   0, /*ob_size*/
    "xmipp.FileName", /*tp_name*/
    sizeof(FileNameObject), /*tp_basicsize*/
    0, /*tp_itemsize*/
