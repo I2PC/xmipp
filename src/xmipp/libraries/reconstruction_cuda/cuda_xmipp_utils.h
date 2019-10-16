@@ -11,7 +11,6 @@ void myStreamDestroy(void *ptr);
 void myStreamCreate(myStreamHandle &myStream);
 void gpuMalloc(void** d_data, size_t Nbytes);
 void gpuFree(void* d_data);
-void gpuMemset(void* d_data, int value, size_t Nbytes);
 void cpuMalloc(void** h_data, size_t Nbytes);
 void cpuFree(void* h_data);
 void initializeIdentity(float* d_data, float *h_data, int Ndim, myStreamHandle &myStream);

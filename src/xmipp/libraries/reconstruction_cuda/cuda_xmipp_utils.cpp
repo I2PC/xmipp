@@ -203,11 +203,6 @@ void gpuFree(void* d_data)
 	gpuErrchk(cudaFree(d_data));
 }
 
-void gpuMemset(void* d_data, int value, size_t Nbytes)
-{
-	gpuErrchk(cudaMemset(d_data, value, Nbytes));
-}
-
 void cpuMalloc(void** h_data, size_t Nbytes)
 {
 	gpuErrchk(cudaMallocHost(h_data, Nbytes));
