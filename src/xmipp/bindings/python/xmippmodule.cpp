@@ -1360,7 +1360,7 @@ xmipp_methods[] =
         { NULL } /* Sentinel */
     };//xmipp_methods
 
-#define INIT_TYPE(type) if (PyType_Ready(&type##Type) < 0) return; Py_INCREF(&type##Type);\
+#define INIT_TYPE(type) if (PyType_Ready(&type##Type) < 0) return module; Py_INCREF(&type##Type);\
     PyModule_AddObject(module, #type, (PyObject *) &type##Type);
 
 
@@ -1373,7 +1373,7 @@ static struct PyModuleDef moduledef = {
         NULL,                 /* m_traverse */
         NULL,                 /* m_clear */
         NULL,                 /* m_free */
-        NULL,                 /* m_free */
+        NULL                  /* m_free */
 };
 
 PyMODINIT_FUNC
@@ -1384,21 +1384,15 @@ PyInit_xmippLib(void) {
 
     //Check types and add to module
 
-    PyModule_AddObject(module, "xmippLib", (PyObject *)&xmipp_methods);
-    PyModule_AddObject(module, "Image", (PyObject *)&ImageType);
-    PyModule_AddObject(module, "FourierProjector", (PyObject *)&FourierProjectorType);
-    PyModule_AddObject(module, "MDQuery", (PyObject *)&MDQueryType);
-    PyModule_AddObject(module, "MetaData", (PyObject *)&MetaDataType);
-    PyModule_AddObject(module, "Program", (PyObject *)&ProgramType);
-    PyModule_AddObject(module, "SymList", (PyObject *)&SymListType);
+    PyModule_AddObject(module, "xmippMethod", (PyObject *)&xmipp_methods);
 
-    //INIT_TYPE(FileName);
-//    INIT_TYPE(FourierProjector);
-//    INIT_TYPE(Image);
-//    INIT_TYPE(MDQuery);
-//    INIT_TYPE(MetaData);
-//    INIT_TYPE(Program);
-//    INIT_TYPE(SymList);
+    INIT_TYPE(FileName);
+    INIT_TYPE(FourierProjector);
+    INIT_TYPE(Image);
+    INIT_TYPE(MDQuery);
+    INIT_TYPE(MetaData);
+    INIT_TYPE(Program);
+    INIT_TYPE(SymList);
 
 
     //Add PyXmippError
