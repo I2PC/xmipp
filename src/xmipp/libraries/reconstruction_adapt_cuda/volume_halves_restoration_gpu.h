@@ -17,9 +17,12 @@ class ProgVolumeHalvesRestorationGpu : public XmippProgram {
     static_assert(std::is_floating_point<T>::value, "Only float and double are allowed as template parameters");
 
     /** Filename of the two halves and the output root */
-    FileName fnV1, fnV2, fnRoot;
+    FileName fnV1;
+    FileName fnV2;
+    FileName fnRoot;
 
-    Image<T> V1, V2;
+    Image<T> V1;
+    Image<T> V2;
     Mask mask;
     int* maskData = nullptr;
 

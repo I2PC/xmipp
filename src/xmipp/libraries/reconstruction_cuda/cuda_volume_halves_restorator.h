@@ -62,7 +62,8 @@ class VolumeHalvesRestorator {
 	/*
 	* Plans for CuFFT
 	*/
-	cufftHandle *planForward, *planBackward;
+	cufftHandle* planForward;
+	cufftHandle* planBackward;
 	GPU gpu;
 
 	/*
