@@ -1369,6 +1369,7 @@ static struct PyModuleDef moduledef = {
         "xmippLib",           /* m_name */
         "xmippLib objects",   /* m_doc */
         -1,                   /* m_size */
+        xmipp_methods,        /* xmipp_methods */
         NULL,                 /* m_reload */
         NULL,                 /* m_traverse */
         NULL,                 /* m_clear */
@@ -1383,14 +1384,13 @@ PyInit_xmippLib(void) {
     PyObject *module = PyModule_Create(&moduledef);
 
     //Check types and add to module
-//    PyModule_AddObject(module, "xmipp_methods", (PyObject *)&xmipp_methods);
-//    PyModule_AddObject(module, "FileName", (PyObject *)&FileName);
-//    PyModule_AddObject(module, "Image", (PyObject *)&Image);
-//    PyModule_AddObject(module, "MDQuery", (PyObject *)&MDQuery);
-//    PyModule_AddObject(module, "MetaData", (PyObject *)&MetaData);
-//    PyModule_AddObject(module, "Program", (PyObject *)&Program);
-//    PyModule_AddObject(module, "SymList", (PyObject *)&SymList);
-//    PyModule_AddObject(module, "FourierProjector", (PyObject *)&FourierProjector);
+    PyModule_AddObject(module, "FileName", (PyObject *)&FileName);
+    PyModule_AddObject(module, "Image", (PyObject *)&Image);
+    PyModule_AddObject(module, "MDQuery", (PyObject *)&MDQuery);
+    PyModule_AddObject(module, "MetaData", (PyObject *)&MetaData);
+    PyModule_AddObject(module, "Program", (PyObject *)&Program);
+    PyModule_AddObject(module, "SymList", (PyObject *)&SymList);
+    PyModule_AddObject(module, "FourierProjector", (PyObject *)&FourierProjector);
 
 //    INIT_TYPE(FileName);
 //    INIT_TYPE(Image);
