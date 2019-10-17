@@ -55,7 +55,7 @@ public:
     ResultType resultType;
     Dimensions dims = Dimensions(0);
     size_t batch = 0;
-    size_t maxDistFromCenter = 0;
+    float maxDistFromCenter = 0.f;
 
     Point3D<size_t> getCenter() const {
         return Point3D<size_t>(dims.x() / 2, dims.y() / 2, dims.z() / 2);

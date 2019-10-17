@@ -39,15 +39,20 @@ public:
         data = nullptr;
     }
 
-    void testMax(const ExtremaFinderSettings &s) {
+    void test(const ExtremaFinderSettings &s) {
 //        std::cout << s.dims << ", batch " << s.batch << "\n";
         if (s.dims.size() > maxDims.size()) {
             printf("skipping current setting (dimensions are bigger than preallocated data)\n");
             return;
         }
+        assert(ResultType::Both == s.resultType); // we will always test both results
         finder->init(s, true);
         finder->find(data);
-        checkMax(s);
+        switch(s.searchType) {
+            case SearchType::Max : return checkMax(s);
+            case SearchType::MaxAroundCenter : return checkMax2DAroundCenter(s);
+            default: FAIL() << "Test check not implemented";
+        }
     }
 
 private:
@@ -106,6 +111,98 @@ private:
         SingleExtremaFinder_Test<T>::runPerSignal(check, s.dims);
     }
 
+    void checkMax2DAroundCenterRowColumn(
+            const std::vector<size_t> &xVals, // only one of these should have more than a single value
+            const std::vector<size_t> &yVals, // only one of these should have more than a single value
+            const ExtremaFinderSettings &s,
+            size_t signalOffset,
+            float &val, float &pos) {
+        auto center =  s.getCenter();
+        float maxDistSq = s.maxDistFromCenter * s.maxDistFromCenter;
+//        printf("testing (center %lu %lu, max %f:\n", center.x, center.y, s.maxDistFromCenter);
+        for (auto x : xVals) {
+            for (auto y : yVals) {
+//                printf("x %lu y %lu:", x, y);
+                float d = std::pow((float)y-(float)center.y, 2) + std::pow((float)x-(float)center.x, 2);
+                if (d <= maxDistSq) {
+                    size_t offset = y * s.dims.x() + x;
+                    T v = data[signalOffset + offset];
+                    if (v > val) {
+//                        printf(" update (%f > %f)\n", v, val);
+                        val = v;
+                        pos = offset;
+                    } else {
+//                        printf(" don't update (%f <= %f)\n", v, val);
+                    }
+                } else {
+//                    printf(" skip\n");
+                }
+            }
+        }
+    }
+
+    void printData(const ExtremaFinderSettings &s) {
+        for (size_t n = 0; n < s.dims.n(); ++n) {
+            const size_t offsetN = n * s.dims.sizeSingle();
+            for (size_t y = 0; y < s.dims.y(); ++y) {
+                const size_t offsetY = y * s.dims.x();
+                for (size_t x = 0; x < s.dims.x(); ++x) {
+                    printf("%.2f\t", data[offsetN + offsetY + x]);
+                }
+              printf("\n");
+            }
+            printf("\n");
+        }
+    }
+
+    void checkMax2DAroundCenter(const ExtremaFinderSettings &s) {
+        const auto &tmp = *finder;
+        auto actPos = tmp.getPositions();
+        auto actVals = tmp.getValues();
+        EXPECT_EQ(s.dims.n(), actPos.size());
+        EXPECT_EQ(s.dims.n(), actVals.size());
+
+//        printData(s);
+
+        auto check = [&](size_t n, int id) {
+            float expPos = -1;
+            T expVal = std::numeric_limits<T>::lowest();
+            float currDistance = -1;
+            auto center =  s.getCenter();
+            const size_t elems = s.dims.sizeSingle();
+            const size_t signalOffset = n * elems;
+            // iterate from the center
+            while (currDistance <= s.maxDistFromCenter) {
+                currDistance += 1.f;
+                auto xVals = std::vector<size_t>(2 * currDistance + 1, -1);
+                std::iota(xVals.begin(), xVals.end(), center.x - currDistance);
+                auto yVals = std::vector<size_t>(2 * currDistance + 1, -1);
+                std::iota(yVals.begin(), yVals.end(), center.y - currDistance);
+                // check row above
+                checkMax2DAroundCenterRowColumn(xVals, {center.y - (size_t)currDistance}, s, signalOffset, expVal, expPos);
+                // check row bellow
+                checkMax2DAroundCenterRowColumn(xVals, {center.y + (size_t)currDistance}, s, signalOffset, expVal, expPos);
+                // check column left
+                checkMax2DAroundCenterRowColumn({center.x - (size_t)currDistance}, yVals, s, signalOffset, expVal, expPos);
+                // check column right
+                checkMax2DAroundCenterRowColumn({center.x + (size_t)currDistance}, yVals, s, signalOffset, expVal, expPos);
+            }
+            // check result
+            if (actPos.at(n) != expPos) {
+                if (std::abs(actVals.at(n) - expVal) < std::numeric_limits<T>::min()) {
+                    printf("Position mismatch for signal %lu (exp %.2f, act %.2f), "
+                            "but values are very similar: exp %.30f act %.30f. New value will be generated\n",
+                            n, expPos, actPos.at(n),
+                            expVal, actVals.at(n));
+                    return;
+                }
+            }
+            EXPECT_EQ(expPos, actPos.at(n)) << "for signal " << n << "\n";
+            ASSERT_EQ(actVals.at(n), expVal) << "for signal " << n << "\n";
+        };
+        SingleExtremaFinder_Test<T>::runPerSignal(check, s.dims);
+    }
+
     static std::mt19937 mt;
     static T * data;
     static Dimensions maxDims;
@@ -148,7 +245,7 @@ auto isNBatch = [] (size_t n, size_t batch) {
 //    settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
 //    settings.resultType = ResultType::Both;
 //    settings.searchType = SearchType::Max;
-//    SingleExtremaFinder_Test<TypeParam>::testMax(settings);
+//    SingleExtremaFinder_Test<TypeParam>::test(settings);
 //    XMIPP_CATCH;
 //}
 
@@ -176,7 +273,7 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax1D)
             settings.resultType = ResultType::Both;
             settings.searchType = SearchType::Max;
             settings.maxDistFromCenter = 0;
-            SingleExtremaFinder_Test<TypeParam>::testMax(settings);
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
         }
     }
 }
@@ -193,7 +290,7 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax1DMany)
         settings.resultType = ResultType::Both;
         settings.searchType = SearchType::Max;
         settings.maxDistFromCenter = 0;
-        SingleExtremaFinder_Test<TypeParam>::testMax(settings);
+        SingleExtremaFinder_Test<TypeParam>::test(settings);
     }
 }
 
@@ -214,7 +311,7 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax2D)
             settings.resultType = ResultType::Both;
             settings.searchType = SearchType::Max;
             settings.maxDistFromCenter = 0;
-            SingleExtremaFinder_Test<TypeParam>::testMax(settings);
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
         }
     }
 }
@@ -231,7 +328,7 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DMany)
         settings.resultType = ResultType::Both;
         settings.searchType = SearchType::Max;
         settings.maxDistFromCenter = 0;
-        SingleExtremaFinder_Test<TypeParam>::testMax(settings);
+        SingleExtremaFinder_Test<TypeParam>::test(settings);
     }
 }
 
@@ -252,9 +349,33 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax3D)
             settings.resultType = ResultType::Both;
             settings.searchType = SearchType::Max;
             settings.maxDistFromCenter = 0;
-            SingleExtremaFinder_Test<TypeParam>::testMax(settings);
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
         }
     }
+}
+
+TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DAroundCenter)
+{
+    XMIPP_TRY
+    auto mt = std::mt19937(42);
+    auto nBatch = std::vector<std::pair<size_t, size_t>>(); // n, batch
+    nBatch.emplace_back(1, 1);
+    nBatch.emplace_back(5, 5);
+    nBatch.emplace_back(10, 5);
+    nBatch.emplace_back(10, 6);
+    for (auto c : nBatch) {
+        for (int i = 0; i < 10; ++i) {
+            auto settings = ExtremaFinderSettings();
+            settings.batch = c.second;
+            settings.dims = Dimensions(randSize(10000, mt), randSize(10000, mt), 1, c.first);
+            settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
+            settings.resultType = ResultType::Both;
+            settings.searchType = SearchType::MaxAroundCenter;
+            settings.maxDistFromCenter = std::min(settings.dims.x(), settings.dims.y()) / 2 - 1;
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
+        }
+    }
+    XMIPP_CATCH
 }
 
 REGISTER_TYPED_TEST_CASE_P(SingleExtremaFinder_Test,
@@ -263,5 +384,6 @@ REGISTER_TYPED_TEST_CASE_P(SingleExtremaFinder_Test,
     findMax1DMany,
     findMax2D,
     findMax2DMany,
-    findMax3D
+    findMax3D,
+    findMax2DAroundCenter
 );
