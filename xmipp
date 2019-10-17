@@ -249,7 +249,6 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return 0 == p.poll()
 
 def cleanSources():
-    runJob("rm -rf %s build" % CONFIG_FILE_NAME)
     runJob("rm -rf src/micrograph_cleaner_em")
     runJob("rm -rf src/scipion-em-xmipp")
     runJob("rm -rf src/xmipp/bin")
@@ -1401,6 +1400,7 @@ if __name__ == '__main__':
         if yesno == "YeS":
             print("Cleaning everything")
             cleanSources()
+            cleanBinaries()
         else:
             print("Nothing cleaned")
             if yesno.lower()=="yes":
