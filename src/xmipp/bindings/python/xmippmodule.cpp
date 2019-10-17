@@ -1369,11 +1369,7 @@ static struct PyModuleDef moduledef = {
         "xmippLib",           /* m_name */
         "xmippLib objects",   /* m_doc */
         -1,                   /* m_size */
-        NULL,                 /* m_reload */
-        NULL,                 /* m_traverse */
-        NULL,                 /* m_clear */
-        NULL,                 /* m_free */
-        NULL                  /* m_free */
+        xmipp_methods         /* m_methods */
 };
 
 PyMODINIT_FUNC
@@ -1383,16 +1379,13 @@ PyInit_xmippLib(void) {
     PyObject *module = PyModule_Create(&moduledef);
 
     //Check types and add to module
-
-    PyModule_AddObject(module, "xmippMethod", (PyObject *)&xmipp_methods);
-
     INIT_TYPE(FileName);
-    INIT_TYPE(FourierProjector);
     INIT_TYPE(Image);
     INIT_TYPE(MDQuery);
     INIT_TYPE(MetaData);
     INIT_TYPE(Program);
     INIT_TYPE(SymList);
+    INIT_TYPE(FourierProjector);
 
 
     //Add PyXmippError
