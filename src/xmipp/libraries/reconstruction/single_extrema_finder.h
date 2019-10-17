@@ -61,8 +61,8 @@ public:
     static void sFindMax2DAroundCenter(const CPU &cpu,
         const Dimensions &dims,
         const T *data,
-        float *positions,
-        T * values,
+        float *positions, // can be nullptr
+        T * values, // can be nullptr
         size_t maxDist);
 
 private:

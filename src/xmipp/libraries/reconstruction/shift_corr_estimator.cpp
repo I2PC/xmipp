@@ -283,10 +283,18 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
     FFTwT<T>::ifft(plan, othersF, othersS);
 
     // compute shifts
+    auto maxIndices = std::vector<float>(settings.sDim().n(), -1.f);
+    ExtremaFinder::SingleExtremaFinder<T>::sFindMax2DAroundCenter(cpu, settings.sDim(),
+            othersS, maxIndices.data(), nullptr, maxShift);
+    // convert absolute indices to 2D position
+    // FIXME DS extract this to some indexing utils or sth
+    int cX = settings.sDim().x() / 2;
+    int cY = settings.sDim().y() / 2;
     auto result = std::vector<Point2D<float>>();
-    AShiftCorrEstimator<T>::findMaxAroundCenter(
-            othersS, settings.sDim(),
-            maxShift, result);
+    const int x = settings.sDim().x();
+    for (auto i : maxIndices) {
+        result.emplace_back(((int)i % x) - cX, ((int)i / x) - cY);
+    }
     return result;
 }
 

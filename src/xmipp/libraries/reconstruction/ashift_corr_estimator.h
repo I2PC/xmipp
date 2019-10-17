@@ -62,11 +62,6 @@ public:
             const Dimensions &dims,
             bool center) = 0;
 
-    static std::vector<T> findMaxAroundCenter(
-            const T *data,
-            const Dimensions &dims,
-            size_t maxShift,
-            std::vector<Point2D<float>> &shifts);
     void release() override;
 
 protected:

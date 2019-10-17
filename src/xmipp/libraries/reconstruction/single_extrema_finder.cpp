@@ -154,8 +154,7 @@ void SingleExtremaFinder<T>::sFindMax2DAroundCenter(
     assert(dims.sizeSingle() > 0);
     assert(dims.n() > 0);
     assert(nullptr != data);
-    assert(nullptr != positions);
-    assert(nullptr != values);
+    assert((nullptr != positions) || (nullptr != values));
     assert(0 < maxDist);
     const size_t xHalf = dims.x() / 2;
     const size_t yHalf = dims.y() / 2;
@@ -195,8 +194,12 @@ void SingleExtremaFinder<T>::sFindMax2DAroundCenter(
             }
         }
         // store results
-        positions[n] = pos;
-        values[n] = extrema;
+        if (nullptr != positions) {
+            positions[n] = pos;
+        }
+        if (nullptr != values) {
+            values[n] = extrema;
+        }
     }
 }
 
