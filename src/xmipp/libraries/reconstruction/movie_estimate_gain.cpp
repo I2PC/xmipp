@@ -169,9 +169,7 @@ void ProgMovieEstimateGain::run()
                 //Iframe.write(formatString("%i@%s"%(idx,fnCorrected)));
                 Iframe.write(fnCorrected, idx, WRITE_REPLACE);
             }
-	}
-        else
-        {
+	}else{
         for (int n=0; n<Niter; n++)
         {
             std::cout << "Iteration " << n << std::endl;
@@ -186,7 +184,7 @@ void ProgMovieEstimateGain::run()
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();
                     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(IframeIdeal)
-                        DIRECT_A2D_ELEM(IframeIdeal,i,j)=(int)(DIRECT_A2D_ELEM(IframeIdeal,i,j)*DIRECT_A2D_ELEM(mICorrection,i,j));
+                        DIRECT_A2D_ELEM(IframeIdeal,i,j)=(DIRECT_A2D_ELEM(IframeIdeal,i,j)*DIRECT_A2D_ELEM(mICorrection,i,j));
                     computeHistograms(IframeIdeal);
 
                     size_t bestSigmaCol = selectBestSigmaByColumn(IframeIdeal);
@@ -240,8 +238,8 @@ void ProgMovieEstimateGain::run()
 
 void ProgMovieEstimateGain::computeHistograms(const MultidimArray<double> &Iframe)
 {
-		int* auxElemC=new int[Ydim];
-		int* auxElemR=new int[Xdim];
+		double* auxElemC=new double[Ydim];
+		double* auxElemR=new double[Xdim];
 
 		for(size_t j=0; j<XSIZE(columnH); j++)
 		{
@@ -255,9 +253,9 @@ void ProgMovieEstimateGain::computeHistograms(const MultidimArray<double> &Ifram
 
 		for(size_t i=0; i<YSIZE(rowH); i++)
 		{
-			memcpy(auxElemR,&A2D_ELEM(Iframe,i,0),Xdim*sizeof(int));
+			memcpy(auxElemR,&A2D_ELEM(Iframe,i,0),Xdim*sizeof(double));
 			std::sort(auxElemR, auxElemR+Xdim);
-			memcpy(&A2D_ELEM(rowH,i,0),auxElemR,Xdim*sizeof(int));
+			memcpy(&A2D_ELEM(rowH,i,0),auxElemR,Xdim*sizeof(double));
 		}
 		delete[] auxElemR;
 
@@ -360,14 +358,14 @@ void ProgMovieEstimateGain::constructSmoothHistogramsByRow(const double *listOfW
 	save.write("PPPsmoothRowH.xmp");
 #endif
 }
-
+#undef NEVER_DEFINED
 
 void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<double> &Iframe, MultidimArray<double> &IframeTransformedColumn)
 {
 	IframeTransformedColumn.initZeros(Ydim,Xdim);
 	aSingleColumnH.resizeNoCopy(Ydim);
-	int *aSingleColumnH0=&DIRECT_A1D_ELEM(aSingleColumnH,0);
-	int *aSingleColumnHF=(&DIRECT_A1D_ELEM(aSingleColumnH,Ydim-1))+1;
+	double *aSingleColumnH0=&DIRECT_A1D_ELEM(aSingleColumnH,0);
+	double *aSingleColumnHF=(&DIRECT_A1D_ELEM(aSingleColumnH,Ydim-1))+1;
 
 
 	for (size_t j=0; j<Xdim; ++j)
@@ -377,11 +375,11 @@ void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<double
 
 		for (size_t i=0; i<Ydim; ++i)
 		{
-			int pixval=DIRECT_A2D_ELEM(Iframe,i,j);
-			int *pixvalPtr=std::upper_bound(aSingleColumnH0,aSingleColumnHF,pixval);
+			double pixval=DIRECT_A2D_ELEM(Iframe,i,j);
+			double *pixvalPtr=std::upper_bound(aSingleColumnH0,aSingleColumnHF,pixval);
 			pixvalPtr-=1;
 			int idx=pixvalPtr-aSingleColumnH0;
-			DIRECT_A2D_ELEM(IframeTransformedColumn,i,j)+=(int)DIRECT_A2D_ELEM(smoothColumnH,idx,j);
+			DIRECT_A2D_ELEM(IframeTransformedColumn,i,j)+=(double)DIRECT_A2D_ELEM(smoothColumnH,idx,j);
 		}
 	}
 
@@ -401,21 +399,21 @@ void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<double
 void ProgMovieEstimateGain::transformGrayValuesRow(const MultidimArray<double> &Iframe, MultidimArray<double> &IframeTransformedRow)
 {
 	IframeTransformedRow.initZeros(Ydim,Xdim);
-		aSingleRowH.resizeNoCopy(Xdim);
-		int *aSingleRowH0=&DIRECT_A1D_ELEM(aSingleRowH,0);
-		int *aSingleRowHF=(&DIRECT_A1D_ELEM(aSingleRowH,Xdim-1))+1;
+	aSingleRowH.resizeNoCopy(Xdim);
+	double *aSingleRowH0=&DIRECT_A1D_ELEM(aSingleRowH,0);
+	double *aSingleRowHF=(&DIRECT_A1D_ELEM(aSingleRowH,Xdim-1))+1;
 
 	for (size_t i=0; i<Ydim; ++i)
 	{
-		memcpy(aSingleRowH0,&DIRECT_A2D_ELEM(rowH,i,0),Xdim*sizeof(int));
+		memcpy(aSingleRowH0,&DIRECT_A2D_ELEM(rowH,i,0),Xdim*sizeof(double));
 
 			for (size_t j=0; j<Xdim; ++j)
 			{
-				int pixvalR=DIRECT_A2D_ELEM(Iframe,i,j);
-				int *pixvalPtrR=std::upper_bound(aSingleRowH0,aSingleRowHF,pixvalR);
+				double pixvalR=DIRECT_A2D_ELEM(Iframe,i,j);
+				double *pixvalPtrR=std::upper_bound(aSingleRowH0,aSingleRowHF,pixvalR);
 				pixvalPtrR-=1;
 				int idxR=pixvalPtrR-aSingleRowH0;
-				DIRECT_A2D_ELEM(IframeTransformedRow,i,j)+=(int)DIRECT_A2D_ELEM(smoothRowH,i,idxR);
+				DIRECT_A2D_ELEM(IframeTransformedRow,i,j)+=(double)DIRECT_A2D_ELEM(smoothRowH,i,idxR);
 			}
 	}
 
@@ -491,6 +489,3 @@ size_t ProgMovieEstimateGain::selectBestSigmaByRow(const MultidimArray<double> &
 
 	return best_s;
 }
-
-
-

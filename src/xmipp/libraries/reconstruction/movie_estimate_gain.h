@@ -33,8 +33,8 @@
    @ingroup ReconsLibrary */
 //@{
 
-double computeTVColumns(MultidimArray<int> &I);
-double computeTVRows(MultidimArray<int> &I);
+double computeTVColumns(MultidimArray<double> &I);
+double computeTVRows(MultidimArray<double> &I);
 
 
 class ProgMovieEstimateGain: public XmippProgram
@@ -73,7 +73,7 @@ public:
 
 public:
 	MetaData mdIn;
-	MultidimArray<int> columnH,rowH, aSingleColumnH, aSingleRowH;
+	MultidimArray<double> columnH,rowH, aSingleColumnH, aSingleRowH;
 	MultidimArray<double> smoothColumnH, smoothRowH, sumObs;
 	Image<double> ICorrection;
 
