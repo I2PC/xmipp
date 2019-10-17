@@ -148,7 +148,7 @@ void CudaExtremaFinder<T>::initMaxAroundCenter() {
 
 template<typename T>
 template<typename KERNEL>
-void CudaExtremaFinder<T>::findBasic(T *h_data, KERNEL k) {
+void CudaExtremaFinder<T>::findBasic(const T * __restrict__ h_data, KERNEL k) {
     bool isReady = this->isInitialized();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() first");
@@ -182,14 +182,14 @@ void CudaExtremaFinder<T>::findBasic(T *h_data, KERNEL k) {
             m_isDataReady = false;
             m_cv->notify_one();
         }
-        downloadPositionsFromGPU(toProcess);
-        downloadValuesFromGPU(toProcess);
+        downloadPositionsFromGPU(offset, toProcess);
+        downloadValuesFromGPU(offset, toProcess);
     }
     loadingThread.join();
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::findMax(T *h_data) {
+void CudaExtremaFinder<T>::findMax(const T *__restrict h_data) {
     auto kernel = [&](const GPU &gpu,
             const Dimensions &dims,
             const T * __restrict__ d_data,
@@ -201,13 +201,14 @@ void CudaExtremaFinder<T>::findMax(T *h_data) {
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::findMaxAroundCenter(T *h_data) {
+void CudaExtremaFinder<T>::findMaxAroundCenter(const  T *__restrict__ h_data) {
     auto kernel2D = [&](const GPU &gpu,
             const Dimensions &dims,
             const T * __restrict__ d_data,
             T * __restrict__ d_positions,
             T * __restrict__ d_values) {
-        sFindMax2DAroundCenter(gpu, dims, d_data, d_positions, d_values, this->getSettings().maxDistFromCenter);
+        sFindMax2DAroundCenter(gpu, dims, d_data, d_positions, d_values,
+                this->getSettings().maxDistFromCenter);
     };
     if (this->getSettings().dims.is2D()) {
         return findBasic(h_data, kernel2D);
@@ -216,43 +217,43 @@ void CudaExtremaFinder<T>::findMaxAroundCenter(T *h_data) {
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::downloadPositionsFromGPU(size_t noOfResults) {
-    size_t bytesResult = noOfResults * sizeof(T);
+void CudaExtremaFinder<T>::downloadPositionsFromGPU(size_t offset, size_t count) {
+    size_t bytesResult = count * sizeof(T);
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
     auto s = this->getSettings();
     if ((ResultType::Position == s.resultType)
         || (ResultType::Both == s.resultType)) {
+        // copy to buffer which is page-aligned, as we will work asynchronously
         gpuErrchk(cudaMemcpyAsync(
             m_h_batchResult,
             m_d_positions,
             bytesResult,
             cudaMemcpyDeviceToHost, lStream));
         m_loadStream->synch();
-        for (size_t n = 0; n < noOfResults; ++n) {
-            this->getPositions().emplace_back(m_h_batchResult[n]);
-        }
+        memcpy(this->getPositions().data() + offset, m_h_batchResult, bytesResult);
     }
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::downloadValuesFromGPU(size_t noOfResults) {
-    size_t bytesResult = noOfResults * sizeof(T);
+void CudaExtremaFinder<T>::downloadValuesFromGPU(size_t offset, size_t count) {
+    size_t bytesResult = count * sizeof(T);
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
     auto s = this->getSettings();
     if ((ResultType::Value == s.resultType)
         || (ResultType::Both == s.resultType)) {
+        // copy to buffer which is page-aligned, as we will work asynchronously
         gpuErrchk(cudaMemcpyAsync(
             m_h_batchResult,
             m_d_values,
             bytesResult,
             cudaMemcpyDeviceToHost, lStream));
         m_loadStream->synch();
-        this->getValues().insert(this->getValues().end(), m_h_batchResult, m_h_batchResult + noOfResults);
+        memcpy(this->getValues().data() + offset, m_h_batchResult, bytesResult);
     }
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::loadThreadRoutine(T *h_data) {
+void CudaExtremaFinder<T>::loadThreadRoutine(const T *h_data) {
     m_loadStream->set();
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
     auto s = this->getSettings();
@@ -263,7 +264,7 @@ void CudaExtremaFinder<T>::loadThreadRoutine(T *h_data) {
         // how many signals to process
         size_t toProcess = std::min(s.batch, s.dims.n() - offset);
 
-        T *h_src = h_data + offset * s.dims.sizeSingle();
+        const T *h_src = h_data + offset * s.dims.sizeSingle();
         size_t bytes = toProcess * s.dims.sizeSingle() * sizeof(T);
 
         // copy memory

@@ -73,13 +73,13 @@ public:
 
     static void sFindMax(const GPU &gpu,
         const Dimensions &dims,
-        const T * __restrict__ d_data,
-        T * __restrict__ d_positions,
-        T * __restrict__ d_values);
+        const T *d_data,
+        T *d_positions,
+        T *d_values);
 
     static void sFindMax2DAroundCenter(const GPU &gpu,
         const Dimensions &dims,
-        const T * d_data,
+        const T *d_data,
         T * d_positions,
         T * d_values,
         size_t maxDist);
@@ -108,20 +108,20 @@ private:
 
     void check() const override;
     void initMax() override;
-    void findMax(T *h_data) override;
+    void findMax(const T *h_data) override;
     bool canBeReusedMax(const ExtremaFinderSettings &s) const override;
 
     void initMaxAroundCenter() override;
-    void findMaxAroundCenter(T *h_data) override;
+    void findMaxAroundCenter(const T *h_data) override;
     bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const override;
 
-    void loadThreadRoutine(T *h_data);
-    void downloadPositionsFromGPU(size_t noOfResults);
-    void downloadValuesFromGPU(size_t noOfResults);
+    void loadThreadRoutine(const T *h_data);
+    void downloadPositionsFromGPU(size_t offset, size_t count);
+    void downloadValuesFromGPU(size_t offset, size_t count);
 
     void initBasic();
     template<typename KERNEL>
-    void findBasic(T *h_data, KERNEL k);
+    void findBasic(const T *h_data, KERNEL k);
     bool canBeReusedBasic(const ExtremaFinderSettings &s) const;
 };
 

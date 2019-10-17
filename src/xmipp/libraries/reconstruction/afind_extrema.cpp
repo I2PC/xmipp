@@ -62,16 +62,14 @@ bool AExtremaFinder<T>::canBeReused(const ExtremaFinderSettings &s) const {
 }
 
 template<typename T>
-void AExtremaFinder<T>::find(T *data) {
+void AExtremaFinder<T>::find(const T *data) {
     if ((ResultType::Position == m_settings.resultType)
         || (ResultType::Both == m_settings.resultType)) {
-        m_positions.clear();
-        m_positions.reserve(m_settings.dims.n());
+        m_positions.resize(m_settings.dims.n(), -1.f);
     }
     if ((ResultType::Value == m_settings.resultType)
         || (ResultType::Both == m_settings.resultType)) {
-        m_values.clear();
-        m_values.reserve(m_settings.dims.n());
+        m_values.resize(m_settings.dims.n(), std::numeric_limits<T>::lowest());
     }
     switch (m_settings.searchType) {
         case SearchType::Max: return this->findMax(data);

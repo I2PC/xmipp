@@ -32,6 +32,7 @@
 #include "core/xmipp_error.h"
 #include <vector>
 #include <cassert>
+#include <limits>
 
 namespace ExtremaFinder {
 enum class SearchType {
@@ -95,7 +96,6 @@ public:
 template<typename T>
 class AExtremaFinder {
 public:
-    // FIXME DS add cpu version
     AExtremaFinder() :
         m_isInit(false) {};
 
@@ -103,7 +103,7 @@ public:
 
     void init(const ExtremaFinderSettings &settings, bool reuse);
 
-    void find(T *data);
+    void find(const T *data);
 
     HW& getHW() const { // FIXME DS remove once we use the new data-centric approach
         assert(m_isInit);
@@ -118,7 +118,7 @@ public:
         return m_values;
     }
 
-    inline const std::vector<size_t> &getPositions() const {
+    inline const std::vector<float> &getPositions() const {
         return m_positions;
     }
 
@@ -127,18 +127,18 @@ protected:
     virtual void check() const = 0;
 
     virtual void initMax() = 0;
-    virtual void findMax(T *data) = 0;
+    virtual void findMax(const T *data) = 0;
     virtual bool canBeReusedMax(const ExtremaFinderSettings &s) const = 0;
 
     virtual void initMaxAroundCenter() = 0;
-    virtual void findMaxAroundCenter(T *data) = 0;
+    virtual void findMaxAroundCenter(const T *data) = 0;
     virtual bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const = 0;
 
     inline std::vector<T> &getValues() {
         return m_values;
     }
 
-    inline std::vector<size_t> &getPositions() {
+    inline std::vector<float> &getPositions() {
         return m_positions;
     }
 
@@ -151,7 +151,7 @@ private:
 
     // results
     std::vector<T> m_values;
-    std::vector<size_t> m_positions; // absolute, 0 based indices
+    std::vector<float> m_positions; // absolute, 0 based indices
 
     // flags
     bool m_isInit;
