@@ -130,7 +130,8 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
           args["deepLearningModel"]=Plugin.getModel('deepMicrographCleaner', 'defaultModel.keras')
 
         try:
-          from xmippPyModules.micrograph_cleaner_em.cleanMics import main
+          # from xmippPyModules.micrograph_cleaner_em.cleanMics import main
+          from micrograph_cleaner_em.cleanMics import main
         except ImportError as e:
           print(e)
           raise ValueError("Error, micrograph_cleaner_em packages was not properly imported")

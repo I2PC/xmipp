@@ -392,8 +392,8 @@ def getDependencies():
     result = True
     if is_config_true('CUDA'):
         result = cloneOrCheckout(CUFFTADVISOR, None)
-    if result:
-        result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
+    # if result:
+    #     result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
     if not result:
         print(red("Cannot get dependencies"))
     return result
@@ -1148,8 +1148,8 @@ def install(dirname):
             pass  # just to create a init file to be able to import it as module
 
     runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule)
-    sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER,MICROGRAPH_CLEANER)))
-    runJob(cpCmd+" -r "+sourcePathMicClean+" "+destPathPyModule) #cp instead ln -s for safety reasons
+    # sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER,MICROGRAPH_CLEANER)))
+    # runJob(cpCmd+" -r "+sourcePathMicClean+" "+destPathPyModule) #cp instead ln -s for safety reasons
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")

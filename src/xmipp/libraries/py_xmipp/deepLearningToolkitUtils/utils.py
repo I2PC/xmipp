@@ -14,7 +14,7 @@ CUDA_LIB = %(CUDA_HOME)s/lib64
 CUDNN_VERSION = 6 or 7
 '''
 
-
+#TODO. MODIFY THIS TO DEAL WITH CONDA ENVIRONMENTs USING CondaEnvManager
 def checkIf_tf_keras_installed():
   try:
     import tensorflow, keras
