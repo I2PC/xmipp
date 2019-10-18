@@ -62,6 +62,7 @@ public:
     template<typename C>
     static void sFindUniversal2DAroundCenter(
         const C &comp,
+        T startVal,
         const CPU &cpu,
         const Dimensions &dims,
         const T *data,

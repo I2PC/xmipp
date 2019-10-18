@@ -175,6 +175,7 @@ void SingleExtremaFinder<T>::sFindMax2DAroundCenter(
         T *__restrict__ values,
         size_t maxDist) {
     sFindUniversal2DAroundCenter(std::greater<T>(),
+            std::numeric_limits<T>::lowest(),
             cpu, dims, data, positions, values, maxDist);
 }
 
@@ -187,6 +188,7 @@ void SingleExtremaFinder<T>::sFindLowest2DAroundCenter(
         T *__restrict__ values,
         size_t maxDist) {
     sFindUniversal2DAroundCenter(std::less<T>(),
+            std::numeric_limits<T>::max(),
             cpu, dims, data, positions, values, maxDist);
 }
 
@@ -194,6 +196,7 @@ template<typename T>
 template<typename C>
 void SingleExtremaFinder<T>::sFindUniversal2DAroundCenter(
         const C &comp,
+        T startVal,
         const CPU &cpu,
         const Dimensions &dims,
         const T *data,
@@ -226,7 +229,7 @@ void SingleExtremaFinder<T>::sFindUniversal2DAroundCenter(
     const size_t maxDistSq = maxDist * maxDist;
     for (size_t n = 0; n < dims.n(); ++n) {
         size_t offsetN = n * dims.xyzPadded();
-        T extrema = std::numeric_limits<T>::lowest();
+        T extrema = startVal;
         float pos = -1;
         // iterate through the center
         for (size_t y = min.second; y <= max.second; ++y) {

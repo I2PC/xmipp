@@ -119,7 +119,7 @@ private:
             const std::vector<size_t> &yVals, // only one of these should have more than a single value
             const ExtremaFinderSettings &s,
             size_t signalOffset,
-            float &val, float &pos) {
+            T &val, float &pos) {
         auto center =  s.getCenter();
         float maxDistSq = s.maxDistFromCenter * s.maxDistFromCenter;
 //        printf("testing (center %lu %lu, max %f:\n", center.x, center.y, s.maxDistFromCenter);
@@ -131,11 +131,11 @@ private:
                     size_t offset = y * s.dims.x() + x;
                     T v = data[signalOffset + offset];
                     if (comp(v, val)) {
-//                        printf(" update (%f > %f)\n", v, val);
+//                        printf(" update (%f -> %f)\n", val, v);
                         val = v;
                         pos = offset;
                     } else {
-//                        printf(" don't update (%f <= %f)\n", v, val);
+//                        printf(" don't update (%f %f)\n", val, v);
                     }
                 } else {
 //                    printf(" skip\n");
@@ -158,6 +158,19 @@ private:
         }
     }
 
+    T getStartingValue(const ExtremaFinderSettings &s) {
+        switch (s.searchType) {
+            case SearchType::Max:
+            case SearchType::MaxAroundCenter:
+            case SearchType::MaxNearCenter:
+                return std::numeric_limits<T>::lowest();
+            case SearchType::LowestAroundCenter:
+                return std::numeric_limits<T>::max();
+            default: std::cout << "NOT IMPLEMENTED\n";
+        }
+        assert(false); // cannot use FAIL() as we have to return some value
+    }
+
     template<typename C>
     void check2DAroundCenter(const C &comp, const ExtremaFinderSettings &s) {
         const auto &tmp = *finder;
@@ -170,7 +183,7 @@ private:
 
         auto check = [&](size_t n, int id) {
             float expPos = -1;
-            T expVal = std::numeric_limits<T>::lowest();
+            T expVal = getStartingValue(s);
             float currDistance = -1;
             auto center =  s.getCenter();
             const size_t elems = s.dims.sizeSingle();

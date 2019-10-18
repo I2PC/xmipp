@@ -191,6 +191,7 @@ template <typename T, typename T2, unsigned blockSize, typename C>
 __device__
 void findUniversal2DNearCenter(
         const C &comp,
+        T startVal,
         const T * __restrict__ in,
         float * __restrict__ outPos,
         T * __restrict__ outVal,
@@ -211,7 +212,7 @@ void findUniversal2DNearCenter(
     unsigned xMax = xHalf + maxDist + 1;
 
     T2 ldata;
-    ldata.x = -FLT_MAX;
+    ldata.x = startVal;
     ldata.y = -1;
 
     // load data from global memory
@@ -270,6 +271,7 @@ template <typename T, unsigned blockSize, typename C>
 __global__
 void findUniversal2DNearCenter(
         const C &comp,
+        T startVal,
         const T * __restrict__ in,
         float * __restrict__ outPos,
         T * __restrict__ outVal,
@@ -280,6 +282,7 @@ void findUniversal2DNearCenter(
     if (std::is_same<T, float> ::value) {
         findUniversal2DNearCenter<float, float2, blockSize> (
                 comp,
+                startVal,
                 (float*)in,
                 outPos,
                 (float*)outVal,
@@ -287,6 +290,7 @@ void findUniversal2DNearCenter(
     } else if (std::is_same<T, double> ::value) {
         findUniversal2DNearCenter<double, double2, blockSize>(
                 comp,
+                startVal,
                 (double*)in,
                 outPos,
                 (double*)outVal,

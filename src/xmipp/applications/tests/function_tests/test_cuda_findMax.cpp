@@ -13,5 +13,5 @@ class SingleExtremaFinder_Test;
 
 #include "asingle_extrema_finder_tests.h"
 
-typedef ::testing::Types<float> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(GPU, SingleExtremaFinder_Test, TestTypes);
+typedef ::testing::Types<float, double> TestTypes;
+INSTANTIATE_TYPED_TEST_CASE_P(Cuda, SingleExtremaFinder_Test, TestTypes);

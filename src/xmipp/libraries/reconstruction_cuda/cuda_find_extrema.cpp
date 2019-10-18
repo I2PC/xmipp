@@ -377,9 +377,36 @@ void CudaExtremaFinder<T>::sFindMax(const GPU &gpu,
 }
 
 template<typename T>
+void CudaExtremaFinder<T>::sFindMax2DAroundCenter(
+        const GPU &gpu,
+        const Dimensions &dims,
+        const T * d_data,
+        float * d_positions,
+        T * d_values,
+        size_t maxDist) {
+    return sFindUniversal2DAroundCenter([] __device__ (T l, T r) { return l > r; },
+            std::numeric_limits<T>::lowest(),
+            gpu, dims, d_data, d_positions, d_values, maxDist);
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::sFindLowest2DAroundCenter(
+        const GPU &gpu,
+        const Dimensions &dims,
+        const T * d_data,
+        float * d_positions,
+        T * d_values,
+        size_t maxDist) {
+    return sFindUniversal2DAroundCenter([] __device__ (T l, T r) { return l < r; },
+            std::numeric_limits<T>::max(),
+            gpu, dims, d_data, d_positions, d_values, maxDist);
+}
+
+template<typename T>
 template<typename C>
 void CudaExtremaFinder<T>::sFindUniversal2DAroundCenter(
         const C &comp,
+        T startVal,
         const GPU &gpu,
         const Dimensions &dims,
         const T * d_data,
@@ -414,60 +441,36 @@ void CudaExtremaFinder<T>::sFindUniversal2DAroundCenter(
     switch (threads) {
         case 512:
             return findUniversal2DNearCenter<T, 512><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 256:
             return findUniversal2DNearCenter<T, 256><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 128:
             return findUniversal2DNearCenter<T, 128><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 64:
             return findUniversal2DNearCenter<T, 64><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 32:
             return findUniversal2DNearCenter<T, 32><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 16:
             return findUniversal2DNearCenter<T, 16><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 8:
             return findUniversal2DNearCenter<T, 8><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 4:
             return findUniversal2DNearCenter<T, 4><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 2:
             return findUniversal2DNearCenter<T, 2><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         case 1:
             return findUniversal2DNearCenter<T, 1><<< dimGrid, dimBlock, smemSize, stream>>>(
-                comp, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
+                comp, startVal, d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Unsupported number of threads");
     }
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::sFindMax2DAroundCenter(
-        const GPU &gpu,
-        const Dimensions &dims,
-        const T * d_data,
-        float * d_positions,
-        T * d_values,
-        size_t maxDist) {
-    return sFindUniversal2DAroundCenter([] __device__ (T l, T r) { return l > r; },
-            gpu, dims, d_data, d_positions, d_values, maxDist);
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::sFindLowest2DAroundCenter(
-        const GPU &gpu,
-        const Dimensions &dims,
-        const T * d_data,
-        float * d_positions,
-        T * d_values,
-        size_t maxDist) {
-    return sFindUniversal2DAroundCenter([] __device__ (T l, T r) { return l < r; },
-            gpu, dims, d_data, d_positions, d_values, maxDist);
 }
 
 // explicit instantiation

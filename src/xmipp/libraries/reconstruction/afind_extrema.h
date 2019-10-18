@@ -41,8 +41,8 @@ enum class SearchType {
     Min, // in the whole signal (for each signal)
     Max, // in the whole signal (for each signal)
     MaxAroundCenter, // for each signal, search a circular area around center
-    LowestAroundCenter, // for each signal, search a circular area around center
-    MaxNearCenter // for each signal, search a square area around center
+    MaxNearCenter, // for each signal, search a square area around center
+    LowestAroundCenter // for each signal, search a circular area around center
 };
 
 enum class ResultType {
