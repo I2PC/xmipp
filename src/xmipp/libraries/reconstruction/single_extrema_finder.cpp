@@ -65,6 +65,26 @@ bool SingleExtremaFinder<T>::canBeReusedMax(const ExtremaFinderSettings &s) cons
 }
 
 template<typename T>
+void SingleExtremaFinder<T>::initLowest() {
+    return initBasic();
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::findLowest(const T *__restrict__ data) {
+    auto kernel = [&](const T *d) {
+        sFindLowest(*m_cpu, this->getSettings().dims, d,
+            this->getPositions().data(),
+            this->getValues().data());
+    };
+    return findBasic(data, kernel);
+}
+
+template<typename T>
+bool SingleExtremaFinder<T>::canBeReusedLowest(const ExtremaFinderSettings &s) const {
+    return true;
+}
+
+template<typename T>
 void SingleExtremaFinder<T>::initMaxAroundCenter() {
     return initBasic();
 }
@@ -140,17 +160,25 @@ void SingleExtremaFinder<T>::findBasic(const T *__restrict__ data, const KERNEL 
 }
 
 template<typename T>
+void SingleExtremaFinder<T>::sFindUniversalChecks(
+        const Dimensions &dims,
+        const T *__restrict__ data,
+        float *__restrict__ positions,
+        T *__restrict__ values) {
+    // check input
+    assert(dims.sizeSingle() > 0);
+    assert(dims.n() > 0);
+    assert(nullptr != data);
+    assert((nullptr != positions) || (nullptr != values));
+}
+
+template<typename T>
 void SingleExtremaFinder<T>::sFindMax(const CPU &cpu,
     const Dimensions &dims,
     const T *__restrict__ data,
     float *__restrict__ positions,
     T *__restrict__ values) {
-    // check input
-    assert(dims.sizeSingle() > 0);
-    assert(dims.n() > 0);
-    assert(nullptr != data);
-    assert(nullptr != positions);
-    assert(nullptr != values);
+    sFindUniversalChecks(dims, data, positions, values);
 
     if (dims.isPadded()) {
         REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
@@ -159,6 +187,28 @@ void SingleExtremaFinder<T>::sFindMax(const CPU &cpu,
         for (size_t n = 0; n < dims.n(); ++n) {
             auto start = data + (n * dims.sizeSingle());
             auto max = std::max_element(start, start + dims.sizeSingle());
+            auto pos = std::distance(start, max);
+            values[n] = *max;
+            positions[n] = pos;
+        }
+    }
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::sFindLowest(const CPU &cpu,
+    const Dimensions &dims,
+    const T *__restrict__ data,
+    float *__restrict__ positions,
+    T *__restrict__ values) {
+    sFindUniversalChecks(dims, data, positions, values);
+
+    if (dims.isPadded()) {
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+    } else {
+        // locate max
+        for (size_t n = 0; n < dims.n(); ++n) {
+            auto start = data + (n * dims.sizeSingle());
+            auto max = std::min_element(start, start + dims.sizeSingle());
             auto pos = std::distance(start, max);
             values[n] = *max;
             positions[n] = pos;

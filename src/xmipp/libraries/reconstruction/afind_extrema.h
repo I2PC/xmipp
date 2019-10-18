@@ -38,7 +38,7 @@ namespace ExtremaFinder {
 // FIXME DS we should have search type Min, Max, MaxAbs, Lowest, Custom
 // FIXME DS we should have search location Entire, NearCenter, AroundCenter, Window, AroundWindow
 enum class SearchType {
-    Min, // in the whole signal (for each signal)
+    Lowest, // in the whole signal (for each signal)
     Max, // in the whole signal (for each signal)
     MaxAroundCenter, // for each signal, search a circular area around center
     MaxNearCenter, // for each signal, search a square area around center
@@ -132,6 +132,10 @@ protected:
     virtual void initMax() = 0;
     virtual void findMax(const T *data) = 0;
     virtual bool canBeReusedMax(const ExtremaFinderSettings &s) const = 0;
+
+    virtual void initLowest() = 0;
+    virtual void findLowest(const T *data) = 0;
+    virtual bool canBeReusedLowest(const ExtremaFinderSettings &s) const = 0;
 
     virtual void initMaxAroundCenter() = 0;
     virtual void findMaxAroundCenter(const T *data) = 0;

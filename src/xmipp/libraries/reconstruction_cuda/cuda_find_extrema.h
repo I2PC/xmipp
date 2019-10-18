@@ -71,7 +71,23 @@ public:
         o.setDefault();
     }
 
+    template<typename C>
+    static void sFindUniversal(
+        const C &comp,
+        T startVal,
+        const GPU &gpu,
+        const Dimensions &dims,
+        const T *d_data,
+        float *d_positions,
+        T *d_values);
+
     static void sFindMax(const GPU &gpu,
+        const Dimensions &dims,
+        const T *d_data,
+        float *d_positions,
+        T *d_values);
+
+    static void sFindLowest(const GPU &gpu,
         const Dimensions &dims,
         const T *d_data,
         float *d_positions,
@@ -125,9 +141,14 @@ private:
     void release();
 
     void check() const override;
+
     void initMax() override;
     void findMax(const T *h_data) override;
     bool canBeReusedMax(const ExtremaFinderSettings &s) const override;
+
+    void initLowest() override;
+    void findLowest(const T *h_data) override;
+    bool canBeReusedLowest(const ExtremaFinderSettings &s) const override;
 
     void initMaxAroundCenter() override;
     void findMaxAroundCenter(const T *h_data) override;

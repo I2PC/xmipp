@@ -49,7 +49,8 @@ public:
         finder->init(s, true);
         finder->find(data);
         switch(s.searchType) {
-            case SearchType::Max : return checkMax(s);
+            case SearchType::Max : return check(std::greater<T>(), s);
+            case SearchType::Lowest : return check(std::less<T>(), s);
             case SearchType::MaxAroundCenter : return check2DAroundCenter(std::greater<T>(),s);
             case SearchType::LowestAroundCenter : return check2DAroundCenter(std::less<T>(),s);
             default: FAIL() << "Test check not implemented";
@@ -78,7 +79,9 @@ private:
         }
     }
 
-    void checkMax(const ExtremaFinderSettings &s) {
+    template<typename C>
+    void check(const C &comp,
+            const ExtremaFinderSettings &s) {
         const auto &tmp = *finder;
         auto actPos = tmp.getPositions();
         auto actVals = tmp.getValues();
@@ -87,12 +90,12 @@ private:
 
         auto check = [&](size_t n, int id) {
             float expPos = -1;
-            T expVal = std::numeric_limits<T>::lowest();
+            T expVal = getStartingValue(s);
             const size_t elems = s.dims.sizeSingle();
             const size_t offset = n * elems;
             for (size_t i = 0; i < elems; ++i) {
                 T v = data[offset + i];
-                if (v > expVal) {
+                if (comp(v, expVal)) {
                     expVal = v;
                     expPos = i;
                 }
@@ -164,6 +167,7 @@ private:
             case SearchType::MaxAroundCenter:
             case SearchType::MaxNearCenter:
                 return std::numeric_limits<T>::lowest();
+            case SearchType::Lowest:
             case SearchType::LowestAroundCenter:
                 return std::numeric_limits<T>::max();
             default: std::cout << "NOT IMPLEMENTED\n";
@@ -371,6 +375,104 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findMax3D)
     }
 }
 
+TYPED_TEST_P( SingleExtremaFinder_Test, findLowest1D)
+{
+    auto mt = std::mt19937(42);
+    auto nBatch = std::vector<std::pair<size_t, size_t>>(); // n, batch
+    nBatch.emplace_back(1, 1);
+    nBatch.emplace_back(5, 5);
+    nBatch.emplace_back(10, 5);
+    nBatch.emplace_back(10, 6);
+    for (auto c : nBatch) {
+        for (int i = 0; i < 10; ++i) {
+            auto settings = ExtremaFinderSettings();
+            settings.batch = c.second;
+            settings.dims = Dimensions(randSize(1000000, mt), 1, 1, c.first);
+            settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
+            settings.resultType = ResultType::Both;
+            settings.searchType = SearchType::Lowest;
+            settings.maxDistFromCenter = 0;
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
+        }
+    }
+}
+
+TYPED_TEST_P( SingleExtremaFinder_Test, findLowest1DMany)
+{
+    auto mt = std::mt19937(42);
+    std::uniform_int_distribution<> dist(1, 500);
+    for (int i = 0; i < 5; ++i) {
+        auto settings = ExtremaFinderSettings();
+        settings.batch = 41;
+        settings.dims = Dimensions(dist(mt), 1, 1, 10000);
+        settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
+        settings.resultType = ResultType::Both;
+        settings.searchType = SearchType::Lowest;
+        settings.maxDistFromCenter = 0;
+        SingleExtremaFinder_Test<TypeParam>::test(settings);
+    }
+}
+
+TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2D)
+{
+    auto mt = std::mt19937(42);
+    auto nBatch = std::vector<std::pair<size_t, size_t>>(); // n, batch
+    nBatch.emplace_back(1, 1);
+    nBatch.emplace_back(5, 5);
+    nBatch.emplace_back(10, 5);
+    nBatch.emplace_back(10, 6);
+    for (auto c : nBatch) {
+        for (int i = 0; i < 5; ++i) {
+            auto settings = ExtremaFinderSettings();
+            settings.batch = c.second;
+            settings.dims = Dimensions(randSize(10000, mt), randSize(10000, mt), 1, c.first);
+            settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
+            settings.resultType = ResultType::Both;
+            settings.searchType = SearchType::Lowest;
+            settings.maxDistFromCenter = 0;
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
+        }
+    }
+}
+
+TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DMany)
+{
+    auto mt = std::mt19937(42);
+    std::uniform_int_distribution<> dist(1, 500);
+    for (int i = 0; i < 5; ++i) {
+        auto settings = ExtremaFinderSettings();
+        settings.batch = 83;
+        settings.dims = Dimensions(dist(mt), dist(mt), 1, 5051);
+        settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
+        settings.resultType = ResultType::Both;
+        settings.searchType = SearchType::Lowest;
+        settings.maxDistFromCenter = 0;
+        SingleExtremaFinder_Test<TypeParam>::test(settings);
+    }
+}
+
+TYPED_TEST_P( SingleExtremaFinder_Test, findLowest3D)
+{
+    auto mt = std::mt19937(42);
+    auto nBatch = std::vector<std::pair<size_t, size_t>>(); // n, batch
+    nBatch.emplace_back(1, 1);
+    nBatch.emplace_back(5, 5);
+    nBatch.emplace_back(10, 5);
+    nBatch.emplace_back(10, 6);
+    for (auto c : nBatch) {
+        for (int i = 0; i < 5; ++i) {
+            auto settings = ExtremaFinderSettings();
+            settings.batch = c.second;
+            settings.dims = Dimensions(randSize(1000, mt), randSize(1000, mt), randSize(1000, mt), c.first);
+            settings.hw = SingleExtremaFinder_Test<TypeParam>::hw;
+            settings.resultType = ResultType::Both;
+            settings.searchType = SearchType::Lowest;
+            settings.maxDistFromCenter = 0;
+            SingleExtremaFinder_Test<TypeParam>::test(settings);
+        }
+    }
+}
+
 TYPED_TEST_P( SingleExtremaFinder_Test, findMax2DAroundCenter)
 {
     XMIPP_TRY
@@ -426,6 +528,11 @@ REGISTER_TYPED_TEST_CASE_P(SingleExtremaFinder_Test,
     findMax2D,
     findMax2DMany,
     findMax3D,
+    findLowest1D,
+    findLowest1DMany,
+    findLowest2D,
+    findLowest2DMany,
+    findLowest3D,
     findMax2DAroundCenter,
     findLowest2DAroundCenter
 );

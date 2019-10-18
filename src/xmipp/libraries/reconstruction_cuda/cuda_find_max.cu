@@ -26,28 +26,7 @@
 #ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FIND_MAX_CU_
 #define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_FIND_MAX_CU_
 
-#include <float.h> // FLT_MAX
 #include <type_traits>
-
-template<typename T, typename T2>
- __device__
-void update(T2 &orig, const T * __restrict data, unsigned index) {
-    T tmp = data[index];
-    if (tmp > orig.x) {
-        orig.x = tmp;
-        orig.y = (T)index;
-    }
-}
-
-template<typename T>
-__device__
-T update(T &orig, T &cand) {
-    if (cand.x > orig.x) {
-        orig.x = cand.x;
-        orig.y = cand.y;
-    }
-    return orig;
-}
 
 template<typename T, typename T2, typename C>
  __device__
@@ -110,50 +89,11 @@ void findUniversalInSharedMem(const C &comp, T &ldata) {
     __syncthreads();
 }
 
-template<typename T, unsigned blockSize>
-__device__
-void findMaxInSharedMem(T &ldata) {
-    unsigned int tid = threadIdx.x;
-    // we have read all data, one of the thread knows the result
-    extern __shared__ char smem[];
-    T *sdata = reinterpret_cast<T*>(smem);
-    sdata[tid] = ldata;
-    __syncthreads(); // wait till all threads store their data
-    // reduce
-#pragma unroll
-    for (unsigned counter = blockSize / 2; counter >= 32; counter /= 2) {
-        if (tid < counter) {
-            sdata[tid] = update(ldata, sdata[tid + counter]);
-        }
-        __syncthreads();
-    }
-    // manually unwrap last warp for better performance
-    // many of these blocks will be optimized out by compiler based on template
-    if ((blockSize >= 32) && (tid < 16)) {
-        sdata[tid] = update(ldata, sdata[tid + 16]);
-    }
-    __syncthreads();
-    if ((blockSize >= 16) && (tid < 8)) {
-        sdata[tid] = update(ldata, sdata[tid + 8]);
-    }
-    __syncthreads();
-    if ((blockSize >= 8) && (tid < 4)) {
-        sdata[tid] = update(ldata, sdata[tid + 4]);
-    }
-    __syncthreads();
-    if ((blockSize >= 4) && (tid < 2)) {
-        sdata[tid] = update(ldata, sdata[tid + 2]);
-    }
-    __syncthreads();
-    if ((blockSize >= 2) && (tid < 1)) {
-        sdata[tid] = update(ldata, sdata[tid + 1]);
-    }
-    __syncthreads();
-}
-
-template <typename T, typename T2, unsigned blockSize>
+template <typename T, typename T2, unsigned blockSize, typename C>
 __device__
 void findMax1D(
+        const C &comp,
+        T startVal,
         const T * __restrict__ in,
         float * __restrict__ outPos,
         T * __restrict__ outVal,
@@ -165,16 +105,16 @@ void findMax1D(
     unsigned int signal = blockIdx.x;
 
     T2 ldata;
-    ldata.x = -FLT_MAX;
+    ldata.x = startVal;
     ldata.y = -1;
 
     // load data from global memory
     const T *data = in + (signal * samples);
     for(unsigned i = tid; i < samples; i += blockSize) {
-        update(ldata, data, i);
+        update(comp, ldata, data, i);
     }
 
-    findMaxInSharedMem<T2, blockSize>(ldata);
+    findUniversalInSharedMem<T2, blockSize>(comp, ldata);
 
     // last thread now holds the result
     if (tid == 0) {
@@ -232,7 +172,7 @@ void findUniversal2DNearCenter(
         }
     }
 
-    findUniversalInSharedMem<T2, blockSize, C>(comp, ldata);
+    findUniversalInSharedMem<T2, blockSize>(comp, ldata);
 
     // last thread now holds the result
     if (tid == 0) {
@@ -245,21 +185,28 @@ void findUniversal2DNearCenter(
     }
 }
 
-template <typename T, unsigned blockSize>
+template <typename T, unsigned blockSize, typename C>
 __global__
-void findMax1D(const T * __restrict__ in,
+void findUniversal(
+        const C &comp,
+        T startVal,
+        const T * __restrict__ in,
         float * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned samples)
 {
     if (std::is_same<T, float> ::value) {
         findMax1D<float, float2, blockSize> (
+                comp,
+                startVal,
                 (float*)in,
                 outPos,
                 (float*)outVal,
                 samples);
     } else if (std::is_same<T, double> ::value) {
         findMax1D<double, double2, blockSize>(
+                comp,
+                startVal,
                 (double*)in,
                 outPos,
                 (double*)outVal,

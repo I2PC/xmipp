@@ -96,6 +96,28 @@ bool CudaExtremaFinder<T>::canBeReusedMax(const ExtremaFinderSettings &s) const 
 }
 
 template<typename T>
+void CudaExtremaFinder<T>::initLowest() {
+    return initBasic();
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::findLowest(const T *__restrict h_data) {
+    auto kernel = [&](const GPU &gpu,
+            const Dimensions &dims,
+            const T * __restrict__ d_data,
+            float * __restrict__ d_positions,
+            T * __restrict__ d_values) {
+        sFindLowest(gpu, dims, d_data, d_positions, d_values);
+    };
+    return findBasic(h_data, kernel);
+}
+
+template<typename T>
+bool CudaExtremaFinder<T>::canBeReusedLowest(const ExtremaFinderSettings &s) const {
+    return canBeReusedBasic(s);
+}
+
+template<typename T>
 void CudaExtremaFinder<T>::initMaxAroundCenter() {
     return initBasic();
 }
@@ -320,10 +342,36 @@ size_t CudaExtremaFinder<T>::ceilPow2(size_t x)
 
 template<typename T>
 void CudaExtremaFinder<T>::sFindMax(const GPU &gpu,
-    const Dimensions &dims,
-    const T * __restrict__ d_data,
-    float * __restrict__ d_positions,
-    T * __restrict__ d_values) {
+        const Dimensions &dims,
+        const T * __restrict__ d_data,
+        float * __restrict__ d_positions,
+        T * __restrict__ d_values) {
+    return sFindUniversal([] __device__ (T l, T r) { return l > r; },
+        std::numeric_limits<T>::lowest(),
+        gpu, dims, d_data, d_positions, d_values);
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::sFindLowest(const GPU &gpu,
+        const Dimensions &dims,
+        const T * __restrict__ d_data,
+        float * __restrict__ d_positions,
+        T * __restrict__ d_values) {
+    return sFindUniversal([] __device__ (T l, T r) { return l < r; },
+        std::numeric_limits<T>::max(),
+        gpu, dims, d_data, d_positions, d_values);
+}
+
+template<typename T>
+template<typename C>
+void CudaExtremaFinder<T>::sFindUniversal(
+        const C &comp,
+        T startVal,
+        const GPU &gpu,
+        const Dimensions &dims,
+        const T * __restrict__ d_data,
+        float * __restrict__ d_positions,
+        T * __restrict__ d_values) {
     // check input
     assert(dims.sizeSingle() > 0);
     assert(dims.n() > 0);
@@ -343,35 +391,35 @@ void CudaExtremaFinder<T>::sFindMax(const GPU &gpu,
     size_t smemSize = 2 * threads * sizeof(T);
     switch (threads) {
         case 512:
-            return findMax1D<T, 512><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 512><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 256:
-            return findMax1D<T, 256><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 256><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 128:
-            return findMax1D<T, 128><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 128><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 64:
-            return findMax1D<T, 64><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 64><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 32:
-            return findMax1D<T, 32><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 32><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 16:
-            return findMax1D<T, 16><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 16><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 8:
-            return findMax1D<T, 8><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 8><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 4:
-            return findMax1D<T, 4><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 4><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 2:
-            return findMax1D<T, 2><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 2><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         case 1:
-            return findMax1D<T, 1><<< dimGrid, dimBlock, smemSize, stream>>>(
-                    d_data, d_positions, d_values, dims.sizeSingle());
+            return findUniversal<T, 1><<< dimGrid, dimBlock, smemSize, stream>>>(
+                comp, startVal, d_data, d_positions, d_values, dims.sizeSingle());
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Unsupported number of threads");
     }
 }

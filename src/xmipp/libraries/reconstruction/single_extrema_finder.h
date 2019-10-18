@@ -59,6 +59,12 @@ public:
         float *positions,
         T *values);
 
+    static void sFindLowest(const CPU &cpu,
+        const Dimensions &dims,
+        const T *data,
+        float *positions,
+        T *values);
+
     template<typename C>
     static void sFindUniversal2DAroundCenter(
         const C &comp,
@@ -91,9 +97,14 @@ private:
     void release();
 
     void check() const override;
+
     void initMax() override;
     void findMax(const T *data) override;
     bool canBeReusedMax(const ExtremaFinderSettings &s) const override;
+
+    void initLowest() override;
+    void findLowest(const T *data) override;
+    bool canBeReusedLowest(const ExtremaFinderSettings &s) const override;
 
     void initMaxAroundCenter() override;
     void findMaxAroundCenter(const T *data) override;
@@ -102,6 +113,12 @@ private:
     void initLowestAroundCenter() override;
     void findLowestAroundCenter(const T *data) override;
     bool canBeReusedLowestAroundCenter(const ExtremaFinderSettings &s) const override;
+
+    static void sFindUniversalChecks(
+            const Dimensions &dims,
+            const T *__restrict__ data,
+            float *__restrict__ positions,
+            T *__restrict__ values);
 
     void initBasic();
     template<typename KERNEL>
