@@ -34,6 +34,7 @@ void ProgMovieEstimateGain::defineParams()
     addParamsLine(" [--oroot <fn=\"estimated\">]: Estimated corrections and gains");
     addParamsLine("                             :+(Ideal=Observed*Corr, Observed=Ideal*Gain)");
     addParamsLine(" [--iter <N=3>]: Number of iterations");
+    addParamsLine(" [--sigma <s=-1>]: Sigma to use, if negative, then it is searched");
     addParamsLine(" [--maxSigma <s=3>]: Maximum number of neighbour rows/columns to analyze");
     addParamsLine(" [--frameStep <s=1>]: Skip frames during the estimation");
     addParamsLine("                    : Set to 1 to process all frames, set to 2 to process 1 every 2 frames, ...");
@@ -50,6 +51,7 @@ void ProgMovieEstimateGain::readParams()
 	fnIn=getParam("-i");
 	fnRoot=getParam("--oroot");
 	Niter=getIntParam("--iter");
+	sigma=getIntParam("--sigma");
 	maxSigma=getDoubleParam("--maxSigma");
 	sigmaStep=getDoubleParam("--sigmaStep");
 	singleReference=checkParam("--singleRef");
@@ -77,23 +79,17 @@ void ProgMovieEstimateGain::produceSideInfo()
 
 	columnH.initZeros(Ydim,Xdim);
 	rowH.initZeros(Ydim,Xdim);
-	if (fnGain!=""){
+	if (fnGain!="")
+	{
 		ICorrection.read(fnGain);
-		//Resizing for forcing same dimensions as image (be careful if the gain image is rotated)
-		//ICorrection().resizeNoCopy(Ydim,Xdim);
-
+		if (YSIZE(ICorrection())!=Ydim || XSIZE(ICorrection())!=Xdim)
+			REPORT_ERROR(ERR_MULTIDIM_SIZE,"The gain image and the movie do not have the same dimensions");
 	}
 	else
 	{
 		ICorrection().resizeNoCopy(Ydim,Xdim);
 		ICorrection().initConstant(1);
 	}
-
-	//std::cout << "ICorrection rows / cols\n";
-	//std::cout << XSIZE(ICorrection());
-	//std::cout << "\n";
-	//std::cout << YSIZE(ICorrection());
-	//std::cout << "\n";
 
 	sumObs.initZeros(Ydim,Xdim);
 
@@ -104,7 +100,10 @@ void ProgMovieEstimateGain::produceSideInfo()
 	    {
                mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
                Iframe.read(fnFrame);
-               sumObs+=Iframe();
+               MultidimArray<double>  mIframe=Iframe();
+               MultidimArray<double>  mICorrection=ICorrection();
+               FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
+                   DIRECT_MULTIDIM_ELEM(mIframe,n) *= DIRECT_MULTIDIM_ELEM(mICorrection,n);               sumObs+=Iframe();
 	    }
 	    iFrame++;
 	}
@@ -136,6 +135,7 @@ void ProgMovieEstimateGain::show()
 	<< "Input movie:     " << fnIn            << std::endl
 	<< "Output rootname: " << fnRoot          << std::endl
 	<< "N. Iterations:   " << Niter           << std::endl
+	<< "Sigma:           " << sigma           << std::endl
 	<< "Max. Sigma:      " << maxSigma        << std::endl
 	<< "Sigma step:      " << sigmaStep       << std::endl
 	<< "Single ref:      " << singleReference << std::endl
@@ -184,12 +184,38 @@ void ProgMovieEstimateGain::run()
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();
                     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(IframeIdeal)
-                        DIRECT_A2D_ELEM(IframeIdeal,i,j)=(DIRECT_A2D_ELEM(IframeIdeal,i,j)*DIRECT_A2D_ELEM(mICorrection,i,j));
+                        DIRECT_A2D_ELEM(IframeIdeal,i,j)*=DIRECT_A2D_ELEM(mICorrection,i,j);
                     computeHistograms(IframeIdeal);
 
-                    size_t bestSigmaCol = selectBestSigmaByColumn(IframeIdeal);
+                    //sigma=0;
+                    size_t bestSigmaCol = 0;
+                    if (sigma>=0)
+                    {
+                    	double bestDistance=1e38;
+                    	for (size_t s = 0; s< listOfWeights.size(); ++s)
+                    		if (fabs(listOfSigmas[s]-sigma)<bestDistance)
+                    		{
+                    			bestDistance=fabs(listOfSigmas[s]-sigma);
+                    			bestSigmaCol=s;
+                    		}
+                    }
+                    else
+                    	selectBestSigmaByColumn(IframeIdeal);
                     std::cout << "      sigmaCol: " << listOfSigmas[bestSigmaCol] << std::endl;
-                    size_t bestSigmaRow = selectBestSigmaByRow(IframeIdeal);
+                    size_t bestSigmaRow = 0;
+
+                    if (sigma>=0)
+                    {
+                    	double bestDistance=1e38;
+                    	for (size_t s = 0; s< listOfWeights.size(); ++s)
+                    		if (fabs(listOfSigmas[s]-sigma)<bestDistance)
+                    		{
+                    			bestDistance=fabs(listOfSigmas[s]-sigma);
+                    			bestSigmaRow=s;
+                    		}
+                    }
+                    else
+                    	selectBestSigmaByRow(IframeIdeal);
                     std::cout << "      sigmaRow: " << listOfSigmas[bestSigmaRow] << std::endl;
 
                     constructSmoothHistogramsByRow(listOfWeights[bestSigmaRow],listOfWidths[bestSigmaRow]);

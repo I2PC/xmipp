@@ -44,7 +44,7 @@ public:
 	FileName fnRoot; // Correction image
     FileName fnCorrected; // Corrected movie
 	int Niter; // Number of iterations
-	double maxSigma, sigmaStep;
+	double sigma, maxSigma, sigmaStep;
 	bool singleReference;
 	int frameStep;
 	FileName fnGain;
