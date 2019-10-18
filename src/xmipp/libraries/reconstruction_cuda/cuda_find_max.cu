@@ -95,7 +95,7 @@ template <typename T, typename T2, unsigned blockSize>
 __device__
 void findMax1D(
         const T * __restrict__ in,
-        T * __restrict__ outPos,
+        float * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned samples)
 {
@@ -118,8 +118,12 @@ void findMax1D(
 
     // last thread now holds the result
     if (tid == 0) {
-        outVal[signal] = ldata.x;
-        outPos[signal] = ldata.y;
+        if (nullptr != outVal) {
+            outVal[signal] = ldata.x;
+        }
+        if (nullptr != outPos) {
+            outPos[signal] = ldata.y;
+        }
     }
 }
 
@@ -127,7 +131,7 @@ template <typename T, typename T2, unsigned blockSize>
 __device__
 void findMax2DNearCenter(
         const T * __restrict__ in,
-        T * __restrict__ outPos,
+        float * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned xSize,
         unsigned ySize,
@@ -170,28 +174,32 @@ void findMax2DNearCenter(
 
     // last thread now holds the result
     if (tid == 0) {
-        outVal[signal] = ldata.x;
-        outPos[signal] = ldata.y;
+        if (nullptr != outVal) {
+            outVal[signal] = ldata.x;
+        }
+        if (nullptr != outPos) {
+            outPos[signal] = ldata.y;
+        }
     }
 }
 
 template <typename T, unsigned blockSize>
 __global__
 void findMax1D(const T * __restrict__ in,
-        T * __restrict__ outPos,
+        float * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned samples)
 {
     if (std::is_same<T, float> ::value) {
         findMax1D<float, float2, blockSize> (
                 (float*)in,
-                (float*)outPos,
+                outPos,
                 (float*)outVal,
                 samples);
     } else if (std::is_same<T, double> ::value) {
         findMax1D<double, double2, blockSize>(
                 (double*)in,
-                (double*)outPos,
+                outPos,
                 (double*)outVal,
                 samples);
     }
@@ -200,7 +208,7 @@ void findMax1D(const T * __restrict__ in,
 template <typename T, unsigned blockSize>
 __global__
 void findMax2DNearCenter(const T * __restrict__ in,
-        T * __restrict__ outPos,
+        float * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned xSize,
         unsigned ySize,
@@ -209,13 +217,13 @@ void findMax2DNearCenter(const T * __restrict__ in,
     if (std::is_same<T, float> ::value) {
         findMax2DNearCenter<float, float2, blockSize> (
                 (float*)in,
-                (float*)outPos,
+                outPos,
                 (float*)outVal,
                 xSize, ySize, maxDist);
     } else if (std::is_same<T, double> ::value) {
         findMax2DNearCenter<double, double2, blockSize>(
                 (double*)in,
-                (double*)outPos,
+                outPos,
                 (double*)outVal,
                 xSize, ySize, maxDist);
     }

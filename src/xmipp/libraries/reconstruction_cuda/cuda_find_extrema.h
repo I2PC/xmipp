@@ -74,21 +74,31 @@ public:
     static void sFindMax(const GPU &gpu,
         const Dimensions &dims,
         const T *d_data,
-        T *d_positions,
+        float *d_positions,
         T *d_values);
+
+    template<typename C>
+    static void sFindUniversal2DAroundCenter(
+        const C &comp,
+        const GPU &gpu,
+        const Dimensions &dims,
+        const T *data,
+        float *d_positions, // can be nullptr
+        T * d_values, // can be nullptr
+        size_t maxDist);
 
     static void sFindMax2DAroundCenter(const GPU &gpu,
         const Dimensions &dims,
         const T *d_data,
-        T * d_positions,
-        T * d_values,
+        float *d_positions, // can be nullptr
+        T * d_values, // can be nullptr
         size_t maxDist);
 
     static void sFindLowest2DAroundCenter(const GPU &gpu,
         const Dimensions &dims,
         const T *d_data,
-        T * d_positions,
-        T * d_values,
+        float *d_positions, // can be nullptr
+        T * d_values, // can be nullptr
         size_t maxDist);
 
     static size_t ceilPow2(size_t x); // FIXME DS move this to somewhere else
@@ -99,7 +109,7 @@ private:
 
     // device memory
     T *m_d_values;
-    T *m_d_positions;
+    float *m_d_positions;
     T *m_d_batch;
 
     // synch primitives
@@ -132,7 +142,7 @@ private:
 
     void initBasic();
     template<typename KERNEL>
-    void findBasic(const T *h_data, KERNEL k);
+    void findBasic(const T *h_data, const KERNEL &k);
     bool canBeReusedBasic(const ExtremaFinderSettings &s) const;
 };
 

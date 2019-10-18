@@ -83,7 +83,7 @@ void CudaExtremaFinder<T>::findMax(const T *__restrict h_data) {
     auto kernel = [&](const GPU &gpu,
             const Dimensions &dims,
             const T * __restrict__ d_data,
-            T * __restrict__ d_positions,
+            float * __restrict__ d_positions,
             T * __restrict__ d_values) {
         sFindMax(gpu, dims, d_data, d_positions, d_values);
     };
@@ -105,7 +105,7 @@ void CudaExtremaFinder<T>::findMaxAroundCenter(const  T *__restrict__ h_data) {
     auto kernel2D = [&](const GPU &gpu,
             const Dimensions &dims,
             const T * __restrict__ d_data,
-            T * __restrict__ d_positions,
+            float * __restrict__ d_positions,
             T * __restrict__ d_values) {
         sFindMax2DAroundCenter(gpu, dims, d_data, d_positions, d_values,
                 this->getSettings().maxDistFromCenter);
@@ -131,7 +131,7 @@ void CudaExtremaFinder<T>::findLowestAroundCenter(const  T *__restrict__ h_data)
     auto kernel2D = [&](const GPU &gpu,
             const Dimensions &dims,
             const T * __restrict__ d_data,
-            T * __restrict__ d_positions,
+            float * __restrict__ d_positions,
             T * __restrict__ d_values) {
         sFindLowest2DAroundCenter(gpu, dims, d_data, d_positions, d_values,
                 this->getSettings().maxDistFromCenter);
@@ -162,7 +162,7 @@ void CudaExtremaFinder<T>::initBasic() {
     }
 
     size_t bytesBatch = s.dims.sizeSingle() * s.batch * sizeof(T);
-    size_t bytesResult = s.batch * sizeof(T);
+    size_t bytesResult = s.batch * std::max(sizeof(T), sizeof(float));
     // device memory
     gpuErrchk(cudaMalloc(&m_d_batch, bytesBatch));
     gpuErrchk(cudaMalloc(&m_d_positions, bytesResult));
@@ -181,7 +181,7 @@ void CudaExtremaFinder<T>::initBasic() {
 
 template<typename T>
 template<typename KERNEL>
-void CudaExtremaFinder<T>::findBasic(const T * __restrict__ h_data, KERNEL k) {
+void CudaExtremaFinder<T>::findBasic(const T * __restrict__ h_data, const KERNEL &k) {
     bool isReady = this->isInitialized();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() first");
@@ -244,7 +244,7 @@ bool CudaExtremaFinder<T>::canBeReusedBasic(const ExtremaFinderSettings &s) cons
 
 template<typename T>
 void CudaExtremaFinder<T>::downloadPositionsFromGPU(size_t offset, size_t count) {
-    size_t bytesResult = count * sizeof(T);
+    size_t bytesResult = count * sizeof(float);
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
     auto s = this->getSettings();
     if ((ResultType::Position == s.resultType)
@@ -322,7 +322,7 @@ template<typename T>
 void CudaExtremaFinder<T>::sFindMax(const GPU &gpu,
     const Dimensions &dims,
     const T * __restrict__ d_data,
-    T * __restrict__ d_positions,
+    float * __restrict__ d_positions,
     T * __restrict__ d_values) {
     // check input
     assert(dims.sizeSingle() > 0);
@@ -376,12 +376,13 @@ void CudaExtremaFinder<T>::sFindMax(const GPU &gpu,
     }
 }
 
+//template<typename C>
 template<typename T>
 void CudaExtremaFinder<T>::sFindMax2DAroundCenter(
         const GPU &gpu,
         const Dimensions &dims,
         const T * d_data,
-        T * d_positions,
+        float * d_positions,
         T * d_values,
         size_t maxDist) {
     // check input
@@ -449,7 +450,7 @@ void CudaExtremaFinder<T>::sFindLowest2DAroundCenter(
         const GPU &gpu,
         const Dimensions &dims,
         const T * d_data,
-        T * d_positions,
+        float * d_positions,
         T * d_values,
         size_t maxDist) {
     // FIXME DS implement

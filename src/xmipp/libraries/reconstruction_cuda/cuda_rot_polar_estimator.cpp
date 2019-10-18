@@ -389,16 +389,17 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
         // locate maxima for each signal
+        auto d_positions = (float*)m_d_sumsOrMaxPos;
         ExtremaFinder::CudaExtremaFinder<T>::sFindMax(
-                *m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
+                *m_workStream, resSize, m_d_batchPolarOrCorr, d_positions, nullptr);
 
         // copy data back
         m_workStream->synch();
         auto loadStream = *(cudaStream_t*)m_loadStream->stream();
         gpuErrchk(cudaMemcpyAsync(
                 m_h_batchResult,
-                m_d_sumsOrMaxPos,
-                resSize.n() * sizeof(T), // one position per signal
+                d_positions,
+                resSize.n() * sizeof(float), // one position per signal
                 cudaMemcpyDeviceToHost, loadStream));
         m_loadStream->synch();
 

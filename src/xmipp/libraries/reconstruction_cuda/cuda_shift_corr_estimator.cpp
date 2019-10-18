@@ -348,11 +348,9 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
 
     // locate maxima
-    auto p_pos = (T*)d_othersF;
-    auto p_val = ((T*)d_othersF) + settings.batch();
-
+    auto p_pos = (float*)d_othersF;
     ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(
-            *workGPU, settings.sDim(), d_othersS, p_pos, p_val, maxShift);
+            *workGPU, settings.sDim(), d_othersS, p_pos, nullptr, maxShift);
     workGPU->synch();
     // copy data back
     gpuErrchk(cudaMemcpyAsync(h_centers, p_pos,
