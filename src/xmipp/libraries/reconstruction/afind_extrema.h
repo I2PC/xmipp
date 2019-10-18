@@ -74,8 +74,12 @@ public:
         if (0 == batch) {
             REPORT_ERROR(ERR_LOGIC_ERROR, "Batch is zero (0)");
         }
-        if (SearchType::MaxAroundCenter == searchType) {
+        if ((SearchType::MaxAroundCenter == searchType)
+                || (SearchType::LowestAroundCenter == searchType)) {
             const auto center = getCenter();
+            if (0 == maxDistFromCenter) {
+                REPORT_ERROR(ERR_LOGIC_ERROR, "'maxDistFromCenter' is set to zero (0)");
+            }
             if (dims.is1D()) {
                 if (maxDistFromCenter >= center.x) {
                     REPORT_ERROR(ERR_LOGIC_ERROR, "'maxDistFromCenter' is bigger than half of the signal's X dimension");
@@ -124,7 +128,6 @@ public:
     inline const std::vector<float> &getPositions() const {
         return m_positions;
     }
-
 
 protected:
     virtual void check() const = 0;

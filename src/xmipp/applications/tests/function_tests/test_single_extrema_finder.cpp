@@ -9,5 +9,5 @@ class SingleExtremaFinder_Test;
 
 #include "asingle_extrema_finder_tests.h"
 
-typedef ::testing::Types<float> TestTypes;
+typedef ::testing::Types<float, double> TestTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(CPU, SingleExtremaFinder_Test, TestTypes);

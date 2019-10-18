@@ -205,7 +205,7 @@ void SingleExtremaFinder<T>::sFindLowest(const CPU &cpu,
     if (dims.isPadded()) {
         REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
     } else {
-        // locate max
+        // locate minima
         for (size_t n = 0; n < dims.n(); ++n) {
             auto start = data + (n * dims.sizeSingle());
             auto max = std::min_element(start, start + dims.sizeSingle());
