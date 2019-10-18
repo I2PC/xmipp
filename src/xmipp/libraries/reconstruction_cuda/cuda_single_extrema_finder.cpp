@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "reconstruction_cuda/cuda_find_extrema.h"
-#include "reconstruction_cuda/cuda_find_max.cu"
+#include "cuda_single_extrema_finder.cu"
+#include "cuda_single_extrema_finder.h"
 #include "reconstruction_cuda/cuda_asserts.h"
 
 namespace ExtremaFinder {

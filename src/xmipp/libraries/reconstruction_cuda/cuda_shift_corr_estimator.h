@@ -33,7 +33,8 @@
 #include "gpu.h"
 #include <thread>
 #include <condition_variable>
-#include "reconstruction_cuda/cuda_find_extrema.h"
+
+#include "cuda_single_extrema_finder.h"
 
 namespace Alignment {
 

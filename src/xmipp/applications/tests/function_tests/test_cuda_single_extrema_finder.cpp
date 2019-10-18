@@ -1,4 +1,4 @@
-#include "reconstruction_cuda/cuda_find_extrema.h"
+#include "reconstruction_cuda/cuda_single_extrema_finder.h"
 
 template<typename T>
 class SingleExtremaFinder_Test;
