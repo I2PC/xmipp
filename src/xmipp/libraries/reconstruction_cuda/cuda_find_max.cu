@@ -49,6 +49,66 @@ T update(T &orig, T &cand) {
     return orig;
 }
 
+template<typename T, typename T2, typename C>
+ __device__
+void update(const C &comp, T2 &orig, const T * __restrict data, unsigned index) {
+    T tmp = data[index];
+    if (comp(tmp, orig.x)) {
+        orig.x = tmp;
+        orig.y = (T)index;
+    }
+}
+
+template<typename T, typename C>
+__device__
+T update(const C &comp, T &orig, T &cand) {
+    if (comp(cand.x, orig.x)) {
+        orig.x = cand.x;
+        orig.y = cand.y;
+    }
+    return orig;
+}
+
+template<typename T, unsigned blockSize, typename C>
+__device__
+void findUniversalInSharedMem(const C &comp, T &ldata) {
+    unsigned int tid = threadIdx.x;
+    // we have read all data, one of the thread knows the result
+    extern __shared__ char smem[];
+    T *sdata = reinterpret_cast<T*>(smem);
+    sdata[tid] = ldata;
+    __syncthreads(); // wait till all threads store their data
+    // reduce
+#pragma unroll
+    for (unsigned counter = blockSize / 2; counter >= 32; counter /= 2) {
+        if (tid < counter) {
+            sdata[tid] = update(comp, ldata, sdata[tid + counter]);
+        }
+        __syncthreads();
+    }
+    // manually unwrap last warp for better performance
+    // many of these blocks will be optimized out by compiler based on template
+    if ((blockSize >= 32) && (tid < 16)) {
+        sdata[tid] = update(comp, ldata, sdata[tid + 16]);
+    }
+    __syncthreads();
+    if ((blockSize >= 16) && (tid < 8)) {
+        sdata[tid] = update(comp, ldata, sdata[tid + 8]);
+    }
+    __syncthreads();
+    if ((blockSize >= 8) && (tid < 4)) {
+        sdata[tid] = update(comp, ldata, sdata[tid + 4]);
+    }
+    __syncthreads();
+    if ((blockSize >= 4) && (tid < 2)) {
+        sdata[tid] = update(comp, ldata, sdata[tid + 2]);
+    }
+    __syncthreads();
+    if ((blockSize >= 2) && (tid < 1)) {
+        sdata[tid] = update(comp, ldata, sdata[tid + 1]);
+    }
+    __syncthreads();
+}
 
 template<typename T, unsigned blockSize>
 __device__
@@ -127,9 +187,10 @@ void findMax1D(
     }
 }
 
-template <typename T, typename T2, unsigned blockSize>
+template <typename T, typename T2, unsigned blockSize, typename C>
 __device__
-void findMax2DNearCenter(
+void findUniversal2DNearCenter(
+        const C &comp,
         const T * __restrict__ in,
         float * __restrict__ outPos,
         T * __restrict__ outVal,
@@ -166,11 +227,11 @@ void findMax2DNearCenter(
             }
             // we are within the proper radius
             unsigned offset = (y * xSize) + x;
-            update(ldata, data, offset);
+            update(comp, ldata, data, offset);
         }
     }
 
-    findMaxInSharedMem<T2, blockSize>(ldata);
+    findUniversalInSharedMem<T2, blockSize, C>(comp, ldata);
 
     // last thread now holds the result
     if (tid == 0) {
@@ -205,9 +266,11 @@ void findMax1D(const T * __restrict__ in,
     }
 }
 
-template <typename T, unsigned blockSize>
+template <typename T, unsigned blockSize, typename C>
 __global__
-void findMax2DNearCenter(const T * __restrict__ in,
+void findUniversal2DNearCenter(
+        const C &comp,
+        const T * __restrict__ in,
         float * __restrict__ outPos,
         T * __restrict__ outVal,
         unsigned xSize,
@@ -215,13 +278,15 @@ void findMax2DNearCenter(const T * __restrict__ in,
         unsigned maxDist)
 {
     if (std::is_same<T, float> ::value) {
-        findMax2DNearCenter<float, float2, blockSize> (
+        findUniversal2DNearCenter<float, float2, blockSize> (
+                comp,
                 (float*)in,
                 outPos,
                 (float*)outVal,
                 xSize, ySize, maxDist);
     } else if (std::is_same<T, double> ::value) {
-        findMax2DNearCenter<double, double2, blockSize>(
+        findUniversal2DNearCenter<double, double2, blockSize>(
+                comp,
                 (double*)in,
                 outPos,
                 (double*)outVal,
