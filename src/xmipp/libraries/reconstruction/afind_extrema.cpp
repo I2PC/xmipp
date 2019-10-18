@@ -43,6 +43,9 @@ void AExtremaFinder<T>::init(const ExtremaFinderSettings &settings, bool reuse) 
             case SearchType::MaxAroundCenter:
                 this->initMaxAroundCenter();
                 break;
+            case SearchType::LowestAroundCenter:
+                this->initLowestAroundCenter();
+                break;
             default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
         }
         // check that there's no logical problem
@@ -57,6 +60,7 @@ bool AExtremaFinder<T>::canBeReused(const ExtremaFinderSettings &s) const {
     switch (s.searchType) {
         case SearchType::Max: return this->canBeReusedMax(s);
         case SearchType::MaxAroundCenter: return this->canBeReusedMaxAroundCenter(s);
+        case SearchType::LowestAroundCenter: return this->canBeReusedLowestAroundCenter(s);
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
     }
 }
@@ -74,6 +78,7 @@ void AExtremaFinder<T>::find(const T *data) {
     switch (m_settings.searchType) {
         case SearchType::Max: return this->findMax(data);
         case SearchType::MaxAroundCenter: return this->findMaxAroundCenter(data);
+        case SearchType::LowestAroundCenter: return this->findLowestAroundCenter(data);
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
     }
 }

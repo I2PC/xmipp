@@ -29,6 +29,7 @@
 #include "reconstruction/afind_extrema.h"
 #include "data/cpu.h"
 #include <algorithm>
+#include <functional>
 
 namespace ExtremaFinder {
 
@@ -58,7 +59,24 @@ public:
         float *positions,
         T *values);
 
+    template<typename C>
+    static void sFindUniversal2DAroundCenter(
+        const C &comp,
+        const CPU &cpu,
+        const Dimensions &dims,
+        const T *data,
+        float *positions, // can be nullptr
+        T * values, // can be nullptr
+        size_t maxDist);
+
     static void sFindMax2DAroundCenter(const CPU &cpu,
+        const Dimensions &dims,
+        const T *data,
+        float *positions, // can be nullptr
+        T * values, // can be nullptr
+        size_t maxDist);
+
+    static void sFindLowest2DAroundCenter(const CPU &cpu,
         const Dimensions &dims,
         const T *data,
         float *positions, // can be nullptr
@@ -80,9 +98,13 @@ private:
     void findMaxAroundCenter(const T *data) override;
     bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const override;
 
+    void initLowestAroundCenter() override;
+    void findLowestAroundCenter(const T *data) override;
+    bool canBeReusedLowestAroundCenter(const ExtremaFinderSettings &s) const override;
+
     void initBasic();
     template<typename KERNEL>
-    void findBasic(const T *data, KERNEL k);
+    void findBasic(const T *data, const KERNEL &k);
 };
 
 } /* namespace ExtremaFinder */

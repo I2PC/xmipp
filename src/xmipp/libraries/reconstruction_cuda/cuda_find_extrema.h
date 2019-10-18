@@ -84,6 +84,13 @@ public:
         T * d_values,
         size_t maxDist);
 
+    static void sFindLowest2DAroundCenter(const GPU &gpu,
+        const Dimensions &dims,
+        const T *d_data,
+        T * d_positions,
+        T * d_values,
+        size_t maxDist);
+
     static size_t ceilPow2(size_t x); // FIXME DS move this to somewhere else
 
 private:
@@ -114,6 +121,10 @@ private:
     void initMaxAroundCenter() override;
     void findMaxAroundCenter(const T *h_data) override;
     bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const override;
+
+    void initLowestAroundCenter() override;
+    void findLowestAroundCenter(const T *h_data) override;
+    bool canBeReusedLowestAroundCenter(const ExtremaFinderSettings &s) const override;
 
     void loadThreadRoutine(const T *h_data);
     void downloadPositionsFromGPU(size_t offset, size_t count);

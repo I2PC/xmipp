@@ -45,14 +45,75 @@ void SingleExtremaFinder<T>::check() const {
 }
 
 template<typename T>
+void SingleExtremaFinder<T>::initMax() {
+    return initBasic();
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::findMax(const T *__restrict__ data) {
+    auto kernel = [&](const T *d) {
+        sFindMax(*m_cpu, this->getSettings().dims, d,
+            this->getPositions().data(),
+            this->getValues().data());
+    };
+    return findBasic(data, kernel);
+}
+
+template<typename T>
 bool SingleExtremaFinder<T>::canBeReusedMax(const ExtremaFinderSettings &s) const {
     return true;
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::initMaxAroundCenter() {
+    return initBasic();
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::findMaxAroundCenter(const T *__restrict__ data) {
+    auto s = this->getSettings();
+    auto kernel2D = [&](const T *d) {
+        sFindMax2DAroundCenter(*m_cpu, s.dims, d,
+            this->getPositions().data(),
+            this->getValues().data(),
+            s.maxDistFromCenter);
+    };
+    if (s.dims.is2D()) {
+        return findBasic(data, kernel2D);
+    }
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
 }
 
 template<typename T>
 bool SingleExtremaFinder<T>::canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const {
     return true;
 }
+
+template<typename T>
+void SingleExtremaFinder<T>::initLowestAroundCenter() {
+    return initBasic();
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::findLowestAroundCenter(const T *__restrict__ data) {
+    auto s = this->getSettings();
+    auto kernel2D = [&](const T *d) {
+        sFindLowest2DAroundCenter(*m_cpu, s.dims, d,
+            this->getPositions().data(),
+            this->getValues().data(),
+            s.maxDistFromCenter);
+    };
+    if (s.dims.is2D()) {
+        return findBasic(data, kernel2D);
+    }
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+}
+
+template<typename T>
+bool SingleExtremaFinder<T>::canBeReusedLowestAroundCenter(const ExtremaFinderSettings &s) const {
+    return true;
+}
+
 
 template<typename T>
 void SingleExtremaFinder<T>::initBasic() {
@@ -69,48 +130,13 @@ void SingleExtremaFinder<T>::initBasic() {
 }
 
 template<typename T>
-void SingleExtremaFinder<T>::initMax() {
-    return initBasic();
-}
-
-template<typename T>
-void SingleExtremaFinder<T>::initMaxAroundCenter() {
-    return initBasic();
-}
-
-template<typename T>
 template<typename KERNEL>
-void SingleExtremaFinder<T>::findBasic(const T *__restrict__ data, KERNEL k) {
+void SingleExtremaFinder<T>::findBasic(const T *__restrict__ data, const KERNEL &k) {
     bool isReady = this->isInitialized();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() first");
     }
     k(data);
-}
-
-template<typename T>
-void SingleExtremaFinder<T>::findMax(const T *__restrict__ data) {
-    auto kernel = [&](const T *d) {
-        sFindMax(*m_cpu, this->getSettings().dims, d,
-            this->getPositions().data(),
-            this->getValues().data());
-    };
-    return findBasic(data, kernel);
-}
-
-template<typename T>
-void SingleExtremaFinder<T>::findMaxAroundCenter(const T *__restrict__ data) {
-    auto s = this->getSettings();
-    auto kernel2D = [&](const T *d) {
-        sFindMax2DAroundCenter(*m_cpu, s.dims, d,
-            this->getPositions().data(),
-            this->getValues().data(),
-            s.maxDistFromCenter);
-    };
-    if (this->getSettings().dims.is2D()) {
-        return findBasic(data, kernel2D);
-    }
-    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
 }
 
 template<typename T>
@@ -147,6 +173,32 @@ void SingleExtremaFinder<T>::sFindMax2DAroundCenter(
         const T *__restrict__ data,
         float *__restrict__ positions,
         T *__restrict__ values,
+        size_t maxDist) {
+    sFindUniversal2DAroundCenter(std::greater<T>(),
+            cpu, dims, data, positions, values, maxDist);
+}
+
+template<typename T>
+void SingleExtremaFinder<T>::sFindLowest2DAroundCenter(
+        const CPU &cpu,
+        const Dimensions &dims,
+        const T *__restrict__ data,
+        float *__restrict__ positions,
+        T *__restrict__ values,
+        size_t maxDist) {
+    sFindUniversal2DAroundCenter(std::less<T>(),
+            cpu, dims, data, positions, values, maxDist);
+}
+
+template<typename T>
+template<typename C>
+void SingleExtremaFinder<T>::sFindUniversal2DAroundCenter(
+        const C &comp,
+        const CPU &cpu,
+        const Dimensions &dims,
+        const T *data,
+        float *positions, // can be nullptr
+        T * values, // can be nullptr
         size_t maxDist) {
     // check input
     assert(dims.is2D());
@@ -187,7 +239,7 @@ void SingleExtremaFinder<T>::sFindMax2DAroundCenter(
                 if ((ySq + (logicX * logicX)) > maxDistSq) continue;
                 // get current value and update, if necessary
                 T tmp = data[offsetN + offsetY + x];
-                if (tmp > extrema) {
+                if (comp(tmp, extrema)) {
                     extrema = tmp;
                     pos = offsetY + x;
                 }

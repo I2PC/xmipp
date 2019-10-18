@@ -74,24 +74,20 @@ void CudaExtremaFinder<T>::check() const {
 }
 
 template<typename T>
-bool CudaExtremaFinder<T>::canBeReusedBasic(const ExtremaFinderSettings &s) const {
-    if (2 != s.hw.size()) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
-    }
-    GPU* newWorkStream = nullptr;
-    GPU* newLoadStream = nullptr;
-    try {
-        newWorkStream = dynamic_cast<GPU*>(s.hw.at(0));
-        newLoadStream = dynamic_cast<GPU*>(s.hw.at(1));
-    } catch (std::bad_cast&) {
-        return false;
-    }
-    auto oldBatch = this->getSettings().batch;
-    auto oldBatchSize = this->getSettings().dims.sizeSingle() * oldBatch;
-    return ((newWorkStream == m_workStream)
-            && (newLoadStream == m_loadStream)
-            && (oldBatch >= s.batch)
-            && (oldBatchSize >= (s.dims.sizeSingle() * s.batch)));
+void CudaExtremaFinder<T>::initMax() {
+    return initBasic();
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::findMax(const T *__restrict h_data) {
+    auto kernel = [&](const GPU &gpu,
+            const Dimensions &dims,
+            const T * __restrict__ d_data,
+            T * __restrict__ d_positions,
+            T * __restrict__ d_values) {
+        sFindMax(gpu, dims, d_data, d_positions, d_values);
+    };
+    return findBasic(h_data, kernel);
 }
 
 template<typename T>
@@ -100,7 +96,54 @@ bool CudaExtremaFinder<T>::canBeReusedMax(const ExtremaFinderSettings &s) const 
 }
 
 template<typename T>
+void CudaExtremaFinder<T>::initMaxAroundCenter() {
+    return initBasic();
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::findMaxAroundCenter(const  T *__restrict__ h_data) {
+    auto kernel2D = [&](const GPU &gpu,
+            const Dimensions &dims,
+            const T * __restrict__ d_data,
+            T * __restrict__ d_positions,
+            T * __restrict__ d_values) {
+        sFindMax2DAroundCenter(gpu, dims, d_data, d_positions, d_values,
+                this->getSettings().maxDistFromCenter);
+    };
+    if (this->getSettings().dims.is2D()) {
+        return findBasic(h_data, kernel2D);
+    }
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+}
+
+template<typename T>
 bool CudaExtremaFinder<T>::canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const {
+    return canBeReusedBasic(s);
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::initLowestAroundCenter() {
+    return initBasic();
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::findLowestAroundCenter(const  T *__restrict__ h_data) {
+    auto kernel2D = [&](const GPU &gpu,
+            const Dimensions &dims,
+            const T * __restrict__ d_data,
+            T * __restrict__ d_positions,
+            T * __restrict__ d_values) {
+        sFindLowest2DAroundCenter(gpu, dims, d_data, d_positions, d_values,
+                this->getSettings().maxDistFromCenter);
+    };
+    if (this->getSettings().dims.is2D()) {
+        return findBasic(h_data, kernel2D);
+    }
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+}
+
+template<typename T>
+bool CudaExtremaFinder<T>::canBeReusedLowestAroundCenter(const ExtremaFinderSettings &s) const {
     return canBeReusedBasic(s);
 }
 
@@ -134,16 +177,6 @@ void CudaExtremaFinder<T>::initBasic() {
     // to make Valgrind happy (otherwise uninitialized memory access)
     memset(m_h_batchResult, 0, bytesResult);
     m_loadStream->pinMemory(m_h_batchResult, bytesResult);
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::initMax() {
-    return initBasic();
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::initMaxAroundCenter() {
-    return initBasic();
 }
 
 template<typename T>
@@ -189,31 +222,24 @@ void CudaExtremaFinder<T>::findBasic(const T * __restrict__ h_data, KERNEL k) {
 }
 
 template<typename T>
-void CudaExtremaFinder<T>::findMax(const T *__restrict h_data) {
-    auto kernel = [&](const GPU &gpu,
-            const Dimensions &dims,
-            const T * __restrict__ d_data,
-            T * __restrict__ d_positions,
-            T * __restrict__ d_values) {
-        sFindMax(gpu, dims, d_data, d_positions, d_values);
-    };
-    return findBasic(h_data, kernel);
-}
-
-template<typename T>
-void CudaExtremaFinder<T>::findMaxAroundCenter(const  T *__restrict__ h_data) {
-    auto kernel2D = [&](const GPU &gpu,
-            const Dimensions &dims,
-            const T * __restrict__ d_data,
-            T * __restrict__ d_positions,
-            T * __restrict__ d_values) {
-        sFindMax2DAroundCenter(gpu, dims, d_data, d_positions, d_values,
-                this->getSettings().maxDistFromCenter);
-    };
-    if (this->getSettings().dims.is2D()) {
-        return findBasic(h_data, kernel2D);
+bool CudaExtremaFinder<T>::canBeReusedBasic(const ExtremaFinderSettings &s) const {
+    if (2 != s.hw.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
-    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+    GPU* newWorkStream = nullptr;
+    GPU* newLoadStream = nullptr;
+    try {
+        newWorkStream = dynamic_cast<GPU*>(s.hw.at(0));
+        newLoadStream = dynamic_cast<GPU*>(s.hw.at(1));
+    } catch (std::bad_cast&) {
+        return false;
+    }
+    auto oldBatch = this->getSettings().batch;
+    auto oldBatchSize = this->getSettings().dims.sizeSingle() * oldBatch;
+    return ((newWorkStream == m_workStream)
+            && (newLoadStream == m_loadStream)
+            && (oldBatch >= s.batch)
+            && (oldBatchSize >= (s.dims.sizeSingle() * s.batch)));
 }
 
 template<typename T>
@@ -416,6 +442,17 @@ void CudaExtremaFinder<T>::sFindMax2DAroundCenter(
                 d_data, d_positions, d_values, dims.x(), dims.y(), maxDist);
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Unsupported number of threads");
     }
+}
+
+template<typename T>
+void CudaExtremaFinder<T>::sFindLowest2DAroundCenter(
+        const GPU &gpu,
+        const Dimensions &dims,
+        const T * d_data,
+        T * d_positions,
+        T * d_values,
+        size_t maxDist) {
+    // FIXME DS implement
 }
 
 // explicit instantiation
