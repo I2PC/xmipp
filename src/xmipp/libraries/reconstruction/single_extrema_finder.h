@@ -26,10 +26,10 @@
 #ifndef LIBRARIES_RECONSTRUCTION_SINGLE_EXTREMA_FINDER_H_
 #define LIBRARIES_RECONSTRUCTION_SINGLE_EXTREMA_FINDER_H_
 
-#include "reconstruction/afind_extrema.h"
 #include "data/cpu.h"
 #include <algorithm>
 #include <functional>
+#include "aextrema_finder.h"
 
 namespace ExtremaFinder {
 

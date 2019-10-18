@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_AFIND_EXTREMA_H_
-#define LIBRARIES_RECONSTRUCTION_AFIND_EXTREMA_H_
+#ifndef LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_
+#define LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_
 
 #include "data/dimensions.h"
 #include "data/hw.h"
@@ -175,4 +175,4 @@ private:
 
 } /* namespace ExtremaFinder */
 
-#endif /* LIBRARIES_RECONSTRUCTION_AFIND_EXTREMA_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_ */

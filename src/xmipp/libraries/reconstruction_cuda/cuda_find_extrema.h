@@ -26,12 +26,12 @@
 #ifndef LIBRARIES_RECONSTRUCTION_CUDA_FIND_EXTREMA_H_
 #define LIBRARIES_RECONSTRUCTION_CUDA_FIND_EXTREMA_H_
 
-#include "reconstruction/afind_extrema.h"
 #include "reconstruction_cuda/gpu.h"
 #include <limits>
 #include <thread>
 #include <condition_variable>
 #include <core/utils/memory_utils.h>
+#include "reconstruction/aextrema_finder.h"
 
 namespace ExtremaFinder {
 

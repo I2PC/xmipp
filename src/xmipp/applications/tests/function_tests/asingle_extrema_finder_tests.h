@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "reconstruction/afind_extrema.h"
 #include "data/cpu.h"
 #include "core/utils/memory_utils.h"
 #include <random>
+#include "reconstruction/aextrema_finder.h"
 
 using namespace ExtremaFinder;
 
