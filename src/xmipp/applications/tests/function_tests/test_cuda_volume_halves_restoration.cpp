@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <random>
+#include <string>
 
 #include "reconstruction_cuda/cuda_volume_halves_restorator.h"
 #include "reconstruction/volume_halves_restoration.h"
