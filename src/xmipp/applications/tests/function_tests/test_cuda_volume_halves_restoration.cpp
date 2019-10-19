@@ -34,10 +34,10 @@ public:
 	unsigned weightFun = 1;
 	T weightPower = 3;
 
-	const std::string dir_path = "/tmp/";
-	const std::string input_file1 = dir_path + "test_input1.vol";
-	const std::string input_file2 = dir_path + "test_input2.vol";
-	const std::string output_root = dir_path + "test";
+	const std::string dir_path = std::string{ "/tmp/" };
+	const std::string input_file1 = dir_path + std::string{ "test_input1.vol" };
+	const std::string input_file2 = dir_path + std::string{ "test_input2.vol" };
+	const std::string output_root = dir_path + std::string{ "test" };
 
 	const double double_epsilon = 1e-7;
 
@@ -87,42 +87,42 @@ public:
 
 	void compare_restored1(const VolumeHalvesRestorator<T>& restorator) {
 		Image<T> ref;
-		ref.read(this->output_root + "_restored1.vol");
+		ref.read(this->output_root + std::string{ "_restored1.vol" });
 		auto gpu_res = restorator.getReconstructedVolume1();
 		compare_results(ref().data, gpu_res.data, MULTIDIM_SIZE(gpu_res));
 	}
 
 	void compare_restored2(const VolumeHalvesRestorator<T>& restorator) {
 		Image<T> ref;
-		ref.read(this->output_root + "_restored2.vol");
+		ref.read(this->output_root + std::string{ "_restored2.vol" });
 		auto gpu_res = restorator.getReconstructedVolume2();
 		compare_results(ref().data, gpu_res.data, MULTIDIM_SIZE(gpu_res));
 	}
 
 	void compare_filter_bank(const VolumeHalvesRestorator<T>& restorator) {
 		Image<T> ref;
-		ref.read(this->output_root + "_filterBank.vol");
+		ref.read(this->output_root + std::string{ "_filterBank.vol" });
 		auto gpu_res = restorator.getFilterBankVolume();
 		compare_results(ref().data, gpu_res.data, MULTIDIM_SIZE(gpu_res));
 	}
 
 	void compare_deconvolved(const VolumeHalvesRestorator<T>& restorator) {
 		Image<T> ref;
-		ref.read(this->output_root + "_deconvolved.vol");
+		ref.read(this->output_root + std::string{ "_deconvolved.vol" });
 		auto gpu_res = restorator.getDeconvolvedS();
 		compare_results(ref().data, gpu_res.data, MULTIDIM_SIZE(gpu_res));
 	}
 
 	void compare_convolved(const VolumeHalvesRestorator<T>& restorator) {
 		Image<T> ref;
-		ref.read(this->output_root + "_convolved.vol");
+		ref.read(this->output_root + std::string{ "_convolved.vol" });
 		auto gpu_res = restorator.getConvolvedS();
 		compare_results(ref().data, gpu_res.data, MULTIDIM_SIZE(gpu_res));
 	}
 
 	void compare_diff(const VolumeHalvesRestorator<T>& restorator) {
 		Image<T> ref;
-		ref.read(this->output_root + "_avgDiff.vol");
+		ref.read(this->output_root + std::string{ "_avgDiff.vol" });
 		auto gpu_res = restorator.getAverageDifference();
 		compare_results(ref().data, gpu_res.data, MULTIDIM_SIZE(gpu_res));
 	}
