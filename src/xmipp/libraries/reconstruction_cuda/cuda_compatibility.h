@@ -23,47 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_CPU_H_
-#define LIBRARIES_DATA_CPU_H_
-
-#include <thread>
-#include <unistd.h>
-#include "hw.h"
-#include "core/xmipp_error.h"
-
-class CPU : public HW {
-public:
-    CPU(unsigned cores=1) : HW(cores) {}
-
-    static unsigned findCores() {
-        return std::max(std::thread::hardware_concurrency(), 1u);
-    }
-
-    void synch() const {}; // nothing to do
-    void synchAll() const {}; // nothing to do
-
-    void updateMemoryInfo();
-
-    void lockMemory(const void *h_mem, size_t bytes) override {
-        // FIXME DS implement
-    }
-
-    void unlockMemory(const void *h_mem) override {
-        // FIXME DS implement
-    }
-
-    bool isMemoryLocked(const void *h_mem) override {
-        // FIXME DS implement
-        return false;
-    }
-
-protected:
-    void obtainUUID();
-
-private:
-    void native_cpuid(unsigned int *eax, unsigned int *ebx,
-            unsigned int *ecx, unsigned int *edx);
-};
+#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_COMPATIBILITY_H_
+#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_COMPATIBILITY_H_
 
 
-#endif /* LIBRARIES_DATA_CPU_H_ */
+__device__ double atomicAdd(double* address, double val);
+
+
+#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_COMPATIBILITY_H_ */

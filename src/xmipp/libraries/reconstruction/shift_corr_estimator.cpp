@@ -29,12 +29,15 @@ namespace Alignment {
 
 
 template<typename T>
-void ShiftCorrEstimator<T>::init2D(const HW &hw, AlignType type,
+void ShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
+    if (1 != hw.size()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "A single CPU thread expected");
+    }
     release();
     try {
-        m_cpu = &dynamic_cast<const CPU&>(hw);
+        m_cpu = dynamic_cast<CPU*>(hw.at(0));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }
@@ -165,13 +168,13 @@ void ShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 }
 
 template<typename T>
+template<bool CENTER>
 void ShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
         const HW &hw,
-        std::complex<T> *inOut,
-        const std::complex<T> *ref,
-        const Dimensions &dims,
-        bool center) {
-    if (center) {
+        std::complex<T> *__restrict inOut,
+        const std::complex<T> *__restrict ref,
+        const Dimensions &__restrict dims) {
+    if (CENTER) {
         // we cannot assert xDim, as we don't know if the spatial size was even
         assert(0 == (dims.y() % 2));
     }
@@ -180,18 +183,23 @@ void ShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
     assert(1 == dims.z());
     assert(0 < dims.n());
 
-    for (size_t n = 0; n < dims.n(); ++n) {
+    const size_t maxN = dims.n();
+    const size_t maxY = dims.y();
+    const size_t maxX = dims.x();
+
+    for (size_t n = 0; n < maxN; ++n) {
         size_t offsetN = n * dims.xyzPadded();
-        for (size_t y = 0; y < dims.y(); ++y) {
+        for (size_t y = 0; y < maxY; ++y) {
+            int centerCoeff = (0 == y % 2) ? 1 : -1;
             size_t offsetY = y * dims.xPadded();
-            for (size_t x = 0; x < dims.x(); ++x) {
+            for (size_t x = 0; x < maxX; ++x) {
                 size_t destIndex = offsetN + offsetY + x;
                 auto r = ref[offsetY + x];
                 auto o = r * std::conj(inOut[destIndex]);
                 inOut[destIndex] = o;
-                if (center) {
-                    int centerCoeff = 1 - 2 * ((x + y) & 1); // center FT, input must be even
+                if (CENTER) {
                     inOut[destIndex] *= centerCoeff;
+                    centerCoeff *= -1;
                 }
             }
         }
@@ -284,6 +292,7 @@ std::vector<Point2D<float>> ShiftCorrEstimator<T>::computeShifts2DOneToN(
 
 template<typename T>
 void ShiftCorrEstimator<T>::check() {
+    AShiftCorrEstimator<T>::check();
     if (this->m_settingsInv->isInPlace()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Only out-of-place transform is supported");
     }

@@ -23,47 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_CPU_H_
-#define LIBRARIES_DATA_CPU_H_
+#ifndef LIBRARIES_RECONSTRUCTION_ALIGN_TYPE_H_
+#define LIBRARIES_RECONSTRUCTION_ALIGN_TYPE_H_
 
-#include <thread>
-#include <unistd.h>
-#include "hw.h"
-#include "core/xmipp_error.h"
+namespace Alignment {
 
-class CPU : public HW {
-public:
-    CPU(unsigned cores=1) : HW(cores) {}
+enum class AlignType { None, OneToN, MToN, Consecutive };
 
-    static unsigned findCores() {
-        return std::max(std::thread::hardware_concurrency(), 1u);
-    }
+} /* namespace Alignment */
 
-    void synch() const {}; // nothing to do
-    void synchAll() const {}; // nothing to do
-
-    void updateMemoryInfo();
-
-    void lockMemory(const void *h_mem, size_t bytes) override {
-        // FIXME DS implement
-    }
-
-    void unlockMemory(const void *h_mem) override {
-        // FIXME DS implement
-    }
-
-    bool isMemoryLocked(const void *h_mem) override {
-        // FIXME DS implement
-        return false;
-    }
-
-protected:
-    void obtainUUID();
-
-private:
-    void native_cpuid(unsigned int *eax, unsigned int *ebx,
-            unsigned int *ecx, unsigned int *edx);
-};
-
-
-#endif /* LIBRARIES_DATA_CPU_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_ALIGN_TYPE_H_ */
