@@ -376,8 +376,7 @@ void CudaExtremaFinder<T>::sFindUniversal(
     assert(dims.sizeSingle() > 0);
     assert(dims.n() > 0);
     assert(nullptr != d_data);
-    assert(nullptr != d_positions);
-    assert(nullptr != d_values);
+    assert((nullptr != d_positions) || (nullptr != d_values));
     assert(dims.size() <= std::numeric_limits<unsigned>::max()); // indexing overflow in the kernel
 
     // create threads / blocks
@@ -467,8 +466,7 @@ void CudaExtremaFinder<T>::sFindUniversal2DAroundCenter(
     assert(dims.sizeSingle() > 0);
     assert(dims.n() > 0);
     assert(nullptr != d_data);
-    assert(nullptr != d_positions);
-    assert(nullptr != d_values);
+    assert((nullptr != d_positions) || (nullptr != d_values));
     assert(0 < maxDist);
     int xHalf = dims.x() / 2;
     int yHalf = dims.y() / 2;

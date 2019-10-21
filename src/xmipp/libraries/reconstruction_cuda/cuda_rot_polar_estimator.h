@@ -74,7 +74,7 @@ public :
         m_isDataReady = o.m_isDataReady;
 
         // host memory
-        m_h_batchResult = o.m_h_batchResult;
+        m_h_batchMaxPositions = o.m_h_batchMaxPositions;
 
         // remove data from other
         o.setDefault();
@@ -132,7 +132,7 @@ private:
     bool m_isDataReady;
 
     // host memory
-    T *m_h_batchResult;
+    float *m_h_batchMaxPositions;
 
     void check() override;
     void setDefault();
