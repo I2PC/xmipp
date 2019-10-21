@@ -265,6 +265,9 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     }
 
     m_workStream->set();
+    // make sure that all work (e.g. loading and processing of the reference) is done
+    m_loadStream->synch();
+    m_workStream->synch();
     // start loading data at the background
     m_isDataReady = false;
     auto loadingThread = std::thread(&CudaShiftCorrEstimator<T>::loadThreadRoutine, this, h_others);
@@ -349,12 +352,13 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
 
     // locate maxima
     auto p_pos = (float*)d_othersF;
+    auto h_pos = (float*)h_centers;
     ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(
             *workGPU, settings.sDim(), d_othersS, p_pos, nullptr, maxShift);
     workGPU->synch();
     // copy data back
-    gpuErrchk(cudaMemcpyAsync(h_centers, p_pos,
-            settings.batch() * sizeof(T),
+    gpuErrchk(cudaMemcpyAsync(h_pos, p_pos,
+            settings.batch() * sizeof(float),
             cudaMemcpyDeviceToHost, loadStream));
     loadGPU->synch();
 
@@ -363,8 +367,8 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     auto result = std::vector<Point2D<float>>();
     result.reserve(settings.sDim().n());
     for (size_t n = 0; n < settings.batch(); ++n) {
-        float y = (size_t)h_centers[n] / settings.sDim().x();
-        float x = (size_t)h_centers[n] % settings.sDim().x();
+        float y = (size_t)h_pos[n] / settings.sDim().x();
+        float x = (size_t)h_pos[n] % settings.sDim().x();
         result.emplace_back(
             x - settings.sDim().x() / 2,
             y - settings.sDim().y() / 2);
