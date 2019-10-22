@@ -24,6 +24,7 @@ public:
         hw.clear();
     }
 
+    template<bool ADD_NOISE>
     void generateAndTest2D(size_t n, size_t batch) {
         // images bellow 13 x 13 pixels are just too small for processing
         std::uniform_int_distribution<> distSizeSmall(13, 368);
@@ -31,11 +32,12 @@ public:
 
         // only square inputs are valid:
         size_t size = distSizeSmall(mt);
-        rotate2D(Dimensions(size, size, 1, n), batch);
+        rotate2D<ADD_NOISE>(Dimensions(size, size, 1, n), batch);
         size = distSizeBig(mt);
-        rotate2D(Dimensions(size, size, 1, n), batch);
+        rotate2D<ADD_NOISE>(Dimensions(size, size, 1, n), batch);
     }
 
+    template<bool ADD_NOISE>
     void rotate2D(const Dimensions &dims, size_t batch)
     {
         using Alignment::AlignType;
@@ -55,7 +57,9 @@ public:
         for (size_t n = 0; n < dims.n(); ++n) {
             T *d = others + (n * dims.xyzPadded());
             drawClockArms(d, dims, centerX, centerY, rotations.at(n));
-//            addNoise(others, dims, mt);
+            if (ADD_NOISE) {
+                addNoise(others, dims, mt);
+            }
         }
 //        outputData(others, dims);
 
@@ -121,25 +125,49 @@ std::mt19937 ARotationEstimator_Test<T>::mt(42); // fixed seed to ensure reprodu
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOne)
 {
     // test one reference vs one image
-    ARotationEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(1, 1);
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToMany)
 {
     // check that n == batch works properly
-    ARotationEstimator_Test<TypeParam>::generateAndTest2D(5, 1);
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(5, 1);
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1)
 {
     // test that n mod batch != 0 works
-    ARotationEstimator_Test<TypeParam>::generateAndTest2D(5, 3);
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(5, 3);
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2)
 {
     // test that n mod batch == 0 works
-    ARotationEstimator_Test<TypeParam>::generateAndTest2D(12, 4);
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(12, 4);
+}
+
+TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOneNoise)
+{
+    // test one reference vs one image
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(1, 1);
+}
+
+TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyNoise)
+{
+    // check that n == batch works properly
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(5, 1);
+}
+
+TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1Noise)
+{
+    // test that n mod batch != 0 works
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(5, 3);
+}
+
+TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2Noise)
+{
+    // test that n mod batch == 0 works
+    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(12, 4);
 }
 
 //TYPED_TEST_P( ARotationEstimator_Test, DEBUG)
@@ -152,5 +180,9 @@ REGISTER_TYPED_TEST_CASE_P(ARotationEstimator_Test,
     rotate2DOneToOne,
     rotate2DOneToMany,
     rotate2DOneToManyBatched1,
-    rotate2DOneToManyBatched2
+    rotate2DOneToManyBatched2,
+    rotate2DOneToOneNoise,
+    rotate2DOneToManyNoise,
+    rotate2DOneToManyBatched1Noise,
+    rotate2DOneToManyBatched2Noise
 );
