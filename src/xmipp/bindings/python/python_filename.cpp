@@ -128,7 +128,7 @@ FileName_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         if (PyArg_ParseTuple(args, "|Ois", &input, &number, &ext))
             //|| PyArg_ParseTuple(args, "|Os", &input, &ext)) FIXME
         {
-            pyStr = PyObject_Repr(input);
+            pyStr = PyObject_Str(input);
             if (pyStr != NULL)
               {
                    pyStr2 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
@@ -172,7 +172,7 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
         //"kk000001.xmp"
         if (n == 3 && PyArg_ParseTuple(args, "Ois", &input, &number, &ext))
         {
-            pyStr = PyObject_Repr(input);
+            pyStr = PyObject_Str(input);
             if (pyStr != NULL)
                 pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
                 strcpy(str, PyBytes_AS_STRING(pyStr1));
@@ -183,8 +183,8 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
             if( PyUnicode_Check( input ) )
             {
                 //"jj@kk.xmp"
-                pyStr  = PyObject_Repr(input);
-                pyStr2 = PyObject_Repr(input2);
+                pyStr  = PyObject_Str(input);
+                pyStr2 = PyObject_Str(input2);
                 if (pyStr != NULL)
                     PyObject* pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
                 	strcpy(str, PyBytes_AS_STRING(pyStr1));
@@ -197,7 +197,7 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 //"1@kk.xmp"
                 number=PyLong_AsLong(input);
-                pyStr2 = PyObject_Repr(input);
+                pyStr2 = PyObject_Str(input);
                 pyStr3  = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
                 strcpy(str2, PyBytes_AS_STRING(pyStr3));
                 self->filename->compose(number, str2);

@@ -287,7 +287,7 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                         return NULL;
                     }
 
-                    str_exc_type = PyObject_Repr(item); //Now a unicode object
+                    str_exc_type = PyObject_Str(item); //Now a unicode object
                     pyStr1 = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
                     argv[i] = PyBytes_AS_STRING(pyStr1);
 
