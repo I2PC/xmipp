@@ -27,17 +27,17 @@
 
 import os
 import sys
-import xmipp_base
-from xmipp3 import Plugin
+from xmipp3 import Plugin, XmippScript
 import pyworkflow.em.metadata as md
 
 from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
 
 
-class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
+class ScriptMicrographCleanerEm(XmippScript):
+    _conda_env="micrograph_cleaner_em"
     def __init__(self):
 
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
 
     def getDoubleParamWithDefault(self, paramName, conditionFun= lambda x: False, defaultVal=None):
       if self.checkParam(paramName):
@@ -74,22 +74,21 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
         
     def run(self):
-        checkIf_tf_keras_installed()
+        # checkIf_tf_keras_installed()
         args={}
         gpusToUse="0"
         if self.checkParam('-g'):
           gpusToUse= self.getParam('-g')
           if "None" in gpusToUse or "-1" in gpusToUse:
-            gpusToUse=None
+            gpusToUse=-1
         args["gpus"]=gpusToUse
 
-        updateEnviron(gpusToUse)
-        
         if self.checkParam('-i'):
           mdObj= md.MetaData(os.path.expanduser( self.getParam('-i')))
           args["inputMicsPath"]= []
           for objId in mdObj:
             args["inputMicsPath"]+= [mdObj.getValue(md.MDL_IMAGE, objId)]
+          args["inputMicsPath"]= " ".join(args["inputMicsPath"])
         else:
           raise Exception("Error, input micrographs fnames are requried as argument")
 
@@ -129,14 +128,8 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         else:
           args["deepLearningModel"]=Plugin.getModel('deepMicrographCleaner', 'defaultModel.keras')
 
-        try:
-          # from xmippPyModules.micrograph_cleaner_em.cleanMics import main
-          from micrograph_cleaner_em.cleanMics import main
-        except ImportError as e:
-          print(e)
-          raise ValueError("Error, micrograph_cleaner_em packages was not properly imported")
-        main(** args)
- 
+        cmdArgs= " ".join(["--"+str(key)+" "+str(args[key]) for key in args if args[key] is not None ])
+        self.runCondaCmd("cleanMics", cmdArgs)
 
 if __name__ == '__main__':
     '''
