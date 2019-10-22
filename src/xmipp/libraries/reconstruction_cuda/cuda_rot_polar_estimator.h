@@ -53,8 +53,6 @@ public :
     CudaRotPolarEstimator(CudaRotPolarEstimator &&o) {
         m_loadStream = o.m_loadStream;
         m_workStream = o.m_workStream;
-        m_firstRing = o.m_firstRing;
-        m_lastRing = o.m_lastRing;
         m_samples = o.m_samples;
 
         // device memory
@@ -109,8 +107,6 @@ public :
 private:
     GPU *m_loadStream;
     GPU *m_workStream;
-    int m_firstRing;
-    int m_lastRing;
     int m_samples;
 
     // device memory
@@ -150,10 +146,6 @@ private:
     template<bool FULL_CIRCLE>
     void computeRotation2DOneToN(T *h_others);
     void computeRotation2DOneToN(T *h_others) override;
-
-    constexpr size_t getNoOfRings() const {
-        return 1 + m_lastRing - m_firstRing;
-    }
 
     void loadThreadRoutine(T *h_others);
 };

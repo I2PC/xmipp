@@ -54,10 +54,6 @@ static std::vector<Point2D<float>> generateShifts(const Dimensions &dims, size_t
     return shifts;
 }
 
-static float getMaxRotation() {
-    return 360.f - std::numeric_limits<float>::min();
-}
-
 static std::vector<float> generateRotations(const Dimensions& dims, float maxRotation, std::mt19937 &mt)
 {
     std::uniform_int_distribution<> distPos(0, dims.x());

@@ -42,7 +42,8 @@ public:
     {
         using Alignment::AlignType;
         using Alignment::ARotationEstimator;
-        float maxRotation = getMaxRotation();
+        using Alignment::RotationEstimationSetting;
+        float maxRotation = RotationEstimationSetting::getMaxRotation();
 
 //        printf("testing: %lu x %lu x %lu (batch %lu)\n",
 //                dims.x(), dims.y(), dims.n(), batch);
@@ -70,6 +71,8 @@ public:
         settings.otherDims = dims;
         settings.batch = batch;
         settings.maxRotDeg = maxRotation;
+        settings.firstRing = settings.getDefaultFirstRing();
+        settings.lastRing = settings.getDefaultLastRing();
         settings.fullCircle = true;
 
         estimator->init(settings, true);
@@ -146,29 +149,29 @@ TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2)
     ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(12, 4);
 }
 
-TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOneNoise)
-{
-    // test one reference vs one image
-    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(1, 1);
-}
-
-TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyNoise)
-{
-    // check that n == batch works properly
-    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(5, 1);
-}
-
-TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1Noise)
-{
-    // test that n mod batch != 0 works
-    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(5, 3);
-}
-
-TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2Noise)
-{
-    // test that n mod batch == 0 works
-    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(12, 4);
-}
+//TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOneNoise)
+//{
+//    // test one reference vs one image
+//    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(1, 1);
+//}
+//
+//TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyNoise)
+//{
+//    // check that n == batch works properly
+//    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(5, 1);
+//}
+//
+//TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched1Noise)
+//{
+//    // test that n mod batch != 0 works
+//    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(5, 3);
+//}
+//
+//TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2Noise)
+//{
+//    // test that n mod batch == 0 works
+//    ARotationEstimator_Test<TypeParam>::template generateAndTest2D<true>(12, 4);
+//}
 
 //TYPED_TEST_P( ARotationEstimator_Test, DEBUG)
 //{
@@ -180,9 +183,9 @@ REGISTER_TYPED_TEST_CASE_P(ARotationEstimator_Test,
     rotate2DOneToOne,
     rotate2DOneToMany,
     rotate2DOneToManyBatched1,
-    rotate2DOneToManyBatched2,
-    rotate2DOneToOneNoise,
-    rotate2DOneToManyNoise,
-    rotate2DOneToManyBatched1Noise,
-    rotate2DOneToManyBatched2Noise
+    rotate2DOneToManyBatched2//,
+//    rotate2DOneToOneNoise,
+//    rotate2DOneToManyNoise,
+//    rotate2DOneToManyBatched1Noise,
+//    rotate2DOneToManyBatched2Noise
 );

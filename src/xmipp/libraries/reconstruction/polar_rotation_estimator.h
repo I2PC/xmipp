@@ -54,8 +54,6 @@ public:
         m_aux = o.m_aux;
         m_plans = o.m_plans;
         m_refPlans = o.m_refPlans;
-        m_firstRing = o.m_firstRing;
-        m_lastRing = o.m_lastRing;
         // remove data from other
         o.setDefault();
     }
@@ -70,8 +68,6 @@ private:
     RotationalCorrelationAux m_aux;
     Polar_fftw_plans *m_plans; // fixme DS use unique_ptr
     Polar_fftw_plans *m_refPlans;
-    int m_firstRing;
-    int m_lastRing;
 
     void release();
     void setDefault();

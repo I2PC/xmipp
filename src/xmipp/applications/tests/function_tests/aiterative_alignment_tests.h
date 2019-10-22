@@ -73,7 +73,7 @@ public:
 
         auto maxShift = std::min((size_t)20, getMaxShift(dims));
         auto shifts = generateShifts(dims, maxShift, mt);
-        auto maxRotation = getMaxRotation();
+        auto maxRotation = RotationEstimationSetting::getMaxRotation();
         auto rotations = generateRotations(dims, maxRotation, mt);
 
         assert(dims.size() < maxDims.size());
@@ -108,6 +108,8 @@ public:
         rotSettings.otherDims = dims;
         rotSettings.batch = batch;
         rotSettings.maxRotDeg = maxRotation;
+        rotSettings.firstRing = rotSettings.getDefaultFirstRing();
+        rotSettings.lastRing = rotSettings.getDefaultLastRing();
         rotSettings.fullCircle = true;
 
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
