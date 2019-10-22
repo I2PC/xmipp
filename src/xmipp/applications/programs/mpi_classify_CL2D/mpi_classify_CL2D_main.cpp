@@ -144,7 +144,7 @@ void CL2DClass::transferUpdate(bool centerReference)
             DIRECT_A2D_ELEM(P,i,j) = 0;
 
         // Compute the polar Fourier transform of the full image
-        normalizedPolarFourierTransform(P, polarFourierP, false, XSIZE(P) / 5,
+        polarFourierTransform<true>(P, polarFourierP, false, XSIZE(P) / 5,
                                         XSIZE(P) / 2-2, plans, 1);
         size_t finalSize = 2 * polarFourierP.getSampleNoOuterRing() - 1;
         if (XSIZE(rotationalCorr) != finalSize)
@@ -255,7 +255,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 			SPEED_UP_tempsDouble;
 			if (bestRotSR > ROTATE_THRESHOLD)
 			{
-				normalizedPolarFourierTransform(IauxSR, polarFourierI, true,
+				polarFourierTransform<true>(IauxSR, polarFourierI, true,
 												XSIZE(P) / 5, XSIZE(P) / 2-2, plans, 1);
 
 				bestRotSR = best_rotation(polarFourierP, polarFourierI, rotAux);
@@ -273,7 +273,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 			// Rotate then shift
 			if (bestRotRS > ROTATE_THRESHOLD)
 			{
-				normalizedPolarFourierTransform(IauxRS, polarFourierI, true,
+				polarFourierTransform<true>(IauxRS, polarFourierI, true,
 												XSIZE(P) / 5, XSIZE(P) / 2-2, plans, 1);
 
 				bestRotRS = best_rotation(polarFourierP, polarFourierI, rotAux);

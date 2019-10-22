@@ -55,7 +55,7 @@ void PolarRotationEstimator<T>::load2DReferenceOneToN(const T *ref) {
     MultidimArray<double> tmp = convert(const_cast<T*>(ref));
     tmp.setXmippOrigin();
     auto s = this->getSettings();
-    normalizedPolarFourierTransform(tmp, m_refPolarFourierI, false,
+    polarFourierTransform<false>(tmp, m_refPolarFourierI, false,
             s.firstRing, s.lastRing, m_refPlans, 1);
     m_rotCorrAux.resize(2 * m_refPolarFourierI.getSampleNoOuterRing() - 1);
     m_aux.local_transformer.setReal(m_rotCorrAux);
@@ -91,7 +91,7 @@ void PolarRotationEstimator<T>::computeRotation2DOneToN(T *others) {
         size_t offset = n * s.otherDims.sizeSingle();
         MultidimArray<double> tmp = convert(others + offset);
         tmp.setXmippOrigin();
-        normalizedPolarFourierTransform(tmp, m_polarFourierI, true,
+        polarFourierTransform<false>(tmp, m_polarFourierI, true,
                 s.firstRing, s.lastRing, m_plans, 1);
         this->getRotations2D().emplace_back(
                 best_rotation(m_refPolarFourierI, m_polarFourierI, m_aux));

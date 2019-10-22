@@ -196,11 +196,13 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
             outPolar, m_d_batchPolarOrCorr,
             s.firstRing);
 
+    // It seems that the normalization is not necessary (does not change the result
+    // of the synthetic tests. It can however prevent e.g. overflow, hence it's kept here)
     // normalize data
-    sNormalize<FULL_CIRCLE>(*m_workStream,
-            outPolar, m_d_batchPolarOrCorr,
-            m_d_sumsOrMaxPos, m_d_sumsSqr,
-            s.firstRing);
+//    sNormalize<FULL_CIRCLE>(*m_workStream,
+//            outPolar, m_d_batchPolarOrCorr,
+//            m_d_sumsOrMaxPos, m_d_sumsSqr,
+//            s.firstRing);
 
     CudaFFT<T>::fft(*m_singleToFD, m_d_batchPolarOrCorr, m_d_ref);
 }
@@ -380,10 +382,12 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             m_cv->notify_one();
         }
 
-        sNormalize<FULL_CIRCLE>(*m_workStream,
-                outPolar, m_d_batchPolarOrCorr,
-                m_d_sumsOrMaxPos, m_d_sumsSqr,
-                s.firstRing);
+        // It seems that the normalization is not necessary (does not change the result
+        // of the synthetic tests. It can however prevent e.g. overflow, hence it's kept here)
+//        sNormalize<FULL_CIRCLE>(*m_workStream,
+//                outPolar, m_d_batchPolarOrCorr,
+//                m_d_sumsOrMaxPos, m_d_sumsSqr,
+//                s.firstRing);
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 

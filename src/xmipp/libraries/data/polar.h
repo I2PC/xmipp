@@ -827,9 +827,10 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
                            MultidimArray<double> &angles,
                            RotationalCorrelationAux &aux);
 
-/** Compute a normalized polar Fourier transform of the input image.
+/** Compute a polar Fourier transform (with/out normalization) of the input image.
     If plans is NULL, they are computed and returned. */
-void normalizedPolarFourierTransform(const MultidimArray<double> &in,
+template<bool NORMALIZE>
+void polarFourierTransform(const MultidimArray<double> &in,
                                      Polar< std::complex<double> > &out, bool flag,
                                      int first_ring, int last_ring, Polar_fftw_plans *&plans,
                                      int BsplineOrder=3);
