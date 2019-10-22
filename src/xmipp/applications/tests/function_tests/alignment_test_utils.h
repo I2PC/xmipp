@@ -71,6 +71,14 @@ static std::vector<float> generateRotations(const Dimensions& dims, float maxRot
 }
 
 template<typename T>
+static void addNoise(T *data, const Dimensions &dims, std::mt19937 &mt) {
+    std::normal_distribution<T> dist(0., .5);
+    for (size_t i = 0; i < dims.size(); ++i) {
+        data[i] += dist(mt);
+    }
+}
+
+template<typename T>
 static void drawClockArms(T *result, const Dimensions &dims, size_t xPos, size_t yPos, float rotDegree) {
     size_t yArmSize = (dims.y() - yPos) / 2;
     size_t xArmSize = (dims.x() - xPos) / 3;

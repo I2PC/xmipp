@@ -32,8 +32,7 @@
 namespace Alignment {
 
 template<typename T>
-void CudaRotPolarEstimator<T>::init2D(bool reuse) {
-    // FIXME DS implement reuse (properly)
+void CudaRotPolarEstimator<T>::init2D() {
     release();
     auto s = this->getSettings();
     if (2 != s.hw.size()) {
@@ -90,7 +89,7 @@ void CudaRotPolarEstimator<T>::init2D(bool reuse) {
     m_batchToSD = CudaFFT<T>::createPlan(*m_workStream, inversePolar);
 
     // allocate device memory
-    m_h_batchResult = new T[m_samples * s.batch];
+    m_h_batchMaxPositions = new float[m_samples * s.batch];
 
     // synch primitives
     m_mutex = new std::mutex();
@@ -112,7 +111,7 @@ void CudaRotPolarEstimator<T>::release() {
     CudaFFT<T>::release(m_batchToFD);
     CudaFFT<T>::release(m_batchToSD);
 
-    delete[] m_h_batchResult;
+    delete[] m_h_batchMaxPositions;
 
     // synch primitives
     delete m_mutex;
@@ -135,7 +134,7 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_d_sumsSqr = nullptr;
 
     // host memory
-    m_h_batchResult = nullptr;
+    m_h_batchMaxPositions = nullptr;
 
     // FT plans
     m_singleToFD = nullptr;
@@ -304,7 +303,10 @@ void CudaRotPolarEstimator<T>::sNormalize(
         ceil((dim.x() * dim.n()) / (float)dimBlock.x));
 
     auto stream = *(cudaStream_t*)gpu.stream();
-
+    // clear the arrays
+    size_t bytes = dim.n() * sizeof(T);
+    gpuErrchk(cudaMemset(d_sums, 0, bytes));
+    gpuErrchk(cudaMemset(d_sumsSqr, 0, bytes));
     computeSumSumSqr<T, FULL_CIRCLE>
         <<<dimGrid, dimBlock, 0, stream>>> (
         d_in, dim.x(), dim.y(), dim.n(),
@@ -347,6 +349,9 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
     m_workStream->set();
+    // make sure that all work (e.g. loading and processing of the reference) is done
+    m_loadStream->synch();
+    m_workStream->synch();
     // start loading data at the background
     m_isDataReady = false;
     auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, h_others);
@@ -390,22 +395,23 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
         // locate maxima for each signal
+        auto d_positions = (float*)m_d_sumsOrMaxPos;
         ExtremaFinder::CudaExtremaFinder<T>::sFindMax(
-                *m_workStream, resSize, m_d_batchPolarOrCorr, m_d_sumsOrMaxPos, m_d_sumsSqr);
+                *m_workStream, resSize, m_d_batchPolarOrCorr, d_positions, nullptr);
 
         // copy data back
         m_workStream->synch();
         auto loadStream = *(cudaStream_t*)m_loadStream->stream();
         gpuErrchk(cudaMemcpyAsync(
-                m_h_batchResult,
-                m_d_sumsOrMaxPos,
-                resSize.n() * sizeof(T), // one position per signal
+                m_h_batchMaxPositions,
+                d_positions,
+                resSize.n() * sizeof(float), // one position per signal
                 cudaMemcpyDeviceToHost, loadStream));
         m_loadStream->synch();
 
-        // convert positions of the maxim to angles
+        // convert positions of the maxima to angles
         for (int n = 0; n < resSize.n(); ++n) {
-            auto angle = m_h_batchResult[n] * (FULL_CIRCLE ? (T)360 : (T)180) / resSize.x();
+            auto angle = m_h_batchMaxPositions[n] * (FULL_CIRCLE ? (T)360 : (T)180) / resSize.x();
             this->getRotations2D().emplace_back(angle);
         }
     }

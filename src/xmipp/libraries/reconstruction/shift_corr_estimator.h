@@ -30,6 +30,7 @@
 #include "ashift_corr_estimator.h"
 #include "data/cpu.h"
 #include "fftwT.h"
+#include "single_extrema_finder.h"
 
 namespace Alignment {
 

@@ -28,11 +28,12 @@
 
 #include "reconstruction/arotation_estimator.cpp"
 #include "reconstruction_cuda/gpu.h"
-#include "reconstruction_cuda/cuda_find_extrema.h"
 #include "cuda_fft.h"
 #include <thread>
 #include <condition_variable>
 #include <algorithm>
+
+#include "cuda_single_extrema_finder.h"
 
 namespace Alignment {
 
@@ -73,7 +74,7 @@ public :
         m_isDataReady = o.m_isDataReady;
 
         // host memory
-        m_h_batchResult = o.m_h_batchResult;
+        m_h_batchMaxPositions = o.m_h_batchMaxPositions;
 
         // remove data from other
         o.setDefault();
@@ -131,13 +132,16 @@ private:
     bool m_isDataReady;
 
     // host memory
-    T *m_h_batchResult;
+    float *m_h_batchMaxPositions;
 
     void check() override;
     void setDefault();
     void release();
 
-    void init2D(bool reuse) override;
+    void init2D() override;
+    bool canBeReused2D(const RotationEstimationSetting &s) const override {
+        return false; // FIXME DS implement
+    }
 
     template<bool FULL_CIRCLE>
     void load2DReferenceOneToN(const T *h_ref);

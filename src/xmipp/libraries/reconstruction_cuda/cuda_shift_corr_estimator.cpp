@@ -34,6 +34,7 @@ template<typename T>
 void CudaShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
         bool includingBatchFT, bool includingSingleFT) {
+    // FIXME DS consider tunning the size of the input (e.g. 436x436x50)
     if (2 != hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
@@ -264,6 +265,9 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     }
 
     m_workStream->set();
+    // make sure that all work (e.g. loading and processing of the reference) is done
+    m_loadStream->synch();
+    m_workStream->synch();
     // start loading data at the background
     m_isDataReady = false;
     auto loadingThread = std::thread(&CudaShiftCorrEstimator<T>::loadThreadRoutine, this, h_others);
@@ -347,15 +351,14 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     CudaFFT<T>::ifft(plan, d_othersF, d_othersS);
 
     // locate maxima
-    auto p_pos = (T*)d_othersF;
-    auto p_val = ((T*)d_othersF) + settings.batch();
-
+    auto p_pos = (float*)d_othersF;
+    auto h_pos = (float*)h_centers;
     ExtremaFinder::CudaExtremaFinder<T>::sFindMax2DAroundCenter(
-            *workGPU, settings.sDim(), d_othersS, p_pos, p_val, maxShift);
+            *workGPU, settings.sDim(), d_othersS, p_pos, nullptr, maxShift);
     workGPU->synch();
     // copy data back
-    gpuErrchk(cudaMemcpyAsync(h_centers, p_pos,
-            settings.batch() * sizeof(T),
+    gpuErrchk(cudaMemcpyAsync(h_pos, p_pos,
+            settings.batch() * sizeof(float),
             cudaMemcpyDeviceToHost, loadStream));
     loadGPU->synch();
 
@@ -364,8 +367,8 @@ std::vector<Point2D<float>> CudaShiftCorrEstimator<T>::computeShifts2DOneToN(
     auto result = std::vector<Point2D<float>>();
     result.reserve(settings.sDim().n());
     for (size_t n = 0; n < settings.batch(); ++n) {
-        float y = (size_t)h_centers[n] / settings.sDim().x();
-        float x = (size_t)h_centers[n] % settings.sDim().x();
+        float y = (size_t)h_pos[n] / settings.sDim().x();
+        float x = (size_t)h_pos[n] % settings.sDim().x();
         result.emplace_back(
             x - settings.sDim().x() / 2,
             y - settings.sDim().y() / 2);
@@ -410,8 +413,10 @@ void CudaShiftCorrEstimator<T>::sComputeCorrelations2DOneToN(
     assert(0 < dims.n());
 
     // create threads / blocks
-    dim3 dimBlock(BLOCK_DIM_X, 1, 1);
-    dim3 dimGrid(dims.n(), 1, 1);
+    dim3 dimBlock(64, 1, 1);
+    dim3 dimGrid(
+            std::ceil(dims.x() / (float)dimBlock.x),
+            dims.n(), 1);
     auto stream = *(cudaStream_t*)gpu.stream();
     if (std::is_same<T, float>::value) {
         computeCorrelations2DOneToNKernel<float2, center>

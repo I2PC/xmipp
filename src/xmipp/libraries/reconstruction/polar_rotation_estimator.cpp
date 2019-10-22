@@ -28,8 +28,8 @@
 namespace Alignment {
 
 template<typename T>
-void PolarRotationEstimator<T>::init2D(bool reuse) {
-    // fixme DS implement reuse properly
+void PolarRotationEstimator<T>::init2D() {
+    release();
     if (1 != this->getSettings().hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Only one CPU thread expected");
     }
@@ -108,6 +108,8 @@ void PolarRotationEstimator<T>::release() {
     delete m_refPlans;
     m_rotCorrAux.clear();
     m_dataAux.clear();
+
+    setDefault();
 }
 
 template<typename T>
@@ -123,8 +125,8 @@ void PolarRotationEstimator<T>::setDefault() {
 template<typename T>
 void PolarRotationEstimator<T>::check() {
     const auto s = this->getSettings();
-    if (s.batch != 1) { // FIXME DS show just runtime warning
-        REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator cannot work with batched signals");
+    if (s.batch != 1) {
+        std::cerr << "Batch processing is not supported. Signals will be processed one by one.\n";
     }
     if (s.refDims.x() != s.refDims.y()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator can work only with square signal");

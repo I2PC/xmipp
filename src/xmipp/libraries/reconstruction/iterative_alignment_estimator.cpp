@@ -102,7 +102,10 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(AlignmentEstimation &est
             T * address = copy + i * m_dims.sizeSingle();
             auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
             auto other = MultidimArray<T>(1, z, y, x, address);
-            estimation.correlations.at(i) = fastCorrelation(ref, other);
+            // FIXME DS better if we use fastCorrelation, but unless the input is normalized
+            // we won't receive correlation in [0..1], so we won't be able to directly compare
+            // against the original version of the algorithm
+            estimation.correlations.at(i) = correlationIndex(ref, other);
         }
     };
 
@@ -162,8 +165,9 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
 
 template<typename T>
 AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
-        const T *__restrict__ ref, const T * __restrict__ others,
+        const T *__restrict__ ref, const T * __restrict__ others, // it would be good if data is normalized, but probably it does not have to be
         unsigned iters) {
+
     m_shift_est.load2DReferenceOneToN(ref);
     if ( ! m_sameEstimators) {
         m_rot_est.loadReference(ref);
@@ -195,6 +199,7 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
             result_RS.poses.at(i) = result_SR.poses.at(i);
         }
     }
+
     return result_RS;
 }
 

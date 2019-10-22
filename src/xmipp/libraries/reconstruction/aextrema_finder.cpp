@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "afind_extrema.h"
+#include "aextrema_finder.h"
 
 namespace ExtremaFinder {
 
@@ -40,8 +40,14 @@ void AExtremaFinder<T>::init(const ExtremaFinderSettings &settings, bool reuse) 
             case SearchType::Max:
                 this->initMax();
                 break;
+            case SearchType::Lowest:
+                this->initLowest();
+                break;
             case SearchType::MaxAroundCenter:
                 this->initMaxAroundCenter();
+                break;
+            case SearchType::LowestAroundCenter:
+                this->initLowestAroundCenter();
                 break;
             default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
         }
@@ -56,26 +62,28 @@ template<typename T>
 bool AExtremaFinder<T>::canBeReused(const ExtremaFinderSettings &s) const {
     switch (s.searchType) {
         case SearchType::Max: return this->canBeReusedMax(s);
+        case SearchType::Lowest: return this->canBeReusedLowest(s);
         case SearchType::MaxAroundCenter: return this->canBeReusedMaxAroundCenter(s);
+        case SearchType::LowestAroundCenter: return this->canBeReusedLowestAroundCenter(s);
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
     }
 }
 
 template<typename T>
-void AExtremaFinder<T>::find(T *data) {
+void AExtremaFinder<T>::find(const T *data) {
     if ((ResultType::Position == m_settings.resultType)
         || (ResultType::Both == m_settings.resultType)) {
-        m_positions.clear();
-        m_positions.reserve(m_settings.dims.n());
+        m_positions.resize(m_settings.dims.n(), -1.f);
     }
     if ((ResultType::Value == m_settings.resultType)
         || (ResultType::Both == m_settings.resultType)) {
-        m_values.clear();
-        m_values.reserve(m_settings.dims.n());
+        m_values.resize(m_settings.dims.n(), std::numeric_limits<T>::lowest());
     }
     switch (m_settings.searchType) {
         case SearchType::Max: return this->findMax(data);
+        case SearchType::Lowest: return this->findLowest(data);
         case SearchType::MaxAroundCenter: return this->findMaxAroundCenter(data);
+        case SearchType::LowestAroundCenter: return this->findLowestAroundCenter(data);
         default: REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
     }
 }

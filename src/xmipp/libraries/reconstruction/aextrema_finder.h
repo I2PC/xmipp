@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_AFIND_EXTREMA_H_
-#define LIBRARIES_RECONSTRUCTION_AFIND_EXTREMA_H_
+#ifndef LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_
+#define LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_
 
 #include "data/dimensions.h"
 #include "data/hw.h"
@@ -32,13 +32,17 @@
 #include "core/xmipp_error.h"
 #include <vector>
 #include <cassert>
+#include <limits>
 
 namespace ExtremaFinder {
+// FIXME DS we should have search type Min, Max, MaxAbs, Lowest, Custom
+// FIXME DS we should have search location Entire, NearCenter, AroundCenter, Window, AroundWindow
 enum class SearchType {
-    Min, // in the whole signal (for each signal)
+    Lowest, // in the whole signal (for each signal)
     Max, // in the whole signal (for each signal)
     MaxAroundCenter, // for each signal, search a circular area around center
-    MaxNearCenter // for each signal, search a square area around center
+    MaxNearCenter, // for each signal, search a square area around center
+    LowestAroundCenter // for each signal, search a circular area around center
 };
 
 enum class ResultType {
@@ -54,7 +58,7 @@ public:
     ResultType resultType;
     Dimensions dims = Dimensions(0);
     size_t batch = 0;
-    size_t maxDistFromCenter = 0;
+    float maxDistFromCenter = 0.f;
 
     Point3D<size_t> getCenter() const {
         return Point3D<size_t>(dims.x() / 2, dims.y() / 2, dims.z() / 2);
@@ -70,8 +74,12 @@ public:
         if (0 == batch) {
             REPORT_ERROR(ERR_LOGIC_ERROR, "Batch is zero (0)");
         }
-        if (SearchType::MaxAroundCenter == searchType) {
+        if ((SearchType::MaxAroundCenter == searchType)
+                || (SearchType::LowestAroundCenter == searchType)) {
             const auto center = getCenter();
+            if (0 == maxDistFromCenter) {
+                REPORT_ERROR(ERR_LOGIC_ERROR, "'maxDistFromCenter' is set to zero (0)");
+            }
             if (dims.is1D()) {
                 if (maxDistFromCenter >= center.x) {
                     REPORT_ERROR(ERR_LOGIC_ERROR, "'maxDistFromCenter' is bigger than half of the signal's X dimension");
@@ -95,7 +103,6 @@ public:
 template<typename T>
 class AExtremaFinder {
 public:
-    // FIXME DS add cpu version
     AExtremaFinder() :
         m_isInit(false) {};
 
@@ -103,7 +110,7 @@ public:
 
     void init(const ExtremaFinderSettings &settings, bool reuse);
 
-    void find(T *data);
+    void find(const T *data);
 
     HW& getHW() const { // FIXME DS remove once we use the new data-centric approach
         assert(m_isInit);
@@ -118,27 +125,34 @@ public:
         return m_values;
     }
 
-    inline const std::vector<size_t> &getPositions() const {
+    inline const std::vector<float> &getPositions() const {
         return m_positions;
     }
-
 
 protected:
     virtual void check() const = 0;
 
     virtual void initMax() = 0;
-    virtual void findMax(T *data) = 0;
+    virtual void findMax(const T *data) = 0;
     virtual bool canBeReusedMax(const ExtremaFinderSettings &s) const = 0;
 
+    virtual void initLowest() = 0;
+    virtual void findLowest(const T *data) = 0;
+    virtual bool canBeReusedLowest(const ExtremaFinderSettings &s) const = 0;
+
     virtual void initMaxAroundCenter() = 0;
-    virtual void findMaxAroundCenter(T *data) = 0;
+    virtual void findMaxAroundCenter(const T *data) = 0;
     virtual bool canBeReusedMaxAroundCenter(const ExtremaFinderSettings &s) const = 0;
+
+    virtual void initLowestAroundCenter() = 0;
+    virtual void findLowestAroundCenter(const T *data) = 0;
+    virtual bool canBeReusedLowestAroundCenter(const ExtremaFinderSettings &s) const = 0;
 
     inline std::vector<T> &getValues() {
         return m_values;
     }
 
-    inline std::vector<size_t> &getPositions() {
+    inline std::vector<float> &getPositions() {
         return m_positions;
     }
 
@@ -151,7 +165,7 @@ private:
 
     // results
     std::vector<T> m_values;
-    std::vector<size_t> m_positions; // absolute, 0 based indices
+    std::vector<float> m_positions; // absolute, 0 based indices
 
     // flags
     bool m_isInit;
@@ -161,4 +175,4 @@ private:
 
 } /* namespace ExtremaFinder */
 
-#endif /* LIBRARIES_RECONSTRUCTION_AFIND_EXTREMA_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_AEXTREMA_FINDER_H_ */

@@ -31,18 +31,29 @@ template<typename T>
 void ARotationEstimator<T>::init(const RotationEstimationSetting settings, bool reuse) {
     // check that settings is not completely wrong
     settings.check();
+    bool skipInit = m_isInit && reuse && this->canBeReused(settings);
     // set it
     m_settings = settings;
     // initialize estimator
-    if (m_settings.otherDims.is2D()) {
-        this->init2D(reuse);
-    } else {
-        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+    if ( ! skipInit) {
+        if (m_settings.otherDims.is2D()) {
+            this->init2D();
+        } else {
+            REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
+        }
+        // check that there's no logical problem
+        this->check();
+        // no issue found, we're good to go
+        m_isInit = true;
     }
-    // check that there's no logical problem
-    this->check();
-    // no issue found, we're good to go
-    m_isInit = true;
+}
+
+template<typename T>
+bool ARotationEstimator<T>::canBeReused(const RotationEstimationSetting &s) const {
+    if (m_settings.otherDims.is2D()) {
+        return this->canBeReused2D(s);
+    }
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Not implemented");
 }
 
 template<typename T>

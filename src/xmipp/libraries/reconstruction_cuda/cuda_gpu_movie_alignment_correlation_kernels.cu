@@ -90,14 +90,14 @@ void computeCorrelations2DOneToNKernel(
         T* __restrict__ inOut,
         const T* __restrict__ ref,
         int xDim, int yDim, int nDim) {
-    // assign element to thread, we have probably less threads than columns
+    // assign element to thread, we have at thead for each column (+ some extra)
     // single block processes single signal
-    unsigned tid = threadIdx.x;
-    unsigned signal = blockIdx.x;
+    unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned signal = blockIdx.y;
 
     T *dest = inOut + (signal * xDim * yDim);
     for (unsigned y = 0; y < yDim; ++y) {
-        for (unsigned x = tid; x < xDim; x += blockDim.x) {
+        if (x < xDim) {
             unsigned index = y * xDim + x;
             T refVal = ref[index]; // load reference value
             T otherVal = dest[index];
