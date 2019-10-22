@@ -74,10 +74,14 @@ static void addNoise(T *data, const Dimensions &dims, std::mt19937 &mt) {
     }
 }
 
+static float getTheoreticalRotationError(const Dimensions &dims) {
+    return RAD2DEG(atan(2.0 / dims.x())); // degrees per one pixel, i.e. we allow for one pixel error
+}
+
 template<typename T>
 static void drawClockArms(T *result, const Dimensions &dims, size_t xPos, size_t yPos, float rotDegree) {
-    size_t yArmSize = (dims.y() - yPos) / 2;
-    size_t xArmSize = (dims.x() - xPos) / 3;
+    size_t yArmSize = (dims.y() - yPos) / 1.5f;
+    size_t xArmSize = (dims.x() - xPos) / 1.5f;
 
     MultidimArray<T> in(dims.y(), dims.x());
     for (size_t y = yPos; y < yPos + yArmSize; ++y) {
