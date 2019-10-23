@@ -77,6 +77,7 @@ class XmippScript():
         ''' This function should be overwrited by subclasses and
         it the main body of the script'''
         try:
+            print("WARNING: This is xmipp_base implementation for script")
             self.defineParams()
             doRun = self._prog.read(sys.argv)
             if doRun:
@@ -118,4 +119,6 @@ def createMetaDataFromPattern(pattern, isStack=False, label="image"):
             objId = mD.addObject()
             mD.setValue(label, fileAux, objId)
             mD.setValue(MDL_ENABLED, 1, objId)
-    return mD            
+    return mD
+
+

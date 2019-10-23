@@ -30,9 +30,6 @@ import sys
 from xmipp3 import Plugin, XmippScript
 import pyworkflow.em.metadata as md
 
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
-
-
 class ScriptMicrographCleanerEm(XmippScript):
     _conda_env="micrograph_cleaner_em"
     def __init__(self):

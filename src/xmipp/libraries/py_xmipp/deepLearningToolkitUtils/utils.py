@@ -14,6 +14,10 @@ CUDA=True
 
 #TODO. MODIFY THIS TO DEAL WITH CONDA ENVIRONMENTs USING CondaEnvManager
 def checkIf_tf_keras_installed():
+  '''
+  It should just be employed within a script called on runCondaJob or runCondaCmd
+  :return:
+  '''
   try:
     import tensorflow, keras
   except ImportError as e:

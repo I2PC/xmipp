@@ -38,7 +38,7 @@ def red(text):
 print(green("[ RUN      ]")+" test_script_importing_module")
 
 try:
-    print("Inside (batch_)test_script_importing_module(.py)")
+    print("Inside (batch_)test_script_importing_module(condaEnvsDef.py)")
     print("")
 
     print(">from xmippPyModules import example_module")
