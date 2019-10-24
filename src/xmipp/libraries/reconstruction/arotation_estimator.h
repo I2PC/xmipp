@@ -32,10 +32,12 @@
 #include "align_type.h"
 #include <vector>
 #include <assert.h>
+#include <limits>
 
 namespace Alignment {
 
-struct RotationEstimationSetting {
+class RotationEstimationSetting {
+public:
     std::vector<HW*> hw;
     AlignType type;
     Dimensions refDims = Dimensions(0);
@@ -43,6 +45,24 @@ struct RotationEstimationSetting {
     size_t batch;
     float maxRotDeg;
     bool fullCircle;
+    unsigned firstRing;
+    unsigned lastRing;
+
+    inline static float getMaxRotation() {
+        return 360.f - std::numeric_limits<float>::min();
+    }
+
+    inline unsigned getDefaultLastRing() const {
+        return (refDims.x() - 3) / 2; // so that we have some edge around the biggest ring
+    }
+
+    inline unsigned getDefaultFirstRing() const {
+        return refDims.x() / 5;
+    }
+
+    inline unsigned getNoOfRings() const {
+        return 1 + lastRing - firstRing;
+    }
 
     void check() const {
         if (0 == hw.size()) {
@@ -76,6 +96,21 @@ struct RotationEstimationSetting {
         }
         if (0 == maxRotDeg) {
             REPORT_ERROR(ERR_VALUE_INCORRECT, "Max rotation is zero (0)");
+        }
+        if (0 == lastRing) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "Last ring is zero (0)");
+        }
+        if (0 == firstRing) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "First ring is zero (0)");
+        }
+        if (lastRing <= firstRing) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "Last ring is bigger (or equal) than first ring");
+        }
+        if (lastRing >= refDims.x()) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "Last ring is too big");
+        }
+        if (firstRing >= refDims.x()) {
+            REPORT_ERROR(ERR_VALUE_INCORRECT, "First ring is too big");
         }
     }
 };

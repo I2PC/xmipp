@@ -30,22 +30,18 @@ namespace Alignment {
 template<typename T>
 void PolarRotationEstimator<T>::init2D() {
     release();
-    if (1 != this->getSettings().hw.size()) {
+    auto s = this->getSettings();
+    if (1 != s.hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Only one CPU thread expected");
     }
     try {
-        m_cpu = dynamic_cast<CPU*>(this->getSettings().hw.at(0));
+        m_cpu = dynamic_cast<CPU*>(s.hw.at(0));
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of CPU expected");
     }
 
-    auto dims = this->getSettings().refDims;
-
-    m_firstRing = dims.x() / 5;
-    m_lastRing = (dims.x() - 3) / 2;  // so that we have some edge around the biggest ring
-    // all rings have the same number of samples, to make FT easier
     if (std::is_same<T, float>()) {
-        m_dataAux.resize(dims.y(), dims.x());
+        m_dataAux.resize(s.refDims.y(), s.refDims.x());
     }
 }
 
@@ -58,8 +54,9 @@ void PolarRotationEstimator<T>::load2DReferenceOneToN(const T *ref) {
 
     MultidimArray<double> tmp = convert(const_cast<T*>(ref));
     tmp.setXmippOrigin();
-    normalizedPolarFourierTransform(tmp, m_refPolarFourierI, false,
-            m_firstRing, m_lastRing, m_refPlans, 1);
+    auto s = this->getSettings();
+    polarFourierTransform<false>(tmp, m_refPolarFourierI, false,
+            s.firstRing, s.lastRing, m_refPlans, 1);
     m_rotCorrAux.resize(2 * m_refPolarFourierI.getSampleNoOuterRing() - 1);
     m_aux.local_transformer.setReal(m_rotCorrAux);
 }
@@ -89,14 +86,13 @@ void PolarRotationEstimator<T>::computeRotation2DOneToN(T *others) {
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
-
-    const auto dims = this->getSettings().otherDims;
-    for (size_t n = 0; n < dims.n(); ++n) {
-        size_t offset = n * dims.sizeSingle();
+    auto s = this->getSettings();
+    for (size_t n = 0; n < s.otherDims.n(); ++n) {
+        size_t offset = n * s.otherDims.sizeSingle();
         MultidimArray<double> tmp = convert(others + offset);
         tmp.setXmippOrigin();
-        normalizedPolarFourierTransform(tmp, m_polarFourierI, true,
-                m_firstRing, m_lastRing, m_plans, 1);
+        polarFourierTransform<false>(tmp, m_polarFourierI, true,
+                s.firstRing, s.lastRing, m_plans, 1);
         this->getRotations2D().emplace_back(
                 best_rotation(m_refPolarFourierI, m_polarFourierI, m_aux));
     }
@@ -118,8 +114,6 @@ void PolarRotationEstimator<T>::setDefault() {
     m_refPlans = nullptr;
     m_polarFourierI = Polar<std::complex<double>>();
     m_refPolarFourierI = Polar<std::complex<double>>();
-    m_firstRing = -1;
-    m_lastRing = -1;
 }
 
 template<typename T>

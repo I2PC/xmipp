@@ -2,7 +2,7 @@
 #include "alignment_test_utils.h"
 #include "reconstruction/iterative_alignment_estimator.h"
 #include "core/utils/memory_utils.h"
-
+#include "data/cpu.h"
 
 template<typename T>
 class IterativeAlignmentEstimatorHelper : public Alignment::IterativeAlignmentEstimator<T> {
@@ -49,23 +49,62 @@ public:
         ref = nullptr;
     }
 
+    template<bool WITH_NOISE>
+    void checkStatistics() {
+        std::sort(diffsR.begin(), diffsR.end());
+        std::sort(diffsX.begin(), diffsX.end());
+        std::sort(diffsY.begin(), diffsY.end());
+        std::sort(expR.begin(), expR.end());
+        if (WITH_NOISE) {
+            bool isCPU = dynamic_cast<CPU*>(hw.at(0));
+            if (isCPU) {
+                float refR = expR.at(std::floor((expR.size() - 1) * 0.67f));
+                EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.67f))) << "percentile 67";
+                EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.5f))) << "percentile 50";
+                EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.62f))) << "percentile 62";
+                EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.5f))) << "percentile 50";
+                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.64f))) << "percentile 64";
+            } else {
+                float refR = expR.at(std::floor((expR.size() - 1) * 0.72f));
+                EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.72f))) << "percentile 90";
+                EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.5f))) << "percentile 50";
+                EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.67f))) << "percentile 67";
+                EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.5f))) << "percentile 50";
+                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.68f))) << "percentile 68";
+            }
+        } else {
+            float refR = expR.at(std::floor((expR.size() - 1) * 0.9f));
+            EXPECT_GE(2 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.9f))) << "percentile 90";
+            EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.8f))) << "percentile 80";
+            EXPECT_GE(1.8, diffsX.at(std::floor((diffsX.size() - 1) * 0.9f))) << "percentile 90";
+            EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.8f))) << "percentile 80";
+            EXPECT_GE(1.8f, diffsY.at(std::floor((diffsY.size() - 1) * 0.9f))) << "percentile 90";
+        }
+    }
+
+    void clearStatistics() {
+        expR.clear();
+        diffsR.clear();
+        diffsX.clear();
+        diffsY.clear();
+    }
 
     template<bool USE_NOISE>
-    void generateAndTest2D(size_t n, size_t batch) {
+    void generateAndTestStatistics2D(size_t n, size_t batch) {
         std::uniform_int_distribution<> dist1(0, 368);
         std::uniform_int_distribution<> dist2(369, 768);
 
         // only even inputs are valid
         // smaller
         size_t size = ((int)dist1(mt) / 2) * 2;
-        test<USE_NOISE>(Dimensions(size, size, 1, n), batch);
+        testStatistics<USE_NOISE>(Dimensions(size, size, 1, n), batch);
         // bigger
         size = ((int)dist2(mt) / 2) * 2;
-        test<USE_NOISE>(Dimensions(size, size, 1, n), batch);
+        testStatistics<USE_NOISE>(Dimensions(size, size, 1, n), batch);
     }
 
     template<bool ADD_NOISE>
-    void test(const Dimensions &dims, size_t batch) {
+    void testStatistics(const Dimensions &dims, size_t batch) {
         using namespace Alignment;
 
         bool saveOutput = false && (dims.x() == 260 && dims.y() == 260 && batch == 1);
@@ -73,7 +112,7 @@ public:
 
         auto maxShift = std::min((size_t)20, getMaxShift(dims));
         auto shifts = generateShifts(dims, maxShift, mt);
-        auto maxRotation = getMaxRotation();
+        auto maxRotation = RotationEstimationSetting::getMaxRotation();
         auto rotations = generateRotations(dims, maxRotation, mt);
 
         assert(dims.size() < maxDims.size());
@@ -108,6 +147,8 @@ public:
         rotSettings.otherDims = dims;
         rotSettings.batch = batch;
         rotSettings.maxRotDeg = maxRotation;
+        rotSettings.firstRing = rotSettings.getDefaultFirstRing();
+        rotSettings.lastRing = rotSettings.getDefaultLastRing();
         rotSettings.fullCircle = true;
 
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
@@ -125,87 +166,46 @@ public:
             outputStatistics(dims, shifts, rotations, result, ref, others);
         }
 
-
-        checkResults<ADD_NOISE>(result, shifts, rotations, dims);
+        saveResults(result, shifts, rotations, dims);
 
         if (saveOutput) {
             delete[] othersCorrected;
         }
     }
 
-
 private:
     static std::mt19937 mt;
     static std::mt19937 mt_noise;
     static Alignment::ARotationEstimator<T> *rotationAligner;
     static Alignment::AShiftCorrEstimator<T> *shiftAligner;
+    static std::vector<float> diffsX;
+    static std::vector<float> diffsY;
+    static std::vector<float> diffsR;
+    static std::vector<float> expR;
     static std::vector<HW*> hw;
     static T *ref;
     static T *others;
     static Dimensions maxDims;
 
-    template<bool isWithNoise>
-    void checkResults(const Alignment::AlignmentEstimation &est,
+    void saveResults(const Alignment::AlignmentEstimation &est,
             const std::vector<Point2D<float>> &shifts,
             const std::vector<float> &rotations,
             const Dimensions &dims) {
         ASSERT_EQ(dims.n(), est.poses.size());
 
-        if (isWithNoise
-            && (260 == dims.x())
-            && (260 == dims.y())
-            && (1 == dims.n())) {
-            // 'special case', the alignment is simply wrong, so skip the evaluation
-            return;
-        }
-
-        auto rotErrors = std::vector<float>(dims.n());
-        auto shiftXErrors = std::vector<float>(dims.n());
-        auto shiftYErrors = std::vector<float>(dims.n());
-
+        // extract diffs
         for (size_t i = 0;i < dims.n();++i) {
             auto sE = shifts.at(i);
             auto rE = rotations.at(i);
             auto m = est.poses.at(i);
             auto sA = Point2D<float>(-MAT_ELEM(m, 0, 2), -MAT_ELEM(m, 1, 2));
             auto rA = fmod(360 + RAD2DEG(atan2(MAT_ELEM(m, 1, 0), MAT_ELEM(m, 0, 0))), 360);
-            rotErrors.at(i) = 180 - abs(abs(rA - rE) - 180);
-            shiftXErrors.at(i) = std::abs(sA.x - sE.x);
-            shiftYErrors.at(i) = std::abs(sA.y - sE.y);
+            diffsR.push_back(180 - abs(abs(rA - rE) - 180));
+            diffsX.push_back(std::abs(sA.x - sE.x));
+            diffsY.push_back(std::abs(sA.y - sE.y));
         }
-        std::sort(rotErrors.begin(), rotErrors.end());
-        std::sort(shiftXErrors.begin(), shiftXErrors.end());
-        std::sort(shiftYErrors.begin(), shiftYErrors.end());
-
-        float x0 = 32; // small size
-        float x1 = 256; // big size
-        float y0 = 3; // coeff for small sizes (i.e. we are more relaxed)
-        float y1 = 0.85f; // coeff for big sizes (i.e. we are more strict)
-        float x2 = dims.x(); // assuming square inputs
-        float sizeCoeff = (std::abs(x1 - x2) * y0 + (x2 - x0) * y1) / (x1 - x0);
-
-        float medianMaxRotError = RAD2DEG(atan(2.0 / dims.x())) * 2.f * sizeCoeff; // degrees per one pixel. We allow for two pixels error
-        float medianMaxShiftError = 0.9f * sizeCoeff;
-        float percMaxRotError = 5.f * medianMaxRotError * sizeCoeff;
-        float percMaxShiftError = 3.5f * medianMaxShiftError * sizeCoeff;
-
-        if (isWithNoise) {
-            medianMaxRotError = RAD2DEG(atan(2.0 / dims.x())) * 3 * sizeCoeff; // degrees per one pixel. We allow for three pixels error
-            medianMaxShiftError = 1.2 * sizeCoeff;
-            percMaxRotError = 90 * sizeCoeff;
-            percMaxShiftError = 20 * medianMaxShiftError * sizeCoeff;
-        }
-        size_t medPosition = (1 == dims.n()) ? 0 : std::floor((dims.n() - 1) * 0.5f);
-        size_t percPosition = (1 == dims.n()) ? 0 : std::floor((dims.n() - 1) * 0.95f);
-        // test median
-        ASSERT_LE(shiftXErrors.at(medPosition), medianMaxShiftError) << "median is over limit";
-        ASSERT_LE(shiftYErrors.at(medPosition), medianMaxShiftError) << "median is over limit";
-        ASSERT_LE(rotErrors.at(medPosition), medianMaxRotError) << "median is over limit";
-        // test 95 percentil
-        ASSERT_LE(shiftXErrors.at(percPosition), percMaxShiftError) << "95 percentil is over limit";
-        ASSERT_LE(shiftYErrors.at(percPosition), percMaxShiftError) << "95 percentil is over limit";
-        ASSERT_LE(rotErrors.at(percPosition), percMaxRotError) << "95 percentil is over limit";
-
+        expR.push_back(getTheoreticalRotationError(dims));
+        // don't check for anything else, we do global check at the end of the test suite
     }
 
     void outputData(T *data, const Dimensions &dims, const std::string &name) {
@@ -285,9 +285,89 @@ T *IterativeAlignmentEstimator_Test<T>::others = nullptr;
 template<typename T>
 std::vector<HW*> IterativeAlignmentEstimator_Test<T>::hw;
 template<typename T>
+std::vector<float> IterativeAlignmentEstimator_Test<T>::diffsX;
+template<typename T>
+std::vector<float> IterativeAlignmentEstimator_Test<T>::diffsY;
+template<typename T>
+std::vector<float> IterativeAlignmentEstimator_Test<T>::diffsR;
+template<typename T>
+std::vector<float> IterativeAlignmentEstimator_Test<T>::expR;
+template<typename T>
 std::mt19937 IterativeAlignmentEstimator_Test<T>::mt(42); // fixed seed to ensure reproducibility
 template<typename T>
 std::mt19937 IterativeAlignmentEstimator_Test<T>::mt_noise(23); // fixed seed to ensure reproducibility
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOneNoNoise)
+{
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<false>(1, 1);
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoNoiseNoBatch)
+{
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<false>(100, 1);
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoNoiseBatch)
+{
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<false>(100, 50);
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoNoiseBatchNotMultiple)
+{
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<false>(100, 60);
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, checkStatisticsNoNoise)
+{
+    // this must be the last test in the 'test block'
+    IterativeAlignmentEstimator_Test<TypeParam>::template checkStatistics<false>();
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, clearStatisticsNoNoise)
+{
+    // this must be the last test
+    IterativeAlignmentEstimator_Test<TypeParam>::clearStatistics();
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOneNoise)
+{
+    XMIPP_TRY
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(1, 1);
+    XMIPP_CATCH
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoiseNoBatch)
+{
+    XMIPP_TRY
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(100, 1);
+    XMIPP_CATCH
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoiseBatch)
+{
+    XMIPP_TRY
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(100, 50);
+    XMIPP_CATCH
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoiseBatchNotMultiple)
+{
+    XMIPP_TRY
+    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTestStatistics2D<true>(100, 60);
+    XMIPP_CATCH
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, checkStatisticsNoise)
+{
+    // this must be the last test
+    IterativeAlignmentEstimator_Test<TypeParam>::template checkStatistics<true>();
+}
+
+TYPED_TEST_P( IterativeAlignmentEstimator_Test, clearStatisticsNoise)
+{
+    // this must be the last test
+    IterativeAlignmentEstimator_Test<TypeParam>::clearStatistics();
+}
 
 //TYPED_TEST_P( IterativeAlignmentEstimator_Test, debug)
 //{
@@ -296,65 +376,27 @@ std::mt19937 IterativeAlignmentEstimator_Test<T>::mt_noise(23); // fixed seed to
 ////    auto dims = Dimensions(64, 64, 1, 50);
 //    size_t batch = 1;
 //    IterativeAlignmentEstimator_Test<TypeParam>::template test<true>(dims, batch);
-//    IterativeAlignmentEstimator_Test<TypeParam>::template test<false>(dims, batch);
+////    IterativeAlignmentEstimator_Test<TypeParam>::template test<false>(dims, batch);
 //    XMIPP_CATCH
 //}
 
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOneNoNoise)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTest2D<false>(1, 1);
-    XMIPP_CATCH
-}
-
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoNoiseNoBatch)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTest2D<false>(100, 1);
-    XMIPP_CATCH
-}
-
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoNoiseBatch)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTest2D<false>(100, 50);
-    XMIPP_CATCH
-}
-
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyNoNoiseBatchNotMultiple)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTest2D<false>(100, 60);
-    XMIPP_CATCH
-}
-
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToOneWithNoise)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTest2D<true>(1, 1);
-    XMIPP_CATCH
-}
-
-TYPED_TEST_P( IterativeAlignmentEstimator_Test, align2DOneToManyWithNoiseBatch)
-{
-    XMIPP_TRY
-    // test one reference vs one image
-    IterativeAlignmentEstimator_Test<TypeParam>::template generateAndTest2D<true>(100, 50);
-    XMIPP_CATCH
-}
-
 REGISTER_TYPED_TEST_CASE_P(IterativeAlignmentEstimator_Test,
 //    debug
+    // tests run different scenarios...
     align2DOneToOneNoNoise,
     align2DOneToManyNoNoiseNoBatch,
     align2DOneToManyNoNoiseBatch,
     align2DOneToManyNoNoiseBatchNotMultiple,
-    align2DOneToOneWithNoise,
-    align2DOneToManyWithNoiseBatch
+    // ...and at the end we check that it more or less works
+    checkStatisticsNoNoise,
+    clearStatisticsNoNoise,
+    // tests run different scenarios...
+    align2DOneToOneNoise,
+    align2DOneToManyNoiseNoBatch,
+    align2DOneToManyNoiseBatch,
+    align2DOneToManyNoiseBatchNotMultiple,
+    // ...and at the end we check that it more or less works
+    checkStatisticsNoise,
+    clearStatisticsNoise
 );
 

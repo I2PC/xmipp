@@ -1948,7 +1948,7 @@ void computeAlignmentTransforms(const MultidimArray<double>& I, AlignmentTransfo
 		AlignmentAux &aux, CorrelationAux &aux2)
 {
 	aux2.transformer1.FourierTransform((MultidimArray<double> &)I, ITransforms.FFTI, false);
-    normalizedPolarFourierTransform(I, ITransforms.polarFourierI, false, XSIZE(I) / 5, XSIZE(I) / 2, aux.plans, 1);
+    polarFourierTransform<true>(I, ITransforms.polarFourierI, false, XSIZE(I) / 5, XSIZE(I) / 2, aux.plans, 1);
 }
 
 #define SHIFT_THRESHOLD 	0.95		// Shift threshold in pixels.
@@ -1989,7 +1989,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 
 		if (bestRotSR > ROTATE_THRESHOLD)
 		{
-			normalizedPolarFourierTransform(aux.IauxSR, aux.polarFourierI, true,
+			polarFourierTransform<true>(aux.IauxSR, aux.polarFourierI, true,
 											XSIZE(Iref) / 5, XSIZE(Iref) / 2, aux.plans, 1);
 
 			bestRotSR = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3);
@@ -2001,7 +2001,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
         // Rotate then shift
 		if (bestRotRS > ROTATE_THRESHOLD)
 		{
-			normalizedPolarFourierTransform(aux.IauxRS, aux.polarFourierI, true,
+			polarFourierTransform<true>(aux.IauxRS, aux.polarFourierI, true,
 											XSIZE(Iref) / 5, XSIZE(Iref) / 2, aux.plans, 1);
 			bestRotRS = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3);
 			rotation2DMatrix(bestRotRS, aux.R);
@@ -3133,9 +3133,9 @@ void centerImageRotationally(MultidimArray<double> &I,
 
     Polar_fftw_plans *plans = NULL;
     Polar<std::complex<double> > polarFourierI, polarFourierIx;
-    normalizedPolarFourierTransform(Ix, polarFourierIx, false, XSIZE(Ix) / 5,
+    polarFourierTransform<true>(Ix, polarFourierIx, false, XSIZE(Ix) / 5,
                                     XSIZE(Ix) / 2, plans);
-    normalizedPolarFourierTransform(I, polarFourierI, true, XSIZE(I) / 5,
+    polarFourierTransform<true>(I, polarFourierI, true, XSIZE(I) / 5,
                                     XSIZE(I) / 2, plans);
 
     MultidimArray<double> rotationalCorr;
@@ -3280,13 +3280,13 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
         Ix.selfReverseX();
         Ix.setXmippOrigin();
 
-        normalizedPolarFourierTransform(Iaux, polarFourierI, true, XSIZE(I) / 5,
+        polarFourierTransform<true>(Iaux, polarFourierI, true, XSIZE(I) / 5,
                                         XSIZE(I) / 2, plans);
         rotationalCorr.resizeNoCopy(
             2 * polarFourierI.getSampleNoOuterRing() - 1);
         aux2.local_transformer.setReal(rotationalCorr);
 
-        normalizedPolarFourierTransform(Ix, polarFourierIx, false,
+        polarFourierTransform<true>(Ix, polarFourierIx, false,
                                         XSIZE(Ix) / 5, XSIZE(Ix) / 2, plans);
         double bestRot = best_rotation(polarFourierIx, polarFourierI, aux2);
         bestRot = realWRAP(bestRot,0,180);
