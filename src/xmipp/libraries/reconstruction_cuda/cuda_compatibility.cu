@@ -23,47 +23,30 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_CPU_H_
-#define LIBRARIES_DATA_CPU_H_
+#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_COMPATIBILITY_CU_
+#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_COMPATIBILITY_CU_
 
-#include <thread>
-#include <unistd.h>
-#include "hw.h"
-#include "core/xmipp_error.h"
+#include "cuda_compatibility.h"
 
-class CPU : public HW {
-public:
-    CPU(unsigned cores=1) : HW(cores) {}
+#if __CUDA_ARCH__ < 600
+__device__ double atomicAdd(double* address, double val)
+{
+    unsigned long long int* address_as_ull =
+                              (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
 
-    static unsigned findCores() {
-        return std::max(std::thread::hardware_concurrency(), 1u);
-    }
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val +
+                               __longlong_as_double(assumed)));
 
-    void synch() const {}; // nothing to do
-    void synchAll() const {}; // nothing to do
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
 
-    void updateMemoryInfo();
-
-    void lockMemory(const void *h_mem, size_t bytes) override {
-        // FIXME DS implement
-    }
-
-    void unlockMemory(const void *h_mem) override {
-        // FIXME DS implement
-    }
-
-    bool isMemoryLocked(const void *h_mem) override {
-        // FIXME DS implement
-        return false;
-    }
-
-protected:
-    void obtainUUID();
-
-private:
-    void native_cpuid(unsigned int *eax, unsigned int *ebx,
-            unsigned int *ecx, unsigned int *edx);
-};
+    return __longlong_as_double(old);
+}
+#endif
 
 
-#endif /* LIBRARIES_DATA_CPU_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_COMPATIBILITY_CU_ */
