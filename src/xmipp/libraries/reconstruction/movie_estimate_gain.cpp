@@ -103,7 +103,7 @@ void ProgMovieEstimateGain::produceSideInfo()
                MultidimArray<double>  mIframe=Iframe();
                MultidimArray<double>  mICorrection=ICorrection();
                FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
-                   DIRECT_MULTIDIM_ELEM(mIframe,n) *= DIRECT_MULTIDIM_ELEM(mICorrection,n);               sumObs+=Iframe();
+                   DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mICorrection,n);               sumObs+=Iframe();
 	    }
 	    iFrame++;
 	}
@@ -165,7 +165,7 @@ void ProgMovieEstimateGain::run()
                 Iframe.read(fnFrame);
                 MultidimArray<double> &mIframe = Iframe();
                 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
-                    DIRECT_MULTIDIM_ELEM(mIframe,n) *= DIRECT_MULTIDIM_ELEM(mICorrection,n);
+                    DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mICorrection,n);
                 //Iframe.write(formatString("%i@%s"%(idx,fnCorrected)));
                 Iframe.write(fnCorrected, idx, WRITE_REPLACE);
             }
@@ -184,7 +184,7 @@ void ProgMovieEstimateGain::run()
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();
                     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(IframeIdeal)
-                        DIRECT_A2D_ELEM(IframeIdeal,i,j)*=DIRECT_A2D_ELEM(mICorrection,i,j);
+                        DIRECT_A2D_ELEM(IframeIdeal,i,j)/=DIRECT_A2D_ELEM(mICorrection,i,j);
                     computeHistograms(IframeIdeal);
 
                     //sigma=0;
