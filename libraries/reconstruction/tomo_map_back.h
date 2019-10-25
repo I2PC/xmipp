@@ -1,6 +1,6 @@
 /***************************************************************************
- * Authors:     AUTHOR_NAME (jvargas@cnb.csic.es)
  *
+ * Authors:    Estrella Fernandez Gimenez         me.fernandez@cnb.csic.es (2019)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -22,57 +22,47 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#ifndef _PROG_TOMO_MAP_BACK
+#define _PROG_TOMO_MAP_BACK
 
-#ifndef VALIDATION_NONTILT_H_
-#define VALIDATION_NONTILT_H_
-#define PI 3.14159265
-
+#include <core/xmipp_funcs.h>
+#include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
-#include <math.h>
-#include <random>
 
-/**@defgroup Validation without tilt
-   @ingroup ReconsLibrary */
+///@defgroup TomoMapBack Tomo map back
+///@ingroup ReconsLibrary
 //@{
-class ProgValidationNonTilt: public XmippProgram
+/** Map back parameters. */
+class ProgTomoMapBack: public XmippProgram
 {
-
+public:
+    /// Input
+    FileName fn_tomo, fn_geom, fn_ref, fn_out;
+    String modeStr;
 
 public:
-    /** Filenames */
-    FileName fnDir, fnSym, fnInit, fnParticles;
-
-    MetaData mdPartial;
-
-    size_t rank, Nprocessors;
-
-    bool useSignificant;
-
-    double significance_noise;
+    // Input volume
+    Image<double> tomo, reference;
+    MetaData mdGeom;
+    int mode;
+    double K;
+    double threshold;
 
 public:
-
+    /// Read arguments
     void readParams();
 
+    /// Show
+    void show() const;
+
+    /// Define parameters
     void defineParams();
 
+    /** Produce side info.*/
+    void produce_side_info();
+
+    /** Run */
     void run();
-
-public:
-
-    ProgValidationNonTilt();
-
-    void obtainSumU(const MetaData & tempMd,std::vector<double> & sum_u,std::vector<double> & H0);
-
-    void obtainSumU_2(const MetaData & mdGallery, const MetaData & tempMd,std::vector<double> & sum_u,std::vector<double> & H0);
-
-    void obtainSumW(const MetaData & tempMd, double & sum_W, std::vector<double> & sum_u, std::vector<double> & H, const double factor);
-
-    /// Gather alignment
-    virtual void gatherClusterability() {}
-
-    /// Synchronize with other processors
-    virtual void synchronize() {}
-
 };
-#endif /* VALIDATION_NONTILT_H_ */
+//@}
+#endif

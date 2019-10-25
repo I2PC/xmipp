@@ -45,14 +45,11 @@ void CudaRotPolarEstimator<T>::init2D() {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
     }
 
-    m_firstRing = s.refDims.x() / 5;
-    m_lastRing = (s.refDims.x() - 3) / 2; // so that we have some edge around the biggest ring
     // all rings have the same number of samples, to make FT easier
-    m_samples = std::max(1, 2 * (int)(M_PI * m_lastRing)); // keep this even
-
+    m_samples = std::max(1, 2 * (int)(M_PI * s.lastRing)); // keep this even
     auto batchPolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
-            s.otherDims.n() * getNoOfRings(), // each signal has N rings
-            s.batch * getNoOfRings()); // so we have to multiply by that
+            s.otherDims.n() * s.getNoOfRings(), // each signal has N rings
+            s.batch * s.getNoOfRings()); // so we have to multiply by that
     // try to tune number of samples. We don't mind using more samples (higher precision)
     // if we can also do it faster!
     auto proposal = CudaFFT<T>::findOptimal(*m_workStream,
@@ -61,14 +58,14 @@ void CudaRotPolarEstimator<T>::init2D() {
         0, false, 10, false, false);
     if (proposal.has_value()) {
         batchPolar = FFTSettingsNew<T>(proposal.value().sDim().x(), 1, 1, // x, y, z
-                    s.otherDims.n() * getNoOfRings(), // each signal has N rings
-                    s.batch * getNoOfRings()); // so we have to multiply by that
+                    s.otherDims.n() * s.getNoOfRings(), // each signal has N rings
+                    s.batch * s.getNoOfRings()); // so we have to multiply by that
         m_samples = batchPolar.sDim().x();
     }
 
     auto singlePolar = FFTSettingsNew<T>(m_samples, 1, 1, // x, y, z
-            getNoOfRings(), // each signal has N rings
-            getNoOfRings()); // process all at once
+            s.getNoOfRings(), // each signal has N rings
+            s.getNoOfRings()); // process all at once
 
     // allocate host memory
     gpuErrchk(cudaMalloc(&m_d_ref, singlePolar.fBytes())); // FT of the samples
@@ -141,8 +138,6 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_batchToFD = nullptr;
     m_batchToSD = nullptr;
 
-    m_firstRing = -1;
-    m_lastRing = -1;
     m_samples = -1;
 
     // synch primitives
@@ -169,8 +164,9 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to load a reference signal");
     }
 
-    auto inCart = this->getSettings().refDims.copyForN(1);
-    auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, 1);
+    auto s = this->getSettings();
+    auto inCart = s.refDims.copyForN(1);
+    auto outPolar = Dimensions(m_samples, s.getNoOfRings(), 1, 1);
     m_loadStream->set();
     m_workStream->set();
     auto loadStream = *(cudaStream_t*)m_loadStream->stream();
@@ -198,13 +194,15 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
     sComputePolarTransform<true>(*m_workStream,
             inCart, m_d_batch,
             outPolar, m_d_batchPolarOrCorr,
-            m_firstRing);
+            s.firstRing);
 
+    // It seems that the normalization is not necessary (does not change the result
+    // of the synthetic tests. It can however prevent e.g. overflow, hence it's kept here)
     // normalize data
-    sNormalize<FULL_CIRCLE>(*m_workStream,
-            outPolar, m_d_batchPolarOrCorr,
-            m_d_sumsOrMaxPos, m_d_sumsSqr,
-            m_firstRing);
+//    sNormalize<FULL_CIRCLE>(*m_workStream,
+//            outPolar, m_d_batchPolarOrCorr,
+//            m_d_sumsOrMaxPos, m_d_sumsSqr,
+//            s.firstRing);
 
     CudaFFT<T>::fft(*m_singleToFD, m_d_batchPolarOrCorr, m_d_ref);
 }
@@ -276,7 +274,8 @@ void CudaRotPolarEstimator<T>::sComputePolarTransform(
         const Dimensions &dimOut,
         T * __restrict__ d_out,
         int posOfFirstRing) {
-
+    assert (dimIn.x() == dimIn.y());
+    assert ((dimOut.y() + 1) * 2 <= dimIn.x()); // assert that there's space around the biggest ring
     dim3 dimBlock(32);
     dim3 dimGrid(
         ceil((dimOut.x() * dimOut.n()) / (float)dimBlock.x));
@@ -362,8 +361,8 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         // how many signals to process
         size_t toProcess = std::min(s.batch, s.otherDims.n() - offset);
         auto inCart = s.otherDims.copyForN(toProcess);
-        auto outPolar = Dimensions(m_samples, getNoOfRings(), 1, toProcess);
-        auto outPolarFourier = Dimensions(m_samples / 2 + 1, getNoOfRings(), 1, toProcess);
+        auto outPolar = Dimensions(m_samples, s.getNoOfRings(), 1, toProcess);
+        auto outPolarFourier = Dimensions(m_samples / 2 + 1, s.getNoOfRings(), 1, toProcess);
         auto resSize = Dimensions(m_samples, 1, 1, toProcess);
 
         {
@@ -375,7 +374,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             sComputePolarTransform<FULL_CIRCLE>(*m_workStream,
                     inCart, m_d_batch,
                     outPolar, m_d_batchPolarOrCorr,
-                    m_firstRing);
+                    s.firstRing);
 
             // notify that buffer is processed (new will be loaded in background)
             m_workStream->synch();
@@ -383,14 +382,16 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             m_cv->notify_one();
         }
 
-        sNormalize<FULL_CIRCLE>(*m_workStream,
-                outPolar, m_d_batchPolarOrCorr,
-                m_d_sumsOrMaxPos, m_d_sumsSqr,
-                m_firstRing);
+        // It seems that the normalization is not necessary (does not change the result
+        // of the synthetic tests. It can however prevent e.g. overflow, hence it's kept here)
+//        sNormalize<FULL_CIRCLE>(*m_workStream,
+//                outPolar, m_d_batchPolarOrCorr,
+//                m_d_sumsOrMaxPos, m_d_sumsSqr,
+//                s.firstRing);
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 
-        sComputeCorrelationsOneToN(*m_workStream, m_d_batchPolarFD, m_d_ref, outPolarFourier, m_firstRing);
+        sComputeCorrelationsOneToN(*m_workStream, m_d_batchPolarFD, m_d_ref, outPolarFourier, s.firstRing);
 
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
 
@@ -420,17 +421,21 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
 template<typename T>
 void CudaRotPolarEstimator<T>::check() {
-    auto dims = this->getSettings().refDims;
-    if (dims.x() != dims.y()) {
+    auto s = this->getSettings();
+    if (s.refDims.x() != s.refDims.y()) {
         // because of the rings
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator can work only with square signal");
     }
-    if (dims.x() < 6) {
+    if (s.refDims.x() < 6) {
         // we need some edge around the biggest ring, to avoid invalid memory access
         REPORT_ERROR(ERR_ARG_INCORRECT, "The input signal is too small.");
     }
-    if (dims.isPadded()) {
+    if (s.refDims.isPadded()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Padded signal is not supported");
+    }
+    if ((s.lastRing + 1) * 2 >= s.refDims.x()) {
+        // bilinear interpolation we use does not check boundaries
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Last ring is too big, this would cause invalid memory access");
     }
 }
 
