@@ -187,7 +187,7 @@ def checkProgram(programName, show=True):
     systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
-    systemInstructions["pip"] = ["sudo apt-get -y install python-pip" , "sudo pacman -Syu --noconfirm rsync"]
+    systemInstructions["pip"] = ["sudo apt-get -y install python3-pip" , "sudo pacman -Syu --noconfirm rsync"]
     ok=True
     cont = True
     if not whereis(programName):
@@ -440,7 +440,7 @@ def createEmptyConfig():
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED', 'PYTHON_LIB']
     configDict = {}
     for label in labels:
         configDict[label]=""
@@ -559,6 +559,11 @@ def configCompiler(configDict):
             if findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"]):
                 configDict["INCDIRFLAGS"]+=" -I/usr/include/hdf5/serial"
                 incDirs += ["/usr/include/hdf5/serial"]
+
+    if configDict["PYTHON_LIB"] == "":
+
+        configDict["PYTHON_LIB"] = "python%s.%sm" % (sys.version_info.major, sys.version_info.minor)
+
 
     if configDict["PYTHONINCFLAGS"] == "":
         incDirs=[]
@@ -1041,7 +1046,7 @@ def getPython():
     # if scipionHome is not None:
     #     python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
     # else:
-    python = 'python'
+    python = 'python3'
     return python
 
 def addDeepLearninModel(login, modelPath='', update=None):
