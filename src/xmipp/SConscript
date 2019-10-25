@@ -159,7 +159,7 @@ if cuda:
 # MPI
 dirs = ['libraries']
 patterns=['parallel/*.cpp']
-addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
+addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs, libs=['Xmipp', 'python3.5m'], mpi=True)
 
 
 #  ***********************************************************************
@@ -186,7 +186,7 @@ def addProg(progName, **kwargs):
 
     kwargs['src'] = src
     # Add all xmipp libraries just in case
-    kwargs['libs'] = kwargs.get('libs', []) + PROG_LIBS + ['XmippCore', 'zstd']
+    kwargs['libs'] = kwargs.get('libs', []) + PROG_LIBS + ['XmippCore']
     kwargs['deps'] = PROG_DEPS
 
     # Add always the xmipp path as -I for include and also xmipp/libraries

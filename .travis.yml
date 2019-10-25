@@ -1,6 +1,7 @@
 language: c++
 sudo: true
 dist: trusty
+python: "3.6"
 env: TRAVIS=1 XMIPP_NOSCIPION=True CCACHE_COMPILERCHECK=content CUDA_VER=8.0.61-1 CUDA_INSTALL_EXTRA_LIBS=1
 git:
     depth: false # to get blame information for SonarCloud
