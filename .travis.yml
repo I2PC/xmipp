@@ -16,6 +16,7 @@ cache: ccache
 
 before_install:
  - python --version
+ - python3 --version
  - sudo apt-get install -y libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python-numpy
  - source scripts/install_cuda_travis.sh
 script:
