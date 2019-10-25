@@ -23,80 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <data/filters.h>
+#include <reconstruction/transform_center_image.cpp>
 
-class ProgCenterImage: public XmippMetadataProgram
-{
-public:
-    int Niter;
-    bool limitShift;
-    CorrelationAux aux;
-    RotationalCorrelationAux aux2;
-    bool saveMdTransform;
-
-    void defineParams()
-    {
-        each_image_produces_an_output = true;
-        XmippMetadataProgram::defineParams();
-        //usage
-        addUsageLine("Center a set of images (preferably with a good SNR, e.g., class averages).");
-        addUsageLine("After calling the program, all classes will be centered and they will tend ");
-        addUsageLine("to show the same orientation. The program centers the images by comparing ");
-        addUsageLine("the image with its X, Y, and XY mirrors. The orientation is determined by ");
-        addUsageLine("comparing the image with its X mirror. ");
-        //examples
-        addExampleLine("Center images in smallStack.stk and store results in a different file:", false);
-        addExampleLine("xmipp_transform_center_image -i smallStack.stk -o stackCentered.stk ");
-        //params
-        addParamsLine("  [--iter <n=10>]      : Number of iterations");
-        addParamsLine("  [--limit]            : Limit the maximum shift allowed");
-        addParamsLine("  [--save_metadata_transform]            : Save in the output metadata the transform parameters");
-
-    }
-
-    void readParams()
-    {
-        XmippMetadataProgram::readParams();
-        Niter = getIntParam("--iter");
-        limitShift = checkParam("--limit");
-        saveMdTransform = checkParam("--save_metadata_transform");
-        if (saveMdTransform)
-        		save_metadata_stack = true;
-    }
-
-    void show()
-    {
-        XmippMetadataProgram::show();
-        std::cout << "iterations = " << Niter << std::endl;
-        std::cout << "limit shift = " << limitShift << std::endl;
-    }
-
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
-    {
-        Image<double> img;
-        Matrix2D<double> A;
-        double scale, shiftX, shiftY, psi;
-        bool flip;
-        img.readApplyGeo(fnImg, rowIn);
-        img().checkDimensionWithDebug(2,__FILE__,__LINE__);
-        A = centerImage(img(), aux, aux2, Niter, limitShift);
-        if (saveMdTransform){
-			transformationMatrix2Parameters2D(A,flip,scale,shiftX,shiftY,psi);
-			rowOut.setValue(MDL_IMAGE, fnImg);
-			rowOut.setValue(MDL_SHIFT_X, shiftX);
-			rowOut.setValue(MDL_SHIFT_Y, shiftY);
-			rowOut.setValue(MDL_ANGLE_PSI, psi);
-			rowOut.setValue(MDL_FLIP, flip);
-        }
-        img.write(fnImgOut);
-
-    }
-
-}
-;///end of class ProgCenterImage
-
-/* MAIN -------------------------------------------------------------------- */
 int main(int argc, char *argv[])
 {
     ProgCenterImage program;
