@@ -34,6 +34,8 @@ void ProgParticlePolishing::defineParams()
     addParamsLine(" --nFrames <nFrames>: Number of frames");
     addParamsLine(" --nMovies <nMovies>: Number of movies");
     addParamsLine(" --w <w=1>: Window size. The number of frames to average to correlate that averaged image with the projection.");
+    addParamsLine(" --movxdim <xmov> : Movie size in x dimension");
+    addParamsLine(" --movydim <ymov> : Movie size in y dimension");
     addParamsLine(" [-o <fnOut=\"out.xmd\">]: Output metadata with weighted particles");
 
 }
@@ -47,6 +49,9 @@ void ProgParticlePolishing::readParams()
 	nMovies=getIntParam("--nMovies");
 	w=getIntParam("--w");
 	samplingRate=getDoubleParam("--s");
+	xmov = getIntParam("--movxdim");
+	ymov = getIntParam("--movydim");
+
 }
 
 
@@ -425,15 +430,15 @@ void ProgParticlePolishing::calculateCurve(const MultidimArray<double> &Iavg, co
 	double Dmin, Dmax;
 	Iproj.computeDoubleMinMax(Dmin, Dmax);
 	double step = (Dmax-Dmin)/double(nStep);
-	int offset = int(-Dmin/step);
+	double offset = -Dmin/double(step);
 	//std::cerr << "variables: " << step << ", " << offset << ", " << Dmin << ", " << Dmax <<std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Iproj){
-		int pos = int(round(DIRECT_MULTIDIM_ELEM(Iproj, n)/step))+offset;
+		int pos = int(floor((DIRECT_MULTIDIM_ELEM(Iproj, n)/step)+offset));
 		if(pos>=nStep)
 			pos=nStep-1;
 		DIRECT_A2D_ELEM(vectorAvg, 0, pos)+=1;
 		DIRECT_A2D_ELEM(vectorAvg, 1, pos)+=DIRECT_MULTIDIM_ELEM(Iavg, n);
-		//if (n==52083){
+		//if (n==20544){
 		//if (pos==0){
 		//	std::cerr << n << ", " << pos << ", " << DIRECT_MULTIDIM_ELEM(Iproj, n) << ", " << DIRECT_MULTIDIM_ELEM(Iavg, n) << ", " << DIRECT_A2D_ELEM(vectorAvg, 1, pos) << ", " << DIRECT_A2D_ELEM(vectorAvg, 0, pos) << std::endl;
 		//}
@@ -460,6 +465,51 @@ void ProgParticlePolishing::calculateCurve(const MultidimArray<double> &Iavg, co
 }
 
 
+void ProgParticlePolishing::calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> cij, int xdim, int ydim)
+{
+
+	int Nx = xdim/boxsize;
+	int Ny = ydim/boxsize;
+
+	// For the spline regression
+	int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
+    WeightedLeastSquaresHelper helper;
+    helper.A.initZeros(Nx*Ny,lX*lY);
+    helper.b.initZeros(Nx*Ny);
+    helper.w.initZeros(Nx*Ny);
+    helper.w.initConstant(1);
+    double hX = xdim / (double)(lX-3);
+    double hY = ydim / (double)(lY-3);
+
+    std::cout << "Checking sizes: " << xdim << ", " << ydim << ", " << boxsize << std::endl;
+	if ( (xdim<boxsize) || (ydim<boxsize) )
+		std::cout << "Error: The input matrix to the BSliple coeffs estimation in x-direction or y-direction is too small" << std::endl;
+
+	size_t Nelements = XSIZE(inputMat);
+
+	std::cout << "1 Checking stuff: " << Nelements << std::endl;
+    for (int i=0; i<Nelements; i++){
+    	VEC_ELEM(helper.b,i)=DIRECT_A2D_ELEM(inputMat, 2, i);
+    	int x, y;
+    	x = DIRECT_A2D_ELEM(inputMat, 0, i);
+    	y = DIRECT_A2D_ELEM(inputMat, 1, i);
+        double xarg = x / hX;
+        double yarg = y / hY;
+        for (int m = -1; m < (lY-1); m++){
+            for (int l = -1; l < (lX-1); l++){
+                double coeff=0.;
+                coeff = Bspline03(xarg - l) * Bspline03(yarg - m);
+                std::cout << "2 Checking stuff: " << x << ", " << y << ", " << m << ", " << l << ", " << lY << ", " << lX << ", " << xarg << ", " << yarg << ", " << coeff << std::endl;
+                MAT_ELEM(helper.A,i,m*lX+l) = coeff;
+            }
+        }
+
+    }
+	// Spline coefficients
+	weightedLeastSquares(helper, cij);
+}
+
+
 void ProgParticlePolishing::run()
 {
 	produceSideInfo();
@@ -482,6 +532,8 @@ void ProgParticlePolishing::run()
 	//INPUT VOLUME
 	V.read(fnVol);
     V().setXmippOrigin();
+	int xdim = (int)XSIZE(V());
+	int ydim = (int)YSIZE(V());
 	projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
 
 	FourierFilter Filter;
@@ -498,7 +550,97 @@ void ProgParticlePolishing::run()
 	maxvalues-=1.0;
 
 
+	//First part
+	std::vector<int> partIdDone;
+	std::vector<int>::iterator it;
+	iterPart->init(mdPart);
+	for(int i=0; i<mdPartSize; i++){
 
+		//Project the volume with the parameters in the image
+		double rot, tilt, psi, x, y;
+		bool flip;
+		size_t frId, mvId, partId;
+		int xcoor, ycoor;
+
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_IMAGE,fnPart);
+		Ipart.read(fnPart);
+		Ipart().setXmippOrigin();
+		currentRow.getValue(MDL_ANGLE_ROT,rot);
+		currentRow.getValue(MDL_ANGLE_TILT,tilt);
+		currentRow.getValue(MDL_ANGLE_PSI,psi);
+		currentRow.getValue(MDL_SHIFT_X,x);
+		currentRow.getValue(MDL_SHIFT_Y,y);
+		currentRow.getValue(MDL_FLIP,flip);
+		currentRow.getValue(MDL_FRAME_ID,frId);
+		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
+		currentRow.getValue(MDL_PARTICLE_ID,partId);
+		currentRow.getValue(MDL_XCOOR,xcoor);
+		currentRow.getValue(MDL_YCOOR,ycoor);
+
+
+		it = find(partIdDone.begin(), partIdDone.end(), (int)partId);
+		if (it != partIdDone.end()){
+			if(iterPart->hasNext())
+				iterPart->moveNext();
+			continue;
+		}
+
+		partIdDone.push_back((int)partId);
+
+		A.initIdentity(3);
+		MAT_ELEM(A,0,2)=x;
+		MAT_ELEM(A,1,2)=y;
+		if (flip)
+		{
+			MAT_ELEM(A,0,0)*=-1;
+			MAT_ELEM(A,0,1)*=-1;
+			MAT_ELEM(A,0,2)*=-1;
+		}
+
+		if ((xdim != XSIZE(Ipart())) || (ydim != YSIZE(Ipart())))
+			std::cout << "Error: The input particles and volume have different sizes" << std::endl;
+
+		projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+		applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+		projV().setXmippOrigin();
+
+		//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
+		//the movie particles are averaged (all frames) to compare every pixel value
+		averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, false);
+
+		//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
+		double slope=0, intercept=0;
+		calculateCurve(Iavg(), projV(), slope, intercept);
+		std::cerr << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
+
+		//Data array will be used to store some results
+		//Data array with xcoor in the first column
+		DIRECT_A2D_ELEM(dataArray, 0, i) = xcoor;
+		//Data array with ycoor in the second column
+		DIRECT_A2D_ELEM(dataArray, 1, i) = ycoor;
+		//Data array with ycoor in the second column
+		DIRECT_A2D_ELEM(dataArray, 2, i) = slope;
+		//Data array with ycoor in the second column
+		DIRECT_A2D_ELEM(dataArray, 3, i) = intercept;
+
+		Matrix1D<double> cij;
+		int boxsize = 50;
+		calculateBSplineCoeffs(dataArray, boxsize, cij, xmov, ymov);
+
+		/*//DEBUG
+		projV.write(formatString("Testprojection_%i_%i.tif", frId, partId));
+		//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+		Iavg.write(formatString("Testaverage_%i_%i.tif", frId, partId));
+		//END DEBUG/*/
+
+		if(iterPart->hasNext())
+			iterPart->moveNext();
+
+	}
+
+	/*
+	//Second Part
 	size_t mvPrev, frPrev, partPrev, mv, fr, mvId, frId, partId;
 	for(int n=0; n<Nsteps+1; n++){
 
@@ -512,6 +654,7 @@ void ProgParticlePolishing::run()
 			double rot, tilt, psi, x, y;
 			bool flip;
 			size_t frId, mvId, partId;
+			int xcoor, ycoor;
 
 			mdPart.getRow(currentRow, iterPart->objId);
 			currentRow.getValue(MDL_IMAGE,fnPart);
@@ -526,12 +669,8 @@ void ProgParticlePolishing::run()
 			currentRow.getValue(MDL_FRAME_ID,frId);
 			currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
 			currentRow.getValue(MDL_PARTICLE_ID,partId);
-
-			//Data array will be used to store some results - trying to make it in a smart way - who knows...
-			//Data array with partId in the first column
-			DIRECT_A2D_ELEM(dataArray, 0, i) = partId;
-			//Data array with mvId in the second column
-			DIRECT_A2D_ELEM(dataArray, 1, i) = mvId;
+			currentRow.getValue(MDL_XCOOR,xcoor);
+			currentRow.getValue(MDL_YCOOR,ycoor);
 
 			A.initIdentity(3);
 			MAT_ELEM(A,0,2)=x;
@@ -544,7 +683,8 @@ void ProgParticlePolishing::run()
 			}
 
 			int xdim = (int)XSIZE(V());
-			//TODO: we can check here the dimensions of particles and volume, both must be the same
+			if ((XSIZE(V()) != XSIZE(Ipart())) || (YSIZE(V()) != YSIZE(Ipart())))
+				std::cout << "Error: The input particles and volume have different sizes" << std::endl;
 
 			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
 			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
@@ -553,29 +693,19 @@ void ProgParticlePolishing::run()
 
 			//TODO: invertir contraste y aplicar ctf, o al reves, no se...
 			//To invert contrast in the projections
-			/*double Dmin, Dmax, irange, val;
+			double Dmin, Dmax, irange, val;
 			projV().computeDoubleMinMax(Dmin, Dmax);
 			irange=1.0/(Dmax - Dmin);
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
 				val=DIRECT_MULTIDIM_ELEM(projV(),n);
 				DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
-			}*/
+			}
 
 			//filtering the projections with the ctf
-			/*ctf.readFromMdRow(currentRow);
+			ctf.readFromMdRow(currentRow);
 			ctf.produceSideInfo();
-			ctf.applyCTF(projV(), samplingRate, false);*/
+			ctf.applyCTF(projV(), samplingRate, false);
 
-			//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
-			//the movie particles are averaged (all frames) to compare every pixel value
-			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, false);
-
-			//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
-			double slope=0, intercept=0;
-			calculateCurve(Iavg(), projV(), slope, intercept);
-			std::cerr << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
-
-			/*
 			//filtering the projected particles with the lowpass filter
 			Filter.w1=cutfreq;
 			Filter.generateMask(projV());
@@ -621,8 +751,8 @@ void ProgParticlePolishing::run()
 
 
 			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
-			*/
 			
+
 			//DEBUG
 			if(frId==nFrames){
 				projV.write(formatString("projection_%i_%i.tif", frId, partId));
@@ -638,8 +768,10 @@ void ProgParticlePolishing::run()
 
 	} //end frequencies loop
 
-	MultidimArray<double> weightsperfreq;
-	weightsperfreq.initZeros(NSIZE(matrixWeights), ZSIZE(matrixWeights), YSIZE(matrixWeights), XSIZE(matrixWeights));
+	*/
+
+	//MultidimArray<double> weightsperfreq;
+	//weightsperfreq.initZeros(NSIZE(matrixWeights), ZSIZE(matrixWeights), YSIZE(matrixWeights), XSIZE(matrixWeights));
 	//calculateFrameWeightPerFreq(matrixWeights, weightsperfreq, maxvalues);
 
 }
