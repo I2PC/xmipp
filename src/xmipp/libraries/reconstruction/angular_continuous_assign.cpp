@@ -1713,6 +1713,20 @@ int return_gradhesscost(
                   return(ERROR);
               }
 
+              size_t poolSize = (4 * 16) + (2 * 5) + (1 * 25);
+              auto pool = std::unique_ptr<double[]>(new double[poolSize]);
+              double *poolNext = pool.get();
+              auto getNextFromPool = [&](size_t count) {
+                  auto tmp = poolNext;
+                  poolNext += count;
+                  return tmp;
+              };
+
+              if (( ! pool) || (nullptr == poolNext)) {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for memory pool");
+                  return(ERROR);
+              }
+
               DoDesProj = (int) Data->MakeDesiredProj;
 
               reDftVolume = Data->ReDftVolume;
@@ -1761,12 +1775,7 @@ int return_gradhesscost(
               tol_angle = Data->ToleranceAngle;
               tol_shift = Data->ToleranceShift;
 
-              Parameters = (double *)malloc((size_t) 5L * sizeof(double));
-              if (Parameters == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Parameters");
-                  return(ERROR);
-              }
+              Parameters = getNextFromPool(5);
 
               par = Data->Parameters;
               Parameters[0] = (double)(*par++) * PI / 180.0;
@@ -1779,7 +1788,6 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR - Not enough memory for CoefRe");
-                  free(Parameters);
                   return(ERROR);
               }
 
@@ -1787,7 +1795,6 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR - Not enough memory for CoefIm");
-                  free(Parameters);
                   FreeVolumeDouble(&CoefRe);
                   return(ERROR);
               }
@@ -1797,7 +1804,6 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR");
-                  free(Parameters);
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
                   return(ERROR);
@@ -1808,54 +1814,20 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR");
-                  free(Parameters);
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
                   return(ERROR);
               }
 
-              Gradient = (double *)malloc((size_t) 5L * sizeof(double));
-              if (Gradient == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Gradient");
-                  FreeVolumeDouble(&CoefRe);
-                  FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  return(ERROR);
-              }
-
-              Hessian = (double *)malloc((size_t) 25L * sizeof(double));
-              if (Hessian == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Hessian");
-                  FreeVolumeDouble(&CoefRe);
-                  FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  return(ERROR);
-              }
-
-              Q1 = (double *)malloc((size_t) 16L * sizeof(double));
-              if (Q1 == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Q1");
-                  FreeVolumeDouble(&CoefRe);
-                  FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  return(ERROR);
-              }
+              Gradient = getNextFromPool(5);
+              Hessian = getNextFromPool(25);
+              Q1 = getNextFromPool(16);
 
               if (GetIdentitySquareMatrix(Q1, 4L) == ERROR)
               {
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
                   return(ERROR);
               }
 
@@ -1866,29 +1838,12 @@ int return_gradhesscost(
               hlp += (std::ptrdiff_t)5L;
               *hlp = (double) Nz;
 
-              Q3 = (double *)malloc((size_t) 16L * sizeof(double));
-              if (Q3 == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Q3");
-                  FreeVolumeDouble(&CoefRe);
-                  FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  return(ERROR);
-              }
-
+              Q3 = getNextFromPool(16);
               if (GetIdentitySquareMatrix(Q3, 4L) == ERROR)
               {
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
                   return(ERROR);
               }
 
@@ -1898,47 +1853,13 @@ int return_gradhesscost(
               *hlp = 1.0 / (double) My;
 
 
-              As = (double *)malloc((size_t) 16L * sizeof(double));
-              if (As == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for As");
-                  FreeVolumeDouble(&CoefRe);
-                  FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  return(ERROR);
-              }
-
-              Ap = (double *)malloc((size_t) 16L * sizeof(double));
-              if (Ap == (double *)NULL)
-              {
-                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Ap");
-                  FreeVolumeDouble(&CoefRe);
-                  FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  free(As);
-                  return(ERROR);
-              }
-
+              As = getNextFromPool(16);
+              Ap = getNextFromPool(16);
               if (GetIdentitySquareMatrix(As, 4L) == ERROR)
               {
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  free(As);
-                  free(Ap);
                   return(ERROR);
               }
 
@@ -1955,13 +1876,6 @@ int return_gradhesscost(
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  free(As);
-                  free(Ap);
                   return(ERROR);
               }
 
@@ -2047,13 +1961,6 @@ int return_gradhesscost(
                   WRITE_ERROR(cstregistration, "Error returned by return_gradhesscost");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  free(As);
-                  free(Ap);
                   return(ERROR);
               }
 
@@ -2065,13 +1972,6 @@ int return_gradhesscost(
               {
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  free(As);
-                  free(Ap);
                   return(!ERROR);
               }
 
@@ -2099,13 +1999,6 @@ int return_gradhesscost(
               {
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
-                  free(Parameters);
-                  free(Gradient);
-                  free(Hessian);
-                  free(Q1);
-                  free(Q3);
-                  free(As);
-                  free(Ap);
                   return(!ERROR);
               }
 
@@ -2132,13 +2025,6 @@ int return_gradhesscost(
                       WRITE_ERROR(cstregistration, "Error returned by levenberg_cst");
                       FreeVolumeDouble(&CoefRe);
                       FreeVolumeDouble(&CoefIm);
-                      free(Parameters);
-                      free(Gradient);
-                      free(Hessian);
-                      free(Q1);
-                      free(Q3);
-                      free(As);
-                      free(Ap);
                       return(ERROR);
                   }
 
@@ -2182,13 +2068,6 @@ int return_gradhesscost(
 
               FreeVolumeDouble(&CoefRe);
               FreeVolumeDouble(&CoefIm);
-              free(Parameters);
-              free(Gradient);
-              free(Hessian);
-              free(Q1);
-              free(Q3);
-              free(As);
-              free(Ap);
 
               return(!ERROR);
           }
