@@ -820,35 +820,31 @@ int return_gradhesscost(
 
               Q = getNextFromPool(16);
               Q2 = getNextFromPool(16);
-              if (multiply_3Matrices(Left, R, Right, Q, 4L, 4L, 4L, 4L) == ERROR)
-              {
-                  WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+              auto freeAllVolumes = [&] {
                   FreeVolumeDouble(&DP_0);
                   FreeVolumeDouble(&DP_1);
                   FreeVolumeDouble(&DP_2);
                   FreeVolumeDouble(&DP_3);
                   FreeVolumeDouble(&DP_4);
+              };
+
+              if (multiply_3Matrices(Left, R, Right, Q, 4L, 4L, 4L, 4L) == ERROR)
+              {
+                  WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+                  freeAllVolumes();
                   return(ERROR);
               }
               if (MatrixTranspose(Q, Q2, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
 
               if (multiply_3Matrices(Q1, Q2, Q3, Q, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
 
@@ -862,61 +858,37 @@ int return_gradhesscost(
               if (multiply_3Matrices(Left, DR0, Right, dQ0, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
               if (MatrixTranspose(dQ0, dQ2_0, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
               if (multiply_3Matrices(Left, DR1, Right, dQ1, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
               if (MatrixTranspose(dQ1, dQ2_1, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
               if (multiply_3Matrices(Left, DR2, Right, dQ2, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
               if (MatrixTranspose(dQ2, dQ2_2, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
 
@@ -924,33 +896,21 @@ int return_gradhesscost(
               if (multiply_3Matrices(Q1, dQ2_0, Q3, dQ0, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
 
               if (multiply_3Matrices(Q1, dQ2_1, Q3, dQ1, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
 
               if (multiply_3Matrices(Q1, dQ2_2, Q3, dQ2, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  FreeVolumeDouble(&DP_0);
-                  FreeVolumeDouble(&DP_1);
-                  FreeVolumeDouble(&DP_2);
-                  FreeVolumeDouble(&DP_3);
-                  FreeVolumeDouble(&DP_4);
+                  freeAllVolumes();
                   return(ERROR);
               }
 
@@ -975,11 +935,7 @@ int return_gradhesscost(
                       if (MatrixTimesVector(Q, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
 
@@ -1093,93 +1049,57 @@ int return_gradhesscost(
                       if (MatrixTimesVector(dQ0, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_re, Arg, da0, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_im, Arg, db0, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
 
                       if (MatrixTimesVector(dQ1, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_re, Arg, da1, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_im, Arg, db1, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
 
                       if (MatrixTimesVector(dQ2, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_re, Arg, da2, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_im, Arg, db2, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          FreeVolumeDouble(&DP_0);
-                          FreeVolumeDouble(&DP_1);
-                          FreeVolumeDouble(&DP_2);
-                          FreeVolumeDouble(&DP_3);
-                          FreeVolumeDouble(&DP_4);
+                          freeAllVolumes();
                           return(ERROR);
                       }
 
@@ -1300,21 +1220,13 @@ int return_gradhesscost(
                           if (gradhesscost_atpixel(Gradient_re, Hessian_re, &cost_re, Difference_re, dp0_re, dp1_re, dp2_re, dp3_re, dp4_re, Weight) == ERROR)
                           {
                               WRITE_ERROR(return_gradhesscost, "Error returned by gradhesscost_atpixel");
-                              FreeVolumeDouble(&DP_0);
-                              FreeVolumeDouble(&DP_1);
-                              FreeVolumeDouble(&DP_2);
-                              FreeVolumeDouble(&DP_3);
-                              FreeVolumeDouble(&DP_4);
+                              freeAllVolumes();
                               return(ERROR);
                           }
                           if (gradhesscost_atpixel(Gradient_im, Hessian_im, &cost_im, Difference_im, dp0_im, dp1_im, dp2_im, dp3_im, dp4_im, Weight))
                           {
                               WRITE_ERROR(return_gradhesscost, "Error returned by gradhesscost_atpixel");
-                              FreeVolumeDouble(&DP_0);
-                              FreeVolumeDouble(&DP_1);
-                              FreeVolumeDouble(&DP_2);
-                              FreeVolumeDouble(&DP_3);
-                              FreeVolumeDouble(&DP_4);
+                              freeAllVolumes();
                               return(ERROR);
                           }
 
@@ -1338,12 +1250,7 @@ int return_gradhesscost(
 
               }
 
-              FreeVolumeDouble(&DP_0);
-              FreeVolumeDouble(&DP_1);
-              FreeVolumeDouble(&DP_2);
-              FreeVolumeDouble(&DP_3);
-              FreeVolumeDouble(&DP_4);
-
+              freeAllVolumes();
               return(!ERROR);
           }/* End of return_gradhesscost */
 
