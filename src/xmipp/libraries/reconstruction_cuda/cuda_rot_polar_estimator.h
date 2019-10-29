@@ -105,8 +105,8 @@ public :
             int posOfFirstRing);
 
 private:
-    GPU *m_loadStream;
-    GPU *m_workStream;
+    GPU *m_backgroundStream;
+    GPU *m_mainStream;
     int m_samples;
 
     // device memory
