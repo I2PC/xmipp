@@ -47,6 +47,7 @@ public:
     bool fullCircle;
     unsigned firstRing;
     unsigned lastRing;
+    bool allowTuningOfNumberOfSamples;
 
     inline static float getMaxRotation() {
         return 360.f - std::numeric_limits<float>::min();
