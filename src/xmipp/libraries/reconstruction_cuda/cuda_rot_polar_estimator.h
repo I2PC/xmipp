@@ -51,8 +51,8 @@ public :
     CudaRotPolarEstimator(CudaRotPolarEstimator& o) = delete;
     CudaRotPolarEstimator& operator=(const CudaRotPolarEstimator& other) = delete;
     CudaRotPolarEstimator(CudaRotPolarEstimator &&o) {
-        m_loadStream = o.m_loadStream;
-        m_workStream = o.m_workStream;
+        m_mainStream = o.m_mainStream;
+        m_backgroundStream = o.m_backgroundStream;
         m_samples = o.m_samples;
 
         // device memory

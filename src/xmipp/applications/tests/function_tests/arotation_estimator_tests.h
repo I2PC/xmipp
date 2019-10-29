@@ -75,6 +75,7 @@ public:
         settings.firstRing = settings.getDefaultFirstRing();
         settings.lastRing = settings.getDefaultLastRing();
         settings.fullCircle = true;
+        settings.allowTuningOfNumberOfSamples = false; // to make sure that we always use the same settings
 
         estimator->init(settings, true);
         hw.at(0)->lockMemory(others, dims.size() * sizeof(T));
