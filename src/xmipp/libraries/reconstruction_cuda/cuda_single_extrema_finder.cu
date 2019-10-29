@@ -113,7 +113,7 @@ void findMax1D(
     for(unsigned i = tid; i < samples; i += blockSize) {
         update(comp, ldata, data, i);
     }
-
+    __syncthreads(); // wait till all threads are ready
     findUniversalInSharedMem<T2, blockSize>(comp, ldata);
 
     // last thread now holds the result
@@ -171,7 +171,7 @@ void findUniversal2DNearCenter(
             update(comp, ldata, data, offset);
         }
     }
-
+    __syncthreads(); // wait till all threads are ready
     findUniversalInSharedMem<T2, blockSize>(comp, ldata);
 
     // last thread now holds the result
