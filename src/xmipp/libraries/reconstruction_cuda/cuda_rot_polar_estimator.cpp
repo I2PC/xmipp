@@ -187,14 +187,14 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
         m_mainStream->unlockMemory(h_ref);
     }
     // call polar transformation kernel
-    sComputePolarTransform<true>(*m_workStream,
+    sComputePolarTransform<true>(*m_mainStream,
             inCart, m_d_batch,
             outPolar, m_d_batchPolarOrCorr,
             s.firstRing);
     // It seems that the normalization is not necessary (does not change the result
     // of the synthetic tests. It can however prevent e.g. overflow, hence it's kept here)
     // normalize data
-//    sNormalize<FULL_CIRCLE>(*m_workStream,
+//    sNormalize<FULL_CIRCLE>(*m_mainStream,
 //            outPolar, m_d_batchPolarOrCorr,
 //            m_d_sumsOrMaxPos, m_d_sumsSqr,
 //            s.firstRing);

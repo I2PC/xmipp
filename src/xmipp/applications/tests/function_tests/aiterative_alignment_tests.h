@@ -66,11 +66,11 @@ public:
                 EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.64f))) << "percentile 64";
             } else {
                 float refR = expR.at(std::floor((expR.size() - 1) * 0.72f));
-                EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.72f))) << "percentile 90";
+                EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.72f))) << "percentile 72";
                 EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.5f))) << "percentile 50";
                 EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.67f))) << "percentile 67";
                 EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.5f))) << "percentile 50";
-                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.68f))) << "percentile 68";
+                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.67f))) << "percentile 67";
             }
         } else {
             float refR = expR.at(std::floor((expR.size() - 1) * 0.9f));
@@ -78,7 +78,7 @@ public:
             EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.8f))) << "percentile 80";
             EXPECT_GE(1.8, diffsX.at(std::floor((diffsX.size() - 1) * 0.9f))) << "percentile 90";
             EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.8f))) << "percentile 80";
-            EXPECT_GE(1.8f, diffsY.at(std::floor((diffsY.size() - 1) * 0.9f))) << "percentile 90";
+            EXPECT_GE(1.86f, diffsY.at(std::floor((diffsY.size() - 1) * 0.9f))) << "percentile 90";
         }
     }
 
@@ -150,6 +150,7 @@ public:
         rotSettings.firstRing = rotSettings.getDefaultFirstRing();
         rotSettings.lastRing = rotSettings.getDefaultLastRing();
         rotSettings.fullCircle = true;
+        rotSettings.allowTuningOfNumberOfSamples = false;
 
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
         rotationAligner->init(rotSettings, true);
