@@ -32,6 +32,7 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <random>
 
 #include <reconstruction/angular_project_library.h>
 
@@ -132,10 +133,10 @@ public:
         {
             show();
             //randon numbers must be the same in all nodes
-            srand ( time(NULL) );
+            std::random_device rd;
             if(perturb_projection_vector!=0)
             {
-                my_seed=rand();
+                my_seed=rd();
             }
         }
 #ifdef  DEBUGTIME
