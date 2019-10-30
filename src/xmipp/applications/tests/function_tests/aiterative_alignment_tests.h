@@ -7,7 +7,7 @@
 template<typename T>
 class IterativeAlignmentEstimatorHelper : public Alignment::IterativeAlignmentEstimator<T> {
 public:
-    static void applyTransform(const Dimensions &dims, const std::vector<Point2D<float>> &shifts, const std::vector<float> &rotations,
+    static void applyTransform(ctpl::thread_pool &pool, const Dimensions &dims, const std::vector<Point2D<float>> &shifts, const std::vector<float> &rotations,
             const T * __restrict__ orig, T * __restrict__ copy) {
         Alignment::AlignmentEstimation e(dims.n());
         for (size_t i = 0; i < dims.n(); ++i) {
@@ -19,10 +19,10 @@ public:
             rotation2DMatrix(rotations.at(i), r);
             m = r * m;
         }
-        Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, e, orig, copy, true);
+        Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(pool, dims, e, orig, copy, true);
     }
-    static void compensateTransform(const Alignment::AlignmentEstimation &est, const Dimensions &dims, T *in, T *out) {
-        Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(dims, est, in, out, false);
+    static void compensateTransform(ctpl::thread_pool &pool, const Alignment::AlignmentEstimation &est, const Dimensions &dims, T *in, T *out) {
+        Alignment::IterativeAlignmentEstimator<T>::sApplyTransform(pool, dims, est, in, out, false);
     }
 };
 
@@ -127,18 +127,6 @@ public:
         T centerY = dims.y() / 2;
         // generate data
         drawClockArms(ref, dims, centerX, centerY, 0.f);
-        IterativeAlignmentEstimatorHelper<T>::applyTransform(
-                dims, shifts, rotations, ref, others);
-
-        if (ADD_NOISE) {
-            // add noise to data
-            // the reference should be without noise
-            addNoise(others, dims, mt_noise);
-        }
-        // show data
-        if (saveOutput) {
-            outputData(others, dims, "dataBeforeAlignment.stk");
-        }
         // prepare aligner
         auto rotSettings = Alignment::RotationEstimationSetting();
         rotSettings.hw = hw;
@@ -153,14 +141,27 @@ public:
 
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
         rotationAligner->init(rotSettings, true);
-        auto aligner = IterativeAlignmentEstimator<T>(*rotationAligner, *shiftAligner);
+        ctpl::thread_pool threadPool(CPU::findCores());
+        IterativeAlignmentEstimator<T> aligner(*rotationAligner, *shiftAligner, threadPool);
+        IterativeAlignmentEstimatorHelper<T>::applyTransform(
+                threadPool, dims, shifts, rotations, ref, others);
+
+        if (ADD_NOISE) {
+            // add noise to data
+            // the reference should be without noise
+            addNoise(others, dims, mt_noise);
+        }
+        // show data
+        if (saveOutput) {
+            outputData(others, dims, "dataBeforeAlignment.stk");
+        }
 
         auto result = aligner.compute(ref, others, 3); // use at least three iterations
 
         // show result
         if (saveOutput) {
             IterativeAlignmentEstimatorHelper<T>::compensateTransform(
-                    result, dims, others, othersCorrected);
+                    threadPool, result, dims, others, othersCorrected);
             outputData(othersCorrected, dims, "dataAfterAlignment.stk");
             // show statistics
             outputStatistics(dims, shifts, rotations, result, ref, others);
