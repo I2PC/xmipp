@@ -394,7 +394,7 @@ def getDependencies():
     createDir("src")
     result = True
     if is_config_true('CUDA'):
-        result = cloneOrCheckout(CUFFTADVISOR, master)
+        result = cloneOrCheckout(CUFFTADVISOR, 'master')
     if result:
         result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
     if result:
