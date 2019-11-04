@@ -40,8 +40,8 @@ public:
 
 	const double double_epsilon = 1e-7;
 
-	void compare_results(const double* true_values, const double* approx_values, int size) {
-        for (int i = 0; i < size; ++i) {
+	void compare_results(const double* true_values, const double* approx_values, size_t size) {
+        for (size_t i = 0; i < size; ++i) {
             ASSERT_NEAR(true_values[i], approx_values[i], double_epsilon) << "at index:" << i;
         }
     }
