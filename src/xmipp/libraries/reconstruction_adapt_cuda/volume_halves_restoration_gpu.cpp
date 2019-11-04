@@ -162,7 +162,7 @@ void ProgVolumeHalvesRestorationGpu<T>::readData() {
 
     checkInputDimensions();
 
-    if (mask.fn_mask != "") {
+    if (!mask.fn_mask.isEmpty()) {
         mask.generate_mask();
         maskData = mask.get_binary_mask().data;
     }
