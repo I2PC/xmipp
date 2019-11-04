@@ -48,13 +48,16 @@ XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 MICROGRAPH_CLEANER= 'micrograph_cleaner_em'
+CTPL = 'CTPL'
+
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em'}
+                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em',
+                CTPL: 'https://github.com/vit-vit/CTPL.git'}
 
 CONFIG_FILE_NAME = "xmipp.conf"
 
@@ -391,9 +394,11 @@ def getDependencies():
     createDir("src")
     result = True
     if is_config_true('CUDA'):
-        result = cloneOrCheckout(CUFFTADVISOR, None)
+        result = cloneOrCheckout(CUFFTADVISOR, 'master')
     if result:
         result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
+    if result:
+        result = cloneOrCheckout(CTPL, 'master')
     if not result:
         print(red("Cannot get dependencies"))
     return result

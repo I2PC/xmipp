@@ -34,6 +34,7 @@ void ProgMovieEstimateGain::defineParams()
     addParamsLine(" [--oroot <fn=\"estimated\">]: Estimated corrections and gains");
     addParamsLine("                             :+(Ideal=Observed*Corr, Observed=Ideal*Gain)");
     addParamsLine(" [--iter <N=3>]: Number of iterations");
+    addParamsLine(" [--sigma <s=-1>]: Sigma to use, if negative, then it is searched");
     addParamsLine(" [--maxSigma <s=3>]: Maximum number of neighbour rows/columns to analyze");
     addParamsLine(" [--frameStep <s=1>]: Skip frames during the estimation");
     addParamsLine("                    : Set to 1 to process all frames, set to 2 to process 1 every 2 frames, ...");
@@ -41,7 +42,7 @@ void ProgMovieEstimateGain::defineParams()
     addParamsLine(" [--singleRef] : Use a single histogram reference");
     addParamsLine("               :+This assumes that there is no image contamination or carbon holes");
     addParamsLine(" [--gainImage <fn=\"\">] : Reference to external gain image (we will multiply by it)");
-    addParamsLine(" [--applyGain] : Flag for using external gain image");
+    addParamsLine(" [--applyGain <fnOut>] : Flag for using external gain image");
     addParamsLine("               : applyGain=True will use external gain image");
 }
 
@@ -50,12 +51,15 @@ void ProgMovieEstimateGain::readParams()
 	fnIn=getParam("-i");
 	fnRoot=getParam("--oroot");
 	Niter=getIntParam("--iter");
+	sigma=getIntParam("--sigma");
 	maxSigma=getDoubleParam("--maxSigma");
 	sigmaStep=getDoubleParam("--sigmaStep");
 	singleReference=checkParam("--singleRef");
 	frameStep=getIntParam("--frameStep");
 	fnGain=getParam("--gainImage");
 	applyGain=checkParam("--applyGain");
+    if (applyGain)
+       fnCorrected=getParam("--applyGain");
 }
 
 void ProgMovieEstimateGain::produceSideInfo()
@@ -75,8 +79,18 @@ void ProgMovieEstimateGain::produceSideInfo()
 
 	columnH.initZeros(Ydim,Xdim);
 	rowH.initZeros(Ydim,Xdim);
-	ICorrection().resizeNoCopy(Ydim,Xdim);
-	ICorrection().initConstant(1);
+	if (fnGain!="")
+	{
+		ICorrection.read(fnGain);
+		if (YSIZE(ICorrection())!=Ydim || XSIZE(ICorrection())!=Xdim)
+			REPORT_ERROR(ERR_MULTIDIM_SIZE,"The gain image and the movie do not have the same dimensions");
+	}
+	else
+	{
+		ICorrection().resizeNoCopy(Ydim,Xdim);
+		ICorrection().initConstant(1);
+	}
+
 	sumObs.initZeros(Ydim,Xdim);
 
     int iFrame=0;
@@ -84,11 +98,14 @@ void ProgMovieEstimateGain::produceSideInfo()
 	{
 	    if (iFrame%frameStep==0)
 	    {
-            mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
-            Iframe.read(fnFrame);
-            sumObs+=Iframe();
-		}
-		iFrame++;
+               mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+               Iframe.read(fnFrame);
+               MultidimArray<double>  mIframe=Iframe();
+               MultidimArray<double>  mICorrection=ICorrection();
+               FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
+                   DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mICorrection,n);               sumObs+=Iframe();
+	    }
+	    iFrame++;
 	}
 	sumObs*=2;
 
@@ -98,15 +115,15 @@ void ProgMovieEstimateGain::produceSideInfo()
 
 	for (size_t i=0; i<listOfSigmas.size(); ++i)
 	{
-		int jmax=ceil(3*listOfSigmas[i]);
-		listOfWidths.push_back(jmax);
-		double *weights=new double[jmax+1];
-		double K=1;
-                if (listOfSigmas[i]>0)
-                   K=-0.5/(listOfSigmas[i]*listOfSigmas[i]);
-		for (int j=0; j<=jmax; ++j)
-			weights[j]=exp(K*j*j);
-		listOfWeights.push_back(weights);
+	    int jmax=ceil(3*listOfSigmas[i]);
+	    listOfWidths.push_back(jmax);
+	    double *weights=new double[jmax+1];
+	    double K=1;
+            if (listOfSigmas[i]>0)
+               K=-0.5/(listOfSigmas[i]*listOfSigmas[i]);
+	    for (int j=0; j<=jmax; ++j)
+	       weights[j]=exp(K*j*j);
+	    listOfWeights.push_back(weights);
 	}
 }
 
@@ -118,6 +135,7 @@ void ProgMovieEstimateGain::show()
 	<< "Input movie:     " << fnIn            << std::endl
 	<< "Output rootname: " << fnRoot          << std::endl
 	<< "N. Iterations:   " << Niter           << std::endl
+	<< "Sigma:           " << sigma           << std::endl
 	<< "Max. Sigma:      " << maxSigma        << std::endl
 	<< "Sigma step:      " << sigmaStep       << std::endl
 	<< "Single ref:      " << singleReference << std::endl
@@ -133,28 +151,25 @@ void ProgMovieEstimateGain::run()
 	produceSideInfo();
 
 	FileName fnFrame;
-	Image<int> Iframe;
-	MultidimArray<int> IframeTransformed, IframeIdeal, IframeMA;
-	MultidimArray<double> sumIdeal, igainMA;
+	Image<double> Iframe;
+	MultidimArray<double> IframeTransformed, IframeIdeal;
+	MultidimArray<double> sumIdeal;
 	MultidimArray<double> &mICorrection=ICorrection();
-    Image<double> igain;
 
-	if (applyGain && fnGain != "")
+	if (applyGain)
 	{
-	    igain.read(fnGain);
-	    igainMA = igain();
-
-        FOR_ALL_OBJECTS_IN_METADATA(mdIn)
-        {
-            mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
-            Iframe.read(fnFrame);
-            IframeMA = Iframe();
-            FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(IframeMA)
-                DIRECT_MULTIDIM_ELEM(mICorrection,n) = (DIRECT_MULTIDIM_ELEM(IframeMA,n) * DIRECT_MULTIDIM_ELEM(igainMA,n));
-        }
-	}
-    else
-    {
+            int idx=1;
+            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            {
+                mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+                Iframe.read(fnFrame);
+                MultidimArray<double> &mIframe = Iframe();
+                FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
+                    DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mICorrection,n);
+                //Iframe.write(formatString("%i@%s"%(idx,fnCorrected)));
+                Iframe.write(fnCorrected, idx, WRITE_REPLACE);
+            }
+	}else{
         for (int n=0; n<Niter; n++)
         {
             std::cout << "Iteration " << n << std::endl;
@@ -169,12 +184,38 @@ void ProgMovieEstimateGain::run()
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();
                     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(IframeIdeal)
-                        DIRECT_A2D_ELEM(IframeIdeal,i,j)=(int)(DIRECT_A2D_ELEM(IframeIdeal,i,j)*DIRECT_A2D_ELEM(mICorrection,i,j));
+                        DIRECT_A2D_ELEM(IframeIdeal,i,j)/=DIRECT_A2D_ELEM(mICorrection,i,j);
                     computeHistograms(IframeIdeal);
 
-                    size_t bestSigmaCol = selectBestSigmaByColumn(IframeIdeal);
+                    //sigma=0;
+                    size_t bestSigmaCol = 0;
+                    if (sigma>=0)
+                    {
+                    	double bestDistance=1e38;
+                    	for (size_t s = 0; s< listOfWeights.size(); ++s)
+                    		if (fabs(listOfSigmas[s]-sigma)<bestDistance)
+                    		{
+                    			bestDistance=fabs(listOfSigmas[s]-sigma);
+                    			bestSigmaCol=s;
+                    		}
+                    }
+                    else
+                    	selectBestSigmaByColumn(IframeIdeal);
                     std::cout << "      sigmaCol: " << listOfSigmas[bestSigmaCol] << std::endl;
-                    size_t bestSigmaRow = selectBestSigmaByRow(IframeIdeal);
+                    size_t bestSigmaRow = 0;
+
+                    if (sigma>=0)
+                    {
+                    	double bestDistance=1e38;
+                    	for (size_t s = 0; s< listOfWeights.size(); ++s)
+                    		if (fabs(listOfSigmas[s]-sigma)<bestDistance)
+                    		{
+                    			bestDistance=fabs(listOfSigmas[s]-sigma);
+                    			bestSigmaRow=s;
+                    		}
+                    }
+                    else
+                    	selectBestSigmaByRow(IframeIdeal);
                     std::cout << "      sigmaRow: " << listOfSigmas[bestSigmaRow] << std::endl;
 
                     constructSmoothHistogramsByRow(listOfWeights[bestSigmaRow],listOfWidths[bestSigmaRow]);
@@ -221,10 +262,10 @@ void ProgMovieEstimateGain::run()
 	ICorrection.write(fnRoot+"_gain.xmp");
 }
 
-void ProgMovieEstimateGain::computeHistograms(const MultidimArray<int> &Iframe)
+void ProgMovieEstimateGain::computeHistograms(const MultidimArray<double> &Iframe)
 {
-		int* auxElemC=new int[Ydim];
-		int* auxElemR=new int[Xdim];
+		double* auxElemC=new double[Ydim];
+		double* auxElemR=new double[Xdim];
 
 		for(size_t j=0; j<XSIZE(columnH); j++)
 		{
@@ -238,9 +279,9 @@ void ProgMovieEstimateGain::computeHistograms(const MultidimArray<int> &Iframe)
 
 		for(size_t i=0; i<YSIZE(rowH); i++)
 		{
-			memcpy(auxElemR,&A2D_ELEM(Iframe,i,0),Xdim*sizeof(int));
+			memcpy(auxElemR,&A2D_ELEM(Iframe,i,0),Xdim*sizeof(double));
 			std::sort(auxElemR, auxElemR+Xdim);
-			memcpy(&A2D_ELEM(rowH,i,0),auxElemR,Xdim*sizeof(int));
+			memcpy(&A2D_ELEM(rowH,i,0),auxElemR,Xdim*sizeof(double));
 		}
 		delete[] auxElemR;
 
@@ -343,14 +384,14 @@ void ProgMovieEstimateGain::constructSmoothHistogramsByRow(const double *listOfW
 	save.write("PPPsmoothRowH.xmp");
 #endif
 }
+#undef NEVER_DEFINED
 
-
-void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<int> &Iframe, MultidimArray<int> &IframeTransformedColumn)
+void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<double> &Iframe, MultidimArray<double> &IframeTransformedColumn)
 {
 	IframeTransformedColumn.initZeros(Ydim,Xdim);
 	aSingleColumnH.resizeNoCopy(Ydim);
-	int *aSingleColumnH0=&DIRECT_A1D_ELEM(aSingleColumnH,0);
-	int *aSingleColumnHF=(&DIRECT_A1D_ELEM(aSingleColumnH,Ydim-1))+1;
+	double *aSingleColumnH0=&DIRECT_A1D_ELEM(aSingleColumnH,0);
+	double *aSingleColumnHF=(&DIRECT_A1D_ELEM(aSingleColumnH,Ydim-1))+1;
 
 
 	for (size_t j=0; j<Xdim; ++j)
@@ -360,11 +401,11 @@ void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<int> &
 
 		for (size_t i=0; i<Ydim; ++i)
 		{
-			int pixval=DIRECT_A2D_ELEM(Iframe,i,j);
-			int *pixvalPtr=std::upper_bound(aSingleColumnH0,aSingleColumnHF,pixval);
+			double pixval=DIRECT_A2D_ELEM(Iframe,i,j);
+			double *pixvalPtr=std::upper_bound(aSingleColumnH0,aSingleColumnHF,pixval);
 			pixvalPtr-=1;
 			int idx=pixvalPtr-aSingleColumnH0;
-			DIRECT_A2D_ELEM(IframeTransformedColumn,i,j)+=(int)DIRECT_A2D_ELEM(smoothColumnH,idx,j);
+			DIRECT_A2D_ELEM(IframeTransformedColumn,i,j)+=(double)DIRECT_A2D_ELEM(smoothColumnH,idx,j);
 		}
 	}
 
@@ -381,24 +422,24 @@ void ProgMovieEstimateGain::transformGrayValuesColumn(const MultidimArray<int> &
 }
 
 
-void ProgMovieEstimateGain::transformGrayValuesRow(const MultidimArray<int> &Iframe, MultidimArray<int> &IframeTransformedRow)
+void ProgMovieEstimateGain::transformGrayValuesRow(const MultidimArray<double> &Iframe, MultidimArray<double> &IframeTransformedRow)
 {
 	IframeTransformedRow.initZeros(Ydim,Xdim);
-		aSingleRowH.resizeNoCopy(Xdim);
-		int *aSingleRowH0=&DIRECT_A1D_ELEM(aSingleRowH,0);
-		int *aSingleRowHF=(&DIRECT_A1D_ELEM(aSingleRowH,Xdim-1))+1;
+	aSingleRowH.resizeNoCopy(Xdim);
+	double *aSingleRowH0=&DIRECT_A1D_ELEM(aSingleRowH,0);
+	double *aSingleRowHF=(&DIRECT_A1D_ELEM(aSingleRowH,Xdim-1))+1;
 
 	for (size_t i=0; i<Ydim; ++i)
 	{
-		memcpy(aSingleRowH0,&DIRECT_A2D_ELEM(rowH,i,0),Xdim*sizeof(int));
+		memcpy(aSingleRowH0,&DIRECT_A2D_ELEM(rowH,i,0),Xdim*sizeof(double));
 
 			for (size_t j=0; j<Xdim; ++j)
 			{
-				int pixvalR=DIRECT_A2D_ELEM(Iframe,i,j);
-				int *pixvalPtrR=std::upper_bound(aSingleRowH0,aSingleRowHF,pixvalR);
+				double pixvalR=DIRECT_A2D_ELEM(Iframe,i,j);
+				double *pixvalPtrR=std::upper_bound(aSingleRowH0,aSingleRowHF,pixvalR);
 				pixvalPtrR-=1;
 				int idxR=pixvalPtrR-aSingleRowH0;
-				DIRECT_A2D_ELEM(IframeTransformedRow,i,j)+=(int)DIRECT_A2D_ELEM(smoothRowH,i,idxR);
+				DIRECT_A2D_ELEM(IframeTransformedRow,i,j)+=(double)DIRECT_A2D_ELEM(smoothRowH,i,idxR);
 			}
 	}
 
@@ -414,7 +455,7 @@ void ProgMovieEstimateGain::transformGrayValuesRow(const MultidimArray<int> &Ifr
 
 }
 
-double computeTVColumns(MultidimArray<int> &I)
+double computeTVColumns(MultidimArray<double> &I)
 {
 	double retvalC=0;
 	for (size_t i=0; i<YSIZE(I); ++i)
@@ -424,7 +465,7 @@ double computeTVColumns(MultidimArray<int> &I)
 	return retvalC/((XSIZE(I)-1)*YSIZE(I));
 }
 
-double computeTVRows(MultidimArray<int> &I)
+double computeTVRows(MultidimArray<double> &I)
 {
 	double retvalR=0;
 	for (size_t i=0; i<YSIZE(I)-1; ++i)
@@ -434,11 +475,11 @@ double computeTVRows(MultidimArray<int> &I)
 	return retvalR/((YSIZE(I)-1)*XSIZE(I));
 }
 
-size_t ProgMovieEstimateGain::selectBestSigmaByColumn(const MultidimArray<int> &Iframe)
+size_t ProgMovieEstimateGain::selectBestSigmaByColumn(const MultidimArray<double> &Iframe)
 {
 	double bestAvgTV=1e38;
 	size_t best_s=0;
-	MultidimArray<int> IframeTransformed;
+	MultidimArray<double> IframeTransformed;
 
 	for(size_t s = 0; s< listOfWeights.size(); ++s)
 	{
@@ -454,11 +495,11 @@ size_t ProgMovieEstimateGain::selectBestSigmaByColumn(const MultidimArray<int> &
 	return best_s;
 }
 
-size_t ProgMovieEstimateGain::selectBestSigmaByRow(const MultidimArray<int> &Iframe)
+size_t ProgMovieEstimateGain::selectBestSigmaByRow(const MultidimArray<double> &Iframe)
 {
 	double bestAvgTV=1e38;
 	size_t best_s=0;
-	MultidimArray<int> IframeTransformed;
+	MultidimArray<double> IframeTransformed;
 
 	for(size_t s = 0; s< listOfWeights.size(); ++s)
 	{
@@ -474,6 +515,3 @@ size_t ProgMovieEstimateGain::selectBestSigmaByRow(const MultidimArray<int> &Ifr
 
 	return best_s;
 }
-
-
-

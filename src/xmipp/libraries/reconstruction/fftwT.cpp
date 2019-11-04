@@ -29,11 +29,19 @@
 FFTwT_Startup fftwt_startup;
 
 template<typename T>
+bool FFTwT<T>::needsAuxArray(const FFTSettingsNew<T> &settings) {
+    return (settings.isInPlace() && (0 != settings.sDim().n() % settings.batch()))
+            || !settings.isForward(); // for inverse transforms to preserve input;
+}
+
+template<typename T>
 void FFTwT<T>::init(const HW &cpu, const FFTSettingsNew<T> &settings, bool reuse) {
     bool canReuse = m_isInit
             && reuse
+            // we can reuse if the helper arrays are bigger, or non-existent
             && (m_settings->sBytesBatch() >= settings.sBytesBatch())
-            && (m_settings->fBytesBatch() >= settings.fBytesBatch());
+            && (m_settings->fBytesBatch() >= settings.fBytesBatch())
+            && (needsAuxArray(*m_settings) == needsAuxArray(settings));
     bool mustAllocate = !canReuse;
     if (mustAllocate) {
         release();
@@ -102,27 +110,29 @@ void FFTwT<float>::release(std::complex<float> *alignedData) {
 
 template<>
 void FFTwT<float>::allocate() {
-    // allocate input data storage
-    m_SD = (float*)allocateAligned(m_settings->sBytesBatch());
-    if (m_settings->isInPlace()) {
-        // input data holds also the output
-        m_FD = (std::complex<float>*)m_SD;
-    } else {
-        // allocate also the output buffer
-        m_FD = (std::complex<float>*)allocateAligned(m_settings->fBytesBatch());
+    if (needsAuxArray(*m_settings)) {
+        m_SD = (float*)allocateAligned(m_settings->sBytesBatch());
+        if (m_settings->isInPlace()) {
+            // input data holds also the output
+            m_FD = (std::complex<float>*)m_SD;
+        } else {
+            // allocate also the output buffer
+            m_FD = (std::complex<float>*)allocateAligned(m_settings->fBytesBatch());
+        }
     }
 }
 
 template<>
 void FFTwT<double>::allocate() {
-    // allocate input data storage
-    m_SD = (double*)allocateAligned(m_settings->sBytesBatch());
-    if (m_settings->isInPlace()) {
-        // input data holds also the output
-        m_FD = (std::complex<double>*)m_SD;
-    } else {
-        // allocate also the output buffer
-        m_FD = (std::complex<double>*)allocateAligned(m_settings->fBytesBatch());
+    if (needsAuxArray(*m_settings)) {
+        m_SD = (double*)allocateAligned(m_settings->sBytesBatch());
+        if (m_settings->isInPlace()) {
+            // input data holds also the output
+            m_FD = (std::complex<double>*)m_SD;
+        } else {
+            // allocate also the output buffer
+            m_FD = (std::complex<double>*)allocateAligned(m_settings->fBytesBatch());
+        }
     }
 }
 
@@ -145,6 +155,9 @@ void FFTwT<T>::check() {
     if ((m_settings->sDim().z() > 1)
             && (m_settings->sDim().y() < 2)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Y dim must be at least 2 (two) for 3D transformations");
+    }
+    if (m_settings->batch() > m_settings->sDim().n()) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Batch size must be smaller or equal to number of signals");
     }
 }
 
@@ -197,20 +210,34 @@ std::complex<T>* FFTwT<T>::fft(const T *in,
 
     // process signals in batches
     for (size_t offset = 0; offset < m_settings->sDim().n(); offset += m_settings->batch()) {
-        // how many signals to process
-        size_t toProcess = std::min(m_settings->batch(), m_settings->sDim().n() - offset);
+        size_t signalsToProcess = std::min(m_settings->batch(), m_settings->sDim().n() - offset);
+        size_t signalsToSkip = m_settings->batch() - signalsToProcess;
+        bool useAux = (m_settings->batch() != signalsToProcess) && needsAuxArray(*m_settings);
 
-        // copy memory
-        memcpy(m_SD,
+        // set in / out pointers for normal case
+        const T *batchSrc = in
+                + (offset - signalsToSkip) * m_settings->sDim().xyzPadded();
+        std::complex<T> *batchDest = out
+                + (offset - signalsToSkip) * m_settings->fDim().xyzPadded();
+
+        if (useAux) {
+            // copy data to aux array
+            memcpy(m_SD,
                 in + offset * m_settings->sDim().xyzPadded(),
-                toProcess * m_settings->sBytesSingle());
+                signalsToProcess * m_settings->sBytesSingle());
+            // set pointers (we should be here only for in-place transforms)
+            batchSrc = (const T*)m_SD;
+            batchDest = (std::complex<T>*)m_SD;
+        }
 
-        fft(cast(m_plan), m_SD, m_FD);
+        fft(cast(m_plan), batchSrc, batchDest);
 
-        // copy data back
-        memcpy(out + offset * m_settings->fDim().xyzPadded(),
-                m_FD,
-                toProcess * m_settings->fBytesSingle());
+        if (useAux) {
+            // copy data from aux array (skip already processed data)
+            memcpy(out + offset * m_settings->fDim().xyzPadded(),
+                batchDest,
+                signalsToProcess * m_settings->fBytesSingle());
+        }
     }
     return out;
 }
@@ -231,20 +258,28 @@ T* FFTwT<T>::ifft(const std::complex<T> *in,
 
     // process signals in batches
     for (size_t offset = 0; offset < m_settings->fDim().n(); offset += m_settings->batch()) {
-        // how many signals to process
-        size_t toProcess = std::min(m_settings->batch(), m_settings->fDim().n() - offset);
+        size_t signalsToProcess = std::min(m_settings->batch(), m_settings->fDim().n() - offset);
+        size_t signalsToSkip = m_settings->batch() - signalsToProcess;
+        bool useAux = (m_settings->batch() != signalsToProcess) || needsAuxArray(*m_settings);
 
-        // copy memory
+        // copy data
         memcpy(m_FD,
-                in + offset * m_settings->fDim().xyzPadded(),
-                toProcess * m_settings->fBytesSingle());
+            in + offset * m_settings->fDim().xyzPadded(),
+            signalsToProcess * m_settings->fBytesSingle());
 
-        ifft(cast(m_plan), m_FD, m_SD);
+        // set the destination
+        T *batchDest = useAux
+                ? m_SD
+                : out + (offset - signalsToSkip) * m_settings->sDim().xyzPadded();
 
-        // copy data back
-        memcpy(out + offset * m_settings->sDim().xyzPadded(),
-                m_SD,
-                toProcess * m_settings->sBytesSingle());
+        ifft(cast(m_plan), m_FD, batchDest);
+
+        if (useAux) {
+            // copy data from aux array
+            memcpy(out + offset * m_settings->sDim().xyzPadded(),
+                batchDest,
+                signalsToProcess * m_settings->sBytesSingle());
+        }
     }
     return out;
 }
