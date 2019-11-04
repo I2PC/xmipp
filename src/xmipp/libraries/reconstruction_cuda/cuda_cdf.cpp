@@ -64,7 +64,7 @@ void CDF<T>::calculateCDF(const T* d_filtered1, const T* d_filtered2) {
 
 template< typename T >
 void CDF<T>::calculateCDF(const T* d_S) {
-	_calculateDifference(d_S);
+	_calculateSquare(d_S);
 	sort();
 	_updateProbabilities();
 }
@@ -83,7 +83,7 @@ void CDF<T>::_calculateDifference(const T* __restrict__ d_filtered1, const T* __
 }
 
 template< typename T >
-void CDF<T>::_calculateDifference(const T* __restrict__ d_S) {
+void CDF<T>::_calculateSquare(const T* __restrict__ d_S) {
 	T* __restrict__ d_V = this->d_V;
 
 	auto k = [=] __host__ __device__ (int index) {

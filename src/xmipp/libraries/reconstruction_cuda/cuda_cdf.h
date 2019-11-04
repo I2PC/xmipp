@@ -51,7 +51,7 @@ struct CDF {
 
 		// Functions must be public because they use device lambda
 	void _calculateDifference(const T* __restrict__ d_filtered1, const T* __restrict__ d_filtered2);
-	void _calculateDifference(const T* __restrict__ d_S);
+	void _calculateSquare(const T* __restrict__ d_S);
 	void _updateProbabilities();
 
 private:
