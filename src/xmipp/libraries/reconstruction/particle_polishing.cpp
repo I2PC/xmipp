@@ -487,9 +487,10 @@ void ProgParticlePolishing::calculateBSplineCoeffs(MultidimArray<double> &inputM
 
 	size_t Nelements = XSIZE(inputMat);
 
-	std::cout << "1 Checking stuff: " << Nelements << std::endl;
+	//std::cout << "1 Checking stuff: " << Nelements << std::endl;
     for (int i=0; i<Nelements; i++){
     	VEC_ELEM(helper.b,i)=DIRECT_A2D_ELEM(inputMat, 2, i);
+    	std::cout << "1 Checking stuff: " << Nelements << std::endl;
     	int x, y;
     	x = DIRECT_A2D_ELEM(inputMat, 0, i);
     	y = DIRECT_A2D_ELEM(inputMat, 1, i);
@@ -499,12 +500,16 @@ void ProgParticlePolishing::calculateBSplineCoeffs(MultidimArray<double> &inputM
             for (int l = -1; l < (lX-1); l++){
                 double coeff=0.;
                 coeff = Bspline03(xarg - l) * Bspline03(yarg - m);
-                std::cout << "2 Checking stuff: " << x << ", " << y << ", " << m << ", " << l << ", " << lY << ", " << lX << ", " << xarg << ", " << yarg << ", " << coeff << std::endl;
+                //std::cout << "2 Checking stuff: " << x << ", " << y << ", " << m << ", " << l << ", " << lY << ", " << lX << ", " << xarg << ", " << yarg << ", " << coeff << std::endl;
                 MAT_ELEM(helper.A,i,m*lX+l) = coeff;
             }
         }
 
     }
+    std::cout << "Loops finished" << std::endl;
+    //std::cout << "3 Checking stuff, helper.A: " << helper.A << std::endl;
+    //std::cout << "4 Checking stuff, helper.b: " << helper.b << std::endl;
+    //std::cout << "5 Checking stuff, helper.w: " << helper.w << std::endl;
 	// Spline coefficients
 	weightedLeastSquares(helper, cij);
 }
@@ -546,98 +551,144 @@ void ProgParticlePolishing::run()
 	int Nsteps= int((0.5-inifreq)/step);
 	matrixWeights.initZeros(nMovies, nFrames, Nsteps+1, mdPartSize);
 	maxvalues.initZeros(nMovies);
-	dataArray.initZeros(4, mdPartSize);
 	maxvalues-=1.0;
 
 
 	//First part
 	std::vector<int> partIdDone;
 	std::vector<int>::iterator it;
-	iterPart->init(mdPart);
-	for(int i=0; i<mdPartSize; i++){
+	int dataInMovie;
 
-		//Project the volume with the parameters in the image
-		double rot, tilt, psi, x, y;
-		bool flip;
-		size_t frId, mvId, partId;
-		int xcoor, ycoor;
+	std::vector<int> xcoords;
+	std::vector<int> ycoords;
+	std::vector<double> slopes;
+	std::vector<double> intercepts;
 
-		mdPart.getRow(currentRow, iterPart->objId);
-		currentRow.getValue(MDL_IMAGE,fnPart);
-		Ipart.read(fnPart);
-		Ipart().setXmippOrigin();
-		currentRow.getValue(MDL_ANGLE_ROT,rot);
-		currentRow.getValue(MDL_ANGLE_TILT,tilt);
-		currentRow.getValue(MDL_ANGLE_PSI,psi);
-		currentRow.getValue(MDL_SHIFT_X,x);
-		currentRow.getValue(MDL_SHIFT_Y,y);
-		currentRow.getValue(MDL_FLIP,flip);
-		currentRow.getValue(MDL_FRAME_ID,frId);
-		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
-		currentRow.getValue(MDL_PARTICLE_ID,partId);
-		currentRow.getValue(MDL_XCOOR,xcoor);
-		currentRow.getValue(MDL_YCOOR,ycoor);
+	for(int m=0; m<nMovies; m++){
 
+		iterPart->init(mdPart);
+		dataInMovie = 0;
 
-		it = find(partIdDone.begin(), partIdDone.end(), (int)partId);
-		if (it != partIdDone.end()){
+		for(int i=0; i<mdPartSize; i++){
+
+			//Project the volume with the parameters in the image
+			double rot, tilt, psi, x, y;
+			bool flip;
+			size_t frId, mvId, partId;
+			int xcoor, ycoor;
+
+			mdPart.getRow(currentRow, iterPart->objId);
+			currentRow.getValue(MDL_IMAGE,fnPart);
+			Ipart.read(fnPart);
+			Ipart().setXmippOrigin();
+			currentRow.getValue(MDL_ANGLE_ROT,rot);
+			currentRow.getValue(MDL_ANGLE_TILT,tilt);
+			currentRow.getValue(MDL_ANGLE_PSI,psi);
+			currentRow.getValue(MDL_SHIFT_X,x);
+			currentRow.getValue(MDL_SHIFT_Y,y);
+			currentRow.getValue(MDL_FLIP,flip);
+			currentRow.getValue(MDL_FRAME_ID,frId);
+			currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
+			currentRow.getValue(MDL_PARTICLE_ID,partId);
+			currentRow.getValue(MDL_XCOOR,xcoor);
+			currentRow.getValue(MDL_YCOOR,ycoor);
+
+			if(mvId!=m)
+				continue;
+
+			std::cout << "Dentro del bucle de particulas con " << mvId << std::endl;
+
+			it = find(partIdDone.begin(), partIdDone.end(), (int)partId);
+			if (it != partIdDone.end()){
+				if(iterPart->hasNext())
+					iterPart->moveNext();
+				continue;
+			}
+			partIdDone.push_back((int)partId);
+			dataInMovie++;
+
+			A.initIdentity(3);
+			MAT_ELEM(A,0,2)=x;
+			MAT_ELEM(A,1,2)=y;
+			if (flip)
+			{
+				MAT_ELEM(A,0,0)*=-1;
+				MAT_ELEM(A,0,1)*=-1;
+				MAT_ELEM(A,0,2)*=-1;
+			}
+
+			if ((xdim != XSIZE(Ipart())) || (ydim != YSIZE(Ipart())))
+				std::cout << "Error: The input particles and volume have different sizes" << std::endl;
+
+			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+			projV().setXmippOrigin();
+
+			//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
+			//the movie particles are averaged (all frames) to compare every pixel value
+			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, false);
+
+			//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
+			double slope=0, intercept=0;
+			calculateCurve(Iavg(), projV(), slope, intercept);
+			std::cerr << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
+
+			//Vectors to store some results
+			xcoords.push_back((int)xcoor);
+			ycoords.push_back((int)ycoor);
+			slopes.push_back(slope);
+			intercepts.push_back(intercept);
+
+			/*//DEBUG
+			projV.write(formatString("Testprojection_%i_%i.tif", frId, partId));
+			//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+			Iavg.write(formatString("Testaverage_%i_%i.tif", frId, partId));
+			//END DEBUG/*/
+
 			if(iterPart->hasNext())
 				iterPart->moveNext();
-			continue;
+
+		}//end particles loop
+
+		if(dataInMovie>0){
+			Matrix1D<double> cij;
+			int boxsize = 50;
+			dataArray.initZeros(4, dataInMovie);
+			for(int h=0; h<dataInMovie; h++){
+				//Data array will be used to store some results
+				//Data array with xcoor in the first column
+				DIRECT_A2D_ELEM(dataArray, 0, h) = xcoords[h];
+				//Data array with ycoor in the second column
+				DIRECT_A2D_ELEM(dataArray, 1, h) = ycoords[h];
+				//Data array with ycoor in the second column
+				DIRECT_A2D_ELEM(dataArray, 2, h) = slopes[h];
+				//Data array with ycoor in the second column
+				DIRECT_A2D_ELEM(dataArray, 3, h) = intercepts[h];
+			}
+
+			//AJ testing
+			dataArray.resize(4, floor(xmov/100)*floor(ymov/100));
+			std::mt19937_64 generator;
+			generator.seed(std::time(0));
+			std::normal_distribution<double> normal;
+			int count=0;
+			for(int h=0; h<floor(xmov/100); h++){
+				for(int l=0; l<floor(ymov/100); l++){
+					DIRECT_A2D_ELEM(dataArray, 0, count) = h;
+					DIRECT_A2D_ELEM(dataArray, 1, count) = l;
+					DIRECT_A2D_ELEM(dataArray, 2, count) = -1*normal(generator);
+					DIRECT_A2D_ELEM(dataArray, 3, count) = normal(generator);
+					count++;
+				}
+			}
+			std::cout << "dataArray " << dataArray << std::endl;
+			//END AJ testing
+
+			calculateBSplineCoeffs(dataArray, boxsize, cij, xmov, ymov);
+			std::cout << "100 Checking stuff, cij: " << cij << std::endl;
 		}
 
-		partIdDone.push_back((int)partId);
-
-		A.initIdentity(3);
-		MAT_ELEM(A,0,2)=x;
-		MAT_ELEM(A,1,2)=y;
-		if (flip)
-		{
-			MAT_ELEM(A,0,0)*=-1;
-			MAT_ELEM(A,0,1)*=-1;
-			MAT_ELEM(A,0,2)*=-1;
-		}
-
-		if ((xdim != XSIZE(Ipart())) || (ydim != YSIZE(Ipart())))
-			std::cout << "Error: The input particles and volume have different sizes" << std::endl;
-
-		projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
-		applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
-		projV().setXmippOrigin();
-
-		//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
-		//the movie particles are averaged (all frames) to compare every pixel value
-		averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, false);
-
-		//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
-		double slope=0, intercept=0;
-		calculateCurve(Iavg(), projV(), slope, intercept);
-		std::cerr << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
-
-		//Data array will be used to store some results
-		//Data array with xcoor in the first column
-		DIRECT_A2D_ELEM(dataArray, 0, i) = xcoor;
-		//Data array with ycoor in the second column
-		DIRECT_A2D_ELEM(dataArray, 1, i) = ycoor;
-		//Data array with ycoor in the second column
-		DIRECT_A2D_ELEM(dataArray, 2, i) = slope;
-		//Data array with ycoor in the second column
-		DIRECT_A2D_ELEM(dataArray, 3, i) = intercept;
-
-		Matrix1D<double> cij;
-		int boxsize = 50;
-		calculateBSplineCoeffs(dataArray, boxsize, cij, xmov, ymov);
-
-		/*//DEBUG
-		projV.write(formatString("Testprojection_%i_%i.tif", frId, partId));
-		//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
-		Iavg.write(formatString("Testaverage_%i_%i.tif", frId, partId));
-		//END DEBUG/*/
-
-		if(iterPart->hasNext())
-			iterPart->moveNext();
-
-	}
+	}//end movie Ids loop
 
 	/*
 	//Second Part
