@@ -987,8 +987,9 @@ def compile_cuFFTAdvisor():
 def compile(Nproc):
     ensureConfig()
     ensureConfigVersion(configDict)
-    compileDependencies(Nproc)
-    compileXmipp(Nproc)
+    if not compileDependencies(Nproc):
+        return False
+    return compileXmipp(Nproc)
 
 
 def compileDependencies(Nproc):
