@@ -128,15 +128,15 @@ public:
         // generate data
         drawClockArms(ref, dims, centerX, centerY, 0.f);
         // prepare aligner
-        auto rotSettings = Alignment::RotationEstimationSetting();
+        auto rotSettings = RotationEstimationSetting();
         rotSettings.hw = hw;
         rotSettings.type = AlignType::OneToN;
         rotSettings.refDims = dims.createSingle();
         rotSettings.otherDims = dims;
         rotSettings.batch = batch;
         rotSettings.maxRotDeg = maxRotation;
-        rotSettings.firstRing = rotSettings.getDefaultFirstRing();
-        rotSettings.lastRing = rotSettings.getDefaultLastRing();
+        rotSettings.firstRing = RotationEstimationSetting::getDefaultFirstRing(dims);
+        rotSettings.lastRing = RotationEstimationSetting::getDefaultLastRing(dims);
         rotSettings.fullCircle = true;
         rotSettings.allowTuningOfNumberOfSamples = false;
 

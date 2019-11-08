@@ -41,9 +41,7 @@ public:
     template<bool ADD_NOISE>
     void rotate2D(const Dimensions &dims, size_t batch)
     {
-        using Alignment::AlignType;
-        using Alignment::ARotationEstimator;
-        using Alignment::RotationEstimationSetting;
+        using namespace Alignment;
         float maxRotation = RotationEstimationSetting::getMaxRotation();
 
 //        printf("testing: %lu x %lu x %lu (batch %lu)\n",
@@ -72,8 +70,8 @@ public:
         settings.otherDims = dims;
         settings.batch = batch;
         settings.maxRotDeg = maxRotation;
-        settings.firstRing = settings.getDefaultFirstRing();
-        settings.lastRing = settings.getDefaultLastRing();
+        settings.firstRing = RotationEstimationSetting::getDefaultFirstRing(dims);
+        settings.lastRing = RotationEstimationSetting::getDefaultLastRing(dims);
         settings.fullCircle = true;
         settings.allowTuningOfNumberOfSamples = false; // to make sure that we always use the same settings
 
