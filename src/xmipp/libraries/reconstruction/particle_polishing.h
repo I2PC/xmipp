@@ -59,7 +59,8 @@ public:
     void smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out);
     void averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent);
     void calculateCurve(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, double &slope, double &intercept);
-    void calculateBSplineCoeffs(MultidimArray<double> &noiseMap, int boxsize, Matrix1D<double> cij, int xdim, int ydim);
+    void calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> &cij, int xdim, int ydim, int dataRow);
+    void evaluateBSpline(const MultidimArray<double> inputMat, const Matrix1D<double> cij, MultidimArray<double> &outputMat, int xdim, int ydim, int dataRow);
 
 };
 

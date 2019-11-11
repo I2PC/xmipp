@@ -78,9 +78,13 @@ void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const Mu
 	double thD=stdD;
 
 	/*/DEBUG
-	Image<double> Idiff2;
+	Image<double> Idiff2, I2, Iexp2;
 	Idiff2() = Idiff;
 	Idiff2.write("diff.mrc");
+	I2()=I;
+	I2.write("projection.mrc");
+	Iexp2()=Iexp;
+	Iexp2.write("experimental.mrc");
 	//END DEBUG/*/
 
 	double meanI, stdI, thI;
@@ -172,9 +176,12 @@ void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const Mu
 	sumWII*=iND;
 	sumWIexpIexp*=iND;
 
-	corrN=sumIIexp/sqrt(sumII*sumIexpIexp);
-	corrM=sumMIIexp/sqrt(sumMII*sumMIexpIexp);
-	corrW=sumWIIexp/sqrt(sumWII*sumWIexpIexp);
+	//corrN=sumIIexp/sqrt(sumII*sumIexpIexp);
+	//corrM=sumMIIexp/sqrt(sumMII*sumMIexpIexp);
+	//corrW=sumWIIexp/sqrt(sumWII*sumWIexpIexp);
+	corrN=sumIIexp;
+	corrM=sumMIIexp;
+	corrW=sumWIIexp;
 	if(std::isnan(corrN))
 		corrN=-1.0;
 	if(std::isnan(corrM))
@@ -465,53 +472,90 @@ void ProgParticlePolishing::calculateCurve(const MultidimArray<double> &Iavg, co
 }
 
 
-void ProgParticlePolishing::calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> cij, int xdim, int ydim)
+void ProgParticlePolishing::calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> &cij, int xdim, int ydim, int dataRow)
 {
 
-	int Nx = xdim/boxsize;
-	int Ny = ydim/boxsize;
+	//int Nx = xdim/boxsize;
+	//int Ny = ydim/boxsize;
+
+	size_t Nelements = XSIZE(inputMat);
 
 	// For the spline regression
-	int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
+	//int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
+	int lX=8, lY=8;
     WeightedLeastSquaresHelper helper;
-    helper.A.initZeros(Nx*Ny,lX*lY);
+    /*helper.A.initZeros(Nx*Ny,lX*lY);
     helper.b.initZeros(Nx*Ny);
     helper.w.initZeros(Nx*Ny);
+    helper.w.initConstant(1);*/
+    helper.A.initZeros(Nelements, lX*lY);
+    helper.b.initZeros(Nelements);
+    helper.w.initZeros(Nelements);
     helper.w.initConstant(1);
     double hX = xdim / (double)(lX-3);
     double hY = ydim / (double)(lY-3);
 
-    std::cout << "Checking sizes: " << xdim << ", " << ydim << ", " << boxsize << std::endl;
 	if ( (xdim<boxsize) || (ydim<boxsize) )
 		std::cout << "Error: The input matrix to the BSliple coeffs estimation in x-direction or y-direction is too small" << std::endl;
 
-	size_t Nelements = XSIZE(inputMat);
-
 	//std::cout << "1 Checking stuff: " << Nelements << std::endl;
     for (int i=0; i<Nelements; i++){
-    	VEC_ELEM(helper.b,i)=DIRECT_A2D_ELEM(inputMat, 2, i);
-    	std::cout << "1 Checking stuff: " << Nelements << std::endl;
+    	VEC_ELEM(helper.b,i)=DIRECT_A2D_ELEM(inputMat, dataRow, i);
     	int x, y;
     	x = DIRECT_A2D_ELEM(inputMat, 0, i);
     	y = DIRECT_A2D_ELEM(inputMat, 1, i);
         double xarg = x / hX;
         double yarg = y / hY;
+        //std::cout << "2 Checking stuff: " << x << ", " << y << ", " << xarg << ", " << yarg << ", " << std::endl;
         for (int m = -1; m < (lY-1); m++){
             for (int l = -1; l < (lX-1); l++){
                 double coeff=0.;
                 coeff = Bspline03(xarg - l) * Bspline03(yarg - m);
-                //std::cout << "2 Checking stuff: " << x << ", " << y << ", " << m << ", " << l << ", " << lY << ", " << lX << ", " << xarg << ", " << yarg << ", " << coeff << std::endl;
-                MAT_ELEM(helper.A,i,m*lX+l) = coeff;
+                MAT_ELEM(helper.A,i,(m+1)*lX+(l+1)) = coeff;
             }
         }
 
     }
-    std::cout << "Loops finished" << std::endl;
-    //std::cout << "3 Checking stuff, helper.A: " << helper.A << std::endl;
-    //std::cout << "4 Checking stuff, helper.b: " << helper.b << std::endl;
-    //std::cout << "5 Checking stuff, helper.w: " << helper.w << std::endl;
 	// Spline coefficients
 	weightedLeastSquares(helper, cij);
+}
+
+
+void ProgParticlePolishing::evaluateBSpline(const MultidimArray<double> inputMat, const Matrix1D<double> cij, MultidimArray<double> &outputMat, int xdim, int ydim, int dataRow)
+{
+
+	//int Nx = xdim/boxsize;
+	//int Ny = ydim/boxsize;
+
+	size_t Nelements = XSIZE(inputMat);
+
+	// For the spline evaluation
+	//int lX=std::min(8,Nx-2), lY=std::min(8,Ny-2);
+	int lX=8, lY=8;
+    double hX = xdim / (double)(lX-3);
+    double hY = ydim / (double)(lY-3);
+
+    for (int i=0; i<Nelements; i++){
+    	int x, y;
+    	x = DIRECT_A2D_ELEM(inputMat, 0, i);
+    	y = DIRECT_A2D_ELEM(inputMat, 1, i);
+        double xarg = x / hX;
+        double yarg = y / hY;
+        //std::cout << "2 Checking stuff: " << x << ", " << y << ", " << xarg << ", " << yarg << ", " << std::endl;
+        for (int m = -1; m < (lY-1); m++){
+        	double tmpY = Bspline03(yarg - m);
+        	if (tmpY == 0.0)
+        		continue;
+        	double xContrib=0.0;
+            for (int l = -1; l < (lX-1); l++){
+            	double tmpX = Bspline03(xarg - l);
+            	xContrib+=VEC_ELEM(cij,(m+1)*lX+(l+1)) * tmpX;
+            }
+            DIRECT_A2D_ELEM(outputMat, dataRow, i)+=xContrib*tmpY;
+        }
+
+    }
+
 }
 
 
@@ -530,7 +574,7 @@ void ProgParticlePolishing::run()
 	Image<double> Ipart, projV, Iavg;
 	MDRow currentRow;
 	Matrix2D<double> A;
-	MultidimArray<double> matrixWeights, maxvalues, dataArray;
+	MultidimArray<double> dataArray, softArray;
 	Projection PV;
 	CTFDescription ctf;
 
@@ -545,27 +589,20 @@ void ProgParticlePolishing::run()
 	Filter.FilterBand=LOWPASS;
 	Filter.FilterShape=RAISED_COSINE;
 
-	double cutfreq;
-	double inifreq=0.5; //0.05;
-	double step=0.1; //0.05;
-	int Nsteps= int((0.5-inifreq)/step);
-	matrixWeights.initZeros(nMovies, nFrames, Nsteps+1, mdPartSize);
-	maxvalues.initZeros(nMovies);
-	maxvalues-=1.0;
 
-
-	//First part
+	/////////////////////////
+	//First Part
+	/////////////////////////
 	std::vector<int> partIdDone;
 	std::vector<int>::iterator it;
 	int dataInMovie;
 
-	std::vector<int> xcoords;
-	std::vector<int> ycoords;
-	std::vector<double> slopes;
-	std::vector<double> intercepts;
-
 	for(int m=0; m<nMovies; m++){
 
+		std::vector<int> xcoords;
+		std::vector<int> ycoords;
+		std::vector<double> slopes;
+		std::vector<double> intercepts;
 		iterPart->init(mdPart);
 		dataInMovie = 0;
 
@@ -593,10 +630,11 @@ void ProgParticlePolishing::run()
 			currentRow.getValue(MDL_XCOOR,xcoor);
 			currentRow.getValue(MDL_YCOOR,ycoor);
 
-			if(mvId!=m)
+			if(mvId!=m){
+				if(iterPart->hasNext())
+					iterPart->moveNext();
 				continue;
-
-			std::cout << "Dentro del bucle de particulas con " << mvId << std::endl;
+			}
 
 			it = find(partIdDone.begin(), partIdDone.end(), (int)partId);
 			if (it != partIdDone.end()){
@@ -651,29 +689,32 @@ void ProgParticlePolishing::run()
 		}//end particles loop
 
 		if(dataInMovie>0){
-			Matrix1D<double> cij;
+			Matrix1D<double> cij_slopes, cij_intercepts;
 			int boxsize = 50;
 			dataArray.initZeros(4, dataInMovie);
+			softArray.initZeros(4, dataInMovie);
 			for(int h=0; h<dataInMovie; h++){
 				//Data array will be used to store some results
 				//Data array with xcoor in the first column
 				DIRECT_A2D_ELEM(dataArray, 0, h) = xcoords[h];
+				DIRECT_A2D_ELEM(softArray, 0, h) = xcoords[h];
 				//Data array with ycoor in the second column
 				DIRECT_A2D_ELEM(dataArray, 1, h) = ycoords[h];
+				DIRECT_A2D_ELEM(softArray, 1, h) = ycoords[h];
 				//Data array with ycoor in the second column
 				DIRECT_A2D_ELEM(dataArray, 2, h) = slopes[h];
 				//Data array with ycoor in the second column
 				DIRECT_A2D_ELEM(dataArray, 3, h) = intercepts[h];
 			}
 
-			//AJ testing
-			dataArray.resize(4, floor(xmov/100)*floor(ymov/100));
+			/*/AJ testing
+			dataArray.resize(4, floor(xmov/1000)*floor(ymov/1000));
 			std::mt19937_64 generator;
 			generator.seed(std::time(0));
 			std::normal_distribution<double> normal;
 			int count=0;
-			for(int h=0; h<floor(xmov/100); h++){
-				for(int l=0; l<floor(ymov/100); l++){
+			for(int h=0; h<floor(xmov/1000); h++){
+				for(int l=0; l<floor(ymov/1000); l++){
 					DIRECT_A2D_ELEM(dataArray, 0, count) = h;
 					DIRECT_A2D_ELEM(dataArray, 1, count) = l;
 					DIRECT_A2D_ELEM(dataArray, 2, count) = -1*normal(generator);
@@ -681,91 +722,176 @@ void ProgParticlePolishing::run()
 					count++;
 				}
 			}
-			std::cout << "dataArray " << dataArray << std::endl;
-			//END AJ testing
+			//std::cout << "dataArray " << dataArray << std::endl;
+			//END AJ testing*/
 
-			calculateBSplineCoeffs(dataArray, boxsize, cij, xmov, ymov);
-			std::cout << "100 Checking stuff, cij: " << cij << std::endl;
+			//AJ to obtain a soft version of the obtained slopes (dataRow=2)
+			std::cout << dataInMovie << " Slopes and intercepts " << dataArray << std::endl;
+
+			calculateBSplineCoeffs(dataArray, boxsize, cij_slopes, xmov, ymov, 2);
+			std::cout << dataInMovie << " Slopes coeffs " << cij_slopes << std::endl;
+			evaluateBSpline(dataArray, cij_slopes, softArray, xmov, ymov, 2);
+
+			//AJ to obtain a soft version of the obtained interception points (dataRow=3)
+			calculateBSplineCoeffs(dataArray, boxsize, cij_intercepts, xmov, ymov, 3);
+			std::cout << dataInMovie << " Intercepts coeffs " << cij_intercepts << std::endl;
+			evaluateBSpline(dataArray, cij_intercepts, softArray, xmov, ymov, 3);
+
+			std::cout << dataInMovie << " SOFT Slopes and intercepts " << softArray << std::endl;
+
 		}
 
 	}//end movie Ids loop
 
-	/*
+	/////////////////////////
 	//Second Part
-	size_t mvPrev, frPrev, partPrev, mv, fr, mvId, frId, partId;
-	for(int n=0; n<Nsteps+1; n++){
+	/////////////////////////
+	MultidimArray<double> matrixWeights, maxvalues;
+	double cutfreq;
+	double inifreq=0.05; //0.05;
+	double step=0.05; //0.05;
+	int Nsteps= int((0.5-inifreq)/step);
+	double maxvalue=-1.;
+	size_t mvId, frId, partId;
 
-		iterPart->init(mdPart);
-		cutfreq = inifreq + step*n;
 
-		size_t prevMvId, prevPartId;
-		for(int i=0; i<mdPartSize; i++){
+	iterPart->init(mdPart);
+	std::vector<int> numPartPerMov;
+	int prevMvId=-1, prevPartId=-1, partCount=0;
+	for(int i=0; i<mdPartSize; i++){
+		size_t mvId, partId;
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
+		currentRow.getValue(MDL_PARTICLE_ID,partId);
+		if(mvId!=prevMvId){
+			if (prevMvId!=-1)
+				numPartPerMov.push_back(partCount);
+			partCount=0;
+			prevMvId=mvId;
+		}
+		if(partId!=prevPartId){
+			prevPartId=partId;
+			partCount++;
+		}
+		if(iterPart->hasNext())
+			iterPart->moveNext();
+	}
+	numPartPerMov.push_back(partCount);
+	std::cerr << " size numPartPerMov " << numPartPerMov.size() << std::endl;
+	for (int i=0; i<numPartPerMov.size(); i++)
+		std::cerr << " numPartPerMov[" << i << "] = "<< numPartPerMov[i] << std::endl;
+
+	prevMvId=-1;
+	prevPartId=-1;
+	partCount=0;
+	int countMv=0;
+	iterPart->init(mdPart);
+	Image<double> Ipartaux, projVaux;
+	for(int i=0; i<mdPartSize; i++){
 		
-			//Project the volume with the parameters in the image
-			double rot, tilt, psi, x, y;
-			bool flip;
-			size_t frId, mvId, partId;
-			int xcoor, ycoor;
+		//Project the volume with the parameters in the image
+		double rot, tilt, psi, x, y;
+		bool flip;
+		size_t frId, mvId, partId;
+		int xcoor, ycoor;
 
-			mdPart.getRow(currentRow, iterPart->objId);
-			currentRow.getValue(MDL_IMAGE,fnPart);
-			Ipart.read(fnPart);
-			Ipart().setXmippOrigin();
-			currentRow.getValue(MDL_ANGLE_ROT,rot);
-			currentRow.getValue(MDL_ANGLE_TILT,tilt);
-			currentRow.getValue(MDL_ANGLE_PSI,psi);
-			currentRow.getValue(MDL_SHIFT_X,x);
-			currentRow.getValue(MDL_SHIFT_Y,y);
-			currentRow.getValue(MDL_FLIP,flip);
-			currentRow.getValue(MDL_FRAME_ID,frId);
-			currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
-			currentRow.getValue(MDL_PARTICLE_ID,partId);
-			currentRow.getValue(MDL_XCOOR,xcoor);
-			currentRow.getValue(MDL_YCOOR,ycoor);
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_IMAGE,fnPart);
+		Ipart.read(fnPart);
+		Ipart().setXmippOrigin();
+		currentRow.getValue(MDL_ANGLE_ROT,rot);
+		currentRow.getValue(MDL_ANGLE_TILT,tilt);
+		currentRow.getValue(MDL_ANGLE_PSI,psi);
+		currentRow.getValue(MDL_SHIFT_X,x);
+		currentRow.getValue(MDL_SHIFT_Y,y);
+		currentRow.getValue(MDL_FLIP,flip);
+		currentRow.getValue(MDL_FRAME_ID,frId);
+		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
+		currentRow.getValue(MDL_PARTICLE_ID,partId);
+		currentRow.getValue(MDL_XCOOR,xcoor);
+		currentRow.getValue(MDL_YCOOR,ycoor);
 
-			A.initIdentity(3);
-			MAT_ELEM(A,0,2)=x;
-			MAT_ELEM(A,1,2)=y;
-			if (flip)
-			{
-				MAT_ELEM(A,0,0)*=-1;
-				MAT_ELEM(A,0,1)*=-1;
-				MAT_ELEM(A,0,2)*=-1;
+		if(prevMvId!=mvId){
+			if (prevMvId!=-1){
+				std::cerr << " maxvalue " << maxvalue << std::endl;
+				std::cerr << "  matrixWeights " << matrixWeights << std::endl;
+				matrixWeights/=maxvalue;
+				std::cerr << " NORM matrixWeights " << matrixWeights << std::endl;
+				countMv++;
 			}
+			partCount=0;
+			prevMvId=mvId;
+			maxvalue=-1.;
+			matrixWeights.initZeros(numPartPerMov[countMv], nFrames, Nsteps+1);
+		}
+		if(partId!=prevPartId){
+			prevPartId=partId;
+			partCount++;
+		}
 
-			int xdim = (int)XSIZE(V());
-			if ((XSIZE(V()) != XSIZE(Ipart())) || (YSIZE(V()) != YSIZE(Ipart())))
-				std::cout << "Error: The input particles and volume have different sizes" << std::endl;
+		A.initIdentity(3);
+		MAT_ELEM(A,0,2)=x;
+		MAT_ELEM(A,1,2)=y;
+		if (flip){
+			MAT_ELEM(A,0,0)*=-1;
+			MAT_ELEM(A,0,1)*=-1;
+			MAT_ELEM(A,0,2)*=-1;
+		}
 
-			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
-			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
-			projV().setXmippOrigin();
-			//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
+		projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+		applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+		projV().setXmippOrigin();
+		//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
 
-			//TODO: invertir contraste y aplicar ctf, o al reves, no se...
-			//To invert contrast in the projections
-			double Dmin, Dmax, irange, val;
-			projV().computeDoubleMinMax(Dmin, Dmax);
-			irange=1.0/(Dmax - Dmin);
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
-				val=DIRECT_MULTIDIM_ELEM(projV(),n);
-				DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
+		//TODO: invertir contraste y aplicar ctf, o al reves, no se...
+		//To invert contrast in the projections
+		double Dmin, Dmax, irange, val;
+		projV().computeDoubleMinMax(Dmin, Dmax);
+		irange=1.0/(Dmax - Dmin);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+			val=DIRECT_MULTIDIM_ELEM(projV(),n);
+			DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
+		}
+
+		//filtering the projections with the ctf
+		ctf.readFromMdRow(currentRow);
+		ctf.produceSideInfo();
+		ctf.applyCTF(projV(), samplingRate, false);
+
+		//averaging movie particle image with the ones in all the frames but without the current one
+		//averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
+		averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
+		//TODO check how we have to average the movie particles to calculate the correlations
+
+		for(int n=0; n<Nsteps+1; n++){
+
+			if(n==0){
+				projVaux().resize(projV());
+				Ipartaux().resize(Ipart());
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+						DIRECT_MULTIDIM_ELEM(projVaux(),n) = DIRECT_MULTIDIM_ELEM(projV(),n);
+				}
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipart()){
+						DIRECT_MULTIDIM_ELEM(Ipartaux(),n) = DIRECT_MULTIDIM_ELEM(Ipart(),n);
+				}
+				projVaux().setXmippOrigin();
+				Ipartaux().setXmippOrigin();
+			}else{
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+						DIRECT_MULTIDIM_ELEM(projV(),n) = DIRECT_MULTIDIM_ELEM(projVaux(),n);
+				}
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipart()){
+						DIRECT_MULTIDIM_ELEM(Ipart(),n) = DIRECT_MULTIDIM_ELEM(Ipartaux(),n);
+				}
 			}
+			//TODO: a partir de aqui trabajar con las projVaux y Ipartaux
 
-			//filtering the projections with the ctf
-			ctf.readFromMdRow(currentRow);
-			ctf.produceSideInfo();
-			ctf.applyCTF(projV(), samplingRate, false);
+			cutfreq = inifreq + step*n;
 
 			//filtering the projected particles with the lowpass filter
 			Filter.w1=cutfreq;
 			Filter.generateMask(projV());
 			Filter.applyMaskSpace(projV());
-
-			//averaging movie particle image with the ones in previous frames
-			//averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
-			//averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
-			//TODO check how we have to average the movie particles to calculate the correlations
 
 			//filtering the averaged movie particle
 			Filter.generateMask(Ipart());
@@ -778,10 +904,10 @@ void ProgParticlePolishing::run()
 			//TODO: la corrW que viene de Idiff no tiene mucho sentido porque la Idiff en este caso no nos dice nada
 
 			weight = corrN; //TODO
-			if(weight>DIRECT_A1D_ELEM(maxvalues,mvId-1))
-				DIRECT_A1D_ELEM(maxvalues, mvId-1)=weight;
+			if(weight>maxvalue)
+				maxvalue=weight;
 
-			std::cerr << "- Freq: " << cutfreq << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". CorrN: " << corrN << ". CorrM: " << corrM << ". CorrW: " << corrW << ". Imed: " << imed << std::endl;
+			//std::cerr << "- Freq: " << cutfreq << ". Movie: " << mvId << ". Frame: " << frId << ". ParticleId: " << partId << ". CorrN: " << corrN << ". CorrM: " << corrM << ". CorrW: " << corrW << ". Imed: " << imed << std::endl;
 
 
 			//To align averaged movie particle and projection
@@ -800,26 +926,26 @@ void ProgParticlePolishing::run()
 			//std::cerr << "- Transformation matrix: " << M  << std::endl;
 			//std::cerr << MAT_ELEM(M,0,2) << " " << MAT_ELEM(M,1,2) << std::endl;
 
+			DIRECT_ZYX_ELEM(matrixWeights, partCount-1, frId-1, n) = weight;
 
-			DIRECT_NZYX_ELEM(matrixWeights, mvId-1, frId-1, n, i) = weight;
-			
+		} //end frequencies loop
 
-			//DEBUG
-			if(frId==nFrames){
-				projV.write(formatString("projection_%i_%i.tif", frId, partId));
-				//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
-				Iavg.write(formatString("average_%i_%i.tif", frId, partId));
-			}
-			//END DEBUG//
 
-			if(iterPart->hasNext())
-				iterPart->moveNext();
+		/*/DEBUG
+		if(frId==nFrames){
+			projV.write(formatString("projection_%i_%i.tif", frId, partId));
+			//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+			Iavg.write(formatString("average_%i_%i.tif", frId, partId));
+		}
+		//END DEBUG/*/
 
-		} //end movie particles loop
+		if(iterPart->hasNext())
+			iterPart->moveNext();
 
-	} //end frequencies loop
+	} //end movie particles loop
 
-	*/
+
+
 
 	//MultidimArray<double> weightsperfreq;
 	//weightsperfreq.initZeros(NSIZE(matrixWeights), ZSIZE(matrixWeights), YSIZE(matrixWeights), XSIZE(matrixWeights));
