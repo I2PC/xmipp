@@ -457,9 +457,8 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     // clean after itself
     releaseWrapper(threadParams->gpuStream);
     threadParams->buffer->~RecFourierBufferData(); // <- explicit destructor call
-    free(rawMem);
     unpinMemory(threadParams->buffer);
-    free(threadParams->buffer);
+    free(rawMem);
     threadParams->buffer = NULL;
     threadParams->selFile = NULL;
     barrier_wait( &parent->barrier );// notify that thread finished
