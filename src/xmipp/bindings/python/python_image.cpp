@@ -213,8 +213,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                       // Get the index and filename from the Python tuple object
                       size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
                       PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
-                      PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                      char * filename = PyBytes_AS_STRING(str);
+                      char * filename = PyUnicode_AsUTF8(repr);
                       // Now read using both of index and filename
                       self->image = new ImageGeneric();
                       self->image->read(filename, DATA, index);
@@ -222,8 +221,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     }
                     else if ((pyStr = PyObject_Str(input)) != NULL)
                     {
-                        PyObject* str = PyUnicode_AsEncodedString(pyStr, "utf-8", "~E~");
-                        self->image = new ImageGeneric(PyBytes_AS_STRING(str));
+                        self->image = new ImageGeneric(PyUnicode_AsUTF8(pyStr));
                         //todo: add copy constructor
                     }
                     else
@@ -340,8 +338,7 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
                 // Get the index and filename from the Python tuple object
                 size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
                 PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
-                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                const char * filename = PyBytes_AS_STRING(str);
+                const char * filename = PyUnicode_AsUTF8(repr);
                 // Now read using both of index and filename
                 bool isStack = (index > 0);
                 WriteMode writeMode = isStack ? WRITE_REPLACE : WRITE_OVERWRITE;
@@ -351,9 +348,8 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
               }
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                  PyObject* str = PyUnicode_AsEncodedString(pyStr, "utf-8", "~E~");
-                  const char * filename = PyBytes_AS_STRING(str);
-                  self->image->write(PyBytes_AS_STRING(filename));
+                  const char * filename = PyUnicode_AsUTF8(pyStr);
+                  self->image->write(filename);
                   Py_RETURN_NONE;
               }
               else
@@ -393,8 +389,7 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                 // Get the index and filename from the Python tuple object
                 size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
                 PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
-                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                const char *filename = PyBytes_AS_STRING(str);
+                const char *filename = PyUnicode_AsUTF8(repr);
                 std::cout<<"File: "<<filename<<std::endl;
                 // Now read using both of index and filename
                 self->image->read(filename,(DataMode)datamode, index);
@@ -402,8 +397,7 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
               }
               else if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                  pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                  self->image->read(PyBytes_AS_STRING(pyStr1),(DataMode)datamode);
+                  self->image->read(PyUnicode_AsUTF8(pyStr),(DataMode)datamode);
                   Py_RETURN_NONE;
               }
               else
@@ -451,8 +445,7 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
               PyObject *pyStr;
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                  PyObject* str = PyUnicode_AsEncodedString(pyStr, "utf-8", "~E~");
-                  readImagePreview(self->image, PyBytes_AS_STRING(str), x, slice);
+                  readImagePreview(self->image, PyUnicode_AsUTF8(pyStr), x, slice);
                   Py_RETURN_NONE;
               }
               else
@@ -490,8 +483,7 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
               PyObject *pyStr;
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                PyObject* str = PyUnicode_AsEncodedString(pyStr, "utf-8", "~E~");
-                self->image->readPreviewSmooth(PyBytes_AS_STRING(str), x);
+                self->image->readPreviewSmooth(PyUnicode_AsUTF8(pyStr), x);
                 Py_RETURN_NONE;
               }
               else

@@ -91,7 +91,7 @@ def download(destination=None, url=None, dataset=None):
             print(blue("\nError in %s (%s)" % (fname, e)))
             print(blue("URL: %s/%s/%s" % (url, dataset, fname)))
             print(blue("Destination: %s" % fpath))
-            if raw_input("Continue downloading? (y/[n]): ").lower() != 'y':
+            if input("Continue downloading? (y/[n]): ").lower() != 'y':
                 sys.exit()
     if isDLmodel:
         unTarModels(destination)

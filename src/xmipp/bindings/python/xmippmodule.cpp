@@ -79,14 +79,11 @@ xmipp_labelType(PyObject *obj, PyObject *args)
     if (PyArg_ParseTuple(args, "O", &input))
     {
         if (PyUnicode_Check(input))
-           {
-              str_exc_type = PyObject_Str(input); //Now a unicode object
-              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-              const char *strExcType =  PyBytes_AS_STRING(pyStr);
-              return Py_BuildValue("i", (int) MDL::labelType(strExcType));
-           }
+              return Py_BuildValue("i", (int) MDL::labelType(PyUnicode_AsUTF8(PyObject_Str(input))));
+
         else if (PyLong_Check(input))
             return Py_BuildValue("i", (int) MDL::labelType((MDLabel) PyLong_AsLong(input)));
+
         else
             PyErr_SetString(PyExc_TypeError,
                             "labelType: Only int or string are allowed as input");
@@ -108,10 +105,10 @@ xmipp_labelHasTag(PyObject *obj, PyObject *args)
 
         if (PyUnicode_Check(input))
             {
-              str_exc_type = PyObject_Str(input); //Now a unicode object
-              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-              const char *strExcType =  PyBytes_AS_STRING(pyStr);
-              label = MDL::str2Label(strExcType);
+//              str_exc_type = PyObject_Repr(input); //Now a unicode object
+//              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
+//              label = MDL::str2Label(PyBytes_AS_STRING(pyStr));
+                label = MDL::str2Label(PyUnicode_AsUTF8(input));
              }
         else if (PyLong_Check(input))
             label = (MDLabel) PyLong_AsLong(input);
@@ -141,12 +138,8 @@ xmipp_labelIsImage(PyObject *obj, PyObject *args)
         MDLabel label = MDL_UNDEFINED;
 
         if (PyUnicode_Check(input))
-           {
-              str_exc_type = PyObject_Str(input); //Now a unicode object
-              pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-              const char *strExcType =  PyBytes_AS_STRING(pyStr);
-              label = MDL::str2Label(strExcType);
-           }
+              label = MDL::str2Label(PyUnicode_AsUTF8(PyObject_Str(input)));
+
         else if (PyLong_Check(input))
             label = (MDLabel) PyLong_AsLong(input);
 
@@ -200,13 +193,10 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     try
         {
 
-        str_exc_type = PyObject_Str(input); //Now a unicode object
-        pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-        String inputStr = PyBytes_AS_STRING(pyStr);
+        String inputStr = (std::string)PyUnicode_AsUTF8(PyObject_Str(input));
         inputStr += "%";
         inputStr += datatype2Str(dataType);
         createEmptyFile(inputStr, Xdim, Ydim, Zdim, Ndim, true, WRITE_REPLACE);
-//        createEmptyFile(PyUnicode_AsUTF8String(input),Xdim,Ydim,Zdim,APPEND_IMAGE,true,WRITE_REPLACE);
         Py_RETURN_NONE;
         }
      catch (XmippError &xe)
@@ -228,9 +218,7 @@ xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
 
             PyObject * pyStr = PyObject_Str(pyValue);
-            str_exc_type = PyObject_Str(pyStr); //Now a unicode object
-            pyStr1 = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-            char *str = PyBytes_AS_STRING(pyStr1);
+            char *str = PyUnicode_AsUTF8(pyStr);
             size_t xdim, ydim, zdim, ndim;
             getImageSize(str, xdim, ydim, zdim, ndim);
             Py_DECREF(pyStr);
@@ -260,8 +248,7 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             if (PyUnicode_Check(pyValue))
             {
                 PyObject* repr = PyObject_Str(pyValue);
-                pyStr = PyUnicode_AsEncodedString(repr, "utf-8", "Error ~");
-                char * str = PyBytes_AS_STRING(pyStr);
+                char * str = PyUnicode_AsUTF8(pyValue);
                 md = new MetaData();
                 md->setMaxRows(1);
                 md->read(str);
@@ -313,8 +300,7 @@ xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             if ((pyStr = PyObject_Str(input)) != NULL )
             {
-                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                str = PyBytes_AS_STRING(pyStr1);
+                str = PyUnicode_AsUTF8(pyStr);
                 if (existsBlockInMetaDataFile( (std::string) str))
                     Py_RETURN_TRUE;
                 else
@@ -343,8 +329,7 @@ xmipp_CheckImageFileSize(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             PyObject * pyStr = PyObject_Str(filename);
-            PyObject *pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-            char *str = PyBytes_AS_STRING(pyStr1);
+            char *str = PyUnicode_AsUTF8(pyStr);
             bool result = checkImageFileSize(str);
             Py_DECREF(pyStr);
             if (result)
@@ -370,8 +355,7 @@ xmipp_CheckImageCorners(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             PyObject * pyStr = PyObject_Str(filename);
-            PyObject *pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-            char * str = PyBytes_AS_STRING(pyStr1);
+            char * str = PyUnicode_AsUTF8(pyStr);
             bool result = checkImageCorners(str);
             Py_DECREF(pyStr);
             if (result)
@@ -399,12 +383,9 @@ xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
 
-            PyObject* str1 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "~E~");
-            PyObject* str2 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "~E~");
-
-            char * bytes1 = PyBytes_AS_STRING(str1);
-            char * bytes2 = PyBytes_AS_STRING(str2);
-            bool result = compareImage(bytes1, bytes2);
+            char * str1 = PyUnicode_AsUTF8(pyStr1);
+            char * str2 = PyUnicode_AsUTF8(pyStr2);
+            bool result = compareImage(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
             if (result)
@@ -432,11 +413,8 @@ xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
 
-            PyObject *pyStr3 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "Error ~");
-            PyObject *pyStr4 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
-
-            char * str1 = PyBytes_AS_STRING(pyStr3);
-            char * str2 = PyBytes_AS_STRING(pyStr4);
+            char * str1 = PyUnicode_AsUTF8(pyStr1);
+            char * str2 = PyUnicode_AsUTF8(pyStr2);
             bool result = compareTwoFiles(str1, str2, offset);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -464,11 +442,9 @@ xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
-            PyObject *pyStr3 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "Error ~");
-            PyObject *pyStr4 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
 
-            char * str1 = PyBytes_AS_STRING(pyStr3);
-            char * str2 = PyBytes_AS_STRING(pyStr4);
+            char * str1 = PyUnicode_AsUTF8(pyStr1);
+            char * str2 = PyUnicode_AsUTF8(pyStr2);
             bsoftRemoveLoopBlock(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -493,11 +469,9 @@ xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             PyObject * pyStr1 = PyObject_Str(filename1);
             PyObject * pyStr2 = PyObject_Str(filename2);
-            PyObject *pyStr3 = PyUnicode_AsEncodedString(pyStr1, "utf-8", "Error ~");
-            PyObject *pyStr4 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
 
-            char * str1 = PyBytes_AS_STRING(pyStr3);
-            char * str2 = PyBytes_AS_STRING(pyStr4);
+            char * str1 = PyUnicode_AsUTF8(pyStr1);
+            char * str2 = PyUnicode_AsUTF8(pyStr2);
             bsoftRestoreLoopBlock(str1, str2);
             Py_DECREF(pyStr1);
             Py_DECREF(pyStr2);
@@ -531,32 +505,20 @@ xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
               // Get the index and filename from the Python tuple object
               index1 = PyLong_AsSsize_t(PyTuple_GetItem(input1, 0));
-              PyObject* repr = PyObject_Str(PyTuple_GetItem(input1, 1));
-              PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-              fn1 = PyBytes_AS_STRING(str);
-              //fn1 = PyBytes_AS_STRING(PyObject_Str(PyTuple_GetItem(input1, 1)));
+              fn1 = PyUnicode_AsUTF8(PyObject_Str(PyTuple_GetItem(input1, 1)));
             }
             else
-                {
-                  PyObject* repr = PyObject_Str(input1);
-                  PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                  fn1 = PyBytes_AS_STRING(str);
-                }
+               fn1 = PyUnicode_AsUTF8(PyObject_Str(input1));
+
             if (PyTuple_Check(input2))
             {
               // Get the index and filename from the Python tuple object
               index2 = PyLong_AsSsize_t(PyTuple_GetItem(input2, 0));
-              PyObject* repr = PyObject_Str(PyTuple_GetItem(input2, 1));
-              PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-              fn2 = PyBytes_AS_STRING(str);
-              //fn2 = PyBytes_AS_STRING(PyObject_Repr(PyTuple_GetItem(str, 1)));
+              fn2 = PyUnicode_AsUTF8(PyObject_Str(PyTuple_GetItem(input2, 1)));
             }
             else
-              {
-                PyObject* repr = PyObject_Str(input2);
-                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                fn2 = PyBytes_AS_STRING(str);
-              }
+                fn2 = PyUnicode_AsUTF8(PyObject_Str(input2));
+
             bool result = compareTwoImageTolerance(fn1, fn2, tolerance, index1, index2);
 
             if (result)
@@ -593,9 +555,7 @@ xmipp_readMetaDataWithTwoPossibleImages(PyObject *obj, PyObject *args,
             {
                 if (PyUnicode_Check(pyStr))
                 {
-                    PyObject* repr = PyObject_Str(pyStr);
-                    PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                    readMetaDataWithTwoPossibleImages(PyBytes_AS_STRING(str),
+                    readMetaDataWithTwoPossibleImages(PyUnicode_AsUTF8(pyStr),
                                                       MetaData_Value(pyMd));
                 }
                 else if (FileName_Check(pyStr))
@@ -629,11 +589,8 @@ xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             FileName fn, fnOrig, fnOut;
             if (PyUnicode_Check(pyStrFn))
-            {
-                PyObject* repr = PyObject_Str(pyStrFn);
-                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                fn = PyBytes_AS_STRING(str);
-            }
+                fn = PyUnicode_AsUTF8(pyStrFn);
+
             else if (FileName_Check(pyStrFn))
                 fn = FileName_Value(pyStrFn);
             else
@@ -641,11 +598,8 @@ xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs)
                                 "Expected string or FileName as first argument");
 
             if (PyUnicode_Check(pyStrFnOrig))
-            {
-                PyObject* repr = PyObject_Str(pyStrFnOrig);
-                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                fnOrig = PyBytes_AS_STRING(str);
-            }
+                fnOrig = PyUnicode_AsUTF8(pyStrFnOrig);
+
             else if (FileName_Check(pyStrFnOrig))
                 fnOrig = FileName_Value(pyStrFnOrig);
             else
@@ -653,11 +607,8 @@ xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs)
                                 "Expected string or FileName as second argument");
 
             if (PyUnicode_Check(pyStrFnOut))
-            {
-                PyObject* repr = PyObject_Str(pyStrFnOut);
-                PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-                fnOut = PyBytes_AS_STRING(str);
-            }
+                fnOut = PyUnicode_AsUTF8(pyStrFnOut);
+
             else if (FileName_Check(pyStrFnOut))
                 fnOut = FileName_Value(pyStrFnOut);
             else
@@ -685,11 +636,8 @@ bool validateInputImageString(PyObject * pyImage, PyObject *pyStrFn, FileName &f
         return false;
     }
     if (PyUnicode_Check(pyStrFn))
-    {
-        PyObject* repr = PyObject_Str(pyStrFn);
-        PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-        fn = PyBytes_AS_STRING(str);
-    }
+        fn = PyUnicode_AsUTF8(pyStrFn);
+
     else if (FileName_Check(pyStrFn))
         fn = FileName_Value(pyStrFn);
     else
@@ -713,19 +661,16 @@ xmipp_compareTwoMetadataFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
             FileName fn1, fn2;
 
             pyStrAux = PyObject_Str(pyStrFn1);
-            PyObject* str = PyUnicode_AsEncodedString(pyStrAux, "utf-8", "~E~");
 
             if (pyStrAux != NULL)
-                fn1 = PyBytes_AS_STRING(str);
+                fn1 = PyUnicode_AsUTF8(pyStrAux);
             else
                 PyErr_SetString(PyExc_TypeError, "Expected string or FileName as first argument");
 
             pyStrAux = PyObject_Str(pyStrFn2);
             if (pyStrAux != NULL)
-               {
-                  str = PyUnicode_AsEncodedString(pyStrAux, "utf-8", "~E~");
-                  fn2 = PyBytes_AS_STRING(str);
-               }
+                  fn2 = PyUnicode_AsUTF8(pyStrAux);
+
             else
                 PyErr_SetString(PyExc_TypeError,
                                 "Expected string or FileName as first argument");
@@ -779,8 +724,7 @@ xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs)
         pyStrAux = PyObject_Str(pyStrFn);
         if (pyStrAux != NULL)
         {
-            PyObject* str = PyUnicode_AsEncodedString(pyStrAux, "utf-8", "~E~");
-            fn = PyBytes_AS_STRING(str);
+            fn = PyUnicode_AsUTF8(pyStrAux);
             MDSql::dumpToFile(fn);
             Py_RETURN_NONE;
         }
@@ -1218,8 +1162,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 				else
 			   {
 				   pyStr = PyObject_Str(input);
-                   PyObject* str = PyUnicode_AsEncodedString(pyStr, "utf-8", "~E~");
-				   FileName fnCTF = PyBytes_AS_STRING(str);
+				   FileName fnCTF = PyUnicode_AsUTF8(pyStr);
 				   ctf.read(fnCTF);
 			   }
 				ctf.produceSideInfo();

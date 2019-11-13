@@ -197,8 +197,7 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 
 		//Get error message
 		PyObject* str_exc_type = PyObject_Str(pvalue); //Now a unicode
-        PyObject* pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-        const char *strExcType =  PyBytes_AS_STRING(pyStr);
+        const char *strExcType =  PyUnicode_AsUTF8(str_exc_type);
 		std::cout << strExcType << std::endl;
 	}
 }

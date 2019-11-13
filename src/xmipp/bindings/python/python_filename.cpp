@@ -131,8 +131,7 @@ FileName_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             pyStr = PyObject_Str(input);
             if (pyStr != NULL)
               {
-                   pyStr2 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                   const char *strExcType =  PyBytes_AS_STRING(pyStr2);
+                   const char *strExcType =  PyUnicode_AsUTF8(pyStr);
                    strcpy(str, strExcType);
               }
         }
@@ -174,8 +173,7 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             pyStr = PyObject_Str(input);
             if (pyStr != NULL)
-                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                strcpy(str, PyBytes_AS_STRING(pyStr1));
+                strcpy(str, PyUnicode_AsUTF8(pyStr));
             self->filename->compose(str, number, ext);
         }
         else if (n == 2  && PyArg_ParseTuple(args, "OO", &input, &input2))
@@ -186,20 +184,17 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyStr  = PyObject_Str(input);
                 pyStr2 = PyObject_Str(input2);
                 if (pyStr != NULL)
-                    PyObject* pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                	strcpy(str, PyBytes_AS_STRING(pyStr1));
+                	strcpy(str, PyUnicode_AsUTF8(pyStr));
                 if (pyStr2 != NULL)
-                    PyObject* pyStr1 = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
-                	strcpy(str2, PyBytes_AS_STRING(pyStr1));
+                	strcpy(str2, PyUnicode_AsUTF8(pyStr2));
                 self->filename->compose(str, str2);
             }
             else if ( PyLong_Check( input ) )
             {
                 //"1@kk.xmp"
                 number=PyLong_AsLong(input);
-                pyStr2 = PyObject_Str(input);
-                pyStr3  = PyUnicode_AsEncodedString(pyStr2, "utf-8", "Error ~");
-                strcpy(str2, PyBytes_AS_STRING(pyStr3));
+                pyStr2 = PyObject_Str(input2);
+                strcpy(str2, PyUnicode_AsUTF8(pyStr2));
                 self->filename->compose(number, str2);
             }
             else

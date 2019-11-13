@@ -90,10 +90,10 @@ MDQuery_repr(PyObject * obj)
     {
         String s = self->query->whereString() + self->query->limitString()
                    + self->query->orderByString();
-        return PyBytes_FromString(s.c_str());
+        return PyUnicode_FromString(s.c_str());
     }
     else
-        return PyBytes_FromString("");
+        return PyUnicode_FromString("");
 }
 
 /* Methods for constructing concrete queries */
@@ -208,8 +208,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
                 (PyBool_Check(pyReplace)))
             {
                 replace = pyReplace == Py_True;
-                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                str = PyBytes_AS_STRING(pyStr1);
+                str = PyUnicode_AsUTF8(pyStr);
                 MDL::addLabelAlias((MDLabel)label,(String)str, replace, (MDLabelType)type);
                 Py_RETURN_NONE;
             }
@@ -242,8 +241,7 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             if ((pyStr = PyObject_Str(input)) != NULL )
             {
-                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                str = PyBytes_AS_STRING(pyStr1);
+                str = PyUnicode_AsUTF8(pyStr);
                 return PyLong_FromLong(MDL::getNewAlias((String)str, (MDLabelType)type));
                 
             }
@@ -497,7 +495,7 @@ PyObject *
 MetaData_repr(PyObject * obj)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
-    return PyBytes_FromString(
+    return PyUnicode_FromString(
                (self->metadata->getFilename() + "(MetaData)").c_str());
 }
 
@@ -555,8 +553,7 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    PyObject* pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                    str = PyBytes_AS_STRING(pyStr1);
+                    str = PyUnicode_AsUTF8(pyStr);
                     if (list != NULL)
                     {
                         if (PyList_Check(list))
@@ -627,11 +624,8 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
 
                 if ((NULL != pyStr) && (NULL != pyLabels))
                 {
-                    PyObject* strObj = PyUnicode_AsEncodedString(pyStr, "utf-8", "~E~");
-                    PyObject* labelsObj = PyUnicode_AsEncodedString(pyLabels, "utf-8", "~E~");
-
-                    str = PyBytes_AS_STRING(strObj);
-                    labels = PyBytes_AS_STRING(labelsObj);
+                    str = PyUnicode_AsUTF8(pyStr);
+                    labels = PyUnicode_AsUTF8(pyLabels);
 
                     self->metadata->readPlain(str, labels);
                     Py_RETURN_NONE;
@@ -673,10 +667,8 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyLabels = PyObject_Str(input2);
                 if ((NULL != pyStr) && (NULL != pyLabels))
                 {
-                    PyObject* pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                    PyObject* pyStr2 = PyUnicode_AsEncodedString(pyLabels, "utf-8", "Error ~");
-                    str = PyBytes_AS_STRING(pyStr1);
-                    labels = PyBytes_AS_STRING(pyStr2);
+                    str = PyUnicode_AsUTF8(pyStr);
+                    labels = PyUnicode_AsUTF8(pyLabels);
                     self->metadata->addPlain(str, labels);
                     Py_RETURN_NONE;
                 }
@@ -715,11 +707,8 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyStrBlock = PyObject_Str(blockName);
                 if ((NULL != pyStr) && (NULL != pyStrBlock))
                 {
-                    PyObject* pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                    PyObject* pyStr2 = PyUnicode_AsEncodedString(pyStrBlock, "utf-8", "Error ~");
-
-                    str = PyBytes_AS_STRING(pyStr);
-                    strBlock = PyBytes_AS_STRING(pyStr1);
+                    str = PyUnicode_AsUTF8(pyStr);
+                    strBlock = PyUnicode_AsUTF8(pyStrBlock);
                     self->metadata->read((std::string) (strBlock) + "@" + str,
                                          NULL);
                     Py_RETURN_NONE;
@@ -754,9 +743,7 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                    str = PyBytes_AS_STRING(pyStr1);
-                    str = strdup(str);
+                    str = PyUnicode_AsUTF8(pyStr);
                     self->metadata->write(str, (WriteModeMetaData) wmd);
                     Py_RETURN_NONE;
                 }
@@ -788,10 +775,7 @@ MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 if (PyUnicode_Check(input))
                    {
-                      str_exc_type = PyObject_Str(input); //Now a unicode object
-                      pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-                      char *str = PyBytes_AS_STRING(pyStr);
-                      str = strdup(str);
+                      char *str = PyUnicode_AsUTF8(input);
                       self->metadata->append(str);
                    }
                 else if (FileName_Check(input))
@@ -1148,11 +1132,7 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
         {
 
             if (PyUnicode_Check(input))
-               {
-                 str_exc_type = PyObject_Str(input); //Now a unicode object
-                 pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-                 fn = PyBytes_AS_STRING(pyStr);
-               }
+                 fn = PyUnicode_AsUTF8(input);
             else if (FileName_Check(input))
                 fn = FileName_Value(input);
             else
@@ -1163,7 +1143,7 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 
             for (int i = 0; i < size; ++i)
             {
-                PyList_SetItem(list, i, PyBytes_FromString(blocks[i].c_str()));
+                PyList_SetItem(list, i, PyUnicode_FromString(blocks[i].c_str()));
             }
             return list;
         }
@@ -1263,7 +1243,7 @@ PyObject *
 MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
-    PyObject *pyValue = NULL, *pyStr = NULL, *pyStr1 = NULL;
+    PyObject *pyValue = NULL, *pyStr = NULL;
     if (PyArg_ParseTuple(args, "i|O", &label, &pyValue))
     {
         try
@@ -1271,8 +1251,7 @@ MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             if ((pyStr = PyObject_Str(pyValue)) != NULL)
             {
-                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                char * str = PyBytes_AS_STRING(pyStr1);
+                char * str = PyUnicode_AsUTF8(pyStr);
                 if (str != NULL)
                 {
                     self->metadata->fillConstant((MDLabel) label, str);
@@ -1326,9 +1305,7 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             if ((pyStr = PyObject_Str(pyValue)) != NULL)
             {
-                pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                char * str = PyBytes_AS_STRING(pyStr1);
-                str = strdup(str);
+                char * str = PyUnicode_AsUTF8(pyStr);
                 if (str != NULL)
                 {
                     self->metadata->fillRandom((MDLabel) label, str, op1, op2, op3);
@@ -1614,9 +1591,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     self->metadata = new MetaData(MetaData_Value(input));
                 else if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    pyStr1 = PyUnicode_AsEncodedString(pyStr, "utf-8", "Error ~");
-                    char *str = PyBytes_AS_STRING(pyStr1);
-                    str = strdup(str);
+                    char *str = PyUnicode_AsUTF8(pyStr);
                     self->metadata = new MetaData(str);
                 }
                 else
@@ -1910,7 +1885,7 @@ PyObject *
 MetaData_getComment(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
-    return PyBytes_FromString(self->metadata->getComment().c_str());
+    return PyUnicode_FromString(self->metadata->getComment().c_str());
 }
 
 /* addIndex MetaData_join*/
@@ -2198,21 +2173,19 @@ createMDObject(int label, PyObject *pyValue)
             bool bValue = (pyValue == Py_True);
             RETURN_MDOBJECT(bValue);
         }
-        if (PyLong_Check(pyValue))
+        if (PyLong_Check(pyValue) && MDL::isInt((MDLabel)label))
         {
             int iValue = PyLong_AS_LONG(pyValue);
             RETURN_MDOBJECT(iValue);
         }
-        if (PyLong_Check(pyValue))
+        if (PyLong_Check(pyValue) && MDL::isLong((MDLabel)label))
         {
             size_t value = PyLong_AsUnsignedLong(pyValue);
             RETURN_MDOBJECT(value);
         }
         if (PyUnicode_Check(pyValue))
         {
-            PyObject* pyStr1 = PyUnicode_AsEncodedString(PyObject_Str(pyValue), "utf-8", "Error ~");
-            char * str = PyBytes_AS_STRING(pyStr1);
-            str = strdup(str);
+            char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
             RETURN_MDOBJECT(std::string(str));
         }
         if (FileName_Check(pyValue))
@@ -2287,9 +2260,7 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
             obj->setValue((size_t)PyLong_AsUnsignedLong(pyValue));
         else if (PyUnicode_Check(pyValue))
             {
-              PyObject* pyStr1 = PyUnicode_AsEncodedString(PyObject_Str(pyValue), "utf-8", "Error ~");
-              char * str = PyBytes_AS_STRING(pyStr1);
-              str = strdup(str);
+              char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
               obj->setValue(std::string(str));
             }
         else if (FileName_Check(pyValue))
@@ -2345,7 +2316,7 @@ getMDObjectValue(MDObject * obj)
     case LABEL_DOUBLE:
         return PyFloat_FromDouble(obj->data.doubleValue);
     case LABEL_STRING:
-        return PyBytes_FromString(obj->data.stringValue->c_str());
+        return PyUnicode_FromString(obj->data.stringValue->c_str());
     case LABEL_VECTOR_DOUBLE:
         {
             std::vector<double> & vector = *(obj->data.vectorValue);
