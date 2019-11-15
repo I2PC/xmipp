@@ -32,8 +32,8 @@
 #include "data/alignment_estimation.h"
 #include "core/transformations.h"
 #include "data/filters.h"
-#include <thread>
 #include <core/utils/memory_utils.h>
+#include "CTPL/ctpl_stl.h"
 
 namespace Alignment {
 
@@ -41,8 +41,10 @@ template<typename T>
 class IterativeAlignmentEstimator {
 public:
     IterativeAlignmentEstimator(ARotationEstimator<T> &rot_estimator,
-            AShiftEstimator<T> &shift_estimator) :
+            AShiftEstimator<T> &shift_estimator,
+            ctpl::thread_pool &threadPool) :
                 m_rot_est(rot_estimator), m_shift_est(shift_estimator),
+                m_threadPool(threadPool),
                 m_dims(shift_estimator.getDimensions()) {
         m_sameEstimators = ((void*)&m_shift_est == (void*)&m_rot_est);
         this->check();
@@ -50,16 +52,15 @@ public:
 
     AlignmentEstimation compute(const T *ref, const T *others, // it would be good if data is normalized, but probably it does not have to be
             unsigned iters = 3);
-
-
 protected:
-    static void sApplyTransform(const Dimensions &dims,
+    static void sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims,
                 const AlignmentEstimation &estimation,
                 const T *orig, T *copy, bool hasSingleOrig);
 
 private:
     ARotationEstimator<T> &m_rot_est;
     AShiftEstimator<T> &m_shift_est;
+    ctpl::thread_pool &m_threadPool;
     const Dimensions m_dims;
     bool m_sameEstimators;
 
@@ -79,8 +80,6 @@ private:
     void check();
 
     void print(const AlignmentEstimation &e);
-
-
 };
 
 

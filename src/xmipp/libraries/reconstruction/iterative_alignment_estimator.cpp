@@ -46,7 +46,7 @@ void IterativeAlignmentEstimator<T>::print(const AlignmentEstimation &e) {
 }
 
 template<typename T>
-void IterativeAlignmentEstimator<T>::sApplyTransform(const Dimensions &dims,
+void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims,
         const AlignmentEstimation &estimation,
         const T * __restrict__ orig, T * __restrict__ copy, bool hasSingleOrig) {
     static size_t counter = 0;
@@ -55,65 +55,53 @@ void IterativeAlignmentEstimator<T>::sApplyTransform(const Dimensions &dims,
     const size_t y = dims.y();
     const size_t x = dims.x();
 
-    int threads = 4;
+    auto futures = std::vector<std::future<void>>();
 
-    auto workers = std::vector<std::thread>();
-    int imgsPerWorker = std::ceil(n / (float)threads);
-
-    auto workload = [&](int id){
-        const size_t first = id * imgsPerWorker;
-        const size_t last = std::min(first + imgsPerWorker, n);
-        for (size_t i = first; i < last; ++i) {
-            size_t offset = i * dims.sizeSingle();
-            auto in = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig + (hasSingleOrig ? 0 : offset))); // removing const, but data should not be changed
-            auto out = MultidimArray<T>(1, z, y, x, copy + offset);
-            in.setXmippOrigin();
-            out.setXmippOrigin();
-            // compensate the movement
-            applyGeometry(LINEAR, out, in, estimation.poses.at(i), false, DONT_WRAP);
-        }
+    auto workload = [&](int id, size_t signalId){
+        size_t offset = signalId * dims.sizeSingle();
+        auto in = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig + (hasSingleOrig ? 0 : offset))); // removing const, but data should not be changed
+        auto out = MultidimArray<T>(1, z, y, x, copy + offset);
+        in.setXmippOrigin();
+        out.setXmippOrigin();
+        // compensate the movement
+        applyGeometry(LINEAR, out, in, estimation.poses.at(signalId), false, DONT_WRAP);
     };
 
-    for (size_t w = 0; w < threads; ++w) {
-        workers.emplace_back(workload, w);
+    for (size_t i = 0; i < n; ++i) {
+        futures.emplace_back(pool.push(workload, i));
     }
-    for (auto &w : workers) {
-        w.join();
+    for (auto &f : futures) {
+        f.get();
     }
 }
 
 template<typename T>
-void IterativeAlignmentEstimator<T>::computeCorrelation(AlignmentEstimation &estimation,
+void IterativeAlignmentEstimator<T>::computeCorrelation(
+        AlignmentEstimation &estimation,
         const T * __restrict__ orig, T * __restrict__ copy) {
     const size_t n = m_dims.n();
     const size_t z = m_dims.z();
     const size_t y = m_dims.y();
     const size_t x = m_dims.x();
 
-    int threads = 4;
+    int threads = m_threadPool.size();
 
-    auto workers = std::vector<std::thread>();
-    int imgsPerWorker = std::ceil(n / (float)threads);
-
-    auto workload = [&](int id){
-        const size_t first = id * imgsPerWorker;
-        const size_t last = std::min(first + imgsPerWorker, n);
-        for (size_t i = first; i < last; ++i) {
-            T * address = copy + i * m_dims.sizeSingle();
-            auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
-            auto other = MultidimArray<T>(1, z, y, x, address);
-            // FIXME DS better if we use fastCorrelation, but unless the input is normalized
-            // we won't receive correlation in [0..1], so we won't be able to directly compare
-            // against the original version of the algorithm
-            estimation.correlations.at(i) = correlationIndex(ref, other);
-        }
+    auto futures = std::vector<std::future<void>>();
+    auto workload = [&](int id, size_t signalId){
+        T * address = copy + signalId * m_dims.sizeSingle();
+        auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
+        auto other = MultidimArray<T>(1, z, y, x, address);
+        // FIXME DS better if we use fastCorrelation, but unless the input is normalized
+        // we won't receive correlation in [0..1], so we won't be able to directly compare
+        // against the original version of the algorithm
+        estimation.correlations.at(signalId) = correlationIndex(ref, other);
     };
 
-    for (size_t w = 0; w < threads; ++w) {
-        workers.emplace_back(workload, w);
+    for (size_t i = 0; i < n; ++i) {
+        futures.emplace_back(m_threadPool.push(workload, i));
     }
-    for (auto &w : workers) {
-        w.join();
+    for (auto &f : futures) {
+        f.get();
     }
 }
 
@@ -133,7 +121,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
                 rotation2DMatrix(angle, r);
                 lhs = r * lhs;
             });
-        sApplyTransform(m_dims, est, orig, copy, false);
+        sApplyTransform(m_threadPool, m_dims, est, orig, copy, false);
     };
     auto stepShift = [&] {
         m_shift_est.computeShift2DOneToN(copy);
@@ -142,7 +130,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });
-        sApplyTransform(m_dims, est, orig, copy, false);
+        sApplyTransform(m_threadPool, m_dims, est, orig, copy, false);
     };
     for (unsigned i = 0; i < iters; ++i) {
         if (rotationFirst) {

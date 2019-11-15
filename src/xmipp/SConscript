@@ -159,7 +159,7 @@ if cuda:
 # MPI
 dirs = ['libraries']
 patterns=['parallel/*.cpp']
-addLib('XmippParallel',dirs=dirs,patterns=patterns, libs=['Xmipp'], mpi=True)
+addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs, libs=['Xmipp', 'python2.7'], mpi=True)
 
 
 #  ***********************************************************************
