@@ -17,14 +17,12 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
     	mask_size = Gpu::VolumeRestorationKernels<T>::computeMaskSize(d_mask, volume_size);
     }
 
-    T* d_S;
+    T* d_S = d_buf1;
     T* d_aux = nullptr;
-    Complex* d_fVol;
-    gpuErrchk( cudaMalloc(&d_S, memsize) );
+    Complex* d_fVol = d_cbuf1;
     if (d_mask) {
     	gpuErrchk( cudaMalloc(&d_aux, mask_size * type_size) );
     }
-    gpuErrchk( cudaMalloc(&d_fVol, fourier_memsize) );
 
     const size_t S_size = d_mask ? mask_size : volume_size;
 
@@ -44,9 +42,7 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
         significanceRealSpace(d_volume2, d_S, cdfS, cdfN, volume_size);
     }
 
-    gpuErrchk( cudaFree(d_S) );
     gpuErrchk( cudaFree(d_aux) );
-    gpuErrchk( cudaFree(d_fVol) );
 }
 
 template< typename T >
@@ -104,13 +100,11 @@ void VolumeHalvesRestorator<T>::deconvolution(T* d_volume1, T* d_volume2) {
         return;
     }
 
-    T* d_S;
-    Complex* d_fVol;
+    T* d_S = d_buf1;
+    Complex* d_fVol = d_cbuf1;
     Complex* d_fV1;
     Complex* d_fV2;
 
-    gpuErrchk( cudaMalloc(&d_S, memsize) );
-    gpuErrchk( cudaMalloc(&d_fVol, fourier_memsize) );
     gpuErrchk( cudaMalloc(&d_fV1, fourier_memsize) );
     gpuErrchk( cudaMalloc(&d_fV2, fourier_memsize) );
 
@@ -148,8 +142,6 @@ void VolumeHalvesRestorator<T>::deconvolution(T* d_volume1, T* d_volume2) {
     convolvedS.resize(zdim, ydim, xdim);
     gpuErrchk( cudaMemcpy(convolvedS.data, d_S, memsize, cudaMemcpyDeviceToHost) );
 
-    gpuErrchk( cudaFree(d_S) );
-    gpuErrchk( cudaFree(d_fVol) );
     gpuErrchk( cudaFree(d_fV1) );
     gpuErrchk( cudaFree(d_fV2) );
 }
@@ -224,10 +216,8 @@ void VolumeHalvesRestorator<T>::filterBank(T* d_volume1, T* d_volume2) {
 
 	Gpu::VolumeRestorationKernels<T>::normalizeForFFT(d_volume1, d_volume2, volume_size);
 
-    Complex* d_fV1;
-    Complex* d_fV2;
-	gpuErrchk( cudaMalloc(&d_fV1, fourier_memsize) );
-	gpuErrchk( cudaMalloc(&d_fV2, fourier_memsize) );
+    Complex* d_fV1 = d_cbuf1;
+    Complex* d_fV2 = d_cbuf2;
 
     CudaFFT<T>::fft(*planForward, d_volume1, d_fV1);
     CudaFFT<T>::fft(*planForward, d_volume2, d_fV2);
@@ -243,12 +233,10 @@ void VolumeHalvesRestorator<T>::filterBank(T* d_volume1, T* d_volume2) {
 
     Gpu::CDF<T> cdf_mN(volume_size, 0.5);
 
-    T* d_S;
-    T* d_Vfiltered1;
+    T* d_S = d_buf1;
+    T* d_Vfiltered1 = d_buf2;
     T* d_Vfiltered2;
 
-    gpuErrchk( cudaMalloc(&d_S, memsize) );
-    gpuErrchk( cudaMalloc(&d_Vfiltered1, memsize) );
     gpuErrchk( cudaMalloc(&d_Vfiltered2, memsize) );
 
     Complex* d_fVout;
@@ -284,10 +272,6 @@ void VolumeHalvesRestorator<T>::filterBank(T* d_volume1, T* d_volume2) {
     filterBankVolume.resize(zdim, ydim, xdim);
     gpuErrchk( cudaMemcpy(filterBankVolume.data, d_S, memsize, cudaMemcpyDeviceToHost) );
 
-    gpuErrchk( cudaFree(d_fV1) );
-    gpuErrchk( cudaFree(d_fV2) );
-    gpuErrchk( cudaFree(d_S) );
-    gpuErrchk( cudaFree(d_Vfiltered1) );
     gpuErrchk( cudaFree(d_Vfiltered2) );
     gpuErrchk( cudaFree(d_fVout) );
 }
@@ -307,10 +291,8 @@ void VolumeHalvesRestorator<T>::difference(T* d_volume1, T* d_volume2, const int
 		return;
 	}
 
-	T* d_S;
-	T* d_N;
-	gpuErrchk( cudaMalloc(&d_S, memsize) );
-	gpuErrchk( cudaMalloc(&d_N, memsize) );
+	T* d_S = d_buf1;
+	T* d_N = d_buf2;
 
 	size_t mask_size = 0;
 	if (d_mask) {
@@ -334,9 +316,6 @@ void VolumeHalvesRestorator<T>::difference(T* d_volume1, T* d_volume2, const int
 
     averageDifference.resize(zdim, ydim, xdim);
     gpuErrchk( cudaMemcpy(averageDifference.data, d_S, memsize, cudaMemcpyDeviceToHost) );
-
-    gpuErrchk( cudaFree(d_S) );
-    gpuErrchk( cudaFree(d_N) );
 }
 
 template< typename T >
@@ -355,12 +334,16 @@ void VolumeHalvesRestorator<T>::apply(const MultidimArray<T>& volume1, const Mul
 		gpuErrchk( cudaMalloc(&d_mask, volume_size * sizeof(int)) );
 	}
 
-
 	gpuErrchk( cudaMemcpy(d_volume1, volume1.data, memsize, cudaMemcpyHostToDevice) );
 	gpuErrchk( cudaMemcpy(d_volume2, volume2.data, memsize, cudaMemcpyHostToDevice) );
 	if (mask) {
 		gpuErrchk( cudaMemcpy(d_mask, mask, volume_size * sizeof(int), cudaMemcpyHostToDevice) );
 	}
+
+    gpuErrchk( cudaMalloc(&d_buf1, memsize) );
+    gpuErrchk( cudaMalloc(&d_buf2, memsize) );
+    gpuErrchk( cudaMalloc(&d_cbuf1, fourier_memsize) );
+    gpuErrchk( cudaMalloc(&d_cbuf2, fourier_memsize) );
 
 	denoise(d_volume1, d_volume2, d_mask);
     deconvolution(d_volume1, d_volume2);
@@ -374,6 +357,10 @@ void VolumeHalvesRestorator<T>::apply(const MultidimArray<T>& volume1, const Mul
 
     gpuErrchk( cudaFree(d_R2) );
     gpuErrchk( cudaFree(d_mask) );
+    gpuErrchk( cudaFree(d_buf1) );
+    gpuErrchk( cudaFree(d_buf2) );
+    gpuErrchk( cudaFree(d_cbuf1) );
+    gpuErrchk( cudaFree(d_cbuf2) );
     CudaFFT<T>::release(planForward);
     CudaFFT<T>::release(planBackward);
 }

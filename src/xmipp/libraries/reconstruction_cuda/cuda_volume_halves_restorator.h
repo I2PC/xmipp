@@ -67,6 +67,15 @@ class VolumeHalvesRestorator {
 	GPU gpu;
 
 	/*
+	* Device memory that is reused during all steps
+	* In each step these pointers are renamed
+	*/
+	T* d_buf1;
+	T* d_buf2;
+	Complex* d_cbuf1;
+	Complex* d_cbuf2;
+
+	/*
 	* Filter
 	*/
 	T* d_R2;
