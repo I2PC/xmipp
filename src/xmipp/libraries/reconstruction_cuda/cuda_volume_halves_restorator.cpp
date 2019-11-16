@@ -18,7 +18,7 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
     }
 
     T* d_S;
-    T* d_aux;
+    T* d_aux = nullptr;
     Complex* d_fVol;
     gpuErrchk( cudaMalloc(&d_S, memsize) );
     if (d_mask) {
@@ -45,9 +45,7 @@ void VolumeHalvesRestorator<T>::denoise(T* d_volume1, T* d_volume2, const int* d
     }
 
     gpuErrchk( cudaFree(d_S) );
-    if (d_mask) {
-    	gpuErrchk( cudaFree(d_aux) );
-    }
+    gpuErrchk( cudaFree(d_aux) );
     gpuErrchk( cudaFree(d_fVol) );
 }
 
@@ -375,9 +373,7 @@ void VolumeHalvesRestorator<T>::apply(const MultidimArray<T>& volume1, const Mul
     gpuErrchk( cudaMemcpy(reconstructedVolume2.data, d_volume2, memsize, cudaMemcpyDeviceToHost) );
 
     gpuErrchk( cudaFree(d_R2) );
-    if (mask) {
-    	gpuErrchk( cudaFree(d_mask) );
-    }
+    gpuErrchk( cudaFree(d_mask) );
     CudaFFT<T>::release(planForward);
     CudaFFT<T>::release(planBackward);
 }
