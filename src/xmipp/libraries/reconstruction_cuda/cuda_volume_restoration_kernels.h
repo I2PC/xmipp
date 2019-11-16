@@ -13,7 +13,8 @@ namespace Gpu {
  * for double/float instead of instantiating each function
 */
 template< typename T >
-struct VolumeRestorationKernels {
+class VolumeRestorationKernels {
+public:
 	static void computeWeights(const T* d_Vfiltered1, const T* d_Vfiltered2, T* d_V1r, T* d_V2r, T* d_S, size_t volume_size, const Gpu::CDF<T>& cdf_mN, T weightPower, int weightFun);
 
 	static void filterFourierVolume(const T* d_R2, const std::complex<T>* d_fV, std::complex<T>* d_buffer, size_t volume_size, T w2, T w2Step);
