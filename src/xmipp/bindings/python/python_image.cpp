@@ -1638,8 +1638,8 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
         	if (nullptr != dsize)
         	{
-        		Xdim = PyInt_AsSsize_t(PyTuple_GetItem(dsize, 0));
-        		Ydim = PyInt_AsSsize_t(PyTuple_GetItem(dsize, 1));
+        		Ydim = PyInt_AsSsize_t(PyTuple_GetItem(dsize, 0));
+        		Xdim = PyInt_AsSsize_t(PyTuple_GetItem(dsize, 1));
         	}
             if (border_value!=NULL)
            	    doubleBorder_value = PyFloat_AsDouble(border_value);
@@ -1666,7 +1666,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
             out->initConstant(doubleBorder_value);
             out->setXmippOrigin();
 
-            applyGeometry(3, *out, *in, A, IS_NOT_INV, false, doubleBorder_value);
+            applyGeometry(3, *out, *in, A, false, true, doubleBorder_value);
             return (PyObject *)result;
         }
         else
