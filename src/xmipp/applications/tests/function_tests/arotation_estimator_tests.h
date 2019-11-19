@@ -59,11 +59,11 @@ public:
         for (size_t n = 0; n < dims.n(); ++n) {
             T *d = others + (n * dims.xyzPadded());
             drawClockArms(d, dims, centerX, centerY, rotations.at(n));
-            if (ADD_NOISE) {
-                addNoise(others, dims, mt);
-            }
         }
-//        outputData(others, dims);
+        if (ADD_NOISE) {
+            addNoise(others, dims, mt);
+        }
+//        outputData("data.stk", others, dims);
 
         auto settings = Alignment::RotationEstimationSetting();
         settings.hw = hw;
@@ -86,11 +86,7 @@ public:
         const auto *cEst = estimator;
         auto result = cEst->getRotations2D();
         EXPECT_EQ(rotations.size(), result.size());
-        if (ADD_NOISE) {
-            checkWithNoise(dims, rotations, result);
-        } else {
-            checkWithoutNoise(dims, rotations, result);
-        }
+        check<ADD_NOISE>(dims, rotations, result);
 
         hw.at(0)->unlockMemory(others);
 
@@ -99,10 +95,15 @@ public:
     }
 
 private:
-    void checkWithoutNoise(const Dimensions &dims, const std::vector<float> &rotations,
+    template<bool IS_WITH_NOISE>
+    void check(const Dimensions &dims, const std::vector<float> &rotations,
             const std::vector<float> &result) {
         float maxError = getTheoreticalRotationError(dims);
-        maxError *= 0.6f; // while testing, it seems that we can be more strict. The max error was usually half of the theoretical
+        if (IS_WITH_NOISE) {
+            maxError *= 0.81f; // while testing, it seems that we can be more strict.
+        } else {
+            maxError *= 0.62f; // while testing, it seems that we can be more strict. The max error was usually half of the theoretical
+        }
         for (size_t n = 0; n < result.size(); ++n) {
             // we rotated by angle, so we should detect rotation in '360 - angle' degrees
             auto actual = 360 - result.at(n);
@@ -112,53 +113,14 @@ private:
         }
     }
 
-    void checkWithNoise(const Dimensions &dims, const std::vector<float> &rotations,
-            const std::vector<float> &result) {
-        auto diffs = std::vector<float>(rotations.size());
-        for (size_t n = 0; n < result.size(); ++n) {
-            // we rotated by angle, so we should detect rotation in '360 - angle' degrees
-            auto actual = 360 - result.at(n);
-            auto diff = 180 - abs(abs(actual - rotations.at(n)) - 180);
-            diffs.at(n) = diff;
-        }
-        std::sort(diffs.begin(), diffs.end());
-        bool checked = checkSpecialCases(dims, diffs);
-        if ( ! checked) {
-            float maxError = getTheoreticalRotationError(dims);
-            EXPECT_GT(maxError, diffs.at((diffs.size() - 1) * 0.88)) << "This percentile should be bellow theoretical error";
-        }
-    }
-
-    bool checkSpecialCases(const Dimensions &dims, const std::vector<float> &diffs) { // that fail and I'm not quite sure why yet
-        float delta = 0.000001;
-        bool isCPU = (nullptr != (dynamic_cast<CPU*>(estimator->getSettings().hw.at(0))));
-        if ((dims.x() == dims.y())
-                && (dims.x() == 15)
-                && (dims.n() == 12)
-                && isCPU) {
-            // 15 x 15 x 12 (batch 4)
-            EXPECT_NEAR(9.691315f, diffs.at(4), delta);
-            return true;
-        }
-        if ((dims.x() == dims.y())
-                && (dims.x() == 15)
-                && (dims.n() == 12)
-                && ( ! isCPU)) {
-            // 15 x 15 x 12 (batch 4)
-            EXPECT_NEAR(6.988617, diffs.at(4), delta);
-            return true;
-        }
-        return false;
-    }
-
     Alignment::ARotationEstimator<T> *estimator;
     static std::vector<HW*> hw;
     static std::mt19937 mt;
 
-    void outputData(T *data, const Dimensions &dims) {
+    void outputData(const std::string &fn, T *data, const Dimensions &dims) {
         MultidimArray<T>wrapper(dims.n(), dims.z(), dims.y(), dims.x(), data);
         Image<T> img(wrapper);
-        img.write("data.stk");
+        img.write(fn);
     }
 };
 TYPED_TEST_CASE_P(ARotationEstimator_Test);
