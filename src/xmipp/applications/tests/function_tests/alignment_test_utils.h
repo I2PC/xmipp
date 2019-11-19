@@ -37,7 +37,7 @@ static size_t getMaxShift(const Dimensions &dims) {
     return std::min(dims.x() / 2, dims.y() / 2) - 1;
 }
 
-static std::vector<Point2D<float>> generateShifts(const Dimensions &dims, size_t maxShift, std::mt19937 &mt) {
+static std::vector<Point2D<float>> generateShifts(const Dimensions &dims, size_t maxShift, std::mt19937 mt) { // pass copy as not to interfere with size generation
     auto maxShiftSq = maxShift * maxShift;
 
     std::uniform_int_distribution<> dist(0, maxShift);
@@ -54,7 +54,7 @@ static std::vector<Point2D<float>> generateShifts(const Dimensions &dims, size_t
     return shifts;
 }
 
-static std::vector<float> generateRotations(const Dimensions& dims, float maxRotation, std::mt19937 &mt)
+static std::vector<float> generateRotations(const Dimensions& dims, float maxRotation, std::mt19937 mt)// pass copy as not to interfere with size generation
 {
     std::uniform_int_distribution<> distPos(0, dims.x());
     auto rotations = std::vector<float>();
@@ -67,7 +67,7 @@ static std::vector<float> generateRotations(const Dimensions& dims, float maxRot
 }
 
 template<typename T>
-static void addNoise(T *data, const Dimensions &dims, std::mt19937 &mt) {
+static void addNoise(T *data, const Dimensions &dims, std::mt19937 mt) { // pass copy as not to interfere with size generation
     std::normal_distribution<T> dist(0., .5);
     for (size_t i = 0; i < dims.size(); ++i) {
         data[i] += dist(mt);
