@@ -60,17 +60,17 @@ public:
             if (isCPU) {
                 float refR = expR.at(std::floor((expR.size() - 1) * 0.67f));
                 EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.67f))) << "percentile 67";
-                EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.5f))) << "percentile 50";
-                EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.62f))) << "percentile 62";
-                EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.5f))) << "percentile 50";
-                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.64f))) << "percentile 64";
+                EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.48f))) << "percentile 48";
+                EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.59f))) << "percentile 59";
+                EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.45f))) << "percentile 45";
+                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.58f))) << "percentile 58";
             } else {
                 float refR = expR.at(std::floor((expR.size() - 1) * 0.72f));
                 EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.72f))) << "percentile 72";
                 EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.5f))) << "percentile 50";
-                EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.67f))) << "percentile 67";
+                EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.63f))) << "percentile 63";
                 EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.5f))) << "percentile 50";
-                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.67f))) << "percentile 67";
+                EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.64f))) << "percentile 64";
             }
         } else {
             float refR = expR.at(std::floor((expR.size() - 1) * 0.9f));
