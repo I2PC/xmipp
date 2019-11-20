@@ -865,7 +865,9 @@ void ProgParticlePolishing::run()
 
 		for(int n=0; n<Nsteps+1; n++){
 
-			if(n==0){
+			std::cerr << "- Particle: " << i << " and frequency " << n << std::endl;
+
+			/*if(n==0){
 				projVaux().resize(projV());
 				Ipartaux().resize(Ipart());
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
@@ -877,14 +879,34 @@ void ProgParticlePolishing::run()
 				projVaux().setXmippOrigin();
 				Ipartaux().setXmippOrigin();
 			}else{
+				Ipart.read(fnPart);
+				Ipart().setXmippOrigin();
+
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
 						DIRECT_MULTIDIM_ELEM(projV(),n) = DIRECT_MULTIDIM_ELEM(projVaux(),n);
 				}
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipart()){
 						DIRECT_MULTIDIM_ELEM(Ipart(),n) = DIRECT_MULTIDIM_ELEM(Ipartaux(),n);
 				}
+			}*/
+			if(n!=0){
+				Ipart.read(fnPart);
+				Ipart().setXmippOrigin();
+				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+				applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+				projV().setXmippOrigin();
+				//To invert contrast in the projections
+				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+					val=DIRECT_MULTIDIM_ELEM(projV(),n);
+					DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
+				}
+				//filtering the projections with the ctf
+				ctf.readFromMdRow(currentRow);
+				ctf.produceSideInfo();
+				ctf.applyCTF(projV(), samplingRate, false);
+				//averaging movie particle image with the ones in all the frames but without the current one
+				averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
 			}
-			//TODO: a partir de aqui trabajar con las projVaux y Ipartaux
 
 			cutfreq = inifreq + step*n;
 
