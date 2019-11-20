@@ -164,13 +164,13 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
     const size_t noOfSignals = m_settings.otherDims.n();
     auto weights = std::vector<float>(noOfSignals);
     const size_t noOfCorrelations = correlations.size();
-    auto invMaxCorrelation = 1.f / correlations.back().correlation;
 
     // sort ascending using correlation
     std::sort(correlations.begin(), correlations.end(),
             [](WeightCompHelper &l, WeightCompHelper &r) {
         return l.correlation < r.correlation;
     });
+    auto invMaxCorrelation = 1.f / correlations.back().correlation;
 
     // set weight for all images
     for (size_t c = 0; c < noOfCorrelations; ++c) {
@@ -217,6 +217,7 @@ void AProgAlignSignificant<T>::storeAlignedImages(
     const size_t noOfRefs = m_settings.refDims.n();
     const auto dims = Dimensions(noOfRefs);
 
+    auto bestEst = AlignmentEstimation(m_settings.otherDims.n());
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
         // find the best matching reference
@@ -235,8 +236,10 @@ void AProgAlignSignificant<T>::storeAlignedImages(
         double shiftX;
         double shiftY;
         double psi;
+        auto t = est.at(refIndex).poses.at(i);
+        bestEst.poses.at(i) = t;
         transformationMatrix2Parameters2D(
-                est.at(refIndex).poses.at(i).inv(), // we want to store inverse transform
+                t.inv(), // we want to store inverse transform
                 flip, scale,
                 shiftX, shiftY,
                 psi);
@@ -248,8 +251,8 @@ void AProgAlignSignificant<T>::storeAlignedImages(
         md.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex), rowId);
         md.setValue(MDL_WEIGHT_SIGNIFICANT, (double)m_weights.at(refIndex).at(i), rowId);
         md.setValue(MDL_ANGLE_PSI, psi, rowId);
-        md.setValue(MDL_SHIFT_X, shiftX, rowId);
-        md.setValue(MDL_SHIFT_Y, shiftY, rowId);
+        md.setValue(MDL_SHIFT_X, -shiftX, rowId); // store negative translation
+        md.setValue(MDL_SHIFT_Y, -shiftY, rowId); // store negative translation
         md.setValue(MDL_FLIP, flip, rowId);
         i++;
     }
