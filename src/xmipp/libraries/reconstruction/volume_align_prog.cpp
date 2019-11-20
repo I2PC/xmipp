@@ -48,7 +48,7 @@ public:
 };
 
 // Global parameters needed by fitness ------------------------------------
-AlignParams params;
+static AlignParams params; // create one version for each cpp file
 
 // Apply transformation ---------------------------------------------------
 void applyTransformation(const MultidimArray<double> &V2,
