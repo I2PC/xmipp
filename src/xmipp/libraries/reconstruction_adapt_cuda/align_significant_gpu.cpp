@@ -44,11 +44,23 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     initShiftEstimator(shiftEstimator, hw);
     auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, this->getThreadPool());
 
+    // create local copy of the reference ...
+    auto refSize = s.refDims.sizeSingle();
+    auto refSizeBytes = refSize * sizeof(T);
+    // ... and lock it, so that we can work asynchronously with it
+    auto refData = memoryUtils::page_aligned_alloc<T>(refSize, false);
+    hw.at(0)->lockMemory(refData, refSizeBytes);
 
     auto result = std::vector<AlignmentEstimation>();
     for (size_t refId = 0; refId < s.refDims.n(); ++refId) {
-        size_t refOffset = refId * s.refDims.sizeSingle();
-        result.emplace_back(aligner.compute(ref + refOffset, others));
+        size_t refOffset = refId * refSize;
+        // copy reference image to page-aligned memory
+        memcpy(refData, ref + refOffset, refSizeBytes);
+
+        if (0 == (refId % 10)) { // FIXME DS remove / replace by proper progress report
+            std::cout << "aligning agains reference " << refId << "/" << s.refDims.n() << std::endl;
+        }
+        result.emplace_back(aligner.compute(refData, others));
     }
 
     for (auto h : hw) {
