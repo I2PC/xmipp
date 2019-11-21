@@ -33,7 +33,6 @@
 #include "data/cpu.h"
 #include "data/alignment_estimation.h"
 #include "core/metadata_extension.h"
-#include "core/utils/memory_utils.h"
 #include "core/geometry.h"
 #include "reconstruction/single_extrema_finder.h"
 #include "core/transformations.h"
@@ -73,10 +72,7 @@ private:
         MetaData md;
         std::vector<float> rots;
         std::vector<float> tilts;
-        std::unique_ptr<T, decltype(free)*> data = std::unique_ptr<T, decltype(free)*> {
-            nullptr,
-            free
-        };
+        std::unique_ptr<T[]> data;
     };
 
     struct WeightCompHelper {
