@@ -79,10 +79,7 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
     Ndim = md.size(); // FIXME DS why we  didn't get right Ndim from the previous call?
     auto dims = Dimensions(Xdim, Ydim, Zdim, Ndim);
 
-    h.data = std::unique_ptr<T, decltype(free)*> {
-        memoryUtils::page_aligned_alloc<T>(dims.size(), false),
-        free
-    };
+    h.data = std::unique_ptr<T[]>(new T[dims.size()]);
     auto ptr = h.data.get();
     // routine loading the actual content of the images
     auto routine = [Zdim, Ydim, Xdim, ptr]
