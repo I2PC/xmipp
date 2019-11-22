@@ -88,7 +88,7 @@ void ProgAlignSignificantGPU<T>::initRotEstimator(CudaRotPolarEstimator<T> &est,
     s.firstRing = RotationEstimationSetting::getDefaultFirstRing(dims);
     s.lastRing = RotationEstimationSetting::getDefaultLastRing(dims);
     s.fullCircle = true;
-    s.allowTuningOfNumberOfSamples = true;
+    s.allowTuningOfNumberOfSamples = false; // FIXME DS change to true
     est.init(s, false);
 }
 
@@ -98,7 +98,7 @@ void ProgAlignSignificantGPU<T>::initShiftEstimator(CudaShiftCorrEstimator<T> &e
     // FIXME DS implement properly
     RotationEstimationSetting s;
     Dimensions dims = this->getSettings().otherDims;
-    size_t batch = std::min((size_t)100, dims.n());
+    size_t batch = std::min((size_t)500, dims.n()); // FIXME DS set the batch size in a better way
     est.init2D(hw,
             AlignType::OneToN,
             FFTSettingsNew<T>(dims, batch),
