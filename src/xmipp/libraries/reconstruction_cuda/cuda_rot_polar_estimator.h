@@ -60,6 +60,9 @@ public :
         m_d_batch = o.m_d_batch;
         m_d_batchPolarOrCorr = o.m_d_batchPolarOrCorr;
         m_d_batchPolarFD = o.m_d_batchPolarFD;
+        m_d_sumsOrMaxPos = o.m_d_sumsOrMaxPos;
+        m_d_sumsSqr = o.m_d_sumsSqr;
+        m_d_batchCorrSumFD = o.m_d_batchCorrSumFD;
 
         // FT plans
         m_singleToFD = o.m_singleToFD;
@@ -81,7 +84,8 @@ public :
 
     static void sComputeCorrelationsOneToN(
             const GPU &gpu,
-            std::complex<T> *d_inOut,
+            const std::complex<T> *d_in,
+            std::complex<T> *d_out,
             const std::complex<T> *d_ref,
             const Dimensions &dims,
             int firstRingRadius);
@@ -114,6 +118,7 @@ private:
     T *m_d_batch;
     T *m_d_batchPolarOrCorr;
     std::complex<T> *m_d_batchPolarFD;
+    std::complex<T> *m_d_batchCorrSumFD;
     T *m_d_sumsOrMaxPos;
     T *m_d_sumsSqr;
 
