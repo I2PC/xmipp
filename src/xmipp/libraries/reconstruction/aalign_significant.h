@@ -94,6 +94,7 @@ private:
     ctpl::thread_pool m_threadPool;
 
     Dimensions load(DataHelper &h);
+    Dimensions crop(const Dimensions &d, DataHelper &h);
     void computeWeights(const std::vector<AlignmentEstimation> &est);
     void computeWeightsAndSave(
             const std::vector<AlignmentEstimation> &est,

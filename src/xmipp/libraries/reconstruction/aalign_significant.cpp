@@ -78,17 +78,45 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
     getImageSize(h.fn, Xdim, Ydim, Zdim, Ndim);
     Ndim = md.size(); // FIXME DS why we  didn't get right Ndim from the previous call?
     auto dims = Dimensions(Xdim, Ydim, Zdim, Ndim);
+    auto dimsCropped = Dimensions((Xdim / 2) * 2, (Ydim / 2) * 2, Zdim, Ndim);
+    bool mustCrop = (dims != dimsCropped);
 
+    // FIXME DS clean up the cropping routine somehow
     h.data = std::unique_ptr<T[]>(new T[dims.size()]);
     auto ptr = h.data.get();
     // routine loading the actual content of the images
-    auto routine = [Zdim, Ydim, Xdim, ptr]
+    auto routine = [&dims, ptr]
             (int thrId, const FileName &fn, size_t storeIndex) {
-        size_t offset = storeIndex * Xdim * Ydim * Zdim;
-        MultidimArray<T> wrapper(1, Zdim, Ydim, Xdim, ptr + offset);
+        size_t offset = storeIndex * dims.sizeSingle();
+        MultidimArray<T> wrapper(1, dims.z(), dims.y(), dims.x(), ptr + offset);
         auto img = Image<T>(wrapper);
         img.read(fn);
     };
+
+    std::vector<Image<T>> tmpImages;
+    tmpImages.reserve(m_threadPool.size());
+    if (mustCrop) {
+        std::cerr << "We need an even input (sizes must be multiple of two). Input will be cropped\n";
+        for (size_t t = 0; t < m_threadPool.size(); ++t) {
+            tmpImages.emplace_back(Xdim, Ydim);
+        }
+    }
+    // routine loading the actual content of the images
+    auto routineCrop = [&dims, &dimsCropped, ptr, &tmpImages]
+            (int thrId, const FileName &fn, size_t storeIndex) {
+        // load image
+        tmpImages.at(thrId).read(fn);
+        // copy just the part we're interested in
+        const size_t destOffsetN = storeIndex * dimsCropped.sizeSingle();
+        for (size_t y = 0; y < dimsCropped.y(); ++y) {
+            size_t srcOffsetY = y * dims.x();
+            size_t destOffsetY = y * dimsCropped.x();
+            memcpy(ptr + destOffsetN + destOffsetY,
+                    tmpImages.at(thrId).data.data + srcOffsetY,
+                    dimsCropped.x() * sizeof(T));
+        }
+    };
+
     // load all images in parallel
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
@@ -104,14 +132,18 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
         md.getValue(MDL_ANGLE_TILT, tilt,__iter.objId);
         h.rots.emplace_back(rot);
         h.tilts.emplace_back(tilt);
-        futures.emplace_back(m_threadPool.push(routine, fn, i));
+        if (mustCrop) {
+            futures.emplace_back(m_threadPool.push(routineCrop, fn, i));
+        } else {
+            futures.emplace_back(m_threadPool.push(routine, fn, i));
+        }
         i++;
     }
     // wait till done
     for (auto &f : futures) {
         f.get();
     }
-    return dims;
+    return dimsCropped;
 }
 
 template<typename T>
