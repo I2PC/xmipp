@@ -88,12 +88,14 @@ private:
     FileName m_fnOut;
     float m_angDistance;
     Settings m_settings;
+    size_t m_noOfBestToKeep;
 
     std::vector<std::vector<float>> m_weights;
 
     ctpl::thread_pool m_threadPool;
 
     Dimensions load(DataHelper &h);
+    Dimensions crop(const Dimensions &d, DataHelper &h);
     void computeWeights(const std::vector<AlignmentEstimation> &est);
     void computeWeightsAndSave(
             const std::vector<AlignmentEstimation> &est,
@@ -103,6 +105,13 @@ private:
             size_t refIndex);
     void storeAlignedImages(
             const std::vector<AlignmentEstimation> &est);
+    void fillRow(MDRow &row,
+            const Matrix2D<double> &pose,
+            size_t refIndex,
+            double weight, double maxCC);
+    void replaceMaxCorrelation(
+            std::vector<float> &correlations,
+            size_t &pos, double &val);
 
 };
 

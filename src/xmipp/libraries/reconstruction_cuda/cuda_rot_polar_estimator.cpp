@@ -85,6 +85,7 @@ void CudaRotPolarEstimator<T>::init2D() {
             s.batch, s.batch, // while computing correlation, we also sum the rings,
             false,false); // i.e. we end up with batch * samples elements
     m_batchToSD = CudaFFT<T>::createPlan(*m_mainStream, inversePolar);
+    gpuErrchk(cudaMalloc(&m_d_batchCorrSumFD, inversePolar.fBytesBatch()));
 
     // allocate device memory
     m_h_batchMaxPositions = new float[m_samples * s.batch];
@@ -103,6 +104,7 @@ void CudaRotPolarEstimator<T>::release() {
     gpuErrchk(cudaFree(m_d_ref));
     gpuErrchk(cudaFree(m_d_sumsOrMaxPos));
     gpuErrchk(cudaFree(m_d_sumsSqr));
+    gpuErrchk(cudaFree(m_d_batchCorrSumFD));
 
     // FT plans
     CudaFFT<T>::release(m_singleToFD);
@@ -130,6 +132,7 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_d_ref = nullptr;
     m_d_sumsOrMaxPos = nullptr;
     m_d_sumsSqr = nullptr;
+    m_d_batchCorrSumFD = nullptr;
 
     // host memory
     m_h_batchMaxPositions = nullptr;
@@ -204,7 +207,8 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
 template<typename T>
 void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
         const GPU &gpu,
-        std::complex<T> *d_inOut,
+        const std::complex<T> *d_in,
+        std::complex<T> *d_out,
         const std::complex<T> *d_ref,
         const Dimensions &dims,
         int firstRingRadius) {
@@ -215,13 +219,15 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
     if (std::is_same<T, float>::value) {
         computePolarCorrelationsSumOneToNKernel<float2>
             <<<dimGrid, dimBlock, 0, stream>>> (
-            (float2*)d_inOut, (float2*)d_ref,
+            (float2*)d_in, (float2*)d_out,
+            (float2*)d_ref,
             firstRingRadius,
             dims.x(), dims.y(), dims.n());
     } else if (std::is_same<T, double>::value) {
         computePolarCorrelationsSumOneToNKernel<double2>
             <<<dimGrid, dimBlock, 0, stream>>> (
-            (double2*)d_inOut, (double2*)d_ref,
+            (double2*)d_in, (double2*)d_out,
+            (double2*)d_ref,
             firstRingRadius,
             dims.x(), dims.y(), dims.n());
     } else {
@@ -384,9 +390,9 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 
-        sComputeCorrelationsOneToN(*m_mainStream, m_d_batchPolarFD, m_d_ref, outPolarFourier, s.firstRing);
+        sComputeCorrelationsOneToN(*m_mainStream, m_d_batchPolarFD, m_d_batchCorrSumFD, m_d_ref, outPolarFourier, s.firstRing);
 
-        CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
+        CudaFFT<T>::ifft(*m_batchToSD, m_d_batchCorrSumFD, m_d_batchPolarOrCorr);
 
         // locate maxima for each signal
         auto d_positions = (float*)m_d_sumsOrMaxPos;

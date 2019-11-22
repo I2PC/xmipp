@@ -37,6 +37,7 @@ void AProgAlignSignificant<T>::defineParams() {
     addParamsLine("   [--thr <N=-1>]              : Maximal number of the processing CPU threads");
     addParamsLine("   [--angDistance <a=10>]      : Angular distance");
     addParamsLine("   [--odir <outputDir=\".\">]  : Output directory");
+    addParamsLine("   [--keepBestN <N=1>]         : For each image, store N best alignments to references. N must be smaller than no. of references");
 }
 
 template<typename T>
@@ -44,7 +45,8 @@ void AProgAlignSignificant<T>::readParams() {
     m_imagesToAlign.fn = getParam("-i");
     m_referenceImages.fn = getParam("-r");
     m_fnOut = std::string(getParam("--odir")) + "/" + std::string(getParam("-o"));
-    m_angDistance=getDoubleParam("--angDistance");
+    m_angDistance = getDoubleParam("--angDistance");
+    m_noOfBestToKeep = getIntParam("--keepBestN");
 
     int threads = getIntParam("--thr");
     if (-1 == threads) {
@@ -58,10 +60,11 @@ template<typename T>
 void AProgAlignSignificant<T>::show() const {
     if (verbose < 1) return;
 
-    std::cout << "Input metadata              : "  << m_imagesToAlign.fn << "\n";
-    std::cout << "Reference metadata          : "  << m_referenceImages.fn <<  "\n";
-    std::cout << "Output metadata             : "  << m_fnOut <<  "\n";
-    std::cout << "Angular distance            : "  << m_angDistance <<  "\n";
+    std::cout << "Input metadata              : " << m_imagesToAlign.fn << "\n";
+    std::cout << "Reference metadata          : " << m_referenceImages.fn <<  "\n";
+    std::cout << "Output metadata             : " << m_fnOut <<  "\n";
+    std::cout << "Angular distance            : " << m_angDistance <<  "\n";
+    std::cout << "Keep N references           : " << m_noOfBestToKeep << "\n";
     std::cout.flush();
 }
 
@@ -78,17 +81,45 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
     getImageSize(h.fn, Xdim, Ydim, Zdim, Ndim);
     Ndim = md.size(); // FIXME DS why we  didn't get right Ndim from the previous call?
     auto dims = Dimensions(Xdim, Ydim, Zdim, Ndim);
+    auto dimsCropped = Dimensions((Xdim / 2) * 2, (Ydim / 2) * 2, Zdim, Ndim);
+    bool mustCrop = (dims != dimsCropped);
 
+    // FIXME DS clean up the cropping routine somehow
     h.data = std::unique_ptr<T[]>(new T[dims.size()]);
     auto ptr = h.data.get();
     // routine loading the actual content of the images
-    auto routine = [Zdim, Ydim, Xdim, ptr]
+    auto routine = [&dims, ptr]
             (int thrId, const FileName &fn, size_t storeIndex) {
-        size_t offset = storeIndex * Xdim * Ydim * Zdim;
-        MultidimArray<T> wrapper(1, Zdim, Ydim, Xdim, ptr + offset);
+        size_t offset = storeIndex * dims.sizeSingle();
+        MultidimArray<T> wrapper(1, dims.z(), dims.y(), dims.x(), ptr + offset);
         auto img = Image<T>(wrapper);
         img.read(fn);
     };
+
+    std::vector<Image<T>> tmpImages;
+    tmpImages.reserve(m_threadPool.size());
+    if (mustCrop) {
+        std::cerr << "We need an even input (sizes must be multiple of two). Input will be cropped\n";
+        for (size_t t = 0; t < m_threadPool.size(); ++t) {
+            tmpImages.emplace_back(Xdim, Ydim);
+        }
+    }
+    // routine loading the actual content of the images
+    auto routineCrop = [&dims, &dimsCropped, ptr, &tmpImages]
+            (int thrId, const FileName &fn, size_t storeIndex) {
+        // load image
+        tmpImages.at(thrId).read(fn);
+        // copy just the part we're interested in
+        const size_t destOffsetN = storeIndex * dimsCropped.sizeSingle();
+        for (size_t y = 0; y < dimsCropped.y(); ++y) {
+            size_t srcOffsetY = y * dims.x();
+            size_t destOffsetY = y * dimsCropped.x();
+            memcpy(ptr + destOffsetN + destOffsetY,
+                    tmpImages.at(thrId).data.data + srcOffsetY,
+                    dimsCropped.x() * sizeof(T));
+        }
+    };
+
     // load all images in parallel
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
@@ -104,20 +135,27 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
         md.getValue(MDL_ANGLE_TILT, tilt,__iter.objId);
         h.rots.emplace_back(rot);
         h.tilts.emplace_back(tilt);
-        futures.emplace_back(m_threadPool.push(routine, fn, i));
+        if (mustCrop) {
+            futures.emplace_back(m_threadPool.push(routineCrop, fn, i));
+        } else {
+            futures.emplace_back(m_threadPool.push(routine, fn, i));
+        }
         i++;
     }
     // wait till done
     for (auto &f : futures) {
         f.get();
     }
-    return dims;
+    return dimsCropped;
 }
 
 template<typename T>
 void AProgAlignSignificant<T>::check() const {
     if ( ! m_settings.otherDims.equalExceptNPadded(m_settings.refDims)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Dimensions of the images to align and reference images do not match");
+    }
+    if (m_noOfBestToKeep > m_settings.refDims.n()) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "--keepBestN is higher than number of references");
     }
 }
 
@@ -207,53 +245,88 @@ void AProgAlignSignificant<T>::computeWeights(const std::vector<AlignmentEstimat
 }
 
 template<typename T>
+void AProgAlignSignificant<T>::fillRow(MDRow &row,
+        const Matrix2D<double> &pose,
+        size_t refIndex,
+        double weight, double maxCC) {
+    // get orientation
+    bool flip;
+    double scale;
+    double shiftX;
+    double shiftY;
+    double psi;
+    transformationMatrix2Parameters2D(
+            pose.inv(), // we want to store inverse transform
+            flip, scale,
+            shiftX, shiftY,
+            psi);
+    // FIXME DS add check of max shift / rotation
+    row.setValue(MDL_ENABLED, 1);
+    row.setValue(MDL_MAXCC, (double)maxCC);
+    row.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex));
+    row.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex));
+    row.setValue(MDL_WEIGHT_SIGNIFICANT, weight);
+    row.setValue(MDL_ANGLE_PSI, psi);
+    row.setValue(MDL_SHIFT_X, -shiftX); // store negative translation
+    row.setValue(MDL_SHIFT_Y, -shiftY); // store negative translation
+    row.setValue(MDL_FLIP, flip);
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::replaceMaxCorrelation(
+        std::vector<float> &correlations,
+        size_t &pos, double &val) {
+    using namespace ExtremaFinder;
+    float p = 0;
+    float v = 0;
+    SingleExtremaFinder<T>::sFindMax(CPU(), Dimensions(correlations.size()), correlations.data(), &p, &v);
+    pos = std::round(p);
+    val = correlations.at(pos);
+    correlations.at(pos) = std::numeric_limits<float>::lowest();
+}
+
+template<typename T>
 void AProgAlignSignificant<T>::storeAlignedImages(
         const std::vector<AlignmentEstimation> &est) {
-    using namespace ExtremaFinder;
     auto &md = m_imagesToAlign.md;
+    auto result = MetaData();
     const size_t noOfRefs = m_settings.refDims.n();
     const auto dims = Dimensions(noOfRefs);
 
-    auto bestEst = AlignmentEstimation(m_settings.otherDims.n());
+    MDRow row;
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
-        // find the best matching reference
+        // get the original row from the input metadata
+        md.getRow(row, __iter.objId);
+        // collect correlations from all references
         auto cc = std::vector<float>();
         cc.reserve(noOfRefs);
         for (size_t r = 0; r < noOfRefs; ++r) {
             cc.emplace_back(est.at(r).correlations.at(i));
         }
-        float pos = 0;
-        float maxCC = 0;
-        SingleExtremaFinder<T>::sFindMax(CPU(), dims, cc.data(), &pos, &maxCC);
-        size_t refIndex = std::round(pos);
-        // get orientation
-        bool flip;
-        double scale;
-        double shiftX;
-        double shiftY;
-        double psi;
-        auto t = est.at(refIndex).poses.at(i);
-        bestEst.poses.at(i) = t;
-        transformationMatrix2Parameters2D(
-                t.inv(), // we want to store inverse transform
-                flip, scale,
-                shiftX, shiftY,
-                psi);
-        // FIXME DS add check of max shift / rotation
-        size_t rowId = __iter.objId;
-        md.setValue(MDL_ENABLED, 1, rowId);
-        md.setValue(MDL_MAXCC, (double)maxCC, rowId);
-        md.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex), rowId);
-        md.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex), rowId);
-        md.setValue(MDL_WEIGHT_SIGNIFICANT, (double)m_weights.at(refIndex).at(i), rowId);
-        md.setValue(MDL_ANGLE_PSI, psi, rowId);
-        md.setValue(MDL_SHIFT_X, -shiftX, rowId); // store negative translation
-        md.setValue(MDL_SHIFT_Y, -shiftY, rowId); // store negative translation
-        md.setValue(MDL_FLIP, flip, rowId);
+        double maxCC = std::numeric_limits<double>::lowest();
+        // for all references that we want to store, starting from the best matching one
+        for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
+            size_t refIndex;
+            double val;
+            // get the weight
+            replaceMaxCorrelation(cc, refIndex, val);
+            if (0 == nthBest) {
+                // set max CC that we found
+                maxCC = val;
+            }
+            // update the row with proper pose info
+            fillRow(row,
+                    est.at(refIndex).poses.at(i),
+                    refIndex,
+                    m_weights.at(refIndex).at(i),
+                    maxCC); // best cross-correlation
+            // store it
+            result.addRow(row);
+        }
         i++;
     }
-    md.write(m_fnOut);
+    result.write(m_fnOut);
 }
 
 template<typename T>
