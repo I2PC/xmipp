@@ -28,6 +28,7 @@
 #include <core/matrix2d.h>
 #include <core/matrix1d.h>
 
+
 /**@defgroup DimRedTools Tools for dimensionality reduction
    @ingroup DimRedLibrary */
 //@{
@@ -37,6 +38,7 @@
  *
  * Original code by Laurens van der Maaten, Delft University of Technology
  * */
+enum class DatasetType { SWISS, HELIX, TWINPEAKS, CLUSTER3D, INTERSECT};
 class GenerateData
 {
 public:
@@ -52,19 +54,20 @@ public:
 	/** Vector of labels for the observations */
 	Matrix1D<unsigned char> label;
 
+
 public:
 	/** Generate data with a given number of points and a given method.
 	 * Generates an artificial dataset. Possible datasets are: 'swiss' for the Swiss roll
 	 * dataset, 'helix' for the helix dataset, 'twinpeaks' for the twinpeaks dataset,
      * '3d_clusters' for the 3D clusters dataset, and 'intersect' for the intersecting
-     * dataset. The variable n indicates the number of datapoints to generate
-     * (default = 1000). The variable noise indicates the amount of noise that
-     * is added to the data (default = 0.05). The function generates the
+     * dataset. The variable n indicates the number of datapoints to generate.
+     * The variable noise indicates the amount of noise that
+     * is added to the data. The function generates the
      * high-dimensional dataset in X, and corresponding labels in labels. In
      * addition, the function keeps the coordinates of the datapoints on the
      * underlying manifold in t.
 	 */
-	void generateNewDataset(const String& method, int N=1000, double noise=0.05);
+	void generateNewDataset(const DatasetType &type, int N=1000, double noise=0.05);
 };
 
 /** Function type to compute the squared distance between individuals i1 and i2 of X */

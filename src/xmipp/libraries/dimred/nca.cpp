@@ -107,7 +107,7 @@ void NeighbourhoodCA::reduceDimensionality()
 	memcpy(&VEC_ELEM(pA,0),&MAT_ELEM(A,0,0),VEC_XSIZE(pA)*sizeof(double));
 	double goal;
 	int iter;
-	powellOptimizer(pA,1,VEC_XSIZE(pA),&ncaObjectiveFuntion,this,0.001,goal,iter,steps,true);
+	powellOptimizer(pA,1,VEC_XSIZE(pA),&ncaObjectiveFuntion,this,0.001,goal,iter,steps,false);
 	memcpy(&MAT_ELEM(A,0,0),&VEC_ELEM(pA,0),VEC_XSIZE(pA)*sizeof(double));
 
 	// Reduction
