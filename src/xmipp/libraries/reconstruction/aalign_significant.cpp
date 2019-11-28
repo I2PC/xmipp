@@ -213,10 +213,14 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
         if (tmp.refIndex != refIndex) {
             continue; // current record is for different reference
         }
-        // FIXME DS check previously set weights, if any
         // cumulative density function - probability of having smaller value then the rest
         float cdf = c / (float)(noOfCorrelations - 1); // <0..1>
-        weights.at(tmp.imgIndex) = tmp.correlation * invMaxCorrelation * cdf;
+        float correlation = tmp.correlation;
+        if (correlation <= 0.f) {
+            weights.at(tmp.imgIndex) = 0;
+        } else {
+            weights.at(tmp.imgIndex) = correlation * invMaxCorrelation * cdf;
+        }
     }
     // store result
     m_weights.at(refIndex) = weights;
@@ -265,7 +269,10 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     row.setValue(MDL_MAXCC, (double)maxCC);
     row.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex));
     row.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex));
+    // save both weight and weight significant, so that we can keep track of result of this
+    // program, even after some other program re-weights the particle
     row.setValue(MDL_WEIGHT_SIGNIFICANT, weight);
+    row.setValue(MDL_WEIGHT, weight);
     row.setValue(MDL_ANGLE_PSI, psi);
     row.setValue(MDL_SHIFT_X, -shiftX); // store negative translation
     row.setValue(MDL_SHIFT_Y, -shiftY); // store negative translation
@@ -307,6 +314,9 @@ void AProgAlignSignificant<T>::storeAlignedImages(
         double maxCC = std::numeric_limits<double>::lowest();
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
+            if (cc.at(nthBest) <= 0) {
+                continue; // skip saving the particles which have non-positive correlation to the reference
+            }
             size_t refIndex;
             double val;
             // get the weight
