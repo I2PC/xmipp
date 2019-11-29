@@ -202,7 +202,7 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
 
     // sort ascending using correlation
     std::sort(correlations.begin(), correlations.end(),
-            [](WeightCompHelper &l, WeightCompHelper &r) {
+            [](const WeightCompHelper &l, const WeightCompHelper &r) {
         return l.correlation < r.correlation;
     });
     auto invMaxCorrelation = 1.f / correlations.back().correlation;
