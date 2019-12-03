@@ -23,28 +23,39 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
+#ifndef LIBRARIES_RECONSTRUCTION_GEO_LINEAR_INTERPOLATOR_H_
+#define LIBRARIES_RECONSTRUCTION_GEO_LINEAR_INTERPOLATOR_H_
 
-#include "reconstruction/aalign_significant.h"
-#include "reconstruction/iterative_alignment_estimator.h"
-#include "reconstruction_cuda/cuda_rot_polar_estimator.h"
-#include "reconstruction_cuda/cuda_shift_corr_estimator.h"
-#include "reconstruction/geo_linear_interpolator.h"
+#include "reconstruction/ageo_linear_interpolator.h"
+#include "data/dimensions.h"
+#include "data/cpu.h"
+#include <CTPL/ctpl_stl.h>
+#include "data/filters.h"
+#include <core/utils/memory_utils.h>
 
-namespace Alignment {
+//FIXME DS rework properly
 
 template<typename T>
-class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
-protected:
-    std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
-private:
-    void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw);
-    void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw);
+class GeoLinearTransformer : public AGeoLinearTransformer<T> {
+public:
+    GeoLinearTransformer(Dimensions d) :
+        dims(d) {
+        m_threadPool.resize(CPU::findCores());
+        m_dest = memoryUtils::page_aligned_alloc<T>(d.size(), false);
+        m_src = nullptr;
+    };
 
+    virtual ~GeoLinearTransformer() {delete[] m_dest;};
+
+    void createCopyOnGPU(const T *h_data) override {m_src = h_data;};
+
+    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
+private:
+    Dimensions dims;
+    const T *m_src;
+    T *m_dest;
+    ctpl::thread_pool m_threadPool;
 };
 
 
-} /* namespace Alignment */
-
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_GEO_LINEAR_INTERPOLATOR_H_ */
