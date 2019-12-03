@@ -42,7 +42,10 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     initRotEstimator(rotEstimator, hw);
     auto shiftEstimator = CudaShiftCorrEstimator<T>();
     initShiftEstimator(shiftEstimator, hw);
-    auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, this->getThreadPool());
+
+    GeoLinearTransformer<T> interpolator(s.otherDims);
+
+    auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, interpolator, this->getThreadPool());
 
     // create local copy of the reference ...
     auto refSize = s.refDims.sizeSingle();

@@ -110,6 +110,8 @@ public:
         return GPU::isMemoryPinned(h_mem);
     }
 
+    bool isGpuPointer(const void *);
+
 private:
     int m_device;
     int m_streamId;

@@ -25,6 +25,7 @@
 
 #include "iterative_alignment_estimator.h"
 
+
 namespace Alignment {
 
 template<typename T>
@@ -49,7 +50,6 @@ template<typename T>
 void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims,
         const AlignmentEstimation &estimation,
         const T * __restrict__ orig, T * __restrict__ copy, bool hasSingleOrig) {
-    static size_t counter = 0;
     const size_t n = dims.n();
     const size_t z = dims.z();
     const size_t y = dims.y();

@@ -2,6 +2,7 @@
 #include "alignment_test_utils.h"
 #include "reconstruction/iterative_alignment_estimator.h"
 #include "core/utils/memory_utils.h"
+#include "reconstruction/geo_linear_interpolator.h"
 #include "data/cpu.h"
 
 template<typename T>
@@ -143,7 +144,8 @@ public:
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
         rotationAligner->init(rotSettings, true);
         ctpl::thread_pool threadPool(CPU::findCores());
-        IterativeAlignmentEstimator<T> aligner(*rotationAligner, *shiftAligner, threadPool);
+        GeoLinearTransformer<T> interpolator(dims);
+        IterativeAlignmentEstimator<T> aligner(*rotationAligner, *shiftAligner, interpolator, threadPool);
         IterativeAlignmentEstimatorHelper<T>::applyTransform(
                 threadPool, dims, shifts, rotations, ref, others);
 

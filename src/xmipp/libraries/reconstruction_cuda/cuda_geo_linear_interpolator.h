@@ -23,28 +23,41 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
+#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_
+#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_
 
-#include "reconstruction/aalign_significant.h"
-#include "reconstruction/iterative_alignment_estimator.h"
-#include "reconstruction_cuda/cuda_rot_polar_estimator.h"
-#include "reconstruction_cuda/cuda_shift_corr_estimator.h"
-#include "reconstruction/geo_linear_interpolator.h"
+#include "gpu.h"
+#include "reconstruction/ageo_linear_interpolator.h"
 
-namespace Alignment {
+//FIXME DS rework properly
 
 template<typename T>
-class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
-protected:
-    std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
-private:
-    void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw);
-    void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw);
+class CudaGeoLinearTransformer : AGeoLinearTransformer<T> {
+public:
+    CudaGeoLinearTransformer(Dimensions d) :
+        dims(d) {
+        setDefault();
+        init();
+    }
 
+    virtual ~CudaGeoLinearTransformer() {
+        release();
+    }
+
+    void createCopyOnGPU(const T *h_data) override;
+
+    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
+private:
+    T *m_d_src;
+    T *m_d_dest;
+    float *m_d_matrices;
+
+    Dimensions dims;
+
+    void setDefault();
+    void release();
+    void init();
 };
 
 
-} /* namespace Alignment */
-
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_ */

@@ -139,3 +139,12 @@ bool GPU::isMemoryPinned(const void *h_mem) {
     }
     return true;
 }
+
+bool GPU::isGpuPointer(const void *p) {
+    cudaPointerAttributes attr;
+    if (cudaPointerGetAttributes(&attr, p) == cudaErrorInvalidValue) {
+        cudaGetLastError(); // clear out the previous API error
+        return false;
+    }
+    return cudaMemoryTypeDevice == attr.memoryType;
+}
