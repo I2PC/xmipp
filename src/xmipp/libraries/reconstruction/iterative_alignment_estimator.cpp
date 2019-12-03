@@ -47,6 +47,18 @@ void IterativeAlignmentEstimator<T>::print(const AlignmentEstimation &e) {
 }
 
 template<typename T>
+T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation) {
+    std::vector<float> t;
+    t.reserve(9 * estimation.poses.size());
+    for (size_t j = 0; j < estimation.poses.size(); ++j) {
+        for (int i = 0; i < 9; ++i) {
+            t.emplace_back(estimation.poses.at(j).mdata[i]);
+        }
+    }
+    return m_interpolator.interpolate(t);
+}
+
+template<typename T>
 void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims,
         const AlignmentEstimation &estimation,
         const T * __restrict__ orig, T * __restrict__ copy, bool hasSingleOrig) {
@@ -121,7 +133,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
                 rotation2DMatrix(angle, r);
                 lhs = r * lhs;
             });
-        sApplyTransform(m_threadPool, m_dims, est, orig, copy, false);
+        copy = applyTr(est);
     };
     auto stepShift = [&] {
         m_shift_est.computeShift2DOneToN(copy);
@@ -130,7 +142,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });
-        sApplyTransform(m_threadPool, m_dims, est, orig, copy, false);
+        copy = applyTr(est);
     };
     for (unsigned i = 0; i < iters; ++i) {
         if (rotationFirst) {
@@ -163,7 +175,8 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
 
     // allocate memory for signals with applied pose
     size_t elems = m_dims.sizePadded();
-    auto copy = memoryUtils::page_aligned_alloc<T>(elems, false);
+    m_interpolator.createCopyOnGPU(others);
+    auto copy = m_interpolator.getCopy();
     m_shift_est.getHW().lockMemory(copy, elems * sizeof(T));
     m_rot_est.getHW().lockMemory(copy, elems * sizeof(T));
 
@@ -179,7 +192,7 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
 
     m_rot_est.getHW().unlockMemory(copy);
     m_shift_est.getHW().unlockMemory(copy);
-    free(copy);
+//    free(copy);
 
     for (size_t i = 0; i < n; ++i) {
         if (result_RS.correlations.at(i) < result_SR.correlations.at(i)) {
