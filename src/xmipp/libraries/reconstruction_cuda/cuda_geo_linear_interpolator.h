@@ -46,6 +46,10 @@ public:
 
     void createCopyOnGPU(const T *h_data) override;
 
+    T *getCopy() override {
+        return m_d_dest;
+    }
+
     T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
 private:
     T *m_d_src;

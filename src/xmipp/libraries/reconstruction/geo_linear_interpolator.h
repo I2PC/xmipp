@@ -45,9 +45,13 @@ public:
         m_src = nullptr;
     };
 
-    virtual ~GeoLinearTransformer() {delete[] m_dest;};
+    virtual ~GeoLinearTransformer() {free(m_dest);};
 
     void createCopyOnGPU(const T *h_data) override {m_src = h_data;};
+
+    T *getCopy() override {
+        return m_dest;
+    }
 
     T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
 private:

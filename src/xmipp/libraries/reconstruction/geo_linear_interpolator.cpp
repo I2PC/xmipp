@@ -56,6 +56,7 @@ T *GeoLinearTransformer<T>::interpolate(const std::vector<float> &matrices) {
     for (auto &f : futures) {
         f.get();
     }
+    return m_dest;
 }
 
 // explicit instantiation

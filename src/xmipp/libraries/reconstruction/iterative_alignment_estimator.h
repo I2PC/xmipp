@@ -68,6 +68,8 @@ private:
     const Dimensions m_dims;
     bool m_sameEstimators;
 
+    T *applyTr(const AlignmentEstimation &estimation);
+
     template<typename U, typename F>
     void updateEstimation(AlignmentEstimation &est,
             const U &newVals, const F &func);

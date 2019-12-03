@@ -36,6 +36,7 @@ class AGeoLinearTransformer {
 public:
     virtual ~AGeoLinearTransformer() {};
     virtual void createCopyOnGPU(const T *h_data)  = 0;
+    virtual T *getCopy() = 0;
 
     virtual T *interpolate(const std::vector<float> &matrices)  = 0; // each 3x3 values are a single matrix
 };
