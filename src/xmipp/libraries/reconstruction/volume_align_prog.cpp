@@ -121,9 +121,9 @@ public:
     double   grey_shift0, grey_shiftF, step_grey_shift;
     int      tell;
     bool     apply;
-    FileName fnOut, fnGeo;
+    FileName fnOut, fnGeo, fnStore;
     bool     mask_enabled;
-    bool     usePowell, onlyShift, useFRM, copyGeo;
+    bool     usePowell, onlyShift, useFRM, copyGeo, store;
     double   maxFreq;
     int      maxShift;
     bool     dontScale;
@@ -158,6 +158,7 @@ public:
         addParamsLine("  [--onlyShift]     : Only shift");
         addParamsLine("  [--dontScale]     : Do not look for scale changes");
         addParamsLine("  [--copyGeo <file=\"\">] : copy transformation matrix in a txt file. ('A' matrix elements)");
+        addParamsLine("  [--store <file=\"\">] : copy angles and shifts to a txt file.");
         addParamsLine(" == Mask Options == ");
         mask.defineParams(this,INT_MASK,NULL,NULL,true);
         addExampleLine("Typically you first look for a rough approximation of the alignment using exhaustive search. For instance, for a global rotational alignment use",false);
@@ -246,6 +247,8 @@ public:
         fnOut = getParam("--apply");
         copyGeo = checkParam("--copyGeo");
         fnGeo = getParam("--copyGeo");
+        store = checkParam("--store");
+        fnStore = getParam("--store");
         dontScale = checkParam("--dontScale");
 
         if (checkParam("--covariance"))
@@ -459,6 +462,13 @@ public:
 					  << A(3,0) << "\n" << A(3,1) << "\n" << A(3,2) << "\n" << A(3,3) << "\n"
 					  << std::endl;
         	outputGeo.close();
+        }
+        if (store)
+        {
+        	std::ofstream outputStore (fnStore.c_str());
+        	outputStore << best_align(2)  << ", " << best_align(3) << ", " << best_align(4) << ", " << A(0,3) << ", "
+					  << A(1,3) << ", " << A(2,3) << std::endl;
+        	outputStore.close();
         }
         if (apply)
         {
