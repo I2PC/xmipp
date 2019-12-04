@@ -438,11 +438,12 @@ public:
 
         translation3DMatrix(r,Aaux);
 
-        A = A + Aaux;
-        A(0,0) -= 1;
-        A(1,1) -= 1;
-        A(2,2) -= 1;
-        A(3,3) -= 1;
+        //A = A + Aaux;
+        //A(0,0) -= 1;
+        //A(1,1) -= 1;
+        //A(2,2) -= 1;
+        //A(3,3) -= 1;
+        A = A * Aaux;
 
         scale3DMatrix(vectorR3(best_align(5), best_align(5), best_align(5)),Aaux);
         A = A * Aaux;
