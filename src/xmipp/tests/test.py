@@ -236,8 +236,8 @@ class GTestResult(unittest.TestResult):
         sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), self.numberTests, secs))
         if self.testFailed:
-            print >> sys.stderr, red("[  FAILED  ]") + " %d tests" % self.testFailed
-        print >> sys.stdout, green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed)
+            sys.stderr.write(red("[  FAILED  ]") + " %d tests" % self.testFailed)
+        sys.stderr.write(green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed))
         sys.stdout.flush()
         # self.xml.write('</testsuite>\n')
         # self.xml.close()
