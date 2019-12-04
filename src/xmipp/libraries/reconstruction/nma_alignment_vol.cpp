@@ -26,12 +26,16 @@
 #include <sys/stat.h>
 #include <condor/Solver.h>
 #include <condor/tools.h>
+#include <stdio.h>
 
 #include <core/metadata_extension.h>
 #include <data/filters.h>
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
 
+FILE *myFile;
+float Mat[6];
+float Best_Angles_Shifts[6];
 
 // Empty constructor =======================================================
 ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
@@ -129,6 +133,13 @@ void ProgNmaAlignmentVol::createWorkFiles() {
 	{
 		mdDone.addLabel(MDL_IMAGE);
 		mdDone.addLabel(MDL_ENABLED);
+		mdDone.addLabel(MDL_IMAGE);
+		mdDone.addLabel(MDL_ANGLE_ROT);
+		mdDone.addLabel(MDL_ANGLE_TILT);
+		mdDone.addLabel(MDL_ANGLE_PSI);
+		mdDone.addLabel(MDL_SHIFT_X);
+		mdDone.addLabel(MDL_SHIFT_Y);
+		mdDone.addLabel(MDL_SHIFT_Z);
 		mdDone.addLabel(MDL_NMA);
 		mdDone.addLabel(MDL_NMA_ENERGY);
 		mdDone.addLabel(MDL_MAXCC);
@@ -207,11 +218,14 @@ FileName ProgNmaAlignmentVol::createDeformedPDB() const {
 	return fnRandom;
 }
 
-void ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
+bool ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
 	if (fitness < fitness_min) {
 		fitness_min = fitness;
 		trial_best = trial;
+		return true;
 	}
+	else
+		return false;
 }
 
 // Compute fitness =========================================================
@@ -224,10 +238,15 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 
 	FileName fnRandom = global_nma_vol_prog->createDeformedPDB();
 	const char * randStr = fnRandom.c_str();
+	FileName fnShiftsAngles = formatString("%s_angles_shifts.txt", randStr);
+	const char * shifts_angles = fnShiftsAngles.c_str();
 
 	if (global_nma_vol_prog->alignVolumes)
-		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply -v 0",
-				global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str()));
+		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0",
+				global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles));
+
+
+
 	global_nma_vol_prog->Vdeformed.read(formatString("%s_deformedPDB.vol",fnRandom.c_str()));
 	double retval=1e10;
 	if (XSIZE(global_nma_vol_prog->mask)!=0)
@@ -238,9 +257,18 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	//global_nma_vol_prog->Vdeformed().printStats();
 	//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
 
-	runSystem("rm", formatString("-rf %s* &", randStr));
 
-	global_nma_vol_prog->updateBestFit(retval, dim);
+
+
+
+	if(global_nma_vol_prog->updateBestFit(retval, dim)){
+		myFile = fopen(shifts_angles, "r");
+		for (int i = 0; i < 6; i++){
+		       fscanf(myFile, "%f,", &Best_Angles_Shifts[i]);
+		    }
+		fclose(myFile);
+	}
+	runSystem("rm", formatString("-rf %s* &", randStr));
 	//std::cout << global_nma_vol_prog->trial << " -> " << retval << std::endl;
 	return retval;
 }
@@ -303,8 +331,15 @@ void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
 		vectortemp.push_back(lambdaj);
 		energy+=lambdaj*lambdaj;
 	}
-	energy/=numberOfModes;
 
+
+	energy/=numberOfModes;
+	md.setValue(MDL_ANGLE_ROT, (double)Best_Angles_Shifts[0], objId);
+	md.setValue(MDL_ANGLE_TILT, (double)Best_Angles_Shifts[1], objId);
+	md.setValue(MDL_ANGLE_PSI, (double)Best_Angles_Shifts[2], objId);
+	md.setValue(MDL_SHIFT_X, (double)Best_Angles_Shifts[3], objId);
+	md.setValue(MDL_SHIFT_Y, (double)Best_Angles_Shifts[4], objId);
+	md.setValue(MDL_SHIFT_Z, (double)Best_Angles_Shifts[5], objId);
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_NMA_ENERGY, energy, objId);
 	md.setValue(MDL_MAXCC, 1-parameters(numberOfModes), objId);
