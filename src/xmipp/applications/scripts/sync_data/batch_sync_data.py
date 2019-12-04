@@ -41,7 +41,7 @@ def download(destination=None, url=None, dataset=None):
     isDLmodel = dataset=="DLmodels"
     if not isDLmodel:
         # First make sure that we ask for a known dataset.
-        if dataset not in [x.strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
+        if dataset not in [x.decode("utf8").strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
             print(blue("Unknown dataset/model: %s)" % dataset))
             return
         remoteManifest = '%s/%s/MANIFEST' % (url, dataset)
@@ -57,7 +57,7 @@ def download(destination=None, url=None, dataset=None):
     manifest = join(destination, 'MANIFEST')
     try:
         print(blue("Retrieving MANIFEST file"))
-        open(manifest, 'w').writelines(
+        open(manifest, 'wb').writelines(
             urlopen(remoteManifest))
     except Exception as e:
         sys.exit("ERROR reading %s (%s)" % (remoteManifest, e))
@@ -74,7 +74,7 @@ def download(destination=None, url=None, dataset=None):
             # Download content and create file with it.
             if not os.path.isdir(os.path.dirname(fpath)):
                 os.makedirs(os.path.dirname(fpath))
-            open(fpath, 'w').writelines(
+            open(fpath, 'wb').writelines(
                 urlopen('%s%s/%s' % (url, inFolder, fname)))
 
             md5 = md5sum(fpath)
@@ -223,8 +223,8 @@ def md5sum(fname):
     """ Return the md5 hash of file fname
     """
     mhash = hashlib.md5()
-    with open(fname) as f:
-        for chunk in iter(lambda: f.read(128 * mhash.block_size), ''):
+    with open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(128 * mhash.block_size), b""):
             mhash.update(chunk)
     return mhash.hexdigest()
 
@@ -239,7 +239,7 @@ def createMANIFEST(path):
 
 def readManifest(remoteManifest, isDLmodel):
     manifest = urlopen(remoteManifest).readlines()
-    md5sRemote = dict(x.strip().split() for x in manifest)
+    md5sRemote = dict(x.decode("utf8").strip().split() for x in manifest)
     if isDLmodel:  # DLmodels has hashs before fileNames
         md5sRemote = {v: k for k, v in md5sRemote.items()}
     return md5sRemote
