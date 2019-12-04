@@ -36,8 +36,6 @@ import sys
 import shutil
 from traceback import format_exception
 
-import xmippLib
-
 VAHID = "vahid"
 RM = 'rmarabini'
 COSS = 'coss'
@@ -189,6 +187,7 @@ class ProgramTest(unittest.TestCase):
         """ Check that all output files are produced
         and are equivalent to the ones in goldStandard folder.
         """
+        import xmippLib
         for out in outputs:
             outFile = os.path.join(self._testDir, self.outputDir, out)
             fileGoldStd = os.path.join(self.goldDir, out)
@@ -307,7 +306,7 @@ def visitTests(tests, grepStr=''):
         else:
             if grepStr in str(type(test)):
                 testsFlat.append(test)
-    testsFlat.sort()
+    # testsFlat.sort()
 
     # Follow the flattened list of tests and show the module, class
     # and name, in a nice way.
