@@ -33,8 +33,7 @@
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
 
-FILE *myFile;
-float Mat[6];
+FILE *AnglesAndShifts;
 float Best_Angles_Shifts[6];
 
 // Empty constructor =======================================================
@@ -262,11 +261,11 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 
 
 	if(global_nma_vol_prog->updateBestFit(retval, dim)){
-		myFile = fopen(shifts_angles, "r");
+		AnglesAndShifts = fopen(shifts_angles, "r");
 		for (int i = 0; i < 6; i++){
-		       fscanf(myFile, "%f,", &Best_Angles_Shifts[i]);
+		       fscanf(AnglesAndShifts, "%f,", &Best_Angles_Shifts[i]);
 		    }
-		fclose(myFile);
+		fclose(AnglesAndShifts);
 	}
 	runSystem("rm", formatString("-rf %s* &", randStr));
 	//std::cout << global_nma_vol_prog->trial << " -> " << retval << std::endl;

@@ -1,7 +1,7 @@
 /***************************************************************************
  *
  * Authors:  Mohamad Harastani mohamad.harastani@upmc.fr
- *	     Slavica Jonic slavica.jonic@upmc.fr
+ *	         Slavica Jonic slavica.jonic@upmc.fr
  *           Carlos Oscar Sanchez Sorzano coss.eps@ceu.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
@@ -25,18 +25,42 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
-#include <parallel/mpi_nma_alignment_vol.h>
-RUN_XMIPP_PROGRAM(MpiProgNMAVol)
+
+#include <parallel/xmipp_mpi.h>
+#include <reconstruction/nma_alignment_vol.h>
 
 
-/*
-#include <parallel/mpi_nma_alignment_vol.h>
-
-int main(int argc, char **argv)
+/** Class to perform the NMA Alignment for volumes with  MPI parallelization */
+class MpiProgNMAVol: public ProgNmaAlignmentVol
 {
-    MpiProgNMAVol program;
-    program.read(argc, argv);
-    return program.tryRun();
-}
-*/
+private:
+    MpiNode *node;
+    MpiTaskDistributor *distributor;
+    std::vector<size_t> imgsId;
+    MpiFileMutex *fileMutex;
 
+public:
+    // Constructor
+    MpiProgNMAVol();
+
+
+    // Redefine read to initialize MPI environment
+    void read(int argc, char **argv);
+    
+    // main body
+    void createWorkFiles();
+    
+    //Only master do starting progress bar stuff
+    void startProcessing();
+    
+    //Only master show progress
+    void showProgress();
+    
+    //Now use the distributor to grasp volumes
+    bool getImageToProcess(size_t &objId, size_t &objIndex);
+
+    void finishProcessing();
+
+    void writeVolumeParameters(const FileName &fnImg);
+}
+;//end of class MpiProgNMAVol
