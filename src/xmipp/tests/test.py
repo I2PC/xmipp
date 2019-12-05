@@ -306,7 +306,7 @@ def visitTests(tests, grepStr=''):
         else:
             if grepStr in str(type(test)):
                 testsFlat.append(test)
-    sorted(testsFlat)
+    # testsFlat.sort()
 
     # Follow the flattened list of tests and show the module, class
     # and name, in a nice way.
