@@ -29,11 +29,19 @@
 #include <reconstruction/nma_alignment_vol.h>
 #include "mpi_nma_alignment_vol.h"
 
+
 // Constructor =======================================================
 MpiProgNMAVol::MpiProgNMAVol(){
 	node=nullptr;
     distributor=nullptr;
     fileMutex=nullptr;
+}
+
+// Destructor =======================================================
+MpiProgNMAVol::~MpiProgNMAVol(){
+	delete node;
+	delete distributor;
+	delete fileMutex;
 }
 
 // Redefine read to initialize MPI environment =======================
@@ -81,7 +89,7 @@ void MpiProgNMAVol::showProgress()
 }
 
 // Now use the distributor to grasp images
-bool MpiProgNMAVol::getImageToProcess(size_t &objId, size_t &objIndex)
+bool MpiProgNMAVol::getVolumeToProcess(size_t &objId, size_t &objIndex)
 {
 	size_t first;
 	size_t last;

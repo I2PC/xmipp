@@ -27,16 +27,3 @@
  ***************************************************************************/
 #include <parallel/mpi_nma_alignment_vol.h>
 RUN_XMIPP_PROGRAM(MpiProgNMAVol)
-
-
-/*
-#include <parallel/mpi_nma_alignment_vol.h>
-
-int main(int argc, char **argv)
-{
-    MpiProgNMAVol program;
-    program.read(argc, argv);
-    return program.tryRun();
-}
-*/
-

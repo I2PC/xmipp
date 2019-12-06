@@ -40,10 +40,13 @@ private:
     MpiFileMutex *fileMutex;
 
 public:
+    
     // Constructor
     MpiProgNMAVol();
-
-
+    
+    // Destructor
+    ~MpiProgNMAVol();
+	
     // Redefine read to initialize MPI environment
     void read(int argc, char **argv);
     
@@ -57,7 +60,7 @@ public:
     void showProgress();
     
     //Now use the distributor to grasp volumes
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
+    bool getVolumeToProcess(size_t &objId, size_t &objIndex);
 
     void finishProcessing();
 
