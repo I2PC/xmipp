@@ -752,7 +752,8 @@ def configCuda(configDict):
             # get rid of it: 'ccache g++' -> 'g++'
             candidate = configDict["CXX"].split()[-1]
             cxxVersion, cxxStrVersion = getGccVersion(candidate)
-            if cxxVersion >= 6:
+            nvccVersion, nvccFullVersion = getCudaVersion(configDict["NVCC"])
+            if cxxVersion >= 6 and nvccVersion <= 8:
                 compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
                 print(red("%s version later than 5 detected. Looking for an alternative "
                           "for CUDA compilations... (g++-v: %s)"
