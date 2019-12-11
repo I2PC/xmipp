@@ -89,7 +89,7 @@ void MpiProgNMAVol::showProgress()
 }
 
 // Now use the distributor to grasp images
-bool MpiProgNMAVol::getVolumeToProcess(size_t &objId, size_t &objIndex)
+bool MpiProgNMAVol::getImageToProcess(size_t &objId, size_t &objIndex)
 {
 	size_t first;
 	size_t last;
