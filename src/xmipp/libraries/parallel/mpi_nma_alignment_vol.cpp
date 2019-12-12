@@ -25,8 +25,6 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/nma_alignment_vol.h>
 #include "mpi_nma_alignment_vol.h"
 
 

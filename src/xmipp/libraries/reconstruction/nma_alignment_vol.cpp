@@ -223,8 +223,7 @@ bool ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
 		trial_best = trial;
 		return true;
 	}
-	else
-		return false;
+	return false;
 }
 
 // Compute fitness =========================================================
@@ -237,7 +236,8 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 
 	FileName fnRandom = global_nma_vol_prog->createDeformedPDB();
 	const char * randStr = fnRandom.c_str();
-	FileName fnShiftsAngles = formatString("%s_angles_shifts.txt", randStr);
+	//FileName fnShiftsAngles = formatString("%s_angles_shifts.txt", randStr);
+	FileName fnShiftsAngles = fnRandom + "_angles_shifts.txt" ;
 	const char * shifts_angles = fnShiftsAngles.c_str();
 
 	if (global_nma_vol_prog->alignVolumes)

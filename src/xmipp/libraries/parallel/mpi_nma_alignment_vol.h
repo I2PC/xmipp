@@ -38,18 +38,8 @@ private:
     MpiTaskDistributor *distributor;
     std::vector<size_t> imgsId;
     MpiFileMutex *fileMutex;
+    
 
-public:
-    
-    // Constructor
-    MpiProgNMAVol();
-    
-    // Destructor
-    ~MpiProgNMAVol();
-	
-    // Redefine read to initialize MPI environment
-    void read(int argc, char **argv);
-    
     // main body
     void createWorkFiles();
     
@@ -65,5 +55,17 @@ public:
     void finishProcessing();
 
     void writeVolumeParameters(const FileName &fnImg);
+
+public:
+
+    // Constructor
+    MpiProgNMAVol();
+
+    // Destructor
+    ~MpiProgNMAVol();
+
+    // Redefine read to initialize MPI environment
+    void read(int argc, char **argv);
+
 }
 ;//end of class MpiProgNMAVol
