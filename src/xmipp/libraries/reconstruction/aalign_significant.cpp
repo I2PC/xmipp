@@ -265,7 +265,8 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     row.setValue(MDL_MAXCC, (double)maxCC);
     row.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex));
     row.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex));
-    row.setValue(MDL_WEIGHT_SIGNIFICANT, weight);
+    //row.setValue(MDL_WEIGHT_SIGNIFICANT, weight);
+    row.setValue(MDL_WEIGHT, weight);
     row.setValue(MDL_ANGLE_PSI, psi);
     row.setValue(MDL_SHIFT_X, -shiftX); // store negative translation
     row.setValue(MDL_SHIFT_Y, -shiftY); // store negative translation
