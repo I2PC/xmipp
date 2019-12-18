@@ -312,10 +312,6 @@ class TestXmippPythonInterface(unittest.TestCase):
         # TODO: division does not work
         # imgSum /= 3.
         imgSum *= 0.3333333
-        #print ("img1=", img1.getData(),"\n", 
-        #       "img2=", img2.getData(),"\n", 
-        #       "imgSum=", imgSum.getData(),"\n", 
-        #       "imgSum2=", imgSum2.getData())
 
         self.assertEqual(imgSum, imgSum2)
         self.assertNotEqual(imgSum, img1)
