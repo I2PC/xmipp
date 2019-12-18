@@ -48,7 +48,10 @@ PyNumberMethods Image_NumberMethods =
         Image_add, //binaryfunc  nb_add;
         Image_subtract, //binaryfunc  nb_subtract;
         Image_multiply, //binaryfunc  nb_multiply;
-        Image_divide, //binaryfunc  nb_divide;
+        // TODO: division no longer works,  I do not know why
+        // may be related with the fact that division in python3
+        // does not work as it use to do in python 2
+        Image_true_divide, //binaryfunc  nb_divide;
         0, //binaryfunc  nb_remainder;
         0, //binaryfunc  nb_divmod;
         0, //ternaryfunc nb_power;
@@ -572,7 +575,7 @@ class NumpyStaticImport
 public:
     NumpyStaticImport()
     {
-        //import_array();
+        _import_array();
     }
 }
 ;//class NumpyStaticImport
@@ -1459,8 +1462,9 @@ Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs)
 
 /* Divide image and constant, operator * */
 PyObject *
-Image_divide(PyObject *obj1, PyObject *obj2)
+Image_true_divide(PyObject *obj1, PyObject *obj2)
 {
+    std::cerr << "TODO: not working Image_divide_____________________________" << std::endl;
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
     if (result != NULL)
     {
@@ -1487,6 +1491,7 @@ Image_divide(PyObject *obj1, PyObject *obj2)
 PyObject *
 Image_idivide(PyObject *obj1, PyObject *obj2)
 {
+    std::cerr << "TODO: not working Image_idivide_____________________________" << std::endl;
     try
     {
       ImageObject * result = NULL;
