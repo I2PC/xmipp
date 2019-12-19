@@ -28,17 +28,16 @@
 
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/nma_alignment_vol.h>
-
+#include <memory>
 
 /** Class to perform the NMA Alignment for volumes with  MPI parallelization */
 class MpiProgNMAVol: public ProgNmaAlignmentVol
 {
 private:
-    MpiNode *node;
-    MpiTaskDistributor *distributor;
+    std::shared_ptr<MpiNode> node;
+    std::shared_ptr<MpiTaskDistributor> distributor;
+    std::shared_ptr<MpiFileMutex> fileMutex;
     std::vector<size_t> imgsId;
-    MpiFileMutex *fileMutex;
-    
 
     // main body
     void createWorkFiles();
@@ -57,15 +56,7 @@ private:
     void writeVolumeParameters(const FileName &fnImg);
 
 public:
-
-    // Constructor
-    MpiProgNMAVol();
-
-    // Destructor
-    ~MpiProgNMAVol();
-
     // Redefine read to initialize MPI environment
     void read(int argc, char **argv);
-
 }
 ;//end of class MpiProgNMAVol

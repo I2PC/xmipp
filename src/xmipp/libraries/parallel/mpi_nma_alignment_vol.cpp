@@ -27,28 +27,13 @@
  ***************************************************************************/
 #include "mpi_nma_alignment_vol.h"
 
-
-// Constructor =======================================================
-MpiProgNMAVol::MpiProgNMAVol(){
-	node=nullptr;
-    distributor=nullptr;
-    fileMutex=nullptr;
-}
-
-// Destructor =======================================================
-MpiProgNMAVol::~MpiProgNMAVol(){
-	delete node;
-	delete distributor;
-	delete fileMutex;
-}
-
 // Redefine read to initialize MPI environment =======================
 void MpiProgNMAVol::read(int argc, char **argv)
 {
-	node = new MpiNode(argc, argv);
+	node = std::make_shared<MpiNode>(argc, argv);
 	if (!node->isMaster())
 		verbose=0;
-	fileMutex = new MpiFileMutex(node);
+	fileMutex = std::make_shared<MpiFileMutex>(node.get());
 	ProgNmaAlignmentVol::read(argc, argv);
 }
 
@@ -64,11 +49,9 @@ void MpiProgNMAVol::createWorkFiles()
 		mdIn.write(fnOutDir + list_of_volumes);
 	}
 	node->barrierWait();//Sync all before start working
-
 	mdIn.read(fnOutDir + list_of_volumes);
-
 	mdIn.findObjects(imgsId);//get objects ids
-	distributor = new MpiTaskDistributor(mdIn.size(), 1, node);
+	distributor = std::make_shared<MpiTaskDistributor>(mdIn.size(), 1, node.get());
 }
 
 
