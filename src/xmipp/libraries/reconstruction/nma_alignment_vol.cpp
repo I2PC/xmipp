@@ -76,6 +76,8 @@ void ProgNmaAlignmentVol::defineParams() {
 	addParamsLine("  [--alignVolumes]                     : Align the deformed volume to the input volume before comparing");
 	addParamsLine("                                       : You need to compile Xmipp with SHALIGNMENT support (see install.sh)");
 	addParamsLine("  [--mask <m=\"\">]                    : 3D masking  of the projections of the deformed volume");
+	addParamsLine("==Mask for compensation for the missing wedge");
+	addParamsLine("  [--m_wedge_mask <filename>]          : File containing a missing wedge mask");
 	addExampleLine("xmipp_nma_alignment_vol -i volumes.xmd --pdb 2tbv.pdb --modes modelist.xmd --sampling_rate 3.2 -o output.xmd --resume");
 }
 
@@ -97,6 +99,10 @@ void ProgNmaAlignmentVol::readParams() {
 	useFixedGaussian = checkParam("--fixed_Gaussian");
 	if (useFixedGaussian)
 		sigmaGaussian = getDoubleParam("--fixed_Gaussian");
+	UseMissingWedgeMask = checkParam("--m_wedge_mask");
+	if (UseMissingWedgeMask)
+		fnMWmask = getParam("--m_wedge_mask");
+
 	alignVolumes=checkParam("--alignVolumes");
 }
 
@@ -240,11 +246,18 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	FileName fnShiftsAngles = fnRandom + "_angles_shifts.txt" ;
 	const char * shifts_angles = fnShiftsAngles.c_str();
 
-	if (global_nma_vol_prog->alignVolumes)
-		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0",
-				global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles));
-
-
+	if (global_nma_vol_prog->alignVolumes){
+		if (global_nma_vol_prog->UseMissingWedgeMask){
+			runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0 --mask binary_file %s",
+					global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles,global_nma_vol_prog->fnMWmask.c_str()));
+			// Print to check in case of doubt
+			//std::cout << formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0 --mask binary_file %s",
+			//		global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles,global_nma_vol_prog->fnMWmask.c_str());
+		}
+		else
+			runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0",
+					global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles));
+	}
 
 	global_nma_vol_prog->Vdeformed.read(formatString("%s_deformedPDB.vol",fnRandom.c_str()));
 	double retval=1e10;

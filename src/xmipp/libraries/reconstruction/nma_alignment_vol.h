@@ -84,6 +84,13 @@ public:
 
     /// Trust radius scale
     double trustradius_scale;
+
+    /// Use a missing wedge mask
+    bool UseMissingWedgeMask;
+
+    /// Mask file for missing wedge compensation
+    FileName fnMWmask;
+
 public:
 
     // Random generator seed
