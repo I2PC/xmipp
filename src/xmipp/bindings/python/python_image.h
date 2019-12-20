@@ -238,7 +238,7 @@ PyObject *
 Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs);
 
 PyObject *
-Image_divide(PyObject *obj1, PyObject *obj2);
+Image_true_divide(PyObject *obj1, PyObject *obj2);
 PyObject *
 Image_idivide(PyObject *obj1, PyObject *obj2);
 PyObject *

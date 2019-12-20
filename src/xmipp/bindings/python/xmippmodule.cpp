@@ -734,14 +734,13 @@ xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    //PyObject *pyStrFn, *pyStrAux;
-    //FileName fn;
+    import_array();
     double rot, tilt, psi;
     if (PyArg_ParseTuple(args, "ddd", &rot,&tilt,&psi))
     {
         npy_intp dims[2];
         dims[0] = 3;
-        dims[1] = 3;
+        dims[1] = 3; 
         PyArrayObject * arr = (PyArrayObject*) PyArray_SimpleNew(2, dims, NPY_DOUBLE);
         void * data = PyArray_DATA(arr);
         Matrix2D<double> euler(3,3);
