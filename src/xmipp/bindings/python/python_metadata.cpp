@@ -196,7 +196,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject *pyStr = NULL;
     PyObject *pyStr1 = NULL;
     PyObject *pyReplace = Py_False;
-    char *str = NULL;
+    const char *str = NULL;
     bool replace = true;
 
 
@@ -232,7 +232,7 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     PyObject *input = NULL;
     PyObject *pyStr = NULL;
     PyObject *pyStr1 = NULL;
-    char *str = NULL;
+    const char *str = NULL;
 
 
     if (PyArg_ParseTuple(args, "Oi", &input, &type))
@@ -430,10 +430,11 @@ PyTypeObject MetaDataType =
         sizeof(MetaDataObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
         (destructor)MetaData_dealloc, /*tp_dealloc*/
-        MetaData_print, /*tp_print*/
+        0, /*tp_vectorcall_offset*/
+        /*MetaData_print, /*tp_print*/
         0, /*tp_getattr*/
         0, /*tp_setattr*/
-        0, /*tp_compare*/
+        0, /* tp_as_async */
         MetaData_repr, /*tp_repr*/
         0, /*tp_as_number*/
         0, /*tp_as_sequence*/
@@ -546,7 +547,7 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyObject *list = NULL; //list can be a list of labels or maxRows
         PyObject *input = NULL, *pyStr = NULL;
-        char *str = NULL;
+        const char *str = NULL;
         if (PyArg_ParseTuple(args, "O|O", &input,  &list))
         {
             try
@@ -612,8 +613,8 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *pyStr = NULL;
         PyObject *pyLabels = NULL;
         PyObject *pySep = NULL;
-        char *str = NULL;
-        char *labels = NULL;
+        const char *str = NULL;
+        const char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
@@ -656,8 +657,8 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *pyStr = NULL;
         PyObject *pyLabels = NULL;
         PyObject *pySep = NULL;
-        char *str = NULL;
-        char *labels = NULL;
+        const char *str = NULL;
+        const char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
@@ -697,8 +698,8 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *blockName = NULL;
         PyObject *pyStr = NULL;
         PyObject *pyStrBlock = NULL;
-        char *str = NULL;
-        char *strBlock = NULL;
+        const char *str = NULL;
+        const char *strBlock = NULL;
         if (PyArg_ParseTuple(args, "OO", &input, &blockName))
         {
             try
@@ -736,7 +737,7 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
     if (self != NULL)
     {
         PyObject *input = NULL, *pyStr = NULL, *pyStr1 = NULL;
-        char *str = NULL;
+        const char *str = NULL;
         if (PyArg_ParseTuple(args, "O|i", &input, &wmd))
         {
             try
@@ -775,7 +776,7 @@ MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 if (PyUnicode_Check(input))
                    {
-                      char *str = PyUnicode_AsUTF8(input);
+                      const char *str = PyUnicode_AsUTF8(input);
                       self->metadata->append(str);
                    }
                 else if (FileName_Check(input))
@@ -1123,6 +1124,7 @@ PyObject *
 xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 {
     PyObject *input, *str_exc_type = NULL, *pyStr = NULL;
+    const char *fileName = NULL;
     FileName fn;
     StringVector blocks;
 
@@ -1131,8 +1133,10 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
         if (PyArg_ParseTuple(args, "O", &input))
         {
 
-            if (PyUnicode_Check(input))
-                 fn = PyUnicode_AsUTF8(input);
+            if (PyUnicode_Check(input)){
+                 fileName = PyUnicode_AsUTF8(input);
+                 fn = fileName;
+            }
             else if (FileName_Check(input))
                 fn = FileName_Value(input);
             else
@@ -1251,7 +1255,7 @@ MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             if ((pyStr = PyObject_Str(pyValue)) != NULL)
             {
-                char * str = PyUnicode_AsUTF8(pyStr);
+                const char * str = PyUnicode_AsUTF8(pyStr);
                 if (str != NULL)
                 {
                     self->metadata->fillConstant((MDLabel) label, str);
@@ -1305,7 +1309,7 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             if ((pyStr = PyObject_Str(pyValue)) != NULL)
             {
-                char * str = PyUnicode_AsUTF8(pyStr);
+                const char * str = PyUnicode_AsUTF8(pyStr);
                 if (str != NULL)
                 {
                     self->metadata->fillRandom((MDLabel) label, str, op1, op2, op3);
@@ -1591,7 +1595,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     self->metadata = new MetaData(MetaData_Value(input));
                 else if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    char *str = PyUnicode_AsUTF8(pyStr);
+                    const char *str = PyUnicode_AsUTF8(pyStr);
                     self->metadata = new MetaData(str);
                 }
                 else
@@ -2185,7 +2189,7 @@ createMDObject(int label, PyObject *pyValue)
         }
         if (PyUnicode_Check(pyValue))
         {
-            char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
+            const char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
             RETURN_MDOBJECT(std::string(str));
         }
         if (FileName_Check(pyValue))
@@ -2260,7 +2264,7 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
             obj->setValue((size_t)PyLong_AsUnsignedLong(pyValue));
         else if (PyUnicode_Check(pyValue))
             {
-              char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
+              const char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
               obj->setValue(std::string(str));
             }
         else if (FileName_Check(pyValue))

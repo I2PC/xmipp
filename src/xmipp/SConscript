@@ -28,10 +28,8 @@
 # **************************************************************************
 
 import os
-import sys
 from os.path import join
 from glob import glob
-from datetime import datetime
 
 PYTHON_LIB = os.environ.get("PYTHON_LIB")
 
@@ -134,6 +132,7 @@ def addLib(name, **kwargs):
 
 def remove_prefix(text, prefix):
     return text[text.startswith(prefix) and len(prefix):]
+
 env['PYTHONINCFLAGS'] = os.environ.get('PYTHONINCFLAGS', '').split()
 if len(env["PYTHONINCFLAGS"])>0:
     python_incdirs = [remove_prefix(os.path.expandvars(x),"-I") for x in env["PYTHONINCFLAGS"]]
@@ -173,7 +172,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs, libs=['
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff', 'fftw3f', 'fftw3f_threads']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff', 'fftw3f', 'fftw3f_threads', PYTHON_LIB]
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):

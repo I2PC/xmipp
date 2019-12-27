@@ -216,7 +216,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                       // Get the index and filename from the Python tuple object
                       size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
                       PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
-                      char * filename = PyUnicode_AsUTF8(repr);
+                      const char * filename = PyUnicode_AsUTF8(repr);
                       // Now read using both of index and filename
                       self->image = new ImageGeneric();
                       self->image->read(filename, DATA, index);
