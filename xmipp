@@ -263,6 +263,9 @@ def cleanBinaries():
         runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
     runJob('find . -iname "*.pyc" -delete')
     runJob("rm -rf %s build" % CONFIG_FILE_NAME)
+    # I'm getting ValueError : unsupported pickle protocol: 5' when switching from one python version to another
+    # This seems to be cached at dblite file.
+    runJob('find . -iname "*.dblite" -delete')
 
 
 def checkout(branch):
@@ -535,9 +538,6 @@ def configCompiler(configDict):
             configDict["CXXFLAGS"] += " -g"
     # Nothing special to add to LINKFLAGS
     from sysconfig import get_paths
-    import site
-
-    packages = site.getsitepackages()[0]
     info = get_paths()
 
     if configDict["LIBDIRFLAGS"] == "":
@@ -561,16 +561,17 @@ def configCompiler(configDict):
                 incDirs += ["/usr/include/hdf5/serial"]
 
     if configDict["PYTHON_LIB"] == "":
-
-        configDict["PYTHON_LIB"] = "python%s.%sm" % (sys.version_info.major, sys.version_info.minor)
+        # malloc flavour is not needed from 3.8
+        malloc = "m" if sys.version_info.minor < 8 else ""
+        configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major, sys.version_info.minor, malloc)
 
 
     if configDict["PYTHONINCFLAGS"] == "":
+        import numpy
         incDirs=[]
 
         incDirs += [info['include'],
-                    packages,
-                    "%s/numpy/core/include"%packages]
+                    numpy.get_include()]
 
         pythonIncFlags = ""
         for incDir in incDirs:
@@ -944,9 +945,10 @@ def compileModule(Nproc,module):
     if module == "xmipp":
         stampVersion()
     log = []
-    ok = runJob("scons -j%s"%Nproc, "src/%s"%module, log=log)
+    ok = runJob("scons -j%s" % Nproc, "src/%s" % module, log=log)
     if not ok:
         for l in log[-30:]:  # inspecting last 30 lines
+            print(log)
             # expected error: 'scons: *** [some/program/to/compile] Error 1'
             failingBin = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
             if failingBin:
