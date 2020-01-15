@@ -273,6 +273,7 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     // save both weight and weight significant, so that we can keep track of result of this
     // program, even after some other program re-weights the particle
     row.setValue(MDL_WEIGHT_SIGNIFICANT, weight);
+    row.setValue(MDL_WEIGHT, weight);
     row.setValue(MDL_ANGLE_PSI, psi);
     row.setValue(MDL_SHIFT_X, -shiftX); // store negative translation
     row.setValue(MDL_SHIFT_Y, -shiftY); // store negative translation
