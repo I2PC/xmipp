@@ -157,6 +157,9 @@ void AProgAlignSignificant<T>::check() const {
     if (m_noOfBestToKeep > m_settings.refDims.n()) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "--keepBestN is higher than number of references");
     }
+    if (m_settings.refDims.n() <= 1) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "We need at least two references");
+    }
 }
 
 template<typename T>
@@ -181,8 +184,8 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
                 continue;
             }
         }
-        // get correlations of all signals
         correlations.reserve(correlations.size() + noOfSignals);
+        // get correlations of all signals
         auto &cc = est.at(r).correlations;
         for (size_t s = 0; s < noOfSignals; ++s) {
             correlations.emplace_back(cc.at(s), r, s);
@@ -197,7 +200,7 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
         std::vector<WeightCompHelper> &correlations,
         size_t refIndex) {
     const size_t noOfSignals = m_settings.otherDims.n();
-    auto weights = std::vector<float>(noOfSignals);
+    auto weights = std::vector<float>(noOfSignals, 0); // zero weight by default
     const size_t noOfCorrelations = correlations.size();
 
     // sort ascending using correlation
@@ -209,16 +212,14 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
 
     // set weight for all images
     for (size_t c = 0; c < noOfCorrelations; ++c) {
-        auto &tmp = correlations.at(c);
+        const auto &tmp = correlations.at(c);
         if (tmp.refIndex != refIndex) {
             continue; // current record is for different reference
         }
         // cumulative density function - probability of having smaller value then the rest
-        float cdf = c / (float)(noOfCorrelations - 1); // <0..1>
+        float cdf = c / (float)(noOfCorrelations - 1); // <0..1> // won't work if we have just one reference
         float correlation = tmp.correlation;
-        if (correlation <= 0.f) {
-            weights.at(tmp.imgIndex) = 0;
-        } else {
+        if (correlation > 0.f) {
             weights.at(tmp.imgIndex) = correlation * invMaxCorrelation * cdf;
         }
     }
@@ -314,9 +315,6 @@ void AProgAlignSignificant<T>::storeAlignedImages(
         double maxCC = std::numeric_limits<double>::lowest();
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
-            if (cc.at(nthBest) <= 0) {
-                continue; // skip saving the particles which have non-positive correlation to the reference
-            }
             size_t refIndex;
             double val;
             // get the weight
@@ -324,6 +322,9 @@ void AProgAlignSignificant<T>::storeAlignedImages(
             if (0 == nthBest) {
                 // set max CC that we found
                 maxCC = val;
+            }
+            if (val <= 0) {
+                continue; // skip saving the particles which have non-positive correlation to the reference
             }
             // update the row with proper pose info
             fillRow(row,
@@ -347,7 +348,9 @@ void AProgAlignSignificant<T>::run() {
     m_settings.refDims = load(m_referenceImages);
     check();
 
+    // for each reference, get alignment of all images
     auto alignment = align(m_referenceImages.data.get(), m_imagesToAlign.data.get());
+
     computeWeights(alignment);
 
     storeAlignedImages(alignment);
