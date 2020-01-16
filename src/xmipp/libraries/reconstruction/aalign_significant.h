@@ -78,9 +78,9 @@ private:
     struct WeightCompHelper {
         WeightCompHelper(float c, size_t ref, size_t img) :
             correlation(c), refIndex(ref), imgIndex(img) {};
-        float correlation;
         size_t refIndex;
         size_t imgIndex;
+        float correlation;
     };
 
     DataHelper m_imagesToAlign;
