@@ -35,7 +35,7 @@ TEST_F( EulerTest, eulerXmippMatch)
                 Matrix2D<double> M(4,4);
                 m.initIdentity();
                 angles.toMatrix(m);
-                Euler_angles2matrix(_x,_y,_z,M);
+                Euler_angles2matrix((double)_x,(double)_y,(double)_z,M);
 
                 FOR_ALL_ELEMENTS_IN_MATRIX2D(M)
                 {
