@@ -73,7 +73,7 @@ protected:
         Matrix1D<double> xyz(3);
 
         if (checkParam("--ang"))
-            Euler_angles2matrix(0, 0,getDoubleParam("--ang"), R, true);
+            Euler_angles2matrix(0., 0.,getDoubleParam("--ang"), R, true);
         else if (checkParam("--axis"))
         {
             double ang = getDoubleParam("--axis", 0);
