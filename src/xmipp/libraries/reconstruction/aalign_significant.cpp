@@ -64,7 +64,7 @@ void AProgAlignSignificant<T>::show() const {
     std::cout << "Reference metadata          : " << m_referenceImages.fn <<  "\n";
     std::cout << "Output metadata             : " << m_fnOut <<  "\n";
     std::cout << "Angular distance            : " << m_angDistance <<  "\n";
-    std::cout << "Keep N references           : " << m_noOfBestToKeep << "\n";
+    std::cout << "Best references kept        : " << m_noOfBestToKeep << "\n";
     std::cout.flush();
 }
 
@@ -168,30 +168,44 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
         size_t refIndex) {
     const size_t noOfRefs = m_settings.refDims.n();
     const size_t noOfSignals = m_settings.otherDims.n();
-    auto correlations = std::vector<WeightCompHelper>();
-    // and all references that are similar
+
+    // compute angle between two reference orientation
+    auto getAngle = [&](size_t index) {
+        return Euler_distanceBetweenAngleSets(
+                m_referenceImages.rots.at(refIndex),
+                m_referenceImages.tilts.at(refIndex),
+                0.f,
+                m_referenceImages.rots.at(index),
+                m_referenceImages.tilts.at(index),
+                0.f,
+                true);
+    };
+
+    // find out which references are sufficiently similar
+    size_t count = 0;
+    auto mask = std::vector<bool>(noOfRefs, false);
     for (size_t r = 0; r < noOfRefs; ++r) {
-        if (refIndex != r) {
-            auto ang=Euler_distanceBetweenAngleSets(
-                    m_referenceImages.rots.at(refIndex),
-                    m_referenceImages.tilts.at(refIndex),
-                    0.0,
-                    m_referenceImages.rots.at(r),
-                    m_referenceImages.tilts.at(r),
-                    0.0,
-                    true);
-            if (ang > m_angDistance) {
-                continue;
-            }
-        }
-        correlations.reserve(correlations.size() + noOfSignals);
-        // get correlations of all signals
-        auto &cc = est.at(r).correlations;
-        for (size_t s = 0; s < noOfSignals; ++s) {
-            correlations.emplace_back(cc.at(s), r, s);
+        if ((refIndex == r)
+            || (getAngle(r) <= m_angDistance)) {
+            mask.at(r) = true;
+            count++;
         }
     }
 
+    // allocate necessary memory
+    auto correlations = std::vector<WeightCompHelper>();
+    correlations.reserve(count * noOfSignals);
+
+    // for all similar references
+    for (size_t r = 0; r < noOfRefs; ++r) {
+        if (mask.at(r)) {
+            // get correlations of all signals
+            auto &cc = est.at(r).correlations;
+            for (size_t s = 0; s < noOfSignals; ++s) {
+                correlations.emplace_back(cc.at(s), r, s);
+            }
+        }
+    }
     computeWeightsAndSave(correlations, refIndex);
 }
 
