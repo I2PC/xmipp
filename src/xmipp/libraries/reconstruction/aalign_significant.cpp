@@ -251,22 +251,11 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
 template<typename T>
 void AProgAlignSignificant<T>::computeWeights(const std::vector<AlignmentEstimation> &est) {
     const size_t noOfRefs = m_settings.refDims.n();
-    const size_t noOfSignals = m_settings.otherDims.n();
     m_weights.resize(noOfRefs);
 
-    auto workload = [&](int threadId, size_t refIndex) {
-        computeWeightsAndSave(est, refIndex);
-    };
-
-    auto futures = std::vector<std::future<void>>();
-    futures.reserve(noOfRefs);
     // for all references
     for (size_t r = 0; r < noOfRefs; ++r) {
-        futures.emplace_back(m_threadPool.push(workload, r));
-    }
-    // wait till done
-    for (auto &f : futures) {
-        f.get();
+        computeWeightsAndSave(est, r);
     }
 }
 
