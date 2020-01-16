@@ -120,6 +120,13 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
         }
     };
 
+    // make sure that the files are well-defined
+    bool isValid = md.containsLabel(MDL_IMAGE)
+        && md.containsLabel(MDL_ANGLE_ROT) && md.containsLabel(MDL_ANGLE_TILT);
+    if ( ! isValid) {
+        REPORT_ERROR(ERR_MD, h.fn + ": at least one of the following label is missing: MDL_IMAGE, MDL_ANGLE_ROT, MDL_ANGLE_TILT");
+    }
+
     // load all images in parallel
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
