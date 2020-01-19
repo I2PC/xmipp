@@ -29,6 +29,8 @@ import os
 import subprocess
 
 from pyworkflow.tests import BaseTest
+
+
 # import pyworkflow.em.packages.xmipp3 as xmipp3
 
 
@@ -39,21 +41,21 @@ class TestXmipp(BaseTest):
         """ Discovers all basic xmipp tests and prints or executes them
             depending on newItemCallback argument
         """
-    
+
         # Build base directory.
         path = "software/em/xmipp/applications/tests/"
-        
-        cmdList= []
+
+        cmdList = []
         # Get all folders in current path.
         for folder in os.listdir(path):
-        
+
             # Check if current folder starts with "test_"
             if folder.startswith("test_"):
                 # Build command to execute/print.
                 command = 'xmipp_%s' % folder
                 cmdList.append(command)
         return cmdList
-    
+
     def testXmippCode(self):
         for cmd in self.discoverXmippTest():
             runXmippProgram(cmd)

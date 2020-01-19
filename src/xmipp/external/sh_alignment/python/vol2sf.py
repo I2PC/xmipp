@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-'''
+"""
 Created on Sep 29, 2010
 
 @author: chen
-'''
+"""
 
 import numpy as np
+
 
 def vol2sf(vol, r, b, center=None):
     """Transfer a volume into a serial of spherical functions. The volume will be decomposed into a serials of concentric shells.
@@ -31,21 +32,23 @@ def vol2sf(vol, r, b, center=None):
     f(the_0, phi_0) ... f(the_0, phi_2B-1), f(the_2B-1, phi_0) ... f(the_2B-1, phi_2B-1)
     List
     """
-    if r > vol.shape[0]/2 or r > vol.shape[1]/2 or r > vol.shape[2]/2:
+    if r > vol.shape[0] / 2 or r > vol.shape[1] / 2 or r > vol.shape[2] / 2:
         raise RuntimeError("Given radius is larger than the volume!")
     elif r <= 0:
         raise RuntimeError("Radius should be larger than the 0!")
     else:
         pass
-    
+
     if center:
         m_x, m_y, m_z = center
     else:
         # the middle point of the volume
-        m_x = vol.shape[0]/2; m_y = vol.shape[1]/2; m_z = vol.shape[2]/2
+        m_x = vol.shape[0] / 2
+        m_y = vol.shape[1] / 2
+        m_z = vol.shape[2] / 2
 
-    the = np.pi*(2*np.arange(2*b)+1) / (4*b)
-    phi = np.pi*np.arange(2*b) / b
+    the = np.pi * (2 * np.arange(2 * b) + 1) / (4 * b)
+    phi = np.pi * np.arange(2 * b) / b
 
     # C order mesh
     phi, the = np.meshgrid(phi, the)
@@ -53,14 +56,14 @@ def vol2sf(vol, r, b, center=None):
     phi = phi.flatten()
 
     # compute the coordinates
-    x = r*np.cos(phi)*np.sin(the) + m_x
-    y = r*np.sin(phi)*np.sin(the) + m_y
-    z = r*np.cos(the) + m_z
+    x = r * np.cos(phi) * np.sin(the) + m_x
+    y = r * np.sin(phi) * np.sin(the) + m_y
+    z = r * np.cos(the) + m_z
 
     # interpolate
     from scipy.ndimage import map_coordinates
     res = map_coordinates(vol, [x, y, z], order=2)
-    
+
     return res
 
 
@@ -84,19 +87,21 @@ def fvol2sf(vol, r, b):
     f(the_0, phi_0) ... f(the_0, phi_2B-1), f(the_2B-1, phi_0) ... f(the_2B-1, phi_2B-1)
     List
     """
-    if r > vol.shape[0]/2 or r > vol.shape[1]/2 or r > vol.shape[2]/2:
+    if r > vol.shape[0] / 2 or r > vol.shape[1] / 2 or r > vol.shape[2] / 2:
         raise RuntimeError("Given radius is larger than the volume!")
     elif r <= 0:
         raise RuntimeError("Radius should be larger than the 0!")
     else:
         pass
-    
+
     # zero frequency position
-    m_x = vol.shape[0]/2; m_y = vol.shape[1]/2; m_z = vol.shape[2]/2
+    m_x = vol.shape[0] / 2
+    m_y = vol.shape[1] / 2
+    m_z = vol.shape[2] / 2
 
     # only half
-    the = np.pi*(2*np.arange(b)+1) / (4*b)
-    phi = np.pi*np.arange(2*b) / b
+    the = np.pi * (2 * np.arange(b) + 1) / (4 * b)
+    phi = np.pi * np.arange(2 * b) / b
 
     # C order mesh
     phi, the = np.meshgrid(phi, the)
@@ -104,9 +109,9 @@ def fvol2sf(vol, r, b):
     phi = phi.flatten()
 
     # compute the coordinates
-    x = r*np.cos(phi)*np.sin(the) + m_x
-    y = r*np.sin(phi)*np.sin(the) + m_y
-    z = r*np.cos(the) + m_z
+    x = r * np.cos(phi) * np.sin(the) + m_x
+    y = r * np.sin(phi) * np.sin(the) + m_y
+    z = r * np.cos(the) + m_z
 
     # use spline intepolation on the real/imaginary parts
     # can be done better, but now it suffices
@@ -118,17 +123,17 @@ def fvol2sf(vol, r, b):
     res_i_a = map_coordinates(vol_i, [x, y, z], order=2)
 
     # fill in the other half
-    ind = np.arange(2*b**2)
-    cind = (2*b-1-(ind+2*b**2)/(2*b))*2*b + np.mod(np.mod(ind, 2*b)+b, 2*b)
+    ind = np.arange(2 * b ** 2)
+    cind = (2 * b - 1 - (ind + 2 * b ** 2) / (2 * b)) * 2 * b + np.mod(np.mod(ind, 2 * b) + b, 2 * b)
 
-    res_r = np.zeros((4*b**2,))
-    res_r[:2*b**2] = res_r_a
-    res_r[2*b**2:] = res_r_a[cind]
+    res_r = np.zeros((4 * b ** 2,))
+    res_r[:2 * b ** 2] = res_r_a
+    res_r[2 * b ** 2:] = res_r_a[cind]
 
-    res_i = np.zeros((4*b**2,))
-    res_i[:2*b**2] = res_i_a
-    res_i[2*b**2:] = -res_i_a[cind]
-    
+    res_i = np.zeros((4 * b ** 2,))
+    res_i[:2 * b ** 2] = res_i_a
+    res_i[2 * b ** 2:] = -res_i_a[cind]
+
     return [res_r, res_i]
 
 
@@ -162,11 +167,11 @@ def fourier_sf_shift(sf, r, shape, dx, dy, dz):
     -------
     A shifted (complex) spherical function in Fourier space.
     """
-    b = int(len(sf)**0.5/2)
-    assert len(sf) == 4*b**2
+    b = int(len(sf) ** 0.5 / 2)
+    assert len(sf) == 4 * b ** 2
 
-    the = np.pi*(2*np.arange(2*b)+1) / (4*b)
-    phi = np.pi*np.arange(2*b) / b
+    the = np.pi * (2 * np.arange(2 * b) + 1) / (4 * b)
+    phi = np.pi * np.arange(2 * b) / b
 
     # C order mesh
     phi, the = np.meshgrid(phi, the)
@@ -174,17 +179,17 @@ def fourier_sf_shift(sf, r, shape, dx, dy, dz):
     phi = phi.flatten()
 
     # compute the coordinates
-    xx = r*np.cos(phi)*np.sin(the)
-    yy = r*np.sin(phi)*np.sin(the)
-    zz = r*np.cos(the)
+    xx = r * np.cos(phi) * np.sin(the)
+    yy = r * np.sin(phi) * np.sin(the)
+    zz = r * np.cos(the)
 
     sx = shape[0]
     sy = shape[1]
     sz = shape[2]
 
-    shift = np.exp(-2j*np.pi/sx*xx*dx) * np.exp(-2j*np.pi/sy*yy*dy) * np.exp(-2j*np.pi/sz*zz*dz)
+    shift = np.exp(-2j * np.pi / sx * xx * dx) * np.exp(-2j * np.pi / sy * yy * dy) * np.exp(-2j * np.pi / sz * zz * dz)
 
-    return sf*shift
+    return sf * shift
 
 
 def sf2file(sf, filename, conv=True):
@@ -200,48 +205,49 @@ def sf2file(sf, filename, conv=True):
               String
     """
     f = open(filename, 'w')
-    
+
     for v in sf:
         f.write("%f\n" % v)
         if conv is False:
-            f.write("0\n") # imaginary part is always 0
-    
+            f.write("0\n")  # imaginary part is always 0
+
     f.close()
 
 
 if __name__ == '__main__':
-    import sys, getopt
+    import sys
+    import getopt
+
     usage = './scriptname -v volume -r radius -b bandwidth -c flag_for_convolution -o output_filename'
-    
+
     if len(sys.argv) == 1:
         print(usage)
-        sys.exit()        
-    
+        sys.exit()
+
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hcv:r:b:o:", ["help"])
     except getopt.GetoptError:
         print('Command not right. Exit!')
         sys.exit()
-    
+
     conv = False
-    for o,a in opts:
+    for o, a in opts:
         if o in ("-h", "--help"):
             print(usage)
             sys.exit()
-        if o in ("-v"):
+        if o in "-v":
             vol_name = a
-        if o in ("-r"):
+        if o in "-r":
             radius = int(a)
-        if o in ("-b"):
+        if o in "-b":
             bw = int(a)
-        if o in ("-c"):
+        if o in "-c":
             conv = True
-        if o in ("-o"):
+        if o in "-o":
             filename = a
-    
+
     from ..python.tompy.io import read
+
     vol = read(vol_name)
     sf = vol2sf(vol, radius, bw)
     sf2file(sf, filename, conv)
-
-

@@ -20,18 +20,18 @@ def create_sphere(size, radius=-1, sigma=0, center=None):
     assert len(size) == 3
 
     if center is None:
-        center = [size[0]/2, size[1]/2, size[2]/2]
+        center = [size[0] / 2, size[1] / 2, size[2] / 2]
     if radius == -1:
-        radius = np.min(size)/2
+        radius = np.min(size) / 2
 
     sphere = np.ones(size)
-    [x,y,z] = np.mgrid[0:size[0], 0:size[1], 0:size[2]]
-    r = np.sqrt((x-center[0])**2+(y-center[1])**2+(z-center[2])**2)
-    ind = r>radius
+    [x, y, z] = np.mgrid[0:size[0], 0:size[1], 0:size[2]]
+    r = np.sqrt((x - center[0]) ** 2 + (y - center[1]) ** 2 + (z - center[2]) ** 2)
+    ind = r > radius
     sphere[ind] = 0
 
     if sigma > 0:
-        sphere[ind] = np.exp(-((r[ind] - radius)/sigma)**2/2)
+        sphere[ind] = np.exp(-((r[ind] - radius) / sigma) ** 2 / 2)
         # ind = sphere < np.exp(-2) # set the values above 2*sigma to 0
         # sphere[ind] = 0
 
@@ -49,10 +49,10 @@ def prepare_mask(v, threshold, smooth):
     @return: mask.
     """
     from .filter import gaussian3d
-    ind = np.where(v>threshold)
+    ind = np.where(v > threshold)
     mask = np.zeros(v.shape)
     mask[ind] = 1
-    
+
     return gaussian3d(mask, smooth)
 
 
@@ -65,10 +65,10 @@ def add_noise(data, snr=0.1, m=0):
     @return The image with gaussian noise	
     """
     vs = np.var(data)
-    vn = vs/snr
+    vn = vs / snr
     sd = np.sqrt(vn)
     s = np.ndarray(data.shape)
-    noise = sd*standard_normal(s.shape)+m
+    noise = sd * standard_normal(s.shape) + m
     t = data + noise
     return t
 
@@ -76,11 +76,11 @@ def add_noise(data, snr=0.1, m=0):
 def paste_in_center(src, dst):
     assert src.shape[0] < dst.shape[0] and src.shape[1] < dst.shape[1] and src.shape[2] < dst.shape[2]
 
-    start_x = dst.shape[0]/2 - src.shape[0]/2
-    start_y = dst.shape[1]/2 - src.shape[1]/2
-    start_z = dst.shape[2]/2 - src.shape[2]/2
+    start_x = dst.shape[0] / 2 - src.shape[0] / 2
+    start_y = dst.shape[1] / 2 - src.shape[1] / 2
+    start_z = dst.shape[2] / 2 - src.shape[2] / 2
 
-    dst[start_x:start_x+src.shape[0], start_y:start_y+src.shape[1], start_z:start_z+src.shape[2]] = src
+    dst[start_x:start_x + src.shape[0], start_y:start_y + src.shape[1], start_z:start_z + src.shape[2]] = src
 
     return dst
 
@@ -97,12 +97,12 @@ def rotation_matrix_x(angle):
     @return: rotation matrix.
     """
     angle = np.deg2rad(angle)
-    mtx = np.matrix(np.zeros((3,3)))
-    mtx[1,1] = np.cos(angle)
-    mtx[2,1] = np.sin(angle)
-    mtx[2,2] = np.cos(angle)
-    mtx[1,2] = -np.sin(angle)
-    mtx[0,0] = 1
+    mtx = np.matrix(np.zeros((3, 3)))
+    mtx[1, 1] = np.cos(angle)
+    mtx[2, 1] = np.sin(angle)
+    mtx[2, 2] = np.cos(angle)
+    mtx[1, 2] = -np.sin(angle)
+    mtx[0, 0] = 1
 
     return mtx
 
@@ -115,12 +115,12 @@ def rotation_matrix_y(angle):
     @return: rotation matrix.
     """
     angle = np.deg2rad(angle)
-    mtx = np.matrix(np.zeros((3,3)))
-    mtx[0,0] = np.cos(angle)
-    mtx[2,0] = -np.sin(angle)
-    mtx[2,2] = np.cos(angle)
-    mtx[0,2] = np.sin(angle)
-    mtx[1,1] = 1
+    mtx = np.matrix(np.zeros((3, 3)))
+    mtx[0, 0] = np.cos(angle)
+    mtx[2, 0] = -np.sin(angle)
+    mtx[2, 2] = np.cos(angle)
+    mtx[0, 2] = np.sin(angle)
+    mtx[1, 1] = 1
 
     return mtx
 
@@ -133,12 +133,12 @@ def rotation_matrix_z(angle):
     @return: rotation matrix.
     """
     angle = np.deg2rad(angle)
-    mtx = np.matrix(np.zeros((3,3)))
-    mtx[0,0] = np.cos(angle)
-    mtx[1,0] = np.sin(angle)
-    mtx[1,1] = np.cos(angle)
-    mtx[0,1] = -np.sin(angle)
-    mtx[2,2] = 1
+    mtx = np.matrix(np.zeros((3, 3)))
+    mtx[0, 0] = np.cos(angle)
+    mtx[1, 0] = np.sin(angle)
+    mtx[1, 1] = np.cos(angle)
+    mtx[0, 1] = -np.sin(angle)
+    mtx[2, 2] = 1
 
     return mtx
 
@@ -159,8 +159,8 @@ def rotation_matrix_zxz(angle):
 
     zm1 = rotation_matrix_z(z1)
     xm = rotation_matrix_x(x)
-    zm2= rotation_matrix_z(z2)
-    
+    zm2 = rotation_matrix_z(z2)
+
     res = zm2 * (xm * zm1)
 
     return res
@@ -176,19 +176,17 @@ def rotation_distance(ang1, ang2):
     """
     mtx1 = rotation_matrix_zxz(ang1)
     mtx2 = rotation_matrix_zxz(ang2)
-    res = np.multiply(mtx1, mtx2) # elementwise multiplication
+    res = np.multiply(mtx1, mtx2)  # elementwise multiplication
     trace = np.sum(res)
-    
+
     from math import pi, acos
-    temp=0.5*(trace-1.0)
+    temp = 0.5 * (trace - 1.0)
     if temp >= 1.0:
         return 0.0
     if temp <= -1.0:
         return 180
-    return acos(temp)*180/pi
+    return acos(temp) * 180 / pi
 
 
 def euclidian_distance(pos1, pos2):
-    return np.linalg.norm(np.array(pos1)-np.array(pos2))
-
-
+    return np.linalg.norm(np.array(pos1) - np.array(pos2))

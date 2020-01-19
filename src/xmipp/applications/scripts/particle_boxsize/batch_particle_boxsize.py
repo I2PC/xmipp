@@ -23,7 +23,7 @@
 # *  e-mail address 'jmdelarosa@cnb.csic.es'
 # *
 # **************************************************************************
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 import os
 import xmipp3
@@ -40,9 +40,11 @@ import numpy as np
 import pickle as pickle
 from sklearn.preprocessing import RobustScaler
 
+
 class ImageScaler(object):
     def __init__(self, scaler):
-        assert isinstance(x, RobustScaler), "Unexpected type for scaler" # Check that the scaler is of the expected type
+        assert isinstance(x,
+                          RobustScaler), "Unexpected type for scaler"  # Check that the scaler is of the expected type
         self.scaler = scaler
 
     def fit(self, X):
@@ -55,6 +57,7 @@ class ImageScaler(object):
     def fit_transform(self, X):
         self.fit(X)
         return self.transform(X)
+
 
 class ParticleSizeCnn(Sequential):
     def __init__(self, input_shape):
@@ -157,26 +160,30 @@ def flip_axis(x, axis):
     x = x.swapaxes(0, axis)
     return x
 
+
 class ScriptParticleBoxsize(xmipp3.XmippScript):
     def __init__(self):
         xmipp3.XmippScript.__init__(self)
         self.particle_boxsize = None
-        
+
     def defineParams(self):
         self.addUsageLine('.')
-        ## params
-        self.addParamsLine('--img_size <IMG_SIZE> : Number of rows of the image. The image is assumed to have the same number ' +
-                             'of rows and columns')
+        # params
+        self.addParamsLine(
+            '--img_size <IMG_SIZE> : Number of rows of the image. The image is assumed to have the same number ' +
+            'of rows and columns')
         self.addParamsLine('--weights <WEIGHS_FILE>   : Name of the weights file to be used for prediction')
         self.addParamsLine('--feature_scaler <FEATURE_SCALER>         : Path to feature scaler')
-        self.addParamsLine('--micrographs <MICS_FILE>                 : Path to a TXT file that contains the complete paths of the micrographies that '
-                                'should be processed')
-        self.addParamsLine('--output <FILE>                          : Path to a TXT file that will contain the particle boxsize predicted for each '
-                            'of the micrographs')
-        ## examples
-        ## TODO
-        ## self.addExampleLine('   xmipp_particle_boxsize -p "Images/*xmp" -o all_images.sel -isstack')
-            
+        self.addParamsLine(
+            '--micrographs <MICS_FILE>                 : Path to a TXT file that contains the complete paths of the micrographies that '
+            'should be processed')
+        self.addParamsLine(
+            '--output <FILE>                          : Path to a TXT file that will contain the particle boxsize predicted for each '
+            'of the micrographs')
+        # examples
+        # TODO
+        # self.addExampleLine('   xmipp_particle_boxsize -p "Images/*xmp" -o all_images.sel -isstack')
+
     def run(self):
         # type: () -> object
         img_size = self.getParam('--img_size')
@@ -184,7 +191,7 @@ class ScriptParticleBoxsize(xmipp3.XmippScript):
         feature_scaler = self.getParam('--feature_scaler')
         micrographs = self.getParam('--micrographs')
         output_file = self.getParam('--output')
-        
+
         config = get_image_config(int(img_size))
 
         # Default shifts for cropping the images. TODO: add as arguments?
@@ -205,14 +212,15 @@ class ScriptParticleBoxsize(xmipp3.XmippScript):
                 Xs = crop(img, config["input_shape"], shifts)
                 # reshape to match the number of channels and add an extra dimension
                 # to account for the batch size
-                Xs = [np.expand_dims(x.reshape(*config["input_shape"]), axis=0) 
-                        for x in Xs
-                ]
-                micrograph_predictions= [float(model.predict(x)) for x in Xs]
+                Xs = [np.expand_dims(x.reshape(*config["input_shape"]), axis=0)
+                      for x in Xs
+                      ]
+                micrograph_predictions = [float(model.predict(x)) for x in Xs]
                 predictions.append(np.median(micrograph_predictions))
         self.particle_boxsize = int(np.round(np.median(predictions)))
         with open(output_file, 'w') as fp:
             fp.write(str(self.particle_boxsize) + '\n')
-       
+
+
 if __name__ == '__main__':
     ScriptParticleBoxsize().tryRun()

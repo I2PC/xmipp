@@ -66,39 +66,39 @@ class Command(object):
             self.process.terminate()
             thread.join()
         self.process = None
-    
+
     def terminate(self):
-        if self.process != None:
+        if self.process is not None:
             self.process.terminate()
             print('Ctrl-c pressed, aborting this test')
-            
-            
+
+
 class ProgramTest(unittest.TestCase):
     _testDir = None
     _environ = None
     _timeout = 300
 
     # _labels = [WEEKLY]
-               
+
     @classmethod
     def setTestDir(cls, newTestDir):
         cls._testDir = newTestDir
-    
+
     @classmethod
     def setEnviron(cls, newEnviron):
         cls._environ = newEnviron
-        
+
     @classmethod
     def setTimeOut(cls, newTimeOut):
         cls._timeout = newTimeOut
-    
+
     def _parseArgs(self, args):
-        ''' Expand our tags %o, %p and %d with corresponding values '''
+        """ Expand our tags %o, %p and %d with corresponding values """
         args = args.replace("%o", self.outputDir)
         args = args.replace("%p", self.program)
-        #args = args.replace("%d", self.fnDir)
-        return args     
-    
+        # args = args.replace("%d", self.fnDir)
+        return args
+
     def _runCommands(self, cmdList, cmdType):
         """ Run several commands.
         Params:
@@ -116,14 +116,14 @@ class ProgramTest(unittest.TestCase):
                 command.run(timeout=self._timeout)
                 pipe = ">>"
                 sys.stdout.flush()
-                
-    def runCase(self, args, mpi=0, changeDir=False, 
+
+    def runCase(self, args, mpi=0, changeDir=False,
                 preruns=None, postruns=None, validate=None,
                 outputs=None, random=False, errorthreshold=0.001):
         # Retrieve the correct case number from the test name id
         # We asumme here that 'test_caseXXX' should be in the name
         caseId = unittest.TestCase.id(self)
-        if not 'test_case' in caseId:
+        if 'test_case' not in caseId:
             raise Exception("'test_case' string should be in the test function name followed by a number")
         _counter = int(caseId.split('test_case')[1])
 
@@ -131,7 +131,7 @@ class ProgramTest(unittest.TestCase):
         self.outputDir = os.path.join('tmpLink', '%s_%02d' % (self.program, _counter))
         self.outputDirAbs = os.path.join(self._testDir, self.outputDir)
         self.goldDir = os.path.join(self._testDir, 'gold', '%s_%02d' % (self.program, _counter))
-        
+
         # Change to tests root folder (self._testDir)
         cwd = os.getcwd()
         os.chdir(self._testDir)
@@ -140,23 +140,23 @@ class ProgramTest(unittest.TestCase):
 
         if preruns:
             self._runCommands(preruns, 'preruns')
-            
+
         if mpi:
             cmd = "mpirun -np %d `which %s`" % (mpi, self.program)
         else:
             cmd = self.program
-        
+
         args = self._parseArgs(args)
-        
+
         if changeDir:
             cmd = "cd %s ; %s %s > stdout.txt 2> stderr.txt" % (self.outputDir, cmd, args)
         else:
-            
+
             cmd = "%s %s > %s/stdout.txt 2> %s/stderr.txt" % (cmd, args, self.outputDir, self.outputDir)
         print("    Command: ")
         print("       ", blue(cmd))
         sys.stdout.flush()
-        #run the test itself
+        # run the test itself
         command = Command(cmd, env=os.environ)
         self._command = command
         try:
@@ -174,15 +174,15 @@ class ProgramTest(unittest.TestCase):
 
         if postruns:
             self._runCommands(postruns, 'postruns')
-            
+
         if outputs:
             self._checkOutputs(outputs, random, errorthreshold=errorthreshold)
-            
+
         if validate:
             validate()
-            
+
         os.chdir(cwd)
-        
+
     def _checkOutputs(self, outputs, random=False, errorthreshold=0.001):
         """ Check that all output files are produced
         and are equivalent to the ones in goldStandard folder.
@@ -191,11 +191,11 @@ class ProgramTest(unittest.TestCase):
         for out in outputs:
             outFile = os.path.join(self._testDir, self.outputDir, out)
             fileGoldStd = os.path.join(self.goldDir, out)
-            
+
             # Check the expect output file was produced
             msg = "Missing expected output file:\n  output: %s" % outFile
             self.assertTrue(os.path.exists(outFile), red(msg))
-            
+
             if random:
                 print(yellow("WARNING: %s was created using a random seed, check skipped..." % outFile))
             else:
@@ -266,7 +266,7 @@ class GTestResult(unittest.TestResult):
     def reportError(self, test, err):
         sys.stderr.write("\n%s" % ("".join(format_exception(*err))))
         sys.stderr.write("%s %s\n\n" % (red('[  FAILED  ]'),
-                                      self.getTestName(test)))
+                                        self.getTestName(test)))
         self.testFailed += 1
 
     def addError(self, test, err):
@@ -275,17 +275,22 @@ class GTestResult(unittest.TestResult):
     def addFailure(self, test, err):
         self.reportError(test, err)
 
+
 def green(text):
-    return "\033[92m "+text+"\033[0m"
+    return "\033[92m " + text + "\033[0m"
+
 
 def red(text):
-    return "\033[91m "+text+"\033[0m"
+    return "\033[91m " + text + "\033[0m"
+
 
 def blue(text):
-    return "\033[34m "+text+"\033[0m"
+    return "\033[34m " + text + "\033[0m"
+
 
 def yellow(text):
-    return "\033[93m "+text+"\033[0m"
+    return "\033[93m " + text + "\033[0m"
+
 
 def createDir(dirname, clean=False):
     if clean and os.path.exists(dirname):
@@ -312,12 +317,12 @@ def visitTests(tests, grepStr=''):
     # and name, in a nice way.
     lastClass = None
     lastModule = None
-    
-    grepPrint = '' if grepStr is '' else red(' (grep: %s)'%grepStr)
+
+    grepPrint = '' if grepStr is '' else red(' (grep: %s)' % grepStr)
 
     for t in testsFlat:
         moduleName, className, testName = t.id().rsplit('.', 2)
-        
+
         # If there is a failure loading the test, show it
         if moduleName.startswith('unittest.loader.ModuleImportFailure'):
             print(red(moduleName), "  test:", t.id())
@@ -327,7 +332,6 @@ def visitTests(tests, grepStr=''):
             lastModule = moduleName
             print(" - From  %s.py (to run all use --allPrograms)"
                   % '/'.join(moduleName.split('.')) + grepPrint)
-
 
         if className != lastClass:
             lastClass = className
@@ -352,7 +356,7 @@ if __name__ == "__main__":
     if '--show' in testNames or '--allPrograms' in testNames:
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
         #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
-        listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
+        listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA") + '/..')
         # print listDir
         for path in listDir:
             if path.startswith('test_') and path.endswith('.py'):
@@ -360,7 +364,7 @@ if __name__ == "__main__":
 
         if '--show' in testNames:
             print(blue("\n    > >  You can run any of the following tests by:\n"))
-            grepStr = '' if len(testNames)<2 else testNames[1]
+            grepStr = '' if len(testNames) < 2 else testNames[1]
             visitTests(tests, grepStr)
             print("\n - From applications/function_tests (to run all use --allFuncs):")
             for test in cTests:

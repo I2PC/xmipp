@@ -34,14 +34,14 @@ from src.xmipp.bindings.python.xmipp_base import XmippScript
 class ScriptCompile(XmippScript):
     def __init__(self):
         XmippScript.__init__(self)
-        
+
     def defineParams(self):
         self.addUsageLine('Compile a C++ program using Xmipp libraries')
-        ## params
+        # params
         self.addParamsLine(' -i <cpp_file>          : C++ file to compile')
         self.addParamsLine('   alias --input;')
         self.addParamsLine(' [--debug]              : Compile with debugging flags')
-        ## examples
+        # examples
         self.addExampleLine('Compile myprogram.cpp', False)
         self.addExampleLine('xmipp_compile myprogram.cpp')
 
@@ -50,36 +50,39 @@ class ScriptCompile(XmippScript):
             from ConfigParser import ConfigParser, ParsingError
         except ImportError:
             from configparser import ConfigParser, ParsingError  # Python 3
-        if not 'XMIPP_SRC' in os.environ:
-            print("Cannot find the environment variable XMIPP_SRC. Make sure you have sourced the xmipp.bashrc or equivalent")
+        if 'XMIPP_SRC' not in os.environ:
+            print(
+                "Cannot find the environment variable XMIPP_SRC. Make sure you have sourced the xmipp.bashrc or equivalent")
             sys.exit(1)
-        xmippSrc=os.environ['XMIPP_SRC']
+        xmippSrc = os.environ['XMIPP_SRC']
         cf = ConfigParser()
         cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
         try:
-            cf.read(os.path.join(xmippSrc,"xmipp","install","xmipp.conf"))
+            cf.read(os.path.join(xmippSrc, "xmipp", "install", "xmipp.conf"))
         except ParsingError:
             sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
-        flagDict=dict(cf.items('BUILD'))
+        flagDict = dict(cf.items('BUILD'))
 
-        flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
-              flagDict["CXXFLAGS"]+" "+flagDict["LIBDIRFLAGS"]
+        flags = "-I" + xmippSrc + "/xmippCore -I" + xmippSrc + "/xmipp -lXmipp -lXmippCore " + flagDict[
+            "INCDIRFLAGS"] + " " + \
+                flagDict["CXXFLAGS"] + " " + flagDict["LIBDIRFLAGS"]
         return flags
 
     def run(self):
         # type: () -> object
         fn = self.getParam('-i')
         from os.path import splitext, join
-        [fnBase,ext]=splitext(fn)
-        if ext!=".cpp" or ext!=".cc":
-            raise Exception(fn+" is not a .cpp or .cc file")
-        command='g++ ';
+        [fnBase, ext] = splitext(fn)
+        if ext != ".cpp" or ext != ".cc":
+            raise Exception(fn + " is not a .cpp or .cc file")
+        command = 'g++ '
         if self.checkParam("--debug"):
-            command +="-g -pg";
-        xmippHome=os.environ['XMIPP_HOME']
-        command+=" -o "+fnBase+" "+fn+" -O -D_LINUX -L"+xmippHome+"/lib "+self.getFlags()
+            command += "-g -pg"
+        xmippHome = os.environ['XMIPP_HOME']
+        command += " -o " + fnBase + " " + fn + " -O -D_LINUX -L" + xmippHome + "/lib " + self.getFlags()
         print(command)
         os.system(command)
+
 
 if __name__ == '__main__':
     ScriptCompile().tryRun()

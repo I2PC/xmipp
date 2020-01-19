@@ -63,15 +63,15 @@ def rotate3d(data, phi=0, psi=0, the=0, center=None, order=2):
     Inv_R = np.zeros((3, 3), dtype='float32')
 
     Inv_R[0, 0] = cos_alpha * cos_gamma - cos_beta * sin_alpha \
-        * sin_gamma
+                  * sin_gamma
     Inv_R[0, 1] = -cos_alpha * sin_gamma - cos_beta * sin_alpha \
-        * cos_gamma
+                  * cos_gamma
     Inv_R[0, 2] = sin_beta * sin_alpha
 
     Inv_R[1, 0] = sin_alpha * cos_gamma + cos_beta * cos_alpha \
-        * sin_gamma
+                  * sin_gamma
     Inv_R[1, 1] = -sin_alpha * sin_gamma + cos_beta * cos_alpha \
-        * cos_gamma
+                  * cos_gamma
     Inv_R[1, 2] = -sin_beta * cos_alpha
 
     Inv_R[2, 0] = sin_beta * sin_gamma
@@ -79,7 +79,7 @@ def rotate3d(data, phi=0, psi=0, the=0, center=None, order=2):
     Inv_R[2, 2] = cos_beta
 
     from scipy import mgrid
-    grid = mgrid[-cx:data.shape[0]-cx, -cy:data.shape[1]-cy, -cz:data.shape[2]-cz]
+    grid = mgrid[-cx:data.shape[0] - cx, -cy:data.shape[1] - cy, -cz:data.shape[2] - cz]
     temp = grid.reshape((3, grid.size / 3))
     temp = np.dot(Inv_R, temp)
     grid = np.reshape(temp, grid.shape)
@@ -131,13 +131,13 @@ def translate3d_f(data, dx=0, dy=0, dz=0):
     sy = data.shape[1]
     sz = data.shape[2]
 
-    xx, yy, zz = np.indices((sx, sy, sz/2+1))
+    xx, yy, zz = np.indices((sx, sy, sz / 2 + 1))
 
-    xx[np.where(xx > sx/2)] -= sx
-    yy[np.where(yy > sy/2)] -= sy
+    xx[np.where(xx > sx / 2)] -= sx
+    yy[np.where(yy > sy / 2)] -= sy
 
     # Fourier shift theorem
-    shift = np.exp(-2j*np.pi/sx*xx*dx) * np.exp(-2j*np.pi/sy*yy*dy) * np.exp(-2j*np.pi/sz*zz*dz)
+    shift = np.exp(-2j * np.pi / sx * xx * dx) * np.exp(-2j * np.pi / sy * yy * dy) * np.exp(-2j * np.pi / sz * zz * dz)
 
     fdata = rfft(data)
 
@@ -178,7 +178,7 @@ def resize(data, x, y, z):
     s = data.shape
     from scipy import mgrid, array
     from scipy.ndimage import map_coordinates
-    grid = mgrid[0:s[0]-1:x * 1j, 0:s[1]-1:y * 1j, 0:s[2]-1:z * 1j]
+    grid = mgrid[0:s[0] - 1:x * 1j, 0:s[1] - 1:y * 1j, 0:s[2] - 1:z * 1j]
     d = map_coordinates(data, grid, order=2)
     return d
 
@@ -194,7 +194,8 @@ def cut_from_projection(proj, center, size):
     """
     from scipy import mgrid
     from scipy.ndimage import map_coordinates
-    grid = mgrid[center[0]-size[0]/2:center[0]+size[0]-size[0]/2-1:size[0]*1j, center[1]-size[1]/2:center[1]+size[1]-size[1]/2-1:size[1]*1j, 0:1:1]
+    grid = mgrid[center[0] - size[0] / 2:center[0] + size[0] - size[0] / 2 - 1:size[0] * 1j,
+           center[1] - size[1] / 2:center[1] + size[1] - size[1] / 2 - 1:size[1] * 1j, 0:1:1]
     v = map_coordinates(proj, grid, order=2)
     return v
 
@@ -271,9 +272,9 @@ def fourier_reduced2full(data, isodd=False):
     sx = data.shape[0]
     sy = data.shape[1]
     if isodd:
-        sz = (data.shape[2]-1)*2
+        sz = (data.shape[2] - 1) * 2
     else:
-        sz = (data.shape[2]-1)*2+1
+        sz = (data.shape[2] - 1) * 2 + 1
 
     res = np.zeros((sx, sy, sz), dtype=data.dtype)
     res[:, :, 0:data.shape[2]] = data
@@ -281,7 +282,7 @@ def fourier_reduced2full(data, isodd=False):
     # calculate the coodinates accordingly
     szz = sz - data.shape[2]
     x, y, z = np.indices((sx, sy, szz))
-    ind = [np.mod(sx-x, sx), np.mod(sy-y, sy), szz-z]
+    ind = [np.mod(sx - x, sx), np.mod(sy - y, sy), szz - z]
 
     # do the complex conjugate of the second part
     res[:, :, data.shape[2]:] = np.ma.conjugate(data[ind])
@@ -290,7 +291,7 @@ def fourier_reduced2full(data, isodd=False):
 
 
 def fourier_full2reduced(data):
-    return data[:,:,0:data.shape[2]/2+1]
+    return data[:, :, 0:data.shape[2] / 2 + 1]
 
 
 def fourier_filter(data, fltr, human=True):
@@ -302,5 +303,3 @@ def fourier_filter(data, fltr, human=True):
     res = irfft(fd * fltr, data.shape)
 
     return res
-
-

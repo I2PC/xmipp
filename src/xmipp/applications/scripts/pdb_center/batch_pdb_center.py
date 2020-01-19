@@ -28,20 +28,20 @@
 import os
 from src.xmipp.bindings.python.xmipp_base import *
 
+
 class ScriptPDBCenter(XmippScript):
     def __init__(self):
         XmippScript.__init__(self)
-        
+
     def defineParams(self):
         self.addUsageLine('Center a PDB with the center of mass')
-        ## params
+        # params
         self.addParamsLine(' -i <pdb>          : PDB file to process')
         self.addParamsLine(' -o <pdb>          : Output PDB')
-        ## examples
+        # examples
         self.addExampleLine('   xmipp_pdb_center -i myfile.pdb -o myfileCenter.pdb')
-            
 
-    def readPDB(self,fnIn):
+    def readPDB(self, fnIn):
         with open(fnIn) as f:
             self.lines = f.readlines()
 
@@ -60,7 +60,7 @@ class ScriptPDBCenter(XmippScript):
                 except:
                     pass
 
-        if N>0:
+        if N > 0:
             xsum /= N
             ysum /= N
             zsum /= N
@@ -70,10 +70,10 @@ class ScriptPDBCenter(XmippScript):
         for line in self.lines:
             if line.startswith("ATOM "):
                 try:
-                    x = float(line[30:38])-xsum
-                    y = float(line[38:46])-ysum
-                    z = float(line[46:54])-zsum
-                    newLine=line[0:30]+"%8.3f%8.3f%8.3f"%(x,y,z)+line[54:]
+                    x = float(line[30:38]) - xsum
+                    y = float(line[38:46]) - ysum
+                    z = float(line[46:54]) - zsum
+                    newLine = line[0:30] + "%8.3f%8.3f%8.3f" % (x, y, z) + line[54:]
                 except:
                     pass
             else:
@@ -81,15 +81,15 @@ class ScriptPDBCenter(XmippScript):
             newLines.append(newLine)
         self.lines = newLines
 
-
     def run(self):
         fnIn = self.getParam('-i')
         fnOut = self.getParam('-o')
         self.readPDB(fnIn)
         self.centerPDB()
-        with open(fnOut,"w") as f:
+        with open(fnOut, "w") as f:
             for line in self.lines:
-                f.write("%s"%line)
+                f.write("%s" % line)
+
 
 if __name__ == '__main__':
     ScriptPDBCenter().tryRun()

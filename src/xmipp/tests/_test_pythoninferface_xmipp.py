@@ -5,7 +5,7 @@ scipion3 run python3 -m unittest  tests._test_pythoninferface_xmipp
 """
 
 # import os
-from os.path import exists #join
+from os.path import exists  # join
 # import sys
 # import unittest
 from tempfile import NamedTemporaryFile
@@ -25,8 +25,9 @@ import pyworkflow.utils as pwutils
 def testFile(filename):
     return pwutils.join("pythoninterface", filename)
 
+
 def binaryFileComparison(nameo, namet):
-    ## open files
+    # open files
     try:
         file1 = open(nameo, "rb")
     except:
@@ -38,8 +39,9 @@ def binaryFileComparison(nameo, namet):
         print("cannot open file:", namet)
         file1.close()
         exit()
-    ## read 1b from each file until one file reaches eof or bytes don't match
-    x = 1; y = 1
+    # read 1b from each file until one file reaches eof or bytes don't match
+    x = 1
+    y = 1
     while (x == 1) and (y == 1):
         a = file1.read(1)
         b = file2.read(1)
@@ -54,8 +56,9 @@ def binaryFileComparison(nameo, namet):
 
 from tests.test_programs_xmipp import XmippProgramTest
 
-# TODO: this test shoud not go here 
-#class AngularDiscreteAssign(XmippProgramTest):
+
+# TODO: this test shoud not go here
+# class AngularDiscreteAssign(XmippProgramTest):
 #    _owner = 'COSS'
 #    @classmethod
 #    def getProgram(cls):
@@ -67,10 +70,9 @@ from tests.test_programs_xmipp import XmippProgramTest
 #                outputs=["assigned_angles.xmd"])
 
 
-
 class TestXmippPythonInterface(unittest.TestCase):
-    
     testsPath = getXmippPath("resources", "test")
+
     # Temporary filenames used
 
     def getTmpName(self, suffix='.xmd'):
@@ -92,11 +94,11 @@ class TestXmippPythonInterface(unittest.TestCase):
             ntf.close()
 
     def test_xmipp_Euler_angles2matrix(self):
-        from numpy  import array
+        from numpy import array
 
-        a = array([[ 0.70710678, 0.70710678, -0.        ],
-                   [-0.70710678, 0.70710678, 0.        ],
-                   [ 0., 0., 1.        ]])
+        a = array([[0.70710678, 0.70710678, -0.],
+                   [-0.70710678, 0.70710678, 0.],
+                   [0., 0., 1.]])
         rot = 45.
         tilt = 0.
         psi = 0.
@@ -104,24 +106,24 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertAlmostEqual(a.all(), b.all(), 2)
 
     def test_xmipp_Euler_matrix2angles(self):
-        from numpy  import array
+        from numpy import array
 
-        a = array([[ 0.70710678, 0.70710678, -0.        ],
-                   [-0.70710678, 0.70710678, 0.        ],
-                   [ 0., 0., 1.        ]])
+        a = array([[0.70710678, 0.70710678, -0.],
+                   [-0.70710678, 0.70710678, 0.],
+                   [0., 0., 1.]])
         rot = 45.
         tilt = 0.
         psi = 0.
-        rot1,tilt1,psi1 = Euler_matrix2angles(a)
+        rot1, tilt1, psi1 = Euler_matrix2angles(a)
         if psi1 > 1:
             rot1 = psi1
-            psi1=0.
+            psi1 = 0.
         self.assertAlmostEqual(rot, rot1, 4)
         self.assertAlmostEqual(tilt, tilt1, 4)
         self.assertAlmostEqual(psi, psi1, 4)
 
     def test_xmipp_activateMathExtensions(self):
-        '''activateMathExtensions'''
+        """activateMathExtensions"""
         md1 = MetaData()
         activateMathExtensions()
         id = md1.addObject()
@@ -138,12 +140,12 @@ class TestXmippPythonInterface(unittest.TestCase):
         md2.setValue(MDL_ANGLE_ROT, 3., id)
         md2.setValue(MDL_ANGLE_TILT, 5., id)
         angleRotLabel = label2Str(MDL_ANGLE_ROT)
-        operateString = angleRotLabel + "= sqrt(" + angleRotLabel+")"
+        operateString = angleRotLabel + "= sqrt(" + angleRotLabel + ")"
         md1.operate(operateString)
         self.assertEqual(md1, md2)
 
     def test_xmipp_errorBetween2CTFs(self):
-        '''activateMathExtensions'''
+        """activateMathExtensions"""
         md1 = MetaData()
         id = md1.addObject()
         #         md1.setValue(MDL_CTF_SAMPLING_RATE, 1., id)
@@ -165,71 +167,68 @@ class TestXmippPythonInterface(unittest.TestCase):
         #         md2.setValue(MDL_CTF_Q0, 0.1, id);
 
         md1.setValue(MDL_CTF_SAMPLING_RATE, 1., id)
-        md1.setValue(MDL_CTF_VOLTAGE, 200., id);
-        md1.setValue(MDL_CTF_DEFOCUSU, 18306.250000, id);
-        md1.setValue(MDL_CTF_DEFOCUSV, 16786.470000, id);
-        md1.setValue(MDL_CTF_DEFOCUS_ANGLE, 30.100000, id);
-        md1.setValue(MDL_CTF_CS, 2., id);
-        md1.setValue(MDL_CTF_Q0, 0.07, id);
+        md1.setValue(MDL_CTF_VOLTAGE, 200., id)
+        md1.setValue(MDL_CTF_DEFOCUSU, 18306.250000, id)
+        md1.setValue(MDL_CTF_DEFOCUSV, 16786.470000, id)
+        md1.setValue(MDL_CTF_DEFOCUS_ANGLE, 30.100000, id)
+        md1.setValue(MDL_CTF_CS, 2., id)
+        md1.setValue(MDL_CTF_Q0, 0.07, id)
 
         md2 = MetaData()
         id = md2.addObject()
         md2.setValue(MDL_CTF_SAMPLING_RATE, 1., id)
-        md2.setValue(MDL_CTF_VOLTAGE, 200., id);
-        md2.setValue(MDL_CTF_DEFOCUSU, 17932.700000, id);
-        md2.setValue(MDL_CTF_DEFOCUSV, 16930.300000, id);
-        md2.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id);
-        md2.setValue(MDL_CTF_CS, 2., id);
-        md2.setValue(MDL_CTF_Q0, 0.07, id);
+        md2.setValue(MDL_CTF_VOLTAGE, 200., id)
+        md2.setValue(MDL_CTF_DEFOCUSU, 17932.700000, id)
+        md2.setValue(MDL_CTF_DEFOCUSV, 16930.300000, id)
+        md2.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id)
+        md2.setValue(MDL_CTF_CS, 2., id)
+        md2.setValue(MDL_CTF_Q0, 0.07, id)
 
+        error = errorBetween2CTFs(md1, md2, 256, 0.05, 0.25)
 
-        error = errorBetween2CTFs(md1,md2, 256, 0.05,0.25)
-
-        self.assertAlmostEqual(error, 5045.79,0)
+        self.assertAlmostEqual(error, 5045.79, 0)
 
     def test_xmipp_errorMaxFreqCTFs(self):
-        '''activateMathExtensions'''
+        """activateMathExtensions"""
         from math import pi
         md1 = MetaData()
         id = md1.addObject()
         md1.setValue(MDL_CTF_SAMPLING_RATE, 2., id)
-        md1.setValue(MDL_CTF_VOLTAGE, 300., id);
-        md1.setValue(MDL_CTF_DEFOCUSU, 6000., id);
-        md1.setValue(MDL_CTF_DEFOCUSV, 7500., id);
-        md1.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id);
-        md1.setValue(MDL_CTF_CS, 2., id);
-        md1.setValue(MDL_CTF_Q0, 0.1, id);
+        md1.setValue(MDL_CTF_VOLTAGE, 300., id)
+        md1.setValue(MDL_CTF_DEFOCUSU, 6000., id)
+        md1.setValue(MDL_CTF_DEFOCUSV, 7500., id)
+        md1.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id)
+        md1.setValue(MDL_CTF_CS, 2., id)
+        md1.setValue(MDL_CTF_Q0, 0.1, id)
 
-        resolution = errorMaxFreqCTFs(md1,pi/2.)
+        resolution = errorMaxFreqCTFs(md1, pi / 2.)
 
-        self.assertAlmostEqual(resolution, 7.6852355,2)
-
+        self.assertAlmostEqual(resolution, 7.6852355, 2)
 
     def test_xmipp_errorMaxFreqCTFs2D(self):
-        '''activateMathExtensions'''
+        """activateMathExtensions"""
         md1 = MetaData()
         id = md1.addObject()
         md1.setValue(MDL_CTF_SAMPLING_RATE, 2., id)
-        md1.setValue(MDL_CTF_VOLTAGE, 300., id);
-        md1.setValue(MDL_CTF_DEFOCUSU, 10000., id);
-        md1.setValue(MDL_CTF_DEFOCUSV, 5400., id);
-        md1.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id);
-        md1.setValue(MDL_CTF_CS, 2., id);
-        md1.setValue(MDL_CTF_Q0, 0.1, id);
+        md1.setValue(MDL_CTF_VOLTAGE, 300., id)
+        md1.setValue(MDL_CTF_DEFOCUSU, 10000., id)
+        md1.setValue(MDL_CTF_DEFOCUSV, 5400., id)
+        md1.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id)
+        md1.setValue(MDL_CTF_CS, 2., id)
+        md1.setValue(MDL_CTF_Q0, 0.1, id)
 
         md2 = MetaData()
         id = md2.addObject()
         md2.setValue(MDL_CTF_SAMPLING_RATE, 2., id)
-        md2.setValue(MDL_CTF_VOLTAGE, 300., id);
-        md2.setValue(MDL_CTF_DEFOCUSU, 5000., id);
-        md2.setValue(MDL_CTF_DEFOCUSV, 5000., id);
-        md2.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id);
-        md2.setValue(MDL_CTF_CS, 2., id);
-        md2.setValue(MDL_CTF_Q0, 0.1, id);
-        resolution = errorMaxFreqCTFs2D(md1,md2)
+        md2.setValue(MDL_CTF_VOLTAGE, 300., id)
+        md2.setValue(MDL_CTF_DEFOCUSU, 5000., id)
+        md2.setValue(MDL_CTF_DEFOCUSV, 5000., id)
+        md2.setValue(MDL_CTF_DEFOCUS_ANGLE, 45., id)
+        md2.setValue(MDL_CTF_CS, 2., id)
+        md2.setValue(MDL_CTF_Q0, 0.1, id)
+        resolution = errorMaxFreqCTFs2D(md1, md2)
 
-        self.assertAlmostEqual(resolution, 13.921659080780355,2)
-
+        self.assertAlmostEqual(resolution, 13.921659080780355, 2)
 
     def test_FileName_compose(self):
         fn1 = FileName("kk000001.xmp")
@@ -251,7 +250,7 @@ class TestXmippPythonInterface(unittest.TestCase):
     def test_FileName_isInStack(self):
         fn1 = FileName("1@.xmp")
         fn2 = FileName("1.xmp")
-        self.assertTrue (fn1.isInStack())
+        self.assertTrue(fn1.isInStack())
         self.assertFalse(fn2.isInStack())
 
     def test_FileName_isMetaData(self):
@@ -266,7 +265,7 @@ class TestXmippPythonInterface(unittest.TestCase):
 
         imgPath = testFile("test.xmd")
         fn2 = FileName(imgPath)
-        self.assertTrue (fn2.isMetaData())
+        self.assertTrue(fn2.isMetaData())
 
     def test_Image_add(self):
         stackPath = testFile("smallStack.stk")
@@ -307,7 +306,6 @@ class TestXmippPythonInterface(unittest.TestCase):
         img1 *= 3
         self.assertEqual(imgSum, img1)
 
-
         imgSum2.inplaceDivide(3.)
         # TODO: division does not work
         # imgSum /= 3.
@@ -319,8 +317,8 @@ class TestXmippPythonInterface(unittest.TestCase):
 
     def test_Image_multiplyInplace(self):
         # Test multiplication inplace by value and image
-        from numpy  import array
-        
+        from numpy import array
+
         def _createImage(data):
             img = Image()
             img.setDataType(DT_FLOAT)
@@ -384,9 +382,9 @@ class TestXmippPythonInterface(unittest.TestCase):
         from numpy import array
         img1 = Image(testFile("singleImage.spi"))
         Z = img1.getData()
-        Zref = array([[-0.27623099,-0.13268562, 0.32305956],
-                      [ 1.07257104, 0.73135602, 0.49813408],
-                      [ 0.90717429, 0.6812411, -0.09380955]])
+        Zref = array([[-0.27623099, -0.13268562, 0.32305956],
+                      [1.07257104, 0.73135602, 0.49813408],
+                      [0.90717429, 0.6812411, -0.09380955]])
         self.assertEqual(Z.all(), Zref.all())
 
     def test_Image_initConstant(self):
@@ -394,7 +392,7 @@ class TestXmippPythonInterface(unittest.TestCase):
         img = Image(imgPath)
         img.initConstant(1.)
         for i in range(0, 3):
-            for j in range (0, 3):
+            for j in range(0, 3):
                 p = img.getPixel(0, 0, i, j)
                 self.assertAlmostEqual(p, 1.0)
 
@@ -419,10 +417,10 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertEqual(img1, imgAdd)
 
     def test_Image_project(self):
-        vol=Image(testFile('progVol.vol'))
+        vol = Image(testFile('progVol.vol'))
         vol.convert2DataType(DT_DOUBLE)
-        proj=projectVolumeDouble(vol,0.,0.,0.)
-        self.assertEqual(1,1)
+        proj = projectVolumeDouble(vol, 0., 0., 0.)
+        self.assertEqual(1, 1)
 
     def test_Image_projectFourier(self):
         vol = Image(testFile('progVol.vol'))
@@ -438,7 +436,7 @@ class TestXmippPythonInterface(unittest.TestCase):
         # After creating the f
         fp.projectVolume(proj, 0, 0, 0)
 
-        #vol.write('/tmp/vol2.vol')
+        # vol.write('/tmp/vol2.vol')
         proj.write('/tmp/kk.spi')
 
     def test_Image_read(self):
@@ -446,7 +444,7 @@ class TestXmippPythonInterface(unittest.TestCase):
         img = Image(imgPath)
         count = 0.
         for i in range(0, 3):
-            for j in range (0, 3):
+            for j in range(0, 3):
                 p = img.getPixel(0, 0, i, j)
                 self.assertAlmostEqual(p, count)
                 count += 1.
@@ -492,16 +490,16 @@ class TestXmippPythonInterface(unittest.TestCase):
         img.setDataType(DT_FLOAT)
         imgY = Image()
         imgY.setDataType(DT_FLOAT)
-        dim=3
+        dim = 3
         img.resize(dim, dim)
         imgY.resize(dim, dim)
-        for i in range(0,dim):
-            for j in range(0,dim):
-                img.setPixel(0, 0, i, j, 1.*dim*i+j)
-        img.mirrorY();
-        for i in range(0,dim):
-            for j in range(0,dim):
-                imgY.setPixel(0, 0, dim -1 -i, j, 1.*dim*i+j)
+        for i in range(0, dim):
+            for j in range(0, dim):
+                img.setPixel(0, 0, i, j, 1. * dim * i + j)
+        img.mirrorY()
+        for i in range(0, dim):
+            for j in range(0, dim):
+                imgY.setPixel(0, 0, dim - 1 - i, j, 1. * dim * i + j)
         self.assertEqual(img, imgY)
 
     def test_Image_applyTransforMatScipion(self):
@@ -509,37 +507,37 @@ class TestXmippPythonInterface(unittest.TestCase):
         img2 = Image()
         img.setDataType(DT_FLOAT)
         img2.setDataType(DT_FLOAT)
-        dim=3
+        dim = 3
         img.resize(dim, dim)
         img2.resize(dim, dim)
-        for i in range(0,dim):
-            for j in range(0,dim):
-                img.setPixel(0, 0, dim -1 -i, j, 1.*dim*i+j)
-        A=[0.,-1.,0.,0.,
-           1.,0.,0.,0.,
-           0.,0.,1.,1.]
-        img2.setPixel(0, 0, 0,0,0)
-        img2.setPixel(0, 0, 0,1,3.)
-        img2.setPixel(0, 0, 0,2,6.)
+        for i in range(0, dim):
+            for j in range(0, dim):
+                img.setPixel(0, 0, dim - 1 - i, j, 1. * dim * i + j)
+        A = [0., -1., 0., 0.,
+             1., 0., 0., 0.,
+             0., 0., 1., 1.]
+        img2.setPixel(0, 0, 0, 0, 0)
+        img2.setPixel(0, 0, 0, 1, 3.)
+        img2.setPixel(0, 0, 0, 2, 6.)
 
-        img2.setPixel(0, 0, 1,0,1.)
-        img2.setPixel(0, 0, 1,1,4.)
-        img2.setPixel(0, 0, 1,2,7.)
+        img2.setPixel(0, 0, 1, 0, 1.)
+        img2.setPixel(0, 0, 1, 1, 4.)
+        img2.setPixel(0, 0, 1, 2, 7.)
 
-        img2.setPixel(0, 0, 2,0,2.)
-        img2.setPixel(0, 0, 2,1,5.)
-        img2.setPixel(0, 0, 2,2,8.)
+        img2.setPixel(0, 0, 2, 0, 2.)
+        img2.setPixel(0, 0, 2, 1, 5.)
+        img2.setPixel(0, 0, 2, 2, 8.)
 
         img.applyTransforMatScipion(A)
-        #print img.getData(),"\n", img2.getData()
+        # print img.getData(),"\n", img2.getData()
         for i in range(0, dim):
-            for j in range (0, dim):
+            for j in range(0, dim):
                 p1 = img.getPixel(0, 0, i, j)
                 p2 = img2.getPixel(0, 0, i, j)
                 self.assertAlmostEqual(p1, p2)
 
     def test_Metadata_getValue(self):
-        '''MetaData_GetValues'''
+        """MetaData_GetValues"""
         mdPath = testFile("test.xmd")
         mdPath2 = testFile("proj_ctf_1.stk")
         mD = MetaData(mdPath)
@@ -555,7 +553,7 @@ class TestXmippPythonInterface(unittest.TestCase):
         self.assertEqual(ref, 2)
 
     def test_Metadata_importObjects(self):
-        '''import metadata subset'''
+        """import metadata subset"""
         mdPath = testFile("test.xmd")
         mD = MetaData(mdPath)
         mDout = MetaData()
@@ -572,17 +570,17 @@ class TestXmippPythonInterface(unittest.TestCase):
             img = mD.getValue(MDL_IMAGE, id)
             expImg = testFile("test.xmd")
             expImg = ("00000%d@" % i) + testFile("proj_ctf_1.stk")
-            #expImg = '00000%d@Images/proj_ctf_1.stk' % i
+            # expImg = '00000%d@Images/proj_ctf_1.stk' % i
             self.assertEqual(img, expImg)
             i += 1
 
     def test_Metadata_existsBlockInMetaDataFile(self):
-        mdPath = "b2@"+testFile("testBlock.xmd")
+        mdPath = "b2@" + testFile("testBlock.xmd")
         self.assertTrue(existsBlockInMetaDataFile(mdPath))
-        mdPath = "nonexisting@"+testFile("testBlock.xmd")
+        mdPath = "nonexisting@" + testFile("testBlock.xmd")
         self.assertFalse(existsBlockInMetaDataFile(mdPath))
-        mdPath = "gggg@"+testFile("testBlock.xmd")
-        self.assertRaises(Exception,existsBlockInMetaDataFile(mdPath))
+        mdPath = "gggg@" + testFile("testBlock.xmd")
+        self.assertRaises(Exception, existsBlockInMetaDataFile(mdPath))
 
     def test_Metadata_operate(self):
         md = MetaData()
@@ -608,13 +606,13 @@ class TestXmippPythonInterface(unittest.TestCase):
         operateString += "," + anglePsiLabel + "=2*" + anglePsiLabel
         md.operate(operateString)
         for id in md2:
-            md2.setValue(MDL_ANGLE_ROT, md2.getValue(MDL_ANGLE_ROT, id) * 3., id);
-            md2.setValue(MDL_ANGLE_PSI, md2.getValue(MDL_ANGLE_PSI, id) * 2., id);
+            md2.setValue(MDL_ANGLE_ROT, md2.getValue(MDL_ANGLE_ROT, id) * 3., id)
+            md2.setValue(MDL_ANGLE_PSI, md2.getValue(MDL_ANGLE_PSI, id) * 2., id)
         self.assertEqual(md, md2)
 
     def test_xmipp_addLabelAlias(self):
         tmpFileName = '/tmp/test_pythoninterface_readPlain1.xmd'
-        line1="""# XMIPP_STAR_1 * 
+        line1 = """# XMIPP_STAR_1 * 
 # 
 data_images
 
@@ -623,15 +621,15 @@ _rlnVoltage #1
 _rlnDefocusU #2
   200.0 10000.0
   201.0 10000.0"""
-        #createTestImage
-        f = open(tmpFileName,'w')
+        # createTestImage
+        f = open(tmpFileName, 'w')
         f.write(line1)
         f.flush()
         f.close()
-        addLabelAlias(MDL_CTF_VOLTAGE,"rlnVoltage")
-        addLabelAlias(MDL_CTF_DEFOCUSU,"rlnDefocusU")
-        md=MetaData(tmpFileName)
-        md2=MetaData()
+        addLabelAlias(MDL_CTF_VOLTAGE, "rlnVoltage")
+        addLabelAlias(MDL_CTF_DEFOCUSU, "rlnDefocusU")
+        md = MetaData(tmpFileName)
+        md2 = MetaData()
         id = md2.addObject()
         md2.setValue(MDL_CTF_VOLTAGE, 200.0, id)
         md2.setValue(MDL_CTF_DEFOCUSU, 10000.0, id)
@@ -642,7 +640,7 @@ _rlnDefocusU #2
         os.remove(tmpFileName)
 
     def test_Metadata_renameColumn(self):
-        '''test_Metadata_renameColumn'''
+        """test_Metadata_renameColumn"""
         md = MetaData()
         id = md.addObject()
         md.setValue(MDL_ANGLE_ROT, 1., id)
@@ -663,11 +661,10 @@ _rlnDefocusU #2
         md2.setValue(MDL_ANGLE_TILT2, 12., id)
         md2.setValue(MDL_ANGLE_PSI2, 13., id)
 
-        md.renameColumn(MDL_ANGLE_ROT,MDL_ANGLE_ROT2)
-        md.renameColumn(MDL_ANGLE_TILT,MDL_ANGLE_TILT2)
-        md.renameColumn(MDL_ANGLE_PSI,MDL_ANGLE_PSI2)
+        md.renameColumn(MDL_ANGLE_ROT, MDL_ANGLE_ROT2)
+        md.renameColumn(MDL_ANGLE_TILT, MDL_ANGLE_TILT2)
+        md.renameColumn(MDL_ANGLE_PSI, MDL_ANGLE_PSI2)
         self.assertEqual(md, md2)
-
 
         md.clear()
         id = md.addObject()
@@ -678,13 +675,13 @@ _rlnDefocusU #2
         md.setValue(MDL_ANGLE_ROT, 11., id)
         md.setValue(MDL_ANGLE_TILT, 12., id)
         md.setValue(MDL_ANGLE_PSI, 13., id)
-        oldLabel=[MDL_ANGLE_ROT,MDL_ANGLE_TILT,MDL_ANGLE_PSI]
-        newLabel=[MDL_ANGLE_ROT2,MDL_ANGLE_TILT2,MDL_ANGLE_PSI2]
-        md.renameColumn(oldLabel,newLabel)
+        oldLabel = [MDL_ANGLE_ROT, MDL_ANGLE_TILT, MDL_ANGLE_PSI]
+        newLabel = [MDL_ANGLE_ROT2, MDL_ANGLE_TILT2, MDL_ANGLE_PSI2]
+        md.renameColumn(oldLabel, newLabel)
         self.assertEqual(md, md2)
 
     def test_Metadata_sort(self):
-        '''test_Metadata_sort'''
+        """test_Metadata_sort"""
         md = MetaData()
         id = md.addObject()
         md.setValue(MDL_ANGLE_ROT, 1., id)
@@ -713,12 +710,12 @@ _rlnDefocusU #2
         md2.setValue(MDL_ANGLE_ROT, 1., id)
         md2.setValue(MDL_ANGLE_TILT, 2., id)
 
-        mdAux=MetaData(md)
-        mdAux.sort(MDL_ANGLE_ROT,False)
+        mdAux = MetaData(md)
+        mdAux.sort(MDL_ANGLE_ROT, False)
         self.assertEqual(mdAux, md2)
 
-        mdAux=MetaData(md)
-        mdAux.sort(MDL_ANGLE_ROT,False,2)#limit
+        mdAux = MetaData(md)
+        mdAux.sort(MDL_ANGLE_ROT, False, 2)  # limit
         md2 = MetaData()
         id = md2.addObject()
         md2.setValue(MDL_ANGLE_ROT, 11., id)
@@ -728,8 +725,8 @@ _rlnDefocusU #2
         md2.setValue(MDL_ANGLE_TILT, 12., id)
         self.assertEqual(mdAux, md2)
 
-        mdAux=MetaData(md)
-        mdAux.sort(MDL_ANGLE_ROT,False,2,1)#limit && offset
+        mdAux = MetaData(md)
+        mdAux.sort(MDL_ANGLE_ROT, False, 2, 1)  # limit && offset
         md2 = MetaData()
         id = md2.addObject()
         md2.setValue(MDL_ANGLE_ROT, 6., id)
@@ -739,9 +736,9 @@ _rlnDefocusU #2
         md2.setValue(MDL_ANGLE_TILT, 12., id)
         self.assertEqual(mdAux, md2)
 
-    #tests for join1 and join2 pending
+    # tests for join1 and join2 pending
     def test_Metadata_joinNatural(self):
-        #create metadta
+        # create metadta
         md = MetaData()
         md2 = MetaData()
         mdout = MetaData()
@@ -771,7 +768,7 @@ _rlnDefocusU #2
         self.assertEqual(mdout, md)
 
     def test_Metadata_intersect(self):
-        #create metadta
+        # create metadta
         md = MetaData()
         md2 = MetaData()
         mdout = MetaData()
@@ -787,7 +784,7 @@ _rlnDefocusU #2
             id = md2.addObject()
             img = '%06d@pythoninterface/proj_ctf_1.stk' % i
             md2.setValue(MDL_IMAGE, img, id)
-        md.intersection (md2, MDL_IMAGE)
+        md.intersection(md2, MDL_IMAGE)
 
         for i in range(1, 3):
             id = mdout.addObject()
@@ -800,7 +797,7 @@ _rlnDefocusU #2
         self.assertEqual(mdout, md)
 
     def test_Metadata_read(self):
-        '''MetaData_setValues'''
+        """MetaData_setValues"""
         '''This test should produce the following metadata, which is the same of 'test.xmd'
         data_
         loop_
@@ -840,7 +837,7 @@ _rlnDefocusU #2
         self.assertEqual(md, md2)
 
     def test_Metadata_read_with_labels(self):
-        '''MetaData_setValues'''
+        """MetaData_setValues"""
         '''This test should produce the following metadata, which is the same of 'test.xmd'
         data_
         loop_
@@ -887,7 +884,7 @@ _rlnDefocusU #2
         self.assertEqual(md, md2)
 
     def test_Metadata_setColumnFormat(self):
-        '''MetaData_setValues'''
+        """MetaData_setValues"""
         '''This test should produce the following metadata, which is the same of 'test_row.xmd'
         data_
          _image 000001@Images/proj_ctf_1.stk
@@ -912,7 +909,7 @@ _rlnDefocusU #2
         os.remove(rowFileName)
 
     def test_Metadata_setValue(self):
-        '''MetaData_setValues'''
+        """MetaData_setValues"""
         '''This test should produce the following metadata, which is the same of 'test.xmd'
         data_
         loop_
@@ -943,11 +940,10 @@ _rlnDefocusU #2
             md.setValue(MDL_REF3D, (i * ii), id)
             ii *= -1
 
-
         self.assertEqual(mdRef, md)
-        print("THIS IS NOT AN ERROR: we are testing exceptions: an error message should appear regarding count and DOUBLE")
+        print(
+            "THIS IS NOT AN ERROR: we are testing exceptions: an error message should appear regarding count and DOUBLE")
         self.assertRaises(XmippError, md.setValue, MDL_COUNT, 5.5, 1)
-
 
     def test_Metadata_compareTwoMetadataFiles(self):
 
@@ -1005,12 +1001,12 @@ _rlnDefocusU #2
 
     def test_Metadata_agregate(self):
         mdOut = MetaData()
-        md    = MetaData()
+        md = MetaData()
         mdResult = MetaData()
         for linea in range(1, 101):
             id = md.addObject()
             md.setValue(MDL_IMAGE, '%06d@proj.stk' % linea, id)
-            md.setValue(MDL_XCOOR, int(linea%3), id)
+            md.setValue(MDL_XCOOR, int(linea % 3), id)
         mdOut.aggregate(md, AGGR_COUNT, MDL_XCOOR, MDL_XCOOR, MDL_COUNT)
         id = mdResult.addObject()
         mdResult.setValue(MDL_XCOOR, 0, id)
@@ -1026,14 +1022,14 @@ _rlnDefocusU #2
 
     def test_Metadata_aggregateMdGroupBy(self):
         mdOut = MetaData()
-        md    = MetaData()
+        md = MetaData()
         mdResult = MetaData()
         for linea in range(1, 101):
             id = md.addObject()
             md.setValue(MDL_IMAGE, '%06d@proj.stk' % linea, id)
-            md.setValue(MDL_XCOOR, int(linea%3), id)
-            md.setValue(MDL_YCOOR, int(linea%2), id)
-        mdOut.aggregateMdGroupBy(md, AGGR_COUNT, [MDL_XCOOR,MDL_YCOOR], MDL_XCOOR, MDL_COUNT)
+            md.setValue(MDL_XCOOR, int(linea % 3), id)
+            md.setValue(MDL_YCOOR, int(linea % 2), id)
+        mdOut.aggregateMdGroupBy(md, AGGR_COUNT, [MDL_XCOOR, MDL_YCOOR], MDL_XCOOR, MDL_COUNT)
         id = mdResult.addObject()
         mdResult.setValue(MDL_XCOOR, 0, id)
         mdResult.setValue(MDL_YCOOR, 0, id)
@@ -1062,7 +1058,7 @@ _rlnDefocusU #2
         self.assertEqual(mdOut, mdResult)
 
     def test_Metadata_fillExpand(self):
-        '''MetaData_fillExpand'''
+        """MetaData_fillExpand"""
         ctf = MetaData()
         objId = ctf.addObject()
         ctf.setColumnFormat(False)
@@ -1106,66 +1102,66 @@ _rlnDefocusU #2
         self.assertEqual(md1, md2)
 
     def test_metadata_stress(self):
-        numberMetadatas=10+1
-        numberLines=10+1
+        numberMetadatas = 10 + 1
+        numberLines = 10 + 1
         md = MetaData()
-        fnStar   = self.getTmpName('.xmd')
+        fnStar = self.getTmpName('.xmd')
         fnSqlite = self.getTmpName('.sqlite')
-        outFileName=""
-        #fill buffers so comparison is fair
-        #if you do not fill buffers first meassurements will be muchfaster
+        outFileName = ""
+        # fill buffers so comparison is fair
+        # if you do not fill buffers first meassurements will be muchfaster
         print("fill buffers so comparisons are fair")
-        tmpFn="/tmp/deleteme.xmd"
+        tmpFn = "/tmp/deleteme.xmd"
         timestamp1 = time.time()
         if exists(tmpFn):
             os.remove(tmpFn)
         for met in range(1, numberMetadatas):
-            outFileName = "b%06d@%s" % (met,tmpFn)
+            outFileName = "b%06d@%s" % (met, tmpFn)
             for lin in range(1, numberLines):
                 id = md.addObject()
 
                 md.setValue(MDL_IMAGE, '%06d@proj.stk' % met, id)
-                md.setValue(MDL_XCOOR,   lin+met*(numberLines-1), id)
-                md.setValue(MDL_YCOOR, 1+lin+met*(numberLines-1), id)
-            md.write(outFileName,MD_APPEND)
+                md.setValue(MDL_XCOOR, lin + met * (numberLines - 1), id)
+                md.setValue(MDL_YCOOR, 1 + lin + met * (numberLines - 1), id)
+            md.write(outFileName, MD_APPEND)
             md.clear()
         timestamp2 = time.time()
         print("\nBUFFER FILLING took %.2f seconds" % (timestamp2 - timestamp1))
 
-        #write sqlite lineal
+        # write sqlite lineal
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
-            outFileName = "b%06d@%s" % (met,fnSqlite)
+            outFileName = "b%06d@%s" % (met, fnSqlite)
             for lin in range(1, numberLines):
                 id = md.addObject()
 
                 md.setValue(MDL_IMAGE, '%06d@proj.stk' % met, id)
-                md.setValue(MDL_XCOOR,   lin+met*(numberLines-1), id)
-                md.setValue(MDL_YCOOR, 1+lin+met*(numberLines-1), id)
-            md.write(outFileName,MD_APPEND)
+                md.setValue(MDL_XCOOR, lin + met * (numberLines - 1), id)
+                md.setValue(MDL_YCOOR, 1 + lin + met * (numberLines - 1), id)
+            md.write(outFileName, MD_APPEND)
             md.clear()
         timestamp2 = time.time()
         print("\nwrite(append) sqlite took %.2f seconds" % (timestamp2 - timestamp1))
-        #write star lineal
+        # write star lineal
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
-            outFileName = "b%06d@%s" % (met,fnStar)
+            outFileName = "b%06d@%s" % (met, fnStar)
             for lin in range(1, numberLines):
                 id = md.addObject()
 
                 md.setValue(MDL_IMAGE, '%06d@proj.stk' % met, id)
-                md.setValue(MDL_XCOOR,   lin+met*(numberLines-1), id)
-                md.setValue(MDL_YCOOR, 1+lin+met*(numberLines-1), id)
-            md.write(outFileName,MD_APPEND)
+                md.setValue(MDL_XCOOR, lin + met * (numberLines - 1), id)
+                md.setValue(MDL_YCOOR, 1 + lin + met * (numberLines - 1), id)
+            md.write(outFileName, MD_APPEND)
             md.clear()
         timestamp2 = time.time()
         print("\nwrite(append) star took %.2f seconds" % (timestamp2 - timestamp1))
         self.assertEqual(1, 1)
 
-        #read random ///////////////////////////////////////////////////7
+        # read random ///////////////////////////////////////////////////7
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
-            outFileName = "b%06d@%s" % (met,fnSqlite)
+            outFileName = "b%06d@%s" % (met, fnSqlite)
             md.read(outFileName)
             md.clear()
         timestamp2 = time.time()
@@ -1173,20 +1169,20 @@ _rlnDefocusU #2
 
         timestamp1 = time.time()
         for met in range(1, numberMetadatas):
-            outFileName = "b%06d@%s" % (met,fnStar)
+            outFileName = "b%06d@%s" % (met, fnStar)
             md.read(outFileName)
             md.clear()
         timestamp2 = time.time()
         print("\nread(secuential) star took %.2f seconds" % (timestamp2 - timestamp1))
 
     def test_SymList_readSymmetryFile(self):
-        '''readSymmetryFile'''
+        """readSymmetryFile"""
         a = SymList()
         a.readSymmetryFile("i3")
         self.assertEqual(True, True)
 
     def test_SymList_computeDistance(self):
-        '''computeDistance'''
+        """computeDistance"""
         SL = SymList()
         SL.readSymmetryFile("i3h")
         md = MetaData()
@@ -1218,9 +1214,10 @@ _rlnDefocusU #2
             print(err)
         m = _symList[1]
         l = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]
-        self.assertAlmostEqual(m[1][1],l[1][1])
-        self.assertAlmostEqual(m[0][0],l[0][0])
-        self.assertAlmostEqual(m[1][1],0.)
+        self.assertAlmostEqual(m[1][1], l[1][1])
+        self.assertAlmostEqual(m[0][0], l[0][0])
+        self.assertAlmostEqual(m[1][1], 0.)
+
 
 if __name__ == '__main__':
     loader = unittest.TestLoader()

@@ -28,26 +28,26 @@
 import os
 from src.xmipp.bindings.python.xmipp_base import *
 
+
 class ScriptPDBSelect(XmippScript):
     def __init__(self):
         XmippScript.__init__(self)
-        
+
     def defineParams(self):
         self.addUsageLine('Select/Exclude alpha helices or beta sheets from a PDB. '
                           'It is assumed that the secondary structure information is written '
                           'in the header')
-        ## params
+        # params
         self.addParamsLine(' -i <pdb>          : PDB file to process')
         self.addParamsLine(' -o <pdb>          : Output PDB')
         self.addParamsLine('[--keep_alpha <N=10>] : Keep alpha helices at least of this length')
         self.addParamsLine('[--keep_beta  <N=10>] : Keep beta helices at least of this length')
         self.addParamsLine('[--exclude_alpha]  : Exclude alpha helices')
         self.addParamsLine('[--exclude_beta]   : Exclude beta helices')
-        ## examples
+        # examples
         self.addExampleLine('   xmipp_pdb_select -i myfile.pdb -o onlyalpha.pdb --keep_alpha')
-            
 
-    def readPDB(self,fnIn):
+    def readPDB(self, fnIn):
         self.allAtoms = []
         self.sse = []
         with open(fnIn) as f:
@@ -60,22 +60,22 @@ class ScriptPDBSelect(XmippScript):
                 elif line.startswith('HELIX '):
                     ss0 = int(line[21:25])
                     ssF = int(line[33:37])
-                    if ssF-ss0>self.N:
-                        self.sse.append(('Helix',line[19],ss0,ssF))
+                    if ssF - ss0 > self.N:
+                        self.sse.append(('Helix', line[19], ss0, ssF))
                 elif line.startswith('SHEET '):
                     ss0 = int(line[22:26])
                     ssF = int(line[33:37])
-                    if ssF-ss0>self.N:
-                        self.sse.append(('Sheet',line[21],ss0,ssF))
+                    if ssF - ss0 > self.N:
+                        self.sse.append(('Sheet', line[21], ss0, ssF))
             except:
                 pass
 
-    def sseForResidue(self,atomLine):
+    def sseForResidue(self, atomLine):
         try:
             residueNumber = int(atomLine[22:26])
             chain = atomLine[21]
             for (ssType, ssChain, ss0, ssF) in self.sse:
-                if chain == ssChain and residueNumber>=ss0 and residueNumber<=ssF:
+                if chain == ssChain and ss0 <= residueNumber <= ssF:
                     return ssType
             return "None"
         except:
@@ -88,13 +88,13 @@ class ScriptPDBSelect(XmippScript):
             ok = False
             if ssType == "None":
                 if self.exclude_alpha or self.exclude_beta:
-                    ok=True
+                    ok = True
             elif ssType == "Helix":
                 if self.keep_alpha:
-                    ok=True
+                    ok = True
             elif ssType == "Sheet":
                 if self.keep_beta:
-                    ok=True
+                    ok = True
             if ok:
                 self.selectedAtoms.append(atomLine)
 
@@ -112,9 +112,10 @@ class ScriptPDBSelect(XmippScript):
         self.exclude_beta = self.checkParam('--exclude_beta')
         self.readPDB(fnIn)
         self.selectAtoms()
-        with open(fnOut,"w") as f:
+        with open(fnOut, "w") as f:
             for line in self.selectedAtoms:
-                f.write("%s"%line)
+                f.write("%s" % line)
+
 
 if __name__ == '__main__':
     ScriptPDBSelect().tryRun()

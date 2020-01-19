@@ -36,21 +36,21 @@ class ScriptApropos(xmipp3.XmippScript):
     def __init__(self):
         xmipp3.XmippScript.__init__(self)
         self.results = []
-        
+
     def defineParams(self):
         self.addUsageLine("Search for Xmipp programs that are related to some keywords.")
         self.addUsageLine("Useful for when does not remember a program name.")
-        ## params
+        # params
         self.addParamsLine(" -i <...>          : Keyword list to search programs matching")
         self.addParamsLine("   alias --input;")
         self.addParamsLine("or -u               : Update the database with programs info")
         self.addParamsLine("   alias --update;")
         self.addParamsLine("or -l           : List all Xmipp programs or categories")
-        self.addParamsLine("   alias --list;")    
+        self.addParamsLine("   alias --list;")
         self.addParamsLine(" [-t <type=programs>]      : Type of operations")
         self.addParamsLine("    where <type> programs categories both labels")
-        self.addParamsLine("   alias --type;")    
-        ## examples
+        self.addParamsLine("   alias --type;")
+        # examples
         self.addExampleLine("Search for program containing the keyword 'header'", False)
         self.addExampleLine("   xmipp_apropos -i header")
         self.addExampleLine("Search for program containing the keywords 'noise' and 'gaussian'", False)
@@ -59,21 +59,21 @@ class ScriptApropos(xmipp3.XmippScript):
         self.addExampleLine("   xmipp_apropos --list")
         self.addExampleLine("List all xmipp metadata labels", False)
         self.addExampleLine("   xmipp_apropos --list -t labels")
-            
+
     def readParams(self):
         self.keywords = []
         if self.checkParam('-i'):
             self.keywords = [k.lower() for k in self.getListParam('-i')]
         self.progRank = prog.ProgramKeywordsRank(self.keywords)
         self.type = self.getParam('--type')
-        
+
     def hasKeywords(self, label):
         for key in self.keywords:
             for v in label.values():
                 if key in v.lower():
                     return True
-        return False 
-            
+        return False
+
     def run(self):
         if self.checkParam('-u'):
             prog.createProgramsDb()
@@ -83,8 +83,8 @@ class ScriptApropos(xmipp3.XmippScript):
             if self.checkParam("-i"):
                 labels = [l for l in labels if self.hasKeywords(l)]
             # Check which labels are ported to python
-            xm = __import__('xmipp') # load xmipp module object
-            
+            xm = __import__('xmipp')  # load xmipp module object
+
             for l in labels:
                 try:
                     getattr(xm, l['enum'])
@@ -99,7 +99,7 @@ class ScriptApropos(xmipp3.XmippScript):
                 db = prog.ProgramDb(dbName)
 
             onlyList = self.checkParam('--list')
-            
+
             if onlyList and self.type != 'programs':
                 categories = db.selectCategories()
                 doBoth = self.type == 'both'
@@ -107,7 +107,7 @@ class ScriptApropos(xmipp3.XmippScript):
                     print(pwutils.blue(c['name']))
                     if doBoth:
                         programs = db.selectPrograms(c)
-                        #self.maxlen = 50
+                        # self.maxlen = 50
                         self.printPrograms(programs)
             else:
                 results = []
@@ -115,20 +115,21 @@ class ScriptApropos(xmipp3.XmippScript):
                 # Calculate ranks
                 for p in programs:
                     rank = self.progRank.getRank(p)
-                    #Order by insertion sort
+                    # Order by insertion sort
                     if rank > 0:
                         name = self.highlightStr(os.path.basename(p['name']))
-                        #self.maxlen = max(self.maxlen, len(name))
+                        # self.maxlen = max(self.maxlen, len(name))
                         pos = len(results)
                         for i, e in reversed(list(enumerate(results))):
                             if e['rank'] < rank:
                                 pos = i
-                            else: break
+                            else:
+                                break
 
                         results.insert(pos, {'rank': rank, 'name': name, 'usage': p['usage']})
                 # Print results
                 self.printPrograms(results)
-        
+
     def printPrograms(self, programs):
         maxlen = 50
         for p in programs:
@@ -137,12 +138,12 @@ class ScriptApropos(xmipp3.XmippScript):
             if len(desc) > 0:
                 desc = self.highlightStr(desc.splitlines()[0])
             print(name.ljust(maxlen), desc)
-                         
+
     def highlightStr(self, hstr):
         for k in self.keywords:
             hstr = hstr.replace(k, pwutils.red(k))
         return hstr
 
+
 if __name__ == '__main__':
     ScriptApropos().tryRun()
-

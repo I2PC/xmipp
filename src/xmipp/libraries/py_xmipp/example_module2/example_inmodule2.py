@@ -27,11 +27,12 @@
 
 print("Inside example_inmodule2.py")
 
+
 def anyFunction2():
     return "returningFromFunction (II)"
 
-class anyClass2():
 
+class anyClass2:
     A_CONSTANT = "A class constant. (II)"
 
     def __init__(self):
@@ -40,7 +41,7 @@ class anyClass2():
 
     @classmethod
     def getFromClassMethod2(cls):
-        return("Getting '%s' (II)" % cls.A_CONSTANT)
+        return "Getting '%s' (II)" % cls.A_CONSTANT
 
     def getFromObjectMethod2(self):
-        return("Getting '%s' (II)" % self.inVar)
+        return "Getting '%s' (II)" % self.inVar

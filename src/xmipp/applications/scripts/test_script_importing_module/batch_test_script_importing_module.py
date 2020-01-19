@@ -30,12 +30,14 @@ import sys
 
 
 def green(txt):
-    return "\033[92m"+txt+"\033[0m"
+    return "\033[92m" + txt + "\033[0m"
+
 
 def red(text):
-    return "\033[91m"+text+"\033[0m"
+    return "\033[91m" + text + "\033[0m"
 
-print(green("[ RUN      ]")+" test_script_importing_module")
+
+print(green("[ RUN      ]") + " test_script_importing_module")
 
 try:
     print("Inside (batch_)test_script_importing_module(.py)")
@@ -43,6 +45,7 @@ try:
 
     print(">from xmippPyModules import example_module")
     from xmippPyModules import example_module
+
     print("")
 
     print(">example_module.anyFunction()")
@@ -65,9 +68,9 @@ try:
     print(obj.getFromObjectMethod())
     print("")
 
-
     print(">from xmippPyModules.example_module2 import example_inmodule2")
     from xmippPyModules.example_module2 import example_inmodule2
+
     print("")
 
     print(">example_inmodule.anyFunction2()")
@@ -93,9 +96,8 @@ try:
 except Exception as e:
     print(e)
     print(green("[==========]") + " 1 test ")
-    print(  red("[  FAILED  ]") + " 1 test. ")
+    print(red("[  FAILED  ]") + " 1 test. ")
     sys.exit(1)
 
-
-print(green("[==========]")+" 1 test ")
-print(green("[  PASSED  ]")+" 1 test. ")
+print(green("[==========]") + " 1 test ")
+print(green("[  PASSED  ]") + " 1 test. ")

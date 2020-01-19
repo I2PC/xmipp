@@ -5,10 +5,8 @@
 # the SWIG interface file instead.
 
 
-
-
-
 from sys import version_info
+
 if version_info >= (2, 6, 0):
     def swig_import_helper():
         from os.path import dirname
@@ -25,6 +23,8 @@ if version_info >= (2, 6, 0):
             finally:
                 fp.close()
             return _mod
+
+
     _swig_frm = swig_import_helper()
     del swig_import_helper
 else:
@@ -37,16 +37,16 @@ except NameError:
 
 
 def _swig_setattr_nondynamic(self, class_type, name, value, static=1):
-    if (name == "thisown"):
+    if name == "thisown":
         return self.this.own(value)
-    if (name == "this"):
+    if name == "this":
         if type(value).__name__ == 'SwigPyObject':
             self.__dict__[name] = value
             return
     method = class_type.__swig_setmethods__.get(name, None)
     if method:
         return method(self, value)
-    if (not static):
+    if not static:
         if _newclass:
             object.__setattr__(self, name, value)
         else:
@@ -60,15 +60,16 @@ def _swig_setattr(self, class_type, name, value):
 
 
 def _swig_getattr_nondynamic(self, class_type, name, static=1):
-    if (name == "thisown"):
+    if name == "thisown":
         return self.this.own()
     method = class_type.__swig_getmethods__.get(name, None)
     if method:
         return method(self)
-    if (not static):
+    if not static:
         return object.__getattr__(self, name)
     else:
         raise AttributeError(name)
+
 
 def _swig_getattr(self, class_type, name):
     return _swig_getattr_nondynamic(self, class_type, name, 0)
@@ -81,39 +82,56 @@ def _swig_repr(self):
         strthis = ""
     return "<%s.%s; %s >" % (self.__class__.__module__, self.__class__.__name__, strthis,)
 
+
 try:
     _object = object
     _newclass = 1
 except AttributeError:
     class _object:
         pass
-    _newclass = 0
 
+
+    _newclass = 0
 
 
 def frm(arg1, arg2, INPLACE_ARRAY1):
     return _swig_frm.frm(arg1, arg2, INPLACE_ARRAY1)
+
+
 frm = _swig_frm.frm
+
 
 def frm_corr(arg1, arg2, INPLACE_ARRAY1):
     return _swig_frm.frm_corr(arg1, arg2, INPLACE_ARRAY1)
+
+
 frm_corr = _swig_frm.frm_corr
+
 
 def frm_fourier_corr(arg1, arg2, arg3, arg4, INPLACE_ARRAY1):
     return _swig_frm.frm_fourier_corr(arg1, arg2, arg3, arg4, INPLACE_ARRAY1)
+
+
 frm_fourier_corr = _swig_frm.frm_fourier_corr
+
 
 def find_topn_angles(IN_ARRAY1, bw, INPLACE_ARRAY1, dist_cut):
     return _swig_frm.find_topn_angles(IN_ARRAY1, bw, INPLACE_ARRAY1, dist_cut)
+
+
 find_topn_angles = _swig_frm.find_topn_angles
+
 
 def enlarge2(IN_ARRAY1, nx, ny, nz, INPLACE_ARRAY1):
     return _swig_frm.enlarge2(IN_ARRAY1, nx, ny, nz, INPLACE_ARRAY1)
+
+
 enlarge2 = _swig_frm.enlarge2
+
 
 def get_constraint_vol(INPLACE_ARRAY1, bw, phi, psi, the, nearby):
     return _swig_frm.get_constraint_vol(INPLACE_ARRAY1, bw, phi, psi, the, nearby)
+
+
 get_constraint_vol = _swig_frm.get_constraint_vol
 # This file is compatible with both classic and new-style classes.
-
-

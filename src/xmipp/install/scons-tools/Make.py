@@ -39,13 +39,13 @@ def parms(target, source, env):
     if env.get('CROSS_BUILD'):
         make_env = env['CROSS_ENV']
     if 'MakeEnv' in env:
-        if make_env == None:
+        if make_env is None:
             make_env = {}
         else:
             # We're appending to an existing dictionary, so create a copy
             # instead of appending to the original env['CROSS_ENV']
             make_env = env['CROSS_ENV'][:]
-        for (k,v) in env['MakeEnv'].items():
+        for (k, v) in env['MakeEnv'].items():
             make_env[k] = v
 
     make_opts = None
@@ -62,7 +62,7 @@ def parms(target, source, env):
 
     out = env.get('MakeStdOut')
 
-    return (make_path, make_env, make_targets, make_cmd, make_jobs, make_opts, out)
+    return make_path, make_env, make_targets, make_cmd, make_jobs, make_opts, out
 
 
 def message(target, source, env):
@@ -88,15 +88,15 @@ def message(target, source, env):
                            target=target, source=source, raw=1) + " > %s " % out
 
     msg = 'cd ' + make_path + ' &&'
-    if make_env != None:
+    if make_env is not None:
         for k, v in make_env.items():
             msg += ' ' + k + '=' + v
     msg += ' ' + make_cmd
     if make_jobs > 1:
         msg += ' -j %d' % make_jobs
-    if make_opts != None:
+    if make_opts is not None:
         msg += ' ' + ' '.join(make_opts)
-    if make_targets != None:
+    if make_targets is not None:
         msg += ' ' + make_targets
     return msg
 
@@ -119,10 +119,10 @@ def builder(target, source, env):
         print('Path %s not found' % make_path)
 
     # Build up the command and its arguments in a list
-    fullcmd = [ make_cmd ]
+    fullcmd = [make_cmd]
 
     if make_jobs > 1:
-        fullcmd += [ '-j', str(make_jobs) ]
+        fullcmd += ['-j', str(make_jobs)]
 
     if make_opts:
         fullcmd += make_opts
@@ -151,6 +151,6 @@ def generate(env, **kwargs):
 
 
 def exists(env):
-    if env.WhereIs(env.subst('$MAKE')) != None:
+    if env.WhereIs(env.subst('$MAKE')) is not None:
         return True
     return False

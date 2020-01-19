@@ -27,11 +27,12 @@
 
 print("Inside example_module.py")
 
+
 def anyFunction():
     return "returningFromFunction"
 
-class anyClass():
 
+class anyClass:
     A_CONSTANT = "A class constant."
 
     def __init__(self):
@@ -40,7 +41,7 @@ class anyClass():
 
     @classmethod
     def getFromClassMethod(cls):
-        return("Getting '%s'" % cls.A_CONSTANT)
+        return "Getting '%s'" % cls.A_CONSTANT
 
     def getFromObjectMethod(self):
-        return("Getting '%s'" % self.inVar)
+        return "Getting '%s'" % self.inVar

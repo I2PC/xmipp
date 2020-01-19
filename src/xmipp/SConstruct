@@ -40,18 +40,19 @@ from SCons.Builder import Builder
 from SCons.Script.Main import AddOption
 
 try:
- from itertools import izip
+    from itertools import izip
 except:
     izip = zip
 from glob import glob
 import fnmatch
 import platform
 import SCons.SConf
+
 try:
     from ConfigParser import ConfigParser, ParsingError
 except ImportError:
     from configparser import ConfigParser, ParsingError  # Python 3
-    
+
 MACOSX = (platform.system() == 'Darwin')
 WINDOWS = (platform.system() == 'Windows')
 LINUX = (platform.system() == 'Linux')
@@ -66,7 +67,6 @@ elif MACOSX:
 else:
     print('OS not tested yet')
     sys.exit(1)
-
 
 # Create the environment the whole build will use.
 env = Environment(ENV=os.environ,
@@ -85,7 +85,7 @@ if not GetOption('verbose'):
     env['AUTOCONFIGCOMSTR'] = "Configuring $TARGET from $SOURCES"
     env['MAKECOMSTR'] = "Compiling & installing $TARGET from $SOURCES "
 
-    
+
 def targetInBuild(env, targetName):
     return targetName in map(str, BUILD_TARGETS)
 
@@ -102,10 +102,11 @@ elif WINDOWS:
 else:
     print("Unknown system: %s\nPlease tell the developers." % platform.system())
 
-
 # Python and SCons versions are fixed
 # env.EnsurePythonVersion(2,7)
-env.EnsureSConsVersion(2,3,0)
+env.EnsureSConsVersion(2, 3, 0)
+
+
 # TODO: see after all is clean and crispy if we can avoid fixing the versions.
 # We can specify a range of valid version after we check it works with them.
 
@@ -118,7 +119,7 @@ env.EnsureSConsVersion(2,3,0)
 
 
 def appendUnique(elist, element):
-    'Add element to a list only if it doesnt previously exist'
+    """Add element to a list only if it doesnt previously exist"""
     if element not in elist:
         if not isinstance(element, str):
             elist.extend(element)
@@ -136,10 +137,10 @@ cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
 try:
     if not os.path.exists("install/xmipp.conf"):
         shutil.copy("install/xmipp.template", "install/xmipp.conf")
-    cf.read("install/xmipp.conf")        
+    cf.read("install/xmipp.conf")
 except ParsingError:
     sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
-if not 'BUILD' in cf.sections():
+if 'BUILD' not in cf.sections():
     print("Cannot find section BUILD in install/xmipp.conf")
 os.environ.update(dict(cf.items('BUILD')))
 
@@ -150,9 +151,8 @@ env['LINKERFORPROGRAMS'] = os.environ.get('LINKERFORPROGRAMS')
 env['CCFLAGS'] = os.environ.get('CCFLAGS', '').split()
 cxxFlags = os.environ.get('CXXFLAGS', '')
 env['CXXFLAGS'] = cxxFlags.split()
-os.environ['CXXFLAGS'] = cxxFlags # FIXME use only env or os.environ in the rest of the code
+os.environ['CXXFLAGS'] = cxxFlags  # FIXME use only env or os.environ in the rest of the code
 env['LINKFLAGS'] = os.environ.get('LINKFLAGS', '').split()
-
 
 env['XMIPP_BUNDLE'] = os.environ.get('XMIPP_BUNDLE')
 env['MPI_CC'] = os.environ.get('MPI_CC')
@@ -169,7 +169,7 @@ env['NVCC_LINKFLAGS'] = os.environ.get('NVCC_LINKFLAGS').split()
 xmippPath = Dir('.').abspath
 env['PACKAGE'] = {'NAME': 'xmipp',
                   'SCONSCRIPT': xmippPath
-                 }
+                  }
 
 
 #  ************************************************************************
@@ -181,25 +181,27 @@ env['PACKAGE'] = {'NAME': 'xmipp',
 def remove_prefix(text, prefix):
     return text[text.startswith(prefix) and len(prefix):]
 
+
 env['INCDIRFLAGS'] = os.environ.get('INCDIRFLAGS', '').split()
 env['LIBDIRFLAGS'] = os.environ.get('LIBDIRFLAGS', '').split()
 
-if len(env["INCDIRFLAGS"])>0:
-    external_incdirs = [remove_prefix(os.path.expandvars(x),"-I") for x in env["INCDIRFLAGS"]]
+if len(env["INCDIRFLAGS"]) > 0:
+    external_incdirs = [remove_prefix(os.path.expandvars(x), "-I") for x in env["INCDIRFLAGS"]]
 else:
     external_incdirs = []
 
-if len(env["LIBDIRFLAGS"])>0:
-    external_libdirs = [remove_prefix(os.path.expandvars(x),"-L") for x in env["LIBDIRFLAGS"]]
+if len(env["LIBDIRFLAGS"]) > 0:
+    external_libdirs = [remove_prefix(os.path.expandvars(x), "-L") for x in env["LIBDIRFLAGS"]]
 else:
-    external_libdirs = []    
+    external_libdirs = []
 
 env['EXTERNAL_INCDIRS'] = external_incdirs
 env['EXTERNAL_LIBDIRS'] = external_libdirs
 
-def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patterns=[], incs=[], 
-                      libs=[], prefix=None, suffix=None, installDir=None, libpath=['lib'], deps=[], 
-                      mpi=False, nvcc=False, default=True, target=None):
+
+def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patterns=[], incs=[],
+                  libs=[], prefix=None, suffix=None, installDir=None, libpath=['lib'], deps=[],
+                  mpi=False, nvcc=False, default=True, target=None):
     """Add self-made and compiled shared library to the compilation process
     
     This pseudobuilder access given directory, compiles it
@@ -211,80 +213,79 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
     Returns the final targets, the ones that Make will create.
     """
     _libs = list(libs)
-    _libpath = list(libpath)+external_libdirs
+    _libpath = list(libpath) + external_libdirs
     if name == "XmippInterfaceCuda":
         _libs.append("XmippCuda")
     if "Cuda" in name:
         _libs.append("cudart")
-        #_libs.append("cuda")
+        # _libs.append("cuda")
         _libs.append("cufft")
         _libs.append("nvidia-ml")
         _libs.append("cuFFTAdvisor")
-    _incs = list(incs)#+external_incdirs
+    _incs = list(incs)  # +external_incdirs
     lastTarget = deps
     prefix = 'lib' if prefix is None else prefix
     suffix = '.so' if suffix is None else suffix
-    
+
     basedir = 'lib'
     targetName = join(basedir, target if target else prefix + name)
     sources = []
 
     for d, p in izip(dirs, patterns):
         sources += glob(join(env['PACKAGE']['SCONSCRIPT'], d, p))
-        
+
     if not sources and env.TargetInBuild(name):
         Exit('No sources found for Library: %s. Exiting!!!' % name)
-    sources.sort() # XXX HACK this is to have a fixed order of the files we compile
+    sources.sort()  # XXX HACK this is to have a fixed order of the files we compile
     # the reason is a compilation error for CUDA, which results in a multiple symbol detection
     # when the order is different. This has to be fixed in the future by changing the CUDA
     # build system FIXME David Strelak
     env2 = Environment()
     env2['ENV']['PATH'] = env['ENV']['PATH']
-    env2['CXXFLAGS']=list(env['CXXFLAGS']) # list(.) causes a true copy and not just a pointer 
-    env2['LINKFLAGS']=list(env['LINKFLAGS'])
+    env2['CXXFLAGS'] = list(env['CXXFLAGS'])  # list(.) causes a true copy and not just a pointer
+    env2['LINKFLAGS'] = list(env['LINKFLAGS'])
     env2['CXX'] = env['CXX']
     if "Cuda" in name or nvcc:
-        env2['LINKFLAGS']+=env['NVCC_LINKFLAGS']
+        env2['LINKFLAGS'] += env['NVCC_LINKFLAGS']
 
     extraArgs = {}
     if mpi:
-        if not 'CXXFLAGS' in env2:
-            env2['CXXFLAGS']=[]
-        if not 'LINKFLAGS' in env2:
-            env2['LINKFLAGS']=[]
-        env2['CXXFLAGS']+=env['MPI_CXXFLAGS']
-        env2['LINKFLAGS']+=env['MPI_LINKFLAGS']
+        if 'CXXFLAGS' not in env2:
+            env2['CXXFLAGS'] = []
+        if 'LINKFLAGS' not in env2:
+            env2['LINKFLAGS'] = []
+        env2['CXXFLAGS'] += env['MPI_CXXFLAGS']
+        env2['LINKFLAGS'] += env['MPI_LINKFLAGS']
         extraArgs = {'CC': env['MPI_CC'], 'CXX': env['MPI_CXX'], 'LINK': env['MPI_LINKERFORPROGRAMS']}
     if nvcc:
-        if not 'CXXFLAGS' in env2:
-            env2['CXXFLAGS']=[]
-        if not 'LINKFLAGS' in env2:
-            env2['LINKFLAGS']=[]
+        if 'CXXFLAGS' not in env2:
+            env2['CXXFLAGS'] = []
+        if 'LINKFLAGS' not in env2:
+            env2['LINKFLAGS'] = []
         env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
-        _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt', 'nvidia-ml','cuFFTAdvisor'])
+        _libs.append(['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt', 'nvidia-ml', 'cuFFTAdvisor'])
         extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
 
-
     libraryArgs = {
-        'target':      targetName,
-        'source':      sources,
-        'CPPPATH':     _incs,
-        'LIBPATH':     _libpath,
-        'LIBS':        _libs,
+        'target': targetName,
+        'source': sources,
+        'CPPPATH': _incs,
+        'LIBPATH': _libpath,
+        'LIBS': _libs,
         'SHLIBPREFIX': prefix,
         'SHLIBSUFFIX': suffix,
-        'CXXFLAGS':    env2['CXXFLAGS']+env['INCDIRFLAGS'],
-        'LINKFLAGS':   env2['LINKFLAGS']+env['LIBDIRFLAGS']
+        'CXXFLAGS': env2['CXXFLAGS'] + env['INCDIRFLAGS'],
+        'LINKFLAGS': env2['LINKFLAGS'] + env['LIBDIRFLAGS']
     }
     libraryArgs.update(extraArgs)
     if nvcc:
-        library=env2.Library(**libraryArgs)
+        library = env2.Library(**libraryArgs)
     else:
         library = env2.SharedLibrary(**libraryArgs)
     env2.Depends(library, sources)
-    
+
     if installDir:
         install = env2.Install(installDir, library)
         SideEffect('dummy', install)
@@ -302,11 +303,11 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
 
 
 def symLink(env, target, source):
-    #As the link will be in bin/ directory we need to move up
+    # As the link will be in bin/ directory we need to move up
     sources = source
-    current = Dir('.').path+'/'
+    current = Dir('.').path + '/'
     import SCons
-    if isinstance(target, SCons. Node.NodeList) or isinstance(target, list):
+    if isinstance(target, SCons.Node.NodeList) or isinstance(target, list):
         link = target[0].path
     else:
         link = target
@@ -318,13 +319,13 @@ def symLink(env, target, source):
         sources = sources.split(current)[1]
 
     sources = os.path.relpath(sources, os.path.split(link)[0])
-    #if os.path.lexists(link):
+    # if os.path.lexists(link):
     #    os.remove(link)
-    #print 'Linking to %s from %s' % (sources, link)
-    #os.symlink(sources, link)
+    # print 'Linking to %s from %s' % (sources, link)
+    # os.symlink(sources, link)
     result = env.Command(Entry(link),
                          Entry(source),
-                         Action('rm -rf %s && ln -v -s %s %s' % (Entry(link).abspath, sources, 
+                         Action('rm -rf %s && ln -v -s %s %s' % (Entry(link).abspath, sources,
                                                                  Entry(link).abspath),
                                 'Creating a link from %s to %s' % (link, sources)))
     env.Default(result)
@@ -346,7 +347,7 @@ def AddMatchingFiles(params, directory, files):
         if filename not in params[1]:
             params[2].append(join(directory, filename))
 
-    
+
 def Glob(path, pattern, blacklist=[]):
     """ Custom made globbing, walking into all subdirectories from path. """
     sources = []
@@ -362,10 +363,10 @@ def CreateFileList(path, pattern, filename, root='', root2=''):
     files = [f.replace(root, root2) + '\n' for f in Glob(path, pattern, [])]
     fOut.writelines(files)
     fOut.close()
-    
 
-def addProgram(env, name, src=None, pattern=None, installDir=None, 
-               libPaths=[], incs=[], libs=[], cxxflags=[], linkflags=[], 
+
+def addProgram(env, name, src=None, pattern=None, installDir=None,
+               libPaths=[], incs=[], libs=[], cxxflags=[], linkflags=[],
                deps=[], mpi=False, cuda=False, nvcc=False, default=True):
     """Add, compile and install a program to the compilation process
     
@@ -390,18 +391,18 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     libPathsCopy = libPaths + [Dir('lib').abspath]
     incsCopy = list(incs) or []
     if cuda or nvcc:
-        libs += ['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt','nvidia-ml', 'cuFFTAdvisor']
+        libs += ['cudart', 'cublas', 'cufft', 'curand', 'cusparse', 'nvToolsExt', 'nvidia-ml', 'cuFFTAdvisor']
 
     sources = []
     for s, p in izip(src, pattern):
-         if os.path.isdir(s):
-             sources += glob(join(s, p))
-         else:
-             sources += [s]
+        if os.path.isdir(s):
+            sources += glob(join(s, p))
+        else:
+            sources += [s]
 
-    cxxflagsCopy = list(cxxflags)+env['CXXFLAGS']
+    cxxflagsCopy = list(cxxflags) + env['CXXFLAGS']
     linkflagsCopy = list(linkflags)
-    if mpi: 
+    if mpi:
         ccCopy = str(env['MPI_CC'])
         cxxCopy = str(env['MPI_CXX'])
         linkCopy = env['MPI_LINKERFORPROGRAMS']
@@ -422,32 +423,33 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     if cuda:
         linkflagsCopy += env['NVCC_LINKFLAGS']
 
-    incsCopy += env['CPPPATH']+external_incdirs
+    incsCopy += env['CPPPATH'] + external_incdirs
     libsCopy = libs
     ldLibraryPathCopy = [env['LIBPATH']]
-    appendUnique(libPathsCopy, external_libdirs) # This order is important, because if we should use Scipion libs, these will be before the system libs
+    appendUnique(libPathsCopy,
+                 external_libdirs)  # This order is important, because if we should use Scipion libs, these will be before the system libs
     appendUnique(libPathsCopy, env.get('LIBPATH', '').split(os.pathsep))
     env2 = Environment()
     env2['ENV']['LD_LIBRARY_PATH'] = env['ENV'].get('LD_LIBRARY_PATH', '')
     env2['ENV']['PATH'] = env['ENV']['PATH']
 
     program = env2.Program(
-                          File(join(installDir, name)).abspath,
-                          source=sources,
-                          CC=ccCopy,
-                          CXX=cxxCopy,
-                          CPPPATH=incsCopy,
-                          LIBPATH=libPathsCopy,
-                          LIBS=libsCopy,
-                          CXXFLAGS=cxxflagsCopy,
-                          LINKFLAGS=linkflagsCopy,
-                          LINK=linkCopy,
-                          LD_LIBRARY_PATH=ldLibraryPathCopy
-                          )
+        File(join(installDir, name)).abspath,
+        source=sources,
+        CC=ccCopy,
+        CXX=cxxCopy,
+        CPPPATH=incsCopy,
+        LIBPATH=libPathsCopy,
+        LIBS=libsCopy,
+        CXXFLAGS=cxxflagsCopy,
+        LINKFLAGS=linkflagsCopy,
+        LINK=linkCopy,
+        LD_LIBRARY_PATH=ldLibraryPathCopy
+    )
     env2.Default(program)
-    
+
     env2.Depends(program, deps)
-    
+
     return program
 
 
@@ -488,12 +490,13 @@ def compilerConfig(env):
 
 def libraryTest(env, name, lang='c'):
     """Check the existence of a concrete C/C++ library."""
-    env2 = Environment(LIBS=env.get('LIBS',''))
+    env2 = Environment(LIBS=env.get('LIBS', ''))
     conf = Configure(env2)
     conf.CheckLib(name, language=lang)
     env2 = conf.Finish()
     # conf.Finish() returns the environment it used, and we may want to use it,
     # like:  return conf.Finish()  but we don't do that so we keep our env clean :)
+
 
 # Add methods so SConscript can call them.
 env.AddMethod(untar, 'Untar')

@@ -90,7 +90,7 @@ def run(label, version, branch):
                      "--exclude='*.java' --exclude='resources/test' " \
                      "--exclude='*xmipp_test*main'"
     elif label == 'Sources':
-        target = 'xmippSrc-v'+version
+        target = 'xmippSrc-v' + version
         makeTarget(target, label)
         excludeTgz = " --exclude='models/*' --exclude='src/*/bin/*' --exclude='*.so'"
     else:
@@ -109,7 +109,7 @@ def run(label, version, branch):
 
     cmd = cmdStr % args
 
-    if exists(target+'.tgz'):
+    if exists(target + '.tgz'):
         print("%s.tgz already exists. Removing it..." % target)
         os.system("rm -rf %s.tgz" % target)
 
@@ -125,6 +125,6 @@ if __name__ == '__main__':
 
     label = sys.argv[1]
     version = sys.argv[2]
-    branch = sys.argv[3] if len(sys.argv)>3 else 'master'
+    branch = sys.argv[3] if len(sys.argv) > 3 else 'master'
 
     run(label, version, branch)

@@ -24,28 +24,29 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 import os
 from src.xmipp.bindings.python.xmipp_base import (XmippScript,
                                                   createMetaDataFromPattern)
 
+
 class ScriptCreateMetadata(XmippScript):
     def __init__(self):
         XmippScript.__init__(self)
-        
+
     def defineParams(self):
         self.addUsageLine('Create a metadata from a file pattern.')
-        ## params
+        # params
         self.addParamsLine(' -p <pattern>          : Pattern to match')
         self.addParamsLine('   alias --pattern;')
         self.addParamsLine(' -o <metadata>         : Output metadata')
         self.addParamsLine('[-l <label=image>]     : Label to store the matching files')
         self.addParamsLine('[ -s]                  : Check if the images are stacks')
-        self.addParamsLine('   alias --isstack;')    
-        ## examples
+        self.addParamsLine('   alias --isstack;')
+        # examples
         self.addExampleLine('   xmipp_metadata_selfile_create -p "Images/*xmp" -o all_images.sel -isstack')
-            
+
     def run(self):
         # type: () -> object
         pattern = self.getParam('--pattern')
@@ -54,6 +55,7 @@ class ScriptCreateMetadata(XmippScript):
         mD = createMetaDataFromPattern(pattern, isStack, label)
         outFile = self.getParam('-o')
         mD.write(outFile)
+
 
 if __name__ == '__main__':
     ScriptCreateMetadata().tryRun()

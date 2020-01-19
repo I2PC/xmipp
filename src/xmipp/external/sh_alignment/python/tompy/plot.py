@@ -11,14 +11,15 @@ import matplotlib as mlt
 import matplotlib.patches as mpatches
 from pylab import *
 
+
 class TomImage:
     def __init__(
-        self,
-        data,
-        x=-1,
-        y=-1,
-        z=-1,
-        ):
+            self,
+            data,
+            x=-1,
+            y=-1,
+            z=-1,
+    ):
         self.data = data
 
         self.x = x
@@ -46,22 +47,21 @@ class TomImage:
         else:
             raise Exception('Must provide a valide slice number!')
 
-
         return self.pltnormalize(p)
 
         # return self.plnormalize(np.swapaxes(p,1,0))
 
-    def inc(self):#Incease the slice number
-        if self.x > -1 and self.x < self.shape[0]:
+    def inc(self):  # Incease the slice number
+        if -1 < self.x < self.shape[0]:
             self.x += 1
-        elif self.y > -1 and self.y < self.shape[1]:
+        elif -1 < self.y < self.shape[1]:
             self.y += 1
-        elif self.z > -1 and self.z < self.shape[2]:
+        elif -1 < self.z < self.shape[2]:
             self.z += 1
         else:
             pass
 
-    def dec(self):#Decrease the slice number
+    def dec(self):  # Decrease the slice number
         if self.x > 0:
             self.x -= 1
         elif self.y > 0:
@@ -82,13 +82,14 @@ class TomImage:
             pass
         return temp
 
+
 def show2D(
-    data,
-    x=-1,
-    y=-1,
-    z=-1,
-    filename = None
-    ):
+        data,
+        x=-1,
+        y=-1,
+        z=-1,
+        filename=None
+):
     """Display the data of certain slice.
     'up' and 'right' key on keyboard will increse the slice number, 'down' and 'left' will decrease the slice number.
 
@@ -102,18 +103,18 @@ def show2D(
 
     # if nothing is specified use the center slice along z
     if x == -1 and y == -1 and z == -1:
-        z = data.shape[2]/2
-    
+        z = data.shape[2] / 2
+
     img = TomImage(data, x, y, z)
     p = img.getImage()
-    
+
     import matplotlib.cm as cm
     import matplotlib.mlab as mlab
     import matplotlib.pyplot as plt
     import matplotlib as mlt
 
     fig = plt.figure()
-    
+
     def on_key(event):
         if event.key == 'up' or event.key == 'right':
             img.inc()
@@ -140,4 +141,3 @@ def show2D(
         plt.show()
     else:
         plt.savefig(filename, bbox_inches=0)
-
