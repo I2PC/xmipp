@@ -309,13 +309,13 @@ def frm_constrained_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=No
     max_position = None
     max_orientation = None
     max_value = -1.0
-    for i in xrange(num_seeds):
+    for i in range(num_seeds):
         old_pos = [-1, -1, -1]
         lm_pos = [-1, -1, -1]
         lm_ang = None
         lm_value = -1.0
         orientation = res[i][0]  # initial orientation
-        for j in xrange(max_iter):
+        for j in range(max_iter):
             rotateSpline(vg, vg2, orientation[0], orientation[1], orientation[2])  # first rotate
             rotateSpline(mask, mask2, orientation[0], orientation[1], orientation[2])  # rotate the mask as well
             vg2 = wf.apply(vg2)  # then apply the wedge
