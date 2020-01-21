@@ -98,12 +98,12 @@ void ProgAlignSignificantGPU<T>::initShiftEstimator(CudaShiftCorrEstimator<T> &e
     // FIXME DS implement properly
     RotationEstimationSetting s;
     Dimensions dims = this->getSettings().otherDims;
+    size_t maxShift = dims.x() / 4;
     size_t batch = std::min(maxBatchSize, dims.n()); // FIXME DS set the batch size in a better way
     est.init2D(hw,
             AlignType::OneToN,
             FFTSettingsNew<T>(dims, batch),
-            10, true, true);
-
+            maxShift, true, true);
 }
 
 // explicit instantiation
