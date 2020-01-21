@@ -90,6 +90,8 @@ private:
     float m_angDistance;
     Settings m_settings;
     size_t m_noOfBestToKeep;
+    bool m_allowDataSwap;
+    bool m_useWeightInsteadOfCC;
 
     std::vector<std::vector<float>> m_weights;
 
@@ -106,15 +108,15 @@ private:
     void computeWeightsAndSave(
             std::vector<WeightCompHelper> &correlations,
             size_t refIndex);
-    template<bool IS_ESTIMATION_TRANSPOSED>
+    template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
     void storeAlignedImages(
             const std::vector<AlignmentEstimation> &est);
     void fillRow(MDRow &row,
             const Matrix2D<double> &pose,
             size_t refIndex,
-            double weight, double maxCC);
-    void replaceMaxCorrelation(
-            std::vector<float> &correlations,
+            double weight, double maxVote);
+    void extractMax(
+            std::vector<float> &data,
             size_t &pos, double &val);
 
     void updateSettings();
