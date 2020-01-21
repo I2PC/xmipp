@@ -38,6 +38,8 @@ void AProgAlignSignificant<T>::defineParams() {
     addParamsLine("   [--angDistance <a=10>]      : Angular distance");
     addParamsLine("   [--odir <outputDir=\".\">]  : Output directory");
     addParamsLine("   [--keepBestN <N=1>]         : For each image, store N best alignments to references. N must be smaller than no. of references");
+    addParamsLine("   [--allowInputSwap]          : Allow swapping reference and experimental images");
+    addParamsLine("   [--useWeightInsteadOfCC]    : Select the best reference using weight, instead of CC");
 }
 
 template<typename T>
@@ -47,6 +49,8 @@ void AProgAlignSignificant<T>::readParams() {
     m_fnOut = std::string(getParam("--odir")) + "/" + std::string(getParam("-o"));
     m_angDistance = getDoubleParam("--angDistance");
     m_noOfBestToKeep = getIntParam("--keepBestN");
+    m_allowDataSwap = checkParam("--allowInputSwap");
+    m_useWeightInsteadOfCC = checkParam("--useWeightInsteadOfCC");
 
     int threads = getIntParam("--thr");
     if (-1 == threads) {
@@ -269,7 +273,7 @@ template<typename T>
 void AProgAlignSignificant<T>::fillRow(MDRow &row,
         const Matrix2D<double> &pose,
         size_t refIndex,
-        double weight, double maxCC) {
+        double weight, double maxVote) {
     // get orientation
     bool flip;
     double scale;
@@ -283,7 +287,7 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
             psi);
     // FIXME DS add check of max shift / rotation
     row.setValue(MDL_ENABLED, 1);
-    row.setValue(MDL_MAXCC, (double)maxCC);
+    row.setValue(MDL_MAXCC, (double)maxVote);
     row.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex));
     row.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex));
     // save both weight and weight significant, so that we can keep track of result of this
@@ -298,20 +302,20 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
 }
 
 template<typename T>
-void AProgAlignSignificant<T>::replaceMaxCorrelation(
-        std::vector<float> &correlations,
+void AProgAlignSignificant<T>::extractMax(
+        std::vector<float> &data,
         size_t &pos, double &val) {
     using namespace ExtremaFinder;
     float p = 0;
     float v = 0;
-    SingleExtremaFinder<T>::sFindMax(CPU(), Dimensions(correlations.size()), correlations.data(), &p, &v);
+    SingleExtremaFinder<T>::sFindMax(CPU(), Dimensions(data.size()), data.data(), &p, &v);
     pos = std::round(p);
-    val = correlations.at(pos);
-    correlations.at(pos) = std::numeric_limits<float>::lowest();
+    val = data.at(pos);
+    data.at(pos) = std::numeric_limits<float>::lowest();
 }
 
 template<typename T>
-template<bool IS_ESTIMATION_TRANSPOSED>
+template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
 void AProgAlignSignificant<T>::storeAlignedImages(
         const std::vector<AlignmentEstimation> &est) {
     auto &md = m_imagesToAlign.md;
@@ -319,31 +323,37 @@ void AProgAlignSignificant<T>::storeAlignedImages(
     const size_t noOfRefs = m_referenceImages.dims.n();
     const auto dims = Dimensions(noOfRefs);
 
+    auto accessor = [&](size_t image, size_t reference) {
+        if (USE_WEIGHT) {
+            return m_weights.at(reference).at(image);
+        } else if (IS_ESTIMATION_TRANSPOSED) {
+            return est.at(image).correlations.at(reference);
+        } else {
+            return est.at(reference).correlations.at(image);
+        }
+    };
+
     MDRow row;
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
         // get the original row from the input metadata
         md.getRow(row, __iter.objId);
-        // collect correlations from all references
-        auto cc = std::vector<float>();
-        cc.reserve(noOfRefs);
+        // collect voting from all references
+        auto votes = std::vector<float>();
+        votes.reserve(noOfRefs);
         for (size_t r = 0; r < noOfRefs; ++r) {
-            if (IS_ESTIMATION_TRANSPOSED) {
-                cc.emplace_back(est.at(i).correlations.at(r));
-            } else {
-                cc.emplace_back(est.at(r).correlations.at(i));
-            }
+            votes.emplace_back(accessor(i, r));
         }
-        double maxCC = std::numeric_limits<double>::lowest();
+        double maxVote = std::numeric_limits<double>::lowest();
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
             size_t refIndex;
             double val;
-            // get the weight
-            replaceMaxCorrelation(cc, refIndex, val);
+            // get the max vote
+            extractMax(votes, refIndex, val);
             if (0 == nthBest) {
-                // set max CC that we found
-                maxCC = val;
+                // set max vote that we found
+                maxVote = val;
             }
             if (val <= 0) {
                 continue; // skip saving the particles which have non-positive correlation to the reference
@@ -356,7 +366,7 @@ void AProgAlignSignificant<T>::storeAlignedImages(
                     p,
                     refIndex,
                     m_weights.at(refIndex).at(i),
-                    maxCC); // best cross-correlation
+                    maxVote); // best cross-correlation or weight
             // store it
             result.addRow(row);
         }
@@ -379,7 +389,8 @@ void AProgAlignSignificant<T>::run() {
     load(m_imagesToAlign);
     load(m_referenceImages);
 
-    bool hasMoreReferences = m_referenceImages.dims.n() > m_imagesToAlign.dims.n();
+    bool hasMoreReferences = m_allowDataSwap
+            && (m_referenceImages.dims.n() > m_imagesToAlign.dims.n());
     if (hasMoreReferences) {
         std::cerr << "We are swapping reference images and experimental images. "
                 "This will enhance the performance. The result should be equivalent, but not identical.\n";
@@ -395,10 +406,18 @@ void AProgAlignSignificant<T>::run() {
     if (hasMoreReferences) {
         std::swap(m_referenceImages, m_imagesToAlign);
         computeWeights<true>(alignment);
-        storeAlignedImages<true>(alignment);
+        if (m_useWeightInsteadOfCC) {
+            storeAlignedImages<true, true>(alignment);
+        } else {
+            storeAlignedImages<true, false>(alignment);
+        }
     } else {
         computeWeights<false>(alignment);
-        storeAlignedImages<false>(alignment);
+        if (m_useWeightInsteadOfCC) {
+            storeAlignedImages<false, true>(alignment);
+        } else {
+            storeAlignedImages<false, false>(alignment);
+        }
     }
 }
 
