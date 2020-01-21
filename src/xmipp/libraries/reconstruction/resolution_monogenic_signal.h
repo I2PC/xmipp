@@ -38,6 +38,7 @@
 #include <complex>
 #include <data/fourier_filter.h>
 #include <data/filters.h>
+#include <data/monogenic.h>
 #include <string>
 #include "symmetrize.h"
 
@@ -50,7 +51,7 @@ class ProgMonogenicSignalRes : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnVol, fnVol2, fnMask, fnchim, fnSpatial, fnSym,
+	FileName fnOut, fnVol, fnVol2, fnMask, fnMaskExl, fnchim, fnSpatial, fnSym,
 	fnMeanVol, fnMaskOut, fnMd;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
@@ -60,7 +61,7 @@ public:
 	int NVoxelsOriginalMask, Nvoxels, nthrs;
 
 	/** Step in digital frequency */
-	double freq_step, trimBound, significance;
+	double freq_step, significance;
 
 	/** The search for resolutions is linear or inverse**/
 	bool exactres, noiseOnlyInHalves, automaticMode;
@@ -77,7 +78,7 @@ public:
     		double freq, double freqH, double freqL, MultidimArray<double> &amplitude,
     		int count, FileName fnDebug);
     void firstMonoResEstimation(MultidimArray< std::complex<double> > &myfftV,
-    		double freq, double freqH, double freqL, MultidimArray<double> &amplitude,
+    		FourierTransformer &transformer_inv, double freq, double freqH, double freqL, MultidimArray<double> &amplitude,
     		int count, FileName fnDebug, double &mean_Signal,
 			double &mean_noise, double &thresholdFirstEstimation);
     void postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
@@ -92,7 +93,7 @@ public:
     void run();
 
 public:
-    Image<int> mask;
+    Image<int> mask, maskExcl;
     MultidimArray<double> iu, VRiesz; // Inverse of the frequency
 	MultidimArray< std::complex<double> > fftV, *fftN; // Fourier transform of the input volume
 	FourierTransformer transformer_inv;
@@ -101,6 +102,7 @@ public:
 	bool halfMapsGiven;
 	Image<double> Vfiltered, VresolutionFiltered;
 	Matrix1D<double> freq_fourier;
+	Matrix1D<double> freq_fourier_x, freq_fourier_y, freq_fourier_z;
 	Matrix2D<double> resolutionMatrix, maskMatrix;
 };
 //@}
