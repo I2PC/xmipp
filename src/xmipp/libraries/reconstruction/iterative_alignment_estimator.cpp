@@ -123,6 +123,8 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         const T * __restrict__ orig,
         T * __restrict__ copy,
         bool rotationFirst) {
+    // note (DS) if any of these steps return 0 (no shift or rotation), additional iterations are useless
+    // as the image won't change
     auto stepRotation = [&] {
         m_rot_est.compute(copy);
         const auto &cRotEst = m_rot_est;
