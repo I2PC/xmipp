@@ -222,7 +222,7 @@ void applyLocalShiftGeometryKernelMorePixels(const T* __restrict__ coefsX, const
                 if ( y + i >= ydim ) {
                     continue;
                 }
-                T res = interpolatedElementBSpline2D_Degree1< T >(x - shiftX[i], y + i - shiftY[i], xdim,
+                T res = interpolatedElementBSpline2D_Degree1< T >(x, y + i, shiftX[i], shiftY[i], xdim,
                                 ydim, input);
                 size_t index = (y + i) * xdim + x;
                 output[index] = res;

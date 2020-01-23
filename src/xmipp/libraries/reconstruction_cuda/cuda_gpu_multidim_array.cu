@@ -28,14 +28,14 @@
 
 template<typename T>
 __device__
-T interpolatedElementBSpline2D_Degree1(T x, T y, int xdim, int ydim, const T* __restrict__ data)
+T interpolatedElementBSpline2D_Degree1(int x, int y, T x_shift, T y_shift, int xdim, int ydim, const T* __restrict__ data)
 {
-    int m1 = static_cast<int>( x );
-    const T wx = x - m1;
-    int m2 = m1 + 1;
-    int n1 = static_cast<int>( y );
-    const T wy = y - n1;
+    int m1 = x - static_cast<int>( ceil( x_shift ) );
+    int n1 = y - static_cast<int>( ceil( y_shift ) );
+    const T wx = static_cast<T>( ( x - m1 ) ) - x_shift;
+    const T wy = static_cast<T>( ( y - n1 ) ) - y_shift;
     int n2 = n1 + 1;
+    int m2 = m1 + 1;
 
     if ( m2 < 0 ) {
         m2 = -m2-1;
