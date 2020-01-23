@@ -146,6 +146,8 @@ PyMethodDef Image_methods[] =
           "Multiply image by a constant or another image (does not create a new Image instance)" },
         { "inplaceDivide", (PyCFunction) Image_inplaceDivide, METH_VARARGS,
           "Divide image by a constant (does not create another Image instance)" },
+        { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
+          "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
 
 
         { NULL } /* Sentinel */
@@ -1649,6 +1651,72 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
                 PyErr_SetString(PyXmippError, xe.msg.c_str());
             }
         }
+    }
+    return NULL;
+}
+
+/** Image inplace subtraction, equivalent to -= operator */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+
+	PyObject * list = NULL;
+    PyObject * item = NULL;
+    PyObject * dsize = NULL;
+    PyObject * border_value = NULL;
+
+    ImageObject *self = (ImageObject*) obj;
+    ImageGeneric * image = self->image;
+    double doubleBorder_value = 1.0;
+    size_t Xdim, Ydim, Zdim;
+    image->getDimensions(Xdim, Ydim, Zdim);
+    try
+    {
+        PyArg_ParseTuple(args, "O|OO", &list, &dsize, &border_value);
+        if (PyList_Check(list))
+        {
+        	if (nullptr != dsize)
+        	{
+        		Ydim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 0));
+        		Xdim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 1));
+        	}
+            if (border_value!=NULL)
+           	    doubleBorder_value = PyFloat_AsDouble(border_value);
+
+            size_t size = PyList_Size(list);
+            Matrix2D<double> A;
+            A.initIdentity(3);
+            for (size_t i = 0; i < size; ++i)
+            {
+                item  = PyList_GetItem(list, i);
+                MAT_ELEM(A,i/3,i%3 ) = PyFloat_AsDouble(item);
+            }
+
+            image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
+            in->setXmippOrigin();
+
+            ImageObject *result = PyObject_New(ImageObject, &ImageType);
+            result->image = new ImageGeneric(DT_Double);
+            MultidimArray<double> *out;
+            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+            out->resize(Ydim,Xdim);
+            out->initConstant(doubleBorder_value);
+            out->setXmippOrigin();
+
+            applyGeometry(3, *out, *in, A, false, true, doubleBorder_value);
+            return (PyObject *)result;
+        }
+        else
+        {
+            PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting a list");
+
+        }
+    }
+    catch (XmippError &xe)
+    {
+        PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
     return NULL;
 }
