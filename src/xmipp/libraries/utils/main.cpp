@@ -4,6 +4,10 @@
 #include "prng.h"
 #include "deviation.h"
 
+/**
+ * Example program using new RandUtils
+*/
+
 int main() {
 	/**
 	 * You can supply own RNG generator

@@ -31,6 +31,7 @@
 #include "normalize.h"
 #include <core/metadata.h>
 #include <core/xmipp_image_generic.h>
+#include <utils/prng.h>
 
 /* Normalizations ---------------------------------------------------------- */
 void normalize_OldXmipp(MultidimArray<double> &I)
@@ -780,13 +781,14 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         double avg=0., stddev=0., min=0., max=0., zz;
         img.computeStats(avg, stddev, min, max);
 
+        GaussGenerator<double> gauss_gen(avg, stddev);
         if ((min - avg) / stddev < thresh_black_dust && remove_black_dust)
         {
             FOR_ALL_ELEMENTS_IN_ARRAY3D(img)
             {
                 zz = (A3D_ELEM(img, k, i, j) - avg) / stddev;
                 if (zz < thresh_black_dust)
-                    A3D_ELEM(img, k, i, j) = rnd_gaus(avg,stddev);
+                    A3D_ELEM(img, k, i, j) = gauss_gen.rand();
             }
         }
 
@@ -796,7 +798,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
             {
                 zz = (A3D_ELEM(img, k, i, j) - avg) / stddev;
                 if (zz > thresh_white_dust)
-                    A3D_ELEM(img, k, i, j) = rnd_gaus(avg,stddev);
+                    A3D_ELEM(img, k, i, j) = gauss_gen.rand();
             }
         }
     }
