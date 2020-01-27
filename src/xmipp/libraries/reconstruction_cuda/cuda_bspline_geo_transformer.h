@@ -23,29 +23,44 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
+#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_
+#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_
 
-#include "reconstruction/aalign_significant.h"
-#include "reconstruction/iterative_alignment_estimator.h"
-#include "reconstruction_cuda/cuda_rot_polar_estimator.h"
-#include "reconstruction_cuda/cuda_shift_corr_estimator.h"
-#include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
-
-namespace Alignment {
+#include "gpu.h"
+#include "reconstruction/bspline_geo_transformer.h"
 
 template<typename T>
-class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
-protected:
-    std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
+class CudaBSplineGeoTransformer : public BSplineGeoTransformer<T> {
+public:
+    CudaBSplineGeoTransformer() {
+        setDefault();
+    }
+
+    void setSrc(const T *data) override;
+
+    const T *getSrc() const override {
+        return m_d_src;
+    }
+
+    T *getDest() const override {
+        return m_d_dest;
+    }
+
+    void copySrcToDest() override;
+
+    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
 private:
-    void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw);
-    void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw);
-    void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw);
-    size_t maxBatchSize = 300;
+    T *m_d_src; // can be either host or device pointer
+    T *m_d_dest;
+    GPU *m_stream;
+    float *m_d_matrices;
+
+    void setDefault() override;
+    void release() override;
+    void initialize(bool doAllocation) override;
+    void allocate();
+    void check() override;
 };
 
 
-} /* namespace Alignment */
-
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_ */

@@ -42,8 +42,8 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     initRotEstimator(rotEstimator, hw);
     auto shiftEstimator = CudaShiftCorrEstimator<T>();
     initShiftEstimator(shiftEstimator, hw);
-    BSplineGeoTransformer<T> transformer;
-    initTransformer(transformer);
+    CudaBSplineGeoTransformer<T> transformer;
+    initTransformer(transformer, hw);
 
     auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, transformer, this->getThreadPool());
 
@@ -96,14 +96,13 @@ void ProgAlignSignificantGPU<T>::initRotEstimator(CudaRotPolarEstimator<T> &est,
 }
 
 template<typename T>
-void ProgAlignSignificantGPU<T>::initTransformer(BSplineGeoTransformer<T> &t) {
+void ProgAlignSignificantGPU<T>::initTransformer(BSplineGeoTransformer<T> &t,
+        std::vector<HW*> &hw) {
     auto s = BSplineTransformSettings<T>();
-    s.keepSrcCopy = false;
+    s.keepSrcCopy = true;
     s.degree = InterpolationDegree::Linear;
     s.dims = this->getSettings().otherDims;
-    for (int c = 0; c < CPU::findCores(); ++c) {
-        s.hw.emplace_back(new CPU); // FIXME DS replace by GPU, or fix memory leak
-    }
+    s.hw.push_back(hw.at(0));
     s.type = InterpolationType::NToN;
     s.doWrap = false;
     s.defaultVal = (T)0;
