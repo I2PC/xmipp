@@ -1,6 +1,6 @@
 #include "reconstruction/polar_rotation_estimator.h"
 #include "reconstruction/shift_corr_estimator.h"
-#include "reconstruction/new_geo_transformer.h"
+#include "reconstruction/bspline_geo_transformer.h"
 
 
 template<typename T>
@@ -9,7 +9,7 @@ class IterativeAlignmentEstimator_Test;
 #define SETUPTESTCASE_SPECIFIC \
     shiftAligner = new Alignment::ShiftCorrEstimator<T>(); \
     rotationAligner = new Alignment::PolarRotationEstimator<T>(); \
-    transformer = new NewGeoTransformer<T>(); \
+    transformer = new BSplineGeoTransformer<T>(); \
     hw.emplace_back(new CPU()); \
 
 #include "aiterative_alignment_tests.h"

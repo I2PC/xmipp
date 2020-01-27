@@ -30,7 +30,7 @@
 #include "reconstruction/iterative_alignment_estimator.h"
 #include "reconstruction_cuda/cuda_rot_polar_estimator.h"
 #include "reconstruction_cuda/cuda_shift_corr_estimator.h"
-#include "reconstruction/new_geo_transformer.h"
+#include "reconstruction/bspline_geo_transformer.h"
 
 namespace Alignment {
 

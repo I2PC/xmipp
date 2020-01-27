@@ -34,7 +34,7 @@
 #include "data/filters.h"
 #include <core/utils/memory_utils.h>
 #include "CTPL/ctpl_stl.h"
-#include "reconstruction/ageo_transformer.h"
+#include "reconstruction/bspline_geo_transformer.h"
 
 namespace Alignment {
 
@@ -43,7 +43,7 @@ class IterativeAlignmentEstimator {
 public:
     IterativeAlignmentEstimator(ARotationEstimator<T> &rot_estimator,
             AShiftEstimator<T> &shift_estimator,
-            AGeoTransformer<T> &interpolator,
+            BSplineGeoTransformer<T> &interpolator,
             ctpl::thread_pool &threadPool) :
                 m_rot_est(rot_estimator), m_shift_est(shift_estimator),
                 m_threadPool(threadPool),
@@ -63,7 +63,7 @@ protected:
 private:
     ARotationEstimator<T> &m_rot_est;
     AShiftEstimator<T> &m_shift_est;
-    AGeoTransformer<T> &m_transformer;
+    BSplineGeoTransformer<T> &m_transformer;
     ctpl::thread_pool &m_threadPool;
     const Dimensions m_dims;
     bool m_sameEstimators;

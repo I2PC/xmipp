@@ -43,7 +43,7 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     auto shiftEstimator = CudaShiftCorrEstimator<T>();
     initShiftEstimator(shiftEstimator, hw);
 
-    NewGeoTransformer<T> transformer;
+    BSplineGeoTransformer<T> transformer;
 
     auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, transformer, this->getThreadPool());
 
