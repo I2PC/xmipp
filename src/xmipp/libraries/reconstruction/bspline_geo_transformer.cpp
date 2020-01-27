@@ -23,10 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "new_geo_transformer.h"
+#include "bspline_geo_transformer.h"
 
 template<typename T>
-void NewGeoTransformer<T>::init(bool doAllocation) {
+void BSplineGeoTransformer<T>::initialize(bool doAllocation) {
     const auto &s = this->getSettings();
 
     for (auto &hw : s.hw) {
@@ -38,64 +38,66 @@ void NewGeoTransformer<T>::init(bool doAllocation) {
 
     if (doAllocation) {
         release();
-        m_copy = std::unique_ptr<T[]>(new T[s.dims.size()]);
+        m_dest = std::unique_ptr<T[]>(new T[s.dims.size()]);
     }
 }
 
 template<typename T>
-void NewGeoTransformer<T>::check() {
-    const auto &s = this->getSettings();
-    if (auto *method = dynamic_cast<BSplineInterpolation<T>*>(s.method)) {
-        checkBSpline(method);
-    } else {
-        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Only BSpline interpolation is available");
-    }
-}
-
-template<typename T>
-void NewGeoTransformer<T>::checkBSpline(const BSplineInterpolation<T> *i) {
+void BSplineGeoTransformer<T>::check() {
     const auto &s = this->getSettings();
     if (InterpolationDegree::Linear != s.degree) {
         REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Only linear interpolation is available");
     }
+    if (s.doWrap) {
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Wrapping is not yet implemented");
+    }
 }
 
+
 template<typename T>
-void NewGeoTransformer<T>::copyOriginalToCopy() {
+void BSplineGeoTransformer<T>::copySrcToDest() {
     bool isReady = this->isInitialized()
-            && this->isOrigLoaded();
+            && this->isSrcSet();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Instance is either not initialized or the 'original' has not been set.");
     }
-    memcpy(m_copy.get(),
-            m_orig,
+    memcpy(m_dest.get(),
+            m_src,
             this->getSettings().dims.size() * sizeof(T));
 }
 
 template<typename T>
-void NewGeoTransformer<T>::release() {
-    m_copy.release();
+void BSplineGeoTransformer<T>::release() {
+    m_dest.release();
+    m_threadPool.stop();
+    setDefault();
 }
 
 template<typename T>
-bool NewGeoTransformer<T>::canBeReused(const GeoTransformerSetting &s) const {
+void BSplineGeoTransformer<T>::setDefault() {
+    m_dest.reset();
+    m_src = nullptr;
+    m_threadPool.resize(1);
+}
+
+template<typename T>
+bool BSplineGeoTransformer<T>::canBeReused(const BSplineTransformSettings<T> &s) const {
     bool result = true;
     if ( ! this->isInitialized()) {
         return false;
     }
     auto &sOrig = this->getSettings();
     result &= sOrig.dims.size() >= s.dims.size(); // previously, we needed more space
-    result &= !(( ! sOrig.createReferenceCopy) && s.createReferenceCopy); // we have a problem if now we need to make a copy and before not
-    result &= sOrig.type == s.type;
+    result &= !(( ! sOrig.keepSrcCopy) && s.keepSrcCopy); // we have a problem if now we need to make a copy and before not
 
     return result;
 }
 
 
 template<typename T>
-T *NewGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
+T *BSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
     bool isReady = this->isInitialized()
-            && this->isOrigLoaded();
+            && this->isSrcSet();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Instance is either not initialized or the 'original' has not been set.");
     }
@@ -109,8 +111,8 @@ T *NewGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
 
     auto workload = [&](int id, size_t signalId){
         size_t offset = signalId * dims.sizeSingle();
-        auto in = MultidimArray<T>(1, z, y, x, const_cast<T*>(m_orig + offset)); // removing const, but data should not be changed
-        auto out = MultidimArray<T>(1, z, y, x, m_copy.get() + offset);
+        auto in = MultidimArray<T>(1, z, y, x, const_cast<T*>(m_src + offset)); // removing const, but data should not be changed
+        auto out = MultidimArray<T>(1, z, y, x, m_dest.get() + offset);
         in.setXmippOrigin();
         out.setXmippOrigin();
         // compensate the movement
@@ -129,9 +131,9 @@ T *NewGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
     for (auto &f : futures) {
         f.get();
     }
-    return m_copy.get();
+    return m_dest.get();
 }
 
 // explicit instantiation
-template class NewGeoTransformer<float>;
-template class NewGeoTransformer<double>;
+template class BSplineGeoTransformer<float>;
+template class BSplineGeoTransformer<double>;

@@ -33,85 +33,82 @@
 #include <vector>
 
 enum class InterpolationDegree { Linear, Cubic };
-enum class InterpolationType { OneToN, NToN };
-
-class AInterpolationMethod {
-public:
-    virtual ~AInterpolationMethod() = default;
+enum class InterpolationType {
+    OneToN, // we have one original item, output are multiple items derived from the original one
+    NToN // we have multiple original items, output are multiple items derived from respective original one
 };
 
 template<typename T>
-class BSplineInterpolation : public AInterpolationMethod {
+class GeoTransformerSettings {
 public:
-    T defaultVal;
-};
-
-class GeoTransformerSetting {
-public:
+    virtual ~GeoTransformerSettings() = default;
     std::vector<HW*> hw;
     Dimensions dims = Dimensions(0);
     InterpolationDegree degree;
-    AInterpolationMethod *method;
-    bool createReferenceCopy;
     InterpolationType type;
     bool doWrap;
+    T defaultVal;
 
-    void check() const {
+    virtual void check() const {
         if (0 == hw.size()) {
             REPORT_ERROR(ERR_VALUE_INCORRECT, "HW contains zero (0) devices");
         }
         if ( ! dims.isValid()) {
             REPORT_ERROR(ERR_LOGIC_ERROR, "Dimensions are invalid");
         }
-        if (nullptr == method) {
-            REPORT_ERROR(ERR_LOGIC_ERROR, "Interpolation type is not set");
-        }
     }
 };
 
-template<typename T>
+template<typename SettingsType, typename T>
 class AGeoTransformer {
+    static_assert(std::is_base_of<GeoTransformerSettings<T>, SettingsType>::value,
+            "SettingsType must inherit from GeoTransformerSettings");
 public:
     AGeoTransformer() :
         m_isInit(false),
-        m_isOrigLoaded(false) {};
+        m_isSrcSet(false) {};
     virtual ~AGeoTransformer() = default;
 
-    void init(const GeoTransformerSetting &s, bool reuse);
+    void init(const SettingsType &s, bool reuse) {
+        s.check();
+        bool skipAllocation = reuse && this->isInitialized() && canBeReused(s);
+        m_settings = s;
+        this->initialize( ! skipAllocation);
+        this->check();
+        m_isInit = true;
+    }
 
-    virtual void setOriginal(const T *data) = 0;
-    virtual const T *getOriginal() const = 0;
+    virtual void setSrc(const T *data) = 0;
+    virtual const T *getSrc() const = 0;
 
-    virtual T *getCopy() const = 0;
-    virtual void copyOriginalToCopy() = 0;
+    virtual T *getDest() const = 0;
+    virtual void copySrcToDest() = 0;
 
-    virtual T *interpolate(const std::vector<float> &matrices) = 0; // each 3x3 values are a single matrix
-
-    inline const GeoTransformerSetting &getSettings() const {
+    inline const SettingsType &getSettings() const {
         return m_settings;
     }
 
 protected:
     virtual void check() = 0;
-    virtual void init(bool allocate) = 0;
-    virtual bool canBeReused(const GeoTransformerSetting &s) const = 0;
+    virtual void initialize(bool allocate) = 0;
+    virtual bool canBeReused(const SettingsType &s) const = 0;
 
     inline constexpr bool isInitialized() const {
         return m_isInit;
     }
 
-    inline constexpr bool isOrigLoaded() const {
-        return m_isOrigLoaded;
+    inline constexpr bool isSrcSet() const {
+        return m_isSrcSet;
     }
 
-    void setIsOrigLoaded(bool status) {
-        m_isOrigLoaded = status;
+    void setIsSrcSet(bool status) {
+        m_isSrcSet = status;
     }
 
 private:
-    GeoTransformerSetting m_settings;
+    SettingsType m_settings;
     bool m_isInit;
-    bool m_isOrigLoaded;
+    bool m_isSrcSet;
 };
 
 

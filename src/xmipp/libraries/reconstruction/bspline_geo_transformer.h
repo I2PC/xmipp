@@ -32,46 +32,54 @@
 #include "data/cpu.h"
 
 template<typename T>
-class NewGeoTransformer : public AGeoTransformer<T> {
+class BSplineTransformSettings : public GeoTransformerSettings<T> {
+public:
+    bool keepSrcCopy;
+
+    void check() const override {
+        GeoTransformerSettings<T>::check();
+    }
+};
+
+template<typename T>
+class BSplineGeoTransformer : public AGeoTransformer<BSplineTransformSettings<T>, T> {
 public:
 
-    NewGeoTransformer() {
+    BSplineGeoTransformer() {
         setDefault();
     }
 
-    virtual ~NewGeoTransformer() {
+    virtual ~BSplineGeoTransformer() {
         release();
     }
 
-    void setOriginal(const T *data) override {
-        m_orig = data;
-        this->setIsOrigLoaded(nullptr != data);
+    void setSrc(const T *data) override {
+        m_src = data;
+        this->setIsSrcSet(nullptr != data);
     }
 
-    const T *getOriginal() const {
-        return m_orig;
+    const T *getSrc() const {
+        return m_src;
     }
 
-    T *getCopy() const override {
-        return m_copy.get();
+    T *getDest() const override {
+        return m_dest.get();
     }
 
-    void copyOriginalToCopy() override;
+    void copySrcToDest() override;
 
-    T *interpolate(const std::vector<float> &matrices) override;
+    T *interpolate(const std::vector<float> &matrices);
 
 private:
-    void init(bool doAllocation) override;
+    void initialize(bool doAllocation) override;
     void release();
-    void setDefault() {};
+    void setDefault();
     void check() override;
 
-    void checkBSpline(const BSplineInterpolation<T> *i);
+    bool canBeReused(const BSplineTransformSettings<T> &s) const override;
 
-    bool canBeReused(const GeoTransformerSetting &s) const override;
-
-    std::unique_ptr<T[]> m_copy;
-    const T *m_orig;
+    std::unique_ptr<T[]> m_dest;
+    const T *m_src;
     ctpl::thread_pool m_threadPool;
 };
 

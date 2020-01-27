@@ -100,7 +100,7 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(
 
     auto futures = std::vector<std::future<void>>();
     auto workload = [&](int id, size_t signalId){
-        T * address = m_transformer.getCopy() + signalId * m_dims.sizeSingle();
+        T * address = m_transformer.getDest() + signalId * m_dims.sizeSingle();
         auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
         auto other = MultidimArray<T>(1, z, y, x, address);
         // FIXME DS better if we use fastCorrelation, but unless the input is normalized
@@ -124,7 +124,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
     // note (DS) if any of these steps return 0 (no shift or rotation), additional iterations are useless
     // as the image won't change
     auto stepRotation = [&] {
-        m_rot_est.compute(m_transformer.getCopy());
+        m_rot_est.compute(m_transformer.getDest());
         const auto &cRotEst = m_rot_est;
         updateEstimation(est,
             cRotEst.getRotations2D(),
@@ -136,7 +136,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         applyTr(est);
     };
     auto stepShift = [&] {
-        m_shift_est.computeShift2DOneToN(m_transformer.getCopy());
+        m_shift_est.computeShift2DOneToN(m_transformer.getDest());
         updateEstimation(est, m_shift_est.getShifts2D(),
                 [](const Point2D<float> &shift, Matrix2D<double> &lhs) {
             MAT_ELEM(lhs, 0, 2) += shift.x;
@@ -145,7 +145,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         applyTr(est);
     };
     // get a fresh copy of the images
-    m_transformer.copyOriginalToCopy();
+    m_transformer.copySrcToDest();
     for (unsigned i = 0; i < iters; ++i) {
         if (rotationFirst) {
             stepRotation();
@@ -177,7 +177,7 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
 
     // prepare transformer which is responsible for apllying the pose t
     size_t elems = m_dims.sizePadded();
-    m_transformer.setOriginal(others);
+    m_transformer.setSrc(others);
 
 //    FIXME DS this is now responsibility of the transfomer, good!
 //    m_shift_est.getHW().lockMemory(copy, elems * sizeof(T));

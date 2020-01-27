@@ -2,7 +2,7 @@
 #include "alignment_test_utils.h"
 #include "reconstruction/iterative_alignment_estimator.h"
 #include "core/utils/memory_utils.h"
-#include "reconstruction/ageo_transformer.h"
+#include "reconstruction/bspline_geo_transformer.h"
 #include "data/cpu.h"
 
 template<typename T>
@@ -142,13 +142,14 @@ public:
         rotSettings.fullCircle = true;
         rotSettings.allowTuningOfNumberOfSamples = false;
 
-        auto tSettings = GeoTransformerSetting();
-        tSettings.createReferenceCopy = false;
+        auto tSettings = BSplineTransformSettings<T>();
+        tSettings.keepSrcCopy = false;
         tSettings.degree = InterpolationDegree::Linear;
         tSettings.dims = dims;
         tSettings.hw = hw;
-        tSettings.method = new BSplineInterpolation<T>();
+        tSettings.type = InterpolationType::NToN;
         tSettings.doWrap = false;
+        tSettings.defaultVal = (T)0;
 
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
         rotationAligner->init(rotSettings, true);
@@ -191,7 +192,7 @@ private:
     static std::mt19937 mt_noise;
     static Alignment::ARotationEstimator<T> *rotationAligner;
     static Alignment::AShiftCorrEstimator<T> *shiftAligner;
-    static AGeoTransformer<T> *transformer;
+    static BSplineGeoTransformer<T> *transformer;
     static std::vector<float> diffsX;
     static std::vector<float> diffsY;
     static std::vector<float> diffsR;
@@ -291,7 +292,7 @@ Alignment::ARotationEstimator<T> *IterativeAlignmentEstimator_Test<T>::rotationA
 template<typename T>
 Alignment::AShiftCorrEstimator<T> *IterativeAlignmentEstimator_Test<T>::shiftAligner = nullptr;
 template<typename T>
-AGeoTransformer<T> *IterativeAlignmentEstimator_Test<T>::transformer = nullptr;
+BSplineGeoTransformer<T> *IterativeAlignmentEstimator_Test<T>::transformer = nullptr;
 template<typename T>
 Dimensions IterativeAlignmentEstimator_Test<T>::maxDims(768, 768, 1, 1000);
 template<typename T>
