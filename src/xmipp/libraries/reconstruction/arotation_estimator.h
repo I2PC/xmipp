@@ -58,7 +58,7 @@ public:
     }
 
     inline static unsigned getDefaultFirstRing(const Dimensions &d) {
-        return d.x() / 5;
+        return d.x() / 5; // FIXME DS first ring should be smaller
     }
 
     inline unsigned getNoOfRings() const {
