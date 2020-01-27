@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "bspline_geo_transformer.h"
+#include "data/filters.h"
 
 template<typename T>
 void BSplineGeoTransformer<T>::initialize(bool doAllocation) {
@@ -59,7 +60,7 @@ void BSplineGeoTransformer<T>::copySrcToDest() {
     bool isReady = this->isInitialized()
             && this->isSrcSet();
     if ( ! isReady) {
-        REPORT_ERROR(ERR_LOGIC_ERROR, "Instance is either not initialized or the 'original' has not been set.");
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Instance is either not initialized or the 'src' has not been set.");
     }
     memcpy(m_dest.get(),
             m_src,

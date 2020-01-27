@@ -27,7 +27,6 @@
 #define LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_
 
 #include "reconstruction/ageo_transformer.h"
-#include "data/filters.h"
 #include "CTPL/ctpl_stl.h"
 #include "data/cpu.h"
 
@@ -53,31 +52,31 @@ public:
         release();
     }
 
-    void setSrc(const T *data) override {
+    virtual void setSrc(const T *data) override {
         m_src = data;
         this->setIsSrcSet(nullptr != data);
     }
 
-    const T *getSrc() const {
+    virtual const T *getSrc() const {
         return m_src;
     }
 
-    T *getDest() const override {
+    virtual T *getDest() const override {
         return m_dest.get();
     }
 
-    void copySrcToDest() override;
+    virtual void copySrcToDest() override;
 
-    T *interpolate(const std::vector<float> &matrices);
+    virtual T *interpolate(const std::vector<float> &matrices);
 
+protected:
+    virtual void initialize(bool doAllocation) override;
+    virtual void release();
+    virtual void setDefault();
+    virtual void check() override;
+
+    virtual bool canBeReused(const BSplineTransformSettings<T> &s) const override;
 private:
-    void initialize(bool doAllocation) override;
-    void release();
-    void setDefault();
-    void check() override;
-
-    bool canBeReused(const BSplineTransformSettings<T> &s) const override;
-
     std::unique_ptr<T[]> m_dest;
     const T *m_src;
     ctpl::thread_pool m_threadPool;
