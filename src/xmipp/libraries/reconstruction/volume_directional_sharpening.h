@@ -78,8 +78,11 @@ public:
     		int &particleRadius, double &NS, double &NN, double &sumS, double &sumS2, double &sumN2, double &sumN,
     		double &thresholdNoise);
 
-    void bandPassDirectionalFilterFunction(int face_number, Matrix2D<int> &faces,
-    		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+//    void bandPassDirectionalFilterFunction(int face_number, Matrix2D<int> &faces,
+//    		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+//    		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
+//            double w, double wL, MultidimArray<double> &filteredVol, int count);
+    void bandPassDirectionalFilterFunction(int face_number, MultidimArray< std::complex<double> > &myfftV,
     		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
             double w, double wL, MultidimArray<double> &filteredVol, int count);
 

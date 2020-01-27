@@ -51,9 +51,9 @@ void ProgDirSharpening::defineParams()
         addParamsLine("  --vol <vol_file=\"\">   : Input volume");
         addParamsLine("  --mask <vol_file=\"\">  : Binary mask");
         addParamsLine("  --sampling <s=1>: sampling");
-        addParamsLine("  [--volumeRadius <s=100>]                : This parameter determines the radius of a sphere where the volume is");
-        addParamsLine("  [--significance <s=0.95>]               : The level of confidence for the hypothesis test.");
-        addParamsLine("  [--resStep <s=0.5>]  		             : Resolution step (precision) in A");
+        addParamsLine("  [--volumeRadius <R=100>]                : This parameter determines the radius of a sphere where the volume is");
+        addParamsLine("  [--significance <significance=0.95>]               : The level of confidence for the hypothesis test.");
+        addParamsLine("  [--resStep <res_step=0.5>]  		             : Resolution step (precision) in A");
         addParamsLine("  -o <output=\"Sharpening.vol\">: sharpening volume");
         addParamsLine("  [--test]: 								 :Launch the test of the algorithm");
         addParamsLine("  [-l <lambda=1>]: regularization param");
@@ -623,15 +623,28 @@ void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int>
 }
 
 
-void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, Matrix2D<int> &faces,
-		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+//void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, Matrix2D<int> &faces,
+//		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+//		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
+//        double w, double wL, MultidimArray<double> &filteredVol, int count)
+void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, MultidimArray< std::complex<double> > &myfftV,
 		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
         double w, double wL, MultidimArray<double> &filteredVol, int count)
 {
 	double coneAngle;
 	coneAngle = PI/6;
-	MultidimArray<double> maskCone;
-	defineIcosahedronCone(face_number, faces, vertex, myfftV, maskCone, coneAngle);
+//	MultidimArray<double> maskCone;
+    Image<double> maskCone;
+    MultidimArray<double> &pmaskCone=maskCone();
+
+//	defineIcosahedronCone(face_number, faces, vertex, myfftV, maskCone, coneAngle);
+//	std::cout << "face:" << face_number << std::endl;
+    //Add maskCone
+	FileName fn;
+	fn = formatString("maskCone_%i.mrc", face_number);
+	maskCone.read(fn);
+
+
 
 	MultidimArray< std::complex<double> > fftVfilter;
 	fftVfilter.initZeros(myfftV);
@@ -643,7 +656,16 @@ void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, Matri
 	double ideltal=PI/(delta);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(myfftV)
 	{
-		if (DIRECT_MULTIDIM_ELEM(maskCone, n) == 1)
+
+//		std::cout << "face mask:" << face_number << std::endl;
+//	    Image<double> kaka;
+//		FileName fn;
+//		fn= formatString("maskTestttt_%i.mrc", face_number);
+//		kaka()=pmaskCone;
+//		kaka.write(fn);
+
+
+		if (DIRECT_MULTIDIM_ELEM(pmaskCone, n) == 1)
 		{
 			double un=DIRECT_MULTIDIM_ELEM(iu,n);
 			if (un>=w && un<=wL)
@@ -670,27 +692,33 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
         MultidimArray<double> &localfilteredVol, MultidimArray<double> &Vorig,
         double &minRes, double &maxRes, double &step)
 {
-        MultidimArray<double> filteredVol, lastweight, weight;
+        MultidimArray<double> filteredVol, lastweight, weight, bandfilteredVol;
         localfilteredVol.initZeros(Vorig);
-        weight.initZeros(Vorig);
-        lastweight.initZeros(Vorig);
+
         Monogenic mono;
 
         double freq, lastResolution=1e38;
         int idx, lastidx = -1;
         Image<double> resVol;
-        MultidimArray<double> &presVol=resVol();
+//        MultidimArray<double> &presVol=resVol();
 
         for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
 		{
+        	bandfilteredVol.initZeros(Vorig);
+            weight.initZeros(Vorig);
+            lastweight.initZeros(Vorig);
 			//TODO: remove repeated faces
 			//Repeated faces are skipped
 			if (MAT_ELEM(faces, face_number, 0) < 0)
 				continue;
+//			std::cout << "face_number:" << face_number << std::endl;
 			FileName fn;
 			fn = formatString("dirMap_%i.vol", face_number);
 			resVol.read(fn);
+	        MultidimArray<double> &presVol=resVol();
 
+//            std::cout << "minRes:" << minRes << "maxRes:" << maxRes << std::endl;
+//            std::cout << "step:" << step << std::endl;
 
 			for (double res = minRes; res<maxRes; res+=step)
 			{
@@ -706,7 +734,7 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
 				//TODO: Check performance in the mask
 //				mono.bandPassFilterFunction(myfftV, Vorig, iu,
 //						transformer_inv, freq, wL, filteredVol, idx);
-				bandPassDirectionalFilterFunction(face_number, faces, vertex, myfftV, Vorig, iu,
+				bandPassDirectionalFilterFunction(face_number,myfftV, Vorig, iu,
 										transformer_inv, freq, wL, filteredVol, idx);
 
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filteredVol)
@@ -724,19 +752,19 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
 						}
 				}
 
-				localfilteredVol += filteredVol;
+				bandfilteredVol += filteredVol;
 				lastweight += weight;
 				lastResolution = res;
 				lastidx = idx;
 			}
 
-
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(localfilteredVol)
-			{
-				if (DIRECT_MULTIDIM_ELEM(lastweight, n)>0)
-					DIRECT_MULTIDIM_ELEM(localfilteredVol, n) /=DIRECT_MULTIDIM_ELEM(lastweight, n);
-			}
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bandfilteredVol)
+		{
+			if (DIRECT_MULTIDIM_ELEM(lastweight, n)>0)
+				DIRECT_MULTIDIM_ELEM(bandfilteredVol, n) /=DIRECT_MULTIDIM_ELEM(lastweight, n);
 		}
+		localfilteredVol += bandfilteredVol;
+	}
 }
 
 
@@ -753,7 +781,7 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 	MultidimArray<double> Vorig;
 	Vorig = vol;
 
-	transformer.FourierTransform(vol, fftV);
+//	transformer.FourierTransform(vol, fftV);
 
 	//TODO: check if exist inf in next multidimarray
 	//Frequencies are redefined
@@ -774,7 +802,7 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 //	resolutionVolume().clear();
 //	resVol.setXmippOrigin();
 
-	maxRes = 18;
+	maxRes = 16;
 	minRes = 2*sampling;
 
 
@@ -806,6 +834,12 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 		localDirectionalfiltering(faces, vertex,
 				fftV, operatedfiltered, Vorig, minRes, maxRes, step);
 
+		FileName fs1;
+		Image<double> saveImg1;
+		fs1 = formatString("operFilt_%i.vol", i);
+		saveImg1() = operatedfiltered;
+		saveImg1.write(fs1);
+
 		filteredVol = Vorig;
 
 		filteredVol -= operatedfiltered;
@@ -817,7 +851,7 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 				normOrig +=(DIRECT_MULTIDIM_ELEM(Vorig,n)*DIRECT_MULTIDIM_ELEM(Vorig,n));
 
 			normOrig = sqrt(normOrig);
-			//std::cout << "norma del original  " << normOrig << std::endl;
+			std::cout << "norma del original  " << normOrig << std::endl;
 		}
 
 
@@ -827,10 +861,10 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 			norm +=(DIRECT_MULTIDIM_ELEM(operatedfiltered,n)*DIRECT_MULTIDIM_ELEM(operatedfiltered,n));
 
 		norm=sqrt(norm);
-
+		std::cout << "norma del filtrado  " << norm << std::endl;
 
 		double porc=lastnorm*100/norm;
-		//std::cout << "norm " << norm << " percetage " << porc << std::endl;
+		std::cout << "norm " << norm << " porcetage " << porc << std::endl;
 
 		double subst=porc-lastporc;
 
@@ -864,8 +898,8 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 			DIRECT_MULTIDIM_ELEM(sharpenedMap,n)=DIRECT_MULTIDIM_ELEM(Vk,n)+
 								 lambda*DIRECT_MULTIDIM_ELEM(filteredVol,n);
 								 //-0.01*DIRECT_MULTIDIM_ELEM(Vk,n)*SGN(DIRECT_MULTIDIM_ELEM(Vk,n));
-			if (DIRECT_MULTIDIM_ELEM(sharpenedMap,n)<-4*desvOutside_Vorig)
-				DIRECT_MULTIDIM_ELEM(sharpenedMap,n)=-4*desvOutside_Vorig;
+//			if (DIRECT_MULTIDIM_ELEM(sharpenedMap,n)<-4*desvOutside_Vorig)
+//				DIRECT_MULTIDIM_ELEM(sharpenedMap,n)=-4*desvOutside_Vorig;
 		}
 
 //        		double desv_sharp=0;
@@ -881,6 +915,12 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 			filteredvolume.write(fnOut);
 			break;
 		}
+
+		FileName fs;
+		Image<double> saveImg;
+		fs = formatString("dirSharp_%i.vol", i);
+		saveImg() = sharpenedMap;
+		saveImg.write(fs);
 	}
 
 	Image<double> filteredvolume;
@@ -939,7 +979,7 @@ void ProgDirSharpening::run()
 
 		std::cout << "Computing local-directional resolution along face " << face_number << std::endl;
 		directionalResolutionStep(face_number, faces, vertex, fftCone, mask(), localResolutionMap, coneAngle);
-//		//directionalResolutionStep_test();
+		//directionalResolutionStep_test();
 	}
 
 	Image<double> Vin;
