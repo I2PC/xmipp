@@ -69,7 +69,7 @@ void ARotationEstimator<T>::loadReference(const T *ref) {
 }
 
 template<typename T>
-void ARotationEstimator<T>::compute(T *others) {
+void ARotationEstimator<T>::compute(T *others) { // FIXME DS should be const?
     if (m_settings.otherDims.is2D()) {
         m_rotations2D.resize(0);
         m_rotations2D.reserve(m_settings.otherDims.n());

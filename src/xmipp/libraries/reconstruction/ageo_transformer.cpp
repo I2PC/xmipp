@@ -23,23 +23,18 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_AGEO_LINEAR_INTERPOLATOR_H_
-#define LIBRARIES_RECONSTRUCTION_AGEO_LINEAR_INTERPOLATOR_H_
-
-#include "data/dimensions.h"
-#include <vector>
-
-//FIXME DS rework properly
+#include "ageo_transformer.h"
 
 template<typename T>
-class AGeoLinearTransformer {
-public:
-    virtual ~AGeoLinearTransformer() {};
-    virtual void createCopyOnGPU(const T *h_data)  = 0;
-    virtual T *getCopy() = 0;
+void AGeoTransformer<T>::init(const GeoTransformerSetting &s, bool reuse) {
+    s.check();
+    bool skipAllocation = reuse && this->isInitialized() && canBeReused(s);
+    m_settings = s;
+    this->init( ! skipAllocation);
+    this->check();
+    m_isInit = true;
+}
 
-    virtual T *interpolate(const std::vector<float> &matrices)  = 0; // each 3x3 values are a single matrix
-};
-
-
-#endif /* LIBRARIES_RECONSTRUCTION_AGEO_LINEAR_INTERPOLATOR_H_ */
+// explicit instantiation
+template class AGeoTransformer<float>;
+template class AGeoTransformer<double>;

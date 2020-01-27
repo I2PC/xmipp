@@ -23,43 +23,57 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_GEO_LINEAR_INTERPOLATOR_H_
-#define LIBRARIES_RECONSTRUCTION_GEO_LINEAR_INTERPOLATOR_H_
+#ifndef LIBRARIES_RECONSTRUCTION_NEW_GEO_TRANSFORMER_H_
+#define LIBRARIES_RECONSTRUCTION_NEW_GEO_TRANSFORMER_H_
 
-#include "reconstruction/ageo_linear_interpolator.h"
-#include "data/dimensions.h"
-#include "data/cpu.h"
-#include <CTPL/ctpl_stl.h>
+#include "reconstruction/ageo_transformer.h"
 #include "data/filters.h"
-#include <core/utils/memory_utils.h>
-
-//FIXME DS rework properly
+#include "CTPL/ctpl_stl.h"
+#include "data/cpu.h"
 
 template<typename T>
-class GeoLinearTransformer : public AGeoLinearTransformer<T> {
+class NewGeoTransformer : public AGeoTransformer<T> {
 public:
-    GeoLinearTransformer(Dimensions d) :
-        dims(d) {
-        m_threadPool.resize(CPU::findCores());
-        m_dest = memoryUtils::page_aligned_alloc<T>(d.size(), false);
-        m_src = nullptr;
-    };
 
-    virtual ~GeoLinearTransformer() {free(m_dest);};
-
-    void createCopyOnGPU(const T *h_data) override {m_src = h_data;};
-
-    T *getCopy() override {
-        return m_dest;
+    NewGeoTransformer() {
+        setDefault();
     }
 
-    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
+    virtual ~NewGeoTransformer() {
+        release();
+    }
+
+    void setOriginal(const T *data) override {
+        m_orig = data;
+        this->setIsOrigLoaded(nullptr != data);
+    }
+
+    const T *getOriginal() const {
+        return m_orig;
+    }
+
+    T *getCopy() const override {
+        return m_copy.get();
+    }
+
+    void copyOriginalToCopy() override;
+
+    T *interpolate(const std::vector<float> &matrices) override;
+
 private:
-    Dimensions dims;
-    const T *m_src;
-    T *m_dest;
+    void init(bool doAllocation) override;
+    void release();
+    void setDefault() {};
+    void check() override;
+
+    void checkBSpline(const BSplineInterpolation<T> *i);
+
+    bool canBeReused(const GeoTransformerSetting &s) const override;
+
+    std::unique_ptr<T[]> m_copy;
+    const T *m_orig;
     ctpl::thread_pool m_threadPool;
 };
 
 
-#endif /* LIBRARIES_RECONSTRUCTION_GEO_LINEAR_INTERPOLATOR_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_NEW_GEO_TRANSFORMER_H_ */

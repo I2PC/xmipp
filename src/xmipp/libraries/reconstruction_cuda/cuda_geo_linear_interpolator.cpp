@@ -23,66 +23,66 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <cuda_runtime_api.h>
-#include "reconstruction_cuda/cuda_asserts.h"
-#include "cuda_geo_linear_interpolator.h"
-#include "cuda_geo_linear_interpolator.cu"
-
-template<typename T>
-void CudaGeoLinearTransformer<T>::setDefault() {
-    m_d_dest = nullptr;
-    m_d_src = nullptr;
-    m_d_matrices = nullptr;
-}
-
-template<typename T>
-void CudaGeoLinearTransformer<T>::release() {
-    gpuErrchk(cudaFree(m_d_src));
-    gpuErrchk(cudaFree(m_d_dest));
-    gpuErrchk(cudaFree(m_d_matrices));
-
-    setDefault();
-}
-
-template<typename T>
-void CudaGeoLinearTransformer<T>::init() {
-    size_t bytes = dims.sizePadded() * sizeof(T);
-    gpuErrchk(cudaMalloc(&m_d_src, bytes));
-    gpuErrchk(cudaMalloc(&m_d_dest, bytes));
-
-    bytes = dims.n() * 9 * sizeof(float);
-    gpuErrchk(cudaMalloc(&m_d_matrices, bytes));
-}
-
-template<typename T>
-void CudaGeoLinearTransformer<T>::createCopyOnGPU(const T *h_data) {
-    size_t bytes = dims.sizePadded() * sizeof(T);
-    gpuErrchk(cudaMemcpy(
-        m_d_src,
-        h_data,
-        bytes,
-        cudaMemcpyHostToDevice));
-}
-
-template<typename T>
-T *CudaGeoLinearTransformer<T>::interpolate(const std::vector<float> &matrices) {
-    size_t bytes = dims.n() * 9 * sizeof(float);
-    gpuErrchk(cudaMemcpy(
-            m_d_matrices,
-            matrices.data(),
-            bytes,
-            cudaMemcpyHostToDevice));
-    dim3 dimBlock(64, 1, 1);
-    dim3 dimGrid(
-        std::ceil(dims.x() / (float)dimBlock.x),
-        dims.n(), 1);
-    interpolateKernel<<<dimGrid, dimBlock>>> (
-                    m_d_src, m_d_dest, m_d_matrices,
-                    dims.x(), dims.y());
-    gpuErrchk(cudaDeviceSynchronize());
-    return m_d_dest;
-}
-
-// explicit instantiation
-template class CudaGeoLinearTransformer<float>;
-template class CudaGeoLinearTransformer<double>;
+//#include <cuda_runtime_api.h>
+//#include "reconstruction_cuda/cuda_asserts.h"
+//#include "cuda_geo_linear_interpolator.h"
+//#include "cuda_geo_linear_interpolator.cu"
+//
+//template<typename T>
+//void CudaGeoLinearTransformer<T>::setDefault() {
+//    m_d_dest = nullptr;
+//    m_d_src = nullptr;
+//    m_d_matrices = nullptr;
+//}
+//
+//template<typename T>
+//void CudaGeoLinearTransformer<T>::release() {
+//    gpuErrchk(cudaFree(m_d_src));
+//    gpuErrchk(cudaFree(m_d_dest));
+//    gpuErrchk(cudaFree(m_d_matrices));
+//
+//    setDefault();
+//}
+//
+//template<typename T>
+//void CudaGeoLinearTransformer<T>::init() {
+//    size_t bytes = m_dims.sizePadded() * sizeof(T);
+//    gpuErrchk(cudaMalloc(&m_d_src, bytes));
+//    gpuErrchk(cudaMalloc(&m_d_dest, bytes));
+//
+//    bytes = m_dims.n() * 9 * sizeof(float);
+//    gpuErrchk(cudaMalloc(&m_d_matrices, bytes));
+//}
+//
+//template<typename T>
+//void CudaGeoLinearTransformer<T>::createCopyOnGPU(const T *h_data) {
+//    size_t bytes = m_dims.sizePadded() * sizeof(T);
+//    gpuErrchk(cudaMemcpy(
+//        m_d_src,
+//        h_data,
+//        bytes,
+//        cudaMemcpyHostToDevice));
+//}
+//
+//template<typename T>
+//T *CudaGeoLinearTransformer<T>::interpolate(const std::vector<float> &matrices) {
+//    size_t bytes = m_dims.n() * 9 * sizeof(float);
+//    gpuErrchk(cudaMemcpy(
+//            m_d_matrices,
+//            matrices.data(),
+//            bytes,
+//            cudaMemcpyHostToDevice));
+//    dim3 dimBlock(64, 1, 1);
+//    dim3 dimGrid(
+//        std::ceil(m_dims.x() / (float)dimBlock.x),
+//        m_dims.n(), 1);
+//    interpolateKernel<<<dimGrid, dimBlock>>> (
+//                    m_d_src, m_d_dest, m_d_matrices,
+//                    m_dims.x(), m_dims.y());
+//    gpuErrchk(cudaDeviceSynchronize());
+//    return m_d_dest;
+//}
+//
+//// explicit instantiation
+//template class CudaGeoLinearTransformer<float>;
+//template class CudaGeoLinearTransformer<double>;

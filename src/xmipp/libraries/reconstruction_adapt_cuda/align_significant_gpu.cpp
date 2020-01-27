@@ -43,9 +43,9 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     auto shiftEstimator = CudaShiftCorrEstimator<T>();
     initShiftEstimator(shiftEstimator, hw);
 
-    GeoLinearTransformer<T> interpolator(s.otherDims);
+    NewGeoTransformer<T> transformer;
 
-    auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, interpolator, this->getThreadPool());
+    auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, transformer, this->getThreadPool());
 
     // create local copy of the reference ...
     auto refSize = s.refDims.sizeSingle();
@@ -61,7 +61,7 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
         memcpy(refData, ref + refOffset, refSizeBytes);
 
         if (0 == (refId % 10)) { // FIXME DS remove / replace by proper progress report
-            std::cout << "aligning agains reference " << refId << "/" << s.refDims.n() << std::endl;
+            std::cout << "aligning against reference " << refId << "/" << s.refDims.n() << std::endl;
         }
         result.emplace_back(aligner.compute(refData, others));
     }
