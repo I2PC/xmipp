@@ -97,19 +97,19 @@ void computeSumSumSqr(const T * __restrict__ in,
     bool isSameSignalInWarp = false;
     int warpId = idx / warpSize; // warp has 32 threads
     int idOfFirstThreadInWarp = warpId * warpSize;
-#if (CUDART_VERSION >= 9000)
-    const unsigned mask = 0xffffffff;
-    if (mask = (__activemask & mask)) {
-        __match_all_sync(mask, n, &isSameSignalInWarp);
-    }
-#else
+//#if (CUDART_VERSION >= 9000) // FIXME DS correct and test
+//    const unsigned mask = 0xffffffff;
+//    if (mask = (__activemask & mask)) {
+//        __match_all_sync(mask, n, &isSameSignalInWarp);
+//    }
+//#else
     int idOfLastThreadInWarp = idOfFirstThreadInWarp + warpSize - 1;
     int nForFirst = idOfFirstThreadInWarp / samples;
     int nForLast = idOfLastThreadInWarp / samples;
     if ((idOfLastThreadInWarp < maxThread) && (nForFirst == nForLast)) {
         isSameSignalInWarp = true;
     }
-#endif
+//#endif
 
     const T piConst = FULL_CIRCLE ? (2 * M_PI) : M_PI;
 
@@ -128,18 +128,18 @@ void computeSumSumSqr(const T * __restrict__ in,
     }
     if (isSameSignalInWarp) {
         // intrawarp sum
-#if (CUDART_VERSION >= 9000)
-        __syncwarp()
-        for (int offset = 16; offset > 0; offset /= 2) {
-            sum += __shfl_down_sync(mask, sum, offset);
-            sum2 += __shfl_down_sync(mask, sum2, offset);
-        }
-#else
+//#if (CUDART_VERSION >= 9000) // FIXME DS correct and test
+//        __syncwarp();
+//        for (int offset = 16; offset > 0; offset /= 2) {
+//            sum += __shfl_down_sync(mask, sum, offset);
+//            sum2 += __shfl_down_sync(mask, sum2, offset);
+//        }
+//#else
         for (int offset = 16; offset > 0; offset /= 2) {
             sum += __shfl_down(sum, offset);
             sum2 += __shfl_down(sum2, offset);
         }
-#endif
+//#endif
         if (idx != idOfFirstThreadInWarp) {
             // only first thread in the warp will write to the output
             return;
