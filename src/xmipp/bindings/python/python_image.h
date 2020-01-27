@@ -215,6 +215,13 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+
+/* applyWarpAffine */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+
+
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2);
 PyObject *
