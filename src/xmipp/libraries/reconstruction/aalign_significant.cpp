@@ -393,7 +393,8 @@ void AProgAlignSignificant<T>::run() {
             && (m_referenceImages.dims.n() > m_imagesToAlign.dims.n());
     if (hasMoreReferences) {
         std::cerr << "We are swapping reference images and experimental images. "
-                "This will enhance the performance. The result should be equivalent, but not identical.\n";
+                "This will enhance the performance. This might lead to worse results if the experimental "
+                "images are not well centered. Use it with care!\n";
         std::swap(m_referenceImages, m_imagesToAlign);
     }
 
