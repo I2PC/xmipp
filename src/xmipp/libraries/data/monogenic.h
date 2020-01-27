@@ -76,6 +76,14 @@ public:
 
 	void statisticsInBinaryMask(const MultidimArray<double> &vol, MultidimArray<int> &mask, double &mean, double &sd);
 
+	void statisticsInBinaryMask(const MultidimArray<double> &volS, const MultidimArray<double> &volN,
+			MultidimArray<int> &mask, MultidimArray<int> &maskExcl, double &meanS, double &sdS,
+			double &meanN, double &sdN, double &significance, double &thr95, double &NS, double &NN);
+
+	void statisticsInOutBinaryMask(const MultidimArray<double> &volS,
+			MultidimArray<int> &mask, MultidimArray<int> &maskExcl, double &meanS, double &sdS,
+			double &meanN, double &sdN, double &significance, double &thr95, double &NS, double &NN);
+
 	void monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<double> > &myfftV,
 			MultidimArray<double> iu, MultidimArray<double> &amplitude, int numberOfThreads);
 
@@ -83,11 +91,30 @@ public:
 			MultidimArray<int> &pMask, MultidimArray<double> &plocalResolutionMap,
 			double &thresholdNoise, double &resolution, double &resolution_2);
 
-	void resolution2eval(int &fourier_idx, double min_step, double sampling, int volsize,
+	void setLocalResolutionMapAndFilter(const MultidimArray<double> &amplitudeMS,
+			MultidimArray<int> &pMask, MultidimArray<double> &plocalResolutionMap,
+			MultidimArray<double> &filteredMap, MultidimArray<double> &resolutionFiltered,
+			double &thresholdNoise, double &resolution, double &resolution_2);
+
+	void resolution2evalDir(int &fourier_idx, double min_step, double sampling, int volsize,
 			double &resolution, double &last_resolution,
 			int &last_fourier_idx,
 			double &freq, double &freqL, double &freqH,
 			bool &continueIter, bool &breakIter, bool &doNextIteration);
+
+	void resolution2eval(int &count_res, double step,
+			double &resolution, double &last_resolution,
+			double &freq, double &freqL,
+			int &last_fourier_idx,
+			int &volsize,
+			bool &continueIter,	bool &breakIter,
+			double &sampling, double &minRes, double &maxRes,
+			bool &doNextIteration, bool &automaticMode);
+
+	void proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, double &radius,
+			int &vol, MultidimArray<double> &radMap);
+	void findCliffValue(MultidimArray<double> radMap, MultidimArray<double> &inputmap,
+			double &radius,	double &radiuslimit, MultidimArray<int> &mask);
 
 	bool TestmonogenicAmplitude_3D_Fourier();
 
@@ -99,6 +126,15 @@ public:
 			Matrix1D<double> &freq_fourier_x, Matrix1D<double> &freq_fourier_y,
 			Matrix1D<double> &freq_fourier_z, MultidimArray<double> &amplitude,
 			int count, int dir, FileName fnDebug, int N_smoothing);
+
+	void amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double> > &myfftV,
+			FourierTransformer &transformer_inv,
+			MultidimArray< std::complex<double> > &fftVRiesz,
+			MultidimArray< std::complex<double> > &fftVRiesz_aux, MultidimArray<double> &VRiesz,
+			double freq, double freqH, double freqL, MultidimArray<double> &iu,
+			Matrix1D<double> &freq_fourier_x, Matrix1D<double> &freq_fourier_y,
+			Matrix1D<double> &freq_fourier_z, MultidimArray<double> &amplitude,
+			int count, FileName fnDebug);
 
 	//Fast method: It computes the monogenic amplitude of an input volume;
 	void monogenicAmplitude_3D(FourierTransformer &transformer, MultidimArray<double> &iu,

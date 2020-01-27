@@ -110,7 +110,6 @@ void ProgDirSharpening::produceSideInfo()
 //    	Vorig = inputVol;
 
     	transformer.FourierTransform(inputVol, fftV);
-    	iu.initZeros(fftV);
 
     	// Frequency volume
     	iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
@@ -527,7 +526,7 @@ void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int>
 		continueIter = false;
 		breakIter = false;
 
-		mono.resolution2eval(fourier_idx, step, sampling, volsize,
+		mono.resolution2evalDir(fourier_idx, step, sampling, volsize,
 						resolution, last_resolution, last_fourier_idx,
 						freq, freqL, freqH,
 						continueIter, breakIter, doNextIteration);
