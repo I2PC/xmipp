@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_NEW_GEO_TRANSFORMER_H_
-#define LIBRARIES_RECONSTRUCTION_NEW_GEO_TRANSFORMER_H_
+#ifndef LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_
+#define LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_
 
 #include "reconstruction/ageo_transformer.h"
 #include "data/filters.h"
@@ -84,4 +84,4 @@ private:
 };
 
 
-#endif /* LIBRARIES_RECONSTRUCTION_NEW_GEO_TRANSFORMER_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_ */
