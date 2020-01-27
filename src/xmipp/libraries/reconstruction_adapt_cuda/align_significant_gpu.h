@@ -41,6 +41,7 @@ protected:
 private:
     void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw);
     void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw);
+    void initTransformer(BSplineGeoTransformer<T> &t);
     size_t maxBatchSize = 300;
 };
 
