@@ -55,7 +55,7 @@ T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation
             t.emplace_back(estimation.poses.at(j).mdata[i]);
         }
     }
-    return m_interpolator.interpolate(t);
+    return m_transformer.interpolate(t);
 }
 
 template<typename T>
@@ -90,7 +90,7 @@ void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, co
 template<typename T>
 void IterativeAlignmentEstimator<T>::computeCorrelation(
         AlignmentEstimation &estimation,
-        const T * __restrict__ orig, T * __restrict__ copy) {
+        const T * __restrict__ orig) {
     const size_t n = m_dims.n();
     const size_t z = m_dims.z();
     const size_t y = m_dims.y();
@@ -100,7 +100,7 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(
 
     auto futures = std::vector<std::future<void>>();
     auto workload = [&](int id, size_t signalId){
-        T * address = copy + signalId * m_dims.sizeSingle();
+        T * address = m_transformer.getCopy() + signalId * m_dims.sizeSingle();
         auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
         auto other = MultidimArray<T>(1, z, y, x, address);
         // FIXME DS better if we use fastCorrelation, but unless the input is normalized
@@ -120,13 +120,11 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(
 template<typename T>
 void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation &est,
         const T * __restrict__ ref,
-        const T * __restrict__ orig,
-        T * __restrict__ copy,
         bool rotationFirst) {
     // note (DS) if any of these steps return 0 (no shift or rotation), additional iterations are useless
     // as the image won't change
     auto stepRotation = [&] {
-        m_rot_est.compute(copy);
+        m_rot_est.compute(m_transformer.getCopy());
         const auto &cRotEst = m_rot_est;
         updateEstimation(est,
             cRotEst.getRotations2D(),
@@ -135,17 +133,19 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
                 rotation2DMatrix(angle, r);
                 lhs = r * lhs;
             });
-        copy = applyTr(est);
+        applyTr(est);
     };
     auto stepShift = [&] {
-        m_shift_est.computeShift2DOneToN(copy);
+        m_shift_est.computeShift2DOneToN(m_transformer.getCopy());
         updateEstimation(est, m_shift_est.getShifts2D(),
                 [](const Point2D<float> &shift, Matrix2D<double> &lhs) {
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });
-        copy = applyTr(est);
+        applyTr(est);
     };
+    // get a fresh copy of the images
+    m_transformer.copyOriginalToCopy();
     for (unsigned i = 0; i < iters; ++i) {
         if (rotationFirst) {
             stepRotation();
@@ -162,7 +162,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         }
 //        print(est);
     }
-    computeCorrelation(est, ref, copy);
+    computeCorrelation(est, ref);
 }
 
 template<typename T>
@@ -175,25 +175,24 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
         m_rot_est.loadReference(ref);
     }
 
-    // allocate memory for signals with applied pose
+    // prepare transformer which is responsible for apllying the pose t
     size_t elems = m_dims.sizePadded();
-    m_interpolator.createCopyOnGPU(others);
-    auto copy = m_interpolator.getCopy();
-    m_shift_est.getHW().lockMemory(copy, elems * sizeof(T));
-    m_rot_est.getHW().lockMemory(copy, elems * sizeof(T));
+    m_transformer.setOriginal(others);
+
+//    FIXME DS this is now responsibility of the transfomer, good!
+//    m_shift_est.getHW().lockMemory(copy, elems * sizeof(T));
+//    m_rot_est.getHW().lockMemory(copy, elems * sizeof(T));
 
     const size_t n = m_dims.n();
     // try rotation -> shift
     auto result_RS = AlignmentEstimation(n);
-    memcpy(copy, others, elems * sizeof(T));
-    compute(iters, result_RS, ref, others, copy, true);
+    compute(iters, result_RS, ref, true);
     // try shift-> rotation
     auto result_SR = AlignmentEstimation(n);
-    memcpy(copy, others, elems * sizeof(T));
-    compute(iters, result_SR, ref, others, copy, false);
+    compute(iters, result_SR, ref, false);
 
-    m_rot_est.getHW().unlockMemory(copy);
-    m_shift_est.getHW().unlockMemory(copy);
+//    m_rot_est.getHW().unlockMemory(copy);
+//    m_shift_est.getHW().unlockMemory(copy);
 //    free(copy);
 
     for (size_t i = 0; i < n; ++i) {

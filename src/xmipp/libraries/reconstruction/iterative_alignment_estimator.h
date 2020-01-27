@@ -34,7 +34,7 @@
 #include "data/filters.h"
 #include <core/utils/memory_utils.h>
 #include "CTPL/ctpl_stl.h"
-#include "reconstruction/ageo_linear_interpolator.h"
+#include "reconstruction/ageo_transformer.h"
 
 namespace Alignment {
 
@@ -43,11 +43,11 @@ class IterativeAlignmentEstimator {
 public:
     IterativeAlignmentEstimator(ARotationEstimator<T> &rot_estimator,
             AShiftEstimator<T> &shift_estimator,
-            AGeoLinearTransformer<T> &interpolator,
+            AGeoTransformer<T> &interpolator,
             ctpl::thread_pool &threadPool) :
                 m_rot_est(rot_estimator), m_shift_est(shift_estimator),
                 m_threadPool(threadPool),
-                m_interpolator(interpolator),
+                m_transformer(interpolator),
                 m_dims(shift_estimator.getDimensions()) {
         m_sameEstimators = ((void*)&m_shift_est == (void*)&m_rot_est);
         this->check();
@@ -63,7 +63,7 @@ protected:
 private:
     ARotationEstimator<T> &m_rot_est;
     AShiftEstimator<T> &m_shift_est;
-    AGeoLinearTransformer<T> &m_interpolator;
+    AGeoTransformer<T> &m_transformer;
     ctpl::thread_pool &m_threadPool;
     const Dimensions m_dims;
     bool m_sameEstimators;
@@ -76,12 +76,10 @@ private:
 
     void compute(unsigned iters, AlignmentEstimation &est,
             const T *ref,
-            const T *orig,
-            T *copy,
             bool rotationFirst);
 
     void computeCorrelation(AlignmentEstimation &estimation,
-            const T *orig, T *copy);
+            const T *orig);
 
     void check();
 

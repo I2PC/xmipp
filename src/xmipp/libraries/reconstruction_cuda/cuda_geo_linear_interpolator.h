@@ -23,45 +23,55 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_
-#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_
+//#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_
+//#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_
 
 #include "gpu.h"
-#include "reconstruction/ageo_linear_interpolator.h"
-
-//FIXME DS rework properly
-
-template<typename T>
-class CudaGeoLinearTransformer : AGeoLinearTransformer<T> {
-public:
-    CudaGeoLinearTransformer(Dimensions d) :
-        dims(d) {
-        setDefault();
-        init();
-    }
-
-    virtual ~CudaGeoLinearTransformer() {
-        release();
-    }
-
-    void createCopyOnGPU(const T *h_data) override;
-
-    T *getCopy() override {
-        return m_d_dest;
-    }
-
-    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
-private:
-    T *m_d_src;
-    T *m_d_dest;
-    float *m_d_matrices;
-
-    Dimensions dims;
-
-    void setDefault();
-    void release();
-    void init();
-};
-
-
-#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_ */
+//#include "reconstruction/ageo_linear_interpolator.h"
+//
+////FIXME DS rework properly
+//
+//template<typename T>
+//class CudaGeoLinearTransformer : public AGeoLinearTransformer<T> {
+//public:
+//    CudaGeoLinearTransformer() :
+//        m_dims(0) {
+//        setDefault();
+//    }
+//
+//    void init(const Dimensions &d) override {
+//        bool mustInit = (m_dims.size() < d.size());
+//        if (mustInit) {
+//            release();
+//        }
+//        m_dims = d;
+//        if (mustInit) {
+//            init();
+//        }
+//    }
+//
+//    virtual ~CudaGeoLinearTransformer() {
+//        release();
+//    }
+//
+//    void createCopyOnGPU(const T *h_data) override;
+//
+//    T *getCopy() override {
+//        return m_d_dest;
+//    }
+//
+//    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
+//private:
+//    T *m_d_src;
+//    T *m_d_dest;
+//    float *m_d_matrices;
+//
+//    Dimensions m_dims;
+//
+//    void setDefault();
+//    void release();
+//    void init();
+//};
+//
+//
+//#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_GEO_LINEAR_INTERPOLATOR_H_ */
