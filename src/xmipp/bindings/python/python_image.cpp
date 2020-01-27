@@ -393,7 +393,6 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                 size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
                 PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
                 const char *filename = PyUnicode_AsUTF8(repr);
-                std::cout<<"File: "<<filename<<std::endl;
                 // Now read using both of index and filename
                 self->image->read(filename,(DataMode)datamode, index);
                 Py_RETURN_NONE;
