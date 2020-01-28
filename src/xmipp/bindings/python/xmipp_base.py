@@ -1,3 +1,5 @@
+# TODO: Merge this with scipion-em-xmipp/xmipp3/base.py
+
 from xmippLib import *
 import os
 import sys
