@@ -1170,6 +1170,8 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
+    ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
+    ok = ok and runJob("ln -sf ../../lib/libXmippCore.so " + dirname + "/bindings/python/libXmippCore.so")
 
     createDir(dirname+"/bindings/python/sh_alignment")
     ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
@@ -1178,7 +1180,7 @@ def install(dirname):
     createDir(dirname+"/resources")
     ok = ok and runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
 
-    ok = ok and runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
+    # ok = ok and runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
     createDir(dirname+"/bindings/java")
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
