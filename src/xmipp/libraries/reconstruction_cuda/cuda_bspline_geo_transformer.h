@@ -46,6 +46,8 @@ public:
         return m_d_dest;
     }
 
+    std::unique_ptr<T[]> getDestOnCPU() const override; // FIXME DS Remove (it's here because we need to compute correlation on cpu in the iterative aligner
+
     void copySrcToDest() override;
 
     T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix

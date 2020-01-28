@@ -143,10 +143,10 @@ public:
         rotSettings.allowTuningOfNumberOfSamples = false;
 
         auto tSettings = BSplineTransformSettings<T>();
-        tSettings.keepSrcCopy = false;
+        tSettings.keepSrcCopy = true;
         tSettings.degree = InterpolationDegree::Linear;
         tSettings.dims = dims;
-        tSettings.hw = hw;
+        tSettings.hw.push_back(hw.at(0));
         tSettings.type = InterpolationType::NToN;
         tSettings.doWrap = false;
         tSettings.defaultVal = (T)0;

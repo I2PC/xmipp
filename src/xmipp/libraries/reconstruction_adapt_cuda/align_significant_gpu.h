@@ -39,9 +39,9 @@ class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
 protected:
     std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
 private:
-    void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw);
-    void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw);
-    void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw);
+    void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
+    void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
+    void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw, const Dimensions &dims);
     size_t maxBatchSize = 300;
 };
 

@@ -67,7 +67,7 @@ public:
         const Dimensions &dims,
         bool center) override;
 
-    void computeShift2DOneToN(T *h_others) override;
+    void computeShift2DOneToN(T *others) override;
 
     static std::vector<Point2D<float>> computeShifts2DOneToN(
         const std::vector<GPU*> &gpus,
@@ -121,7 +121,7 @@ private:
     void init2DOneToN() override;
     void setDefault();
     void check() override;
-    void loadThreadRoutine(T *h_others);
+    void loadThreadRoutine(T *others);
     using AShiftEstimator<T>::init2D;
 };
 

@@ -51,8 +51,9 @@ T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation
     std::vector<float> t;
     t.reserve(9 * estimation.poses.size());
     for (size_t j = 0; j < estimation.poses.size(); ++j) {
+        auto inv = estimation.poses.at(j).inv();
         for (int i = 0; i < 9; ++i) {
-            t.emplace_back(estimation.poses.at(j).mdata[i]);
+            t.emplace_back(inv.mdata[i]);
         }
     }
     return m_transformer.interpolate(t);
@@ -98,9 +99,11 @@ void IterativeAlignmentEstimator<T>::computeCorrelation(
 
     int threads = m_threadPool.size();
 
+    std::unique_ptr<T[]> d = m_transformer.getDestOnCPU();
+
     auto futures = std::vector<std::future<void>>();
     auto workload = [&](int id, size_t signalId){
-        T * address = m_transformer.getDest() + signalId * m_dims.sizeSingle();
+        T * address = d.get() + signalId * m_dims.sizeSingle();
         auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
         auto other = MultidimArray<T>(1, z, y, x, address);
         // FIXME DS better if we use fastCorrelation, but unless the input is normalized
@@ -174,15 +177,9 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
     if ( ! m_sameEstimators) {
         m_rot_est.loadReference(ref);
     }
-
-    // prepare transformer which is responsible for apllying the pose t
-    size_t elems = m_dims.sizePadded();
     m_transformer.setSrc(others);
 
-//    FIXME DS this is now responsibility of the transfomer, good!
-//    m_shift_est.getHW().lockMemory(copy, elems * sizeof(T));
-//    m_rot_est.getHW().lockMemory(copy, elems * sizeof(T));
-
+    // prepare transformer which is responsible for applying the pose t
     const size_t n = m_dims.n();
     // try rotation -> shift
     auto result_RS = AlignmentEstimation(n);
@@ -190,10 +187,6 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
     // try shift-> rotation
     auto result_SR = AlignmentEstimation(n);
     compute(iters, result_SR, ref, false);
-
-//    m_rot_est.getHW().unlockMemory(copy);
-//    m_shift_est.getHW().unlockMemory(copy);
-//    free(copy);
 
     for (size_t i = 0; i < n; ++i) {
         if (result_RS.correlations.at(i) < result_SR.correlations.at(i)) {

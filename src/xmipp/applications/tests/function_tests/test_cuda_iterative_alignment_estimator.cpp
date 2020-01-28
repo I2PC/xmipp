@@ -1,6 +1,6 @@
 #include "reconstruction_cuda/cuda_rot_polar_estimator.h"
 #include "reconstruction_cuda/cuda_shift_corr_estimator.h"
-#include "reconstruction/bspline_geo_transformer.h"
+#include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
 
 template<typename T>
 class IterativeAlignmentEstimator_Test;
@@ -8,7 +8,7 @@ class IterativeAlignmentEstimator_Test;
 #define SETUPTESTCASE_SPECIFIC \
     shiftAligner = new Alignment::CudaShiftCorrEstimator<T>(); \
     rotationAligner = new Alignment::CudaRotPolarEstimator<T>(); \
-    transformer = new BSplineGeoTransformer<T>(); \
+    transformer = new CudaBSplineGeoTransformer<T>(); \
     for (int i = 0; i < 2; ++i) { \
         auto g = new GPU(); \
         g->set(); \

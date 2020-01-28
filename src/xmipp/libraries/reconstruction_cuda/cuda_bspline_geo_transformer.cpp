@@ -26,7 +26,7 @@
 #include <cuda_runtime_api.h>
 #include "reconstruction_cuda/cuda_asserts.h"
 #include "cuda_bspline_geo_transformer.h"
-//#include "cuda_geo_linear_interpolator.cu"
+#include "cuda_geo_linear_interpolator.cu"
 
 template<typename T>
 void CudaBSplineGeoTransformer<T>::setSrc(const T *h_data) {
@@ -38,6 +38,19 @@ void CudaBSplineGeoTransformer<T>::setSrc(const T *h_data) {
         cudaMemcpyHostToDevice));
     this->setIsSrcSet(true);
 }
+
+template<typename T>
+std::unique_ptr<T[]> CudaBSplineGeoTransformer<T>::getDestOnCPU() const {
+    size_t elems = this->getSettings().dims.size();
+    std::unique_ptr<T[]> p = std::unique_ptr<T[]>(new T[elems]);
+    gpuErrchk(cudaMemcpy(
+        p.get(),
+        m_d_dest,
+        elems * sizeof(T),
+    cudaMemcpyDeviceToHost));
+    return p;
+}
+
 
 template<typename T>
 void CudaBSplineGeoTransformer<T>::initialize(bool doAllocation) {
@@ -116,22 +129,21 @@ void CudaBSplineGeoTransformer<T>::allocate() {
 
 template<typename T>
 T *CudaBSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
-    printf("interpolate\n");
-//    size_t bytes = m_dims.n() * 9 * sizeof(float);
-//    gpuErrchk(cudaMemcpy(
-//            m_d_matrices,
-//            matrices.data(),
-//            bytes,
-//            cudaMemcpyHostToDevice));
-//    dim3 dimBlock(64, 1, 1);
-//    dim3 dimGrid(
-//        std::ceil(m_dims.x() / (float)dimBlock.x),
-//        m_dims.n(), 1);
-//    interpolateKernel<<<dimGrid, dimBlock>>> (
-//                    m_d_src, m_d_dest, m_d_matrices,
-//                    m_dims.x(), m_dims.y());
-//    gpuErrchk(cudaDeviceSynchronize());
-//    return m_d_dest;
+    const auto& dims = this->getSettings().dims;
+    size_t bytes = dims.n() * 9 * sizeof(float);
+    gpuErrchk(cudaMemcpy(
+            m_d_matrices,
+            matrices.data(),
+            bytes,
+            cudaMemcpyHostToDevice));
+    dim3 dimBlock(64, 1, 1);
+    dim3 dimGrid(
+        std::ceil(dims.x() / (float)dimBlock.x),
+        dims.n(), 1);
+    interpolateKernel<<<dimGrid, dimBlock>>> (
+                    m_d_src, m_d_dest, m_d_matrices,
+                    dims.x(), dims.y());
+    gpuErrchk(cudaDeviceSynchronize());
     return m_d_dest;
 }
 
