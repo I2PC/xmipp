@@ -35,7 +35,8 @@ void BSplineGeoTransformer<T>::initialize(bool doAllocation) {
             REPORT_ERROR(ERR_LOGIC_ERROR, "Instance of CPU is expected");
         }
     }
-    m_threadPool.resize(s.hw.size());
+//    m_threadPool.resize(s.hw.size()); // FIXME DS set to requested number of thread
+    m_threadPool.resize(CPU::findCores());
 
     if (doAllocation) {
         release();
@@ -51,6 +52,9 @@ void BSplineGeoTransformer<T>::check() {
     }
     if (s.doWrap) {
         REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Wrapping is not yet implemented");
+    }
+    if (InterpolationType::NToN != s.type) {
+        REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Only NToN is currently implemented");
     }
 }
 
@@ -70,7 +74,6 @@ void BSplineGeoTransformer<T>::copySrcToDest() {
 template<typename T>
 void BSplineGeoTransformer<T>::release() {
     m_dest.release();
-    m_threadPool.stop();
     setDefault();
 }
 
@@ -117,13 +120,12 @@ T *BSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
         in.setXmippOrigin();
         out.setXmippOrigin();
         // compensate the movement
-        Matrix2D<double> m;
-        m.initIdentity(3);
+        Matrix2D<double> m(3,3);
         const float *f = matrices.data() + (9 * signalId);
         for (int i = 0; i < 9; ++i) {
             m.mdata[i] = f[i];
         }
-        applyGeometry(LINEAR, out, in, m, false, DONT_WRAP);
+        applyGeometry(LINEAR, out, in, m, true, DONT_WRAP);
     };
 
     for (size_t i = 0; i < n; ++i) {

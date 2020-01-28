@@ -222,7 +222,7 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 }
 
 template<typename T>
-void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *h_others) {
+void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *others) {
     m_loadStream->set();
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
     for (size_t offset = 0; offset < this->m_settingsInv->fDim().n(); offset += this->m_settingsInv->batch()) {
@@ -233,15 +233,18 @@ void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *h_others) {
         while (m_isDataReady) {
             m_cv->wait(lk);
         }
-        T *h_src = h_others + offset * this->m_settingsInv->sDim().xy();
+        T *src = others + offset * this->m_settingsInv->sDim().xy();
         size_t bytes = toProcess * this->m_settingsInv->sBytesSingle();
 
+        auto kind = m_loadStream->isGpuPointer(src)
+                ? cudaMemcpyDeviceToDevice
+                : cudaMemcpyHostToDevice;
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
                m_d_batch_SD_load,
-               h_src,
+               src,
                bytes,
-               cudaMemcpyHostToDevice, lStream));
+               kind, lStream));
         // block until data is loaded
         m_loadStream->synch();
 
@@ -253,14 +256,14 @@ void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *h_others) {
 
 template<typename T>
 void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
-        T *h_others) {
+        T *others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type)
             && m_is_d_single_FD_loaded && this->m_includingBatchFT);
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
-    if ( ! GPU::isMemoryPinned(h_others)) {
+    if ( ! GPU::isMemoryPinned(others)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
 
@@ -270,7 +273,7 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     m_workStream->synch();
     // start loading data at the background
     m_isDataReady = false;
-    auto loadingThread = std::thread(&CudaShiftCorrEstimator<T>::loadThreadRoutine, this, h_others);
+    auto loadingThread = std::thread(&CudaShiftCorrEstimator<T>::loadThreadRoutine, this, others);
 
     // reserve enough space for shifts
     this->m_shifts2D.reserve(this->m_settingsInv->fDim().n());

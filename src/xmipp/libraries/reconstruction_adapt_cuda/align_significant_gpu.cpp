@@ -38,12 +38,14 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
         hw.emplace_back(g);
     }
 
+    auto processDims = s.otherDims.copyForN(std::min(s.otherDims.n(), maxBatchSize));
+
     auto rotEstimator = CudaRotPolarEstimator<T>();
-    initRotEstimator(rotEstimator, hw);
+    initRotEstimator(rotEstimator, hw, processDims);
     auto shiftEstimator = CudaShiftCorrEstimator<T>();
-    initShiftEstimator(shiftEstimator, hw);
+    initShiftEstimator(shiftEstimator, hw, processDims);
     CudaBSplineGeoTransformer<T> transformer;
-    initTransformer(transformer, hw);
+    initTransformer(transformer, hw, processDims);
 
     auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, transformer, this->getThreadPool());
 
@@ -63,7 +65,21 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
         if (0 == (refId % 10)) { // FIXME DS remove / replace by proper progress report
             std::cout << "aligning against reference " << refId << "/" << s.refDims.n() << std::endl;
         }
-        result.emplace_back(aligner.compute(refData, others));
+
+        auto est = result.emplace(result.end(), s.otherDims.n());
+        for (size_t i = 0; i < s.otherDims.n(); i += processDims.n()) {
+            // run on a full-batch subset
+            size_t offset = std::min(i, s.otherDims.n() - processDims.n());
+            auto tmp = aligner.compute(refData, others + (offset * s.otherDims.sizeSingle()));
+
+            // merge results
+            est->correlations.insert(est->correlations.begin() + offset,
+                    tmp.correlations.begin(),
+                    tmp.correlations.end());
+            est->poses.insert(est->poses.begin() + offset,
+                    tmp.poses.begin(),
+                    tmp.poses.end());
+        }
     }
 
     for (auto h : hw) {
@@ -76,17 +92,17 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
 
 template<typename T>
 void ProgAlignSignificantGPU<T>::initRotEstimator(CudaRotPolarEstimator<T> &est,
-        std::vector<HW*> &hw) {
+        std::vector<HW*> &hw,
+        const Dimensions &dims) {
     // FIXME DS implement properly
     RotationEstimationSetting s;
-    Dimensions dims = this->getSettings().otherDims;
-    size_t batch = std::min(maxBatchSize, dims.n());
+    size_t batch = maxBatchSize;
     auto rotSettings = RotationEstimationSetting();
     s.hw = hw;
     s.type = AlignType::OneToN;
     s.refDims = dims.createSingle();
     s.otherDims = dims;
-    s.batch = batch;
+    s.batch = dims.n();
     s.maxRotDeg = RotationEstimationSetting::getMaxRotation();
     s.firstRing = RotationEstimationSetting::getDefaultFirstRing(dims);
     s.lastRing = RotationEstimationSetting::getDefaultLastRing(dims);
@@ -97,11 +113,12 @@ void ProgAlignSignificantGPU<T>::initRotEstimator(CudaRotPolarEstimator<T> &est,
 
 template<typename T>
 void ProgAlignSignificantGPU<T>::initTransformer(BSplineGeoTransformer<T> &t,
-        std::vector<HW*> &hw) {
+        std::vector<HW*> &hw,
+        const Dimensions &dims) {
     auto s = BSplineTransformSettings<T>();
     s.keepSrcCopy = true;
     s.degree = InterpolationDegree::Linear;
-    s.dims = this->getSettings().otherDims;
+    s.dims = dims;
     s.hw.push_back(hw.at(0));
     s.type = InterpolationType::NToN;
     s.doWrap = false;
@@ -111,15 +128,16 @@ void ProgAlignSignificantGPU<T>::initTransformer(BSplineGeoTransformer<T> &t,
 
 template<typename T>
 void ProgAlignSignificantGPU<T>::initShiftEstimator(CudaShiftCorrEstimator<T> &est,
-        std::vector<HW*> &hw) {
+        std::vector<HW*> &hw,
+        const Dimensions &dims) {
     // FIXME DS implement properly
     RotationEstimationSetting s;
-    Dimensions dims = this->getSettings().otherDims;
-    size_t batch = std::min(maxBatchSize, dims.n()); // FIXME DS set the batch size in a better way
+    size_t batch = dims.n();
+    size_t maxShift = dims.x() / 4;
     est.init2D(hw,
             AlignType::OneToN,
             FFTSettingsNew<T>(dims, batch),
-            10, true, true);
+            maxShift, true, true);
 
 }
 

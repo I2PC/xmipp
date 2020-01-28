@@ -28,7 +28,7 @@ template<typename T>
 __global__
 void interpolateKernel(const T * __restrict__ in, T * __restrict__ out, float * __restrict matrices,
         int xDim, int yDim) {
-    // assign element to thread, we have at thead for each column (+ some extra)
+    // assign element to thread, we have at least one thead for each column
     // single block processes single signal
     unsigned inX = blockIdx.x * blockDim.x + threadIdx.x;
     if (inX >= xDim) return;
