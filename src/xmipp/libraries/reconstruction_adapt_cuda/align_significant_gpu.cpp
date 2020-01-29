@@ -138,7 +138,7 @@ void ProgAlignSignificantGPU<T>::initShiftEstimator(CudaShiftCorrEstimator<T> &e
     est.init2D(hw,
             AlignType::OneToN,
             FFTSettingsNew<T>(dims, batch),
-            maxShift, true, true);
+            maxShift, true, true, true);
 }
 
 // explicit instantiation

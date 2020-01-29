@@ -152,7 +152,7 @@ public:
         tSettings.doWrap = false;
         tSettings.defaultVal = (T)0;
 
-        shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true);
+        shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true, true);
         rotationAligner->init(rotSettings, true);
         transformer->init(tSettings, false);
         ctpl::thread_pool threadPool(CPU::findCores());

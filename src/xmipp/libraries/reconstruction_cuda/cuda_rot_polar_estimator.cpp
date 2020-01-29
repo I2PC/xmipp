@@ -405,7 +405,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
         if (createLocalCopy) {
             waitAndConvert<FULL_CIRCLE>(inCart, outPolar, s.firstRing);
         } else {
-            T * in = others + (offset * s.otherDims.sizeSingle());
+            T *in = others + (offset * s.otherDims.sizeSingle());
             sComputePolarTransform<FULL_CIRCLE>(*m_mainStream,
                 inCart, in,
                 outPolar, m_d_batchPolarOrCorr,
