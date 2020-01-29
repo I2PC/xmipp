@@ -50,8 +50,8 @@ public:
 
 protected:
     struct Settings {
-        Dimensions refDims = Dimensions(0);
-        Dimensions otherDims = Dimensions(0);
+        Dimensions refDims = Dimensions(0); // there should be less reference images than experimental images
+        Dimensions otherDims = Dimensions(0); // there should be more reference images than experimental images
 
         unsigned cpuThreads;
     };
@@ -70,6 +70,7 @@ private:
     struct DataHelper {
         FileName fn;
         MetaData md;
+        Dimensions dims = Dimensions(0);
         std::vector<float> rots;
         std::vector<float> tilts;
         std::unique_ptr<T[]> data;
@@ -78,9 +79,9 @@ private:
     struct WeightCompHelper {
         WeightCompHelper(float c, size_t ref, size_t img) :
             correlation(c), refIndex(ref), imgIndex(img) {};
-        float correlation;
         size_t refIndex;
         size_t imgIndex;
+        float correlation;
     };
 
     DataHelper m_imagesToAlign;
@@ -89,30 +90,36 @@ private:
     float m_angDistance;
     Settings m_settings;
     size_t m_noOfBestToKeep;
+    bool m_allowDataSwap;
+    bool m_useWeightInsteadOfCC;
 
     std::vector<std::vector<float>> m_weights;
 
     ctpl::thread_pool m_threadPool;
 
-    Dimensions load(DataHelper &h);
+    void load(DataHelper &h);
     Dimensions crop(const Dimensions &d, DataHelper &h);
+    template<bool IS_ESTIMATION_TRANSPOSED>
     void computeWeights(const std::vector<AlignmentEstimation> &est);
+    template<bool IS_ESTIMATION_TRANSPOSED>
     void computeWeightsAndSave(
             const std::vector<AlignmentEstimation> &est,
             size_t refIndex);
     void computeWeightsAndSave(
             std::vector<WeightCompHelper> &correlations,
             size_t refIndex);
+    template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
     void storeAlignedImages(
             const std::vector<AlignmentEstimation> &est);
     void fillRow(MDRow &row,
             const Matrix2D<double> &pose,
             size_t refIndex,
-            double weight, double maxCC);
-    void replaceMaxCorrelation(
-            std::vector<float> &correlations,
+            double weight, double maxVote);
+    void extractMax(
+            std::vector<float> &data,
             size_t &pos, double &val);
 
+    void updateSettings();
 };
 
 } /* namespace Alignment */

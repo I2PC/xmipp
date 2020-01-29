@@ -236,7 +236,7 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
 }
 
 template<typename T>
-void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
+void CudaRotPolarEstimator<T>::loadThreadRoutine(T *others) {
     m_backgroundStream->set();
     auto lStream = *(cudaStream_t*)m_backgroundStream->stream();
     auto s = this->getSettings();
@@ -247,15 +247,18 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
         // how many signals to process
         size_t toProcess = std::min(s.batch, s.otherDims.n() - offset);
 
-        T *h_src = h_others + offset * s.otherDims.sizeSingle();
+        T *src = others + offset * s.otherDims.sizeSingle();
         size_t bytes = toProcess * s.otherDims.sizeSingle() * sizeof(T);
 
+        auto kind = m_backgroundStream->isGpuPointer(src)
+                ? cudaMemcpyDeviceToDevice
+                : cudaMemcpyHostToDevice;
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
                 m_d_batch,
-                h_src,
+                src,
                 bytes,
-                cudaMemcpyHostToDevice, lStream));
+                kind, lStream));
         // block until data is loaded
         m_backgroundStream->synch();
 
@@ -327,24 +330,24 @@ void CudaRotPolarEstimator<T>::sNormalize(
 }
 
 template<typename T>
-void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
+void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
     const bool isFullCircle = this->getSettings().fullCircle;
     if (isFullCircle) {
-        computeRotation2DOneToN<true>(h_others);
+        computeRotation2DOneToN<true>(others);
     } else {
-        computeRotation2DOneToN<false>(h_others);
+        computeRotation2DOneToN<false>(others);
     }
 }
 
 template<typename T>
 template<bool FULL_CIRCLE>
-void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
+void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
     bool isReady = this->isInitialized() && this->isRefLoaded();
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
-    if ( ! GPU::isMemoryPinned(h_others)) {
+    if ( ! GPU::isMemoryPinned(others)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
     m_mainStream->set();
@@ -352,7 +355,7 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
     m_mainStream->synch();
     // start loading data at the background
     m_isDataReady = false;
-    auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, h_others);
+    auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, others);
 
     auto s = this->getSettings();
     // process signals in batches
@@ -394,12 +397,12 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         CudaFFT<T>::ifft(*m_batchToSD, m_d_batchCorrSumFD, m_d_batchPolarOrCorr);
 
-        // locate maxima for each signal
+        // locate maxima for each signal (results are always floats)
         auto d_positions = (float*)m_d_sumsOrMaxPos;
         ExtremaFinder::CudaExtremaFinder<T>::sFindMax(
                 *m_mainStream, resSize, m_d_batchPolarOrCorr, d_positions, nullptr);
 
-        // copy data back
+        // copy data back (they are always float)
         auto stream = *(cudaStream_t*)m_mainStream->stream();
         gpuErrchk(cudaMemcpyAsync(
                 m_h_batchMaxPositions,

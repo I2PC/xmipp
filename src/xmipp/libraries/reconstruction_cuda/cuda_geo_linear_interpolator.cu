@@ -22,30 +22,35 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-
-#ifndef LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
-#define LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_
-
-#include "reconstruction/aalign_significant.h"
-#include "reconstruction/iterative_alignment_estimator.h"
-#include "reconstruction_cuda/cuda_rot_polar_estimator.h"
-#include "reconstruction_cuda/cuda_shift_corr_estimator.h"
-#include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
-
-namespace Alignment {
+#include "cuda_basic_math.h"
 
 template<typename T>
-class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
-protected:
-    std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
-private:
-    void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
-    void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
-    void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw, const Dimensions &dims);
-    size_t maxBatchSize = 300;
-};
+__global__
+void interpolateKernel(const T * __restrict__ in, T * __restrict__ out, float * __restrict matrices,
+        int xDim, int yDim) {
+    // assign element to thread, we have at least one thead for each column
+    // single block processes single signal
+    unsigned inX = blockIdx.x * blockDim.x + threadIdx.x;
+    if (inX >= xDim) return;
+    int x = (int)inX - (xDim / 2);
+    unsigned signal = blockIdx.y;
 
+    const T *src = in + (signal * xDim * yDim);
+    T *dest = out + (signal * xDim * yDim);
+    float *t = matrices + (signal * 9);
+    for (int inY = 0; inY < yDim; ++inY) {
+        int y = inY - (yDim / 2);
 
-} /* namespace Alignment */
+        T outX = x * t[0] + y * t[1] + t[2] + (xDim / 2);
+        T outY = x * t[3] + y * t[4] + t[5] + (yDim / 2);
 
-#endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_ */
+        T val = 0;
+        if ((outX >= 0) && (outX < xDim)
+            && (outY >= 0) && (outY < yDim)) {
+            val = biLerp(src, xDim, yDim, outX, outY);
+        }
+
+        unsigned offset = inY * xDim + inX;
+        dest[offset] = val;
+    }
+}

@@ -34,8 +34,8 @@
 void MissingWedge::removeWedge(MultidimArray<double> &V) const
 {
     Matrix2D<double> Epos, Eneg;
-    Euler_angles2matrix(rotPos,tiltPos,0,Epos);
-    Euler_angles2matrix(rotNeg,tiltNeg,0,Eneg);
+    Euler_angles2matrix(rotPos,tiltPos,0.,Epos);
+    Euler_angles2matrix(rotNeg,tiltNeg,0.,Eneg);
     
     Matrix1D<double> freq(3), freqPos, freqNeg;
     Matrix1D<int> idx(3);

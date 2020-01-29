@@ -38,6 +38,8 @@ void AProgAlignSignificant<T>::defineParams() {
     addParamsLine("   [--angDistance <a=10>]      : Angular distance");
     addParamsLine("   [--odir <outputDir=\".\">]  : Output directory");
     addParamsLine("   [--keepBestN <N=1>]         : For each image, store N best alignments to references. N must be smaller than no. of references");
+    addParamsLine("   [--allowInputSwap]          : Allow swapping reference and experimental images");
+    addParamsLine("   [--useWeightInsteadOfCC]    : Select the best reference using weight, instead of CC");
 }
 
 template<typename T>
@@ -47,6 +49,8 @@ void AProgAlignSignificant<T>::readParams() {
     m_fnOut = std::string(getParam("--odir")) + "/" + std::string(getParam("-o"));
     m_angDistance = getDoubleParam("--angDistance");
     m_noOfBestToKeep = getIntParam("--keepBestN");
+    m_allowDataSwap = checkParam("--allowInputSwap");
+    m_useWeightInsteadOfCC = checkParam("--useWeightInsteadOfCC");
 
     int threads = getIntParam("--thr");
     if (-1 == threads) {
@@ -64,12 +68,12 @@ void AProgAlignSignificant<T>::show() const {
     std::cout << "Reference metadata          : " << m_referenceImages.fn <<  "\n";
     std::cout << "Output metadata             : " << m_fnOut <<  "\n";
     std::cout << "Angular distance            : " << m_angDistance <<  "\n";
-    std::cout << "Keep N references           : " << m_noOfBestToKeep << "\n";
+    std::cout << "Best references kept        : " << m_noOfBestToKeep << "\n";
     std::cout.flush();
 }
 
 template<typename T>
-Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
+void AProgAlignSignificant<T>::load(DataHelper &h) {
     auto &md = h.md;
     md.read(h.fn);
     md.removeDisabled();
@@ -83,6 +87,7 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
     auto dims = Dimensions(Xdim, Ydim, Zdim, Ndim);
     auto dimsCropped = Dimensions((Xdim / 2) * 2, (Ydim / 2) * 2, Zdim, Ndim);
     bool mustCrop = (dims != dimsCropped);
+    h.dims = dimsCropped;
 
     // FIXME DS clean up the cropping routine somehow
     h.data = std::unique_ptr<T[]>(new T[dims.size()]);
@@ -120,6 +125,13 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
         }
     };
 
+    // make sure that the files are well-defined
+    bool isValid = md.containsLabel(MDL_IMAGE)
+        && md.containsLabel(MDL_ANGLE_ROT) && md.containsLabel(MDL_ANGLE_TILT);
+    if ( ! isValid) {
+        REPORT_ERROR(ERR_MD, h.fn + ": at least one of the following label is missing: MDL_IMAGE, MDL_ANGLE_ROT, MDL_ANGLE_TILT");
+    }
+
     // load all images in parallel
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
@@ -146,52 +158,69 @@ Dimensions AProgAlignSignificant<T>::load(DataHelper &h) {
     for (auto &f : futures) {
         f.get();
     }
-    return dimsCropped;
 }
 
 template<typename T>
 void AProgAlignSignificant<T>::check() const {
-    if ( ! m_settings.otherDims.equalExceptNPadded(m_settings.refDims)) {
+    if ( ! m_referenceImages.dims.equalExceptNPadded(m_imagesToAlign.dims)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Dimensions of the images to align and reference images do not match");
     }
-    if (m_noOfBestToKeep > m_settings.refDims.n()) {
+    if (m_noOfBestToKeep > m_referenceImages.dims.n()) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "--keepBestN is higher than number of references");
     }
-    if (m_settings.refDims.n() <= 1) {
+    if (m_referenceImages.dims.n() <= 1) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "We need at least two references");
     }
 }
 
 template<typename T>
+template<bool IS_ESTIMATION_TRANSPOSED>
 void AProgAlignSignificant<T>::computeWeightsAndSave(
         const std::vector<AlignmentEstimation> &est,
         size_t refIndex) {
-    const size_t noOfRefs = m_settings.refDims.n();
-    const size_t noOfSignals = m_settings.otherDims.n();
-    auto correlations = std::vector<WeightCompHelper>();
-    // and all references that are similar
+    const size_t noOfRefs = m_referenceImages.dims.n();
+    const size_t noOfSignals = m_imagesToAlign.dims.n();
+
+    // compute angle between two reference orientation
+    auto getAngle = [&](size_t index) {
+        return Euler_distanceBetweenAngleSets(
+                m_referenceImages.rots.at(refIndex),
+                m_referenceImages.tilts.at(refIndex),
+                0.f,
+                m_referenceImages.rots.at(index),
+                m_referenceImages.tilts.at(index),
+                0.f,
+                true);
+    };
+
+    // find out which references are sufficiently similar
+    size_t count = 0;
+    auto mask = std::vector<bool>(noOfRefs, false);
     for (size_t r = 0; r < noOfRefs; ++r) {
-        if (refIndex != r) {
-            auto ang=Euler_distanceBetweenAngleSets(
-                    m_referenceImages.rots.at(refIndex),
-                    m_referenceImages.tilts.at(refIndex),
-                    0.0,
-                    m_referenceImages.rots.at(r),
-                    m_referenceImages.tilts.at(r),
-                    0.0,
-                    true);
-            if (ang > m_angDistance) {
-                continue;
-            }
-        }
-        correlations.reserve(correlations.size() + noOfSignals);
-        // get correlations of all signals
-        auto &cc = est.at(r).correlations;
-        for (size_t s = 0; s < noOfSignals; ++s) {
-            correlations.emplace_back(cc.at(s), r, s);
+        if ((refIndex == r)
+            || (getAngle(r) <= m_angDistance)) {
+            mask.at(r) = true;
+            count++;
         }
     }
 
+    // allocate necessary memory
+    auto correlations = std::vector<WeightCompHelper>();
+    correlations.reserve(count * noOfSignals);
+
+    // for all similar references
+    for (size_t r = 0; r < noOfRefs; ++r) {
+        if (mask.at(r)) {
+            // get correlations of all signals
+            for (size_t s = 0; s < noOfSignals; ++s) {
+                if (IS_ESTIMATION_TRANSPOSED) {
+                    correlations.emplace_back(est.at(s).correlations.at(r), r, s);
+                } else {
+                    correlations.emplace_back(est.at(r).correlations.at(s), r, s);
+                }
+            }
+        }
+    }
     computeWeightsAndSave(correlations, refIndex);
 }
 
@@ -199,7 +228,7 @@ template<typename T>
 void AProgAlignSignificant<T>::computeWeightsAndSave(
         std::vector<WeightCompHelper> &correlations,
         size_t refIndex) {
-    const size_t noOfSignals = m_settings.otherDims.n();
+    const size_t noOfSignals = m_imagesToAlign.dims.n();
     auto weights = std::vector<float>(noOfSignals, 0); // zero weight by default
     const size_t noOfCorrelations = correlations.size();
 
@@ -228,24 +257,15 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
 }
 
 template<typename T>
-void AProgAlignSignificant<T>::computeWeights(const std::vector<AlignmentEstimation> &est) {
-    const size_t noOfRefs = m_settings.refDims.n();
-    const size_t noOfSignals = m_settings.otherDims.n();
+template<bool IS_ESTIMATION_TRANSPOSED>
+void AProgAlignSignificant<T>::computeWeights(
+        const std::vector<AlignmentEstimation> &est) {
+    const size_t noOfRefs = m_referenceImages.dims.n();
     m_weights.resize(noOfRefs);
 
-    auto workload = [&](int threadId, size_t refIndex) {
-        computeWeightsAndSave(est, refIndex);
-    };
-
-    auto futures = std::vector<std::future<void>>();
-    futures.reserve(noOfRefs);
     // for all references
     for (size_t r = 0; r < noOfRefs; ++r) {
-        futures.emplace_back(m_threadPool.push(workload, r));
-    }
-    // wait till done
-    for (auto &f : futures) {
-        f.get();
+        computeWeightsAndSave<IS_ESTIMATION_TRANSPOSED>(est, r);
     }
 }
 
@@ -253,7 +273,7 @@ template<typename T>
 void AProgAlignSignificant<T>::fillRow(MDRow &row,
         const Matrix2D<double> &pose,
         size_t refIndex,
-        double weight, double maxCC) {
+        double weight, double maxVote) {
     // get orientation
     bool flip;
     double scale;
@@ -267,7 +287,7 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
             psi);
     // FIXME DS add check of max shift / rotation
     row.setValue(MDL_ENABLED, 1);
-    row.setValue(MDL_MAXCC, (double)maxCC);
+    row.setValue(MDL_MAXCC, (double)maxVote);
     row.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex));
     row.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex));
     // save both weight and weight significant, so that we can keep track of result of this
@@ -278,60 +298,75 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     row.setValue(MDL_SHIFT_X, -shiftX); // store negative translation
     row.setValue(MDL_SHIFT_Y, -shiftY); // store negative translation
     row.setValue(MDL_FLIP, flip);
+    row.setValue(MDL_IMAGE_IDX, refIndex);
 }
 
 template<typename T>
-void AProgAlignSignificant<T>::replaceMaxCorrelation(
-        std::vector<float> &correlations,
+void AProgAlignSignificant<T>::extractMax(
+        std::vector<float> &data,
         size_t &pos, double &val) {
     using namespace ExtremaFinder;
     float p = 0;
     float v = 0;
-    SingleExtremaFinder<T>::sFindMax(CPU(), Dimensions(correlations.size()), correlations.data(), &p, &v);
+    SingleExtremaFinder<T>::sFindMax(CPU(), Dimensions(data.size()), data.data(), &p, &v);
     pos = std::round(p);
-    val = correlations.at(pos);
-    correlations.at(pos) = std::numeric_limits<float>::lowest();
+    val = data.at(pos);
+    data.at(pos) = std::numeric_limits<float>::lowest();
 }
 
 template<typename T>
+template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
 void AProgAlignSignificant<T>::storeAlignedImages(
         const std::vector<AlignmentEstimation> &est) {
     auto &md = m_imagesToAlign.md;
     auto result = MetaData();
-    const size_t noOfRefs = m_settings.refDims.n();
+    const size_t noOfRefs = m_referenceImages.dims.n();
     const auto dims = Dimensions(noOfRefs);
+
+    auto accessor = [&](size_t image, size_t reference) {
+        if (USE_WEIGHT) {
+            return m_weights.at(reference).at(image);
+        } else if (IS_ESTIMATION_TRANSPOSED) {
+            return est.at(image).correlations.at(reference);
+        } else {
+            return est.at(reference).correlations.at(image);
+        }
+    };
 
     MDRow row;
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
         // get the original row from the input metadata
         md.getRow(row, __iter.objId);
-        // collect correlations from all references
-        auto cc = std::vector<float>();
-        cc.reserve(noOfRefs);
+        // collect voting from all references
+        auto votes = std::vector<float>();
+        votes.reserve(noOfRefs);
         for (size_t r = 0; r < noOfRefs; ++r) {
-            cc.emplace_back(est.at(r).correlations.at(i));
+            votes.emplace_back(accessor(i, r));
         }
-        double maxCC = std::numeric_limits<double>::lowest();
+        double maxVote = std::numeric_limits<double>::lowest();
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
             size_t refIndex;
             double val;
-            // get the weight
-            replaceMaxCorrelation(cc, refIndex, val);
+            // get the max vote
+            extractMax(votes, refIndex, val);
             if (0 == nthBest) {
-                // set max CC that we found
-                maxCC = val;
+                // set max vote that we found
+                maxVote = val;
             }
             if (val <= 0) {
                 continue; // skip saving the particles which have non-positive correlation to the reference
             }
             // update the row with proper pose info
+            const auto &p = IS_ESTIMATION_TRANSPOSED
+                    ? (est.at(i).poses.at(refIndex).inv())
+                    : (est.at(refIndex).poses.at(i));
             fillRow(row,
-                    est.at(refIndex).poses.at(i),
+                    p,
                     refIndex,
                     m_weights.at(refIndex).at(i),
-                    maxCC); // best cross-correlation
+                    maxVote); // best cross-correlation or weight
             // store it
             result.addRow(row);
         }
@@ -341,19 +376,50 @@ void AProgAlignSignificant<T>::storeAlignedImages(
 }
 
 template<typename T>
+void AProgAlignSignificant<T>::updateSettings() {
+    m_settings.refDims = m_referenceImages.dims;
+    m_settings.otherDims = m_imagesToAlign.dims;
+}
+
+template<typename T>
 void AProgAlignSignificant<T>::run() {
     show();
-    m_threadPool.resize(m_settings.cpuThreads);
-    m_settings.otherDims = load(m_imagesToAlign);
-    m_settings.refDims = load(m_referenceImages);
-    check();
+    m_threadPool.resize(getSettings().cpuThreads);
+    // load data
+    load(m_imagesToAlign);
+    load(m_referenceImages);
+
+    bool hasMoreReferences = m_allowDataSwap
+            && (m_referenceImages.dims.n() > m_imagesToAlign.dims.n());
+    if (hasMoreReferences) {
+        std::cerr << "We are swapping reference images and experimental images. "
+                "This will enhance the performance. This might lead to worse results if the experimental "
+                "images are not well centered. Use it with care!\n";
+        std::swap(m_referenceImages, m_imagesToAlign);
+    }
 
     // for each reference, get alignment of all images
+    updateSettings();
+    check();
     auto alignment = align(m_referenceImages.data.get(), m_imagesToAlign.data.get());
 
-    computeWeights(alignment);
-
-    storeAlignedImages(alignment);
+    // process the alignment and store
+    if (hasMoreReferences) {
+        std::swap(m_referenceImages, m_imagesToAlign);
+        computeWeights<true>(alignment);
+        if (m_useWeightInsteadOfCC) {
+            storeAlignedImages<true, true>(alignment);
+        } else {
+            storeAlignedImages<true, false>(alignment);
+        }
+    } else {
+        computeWeights<false>(alignment);
+        if (m_useWeightInsteadOfCC) {
+            storeAlignedImages<false, true>(alignment);
+        } else {
+            storeAlignedImages<false, false>(alignment);
+        }
+    }
 }
 
 // explicit instantiation

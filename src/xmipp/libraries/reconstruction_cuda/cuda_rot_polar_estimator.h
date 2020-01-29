@@ -149,8 +149,8 @@ private:
     void load2DReferenceOneToN(const T *h_ref) override;
 
     template<bool FULL_CIRCLE>
-    void computeRotation2DOneToN(T *h_others);
-    void computeRotation2DOneToN(T *h_others) override;
+    void computeRotation2DOneToN(T *others);
+    void computeRotation2DOneToN(T *others) override;
 
     void loadThreadRoutine(T *h_others);
 };

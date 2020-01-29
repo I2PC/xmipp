@@ -975,7 +975,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I1)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0, 90, 0, A);
+        Euler_angles2matrix(0., 90., 0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1006,7 +1006,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I3)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,31.7174745559,0, A);
+        Euler_angles2matrix(0.,31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1037,7 +1037,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I4)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,-31.7174745559,0, A);
+        Euler_angles2matrix(0.,-31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1107,7 +1107,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I1H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0, 90, 0, A);
+        Euler_angles2matrix(0., 90., 0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1140,7 +1140,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I3H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,31.7174745559,0, A);
+        Euler_angles2matrix(0.,31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1178,7 +1178,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I4H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,-31.7174745559,0, A);
+        Euler_angles2matrix(0.,-31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
