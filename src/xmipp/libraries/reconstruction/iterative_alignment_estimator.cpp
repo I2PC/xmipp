@@ -169,14 +169,19 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
 }
 
 template<typename T>
-AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
-        const T *__restrict__ ref, const T * __restrict__ others, // it would be good if data is normalized, but probably it does not have to be
-        unsigned iters) {
-
+void IterativeAlignmentEstimator<T>::loadReference(
+        const T *ref) {
     m_shift_est.load2DReferenceOneToN(ref);
     if ( ! m_sameEstimators) {
         m_rot_est.loadReference(ref);
     }
+}
+
+template<typename T>
+AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
+        const T *__restrict__ ref, // FIXME DS remove once we compute correlation differently
+        const T * __restrict__ others, // it would be good if data is normalized, but probably it does not have to be
+        unsigned iters) {
     m_transformer.setSrc(others);
 
     // prepare transformer which is responsible for applying the pose t
