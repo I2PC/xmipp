@@ -50,7 +50,8 @@ public:
     }
 
     void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
-            bool includingBatchFT=false, bool includingSingleFT=false) override;
+            bool includingBatchFT, bool includingSingleFT,
+            bool allowDataOverwrite) override;
 
     void release();
 
@@ -122,6 +123,7 @@ private:
     void setDefault();
     void check() override;
     void loadThreadRoutine(T *others);
+    void waitAndConvert();
     using AShiftEstimator<T>::init2D;
 };
 
