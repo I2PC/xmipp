@@ -153,6 +153,12 @@ private:
     void computeRotation2DOneToN(T *others) override;
 
     void loadThreadRoutine(T *h_others);
+
+    template<bool FULL_CIRCLE>
+    void waitAndConvert(
+            const Dimensions &inCart,
+            const Dimensions &outPolar,
+            unsigned firstRing);
 };
 
 }/* namespace Alignment */

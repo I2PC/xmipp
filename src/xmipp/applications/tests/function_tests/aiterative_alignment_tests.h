@@ -141,6 +141,7 @@ public:
         rotSettings.lastRing = RotationEstimationSetting::getDefaultLastRing(dims);
         rotSettings.fullCircle = true;
         rotSettings.allowTuningOfNumberOfSamples = false;
+        rotSettings.allowDataOverwrite = true;
 
         auto tSettings = BSplineTransformSettings<T>();
         tSettings.keepSrcCopy = true;
