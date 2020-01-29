@@ -66,6 +66,7 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
             std::cout << "aligning against reference " << refId << "/" << s.refDims.n() << std::endl;
         }
 
+        aligner.loadReference(refData);
         auto est = result.emplace(result.end(), s.otherDims.n());
         for (size_t i = 0; i < s.otherDims.n(); i += processDims.n()) {
             // run on a full-batch subset

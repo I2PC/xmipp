@@ -169,6 +169,7 @@ public:
             outputData(others, dims, "dataBeforeAlignment.stk");
         }
 
+        aligner.loadReference(ref);
         auto result = aligner.compute(ref, others, 3); // use at least three iterations
 
         // show result
