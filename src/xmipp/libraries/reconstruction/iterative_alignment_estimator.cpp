@@ -50,10 +50,12 @@ template<typename T>
 T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation) {
     std::vector<float> t;
     t.reserve(9 * estimation.poses.size());
+    auto tmp = Matrix2D<double>(3, 3);
+    SPEED_UP_temps0
     for (size_t j = 0; j < estimation.poses.size(); ++j) {
-        auto inv = estimation.poses.at(j).inv();
+        M3x3_INV(tmp, estimation.poses.at(j)) // inverse the transformation
         for (int i = 0; i < 9; ++i) {
-            t.emplace_back(inv.mdata[i]);
+            t.emplace_back(tmp.mdata[i]);
         }
     }
     return m_transformer.interpolate(t);
