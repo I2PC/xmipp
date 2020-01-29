@@ -48,6 +48,7 @@ public:
     unsigned firstRing;
     unsigned lastRing;
     bool allowTuningOfNumberOfSamples;
+    bool allowDataOverwrite; // input data, such as reference or 'other' images can be overwrite by the algorithm. This can be, however, faster
 
     inline static float getMaxRotation() {
         return 360.f - std::numeric_limits<float>::min();

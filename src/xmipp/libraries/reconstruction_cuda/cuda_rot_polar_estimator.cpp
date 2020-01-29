@@ -71,7 +71,11 @@ void CudaRotPolarEstimator<T>::init2D() {
 
     // allocate host memory
     gpuErrchk(cudaMalloc(&m_d_ref, singlePolar.fBytes())); // FT of the samples
-    gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.batch * sizeof(T))); // Cartesian batch
+    if (s.allowDataOverwrite) { // we need space just for reference(s)
+        gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.refDims.n() * sizeof(T))); // Cartesian reference(s)
+    } else { // we need space for the whole batch (which should be bigger than no of references)
+        gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.batch * sizeof(T))); // Cartesian batch
+    }
     gpuErrchk(cudaMalloc(&m_d_batchPolarFD, batchPolar.fBytesBatch())); // FT of the polar samples
     gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, batchPolar.sBytesBatch())); // IFT of the polar samples
     size_t sumsBytes = m_samples * s.batch * sizeof(T);
@@ -97,6 +101,7 @@ void CudaRotPolarEstimator<T>::init2D() {
 
 template<typename T>
 void CudaRotPolarEstimator<T>::release() {
+    const auto &s = this->getSettings();
     // device memory
     gpuErrchk(cudaFree(m_d_batch));
     gpuErrchk(cudaFree(m_d_batchPolarOrCorr));
@@ -341,23 +346,52 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
 
 template<typename T>
 template<bool FULL_CIRCLE>
-void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
-    bool isReady = this->isInitialized() && this->isRefLoaded();
+void CudaRotPolarEstimator<T>::waitAndConvert(
+        const Dimensions &inCart,
+        const Dimensions &outPolar,
+        unsigned firstRing) {
+    // block until data is loaded
+    // mutex will be freed once leaving this block
+    std::unique_lock<std::mutex> lk(*m_mutex);
+    m_cv->wait(lk, [&]{return m_isDataReady;});
+    // call polar transformation kernel
+    sComputePolarTransform<FULL_CIRCLE>(*m_mainStream,
+            inCart, m_d_batch,
+            outPolar, m_d_batchPolarOrCorr,
+            firstRing);
 
+    // notify that buffer is processed (new will be loaded in background)
+    m_mainStream->synch();
+    m_isDataReady = false;
+    m_cv->notify_one();
+}
+
+template<typename T>
+template<bool FULL_CIRCLE>
+void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
+    const auto &s = this->getSettings();
+    bool isReady = this->isInitialized() && this->isRefLoaded();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
     if ( ! GPU::isMemoryPinned(others)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
+    if (s.allowDataOverwrite && ( ! m_mainStream->isGpuPointer(others))) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+    }
+
     m_mainStream->set();
     // make sure that all work (e.g. loading and processing of the reference) is done
     m_mainStream->synch();
     // start loading data at the background
     m_isDataReady = false;
-    auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, others);
+    const bool createLocalCopy = ( ! s.allowDataOverwrite);
+    std::thread loadingThread;
+    if (createLocalCopy) {
+        loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, others);
+    }
 
-    auto s = this->getSettings();
     // process signals in batches
     for (size_t offset = 0; offset < s.otherDims.n(); offset += s.batch) {
         // how many signals to process
@@ -367,21 +401,15 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
         auto outPolarFourier = Dimensions(m_samples / 2 + 1, s.getNoOfRings(), 1, toProcess);
         auto resSize = Dimensions(m_samples, 1, 1, toProcess);
 
-        {
-            // block until data is loaded
-            // mutex will be freed once leaving this block
-            std::unique_lock<std::mutex> lk(*m_mutex);
-            m_cv->wait(lk, [&]{return m_isDataReady;});
-            // call polar transformation kernel
+        // get proper data
+        if (createLocalCopy) {
+            waitAndConvert<FULL_CIRCLE>(inCart, outPolar, s.firstRing);
+        } else {
+            T * in = others + (offset * s.otherDims.sizeSingle());
             sComputePolarTransform<FULL_CIRCLE>(*m_mainStream,
-                    inCart, m_d_batch,
-                    outPolar, m_d_batchPolarOrCorr,
-                    s.firstRing);
-
-            // notify that buffer is processed (new will be loaded in background)
-            m_mainStream->synch();
-            m_isDataReady = false;
-            m_cv->notify_one();
+                inCart, in,
+                outPolar, m_d_batchPolarOrCorr,
+                s.firstRing);
         }
 
         // It seems that the normalization is not necessary (does not change the result
@@ -417,7 +445,9 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
             this->getRotations2D().emplace_back(angle);
         }
     }
-    loadingThread.join();
+    if (createLocalCopy) {
+        loadingThread.join();
+    }
 }
 
 template<typename T>

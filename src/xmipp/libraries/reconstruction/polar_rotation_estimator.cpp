@@ -122,6 +122,9 @@ void PolarRotationEstimator<T>::check() {
     if (s.batch != 1) {
         std::cerr << "Batch processing is not supported. Signals will be processed one by one.\n";
     }
+    if (s.allowDataOverwrite) {
+        std::cerr << "allowDataOverwrite flag is ignored, as it's not yet supported.\n";
+    }
     if (s.refDims.x() != s.refDims.y()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "This estimator can work only with square signal");
     }
