@@ -16,7 +16,7 @@ public:
             auto &s = shifts.at(i);
             MAT_ELEM(m,0,2) += s.x;
             MAT_ELEM(m,1,2) += s.y;
-            auto r = Matrix2D<double>();
+            auto r = Matrix2D<float>();
             rotation2DMatrix(rotations.at(i), r);
             m = r * m;
         }

@@ -50,7 +50,7 @@ template<typename T>
 T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation) {
     std::vector<float> t;
     t.reserve(9 * estimation.poses.size());
-    auto tmp = Matrix2D<double>(3, 3);
+    auto tmp = Matrix2D<float>(3, 3);
     SPEED_UP_temps0
     for (size_t j = 0; j < estimation.poses.size(); ++j) {
         M3x3_INV(tmp, estimation.poses.at(j)) // inverse the transformation
@@ -131,10 +131,10 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
     auto stepRotation = [&] {
         m_rot_est.compute(m_transformer.getDest());
         const auto &cRotEst = m_rot_est;
+        auto r = Matrix2D<float>();
         updateEstimation(est,
             cRotEst.getRotations2D(),
-            [](float angle, Matrix2D<double> &lhs) {
-                auto r = Matrix2D<double>();
+            [&r](float angle, Matrix2D<float> &lhs) {
                 rotation2DMatrix(angle, r);
                 lhs = r * lhs;
             });
@@ -143,7 +143,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
     auto stepShift = [&] {
         m_shift_est.computeShift2DOneToN(m_transformer.getDest());
         updateEstimation(est, m_shift_est.getShifts2D(),
-                [](const Point2D<float> &shift, Matrix2D<double> &lhs) {
+                [](const Point2D<float> &shift, Matrix2D<float> &lhs) {
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });

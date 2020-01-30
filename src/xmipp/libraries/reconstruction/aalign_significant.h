@@ -112,7 +112,7 @@ private:
     void storeAlignedImages(
             const std::vector<AlignmentEstimation> &est);
     void fillRow(MDRow &row,
-            const Matrix2D<double> &pose,
+            const Matrix2D<float> &pose,
             size_t refIndex,
             double weight, double maxVote);
     void extractMax(
