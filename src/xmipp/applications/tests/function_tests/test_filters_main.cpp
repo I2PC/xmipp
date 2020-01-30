@@ -63,9 +63,8 @@ TEST_F( FiltersTest, bestShift)
     auxMul = mulDouble1;
     auxMul.setXmippOrigin();
     bestShift(auxMul,auxMul,x,y,aux);
-    EXPECT_DOUBLE_EQ(x,0.);
-    EXPECT_DOUBLE_EQ(y,0.);
-
+    EXPECT_NEAR(x, 0., std::numeric_limits<double>::min());
+    EXPECT_NEAR(y, 0., std::numeric_limits<double>::min());
 }
 
 TEST_F( FiltersTest, correlation_matrix)
