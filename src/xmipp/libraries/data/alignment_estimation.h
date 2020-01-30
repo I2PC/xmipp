@@ -41,7 +41,7 @@ struct AlignmentEstimation {
 
     // This matrix describe the estimated transform, i.e. if you want to correct for the movement,
     // you have to inverse it
-    std::vector<Matrix2D<double>> poses;
+    std::vector<Matrix2D<float>> poses;
     std::vector<float> correlations;
 };
 

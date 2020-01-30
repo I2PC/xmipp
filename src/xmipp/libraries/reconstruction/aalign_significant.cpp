@@ -271,15 +271,15 @@ void AProgAlignSignificant<T>::computeWeights(
 
 template<typename T>
 void AProgAlignSignificant<T>::fillRow(MDRow &row,
-        const Matrix2D<double> &pose,
+        const Matrix2D<float> &pose,
         size_t refIndex,
         double weight, double maxVote) {
     // get orientation
     bool flip;
-    double scale;
-    double shiftX;
-    double shiftY;
-    double psi;
+    float scale;
+    float shiftX;
+    float shiftY;
+    float psi;
     transformationMatrix2Parameters2D(
             pose.inv(), // we want to store inverse transform
             flip, scale,
@@ -294,11 +294,11 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     // program, even after some other program re-weights the particle
     row.setValue(MDL_WEIGHT_SIGNIFICANT, weight);
     row.setValue(MDL_WEIGHT, weight);
-    row.setValue(MDL_ANGLE_PSI, psi);
-    row.setValue(MDL_SHIFT_X, -shiftX); // store negative translation
-    row.setValue(MDL_SHIFT_Y, -shiftY); // store negative translation
+    row.setValue(MDL_ANGLE_PSI, (double)psi);
+    row.setValue(MDL_SHIFT_X, (double)-shiftX); // store negative translation
+    row.setValue(MDL_SHIFT_Y, (double)-shiftY); // store negative translation
     row.setValue(MDL_FLIP, flip);
-    row.setValue(MDL_IMAGE_IDX, refIndex);
+    row.setValue(MDL_IMAGE_IDX, refIndex); // FIXME DS remove
 }
 
 template<typename T>

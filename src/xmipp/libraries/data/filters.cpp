@@ -3342,7 +3342,7 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
             yF--;
         if ((xF - x0) > (yF - y0))
         {
-            rotation2DMatrix(-90, R);
+            rotation2DMatrix(-90., R);
             A = R * A;
         }
         applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, WRAP);
