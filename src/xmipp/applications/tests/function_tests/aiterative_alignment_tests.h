@@ -3,6 +3,7 @@
 #include "reconstruction/iterative_alignment_estimator.h"
 #include "core/utils/memory_utils.h"
 #include "reconstruction/bspline_geo_transformer.h"
+#include "reconstruction/amerit_computer.h"
 #include "data/cpu.h"
 
 template<typename T>
@@ -45,6 +46,7 @@ public:
         delete shiftAligner;
         delete rotationAligner;
         delete transformer;
+        delete meritComputer;
         delete[] others;
         others = nullptr;
         free(ref);
@@ -152,11 +154,19 @@ public:
         tSettings.doWrap = false;
         tSettings.defaultVal = (T)0;
 
+        auto mSettings = MeritSettings();
+        mSettings.hw = hw;
+        mSettings.normalizeResult = true;
+        mSettings.otherDims = dims;
+        mSettings.refDims = dims.createSingle();
+        mSettings.type = MeritType::OneToN;
+
         shiftAligner->init2D(hw, AlignType::OneToN, FFTSettingsNew<T>(dims, batch), maxShift, true, true, true);
         rotationAligner->init(rotSettings, true);
         transformer->init(tSettings, false);
+        meritComputer->init(mSettings, true);
         ctpl::thread_pool threadPool(CPU::findCores());
-        IterativeAlignmentEstimator<T> aligner(*rotationAligner, *shiftAligner, *transformer, threadPool);
+        IterativeAlignmentEstimator<T> aligner(*rotationAligner, *shiftAligner, *transformer, *meritComputer, threadPool);
         IterativeAlignmentEstimatorHelper<T>::applyTransform(
                 threadPool, dims, shifts, rotations, ref, others);
 
@@ -171,7 +181,7 @@ public:
         }
 
         aligner.loadReference(ref);
-        auto result = aligner.compute(ref, others, 3); // use at least three iterations
+        auto result = aligner.compute(others, 3); // use at least three iterations
 
         // show result
         if (saveOutput) {
@@ -195,6 +205,7 @@ private:
     static Alignment::ARotationEstimator<T> *rotationAligner;
     static Alignment::AShiftCorrEstimator<T> *shiftAligner;
     static BSplineGeoTransformer<T> *transformer;
+    static AMeritComputer<T> *meritComputer;
     static std::vector<float> diffsX;
     static std::vector<float> diffsY;
     static std::vector<float> diffsR;
@@ -295,6 +306,8 @@ template<typename T>
 Alignment::AShiftCorrEstimator<T> *IterativeAlignmentEstimator_Test<T>::shiftAligner = nullptr;
 template<typename T>
 BSplineGeoTransformer<T> *IterativeAlignmentEstimator_Test<T>::transformer = nullptr;
+template<typename T>
+AMeritComputer<T> *IterativeAlignmentEstimator_Test<T>::meritComputer = nullptr;
 template<typename T>
 Dimensions IterativeAlignmentEstimator_Test<T>::maxDims(768, 768, 1, 1000);
 template<typename T>

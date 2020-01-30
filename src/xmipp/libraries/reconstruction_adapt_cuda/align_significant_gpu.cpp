@@ -46,8 +46,11 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     initShiftEstimator(shiftEstimator, hw, processDims);
     CudaBSplineGeoTransformer<T> transformer;
     initTransformer(transformer, hw, processDims);
+    CorrelationComputer<T> mc;
+    initMeritComputer(mc, hw, processDims);
 
-    auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator, transformer, this->getThreadPool());
+    auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator,
+            transformer, mc, this->getThreadPool());
 
     // create local copy of the reference ...
     auto refSize = s.refDims.sizeSingle();
@@ -71,7 +74,7 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
         for (size_t i = 0; i < s.otherDims.n(); i += processDims.n()) {
             // run on a full-batch subset
             size_t offset = std::min(i, s.otherDims.n() - processDims.n());
-            auto tmp = aligner.compute(refData, others + (offset * s.otherDims.sizeSingle()));
+            auto tmp = aligner.compute(others + (offset * s.otherDims.sizeSingle()));
 
             // merge results
             est->correlations.insert(est->correlations.begin() + offset,
@@ -126,6 +129,19 @@ void ProgAlignSignificantGPU<T>::initTransformer(BSplineGeoTransformer<T> &t,
     s.doWrap = false;
     s.defaultVal = (T)0;
     t.init(s, true);
+}
+
+template<typename T>
+void ProgAlignSignificantGPU<T>::initMeritComputer(AMeritComputer<T> &mc,
+        std::vector<HW*> &hw,
+        const Dimensions &dims) {
+    auto s = MeritSettings();
+    s.hw.push_back(new CPU()); // FIXME DS fix
+    s.normalizeResult = true;
+    s.otherDims = dims;
+    s.refDims = dims.copyForN(1);
+    s.type = MeritType::OneToN;
+    mc.init(s, true);
 }
 
 template<typename T>

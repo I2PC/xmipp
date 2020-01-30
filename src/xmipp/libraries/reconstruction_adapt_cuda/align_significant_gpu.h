@@ -31,6 +31,7 @@
 #include "reconstruction_cuda/cuda_rot_polar_estimator.h"
 #include "reconstruction_cuda/cuda_shift_corr_estimator.h"
 #include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
+#include "reconstruction/correlation_computer.h"
 
 namespace Alignment {
 
@@ -42,6 +43,7 @@ private:
     void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
     void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
     void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw, const Dimensions &dims);
+    void initMeritComputer(AMeritComputer<T> &mc, std::vector<HW*> &hw, const Dimensions &dims);
     size_t maxBatchSize = 300;
 };
 

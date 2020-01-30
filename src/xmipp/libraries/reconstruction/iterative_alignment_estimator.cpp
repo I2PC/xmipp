@@ -25,7 +25,6 @@
 
 #include "iterative_alignment_estimator.h"
 
-
 namespace Alignment {
 
 template<typename T>
@@ -47,7 +46,7 @@ void IterativeAlignmentEstimator<T>::print(const AlignmentEstimation &e) {
 }
 
 template<typename T>
-T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation) {
+T *IterativeAlignmentEstimator<T>::applyTransform(const AlignmentEstimation &estimation) {
     std::vector<float> t;
     t.reserve(9 * estimation.poses.size());
     auto tmp = Matrix2D<float>(3, 3);
@@ -62,7 +61,7 @@ T *IterativeAlignmentEstimator<T>::applyTr(const AlignmentEstimation &estimation
 }
 
 template<typename T>
-void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims,
+void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims, // FIXME DS remove
         const AlignmentEstimation &estimation,
         const T * __restrict__ orig, T * __restrict__ copy, bool hasSingleOrig) {
     const size_t n = dims.n();
@@ -91,40 +90,7 @@ void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, co
 }
 
 template<typename T>
-void IterativeAlignmentEstimator<T>::computeCorrelation(
-        AlignmentEstimation &estimation,
-        const T * __restrict__ orig) {
-    const size_t n = m_dims.n();
-    const size_t z = m_dims.z();
-    const size_t y = m_dims.y();
-    const size_t x = m_dims.x();
-
-    int threads = m_threadPool.size();
-
-    std::unique_ptr<T[]> d = m_transformer.getDestOnCPU();
-
-    auto futures = std::vector<std::future<void>>();
-    auto workload = [&](int id, size_t signalId){
-        T * address = d.get() + signalId * m_dims.sizeSingle();
-        auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
-        auto other = MultidimArray<T>(1, z, y, x, address);
-        // FIXME DS better if we use fastCorrelation, but unless the input is normalized
-        // we won't receive correlation in [0..1], so we won't be able to directly compare
-        // against the original version of the algorithm
-        estimation.correlations.at(signalId) = correlationIndex(ref, other);
-    };
-
-    for (size_t i = 0; i < n; ++i) {
-        futures.emplace_back(m_threadPool.push(workload, i));
-    }
-    for (auto &f : futures) {
-        f.get();
-    }
-}
-
-template<typename T>
 void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation &est,
-        const T * __restrict__ ref,
         bool rotationFirst) {
     // note (DS) if any of these steps return 0 (no shift or rotation), additional iterations are useless
     // as the image won't change
@@ -138,7 +104,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
                 rotation2DMatrix(angle, r);
                 lhs = r * lhs;
             });
-        applyTr(est);
+        applyTransform(est);
     };
     auto stepShift = [&] {
         m_shift_est.computeShift2DOneToN(m_transformer.getDest());
@@ -147,7 +113,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });
-        applyTr(est);
+        applyTransform(est);
     };
     // get a fresh copy of the images
     m_transformer.copySrcToDest();
@@ -167,12 +133,16 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         }
 //        print(est);
     }
-    computeCorrelation(est, ref);
+    auto tmp = m_transformer.getDestOnCPU(); // FIXME DS remove
+    m_meritComputer.compute(tmp.get());
+    const auto &mc = m_meritComputer;
+    est.correlations = mc.getFiguresOfMerit();
 }
 
 template<typename T>
 void IterativeAlignmentEstimator<T>::loadReference(
         const T *ref) {
+    m_meritComputer.loadReference(ref);
     m_shift_est.load2DReferenceOneToN(ref);
     if ( ! m_sameEstimators) {
         m_rot_est.loadReference(ref);
@@ -181,19 +151,18 @@ void IterativeAlignmentEstimator<T>::loadReference(
 
 template<typename T>
 AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
-        const T *__restrict__ ref, // FIXME DS remove once we compute correlation differently
         const T * __restrict__ others, // it would be good if data is normalized, but probably it does not have to be
         unsigned iters) {
     m_transformer.setSrc(others);
 
     // prepare transformer which is responsible for applying the pose t
-    const size_t n = m_dims.n();
+    const size_t n = m_rot_est.getSettings().otherDims.n();
     // try rotation -> shift
     auto result_RS = AlignmentEstimation(n);
-    compute(iters, result_RS, ref, true);
+    compute(iters, result_RS, true);
     // try shift-> rotation
     auto result_SR = AlignmentEstimation(n);
-    compute(iters, result_SR, ref, false);
+    compute(iters, result_SR, false);
 
     for (size_t i = 0; i < n; ++i) {
         if (result_RS.correlations.at(i) < result_SR.correlations.at(i)) {
