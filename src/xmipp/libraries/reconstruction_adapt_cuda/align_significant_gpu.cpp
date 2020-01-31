@@ -46,7 +46,7 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     initShiftEstimator(shiftEstimator, hw, processDims);
     CudaBSplineGeoTransformer<T> transformer;
     initTransformer(transformer, hw, processDims);
-    CorrelationComputer<T> mc;
+    CudaCorrelationComputer<T> mc;
     initMeritComputer(mc, hw, processDims);
 
     auto aligner = IterativeAlignmentEstimator<T>(rotEstimator, shiftEstimator,

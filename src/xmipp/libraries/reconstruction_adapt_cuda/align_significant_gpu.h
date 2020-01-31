@@ -31,7 +31,7 @@
 #include "reconstruction_cuda/cuda_rot_polar_estimator.h"
 #include "reconstruction_cuda/cuda_shift_corr_estimator.h"
 #include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
-#include "reconstruction/correlation_computer.h"
+#include "reconstruction_cuda/cuda_correlation_computer.h"
 
 namespace Alignment {
 

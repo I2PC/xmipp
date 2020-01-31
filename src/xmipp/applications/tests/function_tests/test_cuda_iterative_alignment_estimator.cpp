@@ -1,7 +1,7 @@
 #include "reconstruction_cuda/cuda_rot_polar_estimator.h"
 #include "reconstruction_cuda/cuda_shift_corr_estimator.h"
 #include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
-#include "reconstruction/correlation_computer.h"
+#include "reconstruction_cuda/cuda_correlation_computer.h"
 
 template<typename T>
 class IterativeAlignmentEstimator_Test;
@@ -10,7 +10,7 @@ class IterativeAlignmentEstimator_Test;
     shiftAligner = new Alignment::CudaShiftCorrEstimator<T>(); \
     rotationAligner = new Alignment::CudaRotPolarEstimator<T>(); \
     transformer = new CudaBSplineGeoTransformer<T>(); \
-    meritComputer = new CorrelationComputer<T>(); \
+    meritComputer = new CudaCorrelationComputer<T>(); \
     for (int i = 0; i < 2; ++i) { \
         auto g = new GPU(); \
         g->set(); \
