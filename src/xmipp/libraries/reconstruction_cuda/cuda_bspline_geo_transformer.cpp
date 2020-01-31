@@ -40,19 +40,6 @@ void CudaBSplineGeoTransformer<T>::setSrc(const T *h_data) {
 }
 
 template<typename T>
-std::unique_ptr<T[]> CudaBSplineGeoTransformer<T>::getDestOnCPU() const {
-    size_t elems = this->getSettings().dims.size();
-    std::unique_ptr<T[]> p = std::unique_ptr<T[]>(new T[elems]);
-    gpuErrchk(cudaMemcpy(
-        p.get(),
-        m_d_dest,
-        elems * sizeof(T),
-    cudaMemcpyDeviceToHost));
-    return p;
-}
-
-
-template<typename T>
 void CudaBSplineGeoTransformer<T>::initialize(bool doAllocation) {
     const auto &s = this->getSettings();
     m_stream = dynamic_cast<GPU*>(s.hw.at(0));
@@ -95,7 +82,7 @@ void CudaBSplineGeoTransformer<T>::copySrcToDest() {
         m_d_dest,
         m_d_src,
         this->getSettings().dims.size() * sizeof(T),
-        cudaMemcpyDeviceToDevice));
+        cudaMemcpyDeviceToDevice)); // FIXME DS use proper stream
 }
 
 template<typename T>

@@ -155,7 +155,7 @@ public:
         tSettings.defaultVal = (T)0;
 
         auto mSettings = MeritSettings();
-        mSettings.hw = hw;
+        mSettings.hw.push_back(hw.at(0));
         mSettings.normalizeResult = true;
         mSettings.otherDims = dims;
         mSettings.refDims = dims.createSingle();

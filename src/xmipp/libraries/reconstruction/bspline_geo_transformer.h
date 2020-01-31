@@ -65,15 +65,6 @@ public:
         return m_dest.get();
     }
 
-    virtual std::unique_ptr<T[]> getDestOnCPU() const {// FIXME DS Remove (it's here because we need to compute correlation on cpu in the iterative aligner
-        size_t elems = this->getSettings().dims.size();
-        std::unique_ptr<T[]> p = std::unique_ptr<T[]>(new T[elems]);
-        memcpy(p.get(),
-            m_dest.get(),
-            elems * sizeof(T));
-        return p;
-    }
-
     virtual void copySrcToDest() override;
 
     virtual T *interpolate(const std::vector<float> &matrices);

@@ -133,8 +133,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         }
 //        print(est);
     }
-    auto tmp = m_transformer.getDestOnCPU(); // FIXME DS remove
-    m_meritComputer.compute(tmp.get());
+    m_meritComputer.compute(m_transformer.getDest());
     const auto &mc = m_meritComputer;
     est.correlations = mc.getFiguresOfMerit();
 }

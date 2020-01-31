@@ -47,6 +47,9 @@ public:
         if (0 == hw.size()) {
             REPORT_ERROR(ERR_VALUE_INCORRECT, "HW contains zero (0) devices");
         }
+        if ( ! refDims.isValid()) {
+            REPORT_ERROR(ERR_LOGIC_ERROR, "'Ref' dimensions are invalid (contain 0)");
+        }
         if ( ! otherDims.isValid()) {
             REPORT_ERROR(ERR_LOGIC_ERROR, "'Other' dimensions are invalid (contain 0)");
         }
