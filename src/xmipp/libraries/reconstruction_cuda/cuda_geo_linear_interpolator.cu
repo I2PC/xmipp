@@ -28,29 +28,28 @@ template<typename T>
 __global__
 void interpolateKernel(const T * __restrict__ in, T * __restrict__ out, float * __restrict matrices,
         int xDim, int yDim) {
-    // assign element to thread, we have at least one thead for each column
-    // single block processes single signal
+    // assign pixel to thread
     unsigned inX = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned inY = blockIdx.y * blockDim.y + threadIdx.y;
     if (inX >= xDim) return;
-    int x = (int)inX - (xDim / 2);
-    unsigned signal = blockIdx.y;
+    if (inY >= yDim) return;
+    T x = (int)inX - (xDim / 2);
+    T y = (int)inY - (yDim / 2);
+    unsigned signal = blockIdx.z;
 
     const T *src = in + (signal * xDim * yDim);
     T *dest = out + (signal * xDim * yDim);
-    float *t = matrices + (signal * 9);
-    for (int inY = 0; inY < yDim; ++inY) {
-        int y = inY - (yDim / 2);
+    const float *t = matrices + (signal * 9);
 
-        T outX = x * t[0] + y * t[1] + t[2] + (xDim / 2);
-        T outY = x * t[3] + y * t[4] + t[5] + (yDim / 2);
+    T outX = x * t[0] + y * t[1] + t[2] + (xDim / (T)2);
+    T outY = x * t[3] + y * t[4] + t[5] + (yDim / (T)2);
 
-        T val = 0;
-        if ((outX >= 0) && (outX < xDim)
-            && (outY >= 0) && (outY < yDim)) {
-            val = biLerp(src, xDim, yDim, outX, outY);
-        }
-
-        unsigned offset = inY * xDim + inX;
-        dest[offset] = val;
+    T val = 0;
+    if ((outX >= 0) && (outX < (T)xDim)
+        && (outY >= 0) && (outY < (T)yDim)) {
+        val = biLerp(src, xDim, yDim, outX, outY);
     }
+
+    unsigned offset = inY * xDim + inX;
+    dest[offset] = val;
 }
