@@ -136,7 +136,7 @@ void ProgAlignSignificantGPU<T>::initMeritComputer(AMeritComputer<T> &mc,
         std::vector<HW*> &hw,
         const Dimensions &dims) {
     auto s = MeritSettings();
-    s.hw.push_back(new CPU()); // FIXME DS fix
+    s.hw.push_back(hw.at(0));
     s.normalizeResult = true;
     s.otherDims = dims;
     s.refDims = dims.copyForN(1);
