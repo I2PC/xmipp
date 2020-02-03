@@ -47,11 +47,16 @@ public:
 private:
     struct ResRaw { // non-normalize result
         T corr;
-        T avg;
-        T stddev;
+        T sum;
+        T sumSqr;
     };
 
     struct ResRef {
+        T sum;
+        T sumSqr;
+    };
+
+    struct Stat {
         T avg;
         T stddev;
     };
@@ -67,14 +72,18 @@ private:
     void check() override;
     void allocate();
 
-    void computeAvgStddevForRef(const T *d_ref);
+    void computeCorrStatOneToNNormalize();
+    void computeAvgStddevForRef();
     template<bool NORMALIZE>
-    void computeOneToN(T *h_others);
+    void computeOneToN();
     template<bool NORMALIZE>
     void storeResultOneToN();
 
+    template<typename U>
+    Stat computeStat(U r, size_t norm);
+
     // GPU memory
-    const T *m_d_ref;
+    T *m_d_ref;
     T *m_d_others;
     T *m_d_corrRes;
     // CPU memory
