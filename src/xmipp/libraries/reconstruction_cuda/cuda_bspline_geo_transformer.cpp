@@ -126,7 +126,8 @@ T *CudaBSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices)
     dim3 dimBlock(64, 1, 1);
     dim3 dimGrid(
         std::ceil(dims.x() / (float)dimBlock.x),
-        dims.n(), 1);
+        std::ceil(dims.y() / (float)dimBlock.y),
+        dims.n());
     interpolateKernel<<<dimGrid, dimBlock>>> (
                     m_d_src, m_d_dest, m_d_matrices,
                     dims.x(), dims.y());
