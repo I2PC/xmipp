@@ -282,7 +282,7 @@ private:
             // ground truth, new version
             printf("| %f | %f | %f ||%f | %f | %f | %f ||",// GT
                     // new
-                    sE.x, sE.y, rE, sA.x, sA.y, rA, result.correlations.at(i));
+                    sE.x, sE.y, rE, sA.x, sA.y, rA, result.figuresOfMerit.at(i));
                     // original version
             size_t offset = i * dims.xyzPadded();
             double corr = std::numeric_limits<double>::lowest();
@@ -292,7 +292,7 @@ private:
             printf("%f | %f | %f | %f ||",// orig
                     sR.x, sR.y, rR, corr);
             // comparison GT <-> new
-            printf("%f | %f | %f | %f||", std::abs(sE.x - sA.x), std::abs(sE.y - sA.y), 180 - std::abs((std::abs(rA - rE) - 180)), result.correlations.at(i));
+            printf("%f | %f | %f | %f||", std::abs(sE.x - sA.x), std::abs(sE.y - sA.y), 180 - std::abs((std::abs(rA - rE) - 180)), result.figuresOfMerit.at(i));
             // comparison GT <-> orig
             printf("%f | %f | %f | %f\n", std::abs(sE.x - sR.x), std::abs(sE.y - sR.y), 180 - std::abs((std::abs(rR - rE) - 180)), corr);
         }

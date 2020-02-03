@@ -135,7 +135,7 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
     }
     m_meritComputer.compute(m_transformer.getDest());
     const auto &mc = m_meritComputer;
-    est.correlations = mc.getFiguresOfMerit();
+    est.figuresOfMerit = mc.getFiguresOfMerit();
 }
 
 template<typename T>
@@ -164,8 +164,8 @@ AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
     compute(iters, result_SR, false);
 
     for (size_t i = 0; i < n; ++i) {
-        if (result_RS.correlations.at(i) < result_SR.correlations.at(i)) {
-            result_RS.correlations.at(i) = result_SR.correlations.at(i);
+        if (result_RS.figuresOfMerit.at(i) < result_SR.figuresOfMerit.at(i)) {
+            result_RS.figuresOfMerit.at(i) = result_SR.figuresOfMerit.at(i);
             result_RS.poses.at(i) = result_SR.poses.at(i);
         }
     }

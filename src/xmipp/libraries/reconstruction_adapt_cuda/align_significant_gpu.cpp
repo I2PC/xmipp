@@ -77,9 +77,9 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
             auto tmp = aligner.compute(others + (offset * s.otherDims.sizeSingle()));
 
             // merge results
-            est->correlations.insert(est->correlations.begin() + offset,
-                    tmp.correlations.begin(),
-                    tmp.correlations.end());
+            est->figuresOfMerit.insert(est->figuresOfMerit.begin() + offset,
+                    tmp.figuresOfMerit.begin(),
+                    tmp.figuresOfMerit.end());
             est->poses.insert(est->poses.begin() + offset,
                     tmp.poses.begin(),
                     tmp.poses.end());
