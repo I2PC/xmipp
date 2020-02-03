@@ -78,10 +78,10 @@ private:
 
     struct WeightCompHelper {
         WeightCompHelper(float c, size_t ref, size_t img) :
-            correlation(c), refIndex(ref), imgIndex(img) {};
+            merit(c), refIndex(ref), imgIndex(img) {};
         size_t refIndex;
         size_t imgIndex;
-        float correlation;
+        float merit;
     };
 
     DataHelper m_imagesToAlign;
@@ -106,7 +106,7 @@ private:
             const std::vector<AlignmentEstimation> &est,
             size_t refIndex);
     void computeWeightsAndSave(
-            std::vector<WeightCompHelper> &correlations,
+            std::vector<WeightCompHelper> &figsOfMerit,
             size_t refIndex);
     template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
     void storeAlignedImages(

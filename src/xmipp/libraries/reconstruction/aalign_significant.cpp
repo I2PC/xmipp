@@ -205,51 +205,51 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
     }
 
     // allocate necessary memory
-    auto correlations = std::vector<WeightCompHelper>();
-    correlations.reserve(count * noOfSignals);
+    auto figsOfMerit = std::vector<WeightCompHelper>();
+    figsOfMerit.reserve(count * noOfSignals);
 
     // for all similar references
     for (size_t r = 0; r < noOfRefs; ++r) {
         if (mask.at(r)) {
-            // get correlations of all signals
+            // get figure of merit of all signals
             for (size_t s = 0; s < noOfSignals; ++s) {
                 if (IS_ESTIMATION_TRANSPOSED) {
-                    correlations.emplace_back(est.at(s).correlations.at(r), r, s);
+                    figsOfMerit.emplace_back(est.at(s).figuresOfMerit.at(r), r, s);
                 } else {
-                    correlations.emplace_back(est.at(r).correlations.at(s), r, s);
+                    figsOfMerit.emplace_back(est.at(r).figuresOfMerit.at(s), r, s);
                 }
             }
         }
     }
-    computeWeightsAndSave(correlations, refIndex);
+    computeWeightsAndSave(figsOfMerit, refIndex);
 }
 
 template<typename T>
 void AProgAlignSignificant<T>::computeWeightsAndSave(
-        std::vector<WeightCompHelper> &correlations,
+        std::vector<WeightCompHelper> &figsOfMerit,
         size_t refIndex) {
     const size_t noOfSignals = m_imagesToAlign.dims.n();
     auto weights = std::vector<float>(noOfSignals, 0); // zero weight by default
-    const size_t noOfCorrelations = correlations.size();
+    const size_t noOfNumbers = figsOfMerit.size();
 
-    // sort ascending using correlation
-    std::sort(correlations.begin(), correlations.end(),
+    // sort ascending using figure of merit
+    std::sort(figsOfMerit.begin(), figsOfMerit.end(),
             [](const WeightCompHelper &l, const WeightCompHelper &r) {
-        return l.correlation < r.correlation;
+        return l.merit < r.merit;
     });
-    auto invMaxCorrelation = 1.f / correlations.back().correlation;
+    auto invMaxMerit = 1.f / figsOfMerit.back().merit;
 
     // set weight for all images
-    for (size_t c = 0; c < noOfCorrelations; ++c) {
-        const auto &tmp = correlations.at(c);
+    for (size_t c = 0; c < noOfNumbers; ++c) {
+        const auto &tmp = figsOfMerit.at(c);
         if (tmp.refIndex != refIndex) {
             continue; // current record is for different reference
         }
         // cumulative density function - probability of having smaller value then the rest
-        float cdf = c / (float)(noOfCorrelations - 1); // <0..1> // won't work if we have just one reference
-        float correlation = tmp.correlation;
-        if (correlation > 0.f) {
-            weights.at(tmp.imgIndex) = correlation * invMaxCorrelation * cdf;
+        float cdf = c / (float)(noOfNumbers - 1); // <0..1> // won't work if we have just one reference
+        float merit = tmp.merit;
+        if (merit > 0.f) {
+            weights.at(tmp.imgIndex) = merit * invMaxMerit * cdf;
         }
     }
     // store result
@@ -327,9 +327,9 @@ void AProgAlignSignificant<T>::storeAlignedImages(
         if (USE_WEIGHT) {
             return m_weights.at(reference).at(image);
         } else if (IS_ESTIMATION_TRANSPOSED) {
-            return est.at(image).correlations.at(reference);
+            return est.at(image).figuresOfMerit.at(reference);
         } else {
-            return est.at(reference).correlations.at(image);
+            return est.at(reference).figuresOfMerit.at(image);
         }
     };
 
@@ -356,7 +356,7 @@ void AProgAlignSignificant<T>::storeAlignedImages(
                 maxVote = val;
             }
             if (val <= 0) {
-                continue; // skip saving the particles which have non-positive correlation to the reference
+                continue; // skip saving the particles which have non-positive figure of merit to the reference
             }
             // update the row with proper pose info
             const auto &p = IS_ESTIMATION_TRANSPOSED
@@ -366,7 +366,7 @@ void AProgAlignSignificant<T>::storeAlignedImages(
                     p,
                     refIndex,
                     m_weights.at(refIndex).at(i),
-                    maxVote); // best cross-correlation or weight
+                    maxVote); // best figure of merit or weight
             // store it
             result.addRow(row);
         }
