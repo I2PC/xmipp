@@ -152,8 +152,9 @@ void computePolarCorrelationsSumOneToNKernel(
         tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
         tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
         // sum rows
-        float w = 2 * M_PI * (r + firstRingRadius);
-        res += w * tmp;
+        // Compared to CPU version, we don't weight here
+        // We did weighting during polar transformation
+        res += tmp;
         // move to next row
         indexRef += xDim;
         indexOther += xDim;

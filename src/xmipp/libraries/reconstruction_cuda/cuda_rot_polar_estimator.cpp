@@ -319,7 +319,7 @@ void CudaRotPolarEstimator<T>::sNormalize(
         d_in, dim.x(), dim.y(), dim.n(),
         d_sums, d_sumsSqr, posOfFirstRing);
 
-    const T piConst = FULL_CIRCLE ? (2 * PI) : PI;
+    const T piConst = FULL_CIRCLE ? (2 * M_PI) : M_PI;
     // sum of the first n terms of an arithmetic sequence
     // a1 = first radius (posOfFirstRing)
     // an = last radius (dim.y() - 1 + posOfFirstRing)
