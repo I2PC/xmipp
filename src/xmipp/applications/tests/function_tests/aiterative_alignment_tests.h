@@ -84,6 +84,11 @@ public:
             EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.8f))) << "percentile 80";
             EXPECT_GE(1.86f, diffsY.at(std::floor((diffsY.size() - 1) * 0.9f))) << "percentile 90";
         }
+//        printf("refR|diffR|diffX|diffY\n");
+//        for (size_t n = 0; n < diffsR.size(); ++n) {
+//            printf("%s|%f|%f|%f\n",
+//                    (n < expR.size()? std::to_string(expR.at(n)).c_str() : ""), diffsR.at(n), diffsX.at(n), diffsY.at(n));
+//        }
     }
 
     void clearStatistics() {
