@@ -37,6 +37,7 @@ void AShiftCorrEstimator<T>::setDefault() {
     m_includingBatchFT = false;
     m_includingSingleFT = false;
     m_is_ref_FD_loaded = false;
+    m_allowDataOverwrite = false;
 }
 
 template<typename T>

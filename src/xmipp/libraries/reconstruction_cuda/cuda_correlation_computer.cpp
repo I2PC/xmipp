@@ -256,9 +256,11 @@ void CudaCorrelationComputer<T>::allocate() {
     gpuErrchk(cudaMalloc(&m_d_corrRes, bytesResOthers));
 
     m_h_ref_corrRes = (ResRef*)page_aligned_alloc(bytesResRef);
+    memset(m_h_ref_corrRes, 0, bytesResRef); // to make valgrind happy
     m_stream->pinMemory(m_h_ref_corrRes, bytesResRef);
 
     m_h_corrRes = page_aligned_alloc(bytesResOthers);
+    memset(m_h_corrRes, 0, bytesResOthers); // to make valgrind happy
     m_stream->pinMemory(m_h_corrRes, bytesResOthers);
 }
 
