@@ -31,15 +31,16 @@ template<typename T>
 void AProgAlignSignificant<T>::defineParams() {
     addUsageLine("Find alignment of the experimental images in respect to a set of references");
 
-    addParamsLine("   -i <md_file>                : Metadata file with the experimental images");
-    addParamsLine("   -r <md_file>                : Metadata file with the reference images");
-    addParamsLine("   -o <md_file>                : Resulting metadata file with the aligned images");
-    addParamsLine("   [--thr <N=-1>]              : Maximal number of the processing CPU threads");
-    addParamsLine("   [--angDistance <a=10>]      : Angular distance");
-    addParamsLine("   [--odir <outputDir=\".\">]  : Output directory");
-    addParamsLine("   [--keepBestN <N=1>]         : For each image, store N best alignments to references. N must be smaller than no. of references");
-    addParamsLine("   [--allowInputSwap]          : Allow swapping reference and experimental images");
-    addParamsLine("   [--useWeightInsteadOfCC]    : Select the best reference using weight, instead of CC");
+    addParamsLine("   -i <md_file>                    : Metadata file with the experimental images");
+    addParamsLine("   -r <md_file>                    : Metadata file with the reference images");
+    addParamsLine("   -o <md_file>                    : Resulting metadata file with the aligned images");
+    addParamsLine("   [--thr <N=-1>]                  : Maximal number of the processing CPU threads");
+    addParamsLine("   [--angDistance <a=10>]          : Angular distance");
+    addParamsLine("   [--odir <outputDir=\".\">]      : Output directory");
+    addParamsLine("   [--keepBestN <N=1>]             : For each image, store N best alignments to references. N must be smaller than no. of references");
+    addParamsLine("   [--allowInputSwap]              : Allow swapping reference and experimental images");
+    addParamsLine("   [--useWeightInsteadOfCC]        : Select the best reference using weight, instead of CC");
+    addParamsLine("   [--oUpdatedRefs <md_file=\"\">] : Update references using assigned experimental images. Store result here");
 }
 
 template<typename T>
@@ -51,6 +52,7 @@ void AProgAlignSignificant<T>::readParams() {
     m_noOfBestToKeep = getIntParam("--keepBestN");
     m_allowDataSwap = checkParam("--allowInputSwap");
     m_useWeightInsteadOfCC = checkParam("--useWeightInsteadOfCC");
+    m_fnOutUpdatedRefs = getParam("--oUpdatedRefs");
 
     int threads = getIntParam("--thr");
     if (-1 == threads) {
@@ -69,6 +71,9 @@ void AProgAlignSignificant<T>::show() const {
     std::cout << "Output metadata             : " << m_fnOut <<  "\n";
     std::cout << "Angular distance            : " << m_angDistance <<  "\n";
     std::cout << "Best references kept        : " << m_noOfBestToKeep << "\n";
+    if ( ! m_fnOutUpdatedRefs.isEmpty()) {
+    std::cout << "Update references (to file) : " << m_fnOutUpdatedRefs << "\n";
+    }
     std::cout.flush();
 }
 

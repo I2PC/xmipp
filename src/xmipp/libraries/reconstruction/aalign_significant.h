@@ -87,6 +87,7 @@ private:
     DataHelper m_imagesToAlign;
     DataHelper m_referenceImages;
     FileName m_fnOut;
+    FileName m_fnOutUpdatedRefs;
     float m_angDistance;
     Settings m_settings;
     size_t m_noOfBestToKeep;
