@@ -61,6 +61,12 @@ PyObject * getPointerToPythonFRMFunction();
  */
 PyObject * getPointerToPythonGeneralWedgeClass();
 
+/** Get pointer to a Single Tile Missing Wedge Class.
+ * Remind to free it when you do not need it any longer with
+ * Py_DECREF(pSTMMclass);
+ */
+PyObject * getPointerToPythonSingleTiltWedgeClass();
+
 /** Align two volumes using FRM.
  * The first argument is the pointer to the FRM python function. You may obtain it with
  * getPointerToPythonFRMFunction()
