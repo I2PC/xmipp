@@ -66,7 +66,7 @@ void sumKernel(const T * __restrict__ in, T * __restrict__ out,
 
     unsigned pos = (y * xDim) + x;
     double v = in[pos]; // double on purpose, to improve the precision
-    for (size_t n = 1; n < nDim; ++n) {
+    for (unsigned n = 1; n < nDim; ++n) {
         unsigned offset = n * xDim * yDim;
         v += in[offset + pos];
     }

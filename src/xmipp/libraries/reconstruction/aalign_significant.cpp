@@ -77,7 +77,7 @@ void AProgAlignSignificant<T>::show() const {
     std::cout << "Angular distance            : " << m_angDistance <<  "\n";
     std::cout << "Best references kept        : " << m_noOfBestToKeep << "\n";
     if (m_updateHelper.doUpdate) {
-    std::cout << "Update references (to file) : " << m_updateHelper.fnXmd << "\n";
+    std::cout << "Updated references          : " << m_updateHelper.fnXmd << "\n";
     }
     std::cout.flush();
 }

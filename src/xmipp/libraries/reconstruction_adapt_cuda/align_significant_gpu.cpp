@@ -115,6 +115,10 @@ void ProgAlignSignificantGPU<T>::updateRefs(
 
     std::vector<Assignment> workAssignments;
     for (size_t refIndex = 0; refIndex < refDims.n(); ++refIndex) {
+        if (0 == (refIndex % 10)) { // FIXME DS remove / replace by proper progress report
+            std::cout << "updating reference " << refIndex << "/" << refDims.n() << std::endl;
+        }
+
         // get assignments for this reference
         workAssignments.clear();
         std::copy_if(assignments.begin(), assignments.end(), std::back_inserter(workAssignments),
