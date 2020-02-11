@@ -147,18 +147,14 @@ void CudaBSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
         1);
     auto stream = *(cudaStream_t*)m_stream->stream();
 
-    // allocate temporal output
-    size_t bytes = dims.sizeSingle() * sizeof(T);
-    T *tmp;
-    gpuErrchk(cudaMalloc(&tmp, bytes));
-
     sumKernel<<<dimGrid, dimBlock, 0, stream>>> (
-        m_d_dest, tmp,
+        m_d_dest, m_d_src, // FIXME DS this will damage src data
         dims.x(), dims.y(), dims.n());
 
+    size_t bytes = dims.sizeSingle() * sizeof(T);
     gpuErrchk(cudaMemcpyAsync(
         dest,
-        m_d_dest,
+        m_d_src,
         bytes,
         cudaMemcpyDeviceToHost, stream));
     m_stream->synch();
