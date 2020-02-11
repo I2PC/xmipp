@@ -77,16 +77,20 @@ protected:
         return m_threadPool;
     }
 
-    void updateRefXmd(size_t zeroBasedIndex, std::vector<Assignment> &images);
+    void updateRefXmd(size_t refIndex, std::vector<Assignment> &images);
 
 private:
     struct DataHelper {
         FileName fn;
         MetaData md;
         Dimensions dims = Dimensions(0);
-        std::vector<float> rots;
-        std::vector<float> tilts;
         std::unique_ptr<T[]> data;
+        // reference data only (will be empty for experimental images)
+        std::vector<float> rots; // valid only for
+        std::vector<float> tilts;
+        std::vector<int> indexes; // as in the metadata file
+        // image data only (will be empty for reference images)
+        std::vector<size_t> rowIds;
     };
 
     struct UpdateRefHelper {
@@ -121,6 +125,7 @@ private:
 
     ctpl::thread_pool m_threadPool;
 
+    template<bool IS_REF>
     void load(DataHelper &h);
     Dimensions crop(const Dimensions &d, DataHelper &h);
     template<bool IS_ESTIMATION_TRANSPOSED>
@@ -154,6 +159,16 @@ private:
     void saveRefStk();
     void checkLogDelete(const FileName &fn);
     void saveRefXmd();
+
+    inline int getRefMetaIndex(size_t refIndex) {
+        return m_referenceImages.indexes.at(refIndex);
+    }
+
+    inline void getImgRow(MDRow &row, size_t imgIndex) {
+        m_imagesToAlign.md.getRow(row, m_imagesToAlign.rowIds.at(imgIndex));
+    }
+
+    void validate(const DataHelper &h, bool isRefData);
 };
 
 } /* namespace Alignment */
