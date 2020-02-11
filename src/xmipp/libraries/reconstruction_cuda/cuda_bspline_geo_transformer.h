@@ -49,6 +49,8 @@ public:
     void copySrcToDest() override;
 
     T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
+
+    void sum(T *dest, size_t firstN) override;
 private:
     T *m_d_src; // can be either host or device pointer
     T *m_d_dest;

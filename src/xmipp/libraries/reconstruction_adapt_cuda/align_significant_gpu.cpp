@@ -38,7 +38,7 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
         hw.emplace_back(g);
     }
 
-    auto processDims = s.otherDims.copyForN(std::min(s.otherDims.n(), maxBatchSize));
+    auto processDims = s.otherDims.copyForN(std::min(s.otherDims.n(), m_maxBatchSize));
 
     auto rotEstimator = CudaRotPolarEstimator<T>();
     initRotEstimator(rotEstimator, hw, processDims);
@@ -95,12 +95,97 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
 }
 
 template<typename T>
+void ProgAlignSignificantGPU<T>::updateRefs(
+        T *refs,
+        const T *others,
+        const std::vector<Assignment> &assignments) {
+    const Dimensions &refDims = this->getSettings().refDims;
+    const size_t elems = this->getSettings().otherDims.sizeSingle();
+    T *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
+    T *workRef = memoryUtils::page_aligned_alloc<T>(elems, true);
+
+    auto gpu = new GPU();
+    gpu->set();
+    gpu->pinMemory(workRef, elems * sizeof(T));
+    std::vector<HW*> hw{gpu};
+
+    CudaBSplineGeoTransformer<T> transformer;
+    initTransformer(transformer, hw, this->getSettings().otherDims.copyForN(m_maxBatchSize));
+    transformer.setSrc(workCopy);
+
+    std::vector<Assignment> workAssignments;
+    for (size_t refIndex = 0; refIndex < refDims.n(); ++refIndex) {
+        // get assignments for this reference
+        workAssignments.clear();
+        std::copy_if(assignments.begin(), assignments.end(), std::back_inserter(workAssignments),
+                [refIndex](const Assignment &a) { return a.refIndex == refIndex; });
+        // process assignments in batch
+        const size_t noOfAssignments = workAssignments.size();
+        auto finalRef = refs + (refIndex * elems);
+        if (0 == noOfAssignments) {
+            memset(finalRef, 0, elems * sizeof(T)); // clean the result
+        }
+        for (size_t offset = 0; offset < noOfAssignments; offset += m_maxBatchSize) {
+            size_t toProcess = std::min(m_maxBatchSize, noOfAssignments - offset);
+            // copy image data for this batch
+            for (size_t i = 0; i < toProcess; ++i) {
+                auto &a = workAssignments.at(offset + i);
+                memcpy(workCopy + (i * elems), others + (a.imgIndex * elems), elems * sizeof(T));
+            }
+            // apply transform
+            interpolate(transformer, workCopy, workAssignments, offset, toProcess);
+            // sum images
+            transformer.sum(workRef, toProcess);
+            // collect intermediate result
+            if (0 == offset) { // first batch -> copy data
+                memcpy(finalRef, workRef, elems * sizeof(T));
+            } else { // other batches -> sum data
+                for (size_t i = 0; i < elems; ++i) {
+                    finalRef[i] += workRef[i];
+                }
+            }
+        }
+        // store reference
+        this->updateRefXmd(refIndex, workAssignments);
+    }
+    gpu->unpinMemory(workRef);
+    delete[] workCopy;
+    free(workRef);
+    delete gpu;
+}
+
+template<typename T>
+void ProgAlignSignificantGPU<T>::interpolate(BSplineGeoTransformer<T> &transformer,
+        T *data,
+        const std::vector<Assignment> &assignments,
+        size_t offset,
+        size_t toProcess) {
+    transformer.setSrc(data);
+
+    std::vector<float> t;
+    t.reserve(9 * m_maxBatchSize);
+    auto tmp = Matrix2D<float>(3, 3);
+    SPEED_UP_temps0
+    for (size_t j = 0; j < m_maxBatchSize; ++j) {
+        if (j >= toProcess) {
+            tmp.initIdentity();
+        } else {
+            M3x3_INV(tmp, assignments.at(j).pose) // inverse the transformation
+        }
+        for (int i = 0; i < 9; ++i) {
+            t.emplace_back(tmp.mdata[i]);
+        }
+    }
+    transformer.interpolate(t);
+}
+
+template<typename T>
 void ProgAlignSignificantGPU<T>::initRotEstimator(CudaRotPolarEstimator<T> &est,
         std::vector<HW*> &hw,
         const Dimensions &dims) {
     // FIXME DS implement properly
     RotationEstimationSetting s;
-    size_t batch = maxBatchSize;
+    size_t batch = m_maxBatchSize;
     auto rotSettings = RotationEstimationSetting();
     s.hw = hw;
     s.type = AlignType::OneToN;

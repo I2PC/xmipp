@@ -40,7 +40,7 @@ void AProgAlignSignificant<T>::defineParams() {
     addParamsLine("   [--keepBestN <N=1>]             : For each image, store N best alignments to references. N must be smaller than no. of references");
     addParamsLine("   [--allowInputSwap]              : Allow swapping reference and experimental images");
     addParamsLine("   [--useWeightInsteadOfCC]        : Select the best reference using weight, instead of CC");
-    addParamsLine("   [--oUpdatedRefs <md_file=\"\">] : Update references using assigned experimental images. Store result here");
+    addParamsLine("   [--oUpdatedRefs <baseName=\"\">]: Update references using assigned experimental images. Store result here");
 }
 
 template<typename T>
@@ -52,7 +52,12 @@ void AProgAlignSignificant<T>::readParams() {
     m_noOfBestToKeep = getIntParam("--keepBestN");
     m_allowDataSwap = checkParam("--allowInputSwap");
     m_useWeightInsteadOfCC = checkParam("--useWeightInsteadOfCC");
-    m_fnOutUpdatedRefs = getParam("--oUpdatedRefs");
+    m_updateHelper.doUpdate = checkParam("--oUpdatedRefs");
+    if (m_updateHelper.doUpdate) {
+        FileName base = std::string(getParam("--odir")) + "/" + std::string(getParam("--oUpdatedRefs"));
+        m_updateHelper.fnStk = base + ".stk";
+        m_updateHelper.fnXmd = base + ".xmd";
+    }
 
     int threads = getIntParam("--thr");
     if (-1 == threads) {
@@ -71,8 +76,8 @@ void AProgAlignSignificant<T>::show() const {
     std::cout << "Output metadata             : " << m_fnOut <<  "\n";
     std::cout << "Angular distance            : " << m_angDistance <<  "\n";
     std::cout << "Best references kept        : " << m_noOfBestToKeep << "\n";
-    if ( ! m_fnOutUpdatedRefs.isEmpty()) {
-    std::cout << "Update references (to file) : " << m_fnOutUpdatedRefs << "\n";
+    if (m_updateHelper.doUpdate) {
+    std::cout << "Update references (to file) : " << m_updateHelper.fnXmd << "\n";
     }
     std::cout.flush();
 }
@@ -180,6 +185,19 @@ void AProgAlignSignificant<T>::check() const {
 
 template<typename T>
 template<bool IS_ESTIMATION_TRANSPOSED>
+void AProgAlignSignificant<T>::computeWeights(
+        const std::vector<AlignmentEstimation> &est) {
+    const size_t noOfRefs = m_referenceImages.dims.n();
+    m_weights.resize(noOfRefs);
+
+    // for all references
+    for (size_t r = 0; r < noOfRefs; ++r) {
+        computeWeightsAndSave<IS_ESTIMATION_TRANSPOSED>(est, r);
+    }
+}
+
+template<typename T>
+template<bool IS_ESTIMATION_TRANSPOSED>
 void AProgAlignSignificant<T>::computeWeightsAndSave(
         const std::vector<AlignmentEstimation> &est,
         size_t refIndex) {
@@ -234,7 +252,8 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
         std::vector<WeightCompHelper> &figsOfMerit,
         size_t refIndex) {
     const size_t noOfSignals = m_imagesToAlign.dims.n();
-    auto weights = std::vector<float>(noOfSignals, 0); // zero weight by default
+    auto &weights = m_weights.at(refIndex);
+    weights = std::vector<float>(noOfSignals, 0); // zero weight by default
     const size_t noOfNumbers = figsOfMerit.size();
 
     // sort ascending using figure of merit
@@ -257,28 +276,13 @@ void AProgAlignSignificant<T>::computeWeightsAndSave(
             weights.at(tmp.imgIndex) = merit * invMaxMerit * cdf;
         }
     }
-    // store result
-    m_weights.at(refIndex) = weights;
-}
-
-template<typename T>
-template<bool IS_ESTIMATION_TRANSPOSED>
-void AProgAlignSignificant<T>::computeWeights(
-        const std::vector<AlignmentEstimation> &est) {
-    const size_t noOfRefs = m_referenceImages.dims.n();
-    m_weights.resize(noOfRefs);
-
-    // for all references
-    for (size_t r = 0; r < noOfRefs; ++r) {
-        computeWeightsAndSave<IS_ESTIMATION_TRANSPOSED>(est, r);
-    }
 }
 
 template<typename T>
 void AProgAlignSignificant<T>::fillRow(MDRow &row,
         const Matrix2D<float> &pose,
         size_t refIndex,
-        double weight, double maxVote) {
+        double weight) {
     // get orientation
     bool flip;
     float scale;
@@ -292,7 +296,6 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
             psi);
     // FIXME DS add check of max shift / rotation
     row.setValue(MDL_ENABLED, 1);
-    row.setValue(MDL_MAXCC, (double)maxVote);
     row.setValue(MDL_ANGLE_ROT, (double)m_referenceImages.rots.at(refIndex));
     row.setValue(MDL_ANGLE_TILT, (double)m_referenceImages.tilts.at(refIndex));
     // save both weight and weight significant, so that we can keep track of result of this
@@ -303,13 +306,23 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     row.setValue(MDL_SHIFT_X, (double)-shiftX); // store negative translation
     row.setValue(MDL_SHIFT_Y, (double)-shiftY); // store negative translation
     row.setValue(MDL_FLIP, flip);
-    row.setValue(MDL_IMAGE_IDX, refIndex); // FIXME DS remove
+    assert(std::numeric_limits<int>::max() >= refIndex);
+    row.setValue(MDL_REF, (int)refIndex);
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::fillRow(MDRow &row,
+        const Matrix2D<float> &pose,
+        size_t refIndex,
+        double weight, double maxVote) {
+    fillRow(row, pose, refIndex, weight);
+    row.setValue(MDL_MAXCC, (double)maxVote);
 }
 
 template<typename T>
 void AProgAlignSignificant<T>::extractMax(
         std::vector<float> &data,
-        size_t &pos, double &val) {
+        size_t &pos, float &val) {
     using namespace ExtremaFinder;
     float p = 0;
     float v = 0;
@@ -321,13 +334,9 @@ void AProgAlignSignificant<T>::extractMax(
 
 template<typename T>
 template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
-void AProgAlignSignificant<T>::storeAlignedImages(
+void AProgAlignSignificant<T>::computeAssignment(
         const std::vector<AlignmentEstimation> &est) {
-    auto &md = m_imagesToAlign.md;
-    auto result = MetaData();
     const size_t noOfRefs = m_referenceImages.dims.n();
-    const auto dims = Dimensions(noOfRefs);
-
     auto accessor = [&](size_t image, size_t reference) {
         if (USE_WEIGHT) {
             return m_weights.at(reference).at(image);
@@ -338,44 +347,62 @@ void AProgAlignSignificant<T>::storeAlignedImages(
         }
     };
 
-    MDRow row;
-    size_t i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(md) {
-        // get the original row from the input metadata
-        md.getRow(row, __iter.objId);
+    const size_t noOfImages = m_imagesToAlign.dims.n();
+    m_assignments.reserve(noOfImages * m_noOfBestToKeep);
+    for (size_t i = 0; i < noOfImages; ++i) {
         // collect voting from all references
         auto votes = std::vector<float>();
         votes.reserve(noOfRefs);
         for (size_t r = 0; r < noOfRefs; ++r) {
             votes.emplace_back(accessor(i, r));
         }
-        double maxVote = std::numeric_limits<double>::lowest();
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
             size_t refIndex;
-            double val;
+            float val;
             // get the max vote
             extractMax(votes, refIndex, val);
-            if (0 == nthBest) {
-                // set max vote that we found
-                maxVote = val;
-            }
             if (val <= 0) {
                 continue; // skip saving the particles which have non-positive figure of merit to the reference
             }
-            // update the row with proper pose info
             const auto &p = IS_ESTIMATION_TRANSPOSED
                     ? (est.at(i).poses.at(refIndex).inv())
                     : (est.at(refIndex).poses.at(i));
-            fillRow(row,
-                    p,
-                    refIndex,
-                    m_weights.at(refIndex).at(i),
-                    maxVote); // best figure of merit or weight
-            // store it
-            result.addRow(row);
+            m_assignments.emplace_back(refIndex, i,
+                    m_weights.at(refIndex).at(i), val,
+                    p);
         }
-        i++;
+    }
+}
+
+template<typename T>
+template<bool USE_WEIGHT>
+void AProgAlignSignificant<T>::storeAlignedImages() {
+    auto &md = m_imagesToAlign.md;
+    auto result = MetaData();
+
+    std::sort(m_assignments.begin(), m_assignments.end(),
+            [](const Assignment &l, const Assignment &r) {
+        return (l.imgIndex != r.imgIndex)
+                ? (l.imgIndex < r.imgIndex) // sort by image index asc
+                : (USE_WEIGHT // then by voting criteria dest
+                  ? (l.weight > r.weight)
+                  :(l.merit > r.merit));
+    });
+
+    MDRow row;
+    size_t i = 0;
+    FOR_ALL_OBJECTS_IN_METADATA(md) {
+        // get the original row from the input metadata
+        md.getRow(row, __iter.objId);
+        auto maxVote = m_assignments.at(i).merit;
+        // for all references that we want to store, starting from the best matching one
+        for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
+            const auto &a = m_assignments.at(i);
+            fillRow(row, a.pose, a.refIndex, a.weight, maxVote);
+            result.addRow(row);
+            i++;
+        }
     }
     result.write(m_fnOut);
 }
@@ -384,6 +411,92 @@ template<typename T>
 void AProgAlignSignificant<T>::updateSettings() {
     m_settings.refDims = m_referenceImages.dims;
     m_settings.otherDims = m_imagesToAlign.dims;
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::saveRefStk() {
+    const Dimensions &dims = m_referenceImages.dims;
+    const auto &fn = m_updateHelper.fnStk;
+    checkLogDelete(fn);
+    for (size_t n = 0; n < dims.n(); ++n ) {
+        const size_t indexInStk = n + 1; // within stk file, index images from one (1)
+        FileName name;
+        name.compose(indexInStk, fn);
+        size_t offset = n * dims.sizeSingle();
+        MultidimArray<T> wrapper(1, 1, dims.y(), dims.x(), m_referenceImages.data.get() + offset);
+        auto img = Image<T>(wrapper);
+        img.write(name, n, true, WRITE_APPEND);
+    }
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::saveRefXmd() {
+    const auto &fn = m_updateHelper.fnXmd;
+    checkLogDelete(fn);
+    // write the ref block
+    m_updateHelper.refBlock.write("classes@" + fn, MD_APPEND);
+    // write the per-ref images blocks
+    const size_t noOfBlocks = m_updateHelper.imgBlocks.size();
+    unsigned noOfDigits = noOfBlocks > 0 ? log10 ((float) noOfBlocks) + 1 : 1;
+    const auto pattern = "class%0" + std::to_string(noOfDigits) + "d_images@%s";
+    for (size_t n = 0; n < noOfBlocks; ++n) {
+        const auto &md = m_updateHelper.imgBlocks.at(n);
+        if (0 == md.size()) {
+            continue; // ignore MD for empty references
+        }
+        auto blockName = formatString(pattern.c_str(), n);
+        md.write(blockName + fn, MD_APPEND);
+    }
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::updateRefXmd(size_t zeroBasedIndex, std::vector<Assignment> &images) {
+    const size_t indexInStk = zeroBasedIndex + 1; // within stk file, index images from one (1)
+    FileName refName;
+    auto &refMeta = m_updateHelper.refBlock;
+    // name of the reference
+    refName.compose(indexInStk, m_updateHelper.fnStk);
+    // some info about it
+    size_t id = refMeta.addObject();
+    assert(std::numeric_limits<int>::max() >= zeroBasedIndex);
+    refMeta.setValue(MDL_REF, (int)zeroBasedIndex, id);
+    refMeta.setValue(MDL_IMAGE, refName, id);
+    refMeta.setValue(MDL_CLASS_COUNT, images.size(), id);
+
+    // create image description block
+    std::sort(images.begin(), images.end(), [](const Assignment &l, const Assignment &r) {
+       return l.imgIndex < r.imgIndex; // sort by image index
+    });
+    auto &md = m_updateHelper.imgBlocks.at(zeroBasedIndex);
+    MDRow row;
+    const size_t noOfImages = images.size();
+    for (const auto &a : images) {
+        fillRow(row, a.pose, zeroBasedIndex, a.weight);
+        md.addRow(row);
+    }
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::checkLogDelete(const FileName &fn) {
+    if (fn.exists()) {
+        std::cerr << fn << " exists. It will be overwritten.\n";
+        fn.deleteFile(); // since we will append, we need to delete original file
+    }
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::updateRefs() {
+    if (1 < m_noOfBestToKeep) {
+        std::cout << "Each experimental image will contribute to more than one reference image.\n";
+    }
+    // make sure we start from scratch
+    m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n());
+    m_updateHelper.refBlock = MetaData();
+    // update references. Metadata will be updated on background
+    updateRefs(m_referenceImages.data.get(), m_imagesToAlign.data.get(), m_assignments);
+    // store result to drive
+    saveRefStk();
+    saveRefXmd();
 }
 
 template<typename T>
@@ -413,17 +526,30 @@ void AProgAlignSignificant<T>::run() {
         std::swap(m_referenceImages, m_imagesToAlign);
         computeWeights<true>(alignment);
         if (m_useWeightInsteadOfCC) {
-            storeAlignedImages<true, true>(alignment);
+            computeAssignment<true, true>(alignment);
         } else {
-            storeAlignedImages<true, false>(alignment);
+            computeAssignment<true, false>(alignment);
         }
     } else {
         computeWeights<false>(alignment);
         if (m_useWeightInsteadOfCC) {
-            storeAlignedImages<false, true>(alignment);
+            computeAssignment<false, true>(alignment);
         } else {
-            storeAlignedImages<false, false>(alignment);
+            computeAssignment<false, false>(alignment);
         }
+    }
+    // at this moment, we can release some memory
+    m_weights.clear();
+    alignment.clear();
+
+    if (m_useWeightInsteadOfCC) {
+        storeAlignedImages<true>();
+    } else {
+        storeAlignedImages<false>();
+    }
+
+    if (m_updateHelper.doUpdate) {
+        updateRefs();
     }
 }
 
