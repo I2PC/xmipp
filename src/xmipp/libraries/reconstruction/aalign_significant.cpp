@@ -83,9 +83,11 @@ void AProgAlignSignificant<T>::show() const {
 }
 
 template<typename T>
+template<bool IS_REF>
 void AProgAlignSignificant<T>::load(DataHelper &h) {
     auto &md = h.md;
     md.read(h.fn);
+    size_t origN = md.size();
     md.removeDisabled();
 
     size_t Xdim;
@@ -93,7 +95,12 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     size_t Zdim;
     size_t Ndim;
     getImageSize(h.fn, Xdim, Ydim, Zdim, Ndim);
-    Ndim = md.size(); // FIXME DS why we  didn't get right Ndim from the previous call?
+    Ndim = md.size();
+
+    if (IS_REF && (origN != Ndim)) {
+        std::cerr << h.fn << " contains disabled images. This is not expected and might lead to wrong result\n";
+    }
+
     auto dims = Dimensions(Xdim, Ydim, Zdim, Ndim);
     auto dimsCropped = Dimensions((Xdim / 2) * 2, (Ydim / 2) * 2, Zdim, Ndim);
     bool mustCrop = (dims != dimsCropped);
@@ -135,12 +142,7 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
         }
     };
 
-    // make sure that the files are well-defined
-    bool isValid = md.containsLabel(MDL_IMAGE)
-        && md.containsLabel(MDL_ANGLE_ROT) && md.containsLabel(MDL_ANGLE_TILT);
-    if ( ! isValid) {
-        REPORT_ERROR(ERR_MD, h.fn + ": at least one of the following label is missing: MDL_IMAGE, MDL_ANGLE_ROT, MDL_ANGLE_TILT");
-    }
+    validate(h, IS_REF);
 
     // load all images in parallel
     auto futures = std::vector<std::future<void>>();
@@ -150,13 +152,20 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
         FileName fn;
-        float rot;
-        float tilt;
         md.getValue(MDL_IMAGE, fn, __iter.objId);
-        md.getValue(MDL_ANGLE_ROT, rot,__iter.objId);
-        md.getValue(MDL_ANGLE_TILT, tilt,__iter.objId);
-        h.rots.emplace_back(rot);
-        h.tilts.emplace_back(tilt);
+        if (IS_REF) {
+            float rot;
+            float tilt;
+            int ref;
+            md.getValue(MDL_ANGLE_ROT, rot,__iter.objId);
+            md.getValue(MDL_ANGLE_TILT, tilt,__iter.objId);
+            md.getValue(MDL_REF, ref,__iter.objId);
+            h.rots.emplace_back(rot);
+            h.tilts.emplace_back(tilt);
+            h.indexes.emplace_back(ref);
+        } else {
+            h.rowIds.emplace_back(__iter.objId);
+        }
         if (mustCrop) {
             futures.emplace_back(m_threadPool.push(routineCrop, fn, i));
         } else {
@@ -167,6 +176,23 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     // wait till done
     for (auto &f : futures) {
         f.get();
+    }
+}
+
+template<typename T>
+void AProgAlignSignificant<T>::validate(const DataHelper &h, bool isRefData) {
+    if ( ! h.md.containsLabel(MDL_IMAGE)) {
+        REPORT_ERROR(ERR_MD, h.fn + ": does not have MDL_IMAGE label");
+    }
+
+    if (isRefData) {
+        bool isValid = h.md.containsLabel(MDL_ANGLE_ROT)
+            && h.md.containsLabel(MDL_ANGLE_TILT)
+            && h.md.containsLabel(MDL_REF);
+        if ( ! isValid) {
+            REPORT_ERROR(ERR_MD, h.fn + ": at least one of the following label is missing: "
+                    "MDL_ANGLE_ROT, MDL_ANGLE_TILT, MDL_REF");
+        }
     }
 }
 
@@ -306,8 +332,7 @@ void AProgAlignSignificant<T>::fillRow(MDRow &row,
     row.setValue(MDL_SHIFT_X, (double)-shiftX); // store negative translation
     row.setValue(MDL_SHIFT_Y, (double)-shiftY); // store negative translation
     row.setValue(MDL_FLIP, flip);
-    assert(std::numeric_limits<int>::max() >= refIndex);
-    row.setValue(MDL_REF, (int)refIndex);
+    row.setValue(MDL_REF, getRefMetaIndex(refIndex));
 }
 
 template<typename T>
@@ -419,9 +444,8 @@ void AProgAlignSignificant<T>::saveRefStk() {
     const auto &fn = m_updateHelper.fnStk;
     checkLogDelete(fn);
     for (size_t n = 0; n < dims.n(); ++n ) {
-        const size_t indexInStk = n + 1; // within stk file, index images from one (1)
         FileName name;
-        name.compose(indexInStk, fn);
+        name.compose(n + 1, fn); // within stk file, index images from one (1)
         size_t offset = n * dims.sizeSingle();
         MultidimArray<T> wrapper(1, 1, dims.y(), dims.x(), m_referenceImages.data.get() + offset);
         auto img = Image<T>(wrapper);
@@ -437,29 +461,28 @@ void AProgAlignSignificant<T>::saveRefXmd() {
     m_updateHelper.refBlock.write("classes@" + fn, MD_APPEND);
     // write the per-ref images blocks
     const size_t noOfBlocks = m_updateHelper.imgBlocks.size();
-    unsigned noOfDigits = noOfBlocks > 0 ? log10 ((float) noOfBlocks) + 1 : 1;
-    const auto pattern = "class%0" + std::to_string(noOfDigits) + "d_images@%s";
+    const auto pattern = "class%06d_images@";
     for (size_t n = 0; n < noOfBlocks; ++n) {
         const auto &md = m_updateHelper.imgBlocks.at(n);
         if (0 == md.size()) {
             continue; // ignore MD for empty references
         }
-        auto blockName = formatString(pattern.c_str(), n);
+        auto blockName = formatString(pattern, getRefMetaIndex(n));
         md.write(blockName + fn, MD_APPEND);
     }
 }
 
 template<typename T>
-void AProgAlignSignificant<T>::updateRefXmd(size_t zeroBasedIndex, std::vector<Assignment> &images) {
-    const size_t indexInStk = zeroBasedIndex + 1; // within stk file, index images from one (1)
+void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignment> &images) {
+    const size_t indexInStk = refIndex + 1; // within stk file, index images from one (1)
     FileName refName;
     auto &refMeta = m_updateHelper.refBlock;
     // name of the reference
     refName.compose(indexInStk, m_updateHelper.fnStk);
     // some info about it
     size_t id = refMeta.addObject();
-    assert(std::numeric_limits<int>::max() >= zeroBasedIndex);
-    refMeta.setValue(MDL_REF, (int)zeroBasedIndex, id);
+    assert(std::numeric_limits<int>::max() >= refIndex);
+    refMeta.setValue(MDL_REF, getRefMetaIndex(refIndex), id);
     refMeta.setValue(MDL_IMAGE, refName, id);
     refMeta.setValue(MDL_CLASS_COUNT, images.size(), id);
 
@@ -467,11 +490,12 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t zeroBasedIndex, std::vector<A
     std::sort(images.begin(), images.end(), [](const Assignment &l, const Assignment &r) {
        return l.imgIndex < r.imgIndex; // sort by image index
     });
-    auto &md = m_updateHelper.imgBlocks.at(zeroBasedIndex);
+    auto &md = m_updateHelper.imgBlocks.at(refIndex);
     MDRow row;
     const size_t noOfImages = images.size();
     for (const auto &a : images) {
-        fillRow(row, a.pose, zeroBasedIndex, a.weight);
+        getImgRow(row, a.imgIndex);
+        fillRow(row, a.pose, refIndex, a.weight);
         md.addRow(row);
     }
 }
@@ -504,8 +528,8 @@ void AProgAlignSignificant<T>::run() {
     show();
     m_threadPool.resize(getSettings().cpuThreads);
     // load data
-    load(m_imagesToAlign);
-    load(m_referenceImages);
+    load<false>(m_imagesToAlign);
+    load<true>(m_referenceImages);
 
     bool hasMoreReferences = m_allowDataSwap
             && (m_referenceImages.dims.n() > m_imagesToAlign.dims.n());
