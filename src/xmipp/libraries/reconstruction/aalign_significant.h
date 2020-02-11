@@ -56,15 +56,28 @@ protected:
         unsigned cpuThreads;
     };
 
+    struct Assignment {
+        Assignment(size_t r, size_t i, float w, float m, const Matrix2D<float> &p) :
+            refIndex(r), imgIndex(i), weight(w), merit(m), pose(p) {};
+        size_t refIndex;
+        size_t imgIndex;
+        float weight;
+        float merit;
+        Matrix2D<float> pose;
+    };
+
     virtual void check() const;
     const Settings &getSettings() {
         return m_settings;
     }
     virtual std::vector<AlignmentEstimation> align(const T *ref, const T *others) = 0;
+    virtual void updateRefs(T *refs, const T *others, const std::vector<Assignment> &assignments) = 0;
 
     ctpl::thread_pool &getThreadPool() {
         return m_threadPool;
     }
+
+    void updateRefXmd(size_t zeroBasedIndex, std::vector<Assignment> &images);
 
 private:
     struct DataHelper {
@@ -76,18 +89,27 @@ private:
         std::unique_ptr<T[]> data;
     };
 
+    struct UpdateRefHelper {
+        bool doUpdate;
+        std::vector<MetaData> imgBlocks;
+        MetaData refBlock;
+        FileName fnXmd;
+        FileName fnStk;
+    };
+
     struct WeightCompHelper {
         WeightCompHelper(float c, size_t ref, size_t img) :
-            merit(c), refIndex(ref), imgIndex(img) {};
+            refIndex(ref), imgIndex(img), merit(c) {};
         size_t refIndex;
         size_t imgIndex;
         float merit;
     };
 
+
     DataHelper m_imagesToAlign;
     DataHelper m_referenceImages;
     FileName m_fnOut;
-    FileName m_fnOutUpdatedRefs;
+    UpdateRefHelper m_updateHelper;
     float m_angDistance;
     Settings m_settings;
     size_t m_noOfBestToKeep;
@@ -95,6 +117,7 @@ private:
     bool m_useWeightInsteadOfCC;
 
     std::vector<std::vector<float>> m_weights;
+    std::vector<Assignment> m_assignments;
 
     ctpl::thread_pool m_threadPool;
 
@@ -110,17 +133,27 @@ private:
             std::vector<WeightCompHelper> &figsOfMerit,
             size_t refIndex);
     template<bool IS_ESTIMATION_TRANSPOSED, bool USE_WEIGHT>
-    void storeAlignedImages(
+    void computeAssignment(
             const std::vector<AlignmentEstimation> &est);
+    template<bool USE_WEIGHT>
+    void storeAlignedImages();
     void fillRow(MDRow &row,
             const Matrix2D<float> &pose,
             size_t refIndex,
             double weight, double maxVote);
+    void fillRow(MDRow &row,
+            const Matrix2D<float> &pose,
+            size_t refIndex,
+            double weight);
     void extractMax(
             std::vector<float> &data,
-            size_t &pos, double &val);
+            size_t &pos, float &val);
 
     void updateSettings();
+    void updateRefs();
+    void saveRefStk();
+    void checkLogDelete(const FileName &fn);
+    void saveRefXmd();
 };
 
 } /* namespace Alignment */

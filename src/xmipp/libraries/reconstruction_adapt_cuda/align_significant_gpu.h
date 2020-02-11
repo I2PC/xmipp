@@ -33,18 +33,32 @@
 #include "reconstruction_cuda/cuda_bspline_geo_transformer.h"
 #include "reconstruction_cuda/cuda_correlation_computer.h"
 
+#include <algorithm>
+
 namespace Alignment {
 
 template<typename T>
 class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
+using typename AProgAlignSignificant<T>::Assignment;
 protected:
     std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
+
+    void updateRefs(T *refs, const T *others,
+            const std::vector<Assignment> &assignments) override;
+
 private:
     void initRotEstimator(CudaRotPolarEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
     void initShiftEstimator(CudaShiftCorrEstimator<T> &est, std::vector<HW*> &hw, const Dimensions &dims);
     void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw, const Dimensions &dims);
     void initMeritComputer(AMeritComputer<T> &mc, std::vector<HW*> &hw, const Dimensions &dims);
-    size_t maxBatchSize = 300;
+
+    void interpolate(BSplineGeoTransformer<T> &transformer,
+            T *data,
+            const std::vector<Assignment> &assignments,
+            size_t offset,
+            size_t toProcess);
+
+    size_t m_maxBatchSize = 300;
 };
 
 

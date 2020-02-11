@@ -41,6 +41,9 @@ void CudaBSplineGeoTransformer<T>::setSrc(const T *h_data) {
 
 template<typename T>
 void CudaBSplineGeoTransformer<T>::initialize(bool doAllocation) {
+    if (doAllocation) {
+        release();
+    }
     const auto &s = this->getSettings();
     m_stream = dynamic_cast<GPU*>(s.hw.at(0));
 
@@ -49,7 +52,6 @@ void CudaBSplineGeoTransformer<T>::initialize(bool doAllocation) {
     }
 
     if (doAllocation) {
-        release();
         allocate();
     }
 }
@@ -133,6 +135,33 @@ T *CudaBSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices)
                     dims.x(), dims.y());
     gpuErrchk(cudaDeviceSynchronize());
     return m_d_dest;
+}
+
+template<typename T>
+void CudaBSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
+    const auto& dims = this->getSettings().dims.copyForN(firstN);
+    dim3 dimBlock(64, 64, 1);
+    dim3 dimGrid(
+        std::ceil(dims.x() / (float)dimBlock.x),
+        std::ceil(dims.y() / (float)dimBlock.y),
+        1);
+    auto stream = *(cudaStream_t*)m_stream->stream();
+
+    // allocate temporal output
+    size_t bytes = dims.sizeSingle() * sizeof(T);
+    T *tmp;
+    gpuErrchk(cudaMalloc(&tmp, bytes));
+
+    sumKernel<<<dimGrid, dimBlock, 0, stream>>> (
+        m_d_dest, tmp,
+        dims.x(), dims.y(), dims.n());
+
+    gpuErrchk(cudaMemcpyAsync(
+        dest,
+        m_d_dest,
+        bytes,
+        cudaMemcpyDeviceToHost, stream));
+    m_stream->synch();
 }
 
 // explicit instantiation

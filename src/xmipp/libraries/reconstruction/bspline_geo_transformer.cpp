@@ -97,6 +97,10 @@ bool BSplineGeoTransformer<T>::canBeReused(const BSplineTransformSettings<T> &s)
     return result;
 }
 
+template<typename T>
+void BSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
+    REPORT_ERROR(ERR_NOT_IMPLEMENTED, "This functionality is not yet available.");
+}
 
 template<typename T>
 T *BSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {

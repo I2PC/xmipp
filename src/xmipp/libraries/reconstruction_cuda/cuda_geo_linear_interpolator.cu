@@ -53,3 +53,22 @@ void interpolateKernel(const T * __restrict__ in, T * __restrict__ out, float * 
     unsigned offset = inY * xDim + inX;
     dest[offset] = val;
 }
+
+template<typename T>
+__global__
+void sumKernel(const T * __restrict__ in, T * __restrict__ out,
+        int xDim, int yDim, int nDim) {
+    // assign pixel to thread
+    unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= xDim) return;
+    if (y >= yDim) return;
+
+    unsigned pos = (y * xDim) + x;
+    double v = in[pos]; // double on purpose, to improve the precision
+    for (size_t n = 1; n < nDim; ++n) {
+        unsigned offset = n * xDim * yDim;
+        v += in[offset + pos];
+    }
+    out[pos] = v / nDim;
+}
