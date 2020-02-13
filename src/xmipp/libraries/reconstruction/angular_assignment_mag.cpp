@@ -285,7 +285,7 @@ void ProgAngularAssignmentMag::preProcess() {
 	// some constants
 	n_rad = size_t(Xdim / 2.);
 
-	startBand = size_t((sampling * Xdim) / 80.); // 100
+	startBand = size_t((sampling * Xdim) / 80.);
 	finalBand = size_t((sampling * Xdim) / (sampling * 3));
 //startBand = 5;
 //finalBand = 19;
