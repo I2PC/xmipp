@@ -319,14 +319,17 @@ double fastMaskedCorrelation(const MultidimArray< T >& x,
 }
 
 template <typename T>
-T fastCorrelation(const MultidimArray< T >& x,
+double fastCorrelation(const MultidimArray< T >& x,
                        const MultidimArray< T >& y)
 {
-    T * __restrict__ refX = x.data;
-    T * __restrict__ refY = y.data;
+    double retval = 0; 						// Returned value
+    double *refX, *refY;					// Pointer to vectors.
     size_t nmax=4*(MULTIDIM_SIZE(x)/4);
 
-    T retval = 0;
+    // Get reference to first elements in vectors.
+    refX = &DIRECT_MULTIDIM_ELEM(x, 0);
+    refY = &DIRECT_MULTIDIM_ELEM(y, 0);
+
     // loop unrolling
     for (size_t n=0; n<nmax; n+=4)
     {

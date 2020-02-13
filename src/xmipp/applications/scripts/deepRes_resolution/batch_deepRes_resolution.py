@@ -206,8 +206,7 @@ def produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut):
     Vxmipp.write(fnVolOut)
 
 if __name__=="__main__":
-    from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
-    checkIf_tf_keras_installed()
+
     parser = argparse.ArgumentParser(description="determine the local resoluction")
     parser.add_argument("-dl", "--dl_model", help="input deep learning model", required=True)
     parser.add_argument("-i", "--map", help="input map", required=True)

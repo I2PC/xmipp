@@ -31,6 +31,7 @@
 #include <core/xmipp_fft.h>
 #include <core/xmipp_filename.h>
 #include <algorithm>
+#include <classification/uniform.h>
 
 int flagAbort=0;
 
@@ -298,12 +299,10 @@ void AutoParticlePicking2::extractNegativeInvariant()
     // a negative particles.
     extractNonParticle(negativeSamples);
     // Choose some random positions from the previous step.
-    std::random_device rd;  //Will be used to obtain a seed for the random number engine
-    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-    std::uniform_real_distribution<> dist(0.0, 1.0);
+    RandomUniformGenerator<double> randNum(0, 1);
     randomValues.resize(1,1,1,negativeSamples.size());
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(randomValues)
-        DIRECT_A1D_ELEM(randomValues,i)=dist(gen);
+    DIRECT_A1D_ELEM(randomValues,i)=randNum();
     randomValues.indexSort(randomIndexes);
     int numNegatives;
     // If the number of particles is lower than 15 then the
@@ -1366,12 +1365,10 @@ void AutoParticlePicking2::extractNegativeInvariant(const FileName &fnInvariantF
     if (negativeSamples.size()==0)
         return;
     // Choose some random positions from the previous step.
-    std::random_device rd;  //Will be used to obtain a seed for the random number engine
-    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-    std::uniform_real_distribution<> dist(0.0, 1.0);
+    RandomUniformGenerator<double> randNum(0, 1);
     randomValues.resize(1,1,1,negativeSamples.size());
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(randomValues)
-        DIRECT_A1D_ELEM(randomValues,i)=dist(gen);
+    DIRECT_A1D_ELEM(randomValues,i)=randNum();
     randomValues.indexSort(randomIndexes);
     int numNegatives;
     // If the number of particles is lower than 15 then the

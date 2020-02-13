@@ -621,20 +621,6 @@ int return_gradhesscost(
               double  *pntr_DP_2_re, *pntr_DP_2_im, *pntr_DP_3_re, *pntr_DP_3_im;
               double  *pntr_DP_4_re, *pntr_DP_4_im;
 
-              size_t poolSize = (18 * 16) + (4 * 4) + (2 * 5) + (2 * 25);
-              auto pool = std::unique_ptr<double[]>(new double[poolSize]);
-              double *poolNext = pool.get();
-              auto getNextFromPool = [&](size_t count) {
-                  auto tmp = poolNext;
-                  poolNext += count;
-                  return tmp;
-              };
-
-              if (( ! pool) || (nullptr == poolNext)) {
-                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for memory pool");
-                  return(ERROR);
-              }
-
               phi = Parameters[0];
               theta = Parameters[1];
               psi = Parameters[2];
@@ -648,12 +634,36 @@ int return_gradhesscost(
               Sintheta = sin(theta);
               Costheta = cos(theta);
 
-              Rz1 = getNextFromPool(16);
-              Ry = getNextFromPool(16);
-              Rz2 = getNextFromPool(16);
+              Rz1 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Rz1 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Rz1");
+                  return(ERROR);
+              }
+
+              Ry = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Ry == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Ry");
+                  free(Rz1);
+                  return(ERROR);
+              }
+
+              Rz2 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Rz2 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Rz2");
+                  free(Rz1);
+                  free(Ry);
+                  return(ERROR);
+              }
+
               if (GetIdentitySquareMatrix(Rz2, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by GetIdentitySquareMatrix");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
                   return(ERROR);
               }
 
@@ -667,6 +677,9 @@ int return_gradhesscost(
               if (GetIdentitySquareMatrix(Rz1, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by GetIdentitySquareMatrix");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
                   return(ERROR);
               }
 
@@ -680,6 +693,9 @@ int return_gradhesscost(
               if (GetIdentitySquareMatrix(Ry, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by GetIdentitySquareMatrix");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
                   return(ERROR);
               }
 
@@ -692,16 +708,62 @@ int return_gradhesscost(
               hlp += (std::ptrdiff_t)2L;
               *hlp = Costheta;
 
-              R = getNextFromPool(16);
-              if (multiply_3Matrices(Rz2, Ry, Rz1, R, 4L, 4L, 4L, 4L) == ERROR)
+              R = (double *)malloc((size_t) 16L * sizeof(double));
+              if (R == (double *)NULL)
               {
-                  WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for R");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
                   return(ERROR);
               }
 
-              DRz1 = getNextFromPool(16);
-              DRy = getNextFromPool(16);
-              DRz2 = getNextFromPool(16);
+              if (multiply_3Matrices(Rz2, Ry, Rz1, R, 4L, 4L, 4L, 4L) == ERROR)
+              {
+                  WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  return(ERROR);
+              }
+
+              DRz1 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (DRz1 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DRz1");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  return(ERROR);
+              }
+
+              DRy = (double *)malloc((size_t) 16L * sizeof(double));
+              if (DRy == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DRy");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  return(ERROR);
+              }
+
+              DRz2 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (DRz2 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DRz2");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  return(ERROR);
+              }
+
               for (i = 0L; i < 16L; i++)
               {
                   DRz2[i] = 0.0;
@@ -732,43 +794,308 @@ int return_gradhesscost(
               hlp += (std::ptrdiff_t)2L;
               *hlp = - Sintheta;
 
-              DR0 = getNextFromPool(16);
-              DR1 = getNextFromPool(16);
-              DR2 = getNextFromPool(16);
+              DR0 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (DR0 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DR0");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  return(ERROR);
+              }
+              DR1 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (DR1 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DR1");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  return(ERROR);
+              }
+              DR2 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (DR2 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DR2");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  return(ERROR);
+              }
+
               if (multiply_3Matrices(Rz2, Ry, DRz1, DR0, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
                   return(ERROR);
               }
               if (multiply_3Matrices(Rz2, DRy, Rz1, DR1, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
                   return(ERROR);
               }
               if (multiply_3Matrices(DRz2, Ry, Rz1, DR2, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
                   return(ERROR);
               }
 
-              mn = getNextFromPool(4);
-              Arg = getNextFromPool(4);
-              Grad_re = getNextFromPool(4);
-              Grad_im = getNextFromPool(4);
-              Gradient_re = getNextFromPool(5);
-              Gradient_im = getNextFromPool(5);
-              Hessian_re = getNextFromPool(25);
-              Hessian_im = getNextFromPool(25);
+              mn = (double *)malloc((size_t) 4L * sizeof(double));
+              if (mn == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for mn");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  return(ERROR);
+              }
+
+              Arg = (double *)malloc((size_t) 4L * sizeof(double));
+              if (Arg == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Arg");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  return(ERROR);
+              }
+
+              Grad_re = (double *)malloc((size_t) 4L * sizeof(double));
+              if (Grad_re == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Grad_re");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  return(ERROR);
+              }
+              Grad_im = (double *)malloc((size_t) 4L * sizeof(double));
+              if (Grad_im == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Grad_im");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  return(ERROR);
+              }
+
+              Gradient_re = (double *)malloc((size_t) 5L * sizeof(double));
+              if (Gradient_re == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Gradient_re");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  return(ERROR);
+
+              }
+
+              Gradient_im = (double *)malloc((size_t) 5L * sizeof(double));
+              if (Gradient_im == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Gradient_im");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  return(ERROR);
+
+              }
+
+              Hessian_re = (double *)malloc((size_t) 25L * sizeof(double));
+              if (Hessian_re == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Hessian_re");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  return(ERROR);
+
+              }
+
+              Hessian_im = (double *)malloc((size_t) 25L * sizeof(double));
+              if (Hessian_im == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Hessian_im");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  return(ERROR);
+
+              }
+
               AllocateVolumeDouble(&DP_0, Mx, My, 2L, &Status);
               if (Status == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DP_0");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
                   return(ERROR);
               }
               AllocateVolumeDouble(&DP_1, Mx, My, 2L, &Status);
               if (Status == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DP_1");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
                   FreeVolumeDouble(&DP_0);
                   return(ERROR);
               }
@@ -776,6 +1103,24 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DP_2");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
                   FreeVolumeDouble(&DP_0);
                   FreeVolumeDouble(&DP_1);
                   return(ERROR);
@@ -784,6 +1129,24 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DP_3");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
                   FreeVolumeDouble(&DP_0);
                   FreeVolumeDouble(&DP_1);
                   FreeVolumeDouble(&DP_2);
@@ -793,6 +1156,24 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for DP_4");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
                   FreeVolumeDouble(&DP_0);
                   FreeVolumeDouble(&DP_1);
                   FreeVolumeDouble(&DP_2);
@@ -818,77 +1199,580 @@ int return_gradhesscost(
               pntr_DP_4_re = DP_4;
               pntr_DP_4_im = pntr_DP_4_re + (std::ptrdiff_t) SizeIm;
 
-              Q = getNextFromPool(16);
-              Q2 = getNextFromPool(16);
-              auto freeAllVolumes = [&] {
+
+
+              Q = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Q == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Q");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
                   FreeVolumeDouble(&DP_0);
                   FreeVolumeDouble(&DP_1);
                   FreeVolumeDouble(&DP_2);
                   FreeVolumeDouble(&DP_3);
                   FreeVolumeDouble(&DP_4);
-              };
+                  return(ERROR);
+              }
+
+              Q2 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Q2 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for Q2");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  return(ERROR);
+              }
 
               if (multiply_3Matrices(Left, R, Right, Q, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
                   return(ERROR);
               }
               if (MatrixTranspose(Q, Q2, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
                   return(ERROR);
               }
 
               if (multiply_3Matrices(Q1, Q2, Q3, Q, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
                   return(ERROR);
               }
 
 
-              dQ0 = getNextFromPool(16);
-              dQ1 = getNextFromPool(16);
-              dQ2 = getNextFromPool(16);
-              dQ2_0 = getNextFromPool(16);
-              dQ2_1 = getNextFromPool(16);
-              dQ2_2 = getNextFromPool(16);
+              dQ0 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (dQ0 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for dQ0");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  return(ERROR);
+              }
+              dQ1 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (dQ1 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for dQ1");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  return(ERROR);
+              }
+              dQ2 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (dQ2 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for dQ2");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  return(ERROR);
+              }
+
+
+              dQ2_0 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (dQ2_0 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for dQ2_0");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  return(ERROR);
+              }
+              dQ2_1 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (dQ2_1 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for dQ2_1");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  return(ERROR);
+              }
+              dQ2_2 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (dQ2_2 == (double *)NULL)
+              {
+                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for dQ2_2");
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  return(ERROR);
+              }
+
               if (multiply_3Matrices(Left, DR0, Right, dQ0, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
               if (MatrixTranspose(dQ0, dQ2_0, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
               if (multiply_3Matrices(Left, DR1, Right, dQ1, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
               if (MatrixTranspose(dQ1, dQ2_1, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
               if (multiply_3Matrices(Left, DR2, Right, dQ2, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
               if (MatrixTranspose(dQ2, dQ2_2, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTranspose");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
 
@@ -896,21 +1780,111 @@ int return_gradhesscost(
               if (multiply_3Matrices(Q1, dQ2_0, Q3, dQ0, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
 
               if (multiply_3Matrices(Q1, dQ2_1, Q3, dQ1, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
 
               if (multiply_3Matrices(Q1, dQ2_2, Q3, dQ2, 4L, 4L, 4L, 4L) == ERROR)
               {
                   WRITE_ERROR(return_gradhesscost, "Error returned by multiply_3Matrices");
-                  freeAllVolumes();
+                  free(Rz1);
+                  free(Ry);
+                  free(Rz2);
+                  free(R);
+                  free(DRz1);
+                  free(DRy);
+                  free(DRz2);
+                  free(DR0);
+                  free(DR1);
+                  free(DR2);
+                  free(mn);
+                  free(Arg);
+                  free(Grad_re);
+                  free(Grad_im);
+                  free(Gradient_re);
+                  free(Gradient_im);
+                  free(Hessian_re);
+                  free(Hessian_im);
+                  FreeVolumeDouble(&DP_0);
+                  FreeVolumeDouble(&DP_1);
+                  FreeVolumeDouble(&DP_2);
+                  FreeVolumeDouble(&DP_3);
+                  FreeVolumeDouble(&DP_4);
+                  free(Q);
+                  free(Q2);
+                  free(dQ0);
+                  free(dQ1);
+                  free(dQ2);
+                  free(dQ2_0);
+                  free(dQ2_1);
+                  free(dQ2_2);
                   return(ERROR);
               }
 
@@ -935,7 +1909,37 @@ int return_gradhesscost(
                       if (MatrixTimesVector(Q, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
 
@@ -1049,57 +2053,327 @@ int return_gradhesscost(
                       if (MatrixTimesVector(dQ0, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_re, Arg, da0, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_im, Arg, db0, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
 
                       if (MatrixTimesVector(dQ1, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_re, Arg, da1, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_im, Arg, db1, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
 
                       if (MatrixTimesVector(dQ2, mn, Arg, 4L, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by MatrixTimesVector");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_re, Arg, da2, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
                       if (VectorScalarProduct(Grad_im, Arg, db2, 4L) == ERROR)
                       {
                           WRITE_ERROR(return_gradhesscost, "Error returned by VectorScalarProduct");
-                          freeAllVolumes();
+                          free(Rz1);
+                          free(Ry);
+                          free(Rz2);
+                          free(R);
+                          free(DRz1);
+                          free(DRy);
+                          free(DRz2);
+                          free(DR0);
+                          free(DR1);
+                          free(DR2);
+                          free(mn);
+                          free(Arg);
+                          free(Grad_re);
+                          free(Grad_im);
+                          free(Gradient_re);
+                          free(Gradient_im);
+                          free(Hessian_re);
+                          free(Hessian_im);
+                          FreeVolumeDouble(&DP_0);
+                          FreeVolumeDouble(&DP_1);
+                          FreeVolumeDouble(&DP_2);
+                          FreeVolumeDouble(&DP_3);
+                          FreeVolumeDouble(&DP_4);
+                          free(Q);
+                          free(Q2);
+                          free(dQ0);
+                          free(dQ1);
+                          free(dQ2);
+                          free(dQ2_0);
+                          free(dQ2_1);
+                          free(dQ2_2);
                           return(ERROR);
                       }
 
@@ -1220,13 +2494,73 @@ int return_gradhesscost(
                           if (gradhesscost_atpixel(Gradient_re, Hessian_re, &cost_re, Difference_re, dp0_re, dp1_re, dp2_re, dp3_re, dp4_re, Weight) == ERROR)
                           {
                               WRITE_ERROR(return_gradhesscost, "Error returned by gradhesscost_atpixel");
-                              freeAllVolumes();
+                              free(Rz1);
+                              free(Ry);
+                              free(Rz2);
+                              free(R);
+                              free(DRz1);
+                              free(DRy);
+                              free(DRz2);
+                              free(DR0);
+                              free(DR1);
+                              free(DR2);
+                              free(mn);
+                              free(Arg);
+                              free(Grad_re);
+                              free(Grad_im);
+                              free(Gradient_re);
+                              free(Gradient_im);
+                              free(Hessian_re);
+                              free(Hessian_im);
+                              FreeVolumeDouble(&DP_0);
+                              FreeVolumeDouble(&DP_1);
+                              FreeVolumeDouble(&DP_2);
+                              FreeVolumeDouble(&DP_3);
+                              FreeVolumeDouble(&DP_4);
+                              free(Q);
+                              free(Q2);
+                              free(dQ0);
+                              free(dQ1);
+                              free(dQ2);
+                              free(dQ2_0);
+                              free(dQ2_1);
+                              free(dQ2_2);
                               return(ERROR);
                           }
                           if (gradhesscost_atpixel(Gradient_im, Hessian_im, &cost_im, Difference_im, dp0_im, dp1_im, dp2_im, dp3_im, dp4_im, Weight))
                           {
                               WRITE_ERROR(return_gradhesscost, "Error returned by gradhesscost_atpixel");
-                              freeAllVolumes();
+                              free(Rz1);
+                              free(Ry);
+                              free(Rz2);
+                              free(R);
+                              free(DRz1);
+                              free(DRy);
+                              free(DRz2);
+                              free(DR0);
+                              free(DR1);
+                              free(DR2);
+                              free(mn);
+                              free(Arg);
+                              free(Grad_re);
+                              free(Grad_im);
+                              free(Gradient_re);
+                              free(Gradient_im);
+                              free(Hessian_re);
+                              free(Hessian_im);
+                              FreeVolumeDouble(&DP_0);
+                              FreeVolumeDouble(&DP_1);
+                              FreeVolumeDouble(&DP_2);
+                              FreeVolumeDouble(&DP_3);
+                              FreeVolumeDouble(&DP_4);
+                              free(Q);
+                              free(Q2);
+                              free(dQ0);
+                              free(dQ1);
+                              free(dQ2);
+                              free(dQ2_0);
+                              free(dQ2_1);
+                              free(dQ2_2);
                               return(ERROR);
                           }
 
@@ -1250,7 +2584,38 @@ int return_gradhesscost(
 
               }
 
-              freeAllVolumes();
+              free(Rz1);
+              free(Ry);
+              free(Rz2);
+              free(R);
+              free(DRz1);
+              free(DRy);
+              free(DRz2);
+              free(DR0);
+              free(DR1);
+              free(DR2);
+              free(mn);
+              free(Arg);
+              free(Grad_re);
+              free(Grad_im);
+              free(Gradient_re);
+              free(Gradient_im);
+              free(Hessian_re);
+              free(Hessian_im);
+              FreeVolumeDouble(&DP_0);
+              FreeVolumeDouble(&DP_1);
+              FreeVolumeDouble(&DP_2);
+              FreeVolumeDouble(&DP_3);
+              FreeVolumeDouble(&DP_4);
+              free(Q);
+              free(Q2);
+              free(dQ0);
+              free(dQ1);
+              free(dQ2);
+              free(dQ2_0);
+              free(dQ2_1);
+              free(dQ2_2);
+
               return(!ERROR);
           }/* End of return_gradhesscost */
 
@@ -1713,20 +3078,6 @@ int return_gradhesscost(
                   return(ERROR);
               }
 
-              size_t poolSize = (4 * 16) + (2 * 5) + (1 * 25);
-              auto pool = std::unique_ptr<double[]>(new double[poolSize]);
-              double *poolNext = pool.get();
-              auto getNextFromPool = [&](size_t count) {
-                  auto tmp = poolNext;
-                  poolNext += count;
-                  return tmp;
-              };
-
-              if (( ! pool) || (nullptr == poolNext)) {
-                  WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for memory pool");
-                  return(ERROR);
-              }
-
               DoDesProj = (int) Data->MakeDesiredProj;
 
               reDftVolume = Data->ReDftVolume;
@@ -1775,7 +3126,12 @@ int return_gradhesscost(
               tol_angle = Data->ToleranceAngle;
               tol_shift = Data->ToleranceShift;
 
-              Parameters = getNextFromPool(5);
+              Parameters = (double *)malloc((size_t) 5L * sizeof(double));
+              if (Parameters == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Parameters");
+                  return(ERROR);
+              }
 
               par = Data->Parameters;
               Parameters[0] = (double)(*par++) * PI / 180.0;
@@ -1788,6 +3144,7 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR - Not enough memory for CoefRe");
+                  free(Parameters);
                   return(ERROR);
               }
 
@@ -1795,6 +3152,7 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR - Not enough memory for CoefIm");
+                  free(Parameters);
                   FreeVolumeDouble(&CoefRe);
                   return(ERROR);
               }
@@ -1804,6 +3162,7 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR");
+                  free(Parameters);
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
                   return(ERROR);
@@ -1814,20 +3173,54 @@ int return_gradhesscost(
               if (Status == ERROR)
               {
                   WRITE_ERROR(cstregistration, "ERROR");
+                  free(Parameters);
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
                   return(ERROR);
               }
 
-              Gradient = getNextFromPool(5);
-              Hessian = getNextFromPool(25);
-              Q1 = getNextFromPool(16);
+              Gradient = (double *)malloc((size_t) 5L * sizeof(double));
+              if (Gradient == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Gradient");
+                  FreeVolumeDouble(&CoefRe);
+                  FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  return(ERROR);
+              }
+
+              Hessian = (double *)malloc((size_t) 25L * sizeof(double));
+              if (Hessian == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Hessian");
+                  FreeVolumeDouble(&CoefRe);
+                  FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  return(ERROR);
+              }
+
+              Q1 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Q1 == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Q1");
+                  FreeVolumeDouble(&CoefRe);
+                  FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  return(ERROR);
+              }
 
               if (GetIdentitySquareMatrix(Q1, 4L) == ERROR)
               {
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
                   return(ERROR);
               }
 
@@ -1838,12 +3231,29 @@ int return_gradhesscost(
               hlp += (std::ptrdiff_t)5L;
               *hlp = (double) Nz;
 
-              Q3 = getNextFromPool(16);
+              Q3 = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Q3 == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Q3");
+                  FreeVolumeDouble(&CoefRe);
+                  FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  return(ERROR);
+              }
+
               if (GetIdentitySquareMatrix(Q3, 4L) == ERROR)
               {
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
                   return(ERROR);
               }
 
@@ -1853,13 +3263,47 @@ int return_gradhesscost(
               *hlp = 1.0 / (double) My;
 
 
-              As = getNextFromPool(16);
-              Ap = getNextFromPool(16);
+              As = (double *)malloc((size_t) 16L * sizeof(double));
+              if (As == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for As");
+                  FreeVolumeDouble(&CoefRe);
+                  FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  return(ERROR);
+              }
+
+              Ap = (double *)malloc((size_t) 16L * sizeof(double));
+              if (Ap == (double *)NULL)
+              {
+                  WRITE_ERROR(cstregistration, "ERROR - Not enough memory for Ap");
+                  FreeVolumeDouble(&CoefRe);
+                  FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  free(As);
+                  return(ERROR);
+              }
+
               if (GetIdentitySquareMatrix(As, 4L) == ERROR)
               {
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  free(As);
+                  free(Ap);
                   return(ERROR);
               }
 
@@ -1876,6 +3320,13 @@ int return_gradhesscost(
                   WRITE_ERROR(cstregistration, "Error returned by GetIdentitySquareMatrix");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  free(As);
+                  free(Ap);
                   return(ERROR);
               }
 
@@ -1961,6 +3412,13 @@ int return_gradhesscost(
                   WRITE_ERROR(cstregistration, "Error returned by return_gradhesscost");
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  free(As);
+                  free(Ap);
                   return(ERROR);
               }
 
@@ -1972,6 +3430,13 @@ int return_gradhesscost(
               {
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  free(As);
+                  free(Ap);
                   return(!ERROR);
               }
 
@@ -1999,6 +3464,13 @@ int return_gradhesscost(
               {
                   FreeVolumeDouble(&CoefRe);
                   FreeVolumeDouble(&CoefIm);
+                  free(Parameters);
+                  free(Gradient);
+                  free(Hessian);
+                  free(Q1);
+                  free(Q3);
+                  free(As);
+                  free(Ap);
                   return(!ERROR);
               }
 
@@ -2025,6 +3497,13 @@ int return_gradhesscost(
                       WRITE_ERROR(cstregistration, "Error returned by levenberg_cst");
                       FreeVolumeDouble(&CoefRe);
                       FreeVolumeDouble(&CoefIm);
+                      free(Parameters);
+                      free(Gradient);
+                      free(Hessian);
+                      free(Q1);
+                      free(Q3);
+                      free(As);
+                      free(Ap);
                       return(ERROR);
                   }
 
@@ -2068,6 +3547,13 @@ int return_gradhesscost(
 
               FreeVolumeDouble(&CoefRe);
               FreeVolumeDouble(&CoefIm);
+              free(Parameters);
+              free(Gradient);
+              free(Hessian);
+              free(Q1);
+              free(Q3);
+              free(As);
+              free(Ap);
 
               return(!ERROR);
           }

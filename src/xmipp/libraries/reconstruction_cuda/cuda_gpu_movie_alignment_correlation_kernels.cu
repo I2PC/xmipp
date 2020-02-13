@@ -90,75 +90,36 @@ void computeCorrelations2DOneToNKernel(
         T* __restrict__ inOut,
         const T* __restrict__ ref,
         int xDim, int yDim, int nDim) {
-    // assign element to thread, we have at thead for each column (+ some extra)
-    // single block processes single signal
-    unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned signal = blockIdx.y;
+    // assign element to thread
+#if TILE > 1
+    int id = threadIdx.y * blockDim.x + threadIdx.x;
+    int tidX = threadIdx.x % TILE + (id / (blockDim.y * TILE)) * TILE;
+    int tidY = (id / TILE) % blockDim.y;
+    int idx = blockIdx.x*blockDim.x + tidX;
+    int idy = blockIdx.y*blockDim.y + tidY;
+#else
+    volatile int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    volatile int idy = blockIdx.y*blockDim.y + threadIdx.y;
+#endif
+    int centerCoeff = 1-2*((idx+idy)&1); // center FT, input must be even
 
-    T *dest = inOut + (signal * xDim * yDim);
-    for (unsigned y = 0; y < yDim; ++y) {
-        if (x < xDim) {
-            unsigned index = y * xDim + x;
-            T refVal = ref[index]; // load reference value
-            T otherVal = dest[index];
-            T tmp;
-            tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
-            tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
-            if (center) {
-                tmp *= (int)(1-2*((x + y)&1)); // center FT, input must be even
-            }
-            dest[index] = tmp;
-        }
-    }
-}
+    if (idx >= xDim || idy >= yDim ) return;
+    int elem = idy*xDim + idx;
+    T refVal = ref[elem]; // load reference value
 
-/**
- * Function computes correlation of one signal and many others.
- * Signals are expected to be in polar space, row-wise
- * Rows (rings) are summed together element-wise
- * @param ref first signal in FT
- * @param inOut other signals in FT, also output
- * @param firstRingRadius radius of the first ring. Others are expected have increment of 1
- * @param xDim of the signal - number of samples
- * @param yDim of the signal - number of rings
- * @param nDim no of other signals
- */
-template<typename T> // float2 or double2
-__global__
-void computePolarCorrelationsSumOneToNKernel(
-        T* __restrict__ inOut,
-        const T* __restrict__ ref,
-        int firstRingRadius,
-        int xDim, int yDim, int nDim) {
-    // imagine input signal as a 2D image, rows are rings, columns are samples
-    // assign each thread to each sample of the first row
-    int idx = blockIdx.x*blockDim.x + threadIdx.x;
-
-    if (idx >= (xDim * nDim)) return;
-    int indexRef = idx % xDim; // column of the first row
-    int n = idx / xDim; // index of the signal for current thread
-    int indexOther = indexRef + (n * xDim * yDim);
-
-
-    T res = {};
-    for (int r = 0; r < yDim; ++r) {
-        // load values
-        T refVal = ref[indexRef];
-        T otherVal = inOut[indexOther];
-        // correlate, assuming ref signal is conjugated
+    for (int i = 0; i < nDim; i++) {
+        int offset = i * xDim * yDim;
+        T otherVal = inOut[offset + elem];
         T tmp;
         tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
         tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
-        // sum rows
-        float w = 2 * M_PI * (r + firstRingRadius);
-        res += w * tmp;
-        // move to next row
-        indexRef += xDim;
-        indexOther += xDim;
+        if (center) {
+            tmp *= centerCoeff;
+        }
+        inOut[offset + elem] = tmp;
     }
-    // store result
-    inOut[idx] = res;
 }
+
 
 /**
  * Function computes correlation between two batches of images

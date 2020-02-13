@@ -142,7 +142,6 @@ public:
     }
 
     inline FFTSettingsNew<T> createSubset(size_t n) const {
-        assert(n <= m_spatial.n());
         auto copy = FFTSettingsNew<T>(m_spatial.x(), m_spatial.y(), m_spatial.z(), n, n,
                 this->isInPlace(), this->isForward());
         return copy;

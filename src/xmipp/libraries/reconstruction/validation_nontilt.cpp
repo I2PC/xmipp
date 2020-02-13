@@ -196,8 +196,6 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
     double * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
-    std::random_device rd;
-    std::mt19937 g(rd());
 
     for (size_t n=0; n<sum_u.size(); n++)
     {
@@ -243,7 +241,7 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
             //tempMd.getColumnValues(MDL_WEIGHT, weightV);
             tempMd.getColumnValues(MDL_MAXCC, weightV);
 
-            std::shuffle(weightV.begin(), weightV.end(), g);
+            std::random_shuffle(weightV.begin(), weightV.end());
         }
 
         sumWRan = 0;
@@ -284,7 +282,7 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
     size_t idx = 0;
     while (idx < sum_u.size())
     {
-        std::shuffle(sum_u.begin(), sum_u.end(), g);
+        std::random_shuffle(sum_u.begin(), sum_u.end());
 
         if(sum_u.at(0) != sum_u.at(1))
         {
@@ -392,8 +390,7 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
 
     double rot,tilt;
     bool mirror;
-    std::random_device rd;
-    std::mt19937 g(rd());
+
     for (size_t n=0; n<sum_u.size(); n++)
     {
         for (size_t nS=0; nS<tempMd.size(); nS++)
@@ -419,7 +416,7 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
             zRanArray[nS] = zRan;
             //tempMd.getColumnValues(MDL_WEIGHT, weightV);
             tempMd.getColumnValues(MDL_MAXCC, weightV);
-            std::shuffle(weightV.begin(), weightV.end(), g);
+            std::random_shuffle(weightV.begin(), weightV.end());
         }
 
 
@@ -460,7 +457,7 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     size_t idx = 0;
     while (idx < sum_u.size())
     {
-        std::shuffle(sum_u.begin(), sum_u.end(), g);
+        std::random_shuffle(sum_u.begin(), sum_u.end());
 
         if(sum_u.at(0) != sum_u.at(1))
         {

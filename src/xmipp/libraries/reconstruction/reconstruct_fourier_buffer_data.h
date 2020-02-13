@@ -27,7 +27,6 @@
 #define XMIPP_LIBRARIES_DATA_RECONSTRUCT_FOURIER_BUFFER_DATA_H_
 
 #include "reconstruct_fourier_projection_traverse_space.h"
-#include "core/utils/memory_utils.h"
 
 /**
  * Struct holding data for calculating Fourier Reconstruction
@@ -52,31 +51,31 @@ struct RecFourierBufferData
 			hasFFTs(hasFFTs), hasCTFs(hasCTFs),
 			fftSizeX(fftSizeX), fftSizeY(fftSizeY), paddedImgSize(paddedImgSize),
 			maxNoOfImages(maxNoOfImages),noOfSymmetries(noOfSymmetries), noOfImages(0) {
-		spaces = memoryUtils::page_aligned_alloc<RecFourierProjectionTraverseSpace>(maxNoOfImages * noOfSymmetries, false);
+		spaces = new RecFourierProjectionTraverseSpace[maxNoOfImages * noOfSymmetries];
 		if (hasFFTs) {
-			paddedImages = nullptr;
-			FFTs = memoryUtils::page_aligned_alloc<float>(fftSizeX * fftSizeY * maxNoOfImages * 2, true); // *2 since it's complex
+			paddedImages = NULL;
+			FFTs = new float[fftSizeX * fftSizeY * maxNoOfImages * 2](); // *2 since it's complex
 		} else {
-			FFTs = nullptr;
-			paddedImages = memoryUtils::page_aligned_alloc<float>(paddedImgSize * paddedImgSize * maxNoOfImages, true);
+			FFTs = NULL;
+			paddedImages = new float[paddedImgSize * paddedImgSize * maxNoOfImages]();
 		}
 
 		if (hasCTFs) {
-			CTFs = memoryUtils::page_aligned_alloc<float>(fftSizeX * fftSizeY * maxNoOfImages, true);
-			modulators = memoryUtils::page_aligned_alloc<float>(fftSizeX * fftSizeY * maxNoOfImages, true);
+			CTFs = new float[fftSizeX * fftSizeY * maxNoOfImages]();
+			modulators = new float[fftSizeX * fftSizeY * maxNoOfImages]();
 		} else {
-			CTFs = modulators = nullptr;
+			CTFs = modulators = NULL;
 		}
 	};
 
 	~RecFourierBufferData() {
-		free(FFTs);
-		free(CTFs);
-		free(paddedImages);
-		free(modulators);
-		FFTs = CTFs = paddedImages = modulators = nullptr;
+		delete[] FFTs;
+		delete[] CTFs;
+		delete[] paddedImages;
+		delete[] modulators;
+		FFTs = CTFs = paddedImages = modulators = NULL;
 
-		free(spaces);
+		delete[] spaces;
 		spaces = NULL;
 	}
 

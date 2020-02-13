@@ -317,7 +317,7 @@ public:
      * std::cout << "Number of rings: " << P.getRingNo() << std::endl;
      * @endcode
      */
-    int getRingNo() const
+    const int getRingNo() const
     {
         return rings.size();
     }
@@ -334,7 +334,7 @@ public:
      * std::cout << "Mode: " << P.getMode() << std::endl;
      * @endcode
      */
-    int getMode() const
+    const int getMode() const
     {
         return mode;
     }
@@ -351,7 +351,7 @@ public:
      * std::cout << "Oversample: " << P.getOversample() << std::endl;
      * @endcode
      */
-    double getOversample() const
+    const double getOversample() const
     {
         return oversample;
     }
@@ -364,7 +364,7 @@ public:
      * std::cout << "Number of samples in second ring: " << P.getSampleNo(1) << std::endl;
      * @endcode
      */
-    int getSampleNo(int iring) const
+    const int getSampleNo(int iring) const
     {
         return XSIZE(rings[iring]);
     }
@@ -377,7 +377,7 @@ public:
      * std::cout << "Number of samples in outer ring: " << P.getSampleNoOuterRing() << std::endl;
      * @endcode
      */
-    int getSampleNoOuterRing() const
+    const int getSampleNoOuterRing() const
     {
         return XSIZE(rings[rings.size()-1]);
     }
@@ -390,7 +390,7 @@ public:
      * std::cout << "Radius of second ring: " << P.getRadius(1) << std::endl;
      * @endcode
      */
-    double getRadius(int iring) const
+    const double getRadius(int iring) const
     {
         return ring_radius[iring];
     }
@@ -827,17 +827,12 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
                            MultidimArray<double> &angles,
                            RotationalCorrelationAux &aux);
 
-/** Compute a polar Fourier transform (with/out normalization) of the input image.
+/** Compute a normalized polar Fourier transform of the input image.
     If plans is NULL, they are computed and returned. */
-template<bool NORMALIZE>
-void polarFourierTransform(const MultidimArray<double> &in,
+void normalizedPolarFourierTransform(const MultidimArray<double> &in,
                                      Polar< std::complex<double> > &out, bool flag,
                                      int first_ring, int last_ring, Polar_fftw_plans *&plans,
                                      int BsplineOrder=3);
-
-// Compute the normalized Polar Fourier transform --------------------------
-void normalizedPolarFourierTransform(Polar<double> &polarIn,
-        Polar<std::complex<double> > &out, bool conjugated,Polar_fftw_plans *&plans);
 
 /** Best rotation between two normalized polar Fourier transforms. */
 double best_rotation(const Polar< std::complex<double> > &I1,

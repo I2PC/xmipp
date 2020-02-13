@@ -696,7 +696,7 @@ void ProgReconstructSignificant::generateProjections()
 			mGalleryProjection.aliasImageInStack(gallery[n](),k);
 			mGalleryProjection.setXmippOrigin();
 			aux.transformer1.FourierTransform((MultidimArray<double> &)mGalleryProjection, transforms[k].FFTI, true);
-		    polarFourierTransform<true>(mGalleryProjection, transforms[k].polarFourierI, false,
+		    normalizedPolarFourierTransform(mGalleryProjection, transforms[k].polarFourierI, false,
 		                                    XSIZE(mGalleryProjection) / 5, XSIZE(mGalleryProjection) / 2, aux2.plans, 1);
 		}
 	}

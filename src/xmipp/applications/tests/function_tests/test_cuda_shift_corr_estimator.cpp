@@ -14,19 +14,12 @@ class AShiftEstimator_Test;
 
 #define SETUPTESTCASE \
     static void SetUpTestCase() { \
-        for (int i = 0; i < 2; ++i) { \
-            auto g = new GPU(); \
-            g->set(); \
-            hw.emplace_back(g); \
-        } \
+        hw = new GPU(); \
+        hw->set(); \
     }
 
 #define INIT \
-    ((Alignment::CudaShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true); \
-    hw.at(0)->lockMemory(others, dims.sBytes());
-
-#define TEARDOWN \
-    hw.at(0)->unlockMemory(others);
+    ((Alignment::CudaShiftCorrEstimator<T>*)estimator)->init2D(*hw, AlignType::OneToN, dims, maxShift, true, true);
 
 #include "ashift_corr_estimator_tests.h"
 

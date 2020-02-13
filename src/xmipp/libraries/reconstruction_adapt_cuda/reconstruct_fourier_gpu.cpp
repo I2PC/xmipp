@@ -422,8 +422,7 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
     GPU::setDevice(parent->device);
 
     // allocate buffer
-    void *rawMem = memoryUtils::page_aligned_alloc<RecFourierBufferData>(1, false);
-    threadParams->buffer = new(rawMem) RecFourierBufferData( ! parent->fftOnGPU, hasCTF, // placement of the object to specific location
+    threadParams->buffer = new RecFourierBufferData( ! parent->fftOnGPU, hasCTF,
     		parent->maxVolumeIndexX / 2, parent->maxVolumeIndexYZ, parent->paddedImgSize,
 			parent->bufferSize, (int)parent->R_repository.size());
     pinMemory(threadParams->buffer);
@@ -456,9 +455,8 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
 
     // clean after itself
     releaseWrapper(threadParams->gpuStream);
-    threadParams->buffer->~RecFourierBufferData(); // <- explicit destructor call
     unpinMemory(threadParams->buffer);
-    free(rawMem);
+    delete threadParams->buffer;
     threadParams->buffer = NULL;
     threadParams->selFile = NULL;
     barrier_wait( &parent->barrier );// notify that thread finished

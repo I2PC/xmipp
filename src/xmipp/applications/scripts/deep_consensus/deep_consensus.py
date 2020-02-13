@@ -28,14 +28,32 @@
 import sys, os
 import xmipp_base
 import xmippLib
+import traceback
 
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+BAD_IMPORT_MSG='''
+Error, tensorflow/keras is probably not installed. Install it with:\n  ./scipion installb deepLearningToolkit
+If gpu version of tensorflow desired, install cuda 8.0 or cuda 9.0
+We will try to automatically install cudnn, if unsucesfully, install cudnn and add to LD_LIBRARY_PATH
+add to SCIPION_DIR/config/scipion.conf
+CUDA = True
+CUDA_VERSION = 8.0  or 9.0
+CUDA_HOME = /path/to/cuda-%(CUDA_VERSION)
+CUDA_BIN = %(CUDA_HOME)s/bin
+CUDA_LIB = %(CUDA_HOME)s/lib64
+CUDNN_VERSION = 6 or 7
+'''
 
-checkIf_tf_keras_installed()
-
-from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
-                                                                               DeepTFSupervised, DataManager,
-                                                                               tf_intarnalError)
+try:
+  from deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, DeepTFSupervised, 
+                                                    DataManager, tf_intarnalError)
+except ImportError:
+  try:
+    from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape, 
+                                                    DeepTFSupervised, DataManager, tf_intarnalError)
+  except ImportError as e:
+    print(e)
+    raise ValueError(BAD_IMPORT_MSG)
+        
 WRITE_TEST_SCORES= True
 
 class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
@@ -59,7 +77,7 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
         self.addParamsLine('[ -t <numThreads>  <N=2>  ]   : Number of threads')
         
         
-        self.addParamsLine("== Scoring mode ==")
+        self.addParamsLine("== Scoring mode ==");
         self.addParamsLine('[ -i <trueTrainData>   ]      : A path to metada particles (xmd) to be scored.'
                            'already trained' )
         
@@ -71,7 +89,7 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
         self.addParamsLine('[ --testingFalse <falseTestData>   ]  : A path to metada false particles (curated) (xmd) to be used for '
                            'evaluation purposes' )
 
-        self.addParamsLine("== Training mode ==")
+        self.addParamsLine("== Training mode ==");
         self.addParamsLine('[ -p <trueTrainData>  ]       : Path to training positive metada particles (xmd). '
                            'if many paths, they must be separated by ":" e.g /path1/parts1.xmd:/path2/parts2.xmd')
         
@@ -103,7 +121,6 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
         self.addExampleLine('predict particles:  xmipp_deep_screen -n ./netData --score_mode -i unknownParticles.xmd -o '
                             'unknownPredictions.txt -g 0')
     def run(self):
-
         numberOfThreads=self.getIntParam('-t')
         gpuToUse=None
         if self.checkParam('-g'):
@@ -273,6 +290,16 @@ class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
                   f.write("label score\n")
                   for l, s in zip(y_labels, y_pred_all):
                       f.write("%d %f\n" % (l, s))
+
+def updateEnviron(gpuNum=None):
+  """ Create the needed environment for TensorFlow programs. """
+  print("updating environ to select gpu %s"%(gpuNum) )
+  if not gpuNum is None:
+    # os.environ['LD_LIBRARY_PATH']= os.environ['CUDA_LIB']+":"+os.environ['CUDA_HOME']+"/extras/CUPTI/lib64"
+    # os.environ['LD_LIBRARY_PATH']= os.environ['CUDA_LIB']
+    os.environ['CUDA_VISIBLE_DEVICES']=str(gpuNum)  #THIS IS FOR USING JUST one GPU:# must be changed to select desired gpu
+  else:
+    os.environ['CUDA_VISIBLE_DEVICES']="-1"
     
 if __name__ == '__main__':
     '''

@@ -56,7 +56,6 @@ gmon.out
 /src/xmipp/lib
 /src/xmipp/models/*
 /src/xmipp/tests/data
-xmipp.conf
 
 # Ignore version file
 .devel_version

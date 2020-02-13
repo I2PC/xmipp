@@ -1179,22 +1179,19 @@ TEST_F( MetadataTest, Query)
 
 TEST_F( MetadataTest, Randomize)
 {
+    int different,equal;
+    different=-1;
+    equal=-2;
     MetaData auxMetadata;
-    const int tries = 50;
-    for (int var = 0; var < tries; var++)
+    for (int var = 0; var < 20; var++)
     {
-        // randomize the content of the metadata
         auxMetadata.randomize(mDsource);
-        if (mDsource == auxMetadata) {
-            continue; // try again
-        } else {
-            // if they don't equal, the randomization probably works correctly
-            SUCCEED();
-            return;
-        }
+        if(mDsource==auxMetadata)
+            equal=1;
+        else
+            different=1;
     }
-    // if we got here, non of the previous try detected a change
-    FAIL() << "Randomization did not change the content of the metadata even after " << tries << " times.";
+    EXPECT_EQ(different,equal);
 }
 
 TEST_F( MetadataTest, ReadMultipleBlocks)

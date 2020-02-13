@@ -14,14 +14,12 @@ class AShiftEstimator_Test;
 
 #define SETUPTESTCASE \
     static void SetUpTestCase() { \
-        hw.emplace_back(new CPU()); \
+        hw = new CPU(); \
+        hw->set(); \
     }
 
 #define INIT \
-    ((Alignment::ShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true);
-
-#define TEARDOWN \
-    hw.at(0)->unlockMemory(others);
+    ((Alignment::ShiftCorrEstimator<T>*)estimator)->init2D(*hw, AlignType::OneToN, dims, maxShift, true, true);
 
 #include "ashift_corr_estimator_tests.h"
 

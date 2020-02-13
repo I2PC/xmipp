@@ -99,9 +99,9 @@ void ML2DBaseProgram::randomizeImagesOrder()
 
     if (!randomized)
     {
-        std::mt19937 g(seed);
+        srand(seed);
         //-------Randomize the order of images
-        std::shuffle(img_id.begin(), img_id.end(), g);
+        std::random_shuffle(img_id.begin(), img_id.end());
         randomized = true;
     }
 }//close function randomizeImagesOrder

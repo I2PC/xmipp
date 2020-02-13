@@ -13,10 +13,7 @@ public:
     SETUPTESTCASE
 
     static void TearDownTestCase() {
-        for (auto h : hw) {
-            delete h;
-        }
-        hw.clear();
+        delete hw;
     }
 
     void correlate2DNoCenter(size_t n, size_t batch) {
@@ -40,10 +37,10 @@ public:
             }
         }
 
-        estimator->init2D(hw, AlignType::OneToN, dims, 1, false, false);
+        estimator->init2D(*hw, AlignType::OneToN, dims, 1, false, false);
         estimator->load2DReferenceOneToN(ref);
         estimator->computeCorrelations2DOneToN(inOut, false);
-        for (auto h : hw) h->synch();
+        hw->synch();
 
         T delta = 0.0001;
         for (int n = 0; n < dims.fDim().n(); ++n) {
@@ -65,13 +62,13 @@ public:
 
 private:
     Alignment::AShiftCorrEstimator<T> *estimator;
-    static std::vector<HW*> hw;
+    static HW *hw;
 
 };
 TYPED_TEST_CASE_P(AShiftCorrEstimator_Test);
 
 template<typename T>
-std::vector<HW*> AShiftCorrEstimator_Test<T>::hw;
+HW* AShiftCorrEstimator_Test<T>::hw;
 
 
 //***********************************************
