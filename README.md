@@ -20,11 +20,19 @@ It can be easily installed using the [Plugin manager](https://scipion-em.github.
 
 **Xmipp as a standalone bundle (useful for developers)**
 
-Start by cloning the repository from GitHub.
+Start by cloning the repository from GitHub and go there.
+```
+git clone https://github.com/I2PC/xmipp xmipp-bundle
+cd xmipp-bundle
+```
 
-In case you don't want to import settings from Scipion, set XMIPP_NOSCIPION flag to true (`export XMIPP_NOSCIPION=True`). Otherwise, define SCIPION_HOME=\<path to scipion\>
+In case you don't want to import settings from Scipion, set XMIPP_NOSCIPION flag to true (`export XMIPP_NOSCIPION=True`). 
 
-Next, run `xmipp` script in the root folder (it might be necessary to add execute permission via `chmod +x xmipp`). This will checkout additional repositories and build Xmipp for you.
+Otherwise, run `xmipp` script in the root folder via Scipion (it might be necessary to add execute permission via `chmod +x xmipp`)
+```
+/<path to scipion>/scipion run ./xmipp
+```
+Running the script through Scipion will properly set the enviroment. This script will checkout additional repositories and build Xmipp for you.
 
 You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build.
 
