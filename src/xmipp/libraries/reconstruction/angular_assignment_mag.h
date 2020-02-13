@@ -117,6 +117,9 @@ public:
     double sampling;
     double angStep;
 
+// borrar
+double Inicio;
+
     int Nsim;
 
     ProgAngularAssignmentMag();

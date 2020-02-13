@@ -287,6 +287,8 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	startBand = size_t((sampling * Xdim) / 80.); // 100
 	finalBand = size_t((sampling * Xdim) / (sampling * 3));
+//startBand = 5;
+//finalBand = 19;
 
 	n_bands = finalBand - startBand;
 
@@ -372,8 +374,13 @@ std::cout << "Operation in preProcess took "<< duration*1000 << "milliseconds" <
 
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
+Inicio=std::clock();
 	// Define the neighborhood graph and Laplacian Matrix
 	computingNeighborGraph2();
+double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+std::cout << "Neigborhood, Laplacian matrix and eigendecomposition take "<< duration << " seconds" << std::endl;
+
+Inicio=std::clock();
 }
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
@@ -488,12 +495,6 @@ double Inicio=std::clock(); // */
 
 	Matrix1D<double> ccvec;
 	ccvec.initZeros(sizeMdRef);
-Matrix1D<double> txvec;
-txvec.initZeros(sizeMdRef);
-Matrix1D<double> tyvec;
-tyvec.initZeros(sizeMdRef);
-Matrix1D<double> psivec;
-psivec.initZeros(sizeMdRef);
 
 	std::vector<double> bestTx(sizeMdRef, 0);
 	std::vector<double> bestTy(sizeMdRef, 0);
@@ -518,97 +519,13 @@ psivec.initZeros(sizeMdRef);
 		candidatesFirstLoopCoeff[k] = cc_coeff;
 		VEC_ELEM(ccvec,k)=cc_coeff;
 		bestTx[k] = Tx; // todo if works then delete std-vectors and keep only Matrix1D
-VEC_ELEM(txvec,k)= Tx;
 		bestTy[k] = Ty;
-VEC_ELEM(tyvec,k)= Ty;
 		bestPsi[k] = psi;
-VEC_ELEM(psivec,k) = psi;
 	}
 
 /*comment
 ccvec.write("/home/jeison/Escritorio/testVectCC_1stLoop.txt");
-txvec.write("/home/jeison/Escritorio/testVectTx_1stLoop.txt");
-tyvec.write("/home/jeison/Escritorio/testVectTy_1stLoop.txt");
-psivec.write("/home/jeison/Escritorio/testVectPsi_1stLoop.txt");
 // */
-
-//// ========graph filter to ccVect from first loop, using filtered signal================
-////         to sort candidates previous to second loop processing
-//
-//// ================ Graph Filter Process =================
-//	Matrix1D<double> ccvec_filt;
-//	graphFourierFilter(ccvec,ccvec_filt);
-//ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
-//
-//	// search rotation with polar real image representation over 10% of reference images
-//	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
-//	// but for I1 symmetry, for example, should be at least 50%.
-//	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
-//
-//std::cout<<"nCand: "<<nCand<<"\n";
-//
-////	//ordering using cross-corr coefficient values computed in first loop
-////	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
-////			[&candidatesFirstLoopCoeff](int i, int j) {return candidatesFirstLoopCoeff[i] > candidatesFirstLoopCoeff[j];});
-//
-//	// ordering using cross-corr coefficient values filtered using graph signal approach
-//	std::partial_sort(Idx.begin(), Idx.begin()+nCand, Idx.end(),
-//			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
-//
-//	std::vector<unsigned int> candidatesSecondLoop(nCand, 0);
-//	std::vector<unsigned int> Idx2(nCand, 0);
-//	std::vector<double> candidatesSecondLoopCoeff(nCand, 0.);
-//	std::vector<double> bestTx2(nCand, 0.);
-//	std::vector<double> bestTy2(nCand, 0.);
-//	std::vector<double> bestPsi2(nCand, 0.);
-//
-//	size_t first = 0;
-//	MultidimArray<double> inPolar(n_rad, n_ang2);
-//	MultidimArray<double> MDaExpShiftRot2; // transform experimental
-//	MDaExpShiftRot2.setXmippOrigin();
-//	MultidimArray<double> ccMatrixRot2;
-//	MultidimArray<double> ccVectorRot2;
-//	MultidimArray<std::complex<double> > MDaInAuxF;
-//	for (int k = 0; k < nCand; ++k) {
-//		//apply transform to experimental image
-//		double rotVal = -1. * bestPsi[Idx[k]]; // -1. because I return parameters for reference image instead of experimental
-//		double trasXval = -1. * bestTx[Idx[k]];
-//		double trasYval = -1. * bestTy[Idx[k]];
-//		_applyShiftAndRotation(MDaIn,rotVal,trasXval,trasYval,MDaExpShiftRot2);
-//		//fourier experimental image
-//		_applyFourierImage2(MDaExpShiftRot2, MDaInF);
-//		// polar experimental image
-//		inPolar = imToPolar(MDaExpShiftRot2, first, n_rad);
-//		_applyFourierImage2(inPolar, MDaInAuxF, n_ang); // TODO check!!  at least first time, it uses the same transformer used in the previous loop which have a different size
-//
-//		// find rotation and shift
-//		ccMatrix(MDaInAuxF,vecMDaRef_polarF[candidatesFirstLoop[Idx[k]]],ccMatrixRot2);
-//		maxByColumn(ccMatrixRot2, ccVectorRot2);
-//		peaksFound = 0;
-//		std::vector<double> cand(maxAccepted, 0.);
-//		rotCandidates3(ccVectorRot2, cand, XSIZE(ccMatrixRot2));
-//		bestCand(MDaExpShiftRot2, MDaInF, vecMDaRef[Idx[k]], cand, psi,Tx, Ty, cc_coeff); //
-//
-//		// if its better and shifts are within range then update
-//		double testShiftTx = bestTx[Idx[k]] + Tx;
-//		double testShiftTy = bestTy[Idx[k]] + Ty;
-//		if (cc_coeff > candidatesFirstLoopCoeff[Idx[k]]
-//				&& std::abs(testShiftTx) < maxShift	&& std::abs(testShiftTy) < maxShift) {
-//			Idx2[k] = k;
-//			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
-//			candidatesSecondLoopCoeff[k] = cc_coeff;
-//			bestTx2[k] = testShiftTx;
-//			bestTy2[k] = testShiftTy;
-//			bestPsi2[k] = bestPsi[Idx[k]] + psi;
-//		} else {
-//			Idx2[k] = k;
-//			candidatesSecondLoop[k] = candidatesFirstLoop[Idx[k]];
-//			candidatesSecondLoopCoeff[k] =candidatesFirstLoopCoeff[Idx[k]];
-//			bestTx2[k] = bestTx[Idx[k]];
-//			bestTy2[k] = bestTy[Idx[k]];
-//			bestPsi2[k] = bestPsi[Idx[k]];
-//		}
-//	}
 
 // ==========graph filter processing after second loop=========================
 	//  second loop, "real search" over percentage of references
@@ -672,11 +589,8 @@ psivec.write("/home/jeison/Escritorio/testVectPsi_1stLoop.txt");
 				candidatesSecondLoopCoeff[Idx[k]] = cc_coeff;
 				VEC_ELEM(ccvec,Idx[k])=cc_coeff;
 				bestTx2[Idx[k]] = testShiftTx;
-VEC_ELEM(txvec,Idx[k])=testShiftTx;
 				bestTy2[Idx[k]] = testShiftTy;
-VEC_ELEM(tyvec,Idx[k])=testShiftTy;
 				bestPsi2[Idx[k]] = bestPsi[Idx[k]] + psi;
-VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]] + psi, -180., 180.); // realWRAP(bestPsi2[Idx2[0]], -180., 180.)
 			} else {
 				Idx2[k] = k;
 				Idx3[k] = k;
@@ -684,11 +598,8 @@ VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]] + psi, -180., 180.); // realWRA
 				candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
 				VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
 				bestTx2[Idx[k]] = bestTx[Idx[k]];
-VEC_ELEM(txvec,Idx[k])=bestTx[Idx[k]];
 				bestTy2[Idx[k]] = bestTy[Idx[k]];
-VEC_ELEM(tyvec,Idx[k])=bestTy[Idx[k]];
 				bestPsi2[Idx[k]] = bestPsi[Idx[k]];
-VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]], -180., 180.);
 			}
 		}// end if(k<nCand)
 		else{
@@ -698,40 +609,16 @@ VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]], -180., 180.);
 			candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
 			VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
 			bestTx2[Idx[k]] = bestTx[Idx[k]];
-VEC_ELEM(txvec,Idx[k])=bestTx[Idx[k]];
 			bestTy2[Idx[k]] = bestTy[Idx[k]];
-VEC_ELEM(tyvec,Idx[k])=bestTy[Idx[k]];
 			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
-VEC_ELEM(psivec,Idx[k])=realWRAP(bestPsi[Idx[k]], -180., 180.);
 		}
 	}
 
-/*comment
-ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
-txvec.write("/home/jeison/Escritorio/testVectTx_2ndLoop.txt");
-tyvec.write("/home/jeison/Escritorio/testVectTy_2ndLoop.txt");
-psivec.write("/home/jeison/Escritorio/testVectPsi_2ndLoop.txt");
-// */
 
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
 	graphFourierFilter(ccvec,ccvec_filt);
 
-Matrix1D<double> txvec_filt;
-graphFourierFilter(txvec,txvec_filt);
-
-Matrix1D<double> tyvec_filt;
-graphFourierFilter(tyvec,tyvec_filt);
-
-Matrix1D<double> psivec_filt;
-graphFourierFilter(psivec,psivec_filt);
-
-/*comment
-ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
-txvec_filt.write("/home/jeison/Escritorio/test_txVect_filt.txt");
-tyvec_filt.write("/home/jeison/Escritorio/test_tyVect_filt.txt");
-psivec_filt.write("/home/jeison/Escritorio/test_psiVect_filt.txt");
-// */
 
 	// choose best of the candidates after 2nd loop
 	int nCand2 = 1;
@@ -751,14 +638,6 @@ outCandidateBef.close();
 	std::partial_sort(Idx3.begin(), Idx3.begin()+nCand2, Idx3.end(),
 			[&ccvec_filt](int i, int j) {return ccvec_filt[i] > ccvec_filt[j];});
 
-/*comment
-std::cout<<"testIdx3[0]: "<<Idx3[0]<<std::endl;
-std::cout<<"testCand[Idx3[0]]: "<<candidatesSecondLoop[Idx3[0]]<<std::endl;
-std::cout<<"testCandCoeff[Idx3[0]]: "<<candidatesSecondLoopCoeff[Idx3[0]]<<std::endl;
-std::ofstream outCandidate("/home/jeison/Escritorio/bestCandidateGraph.txt");
-outCandidate<<candidatesSecondLoop[Idx3[0]]<<"\n";
-outCandidate.close();
-// */
 
 	// angular distance between this two direction
 	Matrix1D<double> dirj;
@@ -776,21 +655,6 @@ outCandidate.close();
 	psijp=0.;
 	Euler_direction(rotjp, tiltjp, psijp, dirjp);
 	double sphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp));
-
-//double energyConcentration2ndLoop=energyDistribution(dirj,Idx2,candidatesSecondLoopCoeff,candidatesSecondLoop);
-
-//double energyConcentrationFiltered=energyDistribution(dirj,Idx3,ccvec_filt);
-
-
-/*// BAD RESULTS replacing alignment parameters after 2nd loop by filtered values
-if (sphericalDistance<maxDistance){ //replace with alignment parameters from filtered versions
-bestTx2[Idx2[0]]=VEC_ELEM(txvec_filt,Idx2[0]);
-bestTy2[Idx2[0]]=VEC_ELEM(tyvec_filt,Idx2[0]);
-bestPsi2[Idx2[0]]=VEC_ELEM(psivec_filt,Idx2[0]);
-}
-else{
-candidatesSecondLoopCoeff[Idx2[0]]=exp(-.5*sphericalDistance/maxDistance);
-}// */
 
 	// is this direction a reliable candidate?
 	// a condition could be: if this direction is within "soft neighborhood" with high coeff values
@@ -810,22 +674,6 @@ std::cout<<"sphericalDistance: "<<sphericalDistance<<std::endl;
 std::cout<<"energyConcentration2ndLoop: "<<energyConcentration2ndLoop/sizeMdRef<<std::endl;
 std::cout<<"energyConcentrationFiltered: "<<energyConcentrationFiltered/sizeMdRef<<std::endl;
 // */
-
-//std::ofstream outTx;
-//std::ofstream outTy;
-//std::ofstream outPsi;
-//outTx.open("/home/jeison/Escritorio/outTx.txt", std::ios::app);
-//outTy.open("/home/jeison/Escritorio/outTy.txt", std::ios::app);
-//outPsi.open("/home/jeison/Escritorio/outPsi.txt", std::ios::app);
-//outTx<<sphericalDistance<<"\t"<<std::abs(bestTx2[Idx2[0]]-VEC_ELEM(txvec_filt,Idx2[0]))<<"\t"<<bestTx2[Idx2[0]]<<"\t"<<VEC_ELEM(txvec_filt,Idx2[0]) << "\n";
-//outTy<<sphericalDistance<<"\t"<<std::abs(bestTy2[Idx2[0]]-VEC_ELEM(tyvec_filt,Idx2[0]))<<"\t"<<bestTy2[Idx2[0]]<<"\t"<<VEC_ELEM(tyvec_filt,Idx2[0]) << "\n";
-//outPsi<<sphericalDistance<<"\t"<<std::abs(bestPsi2[Idx2[0]]-VEC_ELEM(psivec_filt,Idx2[0]))<<"\t"<<bestPsi2[Idx2[0]]<<"\t"<<VEC_ELEM(psivec_filt,Idx2[0]) << "\n";
-//outTx.close();
-//outTy.close();
-//outPsi.close();
-//
-//std::cout<<Idx2[0]<<"-->"<<candidatesSecondLoop[Idx2[0]]<<"\n";
-//std::cout<<"sphericalDistance: "<<sphericalDistance<<"\n";
 
 /*exit
 if(testCounter2==0)
@@ -854,6 +702,10 @@ testCounter2+=1;// */
 }
 
 void ProgAngularAssignmentMag::postProcess() {
+
+double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+std::cout << "processing images in this group takes "<< duration << " seconds" << std::endl;
+
 	// from angularContinousAssign2
 	MetaData &ptrMdOut = *getOutputMd();
 	ptrMdOut.removeDisabled();
@@ -1432,14 +1284,13 @@ void ProgAngularAssignmentMag::halfFourierShift(MultidimArray<double> &in,
 }
 
 /*
- * experiment for GCC matrix product F1 .* conj(F2) using Compactly supported approach
+ * experiment for cross-correlation matrix product F1 .* conj(F2) using Compactly supported approach
  */
 void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>> &F1,
 		const MultidimArray<std::complex<double>> &F2,/*reference image*/
 		MultidimArray<double> &result) {
 
 	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
-	//result.resizeNoCopy(vecMDaRef[0]); // NO!
 
 /*comment
 if(testCounter==2){
@@ -1461,13 +1312,17 @@ std::cout<<"size in ccMatrix full: "<< YSIZE(F1) <<" x "<< 2 * (XSIZE(F1) - 1) <
 	double *ptrFFT1 = (double*) MULTIDIM_ARRAY(aux.transformer1.fFourier);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(F1)
 	{
-		a = (*ptrFFT1) * dSize;
-		b = (*(ptrFFT1 + 1)) * dSize;
+		a = (*ptrFFT1)* dSize; // * dSize;
+		b = (*(ptrFFT1 + 1))* dSize; // * dSize;
 		c = (*ptrFFT2++);
 		d = (*ptrFFT2++) * (-1);
-		//Compactly supported correlation. F2 is reference image
-		*ptrFFT1++ = (a * c - b * d) / ((c * c + d * d) + 0.001);
-		*ptrFFT1++ = (b * c + a * d) / ((c * c + d * d) + 0.001);
+		double den=c * c + d * d;
+		if(den<=0){
+			std::cout<<"zero or negative denominator!!\n";
+		}
+		//Compactly supported correlation REMOVED. F2 is reference image
+		*ptrFFT1++ = (a * c - b * d); // / sqrt(den) ;
+		*ptrFFT1++ = (b * c + a * d); // / sqrt(den) ;
 	}
 	aux.transformer1.inverseFourierTransform();
 	CenterFFT(result, true);
@@ -1501,8 +1356,11 @@ void ProgAngularAssignmentMag::ccMatrixPCO(const MultidimArray<std::complex<doub
 		d = (*ptrFFT2++) * (-1);
 		// phase corr only
 		double den = (a * c - b * d) * (a * c - b * d) + (b * c + a * d) * (b * c + a * d);
-		*ptrFFT1++ = (a * c - b * d) / (den + 0.001);
-		*ptrFFT1++ = (b * c + a * d) / (den + 0.001);
+		if(den<=0){
+			std::cout<<"zero or negative denominator!!\n";
+		}
+		*ptrFFT1++ = (a * c - b * d) / sqrt(den);
+		*ptrFFT1++ = (b * c + a * d) / sqrt(den);
 	}
 
 	aux.transformer1.inverseFourierTransform();
