@@ -697,13 +697,15 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
 
         Monogenic mono;
 
-        double freq, lastResolution=1e38;
-        int idx, lastidx = -1;
+//        double freq, lastResolution=1e38;
+//        int idx, lastidx = -1;
         Image<double> resVol;
 //        MultidimArray<double> &presVol=resVol();
 
         for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
 		{
+            double freq, lastResolution=1e38;
+            int idx, lastidx = -1;
         	bandfilteredVol.initZeros(Vorig);
             weight.initZeros(Vorig);
             lastweight.initZeros(Vorig);
@@ -722,6 +724,7 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
 
 			for (double res = minRes; res<maxRes; res+=step)
 			{
+				std::cout << "resolution: "<< res << std::endl;
 				freq = sampling/res;
 
 				DIGFREQ2FFT_IDX(freq, ZSIZE(myfftV), idx);
@@ -764,6 +767,13 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
 				DIRECT_MULTIDIM_ELEM(bandfilteredVol, n) /=DIRECT_MULTIDIM_ELEM(lastweight, n);
 		}
 		localfilteredVol += bandfilteredVol;
+
+		FileName fl;
+		Image<double> saveImg;
+		fl = formatString("localFiltVolt_%i.vol", face_number);
+		saveImg() = bandfilteredVol;
+		saveImg.write(fl);
+
 	}
 }
 
