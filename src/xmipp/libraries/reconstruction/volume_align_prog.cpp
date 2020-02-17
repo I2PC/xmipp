@@ -411,7 +411,7 @@ public:
     			PyObject * SingleTiltWedgeMask = PyObject_CallObject(pSTMMclass, arglist);
     			// The order of volumes has to be flipped in order to compensate for a single tilt missing wedge. For those who are not using this mask, no changes in results will happen.
     			alignVolumesFRM(pFunc, params.V2(), params.V1(), SingleTiltWedgeMask, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
-    			std::cout<<"Reverse your usage of the option --inverse when using xmipp_transform_geometry"<<std::endl;
+    			std::cout<<"If you intend to apply transform using xmipp_transform_geometry, use --inverse flag (if it was not present before), or remove it (if it was present before)"<<std::endl;
     			Py_DECREF(SingleTiltWedgeMask);
     			Py_DECREF(arglist);
     			Py_DECREF(pSTMMclass);

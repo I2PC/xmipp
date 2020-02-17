@@ -266,9 +266,10 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	if (global_nma_vol_prog->alignVolumes){
 		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
 				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
+		//first just see what is the score
 		AnglesShiftsAndScore = fopen(shifts_angles, "r");
-		for (int i = 0; i < 7; i++){ //first just see what is the score
-			fscanf(AnglesShiftsAndScore, "%f,", &fit_value);}
+		fseek(AnglesShiftsAndScore, -10, SEEK_END);
+		fscanf(AnglesShiftsAndScore, "%f,", &fit_value);
 		fclose(AnglesShiftsAndScore);
 		retval = 1 + fit_value;
 	}
