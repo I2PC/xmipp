@@ -34,7 +34,6 @@
 #include <stdexcept>
 #include <vector>
 #include <core/xmipp_funcs.h>
-#include "uniform.h"
 #include "training_vector.h"
 
 // definition of max

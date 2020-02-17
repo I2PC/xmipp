@@ -115,9 +115,10 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
 		DIRECT_A1D_ELEM(angles,i) = (double) i * Kaux;
 }
 
-// Compute the normalized Polar Fourier transform --------------------------
-void normalizedPolarFourierTransform(const MultidimArray<double> &in,
-		Polar<std::complex<double> > &out, bool flag, int first_ring,
+// Compute the Polar Fourier transform --------------------------
+template<bool NORMALIZE>
+void polarFourierTransform(const MultidimArray<double> &in,
+		Polar<std::complex<double> > &out, bool conjugated, int first_ring,
 		int last_ring, Polar_fftw_plans *&plans, int BsplineOrder) {
 	Polar<double> polarIn;
 	if (BsplineOrder == 1)
@@ -128,14 +129,36 @@ void normalizedPolarFourierTransform(const MultidimArray<double> &in,
 		polarIn.getPolarFromCartesianBSpline(Maux, first_ring, last_ring,
 				BsplineOrder);
 	}
-	double mean, stddev;
-	polarIn.computeAverageAndStddev(mean, stddev);
-	polarIn.normalize(mean, stddev);
+	if (NORMALIZE) {
+        double mean, stddev;
+        polarIn.computeAverageAndStddev(mean, stddev);
+        polarIn.normalize(mean, stddev);
+	}
 	if (plans == NULL) {
 		plans = new Polar_fftw_plans();
 		polarIn.calculateFftwPlans(*plans);
 	}
-	fourierTransformRings(polarIn, out, *plans, flag);
+	fourierTransformRings(polarIn, out, *plans, conjugated);
+}
+template void polarFourierTransform<true>(const MultidimArray<double> &in,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder);
+template void polarFourierTransform<false>(const MultidimArray<double> &in,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder);
+
+// Compute the normalized Polar Fourier transform --------------------------
+void normalizedPolarFourierTransform(Polar<double> &polarIn,
+        Polar<std::complex<double> > &out, bool conjugated,
+        Polar_fftw_plans *&plans) {
+    double mean, stddev;
+    polarIn.computeAverageAndStddev(mean, stddev);
+    polarIn.normalize(mean, stddev);
+    if (plans == NULL) {
+        plans = new Polar_fftw_plans();
+        polarIn.calculateFftwPlans(*plans);
+    }
+    fourierTransformRings(polarIn, out, *plans, conjugated);
 }
 
 // Best rotation -----------------------------------------------------------
@@ -168,9 +191,9 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 
 	Polar_fftw_plans *plans = NULL;
 	Polar<std::complex<double> > polarFourierI2, polarFourierI1;
-	normalizedPolarFourierTransform(I1, polarFourierI1, false, XSIZE(I1) / 5,
+	polarFourierTransform<true>(I1, polarFourierI1, false, XSIZE(I1) / 5,
 			XSIZE(I1) / 2, plans);
-	normalizedPolarFourierTransform(I2, polarFourierI2, true, XSIZE(I2) / 5,
+	polarFourierTransform<true>(I2, polarFourierI2, true, XSIZE(I2) / 5,
 			XSIZE(I2) / 2, plans);
 
 	MultidimArray<double> rotationalCorr;

@@ -25,42 +25,53 @@
 
 #include "dimred_tools.h"
 
-void GenerateData::generateNewDataset(const String& method, int N, double noise)
+void GenerateData::generateNewDataset(const DatasetType &type, int N, double noise)
 {
 	label.resizeNoCopy(N);
 	X.resizeNoCopy(N,3);
 	t.resizeNoCopy(N,2);
-	if (noise==0)
-		init_random_generator(0);
-	if (method=="swiss")
+
+	auto g = std::mt19937();
+	if (0 == noise) {
+	    g.seed(42);
+	} else {
+	    std::random_device rd;
+	    g.seed(rd());
+	}
+
+    auto distUniform = std::uniform_real_distribution<>(0.0, 1.0);
+    auto distGauss = std::normal_distribution<>(0.0, 1.0);
+	switch (type) {
+	case DatasetType::SWISS:
 	{
 		for (int i=0; i<N; ++i)
 		{
 			// Generate t
-			MAT_ELEM(t,i,0)=(3 * PI / 2) * (1 + 2 * rnd_unif()); // t
-			MAT_ELEM(t,i,1)=30*rnd_unif(); // height
+			MAT_ELEM(t,i,0)=(3 * PI / 2) * (1 + 2 * distUniform(g)); // t
+			MAT_ELEM(t,i,1) = 30 * distUniform(g); // height
 			double localT=MAT_ELEM(t,i,0);
 			double localHeight=MAT_ELEM(t,i,1);
 
 			// Generate X
 			double s,c;
 			sincos(localT,&s,&c);
-			MAT_ELEM(X,i,0)=localT*c+noise*rnd_gaus();
-			MAT_ELEM(X,i,1)=localHeight+noise*rnd_gaus();
-			MAT_ELEM(X,i,2)=localT*s+noise*rnd_gaus();
+			MAT_ELEM(X,i,0)=localT * c + noise * distGauss(g);
+			MAT_ELEM(X,i,1)=localHeight + noise * distGauss(g);
+			MAT_ELEM(X,i,2)=localT * s + noise * distGauss(g);
 
 			// Generate label
 			VEC_ELEM(label,i)=(unsigned char)(round(localT/2)+round(localHeight/12))%2;
 		}
+		break;
 	}
-	else if (method=="helix")
+	case DatasetType::HELIX:
 	{
 		double iN=1.0/N;
 		for (int i=0; i<N; ++i)
 		{
 			// Generate t
 			MAT_ELEM(t,i,0)=2 * PI * i*iN;
-			MAT_ELEM(t,i,1)=30*rnd_unif(); // height
+			MAT_ELEM(t,i,1)=30 * distUniform(g); // height
 			double localT=MAT_ELEM(t,i,0);
 
 			// Generate X
@@ -68,15 +79,16 @@ void GenerateData::generateNewDataset(const String& method, int N, double noise)
 			sincos(localT,&s,&c);
 			double s8,c8;
 			sincos(8*localT,&s8,&c8);
-			MAT_ELEM(X,i,0)=(2 + c8)*c+noise*rnd_gaus();
-			MAT_ELEM(X,i,1)=(2 + c8)*s+noise*rnd_gaus();
-			MAT_ELEM(X,i,2)=s8+noise*rnd_gaus();
+			MAT_ELEM(X,i,0)=(2 + c8)*c+noise*distGauss(g);
+			MAT_ELEM(X,i,1)=(2 + c8)*s+noise*distGauss(g);
+			MAT_ELEM(X,i,2)=s8+noise*distGauss(g);
 
 			// Generate label
 			VEC_ELEM(label,i)=(unsigned char)(round(localT * 1.5))%2;
 		}
+		break;
 	}
-	else if (method=="twinpeaks")
+	case DatasetType::TWINPEAKS:
 	{
         int actualN=round(sqrt(N));
     	X.resizeNoCopy(actualN*actualN,3);
@@ -89,23 +101,24 @@ void GenerateData::generateNewDataset(const String& method, int N, double noise)
         		int i=ii*actualN+jj;
 
             	// Generate t
-        		double x = 1 - 2 * rnd_unif();
-        		double y = 1 - 2 * rnd_unif();
+        		double x = 1 - 2 * distUniform(g);
+        		double y = 1 - 2 * distUniform(g);
         		MAT_ELEM(t,i,0)=x;
         		MAT_ELEM(t,i,1)=y;
 
     			// Generate X
-    			MAT_ELEM(X,i,0)=x+noise*rnd_gaus();
-    			MAT_ELEM(X,i,1)=y+noise*rnd_gaus();
+    			MAT_ELEM(X,i,0)=x+noise*distGauss(g);
+    			MAT_ELEM(X,i,1)=y+noise*distGauss(g);
     			double z=10*sin(PI * x) * tanh(3 * y);
-    			MAT_ELEM(X,i,2)=z+noise*rnd_gaus();
+    			MAT_ELEM(X,i,2)=z+noise*distGauss(g);
 
     			// Generate label
     			VEC_ELEM(label,i)=(unsigned char)(round(0.1*(x+y+z-3)))%2;
         	}
         }
+        break;
 	}
-	else if (method=="3d_clusters")
+	case DatasetType::CLUSTER3D:
 	{
 		// Create centers
 		std::vector<Matrix1D<double> > centers;
@@ -114,7 +127,7 @@ void GenerateData::generateNewDataset(const String& method, int N, double noise)
 		for (int i=0; i<Nclusters; i++)
 		{
 			FOR_ALL_ELEMENTS_IN_MATRIX1D(center)
-				VEC_ELEM(center,i)=10*rnd_unif();
+				VEC_ELEM(center,i)=10*distUniform(g);
 			centers.push_back(center);
 		}
 
@@ -136,35 +149,38 @@ void GenerateData::generateNewDataset(const String& method, int N, double noise)
 		{
 			int i=(Nclusters*n)/N;
 			const Matrix1D<double> &center=centers[i];
-			MAT_ELEM(X,n,0)=XX(center)+(rnd_unif()-0.5)*sigma+noise*rnd_gaus();
-			MAT_ELEM(X,n,1)=YY(center)+(rnd_unif()-0.5)*sigma+noise*rnd_gaus();
-			MAT_ELEM(X,n,2)=ZZ(center)+(rnd_unif()-0.5)*sigma+noise*rnd_gaus();
+			MAT_ELEM(X,n,0)=XX(center)+(distUniform(g)-0.5)*sigma+noise*distGauss(g);
+			MAT_ELEM(X,n,1)=YY(center)+(distUniform(g)-0.5)*sigma+noise*distGauss(g);
+			MAT_ELEM(X,n,2)=ZZ(center)+(distUniform(g)-0.5)*sigma+noise*distGauss(g);
 		}
+		break;
 	}
-	else if (method=="intersect")
+	case DatasetType::INTERSECT:
 	{
 		double iN=1.0/N;
 		for (int i=0; i<N; ++i)
 		{
 			// Generate t
 			MAT_ELEM(t,i,0)=2 * PI * i*iN;
-			MAT_ELEM(t,i,1)=5*rnd_unif();
+			MAT_ELEM(t,i,1)=5*distUniform(g);
 			double localT=MAT_ELEM(t,i,0);
 			double height=MAT_ELEM(t,i,1);
 
 			// Generate X
 			double s,c;
 			sincos(localT,&s,&c);
-			MAT_ELEM(X,i,0)=c+noise*rnd_gaus();
-			MAT_ELEM(X,i,1)=c*s+noise*rnd_gaus();
-			MAT_ELEM(X,i,2)=height+noise*rnd_gaus();
+			MAT_ELEM(X,i,0)=c+noise*distGauss(g);
+			MAT_ELEM(X,i,1)=c*s+noise*distGauss(g);
+			MAT_ELEM(X,i,2)=height+noise*distGauss(g);
 
 			// Generate label
 			VEC_ELEM(label,i)=(unsigned char)(round(localT *0.5)+round(height*0.5))%2;
 		}
+		break;
 	}
-	else
+	default:
 		REPORT_ERROR(ERR_ARG_INCORRECT,"Incorrect method passed to generate data");
+	}
 }
 
 void insertNeighbour(Matrix2D<int> &idx, Matrix2D<double> &distance, int i1, int i2, double d)

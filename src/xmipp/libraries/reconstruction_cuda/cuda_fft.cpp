@@ -266,6 +266,10 @@ void CudaFFT<T>::manyHelper(const FFTSettingsNew<T> &settings, F function) {
 
 template<typename T>
 cufftHandle* CudaFFT<T>::createPlan(const GPU &gpu, const FFTSettingsNew<T> &settings) {
+    if (settings.sElemsBatch() > std::numeric_limits<int>::max()) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Too many elements for Fourier Transformation. "
+                "It would cause int overflow in the cuda kernel. Try to decrease batch size");
+    }
     auto plan = new cufftHandle;
     auto f = [&] (int rank, int *n, int *inembed,
             int istride, int idist, int *onembed, int ostride,
