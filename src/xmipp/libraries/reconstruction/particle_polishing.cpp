@@ -23,7 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <iostream>
+#include <random>
 #include "particle_polishing.h"
+#include <iterator>
+
+#define sqr(x) x*x
 
 void ProgParticlePolishing::defineParams()
 {
@@ -66,7 +71,8 @@ void ProgParticlePolishing::show()
 }
 
 
-void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const MultidimArray<double> &Iexp, double &corrN, double &corrM, double &corrW, double &imed){
+void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const MultidimArray<double> &Iexp, double &corrN,
+		double &corrM, double &corrW, double &imed, const double &meanF=0.){
 
 
 	MultidimArray<double> Idiff;
@@ -121,6 +127,14 @@ void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const Mu
 	double isize=1.0/MULTIDIM_SIZE(Idiff);
 	avgI=sumI*isize;
 	avgIexp=sumIexp*isize;
+	if(meanF!=0.){
+		//printf("Changing the mean of the experimental images %lf %lf \n", avgIexp, meanF);
+		avgIexp=meanF;
+		//avgI=100;
+	}//else{
+		//printf("NO changing the mean of the experimental images %lf \n", avgIexp);
+	//}
+
 	if (NI>0){
 		iNI=1.0/NI;
 		avgMI=sumMI*iNI;
@@ -137,14 +151,17 @@ void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const Mu
 	double sumWIIexp=0.0, sumWII=0.0, sumWIexpIexp=0.0;
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
+	//for(int n=89980; n<90000; n++)
 	{
 		double p=DIRECT_MULTIDIM_ELEM(I,n);
 		double pexp=DIRECT_MULTIDIM_ELEM(Iexp,n);
 		double pIa=p-avgI;
 		double pIexpa=pexp-avgIexp;
-		sumIIexp+=pIa*pIexpa;
-		sumII +=pIa*pIa;
-		sumIexpIexp +=pIexpa*pIexpa;
+		sumIIexp+=(pIa*pIexpa);
+		sumII +=(pIa*pIa);
+		sumIexpIexp +=(pIexpa*pIexpa);
+		//if (n<20 || (n>44990 && n<45010) || n>89980)
+			//printf("%d Debug %lf %lf %lf %lf %lf %lf %lf \n", n, pexp, avgIexp, pIexpa, p, avgI, pIa, sumIIexp);
 
 		if (p>thI){
 			pIa=p-avgMI;
@@ -164,7 +181,9 @@ void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const Mu
 		}
 	}
 
+	//printf("Some values %lf, %lf, ", sumIIexp, isize);
 	sumIIexp*=isize;
+	//printf(" %lf, ", sumIIexp);
 	sumII*=isize;
 	sumIexpIexp*=isize;
 
@@ -180,6 +199,7 @@ void ProgParticlePolishing::similarity (const MultidimArray<double> &I, const Mu
 	//corrM=sumMIIexp/sqrt(sumMII*sumMIexpIexp);
 	//corrW=sumWIIexp/sqrt(sumWII*sumWIexpIexp);
 	corrN=sumIIexp;
+	//printf(" %lf \n", corrN);
 	corrM=sumMIIexp;
 	corrW=sumWIIexp;
 	if(std::isnan(corrN))
@@ -452,12 +472,26 @@ void ProgParticlePolishing::calculateCurve(const MultidimArray<double> &Iavg, co
 	}
 	//std::cerr << "vectorAvg calculado: " << vectorAvg << std::endl;
 	std::vector<double> x, y;
+	double aux;
 	for(int n=0; n<nStep; n++){
-		if (DIRECT_A2D_ELEM(vectorAvg, 0, n)!=0)
+		if (DIRECT_A2D_ELEM(vectorAvg, 0, n)!=0){
 			DIRECT_A2D_ELEM(vectorAvg, 1, n)/=DIRECT_A2D_ELEM(vectorAvg, 0, n);
-		x.push_back(double(n));
-		y.push_back(DIRECT_A2D_ELEM(vectorAvg, 1, n));
+			aux = Dmin + n*((Dmax-Dmin)/(nStep-1));
+			x.push_back(double(aux));
+			y.push_back(DIRECT_A2D_ELEM(vectorAvg, 1, n));
+		}
 	}
+
+	/*std::cout << "Vector X " << std::endl;
+	for (std::vector<double>::const_iterator it = x.begin(); it != x.end(); ++it)
+	{
+	    std::cout << *it << std::endl;
+	}
+	std::cout << "Vector Y " << std::endl;
+	for (std::vector<double>::const_iterator it = y.begin(); it != y.end(); ++it)
+	{
+	    std::cout << *it << std::endl;
+	}*/
 
 	double xSum=0, ySum=0, xxSum=0, xySum=0;
 	double n = y.size();
@@ -571,7 +605,7 @@ void ProgParticlePolishing::run()
 
 	MDIterator *iterPart = new MDIterator();
 	FileName fnPart;
-	Image<double> Ipart, projV, Iavg;
+	Image<double> Ipart, projV, Iavg, Iproj;
 	MDRow currentRow;
 	Matrix2D<double> A;
 	MultidimArray<double> dataArray, softArray;
@@ -583,12 +617,11 @@ void ProgParticlePolishing::run()
     V().setXmippOrigin();
 	int xdim = (int)XSIZE(V());
 	int ydim = (int)YSIZE(V());
-	projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
+	//projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
 
 	FourierFilter Filter;
 	Filter.FilterBand=LOWPASS;
 	Filter.FilterShape=RAISED_COSINE;
-
 
 	/////////////////////////
 	//First Part
@@ -596,13 +629,14 @@ void ProgParticlePolishing::run()
 	std::vector<int> partIdDone;
 	std::vector<int>::iterator it;
 	int dataInMovie;
+	std::vector<int> xcoords;
+	std::vector<int> ycoords;
+	std::vector<double> slopes;
+	std::vector<double> intercepts;
+	std::vector<int> particleId;
 
 	for(int m=0; m<nMovies; m++){
 
-		std::vector<int> xcoords;
-		std::vector<int> ycoords;
-		std::vector<double> slopes;
-		std::vector<double> intercepts;
 		iterPart->init(mdPart);
 		dataInMovie = 0;
 
@@ -658,9 +692,10 @@ void ProgParticlePolishing::run()
 			if ((xdim != XSIZE(Ipart())) || (ydim != YSIZE(Ipart())))
 				std::cout << "Error: The input particles and volume have different sizes" << std::endl;
 
-			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+			/*projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
 			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
 			projV().setXmippOrigin();
+			//AJ TODO: falta incluir la CTF?
 
 			//to obtain the points of the curve (intensity in the projection) vs (counted electrons)
 			//the movie particles are averaged (all frames) to compare every pixel value
@@ -676,19 +711,20 @@ void ProgParticlePolishing::run()
 			ycoords.push_back((int)ycoor);
 			slopes.push_back(slope);
 			intercepts.push_back(intercept);
+			particleId.push_back((int)partId);
 
-			/*//DEBUG
+			///DEBUG
 			projV.write(formatString("Testprojection_%i_%i.tif", frId, partId));
 			//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
 			Iavg.write(formatString("Testaverage_%i_%i.tif", frId, partId));
-			//END DEBUG/*/
+			//END DEBUG//
 
 			if(iterPart->hasNext())
-				iterPart->moveNext();
+				iterPart->moveNext();*/
 
 		}//end particles loop
 
-		if(dataInMovie>0){
+		/*if(dataInMovie>0){
 			Matrix1D<double> cij_slopes, cij_intercepts;
 			int boxsize = 50;
 			dataArray.initZeros(4, dataInMovie);
@@ -707,27 +743,9 @@ void ProgParticlePolishing::run()
 				DIRECT_A2D_ELEM(dataArray, 3, h) = intercepts[h];
 			}
 
-			/*/AJ testing
-			dataArray.resize(4, floor(xmov/1000)*floor(ymov/1000));
-			std::mt19937_64 generator;
-			generator.seed(std::time(0));
-			std::normal_distribution<double> normal;
-			int count=0;
-			for(int h=0; h<floor(xmov/1000); h++){
-				for(int l=0; l<floor(ymov/1000); l++){
-					DIRECT_A2D_ELEM(dataArray, 0, count) = h;
-					DIRECT_A2D_ELEM(dataArray, 1, count) = l;
-					DIRECT_A2D_ELEM(dataArray, 2, count) = -1*normal(generator);
-					DIRECT_A2D_ELEM(dataArray, 3, count) = normal(generator);
-					count++;
-				}
-			}
-			//std::cout << "dataArray " << dataArray << std::endl;
-			//END AJ testing*/
 
-			//AJ to obtain a soft version of the obtained slopes (dataRow=2)
 			std::cout << dataInMovie << " Slopes and intercepts " << dataArray << std::endl;
-
+			//AJ to obtain a soft version of the obtained slopes (dataRow=2)
 			calculateBSplineCoeffs(dataArray, boxsize, cij_slopes, xmov, ymov, 2);
 			std::cout << dataInMovie << " Slopes coeffs " << cij_slopes << std::endl;
 			evaluateBSpline(dataArray, cij_slopes, softArray, xmov, ymov, 2);
@@ -739,20 +757,321 @@ void ProgParticlePolishing::run()
 
 			std::cout << dataInMovie << " SOFT Slopes and intercepts " << softArray << std::endl;
 
-		}
+		}*/
 
 	}//end movie Ids loop
+
+
+	//NEW part to calculate by ML the shifts of every frame
+	/*iterPart->init(mdPart);
+	double slope, intercept;
+	int position;
+	for(int i=0; i<mdPartSize; i++){
+		size_t mvId, partId;
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_PARTICLE_ID,partId);
+		it = find(particleId.begin(), particleId.end(), (int)partId);
+		position=it-particleId.begin();
+		slope=slopes[position];
+		intercept = intercepts[position];
+
+
+		if(iterPart->hasNext())
+			iterPart->moveNext();
+	}*/
+	//AJ para generar imagen phantom
+	//Image<double> Isim(XSIZE(Ipart()), YSIZE(Ipart()));
+	/*if (partId==5818){
+		for (int x=0; x<XSIZE(Iavg()); x++){
+			for (int y=0; y<YSIZE(Iavg()); y++){
+				if(x<(XSIZE(Iavg())/2)-10 || x>(XSIZE(Iavg())/2)+10 || y<(YSIZE(Iavg())/2)-30 || y>(YSIZE(Iavg())/2)+30){
+					DIRECT_A2D_ELEM(Isim(), x, y) = 1.2;
+					DIRECT_A2D_ELEM(Iproj(), x, y) = 5;
+				}else{
+					DIRECT_A2D_ELEM(Isim(), x, y) = 1.05;
+					DIRECT_A2D_ELEM(Iproj(), x, y) = 20;
+				}
+			}
+		}
+		Isim.write("avgNueva.mrc");
+		Iproj.write("projNueva.mrc");
+		for (int ii=0; ii<24; ii++){
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			Image<int> Isimul(XSIZE(Isim()), YSIZE(Isim()));
+			for (int x=0; x<XSIZE(Isim()); x++){
+				for (int y=0; y<YSIZE(Isim()); y++){
+					double mymean = DIRECT_A2D_ELEM(Isim(), x, y);
+					std::poisson_distribution<int> distribution(mymean);
+					int number = distribution(gen);
+					DIRECT_A2D_ELEM(Isimul(), x, y) = number;
+				}
+			}
+			Isimul.write(formatString("simuladaNueva_%i.mrc",ii));
+		}
+	}*/
+	//FIN AJ phantom//
+	//AJ para leer phantom y promediar
+	Image<double> Isimul;
+	Image<double> Itot;
+	for (int ii=0; ii<24; ii++){
+		Isimul.read(formatString("simuladaNuevaShift_%i.mrc",ii));
+		if (ii==0){
+			Itot().resize(XSIZE(Isimul()),YSIZE(Isimul()));
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Isimul()){
+				DIRECT_MULTIDIM_ELEM(Itot(), n) = DIRECT_MULTIDIM_ELEM(Isimul(), n);
+			}
+		}
+		else{
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Isimul()){
+				DIRECT_MULTIDIM_ELEM(Itot(), n) += DIRECT_MULTIDIM_ELEM(Isimul(), n);
+			}
+		}
+	}
+	Itot()/=24.0;
+	Itot.write("totalNueva.mrc");
+	//FIN AJ phantom lectura//
+
+	//AJ to check
+	double slope=0, intercept=0;
+	Image<double> Inew;
+	Inew.read("totalNueva.mrc");
+	Iproj.read("projNueva.mrc");
+	Inew().setXmippOrigin();
+	Iproj().setXmippOrigin();
+	calculateCurve(Inew(), Iproj(), slope, intercept);
+	std::cerr << ". NUEVA Particle: " << ". Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
+	//FIN AJ check//
+	//ML estimation of shifts
+	//-11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+	int shiftX[]={-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6};
+	int shiftY[]={-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6};
+	int bestPosX[24];
+	int bestPosY[24];
+	MultidimArray<double> lkresults;
+	double total_lkresults[24];
+	double maxShift = XSIZE(Isimul())/2-10;
+	double maxShift2 = maxShift*maxShift;
+	//AJ to make a random selection of pixel contributing to the ML estimation
+	std::default_random_engine generator;
+	std::uniform_real_distribution<double> distribution(0.0,1.0);
+	int nRepetitions=1;
+
+	for (int ii=0; ii<24; ii++){
+		int estX[nRepetitions];
+		int estY[nRepetitions];
+		int count;
+		for (int zz=0; zz<nRepetitions; zz++){
+
+			lkresults.initZeros(13, 13);
+			Isimul.read(formatString("simuladaNuevaShift_%i.mrc",ii));
+			Isimul().setXmippOrigin();
+			for(int jj=0; jj<13; jj++){
+				for(int hh=0; hh<13; hh++){
+					Iproj.read("projNueva.mrc");
+					Iproj().setXmippOrigin();
+					if (shiftX[jj]!=0 || shiftY[hh]!=0)
+						selfTranslate(LINEAR, Iproj(), vectorR2(shiftX[jj], shiftY[hh]), DONT_WRAP, 0.0);
+					double likelihood=0.;
+					double lambda, fact;
+					count=0;
+					for(int n=0; n<YSIZE(Isimul()); n++){
+						for(int m=0; m<XSIZE(Isimul()); m++){
+							if ((n-round(YSIZE(Isimul())/2))*(n-round(YSIZE(Isimul())/2))+(m-round(XSIZE(Isimul())/2))*(m-round(XSIZE(Isimul())/2))>maxShift2) // continue if the Euclidean distance is too far
+								continue;
+							//printf("EVAL shift %d %d \n", n, m);
+							//double number = distribution(generator);
+							//if (number<0.3)
+							//	continue;
+							count++;
+							fact=1.;
+							lambda = slope*DIRECT_A2D_ELEM(Iproj(), n, m)+intercept;
+							/*if(DIRECT_A2D_ELEM(Iproj(), n, m) == 20)
+								lambda=1.05;
+							else if(DIRECT_A2D_ELEM(Iproj(), n, m) == 5)
+								lambda=1.2;*/
+							if (DIRECT_A2D_ELEM(Isimul(), n, m)>0){
+								for(int aa=1; aa<=DIRECT_A2D_ELEM(Isimul(), n, m); aa++)
+									fact = fact*aa;
+							}
+							likelihood += -1.*lambda + DIRECT_A2D_ELEM(Isimul(), n, m)*log(lambda) - log(fact);
+						}
+					}
+					DIRECT_A2D_ELEM(lkresults, hh, jj) = likelihood;
+					//printf(". Particle. %d. Shift %d, %d. Result: %10.10lf %d \n", ii, shiftX[jj], shiftY[hh], likelihood, count);
+					//printf("%d %d %10.10lf \n", shiftX[jj], shiftY[hh], likelihood);
+				}
+			}
+			//std::vector<double>::iterator maxVal;
+			//maxVal = std::max_element(lkresults.begin(), lkresults.end());
+			//int pos = std::distance(lkresults.begin(), maxVal);
+			double sumX[13], sumY[13];
+			//Sum by columns (X)
+			double maxSumX, maxSumY;
+			int posSumX, posSumY;
+			for(int jj=0; jj<13; jj++){
+				sumX[jj]=0.;
+				for(int hh=0; hh<13; hh++){
+					sumX[jj]+=DIRECT_A2D_ELEM(lkresults, hh, jj);
+				}
+				if(jj==0){
+					maxSumX= sumX[jj];
+					posSumX=0;
+				}else{
+					if (sumX[jj]>maxSumX){
+						maxSumX = sumX[jj];
+						posSumX=jj;
+					}
+				}
+			}
+			//Sum by rows (Y)
+			for(int hh=0; hh<13; hh++){
+				sumY[hh]=0.;
+				for(int jj=0; jj<13; jj++){
+					sumY[hh]+=DIRECT_A2D_ELEM(lkresults, hh, jj);
+				}
+				if(hh==0){
+					maxSumY= sumY[hh];
+					posSumY=0;
+				}else{
+					if (sumY[hh]>maxSumY){
+						maxSumY = sumY[hh];
+						posSumY=hh;
+					}
+				}
+			}
+
+			MultidimArray<double> lkresults_copy(lkresults);
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(lkresults)
+				DIRECT_MULTIDIM_ELEM(lkresults_copy,n) = DIRECT_MULTIDIM_ELEM(lkresults,n);
+
+			//Image<double> lk;
+			//lk()=lkresults;
+			//lk.write(formatString("lkresults_%i.mrc",ii));
+			double estXAux, estYAux;
+			bestShift(lkresults, estXAux, estYAux, NULL, -1);
+			bestPosX[ii] = (int)round(estXAux);
+			if(bestPosX[ii]>12)
+				bestPosX[ii]=12;
+			else if(bestPosX[ii]<0)
+				bestPosX[ii]=0;
+			bestPosY[ii] = (int)round(estYAux);
+			if(bestPosY[ii]>12)
+				bestPosY[ii]=12;
+			else if(bestPosY[ii]<0)
+				bestPosY[ii]=0;
+			printf(". BEST POS for particle %d. Shift %lf, %lf, %d, %d, %lf -- %d \n", ii, estXAux, estYAux, shiftX[(int)round(bestPosX[ii])], shiftY[(int)round(bestPosY[ii])], DIRECT_A2D_ELEM(lkresults, (int)estYAux, (int)estXAux), count);
+			printf("New estimation marginalized %d %d \n", shiftX[posSumX], shiftY[posSumY]);
+			total_lkresults[ii]=DIRECT_A2D_ELEM(lkresults_copy, (int)estYAux, (int)estXAux);
+			estX[zz]=shiftX[bestPosX[ii]];
+			estY[zz]=shiftY[bestPosY[ii]];
+
+			//AJ to test with correlation
+			MultidimArray< std::complex<double> > fftIproj, fftIsimul;
+			MultidimArray<double> Mcorr;
+			Mcorr.resize(YSIZE(Isimul()), XSIZE(Isimul()));
+			Mcorr.setXmippOrigin();
+			CorrelationAux aux;
+			// Generate mask
+			//MultidimArray<int> mask;
+			//mask.resize(YSIZE(Isimul()), XSIZE(Isimul()));
+			//mask.initConstant(1);
+			//mask.setXmippOrigin();
+			Mask mask;
+			mask.type = BINARY_CIRCULAR_MASK;
+			mask.mode = INNER_MASK;
+			size_t rad = (size_t)std::min(XSIZE(Isimul())*0.5, YSIZE(Isimul())*0.5);
+			mask.R1 = rad;
+			mask.resize(YSIZE(Isimul()), XSIZE(Isimul()));
+			mask.get_binary_mask().setXmippOrigin();
+			mask.generate_mask();
+			FourierTransformer transformer;
+			transformer.FourierTransform(Iproj(), fftIproj);
+			transformer.FourierTransform(Isimul(), fftIsimul);
+			correlation_matrix(fftIproj, fftIsimul, Mcorr, aux);
+			double sX, sY;
+			double avg, stddev, min_val, max_val;
+			computeStats_within_binary_mask(mask.get_binary_mask(), Mcorr, min_val, max_val, avg, stddev);
+			bestShift(Mcorr, sX, sY, &mask.get_binary_mask(), 10);
+			//Image<double> correlation;
+			//correlation()=Mcorr;
+			//correlation.write(formatString("correlation_%i.mrc",ii));
+			//printf(". BEST CORR for particle %d. STATS: %lf, %lf, %lf, %lf. SHIFT %lf, %lf \n", ii, min_val, max_val, avg, stddev, sX, sY);
+
+		}//end loop zz
+
+		printf("BEST POS for particle %d  \n", ii);
+		double sumXX=0., sumYY=0.;
+		for (int zz=0; zz<nRepetitions; zz++){
+			printf("	%d, %d \n", estX[zz], estY[zz]);
+			sumXX+=estX[zz];
+			sumYY+=estY[zz];
+		}
+		bestPosX[ii]=sumXX/nRepetitions;
+		bestPosY[ii]=sumYY/nRepetitions;
+		printf("MEAN values: %lf, %lf\n", sumXX/nRepetitions, sumYY/nRepetitions);
+		printf("END \n");
+
+	}//end loop ii
+
+	//printf("TOTAL LKRESULTS: ");
+	//for(int ii=0; ii<24; ii++)
+	//	printf(" %lf ", total_lkresults[ii]);
+	//printf("\n");
+	printf("TOTAL SHIFTS X: ");
+	for(int ii=0; ii<24; ii++)
+		printf(" %d ", bestPosX[ii]);
+	printf("\n");
+	printf("TOTAL SHIFTS Y: ");
+	for(int ii=0; ii<24; ii++)
+		printf(" %d ", bestPosY[ii]);
+	printf("\n");
+
+	PseudoInverseHelper pseudoInverter;
+	Matrix2D<double> &X = pseudoInverter.A;
+	Matrix1D<double> &y = pseudoInverter.b;
+	X.resizeNoCopy(24,3);
+	y.resizeNoCopy(24);
+	for(int ii=0; ii<24; ii++){
+		X(ii,0)=1;
+		X(ii,1)=ii+1;
+		X(ii,2)=(ii+1)*(ii+1);
+		y(ii)=bestPosX[ii];
+	}
+	Matrix1D<double> alpha(3);
+	solveLinearSystem(pseudoInverter, alpha);
+	printf("SOLVING LINEAR SYSTEM FOR X \n");
+	printf("alpha(0)=%lf \n", alpha(0));
+	printf("alpha(1)=%lf \n", alpha(1));
+	printf("alpha(2)=%lf \n", alpha(2));
+
+	y.resizeNoCopy(24);
+	for(int ii=0; ii<24; ii++){
+		y(ii)=bestPosY[ii];
+	}
+	solveLinearSystem(pseudoInverter, alpha);
+	printf("SOLVING LINEAR SYSTEM FOR Y \n");
+	printf("alpha(0)=%lf \n", alpha(0));
+	printf("alpha(1)=%lf \n", alpha(1));
+	printf("alpha(2)=%lf \n", alpha(2));
+
+	exit(0);
+
+
+	//FIN AJ ML
+
 
 	/////////////////////////
 	//Second Part
 	/////////////////////////
 	MultidimArray<double> matrixWeights, maxvalues;
 	double cutfreq;
-	double inifreq=0.05; //0.05;
+	double inifreq=0.5; //0.05;
 	double step=0.05; //0.05;
 	int Nsteps= int((0.5-inifreq)/step);
 	double maxvalue=-1.;
 	size_t mvId, frId, partId;
+	Iavg().resize(XSIZE(Ipart()), YSIZE(Ipart()));
 
 
 	iterPart->init(mdPart);
@@ -812,13 +1131,37 @@ void ProgParticlePolishing::run()
 		currentRow.getValue(MDL_YCOOR,ycoor);
 
 		if(prevMvId!=mvId){
-			if (prevMvId!=-1){
+			/*if (prevMvId!=-1){
 				std::cerr << " maxvalue " << maxvalue << std::endl;
 				std::cerr << "  matrixWeights " << matrixWeights << std::endl;
 				matrixWeights/=maxvalue;
 				std::cerr << " NORM matrixWeights " << matrixWeights << std::endl;
 				countMv++;
-			}
+
+				for (int s=0; s<ZSIZE(matrixWeights); s++){
+					Matrix2D<double> matrixWeightsMat;
+					MultidimArray<double> matrixWeightsSlice;
+					matrixWeights.getSlice(s, matrixWeightsSlice);
+					std::cerr << "- Slice: " << XSIZE(matrixWeightsSlice) << " " << YSIZE(matrixWeightsSlice) << " " << ZSIZE(matrixWeightsSlice) << std::endl;
+					matrixWeightsSlice.copy(matrixWeightsMat);
+					std::cerr << "- Matrix: " << matrixWeightsMat.Xdim() << " " << matrixWeightsMat.Ydim() << " " << matrixWeightsMat << std::endl;
+					Matrix2D<double> U,V;
+					Matrix1D<double> S;
+					svdcmp(matrixWeightsMat,U,S,V);
+					std::cerr << "- SVD: " << U << std::endl;
+					//AJ prueba
+					Matrix2D<double> Smat;
+					Smat.initZeros(S.size(),S.size());
+					for (int h=0; h<S.size(); h++){
+						if (h<2)
+						    Smat(h,h)=S(h);
+					}
+					Matrix2D<double> result1, result;
+					matrixOperation_AB(U, Smat, result1);
+					matrixOperation_ABt(result1, V, result);
+					std::cerr << "- SVD recons: " << result << std::endl;
+				}
+			}*/
 			partCount=0;
 			prevMvId=mvId;
 			maxvalue=-1.;
@@ -838,92 +1181,122 @@ void ProgParticlePolishing::run()
 			MAT_ELEM(A,0,2)*=-1;
 		}
 
-		projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
-		applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
-		projV().setXmippOrigin();
-		//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
-
-		//TODO: invertir contraste y aplicar ctf, o al reves, no se...
-		//To invert contrast in the projections
-		double Dmin, Dmax, irange, val;
-		projV().computeDoubleMinMax(Dmin, Dmax);
-		irange=1.0/(Dmax - Dmin);
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
-			val=DIRECT_MULTIDIM_ELEM(projV(),n);
-			DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
-		}
-
-		//filtering the projections with the ctf
-		ctf.readFromMdRow(currentRow);
-		ctf.produceSideInfo();
-		ctf.applyCTF(projV(), samplingRate, false);
-
-		//averaging movie particle image with the ones in all the frames but without the current one
-		//averagingMovieParticles(mdPart, Ipart(), partId, frId, mvId, w);
-		averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
-		//TODO check how we have to average the movie particles to calculate the correlations
-
 		for(int n=0; n<Nsteps+1; n++){
 
-			std::cerr << "- Particle: " << i << " and frequency " << n << std::endl;
+			std::cerr << "- Particle: " << partId << " and frequency " << n << std::endl;
 
-			/*if(n==0){
-				projVaux().resize(projV());
-				Ipartaux().resize(Ipart());
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
-						DIRECT_MULTIDIM_ELEM(projVaux(),n) = DIRECT_MULTIDIM_ELEM(projV(),n);
-				}
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipart()){
-						DIRECT_MULTIDIM_ELEM(Ipartaux(),n) = DIRECT_MULTIDIM_ELEM(Ipart(),n);
-				}
-				projVaux().setXmippOrigin();
-				Ipartaux().setXmippOrigin();
-			}else{
-				Ipart.read(fnPart);
+				/*Ipart.read(fnPart);
 				Ipart().setXmippOrigin();
 
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
-						DIRECT_MULTIDIM_ELEM(projV(),n) = DIRECT_MULTIDIM_ELEM(projVaux(),n);
-				}
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipart()){
-						DIRECT_MULTIDIM_ELEM(Ipart(),n) = DIRECT_MULTIDIM_ELEM(Ipartaux(),n);
-				}
-			}*/
-			if(n!=0){
-				Ipart.read(fnPart);
-				Ipart().setXmippOrigin();
 				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
 				applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
 				projV().setXmippOrigin();
+				//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
+
 				//To invert contrast in the projections
+				double Dmin, Dmax, irange, val;
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
 					val=DIRECT_MULTIDIM_ELEM(projV(),n);
 					DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
 				}
+
 				//filtering the projections with the ctf
 				ctf.readFromMdRow(currentRow);
 				ctf.produceSideInfo();
 				ctf.applyCTF(projV(), samplingRate, false);
+
 				//averaging movie particle image with the ones in all the frames but without the current one
 				averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
-			}
+				//TODO check how we have to average the movie particles to calculate the correlations
+				*/
+
+				//AJ para leer phantom y promediar
+				Image<double> Itot, Imean;
+				Iproj.read("projNueva.mrc");
+				Iproj().setXmippOrigin();
+				Itot().initZeros(XSIZE(Isimul()),YSIZE(Isimul()));
+				Imean().initZeros(XSIZE(Isimul()),YSIZE(Isimul()));
+				if (partId==5818){
+					Image<int> Isimul;
+					int count=0;
+					for (int ii=0; ii<24; ii++){
+						Isimul.read(formatString("simuladaNuevaShift_%i.mrc", ii));
+						if (frId==ii+1){
+							FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Isimul()){
+								DIRECT_MULTIDIM_ELEM(Imean(), n) += (double)DIRECT_MULTIDIM_ELEM(Isimul(), n);
+							}
+							continue;
+						}
+						FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Isimul()){
+							DIRECT_MULTIDIM_ELEM(Itot(), n) += (double)DIRECT_MULTIDIM_ELEM(Isimul(), n);
+							DIRECT_MULTIDIM_ELEM(Imean(), n) += (double)DIRECT_MULTIDIM_ELEM(Isimul(), n);
+						}
+						count++;
+					}
+					Itot()/=23.0;
+					Itot.write(formatString("total_%i.mrc", 24));
+					Imean()/=24.0;
+					Imean.write(formatString("mean_%i.mrc", 24));
+					double meanD, stdD;
+					Imean().computeAvgStdev(meanD,stdD);
+					Iavg().initZeros(XSIZE(Isimul()), YSIZE(Isimul()));
+					projV().initZeros(XSIZE(Isimul()), YSIZE(Isimul()));
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Itot()){
+						DIRECT_MULTIDIM_ELEM(Iavg(), n) = (double)DIRECT_MULTIDIM_ELEM(Itot(), n);
+					}
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Iproj()){
+						DIRECT_MULTIDIM_ELEM(projV(), n) = (double)DIRECT_MULTIDIM_ELEM(Iproj(), n);
+					}
+					//Iavg().setXmippOrigin();
+					//projV().setXmippOrigin();
+					double Dmin, Dmax, irange, val;
+					projV().computeDoubleMinMax(Dmin, Dmax);
+					irange=1.0/(Dmax - Dmin);
+					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+						val=DIRECT_MULTIDIM_ELEM(projV(),n);
+						DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
+					}
+					Iavg.write(formatString("myAvg.mrc"));
+					projV.write(formatString("myProj.mrc"));
+
+				//FIN AJ phantom lectura//
 
 			cutfreq = inifreq + step*n;
+
 
 			//filtering the projected particles with the lowpass filter
 			Filter.w1=cutfreq;
 			Filter.generateMask(projV());
 			Filter.applyMaskSpace(projV());
 
-			//filtering the averaged movie particle
-			Filter.generateMask(Ipart());
-			Filter.applyMaskSpace(Ipart());
+			//filtering the averaged movie particle (leaving out the j-frame)
+			Filter.generateMask(Iavg());
+			Filter.applyMaskSpace(Iavg());
+
+			//filtering the averaged movie particle (all the frames)
+			Filter.generateMask(Imean());
+			Filter.applyMaskSpace(Imean());
+
+			Iavg.write(formatString("myAvgFiltered.mrc"));
+			projV.write(formatString("myProjFiltered.mrc"));
+
 
 			//calculate similarity measures between averaged movie particles and filtered projection
 			double weight;
+			double corrNRef, corrMRef, corrWRef, imedRef;
+			similarity(projV(), Imean(), corrNRef, corrMRef, corrWRef, imedRef);
+			printf("REF CORRELATION %8.20lf \n", corrNRef);
 			double corrN, corrM, corrW, imed;
-			similarity(projV(), Ipart(), corrN, corrM, corrW, imed);
+			similarity(projV(), Iavg(), corrN, corrM, corrW, imed, meanD);
 			//TODO: la corrW que viene de Idiff no tiene mucho sentido porque la Idiff en este caso no nos dice nada
+
+			/*/DEBUG
+			if(frId==nFrames){
+			projV.write(formatString("projection_%i_%i.tif", frId, partId));
+			Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+			Iavg.write(formatString("average_%i_%i.tif", frId, partId));
+			}
+			//END DEBUG/*/
 
 			weight = corrN; //TODO
 			if(weight>maxvalue)
@@ -950,6 +1323,8 @@ void ProgParticlePolishing::run()
 
 			DIRECT_ZYX_ELEM(matrixWeights, partCount-1, frId-1, n) = weight;
 
+				}
+
 		} //end frequencies loop
 
 
@@ -966,6 +1341,40 @@ void ProgParticlePolishing::run()
 
 	} //end movie particles loop
 
+
+	std::cerr << " maxvalue " << maxvalue << std::endl;
+	//std::cerr << "  matrixWeights " << matrixWeights << std::endl;
+	printf("matrixWeights \n");
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(matrixWeights){
+		printf("%8.20lf \n", DIRECT_MULTIDIM_ELEM(matrixWeights,n));
+	}
+	matrixWeights/=maxvalue;
+	std::cerr << " NORM matrixWeights " << matrixWeights << std::endl;
+	countMv++;
+
+	for (int s=0; s<ZSIZE(matrixWeights); s++){
+		Matrix2D<double> matrixWeightsMat;
+		MultidimArray<double> matrixWeightsSlice;
+		matrixWeights.getSlice(s, matrixWeightsSlice);
+		std::cerr << "- Slice: " << XSIZE(matrixWeightsSlice) << " " << YSIZE(matrixWeightsSlice) << " " << ZSIZE(matrixWeightsSlice) << std::endl;
+		matrixWeightsSlice.copy(matrixWeightsMat);
+		std::cerr << "- Matrix: " << matrixWeightsMat.Xdim() << " " << matrixWeightsMat.Ydim() << " " << matrixWeightsMat << std::endl;
+		Matrix2D<double> U,V;
+		Matrix1D<double> S;
+		svdcmp(matrixWeightsMat,U,S,V);
+		std::cerr << "- SVD: " << U << std::endl;
+		//AJ prueba
+		Matrix2D<double> Smat;
+		Smat.initZeros(S.size(),S.size());
+		for (int h=0; h<S.size(); h++){
+			if (h<2)
+				Smat(h,h)=S(h);
+		}
+		Matrix2D<double> result1, result;
+		matrixOperation_AB(U, Smat, result1);
+		matrixOperation_ABt(result1, V, result);
+		std::cerr << "- SVD recons: " << result << std::endl;
+	}
 
 
 
