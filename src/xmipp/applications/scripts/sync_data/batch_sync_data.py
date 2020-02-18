@@ -28,7 +28,7 @@ import sys
 
 from subprocess import call
 from os.path import join
-from urllib2 import urlopen
+from urllib.request import urlopen
 
 import time
 
@@ -41,7 +41,7 @@ def download(destination=None, url=None, dataset=None):
     isDLmodel = dataset=="DLmodels"
     if not isDLmodel:
         # First make sure that we ask for a known dataset.
-        if dataset not in [x.strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
+        if dataset not in [x.decode("utf8").strip('./\n') for x in urlopen('%s/MANIFEST'%url)]:
             print(blue("Unknown dataset/model: %s)" % dataset))
             return
         remoteManifest = '%s/%s/MANIFEST' % (url, dataset)
@@ -57,7 +57,7 @@ def download(destination=None, url=None, dataset=None):
     manifest = join(destination, 'MANIFEST')
     try:
         print(blue("Retrieving MANIFEST file"))
-        open(manifest, 'w').writelines(
+        open(manifest, 'wb').writelines(
             urlopen(remoteManifest))
     except Exception as e:
         sys.exit("ERROR reading %s (%s)" % (remoteManifest, e))
@@ -68,13 +68,13 @@ def download(destination=None, url=None, dataset=None):
     done = 0.0  # fraction already done
     inc = 1.0 / len(md5sRemote)  # increment, how much each iteration represents
     oldPartial = 100
-    for fname, md5Remote in md5sRemote.iteritems():
+    for fname, md5Remote in md5sRemote.items():
         fpath = join(destination, fname)
         try:
             # Download content and create file with it.
             if not os.path.isdir(os.path.dirname(fpath)):
                 os.makedirs(os.path.dirname(fpath))
-            open(fpath, 'w').writelines(
+            open(fpath, 'wb').writelines(
                 urlopen('%s%s/%s' % (url, inFolder, fname)))
 
             md5 = md5sum(fpath)
@@ -91,7 +91,7 @@ def download(destination=None, url=None, dataset=None):
             print(blue("\nError in %s (%s)" % (fname, e)))
             print(blue("URL: %s/%s/%s" % (url, dataset, fname)))
             print(blue("Destination: %s" % fpath))
-            if raw_input("Continue downloading? (y/[n]): ").lower() != 'y':
+            if input("Continue downloading? (y/[n]): ").lower() != 'y':
                 sys.exit()
     if isDLmodel:
         unTarModels(destination)
@@ -134,7 +134,7 @@ def update(destination=None, url=None, dataset=None):
 
     md5sLocal = dict(x.split() for x in open(join(destination, 'MANIFEST')))
     if isDLmodel:  # DLmodels has hashs before fileNames
-        md5sLocal = {v: k for k, v in md5sLocal.iteritems()}
+        md5sLocal = {v: k for k, v in md5sLocal.items()}
     # Check that all the files mentioned in MANIFEST are up-to-date
     print(blue("Verifying MD5s..."))
 
@@ -223,8 +223,8 @@ def md5sum(fname):
     """ Return the md5 hash of file fname
     """
     mhash = hashlib.md5()
-    with open(fname) as f:
-        for chunk in iter(lambda: f.read(128 * mhash.block_size), ''):
+    with open(fname, 'rb') as f:
+        for chunk in iter(lambda: f.read(128 * mhash.block_size), b""):
             mhash.update(chunk)
     return mhash.hexdigest()
 
@@ -239,9 +239,9 @@ def createMANIFEST(path):
 
 def readManifest(remoteManifest, isDLmodel):
     manifest = urlopen(remoteManifest).readlines()
-    md5sRemote = dict(x.strip().split() for x in manifest)
+    md5sRemote = dict(x.decode("utf8").strip().split() for x in manifest)
     if isDLmodel:  # DLmodels has hashs before fileNames
-        md5sRemote = {v: k for k, v in md5sRemote.iteritems()}
+        md5sRemote = {v: k for k, v in md5sRemote.items()}
     return md5sRemote
 
 def unTarModels(dirname):

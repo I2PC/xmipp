@@ -1,3 +1,5 @@
+# TODO: Merge this with scipion-em-xmipp/xmipp3/base.py
+
 from xmippLib import *
 import os
 import sys
@@ -8,7 +10,8 @@ def xmippExists(path):
 def getXmippPath(*paths):
     '''Return the path the the Xmipp installation folder
     if a subfolder is provided, will be concatenated to the path'''
-    if os.environ.has_key('XMIPP_HOME'):
+    #if os.environ.has_key('XMIPP_HOME'):
+    if 'XMIPP_HOME' in os.environ:  # has_key is not supported in python3
         return os.path.join(os.environ['XMIPP_HOME'], *paths)  
     else:
         raise Exception('XMIPP_HOME environment variable not set')
@@ -27,7 +30,7 @@ def getMatlabEnviron(*toolPaths):
     
     return env
 
-class XmippScript():
+class XmippScript:
     ''' This class will serve as wrapper around the XmippProgram class
     to have same facilities from Python scripts'''
     def __init__(self, runWithoutArgs=False):

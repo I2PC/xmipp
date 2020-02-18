@@ -63,8 +63,8 @@ PyObject *
 Image_repr(PyObject * obj);
 
 /* Image compare function */
-int
-Image_compare(PyObject * obj, PyObject * obj2);
+PyObject*
+Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
 
 
 /* Compare two images up to a precision */
@@ -219,6 +219,13 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+
+/* applyWarpAffine */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+
+
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2);
 PyObject *
@@ -242,7 +249,7 @@ PyObject *
 Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs);
 
 PyObject *
-Image_divide(PyObject *obj1, PyObject *obj2);
+Image_true_divide(PyObject *obj1, PyObject *obj2);
 PyObject *
 Image_idivide(PyObject *obj1, PyObject *obj2);
 PyObject *

@@ -36,8 +36,6 @@ import sys
 import shutil
 from traceback import format_exception
 
-import xmippLib
-
 VAHID = "vahid"
 RM = 'rmarabini'
 COSS = 'coss'
@@ -113,7 +111,7 @@ class ProgramTest(unittest.TestCase):
             if cmd:
                 cmd = self._parseArgs(cmd)
                 cmd = " %(cmd)s %(pipe)s %(outDir)s/%(cmdType)s_stdout.txt 2%(pipe)s %(outDir)s/%(cmdType)s_stderr.txt" % locals()
-                print "    Running %s: %s" % (cmdType, blue(cmd))
+                print("    Running %s: %s" % (cmdType, blue(cmd)))
                 command = Command(cmd, env=os.environ)
                 command.run(timeout=self._timeout)
                 pipe = ">>"
@@ -155,8 +153,8 @@ class ProgramTest(unittest.TestCase):
         else:
             
             cmd = "%s %s > %s/stdout.txt 2> %s/stderr.txt" % (cmd, args, self.outputDir, self.outputDir)
-        print "    Command: "
-        print "       ", blue(cmd)
+        print("    Command: ")
+        print("       ", blue(cmd))
         sys.stdout.flush()
         #run the test itself
         command = Command(cmd, env=os.environ)
@@ -172,7 +170,7 @@ class ProgramTest(unittest.TestCase):
             errStr = errFile.read()
             errFile.close()
             if 'XMIPP_ERROR' in errStr:
-                print errStr
+                print(errStr)
 
         if postruns:
             self._runCommands(postruns, 'postruns')
@@ -189,6 +187,7 @@ class ProgramTest(unittest.TestCase):
         """ Check that all output files are produced
         and are equivalent to the ones in goldStandard folder.
         """
+        import xmippLib
         for out in outputs:
             outFile = os.path.join(self._testDir, self.outputDir, out)
             fileGoldStd = os.path.join(self.goldDir, out)
@@ -237,8 +236,8 @@ class GTestResult(unittest.TestResult):
         sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), self.numberTests, secs))
         if self.testFailed:
-            print >> sys.stderr, red("[  FAILED  ]") + " %d tests" % self.testFailed
-        print >> sys.stdout, green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed)
+            sys.stderr.write(red("[  FAILED  ]") + " %d tests" % self.testFailed)
+        sys.stderr.write(green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed))
         sys.stdout.flush()
         # self.xml.write('</testsuite>\n')
         # self.xml.close()
@@ -307,7 +306,7 @@ def visitTests(tests, grepStr=''):
         else:
             if grepStr in str(type(test)):
                 testsFlat.append(test)
-    testsFlat.sort()
+    # testsFlat.sort()
 
     # Follow the flattened list of tests and show the module, class
     # and name, in a nice way.
@@ -321,7 +320,7 @@ def visitTests(tests, grepStr=''):
         
         # If there is a failure loading the test, show it
         if moduleName.startswith('unittest.loader.ModuleImportFailure'):
-            print red(moduleName), "  test:", t.id()
+            print(red(moduleName), "  test:", t.id())
             continue
 
         if moduleName != lastModule:
@@ -386,10 +385,10 @@ if __name__ == "__main__":
         sys.stderr.write(blue("\n -- End of all function tests -- \n\n"))
         sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), len(cTests), secs))
-        print >> sys.stdout, green("[  PASSED  ]") + " %d tests" % (len(cTests) - len(errors))
+        sys.stdout.write(green("[  PASSED  ]") + " %d tests" % (len(cTests) - len(errors)))
         sys.stdout.flush()
         if errors:
-            print >> sys.stderr, red("[  FAILED  ]") + " %d tests:" % len(errors)
+            sys.stdout.write(red("[  FAILED  ]") + " %d tests:" % len(errors))
         for fail in errors:
             print(red(" - %s" % fail))
         sys.stdout.flush()

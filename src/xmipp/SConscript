@@ -30,7 +30,8 @@
 import os
 from os.path import join
 from glob import glob
-from datetime import datetime
+
+PYTHON_LIB = os.environ.get("PYTHON_LIB")
 
 Import('env')
 
@@ -131,6 +132,7 @@ def addLib(name, **kwargs):
 
 def remove_prefix(text, prefix):
     return text[text.startswith(prefix) and len(prefix):]
+
 env['PYTHONINCFLAGS'] = os.environ.get('PYTHONINCFLAGS', '').split()
 if len(env["PYTHONINCFLAGS"])>0:
     python_incdirs = [remove_prefix(os.path.expandvars(x),"-I") for x in env["PYTHONINCFLAGS"]]
@@ -141,7 +143,8 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['python2.7', 'fftw3f', 'fftw3f_threads'])
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs,
+       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads'])
 
 
 # FRM library
@@ -159,7 +162,8 @@ if cuda:
 # MPI
 dirs = ['libraries']
 patterns=['parallel/*.cpp']
-addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs, libs=['Xmipp', 'python2.7'], mpi=True)
+addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs,
+       libs=['Xmipp', PYTHON_LIB], mpi=True)
 
 
 #  ***********************************************************************
@@ -169,7 +173,9 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs, libs=['
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp', 'jpeg','tiff', 'fftw3f', 'fftw3f_threads', 'fftw3','fftw3_threads', 'pthread']
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),
+                          'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff',
+                          'fftw3f', 'fftw3f_threads', PYTHON_LIB]
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
