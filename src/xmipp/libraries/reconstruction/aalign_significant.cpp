@@ -445,6 +445,7 @@ void AProgAlignSignificant<T>::saveRefStk() {
     checkLogDelete(fn);
     for (size_t n = 0; n < dims.n(); ++n ) {
         FileName name;
+        // we create a new file, so we start naming from scratch
         name.compose(n + 1, fn); // within stk file, index images from one (1)
         size_t offset = n * dims.sizeSingle();
         MultidimArray<T> wrapper(1, 1, dims.y(), dims.x(), m_referenceImages.data.get() + offset);
@@ -467,6 +468,7 @@ void AProgAlignSignificant<T>::saveRefXmd() {
         if (0 == md.size()) {
             continue; // ignore MD for empty references
         }
+        // block names should be consistent with the original reference index
         auto blockName = formatString(pattern, getRefMetaIndex(n));
         md.write(blockName + fn, MD_APPEND);
     }
