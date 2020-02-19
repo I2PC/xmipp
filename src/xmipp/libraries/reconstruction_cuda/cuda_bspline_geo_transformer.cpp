@@ -138,8 +138,12 @@ T *CudaBSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices)
 }
 
 template<typename T>
-void CudaBSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
+void CudaBSplineGeoTransformer<T>::sum(T *dest,
+        const std::vector<float> &weights, size_t firstN,
+        T norm) {
     const auto& dims = this->getSettings().dims.copyForN(firstN);
+    assert(weights.size() == dims.n());
+    assert(0 < dims.n());
     dim3 dimBlock(64, 64, 1);
     dim3 dimGrid(
         std::ceil(dims.x() / (float)dimBlock.x),
@@ -147,9 +151,19 @@ void CudaBSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
         1);
     auto stream = *(cudaStream_t*)m_stream->stream();
 
+    // copy weights
+    T *d_weights;
+    size_t bytesWeight = weights.size() * sizeof(float);
+    gpuErrchk(cudaMalloc(&d_weights, bytesWeight));
+    gpuErrchk(cudaMemcpyAsync(
+            d_weights,
+            weights.data(),
+            bytesWeight,
+            cudaMemcpyHostToDevice, stream));
+
     sumKernel<<<dimGrid, dimBlock, 0, stream>>> (
-        m_d_dest, m_d_src, // FIXME DS this will damage src data
-        dims.x(), dims.y(), dims.n());
+        m_d_dest, m_d_src, d_weights,// FIXME DS this will damage src data
+        dims.x(), dims.y(), dims.n(), norm);
 
     size_t bytes = dims.sizeSingle() * sizeof(T);
     gpuErrchk(cudaMemcpyAsync(
@@ -157,7 +171,10 @@ void CudaBSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
         m_d_src,
         bytes,
         cudaMemcpyDeviceToHost, stream));
+
+    gpuErrchk(cudaFree(d_weights));
     m_stream->synch();
+
 }
 
 // explicit instantiation

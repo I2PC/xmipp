@@ -98,7 +98,7 @@ bool BSplineGeoTransformer<T>::canBeReused(const BSplineTransformSettings<T> &s)
 }
 
 template<typename T>
-void BSplineGeoTransformer<T>::sum(T *dest, size_t firstN) {
+void BSplineGeoTransformer<T>::sum(T *dest, const std::vector<float> &weights, size_t firstN, T norm) {
     REPORT_ERROR(ERR_NOT_IMPLEMENTED, "This functionality is not yet available.");
 }
 
