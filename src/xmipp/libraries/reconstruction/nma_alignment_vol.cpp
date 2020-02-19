@@ -268,6 +268,7 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
 		//first just see what is the score
 		AnglesShiftsAndScore = fopen(shifts_angles, "r");
+		// fit_value is the last element in shifts_angles. To get it without looping on all the file, we seek the end_of_file -10 (10 always work because fit_value is always < 1).
 		fseek(AnglesShiftsAndScore, -10, SEEK_END);
 		fscanf(AnglesShiftsAndScore, "%f,", &fit_value);
 		fclose(AnglesShiftsAndScore);
