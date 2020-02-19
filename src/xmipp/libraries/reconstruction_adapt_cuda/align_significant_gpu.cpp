@@ -140,7 +140,7 @@ void ProgAlignSignificantGPU<T>::updateRefs(
             interpolate(transformer, workCopy, workAssignments, offset, toProcess);
             // sum images
             transformer.sum(workRef, toProcess);
-            // collect intermediate result
+            // collect intermediate result (single image per batch)
             if (0 == offset) { // first batch -> copy data
                 memcpy(finalRef, workRef, elems * sizeof(T));
             } else { // other batches -> sum data
@@ -174,7 +174,7 @@ void ProgAlignSignificantGPU<T>::interpolate(BSplineGeoTransformer<T> &transform
         if (j >= toProcess) {
             tmp.initIdentity();
         } else {
-            M3x3_INV(tmp, assignments.at(j).pose) // inverse the transformation
+            M3x3_INV(tmp, assignments.at(offset + j).pose) // inverse the transformation
         }
         for (int i = 0; i < 9; ++i) {
             t.emplace_back(tmp.mdata[i]);
