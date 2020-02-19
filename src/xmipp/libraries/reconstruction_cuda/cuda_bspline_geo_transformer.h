@@ -50,7 +50,7 @@ public:
 
     T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
 
-    void sum(T *dest, size_t firstN) override;
+    void sum(T *dest, const std::vector<float> &weights, size_t firstN, T norm) override;
 private:
     T *m_d_src;
     T *m_d_dest;

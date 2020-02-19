@@ -34,6 +34,7 @@
 #include "reconstruction_cuda/cuda_correlation_computer.h"
 
 #include <algorithm>
+#include <numeric> // std::accumulate
 
 namespace Alignment {
 
@@ -55,6 +56,7 @@ private:
     void interpolate(BSplineGeoTransformer<T> &transformer,
             T *data,
             const std::vector<Assignment> &assignments,
+            std::vector<float> &matrices,
             size_t offset,
             size_t toProcess);
 

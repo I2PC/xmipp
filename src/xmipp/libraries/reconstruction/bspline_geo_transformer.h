@@ -69,7 +69,7 @@ public:
 
     virtual T *interpolate(const std::vector<float> &matrices);
 
-    virtual void sum(T *dest, size_t firstN); //FIXME DS refactor
+    virtual void sum(T *dest, const std::vector<float> &weights, size_t firstN, T norm); //FIXME DS refactor
 
 protected:
     virtual void initialize(bool doAllocation) override;

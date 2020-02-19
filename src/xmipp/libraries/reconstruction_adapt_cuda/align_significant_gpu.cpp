@@ -102,6 +102,10 @@ void ProgAlignSignificantGPU<T>::updateRefs(
     const Dimensions &refDims = this->getSettings().refDims;
     const size_t elems = this->getSettings().otherDims.sizeSingle();
     T *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
+    std::vector<float> workMatrices;
+    workMatrices.reserve(9 * m_maxBatchSize);
+    std::vector<float> workWeights;
+    workWeights.reserve(m_maxBatchSize);
     T *workRef = memoryUtils::page_aligned_alloc<T>(elems, true);
 
     auto gpu = new GPU();
@@ -112,6 +116,7 @@ void ProgAlignSignificantGPU<T>::updateRefs(
     CudaBSplineGeoTransformer<T> transformer;
     initTransformer(transformer, hw, this->getSettings().otherDims.copyForN(m_maxBatchSize));
     transformer.setSrc(workCopy);
+    T norm = 0;
 
     std::vector<Assignment> workAssignments;
     for (size_t refIndex = 0; refIndex < refDims.n(); ++refIndex) {
@@ -131,15 +136,19 @@ void ProgAlignSignificantGPU<T>::updateRefs(
         }
         for (size_t offset = 0; offset < noOfAssignments; offset += m_maxBatchSize) {
             size_t toProcess = std::min(m_maxBatchSize, noOfAssignments - offset);
+            workWeights.clear();
             // copy image data for this batch
             for (size_t i = 0; i < toProcess; ++i) {
                 auto &a = workAssignments.at(offset + i);
+                workWeights.emplace_back(a.weight);
                 memcpy(workCopy + (i * elems), others + (a.imgIndex * elems), elems * sizeof(T));
             }
+            // update normalization factor
+            norm += std::accumulate(workWeights.begin(), workWeights.end(), 0.f);
             // apply transform
-            interpolate(transformer, workCopy, workAssignments, offset, toProcess);
+            interpolate(transformer, workCopy, workAssignments, workMatrices, offset, toProcess);
             // sum images
-            transformer.sum(workRef, toProcess);
+            transformer.sum(workRef, workWeights, toProcess, 1);
             // collect intermediate result (single image per batch)
             if (0 == offset) { // first batch -> copy data
                 memcpy(finalRef, workRef, elems * sizeof(T));
@@ -148,6 +157,10 @@ void ProgAlignSignificantGPU<T>::updateRefs(
                     finalRef[i] += workRef[i];
                 }
             }
+        }
+        // normalize the resulting image
+        for (size_t i = 0; i < elems; ++i) {
+            finalRef[i] /= norm;
         }
         // store reference
         this->updateRefXmd(refIndex, workAssignments);
@@ -162,25 +175,26 @@ template<typename T>
 void ProgAlignSignificantGPU<T>::interpolate(BSplineGeoTransformer<T> &transformer,
         T *data,
         const std::vector<Assignment> &assignments,
+        std::vector<float> &matrices,
         size_t offset,
         size_t toProcess) {
     transformer.setSrc(data);
 
-    std::vector<float> t;
-    t.reserve(9 * m_maxBatchSize);
+    matrices.clear();
     auto tmp = Matrix2D<float>(3, 3);
     SPEED_UP_temps0
     for (size_t j = 0; j < m_maxBatchSize; ++j) {
         if (j >= toProcess) {
             tmp.initIdentity();
         } else {
-            M3x3_INV(tmp, assignments.at(offset + j).pose) // inverse the transformation
+            auto a = assignments.at(offset + j);
+            M3x3_INV(tmp, a.pose) // inverse the transformation
         }
         for (int i = 0; i < 9; ++i) {
-            t.emplace_back(tmp.mdata[i]);
+            matrices.emplace_back(tmp.mdata[i]);
         }
     }
-    transformer.interpolate(t);
+    transformer.interpolate(matrices);
 }
 
 template<typename T>
