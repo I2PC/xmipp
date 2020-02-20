@@ -120,20 +120,23 @@ template<typename T>
 T *CudaBSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
     const auto& dims = this->getSettings().dims;
     size_t bytes = dims.n() * 9 * sizeof(float);
-    gpuErrchk(cudaMemcpy(
+    auto stream = *(cudaStream_t*)m_stream->stream();
+    gpuErrchk(cudaMemcpyAsync(
             m_d_matrices,
             matrices.data(),
             bytes,
-            cudaMemcpyHostToDevice));
+            cudaMemcpyHostToDevice, stream));
     dim3 dimBlock(64, 1, 1);
     dim3 dimGrid(
         std::ceil(dims.x() / (float)dimBlock.x),
         std::ceil(dims.y() / (float)dimBlock.y),
         dims.n());
-    interpolateKernel<<<dimGrid, dimBlock>>> (
+
+    interpolateKernel<<<dimGrid, dimBlock, 0, stream>>> (
                     m_d_src, m_d_dest, m_d_matrices,
                     dims.x(), dims.y());
-    gpuErrchk(cudaDeviceSynchronize());
+    m_stream->synch();
+
     return m_d_dest;
 }
 
@@ -144,7 +147,7 @@ void CudaBSplineGeoTransformer<T>::sum(T *dest,
     const auto& dims = this->getSettings().dims.copyForN(firstN);
     assert(weights.size() == dims.n());
     assert(0 < dims.n());
-    dim3 dimBlock(64, 64, 1);
+    dim3 dimBlock(32, 32, 1);
     dim3 dimGrid(
         std::ceil(dims.x() / (float)dimBlock.x),
         std::ceil(dims.y() / (float)dimBlock.y),

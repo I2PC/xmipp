@@ -58,7 +58,7 @@ template<typename T>
 __global__
 void sumKernel(const T * __restrict__ in, T * __restrict__ out,
         const T * __restrict__ weights,
-        int xDim, int yDim, int nDim, float normFactor) {
+        unsigned xDim, unsigned yDim, unsigned nDim, T normFactor) {
     // assign pixel to thread
     unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
