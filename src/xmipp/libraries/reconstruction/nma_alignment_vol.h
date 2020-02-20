@@ -131,6 +131,14 @@ public:
     // Mask
     MultidimArray<int> mask;
 
+    // for fetching the rigid-body alignment parameters for each volume
+    FILE *AnglesShiftsAndScore;
+    float Best_Angles_Shifts[6];
+    float fit_value;
+
+    // flag indicates if there is a compensation for the missing wedge (volumes are rotated by 90 degrees about y axis for this purpose)
+    bool flip;
+
 public:
     /// Empty constructor
     ProgNmaAlignmentVol();

@@ -33,11 +33,6 @@
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
 
-FILE *AnglesShiftsAndScore;
-float Best_Angles_Shifts[6];
-float fit_value;
-bool flip = false;
-
 // Empty constructor =======================================================
 ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
 	rangen = 0;
@@ -47,6 +42,7 @@ ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
 	produces_an_output = true;
 	progVolumeFromPDB = new ProgPdbConverter();
 	alignVolumes=false;
+	flip = false;
 }
 
 ProgNmaAlignmentVol::~ProgNmaAlignmentVol() {
@@ -255,7 +251,7 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	String fnVolume2 = fnRandom + "_deformedPDB.vol";
 
 	if (global_nma_vol_prog->tilt0!=-90 || global_nma_vol_prog->tiltF!=90 ){
-		flip = true;
+		global_nma_vol_prog->flip = true;
 		runSystem("xmipp_transform_geometry",formatString("-i %s -o %s_currentvolume.vol --rotate_volume euler 0 90 0 -v 0",fnVolume1.c_str(),randStr));
 		fnVolume1 = fnRandom+"_currentvolume.vol";
 	}
@@ -267,12 +263,12 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
 				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
 		//first just see what is the score
-		AnglesShiftsAndScore = fopen(shifts_angles, "r");
+		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		// fit_value is the last element in shifts_angles. To get it without looping on all the file, we seek the end_of_file -10 (10 always work because fit_value is always < 1).
-		fseek(AnglesShiftsAndScore, -10, SEEK_END);
-		fscanf(AnglesShiftsAndScore, "%f,", &fit_value);
-		fclose(AnglesShiftsAndScore);
-		retval = 1 + fit_value;
+		fseek(global_nma_vol_prog->AnglesShiftsAndScore, -10, SEEK_END);
+		fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->fit_value);
+		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
+		retval = 1 + global_nma_vol_prog->fit_value;
 	}
 
 	else{
@@ -285,11 +281,11 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	}
 
 	if(global_nma_vol_prog->updateBestFit(retval, dim) && global_nma_vol_prog->alignVolumes){
-		AnglesShiftsAndScore = fopen(shifts_angles, "r");
+		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		for (int i = 0; i < 6; i++){
-		       fscanf(AnglesShiftsAndScore, "%f,", &Best_Angles_Shifts[i]);
+		       fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->Best_Angles_Shifts[i]);
 		    }
-		fclose(AnglesShiftsAndScore);
+		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
 	}
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
@@ -358,16 +354,16 @@ void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
 
 
 	energy/=numberOfModes;
-	md.setValue(MDL_ANGLE_ROT, (double)Best_Angles_Shifts[0], objId);
-	md.setValue(MDL_ANGLE_TILT, (double)Best_Angles_Shifts[1], objId);
-	md.setValue(MDL_ANGLE_PSI, (double)Best_Angles_Shifts[2], objId);
-	md.setValue(MDL_SHIFT_X, (double)Best_Angles_Shifts[3], objId);
-	md.setValue(MDL_SHIFT_Y, (double)Best_Angles_Shifts[4], objId);
-	md.setValue(MDL_SHIFT_Z, (double)Best_Angles_Shifts[5], objId);
+	md.setValue(MDL_ANGLE_ROT, (double)global_nma_vol_prog->Best_Angles_Shifts[0], objId);
+	md.setValue(MDL_ANGLE_TILT, (double)global_nma_vol_prog->Best_Angles_Shifts[1], objId);
+	md.setValue(MDL_ANGLE_PSI, (double)global_nma_vol_prog->Best_Angles_Shifts[2], objId);
+	md.setValue(MDL_SHIFT_X, (double)global_nma_vol_prog->Best_Angles_Shifts[3], objId);
+	md.setValue(MDL_SHIFT_Y, (double)global_nma_vol_prog->Best_Angles_Shifts[4], objId);
+	md.setValue(MDL_SHIFT_Z, (double)global_nma_vol_prog->Best_Angles_Shifts[5], objId);
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_NMA_ENERGY, energy, objId);
 	md.setValue(MDL_MAXCC, 1-parameters(numberOfModes), objId);
-	if (flip){
+	if (global_nma_vol_prog->flip){
 		md.setValue(MDL_ANGLE_Y, 90.0 , objId);
 	}
 	else{
