@@ -207,12 +207,10 @@ void CudaCorrelationComputer<T>::initialize(bool doAllocation) {
     }
 
     m_stream = dynamic_cast<GPU*>(s.hw.at(0));
-
     if (nullptr == m_stream) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Instance of GPU is expected");
     }
     m_stream->set();
-    m_stream->peekLastError();
 
     if (doAllocation) {
         allocate();

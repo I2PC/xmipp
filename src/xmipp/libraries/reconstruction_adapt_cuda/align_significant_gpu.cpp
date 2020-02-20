@@ -28,12 +28,36 @@
 namespace Alignment {
 
 template<typename T>
+void ProgAlignSignificantGPU<T>::defineParams() {
+    AProgAlignSignificant<T>::defineParams();
+    this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
+}
+
+template<typename T>
+void ProgAlignSignificantGPU<T>::show() const {
+    AProgAlignSignificant<T>::show();
+    auto gpu = GPU(m_device);
+    gpu.set();
+    std::cout <<  "Device                      : " << gpu.device() << " (" << gpu.getUUID() << ")" << std::endl;
+}
+
+template<typename T>
+void ProgAlignSignificantGPU<T>::readParams() {
+    AProgAlignSignificant<T>::readParams();
+    // read GPU
+    m_device = this->getIntParam("--device");
+    if (m_device < 0) {
+        REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device");
+    }
+}
+
+template<typename T>
 std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref, const T *others) {
     auto s = this->getSettings();
 
     auto hw = std::vector<HW*>();
     for (size_t i = 0; i < 2; ++i) {
-        auto g = new GPU();
+        auto g = new GPU(m_device);
         g->set();
         hw.emplace_back(g);
     }
@@ -108,10 +132,10 @@ void ProgAlignSignificantGPU<T>::updateRefs(
     workWeights.reserve(m_maxBatchSize);
     T *workRef = memoryUtils::page_aligned_alloc<T>(elems, true);
 
-    auto gpu = new GPU();
-    gpu->set();
-    gpu->pinMemory(workRef, elems * sizeof(T));
-    std::vector<HW*> hw{gpu};
+    auto gpu = GPU(m_device);
+    gpu.set();
+    gpu.pinMemory(workRef, elems * sizeof(T));
+    std::vector<HW*> hw{&gpu};
 
     CudaBSplineGeoTransformer<T> transformer;
     initTransformer(transformer, hw, this->getSettings().otherDims.copyForN(m_maxBatchSize));
@@ -165,10 +189,9 @@ void ProgAlignSignificantGPU<T>::updateRefs(
         // store reference
         this->updateRefXmd(refIndex, workAssignments);
     }
-    gpu->unpinMemory(workRef);
+    gpu.unpinMemory(workRef);
     delete[] workCopy;
     free(workRef);
-    delete gpu;
 }
 
 template<typename T>
