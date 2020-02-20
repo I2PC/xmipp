@@ -45,8 +45,8 @@ void interpolateKernel(const T * __restrict__ in, T * __restrict__ out, float * 
     T outY = x * t[3] + y * t[4] + t[5] + (yDim / (T)2);
 
     T val = 0;
-    if ((outX >= 0) && (outX < (T)xDim)
-        && (outY >= 0) && (outY < (T)yDim)) {
+    if ((outX >= 0) && (outX < ((T)xDim - 1))
+        && (outY >= 0) && (outY < ((T)yDim - 1))) {
         val = biLerp(src, xDim, yDim, outX, outY);
     }
 
