@@ -151,7 +151,8 @@ void ProgAlignSignificantGPU<T>::updateRefs(
         // get assignments for this reference
         workAssignments.clear();
         std::copy_if(assignments.begin(), assignments.end(), std::back_inserter(workAssignments),
-                [refIndex](const Assignment &a) { return a.refIndex == refIndex; });
+                [refIndex](const typename AProgAlignSignificant<T>::Assignment &a) { // compilation error on Travis, seems to be a bug
+            return a.refIndex == refIndex; });
         // process assignments in batch
         const size_t noOfAssignments = workAssignments.size();
         auto finalRef = refs + (refIndex * elems);
