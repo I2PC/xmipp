@@ -46,10 +46,11 @@ void CudaBSplineGeoTransformer<T>::initialize(bool doAllocation) {
     }
     const auto &s = this->getSettings();
     m_stream = dynamic_cast<GPU*>(s.hw.at(0));
-
     if (nullptr == m_stream) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Instance of GPU is expected");
     }
+    m_stream->set();
+
 
     if (doAllocation) {
         allocate();

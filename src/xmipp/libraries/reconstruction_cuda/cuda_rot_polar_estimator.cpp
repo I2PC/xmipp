@@ -44,6 +44,8 @@ void CudaRotPolarEstimator<T>::init2D() {
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
     }
+    m_mainStream->set();
+    m_backgroundStream->set();
 
     // all rings have the same number of samples, to make FT easier
     m_samples = std::max(1, 2 * (int)(M_PI * s.lastRing)); // keep this even

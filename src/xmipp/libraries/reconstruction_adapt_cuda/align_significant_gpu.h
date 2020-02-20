@@ -41,6 +41,12 @@ namespace Alignment {
 template<typename T>
 class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
 using typename AProgAlignSignificant<T>::Assignment;
+public:
+
+    void defineParams() override;
+    void readParams() override;
+    void show() const override;
+
 protected:
     std::vector<AlignmentEstimation> align(const T *ref, const T *others) override;
 
@@ -61,6 +67,7 @@ private:
             size_t toProcess);
 
     size_t m_maxBatchSize = 300;
+    int m_device;
 };
 
 

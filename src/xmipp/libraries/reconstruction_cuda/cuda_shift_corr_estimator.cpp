@@ -40,13 +40,14 @@ void CudaShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType typ
         REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
     release(); // FIXME DS implement lazy init
-    try {
-        m_workStream = dynamic_cast<GPU*>(hw.at(0));
-        m_loadStream = dynamic_cast<GPU*>(hw.at(1));
-    } catch (std::bad_cast&) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
+    m_workStream = dynamic_cast<GPU*>(hw.at(0));
+    m_loadStream = dynamic_cast<GPU*>(hw.at(1));
+    if ((nullptr == m_workStream)
+        || (nullptr == m_loadStream)) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Instance of GPU is expected");
     }
-
+    m_workStream->set();
+    m_loadStream->set();
     AShiftCorrEstimator<T>::init2D(type, settings, maxShift,
         includingBatchFT, includingSingleFT, allowDataOvewrite);
 
