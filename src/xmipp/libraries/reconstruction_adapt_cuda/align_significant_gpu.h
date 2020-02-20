@@ -40,7 +40,8 @@ namespace Alignment {
 
 template<typename T>
 class ProgAlignSignificantGPU : public AProgAlignSignificant<T> {
-using typename AProgAlignSignificant<T>::Assignment;
+// 'using' cannot be used due to bug in g++ 4.8.4 (cannot access protected members using full name)
+typedef typename AProgAlignSignificant<T>::Assignment Assignment;
 public:
 
     void defineParams() override;
