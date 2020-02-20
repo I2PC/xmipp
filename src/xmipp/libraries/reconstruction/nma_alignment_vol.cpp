@@ -33,8 +33,10 @@
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
 
-FILE *AnglesAndShifts;
+FILE *AnglesShiftsAndScore;
 float Best_Angles_Shifts[6];
+float fit_value;
+bool flip = false;
 
 // Empty constructor =======================================================
 ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
@@ -73,11 +75,10 @@ void ProgNmaAlignmentVol::defineParams() {
 	addParamsLine("                                       : Default standard deviation <std> is read from the PDB file.");
 	addParamsLine("  [--trustradius_scale <s=1>]          : Positive scaling factor to scale the initial trust region radius");
 	addParamsLine("==Combined elastic and rigid-body alignment==");
-	addParamsLine("  [--alignVolumes]                     : Align the deformed volume to the input volume before comparing");
+	addParamsLine("  [--alignVolumes <frm_freq=0.25> <frm_shift=10>]  : Align the deformed volume to the input volume before comparing, this is using frm method for volume alignment with frm_freq and frm_shift as parameters");
 	addParamsLine("                                       : You need to compile Xmipp with SHALIGNMENT support (see install.sh)");
 	addParamsLine("  [--mask <m=\"\">]                    : 3D masking  of the projections of the deformed volume");
-	addParamsLine("==Mask for compensation for the missing wedge");
-	addParamsLine("  [--m_wedge_mask <filename>]          : File containing a missing wedge mask");
+	addParamsLine("  [--tilt_values <tilt0=-90> <tiltF=90>]  : only use if you are trying to compensate for the missing wedge");
 	addExampleLine("xmipp_nma_alignment_vol -i volumes.xmd --pdb 2tbv.pdb --modes modelist.xmd --sampling_rate 3.2 -o output.xmd --resume");
 }
 
@@ -99,13 +100,15 @@ void ProgNmaAlignmentVol::readParams() {
 	useFixedGaussian = checkParam("--fixed_Gaussian");
 	if (useFixedGaussian)
 		sigmaGaussian = getDoubleParam("--fixed_Gaussian");
-	UseMissingWedgeMask = checkParam("--m_wedge_mask");
-	if (UseMissingWedgeMask)
-		fnMWmask = getParam("--m_wedge_mask");
-
 	alignVolumes=checkParam("--alignVolumes");
-}
+	if (alignVolumes){
+		frm_freq = getDoubleParam("--alignVolumes",0);
+		frm_shift= getIntParam("--alignVolumes",1);
+	}
+	tilt0=getIntParam("--tilt_values",0);
+	tiltF=getIntParam("--tilt_values",1);
 
+}
 // Show ====================================================================
 void ProgNmaAlignmentVol::show() {
 	XmippMetadataProgram::show();
@@ -148,6 +151,7 @@ void ProgNmaAlignmentVol::createWorkFiles() {
 		mdDone.addLabel(MDL_NMA);
 		mdDone.addLabel(MDL_NMA_ENERGY);
 		mdDone.addLabel(MDL_MAXCC);
+		mdDone.addLabel(MDL_ANGLE_Y);
 		mdDone.write(fn);
 	}
 	*pmdIn = mdTodo;
@@ -242,44 +246,52 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 
 	FileName fnRandom = global_nma_vol_prog->createDeformedPDB();
 	const char * randStr = fnRandom.c_str();
-	//FileName fnShiftsAngles = formatString("%s_angles_shifts.txt", randStr);
-	FileName fnShiftsAngles = fnRandom + "_angles_shifts.txt" ;
+	double retval=std::numeric_limits<double>::max();
+
+	FileName fnShiftsAngles = fnRandom + "_angles_shifts.txt";
 	const char * shifts_angles = fnShiftsAngles.c_str();
 
+	String fnVolume1 = global_nma_vol_prog->currentVolName;
+	String fnVolume2 = fnRandom + "_deformedPDB.vol";
+
+	if (global_nma_vol_prog->tilt0!=-90 || global_nma_vol_prog->tiltF!=90 ){
+		flip = true;
+		runSystem("xmipp_transform_geometry",formatString("-i %s -o %s_currentvolume.vol --rotate_volume euler 0 90 0 -v 0",fnVolume1.c_str(),randStr));
+		fnVolume1 = fnRandom+"_currentvolume.vol";
+	}
+
+	const char * Volume1 = fnVolume1.c_str();
+	const char * Volume2 = fnVolume2.c_str();
+
 	if (global_nma_vol_prog->alignVolumes){
-		if (global_nma_vol_prog->UseMissingWedgeMask){
-			runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0 --mask binary_file %s",
-					global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles,global_nma_vol_prog->fnMWmask.c_str()));
-			// Print to check in case of doubt
-			//std::cout << formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0 --mask binary_file %s",
-			//		global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles,global_nma_vol_prog->fnMWmask.c_str());
-		}
-		else
-			runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply --store %s -v 0",
-					global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str(),shifts_angles));
+		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
+				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
+		//first just see what is the score
+		AnglesShiftsAndScore = fopen(shifts_angles, "r");
+		// fit_value is the last element in shifts_angles. To get it without looping on all the file, we seek the end_of_file -10 (10 always work because fit_value is always < 1).
+		fseek(AnglesShiftsAndScore, -10, SEEK_END);
+		fscanf(AnglesShiftsAndScore, "%f,", &fit_value);
+		fclose(AnglesShiftsAndScore);
+		retval = 1 + fit_value;
 	}
 
-	global_nma_vol_prog->Vdeformed.read(formatString("%s_deformedPDB.vol",fnRandom.c_str()));
-	double retval=1e10;
-	if (XSIZE(global_nma_vol_prog->mask)!=0)
-		retval=1-correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed(),&global_nma_vol_prog->mask);
-	else
-		retval=1-correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed());
-	//global_nma_vol_prog->V().printStats();
-	//global_nma_vol_prog->Vdeformed().printStats();
-	//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
+	else{
+		global_nma_vol_prog->Vdeformed.read(formatString("%s_deformedPDB.vol",fnRandom.c_str()));
+		auto mask = (0 == XSIZE(global_nma_vol_prog->mask)) ? nullptr : &global_nma_vol_prog->mask;
+		retval = 1 - correlationIndex(global_nma_vol_prog->V(), global_nma_vol_prog->Vdeformed(), mask);
+		//global_nma_vol_prog->V().printStats();
+		//global_nma_vol_prog->Vdeformed().printStats();
+		//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
+	}
 
-
-
-
-
-	if(global_nma_vol_prog->updateBestFit(retval, dim)){
-		AnglesAndShifts = fopen(shifts_angles, "r");
+	if(global_nma_vol_prog->updateBestFit(retval, dim) && global_nma_vol_prog->alignVolumes){
+		AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		for (int i = 0; i < 6; i++){
-		       fscanf(AnglesAndShifts, "%f,", &Best_Angles_Shifts[i]);
+		       fscanf(AnglesShiftsAndScore, "%f,", &Best_Angles_Shifts[i]);
 		    }
-		fclose(AnglesAndShifts);
+		fclose(AnglesShiftsAndScore);
 	}
+
 	runSystem("rm", formatString("-rf %s* &", randStr));
 	//std::cout << global_nma_vol_prog->trial << " -> " << retval << std::endl;
 	return retval;
@@ -355,6 +367,12 @@ void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_NMA_ENERGY, energy, objId);
 	md.setValue(MDL_MAXCC, 1-parameters(numberOfModes), objId);
+	if (flip){
+		md.setValue(MDL_ANGLE_Y, 90.0 , objId);
+	}
+	else{
+		md.setValue(MDL_ANGLE_Y, 0.0 , objId);
+	}
 
 	md.append(fnOutDir+"/nmaDone.xmd");
 }

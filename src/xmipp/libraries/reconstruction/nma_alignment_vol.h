@@ -85,11 +85,13 @@ public:
     /// Trust radius scale
     double trustradius_scale;
 
-    /// Use a missing wedge mask
-    bool UseMissingWedgeMask;
+    // starting and ending tilt angles for compensating for a single tilt wedge mask for tomography data
+    int tilt0, tiltF;
 
-    /// Mask file for missing wedge compensation
-    FileName fnMWmask;
+    // maximum search frequency and shift while rigid body alignment
+    double frm_freq;
+    int frm_shift;
+
 
 public:
 

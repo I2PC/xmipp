@@ -31,6 +31,7 @@
 #include <data/mask.h>
 #include <core/xmipp_program.h>
 #include <fstream>
+#include <iostream>
 
 // Alignment parameters needed by fitness ----------------------------------
 class AlignParams
@@ -127,6 +128,7 @@ public:
     double   maxFreq;
     int      maxShift;
     bool     dontScale;
+    int starting_tilt, ending_tilt; //compensating for a single tilt wedge mask (tomography data)
 public:
 
     void defineParams()
@@ -151,7 +153,7 @@ public:
         addParamsLine("  [--covariance]    : Covariance fitness criterion");
         addParamsLine("  [--least_squares] : LS fitness criterion");
         addParamsLine("  [--local]         : Use local optimizer instead of exhaustive search");
-        addParamsLine("  [--frm <maxFreq=0.25> <maxShift=10>] : Use Fast Rotational Matching");
+        addParamsLine("  [--frm <maxFreq=0.25> <maxShift=10> <tilt0=-90> <tiltF=90>] : Use Fast Rotational Matching, if tilt0 and tiltF are left as -90 and 90 they do not effect the results of the alignment");
         addParamsLine("                    : Maximum frequency is in digital frequencies (<0.5)");
         addParamsLine("                    : Maximum shift is in pixels");
         addParamsLine("                    :+ See Y. Chen, et al. Fast and accurate reference-free alignment of subtomograms. JSB, 182: 235-245 (2013)");
@@ -220,6 +222,8 @@ public:
         {
         	maxFreq=getDoubleParam("--frm",0);
         	maxShift=getIntParam("--frm",1);
+        	starting_tilt=getIntParam("--frm",2);
+        	ending_tilt=getIntParam("--frm",3);
         }
         onlyShift = checkParam("--onlyShift");
 
@@ -400,7 +404,21 @@ public:
     		PyObject * pFunc = getPointerToPythonFRMFunction();
     		double rot,tilt,psi,x,y,z,score;
     		Matrix2D<double> A;
-    		alignVolumesFRM(pFunc, params.V1(), params.V2(), Py_None, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
+    		if(starting_tilt!=-90 || ending_tilt!=90){
+    			std::cout<<"you are compensating for the missing wedge, the first volume should be rotated with 90 degrees about the y-axis"<<std::endl;
+    			PyObject * pSTMMclass = getPointerToPythonSingleTiltWedgeClass();
+    			PyObject * arglist = Py_BuildValue("(ii)", starting_tilt , ending_tilt);
+    			PyObject * SingleTiltWedgeMask = PyObject_CallObject(pSTMMclass, arglist);
+    			// The order of volumes has to be flipped in order to compensate for a single tilt missing wedge. For those who are not using this mask, no changes in results will happen.
+    			alignVolumesFRM(pFunc, params.V2(), params.V1(), SingleTiltWedgeMask, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
+    			std::cout<<"If you intend to apply transform using xmipp_transform_geometry, use --inverse flag (if it was not present before), or remove it (if it was present before)"<<std::endl;
+    			Py_DECREF(SingleTiltWedgeMask);
+    			Py_DECREF(arglist);
+    			Py_DECREF(pSTMMclass);
+    		}
+    		else{
+    			alignVolumesFRM(pFunc, params.V1(), params.V2(), Py_None, rot,tilt,psi,x,y,z,score,A,maxShift,maxFreq,params.mask_ptr);
+    		}
     		best_align.initZeros(9);
     		best_align(0)=1; // Gray scale
     		best_align(1)=0; // Gray shift
@@ -468,7 +486,7 @@ public:
         {
         	std::ofstream outputStore (fnStore.c_str());
         	outputStore << best_align(2)  << ", " << best_align(3) << ", " << best_align(4) << ", " << A(0,3) << ", "
-					  << A(1,3) << ", " << A(2,3) << std::endl;
+					  << A(1,3) << ", " << A(2,3) << ", " << best_fit << std::endl;
         	outputStore.close();
         }
         if (apply)

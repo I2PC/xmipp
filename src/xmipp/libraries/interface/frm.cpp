@@ -95,6 +95,19 @@ PyObject * getPointerToPythonGeneralWedgeClass()
 	return pWedgeClass;
 }
 
+PyObject * getPointerToPythonSingleTiltWedgeClass()
+{
+	PyObject * pName = PyString_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
+	PyObject * pModule = PyImport_Import(pName);
+	PyObject * pDict = PyModule_GetDict(pModule);
+	PyObject * pSTMMclass = PyDict_GetItemString(pDict, "SingleTiltWedge");
+	Py_DECREF(pName);
+	Py_DECREF(pModule);
+	Py_DECREF(pDict);
+	return pSTMMclass;
+}
+
+
 #define DEBUG
 #ifdef DEBUG
 #include <core/xmipp_image.h>
