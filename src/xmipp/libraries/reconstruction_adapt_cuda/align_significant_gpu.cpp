@@ -58,9 +58,10 @@ void ProgAlignSignificantGPU<T>::readParams() {
         if (0 > d) {
             REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device '" + a + "' (must be non-negative number)");
         }
-        if (std::find(m_devices.begin(), m_devices.end(), d) != m_devices.end()) {
-            REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device '" + a + "' (repeated index)");
-        }
+        // FIXME DS uncomment once we are decided if we want to run multiple executions on the same GPU
+//        if (std::find(m_devices.begin(), m_devices.end(), d) != m_devices.end()) {
+//            REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device '" + a + "' (repeated index)");
+//        }
         if (d >= noOfAvailableDevices) {
             REPORT_ERROR(ERR_ARG_INCORRECT, "Invalid GPU device '" + a + "' (index higher than number of available devices)");
         }
@@ -89,7 +90,6 @@ std::vector<AlignmentEstimation> ProgAlignSignificantGPU<T>::align(const T *ref,
     for (size_t devIndex = 0; devIndex < m_devices.size(); ++devIndex) {
         size_t offset = devIndex * step;
         size_t toProcess = std::min(step, s.refDims.n() - offset);
-        printf("device %lu step %lu offset %lu toProcess %lu\n", m_devices.at(devIndex), step, offset, toProcess);
         futures.emplace_back(pool.push(f,
                 ref + (offset * s.refDims.sizeSingle()),
                 s.refDims.copyForN(toProcess),
@@ -172,11 +172,12 @@ void ProgAlignSignificantGPU<T>::align(const T *ref, const Dimensions &refDims,
 
 template<typename T>
 void ProgAlignSignificantGPU<T>::updateRefs(
-        T *refs,
-        const T *others,
-        const std::vector<Assignment> &assignments) {
-    const Dimensions &refDims = this->getSettings().refDims;
-    const size_t elems = this->getSettings().otherDims.sizeSingle();
+        T *refs, const Dimensions &refDims,
+        const T *others, const Dimensions &otherDims,
+        const std::vector<Assignment> &assignments,
+        unsigned device,
+        size_t refOffset) {
+    const size_t elems = otherDims.sizeSingle();
     T *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
     std::vector<float> workMatrices;
     workMatrices.reserve(9 * m_maxBatchSize);
@@ -184,21 +185,27 @@ void ProgAlignSignificantGPU<T>::updateRefs(
     workWeights.reserve(m_maxBatchSize);
     T *workRef = memoryUtils::page_aligned_alloc<T>(elems, true);
 
-    auto gpu = GPU(m_devices.at(0));
+    auto gpu = GPU(device);
     gpu.pinMemory(workRef, elems * sizeof(T));
     std::vector<HW*> hw{&gpu};
 
     CudaBSplineGeoTransformer<T> transformer;
-    initTransformer(transformer, hw, this->getSettings().otherDims.copyForN(m_maxBatchSize));
+    initTransformer(transformer, hw, otherDims.copyForN(m_maxBatchSize));
     transformer.setSrc(workCopy);
     T norm = 0;
 
     std::vector<Assignment> workAssignments;
-    for (size_t refIndex = 0; refIndex < refDims.n(); ++refIndex) {
-        if (0 == (refIndex % 10)) { // FIXME DS remove / replace by proper progress report
-            std::cout << "updating reference " << refIndex << "/" << refDims.n() << std::endl;
+    float reportAtPerc = 10.f;
+    float step = (refDims.n() / 100.f) * reportAtPerc;
+    float reportThreshold = step;
+    for (size_t r = 0; r < refDims.n(); ++r) {
+        if ((float)r >= reportThreshold) { // FIXME DS remove / replace by proper progress report
+            reportThreshold += step;
+            printf("GPU %u update reference %d%% done\n", device,
+                    (int)(100 * (r / (float)refDims.n())));
         }
 
+        size_t refIndex = r + refOffset;
         // get assignments for this reference
         workAssignments.clear();
         std::copy_if(assignments.begin(), assignments.end(), std::back_inserter(workAssignments),
@@ -243,6 +250,39 @@ void ProgAlignSignificantGPU<T>::updateRefs(
     gpu.unpinMemory(workRef);
     delete[] workCopy;
     free(workRef);
+}
+
+template<typename T>
+void ProgAlignSignificantGPU<T>::updateRefs(
+        T *refs,
+        const T *others,
+        const std::vector<Assignment> &assignments) {
+    auto s = this->getSettings();
+
+    auto &pool = this->getThreadPool();
+    auto futures = std::vector<std::future<void>>();
+
+    auto f = [this, &assignments](int threadId, T *ref, const Dimensions &refDims,
+            const T *others, const Dimensions &otherDims,
+            unsigned device,
+            size_t refOffset) {
+        updateRefs(ref, refDims, others, otherDims, assignments, device, refOffset);
+    };
+    size_t step = s.refDims.n() / m_devices.size();
+    for (size_t devIndex = 0; devIndex < m_devices.size(); ++devIndex) {
+        size_t offset = devIndex * step;
+        size_t toProcess = std::min(step, s.refDims.n() - offset);
+        futures.emplace_back(pool.push(f,
+                refs,
+                s.refDims.copyForN(toProcess),
+                others, s.otherDims,
+                m_devices.at(devIndex),
+                offset));
+    }
+    for (auto &f : futures) {
+        f.get();
+    }
+    std::cout << "Done" << std::endl;
 }
 
 template<typename T>

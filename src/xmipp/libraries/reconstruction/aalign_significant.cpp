@@ -483,6 +483,9 @@ void AProgAlignSignificant<T>::saveRefXmd() {
 
 template<typename T>
 void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignment> &images) {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lk(mutex); // released at the end of scope
+
     const size_t indexInStk = refIndex + 1; // within metadata file, index images from one (1)
     FileName refName;
     auto &refMeta = m_updateHelper.refBlock;
