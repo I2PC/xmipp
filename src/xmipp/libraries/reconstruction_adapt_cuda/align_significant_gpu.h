@@ -60,6 +60,11 @@ private:
     void initTransformer(BSplineGeoTransformer<T> &t, std::vector<HW*> &hw, const Dimensions &dims);
     void initMeritComputer(AMeritComputer<T> &mc, std::vector<HW*> &hw, const Dimensions &dims);
 
+    void align(const T *ref, const Dimensions &refDims,
+            const T *others, const Dimensions &otherDims,
+            unsigned device,
+            AlignmentEstimation *dest);
+
     void interpolate(BSplineGeoTransformer<T> &transformer,
             T *data,
             const std::vector<Assignment> &assignments,
@@ -68,7 +73,7 @@ private:
             size_t toProcess);
 
     size_t m_maxBatchSize = 300;
-    int m_device;
+    std::vector<unsigned> m_devices;
 };
 
 
