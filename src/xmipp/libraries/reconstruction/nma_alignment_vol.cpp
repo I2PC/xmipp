@@ -42,7 +42,7 @@ ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
 	produces_an_output = true;
 	progVolumeFromPDB = new ProgPdbConverter();
 	alignVolumes=false;
-	flip = false;
+	// flip = false;
 }
 
 ProgNmaAlignmentVol::~ProgNmaAlignmentVol() {

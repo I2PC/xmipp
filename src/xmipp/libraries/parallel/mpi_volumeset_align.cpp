@@ -28,13 +28,13 @@
 #include "mpi_volumeset_align.h"
 
 // Redefine read to initialize MPI environment =======================
-void MpiProgVolumeSetAlign::read(int argc, char **argv)
+void MpiProgVolumeSetAlign::read(int arg1, char **arg2)
 {
-	node = std::make_shared<MpiNode>(argc, argv);
+	node = std::make_shared<MpiNode>(arg1, arg2);
 	if (!node->isMaster())
 		verbose=0;
 	fileMutex = std::make_shared<MpiFileMutex>(node.get());
-	ProgVolumeSetAlign::read(argc, argv);
+	ProgVolumeSetAlign::read(arg1, arg2);
 }
 
 

@@ -35,12 +35,8 @@
 
 // Empty constructor =======================================================
 ProgVolumeSetAlign::ProgVolumeSetAlign() {
-	rangen = 0;
-	resume = false;
-	currentVolName = "";
 	each_image_produces_an_output = false;
 	produces_an_output = true;
-	flipped = false;
 }
 
 // Params definition ============================================================
@@ -77,7 +73,8 @@ ProgVolumeSetAlign *global_volumeset_align_prog;
 void ProgVolumeSetAlign::createWorkFiles() {
 	MetaData *pmdIn = getInputMd();
 	// this will serve to resume
-	MetaData mdTodo, mdDone; 
+	MetaData mdTodo;
+	MetaData mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/AlignedSoFar.xmd");
 	if (fn.exists() && resume) {
@@ -149,11 +146,11 @@ void ProgVolumeSetAlign::computeFitness(){
 
 
 void ProgVolumeSetAlign::processImage(const FileName &fnImg,
-		const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) {
+		const FileName &, const MDRow &, MDRow &) {
 	static size_t imageCounter = 0;
 	++imageCounter;
 	currentVolName = fnImg;
-	sprintf(nameTemplate, "_node%d_img%lu_XXXXXX", rangen, (long unsigned int)imageCounter);
+	snprintf(nameTemplate, 255 ,"_node%d_img%lu_XXXXXX", rangen, (long unsigned int)imageCounter);
 	computeFitness();
 	writeVolumeParameters(fnImg);
 }

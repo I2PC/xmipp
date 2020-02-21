@@ -57,6 +57,6 @@ private:
 
 public:
     // Redefine read to initialize MPI environment
-    void read(int argc, char **argv);
+    void read(int arg1, char **arg2);
 }
 ;//end of class MpiProgVolumeSetAlign

@@ -137,7 +137,7 @@ public:
     float fit_value;
 
     // flag indicates if there is a compensation for the missing wedge (volumes are rotated by 90 degrees about y axis for this purpose)
-    bool flip;
+    bool flip = false;
 
 public:
     /// Empty constructor

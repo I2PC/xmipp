@@ -36,7 +36,7 @@ public:
     bool MPIversion;
     
     /** Resume computations */
-    bool resume;
+    bool resume = false;
 
     /// Reference volume structure
     FileName fnREF;
@@ -61,24 +61,24 @@ public:
     float fitness;
     
     // flag indicates if there is a compensation for the missing wedge (volumes are rotated by 90 degrees about y axis for this purpose)
-    bool flipped;
+    bool flipped = false;
 
-public:
+//public:
     
     // Random generator seed
-    int rangen;
+    int rangen = 0;
     
     // All estimated parameters (with the cost)
     Matrix1D<double> parameters;
 
     // Current volume being considered
-    FileName currentVolName;
+    FileName currentVolName = "";
     
     // Template for temporal filename generation
     char nameTemplate[256];
 
 
-public:
+//public:
     /// Empty constructor
     ProgVolumeSetAlign();
 
@@ -100,7 +100,7 @@ public:
     virtual void preProcess();
     
     /** Assign NMA and Alignment parameters to a volume */
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+    void processImage(const FileName &fnImg, const FileName &, const MDRow &, MDRow &);
 
     /** Write the final parameters. */
     virtual void finishProcessing();
