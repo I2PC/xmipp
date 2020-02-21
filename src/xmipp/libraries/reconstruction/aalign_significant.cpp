@@ -47,14 +47,20 @@ template<typename T>
 void AProgAlignSignificant<T>::readParams() {
     m_imagesToAlign.fn = getParam("-i");
     m_referenceImages.fn = getParam("-r");
-    m_fnOut = std::string(getParam("--odir")) + "/" + std::string(getParam("-o"));
+    auto outDir = FileName(getParam("--odir"));
+    if ( ! outDir.exists()) {
+        if (outDir.makePath()) {
+            REPORT_ERROR(ERR_IO_NOWRITE, "cannot create " + outDir);
+        }
+    }
+    m_fnOut = outDir + "/" + std::string(getParam("-o"));
     m_angDistance = getDoubleParam("--angDistance");
     m_noOfBestToKeep = getIntParam("--keepBestN");
     m_allowDataSwap = checkParam("--allowInputSwap");
     m_useWeightInsteadOfCC = checkParam("--useWeightInsteadOfCC");
     m_updateHelper.doUpdate = checkParam("--oUpdatedRefs");
     if (m_updateHelper.doUpdate) {
-        FileName base = std::string(getParam("--odir")) + "/" + std::string(getParam("--oUpdatedRefs"));
+        FileName base = outDir + "/" + std::string(getParam("--oUpdatedRefs"));
         m_updateHelper.fnStk = base + ".stk";
         m_updateHelper.fnXmd = base + ".xmd";
     }
