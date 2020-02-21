@@ -96,7 +96,7 @@ public:
     // FIXME DS do not use, it's for backward compatibility only
     static void setDevice(int device);
 
-    static inline int getDeviceCount();
+    static int getDeviceCount();
 
     void lockMemory(const void *h_mem, size_t bytes) override {
         GPU::pinMemory(h_mem, bytes, 0);
