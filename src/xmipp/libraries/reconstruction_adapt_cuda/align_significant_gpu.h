@@ -65,6 +65,13 @@ private:
             unsigned device,
             AlignmentEstimation *dest);
 
+    void updateRefs(
+            T *refs, const Dimensions &refDims,
+            const T *others, const Dimensions &otherDims,
+            const std::vector<Assignment> &assignments,
+            unsigned device,
+            size_t refOffset);
+
     void interpolate(BSplineGeoTransformer<T> &transformer,
             T *data,
             const std::vector<Assignment> &assignments,
