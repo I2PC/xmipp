@@ -152,7 +152,7 @@ protected:
         addExampleLine(" there aren't common columns, in that case second metadata columns will be used", false);
         addExampleLine ("   xmipp_metadata_utilities -i mD1.doc --set merge mD2.doc -o out.doc");
         addExampleLine(" Sort the elements in metadata (using default label 'image').", false);
-        addExampleLine ("   xmipp_metadata_utilities -i mD1.doc -s sort -o out.doc");
+        addExampleLine ("   xmipp_metadata_utilities -i mD1.doc --operate sort -o out.doc");
         addExampleLine(" You can also add columns and 'filling' its values with different options", false);
         addExampleLine("By example, to add the column 'shiftX' with uniform random value between 0 and 10", false);
         addExampleLine ("   xmipp_metadata_utilities -i mD1.doc --fill shiftX rand_uniform 0 10 -o out.doc");
