@@ -62,8 +62,6 @@ public:
     
     // flag indicates if there is a compensation for the missing wedge (volumes are rotated by 90 degrees about y axis for this purpose)
     bool flipped = false;
-
-//public:
     
     // Random generator seed
     int rangen = 0;
@@ -77,8 +75,6 @@ public:
     // Template for temporal filename generation
     char nameTemplate[256];
 
-
-//public:
     /// Empty constructor
     ProgVolumeSetAlign();
 
