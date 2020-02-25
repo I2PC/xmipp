@@ -103,7 +103,7 @@ PyObject * getPointerToPythonGeneralWedgeClass()
 
 PyObject * getPointerToPythonSingleTiltWedgeClass()
 {
-	PyObject * pName = PyString_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
+	PyObject * pName = PyUnicode_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
 	PyObject * pModule = PyImport_Import(pName);
 	PyObject * pDict = PyModule_GetDict(pModule);
 	PyObject * pSTMMclass = PyDict_GetItemString(pDict, "SingleTiltWedge");
