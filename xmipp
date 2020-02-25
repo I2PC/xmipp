@@ -967,17 +967,20 @@ def compileModule(Nproc,module):
     log = []
     ok = runJob("scons -j%s" % Nproc, "src/%s" % module, log=log)
     if not ok:
+        failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines
             # expected error: 'scons: *** [some/program/to/compile] Error 1'
-            failingBin = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
-            if failingBin:
+            errorRegex = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
+            if errorRegex:
+                failingBin = errorRegex.group(1)
                 for k, v in SKIPPABLE_BINS.items():
-                    if k in failingBin.group(1):
+                    if k in failingBin:
                         print(red("\nSome error found compiling '%s' program."
-                                  % failingBin.group(1).split('/')[-1]))
+                                  % failingBin.split('/')[-1]))
                         print(red("You can skip this program by including '%s' "
                                   "in the config file." % (v)))
-        print(red("\nSome error occurred during the compilation of '%s'.\n" % module))
+        print(red("\nSome error occurred during the compilation of '%s'%s.\n"
+                  % (module, (" ('%s')" % failingBin) if failingBin else '')))
         sys.exit(1)
     return ok
 

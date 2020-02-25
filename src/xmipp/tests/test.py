@@ -346,7 +346,7 @@ if __name__ == "__main__":
 
     cudaExcludeStr = '| grep -v xmipp_test_cuda_' if not cudaTests else ''
     cTests = subprocess.check_output('compgen -ac | grep xmipp_test_ %s' % cudaExcludeStr,
-                                     shell=True, executable='/bin/bash').splitlines()
+                                     shell=True, executable='/bin/bash').decode('utf-8').splitlines()
 
     tests = unittest.TestSuite()
     if '--show' in testNames or '--allPrograms' in testNames:
@@ -378,19 +378,19 @@ if __name__ == "__main__":
             sys.stdout.flush()
             result = os.system(test)
             sys.stdout.flush()
-            if result != 0:
+            if result == 0:
                 errors.append(test)
 
         secs = time.time() - startTimeAll
-        sys.stderr.write(blue("\n -- End of all function tests -- \n\n"))
-        sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
+        sys.stdout.write(blue("\n\n -- End of all function tests -- \n\n"))
+        sys.stdout.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), len(cTests), secs))
-        sys.stdout.write(green("[  PASSED  ]") + " %d tests" % (len(cTests) - len(errors)))
+        sys.stdout.write(green("[  PASSED  ]") + " %d tests \n" % (len(cTests) - len(errors)))
         sys.stdout.flush()
         if errors:
-            sys.stdout.write(red("[  FAILED  ]") + " %d tests:" % len(errors))
+            sys.stdout.write(red("[  FAILED  ]") + " %d tests:\n" % len(errors))
         for fail in errors:
-            print(red(" - %s" % fail))
+            sys.stdout.write(red("\t* %s\n" % fail))
         sys.stdout.flush()
     else:
         for test in testNames:
