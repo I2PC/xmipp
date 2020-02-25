@@ -378,7 +378,7 @@ if __name__ == "__main__":
             sys.stdout.flush()
             result = os.system(test)
             sys.stdout.flush()
-            if result == 0:
+            if result != 0:
                 errors.append(test)
 
         secs = time.time() - startTimeAll
