@@ -36,6 +36,7 @@
 void ProgResHet::readParams()
 {
 	fnVol = getParam("--vol");
+	fnImag =  getParam("--images");
 	fnOut = getParam("-o");
 	fnMask = getParam("--mask");
 	sampling = getDoubleParam("--sampling_rate");
@@ -52,6 +53,7 @@ void ProgResHet::defineParams()
 	addUsageLine("This function determines the local resolution of a map");
 	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
 	addParamsLine("  --mask <vol_file=\"\">                  : Mask defining the macromolecule");
+	addParamsLine("  [--images <im_file=\"\">]                 : Set of images");
 	addParamsLine("  -o <output=\"MGresolution.vol\">        : Local resolution volume (in Angstroms)");
 	addParamsLine("  [--sampling_rate <s=1>]                 : Sampling rate (A/px)");
 	addParamsLine("  [--resStep <s=0.5>]  		             : Resolution step (precision) in A");
@@ -529,8 +531,8 @@ void ProgResHet::defineCone(MultidimArray< std::complex<double> > &myfftV,
 	conefilter = myfftV;
 	// Filter the input volume and add it to amplitude
 
-//	MultidimArray<double> conetest;
-//	conetest.initZeros(myfftV);
+	MultidimArray<double> conetest;
+	conetest.initZeros(myfftV);
 //	#ifdef DEBUG_DIR
 //	MultidimArray<double> coneVol;
 //	coneVol.initZeros(iu);
@@ -571,6 +573,8 @@ void ProgResHet::defineCone(MultidimArray< std::complex<double> > &myfftV,
 					DIRECT_MULTIDIM_ELEM(conefilter, n) = 0;
 //					DIRECT_MULTIDIM_ELEM(conetest, n) = 0;
 				}
+//				else
+//					DIRECT_MULTIDIM_ELEM(conetest, n) = 1;
 /*
 				//4822.53 mean a smoothed cone angle of 20 degrees
 				double arg_exp = acosine*acosine*acosine*acosine*4822.53;
@@ -581,10 +585,12 @@ void ProgResHet::defineCone(MultidimArray< std::complex<double> > &myfftV,
 			}
 		}
 	}
-//
+
 //	Image<double> saveImg2;
 //	saveImg2 = conetest;
-//	saveImg2.write("cono.vol");
+//	FileName fn;
+//	fn = formatString("cono_%f_%f.mrc", rot, tilt);
+//	saveImg2.write(fn);
 
 }
 
@@ -1187,6 +1193,17 @@ void ProgResHet::run()
 		std::cout << "----------------direction-finished----------------" << std::endl;
 	}
 	infile.close();
+
+
+	std::cout << "----------------determining-images-projection-cone---------------" << std::endl;
+    SF.read(fnImag);
+    double rotIm, tiltIm;
+	FOR_ALL_OBJECTS_IN_METADATA(SF)
+	{
+		SF.getValue(MDL_ANGLE_ROT,rotIm,__iter.objId);
+		SF.getValue(MDL_ANGLE_TILT,tiltIm,__iter.objId);
+		std::cout<<"rot: " << rotIm << "  tilt: " << tiltIm << std::endl;
+	}
 
 	///////////////////////////////////////////
 }

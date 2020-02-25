@@ -45,6 +45,7 @@
 #include "symmetrize.h"
 #include <core/histogram.h>
 #include <data/monogenic.h>
+#include <core/transformations.h>
 
 /**@defgroup Monogenic Resolution
    @ingroup ReconsLibrary */
@@ -55,7 +56,9 @@ class ProgResHet : public XmippProgram
 {
 public:
 	 /** Filenames */
-	FileName fnOut, fnVol, fnMask, fnMonoRes, fnMDThr;
+	FileName fnOut, fnVol, fnMask, fnMonoRes, fnMDThr, fnImag;
+    MetaData SF;
+	double flip, scale, shiftx, shifty, shiftz, psi, tilt, rot;
 
 	/** sampling rate, minimum resolution, and maximum resolution */
 	double sampling, minRes, maxRes, R, N_directions, Rparticle, res_step;
