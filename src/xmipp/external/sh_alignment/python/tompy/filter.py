@@ -227,7 +227,7 @@ class SingleTiltWedge(Wedge):
             return self._sf
 
         r = 45 # this radius and the volume size should be sufficient for sampling b <= 128
-        if self._volume is None:
+        if self._volume is None or np.min(self._volume.shape) < 100:
             self._create_wedge_volume((100,100,100))
         
         if self._bw == bw and self._sf is not None:

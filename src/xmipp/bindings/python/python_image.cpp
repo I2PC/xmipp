@@ -98,6 +98,8 @@ PyMethodDef Image_methods[] =
           "mirror image so up goes down" },
         { "applyTransforMatScipion", (PyCFunction) Image_applyTransforMatScipion, METH_VARARGS,
           "apply transformationMatrix as defined by EMX and used by Scipion" },
+		{ "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
+		  "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
         { "initRandom", (PyCFunction) Image_initRandom, METH_VARARGS,
           "Initialize to random value" },
         { "resize", (PyCFunction) Image_resize, METH_VARARGS,
@@ -1573,7 +1575,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 
             size_t size = PyList_Size(list);
-            Matrix2D<double> A,B;
+            Matrix2D<double> A;
             A.initIdentity(4);
             for (size_t i = 0; i < size; ++i)
             {

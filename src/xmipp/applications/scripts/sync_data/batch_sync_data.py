@@ -120,7 +120,7 @@ def update(destination=None, url=None, dataset=None):
         last = max(os.stat(join(destination, x)).st_mtime for x in md5sRemote)
         t_manifest = os.stat(join(destination, 'MANIFEST')).st_mtime
         assert t_manifest > last and time.time() - t_manifest < 60*60*24*7
-    except (OSError, IOError, AssertionError) as e:
+    except (OSError, IOError, AssertionError, FileNotFoundError) as e:
         print(blue("Regenerating local MANIFEST..."))
         if isDLmodel:
             if any(x.startswith('xmipp_model_') and x.endswith('.tgz')
@@ -147,12 +147,12 @@ def update(destination=None, url=None, dataset=None):
     for fname in md5sRemote:
         fpath = join(destination, fname)
         try:
-            if os.path.exists(fpath) and md5sLocal[fname] == md5sRemote[fname]:
+            if os.path.exists(fpath) and md5sLocal.get(fname, 'None') == md5sRemote.get(fname, ''):
                 pass  # just to emphasize that we do nothing in this case
             else:
                 if not os.path.isdir(os.path.dirname(fpath)):
                     os.makedirs(os.path.dirname(fpath))
-                open(fpath, 'w').writelines(
+                open(fpath, 'wb').writelines(
                     urlopen('%s%s/%s' % (url, inFolder, fname)))
                 filesUpdated.append(fname)
         except Exception as e:
@@ -171,7 +171,7 @@ def update(destination=None, url=None, dataset=None):
 
     # Save the new MANIFEST file in the folder of the downloaded dataset
     if len(filesUpdated) > 0:
-        open(join(destination, 'MANIFEST'), 'w').writelines(urlopen(remoteManifest).readlines())
+        open(join(destination, 'MANIFEST'), 'wb').writelines(urlopen(remoteManifest).readlines())
 
     if taintedMANIFEST:
         print(blue("Some files could not be updated. Regenerating local MANIFEST ..."))
@@ -231,11 +231,11 @@ def md5sum(fname):
 def createMANIFEST(path):
     """ Create a MANIFEST file in path with the md5 of all files below
     """
-    with open(join(path, 'MANIFEST'), 'w') as manifest:
+    with open(join(path, 'MANIFEST'), 'wb') as manifest:
         for root, dirs, files in os.walk(path):
             for filename in set(files) - {'MANIFEST'}:  # all but ourselves
                 fn = join(root, filename)  # file to check
-                manifest.write('%s %s\n' % (os.path.relpath(fn, path), md5sum(fn)))
+                manifest.write(('%s %s\n' % (os.path.relpath(fn, path), md5sum(fn))).encode())
 
 def readManifest(remoteManifest, isDLmodel):
     manifest = urlopen(remoteManifest).readlines()

@@ -84,6 +84,15 @@ public:
 
     /// Trust radius scale
     double trustradius_scale;
+
+    // starting and ending tilt angles for compensating for a single tilt wedge mask for tomography data
+    int tilt0, tiltF;
+
+    // maximum search frequency and shift while rigid body alignment
+    double frm_freq;
+    int frm_shift;
+
+
 public:
 
     // Random generator seed
@@ -145,7 +154,7 @@ public:
     double computeFitness(Matrix1D<double> &trial) const;
 
     /** Update the best fitness and the corresponding best trial*/
-    void updateBestFit(double fitness, int dim);
+    bool updateBestFit(double fitness, int dim);
 
     /** Create the processing working files.
      * The working files are:

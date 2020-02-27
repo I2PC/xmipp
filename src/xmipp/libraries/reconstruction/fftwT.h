@@ -147,6 +147,8 @@ private:
 
     void release(T *SD, std::complex<T> *FD);
 
+    bool needsAuxArray(const FFTSettingsNew<T> &settings);
+
     static typename FFTwT_planType::plan<T>::type cast(void *p) {
         return static_cast<typename FFTwT_planType::plan<T>::type>(p);
     }

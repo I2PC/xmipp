@@ -135,6 +135,10 @@ Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* applyWarpAffine */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 /* applyTransforMatScipion */
 PyObject *
 Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs);

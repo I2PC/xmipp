@@ -48,13 +48,17 @@ XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 MICROGRAPH_CLEANER= 'micrograph_cleaner_em'
+CTPL = 'CTPL'
+
+XMIPP_SCRIPT_VERSION = ''
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em'}
+                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em',
+                CTPL: 'https://github.com/vit-vit/CTPL.git'}
 
 CONFIG_FILE_NAME = "xmipp.conf"
 
@@ -401,9 +405,11 @@ def getDependencies():
     createDir("src")
     result = True
     if is_config_true('CUDA'):
-        result = cloneOrCheckout(CUFFTADVISOR, None)
+        result = cloneOrCheckout(CUFFTADVISOR, 'master')
     if result:
         result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
+    if result:
+        result = cloneOrCheckout(CTPL, 'master')
     if not result:
         print(red("Cannot get dependencies"))
     return result
@@ -443,7 +449,8 @@ def createEmptyConfig():
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED', 'PYTHON_LIB']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED',
+              'CONFIG_VERSION', 'PYTHON_LIB']
     configDict = {}
     for label in labels:
         configDict[label]=""
@@ -533,7 +540,7 @@ def configCompiler(configDict):
             configDict["CXXFLAGS"] += " -Werror"  # don't tolerate any warnings on build machine
             configDict["CXXFLAGS"] += " -O0"  # don't optimize on Travis, as it slows down the build
         else:
-            configDict["CXXFLAGS"] += " -O0"
+            configDict["CXXFLAGS"] += " -O3"
         if is_config_true("DEBUG"):
             configDict["CXXFLAGS"] += " -g"
     # Nothing special to add to LINKFLAGS
@@ -662,13 +669,11 @@ int main(){}
     runJob("rm xmipp_mpi_test_main*")
 
     ok = False
+    echoString = "This sentence should be printed 4 times if mpi runs fine"
     if checkProgram("mpirun",False):
-        echoString = "This sentence should be printed 4 times if mpi runs fine"
         ok=(runJob("mpirun -np 4 echo '%s (by mpirun).'" % echoString) or
             runJob("mpirun -np 4 --allow-run-as-root echo '%s (by mpirun).'" % echoString))
     elif checkProgram("mpiexec",False):
-        # FIXME The variable echoString does not declared here
-        echoString = "This sentence should be printed 4 times if mpi runs fine"
         ok=(runJob("mpiexec -np 4 echo '%s (by mpiexec).'" % echoString) or
             runJob("mpiexec -np 4 --allow-run-as-root echo '%s (by mpiexec).'" % echoString))
     else:
@@ -741,7 +746,7 @@ def configCuda(configDict):
         if configDict["NVCC"]=="":
             if checkProgram("nvcc"):
                 nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
-                if nvccVersion != 8.0:
+                if nvccVersion != 8.0 and not 'XMIPP_ALLOW_ANY_CUDA' in os.environ:
                     print(red('Detected CUDA-' + nvccFullVersion + '. Version 8.0 is required.'))
                     print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
                               "to be able to use Xmipp Cuda programs.'"))
@@ -753,7 +758,8 @@ def configCuda(configDict):
             # get rid of it: 'ccache g++' -> 'g++'
             candidate = configDict["CXX"].split()[-1]
             cxxVersion, cxxStrVersion = getGccVersion(candidate)
-            if cxxVersion >= 6:
+            nvccVersion, nvccFullVersion = getCudaVersion(configDict["NVCC"])
+            if cxxVersion >= 6 and nvccVersion <= 8:
                 compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
                 print(red("%s version later than 5 detected. Looking for an alternative "
                           "for CUDA compilations... (g++-v: %s)"
@@ -774,7 +780,7 @@ def configCuda(configDict):
             else:
                 configDict["CXX_CUDA"] = candidate
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                           "-ccbin %(CXX_CUDA)s -std=c++11 "
+                                           "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
                                            "-gencode=arch=compute_30,code=compute_30 "
                                            "-gencode=arch=compute_35,code=compute_35 "
@@ -882,6 +888,19 @@ def config_DL(configDict):
         configDict[k] = 'False'
 
 
+def configConfigVersion(configDict):
+    key = 'CONFIG_VERSION'
+    configDict[key] = getScriptVersion()
+
+
+def ensureConfigVersion(configDict):
+    key = 'CONFIG_VERSION'
+    if key not in configDict or configDict[key] != XMIPP_SCRIPT_VERSION:
+        print(red('We did some changes which are not compatible with your current config file. '
+                  'We recommend you to create a backup before regenerating it (use --help for additional info)'))
+        exit(-1)
+
+
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
@@ -899,6 +918,7 @@ def config():
     configCuda(new_config_dict)
     configMatlab(new_config_dict)
     config_DL(new_config_dict)
+    configConfigVersion(new_config_dict)
 
     writeConfig(new_config_dict)
     print(green("Configuration completed....."))
@@ -947,18 +967,20 @@ def compileModule(Nproc,module):
     log = []
     ok = runJob("scons -j%s" % Nproc, "src/%s" % module, log=log)
     if not ok:
+        failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines
-            print(log)
             # expected error: 'scons: *** [some/program/to/compile] Error 1'
-            failingBin = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
-            if failingBin:
+            errorRegex = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
+            if errorRegex:
+                failingBin = errorRegex.group(1)
                 for k, v in SKIPPABLE_BINS.items():
-                    if k in failingBin.group(1):
+                    if k in failingBin:
                         print(red("\nSome error found compiling '%s' program."
-                                  % failingBin.group(1).split('/')[-1]))
+                                  % failingBin.split('/')[-1]))
                         print(red("You can skip this program by including '%s' "
                                   "in the config file." % (v)))
-        print(red("\nSome error occurred during the compilation of '%s'.\n" % module))
+        print(red("\nSome error occurred during the compilation of '%s'%s.\n"
+                  % (module, (" ('%s')" % failingBin) if failingBin else '')))
         sys.exit(1)
     return ok
 
@@ -973,6 +995,14 @@ def compile_cuFFTAdvisor():
     return ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 
 
+def compile(Nproc):
+    ensureConfig()
+    ensureConfigVersion(configDict)
+    if not compileDependencies(Nproc):
+        return False
+    return compileXmipp(Nproc)
+
+
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
@@ -983,9 +1013,8 @@ def compileDependencies(Nproc):
     return result
 
 
-def compile(Nproc):
+def compileXmipp(Nproc):
     print("Compiling -------------------------------------------")
-    ensureConfig()
     if not compileModule(Nproc,"xmippCore"):
         return False
     if not compileModule(Nproc,"xmipp"):
@@ -1140,7 +1169,6 @@ def downloadDeepLearningModels(cwd, dedicatedMode=False):
 def install(dirname):
     print("Installing ------------------------------------------")
     cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
-    #cpCmd = "cp -R"
     ok = True
 
     createDir(dirname)
@@ -1375,12 +1403,19 @@ def ensureGit():
         return False
     return True
 
+
+def getScriptVersion():
+    scriptName = os.path.basename(__file__)
+    lastCommit = []
+    # get hash of the last commit changing this script
+    runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False)
+    return lastCommit[0].strip()
+
 if __name__ == '__main__':
     # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
     # os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    # import time
-    # time.sleep(5)
+    XMIPP_SCRIPT_VERSION = getScriptVersion()
 
     if not ensureGit():
         sys.exit(-1)
@@ -1433,12 +1468,12 @@ if __name__ == '__main__':
             print(red("\nCheck failed! Something wrong with the configuration.\n"))
             sys.exit(1)
     elif mode=="compile":
-        Nproc = 12 if n<3 else sys.argv[2]
-        compileDependencies(Nproc)
+        Nproc = 8 if n<3 else sys.argv[2]
         if n<=3:
             ok = compile(Nproc)
             module = 'Xmipp'
         else:
+            compileDependencies(Nproc)
             ok = compileModule(Nproc,sys.argv[3])
             module = sys.argv[3]
         if ok:
@@ -1453,8 +1488,7 @@ if __name__ == '__main__':
         if n>2:
             Nproc=sys.argv[2]
         else:
-            Nproc=12
-        compileDependencies(Nproc)
+            Nproc=8
         compile(Nproc)
         install("build")
     elif mode=="install":
@@ -1469,7 +1503,7 @@ if __name__ == '__main__':
     elif mode=="test" or mode=="tests":
         runTests(sys.argv[2:])
     elif mode=="all":
-        Nproc = 12
+        Nproc = 8
         branch = ''
         buildDir = 'build'
         for arg in sys.argv[2:]:
@@ -1492,7 +1526,6 @@ if __name__ == '__main__':
             and downloadDeepLearningModels('build')
             and getDependencies()
             and getSources(branch)
-            and compileDependencies(Nproc)
             and compile(Nproc)
             and install('build'))
         if ok:
