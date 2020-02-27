@@ -60,6 +60,11 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em',
                 CTPL: 'https://github.com/vit-vit/CTPL.git'}
 
+#              {dep-repo:     (branch, check-conf)}
+DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
+                MICROGRAPH_CLEANER: (None, None),
+                CTPL: ('master', None)}
+
 CONFIG_FILE_NAME = "xmipp.conf"
 
 # if a skippable compilation fails (if 'key' found in the failed code),
@@ -404,12 +409,11 @@ def getDependencies():
     print("Getting Dependencies -------------------------------------")
     createDir("src")
     result = True
-    if is_config_true('CUDA'):
-        result = cloneOrCheckout(CUFFTADVISOR, 'master')
-    if result:
-        result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
-    if result:
-        result = cloneOrCheckout(CTPL, 'master')
+    for dep, args in DEPENDENCIES.items():
+        branch = args[0]
+        configChecked = not args[1] or is_config_true(args[1])
+        if configChecked and result:
+            result = cloneOrCheckout(dep, branch)
     if not result:
         print(red("Cannot get dependencies"))
     return result
@@ -464,7 +468,6 @@ def findFileInDirList(fnH,dirlist):
     return False
 
 def configOpenCV(configDict):
-    print("Checking openCV configuration ...")
     cppProg="#include <opencv2/core/core.hpp>\n"
     cppProg+="int main(){}\n"
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
@@ -486,6 +489,7 @@ def configOpenCV(configDict):
         if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]),show_output=False):
             configDict["OPENCV3"]=False
+            version = 2  # Just in case
         else:
             runJob("./xmipp_test_opencv")
             f=open("xmipp_test_opencv.txt")
@@ -503,6 +507,8 @@ def configOpenCV(configDict):
         configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False)
 
+        print(green("OPENCV-%s detected %s CUDA support"
+              % (version, 'with' if configDict["OPENCVSUPPORTSCUDA"] else 'without')))
     runJob("rm -v xmipp_test_opencv*",show_output=False)
 
 
@@ -514,14 +520,15 @@ def configCompiler(configDict):
     if configDict["DEBUG"] == "":
         configDict["DEBUG"] = "False"
 
-    if configDict["CC"] == "":
-        configDict["CC"] = "gcc" if checkProgram("gcc") else ""
+    if configDict["CC"] == "" and checkProgram("gcc"):
+        configDict["CC"] = "gcc"
+        print(green('gcc detected'))
     if configDict["CXX"] == "":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
             configDict["CXX"] = "ccache g++" if checkProgram("g++") else ""
         else:
-            configDict["CXX"]="g++" if checkProgram("g++") else "" 
+            configDict["CXX"]="g++" if checkProgram("g++") else ""
     if configDict["LINKERFORPROGRAMS"] == "":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
@@ -585,7 +592,7 @@ def configCompiler(configDict):
             pythonIncFlags += "-I" + incDir + " "
         configDict["PYTHONINCFLAGS"] = pythonIncFlags
 
-    configDict["OPENCV"] = os.environ.get("OPENCV", "False")
+    configDict["OPENCV"] = os.environ.get("OPENCV", "")
     if configDict["OPENCV"] == "" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
         configOpenCV(configDict)
 
@@ -638,13 +645,17 @@ def checkCompiler(configDict):
     return True
 
 def configMPI(configDict):
-    if configDict["MPI_CC"]=="":
-        configDict["MPI_CC"]="mpicc" if checkProgram("mpicc") else ""
-    if configDict["MPI_CXX"]=="":
-        configDict["MPI_CXX"]="mpiCC" if checkProgram("mpiCC") else ""
+    mpiDetected = []
+    if configDict["MPI_CC"] == "" and checkProgram("mpicc"):
+        configDict["MPI_CC"]="mpicc"
+        mpiDetected.append('mpicc')
+    if configDict["MPI_CXX"] == "" and checkProgram("mpiCC"):
+        configDict["MPI_CXX"]="mpiCC"
+        mpiDetected.append('mpiCC')
     if configDict["MPI_LINKERFORPROGRAMS"]=="":
         configDict["MPI_LINKERFORPROGRAMS"]="mpiCC" if checkProgram("mpiCC") else ""
-
+    if mpiDetected:
+        print(green("%s detected." % ', '.join(mpiDetected)))
     # MPI_CXXFLAGS is normally not needed, but if it is we may use mpicc --showme:compile
     # MPI_LINKFLAGS is normally not needed, but if it is we may use mpicc --showme:link
 
@@ -669,7 +680,7 @@ int main(){}
     runJob("rm xmipp_mpi_test_main*")
 
     ok = False
-    echoString = "This sentence should be printed 4 times if mpi runs fine"
+    echoString = blue("   > This sentence should be printed 4 times if mpi runs fine")
     if checkProgram("mpirun",False):
         ok=(runJob("mpirun -np 4 echo '%s (by mpirun).'" % echoString) or
             runJob("mpirun -np 4 --allow-run-as-root echo '%s (by mpirun).'" % echoString))
@@ -692,6 +703,7 @@ def configJava(configDict):
             javaHomeDir = javaHomeDir.replace("/bin","")
         if javaHomeDir:
             configDict["JAVA_HOME"]=javaHomeDir
+            print(green("%s detected." % os.path.basename(javaHomeDir)))
 
     if configDict["JAVA_BINDIR"]=="" and javaHomeDir:
         configDict["JAVA_BINDIR"]="%(JAVA_HOME)s/bin"
@@ -705,7 +717,7 @@ def configJava(configDict):
 def checkJava(configDict):
     if not checkProgram("javac"):
         return False
-
+    print("Cheching Java configuration...")
     javaProg="""
     public class Xmipp {
        public static void main(String[] args) {}
@@ -746,8 +758,9 @@ def configCuda(configDict):
         if configDict["NVCC"]=="":
             if checkProgram("nvcc"):
                 nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
+                print(green('CUDA-' + nvccFullVersion + ' detected.'))
                 if nvccVersion != 8.0 and not 'XMIPP_ALLOW_ANY_CUDA' in os.environ:
-                    print(red('Detected CUDA-' + nvccFullVersion + '. Version 8.0 is required.'))
+                    print(red('CUDA-8.0 is required.'))
                     print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
                               "to be able to use Xmipp Cuda programs.'"))
                     configDict["CUDA"] = 'False'
@@ -768,13 +781,13 @@ def configCuda(configDict):
                     cxxCudaVer = '-'+ver
                     if checkProgram(candidate+cxxCudaVer):
                         configDict["CXX_CUDA"] = candidate+cxxCudaVer
-                        print(green("%s detected! Using it to compile CUDA related code.\n"
+                        print(green("%s detected. Using it to compile CUDA related code.\n"
                                     % configDict["CXX_CUDA"]))
                         break
                 if configDict["CXX_CUDA"] == '':
                     print(red("No alternative found. Skipping CUDA compilation.\n"
                               "If an alternative exists, please set 'CXX_CUDA' "
-                              "in 'xmipp.conf' to point to there."))
+                              "in '%s' to point to there." % CONFIG_FILE_NAME))
                     configDict["CUDA"] = "False"
                     return
             else:
@@ -813,7 +826,7 @@ def checkCuda(configDict):
     if configDict["CUDA"]=="True":
         if not checkProgram("nvcc"):
             return False
-
+        print("Checking CUDA configuration ...")
         cppProg="""
     #include <cuda_runtime.h>
     #include <cufft.h>
@@ -848,13 +861,14 @@ def configMatlab(configDict):
             if checkProgram("matlab"):
                 matlabBinDir = os.path.dirname(os.path.realpath(distutils.spawn.find_executable("matlab")))
                 configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
+                print(green("Matlab detected at " + matlabBinDir))
 
 def checkMatlab(configDict):
     ans = True
     if configDict["MATLAB"]=="True":
         if not checkProgram("matlab"):
             return False
-
+        print("Checking Matlab configuration ...")
         cppProg="""
     #include <mex.h>
     int dummy(){}
@@ -921,7 +935,7 @@ def config():
     configConfigVersion(new_config_dict)
 
     writeConfig(new_config_dict)
-    print(green("Configuration completed....."))
+    print(blue("Configuration completed....."))
 
     return new_config_dict
 
@@ -957,6 +971,9 @@ def checkConfig():
             newConf["MATLAB"]="False"
         newConf['VERIFIED']="True"
         updateConfig(newConf)
+    else:
+        print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
+                   % CONFIG_FILE_NAME))
     return True
 
 
@@ -970,15 +987,35 @@ def compileModule(Nproc,module):
         failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines
             # expected error: 'scons: *** [some/program/to/compile] Error 1'
-            errorRegex = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
+            errorRegex = re.match("scons: \*\*\* \[(.*)\] (.*Error) ([0-9]*)[: ]*(.*)", l)
             if errorRegex:
                 failingBin = errorRegex.group(1)
+                errorType = errorRegex.group(2)
+                errorNum = errorRegex.group(3)
+                errorMsg = errorRegex.group(4)
                 for k, v in SKIPPABLE_BINS.items():
                     if k in failingBin:
                         print(red("\nSome error found compiling '%s' program."
                                   % failingBin.split('/')[-1]))
                         print(red("You can skip this program by including '%s' "
                                   "in the config file." % (v)))
+                if 'unsupported pickle protocol' in errorMsg:
+                    print(red("\nThis error might be because you canged the python "
+                              "version. If so, please run './xmipp cleanBin' to "
+                              "clean up the installation and, then './xmipp' to "
+                              "re-compile it."))
+            errorRegex = re.match(".*: fatal error: (.*): No such file or directory", l)
+            if errorRegex:
+                missingPath = errorRegex.group(1)
+                print(red("\n'%s' file not found." % missingPath))
+                missingDir = missingPath.split(os.path.sep)[0]
+                missingFile = os.path.join(*missingPath.split(os.path.sep)[1:])
+                if missingDir in DEPENDENCIES.keys():
+                    depDir = os.path.join('src', missingDir)
+                    hint = ('cd %s ; git checkout -- %s ; cd -' % (depDir, missingFile)
+                            if os.path.isdir(depDir) else './xmipp get_dependencies')
+                    print(red("This file belongs to %s dependency. Please, "
+                              "try '%s' and re-compile." % (missingDir, hint)))
         print(red("\nSome error occurred during the compilation of '%s'%s.\n"
                   % (module, (" ('%s')" % failingBin) if failingBin else '')))
         sys.exit(1)
@@ -1520,6 +1557,8 @@ if __name__ == '__main__':
         # create config if not there
         if not os.path.isfile(CONFIG_FILE_NAME):
             config()
+        else:
+            print(blue("'%s' detected." % CONFIG_FILE_NAME))
         # HACK: re-read it from file to resolve paths
         configDict = readConfigFile(CONFIG_FILE_NAME)
         ok = (checkConfig()
