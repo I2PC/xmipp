@@ -1,6 +1,8 @@
 /***************************************************************************
  *
- * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+ * Authors:
+ *  Erney Ramirez-Aportela (eramirea@cnb.csic.es)
+ *  Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -22,8 +24,8 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_VOLUME_FROM_PDB_HH
-#  define _PROG_VOLUME_FROM_PDB_HH
+#ifndef _PROG_PDB_FROM_VOLUME_HH
+#  define _PROG_PDB_FROM_VOLUME_HH
 
 #include <data/blobs.h>
 #include <data/pdb.h>
@@ -34,14 +36,18 @@
 //@{
 /* PDB Phantom Program Parameters ------------------------------------------ */
 /** Parameter class for the PDB Phantom program */
-class ProgPdbConverter: public XmippProgram
+class ProgPdbValueToVol: public XmippProgram
 {
 public:
     /** Sampling rate */
-    double Ts;
+    double Ts, radius;
 
     /** PDB file */
     FileName fn_pdb;
+
+    /** Volume file */
+    FileName fnVol;
+	MultidimArray<double> inputVol;
 
     /** Output fileroot */
     FileName fn_out;
@@ -51,7 +57,7 @@ public:
 
     /** Final size in pixels */
     int output_dim;
-
+    
     /** Use blobs instead of scattering factors */
     bool useBlobs;
 
@@ -70,8 +76,6 @@ public:
     /// Column for the intensity (if any). Only valid for fixed_gaussians
     std::string intensityColumn;
 public:
-    /** Empty constructor */
-    ProgPdbConverter();
 
     /** Params definitions */
     void defineParams();
