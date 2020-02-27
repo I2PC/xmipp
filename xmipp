@@ -258,13 +258,15 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return 0 == p.poll()
 
 def cleanSources():
-    runJob("rm -rf src/micrograph_cleaner_em")
+    for dep in DEPENDENCIES.keys():
+        runJob("rm -rf src/%s" % dep)
     runJob("rm -rf src/scipion-em-xmipp")
-    runJob("rm -rf src/xmipp/bin")
-    runJob("rm -rf src/xmipp/lib")
-    runJob("rm -rf src/xmipp/tests/.sconsign.dblite")
     runJob("rm -rf src/xmippCore")
     runJob("rm -rf src/xmippViz")
+    runJob("rm -rf src/xmipp/bin")
+    runJob("rm -rf src/xmipp/lib")
+    runJob("rm -rf src/xmipp/.sconsign.dblite")
+    runJob("git stash")  # to get exactly like in repo
 
 
 def cleanBinaries():
@@ -1448,9 +1450,10 @@ def getScriptVersion():
     runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False)
     return lastCommit[0].strip()
 
+
 if __name__ == '__main__':
-    # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
-    # os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # Running always under this own directory.
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     XMIPP_SCRIPT_VERSION = getScriptVersion()
 
@@ -1473,9 +1476,7 @@ if __name__ == '__main__':
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
         print("         Notice that if you have unpushed changes, \n"
-              "           they will be deleted.\n"
-              "         Still, if ./xmipp is a link to src/xmipp/xmipp, \n"
-              "           it will also be deleted.")
+              "           they will be deleted.\n")
         print("Are you sure you want to do this? (YeS/No) -case sensitive-")
         yesno = input()
         if yesno == "YeS":
