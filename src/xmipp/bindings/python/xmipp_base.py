@@ -1,4 +1,4 @@
-# TODO: Merge this with scipion-em-xmipp/xmipp3/base.py
+
 
 from xmippLib import *
 import os
@@ -8,14 +8,21 @@ def xmippExists(path):
     return FileName(path).exists()
 
 def getXmippPath(*paths):
-    '''Return the path the the Xmipp installation folder
-    if a subfolder is provided, will be concatenated to the path'''
-    #if os.environ.has_key('XMIPP_HOME'):
+    ''' Return the path of the Xmipp installation folder
+        if a subfolder is provided, will be concatenated to the path
+    '''
     if 'XMIPP_HOME' in os.environ:  # has_key is not supported in python3
-        return os.path.join(os.environ['XMIPP_HOME'], *paths)  
+        return os.path.join(os.environ['XMIPP_HOME'], *paths)
     else:
-        raise Exception('XMIPP_HOME environment variable not set')
-    
+        # xmipp   =     build      <   bindings    <     python    <     xmipp_base.py
+        xmippHome = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if os.path.isdir(xmippHome):
+            print("Warning: XMIPP_HOME not found.\n"
+                  "Using an auto-detected directory: " + xmippHome)
+            return os.path.join(xmippHome, *paths)
+        else:
+            raise Exception('Error: XMIPP_HOME environment variable not set')
+
 def getMatlabEnviron(*toolPaths):
     """ Return an Environment prepared for launching Matlab
     scripts using the Xmipp binding.
@@ -29,6 +36,7 @@ def getMatlabEnviron(*toolPaths):
             Environ.BEGIN)
     
     return env
+
 
 class XmippScript:
     ''' This class will serve as wrapper around the XmippProgram class
@@ -94,7 +102,12 @@ class XmippScript:
 def createMetaDataFromPattern(pattern, isStack=False, label="image"):
     ''' Create a metadata from files matching pattern'''
     import glob
-    files = glob.glob(pattern)
+    if isinstance(pattern, list):
+        files = []
+        for pat in pattern:
+            files += glob.glob(pat)
+    else:
+        files = glob.glob(pattern)
     files.sort()
 
     label = str2Label(label) #Check for label value
