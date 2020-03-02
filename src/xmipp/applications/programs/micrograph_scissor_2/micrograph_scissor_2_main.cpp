@@ -56,6 +56,10 @@ protected:
 
         addParamsLine(" == Processing Options == ");
         addParamsLine("  --Xdim <window_X_dim>               : In pixels");
+        addParamsLine("  --Xdmov <movie_X_dim>               : Size of movie in X axis.");
+        addParamsLine("  --Ydmov <movie_Y_dim>               : Size of movie in Y axis.");
+        addParamsLine("  --Ndmov <movie_N_dim>               : Number of frames in the movie.");
+        addParamsLine("  --curFrame <window_N_dim>           : Number of the current frame");
         addParamsLine("  [--downsampling <float=1.>]         : The positions were determined with this downsampling rate");
         addParamsLine("  [--Ydim <window_Y_dim>]             : If not given Ydim=Xdim");
         addParamsLine("  [--invert]                          : Invert contrast");
@@ -86,6 +90,7 @@ protected:
     FileName fn_iAlign;
     bool     pair_mode;
     int      Ydim, Xdim;
+    int      Xdmov, Ydmov, Ndmov, curFrame;
     bool     reverse_endian;
     bool     compute_transmitance;
     bool     compute_inverse ;
@@ -107,6 +112,10 @@ protected:
             Ydim      = getIntParam("--Ydim");
         else
             Ydim = Xdim;
+        Xdmov = getIntParam("--Xdmov");
+        Ydmov = getIntParam("--Ydmov");
+        Ndmov = getIntParam("--Ndmov");
+        curFrame = getIntParam("--curFrame");
 
         compute_inverse      = checkParam("--invert");
         compute_transmitance = checkParam("--log");
@@ -147,9 +156,9 @@ public:
     }
 
 
-    void getShift(int lX, int lY, int lN, int xdim, int ydim, int ndim, int x,
-            int y, int curFrame, double &shiftY, double &shiftX, const double* coefsX,
-            const double* coefsY) {
+    /*void getShift(int lX, int lY, int lN, int xdim, int ydim, int ndim, int x,
+            int y, int curFrame, double &shiftY, double &shiftX, double* coefsX,
+            double* coefsY) {
         double delta = 0.0001;
         // take into account end poits
         double hX = (lX == 3) ? xdim : (xdim / (double) ((lX - 3)));
@@ -180,14 +189,62 @@ public:
                 }
             }
         }
+    }*/
+
+
+    void getShift(int lX, int lY, int lN, int x, int y,double &shiftY, double &shiftX, double* coefsX,
+			double* coefsY, double hX, double hY, double tPos) {
+
+		double imax = 1.5; // inverted maximum value of bspline03 function
+
+		double delta = 0.0001;
+		double deltaX = delta * imax;  //0.00015000015
+		double deltaT = deltaX * imax; //0.00022500045
+
+        // index of the 'cell' where pixel is located (<0, N-3> for N control points)
+		double xPos = x / hX;
+
+        int tEnd = std::min((int) (tPos) + 2, lN - 2);
+        int xEnd = std::min((int) (xPos) + 2, lX - 2);
+
+        // indices of the control points are from -1 .. N-2 for N points
+        // pixel in 'cell' 0 may be influenced by points with indices <-1,2>
+        // for loops in different order
+        for (int idxT = (int) (tPos) - 1; idxT <= tEnd; ++idxT) {
+        	double tmpT = bspline03(tPos - idxT);
+
+            if (tmpT < deltaT) {
+                continue;
+            }
+
+             for (int idxX = (int) (xPos) - 1; idxX <= xEnd; ++idxX) {
+            	 double tmpX = bspline03(xPos - idxX) * tmpT;
+
+                if (tmpX < deltaX) {
+                    continue;
+                }
+
+                double yPos = y / hY;
+                int yEnd = std::min((int) (yPos) + 2, lY - 2);
+                for (int idxY = (int) (yPos) - 1; idxY <= yEnd; ++idxY) {
+                    double tmp = bspline03(yPos - idxY) * tmpX;
+                    if (tmp > delta) {
+                        int coeffOffset = (idxT + 1) * lX * lY + (idxY + 1) * lX + (idxX + 1);
+                        shiftX += coefsX[coeffOffset] * tmp;
+                        shiftY += coefsY[coeffOffset] * tmp;
+                    }
+                }
+            }
+        }
     }
+
 
     void run()
     {
 
         MetaData movieAlignedMd;
     	MDRow rowMd;
-    	std::vector<double> coeffsX, coeffsY;
+    	std::vector<double> coeffsXaux, coeffsYaux;
     	std::vector<size_t> ctrlPts;
 		if (fn_iAlign.hasMetadataExtension()){
 			std::cout<<fn_iAlign<<std::endl;
@@ -195,13 +252,20 @@ public:
 			MDIterator *iterSF = new MDIterator(movieAlignedMd);
 			movieAlignedMd.getRow(rowMd, iterSF->objId);
 			if(rowMd.containsLabel(MDL_LOCAL_ALIGNMENT_COEFFS_X))
-				rowMd.getValue(MDL_LOCAL_ALIGNMENT_COEFFS_X, coeffsX);
+				rowMd.getValue(MDL_LOCAL_ALIGNMENT_COEFFS_X, coeffsXaux);
 			if(rowMd.containsLabel(MDL_LOCAL_ALIGNMENT_COEFFS_Y))
-				rowMd.getValue(MDL_LOCAL_ALIGNMENT_COEFFS_Y, coeffsY);
+				rowMd.getValue(MDL_LOCAL_ALIGNMENT_COEFFS_Y, coeffsYaux);
 			if(rowMd.containsLabel(MDL_LOCAL_ALIGNMENT_CONTROL_POINTS))
 				rowMd.getValue(MDL_LOCAL_ALIGNMENT_CONTROL_POINTS, ctrlPts);
 		}
-        std::cout<<coeffsX.size()<<" "<<coeffsY.size()<<" "<<ctrlPts.size()<<std::endl;
+        std::cout<<coeffsXaux.size()<<" "<<coeffsYaux.size()<<" "<<ctrlPts.size()<<std::endl;
+
+        double coeffsX[250];
+        double coeffsY[250];
+        for(int i=0; i<coeffsXaux.size(); i++){
+        	coeffsX[i]=coeffsXaux[i];
+        	coeffsY[i]=coeffsYaux[i];
+        }
 
 
         if (!pair_mode)
@@ -230,10 +294,27 @@ public:
             {
                 if (m.coords[i].valid)
                 {
-                    m.coords[i].X = (int) (coords[i].X * c);
-                    m.coords[i].Y = (int) (coords[i].Y * c);
+                	//std::cout<<"BEFORE mcoords[" << i << "]= " << m.coords[i].X << " " << m.coords[i].Y << std::endl;
+                	double shiftX=0., shiftY=0.;
+                	int lX = (int)ctrlPts[0];
+                	int lY = (int)ctrlPts[1];
+                	int lN = (int)ctrlPts[2];
+
+                    double hX = (lX == 3) ? Xdmov : (Xdmov / (double) ((lX - 3)));
+                    double hY = (lY == 3) ? Ydmov : (Ydmov / (double) ((lY - 3)));
+                    double hT = (lN == 3) ? Ndmov : (Ndmov / (double) ((lN - 3)));
+                    double tPos = curFrame / hT;
+
+                    //getShift(lX, lY, lN, Xdmov, Ydmov, Ndmov, m.coords[i].X, m.coords[i].Y, curFrame, shiftY, shiftX,
+                    //		&coeffsX[0], &coeffsY[0]);
+                    getShift(lX, lY, lN,  m.coords[i].X, m.coords[i].Y, shiftY, shiftX, &coeffsX[0], &coeffsY[0], hX, hY, tPos);
+                    printf("Shift X = %f - Shift Y = %f. Some params: %d %d %d %d %d %d %d %f %f %f \n", shiftX, shiftY, Xdmov, Ydmov, Ndmov, curFrame, lX, lY, lN, hX, hY, tPos);
+                    m.coords[i].X -= shiftX;
+                    m.coords[i].Y -= shiftY;
+                    std::cout<<"AFTER mcoords[" << i << "]= " << m.coords[i].X << " " << m.coords[i].Y << std::endl;
                 }
             }
+            //END AJ modification
 
             m.produce_all_images(0, -1, fn_out, fn_orig, 0.,0.,0., rmStack, fillBorders, extractNoise, Nnoise);
             if (extractNoise)

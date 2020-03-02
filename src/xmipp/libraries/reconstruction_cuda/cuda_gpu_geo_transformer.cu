@@ -224,6 +224,10 @@ void applyLocalShiftGeometryKernelMorePixels(const T* __restrict__ coefsX, const
                     continue;
                 }
                 T res;
+                //AJ new
+                //if(x==1402 && (y+i)==2851)
+                //	printf("Shifts in %d %d = %f %f. Some params: %d %d %d %d %d %d %d %lf %lf %lf \n", x, y, shiftX[i], shiftY[i], xdim, ydim, ndim, curFrame, lX, lY, lN, hX, hY, tPos);
+                //FIN AJ
                 if ( isEdge( x - shiftX[i], y + i - shiftY[i], xdim, ydim, 32 ) ) {
                     res = interpolatedElementBSpline2D_Degree3MorePixelsEdge< T >(x, y + i, shiftX[i], shiftY[i], xdim,
                                 ydim, input);
