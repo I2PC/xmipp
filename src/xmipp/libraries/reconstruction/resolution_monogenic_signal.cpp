@@ -134,23 +134,8 @@ void ProgMonogenicSignalRes::produceSideInfo()
 	//The mask changes!! all voxels out of the inscribed sphere are set to -1
 	MultidimArray<double> radMap;
 	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask, radMap);
-
-	mono.findCliffValue(radMap, inputVol, radius, radiuslimit, pMask);
-
-	Image<int> saveImg;
-	saveImg = mask;
-	FileName iternumber;
-	saveImg.write("cacacaca.vol");
-	radMap.clear();
-
-//	NVoxelsOriginalMask = 0;
-//	FOR_ALL_ELEMENTS_IN_ARRAY3D(pMask)
-//	{
-//		if (A3D_ELEM(pMask, k, i, j) == 1)
-//			++NVoxelsOriginalMask;
-//		if (i*i+j*j+k*k > R*R)
-//			A3D_ELEM(pMask, k, i, j) = -1;
-//	}
+	double smoothparam = 0;
+	mono.findCliffValue(radMap, inputVol, radius, radiuslimit, pMask, smoothparam);
 
 	if (fnMaskExl != ""){
 		maskExcl.read(fnMaskExl);
@@ -170,13 +155,17 @@ void ProgMonogenicSignalRes::produceSideInfo()
 
 	transformer.FourierTransform(inputVol, fftV);
 
-
 	// Frequency volume
 	iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
 
-	#ifdef DEBUG_MASK
+//	#ifdef DEBUG_MASK
 	mask.write("mask.vol");
-	#endif
+//	#endif
+
+
+	if (freq_step < 0.25)
+		freq_step = 0.25;
+
 
 	V.clear();
 }
@@ -338,6 +327,72 @@ void ProgMonogenicSignalRes::postProcessingLocalResolutions(MultidimArray<double
 	//#endif
 }
 
+void ProgMonogenicSignalRes::refiningMask(const MultidimArray< std::complex<double> > &myfftV,
+								MultidimArray<double> iu, int thrs, MultidimArray<int> &pMask)
+{
+	Monogenic mono;
+	MultidimArray<double> amplitude;
+
+	amplitude.initZeros(pMask);
+	mono.monogenicAmplitude_3D_Fourier(myfftV, iu, amplitude, thrs);
+	Image<double> amp;
+	amp() = amplitude;
+	amp.write("beforefilter.vol");
+	realGaussianFilter(amplitude, 4);
+
+	amp() = amplitude;
+	amp.write("aftefilter.vol");
+
+	double sumS=0, sumN=0, NN = 0, NS = 0;
+	std::vector<double> noiseValues;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
+	{
+		double amplitudeValue=DIRECT_MULTIDIM_ELEM(amplitude, n);
+		if (DIRECT_MULTIDIM_ELEM(pMask, n)>=1)
+		{
+//			std::cout << "means_signal = " << amplitudeValue<< std::endl;
+			sumS  += amplitudeValue;
+			NS += 1.0;
+		}
+		else if (DIRECT_MULTIDIM_ELEM(pMask, n)==0)
+		{
+			noiseValues.push_back(amplitudeValue);
+			sumN  += amplitudeValue;
+			NN += 1.0;
+		}
+	}
+	std::sort(noiseValues.begin(),noiseValues.end());
+
+	double mean_Signal = sumS/NS;
+	double mean_noise = sumN/NN;
+	std::cout << "sumS = " << sumS << "  sumN = " << sumN << std::endl;
+	std::cout << "NS = " << NS << "  NN = " << NN << std::endl;
+
+	std::cout << "means_signal = " << mean_Signal << "  mean_noise = " << mean_noise << std::endl;
+
+	double thresholdFirstEstimation = noiseValues[size_t(noiseValues.size()*0.99)];
+
+	NVoxelsOriginalMask = 0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
+	{
+		if (DIRECT_MULTIDIM_ELEM(pMask, n) >=1)
+		{
+			if (DIRECT_MULTIDIM_ELEM(amplitude, n)<thresholdFirstEstimation)
+			{
+				DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
+			}
+			else
+			{
+				++NVoxelsOriginalMask;
+			}
+		}
+	}
+	Image<int> imgMask;
+	imgMask = pMask;
+	imgMask.write("refinedMask.vol");
+}
+
 
 void ProgMonogenicSignalRes::run()
 {
@@ -368,10 +423,7 @@ void ProgMonogenicSignalRes::run()
 //	imgMask2 = mask;
 //	imgMask2.write("mascara_original.vol");
 
-	double R_ = freq_step;
 
-	if (R_<0.25)
-		R_=0.25;
 
 	double w0, wF;
 	double Nyquist = 2*sampling;
@@ -403,6 +455,12 @@ void ProgMonogenicSignalRes::run()
 	int count_res = 0;
 	FileName fnDebug;
 
+	refiningMask(fftV, iu, 2, pMask);
+
+	exit(0);
+
+
+
 	amplitudeMS.resizeNoCopy(pOutputResolution);
 	firstMonoResEstimation(fftV, transformer_inv, freq, freqH, freqL, amplitudeMS,
 			count_res, fnDebug, mean_Signal, mean_noise, thresholdFirstEstimation);
@@ -416,6 +474,7 @@ void ProgMonogenicSignalRes::run()
 		{
 			if (DIRECT_MULTIDIM_ELEM(amplitudeMS, n)<thresholdFirstEstimation)
 			{
+				std::cout << "cacaaaaaaaaaaaaa" <<std::endl;
 				DIRECT_MULTIDIM_ELEM(pMask, n) = 0;
 			}
 			else
@@ -448,7 +507,7 @@ void ProgMonogenicSignalRes::run()
 		bool continueIter = false;
 		bool breakIter = false;
 
-		mono.resolution2eval(count_res, R_,
+		mono.resolution2eval(count_res, freq_step,
 						resolution, last_resolution,
 						freq, freqH,
 						last_fourier_idx, volsize,
@@ -515,29 +574,16 @@ void ProgMonogenicSignalRes::run()
 				if (noiseOnlyInHalves)
 				{
 					mono.statisticsInBinaryMask(amplitudeMS, amplitudeMN,
-					pMask, pMaskExcl, meanS, sdS2, meanN, sdN2, significance, thr95, NS, NN);
-//					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitudeMS)
-//					{
-//						double amplitudeValue=DIRECT_MULTIDIM_ELEM(amplitudeMS, n);
-//						double amplitudeValueN=DIRECT_MULTIDIM_ELEM(amplitudeMN, n);
-//						if (DIRECT_MULTIDIM_ELEM(pMask, n)>=1)
-//						{
-//							sumS  += amplitudeValue;
-//							sumS2 += amplitudeValue*amplitudeValue;
-//							++NS;
-//							sumN  += amplitudeValueN;
-//							sumN2 += amplitudeValueN*amplitudeValueN;
-//							++NN;
-//						}
-//					}
+											pMask, pMaskExcl, meanS, sdS2, meanN, sdN2, significance, thr95, NS, NN);
 				}
 				else
 				{
+					std::cout << "entroooo0" << std::endl;
 					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitudeMS)
 					{
 						double amplitudeValue=DIRECT_MULTIDIM_ELEM(amplitudeMS, n);
 						double amplitudeValueN=DIRECT_MULTIDIM_ELEM(amplitudeMN, n);
-						if (DIRECT_MULTIDIM_ELEM(pMask, n)>=1)
+						if (DIRECT_MULTIDIM_ELEM(pMaskExcl, n)>=1)
 						{
 							sumS  += amplitudeValue;
 							sumS2 += amplitudeValue*amplitudeValue;

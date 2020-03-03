@@ -112,9 +112,9 @@ public:
 			bool &doNextIteration, bool &automaticMode);
 
 	void proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, double &radius,
-			int &vol, MultidimArray<double> &radMap);
+			long &vol, MultidimArray<double> &radMap);
 	void findCliffValue(MultidimArray<double> radMap, MultidimArray<double> &inputmap,
-			double &radius,	double &radiuslimit, MultidimArray<int> &mask);
+			double &radius,	double &radiuslimit, MultidimArray<int> &mask, double &rsmooth);
 
 	bool TestmonogenicAmplitude_3D_Fourier();
 
