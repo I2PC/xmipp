@@ -244,6 +244,18 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
     DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n)-avgbg)*istddevbg;
 }
 
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, std::vector<double> &uniqueI)
+{
+	double medianBg, p95, ip95;
+    int idx;
+	I.computeMedian_within_binary_mask(bg_mask, medianBg);
+	idx = int(round(uniqueI.size() * 0.95));
+    p95 = uniqueI[idx];
+	ip95 = 1 / p95;
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
+        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip95;
+}
+
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
     double avg=0, stddev, min, max;
@@ -460,6 +472,7 @@ void ProgNormalize::defineParams()
     addParamsLine("                               : does not need background");
     addParamsLine("                               : Similar to Tomography but the average at 0 degrees is used for all images");
     addParamsLine("           NewXmipp2           : I=(I-m(bg))/(m(I)-m(bg))");
+    addParamsLine("           Robust              : I=(I-m(bg))/P95(I)");
     addParamsLine("           Michael             : I=(I-m(bg))/stddev(bg)");
     addParamsLine("           None                   : Used for removing only dust");
     addParamsLine("           Random                 : I=aI+b");
@@ -506,6 +519,8 @@ void ProgNormalize::readParams()
         method = NEWXMIPP;
     else if (aux == "NewXmipp2")
         method = NEWXMIPP2;
+    else if (aux ==  "Robust")
+    	method = ROBUST;
     else if (aux == "Michael")
         method = MICHAEL;
     else if (aux == "Random")
@@ -539,7 +554,8 @@ void ProgNormalize::readParams()
     // Get background mask
     background_mode = NOBACKGROUND;
     if (method == NEWXMIPP || method == NEWXMIPP2 || method == MICHAEL ||
-        method == NEAR_OLDXMIPP || method == RAMP || method == NEIGHBOUR)
+        method == NEAR_OLDXMIPP || method == RAMP || method == NEIGHBOUR ||
+		method == ROBUST)
     {
         enable_mask = checkParam("--mask");
         if (enable_mask)
@@ -597,6 +613,9 @@ void ProgNormalize::show()
     case NEWXMIPP2:
         std::cout << "NewXmipp2\n";
         break;
+    case ROBUST:
+    	std::cout << "Robust\n";
+    	break;
     case MICHAEL:
         std::cout << "Michael\n";
         break;
@@ -623,7 +642,7 @@ void ProgNormalize::show()
 
     if (method == NEWXMIPP || method == NEWXMIPP2 ||
         method == NEAR_OLDXMIPP || method == MICHAEL ||
-        method == RAMP || method == NEIGHBOUR)
+        method == RAMP || method == NEIGHBOUR || method == ROBUST)
     {
         std::cout << "Background mode: ";
         switch (background_mode)
@@ -746,6 +765,20 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         I.readApplyGeo(fnImg, rowIn);
     else
         I.read(fnImg);
+    
+    MultidimArray<double> arrayI=I();
+    std::vector<double> uniqueI;
+    double val;
+    arrayI.resize(NZYXSIZE(arrayI));
+    arrayI.sort(arrayI);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(arrayI)
+        uniqueI.push_back(round(A1D_ELEM(arrayI, n) * 100) / 100);
+
+    std::vector<double>::iterator it;
+    it = std::unique (uniqueI.begin(), uniqueI.end());
+    uniqueI.resize(std::distance(uniqueI.begin(),it) );
+
     I().setXmippOrigin();
 
     MultidimArray<double> &img=I();
@@ -816,6 +849,9 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
     case NEWXMIPP2:
         normalize_NewXmipp2(img, bg_mask);
         break;
+    case ROBUST:
+    	normalize_Robust(img, bg_mask, uniqueI);
+    	break;
     case RAMP:
         normalize_ramp(img, &bg_mask);
         break;
