@@ -1,5 +1,5 @@
-language: c++
-sudo: true
+language: cpp
+os: linux
 dist: trusty
 python: 3.5
 env: TRAVIS=1 XMIPP_NOSCIPION=True CCACHE_COMPILERCHECK=content CUDA_VER=8.0.61-1 CUDA_INSTALL_EXTRA_LIBS=1
@@ -9,10 +9,12 @@ addons:
   sonarcloud:
 # See https://docs.travis-ci.com/user/sonarcloud/
     organization: "i2pc"
-    token:
-        secure: $SONAR_TOKEN
+    token: $SONAR_TOKEN
 
-cache: ccache
+cache: 
+  ccache: true
+  directories:
+   - sonarCache
 
 before_install:
  - python --version
