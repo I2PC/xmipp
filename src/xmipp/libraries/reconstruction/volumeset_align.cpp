@@ -107,7 +107,8 @@ void ProgVolumeSetAlign::preProcess() {
 
 void ProgVolumeSetAlign::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/AlignedSoFar.xmd").c_str(), fn_out.c_str());
+	const char* aligneddata = "/AlignedSoFar.xmd";
+	rename((fnOutDir+aligneddata).c_str(), fn_out.c_str());
 }
 
 // Compute fitness =========================================================

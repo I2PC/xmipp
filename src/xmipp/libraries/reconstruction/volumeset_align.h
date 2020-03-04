@@ -32,9 +32,7 @@
 class ProgVolumeSetAlign: public XmippMetadataProgram
 {
 public:
-    /** MPI version */
-    bool MPIversion;
-    
+
     /** Resume computations */
     bool resume = false;
 
