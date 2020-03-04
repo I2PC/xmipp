@@ -58,7 +58,7 @@ public:
 	/** sampling rate, minimum resolution, and maximum resolution */
 	double sampling, maxRes, minRes, lambda, K, maxFreq, minFreq, desv_Vorig, R, significance, res_step;
 	int Niter, Nthread;
-	bool test;
+	bool test, icosahedron;
 
 public:
 
@@ -74,9 +74,9 @@ public:
     		Matrix2D<double> &vertex, Matrix2D<double> &facesVector);
 
     void defineComplexCaps(Matrix2D<double> &facesVector,
-    		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask, double coneAngle);
+    		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask);
 
-    void getFaceVectorSimple(int face_number, double &x1, double &y1, double &z1);
+    void getFaceVectorSimple(Matrix2D<double> &facesVector, Matrix2D<double> &faces);
 
     void directionalNoiseEstimation(double &x_dir, double &y_dir, double &z_dir,
     		MultidimArray<double> &amplitudeMS, MultidimArray<int> &mask, double &cone_angle,
@@ -103,10 +103,10 @@ public:
     void simpleGeometryFaces(Matrix2D<double> &faces, Matrix2D<double> &limts);
 
     void defineSimpleCaps(MultidimArray<int> &coneMask, Matrix2D<double> &limits,
-    		MultidimArray< std::complex<double> > &myfftV, double coneAngle);
+    		MultidimArray< std::complex<double> > &myfftV);
 
     void createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
-    		int m1sizeX, int m1sizeY, int m1sizeZ);
+    		int m1sizeX, int m1sizeY, int m1sizeZ, MultidimArray<double> &fullMap);
 
     void getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
     		int m1sizeX, int m1sizeY, int m1sizeZ);
