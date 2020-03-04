@@ -333,7 +333,7 @@ void ProgNmaAlignmentVol::processImage(const FileName &fnImg,
     //int niter=10000;
 
 	double rhoStart=trustradius_scale*rhoStartBase;
-    double rhoEnd=trustradius_scale*rhoEndBase;
+        double rhoEnd=trustradius_scale*rhoEndBase;
 
 	CONDOR(rhoStart, rhoEnd, niter, of);
 

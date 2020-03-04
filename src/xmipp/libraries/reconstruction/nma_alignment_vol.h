@@ -84,7 +84,7 @@ public:
 
     /// Parameters required from the CONDOR optimization
     double trustradius_scale;
-	double rhoStartBase;
+    double rhoStartBase;
     double rhoEndBase;
     int niter;
 
