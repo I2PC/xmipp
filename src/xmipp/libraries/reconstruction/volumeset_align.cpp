@@ -52,7 +52,7 @@ void ProgVolumeSetAlign::defineParams() {
 	addParamsLine("  [--resume]                           : Resume processing");
 	addParamsLine("  [--frm_parameters <frm_freq=0.25> <frm_shift=10>]  : This is using frm method for volume alignment with frm_freq and frm_shift as parameters");
 	addParamsLine("  [--tilt_values <tilt0=-90> <tiltF=90>]  : Optional compensation for the missing wedge. Tested extensively with tilt between [-60 60]");
-	addExampleLine("xmipp_many_volume_align -i volumes.xmd --ref reference.vol -o output.xmd --resume");
+	addExampleLine("xmipp_volumeset_align -i volumes.xmd --ref reference.vol -o output.xmd --resume");
 }
 
 // Read arguments ==========================================================
