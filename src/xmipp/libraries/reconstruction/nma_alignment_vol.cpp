@@ -74,6 +74,10 @@ void ProgNmaAlignmentVol::defineParams() {
 	addParamsLine("                                       : You need to compile Xmipp with SHALIGNMENT support (see install.sh)");
 	addParamsLine("  [--mask <m=\"\">]                    : 3D masking  of the projections of the deformed volume");
 	addParamsLine("  [--tilt_values <tilt0=-90> <tiltF=90>]  : only use if you are trying to compensate for the missing wedge");
+	addParamsLine("  [--condor_params <rhoStartBase=250.> <rhoEndBase=50.> <niter=10000>]  : parameters for the CONDOR optimiser (recommended to keep default)");
+	addParamsLine("                                       : rhoStartBase > 0  : the lower the better, yet the slower");
+	addParamsLine("                                       : rhoEndBase no specific rule, however it is better to keep it < 1000, if set very high we risk distortions");
+	addParamsLine("                                       : niter should be big enough to garantee that the search converges to the right set of nma deformation amplitudes");
 	addExampleLine("xmipp_nma_alignment_vol -i volumes.xmd --pdb 2tbv.pdb --modes modelist.xmd --sampling_rate 3.2 -o output.xmd --resume");
 }
 
@@ -102,6 +106,10 @@ void ProgNmaAlignmentVol::readParams() {
 	}
 	tilt0=getIntParam("--tilt_values",0);
 	tiltF=getIntParam("--tilt_values",1);
+
+	rhoStartBase = ("--condor_params",0);
+	rhoEndBase   = ("--condor_params",1);
+	niter        = ("--condor_params",2);
 
 }
 // Show ====================================================================
@@ -320,9 +328,13 @@ void ProgNmaAlignmentVol::processImage(const FileName &fnImg,
 	for (int i = 0; i < dim; i++)
 		of->xStart[i] = 0.;
 
-	double rhoStart=trustradius_scale*250.;
-    double rhoEnd=trustradius_scale*50.;
-    int niter=10000;
+	//double rhoStart=trustradius_scale*250.;
+    //double rhoEnd=trustradius_scale*50.;
+    //int niter=10000;
+
+	double rhoStart=trustradius_scale*rhoStartBase;
+    double rhoEnd=trustradius_scale*rhoEndBase;
+
 	CONDOR(rhoStart, rhoEnd, niter, of);
 
 	trial = parameters = trial_best;

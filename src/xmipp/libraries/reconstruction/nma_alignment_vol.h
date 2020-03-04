@@ -82,8 +82,11 @@ public:
     /// Align volumes
     bool alignVolumes;
 
-    /// Trust radius scale
+    /// Parameters required from the CONDOR optimization
     double trustradius_scale;
+	double rhoStartBase;
+    double rhoEndBase;
+    int niter;
 
     // starting and ending tilt angles for compensating for a single tilt wedge mask for tomography data
     int tilt0, tiltF;
@@ -192,5 +195,4 @@ class ObjFunc_nma_alignment_vol: public UnconstrainedObjectiveFunction
     double eval(Vector v, int *nerror=NULL);
 };
 
-//@}
 #endif
