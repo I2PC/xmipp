@@ -92,6 +92,9 @@ void ProgPdbValueToVol::computeProteinGeometry()
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
 
+    double suma=0;
+    int numA=0;
+
 
     while (!fh_pdb.eof())
     {
@@ -156,6 +159,25 @@ void ProgPdbValueToVol::computeProteinGeometry()
 //		std::cout << "suma: = " << atomS << std::endl;
 //		std::cout << "conteo: = " << cont << std::endl;
         atomS=atomS/cont;
+        if (atomS>3)
+		   atomS=3.00;
+        if (atomS<-3)
+ 		   atomS=-3.00;
+//        if (atomS>0 && atomS<0.25)
+// 		   atomS=0.00;
+//        if (atomS<0 && atomS>-0.25)
+// 		   atomS=0.00;
+//        std::cout << "antes: = " << atomS << std::endl;
+//        normalizo
+//        if (atomS>=0)
+//        	atomS = (-0.333333*atomS)+1;
+//        else
+//        	atomS = (-0.333333*atomS)-1;
+//        std::cout << "despues: = " << atomS << std::endl;
+
+
+        ++numA;
+        suma+=atomS;
 //		std::cout << "media: = " << atomS << std::endl;
 
         std::stringstream ss;
@@ -171,6 +193,8 @@ void ProgPdbValueToVol::computeProteinGeometry()
 
 		fh_out << line << " \n";
     }
+
+    std::cout << "la suma total es: = " << suma/numA << std::endl;
 
     // Close file
     fh_pdb.close();
