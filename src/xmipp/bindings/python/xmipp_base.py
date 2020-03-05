@@ -11,12 +11,12 @@ def getXmippPath(*paths):
     ''' Return the path of the Xmipp installation folder
         if a subfolder is provided, will be concatenated to the path
     '''
-    if 'XMIPP_HOME' in os.environ:  # has_key is not supported in python3
+    if 'XMIPP_HOME' in os.environ:
         return os.path.join(os.environ['XMIPP_HOME'], *paths)
     else:
         # xmipp   =     build      <   bindings    <     python    <     xmipp_base.py
-        xmippHome = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        if os.path.isdir(xmippHome):
+        xmippHome = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+        if os.path.isfile(os.path.join(xmippHome, 'lib', 'libXmipp.so')):
             print("Warning: XMIPP_HOME not found.\n"
                   "Using an auto-detected directory: " + xmippHome)
             return os.path.join(xmippHome, *paths)
