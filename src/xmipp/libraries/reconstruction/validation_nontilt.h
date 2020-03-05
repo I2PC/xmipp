@@ -29,6 +29,7 @@
 
 #include <core/xmipp_program.h>
 #include <math.h>
+#include <random>
 
 /**@defgroup Validation without tilt
    @ingroup ReconsLibrary */

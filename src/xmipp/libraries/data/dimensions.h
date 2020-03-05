@@ -33,9 +33,15 @@ public:
     explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
             size_t pad_x = 0, size_t pad_y = 0, size_t pad_z = 0) :
             m_x(x), m_y(y), m_z(z), m_n(n),
-            m_pad_x(pad_x), m_pad_y(pad_y), m_pad_z(pad_z) {
+            m_pad_x(pad_x), m_pad_y(pad_y), m_pad_z(pad_z) {}
+
+    constexpr Dimensions createSingle() const {
+        return Dimensions(m_x, m_y, m_z, 1, m_pad_x, m_pad_y, m_pad_z);
     }
-    ;
+
+    constexpr Dimensions copyForN(size_t n) const {
+        return Dimensions(m_x, m_y, m_z, n, m_pad_x, m_pad_y, m_pad_z);
+    }
 
     inline constexpr size_t x() const {
         return m_x;
@@ -81,6 +87,10 @@ public:
         return (m_x + m_pad_x) * (m_y + m_pad_y) * (m_z + m_pad_z);
     }
 
+    inline constexpr size_t sizeSingle() const {
+        return xyz();
+    }
+
     inline constexpr size_t size() const {
         return xyz() * m_n;
     }
@@ -94,15 +104,56 @@ public:
         return os;
     }
 
-    constexpr bool operator==(const Dimensions &b) const {
+    inline constexpr bool equalSizesIgnorePadding(const Dimensions &b) const {
         return (m_x == b.m_x)
                 && (m_y == b.m_y)
                 && (m_z == b.m_z)
                 && (m_n == b.m_n);
     }
 
+    inline constexpr bool equalExceptNPadded(const Dimensions &b) const {
+        return (m_x == b.m_x)
+                && (m_y == b.m_y)
+                && (m_z == b.m_z)
+                // && (m_n == b.m_n) ignore on purpose
+                && equalPadding(b);
+    }
+
+    inline constexpr bool equalPadding(const Dimensions &b) const {
+        return (m_pad_x == b.m_pad_x)
+                && (m_pad_y == b.m_pad_y)
+                && (m_pad_z == b.m_pad_z);
+    }
+
+    inline constexpr bool isValid() const {
+        return (0 != m_x)
+                && (0 != m_y)
+                && (0 != m_z)
+                && (0 != m_n);
+    }
+
+    constexpr bool operator==(const Dimensions &b) const {
+        return equalSizesIgnorePadding(b) && equalPadding(b);
+    }
+
+    constexpr bool operator!=(const Dimensions &b) const {
+        return !(*this == b);
+    }
+
     inline constexpr bool isPadded() const {
         return (0 != m_pad_x) || (0 != m_pad_y) || (0 != m_pad_z);
+    }
+
+    constexpr bool is1D() const {
+        return (m_z == 1) && (m_y == 1);
+    }
+
+    constexpr bool is2D() const {
+        return (m_z == 1) && (m_y != 1);
+    }
+
+    constexpr bool is3D() const {
+        return (m_z != 1) && (m_y != 1);
     }
 
 private:

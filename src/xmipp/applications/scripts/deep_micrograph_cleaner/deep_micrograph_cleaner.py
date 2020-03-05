@@ -28,7 +28,7 @@
 import os
 import sys
 from xmipp3 import Plugin, XmippScript
-import pyworkflow.em.metadata as md
+import pwem.metadata as md
 
 class ScriptMicrographCleanerEm(XmippScript):
     _conda_env="micrograph_cleaner_em"

@@ -83,14 +83,30 @@ void GPU::peekLastError() const {
     gpuErrchk(cudaPeekAtLastError());
 }
 
-void GPU::pinMemory(void *h_mem, size_t bytes,
+void GPU::pinMemory(const void *h_mem, size_t bytes,
         unsigned int flags) {
+    if (isMemoryPinned(h_mem)
+            && (isMemoryPinned((char*)h_mem + bytes - 1))) {
+        return;
+    }
     assert(0 == cudaHostRegisterDefault); // default value should be 0
-    gpuErrchk(cudaHostRegister(h_mem, bytes, flags));
+    // check that it's aligned properly to the beginning of the page
+    if (0 != ((size_t)h_mem % 4096)) {
+        // otherwise the cuda-memcheck and cuda-gdb tends to randomly crash (confirmed on cuda 8 - cuda 10)
+        REPORT_ERROR(ERR_PARAM_INCORRECT, "Only pointer aligned to the page size can be registered");
+    }
+    // we remove const, but we don't change the data
+    gpuErrchk(cudaHostRegister(const_cast<void*>(h_mem), bytes, flags));
 }
 
-void GPU::unpinMemory(void *h_mem) {
-    gpuErrchk(cudaHostUnregister(h_mem));
+void GPU::unpinMemory(const void *h_mem) {
+    // we remove const, but we don't change the data
+    auto err = cudaHostUnregister(const_cast<void*>(h_mem));
+    if (cudaErrorHostMemoryNotRegistered == err) {
+        cudaGetLastError(); // clear out the previous API error
+    } else {
+        gpuErrchk(err);
+    }
 }
 
 int GPU::getDeviceCount() {
@@ -113,4 +129,13 @@ void GPU::synch() const {
 void GPU::setDevice(int device) {
     gpuErrchk(cudaSetDevice(device));
     gpuErrchk(cudaPeekAtLastError());
+}
+
+bool GPU::isMemoryPinned(const void *h_mem) {
+    cudaPointerAttributes attr;
+    if (cudaPointerGetAttributes(&attr, h_mem) == cudaErrorInvalidValue) {
+        cudaGetLastError(); // clear out the previous API error
+        return false;
+    }
+    return true;
 }

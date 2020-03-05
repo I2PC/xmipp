@@ -24,23 +24,22 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-
-import sys, os
-import xmipp_base
+from src.xmipp.bindings.python.xmipp_base import *
 import xmippLib
 
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+from src.xmipp.libraries.py_xmipp.deepLearningToolkitUtils.utils import (checkIf_tf_keras_installed,
+                                                                         updateEnviron)
 
 checkIf_tf_keras_installed()
 
-from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
-                                                                               DeepTFSupervised, DataManager,
-                                                                               tf_intarnalError)
+from src.xmipp.libraries.py_xmipp.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
+                                                                                           DeepTFSupervised, DataManager,
+                                                                                           tf_intarnalError)
 WRITE_TEST_SCORES= True
 
-class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
+class ScriptDeepScreeningTrain(XmippScript):
     def __init__(self):
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Cleans sets of particles using Deep Learning. It works in two modes:\n'

@@ -29,6 +29,7 @@
 #include <thread>
 #include <unistd.h>
 #include "hw.h"
+#include "core/xmipp_error.h"
 
 class CPU : public HW {
 public:
@@ -42,6 +43,19 @@ public:
     void synchAll() const {}; // nothing to do
 
     void updateMemoryInfo();
+
+    void lockMemory(const void *h_mem, size_t bytes) override {
+        // FIXME DS implement
+    }
+
+    void unlockMemory(const void *h_mem) override {
+        // FIXME DS implement
+    }
+
+    bool isMemoryLocked(const void *h_mem) override {
+        // FIXME DS implement
+        return false;
+    }
 
 protected:
     void obtainUUID();

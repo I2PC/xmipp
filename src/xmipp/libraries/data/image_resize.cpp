@@ -52,9 +52,9 @@ void ProgImageResize::defineParams()
     addExampleLine("Resize from 128 to 64 using Fourier", false);
     addExampleLine("xmipp_image_resize -i images.xmd --fourier 64 --oroot halvedFourierDim");
     //params
-    addParamsLine("--factor <n=0.5>                 : Resize a factor of dimensions, 0.5 halves and 2 doubles.");
+    addParamsLine("--factor <n=0.5>                 : Resize a factor of dimensions, 0.5 halves and 2 doubles (uses splines or linear interpolation).");
     addParamsLine(" alias -n;");
-    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions");
+    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions (uses splines or linear interpolation)");
     addParamsLine(" alias -d;");
     addParamsLine("or --fourier <x> <y=x> <z=x> <thr=1>   : Use padding/windowing in Fourier Space to resize. thr=number of threads");
     addParamsLine(" alias -f;");

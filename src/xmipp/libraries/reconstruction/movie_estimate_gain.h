@@ -33,8 +33,8 @@
    @ingroup ReconsLibrary */
 //@{
 
-double computeTVColumns(MultidimArray<int> &I);
-double computeTVRows(MultidimArray<int> &I);
+double computeTVColumns(MultidimArray<double> &I);
+double computeTVRows(MultidimArray<double> &I);
 
 
 class ProgMovieEstimateGain: public XmippProgram
@@ -42,8 +42,9 @@ class ProgMovieEstimateGain: public XmippProgram
 public:
 	FileName fnIn; // Set of input images
 	FileName fnRoot; // Correction image
+    FileName fnCorrected; // Corrected movie
 	int Niter; // Number of iterations
-	double maxSigma, sigmaStep;
+	double sigma, maxSigma, sigmaStep;
 	bool singleReference;
 	int frameStep;
 	FileName fnGain;
@@ -55,26 +56,27 @@ public:
     void run();
 
     void produceSideInfo();
-    void computeHistograms(const MultidimArray<int> &Iframe);
+    void computeHistograms(const MultidimArray<double> &Iframe);
     void normalizeHistograms();
     void invertHistograms();
 
     void constructSmoothHistogramsByColumn(const double *listOfWeights, int width);
     void constructSmoothHistogramsByRow(const double *listOfWeights, int width);
-    void transformGrayValuesColumn(const MultidimArray<int> &Iframe, MultidimArray<int> &IframeTransformedColumn);
-    void transformGrayValuesRow(const MultidimArray<int> &Iframe, MultidimArray<int> &IframeTransformedRow);
-    void computeTransformedHistograms(const MultidimArray<int> &Iframe);
+    void transformGrayValuesColumn(const MultidimArray<double> &Iframe, MultidimArray<double> &IframeTransformedColumn);
+    void transformGrayValuesRow(const MultidimArray<double> &Iframe, MultidimArray<double> &IframeTransformedRow);
+    void computeTransformedHistograms(const MultidimArray<double> &Iframe);
 
-    size_t selectBestSigmaByColumn(const MultidimArray<int> &Iframe);
-    size_t selectBestSigmaByRow(const MultidimArray<int> &Iframe);
+    size_t selectBestSigmaByColumn(const MultidimArray<double> &Iframe);
+    size_t selectBestSigmaByRow(const MultidimArray<double> &Iframe);
 
 
 
 public:
 	MetaData mdIn;
-	MultidimArray<int> columnH,rowH, aSingleColumnH, aSingleRowH;
+	MultidimArray<double> columnH,rowH, aSingleColumnH, aSingleRowH;
 	MultidimArray<double> smoothColumnH, smoothRowH, sumObs;
 	Image<double> ICorrection;
+
 	std::vector<double> listOfSigmas;
 	std::vector<double> listOfWidths;
 	std::vector<double *> listOfWeights;

@@ -70,6 +70,12 @@ public:
         return Point2D(x + rhs.x, y + rhs.y);
     }
 
+    Point2D operator+=(const Point2D &rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        return *this;
+    }
+
     Point2D operator-=(const Point2D &rhs) const {
         return Point2D(x - rhs.x, y - rhs.y);
     }

@@ -44,9 +44,15 @@ void findWhichPython(String &whichPython)
 void initializePython(String &whichPython)
 {
     findWhichPython(whichPython);
-	Py_SetProgramName((char *)whichPython.c_str());
+//    wchar_t *program = Py_DecodeLocale(whichPython.c_str(), NULL);
+//    if (program == NULL) {
+//        fprintf(stderr, "Fatal error: cannot decode the python\n");
+//        exit(1);
+//    }
+	Py_SetProgramName((wchar_t *)whichPython.c_str());
 	Py_Initialize();
-	import_array(); // For working with numpy
+//    #define NUMPY_IMPORT_ARRAY_RETVAL
+//	import_array(); // For working with numpy
 }
 
 PyObject* convertToNumpy(const MultidimArray<double> &I)
@@ -73,7 +79,7 @@ PyObject* convertToNumpy(const MultidimArray<int> &I)
 PyObject * getPointerToPythonFRMFunction()
 {
 	String path=getenv("PYTHONPATH");
-	PyObject * pName = PyString_FromString("sh_alignment.frm"); // Import sh_alignment.frm
+	PyObject * pName = PyUnicode_FromString("sh_alignment.frm"); // Import sh_alignment.frm
 	PyObject * pModule = PyImport_Import(pName);
 	if (pModule==NULL)
 		REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot import sh_alignment.");
@@ -85,7 +91,7 @@ PyObject * getPointerToPythonFRMFunction()
 
 PyObject * getPointerToPythonGeneralWedgeClass()
 {
-	PyObject * pName = PyString_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
+	PyObject * pName = PyUnicode_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
 	PyObject * pModule = PyImport_Import(pName);
 	PyObject * pDict = PyModule_GetDict(pModule);
 	PyObject * pWedgeClass = PyDict_GetItemString(pDict, "GeneralWedge");
@@ -94,6 +100,19 @@ PyObject * getPointerToPythonGeneralWedgeClass()
 	Py_DECREF(pDict);
 	return pWedgeClass;
 }
+
+PyObject * getPointerToPythonSingleTiltWedgeClass()
+{
+	PyObject * pName = PyUnicode_FromString("sh_alignment.tompy.filter"); // Import sh_alignment.tompy.filter
+	PyObject * pModule = PyImport_Import(pName);
+	PyObject * pDict = PyModule_GetDict(pModule);
+	PyObject * pSTMMclass = PyDict_GetItemString(pDict, "SingleTiltWedge");
+	Py_DECREF(pName);
+	Py_DECREF(pModule);
+	Py_DECREF(pDict);
+	return pSTMMclass;
+}
+
 
 #define DEBUG
 #ifdef DEBUG
@@ -190,7 +209,9 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		//(see python traceback structure)
 
 		//Get error message
-		std::cout << PyString_AsString(pvalue) << std::endl;
+		PyObject* str_exc_type = PyObject_Str(pvalue); //Now a unicode
+        const char *strExcType =  PyUnicode_AsUTF8(str_exc_type);
+		std::cout << strExcType << std::endl;
 	}
 }
 #undef DEBUG
