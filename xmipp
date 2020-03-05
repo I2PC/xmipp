@@ -951,8 +951,8 @@ def checkConfig():
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
             print("Possible solutions")
-            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3.5-dev "\
-                  "python-numpy python-scipy python-mpi4py")
+            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "\
+                  "python3-numpy python3-scipy python3-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
             print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
                   "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
@@ -1003,7 +1003,7 @@ def compileModule(Nproc,module):
                         print(red("You can skip this program by including '%s' "
                                   "in the config file." % (v)))
                 if 'unsupported pickle protocol' in errorMsg:
-                    print(red("\nThis error might be because you canged the python "
+                    print(red("\nThis error might be because you changed the python "
                               "version. If so, please run './xmipp cleanBin' to "
                               "clean up the installation and, then './xmipp' to "
                               "re-compile it."))
