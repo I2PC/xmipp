@@ -26,6 +26,8 @@
 #include <data/basis.h>
 #include <data/fourier_filter.h>
 
+#include <iostream>
+
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {
 	addUsageLine("Compute the deformation that properly fits two volumes using spherical harmonics");
@@ -33,6 +35,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("   -r <volume>                         : Reference volume");
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
 	addParamsLine("                                       : By default, the input file is rewritten");
+	addParamsLine("  [--sigma <Matrix1D>]				  : Sigma values to filter the volume to perform a multiresolution analysis");
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--optimizeRadius]                   : Optimize the radius of each spherical harmonic");
 	addParamsLine("  [--depth <d=1>]                      : Harmonical depth of the deformation=1,2,3,...");
@@ -42,9 +45,23 @@ void ProgVolDeformSph::defineParams() {
 
 // Read arguments ==========================================================
 void ProgVolDeformSph::readParams() {
+    std::string aux;
 	fnVolI = getParam("-i");
 	fnVolR = getParam("-r");
 	depth = getIntParam("--depth");
+	
+	aux = getParam("--sigma");
+	// Transform string ov values separated by white spaces into substrings stored in a vector
+	std::stringstream ss(aux);
+	std::istream_iterator<std::string> begin(ss);
+	std::istream_iterator<std::string> end;
+	std::vector<std::string> vstrings(begin, end);
+	sigma.resize(vstrings.size());
+	std::transform(vstrings.begin(), vstrings.end(), sigma.begin(), [](const std::string& val)
+	{
+    	return std::stod(val);
+	});
+
 	fnVolOut = getParam("-o");
 	if (fnVolOut=="")
 		fnVolOut=fnVolI;
@@ -89,7 +106,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
 		VEC_ELEM(clnm,i)=pclnm[i+1];
 #ifdef DEBUG
-	//std::cout << "Starting to evaluate\n" << clnm << std::endl;
+	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 	double modg=0.0;
 	for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++)
@@ -166,14 +183,14 @@ double ProgVolDeformSph::distance(double *pclnm)
 	deformation=std::sqrt(modg/(totalVal));
 
 #ifdef DEBUG
-	save.write("PPPIdeformed.vol");
-	save()-=VR();
-	save.write("PPPdiff.vol");
-	save()=VR();
-	save.write("PPPR.vol");
-	std::cout << "Error=" << std::sqrt(diff2/Ncount) << " " << std::sqrt(modg/Ncount) << std::endl;
-	std::cout << "Press any key\n";
-	char c; std::cin >> c;
+	//save.write("PPPIdeformed.vol");
+	//save()-=VR();
+	//save.write("PPPdiff.vol");
+	//save()=VR();
+	//save.write("PPPR.vol");
+	std::cout << "Error=" << deformation << " " << std::sqrt(diff2/totalVal) << std::endl;
+	//std::cout << "Press any key\n";
+	//char c; std::cin >> c;
 #endif
 	if (applyTransformation)
 		VO.write(fnVolOut);
@@ -204,6 +221,32 @@ void ProgVolDeformSph::run() {
 
 	VI().setXmippOrigin();
 	VR().setXmippOrigin();
+
+	volumesI.push_back(VI);
+	volumesR.push_back(VR);
+
+	// Filter input and reference volumes according to the values of sigma
+	XmippFilter * filter;
+	filter = new FourierFilter();
+    ((FourierFilter *)filter)->FilterShape = REALGAUSSIAN;
+    ((FourierFilter *)filter)->FilterBand = LOWPASS;
+
+	for (int ids; ids<sigma.size(); ids++)
+	{
+		Image<double> auxI = VI;
+		Image<double> auxR = VR;
+		((FourierFilter *)filter)->w1 = sigma[ids];
+
+		// Filer input vol
+		((FourierFilter *)filter)->generateMask(auxI());
+		filter->apply(auxI());
+		volumesI.push_back(auxI);
+
+		// Filter ref vol
+		((FourierFilter *)filter)->generateMask(auxR());
+		filter->apply(auxR());
+		volumesR.push_back(auxR);
+	}
 
     Matrix1D<double> steps, x, prevsteps;
     for (int h=0;h<VEC_XSIZE(nh)-1;h++)
