@@ -159,16 +159,23 @@ double ProgVolDeformSph::distance(double *pclnm)
 						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
 					}
 				}
-				double voxelR=A3D_ELEM(mVR,k,i,j);
-				double absVoxelR=fabs(voxelR);
-				double voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
-                if (applyTransformation)
-                	VO(k,i,j)=voxelI;
-				double diff=voxelR-voxelI;
-				diff2+=absVoxelR*diff*diff;
-				modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
-//				Ncount++;
-				totalVal += absVoxelR;
+
+				double voxelR, absVoxelR, voxelI, diff;
+				for (int idv=0; idv<volumesR.size(); idv++)
+				{
+					const MultidimArray<double> &auxVolI = volumesI[idv]();
+					const MultidimArray<double> &auxVolR = volumesR[idv]();
+					voxelR=A3D_ELEM(auxVolR,k,i,j);
+					absVoxelR=fabs(voxelR);
+					voxelI=auxVolI.interpolatedElement3D(j+gx,i+gy,k+gz);
+					if (applyTransformation && idv == 0)
+						VO(k,i,j)=voxelI;
+					diff=voxelR-voxelI;
+					diff2+=absVoxelR*diff*diff;
+					modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
+	//				Ncount++;
+					totalVal += absVoxelR;
+				}
 
 				if (saveDeformation)
 				{
