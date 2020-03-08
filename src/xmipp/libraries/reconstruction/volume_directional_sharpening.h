@@ -88,11 +88,11 @@ public:
             double w, double wL, MultidimArray<double> &filteredVol, int count, double &coneAngle);
 
     void directionalResolutionStep(int face_number,
-    		MultidimArray< std::complex<double> > &conefilter, MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
+    		const MultidimArray< std::complex<double> > &conefilter, MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
     		double &cone_angle, double &x1, double &y1, double &z1);
 
     void localDirectionalfiltering(size_t &Nfaces,
-    		MultidimArray< std::complex<double> > &myfftV,
+    		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask,
             MultidimArray<double> &localfilteredVol, MultidimArray<double> &Vorig,
             double &minRes, double &maxRes, double &step, double &coneAngle);
 
@@ -111,7 +111,8 @@ public:
     void getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
     		int m1sizeX, int m1sizeY, int m1sizeZ);
 
-    void localdeblurStep(MultidimArray<double> &vol, MultidimArray<int> &mask,
+    void localdeblurStep(MultidimArray<double> &vol,
+    		MultidimArray<int> &coneMask, MultidimArray<int> &mask,
     		size_t &Nfaces, double &coneAngle);
 
     void run();
