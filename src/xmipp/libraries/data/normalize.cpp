@@ -244,8 +244,22 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
     DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n)-avgbg)*istddevbg;
 }
 
-void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, std::vector<double> &uniqueI)
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
 {
+    MultidimArray<double> arrayI=I;
+    arrayI.resetOrigin();
+    std::vector<double> uniqueI;
+    double val;
+    arrayI.resize(NZYXSIZE(arrayI));
+    arrayI.sort(arrayI);
+
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(arrayI)
+        uniqueI.push_back(round(A1D_ELEM(arrayI, n) * 100) / 100);
+
+    std::vector<double>::iterator it;
+    it = std::unique (uniqueI.begin(), uniqueI.end());
+    uniqueI.resize(std::distance(uniqueI.begin(),it) );
+
 	double medianBg, p95, ip95;
     int idx;
 	I.computeMedian_within_binary_mask(bg_mask, medianBg);
@@ -765,19 +779,6 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         I.readApplyGeo(fnImg, rowIn);
     else
         I.read(fnImg);
-    
-    MultidimArray<double> arrayI=I();
-    std::vector<double> uniqueI;
-    double val;
-    arrayI.resize(NZYXSIZE(arrayI));
-    arrayI.sort(arrayI);
-
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(arrayI)
-        uniqueI.push_back(round(A1D_ELEM(arrayI, n) * 100) / 100);
-
-    std::vector<double>::iterator it;
-    it = std::unique (uniqueI.begin(), uniqueI.end());
-    uniqueI.resize(std::distance(uniqueI.begin(),it) );
 
     I().setXmippOrigin();
 
@@ -850,7 +851,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         normalize_NewXmipp2(img, bg_mask);
         break;
     case ROBUST:
-    	normalize_Robust(img, bg_mask, uniqueI);
+    	normalize_Robust(img, bg_mask);
     	break;
     case RAMP:
         normalize_ramp(img, &bg_mask);

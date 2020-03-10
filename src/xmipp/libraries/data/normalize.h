@@ -181,7 +181,7 @@ volume.
 */
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask);
 
-void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, MultidimArray<double> &arrayI);
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask);
 
 /** Removal of inclined background densities (ramps).
     @ingroup NormalizationProcedures
