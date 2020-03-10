@@ -25,8 +25,7 @@
 #include <data/numerical_tools.h>
 #include <data/basis.h>
 #include <data/fourier_filter.h>
-
-#include <iostream>
+#include <data/normalize.h>
 
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {
@@ -109,6 +108,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 	double modg=0.0;
+	double voxelR, absVoxelR, voxelI, diff;
 	for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++)
 	{
 		for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++)
@@ -160,14 +160,11 @@ double ProgVolDeformSph::distance(double *pclnm)
 					}
 				}
 
-				double voxelR, absVoxelR, voxelI, diff;
 				for (int idv=0; idv<volumesR.size(); idv++)
 				{
-					const MultidimArray<double> &auxVolI = volumesI[idv]();
-					const MultidimArray<double> &auxVolR = volumesR[idv]();
-					voxelR=A3D_ELEM(auxVolR,k,i,j);
+					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
 					absVoxelR=fabs(voxelR);
-					voxelI=auxVolI.interpolatedElement3D(j+gx,i+gy,k+gz);
+					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
 					if (applyTransformation && idv == 0)
 						VO(k,i,j)=voxelI;
 					diff=voxelR-voxelI;
@@ -229,29 +226,36 @@ void ProgVolDeformSph::run() {
 	VI().setXmippOrigin();
 	VR().setXmippOrigin();
 
-	volumesI.push_back(VI);
-	volumesR.push_back(VR);
+	volumesI.push_back(VI());
+	volumesR.push_back(VR());
 
 	// Filter input and reference volumes according to the values of sigma
-	XmippFilter * filter;
-	filter = new FourierFilter();
-    ((FourierFilter *)filter)->FilterShape = REALGAUSSIAN;
-    ((FourierFilter *)filter)->FilterBand = LOWPASS;
+	FourierFilter filter;
+    filter.FilterShape = REALGAUSSIAN;
+    filter.FilterBand = LOWPASS;
+	filter.generateMask(VI());
 
-	for (int ids; ids<sigma.size(); ids++)
+	// We need also to normalized the filtered volumes to compare them appropiately
+	MultidimArray<int> bg_mask;
+	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
+    bg_mask.setXmippOrigin();
+	BinaryCircularMask(bg_mask, bg_mask.xdim / 2, OUTSIDE_MASK);
+
+	for (int ids=0; ids<sigma.size(); ids++)
 	{
 		Image<double> auxI = VI;
 		Image<double> auxR = VR;
-		((FourierFilter *)filter)->w1 = sigma[ids];
+		filter.w1 = sigma[ids];
 
 		// Filer input vol
-		((FourierFilter *)filter)->generateMask(auxI());
-		filter->apply(auxI());
+		filter.do_generate_3dmask = true;
+		filter.applyMaskSpace(auxI());
+		normalize_Robust(auxI(), bg_mask);
 		volumesI.push_back(auxI);
 
 		// Filter ref vol
-		((FourierFilter *)filter)->generateMask(auxR());
-		filter->apply(auxR());
+		filter.applyMaskSpace(auxR());
+		normalize_Robust(auxR(), bg_mask);
 		volumesR.push_back(auxR);
 	}
 
