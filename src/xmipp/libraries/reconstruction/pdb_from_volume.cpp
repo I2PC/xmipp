@@ -40,14 +40,15 @@
 void ProgPdbValueToVol::defineParams()
 {
     addUsageLine("Put a volume value to PDB file.");
-    addExampleLine("Sample at 1.6A and limit the frequency to 10A",false);
     addExampleLine("   xmipp_volume_from_pdb -i 1o7d.pdb --sampling 1.6");
     addExampleLine("   xmipp_transform_filter -i 1o7d.vol -o 1o7dFiltered.vol --fourier low_pass 10 raised_cosine 0.05 --sampling 1.6");
 
     addParamsLine("  --pdb <pdb_file>                   : File to process");
 	addParamsLine("  --vol <vol_file=\"\">              : Input volume");
+	addParamsLine("  [--mask <vol_file=\"\">]            : Input mask (to calculate inside mask)");
 	addParamsLine("  -o  <file>                         : Modified PDB");
     addParamsLine("   --sampling <Ts=1>                 : Sampling rate (Angstroms/pixel)");
+    addParamsLine("   [--origin <...>]                  : Origin of the volume --origin x y z");
     addParamsLine("   [--radius <radius=1>]             : Considered as radius of the atom (Angstroms)");
 }
 /* Read parameters --------------------------------------------------------- */
@@ -55,9 +56,13 @@ void ProgPdbValueToVol::readParams()
 {
     fn_pdb = getParam("--pdb");
 	fnVol = getParam("--vol");
+	fnMask = getParam("--mask");
 	fn_out=getParam("-o");
     Ts = getDoubleParam("--sampling");
     radius = getDoubleParam("--radius");
+    withMask = checkParam("--mask");
+    defOrig = checkParam("--origin");
+    getListParam("--origin", origin);
 
 }
 
@@ -68,7 +73,11 @@ void ProgPdbValueToVol::show()
         return;
     std::cout << "PDB file:           " << fn_pdb           << std::endl
     << "Output:       " << fn_out << std::endl
-    << "Sampling rate:      " << Ts               << std::endl
+    << "Sampling rate:        " << Ts          << std::endl
+    << "Origin:               ";
+    for (size_t i=0; i<origin.size(); ++i)
+    	std::cout << origin[i] << " ";
+    std::cout << std::endl
     << "Radius:               " << radius      << std::endl;
 }
 
@@ -76,10 +85,23 @@ void ProgPdbValueToVol::show()
 void ProgPdbValueToVol::produceSideInfo()
 {
 
-	Image<double> V;
+	Image<double> V, M;
 	V.read(fnVol);
-//	V().setXmippOrigin();
 	inputVol = V();
+
+	if (defOrig)
+	{
+		STARTINGZ(inputVol) = -textToInteger(origin[2]);
+		STARTINGY(inputVol) = -textToInteger(origin[1]);
+		STARTINGX(inputVol) = -textToInteger(origin[0]);
+	}
+
+	if (withMask)
+	{
+		M.read(fnMask);
+		inputMask = M();
+	}
+
 }
 
 /* Compute protein geometry ------------------------------------------------ */
@@ -102,10 +124,16 @@ void ProgPdbValueToVol::computeProteinGeometry()
         std::string line;
         getline(fh_pdb, line);
         if (line == "")
+        {
+    		fh_out << line << " \n";
             continue;
+        }
         std::string kind = line.substr(0,4);
         if (kind != "ATOM" && kind !="HETA")
+        {
+    		fh_out << line << " \n";
             continue;
+        }
 
         // Extract atom type and position
         // Typical line:
@@ -126,12 +154,19 @@ void ProgPdbValueToVol::computeProteinGeometry()
 
         // Find the part of the volume that must be updated
         int k0 = XMIPP_MAX(FLOOR(ZZ(r) - radius), STARTINGZ(inputVol));
-        int kF = XMIPP_MIN(FLOOR(ZZ(r) + radius), FINISHINGZ(inputVol));
+        int kF = XMIPP_MIN(CEIL(ZZ(r) + radius), FINISHINGZ(inputVol));
         int i0 = XMIPP_MAX(FLOOR(YY(r) - radius), STARTINGY(inputVol));
-        int iF = XMIPP_MIN(FLOOR(YY(r) + radius), FINISHINGY(inputVol));
+        int iF = XMIPP_MIN(CEIL(YY(r) + radius), FINISHINGY(inputVol));
         int j0 = XMIPP_MAX(FLOOR(XX(r) - radius), STARTINGX(inputVol));
-        int jF = XMIPP_MIN(FLOOR(XX(r) + radius), FINISHINGX(inputVol));
-//		std::cout << "k0: = " << k0 << "kF: = " << kF << std::endl;
+        int jF = XMIPP_MIN(CEIL(XX(r) + radius), FINISHINGX(inputVol));
+
+        int ka = XMIPP_MAX(FLOOR(ZZ(r)), STARTINGZ(inputVol));
+        int ia = XMIPP_MAX(FLOOR(YY(r)), STARTINGZ(inputVol));
+        int ja = XMIPP_MAX(FLOOR(XX(r)), STARTINGZ(inputVol));
+
+		std::cout << "k0: = " << k0 << "kF: = " << kF << std::endl;
+		std::cout << "i0: = " << i0 << "iF: = " << iF << std::endl;
+		std::cout << "j0: = " << j0 << "jF: = " << jF << std::endl;
 
         // Fill the volume with this atom
         float atomS=0;
@@ -148,21 +183,34 @@ void ProgPdbValueToVol::computeProteinGeometry()
                 {
                     double xdiff=XX(r) - j;
                     double rdiffModule2=zydiff2+xdiff*xdiff;
-                    if (rdiffModule2<radius2)
-                    {
-                        atomS+=A3D_ELEM(inputVol,k, i, j);
-                        ++cont;
-                    }
+                	if (withMask)
+                	{
+						if ( (rdiffModule2<radius2 || (k==ka && i==ia && j==ja)) && (inputMask(k, i , j)>0.05) )
+						{
+							atomS+=A3D_ELEM(inputVol,k, i, j);
+							++cont;
+						}
+                	}
+                	else
+                	{
+						if ( (rdiffModule2<radius2) || (k==ka && i==ia && j==ja))
+						{
+							std::cout << "k i j  =  " << k << i << j << std::endl;
+							atomS+=A3D_ELEM(inputVol,k, i, j);
+							++cont;
+						}
+                	}
+
                 }
             }
         }
-//		std::cout << "suma: = " << atomS << std::endl;
-//		std::cout << "conteo: = " << cont << std::endl;
+		std::cout << "suma: = " << atomS << std::endl;
+		std::cout << "conteo: = " << cont << std::endl;
         atomS=atomS/cont;
-        if (atomS>3)
-		   atomS=3.00;
-        if (atomS<-3)
- 		   atomS=-3.00;
+//        if (atomS>3)
+//		   atomS=3.00;
+//        if (atomS<-3)
+// 		   atomS=-3.00;
 //        if (atomS>0 && atomS<0.25)
 // 		   atomS=0.00;
 //        if (atomS<0 && atomS>-0.25)
@@ -173,7 +221,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
 //        	atomS = (-0.333333*atomS)+1;
 //        else
 //        	atomS = (-0.333333*atomS)-1;
-//        std::cout << "despues: = " << atomS << std::endl;
+        std::cout << "despues: = " << atomS << std::endl;
 
 
         ++numA;

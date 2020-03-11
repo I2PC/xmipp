@@ -36,54 +36,15 @@
 //@{
 /* PDB Phantom Program Parameters ------------------------------------------ */
 /** Parameter class for the PDB Phantom program */
-class ProgPdbValueToVol: public XmippProgram
+class ProgComparePdb: public XmippProgram
 {
 public:
-    /** Sampling rate */
-    double Ts;
-
-    /** Radius */
-    double radius;
-
-    // Origin
-    StringVector origin;
-
-    /** Origin by user */
-    bool defOrig;
-
-    /** Use Mask */
-    bool withMask;
 
     /** PDB file */
-    FileName fn_pdb;
-
-    /** Volume file */
-    FileName fnVol, fnMask;
-	MultidimArray<double> inputVol, inputMask;
+    FileName fn_pdb1, fn_pdb2;
 
     /** Output fileroot */
     FileName fn_out;
-
-    /** Blob */
-    struct blobtype blob;
-
-    /** Final size in pixels */
-    int output_dim;
-    
-    /** Use blobs instead of scattering factors */
-    bool useBlobs;
-
-    /** Use poor Gaussian instead of scattering factors */
-    bool usePoorGaussian;
-    
-    /** Use fixed Gaussian instead of scattering factors */
-    bool useFixedGaussian;
-    
-    /** Center the PDB */
-    bool doCenter;
-
-    /** Fixed Gaussian standard deviation */
-    double sigmaGaussian;
 
     /// Column for the intensity (if any). Only valid for fixed_gaussians
     std::string intensityColumn;
