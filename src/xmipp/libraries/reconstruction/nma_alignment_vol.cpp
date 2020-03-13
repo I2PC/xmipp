@@ -26,12 +26,12 @@
 #include <sys/stat.h>
 #include <condor/Solver.h>
 #include <condor/tools.h>
+#include <stdio.h>
 
 #include <core/metadata_extension.h>
 #include <data/filters.h>
 #include "program_extension.h"
 #include "nma_alignment_vol.h"
-
 
 // Empty constructor =======================================================
 ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
@@ -70,9 +70,14 @@ void ProgNmaAlignmentVol::defineParams() {
 	addParamsLine("                                       : Default standard deviation <std> is read from the PDB file.");
 	addParamsLine("  [--trustradius_scale <s=1>]          : Positive scaling factor to scale the initial trust region radius");
 	addParamsLine("==Combined elastic and rigid-body alignment==");
-	addParamsLine("  [--alignVolumes]                     : Align the deformed volume to the input volume before comparing");
+	addParamsLine("  [--alignVolumes <frm_freq=0.25> <frm_shift=10>]  : Align the deformed volume to the input volume before comparing, this is using frm method for volume alignment with frm_freq and frm_shift as parameters");
 	addParamsLine("                                       : You need to compile Xmipp with SHALIGNMENT support (see install.sh)");
 	addParamsLine("  [--mask <m=\"\">]                    : 3D masking  of the projections of the deformed volume");
+	addParamsLine("  [--tilt_values <tilt0=-90> <tiltF=90>]  : only use if you are trying to compensate for the missing wedge");
+	addParamsLine("  [--condor_params <rhoStartBase=250.> <rhoEndBase=50.> <niter=10000>]  : parameters for the CONDOR optimiser (recommended to keep default)");
+	addParamsLine("                                       : rhoStartBase > 0  : the lower the better, yet the slower");
+	addParamsLine("                                       : rhoEndBase no specific rule, however it is better to keep it < 1000, if set very high we risk distortions");
+	addParamsLine("                                       : niter should be big enough to guarantee that the search converges to the right set of nma deformation amplitudes");
 	addExampleLine("xmipp_nma_alignment_vol -i volumes.xmd --pdb 2tbv.pdb --modes modelist.xmd --sampling_rate 3.2 -o output.xmd --resume");
 }
 
@@ -95,8 +100,18 @@ void ProgNmaAlignmentVol::readParams() {
 	if (useFixedGaussian)
 		sigmaGaussian = getDoubleParam("--fixed_Gaussian");
 	alignVolumes=checkParam("--alignVolumes");
-}
+	if (alignVolumes){
+		frm_freq = getDoubleParam("--alignVolumes",0);
+		frm_shift= getIntParam("--alignVolumes",1);
+	}
+	tilt0=getIntParam("--tilt_values",0);
+	tiltF=getIntParam("--tilt_values",1);
 
+	rhoStartBase = getDoubleParam("--condor_params",0);
+	rhoEndBase   = getDoubleParam("--condor_params",1);
+	niter        = getIntParam("--condor_params",2);
+
+}
 // Show ====================================================================
 void ProgNmaAlignmentVol::show() {
 	XmippMetadataProgram::show();
@@ -129,9 +144,17 @@ void ProgNmaAlignmentVol::createWorkFiles() {
 	{
 		mdDone.addLabel(MDL_IMAGE);
 		mdDone.addLabel(MDL_ENABLED);
+		mdDone.addLabel(MDL_IMAGE);
+		mdDone.addLabel(MDL_ANGLE_ROT);
+		mdDone.addLabel(MDL_ANGLE_TILT);
+		mdDone.addLabel(MDL_ANGLE_PSI);
+		mdDone.addLabel(MDL_SHIFT_X);
+		mdDone.addLabel(MDL_SHIFT_Y);
+		mdDone.addLabel(MDL_SHIFT_Z);
 		mdDone.addLabel(MDL_NMA);
 		mdDone.addLabel(MDL_NMA_ENERGY);
 		mdDone.addLabel(MDL_MAXCC);
+		mdDone.addLabel(MDL_ANGLE_Y);
 		mdDone.write(fn);
 	}
 	*pmdIn = mdTodo;
@@ -207,11 +230,13 @@ FileName ProgNmaAlignmentVol::createDeformedPDB() const {
 	return fnRandom;
 }
 
-void ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
+bool ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
 	if (fitness < fitness_min) {
 		fitness_min = fitness;
 		trial_best = trial;
+		return true;
 	}
+	return false;
 }
 
 // Compute fitness =========================================================
@@ -224,23 +249,53 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 
 	FileName fnRandom = global_nma_vol_prog->createDeformedPDB();
 	const char * randStr = fnRandom.c_str();
+	double retval=std::numeric_limits<double>::max();
 
-	if (global_nma_vol_prog->alignVolumes)
-		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s_deformedPDB.vol --frm --apply -v 0",
-				global_nma_vol_prog->currentVolName.c_str(),fnRandom.c_str()));
-	global_nma_vol_prog->Vdeformed.read(formatString("%s_deformedPDB.vol",fnRandom.c_str()));
-	double retval=1e10;
-	if (XSIZE(global_nma_vol_prog->mask)!=0)
-		retval=1-correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed(),&global_nma_vol_prog->mask);
-	else
-		retval=1-correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed());
-	//global_nma_vol_prog->V().printStats();
-	//global_nma_vol_prog->Vdeformed().printStats();
-	//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
+	FileName fnShiftsAngles = fnRandom + "_angles_shifts.txt";
+	const char * shifts_angles = fnShiftsAngles.c_str();
+
+	String fnVolume1 = global_nma_vol_prog->currentVolName;
+	String fnVolume2 = fnRandom + "_deformedPDB.vol";
+
+	if (global_nma_vol_prog->tilt0!=-90 || global_nma_vol_prog->tiltF!=90 ){
+		global_nma_vol_prog->flip = true;
+		runSystem("xmipp_transform_geometry",formatString("-i %s -o %s_currentvolume.vol --rotate_volume euler 0 90 0 -v 0",fnVolume1.c_str(),randStr));
+		fnVolume1 = fnRandom+"_currentvolume.vol";
+	}
+
+	const char * Volume1 = fnVolume1.c_str();
+	const char * Volume2 = fnVolume2.c_str();
+
+	if (global_nma_vol_prog->alignVolumes){
+		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
+				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
+		//first just see what is the score
+		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
+		// fit_value is the last element in shifts_angles. To get it without looping on all the file, we seek the end_of_file -10 (10 always work because fit_value is always < 1).
+		fseek(global_nma_vol_prog->AnglesShiftsAndScore, -10, SEEK_END);
+		fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->fit_value);
+		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
+		retval = 1 + global_nma_vol_prog->fit_value;
+	}
+
+	else{
+		global_nma_vol_prog->Vdeformed.read(formatString("%s_deformedPDB.vol",fnRandom.c_str()));
+		auto mask = (0 == XSIZE(global_nma_vol_prog->mask)) ? nullptr : &global_nma_vol_prog->mask;
+		retval = 1 - correlationIndex(global_nma_vol_prog->V(), global_nma_vol_prog->Vdeformed(), mask);
+		//global_nma_vol_prog->V().printStats();
+		//global_nma_vol_prog->Vdeformed().printStats();
+		//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
+	}
+
+	if(global_nma_vol_prog->updateBestFit(retval, dim) && global_nma_vol_prog->alignVolumes){
+		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
+		for (int i = 0; i < 6; i++){
+		       fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->Best_Angles_Shifts[i]);
+		    }
+		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
+	}
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
-
-	global_nma_vol_prog->updateBestFit(retval, dim);
 	//std::cout << global_nma_vol_prog->trial << " -> " << retval << std::endl;
 	return retval;
 }
@@ -273,9 +328,9 @@ void ProgNmaAlignmentVol::processImage(const FileName &fnImg,
 	for (int i = 0; i < dim; i++)
 		of->xStart[i] = 0.;
 
-	double rhoStart=trustradius_scale*250.;
-    double rhoEnd=trustradius_scale*50.;
-    int niter=10000;
+	double rhoStart=trustradius_scale*rhoStartBase;
+    double rhoEnd=trustradius_scale*rhoEndBase;
+
 	CONDOR(rhoStart, rhoEnd, niter, of);
 
 	trial = parameters = trial_best;
@@ -303,11 +358,24 @@ void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
 		vectortemp.push_back(lambdaj);
 		energy+=lambdaj*lambdaj;
 	}
-	energy/=numberOfModes;
 
+
+	energy/=numberOfModes;
+	md.setValue(MDL_ANGLE_ROT, (double)global_nma_vol_prog->Best_Angles_Shifts[0], objId);
+	md.setValue(MDL_ANGLE_TILT, (double)global_nma_vol_prog->Best_Angles_Shifts[1], objId);
+	md.setValue(MDL_ANGLE_PSI, (double)global_nma_vol_prog->Best_Angles_Shifts[2], objId);
+	md.setValue(MDL_SHIFT_X, (double)global_nma_vol_prog->Best_Angles_Shifts[3], objId);
+	md.setValue(MDL_SHIFT_Y, (double)global_nma_vol_prog->Best_Angles_Shifts[4], objId);
+	md.setValue(MDL_SHIFT_Z, (double)global_nma_vol_prog->Best_Angles_Shifts[5], objId);
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_NMA_ENERGY, energy, objId);
 	md.setValue(MDL_MAXCC, 1-parameters(numberOfModes), objId);
+	if (global_nma_vol_prog->flip){
+		md.setValue(MDL_ANGLE_Y, 90.0 , objId);
+	}
+	else{
+		md.setValue(MDL_ANGLE_Y, 0.0 , objId);
+	}
 
 	md.append(fnOutDir+"/nmaDone.xmd");
 }
