@@ -25,8 +25,8 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef REC_METHOD_ART_HH
-#define REC_METHOD_ART_HH
+#ifndef REC_METHOD_SART_HH
+#define REC_METHOD_SART_HH
 
 #include "superiorization_reconstruct_method.h"
 
@@ -43,7 +43,7 @@
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
-class RecART:public RecMeth
+class RecSART:public RecMeth
 {
  private:
     struct reg_R{
@@ -51,6 +51,10 @@ class RecART:public RecMeth
            double w;   // Weight --> amount of intersection line and spel
           };
     
+    MultidimArray<double> RW,  // Ray Weight by Pixel
+                          RWS, // Ray Sum Weight by Pixel
+                          Q;
+
     const double eps_zero = 1e-10;
     double lambda;
     proximityType PrType;
@@ -59,13 +63,14 @@ class RecART:public RecMeth
     double Dh, Dv, Dp, Cp, Pc;
     int L,M,N;
     double Lim[4];
-    std::vector<double> C,Q;
+    std::vector<double> C;
     
  private:
     std::vector<reg_R> pixray(const int np,const int nr,const std::vector<double>& LA);
     double L2SQ(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& LA);
  public:
-    RecART();
+    RecSART();
+    ~RecSART();
     void init(const uint xdim, const uint ydim,const std::vector<double>& A);
     void setParam(const double l);
     void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k);
@@ -74,6 +79,6 @@ class RecART:public RecMeth
     void setPr(const std::string strType);
     reconType getType(void);
     proximityType getPrType(void);
-}; /* virtual class for ART method */
+}; /* virtual class for SART method */
 
-#endif /* REC_METHOD_ART_HH */
+#endif /* REC_METHOD_SART_HH */

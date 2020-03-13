@@ -25,36 +25,26 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef SUPERIORIZATION_PROXIMITY_HH
-#define SUPERIORIZATION_PROXIMITY_HH
+#ifndef ATV_HH
+#define ATV_HH
 
 #include <core/xmipp_program.h>
 
-// template <typename R, typename ...ARGS> using function = R(*)(ARGS...);
-// template< class R, class... Args > class function<R(Args...)>;
-class SuperProx
+#include "second_criterion.h"
+
+class atv:public secc
 {
+private:
+    MultidimArray<double> w;
+    double eps;
  public:
-	enum classType{L2SQ};
+    atv();
+    ~atv();
+    double phi(const MultidimArray<double>& u);
+    void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
+    void init(MultidimArray<double>& u);
+    void update(MultidimArray<double>& u);
+}; /* class for Weighted Total Variation functions */
 
- private:
- //
- // Methods
- //
-	double l2SQ(const MultidimArray<double>& x);
- public:
-    SuperProx();
-	SuperProx(String &StrType);
-	void set(std::string StrType);
-	double Pr(const MultidimArray<double>& x);
-	double operator ()(const MultidimArray<double>& x);
-	bool valid(const String &StrType);
-	String getName(void);
- protected:
-
- private:
-    classType PrType;
-    std::function<double(const MultidimArray<double>& x)> prox;
-};
-#endif /* SUPERIORIZATION_PROXIMITY_HH */
+#endif /* ATV_HH */
 

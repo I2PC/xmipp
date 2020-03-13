@@ -26,12 +26,16 @@
  ***************************************************************************/
 
 #include "superiorization_reconstruct_base.h"
-#include "superiorization_reconstruct_art.h"
 
 #include <core/alglib/ap.h>
 
 #include <functional>
 #include <cmath>
+
+#include "superiorization_reconstruct_types.h"
+#include "superiorization_proximity_types.h"
+#include "superiorization_reconstruct_art.h"
+#include "superiorization_reconstruct_sart.h"
 
 /******************************************************************************/
 /******************************************************************************/
@@ -47,22 +51,57 @@
 */
 ReconBase::ReconBase()
 {
- B = 0;
- RecType = ART;
- B = new RecART;
+ R = 0;
+ R = new RecART;
+ R->setPr(proximityType::L2SQ);
 }
 
 /**
 **
-** Constructor with ID for the desired reconstruction algorithm
+** Constructor with ID for the desired reconstruction algorithm.
 **
 */
 ReconBase::ReconBase(const String &StrType)
 {
  if(StrType == std::string("ART")){
-    RecType = ART;
-    B = new RecART;
+    R = new RecART;
+    R->setPr(proximityType::L2SQ);
    }
+ if(StrType == std::string("SART")){
+    R = new RecSART;
+    R->setPr(proximityType::L2SQ);
+   }
+}
+
+/**
+**
+** Constructor with ID for the desired reconstruction algorithm
+** and Proximity function.
+**
+*/
+ReconBase::ReconBase(const String &recType,const String &prType)
+{
+ if(recType == std::string("ART"))
+    R = new RecART;
+ 
+ if(recType == std::string("SART"))
+    R = new RecSART;
+ 
+ if(R != 0){
+    if(prType == std::string("L2SQ")){
+       R->setPr(proximityType::L2SQ);
+      }
+   }
+}
+
+/**
+**
+** Method to select the desired reconstruction algorithm
+**
+*/
+void ReconBase::init(const uint xdim, const uint ydim,const std::vector<double>& A)
+{
+ R->init(xdim,ydim,A);
 }
 
 /**
@@ -72,24 +111,48 @@ ReconBase::ReconBase(const String &StrType)
 */
 void ReconBase::set(std::string StrType)
 {
- if(B != 0)
-    delete B;
+ if(R != 0){
+    std::cout<<"WARNING: Changing the Reconstruction method (for superiorization)."<<std::endl;
+    delete R;
+   }
  
  if(StrType == std::string("ART")){
-    RecType = ART;
-    B = new RecART;
+    R = new RecART;
+    R->setPr(proximityType::L2SQ);
+   }
+ 
+ if(StrType == std::string("SART")){
+    R = new RecSART;
+    R->setPr(proximityType::L2SQ);
    }
 }
 
 /**
 **
-** Method to select the desired reconstruction algorithm
+** Method to select the desired Proximity function
+**
+*/
+void ReconBase::setPr(std::string StrType)
+{
+ if(R != 0)
+    R->setPr(StrType);
+ else
+    std::cout<<"ERROR: Reconstruction method not defined just yet"<<std::endl;
+}
+
+/**
+**
+** Method to get the name of the reconstruction algorithm
 **
 */
 std::string ReconBase::getName()
 {
- if(RecType == ART){
-    return std::string("ART");
+ if(R != 0){
+    switch(R->getType()){
+        case reconType::ART: return std::string("ART");
+        case reconType::SART:return std::string("SART");
+        default:return std::string("Not Set");
+       }
    }
 
  return std::string("Not Set");
@@ -97,12 +160,45 @@ std::string ReconBase::getName()
 
 /**
 **
-** Method to select the desired reconstruction algorithm
+** Method to get the name of the proximity function
 **
 */
-ReconBase::classType ReconBase::getType(void)
+std::string ReconBase::getPrName()
 {
- return this->RecType;
+ if(R != 0){
+    switch(R->getPrType()){
+        case proximityType::L2SQ: return std::string("Least Squares (L2 Squared)");
+        default:return std::string("Not Set");
+       }
+   }
+ 
+ return std::string("Not Set");
+}
+
+/**
+**
+** Method to obtain the type of selected reconstruction algorithm
+**
+*/
+reconType ReconBase::getType(void)
+{
+ if(R != 0)
+    return R->getType();
+
+ return reconType::none;
+}
+
+/**
+**
+** Method to obtain the selected proximity function
+**
+*/
+proximityType ReconBase::getPrType(void)
+{
+ if(R != 0)
+    return R->getPrType();
+
+ return proximityType::none;
 }
 
 /**
@@ -112,9 +208,12 @@ ReconBase::classType ReconBase::getType(void)
 */
 void ReconBase::setParam(const double v)
 {
- switch(RecType){
-     case ART:
-        dynamic_cast<RecART*>(B)->setParam(v);
+ switch(R->getType()){
+     case reconType::ART:
+        dynamic_cast<RecART*>(R)->setParam(v);
+        break;
+     case reconType::SART:
+        dynamic_cast<RecSART*>(R)->setParam(v);
         break;
      default:
         break;
@@ -130,7 +229,17 @@ void ReconBase::operator()(MultidimArray<double>& v,
                             const MultidimArray<double>& P,
 			    const std::vector<double>& A,const int k)
 {
- B->B(v,P,A,k);
+ R->B(v,P,A,k);
+}
+
+/**
+**
+** Calls the selected proximity function
+**
+*/
+double ReconBase::Pr(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& LA)
+{
+ R->Pr(v,P,LA);
 }
 
 #undef DEBUG

@@ -90,7 +90,7 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
  //
  // Computing the gradient of the total variation function
  //
- memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+ memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
  for(uint k=0; k < v.zdim;k++)         // Depth
      for(uint j=0;j < v.ydim;j++)      // Height
          for(uint i=0;i < v.xdim;i++){ // Width
@@ -105,7 +105,7 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (3*v.data[P(i,j,k)] - v.data[P(i+1,j,k)] - v.data[P(i,j+1,k)] - v.data[P(i,j,k+1)])/denom;
+                   w.data[P(i,j,k)] += (3*v.data[P(i,j,k)] - v.data[P(i+1,j,k)] - v.data[P(i,j+1,k)] - v.data[P(i,j,k+1)])/denom;
                }
              //
              // Second Case
@@ -118,7 +118,7 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i-1,j,k)])/denom;
+                   w.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i-1,j,k)])/denom;
                }
              //
              // Third Case
@@ -131,7 +131,7 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j-1,k)])/denom;
+                   w.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j-1,k)])/denom;
                }
              //
              // Fourth Case
@@ -144,7 +144,7 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
                 //Computing the denominator
                 denom = sqrt(dw*dw + dh*dh + dd*dd);
                 if(denom > ZERO)
-                   v.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j,k-1)])/denom;
+                   w.data[P(i,j,k)] += (v.data[P(i,j,k)] - v.data[P(i,j,k-1)])/denom;
                }
             }
  
@@ -152,24 +152,24 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
  // Failsafe & Finding the norm of the gradient (vector)
  //
  denom = 0.0;
- for(uint k=0; k < v.zdim;k++)         // Depth
-     for(uint j=0;j < v.ydim;j++)      // Height
-         for(uint i=0;i < v.xdim;i++){ // Width
-             if(std::isnan(v.data[P(i,j,k)]))
-                v.data[P(i,j,k)] = 0.0;
-             denom += v.data[P(i,j,k)]*v.data[P(i,j,k)];
+ for(uint k=0; k < w.zdim;k++)         // Depth
+     for(uint j=0;j < w.ydim;j++)      // Height
+         for(uint i=0;i < w.xdim;i++){ // Width
+             if(std::isnan(w.data[P(i,j,k)]))
+                w.data[P(i,j,k)] = 0.0;
+             denom += w.data[P(i,j,k)]*w.data[P(i,j,k)];
             }
  
  //
  // Normalizing the resulting vector
  //
  if(denom <= ZERO)
-	memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+    memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
  else{
-    for(uint k=0; k < v.zdim;k++)         // Depth
-        for(uint j=0;j < v.ydim;j++)      // Height
-            for(uint i=0;i < v.xdim;i++){ // Width
-                v.data[P(i,j,k)] = -1.0 * v.data[P(i,j,k)]/denom;
+    for(uint k=0; k < w.zdim;k++)         // Depth
+        for(uint j=0;j < w.ydim;j++)      // Height
+            for(uint i=0;i < w.xdim;i++){ // Width
+                w.data[P(i,j,k)] = -1.0 * w.data[P(i,j,k)]/denom;
                }
    }
  

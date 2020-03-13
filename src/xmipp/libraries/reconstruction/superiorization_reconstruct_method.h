@@ -30,13 +30,21 @@
 
 #include <core/xmipp_program.h>
 
+#include "superiorization_reconstruct_types.h"
+#include "superiorization_proximity_types.h"
+
 class RecMeth
 {
  private:
     
  public:
+    virtual void init(const uint xdim, const uint ydim,const std::vector<double>& A);
     virtual void B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k);
+    virtual void setPr(const proximityType type);
+    virtual void setPr(const std::string strType);
+    virtual reconType getType(void);
+    virtual proximityType getPrType(void);
+    virtual double Pr(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A);
 }; /* virtual class for second criterion */
 
 #endif /* REC_METHOD_HH */
-

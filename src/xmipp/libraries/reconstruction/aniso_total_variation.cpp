@@ -25,7 +25,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "w_total_variation.h"
+#include "aniso_total_variation.h"
 #include <core/alglib/ap.h>
 
 #include <functional>
@@ -41,7 +41,7 @@
 /*
  * Default Constructor
  */
-wtv::wtv()
+atv::atv()
 {
  eps = 1.00;
 }
@@ -49,7 +49,7 @@ wtv::wtv()
 /*
  * Desstructor
  */
-wtv::~wtv()
+atv::~atv()
 {
  w.clear();
 }
@@ -59,7 +59,7 @@ wtv::~wtv()
 ** Computes the Weighted Total Variation
 **
 */
-double wtv::phi(const MultidimArray<double>& v)
+double atv::phi(const MultidimArray<double>& v)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
  double sum = 0.0;
@@ -92,7 +92,7 @@ double wtv::phi(const MultidimArray<double>& v)
 ** d/dx(i,j,k) TV / || d/dx(i,j,k) TV ||
 **
 */
-void wtv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
+void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
 #define ZERO pow(10,-15)
@@ -187,7 +187,7 @@ void wtv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
  // Normalizing the resulting vector
  //
  if(denom <= ZERO)
-    memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
+	memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
  else{
     for(uint k=0; k < v.zdim;k++)         // Depth
         for(uint j=0;j < v.ydim;j++)      // Height
@@ -205,7 +205,7 @@ void wtv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 ** Computes the weighting vector
 **
 */
-void wtv::init(MultidimArray<double>& v)
+void atv::init(MultidimArray<double>& v)
 {
  // Guaranteeing the array of weights exists and initializes it
  if(w.getArrayPointer() == NULL)
@@ -218,7 +218,7 @@ void wtv::init(MultidimArray<double>& v)
 ** Computes the weighting vector
 **
 */
-void wtv::update(MultidimArray<double>& v)
+void atv::update(MultidimArray<double>& v)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.ydim)
  double dw,dh,dd;
@@ -229,7 +229,7 @@ void wtv::update(MultidimArray<double>& v)
              dw = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
              dh = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
              dd = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-             w.data[P(i,j,k)] = 1.0/(sqrt(dw*dw + dh*dh + dd*dd) + eps);
+	     w.data[P(i,j,k)] = 1.0/(sqrt(dw*dw + dh*dh + dd*dd) + eps);
             }
         }
     }

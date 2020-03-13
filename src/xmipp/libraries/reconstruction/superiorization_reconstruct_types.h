@@ -25,37 +25,13 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef REC_BASE_HH
-#define REC_BASE_HH
+#ifndef RECON_TYPES_HH
+#define RECON_TYPES_HH
 
-#include <core/xmipp_program.h>
+enum class reconType{
+  none,
+  ART,
+  SART
+};
 
-#include "superiorization_reconstruct_method.h"
-#include "superiorization_reconstruct_types.h"
-#include "superiorization_proximity_types.h"
-
-class ReconBase
-{
- private:
-    RecMeth* R;
- 
- public:
-    ReconBase();
-    ReconBase(const String &StrType);
-    ReconBase(const String &recType,const String &prType);
-    void init(const uint xdim, const uint ydim,const std::vector<double>& A);
-    void set(std::string StrType);
-    void setPr(std::string StrType);
-    std::string getName();
-    reconType getType(void);
-    std::string getPrName();
-    proximityType getPrType(void);
-    void setParam(const double v);
-    void operator()(MultidimArray<double>& v,const MultidimArray<double>& P,
-                    const std::vector<double>& A,const int k);
-    double Pr(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& LA);
-    
-}; /* virtual class for reconstruction method */
-
-#endif /* REC_BASE_HH */
-
+#endif /* RECON_TYPES_HH */
