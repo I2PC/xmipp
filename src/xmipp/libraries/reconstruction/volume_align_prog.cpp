@@ -168,6 +168,7 @@ public:
         addExampleLine("Then, assume the best alignment is obtained for rot=45, tilt=60, psi=90",false);
         addExampleLine("Now you perform a local search to refine the estimation and apply",false);
         addExampleLine("xmipp_volume_align --i1 volume1.vol --i2 volume2.vol --rot 45 --tilt 60 --psi 90 --local --apply volume2aligned.vol");
+        addSeeAlsoLine("xmipp_volumeset_align");
     }
 
     void readParams()
