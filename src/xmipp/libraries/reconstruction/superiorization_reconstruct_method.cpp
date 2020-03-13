@@ -44,8 +44,66 @@
 ** Executes the Reconstruction Algorithm
 **
 */
+void RecMeth::init(const uint xdim, const uint ydim,const std::vector<double>& A)
+{
+}
+
+/**
+**
+** Executes the Reconstruction Algorithm
+**
+*/
 void RecMeth::B(MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A,const int k)
 {
  memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
 }
+
+/**
+**
+** Executes the Proximity function
+**
+*/
+double RecMeth::Pr(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& A)
+{
+ return 0.0;
+}
+
+/**
+**
+** Returns the type of reconstruction algorithm being used
+**
+*/
+reconType RecMeth::getType(void)
+{
+ return reconType::none;
+}
+
+/**
+**
+** Returns the type of proximity function being used
+**
+*/
+proximityType RecMeth::getPrType(void)
+{
+ return proximityType::none;
+}
+
+/**
+**
+** Sets the type of proximity function to be used
+**
+*/
+void RecMeth::setPr(const proximityType type)
+{
+}
+
+/**
+**
+** Sets the type of proximity function to be used
+**
+*/
+void RecMeth::setPr(const std::string strType)
+{
+}
+
 #undef DEBUG

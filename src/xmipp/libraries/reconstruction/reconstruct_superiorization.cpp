@@ -28,6 +28,8 @@
 #include "reconstruct_superiorization.h"
 
 #include "superiorization_reconstruct_base.h"
+#include "superiorization_proximity_types.h"
+
 #include <core/alglib/ap.h>
 
 /******************************************************************************/
@@ -46,18 +48,20 @@
 void ProgReconsSuper::defineParams()
 {
  addUsageLine("Reconstruction of tomography tilt series using superiorization");
- addParamsLine("  -i <tiltseries>      : Metadata with the set of images in the tilt series, and their tilt angles");
- addParamsLine("  -o <output>          : Filename for the resulting reconstruction.");
- addParamsLine("  -e <epsilon>         : Tolerance value for the reconstruction.");
- addParamsLine("  --zsize <z=-1>       : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
- addParamsLine("  -a <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
- addParamsLine("  -b <float>           : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
- addParamsLine("  -N <N = 0>           : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
- addParamsLine("  [--rec <rec = ART>]  : Defines the reconstruction algorithm (rec = ART).");
- addParamsLine("  [--lart <lart = 1.0>]: Defines the lambda for ART (lambda = 1.0).");
- addParamsLine("  [--atl <atl = ATL0>] : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
- addParamsLine("  [--phi <phi = ITV>]  : Defines the second criterion. By default, phi is Total Variation (phi = TV).");
- addParamsLine("  [--Pr <prox = L2SQ>] : Defines the proximity function for the solution. By default, the proximity function is the squared Euclidean norm.");
+ addParamsLine("  -i <tiltseries>         : Metadata with the set of images in the tilt series, and their tilt angles");
+ addParamsLine("  -o <output>             : Filename for the resulting reconstruction.");
+ addParamsLine("  -a <float>              : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
+ addParamsLine("  -N <N = 0>              : Maximum number of internal iterations for truly superiorization. By default, there is not superiorization (N = 0)");
+ addParamsLine("  [-b <b = 1.0>]            : variable used to compute the magnitude of the perturbation (beta = b * a^l).");
+ addParamsLine("  [--zsize <z=-1>]        : Z size of the reconstructed volume. If -1, then a cubic volume is assumed");
+ addParamsLine("  [-e <epsilon = -1.0>]   : Tolerance value for the reconstruction.");
+ addParamsLine("  [--NI <iter = -1>]      : Defines that a counter would be used instead of proximity function. A positive integer value is mandatory. By default, its value is -1, indicating a proximity function would be used.");
+ addParamsLine("  [--rec <rec = ART>]     : Defines the reconstruction algorithm (rec = ART).");
+ addParamsLine("  [--lart <lart = 1.0>]   : Defines the lambda for ART (lambda = 1.0).");
+ addParamsLine("  [--lsart <lsart = 1.0>] : Defines the lambda for SART (lambda = 1.0).");
+ addParamsLine("  [--atl <atl = ATL0>]    : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
+ addParamsLine("  [--phi <phi = ITV>]     : Defines the second criterion. By default, phi is isometric Total Variation (phi = TV).");
+ addParamsLine("  [--Pr <prox = L2SQ>]    : Defines the proximity function for the solution. By default, the proximity function is the L2-squared norm.");
 }
 
 /**
@@ -71,14 +75,16 @@ void ProgReconsSuper::readParams()
 
  fnTiltSeries = getParam("-i");
  fnOut        = getParam("-o");
- epsilon      = getDoubleParam("-e");
- Zsize        = getIntParam("--zsize");
  a            = getDoubleParam("-a");
  b            = getDoubleParam("-b");
  N            = getIntParam("-N");
  
+ Zsize        = getIntParam("--zsize");
+ epsilon      = getDoubleParam("-e");
+ iter_cnt     = getIntParam("--NI");
  rec_method   = getParam("--rec");
  lart         = getDoubleParam("--lart");
+ lsart        = getDoubleParam("--lsart");
  l_method     = getParam("--atl");
  phi_method   = getParam("--phi");
  pr_method    = getParam("--Pr");
@@ -93,12 +99,23 @@ void ProgReconsSuper::show()
 {
  if(verbose > 0){
     std::cout << "########################################################" << std::endl;
-    std::cout << "Superiorized "<< "NA" << " with the following arguments:" << std::endl;
+    std::cout << "Superiorized ";
+    switch(B.getType()){
+        case reconType::ART: std::cout << "ART";break;
+        default: "NA";
+       }
+    std::cout << " with the following arguments:" << std::endl;
     std::cout << "--------------------------------------------------------" << std::endl;
     std::cout << "Input tilt series: " << fnTiltSeries << std::endl;
     std::cout << "Output reconstruction: " << fnOut << std::endl;
-    std::cout << "Epsilon: " << epsilon << std::endl;
-    std::cout << "Zsize: " << Zsize << std::endl;
+    if(epsilon<0.0)
+       std::cout << "# of iterations: " << iter_cnt << std::endl;
+    else
+       std::cout << "Epsilon: " << epsilon << std::endl;
+    if(Zsize == -1)
+       std::cout << "The depth size (Z size) would determined when reading the input projection file" << std::endl;
+    else
+       std::cout << "The depth size (Z size): " << Zsize << std::endl;
     std::cout << "a: " << a << std::endl;
     std::cout << "b: " << b << std::endl;
     std::cout << "N: " << N << std::endl;
@@ -112,7 +129,17 @@ void ProgReconsSuper::show()
              break;
        }
     std::cout << "phi: " << phi.getName() << std::endl;
-    std::cout << "Pr: " << "NA" << std::endl;
+    if(iter_cnt == -1){
+       std::cout << "Pr: ";
+       switch(B.getPrType()){
+           case proximityType::L2SQ:
+                std::cout<< "L2-squared" << std::endl;
+                break;
+           default:
+                std::cout<< "NONE selected" << std::endl;
+                break;
+          }
+      }
     std::cout << "########################################################" << std::endl;
    }
 }
@@ -125,13 +152,15 @@ void ProgReconsSuper::show()
 */
 ProgReconsSuper::ProgReconsSuper()
 {
- mode_l = lmode::ATL0;
- a = 0.0;
- b = 0.0;
- epsilon = 0.0;
- N = 0;
- Zsize = 0;
- lart = 1.0;
+ mode_l   = lmode::ATL0;
+ a        =  0.0;
+ b        =  0.0;
+ epsilon  = -1.0;
+ N        =  0;
+ Zsize    = -1;
+ lart     =  1.0;
+ lsart    =  1.0;
+ iter_cnt = -1;
  
  l_method = "ATL0";
  
@@ -143,7 +172,7 @@ ProgReconsSuper::ProgReconsSuper()
  phi.set(phi_method);
  
  pr_method = "L2SQ";
- Pr.set(pr_method);
+ B.setPr(pr_method);
 }
 
 /**
@@ -172,31 +201,38 @@ void ProgReconsSuper::checkArgsInfo()
  //
  std::ifstream ifile(fnTiltSeries.c_str());
  if((bool)ifile == 0){
-    std::cerr << "ERROR: the input file does not exist." << std::endl;
+    std::cerr << "\e[1m\e[31m" << "ERROR: the input file does not exist." << "\e[m\e[0m" << std::endl;
     usage("-i", true);
    }
 
  //
+ // Checking the value for Zsize
+ //
+ if(Zsize == -1)
+    std::cerr << "\e[1m\e[35m" << "WARNING: zsize was not set. The default value would be equal to the horizontal dimension (X size) of the projection data." << "\e[m\e[0m" << std::endl;
+
+ //
  // Checking the value for epsilon
  //
- if(epsilon < 0.0){
-	 std::cerr << "ERROR: epsilon has to be positive." << std::endl;
-	 usage("-e",true);
+ if(epsilon < 0.0 && iter_cnt<0){
+    std::cerr << "\e[1m\e[36m" << "ERROR: it is necessary to select a stop criterion: by proximity function or number of iterations." << "\e[m\e[0m" << std::endl;
+    std::cerr << "\e[1m\e[36m" << "       The values of epsilon and the number of iterations are negative." << "\e[m\e[0m" << std::endl;
+    usage("-e",true);
    }
 
  //
  // Checking the value for a
  //
  if(a <= 0.0 || a >= 1.0){
-	 std::cerr << "ERROR: a has to meet 0.0 < a < 1.0." << std::endl;
-	 usage("-a",true);
+    std::cerr << "\e[1m\e[36m" << "ERROR: a has to meet 0.0 < a < 1.0." << "\e[m\e[0m" << std::endl;
+    usage("-a",true);
    }
 
  //
  // Checking the value set for N
  //
  if(N < 0){
-    std::cerr << "ERROR: N has to be positive" << std::endl;
+    std::cerr << "\e[1m\e[36m" << "ERROR: N has to be positive" << "\e[m\e[0m" << std::endl;
     usage("-N", true);
    }
 
@@ -212,7 +248,7 @@ void ProgReconsSuper::checkArgsInfo()
        if(l_method=="ATL2")
           mode_l = lmode::ATL2;
        else{
-         std::cout << l_method <<" is not a valid option, ATL0 will be used instead." << std::endl;
+         std::cout << l_method << "\e[1m\e[31m" <<" ERROR, is not a valid option, ATL0 will be used instead." << "\e[m\e[0m" << std::endl;
         }
       }
    }
@@ -220,28 +256,51 @@ void ProgReconsSuper::checkArgsInfo()
  //
  // Checking the value for reconstruction
  //
+ if((rec_method == std::string("ART")) && (B.getType()!=reconType::ART)){
+    B.set("ART");
+    B.setParam(lart);
+   }
+ 
+ if((rec_method == std::string("SART")) && (B.getType()!=reconType::SART)){
+    B.set("SART");
+    B.setParam(lart);
+   }
  /*
  if(B.valid(rec_method) == false){
-    std::cerr << "ERROR: invalid method for reconstruction" << std::endl;
+    std::cerr << "\e[1m\e[36m" << "ERROR: invalid method for reconstruction" << "\e[m\e[0m" << std::endl;
     usage("--rec", true);
    }
-   */
-
+ */
  //
  // Checking the value for second criterion (phi)
  //
  if(phi.valid(phi_method) == false){
-    std::cerr << "ERROR: invalid second criterion for optimization" << std::endl;
+    std::cerr << "\e[1m\e[36m" << "ERROR: invalid second criterion for optimization" << "\e[m\e[0m" << std::endl;
     usage("--phi", true);
    }
-
+ if(phi_method == std::string("ATV") && (phi.getShortName()!=String("ATV")))
+    phi.set("ATV");
+ if(phi_method == std::string("ITV") && (phi.getShortName()!=String("ITV")))
+    phi.set("ITV");
+ if(phi_method == std::string("WTV") && (phi.getShortName()!=String("WTV")))
+    phi.set("WTV");
+ 
+ //
+ // Checking whether to use counter or proximity function
+ //
+ if(iter_cnt == 0){
+    std::cerr << "\e[1m\e[36m" << "ERROR: invalid value for the number of iterations for reconstruction" << "\e[m\e[0m" << std::endl;
+    usage("--NI", true);
+   }
  //
  // Checking the value for the proximity function
  //
- if(Pr.valid(pr_method) == false){
-    std::cerr << "ERROR: invalid Proximity function." << std::endl;
+ /*
+ if(B.validPr(pr_method) == false){
+    std::cerr << "\e[1m\e[36m" << "ERROR: invalid Proximity function." << "\e[m\e[0m" << std::endl;
     usage("--Pr", true);
    }
+*/
 }
 
 /******************************************************************************/
@@ -294,10 +353,10 @@ void ProgReconsSuper::run()
      mdTS.getValue(MDL_IMAGE,fnImg,__iter.objId);
      I.read(fnImg);
      if(ZSIZE(TS)==0){
-  	    TS.initZeros(mdTS.size(),YSIZE(I()),XSIZE(I()));
-  	    if(Zsize<0)
-  		   Zsize=XSIZE(I());
-  	    V().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
+        TS.initZeros(mdTS.size(),YSIZE(I()),XSIZE(I()));
+        if(Zsize<0)
+           Zsize=XSIZE(I());
+        V().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
        }
      memcpy(&A3D_ELEM(TS,k++,0,0),&I(0,0),sizeof(double)*MULTIDIM_SIZE(I()));
     }
@@ -315,9 +374,22 @@ void ProgReconsSuper::run()
   * Reconstruction Algorithm
   *
   */
- if(B.getType() == ReconBase::ART){
-    B.setParam(lart);
-   }
+ switch(B.getType()){
+     case reconType::ART:
+          std::cout<<"Initializing ART"<<std::endl;
+          B.setParam(lart);
+          B.init(TS.xdim,Zsize,tiltAngles);
+          break;
+     case reconType::SART:
+          std::cout<<"Initializing SART"<<std::endl;
+          B.setParam(lsart);
+          B.init(TS.xdim,Zsize,tiltAngles);
+          break;
+     default:
+          std::cout << "\e[1m\e[31m" << "Unknown Reconstruction Algorithm" << "\e[m\e[0m" << std::endl;
+          std::cout << "\e[1m\e[31m" << "Aborting the execution !!!" << "\e[m\e[0m" << std::endl;
+          exit(0);
+    }
  
  /*
   *
@@ -326,10 +398,11 @@ void ProgReconsSuper::run()
   *
   */
  MultidimArray<double> x,v,z;
-std::cout<<"INPUT SIZE: "<<TS.xdim<<" , "<<TS.ydim<<" , "<<TS.zdim<<std::endl;
+ //std::cout<<"INPUT SIZE: "<<TS.xdim<<" , "<<TS.ydim<<" , "<<TS.zdim<<std::endl;
  x.resize(Zsize,TS.ydim,TS.xdim); // resize --> Ndim, Zdim, Ydim, Xdim (Zdim, Ydim, Xdim)
  v.resize(Zsize,TS.ydim,TS.xdim);
  z.resize(Zsize,TS.ydim,TS.xdim);
+
  /*
   *
   * Superiorization Section
@@ -339,9 +412,7 @@ std::cout<<"INPUT SIZE: "<<TS.xdim<<" , "<<TS.ydim<<" , "<<TS.zdim<<std::endl;
  // Initializing Reconstruction
  //
  memset(x.data,0,x.xdim*x.ydim*x.zdim*sizeof(double)); //x.initZeros(Zsize,TS.ydim,TS.xdim);
- //v().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
- //z().initZeros(Zsize,YSIZE(I()),XSIZE(I()));
-phi.init(x);
+ phi.init(x);
 
 k=0;
 int n = 0;
@@ -352,48 +423,89 @@ double beta;
  // Starting the actual superiorization process
  //
  while(true){
-	 // Handling the counter l
-	 switch(mode_l){
-	     case lmode::ATL1:
-	    	 l = k;
-	    	 break;
-	     case lmode::ATL2:
-	    	 l = (int)round(alglib::randomreal()*( l- k )) + k;
-	    	 break;
-	    }
+     // Handling the counter l
+     switch(mode_l){
+         case lmode::ATL1:
+              l = k;
+              break;
+         case lmode::ATL2:
+              l = (int)round(alglib::randomreal()*( l- k )) + k;
+              break;
+        }
      // Preparing the variables for the inner loop
-	 n = 0;
-	 while(n < N){
+     std::cout << "Executing Perturbation of solution x" << std::endl;
+     n = 0;
+     double phixk = phi(x);
+     while(n < N){
          phi.nav(x,v); // Method to obtain the nonascending vector for phi at x^k
-		 loop = true;
+/*
+         if(k >= 5){
+            for(uint ik=0; ik < v.zdim;ik++)         // Depth
+                for(uint ij=0;ij < v.ydim;ij++)      // Height
+                    for(uint ii=0;ii < v.xdim;ii++){ // Width
+                        if(v.data[ik*v.ydim*v.xdim + ij*v.xdim + ii] >= 0.0)
+                           fprintf(stdout,"v(%d,%d,%d): %20.18f\n",ii,ij,ik,1e20*v.data[ik*v.ydim*v.xdim + ij*v.xdim + ii]);
+                       }
+            Image<double> nav;
+            nav() = v;
+            nav.write("nav.mrc");
+            exit(0);
+           }
+*/
+         loop = true;
          while(loop){
              beta = b * pow(a,l);
              l += 1;
              z = x + beta*v;
              // z in Delta and phi(z)<=phi(x^k)
-             if(phi(z) <= phi(x)){
-            	n += 1;
-            	x = z;
-            	loop = false;
+             bool inDelta = true;
+/*
+             if(SuperPositivity == true)
+                for(int i_z=0;inDelta==true && i_z<x.zdim;i_z++)
+                    for(int i_y=0;inDelta==true && i_y<x.ydim;i_y++)
+                        for(int i_x=0;inDelta==true && i_x<x.xdim;i_x++)
+                            if(x.data[i_z*x.dim*y.dim + i_y*x.xdim + i_x] < 0.0){
+                               inDelta == false;
+                               break;
+                              }
+*/
+             if(inDelta && (phi(z) <= phixk)){
+                n += 1;
+                x = z;
+                loop = false;
                }
             }
+         std::cout << "\e[1m\e[36m" << "Internal Iteration" << "\e[m\e[0m" << ": " << n << std::endl;
         }
+     std::cout << "\e[1m\e[33m" << "Executing Operator B" << "\e[m\e[0m" << std::endl;
      B(x,TS,tiltAngles,k);
+     //fprintf(stdout,"Pr: %20.16f\n",B.Pr(x,TS,tiltAngles));
      phi.update(x);
      k += 1;
-     if(Pr(x) < epsilon){
-        break;
+     std::cout << "\e[1m\e[32m" << "Iteration" << "\e[m\e[0m" << ": " << k << "\e[1m\e[32m" << " Finished" << "\e[m\e[0m" << std::endl;
+     if(iter_cnt > 0){
+        if(k >= iter_cnt)
+           break;
+       }
+     else{
+        if(B.Pr(x,TS,tiltAngles) < epsilon)
+           break;
        }
 #ifdef DEBUG
-	 std::cout << "k: " << k <<std::endl;
+     std::cout << "k: " << k <<std::endl;
 #endif
     }
+ fprintf(stdout,"Pr: %20.16f\n",B.Pr(x,TS,tiltAngles));
  //
  // Finishing the reconstruction
  //
  v.clear();
  z.clear();
- x.write(fnOut);
+ std::cout << "\e[1m\e[35m" << "Saving the Result in " << fnOut << "\e[m\e[0m" << std::endl;
+ Image<double> reconstructedvolume;
+ reconstructedvolume() = x;
  x.clear();
+ reconstructedvolume.write(fnOut);
+ std::cout << "Procedure finished. Exiting the Program" << std::endl;
 }
 #undef DEBUG

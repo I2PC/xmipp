@@ -32,6 +32,7 @@
 #include <core/xmipp_program.h>
 
 #include "second_criterion.h"
+#include "aniso_total_variation.h"
 #include "iso_total_variation.h"
 #include "w_total_variation.h"
 
@@ -41,7 +42,7 @@ template<class T>
 class SuperRegular: public MultidimArray<T>
 {
  public:
-	enum classType{ITV,WTV};
+	enum classType{none,ITV,WTV,ATV};
 
  private:
  //
@@ -58,6 +59,7 @@ class SuperRegular: public MultidimArray<T>
 	void update(MultidimArray<T>& x);
 	bool valid(const String &StrType);
 	String getName(void);
+	String getShortName(void);
  protected:
 
  private:
@@ -83,6 +85,7 @@ SuperRegular<T>::SuperRegular()
 {
  //phi = std::bind(&itv::tv,this,std::placeholders::_1);
  //nav = std::bind(&itv::vtv,this,std::placeholders::_1,std::placeholders::_2);
+ SecC = 0;
  SecC = new itv;
  RegType = SuperRegular::ITV;
 }
@@ -95,13 +98,17 @@ SuperRegular<T>::SuperRegular()
 template<class T>
 SuperRegular<T>::SuperRegular(String &StrType)
 {
+ if(StrType == std::string("ATV")){
+    SecC = new atv;
+    RegType = SuperRegular::ATV;
+   }
  if(StrType == std::string("ITV")){
-	 SecC = new itv;
-     RegType = SuperRegular::ITV;
+    SecC = new itv;
+    RegType = SuperRegular::ITV;
    }
  if(StrType == std::string("WTV")){
-	 SecC = new wtv;
-     RegType = SuperRegular::WTV;
+    SecC = new wtv;
+    RegType = SuperRegular::WTV;
    }
 }
 
@@ -113,6 +120,13 @@ SuperRegular<T>::SuperRegular(String &StrType)
 template<class T>
 void SuperRegular<T>::set(std::string StrType)
 {
+ if(SecC != 0)
+    delete SecC;
+ 
+ if(StrType == std::string("ATV")){
+    SecC = new atv;
+    RegType = SuperRegular::ATV;
+   }
  if(StrType == std::string("ITV")){
     SecC = new itv;
     RegType = SuperRegular::ITV;
@@ -175,11 +189,14 @@ void SuperRegular<T>::update(MultidimArray<T>& x)
 template<class T>
 bool SuperRegular<T>::valid(const String &StrType)
 {
+ if(StrType=="ATV")
+    return true;
+
  if(StrType=="ITV")
     return true;
 
  if(StrType=="WTV")
-     return true;
+    return true;
 
  return false;
 }
@@ -193,11 +210,39 @@ template<class T>
 String SuperRegular<T>::getName(void)
 {
  switch(RegType){
+     case ATV:
+         return "anisotropic TV";
+         break;
      case ITV:
          return "isotropic TV";
          break;
      case WTV:
          return "weighted TV";
+         break;
+     default:
+         return "No Second Criterion";
+    }
+
+ return "No Second Criterion";
+}
+
+/**
+**
+** Method to set the desired function to be used as a second criterion.
+**
+*/
+template<class T>
+String SuperRegular<T>::getShortName(void)
+{
+ switch(RegType){
+     case ATV:
+         return "ATV";
+         break;
+     case ITV:
+         return "ITV";
+         break;
+     case WTV:
+         return "WTV";
          break;
      default:
          return "No Second Criterion";

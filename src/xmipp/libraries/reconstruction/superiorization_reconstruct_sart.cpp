@@ -25,7 +25,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "superiorization_reconstruct_art.h"
+#include "superiorization_reconstruct_sart.h"
 
 #include <core/alglib/ap.h>
 
@@ -49,7 +49,7 @@
  **
 */
 // return type vector
-std::vector<RecART::reg_R> RecART::pixray(const int np,const int nr,const std::vector<double>& LA)
+std::vector<RecSART::reg_R> RecSART::pixray(const int np,const int nr,const std::vector<double>& LA)
 {
 #define d2r(angleDegrees) ((angleDegrees) * M_PI / 180.0)
  enum PixAccess{Bottom, Left};
@@ -65,7 +65,7 @@ std::vector<RecART::reg_R> RecART::pixray(const int np,const int nr,const std::v
  reg_R P;
  std::vector<reg_R> R;
  bool Flip = false;
- 
+
  theta = fmod(LA[np]+90.0,360.0);
  if(theta < 0.0)
     theta += 360.0;
@@ -116,9 +116,9 @@ std::vector<RecART::reg_R> RecART::pixray(const int np,const int nr,const std::v
       }
     
     if(fabs(sint) <= eps_zero)
-       if(sint < 0.0)
+       if(sint < 0.0) 
           sint = -eps_zero;
-       else
+       else   
           sint = eps_zero;
     if(fabs(cost) <= eps_zero)
        if(cost < 0.0)
@@ -256,7 +256,7 @@ std::vector<RecART::reg_R> RecART::pixray(const int np,const int nr,const std::v
 ** LA -- List of projection angles
 **
 */
-double RecART::L2SQ(const MultidimArray<double>& x,const MultidimArray<double>& P, const std::vector<double>& LA)
+double RecSART::L2SQ(const MultidimArray<double>& x,const MultidimArray<double>& P, const std::vector<double>& LA)
 {
  /*
  **
@@ -321,7 +321,7 @@ double RecART::L2SQ(const MultidimArray<double>& x,const MultidimArray<double>& 
 ** Constructor for the ART class
 **
 */
-RecART::RecART()
+RecSART::RecSART()
 {
  lambda = 0.0;
  PrType = proximityType::none;
@@ -329,10 +329,24 @@ RecART::RecART()
 
 /**
 **
+** Destructor for the ART class
+**
+*/
+RecSART::~RecSART()
+{
+ lambda = 0.0;
+ PrType = proximityType::none;
+ RW.resize(0,0);
+ RWS.resize(0,0);
+ Q.resize(0,0);
+}
+
+/**
+**
 ** Initializes the matrix A
 **
 */
-void RecART::init(const uint xdim, const uint ydim,const std::vector<double>& LA)
+void RecSART::init(const uint xdim, const uint ydim,const std::vector<double>& LA)
 {
  M = ydim; // Height of the reconstructed region
  N = xdim; // Width of the reconstructed region
@@ -346,11 +360,6 @@ void RecART::init(const uint xdim, const uint ydim,const std::vector<double>& LA
  C[0] = 0.5*Dh*(M - 1); // Center of the reconstructed region
  C[1] = 0.5*Dv*(N - 1);
  
- Q.push_back(0.0);
- Q.push_back(0.0);
- Q[0] = Dh*C[0];
- Q[1] = Dh*C[1];
- 
  Pc = 0.5*(L - 1);
  Cp = Dp*Pc; // Center of the projection vector
  
@@ -358,6 +367,10 @@ void RecART::init(const uint xdim, const uint ydim,const std::vector<double>& LA
  Lim[1] =   0.5*Dh*N;
  Lim[2] =  -0.5*Dv*M;
  Lim[3] =   0.5*Dv*M;
+ 
+ RW.resize(M,N);
+ RWS.resize(M,N);
+ Q.resize(M,N);
 }
 
 /**
@@ -365,7 +378,7 @@ void RecART::init(const uint xdim, const uint ydim,const std::vector<double>& LA
 ** Method to initialize some required variables
 **
 */
-void RecART::setParam(const double l)
+void RecSART::setParam(const double l)
 {
  lambda = l;
 }
@@ -380,7 +393,7 @@ void RecART::setParam(const double l)
 ** k  -- Iteration
 **
 */
-void RecART::B(MultidimArray<double>& x,const MultidimArray<double>& P, const std::vector<double>& LA,const int k)
+void RecSART::B(MultidimArray<double>& x,const MultidimArray<double>& P, const std::vector<double>& LA,const int k)
 {
  //
  // The input 3D array is going to be reconstructed slice by slice
@@ -401,7 +414,8 @@ void RecART::B(MultidimArray<double>& x,const MultidimArray<double>& P, const st
     P is a 3D array of dimensions [xdim x ydim x zdim]  ---> S is a 2D array of dimensions [xdim x zdim]
  **
  */
- double sum, snorm, factor;
+ double raySum, weightSum,
+        factor;
  std::vector<reg_R> R; // Intersections and their weights
  
  //
@@ -414,38 +428,54 @@ void RecART::B(MultidimArray<double>& x,const MultidimArray<double>& P, const st
  //       l is the counter for the 't' direction (e.g., 'time').
  //
  
-for(ushort i_a = 0; i_a < LA.size(); i_a ++){ // go through the projection angles (i.e., Z-dimension of sinogram)
-    fprintf(stdout,"Angle: %7.4f\r",LA[i_a]);
-    std::cout << std::flush;
-    for(short l_p = 0; l_p < P.xdim; l_p ++){ // go through the line integrals in a projection (i.e., X-dimension of sinogram)
-        R = pixray(i_a,l_p,LA);
-        //
-        // Computing the inner product
-        //
-        if(R.size() > 0){ // The l_p-th ray from the i_a-th projection intersected the image
-           for(uint plane=0; plane<P.ydim; plane++){ // Moving along the planes
-               sum = 0.0;
-               snorm = 0.0;
-               
-               for(uint i_p=0; i_p<R.size(); i_p++){
-                   // Pixel's Row                     --> (R.at(i_p)).r
-                   // Pixel's Column                  --> (R.at(i_p)).c
-                   // Weight (length of intersection) --> (R.at(i_p)).w
-                   sum += x.data[(R.at(i_p)).r*x.xdim*x.ydim + plane*x.xdim + (R.at(i_p)).c] * (R.at(i_p)).w;
-                   snorm += ( (R.at(i_p)).w * (R.at(i_p)).w );
-                  }
-               if(snorm > eps_zero){
-                  factor = (P.data[i_a*P.xdim*P.ydim + plane*P.xdim + l_p] - sum)/snorm;
-                  //
-                  // Backrpojecting
-                  //
-                  for(int i_p=0; i_p<R.size(); i_p++)
-                      x.data[R.at(i_p).r*x.xdim*x.ydim + plane*x.xdim + R.at(i_p).c] += (lambda*factor*R.at(i_p).w);
-                 }
-             }
-          }
-       }
-   }
+ // Moving along the planes
+ for(uint plane=0; plane<P.ydim; plane++){
+     fprintf(stdout,"Plane: %6.2f\r",(100.0*plane)/P.ydim);
+     std::cout << std::flush;
+     
+     memset(RW.data,0,RW.xdim*RW.ydim*sizeof(double));
+     memset(RWS.data,0,RWS.xdim*RWS.ydim*sizeof(double));
+     memset(Q.data,0,Q.xdim*Q.ydim*sizeof(double));
+     
+     //
+     // Go through all the rays
+     //
+     for(ushort i_a = 0; i_a < LA.size(); i_a ++){ // go through the projection angles (i.e., Z-dimension of sinogram)
+         for(short l_p = 0; l_p < P.xdim; l_p ++){ // go through the line integrals in a projection (i.e., X-dimension of sinogram)
+             R = pixray(i_a,l_p,LA);
+             //
+             // Computing the inner product
+             //
+             raySum = 0.0;
+             weightSum = 0.0;
+             
+             for(int i_r=0; i_r<R.size(); i_r++){
+                 raySum += x.data[(R.at(i_r)).r*x.xdim*x.ydim + plane*x.xdim + (R.at(i_r)).c] * (R.at(i_r)).w;
+                 weightSum += (R.at(i_r)).w;
+                 RW.data[R.at(i_r).r*RW.xdim + R.at(i_r).c] = R.at(i_r).w;
+                 RWS.data[R.at(i_r).r*RWS.xdim + R.at(i_r).c] += R.at(i_r).w;
+                }
+             if(weightSum < eps_zero)
+                continue;
+             for(int i_r=0; i_r<R.size(); i_r++){
+                 Q.data[R.at(i_r).r*Q.xdim + R.at(i_r).c] += RW[R.at(i_r).r*RW.xdim + R.at(i_r).c] * (P.data[i_a*P.xdim*P.ydim + plane*P.xdim + l_p] - raySum)/weightSum;
+                 RW.data[R.at(i_r).r*Q.xdim + R.at(i_r).c] = 0.0;
+                }
+            }
+        }
+     //
+     // Updating pixel values
+     //
+     for(int i_r=0;i_r<M;i_r++){
+         for(int i_c=0;i_c<N;i_c++){
+             if(RWS.data[i_r*RWS.xdim + i_c] < eps_zero)
+                continue;
+             x.data[i_r*x.xdim*x.ydim + plane*x.xdim + i_c] += lambda*Q.data[i_r*Q.xdim + i_c]/RWS.data[i_r*RWS.xdim + i_c];
+             if(x.data[i_r*x.xdim*x.ydim + plane*x.xdim + i_c] < 0.0)
+                x.data[i_r*x.xdim*x.ydim + plane*x.xdim + i_c] = 0.0;
+            }
+        }
+    }
 }
 
 /**
@@ -453,7 +483,7 @@ for(ushort i_a = 0; i_a < LA.size(); i_a ++){ // go through the projection angle
 ** Method that computes the proximity of a solution
 **
 */
-double RecART::Pr(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& LA)
+double RecSART::Pr(const MultidimArray<double>& v,const MultidimArray<double>& P, const std::vector<double>& LA)
 {
  switch(PrType){
      case proximityType::L2SQ:
@@ -469,7 +499,7 @@ double RecART::Pr(const MultidimArray<double>& v,const MultidimArray<double>& P,
 ** Method that computes the proximity of a solution
 **
 */
-void RecART::setPr(const proximityType type)
+void RecSART::setPr(const proximityType type)
 {
  if(type == proximityType::L2SQ)
     PrType = proximityType::L2SQ;
@@ -480,7 +510,7 @@ void RecART::setPr(const proximityType type)
 ** Method that computes the proximity of a solution
 **
 */
-void RecART::setPr(const std::string strType)
+void RecSART::setPr(const std::string strType)
 {
  std::string str = strType;
  std::transform(str.begin(), str.end(),str.begin(), ::toupper);
@@ -494,9 +524,9 @@ void RecART::setPr(const std::string strType)
 ** Method that computes the proximity of a solution
 **
 */
-reconType RecART::getType(void)
+reconType RecSART::getType(void)
 {
- return reconType::ART;
+ return reconType::SART;
 }
 
 /**
@@ -504,7 +534,7 @@ reconType RecART::getType(void)
 ** Method that computes the proximity of a solution
 **
 */
-proximityType RecART::getPrType(void)
+proximityType RecSART::getPrType(void)
 {
  return PrType;
 }

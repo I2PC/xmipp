@@ -29,7 +29,6 @@
 
 #include <core/xmipp_program.h>
 #include "superiorization_regularizer.h"
-#include "superiorization_proximity.h"
 #include "superiorization_reconstruct_base.h"
 
 /* The user interface program should make a call to the run routine.
@@ -39,11 +38,10 @@ class ProgReconsSuper: public XmippProgram
 private:
 	enum class lmode {ATL0,ATL1,ATL2};
 	lmode mode_l;
-	double a,b,epsilon,lart;
-	int N;
-	SuperProx Pr;
-	SuperRegular<double> phi;
+	double a,b,epsilon,lart,lsart;
+	int N, iter_cnt;
 	ReconBase B;
+	SuperRegular<double> phi;
 public:
     FileName fnTiltSeries, fnOut;
     int Zsize;
