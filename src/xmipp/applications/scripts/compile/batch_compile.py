@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:     Carlos Oscar Sorzano
@@ -28,7 +28,7 @@
 
 import os
 import sys
-from src.xmipp.bindings.python.xmipp_base import XmippScript
+from xmipp_base import XmippScript
 
 
 class ScriptCompile(XmippScript):
@@ -71,7 +71,7 @@ class ScriptCompile(XmippScript):
         fn = self.getParam('-i')
         from os.path import splitext, join
         [fnBase,ext]=splitext(fn)
-        if ext!=".cpp" or ext!=".cc":
+        if ext!=".cpp" and ext!=".cc":
             raise Exception(fn+" is not a .cpp or .cc file")
         command='g++ ';
         if self.checkParam("--debug"):
