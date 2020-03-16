@@ -1664,16 +1664,18 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
 	PyObject * list = NULL;
     PyObject * item = NULL;
     PyObject * dsize = NULL;
+    PyObject * wrap = Py_True;
     PyObject * border_value = NULL;
 
     ImageObject *self = (ImageObject*) obj;
     ImageGeneric * image = self->image;
     double doubleBorder_value = 1.0;
     size_t Xdim, Ydim, Zdim;
+    bool doWrap = true;
     image->getDimensions(Xdim, Ydim, Zdim);
     try
     {
-        PyArg_ParseTuple(args, "O|OO", &list, &dsize, &border_value);
+        PyArg_ParseTuple(args, "O|OOO", &list, &dsize, &wrap, &border_value);
         if (PyList_Check(list))
         {
         	if (nullptr != dsize)
@@ -1681,6 +1683,10 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
         		Ydim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 0));
         		Xdim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 1));
         	}
+            if (PyBool_Check(wrap))
+                doWrap = (wrap == Py_True);
+            else
+                PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting boolean value for wrapping");
             if (border_value!=NULL)
            	    doubleBorder_value = PyFloat_AsDouble(border_value);
 
@@ -1706,7 +1712,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
             out->initConstant(doubleBorder_value);
             out->setXmippOrigin();
 
-            applyGeometry(3, *out, *in, A, false, true, doubleBorder_value);
+            applyGeometry(3, *out, *in, A, false, doWrap, doubleBorder_value);
             return (PyObject *)result;
         }
         else
@@ -1721,6 +1727,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return NULL;
 }
+
 
 PyObject *
 Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
