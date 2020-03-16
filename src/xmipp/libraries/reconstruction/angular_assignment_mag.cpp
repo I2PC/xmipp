@@ -238,9 +238,14 @@ double Inicio=std::clock();  // */
 double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
 std::cout << "Operation of eigen-decomposition took "<< duration*1000 << "milliseconds" << std::endl; // */
 
-/*comment print eigenvalues y eigenvectors
-eigenvalues.write("/home/jeison/Escritorio/outEigenVal.txt");
-eigenvectors.write("/home/jeison/Escritorio/outEigenVec.txt"); // */
+// /*comment print eigenvalues y eigenvectors
+String fnEigenVal=formatString("%s/outEigenVal.txt",fnDir.c_str());
+eigenvalues.write(fnEigenVal);
+String fnEigenVect=formatString("%s/outEigenVect.txt",fnDir.c_str());
+eigenvectors.write(fnEigenVect);
+std::cout<<"Eigenvalues and Eigenvectors saved in:\n"
+		<<fnDir.c_str()<<std::endl;
+// */
 
 }
 
@@ -374,13 +379,35 @@ std::cout << "Operation in preProcess took "<< duration*1000 << "milliseconds" <
 
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
-Inicio=std::clock();
-	// Define the neighborhood graph and Laplacian Matrix
+// check if eigenvectors file already created
+String fnEigenVect=formatString("%s/outEigenVect.txt",fnDir.c_str());
+std::ifstream in;
+in.open(fnEigenVect.c_str(), std::ios::in);
+if(!in){
+	in.close();
+	Inicio=std::clock();
+	// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
 	computingNeighborGraph2();
-double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-std::cout << "Neigborhood, Laplacian matrix and eigendecomposition take "<< duration << " seconds" << std::endl;
+	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+	std::cout << "Neigborhood, Laplacian matrix and eigendecomposition take "<< duration << " seconds" << std::endl;
+	Inicio=std::clock();
+	// std::cout<<formatString("dimensiones antes: %d x %d\n",int(eigenvectors.Xdim()), int(eigenvectors.Ydim()) );
+}
+else{
+	in.close();
+	std::cout<<"reading eigenVector file:\n"
+			<<fnEigenVect.c_str()<<std::endl;
+	eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
+	eigenvectors.read(fnEigenVect);
 
-Inicio=std::clock();
+	// std::cout<<formatString("dimensiones despues: %d x %d\n",int(eigenvectors.Xdim()), int(eigenvectors.Ydim()) );
+	//	std::cout<<"escribo de nuevo para comparar archivos:\n";
+	//	String fnEigenvectTest=formatString("%s/outEigenVectTest.txt",fnDir.c_str());
+	//	eigenvectors.write(fnEigenvectTest);
+	//	exit(1);
+}
+
+
 }
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
