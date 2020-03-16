@@ -761,10 +761,11 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
                 print(green('CUDA-' + nvccFullVersion + ' detected.'))
-                if nvccVersion != 8.0 and not 'XMIPP_ALLOW_ANY_CUDA' in os.environ:
+                if nvccVersion != 8.0 and not os.environ.get('XMIPP_ALLOW_ANY_CUDA', 'False') == 'True':
                     print(red('CUDA-8.0 is required.'))
                     print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
-                              "to be able to use Xmipp Cuda programs.'"))
+                              "to be able to use Xmipp Cuda programs or "
+                              "'export XMIPP_ALLOW_ANY_CUDA=True' to try with current Cuda."))
                     configDict["CUDA"] = 'False'
                     return
                 configDict["NVCC"] = "nvcc"
@@ -1237,8 +1238,8 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
-    ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
-    ok = ok and runJob("ln -sf ../../lib/libXmippCore.so " + dirname + "/bindings/python/libXmippCore.so")
+    # ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
+    # ok = ok and runJob("ln -sf ../../lib/libXmippCore.so " + dirname + "/bindings/python/libXmippCore.so")
 
     createDir(dirname+"/bindings/python/sh_alignment")
     ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
