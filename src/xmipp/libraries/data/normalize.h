@@ -181,7 +181,7 @@ volume.
 */
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask);
 
-void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask);
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip);
 
 /** Removal of inclined background densities (ramps).
     @ingroup NormalizationProcedures
@@ -264,6 +264,10 @@ protected:
     /** Flag for inverting contrast
      */
     bool invert_contrast;
+
+    /** Flag for clipping
+    */
+    bool clip;
 
     /** Flag for applying a mask depending on the tilt
      */

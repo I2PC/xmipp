@@ -250,12 +250,12 @@ void ProgVolDeformSph::run() {
 		// Filer input vol
 		filter.do_generate_3dmask = true;
 		filter.applyMaskSpace(auxI());
-		normalize_Robust(auxI(), bg_mask);
+		normalize_Robust(auxI(), bg_mask, true);
 		volumesI.push_back(auxI);
 
 		// Filter ref vol
 		filter.applyMaskSpace(auxR());
-		normalize_Robust(auxR(), bg_mask);
+		normalize_Robust(auxR(), bg_mask, true);
 		volumesR.push_back(auxR);
 	}
 

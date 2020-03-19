@@ -244,30 +244,48 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
     DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n)-avgbg)*istddevbg;
 }
 
-void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
+void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip)
 {
-    MultidimArray<double> arrayI=I;
-    arrayI.resetOrigin();
-    std::vector<double> uniqueI;
-    double val;
-    arrayI.resize(NZYXSIZE(arrayI));
-    arrayI.sort(arrayI);
+    std::vector<double> voxel_vector;
+    MultidimArray<int> fg_mask = bg_mask;
+    double maxI, minI;
+    SPEED_UP_temps;
+    
+    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
+        DIRECT_MULTIDIM_ELEM(fg_mask,n) = 1 - DIRECT_MULTIDIM_ELEM(bg_mask,n);
 
-    FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(arrayI)
-        uniqueI.push_back(round(A1D_ELEM(arrayI, n) * 100) / 100);
+    FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(fg_mask, I)
+        {
+            if (A3D_ELEM(fg_mask, k, i, j) != 0)
+            {
+            	double aux = A3D_ELEM(I, k, i, j);
+                voxel_vector.push_back(aux);
+            }
+        }
 
-    std::vector<double>::iterator it;
-    it = std::unique (uniqueI.begin(), uniqueI.end());
-    uniqueI.resize(std::distance(uniqueI.begin(),it) );
+    std::sort(voxel_vector.begin(), voxel_vector.end());
 
 	double medianBg, p95, ip95;
     int idx;
 	I.computeMedian_within_binary_mask(bg_mask, medianBg);
-	idx = int(round(uniqueI.size() * 0.95));
-    p95 = uniqueI[idx];
+	idx = voxel_vector.size() * 0.95;
+    p95 = voxel_vector[idx];
 	ip95 = 1 / p95;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
         DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip95;
+
+    if (clip)
+    {
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
+            if (DIRECT_MULTIDIM_ELEM(I,n) > 1.8787)
+            {
+                DIRECT_MULTIDIM_ELEM(I,n) = 1.8787;
+            }
+            else if (DIRECT_MULTIDIM_ELEM(I,n) < -1.8787)
+            {
+                DIRECT_MULTIDIM_ELEM(I,n) = -1.8787;
+            }           
+    }
 }
 
 void normalize_NewXmipp2(MultidimArray<double> &I, const MultidimArray<int> &bg_mask)
@@ -497,6 +515,7 @@ void ProgNormalize::defineParams()
     addParamsLine(" [--thr_white_dust <swhite=3.5>]  : Remove white dust particles with sigma threshold swhite.");
     addParamsLine(" [--thr_neigh <value=1.2>]        : Sigma threshold for neighbour removal.");
     addParamsLine(" [--prm <a0> <aF> <b0> <bF>]      : Requires --method Random. I=aI+b.");
+    addParamsLine(" [--clip]                         : Requires --method Robust. Constrain maximum values in normalize volume.");
     //    addParamsLine("      requires -method Random;");
     addParamsLine(" [--tiltMask]                     : Apply a mask depending on the tilt");
     addParamsLine("                                  : requires --method Tomography or Tomography0");
@@ -554,6 +573,9 @@ void ProgNormalize::readParams()
 
     // Invert contrast?
     invert_contrast = checkParam("--invert");
+
+    // Constrain values?
+    clip = checkParam("--clip");
 
     // Apply a mask depending on the tilt
     tiltMask = checkParam("--tiltMask");
@@ -851,7 +873,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
         normalize_NewXmipp2(img, bg_mask);
         break;
     case ROBUST:
-    	normalize_Robust(img, bg_mask);
+    	normalize_Robust(img, bg_mask, clip);
     	break;
     case RAMP:
         normalize_ramp(img, &bg_mask);
