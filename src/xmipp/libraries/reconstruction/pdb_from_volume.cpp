@@ -88,6 +88,7 @@ void ProgPdbValueToVol::produceSideInfo()
 	Image<double> V, M;
 	V.read(fnVol);
 	inputVol = V();
+//	V().setXmippOrigin();
 
 	if (defOrig)
 	{
