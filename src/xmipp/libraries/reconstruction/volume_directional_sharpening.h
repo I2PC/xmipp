@@ -88,7 +88,7 @@ public:
             double w, double wL, MultidimArray<double> &filteredVol, int count, double &coneAngle);
 
     void directionalResolutionStep(int face_number,
-    		const MultidimArray< std::complex<double> > &conefilter, MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
+    		const MultidimArray< std::complex<double> > &conefilter, MultidimArray<int> &mask, Matrix2D<double> &resArray,
     		double &cone_angle, double &x1, double &y1, double &z1);
 
     void localDirectionalfiltering(size_t &Nfaces,
@@ -107,6 +107,12 @@ public:
 
     void createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
     		int m1sizeX, int m1sizeY, int m1sizeZ, MultidimArray<double> &fullMap);
+
+    void trimmingAndSmoothingResolutionMap(MultidimArray<double> &resolutionVol,
+    		std::vector<double> &list, double &cut_value, double &resolutionThreshold);
+
+    void saveResolutionToArray(MultidimArray<double> &Vres, MultidimArray<int> &pmask, Matrix2D<double> &resArray,
+			int face_number);
 
     void getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
     		int m1sizeX, int m1sizeY, int m1sizeZ);

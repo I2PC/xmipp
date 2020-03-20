@@ -685,10 +685,15 @@ void ProgDirSharpening::directionalNoiseEstimation(double &x_dir, double &y_dir,
 			}
 		}
 	}
-//	std::cout << "after loop directionalNoiseEstimation" << std::endl;
-//	std::cout << "NS " << NS << "  NN " << NN << " sumS " << sumS << std::endl;
-	std::sort(noiseValues.begin(),noiseValues.end());
-	thresholdNoise = (double) noiseValues[size_t(noiseValues.size()*significance)];
+//	std::sort(noiseValues.begin(),noiseValues.end());
+//	thresholdNoise = (double) noiseValues[size_t(noiseValues.size()*significance)];
+
+	double meanN, sigma2N, criticalZ;
+	meanN = sumN/NN;
+	sigma2N = sumN2/NN - meanN*meanN;
+	criticalZ=icdf_gauss(0.90);
+
+	thresholdNoise = meanN+criticalZ*sqrt(sigma2N);
 
 	//std::cout << "thr="<< thresholdNoise << " " << meanN+criticalZ*sqrt(sigma2N) << " " << NN << std::endl;
 	noiseValues.clear();
@@ -696,36 +701,50 @@ void ProgDirSharpening::directionalNoiseEstimation(double &x_dir, double &y_dir,
 }
 
 
-
-void sortArr(double arr[], int n, std::vector<std::pair<double, int> > &vp)
+void ProgDirSharpening::trimmingAndSmoothingResolutionMap(MultidimArray<double> &resolutionVol,
+		std::vector<double> &list, double &cut_value, double &resolutionThreshold)
 {
-    // Inserting element in pair vector
-    // to keep track of previous indexes
-    for (int i = 0; i < n; ++i) {
-        vp.push_back(std::make_pair(arr[i], i));
-    }
+	double last_resolution_2 = list[(list.size()-1)];
 
-    // Sorting pair vector
-    sort(vp.begin(), vp.end());
+	double lowest_res;
+	lowest_res = list[0];
 
-    // Displaying sorted element
-    // with previous indexes
-    // corresponding to each element
-    std::cout << "Element\t"
-         << "index" << std::endl;
-    for (int i = 0; i < vp.size(); i++) {
-    	std::cout << vp[i].first << "\t"
-             << vp[i].second << std::endl;
-    }
+	// Count number of voxels with resolution
+	size_t N=0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
+		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>=(last_resolution_2-0.001)) )//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res) ) //the value 0.001 is a tolerance
+			++N;
+
+	// Get all resolution values
+	MultidimArray<double> resolutions(N);
+	size_t N_iter=0;
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(resolutionVol)
+		if ( (DIRECT_MULTIDIM_ELEM(resolutionVol, n)>(last_resolution_2-0.001)) )//&& (DIRECT_MULTIDIM_ELEM(resolutionVol, n)<lowest_res))
+		{
+			DIRECT_MULTIDIM_ELEM(resolutions,N_iter++)=DIRECT_MULTIDIM_ELEM(resolutionVol, n);
+		}
+
+//	median = resolutionVector[size_t(resolutionVector.size()*0.5)];
+
+	// Sort value and get threshold
+	std::sort(&A1D_ELEM(resolutions,0),&A1D_ELEM(resolutions,N));
+	double filling_value = A1D_ELEM(resolutions, (int)(0.5*N)); //median value
+//	double trimming_value = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
+	resolutionThreshold = A1D_ELEM(resolutions, (int)((1-cut_value)*N));
+
+	std::cout << "resolutionThreshold = " << resolutionThreshold <<  std::endl;
 }
 
 
 void ProgDirSharpening::directionalResolutionStep(int face_number,
 		const MultidimArray< std::complex<double> > &conefilter,
-		MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
+		MultidimArray<int> &mask, Matrix2D<double> &resArray,
 		double &cone_angle, double &x1, double &y1, double &z1)
 {
 	std::cout << "Computing local-directional resolution" << std::endl;
+
+	MultidimArray<double> localResolutionMap;
 
 	//Setting parameters
 	double cut_value = 0.025; //percentage of voxels to stop the frequency analysis
@@ -847,14 +866,72 @@ void ProgDirSharpening::directionalResolutionStep(int face_number,
 		last_resolution = resolution;
 	}while(doNextIteration);
 
+	double sigma, Nyquist, resolutionThreshold, cutValueTrim;
+	cutValueTrim = 0.25;
+	sigma = 3;
+	Nyquist = 2*sampling;
+	//TODO: this can be optimized
+
+	MultidimArray<double> FilteredResolution = plocalResolutionMap;
+
+	realGaussianFilter(FilteredResolution, sigma);
+
+	trimmingAndSmoothingResolutionMap(plocalResolutionMap, list, cutValueTrim, resolutionThreshold);
+
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredResolution)
+	{
+		if ((DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>resolutionThreshold))
+			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(plocalResolutionMap, n);
+		if ((DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<resolutionThreshold)  && (DIRECT_MULTIDIM_ELEM(FilteredResolution, n)>DIRECT_MULTIDIM_ELEM(plocalResolutionMap, n)))
+			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = DIRECT_MULTIDIM_ELEM(plocalResolutionMap, n);
+		if (( DIRECT_MULTIDIM_ELEM(FilteredResolution, n)<Nyquist) && ( DIRECT_MULTIDIM_ELEM(plocalResolutionMap, n)<0))
+			DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = Nyquist;
+	}
+
+	MultidimArray<int> &pmaskOrig = mask;
+	saveResolutionToArray(FilteredResolution, pmaskOrig, resArray, face_number);
+
 	FileName fn;
 	Image<double> saveImg;
 	fn = formatString("dirMap_%i.vol", face_number);
-	saveImg() = plocalResolutionMap;
+	saveImg() = FilteredResolution;
+	saveImg.write(fn);
+	long indx = 0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FilteredResolution)
+		{
+			if (DIRECT_MULTIDIM_ELEM(pmaskOrig, n)>0)
+			{
+				DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = MAT_ELEM(resArray, face_number, indx);
+				indx++;
+			}
+			else
+			{
+				DIRECT_MULTIDIM_ELEM(FilteredResolution, n) = 0;
+			}
+		}
+
+
+	fn = formatString("NewdirMap_%i.vol", face_number);
+	saveImg() = FilteredResolution;
 	saveImg.write(fn);
 
 }
 
+void ProgDirSharpening::saveResolutionToArray(MultidimArray<double> &Vres, MultidimArray<int> &pmask, Matrix2D<double> &resArray,
+												int face_number)
+{
+	long ii = 0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vres)
+		{
+			if (DIRECT_MULTIDIM_ELEM(pmask, n)>0)
+			{
+				MAT_ELEM(resArray, face_number, ii) = DIRECT_MULTIDIM_ELEM(Vres, n);
+				++ii;
+			}
+		}
+
+}
 
 void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, MultidimArray<int> &maskCone, MultidimArray< std::complex<double> > &myfftV,
 		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
@@ -937,12 +1014,15 @@ void ProgDirSharpening::localDirectionalfiltering(size_t &Nfaces,
 				double nyquist = 2*sampling;
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filteredVol)
 				{
+					//TODO: I think this condition can be removed
 				   if (DIRECT_MULTIDIM_ELEM(presVol, n) < nyquist){
 					   DIRECT_MULTIDIM_ELEM(filteredVol, n)=0;
 					}
 				   else{
 					   double res_map = DIRECT_MULTIDIM_ELEM(presVol, n);//+1e-38;
+//					   double kk_ =1/(res_map*res_map);
 					   DIRECT_MULTIDIM_ELEM(weight, n) = (exp(-K*(res-res_map)*(res-res_map)));
+//					   DIRECT_MULTIDIM_ELEM(weight, n) = (exp(-kk_*(res-res_map)*(res-res_map)));
 					   DIRECT_MULTIDIM_ELEM(filteredVol, n) *= DIRECT_MULTIDIM_ELEM(weight, n);
 					}
 				}
@@ -963,11 +1043,11 @@ void ProgDirSharpening::localDirectionalfiltering(size_t &Nfaces,
 
 //			localfilteredVol += localfilteredVol;
 
-			FileName fl;
-			Image<double> saveImg;
-			fl = formatString("localFiltVolt_%i.vol", face_number);
-			saveImg() = bandfilteredVol;
-			saveImg.write(fl);
+//			FileName fl;
+//			Image<double> saveImg;
+//			fl = formatString("localFiltVolt_%i.vol", face_number);
+//			saveImg() = bandfilteredVol;
+//			saveImg.write(fl);
 
 		}
 
@@ -1039,10 +1119,10 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol,
 
 		FileName fn;
 		FileName fs1;
-		Image<double> saveImg1;
-		fs1 = formatString("operFilt_%i.vol", i);
-		saveImg1() = operatedfiltered;
-		saveImg1.write(fs1);
+//		Image<double> saveImg1;
+//		fs1 = formatString("operFilt_%i.vol", i);
+//		saveImg1() = operatedfiltered;
+//		saveImg1.write(fs1);
 
 		filteredVol = Vorig;
 
@@ -1205,6 +1285,8 @@ void ProgDirSharpening::run()
 		getFaceVectorSimple(faceVector, facesSimple);
 		coneAngle = PI/4;
 	}
+	Matrix2D<double> resArray;
+	resArray.initZeros(Nfaces, NVoxelsOriginalMask);
 
 //	std::cout << "Vectex " << vertex << std::endl;
 	std::cout << "faceVector " << faceVector << std::endl;
@@ -1228,11 +1310,11 @@ void ProgDirSharpening::run()
 
 //		std::cout << "Computing local-directional resolution along face " << face_number << std::endl;
 
-		directionalResolutionStep(face_number, fftCone, mask(), localResolutionMap, coneAngle, x1, y1, z1);
+		directionalResolutionStep(face_number, fftCone, mask(), resArray, coneAngle, x1, y1, z1);
 		//directionalResolutionStep_test();
 	}
 	t1 = clock();
-
+//	exit(0);
 	double time = (double(t1-t0)/CLOCKS_PER_SEC);
 	std::cout << "%Execution Time: " << time << std::endl;
 	Image<double> Vin;
