@@ -36,7 +36,7 @@
 class ProgParticlePolishing: public XmippProgram
 {
 public:
-	FileName fnPart; // File with the input movie particles
+	FileName fnMdPart; // File with the input movie particles
 	FileName fnVol;
 	FileName fnOut;
     MetaData mdPart;
@@ -58,7 +58,8 @@ public:
     void calculateFrameWeightPerFreq(MultidimArray<double> &matrixWeights, MultidimArray<double> &weightsperfreq, const MultidimArray<double> &maxvalues);
     void smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out);
     void averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent);
-    void calculateCurve(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, double &slope, double &intercept);
+    void calculateCurve_1(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double step, double offset, double Dmin, double Dmax);
+    void calculateCurve_2(const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double &slope, double &intercept, double Dmin, double Dmax);
     void calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> &cij, int xdim, int ydim, int dataRow);
     void evaluateBSpline(const MultidimArray<double> inputMat, const Matrix1D<double> cij, MultidimArray<double> &outputMat, int xdim, int ydim, int dataRow);
 

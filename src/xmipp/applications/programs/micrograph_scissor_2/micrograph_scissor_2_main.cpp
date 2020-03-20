@@ -308,10 +308,10 @@ public:
                     //getShift(lX, lY, lN, Xdmov, Ydmov, Ndmov, m.coords[i].X, m.coords[i].Y, curFrame, shiftY, shiftX,
                     //		&coeffsX[0], &coeffsY[0]);
                     getShift(lX, lY, lN,  m.coords[i].X, m.coords[i].Y, shiftY, shiftX, &coeffsX[0], &coeffsY[0], hX, hY, tPos);
-                    printf("Shift X = %f - Shift Y = %f. Some params: %d %d %d %d %d %d %d %f %f %f \n", shiftX, shiftY, Xdmov, Ydmov, Ndmov, curFrame, lX, lY, lN, hX, hY, tPos);
+                    //printf("Shift X = %f - Shift Y = %f. Some params: %d %d %d %d %d %d %d %f %f %f \n", shiftX, shiftY, Xdmov, Ydmov, Ndmov, curFrame, lX, lY, lN, hX, hY, tPos);
                     m.coords[i].X -= shiftX;
                     m.coords[i].Y -= shiftY;
-                    std::cout<<"AFTER mcoords[" << i << "]= " << m.coords[i].X << " " << m.coords[i].Y << std::endl;
+                    //std::cout<<"AFTER mcoords[" << i << "]= " << m.coords[i].X << " " << m.coords[i].Y << std::endl;
                 }
             }
             //END AJ modification
