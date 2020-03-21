@@ -1564,11 +1564,11 @@ if __name__ == '__main__':
         # HACK: re-read it from file to resolve paths
         configDict = readConfigFile(CONFIG_FILE_NAME)
         ok = (checkConfig()
-            and downloadDeepLearningModels('build')
+            and downloadDeepLearningModels(buildDir)
             and getDependencies()
             and getSources(branch)
             and compile(Nproc)
-            and install('build'))
+            and install(buildDir))
         if ok:
            sys.exit(0)
         else:
@@ -1586,7 +1586,7 @@ if __name__ == '__main__':
         runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
     elif mode=="gitConfig":
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmipp/.git/config")
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='addModel':
