@@ -226,9 +226,6 @@ void ProgVolDeformSph::run() {
 	VI().setXmippOrigin();
 	VR().setXmippOrigin();
 
-	volumesI.push_back(VI());
-	volumesR.push_back(VR());
-
 	// Filter input and reference volumes according to the values of sigma
 	FourierFilter filter;
     filter.FilterShape = REALGAUSSIAN;
@@ -240,6 +237,12 @@ void ProgVolDeformSph::run() {
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     bg_mask.setXmippOrigin();
 	BinaryCircularMask(bg_mask, bg_mask.xdim / 2, OUTSIDE_MASK);
+
+	normalize_Robust(VI(), bg_mask, true);
+	normalize_Robust(VR(), bg_mask, true);
+
+	volumesI.push_back(VI());
+	volumesR.push_back(VR());
 
 	for (int ids=0; ids<sigma.size(); ids++)
 	{
