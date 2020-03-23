@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia rsanchez@cnb.csic.es
@@ -27,11 +27,15 @@
 
 import os
 import sys
-from xmipp3 import Plugin, XmippScript
-import pwem.metadata as md
+import subprocess
+
+#from xmipp3.base.XmippProtocol import getModel
+from xmipp_base import XmippScript
+import xmippLib
+
 
 class ScriptMicrographCleanerEm(XmippScript):
-    _conda_env="micrograph_cleaner_em"
+    _conda_env="xmipp_MicCleaner"
     def __init__(self):
 
         XmippScript.__init__(self)
@@ -81,10 +85,11 @@ class ScriptMicrographCleanerEm(XmippScript):
         args["gpus"]=gpusToUse
 
         if self.checkParam('-i'):
-          mdObj= md.MetaData(os.path.expanduser( self.getParam('-i')))
+          mdObj= xmippLib.MetaData(os.path.expanduser( self.getParam('-i')))
+
           args["inputMicsPath"]= []
           for objId in mdObj:
-            args["inputMicsPath"]+= [mdObj.getValue(md.MDL_IMAGE, objId)]
+            args["inputMicsPath"]+= [mdObj.getValue(xmippLib.MDL_IMAGE, objId)]
           args["inputMicsPath"]= " ".join(args["inputMicsPath"])
         else:
           raise Exception("Error, input micrographs fnames are requried as argument")
@@ -123,7 +128,7 @@ class ScriptMicrographCleanerEm(XmippScript):
         if self.checkParam('-d'):
           args["deepLearningModel"]= self.getParam('-d')
         else:
-          args["deepLearningModel"]=Plugin.getModel('deepMicrographCleaner', 'defaultModel.keras')
+          args["deepLearningModel"]= getModel('deepMicrographCleaner', 'defaultModel.keras')
 
         cmdArgs= " ".join(["--"+str(key)+" "+str(args[key]) for key in args if args[key] is not None ])
         self.runCondaCmd("cleanMics", cmdArgs)

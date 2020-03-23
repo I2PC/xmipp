@@ -99,7 +99,30 @@ class XmippScript:
             import traceback
             traceback.print_exc(file=sys.stderr)
             return 1
-            
+
+    @classmethod
+    def runCondaCmd(cls, program, arguments, **kwargs):
+       '''
+       This class method is used to run programs that are independent of xmipp but employ conda. The class should
+       possess a _conda_env attribute to be used. Otherwise  CONDA_DEFAULT_ENVIRON is used. To use xmipp dependent
+       programs, runCondaJob within a XmippProtocol is preferred.
+       :param program:str. A program/pythonScript to execute (included in environment bin or full path)
+       :param arguments: str. The arguments for the program
+       :param kwargs: options
+       :return:
+       '''
+       if (hasattr(cls, "_conda_env")):
+           condaEnvName = cls._conda_env
+       else:
+           condaEnvName = CONDA_DEFAULT_ENVIRON
+           # raise Exception("Error, protocols using runCondaJob must define the variable _conda_env")
+       program, arguments, kwargs = prepareRunConda(program, arguments, condaEnvName, **kwargs)
+       print(program + " " + arguments)
+       try:
+           subprocess.check_call(program + " " + arguments, shell=True, **kwargs)
+       except subprocess.CalledProcessError as e:
+           subprocess.check_call(program + " " + arguments, shell=True, **kwargs)
+
 def createMetaDataFromPattern(pattern, isStack=False, label="image"):
     ''' Create a metadata from files matching pattern'''
     import glob
