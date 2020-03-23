@@ -135,9 +135,15 @@ void ProgVolumeSetAlign::computeFitness(){
 	//The first 6 parameters are angles and shifts, and the 7th is the fitness value
 	fnAnglesAndShifts = fopen(shifts_angles, "r");
 	for (int i = 0; i < 6; i++){
-	       fscanf(fnAnglesAndShifts, "%f,", &this->Matrix_Angles_Shifts[i]);
+	       if(fscanf(fnAnglesAndShifts, "%f,", &this->Matrix_Angles_Shifts[i])!=1){
+	    	   std::cout<<"reading the angles and shifts was not successful"<<std::endl;
+	    	   exit(1);
+	       }
 	    }
-	fscanf(fnAnglesAndShifts, "%f,", &this->fitness);
+	if(fscanf(fnAnglesAndShifts, "%f,", &this->fitness)!=1){
+		std::cout<<"reading the fitness value was not successful"<<std::endl;
+		exit(1);
+	}
 	fclose(fnAnglesAndShifts);
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
