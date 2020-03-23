@@ -31,8 +31,6 @@ import xmipp_base
 from xmipp3 import Plugin
 import pyworkflow.em.metadata as md
 
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
-
 
 class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
     def __init__(self):
@@ -74,6 +72,14 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
         
     def run(self):
+
+      try:
+        from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+      except ImportError:
+        print("Import error")
+        print(sys.path)
+        from pylib.xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+
         checkIf_tf_keras_installed()
         args={}
         gpusToUse="0"
@@ -133,7 +139,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
           from xmippPyModules.micrograph_cleaner_em.cleanMics import main
         except ImportError as e:
           print(e)
-          raise ValueError("Error, micrograph_cleaner_em packages was not properly imported")
+          raise ValueError("Error, micrograph_cleaner_em packages were not properly imported")
         main(** args)
  
 
