@@ -26,8 +26,7 @@
 #!/usr/bin/env python
 
 import os
-import xmipp3
-
+import xmipp_base
 import xmippLib as xmipp
 import csv
 import keras
@@ -157,9 +156,9 @@ def flip_axis(x, axis):
     x = x.swapaxes(0, axis)
     return x
 
-class ScriptParticleBoxsize(xmipp3.XmippScript):
+class ScriptParticleBoxsize(xmipp_base.XmippScript):
     def __init__(self):
-        xmipp3.XmippScript.__init__(self)
+        xmipp_base.XmippScript.__init__(self)
         self.particle_boxsize = None
         
     def defineParams(self):
@@ -190,7 +189,7 @@ class ScriptParticleBoxsize(xmipp3.XmippScript):
         # Default shifts for cropping the images. TODO: add as arguments?
         shift = np.max([config["img_rows"], 1])
         shifts = np.repeat(shift, 2)
-        feature_scaler = pickle.load(open(feature_scaler, "rb"))
+        feature_scaler = pickle.load(open(feature_scaler, "rb"), encoding='latin1')
 
         model = ParticleSizeCnn(config["input_shape"])
         conv_base = model.conv_base

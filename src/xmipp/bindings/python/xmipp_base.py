@@ -114,6 +114,8 @@ class XmippScript:
        :param kwargs: options
        :return:
        '''
+       if "env" not in kwargs:
+           kwargs["env"]= os.environ
        if (hasattr(cls, "_conda_env")):
            condaEnvName = cls._conda_env
        else:
@@ -153,9 +155,9 @@ def prepareRunConda(program, arguments, condaEnvName, **kwargs):
         return (program, arguments, kwargs)
 
 class CondaEnvManager(object):
-    CONDA_DEFAULT_ENVIRON = 'deepLearningToolkit_v0.2'
-    with open('condaEnvsDef.json') as f:
-        DICT_OF_CONDA_ENVIRONS = json.load(f)
+    CONDA_DEFAULT_ENVIRON = "xmipp_DLTK_v0.3" #'xmipp_DLTK_v0.2'
+    from condaEnvsDef import DEFAULT_ENVS
+    DICT_OF_CONDA_ENVIRONS =DEFAULT_ENVS
 
     @staticmethod
     def getCoondaRoot(env=None):
@@ -185,7 +187,7 @@ class CondaEnvManager(object):
                 condaRoot = os.path.split(os.path.split(condaRoot)[0])[0]
 
         assert condaRoot is not None, "Error, conda was not found"+str(env)
-        return condaRoot
+        return os.path.expanduser(condaRoot)
 
     @staticmethod
     def getCondaPathInEnv(condaRoot, condaEnv, condaSubDir=""):
@@ -206,6 +208,7 @@ class CondaEnvManager(object):
         if CondaEnvManager.DICT_OF_CONDA_ENVIRONS[condaEnv]["xmippEnviron"]:
             newPythonPath+=":"+env["PYTHONPATH"]
         env.update({"PYTHONPATH": newPythonPath})
+#        print(env["PYTHONPATH"])
         return env
 
     @staticmethod
