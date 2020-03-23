@@ -68,7 +68,6 @@ void ProgVolumeSetAlign::readParams() {
 }
 
 // Produce side information ================================================
-ProgVolumeSetAlign *global_volumeset_align_prog;
 
 void ProgVolumeSetAlign::createWorkFiles() {
 	MetaData *pmdIn = getInputMd();
@@ -101,7 +100,6 @@ void ProgVolumeSetAlign::createWorkFiles() {
 
 void ProgVolumeSetAlign::preProcess() {
 	// Set the pointer of the program to this object
-	global_volumeset_align_prog = this;
 	createWorkFiles();
 }
 
@@ -120,11 +118,11 @@ void ProgVolumeSetAlign::computeFitness(){
 	FileName fnShiftsAngles = fnRandom + "_angles_shifts.txt";
 	const char * shifts_angles = fnShiftsAngles.c_str();
 	
-	String fnVolume1 = global_volumeset_align_prog->currentVolName;
-	String fnVolume2 = global_volumeset_align_prog->fnREF;
+	String fnVolume1 = this->currentVolName;
+	String fnVolume2 = this->fnREF;
 
-	if (global_volumeset_align_prog->tilt0!=-90 || global_volumeset_align_prog->tiltF!=90 ){
-		global_volumeset_align_prog->flipped = true;
+	if (this->tilt0!=-90 || this->tiltF!=90 ){
+		this->flipped = true;
 		runSystem("xmipp_transform_geometry",formatString("-i %s -o %s_currentvolume.vol --rotate_volume euler 0 90 0 -v 0",fnVolume1.c_str(),randStr));
 		fnVolume1 = fnRandom+"_currentvolume.vol";
 	}
@@ -133,13 +131,13 @@ void ProgVolumeSetAlign::computeFitness(){
 	const char * Volume2 = fnVolume2.c_str();
 
 	runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
-			Volume1,Volume2,global_volumeset_align_prog->frm_freq, global_volumeset_align_prog->frm_shift, global_volumeset_align_prog->tilt0, global_volumeset_align_prog->tiltF, shifts_angles));
+			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles));
 	//The first 6 parameters are angles and shifts, and the 7th is the fitness value
 	fnAnglesAndShifts = fopen(shifts_angles, "r");
 	for (int i = 0; i < 6; i++){
-	       fscanf(fnAnglesAndShifts, "%f,", &global_volumeset_align_prog->Matrix_Angles_Shifts[i]);
+	       fscanf(fnAnglesAndShifts, "%f,", &this->Matrix_Angles_Shifts[i]);
 	    }
-	fscanf(fnAnglesAndShifts, "%f,", &global_volumeset_align_prog->fitness);
+	fscanf(fnAnglesAndShifts, "%f,", &this->fitness);
 	fclose(fnAnglesAndShifts);
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
@@ -161,14 +159,14 @@ void ProgVolumeSetAlign::writeVolumeParameters(const FileName &fnImg) {
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);
-	md.setValue(MDL_ANGLE_ROT,  (double)global_volumeset_align_prog->Matrix_Angles_Shifts[0], objId);
-	md.setValue(MDL_ANGLE_TILT, (double)global_volumeset_align_prog->Matrix_Angles_Shifts[1], objId);
-	md.setValue(MDL_ANGLE_PSI,  (double)global_volumeset_align_prog->Matrix_Angles_Shifts[2], objId);
-	md.setValue(MDL_SHIFT_X,    (double)global_volumeset_align_prog->Matrix_Angles_Shifts[3], objId);
-	md.setValue(MDL_SHIFT_Y,    (double)global_volumeset_align_prog->Matrix_Angles_Shifts[4], objId);
-	md.setValue(MDL_SHIFT_Z,    (double)global_volumeset_align_prog->Matrix_Angles_Shifts[5], objId);
-	md.setValue(MDL_MAXCC,    1-(double)global_volumeset_align_prog->fitness, objId);
-	if (global_volumeset_align_prog->flipped){
+	md.setValue(MDL_ANGLE_ROT,  (double)this->Matrix_Angles_Shifts[0], objId);
+	md.setValue(MDL_ANGLE_TILT, (double)this->Matrix_Angles_Shifts[1], objId);
+	md.setValue(MDL_ANGLE_PSI,  (double)this->Matrix_Angles_Shifts[2], objId);
+	md.setValue(MDL_SHIFT_X,    (double)this->Matrix_Angles_Shifts[3], objId);
+	md.setValue(MDL_SHIFT_Y,    (double)this->Matrix_Angles_Shifts[4], objId);
+	md.setValue(MDL_SHIFT_Z,    (double)this->Matrix_Angles_Shifts[5], objId);
+	md.setValue(MDL_MAXCC,    1-(double)this->fitness, objId);
+	if (this->flipped){
 		md.setValue(MDL_ANGLE_Y, 90.0 , objId);
 	}
 	else{
