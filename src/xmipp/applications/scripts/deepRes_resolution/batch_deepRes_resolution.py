@@ -33,14 +33,14 @@ import os
 import sys
 import argparse
 import xmippLib
-from xmipp3.base.XmippProtocol import getModel
+from xmipp_base import XmippScript
+
 # The method accepts as input a 3D crioEM map and the mask
 # both with sampling rate of 1 A/pixel for network 1 or 0.5 A/pixel for network 2
 
 boxDim = 13
 boxDim2 = boxDim//2
 maxSize = 1000
-
 
 def getBox(V,z,y,x):
     boxDim2 = boxDim//2
@@ -226,9 +226,9 @@ if __name__=="__main__":
     manager = VolumeManager(fnVolIn,fnMask)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
 
-    if fnModel== getModel("deepRes", "model_w13.h5"):
+    if fnModel== XmippScript.getModel("deepRes", "model_w13.h5"):
        model=1
-    if fnModel== getModel("deepRes", "model_w7.h5"):
+    if fnModel== XmippScript.getModel("deepRes", "model_w7.h5"):
        model=2
     produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut)
 

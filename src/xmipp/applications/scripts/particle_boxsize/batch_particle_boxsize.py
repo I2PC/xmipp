@@ -157,6 +157,7 @@ def flip_axis(x, axis):
     return x
 
 class ScriptParticleBoxsize(xmipp_base.XmippScript):
+    _conda_env= xmipp_base.CondaEnvManager.CONDA_DEFAULT_ENVIRON
     def __init__(self):
         xmipp_base.XmippScript.__init__(self)
         self.particle_boxsize = None

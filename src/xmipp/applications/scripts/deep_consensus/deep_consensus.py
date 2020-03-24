@@ -26,7 +26,6 @@
 """
 from xmipp_base import *
 import xmippLib
-
 from xmippPyModules.deepLearningToolkitUtils.utils import (checkIf_tf_keras_installed,
                                                                          updateEnviron)
 
@@ -38,6 +37,7 @@ from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loa
 WRITE_TEST_SCORES= True
 
 class ScriptDeepScreeningTrain(XmippScript):
+    _conda_env= CondaEnvManager.CONDA_DEFAULT_ENVIRON
     def __init__(self):
         XmippScript.__init__(self)
         

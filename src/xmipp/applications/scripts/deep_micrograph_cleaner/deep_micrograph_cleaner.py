@@ -29,7 +29,6 @@ import os
 import sys
 import subprocess
 
-#from xmipp3.base.XmippProtocol import getModel
 from xmipp_base import XmippScript
 import xmippLib
 
@@ -61,7 +60,7 @@ class ScriptMicrographCleanerEm(XmippScript):
         self.addParamsLine(' [ -o <outputCoordsDir> ] : output coordinates directory.')
         self.addParamsLine(' [ -d <deepLearningModel> ]  : (optional) deep learning model filename. If not provided, default model will be used')
         self.addParamsLine('-b <boxSize>     : particles box size in pixels')
-        self.addParamsLine('-s <downFactor>   <F=1.0>   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
+        self.addParamsLine(' [ -s <downFactor>   <F=1.0> ]   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
         self.addParamsLine(' [ --deepThr <deepThr> ]: (optional) deep learning threshold to rule out a coordinate. The smaller the treshold '+
                            'the more coordiantes will be rule out. Ranges 0..1. Recommended 0.8')
         self.addParamsLine(' [--sizeThr <sizeThr> <F=0.8> ]: Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
@@ -128,7 +127,7 @@ class ScriptMicrographCleanerEm(XmippScript):
         if self.checkParam('-d'):
           args["deepLearningModel"]= self.getParam('-d')
         else:
-          args["deepLearningModel"]= getModel('deepMicrographCleaner', 'defaultModel.keras')
+          args["deepLearningModel"]= self.getModel('deepMicrographCleaner', 'defaultModel.keras')
 
         cmdArgs= " ".join(["--"+str(key)+" "+str(args[key]) for key in args if args[key] is not None ])
         self.runCondaCmd("cleanMics", cmdArgs)

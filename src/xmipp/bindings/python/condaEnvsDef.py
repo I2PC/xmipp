@@ -9,27 +9,6 @@ DEFAULT_ENVS={
     "defaultInstallOptions": {"gpuTag": ""},
     "xmippEnviron": True
   },
-  "xmipp_DLTK_v0.2": {
-    "pythonVersion": "2.7",
-    "dependencies": ["pandas=0.23.4", "scikit-image=0.14.2", "opencv=3.4.2",
-                     "tensorflow%(gpuTag)s==1.10.0", "keras=2.2.2",
-                     "scikit-learn==0.20"],
-    "channels": ["anaconda"],
-    "pipPackages": [],
-    "defaultInstallOptions": {"gpuTag": ""},
-    "xmippEnviron": True
-  },
-
-  "xmipp_DLTK_v0.01": {
-    "pythonVersion": "2.7",
-    "dependencies": ["pandas=0.23.4", "scikit-image=0.14.2", "opencv=3.4.2",
-                     "tensorflow%(gpuTag)s==1.10.0", "keras=2.1.5",
-                     "scikit-learn==0.20"],
-    "channels": ["anaconda"],
-    "pipPackages": [],
-    "defaultInstallOptions": {"gpuTag": ""},
-    "xmippEnviron": True
-  },
 
   "xmipp_MicCleaner": {
     "pythonVersion": "3.6",
