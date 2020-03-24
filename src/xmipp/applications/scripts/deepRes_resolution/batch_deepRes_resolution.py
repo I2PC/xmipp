@@ -32,8 +32,8 @@ import numpy as np
 import os
 import sys
 import argparse
-import xmipp3
-
+import xmippLib
+from xmipp3.base.XmippProtocol import getModel
 # The method accepts as input a 3D crioEM map and the mask
 # both with sampling rate of 1 A/pixel for network 1 or 0.5 A/pixel for network 2
 
@@ -50,10 +50,10 @@ def getBox(V,z,y,x):
 
 class VolumeManager(Sequence):
     def __init__(self, fnVol, fnMask):
-        self.V = xmipp3.Image(fnVol).getData()
-        self.M = xmipp3.Image(fnMask).getData()
+        self.V = xmippLib.Image(fnVol).getData()
+        self.M = xmippLib.Image(fnMask).getData()
         self.Zdim, self.Ydim, self.Xdim = self.V.shape
-
+        print(self.Zdim, self.Ydim, self.Xdim)
         #calculate total voxels (inside mask)
         vx=0
         for self.z in range(boxDim2,self.Zdim-boxDim2):
@@ -63,7 +63,7 @@ class VolumeManager(Sequence):
                         if ((self.x+self.y+self.z)%2)==0:
                              vx=vx+1
         #print vx
-        self.st=vx/maxSize
+        self.st=vx//maxSize
         if vx % maxSize >0:
            self.st=self.st+1
         #print self.st
@@ -117,7 +117,7 @@ class VolumeManager(Sequence):
             #print (count   ,    self.x   ,   self.y  ,  self.z)
             ok=self.advance()
             count+=1
-	batchX=np.asarray(batchX).astype("float32")
+        batchX=np.asarray(batchX).astype("float32")
         #print("count = ", count) 
         batchX = batchX.reshape(count, batchX.shape[1], batchX.shape[2], batchX.shape[3], 1)      
 
@@ -127,8 +127,8 @@ class VolumeManager(Sequence):
 
 
 def produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut):
-    Vxmipp = xmipp3.Image(fnVolIn)
-    Mask= xmipp3.Image(fnMask)
+    Vxmipp = xmippLib.Image(fnVolIn)
+    Mask= xmippLib.Image(fnMask)
     V = Vxmipp.getData()
     Orig = V
     M = Mask.getData()
@@ -226,9 +226,9 @@ if __name__=="__main__":
     manager = VolumeManager(fnVolIn,fnMask)
     Y = model.predict_generator(manager, manager.getNumberOfBlocks())
 
-    if fnModel==xmipp3.Plugin.getModel("deepRes", "model_w13.h5"):
+    if fnModel== getModel("deepRes", "model_w13.h5"):
        model=1
-    if fnModel==xmipp3.Plugin.getModel("deepRes", "model_w7.h5"):
+    if fnModel== getModel("deepRes", "model_w7.h5"):
        model=2
     produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut)
 

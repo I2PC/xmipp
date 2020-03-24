@@ -141,6 +141,7 @@ def prepareRunConda(program, arguments, condaEnvName, **kwargs):
     kwargs['env'] = CondaEnvManager.modifyEnvToUseConda(kwargs['env'],
                                                                condaEnvName)
 
+    kwargs['env']['PYTHONWARNINGS'] = 'ignore::FutureWarning'
     usePython = False
     programName = os.path.join(getXmippPath('bin'), program)
     try:
