@@ -104,6 +104,18 @@ class XmippScript:
             return 1
 
     @classmethod
+    def getModel(cls, *modelPath, **kwargs):
+        """ Returns the path to the models folder followed by
+            the given relative path.
+        .../xmipp/models/myModel/myFile.h5 <= getModel('myModel', 'myFile.h5')
+
+            NOTE: it raise and exception when model not found, set doRaise=False
+                  in the arguments to skip that raise, especially in validation
+                  asserions!
+        """
+        return _getModel(*modelPath, **kwargs)
+
+    @classmethod
     def runCondaCmd(cls, program, arguments, **kwargs):
        '''
        This class method is used to run programs that are independent of xmipp but employ conda. The class should
@@ -153,6 +165,25 @@ def prepareRunConda(program, arguments, condaEnvName, **kwargs):
         return ("python", programName + " " + arguments, kwargs)
     else:
         return (program, arguments, kwargs)
+
+
+def _getModel(*modelPath, **kwargs):
+    """ Returns the path to the models folder followed by
+        the given relative path.
+    .../xmipp/models/myModel/myFile.h5 <= getModel('myModel', 'myFile.h5')
+
+        NOTE: it raise and exception when model not found, set doRaise=False
+              in the arguments to skip that raise, especially in validation
+              asserions!
+    """
+    model = getXmippPath('models', *modelPath)
+
+    # Raising an error to prevent posterior errors and to print a hint
+    if kwargs.get('doRaise', True) and not os.path.exists(model):
+        raise Exception("'%s' model not found. Please, run: \n"
+                        " > scipion installb deepLearningToolkit" % modelPath[0])
+    return model
+
 
 class CondaEnvManager(object):
     CONDA_DEFAULT_ENVIRON = "xmipp_DLTK_v0.3" #'xmipp_DLTK_v0.2'
