@@ -130,20 +130,21 @@ void ProgVolumeSetAlign::computeFitness(){
 	const char * Volume1 = fnVolume1.c_str();
 	const char * Volume2 = fnVolume2.c_str();
 
+	int err;
+
 	runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
 			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles));
 	//The first 6 parameters are angles and shifts, and the 7th is the fitness value
 	fnAnglesAndShifts = fopen(shifts_angles, "r");
 	for (int i = 0; i < 6; i++){
-	       if(fscanf(fnAnglesAndShifts, "%f,", &this->Matrix_Angles_Shifts[i])!=1){
-	    	   std::cout<<"reading the angles and shifts was not successful"<<std::endl;
-	    	   exit(1);
-	       }
-	    }
-	if(fscanf(fnAnglesAndShifts, "%f,", &this->fitness)!=1){
-		std::cout<<"reading the fitness value was not successful"<<std::endl;
-		exit(1);
+		err = fscanf(fnAnglesAndShifts, "%f,", &this->Matrix_Angles_Shifts[i]);
+		if (1!=err)
+			REPORT_ERROR(ERR_IO, "reading the angles and shifts was not successful");
 	}
+	err = fscanf(fnAnglesAndShifts, "%f,", &this->fitness);
+	if(1!=err)
+		REPORT_ERROR(ERR_IO, "reading the fitness value was not successful");
+
 	fclose(fnAnglesAndShifts);
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
@@ -171,7 +172,7 @@ void ProgVolumeSetAlign::writeVolumeParameters(const FileName &fnImg) {
 	md.setValue(MDL_SHIFT_X,    (double)this->Matrix_Angles_Shifts[3], objId);
 	md.setValue(MDL_SHIFT_Y,    (double)this->Matrix_Angles_Shifts[4], objId);
 	md.setValue(MDL_SHIFT_Z,    (double)this->Matrix_Angles_Shifts[5], objId);
-	md.setValue(MDL_MAXCC,    1-(double)this->fitness, objId);
+	md.setValue(MDL_MAXCC,     -(double)this->fitness, objId);
 	if (this->flipped){
 		md.setValue(MDL_ANGLE_Y, 90.0 , objId);
 	}
