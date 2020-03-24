@@ -245,7 +245,8 @@ class CondaEnvManager(object):
                            defaultInstallOptions, pipPackages=[], installCmdOptions=None,
                            **kwargs):
 
-        cmd="export PYTHONPATH=\"\" && conda create -q --force --yes -n "+environName+" python="+pythonVersion+" "
+        cmd=("export PYTHONPATH=\"\" &&" + CondaEnvManager.getCondaActivationCmd() +
+             " conda create -q --force --yes -n "+environName+" python="+pythonVersion+" ")
         cmd += " "+ " ".join([dep for dep in dependencies])
         if len(channels)>0:
             cmd += " -c "+ " -c ".join([chan for chan in channels])
@@ -259,7 +260,7 @@ class CondaEnvManager(object):
                 cmd= cmd%defaultInstallOptions
             except KeyError:
                 pass
-        cmd += " && " + CondaEnvManager.getCondaActivationCmd() + " conda activate " + environName
+        cmd += " && conda activate " + environName
         # cmd += " && export PATH="+ os.path.join(CondaEnvManager.getCoondaRoot(), "bin")+":$PATH &&  conda activate "+environName
 
         if len(pipPackages)>0:
