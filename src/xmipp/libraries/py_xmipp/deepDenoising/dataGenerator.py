@@ -1,10 +1,9 @@
-import pyworkflow.em.metadata as md
 import xmippLib
 import numpy as np
 import random
 
 from sklearn.utils import shuffle
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from .augmentators import (_random_flip_leftright, _random_flip_updown, _mismatch_projection, 
                           _random_90degrees_rotation, _random_rotation,generateEmptyParticlesFunction)
 
@@ -14,15 +13,15 @@ def getDataGenerator( imgsMdXmd, masksMdXmd, xmdEmptyParts=None, augmentData=Tru
 
   if nEpochs<1: 
     nEpochs= 9999999
-  mdImgs  = md.MetaData(imgsMdXmd)
-  mdMasks = md.MetaData(masksMdXmd)
+  mdImgs  = xmippLib.MetaData(imgsMdXmd)
+  mdMasks = xmippLib.MetaData(masksMdXmd)
     
   nImages= int(mdImgs.size())
 
   I= xmippLib.Image()    
 
-  imgFnames = mdImgs.getColumnValues(md.MDL_IMAGE)
-  maskFnames= mdMasks.getColumnValues(md.MDL_IMAGE)
+  imgFnames = mdImgs.getColumnValues(xmippLib.MDL_IMAGE)
+  maskFnames= mdMasks.getColumnValues(xmippLib.MDL_IMAGE)
   
   I.read( imgFnames[0] )
   shape= I.getData().shape+ (1,)
@@ -30,9 +29,9 @@ def getDataGenerator( imgsMdXmd, masksMdXmd, xmdEmptyParts=None, augmentData=Tru
     shape= tuple([int(path_size_fraction*elem) for elem in shape[:-1] ])+(1,)
     
   if not xmdEmptyParts is None:
-    mdEmpty= md.MetaData(xmdEmptyParts)
+    mdEmpty= xmippLib.MetaData(xmdEmptyParts)
     nImages+= int(mdEmpty.size())
-    emptyFnames= mdEmpty.getColumnValues(md.MDL_IMAGE)
+    emptyFnames= mdEmpty.getColumnValues(xmippLib.MDL_IMAGE)
     imgFnames+= emptyFnames
     maskFnames+= [None]*len(emptyFnames)
   
