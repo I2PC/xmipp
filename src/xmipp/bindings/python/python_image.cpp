@@ -38,7 +38,7 @@ void Image_dealloc(ImageObject* self)
 {
 
     delete self->image;
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }//function Image_dealloc
 
 
@@ -48,7 +48,10 @@ PyNumberMethods Image_NumberMethods =
         Image_add, //binaryfunc  nb_add;
         Image_subtract, //binaryfunc  nb_subtract;
         Image_multiply, //binaryfunc  nb_multiply;
-        Image_divide, //binaryfunc  nb_divide;
+        // TODO: division no longer works,  I do not know why
+        // may be related with the fact that division in python3
+        // does not work as it use to do in python 2
+        Image_true_divide, //binaryfunc  nb_divide;
         0, //binaryfunc  nb_remainder;
         0, //binaryfunc  nb_divmod;
         0, //ternaryfunc nb_power;
@@ -56,40 +59,11 @@ PyNumberMethods Image_NumberMethods =
         0, //unaryfunc nb_positive;
         0, //unaryfunc nb_absolute;
         0, //inquiry nb_nonzero;       /* Used by PyObject_IsTrue */
-        0, //unaryfunc nb_invert;
-        0, //binaryfunc  nb_lshift;
-        0, //binaryfunc  nb_rshift;
-        0, //binaryfunc  nb_and;
-        0, //binaryfunc  nb_xor;
-        0, //binaryfunc  nb_or;
-        0, //coercion nb_coerce;       /* Used by the coerce() function */
-        0, //unaryfunc nb_int;
-        0, //unaryfunc nb_long;
-        0, //unaryfunc nb_float;
-        0, //unaryfunc nb_oct;
-        0, //unaryfunc nb_hex;
-
         /* Added in release 2.0 */
         Image_iadd, //binaryfunc  nb_inplace_add;
         Image_isubtract, //binaryfunc  nb_inplace_subtract;
         Image_imultiply, //binaryfunc  nb_inplace_multiply;
         Image_idivide, //binaryfunc  nb_inplace_divide;
-        0, //binaryfunc  nb_inplace_remainder;
-        0, //ternaryfunc nb_inplace_power;
-        0, //binaryfunc  nb_inplace_lshift;
-        0, //binaryfunc  nb_inplace_rshift;
-        0, //binaryfunc  nb_inplace_and;
-        0, //binaryfunc  nb_inplace_xor;
-        0, //binaryfunc  nb_inplace_or;
-
-        /* Added in release 2.2 */
-        0, //binaryfunc  nb_floor_divide;
-        0, //binaryfunc  nb_true_divide;
-        0, //binaryfunc  nb_inplace_floor_divide;
-        0, //binaryfunc  nb_inplace_true_divide;
-
-        /* Added in release 2.5 */
-        0 //unaryfunc nb_index;
     };//Image_NumberMethods
 
 /* Image methods */
@@ -174,6 +148,8 @@ PyMethodDef Image_methods[] =
           "Multiply image by a constant or another image (does not create a new Image instance)" },
         { "inplaceDivide", (PyCFunction) Image_inplaceDivide, METH_VARARGS,
           "Divide image by a constant (does not create another Image instance)" },
+        { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
+          "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
 
 
         { NULL } /* Sentinel */
@@ -183,7 +159,6 @@ PyMethodDef Image_methods[] =
 /*Image Type */
 PyTypeObject ImageType = {
                              PyObject_HEAD_INIT(NULL)
-                             0, /*ob_size*/
                              "xmipp.Image", /*tp_name*/
                              sizeof(ImageObject), /*tp_basicsize*/
                              0, /*tp_itemsize*/
@@ -191,7 +166,7 @@ PyTypeObject ImageType = {
                              0, /*tp_print*/
                              0, /*tp_getattr*/
                              0, /*tp_setattr*/
-                             Image_compare, /*tp_compare*/
+                             0, /*tp_compare*/
                              Image_repr, /*tp_repr*/
                              &Image_NumberMethods, /*tp_as_number*/
                              0, /*tp_as_sequence*/
@@ -202,11 +177,11 @@ PyTypeObject ImageType = {
                              0, /*tp_getattro*/
                              0, /*tp_setattro*/
                              0, /*tp_as_buffer*/
-                             Py_TPFLAGS_DEFAULT | Py_TPFLAGS_CHECKTYPES, /*tp_flags*/
+                             Py_TPFLAGS_DEFAULT, /*tp_flags*/
                              "Python wrapper to Xmipp Image class",/* tp_doc */
                              0, /* tp_traverse */
                              0, /* tp_clear */
-                             0, /* tp_richcompare */
+                             Image_RichCompareBool, /* tp_richcompare */
                              0, /* tp_weaklistoffset */
                              0, /* tp_iter */
                              0, /* tp_iternext */
@@ -227,7 +202,7 @@ PyTypeObject ImageType = {
 PyObject *
 Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) type->tp_alloc(type, 0);
+    ImageObject *self = (ImageObject*)type->tp_alloc(type, 0);
     if (self != NULL)
     {
         PyObject *input = NULL;
@@ -243,8 +218,9 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     if (PyTuple_Check(input))
                     {
                       // Get the index and filename from the Python tuple object
-                      size_t index = PyInt_AsSsize_t(PyTuple_GetItem(input, 0));
-                      const char * filename = PyString_AsString(PyTuple_GetItem(input, 1));
+                      size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
+                      PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
+                      const char * filename = PyUnicode_AsUTF8(repr);
                       // Now read using both of index and filename
                       self->image = new ImageGeneric();
                       self->image->read(filename, DATA, index);
@@ -252,7 +228,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     }
                     else if ((pyStr = PyObject_Str(input)) != NULL)
                     {
-                        self->image = new ImageGeneric(PyString_AsString(pyStr));
+                        self->image = new ImageGeneric(PyUnicode_AsUTF8(pyStr));
                         //todo: add copy constructor
                     }
                     else
@@ -274,7 +250,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         else
             return NULL;
     }
-    return (PyObject *) self;
+    return (PyObject *)self;
 }//function Image_new
 
 /* Image string representation */
@@ -284,28 +260,41 @@ Image_repr(PyObject * obj)
     ImageObject *self = (ImageObject*) obj;
     String s;
     self->image->toString(s);
-    return PyString_FromString(s.c_str());
+    return PyUnicode_FromString(s.c_str());
 }//function Image_repr
 
 /* Image compare function */
-int
-Image_compare(PyObject * obj, PyObject * obj2)
+PyObject*
+Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
 {
-    int result = -1;
-
     if (obj != NULL && obj2 != NULL)
     {
         try
         {
-            if (Image_Value(obj) == Image_Value(obj2))
-                result = 0;
+            if (opid == Py_EQ)
+                {
+                    if (Image_Value(obj) == Image_Value(obj2))
+                        Py_RETURN_TRUE;
+                    else
+                       Py_RETURN_FALSE;
+                }
+            else if  (opid == Py_NE)
+                    {
+                        if (Image_Value(obj) == Image_Value(obj2))
+                            Py_RETURN_FALSE;
+                        else
+                           Py_RETURN_TRUE;
+                    }
+            else
+                return Py_NotImplemented;
+
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return result;
+    return NULL;
 }//function Image_compare
 
 /* Compare two images up to a precision */
@@ -354,8 +343,9 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
               if (PyTuple_Check(input))
               {
                 // Get the index and filename from the Python tuple object
-                size_t index = PyInt_AsSsize_t(PyTuple_GetItem(input, 0));
-                const char * filename = PyString_AsString(PyTuple_GetItem(input, 1));
+                size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
+                PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
+                const char * filename = PyUnicode_AsUTF8(repr);
                 // Now read using both of index and filename
                 bool isStack = (index > 0);
                 WriteMode writeMode = isStack ? WRITE_REPLACE : WRITE_OVERWRITE;
@@ -365,7 +355,8 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
               }
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                  self->image->write(PyString_AsString(input));
+                  const char * filename = PyUnicode_AsUTF8(pyStr);
+                  self->image->write(filename);
                   Py_RETURN_NONE;
               }
               else
@@ -398,20 +389,21 @@ Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 
             try
             {
-              PyObject *pyStr;
+              PyObject *pyStr, *pyStr1;
               // If the input object is a tuple, consider it (index, filename)
               if (PyTuple_Check(input))
               {
                 // Get the index and filename from the Python tuple object
-                size_t index = PyInt_AsSsize_t(PyTuple_GetItem(input, 0));
-                const char * filename = PyString_AsString(PyTuple_GetItem(input, 1));
+                size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
+                PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
+                const char *filename = PyUnicode_AsUTF8(repr);
                 // Now read using both of index and filename
                 self->image->read(filename,(DataMode)datamode, index);
                 Py_RETURN_NONE;
               }
               else if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                  self->image->read(PyString_AsString(pyStr),(DataMode)datamode);
+                  self->image->read(PyUnicode_AsUTF8(pyStr),(DataMode)datamode);
                   Py_RETURN_NONE;
               }
               else
@@ -459,7 +451,7 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
               PyObject *pyStr;
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                  readImagePreview(self->image, PyString_AsString(pyStr), x, slice);
+                  readImagePreview(self->image, PyUnicode_AsUTF8(pyStr), x, slice);
                   Py_RETURN_NONE;
               }
               else
@@ -497,8 +489,8 @@ Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
               PyObject *pyStr;
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
-                self->image->readPreviewSmooth(PyString_AsString(pyStr), x);
-                  Py_RETURN_NONE;
+                self->image->readPreviewSmooth(PyUnicode_AsUTF8(pyStr), x);
+                Py_RETURN_NONE;
               }
               else
               {
@@ -586,7 +578,7 @@ class NumpyStaticImport
 public:
     NumpyStaticImport()
     {
-        import_array();
+        _import_array();
     }
 }
 ;//class NumpyStaticImport
@@ -1473,8 +1465,9 @@ Image_inplaceMultiply(PyObject *self, PyObject *args, PyObject *kwargs)
 
 /* Divide image and constant, operator * */
 PyObject *
-Image_divide(PyObject *obj1, PyObject *obj2)
+Image_true_divide(PyObject *obj1, PyObject *obj2)
 {
+    std::cerr << "TODO: not working Image_divide_____________________________" << std::endl;
     ImageObject * result = PyObject_New(ImageObject, &ImageType);
     if (result != NULL)
     {
@@ -1501,6 +1494,7 @@ Image_divide(PyObject *obj1, PyObject *obj2)
 PyObject *
 Image_idivide(PyObject *obj1, PyObject *obj2)
 {
+    std::cerr << "TODO: not working Image_idivide_____________________________" << std::endl;
     try
     {
       ImageObject * result = NULL;
@@ -1616,71 +1610,6 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }//operator +=
 
-/** Image inplace subtraction, equivalent to -= operator */
-PyObject *
-Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
-{
-
-	PyObject * list = NULL;
-    PyObject * item = NULL;
-    PyObject * dsize = NULL;
-    PyObject * border_value = NULL;
-
-    ImageObject *self = (ImageObject*) obj;
-    ImageGeneric * image = self->image;
-    double doubleBorder_value = 1.0;
-    size_t Xdim, Ydim, Zdim;
-    image->getDimensions(Xdim, Ydim, Zdim);
-    try
-    {
-        PyArg_ParseTuple(args, "O|OO", &list, &dsize, &border_value);
-        if (PyList_Check(list))
-        {
-        	if (nullptr != dsize)
-        	{
-        		Ydim = PyInt_AsSsize_t(PyTuple_GetItem(dsize, 0));
-        		Xdim = PyInt_AsSsize_t(PyTuple_GetItem(dsize, 1));
-        	}
-            if (border_value!=NULL)
-           	    doubleBorder_value = PyFloat_AsDouble(border_value);
-
-            size_t size = PyList_Size(list);
-            Matrix2D<double> A;
-            A.initIdentity(3);
-            for (size_t i = 0; i < size; ++i)
-            {
-                item  = PyList_GetItem(list, i);
-                MAT_ELEM(A,i/3,i%3 ) = PyFloat_AsDouble(item);
-            }
-
-            image->convert2Datatype(DT_Double);
-            MultidimArray<double> *in;
-            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
-            in->setXmippOrigin();
-
-            ImageObject *result = PyObject_New(ImageObject, &ImageType);
-            result->image = new ImageGeneric(DT_Double);
-            MultidimArray<double> *out;
-            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
-            out->resize(Ydim,Xdim);
-            out->initConstant(doubleBorder_value);
-            out->setXmippOrigin();
-
-            applyGeometry(3, *out, *in, A, false, true, doubleBorder_value);
-            return (PyObject *)result;
-        }
-        else
-        {
-            PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting a list");
-
-        }
-    }
-    catch (XmippError &xe)
-    {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
-    }
-    return NULL;
-}
 
 PyObject *
 Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
@@ -1726,6 +1655,79 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return NULL;
 }
+
+/** Image inplace subtraction, equivalent to -= operator */
+PyObject *
+Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+
+	PyObject * list = NULL;
+    PyObject * item = NULL;
+    PyObject * dsize = NULL;
+    PyObject * wrap = Py_True;
+    PyObject * border_value = NULL;
+
+    ImageObject *self = (ImageObject*) obj;
+    ImageGeneric * image = self->image;
+    double doubleBorder_value = 1.0;
+    size_t Xdim, Ydim, Zdim;
+    bool doWrap = true;
+    image->getDimensions(Xdim, Ydim, Zdim);
+    try
+    {
+        PyArg_ParseTuple(args, "O|OOO", &list, &dsize, &wrap, &border_value);
+        if (PyList_Check(list))
+        {
+        	if (nullptr != dsize)
+        	{
+        		Ydim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 0));
+        		Xdim = PyLong_AsSsize_t(PyTuple_GetItem(dsize, 1));
+        	}
+            if (PyBool_Check(wrap))
+                doWrap = (wrap == Py_True);
+            else
+                PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting boolean value for wrapping");
+            if (border_value!=NULL)
+           	    doubleBorder_value = PyFloat_AsDouble(border_value);
+
+            size_t size = PyList_Size(list);
+            Matrix2D<double> A;
+            A.initIdentity(3);
+            for (size_t i = 0; i < size; ++i)
+            {
+                item  = PyList_GetItem(list, i);
+                MAT_ELEM(A,i/3,i%3 ) = PyFloat_AsDouble(item);
+            }
+
+            image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
+            in->setXmippOrigin();
+
+            ImageObject *result = PyObject_New(ImageObject, &ImageType);
+            result->image = new ImageGeneric(DT_Double);
+            MultidimArray<double> *out;
+            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+            out->resize(Ydim,Xdim);
+            out->initConstant(doubleBorder_value);
+            out->setXmippOrigin();
+
+            applyGeometry(3, *out, *in, A, false, doWrap, doubleBorder_value);
+            return (PyObject *)result;
+        }
+        else
+        {
+            PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting a list");
+
+        }
+    }
+    catch (XmippError &xe)
+    {
+        PyErr_SetString(PyXmippError, xe.msg.c_str());
+    }
+    return NULL;
+}
+
 
 PyObject *
 Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
