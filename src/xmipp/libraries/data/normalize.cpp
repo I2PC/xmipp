@@ -247,21 +247,14 @@ void normalize_NewXmipp(MultidimArray<double> &I, const MultidimArray<int> &bg_m
 void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mask, bool clip)
 {
     std::vector<double> voxel_vector;
-    MultidimArray<int> fg_mask = bg_mask;
     double maxI, minI;
     SPEED_UP_temps;
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
-        DIRECT_MULTIDIM_ELEM(fg_mask,n) = 1 - DIRECT_MULTIDIM_ELEM(bg_mask,n);
-
-    FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(fg_mask, I)
-        {
-            if (A3D_ELEM(fg_mask, k, i, j) != 0)
-            {
-            	double aux = A3D_ELEM(I, k, i, j);
-                voxel_vector.push_back(aux);
-            }
-        }
+    {
+        if (DIRECT_MULTIDIM_ELEM(bg_mask, n) == 0)
+            voxel_vector.push_back(DIRECT_MULTIDIM_ELEM(I,n));
+    }
 
     std::sort(voxel_vector.begin(), voxel_vector.end());
 
