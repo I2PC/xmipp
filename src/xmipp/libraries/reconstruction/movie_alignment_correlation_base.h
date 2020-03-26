@@ -268,7 +268,7 @@ private:
      * @param targetOccupancy max frequency to preserve
      * @param lpf filter will be stored here
      */
-    void constructLPF(T targetOccupancy, const MultidimArray<T>& lpf);
+    void constructLPF(T targetOccupancy, MultidimArray<T>& lpf);
 
     /**
      * Loads movie from the file
@@ -354,6 +354,7 @@ protected:
     std::pair<size_t, size_t> localAlignPatches;
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
+    T highPassPercents;
 
 
 private:

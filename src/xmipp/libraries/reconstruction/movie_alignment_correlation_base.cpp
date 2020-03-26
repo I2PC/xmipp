@@ -51,6 +51,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     bin = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
     processLocalShifts = checkParam("--processLocalShifts");
+    highPassPercents = getIntParam("--highPassPercent");
 
     String outside = getParam("--outside");
     if (outside == "wrap")
@@ -174,6 +175,8 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
             "             value             : Fill borders with a specific value v");
     addParamsLine(
             "  [--processLocalShifts]       : Calculate and correct local shifts");
+    addParamsLine(
+            "  [--highPassPercent <x=5>]    : How many percent of the low frequencies should be filtered");
     addParamsLine(
             "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     addParamsLine(
@@ -314,13 +317,19 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
-        const MultidimArray<T>& lpf) {
+        MultidimArray<T>& lpf) {
     T iNewXdim = 1.0 / lpf.xdim;
     T sigma = targetOccupancy / 6; // So that from -targetOccupancy to targetOccupancy there is 6 sigma
     T K = -0.5 / (sigma * sigma);
+    T percents = highPassPercents;
+    T count = percents * lpf.xdim / (T)100;
     for (int i = STARTINGX(lpf); i <= FINISHINGX(lpf); ++i) {
-        T w = i * iNewXdim;
-        A1D_ELEM(lpf, i) = exp(K * (w * w));
+        if (i < count) {
+            A1D_ELEM(lpf, i) = i / count;
+        } else {
+            T w = i * iNewXdim;
+            A1D_ELEM(lpf, i) = exp(K * (w * w));
+        }
     }
 }
 
