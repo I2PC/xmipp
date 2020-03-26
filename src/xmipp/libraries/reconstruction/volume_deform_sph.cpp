@@ -234,15 +234,17 @@ void ProgVolDeformSph::run() {
 
 	// We need also to normalized the filtered volumes to compare them appropiately
 	MultidimArray<int> bg_mask;
+	Image<double> auxI = VI;
+	Image<double> auxR = VR;
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     bg_mask.setXmippOrigin();
 	BinaryCircularMask(bg_mask, bg_mask.xdim / 2, OUTSIDE_MASK);
 
-	normalize_Robust(VI(), bg_mask, true);
-	normalize_Robust(VR(), bg_mask, true);
+	normalize_Robust(auxI(), bg_mask, true);
+	normalize_Robust(auxR(), bg_mask, true);
 
-	volumesI.push_back(VI());
-	volumesR.push_back(VR());
+	volumesI.push_back(auxI());
+	volumesR.push_back(auxR());
 
 	for (int ids=0; ids<sigma.size(); ids++)
 	{
