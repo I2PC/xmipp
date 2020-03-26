@@ -238,7 +238,7 @@ void ProgVolDeformSph::run() {
 	Image<double> auxR = VR;
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     bg_mask.setXmippOrigin();
-	BinaryCircularMask(bg_mask, bg_mask.xdim / 2, OUTSIDE_MASK);
+	BinaryCircularMask(bg_mask, Rmax, OUTSIDE_MASK);
 
 	normalize_Robust(auxI(), bg_mask, true);
 	normalize_Robust(auxR(), bg_mask, true);
