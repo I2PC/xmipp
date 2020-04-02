@@ -24,11 +24,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-import re
 
+import re
 import sys, os
+
 from xmipp_base import *
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+from xmippPyModules.deepLearningToolkitUtils.utils import *
 import numpy as np
 
 import xmippLib
@@ -137,7 +138,7 @@ class ScriptDeepDenoising(XmippScript):
     # yieldPredictions will compute the denoised particles from the particles contained in inputParticlesMdName and
     # it will yield a batch of denoisedParts, inputParts (and projectionParts if inputProjectionsStackName provided)
     for preds, particles, projections in model.yieldPredictions(inputParticlesMdName, metadataProjections):
-      newRow = mdNewParticles.Row() #TODO: ESTO NO
+      newRow = XmippMdRow()
       for pred, particle, projection in zip(preds, particles, projections): # Here we will populate the output stacks
         i += 1
         outputImgpath = ('%06d@' % (i,)) + outputParticlesStackName #denoised image path

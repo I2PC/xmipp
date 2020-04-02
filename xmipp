@@ -1239,7 +1239,7 @@ def install(dirname):
     createDir(dirname+"/bindings/python")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
-    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/condaEnvsDef.py " + dirname + "/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/condaEnvsDef.json " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
     # ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
