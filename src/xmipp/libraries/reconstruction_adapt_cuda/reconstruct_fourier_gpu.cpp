@@ -456,8 +456,8 @@ void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
 
     // clean after itself
     releaseWrapper(threadParams->gpuStream);
-    threadParams->buffer->~RecFourierBufferData(); // <- explicit destructor call
     unpinMemory(threadParams->buffer);
+    threadParams->buffer->~RecFourierBufferData(); // <- explicit destructor call
     free(rawMem);
     threadParams->buffer = NULL;
     threadParams->selFile = NULL;
