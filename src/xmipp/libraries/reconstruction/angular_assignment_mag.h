@@ -31,6 +31,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/metadata_extension.h>
 #include <core/multidim_array.h>
+#include <core/symmetries.h>
 #include <data/mask.h>
 #include <data/filters.h>
 
@@ -116,6 +117,13 @@ public:
     double maxShift;
     double sampling;
     double angStep;
+
+    // Symmetry list
+    SymList SL;
+    // Left matrices for the symmetry transformations
+    std::vector< Matrix2D<double> > L;
+    // Right matrices for the symmetry transformations
+    std::vector< Matrix2D<double> > R;
 
 // borrar
 double Inicio;

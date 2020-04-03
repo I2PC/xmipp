@@ -41,7 +41,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addUsageLine( "Generates a list of candidates for angular assignment for each experimental image");
 	addParamsLine("   -ref <md_file>             : Metadata file with input reference projections");
 	addParamsLine("  [-odir <outputDir=\".\">]   : Output directory");
-	addParamsLine("  [-sym <symfile=c1>]         : Enforce symmetry in projections");
+	addParamsLine("  [--sym <symfile=c1>]         : Enforce symmetry in projections");
 	addParamsLine("  [-sampling <sampling=1.>]   : sampling");
 	addParamsLine("  [-angleStep <angStep=3.>]   : angStep");
 	addParamsLine("  [--maxShift <maxShift=-1.>]  : Maximum shift allowed (+-this amount)");
@@ -58,7 +58,7 @@ void ProgAngularAssignmentMag::readParams() {
 	sampling = getDoubleParam("-sampling");
 	angStep= getDoubleParam("-angleStep");
 	XmippMetadataProgram::oroot = fnDir;
-	fnSym = getParam("-sym");
+	fnSym = getParam("--sym");
 	maxShift = getDoubleParam("--maxShift");
 }
 
@@ -292,8 +292,17 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	startBand = size_t((sampling * Xdim) / 80.);
 	finalBand = size_t((sampling * Xdim) / (sampling * 3));
-//startBand = 5;
-//finalBand = 19;
+
+//	startBand = size_t( (Xdim * sampling)/25. );
+//	finalBand = size_t( (Xdim * sampling)/5. );
+//	if (finalBand >= n_rad)
+//		finalBand = n_rad;
+
+//	// solo 10061 iter4 borrar luego
+//	startBand = size_t(2);
+//	finalBand = size_t(34);
+
+
 
 	n_bands = finalBand - startBand;
 
@@ -390,8 +399,6 @@ if(!in){
 	computingNeighborGraph2();
 	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
 	std::cout << "Neigborhood, Laplacian matrix and eigendecomposition take "<< duration << " seconds" << std::endl;
-	Inicio=std::clock();
-	// std::cout<<formatString("dimensiones antes: %d x %d\n",int(eigenvectors.Xdim()), int(eigenvectors.Ydim()) );
 }
 else{
 	in.close();
@@ -399,14 +406,22 @@ else{
 			<<fnEigenVect.c_str()<<std::endl;
 	eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
 	eigenvectors.read(fnEigenVect);
-
-	// std::cout<<formatString("dimensiones despues: %d x %d\n",int(eigenvectors.Xdim()), int(eigenvectors.Ydim()) );
-	//	std::cout<<"escribo de nuevo para comparar archivos:\n";
-	//	String fnEigenvectTest=formatString("%s/outEigenVectTest.txt",fnDir.c_str());
-	//	eigenvectors.write(fnEigenvectTest);
-	//	exit(1);
 }
 
+// Symmetry List
+if (fnSym!="")
+{
+    SL.readSymmetryFile(fnSym);
+    for (int sym=0; sym<SL.symsNo(); sym++)
+    {
+        Matrix2D<double> auxL, auxR;
+        SL.getMatrices(sym,auxL,auxR);
+        auxL.resize(3,3);
+        auxR.resize(3,3);
+        L.push_back(auxL);
+        R.push_back(auxR);
+    }
+}
 
 }
 
@@ -676,15 +691,44 @@ outCandidateBef.close();
 	tiltj=referenceTilt.at(candidatesSecondLoop[Idx2[0]]);
 	psij=0.;
 	Euler_direction(rotj, tiltj, psij, dirj);
-	double rotjp, tiltjp, psijp;
+	double rotjp;
+	double tiltjp;
+	double psijp;
 	rotjp=referenceRot.at(candidatesSecondLoop[Idx3[0]]);
 	tiltjp=referenceTilt.at(candidatesSecondLoop[Idx3[0]]);
 	psijp=0.;
 	Euler_direction(rotjp, tiltjp, psijp, dirjp);
 	double sphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp));
 
-	// is this direction a reliable candidate?
-	// a condition could be: if this direction is within "soft neighborhood" with high coeff values
+//borrar
+//std::cout<<"number of equivalent projections: "<<SL.symsNo()<<std::endl;
+
+	// compute distance keeping in mind the symmetry
+	for(size_t sym = 0; sym<SL.symsNo(); sym++){
+		double auxRot, auxTilt, auxPsi; // equivalent coordinates
+		double auxSphericalDist;
+		Euler_apply_transf(L[sym], R[sym],rotjp, tiltjp, psijp,
+				auxRot,auxTilt,auxPsi);
+		Euler_direction(auxRot, auxTilt, auxPsi, dirjp);
+		auxSphericalDist=RAD2DEG(spherical_distance(dirj, dirjp));
+		if (auxSphericalDist < sphericalDistance){
+//borrar
+std::cout<<"\n\nsphericalDistance: "<<sphericalDistance<<std::endl;
+			sphericalDistance = auxSphericalDist;
+//borrar
+std::cout<<"sphericalDistance symm: "<<sphericalDistance<<std::endl;
+		}
+
+////borrar
+//std::cout<<formatString("\nrot, tilt, psi anterior:\n%.2f \t %.2f \t %.2f \nnuevo: \n%.2f \t %.2f \t %.2f",
+//		rotjp, tiltjp, psijp, auxRot,auxTilt,auxPsi);
+	}
+
+
+
+	// *** test only for virus not graph filter
+	//	// is this direction a reliable candidate?
+	//	// a condition could be: if this direction is within "soft neighborhood" with high coeff values
 	// BETTER RESULTS
 	double maxDistance=3.*angStep;
 	if(sphericalDistance>maxDistance)
@@ -1532,7 +1576,7 @@ void ProgAngularAssignmentMag::rotCandidates3(MultidimArray<double> &in,
 	int cont = 0;
 	peaksFound = cont;
 
-	for (int i = 89; i < 272; ++i) { // only look for in range 90:-90
+	for (int i = 89; i < 272; ++i) { // only look within  90:-90 range
 		// current value is a peak value?
 		if ((dAi(in,size_t(i)) > dAi(in, size_t(i - 1))) &&
 				(dAi(in,size_t(i)) > dAi(in, size_t(i + 1)))) {

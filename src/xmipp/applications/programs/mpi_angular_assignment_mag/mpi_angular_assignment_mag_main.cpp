@@ -31,8 +31,8 @@
 #include <../parallel/xmipp_mpi.h>
 #include <../reconstruction/angular_assignment_mag.h> // */
 
-//CREATE_MPI_METADATA_PROGRAM(ProgAngularAssignmentMag, MpiProgAngularAssignmentMag)
-// /*
+CREATE_MPI_METADATA_PROGRAM(ProgAngularAssignmentMag, MpiProgAngularAssignmentMag)
+/*
 class MpiProgAngularAssignmentMag: public ProgAngularAssignmentMag, public MpiMetadataProgram
 {
 public:
