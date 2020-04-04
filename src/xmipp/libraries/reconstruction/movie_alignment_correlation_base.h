@@ -121,14 +121,12 @@ protected:
     T computeSizeFactor();
 
     /**
-     * Method will create a 2D Low Pass Filter with given properties
-     * @param targetOccupancy should be <0, 1.0>
-     * @param xSize of the filter
-     * @param ySize of the filter
+     * Method will create a 2D Low Pass Filter of given size
+     * @param Ts pixel resolution of the resulting filter
+     * @param dims dimension of the filter (in spatial domain)
      * @return requested LPF
      */
-    MultidimArray<T> createLPF(T targetOccupancy, size_t xSize,
-            size_t ySize);
+    MultidimArray<T> createLPF(T Ts, const Dimensions &dims);
 
     /**
      * Method loads a single frame from the movie
@@ -221,20 +219,38 @@ protected:
      * Method to store all computed alignment to hard drive
      */
     void storeResults(const LocalAlignmentResult<T> &alignment);
+
+    /**
+     * Returns pixel resolution of the scaled movie
+     * @param scaleFactor (<= 1) used to change size of the movie
+     */
+    T getPixelResolution(T scaleFactor);
+
+    /**
+     * Returns scale factor as requested by user
+     */
+    T getScaleFactor();
+
 private:
+
+    /**
+     * Method will create a 1D Low Pass Filter
+     * @param Ts pixel resolution of the resulting filter
+     * @param filter 1D filter, where low-pass filter will be stored
+     */
+    void createLPF(T Ts, MultidimArray<T> &filter);
 
     /**
      * Method will create a 2D Low-Pass Filter from the 1D
      * profile, that can be used in Fourier domain
      * @param lpf 1D profile
-     * @param xSize size of full image (space domain)
-     * @param ySize size of full image (space/frequency domain)
-     * @param targetOccupancy maximal frequency to be preserved, should be <0, 1.0>
+     * @param dims dimension of the filter (in spatial domain).
      * @param result resulting 2D filter. Must be of proper size, i.e.
      * xdim == xSize/2+1, ydim = ySize
      */
-    void scaleLPF(const MultidimArray<T>& lpf, int xSize, int ySize,
-            T targetOccupancy, MultidimArray<T>& result);
+    void scaleLPF(const MultidimArray<T>& lpf, const Dimensions &dims, MultidimArray<T>& result);
+
+
 
     /**
      * Method to store global (frame) shifts computed for the movie
@@ -262,13 +278,6 @@ private:
      *  @param gain correction will be stored here
      */
     void loadGainCorrection(Image<T>& igain);
-
-    /**
-     * Method to construct 1D low-pass filter profile
-     * @param targetOccupancy max frequency to preserve
-     * @param lpf filter will be stored here
-     */
-    void constructLPF(T targetOccupancy, MultidimArray<T>& lpf);
 
     /**
      * Loads movie from the file
@@ -311,6 +320,11 @@ private:
      * Returns sampling rate that user requested
      */
     T getRequestedSamplingRate();
+
+    T getTsPrime();
+
+    T getC();
+
 
 protected:
     /** First and last frame (inclusive)*/
@@ -355,17 +369,17 @@ protected:
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
     T highPassPercents;
-
+    /** Max freq. */
+    T maxFreq; // max resolution in A
+    /** Sampling rate */
+    T Ts;
 
 private:
     /** Filename of movie metadata */
     FileName fnMovie;
     /** Correction images */
     FileName fnDark, fnGain;
-    /** Sampling rate */
-    T Ts;
-    /** Max freq. */
-    T maxFreq;
+
     /** Do not calculate and use the input shifts */
     bool useInputShifts;
 

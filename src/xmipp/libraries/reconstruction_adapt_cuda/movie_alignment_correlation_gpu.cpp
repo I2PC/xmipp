@@ -31,6 +31,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
+    // FIXME DS this should be 'resolution for local alignment'
     this->addParamsLine("  [--locCorrDownscale <x=4> <y=4>]   : Downscale coefficient of the correlations used for local alignment");
 
     this->addExampleLine(
@@ -132,8 +133,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
-    Dimensions hint(512, 512, // this should be a trade-off between speed and present signal
-            // but check the speed to make sure
+    Dimensions hint(this->Ts * 500, this->Ts * 500, // we want patch of at least 500 A
             orig.dim.z(), orig.dim.n());
     // divide available memory to 3 parts (2 buffers + 1 FFT)
     size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
@@ -328,10 +328,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
             patchSettings.dim);
+    T actualScale = correlationSettings.dim.x() / (T)patchSettings.dim.x();
     if (this->verbose > 1) {
+        std::cout << "Actual scale factor: " << actualScale << std::endl;
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
-    }
-    if (this->verbose > 1) {
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
     }
 
@@ -348,8 +348,9 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     assert(movieSettings.dim == rawMovieDim);
 
     // prepare filter
-    MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSettings.dim.x(),
-            correlationSettings.dim.y());
+    // FIXME DS make sure that the resulting filter is correct, even if we do non-uniform scaling
+    MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSettings.dim);
+
 
     // compute max of frames in buffer
     T corrSizeMB = MB<T>((size_t) correlationSettings.x_freq
@@ -564,18 +565,19 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, true);
-    T sizeFactor = this->computeSizeFactor();
-    if (this->verbose) {
-        std::cout << "Settings for the movie: " << movieSettings << std::endl;
-    }
+    T requestedScale = this->getScaleFactor();
     auto correlationSetting = this->getCorrelationSettings(movieSettings,
-            std::make_pair(sizeFactor, sizeFactor));
+            std::make_pair(requestedScale, requestedScale));
+    T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
+
+    MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
     if (this->verbose) {
+        std::cout << "Requested scale factor: " << requestedScale << std::endl;
+        std::cout << "Actual scale factor: " << actualScale << std::endl;
+        std::cout << "Settings for the movie: " << movieSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
     }
 
-    MultidimArray<T> filter = this->createLPF(this->getTargetOccupancy(), correlationSetting.dim.x(),
-            correlationSetting.dim.y());
 
     T corrSizeMB = ((size_t) correlationSetting.x_freq
             * correlationSetting.dim.y()

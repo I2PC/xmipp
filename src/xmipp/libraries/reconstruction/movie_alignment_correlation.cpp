@@ -93,8 +93,8 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                 firstImage = false;
                 newXdim = croppedFrame().xdim * sizeFactor;
                 newYdim = croppedFrame().ydim * sizeFactor;
-                filter = this->createLPF(this->getTargetOccupancy(), newXdim,
-                    newYdim);
+                filter = this->createLPF(this->getPixelResolution(sizeFactor), Dimensions(newXdim,
+                    newYdim));
             }
 
             // Reduce the size of the input frame
