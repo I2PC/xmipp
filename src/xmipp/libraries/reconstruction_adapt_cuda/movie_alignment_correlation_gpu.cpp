@@ -31,8 +31,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
-    // FIXME DS this should be 'resolution for local alignment'
-    this->addParamsLine("  [--locCorrDownscale <x=4> <y=4>]   : Downscale coefficient of the correlations used for local alignment");
 
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
@@ -68,11 +66,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     if (patchesAvg < 1)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Patch averaging has to be at least one.");
-
-    // read local alignment correlations scale
-    localCorrelationDownscale = std::make_pair(
-            (T)1 / this->getIntParam("--locCorrDownscale", 0),
-            (T)1 / this->getIntParam("--locCorrDownscale", 1));
 }
 
 template<typename T>
@@ -133,7 +126,8 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
-    Dimensions hint(this->Ts * 500, this->Ts * 500, // we want patch of at least 500 A
+    const auto reqSize = this->getRequestedPatchSize();
+    Dimensions hint(reqSize.first, reqSize.second,
             orig.dim.z(), orig.dim.n());
     // divide available memory to 3 parts (2 buffers + 1 FFT)
     size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
@@ -311,9 +305,10 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelation
         const Dimensions &patchDim, T maxShift) {
     T minX = ((maxShift * 2) + 1) / patchDim.x();
     T minY = ((maxShift * 2) + 1) / patchDim.y();
+    T idealScale = this->getScaleFactor();
     return std::make_pair(
-            std::max(minX, localCorrelationDownscale.first),
-            std::max(minY, localCorrelationDownscale.second));
+            std::max(minX, idealScale),
+            std::max(minY, idealScale));
 }
 
 template<typename T>
@@ -323,6 +318,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
+    this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
     auto correlationSettings = this->getCorrelationSettings(patchSettings,
             getLocalAlignmentCorrelationDownscale(patchSettings.dim, this->maxShift));
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
@@ -330,6 +326,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
             patchSettings.dim);
     T actualScale = correlationSettings.dim.x() / (T)patchSettings.dim.x();
     if (this->verbose > 1) {
+        std::cout << "No. of patches: " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
         std::cout << "Actual scale factor: " << actualScale << std::endl;
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;

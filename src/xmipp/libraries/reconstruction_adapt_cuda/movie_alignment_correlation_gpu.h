@@ -301,10 +301,6 @@ private:
             T *output);
 
 private:
-
-    /** downscale to be used for local alignment correlation (<1) */
-    std::pair<T,T> localCorrelationDownscale;
-
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 

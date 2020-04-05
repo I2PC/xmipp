@@ -231,6 +231,14 @@ protected:
      */
     T getScaleFactor();
 
+    /** Returns size of the patch as requested by user */
+    std::pair<size_t, size_t> getRequestedPatchSize() {
+        return {Ts * minLocalRes, Ts * minLocalRes};
+    }
+
+    /** Sets number of patches, based on size of the movie and patch */
+    void setNoOfPaches(const Dimensions &movieDim,
+            const Dimensions &patchDim);
 private:
 
     /**
@@ -325,7 +333,6 @@ private:
 
     T getC();
 
-
 protected:
     /** First and last frame (inclusive)*/
     int nfirst, nlast;
@@ -368,13 +375,14 @@ protected:
     std::pair<size_t, size_t> localAlignPatches;
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
-    T highPassPercents;
-    /** Max freq. */
-    T maxFreq; // max resolution in A
-    /** Sampling rate */
-    T Ts;
 
 private:
+    /** Minimal resolution (in A) of the patch for local alignment */
+    size_t minLocalRes;
+    /** Max resolution in A to preserve during alignment*/
+    T maxResForCorrelation; //
+    /** Pixel size of the movie*/
+    T Ts;
     /** Filename of movie metadata */
     FileName fnMovie;
     /** Correction images */

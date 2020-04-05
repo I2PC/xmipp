@@ -35,7 +35,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnGain = getParam("--gain");
     maxShift = getDoubleParam("--max_shift");
     Ts = getDoubleParam("--sampling");
-    maxFreq = getDoubleParam("--max_freq");
+    maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
     solverIterations = getIntParam("--solverIterations");
     fnAligned = getParam("--oaligned");
     fnAvg = getParam("--oavg");
@@ -51,7 +51,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     bin = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
     processLocalShifts = checkParam("--processLocalShifts");
-    highPassPercents = getIntParam("--highPassPercent");
+    minLocalRes = getIntParam("--minLocalRes");
 
     String outside = getParam("--outside");
     if (outside == "wrap")
@@ -73,13 +73,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
             "All control points has to be bigger than 2");
     localAlignmentControlPoints = cPoints;
 
-    // read patches
-    localAlignPatches = std::make_pair(
-            this->getIntParam("--patches", 0),
-            this->getIntParam("--patches", 1));
-    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
-        REPORT_ERROR(ERR_ARG_INCORRECT,
-            "At least one patch has to be used in each dimension.");
+    addParamsLine("  [--minLocalRes <R=500>]            : Minimal resolution (in A) of patches during local alignment");
 }
 
 template<typename T>
@@ -95,12 +89,13 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::show() {
     if (!verbose)
         return;
-    std::cout << "Input movie:         " << fnMovie << std::endl
+    std::cout
+            << "Input movie:         " << fnMovie << std::endl
             << "Output metadata:     " << fnOut << std::endl
             << "Dark image:          " << fnDark << std::endl
             << "Gain image:          " << fnGain << std::endl
             << "Max. Shift:          " << maxShift << std::endl
-            << "Max. Scale:          " << maxFreq << std::endl
+            << "Max resolution (A):  " << maxResForCorrelation << std::endl
             << "Sampling:            " << Ts << std::endl
             << "Solver iterations:   " << solverIterations << std::endl
             << "Aligned movie:       " << fnAligned << std::endl
@@ -140,8 +135,9 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--max_shift <s=30>]         : Maximum shift allowed in pixels");
     addParamsLine(
-            "  [--max_freq <s=4>]           : Maximum resolution to align (in Angstroms)");
-    addParamsLine("  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
+            "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
+    addParamsLine(
+            "  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
     addParamsLine(
             "  [--solverIterations <N=2>]   : Number of robust least squares iterations");
     addParamsLine(
@@ -176,11 +172,9 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--processLocalShifts]       : Calculate and correct local shifts");
     addParamsLine(
-            "  [--highPassPercent <x=5>]    : How many percent of the low frequencies should be filtered");
-    addParamsLine(
             "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     addParamsLine(
-            "  [--patches <x=10> <y=10>]    : Number of patches to use for local alignment estimation");
+            "  [--minLocalRes <R=500>]      : Minimal resolution (in A) of patches during local alignment");
     addExampleLine("A typical example", false);
     addSeeAlsoLine("xmipp_movie_optical_alignment_cpu");
 }
@@ -252,7 +246,7 @@ void AProgMovieAlignmentCorrelation<T>::createLPF(T Ts, MultidimArray<T> &filter
     // sigma = Ts / max_resolution * c
     const size_t length = filter.xdim;
     T iX = 1 / (T)length;
-    T sigma = (Ts * getC()) / maxFreq;
+    T sigma = (Ts * getC()) / maxResForCorrelation;
     for (size_t x = 0; x < length; ++x) {
         T w = x * iX;
         filter.data[x] = (exp(-0.5*(w*w)/(sigma*sigma)));
@@ -355,7 +349,7 @@ T AProgMovieAlignmentCorrelation<T>::getTsPrime() {
     // omega4 = 4 * sigma -> Ts/R4 = 4 Ts / max_resolution * c
     // R4 = max_resolution / (4 * c)
     // new pixel size Ts' = R4 / 2 (to preserve Nyquist frequency)
-    T TsPrime = maxFreq / (8 * getC());
+    T TsPrime = maxResForCorrelation / (8 * getC());
     return TsPrime;
 }
 
@@ -371,7 +365,7 @@ T AProgMovieAlignmentCorrelation<T>::getTargetOccupancy() {
     if (bin < 0) {
         return (T)0.9;
     } else {
-        return 2 * getRequestedSamplingRate() / maxFreq;
+        return 2 * getRequestedSamplingRate() / maxResForCorrelation;
     }
 }
 
@@ -381,7 +375,7 @@ T AProgMovieAlignmentCorrelation<T>::getRequestedSamplingRate() {
     if (bin < 0) {
         T targetOccupancy = getTargetOccupancy();
         // Determine target size of the images
-        newTs = targetOccupancy * maxFreq / 2;
+        newTs = targetOccupancy * maxResForCorrelation / 2;
         newTs = std::max(newTs, Ts);
     } else {
         newTs = bin * Ts;
@@ -598,6 +592,15 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
             id);
     // Safe to file
     mdIref.write((FileName) ("localAlignment@") + fnOut, MD_APPEND);
+}
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::setNoOfPaches(const Dimensions &movieDim,
+        const Dimensions &patchDim) {
+    // read patches
+    localAlignPatches = {
+            std::ceil(movieDim.x() / (float)patchDim.x()),
+            std::ceil(movieDim.y() / (float)patchDim.y())};
 }
 
 template<typename T>
