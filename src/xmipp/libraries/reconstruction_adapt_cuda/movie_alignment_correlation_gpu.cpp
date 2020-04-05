@@ -493,6 +493,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
     auto coeffs = std::make_pair(alignment.bsplineRep.value().getCoeffsX(),
         alignment.bsplineRep.value().getCoeffsY());
 
+    const T binning = this->getOutputBinning();
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         frameIndex++;
@@ -504,7 +505,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             // we can point to proper part of the already loaded movie
             croppedFrame.data.data = movieRawData + (frameOffset * rawMovieDim.xy());
 
-            if (this->bin > 0) {
+            if (binning > 0) {
                 // FIXME add templates to respective functions/classes to avoid type casting
                 /**
                  * WARNING
@@ -514,8 +515,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 Image<double> reducedFrameDouble;
                 typeCast(croppedFrame(), croppedFrameDouble());
 
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
-                        floor(XSIZE(croppedFrame()) / this->bin),
+                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
+                        floor(XSIZE(croppedFrame()) / binning),
                         croppedFrameDouble(), reducedFrameDouble());
 
                 typeCast(reducedFrameDouble(), reducedFrame());

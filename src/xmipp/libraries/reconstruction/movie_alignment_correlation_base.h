@@ -116,11 +116,6 @@ protected:
             const Matrix1D<T> &shiftY, T &totalShiftX, T &totalShiftY);
 
     /**
-     * Method computes an internal (down)scale factor of the micrographs
-     */
-    T computeSizeFactor();
-
-    /**
      * Method will create a 2D Low Pass Filter of given size
      * @param Ts pixel resolution of the resulting filter
      * @param dims dimension of the filter (in spatial domain)
@@ -149,11 +144,6 @@ protected:
     void loadFrame(const MetaData &movie, const Image<T> &dark,
             const Image<T> &igain, size_t objId,
             Image<T> &out);
-
-    /**
-     * Returns occupancy that can be used for filter generation
-     */
-    T getTargetOccupancy();
 
     /**
      * This method applies global shifts and can also produce 'average'
@@ -239,6 +229,11 @@ protected:
     /** Sets number of patches, based on size of the movie and patch */
     void setNoOfPaches(const Dimensions &movieDim,
             const Dimensions &patchDim);
+
+    /** Get binning factor for resulting micrograph / alignend movie */
+    T getOutputBinning() {
+        return outputBinning;
+    }
 private:
 
     /**
@@ -324,13 +319,9 @@ private:
      */
     void printGlobalShift(const AlignmentResult<T> &globAlignment);
 
-    /**
-     * Returns sampling rate that user requested
-     */
-    T getRequestedSamplingRate();
-
+    /** Returns pixel size of the movie after downsampling to 4 sigma */
     T getTsPrime();
-
+    /** Returns constant used for filter sigma computation */
     T getC();
 
 protected:
@@ -357,8 +348,6 @@ protected:
     int nfirstSum, nlastSum;
     /** Aligned micrograph */
     FileName fnInitialAvg;
-    /** Binning factor */
-    T bin;
     /** Bspline order */
     int BsplineOrder;
     /** Outside mode */
@@ -387,7 +376,8 @@ private:
     FileName fnMovie;
     /** Correction images */
     FileName fnDark, fnGain;
-
+    /** Binning factor used for output */
+    T outputBinning;
     /** Do not calculate and use the input shifts */
     bool useInputShifts;
 

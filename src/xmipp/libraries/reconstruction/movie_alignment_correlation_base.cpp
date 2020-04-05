@@ -48,7 +48,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     xDRcorner = getIntParam("--cropDRCorner", 0);
     yDRcorner = getIntParam("--cropDRCorner", 1);
     useInputShifts = checkParam("--useInputShifts");
-    bin = getDoubleParam("--bin");
+    outputBinning = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
     processLocalShifts = checkParam("--processLocalShifts");
     minLocalRes = getIntParam("--minLocalRes");
@@ -105,8 +105,9 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
             << "Crop corners  " << "(" << xLTcorner << ", "
             << yLTcorner << ") " << "(" << xDRcorner << ", " << yDRcorner
-            << ") " << std::endl << "Use input shifts:    " << useInputShifts
-            << std::endl << "Binning factor:      " << bin << std::endl
+            << ") " << std::endl
+            << "Use input shifts:    " << useInputShifts << std::endl
+            << "Output Binning factor: " << outputBinning << std::endl
             << "Bspline:             " << BsplineOrder << std::endl
             << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
             << "Control points:      " << this->localAlignmentControlPoints << std::endl
@@ -358,42 +359,6 @@ T AProgMovieAlignmentCorrelation<T>::getScaleFactor() {
     // scale is ration between original pixel size and new pixel size
     T scale = Ts / getTsPrime();
     return scale;
-}
-
-template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getTargetOccupancy() {
-    if (bin < 0) {
-        return (T)0.9;
-    } else {
-        return 2 * getRequestedSamplingRate() / maxResForCorrelation;
-    }
-}
-
-template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getRequestedSamplingRate() {
-    T newTs;
-    if (bin < 0) {
-        T targetOccupancy = getTargetOccupancy();
-        // Determine target size of the images
-        newTs = targetOccupancy * maxResForCorrelation / 2;
-        newTs = std::max(newTs, Ts);
-    } else {
-        newTs = bin * Ts;
-    }
-    return newTs;
-}
-
-template<typename T>
-T AProgMovieAlignmentCorrelation<T>::computeSizeFactor() {
-    T sizeFactor;
-    if (bin < 0) {
-        sizeFactor = Ts / getRequestedSamplingRate();
-        std::cout << "Estimated binning factor = " << 1 / sizeFactor
-                << std::endl;
-    } else {
-        sizeFactor = 1.0 / bin;
-    }
-    return sizeFactor;
 }
 
 template<typename T>
