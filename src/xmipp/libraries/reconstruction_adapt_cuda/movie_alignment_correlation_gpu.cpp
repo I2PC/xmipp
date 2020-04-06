@@ -31,7 +31,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
-
+    this->addParamsLine("  [--skipAutotuning]                 : Skip autotuning of the cuFFT library");
     this->addExampleLine(
                 "xmipp_cuda_movie_alignment_correlation -i movie.xmd --oaligned alignedMovie.stk --oavg alignedMicrograph.mrc --device 0");
     this->addSeeAlsoLine("xmipp_movie_alignment_correlation");
@@ -40,9 +40,10 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::show() {
     AProgMovieAlignmentCorrelation<T>::show();
-    std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().getUUID() << ")" << std::endl;
-    std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << std::endl;
-    std::cout << "Patches avg:         " << patchesAvg << std::endl;
+    std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().getUUID() << ")" << "\n";
+    std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << "\n";
+    std::cout << "Patches avg:         " << patchesAvg << "\n";
+    std::cout << "Autotuning:          " << (skipAutotuning ? "off" : "on") << std::endl;
 }
 
 template<typename T>
@@ -60,6 +61,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 
     // read permanent storage
     storage = this->getParam("--storage");
+
+    skipAutotuning = this->checkParam("--skipAutotuning");
 
     // read patch averaging
     patchesAvg = this->getIntParam("--patchesAvg");
@@ -268,14 +271,18 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
         size_t extraBytes, bool crop) {
-    if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
-    // take additional memory requirement into account
-
     // FIXME DS remove tmp
-    auto tmp1 = FFTSettingsNew<T>(d.x(), d.y(), d.z(), d.n(), 1, false);
-    auto tmp =  CudaFFT<T>::findOptimalSizeOrMaxBatch(gpu.value(), tmp1,
-            extraBytes, d.x() == d.y(), 10, // allow max 10% change
-            crop, this->verbose);
+    auto tmp1 = FFTSettingsNew<T>(d, d.n(), false);
+    FFTSettingsNew<T> tmp(0);
+    if (skipAutotuning) {
+        tmp = CudaFFT<T>::findMaxBatch(tmp1, gpu.value().lastFreeBytes() - extraBytes);
+    } else {
+        if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
+        // take additional memory requirement into account
+        tmp =  CudaFFT<T>::findOptimalSizeOrMaxBatch(gpu.value(), tmp1,
+                extraBytes, d.x() == d.y(), crop ? 10 : 20, // allow max 10% change for cropping, 20 for 'padding'
+                crop, this->verbose);
+    }
     return FFTSettings<T>(tmp.sDim().x(), tmp.sDim().y(), tmp.sDim().z(), tmp.sDim().n(), tmp.batch(), false);
 }
 

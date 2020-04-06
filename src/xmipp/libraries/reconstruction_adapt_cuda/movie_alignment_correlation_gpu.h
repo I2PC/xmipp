@@ -304,6 +304,8 @@ private:
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 
+    /** Skip autotuning of the cuFFT library */
+    bool skipAutotuning;
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;
