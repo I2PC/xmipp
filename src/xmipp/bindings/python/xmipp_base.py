@@ -6,7 +6,6 @@ from xmippLib import *
 import os
 import sys
 import subprocess
-import json
 
 
 def xmippExists(path):
@@ -16,14 +15,21 @@ def getXmippPath(*paths):
     """ Return the path of the Xmipp installation folder
         if a subfolder is provided, will be concatenated to the path
     """
-    # xmipp   =     build      <   bindings    <     python    <     xmipp_base.py
-    xmippHome = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-    xmippHome = os.path.abspath(os.environ('XMIPP_HOME', xmippHome))
 
-    if os.path.isfile(os.path.join(xmippHome, 'lib', 'libXmipp.so')):
-        return os.path.join(xmippHome, *paths)
-    else:
-        raise Exception("Error: '%s' doesn't seems a Xmipp build directory.")
+    candidates = []  # First candidate from XMIPP_HOME, second from this file path
+    envHome = os.environ.get('XMIPP_HOME', '')  # the join do nothing if second is absolute
+    candidates.append(os.path.join(os.environ.get('SCIPION_HOME', ''), envHome))
+    # xmipp    =          build      <   bindings    <     python    <     xmipp_base.py
+    candidates.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+
+    for xmippHome in candidates:
+        print(xmippHome)
+        if (os.path.isfile(os.path.join(xmippHome, 'lib', 'libXmipp.so')) and
+            os.path.isfile(os.path.join(xmippHome, 'bin', 'xmipp_mpi_reconstruct_significant'))):
+            return os.path.join(xmippHome, *paths)
+
+    raise Exception("Error: Xmipp build directory not found. Searched at:\n - %s"
+                    % '\n - '.join(candidates))
 
 
 # def getMatlabEnviron(*toolPaths):
@@ -116,7 +122,7 @@ class XmippScript:
                   in the arguments to skip that raise, especially in validation
                   asserions!
         """
-        return _getModel(*modelPath, **kwargs)
+        return getModel(*modelPath, **kwargs)
 
     @classmethod
     def runCondaCmd(cls, program, arguments, **kwargs):
@@ -159,7 +165,7 @@ def prepareRunConda(program, arguments, condaEnvName, **kwargs):
     :param kwargs:
     :return: (program, arguments, kwargs). Updated values
     '''
-
+    # print(kwargs['env'])
     kwargs['env'] = CondaEnvManager.modifyEnvToUseConda(kwargs['env'],
                                                         condaEnvName)
 
@@ -182,8 +188,7 @@ def prepareRunConda(program, arguments, condaEnvName, **kwargs):
 
 class CondaEnvManager(object):
     CONDA_DEFAULT_ENVIRON = "xmipp_DLTK_v0.3"
-    with open("condaEnvsDef.json") as f:
-        DICT_OF_CONDA_ENVIRONS = json.load(f)
+    from xmipp_conda_envs import XMIPP_CONDA_ENVS
 
     @staticmethod
     def getCondaRoot(env=None):
@@ -233,7 +238,7 @@ class CondaEnvManager(object):
         sitePackages = os.path.join("lib", "python*", "site-packages")
         newPythonPath= pathInEnv(CondaEnvManager.getCondaRoot(env),
                                  condaEnv, sitePackages)
-        if CondaEnvManager.DICT_OF_CONDA_ENVIRONS[condaEnv]["xmippEnviron"]:
+        if CondaEnvManager.XMIPP_CONDA_ENVS[condaEnv]["xmippEnviron"]:
             newPythonPath += ":"+env["PYTHONPATH"]
         env.update({"PYTHONPATH": newPythonPath})
         # print(env["PYTHONPATH"])
@@ -259,12 +264,12 @@ class CondaEnvManager(object):
     def yieldInstallAllCmds(useGpu):
         options = {"gpuTag": "-gpu" if useGpu else ""}
 
-        for envName, envDict in CondaEnvManager.DICT_OF_CONDA_ENVIRONS.items():
+        for envName, envDict in CondaEnvManager.XMIPP_CONDA_ENVS.items():
             yield CondaEnvManager.installEnvironCmd(envName, options, **envDict)
 
     @staticmethod
     def installEnvironCmd(environName, installCmdOptions=None, **kwargs):
-        """ expected kwargs:  see condaEnvsDef.json
+        """ expected kwargs:  see xmipp_conda_envs.py
                 pythonVersion: number, if None (default) no python is installed
                 dependencies: list, 'depName=ver' or just 'depName' ([] default)
                 channels: list, channel names where looking for
@@ -305,7 +310,7 @@ class CondaEnvManager(object):
         return cmd, environName
 
 
-def _getModel(*modelPath, **kwargs):
+def getModel(*modelPath, **kwargs):
     """ Returns the path to the models folder followed by
         the given relative path.
     .../xmipp/models/myModel/myFile.h5 <= getModel('myModel', 'myFile.h5')

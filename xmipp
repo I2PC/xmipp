@@ -91,17 +91,18 @@ def stampVersion():
     LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
 
     def getCommit(repo):
-        currDir = os.getcwd()
-        os.chdir('src/%s'%repo)
-        if os.path.exists('.git'):
-            branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-            hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
-            repoInfo = "%s (%s)" % (branch.decode("utf-8").strip('\n'), hash.decode("utf-8").strip('\n'))
-        else:
-            repoInfo = "(no git repo detected)"
-        os.chdir(currDir)
+        found, br, hsh = getCurrentBranch(os.path.join('src', repo), getHash=True)
+        return "%s (%s)" % (br, hsh) if found else "(no git repo detected)"
 
-        return repoInfo
+    compilingInfo = {'VERSION_TAG': VERSION_TAG,
+                     'XMIPP_VERSION': XMIPP_VERSION,
+                     'RELEASE_DATE': RELEASE_DATE,
+                     'XMIPP_BRANCH': getCommit(XMIPP),
+                     'PLUGIN_BRANCH': getCommit(SCIPION_EM_XMIPP),
+                     'CORE_BRANCH': getCommit(XMIPP_CORE),
+                     'VIZ_BRANCH': getCommit(XMIPP_VIZ),
+                     'LAST_COMPILATION': LAST_COMPILATION,
+                     }
 
     versionBinFn = os.path.join('src', 'xmipp', 'applications', 'programs',
                                 'version', 'version.cpp')
@@ -134,7 +135,7 @@ int main(int argc, char** argv){
 
     if (shrt==1)
     {
-        std::cout << "%s: %s" << std::endl;
+        std::cout << "%(VERSION_TAG)s: %(XMIPP_VERSION)s" << std::endl;
     }else{
         struct utsname utsname; // stores the data returned by uname()
         struct utsname *utsname_ptr = &utsname; // pointer to the struct holding the data returned by uname()
@@ -143,14 +144,14 @@ int main(int argc, char** argv){
         ret = uname(utsname_ptr);
     
         std::cout << std::endl;
-        std::cout << "  \033[4m%s\033[24m: \033[1m%s\033[0m" << std::endl;
+        std::cout << "  \033[4m%(VERSION_TAG)s\033[24m: \033[1m%(XMIPP_VERSION)s\033[0m" << std::endl;
         std::cout << std::endl;
-        std::cout << "  Release date:     %s" << std::endl;
-        std::cout << "  Xmipp branch:     %s" << std::endl;
-        std::cout << "  Plugin branch:    %s" << std::endl;
-        std::cout << "  Core branch :     %s" << std::endl;
-        std::cout << "  Viz branch:       %s" << std::endl;
-        std::cout << "  Compilation date: %s" << std::endl;
+        std::cout << "  Release date:     %(RELEASE_DATE)s" << std::endl;
+        std::cout << "  Xmipp branch:     %(XMIPP_BRANCH)s" << std::endl;
+        std::cout << "  Plugin branch:    %(PLUGIN_BRANCH)s" << std::endl;
+        std::cout << "  Core branch :     %(CORE_BRANCH)s" << std::endl;
+        std::cout << "  Viz branch:       %(VIZ_BRANCH)s" << std::endl;
+        std::cout << "  Compilation date: %(LAST_COMPILATION)s" << std::endl;
         std::cout << "  Compiler:         g++ " << __VERSION__ << std::endl;
         std::cout << "  Compiling system: " << utsname.machine << " " << utsname.sysname
                   << " " << utsname.release << std::endl 
@@ -159,9 +160,8 @@ int main(int argc, char** argv){
     }
     return 0;
 }
-""" % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATE,
-       getCommit(XMIPP), getCommit(SCIPION_EM_XMIPP),
-       getCommit(XMIPP_CORE), getCommit(XMIPP_VIZ), LAST_COMPILATION))
+""" % compilingInfo)
+
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -296,6 +296,7 @@ def isRepositoryClean(showError=True):
     result = any(w in l for w in words for l in log)  # True for clean repo, False otherwise
     if showError and not result:
         print(red('Repository contains uncommitted changes.'))
+        print("Use 'compileAndInstall' mode to keep developing.")
     return result
 
 
@@ -336,17 +337,23 @@ def getCurrentTravisBranch():
     return False, None
 
 
-def getCurrentBranch(cwd='./'):
+def getCurrentBranch(cwd='./', getHash=False):
+    """ If getHash=True:  return (success, branch, hash)
+        If getHash=False: retrun (success, branch)
+    """
+    outBranchArgs = 2 if getHash else 1
     log = []
     commit = []
     if not os.path.exists(cwd):
         return False, None
-    runJob('git rev-parse HEAD', cwd=cwd, show_output=False, show_command=False, log=commit)
-    runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False, show_command=False, log=log)
-    if log:
-        return True, log[0].split()[1].strip()  # log contains commit_space_branchName
+    runJob('git rev-parse --short HEAD', cwd=cwd, show_output=False,
+           show_command=False, log=commit)
+    runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False,
+           show_command=False, log=log)
+    if log:  # log contains commit_space_branchName
+        return (True,) + tuple(log[0].split()[::-1][0:outBranchArgs])
     print(red('Cannot get current branch'))
-    return False, None
+    return (False,) + (None,)*outBranchArgs
 
 def getAllBranches(repo):
     log = []
@@ -355,9 +362,9 @@ def getAllBranches(repo):
         show_output=False, log=log, show_command=False)
     if result:
         branches = [l.split(prefix)[1] for l in log]
-        return (True, branches)
+        return True, branches
     print(red('Cannot listl branches for ' + repo))
-    return (False, None)
+    return False, None
 
 def getBranch(repo, repo_dir):
     if 'TRAVIS' in os.environ:
@@ -1239,7 +1246,7 @@ def install(dirname):
     createDir(dirname+"/bindings/python")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
-    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/condaEnvsDef.json " + dirname + "/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
     # ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")

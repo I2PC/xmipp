@@ -1,4 +1,4 @@
-{
+XMIPP_CONDA_ENVS = {
   "xmipp_DLTK_v0.3": {
     "pythonVersion": "3",
     "dependencies": ["pandas=0.23.4", "scikit-image=0.14.2", "opencv=3.4.2",
