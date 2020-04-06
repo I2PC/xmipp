@@ -27,7 +27,6 @@
 
 import os
 import sys
-import subprocess
 
 from xmipp_base import XmippScript
 import xmippLib
@@ -107,7 +106,7 @@ class ScriptMicrographCleanerEm(XmippScript):
           args["predictedMaskDir"]= os.path.expanduser( self.getParam('--predictedMaskDir'))
 
 
-        args["downFactor"]= self.getDoubleParamWithDefault('-s', defaultVal=1.0)
+        args["downFactorCoords"]= self.getDoubleParamWithDefault('-s', defaultVal=1.0)
         args["deepThr"]= self.getDoubleParamWithDefault('--deepThr', conditionFun= lambda x: x <= 0 or x >= 1,
                                                         defaultVal=None)
 

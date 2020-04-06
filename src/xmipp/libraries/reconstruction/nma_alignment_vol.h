@@ -82,8 +82,11 @@ public:
     /// Align volumes
     bool alignVolumes;
 
-    /// Trust radius scale
+    /// Parameters required from the CONDOR optimization
     double trustradius_scale;
+    double rhoStartBase;
+    double rhoEndBase;
+    int niter;
 
     // starting and ending tilt angles for compensating for a single tilt wedge mask for tomography data
     int tilt0, tiltF;
@@ -130,6 +133,14 @@ public:
 
     // Mask
     MultidimArray<int> mask;
+
+    // for fetching the rigid-body alignment parameters for each volume
+    FILE *AnglesShiftsAndScore;
+    float Best_Angles_Shifts[6];
+    float fit_value;
+
+    // flag indicates if there is a compensation for the missing wedge (volumes are rotated by 90 degrees about y axis for this purpose)
+    bool flip = false;
 
 public:
     /// Empty constructor
@@ -184,5 +195,4 @@ class ObjFunc_nma_alignment_vol: public UnconstrainedObjectiveFunction
     double eval(Vector v, int *nerror=NULL);
 };
 
-//@}
 #endif
