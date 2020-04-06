@@ -251,7 +251,7 @@ class CondaEnvManager(object):
             condaRoot = CondaEnvManager.getCondaRoot()
             condaActivationCmd = ". "+os.path.join(condaRoot,
                                                    "etc/profile.d/conda.sh")
-        condaActivationCmd = condaActivationCmd.strip()
+        condaActivationCmd = condaActivationCmd.strip().strip('"').strip("'")
 
         if condaActivationCmd.endswith("&&"):
             condaActivationCmd = condaActivationCmd[:-2]
