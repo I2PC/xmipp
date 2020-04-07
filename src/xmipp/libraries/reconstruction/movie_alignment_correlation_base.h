@@ -116,19 +116,12 @@ protected:
             const Matrix1D<T> &shiftY, T &totalShiftX, T &totalShiftY);
 
     /**
-     * Method computes an internal (down)scale factor of the micrographs
-     */
-    T computeSizeFactor();
-
-    /**
-     * Method will create a 2D Low Pass Filter with given properties
-     * @param targetOccupancy should be <0, 1.0>
-     * @param xSize of the filter
-     * @param ySize of the filter
+     * Method will create a 2D Low Pass Filter of given size
+     * @param Ts pixel resolution of the resulting filter
+     * @param dims dimension of the filter (in spatial domain)
      * @return requested LPF
      */
-    MultidimArray<T> createLPF(T targetOccupancy, size_t xSize,
-            size_t ySize);
+    MultidimArray<T> createLPF(T Ts, const Dimensions &dims);
 
     /**
      * Method loads a single frame from the movie
@@ -151,11 +144,6 @@ protected:
     void loadFrame(const MetaData &movie, const Image<T> &dark,
             const Image<T> &igain, size_t objId,
             Image<T> &out);
-
-    /**
-     * Returns occupancy that can be used for filter generation
-     */
-    T getTargetOccupancy();
 
     /**
      * This method applies global shifts and can also produce 'average'
@@ -221,20 +209,51 @@ protected:
      * Method to store all computed alignment to hard drive
      */
     void storeResults(const LocalAlignmentResult<T> &alignment);
+
+    /**
+     * Returns pixel resolution of the scaled movie
+     * @param scaleFactor (<= 1) used to change size of the movie
+     */
+    T getPixelResolution(T scaleFactor);
+
+    /**
+     * Returns scale factor as requested by user
+     */
+    T getScaleFactor();
+
+    /** Returns size of the patch as requested by user */
+    std::pair<size_t, size_t> getRequestedPatchSize() {
+        return {Ts * minLocalRes, Ts * minLocalRes};
+    }
+
+    /** Sets number of patches, based on size of the movie and patch */
+    void setNoOfPaches(const Dimensions &movieDim,
+            const Dimensions &patchDim);
+
+    /** Get binning factor for resulting micrograph / alignend movie */
+    T getOutputBinning() {
+        return outputBinning;
+    }
 private:
+
+    /**
+     * Method will create a 1D Low Pass Filter
+     * @param Ts pixel resolution of the resulting filter
+     * @param filter 1D filter, where low-pass filter will be stored
+     */
+    void createLPF(T Ts, MultidimArray<T> &filter);
 
     /**
      * Method will create a 2D Low-Pass Filter from the 1D
      * profile, that can be used in Fourier domain
      * @param lpf 1D profile
-     * @param xSize size of full image (space domain)
-     * @param ySize size of full image (space/frequency domain)
-     * @param targetOccupancy maximal frequency to be preserved, should be <0, 1.0>
+     * @param dims dimension of the filter (in spatial domain).
      * @param result resulting 2D filter. Must be of proper size, i.e.
      * xdim == xSize/2+1, ydim = ySize
      */
-    void scaleLPF(const MultidimArray<T>& lpf, int xSize, int ySize,
-            T targetOccupancy, MultidimArray<T>& result);
+    void scaleLPF(const MultidimArray<T>& lpf, const Dimensions &dims, MultidimArray<T>& result);
+
+
 
     /**
      * Method to store global (frame) shifts computed for the movie
@@ -262,13 +281,6 @@ private:
      *  @param gain correction will be stored here
      */
     void loadGainCorrection(Image<T>& igain);
-
-    /**
-     * Method to construct 1D low-pass filter profile
-     * @param targetOccupancy max frequency to preserve
-     * @param lpf filter will be stored here
-     */
-    void constructLPF(T targetOccupancy, const MultidimArray<T>& lpf);
 
     /**
      * Loads movie from the file
@@ -307,10 +319,10 @@ private:
      */
     void printGlobalShift(const AlignmentResult<T> &globAlignment);
 
-    /**
-     * Returns sampling rate that user requested
-     */
-    T getRequestedSamplingRate();
+    /** Returns pixel size of the movie after downsampling to 4 sigma */
+    T getTsPrime();
+    /** Returns constant used for filter sigma computation */
+    T getC();
 
 protected:
     /** First and last frame (inclusive)*/
@@ -336,8 +348,6 @@ protected:
     int nfirstSum, nlastSum;
     /** Aligned micrograph */
     FileName fnInitialAvg;
-    /** Binning factor */
-    T bin;
     /** Bspline order */
     int BsplineOrder;
     /** Outside mode */
@@ -355,16 +365,19 @@ protected:
     /** Control points used for local alignment */
     Dimensions localAlignmentControlPoints = Dimensions(0);
 
-
 private:
+    /** Minimal resolution (in A) of the patch for local alignment */
+    size_t minLocalRes;
+    /** Max resolution in A to preserve during alignment*/
+    T maxResForCorrelation; //
+    /** Pixel size of the movie*/
+    T Ts;
     /** Filename of movie metadata */
     FileName fnMovie;
     /** Correction images */
     FileName fnDark, fnGain;
-    /** Sampling rate */
-    T Ts;
-    /** Max freq. */
-    T maxFreq;
+    /** Binning factor used for output */
+    T outputBinning;
     /** Do not calculate and use the input shifts */
     bool useInputShifts;
 
