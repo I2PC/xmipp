@@ -23,7 +23,6 @@ def getXmippPath(*paths):
     candidates.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
     for xmippHome in candidates:
-        print(xmippHome)
         if (os.path.isfile(os.path.join(xmippHome, 'lib', 'libXmipp.so')) and
             os.path.isfile(os.path.join(xmippHome, 'bin', 'xmipp_mpi_reconstruct_significant'))):
             return os.path.join(xmippHome, *paths)
