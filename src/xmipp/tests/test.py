@@ -351,11 +351,11 @@ if __name__ == "__main__":
     tests = unittest.TestSuite()
     if '--show' in testNames or '--allPrograms' in testNames:
         # tests.addTests(unittest.defaultTestLoader.discover(os.environ.get("XMIPP_TEST_DATA")+'/..',
-        #                pattern='test*condaEnvsDef.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
+        #                pattern='test*.py'))#,top_level_dir=os.environ.get("XMIPP_TEST_DATA")+'/..'))
         listDir = os.listdir(os.environ.get("XMIPP_TEST_DATA")+'/..')
         # print listDir
         for path in listDir:
-            if path.startswith('test_') and path.endswith('condaEnvsDef.py'):
+            if path.startswith('test_') and path.endswith('.py'):
                 tests.addTests(unittest.defaultTestLoader.loadTestsFromName('tests.' + path[:-3]))
 
         if '--show' in testNames:
