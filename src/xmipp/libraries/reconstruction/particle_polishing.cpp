@@ -34,10 +34,11 @@ void ProgParticlePolishing::defineParams()
 {
     addUsageLine("Particle polishing from a stack of movie particles");
     addParamsLine(" -i <movie>: Input movie particle metadata");
+    //addParamsLine(" -iPart <part>: Input particles metadata");
     addParamsLine(" -vol <volume>: Input volume to generate the reference projections");
     addParamsLine(" --s <samplingRate=1>: Sampling rate");
     addParamsLine(" --nFrames <nFrames>: Number of frames");
-    addParamsLine(" --nMovies <nMovies>: Number of movies");
+    addParamsLine(" --nMics <nMics>: Number of micrographs");
     addParamsLine(" --w <w=1>: Window size. The number of frames to average to correlate that averaged image with the projection.");
     addParamsLine(" --movxdim <xmov> : Movie size in x dimension");
     addParamsLine(" --movydim <ymov> : Movie size in y dimension");
@@ -47,11 +48,12 @@ void ProgParticlePolishing::defineParams()
 
 void ProgParticlePolishing::readParams()
 {
-	fnMdPart=getParam("-i");
+	fnMdMov=getParam("-i");
+	//fnMdPart=getParam("-iPart");
 	fnVol = getParam("-vol");
 	fnOut=getParam("-o");
 	nFrames=getIntParam("--nFrames");
-	nMovies=getIntParam("--nMovies");
+	nMics=getIntParam("--nMics");
 	w=getIntParam("--w");
 	samplingRate=getDoubleParam("--s");
 	xmov = getIntParam("--movxdim");
@@ -65,7 +67,7 @@ void ProgParticlePolishing::show()
 	if (verbose==0)
 		return;
 	std::cout
-	<< "Input movie particle metadata:     " << fnMdPart << std::endl
+	<< "Input movie particle metadata:     " << fnMdMov << std::endl
 	<< "Input volume to generate the reference projections:     " << fnVol << std::endl
 	;
 }
@@ -612,7 +614,7 @@ void ProgParticlePolishing::run()
 	//MOVIE PARTICLES IMAGES
 	MetaData mdPartPrev, mdPart;
 	size_t Xdim, Ydim, Zdim, Ndim;
-	mdPartPrev.read(fnMdPart,NULL);
+	mdPartPrev.read(fnMdMov,NULL);
 	size_t mdPartSize = mdPartPrev.size();
 
 	mdPart.sort(mdPartPrev, MDL_PARTICLE_ID);
@@ -620,10 +622,10 @@ void ProgParticlePolishing::run()
 	MDIterator *iterPart = new MDIterator();
 	MDIterator *iterPart2 = new MDIterator();
 	FileName fnPart;
-	Image<double> Ipart, projV, Iavg, Iproj;
+	Image<double> Ipart, projV, Iavg, Iproj, IpartOut, Iout, Ifinal;
 	MDRow currentRow;
 	MDRow currentRow2;
-	Matrix2D<double> A;
+	Matrix2D<double> A, Aout;
 	MultidimArray<double> dataArray, softArray;
 	Projection PV;
 	CTFDescription ctf;
@@ -657,7 +659,7 @@ void ProgParticlePolishing::run()
 	double offset;
 
 
-	for(int m=0; m<nMovies; m++){
+	for(int m=0; m<nMics; m++){
 
 		double rot, tilt, psi, x, y;
 		bool flip;
@@ -893,10 +895,10 @@ void ProgParticlePolishing::run()
 
 	//ML estimation of shifts
 	//-11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-	int shiftX[]={-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6};
-	int shiftY[]={-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6};
+	//-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6
+	int shiftX[]={-3, -2, -1, 0, 1, 2, 3};
+	int shiftY[]={-3, -2, -1, 0, 1, 2, 3};
 	MultidimArray<double> lkresults;
-	double total_lkresults[24];
 	double maxShift = XSIZE(Iavg())/2-10;
 	double maxShift2 = maxShift*maxShift;
 	//AJ to make a random selection of pixel contributing to the ML estimation
@@ -904,14 +906,20 @@ void ProgParticlePolishing::run()
 	std::uniform_real_distribution<double> distribution(0.0,1.0);
 	int nRepetitions=1;
 	std::vector<int> partIdDone2;
-	int bestPosX[24];
-	int bestPosY[24];
-	double finalPosX[24];
-	double finalPosY[24];
+	//double total_lkresults[24];
+	//int bestPosX[24];
+	//int bestPosY[24];
+	double finalPosX[nFrames];
+	double finalPosY[nFrames];
 
 	MetaData SFq;
+	FileName fnRoot=fnMdMov.insertBeforeExtension("_out_particles");
+	FileName fnStackOut=formatString("%s.stk",fnRoot.c_str());
+	if(fnStackOut.exists())
+		fnStackOut.deleteFile();
 
-	for(int m=0; m<nMovies; m++){
+	int countOutMd=0;
+	for(int m=0; m<nMics; m++){
 
 		iterPart->init(mdPart);
 		iterPart2->init(mdPart);
@@ -1008,11 +1016,11 @@ void ProgParticlePolishing::run()
 			int count;
 			for (int zz=0; zz<nRepetitions; zz++){
 
-				lkresults.initZeros(13, 13);
+				lkresults.initZeros(7, 7);
 				//Isimul.read(formatString("simuladaNuevaShift_%i.mrc",ii));
 				//Isimul().setXmippOrigin();
-				for(int jj=0; jj<13; jj++){
-					for(int hh=0; hh<13; hh++){
+				for(int jj=0; jj<7; jj++){
+					for(int hh=0; hh<7; hh++){
 						//Iproj.read("projNueva.mrc");
 						//Iproj().setXmippOrigin();
 						projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
@@ -1054,13 +1062,13 @@ void ProgParticlePolishing::run()
 				//std::vector<double>::iterator maxVal;
 				//maxVal = std::max_element(lkresults.begin(), lkresults.end());
 				//int pos = std::distance(lkresults.begin(), maxVal);
-				double sumX[13], sumY[13];
+				double sumX[7], sumY[7];
 				//Sum by columns (X)
 				double maxSumX, maxSumY;
 				int posSumX, posSumY;
-				for(int jj=0; jj<13; jj++){
+				for(int jj=0; jj<7; jj++){
 					sumX[jj]=0.;
-					for(int hh=0; hh<13; hh++){
+					for(int hh=0; hh<7; hh++){
 						sumX[jj]+=DIRECT_A2D_ELEM(lkresults, hh, jj);
 					}
 					if(jj==0){
@@ -1074,9 +1082,9 @@ void ProgParticlePolishing::run()
 					}
 				}
 				//Sum by rows (Y)
-				for(int hh=0; hh<13; hh++){
+				for(int hh=0; hh<7; hh++){
 					sumY[hh]=0.;
-					for(int jj=0; jj<13; jj++){
+					for(int jj=0; jj<7; jj++){
 						sumY[hh]+=DIRECT_A2D_ELEM(lkresults, hh, jj);
 					}
 					if(hh==0){
@@ -1099,21 +1107,21 @@ void ProgParticlePolishing::run()
 				//lk.write(formatString("lkresults_%i.mrc",ii));
 				double estXAux, estYAux;
 				bestShift(lkresults, estXAux, estYAux, NULL, -1);
-				bestPosX[countForPart] = (int)round(estXAux);
-				if(bestPosX[countForPart]>12)
-					bestPosX[countForPart]=12;
-				else if(bestPosX[countForPart]<0)
-					bestPosX[countForPart]=0;
-				bestPosY[countForPart] = (int)round(estYAux);
-				if(bestPosY[countForPart]>12)
-					bestPosY[countForPart]=12;
-				else if(bestPosY[countForPart]<0)
-					bestPosY[countForPart]=0;
-				printf(". BEST POS for particle %d. Shift %lf, %lf, %d, %d, %lf -- %d \n", countForPart, estXAux, estYAux, shiftX[bestPosX[countForPart]], shiftY[bestPosY[countForPart]], DIRECT_A2D_ELEM(lkresults, (int)estYAux, (int)estXAux), count);
-				printf("New estimation marginalized %d %d \n", shiftX[posSumX], shiftY[posSumY]);
-				total_lkresults[ii]=DIRECT_A2D_ELEM(lkresults_copy, (int)estYAux, (int)estXAux);
-				estX[zz]=shiftX[bestPosX[countForPart]];
-				estY[zz]=shiftY[bestPosY[countForPart]];
+				int bestPosX = (int)round(estXAux);
+				if(bestPosX>6)
+					bestPosX=6;
+				else if(bestPosX<0)
+					bestPosX=0;
+				int bestPosY = (int)round(estYAux);
+				if(bestPosY>6)
+					bestPosY=6;
+				else if(bestPosY<0)
+					bestPosY=0;
+				printf(". BEST POS for particle %d. Shift %lf, %lf, %d, %d \n", countForPart, estXAux, estYAux, shiftX[bestPosX], shiftY[bestPosY]);
+				//printf("New estimation marginalized %d %d \n", shiftX[posSumX], shiftY[posSumY]);
+				//total_lkresults[ii]=DIRECT_A2D_ELEM(lkresults_copy, (int)estYAux, (int)estXAux);
+				estX[zz]=shiftX[bestPosX];
+				estY[zz]=shiftY[bestPosY];
 
 				//AJ to test with correlation
 				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
@@ -1142,7 +1150,7 @@ void ProgParticlePolishing::run()
 				//projV.write(formatString("VeamosProjV.tif"));
 				//Ipart.write(formatString("VeamosIpart.tif"));
 
-				transformer.FourierTransform(projV(), fftIproj);
+				/*transformer.FourierTransform(projV(), fftIproj);
 				transformer.FourierTransform(Ipart(), fftIsimul);
 				correlation_matrix(fftIproj, fftIsimul, Mcorr, aux);
 				double sX, sY;
@@ -1152,39 +1160,31 @@ void ProgParticlePolishing::run()
 				//Image<double> correlation;
 				//correlation()=Mcorr;
 				//correlation.write(formatString("correlation_%i.mrc",ii));
-				printf(". BEST CORR for particle %d. STATS: %lf, %lf, %lf, %lf. SHIFT %lf, %lf \n", ii, min_val, max_val, avg, stddev, sX, sY);
+				printf(". BEST CORR for particle %d. STATS: %lf, %lf, %lf, %lf. SHIFT %lf, %lf \n", ii, min_val, max_val, avg, stddev, sX, sY);*/
 
 			}//end loop zz
 
-		printf("BEST POS for particle %d  \n", ii);
+		//printf("BEST POS for particle %d  \n", ii);
 		double sumXX=0., sumYY=0.;
 		for (int zz=0; zz<nRepetitions; zz++){
-			printf("	%d, %d \n", estX[zz], estY[zz]);
+			//printf("	%d, %d \n", estX[zz], estY[zz]);
 			sumXX+=estX[zz];
 			sumYY+=estY[zz];
 		}
 		finalPosX[countForPart]=sumXX/nRepetitions;
 		finalPosY[countForPart]=sumYY/nRepetitions;
-		printf("MEAN values: %d, %lf, %lf\n", countForPart, finalPosX[countForPart], finalPosY[countForPart]);
-		printf("END \n");
+		//printf("MEAN values: %d, %lf, %lf\n", countForPart, finalPosX[countForPart], finalPosY[countForPart]);
 
 		if (countForPart==nFrames-1){
 
-			//printf("TOTAL LKRESULTS: ");
-			//for(int jj=0; jj<24; jj++)
-			//	printf(" %lf ", total_lkresults[jj]);
-			//printf("\n");
-			printf("TOTAL SHIFTS: \n");
-			for(int jj=0; jj<24; jj++)
-				printf(" %d %lf %lf \n ", jj, finalPosX[jj], finalPosY[jj]);
 
 			PseudoInverseHelper pseudoInverter;
 			Matrix2D<double> &X = pseudoInverter.A;
 			Matrix1D<double> &y = pseudoInverter.b;
-			Matrix1D<double> resultX(24);
-			Matrix1D<double> resultY(24);
-			X.resizeNoCopy(24,3);
-			y.resizeNoCopy(24);
+			Matrix1D<double> resultX(nFrames);
+			Matrix1D<double> resultY(nFrames);
+			X.resizeNoCopy(nFrames,3);
+			y.resizeNoCopy(nFrames);
 			for(int jj=0; jj<24; jj++){
 				X(jj,0)=1;
 				X(jj,1)=jj+1;
@@ -1201,8 +1201,8 @@ void ProgParticlePolishing::run()
 			//printf("alpha(3)=%lf \n", alpha(3));
 			matrixOperation_Ax(X, alpha, resultX);
 
-			y.resizeNoCopy(24);
-			for(int jj=0; jj<24; jj++){
+			y.resizeNoCopy(nFrames);
+			for(int jj=0; jj<nFrames; jj++){
 				y(jj)=finalPosY[jj];
 			}
 			solveLinearSystem(pseudoInverter, alpha);
@@ -1214,17 +1214,45 @@ void ProgParticlePolishing::run()
 			matrixOperation_Ax(X, alpha, resultY);
 
 			FileName fnTest;
+			Ifinal().resize(Ipart());
+			Ifinal().initZeros();
 			for(int mm=0; mm<nFrames; mm++){
 				mdPart.getRow(currentRow2, iterPart2->objId);
 				currentRow2.getValue(MDL_IMAGE,fnTest);
-				double valueX=xValue+resultX(mm);
-				double valueY=yValue+resultY(mm);
-				currentRow2.setValue(MDL_SHIFT_X, valueX);
-				currentRow2.setValue(MDL_SHIFT_Y, valueY);
-				SFq.addRow(currentRow2);
+				IpartOut.read(fnTest);
+				IpartOut().setXmippOrigin();
+				Aout.initIdentity(3);
+				MAT_ELEM(Aout,0,2)=resultX(mm);
+				MAT_ELEM(Aout,1,2)=resultY(mm);
+				applyGeometry(LINEAR,Iout(),IpartOut(),A,IS_NOT_INV,DONT_WRAP,0.);
+				Iout().setXmippOrigin();
+				Ifinal()+=Iout();
+				//double valueX=xValue+resultX(mm);
+				//double valueY=yValue+resultY(mm);
+				//currentRow2.setValue(MDL_SHIFT_X, valueX);
+				//currentRow2.setValue(MDL_SHIFT_Y, valueY);
+				//SFq.addRow(currentRow2);
 				if(iterPart2->hasNext())
 					iterPart2->moveNext();
 			}
+			//To invert the contrast
+			/*double DminFinal, DmaxFinal, v, temp;
+			Ifinal().computeDoubleMinMax(DminFinal, DmaxFinal);
+			double irange=1.0/(Dmax - Dmin);
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ifinal()){
+				if (v < 1)
+					temp = v;
+				else
+				    temp = log10(v);
+				v=DIRECT_MULTIDIM_ELEM(Ifinal(),n);
+				DIRECT_MULTIDIM_ELEM(Ifinal(),n) = (Dmax - v) * irange;
+			}*/
+			Ifinal.write(fnStackOut,countOutMd,true,WRITE_APPEND);
+			countOutMd++;
+			FileName fnToSave;
+			fnToSave.compose(countOutMd, fnStackOut);
+			size_t id = SFq.addObject();
+			SFq.setValue(MDL_IMAGE, fnToSave, id);
 
 		}
 
@@ -1236,7 +1264,7 @@ void ProgParticlePolishing::run()
 	}//end loop movies
 
 	FileName fnOut;
-	fnOut = fnMdPart.insertBeforeExtension("_out");
+	fnOut = fnMdMov.insertBeforeExtension("_out");
 	printf("Writing output metadata \n");
 	printf("%s \n ", fnOut.getString().c_str());
 	SFq.write(fnOut);

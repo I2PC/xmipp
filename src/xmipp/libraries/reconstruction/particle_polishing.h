@@ -36,13 +36,14 @@
 class ProgParticlePolishing: public XmippProgram
 {
 public:
-	FileName fnMdPart; // File with the input movie particles
+	FileName fnMdMov; // File with the input movie particles metadata
+	FileName fnMdPart; // File with the input particles metadata
 	FileName fnVol;
 	FileName fnOut;
     MetaData mdPart;
 	Image<double> V;
 	FourierProjector *projectorV;
-	int nFrames, nMovies, w, xmov, ymov;
+	int nFrames, nMics, w, xmov, ymov;
 	double samplingRate;
 
 public:
