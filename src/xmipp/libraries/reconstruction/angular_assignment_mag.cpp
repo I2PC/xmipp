@@ -360,6 +360,10 @@ double Inicio=std::clock(); // */
 		mdRef.getValue(MDL_ANGLE_PSI, psi, __iter.objId);
 		referenceRot.at(j) = rot;
 		referenceTilt.at(j) = tilt;
+		if(psi != 0.0){
+			std::cout<<"psi diferente de cero en reference stack!\n";
+			exit(1);
+		}
 		// processing reference image
 		vecMDaRef.push_back(MDaRef);
 		applyFourierImage2(MDaRef, MDaRefF);
@@ -779,6 +783,7 @@ std::cout << "processing images in this group takes "<< duration << " seconds" <
 
 	// from angularContinousAssign2
 	MetaData &ptrMdOut = *getOutputMd();
+
 	ptrMdOut.removeDisabled();
 	double maxCC = -1.;
 	 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
@@ -786,7 +791,7 @@ std::cout << "processing images in this group takes "<< duration << " seconds" <
 		 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
 		 if (thisMaxCC > maxCC)
 			 maxCC = thisMaxCC;
-		 if (thisMaxCC == 0)
+		 if (thisMaxCC == 0.0)
 			 ptrMdOut.removeObject(__iter.objId);
 	 }
 	 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
@@ -1612,7 +1617,47 @@ void ProgAngularAssignmentMag::rotCandidates3(MultidimArray<double> &in,
 		for (int i = 0; i < maxAccepted; ++i) {
 			interpIdx = quadInterp(temp[i], in);
 			cand[i] = double(size) / 2. - interpIdx;
-			cand[i + maxAccepted] =	(cand[i] >= 0) ? cand[i] + 180. : cand[i] - 180.;
+			cand[i + maxAccepted] =	(cand[i] >= 0.0) ? cand[i] + 180. : cand[i] - 180.;
+		}
+	} else {
+		peaksFound = 0;
+	}
+}
+
+/* Only for 180 angles */
+/* approach which selects only ONE location of maximum peaks in ccvRot */
+void ProgAngularAssignmentMag::rotCandidates2(MultidimArray<double> &in,
+		std::vector<double> &cand, const size_t &size) {
+	double max1 = -1000.;
+	int idx1 = 0;
+	int cont = 0;
+	peaksFound = cont;
+
+	for (int i = 89; i < 272; ++i) { // only look within  90:-90 range
+		// current value is a peak value?
+		if ((dAi(in,size_t(i)) > dAi(in, size_t(i - 1))) &&
+				(dAi(in,size_t(i)) > dAi(in, size_t(i + 1)))) {
+			if ( dAi(in,i) > max1) {
+				max1 = dAi(in, i);
+				idx1 = i;
+				cont += 1;
+			}
+		}
+	}
+	if (idx1 != 0) {
+		int maxAccepted = 1;
+		std::vector<int> temp;
+		temp.resize(maxAccepted);
+		temp[0] = idx1;
+
+
+		int tam = 2 * maxAccepted;
+		peaksFound = tam;
+		double interpIdx; // quadratic interpolated location of peak
+		for (int i = 0; i < maxAccepted; ++i) {
+			interpIdx = quadInterp(temp[i], in);
+			cand[i] = double(size) / 2. - interpIdx;
+			cand[i + maxAccepted] =	(cand[i] >= 0.0) ? cand[i] + 180. : cand[i] - 180.;
 		}
 	} else {
 		peaksFound = 0;

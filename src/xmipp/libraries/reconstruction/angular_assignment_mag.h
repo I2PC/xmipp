@@ -207,7 +207,8 @@ double Inicio;
     void pearsonCorr(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
 
     void rotCandidates3(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
-    void rotCandidates(MultidimArray<double> &in, std::vector<double>& cand, const size_t &size /*,int *nPeaksFound*/);
+    void rotCandidates2(MultidimArray<double> &in, std::vector<double>& cand, const size_t &size);
+    void rotCandidates(MultidimArray<double> &in, std::vector<double>& cand, const size_t &size);
 
     void ssimIndex(MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
     void ssimIndex(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
