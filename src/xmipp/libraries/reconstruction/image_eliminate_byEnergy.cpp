@@ -70,7 +70,7 @@ void ProgEliminateByEnergy::processImage(const FileName &fnImg, const FileName &
 
     double z=(sigma2/sigma20-1);
     double zalpha=fabs(icdf_gauss(confidence));
-    if (z>zalpha || sigma2<minSigma2 || !isfinite(stddev))
+    if (z>zalpha || sigma2<minSigma2 || !std::isfinite(stddev))
         rowOut.setValue(MDL_ENABLED,-1);
     else
         rowOut.setValue(MDL_ENABLED,1);
