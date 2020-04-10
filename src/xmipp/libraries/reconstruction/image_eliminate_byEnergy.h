@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Carlos Oscar            coss@cnb.csic.es (1999)
+ * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -22,7 +22,41 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#ifndef _PROG_ELIMINATE_BY_ENERGY_HH
+#define _PROG_ELIMINATE_BY_ENERGY_HH
 
-#include <reconstruction/image_eliminate_largeEnergy.h>
+#include <core/xmipp_funcs.h>
+#include <core/xmipp_image.h>
+#include <core/xmipp_program.h>
 
-RUN_XMIPP_PROGRAM(ProgEliminateLargeEnergy)
+/**@defgroup EliminateByEnergyProgram Eliminate images whose energy is extremely large or extremely low
+   @ingroup ReconsLibrary */
+//@{
+/// Threshold Parameters
+class ProgEliminateByEnergy : public XmippMetadataProgram
+{
+public:
+	// Confidence
+	double confidence;
+    // Reference variance
+    double sigma20;
+    // Min variance
+    double minSigma2;
+public:
+    /** Read parameters from command line. */
+    void readParams();
+
+    /** Define Parameters */
+    void defineParams();
+
+    /** Show parameters */
+    void show();
+
+    /// Process image or volume
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+
+    /// Finish processing
+    void finishProcessing();
+};
+//@}
+#endif
