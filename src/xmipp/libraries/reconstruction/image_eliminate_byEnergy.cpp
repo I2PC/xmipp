@@ -65,12 +65,13 @@ void ProgEliminateByEnergy::processImage(const FileName &fnImg, const FileName &
     rowOut = rowIn;
     Image<double> I;
     I.read(fnImg);
-    double stddev=I().computeStddev();
+    double avg, stddev;
+    I().computeAvgStdev(avg,stddev);
     double sigma2=stddev*stddev;
 
     double z=(sigma2/sigma20-1);
     double zalpha=fabs(icdf_gauss(confidence));
-    if (z>zalpha || sigma2<minSigma2 || !std::isfinite(stddev))
+    if (z>zalpha || sigma2<minSigma2 || !std::isfinite(stddev) || fabs(avg)>sigma20/9.0)
         rowOut.setValue(MDL_ENABLED,-1);
     else
         rowOut.setValue(MDL_ENABLED,1);
