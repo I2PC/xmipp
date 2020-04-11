@@ -1,3 +1,5 @@
+
+
 from xmippLib import *
 import os
 import sys
@@ -6,13 +8,21 @@ def xmippExists(path):
     return FileName(path).exists()
 
 def getXmippPath(*paths):
-    '''Return the path the the Xmipp installation folder
-    if a subfolder is provided, will be concatenated to the path'''
-    if os.environ.has_key('XMIPP_HOME'):
-        return os.path.join(os.environ['XMIPP_HOME'], *paths)  
+    ''' Return the path of the Xmipp installation folder
+        if a subfolder is provided, will be concatenated to the path
+    '''
+    if 'XMIPP_HOME' in os.environ:
+        return os.path.join(os.environ['XMIPP_HOME'], *paths)
     else:
-        raise Exception('XMIPP_HOME environment variable not set')
-    
+        # xmipp   =     build      <   bindings    <     python    <     xmipp_base.py
+        xmippHome = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+        if os.path.isfile(os.path.join(xmippHome, 'lib', 'libXmipp.so')):
+            print("Warning: XMIPP_HOME not found.\n"
+                  "Using an auto-detected directory: " + xmippHome)
+            return os.path.join(xmippHome, *paths)
+        else:
+            raise Exception('Error: XMIPP_HOME environment variable not set')
+
 def getMatlabEnviron(*toolPaths):
     """ Return an Environment prepared for launching Matlab
     scripts using the Xmipp binding.
@@ -27,7 +37,8 @@ def getMatlabEnviron(*toolPaths):
     
     return env
 
-class XmippScript():
+
+class XmippScript:
     ''' This class will serve as wrapper around the XmippProgram class
     to have same facilities from Python scripts'''
     def __init__(self, runWithoutArgs=False):
@@ -91,7 +102,12 @@ class XmippScript():
 def createMetaDataFromPattern(pattern, isStack=False, label="image"):
     ''' Create a metadata from files matching pattern'''
     import glob
-    files = glob.glob(pattern)
+    if isinstance(pattern, list):
+        files = []
+        for pat in pattern:
+            files += glob.glob(pat)
+    else:
+        files = glob.glob(pattern)
     files.sort()
 
     label = str2Label(label) #Check for label value

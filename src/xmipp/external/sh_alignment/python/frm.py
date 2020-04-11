@@ -5,8 +5,8 @@ Created on Sep 16, 2011
 '''
 
 import numpy as np
-import swig_frm # the path of this swig module should be set correctly in $PYTHONPATH
-from vol2sf import vol2sf, fvol2sf
+from src.xmipp.external.sh_alignment.swig_frm import * # the path of this swig module should be set correctly in $PYTHONPATH
+from .vol2sf import vol2sf, fvol2sf
 
 
 def enlarge2(corr):
@@ -26,7 +26,7 @@ def enlarge2(corr):
     corr = corr.reshape((nx*ny*nz,))
     res = np.zeros((nx*2*ny*2*nz*2,), dtype='double')
 
-    swig_frm.enlarge2(corr, nx, ny, nz, res)
+    enlarge2(corr, nx, ny, nz, res)
 
     return res.reshape(nx*2, ny*2, nz*2)
 
@@ -60,8 +60,8 @@ def create_wedge_sf(start, end, b, valIn=1.0, valOut=0.0):
     res = []
     angle_range = [-end, -start]
     
-    for j in xrange(2*b):
-        for k in xrange(2*b):
+    for j in range(2*b):
+        for k in range(2*b):
             the = pi*(2*j+1)/(4*b) # (0,pi)
             phi = pi*k/b # [0,2*pi)
             
@@ -114,11 +114,11 @@ def frm_corr_peaks(f, g, npeaks=10, norm=False):
     
     peaks = np.zeros(4*npeaks)
     
-    if swig_frm.frm(f, g, peaks) != 0:
+    if frm(f, g, peaks) != 0:
         raise RuntimeError('Something is wrong during FRM!')
     
     res = []
-    for i in xrange(npeaks):
+    for i in range(npeaks):
         if peaks[i*4] != 0: # reorder the result angles in pytom convention (phi, psi, the)
             psi = peaks[i*4+1]
             the = peaks[i*4+2]
@@ -160,7 +160,7 @@ def frm_corr(f, g):
         raise RuntimeError('Bandwidth too small: %d' % b)
     c = np.zeros(16*b**3, dtype='double')
 
-    if swig_frm.frm_corr(f, g, c) != 0:
+    if frm_corr(f, g, c) != 0:
         raise RuntimeError('Something is wrong during FRM!')
 
     c = c[::2] # retrieve the real part only
@@ -217,7 +217,7 @@ def frm_fourier_corr(fr, fi, gr, gi, return_real=False):
         raise RuntimeError('Bandwidth too small: %d' % b)
     c = np.zeros(16*b**3, dtype='double')
     
-    if swig_frm.frm_fourier_corr(fr, fi, gr, gi, c) != 0:
+    if frm_fourier_corr(fr, fi, gr, gi, c) != 0:
         raise RuntimeError('Something is wrong during FRM!')
     
     if return_real: # return the real part only
@@ -325,7 +325,7 @@ def frm_vol(v1, v2, b, radius=None):
         radius = v1.sizeX()/2
     
     res = np.zeros((2*b, 2*b, 2*b))
-    for r in xrange(1, radius+1):
+    for r in range(1, radius+1):
         corr = frm_corr(vol2sf(v1, r, b), vol2sf(v2, r, b))
         res += corr*(r**2) # should multiply by r**2
     
@@ -363,7 +363,7 @@ def frm_constrained_vol(v1, m1, v2, m2, b, radius=None):
         radius = v1.sizeX()/2
     
     res = np.zeros((2*b, 2*b, 2*b))
-    for r in xrange(1, radius+1):
+    for r in range(1, radius+1):
         corr = frm_constrained_corr(vol2sf(v1, r, b), m1, vol2sf(v2, r, b), m2)
         res += corr*(r**2) # should multiply by r**2
     
@@ -662,14 +662,14 @@ def frm_find_topn_angles_interp(corr, n=5, dist=3.0):
     -------
     List: [(phi, psi, theta, peak_value), ...]
     """
-    from tompy.tools import rotation_distance
+    from ..python.tompy.tools import rotation_distance
 
     b = corr.shape[0]/2
     
     res = []
     sort = corr.argsort(axis=None)
     
-    for i in xrange(len(sort)-1, -1, -1):
+    for i in range(len(sort)-1, -1, -1):
         x,y,z = np_transfer_idx(sort[i], corr.shape)
         # ang = frm_idx2angle(b, x, y, z)
         pos, peak = find_subpixel_peak_position(corr, [x, y, z])
@@ -716,7 +716,7 @@ def frm_find_topn_angles_interp2(corr, n=5, dist=3.0):
 
     peaks = np.zeros((n*4,), dtype='double')
     
-    if swig_frm.find_topn_angles(corr, b, peaks, dist) != 0:
+    if find_topn_angles(corr, b, peaks, dist) != 0:
         raise RuntimeError('Error happens in finding peaks!')
     
     peaks = peaks.reshape((n, 4))
@@ -923,9 +923,10 @@ def frm_correlate(vf, wf, vg, wg, b, max_freq, weights=None, ps=False, denominat
     If return_score is set to True, return the correlation function; otherwise return the intermediate result.
     """
     if not weights: # weights, not used yet
-        weights = [1 for i in xrange(max_freq)]
+        weights = [1 for i in range(max_freq)]
 
-    from tompy.transform import rfft, fftshift, ifftshift, fourier_reduced2full
+    from ..python.tompy.transform import (rfft, fftshift, ifftshift,
+                                          fourier_reduced2full)
 
     # IMPORTANT!!! Should firstly do the IFFTSHIFT on the volume data (NOT FFTSHIFT since for odd-sized data it matters!),
     # and then followed by the FFT.
@@ -948,7 +949,7 @@ def frm_correlate(vf, wf, vg, wg, b, max_freq, weights=None, ps=False, denominat
     _last_bw = 0
     # might be a better idea to start from 2 due to the bad interpolation around 0 frequency!
     # this can be better solved by NFFT!
-    for r in xrange(1, max_freq+1):
+    for r in range(1, max_freq+1):
         # calculate the appropriate bw
         bw = get_adaptive_bw(r, b)
 
@@ -1030,7 +1031,7 @@ def frm_correlate_prepare(vf, wf, vg, wg, b, max_freq):
     -------
     (svf, swf, svg, swg)
     """
-    from tompy.transform import rfft, fftshift, ifftshift, fourier_reduced2full
+    from ..python.tompy.transform import rfft, fftshift, ifftshift, fourier_reduced2full
 
     # IMPORTANT!!! Should firstly do the IFFTSHIFT on the volume data (NOT FFTSHIFT since for odd-sized data it matters!),
     # and then followed by the FFT.
@@ -1045,7 +1046,7 @@ def frm_correlate_prepare(vf, wf, vg, wg, b, max_freq):
 
     # might be a better idea to start from 2 due to the bad interpolation around 0 frequency!
     # this can be better solved by NFFT!
-    for r in xrange(1, max_freq+1):
+    for r in range(1, max_freq+1):
         # calculate the appropriate bw
         bw = get_adaptive_bw(r, b)
 
@@ -1090,11 +1091,11 @@ def frm_fourier_shift_sf(svf, max_freq, shape, dx, dy, dz):
     -------
     Dictionary. A set of shifted (complex) spherical functions in Fourier space.
     """
-    from vol2sf import fourier_sf_shift
+    from .vol2sf import fourier_sf_shift
     assert len(svf) == max_freq
 
     res = {}
-    for r in xrange(1, max_freq+1):
+    for r in range(1, max_freq+1):
         sf = svf[r][0] + 1j*svf[r][1]
         sf2 = fourier_sf_shift(sf, r, shape, dx, dy, dz)
         res[r] = (np.real(sf2), np.imag(sf2))
@@ -1148,7 +1149,7 @@ def frm_correlate_cache(vf, wf, vg, wg, b, max_freq, weights=None, ps=False, den
     If return_score is set to True, return the correlation function; otherwise return the intermediate result.
     """
     if not weights: # weights, not used yet
-        weights = [1 for i in xrange(max_freq)]
+        weights = [1 for i in range(max_freq)]
 
     numerator = None
     if denominator1 is not None and denominator2 is not None:
@@ -1161,7 +1162,7 @@ def frm_correlate_cache(vf, wf, vg, wg, b, max_freq, weights=None, ps=False, den
     _last_bw = 0
     # might be a better idea to start from 2 due to the bad interpolation around 0 frequency!
     # this can be better solved by NFFT!
-    for r in xrange(1, max_freq+1):
+    for r in range(1, max_freq+1):
         # calculate the appropriate bw
         bw = get_adaptive_bw(r, b)
 
@@ -1262,10 +1263,10 @@ def frm_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, weights=
     (The best translation and rotation (Euler angle, ZXZ convention [Phi, Psi, Theta]) to transform vg to match vf.
     (best_translation, best_rotation, correlation_score)
     """
-    from tompy.filter import SingleTiltWedge, bandpass
-    from tompy.tools import create_sphere
-    from tompy.transform import rotate3d, translate3d_f
-    from tompy.score import FLCF, find_peak_position
+    from ..python.tompy.filter import SingleTiltWedge, bandpass
+    from ..python.tompy.tools import create_sphere
+    from ..python.tompy.transform import rotate3d, translate3d_f
+    from ..python.tompy.score import FLCF, find_peak_position
 
     if vf.shape[0]!=vg.shape[0] or vf.shape[1]!=vg.shape[1] or vf.shape[2]!=vg.shape[2]:
         raise RuntimeError('Two volumes must have the same size!')
@@ -1308,7 +1309,7 @@ def frm_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, weights=
         return position, orientation, max_value
 
     # iteratively refine the position & orientation
-    from tompy.tools import euclidian_distance
+    from ..python.tompy.tools import euclidian_distance
     max_iter = 10 # maximal number of iterations
     lowpass_vf = bandpass(vf, 0, max_freq, max_freq/10.)
 
@@ -1320,13 +1321,13 @@ def frm_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, weights=
     max_position = None
     max_orientation = None
     max_value = -1.0
-    for i in xrange(num_seeds):
+    for i in range(num_seeds):
         old_pos = [-1, -1, -1]
         lm_pos = [-1, -1, -1]
         lm_ang = None
         lm_value = -1.0
         orientation = res[i][0] # initial orientation
-        for j in xrange(max_iter):
+        for j in range(max_iter):
             vg2 = rotate3d(vg, orientation[0], orientation[1], orientation[2]) # first rotate
             if mask is not None: # rotate the mask as well
                 mask2 = rotate3d(mask, orientation[0], orientation[1], orientation[2])
