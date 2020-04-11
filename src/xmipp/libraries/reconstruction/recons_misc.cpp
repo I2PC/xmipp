@@ -157,10 +157,7 @@ void sortPerpendicular(int numIMG, ReconsInfo *IMG_Inf,
 
         // Compute the Euler matrix for each image and keep only
         // the third row of each one
-        //0.f -> double 0. It should be there is the other
-        // arguments are doubles because Euler_angles2matrix
-        //acepts either all doubles or all doubles
-        Euler_angles2matrix(IMG_Inf[i].rot, IMG_Inf[i].tilt, 0.f, euler);
+        Euler_angles2matrix(IMG_Inf[i].rot, IMG_Inf[i].tilt, 0., euler);
         euler.getRow(2, z);
         v.setRow(i, z);
     }

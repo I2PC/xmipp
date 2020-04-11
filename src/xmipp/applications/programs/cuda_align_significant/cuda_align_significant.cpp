@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:    David Strelak (davidstrelak@gmail.com)
+ * Authors:     David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,28 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_
-#define LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_
+#include <reconstruction_adapt_cuda/align_significant_gpu.h>
 
-#include "core/matrix2d.h"
+RUN_XMIPP_PROGRAM(Alignment::ProgAlignSignificantGPU<float>)
 
-namespace Alignment {
-
-struct AlignmentEstimation {
-    explicit AlignmentEstimation(size_t n) {
-        poses.resize(n);
-        for (auto &m : poses) {
-            m.initIdentity(3);
-        }
-        figuresOfMerit.resize(n);
-    }
-
-    // This matrix describe the estimated transform, i.e. if you want to correct for the movement,
-    // you have to inverse it
-    std::vector<Matrix2D<float>> poses;
-    std::vector<float> figuresOfMerit;
-};
-
-} /* namespace Alignment */
-
-#endif /* LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_ */

@@ -23,28 +23,46 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_
-#define LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_
+#ifndef LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_
+#define LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_
 
-#include "core/matrix2d.h"
+#include "gpu.h"
+#include "reconstruction/bspline_geo_transformer.h"
 
-namespace Alignment {
-
-struct AlignmentEstimation {
-    explicit AlignmentEstimation(size_t n) {
-        poses.resize(n);
-        for (auto &m : poses) {
-            m.initIdentity(3);
-        }
-        figuresOfMerit.resize(n);
+template<typename T>
+class CudaBSplineGeoTransformer : public BSplineGeoTransformer<T> {
+public:
+    CudaBSplineGeoTransformer() {
+        setDefault();
     }
 
-    // This matrix describe the estimated transform, i.e. if you want to correct for the movement,
-    // you have to inverse it
-    std::vector<Matrix2D<float>> poses;
-    std::vector<float> figuresOfMerit;
+    void setSrc(const T *data) override;
+
+    const T *getSrc() const override {
+        return m_d_src;
+    }
+
+    T *getDest() const override {
+        return m_d_dest;
+    }
+
+    void copySrcToDest() override;
+
+    T *interpolate(const std::vector<float> &matrices) override; // each 3x3 values are a single matrix
+
+    void sum(T *dest, const std::vector<float> &weights, size_t firstN, T norm) override;
+private:
+    T *m_d_src;
+    T *m_d_dest;
+    GPU *m_stream;
+    float *m_d_matrices;
+
+    void setDefault() override;
+    void release() override;
+    void initialize(bool doAllocation) override;
+    void allocate();
+    void check() override;
 };
 
-} /* namespace Alignment */
 
-#endif /* LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_ */
+#endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_ */

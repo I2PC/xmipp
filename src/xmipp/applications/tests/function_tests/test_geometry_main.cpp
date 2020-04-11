@@ -26,7 +26,7 @@ TEST_F(GeometryTest, angles2Matrix2Angles)
 {
     double xrad, yrad, zrad;
 
-    int step = 30;
+    double step = 30;
     int repetitions = std::ceil(360.0 / step);
     for (int _z = 0; _z < repetitions; ++_z)
         for (int _y = 0; _y < repetitions; ++_y)

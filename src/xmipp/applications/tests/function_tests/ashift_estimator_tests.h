@@ -118,8 +118,10 @@ std::mt19937 AShiftEstimator_Test<T>::mt(42); // fixed seed to ensure reproducib
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToOne)
 {
+    XMIPP_TRY
     // test one reference vs one image
     AShiftEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
+    XMIPP_CATCH
 }
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToMany)

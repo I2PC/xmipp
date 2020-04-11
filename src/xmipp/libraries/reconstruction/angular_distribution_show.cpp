@@ -200,7 +200,7 @@ public:
 
             Matrix1D<double> p0(4), p1(4), p2(4), p3(4), view_direction, pp(3);
             Matrix2D<double> A, euler_view;
-            Euler_angles2matrix(rot_view, tilt_view, 0.0f, euler_view);
+            Euler_angles2matrix(rot_view, tilt_view, 0., euler_view);
             euler_view.getRow(2, view_direction);
             double tmp;
             int imax=v.size();

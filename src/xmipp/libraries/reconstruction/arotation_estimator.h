@@ -48,17 +48,18 @@ public:
     unsigned firstRing;
     unsigned lastRing;
     bool allowTuningOfNumberOfSamples;
+    bool allowDataOverwrite; // input data, such as reference or 'other' images can be overwrite by the algorithm. This can be, however, faster
 
     inline static float getMaxRotation() {
         return 360.f - std::numeric_limits<float>::min();
     }
 
-    inline unsigned getDefaultLastRing() const {
-        return (refDims.x() - 3) / 2; // so that we have some edge around the biggest ring
+    inline static unsigned getDefaultLastRing(const Dimensions &d) {
+        return (d.x() - 3) / 2; // so that we have some edge around the biggest ring
     }
 
-    inline unsigned getDefaultFirstRing() const {
-        return refDims.x() / 5;
+    inline static unsigned getDefaultFirstRing(const Dimensions &d) {
+        return std::max((size_t)2, d.x() / 20);
     }
 
     inline unsigned getNoOfRings() const {

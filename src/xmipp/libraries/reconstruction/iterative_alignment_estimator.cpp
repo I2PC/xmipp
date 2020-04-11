@@ -46,10 +46,24 @@ void IterativeAlignmentEstimator<T>::print(const AlignmentEstimation &e) {
 }
 
 template<typename T>
-void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims,
+T *IterativeAlignmentEstimator<T>::applyTransform(const AlignmentEstimation &estimation) {
+    std::vector<float> t;
+    t.reserve(9 * estimation.poses.size());
+    auto tmp = Matrix2D<float>(3, 3);
+    SPEED_UP_temps0
+    for (size_t j = 0; j < estimation.poses.size(); ++j) {
+        M3x3_INV(tmp, estimation.poses.at(j)) // inverse the transformation
+        for (int i = 0; i < 9; ++i) {
+            t.emplace_back(tmp.mdata[i]);
+        }
+    }
+    return m_transformer.interpolate(t);
+}
+
+template<typename T>
+void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, const Dimensions &dims, // FIXME DS remove
         const AlignmentEstimation &estimation,
         const T * __restrict__ orig, T * __restrict__ copy, bool hasSingleOrig) {
-    static size_t counter = 0;
     const size_t n = dims.n();
     const size_t z = dims.z();
     const size_t y = dims.y();
@@ -76,62 +90,33 @@ void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, co
 }
 
 template<typename T>
-void IterativeAlignmentEstimator<T>::computeCorrelation(
-        AlignmentEstimation &estimation,
-        const T * __restrict__ orig, T * __restrict__ copy) {
-    const size_t n = m_dims.n();
-    const size_t z = m_dims.z();
-    const size_t y = m_dims.y();
-    const size_t x = m_dims.x();
-
-    int threads = m_threadPool.size();
-
-    auto futures = std::vector<std::future<void>>();
-    auto workload = [&](int id, size_t signalId){
-        T * address = copy + signalId * m_dims.sizeSingle();
-        auto ref = MultidimArray<T>(1, z, y, x, const_cast<T*>(orig)); // removing const, but data should not be changed
-        auto other = MultidimArray<T>(1, z, y, x, address);
-        // FIXME DS better if we use fastCorrelation, but unless the input is normalized
-        // we won't receive correlation in [0..1], so we won't be able to directly compare
-        // against the original version of the algorithm
-        estimation.correlations.at(signalId) = correlationIndex(ref, other);
-    };
-
-    for (size_t i = 0; i < n; ++i) {
-        futures.emplace_back(m_threadPool.push(workload, i));
-    }
-    for (auto &f : futures) {
-        f.get();
-    }
-}
-
-template<typename T>
 void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation &est,
-        const T * __restrict__ ref,
-        const T * __restrict__ orig,
-        T * __restrict__ copy,
         bool rotationFirst) {
+    // note (DS) if any of these steps return 0 (no shift or rotation), additional iterations are useless
+    // as the image won't change
     auto stepRotation = [&] {
-        m_rot_est.compute(copy);
+        m_rot_est.compute(m_transformer.getDest());
         const auto &cRotEst = m_rot_est;
+        auto r = Matrix2D<float>();
         updateEstimation(est,
             cRotEst.getRotations2D(),
-            [](float angle, Matrix2D<double> &lhs) {
-                auto r = Matrix2D<double>();
+            [&r](float angle, Matrix2D<float> &lhs) {
                 rotation2DMatrix(angle, r);
                 lhs = r * lhs;
             });
-        sApplyTransform(m_threadPool, m_dims, est, orig, copy, false);
+        applyTransform(est);
     };
     auto stepShift = [&] {
-        m_shift_est.computeShift2DOneToN(copy);
+        m_shift_est.computeShift2DOneToN(m_transformer.getDest());
         updateEstimation(est, m_shift_est.getShifts2D(),
-                [](const Point2D<float> &shift, Matrix2D<double> &lhs) {
+                [](const Point2D<float> &shift, Matrix2D<float> &lhs) {
             MAT_ELEM(lhs, 0, 2) += shift.x;
             MAT_ELEM(lhs, 1, 2) += shift.y;
         });
-        sApplyTransform(m_threadPool, m_dims, est, orig, copy, false);
+        applyTransform(est);
     };
+    // get a fresh copy of the images
+    m_transformer.copySrcToDest();
     for (unsigned i = 0; i < iters; ++i) {
         if (rotationFirst) {
             stepRotation();
@@ -148,42 +133,39 @@ void IterativeAlignmentEstimator<T>::compute(unsigned iters, AlignmentEstimation
         }
 //        print(est);
     }
-    computeCorrelation(est, ref, copy);
+    m_meritComputer.compute(m_transformer.getDest());
+    const auto &mc = m_meritComputer;
+    est.figuresOfMerit = mc.getFiguresOfMerit();
 }
 
 template<typename T>
-AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
-        const T *__restrict__ ref, const T * __restrict__ others, // it would be good if data is normalized, but probably it does not have to be
-        unsigned iters) {
-
+void IterativeAlignmentEstimator<T>::loadReference(
+        const T *ref) {
+    m_meritComputer.loadReference(ref);
     m_shift_est.load2DReferenceOneToN(ref);
     if ( ! m_sameEstimators) {
         m_rot_est.loadReference(ref);
     }
+}
 
-    // allocate memory for signals with applied pose
-    size_t elems = m_dims.sizePadded();
-    auto copy = memoryUtils::page_aligned_alloc<T>(elems, false);
-    m_shift_est.getHW().lockMemory(copy, elems * sizeof(T));
-    m_rot_est.getHW().lockMemory(copy, elems * sizeof(T));
+template<typename T>
+AlignmentEstimation IterativeAlignmentEstimator<T>::compute(
+        const T * __restrict__ others, // it would be good if data is normalized, but probably it does not have to be
+        unsigned iters) {
+    m_transformer.setSrc(others);
 
-    const size_t n = m_dims.n();
+    // prepare transformer which is responsible for applying the pose t
+    const size_t n = m_rot_est.getSettings().otherDims.n();
     // try rotation -> shift
     auto result_RS = AlignmentEstimation(n);
-    memcpy(copy, others, elems * sizeof(T));
-    compute(iters, result_RS, ref, others, copy, true);
+    compute(iters, result_RS, true);
     // try shift-> rotation
     auto result_SR = AlignmentEstimation(n);
-    memcpy(copy, others, elems * sizeof(T));
-    compute(iters, result_SR, ref, others, copy, false);
-
-    m_rot_est.getHW().unlockMemory(copy);
-    m_shift_est.getHW().unlockMemory(copy);
-    free(copy);
+    compute(iters, result_SR, false);
 
     for (size_t i = 0; i < n; ++i) {
-        if (result_RS.correlations.at(i) < result_SR.correlations.at(i)) {
-            result_RS.correlations.at(i) = result_SR.correlations.at(i);
+        if (result_RS.figuresOfMerit.at(i) < result_SR.figuresOfMerit.at(i)) {
+            result_RS.figuresOfMerit.at(i) = result_SR.figuresOfMerit.at(i);
             result_RS.poses.at(i) = result_SR.poses.at(i);
         }
     }

@@ -31,7 +31,8 @@ namespace Alignment {
 template<typename T>
 void ShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
-        bool includingBatchFT, bool includingSingleFT) {
+        bool includingBatchFT, bool includingSingleFT,
+        bool allowDataOverwrite) {
     if (1 != hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "A single CPU thread expected");
     }
@@ -43,7 +44,7 @@ void ShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
     }
 
     AShiftCorrEstimator<T>::init2D(type, settings, maxShift,
-        includingBatchFT, includingSingleFT);
+        includingBatchFT, includingSingleFT, allowDataOverwrite);
 
     this->m_isInit = true;
 }
@@ -303,6 +304,9 @@ void ShiftCorrEstimator<T>::check() {
     AShiftCorrEstimator<T>::check();
     if (this->m_settingsInv->isInPlace()) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Only out-of-place transform is supported");
+    }
+    if (this->m_allowDataOverwrite) {
+        std::cerr << "'AllowDataOverwrite' flat ignored. This is not supported yet\n";
     }
 }
 
