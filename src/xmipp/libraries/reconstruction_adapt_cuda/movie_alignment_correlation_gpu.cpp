@@ -449,6 +449,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
     auto movieSettings = getMovieSettings(movie, false);
     LocalAlignmentResult<T> result { globalHint:globAlignment, movieDim:movieSettings.dim };
     auto patchSettings = this->getPatchSettings(movieSettings);
+    this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
     auto borders = getMovieBorders(globAlignment, 0);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
             patchSettings.dim);
