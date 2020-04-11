@@ -66,9 +66,6 @@ void scaleFFT2DKernel(const T* __restrict__ in, T* __restrict__ out,
         if (applyFilter) {
             out[oIndex] *= filterCoef;
         }
-        if (0 == idx || 0 == idy) {
-            out[oIndex] = {0, 0}; // ignore low frequency, this should increase precision a bit
-        }
         if (normalize) {
             out[oIndex] *= normFactor;
         }

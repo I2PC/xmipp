@@ -22,8 +22,8 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include "xmippmodule.h"
 
+#include "xmippmodule.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */
@@ -31,7 +31,7 @@
 
 void addIntConstant(PyObject * dict, const char * name, const long &value)
 {
-    PyObject * pyValue = PyLong_FromLong(value);
+    PyObject * pyValue = PyInt_FromLong(value);
     PyDict_SetItemString(dict, name, pyValue);
     Py_DECREF(pyValue);
 }

@@ -27,15 +27,15 @@
 
 import os
 import sys
-from src.xmipp.bindings.python.xmipp_base import *
+import xmipp_base
 from xmipp3 import Plugin
 import pyworkflow.em.metadata as md
 
 
-class ScriptMicrographCleanerEm(XmippScript):
+class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
     def __init__(self):
 
-        XmippScript.__init__(self)
+        xmipp_base.XmippScript.__init__(self)
 
     def getDoubleParamWithDefault(self, paramName, conditionFun= lambda x: False, defaultVal=None):
       if self.checkParam(paramName):

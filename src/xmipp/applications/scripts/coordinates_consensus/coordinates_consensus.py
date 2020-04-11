@@ -31,10 +31,9 @@ from subprocess import check_call
 from math import sqrt
 
 import numpy as np
-import src.xmipp.bindings.python.xmipp_base as xmipp_base
+import xmipp_base
 
-from src.xmipp.libraries.py_xmipp.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
-                                                                            writeCoordsListToPosFname)
+from xmippPyModules.coordinatesTools.coordinatesTools import readPosCoordsFromFName, writeCoordsListToPosFname
 
     
 class ScriptCordsConsensus(xmipp_base.XmippScript):

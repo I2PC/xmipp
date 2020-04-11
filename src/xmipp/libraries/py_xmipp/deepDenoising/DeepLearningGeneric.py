@@ -3,8 +3,8 @@ import keras
 import numpy as np
 
 from skimage.io import imsave
-from .dataGenerator import getDataGenerator, BATCH_SIZE
-from .augmentators import generateReverseNormalizationFunction
+from dataGenerator import getDataGenerator, BATCH_SIZE
+from augmentators import generateReverseNormalizationFunction
 
 
 class DeepLearningModel():

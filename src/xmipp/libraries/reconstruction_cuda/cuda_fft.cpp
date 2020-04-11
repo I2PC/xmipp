@@ -287,7 +287,7 @@ template<typename T>
 FFTSettingsNew<T> CudaFFT<T>::findMaxBatch(const FFTSettingsNew<T> &settings,
         size_t maxBytes) {
     size_t singleBytes = settings.sBytesSingle() + (settings.isInPlace() ? 0 : settings.fBytesSingle());
-    size_t batch = min((maxBytes / singleBytes), settings.batch()) + 1; // + 1 will be deducted in the while loop
+    size_t batch = (maxBytes / singleBytes) + 1; // + 1 will be deducted in the while loop
     while (batch > 1) {
         batch--;
         auto tmp = FFTSettingsNew<T>(settings.sDim(), batch, settings.isInPlace(), settings.isForward());
@@ -310,7 +310,7 @@ core::optional<FFTSettingsNew<T>> CudaFFT<T>::findOptimal(GPU &gpu,
     using core::optional;
     size_t freeBytes = gpu.lastFreeBytes();
     std::vector<cuFFTAdvisor::BenchmarkResult const *> *options =
-            cuFFTAdvisor::Advisor::find(10, gpu.device(), // FIXME DS this should be configurable
+            cuFFTAdvisor::Advisor::find(30, gpu.device(),
                     settings.sDim().x(), settings.sDim().y(), settings.sDim().z(), settings.sDim().n(),
                     TRUE, // use batch
                     std::is_same<T, float>::value ? TRUE : FALSE,

@@ -30,8 +30,7 @@
 import os
 from os.path import join
 from glob import glob
-
-PYTHON_LIB = os.environ.get("PYTHON_LIB")
+from datetime import datetime
 
 Import('env')
 
@@ -132,7 +131,6 @@ def addLib(name, **kwargs):
 
 def remove_prefix(text, prefix):
     return text[text.startswith(prefix) and len(prefix):]
-
 env['PYTHONINCFLAGS'] = os.environ.get('PYTHONINCFLAGS', '').split()
 if len(env["PYTHONINCFLAGS"])>0:
     python_incdirs = [remove_prefix(os.path.expandvars(x),"-I") for x in env["PYTHONINCFLAGS"]]
@@ -143,8 +141,7 @@ else:
 dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
 patterns=['condor/*.cpp','delaunay/*.cpp','gtest/*.cc','data/*.cpp','reconstruction/*.cpp',
 		'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
-addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs,
-       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads'])
+addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs, libs=['python2.7', 'fftw3f', 'fftw3f_threads'])
 
 
 # FRM library
@@ -162,8 +159,7 @@ if cuda:
 # MPI
 dirs = ['libraries']
 patterns=['parallel/*.cpp']
-addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs,
-       libs=['Xmipp', PYTHON_LIB], mpi=True)
+addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs, libs=['Xmipp', 'python2.7'], mpi=True)
 
 
 #  ***********************************************************************
@@ -173,9 +169,7 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs,
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),
-                          'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff',
-                          'fftw3f', 'fftw3f_threads', 'pthread', PYTHON_LIB]
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),'hdf5_cpp', 'jpeg','tiff', 'fftw3f', 'fftw3f_threads', 'fftw3','fftw3_threads', 'pthread']
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -233,7 +227,7 @@ PROGRAMS_WITH_OPENCV_AND_CUDA = ['movie_optical_alignment_gpu']
 for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
 	pname = os.path.basename(p)
 	if pname in PROGRAMS_WITH_PYTHON:
-		addProg(pname, incs=python_incdirs, libs=[PYTHON_LIB])
+		addProg(pname,incs=python_incdirs,libs=['python2.7'])
 	elif pname in PROGRAMS_WITH_OPENCV:
 		if opencv:
 			addProg(pname,libs=opencvLibs,deps=['opencv'])
@@ -256,7 +250,7 @@ addLib('xmippLib.so',
        dirs=['bindings'],
        patterns=['python/*.cpp'],
        incs=python_incdirs,
-       libs=[PYTHON_LIB, 'XmippCore', 'Xmipp', 'fftw3f'],
+       libs=['python2.7', 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')
        
 #  ***********************************************************************
@@ -309,7 +303,7 @@ def compileMatlabBinding(target, source, env):
 
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
     command = '%s -O CFLAGS="\$CFLAGS -std=c99 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
-    print(command)
+    print command
     os.system(command)
 
 # Matlab programs

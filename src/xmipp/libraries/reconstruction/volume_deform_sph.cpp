@@ -25,7 +25,6 @@
 #include <data/numerical_tools.h>
 #include <data/basis.h>
 #include <data/fourier_filter.h>
-#include <data/normalize.h>
 
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {
@@ -34,7 +33,6 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("   -r <volume>                         : Reference volume");
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
 	addParamsLine("                                       : By default, the input file is rewritten");
-	addParamsLine("  [--sigma <Matrix1D=\"\">]	      : Sigma values to filter the volume to perform a multiresolution analysis");
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--optimizeRadius]                   : Optimize the radius of each spherical harmonic");
 	addParamsLine("  [--depth <d=1>]                      : Harmonical depth of the deformation=1,2,3,...");
@@ -44,23 +42,9 @@ void ProgVolDeformSph::defineParams() {
 
 // Read arguments ==========================================================
 void ProgVolDeformSph::readParams() {
-    std::string aux;
 	fnVolI = getParam("-i");
 	fnVolR = getParam("-r");
 	depth = getIntParam("--depth");
-	
-	aux = getParam("--sigma");
-	// Transform string ov values separated by white spaces into substrings stored in a vector
-	std::stringstream ss(aux);
-	std::istream_iterator<std::string> begin(ss);
-	std::istream_iterator<std::string> end;
-	std::vector<std::string> vstrings(begin, end);
-	sigma.resize(vstrings.size());
-	std::transform(vstrings.begin(), vstrings.end(), sigma.begin(), [](const std::string& val)
-	{
-    	return std::stod(val);
-	});
-
 	fnVolOut = getParam("-o");
 	if (fnVolOut=="")
 		fnVolOut=fnVolI;
@@ -105,10 +89,9 @@ double ProgVolDeformSph::distance(double *pclnm)
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
 		VEC_ELEM(clnm,i)=pclnm[i+1];
 #ifdef DEBUG
-	std::cout << "Starting to evaluate\n" << clnm << std::endl;
+	//std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 	double modg=0.0;
-	double voxelR, absVoxelR, voxelI, diff;
 	for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++)
 	{
 		for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++)
@@ -159,20 +142,16 @@ double ProgVolDeformSph::distance(double *pclnm)
 						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
 					}
 				}
-
-				for (int idv=0; idv<volumesR.size(); idv++)
-				{
-					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
-					absVoxelR=fabs(voxelR);
-					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
-					if (applyTransformation && idv == 0)
-						VO(k,i,j)=voxelI;
-					diff=voxelR-voxelI;
-					diff2+=absVoxelR*diff*diff;
-					modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
-	//				Ncount++;
-					totalVal += absVoxelR;
-				}
+				double voxelR=A3D_ELEM(mVR,k,i,j);
+				double absVoxelR=fabs(voxelR);
+				double voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
+                if (applyTransformation)
+                	VO(k,i,j)=voxelI;
+				double diff=voxelR-voxelI;
+				diff2+=absVoxelR*diff*diff;
+				modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
+//				Ncount++;
+				totalVal += absVoxelR;
 
 				if (saveDeformation)
 				{
@@ -187,14 +166,14 @@ double ProgVolDeformSph::distance(double *pclnm)
 	deformation=std::sqrt(modg/(totalVal));
 
 #ifdef DEBUG
-	//save.write("PPPIdeformed.vol");
-	//save()-=VR();
-	//save.write("PPPdiff.vol");
-	//save()=VR();
-	//save.write("PPPR.vol");
-	std::cout << "Error=" << deformation << " " << std::sqrt(diff2/totalVal) << std::endl;
-	//std::cout << "Press any key\n";
-	//char c; std::cin >> c;
+	save.write("PPPIdeformed.vol");
+	save()-=VR();
+	save.write("PPPdiff.vol");
+	save()=VR();
+	save.write("PPPR.vol");
+	std::cout << "Error=" << std::sqrt(diff2/Ncount) << " " << std::sqrt(modg/Ncount) << std::endl;
+	std::cout << "Press any key\n";
+	char c; std::cin >> c;
 #endif
 	if (applyTransformation)
 		VO.write(fnVolOut);
@@ -225,44 +204,6 @@ void ProgVolDeformSph::run() {
 
 	VI().setXmippOrigin();
 	VR().setXmippOrigin();
-
-	// Filter input and reference volumes according to the values of sigma
-	FourierFilter filter;
-    filter.FilterShape = REALGAUSSIAN;
-    filter.FilterBand = LOWPASS;
-	filter.generateMask(VI());
-
-	// We need also to normalized the filtered volumes to compare them appropiately
-	MultidimArray<int> bg_mask;
-	Image<double> auxI = VI;
-	Image<double> auxR = VR;
-	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
-    bg_mask.setXmippOrigin();
-	BinaryCircularMask(bg_mask, Rmax, OUTSIDE_MASK);
-
-	normalize_Robust(auxI(), bg_mask, true);
-	normalize_Robust(auxR(), bg_mask, true);
-
-	volumesI.push_back(auxI());
-	volumesR.push_back(auxR());
-
-	for (int ids=0; ids<sigma.size(); ids++)
-	{
-		Image<double> auxI = VI;
-		Image<double> auxR = VR;
-		filter.w1 = sigma[ids];
-
-		// Filer input vol
-		filter.do_generate_3dmask = true;
-		filter.applyMaskSpace(auxI());
-		normalize_Robust(auxI(), bg_mask, true);
-		volumesI.push_back(auxI);
-
-		// Filter ref vol
-		filter.applyMaskSpace(auxR());
-		normalize_Robust(auxR(), bg_mask, true);
-		volumesR.push_back(auxR);
-	}
 
     Matrix1D<double> steps, x, prevsteps;
     for (int h=0;h<VEC_XSIZE(nh)-1;h++)

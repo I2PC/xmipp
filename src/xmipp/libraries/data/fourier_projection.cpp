@@ -300,10 +300,8 @@ void FourierProjector::produceSideInfo()
         VfourierImagAux.clear();
         VfourierImagCoefs.selfWindow(idxMin,idxMin,idxMin,idxMax,idxMax,idxMax);
     }
-    else {
+    else
         Complex2RealImag(Vfourier, VfourierRealCoefs, VfourierImagCoefs);
-        volumePaddedSize=XSIZE(VfourierRealCoefs);
-    }
 
     // Allocate memory for the 2D Fourier transform
     projection().initZeros(volumeSize,volumeSize);

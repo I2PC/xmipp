@@ -185,6 +185,4 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-PyMODINIT_FUNC PyInit_xmippLib(void);
-
 #endif

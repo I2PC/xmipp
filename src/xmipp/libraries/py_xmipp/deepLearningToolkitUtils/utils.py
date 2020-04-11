@@ -30,7 +30,7 @@ def updateEnviron(gpus=None):
     os.environ['CUDA_VISIBLE_DEVICES']="-1"
     return None
   else:
-    if isinstance(gpus, str):
+    if isinstance(gpus, basestring):
       if gpus.startswith("all"):
         return "all"
       elif gpus is not "":

@@ -180,8 +180,8 @@ PyObject *
 MetaData_repr(PyObject * obj);
 
 /* MetaData compare function */
-PyObject*
-MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
+int
+MetaData_compare(PyObject * obj, PyObject * obj2);
 
 /* read */
 PyObject *

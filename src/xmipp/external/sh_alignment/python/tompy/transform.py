@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-
+import scipy
 
 def rotate_axis(data, angle, axis='z'):
     """Rotate the volume around certain axis.

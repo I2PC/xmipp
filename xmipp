@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # ***************************************************************************
 # * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
 # *              David Maluenda (dmaluenda@cnb.csic.es)
@@ -60,11 +60,6 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em',
                 CTPL: 'https://github.com/vit-vit/CTPL.git'}
 
-#              {dep-repo:     (branch, check-conf)}
-DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
-                MICROGRAPH_CLEANER: (None, None),
-                CTPL: ('master', None)}
-
 CONFIG_FILE_NAME = "xmipp.conf"
 
 # if a skippable compilation fails (if 'key' found in the failed code),
@@ -75,7 +70,7 @@ SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
 
 
 def checkGithubConnection():
-    from http.client import HTTPConnection
+    from httplib import HTTPConnection
     from socket import gaierror
     conn = HTTPConnection("www.github.com", timeout=3)
     try:
@@ -96,7 +91,7 @@ def stampVersion():
         if os.path.exists('.git'):
             branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
             hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
-            repoInfo = "%s (%s)" % (branch.decode("utf-8").strip('\n'), hash.decode("utf-8").strip('\n'))
+            repoInfo = "%s (%s)" % (branch.strip('\n'), hash.strip('\n'))
         else:
             repoInfo = "(no git repo detected)"
         os.chdir(currDir)
@@ -178,7 +173,7 @@ def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","ManjaroLinux"]
     try:
         osInfo = subprocess.Popen(["lsb_release", "--id"],
-                                   stdout=subprocess.PIPE).stdout.read().decode("utf-8")
+                                   stdout=subprocess.PIPE).stdout.read()
         osName = osInfo.split('\t')[1].strip('\n')
         osId = -1  # no default OS
         for idx, system in enumerate(systems):
@@ -196,7 +191,7 @@ def checkProgram(programName, show=True):
     systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
-    systemInstructions["pip"] = ["sudo apt-get -y install python3-pip" , "sudo pacman -Syu --noconfirm rsync"]
+    systemInstructions["pip"] = ["sudo apt-get -y install python-pip" , "sudo pacman -Syu --noconfirm rsync"]
     ok=True
     cont = True
     if not whereis(programName):
@@ -243,7 +238,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
     p = subprocess.Popen(cmd, cwd=cwd,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
     while not inParallel:
-        output = p.stdout.readline().decode("utf-8")
+        output = p.stdout.readline()
         if output == '' and p.poll() is not None:
             break
         if output:
@@ -258,25 +253,13 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return 0 == p.poll()
 
 def cleanSources():
-    for dep in DEPENDENCIES.keys():
-        runJob("rm -rf src/%s" % dep)
-    runJob("rm -rf src/scipion-em-xmipp")
-    runJob("rm -rf src/xmippCore")
-    runJob("rm -rf src/xmippViz")
-    runJob("rm -rf src/xmipp/bin")
-    runJob("rm -rf src/xmipp/lib")
-    runJob("rm -rf src/xmipp/.sconsign.dblite")
-    runJob("git stash")  # to get exactly like in repo
-
+    runJob("rm -rf %s build src" % CONFIG_FILE_NAME)
 
 def cleanBinaries():
     for ext in ['so', 'os', 'o']:
         runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
     runJob('find . -iname "*.pyc" -delete')
     runJob("rm -rf %s build" % CONFIG_FILE_NAME)
-    # I'm getting ValueError : unsupported pickle protocol: 5' when switching from one python version to another
-    # This seems to be cached at dblite file.
-    runJob('find . -iname "*.dblite" -delete')
 
 
 def checkout(branch):
@@ -411,11 +394,12 @@ def getDependencies():
     print("Getting Dependencies -------------------------------------")
     createDir("src")
     result = True
-    for dep, args in DEPENDENCIES.items():
-        branch = args[0]
-        configChecked = not args[1] or is_config_true(args[1])
-        if configChecked and result:
-            result = cloneOrCheckout(dep, branch)
+    if is_config_true('CUDA'):
+        result = cloneOrCheckout(CUFFTADVISOR, 'master')
+    if result:
+        result = cloneOrCheckout(MICROGRAPH_CLEANER, None)
+    if result:
+        result = cloneOrCheckout(CTPL, 'master')
     if not result:
         print(red("Cannot get dependencies"))
     return result
@@ -455,8 +439,7 @@ def createEmptyConfig():
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED',
-              'CONFIG_VERSION', 'PYTHON_LIB']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED', 'CONFIG_VERSION']
     configDict = {}
     for label in labels:
         configDict[label]=""
@@ -470,6 +453,7 @@ def findFileInDirList(fnH,dirlist):
     return False
 
 def configOpenCV(configDict):
+    print("Checking openCV configuration ...")
     cppProg="#include <opencv2/core/core.hpp>\n"
     cppProg+="int main(){}\n"
     with open("xmipp_test_opencv.cpp", "w") as cppFile:
@@ -491,7 +475,6 @@ def configOpenCV(configDict):
         if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]),show_output=False):
             configDict["OPENCV3"]=False
-            version = 2  # Just in case
         else:
             runJob("./xmipp_test_opencv")
             f=open("xmipp_test_opencv.txt")
@@ -509,36 +492,32 @@ def configOpenCV(configDict):
         configDict["OPENCVSUPPORTSCUDA"]=runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False)
 
-        print(green("OPENCV-%s detected %s CUDA support"
-              % (version, 'with' if configDict["OPENCVSUPPORTSCUDA"] else 'without')))
     runJob("rm -v xmipp_test_opencv*",show_output=False)
-
 
 def getDependenciesInclude():
     return ['../']
 
 
 def configCompiler(configDict):
-    if configDict["DEBUG"] == "":
-        configDict["DEBUG"] = "False"
+    if configDict["DEBUG"]=="":
+        configDict["DEBUG"]="False"
 
-    if configDict["CC"] == "" and checkProgram("gcc"):
-        configDict["CC"] = "gcc"
-        print(green('gcc detected'))
-    if configDict["CXX"] == "":
+    if configDict["CC"]=="":
+        configDict["CC"]="gcc" if checkProgram("gcc") else ""
+    if configDict["CXX"]=="":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
-            configDict["CXX"] = "ccache g++" if checkProgram("g++") else ""
+            configDict["CXX"]="ccache g++" if checkProgram("g++") else ""
         else:
-            configDict["CXX"]="g++" if checkProgram("g++") else ""
-    if configDict["LINKERFORPROGRAMS"] == "":
+            configDict["CXX"]="g++" if checkProgram("g++") else "" 
+    if configDict["LINKERFORPROGRAMS"]=="":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
-            configDict["LINKERFORPROGRAMS"] = "ccache g++" if checkProgram("g++") else ""
+            configDict["LINKERFORPROGRAMS"]="ccache g++" if checkProgram("g++") else ""
         else:
-            configDict["LINKERFORPROGRAMS"] = "g++" if checkProgram("g++") else ""
+            configDict["LINKERFORPROGRAMS"]="g++" if checkProgram("g++") else ""
 
-    if configDict["CC"] == "gcc":
+    if configDict["CC"]=="gcc":
         if not "-std=c99" in configDict["CCFLAGS"]:
             configDict["CCFLAGS"]+=" -std=c99"
     if 'g++' in configDict["CXX"]:
@@ -553,49 +532,55 @@ def configCompiler(configDict):
         if is_config_true("DEBUG"):
             configDict["CXXFLAGS"] += " -g"
     # Nothing special to add to LINKFLAGS
-    from sysconfig import get_paths
-    info = get_paths()
 
-    if configDict["LIBDIRFLAGS"] == "":
+
+    if configDict["LIBDIRFLAGS"]=="":
+        scipionHomeDir = getScipionHome()
         libDirs=[]
-        configDict["LIBDIRFLAGS"]="-L%s/lib" % info['data']
-        libDirs=["%s/lib" % info['data']]
-
-        if not findFileInDirList("libhdf5*", libDirs):
-            if findFileInDirList("libhdf5*", ["/usr/lib/x86_64-linux-gnu"]):
+        if scipionHomeDir:
+            configDict["LIBDIRFLAGS"]="-L%s/software/lib"%scipionHomeDir
+            libDirs=["%s/software/lib"%scipionHomeDir]
+        if not findFileInDirList("libhdf5*",libDirs):
+            if findFileInDirList("libhdf5*",["/usr/lib/x86_64-linux-gnu"]):
                 configDict["LIBDIRFLAGS"]+=" -L/usr/lib/x86_64-linux-gnu"
                 # libDirs+=["/usr/lib/x86_64-linux-gnu"]
-    if configDict["INCDIRFLAGS"] == "":
-        incDirs = []
-        configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
-        configDict["INCDIRFLAGS"] += " -I%s/include" % info['data']
-        incDirs += ["%s/include" % info['data']]
-
-        if not findFileInDirList("hdf5.h", incDirs):
-            if findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"]):
-                configDict["INCDIRFLAGS"]+=" -I/usr/include/hdf5/serial"
-                incDirs += ["/usr/include/hdf5/serial"]
-
-    if configDict["PYTHON_LIB"] == "":
-        # malloc flavour is not needed from 3.8
-        malloc = "m" if sys.version_info.minor < 8 else ""
-        configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major, sys.version_info.minor, malloc)
-
-
-    if configDict["PYTHONINCFLAGS"] == "":
-        import numpy
+    if configDict["INCDIRFLAGS"]=="":
         incDirs=[]
-
-        incDirs += [info['include'],
-                    numpy.get_include()]
-
-        pythonIncFlags = ""
-        for incDir in incDirs:
-            pythonIncFlags += "-I" + incDir + " "
-        configDict["PYTHONINCFLAGS"] = pythonIncFlags
-
+        configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
+        scipionHomeDir = getScipionHome()
+        if scipionHomeDir:
+            configDict["INCDIRFLAGS"] += " -I%s/software/include"%scipionHomeDir
+            incDirs+=["%s/software/include"%scipionHomeDir]
+        if not findFileInDirList("hdf5.h",incDirs):
+            if findFileInDirList("hdf5.h",["/usr/include/hdf5/serial"]):
+                configDict["INCDIRFLAGS"]+=" -I/usr/include/hdf5/serial"
+                incDirs+=["/usr/include/hdf5/serial"]
+    if configDict["PYTHONINCFLAGS"]=="":
+        incDirs=[]
+        scipionHomeDir = getScipionHome()
+        if scipionHomeDir:
+            configDict["PYTHONINCFLAGS"]="-I%s/software/include/python2.7 "\
+                                         "-I%s/software/lib/python2.7/site-packages "\
+                                         "-I%s/software/lib/python2.7/site-packages/numpy/core/include"%\
+                                         (scipionHomeDir,scipionHomeDir,scipionHomeDir)
+            incDirs+=["%s/software/include/python2.7"%scipionHomeDir,
+                      "%s/software/lib/python2.7/site-packages"%scipionHomeDir,
+                      "%s/software/lib/python2.7/site-packages/numpy/core/include"%scipionHomeDir]
+        if not findFileInDirList("Python.h",incDirs):
+            if findFileInDirList("Python.h",["/usr/include/python2.7"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/include/python2.7"
+                incDirs+=["/usr/include/python2.7"]
+            if findFileInDirList("ndarraytypes.h",["/usr/lib/python2.7/site-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/lib/python2.7/site-packages/numpy/core/include/"
+                incDirs+=["usr/lib/python2.7/site-packages/numpy/core/include/"]
+            elif findFileInDirList("ndarraytypes.h",["/usr/lib/python2.7/dist-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/lib/python2.7/dist-packages/numpy/core/include/"
+                incDirs+=["usr/lib/python2.7/dist-packages/numpy/core/include/"]
+            elif findFileInDirList("ndarraytypes.h",["/usr/local/lib/python2.7/dist-packages/numpy/core/include/numpy"]):
+                configDict["PYTHONINCFLAGS"]+=" -I/usr/local/lib/python2.7/dist-packages/numpy/core/include/"
+                incDirs+=["usr/local/lib/python2.7/dist-packages/numpy/core/include/"]
     configDict["OPENCV"] = os.environ.get("OPENCV", "")
-    if configDict["OPENCV"] == "" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
+    if configDict["OPENCV"]=="" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
         configOpenCV(configDict)
 
 def getHdf5Name(libdirflags):
@@ -647,17 +632,13 @@ def checkCompiler(configDict):
     return True
 
 def configMPI(configDict):
-    mpiDetected = []
-    if configDict["MPI_CC"] == "" and checkProgram("mpicc"):
-        configDict["MPI_CC"]="mpicc"
-        mpiDetected.append('mpicc')
-    if configDict["MPI_CXX"] == "" and checkProgram("mpiCC"):
-        configDict["MPI_CXX"]="mpiCC"
-        mpiDetected.append('mpiCC')
+    if configDict["MPI_CC"]=="":
+        configDict["MPI_CC"]="mpicc" if checkProgram("mpicc") else ""
+    if configDict["MPI_CXX"]=="":
+        configDict["MPI_CXX"]="mpiCC" if checkProgram("mpiCC") else ""
     if configDict["MPI_LINKERFORPROGRAMS"]=="":
         configDict["MPI_LINKERFORPROGRAMS"]="mpiCC" if checkProgram("mpiCC") else ""
-    if mpiDetected:
-        print(green("%s detected." % ', '.join(mpiDetected)))
+
     # MPI_CXXFLAGS is normally not needed, but if it is we may use mpicc --showme:compile
     # MPI_LINKFLAGS is normally not needed, but if it is we may use mpicc --showme:link
 
@@ -682,8 +663,8 @@ int main(){}
     runJob("rm xmipp_mpi_test_main*")
 
     ok = False
-    echoString = blue("   > This sentence should be printed 4 times if mpi runs fine")
     if checkProgram("mpirun",False):
+        echoString = "This sentence should be printed 4 times if mpi runs fine"
         ok=(runJob("mpirun -np 4 echo '%s (by mpirun).'" % echoString) or
             runJob("mpirun -np 4 --allow-run-as-root echo '%s (by mpirun).'" % echoString))
     elif checkProgram("mpiexec",False):
@@ -705,7 +686,6 @@ def configJava(configDict):
             javaHomeDir = javaHomeDir.replace("/bin","")
         if javaHomeDir:
             configDict["JAVA_HOME"]=javaHomeDir
-            print(green("%s detected." % os.path.basename(javaHomeDir)))
 
     if configDict["JAVA_BINDIR"]=="" and javaHomeDir:
         configDict["JAVA_BINDIR"]="%(JAVA_HOME)s/bin"
@@ -719,7 +699,7 @@ def configJava(configDict):
 def checkJava(configDict):
     if not checkProgram("javac"):
         return False
-    print("Cheching Java configuration...")
+
     javaProg="""
     public class Xmipp {
        public static void main(String[] args) {}
@@ -760,12 +740,10 @@ def configCuda(configDict):
         if configDict["NVCC"]=="":
             if checkProgram("nvcc"):
                 nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
-                print(green('CUDA-' + nvccFullVersion + ' detected.'))
-                if nvccVersion != 8.0 and not os.environ.get('XMIPP_ALLOW_ANY_CUDA', 'False') == 'True':
-                    print(red('CUDA-8.0 is required.'))
+                if nvccVersion != 8.0 and not 'XMIPP_ALLOW_ANY_CUDA' in os.environ:
+                    print(red('Detected CUDA-' + nvccFullVersion + '. Version 8.0 is required.'))
                     print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
-                              "to be able to use Xmipp Cuda programs or "
-                              "'export XMIPP_ALLOW_ANY_CUDA=True' to try with current Cuda."))
+                              "to be able to use Xmipp Cuda programs.'"))
                     configDict["CUDA"] = 'False'
                     return
                 configDict["NVCC"] = "nvcc"
@@ -784,13 +762,13 @@ def configCuda(configDict):
                     cxxCudaVer = '-'+ver
                     if checkProgram(candidate+cxxCudaVer):
                         configDict["CXX_CUDA"] = candidate+cxxCudaVer
-                        print(green("%s detected. Using it to compile CUDA related code.\n"
+                        print(green("%s detected! Using it to compile CUDA related code.\n"
                                     % configDict["CXX_CUDA"]))
                         break
                 if configDict["CXX_CUDA"] == '':
                     print(red("No alternative found. Skipping CUDA compilation.\n"
                               "If an alternative exists, please set 'CXX_CUDA' "
-                              "in '%s' to point to there." % CONFIG_FILE_NAME))
+                              "in 'xmipp.conf' to point to there."))
                     configDict["CUDA"] = "False"
                     return
             else:
@@ -812,9 +790,6 @@ def configCuda(configDict):
                 if not ok:
                     candidateDir = dirName.replace("bin","lib64")
                     ok=os.path.exists(candidateDir+"/libcudart.so")
-                if not ok:
-                    candidateDir = dirName.replace("bin","targets/x86_64-linux/lib")
-                    ok=os.path.exists(candidateDir+"/libcudart.so")
                 if ok:
                     configDict["NVCC_LINKFLAGS"] = ("-L%s"%candidateDir +
                                                     " -L%s/stubs"%candidateDir)  # nvidia-ml is in stubs folder
@@ -832,7 +807,7 @@ def checkCuda(configDict):
     if configDict["CUDA"]=="True":
         if not checkProgram("nvcc"):
             return False
-        print("Checking CUDA configuration ...")
+
         cppProg="""
     #include <cuda_runtime.h>
     #include <cufft.h>
@@ -867,14 +842,13 @@ def configMatlab(configDict):
             if checkProgram("matlab"):
                 matlabBinDir = os.path.dirname(os.path.realpath(distutils.spawn.find_executable("matlab")))
                 configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
-                print(green("Matlab detected at " + matlabBinDir))
 
 def checkMatlab(configDict):
     ans = True
     if configDict["MATLAB"]=="True":
         if not checkProgram("matlab"):
             return False
-        print("Checking Matlab configuration ...")
+
         cppProg="""
     #include <mex.h>
     int dummy(){}
@@ -897,7 +871,7 @@ def writeConfig(configDict):
 
 def updateConfig(updatingDict):
     cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
-    for k, v in updatingDict.items():
+    for k, v in updatingDict.iteritems():
         print(blue("Setting %s=%s" % (k, v)))
         runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME),
                show_command=False)
@@ -924,10 +898,10 @@ def ensureConfigVersion(configDict):
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
-    # useScipion = not ('XMIPP_NOSCIPION' in os.environ)
-    # if useScipion and not getScipionHome():
-    #     print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
-    #     return False
+    useScipion = not ('XMIPP_NOSCIPION' in os.environ)
+    if useScipion and not getScipionHome():
+        print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
+        return False
 
     if new_config_dict['VERIFIED'] == '':
         new_config_dict['VERIFIED'] = 'False'
@@ -941,7 +915,6 @@ def config():
     configConfigVersion(new_config_dict)
 
     writeConfig(new_config_dict)
-    print(blue("Configuration completed....."))
 
     return new_config_dict
 
@@ -954,9 +927,9 @@ def checkConfig():
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
             print("Possible solutions")
-            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "\
-                  "python3-numpy python3-scipy python3-mpi4py")
-            print("In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
+            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python2.7-dev "\
+                  "python-numpy python-scipy python-mpi4py")
+            print("In Manjaro: sudo pacman -Syu install hdf5 python2-numpy python2-scipy --noconfirm")
             print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
                   "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
             print("\nRemember to re-run './xmipp config' after installing libraries in order to "
@@ -977,9 +950,6 @@ def checkConfig():
             newConf["MATLAB"]="False"
         newConf['VERIFIED']="True"
         updateConfig(newConf)
-    else:
-        print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
-                   % CONFIG_FILE_NAME))
     return True
 
 
@@ -988,42 +958,19 @@ def compileModule(Nproc,module):
     if module == "xmipp":
         stampVersion()
     log = []
-    ok = runJob("scons -j%s" % Nproc, "src/%s" % module, log=log)
+    ok = runJob("scons -j%s"%Nproc, "src/%s"%module, log=log)
     if not ok:
-        failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines
             # expected error: 'scons: *** [some/program/to/compile] Error 1'
-            errorRegex = re.match("scons: \*\*\* \[(.*)\] (.*Error) ([0-9]*)[: ]*(.*)", l)
-            if errorRegex:
-                failingBin = errorRegex.group(1)
-                errorType = errorRegex.group(2)
-                errorNum = errorRegex.group(3)
-                errorMsg = errorRegex.group(4)
-                for k, v in SKIPPABLE_BINS.items():
-                    if k in failingBin:
+            failingBin = re.match("scons: \*\*\* \[(.*)\] Error .*", l)
+            if failingBin:
+                for k, v in SKIPPABLE_BINS.iteritems():
+                    if k in failingBin.group(1):
                         print(red("\nSome error found compiling '%s' program."
-                                  % failingBin.split('/')[-1]))
+                                  % failingBin.group(1).split('/')[-1]))
                         print(red("You can skip this program by including '%s' "
                                   "in the config file." % (v)))
-                if 'unsupported pickle protocol' in errorMsg:
-                    print(red("\nThis error might be because you changed the python "
-                              "version. If so, please run './xmipp cleanBin' to "
-                              "clean up the installation and, then './xmipp' to "
-                              "re-compile it."))
-            errorRegex = re.match(".*: fatal error: (.*): No such file or directory", l)
-            if errorRegex:
-                missingPath = errorRegex.group(1)
-                print(red("\n'%s' file not found." % missingPath))
-                missingDir = missingPath.split(os.path.sep)[0]
-                missingFile = os.path.join(*missingPath.split(os.path.sep)[1:])
-                if missingDir in DEPENDENCIES.keys():
-                    depDir = os.path.join('src', missingDir)
-                    hint = ('cd %s ; git checkout -- %s ; cd -' % (depDir, missingFile)
-                            if os.path.isdir(depDir) else './xmipp get_dependencies')
-                    print(red("This file belongs to %s dependency. Please, "
-                              "try '%s' and re-compile." % (missingDir, hint)))
-        print(red("\nSome error occurred during the compilation of '%s'%s.\n"
-                  % (module, (" ('%s')" % failingBin) if failingBin else '')))
+        print(red("\nSome error occurred during the compilation of '%s'.\n" % module))
         sys.exit(1)
     return ok
 
@@ -1116,11 +1063,11 @@ def runTests(testNames):
            % (getPython(), ' '.join(testNames), noCudaStr))
 
 def getPython():
-    # scipionHome = getScipionHome()
-    # if scipionHome is not None:
-    #     python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
-    # else:
-    python = 'python3'
+    scipionHome = getScipionHome()
+    if scipionHome is not None:
+        python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
+    else:
+        python = 'python'
     return python
 
 def addDeepLearninModel(login, modelPath='', update=None):
@@ -1167,10 +1114,10 @@ def addDeepLearninModel(login, modelPath='', update=None):
     runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
 
     remotePath = "scipion_em_packages/"
-    print("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
-    print('You are going to be connected to "%s" to write in folder '
+    print "Warning: Uploading, please BE CAREFUL! This can be dangerous."
+    print ('You are going to be connected to "%s" to write in folder '
            '"%s".' % (login, remotePath))
-    if input("Continue? YES/no\n").lower() == 'no':
+    if raw_input("Continue? YES/no\n").lower() == 'no':
         sys.exit()
 
     print("Trying to upload the model using '%s' as login" % login)
@@ -1241,8 +1188,6 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
-    # ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
-    # ok = ok and runJob("ln -sf ../../lib/libXmippCore.so " + dirname + "/bindings/python/libXmippCore.so")
 
     createDir(dirname+"/bindings/python/sh_alignment")
     ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
@@ -1251,7 +1196,7 @@ def install(dirname):
     createDir(dirname+"/resources")
     ok = ok and runJob(cpCmd+" -r src/*/resources/* "+dirname+"/resources/")
 
-    # ok = ok and runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
+    ok = ok and runJob(cpCmd + " -r src/xmippViz/bindings/chimera " + dirname + "/bindings/")
     createDir(dirname+"/bindings/java")
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/lib "+dirname+"/bindings/java/")
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
@@ -1276,12 +1221,12 @@ def install(dirname):
     fhBash.write("export XMIPP_SRC=%s\n"%XMIPP_SRC)
     fhFish.write("set -x XMIPP_SRC %s\n"%XMIPP_SRC)
 
-    # SCIPION_HOME = getScipionHome()
-    # if SCIPION_HOME:
-    #     fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
-    #     fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
-    #     #fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
-    #     fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
+    SCIPION_HOME = getScipionHome()
+    if SCIPION_HOME:
+        fhBash.write("export PATH=$SCIPION_HOME/software/bin:$PATH\n")
+        fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
+        fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
+        fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
@@ -1324,12 +1269,12 @@ def writeDevelPaths(dirname):
     XMIPP_SRC = os.path.realpath("src")
     fhBash.write("export XMIPP_SRC=%s\n"%XMIPP_SRC)
 
-    # SCIPION_HOME = getScipionHome()
-    # if SCIPION_HOME:
-    #     fhBash.write("export PATH=$SCIPION_HOME/bin:$PATH\n")
-    #     fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
+    SCIPION_HOME = getScipionHome()
+    if SCIPION_HOME:
+        fhBash.write("export PATH=$SCIPION_HOME/bin:$PATH\n")
+        fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
 
-    fhBash.write("export PATH=%s/xmipp/bin:%s/xmippViz/bin:$PATH\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhBash.write("export PATH=%s/xmipp/bin:%s/xmippViz/bin:$SCIPION_HOME/bin:$PATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhBash.write("export LD_LIBRARY_PATH=%s/xmippCore/lib:$LD_LIBRARY_PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/xmippCore/bindings/python:$LD_LIBRARY_PATH\n"%XMIPP_HOME)
     fhBash.write("export LD_LIBRARY_PATH=%s/xmipp/lib:$LD_LIBRARY_PATH\n"%XMIPP_HOME)
@@ -1454,10 +1399,9 @@ def getScriptVersion():
     runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False)
     return lastCommit[0].strip()
 
-
 if __name__ == '__main__':
-    # Running always under this own directory.
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # I comment this line to avoid problems if this script is run in XmippBundle/src/xmipp  or directly from XmippBundle/.
+    # os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     XMIPP_SCRIPT_VERSION = getScriptVersion()
 
@@ -1480,13 +1424,14 @@ if __name__ == '__main__':
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
         print("         Notice that if you have unpushed changes, \n"
-              "           they will be deleted.\n")
+              "           they will be deleted.\n"
+              "         Still, if ./xmipp is a link to src/xmipp/xmipp, \n"
+              "           it will also be deleted.")
         print("Are you sure you want to do this? (YeS/No) -case sensitive-")
-        yesno = input()
+        yesno = raw_input()
         if yesno == "YeS":
             print("Cleaning everything")
             cleanSources()
-            cleanBinaries()
         else:
             print("Nothing cleaned")
             if yesno.lower()=="yes":
@@ -1562,16 +1507,14 @@ if __name__ == '__main__':
         # create config if not there
         if not os.path.isfile(CONFIG_FILE_NAME):
             config()
-        else:
-            print(blue("'%s' detected." % CONFIG_FILE_NAME))
         # HACK: re-read it from file to resolve paths
         configDict = readConfigFile(CONFIG_FILE_NAME)
         ok = (checkConfig()
-            and downloadDeepLearningModels(buildDir)
+            and downloadDeepLearningModels('build')
             and getDependencies()
             and getSources(branch)
             and compile(Nproc)
-            and install(buildDir))
+            and install('build'))
         if ok:
            sys.exit(0)
         else:
@@ -1589,7 +1532,7 @@ if __name__ == '__main__':
         runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
     elif mode=="gitConfig":
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
-        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config")
+        runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmipp/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
     elif mode=='addModel':

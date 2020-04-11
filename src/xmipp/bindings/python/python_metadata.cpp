@@ -32,6 +32,7 @@
 PyTypeObject MDQueryType =
     {
         PyObject_HEAD_INIT(NULL)
+        0, /*ob_size*/
         "xmipp.MDQuery", /*tp_name*/
         sizeof(MDQueryObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
@@ -68,7 +69,7 @@ PyTypeObject MDQueryType =
         0, /* tp_dictoffset */
         0, /* tp_init */
         0, /* tp_alloc */
-        0 /* tp_new */
+        0, /* tp_new */
     }; //MDQueryType
 
 PyMethodDef MDQuery_methods[] = { { NULL } /* Sentinel */
@@ -78,7 +79,7 @@ PyMethodDef MDQuery_methods[] = { { NULL } /* Sentinel */
 void MDQuery_dealloc(MDQueryObject* self)
 {
     delete self->query;
-    Py_TYPE(self)->tp_free((PyObject*)self);
+    self->ob_type->tp_free((PyObject*) self);
 }
 
 /* String representation */
@@ -90,10 +91,10 @@ MDQuery_repr(PyObject * obj)
     {
         String s = self->query->whereString() + self->query->limitString()
                    + self->query->orderByString();
-        return PyUnicode_FromString(s.c_str());
+        return PyString_FromString(s.c_str());
     }
     else
-        return PyUnicode_FromString("");
+        return PyString_FromString("");
 }
 
 /* Methods for constructing concrete queries */
@@ -194,9 +195,8 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     int label, type;
     PyObject *input = NULL;
     PyObject *pyStr = NULL;
-    PyObject *pyStr1 = NULL;
     PyObject *pyReplace = Py_False;
-    const char *str = NULL;
+    char *str = NULL;
     bool replace = true;
 
 
@@ -208,7 +208,7 @@ xmipp_addLabelAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
                 (PyBool_Check(pyReplace)))
             {
                 replace = pyReplace == Py_True;
-                str = PyUnicode_AsUTF8(pyStr);
+                str = PyString_AsString(pyStr);
                 MDL::addLabelAlias((MDLabel)label,(String)str, replace, (MDLabelType)type);
                 Py_RETURN_NONE;
             }
@@ -231,8 +231,7 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
     int type;
     PyObject *input = NULL;
     PyObject *pyStr = NULL;
-    PyObject *pyStr1 = NULL;
-    const char *str = NULL;
+    char *str = NULL;
 
 
     if (PyArg_ParseTuple(args, "Oi", &input, &type))
@@ -241,7 +240,7 @@ xmipp_getNewAlias(PyObject *obj, PyObject *args, PyObject *kwargs)
         {
             if ((pyStr = PyObject_Str(input)) != NULL )
             {
-                str = PyUnicode_AsUTF8(pyStr);
+                str = PyString_AsString(pyStr);
                 return PyLong_FromLong(MDL::getNewAlias((String)str, (MDLabelType)type));
                 
             }
@@ -426,15 +425,15 @@ PyMethodDef MetaData_methods[] =
 PyTypeObject MetaDataType =
     {
         PyObject_HEAD_INIT(NULL)
+        0, /*ob_size*/
         "xmipp.MetaData", /*tp_name*/
         sizeof(MetaDataObject), /*tp_basicsize*/
         0, /*tp_itemsize*/
         (destructor)MetaData_dealloc, /*tp_dealloc*/
-        0, /*tp_vectorcall_offset*/
-        /*MetaData_print, /*tp_print*/
+        MetaData_print, /*tp_print*/
         0, /*tp_getattr*/
         0, /*tp_setattr*/
-        0, /* tp_as_async */
+        MetaData_compare, /*tp_compare*/
         MetaData_repr, /*tp_repr*/
         0, /*tp_as_number*/
         0, /*tp_as_sequence*/
@@ -445,11 +444,11 @@ PyTypeObject MetaDataType =
         0, /*tp_getattro*/
         0, /*tp_setattro*/
         0, /*tp_as_buffer*/
-        Py_TPFLAGS_DEFAULT, /*Py_TPFLAGS_HAVE_ITER, */ /*tp_flags*/
+        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_ITER, /*tp_flags*/
         "Python wrapper to Xmipp MetaData class",/* tp_doc */
         0, /* tp_traverse */
         0, /* tp_clear */
-        MetaData_RichCompareBool, /* tp_richcompare */
+        0, /* tp_richcompare */
         0, /* tp_weaklistoffset */
         MetaData_iter, /* tp_iter */
         MetaData_iternext, /* tp_iternext */
@@ -471,7 +470,7 @@ void MetaData_dealloc(MetaDataObject* self)
 {
     delete self->metadata;
     delete self->iter;
-    Py_TYPE(self)->tp_free((PyObject*)self);
+    self->ob_type->tp_free((PyObject*) self);
 }
 
 int MetaData_print(PyObject *obj, FILE *fp, int flags)
@@ -496,13 +495,13 @@ PyObject *
 MetaData_repr(PyObject * obj)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
-    return PyUnicode_FromString(
+    return PyString_FromString(
                (self->metadata->getFilename() + "(MetaData)").c_str());
 }
 
 /* MetaData compare function */
-PyObject*
-MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
+int
+MetaData_compare(PyObject * obj, PyObject * obj2)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
     MetaDataObject *md2 = (MetaDataObject*) obj2;
@@ -512,29 +511,15 @@ MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid)
     {
         try
         {
-            if (opid == Py_EQ)
-                {
-                    if (*(self->metadata) == *(md2->metadata))
-                        Py_RETURN_TRUE;
-                    else
-                       Py_RETURN_FALSE;
-                }
-            else if  (opid == Py_NE)
-                    {
-                        if (*(self->metadata) == *(md2->metadata))
-                            Py_RETURN_FALSE;
-                        else
-                            Py_RETURN_TRUE;
-                    }
-            else
-                return Py_NotImplemented;
+            if (*(self->metadata) == *(md2->metadata))
+                result = 0;
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return result;
 }
 
 /* read */
@@ -547,14 +532,14 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyObject *list = NULL; //list can be a list of labels or maxRows
         PyObject *input = NULL, *pyStr = NULL;
-        const char *str = NULL;
+        char *str = NULL;
         if (PyArg_ParseTuple(args, "O|O", &input,  &list))
         {
             try
             {
                 if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    str = PyUnicode_AsUTF8(pyStr);
+                    str = PyString_AsString(pyStr);
                     if (list != NULL)
                     {
                         if (PyList_Check(list))
@@ -566,19 +551,19 @@ MetaData_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                             for (size_t i = 0; i < size; ++i)
                             {
                                 item = PyList_GetItem(list, i);
-                                if (!PyLong_Check(item))
+                                if (!PyInt_Check(item))
                                 {
                                     PyErr_SetString(PyExc_TypeError,
                                                     "MDL labels must be integers (MDLABEL)");
                                     return NULL;
                                 }
-                                iValue = PyLong_AsLong(item);
+                                iValue = PyInt_AsLong(item);
                                 vValue[i] = (MDLabel)iValue;
                             }
                             self->metadata->read(str,&vValue);
                         }
-                        else if (PyLong_Check(list)){
-                          size_t maxRows = (size_t) PyLong_AsLong(list);
+                        else if (PyInt_Check(list)){
+                          size_t maxRows = (size_t) PyInt_AsLong(list);
                           self->metadata->setMaxRows(maxRows);
                           self->metadata->read(str);
                         }
@@ -613,8 +598,8 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *pyStr = NULL;
         PyObject *pyLabels = NULL;
         PyObject *pySep = NULL;
-        const char *str = NULL;
-        const char *labels = NULL;
+        char *str = NULL;
+        char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
@@ -622,12 +607,10 @@ MetaData_readPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 pyStr = PyObject_Str(input);
                 pyLabels = PyObject_Str(input2);
-
                 if ((NULL != pyStr) && (NULL != pyLabels))
                 {
-                    str = PyUnicode_AsUTF8(pyStr);
-                    labels = PyUnicode_AsUTF8(pyLabels);
-
+                    str = PyString_AsString(pyStr);
+                    labels = PyString_AsString(pyLabels);
                     self->metadata->readPlain(str, labels);
                     Py_RETURN_NONE;
                 }
@@ -657,8 +640,8 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *pyStr = NULL;
         PyObject *pyLabels = NULL;
         PyObject *pySep = NULL;
-        const char *str = NULL;
-        const char *labels = NULL;
+        char *str = NULL;
+        char *labels = NULL;
 
         if (PyArg_ParseTuple(args, "OO|O", &input, &input2, &pySep))
         {
@@ -668,8 +651,8 @@ MetaData_addPlain(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyLabels = PyObject_Str(input2);
                 if ((NULL != pyStr) && (NULL != pyLabels))
                 {
-                    str = PyUnicode_AsUTF8(pyStr);
-                    labels = PyUnicode_AsUTF8(pyLabels);
+                    str = PyString_AsString(pyStr);
+                    labels = PyString_AsString(pyLabels);
                     self->metadata->addPlain(str, labels);
                     Py_RETURN_NONE;
                 }
@@ -698,8 +681,8 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject *blockName = NULL;
         PyObject *pyStr = NULL;
         PyObject *pyStrBlock = NULL;
-        const char *str = NULL;
-        const char *strBlock = NULL;
+        char *str = NULL;
+        char *strBlock = NULL;
         if (PyArg_ParseTuple(args, "OO", &input, &blockName))
         {
             try
@@ -708,8 +691,8 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
                 pyStrBlock = PyObject_Str(blockName);
                 if ((NULL != pyStr) && (NULL != pyStrBlock))
                 {
-                    str = PyUnicode_AsUTF8(pyStr);
-                    strBlock = PyUnicode_AsUTF8(pyStrBlock);
+                    str = PyString_AsString(pyStr);
+                    strBlock = PyString_AsString(pyStrBlock);
                     self->metadata->read((std::string) (strBlock) + "@" + str,
                                          NULL);
                     Py_RETURN_NONE;
@@ -736,15 +719,15 @@ MetaData_write(PyObject *obj, PyObject *args, PyObject *kwargs)
     wmd = MD_OVERWRITE;
     if (self != NULL)
     {
-        PyObject *input = NULL, *pyStr = NULL, *pyStr1 = NULL;
-        const char *str = NULL;
+        PyObject *input = NULL, *pyStr = NULL;
+        char *str = NULL;
         if (PyArg_ParseTuple(args, "O|i", &input, &wmd))
         {
             try
             {
                 if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    str = PyUnicode_AsUTF8(pyStr);
+                    str = PyString_AsString(pyStr);
                     self->metadata->write(str, (WriteModeMetaData) wmd);
                     Py_RETURN_NONE;
                 }
@@ -769,16 +752,13 @@ MetaData_append(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     if (self != NULL)
     {
-        PyObject *input = NULL, *pyStr = NULL, *str_exc_type = NULL;
+        PyObject *input = NULL;
         if (PyArg_ParseTuple(args, "O", &input))
         {
             try
             {
-                if (PyUnicode_Check(input))
-                   {
-                      const char *str = PyUnicode_AsUTF8(input);
-                      self->metadata->append(str);
-                   }
+                if (PyString_Check(input))
+                    self->metadata->append(PyString_AsString(input));
                 else if (FileName_Check(input))
                     self->metadata->append(FileName_Value(input));
                 else
@@ -1108,7 +1088,7 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
         PyObject * list = PyList_New(size);
 
         for (int i = 0; i < size; ++i)
-            PyList_SetItem(list, i, PyLong_FromLong(labels->at(i)));
+            PyList_SetItem(list, i, PyInt_FromLong(labels->at(i)));
 
         return list;
 
@@ -1123,8 +1103,7 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 {
-    PyObject *input, *str_exc_type = NULL, *pyStr = NULL;
-    const char *fileName = NULL;
+    PyObject *input;
     FileName fn;
     StringVector blocks;
 
@@ -1133,10 +1112,8 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
         if (PyArg_ParseTuple(args, "O", &input))
         {
 
-            if (PyUnicode_Check(input)){
-                 fileName = PyUnicode_AsUTF8(input);
-                 fn = fileName;
-            }
+            if (PyString_Check(input))
+                fn = PyString_AsString(input);
             else if (FileName_Check(input))
                 fn = FileName_Value(input);
             else
@@ -1147,7 +1124,7 @@ xmipp_getBlocksInMetaDataFile(PyObject *obj, PyObject *args)
 
             for (int i = 0; i < size; ++i)
             {
-                PyList_SetItem(list, i, PyUnicode_FromString(blocks[i].c_str()));
+                PyList_SetItem(list, i, PyString_FromString(blocks[i].c_str()));
             }
             return list;
         }
@@ -1171,7 +1148,7 @@ MetaData_getMaxStringLength(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             int length = self->metadata->getMaxStringLength((MDLabel) label);
 
-            return PyLong_FromLong(length);
+            return PyInt_FromLong(length);
         }
         catch (XmippError &xe)
         {
@@ -1255,7 +1232,7 @@ MetaData_fillConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             if ((pyStr = PyObject_Str(pyValue)) != NULL)
             {
-                const char * str = PyUnicode_AsUTF8(pyStr);
+                char * str = PyString_AsString(pyStr);
                 if (str != NULL)
                 {
                     self->metadata->fillConstant((MDLabel) label, str);
@@ -1300,7 +1277,7 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
     double op1, op2, op3 = 0.;
-    PyObject *pyValue = NULL, *pyStr = NULL, *str_exc_type = NULL, *pyStr1 = NULL;
+    PyObject *pyValue = NULL, *pyStr = NULL;
 
     if (PyArg_ParseTuple(args, "iOdd|d", &label, &pyValue, &op1, &op2, &op3))
     {
@@ -1309,7 +1286,7 @@ MetaData_fillRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
             MetaDataObject *self = (MetaDataObject*) obj;
             if ((pyStr = PyObject_Str(pyValue)) != NULL)
             {
-                const char * str = PyUnicode_AsUTF8(pyStr);
+                char * str = PyString_AsString(pyStr);
                 if (str != NULL)
                 {
                     self->metadata->fillRandom((MDLabel) label, str, op1, op2, op3);
@@ -1358,10 +1335,10 @@ MetaData_renameColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             MetaDataObject *self = (MetaDataObject*) obj;
-            if(PyLong_Check ( oldLabel ) && PyLong_Check ( newLabel ))
+            if(PyInt_Check ( oldLabel ) && PyInt_Check ( newLabel ))
             {
-                self->metadata->renameColumn((MDLabel) PyLong_AsLong (oldLabel),
-                                             (MDLabel) PyLong_AsLong (newLabel));
+                self->metadata->renameColumn((MDLabel) PyInt_AsLong (oldLabel),
+                                             (MDLabel) PyInt_AsLong (newLabel));
             }
             else if (PyList_Check(oldLabel)&& PyList_Check ( newLabel ))
             {
@@ -1376,14 +1353,14 @@ MetaData_renameColumn(PyObject *obj, PyObject *args, PyObject *kwargs)
                 {
                     itemOld = PyList_GetItem(oldLabel, i);
                     itemNew = PyList_GetItem(newLabel, i);
-                    if (!PyLong_Check(itemOld) || !PyLong_Check(itemNew))
+                    if (!PyInt_Check(itemOld) || !PyInt_Check(itemNew))
                     {
                         PyErr_SetString(PyExc_TypeError,
                                         "MDL labels must be integers (MDLABEL)");
                         return NULL;
                     }
-                    iOldValue = PyLong_AsLong(itemOld);
-                    iNewValue = PyLong_AsLong(itemNew);
+                    iOldValue = PyInt_AsLong(itemOld);
+                    iNewValue = PyInt_AsLong(itemNew);
                     vOldValue[i] = (MDLabel)iOldValue;
                     vNewValue[i] = (MDLabel)iNewValue;
                 }
@@ -1581,11 +1558,11 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    MetaDataObject *self = (MetaDataObject*)type->tp_alloc(type, 0);
+    MetaDataObject *self = (MetaDataObject*) type->tp_alloc(type, 0);
 
     if (self != NULL)
     {
-        PyObject *input = NULL, *pyStr = NULL, *str_exc_type = NULL, *pyStr1 = NULL;
+        PyObject *input = NULL, *pyStr = NULL;
         PyArg_ParseTuple(args, "|O", &input);
         if (input != NULL)
         {
@@ -1595,7 +1572,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                     self->metadata = new MetaData(MetaData_Value(input));
                 else if ((pyStr = PyObject_Str(input)) != NULL)
                 {
-                    const char *str = PyUnicode_AsUTF8(pyStr);
+                    char * str = PyString_AsString(pyStr);
                     self->metadata = new MetaData(str);
                 }
                 else
@@ -1616,7 +1593,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             self->metadata = new MetaData();
         }
     }
-    return (PyObject *)self;
+    return (PyObject *) self;
 }
 
 /* importObjects */
@@ -1783,13 +1760,13 @@ MetaData_aggregateMdGroupBy(PyObject *obj, PyObject *args, PyObject *kwargs)
             for (size_t i = 0; i < size; ++i)
             {
                 item = PyList_GetItem(aggregateLabel, i);
-                if (!PyLong_Check(item))
+                if (!PyInt_Check(item))
                 {
                     PyErr_SetString(PyExc_TypeError,
                                     "MDL labels must be integers (MDLABEL)");
                     return NULL;
                 }
-                iValue = PyLong_AsLong(item);
+                iValue = PyInt_AsLong(item);
                 vaggregateLabel[i] = (MDLabel)iValue;
             }
 
@@ -1889,7 +1866,7 @@ PyObject *
 MetaData_getComment(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
-    return PyUnicode_FromString(self->metadata->getComment().c_str());
+    return PyString_FromString(self->metadata->getComment().c_str());
 }
 
 /* addIndex MetaData_join*/
@@ -2177,20 +2154,19 @@ createMDObject(int label, PyObject *pyValue)
             bool bValue = (pyValue == Py_True);
             RETURN_MDOBJECT(bValue);
         }
-        if (PyLong_Check(pyValue) && MDL::isInt((MDLabel)label))
+        if (PyInt_Check(pyValue))
         {
-            int iValue = PyLong_AS_LONG(pyValue);
+            int iValue = PyInt_AS_LONG(pyValue);
             RETURN_MDOBJECT(iValue);
         }
-        if (PyLong_Check(pyValue) && MDL::isLong((MDLabel)label))
+        if (PyLong_Check(pyValue))
         {
             size_t value = PyLong_AsUnsignedLong(pyValue);
             RETURN_MDOBJECT(value);
         }
-        if (PyUnicode_Check(pyValue))
+        if (PyString_Check(pyValue))
         {
-            const char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
-            RETURN_MDOBJECT(std::string(str));
+            RETURN_MDOBJECT(std::string(PyString_AsString(pyValue)));
         }
         if (FileName_Check(pyValue))
         {
@@ -2258,15 +2234,12 @@ void setMDObjectValue(MDObject *obj, PyObject *pyValue)
 {
     try
     {
-        if (PyLong_Check(pyValue))
-            obj->setValue((int)PyLong_AS_LONG(pyValue));
+        if (PyInt_Check(pyValue))
+            obj->setValue((int)PyInt_AS_LONG(pyValue));
         else if (PyLong_Check(pyValue))
             obj->setValue((size_t)PyLong_AsUnsignedLong(pyValue));
-        else if (PyUnicode_Check(pyValue))
-            {
-              const char * str = PyUnicode_AsUTF8(PyObject_Str(pyValue));
-              obj->setValue(std::string(str));
-            }
+        else if (PyString_Check(pyValue))
+            obj->setValue(std::string(PyString_AsString(pyValue)));
         else if (FileName_Check(pyValue))
             obj->setValue((*((FileNameObject*)pyValue)->filename));
         else if (PyFloat_Check(pyValue))
@@ -2314,13 +2287,13 @@ getMDObjectValue(MDObject * obj)
         else
             Py_RETURN_FALSE;
     case LABEL_INT:
-        return PyLong_FromLong(obj->data.intValue);
+        return PyInt_FromLong(obj->data.intValue);
     case LABEL_SIZET:
         return PyLong_FromLong(obj->data.longintValue);
     case LABEL_DOUBLE:
         return PyFloat_FromDouble(obj->data.doubleValue);
     case LABEL_STRING:
-        return PyUnicode_FromString(obj->data.stringValue->c_str());
+        return PyString_FromString(obj->data.stringValue->c_str());
     case LABEL_VECTOR_DOUBLE:
         {
             std::vector<double> & vector = *(obj->data.vectorValue);

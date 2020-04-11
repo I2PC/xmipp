@@ -35,7 +35,7 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     fnGain = getParam("--gain");
     maxShift = getDoubleParam("--max_shift");
     Ts = getDoubleParam("--sampling");
-    maxResForCorrelation = getDoubleParam("--maxResForCorrelation");
+    maxFreq = getDoubleParam("--max_freq");
     solverIterations = getIntParam("--solverIterations");
     fnAligned = getParam("--oaligned");
     fnAvg = getParam("--oavg");
@@ -48,10 +48,9 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
     xDRcorner = getIntParam("--cropDRCorner", 0);
     yDRcorner = getIntParam("--cropDRCorner", 1);
     useInputShifts = checkParam("--useInputShifts");
-    outputBinning = getDoubleParam("--bin");
+    bin = getDoubleParam("--bin");
     BsplineOrder = getIntParam("--Bspline");
     processLocalShifts = checkParam("--processLocalShifts");
-    minLocalRes = getIntParam("--minLocalRes");
 
     String outside = getParam("--outside");
     if (outside == "wrap")
@@ -73,7 +72,13 @@ void AProgMovieAlignmentCorrelation<T>::readParams() {
             "All control points has to be bigger than 2");
     localAlignmentControlPoints = cPoints;
 
-    addParamsLine("  [--minLocalRes <R=500>]            : Minimal resolution (in A) of patches during local alignment");
+    // read patches
+    localAlignPatches = std::make_pair(
+            this->getIntParam("--patches", 0),
+            this->getIntParam("--patches", 1));
+    if ((localAlignPatches.first < 1) || (localAlignPatches.second < 1))
+        REPORT_ERROR(ERR_ARG_INCORRECT,
+            "At least one patch has to be used in each dimension.");
 }
 
 template<typename T>
@@ -89,13 +94,12 @@ template<typename T>
 void AProgMovieAlignmentCorrelation<T>::show() {
     if (!verbose)
         return;
-    std::cout
-            << "Input movie:         " << fnMovie << std::endl
+    std::cout << "Input movie:         " << fnMovie << std::endl
             << "Output metadata:     " << fnOut << std::endl
             << "Dark image:          " << fnDark << std::endl
             << "Gain image:          " << fnGain << std::endl
             << "Max. Shift:          " << maxShift << std::endl
-            << "Max resolution (A):  " << maxResForCorrelation << std::endl
+            << "Max. Scale:          " << maxFreq << std::endl
             << "Sampling:            " << Ts << std::endl
             << "Solver iterations:   " << solverIterations << std::endl
             << "Aligned movie:       " << fnAligned << std::endl
@@ -105,9 +109,8 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Frame range sum:       " << nfirstSum << " " << nlastSum << std::endl
             << "Crop corners  " << "(" << xLTcorner << ", "
             << yLTcorner << ") " << "(" << xDRcorner << ", " << yDRcorner
-            << ") " << std::endl
-            << "Use input shifts:    " << useInputShifts << std::endl
-            << "Output Binning factor: " << outputBinning << std::endl
+            << ") " << std::endl << "Use input shifts:    " << useInputShifts
+            << std::endl << "Binning factor:      " << bin << std::endl
             << "Bspline:             " << BsplineOrder << std::endl
             << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
             << "Control points:      " << this->localAlignmentControlPoints << std::endl
@@ -136,9 +139,8 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--max_shift <s=30>]         : Maximum shift allowed in pixels");
     addParamsLine(
-            "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
-    addParamsLine(
-            "  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
+            "  [--max_freq <s=4>]           : Maximum resolution to align (in Angstroms)");
+    addParamsLine("  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
     addParamsLine(
             "  [--solverIterations <N=2>]   : Number of robust least squares iterations");
     addParamsLine(
@@ -175,9 +177,23 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "  [--controlPoints <x=6> <y=6> <t=5>]: Number of control points (including end points) used for defining the BSpline");
     addParamsLine(
-            "  [--minLocalRes <R=500>]      : Minimal resolution (in A) of patches during local alignment");
+            "  [--patches <x=10> <y=10>]    : Number of patches to use for local alignment estimation");
     addExampleLine("A typical example", false);
     addSeeAlsoLine("xmipp_movie_optical_alignment_cpu");
+}
+
+template<typename T>
+void AProgMovieAlignmentCorrelation<T>::scaleLPF(const MultidimArray<T>& lpf,
+        int xSize, int ySize, T targetOccupancy, MultidimArray<T>& result) {
+    Matrix1D<T> w(2);
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(result)
+    {
+        FFT_IDX2DIGFREQ(i, ySize, YY(w));
+        FFT_IDX2DIGFREQ(j, xSize, XX(w));
+        T wabs = w.module();
+        if (wabs <= targetOccupancy)
+            A2D_ELEM(result, i, j) = lpf.interpolatedElement1D(wabs * xSize);
+    }
 }
 
 template<typename T>
@@ -219,52 +235,18 @@ void AProgMovieAlignmentCorrelation<T>::loadFrame(const MetaData &movie,
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getPixelResolution(T scaleFactor) {
-    return this->Ts / scaleFactor;
-}
-
-template<typename T>
-MultidimArray<T> AProgMovieAlignmentCorrelation<T>::createLPF(T Ts, const Dimensions &dims) {
-    assert(Ts >= this->Ts);
-
+MultidimArray<T> AProgMovieAlignmentCorrelation<T>::createLPF(T targetOccupancy,
+        size_t xSize,
+        size_t ySize) {
     // Construct 1D profile of the lowpass filter
-    MultidimArray<T> lpf(dims.x());
-    createLPF(Ts, lpf);
+    MultidimArray<T> lpf(xSize);
+    constructLPF(targetOccupancy, lpf);
 
-    // scale 1D filter to 2D
     MultidimArray<T> result;
-    result.initZeros(dims.y(), (dims.x() / 2) + 1);
-    scaleLPF(lpf, dims, result);
+    result.initZeros(ySize, (xSize / 2) + 1);
+
+    scaleLPF(lpf, xSize, ySize, targetOccupancy, result);
     return result;
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::createLPF(T Ts, MultidimArray<T> &filter) {
-    // from formula
-    // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
-    // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
-    // c = sqrt(1/-2log(1/2))
-    // sigma = Ts / max_resolution * c
-    const size_t length = filter.xdim;
-    T iX = 1 / (T)length;
-    T sigma = (Ts * getC()) / maxResForCorrelation;
-    for (size_t x = 0; x < length; ++x) {
-        T w = x * iX;
-        filter.data[x] = (exp(-0.5*(w*w)/(sigma*sigma)));
-    }
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::scaleLPF(const MultidimArray<T>& lpf,
-        const Dimensions &dims, MultidimArray<T>& result) {
-    Matrix1D<T> w(2);
-    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(result)
-    {
-        FFT_IDX2DIGFREQ(i, dims.y(), YY(w));
-        FFT_IDX2DIGFREQ(j, dims.x(), XX(w));
-        T wabs = w.module();
-        A2D_ELEM(result, i, j) = lpf.interpolatedElement1D(wabs * dims.x());
-    }
 }
 
 template<typename T>
@@ -331,34 +313,51 @@ void AProgMovieAlignmentCorrelation<T>::loadGainCorrection(Image<T>& igain) {
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getC() {
-    // from formula
-    // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
-    // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
-    constexpr T c = sqrt(-(T)1 / (2 * log((T)0.5)));
-    return c;
+void AProgMovieAlignmentCorrelation<T>::constructLPF(T targetOccupancy,
+        const MultidimArray<T>& lpf) {
+    T iNewXdim = 1.0 / lpf.xdim;
+    T sigma = targetOccupancy / 6; // So that from -targetOccupancy to targetOccupancy there is 6 sigma
+    T K = -0.5 / (sigma * sigma);
+    for (int i = STARTINGX(lpf); i <= FINISHINGX(lpf); ++i) {
+        T w = i * iNewXdim;
+        A1D_ELEM(lpf, i) = exp(K * (w * w));
+    }
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getTsPrime() {
-    // from formula
-    // e^(-1/2 * (omega^2 / sigma^2)) = 1/2; omega = Ts / max_resolution
-    // sigma = Ts / max_resolution * sqrt(1/-2log(1/2))
-    // c = sqrt(1/-2log(1/2))
-    // sigma = Ts / max_resolution * c
-    // then we want to find a resolution at 4 sigma (because values there will be almost zero anyway)
-    // omega4 = 4 * sigma -> Ts/R4 = 4 Ts / max_resolution * c
-    // R4 = max_resolution / (4 * c)
-    // new pixel size Ts' = R4 / 2 (to preserve Nyquist frequency)
-    T TsPrime = maxResForCorrelation / (8 * getC());
-    return TsPrime;
+T AProgMovieAlignmentCorrelation<T>::getTargetOccupancy() {
+    if (bin < 0) {
+        return (T)0.9;
+    } else {
+        return 2 * getRequestedSamplingRate() / maxFreq;
+    }
 }
 
 template<typename T>
-T AProgMovieAlignmentCorrelation<T>::getScaleFactor() {
-    // scale is ration between original pixel size and new pixel size
-    T scale = Ts / getTsPrime();
-    return scale;
+T AProgMovieAlignmentCorrelation<T>::getRequestedSamplingRate() {
+    T newTs;
+    if (bin < 0) {
+        T targetOccupancy = getTargetOccupancy();
+        // Determine target size of the images
+        newTs = targetOccupancy * maxFreq / 2;
+        newTs = std::max(newTs, Ts);
+    } else {
+        newTs = bin * Ts;
+    }
+    return newTs;
+}
+
+template<typename T>
+T AProgMovieAlignmentCorrelation<T>::computeSizeFactor() {
+    T sizeFactor;
+    if (bin < 0) {
+        sizeFactor = Ts / getRequestedSamplingRate();
+        std::cout << "Estimated binning factor = " << 1 / sizeFactor
+                << std::endl;
+    } else {
+        sizeFactor = 1.0 / bin;
+    }
+    return sizeFactor;
 }
 
 template<typename T>
@@ -557,15 +556,6 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
             id);
     // Safe to file
     mdIref.write((FileName) ("localAlignment@") + fnOut, MD_APPEND);
-}
-
-template<typename T>
-void AProgMovieAlignmentCorrelation<T>::setNoOfPaches(const Dimensions &movieDim,
-        const Dimensions &patchDim) {
-    // read patches
-    localAlignPatches = {
-            std::ceil(movieDim.x() / (float)patchDim.x()),
-            std::ceil(movieDim.y() / (float)patchDim.y())};
 }
 
 template<typename T>

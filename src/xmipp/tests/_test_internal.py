@@ -28,7 +28,7 @@
 import os
 import subprocess
 
-from pyworkflow.tests import BaseTest
+from .test import BaseTest
 # import pyworkflow.em.packages.xmipp3 as xmipp3
 
 
@@ -60,6 +60,6 @@ class TestXmipp(BaseTest):
 
 
 def runXmippProgram(cmd):
-    print(">>>", cmd)
+    print ">>>", cmd
     p = subprocess.Popen(cmd, shell=True, env=xmipp3.getEnviron())
     return p.wait()

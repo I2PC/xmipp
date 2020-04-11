@@ -26,11 +26,11 @@
 """
 
 import os
-from src.xmipp.bindings.python.xmipp_base import *
+import xmipp_base
 
-class ScriptPDBCenter(XmippScript):
+class ScriptPDBCenter(xmipp_base.XmippScript):
     def __init__(self):
-        XmippScript.__init__(self)
+        xmipp_base.XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Center a PDB with the center of mass')

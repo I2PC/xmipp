@@ -1,5 +1,4 @@
-from .frm import *
-from src.xmipp.external.sh_alignment.swig_frm import *
+from frm import *
 from pytom.basic.structures import PyTomClass
 
 class AngularConstraint(PyTomClass):
@@ -33,9 +32,8 @@ class AngularConstraint(PyTomClass):
 
             c.fromXML(xml_obj)
             return c
-        except Exception as e:
-            print("Error: ", e)
-            raise
+        except Exception, e:
+            raise e
 
 
 class FixedAngleConstraint(AngularConstraint):
@@ -61,7 +59,7 @@ class FixedAngleConstraint(AngularConstraint):
             cv = np.zeros((8*bw**3,), dtype='double')
 
             # the naming is inconsistent with the low-level c, but the result is right. To be changed.
-            get_constraint_vol(cv, bw, self.psi*pi/180, self.phi*pi/180, self.the*pi/180, self.nearby*pi/180)
+            swig_frm.get_constraint_vol(cv, bw, self.psi*pi/180, self.phi*pi/180, self.the*pi/180, self.nearby*pi/180)
 
             self._cv = cv.reshape(2*bw, 2*bw, 2*bw)
             self._bw = bw
@@ -81,7 +79,7 @@ class FixedAngleConstraint(AngularConstraint):
             self.psi = float(xml_obj.get('Psi'))
             self.the = float(xml_obj.get('Theta'))
             self.nearby = float(xml_obj.get('Nearby'))
-        except Exception as e:
+        except Exception, e:
             raise e
 
 
@@ -128,7 +126,7 @@ class FixedAxisConstraint(AngularConstraint):
             from pytom.angles.angleFnc import axisAngleToZXZ
             for axis in axes:
                 axis = [axis[0,0], axis[0,1], axis[0,2]]
-                for ang in range(0, 360, 2):
+                for ang in xrange(0, 360, 2):
                     euler_ang = axisAngleToZXZ(axis, ang)
                     i,j,k = frm_angle2idx(bw, euler_ang.getPhi(), euler_ang.getPsi(), euler_ang.getTheta())
                     # set the cv
@@ -152,7 +150,7 @@ class FixedAxisConstraint(AngularConstraint):
             self.y = float(xml_obj.get('Y'))
             self.z = float(xml_obj.get('Z'))
             self.nearby = float(xml_obj.get('Nearby'))
-        except Exception as e:
+        except Exception, e:
             raise e
 
 
@@ -169,7 +167,7 @@ def frm_find_topn_constrained_angles_interp(corr, n=5, dist=3.0, constraint=None
 
     # when the angular constraint conflicts the dist
     if constraint.__class__ == FixedAngleConstraint and float(dist+1)/b*180 > constraint.nearby:
-        print('Warning: angular distance cut is overwritten by angular constraint.')
+        print 'Warning: angular distance cut is overwritten by angular constraint.'
         from math import floor
         dist = floor(constraint.nearby*b/180.)-1
         if dist < 1.:
@@ -180,8 +178,7 @@ def frm_find_topn_constrained_angles_interp(corr, n=5, dist=3.0, constraint=None
     return frm_find_topn_angles_interp(corr, n, dist)
 
 
-def frm_constrained_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, constraint=None, weights=None, position=None, num_seeds=5,
-                          pytom_volume=None):
+def frm_constrained_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, constraint=None, weights=None, position=None, num_seeds=5):
     """Find the best alignment (translation & rotation) of volume vg (reference) to match vf.
     For details, please check the paper.
 

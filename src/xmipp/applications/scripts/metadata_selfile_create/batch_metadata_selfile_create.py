@@ -27,8 +27,7 @@
 #!/usr/bin/env python
 
 import os
-from src.xmipp.bindings.python.xmipp_base import (XmippScript,
-                                                  createMetaDataFromPattern)
+from xmipp_base import XmippScript, createMetaDataFromPattern
 
 class ScriptCreateMetadata(XmippScript):
     def __init__(self):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -30,16 +30,15 @@ from joblib import delayed, Parallel
 from scipy.spatial.distance import cdist
 
 import numpy as np
-from src.xmipp.bindings.python.xmipp_base import *
+import xmipp_base
 import xmippLib
 from xmipp3.convert import readPosCoordinates
-from pwem.objects import Coordinate, Micrograph
-from src.xmipp.libraries.py_xmipp.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
-                                                                            writeCoordsListToPosFname)
+from pyworkflow.em.data import Coordinate, Micrograph
+from xmippPyModules.coordinatesTools.coordinatesTools import readPosCoordsFromFName, writeCoordsListToPosFname
 
-class ScriptPickNoise(XmippScript):
+class ScriptPickNoise(xmipp_base.XmippScript):
     def __init__(self):
-        XmippScript.__init__(self)
+        xmipp_base.XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Picks random coordinates from one micrograph')

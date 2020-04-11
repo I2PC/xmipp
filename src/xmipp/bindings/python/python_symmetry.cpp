@@ -33,20 +33,20 @@
 PyObject *
 SymList_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    SymListObject *self = (SymListObject*)type->tp_alloc(type, 0);
+    SymListObject *self = (SymListObject*) type->tp_alloc(type, 0);
     if (self != NULL)
     {
         self->symlist = new SymList();
         //self->symlist->readSymmetryFile("i3");
     }
-    return (PyObject *)self;
+    return (PyObject *) self;
 }
 
 /* Destructor */
  void SymList_dealloc(SymListObject* self)
 {
     delete self->symlist;
-    Py_TYPE(self)->tp_free(self);
+    self->ob_type->tp_free((PyObject*) self);
 }
 
 /* readSymmetryFile */
@@ -76,7 +76,7 @@ PyObject *
 SymList_getTrueSymsNo(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
     SymListObject *self = (SymListObject*) obj;
-    return PyLong_FromLong(self->symlist->true_symNo);
+    return PyInt_FromLong(self->symlist->true_symNo);
 }
 
 /* getSymmetryMatrices, return list with symmetry matrices */
@@ -281,6 +281,7 @@ PyMethodDef SymList_methods[] =
 PyTypeObject SymListType =
 {
     PyObject_HEAD_INIT(NULL)
+    0, /*ob_size*/
     "xmipp.SymList", /*tp_name*/
     sizeof(SymListObject), /*tp_basicsize*/
     0, /*tp_itemsize*/
@@ -317,6 +318,6 @@ PyTypeObject SymListType =
     0, /* tp_dictoffset */
     0, /* tp_init */
     0, /* tp_alloc */
-    SymList_new /* tp_new */
+    SymList_new, /* tp_new */
 };//SymListType
 

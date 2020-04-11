@@ -26,11 +26,11 @@
 """
 
 import os
-from src.xmipp.bindings.python.xmipp_base import *
+import xmipp_base
 
-class ScriptPDBSelect(XmippScript):
+class ScriptPDBSelect(xmipp_base.XmippScript):
     def __init__(self):
-        XmippScript.__init__(self)
+        xmipp_base.XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Select/Exclude alpha helices or beta sheets from a PDB. '

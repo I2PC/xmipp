@@ -28,7 +28,7 @@ def Gen(idx):
 
 		#VOLUMENES
 		ok = False
-		fnRandom = ''.join([random.choice(string.ascii_letters + string.digits) for i in range(32)])
+		fnRandom = ''.join([random.choice(string.ascii_letters + string.digits) for i in xrange(32)])
 		fnHash = "tmp"+fnRandom
 		while not ok:
 		    ok = True

@@ -88,9 +88,9 @@ class ScriptApropos(xmipp3.XmippScript):
             for l in labels:
                 try:
                     getattr(xm, l['enum'])
-                except Exception as ex:
+                except Exception, ex:
                     l['comment'] = l['enum'] + ' (MISSING IN PYTHON BINDING)'
-                print('{name:<30} {type:<30} {enum:<30} {comment}'.format(**l))
+                print '{name:<30} {type:<30} {enum:<30} {comment}'.format(**l)
         else:
             dbName = prog.getProgramsDbName()
             if not os.path.exists(dbName):
@@ -104,7 +104,7 @@ class ScriptApropos(xmipp3.XmippScript):
                 categories = db.selectCategories()
                 doBoth = self.type == 'both'
                 for c in categories:
-                    print(pwutils.blue(c['name']))
+                    print pwutils.blue(c['name'])
                     if doBoth:
                         programs = db.selectPrograms(c)
                         #self.maxlen = 50
@@ -136,7 +136,7 @@ class ScriptApropos(xmipp3.XmippScript):
             desc = p['usage']
             if len(desc) > 0:
                 desc = self.highlightStr(desc.splitlines()[0])
-            print(name.ljust(maxlen), desc)
+            print name.ljust(maxlen), desc    
                          
     def highlightStr(self, hstr):
         for k in self.keywords:

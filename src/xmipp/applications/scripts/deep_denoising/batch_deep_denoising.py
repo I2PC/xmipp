@@ -27,16 +27,15 @@
 import re
 
 import sys, os
-from src.xmipp.bindings.python.xmipp_base import *
-from src.xmipp.libraries.py_xmipp.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+import xmipp_base
+import xmippLib
+from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
 import numpy as np
 
-import xmippLib
 
-
-class ScriptDeepDenoising(XmippScript):
+class ScriptDeepDenoising(xmipp_base.XmippScript):
   def __init__(self):
-    XmippScript.__init__(self)
+    xmipp_base.XmippScript.__init__(self)
 
   def defineParams(self):
     self.addUsageLine('Denoise particles Deep Learning. It works in two modes:\n'
@@ -85,9 +84,9 @@ class ScriptDeepDenoising(XmippScript):
     predictKeyWords = ["predict", "denoising"]
 
     if args["builder"]["modelType"] == "U-Net":
-      from src.xmipp.libraries.py_xmipp.deepDenoising.unet import UNET as ModelClass
+      from xmippPyModules.deepDenoising.unet import UNET as ModelClass
     elif args["builder"]["modelType"] == "GAN":
-      from src.xmipp.libraries.py_xmipp.deepDenoising.gan import GAN as ModelClass
+      from xmippPyModules.deepDenoising.gan import GAN as ModelClass
     else:
       raise ValueError('modelTypeName must be one of ["GAN", "U-Net"]')
 

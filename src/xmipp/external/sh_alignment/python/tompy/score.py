@@ -12,7 +12,7 @@ def NCC(v1, v2):
 
     @return: NCC.
     """
-    from .filter import normalize
+    from filter import normalize
     vv1 = normalize(v1)
     vv2 = normalize(v2)
     score = np.sum(vv1*vv2)/vv1.size
@@ -54,7 +54,7 @@ def mean_vol_under_mask(volume, mask):
     p = np.sum(mask)
 
     # do the (circular) convolution
-    from .transform import rfft, irfft, fftshift
+    from transform import rfft, irfft, fftshift
     size = volume.shape
     # somehow this should be conjugated
     res = fftshift(irfft(rfft(volume) * np.conjugate(rfft(mask)), size)) / p
@@ -97,7 +97,7 @@ def FLCF(volume, template, mask=None, stdV=None):
 
     # generate the mask 
     if mask is None:
-        from .tools import create_sphere
+        from tools import create_sphere
         mask = create_sphere(template.shape)
     else:
         if template.shape[0]!=mask.shape[0] and template.shape[1]!=mask.shape[1] and template.shape[2]!=mask.shape[2]:
@@ -111,7 +111,7 @@ def FLCF(volume, template, mask=None, stdV=None):
     temp = temp * mask
 
     # construct both the template and the mask which has the same size as target volume
-    from .tools import paste_in_center
+    from tools import paste_in_center
     tempV = temp
     if volume.shape[0] != temp.shape[0] or volume.shape[1] != temp.shape[1] or volume.shape[2] != temp.shape[2]:
         tempV = np.zeros(volume.shape)
@@ -126,7 +126,7 @@ def FLCF(volume, template, mask=None, stdV=None):
     meanV = mean_vol_under_mask(volume, maskV)
     stdV = std_vol_under_mask(volume, maskV, meanV)
     
-    from .transform import rfft, irfft, fftshift
+    from transform import rfft, irfft, fftshift
     size = volume.shape
     fT = rfft(tempV)
     fT = np.conjugate(fT)

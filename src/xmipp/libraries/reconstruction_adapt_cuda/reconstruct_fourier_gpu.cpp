@@ -751,9 +751,12 @@ void ProgRecFourierGPU::processWeights() {
 		for (int y = 0; y <= maxVolumeIndexYZ; y++) {
 			for (int x = 0; x <= maxVolumeIndexX; x++) {
 				float weight = tempWeights[z][y][x];
+				if (fabs(weight) > 1e-3) {
+					weight = 1.f/weight;
+				}
 
-				if (weight > ACCURACY)
-					tempVolume[z][y][x] *= corr2D_3D / weight;
+				if (1.0/weight > ACCURACY)
+					tempVolume[z][y][x] *= corr2D_3D*weight;
 				else
 					tempVolume[z][y][x] = 0;
 			}
