@@ -305,85 +305,96 @@ void UnitCell::tetrahedralSymmetry(const Matrix1D<double> & _centroid,
 		const Matrix1D<double> & _3fpp, const double expanded) {
 	//amplified_expanded is the resulting product of multiplying the expanded selected value by the factor 25, which could be changed
 	double amplified_expanded = expanded * 25;
+	
+	Matrix1D<double> _2f = (_3f + _3fp) / 2.;
+	Matrix1D<double> _2fp = (_3f + _3fpp) / 2.;
+	Matrix1D<double> _f = (_3f + _3fp + _3fpp) / 3.;
+	//vectors that join a symmetry axis with the next only.
+	Matrix1D<double> _f_to_2f = _2f - _f;
+	Matrix1D<double> _2f_to_3f = _3f - _2f;
+	Matrix1D<double> _3f_to_2fp = _2fp - _3f;
+	Matrix1D<double> _2fp_to_f = _f - _2fp;
+	// vector perpendicular to the triangle face.
+	Matrix1D<double> planeVector = vectorProduct(_2f_to_3f, _3f_to_2fp);
+	planeVector.selfNormalize();
 
 	//vectExpansion: vectors perpendicular to the unit cell edges
-	Matrix1D<double> vectorPlane_0 = vectorProduct(_3f, _3fp);
+	Matrix1D<double> vectorPlane_0 = vectorProduct(_f_to_2f, planeVector);
 	vectorPlane_0.selfNormalize();
 	vectExpansion.push_back(amplified_expanded * vectorPlane_0);
-	Matrix1D<double> vectorPlane_1 = vectorProduct(_3fp, _3fpp);
+	Matrix1D<double> vectorPlane_1 = vectorProduct(_2f_to_3f, planeVector);
 	vectorPlane_1.selfNormalize();
 	vectExpansion.push_back(amplified_expanded * vectorPlane_1);
-	Matrix1D<double> vectorPlane_2 = vectorProduct(_3fpp, _3f);
+	Matrix1D<double> vectorPlane_2 = vectorProduct(_3f_to_2fp, planeVector);
 	vectorPlane_2.selfNormalize();
 	vectExpansion.push_back(amplified_expanded * vectorPlane_2);
+	Matrix1D<double> vectorPlane_3 = vectorProduct(_2fp_to_f, planeVector);
+	vectorPlane_3.selfNormalize();
+	vectExpansion.push_back(amplified_expanded * vectorPlane_3);
 
 	//computation of coordinates for expandedUnitCell vertices
-	//computation of first_expandedUnitCells considering vectExpansion vectors only
-	Matrix1D<double> first_expandedUnitCell_0 = _3f + vectExpansion[0]
+	_3f_to_2fp.selfNormalize();
+	_2f_to_3f.selfNormalize();
+	Matrix1D<double> first_expandedUnitCell_0 = _3f
+			+ (amplified_expanded / sin60) * (-1) * (_3f_to_2fp)
+			+ (amplified_expanded / sin60) * (_2f_to_3f);
+	Matrix1D<double> first_expandedUnitCell_1 = _2f + vectExpansion[1]
 			+ vectExpansion[2];
-	Matrix1D<double> first_expandedUnitCell_1 = _3fp + vectExpansion[0]
-			+ vectExpansion[1];
-	Matrix1D<double> first_expandedUnitCell_2 = _3fpp + vectExpansion[1]
-			+ vectExpansion[2];
+	Matrix1D<double> v4 = (_2fp_to_f - _f_to_2f);
+	v4.selfNormalize();
+	Matrix1D<double> first_expandedUnitCell_2 = _f
+			+ v4 * amplified_expanded / sin60;
+	Matrix1D<double> first_expandedUnitCell_3 = _2fp + vectExpansion[3]
+			+ vectExpansion[4];
 
-	//_centroid expands to expandedUnitCell[0], which is equivalent to newOriginAfterExpansion
+	//_centre expands to expandedUnitCell[0], which is equivalent to newOriginAfterExpansion
 	//intersection of the three planes of coordinates
 	if (expanded == 0) {
-		expandedUnitCell.push_back(_centroid);
+		expandedUnitCell.push_back(_centre);
 		expandedUnitCell.push_back(_3f);
-		expandedUnitCell.push_back(_3fp);
-		expandedUnitCell.push_back(_3fpp);
+		expandedUnitCell.push_back(_2f);
+		expandedUnitCell.push_back(_2fp);
+		expandedUnitCell.push_back(_f);
 	} else if (expanded >= 0) {
 		double x;
-		x = first_expandedUnitCell_0(0);
+		x = first_expandedUnitCell_0(0)
 		double y;
-		y = first_expandedUnitCell_2(1)
-				- (vectExpansion[2](0) / vectExpansion[2](1))
-						* (x - first_expandedUnitCell_2(0));
+		y = first_expandedUnitCell_0(1);
 		double z;
-		z = first_expandedUnitCell_1(2)
-				- (vectExpansion[1](1) / vectExpansion[1](2))
-						* (y - first_expandedUnitCell_1(1));
-		expandedUnitCell.push_back(_centroid + vectorR3(x, y, z));
+		z = (-1) * (vectorPlane_0(2) * vectorPlane_0(2)) / vectorPlane_0(1);
+		expandedUnitCell.push_back(_centre + vectorR3(x, y, z));
 		//_3f expands to expandedUnitCell[1]
 		expandedUnitCell.push_back(first_expandedUnitCell_0);
-		//computation of the module m of elongation of first_expandedUnitCells 1 and 2
-		double m1 = _3fp(1) - first_expandedUnitCell_1(1);
-		double m2 = (1 / sin60) * (_3fpp(0) - first_expandedUnitCell_2(0));
-		double m = std::max(m1, m2);
-		//_3fp expands to expandedUnitCell[2]
-		Matrix1D<double> v1 = first_expandedUnitCell_1
-				- newOriginAfterExpansion;
-		v1.selfNormalize();
-		expandedUnitCell.push_back(first_expandedUnitCell_1 + (m * v1));
-		//_3fpp expands to expandUnitCell[3]
-		Matrix1D<double> v2 = first_expandedUnitCell_2
-				- newOriginAfterExpansion;
-		v2.selfNormalize();
-		expandedUnitCell.push_back(first_expandedUnitCell_2 + (m * v2));
+		//_2f expands to expandedUnitCell[2]
+		expandedUnitCell.push_back(first_expandedUnitCell_1);
+		//_f expands to expandeUnitCell[3]
+		expandedUnitCell.push_back(first_expandedUnitCell_2);
+		//_2fp expands to expandedUnitCell[4]
+		expandedUnitCell.push_back(first_expandedUnitCell_3);
 	}
 	newOriginAfterExpansion = expandedUnitCell[0];
 
 	//computation of coordinates from expandedUnitCells regarding to the newOriginAfterExpansion
-	Matrix1D<double> new_centroid_to_new_3f = expandedUnitCell[1]
+	Matrix1D<double> new_expandedUnitCell_1 = expandedUnitCell[1]
 			- newOriginAfterExpansion;
-	Matrix1D<double> new_centroid_to_new_3fp = expandedUnitCell[2]
+	Matrix1D<double> new_expandedUnitCell_2 = expandedUnitCell[2]
 			- newOriginAfterExpansion;
-	Matrix1D<double> new_centroid_to_new_3fpp = expandedUnitCell[3]
+	Matrix1D<double> new_expandedUnitCell_3 = expandedUnitCell[3]
 			- newOriginAfterExpansion;
+	Matrix1D<double> new_expandedUnitCell_4 = expandedUnitCell[4]
+			- newOriginAfterExpansion;
+	
 	//vectors normal to faces of the expanded unit cell
-	planeVectors.push_back(
-			(-1)
-					* vectorProduct(new_centroid_to_new_3f,
-							new_centroid_to_new_3fp));
-	planeVectors.push_back(
-			(-1)
-					* vectorProduct(new_centroid_to_new_3fp,
-							new_centroid_to_new_3fpp));
-	planeVectors.push_back(
-			(-1)
-					* vectorProduct(new_centroid_to_new_3fpp,
-							new_centroid_to_new_3f));
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_1,
+							new_expandedUnitCell_2));
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_2,
+							new_expandedUnitCell_3));
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_3,
+							new_expandedUnitCell_4));
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_4,
+							new_expandedUnitCell_1));
+
+
 #include "chimeraTesterT.txt" //draws the (expanded) unit cell and directions of vectExpansion vectors using chimera
 }
 //FUNCTION octahedralSymmetry fills out the variable planeVectors
@@ -442,8 +453,8 @@ void UnitCell::octahedralSymmetry(const Matrix1D<double> & _centre,
 		expandedUnitCell.push_back(_2fp);
 	} else if (expanded >= 0) {
 		double x;
-		x = first_expandedUnitCell_1(0)
-				+ (first_expandedUnitCell_0(1) - first_expandedUnitCell_1(1));
+		x = first_expandedUnitCell_1(0) - first_expandedUnitCell_1(1)
+		    + first_expandedUnitCell_0(1));
 		double y;
 		y = first_expandedUnitCell_0(1);
 		double z;
