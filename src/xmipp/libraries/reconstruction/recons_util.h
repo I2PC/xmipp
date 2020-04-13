@@ -61,6 +61,7 @@ namespace recu
        pixRay(const uint xdim,const uint ydim,double sv,double sh,double sp);
        void init(const uint xdim,const uint ydim,double sv,double sh,double sp);
        std::vector<reg_R> pixray(const int np,const int nr,const std::vector<double>& LA);
+       std::vector<reg_R> pixray(const double angle);
       };
 }; /* virtual class for ART method */
 
