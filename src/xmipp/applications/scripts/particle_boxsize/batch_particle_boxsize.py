@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # **************************************************************************
 # *
 # *
@@ -23,7 +23,6 @@
 # *  e-mail address 'jmdelarosa@cnb.csic.es'
 # *
 # **************************************************************************
-#!/usr/bin/env python
 
 import os
 import xmipp_base

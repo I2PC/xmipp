@@ -62,7 +62,6 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
-                # MICROGRAPH_CLEANER: (None, None),
                 CTPL: ('master', None)}
 
 CONFIG_FILE_NAME = "xmipp.conf"
@@ -339,7 +338,7 @@ def getCurrentTravisBranch():
 
 def getCurrentBranch(cwd='./', getHash=False):
     """ If getHash=True:  return (success, branch, hash)
-        If getHash=False: retrun (success, branch)
+        If getHash=False: return (success, branch)
     """
     outBranchArgs = 2 if getHash else 1
     log = []
@@ -1225,6 +1224,11 @@ def install(dirname):
 
     createDir(dirname+"/lib")
     ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
+    scipionLibs = os.path.join(os.environ.get('SCIPION_SOFTWARE', 'None'), 'lib')
+    if os.path.isdir(scipionLibs):
+        relPath = os.path.relpath(os.path.abspath(os.path.join(dirname, "lib", "*")),
+                                  scipionLibs)
+        ok = ok and runJob("ln -sf %s %s" % (relPath, scipionLibs))
 
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
@@ -1236,8 +1240,6 @@ def install(dirname):
             pass  # just to create a init file to be able to import it as module
 
     runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule)
-    # sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER,MICROGRAPH_CLEANER)))
-    # runJob(cpCmd+" -r "+sourcePathMicClean+" "+destPathPyModule) #cp instead ln -s for safety reasons
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
@@ -1249,8 +1251,6 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
-    # ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
-    # ok = ok and runJob("ln -sf ../../lib/libXmippCore.so " + dirname + "/bindings/python/libXmippCore.so")
 
     createDir(dirname+"/bindings/python/sh_alignment")
     ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
