@@ -359,6 +359,30 @@ void atv::createMask(const size_t xdim, const size_t ydim, const size_t zdim) {
 	save.write("/home/jeison/Escritorio/testMask.xmp");
 }
 
+
+/*prepare kernel with propper size for Fourier*/
+MultidimArray<double> kernelResized(const MultidimArray<double>& orKernel, const MultidimArray<double>& v){
+	MultidimArray<double> tempKernel;
+	tempKernel.setXmippOrigin();
+	tempKernel.initZeros(v);
+
+	int Cx = (int)((double)v.xdim / 2.0);
+	int Cy = (int)((double)v.ydim / 2.0);
+	int Cz = (int)((double)v.zdim / 2.0);
+	int a = 0.5 * orKernel.xdim;
+
+
+	for (int z = -a; z <= a; ++z) {        // Depth
+		for (int y = -a; y <= a; ++y) {     // Height
+			for (int x = -a; x <= a; ++x) { // Width
+				dAkij(tempKernel,Cz+z,Cy+y,Cx+x) = dAkij(orKernel,z+a,y+a,x+a);
+			}
+		}
+	}
+
+	return tempKernel;
+}
+
 /**
  **
  ** Computes the weighting vector
@@ -384,12 +408,29 @@ void atv::init(MultidimArray<double>& v,const double sigmaG, const unsigned shor
 	memset(G.data,0,sizeG*sizeG*sizeG*sizeof(double));
 
 	GaussKernel(G, sigmaG, sizeG);
+	// kernels for Fourier
+	MultidimArray<double> tempG, tempH;
+	tempG = kernelResized(G,v);
 
 	if(H.getArrayPointer() == NULL)
 		H.resize(sizeH,sizeH,sizeH);
 	memset(H.data,0,sizeH*sizeH*sizeH*sizeof(double));
 
 	GaussKernel(H, sigmaH, sizeH);
+	tempH = kernelResized(G,v);
+
+//Image<double> save;
+//save() = G;
+//save.write("/home/jeison/Escritorio/testGkernel.xmp");
+//
+//save() = tempG;
+//save.write("/home/jeison/Escritorio/testGkernel_resized.xmp");
+//save() = H;
+//save.write("/home/jeison/Escritorio/testHkernel.xmp");
+//
+//save() = tempH;
+//save.write("/home/jeison/Escritorio/testHkernel_resized.xmp");
+//exit(1);
 }
 
 /**
