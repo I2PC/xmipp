@@ -39,6 +39,7 @@ private:
     MultidimArray<double> w,G,H;
     double eps;
     double minA, maxA;
+    MultidimArray<int> MPregionsMask;
 private:
     std::vector<recu::reg_R> pixray(const int np,const int nr,const std::vector<double>& LA);
     void GaussKernel(MultidimArray<double>& K, const double sigma, const unsigned short size);
@@ -49,6 +50,7 @@ public:
     void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
     void init(MultidimArray<double>& v,double sigmaG,unsigned short sizeG,double sigmaH,unsigned short sizeH,double Amin,double Amax);
     void update(MultidimArray<double>& u);
+    void createMask(const size_t xdim, const size_t ydim, const size_t zdim);
 }; /* class for Weighted Total Variation functions */
 
 #endif /* ATV_HH */

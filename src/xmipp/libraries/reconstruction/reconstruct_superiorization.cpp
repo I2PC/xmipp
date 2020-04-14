@@ -386,11 +386,12 @@ void ProgReconsSuper::run()
  double maxAngle = std::numeric_limits<double>::min();
  double minAngle = std::numeric_limits<double>::max();
  for(ushort i = 0; i < tiltAngles.size(); i ++){
-     if(maxAngle > tiltAngles[i])
+     if(tiltAngles[i] > maxAngle)
         maxAngle = tiltAngles[i];
-     if(minAngle < tiltAngles[i])
+     if(tiltAngles[i] < minAngle)
         minAngle = tiltAngles[i];
     }
+
  /*
   *
   * Reconstruction Algorithm
