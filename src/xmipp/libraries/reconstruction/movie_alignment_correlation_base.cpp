@@ -562,10 +562,12 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::setNoOfPaches(const Dimensions &movieDim,
         const Dimensions &patchDim) {
-    // read patches
     localAlignPatches = {
             std::ceil(movieDim.x() / (float)patchDim.x()),
             std::ceil(movieDim.y() / (float)patchDim.y())};
+    if (verbose) {
+        std::cout << "Using " << localAlignPatches.first << " x " << localAlignPatches.second << " patches\n";
+    }
 }
 
 template<typename T>
