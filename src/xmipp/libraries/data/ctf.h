@@ -200,11 +200,10 @@ int main(int argc, char **argv)
 */
 
 /////////////////////////////////CTF1D///////////////////////////////////////////
-
 class CTFDescription1D
 {
 public:
-	// Electron wavelength (Amstrongs)
+	// Electron wavelength (Angstroms)
 	double lambda;
 	// Squared frequency associated to the aperture
 	// double ua2;
@@ -219,7 +218,7 @@ public:
 	double Ksin;
 	double Kcos;
 	/** Standard error of defocus Gaussian function due to chromatic aberration.
-		in Amstrong */
+		in Angstroms */
 	double D;
 	// Precomputed values
 	PrecomputedForCTF precomputed;
@@ -628,6 +627,12 @@ public:
 
 	/// Apply CTF to an image
 	void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray<double> &I, double Ts);
 
 	/** Generate CTF image.
 		The sample image is used only to take its dimensions. */
@@ -1190,6 +1195,12 @@ public:
 
     /// Apply CTF to an image
     void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray<double> &I, double Ts);
 
     /** Generate CTF image.
         The sample image is used only to take its dimensions. */
