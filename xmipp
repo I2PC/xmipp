@@ -229,6 +229,9 @@ def checkProgram(programName, show=True):
 def green(text):
     return "\033[92m "+text+"\033[0m"
 
+def yellow(text):
+    return "\033[93m " + text + "\033[0m"
+
 def red(text):
     return "\033[91m "+text+"\033[0m"
 
@@ -761,13 +764,8 @@ def configCuda(configDict):
             if checkProgram("nvcc"):
                 nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
                 print(green('CUDA-' + nvccFullVersion + ' detected.'))
-                if nvccVersion != 8.0 and not os.environ.get('XMIPP_ALLOW_ANY_CUDA', 'False') == 'True':
-                    print(red('CUDA-8.0 is required.'))
-                    print(red("Skipping CUDA compilation. Please, set cuda-8.0 as default "
-                              "to be able to use Xmipp Cuda programs or "
-                              "'export XMIPP_ALLOW_ANY_CUDA=True' to try with current Cuda."))
-                    configDict["CUDA"] = 'False'
-                    return
+                if nvccVersion != 8.0:
+                    print(yellow('CUDA-8.0 is recommended.'))
                 configDict["NVCC"] = "nvcc"
         if configDict["NVCC_CXXFLAGS"]=="":
             # in case user specified some wrapper of the compiler
