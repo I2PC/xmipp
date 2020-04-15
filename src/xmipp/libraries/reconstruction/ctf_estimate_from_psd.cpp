@@ -86,7 +86,7 @@ void ProgCTFEstimateFromPSD::assignCTFfromParameters(double *p, CTFDescription &
 	ctfmodel.Tm = Tm;
 
     /*
-        ¡¡ BE CAREFULL in add new parameters between the existing ones !!
+        BE CAREFULL in add new parameters between the existing ones !!
              below in the core of the program we set step(i) = 0 or 1 
         if you change here the value of certain param, change it everywhere!
     */
@@ -178,7 +178,7 @@ void ProgCTFEstimateFromPSD::assignParametersFromCTF(CTFDescription &ctfmodel, d
                              int l, int modelSimplification)
 {
     /*
-        ¡¡ BE CAREFULL in add new parameters between the existing ones !!
+        BE CAREFUL in add new parameters between the existing ones !!
              below in the core of the program we set step(i) to 0 or 1 
         if you change here the value of certain param, change it everywhere!
     */
@@ -2317,8 +2317,15 @@ double ROUT_Adjust_CTF(ProgCTFEstimateFromPSD &prm, CTFDescription &output_ctfmo
     prm.evaluation_reduction = 1;
     if (prm.fastDefocusEstimate)
         prm.estimate_defoci_Zernike();
-    else
+    else if (!prm.noDefocusEstimate)
         prm.estimate_defoci();
+    else
+    {
+    	prm.current_ctfmodel.DeltafU=prm.initial_ctfmodel.DeltafU;
+    	prm.current_ctfmodel.DeltafV=prm.initial_ctfmodel.DeltafV;
+    	if (prm.current_ctfmodel.DeltafV==0.0)
+    		prm.current_ctfmodel.DeltafV=prm.current_ctfmodel.DeltafU;
+    }
 
     DEBUG_TEXTFILE(formatString("Step 7: DeltafU=%f",prm.current_ctfmodel.DeltafU));
     DEBUG_TEXTFILE(formatString("Step 7: DeltafV=%f",prm.current_ctfmodel.DeltafV));
