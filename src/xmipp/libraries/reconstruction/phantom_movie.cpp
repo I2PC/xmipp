@@ -36,7 +36,7 @@ void PhantomMovie<T>::defineParams()
 			" Thickness of the grid lines" );
 	addParamsLine("[" + shift_param + " <a1=-0.039> <a2=0.002> <b1=-0.02> <b2=0.002>]:"
 			" Parameters of the shift. To see the result, we encourage you to use script attached with source files!");
-	addParamsLine("[" + barrel_param + " <k1_start=0.05> <k1_end=0.05> <k2_start=0.025> <k2_end=0.025>]:"
+	addParamsLine("[" + barrel_param + " <k1_start=0.04> <k1_end=0.05> <k2_start=0.02> <k2_end=0.025>]:"
 			" Parameters of the barrel / pincushion transformation.");
 	addParamsLine("-o <output_file>                                      :"
 			" resulting movie");
@@ -53,12 +53,12 @@ void PhantomMovie<T>::defineParams()
 	addUsageLine(" as it's original form produces biggest shift towards the end"
 			" as opposed to real movies (which has biggest shift in first frames).");
 	addUsageLine("x(t) = a1*t + a2*t*t + cos(t)/10");
-	addUsageLine("x(t) = b1*t + b2*t*t + sin(t*t)/5");
+	addUsageLine("y(t) = b1*t + b2*t*t + sin(t*t)/5");
 	addUsageLine("The barrel/pincushion transform params are linearly interpolated between first and last frame.");
 	addUsageLine("For normalized coordinates ([-1..1]) its distance is given by:");
 	addUsageLine("r_out = r_in(1 + k1*(r_in)^2 + k2*(r_in)^4" );
 
-	addExampleLine("xmipp_phantom_movie -size 4096 4096 60 -step 50 50 --skipBarrel");
+	addExampleLine("xmipp_phantom_movie -size 4096 4096 60 -step 50 50 --skipBarrel -o phantom_movie.stk");
 }
 
 template<typename T>

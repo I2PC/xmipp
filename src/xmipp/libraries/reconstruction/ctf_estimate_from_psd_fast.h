@@ -39,6 +39,7 @@ class ProgCTFEstimateFromPSDFast: public ProgCTFBasicParams
 public:
 
 	CTFDescription1D    initial_ctfmodel, current_ctfmodel, ctfmodel_defoci;
+	CTFDescription      initial_ctfmodel2D;
 
 	ProgCTFEstimateFromPSDFast()
 	{
