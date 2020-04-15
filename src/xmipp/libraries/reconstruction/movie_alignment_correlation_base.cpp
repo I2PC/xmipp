@@ -111,7 +111,6 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Bspline:             " << BsplineOrder << std::endl
             << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
             << "Control points:      " << this->localAlignmentControlPoints << std::endl
-            << "Patches:             " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
 }
 
 template<typename T>
