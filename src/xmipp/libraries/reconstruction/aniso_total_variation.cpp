@@ -491,20 +491,57 @@ void atv::update(MultidimArray<double>& v)
 	double dwP,dhP,ddP;
 	double dwM,dhM,ddM;
 
+//	for(uint k=0; k < v.zdim;k++){        // Depth
+//		for(uint j=0;j < v.ydim;j++){     // Height
+//			for(uint i=0;i < v.xdim;i++){ // Width
+//				if(dAij(MPregionsMask,k,i)){ // region P
+//		             dwP = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
+//		             dhP = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
+//		             ddP = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
+//		             piP.data[P(i,j,k)] = 1.0/(sqrt(dwP*dwP + dhP*dhP + ddP*ddP) + eps);
+//				}
+//				else{ //region M
+//		             dwM = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
+//		             dhM = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
+//		             ddM = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
+//		             muM.data[P(i,j,k)] = 1.0/(sqrt(dwM*dwM + dhM*dhM + ddM*ddM) + eps);
+//				}
+//			}
+//		}
+//	}
+
+	// convolve v with gaussian kernel
+	MultidimArray<double> filt_vP, filt_vM;
+	MultidimArray<std::complex<double> > fourierV;
+	transformer.FourierTransform(v, fourierV, true);
+
+	MultidimArray<std::complex<double> > fourierFilt_P, fourierFilt_M;
+	fourierFilt_P.resizeNoCopy(fourierV);
+	fourierFilt_M.resizeNoCopy(fourierV);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(fourierV){
+		dAkij(fourierFilt_P, k, i, j) = dAkij(fourierV, k, i, j) * dAkij(G_fourier, k, i, j);
+		dAkij(fourierFilt_M, k, i, j) = dAkij(fourierV, k, i, j) * dAkij(H_fourier, k, i, j);
+	}
+
+	InverseFourierTransform(fourierFilt_P, filt_vP);
+	InverseFourierTransform(fourierFilt_M, filt_vM);
+
 	for(uint k=0; k < v.zdim;k++){        // Depth
 		for(uint j=0;j < v.ydim;j++){     // Height
 			for(uint i=0;i < v.xdim;i++){ // Width
+
 				if(dAij(MPregionsMask,k,i)){ // region P
-		             dwP = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
-		             dhP = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
-		             ddP = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-		             piP.data[P(i,j,k)] = 1.0/(sqrt(dwP*dwP + dhP*dhP + ddP*ddP) + eps);
+					dwP = ((i+1) < v.xdim) ? (filt_vP.data[P(i,j,k)] - filt_vP.data[P(i+1,j,k)]) : 0.0;
+					dhP = ((j+1) < v.ydim) ? (filt_vP.data[P(i,j,k)] - filt_vP.data[P(i,j+1,k)]) : 0.0;
+					ddP = ((k+1) < v.zdim) ? (filt_vP.data[P(i,j,k)] - filt_vP.data[P(i,j,k+1)]) : 0.0;
+					piP.data[P(i,j,k)] = 1.0/(sqrt(dwP*dwP + dhP*dhP + ddP*ddP) + eps);
 				}
 				else{ //region M
-		             dwM = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
-		             dhM = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
-		             ddM = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-		             muM.data[P(i,j,k)] = 1.0/(sqrt(dwM*dwM + dhM*dhM + ddM*ddM) + eps);
+					dwM = ((i+1) < v.xdim) ? (filt_vM.data[P(i,j,k)] - filt_vM.data[P(i+1,j,k)]) : 0.0;
+					dhM = ((j+1) < v.ydim) ? (filt_vM.data[P(i,j,k)] - filt_vM.data[P(i,j+1,k)]) : 0.0;
+					ddM = ((k+1) < v.zdim) ? (filt_vM.data[P(i,j,k)] - filt_vM.data[P(i,j,k+1)]) : 0.0;
+					muM.data[P(i,j,k)] = 1.0/(sqrt(dwM*dwM + dhM*dhM + ddM*ddM) + eps);
 				}
 			}
 		}
