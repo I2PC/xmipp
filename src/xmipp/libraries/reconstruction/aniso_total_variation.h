@@ -29,6 +29,7 @@
 #define ATV_HH
 
 #include <core/xmipp_program.h>
+#include <core/xmipp_fftw.h>
 
 #include "second_criterion.h"
 #include "recons_util.h"
@@ -37,9 +38,14 @@ class atv:public secc
 {
 private:
     MultidimArray<double> w,G,H;
+    MultidimArray<double> muM,piP; // coeff equiv to w in wTV
     double eps;
     double minA, maxA;
+
     MultidimArray<int> MPregionsMask;
+    FourierTransformer transformer;
+    MultidimArray< std::complex<double> > G_fourier, H_fourier;
+
 private:
     std::vector<recu::reg_R> pixray(const int np,const int nr,const std::vector<double>& LA);
     void GaussKernel(MultidimArray<double>& K, const double sigma, const unsigned short size);
