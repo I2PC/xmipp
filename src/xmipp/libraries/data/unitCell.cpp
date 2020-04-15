@@ -4,7 +4,7 @@
 // icosahedron _5f_to_2f and _5f_2fp: vector that joing a vertex with the two closes 2-fold symmetry axis
 #define tg60   1.73205081
 #define sin60  0.8660254
-//#define DEBUG
+//#define DEBUG 
 #ifdef DEBUG
 #define scale 1.//780-use to scale chimera bild files so they fit your actual 3Dmap
 #endif
@@ -309,11 +309,13 @@ void UnitCell::tetrahedralSymmetry(const Matrix1D<double> & _centroid,
 	Matrix1D<double> _2f = (_3f + _3fp) / 2.;
 	Matrix1D<double> _2fp = (_3f + _3fpp) / 2.;
 	Matrix1D<double> _f = (_3f + _3fp + _3fpp) / 3.;
+
 	//vectors that join a symmetry axis with the next only.
 	Matrix1D<double> _f_to_2f = _2f - _f;
 	Matrix1D<double> _2f_to_3f = _3f - _2f;
 	Matrix1D<double> _3f_to_2fp = _2fp - _3f;
 	Matrix1D<double> _2fp_to_f = _f - _2fp;
+
 	// vector perpendicular to the triangle face.
 	Matrix1D<double> planeVector = vectorProduct(_2f_to_3f, _3f_to_2fp);
 	planeVector.selfNormalize();
@@ -333,36 +335,40 @@ void UnitCell::tetrahedralSymmetry(const Matrix1D<double> & _centroid,
 	vectExpansion.push_back(amplified_expanded * vectorPlane_3);
 
 	//computation of coordinates for expandedUnitCell vertices
+
 	_3f_to_2fp.selfNormalize();
 	_2f_to_3f.selfNormalize();
 	Matrix1D<double> first_expandedUnitCell_0 = _3f
 			+ (amplified_expanded / sin60) * (-1) * (_3f_to_2fp)
 			+ (amplified_expanded / sin60) * (_2f_to_3f);
-	Matrix1D<double> first_expandedUnitCell_1 = _2f + vectExpansion[1]
-			+ vectExpansion[2];
+
+	Matrix1D<double> first_expandedUnitCell_1 = _2f + vectExpansion[0]
+			+ vectExpansion[1];
+
 	Matrix1D<double> v4 = (_2fp_to_f - _f_to_2f);
 	v4.selfNormalize();
-	Matrix1D<double> first_expandedUnitCell_2 = _f
-			+ v4 * amplified_expanded / sin60;
-	Matrix1D<double> first_expandedUnitCell_3 = _2fp + vectExpansion[3]
-			+ vectExpansion[4];
+	Matrix1D<double> first_expandedUnitCell_2 = _f 
+			 + (v4 * amplified_expanded / sin60);
+
+	Matrix1D<double> first_expandedUnitCell_3 = _2fp + vectExpansion[2]
+			+ vectExpansion[3];
 
 	//_centre expands to expandedUnitCell[0], which is equivalent to newOriginAfterExpansion
 	//intersection of the three planes of coordinates
 	if (expanded == 0) {
-		expandedUnitCell.push_back(_centre);
+		expandedUnitCell.push_back(_centroid);
 		expandedUnitCell.push_back(_3f);
 		expandedUnitCell.push_back(_2f);
 		expandedUnitCell.push_back(_2fp);
 		expandedUnitCell.push_back(_f);
 	} else if (expanded >= 0) {
 		double x;
-		x = first_expandedUnitCell_0(0)
+		x = first_expandedUnitCell_0(0);
 		double y;
 		y = first_expandedUnitCell_0(1);
 		double z;
-		z = (-1) * (vectorPlane_0(2) * vectorPlane_0(2)) / vectorPlane_0(1);
-		expandedUnitCell.push_back(_centre + vectorR3(x, y, z));
+		z = (-1) * ((vectorPlane_0(2) * vectorPlane_0(2)) / vectorPlane_0(1));
+		expandedUnitCell.push_back(_centroid + vectorR3(x, y, z));
 		//_3f expands to expandedUnitCell[1]
 		expandedUnitCell.push_back(first_expandedUnitCell_0);
 		//_2f expands to expandedUnitCell[2]
@@ -385,15 +391,14 @@ void UnitCell::tetrahedralSymmetry(const Matrix1D<double> & _centroid,
 			- newOriginAfterExpansion;
 	
 	//vectors normal to faces of the expanded unit cell
-	planeVectors.push_back(vectorProduct(new_expandedUnitCell_1,
-							new_expandedUnitCell_2));
 	planeVectors.push_back(vectorProduct(new_expandedUnitCell_2,
-							new_expandedUnitCell_3));
-	planeVectors.push_back(vectorProduct(new_expandedUnitCell_3,
-							new_expandedUnitCell_4));
-	planeVectors.push_back(vectorProduct(new_expandedUnitCell_4,
 							new_expandedUnitCell_1));
-
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_3,
+							new_expandedUnitCell_2));
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_4,
+							new_expandedUnitCell_3));
+	planeVectors.push_back(vectorProduct(new_expandedUnitCell_1,
+							new_expandedUnitCell_4));
 
 #include "chimeraTesterT.txt" //draws the (expanded) unit cell and directions of vectExpansion vectors using chimera
 }
@@ -454,7 +459,7 @@ void UnitCell::octahedralSymmetry(const Matrix1D<double> & _centre,
 	} else if (expanded >= 0) {
 		double x;
 		x = first_expandedUnitCell_1(0) - first_expandedUnitCell_1(1)
-		    + first_expandedUnitCell_0(1));
+		    + first_expandedUnitCell_0(1);
 		double y;
 		y = first_expandedUnitCell_0(1);
 		double z;
@@ -630,6 +635,7 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & _centre,
 					minVector = (*it) * rmin;
 					maxVector = (*it) * std::min(rmax, (double) xDim / 2.);
 				}
+
 				expandedUnitCellMin.push_back(minVector);
 				expandedUnitCellMax.push_back(maxVector);
 
