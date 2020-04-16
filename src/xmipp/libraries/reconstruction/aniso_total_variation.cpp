@@ -113,7 +113,7 @@ atv::atv()
  */
 atv::~atv()
 {
-	w.clear();
+//	w.clear();
 }
 
 /**
@@ -167,8 +167,7 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 {
 #define P(i,j,k)(i + j*v.xdim + k*v.xdim*v.ydim)
 	const double ZERO=pow(10,-15);
-	double denomP = 0.0;
-	double denomM = 0.0;
+	double denom = 0.0;
 	double dwP,dhP,ddP;
 	double dwM,dhM,ddM;
 
@@ -198,12 +197,12 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhP = u.data[P(i,j,k)] - u.data[P(i,j+1,k)];
 						ddP = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
 						//Computing the denominator
-						denomP = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denomP > ZERO)
+						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
 									u.data[P(i+1,j,k)] -
 									u.data[P(i,j+1,k)] -
-									u.data[P(i,j,k+1)])/denomP;
+									u.data[P(i,j,k+1)])/denom;
 					}
 					//
 					// Second Case
@@ -214,10 +213,10 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhP = u.data[P(i-1,j,k)] - u.data[P(i-1,j+1,k)];
 						ddP = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
 						//Computing the denominator
-						denomP = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denomP > ZERO)
+						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i-1,j,k)])/denomP;
+									u.data[P(i-1,j,k)])/denom;
 					}
 					//
 					// Third Case
@@ -228,10 +227,10 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhP = u.data[P(i,j-1,k)] - u.data[P(i,j,k)];
 						ddP = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
 						//Computing the denominator
-						denomP = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denomP > ZERO)
+						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j-1,k)])/denomP;
+									u.data[P(i,j-1,k)])/denom;
 					}
 					//
 					// Fourth Case
@@ -242,10 +241,10 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhP = u.data[P(i,j,k-1)] - u.data[P(i,j+1,k-1)];
 						ddP = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
 						//Computing the denominator
-						denomP = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denomP > ZERO)
+						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j,k-1)])/denomP;
+									u.data[P(i,j,k-1)])/denom;
 					}
 				}
 
@@ -260,12 +259,12 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhM = u.data[P(i,j,k)] - u.data[P(i,j+1,k)];
 						ddM = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
 						//Computing the denominator
-						denomM = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denomM > ZERO)
+						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
 									u.data[P(i+1,j,k)] -
 									u.data[P(i,j+1,k)] -
-									u.data[P(i,j,k+1)])/denomM;
+									u.data[P(i,j,k+1)])/denom;
 					}
 					//
 					// Second Case
@@ -276,10 +275,10 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhM = u.data[P(i-1,j,k)] - u.data[P(i-1,j+1,k)];
 						ddM = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
 						//Computing the denominator
-						denomM = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denomM > ZERO)
+						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i-1,j,k)])/denomM;
+									u.data[P(i-1,j,k)])/denom;
 					}
 					//
 					// Third Case
@@ -290,10 +289,10 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhM = u.data[P(i,j-1,k)] - u.data[P(i,j,k)];
 						ddM = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
 						//Computing the denominator
-						denomM = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denomM > ZERO)
+						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j-1,k)])/denomM;
+									u.data[P(i,j-1,k)])/denom;
 					}
 					//
 					// Fourth Case
@@ -304,10 +303,10 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 						dhM = u.data[P(i,j,k-1)] - u.data[P(i,j+1,k-1)];
 						ddM = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
 						//Computing the denominator
-						denomM = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denomM > ZERO)
+						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
+						if(denom > ZERO)
 							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j,k-1)])/denomM;
+									u.data[P(i,j,k-1)])/denom;
 					}
 
 				} // end region M
@@ -319,20 +318,13 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 	//
 	// Failsafe & Finding the norm of the gradient (vector)
 	//
-	double denom = 0.0;
+	denom = 0.0;
 	for(uint k=0; k < v.zdim;k++){         // Depth
 		for(uint j=0;j < v.ydim;j++){      // Height
 			for(uint i=0;i < v.xdim;i++){ // Width
-				if(dAij(MPregionsMask,k,i)){ // region P
-					if(std::isnan(piP.data[P(i,j,k)]) || fabs(piP.data[P(i,j,k)])<=ZERO)
-						v.data[P(i,j,k)] = 0.0;
-					denom += v.data[P(i,j,k)]*v.data[P(i,j,k)];
-				}
-				else{ //region M
-					if(std::isnan(muM.data[P(i,j,k)]) || fabs(muM.data[P(i,j,k)])<=ZERO)
-						v.data[P(i,j,k)] = 0.0;
-					denom += v.data[P(i,j,k)]*v.data[P(i,j,k)];
-				}
+				if(std::isnan(v.data[P(i,j,k)]) || fabs(v.data[P(i,j,k)])<=ZERO)
+					v.data[P(i,j,k)] = 0.0;
+				denom += v.data[P(i,j,k)]*v.data[P(i,j,k)];
 			}
 		}
 	}
@@ -349,10 +341,8 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 			for(uint j=0;j < v.ydim;j++){      // Height
 				for(uint i=0;i < v.xdim;i++){ // Width
 					v.data[P(i,j,k)] = -1.0 * v.data[P(i,j,k)]/denom;
-					if(fabs(piP.data[P(i,j,k)]) < ZERO)
-						piP.data[P(i,j,k)] = 0.0;
-					if(fabs(muM.data[P(i,j,k)]) < ZERO)
-						muM.data[P(i,j,k)] = 0.0;
+					if(fabs(v.data[P(i,j,k)])<=ZERO)
+						v.data[P(i,j,k)] = 0.0;
 				}
 			}
 		}
@@ -422,10 +412,10 @@ void atv::init(MultidimArray<double>& v,const double sigmaG, const unsigned shor
 std::cout<<formatString("\033[1;31mmin-max angles:\033[0m %.2f, %.2f\n",minA,maxA);
 	createMask(v.xdim, v.ydim, v.zdim);
 
-	// Guaranteeing the array of weights exists and initializes it
-	if(w.getArrayPointer() == NULL)
-		w.resize(v.zdim,v.ydim,v.xdim);
-	memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
+//	// Guaranteeing the array of weights exists and initializes it
+//	if(w.getArrayPointer() == NULL)
+//		w.resize(v.zdim,v.ydim,v.xdim);
+//	memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
 
 	// weights for anisotropic
 	if(muM.getArrayPointer() == NULL)
@@ -476,8 +466,7 @@ save() = magnitude;
 save.write(rootTestFiles+"testMagnitudeH.xmp");
 
 // instruction to display testfiles: xmipp_showj -i ~/Escritorio/test*
-
-exit(1); // */
+// exit(1); // */
 }
 
 /**
@@ -491,26 +480,7 @@ void atv::update(MultidimArray<double>& v)
 	double dwP,dhP,ddP;
 	double dwM,dhM,ddM;
 
-//	for(uint k=0; k < v.zdim;k++){        // Depth
-//		for(uint j=0;j < v.ydim;j++){     // Height
-//			for(uint i=0;i < v.xdim;i++){ // Width
-//				if(dAij(MPregionsMask,k,i)){ // region P
-//		             dwP = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
-//		             dhP = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
-//		             ddP = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-//		             piP.data[P(i,j,k)] = 1.0/(sqrt(dwP*dwP + dhP*dhP + ddP*ddP) + eps);
-//				}
-//				else{ //region M
-//		             dwM = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
-//		             dhM = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
-//		             ddM = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-//		             muM.data[P(i,j,k)] = 1.0/(sqrt(dwM*dwM + dhM*dhM + ddM*ddM) + eps);
-//				}
-//			}
-//		}
-//	}
-
-	// convolve v with gaussian kernel
+	// convolve v with gaussian kernels
 	MultidimArray<double> filt_vP, filt_vM;
 	MultidimArray<std::complex<double> > fourierV;
 	transformer.FourierTransform(v, fourierV, true);

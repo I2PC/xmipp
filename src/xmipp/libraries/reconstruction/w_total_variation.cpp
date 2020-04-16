@@ -178,7 +178,7 @@ void wtv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
  for(uint k=0; k < v.zdim;k++)         // Depth
      for(uint j=0;j < v.ydim;j++)      // Height
          for(uint i=0;i < v.xdim;i++){ // Width
-             if(std::isnan(w.data[P(i,j,k)]) || fabs(w.data[P(i,j,k)])<=ZERO)
+             if(std::isnan(v.data[P(i,j,k)]) || fabs(v.data[P(i,j,k)])<=ZERO)
                 v.data[P(i,j,k)] = 0.0;
              denom += v.data[P(i,j,k)]*v.data[P(i,j,k)];
             }
@@ -194,8 +194,8 @@ void wtv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
         for(uint j=0;j < v.ydim;j++)      // Height
             for(uint i=0;i < v.xdim;i++){ // Width
                 v.data[P(i,j,k)] = -1.0 * v.data[P(i,j,k)]/denom;
-                if(fabs(w.data[P(i,j,k)])<=ZERO)
-                   w.data[P(i,j,k)] = 0.0;
+                if(fabs(v.data[P(i,j,k)])<=ZERO)
+                   v.data[P(i,j,k)] = 0.0;
                }
    }
  
