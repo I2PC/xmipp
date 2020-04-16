@@ -143,6 +143,37 @@ TEST_F( CtfTest, errorMaxFreqCTFs2D)
     XMIPP_CATCH
 }
 
+TEST_F( CtfTest, phaseFlip)
+{
+    XMIPP_TRY
+    MetaData metadata1;
+    long objectId = metadata1.addObject();
+    metadata1.setValue(MDL_CTF_SAMPLING_RATE, 1., objectId);
+    metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);
+    metadata1.setValue(MDL_CTF_DEFOCUSU, 20000., objectId);
+    metadata1.setValue(MDL_CTF_DEFOCUSV, 20000., objectId);
+    metadata1.setValue(MDL_CTF_CS, 2., objectId);
+    metadata1.setValue(MDL_CTF_Q0, 0.1, objectId);
+    metadata1.setValue(MDL_CTF_K, 1.0, objectId);
+    CTFDescription ctf;
+    ctf.readFromMetadataRow(metadata1, objectId);
+    ctf.produceSideInfo();
+
+    Image<double> delta;
+    delta().initZeros(256,256);
+    delta().setXmippOrigin();
+    delta(0,0)=1;
+
+    ctf.correctPhase(delta(),1.0);
+    double minval, maxval, avgval, devval;
+    delta().computeStats(avgval, devval, minval, maxval);
+    EXPECT_NEAR(devval,0.003906,0.0001);
+    EXPECT_NEAR(maxval,0.017565,0.0001);
+
+    XMIPP_CATCH
+}
+
+
 GTEST_API_ int main(int argc, char **argv)
 {
     testing::InitGoogleTest(&argc, argv);

@@ -33,6 +33,8 @@ public:
 	bool                 refineAmplitudeContrast;
 	/// Fast defocus estimate
 	bool                 fastDefocusEstimate;
+	/// No defocus estimate
+	bool                 noDefocusEstimate;
 	/// Regularization factor for the phase direction and unwrapping estimates (used in Zernike estimate)
 	double               lambdaPhase;
 	/// Size of the average window used during phase direction and unwrapping estimates (used in Zernike estimate)

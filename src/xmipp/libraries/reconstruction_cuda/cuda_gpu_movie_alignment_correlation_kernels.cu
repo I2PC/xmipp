@@ -66,6 +66,9 @@ void scaleFFT2DKernel(const T* __restrict__ in, T* __restrict__ out,
         if (applyFilter) {
             out[oIndex] *= filterCoef;
         }
+        if (0 == idx || 0 == idy) {
+            out[oIndex] = {0, 0}; // ignore low frequency, this should increase precision a bit
+        }
         if (normalize) {
             out[oIndex] *= normFactor;
         }
@@ -117,7 +120,8 @@ void computeCorrelations2DOneToNKernel(
  * Signals are expected to be in polar space, row-wise
  * Rows (rings) are summed together element-wise
  * @param ref first signal in FT
- * @param inOut other signals in FT, also output
+ * @param in other signals in FT
+ * @param out sum of the correlations in FT will be stored here
  * @param firstRingRadius radius of the first ring. Others are expected have increment of 1
  * @param xDim of the signal - number of samples
  * @param yDim of the signal - number of rings
@@ -126,7 +130,8 @@ void computeCorrelations2DOneToNKernel(
 template<typename T> // float2 or double2
 __global__
 void computePolarCorrelationsSumOneToNKernel(
-        T* __restrict__ inOut,
+        const T* __restrict__ in,
+        T* __restrict__ out,
         const T* __restrict__ ref,
         int firstRingRadius,
         int xDim, int yDim, int nDim) {
@@ -144,20 +149,21 @@ void computePolarCorrelationsSumOneToNKernel(
     for (int r = 0; r < yDim; ++r) {
         // load values
         T refVal = ref[indexRef];
-        T otherVal = inOut[indexOther];
+        T otherVal = in[indexOther];
         // correlate, assuming ref signal is conjugated
         T tmp;
         tmp.x = (refVal.x * otherVal.x) + (refVal.y * otherVal.y);
         tmp.y = (refVal.y * otherVal.x) - (refVal.x * otherVal.y);
         // sum rows
-        float w = 2 * M_PI * (r + firstRingRadius);
-        res += w * tmp;
+        // Compared to CPU version, we don't weight here
+        // We did weighting during polar transformation
+        res += tmp;
         // move to next row
         indexRef += xDim;
         indexOther += xDim;
     }
     // store result
-    inOut[idx] = res;
+    out[idx] = res;
 }
 
 /**

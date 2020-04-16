@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Carlos Oscar            coss@cnb.csic.es (1999)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,6 +23,39 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/image_eliminate_largeEnergy.h>
+#ifndef LIBRARIES_RECONSTRUCTION_CORRELATION_COMPUTER_H_
+#define LIBRARIES_RECONSTRUCTION_CORRELATION_COMPUTER_H_
 
-RUN_XMIPP_PROGRAM(ProgEliminateLargeEnergy)
+#include "amerit_computer.h"
+#include "CTPL/ctpl_stl.h"
+#include "data/filters.h"
+#include "data/cpu.h"
+
+template<typename T>
+class CorrelationComputer : public AMeritComputer<T> {
+public:
+    CorrelationComputer() {
+        setDefault();
+    }
+
+    ~CorrelationComputer() {
+        release();
+    }
+
+    void loadReference(const T *ref) override;
+    void compute(T *others) override;
+
+private:
+    bool canBeReused(const MeritSettings &s) const override;
+    void initialize(bool doAllocation) override;
+    void release();
+    void setDefault();
+    template<bool NORMALIZE>
+    void computeOneToN(T *others);
+    void check() override;
+
+    const T *m_ref;
+    ctpl::thread_pool m_threadPool;
+};
+
+#endif /* LIBRARIES_RECONSTRUCTION_CORRELATION_COMPUTER_H_ */
