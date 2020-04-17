@@ -1254,7 +1254,7 @@ public:
 				A2D_ELEM(CTF, i, j) = (T) getValueAt();
 				#ifdef DEBUG
 						if (i == 0)
-							std::cout << i << " " << j << " " << YY(freq) << " " << XX(freq)
+							std::cout << i << " " << j << " " << fy << " " << fx
 							<< " " << CTF(i, j) << std::endl;
 				#endif
         	}
