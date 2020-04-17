@@ -390,7 +390,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
             std::cout << "Too large defocus\n";
         return heavy_penalization;
     }
-    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation)
+    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation && !noDefocusEstimate)
     {
         // If there is an initial model, the true solution
         // cannot be too far
@@ -1566,6 +1566,7 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 		prm2D->current_ctfmodel.DeltafU=prm.initial_ctfmodel2D.DeltafU;
 		prm2D->current_ctfmodel.DeltafV=prm.initial_ctfmodel2D.DeltafV;
 		prm2D->current_ctfmodel.azimuthal_angle=prm.initial_ctfmodel2D.azimuthal_angle;
+		prm2D->noDefocusEstimate=true;
 	}
 
 	steps.resize(ALL_CTF_PARAMETERS2D);

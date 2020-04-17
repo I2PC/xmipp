@@ -694,7 +694,7 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
         return heavy_penalization;
     }
 
-    if (action > 3
+    if (action > 3 && !noDefocusEstimate
         && (fabs(
                 (current_ctfmodel.DeltafU - ctfmodel_defoci.DeltafU)
                 / ctfmodel_defoci.DeltafU) > 0.2
