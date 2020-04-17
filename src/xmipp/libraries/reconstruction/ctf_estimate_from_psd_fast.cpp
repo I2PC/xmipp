@@ -384,7 +384,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     }
     if (action > 3
         && (fabs((current_ctfmodel.Defocus - ctfmodel_defoci.Defocus)
-                / ctfmodel_defoci.Defocus) > 0.2))
+                / ctfmodel_defoci.Defocus) > 0.2)  && !noDefocusEstimate)
     {
         if (show_inf >= 2)
             std::cout << "Too large defocus\n";
