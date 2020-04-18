@@ -110,7 +110,7 @@ void AProgMovieAlignmentCorrelation<T>::show() {
             << "Output Binning factor: " << outputBinning << std::endl
             << "Bspline:             " << BsplineOrder << std::endl
             << "Local shift correction: " << (processLocalShifts ? "yes" : "no") << std::endl
-            << "Control points:      " << this->localAlignmentControlPoints << std::endl
+            << "Control points:      " << this->localAlignmentControlPoints << std::endl;
 }
 
 template<typename T>
