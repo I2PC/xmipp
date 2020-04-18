@@ -589,6 +589,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
         }
         globalAlignment = loadGlobalShifts(movie);
     } else {
+        std::cout << "Computing global alignment ...\n";
         globalAlignment = computeGlobalAlignment(movie, dark, igain);
     }
 
@@ -602,6 +603,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     Image<T> initialMic, averageMicrograph;
     // Apply shifts and compute average
     if (processLocalShifts) {
+        std::cout << "Computing local alignment ...\n";
         auto localAlignment = computeLocalAlignment(movie, dark, igain, globalAlignment);
         applyShiftsComputeAverage(movie, dark, igain, initialMic, Ninitial,
                     averageMicrograph, N, localAlignment);
