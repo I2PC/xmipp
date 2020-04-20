@@ -1141,16 +1141,17 @@ def addDeepLearninModel(login, modelPath='', update=None):
         Usually the model folder contains big files used to fed deep learning procedures
         with pretrained data. All the models stored in the server will be downloads
         using the 'get_models' mode or during the compilation/installation time
-        if 'USE_DL=True' in the config file.
+        if 'USE_DL=True' in the config file. [or with 'scipion3 installb deepLearningToolkit']
         
-        Usage: -> ./xmipp addModel usr@server modelPath [--update]
+        Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]
         
-        Behaviour: 1. Packing in xmipp_model_modelName.tgz
+        Behaviour: 0. modelName = basename(modelsPath) <- Please, check the folder's name!
+                   1. Packing in 'xmipp_model_modelName.tgz'
                    2. Check if that model already exists (use --update to override an existing model)
                    3. Upload the model to the server.
                    4. Update the MANIFEST file.
                    
-        The model name will be the folder name in 'modelPath'
+        The model name will be the folder name in <modelsPath>
         """)
         sys.exit(0)
 
@@ -1159,9 +1160,8 @@ def addDeepLearninModel(login, modelPath='', update=None):
 
     modelPath = modelPath.rstrip("/")
     if not os.path.isdir(modelPath):
-        print("'modelName' must coincide with a directory "
-              "placed at 'src/xmipp/models/'. \n"
-              "The name of the model will be that folder name.\n")
+        print("<modelsPath> is not a directory. Please, check the path. \n"
+              "The name of the model will be the name of that folder.\n")
         usageDL()
 
     modelName = os.path.basename(modelPath)
@@ -1180,9 +1180,10 @@ def addDeepLearninModel(login, modelPath='', update=None):
         sys.exit()
 
     print("Trying to upload the model using '%s' as login" % login)
-    args = "%s %s %s %s" % (login, localFn, remotePath, update)
-    ok = runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args)
-    if ok:
+    args = "%s %s %s %s" % (login, os.path.abspath(localFn), remotePath, update)
+    if runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args):
+        print("'%s' model successfully uploaded! Removing the local .tgz"
+              % modelName)
         runJob("rm %s" % localFn)
 
 
