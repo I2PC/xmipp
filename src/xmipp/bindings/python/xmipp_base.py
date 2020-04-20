@@ -463,3 +463,27 @@ def createMetaDataFromPattern(pattern, isStack=False, label="image"):
     return mD
 
 
+# TODO: All this MD functions can be implemented in core.metadata
+#        but they are not, so far. Thus, they are here directly in python.
+def getMdSize(filename):
+    """ Return the metadata size without parsing entirely. """
+    md = MetaData()
+    md.read(filename, 1)
+    return md.getParsedLines()
+
+
+def isMdEmpty(filename):
+    """ Use getMdSize to check if metadata is empty. """
+    return getMdSize(filename) == 0
+
+
+def readInfoField(fnDir, block, label, xmdFile="iterInfo.xmd"):
+    mdInfo = MetaData("%s@%s" % (block, os.path.join(fnDir, xmdFile)))
+    return mdInfo.getValue(label, mdInfo.firstObject())
+
+
+def writeInfoField(fnDir, block, label, value, xmdFile="iterInfo.xmd"):
+    mdInfo = MetaData()
+    objId = mdInfo.addObject()
+    mdInfo.setValue(label, value, objId)
+    mdInfo.write("%s@%s" % (block, os.path.join(fnDir, xmdFile)), MD_APPEND)

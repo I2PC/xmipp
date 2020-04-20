@@ -107,12 +107,6 @@ class ScriptDeepDenoising(XmippScript):
     else:
       raise Exception("Error, --mode must be training or denoising")
 
-  def getMdSize(self, filename):
-    """ Return the metadata size without parsing entirely. """
-    md = xmippLib.MetaData()
-    md.read(filename, 1)
-    return md.getParsedLines()
-
   def predictDenoised(self, model,  boxSize, inputParticlesMdName, dataPathProjections=None):
     from scipy.stats import pearsonr
 
@@ -128,7 +122,7 @@ class ScriptDeepDenoising(XmippScript):
     else:
       metadataProjections=None
 
-    dimMetadata = self.getMdSize(inputParticlesMdName)
+    dimMetadata = getMdSize(inputParticlesMdName)
     xmippLib.createEmptyFile(outputParticlesStackName, boxSize, boxSize, 1, dimMetadata)
 
     mdNewParticles = xmippLib.MetaData()
