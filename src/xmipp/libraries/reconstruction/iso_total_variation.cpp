@@ -177,4 +177,3 @@ void itv::nav(const MultidimArray<double>& v, MultidimArray<double>& w)
    }
 }
 #undef DEBUG
-

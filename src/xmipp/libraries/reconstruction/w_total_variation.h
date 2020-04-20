@@ -47,4 +47,3 @@ private:
 }; /* class for Weighted Total Variation functions */
 
 #endif /* WTV_HH */
-

@@ -537,4 +537,3 @@ double beta;
  std::cout << "Procedure finished. Exiting the Program" << std::endl;
 }
 #undef DEBUG
-

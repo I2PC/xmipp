@@ -238,4 +238,3 @@ void wtv::update(MultidimArray<double>& v)
 #undef P
 }
 #undef DEBUG
-
