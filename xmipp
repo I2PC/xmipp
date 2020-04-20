@@ -47,7 +47,6 @@ XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
-MICROGRAPH_CLEANER= 'micrograph_cleaner_em'
 CTPL = 'CTPL'
 
 XMIPP_SCRIPT_VERSION = ''
@@ -57,7 +56,6 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em',
                 CTPL: 'https://github.com/vit-vit/CTPL.git'}
 
 #              {dep-repo:     (branch, check-conf)}
