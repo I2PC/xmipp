@@ -39,27 +39,6 @@
 /******************************************************************************/
 /******************************************************************************/
 
-std::vector<recu::reg_R> atv::pixray(const int np,const int nr,const std::vector<double>& LA)
-{
-#define d2r(angleDegrees) ((angleDegrees) * M_PI / 180.0)
-	enum PixAccess{Bottom, Left};
-	PixAccess Entrance;
-	double theta, mv, mh;
-	double sint, cost, tant, cott;
-	double l,plh,plv;
-	double fh,fv;
-	int i,j,K;
-	std::vector<double> q(2,0.0),
-			p(2, 0.0),
-			r(2, 0.0);
-	recu::reg_R P;
-	std::vector<recu::reg_R> R;
-	bool Flip = false;
-
-	return R;
-#undef d2r
-}
-
 // Function to create Gaussian filter
 void atv::GaussKernel(MultidimArray<double>& K, const double sigma, const unsigned short size)
 {
@@ -103,9 +82,9 @@ void atv::GaussKernel(MultidimArray<double>& K, const double sigma, const unsign
  */
 atv::atv()
 {
-	eps = 1.00;
-	maxA = std::numeric_limits<double>::min();
-	minA = std::numeric_limits<double>::max();
+ eps = 1.00;
+ maxA = std::numeric_limits<double>::min();
+ minA = std::numeric_limits<double>::max();
 }
 
 /*
@@ -123,7 +102,7 @@ atv::~atv()
  */
 double atv::phi(const MultidimArray<double>& v)
 {
-#define P(i,j,k)(i + j*v.xdim + k*v.xdim*v.ydim)
+#define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
 	double sum = 0.0;
 	double dwP,dhP,ddP;
 	double dwM,dhM,ddM;
@@ -165,7 +144,7 @@ double atv::phi(const MultidimArray<double>& v)
  */
 void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 {
-#define P(i,j,k)(i + j*v.xdim + k*v.xdim*v.ydim)
+#define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
 	const double ZERO=pow(10,-15);
 	double denom = 0.0;
 	double dwP,dhP,ddP;
@@ -476,7 +455,7 @@ save.write(rootTestFiles+"testMagnitudeH.xmp");
  */
 void atv::update(MultidimArray<double>& v)
 {
-#define P(i,j,k)(i + j*v.xdim + k*v.xdim*v.ydim)
+#define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
 	double dwP,dhP,ddP;
 	double dwM,dhM,ddM;
 

@@ -47,7 +47,6 @@ private:
     MultidimArray< std::complex<double> > G_fourier, H_fourier;
 
 private:
-    std::vector<recu::reg_R> pixray(const int np,const int nr,const std::vector<double>& LA);
     void GaussKernel(MultidimArray<double>& K, const double sigma, const unsigned short size);
 public:
     atv();
@@ -60,4 +59,3 @@ public:
 }; /* class for Weighted Total Variation functions */
 
 #endif /* ATV_HH */
-
