@@ -151,10 +151,13 @@ protected:
             Image<int> res(img.data.xdim, img.data.ydim, img.data.zdim, img.data.ndim);
             const size_t count = res.data.nzyxdim;
             const float gap = param1 - param2;
+            auto dist = std::poisson_distribution<>(0);
             for (size_t i = 0; i < count; ++i) {
                 float mean = param1 - gap * img.data[i];
-                std::poisson_distribution<> d(mean);
-                res.data[i] = d(gen);
+                if (dist.mean() != mean) { // reuse distribution, if possible
+                    dist = std::poisson_distribution<>(mean);
+                }
+                res.data[i] = dist(gen);
             }
             limit(res);
             res.write(fnImgOut);
