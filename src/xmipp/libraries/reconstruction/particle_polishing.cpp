@@ -632,7 +632,7 @@ void ProgParticlePolishing::run()
 
 	//INPUT VOLUME
 	V.read(fnVol);
-    V().setXmippOrigin();
+    	V().setXmippOrigin();
 	int xdim = (int)XSIZE(V());
 	int ydim = (int)YSIZE(V());
 	projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
@@ -659,7 +659,7 @@ void ProgParticlePolishing::run()
 	double offset;
 
 
-	for(int m=0; m<nMics; m++){
+	for(int m=1; m<=nMics; m++){
 
 		double rot, tilt, psi, x, y;
 		bool flip;
@@ -898,6 +898,7 @@ void ProgParticlePolishing::run()
 	//-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6
 	int shiftX[]={-3, -2, -1, 0, 1, 2, 3};
 	int shiftY[]={-3, -2, -1, 0, 1, 2, 3};
+        int myL = (int)(sizeof(shiftX)/sizeof(*shiftX));
 	MultidimArray<double> lkresults;
 	double maxShift = XSIZE(Iavg())/2-10;
 	double maxShift2 = maxShift*maxShift;
@@ -919,7 +920,7 @@ void ProgParticlePolishing::run()
 		fnStackOut.deleteFile();
 
 	int countOutMd=0;
-	for(int m=0; m<nMics; m++){
+	for(int m=1; m<=nMics; m++){
 
 		iterPart->init(mdPart);
 		iterPart2->init(mdPart);
@@ -1016,11 +1017,11 @@ void ProgParticlePolishing::run()
 			int count;
 			for (int zz=0; zz<nRepetitions; zz++){
 
-				lkresults.initZeros(7, 7);
+				lkresults.initZeros(myL, myL);
 				//Isimul.read(formatString("simuladaNuevaShift_%i.mrc",ii));
 				//Isimul().setXmippOrigin();
-				for(int jj=0; jj<7; jj++){
-					for(int hh=0; hh<7; hh++){
+				for(int jj=0; jj<myL; jj++){
+					for(int hh=0; hh<myL; hh++){
 						//Iproj.read("projNueva.mrc");
 						//Iproj().setXmippOrigin();
 						projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
@@ -1028,7 +1029,7 @@ void ProgParticlePolishing::run()
 						projV().setXmippOrigin();
 
 						if (shiftX[jj]!=0 || shiftY[hh]!=0)
-							selfTranslate(LINEAR, projV(), vectorR2(shiftX[jj], shiftY[hh]), DONT_WRAP, 0.0);
+							selfTranslate(LINEAR, projV(), vectorR2((double)shiftX[jj], (double)shiftY[hh]), DONT_WRAP, 0.0);
 						double likelihood=0.;
 						double lambda, fact;
 						count=0;
@@ -1062,13 +1063,13 @@ void ProgParticlePolishing::run()
 				//std::vector<double>::iterator maxVal;
 				//maxVal = std::max_element(lkresults.begin(), lkresults.end());
 				//int pos = std::distance(lkresults.begin(), maxVal);
-				double sumX[7], sumY[7];
+				double sumX[myL], sumY[myL];
 				//Sum by columns (X)
 				double maxSumX, maxSumY;
 				int posSumX, posSumY;
-				for(int jj=0; jj<7; jj++){
+				for(int jj=0; jj<myL; jj++){
 					sumX[jj]=0.;
-					for(int hh=0; hh<7; hh++){
+					for(int hh=0; hh<myL; hh++){
 						sumX[jj]+=DIRECT_A2D_ELEM(lkresults, hh, jj);
 					}
 					if(jj==0){
@@ -1082,9 +1083,9 @@ void ProgParticlePolishing::run()
 					}
 				}
 				//Sum by rows (Y)
-				for(int hh=0; hh<7; hh++){
+				for(int hh=0; hh<myL; hh++){
 					sumY[hh]=0.;
-					for(int jj=0; jj<7; jj++){
+					for(int jj=0; jj<myL; jj++){
 						sumY[hh]+=DIRECT_A2D_ELEM(lkresults, hh, jj);
 					}
 					if(hh==0){
@@ -1108,13 +1109,13 @@ void ProgParticlePolishing::run()
 				double estXAux, estYAux;
 				bestShift(lkresults, estXAux, estYAux, NULL, -1);
 				int bestPosX = (int)round(estXAux);
-				if(bestPosX>6)
-					bestPosX=6;
+				if(bestPosX>myL-1)
+					bestPosX=myL-1;
 				else if(bestPosX<0)
 					bestPosX=0;
 				int bestPosY = (int)round(estYAux);
-				if(bestPosY>6)
-					bestPosY=6;
+				if(bestPosY>myL-1)
+					bestPosY=myL-1;
 				else if(bestPosY<0)
 					bestPosY=0;
 				printf(". BEST POS for particle %d. Shift %lf, %lf, %d, %d \n", countForPart, estXAux, estYAux, shiftX[bestPosX], shiftY[bestPosY]);
@@ -1123,7 +1124,7 @@ void ProgParticlePolishing::run()
 				estX[zz]=shiftX[bestPosX];
 				estY[zz]=shiftY[bestPosY];
 
-				//AJ to test with correlation
+				/*/AJ to test with correlation
 				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
 				applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
 				projV().setXmippOrigin();
@@ -1150,7 +1151,7 @@ void ProgParticlePolishing::run()
 				//projV.write(formatString("VeamosProjV.tif"));
 				//Ipart.write(formatString("VeamosIpart.tif"));
 
-				/*transformer.FourierTransform(projV(), fftIproj);
+				transformer.FourierTransform(projV(), fftIproj);
 				transformer.FourierTransform(Ipart(), fftIsimul);
 				correlation_matrix(fftIproj, fftIsimul, Mcorr, aux);
 				double sX, sY;
@@ -1185,7 +1186,7 @@ void ProgParticlePolishing::run()
 			Matrix1D<double> resultY(nFrames);
 			X.resizeNoCopy(nFrames,3);
 			y.resizeNoCopy(nFrames);
-			for(int jj=0; jj<24; jj++){
+			for(int jj=0; jj<nFrames; jj++){
 				X(jj,0)=1;
 				X(jj,1)=jj+1;
 				X(jj,2)=(jj+1)*(jj+1);
@@ -1220,13 +1221,14 @@ void ProgParticlePolishing::run()
 				mdPart.getRow(currentRow2, iterPart2->objId);
 				currentRow2.getValue(MDL_IMAGE,fnTest);
 				IpartOut.read(fnTest);
-				IpartOut().setXmippOrigin();
 				Aout.initIdentity(3);
 				MAT_ELEM(Aout,0,2)=resultX(mm);
 				MAT_ELEM(Aout,1,2)=resultY(mm);
-				applyGeometry(LINEAR,Iout(),IpartOut(),A,IS_NOT_INV,DONT_WRAP,0.);
-				Iout().setXmippOrigin();
-				Ifinal()+=Iout();
+                                //printf("APPLIED RESULTS: %lf, %lf \n", resultX(mm), resultY(mm));
+				IpartOut().setXmippOrigin();
+				selfTranslate(LINEAR, IpartOut(), vectorR2(resultX(mm), resultY(mm)), DONT_WRAP, 0.0);
+				Ifinal()+=IpartOut();
+
 				//double valueX=xValue+resultX(mm);
 				//double valueY=yValue+resultY(mm);
 				//currentRow2.setValue(MDL_SHIFT_X, valueX);
@@ -1251,9 +1253,10 @@ void ProgParticlePolishing::run()
 			countOutMd++;
 			FileName fnToSave;
 			fnToSave.compose(countOutMd, fnStackOut);
-			size_t id = SFq.addObject();
-			SFq.setValue(MDL_IMAGE, fnToSave, id);
-
+			//size_t id = SFq.addObject();
+			//SFq.setValue(MDL_IMAGE, fnToSave, id);
+			currentRow.setValue(MDL_IMAGE, fnToSave);
+			SFq.addRow(currentRow);
 		}
 
 		if(iterPart->hasNext())
