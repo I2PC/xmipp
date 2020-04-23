@@ -65,6 +65,7 @@ class VolumeManager(Sequence):
         self.Zdim, self.Ydim, self.Xdim = self.V.shape
         # print(self.Zdim, self.Ydim, self.Xdim)
         #calculate total voxels (inside mask)
+        # FIXME: Refactor these loops to increase the readability
         vx=0
         for self.z in range(boxDim2,self.Zdim-boxDim2):
            for self.y in range(boxDim2,self.Ydim-boxDim2):
@@ -155,6 +156,7 @@ def produceOutput(fnVolInOrNumpy, fnMaskOrNumpy, model, sampling, Y, fnVolOut):
        else:
           minValue=1.5        
 
+    # FIXME: Refactor these loops to increase the readability
     boxDim2 = boxDim//2
     for z in range(boxDim2,Zdim-boxDim2):
         for y in range(boxDim2,Ydim-boxDim2):
