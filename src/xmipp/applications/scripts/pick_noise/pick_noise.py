@@ -30,11 +30,11 @@ from joblib import delayed, Parallel
 from scipy.spatial.distance import cdist
 
 import numpy as np
-from src.xmipp.bindings.python.xmipp_base import *
+from xmipp_base import *
 import xmippLib
 from xmipp3.convert import readPosCoordinates
 from pwem.objects import Coordinate, Micrograph
-from src.xmipp.libraries.py_xmipp.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
+from xmippPyModules.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
                                                                             writeCoordsListToPosFname)
 
 class ScriptPickNoise(XmippScript):

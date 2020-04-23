@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -29,7 +29,7 @@ import sys, os
 from joblib import delayed, Parallel
 from subprocess import check_call
 
-from src.xmipp.bindings.python.xmipp_base import *
+from xmipp_base import *
 
 class ScriptExtractParticles(XmippScript):
     def __init__(self):
