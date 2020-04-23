@@ -111,8 +111,8 @@ class XmippScript:
             traceback.print_exc(file=sys.stderr)
             return 1
 
-    @classmethod
-    def getModel(cls, *modelPath, **kwargs):
+    @staticmethod
+    def getModel(*modelPath, **kwargs):
         """ Returns the path to the models folder followed by
             the given relative path.
         .../xmipp/models/myModel/myFile.h5 <= getModel('myModel', 'myFile.h5')
