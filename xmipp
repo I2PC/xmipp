@@ -425,9 +425,9 @@ def getDependencies():
     return result
 
 def getScipionHome():
-    if "SCIPION_HOME" in os.environ:
-        return os.environ["SCIPION_HOME"]
-    return whereis("scipion")
+    """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
+    return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
+
 
 def readConfigFile(fnConfig):
     try:
@@ -920,18 +920,15 @@ def configConfigVersion(configDict):
 def ensureConfigVersion(configDict):
     key = 'CONFIG_VERSION'
     if key not in configDict or configDict[key] != XMIPP_SCRIPT_VERSION:
-        print(red('We did some changes which are not compatible with your current config file. '
-                  'We recommend you to create a backup before regenerating it (use --help for additional info)'))
+        print(red("We did some changes which are not compatible with your current config file. "
+                  "Please, run './xmipp config' to generate a new config file."
+                  "We recommend you to create a backup before regenerating it (use --help for additional info)"))
         exit(-1)
 
 
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
-    # useScipion = not ('XMIPP_NOSCIPION' in os.environ)
-    # if useScipion and not getScipionHome():
-    #     print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
-    #     return False
 
     if new_config_dict['VERIFIED'] == '':
         new_config_dict['VERIFIED'] = 'False'
@@ -1120,12 +1117,10 @@ def runTests(testNames):
            % (getPython(), ' '.join(testNames), noCudaStr))
 
 def getPython():
-    # scipionHome = getScipionHome()
-    # if scipionHome is not None:
-    #     python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
-    # else:
-    python = 'python3'
-    return python
+    if checkProgram("scipion3", False):
+        return "scipion3 python"
+    else:
+        return 'python3'
 
 def addDeepLearninModel(login, modelPath='', update=None):
     """ Takes the folder name modelName from models dir and
@@ -1223,11 +1218,6 @@ def install(dirname):
 
     createDir(dirname+"/lib")
     ok = ok and runJob(cpCmd+" src/*/lib/lib* "+dirname+"/lib/")
-    scipionLibs = os.path.join(os.environ.get('SCIPION_SOFTWARE', 'None'), 'lib')
-    if os.path.isdir(scipionLibs):
-        relPath = os.path.relpath(os.path.abspath(os.path.join(dirname, "lib", "*")),
-                                  scipionLibs)
-        ok = ok and runJob("ln -sf %s %s" % (relPath, scipionLibs))
 
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
@@ -1268,6 +1258,23 @@ def install(dirname):
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
         sys.exit(1)
+
+    # Scipion connection
+    scipionSoftware = os.environ.get('SCIPION_SOFTWARE',
+                                     os.path.join(getScipionHome(), 'software'))
+    scipionLibs = os.path.join(scipionSoftware, 'lib')
+    scipionBindings = os.path.join(scipionSoftware, 'bindings')
+    if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
+        coreLib = os.path.join(dirname, "lib", "libXmippCore.so")
+        xmippLib = os.path.join(dirname, "lib", "libXmipp.so")
+        bindings = os.path.join(dirname, "bindings", "python", "*")
+        runJob("ln -srf %s %s" % (coreLib, scipionLibs))
+        runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
+        runJob("ln -srf %s %s" % (bindings, scipionBindings))
+    else:
+        print(red("No scipion3 found. If you intended to use Xmipp in "
+                  "the Scipion framework, check the binding at "
+                  "SCIPION_HOME/software/binding..."))
 
     runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
