@@ -62,7 +62,7 @@ public:
 	MultidimArray<double> inputVol, inputMask;
 
     /** Output fileroot */
-    FileName fn_out;
+    FileName fn_out, fnMD;
 
     /** Blob */
     struct blobtype blob;

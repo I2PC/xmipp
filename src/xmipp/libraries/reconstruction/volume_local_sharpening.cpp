@@ -253,7 +253,7 @@ void ProgLocSharpening::localfiltering(MultidimArray< std::complex<double> > &my
 					   else
 						    {
 						   	   double res_map = DIRECT_MULTIDIM_ELEM(resVol, n);//+1e-38;
-						   	   K=1/((2*res_map)*(2*res_map));
+//						   	   K=1/((2*res_map)*(2*res_map));
 						   	   DIRECT_MULTIDIM_ELEM(weight, n) = (exp(-K*(res-res_map)*(res-res_map)));
 						   	   DIRECT_MULTIDIM_ELEM(filteredVol, n) *= DIRECT_MULTIDIM_ELEM(weight, n);
 						    }

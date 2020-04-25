@@ -45,11 +45,12 @@ void ProgPdbValueToVol::defineParams()
 
     addParamsLine("  --pdb <pdb_file>                   : File to process");
 	addParamsLine("  --vol <vol_file=\"\">              : Input volume");
-	addParamsLine("  [--mask <vol_file=\"\">]            : Input mask (to calculate inside mask)");
-	addParamsLine("  -o  <file>                         : Modified PDB");
+	addParamsLine("  [--mask <vol_file=\"\">]           : Input mask (to calculate inside mask)");
+	addParamsLine("  -o  <file>                         : Modified output PDB");
     addParamsLine("   --sampling <Ts=1>                 : Sampling rate (Angstroms/pixel)");
     addParamsLine("   [--origin <...>]                  : Origin of the volume --origin x y z");
-    addParamsLine("   [--radius <radius=1>]             : Considered as radius of the atom (Angstroms)");
+    addParamsLine("   [--radius <radius=0.8>]           : Considered as radius of the atom (Angstroms)");
+    addParamsLine("   [--md <output=\"params.xmd\">]    : Save mean and absolute mean output");
 }
 /* Read parameters --------------------------------------------------------- */
 void ProgPdbValueToVol::readParams()
@@ -58,6 +59,7 @@ void ProgPdbValueToVol::readParams()
 	fnVol = getParam("--vol");
 	fnMask = getParam("--mask");
 	fn_out=getParam("-o");
+    fnMD = getParam("--md");
     Ts = getDoubleParam("--sampling");
     radius = getDoubleParam("--radius");
     withMask = checkParam("--mask");
@@ -87,20 +89,38 @@ void ProgPdbValueToVol::produceSideInfo()
 
 	Image<double> V, M;
 	V.read(fnVol);
+	V().setXmippOrigin();
 	inputVol = V();
-//	V().setXmippOrigin();
-
-	if (defOrig)
-	{
-		STARTINGZ(inputVol) = -textToInteger(origin[2]);
-		STARTINGY(inputVol) = -textToInteger(origin[1]);
-		STARTINGX(inputVol) = -textToInteger(origin[0]);
-	}
+	inputVol.setXmippOrigin();
 
 	if (withMask)
 	{
 		M.read(fnMask);
 		inputMask = M();
+		inputMask.setXmippOrigin();
+	}
+
+	//Origin of the volume
+	if (defOrig)
+	{
+		STARTINGZ(inputVol) = -textToInteger(origin[2]);
+		STARTINGY(inputVol) = -textToInteger(origin[1]);
+		STARTINGX(inputVol) = -textToInteger(origin[0]);
+
+		STARTINGZ(inputMask) = -textToInteger(origin[2]);
+		STARTINGY(inputMask) = -textToInteger(origin[1]);
+		STARTINGX(inputMask) = -textToInteger(origin[0]);
+	}
+
+	else
+	{
+		STARTINGZ(inputVol) = 0;
+		STARTINGY(inputVol) = 0;
+		STARTINGX(inputVol) = 0;
+
+		STARTINGZ(inputMask) = 0;
+		STARTINGY(inputMask) = 0;
+		STARTINGX(inputMask) = 0;
 	}
 
 }
@@ -111,11 +131,15 @@ void ProgPdbValueToVol::computeProteinGeometry()
     std::ifstream fh_pdb;
     std::ofstream fh_out(fn_out);
     fh_pdb.open(fn_pdb.c_str());
-//    fh_out.open(fn_out.c_str());
+
+	MetaData mdmean;
+	size_t objId;
+	objId = mdmean.addObject();
+
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
 
-    double suma=0;
+    double suma=0, sumaP=0;
     int numA=0;
 
 
@@ -143,7 +167,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
         double x = textToFloat(line.substr(30,8));
         double y = textToFloat(line.substr(38,8));
         double z = textToFloat(line.substr(46,8));
-//		std::cout << "x: = " << x << "y: = " << y << "z: = " << z<< std::endl;
 
         // Correct position
         Matrix1D<double> r(3);
@@ -165,12 +188,11 @@ void ProgPdbValueToVol::computeProteinGeometry()
         int ia = XMIPP_MAX(FLOOR(YY(r)), STARTINGZ(inputVol));
         int ja = XMIPP_MAX(FLOOR(XX(r)), STARTINGZ(inputVol));
 
-		std::cout << "k0: = " << k0 << "kF: = " << kF << std::endl;
-		std::cout << "i0: = " << i0 << "iF: = " << iF << std::endl;
-		std::cout << "j0: = " << j0 << "jF: = " << jF << std::endl;
 
-        // Fill the volume with this atom
-        float atomS=0;
+        float atomS=0.0;
+        float atomP=0.0;
+        float atomN=0.0;
+        float value=0.0;
         int cont=0;
         for (int k = k0; k <= kF; k++)
         {
@@ -186,64 +208,107 @@ void ProgPdbValueToVol::computeProteinGeometry()
                     double rdiffModule2=zydiff2+xdiff*xdiff;
                 	if (withMask)
                 	{
-						if ( (rdiffModule2<radius2 || (k==ka && i==ia && j==ja)) && (inputMask(k, i , j)>0.05) )
+						if ( (rdiffModule2<radius2 || (k==ka && i==ia && j==ja)) && (inputMask(k, i , j)>0.00001) )
 						{
-							atomS+=A3D_ELEM(inputVol,k, i, j);
+
+							atomS += A3D_ELEM(inputVol,k, i, j);
 							++cont;
+
+							//Positivity
+							if (A3D_ELEM(inputVol,k, i, j) < 0)
+							{
+								value = -A3D_ELEM(inputVol,k, i, j);
+								atomP += atomP;
+							}
+							else
+								atomP += A3D_ELEM(inputVol,k, i, j);
+
+
+							//Negativity
+							if (A3D_ELEM(inputVol,k, i, j) > 0)
+							{
+								value = -A3D_ELEM(inputVol,k, i, j);
+								atomN += atomN;
+							}
+							else
+								atomN += A3D_ELEM(inputVol,k, i, j);
+
 						}
                 	}
                 	else
                 	{
 						if ( (rdiffModule2<radius2) || (k==ka && i==ia && j==ja))
 						{
-							std::cout << "k i j  =  " << k << i << j << std::endl;
 							atomS+=A3D_ELEM(inputVol,k, i, j);
 							++cont;
+
+							//Positivity
+							if (A3D_ELEM(inputVol,k, i, j) < 0)
+							{
+								value = -A3D_ELEM(inputVol,k, i, j);
+								atomP += value;
+							}
+							else
+								atomP += A3D_ELEM(inputVol,k, i, j);
+
+
+							//Negativity
+							if (A3D_ELEM(inputVol,k, i, j) > 0)
+							{
+								value = -A3D_ELEM(inputVol,k, i, j);
+								atomN += atomN;
+							}
+							else
+								atomN += A3D_ELEM(inputVol,k, i, j);
+
 						}
                 	}
 
                 }
             }
         }
-		std::cout << "suma: = " << atomS << std::endl;
-		std::cout << "conteo: = " << cont << std::endl;
-        atomS=atomS/cont;
-//        if (atomS>3)
-//		   atomS=3.00;
-//        if (atomS<-3)
-// 		   atomS=-3.00;
-//        if (atomS>0 && atomS<0.25)
-// 		   atomS=0.00;
-//        if (atomS<0 && atomS>-0.25)
-// 		   atomS=0.00;
-//        std::cout << "antes: = " << atomS << std::endl;
-//        normalizo
-//        if (atomS>=0)
-//        	atomS = (-0.333333*atomS)+1;
-//        else
-//        	atomS = (-0.333333*atomS)-1;
-        std::cout << "despues: = " << atomS << std::endl;
+
+        if (atomS>=0)
+        	atomS = atomP;
+        else
+        	atomS = atomN;
+
+        if (atomS != 0)
+        	atomS=atomS/cont;
+        else
+        	atomS=0.00;
+
+        if (atomP != 0)
+            atomP=atomP/cont;
+        else
+        	atomP=0.00;
 
 
         ++numA;
         suma+=atomS;
-//		std::cout << "media: = " << atomS << std::endl;
+        sumaP+=atomP;
 
-        std::stringstream ss;
-        ss<<atomS;
-        std::string str1=ss.str();
-//        std::string str1 = std::to_string (atomS);
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(2) << atomS;
+        std::string s = stream.str();
+
         if (atomS<0)
-            line.replace(55, 5, str1, 0, 5);
+            line.replace(55, 5, s, 0, 5);
         else
-        	line.replace(56, 4, str1, 0, 4);
-//		std::cout << "valor: = " << str1 << std::endl;
-//		std::cout << "linea: = " << line << std::endl;
+        	line.replace(56, 4, s, 0, 4);
+
+//		std::cout << line << std::endl;
 
 		fh_out << line << " \n";
     }
+    double mean = suma/numA;
+    double meanA = sumaP/numA;
+    std::cout << "mean value: = " << mean << std::endl;
+    std::cout << "absolute mean value: = " << meanA << std::endl;
 
-    std::cout << "la suma total es: = " << suma/numA << std::endl;
+    mdmean.setValue(MDL_VOLUME_SCORE1, mean, objId);
+    mdmean.setValue(MDL_VOLUME_SCORE2, meanA, objId);
+    mdmean.write(fnMD);
 
     // Close file
     fh_pdb.close();
@@ -255,6 +320,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
 /* Run --------------------------------------------------------------------- */
 void ProgPdbValueToVol::run()
 {
+
 
     produceSideInfo();
     show();

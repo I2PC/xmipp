@@ -86,28 +86,33 @@ void ProgComparePdb::computeProteinGeometry()
         }
     	++ntotal;
 
-//        value1= float(line1.substr(55,5));
         value1 = strtof(line1.substr(55,5).c_str(),0);
         value2 = strtof(line2.substr(55,5).c_str(),0);
 
 
-        if ( (value1<0.5 && value1>=0) && (value2<0.5 && value2>=0) )
+        if ( (value1<0.4 && value1>=0) && (value2<0.25 && value2>=0) )
         {
     		fh_out << line1 << " \n";
         	++npartial;
         }
 
-        else if ( (value1>1.0) && (value2>0.5) )
-        {
-    		fh_out << line1 << " \n";
-        	++npartial;
-        }
+//        else  ( (value1>1.0) && (value2>0.5) )
+//        {
+//    		fh_out << line1 << " \n";
+//        	++npartial;
+//        }
 
-        else if ( (value1<-0.5) && (value2>0.4) )
-        {
-    		fh_out << line1 << " \n";
-        	++npartial;
-        }
+//        else if ( (value1<-1.0) && (value2>0.3) )
+//        {
+//    		fh_out << line1 << " \n";
+//        	++npartial;
+//        }
+//
+//        else if ( (value1>0.4) && (value2<-0.2) )
+//        {
+//    		fh_out << line1 << " \n";
+//        	++npartial;
+//        }
 
         else
             continue;
