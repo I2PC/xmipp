@@ -40,8 +40,7 @@
 void ProgPdbValueToVol::defineParams()
 {
     addUsageLine("Put a volume value to PDB file.");
-    addExampleLine("   xmipp_volume_from_pdb -i 1o7d.pdb --sampling 1.6");
-    addExampleLine("   xmipp_transform_filter -i 1o7d.vol -o 1o7dFiltered.vol --fourier low_pass 10 raised_cosine 0.05 --sampling 1.6");
+    addExampleLine("   xmipp_pdb_label_from_volume --pdb 1o7d.pdb --vol volume.vol -o pdb_label.pdb --sampling 1.6");
 
     addParamsLine("  --pdb <pdb_file>                   : File to process");
 	addParamsLine("  --vol <vol_file=\"\">              : Input volume");
