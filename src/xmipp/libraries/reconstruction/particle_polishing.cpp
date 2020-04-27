@@ -409,7 +409,7 @@ void ProgParticlePolishing::averagingAll(const MetaData &mdPart, const MultidimA
 		count=0.0;
 	}else{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-				DIRECT_MULTIDIM_ELEM(Iout,n)=DIRECT_MULTIDIM_ELEM(I,n);
+			DIRECT_MULTIDIM_ELEM(Iout,n)=DIRECT_MULTIDIM_ELEM(I,n);
 		count=1.0;
 	}
 	MDIterator *iterPart = new MDIterator(mdPart);
@@ -445,7 +445,7 @@ void ProgParticlePolishing::averagingAll(const MetaData &mdPart, const MultidimA
 			iterPart->moveNext();
 
 	} //end loop to find the previous and following frames to average the particle
-	Iout/=count;
+	//Iout/=count;
 
 }
 
@@ -622,7 +622,7 @@ void ProgParticlePolishing::run()
 	MDIterator *iterPart = new MDIterator();
 	MDIterator *iterPart2 = new MDIterator();
 	FileName fnPart;
-	Image<double> Ipart, projV, Iavg, Iproj, IpartOut, Iout, Ifinal;
+	Image<double> Ipart, projV, Iavg, Iproj, IpartOut, Iout, Ifinal, IfinalAux;
 	MDRow currentRow;
 	MDRow currentRow2;
 	Matrix2D<double> A, Aout;
@@ -637,9 +637,6 @@ void ProgParticlePolishing::run()
 	int ydim = (int)YSIZE(V());
 	projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
 
-	FourierFilter Filter;
-	Filter.FilterBand=LOWPASS;
-	Filter.FilterShape=RAISED_COSINE;
 
 	/////////////////////////
 	//First Part
@@ -761,7 +758,7 @@ void ProgParticlePolishing::run()
 
 
 		if(dataInMovie>0){
-		calculateCurve_2(projV(), vectorAvg, nStep, slope, intercept, Dmin, Dmax);
+			calculateCurve_2(projV(), vectorAvg, nStep, slope, intercept, Dmin, Dmax);
 			//Vectors to store some results
 			it = find(mvIds.begin(), mvIds.end(), (int)m+1);
 			if (it == mvIds.end()){
@@ -898,7 +895,7 @@ void ProgParticlePolishing::run()
 	//-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6
 	int shiftX[]={-3, -2, -1, 0, 1, 2, 3};
 	int shiftY[]={-3, -2, -1, 0, 1, 2, 3};
-        int myL = (int)(sizeof(shiftX)/sizeof(*shiftX));
+    int myL = (int)(sizeof(shiftX)/sizeof(*shiftX));
 	MultidimArray<double> lkresults;
 	double maxShift = XSIZE(Iavg())/2-10;
 	double maxShift2 = maxShift*maxShift;
@@ -1214,6 +1211,17 @@ void ProgParticlePolishing::run()
 			//printf("alpha(3)=%lf \n", alpha(3));
 			matrixOperation_Ax(X, alpha, resultY);
 
+			for(int mm=0; mm<nFrames; mm++){
+				mdPart.getRow(currentRow2, iterPart2->objId);
+				currentRow2.setValue(MDL_POLISHING_X, resultX(mm));
+				currentRow2.setValue(MDL_POLISHING_Y, resultY(mm));
+				//printf("Particle %d frame %d shiftX %lf shiftY %lf \n", ii, mm, resultX(mm), resultY(mm));
+				SFq.addRow(currentRow2);
+				if(iterPart2->hasNext())
+					iterPart2->moveNext();
+			}
+
+			/*
 			FileName fnTest;
 			Ifinal().resize(Ipart());
 			Ifinal().initZeros();
@@ -1221,10 +1229,10 @@ void ProgParticlePolishing::run()
 				mdPart.getRow(currentRow2, iterPart2->objId);
 				currentRow2.getValue(MDL_IMAGE,fnTest);
 				IpartOut.read(fnTest);
-				Aout.initIdentity(3);
-				MAT_ELEM(Aout,0,2)=resultX(mm);
-				MAT_ELEM(Aout,1,2)=resultY(mm);
-                                //printf("APPLIED RESULTS: %lf, %lf \n", resultX(mm), resultY(mm));
+				//Aout.initIdentity(3);
+				//MAT_ELEM(Aout,0,2)=resultX(mm);
+				//MAT_ELEM(Aout,1,2)=resultY(mm);
+                //printf("APPLIED RESULTS: %lf, %lf \n", resultX(mm), resultY(mm));
 				IpartOut().setXmippOrigin();
 				selfTranslate(LINEAR, IpartOut(), vectorR2(resultX(mm), resultY(mm)), DONT_WRAP, 0.0);
 				Ifinal()+=IpartOut();
@@ -1238,17 +1246,17 @@ void ProgParticlePolishing::run()
 					iterPart2->moveNext();
 			}
 			//To invert the contrast
-			/*double DminFinal, DmaxFinal, v, temp;
-			Ifinal().computeDoubleMinMax(DminFinal, DmaxFinal);
-			double irange=1.0/(Dmax - Dmin);
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ifinal()){
-				if (v < 1)
-					temp = v;
-				else
-				    temp = log10(v);
-				v=DIRECT_MULTIDIM_ELEM(Ifinal(),n);
-				DIRECT_MULTIDIM_ELEM(Ifinal(),n) = (Dmax - v) * irange;
-			}*/
+			//double DminFinal, DmaxFinal, v, temp;
+			//Ifinal().computeDoubleMinMax(DminFinal, DmaxFinal);
+			//double irange=1.0/(Dmax - Dmin);
+			//FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ifinal()){
+			//	if (v < 1)
+			//		temp = v;
+			//	else
+			//	    temp = log10(v);
+			//	v=DIRECT_MULTIDIM_ELEM(Ifinal(),n);
+			//	DIRECT_MULTIDIM_ELEM(Ifinal(),n) = (Dmax - v) * irange;
+			//}
 			Ifinal.write(fnStackOut,countOutMd,true,WRITE_APPEND);
 			countOutMd++;
 			FileName fnToSave;
@@ -1256,7 +1264,7 @@ void ProgParticlePolishing::run()
 			//size_t id = SFq.addObject();
 			//SFq.setValue(MDL_IMAGE, fnToSave, id);
 			currentRow.setValue(MDL_IMAGE, fnToSave);
-			SFq.addRow(currentRow);
+			SFq.addRow(currentRow);*/
 		}
 
 		if(iterPart->hasNext())
@@ -1266,6 +1274,7 @@ void ProgParticlePolishing::run()
 
 	}//end loop movies
 
+
 	FileName fnOut;
 	fnOut = fnMdMov.insertBeforeExtension("_out");
 	printf("Writing output metadata \n");
@@ -1273,7 +1282,8 @@ void ProgParticlePolishing::run()
 	SFq.write(fnOut);
 
 
-	exit(0);
+
+	//exit(0);
 
 
 	//FIN AJ ML
@@ -1282,11 +1292,23 @@ void ProgParticlePolishing::run()
 	/////////////////////////
 	//Second Part
 	/////////////////////////
+
+	mdPartPrev.read(fnOut,NULL);
+	mdPartSize = mdPartPrev.size();
+	mdPart.sort(mdPartPrev, MDL_MICROGRAPH_ID);
+
 	MultidimArray<double> matrixWeights, maxvalues;
+	FourierFilter FilterBP, FilterLP;
+	FilterBP.FilterBand=BANDPASS;
+	FilterBP.FilterShape=RAISED_COSINE;
+	FilterLP.FilterBand=LOWPASS;
+	FilterLP.FilterShape=RAISED_COSINE;
 	double cutfreq;
-	double inifreq=0.5; //0.05;
-	double step=0.05; //0.05;
-	int Nsteps= int((0.5-inifreq)/step);
+	//double inifreq=0.25; //0.05;
+	//double step=0.25; //0.05;
+	//int Nsteps= int((0.5-inifreq)/step);
+	int Nsteps=1;
+	double bandSize=0.5/(double)Nsteps;
 	double maxvalue=-1.;
 	size_t mvId, frId, partId;
 	Iavg().resize(XSIZE(Ipart()), YSIZE(Ipart()));
@@ -1297,9 +1319,16 @@ void ProgParticlePolishing::run()
 	int prevMvId=-1, prevPartId=-1, partCount=0;
 	for(int i=0; i<mdPartSize; i++){
 		size_t mvId, partId;
+		int enabled;
 		mdPart.getRow(currentRow, iterPart->objId);
 		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
 		currentRow.getValue(MDL_PARTICLE_ID,partId);
+		currentRow.getValue(MDL_ENABLED,enabled);
+		if(enabled==-1){
+			if(iterPart->hasNext())
+				iterPart->moveNext();
+			continue;
+		}
 		if(mvId!=prevMvId){
 			if (prevMvId!=-1)
 				numPartPerMov.push_back(partCount);
@@ -1318,12 +1347,23 @@ void ProgParticlePolishing::run()
 	for (int i=0; i<numPartPerMov.size(); i++)
 		std::cerr << " numPartPerMov[" << i << "] = "<< numPartPerMov[i] << std::endl;
 
+	countOutMd=0;
 	prevMvId=-1;
 	prevPartId=-1;
 	partCount=0;
-	int countMv=0;
+	int countMv=-1;
 	iterPart->init(mdPart);
+	iterPart2->init(mdPart);
 	Image<double> Ipartaux, projVaux;
+	Matrix2D<double> resultWeights;
+
+	MetaData SFq2;
+	FileName fnRoot2=fnMdMov.insertBeforeExtension("_out_particles_filtered");
+	FileName fnStackOut2=formatString("%s.stk",fnRoot2.c_str());
+	if(fnStackOut2.exists())
+		fnStackOut2.deleteFile();
+
+	double totalWeight[Nsteps];
 	for(int i=0; i<mdPartSize; i++){
 		
 		//Project the volume with the parameters in the image
@@ -1331,6 +1371,7 @@ void ProgParticlePolishing::run()
 		bool flip;
 		size_t frId, mvId, partId;
 		int xcoor, ycoor;
+		int enabled;
 
 		mdPart.getRow(currentRow, iterPart->objId);
 		currentRow.getValue(MDL_IMAGE,fnPart);
@@ -1347,47 +1388,36 @@ void ProgParticlePolishing::run()
 		currentRow.getValue(MDL_PARTICLE_ID,partId);
 		currentRow.getValue(MDL_XCOOR,xcoor);
 		currentRow.getValue(MDL_YCOOR,ycoor);
+		currentRow.getValue(MDL_ENABLED,enabled);
+
+		for (int hh=0; hh<mvIds.size(); hh++){
+			if(mvIds[hh]==mvId){
+				slope=slopes[hh];
+				intercept=intercepts[hh];
+				break;
+			}
+		}
+
+		if(enabled==-1){
+			if(iterPart->hasNext())
+				iterPart->moveNext();
+			if(iterPart2->hasNext())
+				iterPart2->moveNext();
+			continue;
+		}
 
 		if(prevMvId!=mvId){
-			/*if (prevMvId!=-1){
-				std::cerr << " maxvalue " << maxvalue << std::endl;
-				std::cerr << "  matrixWeights " << matrixWeights << std::endl;
-				matrixWeights/=maxvalue;
-				std::cerr << " NORM matrixWeights " << matrixWeights << std::endl;
-				countMv++;
-
-				for (int s=0; s<ZSIZE(matrixWeights); s++){
-					Matrix2D<double> matrixWeightsMat;
-					MultidimArray<double> matrixWeightsSlice;
-					matrixWeights.getSlice(s, matrixWeightsSlice);
-					std::cerr << "- Slice: " << XSIZE(matrixWeightsSlice) << " " << YSIZE(matrixWeightsSlice) << " " << ZSIZE(matrixWeightsSlice) << std::endl;
-					matrixWeightsSlice.copy(matrixWeightsMat);
-					std::cerr << "- Matrix: " << matrixWeightsMat.Xdim() << " " << matrixWeightsMat.Ydim() << " " << matrixWeightsMat << std::endl;
-					Matrix2D<double> U,V;
-					Matrix1D<double> S;
-					svdcmp(matrixWeightsMat,U,S,V);
-					std::cerr << "- SVD: " << U << std::endl;
-					//AJ prueba
-					Matrix2D<double> Smat;
-					Smat.initZeros(S.size(),S.size());
-					for (int h=0; h<S.size(); h++){
-						if (h<2)
-						    Smat(h,h)=S(h);
-					}
-					Matrix2D<double> result1, result;
-					matrixOperation_AB(U, Smat, result1);
-					matrixOperation_ABt(result1, V, result);
-					std::cerr << "- SVD recons: " << result << std::endl;
-				}
-			}*/
+			countMv++;
 			partCount=0;
 			prevMvId=mvId;
 			maxvalue=-1.;
-			matrixWeights.initZeros(numPartPerMov[countMv], nFrames, Nsteps+1);
+			matrixWeights.initZeros(numPartPerMov[countMv], nFrames, Nsteps);
 		}
 		if(partId!=prevPartId){
 			prevPartId=partId;
 			partCount++;
+			for(int n=0; n>Nsteps; n++)
+				totalWeight[n]=0.;
 		}
 
 		A.initIdentity(3);
@@ -1399,11 +1429,11 @@ void ProgParticlePolishing::run()
 			MAT_ELEM(A,0,2)*=-1;
 		}
 
-		for(int n=0; n<Nsteps+1; n++){
+		for(int n=0; n<Nsteps; n++){
 
-			std::cerr << "- Particle: " << partId << " and frequency " << n << std::endl;
+			//std::cerr << "- Particle: " << partId << " and frequency " << n << std::endl;
 
-				/*Ipart.read(fnPart);
+				Ipart.read(fnPart);
 				Ipart().setXmippOrigin();
 
 				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
@@ -1413,6 +1443,8 @@ void ProgParticlePolishing::run()
 
 				//To invert contrast in the projections
 				double Dmin, Dmax, irange, val;
+				projV().computeDoubleMinMax(Dmin, Dmax);
+				irange=1.0/(Dmax - Dmin);
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
 					val=DIRECT_MULTIDIM_ELEM(projV(),n);
 					DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
@@ -1426,15 +1458,59 @@ void ProgParticlePolishing::run()
 				//averaging movie particle image with the ones in all the frames but without the current one
 				averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
 				//TODO check how we have to average the movie particles to calculate the correlations
-				*/
 
-				//AJ para leer phantom y promediar
+				//To obtain the maximum value of correlation we need the "particle", all frames averaged and stored in Imean
+				Image<double> Imean;
+				Imean().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
+				averagingAll(mdPart, Ipart(), Imean(), partId, frId, mvId, false);
+				double meanD, stdD;
+				Imean().computeAvgStdev(meanD,stdD);
+
+				//To study what happens with the ML with a Poisson
+				std::cerr << "FOR Movie ID: " << mvId << ". Working with Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
+				double likelihoodRef=0.;
+				double likelihoodFr=0.;
+				double likelihoodAvg=0.;
+				double lambda, factRef, factFr, factAvg;
+				double maxShift = XSIZE(Imean())/2-10;
+				double maxShift2 = maxShift*maxShift;
+				int count=0;
+				for(int n=0; n<YSIZE(Imean()); n++){
+					for(int m=0; m<XSIZE(Imean()); m++){
+						if ((n-round(YSIZE(Imean())/2))*(n-round(YSIZE(Imean())/2))+(m-round(XSIZE(Imean())/2))*(m-round(XSIZE(Imean())/2))>maxShift2) // continue if the Euclidean distance is too far
+							continue;
+						count++;
+						factRef=1.;
+						lambda = slope*DIRECT_A2D_ELEM(projV(), n, m)+intercept;
+						if (DIRECT_A2D_ELEM(Imean(), n, m)>0){
+							for(int aa=1; aa<=DIRECT_A2D_ELEM(Imean(), n, m); aa++)
+								factRef = factRef*aa;
+						}
+						likelihoodRef += -1.*lambda + DIRECT_A2D_ELEM(Imean(), n, m)*log(lambda) - log(factRef);
+
+						factFr=1.;
+						if (DIRECT_A2D_ELEM(Ipart(), n, m)>0){
+							for(int aa=1; aa<=DIRECT_A2D_ELEM(Ipart(), n, m); aa++)
+								factFr = factFr*aa;
+						}
+						likelihoodFr += -1.*lambda + DIRECT_A2D_ELEM(Ipart(), n, m)*log(lambda) - log(factFr);
+
+						factAvg=1.;
+						if (DIRECT_A2D_ELEM(Iavg(), n, m)>0){
+							for(int aa=1; aa<=DIRECT_A2D_ELEM(Iavg(), n, m); aa++)
+								factAvg = factAvg*aa;
+						}
+						likelihoodAvg += -1.*lambda + DIRECT_A2D_ELEM(Iavg(), n, m)*log(lambda) - log(factAvg);
+					}
+				}
+
+				/*/AJ para leer phantom y promediar
 				Image<double> Itot, Imean;
 				Iproj.read("projNueva.mrc");
 				Iproj().setXmippOrigin();
 				Itot().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
 				Imean().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
-				if (partId==5818){
+				//if (partId==5818){
 					Image<int> Isimul;
 					int count=0;
 					for (int ii=0; ii<24; ii++){
@@ -1455,6 +1531,7 @@ void ProgParticlePolishing::run()
 					Itot.write(formatString("total_%i.mrc", 24));
 					Imean()/=24.0;
 					Imean.write(formatString("mean_%i.mrc", 24));
+
 					double meanD, stdD;
 					Imean().computeAvgStdev(meanD,stdD);
 					Iavg().initZeros(XSIZE(Isimul()), YSIZE(Isimul()));
@@ -1465,8 +1542,7 @@ void ProgParticlePolishing::run()
 					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Iproj()){
 						DIRECT_MULTIDIM_ELEM(projV(), n) = (double)DIRECT_MULTIDIM_ELEM(Iproj(), n);
 					}
-					//Iavg().setXmippOrigin();
-					//projV().setXmippOrigin();
+
 					double Dmin, Dmax, irange, val;
 					projV().computeDoubleMinMax(Dmin, Dmax);
 					irange=1.0/(Dmax - Dmin);
@@ -1477,33 +1553,36 @@ void ProgParticlePolishing::run()
 					Iavg.write(formatString("myAvg.mrc"));
 					projV.write(formatString("myProj.mrc"));
 
-				//FIN AJ phantom lectura//
+				//FIN AJ phantom lectura/*/
 
-			cutfreq = inifreq + step*n;
+			//cutfreq = inifreq + step*n;
 
 
 			//filtering the projected particles with the lowpass filter
-			Filter.w1=cutfreq;
-			Filter.generateMask(projV());
-			Filter.applyMaskSpace(projV());
+			FilterLP.w1=(n+1)*bandSize;
+			//Filter.w1=n*bandSize;
+			//Filter.w2=(n+1)*bandSize;
+			//printf("Filter data %lf %lf %lf \n", bandSize, n*bandSize, (n+1)*bandSize);
+			FilterLP.generateMask(projV());
+			FilterLP.applyMaskSpace(projV());
 
 			//filtering the averaged movie particle (leaving out the j-frame)
-			Filter.generateMask(Iavg());
-			Filter.applyMaskSpace(Iavg());
+			FilterLP.generateMask(Iavg());
+			FilterLP.applyMaskSpace(Iavg());
 
 			//filtering the averaged movie particle (all the frames)
-			Filter.generateMask(Imean());
-			Filter.applyMaskSpace(Imean());
+			FilterLP.generateMask(Imean());
+			FilterLP.applyMaskSpace(Imean());
 
-			Iavg.write(formatString("myAvgFiltered.mrc"));
-			projV.write(formatString("myProjFiltered.mrc"));
+			//Iavg.write(formatString("myAvgFiltered.mrc"));
+			//projV.write(formatString("myProjFiltered.mrc"));
 
 
 			//calculate similarity measures between averaged movie particles and filtered projection
 			double weight;
 			double corrNRef, corrMRef, corrWRef, imedRef;
 			similarity(projV(), Imean(), corrNRef, corrMRef, corrWRef, imedRef);
-			printf("REF CORRELATION %8.20lf \n", corrNRef);
+			//printf("REF CORRELATION %8.20lf \n", corrNRef);
 			double corrN, corrM, corrW, imed;
 			similarity(projV(), Iavg(), corrN, corrM, corrW, imed, meanD);
 			//TODO: la corrW que viene de Idiff no tiene mucho sentido porque la Idiff en este caso no nos dice nada
@@ -1516,7 +1595,9 @@ void ProgParticlePolishing::run()
 			}
 			//END DEBUG/*/
 
+			//weight = corrNRef-corrN; //TODO
 			weight = corrN; //TODO
+			printf("%lf %lf  --  %lf %lf %lf \n", corrNRef, corrN, likelihoodRef, likelihoodFr, likelihoodAvg);
 			if(weight>maxvalue)
 				maxvalue=weight;
 
@@ -1540,60 +1621,119 @@ void ProgParticlePolishing::run()
 			//std::cerr << MAT_ELEM(M,0,2) << " " << MAT_ELEM(M,1,2) << std::endl;
 
 			DIRECT_ZYX_ELEM(matrixWeights, partCount-1, frId-1, n) = weight;
+			totalWeight[n]+=weight;
 
-				}
+				//}
 
 		} //end frequencies loop
 
 
-		/*/DEBUG
-		if(frId==nFrames){
-			projV.write(formatString("projection_%i_%i.tif", frId, partId));
-			//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
-			Iavg.write(formatString("average_%i_%i.tif", frId, partId));
+		if (numPartPerMov[countMv]==partCount && frId==nFrames){
+			//std::cerr << " maxvalue " << maxvalue << std::endl;
+			//std::cerr << "  matrixWeights " << matrixWeights << std::endl;
+			//std::cerr << " matrixWeights " << matrixWeights << std::endl;
+			//matrixWeights/=maxvalue;
+
+			double tot;
+			std::cerr << "- ANTES matrixWeights " << matrixWeights << std::endl;
+			for(int n=0; n<Nsteps; n++){
+				tot=-1.;
+				for(int mm=0; mm<nFrames; mm++){
+					DIRECT_ZYX_ELEM(matrixWeights, partCount-1, mm, n) = totalWeight[n]-DIRECT_ZYX_ELEM(matrixWeights, partCount-1, mm, n);
+					if (DIRECT_ZYX_ELEM(matrixWeights, partCount-1, mm, n)>tot)
+						tot=DIRECT_ZYX_ELEM(matrixWeights, partCount-1, mm, n);
+				}
+				for(int mm=0; mm<nFrames; mm++){
+					DIRECT_ZYX_ELEM(matrixWeights, partCount-1, mm, n) /= tot;
+				}
+			}
+
+			std::cerr << "- NORM matrixWeights " << matrixWeights << std::endl;
+			//std::cerr << "X " << XSIZE(matrixWeights) << " Y " << YSIZE(matrixWeights) << " Z " << ZSIZE(matrixWeights) << std::endl;
+			for (int s=0; s<ZSIZE(matrixWeights); s++){
+				Matrix2D<double> matrixWeightsMat;
+				MultidimArray<double> matrixWeightsSlice;
+				matrixWeights.getSlice(s, matrixWeightsSlice);
+				//std::cerr << "- Slice: " << XSIZE(matrixWeightsSlice) << " " << YSIZE(matrixWeightsSlice) << " " << ZSIZE(matrixWeightsSlice) << std::endl;
+				matrixWeightsSlice.copy(matrixWeightsMat);
+				//std::cerr << "- Matrix: " << matrixWeightsMat.Xdim() << " " << matrixWeightsMat.Ydim() << " " << matrixWeightsMat << std::endl;
+				Matrix2D<double> U,V;
+				Matrix1D<double> S;
+				svdcmp(matrixWeightsMat,U,S,V);
+				//std::cerr << "- SVD: " << U << std::endl;
+				//AJ prueba
+				Matrix2D<double> Smat;
+				Smat.initZeros(S.size(),S.size());
+				for (int h=0; h<S.size(); h++){
+					if (h<2)
+						Smat(h,h)=S(h);
+				}
+				Matrix2D<double> result1;
+				matrixOperation_AB(U, Smat, result1);
+				matrixOperation_ABt(result1, V, resultWeights);
+				std::cerr << "- SVD recons: " << resultWeights << std::endl;
+
+				//We must do something with the previously obtained values
+				FileName fnTest;
+				Ifinal().resize(projV());
+				Ifinal().initZeros();
+				IfinalAux().resize(projV());
+				IfinalAux().initZeros();
+				double shiftFrameX, shiftFrameY;
+				for(int mm=0; mm<nFrames; mm++){
+					IfinalAux().initZeros();
+					mdPart.getRow(currentRow2, iterPart2->objId);
+					currentRow2.getValue(MDL_IMAGE,fnTest);
+					currentRow2.getValue(MDL_POLISHING_X,shiftFrameX);
+					currentRow2.getValue(MDL_POLISHING_Y,shiftFrameY);
+					std::vector<double> coeffsToStore;
+
+					for(int nn=0; nn<Nsteps; nn++){
+						IpartOut.read(fnTest);
+						IpartOut().setXmippOrigin();
+						FilterBP.w1=nn*bandSize;
+						FilterBP.w2=(nn+1)*bandSize;
+						//TODO ask this Low pass or Band pass?
+						//FilterLP.w1=(nn+1)*bandSize;
+						FilterBP.generateMask(IpartOut());
+						FilterBP.applyMaskSpace(IpartOut());
+
+						//printf("PESO APLICADO %lf, para frame %d y frecuencia %d \n", resultWeights(mm, nn), mm, nn);
+						IfinalAux()+=IpartOut()*resultWeights(mm, nn);
+						coeffsToStore.push_back(resultWeights(mm, nn));
+
+					}
+					//IfinalAux().setXmippOrigin();
+					printf("Particle %d frame %d shiftx %lf shifty %lf \n", i, mm, shiftFrameX, shiftFrameY);
+					selfTranslate(LINEAR, IfinalAux(), vectorR2(shiftFrameX, shiftFrameY), DONT_WRAP, 0.0);
+					Ifinal()+=IfinalAux();
+
+					if(iterPart2->hasNext())
+						iterPart2->moveNext();
+				}
+				Ifinal.write(fnStackOut2,countOutMd,true,WRITE_APPEND);
+				countOutMd++;
+				FileName fnToSave2;
+				fnToSave2.compose(countOutMd, fnStackOut2);
+				//size_t id = SFq.addObject();
+				//SFq.setValue(MDL_IMAGE, fnToSave, id);
+				currentRow.setValue(MDL_IMAGE, fnToSave2);
+				SFq2.addRow(currentRow);
+
+			}
+
 		}
-		//END DEBUG/*/
 
 		if(iterPart->hasNext())
 			iterPart->moveNext();
 
 	} //end movie particles loop
 
-
-	std::cerr << " maxvalue " << maxvalue << std::endl;
-	//std::cerr << "  matrixWeights " << matrixWeights << std::endl;
-	printf("matrixWeights \n");
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(matrixWeights){
-		printf("%8.20lf \n", DIRECT_MULTIDIM_ELEM(matrixWeights,n));
-	}
-	matrixWeights/=maxvalue;
-	std::cerr << " NORM matrixWeights " << matrixWeights << std::endl;
-	countMv++;
-
-	for (int s=0; s<ZSIZE(matrixWeights); s++){
-		Matrix2D<double> matrixWeightsMat;
-		MultidimArray<double> matrixWeightsSlice;
-		matrixWeights.getSlice(s, matrixWeightsSlice);
-		std::cerr << "- Slice: " << XSIZE(matrixWeightsSlice) << " " << YSIZE(matrixWeightsSlice) << " " << ZSIZE(matrixWeightsSlice) << std::endl;
-		matrixWeightsSlice.copy(matrixWeightsMat);
-		std::cerr << "- Matrix: " << matrixWeightsMat.Xdim() << " " << matrixWeightsMat.Ydim() << " " << matrixWeightsMat << std::endl;
-		Matrix2D<double> U,V;
-		Matrix1D<double> S;
-		svdcmp(matrixWeightsMat,U,S,V);
-		std::cerr << "- SVD: " << U << std::endl;
-		//AJ prueba
-		Matrix2D<double> Smat;
-		Smat.initZeros(S.size(),S.size());
-		for (int h=0; h<S.size(); h++){
-			if (h<2)
-				Smat(h,h)=S(h);
-		}
-		Matrix2D<double> result1, result;
-		matrixOperation_AB(U, Smat, result1);
-		matrixOperation_ABt(result1, V, result);
-		std::cerr << "- SVD recons: " << result << std::endl;
-	}
-
+	FileName fnOut2;
+	fnOut2 = fnMdMov.insertBeforeExtension("_out_filtered");
+	printf("Writing output metadata 2 \n");
+	printf("%s \n ", fnOut2.getString().c_str());
+	SFq2.write(fnOut2);
 
 
 	//MultidimArray<double> weightsperfreq;
