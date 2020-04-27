@@ -37,14 +37,14 @@
 class atv:public secc
 {
 private:
-    MultidimArray<double> w,G,H;
-    MultidimArray<double> muM,piP; // coeff equiv to w in wTV
+    MultidimArray<double> w; // weights
     double eps;
     double minA, maxA;
-
+    double kappaP, kappaM;
+    
     MultidimArray<int> MPregionsMask;
     FourierTransformer transformer;
-    MultidimArray< std::complex<double> > G_fourier, H_fourier;
+    MultidimArray<double> P,M;
 
 private:
     void GaussKernel(MultidimArray<double>& K, const double sigma, const unsigned short size);
@@ -53,8 +53,8 @@ public:
     ~atv();
     double phi(const MultidimArray<double>& u);
     void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
-    void init(MultidimArray<double>& v,double sigmaG,unsigned short sizeG,double sigmaH,unsigned short sizeH,double Amin,double Amax);
-    void update(MultidimArray<double>& u);
+    void init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin,double Amax);
+    void postupdate(MultidimArray<double>& u);
     void createMask(const size_t xdim, const size_t ydim, const size_t zdim);
 }; /* class for Weighted Total Variation functions */
 

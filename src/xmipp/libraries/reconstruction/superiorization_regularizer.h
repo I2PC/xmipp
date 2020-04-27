@@ -56,8 +56,9 @@ class SuperRegular: public MultidimArray<T>
 	double operator ()(const MultidimArray<T>& x);
 	void nav(const MultidimArray<T>& x,MultidimArray<T>& v);
 	void init(MultidimArray<T>& x);
-	void init(MultidimArray<T>& x,double sigmaG,unsigned short sizeG,double sigmaH,unsigned short sizeH,double minA,double maxA);
-	void update(MultidimArray<T>& x);
+	void init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin,double Amax);
+	void preupdate(MultidimArray<T>& x);
+	void postupdate(MultidimArray<T>& x);
 	bool valid(const String &StrType);
 	String getName(void);
 	String getShortName(void);
@@ -177,20 +178,31 @@ void SuperRegular<T>::init(MultidimArray<T>& x)
 **
 */
 template<class T>
-void SuperRegular<T>::init(MultidimArray<T>& x,double sigmaG,unsigned short sizeG,double sigmaH,unsigned short sizeH,double minA,double maxA)
+void SuperRegular<T>::init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin,double Amax)
 {
- SecC->init(x,sigmaG,sizeG,sigmaH,sizeH,minA,maxA);
+ SecC->init(u,sigmaP,sizeP,kP,sigmaM,sizeM,kM,Amin,Amax);
 }
 
 /**
 **
-** Method to set the desired function to be used as a second criterion.
+** Method to execute the method to pre-update the data for the second criterion.
 **
 */
 template<class T>
-void SuperRegular<T>::update(MultidimArray<T>& x)
+void SuperRegular<T>::preupdate(MultidimArray<T>& x)
 {
- SecC->update(x);
+ SecC->preupdate(x);
+}
+
+/**
+**
+** Method to execute the method to post-update the data for the second criterion.
+**
+*/
+template<class T>
+void SuperRegular<T>::postupdate(MultidimArray<T>& x)
+{
+ SecC->postupdate(x);
 }
 
 /**
@@ -264,4 +276,3 @@ String SuperRegular<T>::getShortName(void)
 }
 
 #endif /* SUPERIORIZATION_REGULARIZER_HH */
-

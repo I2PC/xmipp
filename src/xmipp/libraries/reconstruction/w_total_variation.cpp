@@ -220,7 +220,7 @@ void wtv::init(MultidimArray<double>& v)
 ** Computes the weighting vector
 **
 */
-void wtv::update(MultidimArray<double>& v)
+void wtv::postupdate(MultidimArray<double>& v)
 {
 #define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
  double dw,dh,dd;

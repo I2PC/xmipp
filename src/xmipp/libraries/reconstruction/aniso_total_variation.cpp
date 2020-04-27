@@ -43,30 +43,35 @@
 void atv::GaussKernel(MultidimArray<double>& K, const double sigma, const unsigned short size)
 {
 	const double s = 2.0 * sigma * sigma;
-	const short a = 0.5 * size;
+	const double div = 1.0/(2*M_PI*sqrt(2*M_PI)*sigma*sigma*sigma);
+	const double c = (0.5 * (size - 1));
+	const int ix = (int)(0.5*(K.xdim - size));
+	const int iy = (int)(0.5*(K.ydim - size));
+	const int iz = (int)(0.5*(K.zdim - size));
+
 	double r;
 
 	// sum is for normalization
-	double sum = 0.0;
+	// double sum = 0.0;
 
 #define P(i,j,k)((i) + (j)*K.xdim + (k)*K.xdim*K.ydim)
 	// generating SIZE x SIZE kernel
-	for(int z = -a; z <= a; z++){
-		for(int y = -a; y <= a; y++){
-			for(int x = -a; x <= a; x++){
-				r = sqrt(x*x + y*y + z*z);
-				K[P(x+a,y+a,z+a)] = (exp(-(r * r) / s)) / (M_PI * s);
-				sum += K[P(x+a,y+a,z+a)];
+	for(int z = 0; z < size; z++){
+		for(int y = 0; y < size; y++){
+			for(int x = 0; x < size; x++){
+				r = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c);
+				K[P(x+ix,y+iy,z+iz)] = div * exp(-(r  / s));
+				//             sum += K[P(x+ix,y+iy,z+iz)];
 			}
 		}
 	}
-
-	// normalising the Kernel
-	for(int k = 0; k < size; k++)
-		for(int j = 0; j < size; j++)
-			for(int i = 0; i < size; i++)
-				K[P(i,j,k)] /= sum;
-
+	/*
+ // normalizing the Kernel
+ for(int k = 0; k < size; k++)
+     for(int j = 0; j < size; j++)
+         for(int i = 0; i < size; i++)
+             K[P(i,j,k)] /= sum;
+	 */
 #undef P
 }
 
@@ -82,9 +87,11 @@ void atv::GaussKernel(MultidimArray<double>& K, const double sigma, const unsign
  */
 atv::atv()
 {
- eps = 1.00;
- maxA = std::numeric_limits<double>::min();
- minA = std::numeric_limits<double>::max();
+	eps = 1.00;
+	maxA = std::numeric_limits<double>::min();
+	minA = std::numeric_limits<double>::max();
+	kappaP = 1.0;
+	kappaM = 1.0;
 }
 
 /*
@@ -92,7 +99,7 @@ atv::atv()
  */
 atv::~atv()
 {
-//	w.clear();
+	//	w.clear();
 }
 
 /**
@@ -100,35 +107,30 @@ atv::~atv()
  ** Computes the Weighted Total Variation
  **
  */
-double atv::phi(const MultidimArray<double>& v)
+double atv::phi(const MultidimArray<double>& u)
 {
-#define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
+#define P(i,j,k)((i) + (j)*u.xdim + (k)*u.xdim*u.ydim)
 	double sum = 0.0;
-	double dwP,dhP,ddP;
-	double dwM,dhM,ddM;
+	double dw,dh,dd;
 
 	// std::cout<<v.xdim; // "physical" horizontal limit (x direction)
 	// std::cout<<v.ydim; // "physical" horizontal limit (y direction)
 	// std::cout<<v.zdim; // "physical" horizontal limit (z direction)
 
-	for(uint k=0; k < v.zdim;k++){        // Depth
-		for(uint j=0;j < v.ydim;j++){     // Height
-			for(uint i=0;i < v.xdim;i++){ // Width
-				if(dAij(MPregionsMask,k,i)){ //region P
-					dwP = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
-					dhP = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
-					ddP = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-					sum = sum + piP.data[P(i,j,k)]*sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-				}
-				else{ //region M
-					dwM = ((i+1) < v.xdim) ? (v.data[P(i,j,k)] - v.data[P(i+1,j,k)]) : 0.0;
-					dhM = ((j+1) < v.ydim) ? (v.data[P(i,j,k)] - v.data[P(i,j+1,k)]) : 0.0;
-					ddM = ((k+1) < v.zdim) ? (v.data[P(i,j,k)] - v.data[P(i,j,k+1)]) : 0.0;
-					sum = sum + muM.data[P(i,j,k)]*sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-				}
+	for(uint k=0; k < u.zdim;k++){        // Depth
+		for(uint j=0;j < u.ydim;j++){     // Height
+			for(uint i=0;i < u.xdim;i++){
+				dw = ((i+1) < u.xdim) ? (u.data[P(i,j,k)] -
+						u.data[P(i+1,j,k)]) : 0.0;
+				dh = ((j+1) < u.ydim) ? (u.data[P(i,j,k)] -
+						u.data[P(i,j+1,k)]) : 0.0;
+				dd = ((k+1) < u.zdim) ? (u.data[P(i,j,k)] -
+						u.data[P(i,j,k+1)]) : 0.0;
+				sum = sum + w.data[P(i,j,k)]*sqrt(dw*dw + dh*dh + dd*dd);
 			}
 		}
 	}
+
 #undef P
 
 	return sum;
@@ -147,8 +149,7 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 #define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
 	const double ZERO=pow(10,-15);
 	double denom = 0.0;
-	double dwP,dhP,ddP;
-	double dwM,dhM,ddM;
+	double dw,dh,dd;
 
 	// std::cout<<u.xdim; // "physical" horizontal limit (x direction)
 	// std::cout<<u.ydim; // "physical" horizontal limit (y direction)
@@ -158,138 +159,71 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 	//
 	// Computing the gradient of the total variation function
 	//
-//std::cout<<formatString("\033[1;31mVolumeSize:\033[0m %dx%dx%d",u.xdim,u.ydim,u.zdim);
+	//std::cout<<formatString("\033[1;31mVolumeSize:\033[0m %dx%dx%d",u.xdim,u.ydim,u.zdim);
 
 	memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
 	for(uint k=0; k < u.zdim;k++){        // Depth
 		for(uint j=0;j < u.ydim;j++){     // Height
 			for(uint i=0;i < u.xdim;i++){ // Width
-
-				if(dAij(MPregionsMask,k,i)){ // region P
-//std::cout<< formatString("\033[1;33mregion P, valor: %d \033[0m\n %d, %d, %d",dAij(MPregionsMask, k, i), i, j, k);
-					//
-					// First Case
-					// (d/d x_i) of TV
-					//
-					if(i<(u.xdim-1) && j<(u.ydim-1) && k<(u.zdim-1)){
-						dwP = u.data[P(i,j,k)] - u.data[P(i+1,j,k)];
-						dhP = u.data[P(i,j,k)] - u.data[P(i,j+1,k)];
-						ddP = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
-						//Computing the denominator
-						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
-									u.data[P(i+1,j,k)] -
-									u.data[P(i,j+1,k)] -
-									u.data[P(i,j,k+1)])/denom;
-					}
-					//
-					// Second Case
-					// (d/d x_r) of TV (x_r is the base and not x_i)
-					//
-					if(i>0 && i<u.xdim && j<(u.ydim-1) && k<(u.zdim-1)){
-						dwP = u.data[P(i-1,j,k)] - u.data[P(i,j,k)];
-						dhP = u.data[P(i-1,j,k)] - u.data[P(i-1,j+1,k)];
-						ddP = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
-						//Computing the denominator
-						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i-1,j,k)])/denom;
-					}
-					//
-					// Third Case
-					// (d/d x_u) of TV (x_u is the base and not x_i)
-					//
-					if(i<(u.xdim-1) && j>0 && j<u.ydim && k<(u.zdim-1)){
-						dwP = u.data[P(i,j-1,k)] - u.data[P(i+1,j-1,k)];
-						dhP = u.data[P(i,j-1,k)] - u.data[P(i,j,k)];
-						ddP = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
-						//Computing the denominator
-						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j-1,k)])/denom;
-					}
-					//
-					// Fourth Case
-					// (d/d x_b) of TV (x_b is the base and not x_i)
-					//
-					if(i<(u.xdim-1) && j<(u.ydim-1) && k>0 && k<u.zdim){
-						dwP = u.data[P(i,j,k-1)] - u.data[P(i+1,j,k-1)];
-						dhP = u.data[P(i,j,k-1)] - u.data[P(i,j+1,k-1)];
-						ddP = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
-						//Computing the denominator
-						denom = sqrt(dwP*dwP + dhP*dhP + ddP*ddP);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += piP.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j,k-1)])/denom;
-					}
+				//std::out<< formatString("\033[1;33mregion P, valor: %d \033[0m\n %d, %d, %d",dAij(MPregionsMask, k, i), i, j, k);
+				//
+				// First Case
+				// (d/d x_i) of TV
+				//
+				if(i<(u.xdim-1) && j<(u.ydim-1) && k<(u.zdim-1)){
+					dw = u.data[P(i,j,k)] - u.data[P(i+1,j,k)];
+					dh = u.data[P(i,j,k)] - u.data[P(i,j+1,k)];
+					dd = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
+					//Computing the denominator
+					denom = sqrt(dw*dw + dh*dh + dd*dd);
+					if(denom > ZERO)
+						v.data[P(i,j,k)]+=w.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
+								u.data[P(i+1,j,k)] -
+								u.data[P(i,j+1,k)] -
+								u.data[P(i,j,k+1)])/denom;
 				}
-
-				else{ //region M
-//std::cout<< formatString("\033[1;32mregion M, valor: %d \033[0m\n %d, %d, %d",dAij(MPregionsMask, k, i), i, j, k);
-					//
-					// First Case
-					// (d/d x_i) of TV
-					//
-					if(i<(u.xdim-1) && j<(u.ydim-1) && k<(u.zdim-1)){
-						dwM = u.data[P(i,j,k)] - u.data[P(i+1,j,k)];
-						dhM = u.data[P(i,j,k)] - u.data[P(i,j+1,k)];
-						ddM = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
-						//Computing the denominator
-						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
-									u.data[P(i+1,j,k)] -
-									u.data[P(i,j+1,k)] -
-									u.data[P(i,j,k+1)])/denom;
-					}
-					//
-					// Second Case
-					// (d/d x_r) of TV (x_r is the base and not x_i)
-					//
-					if(i>0 && i<u.xdim && j<(u.ydim-1) && k<(u.zdim-1)){
-						dwM = u.data[P(i-1,j,k)] - u.data[P(i,j,k)];
-						dhM = u.data[P(i-1,j,k)] - u.data[P(i-1,j+1,k)];
-						ddM = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
-						//Computing the denominator
-						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i-1,j,k)])/denom;
-					}
-					//
-					// Third Case
-					// (d/d x_u) of TV (x_u is the base and not x_i)
-					//
-					if(i<(u.xdim-1) && j>0 && j<u.ydim && k<(u.zdim-1)){
-						dwM = u.data[P(i,j-1,k)] - u.data[P(i+1,j-1,k)];
-						dhM = u.data[P(i,j-1,k)] - u.data[P(i,j,k)];
-						ddM = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
-						//Computing the denominator
-						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j-1,k)])/denom;
-					}
-					//
-					// Fourth Case
-					// (d/d x_b) of TV (x_b is the base and not x_i)
-					//
-					if(i<(u.xdim-1) && j<(u.ydim-1) && k>0 && k<u.zdim){
-						dwM = u.data[P(i,j,k-1)] - u.data[P(i+1,j,k-1)];
-						dhM = u.data[P(i,j,k-1)] - u.data[P(i,j+1,k-1)];
-						ddM = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
-						//Computing the denominator
-						denom = sqrt(dwM*dwM + dhM*dhM + ddM*ddM);
-						if(denom > ZERO)
-							v.data[P(i,j,k)] += muM.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-									u.data[P(i,j,k-1)])/denom;
-					}
-
-				} // end region M
-
+				//
+				// Second Case
+				// (d/d x_r) of TV (x_r is the base and not x_i)
+				//
+				if(i>0 && i<u.xdim && j<(u.ydim-1) && k<(u.zdim-1)){
+					dw = u.data[P(i-1,j,k)] - u.data[P(i,j,k)];
+					dh = u.data[P(i-1,j,k)] - u.data[P(i-1,j+1,k)];
+					dd = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
+					//Computing the denominator
+					denom = sqrt(dw*dw + dh*dh + dd*dd);
+					if(denom > ZERO)
+						v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
+								u.data[P(i-1,j,k)])/denom;
+				}
+				//
+				// Third Case
+				// (d/d x_u) of TV (x_u is the base and not x_i)
+				//
+				if(i<(u.xdim-1) && j>0 && j<u.ydim && k<(u.zdim-1)){
+					dw = u.data[P(i,j-1,k)] - u.data[P(i+1,j-1,k)];
+					dh = u.data[P(i,j-1,k)] - u.data[P(i,j,k)];
+					dd = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
+					//Computing the denominator
+					denom = sqrt(dw*dw + dh*dh + dd*dd);
+					if(denom > ZERO)
+						v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
+								u.data[P(i,j-1,k)])/denom;
+				}
+				//
+				// Fourth Case
+				// (d/d x_b) of TV (x_b is the base and not x_i)
+				//
+				if(i<(u.xdim-1) && j<(u.ydim-1) && k>0 && k<u.zdim){
+					dw = u.data[P(i,j,k-1)] - u.data[P(i+1,j,k-1)];
+					dh = u.data[P(i,j,k-1)] - u.data[P(i,j+1,k-1)];
+					dd = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
+					//Computing the denominator
+					denom = sqrt(dw*dw + dh*dh + dd*dd);
+					if(denom > ZERO)
+						v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
+								u.data[P(i,j,k-1)])/denom;
+				}
 			}//end i index
 		}//end j index
 	}//end k index
@@ -307,7 +241,6 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 			}
 		}
 	}
-
 
 	//
 	// Normalizing the resulting vector
@@ -330,7 +263,8 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 #undef P
 }
 
-void atv::createMask(const size_t xdim, const size_t ydim, const size_t zdim) {
+void atv::createMask(const size_t xdim, const size_t ydim, const size_t zdim)
+{
 	MultidimArray<int> oriMask(zdim,xdim);
 	oriMask.initConstant(1);
 	double Cx = (double)xdim / 2.0;
@@ -338,45 +272,22 @@ void atv::createMask(const size_t xdim, const size_t ydim, const size_t zdim) {
 	double angle= 90. - maxA;
 	angle = DEG2RAD(angle);
 	double m = tan(angle);
-	for (int y=0; y<zdim; ++y){
-		for (int x=0; x<xdim; ++x){
-			if (((x >= (int) (m * (double)(y - Cy) + Cx))
-					&& (x <= (int) (-m * (double)(y - Cy) + Cx)))
-					|| ((x <= (int) (m * (double)(y - Cy) + Cx))
-							&& (x >= (int) (-m * (double) (y - Cy) + Cx))))
+
+	for(int y=0; y<zdim; ++y){
+		for(int x=0; x<xdim; ++x){
+			if(((x >= (int) (m * (double)(y - Cy) + Cx)) &&
+					(x <= (int) (-m * (double)(y - Cy) + Cx))) ||
+					((x <= (int) (m * (double)(y - Cy) + Cx)) &&
+							(x >= (int) (-m * (double) (y - Cy) + Cx))))
 				dAij(oriMask,y,x)=0;
 		}
 	}
 	Image<int> save;
 	MPregionsMask = oriMask;
-/*comment
+	/*comment
 save()=MPregionsMask;
 String rootTestFiles = String("/home/jeison/Escritorio/");
 save.write(rootTestFiles+"testMask.xmp"); // */
-}
-
-
-/*prepare kernel with propper size for Fourier*/
-MultidimArray<double> kernelResized(const MultidimArray<double>& orKernel, const MultidimArray<double>& v){
-	MultidimArray<double> tempKernel;
-	tempKernel.setXmippOrigin();
-	tempKernel.initZeros(v);
-
-	int Cx = (int)((double)v.xdim / 2.0);
-	int Cy = (int)((double)v.ydim / 2.0);
-	int Cz = (int)((double)v.zdim / 2.0);
-	int a = 0.5 * orKernel.xdim;
-
-
-	for (int z = -a; z <= a; ++z) {        // Depth
-		for (int y = -a; y <= a; ++y) {     // Height
-			for (int x = -a; x <= a; ++x) { // Width
-				dAkij(tempKernel,Cz+z,Cy+y,Cx+x) = dAkij(orKernel,z+a,y+a,x+a);
-			}
-		}
-	}
-
-	return tempKernel;
 }
 
 /**
@@ -384,47 +295,33 @@ MultidimArray<double> kernelResized(const MultidimArray<double>& orKernel, const
  ** Computes the weighting vector
  **
  */
-void atv::init(MultidimArray<double>& v,const double sigmaG, const unsigned short sizeG,const double sigmaH, const unsigned short sizeH,double Amin,double Amax)
+void atv::init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin,double Amax)
 {
 	minA = Amin;
 	maxA = Amax;
-std::cout<<formatString("\033[1;31mmin-max angles:\033[0m %.2f, %.2f\n",minA,maxA);
-	createMask(v.xdim, v.ydim, v.zdim);
-
-//	// Guaranteeing the array of weights exists and initializes it
-//	if(w.getArrayPointer() == NULL)
-//		w.resize(v.zdim,v.ydim,v.xdim);
-//	memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
+	std::cout<<formatString("\033[1;31mmin-max angles:\033[0m %.2f, %.2f\n",minA,maxA);
+	createMask(u.xdim, u.ydim, u.zdim);
 
 	// weights for anisotropic
-	if(muM.getArrayPointer() == NULL)
-		muM.resize(v.zdim,v.ydim,v.xdim);
-	memset(muM.data,0,muM.xdim*muM.ydim*muM.zdim*sizeof(double));
+	if(w.getArrayPointer() == NULL)
+		w.resize(u.xdim, u.ydim, u.zdim);
+	memset(w.data,0,w.xdim*w.ydim*w.zdim*sizeof(double));
 
-	if(piP.getArrayPointer() == NULL)
-		piP.resize(v.zdim,v.ydim,v.xdim);
-	memset(piP.data,0,piP.xdim*piP.ydim*piP.zdim*sizeof(double));
+	P.resize(u.xdim,u.xdim,u.xdim);
+	memset(P.data,0,P.xdim*P.ydim*P.zdim*sizeof(double));
+	GaussKernel(P, sigmaP, sizeP);
 
-	// kernels for Fourier
-	MultidimArray<double> tempG, tempH;
-
-	if(G.getArrayPointer() == NULL)
-		G.resize(sizeG,sizeG,sizeG);
-	memset(G.data,0,sizeG*sizeG*sizeG*sizeof(double));
-	GaussKernel(G, sigmaG, sizeG);
-	tempG = kernelResized(G,v);
-
-	if(H.getArrayPointer() == NULL)
-		H.resize(sizeH,sizeH,sizeH);
-	memset(H.data,0,sizeH*sizeH*sizeH*sizeof(double));
-	GaussKernel(H, sigmaH, sizeH);
-	tempH = kernelResized(H,v);
-
-	// Fourier transform for Gaussian kernels
-	transformer.FourierTransform(tempG, G_fourier, true);
-	transformer.FourierTransform(tempH, H_fourier, true);
-
-/*comment
+	M.resize(u.xdim,u.xdim,u.xdim);
+	memset(M.data,0,M.xdim*M.ydim*M.zdim*sizeof(double));
+	GaussKernel(M, sigmaM, sizeM);
+	/*
+ Image<double> kernel;
+ kernel() = P;
+ kernel.write("Filter_P.mrc");
+ kernel() = M;
+ kernel.write("Filter_M.mrc");
+	 */
+	/*comment
 String rootTestFiles = String("/home/jeison/Escritorio/");
 Image<double> save;
 save() = G;
@@ -453,48 +350,59 @@ save.write(rootTestFiles+"testMagnitudeH.xmp");
  ** Computes the weighting vector
  **
  */
-void atv::update(MultidimArray<double>& v)
+void atv::postupdate(MultidimArray<double>& u)
 {
-#define P(i,j,k)((i) + (j)*v.xdim + (k)*v.xdim*v.ydim)
-	double dwP,dhP,ddP;
-	double dwM,dhM,ddM;
+#define P(i,j,k)((i) + (j)*u.xdim + (k)*u.xdim*u.ydim)
+	double dw,dh,dd;
 
-	// convolve v with gaussian kernels
-	MultidimArray<double> filt_vP, filt_vM;
-	MultidimArray<std::complex<double> > fourierV;
-	transformer.FourierTransform(v, fourierV, true);
-
-	MultidimArray<std::complex<double> > fourierFilt_P, fourierFilt_M;
-	fourierFilt_P.resizeNoCopy(fourierV);
-	fourierFilt_M.resizeNoCopy(fourierV);
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(fourierV){
-		dAkij(fourierFilt_P, k, i, j) = dAkij(fourierV, k, i, j) * dAkij(G_fourier, k, i, j);
-		dAkij(fourierFilt_M, k, i, j) = dAkij(fourierV, k, i, j) * dAkij(H_fourier, k, i, j);
-	}
-
-	InverseFourierTransform(fourierFilt_P, filt_vP);
-	InverseFourierTransform(fourierFilt_M, filt_vM);
-
-	for(uint k=0; k < v.zdim;k++){        // Depth
-		for(uint j=0;j < v.ydim;j++){     // Height
-			for(uint i=0;i < v.xdim;i++){ // Width
-
-				if(dAij(MPregionsMask,k,i)){ // region P
-					dwP = ((i+1) < v.xdim) ? (filt_vP.data[P(i,j,k)] - filt_vP.data[P(i+1,j,k)]) : 0.0;
-					dhP = ((j+1) < v.ydim) ? (filt_vP.data[P(i,j,k)] - filt_vP.data[P(i,j+1,k)]) : 0.0;
-					ddP = ((k+1) < v.zdim) ? (filt_vP.data[P(i,j,k)] - filt_vP.data[P(i,j,k+1)]) : 0.0;
-					piP.data[P(i,j,k)] = 1.0/(sqrt(dwP*dwP + dhP*dhP + ddP*ddP) + eps);
-				}
-				else{ //region M
-					dwM = ((i+1) < v.xdim) ? (filt_vM.data[P(i,j,k)] - filt_vM.data[P(i+1,j,k)]) : 0.0;
-					dhM = ((j+1) < v.ydim) ? (filt_vM.data[P(i,j,k)] - filt_vM.data[P(i,j+1,k)]) : 0.0;
-					ddM = ((k+1) < v.zdim) ? (filt_vM.data[P(i,j,k)] - filt_vM.data[P(i,j,k+1)]) : 0.0;
-					muM.data[P(i,j,k)] = 1.0/(sqrt(dwM*dwM + dhM*dhM + ddM*ddM) + eps);
-				}
+	for(uint k=0; k < u.zdim;k++){        // Depth
+		for(uint j=0;j < u.ydim;j++){     // Height
+			for(uint i=0;i < u.xdim;i++){ // Width
+				dw = ((i+1) < u.xdim) ? (u.data[P(i,j,k)] -
+						u.data[P(i+1,j,k)]) : 0.0;
+				dh = ((j+1) < u.ydim) ? (u.data[P(i,j,k)] -
+						u.data[P(i,j+1,k)]) : 0.0;
+				dd = ((k+1) < u.zdim) ? (u.data[P(i,j,k)] -
+						u.data[P(i,j,k+1)]) : 0.0;
+				w.data[P(i,j,k)] = sqrt(dw*dw + dh*dh + dd*dd);
 			}
 		}
 	}
+
+	MultidimArray<double> filt_M,
+	filt_P;
+
+	convolutionFFT(w,M,filt_M);
+	convolutionFFT(w,P,filt_P);
+	/*
+ Image<double> kernel;
+ kernel() = filt_M;
+ kernel.write("FilteredGT.mrc");
+ kernel() = filt_P;
+ kernel.write("FilteredHT.mrc");
+ exit(0);
+	 */
+	//double vmax = std::numeric_limits<double>::min();
+	//double vmin = std::numeric_limits<double>::max();
+	for(uint k=0; k < w.zdim;k++){        // Depth
+		for(uint j=0;j < w.ydim;j++){     // Height
+			for(uint i=0;i < w.xdim;i++){ // Width
+				if(dAij(MPregionsMask,k,i)){ // region P
+					w.data[P(i,j,k)] = 1.0/(eps + kappaP*filt_P.data[P(i,j,k)]);
+				}
+				else{ //region M
+					w.data[P(i,j,k)] = 1.0/(eps + kappaM*filt_M.data[P(i,j,k)]);
+				}
+				/*
+             if(w.data[P(i,j,k)] < vmin)
+                vmin = w.data[P(i,j,k)];
+             if(w.data[P(i,j,k)] > vmax)
+                vmax = w.data[P(i,j,k)];
+				 */
+			}
+		}
+	}
+	//fprintf(stdout,"min: %20.18f, max: %20.18f\n",vmin,vmax);
 #undef P
 }
 #undef DEBUG

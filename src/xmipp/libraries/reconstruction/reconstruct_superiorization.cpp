@@ -65,10 +65,12 @@ void ProgReconsSuper::defineParams()
  addParamsLine("  [--lsart <lsart = 1.0>] : Defines the lambda for SART (lambda = 1.0).");
  addParamsLine("  [--atl <atl = ATL0>]    : Defines the way the counter l is updated. By default, l follows the original superiorization algorithm (atl = ATL0).");
  addParamsLine("  [--phi <phi = ITV>]     : Defines the second criterion. By default, phi is isometric Total Variation (phi = TV).");
- addParamsLine("  [--kG <kG = 3>]         : Defines the size for kernel G (kG = 3).");
- addParamsLine("  [--sG <sG = 1.0>]       : Defines the sigma for kernel G (sG = 1.0).");
- addParamsLine("  [--kH <kH = 3>]         : Defines the size for kernel H (kH = 3).");
- addParamsLine("  [--sH <sH = 1.0>]       : Defines the sigma for kernel H (sH = 1.0).");
+ addParamsLine("  [--rP <rP = 3>]         : Defines the size/radius for kernel P.");
+ addParamsLine("  [--sP <sP = 1.0>]       : Defines the sigma for kernel P.");
+ addParamsLine("  [--kP <kP = 1.0>]       : Defines the weight kappa for kernel P.");
+ addParamsLine("  [--rM <rM = 3>]         : Defines the size/radius for kernel M.");
+ addParamsLine("  [--sM <sM = 1.0>]       : Defines the sigma for kernel M.");
+ addParamsLine("  [--kM <kM = 1.0>]       : Defines the weight kappa for kernel M.");
  addParamsLine("  [--Pr <prox = L2SQ>]    : Defines the proximity function for the solution. By default, the proximity function is the L2-squared norm.");
 }
 
@@ -95,10 +97,12 @@ void ProgReconsSuper::readParams()
  lsart        = getDoubleParam("--lsart");
  l_method     = getParam("--atl");
  phi_method   = getParam("--phi");
- kG           = getIntParam("--kG");
- sG           = getDoubleParam("--sG");
- kH           = getIntParam("--kH");
- sH           = getDoubleParam("--sH");
+ rP           = getIntParam("--rP");
+ sP           = getDoubleParam("--sP");
+ kP           = getIntParam("--kP");
+ rM           = getIntParam("--rM");
+ sM           = getDoubleParam("--sM");
+ kM           = getIntParam("--kM");
  pr_method    = getParam("--Pr");
 }
 
@@ -131,6 +135,7 @@ void ProgReconsSuper::show()
     std::cout << "a: " << a << std::endl;
     std::cout << "b: " << b << std::endl;
     std::cout << "N: " << N << std::endl;
+    
     std::cout << "ATL: ";
     switch(mode_l){
         case lmode::ATL0:std::cout << "ATL0" << std::endl;
@@ -140,7 +145,17 @@ void ProgReconsSuper::show()
         case lmode::ATL2:std::cout << "ATL2" << std::endl;
              break;
        }
+    
     std::cout << "phi: " << phi.getName() << std::endl;
+    if(phi.getShortName() == "ATV"){
+       std::cout<<"Radius kernel P: " << rP << std::endl;
+       std::cout<<"std. dev. kernel P: " << sP << std::endl;
+       std::cout<<"Weight (kappa)  kernel P: " << kP << std::endl;
+       std::cout<<"Radius kernel M: " << rM << std::endl;
+       std::cout<<"std. dev. kernel M: " << sM << std::endl;
+       std::cout<<"Weight (kappa) kernel M: " << kM << std::endl;
+      }
+    
     if(iter_cnt == -1){
        std::cout << "Pr: ";
        switch(B.getPrType()){
@@ -172,10 +187,12 @@ ProgReconsSuper::ProgReconsSuper()
  Zsize    = -1;
  lart     =  1.0;
  lsart    =  1.0;
- kG       =  3;
- sG       =  1.0;
- kH       =  3;
- sH       =  1.0;
+ rP       =  3;
+ sP       =  1.0;
+ kP       =  1.0;
+ rM       =  3;
+ sM       =  1.0;
+ kM       =  1.0;
  iter_cnt = -1;
  
  l_method = "ATL0";
@@ -294,8 +311,34 @@ void ProgReconsSuper::checkArgsInfo()
     std::cerr << "\e[1m\e[36m" << "ERROR: invalid second criterion for optimization" << "\e[m\e[0m" << std::endl;
     usage("--phi", true);
    }
- if(phi_method == std::string("ATV") && (phi.getShortName()!=String("ATV")))
+ if(phi_method == std::string("ATV") && (phi.getShortName()!=String("ATV"))){
     phi.set("ATV");
+    
+    if(rP<3){
+       std::cerr << "\e[1m\e[36m" << "ERROR: the size/radius for kernel P smaller than 3" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+    if(rM<3){
+       std::cerr << "\e[1m\e[36m" << "ERROR: the size/radius for kernel M smaller than 3" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+    if(sP <= 0.0){
+       std::cerr << "\e[1m\e[36m" << "ERROR: the std. dev. for kernel P <= 0" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+    if(sM <= 0.0){
+       std::cerr << "\e[1m\e[36m" << "ERROR: the std. dev. for kernel M <= 0" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+    if(kP <= 0.0){
+       std::cerr << "\e[1m\e[36m" << "ERROR: the weight for kernel P <= 0" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+    if(kM <= 0.0){
+       std::cerr << "\e[1m\e[36m" << "ERROR: the weight for kernel M <= 0" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+   }
  if(phi_method == std::string("ITV") && (phi.getShortName()!=String("ITV")))
     phi.set("ITV");
  if(phi_method == std::string("WTV") && (phi.getShortName()!=String("WTV")))
@@ -435,8 +478,18 @@ void ProgReconsSuper::run()
  // Initializing Reconstruction
  //
  memset(x.data,0,x.xdim*x.ydim*x.zdim*sizeof(double)); //x.initZeros(Zsize,TS.ydim,TS.xdim);
- if(phi.getShortName() == "ATV")
-    phi.init(x,sG,(unsigned short)kG,sH,(unsigned short)kH,minAngle,maxAngle);
+ if(phi.getShortName() == "ATV"){
+    phi.init(x,sP,(unsigned short)rP,kP,
+               sM,(unsigned short)rM,kM,minAngle,maxAngle);
+    if( ((rP%2) != (x.xdim%2)) || ((rP%2) != (x.ydim%2)) || ((rP%2) != (x.zdim%2)) ){
+       std::cout << "\e[1m\e[31m" << "ERROR: Mismatch parity between kernel P and reconstruction" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+    if( ((rM%2) != (x.xdim%2)) || ((rM%2) != (x.ydim%2)) || ((rM%2) != (x.zdim%2)) ){
+       std::cout << "\e[1m\e[31m" << "ERROR: Mismatch parity between kernel M and reconstruction" << "\e[m\e[0m" << std::endl;
+       exit(EXIT_SUCCESS);
+      }
+   }
  else
     phi.init(x);
 
@@ -466,6 +519,9 @@ double beta;
      n = 0;
      double phixk = phi(x);
      double phiz;
+     
+     phi.preupdate(x);
+     
      while(n < N){
          phi.nav(x,v); // Method to obtain the nonascending vector for phi at x^k
          loop = true;
@@ -506,7 +562,7 @@ double beta;
         }
      std::cout << "\e[1m\e[33m" << "Executing Operator B" << "\e[m\e[0m" << std::endl;
      B(x,TS,tiltAngles,k);
-     phi.update(x);
+     phi.postupdate(x);
      k += 1;
      std::cout << "\e[1m\e[32m" << "Iteration" << "\e[m\e[0m" << ": " << k << "\e[1m\e[32m" << " Finished" << "\e[m\e[0m" << std::endl;
      if(iter_cnt > 0){

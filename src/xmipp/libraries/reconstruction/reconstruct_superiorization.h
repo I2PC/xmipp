@@ -38,8 +38,8 @@ class ProgReconsSuper: public XmippProgram
 private:
 	enum class lmode {ATL0,ATL1,ATL2};
 	lmode mode_l;
-	double a,b,epsilon,lart,lsart, sG, sH;
-	int N, kG, kH, iter_cnt;
+	double a,b,epsilon,lart,lsart, sP, sM, kP, kM;
+	int N, rP, rM, iter_cnt;
 	ReconBase B;
 	SuperRegular<double> phi;
 public:

@@ -43,7 +43,7 @@ private:
     double phi(const MultidimArray<double>& u);
     void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
     void init(MultidimArray<double>& u);
-    void update(MultidimArray<double>& u);
+    void postupdate(MultidimArray<double>& u);
 }; /* class for Weighted Total Variation functions */
 
 #endif /* WTV_HH */

@@ -73,7 +73,7 @@ void secc::init(MultidimArray<double>& v)
 ** Initializes the parameters for the second criterion
 **
 */
-void secc::init(MultidimArray<double>& v,double sigmaG,unsigned short sizeG,double sigmaH,unsigned short sizeH,double minA,double maxA)
+void secc::init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin,double Amax)
 {
  
 }
@@ -83,7 +83,17 @@ void secc::init(MultidimArray<double>& v,double sigmaG,unsigned short sizeG,doub
 ** Updates, if necessary, the parameters for the second criterion
 **
 */
-void secc::update(MultidimArray<double>& v)
+void secc::preupdate(MultidimArray<double>& v)
+{
+ 
+}
+
+/**
+**
+** Updates, if necessary, the parameters for the second criterion
+**
+*/
+void secc::postupdate(MultidimArray<double>& v)
 {
  
 }

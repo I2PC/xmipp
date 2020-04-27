@@ -35,9 +35,10 @@ class secc
  public:
     virtual double phi(const MultidimArray<double>& v);
     virtual void nav(const MultidimArray<double>& v, MultidimArray<double>& w);
-    virtual void init(MultidimArray<double>& v);
-    virtual void init(MultidimArray<double>& v,double sigmaG,unsigned short sizeG,double sigmaH,unsigned short sizeH,double minA,double maxA);
-    virtual void update(MultidimArray<double>& v);
+    virtual void init(MultidimArray<double>& u);
+    virtual void init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin, double Amax);
+    virtual void preupdate(MultidimArray<double>& v);
+    virtual void postupdate(MultidimArray<double>& v);
 }; /* virtual class for second criterion */
 
 #endif /* SECOND_CRITERION_HH */
