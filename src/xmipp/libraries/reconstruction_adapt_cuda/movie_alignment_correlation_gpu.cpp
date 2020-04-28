@@ -101,25 +101,22 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 }
 
 template<typename T>
-Dimensions ProgMovieAlignmentCorrelationGPU<T>::getCorrelationHint(
-        const FFTSettings<T> &s,
-        const std::pair<T, T> &downscale) {
-    // we need odd size of the input, to be able to
-    // compute FFT more efficiently (and e.g. perform shift by multiplication)
-    auto scaleEven = [] (size_t v, T downscale) {
-        return (int(v * downscale) / 2) * 2;
-    };
-    Dimensions result(scaleEven(s.dim.x(), downscale.first),
-            scaleEven(s.dim.y(), downscale.second), s.dim.z(),
-            (s.dim.n() * (s.dim.n() - 1)) / 2); // number of correlations);
-    return result;
-}
-
-template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
-        const FFTSettings<T> &orig,
-        const std::pair<T, T> &downscale) {
-    auto hint = getCorrelationHint(orig, downscale);
+        const FFTSettings<T> &s) {
+    auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
+        size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
+        while ((size / (float)v) < minScale) {
+            size += 2;
+        }
+        return size;
+    };
+    const T requestedScale = this->getScaleFactor();
+    // hint, possibly bigger then requested, so that it fits max shift window
+    Dimensions hint(getNearestEven(s.dim.x(), requestedScale, this->maxShift),
+            getNearestEven(s.dim.y(), requestedScale, this->maxShift),
+            s.dim.z(),
+            (s.dim.n() * (s.dim.n() - 1)) / 2); // number of correlations);
+
     // divide available memory to 3 parts (2 buffers + 1 FFT)
     size_t correlationBufferBytes = gpu.value().lastFreeBytes() / 3;
 
@@ -279,6 +276,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimension
     } else {
         if (this->verbose) std::cerr << "Benchmarking cuFFT ..." << std::endl;
         // take additional memory requirement into account
+        // FIXME DS make sure that result is smaller than available data
         tmp =  CudaFFT<T>::findOptimalSizeOrMaxBatch(gpu.value(), tmp1,
                 extraBytes, d.x() == d.y(), crop ? 10 : 20, // allow max 10% change for cropping, 20 for 'padding'
                 crop, this->verbose);
@@ -308,17 +306,6 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 }
 
 template<typename T>
-std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getLocalAlignmentCorrelationDownscale(
-        const Dimensions &patchDim, T maxShift) {
-    T minX = ((maxShift * 2) + 1) / patchDim.x();
-    T minY = ((maxShift * 2) + 1) / patchDim.y();
-    T idealScale = this->getScaleFactor();
-    return std::make_pair(
-            std::max(minX, idealScale),
-            std::max(minY, idealScale));
-}
-
-template<typename T>
 LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
         const AlignmentResult<T> &globAlignment) {
@@ -326,15 +313,15 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
     this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
-    auto correlationSettings = this->getCorrelationSettings(patchSettings,
-            getLocalAlignmentCorrelationDownscale(patchSettings.dim, this->maxShift));
+    auto correlationSettings = this->getCorrelationSettings(patchSettings);
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
     auto patchesLocation = this->getPatchesLocation(borders, movieSettings.dim,
             patchSettings.dim);
-    T actualScale = correlationSettings.dim.x() / (T)patchSettings.dim.x();
-    if (this->verbose > 1) {
+    T actualScale = correlationSettings.dim.x() / (T)patchSettings.dim.x(); // assuming we use square patches
+
+    if (this->verbose) {
         std::cout << "No. of patches: " << this->localAlignPatches.first << " x " << this->localAlignPatches.second << std::endl;
-        std::cout << "Actual scale factor: " << actualScale << std::endl;
+        std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
     }
@@ -571,15 +558,13 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, true);
-    T requestedScale = this->getScaleFactor();
-    auto correlationSetting = this->getCorrelationSettings(movieSettings,
-            std::make_pair(requestedScale, requestedScale));
+    auto correlationSetting = this->getCorrelationSettings(movieSettings);
     T actualScale = correlationSetting.dim.x() / (T)movieSettings.dim.x();
 
     MultidimArray<T> filter = this->createLPF(this->getPixelResolution(actualScale), correlationSetting.dim);
     if (this->verbose) {
-        std::cout << "Requested scale factor: " << requestedScale << std::endl;
-        std::cout << "Actual scale factor: " << actualScale << std::endl;
+        std::cout << "Requested scale factor: " << this->getScaleFactor() << std::endl;
+        std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << "Settings for the movie: " << movieSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSetting << std::endl;
     }
@@ -685,7 +670,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
     // N is number of images, n is number of correlations
     // compute correlations (each frame with following ones)
     T* correlations;
-    size_t centerSize = std::ceil(maxShift * 2 + 1);
+    size_t centerSize = getCenterSize(maxShift);
     computeCorrelations(centerSize, N, data, settings.x_freq,
             settings.dim.x(),
             settings.dim.y(), framesInCorrelationBuffer,
