@@ -46,6 +46,15 @@ public:
 	int nFrames, nMics, w, xmov, ymov;
 	double samplingRate;
 
+	std::vector<int> frIds, mvIds, partIds, xcoors, ycoors, enables, objIds;
+	std::vector<double> rots, tilts, psis, xs, ys;
+	std::vector<bool> flips;
+	std::vector<std::string> fnParts;
+	CTFDescription *ctfs;
+	size_t mdPartSize;
+	std::vector<double> resultShiftX, resultShiftY;
+
+
 public:
 
     void defineParams();
@@ -63,6 +72,7 @@ public:
     void calculateCurve_2(const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double &slope, double &intercept, double Dmin, double Dmax);
     void calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> &cij, int xdim, int ydim, int dataRow);
     void evaluateBSpline(const MultidimArray<double> inputMat, const Matrix1D<double> cij, MultidimArray<double> &outputMat, int xdim, int ydim, int dataRow);
+    void writingOutput();
 
 };
 
