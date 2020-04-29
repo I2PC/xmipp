@@ -625,10 +625,18 @@ void ProgParticlePolishing::writingOutput(){
 	FileName fnPart;
 	String aux;
 
+	MetaData SFq2;
+	FileName fnRoot2=fnMdMov.insertBeforeExtension("_out_particles");
+	FileName fnStackOut2=formatString("%s.stk",fnRoot2.c_str());
+	if(fnStackOut2.exists())
+		fnStackOut2.deleteFile();
+
 	iterPart->init(mdPart);
 
 	int partIdPrev=-1;
 	Image<double> Ipart, Ifinal;
+	int countForPart=0;
+	int countOutMd=0;
 	for(int i=0; i<mdPartSize; i++){
 
 		//Project the volume with the parameters in the image
@@ -641,6 +649,7 @@ void ProgParticlePolishing::writingOutput(){
 		}
 
 		if(partIdPrev!=partId){
+			countForPart=0;
 			Ifinal().resize(Ipart());
 			Ifinal().initZeros();
 			partIdPrev=partId;
@@ -650,8 +659,26 @@ void ProgParticlePolishing::writingOutput(){
 		Ipart().setXmippOrigin();
 		selfTranslate(NEAREST, Ipart(), vectorR2(round(resultShiftX[i]), round(resultShiftY[i])), DONT_WRAP, 0.0);
 		Ifinal()+=Ipart();
+		countForPart++;
 
-	}
+		if (countForPart==nFrames-1){
+			Ifinal.write(fnStackOut2,countOutMd,true,WRITE_APPEND);
+			countOutMd++;
+			FileName fnToSave2;
+			fnToSave2.compose(countOutMd, fnStackOut2);
+			//size_t id = SFq.addObject();
+			//SFq.setValue(MDL_IMAGE, fnToSave, id);
+			currentRow.setValue(MDL_IMAGE, fnToSave2);
+			SFq2.addRow(currentRow);
+		}
+
+	} //end mdPartSize loop
+
+	FileName fnOut2;
+	fnOut2 = fnMdMov.insertBeforeExtension("_out");
+	printf("Writing output metadata\n");
+	printf("%s \n ", fnOut2.getString().c_str());
+	SFq2.write(fnOut2);
 
 }
 
