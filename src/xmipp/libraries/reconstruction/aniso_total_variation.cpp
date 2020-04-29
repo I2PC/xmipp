@@ -284,7 +284,7 @@ void atv::createMask(const size_t xdim, const size_t ydim, const size_t zdim)
 	}
 	Image<int> save;
 	MPregionsMask = oriMask;
-	/*comment
+	 /*comment
 save()=MPregionsMask;
 String rootTestFiles = String("/home/jeison/Escritorio/");
 save.write(rootTestFiles+"testMask.xmp"); // */
@@ -301,6 +301,14 @@ void atv::init(MultidimArray<double>& u,const double sigmaP, const unsigned shor
 	maxA = Amax;
 	std::cout<<formatString("\033[1;31mmin-max angles:\033[0m %.2f, %.2f\n",minA,maxA);
 	createMask(u.xdim, u.ydim, u.zdim);
+	std::cout<< formatString(
+					"\033[1;31men ::Init() valores para P y M; size, sigma, kappa:\n\033[0m%d  %.2f  %.2f\n%d  %.2f  %.2f\n",
+					sizeP, sigmaP, kP,
+					sizeM, sigmaM, kM);
+
+	// kappa values instead of values by constructor
+	kappaP = kP;
+	kappaM = kM;
 
 	// weights for anisotropic
 	if(w.getArrayPointer() == NULL)
@@ -314,13 +322,15 @@ void atv::init(MultidimArray<double>& u,const double sigmaP, const unsigned shor
 	M.resize(u.xdim,u.xdim,u.xdim);
 	memset(M.data,0,M.xdim*M.ydim*M.zdim*sizeof(double));
 	GaussKernel(M, sigmaM, sizeM);
-	/*
+ /*
+String rootTestFiles = String("/home/jeison/Escritorio/");
  Image<double> kernel;
  kernel() = P;
- kernel.write("Filter_P.mrc");
+ kernel.write(rootTestFiles+"Filter_P.mrc");
  kernel() = M;
- kernel.write("Filter_M.mrc");
-	 */
+ kernel.write(rootTestFiles+"Filter_M.mrc");
+	 // */
+
 	/*comment
 String rootTestFiles = String("/home/jeison/Escritorio/");
 Image<double> save;
@@ -374,14 +384,18 @@ void atv::postupdate(MultidimArray<double>& u)
 
 	convolutionFFT(w,M,filt_M);
 	convolutionFFT(w,P,filt_P);
-	/*
+
+/*
+String rootTestFiles = String("/home/jeison/Escritorio/");
  Image<double> kernel;
  kernel() = filt_M;
- kernel.write("FilteredGT.mrc");
+ kernel.write(rootTestFiles+"FilteredMT.mrc");
  kernel() = filt_P;
- kernel.write("FilteredHT.mrc");
- exit(0);
-	 */
+ kernel.write(rootTestFiles+"FilteredPT.mrc");
+ printf("\033[32mvalores kappaP y kappaM en postUpdate():\033[0m\n%.2f  %.2f\n",kappaP, kappaM);
+// exit(0);
+	 // */
+
 	//double vmax = std::numeric_limits<double>::min();
 	//double vmin = std::numeric_limits<double>::max();
 	for(uint k=0; k < w.zdim;k++){        // Depth
@@ -403,6 +417,12 @@ void atv::postupdate(MultidimArray<double>& u)
 		}
 	}
 	//fprintf(stdout,"min: %20.18f, max: %20.18f\n",vmin,vmax);
+/*
+kernel() = w;
+kernel.write(rootTestFiles+"filteredW.mrc");
+exit(0);
+// */
+
 #undef P
 }
 #undef DEBUG
