@@ -264,11 +264,11 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 
 				if(dAij(MPregionsMask, k, i)) // region P
 					v.data[P(i, j, k)] += tau.data[P(i, j, k)] *
-							              (w.data[P(i, j, k)] * w.data[P(i, j, k)] * kappaP *
+							              (w.data[P(i, j, k)] * w.data[P(i, j, k)] * (-kappaP) *
 						 			       nabla_tau_filtP.data[P(i, j, k)]);
 				else// region M
 					v.data[P(i, j, k)] += tau.data[P(i, j, k)]*
-							              (w.data[P(i, j, k)] * w.data[P(i, j, k)] * kappaM *
+							              (w.data[P(i, j, k)] * w.data[P(i, j, k)] * (-kappaM) *
 									      nabla_tau_filtM.data[P(i, j, k)]);
 			}//end i index
 		}//end j index
