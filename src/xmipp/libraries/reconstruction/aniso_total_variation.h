@@ -54,7 +54,7 @@ public:
     double phi(const MultidimArray<double>& u);
     void nav(const MultidimArray<double>& u, MultidimArray<double>& v);
     void init(MultidimArray<double>& u,const double sigmaP, const unsigned short sizeP,const double kP, const double sigmaM, const unsigned short sizeM,const double kM, double Amin,double Amax);
-    void postupdate(MultidimArray<double>& u);
+    void preupdate(MultidimArray<double>& u);
     void createMask(const size_t xdim, const size_t ydim, const size_t zdim);
 }; /* class for Weighted Total Variation functions */
 

@@ -151,6 +151,12 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 	double denom = 0.0;
 	double dw,dh,dd;
 
+	double denom2 = 0.0;
+	double dw2,dh2,dd2;
+	double kappaPM = 0.0;
+
+
+
 	// std::cout<<u.xdim; // "physical" horizontal limit (x direction)
 	// std::cout<<u.ydim; // "physical" horizontal limit (y direction)
 	// std::cout<<u.zdim; // "physical" horizontal limit (z direction)
@@ -161,11 +167,17 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 	//
 	//std::cout<<formatString("\033[1;31mVolumeSize:\033[0m %dx%dx%d",u.xdim,u.ydim,u.zdim);
 
+	MultidimArray<double> nabla_tau, tau;
+	nabla_tau.resize(u.xdim,u.xdim,u.xdim);
+	memset(nabla_tau.data,0,u.xdim*u.ydim*u.zdim*sizeof(double));
+	tau.resize(u.xdim,u.xdim,u.xdim);
+	memset(tau.data,0,u.xdim*u.ydim*u.zdim*sizeof(double));
+
+
 	memset(v.data,0,v.xdim*v.ydim*v.zdim*sizeof(double));
 	for(uint k=0; k < u.zdim;k++){        // Depth
 		for(uint j=0;j < u.ydim;j++){     // Height
 			for(uint i=0;i < u.xdim;i++){ // Width
-				//std::out<< formatString("\033[1;33mregion P, valor: %d \033[0m\n %d, %d, %d",dAij(MPregionsMask, k, i), i, j, k);
 				//
 				// First Case
 				// (d/d x_i) of TV
@@ -176,11 +188,15 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 					dd = u.data[P(i,j,k)] - u.data[P(i,j,k+1)];
 					//Computing the denominator
 					denom = sqrt(dw*dw + dh*dh + dd*dd);
-					if(denom > ZERO)
-						v.data[P(i,j,k)]+=w.data[P(i,j,k)]*(3*u.data[P(i,j,k)] -
-								u.data[P(i+1,j,k)] -
-								u.data[P(i,j+1,k)] -
-								u.data[P(i,j,k+1)])/denom;
+					tau.data[P(i,j,k)] = denom;
+					// tau.data[P(i,j,k)] = w.data[P(i,j,k)] * denom; // o debería ser ???
+					if(denom > ZERO){
+						nabla_tau.data[P(i,j,k)] = (3*u.data[P(i,j,k)] -
+								                 u.data[P(i+1,j,k)] -
+								                 u.data[P(i,j+1,k)] -
+								                 u.data[P(i,j,k+1)])/denom;
+						v.data[P(i,j,k)] += w.data[P(i,j,k)] * nabla_tau.data[P(i,j,k)];
+					}
 				}
 				//
 				// Second Case
@@ -192,9 +208,12 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 					dd = u.data[P(i-1,j,k)] - u.data[P(i-1,j,k+1)];
 					//Computing the denominator
 					denom = sqrt(dw*dw + dh*dh + dd*dd);
-					if(denom > ZERO)
-						v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-								u.data[P(i-1,j,k)])/denom;
+					tau.data[P(i,j,k)] = denom;
+					if(denom > ZERO){
+						nabla_tau.data[P(i,j,k)] = (u.data[P(i,j,k)] -
+								               u.data[P(i-1,j,k)])/denom;
+						v.data[P(i,j,k)] += w.data[P(i,j,k)] * nabla_tau.data[P(i,j,k)];
+					}
 				}
 				//
 				// Third Case
@@ -206,9 +225,12 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 					dd = u.data[P(i,j-1,k)] - u.data[P(i,j-1,k+1)];
 					//Computing the denominator
 					denom = sqrt(dw*dw + dh*dh + dd*dd);
-					if(denom > ZERO)
-						v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-								u.data[P(i,j-1,k)])/denom;
+					tau.data[P(i,j,k)] = denom;
+					if(denom > ZERO){
+						nabla_tau.data[P(i,j,k)] = (u.data[P(i,j,k)] -
+								               u.data[P(i,j-1,k)])/denom;
+						v.data[P(i,j,k)] += w.data[P(i,j,k)] * nabla_tau.data[P(i,j,k)];
+					}
 				}
 				//
 				// Fourth Case
@@ -220,13 +242,38 @@ void atv::nav(const MultidimArray<double>& u, MultidimArray<double>& v)
 					dd = u.data[P(i,j,k-1)] - u.data[P(i,j,k)];
 					//Computing the denominator
 					denom = sqrt(dw*dw + dh*dh + dd*dd);
-					if(denom > ZERO)
-						v.data[P(i,j,k)] += w.data[P(i,j,k)]*(u.data[P(i,j,k)] -
-								u.data[P(i,j,k-1)])/denom;
+					tau.data[P(i,j,k)] = denom;
+					if(denom > ZERO){
+						nabla_tau.data[P(i,j,k)] = (u.data[P(i,j,k)] -
+								               u.data[P(i,j,k-1)])/denom;
+						v.data[P(i,j,k)] += w.data[P(i,j,k)] * nabla_tau.data[P(i,j,k)];
+					}
 				}
 			}//end i index
 		}//end j index
 	}//end k index
+
+	//convolution of nabla_tau with kernels
+	MultidimArray<double> nabla_tau_filtP, nabla_tau_filtM;
+	convolutionFFT(nabla_tau, M, nabla_tau_filtM);
+	convolutionFFT(nabla_tau, P, nabla_tau_filtP);
+
+	for(uint k=0; k < u.zdim;k++){        // Depth
+		for(uint j=0;j < u.ydim;j++){     // Height
+			for(uint i=0;i < u.xdim;i++){ // Width
+
+				if(dAij(MPregionsMask, k, i)) // region P
+					v.data[P(i, j, k)] += tau.data[P(i, j, k)] *
+							              (w.data[P(i, j, k)] * w.data[P(i, j, k)] * kappaP *
+						 			       nabla_tau_filtP.data[P(i, j, k)]);
+				else// region M
+					v.data[P(i, j, k)] += tau.data[P(i, j, k)]*
+							              (w.data[P(i, j, k)] * w.data[P(i, j, k)] * kappaM *
+									      nabla_tau_filtM.data[P(i, j, k)]);
+			}//end i index
+		}//end j index
+	}//end k index
+
 
 	//
 	// Failsafe & Finding the norm of the gradient (vector)
@@ -355,12 +402,8 @@ save.write(rootTestFiles+"testMagnitudeH.xmp");
 // exit(1); // */
 }
 
-/**
- **
- ** Computes the weighting vector
- **
- */
-void atv::postupdate(MultidimArray<double>& u)
+
+void atv::preupdate(MultidimArray<double>& u)
 {
 #define P(i,j,k)((i) + (j)*u.xdim + (k)*u.xdim*u.ydim)
 	double dw,dh,dd;
@@ -379,9 +422,9 @@ void atv::postupdate(MultidimArray<double>& u)
 		}
 	}
 
-	MultidimArray<double> filt_M,
-	filt_P;
 
+
+    MultidimArray<double> filt_M,filt_P;
 	convolutionFFT(w,M,filt_M);
 	convolutionFFT(w,P,filt_P);
 
@@ -392,7 +435,7 @@ String rootTestFiles = String("/home/jeison/Escritorio/");
  kernel.write(rootTestFiles+"FilteredMT.mrc");
  kernel() = filt_P;
  kernel.write(rootTestFiles+"FilteredPT.mrc");
- printf("\033[32mvalores kappaP y kappaM en postUpdate():\033[0m\n%.2f  %.2f\n",kappaP, kappaM);
+ printf("\033[32mvalores kappaP y kappaM en preUpdate():\033[0m\n%.2f  %.2f\n",kappaP, kappaM);
 // exit(0);
 	 // */
 
@@ -418,11 +461,87 @@ String rootTestFiles = String("/home/jeison/Escritorio/");
 	}
 	//fprintf(stdout,"min: %20.18f, max: %20.18f\n",vmin,vmax);
 /*
-kernel() = w;
-kernel.write(rootTestFiles+"filteredW.mrc");
-exit(0);
+Image<double> outImg;
+outImg() = w;
+outImg.write(rootTestFiles+"filteredW.mrc");
+//exit(0);
 // */
 
 #undef P
 }
 #undef DEBUG
+
+
+/**
+ **
+ ** Computes the weighting vector
+ **
+ */
+//void atv::postupdate(MultidimArray<double>& u)
+//{
+//#define P(i,j,k)((i) + (j)*u.xdim + (k)*u.xdim*u.ydim)
+//	double dw,dh,dd;
+//
+//	for(uint k=0; k < u.zdim;k++){        // Depth
+//		for(uint j=0;j < u.ydim;j++){     // Height
+//			for(uint i=0;i < u.xdim;i++){ // Width
+//				dw = ((i+1) < u.xdim) ? (u.data[P(i,j,k)] -
+//						u.data[P(i+1,j,k)]) : 0.0;
+//				dh = ((j+1) < u.ydim) ? (u.data[P(i,j,k)] -
+//						u.data[P(i,j+1,k)]) : 0.0;
+//				dd = ((k+1) < u.zdim) ? (u.data[P(i,j,k)] -
+//						u.data[P(i,j,k+1)]) : 0.0;
+//				w.data[P(i,j,k)] = sqrt(dw*dw + dh*dh + dd*dd);
+//			}
+//		}
+//	}
+//
+//	MultidimArray<double> filt_M,
+//	filt_P;
+//
+//	convolutionFFT(w,M,filt_M);
+//	convolutionFFT(w,P,filt_P);
+//
+///*
+//String rootTestFiles = String("/home/jeison/Escritorio/");
+// Image<double> kernel;
+// kernel() = filt_M;
+// kernel.write(rootTestFiles+"FilteredMT.mrc");
+// kernel() = filt_P;
+// kernel.write(rootTestFiles+"FilteredPT.mrc");
+// printf("\033[32mvalores kappaP y kappaM en postUpdate():\033[0m\n%.2f  %.2f\n",kappaP, kappaM);
+//// exit(0);
+//	 // */
+//
+//	//double vmax = std::numeric_limits<double>::min();
+//	//double vmin = std::numeric_limits<double>::max();
+//	for(uint k=0; k < w.zdim;k++){        // Depth
+//		for(uint j=0;j < w.ydim;j++){     // Height
+//			for(uint i=0;i < w.xdim;i++){ // Width
+//				if(dAij(MPregionsMask,k,i)){ // region P
+//					w.data[P(i,j,k)] = 1.0/(eps + kappaP*filt_P.data[P(i,j,k)]);
+//				}
+//				else{ //region M
+//					w.data[P(i,j,k)] = 1.0/(eps + kappaM*filt_M.data[P(i,j,k)]);
+//				}
+//				/*
+//             if(w.data[P(i,j,k)] < vmin)
+//                vmin = w.data[P(i,j,k)];
+//             if(w.data[P(i,j,k)] > vmax)
+//                vmax = w.data[P(i,j,k)];
+//				 */
+//			}
+//		}
+//	}
+//	//fprintf(stdout,"min: %20.18f, max: %20.18f\n",vmin,vmax);
+//// /*
+//String rootTestFiles = String("/home/jeison/Escritorio/");
+//Image<double> outImg;
+//outImg() = w;
+//outImg.write(rootTestFiles+"filteredW.mrc");
+//exit(0);
+//// */
+//
+//#undef P
+//}
+//#undef DEBUG
