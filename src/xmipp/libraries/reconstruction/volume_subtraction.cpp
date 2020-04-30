@@ -128,68 +128,51 @@ protected:
     		//read mask1
 			mask.read(fnMask1);
     		mask1=mask();
-    		mask.write("ppp_mask1.mrc");
 			// read mask2
 			mask.read(fnMask2);
-			mask.write("ppp_mask2.mrc");
 			// mask intersection
 			mask()*=mask1;
-			mask.write("ppp_commonmask.mrc");
+			mask.write("commonmask.mrc");
 			// mask vol1 with common mask
 			POCSmask(mask(),V());
-			V.write("ppp_V1masked.mrc");
+			V.write("V1masked.mrc");
 			//read vol2
 			V.read(fnVol2);
 			// mask vol2 with common mask
 			POCSmask(mask(),V());
-			V.write("ppp_V2masked.mrc");
+			V.write("V2masked.mrc");
 		}
 		else
 			V.read(fnVol2);
 
     	// Get original phase vol2
-    	std::cout << "aaa" << std::endl;
     	MultidimArray<std::complex<double> > V2FourierPhase;
-    	std::cout << "bbb" << std::endl;
-    	transformer.FourierTransform(V(),V2FourierPhase,true);  // core dumped (with and without masks), T/F
-    	std::cout << "1" << std::endl;
+    	transformer.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
 
     	for (int n=0; n<iter; ++n)
     	{
     		// Apply POCS to modify iteratively vol2
-        	std::cout << "2" << std::endl;
     		transformer.FourierTransform(V(),V2Fourier,false);
-        	std::cout << "3" << std::endl;
     		POCSFourierAmplitude(V1FourierMag,V2Fourier);
-        	std::cout << "4" << std::endl;
-    		V.write("ppp_V2masked_Amp1.mrc");
+    		V.write("V2masked_Amp1.mrc");
     		POCSFourierPhase(V2FourierPhase,V2Fourier);
-        	std::cout << "5" << std::endl;
         	transformer.inverseFourierTransform();
-        	std::cout << "6" << std::endl;
-    		V.write("ppp_V2masked_Amp1_ph2.mrc");
+    		V.write("V2masked_Amp1_ph2.mrc");
         	POCSnonnegative(V());
-        	std::cout << "7" << std::endl;
-    		V.write("ppp_V2masked_Amp1_ph2_nonneg.mrc");
+    		V.write("V2masked_Amp1_ph2_nonneg.mrc");
     	}
     	// FT final vol2
     	transformer.FourierTransform(V(),V2Fourier,false);
-    	std::cout << "8" << std::endl;
 
     	// Define m depending on if vol2 is a pdb
     	MultidimArray<double> m;
     	MultidimArray<double> V2FourierMag;
 		FFT_magnitude(V2Fourier,V2FourierMag);
-    	std::cout << "9" << std::endl;
-    	if (pdb==true){
+    	if (pdb==true)
     		m=V1FourierMag;
-    		std::cout << "10" << std::endl;
-    	}
-    	else{
+    	else
 			MultidimArrayMIN(V1FourierMag,V2FourierMag,m);
-    		std::cout << "100" << std::endl;
-    	}
 
     	// Subtraction: m*(vol1-vol2modif)
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V2Fourier)

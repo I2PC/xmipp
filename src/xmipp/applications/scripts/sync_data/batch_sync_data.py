@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # ***************************************************************************
 # * Authors:     David Maluenda (dmaluenda@cnb.csic.es)
 # *

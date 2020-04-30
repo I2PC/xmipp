@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -24,20 +24,20 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-from src.xmipp.bindings.python.xmipp_base import *
+from xmipp_base import *
 import xmippLib
-
-from src.xmipp.libraries.py_xmipp.deepLearningToolkitUtils.utils import (checkIf_tf_keras_installed,
+from xmippPyModules.deepLearningToolkitUtils.utils import (checkIf_tf_keras_installed,
                                                                          updateEnviron)
 
 checkIf_tf_keras_installed()
 
-from src.xmipp.libraries.py_xmipp.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
+from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
                                                                                            DeepTFSupervised, DataManager,
                                                                                            tf_intarnalError)
 WRITE_TEST_SCORES= True
 
 class ScriptDeepScreeningTrain(XmippScript):
+    _conda_env= CondaEnvManager.CONDA_DEFAULT_ENVIRON
     def __init__(self):
         XmippScript.__init__(self)
         

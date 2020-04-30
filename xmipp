@@ -47,7 +47,6 @@ XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
-MICROGRAPH_CLEANER= 'micrograph_cleaner_em'
 CTPL = 'CTPL'
 
 XMIPP_SCRIPT_VERSION = ''
@@ -57,12 +56,10 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-                MICROGRAPH_CLEANER:'https://github.com/rsanchezgarc/micrograph_cleaner_em',
                 CTPL: 'https://github.com/vit-vit/CTPL.git'}
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
-                MICROGRAPH_CLEANER: (None, None),
                 CTPL: ('master', None)}
 
 CONFIG_FILE_NAME = "xmipp.conf"
@@ -91,17 +88,18 @@ def stampVersion():
     LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
 
     def getCommit(repo):
-        currDir = os.getcwd()
-        os.chdir('src/%s'%repo)
-        if os.path.exists('.git'):
-            branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-            hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
-            repoInfo = "%s (%s)" % (branch.decode("utf-8").strip('\n'), hash.decode("utf-8").strip('\n'))
-        else:
-            repoInfo = "(no git repo detected)"
-        os.chdir(currDir)
+        found, br, hsh = getCurrentBranch(os.path.join('src', repo), getHash=True)
+        return "%s (%s)" % (br, hsh) if found else "(no git repo detected)"
 
-        return repoInfo
+    compilingInfo = {'VERSION_TAG': VERSION_TAG,
+                     'XMIPP_VERSION': XMIPP_VERSION,
+                     'RELEASE_DATE': RELEASE_DATE,
+                     'XMIPP_BRANCH': getCommit(XMIPP),
+                     'PLUGIN_BRANCH': getCommit(SCIPION_EM_XMIPP),
+                     'CORE_BRANCH': getCommit(XMIPP_CORE),
+                     'VIZ_BRANCH': getCommit(XMIPP_VIZ),
+                     'LAST_COMPILATION': LAST_COMPILATION,
+                     }
 
     versionBinFn = os.path.join('src', 'xmipp', 'applications', 'programs',
                                 'version', 'version.cpp')
@@ -134,7 +132,7 @@ int main(int argc, char** argv){
 
     if (shrt==1)
     {
-        std::cout << "%s: %s" << std::endl;
+        std::cout << "%(VERSION_TAG)s: %(XMIPP_VERSION)s" << std::endl;
     }else{
         struct utsname utsname; // stores the data returned by uname()
         struct utsname *utsname_ptr = &utsname; // pointer to the struct holding the data returned by uname()
@@ -143,14 +141,14 @@ int main(int argc, char** argv){
         ret = uname(utsname_ptr);
     
         std::cout << std::endl;
-        std::cout << "  \033[4m%s\033[24m: \033[1m%s\033[0m" << std::endl;
+        std::cout << "  \033[4m%(VERSION_TAG)s\033[24m: \033[1m%(XMIPP_VERSION)s\033[0m" << std::endl;
         std::cout << std::endl;
-        std::cout << "  Release date:     %s" << std::endl;
-        std::cout << "  Xmipp branch:     %s" << std::endl;
-        std::cout << "  Plugin branch:    %s" << std::endl;
-        std::cout << "  Core branch :     %s" << std::endl;
-        std::cout << "  Viz branch:       %s" << std::endl;
-        std::cout << "  Compilation date: %s" << std::endl;
+        std::cout << "  Release date:     %(RELEASE_DATE)s" << std::endl;
+        std::cout << "  Xmipp branch:     %(XMIPP_BRANCH)s" << std::endl;
+        std::cout << "  Plugin branch:    %(PLUGIN_BRANCH)s" << std::endl;
+        std::cout << "  Core branch :     %(CORE_BRANCH)s" << std::endl;
+        std::cout << "  Viz branch:       %(VIZ_BRANCH)s" << std::endl;
+        std::cout << "  Compilation date: %(LAST_COMPILATION)s" << std::endl;
         std::cout << "  Compiler:         g++ " << __VERSION__ << std::endl;
         std::cout << "  Compiling system: " << utsname.machine << " " << utsname.sysname
                   << " " << utsname.release << std::endl 
@@ -159,9 +157,8 @@ int main(int argc, char** argv){
     }
     return 0;
 }
-""" % (VERSION_TAG, XMIPP_VERSION, VERSION_TAG, XMIPP_VERSION, RELEASE_DATE,
-       getCommit(XMIPP), getCommit(SCIPION_EM_XMIPP),
-       getCommit(XMIPP_CORE), getCommit(XMIPP_VIZ), LAST_COMPILATION))
+""" % compilingInfo)
+
 
 def whereis(program):
     programPath=distutils.spawn.find_executable(program)
@@ -296,6 +293,7 @@ def isRepositoryClean(showError=True):
     result = any(w in l for w in words for l in log)  # True for clean repo, False otherwise
     if showError and not result:
         print(red('Repository contains uncommitted changes.'))
+        print("Use 'compileAndInstall' mode to keep developing.")
     return result
 
 
@@ -336,17 +334,23 @@ def getCurrentTravisBranch():
     return False, None
 
 
-def getCurrentBranch(cwd='./'):
+def getCurrentBranch(cwd='./', getHash=False):
+    """ If getHash=True:  return (success, branch, hash)
+        If getHash=False: return (success, branch)
+    """
+    outBranchArgs = 2 if getHash else 1
     log = []
     commit = []
     if not os.path.exists(cwd):
         return False, None
-    runJob('git rev-parse HEAD', cwd=cwd, show_output=False, show_command=False, log=commit)
-    runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False, show_command=False, log=log)
-    if log:
-        return True, log[0].split()[1].strip()  # log contains commit_space_branchName
+    runJob('git rev-parse --short HEAD', cwd=cwd, show_output=False,
+           show_command=False, log=commit)
+    runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False,
+           show_command=False, log=log)
+    if log:  # log contains commit_space_branchName
+        return (True,) + tuple(log[0].split()[::-1][0:outBranchArgs])
     print(red('Cannot get current branch'))
-    return False, None
+    return (False,) + (None,)*outBranchArgs
 
 def getAllBranches(repo):
     log = []
@@ -355,9 +359,9 @@ def getAllBranches(repo):
         show_output=False, log=log, show_command=False)
     if result:
         branches = [l.split(prefix)[1] for l in log]
-        return (True, branches)
+        return True, branches
     print(red('Cannot listl branches for ' + repo))
-    return (False, None)
+    return False, None
 
 def getBranch(repo, repo_dir):
     if 'TRAVIS' in os.environ:
@@ -421,9 +425,9 @@ def getDependencies():
     return result
 
 def getScipionHome():
-    if "SCIPION_HOME" in os.environ:
-        return os.environ["SCIPION_HOME"]
-    return whereis("scipion")
+    """ Returns SCIPION_HOME, the directory for scipion3 or EMPTY str. """
+    return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
+
 
 def readConfigFile(fnConfig):
     try:
@@ -916,18 +920,15 @@ def configConfigVersion(configDict):
 def ensureConfigVersion(configDict):
     key = 'CONFIG_VERSION'
     if key not in configDict or configDict[key] != XMIPP_SCRIPT_VERSION:
-        print(red('We did some changes which are not compatible with your current config file. '
-                  'We recommend you to create a backup before regenerating it (use --help for additional info)'))
+        print(red("We did some changes which are not compatible with your current config file. "
+                  "Please, run './xmipp config' to generate a new config file."
+                  "We recommend you to create a backup before regenerating it (use --help for additional info)"))
         exit(-1)
 
 
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
-    # useScipion = not ('XMIPP_NOSCIPION' in os.environ)
-    # if useScipion and not getScipionHome():
-    #     print(red("$SCIPION_HOME is not set and scipion is not in the path. Use 'export XMIPP_NOSCIPION=True; ./xmipp' to configure without scipion"))
-    #     return False
 
     if new_config_dict['VERIFIED'] == '':
         new_config_dict['VERIFIED'] = 'False'
@@ -1116,12 +1117,10 @@ def runTests(testNames):
            % (getPython(), ' '.join(testNames), noCudaStr))
 
 def getPython():
-    # scipionHome = getScipionHome()
-    # if scipionHome is not None:
-    #     python = os.path.join(os.environ['SCIPION_HOME'], 'software', 'bin', 'python')
-    # else:
-    python = 'python3'
-    return python
+    if checkProgram("scipion3", False):
+        return "scipion3 python"
+    else:
+        return 'python3'
 
 def addDeepLearninModel(login, modelPath='', update=None):
     """ Takes the folder name modelName from models dir and
@@ -1135,16 +1134,17 @@ def addDeepLearninModel(login, modelPath='', update=None):
         Usually the model folder contains big files used to fed deep learning procedures
         with pretrained data. All the models stored in the server will be downloads
         using the 'get_models' mode or during the compilation/installation time
-        if 'USE_DL=True' in the config file.
+        if 'USE_DL=True' in the config file. [or with 'scipion3 installb deepLearningToolkit']
         
-        Usage: -> ./xmipp addModel usr@server modelPath [--update]
+        Usage: -> ./xmipp addModel <usr@server> <modelsPath> [--update]
         
-        Behaviour: 1. Packing in xmipp_model_modelName.tgz
+        Behaviour: 0. modelName = basename(modelsPath) <- Please, check the folder's name!
+                   1. Packing in 'xmipp_model_modelName.tgz'
                    2. Check if that model already exists (use --update to override an existing model)
                    3. Upload the model to the server.
                    4. Update the MANIFEST file.
                    
-        The model name will be the folder name in 'modelPath'
+        The model name will be the folder name in <modelsPath>
         """)
         sys.exit(0)
 
@@ -1153,9 +1153,8 @@ def addDeepLearninModel(login, modelPath='', update=None):
 
     modelPath = modelPath.rstrip("/")
     if not os.path.isdir(modelPath):
-        print("'modelName' must coincide with a directory "
-              "placed at 'src/xmipp/models/'. \n"
-              "The name of the model will be that folder name.\n")
+        print("<modelsPath> is not a directory. Please, check the path. \n"
+              "The name of the model will be the name of that folder.\n")
         usageDL()
 
     modelName = os.path.basename(modelPath)
@@ -1174,9 +1173,10 @@ def addDeepLearninModel(login, modelPath='', update=None):
         sys.exit()
 
     print("Trying to upload the model using '%s' as login" % login)
-    args = "%s %s %s %s" % (login, localFn, remotePath, update)
-    ok = runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args)
-    if ok:
+    args = "%s %s %s %s" % (login, os.path.abspath(localFn), remotePath, update)
+    if runJob("src/xmipp/bin/xmipp_sync_data upload %s" % args):
+        print("'%s' model successfully uploaded! Removing the local .tgz"
+              % modelName)
         runJob("rm %s" % localFn)
 
 
@@ -1229,8 +1229,6 @@ def install(dirname):
             pass  # just to create a init file to be able to import it as module
 
     runJob(cpCmd+" -r src/xmipp/libraries/py_xmipp/* "+destPathPyModule)
-    sourcePathMicClean= os.path.expanduser(os.path.abspath(os.path.join("src",MICROGRAPH_CLEANER,MICROGRAPH_CLEANER)))
-    runJob(cpCmd+" -r "+sourcePathMicClean+" "+destPathPyModule) #cp instead ln -s for safety reasons
 
     createDir(dirname+"/bindings")
     createDir(dirname+"/bindings/matlab")
@@ -1239,10 +1237,9 @@ def install(dirname):
     createDir(dirname+"/bindings/python")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_base.py "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp.py " + dirname + "/bindings/python/")
+    ok = ok and runJob(cpCmd+" src/xmipp/bindings/python/xmipp_conda_envs.py " + dirname + "/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/xmippLib.so "+dirname+"/bindings/python/")
     ok = ok and runJob(cpCmd+" src/xmipp/lib/_swig_frm.so "+dirname+"/bindings/python/")
-    # ok = ok and runJob("ln -sf ../../lib/libXmipp.so " + dirname + "/bindings/python/libXmipp.so")
-    # ok = ok and runJob("ln -sf ../../lib/libXmippCore.so " + dirname + "/bindings/python/libXmippCore.so")
 
     createDir(dirname+"/bindings/python/sh_alignment")
     ok = ok and runJob(cpCmd+" -r src/xmipp/external/sh_alignment/python/* "+dirname+"/bindings/python/sh_alignment/")
@@ -1261,6 +1258,23 @@ def install(dirname):
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
         sys.exit(1)
+
+    # Scipion connection
+    scipionSoftware = os.environ.get('SCIPION_SOFTWARE',
+                                     os.path.join(getScipionHome(), 'software'))
+    scipionLibs = os.path.join(scipionSoftware, 'lib')
+    scipionBindings = os.path.join(scipionSoftware, 'bindings')
+    if os.path.isdir(scipionLibs) and os.path.isdir(scipionBindings):
+        coreLib = os.path.join(dirname, "lib", "libXmippCore.so")
+        xmippLib = os.path.join(dirname, "lib", "libXmipp.so")
+        bindings = os.path.join(dirname, "bindings", "python", "*")
+        runJob("ln -srf %s %s" % (coreLib, scipionLibs))
+        runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
+        runJob("ln -srf %s %s" % (bindings, scipionBindings))
+    else:
+        print(red("No scipion3 found. If you intended to use Xmipp in "
+                  "the Scipion framework, check the binding at "
+                  "SCIPION_HOME/software/binding..."))
 
     runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")

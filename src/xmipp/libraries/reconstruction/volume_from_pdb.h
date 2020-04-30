@@ -50,7 +50,7 @@ public:
     struct blobtype blob;
 
     /** Final size in pixels */
-    int output_dim;
+    int output_dim_x, output_dim_y, output_dim_z;
     
     /** Use blobs instead of scattering factors */
     bool useBlobs;
