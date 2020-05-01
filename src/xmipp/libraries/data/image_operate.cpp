@@ -367,7 +367,8 @@ void ProgOperate::defineParams()
     addExampleLine(" Rotational average", false);
     addExampleLine("xmipp_image_operate -i image.xmp --radial_avg -o radial_avg.xmp");
     addExampleLine("where radial_avg.txt is an ascii file for plotting the radial_averaged profile, radial_avg.xmp a radial_averaged image", false);
-    addExampleLine("xmipp_image_operate -i micrograph.psd --psd_radial_avg -o radial_psd.txt");
+    addExampleLine("xmipp_image_operate -i micrograph.psd --psd_radial_avg -o radial_psd.xmp");
+    addExampleLine("where radial_psd.txt is an ascii file for plotting the radial_averaged profile, radial_psd.xmp a radial_averaged image", false);
 }
 
 void ProgOperate::readParams()
