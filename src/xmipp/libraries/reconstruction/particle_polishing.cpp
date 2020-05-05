@@ -606,7 +606,7 @@ void ProgParticlePolishing::evaluateBSpline(const MultidimArray<double> inputMat
 }
 
 
-void ProgParticlePolishing::writingOutput(){
+void ProgParticlePolishing::writingOutput(size_t xdim, size_t ydim){
 
 	//MOVIE PARTICLES IMAGES
 	MetaData mdPartPrev, mdPart;
@@ -645,13 +645,15 @@ void ProgParticlePolishing::writingOutput(){
 		currentRow.getValue(MDL_ENABLED,enabled);
 
 		if(enabled==-1){
+			if(iterPart->hasNext())
+				iterPart->moveNext();
 			continue;
 		}
 
 		if(partIdPrev!=partId){
 			countForPart=0;
-			Ifinal().resize(Ipart());
-			Ifinal().initZeros();
+			Ifinal().initZeros(ydim, xdim);
+			Ifinal().setXmippOrigin();
 			partIdPrev=partId;
 		}
 		currentRow.getValue(MDL_IMAGE,fnPart);
@@ -671,6 +673,9 @@ void ProgParticlePolishing::writingOutput(){
 			currentRow.setValue(MDL_IMAGE, fnToSave2);
 			SFq2.addRow(currentRow);
 		}
+
+		if(iterPart->hasNext())
+			iterPart->moveNext();
 
 	} //end mdPartSize loop
 
@@ -1114,7 +1119,7 @@ void ProgParticlePolishing::run()
 	printf("%s \n ", fnOut.getString().c_str());
 	SFq.write(fnOut);*/
 
-
+	writingOutput(XSIZE(Ipart()), YSIZE(Ipart()));
 
 
 	exit(0);
