@@ -345,7 +345,7 @@ def getCurrentBranch(cwd='./', getHash=False):
     log = []
     commit = []
     if not os.path.exists(cwd):
-        return False, None
+        return (False,) + (None,)*outBranchArgs
     runJob('git rev-parse --short HEAD', cwd=cwd, show_output=False,
            show_command=False, log=commit)
     runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False,
