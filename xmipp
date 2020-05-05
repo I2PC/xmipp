@@ -771,6 +771,12 @@ def configCuda(configDict):
                 if nvccVersion != 8.0:
                     print(yellow('CUDA-8.0 is recommended.'))
                 configDict["NVCC"] = "nvcc"
+            else:
+                print(yellow("Warning: 'nvcc' not found. "
+                             "'NVCC_CXXFLAGS' and 'NVCC_LINKFLAGS' cannot be "
+                             "automatically set. Please, manual set them or "
+                             "set 'CUDA=False'."))
+                return
         if configDict["NVCC_CXXFLAGS"]=="":
             # in case user specified some wrapper of the compiler
             # get rid of it: 'ccache g++' -> 'g++'
@@ -806,7 +812,7 @@ def configCuda(configDict):
                                            "-gencode=arch=compute_60,code=compute_60 "
                                            "-gencode=arch=compute_61,code=compute_61")
         if configDict["NVCC_LINKFLAGS"]=="":
-            nvccPath=distutils.spawn.find_executable("nvcc")
+            nvccPath=distutils.spawn.find_executable(configDict["NVCC"])
             if nvccPath:
                 dirName=os.path.dirname(nvccPath)
                 candidateDir = dirName.replace("bin","lib")
@@ -1270,9 +1276,9 @@ def install(dirname):
         runJob("ln -srf %s %s" % (xmippLib, scipionLibs))
         runJob("ln -srf %s %s" % (bindings, scipionBindings))
     else:
-        print(red("No scipion3 found. If you intended to use Xmipp in "
-                  "the Scipion framework, check the binding at "
-                  "SCIPION_HOME/software/binding..."))
+        print(yellow("No scipion3 found. If you intended to use Xmipp in "
+                     "the Scipion framework, check the binding at "
+                     "SCIPION_HOME/software/bindings..."))
 
     runJob("touch %s/v%s" % (dirname, XMIPP_VERSION))  # version token
     fhBash = open(dirname+"/xmipp.bashrc","w")
