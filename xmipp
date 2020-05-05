@@ -38,7 +38,7 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = 'devel'  #
+XMIPP_VERSION = '3.20.07a0'  #
 RELEASE_DATE = 'not released yet'  #
 ##############################
 
