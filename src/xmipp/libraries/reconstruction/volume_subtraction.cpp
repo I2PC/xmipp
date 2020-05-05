@@ -178,6 +178,7 @@ protected:
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V2Fourier)
     	DIRECT_MULTIDIM_ELEM(V2Fourier,n)=DIRECT_MULTIDIM_ELEM(m,n)*(DIRECT_MULTIDIM_ELEM(V1Fourier,n)/DIRECT_MULTIDIM_ELEM(V1FourierMag,n)-
     			                                                     DIRECT_MULTIDIM_ELEM(V2Fourier,n)/DIRECT_MULTIDIM_ELEM(V2FourierMag,n));
+    	transformer.inverseFourierTransform();
 		V.write(fnDiff);
     }
 };
