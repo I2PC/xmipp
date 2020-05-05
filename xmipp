@@ -344,10 +344,10 @@ def getCurrentBranch(cwd='./', getHash=False):
     outBranchArgs = 2 if getHash else 1
     log = []
     commit = []
-    if not os.path.exists(cwd):
+    if not os.path.exists(cwd) or not runJob('git rev-parse --short HEAD',
+                                             cwd=cwd, show_output=False,
+                                             show_command=False, log=commit):
         return (False,) + (None,)*outBranchArgs
-    runJob('git rev-parse --short HEAD', cwd=cwd, show_output=False,
-           show_command=False, log=commit)
     runJob('git name-rev ' + commit[0], cwd=cwd, show_output=False,
            show_command=False, log=log)
     if log:  # log contains commit_space_branchName
