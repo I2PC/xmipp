@@ -100,7 +100,7 @@ def run(label, version, branch):
     # excludeTgz += " --exclude='*.o' --exclude='*.os' --exclude='*pyc'"
     # excludeTgz += " --exclude='*.gz' --exclude='*.bashrc' --exclude='*.fish'"
     # excludeTgz += " --exclude=tests/data --exclude='*.scons*' --exclude=.git"
-    excludeTgz = ("--exclude=.* --exclude='sonar-project.properties'"
+    excludeTgz = ("--exclude=.* --exclude=sonar-project.properties "
                   "--exclude='xmipp.bashrc' --exclude='xmipp.fish'")
 
     cmdStr = "tar czf %(target)s.tgz %(excludeTgz)s %(target)s"
