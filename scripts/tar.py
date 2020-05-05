@@ -55,8 +55,8 @@ def run(label, version, branch):
             os.system("rm -rf %s" % target)
         print("...preparing the bundle...")
         cwd = os.getcwd()
-        os.mkdir(target)
-        shutil.copy('xmipp', target)
+        os.system('git clone https://github.com/I2PC/xmipp %s -b %s'
+                  % (target, branch))
         os.chdir(target)
         os.environ['CUDA'] = 'True'
         os.system('./xmipp config')  # just to write the config file

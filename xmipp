@@ -1613,7 +1613,7 @@ if __name__ == '__main__':
         addDeepLearninModel(*sys.argv[2:])
     elif mode=='tar':
         if len(sys.argv) < 3:
-            runJob("src/xmipp/tar.py --help")
+            runJob("scripts/tar.py --help")
             sys.exit(0)
         ver = XMIPP_VERSION
         br = 'master'
@@ -1623,7 +1623,7 @@ if __name__ == '__main__':
                 br = arg.split('br=')[1]
             if arg.startswith('v='):
                 ver = arg.split('v=')[1]
-        runJob("src/xmipp/tar.py %s %s %s" % (mode, ver, br))
+        runJob("scripts/tar.py %s %s %s" % (mode, ver, br))
 
     else:
         usage(" -> option not found <- \n")
