@@ -616,6 +616,7 @@ void ProgParticlePolishing::writingOutput(size_t xdim, size_t ydim){
 	mdPart.sort(mdPartPrev, MDL_PARTICLE_ID);
 
 	MDIterator *iterPart = new MDIterator();
+	std::vector<int>::iterator it2;
 
 	double rot, tilt, psi, x, y;
 	bool flip;
@@ -659,7 +660,14 @@ void ProgParticlePolishing::writingOutput(size_t xdim, size_t ydim){
 		currentRow.getValue(MDL_IMAGE,fnPart);
 		Ipart.read(fnPart);
 		Ipart().setXmippOrigin();
-		selfTranslate(NEAREST, Ipart(), vectorR2(round(resultShiftX[i]), round(resultShiftY[i])), DONT_WRAP, 0.0);
+
+
+		it2 = find(partIds.begin(), partIds.end(), (int)partId);
+		int index = std::distance(partIds.begin(), it2);
+
+		currentRow.getValue(MDL_FRAME_ID,frId);
+		//printf("Particle %d frame %d shiftX %d shiftY %d \n", partId, frId, resultShiftX[index+countForPart], resultShiftY[index+countForPart]);
+		selfTranslate(NEAREST, Ipart(), vectorR2((double)resultShiftX[index+countForPart], (double)resultShiftY[index+countForPart]), DONT_WRAP, 0.0);
 		Ifinal()+=Ipart();
 		countForPart++;
 
@@ -724,6 +732,9 @@ void ProgParticlePolishing::run()
 	/////////////////////////
 	//First Part
 	/////////////////////////
+	resultShiftX = new int[partIds.size()];
+	resultShiftY = new int[partIds.size()];
+
 	std::vector<int> partIdDone;
 	std::vector<int>::iterator it;
 	int dataInMovie;
@@ -898,219 +909,234 @@ void ProgParticlePolishing::run()
 		fnStackOut.deleteFile();
 
 
-		//iterPart->init(mdPart);
-		//iterPart2->init(mdPart);
-		int countForPart=0;
-		int countDisabled=0;
-		size_t frId, mvId, partId;
+	//iterPart->init(mdPart);
+	//iterPart2->init(mdPart);
+	int countForPart=0;
+	int countDisabled=0;
+	size_t frId, mvId, partId;
+	int enabled;
 
-		for(int ii=0; ii<mdPartSize; ii++){
+	for(int ii=0; ii<mdPartSize; ii++){
 
-			//Project the volume with the parameters in the image
-			double rot, tilt, psi, xValue, yValue;
-			bool flip;
-			int xcoor, ycoor;
-			int enabled;
+		//Project the volume with the parameters in the image
+		double rot, tilt, psi, xValue, yValue;
+		bool flip;
+		int xcoor, ycoor;
 
-			/*
-			mdPart.getRow(currentRow, iterPart->objId);
-			currentRow.getValue(MDL_IMAGE,fnPart);
-			Ipart.read(fnPart);
-			Ipart().setXmippOrigin();
-			currentRow.getValue(MDL_ANGLE_ROT,rot);
-			currentRow.getValue(MDL_ANGLE_TILT,tilt);
-			currentRow.getValue(MDL_ANGLE_PSI,psi);
-			currentRow.getValue(MDL_SHIFT_X,xValue);
-			currentRow.getValue(MDL_SHIFT_Y,yValue);
-			currentRow.getValue(MDL_FLIP,flip);
-			currentRow.getValue(MDL_FRAME_ID,frId);
-			currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
-			currentRow.getValue(MDL_PARTICLE_ID,partId);
-			currentRow.getValue(MDL_XCOOR,xcoor);
-			currentRow.getValue(MDL_YCOOR,ycoor);
-			currentRow.getValue(MDL_ENABLED,enabled);
-			*/
+		/*
+		mdPart.getRow(currentRow, iterPart->objId);
+		currentRow.getValue(MDL_IMAGE,fnPart);
+		Ipart.read(fnPart);
+		Ipart().setXmippOrigin();
+		currentRow.getValue(MDL_ANGLE_ROT,rot);
+		currentRow.getValue(MDL_ANGLE_TILT,tilt);
+		currentRow.getValue(MDL_ANGLE_PSI,psi);
+		currentRow.getValue(MDL_SHIFT_X,xValue);
+		currentRow.getValue(MDL_SHIFT_Y,yValue);
+		currentRow.getValue(MDL_FLIP,flip);
+		currentRow.getValue(MDL_FRAME_ID,frId);
+		currentRow.getValue(MDL_MICROGRAPH_ID,mvId);
+		currentRow.getValue(MDL_PARTICLE_ID,partId);
+		currentRow.getValue(MDL_XCOOR,xcoor);
+		currentRow.getValue(MDL_YCOOR,ycoor);
+		currentRow.getValue(MDL_ENABLED,enabled);
+		*/
 
-			frId = frIds[ii];
-			mvId = mvIds[ii];
-			partId = partIds[ii];
-			enabled = enables[ii];
+		frId = frIds[ii];
+		mvId = mvIds[ii];
+		partId = partIds[ii];
+		enabled = enables[ii];
 
 
-			for (int hh=0; hh<mvIdsAux.size(); hh++){
-				if(mvIdsAux[hh]==mvId){
-					slope=slopes[hh];
-					intercept=intercepts[hh];
-					break;
-				}
+		for (int hh=0; hh<mvIdsAux.size(); hh++){
+			if(mvIdsAux[hh]==mvId){
+				slope=slopes[hh];
+				intercept=intercepts[hh];
+				break;
 			}
+		}
 
-			if(enabled==-1){
-				partIdDone2.push_back((int)partId);
-				countDisabled=1;
+		if(enabled==-1){
+			partIdDone2.push_back((int)partId);
+			countDisabled=1;
+			//if(iterPart->hasNext())
+			//	iterPart->moveNext();
+			//if(iterPart2->hasNext())
+			//	iterPart2->moveNext();
+			continue;
+		}
+
+
+		it = find(partIdDone2.begin(), partIdDone2.end(), (int)partId);
+		if (it != partIdDone2.end()){
+			if (countDisabled==1){
 				//if(iterPart->hasNext())
 				//	iterPart->moveNext();
-				//if(iterPart2->hasNext())
-				//	iterPart2->moveNext();
 				continue;
-			}
-
-
-			it = find(partIdDone2.begin(), partIdDone2.end(), (int)partId);
-			if (it != partIdDone2.end()){
-				if (countDisabled==1){
-					//if(iterPart->hasNext())
-					//	iterPart->moveNext();
-					continue;
-				}else{
-					countForPart++;
-				}
 			}else{
-				countForPart=0;
-				countDisabled=0;
+				countForPart++;
 			}
-			partIdDone2.push_back((int)partId);
-			dataInMovie++;
+		}else{
+			countForPart=0;
+			countDisabled=0;
+		}
+		partIdDone2.push_back((int)partId);
+		dataInMovie++;
 
-			fnPart = (String)fnParts[ii];
-			Ipart.read(fnPart);
-			Ipart().setXmippOrigin();
-			rot = rots[ii];
-			tilt=tilts[ii];
-			psi=psis[ii];
-			xValue = xs[ii];
-			yValue = ys[ii];
-			flip = flips[ii];
-			xcoor = xcoors[ii];
-			ycoor = ycoors[ii];
+		fnPart = (String)fnParts[ii];
+		Ipart.read(fnPart);
+		Ipart().setXmippOrigin();
+		rot = rots[ii];
+		tilt=tilts[ii];
+		psi=psis[ii];
+		xValue = xs[ii];
+		yValue = ys[ii];
+		flip = flips[ii];
+		xcoor = xcoors[ii];
+		ycoor = ycoors[ii];
 
-			std::cout << fnPart << std::endl;
+		std::cout << fnPart << std::endl;
 
-			A.initIdentity(3);
-			MAT_ELEM(A,0,2)=xValue;
-			MAT_ELEM(A,1,2)=yValue;
-			if (flip)
-			{
-				MAT_ELEM(A,0,0)*=-1;
-				MAT_ELEM(A,0,1)*=-1;
-				MAT_ELEM(A,0,2)*=-1;
-			}
+		A.initIdentity(3);
+		MAT_ELEM(A,0,2)=xValue;
+		MAT_ELEM(A,1,2)=yValue;
+		if (flip)
+		{
+			MAT_ELEM(A,0,0)*=-1;
+			MAT_ELEM(A,0,1)*=-1;
+			MAT_ELEM(A,0,2)*=-1;
+		}
 
-			if ((xdim != XSIZE(Ipart())) || (ydim != YSIZE(Ipart())))
-				std::cout << "Error: The input particles and volume have different sizes" << std::endl;
+		if ((xdim != XSIZE(Ipart())) || (ydim != YSIZE(Ipart())))
+			std::cout << "Error: The input particles and volume have different sizes" << std::endl;
 
 
-			std::cerr << "FOR Movie ID: " << mvId << ". Working with Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
-			int estX;
-			int estY;
+		std::cerr << "FOR Movie ID: " << mvId << ". Working with Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
+		int estX;
+		int estY;
 
-			lkresults.initZeros(myL, myL);
-			for(int jj=0; jj<myL; jj++){
-				for(int hh=0; hh<myL; hh++){
-					projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
-					applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
-					projV().setXmippOrigin();
+		lkresults.initZeros(myL, myL);
+		for(int jj=0; jj<myL; jj++){
+			for(int hh=0; hh<myL; hh++){
+				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+				applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+				projV().setXmippOrigin();
 
-					if (shiftX[jj]!=0 || shiftY[hh]!=0)
-						selfTranslate(LINEAR, projV(), vectorR2((double)shiftX[jj], (double)shiftY[hh]), DONT_WRAP, 0.0);
-					double likelihood=0.;
-					double lambda, fact;
-					for(int n=0; n<YSIZE(Ipart()); n++){
-						for(int m=0; m<XSIZE(Ipart()); m++){
-							if ((n-round(YSIZE(Ipart())/2))*(n-round(YSIZE(Ipart())/2))+(m-round(XSIZE(Ipart())/2))*(m-round(XSIZE(Ipart())/2))>maxShift2) // continue if the Euclidean distance is too far
-								continue;
-							fact=1.;
-							lambda = slope*DIRECT_A2D_ELEM(projV(), n, m)+intercept;
-							if (DIRECT_A2D_ELEM(Ipart(), n, m)>0){
-								for(int aa=1; aa<=DIRECT_A2D_ELEM(Ipart(), n, m); aa++)
-									fact = fact*aa;
-							}
-							likelihood += -1.*lambda + DIRECT_A2D_ELEM(Ipart(), n, m)*log(lambda) - log(fact);
+				if (shiftX[jj]!=0 || shiftY[hh]!=0)
+					selfTranslate(LINEAR, projV(), vectorR2((double)shiftX[jj], (double)shiftY[hh]), DONT_WRAP, 0.0);
+				double likelihood=0.;
+				double lambda, fact;
+				for(int n=0; n<YSIZE(Ipart()); n++){
+					for(int m=0; m<XSIZE(Ipart()); m++){
+						if ((n-round(YSIZE(Ipart())/2))*(n-round(YSIZE(Ipart())/2))+(m-round(XSIZE(Ipart())/2))*(m-round(XSIZE(Ipart())/2))>maxShift2) // continue if the Euclidean distance is too far
+							continue;
+						fact=1.;
+						lambda = slope*DIRECT_A2D_ELEM(projV(), n, m)+intercept;
+						if (DIRECT_A2D_ELEM(Ipart(), n, m)>0){
+							for(int aa=1; aa<=DIRECT_A2D_ELEM(Ipart(), n, m); aa++)
+								fact = fact*aa;
 						}
+						likelihood += -1.*lambda + DIRECT_A2D_ELEM(Ipart(), n, m)*log(lambda) - log(fact);
 					}
-					DIRECT_A2D_ELEM(lkresults, hh, jj) = likelihood;
 				}
+				DIRECT_A2D_ELEM(lkresults, hh, jj) = likelihood;
 			}
+		}
 
 
-			MultidimArray<double> lkresults_copy(lkresults);
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(lkresults)
-				DIRECT_MULTIDIM_ELEM(lkresults_copy,n) = DIRECT_MULTIDIM_ELEM(lkresults,n);
+		MultidimArray<double> lkresults_copy(lkresults);
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(lkresults)
+			DIRECT_MULTIDIM_ELEM(lkresults_copy,n) = DIRECT_MULTIDIM_ELEM(lkresults,n);
 
-			double estXAux, estYAux;
-			bestShift(lkresults, estXAux, estYAux, NULL, -1);
-			int bestPosX = (int)round(estXAux);
-			if(bestPosX>myL-1)
-				bestPosX=myL-1;
-			else if(bestPosX<0)
-				bestPosX=0;
-			int bestPosY = (int)round(estYAux);
-			if(bestPosY>myL-1)
-				bestPosY=myL-1;
-			else if(bestPosY<0)
-				bestPosY=0;
-			printf(". BEST POS for particle %d. Shift %d, %d \n", countForPart, shiftX[bestPosX], shiftY[bestPosY]);
+		double estXAux, estYAux;
+		bestShift(lkresults, estXAux, estYAux, NULL, -1);
+		int bestPosX = (int)round(estXAux);
+		if(bestPosX>myL-1)
+			bestPosX=myL-1;
+		else if(bestPosX<0)
+			bestPosX=0;
+		int bestPosY = (int)round(estYAux);
+		if(bestPosY>myL-1)
+			bestPosY=myL-1;
+		else if(bestPosY<0)
+			bestPosY=0;
+		printf(". BEST POS for particle %d. Shift %d, %d \n", countForPart, shiftX[bestPosX], shiftY[bestPosY]);
 
-			finalPosX[countForPart]=shiftX[bestPosX];
-			finalPosY[countForPart]=shiftY[bestPosY];
+		finalPosX[countForPart]=shiftX[bestPosX];
+		finalPosY[countForPart]=shiftY[bestPosY];
 
-			if (countForPart==nFrames-1){
+		if (countForPart==nFrames-1){
 
-				PseudoInverseHelper pseudoInverter;
-				Matrix2D<double> &X = pseudoInverter.A;
-				Matrix1D<double> &y = pseudoInverter.b;
-				Matrix1D<double> resultX(nFrames);
-				Matrix1D<double> resultY(nFrames);
-				X.resizeNoCopy(nFrames,3);
-				y.resizeNoCopy(nFrames);
-				for(int jj=0; jj<nFrames; jj++){
-					X(jj,0)=1;
-					X(jj,1)=jj+1;
-					X(jj,2)=(jj+1)*(jj+1);
-					//X(ii,3)=(ii+1)*(ii+1)*(ii+1);
-					y(jj)=finalPosX[jj];
-				}
-				Matrix1D<double> alpha(3);
-				solveLinearSystem(pseudoInverter, alpha);
-				printf("SOLVING LINEAR SYSTEM FOR X \n");
-				printf("alpha(0)=%lf \n", alpha(0));
-				printf("alpha(1)=%lf \n", alpha(1));
-				printf("alpha(2)=%lf \n", alpha(2));
-				//printf("alpha(3)=%lf \n", alpha(3));
-				matrixOperation_Ax(X, alpha, resultX);
-
-				y.resizeNoCopy(nFrames);
-				for(int jj=0; jj<nFrames; jj++){
-					y(jj)=finalPosY[jj];
-				}
-				solveLinearSystem(pseudoInverter, alpha);
-				printf("SOLVING LINEAR SYSTEM FOR Y \n");
-				printf("alpha(0)=%lf \n", alpha(0));
-				printf("alpha(1)=%lf \n", alpha(1));
-				printf("alpha(2)=%lf \n", alpha(2));
-				//printf("alpha(3)=%lf \n", alpha(3));
-				matrixOperation_Ax(X, alpha, resultY);
-
-				//Ifinal().resize(Ipart());
-				//Ifinal().initZeros();
-				for(int mm=0; mm<nFrames; mm++){
-					if(resultShiftX.size() != (ii-(nFrames-1)+mm))
-						std::cerr << "Error saving data" << std::endl;
-					else{
-						resultShiftX.push_back(resultX(mm));
-						resultShiftY.push_back(resultY(mm));
-						printf("Particle %d frame %d shiftX %lf shiftY %lf \n", ii, mm, resultX(mm), resultY(mm));
-					}
-					//selfTranslate(NEAREST, Ipart(), vectorR2(round(resultX(mm)), round(resultY(mm))), DONT_WRAP, 0.0);
-					//Ifinal()+=Ipart();
-				}
-
+			PseudoInverseHelper pseudoInverter;
+			Matrix2D<double> &X = pseudoInverter.A;
+			Matrix1D<double> &y = pseudoInverter.b;
+			Matrix1D<double> resultX(nFrames);
+			Matrix1D<double> resultY(nFrames);
+			X.resizeNoCopy(nFrames,3);
+			y.resizeNoCopy(nFrames);
+			for(int jj=0; jj<nFrames; jj++){
+				X(jj,0)=1;
+				X(jj,1)=jj+1;
+				X(jj,2)=(jj+1)*(jj+1);
+				//X(ii,3)=(ii+1)*(ii+1)*(ii+1);
+				y(jj)=finalPosX[jj];
 			}
+			Matrix1D<double> alpha(3);
+			solveLinearSystem(pseudoInverter, alpha);
+			printf("SOLVING LINEAR SYSTEM FOR X \n");
+			printf("alpha(0)=%lf \n", alpha(0));
+			printf("alpha(1)=%lf \n", alpha(1));
+			printf("alpha(2)=%lf \n", alpha(2));
+			//printf("alpha(3)=%lf \n", alpha(3));
+			matrixOperation_Ax(X, alpha, resultX);
 
-			//if(iterPart->hasNext())
-				//iterPart->moveNext();
+			y.resizeNoCopy(nFrames);
+			for(int jj=0; jj<nFrames; jj++){
+				y(jj)=finalPosY[jj];
+			}
+			solveLinearSystem(pseudoInverter, alpha);
+			printf("SOLVING LINEAR SYSTEM FOR Y \n");
+			printf("alpha(0)=%lf \n", alpha(0));
+			printf("alpha(1)=%lf \n", alpha(1));
+			printf("alpha(2)=%lf \n", alpha(2));
+			//printf("alpha(3)=%lf \n", alpha(3));
+			matrixOperation_Ax(X, alpha, resultY);
 
-		}//end loop particles
+			//Ifinal().resize(Ipart());
+			//Ifinal().initZeros();
+			std::vector<int>::iterator it2;
+			it2 = find(partIds.begin(), partIds.end(), (int)partId);
+			int index = std::distance(partIds.begin(), it2);
+			//printf("INDEX %d \n", index);
+
+			for(int mm=0; mm<nFrames; mm++){
+
+				int pos = index+mm;
+				resultShiftX[pos]=(int)round(resultX(mm));
+				resultShiftY[pos]=(int)round(resultY(mm));
+				printf("Particle %d with id %d in frame %d: shiftX %lf shiftY %lf \n", ii, (int)partId, mm, resultX(mm), resultY(mm));
+				/*if(resultShiftX.size() != (ii-(nFrames-1)+mm))
+					std::cerr << "Error saving data" << std::endl;
+				else{
+					resultShiftX.push_back(resultX(mm));
+					resultShiftY.push_back(resultY(mm));
+					printf("Particle %d frame %d shiftX %lf shiftY %lf \n", ii, mm, resultX(mm), resultY(mm));
+				}*/
+			}
+			/*std::cout << "RESULTS" << std::endl;
+			for(int mm=0; mm<partIds.size(); mm++)
+				printf("%d ",resultShiftX[mm]);
+			printf("\n");
+			for(int mm=0; mm<partIds.size(); mm++)
+				printf("%d ",resultShiftY[mm]);
+			printf("\n");*/
+
+		}
+
+		//if(iterPart->hasNext())
+			//iterPart->moveNext();
+
+	}//end loop particles
 
 
 	/*FileName fnOut;
@@ -1121,18 +1147,13 @@ void ProgParticlePolishing::run()
 
 	writingOutput(XSIZE(Ipart()), YSIZE(Ipart()));
 
-
 	exit(0);
-
-
-	//FIN AJ ML
-
 
 	/////////////////////////
 	//Second Part
 	/////////////////////////
 
-	mdPartPrev.read(fnOut,NULL);
+	mdPartPrev.read(fnMdMov,NULL);
 	mdPartSize = mdPartPrev.size();
 	mdPart.sort(mdPartPrev, MDL_MICROGRAPH_ID);
 
@@ -1149,8 +1170,21 @@ void ProgParticlePolishing::run()
 	int Nsteps=1;
 	double bandSize=0.5/(double)Nsteps;
 	double maxvalue=-1.;
-	//size_t mvId, frId, partId;
-	Iavg().resize(XSIZE(Ipart()), YSIZE(Ipart()));
+
+	std::vector<int> numPartPerMovA;
+	for(int i=0; i<=nMics; i++){
+		numPartPerMovA.push_back(0);
+	}
+	int prevId=-1;
+	for(int i=0; i<mvIds.size(); i++){
+		if(enables[i]==1 && partIds[i]!=prevId){
+			numPartPerMovA[mvIds[i]]++;
+			prevId = partIds[i];
+		}
+	}
+	std::cerr << " size numPartPerMovA " << numPartPerMovA.size() << std::endl;
+	for (int i=0; i<numPartPerMovA.size(); i++)
+		std::cerr << " numPartPerMovA[" << i << "] = "<< numPartPerMovA[i] << std::endl;
 
 
 	iterPart->init(mdPart);
@@ -1185,6 +1219,8 @@ void ProgParticlePolishing::run()
 	std::cerr << " size numPartPerMov " << numPartPerMov.size() << std::endl;
 	for (int i=0; i<numPartPerMov.size(); i++)
 		std::cerr << " numPartPerMov[" << i << "] = "<< numPartPerMov[i] << std::endl;
+
+	exit(0);
 
 	int countOutMd=0;
 	prevMvId=-1;
@@ -1272,127 +1308,38 @@ void ProgParticlePolishing::run()
 
 			//std::cerr << "- Particle: " << partId << " and frequency " << n << std::endl;
 
-				Ipart.read(fnPart);
-				Ipart().setXmippOrigin();
+			Ipart.read(fnPart);
+			Ipart().setXmippOrigin();
 
-				projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
-				applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
-				projV().setXmippOrigin();
-				//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
+			projectVolume(*projectorV, PV, xdim, xdim,  rot, tilt, psi);
+			applyGeometry(LINEAR,projV(),PV(),A,IS_INV,DONT_WRAP,0.);
+			projV().setXmippOrigin();
+			//TODO: ver si estamos alineando en sentido correcto la proyeccion - hecho en el debugging en el produceSideInfo
 
-				//To invert contrast in the projections
-				double Dmin, Dmax, irange, val;
-				projV().computeDoubleMinMax(Dmin, Dmax);
-				irange=1.0/(Dmax - Dmin);
-				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
-					val=DIRECT_MULTIDIM_ELEM(projV(),n);
-					DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
-				}
+			//To invert contrast in the projections
+			double Dmin, Dmax, irange, val;
+			projV().computeDoubleMinMax(Dmin, Dmax);
+			irange=1.0/(Dmax - Dmin);
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
+				val=DIRECT_MULTIDIM_ELEM(projV(),n);
+				DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
+			}
 
-				//filtering the projections with the ctf
-				ctf.readFromMdRow(currentRow);
-				ctf.produceSideInfo();
-				ctf.applyCTF(projV(), samplingRate, false);
+			//filtering the projections with the ctf
+			ctf.readFromMdRow(currentRow);
+			ctf.produceSideInfo();
+			ctf.applyCTF(projV(), samplingRate, false);
 
-				//averaging movie particle image with the ones in all the frames but without the current one
-				averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
-				//TODO check how we have to average the movie particles to calculate the correlations
+			//averaging movie particle image with the ones in all the frames but without the current one
+			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, true);
+			//TODO check how we have to average the movie particles to calculate the correlations
 
-				//To obtain the maximum value of correlation we need the "particle", all frames averaged and stored in Imean
-				Image<double> Imean;
-				Imean().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
-				averagingAll(mdPart, Ipart(), Imean(), partId, frId, mvId, false);
-				double meanD, stdD;
-				Imean().computeAvgStdev(meanD,stdD);
-
-				//To study what happens with the ML with a Poisson
-				std::cerr << "FOR Movie ID: " << mvId << ". Working with Slope: " << slope << ". Intercept: " << intercept <<  std::endl;
-				double likelihoodRef=0.;
-				double likelihoodFr=0.;
-				double likelihoodAvg=0.;
-				double lambda, factRef, factFr, factAvg;
-				double maxShift = XSIZE(Imean())/2-10;
-				double maxShift2 = maxShift*maxShift;
-				int count=0;
-				for(int n=0; n<YSIZE(Imean()); n++){
-					for(int m=0; m<XSIZE(Imean()); m++){
-						if ((n-round(YSIZE(Imean())/2))*(n-round(YSIZE(Imean())/2))+(m-round(XSIZE(Imean())/2))*(m-round(XSIZE(Imean())/2))>maxShift2) // continue if the Euclidean distance is too far
-							continue;
-						count++;
-						factRef=1.;
-						lambda = slope*DIRECT_A2D_ELEM(projV(), n, m)+intercept;
-						if (DIRECT_A2D_ELEM(Imean(), n, m)>0){
-							for(int aa=1; aa<=DIRECT_A2D_ELEM(Imean(), n, m); aa++)
-								factRef = factRef*aa;
-						}
-						likelihoodRef += -1.*lambda + DIRECT_A2D_ELEM(Imean(), n, m)*log(lambda) - log(factRef);
-
-						factFr=1.;
-						if (DIRECT_A2D_ELEM(Ipart(), n, m)>0){
-							for(int aa=1; aa<=DIRECT_A2D_ELEM(Ipart(), n, m); aa++)
-								factFr = factFr*aa;
-						}
-						likelihoodFr += -1.*lambda + DIRECT_A2D_ELEM(Ipart(), n, m)*log(lambda) - log(factFr);
-
-						factAvg=1.;
-						if (DIRECT_A2D_ELEM(Iavg(), n, m)>0){
-							for(int aa=1; aa<=DIRECT_A2D_ELEM(Iavg(), n, m); aa++)
-								factAvg = factAvg*aa;
-						}
-						likelihoodAvg += -1.*lambda + DIRECT_A2D_ELEM(Iavg(), n, m)*log(lambda) - log(factAvg);
-					}
-				}
-
-				/*/AJ para leer phantom y promediar
-				Image<double> Itot, Imean;
-				Iproj.read("projNueva.mrc");
-				Iproj().setXmippOrigin();
-				Itot().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
-				Imean().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
-				//if (partId==5818){
-					Image<int> Isimul;
-					int count=0;
-					for (int ii=0; ii<24; ii++){
-						Isimul.read(formatString("simuladaNuevaShift_%i.mrc", ii));
-						if (frId==ii+1){
-							FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Isimul()){
-								DIRECT_MULTIDIM_ELEM(Imean(), n) += (double)DIRECT_MULTIDIM_ELEM(Isimul(), n);
-							}
-							continue;
-						}
-						FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Isimul()){
-							DIRECT_MULTIDIM_ELEM(Itot(), n) += (double)DIRECT_MULTIDIM_ELEM(Isimul(), n);
-							DIRECT_MULTIDIM_ELEM(Imean(), n) += (double)DIRECT_MULTIDIM_ELEM(Isimul(), n);
-						}
-						count++;
-					}
-					Itot()/=23.0;
-					Itot.write(formatString("total_%i.mrc", 24));
-					Imean()/=24.0;
-					Imean.write(formatString("mean_%i.mrc", 24));
-
-					double meanD, stdD;
-					Imean().computeAvgStdev(meanD,stdD);
-					Iavg().initZeros(XSIZE(Isimul()), YSIZE(Isimul()));
-					projV().initZeros(XSIZE(Isimul()), YSIZE(Isimul()));
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Itot()){
-						DIRECT_MULTIDIM_ELEM(Iavg(), n) = (double)DIRECT_MULTIDIM_ELEM(Itot(), n);
-					}
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Iproj()){
-						DIRECT_MULTIDIM_ELEM(projV(), n) = (double)DIRECT_MULTIDIM_ELEM(Iproj(), n);
-					}
-
-					double Dmin, Dmax, irange, val;
-					projV().computeDoubleMinMax(Dmin, Dmax);
-					irange=1.0/(Dmax - Dmin);
-					FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(projV()){
-						val=DIRECT_MULTIDIM_ELEM(projV(),n);
-						DIRECT_MULTIDIM_ELEM(projV(),n) = (Dmax - val) * irange;
-					}
-					Iavg.write(formatString("myAvg.mrc"));
-					projV.write(formatString("myProj.mrc"));
-
-				//FIN AJ phantom lectura/*/
+			//To obtain the maximum value of correlation we need the "particle", all frames averaged and stored in Imean
+			Image<double> Imean;
+			Imean().initZeros(XSIZE(Iproj()),YSIZE(Iproj()));
+			averagingAll(mdPart, Ipart(), Imean(), partId, frId, mvId, false);
+			double meanD, stdD;
+			Imean().computeAvgStdev(meanD,stdD);
 
 			//cutfreq = inifreq + step*n;
 
@@ -1436,7 +1383,7 @@ void ProgParticlePolishing::run()
 
 			//weight = corrNRef-corrN; //TODO
 			weight = corrN; //TODO
-			printf("%lf %lf  --  %lf %lf %lf \n", corrNRef, corrN, likelihoodRef, likelihoodFr, likelihoodAvg);
+			printf("%lf %lf  \n", corrNRef, corrN);
 			if(weight>maxvalue)
 				maxvalue=weight;
 

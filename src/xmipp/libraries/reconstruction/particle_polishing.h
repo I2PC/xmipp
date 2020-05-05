@@ -52,7 +52,8 @@ public:
 	std::vector<std::string> fnParts;
 	CTFDescription *ctfs;
 	size_t mdPartSize;
-	std::vector<double> resultShiftX, resultShiftY;
+	int *resultShiftX;
+	int *resultShiftY;
 
 
 public:
