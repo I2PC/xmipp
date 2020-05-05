@@ -45,6 +45,9 @@ public:
     /// Output Volume (deformed input volume)
     FileName fnVolOut;
 
+    /// Root name for several output files
+    FileName fnRoot;
+
     /// Save the deformation of each voxel for local strain and rotation analysis
     bool analyzeStrain;
 
