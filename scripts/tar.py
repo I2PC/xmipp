@@ -62,6 +62,7 @@ def run(label, version, branch):
         os.system('./xmipp config')  # just to write the config file
         os.system('./xmipp get_dependencies')
         os.system('./xmipp get_devel_sources %s' % branch)
+        os.system('rm xmipp.conf')
         os.chdir(cwd)
 
     excludeTgz = ''
