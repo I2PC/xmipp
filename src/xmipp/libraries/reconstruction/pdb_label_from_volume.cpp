@@ -85,42 +85,41 @@ void ProgPdbValueToVol::show()
 /* Produce Side Info ------------------------------------------------------- */
 void ProgPdbValueToVol::produceSideInfo()
 {
+    Image<double> V, M;
+    V.read(fnVol);
+    V().setXmippOrigin();
+    inputVol = V();
+    inputVol.setXmippOrigin();
 
-	Image<double> V, M;
-	V.read(fnVol);
-	V().setXmippOrigin();
-	inputVol = V();
-	inputVol.setXmippOrigin();
+    if (withMask)
+    {
+        M.read(fnMask);
+        inputMask = M();
+        inputMask.setXmippOrigin();
+    }
 
-	if (withMask)
-	{
-		M.read(fnMask);
-		inputMask = M();
-		inputMask.setXmippOrigin();
-	}
+    //Origin of the volume
+    if (defOrig)
+    {
+        STARTINGZ(inputVol) = -textToInteger(origin[2]);
+        STARTINGY(inputVol) = -textToInteger(origin[1]);
+        STARTINGX(inputVol) = -textToInteger(origin[0]);
 
-	//Origin of the volume
-	if (defOrig)
-	{
-		STARTINGZ(inputVol) = -textToInteger(origin[2]);
-		STARTINGY(inputVol) = -textToInteger(origin[1]);
-		STARTINGX(inputVol) = -textToInteger(origin[0]);
+        STARTINGZ(inputMask) = -textToInteger(origin[2]);
+        STARTINGY(inputMask) = -textToInteger(origin[1]);
+        STARTINGX(inputMask) = -textToInteger(origin[0]);
+    }
 
-		STARTINGZ(inputMask) = -textToInteger(origin[2]);
-		STARTINGY(inputMask) = -textToInteger(origin[1]);
-		STARTINGX(inputMask) = -textToInteger(origin[0]);
-	}
+    else
+    {
+        STARTINGZ(inputVol) = 0;
+        STARTINGY(inputVol) = 0;
+        STARTINGX(inputVol) = 0;
 
-	else
-	{
-		STARTINGZ(inputVol) = 0;
-		STARTINGY(inputVol) = 0;
-		STARTINGX(inputVol) = 0;
-
-		STARTINGZ(inputMask) = 0;
-		STARTINGY(inputMask) = 0;
-		STARTINGX(inputMask) = 0;
-	}
+        STARTINGZ(inputMask) = 0;
+        STARTINGY(inputMask) = 0;
+        STARTINGX(inputMask) = 0;
+    }
 
 }
 
@@ -131,9 +130,9 @@ void ProgPdbValueToVol::computeProteinGeometry()
     std::ofstream fh_out(fn_out);
     fh_pdb.open(fn_pdb.c_str());
 
-	MetaData mdmean;
-	size_t objId;
-	objId = mdmean.addObject();
+    MetaData mdmean;
+    size_t objId;
+    objId = mdmean.addObject();
 
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
@@ -149,13 +148,13 @@ void ProgPdbValueToVol::computeProteinGeometry()
         getline(fh_pdb, line);
         if (line == "")
         {
-    		fh_out << line << " \n";
+            fh_out << line << " \n";
             continue;
         }
         std::string kind = line.substr(0,4);
         if (kind != "ATOM" && kind !="HETA")
         {
-    		fh_out << line << " \n";
+            fh_out << line << " \n";
             continue;
         }
 
@@ -205,82 +204,80 @@ void ProgPdbValueToVol::computeProteinGeometry()
                 {
                     double xdiff=XX(r) - j;
                     double rdiffModule2=zydiff2+xdiff*xdiff;
-                	if (withMask)
-                	{
-						if ( (rdiffModule2<radius2 || (k==ka && i==ia && j==ja)) && (inputMask(k, i , j)>0.00001) )
-						{
+                    if (withMask)
+                    {
+                        if ( (rdiffModule2<radius2 || (k==ka && i==ia && j==ja)) && (inputMask(k, i , j)>0.00001) )
+                        {
+                            atomS += A3D_ELEM(inputVol,k, i, j);
+                            ++cont;
 
-							atomS += A3D_ELEM(inputVol,k, i, j);
-							++cont;
+                            //Positivity
+                            if (A3D_ELEM(inputVol,k, i, j) < 0)
+                            {
+                                value = -A3D_ELEM(inputVol,k, i, j);
+                                atomP += atomP;
+                            }
+                            else
+                                atomP += A3D_ELEM(inputVol,k, i, j);
 
-							//Positivity
-							if (A3D_ELEM(inputVol,k, i, j) < 0)
-							{
-								value = -A3D_ELEM(inputVol,k, i, j);
-								atomP += atomP;
-							}
-							else
-								atomP += A3D_ELEM(inputVol,k, i, j);
+                            //Negativity
+                            if (A3D_ELEM(inputVol,k, i, j) > 0)
+                            {
+                                value = -A3D_ELEM(inputVol,k, i, j);
+                                atomN += atomN;
+                            }
+                            else
+                                atomN += A3D_ELEM(inputVol,k, i, j);
 
+                        }
+                    }
+                    else
+                    {
+                        if ( (rdiffModule2<radius2) || (k==ka && i==ia && j==ja))
+                        {
+                            atomS+=A3D_ELEM(inputVol,k, i, j);
+                            ++cont;
 
-							//Negativity
-							if (A3D_ELEM(inputVol,k, i, j) > 0)
-							{
-								value = -A3D_ELEM(inputVol,k, i, j);
-								atomN += atomN;
-							}
-							else
-								atomN += A3D_ELEM(inputVol,k, i, j);
-
-						}
-                	}
-                	else
-                	{
-						if ( (rdiffModule2<radius2) || (k==ka && i==ia && j==ja))
-						{
-							atomS+=A3D_ELEM(inputVol,k, i, j);
-							++cont;
-
-							//Positivity
-							if (A3D_ELEM(inputVol,k, i, j) < 0)
-							{
-								value = -A3D_ELEM(inputVol,k, i, j);
-								atomP += value;
-							}
-							else
-								atomP += A3D_ELEM(inputVol,k, i, j);
+                            //Positivity
+                            if (A3D_ELEM(inputVol,k, i, j) < 0)
+                            {
+                                value = -A3D_ELEM(inputVol,k, i, j);
+                                atomP += value;
+                            }
+                            else
+                                atomP += A3D_ELEM(inputVol,k, i, j);
 
 
-							//Negativity
-							if (A3D_ELEM(inputVol,k, i, j) > 0)
-							{
-								value = -A3D_ELEM(inputVol,k, i, j);
-								atomN += atomN;
-							}
-							else
-								atomN += A3D_ELEM(inputVol,k, i, j);
+                            //Negativity
+                            if (A3D_ELEM(inputVol,k, i, j) > 0)
+                            {
+                                value = -A3D_ELEM(inputVol,k, i, j);
+                                atomN += atomN;
+                            }
+                            else
+                                atomN += A3D_ELEM(inputVol,k, i, j);
 
-						}
-                	}
+                        }
+                    }
 
                 }
             }
         }
 
         if (atomS>=0)
-        	atomS = atomP;
+            atomS = atomP;
         else
-        	atomS = atomN;
+            atomS = atomN;
 
         if (atomS != 0)
-        	atomS=atomS/cont;
+            atomS=atomS/cont;
         else
-        	atomS=0.00;
+            atomS=0.00;
 
         if (atomP != 0)
             atomP=atomP/cont;
         else
-        	atomP=0.00;
+            atomP=0.00;
 
 
         ++numA;
@@ -294,12 +291,12 @@ void ProgPdbValueToVol::computeProteinGeometry()
         if (atomS<0)
             line.replace(55, 5, s, 0, 5);
         else
-        	line.replace(56, 4, s, 0, 4);
+            line.replace(56, 4, s, 0, 4);
+//		    std::cout << line << std::endl;
 
-//		std::cout << line << std::endl;
-
-		fh_out << line << " \n";
+        fh_out << line << " \n";
     }
+
     double mean = suma/numA;
     double meanA = sumaP/numA;
     std::cout << "mean value: = " << mean << std::endl;
@@ -319,10 +316,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
 /* Run --------------------------------------------------------------------- */
 void ProgPdbValueToVol::run()
 {
-
-
     produceSideInfo();
     show();
     computeProteinGeometry();
-
 }
