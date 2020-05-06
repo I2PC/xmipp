@@ -33,7 +33,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("   -i <volume>                         : Volume to deform");
 	addParamsLine("   -r <volume>                         : Reference volume");
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
-	addParamsLine("  [--oroot <rootname>]                 : Root name for output files");
+	addParamsLine("  [--oroot <rootname=\"Volumes\">]                 : Root name for output files");
 	addParamsLine("                                       : By default, the input file is rewritten");
 	addParamsLine("  [--sigma <Matrix1D=\"\">]	      : Sigma values to filter the volume to perform a multiresolution analysis");
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
