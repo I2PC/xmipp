@@ -40,6 +40,8 @@ VERSION_TAG = "Xmipp version"
 ##############################
 XMIPP_VERSION = '3.20.07a0'  #
 RELEASE_DATE = 'not released yet'  #
+RELEASE_BRANCH = '(None)'    # <-- to be filled by scripts/tar.py
+RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py
 ##############################
 
 XMIPP = 'xmipp'
@@ -88,8 +90,11 @@ def stampVersion():
     LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
 
     def getCommit(repo):
-        found, br, hsh = getCurrentBranch(os.path.join('src', repo), getHash=True)
-        return "%s (%s)" % (br, hsh) if found else "(no git repo detected)"
+        commitStr = "%s (%s)" % (RELEASE_BRANCH, RELEASE_HASH)
+        if ensureGit(False):
+            found, br, hsh = getCurrentBranch(os.path.join('src', repo), getHash=True)
+            commitStr = "%s (%s)" % (br, hsh) if found else "(no git repo detected)"
+        return commitStr
 
     compilingInfo = {'VERSION_TAG': VERSION_TAG,
                      'XMIPP_VERSION': XMIPP_VERSION,
@@ -266,7 +271,8 @@ def cleanSources():
     runJob("rm -rf src/xmipp/bin")
     runJob("rm -rf src/xmipp/lib")
     runJob("rm -rf src/xmipp/.sconsign.dblite")
-    runJob("git stash")  # to get exactly like in repo
+    if ensureGit(False):
+        runJob("git stash") # to get exactly like in repo
 
 
 def cleanBinaries():
@@ -398,6 +404,7 @@ def getDefaultBranch(repo):
 
 def getSources(branch):
     print("Getting sources -------------------------------------")
+    ensureGit(True)
     createDir("src")
     repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
     if 'TRAVIS' not in os.environ: 
@@ -416,6 +423,7 @@ def is_config_true(key):
 
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
+    ensureGit(True)
     createDir("src")
     result = True
     for dep, args in DEPENDENCIES.items():
@@ -1460,31 +1468,32 @@ def ensureConfig():
         sys.exit(-6)
 
 
-def ensureGit():
-    if not checkProgram('git'):
-        print(red('Git not found'))
-        return False
+def ensureGit(critical=False):
+    if not checkProgram('git', critical):
+        if critical or RELEASE_HASH == '*******':
+            print(red("Git not found."))
+            sys.exit(-1)
+        else:
+            return False
     return True
 
 
 def getScriptVersion():
-    scriptName = os.path.basename(__file__)
-    lastCommit = []
-    # get hash of the last commit changing this script
-    runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False)
-    return lastCommit[0].strip()
+    if ensureGit(False):
+        scriptName = os.path.basename(__file__)
+        lastCommit = []
+        # get hash of the last commit changing this script
+        if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
+            return lastCommit[0].strip()
+        else:
+            return RELEASE_HASH
+    else:
+        return RELEASE_HASH
 
 
 if __name__ == '__main__':
     # Running always under this own directory.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-    XMIPP_SCRIPT_VERSION = getScriptVersion()
-
-    if not ensureGit():
-        sys.exit(-1)
-
-    configDict = readConfigFile(CONFIG_FILE_NAME)
 
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
@@ -1497,6 +1506,14 @@ if __name__ == '__main__':
         mode = sys.argv[1]
     else:
         mode = "all"
+
+    # if not ensureGit():
+    #     sys.exit(-1)
+
+    XMIPP_SCRIPT_VERSION = getScriptVersion()
+
+    configDict = readConfigFile(CONFIG_FILE_NAME)
+
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
         print("         Notice that if you have unpushed changes, \n"
@@ -1603,11 +1620,13 @@ if __name__ == '__main__':
             dir="."
         writeDevelPaths(dir)
     elif mode=="git":
+        ensureGit(True)
         runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
     elif mode=="gitConfig":
+        ensureGit(True)
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
