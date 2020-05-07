@@ -118,8 +118,8 @@ protected:
     	// read vol1
     	V.read(fnVol1);
     	// FT vol1
-    	transformer.FourierTransform(V(),V1Fourier,false);
-    	FFT_magnitude(V1Fourier,V1FourierMag);
+    	//transformer.FourierTransform(V(),V1Fourier,false);
+    	//FFT_magnitude(V1Fourier,V1FourierMag);
 
     	MultidimArray<int> mask1;
 		Image<int> mask;
@@ -132,18 +132,28 @@ protected:
 			mask.read(fnMask2);
 			// mask intersection
 			mask()*=mask1;
-			mask.write("commonmask.mrc");
-			// mask vol1 with common mask
-			POCSmask(mask(),V());
-			V.write("V1masked.mrc");
-			//read vol2
-			V.read(fnVol2);
-			// mask vol2 with common mask
-			POCSmask(mask(),V());
-			V.write("V2masked.mrc");
 		}
 		else
-			V.read(fnVol2);
+		{
+            typeCast(V(), mask1);
+            FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask1)
+			DIRECT_MULTIDIM_ELEM(mask1,n)=1;
+            mask()=mask1;
+		}
+
+		mask.write("commonmask.mrc");
+		// mask vol1 with common mask
+		POCSmask(mask(),V());
+    	POCSnonnegative(V());
+    	transformer.FourierTransform(V(),V1Fourier,false);
+    	FFT_magnitude(V1Fourier,V1FourierMag);
+		double std1 = V().computeStddev();
+		V.write("V1masked.mrc");
+		//read vol2
+		V.read(fnVol2);
+		// mask vol2 with common mask
+		POCSmask(mask(),V());
+		V.write("V2masked.mrc");
 
     	// Get original phase vol2
     	MultidimArray<std::complex<double> > V2FourierPhase;
@@ -155,15 +165,22 @@ protected:
     		// Apply POCS to modify iteratively vol2
     		transformer.FourierTransform(V(),V2Fourier,false);
     		POCSFourierAmplitude(V1FourierMag,V2Fourier);
-    		V.write("V2masked_Amp1.mrc");
+        	transformer.inverseFourierTransform();
+			POCSmask(mask(),V());
+    		V.write(formatString("V2masked_Amp1_%d.mrc", n));
+    		transformer.FourierTransform();
+    		//V2FourierPhase = V2Fourier;
+        	//extractPhase(V2FourierPhase);
     		POCSFourierPhase(V2FourierPhase,V2Fourier);
         	transformer.inverseFourierTransform();
-    		V.write("V2masked_Amp1_ph2.mrc");
+    		V.write(formatString("V2masked_Amp1_ph2_%d.mrc", n));
         	POCSnonnegative(V());
-    		V.write("V2masked_Amp1_ph2_nonneg.mrc");
+			double  std2 = V().computeStddev();
+			V()*=std1/std2;
+    		V.write(formatString("V2masked_Amp1_ph2_nonneg_%d.mrc", n));
     	}
     	// FT final vol2
-    	transformer.FourierTransform(V(),V2Fourier,false);
+    	//transformer.FourierTransform(V(),V2Fourier,false);
 
     	// Define m depending on if vol2 is a pdb
     	MultidimArray<double> m;
@@ -174,11 +191,15 @@ protected:
     	else
 			MultidimArrayMIN(V1FourierMag,V2FourierMag,m);
 
+    	//transformer.inverseFourierTransform();
     	// Subtraction: m*(vol1-vol2modif)
-    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V2Fourier)
-    	DIRECT_MULTIDIM_ELEM(V2Fourier,n)=DIRECT_MULTIDIM_ELEM(m,n)*(DIRECT_MULTIDIM_ELEM(V1Fourier,n)/DIRECT_MULTIDIM_ELEM(V1FourierMag,n)-
-    			                                                     DIRECT_MULTIDIM_ELEM(V2Fourier,n)/DIRECT_MULTIDIM_ELEM(V2FourierMag,n));
-    	transformer.inverseFourierTransform();
-		V.write(fnDiff);
+    	Image<double> V1;
+    	V1.read(fnVol1);
+    	V1()-= V();
+
+    	//FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V2Fourier)
+    	//DIRECT_MULTIDIM_ELEM(V2Fourier,n)=DIRECT_MULTIDIM_ELEM(m,n)*(DIRECT_MULTIDIM_ELEM(V1Fourier,n)/DIRECT_MULTIDIM_ELEM(V1FourierMag,n)-
+    	//		                                                     DIRECT_MULTIDIM_ELEM(V2Fourier,n)/DIRECT_MULTIDIM_ELEM(V2FourierMag,n));
+		V1.write(fnDiff);
     }
 };
