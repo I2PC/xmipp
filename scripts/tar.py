@@ -61,7 +61,7 @@ def run(label, version, branch):
         os.environ['CUDA'] = 'True'
         os.system("sed -i -e 's/^RELEASE_BRANCH = .*/RELEASE_BRANCH = %s/' xmipp"
                   % branch)
-        hash = subprocess.Popen("git rev-parse --short HEAD",
+        hash = subprocess.Popen(["git", "rev-parse --short HEAD"],
                                 stdout=subprocess.PIPE).stdout.read().decode("utf-8")
         os.system("sed -i -e 's/^RELEASE_HASH = .*/RELEASE_HASH = %s/' xmipp"
                   % hash)
