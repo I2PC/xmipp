@@ -251,6 +251,13 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
+
+    //Save centered PDB
+    PDBRichPhantom centered_pdb;
+    int a = 0;
+    if (doCenter)
+        centered_pdb.read(fn_pdb);
+
     fh_pdb.open(fn_pdb.c_str());
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
@@ -270,6 +277,9 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         if (kind != "ATOM" && kind !="HETA")
             continue;
 
+        // Save centered PDB
+        RichAtom& atom_i=centered_pdb.atomList[a];
+
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
@@ -282,7 +292,13 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         Matrix1D<double> r(3);
         VECTOR_R3(r, x, y, z);
         if (doCenter)
+        {
             r -= centerOfMass;
+            atom_i.x -= XX(centerOfMass);
+            atom_i.y -= YY(centerOfMass);
+            atom_i.z -= ZZ(centerOfMass);
+            a++;
+        }
         r /= highTs;
 
         // Characterize atom
@@ -337,6 +353,13 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     // Close file
     fh_pdb.close();
+
+    // Save centered PDB
+    if (doCenter)
+    {
+        if (fn_out!="")
+            centered_pdb.write(fn_out + ".pdb");
+    }
 }
 
 /* Create protein at a low sampling rate ----------------------------------- */
@@ -395,6 +418,12 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     if (!fh_pdb)
         REPORT_ERROR(ERR_IO_NOTEXIST, fn_pdb);
 
+    //Save centered PDB
+    PDBRichPhantom centered_pdb;
+    int a = 0;
+    if (doCenter)
+        centered_pdb.read(fn_pdb);
+
     // Process all lines of the file
     std::string line, kind, atom_type;
     double iTs=1.0/Ts;
@@ -418,10 +447,19 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         double y = textToFloat(line.substr(38,8));
         double z = textToFloat(line.substr(46,8));
 
+        // Save centered PDB
+        RichAtom& atom_i=centered_pdb.atomList[a];
+
         // Correct position
         VECTOR_R3(r, x, y, z);
         if (doCenter)
+        {
             r -= centerOfMass;
+            atom_i.x -= XX(centerOfMass);
+            atom_i.y -= YY(centerOfMass);
+            atom_i.z -= ZZ(centerOfMass);
+            a++;
+        }
         r *= iTs;
 
         // Characterize atom
@@ -471,6 +509,13 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
 
     // Close file
     fh_pdb.close();
+
+    // Save centered PDB
+    if (doCenter)
+    {
+        if (fn_out!="")
+            centered_pdb.write(fn_out + ".pdb");
+    }
 }
 
 /* Run --------------------------------------------------------------------- */
