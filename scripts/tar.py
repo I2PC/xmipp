@@ -60,13 +60,12 @@ def run(label, version, branch):
                   % (target, branch))
         os.chdir(target)
         os.environ['CUDA'] = 'True'
-        os.system("sed -i -e 's/^RELEASE_BRANCH =.*/{0: <28} #/' xmipp"
+        os.system("sed -i -e 's/^RELEASE_BRANCH = .*/{0: <28} #/' xmipp"
                   .format('RELEASE_BRANCH = "%s"' % branch))
         hash = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
                                 stdout=subprocess.PIPE).stdout.read().decode("utf-8")
-        os.system("sed -i -e 's/^RELEASE_HASH =.*/{0: <28} #/' xmipp"
-                  .format('RELEASE_HASH = "%s"' % hash))
-        raise
+        os.system("sed -i -e 's/^RELEASE_HASH = .*/{0: <28} #/' xmipp"
+                  .format('RELEASE_HASH = "%s"' % hash.strip()))
         os.system('./xmipp config')  # just to write the config file
         os.system('./xmipp get_dependencies')
         os.system('./xmipp get_devel_sources %s' % branch)

@@ -30,7 +30,6 @@ import os
 import re
 import shutil
 import sys
-import unittest
 import subprocess
 from datetime import datetime
 
@@ -40,8 +39,8 @@ VERSION_TAG = "Xmipp version"
 ##############################
 XMIPP_VERSION = '3.20.07a0'  #
 RELEASE_DATE = 'not released yet'  #
-RELEASE_BRANCH = '*None*'    # <-- to be filled by scripts/tar.py
-RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py
+RELEASE_BRANCH = '*None*'    # <-- to be filled by scripts/tar.py (for prod.)
+RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py (for prod.)
 ##############################
 
 XMIPP = 'xmipp'
