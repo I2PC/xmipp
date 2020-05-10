@@ -285,6 +285,9 @@ public:
         case 'F':
             idx=6;
             break;
+        case 'K':
+            idx=7;
+            break;
         default:
             REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)
                          "AtomInterpolator::getAtomIndex: Atom "+atom+" unknown");

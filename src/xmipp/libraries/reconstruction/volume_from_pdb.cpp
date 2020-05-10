@@ -44,9 +44,10 @@ ProgPdbConverter::ProgPdbConverter()
     usePoorGaussian=false;
     useFixedGaussian=false;
     doCenter=false;
+    noHet=false;
 
     // Periodic table for the blobs
-    periodicTable.resize(7, 2);
+    periodicTable.resize(8, 2);
     periodicTable(0, 0) = atomRadius("H");
     periodicTable(0, 1) = atomCharge("H");
     periodicTable(1, 0) = atomRadius("C");
@@ -61,6 +62,8 @@ ProgPdbConverter::ProgPdbConverter()
     periodicTable(5, 1) = atomCharge("S");
     periodicTable(6, 0) = atomRadius("Fe");
     periodicTable(6, 1) = atomCharge("Fe");
+    periodicTable(7, 0) = atomRadius("K");
+    periodicTable(7, 1) = atomCharge("K");
 
     // Correct the atom weights by the blob weight
     for (size_t i = 0; i < MAT_YSIZE(periodicTable); i++)
@@ -141,6 +144,9 @@ void ProgPdbConverter::atomBlobDescription(
     case 'F':
         idx = 6;
         break;
+    case 'K':
+        idx = 7;
+        break;
     default:
     	if (verbose>0)
     		std::cout << "Unknown :" << _element << std::endl;
@@ -163,6 +169,7 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]: Sampling rate before downsampling");
     addParamsLine("  [--size <output_dim=-1>]               : Final size in pixels (must be a power of 2, if blobs are used)");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
+    addParamsLine("  [--noHet]                           : Heteroatoms are not converted");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
     addParamsLine("  [--poor_Gaussian]                   : Use a simple Gaussian adapted to each atom");
     addParamsLine("  [--fixed_Gaussian <std=-1>]         : Use a fixed Gausian for each atom with");
@@ -185,6 +192,7 @@ void ProgPdbConverter::readParams()
     if (useFixedGaussian)
         sigmaGaussian = getDoubleParam("--fixed_Gaussian");
     doCenter = checkParam("--centerPDB");
+    noHet = checkParam("--noHet");
     intensityColumn = getParam("--intensityColumn");
 }
 
@@ -198,6 +206,7 @@ void ProgPdbConverter::show()
     << "High sampling rate: " << highTs           << std::endl
     << "Size:               " << output_dim       << std::endl
     << "Center PDB:         " << doCenter         << std::endl
+    << "Do not Hetatm:      " << noHet         << std::endl
     << "Use blobs:          " << useBlobs         << std::endl
     << "Use poor Gaussian:  " << usePoorGaussian  << std::endl
     << "Use fixed Gaussian: " << useFixedGaussian << std::endl
@@ -289,7 +298,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         double weight, radius;
         if (!useFixedGaussian)
         {
-            if (atom_type=="HETA")
+            if (noHet && atom_type=="HETA")
                 continue;
             atomBlobDescription(atom_type, weight, radius);
         }
@@ -406,13 +415,23 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         if (line == "")
             continue;
         kind =line.substr(0,4);
-        if (kind != "ATOM")
-            continue;
+
+        if (noHet)
+        {
+            if (kind != "ATOM")
+                continue;
+        }
+        else
+        {
+            if (kind != "ATOM" and kind != "HETA")
+                continue;
+        }
 
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
         atom_type = line.substr(13,2);
+        std::cout << "atomos *" << atom_type << "*" << std::endl;
         char atom_type0=atom_type[0];
         double x = textToFloat(line.substr(30,8));
         double y = textToFloat(line.substr(38,8));

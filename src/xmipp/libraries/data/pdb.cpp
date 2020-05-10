@@ -58,6 +58,9 @@ int atomCharge(const std::string &atom)
     case 'F': // Iron
         return 26;
         break;
+    case 'K':
+        return 19;
+        break;
     default:
         return 0;
     }
@@ -88,6 +91,9 @@ double atomRadius(const std::string &atom)
         break;
     case 'F': // Iron
         return 1.40;
+        break;
+    case 'K':
+        return 2.20;
         break;
     default:
         return 0;
@@ -482,6 +488,20 @@ void atomDescriptors(const std::string &atom, Matrix1D<double> &descriptors)
         descriptors( 9)=22.8500; // b4
         descriptors(10)=76.7309; // b5
     }
+    else if (atom=="K")
+    {
+        descriptors( 0)=19;     // Z
+        descriptors( 1)= 0.2149; // a1
+        descriptors( 2)= 0.8703; // a2
+        descriptors( 3)= 2.4999; // a3
+        descriptors( 4)= 2.3591; // a4
+        descriptors( 5)= 3.0318; // a5
+        descriptors( 6)= 0.1660; // b1
+        descriptors( 7)= 1.6906; // b2
+        descriptors( 8)= 8.7447; // b3
+        descriptors( 9)=46.7825; // b4
+        descriptors(10)=165.6923; // b5
+    }
     else
         REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)"atomDescriptors: Unknown atom "+atom);
 }
@@ -829,7 +849,7 @@ void AtomInterpolator::setup(int m, double hights, bool computeProjection)
 {
     M=m;
     highTs=hights;
-    if (volumeProfileCoefficients.size()==7)
+    if (volumeProfileCoefficients.size()==8)
     	return;
     addAtom("H",computeProjection);
     addAtom("C",computeProjection);
@@ -838,6 +858,7 @@ void AtomInterpolator::setup(int m, double hights, bool computeProjection)
     addAtom("P",computeProjection);
     addAtom("S",computeProjection);
     addAtom("Fe",computeProjection);
+    addAtom("K",computeProjection);
 }
 
 void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
