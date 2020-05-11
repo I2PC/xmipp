@@ -43,7 +43,7 @@ public:
     MetaData mdPart;
 	Image<double> V;
 	FourierProjector *projectorV;
-	int nFrames, nMics, w, xmov, ymov;
+	int nFrames, nMics, nFilters, xmov, ymov;
 	double samplingRate;
 
 	std::vector<int> frIds, mvIds, partIds, xcoors, ycoors, enables, objIds;
@@ -65,15 +65,11 @@ public:
     void produceSideInfo();
 
     void similarity (const MultidimArray<double> &I1, const MultidimArray<double> &I2, double &corrN, double &corrM, double &corrW, double &imed, const double &meanF);
-    void averagingMovieParticles(MetaData &mdPart, MultidimArray<double> &I, size_t partId, size_t frameId, size_t movieId, int window);
-    void calculateFrameWeightPerFreq(MultidimArray<double> &matrixWeights, MultidimArray<double> &weightsperfreq, const MultidimArray<double> &maxvalues);
-    void smoothingWeights(MultidimArray<double> &in, MultidimArray<double> &out);
-    void averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent);
+    void averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent, bool applyAlign);
     void calculateCurve_1(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double step, double offset, double Dmin, double Dmax);
     void calculateCurve_2(const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double &slope, double &intercept, double Dmin, double Dmax);
-    void calculateBSplineCoeffs(MultidimArray<double> &inputMat, int boxsize, Matrix1D<double> &cij, int xdim, int ydim, int dataRow);
-    void evaluateBSpline(const MultidimArray<double> inputMat, const Matrix1D<double> cij, MultidimArray<double> &outputMat, int xdim, int ydim, int dataRow);
     void writingOutput(size_t xdim, size_t ydim);
+    void calculateWeightedFrequency(MultidimArray<double> &Ipart, int Nsteps, const std::vector<double> weights);
 
 };
 
