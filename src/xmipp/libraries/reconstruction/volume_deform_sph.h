@@ -70,7 +70,11 @@ public:
 	/// Degree of the spherical harmonic
 	int L, prevL;
 
+    /// Images
 	Image<double> VI, VR, VO, Gx, Gy, Gz;
+
+    /// Maxima of reference volumes (in absolute value)
+    std::vector<double> absMaxR_vec;
 
 	//Vector containing the degree of the Zernike-Spherical harmonics
 	Matrix1D<double> clnm;

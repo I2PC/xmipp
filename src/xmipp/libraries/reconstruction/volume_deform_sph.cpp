@@ -87,7 +87,7 @@ void ProgVolDeformSph::show() {
 }
 
 // Distance function =======================================================
-//#define DEBUG
+// #define DEBUG
 double ProgVolDeformSph::distance(double *pclnm)
 {
 	if (applyTransformation)
@@ -99,7 +99,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	size_t idxY0=VEC_XSIZE(clnm)/4;
 	size_t idxZ0=2*idxY0;
 	size_t idxR=3*idxY0;
-//	double Ncount=0.0;
+	double Ncount=0.0;
 	double totalVal=0.0;
 	double diff2=0.0;
 	const MultidimArray<double> &mVR=VR();
@@ -170,13 +170,15 @@ double ProgVolDeformSph::distance(double *pclnm)
 					if (applyTransformation && idv == 0)
 						VO(k,i,j)=voxelI;
 					diff=voxelR-voxelI;
-					diff2+=absVoxelR*diff*diff;
+					// diff2+=absMaxR_vec[idv]*diff*diff;
+					diff2+=diff*diff;
 					modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
-	//				Ncount++;
+					// modg+=(gx*gx+gy*gy+gz*gz);
+					Ncount++;
 					totalVal += absVoxelR;
 				}
 
-				if (saveDeformation)
+				if (saveDeformation) 
 				{
 					Gx(k,i,j)=gx;
 					Gy(k,i,j)=gy;
@@ -187,20 +189,33 @@ double ProgVolDeformSph::distance(double *pclnm)
 	}
 
 	deformation=std::sqrt(modg/(totalVal));
+	// deformation=std::sqrt(modg/(Ncount));
 
 #ifdef DEBUG
-	//save.write("PPPIdeformed.vol");
-	//save()-=VR();
-	//save.write("PPPdiff.vol");
-	//save()=VR();
-	//save.write("PPPR.vol");
+	Image<double> save;
+	save() = VI();
+	save.write(fnRoot+"_PPPIdeformed.vol");
+	save()-=VR();
+	save.write(fnRoot+"_PPPdiff.vol");
+	save()=VR();
+	save.write(fnRoot+"_PPPR.vol");
+	if (saveDeformation)
+	{
+		save() = Gx();
+		save.write(fnRoot+"_PPPGx.vol");
+		save() = Gy();
+		save.write(fnRoot+"_PPPGy.vol");
+		save() = Gz();
+		save.write(fnRoot+"_PPPGz.vol");
+	}
 	std::cout << "Error=" << deformation << " " << std::sqrt(diff2/totalVal) << std::endl;
-	//std::cout << "Press any key\n";
-	//char c; std::cin >> c;
+	std::cout << "Press any key\n";
+	char c; std::cin >> c;
 #endif
 	if (applyTransformation)
 		VO.write(fnVolOut);
-	return std::sqrt(diff2/totalVal);
+	// return std::sqrt(diff2/totalVal);
+	return std::sqrt(diff2/Ncount);
 }
 #undef DEBUG
 
@@ -236,6 +251,7 @@ void ProgVolDeformSph::run() {
 
 	// We need also to normalized the filtered volumes to compare them appropiately
 	MultidimArray<int> bg_mask;
+	double maxVoxelR;
 	Image<double> auxI = VI;
 	Image<double> auxR = VR;
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
@@ -245,25 +261,38 @@ void ProgVolDeformSph::run() {
 	normalize_Robust(auxI(), bg_mask, true);
 	normalize_Robust(auxR(), bg_mask, true);
 
-	volumesI.push_back(auxI());
-	volumesR.push_back(auxR());
-
-	for (int ids=0; ids<sigma.size(); ids++)
+	if (sigma.size() == 1 && sigma[0] == 0)
 	{
-		Image<double> auxI = VI;
-		Image<double> auxR = VR;
-		filter.w1 = sigma[ids];
+		volumesI.push_back(auxI());
+		volumesR.push_back(auxR());
+		maxVoxelR = auxR().computeMax();
+		absMaxR_vec.push_back(fabs(maxVoxelR));
+	}
+	else
+	{
+		volumesI.push_back(auxI());
+		volumesR.push_back(auxR());
+		maxVoxelR = auxR().computeMax();
+		absMaxR_vec.push_back(fabs(maxVoxelR));
+		for (int ids=0; ids<sigma.size(); ids++)
+		{
+			Image<double> auxI = VI;
+			Image<double> auxR = VR;
+			filter.w1 = sigma[ids];
 
-		// Filer input vol
-		filter.do_generate_3dmask = true;
-		filter.applyMaskSpace(auxI());
-		normalize_Robust(auxI(), bg_mask, true);
-		volumesI.push_back(auxI);
+			// Filer input vol
+			filter.do_generate_3dmask = true;
+			filter.applyMaskSpace(auxI());
+			normalize_Robust(auxI(), bg_mask, true);
+			volumesI.push_back(auxI);
 
-		// Filter ref vol
-		filter.applyMaskSpace(auxR());
-		normalize_Robust(auxR(), bg_mask, true);
-		volumesR.push_back(auxR);
+			// Filter ref vol
+			filter.applyMaskSpace(auxR());
+			normalize_Robust(auxR(), bg_mask, true);
+			volumesR.push_back(auxR);
+			maxVoxelR = auxR().computeMax();
+			absMaxR_vec.push_back(fabs(maxVoxelR));
+		}
 	}
 
     Matrix1D<double> steps, x, prevsteps;
@@ -333,9 +362,23 @@ void ProgVolDeformSph::run() {
         deformFile << deformation;
         deformFile.close();
 
+// #define DEBUG
+#ifdef DEBUG
+	Image<double> save;
+	save() = VI();
+	save.write(fnRoot+"_PPPIdeformed.vol");
+	save()-=VR();
+	save.write(fnRoot+"_PPPdiff.vol");
+	save()=VR();
+	save.write(fnRoot+"_PPPR.vol");
+	std::cout << "Error=" << deformation << std::endl;
+	std::cout << "Press any key\n";
+	char c; std::cin >> c;
+#endif
+
     }
     applyTransformation=true;
-	clnm.write(fnRoot+"_clnm.txt");
+	x.write(fnRoot+"_clnm.txt");
     if (analyzeStrain)
     {
     	saveDeformation=true;
@@ -348,6 +391,16 @@ void ProgVolDeformSph::run() {
     }
 
     distance(x.adaptForNumericalRecipes()); // To save the output volume
+
+#ifdef DEBUG
+		Image<double> save;
+		save() = Gx();
+		save.write(fnRoot+"_PPPGx.vol");
+		save() = Gy();
+		save.write(fnRoot+"_PPPGy.vol");
+		save() = Gz();
+		save.write(fnRoot+"_PPPGz.vol");
+#endif
 
     if (analyzeStrain)
     	computeStrain();
@@ -423,9 +476,9 @@ void ProgVolDeformSph::computeStrain()
     f.applyMaskSpace(Gy());
     f.applyMaskSpace(Gz());
 
-	Gx.write("PPPGx.vol");
-	Gy.write("PPPGy.vol");
-	Gz.write("PPPGz.vol");
+	Gx.write(fnRoot+"_PPPGx.vol");
+	Gy.write(fnRoot+"_PPPGy.vol");
+	Gz.write(fnRoot+"_PPPGz.vol");
 
 	MultidimArray<double> &mLS=LS();
 	MultidimArray<double> &mLR=LR();
