@@ -96,7 +96,7 @@ void ProgPdbSphDeform::run()
 				gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
 			}
 		}
-		atom_i.x -= gx; // Todo parece correcto menos por un signo (si se pone + la deformacion va al reves)
+		atom_i.x -= gx;
 		atom_i.y -= gy;
 		atom_i.z -= gz;
 	}
