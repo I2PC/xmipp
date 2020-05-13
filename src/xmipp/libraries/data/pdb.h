@@ -282,12 +282,24 @@ public:
         case 'S':
             idx=5;
             break;
-        case 'F':
+        case 'E': // Iron Fe
             idx=6;
             break;
         case 'K':
             idx=7;
             break;
+        case 'F':
+             idx=8;
+             break;
+        case 'G': // Magnesium Mg
+             idx=9;
+             break;
+        case 'L': // Chlorine Cl
+             idx=10;
+             break;
+        case 'A': // Calcium Ca
+             idx=11;
+             break;
         default:
             REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)
                          "AtomInterpolator::getAtomIndex: Atom "+atom+" unknown");

@@ -47,7 +47,7 @@ ProgPdbConverter::ProgPdbConverter()
     noHet=false;
 
     // Periodic table for the blobs
-    periodicTable.resize(8, 2);
+    periodicTable.resize(12, 2);
     periodicTable(0, 0) = atomRadius("H");
     periodicTable(0, 1) = atomCharge("H");
     periodicTable(1, 0) = atomRadius("C");
@@ -64,6 +64,14 @@ ProgPdbConverter::ProgPdbConverter()
     periodicTable(6, 1) = atomCharge("Fe");
     periodicTable(7, 0) = atomRadius("K");
     periodicTable(7, 1) = atomCharge("K");
+    periodicTable(8, 0) = atomRadius("F");
+    periodicTable(8, 1) = atomCharge("F");
+    periodicTable(9, 0) = atomRadius("Mg");
+    periodicTable(9, 1) = atomCharge("Mg");
+    periodicTable(10, 0) = atomRadius("Cl");
+    periodicTable(10, 1) = atomCharge("Cl");
+    periodicTable(11, 0) = atomRadius("Ca");
+    periodicTable(11, 1) = atomCharge("Ca");
 
     // Correct the atom weights by the blob weight
     for (size_t i = 0; i < MAT_YSIZE(periodicTable); i++)
@@ -141,11 +149,23 @@ void ProgPdbConverter::atomBlobDescription(
     case 'S':
         idx = 5;
         break;
-    case 'F':
+    case 'E': //iron Fe
         idx = 6;
         break;
     case 'K':
         idx = 7;
+        break;
+    case 'F':
+        idx = 8;
+        break;
+    case 'G': // Magnesium Mg
+        idx = 9;
+        break;
+    case 'L': // Chlorine Cl
+        idx = 10;
+        break;
+    case 'A': // Calcium Ca
+        idx = 11;
         break;
     default:
     	if (verbose>0)
@@ -298,7 +318,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         double weight, radius;
         if (!useFixedGaussian)
         {
-            if (noHet && atom_type=="HETA")
+            if (noHet && kind=="HETA")
                 continue;
             atomBlobDescription(atom_type, weight, radius);
         }
@@ -430,8 +450,8 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
+
         atom_type = line.substr(13,2);
-        std::cout << "atomos *" << atom_type << "*" << std::endl;
         char atom_type0=atom_type[0];
         double x = textToFloat(line.substr(30,8));
         double y = textToFloat(line.substr(38,8));
