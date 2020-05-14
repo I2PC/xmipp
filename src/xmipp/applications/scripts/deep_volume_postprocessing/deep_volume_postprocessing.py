@@ -33,7 +33,7 @@ import xmippLib
 
 
 class ScriptMicrographCleanerEm(XmippScript):
-    _conda_env = 'deepVolPostProTrain' # TODO; Install deep and change environ
+    _conda_env = 'xmipp_deepVolPostPro'
 
     def __init__(self):
 
@@ -79,33 +79,37 @@ class ScriptMicrographCleanerEm(XmippScript):
         ## examples
         self.addExampleLine('xmipp_deep_volume_postprocessing -i path/to/inputVol.mrc -o path/to/outputVol.mrc ')
         
-    def run(self):
+    def run(self): #TODO: Use externally instaled DVP instead of this fixup
 
-        params = " && bash executeCmd.sh"
-        params += " predict --locscale "
-        params += " -i %s" % self.getParam('-i')
-        params += " -o %s" % self.getParam('-o')
+        params = " && python -m deepVolumePostprocessing.applyProcessVol.processVol "
+        params += "  --locscale "
+        params += " -i %s " % self.getParam('-i')
+        params += " -o %s " % self.getParam('-o')
 
         if self.checkParam('--checkpoint'):
-          params += "-c %s"%os.path.expanduser(self.getParam("--checkpoint"))
+          params += " -c %s "%os.path.expanduser(self.getParam("--checkpoint"))
         else:
-          params += " -p "  # TODO: Change to getModel()
+          params += " -c  %s "%XmippScript.getModel("deepVolProc", "bestCheckpoint_locscale.hd5")
 
         if self.checkParam('--sampling_rate'):
           params += " --sampling_rate %f" %  self.getDoubleParam('--sampling_rate')
 
         if self.checkParam('--binaryMask'):
-          params += " --binaryMask %s" % (os.path.abspath(self.getParam('--binaryMask')))
+          params += " --binaryMask %s " % (os.path.abspath(self.getParam('--binaryMask')))
 
         elif self.checkParam('--noise_stats_mean'):
-          params += " --noise_stats %f %f" % (self.getDoubleParam('--noise_stats_mean'), self.getDoubleParam('--noise_stats_std'))
+          params += " --noise_stats %f %f " % (self.getDoubleParam('--noise_stats_mean'), self.getDoubleParam('--noise_stats_std'))
 
         if self.checkParam('--cleaningStrengh'):
-          params += " --cleaningStrengh %f" % self.getDoubleParamWithDefault('--cleaningStrengh', 0.1)
+          params += " --cleaningStrengh %f " % self.getDoubleParamWithDefault('--cleaningStrengh', 0.1)
 
-        cmd= "cd /home/ruben/Tesis/cryoEM_cosas/auto3dMask/deepVolPostPro/ "
-        # print( cmd+" "+params)
+        #TODO: change it to directly call the class method
+        import xmippPyModules.deepVolumePostprocessing as dvp_module
+        rootDir=os.path.abspath( os.path.split(os.path.split(dvp_module.__file__)[0])[0] )
+        cmd= "cd  "+rootDir
+        print( cmd+" "+params)
         self.runCondaCmd(cmd, params)
+
 
 if __name__ == '__main__':
     '''
