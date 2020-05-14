@@ -29,7 +29,6 @@
 #include <iterator>
 #include <core/xmipp_fft.h>
 
-#define sqr(x) x*x
 
 void ProgParticlePolishing::defineParams()
 {
@@ -40,10 +39,11 @@ void ProgParticlePolishing::defineParams()
     addParamsLine(" --s <samplingRate=1>: Sampling rate");
     addParamsLine(" --nFrames <nFrames>: Number of frames");
     addParamsLine(" --nMics <nMics>: Number of micrographs");
-    addParamsLine(" --filter <nFilter=1>: The number of filters to apply.");
+    addParamsLine(" --filter <nFilter=1>: The number of filters to apply");
     addParamsLine(" --movxdim <xmov> : Movie size in x dimension");
     addParamsLine(" --movydim <ymov> : Movie size in y dimension");
     addParamsLine(" [-o <fnOut=\"out.xmd\">]: Output metadata with weighted particles");
+    addParamsLine(" [--fixedBW]      : fixed bandwith for the filters. If this flag does not appear, the bandwith will be lower in low frequencies");
 
 }
 
@@ -59,6 +59,7 @@ void ProgParticlePolishing::readParams()
 	samplingRate=getDoubleParam("--s");
 	xmov = getIntParam("--movxdim");
 	ymov = getIntParam("--movydim");
+    fixedBW  = checkParam("--fixedBW");
 
 }
 
@@ -505,7 +506,7 @@ void ProgParticlePolishing::writingOutput(size_t xdim, size_t ydim){
 
 }
 
-void ProgParticlePolishing::calculateWeightedFrequency(MultidimArray<double> &Ipart, int Nsteps, const std::vector<double> weights){
+void ProgParticlePolishing::calculateWeightedFrequency(MultidimArray<double> &Ipart, int Nsteps, const double *frC, const std::vector<double> weights){
 
 	MultidimArray< std::complex<double> > fftIpart;
 	MultidimArray<double> wfftIpart;
@@ -521,8 +522,6 @@ void ProgParticlePolishing::calculateWeightedFrequency(MultidimArray<double> &Ip
 	//imageA()=vMag;
     //imageA.write(formatString("amplitude1.tif"));
 
-	double bandSize=0.5/(double)Nsteps;
-
 	//wfftIpart.initZeros(fftIpart);
 	fidx.resizeNoCopy(3);
     for (size_t k=0; k<ZSIZE(fftIpart); k++)
@@ -536,17 +535,17 @@ void ProgParticlePolishing::calculateWeightedFrequency(MultidimArray<double> &Ip
                 FFT_IDX2DIGFREQ(j,XSIZE(Ipart),XX(fidx));
                 double absw = fidx.module();
                 for (int n=0; n<Nsteps; n++){
-                	if(absw<=(n+1)*bandSize && n==0){
+                	if(absw<=frC[n] && n==0){
                     	//DIRECT_A3D_ELEM(wfftIpart,k,i,j)=weights[0];
-                		DIRECT_A3D_ELEM(fftIpart,k,i,j)*=weights[0];
+                		DIRECT_A3D_ELEM(fftIpart,k,i,j)*= weights[0];
                     	break;
-                	}else if((absw<=(n+1)*bandSize && n!=0)){
+                	}else if((absw<=frC[n] && n!=0)){
                 		//DIRECT_A3D_ELEM(wfftIpart,k,i,j)=((weights[n]-weights[n-1])/((n+1)*bandSize - (n)*bandSize)*(absw - (n)*bandSize)) + weights[n-1];
-                		DIRECT_A3D_ELEM(fftIpart,k,i,j)*=weights[n]; //((weights[n]-weights[n-1])/((n+1)*bandSize - (n)*bandSize)*(absw - (n)*bandSize)) + weights[n-1];
+                		DIRECT_A3D_ELEM(fftIpart,k,i,j)*= (((weights[n]-weights[n-1])/(frC[n] - frC[n-1]))*(absw - frC[n-1])) + weights[n-1];
                 		break;
-                	}else if((absw>=(n+1)*bandSize && n==Nsteps-1)){
+                	}else if((absw>=frC[n] && n==Nsteps-1)){
                     	//DIRECT_A3D_ELEM(wfftIpart,k,i,j)=weights[Nsteps-1];
-                		DIRECT_A3D_ELEM(fftIpart,k,i,j)*=weights[Nsteps-1];
+                		DIRECT_A3D_ELEM(fftIpart,k,i,j)*= weights[Nsteps-1];
                     	break;
                 	}
                 }
@@ -988,8 +987,26 @@ void ProgParticlePolishing::run()
 	//double inifreq=0.25; //0.05;
 	//double step=0.25; //0.05;
 	//int Nsteps= int((0.5-inifreq)/step);
-	int Nsteps=nFilters;
-	double bandSize=0.5/(double)Nsteps;
+	double bandSize=0.5/(double)nFilters;
+	double frC[nFilters];
+
+	if(fixedBW){
+		for (int n=0; n<nFilters; n++)
+			frC[n]=(n+1)*bandSize;
+	}else{
+		for (int n=nFilters; n>0; n--){
+			if(n==nFilters)
+				frC[n-1]=0.5;
+			else
+				frC[n-1]=frC[n]/2;
+		}
+	}
+
+	printf("FREQ: \n");
+	for (int n=0; n<nFilters; n++)
+		printf(" %lf ",frC[n]);
+	printf("\n");
+
 	//double maxvalue=-1.;
 
 	/*std::vector<int> numPartPerMov;
@@ -1020,7 +1037,7 @@ void ProgParticlePolishing::run()
 	//iterPart2->init(mdPart);
 
 	Matrix2D<double> resultWeights;
-	double totalWeight[Nsteps];
+	double totalWeight[nFilters];
 
 	MetaData SFq2;
 	FileName fnRoot2=fnMdMov.insertBeforeExtension("_out_particles_filtered_new");
@@ -1076,14 +1093,14 @@ void ProgParticlePolishing::run()
 			partCount=0;
 			prevMvId=mvId;
 			//maxvalue=-1.;
-			//matrixWeights.initZeros(numPartPerMov[mvId], nFrames, Nsteps);
+			//matrixWeights.initZeros(numPartPerMov[mvId], nFrames, nFilters);
 		}
 		if(partId!=prevPartId){
 			countForPart=0;
-			matrixWeightsPart.initZeros(nFrames, Nsteps);
+			matrixWeightsPart.initZeros(nFrames, nFilters);
 			prevPartId=partId;
 			partCount++;
-			//for(int n=0; n>Nsteps; n++)
+			//for(int n=0; n>nFilters; n++)
 			//	totalWeight[n]=0.;
 		}else{
 			countForPart++;
@@ -1132,7 +1149,7 @@ void ProgParticlePolishing::run()
 		ctf.produceSideInfo();
 
 
-		for(int n=0; n<Nsteps; n++){
+		for(int n=0; n<nFilters; n++){
 
 			projV().initZeros(projVaux());
 			projV().setXmippOrigin();
@@ -1160,7 +1177,7 @@ void ProgParticlePolishing::run()
 
 
 			//filtering the projected particles with the lowpass filter
-			FilterLP.w1=(n+1)*bandSize;
+			FilterLP.w1=frC[n]; //(n+1)*bandSize;
 			//Filter.w1=n*bandSize;
 			//Filter.w2=(n+1)*bandSize;
 			//printf("Filter data %lf %lf %lf \n", bandSize, n*bandSize, (n+1)*bandSize);
@@ -1207,14 +1224,24 @@ void ProgParticlePolishing::run()
 
 			//std::cerr << "- ANTES matrixWeightsPart " << matrixWeightsPart << std::endl;
 			//to normalize the weights
-			for(int n=0; n<Nsteps; n++){
-				double aux=0;
+			for(int n=0; n<nFilters; n++){
+				double aux=0, aux2=0;
 				for(int mm=0; mm<nFrames; mm++){
 					aux += DIRECT_A2D_ELEM(matrixWeightsPart, mm, n);
 				}
-				//std::cerr << "Values " << aux << std::endl;
+				//std::cerr << "1 Values " << aux << std::endl;
 				for(int mm=0; mm<nFrames; mm++){
-					DIRECT_A2D_ELEM(matrixWeightsPart, mm, n) = (2*(aux/nFrames) - DIRECT_A2D_ELEM(matrixWeightsPart, mm, n))/aux;
+					DIRECT_A2D_ELEM(matrixWeightsPart, mm, n) = (2*(aux/nFrames) - DIRECT_A2D_ELEM(matrixWeightsPart, mm, n)); //aux;
+					if (DIRECT_A2D_ELEM(matrixWeightsPart, mm, n)<0)
+						DIRECT_A2D_ELEM(matrixWeightsPart, mm, n)=0.;
+					aux2 += DIRECT_A2D_ELEM(matrixWeightsPart, mm, n);
+				}
+				//std::cerr << "2 Values " << aux2 << std::endl;
+				for(int mm=0; mm<nFrames; mm++){
+					if (aux2!=0)
+						DIRECT_A2D_ELEM(matrixWeightsPart, mm, n) /= aux2;
+					else
+						DIRECT_A2D_ELEM(matrixWeightsPart, mm, n) = 0.;
 				}
 			}
 			//std::cerr << "- NORM matrixWeights " << matrixWeightsPart << std::endl;
@@ -1257,7 +1284,7 @@ void ProgParticlePolishing::run()
 
 				selfTranslate(NEAREST, Ipartaux(), vectorR2((double)resultShiftX[index+mm-1], (double)resultShiftY[index+mm-1]), DONT_WRAP, 0.0);
 
-				for(int nn=0; nn<Nsteps; nn++){
+				for(int nn=0; nn<nFilters; nn++){
 
 					/*IfinalAux().initZeros(projV());
 					IfinalAux().setXmippOrigin();
@@ -1277,7 +1304,7 @@ void ProgParticlePolishing::run()
 
 				}
 
-				calculateWeightedFrequency(Ipartaux(), Nsteps, myweights);
+				calculateWeightedFrequency(Ipartaux(), nFilters, frC, myweights);
 				//Ifinal.write(formatString("unFrameDespuesFiltro.tif"));
 				//exit(0);
 				Ifinal()+=Ipartaux();
