@@ -254,9 +254,6 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
 
     //Save centered PDB
     PDBRichPhantom centered_pdb;
-    int a = 0;
-    if (doCenter)
-        centered_pdb.read(fn_pdb);
 
     fh_pdb.open(fn_pdb.c_str());
     if (!fh_pdb)
@@ -278,7 +275,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
             continue;
 
         // Save centered PDB
-        RichAtom& atom_i=centered_pdb.atomList[a];
+        RichAtom atom_i;
 
         // Extract atom type and position
         // Typical line:
@@ -294,10 +291,19 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         if (doCenter)
         {
             r -= centerOfMass;
-            atom_i.x -= XX(centerOfMass);
-            atom_i.y -= YY(centerOfMass);
-            atom_i.z -= ZZ(centerOfMass);
-            a++;
+            atom_i.x = x - XX(centerOfMass);
+            atom_i.y = y - YY(centerOfMass);
+            atom_i.z = z - ZZ(centerOfMass);
+            atom_i.name=line.substr(12,4);
+			atom_i.atomType = line[13];
+			atom_i.altloc=line[16];
+			atom_i.resname=line.substr(17,3);
+			atom_i.chainid=line[21];
+			atom_i.resseq = textToInteger(line.substr(22,4));
+			atom_i.icode = line[26];
+            atom_i.occupancy = textToFloat(line.substr(54,6));
+			atom_i.bfactor = textToFloat(line.substr(60,6));
+            centered_pdb.addAtom(atom_i);
         }
         r /= highTs;
 
@@ -420,9 +426,6 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
 
     //Save centered PDB
     PDBRichPhantom centered_pdb;
-    int a = 0;
-    if (doCenter)
-        centered_pdb.read(fn_pdb);
 
     // Process all lines of the file
     std::string line, kind, atom_type;
@@ -448,17 +451,26 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         double z = textToFloat(line.substr(46,8));
 
         // Save centered PDB
-        RichAtom& atom_i=centered_pdb.atomList[a];
+        RichAtom atom_i;
 
         // Correct position
         VECTOR_R3(r, x, y, z);
         if (doCenter)
         {
             r -= centerOfMass;
-            atom_i.x -= XX(centerOfMass);
-            atom_i.y -= YY(centerOfMass);
-            atom_i.z -= ZZ(centerOfMass);
-            a++;
+            atom_i.x = x-XX(centerOfMass);
+            atom_i.y = y-YY(centerOfMass);
+            atom_i.z = z-ZZ(centerOfMass);
+            atom_i.name=line.substr(12,4);
+			atom_i.atomType = line[13];
+			atom_i.altloc=line[16];
+			atom_i.resname=line.substr(17,3);
+			atom_i.chainid=line[21];
+			atom_i.resseq = textToInteger(line.substr(22,4));
+			atom_i.icode = line[26];
+            atom_i.occupancy = textToFloat(line.substr(54,6));
+			atom_i.bfactor = textToFloat(line.substr(60,6));
+            centered_pdb.addAtom(atom_i);
         }
         r *= iTs;
 
