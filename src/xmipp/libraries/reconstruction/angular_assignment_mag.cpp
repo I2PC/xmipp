@@ -392,7 +392,8 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		maxByColumn(ccMatrixRot, ccVectorRot);
 		peaksFound = 0;
 		std::vector<double> cand(maxAccepted, 0.);
-		rotCandidates3(ccVectorRot, cand, XSIZE(ccMatrixRot));
+//		rotCandidates3(ccVectorRot, cand, XSIZE(ccMatrixRot));
+		rotCandidates2(ccVectorRot, cand, XSIZE(ccMatrixRot));
 		bestCand(MDaIn, MDaInF, vecMDaRef[k], cand, psi, Tx, Ty, cc_coeff);
 
 		// all results are storage for posterior partial_sort
@@ -499,7 +500,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	double tiltj = referenceTilt.at(idx);
 	double psij = 0.;
 	Euler_direction(rotj, tiltj, psij, dirj);
-	double rotjp = referenceRot.at(idxfilt);;
+	double rotjp = referenceRot.at(idxfilt);
 	double tiltjp = referenceTilt.at(idxfilt);
 	double psijp = 0.;
 	Euler_direction(rotjp, tiltjp, psijp, dirjp);
@@ -530,7 +531,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	//	corr = ccvec[idx] *  exp(-.5*sphericalDistance/maxDistance);
 
 	// is this direction a reliable candidate?
-	double maxDistance = 2. * angStep;
+	double maxDistance = 3. * angStep;
 	if (sphericalDistance > maxDistance)
 		corr *= exp(-.5*sphericalDistance/angStep);
 
