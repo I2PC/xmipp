@@ -66,7 +66,7 @@ public:
     void produceSideInfo();
 
     void similarity (const MultidimArray<double> &I1, const MultidimArray<double> &I2, double &corrN, double &corrM, double &corrW, double &imed, const double &meanF);
-    void averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent, bool applyAlign);
+    void averagingAll(const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent, bool applyAlign);
     void calculateCurve_1(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double step, double offset, double Dmin, double Dmax);
     void calculateCurve_2(const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double &slope, double &intercept, double Dmin, double Dmax);
     void writingOutput(size_t xdim, size_t ydim);

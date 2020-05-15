@@ -283,7 +283,7 @@ void ProgParticlePolishing::produceSideInfo()
 
 }
 
-void ProgParticlePolishing::averagingAll(const MetaData &mdPart, const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent, bool applyAlign){
+void ProgParticlePolishing::averagingAll(const MultidimArray<double> &I, MultidimArray<double> &Iout, size_t partId, size_t frameId, size_t movieId, bool noCurrent, bool applyAlign){
 
 	//MDRow currentRow;
 	FileName fnPart;
@@ -568,7 +568,7 @@ void ProgParticlePolishing::run()
 	produceSideInfo();
 
 	//MOVIE PARTICLES IMAGES
-	MetaData mdPartPrev, mdPart;
+	//MetaData mdPartPrev, mdPart;
 	//size_t Xdim, Ydim, Zdim, Ndim;
 	//mdPartPrev.read(fnMdMov,NULL);
 	//size_t mdPartSize = mdPartPrev.size();
@@ -686,7 +686,7 @@ void ProgParticlePolishing::run()
 			//the movie particles are averaged (all frames) to compare every pixel value
 			bool averageAll=false;
 			bool applyAlign=false;
-			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, averageAll, applyAlign);
+			averagingAll(Ipart(), Iavg(), partId, frId, mvId, averageAll, applyAlign);
 
 			//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
 			if(Dmin==0. && Dmax==0.){
@@ -1171,7 +1171,7 @@ void ProgParticlePolishing::run()
 			//averaging movie particle image with the ones in all the frames but without the current one (the first true), and applying the align to all of them (last true)
 			bool averageAll=true;
 			bool applyAlign=true;
-			averagingAll(mdPart, Ipart(), Iavg(), partId, frId, mvId, averageAll, applyAlign);
+			averagingAll(Ipart(), Iavg(), partId, frId, mvId, averageAll, applyAlign);
 			//TODO check how we have to average the movie particles to calculate the correlations
 
 			//cutfreq = inifreq + step*n;
