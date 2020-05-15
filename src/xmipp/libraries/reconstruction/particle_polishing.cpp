@@ -581,8 +581,8 @@ void ProgParticlePolishing::run()
 	FileName fnPart;
 	Image<double> Ipart, projV, Iavg, Iproj, IpartOut, Iout, Ifinal, IfinalAux, projAux;
 	Image<double> Ipartaux, projVaux;
-	MDRow currentRow;
-	MDRow currentRow2;
+	//MDRow currentRow;
+	//MDRow currentRow2;
 	Matrix2D<double> A, Aout;
 	MultidimArray<double> dataArray, softArray;
 	Projection PV;
@@ -974,9 +974,10 @@ void ProgParticlePolishing::run()
 	//Second Part
 	/////////////////////////
 
-	//mdPartPrev.read(fnMdMov,NULL);
-	//mdPartSize = mdPartPrev.size();
-	//mdPart.sort(mdPartPrev, MDL_MICROGRAPH_ID);
+	MetaData mdPartPrev, mdPart;
+	MDRow currentRow;
+	mdPartPrev.read(fnMdMov,NULL);
+	mdPart.sort(mdPartPrev, MDL_PARTICLE_ID);
 
 	MultidimArray<double> matrixWeights, maxvalues, matrixWeightsPart;
 	FourierFilter FilterBP, FilterLP;
