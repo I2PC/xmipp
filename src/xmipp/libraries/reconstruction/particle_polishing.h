@@ -54,6 +54,7 @@ public:
 	size_t mdPartSize;
 	int *resultShiftX;
 	int *resultShiftY;
+	bool fixedBW;
 
 
 public:
@@ -69,7 +70,7 @@ public:
     void calculateCurve_1(const MultidimArray<double> &Iavg, const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double step, double offset, double Dmin, double Dmax);
     void calculateCurve_2(const MultidimArray<double> &Iproj, MultidimArray<double> &vectorAvg, int nStep, double &slope, double &intercept, double Dmin, double Dmax);
     void writingOutput(size_t xdim, size_t ydim);
-    void calculateWeightedFrequency(MultidimArray<double> &Ipart, int Nsteps, const std::vector<double> weights);
+    void calculateWeightedFrequency(MultidimArray<double> &Ipart, int Nsteps, const double *frC, const std::vector<double> weights);
 
 };
 
