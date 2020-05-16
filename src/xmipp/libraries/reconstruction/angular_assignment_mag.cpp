@@ -392,8 +392,8 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		maxByColumn(ccMatrixRot, ccVectorRot);
 		peaksFound = 0;
 		std::vector<double> cand(maxAccepted, 0.);
-//		rotCandidates3(ccVectorRot, cand, XSIZE(ccMatrixRot));
-		rotCandidates2(ccVectorRot, cand, XSIZE(ccMatrixRot));
+		rotCandidates3(ccVectorRot, cand, XSIZE(ccMatrixRot));
+//		rotCandidates2(ccVectorRot, cand, XSIZE(ccMatrixRot));
 		bestCand(MDaIn, MDaInF, vecMDaRef[k], cand, psi, Tx, Ty, cc_coeff);
 
 		// all results are storage for posterior partial_sort
