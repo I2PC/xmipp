@@ -55,7 +55,9 @@ class ScriptMicrographCleanerEm(XmippScript):
                           '2) Providing the statistics of the noise'
                           '3) Using a binary mask')
         ## params
-        self.addParamsLine(' -i <inputVol>        : input volume to postprocess. Only mrc format allowed ')
+        self.addParamsLine(' -i <inputVol>        : input volume to postprocess (or half map 1). Only mrc format allowed ')
+        self.addParamsLine(' [-i2 <inputVol>]     : input half map 2. Only mrc format allowed ')
+
         self.addParamsLine(' -o <outputVol>       : output fname to save postprocessed volume. Only mrc format allowed ')
 
         self.addParamsLine(' [ --sampling_rate <AperVoxel>  ] :  (optional) The sampling rate of the volume. If not provided, it will be read from  -i header')
@@ -84,6 +86,9 @@ class ScriptMicrographCleanerEm(XmippScript):
         params = " && python -m deepVolumePostprocessing.applyProcessVol.processVol "
         params += "  --locscale "
         params += " -i %s " % self.getParam('-i')
+        if self.checkParam('-i2'):
+          params += " -i2 %s " % self.getParam('-i2')
+
         params += " -o %s " % self.getParam('-o')
 
         if self.checkParam('--checkpoint'):
@@ -101,7 +106,7 @@ class ScriptMicrographCleanerEm(XmippScript):
           params += " --noise_stats %f %f " % (self.getDoubleParam('--noise_stats_mean'), self.getDoubleParam('--noise_stats_std'))
 
         if self.checkParam('--cleaningStrengh'):
-          params += " --cleaningStrengh %f " % self.getDoubleParamWithDefault('--cleaningStrengh', 0.1)
+          params += " --cleaningStrengh %f " % self.getDoubleParamWithDefault('--cleaningStrengh', defaultVal=0.1)
 
         #TODO: change it to directly call the class method
         import xmippPyModules.deepVolumePostprocessing as dvp_module
