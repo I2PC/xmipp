@@ -129,20 +129,17 @@ class XmippScript:
             but employ conda. The class should possess a _conda_env attribute to be used.
             Otherwise  CONDA_DEFAULT_ENVIRON is used. To use xmipp dependent
             programs, runCondaJob within a XmippProtocol is preferred.
-                :param program:str. A program/pythonScript to execute
+                :param program: str. A program/pythonScript to execute
                 :param arguments: str. The arguments for the program
                 :param kwargs: options
                 :return: None
         """
-        condaEnvName = kwargs.get("_conda_env", getattr(cls, "_conda_env", None))
-        if condaEnvName is None:
-            condaEnvName = CondaEnvManager.CONDA_DEFAULT_ENVIRON
-            print("Warning: '_conda_env' not defined in '%s'. "
-                  "Using the default one ('%s')" % (cls, condaEnvName))
+        condaEnvName = kwargs.get("_conda_env",
+                                  getattr(cls, "_conda_env",
+                                          CondaEnvManager.getDefaultEnv()))
 
         kwargs['env'] = CondaEnvManager.getCondaEnv(kwargs.get('env', os.environ),
                                                     condaEnvName)
-
         cmd_args = program + " " + arguments
         print(cmd_args)
         try:
@@ -154,6 +151,15 @@ class XmippScript:
 class CondaEnvManager(object):
     CONDA_DEFAULT_ENVIRON = "xmipp_DLTK_v0.3"
     from xmipp_conda_envs import XMIPP_CONDA_ENVS
+
+    @staticmethod
+    def getDefaultEnv():
+        defaultEnv = CondaEnvManager.CONDA_DEFAULT_ENVIRON
+        print("Warning: using default conda environment '%s'. "
+              "CondaJobs should be run under a specific environment to "
+              "avoid problems. Please, fix it or contact to the developer."
+              % defaultEnv)
+        return defaultEnv
 
     @staticmethod
     def getCondaExe(env=None):
