@@ -222,23 +222,33 @@ class CondaEnvManager(object):
 
     @staticmethod
     def getCondaEnv(env, condaEnv):
+        """ Setting the environ (based on 'env')
+            according to the 'condaEnv' name passed.
+            'environDir/bin' is prepended in PATH
+            PYTHONPATH is set/prepend (depending on the 'xmippEnviron' flag)
+               with 'environDir/lib/python*/site-packages'
+            TODO: consider to also prepend the LD_LIBRARY_PATH
+        """
         environDir = CondaEnvManager.getEnvironDir(condaEnv)
         envBin = os.path.join(environDir, "bin")
-        env.update({"PATH": envBin+':'+env["PATH"]})
+        env.update({"PATH": envBin+':'+env["PATH"]})  # <- PATH
 
-        # TODO: Check that 'python*' is allowed in PYTHONPATH
-        # TODO: Is site-packages of the launching conda-python needed?
         sitePackages = os.path.join("lib", "python*", "site-packages")
         newPythonPath= os.path.join(environDir, sitePackages)
         if CondaEnvManager.XMIPP_CONDA_ENVS[condaEnv]["xmippEnviron"]:
             newPythonPath += ":"+env["PYTHONPATH"]
-        env.update({"PYTHONPATH": newPythonPath})
+        env.update({"PYTHONPATH": newPythonPath})  # <- PYTHONPATH
         # print(env["PYTHONPATH"])
-        env['PYTHONWARNINGS'] = 'ignore::FutureWarning'
+        env['PYTHONWARNINGS'] = 'ignore::FutureWarning'  # to skip warnings
         return env
 
     @staticmethod
     def getCondaActivationCmd():
+        """ This method takes the command to activate conda
+            the CONDA_ACTIVATION_CMD present in the environ.
+            If not there or it fails, we construct one from
+            the 'conda' executable if found.
+        """
         condaActCmd = os.environ.get('CONDA_ACTIVATION_CMD', "")
         if (condaActCmd.startswith("'") and condaActCmd.endswith("'") or
             condaActCmd.startswith('"') and condaActCmd.endswith('"')):
