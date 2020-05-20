@@ -70,7 +70,6 @@ void ProgVolDeformSph::readParams() {
 	analyzeStrain=checkParam("--analyzeStrain");
 	optimizeRadius=checkParam("--optimizeRadius");
 	lambda = getDoubleParam("--regularization");
-	std::cout << "Regularization value: " << lambda << std::endl;
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
 }
@@ -80,11 +79,12 @@ void ProgVolDeformSph::show() {
 	if (verbose==0)
 		return;
 	std::cout
-	        << "Volume to deform:     " << fnVolI       << std::endl
-			<< "Reference volume:     " << fnVolR       << std::endl
-			<< "Output volume:        " << fnVolOut     << std::endl
-			<< "Depth:                " << depth        << std::endl
-			<< "Save deformation:     " << analyzeStrain << std::endl
+	        << "Volume to deform:     " << fnVolI         << std::endl
+			<< "Reference volume:     " << fnVolR         << std::endl
+			<< "Output volume:        " << fnVolOut       << std::endl
+			<< "Depth:                " << depth          << std::endl
+			<< "Save deformation:     " << analyzeStrain  << std::endl
+			<< "Regularization:       " << lambda         << std::endl
 	;
 
 }

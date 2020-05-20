@@ -277,7 +277,7 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
     p99 = voxel_vector[idx];
 	ip99 = 1 / p99;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip95;
+        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip99;
 
     if (clip)
     {
