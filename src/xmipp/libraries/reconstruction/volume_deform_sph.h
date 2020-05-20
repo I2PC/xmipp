@@ -79,8 +79,11 @@ public:
 	//Vector containing the degree of the Zernike-Spherical harmonics
 	Matrix1D<double> clnm;
 
-	//Deformation in pixels
-	double deformation;
+	//Deformation in pixels, sumVI, sumVD
+	double deformation, sumVI, sumVD;
+
+    // Regularization
+    double lambda;
 
 	// Save output volume
 	bool applyTransformation;

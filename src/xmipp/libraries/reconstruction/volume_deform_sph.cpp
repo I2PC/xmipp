@@ -39,6 +39,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--optimizeRadius]                   : Optimize the radius of each spherical harmonic");
 	addParamsLine("  [--depth <d=1>]                      : Harmonical depth of the deformation=1,2,3,...");
+	addParamsLine("  [--regularization <l=0.00025>]         : Regularization weight");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
 	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
 }
@@ -68,6 +69,8 @@ void ProgVolDeformSph::readParams() {
 		fnVolOut=fnVolI;
 	analyzeStrain=checkParam("--analyzeStrain");
 	optimizeRadius=checkParam("--optimizeRadius");
+	lambda = getDoubleParam("--regularization");
+	std::cout << "Regularization value: " << lambda << std::endl;
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
 }
@@ -102,6 +105,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	double Ncount=0.0;
 	double totalVal=0.0;
 	double diff2=0.0;
+	sumVD = 0.0;
 	const MultidimArray<double> &mVR=VR();
 	const MultidimArray<double> &mVI=VI();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
@@ -165,17 +169,19 @@ double ProgVolDeformSph::distance(double *pclnm)
 				for (int idv=0; idv<volumesR.size(); idv++)
 				{
 					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
-					absVoxelR=fabs(voxelR);
+					// absVoxelR=fabs(voxelR);
 					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
+					if (voxelI >= 0.0)
+						sumVD += voxelI;
 					if (applyTransformation && idv == 0)
 						VO(k,i,j)=voxelI;
 					diff=voxelR-voxelI;
 					// diff2+=absMaxR_vec[idv]*diff*diff;
 					diff2+=diff*diff;
-					modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
-					// modg+=(gx*gx+gy*gy+gz*gz);
+					// modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
+					modg+=gx*gx+gy*gy+gz*gz;
 					Ncount++;
-					totalVal += absVoxelR;
+					// totalVal += absVoxelR;
 				}
 
 				if (saveDeformation) 
@@ -188,8 +194,8 @@ double ProgVolDeformSph::distance(double *pclnm)
 		}
 	}
 
-	deformation=std::sqrt(modg/(totalVal));
-	// deformation=std::sqrt(modg/(Ncount));
+	// deformation=std::sqrt(modg/(totalVal));
+	deformation=std::sqrt(modg/(3*Ncount));
 
 #ifdef DEBUG
 	Image<double> save;
@@ -215,7 +221,9 @@ double ProgVolDeformSph::distance(double *pclnm)
 	if (applyTransformation)
 		VO.write(fnVolOut);
 	// return std::sqrt(diff2/totalVal);
-	return std::sqrt(diff2/Ncount);
+	sumVD /= volumesR.size();
+	double massDiff=std::abs(sumVI-sumVD)/sumVI;
+	return std::sqrt(diff2/Ncount)+lambda*(deformation+massDiff);
 }
 #undef DEBUG
 
@@ -237,6 +245,7 @@ void ProgVolDeformSph::run() {
 
 	VI.read(fnVolI);
 	VR.read(fnVolR);
+	sumVI = 0.0;
 	if (Rmax<0)
 		Rmax=XSIZE(VI())/2;
 
@@ -250,16 +259,22 @@ void ProgVolDeformSph::run() {
 	filter.generateMask(VI());
 
 	// We need also to normalized the filtered volumes to compare them appropiately
-	MultidimArray<int> bg_mask;
 	double maxVoxelR;
 	Image<double> auxI = VI;
 	Image<double> auxR = VR;
+
+	MultidimArray<int> bg_mask;
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     bg_mask.setXmippOrigin();
-	BinaryCircularMask(bg_mask, Rmax, OUTSIDE_MASK);
-
 	normalize_Robust(auxI(), bg_mask, true);
+	bg_mask *= 0;
 	normalize_Robust(auxR(), bg_mask, true);
+
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxI())
+	{
+		if (DIRECT_A3D_ELEM(auxI(),k,i,j) >= 0.0)
+    		sumVI += DIRECT_A3D_ELEM(auxI(),k,i,j);
+	}
 
 	if (sigma.size() == 1 && sigma[0] == 0)
 	{
@@ -283,11 +298,13 @@ void ProgVolDeformSph::run() {
 			// Filer input vol
 			filter.do_generate_3dmask = true;
 			filter.applyMaskSpace(auxI());
+			bg_mask *= 0;
 			normalize_Robust(auxI(), bg_mask, true);
 			volumesI.push_back(auxI);
 
 			// Filter ref vol
 			filter.applyMaskSpace(auxR());
+			bg_mask *= 0;
 			normalize_Robust(auxR(), bg_mask, true);
 			volumesR.push_back(auxR);
 			maxVoxelR = auxR().computeMax();
