@@ -134,9 +134,7 @@ class XmippScript:
                 :param kwargs: options
                 :return: None
         """
-        condaEnvName = kwargs.get("_conda_env",
-                                  getattr(cls, "_conda_env",
-                                          CondaEnvManager.getDefaultEnv()))
+        condaEnvName = CondaEnvManager.getCondaName(cls)
 
         kwargs['env'] = CondaEnvManager.getCondaEnv(kwargs.get('env', os.environ),
                                                     condaEnvName)
@@ -153,13 +151,23 @@ class CondaEnvManager(object):
     from xmipp_conda_envs import XMIPP_CONDA_ENVS
 
     @staticmethod
-    def getDefaultEnv():
-        defaultEnv = CondaEnvManager.CONDA_DEFAULT_ENVIRON
-        print("Warning: using default conda environment '%s'. "
-              "CondaJobs should be run under a specific environment to "
-              "avoid problems. Please, fix it or contact to the developer."
-              % defaultEnv)
-        return defaultEnv
+    def getCondaName(xmippCls, **kwargs):
+        """ Returns the conda environ name associated to the xmippCls.
+                XmippCls can be:
+                  - XmippProtocol (Scipion's plugin)
+                  - XmippScript (defined above)
+            > _conda_env preference: kwargs > protocol default > general default
+        """
+        name = kwargs.get('_conda_env', None)
+        if name is None and hasattr(xmippCls, '_conda_env'):
+            name = xmippCls._conda_env
+        else:
+            name = CondaEnvManager.CONDA_DEFAULT_ENVIRON
+            print("Warning: using default Xmipp conda environment '%s'. "
+                  "CondaJobs should be run under a specific environment to "
+                  "avoid problems. Please, fix it or contact to the developer."
+                  % name)
+        return name
 
     @staticmethod
     def getCondaExe(env=None):
@@ -307,7 +315,6 @@ class CondaEnvManager(object):
         cmdList.append("conda activate %s" % environName)
         if pipPack:
             cmdList.append("pip install %s" % " ".join([dep for dep in pipPack]))
-        cmdList.append("conda env export > %s.yml" % environName)
 
         cmd = ' && '.join(cmdList)
         try:
