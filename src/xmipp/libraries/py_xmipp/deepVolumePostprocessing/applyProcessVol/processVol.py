@@ -145,10 +145,10 @@ class AutoProcessVol(object):
       boxSize= voxel_size
 
     if voxel_size is not None :
-      boxSize= voxel_size
-      if boxSize is None:
+      if boxSize is not None and boxSize!=voxel_size:
         print("Warning: IGNORING voxel size contained in header (%.3f) and using %.3f for %s" % (
-        boxSize, voxel_size, "data" if vol_fname_or_matrix is None else vol_fname_or_matrix))
+        boxSize, voxel_size, vol_fname_or_matrix if isinstance(vol_fname_or_matrix, str)  else "data"))
+      boxSize= voxel_size
 
     originalShape= vol.shape
     if RESIZE_VOL_TO:
@@ -318,6 +318,8 @@ if __name__=="__main__":
     half2Vol, __= loadVolIfFnameOrIgnoreIfMatrix(args.halfMap2, normalize=None)
     inputVolOrFname= 0.5*(half1Vol+half2Vol)
 
+  if args.sampling_rate is not None:
+    boxSize= args.sampling_rate
   predictor= AutoProcessVol(checkpoint_fname, gpuId= args.gpuId)
   predictor.predict(inputVolOrFname, args.output, binary_mask=args.binaryMask, noise_stats=args.noise_stats,
                     voxel_size=boxSize, apply_postprocess_cleaning=args.cleaningStrengh)
