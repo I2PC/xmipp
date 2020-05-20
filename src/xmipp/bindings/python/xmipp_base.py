@@ -315,6 +315,7 @@ class CondaEnvManager(object):
         cmdList.append("conda activate %s" % environName)
         if pipPack:
             cmdList.append("pip install %s" % " ".join([dep for dep in pipPack]))
+        cmdList.append("conda env export > %s.yml" % environName)
 
         cmd = ' && '.join(cmdList)
         try:
