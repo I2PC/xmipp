@@ -1220,8 +1220,6 @@ def install(dirname):
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
 
-    createDir(dirname+'/models')
-
     destPathPyModule = os.path.expanduser(os.path.abspath(os.path.join(dirname, "pylib", "xmippPyModules")))
     createDir(destPathPyModule)
     initFn = destPathPyModule + "/__init__.py"

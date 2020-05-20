@@ -319,7 +319,7 @@ class CondaEnvManager(object):
 
         cmd = ' && '.join(cmdList)
         try:
-            cmd = cmd % options  # Why this??
+            cmd = cmd % options
         except KeyError as ex:  # chr(37) = %
             print("Option not found constructing the conda installing commnad:\n"
                   "%s  %s  (%s)" % (cmd, chr(37), ', '.join(options.keys())))
