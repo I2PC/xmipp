@@ -302,7 +302,7 @@ class CondaEnvManager(object):
         cmdList = []
         cmdList.append("export PYTHONPATH=\"\"")  # TODO: consider if from kwargs
         cmdList.append(CondaEnvManager.getCondaActivationCmd())
-        cmdList.append("conda create -q --force --yes -n %s %s %s %s"
+        cmdList.append("conda create --force --yes -n %s %s %s %s"
                        % (environName, python, deps, chFlags))
         cmdList.append("conda activate %s" % environName)
         if pipPack:
@@ -311,7 +311,7 @@ class CondaEnvManager(object):
 
         cmd = ' && '.join(cmdList)
         try:
-            cmd = cmd % options
+            cmd = cmd % options  # Why this??
         except KeyError as ex:  # chr(37) = %
             print("Option not found constructing the conda installing commnad:\n"
                   "%s  %s  (%s)" % (cmd, chr(37), ', '.join(options.keys())))
