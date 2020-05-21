@@ -371,9 +371,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	double Ty;
 	int maxAccepted = 8;
 
-	//std::vector<unsigned int> candidatesFirstLoop(sizeMdRef, 0);
 	std::vector<unsigned int> Idx(sizeMdRef, 0);
-	//std::vector<double> candidatesFirstLoopCoeff(sizeMdRef, 0);
 
 	Matrix1D<double> ccvec;
 	ccvec.initZeros(sizeMdRef);
@@ -393,15 +391,12 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		peaksFound = 0;
 		std::vector<double> cand(maxAccepted, 0.);
 		rotCandidates3(ccVectorRot, cand, XSIZE(ccMatrixRot));
-//		rotCandidates2(ccVectorRot, cand, XSIZE(ccMatrixRot));
 		bestCand(MDaIn, MDaInF, vecMDaRef[k], cand, psi, Tx, Ty, cc_coeff);
 
 		// all results are storage for posterior partial_sort
 		Idx[k] = k; // for sorting
-		//candidatesFirstLoop[k] = k; // for access in second loop
-		//candidatesFirstLoopCoeff[k] = cc_coeff;
 		VEC_ELEM(ccvec,k)=cc_coeff;
-		bestTx[k] = Tx; // todo if works then change std-vectors for Matrix1D
+		bestTx[k] = Tx;
 		bestTy[k] = Ty;
 		bestPsi[k] = psi;
 	}
@@ -419,21 +414,9 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			});
 
 	// variables for second loop
-	//std::vector<unsigned int> candidatesSecondLoop(sizeMdRef, 0);
-	std::vector<unsigned int> Idx2(sizeMdRef, 0);
-	std::vector<unsigned int> Idx3(sizeMdRef, 0);
-	//std::vector<double> candidatesSecondLoopCoeff(sizeMdRef, 0.);
 	std::vector<double> bestTx2(sizeMdRef, 0.);
 	std::vector<double> bestTy2(sizeMdRef, 0.);
 	std::vector<double> bestPsi2(sizeMdRef, 0.);
-
-	//size_t first = 0;
-	//MultidimArray<double> inPolar(n_rad, n_ang2);
-	//MultidimArray<double> MDaExpShiftRot2; // transform experimental
-	//MDaExpShiftRot2.setXmippOrigin();
-	MultidimArray<double> ccMatrixRot2;
-	MultidimArray<double> ccVectorRot2;
-	//MultidimArray<std::complex<double> > MDaInAuxF;
 
 	MultidimArray<double> &MDaInAux = ImgIn();
 	MDaInAux.setXmippOrigin();
@@ -453,20 +436,12 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 				corr/=3;
 
 			VEC_ELEM(ccvec, Idx[k])=corr;
-			//Idx2[k] = k;
-			//Idx3[k] = k;
-			//candidatesSecondLoopCoeff[Idx[k]] = corr;
 			bestTx2[Idx[k]] = Tx;
 			bestTy2[Idx[k]] = Ty;
 			bestPsi2[Idx[k]] = psi;
 
 		}
 		else{
-			//Idx2[k] = k;
-			//Idx3[k] = k;
-			//candidatesSecondLoop[Idx[k]] = candidatesFirstLoop[Idx[k]];
-			//candidatesSecondLoopCoeff[Idx[k]] =candidatesFirstLoopCoeff[Idx[k]];
-			//VEC_ELEM(ccvec,Idx[k])=candidatesFirstLoopCoeff[Idx[k]];
 			bestTx2[Idx[k]] = bestTx[Idx[k]];
 			bestTy2[Idx[k]] = bestTy[Idx[k]];
 			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
@@ -478,20 +453,10 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	graphFourierFilter(ccvec,ccvec_filt);
 
 	// choose best of the candidates after 2nd loop
-	int nCand2 = 1;
 	int idx = ccvec.maxIndex();
-//	std::partial_sort(Idx2.begin(), Idx2.begin() + nCand2, Idx2.end(),
-//			[&ccvec](int i, int j) {
-//				return ccvec[i] > ccvec[j];
-//			});
 
 	// choose best candidate direction from graph filtered ccvect signal
 	int idxfilt = ccvec_filt.maxIndex();
-//	std::partial_sort(Idx3.begin(), Idx3.begin() + nCand2, Idx3.end(),
-//			[&ccvec_filt](int i, int j) {
-//				return ccvec_filt[i] > ccvec_filt[j];
-//			});
-
 
 	// angular distance between this two directions
 	Matrix1D<double> dirj;
@@ -526,10 +491,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	double anglePsi = bestPsi2[idx];
 	corr = ccvec[idx];
 
-	//	// is this direction a reliable candidate?
-	//	double maxDistance = 2. * angStep;
-	//	corr = ccvec[idx] *  exp(-.5*sphericalDistance/maxDistance);
-
 	// is this direction a reliable candidate?
 	double maxDistance = 3. * angStep;
 	if (sphericalDistance > maxDistance)
@@ -544,41 +505,35 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	rowOut.setValue(MDL_ANGLE_PSI, realWRAP(anglePsi, -180., 180.));
 	rowOut.setValue(MDL_SHIFT_X, -shiftX);
 	rowOut.setValue(MDL_SHIFT_Y, -shiftY);
-	//rowOut.setValue(MDL_FLIP, flip);
 	rowOut.setValue(MDL_WEIGHT, 1.);
 	rowOut.setValue(MDL_WEIGHT_SIGNIFICANT, 1.);
 }
 
 void ProgAngularAssignmentMag::postProcess() {
-//	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-//	std::cout << "processing images in this group takes "<< duration << " seconds" << std::endl;
-//	MetaData &ptrMdOut = *getOutputMd();
-//	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 
 	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
 	std::cout << "processing images in this group takes "<< duration << " seconds" << std::endl;
+	// from angularContinousAssign2
+	MetaData &ptrMdOut = *getOutputMd();
 
-		// from angularContinousAssign2
-		MetaData &ptrMdOut = *getOutputMd();
+	ptrMdOut.removeDisabled();
+	double maxCC = -1.;
+	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
+		double thisMaxCC;
+		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
+		if (thisMaxCC > maxCC)
+			maxCC = thisMaxCC;
+		if (thisMaxCC == 0.0)
+			ptrMdOut.removeObject(__iter.objId);
+	}
+	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
+		double thisMaxCC;
+		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
+		ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
+		ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC, __iter.objId);
+	}
 
-		ptrMdOut.removeDisabled();
-		double maxCC = -1.;
-		 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
-			 double thisMaxCC;
-			 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
-			 if (thisMaxCC > maxCC)
-				 maxCC = thisMaxCC;
-			 if (thisMaxCC == 0.0)
-				 ptrMdOut.removeObject(__iter.objId);
-		 }
-		 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
-			 double thisMaxCC;
-			 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
-			 ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
-			 ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC, __iter.objId);
-		 }
-
-		ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
+	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 }
 
 /* Pearson Coeff. ZNCC zero-mean normalized cross-corr*/
