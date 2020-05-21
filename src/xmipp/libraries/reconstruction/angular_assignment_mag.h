@@ -34,6 +34,7 @@
 #include <core/symmetries.h>
 #include <data/mask.h>
 #include <data/filters.h>
+#include <reconstruction/project_real_shears.h>
 
 #include <vector>
 #include <fstream> 
@@ -98,6 +99,14 @@ public:
     std::vector<double>               referenceRot;
     std::vector<double>               referenceTilt;
 
+    /**reference volume to be projected */
+    FileName inputReference_volume;
+    Image<double> refVol;
+    // Size of the reference volume
+    int refXdim;
+    int refYdim;
+    int refZdim;
+
     // some constants
     int sizeMdRef;
     int sizeMdIn;
@@ -117,6 +126,9 @@ public:
     std::vector< Matrix2D<double> > L;
     // Right matrices for the symmetry transformations
     std::vector< Matrix2D<double> > R;
+
+    /** Use it for validation */
+    bool useForValidation;
 
 // borrar
 double Inicio;
