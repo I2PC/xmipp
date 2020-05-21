@@ -165,6 +165,7 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [--sampling <Ts=1>]                : Sampling rate (Angstroms/pixel)");
     addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]: Sampling rate before downsampling");
     addParamsLine("  [--size <output_dim_x=-1> <output_dim_y=-1> <output_dim_z=-1>]: Final size in pixels (must be a power of 2, if blobs are used)");
+    addParamsLine("  [--orig <orig_x=0> <orig_y=0> <orig_z=0>]: Define origin of the output volume");
     addParamsLine("  				                     : If just one dimension is introduced dim_x = dim_y = dim_z");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
@@ -185,6 +186,9 @@ void ProgPdbConverter::readParams()
     output_dim_x = getIntParam("--size", 0);
     output_dim_y = getIntParam("--size", 1);
     output_dim_z = getIntParam("--size", 2);
+    orig_x = getIntParam("--orig", 0);
+    orig_y = getIntParam("--orig", 1);
+    orig_z = getIntParam("--orig", 2);
     useBlobs = checkParam("--blobs");
     usePoorGaussian = checkParam("--poor_Gaussian");
     useFixedGaussian = checkParam("--fixed_Gaussian");
@@ -203,6 +207,7 @@ void ProgPdbConverter::show()
     << "Sampling rate:      " << Ts               << std::endl
     << "High sampling rate: " << highTs           << std::endl
     << "Size:               " << output_dim_x << " " << output_dim_y << " " << output_dim_z << std::endl
+    << "Origin:             " << orig_x << " " << orig_y << " " << orig_z << std::endl
     << "Center PDB:         " << doCenter         << std::endl
     << "Use blobs:          " << useBlobs         << std::endl
     << "Use poor Gaussian:  " << usePoorGaussian  << std::endl
@@ -418,6 +423,10 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     // Create an empty volume to hold the protein
     Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
     Vlow().setXmippOrigin();
+    STARTING(Vlow()) = orig_x;
+    STARTING(Vlow()) = orig_y;
+    STARTING(Vlow()) = orig_z;
+
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
