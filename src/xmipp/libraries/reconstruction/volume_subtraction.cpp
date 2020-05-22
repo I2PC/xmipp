@@ -44,12 +44,12 @@ void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::co
 	DIRECT_MULTIDIM_ELEM(FI,n)*=DIRECT_MULTIDIM_ELEM(A,n)/std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
 }
 
-void extractPhase(MultidimArray< std::complex<double> > &FI, double tol=1e-4)
+void extractPhase(MultidimArray< std::complex<double> > &FI)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
-		double A = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
-		if (A>tol)
-		DIRECT_MULTIDIM_ELEM(FI,n)/=A;
+		double *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI,n);
+		double phi = atan2(*(ptr+1),*ptr);
+		DIRECT_MULTIDIM_ELEM(FI,n) = std::complex<double>(cos(phi),sin(phi));
 	}
 }
 
