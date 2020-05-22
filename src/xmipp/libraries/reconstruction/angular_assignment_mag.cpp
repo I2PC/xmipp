@@ -108,7 +108,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
 	double maxSphericalDistance=angStep*2.;
-	printf("processing neighbors graph...\n");
+	//printf("processing neighbors graph...\n");
 
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
@@ -149,20 +149,19 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	computeLaplacianMatrix(L_mat, allNeighborsjp, allWeightsjp);
 
 	// from diagSymMatrix3x3 method in resolution_directional.cpp
-	std::cout<< "starts Eigen...\n";
+	//std::cout<< "starts Eigen...\n";
 	Matrix2D<double> B;
 	B.resizeNoCopy(L_mat);
 	B.initIdentity();
 	generalizedEigs(L_mat, B, eigenvalues, eigenvectors);
-	std::cout<< "finish\n";
+	//std::cout<< "finish\n";
 
 	// save eigenvalues y eigenvectors files
 	String fnEigenVal=formatString("%s/outEigenVal.txt",fnDir.c_str());
 	eigenvalues.write(fnEigenVal);
 	String fnEigenVect=formatString("%s/outEigenVect.txt",fnDir.c_str());
 	eigenvectors.write(fnEigenVect);
-	std::cout<<"Eigenvalues and Eigenvectors saved in:\n"
-			<<fnDir.c_str()<<std::endl;
+	//std::cout<<"Eigenvalues and Eigenvectors saved in:\n" <<fnDir.c_str()<<std::endl;
 }
 
 /* Laplacian Matrix is basic for signal graph processing stage
@@ -239,8 +238,8 @@ void ProgAngularAssignmentMag::preProcess() {
 	referenceTilt.resize(sizeMdRef);
 
 	// try to storage all data related to reference images in memory
-	Inicio=std::clock();
-	printf("processing reference library...\n");
+	Inicio = std::clock();
+	//printf("processing reference library...\n");
 	int j = -1;
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;
@@ -261,11 +260,6 @@ void ProgAngularAssignmentMag::preProcess() {
 		// processing reference image
 		vecMDaRef.push_back(MDaRef);
 		applyFourierImage2(MDaRef, MDaRefF);
-		//vecMDaRefF.push_back(MDaRefF);
-		//fourier of polar image in real space
-//		refPolar = imToPolar(MDaRef, first, n_rad);
-//		applyFourierImage3(refPolar, MDaRefAuxF, n_ang);
-//		vecMDaRef_polarF.push_back(MDaRefAuxF);
 		// fourier of polar magnitude spectra
 		transformerImage.getCompleteFourier(MDaRefF2);
 		getComplexMagnitude(MDaRefF2, MDaRefFM);
@@ -277,8 +271,11 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
+	// time processing reference library
+	t_references = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+
 	// check if eigenvectors file already created
-	String fnEigenVect=formatString("%s/outEigenVect.txt",fnDir.c_str());
+	String fnEigenVect = formatString("%s/outEigenVect.txt", fnDir.c_str());
 	std::ifstream in;
 	in.open(fnEigenVect.c_str(), std::ios::in);
 	if(!in){
@@ -286,13 +283,11 @@ void ProgAngularAssignmentMag::preProcess() {
 		double Inicio2 = std::clock();
 		// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
 		computingNeighborGraph2();
-		double duration = ( std::clock() - Inicio2 ) / (double) CLOCKS_PER_SEC;
-		std::cout << "Neigborhood, Laplacian matrix and eigendecomposition take "<< duration << " seconds" << std::endl;
+		t_eigen = ( std::clock() - Inicio2 ) / (double) CLOCKS_PER_SEC;
 	}
 	else{
 		in.close();
-		std::cout<<"reading eigenVector file:\n"
-				<<fnEigenVect.c_str()<<std::endl;
+		//std::cout<<"reading eigenVector file:\n"<<fnEigenVect.c_str()<<std::endl;
 		eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
 		eigenvectors.read(fnEigenVect);
 	}
@@ -310,12 +305,8 @@ void ProgAngularAssignmentMag::preProcess() {
 		}
 	}
 
-	// time processing reference library
-	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-	std::cout << "processing reference library image take "<< duration << " seconds" << std::endl;
-
 	// time processing input images in processImage()
-	Inicio=std::clock();
+	Inicio = std::clock();
 }
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
@@ -511,9 +502,12 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 
 void ProgAngularAssignmentMag::postProcess() {
 
-	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-	std::cout << "processing images in this group takes "<< duration << " seconds" << std::endl;
-	// from angularContinousAssign2
+//	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
+//	std::cout << "processing images in this group takes "<< duration << " seconds\n"
+//			  << "neighborhood, Laplacian matrix and eigen-decomposition "<< duration << " seconds\n"
+//			  << "processing reference library image take "<< duration << " seconds" << std::endl;
+
+	// as in angularContinousAssign2
 	MetaData &ptrMdOut = *getOutputMd();
 
 	ptrMdOut.removeDisabled();

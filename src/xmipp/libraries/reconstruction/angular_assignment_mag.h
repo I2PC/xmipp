@@ -76,6 +76,9 @@ public:
     size_t Xdim;
     size_t Ydim;
 
+    // time for different stages of whole process
+    double t_references, t_eigen;
+
     // Transformers
     FourierTransformer transformerImage;
     FourierTransformer transformerPolarImage;
