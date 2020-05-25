@@ -46,7 +46,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [-angleStep <angStep=3.>]   : angStep");
 	addParamsLine("  [--maxShift <maxShift=-1.>]  : Maximum shift allowed (+-this amount)");
 	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous");
-	addParamsLine("  [--refVol <refVolFile>]  : reference volume to be reprojected when comparing with previous alignment");
+	addParamsLine("  [--refVol <refVolFile=NULL>]  : reference volume to be reprojected when comparing with previous alignment");
 	addParamsLine("  [--useForValidation] : Use the program for validation");
 }
 
@@ -118,8 +118,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 	Matrix1D<double> distanceToj;
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
-	double maxSphericalDistance=angStep*2.;
-	printf("processing neighbors graph...\n");
+	double maxSphericalDistance = angStep*2.;
 
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
@@ -245,9 +244,6 @@ void ProgAngularAssignmentMag::preProcess() {
 	referenceRot.resize(sizeMdRef);
 	referenceTilt.resize(sizeMdRef);
 
-	// try to storage all data related to reference images in memory
-	Inicio=std::clock();
-	printf("processing reference library...\n");
 	int j = -1;
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;
@@ -268,11 +264,6 @@ void ProgAngularAssignmentMag::preProcess() {
 		// processing reference image
 		vecMDaRef.push_back(MDaRef);
 		applyFourierImage2(MDaRef, MDaRefF);
-		//vecMDaRefF.push_back(MDaRefF);
-		//fourier of polar image in real space
-//		refPolar = imToPolar(MDaRef, first, n_rad);
-//		applyFourierImage3(refPolar, MDaRefAuxF, n_ang);
-//		vecMDaRef_polarF.push_back(MDaRefAuxF);
 		// fourier of polar magnitude spectra
 		transformerImage.getCompleteFourier(MDaRefF2);
 		getComplexMagnitude(MDaRefF2, MDaRefFM);
@@ -282,28 +273,19 @@ void ProgAngularAssignmentMag::preProcess() {
 		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
 	}
 
-	// time processing reference library
-	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-	std::cout << "processing reference library image take "<< duration << " seconds" << std::endl;
-
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
 	// check if eigenvectors file already created
-	String fnEigenVect=formatString("%s/outEigenVect.txt",fnDir.c_str());
+	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
 	std::ifstream in;
 	in.open(fnEigenVect.c_str(), std::ios::in);
 	if(!in){
 		in.close();
-		double Inicio2 = std::clock();
 		// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
 		computingNeighborGraph2();
-		double duration = ( std::clock() - Inicio2 ) / (double) CLOCKS_PER_SEC;
-		std::cout << "Neigborhood, Laplacian matrix and eigendecomposition take "<< duration << " seconds" << std::endl;
 	}
 	else{
 		in.close();
-		std::cout<<"reading eigenVector file:\n"
-				<<fnEigenVect.c_str()<<std::endl;
 		eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
 		eigenvectors.read(fnEigenVect);
 	}
@@ -338,7 +320,7 @@ void ProgAngularAssignmentMag::preProcess() {
 	}
 
 	// time processing input images in ::processImage()
-	Inicio=std::clock();
+	//Inicio=std::clock();
 }
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition
@@ -395,9 +377,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	double Ty;
 	int maxAccepted = 8;
 
-	//std::vector<unsigned int> candidatesFirstLoop(sizeMdRef, 0);
 	std::vector<unsigned int> Idx(sizeMdRef, 0);
-	//std::vector<double> candidatesFirstLoopCoeff(sizeMdRef, 0);
 
 	Matrix1D<double> ccvec;
 	ccvec.initZeros(sizeMdRef);
@@ -422,7 +402,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		// all results are storage for posterior partial_sort
 		Idx[k] = k; // for sorting
 		VEC_ELEM(ccvec,k)=cc_coeff;
-		bestTx[k] = Tx; // todo if works then change std-vectors for Matrix1D
+		bestTx[k] = Tx;
 		bestTy[k] = Ty;
 		bestPsi[k] = psi;
 	}
@@ -591,35 +571,28 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 }
 
 void ProgAngularAssignmentMag::postProcess() {
-//	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-//	std::cout << "processing images in this group takes "<< duration << " seconds" << std::endl;
-//	MetaData &ptrMdOut = *getOutputMd();
-//	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 
-	double duration = ( std::clock() - Inicio ) / (double) CLOCKS_PER_SEC;
-	std::cout << "processing images in this group takes "<< duration << " seconds" << std::endl;
+	// from angularContinousAssign2
+	MetaData &ptrMdOut = *getOutputMd();
 
-		// from angularContinousAssign2
-		MetaData &ptrMdOut = *getOutputMd();
+	ptrMdOut.removeDisabled();
+	double maxCC = -1.;
+	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
+		double thisMaxCC;
+		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
+		if (thisMaxCC > maxCC)
+			maxCC = thisMaxCC;
+		if (thisMaxCC == 0.0)
+			ptrMdOut.removeObject(__iter.objId);
+	}
+	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
+		double thisMaxCC;
+		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
+		ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
+		ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC, __iter.objId);
+	}
 
-		ptrMdOut.removeDisabled();
-		double maxCC = -1.;
-		 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
-			 double thisMaxCC;
-			 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
-			 if (thisMaxCC > maxCC)
-				 maxCC = thisMaxCC;
-			 if (thisMaxCC == 0.0)
-				 ptrMdOut.removeObject(__iter.objId);
-		 }
-		 FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
-			 double thisMaxCC;
-			 ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
-			 ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
-			 ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC, __iter.objId);
-		 }
-
-		ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
+	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
 }
 
 /* Pearson Coeff. ZNCC zero-mean normalized cross-corr*/
