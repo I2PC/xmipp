@@ -142,7 +142,7 @@ void ProgAngularAssignmentMag::computingNeighborGraph2() {
 			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
 			Euler_direction(rotjp, tiltjp, psijp, dirjp);
-			thisSphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp)); // todo ask to COSS to modify spherical_distance() because belongs to xmippCore/core/
+			thisSphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp));
 
 			if(thisSphericalDistance<maxSphericalDistance){
 				neighborsjp.push_back(jp);
@@ -408,7 +408,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	}
 
 
-	// search rotation with polar real image representation over 10% of reference images
+	// search rotation with 10% of reference images
 	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
 	// but for I1 symmetry, for example, should be at least 50%.
 	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
@@ -432,7 +432,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	bool flip;
 	for(int k = 0; k < sizeMdRef; ++k) {
 		if(k<nCand){
-			// find rotation and shift using alignImages as in significant
+			// find rotation and shift using alignImages
 			Matrix2D<double> M;
 			mCurrentImageAligned = MDaInAux;
 			mCurrentImageAligned.setXmippOrigin();
@@ -454,7 +454,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
 		}
 	}
-
 
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
@@ -1044,7 +1043,7 @@ MultidimArray<double> ProgAngularAssignmentMag::imToPolar(
 	return polarImg;
 }
 
-/* cartImg contains cartessian  grid representation of image,
+/* cartImg contains cartesian  grid representation of image,
  *  rad and ang are the number of radius and angular elements
  *  this function was built for half representation of Fourier spectrum*/
 MultidimArray<double> ProgAngularAssignmentMag::imToPolar2(
@@ -1157,7 +1156,7 @@ void ProgAngularAssignmentMag::ccMatrix(const MultidimArray<std::complex<double>
 		const MultidimArray<std::complex<double>> &F2,/*reference image*/
 		MultidimArray<double> &result) {
 
-	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1)); // works propperly for odd/even images ?
+	result.resizeNoCopy(YSIZE(F1), 2 * (XSIZE(F1) - 1));
 
 	CorrelationAux aux;
 	aux.transformer1.setReal(result);
