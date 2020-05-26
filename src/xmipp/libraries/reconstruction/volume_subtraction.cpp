@@ -65,6 +65,7 @@ protected:
 	FileName fnVol1, fnVol2, fnDiff, fnMask1, fnMask2;
 	bool pdb;
 	int iter;
+	float cutFreq;
 
     void defineParams()
     {
@@ -79,6 +80,7 @@ protected:
         addParamsLine("[--iter <n=1>]        	: Number of iterations");
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
+        addParamsLine("[--cutFreq <f=0>        	: Cutoff frequency");
     }
 
     void readParams()
@@ -193,6 +195,17 @@ protected:
 
     	//transformer.inverseFourierTransform();
     	// Subtraction: m*(vol1-vol2modif)
+
+    	//Filter mask with a Gaussian to smooth it
+        FourierFilter Filter;
+        Filter.FilterBand=LOWPASS;
+        Filter.FilterShape=REALGAUSSIAN;
+        Filter.w1=cutFreq;
+        //Filter.generateMask(inV());
+        //Filter.do_generate_3dmask=true;
+    	Filter.applyMaskSpace(inV());
+    	Filter.applyMaskSpace(refV());
+
     	Image<double> V1;
     	V1.read(fnVol1);
     	V1()-= V();
