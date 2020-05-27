@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:     Erney Ramirez Aportela
@@ -32,7 +32,8 @@ import numpy as np
 import os
 import sys
 import argparse
-import xmipp3
+import xmippLib
+from xmipp_base import XmippScript
 
 # The method accepts as input a 3D crioEM map and the mask
 # both with sampling rate of 1 A/pixel for network 1 or 0.5 A/pixel for network 2
@@ -41,20 +42,30 @@ boxDim = 13
 boxDim2 = boxDim//2
 maxSize = 1000
 
-
 def getBox(V,z,y,x):
     boxDim2 = boxDim//2
     box = V[z-boxDim2:z+boxDim2+1,y-boxDim2:y+boxDim2+1,x-boxDim2:x+boxDim2+1]
     box = box/np.linalg.norm(box)
     return box 
 
-class VolumeManager(Sequence):
-    def __init__(self, fnVol, fnMask):
-        self.V = xmipp3.Image(fnVol).getData()
-        self.M = xmipp3.Image(fnMask).getData()
-        self.Zdim, self.Ydim, self.Xdim = self.V.shape
+def getDataIfFname(fnameOrNumpy):
+  if isinstance(fnameOrNumpy, str):
+    return xmippLib.Image(fnameOrNumpy).getData()
+  elif isinstance(fnameOrNumpy, np.ndarray):
+    return fnameOrNumpy
+  else:
+    raise ValueError("Error, input must be either file name or numpy array")
 
+
+class VolumeManager(Sequence):
+    def __init__(self, fnVolOrNumpy, fnMaskOrNumpy):
+        self.V =  getDataIfFname(fnVolOrNumpy)
+        self.M =  getDataIfFname(fnMaskOrNumpy)
+
+        self.Zdim, self.Ydim, self.Xdim = self.V.shape
+        # print(self.Zdim, self.Ydim, self.Xdim)
         #calculate total voxels (inside mask)
+        # FIXME: Refactor this loop to increase the readability
         vx=0
         for self.z in range(boxDim2,self.Zdim-boxDim2):
            for self.y in range(boxDim2,self.Ydim-boxDim2):
@@ -63,7 +74,7 @@ class VolumeManager(Sequence):
                         if ((self.x+self.y+self.z)%2)==0:
                              vx=vx+1
         #print vx
-        self.st=vx/maxSize
+        self.st=vx//maxSize
         if vx % maxSize >0:
            self.st=self.st+1
         #print self.st
@@ -117,7 +128,7 @@ class VolumeManager(Sequence):
             #print (count   ,    self.x   ,   self.y  ,  self.z)
             ok=self.advance()
             count+=1
-	batchX=np.asarray(batchX).astype("float32")
+        batchX=np.asarray(batchX).astype("float32")
         #print("count = ", count) 
         batchX = batchX.reshape(count, batchX.shape[1], batchX.shape[2], batchX.shape[3], 1)      
 
@@ -126,12 +137,10 @@ class VolumeManager(Sequence):
    
 
 
-def produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut):
-    Vxmipp = xmipp3.Image(fnVolIn)
-    Mask= xmipp3.Image(fnMask)
-    V = Vxmipp.getData()
+def produceOutput(fnVolInOrNumpy, fnMaskOrNumpy, model, sampling, Y, fnVolOut):
+    V = getDataIfFname(fnVolInOrNumpy)
     Orig = V
-    M = Mask.getData()
+    M = getDataIfFname(fnMaskOrNumpy)
     V = V*0
     Zdim, Ydim, Xdim = V.shape
     idx = 0
@@ -147,6 +156,7 @@ def produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut):
        else:
           minValue=1.5        
 
+    # FIXME: Refactor these loops to increase the readability
     boxDim2 = boxDim//2
     for z in range(boxDim2,Zdim-boxDim2):
         for y in range(boxDim2,Ydim-boxDim2):
@@ -202,8 +212,29 @@ def produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut):
                           V[z,y,x]=meansum         
 
 
-    Vxmipp.setData(V)
-    Vxmipp.write(fnVolOut)
+    if fnVolOut is not None:
+      Vxmipp = xmippLib.Image()
+      Vxmipp.setData(V)
+      Vxmipp.write(fnVolOut)
+    return V
+
+def main(fnModel, fnVolIn, fnMask, sampling, fnVolOut):
+
+  if fnModel=="default":
+    fnModel= XmippScript.getModel("deepRes", "model_w13.h5")
+  elif fnModel=="highRes":
+    fnModel= XmippScript.getModel("deepRes", "model_w7.h5")
+
+  model = load_model(fnModel)
+  manager = VolumeManager(fnVolIn, fnMask)
+  Y = model.predict_generator(manager, manager.getNumberOfBlocks())
+
+  if fnModel == XmippScript.getModel("deepRes", "model_w13.h5"):
+    model = 1
+  if fnModel == XmippScript.getModel("deepRes", "model_w7.h5"):
+    model = 2
+  return produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut)
+
 
 if __name__=="__main__":
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
@@ -222,14 +253,6 @@ if __name__=="__main__":
     sampling = float(args.sampling)
     fnVolOut = args.output
 
-    model = load_model(fnModel)
-    manager = VolumeManager(fnVolIn,fnMask)
-    Y = model.predict_generator(manager, manager.getNumberOfBlocks())
-
-    if fnModel==xmipp3.Plugin.getModel("deepRes", "model_w13.h5"):
-       model=1
-    if fnModel==xmipp3.Plugin.getModel("deepRes", "model_w7.h5"):
-       model=2
-    produceOutput(fnVolIn, fnMask, model, sampling, Y, fnVolOut)
+    main(fnModel, fnVolIn, fnMask, sampling, fnVolOut)
 
 

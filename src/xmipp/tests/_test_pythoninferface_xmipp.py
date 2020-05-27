@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 @summary: This pyUnit test module defines the unit tests for the Xmipp Python Interface
 scipion3 run python3 -m unittest  tests._test_pythoninferface_xmipp

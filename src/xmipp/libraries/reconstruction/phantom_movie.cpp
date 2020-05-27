@@ -123,7 +123,7 @@ T PhantomMovie<T>::bilinearInterpolation(Image<T>& src, T x, T y)
 }
 
 template<typename T>
-void PhantomMovie<T>::addShiftBarrelDeformation()
+void PhantomMovie<T>::addShiftBarrelDeformation(Image<T> &movie)
 {
 	// Temporal frame with original data
 	Image<T> tmp = Image<T>(xdim, ydim);
@@ -159,7 +159,7 @@ void PhantomMovie<T>::addShiftBarrelDeformation()
 }
 
 template<typename T>
-void PhantomMovie<T>::addShift()
+void PhantomMovie<T>::addShift(Image<T> &movie)
 {
 	// Temporal frame with original data
 	Image<T> tmp = Image<T>(xdim, ydim);
@@ -180,7 +180,7 @@ void PhantomMovie<T>::addShift()
 }
 
 template<typename T>
-void PhantomMovie<T>::generateGrid()
+void PhantomMovie<T>::generateGrid(Image<T> &movie)
 {
 	for (size_t n = 0; n < ndim; ++n) {
 		std::cout << "Generating grid " << n << std::endl;
@@ -218,13 +218,13 @@ void PhantomMovie<T>::run()
 	std::cout << xdim  << " " << ydim << " " << ndim << " | "
 			<< xstep << " " << ystep << " | "
 			<< thickness << " " << fn_out << std::endl;
-	movie = Image<T>(xdim, ydim, 1, ndim);
-	generateGrid();
+	Image<T> movie(xdim, ydim, 1, ndim);
+	generateGrid(movie);
 	if (!skipShift && skipBarrel) {
-		addShift();
+		addShift(movie);
 	}
 	if (!skipBarrel) {
-		addShiftBarrelDeformation();
+		addShiftBarrelDeformation(movie);
 	}
 	movie.write(fn_out);
 }
