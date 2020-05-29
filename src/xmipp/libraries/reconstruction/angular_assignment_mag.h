@@ -165,15 +165,12 @@ double Inicio;
     void applyShift(const MultidimArray<double> &input, double &tx, double &ty, MultidimArray<double> &output);
     void applyRotationAndShift(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
     void applyShiftAndRotation(const MultidimArray<double> &MDaRef, double &rot, double &tx, double &ty, MultidimArray<double> &MDaRefRot);
-    void arithmetic_mean_and_stddev(const MultidimArray<double> &data, double &avg, double &stddev);
-    void arithmetic_mean_and_stddev(MultidimArray<double> &data, double &avg, double &stddev);
 
     void bestCand(const MultidimArray<double> &MDaIn, const MultidimArray<std::complex<double> > &MDaInF, const MultidimArray<double> &MDaRef, std::vector<double> &cand, double &bestCandRot, double &shift_x, double &shift_y, double &bestCoeff);
 
     void completeFourierShift(MultidimArray<double> &in, MultidimArray<double> &out);
     void ccMatrix(const MultidimArray<std::complex<double> > &F1, const MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result);
-    void ccMatrixPCO(const MultidimArray<std::complex<double> > &F1,const  MultidimArray<std::complex<double> > &F2, MultidimArray<double> &result);
-    void computingNeighborGraph2();
+    void computingNeighborGraph();
     void computeLaplacianMatrix(Matrix2D<double> &L, const std::vector< std::vector<int> > &allNeighborsjp, const std::vector< std::vector<double> > &allWeightsjp);
     void computeCircular();
     void circularWindow(MultidimArray<double> &in);
@@ -182,36 +179,15 @@ double Inicio;
     void getShift(MultidimArray<double> &ccVector, double &shift, const size_t &size);
     void graphFourierFilter(Matrix1D<double> &ccVecIn, Matrix1D<double> &ccVecOut);
 
-    void halfFourierShift(MultidimArray<double> &in, MultidimArray<double> &out);
-
-    MultidimArray<double> imToPolar2(MultidimArray<double> &cartIm, const size_t &rad, const size_t &ang);
     MultidimArray<double> imToPolar(MultidimArray<double> &cartIm, size_t &start, size_t &end);
     double interpolate(MultidimArray<double> &cartIm, double &x_coord, double &y_coord);
-    void imNormalized_cc(const MultidimArray<double>& I1, const MultidimArray<double>& I2, double &value);
-    void imZNCC(const MultidimArray<double>& I1, const MultidimArray<double>& I2, double &value);
 
-    double mean_of_products(const MultidimArray<double> &data1, MultidimArray<double> &data2);
-    double mean_of_products(MultidimArray<double> &data1, MultidimArray<double> &data2);
     void meanByColumn(MultidimArray<double> &in, MultidimArray<double> &out);
     void maxByColumn(MultidimArray<double> &in, MultidimArray<double> &out);
     void meanByRow(MultidimArray<double> &in, MultidimArray<double> &out);
     void maxByRow(MultidimArray<double> &in, MultidimArray<double> &out);
 
-    void normalized_cc(MultidimArray<double> &X, MultidimArray<double> &Y, double &valor);
-    void normalized_cc(const MultidimArray<double> &X, MultidimArray<double> &Y, double &value);
-
-    void pearsonCorr(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
-
-    void rotCandidates3(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
-    void rotCandidates2(MultidimArray<double> &in, std::vector<double>& cand, const size_t &size);
-    void rotCandidates(MultidimArray<double> &in, std::vector<double>& cand, const size_t &size);
-
-    void ssimIndex(MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
-    void ssimIndex(const MultidimArray<double> &X, MultidimArray<double> &Y, double &coeff);
-
-    void writeTestFile(const MultidimArray<double> &data, const char* fileName,size_t nFil, size_t nCol);
-    void writeTestFile(MultidimArray<double> &data, const char *fileName);
-    void writeTestFile(MultidimArray<double> &data, const char *fileName, size_t nFil, size_t nCol);
+    void psiCandidates(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
 
 private:
 
