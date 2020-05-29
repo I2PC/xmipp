@@ -726,7 +726,7 @@ def configJava(configDict):
 def checkJava(configDict):
     if not checkProgram("javac"):
         return False
-    print("Cheching Java configuration...")
+    print("Checking Java configuration...")
     javaProg="""
     public class Xmipp {
        public static void main(String[] args) {}
