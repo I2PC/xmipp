@@ -254,7 +254,7 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
     {
         Image<double> mask;
         mask() = I;
-        double th = OtsuSegmentation(mask());
+        double th = EntropySegmentation(mask());
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask())
         {
             if (DIRECT_MULTIDIM_ELEM(mask(), n) == 0)
