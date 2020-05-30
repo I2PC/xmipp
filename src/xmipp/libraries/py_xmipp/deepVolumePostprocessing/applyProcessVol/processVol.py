@@ -4,8 +4,6 @@ from skimage.util import pad
 from tqdm import tqdm
 
 from ..config import RESIZE_VOL_TO
-from ..configManager import ConfigManager
-
 from ..utils.dataUtils import getNewShapeForResize, resizeVol
 from ..utils.gpuSelector import mask_CUDA_VISIBLE_DEVICES, resolveDesiredGpus
 from ..utils.ioUtils import saveVol, loadVolIfFnameOrIgnoreIfMatrix
@@ -14,21 +12,23 @@ from .utilsPostprocess import removeSmallCCs, morphologicalDilation
 
 
 class AutoProcessVol(object):
-  def __init__(self, model_fname, gpuId=0, batch_size=ConfigManager.getBatchSize() // max(1, ConfigManager.getN_GPUs())):
+  def __init__(self, model_fname, gpuIds="0", batch_size=6):
     '''
 
     :param model_fname: the filename where the keras model is saved
-    :param gpuId: the number of gpus that will be used. Warning.
+    :param gpuIds: the gpu id(s) to use
     :param batch_size:
     '''
-    if isinstance(gpuId, str):
-      gpuId, __=resolveDesiredGpus(gpuId)
-    mask_CUDA_VISIBLE_DEVICES(gpuId)
+    if isinstance(gpuIds, str):
+      gpuIds, nGpus=resolveDesiredGpus(gpuIds)
+    else:
+      nGpus=1
+    mask_CUDA_VISIBLE_DEVICES(gpuIds)
 
-    self.batch_size = batch_size
+    self.batch_size = batch_size*nGpus
     print("loading model ...", end=" ")
     self.model_fname= model_fname
-    self.model = load_model(model_fname ) #, custom_objects=getCustomObjects())
+    self.model = load_model(model_fname, nGpus=nGpus ) #, custom_objects=getCustomObjects())
     self.netInputSize= getInputCubeSize(self.model)
     chunkInfo=loadChunkConfigFromModel(model_fname)
     if chunkInfo is None:
@@ -64,9 +64,9 @@ class AutoProcessVol(object):
         binary_mask, __ = loadVolIfFnameOrIgnoreIfMatrix(binary_mask, normalize=None)
         inputNorm_fun = lambda x: ConfigManager.getInputNormalization(useMask=True)(x, binary_mask)
 
-    return inputNorm_fun
+    return inputNorm_fun, binary_mask
 
-  def _chunkInputVolForPrediction(self, vol, chunk_size=None, stride=None):
+  def _chunkInputVolForPrediction(self, vol, chunk_size=None, stride=None, binary_mask=None):
     '''
     Same as getVolChunks but for inference only
     :param vol:
@@ -90,6 +90,9 @@ class AutoProcessVol(object):
     for i in i_range:
       for j in j_range:
         for k in k_range:
+          if binary_mask is not None:
+            if np.count_nonzero(binary_mask[i:i + chunk_size, j:j + chunk_size, k:k + chunk_size])==0:
+              continue
           cubeX = vol[i:i + chunk_size, j:j + chunk_size, k:k + chunk_size]
           yield cubeX, (i, j, k)
         progressBar.update()
@@ -137,8 +140,8 @@ class AutoProcessVol(object):
     assert fname_out is None or not os.path.isfile(fname_out), "Error, output fnameIn already exists"
     assert apply_postprocess_cleaning<1, "Error, required 0<apply_postprocess_cleaning<1  or apply_postprocess_cleaning=-1. Provided %s"%(apply_postprocess_cleaning)
     assert  not (noise_stats is not None and binary_mask is not None), "Error, only one of the following options can be provided: noise_stats, binary_mask "
-    vol, boxSize= loadVolIfFnameOrIgnoreIfMatrix(vol_fname_or_matrix, normalize=self._getNormalizationFunction(binary_mask, noise_stats))
-    del binary_mask
+    inputNormFun, binary_mask = self._getNormalizationFunction(binary_mask, noise_stats)
+    vol, boxSize= loadVolIfFnameOrIgnoreIfMatrix(vol_fname_or_matrix, normalize=inputNormFun)
 
     if boxSize is None:
       assert voxel_size is not None, "Error, if array provided as input, voxel_size should also be provided"
@@ -151,9 +154,13 @@ class AutoProcessVol(object):
       boxSize= voxel_size
 
     originalShape= vol.shape
+    assert binary_mask is None or binary_mask.shape== originalShape, "Error, the size of the input volume and the mask does not agree %s -- %s"%(originalShape, binary_mask.shape)
+
     if RESIZE_VOL_TO:
       newShape = getNewShapeForResize(vol, boxSize, RESIZE_VOL_TO)
       vol = resizeVol(vol, newShape)
+      if binary_mask is not None:
+        binary_mask= resizeVol(binary_mask, newShape)
 
     vol, paddingValues= self._padToDivisibleSize(vol)
 
@@ -167,7 +174,7 @@ class AutoProcessVol(object):
     n_cubes=0
 
     print("Neural net inference")
-    for cube, coords in self._chunkInputVolForPrediction(vol, chunk_size= self.netInputSize):
+    for cube, coords in self._chunkInputVolForPrediction(vol, chunk_size= self.netInputSize, binary_mask= binary_mask):
       batch_x.append( cube )
       coords_list.append( ( coords) )
       n_cubes+=1
@@ -301,7 +308,18 @@ if __name__=="__main__":
          "nargs": None,
          "required": False,
          "default": "0",
-       })
+         "help": "The gpu(s) where the program will be executed. If more that 1, comma seppared. E.g -g 1,2,3 . Default: %(default)s"
+
+      }),
+
+        ("-b", "--batch_size", {
+          "type": int,
+          "nargs": None,
+          "required": False ,
+          "default": 6,
+          "help": "Number of cubes to process simultaneously. Lower it if CUDA out of memory error"
+        }),
+
                   ]
 
   processingType, args = parseProcessingType("apply neural network to do volume postprocessing", additonalArgs, skypFileOfIds=True)
@@ -320,7 +338,8 @@ if __name__=="__main__":
 
   if args.sampling_rate is not None:
     boxSize= args.sampling_rate
-  predictor= AutoProcessVol(checkpoint_fname, gpuId= args.gpuId)
+
+  predictor= AutoProcessVol(checkpoint_fname, gpuIds= args.gpuId, batch_size= args.batch_size)
   predictor.predict(inputVolOrFname, args.output, binary_mask=args.binaryMask, noise_stats=args.noise_stats,
                     voxel_size=boxSize, apply_postprocess_cleaning=args.cleaningStrengh)
 

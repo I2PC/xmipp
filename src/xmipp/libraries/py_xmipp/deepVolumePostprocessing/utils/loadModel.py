@@ -4,7 +4,7 @@ import h5py
 from .ioUtils import loadVolIfFnameOrIgnoreIfMatrix
 
 
-def load_model(checkpoint_fname, custom_objects=None, lastLayerToFreeze=None, resetWeights=False):
+def load_model(checkpoint_fname, custom_objects=None, lastLayerToFreeze=None, resetWeights=False, nGpus=1):
   if custom_objects is None:
     __, codes = retrieveParamsFromHd5(checkpoint_fname,  [], ['code/custom_objects'])
     if codes is None:
@@ -17,6 +17,9 @@ def load_model(checkpoint_fname, custom_objects=None, lastLayerToFreeze=None, re
 
   from keras.models import load_model
   model= load_model(checkpoint_fname, custom_objects=custom_objects )
+  if nGpus>1:
+    from keras.utils import multi_gpu_model
+    model= multi_gpu_model(model, gpus=nGpus)
 
   if lastLayerToFreeze is not None:
     layerFound= False
