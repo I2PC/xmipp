@@ -280,15 +280,15 @@ void ProgVolDeformSph::run() {
 	{
 		volumesI.push_back(auxI());
 		volumesR.push_back(auxR());
-		maxVoxelR = auxR().computeMax();
-		absMaxR_vec.push_back(fabs(maxVoxelR));
+		// maxVoxelR = auxR().computeMax();
+		// absMaxR_vec.push_back(fabs(maxVoxelR));
 	}
 	else
 	{
 		volumesI.push_back(auxI());
 		volumesR.push_back(auxR());
-		maxVoxelR = auxR().computeMax();
-		absMaxR_vec.push_back(fabs(maxVoxelR));
+		// maxVoxelR = auxR().computeMax();
+		// absMaxR_vec.push_back(fabs(maxVoxelR));
 		for (int ids=0; ids<sigma.size(); ids++)
 		{
 			Image<double> auxI = VI;
@@ -307,8 +307,8 @@ void ProgVolDeformSph::run() {
 			bg_mask *= 0;
 			normalize_Robust(auxR(), bg_mask, true);
 			volumesR.push_back(auxR);
-			maxVoxelR = auxR().computeMax();
-			absMaxR_vec.push_back(fabs(maxVoxelR));
+			// maxVoxelR = auxR().computeMax();
+			// absMaxR_vec.push_back(fabs(maxVoxelR));
 		}
 	}
 
