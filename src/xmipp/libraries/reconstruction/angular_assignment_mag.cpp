@@ -85,8 +85,6 @@ void ProgAngularAssignmentMag::show() {
 			std::cout << "ref vol size: " << refXdim <<" x "<< refYdim <<" x "<< refZdim << std::endl;
 			std::cout << "useForValidation            : "  << useForValidation << std::endl;
 		}
-
-
 	}
 }
 
@@ -117,8 +115,8 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 		int jp = -1;
 		std::vector<int> neighborsjp;
 		std::vector<double> weightsjp;
-		double thisSphericalDistance=0.;
-		for (MDIterator __iter2(mdRef); __iter2.hasNext(); __iter2.moveNext()){
+		double thisSphericalDistance = 0.;
+		for (MDIterator __iter2(mdRef); __iter2.hasNext(); __iter2.moveNext()) {
 			jp += 1;
 			double rotjp;
 			double tiltjp;
@@ -127,11 +125,11 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 			mdRef.getValue(MDL_ANGLE_TILT, tiltjp, __iter2.objId);
 			mdRef.getValue(MDL_ANGLE_PSI, psijp, __iter2.objId);
 			Euler_direction(rotjp, tiltjp, psijp, dirjp);
-			thisSphericalDistance=RAD2DEG(spherical_distance(dirj, dirjp));
+			thisSphericalDistance = RAD2DEG(spherical_distance(dirj, dirjp));
 
-			if(thisSphericalDistance<maxSphericalDistance){
+			if (thisSphericalDistance < maxSphericalDistance) {
 				neighborsjp.push_back(jp);
-				double val=exp(- thisSphericalDistance/maxSphericalDistance );
+				double val = exp(-thisSphericalDistance / maxSphericalDistance);
 				weightsjp.push_back(val);
 			}
 		}
@@ -150,9 +148,9 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 	generalizedEigs(L_mat, B, eigenvalues, eigenvectors);
 
 	// save eigenvalues y eigenvectors files
-	String fnEigenVal=formatString("%s/outEigenVal.txt",fnDir.c_str());
+	String fnEigenVal = formatString("%s/outEigenVal.txt", fnDir.c_str());
 	eigenvalues.write(fnEigenVal);
-	String fnEigenVect=formatString("%s/outEigenVect.txt",fnDir.c_str());
+	String fnEigenVect = formatString("%s/outEigenVect.txt", fnDir.c_str());
 	eigenvectors.write(fnEigenVect);
 }
 
@@ -165,18 +163,18 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
 	L.initZeros(sizeMdRef,sizeMdRef);
 
 	for(int i=0; i<sizeMdRef; ++i){
-		std::vector<int> neighborsjp=allNeighborsjp[i];
-		std::vector<double> weightsjp=allWeightsjp[i];
-		double sumWeight=0.;
-		int indx=0;
-		int j=-1;
+		std::vector<int> neighborsjp = allNeighborsjp[i];
+		std::vector<double> weightsjp = allWeightsjp[i];
+		double sumWeight = 0.;
+		int indx = 0;
+		int j = -1;
 		for(std::vector<int>::iterator it=neighborsjp.begin(); it!=neighborsjp.end(); ++it){
-			j+=1;
-			indx=(*it);
-			MAT_ELEM(L,i,indx)=-weightsjp[j];
-			sumWeight+=weightsjp[j];
+			j += 1;
+			indx = (*it);
+			MAT_ELEM(L,i,indx) = -weightsjp[j];
+			sumWeight += weightsjp[j];
 		}
-		MAT_ELEM(L,i,i)=sumWeight-1.; // -1 because is necessary to remove the "central" weight
+		MAT_ELEM(L,i,i) = sumWeight - 1.; // -1 because is necessary to remove the "central" weight
 	}
 }
 
@@ -276,13 +274,13 @@ void ProgAngularAssignmentMag::preProcess() {
 	}
 
 	// Symmetry List
-	if (fnSym!=""){
+	if (fnSym != "") {
 		SL.readSymmetryFile(fnSym);
-		for (int sym=0; sym<SL.symsNo(); sym++)	{
+		for (int sym = 0; sym < SL.symsNo(); sym++) {
 			Matrix2D<double> auxL, auxR;
-			SL.getMatrices(sym,auxL,auxR);
-			auxL.resize(3,3);
-			auxR.resize(3,3);
+			SL.getMatrices(sym, auxL, auxR);
+			auxL.resize(3, 3);
+			auxR.resize(3, 3);
 			L.push_back(auxL);
 			R.push_back(auxR);
 		}
@@ -316,17 +314,17 @@ void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Mat
 	ccGFT.initZeros(sizeMdRef);
 	std::vector<double> filt_iGFT_cc(sizeMdRef, 0);
 
-	Matrix2D<double> eigenvectorTrans=eigenvectors.transpose();
-	ccGFT=eigenvectorTrans*ccVecIn;
+	Matrix2D<double> eigenvectorTrans = eigenvectors.transpose();
+	ccGFT = eigenvectorTrans*ccVecIn;
 
 	// define filtering base
-	int cutEig=(sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
-	for(int k=cutEig; k<sizeMdRef; ++k){
-		VEC_ELEM(ccGFT,k)=0.;
+	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
+	for(int k = cutEig; k < sizeMdRef; ++k){
+		VEC_ELEM(ccGFT,k) = 0.;
 	}
 
 	// apply filter to ccvec
-	ccVecOut=eigenvectors*ccGFT;
+	ccVecOut = eigenvectors*ccGFT;
 }
 
 void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName &fnImgOut,
@@ -385,7 +383,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		bestCand(MDaIn, MDaInF, vecMDaRef[k], cand, psi, Tx, Ty, cc_coeff);
 		// all results are storage for posterior partial_sort
 		Idx[k] = k; // for sorting
-		VEC_ELEM(ccvec,k)=cc_coeff;
+		VEC_ELEM(ccvec,k) = cc_coeff;
 		bestTx[k] = Tx;
 		bestTy[k] = Ty;
 		bestPsi[k] = psi;
@@ -421,13 +419,13 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			mCurrentImageAligned = MDaInAux;
 			mCurrentImageAligned.setXmippOrigin();
 			corr = alignImages(vecMDaRef[Idx[k]], mCurrentImageAligned, M, DONT_WRAP);
-			M=M.inv();
+			M = M.inv();
 			transformationMatrix2Parameters2D(M,flip,scale,Tx,Ty,psi);
 
 			if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
-				corr/=3;
+				corr /= 3;
 
-			VEC_ELEM(ccvec, Idx[k])=corr;
+			VEC_ELEM(ccvec, Idx[k]) = corr;
 			bestTx2[Idx[k]] = Tx;
 			bestTy2[Idx[k]] = Ty;
 			bestPsi2[Idx[k]] = psi;
@@ -470,7 +468,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		Euler_apply_transf(L[sym], R[sym],rotjp, tiltjp, psijp,
 				auxRot,auxTilt,auxPsi);
 		Euler_direction(auxRot, auxTilt, auxPsi, dirjp);
-		auxSphericalDist=RAD2DEG(spherical_distance(dirj, dirjp));
+		auxSphericalDist = RAD2DEG(spherical_distance(dirj, dirjp));
 		if (auxSphericalDist < sphericalDistance)
 			sphericalDistance = auxSphericalDist;
 	}
@@ -879,8 +877,8 @@ void ProgAngularAssignmentMag::psiCandidates(MultidimArray<double> &in,
 
 	for (int i = 89; i < 272; ++i) { // only look within  90:-90 range
 		// current value is a peak value?
-		if ((dAi(in,size_t(i)) > dAi(in, size_t(i - 1))) &&
-				(dAi(in,size_t(i)) > dAi(in, size_t(i + 1)))) {
+		if ((dAi(in,size_t(i)) > dAi(in, size_t(i - 1)))
+				&& (dAi(in,size_t(i)) > dAi(in, size_t(i + 1)))) {
 			if ( dAi(in,i) > max1) {
 				max2 = max1;
 				idx2 = idx1;
@@ -913,7 +911,7 @@ void ProgAngularAssignmentMag::psiCandidates(MultidimArray<double> &in,
 		for (int i = 0; i < maxAccepted; ++i) {
 			interpIdx = quadInterp(temp[i], in);
 			cand[i] = double(size) / 2. - interpIdx;
-			cand[i + maxAccepted] =	(cand[i] >= 0.0) ? cand[i] + 180. : cand[i] - 180.;
+			cand[i + maxAccepted] = (cand[i] >= 0.0) ? cand[i] + 180. : cand[i] - 180.;
 		}
 	} else {
 		peaksFound = 0;
@@ -973,12 +971,7 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 
 		circularWindow(MDaInShiftRot); //circular masked MDaInRotShift
 
-		// distance
-		//pearsonCorr(MDaRef, MDaInShiftRot, tempCoeff);  // Pearson
 		tempCoeff = correlationIndex(MDaRef, MDaInShiftRot);
-		//		normalized_cc(MDaRef, MDaInShiftRot, tempCoeff); // NCC
-		//		imNormalized_cc(MDaRef, MDaInShiftRot, tempCoeff); // IMNCC
-		//		imZNCC(MDaRef, MDaInShiftRot, tempCoeff); // IMZNCC
 		if (tempCoeff > bestCoeff) {
 			bestCoeff = tempCoeff;
 			shift_x = tx;
@@ -1076,9 +1069,9 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 	int lb = int(size / 2 - maxShift);
 	int hb = int(size / 2 + maxShift);
 	for (int i = lb; i < hb; ++i) { //i= lb : hb or i= 1: size-1
-		if (    ( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1))) &&
-				( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1))) && // is this value a peak value?
-				(dAi(ccVector,i) > maxVal) ) {  // is the biggest?
+		if (( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1)))
+				&& ( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1))) && // is this value a peak value?
+				(dAi(ccVector,i) > maxVal)) {  // is the biggest?
 			maxVal = dAi(ccVector, i);
 			idx = i;
 		}
@@ -1090,7 +1083,7 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 		interpIdx = quadInterp(idx, ccVector);
 		shift = double(size) / 2. - interpIdx;
 	} else {
-		shift = maxShift+1;
+		shift = maxShift+1.;
 	}
 
 }
