@@ -247,7 +247,7 @@ void ProgAngularAssignmentMag::preProcess() {
 		// processing reference image
 		vecMDaRef.push_back(MDaRef);
 		applyFourierImage2(MDaRef, MDaRefF);
-		// fourier of polar magnitude spectra
+		// Fourier of polar magnitude spectra
 		transformerImage.getCompleteFourier(MDaRefF2);
 		getComplexMagnitude(MDaRefF2, MDaRefFM);
 		completeFourierShift(MDaRefFM, MDaRefFMs);
@@ -301,9 +301,6 @@ void ProgAngularAssignmentMag::preProcess() {
 		refYdim = YSIZE(refVol());
 		refZdim = ZSIZE(refVol());
 	}
-
-	// time processing input images in ::processImage()
-	//Inicio=std::clock();
 }
 
 /* Apply graph signal processing to cc-vector using the Laplacian eigen-decomposition

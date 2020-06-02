@@ -130,9 +130,6 @@ public:
     /** Use it for validation */
     bool useForValidation;
 
-// borrar
-double Inicio;
-
     int Nsim;
 
     ProgAngularAssignmentMag();
