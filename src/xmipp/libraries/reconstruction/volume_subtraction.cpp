@@ -25,8 +25,10 @@
 
 #include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
+#include <data/fourier_filter.h>
 
-void POCSmask(const MultidimArray<int> &mask, MultidimArray<double> &I)
+
+void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
 	DIRECT_MULTIDIM_ELEM(I,n)*=DIRECT_MULTIDIM_ELEM(mask,n);
@@ -65,7 +67,7 @@ protected:
 	FileName fnVol1, fnVol2, fnDiff, fnMask1, fnMask2;
 	bool pdb;
 	int iter;
-	float cutFreq;
+	double cutFreq;
 
     void defineParams()
     {
@@ -80,7 +82,7 @@ protected:
         addParamsLine("[--iter <n=1>]        	: Number of iterations");
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
-        addParamsLine("[--cutFreq <f=0>        	: Cutoff frequency");
+        addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
     }
 
     void readParams()
@@ -94,6 +96,7 @@ protected:
     	iter=getIntParam("--iter");
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
+    	cutFreq=getDoubleParam("--cutFreq");
     }
 
     void show()
@@ -104,6 +107,7 @@ protected:
     	<< "Input mask 1:    	   	" << fnMask1     << std::endl
     	<< "Input mask 2:    	   	" << fnMask2     << std::endl
     	<< "Iterations:    	   		" << iter        << std::endl
+    	<< "Cutoff frequency:   	" << cutFreq     << std::endl
     	<< "Output difference: 		" << fnDiff 	 << std::endl
     	;
     }
@@ -117,54 +121,40 @@ protected:
     	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
     	MultidimArray<double> V1FourierMag;
 
-    	// read vol1
     	V.read(fnVol1);
-    	// FT vol1
-    	//transformer.FourierTransform(V(),V1Fourier,false);
-    	//FFT_magnitude(V1Fourier,V1FourierMag);
-
-    	MultidimArray<int> mask1;
-		Image<int> mask;
+    	MultidimArray<double> mask1;
+		Image<double> mask;
+		// if masks => compute common mask
     	if (fnMask1!="" && fnMask2!="")
     	{
-    		//read mask1
 			mask.read(fnMask1);
     		mask1=mask();
-			// read mask2
 			mask.read(fnMask2);
-			// mask intersection
 			mask()*=mask1;
 		}
-		else
+		else  // mask all 1s of size V1
 		{
-            typeCast(V(), mask1);
-            FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask1)
-			DIRECT_MULTIDIM_ELEM(mask1,n)=1;
-            mask()=mask1;
+            mask().resizeNoCopy(V());
+            mask().initConstant(1.0);
 		}
-
+    	mask1.clear();
 		mask.write("commonmask.mrc");
-		// mask vol1 with common mask
 		POCSmask(mask(),V());
     	POCSnonnegative(V());
     	transformer.FourierTransform(V(),V1Fourier,false);
     	FFT_magnitude(V1Fourier,V1FourierMag);
 		double std1 = V().computeStddev();
 		V.write("V1masked.mrc");
-		//read vol2
 		V.read(fnVol2);
-		// mask vol2 with common mask
 		POCSmask(mask(),V());
 		V.write("V2masked.mrc");
 
-    	// Get original phase vol2
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
 
     	for (int n=0; n<iter; ++n)
     	{
-    		// Apply POCS to modify iteratively vol2
     		transformer.FourierTransform(V(),V2Fourier,false);
     		POCSFourierAmplitude(V1FourierMag,V2Fourier);
         	transformer.inverseFourierTransform();
@@ -181,38 +171,40 @@ protected:
 			V()*=std1/std2;
     		V.write(formatString("V2masked_Amp1_ph2_nonneg_%d.mrc", n));
     	}
-    	// FT final vol2
-    	//transformer.FourierTransform(V(),V2Fourier,false);
 
-    	// Define m depending on if vol2 is a pdb
-    	MultidimArray<double> m;
-    	MultidimArray<double> V2FourierMag;
-		FFT_magnitude(V2Fourier,V2FourierMag);
-    	if (pdb==true)
-    		m=V1FourierMag;
-    	else
-			MultidimArrayMIN(V1FourierMag,V2FourierMag,m);
-
-    	//transformer.inverseFourierTransform();
-    	// Subtraction: m*(vol1-vol2modif)
-
-    	//Filter mask with a Gaussian to smooth it
+    	// Filter common mask with gaussian for smoothing
         FourierFilter Filter;
-        Filter.FilterBand=LOWPASS;
         Filter.FilterShape=REALGAUSSIAN;
-        Filter.w1=cutFreq;
-        //Filter.generateMask(inV());
-        //Filter.do_generate_3dmask=true;
-    	Filter.applyMaskSpace(inV());
-    	Filter.applyMaskSpace(refV());
-
+        Filter.FilterBand=LOWPASS;
+        Filter.w1=1;
+    	Filter.applyMaskSpace(mask());
+    	mask.write("maskfilter.mrc");
     	Image<double> V1;
     	V1.read(fnVol1);
-    	V1()-= V();
 
-    	//FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V2Fourier)
-    	//DIRECT_MULTIDIM_ELEM(V2Fourier,n)=DIRECT_MULTIDIM_ELEM(m,n)*(DIRECT_MULTIDIM_ELEM(V1Fourier,n)/DIRECT_MULTIDIM_ELEM(V1FourierMag,n)-
-    	//		                                                     DIRECT_MULTIDIM_ELEM(V2Fourier,n)/DIRECT_MULTIDIM_ELEM(V2FourierMag,n));
+    	// If cutoff freq param is passed, filter V1 and V2
+    	if (cutFreq!=0)
+    	{
+			FourierFilter Filter2;
+			Filter2.FilterBand=LOWPASS;
+			Filter2.FilterShape=RAISED_COSINE;
+			Filter2.raised_w=0.02;
+			Filter2.w1=cutFreq;
+			Filter2.generateMask(V());
+			Filter2.do_generate_3dmask=true;
+			Filter2.applyMaskSpace(V());
+			V.write("V2filter.mrc");
+			Filter2.applyMaskSpace(V1());
+	    	V1.write("V1filter.mrc");
+    	}
+
+    	// Final subtraction
+
+    	V1()=(1-mask())*V1()+V()*mask();
+//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1)
+//		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n) - (DIRECT_MULTIDIM_ELEM(mask,n)*DIRECT_MULTIDIM_ELEM(V1,n) +
+//				DIRECT_MULTIDIM_ELEM(V,n)*DIRECT_MULTIDIM_ELEM(mask,n));
+
 		V1.write(fnDiff);
     }
 };
