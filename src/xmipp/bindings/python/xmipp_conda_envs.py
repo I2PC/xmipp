@@ -12,7 +12,7 @@ XMIPP_CONDA_ENVS = {
 
   "xmipp_MicCleaner": {
     "pythonVersion": "3.6",
-    "dependencies": ["numpy=1.16", "micrograph-cleaner-em", "keras=2.2"],
+    "dependencies": ["micrograph-cleaner-em=0.35"],
     "channels": ["rsanchez1369", "anaconda", "conda-forge"],
     "pipPackages": [],
     "defaultInstallOptions": {},
