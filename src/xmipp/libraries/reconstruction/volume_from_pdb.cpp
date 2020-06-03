@@ -47,9 +47,10 @@ ProgPdbConverter::ProgPdbConverter()
     usePoorGaussian=false;
     useFixedGaussian=false;
     doCenter=false;
+    noHet=false;
 
     // Periodic table for the blobs
-    periodicTable.resize(7, 2);
+    periodicTable.resize(12, 2);
     periodicTable(0, 0) = atomRadius("H");
     periodicTable(0, 1) = atomCharge("H");
     periodicTable(1, 0) = atomRadius("C");
@@ -64,6 +65,16 @@ ProgPdbConverter::ProgPdbConverter()
     periodicTable(5, 1) = atomCharge("S");
     periodicTable(6, 0) = atomRadius("Fe");
     periodicTable(6, 1) = atomCharge("Fe");
+    periodicTable(7, 0) = atomRadius("K");
+    periodicTable(7, 1) = atomCharge("K");
+    periodicTable(8, 0) = atomRadius("F");
+    periodicTable(8, 1) = atomCharge("F");
+    periodicTable(9, 0) = atomRadius("Mg");
+    periodicTable(9, 1) = atomCharge("Mg");
+    periodicTable(10, 0) = atomRadius("Cl");
+    periodicTable(10, 1) = atomCharge("Cl");
+    periodicTable(11, 0) = atomRadius("Ca");
+    periodicTable(11, 1) = atomCharge("Ca");
 
     // Correct the atom weights by the blob weight
     for (size_t i = 0; i < MAT_YSIZE(periodicTable); i++)
@@ -141,8 +152,23 @@ void ProgPdbConverter::atomBlobDescription(
     case 'S':
         idx = 5;
         break;
-    case 'F':
+    case 'E': //iron Fe
         idx = 6;
+        break;
+    case 'K':
+        idx = 7;
+        break;
+    case 'F':
+        idx = 8;
+        break;
+    case 'G': // Magnesium Mg
+        idx = 9;
+        break;
+    case 'L': // Chlorine Cl
+        idx = 10;
+        break;
+    case 'A': // Calcium Ca
+        idx = 11;
         break;
     default:
     	if (verbose>0)
@@ -168,6 +194,7 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [--orig <orig_x=0> <orig_y=0> <orig_z=0>]: Define origin of the output volume");
     addParamsLine("  				                     : If just one dimension is introduced dim_x = dim_y = dim_z");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
+    addParamsLine("  [--noHet]                           : Heteroatoms are not converted");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
     addParamsLine("  [--poor_Gaussian]                   : Use a simple Gaussian adapted to each atom");
     addParamsLine("  [--fixed_Gaussian <std=-1>]         : Use a fixed Gausian for each atom with");
@@ -195,6 +222,7 @@ void ProgPdbConverter::readParams()
     if (useFixedGaussian)
         sigmaGaussian = getDoubleParam("--fixed_Gaussian");
     doCenter = checkParam("--centerPDB");
+    noHet = checkParam("--noHet");
     intensityColumn = getParam("--intensityColumn");
 }
 
@@ -209,6 +237,7 @@ void ProgPdbConverter::show()
     << "Size:               " << output_dim_x << " " << output_dim_y << " " << output_dim_z << std::endl
     << "Origin:             " << orig_x << " " << orig_y << " " << orig_z << std::endl
     << "Center PDB:         " << doCenter         << std::endl
+    << "Do not Hetatm:      " << noHet         << std::endl
     << "Use blobs:          " << useBlobs         << std::endl
     << "Use poor Gaussian:  " << usePoorGaussian  << std::endl
     << "Use fixed Gaussian: " << useFixedGaussian << std::endl
@@ -324,7 +353,7 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
         double weight, radius;
         if (!useFixedGaussian)
         {
-            if (atom_type=="HETA")
+            if (noHet && kind=="HETA")
                 continue;
             atomBlobDescription(atom_type, weight, radius);
         }
@@ -445,12 +474,22 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
         if (line == "")
             continue;
         kind =line.substr(0,4);
-        if (kind != "ATOM")
-            continue;
+
+        if (noHet)
+        {
+            if (kind != "ATOM")
+                continue;
+        }
+        else
+        {
+            if (kind != "ATOM" and kind != "HETA")
+                continue;
+        }
 
         // Extract atom type and position
         // Typical line:
         // ATOM    909  CA  ALA A 161      58.775  31.984 111.803  1.00 34.78
+
         atom_type = line.substr(13,2);
         char atom_type0=atom_type[0];
         double x = textToFloat(line.substr(30,8));
