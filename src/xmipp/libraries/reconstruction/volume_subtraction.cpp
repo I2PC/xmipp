@@ -66,7 +66,7 @@ class ProgVolumeSubtraction: public XmippProgram
 protected:
 	FileName fnVol1, fnVol2, fnDiff, fnMask1, fnMask2;
 	bool pdb;
-	int iter;
+	int iter, sigma;
 	double cutFreq;
 
     void defineParams()
@@ -79,6 +79,7 @@ protected:
         addParamsLine("[-o <structure=\"\">] 	: Volume difference");
         addParamsLine("                      	: If no name is given, then volume_diff.mrc");
         addParamsLine("[--pdb]    			 	: Second volume come from a pdb");
+        addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
         addParamsLine("[--iter <n=1>]        	: Number of iterations");
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
@@ -94,6 +95,7 @@ protected:
     		fnDiff="volume_diff.mrc";
     	pdb=checkParam("--pdb");
     	iter=getIntParam("--iter");
+    	sigma=getIntParam("--sigma");
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
     	cutFreq=getDoubleParam("--cutFreq");
@@ -106,6 +108,7 @@ protected:
     	<< "Input volume 2:    	   	" << fnVol2      << std::endl
     	<< "Input mask 1:    	   	" << fnMask1     << std::endl
     	<< "Input mask 2:    	   	" << fnMask2     << std::endl
+    	<< "Sigma:    	   			" << sigma       << std::endl
     	<< "Iterations:    	   		" << iter        << std::endl
     	<< "Cutoff frequency:   	" << cutFreq     << std::endl
     	<< "Output difference: 		" << fnDiff 	 << std::endl
@@ -172,15 +175,22 @@ protected:
     		V.write(formatString("V2masked_Amp1_ph2_nonneg_%d.mrc", n));
     	}
 
+    	Image<double> V1, V1Filtered;
+    	V1.read(fnVol1);
+
+    	V1() -= V();
+    	V1.write("subtraction.mrc");
+
     	// Filter common mask with gaussian for smoothing
         FourierFilter Filter;
         Filter.FilterShape=REALGAUSSIAN;
         Filter.FilterBand=LOWPASS;
-        Filter.w1=1;
+        Filter.w1=sigma;
     	Filter.applyMaskSpace(mask());
     	mask.write("maskfilter.mrc");
-    	Image<double> V1;
+
     	V1.read(fnVol1);
+		V1Filtered() = V1();
 
     	// If cutoff freq param is passed, filter V1 and V2
     	if (cutFreq!=0)
@@ -194,13 +204,14 @@ protected:
 			Filter2.do_generate_3dmask=true;
 			Filter2.applyMaskSpace(V());
 			V.write("V2filter.mrc");
-			Filter2.applyMaskSpace(V1());
-	    	V1.write("V1filter.mrc");
+			Filter2.applyMaskSpace(V1Filtered());
+			V1Filtered.write("V1filter.mrc");
     	}
 
+
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
-		DIRECT_MULTIDIM_ELEM(V1,n) = (DIRECT_MULTIDIM_ELEM(V1,n)-(DIRECT_MULTIDIM_ELEM(V1,n)*DIRECT_MULTIDIM_ELEM(mask,n))) +
-				(DIRECT_MULTIDIM_ELEM(V,n)*DIRECT_MULTIDIM_ELEM(mask,n));
+		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
+				std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
 
 		V1.write(fnDiff);
     }
