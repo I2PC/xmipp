@@ -26,6 +26,7 @@
 
 import distutils.spawn
 import glob
+import json
 import os
 import re
 import shutil
@@ -164,9 +165,11 @@ int main(int argc, char** argv){
 """ % compilingInfo)
 
 
-def whereis(program):
+def whereis(program, findReal=False):
     programPath=distutils.spawn.find_executable(program)
     if programPath:
+        if findReal:
+            programPath = os.path.realpath(programPath)
         return os.path.dirname(programPath)
     else:
         return None
@@ -478,10 +481,11 @@ def createEmptyConfig():
 
 
 def findFileInDirList(fnH,dirlist):
+    """ :returns the dir where found or an empty string if not found. """
     for dir in dirlist:
-        if len(glob.glob(os.path.join(dir,fnH)))>0:
-           return True
-    return False
+        if len(glob.glob(os.path.join(dir, fnH))) > 0:
+            return dir
+    return ''
 
 def configOpenCV(configDict):
     cppProg="#include <opencv2/core/core.hpp>\n"
@@ -491,6 +495,7 @@ def configOpenCV(configDict):
 
     if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"]), show_output=False):
+        print(yellow("OpenCV not found"))
         configDict["OPENCV"]=False
         configDict["OPENCVSUPPORTSCUDA"]=False
         configDict["OPENCV3"]=False
@@ -544,7 +549,7 @@ def configCompiler(configDict):
             # on TRAVIS, we can use cache to speed up the build
             configDict["CXX"] = "ccache g++" if checkProgram("g++") else ""
         else:
-            configDict["CXX"]="g++" if checkProgram("g++") else ""
+            configDict["CXX"] = "g++" if checkProgram("g++") else ""
     if configDict["LINKERFORPROGRAMS"] == "":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
@@ -554,7 +559,7 @@ def configCompiler(configDict):
 
     if configDict["CC"] == "gcc":
         if not "-std=c99" in configDict["CCFLAGS"]:
-            configDict["CCFLAGS"]+=" -std=c99"
+            configDict["CCFLAGS"] += " -std=c99"
     if 'g++' in configDict["CXX"]:
         configDict["CXXFLAGS"] += " -mtune=native -march=native"  # optimize for current machine
         if "-std=c99" not in configDict["CXXFLAGS"]:
@@ -571,42 +576,42 @@ def configCompiler(configDict):
     info = get_paths()
 
     if configDict["LIBDIRFLAGS"] == "":
-        libDirs=[]
-        configDict["LIBDIRFLAGS"]="-L%s/lib" % info['data']
-        libDirs=["%s/lib" % info['data']]
+        localLib = "%s/lib" % info['data']  # /usr/local/lib or /path/to/virtEnv/lib
+        configDict["LIBDIRFLAGS"] = "-L%s" % localLib
 
-        if not findFileInDirList("libhdf5*", libDirs):
-            if findFileInDirList("libhdf5*", ["/usr/lib/x86_64-linux-gnu"]):
-                configDict["LIBDIRFLAGS"]+=" -L/usr/lib/x86_64-linux-gnu"
-                # libDirs+=["/usr/lib/x86_64-linux-gnu"]
+        # extra libs
+        libDirs = [localLib]  # where to look for
+        libDirs += ["/usr/lib/x86_64-linux-gnu"]
+
+        hdf5Lib = findFileInDirList("libhdf5*", libDirs)
+        if hdf5Lib:
+            configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
+
     if configDict["INCDIRFLAGS"] == "":
-        incDirs = []
+        localInc = "%s/include" % info['data']
         configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
-        configDict["INCDIRFLAGS"] += " -I%s/include" % info['data']
-        incDirs += ["%s/include" % info['data']]
+        configDict["INCDIRFLAGS"] += " -I%s" % localInc
 
-        if not findFileInDirList("hdf5.h", incDirs):
-            if findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"]):
-                configDict["INCDIRFLAGS"]+=" -I/usr/include/hdf5/serial"
-                incDirs += ["/usr/include/hdf5/serial"]
+        # extra includes
+        incDirs = [localInc]
+        incDirs += ["/usr/include/hdf5/serial"]
+
+        hdf5Inc = findFileInDirList("hdf5.h", incDirs)
+        if hdf5Inc:
+            configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
     if configDict["PYTHON_LIB"] == "":
         # malloc flavour is not needed from 3.8
         malloc = "m" if sys.version_info.minor < 8 else ""
-        configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major, sys.version_info.minor, malloc)
-
+        configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
+                                                      sys.version_info.minor,
+                                                      malloc)
 
     if configDict["PYTHONINCFLAGS"] == "":
         import numpy
-        incDirs=[]
+        incDirs = [info['include'], numpy.get_include()]
 
-        incDirs += [info['include'],
-                    numpy.get_include()]
-
-        pythonIncFlags = ""
-        for incDir in incDirs:
-            pythonIncFlags += "-I" + incDir + " "
-        configDict["PYTHONINCFLAGS"] = pythonIncFlags
+        configDict["PYTHONINCFLAGS"] = ' '.join(["I%s" % iDir for iDir in incDirs])
 
     configDict["OPENCV"] = os.environ.get("OPENCV", "")
     if configDict["OPENCV"] == "" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
@@ -649,10 +654,14 @@ def checkCompiler(configDict):
 
     if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"],configDict["PYTHONINCFLAGS"])):
-        print(red("Check the SCIPION_HOME, INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS"))
-        print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev"))
+        print(red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf"))
+        # FIXME: Check the
+        print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread"))
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
+    with open('libs.json') as f:
+        ALL_LIBS = set(json.load(f))
+
     if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
               (configDict["LINKERFORPROGRAMS"], configDict["LINKFLAGS"], configDict["LIBDIRFLAGS"],libhdf5)):
         print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
@@ -662,18 +671,30 @@ def checkCompiler(configDict):
 
 def configMPI(configDict):
     mpiDetected = []
-    if configDict["MPI_CC"] == "" and checkProgram("mpicc"):
-        configDict["MPI_CC"]="mpicc"
-        mpiDetected.append('mpicc')
-    if configDict["MPI_CXX"] == "" and checkProgram("mpiCC"):
-        configDict["MPI_CXX"]="mpiCC"
-        mpiDetected.append('mpiCC')
+    if configDict["MPI_CC"] == "":
+        if checkProgram("mpicc"):
+            configDict["MPI_CC"] = "mpicc"
+            mpiDetected.append('mpicc')
+        else:
+            mpiDir = findFileInDirList('mpicc', ['/usr/lib/openmpi/bin'])  # add candidates if not found
+            if mpiDir:
+                configDict["MPI_CC"] = mpiDir + "/mpicc"
+                mpiDetected.append(mpiDir + "/mpicc")
+    if configDict["MPI_CXX"] == "":
+        if checkProgram("mpiCC"):
+            configDict["MPI_CXX"] = "mpiCC"
+            mpiDetected.append('mpiCC')
+        else:
+            mpiDir = findFileInDirList('mpiCC', ['/usr/lib/openmpi/bin'])  # add candidates if not found
+            if mpiDir:
+                configDict["MPI_CXX"] = mpiDir + "/mpiCC"
+                mpiDetected.append(mpiDir + "/mpiCC")
     if configDict["MPI_LINKERFORPROGRAMS"]=="":
         configDict["MPI_LINKERFORPROGRAMS"]="mpiCC" if checkProgram("mpiCC") else ""
     if mpiDetected:
         print(green("%s detected." % ', '.join(mpiDetected)))
-    # MPI_CXXFLAGS is normally not needed, but if it is we may use mpicc --showme:compile
-    # MPI_LINKFLAGS is normally not needed, but if it is we may use mpicc --showme:link
+    else:
+        print(yellow("mpicc and mpiCC not found"))
 
 def checkMPI(configDict):
     print("Checking MPI configuration ...")
@@ -686,7 +707,9 @@ int main(){}
 
     if not runJob("%s -c -w %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"%\
               (configDict["MPI_CXX"],configDict["INCDIRFLAGS"])):
-        print(red("Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS"))
+        print(red("Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
+        print("hint: MPI_CXXFLAGS is normally not needed, but if it is might help 'mpicc --showme:compile'")
+        print("hint: MPI_LINKFLAGS is normally not needed, but if it is might help 'mpicc --showme:link'")
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
     if not runJob("%s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
@@ -711,15 +734,18 @@ int main(){}
 
 def configJava(configDict):
     if configDict["JAVA_HOME"]=="":
-        javaProgramPath = distutils.spawn.find_executable("java")
+        javaProgramPath = whereis('java', findReal=True)
+        if not javaProgramPath:
+            javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-8-openjdk-amd64/bin'])  # put here candidates
         javaHomeDir = None
         if javaProgramPath:
-            javaProgramPath=os.path.dirname(os.path.realpath(javaProgramPath))
             javaHomeDir = javaProgramPath.replace("/jre/bin","")
             javaHomeDir = javaHomeDir.replace("/bin","")
         if javaHomeDir:
             configDict["JAVA_HOME"]=javaHomeDir
             print(green("%s detected." % os.path.basename(javaHomeDir)))
+        else:
+            print(yellow("java not found"))
 
     if configDict["JAVA_BINDIR"]=="" and javaHomeDir:
         configDict["JAVA_BINDIR"]="%(JAVA_HOME)s/bin"
@@ -769,7 +795,13 @@ def configCuda(configDict):
         if checkProgram("nvcc", False):
             configDict["CUDA"]="True"
         else:
-            configDict["CUDA"]="False"
+            cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda-8.0/bin",
+                                                 "/usr/local/cuda*/bin"])  # check order
+            if cudaBin:
+                configDict["CUDA"] = "True"
+                os.environ.update(PATH=':'.join([os.environ['PATH'], cudaBin]))
+            else:
+                configDict["CUDA"] = "False"
     if configDict["CUDA"]=="True":
         if configDict["NVCC"]=="":
             if checkProgram("nvcc"):
@@ -787,18 +819,18 @@ def configCuda(configDict):
         if configDict["NVCC_CXXFLAGS"]=="":
             # in case user specified some wrapper of the compiler
             # get rid of it: 'ccache g++' -> 'g++'
-            candidate = configDict["CXX"].split()[-1]
-            cxxVersion, cxxStrVersion = getGccVersion(candidate)
+            currentCxx = configDict["CXX"].split()[-1]
+            cxxVersion, cxxStrVersion = getGccVersion(currentCxx)
             nvccVersion, nvccFullVersion = getCudaVersion(configDict["NVCC"])
             if cxxVersion >= 6 and nvccVersion <= 8:
                 compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
                 print(red("%s version later than 5 detected. Looking for an alternative "
                           "for CUDA compilations... (g++-v: %s)"
-                          % (candidate, ', '.join(compVers))))
+                          % (currentCxx, ', '.join(compVers))))
                 for ver in compVers:
-                    cxxCudaVer = '-'+ver
-                    if checkProgram(candidate+cxxCudaVer):
-                        configDict["CXX_CUDA"] = candidate+cxxCudaVer
+                    cxx4cuda = currentCxx+'-'+ver
+                    if checkProgram(cxx4cuda):
+                        configDict["CXX_CUDA"] = cxx4cuda
                         print(green("%s detected. Using it to compile CUDA related code.\n"
                                     % configDict["CXX_CUDA"]))
                         break
@@ -809,7 +841,7 @@ def configCuda(configDict):
                     configDict["CUDA"] = "False"
                     return
             else:
-                configDict["CXX_CUDA"] = candidate
+                configDict["CXX_CUDA"] = currentCxx
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                            "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
@@ -819,29 +851,28 @@ def configCuda(configDict):
                                            "-gencode=arch=compute_60,code=compute_60 "
                                            "-gencode=arch=compute_61,code=compute_61")
         if configDict["NVCC_LINKFLAGS"]=="":
-            nvccPath=distutils.spawn.find_executable(configDict["NVCC"])
-            if nvccPath:
-                dirName=os.path.dirname(nvccPath)
-                candidateDir = dirName.replace("bin","lib")
-                ok=os.path.exists(candidateDir+"/libcudart.so")
-                if not ok:
-                    candidateDir = dirName.replace("bin","lib64")
-                    ok=os.path.exists(candidateDir+"/libcudart.so")
-                if not ok:
-                    candidateDir = dirName.replace("bin","targets/x86_64-linux/lib")
-                    ok=os.path.exists(candidateDir+"/libcudart.so")
-                if ok:
-                    configDict["NVCC_LINKFLAGS"] = ("-L%s"%candidateDir +
-                                                    " -L%s/stubs"%candidateDir)  # nvidia-ml is in stubs folder
+            nvccDir=whereis(configDict["NVCC"])
+            if nvccDir:
+                cudaLib = None
+                libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib']  # add more condidates
+                for lib in libDirs:
+                    candidate = nvccDir.replace("bin", lib)
+                    if os.path.exists(candidate+"/libcudart.so"):
+                        cudaLib = candidate
+                        break
+
+                if cudaLib:
+                    configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
+                                                    " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
                 else:
-                    print("WARNING: system libraries for CUDA not found!\n"
-                          "         If cuda code is not compiling, "
-                          "please, find 'libcudart.so' and manually add\n"
-                          "         the containing folder (e.g. 'myCudaLib') at %s\n"
-                          "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
-                          "         If the problem persist, 'export CUDA=False' before "
-                          "compiling to skip cuda compilation."
-                          % CONFIG_FILE_NAME)
+                    print(yellow("WARNING: system libraries for CUDA not found!\n"
+                                 "         If cuda code is not compiling, "
+                                 "please, find 'libcudart.so' and manually add\n"
+                                 "         the containing folder (e.g. 'myCudaLib') at %s\n"
+                                 "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
+                                 "         If the problem persist, 'export CUDA=False' before "
+                                 "compiling to skip cuda compilation."
+                                 % CONFIG_FILE_NAME))
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
@@ -880,7 +911,7 @@ def configMatlab(configDict):
     if configDict["MATLAB"]=="True":
         if configDict["MATLAB_DIR"]=="":
             if checkProgram("matlab"):
-                matlabBinDir = os.path.dirname(os.path.realpath(distutils.spawn.find_executable("matlab")))
+                matlabBinDir = whereis("matlab", findReal=True)
                 configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
                 print(green("Matlab detected at " + matlabBinDir))
 
@@ -965,7 +996,7 @@ def checkConfig():
         newConf = {}  # to update the config if something fails
         if not checkCompiler(configDict):
             print(red("Cannot compile"))
-            print("Possible solutions")
+            print("Possible solutions")  # FIXME: check libraries
             print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "\
                   "python3-numpy python3-scipy python3-mpi4py")
             print("In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")

@@ -1,0 +1,21 @@
+{
+    "Xmipp_libs": [
+        "fftw3",
+        "fftw3_threads",
+        "tiff",
+        "jpeg",
+        "sqlite3",
+        "hdf5_cpp",
+        "pthreads"
+    ],
+    "Xmipp_prog": [
+        "hdf5_cpp",
+        "fftw3",
+        "fftw3_threads",
+        "jpeg",
+        "tiff",
+        "fftw3f",
+        "fftw3f_threads",
+        "pthread"
+    ]
+}
