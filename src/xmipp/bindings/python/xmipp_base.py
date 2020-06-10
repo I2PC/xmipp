@@ -204,7 +204,7 @@ class CondaEnvManager(object):
         if not condaExe and condaHome:
             condaExe = os.path.join(condaHome, 'bin', 'conda')
 
-        condaExe = os.path.expanduser(condaExe)
+        condaExe = os.path.expanduser(condaExe if condaExe else '')
         if os.path.isfile(condaExe):
             return condaExe
         else:
