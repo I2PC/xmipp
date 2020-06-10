@@ -133,7 +133,7 @@ void AProgMovieAlignmentCorrelation<T>::defineParams() {
     addParamsLine(
             "                               :+as a function of max_freq.");
     addParamsLine(
-            "  [--max_shift <s=30>]         : Maximum shift allowed in pixels");
+            "  [--max_shift <s=40>]         : Maximum shift allowed in pixels"); // FIXME DS this should be called maxShift, and be in A, rather than in pixels
     addParamsLine(
             "  [--maxResForCorrelation <R=30>]: Maximum resolution to align (in Angstroms)");
     addParamsLine(
