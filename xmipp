@@ -733,7 +733,7 @@ def configJava(configDict):
 def checkJava(configDict):
     if not checkProgram("javac"):
         return False
-    print("Cheching Java configuration...")
+    print("Checking Java configuration...")
     javaProg="""
     public class Xmipp {
        public static void main(String[] args) {}
@@ -1234,6 +1234,7 @@ def install(dirname):
 
     createDir(dirname+"/bin")
     ok = ok and runJob(cpCmd+" src/*/bin/* "+dirname+"/bin/")
+
     destPathPyModule = os.path.expanduser(os.path.abspath(os.path.join(dirname, "pylib", "xmippPyModules")))
     createDir(destPathPyModule)
     initFn = destPathPyModule + "/__init__.py"
