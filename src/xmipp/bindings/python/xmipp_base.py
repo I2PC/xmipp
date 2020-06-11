@@ -290,10 +290,11 @@ class CondaEnvManager(object):
             installed in pip. Returns None if not found.
         """
         env = environ if environ else os.environ
-        p = subprocess.Popen("pip list | grep numpy", shell=True, env=env,
+        p = subprocess.Popen("pip list | grep "+dependency, shell=True, env=env,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
-            reMatch = re.match("%s +([0-9a-zA-Z0-9\.]+)" % dependency,
+            # expected string: "dep    1.2.34a3"
+            reMatch = re.match("%s +([0-9a-zA-Z\.]+)" % dependency,
                                line.decode('utf8').strip())
             if reMatch:
                 return reMatch.group(1)
