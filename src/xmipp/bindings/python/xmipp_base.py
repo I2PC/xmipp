@@ -314,16 +314,16 @@ class CondaEnvManager(object):
         python = "python="+pyVer if pyVer else ""
 
         deps = ' '.join([dep for dep in kwargs.get('dependencies', [])])
-        if kwargs.get('xmippEnviron', True):
-            # xmippLib is compiled using a certain numpy.
-            #  If it is load in the conda environment, numpy must be the same.
-            deps += ' numpy=%s' % CondaEnvManager.getCurInstalledDepVer('numpy')
 
         chs = kwargs.get('channels', [])
         chFlags = (" -c %s" % " -c ".join([c for c in chs]) if len(chs) > 0 else "")
 
         options = installCmdOptions or kwargs.get('defaultInstallOptions', {})
         pipPack = kwargs.get('pipPackages', [])
+        if kwargs.get('xmippEnviron', True):
+            # xmippLib is compiled using a certain numpy.
+            #  If it is load in the conda environment, numpy must be the same.
+            pipPack.append(' numpy==%s' % CondaEnvManager.getCurInstalledDepVer('numpy'))
 
         # Composing the commands
         cmdList = []
