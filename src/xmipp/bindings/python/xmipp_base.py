@@ -277,8 +277,9 @@ class CondaEnvManager(object):
             condaActCmd = condaActCmd[:-1]
 
         if not condaActCmd:
-            print("Conda activation command not found. "
-                  "Please, add CONDA_ACTIVATION_CMD to the config file.")
+            msg = ("\n\nConda activation command not found. "
+                   "Please, add CONDA_ACTIVATION_CMD to the config file.\n\n\n")
+            condaActCmd = "echo %s exit " % msg
         return condaActCmd
 
     @staticmethod
