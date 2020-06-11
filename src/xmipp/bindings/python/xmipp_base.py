@@ -222,12 +222,15 @@ class CondaEnvManager(object):
         cmd = "%s info --env" % CondaEnvManager.getCondaExe()
         p = subprocess.Popen(cmd, shell=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in p.stdout.readlines():
+        output = p.stdout.readlines()
+        for line in output:
             regex = re.match(condaEnv+"[ ]+(\*)?[ ]+(.*)", line.decode("utf-8"))
             if regex:
                 # isActived = regex.group(1) is not None
                 return regex.group(2)
-        print("'%s' conda environment not found")
+        print("\n$ "+cmd)
+        print("".join([l.decode('utf8') for l in output]))
+        print(" >>> '%s' conda environment not found... (check list above)" % condaEnv)
 
     @staticmethod
     def getCondaEnv(env, condaEnv):
@@ -294,7 +297,8 @@ class CondaEnvManager(object):
                   'numpy'=getCurInstalledDep('numpy') <- no ver. found
         """
         env = environ if environ else os.environ
-        p = subprocess.Popen("pip list | grep "+dependency, shell=True, env=env,
+        p = subprocess.Popen("pip list --no-cache-dir | grep "+dependency,
+                             shell=True, env=env,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
             # expected string: "dep    1.2.34a3"
