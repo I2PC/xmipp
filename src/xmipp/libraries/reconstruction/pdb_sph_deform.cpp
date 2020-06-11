@@ -32,7 +32,7 @@ void ProgPdbSphDeform::defineParams()
 	addParamsLine("--pdb <file>            : PDB to deform");
 	addParamsLine("--clnm <metadata_file>  : List of deformation coefficients");
 	addParamsLine("-o <file>               : Deformed PDB");
-	addExampleLine("xmipp_sph_nma_deform --pdb 2tbv.pdb -o 2tbv_deformed.pdb --clnm coefficients.txt");
+	addExampleLine("xmipp_pdb_sph_deform --pdb 2tbv.pdb -o 2tbv_deformed.pdb --clnm coefficients.txt");
 }
 
 void ProgPdbSphDeform::readParams()
