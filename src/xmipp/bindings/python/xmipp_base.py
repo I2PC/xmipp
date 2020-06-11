@@ -211,7 +211,7 @@ class CondaEnvManager(object):
             print("No conda found...")
             if condaActCmd:
                 print("please, check the CONDA_ACTIVATION_CMD = %s "
-                      "in the config file. If it is fine, try to add "
+                      "in the config file. If it seems fine, try to add "
                       "CONDA_EXE = /path/to/conda/executable" % condaActCmd)
 
     @staticmethod
@@ -227,6 +227,7 @@ class CondaEnvManager(object):
             if regex:
                 # isActived = regex.group(1) is not None
                 return regex.group(2)
+        print("'%s' conda environment not found")
 
     @staticmethod
     def getCondaEnv(env, condaEnv):
@@ -285,9 +286,12 @@ class CondaEnvManager(object):
             yield CondaEnvManager.installEnvironCmd(envName, options, **envDict)
 
     @staticmethod
-    def getCurInstalledDepVer(dependency, environ=None):
+    def getCurInstalledDep(dependency, defaultVersion=None, environ=None):
         """ Returns the current version of a certain dependency
-            installed in pip. Returns None if not found.
+            installed in pip. Returns just the dependency if not found.
+            i.e.: 'numpy==1.18.1'=getCurInstalledDep('numpy') <- 1.18.1 ver. found
+                  'numpy==1.18.0'=getCurInstalledDep('numpy', 1.18.0) <- no ver. found
+                  'numpy'=getCurInstalledDep('numpy') <- no ver. found
         """
         env = environ if environ else os.environ
         p = subprocess.Popen("pip list | grep "+dependency, shell=True, env=env,
@@ -297,7 +301,8 @@ class CondaEnvManager(object):
             reMatch = re.match("%s +([0-9a-zA-Z\.]+)" % dependency,
                                line.decode('utf8').strip())
             if reMatch:
-                return reMatch.group(1)
+                defaultVersion = reMatch.group(1)
+        return dependency+'=='+defaultVersion if defaultVersion else dependency
 
     @staticmethod
     def installEnvironCmd(environName, installCmdOptions=None, **kwargs):
@@ -323,7 +328,7 @@ class CondaEnvManager(object):
         if kwargs.get('xmippEnviron', True):
             # xmippLib is compiled using a certain numpy.
             #  If it is load in the conda environment, numpy must be the same.
-            pipPack.append(' numpy==%s' % CondaEnvManager.getCurInstalledDepVer('numpy'))
+            pipPack.append(CondaEnvManager.getCurInstalledDep('numpy'))
 
         # Composing the commands
         cmdList = []
