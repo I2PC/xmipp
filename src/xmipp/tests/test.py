@@ -313,7 +313,7 @@ def visitTests(tests, grepStr=''):
     lastClass = None
     lastModule = None
     
-    grepPrint = '' if grepStr is '' else red(' (grep: %s)'%grepStr)
+    grepPrint = '' if grepStr == '' else red(' (grep: %s)'%grepStr)
 
     for t in testsFlat:
         moduleName, className, testName = t.id().rsplit('.', 2)

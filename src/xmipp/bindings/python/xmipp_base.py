@@ -285,6 +285,21 @@ class CondaEnvManager(object):
             yield CondaEnvManager.installEnvironCmd(envName, options, **envDict)
 
     @staticmethod
+    def getCurInstalledDepVer(dependency, environ=None):
+        """ Returns the current version of a certain dependency
+            installed in pip. Returns None if not found.
+        """
+        env = environ if environ else os.environ
+        p = subprocess.Popen("pip list | grep "+dependency, shell=True, env=env,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            # expected string: "dep    1.2.34a3"
+            reMatch = re.match("%s +([0-9a-zA-Z\.]+)" % dependency,
+                               line.decode('utf8').strip())
+            if reMatch:
+                return reMatch.group(1)
+
+    @staticmethod
     def installEnvironCmd(environName, installCmdOptions=None, **kwargs):
         """ expected kwargs:  see xmipp_conda_envs.py
                 pythonVersion: number, if None (default) no python is installed
@@ -299,6 +314,10 @@ class CondaEnvManager(object):
         python = "python="+pyVer if pyVer else ""
 
         deps = ' '.join([dep for dep in kwargs.get('dependencies', [])])
+        if kwargs.get('xmippEnviron', True):
+            # xmippLib is compiled using a certain numpy.
+            #  If it is load in the conda environment, numpy must be the same.
+            deps += ' numpy=%s' % CondaEnvManager.getCurInstalledDepVer('numpy')
 
         chs = kwargs.get('channels', [])
         chFlags = (" -c %s" % " -c ".join([c for c in chs]) if len(chs) > 0 else "")
