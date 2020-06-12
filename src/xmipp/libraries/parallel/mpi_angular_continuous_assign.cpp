@@ -51,12 +51,13 @@ public:
     }
     void preProcess()
     {
+    	rank=node->rank;
         ProgAngularContinuousAssign2::preProcess();
    		node->barrierWait();
 
    		// Get the volume padded size from rank 0
    		int realSize, origin;
-   		if (rank==0)
+   		if (node->rank==0)
    		{
    			realSize = XSIZE(projector->VfourierRealCoefs);
    			origin = STARTINGX(projector->VfourierRealCoefs);
