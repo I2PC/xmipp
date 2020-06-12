@@ -1,6 +1,8 @@
 /***************************************************************************
  *
- * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+ * Authors:
+ *  Erney Ramirez-Aportela (eramirea@cnb.csic.es)
+ *  Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -22,8 +24,8 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_VOLUME_FROM_PDB_HH
-#  define _PROG_VOLUME_FROM_PDB_HH
+#ifndef _PROG_PDB_FROM_VOLUME_HH
+#  define _PROG_PDB_FROM_VOLUME_HH
 
 #include <data/blobs.h>
 #include <data/pdb.h>
@@ -34,47 +36,40 @@
 //@{
 /* PDB Phantom Program Parameters ------------------------------------------ */
 /** Parameter class for the PDB Phantom program */
-class ProgPdbConverter: public XmippProgram
+class ProgPdbValueToVol: public XmippProgram
 {
 public:
     /** Sampling rate */
     double Ts;
 
+    /** Radius */
+    double radius;
+
+    // Origin
+    StringVector origin;
+
+    /** Origin by user */
+    bool defOrig;
+
+    /** Use Mask */
+    bool withMask;
+
     /** PDB file */
     FileName fn_pdb;
 
-    /** Output fileroot */
-    FileName fn_out;
+    /** Volume file */
+    FileName fnVol, fnMask;
+	MultidimArray<double> inputVol, inputMask;
 
-    /** Blob */
-    struct blobtype blob;
+    /** Output fileroot */
+    FileName fn_out, fnMD;
+
 
     /** Final size in pixels */
     int output_dim;
     
-    /** Use blobs instead of scattering factors */
-    bool useBlobs;
 
-    /** Use poor Gaussian instead of scattering factors */
-    bool usePoorGaussian;
-    
-    /** Use fixed Gaussian instead of scattering factors */
-    bool useFixedGaussian;
-    
-    /** Center the PDB */
-    bool doCenter;
-
-    /** not HETATM */
-    bool noHet;
-
-    /** Fixed Gaussian standard deviation */
-    double sigmaGaussian;
-
-    /// Column for the intensity (if any). Only valid for fixed_gaussians
-    std::string intensityColumn;
 public:
-    /** Empty constructor */
-    ProgPdbConverter();
 
     /** Params definitions */
     void defineParams();
@@ -97,44 +92,12 @@ public:
     /* Downsampling factor */
     int M;
 
-    /* Sampling rate used for highly sampled volumes */
-    double highTs;
-
-    /* periodic_table(i,0)=radius
-       periodic_table(i,1)=atomic weight */
-    Matrix2D<double> periodicTable;
-
-    /* Atom interpolator. */
-    AtomInterpolator atomProfiles;
-
     // Protein geometry
     Matrix1D<double> centerOfMass, limit;
-
-
-    /* Volume at a high sampling rate */
-    Image<double> Vhigh;
-
-    /* Volume at a low sampling rate */
-    Image<double> Vlow;
-
-    /* Blob properties at the high sampling rate */
-    void blobProperties() const;
-
-    /* Atom weight and radius */
-    void atomBlobDescription(const std::string &_element,
-        double &weight, double &radius) const;
 
     /* Protein geometry */
     void computeProteinGeometry();
 
-    /* Create protein at a high sampling rate */
-    void createProteinAtHighSamplingRate();
-
-    /* Create protein at a low sampling rate */
-    void createProteinAtLowSamplingRate();
-
-    /* Create protein using scattering profiles */
-    void createProteinUsingScatteringProfiles();
 };
 //@}
 #endif

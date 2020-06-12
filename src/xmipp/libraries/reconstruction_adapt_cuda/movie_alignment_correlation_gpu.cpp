@@ -582,6 +582,8 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     if (nullptr == movieRawData) {
         movieRawData = loadMovie(movie, dark, igain);
     }
+    // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
+    // also, when autotuning is off, we don't need to create the copy at all
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
     T *data = new T[elems];
     getCroppedMovie(movieSettings, data);
