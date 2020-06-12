@@ -101,13 +101,6 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
     produceSideInfo();
 }
 
-void FourierProjector::updateVolume(int Xdim, const MultidimArray<double> &Vreal, const MultidimArray<double> &Vimag)
-{
-    volumeSize=Xdim;
-    produceSideInfo(Vreal, Vimag);
-}
-
-
 void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
     double freqy, freqx;
@@ -310,14 +303,6 @@ void FourierProjector::produceSideInfo()
         volumePaddedSize=XSIZE(VfourierRealCoefs);
     }
 
-    produceSideInfoProjection();
-}
-
-void FourierProjector::produceSideInfo(const MultidimArray<double> &Vreal, const MultidimArray<double> &Vimag)
-{
-	VfourierRealCoefs = Vreal;
-	VfourierImagCoefs = Vimag;
-    volumePaddedSize=XSIZE(VfourierRealCoefs);
     produceSideInfoProjection();
 }
 

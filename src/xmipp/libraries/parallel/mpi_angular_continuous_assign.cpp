@@ -64,6 +64,8 @@ public:
    		}
         MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
         MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
         if (rank!=0)
         {
@@ -74,6 +76,8 @@ public:
         }
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
         MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    	if (rank!=0)
+        	projector->produceSideInfoProjection();
 
         MetaData &mdIn = *getInputMd();
         mdIn.addLabel(MDL_GATHER_ID);

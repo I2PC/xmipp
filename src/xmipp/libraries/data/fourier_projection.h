@@ -168,23 +168,11 @@ public:
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
-
-	/* Update volume when the real and imaginary parts are calculated */
-    void updateVolume(int Xdim, const MultidimArray<double> &Vreal, const MultidimArray<double> &Vimag);
-private:
-    /*
-     * This is a private method which provides the values for the class variable
-     */
+public:
+    /// Prepare the Spline coefficients and projection space
     void produceSideInfo();
 
-    /*
-     * This is a private method which provides the values for the class variable
-     */
-    void produceSideInfo(const MultidimArray<double> &Vreal, const MultidimArray<double> &Vimag);
-
-    /*
-     * This is a private method which provides the values for the class variable
-     */
+    /// Prepare projection space
     void produceSideInfoProjection();
 };
 
