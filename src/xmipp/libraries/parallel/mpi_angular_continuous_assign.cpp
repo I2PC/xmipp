@@ -31,19 +31,16 @@
 class MpiProgAngularContinuousAssign2: public ProgAngularContinuousAssign2, public MpiMetadataProgram
 {
 public:
-	int Nsimul;
 
     void defineParams()
     {
         ProgAngularContinuousAssign2::defineParams();
         MpiMetadataProgram::defineParams();
-        addParamsLine("  [--Nsimultaneous <N=1>]     : Number of simultaneous processes that can enter in preprocessing");
     }
     void readParams()
     {
         MpiMetadataProgram::readParams();
         ProgAngularContinuousAssign2::readParams();
-        Nsimul = getIntParam("--Nsimultaneous");
     }
     void read(int argc, char **argv, bool reportErrors = true)
     {
