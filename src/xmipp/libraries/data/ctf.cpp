@@ -282,7 +282,8 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
         }
     }
     double areaLessHalfPIPixels = counter;
-    double totalArePixels       = PI*Xdim*Xdim/4.0;
+    double tmpXdim              = Xdim  // avoid that the implicit conversion from 'size_t' (aka 'unsigned long') to 'double' may lose precision
+    double totalArePixels       = PI*tmpXdim*tmpXdim/4.0;
     double maxFreqA             = 1./(2.*CTF1.Tm);
     double resolutionA_1        = 0;
     if (areaLessHalfPIPixels > totalArePixels)
@@ -415,7 +416,7 @@ void CTFDescription1D::readFromMetadataRow(const MetaData &md, size_t id, bool d
 {
     MDRow row;
     md.getRow(row, id);
-    readFromMdRow(row, disable_if_not_K);
+    readFromMdRow(row, disabl   e_if_not_K);
 }
 
 void CTFDescription1D::read(const FileName &fn, bool disable_if_not_K)
