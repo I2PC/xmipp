@@ -58,7 +58,8 @@ public:
 	double sampling, minRes, maxRes, R;
 
 	/** Is the volume previously masked?*/
-	int NVoxelsOriginalMask, Nvoxels, nthrs;
+	long NVoxelsOriginalMask;
+	int Nvoxels, nthrs;
 
 	/** Step in digital frequency */
 	double freq_step, significance;
@@ -77,6 +78,10 @@ public:
     void amplitudeMonogenicSignal3D(MultidimArray< std::complex<double> > &myfftV,
     		double freq, double freqH, double freqL, MultidimArray<double> &amplitude,
     		int count, FileName fnDebug);
+
+    void refiningMask(const MultidimArray< std::complex<double> > &myfftV,
+			MultidimArray<double> iu, int thrs, MultidimArray<int> &pMask);
+
     void firstMonoResEstimation(MultidimArray< std::complex<double> > &myfftV,
     		FourierTransformer &transformer_inv, double freq, double freqH, double freqL, MultidimArray<double> &amplitude,
     		int count, FileName fnDebug, double &mean_Signal,

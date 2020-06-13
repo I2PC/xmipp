@@ -241,7 +241,7 @@ void Monogenic::resolution2evalDir(int &fourier_idx, double min_step, double sam
 }
 
 void Monogenic::proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, double &radius,
-		int &vol, MultidimArray<double> &radMap)
+		long &vol, MultidimArray<double> &radMap)
 {
 	vol = 0;
 	radius = 0;
@@ -252,27 +252,25 @@ void Monogenic::proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, 
 		A3D_ELEM(radMap, k, i, j) = R2;
 		if (A3D_ELEM(mask, k, i, j) == 1)
 		{
+			++vol;
 			if (R2>radius)
 				radius = R2;
 		}
-		if (A3D_ELEM(mask, k, i, j) == 1)
-			++vol;
-
 	}
 //	if (i*i+j*j+k*k > R*R)
 //		A3D_ELEM(mask, k, i, j) = -1;
 	radius = round(sqrt(radius));
-
+	std::cout << "                                     " << std::endl;
 	std::cout << "The protein has a radius of "<< radius << " px " << std::endl;
 }
 
 void Monogenic::findCliffValue(MultidimArray<double> radMap, MultidimArray<double> &inputmap,
-		double &radius, double &radiuslimit, MultidimArray<int> &mask)
+		double &radius, double &radiuslimit, MultidimArray<int> &mask, double &rsmooth)
 {
 	double criticalZ = icdf_gauss(0.95);
 	radiuslimit = floor((double) XSIZE(radMap)*0.5);
 	double last_mean, last_std2=1e-38, last_N;
-	std::cout << "Antes del loop " << radiuslimit <<  " " << XSIZE(radMap) << " " << YSIZE(radMap) << " " << ZSIZE(radMap) << std::endl;
+
 	for (double rad = radius; rad<radiuslimit; rad++)
 	{
 		double sup, inf, sum=0, sum2=0, N=0;
@@ -291,10 +289,9 @@ void Monogenic::findCliffValue(MultidimArray<double> radMap, MultidimArray<doubl
 		}
 		double mean = sum/N;
 		double std2 = sum2/N - mean*mean;
-		std::cout << "radius = "<< rad << "  mean " << mean << " std " << std2 << std::endl;
 
 		double z=(mean-last_mean)/sqrt(std2/N + last_std2/last_N);
-		std::cout << "z " << z << "   Z " << criticalZ << std::endl;
+
 		if (std2/last_std2<0.01)
 		{
 			radiuslimit = rad - 1;
@@ -306,12 +303,22 @@ void Monogenic::findCliffValue(MultidimArray<double> radMap, MultidimArray<doubl
 	}
 
 	std::cout << "There is no noise beyond a radius of " << radiuslimit << " px " << std::endl;
-	std::cout << "MonoRes will not consider regions with a radius greater than " << radiuslimit << " px " << std::endl;
+	std::cout << "Regions with a radius greater than " << radiuslimit << " px will not be considered" << std::endl;
+
+	double raux;
+	raux = (radiuslimit - rsmooth);
+	if (raux<=radius)
+	{
+		std::cout << "Warning: the boxsize is very close to "
+				"the protein size please provide a greater box" << std::endl;
+	}
+
+	raux *= raux;
 
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
 	{
 		double aux = k*k + i*i + j*j;
-		if ( aux>=(radiuslimit*radiuslimit) )
+		if ( aux>=(raux) )
 			A3D_ELEM(mask, k, i, j) = -1;
 	}
 
@@ -943,7 +950,8 @@ MultidimArray< std::complex<double> > Monogenic::applyMaskFourier(MultidimArray<
 void Monogenic::addNoise(MultidimArray<double> &vol, double mean, double stddev)
 {
 
-	std::default_random_engine generator;
+	std::random_device rd;
+	std::default_random_engine generator(rd());
 	std::normal_distribution<double> dist(mean, stddev);
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(vol)

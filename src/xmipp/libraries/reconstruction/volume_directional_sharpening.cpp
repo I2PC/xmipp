@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Jose Luis Vilas,                     jlvilas@cnb.csic.es
+ *             Erney Ramirez                        eramirez@cnb.csic.es
  * 			   Carlos Oscar Sorzano					coss@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
@@ -36,37 +37,36 @@ void ProgDirSharpening::readParams()
         sampling = getDoubleParam("--sampling");
         res_step = getDoubleParam("--resStep");
         significance = getDoubleParam("--significance");
-        R = getDoubleParam("--volumeRadius");
         lambda = getDoubleParam("-l");
         K= getDoubleParam("-k");
         Niter = getIntParam("-i");
         Nthread = getIntParam("-n");
         fnOut = getParam("-o");
         test = checkParam("--test");
+        icosahedron = checkParam("--ico");
 }
 
 void ProgDirSharpening::defineParams()
 {
         addUsageLine("This function performs local sharpening");
-        addParamsLine("  --vol <vol_file=\"\">   : Input volume");
-        addParamsLine("  --mask <vol_file=\"\">  : Binary mask");
-        addParamsLine("  --sampling <s=1>: sampling");
-        addParamsLine("  [--volumeRadius <s=100>]                : This parameter determines the radius of a sphere where the volume is");
-        addParamsLine("  [--significance <s=0.95>]               : The level of confidence for the hypothesis test.");
-        addParamsLine("  [--resStep <s=0.5>]  		             : Resolution step (precision) in A");
-        addParamsLine("  -o <output=\"Sharpening.vol\">: sharpening volume");
-        addParamsLine("  [--test]: 								 :Launch the test of the algorithm");
-        addParamsLine("  [-l <lambda=1>]: regularization param");
-        addParamsLine("  [-k <K=0.025>]: K param");
-        addParamsLine("  [-i <Niter=50>]: iteration");
-        addParamsLine("  [-n <Nthread=1>]: threads number");
+        addParamsLine("  --vol <vol_file=\"\">                  : Input volume");
+        addParamsLine("  --mask <vol_file=\"\">                 : Binary mask");
+        addParamsLine("  --sampling <s=1>                       : sampling");
+        addParamsLine("  [--significance <significance=0.95>]   : The level of confidence for the hypothesis test.");
+        addParamsLine("  [--resStep <res_step=0.5>]  		    : Resolution step (precision) in A");
+        addParamsLine("  -o <output=\"Sharpening.vol\">         : Sharpened volume");
+        addParamsLine("  [--test]: 								: Launch the test of the algorithm");
+        addParamsLine("  [--ico]: 								: Use icosahedron as coverage of the projection sphere");
+        addParamsLine("  [-l <lambda=1>]                        : Regularization param");
+        addParamsLine("  [-k <K=0.025>]                         : K param");
+        addParamsLine("  [-i <Niter=50>]                        : Number of iterations");
+        addParamsLine("  [-n <Nthread=1>]                       : Number of threads");
 }
 
 
 void ProgDirSharpening::produceSideInfo()
 {
         std::cout << "Starting..." << std::endl;
-        //TODO: Use the local resolution map as input
         Monogenic mono;
         MultidimArray<double> inputVol;
         if (test)
@@ -86,6 +86,7 @@ void ProgDirSharpening::produceSideInfo()
         	fn = formatString("inputVol.vol");
         	saveImg() = inputVol;
         	saveImg.write(fn);
+        	sampling = 1;
 		}
         else
         {
@@ -101,59 +102,73 @@ void ProgDirSharpening::produceSideInfo()
     	FourierTransformer transformer;
 
     	VRiesz.resizeNoCopy(inputVol);
-    	maxRes = ZSIZE(inputVol);
+    	maxRes = 18;
     	minRes = 2*sampling;
 
-    	//TODO: remove Nthr
-    	int Nthr = 1;
-//    	transformer_inv.setThreadsNumber(Nthr);
-//    	Vorig = inputVol;
+    	//TODO: check if its possible to use only one transformer instead of transformer_inv and transformer
+    	transformer_inv.setThreadsNumber(Nthread);
 
     	transformer.FourierTransform(inputVol, fftV);
 
     	// Frequency volume
     	iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
+    	Image<double> im;
+    	im()=iu;
+    	im.write("freq.mrc");
 
-    	// Prepare mask
     	MultidimArray<int> &pMask=mask();
+
+    	double radius_aux, radiuslimit;
+    	MultidimArray<double> radMap;
     	N_smoothing = 7;
-    	NVoxelsOriginalMask = 0;
-    	double radius = 0;
-    	//TODO: create a function with this
-    	FOR_ALL_ELEMENTS_IN_ARRAY3D(pMask)
-    	{
-    		if (A3D_ELEM(pMask, k, i, j) == 1)
-    		{
-    			if ((k*k + i*i + j*j)>radius)
-    				radius = k*k + i*i + j*j;
-    		}
-    		if (A3D_ELEM(pMask, k, i, j) == 1)
-    			++NVoxelsOriginalMask;
-    		if (i*i+j*j+k*k > (R-N_smoothing)*(R-N_smoothing))
-    			A3D_ELEM(pMask, k, i, j) = -1;
-    	}
+    	double nsmooth = (double) N_smoothing;
+    	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius_aux, NVoxelsOriginalMask, radMap);
+    	mono.findCliffValue(radMap, inputVol, radius_aux, radiuslimit, pMask, nsmooth);
 
-    	Rparticle = round(sqrt(radius));
+    	std::cout << "                " << std::endl;
+    	std::cout << "Noise radius    " << radiuslimit << " px" << std::endl;
+    	std::cout << "Particle radius " << radius_aux << " px" << std::endl;
 
-    	std::cout << "particle radius = " << Rparticle << std::endl;
+    	Image<int> saveImg;
+		FileName fn;
+		fn = formatString("maskrefine.vol");
+		saveImg() = pMask;
+		saveImg.write(fn);
 
-    	size_t xrows = angles.mdimx;
+    	Rparticle = (int) radius_aux;
 
-    	resolutionMatrix.initConstant(xrows, NVoxelsOriginalMask, maxRes);
+    	std::cout << "Particle radius " << Rparticle << " px" << std::endl;
 
+//    	size_t xrows = angles.mdimx;
+//    	resolutionMatrix.initConstant(xrows, NVoxelsOriginalMask, maxRes);
 
-    	#ifdef DEBUG_MASK
-    	std::cout << "-------------DEBUG-----------" <<std::endl;
-    	std::cout << "Next number ought to be the same than number of directions"
-    			<< std::endl;
-    	std::cout << "number of angles" << xrows << std::endl;
-    	std::cout << "---------END-DEBUG--------" <<std::endl;
-    	mask.write("mask.vol");
-    	#endif
-
-    	maxRes = 18;
-    	minRes = 1;
 }
+
+
+void ProgDirSharpening::simpleGeometryFaces(Matrix2D<double> &faces, Matrix2D<double> &limts)
+{
+	faces.initZeros(5,3);
+	double t0, c45, s45, latc, lats;
+	t0 = 36.86*PI/180;
+	lats = sin(PI/2-t0);
+	latc = cos(PI/2-t0);
+	c45 = cos(PI/4);
+	s45 = sin(PI/4);
+	MAT_ELEM(faces, 0,0) = lats*c45;    MAT_ELEM(faces, 0,1) = lats*s45;    MAT_ELEM(faces, 0,2) = latc;
+	MAT_ELEM(faces, 1,0) = -lats*c45;   MAT_ELEM(faces, 1,1) = lats*c45;    MAT_ELEM(faces, 1,2) = latc;
+	MAT_ELEM(faces, 2,0) = -lats*c45;   MAT_ELEM(faces, 2,1) = -lats*c45;   MAT_ELEM(faces, 2,2) = latc;
+	MAT_ELEM(faces, 3,0) = lats*c45;    MAT_ELEM(faces, 3,1) = -lats*c45;   MAT_ELEM(faces, 3,2) = latc;
+	MAT_ELEM(faces, 4,0) = 0;    		MAT_ELEM(faces, 4,1) = 0;    		MAT_ELEM(faces, 4,2) = 1;
+
+	limts.initZeros(5,4);
+	MAT_ELEM(limts, 0,0) = 0.0;   MAT_ELEM(limts, 0,1) = 90.0;    MAT_ELEM(limts, 0,2) = 90-36.86;	MAT_ELEM(limts, 0,3) = 90.0;
+	MAT_ELEM(limts, 1,0) = -90;   MAT_ELEM(limts, 1,1) = -180.0;  MAT_ELEM(limts, 1,2) = 90-36.86;	MAT_ELEM(limts, 1,3) = 90.0;
+	MAT_ELEM(limts, 2,0) = 0.0;   MAT_ELEM(limts, 2,1) = 90.0;    MAT_ELEM(limts, 2,2) = -90.0;   	MAT_ELEM(limts, 2,3) = 90+36.86;
+	MAT_ELEM(limts, 3,0) = -90;   MAT_ELEM(limts, 3,1) = -180.0;  MAT_ELEM(limts, 3,2) = -90.0;   	MAT_ELEM(limts, 3,3) = 90+36.86;
+	MAT_ELEM(limts, 4,0) = -90.0; MAT_ELEM(limts, 4,1) = 90.0;    MAT_ELEM(limts, 4,2) = 0.0;	    MAT_ELEM(limts, 4,3) = 90-36.86;
+
+}
+
 
 void ProgDirSharpening::icosahedronVertex(Matrix2D<double> &vertex)
 {
@@ -286,68 +301,78 @@ void ProgDirSharpening::icosahedronFaces(Matrix2D<int> &faces, Matrix2D<double> 
 	}
 }
 
-void ProgDirSharpening::getFaceVector(int face_number, Matrix2D<int> &faces,
-		Matrix2D<double> &vertex, double &x1, double &y1, double &z1)
+void ProgDirSharpening::getFaceVectorIcosahedron(Matrix2D<int> &faces,
+		Matrix2D<double> &vertex, Matrix2D<double> &facesVector)
 {
+	facesVector.initZeros(MAT_YSIZE(faces), 3);
 
-	double x2, x3, y2, y3, z2, z3;
+	double x1, x2, x3, y1, y2, y3, z1, z2, z3;
 	int v1, v2, v3;
 	//Selecting the vertex number for each face
-	v1 = MAT_ELEM(faces, face_number, 0); v2 = MAT_ELEM(faces, face_number, 1); v3 = MAT_ELEM(faces,face_number, 2);
+	for (size_t face_number = 0; face_number<MAT_YSIZE(faces); face_number++)
+	{
+		v1 = MAT_ELEM(faces, face_number, 0); v2 = MAT_ELEM(faces, face_number, 1); v3 = MAT_ELEM(faces,face_number, 2);
 
-	//Coordinates of each vertex
-	x1 = MAT_ELEM(vertex,v1, 0); y1 = MAT_ELEM(vertex,v1, 1); z1 = MAT_ELEM(vertex,v1, 2);
-	x2 = MAT_ELEM(vertex,v2, 0); y2 = MAT_ELEM(vertex,v2, 1); z2 = MAT_ELEM(vertex,v2, 2);
-	x3 = MAT_ELEM(vertex,v3, 0); y3 = MAT_ELEM(vertex,v3, 1); z3 = MAT_ELEM(vertex,v3, 2);
+		//Coordinates of each vertex
+		x1 = MAT_ELEM(vertex,v1, 0); y1 = MAT_ELEM(vertex,v1, 1); z1 = MAT_ELEM(vertex,v1, 2);
+		x2 = MAT_ELEM(vertex,v2, 0); y2 = MAT_ELEM(vertex,v2, 1); z2 = MAT_ELEM(vertex,v2, 2);
+		x3 = MAT_ELEM(vertex,v3, 0); y3 = MAT_ELEM(vertex,v3, 1); z3 = MAT_ELEM(vertex,v3, 2);
 
-	//x1, y1, z1 are used instead of defining a new variable to calculate the norm
-	x1 = x1 + x2 + x3;
-	y1 = y1 + y2 + y3;
-	z1 = z1 + z2 + z3;
+		//x1, y1, z1 are used instead of defining a new variable to calculate the norm
+		x1 = x1 + x2 + x3;
+		y1 = y1 + y2 + y3;
+		z1 = z1 + z2 + z3;
 
-	double norm_ = sqrt(x1*x1 + y1*y1 + z1*z1);
-	x1 /= norm_;
-	y1 /= norm_;
-	z1 /= norm_;
+		double norm_ = sqrt(x1*x1 + y1*y1 + z1*z1);
+		x1 /= norm_;
+		y1 /= norm_;
+		z1 /= norm_;
+
+		MAT_ELEM(facesVector, face_number, 0) = x1;
+		MAT_ELEM(facesVector, face_number, 1) = y1;
+		MAT_ELEM(facesVector, face_number, 2) = z1;
+	}
+
+}
+
+void ProgDirSharpening::getFaceVectorSimple(Matrix2D<double> &facesVector, Matrix2D<double> &faces)
+{
+	facesVector.initZeros(MAT_YSIZE(faces),3);
+	for (size_t face_number = 0; face_number<MAT_YSIZE(faces); face_number++)
+	{
+		if (face_number<4)
+		{
+			double angleSemiCap;
+			//The z cap semiangle is 36.86 degrees. The XY caps have an angle os 90-36.86
+			//It implies a semicap of (90-36.86)/2, and measured from z axis (90-36.86)/2 ) + 36.86)
+			angleSemiCap = ( ( (90-36.86)/2 ) + 36.86)*PI/180; //Measured from Z axis
+			double angleRot;
+			angleRot = (face_number *PI/2.0 + PI/4.0);
+			MAT_ELEM(facesVector, face_number, 0) = sin(angleSemiCap)*cos(angleRot);
+			MAT_ELEM(facesVector, face_number, 1) = sin(angleSemiCap)*sin(angleRot);
+			MAT_ELEM(facesVector, face_number, 2) = cos(angleSemiCap);
+		}
+		else{
+			MAT_ELEM(facesVector, face_number, 0) = 0.0;
+			MAT_ELEM(facesVector, face_number, 1) = 0.0;
+			MAT_ELEM(facesVector, face_number, 2) = 1.0;
+		}
+	}
 }
 
 
-void ProgDirSharpening::defineIcosahedronCone(int face_number, Matrix2D<int> &faces, Matrix2D<double> &vertex,
+void ProgDirSharpening::defineIcosahedronCone(int face_number, double &x1, double &y1, double &z1,
 		MultidimArray< std::complex<double> > &myfftV, MultidimArray<double> &conefilter, double coneAngle)
 {
-//	getFaceVector(face_number, faces, vertex, x1, y1, z1);
-	double x1, x2, x3, y1, y2, y3, z1, z2, z3, ang_con;
-
-	int v1, v2, v3;
-	//Selecting the vertex number for each face
-	v1 = MAT_ELEM(faces, face_number, 0); v2 = MAT_ELEM(faces, face_number, 1); v3 = MAT_ELEM(faces,face_number, 2);
-
-	//Coordinates of each vertex
-	x1 = MAT_ELEM(vertex,v1, 0); y1 = MAT_ELEM(vertex,v1, 1); z1 = MAT_ELEM(vertex,v1, 2);
-	x2 = MAT_ELEM(vertex,v2, 0); y2 = MAT_ELEM(vertex,v2, 1); z2 = MAT_ELEM(vertex,v2, 2);
-	x3 = MAT_ELEM(vertex,v3, 0); y3 = MAT_ELEM(vertex,v3, 1); z3 = MAT_ELEM(vertex,v3, 2);
-
-	std::cout << "........." << std::endl;
-	std::cout << vertex << std::endl;
-
-	//x1, y1, z1 are used instead of defining a new variable to calculate the norm
-	x1 = x1 + x2 + x3;
-	y1 = y1 + y2 + y3;
-	z1 = z1 + z2 + z3;
-
-	double norm_ = sqrt(x1*x1 + y1*y1 + z1*z1);
-	x1 /= norm_;
-	y1 /= norm_;
-	z1 /= norm_;
-
-	std::cout << x1 << " " << y1 << " " << z1 << std::endl;
+//	std::cout << x1 << " " << y1 << " " << z1 << std::endl;
 
 //	MultidimArray<double> conetest;
 //	conetest.resizeNoCopy(myfftV);
 
 	conefilter.initZeros(myfftV);
 
-	double uz, uy, ux;
+	double uz, uy, ux, cosconeAngle;
+	cosconeAngle = cos(coneAngle);
 	long n = 0;
 	for(size_t k=0; k<ZSIZE(myfftV); ++k)
 	{
@@ -362,34 +387,233 @@ void ProgDirSharpening::defineIcosahedronCone(int face_number, Matrix2D<int> &fa
 			for(size_t j=0; j<XSIZE(myfftV); ++j)
 			{
 				double iun=DIRECT_MULTIDIM_ELEM(iu,n);
+
 				ux = VEC_ELEM(freq_fourier_x, j);
 				ux *= x1;
 
 				iun *= (ux + uy + uz);
-				double acosine_v1 = acos(fabs(iun));
+				double cosine = fabs(iun);
 //				DIRECT_MULTIDIM_ELEM(conefilter, n) = 1;
-				if ((acosine_v1<=coneAngle))
+				if (cosine>=cosconeAngle)
 				{
+					if (DIRECT_MULTIDIM_ELEM(iu,n) <1.99)
+					{
+						n++;
+						continue;
+					}
 					DIRECT_MULTIDIM_ELEM(conefilter, n) = 1;
 //					DIRECT_MULTIDIM_ELEM(conetest, n) = 0;
-				}
-				else
-				{
-//					DIRECT_MULTIDIM_ELEM(conetest, n) = DIRECT_MULTIDIM_ELEM(conefilter, n);
 				}
 				++n;
 			}
 		}
 	}
-
+//
 	Image<double> icosahedronMasked;
 	icosahedronMasked = conefilter;
 	FileName fnmasked;
-	fnmasked = formatString("maskCone_%i.mrc",face_number);
+	fnmasked = formatString("maskConeFourier_%i.mrc",face_number);
+//	int m1sizeX = YSIZE(myfftV);
+//	int m1sizeY = YSIZE(myfftV);
+//	int m1sizeZ = YSIZE(myfftV);
+//	MultidimArray<double> fullMap;
+//	createFullFourier(conefilter, fnmasked, m1sizeX, m1sizeY, m1sizeZ, fullMap);
 	icosahedronMasked.write(fnmasked);
-
 }
 
+void ProgDirSharpening::defineSimpleCaps(MultidimArray<int> &coneMask, Matrix2D<double> &limits,
+		MultidimArray< std::complex<double> > &myfftV)
+{
+	coneMask.initZeros(myfftV);
+
+	double uz, uy, ux, cosconeAngle;
+	for (int face_number=0; face_number<5; face_number++)
+	{
+		double c0, c1, c2, c3, c4;
+		c0 = tan(MAT_ELEM(limits, face_number, 0)*PI/180);
+		c1 = tan(MAT_ELEM(limits, face_number, 1)*PI/180);
+		c2 = cos(MAT_ELEM(limits, face_number, 2)*PI/180);
+		c3 = cos(MAT_ELEM(limits, face_number, 3)*PI/180);
+		long n = 0;
+		if (face_number<4)
+		{
+			for(size_t k=0; k<ZSIZE(myfftV); ++k)
+			{
+				uz = VEC_ELEM(freq_fourier_z, k);
+
+				for(size_t i=0; i<YSIZE(myfftV); ++i)
+				{
+					uy = VEC_ELEM(freq_fourier_y, i);
+
+					for(size_t j=0; j<XSIZE(myfftV); ++j)
+					{
+						double iun=DIRECT_MULTIDIM_ELEM(iu,n);
+						ux = VEC_ELEM(freq_fourier_x, j);
+
+						double ctilt = (uz*iun);
+						double trot;
+						trot = (uy/ux);
+
+						if ( (ctilt<=c2) && (ctilt>=c3) && (trot>=c0) && (trot<=c1) )
+						{
+							DIRECT_MULTIDIM_ELEM(coneMask, n) = face_number;
+						}
+						++n;
+					}
+				}
+			}
+		}
+		else
+		{
+
+			for(size_t k=0; k<ZSIZE(myfftV); ++k)
+			{
+				uz = VEC_ELEM(freq_fourier_z, k);
+
+				for(size_t i=0; i<YSIZE(myfftV); ++i)
+				{
+					uy = VEC_ELEM(freq_fourier_y, i);
+
+					for(size_t j=0; j<XSIZE(myfftV); ++j)
+					{
+						double iun=DIRECT_MULTIDIM_ELEM(iu,n);
+						ux = VEC_ELEM(freq_fourier_x, j);
+
+						double ctilt = fabs(uz*iun);
+
+
+						if (ctilt>=c3)
+						{
+							DIRECT_MULTIDIM_ELEM(coneMask, n) = face_number;
+						}
+						++n;
+					}
+				}
+			}
+		}
+	}
+	FileName fnmasked;
+	fnmasked = "maskCone.mrc";
+	int m1sizeX = 240;
+	int m1sizeY = 240;
+	int m1sizeZ = 240;
+
+	MultidimArray<double> fullMap;
+//	createFullFourier(coneMask, fnmasked, m1sizeX, m1sizeY, m1sizeZ, fullMap);
+
+	Image<int> icosahedronMasked;
+	icosahedronMasked = coneMask;
+	icosahedronMasked.write(fnmasked);
+}
+
+
+void ProgDirSharpening::defineComplexCaps(Matrix2D<double> &facesVector,
+		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask)
+{
+	size_t xdim, ydim, zdim, ndim;
+	myfftV.getDimensions(xdim, ydim, zdim, ndim);
+	coneMask.resizeNoCopy(zdim, ydim, xdim);
+	coneMask.initConstant(-1);
+	double nyquist = 2.0; //Nyquist=1/0.5in dig units
+	double uz, uy, ux, dotproduct, lastdotprod;
+	long n = 0;
+	for(size_t k=0; k<ZSIZE(myfftV); ++k)
+	{
+		uz = VEC_ELEM(freq_fourier_z, k);
+
+		for(size_t i=0; i<YSIZE(myfftV); ++i)
+		{
+			uy = VEC_ELEM(freq_fourier_y, i);
+
+			for(size_t j=0; j<XSIZE(myfftV); ++j)
+			{
+				ux = VEC_ELEM(freq_fourier_x, j);
+				lastdotprod = 0;
+				if (DIRECT_MULTIDIM_ELEM(iu,n)<nyquist)
+				{
+					n++;
+					continue;
+				}
+				else
+				{
+					for (int face_number=0; face_number<MAT_YSIZE(facesVector); face_number++)
+					{
+						dotproduct = MAT_ELEM(facesVector, face_number, 0) * ux +
+								MAT_ELEM(facesVector, face_number, 1) * uy +
+								MAT_ELEM(facesVector, face_number, 2) * uz;
+						dotproduct *= DIRECT_MULTIDIM_ELEM(iu,n);
+						dotproduct = fabs(dotproduct);
+
+						if (lastdotprod <= dotproduct)
+						{
+							DIRECT_MULTIDIM_ELEM(coneMask, n) = face_number;
+							lastdotprod = dotproduct;
+						}
+					}
+					n++;
+				}
+			}
+		}
+	}
+
+	FileName fnmasked;
+	fnmasked = "coneMask.mrc";
+	int m1sizeX = 240;
+	int m1sizeY = 240;
+	int m1sizeZ = 240;
+////
+//	createFullFourier(conefilter, fnmasked, m1sizeX, m1sizeY, m1sizeZ);
+
+	Image<int> icosahedronMasked;
+	icosahedronMasked = coneMask;
+	icosahedronMasked.write(fnmasked);
+}
+
+void ProgDirSharpening::createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
+		int m1sizeX, int m1sizeY, int m1sizeZ, MultidimArray<double> &fullMap)
+{
+//	MultidimArray<double> fullMap;
+	getCompleteFourier(fourierHalf, fullMap, m1sizeX, m1sizeY, m1sizeZ);
+	CenterFFT(fullMap, true);
+	Image<double> saveImg;
+	saveImg() = fullMap;
+    saveImg.write(fnMap);
+}
+
+
+void ProgDirSharpening::getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
+		int m1sizeX, int m1sizeY, int m1sizeZ)
+    {
+	newV.resizeNoCopy(m1sizeX, m1sizeY, m1sizeZ);
+	int ndim=3;
+	if (m1sizeX==1)
+	{
+		ndim=2;
+		if (m1sizeY==1)
+			ndim=1;
+	}
+	double *ptrSource=NULL;
+	double *ptrDest=NULL;
+	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(newV)
+	{
+		ptrDest=(double*)&DIRECT_A3D_ELEM(newV,k,i,j);
+		if (j<XSIZE(V))
+		{
+			ptrSource=(double*)&DIRECT_A3D_ELEM(V,k,i,j);
+			*ptrDest=*ptrSource;
+//				*(ptrDest+1)=*(ptrSource+1);
+		}
+		else
+		{
+			ptrSource=(double*)&DIRECT_A3D_ELEM(V,
+												(m1sizeZ-k)%m1sizeZ,
+												(m1sizeY-i)%m1sizeY,
+												m1sizeX-j);
+			*ptrDest=*ptrSource;
+//				*(ptrDest+1)=-(*(ptrSource+1));
+		}
+	}
+    }
 
 void ProgDirSharpening::directionalNoiseEstimation(double &x_dir, double &y_dir, double &z_dir,
 		MultidimArray<double> &amplitudeMS, MultidimArray<int> &mask, double &cone_angle,
@@ -407,6 +631,15 @@ void ProgDirSharpening::directionalNoiseEstimation(double &x_dir, double &y_dir,
 	std::vector<float> noiseValues;
 	NS = 0;
 	NN = 0;
+//	FileName fnmasked;
+//	Image<double> icosahedrod;
+//	icosahedrod() = amplitudeMS;
+//	fnmasked = formatString("ampl.mrc");
+//	icosahedrod.write(fnmasked);
+//	exit(0);
+	double cosineConAng;
+	cosineConAng = cos(cone_angle);
+
 	for(int k=0; k<z_size; ++k)
 	{
 		for(int i=0; i<y_size; ++i)
@@ -435,11 +668,8 @@ void ProgDirSharpening::directionalNoiseEstimation(double &x_dir, double &y_dir,
 						//BE CAREFULL with the order
 						double dotproduct = (uy*y_dir + ux*x_dir + uz*z_dir)*iun;
 
-						double acosine = acos(dotproduct);
-
-						//TODO: change efficiency the if condition by means of fabs(cos(angle))
-						if (((acosine<(cone_angle)) || (acosine>(PI-cone_angle)) )
-								&& (rad>particleRadius))
+						double cosine = fabs(dotproduct);
+						if ( (cosine>cosineConAng) && (rad>particleRadius))
 						{
 //							std::cout << "rad " << rad << std::endl;
 	//						DIRECT_MULTIDIM_ELEM(coneVol, n) = 1;
@@ -466,10 +696,34 @@ void ProgDirSharpening::directionalNoiseEstimation(double &x_dir, double &y_dir,
 }
 
 
-void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int> &faces,
-		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &conefilter,
+
+void sortArr(double arr[], int n, std::vector<std::pair<double, int> > &vp)
+{
+    // Inserting element in pair vector
+    // to keep track of previous indexes
+    for (int i = 0; i < n; ++i) {
+        vp.push_back(std::make_pair(arr[i], i));
+    }
+
+    // Sorting pair vector
+    sort(vp.begin(), vp.end());
+
+    // Displaying sorted element
+    // with previous indexes
+    // corresponding to each element
+    std::cout << "Element\t"
+         << "index" << std::endl;
+    for (int i = 0; i < vp.size(); i++) {
+    	std::cout << vp[i].first << "\t"
+             << vp[i].second << std::endl;
+    }
+}
+
+
+void ProgDirSharpening::directionalResolutionStep(int face_number,
+		const MultidimArray< std::complex<double> > &conefilter,
 		MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
-		double &cone_angle)
+		double &cone_angle, double &x1, double &y1, double &z1)
 {
 	std::cout << "Computing local-directional resolution" << std::endl;
 
@@ -506,16 +760,8 @@ void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int>
 	//Calculating the average of amplitudes
 	Monogenic mono;
 
-	//TODO: Change number of threads
-	int numberOfThreads = 1;
 	amplitudeMS.resizeNoCopy(mask);
-	mono.monogenicAmplitude_3D_Fourier(fftV, iu, amplitudeMS, numberOfThreads);
-
-//	Image<int> icosahedronMasked;
-//	icosahedronMasked = mask;
-//	FileName fnmasked;
-//	fnmasked = formatString("amplitude%i.mrc",face_number);
-//	icosahedronMasked.write(fnmasked);
+	mono.monogenicAmplitude_3D_Fourier(fftV, iu, amplitudeMS, Nthread);
 
 	double AvgNoise;
 	double max_meanS = -1e38;
@@ -544,24 +790,12 @@ void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int>
 		else
 			resolution_2 = list[iter - 2];
 
-		//TODO: Remove fnDebug
-		fnDebug = "Signal";
-
 		std::cout << "res = " << resolution << " freq " << sampling/freq << "  freqH " << sampling/freqH << "  freqL " << sampling/freqL << std::endl;
-
-
 
 		mono.amplitudeMonoSigDir3D_LPF(conefilter,
 		transformer_inv, fftVRiesz, fftVRiesz_aux, VRiesz, freq, freqH, freqL, iu,
 		freq_fourier_x, freq_fourier_y, freq_fourier_z, amplitudeMS,
-		 iter, face_number, fnDebug, N_smoothing);
-
-
-
-		double x1, y1, z1, amplitudeValue;
-		getFaceVector(face_number, faces, vertex, x1, y1, z1);
-
-
+		 iter, face_number, "Signal", N_smoothing);
 
 		double thresholdNoise, sumS=0, sumS2=0, sumN=0, sumN2=0, NN = 0, NS = 0;
 		directionalNoiseEstimation(x1, y1, z1, amplitudeMS, pMask, cone_angle,
@@ -598,7 +832,7 @@ void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int>
 			break;
 		}
 
-		std::cout << "It= " << iter << ",   Res= " << resolution << ",   Sig = " << meanS << ",  Thr = " << thresholdNoise << std::endl;
+		std::cout << "It = " << iter << ",   Res= " << resolution << ",   Sig = " << meanS << ",  Thr = " << thresholdNoise << std::endl;
 		std::cout << "thresholdNoiseGauss= " << thresholdNoiseGauss << ",   z= " << z << ",   criticalZ = " << criticalZ << std::endl;
 		std::cout << "        " << std::endl;
 
@@ -622,15 +856,11 @@ void ProgDirSharpening::directionalResolutionStep(int face_number, Matrix2D<int>
 }
 
 
-void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, Matrix2D<int> &faces,
-		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, MultidimArray<int> &maskCone, MultidimArray< std::complex<double> > &myfftV,
 		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
-        double w, double wL, MultidimArray<double> &filteredVol, int count)
+        double w, double wL, MultidimArray<double> &filteredVol, int count, double &coneAngle)
 {
-	double coneAngle;
-	coneAngle = PI/6;
-	MultidimArray<double> maskCone;
-	defineIcosahedronCone(face_number, faces, vertex, myfftV, maskCone, coneAngle);
+
 
 	MultidimArray< std::complex<double> > fftVfilter;
 	fftVfilter.initZeros(myfftV);
@@ -642,7 +872,7 @@ void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, Matri
 	double ideltal=PI/(delta);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(myfftV)
 	{
-		if (DIRECT_MULTIDIM_ELEM(maskCone, n) == 1)
+		if (DIRECT_MULTIDIM_ELEM(maskCone, n) == face_number)
 		{
 			double un=DIRECT_MULTIDIM_ELEM(iu,n);
 			if (un>=w && un<=wL)
@@ -664,37 +894,35 @@ void ProgDirSharpening::bandPassDirectionalFilterFunction(int face_number, Matri
 	transformer_inv.inverseFourierTransform(fftVfilter, filteredVol);
 }
 
-void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
-		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
-        MultidimArray<double> &localfilteredVol, MultidimArray<double> &Vorig,
-        double &minRes, double &maxRes, double &step)
+void ProgDirSharpening::localDirectionalfiltering(size_t &Nfaces,
+		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask,
+        MultidimArray<double> &bandfilteredVol, MultidimArray<double> &Vorig,
+        double &minRes, double &maxRes, double &step, double &coneAngle)
 {
-        MultidimArray<double> filteredVol, lastweight, weight;
-        localfilteredVol.initZeros(Vorig);
+        MultidimArray<double> filteredVol, auxlocalfilteredVol, lastweight, weight;
+        bandfilteredVol.initZeros(Vorig);
+        auxlocalfilteredVol.initZeros(Vorig);
         weight.initZeros(Vorig);
         lastweight.initZeros(Vorig);
         Monogenic mono;
 
-        double freq, lastResolution=1e38;
-        int idx, lastidx = -1;
         Image<double> resVol;
         MultidimArray<double> &presVol=resVol();
 
-        for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
+        for (size_t face_number = 0; face_number<Nfaces; ++face_number)
 		{
-			//TODO: remove repeated faces
-			//Repeated faces are skipped
-			if (MAT_ELEM(faces, face_number, 0) < 0)
-				continue;
+            double freq, lastResolution=1e38;
+            int idx, lastidx = -1;
 			FileName fn;
 			fn = formatString("dirMap_%i.vol", face_number);
 			resVol.read(fn);
 
-
+			std::cout << "face_number = " << face_number << std::endl;
 			for (double res = minRes; res<maxRes; res+=step)
 			{
-				freq = sampling/res;
 
+				std::cout << "resolution = " << res << std::endl;
+				freq = sampling/res;
 				DIGFREQ2FFT_IDX(freq, ZSIZE(myfftV), idx);
 
 				if (idx == lastidx)
@@ -703,58 +931,72 @@ void ProgDirSharpening::localDirectionalfiltering(Matrix2D<int> &faces,
 				double wL = sampling/(res - step);
 
 				//TODO: Check performance in the mask
-//				mono.bandPassFilterFunction(myfftV, Vorig, iu,
-//						transformer_inv, freq, wL, filteredVol, idx);
-				bandPassDirectionalFilterFunction(face_number, faces, vertex, myfftV, Vorig, iu,
-										transformer_inv, freq, wL, filteredVol, idx);
+				bandPassDirectionalFilterFunction(face_number, coneMask, myfftV, Vorig, iu,
+										transformer_inv, freq, wL, filteredVol, idx, coneAngle);
 
+				double nyquist = 2*sampling;
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filteredVol)
 				{
-
-				   if (DIRECT_MULTIDIM_ELEM(presVol, n) < 2*sampling)
-						{
-						   DIRECT_MULTIDIM_ELEM(filteredVol, n)=0;
-						}
-				   else
-						{
-						   double res_map = DIRECT_MULTIDIM_ELEM(presVol, n);//+1e-38;
-						   DIRECT_MULTIDIM_ELEM(weight, n) = (exp(-K*(res-res_map)*(res-res_map)));
-						   DIRECT_MULTIDIM_ELEM(filteredVol, n) *= DIRECT_MULTIDIM_ELEM(weight, n);
-						}
+				   if (DIRECT_MULTIDIM_ELEM(presVol, n) < nyquist){
+					   DIRECT_MULTIDIM_ELEM(filteredVol, n)=0;
+					}
+				   else{
+					   double res_map = DIRECT_MULTIDIM_ELEM(presVol, n);//+1e-38;
+					   DIRECT_MULTIDIM_ELEM(weight, n) = (exp(-K*(res-res_map)*(res-res_map)));
+					   DIRECT_MULTIDIM_ELEM(filteredVol, n) *= DIRECT_MULTIDIM_ELEM(weight, n);
+					}
 				}
-
-				localfilteredVol += filteredVol;
+				//TODO: lastweight and localfilteredVol can be implemented inside the loop
+				auxlocalfilteredVol += filteredVol;
 				lastweight += weight;
 				lastResolution = res;
 				lastidx = idx;
 			}
 
+			bandfilteredVol += auxlocalfilteredVol;
 
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(localfilteredVol)
-			{
-				if (DIRECT_MULTIDIM_ELEM(lastweight, n)>0)
-					DIRECT_MULTIDIM_ELEM(localfilteredVol, n) /=DIRECT_MULTIDIM_ELEM(lastweight, n);
-			}
+//			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(localfilteredVol)
+//			{
+//				if (DIRECT_MULTIDIM_ELEM(lastweight, n)>0)
+//					DIRECT_MULTIDIM_ELEM(localfilteredVol, n) /=DIRECT_MULTIDIM_ELEM(lastweight, n);
+//			}
+
+//			localfilteredVol += localfilteredVol;
+
+			FileName fl;
+			Image<double> saveImg;
+			fl = formatString("localFiltVolt_%i.vol", face_number);
+			saveImg() = bandfilteredVol;
+			saveImg.write(fl);
+
+		}
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bandfilteredVol)
+		{
+			if (DIRECT_MULTIDIM_ELEM(lastweight, n)>0)
+				DIRECT_MULTIDIM_ELEM(bandfilteredVol, n) /=DIRECT_MULTIDIM_ELEM(lastweight, n);
 		}
 }
 
 
-void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArray<int> &mask,
-		Matrix2D<double> &vertex, Matrix2D<int> &faces)
+void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol,
+		MultidimArray<int> &coneMask, MultidimArray<int> &mask,
+		size_t &Nfaces, double &coneAngle)
 {
-	std::cout << "                               " << std::endl;
+	std::cout << "-------------------------------" << std::endl;
 	std::cout << "Starting directional sharpening" << std::endl;
-	std::cout << "                               " << std::endl;
+	std::cout << "-------------------------------" << std::endl;
 
 	//TODO Set number of processors in
 	//transformer_inv and transformer
 
 	MultidimArray<double> Vorig;
 	Vorig = vol;
-
+	transformer.setThreadsNumber(Nthread);
 	transformer.FourierTransform(vol, fftV);
 
 	//TODO: check if exist inf in next multidimarray
+	//TODO: check if it is neccesary
 	//Frequencies are redefined
 	iu =1/iu;
 
@@ -764,16 +1006,7 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 	mono.statisticsInBinaryMask(Vorig, mask, mean, desvOutside_Vorig);
 	//std::cout << "desvOutside_Vorig = " << desvOutside_Vorig << std::endl;
 
-
-//	Image<double> resolutionVolume;
-//	MultidimArray<double> resVol;
-//	resolutionVolume.read(fnRes);
-//
-//	resVol = resolutionVolume();
-//	resolutionVolume().clear();
-//	resVol.setXmippOrigin();
-
-	maxRes = 18;
+	maxRes = 16;
 	minRes = 2*sampling;
 
 
@@ -801,9 +1034,15 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 		auxVol = filteredVol;
 		transformer.FourierTransform(auxVol, fftV);
 
-		//TODO: Here the directional filtering should be carried out
-		localDirectionalfiltering(faces, vertex,
-				fftV, operatedfiltered, Vorig, minRes, maxRes, step);
+		localDirectionalfiltering(Nfaces,
+				fftV, coneMask, operatedfiltered, Vorig, minRes, maxRes, step, coneAngle);
+
+		FileName fn;
+		FileName fs1;
+		Image<double> saveImg1;
+		fs1 = formatString("operFilt_%i.vol", i);
+		saveImg1() = operatedfiltered;
+		saveImg1.write(fs1);
 
 		filteredVol = Vorig;
 
@@ -816,7 +1055,7 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 				normOrig +=(DIRECT_MULTIDIM_ELEM(Vorig,n)*DIRECT_MULTIDIM_ELEM(Vorig,n));
 
 			normOrig = sqrt(normOrig);
-			//std::cout << "norma del original  " << normOrig << std::endl;
+			std::cout << "norma del original  " << normOrig << std::endl;
 		}
 
 
@@ -826,14 +1065,14 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 			norm +=(DIRECT_MULTIDIM_ELEM(operatedfiltered,n)*DIRECT_MULTIDIM_ELEM(operatedfiltered,n));
 
 		norm=sqrt(norm);
-
+		std::cout << "norma del filtrado  " << norm << std::endl;
 
 		double porc=lastnorm*100/norm;
 		//std::cout << "norm " << norm << " percetage " << porc << std::endl;
 
 		double subst=porc-lastporc;
 
-		if ((subst<1)&&(bool1==1)&&(i>2))
+		if ((subst<1) && (i>2))
 			bool1=2;
 			//std::cout << "-----iteration completed-----" << std::endl;
 
@@ -849,8 +1088,8 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 
 		////Second operator
 		transformer.FourierTransform(filteredVol, fftV);
-		localDirectionalfiltering(faces, vertex,
-						fftV, filteredVol, Vorig, minRes, maxRes, step);
+		localDirectionalfiltering(Nfaces,
+						fftV, coneMask, filteredVol, Vorig, minRes, maxRes, step, coneAngle);
 
 		if (i == 1)
 				Vk = Vorig;
@@ -866,6 +1105,7 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 			if (DIRECT_MULTIDIM_ELEM(sharpenedMap,n)<-4*desvOutside_Vorig)
 				DIRECT_MULTIDIM_ELEM(sharpenedMap,n)=-4*desvOutside_Vorig;
 		}
+		//TODO: Erney commented the if condition (I uncommented). Has more sense the Erney way
 
 //        		double desv_sharp=0;
 //                computeAvgStdev_within_binary_mask(resVol, sharpenedMap, desv_sharp);
@@ -873,79 +1113,133 @@ void ProgDirSharpening::localdeblurStep(MultidimArray<double> &vol, MultidimArra
 
 		filteredVol = sharpenedMap;
 
-		if (bool1==2)
+		if (bool1 == 2)
 		{
 			Image<double> filteredvolume;
 			filteredvolume() = sharpenedMap;
 			filteredvolume.write(fnOut);
 			break;
 		}
+
+		FileName fs;
+		Image<double> saveImg;
+		fs = formatString("dirSharp_%i.vol", i);
+		saveImg() = sharpenedMap;
+		saveImg.write(fs);
 	}
 
-	Image<double> filteredvolume;
-	filteredvolume() = sharpenedMap;
-	filteredvolume.write(fnOut);
+
+
+}
+
+void cleanFaces(Matrix2D<int> &faces, Matrix2D<double> &vertex)
+{
+	int NewNumFaces = 0;
+
+	for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
+	{
+		if (MAT_ELEM(faces, face_number, 0) < 0)
+			continue;
+		NewNumFaces++;
+	}
+	Matrix2D<int> facesNew;
+	facesNew.initZeros(NewNumFaces,3);
+
+	NewNumFaces = 0;
+	for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
+	{
+		if (MAT_ELEM(faces, face_number, 0) < 0)
+			continue;
+
+		MAT_ELEM(facesNew, NewNumFaces, 0) = MAT_ELEM(faces, face_number, 0);
+		MAT_ELEM(facesNew, NewNumFaces, 1) = MAT_ELEM(faces, face_number, 1);
+		MAT_ELEM(facesNew, NewNumFaces, 2) = MAT_ELEM(faces, face_number, 2);
+		++NewNumFaces;
+	}
+	faces = facesNew;
 
 }
 
 
 void ProgDirSharpening::run()
 {
-	bool stopError = false;
-	if (test)
-	{
-		Monogenic Mono;
-		stopError = Mono.TestmonogenicAmplitude_3D_Fourier();
-		if (stopError == false)
-			exit(0);
-	}
+//	bool stopError = false;
+//	if (test)
+//	{
+//		Monogenic Mono;
+//		stopError = Mono.TestmonogenicAmplitude_3D_Fourier();
+//		if (stopError == false)
+//			exit(0);
+//	}
 
 	//Defining general information to be used
 	produceSideInfo();
+
 	std::cout << "Reading data..." << std::endl;
 	//Defining the number of vertex and faces of the icosahedron
-	Matrix2D<double> vertex;
+	Matrix2D<double> vertex, facesSimple, limtSimple, faceVector;
 	Matrix2D<int> faces;
-	double coneAngle;
-	coneAngle = PI/6;
+	double coneAngle = PI/6;
 	MultidimArray< std::complex<double> > fftCone;
 	MultidimArray<double> conefilter, localResolutionMap;
+	MultidimArray<int> coneMask;
 	Monogenic mono;
+	size_t Nfaces;
 
-	icosahedronVertex(vertex);
-	icosahedronFaces(faces, vertex);
-
-	//TODO: Clean faces
-	//icosahedronFaces_test();
-	std::cout << "vertex = " << vertex << std::endl;
-	std::cout << "faces = " << faces << std::endl;
-
-	//TODO: Define a real icosahedron
-
-	for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
+	if (icosahedron == true)
 	{
-		//TODO: remove repeated faces
-		//Repeated faces are skipped
-		if (MAT_ELEM(faces, face_number, 0) < 0)
-			continue;
-
-		//TODO: Modify this function to use real pyramids
-		defineIcosahedronCone(face_number, faces, vertex, fftV, conefilter, coneAngle);
-		//defineIcosahedronCone_test();
-
-		fftCone = mono.applyMaskFourier(fftV, conefilter);
-				//defineIcosahedronCone_test();
-
-		std::cout << "Computing local-directional resolution along face " << face_number << std::endl;
-		directionalResolutionStep(face_number, faces, vertex, fftCone, mask(), localResolutionMap, coneAngle);
-//		//directionalResolutionStep_test();
+		std::cout << "Using Icosahedron geometry" << std::endl;
+		icosahedronVertex(vertex);
+		icosahedronFaces(faces, vertex);
+		cleanFaces(faces, vertex);
+		getFaceVectorIcosahedron(faces, vertex, faceVector);
+		defineComplexCaps(faceVector, fftV, coneMask);
+		Nfaces = MAT_YSIZE(faces);
+	}
+	else
+	{
+		std::cout << "Using Simple geometry" << std::endl;
+		simpleGeometryFaces(facesSimple, limtSimple);
+		defineSimpleCaps(coneMask, limtSimple, fftV);
+		Nfaces = MAT_YSIZE(facesSimple);
+		getFaceVectorSimple(faceVector, facesSimple);
+		coneAngle = PI/4;
 	}
 
+//	std::cout << "Vectex " << vertex << std::endl;
+	std::cout << "faceVector " << faceVector << std::endl;
+
+	unsigned t0, t1;
+	t0=clock();
+	for (size_t face_number = 0; face_number<Nfaces; ++face_number)
+	{
+		double x1, y1, z1;
+
+		x1 = MAT_ELEM(faceVector, face_number, 0);
+		y1 = MAT_ELEM(faceVector, face_number, 1);
+		z1 = MAT_ELEM(faceVector, face_number, 2);
+
+		std::cout << x1 << " " << y1 << " " << z1 << std::endl;
+		defineIcosahedronCone(face_number, x1, y1, z1, fftV, conefilter, coneAngle);
+		//defineMask_test();
+
+		fftCone = mono.applyMaskFourier(fftV, conefilter);
+		//defineIcosahedronCone_test();
+
+//		std::cout << "Computing local-directional resolution along face " << face_number << std::endl;
+
+		directionalResolutionStep(face_number, fftCone, mask(), localResolutionMap, coneAngle, x1, y1, z1);
+		//directionalResolutionStep_test();
+	}
+	t1 = clock();
+
+	double time = (double(t1-t0)/CLOCKS_PER_SEC);
+	std::cout << "%Execution Time: " << time << std::endl;
 	Image<double> Vin;
 	Vin.read(fnVol);
 	Vin().setXmippOrigin();
 	MultidimArray<double> Vorig = Vin();
-	localdeblurStep(Vorig, mask(), vertex, faces);
+	localdeblurStep(Vorig, coneMask, mask(), Nfaces, coneAngle);
 	//TODO: Think a test...
 	//	testlocaldeblur()
 }

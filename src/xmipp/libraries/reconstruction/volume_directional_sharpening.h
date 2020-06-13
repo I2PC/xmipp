@@ -58,7 +58,7 @@ public:
 	/** sampling rate, minimum resolution, and maximum resolution */
 	double sampling, maxRes, minRes, lambda, K, maxFreq, minFreq, desv_Vorig, R, significance, res_step;
 	int Niter, Nthread;
-	bool test;
+	bool test, icosahedron;
 
 public:
 
@@ -70,34 +70,50 @@ public:
 
     double averageInMultidimArray(MultidimArray<double> &amplitude, MultidimArray<int> &mask);
 
-    void getFaceVector(int face_number, Matrix2D<int> &faces,
-    		Matrix2D<double> &vertex, double &x1, double &y1, double &z1);
+    void getFaceVectorIcosahedron(Matrix2D<int> &faces,
+    		Matrix2D<double> &vertex, Matrix2D<double> &facesVector);
+
+    void defineComplexCaps(Matrix2D<double> &facesVector,
+    		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask);
+
+    void getFaceVectorSimple(Matrix2D<double> &facesVector, Matrix2D<double> &faces);
 
     void directionalNoiseEstimation(double &x_dir, double &y_dir, double &z_dir,
     		MultidimArray<double> &amplitudeMS, MultidimArray<int> &mask, double &cone_angle,
     		int &particleRadius, double &NS, double &NN, double &sumS, double &sumS2, double &sumN2, double &sumN,
     		double &thresholdNoise);
 
-    void bandPassDirectionalFilterFunction(int face_number, Matrix2D<int> &faces,
-    		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+    void bandPassDirectionalFilterFunction(int face_number, MultidimArray<int> &maskCone, MultidimArray< std::complex<double> > &myfftV,
     		MultidimArray<double> &Vorig, MultidimArray<double> &iu, FourierTransformer &transformer_inv,
-            double w, double wL, MultidimArray<double> &filteredVol, int count);
+            double w, double wL, MultidimArray<double> &filteredVol, int count, double &coneAngle);
 
-    void directionalResolutionStep(int face_number, Matrix2D<int> &faces, Matrix2D<double> &vertex,
-    		MultidimArray< std::complex<double> > &conefilter, MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
-    		double &cone_angle);
+    void directionalResolutionStep(int face_number,
+    		const MultidimArray< std::complex<double> > &conefilter, MultidimArray<int> &mask, MultidimArray<double> &localResolutionMap,
+    		double &cone_angle, double &x1, double &y1, double &z1);
 
-    void localDirectionalfiltering(Matrix2D<int> &faces,
-    		Matrix2D<double> &vertex, MultidimArray< std::complex<double> > &myfftV,
+    void localDirectionalfiltering(size_t &Nfaces,
+    		MultidimArray< std::complex<double> > &myfftV, MultidimArray<int> &coneMask,
             MultidimArray<double> &localfilteredVol, MultidimArray<double> &Vorig,
-            double &minRes, double &maxRes, double &step);
+            double &minRes, double &maxRes, double &step, double &coneAngle);
 
-    void defineIcosahedronCone(int face_number, Matrix2D<int> &faces, Matrix2D<double> &vertex,
+    void defineIcosahedronCone(int face_number, double &x1, double &y1, double &z1,
     		MultidimArray< std::complex<double> > &myfftV, MultidimArray<double> &conefilter,
 			double coneAngle);
 
-    void localdeblurStep(MultidimArray<double> &vol, MultidimArray<int> &mask,
-    		Matrix2D<double> &vertex, Matrix2D<int> &faces);
+    void simpleGeometryFaces(Matrix2D<double> &faces, Matrix2D<double> &limts);
+
+    void defineSimpleCaps(MultidimArray<int> &coneMask, Matrix2D<double> &limits,
+    		MultidimArray< std::complex<double> > &myfftV);
+
+    void createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
+    		int m1sizeX, int m1sizeY, int m1sizeZ, MultidimArray<double> &fullMap);
+
+    void getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
+    		int m1sizeX, int m1sizeY, int m1sizeZ);
+
+    void localdeblurStep(MultidimArray<double> &vol,
+    		MultidimArray<int> &coneMask, MultidimArray<int> &mask,
+    		size_t &Nfaces, double &coneAngle);
 
     void run();
 public:
