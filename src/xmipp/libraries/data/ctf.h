@@ -55,6 +55,9 @@ const MDLabel CTF_ALL_LABELS[] =
         MDL_CTF_K
     };
 
+/** Convert a site_t value to double **/
+double convertSizeTToDouble(size_t data);
+
 /** Check that a metadata contains ALL CTF_BASIC_LABELS labels */
 bool containsCTFBasicLabels(const MetaData &md);
 

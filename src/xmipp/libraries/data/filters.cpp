@@ -28,6 +28,7 @@
 #include <core/xmipp_fftw.h>
 #include "morphology.h"
 #include "wavelet.h"
+#include "ctf.h"
 #include <data/fourier_filter.h>
 
 /* Subtract background ---------------------------------------------------- */
@@ -643,7 +644,8 @@ int labelImage2D(const MultidimArray<double> &I, MultidimArray<double> &label,
     {
         if (label(i, j) != 1)
             continue;
-        regionGrowing2D(label, label, i, j, 0, colour, false, neighbourhood);
+        regionGrowing2D(label, label, i, j, 0, static_cast<float>(colour),
+                false, neighbourhood);
         colour++;
     }
     FOR_ALL_ELEMENTS_IN_ARRAY2D(label)
@@ -663,7 +665,8 @@ int labelImage3D(const MultidimArray<double> &V, MultidimArray<double> &label)
     {
         if (label(k, i, j) != 1)
             continue;
-        regionGrowing3D(label, label, k, i, j, 0, colour, false);
+        regionGrowing3D(label, label, k, i, j, 0, static_cast<float>(colour),
+                false);
         colour++;
     }
     FOR_ALL_ELEMENTS_IN_ARRAY3D(label)
@@ -982,7 +985,7 @@ double giniCoeff(MultidimArray<double> &I, int varKernelSize)
         area += height - DIRECT_MULTIDIM_ELEM(sortedList,i)/2.0;
     }
         
-    double fair_area = height*XSIZE(hist)/2.0;
+    double fair_area = height*convertSizeTToDouble(XSIZE(hist))/2.0;
 
     double giniValue = (fair_area-area)/fair_area;
 
@@ -1517,7 +1520,7 @@ void covarianceMatrix(const MultidimArray<double> &I, Matrix2D<double> &C)
 	I.copy(mI);
 	subtractColumnMeans(mI);
 	matrixOperation_AtA(mI,C);
-	C*=1.0/(YSIZE(I)-1.0);
+	C*=1.0/(convertSizeTToDouble(YSIZE(I))-1.0);
 }
 
 /* Best shift -------------------------------------------------------------- */
@@ -1844,7 +1847,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
 #endif
 
     Iaux.initZeros();
-    double testX = (shiftX > 0) ? (shiftX - XSIZE(I1)) : (shiftX + XSIZE(I1));
+    double testX = (shiftX > 0) ? (shiftX - convertSizeTToDouble(XSIZE(I1))) : (shiftX + convertSizeTToDouble(XSIZE(I1)));
     double testY = shiftY;
     translate(1, Iaux, I1, vectorR2(-testX, -testY), DONT_WRAP);
     //I1.translate(vectorR2(-testX,-testY),Iaux,DONT_WRAP);
