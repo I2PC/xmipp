@@ -207,6 +207,14 @@ double errorMaxFreqCTFs( MetaData &MD1,
     return 1.0/sqrt(phaseRad/(CTF1.K1*abs(CTF1.DeltafU - CTF1.DeltafV)));
 }
 
+double convertSizeTToDouble(size_t data)
+{
+    if (data > INT_MAX)
+    {
+        throw std::overflow_error("data is larger than INT_MAX");
+    }
+    return static_cast<double>(data);
+}
 
 double errorMaxFreqCTFs2D( MetaData &MD1,
                           MetaData &MD2,
@@ -323,14 +331,6 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
     //divide between area
 }
 
-double convertSizeTToDouble(size_t data)
-{
-    if (data > INT_MAX)
-    {
-        throw std::overflow_error("data is larger than INT_MAX");
-    }
-    return static_cast<double>(data);
-}
 
 void generatePSDCTFImage(MultidimArray<double> &img, const MetaData &MD)
 {
