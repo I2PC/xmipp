@@ -282,7 +282,7 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
         }
     }
     double areaLessHalfPIPixels = counter;
-    double tmpXdim              = Xdim  // avoid that the implicit conversion from 'size_t' (aka 'unsigned long') to 'double' may lose precision
+    double tmpXdim              = Xdim;  // avoid that the implicit conversion from 'size_t' (aka 'unsigned long') to 'double' may lose precision
     double totalArePixels       = PI*tmpXdim*tmpXdim/4.0;
     double maxFreqA             = 1./(2.*CTF1.Tm);
     double resolutionA_1        = 0;
