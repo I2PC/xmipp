@@ -416,7 +416,7 @@ void CTFDescription1D::readFromMetadataRow(const MetaData &md, size_t id, bool d
 {
     MDRow row;
     md.getRow(row, id);
-    readFromMdRow(row, disabl   e_if_not_K);
+    readFromMdRow(row, disable_if_not_K);
 }
 
 void CTFDescription1D::read(const FileName &fn, bool disable_if_not_K)
