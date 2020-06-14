@@ -22,6 +22,8 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include <climits>
+#include <iostream>
 
 #include "ctf.h"
 #include <core/xmipp_fft.h>
@@ -282,7 +284,7 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
         }
     }
     double areaLessHalfPIPixels = counter;
-    double tmpXdim              = Xdim;  // avoid that the implicit conversion from 'size_t' (aka 'unsigned long') to 'double' may lose precision
+    double tmpXdim              = convertSizeTToDouble(Xdim);  // avoid that the implicit conversion from 'size_t' (aka 'unsigned long') to 'double' may lose precision
     double totalArePixels       = PI*tmpXdim*tmpXdim/4.0;
     double maxFreqA             = 1./(2.*CTF1.Tm);
     double resolutionA_1        = 0;
@@ -319,6 +321,15 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
 #undef DEBUG
     return resolutionA;
     //divide between area
+}
+
+double convertSizeTToDouble(size_t data)
+{
+    if (data > INT_MAX)
+    {
+        throw std::overflow_error("data is larger than INT_MAX");
+    }
+    return static_cast<double>(data);
 }
 
 void generatePSDCTFImage(MultidimArray<double> &img, const MetaData &MD)
