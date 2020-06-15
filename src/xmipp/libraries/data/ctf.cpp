@@ -207,9 +207,9 @@ double errorMaxFreqCTFs( MetaData &MD1,
     return 1.0/sqrt(phaseRad/(CTF1.K1*abs(CTF1.DeltafU - CTF1.DeltafV)));
 }
 
-double convertSizeTToDouble(size_t data)
+inline double convertSizeTToDouble(size_t data)
 {
-    if (data > INT_MAX)
+    if (data > std::numeric_limits<int>::max())
     {
         throw std::overflow_error("data is larger than INT_MAX");
     }

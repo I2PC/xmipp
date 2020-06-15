@@ -245,7 +245,7 @@ void ProgTransformImageGreyLevels::processImage(const FileName &fnImg, const Fil
 		rowOut.setValue(MDL_IMAGE,fnImgOut);
 		I.write(fnImgOut);
 	}
-	catch (XmippError XE)
+	catch (XmippError &XE)
 	{
 		std::cerr << XE << std::endl;
 		std::cerr << "Warning: Cannot refine " << fnImg << std::endl;

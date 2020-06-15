@@ -1040,7 +1040,7 @@ void projectPDB(const PDBPhantom &phantomPDB,
         {
             projectAtom(phantomPDB.getAtom(i), proj, VP, PV, interpolator);
         }
-        catch (XmippError XE) {}
+        catch (XmippError &XE) {}
     }
 }
 

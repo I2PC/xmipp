@@ -339,7 +339,7 @@ void ProgAngularProjectLibrary::run()
     {
         inputVol.read(input_volume);
     }
-    catch (XmippError XE)
+    catch (XmippError &XE)
     {
         std::cout << XE;
         exit(0);

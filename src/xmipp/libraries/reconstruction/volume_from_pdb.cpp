@@ -462,7 +462,7 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
                 }
             }
         }
-        catch (XmippError XE)
+        catch (XmippError &XE)
         {
         	if (verbose)
         		std::cerr << "Ignoring atom of type *" << atom_type << "*" << std::endl;

@@ -185,7 +185,7 @@ void DocLine::read(std::istream& in)
             // Try unfixed mode first
             readFloatList(line, i, param_no, data);
         }
-        catch (XmippError e)
+        catch (XmippError &e)
         {
             // Try fixed mode then
             data.clear();
@@ -391,7 +391,7 @@ void DocFile::read(const FileName& name, int overriding)
         {
             temp.read(in);
         }
-        catch (XmippError e)
+        catch (XmippError &e)
         {
             std::cout << "Doc File: Line " << line_no <<
             " is skipped due to an error\n";
