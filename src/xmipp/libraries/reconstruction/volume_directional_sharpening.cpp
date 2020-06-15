@@ -963,11 +963,11 @@ void ProgDirSharpening::localDirectionalfiltering(size_t &Nfaces,
 
 //			localfilteredVol += localfilteredVol;
 
-			FileName fl;
-			Image<double> saveImg;
-			fl = formatString("localFiltVolt_%i.vol", face_number);
-			saveImg() = bandfilteredVol;
-			saveImg.write(fl);
+//			FileName fl;
+//			Image<double> saveImg;
+//			fl = formatString("localFiltVolt_%i.vol", face_number);
+//			saveImg() = bandfilteredVol;
+//			saveImg.write(fl);
 
 		}
 
