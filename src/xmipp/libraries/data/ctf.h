@@ -56,7 +56,14 @@ const MDLabel CTF_ALL_LABELS[] =
     };
 
 /** Convert a site_t value to double **/
-inline double convertSizeTToDouble(size_t data);
+inline double convertSizeTToDouble(size_t data)
+{
+    if (data > std::numeric_limits<int>::max())
+    {
+        throw std::overflow_error("data is larger than INT_MAX");
+    }
+    return static_cast<double>(data);
+}
 
 /** Check that a metadata contains ALL CTF_BASIC_LABELS labels */
 bool containsCTFBasicLabels(const MetaData &md);
