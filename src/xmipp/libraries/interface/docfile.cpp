@@ -185,9 +185,9 @@ void DocLine::read(std::istream& in)
             // Try unfixed mode first
             readFloatList(line, i, param_no, data);
         }
-        catch (XmippError &e)
+        catch (std::exception &e)
         {
-            std::cerr << e << std::endl;
+            std::cerr << e.what() << std::endl;
             // Try fixed mode then
             data.clear();
             data.reserve(param_no);
