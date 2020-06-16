@@ -462,9 +462,8 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
                 }
             }
         }
-        catch (std::exception &XE)
+        catch (...)
         {
-            std::cerr << XE.what() << std::endl;
             if (verbose)
         		std::cerr << "Ignoring atom of type *" << atom_type << "*" << std::endl;
         }
