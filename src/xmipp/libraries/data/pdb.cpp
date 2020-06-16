@@ -1040,7 +1040,10 @@ void projectPDB(const PDBPhantom &phantomPDB,
         {
             projectAtom(phantomPDB.getAtom(i), proj, VP, PV, interpolator);
         }
-        catch (XmippError &XE) {}
+        catch (XmippError &XE) {
+            std::cerr << XE << std::endl;
+            std::cerr << "Warning: Cannot Project Atom " << std::endl;
+        }
     }
 }
 
