@@ -70,7 +70,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelation<T>::computeLocalAlignment(
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         const Image<T>& dark, const Image<T>& igain) {
-    sizeFactor = this->computeSizeFactor();
+    sizeFactor = this->getScaleFactor();
     MultidimArray<T> filter;
     FourierTransformer transformer;
     bool firstImage = true;
@@ -93,8 +93,8 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                 firstImage = false;
                 newXdim = croppedFrame().xdim * sizeFactor;
                 newYdim = croppedFrame().ydim * sizeFactor;
-                filter = this->createLPF(this->getTargetOccupancy(), newXdim,
-                    newYdim);
+                filter = this->createLPF(this->getPixelResolution(sizeFactor), Dimensions(newXdim,
+                    newYdim));
             }
 
             // Reduce the size of the input frame
@@ -158,6 +158,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     FileName fnFrame;
     int frameIndex = -1;
     Ninitial = N = 0;
+    const T binning = this->getOutputBinning();
     FOR_ALL_OBJECTS_IN_METADATA(movie)
     {
         frameIndex++;
@@ -173,9 +174,9 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
 
             // load frame
             this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
-            if (this->bin > 0) {
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / this->bin),
-                        floor(XSIZE(croppedFrame()) / this->bin),
+            if (binning > 0) {
+                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
+                        floor(XSIZE(croppedFrame()) / binning),
                         croppedFrame(), reducedFrame());
                 croppedFrame() = reducedFrame();
             }

@@ -34,8 +34,7 @@ import scipy
 import random
 
 from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, matthews_corrcoef
-import xmippLib as xmipp
-import pyworkflow.em.metadata as MD
+import xmippLib
 
 import keras
 import tensorflow as tf
@@ -311,12 +310,12 @@ class DataManager(object):
     nParticles=0
     shapeParticles=(None, None, 1)
     for fnameXMDF in sorted(dictData):
-      weight= dictData[fnameXMDF]    
-      mdObject  = MD.MetaData(fnameXMDF)
-      I= xmipp.Image()
-      I.read(mdObject.getValue(MD.MDL_IMAGE, mdObject.firstObject()))
+      weight= float(dictData[fnameXMDF] )
+      mdObject  = xmippLib.MetaData(fnameXMDF)
+      I= xmippLib.Image()
+      I.read(mdObject.getValue(xmippLib.MDL_IMAGE, mdObject.firstObject()))
       xdim, ydim= I.getData().shape
-      imgFnames = mdObject.getColumnValues(MD.MDL_IMAGE)
+      imgFnames = mdObject.getColumnValues(xmippLib.MDL_IMAGE)
       mdList+= [mdObject]
       fnamesList_merged+= imgFnames
       tmpShape= (xdim,ydim,1)
@@ -328,9 +327,9 @@ class DataManager(object):
       if weight<=0:
           otherParticlesNum=0
           for fnameXMDF_2 in sorted(dictData):
-              weight_2= dictData[fnameXMDF_2]
+              weight_2= float(dictData[fnameXMDF_2])
               if weight_2>0:
-                  otherParticlesNum+= MD.MetaData(fnameXMDF_2).size()
+                  otherParticlesNum+= xmippLib.MetaData(fnameXMDF_2).size()
           weight= max(1, otherParticlesNum // tmpNumParticles)
       weightsList_merged+= [ weight  for elem in imgFnames]
       nParticles+= tmpNumParticles
@@ -432,12 +431,12 @@ class DataManager(object):
     xdim,ydim,nChann= self.shape
     batchStack = np.zeros((self.batchSize, xdim,ydim,nChann))
     batchLabels  = np.zeros((batchSize, 2))
-    I = xmipp.Image()
+    I = xmippLib.Image()
     n = 0
     for dataSetNum in range(len(self.mdListTrue)):
       mdTrue= self.mdListTrue[dataSetNum]
       for objId in mdTrue:
-        fnImage = mdTrue.getValue(MD.MDL_IMAGE, objId)
+        fnImage = mdTrue.getValue(xmippLib.MDL_IMAGE, objId)
         I.read(fnImage)
         batchStack[n,...]= np.expand_dims(I.getData(),-1)
         batchLabels[n, 1]= 1
@@ -455,7 +454,7 @@ class DataManager(object):
       for dataSetNum in range(len(self.mdListFalse)):
         mdFalse= self.mdListFalse[dataSetNum]
         for objId in mdFalse:
-          fnImage = mdFalse.getValue(MD.MDL_IMAGE, objId)
+          fnImage = mdFalse.getValue(xmippLib.MDL_IMAGE, objId)
           I.read(fnImage)
           batchStack[n,...]= np.expand_dims(I.getData(),-1)
           batchLabels[n, 0]= 1
@@ -496,7 +495,7 @@ class DataManager(object):
     xdim,ydim,nChann= self.shape
     batchStack = np.zeros((self.batchSize, xdim,ydim,nChann))
     batchLabels  = np.zeros((batchSize, 2))
-    I = xmipp.Image()
+    I = xmippLib.Image()
     n = 0
     currNBatches=0
 

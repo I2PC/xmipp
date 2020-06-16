@@ -1,8 +1,8 @@
 /***************************************************************************
  *
- * Authors:    Carlos Oscar            coss@cnb.csic.es (1999)
+ * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
- * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ * Unidad de Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/image_eliminate_largeEnergy.h>
+#include <reconstruction/pdb_label_from_volume.h>
 
-RUN_XMIPP_PROGRAM(ProgEliminateLargeEnergy)
+/* ------------------------------------------------------------------------- */
+/* Program                                                                   */
+/* ------------------------------------------------------------------------- */
+RUN_XMIPP_PROGRAM(ProgPdbValueToVol)
+

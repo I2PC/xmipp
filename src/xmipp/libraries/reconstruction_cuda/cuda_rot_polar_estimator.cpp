@@ -44,6 +44,8 @@ void CudaRotPolarEstimator<T>::init2D() {
     } catch (std::bad_cast&) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
     }
+    m_mainStream->set();
+    m_backgroundStream->set();
 
     // all rings have the same number of samples, to make FT easier
     m_samples = std::max(1, 2 * (int)(M_PI * s.lastRing)); // keep this even
@@ -71,7 +73,11 @@ void CudaRotPolarEstimator<T>::init2D() {
 
     // allocate host memory
     gpuErrchk(cudaMalloc(&m_d_ref, singlePolar.fBytes())); // FT of the samples
-    gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.batch * sizeof(T))); // Cartesian batch
+    if (s.allowDataOverwrite) { // we need space just for reference(s)
+        gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.refDims.n() * sizeof(T))); // Cartesian reference(s)
+    } else { // we need space for the whole batch (which should be bigger than no of references)
+        gpuErrchk(cudaMalloc(&m_d_batch, s.otherDims.sizeSingle() * s.batch * sizeof(T))); // Cartesian batch
+    }
     gpuErrchk(cudaMalloc(&m_d_batchPolarFD, batchPolar.fBytesBatch())); // FT of the polar samples
     gpuErrchk(cudaMalloc(&m_d_batchPolarOrCorr, batchPolar.sBytesBatch())); // IFT of the polar samples
     size_t sumsBytes = m_samples * s.batch * sizeof(T);
@@ -85,6 +91,7 @@ void CudaRotPolarEstimator<T>::init2D() {
             s.batch, s.batch, // while computing correlation, we also sum the rings,
             false,false); // i.e. we end up with batch * samples elements
     m_batchToSD = CudaFFT<T>::createPlan(*m_mainStream, inversePolar);
+    gpuErrchk(cudaMalloc(&m_d_batchCorrSumFD, inversePolar.fBytesBatch()));
 
     // allocate device memory
     m_h_batchMaxPositions = new float[m_samples * s.batch];
@@ -96,6 +103,7 @@ void CudaRotPolarEstimator<T>::init2D() {
 
 template<typename T>
 void CudaRotPolarEstimator<T>::release() {
+    const auto &s = this->getSettings();
     // device memory
     gpuErrchk(cudaFree(m_d_batch));
     gpuErrchk(cudaFree(m_d_batchPolarOrCorr));
@@ -103,6 +111,7 @@ void CudaRotPolarEstimator<T>::release() {
     gpuErrchk(cudaFree(m_d_ref));
     gpuErrchk(cudaFree(m_d_sumsOrMaxPos));
     gpuErrchk(cudaFree(m_d_sumsSqr));
+    gpuErrchk(cudaFree(m_d_batchCorrSumFD));
 
     // FT plans
     CudaFFT<T>::release(m_singleToFD);
@@ -130,6 +139,7 @@ void CudaRotPolarEstimator<T>::setDefault() {
     m_d_ref = nullptr;
     m_d_sumsOrMaxPos = nullptr;
     m_d_sumsSqr = nullptr;
+    m_d_batchCorrSumFD = nullptr;
 
     // host memory
     m_h_batchMaxPositions = nullptr;
@@ -204,7 +214,8 @@ void CudaRotPolarEstimator<T>::load2DReferenceOneToN(const T *h_ref) {
 template<typename T>
 void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
         const GPU &gpu,
-        std::complex<T> *d_inOut,
+        const std::complex<T> *d_in,
+        std::complex<T> *d_out,
         const std::complex<T> *d_ref,
         const Dimensions &dims,
         int firstRingRadius) {
@@ -215,13 +226,15 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
     if (std::is_same<T, float>::value) {
         computePolarCorrelationsSumOneToNKernel<float2>
             <<<dimGrid, dimBlock, 0, stream>>> (
-            (float2*)d_inOut, (float2*)d_ref,
+            (float2*)d_in, (float2*)d_out,
+            (float2*)d_ref,
             firstRingRadius,
             dims.x(), dims.y(), dims.n());
     } else if (std::is_same<T, double>::value) {
         computePolarCorrelationsSumOneToNKernel<double2>
             <<<dimGrid, dimBlock, 0, stream>>> (
-            (double2*)d_inOut, (double2*)d_ref,
+            (double2*)d_in, (double2*)d_out,
+            (double2*)d_ref,
             firstRingRadius,
             dims.x(), dims.y(), dims.n());
     } else {
@@ -230,7 +243,7 @@ void CudaRotPolarEstimator<T>::sComputeCorrelationsOneToN(
 }
 
 template<typename T>
-void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
+void CudaRotPolarEstimator<T>::loadThreadRoutine(T *others) {
     m_backgroundStream->set();
     auto lStream = *(cudaStream_t*)m_backgroundStream->stream();
     auto s = this->getSettings();
@@ -241,15 +254,18 @@ void CudaRotPolarEstimator<T>::loadThreadRoutine(T *h_others) {
         // how many signals to process
         size_t toProcess = std::min(s.batch, s.otherDims.n() - offset);
 
-        T *h_src = h_others + offset * s.otherDims.sizeSingle();
+        T *src = others + offset * s.otherDims.sizeSingle();
         size_t bytes = toProcess * s.otherDims.sizeSingle() * sizeof(T);
 
+        auto kind = m_backgroundStream->isGpuPointer(src)
+                ? cudaMemcpyDeviceToDevice
+                : cudaMemcpyHostToDevice;
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
                 m_d_batch,
-                h_src,
+                src,
                 bytes,
-                cudaMemcpyHostToDevice, lStream));
+                kind, lStream));
         // block until data is loaded
         m_backgroundStream->synch();
 
@@ -305,7 +321,7 @@ void CudaRotPolarEstimator<T>::sNormalize(
         d_in, dim.x(), dim.y(), dim.n(),
         d_sums, d_sumsSqr, posOfFirstRing);
 
-    const T piConst = FULL_CIRCLE ? (2 * PI) : PI;
+    const T piConst = FULL_CIRCLE ? (2 * M_PI) : M_PI;
     // sum of the first n terms of an arithmetic sequence
     // a1 = first radius (posOfFirstRing)
     // an = last radius (dim.y() - 1 + posOfFirstRing)
@@ -321,34 +337,63 @@ void CudaRotPolarEstimator<T>::sNormalize(
 }
 
 template<typename T>
-void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
+void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
     const bool isFullCircle = this->getSettings().fullCircle;
     if (isFullCircle) {
-        computeRotation2DOneToN<true>(h_others);
+        computeRotation2DOneToN<true>(others);
     } else {
-        computeRotation2DOneToN<false>(h_others);
+        computeRotation2DOneToN<false>(others);
     }
 }
 
 template<typename T>
 template<bool FULL_CIRCLE>
-void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
-    bool isReady = this->isInitialized() && this->isRefLoaded();
+void CudaRotPolarEstimator<T>::waitAndConvert(
+        const Dimensions &inCart,
+        const Dimensions &outPolar,
+        unsigned firstRing) {
+    // block until data is loaded
+    // mutex will be freed once leaving this block
+    std::unique_lock<std::mutex> lk(*m_mutex);
+    m_cv->wait(lk, [&]{return m_isDataReady;});
+    // call polar transformation kernel
+    sComputePolarTransform<FULL_CIRCLE>(*m_mainStream,
+            inCart, m_d_batch,
+            outPolar, m_d_batchPolarOrCorr,
+            firstRing);
 
+    // notify that buffer is processed (new will be loaded in background)
+    m_mainStream->synch();
+    m_isDataReady = false;
+    m_cv->notify_one();
+}
+
+template<typename T>
+template<bool FULL_CIRCLE>
+void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *others) {
+    const auto &s = this->getSettings();
+    bool isReady = this->isInitialized() && this->isRefLoaded();
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() and load reference");
     }
-    if ( ! GPU::isMemoryPinned(h_others)) {
+    if ( ! GPU::isMemoryPinned(others)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
     }
+    if (s.allowDataOverwrite && ( ! m_mainStream->isGpuPointer(others))) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
+    }
+
     m_mainStream->set();
     // make sure that all work (e.g. loading and processing of the reference) is done
     m_mainStream->synch();
     // start loading data at the background
     m_isDataReady = false;
-    auto loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, h_others);
+    const bool createLocalCopy = ( ! s.allowDataOverwrite);
+    std::thread loadingThread;
+    if (createLocalCopy) {
+        loadingThread = std::thread(&CudaRotPolarEstimator<T>::loadThreadRoutine, this, others);
+    }
 
-    auto s = this->getSettings();
     // process signals in batches
     for (size_t offset = 0; offset < s.otherDims.n(); offset += s.batch) {
         // how many signals to process
@@ -358,21 +403,15 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
         auto outPolarFourier = Dimensions(m_samples / 2 + 1, s.getNoOfRings(), 1, toProcess);
         auto resSize = Dimensions(m_samples, 1, 1, toProcess);
 
-        {
-            // block until data is loaded
-            // mutex will be freed once leaving this block
-            std::unique_lock<std::mutex> lk(*m_mutex);
-            m_cv->wait(lk, [&]{return m_isDataReady;});
-            // call polar transformation kernel
+        // get proper data
+        if (createLocalCopy) {
+            waitAndConvert<FULL_CIRCLE>(inCart, outPolar, s.firstRing);
+        } else {
+            T *in = others + (offset * s.otherDims.sizeSingle());
             sComputePolarTransform<FULL_CIRCLE>(*m_mainStream,
-                    inCart, m_d_batch,
-                    outPolar, m_d_batchPolarOrCorr,
-                    s.firstRing);
-
-            // notify that buffer is processed (new will be loaded in background)
-            m_mainStream->synch();
-            m_isDataReady = false;
-            m_cv->notify_one();
+                inCart, in,
+                outPolar, m_d_batchPolarOrCorr,
+                s.firstRing);
         }
 
         // It seems that the normalization is not necessary (does not change the result
@@ -384,16 +423,16 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
 
         CudaFFT<T>::fft(*m_batchToFD, m_d_batchPolarOrCorr, m_d_batchPolarFD);
 
-        sComputeCorrelationsOneToN(*m_mainStream, m_d_batchPolarFD, m_d_ref, outPolarFourier, s.firstRing);
+        sComputeCorrelationsOneToN(*m_mainStream, m_d_batchPolarFD, m_d_batchCorrSumFD, m_d_ref, outPolarFourier, s.firstRing);
 
-        CudaFFT<T>::ifft(*m_batchToSD, m_d_batchPolarFD, m_d_batchPolarOrCorr);
+        CudaFFT<T>::ifft(*m_batchToSD, m_d_batchCorrSumFD, m_d_batchPolarOrCorr);
 
-        // locate maxima for each signal
+        // locate maxima for each signal (results are always floats)
         auto d_positions = (float*)m_d_sumsOrMaxPos;
         ExtremaFinder::CudaExtremaFinder<T>::sFindMax(
                 *m_mainStream, resSize, m_d_batchPolarOrCorr, d_positions, nullptr);
 
-        // copy data back
+        // copy data back (they are always float)
         auto stream = *(cudaStream_t*)m_mainStream->stream();
         gpuErrchk(cudaMemcpyAsync(
                 m_h_batchMaxPositions,
@@ -408,7 +447,9 @@ void CudaRotPolarEstimator<T>::computeRotation2DOneToN(T *h_others) {
             this->getRotations2D().emplace_back(angle);
         }
     }
-    loadingThread.join();
+    if (createLocalCopy) {
+        loadingThread.join();
+    }
 }
 
 template<typename T>

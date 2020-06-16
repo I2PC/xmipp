@@ -63,9 +63,8 @@ TEST_F( FiltersTest, bestShift)
     auxMul = mulDouble1;
     auxMul.setXmippOrigin();
     bestShift(auxMul,auxMul,x,y,aux);
-    EXPECT_DOUBLE_EQ(x,0.);
-    EXPECT_DOUBLE_EQ(y,0.);
-
+    EXPECT_NEAR(x, 0., std::numeric_limits<double>::min());
+    EXPECT_NEAR(y, 0., std::numeric_limits<double>::min());
 }
 
 TEST_F( FiltersTest, correlation_matrix)
@@ -114,7 +113,7 @@ TEST_F( FiltersTest, alignImages)
     Image<double> Itransformed, ItransformedMirror;
     Itransformed()=I();
     Matrix2D<double> A;
-    rotation2DMatrix(15,A,true);
+    rotation2DMatrix(15.,A,true);
     MAT_ELEM(A,0,2)=-4;
     MAT_ELEM(A,1,2)= 6;
     selfApplyGeometry(BSPLINE3,Itransformed(),A,IS_NOT_INV,DONT_WRAP);

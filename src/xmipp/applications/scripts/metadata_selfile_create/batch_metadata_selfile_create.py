@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:     Roberto Marabini
@@ -24,10 +24,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-#!/usr/bin/env python
 
 import os
-from xmipp_base import XmippScript, createMetaDataFromPattern
+from src.xmipp.bindings.python.xmipp_base import (XmippScript,
+                                                  createMetaDataFromPattern)
 
 class ScriptCreateMetadata(XmippScript):
     def __init__(self):

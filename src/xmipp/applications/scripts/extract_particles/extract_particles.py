@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -29,11 +29,11 @@ import sys, os
 from joblib import delayed, Parallel
 from subprocess import check_call
 
-import xmipp_base
+from xmipp_base import *
 
-class ScriptExtractParticles(xmipp_base.XmippScript):
+class ScriptExtractParticles(XmippScript):
     def __init__(self):
-      xmipp_base.XmippScript.__init__(self)
+      XmippScript.__init__(self)
         
     def defineParams(self):
       self.addUsageLine('Preprocess all mics in directory')

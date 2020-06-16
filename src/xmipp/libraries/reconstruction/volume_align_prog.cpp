@@ -122,9 +122,9 @@ public:
     double   grey_shift0, grey_shiftF, step_grey_shift;
     int      tell;
     bool     apply;
-    FileName fnOut, fnGeo, fnStore;
+    FileName fnOut, fnGeo, fnGray, fnStore;
     bool     mask_enabled;
-    bool     usePowell, onlyShift, useFRM, copyGeo, store;
+    bool     usePowell, onlyShift, useFRM, copyGeo, copyGray, store;
     double   maxFreq;
     int      maxShift;
     bool     dontScale;
@@ -160,6 +160,7 @@ public:
         addParamsLine("  [--onlyShift]     : Only shift");
         addParamsLine("  [--dontScale]     : Do not look for scale changes");
         addParamsLine("  [--copyGeo <file=\"\">] : copy transformation matrix in a txt file. ('A' matrix elements)");
+        addParamsLine("  [--copyGray <file=\"\">] : copy gray scale and shift txt file.)");
         addParamsLine("  [--store <file=\"\">] : copy angles and shifts to a txt file.");
         addParamsLine(" == Mask Options == ");
         mask.defineParams(this,INT_MASK,NULL,NULL,true);
@@ -251,7 +252,9 @@ public:
         apply = checkParam("--apply");
         fnOut = getParam("--apply");
         copyGeo = checkParam("--copyGeo");
+        copyGray = checkParam("--copyGray");
         fnGeo = getParam("--copyGeo");
+        fnGray = getParam("--copyGray");
         store = checkParam("--store");
         fnStore = getParam("--store");
         dontScale = checkParam("--dontScale");
@@ -482,6 +485,14 @@ public:
 					  << A(3,0) << "\n" << A(3,1) << "\n" << A(3,2) << "\n" << A(3,3) << "\n"
 					  << std::endl;
         	outputGeo.close();
+        }
+        if (copyGray)
+        {
+        	std::ofstream outputGray (fnGray.c_str());
+        	outputGray << best_align(0) << "\n"
+        			   << best_align(1) << "\n"
+					   << std::endl;
+        	outputGray.close();
         }
         if (store)
         {

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:     Carlos Oscar Sorzano
@@ -26,11 +26,11 @@
 """
 
 import os
-import xmipp_base
+from src.xmipp.bindings.python.xmipp_base import *
 
-class ScriptPDBSelect(xmipp_base.XmippScript):
+class ScriptPDBSelect(XmippScript):
     def __init__(self):
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Select/Exclude alpha helices or beta sheets from a PDB. '

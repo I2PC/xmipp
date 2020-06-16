@@ -36,13 +36,13 @@ struct AlignmentEstimation {
         for (auto &m : poses) {
             m.initIdentity(3);
         }
-        correlations.resize(n);
+        figuresOfMerit.resize(n);
     }
 
     // This matrix describe the estimated transform, i.e. if you want to correct for the movement,
     // you have to inverse it
-    std::vector<Matrix2D<double>> poses;
-    std::vector<float> correlations;
+    std::vector<Matrix2D<float>> poses;
+    std::vector<float> figuresOfMerit;
 };
 
 } /* namespace Alignment */

@@ -249,7 +249,7 @@ public:
             }
             Matrix2D<double> Euler;
             Matrix1D<double> sym_axis;
-            Euler_angles2matrix(best_rot, best_tilt, 0, Euler);
+            Euler_angles2matrix(best_rot, best_tilt, 0., Euler);
             Euler.getRow(2, sym_axis);
             if (verbose!=0)
                 std::cout << "Symmetry axis (rot,tilt)= " << best_rot << " "
@@ -365,7 +365,7 @@ public:
             double tilt=p[2];
 
             // Compute symmetry axis
-            Euler_angles2matrix(rot, tilt, 0, Euler);
+            Euler_angles2matrix(rot, tilt, 0., Euler);
             Euler.getRow(2, sym_axis);
             sym_axis.selfTranspose();
 

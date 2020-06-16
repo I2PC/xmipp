@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -31,9 +31,10 @@ from subprocess import check_call
 from math import sqrt
 
 import numpy as np
-import xmipp_base
+import xmipp_base as xmipp_base
 
-from xmippPyModules.coordinatesTools.coordinatesTools import readPosCoordsFromFName, writeCoordsListToPosFname
+from xmippPyModules.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
+                                                        writeCoordsListToPosFname)
 
     
 class ScriptCordsConsensus(xmipp_base.XmippScript):

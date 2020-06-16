@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -24,18 +24,21 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-import re
 
+import re
 import sys, os
-import xmipp_base
-import xmippLib
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+
+from xmipp_base import *
+from xmippPyModules.deepLearningToolkitUtils.utils import *
 import numpy as np
 
+import xmippLib
 
-class ScriptDeepDenoising(xmipp_base.XmippScript):
+
+class ScriptDeepDenoising(XmippScript):
+  _conda_env=CondaEnvManager.CONDA_DEFAULT_ENVIRON
   def __init__(self):
-    xmipp_base.XmippScript.__init__(self)
+    XmippScript.__init__(self)
 
   def defineParams(self):
     self.addUsageLine('Denoise particles Deep Learning. It works in two modes:\n'
@@ -105,8 +108,6 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
       raise Exception("Error, --mode must be training or denoising")
 
   def predictDenoised(self, model,  boxSize, inputParticlesMdName, dataPathProjections=None):
-    import pyworkflow.em.metadata as md
-    from xmipp3.utils import getMdSize
     from scipy.stats import pearsonr
 
     inputParticlesStackName = re.sub(r"\.xmd$", ".stk", inputParticlesMdName)
@@ -124,14 +125,14 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
     dimMetadata = getMdSize(inputParticlesMdName)
     xmippLib.createEmptyFile(outputParticlesStackName, boxSize, boxSize, 1, dimMetadata)
 
-    mdNewParticles = md.MetaData()
+    mdNewParticles = xmippLib.MetaData()
 
     I = xmippLib.Image()
     i = 0
     # yieldPredictions will compute the denoised particles from the particles contained in inputParticlesMdName and
     # it will yield a batch of denoisedParts, inputParts (and projectionParts if inputProjectionsStackName provided)
     for preds, particles, projections in model.yieldPredictions(inputParticlesMdName, metadataProjections):
-      newRow = md.Row()
+      newRow = XmippMdRow()
       for pred, particle, projection in zip(preds, particles, projections): # Here we will populate the output stacks
         i += 1
         outputImgpath = ('%06d@' % (i,)) + outputParticlesStackName #denoised image path
@@ -140,17 +141,17 @@ class ScriptDeepDenoising(xmipp_base.XmippScript):
 
         pathNoise = ('%06d@' % (i,)) + inputParticlesStackName #input image path
 
-        newRow.setValue(md.MDL_IMAGE, outputImgpath)
-        newRow.setValue(md.MDL_IMAGE_ORIGINAL, pathNoise)
+        newRow.setValue(xmippLib.MDL_IMAGE, outputImgpath)
+        newRow.setValue(xmippLib.MDL_IMAGE_ORIGINAL, pathNoise)
 
         correlations_input_vs_denoised, _ = pearsonr(pred.ravel(), particle.ravel())
-        newRow.setValue(md.MDL_CORR_DENOISED_NOISY, correlations_input_vs_denoised)
+        newRow.setValue(xmippLib.MDL_CORR_DENOISED_NOISY, correlations_input_vs_denoised)
 
         if useProjections:
           pathProj = ('%06d@' % (i,)) + inputProjectionsStackName #projection image path
-          newRow.setValue(md.MDL_IMAGE_REF, pathProj)
+          newRow.setValue(xmippLib.MDL_IMAGE_REF, pathProj)
           correlations_proj_vs_denoised, _ = pearsonr(pred.ravel(), projection.ravel())
-          newRow.setValue(md.MDL_CORR_DENOISED_PROJECTION, correlations_proj_vs_denoised)
+          newRow.setValue(xmippLib.MDL_CORR_DENOISED_PROJECTION, correlations_proj_vs_denoised)
 
         newRow.addToMd(mdNewParticles)
 
