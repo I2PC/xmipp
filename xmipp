@@ -613,7 +613,7 @@ def configCompiler(configDict):
         import numpy
         incDirs = [info['include'], numpy.get_include()]
 
-        configDict["PYTHONINCFLAGS"] = ' '.join(["I%s" % iDir for iDir in incDirs])
+        configDict["PYTHONINCFLAGS"] = ' '.join(["-I%s" % iDir for iDir in incDirs])
 
     configDict["OPENCV"] = os.environ.get("OPENCV", "")
     if configDict["OPENCV"] == "" or configDict["OPENCVSUPPORTSCUDA"] or configDict["OPENCV3"]:
