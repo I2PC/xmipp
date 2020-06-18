@@ -804,25 +804,26 @@ int dummy(){}
 
 def configCuda(configDict):
     configDict["CUDA"] = os.environ.get("CUDA", "")
+    nvcc = 'nvcc'
     if configDict["CUDA"]=="":
-        if checkProgram("nvcc", False):
+        if checkProgram(nvcc, False):
             configDict["CUDA"]="True"
         else:
             cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda-8.0/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
             if cudaBin:
                 configDict["CUDA"] = "True"
-                os.environ.update(PATH=':'.join([os.environ['PATH'], cudaBin]))
+                nvcc = os.path.join(cudaBin, nvcc)
             else:
                 configDict["CUDA"] = "False"
     if configDict["CUDA"]=="True":
         if configDict["NVCC"]=="":
-            if checkProgram("nvcc"):
-                nvccVersion, nvccFullVersion = getCudaVersion("nvcc")
+            if checkProgram(nvcc):
+                nvccVersion, nvccFullVersion = getCudaVersion(nvcc)
                 print(green('CUDA-' + nvccFullVersion + ' detected.'))
                 if nvccVersion != 8.0:
                     print(yellow('CUDA-8.0 is recommended.'))
-                configDict["NVCC"] = "nvcc"
+                configDict["NVCC"] = nvcc
             else:
                 print(yellow("Warning: 'nvcc' not found. "
                              "'NVCC_CXXFLAGS' and 'NVCC_LINKFLAGS' cannot be "
