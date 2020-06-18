@@ -468,7 +468,7 @@ def readConfigFile(fnConfig):
 
 def createEmptyConfig():
     labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
-              'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
+              'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_RUN','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
               'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED',
@@ -670,6 +670,19 @@ def checkCompiler(configDict):
 
 def configMPI(configDict):
     mpiDetected = []
+    if configDict["MPI_RUN"] == "":
+        if checkProgram("mpirun", False):
+            configDict["MPI_RUN"] = "mpirun"
+            mpiDetected.append('mpirun')
+        elif checkProgram("mpiexec", False):
+            configDict["MPI_RUN"] = "mpiexec"
+            mpiDetected.append('mpiexec')
+        else:
+            mpiDir = findFileInDirList('mpirun', ['/usr/lib/openmpi/bin',
+                                                  '/usr/lib64/openmpi/bin'])  # add candidates if not found
+            if mpiDir:
+                configDict["MPI_RUN"] = mpiDir + "/mpirun"
+                mpiDetected.append(mpiDir + "/mpirun")
     if configDict["MPI_CC"] == "":
         if checkProgram("mpicc", False):
             configDict["MPI_CC"] = "mpicc"
@@ -699,7 +712,7 @@ def configMPI(configDict):
     if mpiDetected:
         print(green("%s detected." % ', '.join(mpiDetected)))
     else:
-        print(yellow("mpicc and mpiCC not found"))
+        print(yellow("mpirun, mpicc and mpiCC not found"))
 
 def checkMPI(configDict):
     print("Checking MPI configuration ...")
@@ -725,13 +738,8 @@ int main(){}
 
     ok = False
     echoString = blue("   > This sentence should be printed 4 times if mpi runs fine")
-    if checkProgram("mpirun",False):
-        ok=(runJob("mpirun -np 4 echo '%s (by mpirun).'" % echoString) or
-            runJob("mpirun -np 4 --allow-run-as-root echo '%s (by mpirun).'" % echoString))
-    elif checkProgram("mpiexec",False):
-        ok=(runJob("mpiexec -np 4 echo '%s (by mpiexec).'" % echoString) or
-            runJob("mpiexec -np 4 --allow-run-as-root echo '%s (by mpiexec).'" % echoString))
-    else:
+    if not (runJob("%s -np 4 echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
+            runJob("%s -np 4 --allow-run-as-root echo '%s.'" % (configDict['MPI_RUN'], echoString))):
         print(red("mpirun or mpiexec have failed."))
 
     return ok
