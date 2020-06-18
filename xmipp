@@ -181,7 +181,7 @@ def checkProgram(programName, show=True):
     systems = ["Ubuntu/Debian","ManjaroLinux"]
     try:
         osInfo = subprocess.Popen(["lsb_release", "--id"],
-                                   stdout=subprocess.PIPE).stdout.read().decode("utf-8")
+                                   stdout=subprocess.PIPE, env=os.environ).stdout.read().decode("utf-8")
         osName = osInfo.split('\t')[1].strip('\n')
         osId = -1  # no default OS
         for idx, system in enumerate(systems):
@@ -480,10 +480,13 @@ def createEmptyConfig():
 
 
 def findFileInDirList(fnH,dirlist):
-    """ :returns the dir where found or an empty string if not found. """
+    """ :returns the dir where found or an empty string if not found.
+        dirs can contain *, then first found is returned.
+    """
     for dir in dirlist:
-        if len(glob.glob(os.path.join(dir, fnH))) > 0:
-            return dir
+        validDirs = glob.glob(os.path.join(dir, fnH))
+        if len(validDirs) > 0:
+            return validDirs[0]
     return ''
 
 def configOpenCV(configDict):
