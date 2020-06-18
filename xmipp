@@ -746,11 +746,11 @@ int main(){}
 
 
 def configJava(configDict):
+    javaHomeDir = None
     if configDict["JAVA_HOME"]=="":
         javaProgramPath = whereis('java', findReal=True)
         if not javaProgramPath:
             javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put here candidates
-        javaHomeDir = None
         if javaProgramPath:
             javaHomeDir = javaProgramPath.replace("/jre/bin","")
             javaHomeDir = javaHomeDir.replace("/bin","")
