@@ -708,7 +708,7 @@ def configMPI(configDict):
             else:
                 checkProgram("mpiCC")  # To raise the hint
     if configDict["MPI_LINKERFORPROGRAMS"]=="":
-        configDict["MPI_LINKERFORPROGRAMS"]="mpiCC" if configDict["MPI_CXX"] else ""
+        configDict["MPI_LINKERFORPROGRAMS"]=configDict["MPI_CXX"]
     if mpiDetected:
         print(green("%s detected." % ', '.join(mpiDetected)))
     else:
@@ -736,13 +736,12 @@ int main(){}
         return False
     runJob("rm xmipp_mpi_test_main*")
 
-    ok = False
     echoString = blue("   > This sentence should be printed 4 times if mpi runs fine")
     if not (runJob("%s -np 4 echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
             runJob("%s -np 4 --allow-run-as-root echo '%s.'" % (configDict['MPI_RUN'], echoString))):
         print(red("mpirun or mpiexec have failed."))
-
-    return ok
+        return False
+    return True
 
 
 def configJava(configDict):
@@ -810,6 +809,7 @@ def configCuda(configDict):
             configDict["CUDA"]="True"
         else:
             cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda-8.0/bin",
+                                                 "/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
             if cudaBin:
                 configDict["CUDA"] = "True"
@@ -890,7 +890,7 @@ def configCuda(configDict):
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
-        if not checkProgram("nvcc"):
+        if not checkProgram(configDict["NVCC"]):
             return False
         print("Checking CUDA configuration ...")
         cppProg="""
