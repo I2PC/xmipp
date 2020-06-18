@@ -1341,11 +1341,17 @@ def install(dirname):
     #     fhBash.write("export LD_LIBRARY_PATH=$SCIPION_HOME/software/lib:$LD_LIBRARY_PATH\n")
     #     #fhFish.write("set -px PATH $SCIPION_HOME/software/bin\n")
     #     fhFish.write("set -px LD_LIBRARY_PATH $SCIPION_HOME/software/lib\n")
+    virtEnvDir = os.environ.get('VIRTUAL_ENV', '')  # if virtualEnv is used
+    virtEnvLib = os.path.join(virtEnvDir, 'lib') if virtEnvDir else ''
+    condaDir = os.environ.get('CONDA_PREFIX', '')  # if conda is used
+    condaLib = os.path.join(condaDir, 'lib') if condaDir else ''
     fhBash.write("export PATH=%s/bin:$PATH\n"%XMIPP_HOME)
-    fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:$LD_LIBRARY_PATH\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhBash.write("export LD_LIBRARY_PATH=%s/lib:%s/bindings/python:%s:%s:$LD_LIBRARY_PATH\n"
+                 %(XMIPP_HOME, XMIPP_HOME, virtEnvLib, condaLib))
     fhBash.write("export PYTHONPATH=%s/bindings/python:%s/pylib:$PYTHONPATH\n"%(XMIPP_HOME,XMIPP_HOME))
     fhFish.write("set -px PATH %s/bin\n"%XMIPP_HOME)
-    fhFish.write("set -px LD_LIBRARY_PATH %s/lib %s/bindings/python\n"%(XMIPP_HOME,XMIPP_HOME))
+    fhFish.write("set -px LD_LIBRARY_PATH %s/lib %s/bindings/python %s %s\n"
+                 %(XMIPP_HOME, XMIPP_HOME, virtEnvLib, condaLib))
     fhFish.write("set -px PYTHONPATH %s/bindings %s/pylib\n"%(XMIPP_HOME,XMIPP_HOME))   
 
     fhBash.write('\n')
