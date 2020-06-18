@@ -246,7 +246,7 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
            inParallel=False):
     if show_command:
         print(green(cmd))
-    p = subprocess.Popen(cmd, cwd=cwd,
+    p = subprocess.Popen(cmd, cwd=cwd, env=os.environ,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
     while not inParallel:
         output = p.stdout.readline().decode("utf-8")
@@ -1109,6 +1109,8 @@ def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
     if is_config_true('CUDA'):
+        if not checkProgram('nvcc', False):
+            os.environ['PATH'] = os.path.dirname(configDict['NVCC'])+":"+os.environ['PATH']
         result = result and compile_cuFFTAdvisor()
     if not result:
         print(red("Cannot build dependencies"))
