@@ -486,7 +486,7 @@ def findFileInDirList(fnH,dirlist):
     for dir in dirlist:
         validDirs = glob.glob(os.path.join(dir, fnH))
         if len(validDirs) > 0:
-            return validDirs[0]
+            return os.path.dirname(validDirs[0])
     return ''
 
 def configOpenCV(configDict):
