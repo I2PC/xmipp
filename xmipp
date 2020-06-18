@@ -749,7 +749,7 @@ def configJava(configDict):
     if configDict["JAVA_HOME"]=="":
         javaProgramPath = whereis('java', findReal=True)
         if not javaProgramPath:
-            javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-8-openjdk-amd64/bin'])  # put here candidates
+            javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put here candidates
         javaHomeDir = None
         if javaProgramPath:
             javaHomeDir = javaProgramPath.replace("/jre/bin","")
@@ -770,7 +770,7 @@ def configJava(configDict):
         configDict["JNI_CPPPATH"]="%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
 
 def checkJava(configDict):
-    if not checkProgram("javac"):
+    if not checkProgram(configDict['JAVAC']):
         return False
     print("Checking Java configuration...")
     javaProg="""
