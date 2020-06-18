@@ -668,7 +668,7 @@ def checkCompiler(configDict):
 def configMPI(configDict):
     mpiDetected = []
     if configDict["MPI_CC"] == "":
-        if checkProgram("mpicc"):
+        if checkProgram("mpicc", False):
             configDict["MPI_CC"] = "mpicc"
             mpiDetected.append('mpicc')
         else:
@@ -677,8 +677,10 @@ def configMPI(configDict):
             if mpiDir:
                 configDict["MPI_CC"] = mpiDir + "/mpicc"
                 mpiDetected.append(mpiDir + "/mpicc")
+            else:
+                checkProgram("mpicc")  # To raise the hint
     if configDict["MPI_CXX"] == "":
-        if checkProgram("mpiCC"):
+        if checkProgram("mpiCC", False):
             configDict["MPI_CXX"] = "mpiCC"
             mpiDetected.append('mpiCC')
         else:
@@ -687,8 +689,10 @@ def configMPI(configDict):
             if mpiDir:
                 configDict["MPI_CXX"] = mpiDir + "/mpiCC"
                 mpiDetected.append(mpiDir + "/mpiCC")
+            else:
+                checkProgram("mpiCC")  # To raise the hint
     if configDict["MPI_LINKERFORPROGRAMS"]=="":
-        configDict["MPI_LINKERFORPROGRAMS"]="mpiCC" if checkProgram("mpiCC") else ""
+        configDict["MPI_LINKERFORPROGRAMS"]="mpiCC" if configDict["MPI_CXX"] else ""
     if mpiDetected:
         print(green("%s detected." % ', '.join(mpiDetected)))
     else:
