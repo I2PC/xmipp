@@ -1108,8 +1108,10 @@ def compile(Nproc):
 
 def installDepConda(dep):
     condaEnv = os.environ.get('CONDA_DEFAULT_ENV', 'base')
-    if condaEnv != 'base':
-        runJob("conda activate %s ; conda install %s" % (condaEnv, dep))
+    if condaEnv != 'base' and runJob("conda activate %s ; "
+                                     "conda install %s -y"
+                                     % (condaEnv, dep)):
+        print(green("'%s' installed using conda" % dep))
         return True
     return False
 
