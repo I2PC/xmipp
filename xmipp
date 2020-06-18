@@ -26,7 +26,6 @@
 
 import distutils.spawn
 import glob
-import json
 import os
 import re
 import shutil
@@ -274,7 +273,7 @@ def cleanSources():
     runJob("rm -rf src/xmipp/lib")
     runJob("rm -rf src/xmipp/.sconsign.dblite")
     if ensureGit(False):
-        runJob("git stash") # to get exactly like in repo
+        runJob("git stash")  # to get exactly like in repo
 
 
 def cleanBinaries():
@@ -659,9 +658,6 @@ def checkCompiler(configDict):
         print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread"))
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
-    with open('libs.json') as f:
-        ALL_LIBS = set(json.load(f))
-
     if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
               (configDict["LINKERFORPROGRAMS"], configDict["LINKFLAGS"], configDict["LIBDIRFLAGS"],libhdf5)):
         print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
@@ -676,7 +672,8 @@ def configMPI(configDict):
             configDict["MPI_CC"] = "mpicc"
             mpiDetected.append('mpicc')
         else:
-            mpiDir = findFileInDirList('mpicc', ['/usr/lib/openmpi/bin'])  # add candidates if not found
+            mpiDir = findFileInDirList('mpicc', ['/usr/lib/openmpi/bin',
+                                                 '/usr/lib64/openmpi/bin'])  # add candidates if not found
             if mpiDir:
                 configDict["MPI_CC"] = mpiDir + "/mpicc"
                 mpiDetected.append(mpiDir + "/mpicc")
@@ -685,7 +682,8 @@ def configMPI(configDict):
             configDict["MPI_CXX"] = "mpiCC"
             mpiDetected.append('mpiCC')
         else:
-            mpiDir = findFileInDirList('mpiCC', ['/usr/lib/openmpi/bin'])  # add candidates if not found
+            mpiDir = findFileInDirList('mpiCC', ['/usr/lib/openmpi/bin',
+                                                 '/usr/lib64/openmpi/bin'])  # add candidates if not found
             if mpiDir:
                 configDict["MPI_CXX"] = mpiDir + "/mpiCC"
                 mpiDetected.append(mpiDir + "/mpiCC")

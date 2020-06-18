@@ -26,15 +26,12 @@
 # *  e-mail address 'ifoche@cnb.csic.es'
 # *
 # **************************************************************************
-import json
+
 import os
 from os.path import join
 from glob import glob
 
 PYTHON_LIB = os.environ.get("PYTHON_LIB")
-
-with open('libs.json') as f:
-    ALL_DEPS = json.load(f)
 
 Import('env')
 
@@ -94,8 +91,7 @@ def getHdf5Name(libdirs):
             return "hdf5_serial"
     return "hdf5"
 
-ALL_LIBS = set(ALL_DEPS['Xmipp_libs'])
-ALL_LIBS.add(getHdf5Name(env['EXTERNAL_LIBDIRS']))
+ALL_LIBS = {'fftw3', 'fftw3_threads', 'tiff', 'jpeg', 'sqlite3', getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
 # to add the Xmipp CPP libraries
@@ -176,8 +172,10 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs,
 
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
-exDeps = ALL_DEPS['Xmipp_prog']
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS'])] + exDeps + [PYTHON_LIB]
+
+PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),
+                          'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff',
+                          'fftw3f', 'fftw3f_threads', 'pthread', PYTHON_LIB]
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
