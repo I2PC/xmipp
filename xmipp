@@ -475,7 +475,8 @@ def createEmptyConfig():
               'CONFIG_VERSION', 'PYTHON_LIB']
     configDict = {}
     for label in labels:
-        configDict[label]=""
+        # We let to set up the xmipp configuration via environ.
+        configDict[label] = os.environ.get(label, "")
     return configDict
 
 
@@ -1105,12 +1106,21 @@ def compile(Nproc):
     return compileXmipp(Nproc)
 
 
+def installDepConda(dep):
+    condaEnv = os.environ.get('CONDA_DEFAULT_ENV', 'base')
+    if condaEnv != 'base':
+        runJob("conda activate %s ; conda install %s" % (condaEnv, dep))
+        return True
+    return False
+
+
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
     if is_config_true('CUDA'):
-        if not checkProgram('nvcc', False):
+        if not checkProgram('nvcc', False) and checkProgram(configDict['NVCC'], False):
             os.environ['PATH'] = os.path.dirname(configDict['NVCC'])+":"+os.environ['PATH']
+        result = result and (checkProgram('make', False) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
     if not result:
         print(red("Cannot build dependencies"))
