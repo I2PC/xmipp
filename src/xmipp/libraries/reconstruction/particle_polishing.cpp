@@ -359,7 +359,7 @@ void ProgParticlePolishing::calculateCurve_1(const MultidimArray<double> &Iavg, 
 	//Iproj.computeDoubleMinMax(Dmin, Dmax);
 	//double step = (Dmax-Dmin)/double(nStep);
 	//double offset = -Dmin/double(step);
-	//std::cerr << "variables: " << step << ", " << offset << ", " << Dmin << ", " << Dmax <<std::endl;
+	//std::cerr << "In calculateCurve_1 variables: " << step << ", " << offset << ", " << Dmin << ", " << Dmax <<std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Iproj){
 		if(DIRECT_MULTIDIM_ELEM(Iproj, n)<Dmin)
 			DIRECT_MULTIDIM_ELEM(Iproj, n)=Dmin;
@@ -589,7 +589,7 @@ void ProgParticlePolishing::run()
 
 	//INPUT VOLUME
 	V.read(fnVol);
-    V().setXmippOrigin();
+        V().setXmippOrigin();
 	int xdim = (int)XSIZE(V());
 	int ydim = (int)YSIZE(V());
 	projectorV = new FourierProjector(V(),2,0.5,BSPLINE3);
@@ -653,6 +653,7 @@ void ProgParticlePolishing::run()
 			dataInMovie++;
 
 			fnPart = (String)fnParts[i];
+                        //std::cout << fnPart << " " << nMics << " " << mdPartSize << std::endl;
 			Ipart.read(fnPart);
 			Ipart().setXmippOrigin();
 			rot = rots[i];
@@ -688,6 +689,12 @@ void ProgParticlePolishing::run()
 			bool applyAlign=false;
 			averagingAll(Ipart(), Iavg(), partId, frId, mvId, averageAll, applyAlign);
 
+			/*//DEBUG
+			projV.write(formatString("Testprojection_%i_%i.tif", frId, partId));
+			Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
+			Iavg.write(formatString("Testaverage_%i_%i.tif", frId, partId));
+			//END DEBUG/*/
+
 			//With Iavg and projV, we calculate the curve (intensity in the projection) vs (counted electrons)
 			if(Dmin==0. && Dmax==0.){
 				projV().computeDoubleMinMax(Dmin, Dmax);
@@ -695,14 +702,9 @@ void ProgParticlePolishing::run()
 				Dmax=Dmax+0.2*Dmax;
 				stepCurve = (Dmax-Dmin)/double(nStep);
 				offset = -Dmin/double(stepCurve);
+                                //std::cout << Dmin << " " << Dmax << " " << stepCurve << " " << offset << " " << std::endl;
 			}
 			calculateCurve_1(Iavg(), projV(), vectorAvg, nStep, stepCurve, offset, Dmin, Dmax);
-
-			/*//DEBUG
-			projV.write(formatString("Testprojection_%i_%i.tif", frId, partId));
-			//Ipart.write(formatString("particle_%i_%i.tif", frId, partId));
-			Iavg.write(formatString("Testaverage_%i_%i.tif", frId, partId));
-			//END DEBUG/*/
 
 			//if(iterPart->hasNext())
 			//	iterPart->moveNext();
@@ -731,7 +733,7 @@ void ProgParticlePolishing::run()
 	//-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6
 	int shiftX[]={-3, -2, -1, 0, 1, 2, 3};
 	int shiftY[]={-3, -2, -1, 0, 1, 2, 3};
-    int myL = (int)(sizeof(shiftX)/sizeof(*shiftX));
+        int myL = (int)(sizeof(shiftX)/sizeof(*shiftX));
 	MultidimArray<double> lkresults;
 	double maxShift = XSIZE(Iavg())/2-10;
 	double maxShift2 = maxShift*maxShift;

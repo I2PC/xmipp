@@ -258,10 +258,10 @@ public:
 			if(rowMd.containsLabel(MDL_LOCAL_ALIGNMENT_CONTROL_POINTS))
 				rowMd.getValue(MDL_LOCAL_ALIGNMENT_CONTROL_POINTS, ctrlPts);
 		}
-        std::cout<<coeffsXaux.size()<<" "<<coeffsYaux.size()<<" "<<ctrlPts.size()<<std::endl;
+        //std::cout<<coeffsXaux.size()<<" "<<coeffsYaux.size()<<" "<<ctrlPts.size()<<std::endl;
 
-        double coeffsX[250];
-        double coeffsY[250];
+        double coeffsX[coeffsXaux.size()];
+        double coeffsY[coeffsYaux.size()];
         for(int i=0; i<coeffsXaux.size(); i++){
         	coeffsX[i]=coeffsXaux[i];
         	coeffsY[i]=coeffsYaux[i];
@@ -272,6 +272,7 @@ public:
         {
             Micrograph m;
             m.open_micrograph(fn_micrograph);
+            //printf("After mic open \n");
             m.set_window_size(Xdim, Ydim);
             m.read_coordinates(0, fn_pos);
             if (down_transform != 1.)
@@ -287,6 +288,7 @@ public:
               ctfparam.getRow(ctfRow, ctfparam.firstObject());
               m.set_ctfparams(ctfRow);
             }
+            //printf("After ctf \n");
 
             //AJ modifying the coordinates to come back to the original position taking into account the movie alignment params
             int imax = m.coords.size();
@@ -317,6 +319,7 @@ public:
             //END AJ modification
 
             m.produce_all_images(0, -1, fn_out, fn_orig, 0.,0.,0., rmStack, fillBorders, extractNoise, Nnoise);
+            //printf("After producing all images \n");
             if (extractNoise)
             {
             	MDRow row=firstRow(fn_pos);

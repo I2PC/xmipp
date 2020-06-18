@@ -40,7 +40,7 @@ public:
 	FileName fnMdPart; // File with the input particles metadata
 	FileName fnVol;
 	FileName fnOut;
-    MetaData mdPart;
+        MetaData mdPart;
 	Image<double> V;
 	FourierProjector *projectorV;
 	int nFrames, nMics, nFilters, xmov, ymov;
