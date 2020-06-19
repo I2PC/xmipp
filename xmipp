@@ -26,6 +26,7 @@
 
 import distutils.spawn
 import glob
+import json
 import os
 import re
 import shutil
@@ -71,6 +72,27 @@ SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
                   "volume_homogenizer": "OPENCV=False",
                   "cuda": "CUDA=False"}
 
+XMIPP_ENV = {}
+
+def updateXmippEnv(pos='begin', **kwargs):
+    """ Modify the value for some variable.
+    Params:
+        varName: for example LD_LIBRARY_PATH
+        varValue: the value to add or replace.
+        position: controls how the value will be changed.
+            If REPLACE, it will overwrite the value of
+            the var.
+            BEGIN or END will preserve the current value
+            and add (at begin or end) the new value.
+    """
+    for key, value in kwargs.items():
+        if key in env:
+            if pos == 'begin':
+                XMIPP_ENV[key] = value + os.pathsep + XMIPP_ENV[key]
+            else:
+                XMIPP_ENV[key] = XMIPP_ENV[key] + os.pathsep + value
+        else:
+            XMIPP_ENV[key] = value
 
 def checkGithubConnection():
     from http.client import HTTPConnection
@@ -581,27 +603,25 @@ def configCompiler(configDict):
     if configDict["LIBDIRFLAGS"] == "":
         localLib = "%s/lib" % info['data']  # /usr/local/lib or /path/to/virtEnv/lib
         configDict["LIBDIRFLAGS"] = "-L%s" % localLib
+        updateXmippEnv(LD_LIBRARY_PATH=localLib)
 
         # extra libs
-        libDirs = [localLib]  # where to look for
-        libDirs += ["/usr/lib/x86_64-linux-gnu"]
-
-        hdf5Lib = findFileInDirList("libhdf5*", libDirs)
-        if hdf5Lib:
-            configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
+        if not findFileInDirList("libhdf5*", localLib):
+            hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib/x86_64-linux-gnu"])
+            if hdf5Lib:
+                configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
+                updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
 
     if configDict["INCDIRFLAGS"] == "":
-        localInc = "%s/include" % info['data']
+        localInc = "%s/include" % info['data']  # /usr/local/lib or /path/to/virtEnv/lib
         configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
         configDict["INCDIRFLAGS"] += " -I%s" % localInc
 
         # extra includes
-        incDirs = [localInc]
-        incDirs += ["/usr/include/hdf5/serial"]
-
-        hdf5Inc = findFileInDirList("hdf5.h", incDirs)
-        if hdf5Inc:
-            configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
+        if not findFileInDirList("libhdf5*", localInc):
+            hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
+            if hdf5Inc:
+                configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
     if configDict["PYTHON_LIB"] == "":
         # malloc flavour is not needed from 3.8
@@ -683,6 +703,7 @@ def configMPI(configDict):
                                                   '/usr/lib64/openmpi/bin'])  # add candidates if not found
             if mpiDir:
                 configDict["MPI_RUN"] = mpiDir + "/mpirun"
+                updateXmippEnv(PATH=mpiDir)
                 mpiDetected.append(mpiDir + "/mpirun")
     if configDict["MPI_CC"] == "":
         if checkProgram("mpicc", False):
@@ -746,28 +767,31 @@ int main(){}
 
 
 def configJava(configDict):
-    javaHomeDir = None
     if configDict["JAVA_HOME"]=="":
         javaProgramPath = whereis('java', findReal=True)
         if not javaProgramPath:
-            javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put here candidates
+            javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
         if javaProgramPath:
-            javaHomeDir = javaProgramPath.replace("/jre/bin","")
-            javaHomeDir = javaHomeDir.replace("/bin","")
-        if javaHomeDir:
-            configDict["JAVA_HOME"]=javaHomeDir
-            print(green("%s detected." % os.path.basename(javaHomeDir)))
-        else:
-            print(yellow("java not found"))
+            updateXmippEnv(PATH=javaProgramPath)
+            javaHomeDir = javaProgramPath.replace("/jre/bin", "")
+            javaHomeDir = javaHomeDir.replace("/bin", "")
+            configDict["JAVA_HOME"] = javaHomeDir
 
-    if configDict["JAVA_BINDIR"]=="" and javaHomeDir:
+    if configDict["JAVA_BINDIR"]=="" and configDict["JAVA_HOME"]:
         configDict["JAVA_BINDIR"]="%(JAVA_HOME)s/bin"
-    if configDict["JAVAC"]=="" and javaHomeDir:
+    if configDict["JAVAC"]=="" and configDict["JAVA_HOME"]:
         configDict["JAVAC"]="%(JAVA_BINDIR)s/javac"
-    if configDict["JAR"]=="" and javaHomeDir:
+    if configDict["JAR"]=="" and configDict["JAVA_HOME"]:
         configDict["JAR"]="%(JAVA_BINDIR)s/jar"
-    if configDict["JNI_CPPPATH"]=="" and javaHomeDir:
+    if configDict["JNI_CPPPATH"]=="" and configDict["JAVA_HOME"]:
         configDict["JNI_CPPPATH"]="%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
+
+    if (os.path.isfile(configDict["JAVAC"] % configDict) and
+            os.path.isfile(configDict["JAR"] % configDict) and
+            os.path.isfile("%(JAVA_HOME)s/include" % configDict)):
+        print(green("%s detected." % configDict["JAVA_HOME"]))
+    else:
+        print(yellow("java not found"))
 
 def checkJava(configDict):
     if not checkProgram(configDict['JAVAC']):
@@ -879,6 +903,8 @@ def configCuda(configDict):
                 if cudaLib:
                     configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
                                                     " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
+                    updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
+                    updateXmippEnv(LD_LIBRARY_PATH=cudaLib+"/stubs")
                 else:
                     print(yellow("WARNING: system libraries for CUDA not found!\n"
                                  "         If cuda code is not compiling, "
@@ -927,8 +953,10 @@ def configMatlab(configDict):
         if configDict["MATLAB_DIR"]=="":
             if checkProgram("matlab"):
                 matlabBinDir = whereis("matlab", findReal=True)
+                updateXmippEnv(MATLAB_BIN_DIR=matlabBinDir)
                 configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
                 print(green("Matlab detected at " + matlabBinDir))
+
 
 def checkMatlab(configDict):
     ans = True
@@ -962,6 +990,10 @@ def updateConfig(updatingDict):
         print(blue("Setting %s=%s" % (k, v)))
         runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME),
                show_command=False)
+
+def writeEnviron():
+    with open('xmippEnv.json', 'w') as f:
+        json.dump(XMIPP_ENV, f)
 
 def config_DL(configDict):
     k = 'USE_DL'
@@ -999,6 +1031,7 @@ def config():
     configConfigVersion(new_config_dict)
 
     writeConfig(new_config_dict)
+    writeEnviron()
     print(blue("Configuration completed....."))
 
     return new_config_dict
@@ -1327,6 +1360,8 @@ def install(dirname):
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/java/build "+dirname+"/bindings/java/")
     ok = ok and runJob(cpCmd+" -Lr src/xmippViz/external/imagej "+dirname+"/bindings/java/")
     ok = ok and runJob(cpCmd+" src/xmippViz/bindings/python/xmippViz.py "+dirname+"/bindings/python/")
+
+    ok = ok and runJob(cpCmd+" xmippEnv.json "+dirname+"/xmippEnv.json")
 
     if not ok:
         print(red("\nSome error occurred during the installation.\n"))
