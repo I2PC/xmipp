@@ -41,7 +41,7 @@
 
 class ProgOddEven : public XmippProgram
 {
-public:
+private:
 	 /** Filenames */
 	FileName fnOut_odd, fnOut_even, fnImg, splitType;
 	bool sumFrames;
@@ -49,7 +49,7 @@ public:
 public:
     void defineParams();
     void readParams();
-    void produceSideInfo();
+    void fromimageToMd(FileName fnImg, MetaData &movienew);
     void run();
 
 
