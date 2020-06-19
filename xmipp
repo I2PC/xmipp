@@ -75,15 +75,7 @@ SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
 XMIPP_ENV = {}
 
 def updateXmippEnv(pos='begin', **kwargs):
-    """ Modify the value for some variable.
-    Params:
-        varName: for example LD_LIBRARY_PATH
-        varValue: the value to add or replace.
-        position: controls how the value will be changed.
-            If REPLACE, it will overwrite the value of
-            the var.
-            BEGIN or END will preserve the current value
-            and add (at begin or end) the new value.
+    """ Add/update a variable in XMIPP_ENV dictionary (never delete/replace)
     """
     for key, value in kwargs.items():
         if key in XMIPP_ENV:
