@@ -78,6 +78,7 @@ def updateXmippEnv(pos='begin', **kwargs):
     """ Add/update a variable in XMIPP_ENV dictionary (never delete/replace)
     """
     for key, value in kwargs.items():
+        value = os.path.realpath(value)
         if key in XMIPP_ENV:
             if pos == 'begin':
                 XMIPP_ENV[key] = value + os.pathsep + XMIPP_ENV[key]
