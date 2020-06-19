@@ -834,6 +834,7 @@ def configCuda(configDict):
                                                  "/usr/local/cuda*/bin"])  # check order
             if cudaBin:
                 configDict["CUDA"] = "True"
+                cudaBin = os.path.realpath(cudaBin)  # If using generic cuda, expliciting the version
                 nvcc = os.path.join(cudaBin, nvcc)
             else:
                 configDict["CUDA"] = "False"
