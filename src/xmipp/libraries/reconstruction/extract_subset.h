@@ -57,8 +57,6 @@ public:
      * New files containing the subset shall be created.
      */
     static void createSubset(const Settings &s);
-
-protected:
 };
 
 #endif /* EXTRACT_SUBSET_H_ */
