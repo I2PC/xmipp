@@ -27,12 +27,13 @@
 #include "prog_extract_subset_main.h"
 
 void ProgExtractSubset::defineParams() {
-    addUsageLine("Extract a subset of particles into new file. By default, only 'Enabled' particles will be preserved.");
+    addUsageLine("Extract a subset of particles into a new file. "
+        "By default, only 'Enabled' particles will be kept.");
 
     addParamsLine(" -i <md_file>                : Input metadata");
     addParamsLine(" -o <md_file>                : Output metadata");
     addParamsLine(" [--odir <outputDir=\".\">]  : Output directory");
-    addParamsLine(" [--keepDisabled]            : Ignore 'Enable' flag, i.e. include in the subset also disabled particles");
+    addParamsLine(" [--keepDisabled]            : Ignore 'Enable' flag, i.e. include also disabled particles");
     addParamsLine(" [--first <n=10>]            : Extract first up to n particles");
     addParamsLine(" [--last <n=10>]             : Extract last up to n particles");
     addParamsLine(" [--range <s=0> <e=10>]      : Extract particles within this zero-based range");
@@ -48,30 +49,26 @@ void ProgExtractSubset::readParams() {
     size_t n = md.size();
 
     if (checkParam(OPT_FIRST)) {
-        printf("opt first\n"); // FIXME DS remove
         m_settings.first = 0;
         m_settings.count = std::min(n, (size_t)getIntParam(OPT_FIRST));
     } else if (checkParam(OPT_LAST)) {
-        printf("opt last\n"); // FIXME DS remove
         m_settings.count = std::min(n, (size_t)getIntParam(OPT_LAST));
         m_settings.first = (0 == m_settings.count) ? 0 : n - m_settings.count;
     } else if (checkParam(OPT_RANGE)) {
-        printf("opt range\n"); // FIXME DS remove
         size_t reqS = getIntParam(OPT_RANGE, 0);
         size_t reqE = getIntParam(OPT_RANGE, 1);
         size_t last = std::min((0 == n ? 0 : n - 1), reqE);
         m_settings.first = std::min((0 == n ? 0 : n - 1), reqS);
         m_settings.count = last - m_settings.first + 1;
     } else {
-        printf("opt active\n"); // FIXME DS remove
         m_settings.first = 0;
         m_settings.count = n;
     }
 
-    setOutput();
+    prepareOutput();
 }
 
-void ProgExtractSubset::setOutput() {
+void ProgExtractSubset::prepareOutput() {
     auto outDir = FileName(getParam("--odir"));
     if ( ! outDir.exists()) {
         if (outDir.makePath()) {
@@ -80,6 +77,17 @@ void ProgExtractSubset::setOutput() {
     }
     m_settings.outXmd = outDir + "/" + std::string(getParam("-o"));
     m_settings.outStk = outDir + "/" + m_settings.outXmd.getBaseName() + ".stk";
+
+
+    if (m_settings.outStk.exists()) {
+        std::cerr << m_settings.outStk << " exists. It will be overwritten.\n";
+        m_settings.outStk.deleteFile();
+    }
+
+    if (m_settings.outXmd.exists()) {
+        std::cerr << m_settings.outXmd << " exists. It will be overwritten.\n";
+        m_settings.outXmd.deleteFile();
+    }
 }
 
 void ProgExtractSubset::show() const {
