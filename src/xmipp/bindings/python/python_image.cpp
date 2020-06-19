@@ -838,7 +838,7 @@ Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     int axis = VIEW_Z_NEG;
 
-    if (self != NULL && PyArg_ParseTuple(args, "c", &axis))
+    if (self != NULL && PyArg_ParseTuple(args, "i", &axis))
     {
         try
         {
