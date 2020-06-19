@@ -605,7 +605,7 @@ def configCompiler(configDict):
                 updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
 
     if configDict["INCDIRFLAGS"] == "":
-        localInc = "%s/include" % info['data']  # /usr/local/lib or /path/to/virtEnv/lib
+        localInc = "%s/include" % info['data']  # /usr/local/include or /path/to/virtEnv/include
         configDict["INCDIRFLAGS"] += ' '.join(map(lambda x: '-I' + str(x), getDependenciesInclude()))
         configDict["INCDIRFLAGS"] += " -I%s" % localInc
 
@@ -737,16 +737,19 @@ int main(){}
     with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"%\
-              (configDict["MPI_CXX"],configDict["INCDIRFLAGS"])):
+    if not runJob("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"%\
+              (configDict["MPI_CXX"], configDict["INCDIRFLAGS"], configDict["CXXFLAGS"],
+               configDict["MPI_CXXFLAGS"])):
         print(red("Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
-        print("hint: MPI_CXXFLAGS is normally not needed, but if it is might help 'mpicc --showme:compile'")
-        print("hint: MPI_LINKFLAGS is normally not needed, but if it is might help 'mpicc --showme:link'")
+        print(red("hint: MPI_CXXFLAGS is normally not needed, but if it is might help 'mpicc --showme:compile'"))
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
-    if not runJob("%s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
-              (configDict["MPI_LINKERFORPROGRAMS"], configDict["LINKFLAGS"], configDict["LIBDIRFLAGS"], libhdf5)):
+    if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
+                  "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
+              (configDict["MPI_LINKERFORPROGRAMS"], configDict["LINKFLAGS"],
+               configDict["MPI_LINKFLAGS"], configDict["LIBDIRFLAGS"], libhdf5)):
         print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
+        print(red("hint: MPI_LINKFLAGS is normally not needed, but if it is might help 'mpicc --showme:link'"))
         return False
     runJob("rm xmipp_mpi_test_main*")
 
