@@ -786,8 +786,8 @@ def configJava(configDict):
     if configDict["JNI_CPPPATH"]=="" and configDict["JAVA_HOME"]:
         configDict["JNI_CPPPATH"]="%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
 
-    if (os.path.isfile(configDict["JAVAC"] % configDict) and
-            os.path.isfile(configDict["JAR"] % configDict) and
+    if (os.path.isfile((configDict["JAVAC"] % configDict) % configDict) and
+            os.path.isfile((configDict["JAR"] % configDict) % configDict) and
             os.path.isfile("%(JAVA_HOME)s/include" % configDict)):
         print(green("%s detected." % configDict["JAVA_HOME"]))
     else:
