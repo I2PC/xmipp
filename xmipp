@@ -86,7 +86,7 @@ def updateXmippEnv(pos='begin', **kwargs):
             and add (at begin or end) the new value.
     """
     for key, value in kwargs.items():
-        if key in env:
+        if key in XMIPP_ENV:
             if pos == 'begin':
                 XMIPP_ENV[key] = value + os.pathsep + XMIPP_ENV[key]
             else:
