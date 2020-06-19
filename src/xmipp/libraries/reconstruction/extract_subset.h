@@ -31,10 +31,16 @@
 #include <iosfwd>
 #include "core/xmipp_image.h"
 
+/**
+ * Class responsible for extracting particles from metadata / stack file into
+ * a new metadata / stack file
+ *
+ */
 class ExtractSubset final {
 public:
-    struct Settings {
-        MetaData md;
+    class Settings {
+    public:
+        MetaData md; // input
         FileName outXmd; // parent directory expected to exist
         FileName outStk; // parent directory expected to exist
         size_t first; // 0-based index
@@ -46,6 +52,10 @@ public:
 
     friend std::ostream& operator<<(std::ostream &os, const Settings &s);
 
+    /**
+     * This method will extract particles according to the passed settings.
+     * New files containing the subset shall be created.
+     */
     static void createSubset(const Settings &s);
 
 protected:

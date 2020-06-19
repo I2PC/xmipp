@@ -38,12 +38,16 @@ public:
     virtual void run() override;
 
 private:
-    void setOutput();
+    /**
+     * Set output directory and files
+     */
+    void prepareOutput();
 
     const char *OPT_LAST = "--last";
     const char *OPT_FIRST = "--first";
     const char *OPT_RANGE = "--range";
 
+    /** Settings used for extraction */
     ExtractSubset::Settings m_settings = {};
 };
 

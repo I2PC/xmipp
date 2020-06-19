@@ -35,20 +35,9 @@ void ExtractSubset::createSubset(const Settings &s) {
     }
     MDRow row;
     auto destMD = MetaData();
-
-    if (s.outStk.exists()) {
-        std::cerr << s.outStk << " exists. It will be overwritten.\n";
-        s.outStk.deleteFile();
-    }
-
-    if (s.outXmd.exists()) {
-        std::cerr << s.outXmd << " exists. It will be overwritten.\n";
-        s.outXmd.deleteFile();
-    }
-
     auto img = Image<float>();
     // iterate through all items
-    for (size_t i = 0; i < s.count; ++i, it.moveNext()) {
+    for (size_t i = 0; i < s.count; it.moveNext(), i++) {
         // orig name
         FileName origName;
         s.md.getValue(MDL_IMAGE, origName, it.objId);
@@ -59,22 +48,30 @@ void ExtractSubset::createSubset(const Settings &s) {
         s.md.getRow(row, it.objId);
         row.setValue(MDL_IMAGE, newName);
         row.setValue(MDL_ENABLED, 1);
-        std::cout << newName << "\n";
         destMD.addRow(row);
         // copy image
         // FIXME DS maybe we can do this more efficiently
         img.read(origName);
         img.write(newName, i, true, WRITE_APPEND);
     }
+    // store metadata
     destMD.write(s.outXmd);
 }
 
 void ExtractSubset::Settings::check() const {
+    // target directories must exist, so that we can write there
     if ( ! outXmd.getDir().exists()) {
         REPORT_ERROR(ERR_IO_NOTEXIST, "Directory " + outXmd.getDir() + " does not exist");
     }
     if ( ! outStk.getDir().exists()) {
         REPORT_ERROR(ERR_IO_NOTEXIST, "Directory " + outStk.getDir() + " does not exist");
+    }
+    // target files must not exist, otherwise we will append to them
+    if (outXmd.exists()) {
+        REPORT_ERROR(ERR_IO_NOTEXIST, "File  " + outXmd + " already exists.");
+    }
+    if (outStk.exists()) {
+        REPORT_ERROR(ERR_IO_NOTEXIST, "File " + outStk + " already exists");
     }
     const size_t n = md.size();
     if (first >= n) {
@@ -93,8 +90,7 @@ void ExtractSubset::Settings::check() const {
 std::ostream& operator<<(std::ostream &os, const ExtractSubset::Settings &s) {
     os << "Input metadata   : " << s.md.getFilename() << "\n";
     os << "Output metadata  : " << s.outXmd << "\n";
-    os << "Resulting size   : " << s.count << "\n";
-    os << s.first << " " << s.count << "\n"; // FIXME DS remove
+    os << "Matching items   : " << s.count << "\n";
     os << "Skip disabled    : " << (s.skipDisabled ? "yes" : "no") << "\n";
     os.flush();
     return os;
