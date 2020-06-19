@@ -788,7 +788,7 @@ def configJava(configDict):
 
     if (os.path.isfile((configDict["JAVAC"] % configDict) % configDict) and
             os.path.isfile((configDict["JAR"] % configDict) % configDict) and
-            os.path.isfile("%(JAVA_HOME)s/include" % configDict)):
+            os.path.isdir("%(JAVA_HOME)s/include" % configDict)):
         print(green("%s detected." % configDict["JAVA_HOME"]))
     else:
         print(yellow("java not found"))
