@@ -671,7 +671,7 @@ def checkCompiler(configDict):
     if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s"%\
               (configDict["CXX"],configDict["CXXFLAGS"],configDict["INCDIRFLAGS"],configDict["PYTHONINCFLAGS"])):
         print(red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf"))
-        # FIXME: Check the
+        # FIXME: Check the dependencies list
         print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread"))
         return False
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
@@ -727,7 +727,7 @@ def configMPI(configDict):
     if mpiDetected:
         print(green("%s detected." % ', '.join(mpiDetected)))
     else:
-        print(yellow("mpirun, mpicc and mpiCC not found"))
+        print(red("mpirun, mpicc and mpiCC not found"))
 
 def checkMPI(configDict):
     print("Checking MPI configuration ...")
@@ -738,19 +738,22 @@ int main(){}
     with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
         cppFile.write(cppProg)
 
-    if not runJob("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"%\
-              (configDict["MPI_CXX"], configDict["INCDIRFLAGS"], configDict["CXXFLAGS"],
-               configDict["MPI_CXXFLAGS"])):
-        print(red("Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
-        print(red("hint: MPI_CXXFLAGS is normally not needed, but if it is might help 'mpicc --showme:compile'"))
+    if not runJob("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
+                  % (configDict["MPI_CXX"], configDict["INCDIRFLAGS"],
+                     configDict["CXXFLAGS"], configDict["MPI_CXXFLAGS"])):
+        print(red("MPI compilation failed. Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
+        print(red("Also, MPI_CXXFLAGS can be used to add flags to MPI compilations."
+                  "Hint: '%s --showme:compile' might help" % configDict['MPI_CXX']))
         return False
+
     libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
     if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
-                  "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" % \
-              (configDict["MPI_LINKERFORPROGRAMS"], configDict["LINKFLAGS"],
-               configDict["MPI_LINKFLAGS"], configDict["LIBDIRFLAGS"], libhdf5)):
+                  "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread"
+                  % (configDict["MPI_LINKERFORPROGRAMS"], configDict["LINKFLAGS"],
+                     configDict["MPI_LINKFLAGS"], configDict["LIBDIRFLAGS"], libhdf5)):
         print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
-        print(red("hint: MPI_LINKFLAGS is normally not needed, but if it is might help 'mpicc --showme:link'"))
+        print(red("Also, MPI_LINKFLAGS can be used to add flags to MPI links. "
+                  "Hint: '%s --showme:compile' might help" % configDict['MPI_CXX']))
         return False
     runJob("rm xmipp_mpi_test_main*")
 
@@ -860,9 +863,9 @@ def configCuda(configDict):
             nvccVersion, nvccFullVersion = getCudaVersion(configDict["NVCC"])
             if cxxVersion >= 6 and nvccVersion <= 8:
                 compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
-                print(red("%s version later than 5 detected. Looking for an alternative "
-                          "for CUDA compilations... (g++-v: %s)"
-                          % (currentCxx, ', '.join(compVers))))
+                print(yellow("%s version later than 5 detected. Looking for an "
+                             "alternative for CUDA compilations... (g++-v: %s)"
+                             % (currentCxx, ', '.join(compVers))))
                 for ver in compVers:
                     cxx4cuda = currentCxx+'-'+ver
                     if checkProgram(cxx4cuda):
@@ -1150,8 +1153,11 @@ def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
     if is_config_true('CUDA'):
-        if not checkProgram('nvcc', False) and checkProgram(configDict['NVCC'], False):
-            os.environ['PATH'] = os.path.dirname(configDict['NVCC'])+":"+os.environ['PATH']
+        cudaBinDir, nvccBaseName = os.path.split(configDict['NVCC'])
+        # cuFFTAdvisor compilation needs 'nvcc' accessible thru the PATH
+        if not checkProgram(nvccBaseName, False) and checkProgram(configDict['NVCC'], False):
+            # if nvcc basename is not found but absolute path yes, adding the dir to the path.
+            os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', False) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
     if not result:
