@@ -111,8 +111,8 @@ void ProgOddEven::run()
 	size_t objId, objId_odd, objId_even;
 	Image<double> frame, imgOdd, imgEven;
 
-
-	int counter=0;
+	imgEven() = frame();
+	imgOdd() = frame();
 
 	FOR_ALL_OBJECTS_IN_METADATA(movienew)
 	{
@@ -128,22 +128,14 @@ void ProgOddEven::run()
 			objId_even = movieEven.addObject();
 			movieEven.setValue(MDL_IMAGE, fnFrame, objId_even);
 			if (sumFrames)
-				if (counter > 0)
-					imgEven() += frame();
-				else
-					imgEven() = frame();
-			++counter;
+				imgEven() += frame();
 		}
 		else
 		{
 			objId_odd = movieOdd.addObject();
 			movieOdd.setValue(MDL_IMAGE, fnFrame, objId_odd);
 			if (sumFrames)
-				if (counter > 0)
-					imgOdd() += frame();
-				else
-					imgOdd() = frame();
-			++counter;
+				imgOdd() += frame();
 		}
 	}
 
