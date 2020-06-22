@@ -168,11 +168,12 @@ public:
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
-private:
-    /*
-     * This is a private method which provides the values for the class variable
-     */
+public:
+    /// Prepare the Spline coefficients and projection space
     void produceSideInfo();
+
+    /// Prepare projection space
+    void produceSideInfoProjection();
 };
 
 /*
