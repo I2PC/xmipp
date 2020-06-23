@@ -22,26 +22,25 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include "monogenic.h"
+#include "monogenic_signal.h"
+#include <cfloat>
 
 
 // This function takes as input a "mask" and returns the radius and the volumen "vol" of the
 // protein. The radius is defines has the distance from the center of the cube to the farthest
 // point of the protein measured from the center. The volumen "vol" represent the number of
 // voxels of the mask
-void Monogenic::proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, double &radius,
-		long &vol, MultidimArray<double> &radMap)
+void Monogenic::proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &mask, double &radius,
+		long &vol)
 {
-	//TODO: remove radMap
 	vol = 0;
 	radius = 0;
-	radMap.initZeros(mask);
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
 	{
-		double R2 = (k*k + i*i + j*j);
-		A3D_ELEM(radMap, k, i, j) = R2;
+
 		if (A3D_ELEM(mask, k, i, j) == 1)
-		{
+		{		
+                        double R2 = (k*k + i*i + j*j);
 			++vol;
 			if (R2>radius)
 				radius = R2;
@@ -55,26 +54,26 @@ void Monogenic::proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, 
 
 // FINDCLIFFVALUE: This function determines the radius of noise, "radiuslimit". It means given
 // a map, "inputmap", the radius measured from the origin for which the map is masked with a
-// spherical mask is detected. Outside of this sphere there is no noise. Once the "mask" is
-// set to -1 for all voxels with radius greater than "radiuslimit". The parameter "rsmooth"
-// does not affect to the output of this function, it is only used to provide information to
-// the user when the "radiuslimit" is close to the boxsize. Note that the perimeter of the
-// box is sometimes smoothed when a Fourier Transform is carried out. To prevent this
-// situation this parameter is provided, but it is only informative via the standard output
-void Monogenic::findCliffValue(MultidimArray<double> radMap, MultidimArray<double> &inputmap,
-		double &radius, double &radiuslimit, MultidimArray<int> &mask, double &rsmooth)
+// spherical mask is detected. Outside of this sphere there is no noise. Once the all voxels of  
+// of the mask with corresponding radiues greater than "radiuslimit" has been set to -1, the 
+// parameter "rsmooth" does not affect to the output of this function, it is only used to 
+// provide information to the user when the "radiuslimit" is close to the boxsize. Note that 
+// the perimeter of the box is sometimes smoothed when a Fourier Transform is carried out. 
+// To prevent this situation this parameter is provided, but it is only informative via 
+// the standard output
+void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
+		double &radius, double &radiuslimit, MultidimArray<int> &mask, double rsmooth)
 {
-	//TODO: remove radMap
 	double criticalZ = icdf_gauss(0.95);
-	radiuslimit = floor((double) XSIZE(radMap)*0.5);
-	double last_mean, last_std2=1e-38, last_N;
+	radiuslimit = floor((double) XSIZE(inputmap)*0.5);
+	double last_mean, last_std2=DBL_MIN, last_N;
 
 	for (double rad = radius; rad<radiuslimit; rad++)
 	{
 		double sup, inf, sum=0, sum2=0, N=0;
 		inf = rad*rad;
 		sup = (rad + 1)*(rad + 1);
-		FOR_ALL_ELEMENTS_IN_ARRAY3D(radMap)
+		FOR_ALL_ELEMENTS_IN_ARRAY3D(inputmap)
 		{
 			double aux = k*k + i*i + j*j;
 			if ( (aux<sup) && (aux>=inf) )
@@ -103,8 +102,7 @@ void Monogenic::findCliffValue(MultidimArray<double> radMap, MultidimArray<doubl
 	std::cout << "There is no noise beyond a radius of " << radiuslimit << " px " << std::endl;
 	std::cout << "Regions with a radius greater than " << radiuslimit << " px will not be considered" << std::endl;
 
-	double raux;
-	raux = (radiuslimit - rsmooth);
+	double raux = (radiuslimit - rsmooth);
 	if (raux<=radius)
 	{
 		std::cout << "Warning: the boxsize is very close to "
@@ -122,6 +120,23 @@ void Monogenic::findCliffValue(MultidimArray<double> radMap, MultidimArray<doubl
 
 }
 
+//FOURIERFREQVECTOR: It defines a vector, freq_fourier, that contains
+// the frequencies of the Fourier direction. Where dimarrayFourier is the
+// number of components of the vector, and dimarrayReal is the dimensions
+// of the map along the direction for which the fft is computed
+Matrix1D<double> Monogenic::fourierFreqVector(size_t dimarrayFourier, size_t dimarrayReal)
+{
+        double u;
+        Matrix1D<double> freq_fourier;
+	freq_fourier.initZeros(dimarrayFourier);
+        VEC_ELEM(freq_fourier,0) = DBL_MIN;
+	for(size_t k=1; k<dimarrayFourier; ++k){
+		FFT_IDX2DIGFREQ(k,dimarrayReal, u);
+		VEC_ELEM(freq_fourier, k) = u;
+	}
+	return freq_fourier;
+}
+
 
 //TODO: Use macros to avoid repeating code
 //FOURIERFREQS_3D: Determine the map of frequencies in the Fourier Space as an output.
@@ -133,30 +148,9 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 		Matrix1D<double> &freq_fourier_y,
 		Matrix1D<double> &freq_fourier_z)
 {
-	double u;
-
-	freq_fourier_z.initZeros(ZSIZE(myfftV));
-	freq_fourier_x.initZeros(XSIZE(myfftV));
-	freq_fourier_y.initZeros(YSIZE(myfftV));
-
-	VEC_ELEM(freq_fourier_z,0) = 1e-38;
-	for(size_t k=1; k<ZSIZE(myfftV); ++k){
-		FFT_IDX2DIGFREQ(k,ZSIZE(inputVol), u);
-		VEC_ELEM(freq_fourier_z,k) = u;
-	}
-
-	VEC_ELEM(freq_fourier_y,0) = 1e-38;
-	for(size_t k=1; k<YSIZE(myfftV); ++k){
-		FFT_IDX2DIGFREQ(k,YSIZE(inputVol), u);
-		VEC_ELEM(freq_fourier_y,k) = u;
-	}
-
-	VEC_ELEM(freq_fourier_x,0) = 1e-38;
-	for(size_t k=1; k<XSIZE(myfftV); ++k){
-		FFT_IDX2DIGFREQ(k,XSIZE(inputVol), u);
-		VEC_ELEM(freq_fourier_x,k) = u;
-	}
-
+	freq_fourier_z = fourierFreqVector(ZSIZE(myfftV), ZSIZE(inputVol));
+        freq_fourier_y = fourierFreqVector(YSIZE(myfftV), YSIZE(inputVol));
+        freq_fourier_x = fourierFreqVector(XSIZE(myfftV), XSIZE(inputVol));
 
 	MultidimArray<double> iu;
 
@@ -164,7 +158,6 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 
 	double uz, uy, ux, uz2, u2, uz2y2;
 	long n=0;
-	//  TODO: reasign uz = uz*uz to save memory
 	//  TODO: Take ZSIZE(myfftV) out of the loop
 	//	TODO: Use freq_fourier_x instead of calling FFT_IDX2DIGFREQ
 
@@ -188,7 +181,7 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 				}
 				else
 				{
-					DIRECT_MULTIDIM_ELEM(iu,n) = 1e38;
+					DIRECT_MULTIDIM_ELEM(iu,n) = DBL_MAX;
 				}
 				++n;
 			}
@@ -200,7 +193,7 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 
 
 //RESOLUTION2EVAL: Determines the resoltion to be analzed in the estimation
-//of the local resolution. These resolution are freq, freqL (diginal units)
+//of the local resolution. These resolution are freq, freqL (digital units)
 // being freqL the tail of the raise cosine centered at freq. The parameter
 // resolution is the frequency freq in converted into Angstrom. The parameters
 //minRes and maxRes, determines the limits of the resolution range to be
@@ -240,20 +233,15 @@ void Monogenic::resolution2eval(int &count_res, double step,
 	resolution = sampling/aux_frequency;
 
 
-	if (count_res == 0)
+	if (count_res == 0){
 		last_resolution = resolution;
+        }
 
 	if ( ( resolution<Nyquist ))// || (resolution > last_resolution) )
 	{
 		breakIter = true;
 		return;
 	}
-	//	if ( ( freq>0.495))// || (resolution > last_resolution) )
-	//	{
-	//		std::cout << "Nyquist limit reached" << std::endl;
-	//		doNextIteration = false;
-	//		return;
-	//	}
 
 	freqL = sampling/(resolution + step);
 
@@ -534,7 +522,7 @@ void Monogenic::setLocalResolutionHalfMaps(const MultidimArray<double> &amplitud
 		}
 	}
 
-// SETLOCALRESOLUTIONHALFMAPS: Set the local resolution of a voxel, by
+// SETLOCALRESOLUTION: Set the local resolution of a voxel, by
 // determining if the monogenic amplitude "amplitudeMS" is higher than
 // the threshold of noise "thresholdNoise". Thus the local resolution
 // map "plocalResolution" is set, with the resolution value "resolution"
@@ -569,7 +557,7 @@ void Monogenic::setLocalResolutionMap(const MultidimArray<double> &amplitudeMS,
 // "myfftV", this function computes the monogenic amplitude "amplitude" 
 // iu is the inverse of the frequency in Fourier space.
 void Monogenic::monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<double> > &myfftV,
-		MultidimArray<double> iu, MultidimArray<double> &amplitude, int numberOfThreads)
+		MultidimArray<double> &iu, MultidimArray<double> &amplitude, int numberOfThreads)
 {
 	Matrix1D<double> freq_fourier_z, freq_fourier_y, freq_fourier_x;
 

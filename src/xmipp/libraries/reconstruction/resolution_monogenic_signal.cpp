@@ -57,20 +57,21 @@ void ProgMonogenicSignalRes::defineParams()
 	addUsageLine("  ");
 	addUsageLine("  ");
 	addParamsLine("  --vol <vol_file=\"\">         : Input map to estimate its local resolution map.");
-	addParamsLine("                                : If two half maps are used, it will be the first half map.");
+	addParamsLine("				       : If you want to estimate the local resolution map");
+	addParamsLine("                                : by using two half maps, then --vol represents the");
+	addParamsLine("                                : first half map, while the second is given by the ");
+	addParamsLine("                                : optional parameter --vol2");
+	addParamsLine("  --mask <vol_file=\"\">        : Mask defining the region where the protein is.");
 	addParamsLine("  --minRes <s=30>               : Lowest resolution in (A) for the resolution range");
 	addParamsLine("                                : to be analyzed.");
 	addParamsLine("  --maxRes <s=1>                : Highest resolution in (A) for the resolution range");
 	addParamsLine("                                : to be analyzed.");
 	addParamsLine("  --sampling_rate <s=1>         : Sampling rate (A/px)");
-	addParamsLine("  -o <output_file=\"\">         : Folder where the results will be stored.");
-	addParamsLine("                                : If two half maps are used this should be the first one.");
+	addParamsLine("  -o <output_folder=\"\">         : Folder where the results will be stored.");
 	addParamsLine("  [--vol2 <vol_file=\"\">]      : (Optional but recommended) Second half map to estimate its");
 	addParamsLine("                                : local resolution map. The first one will be the --vol label.");
-	addParamsLine("  [--mask <vol_file=\"\">]      : (Optional but recommended) A mask defining the region where ");
-	addParamsLine("                                : the protein is.");
 	addParamsLine("  [--maskExcl <vol_file=\"\">]  : (Optional) This mask excludes the masked region in the ");
-	addParamsLine("                          	   : estimation of the local resolution.");
+	addParamsLine("                                : estimation of the local resolution.");
 
 	addParamsLine("  [--step <s=0.25>]             : (Optional) The resolution is computed from low to high frequency");
 	addParamsLine("  		                       : in steps of this parameter in (A).");
@@ -82,7 +83,7 @@ void ProgMonogenicSignalRes::defineParams()
 	addParamsLine("  [--gaussian]                  : (Optional) This flag assumes than the noise is gaussian.");
 	addParamsLine("                                : Usually there are no difference between this assumption and the ");
 	addParamsLine("                                : exact noise distribution. If this flag is not provided, the exact");
-	addParamsLine("                                : distribution is estimated.");
+	addParamsLine("                                : distribution is estimated. It is also a faster option than the exact one");
 }
 
 
@@ -91,7 +92,7 @@ void ProgMonogenicSignalRes::produceSideInfo()
 	std::cout << "Starting..." << std::endl;
 	Image<double> V;
 
-	if ((fnVol !="") && (fnVol2 !=""))
+	if ((! fnVol.isEmpty()) && (! fnVol2.isEmpty()))
 	{
 		Image<double> V1, V2;
 		fftN=new MultidimArray< std::complex<double> >;
@@ -103,7 +104,7 @@ void ProgMonogenicSignalRes::produceSideInfo()
 		V1()-=V2();
 		V1()/=2;
 		FourierTransformer transformer2;
-
+                transformer2.setThreadsNumber(nthrs);
 		transformer2.FourierTransform(V1(), *fftN);
 		halfMapsGiven = true;
 	}
@@ -118,7 +119,7 @@ void ProgMonogenicSignalRes::produceSideInfo()
 	MultidimArray<int> &pMask=mask(), &pMaskExl=maskExcl();
 	MultidimArray<double> &inputVol = V();
 
-	if (fnMask != ""){
+	if ( ! fnMask.isEmpty()){
 		mask.read(fnMask);
 		mask().setXmippOrigin();}
 	else{
@@ -128,11 +129,10 @@ void ProgMonogenicSignalRes::produceSideInfo()
 	double radius, radiuslimit, smoothparam = 0;
 	Monogenic mono;
 	//The mask changes!! all voxels out of the inscribed sphere are set to -1
-	MultidimArray<double> radMap;
-	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask, radMap);
-	mono.findCliffValue(radMap, inputVol, radius, radiuslimit, pMask, smoothparam);
+	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask);
+	mono.findCliffValue(inputVol, radius, radiuslimit, pMask, smoothparam);
 
-	if (fnMaskExl != ""){
+	if (! fnMaskExl.isEmpty()){
 		maskExcl.read(fnMaskExl);
 		maskExcl().setXmippOrigin();
 		MultidimArray<int> &pMaskExcl = maskExcl();
@@ -152,9 +152,10 @@ void ProgMonogenicSignalRes::produceSideInfo()
 
 	transformer_inv.setThreadsNumber(nthrs);
 	FourierTransformer transformer;
+        transformer.setThreadsNumber(nthrs);
 	VRiesz.resizeNoCopy(inputVol);
 	transformer.FourierTransform(inputVol, fftV);
-
+	std::cout << "asdad" << std::endl;
 	// Frequency volume
 	iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
 
@@ -200,7 +201,7 @@ void ProgMonogenicSignalRes::excludeArea(MultidimArray<int> &pMask, MultidimArra
 
 
 void ProgMonogenicSignalRes::refiningMask(const MultidimArray< std::complex<double> > &myfftV,
-								MultidimArray<double> iu, int thrs, MultidimArray<int> &pMask)
+								MultidimArray<double> &iu, int thrs, MultidimArray<int> &pMask)
 {
 	Monogenic mono;
 	MultidimArray<double> amplitude;
@@ -208,6 +209,7 @@ void ProgMonogenicSignalRes::refiningMask(const MultidimArray< std::complex<doub
 	amplitude.initZeros(pMask);
 	mono.monogenicAmplitude_3D_Fourier(myfftV, iu, amplitude, thrs);
 
+	// we smooth applying  afilter of std = 4
 	realGaussianFilter(amplitude, 4);
 
 	double sumS=0, sumN=0, NN = 0, NS = 0;
@@ -351,7 +353,7 @@ void ProgMonogenicSignalRes::run()
 	double resolution, resolution_2, last_resolution = maxRes;  //A huge value for achieving
 	double meanS, sdS2, meanN, sdN2, thr95;
 	double freq, freqH, freqL;
-	double max_meanS = -1e38, cut_value = 0.025;
+	double max_meanS = -DBL_MIN, cut_value = 0.025; //cut_value represent a percentile 2.5
 	double mean_Signal, mean_noise, thresholdFirstEstimation;
 
 	bool doNextIteration=true, lefttrimming = false;
@@ -419,6 +421,7 @@ void ProgMonogenicSignalRes::run()
 
 		fnDebug = "Signal";
 
+		// 0.02 is the tail of the raise cosine in digital units
 		freqL = freq + 0.02;
 		freqH = freq - 0.02;
 		if (freqL>=0.5)
@@ -501,7 +504,6 @@ void ProgMonogenicSignalRes::run()
 				std::cout << "Search of resolutions stopped due to too low signal" << std::endl;
 				break;}
 
-			//TODO noise in half
 			if (halfMapsGiven)
 			{
 				mono.setLocalResolutionHalfMaps(amplitudeMS, pMask, pOutputResolution,
@@ -530,7 +532,7 @@ void ProgMonogenicSignalRes::run()
 				doNextIteration=false;}
 
 			if (doNextIteration){
-				if (resolution <= (minRes-0.001))
+				if (resolution < minRes)
 					doNextIteration = false;}
 		}
 		iter++;

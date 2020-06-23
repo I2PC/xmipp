@@ -38,7 +38,7 @@
 #include <complex>
 #include <data/fourier_filter.h>
 #include <data/filters.h>
-#include <data/monogenic.h>
+#include <data/monogenic_signal.h>
 #include <string>
 #include "symmetrize.h"
 
@@ -82,10 +82,8 @@ public:
     		int count, FileName fnDebug);
 
     void refiningMask(const MultidimArray< std::complex<double> > &myfftV,
-			MultidimArray<double> iu, int thrs, MultidimArray<int> &pMask);
+			MultidimArray<double> &iu, int thrs, MultidimArray<int> &pMask);
 
-    void trimmingAndSmoothingResolutionMap(MultidimArray<double> &resolutionVol,
-    		std::vector<double> &list, double &cut_value, double &resolutionThreshold);
 
     void postProcessingLocalResolutions(MultidimArray<double> &FilteredMap,
     		MultidimArray<double> &resolutionVol,
@@ -93,7 +91,7 @@ public:
 
     void run();
 
-public:
+private:
     Image<int> mask, maskExcl;
     MultidimArray<double> iu, VRiesz; // Inverse of the frequency
 	MultidimArray< std::complex<double> > fftV, *fftN; // Fourier transform of the input volume
