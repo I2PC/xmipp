@@ -108,10 +108,24 @@ void ProgOddEven::run()
 	MetaData movieOdd, movieEven;
 
 	FileName fnFrame;
-	size_t objId, objId_odd, objId_even;
+	size_t objId, objId_odd, objId_even, Xdim, Ydim, Zdim, Ndim;
 	Image<double> frame, imgOdd, imgEven;
 
-	int counter=0;
+	frame.read(fnImg);
+	frame.getDimensions(Xdim, Ydim, Zdim, Ndim);
+
+	MultidimArray<double> &img = imgEven();
+
+#ifdef DEBUG
+	std::cout << Xdim << std::endl;
+	std::cout << Ydim << std::endl;
+	std::cout << Zdim << std::endl;
+	std::cout << Ndim << std::endl;
+#endif
+
+	img.initZeros(Xdim, Ydim);
+	imgEven() = img;
+	imgOdd() = img;
 
 	FOR_ALL_OBJECTS_IN_METADATA(movienew)
 	{
@@ -127,22 +141,18 @@ void ProgOddEven::run()
 			objId_even = movieEven.addObject();
 			movieEven.setValue(MDL_IMAGE, fnFrame, objId_even);
 			if (sumFrames)
-				if (counter > 0)
-					imgEven() += frame();
-				else
-					imgEven() = frame();
-			++counter;
+			{
+				imgEven() += frame();
+			}
 		}
 		else
 		{
 			objId_odd = movieOdd.addObject();
 			movieOdd.setValue(MDL_IMAGE, fnFrame, objId_odd);
 			if (sumFrames)
-				if (counter > 0)
-					imgOdd() += frame();
-				else
-					imgOdd() = frame();
-			++counter;
+			{
+				imgOdd() += frame();
+			}
 		}
 	}
 
