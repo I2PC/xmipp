@@ -50,21 +50,28 @@ public:
 	// the radius and the volumen "vol" of the protein. The radius is defines has the distance
 	// from the center of the cube to the farthest point of the protein measured from the center.
 	// The volumen "vol" represent the number of voxels of the mask.
-	void proteinRadiusVolumeAndShellStatistics(MultidimArray<int> &mask, double &radius,
-			long &vol, MultidimArray<double> &radMap);
+	void proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &mask, double &radius,
+			long &vol);
 
 
 	// FINDCLIFFVALUE: This function determines the radius of noise, "radiuslimit". It means given
-	// a map, "inputmap", the radius measured from the origen for which the map is masked with a
-	// spherical mask is detected. Outside of this sphere there is no noise. Once the "mask" is
-	// set to -1 for all voxels with radius greater than "radiuslimit". The parameter "rsmooth"
-	// does not affect to the output of this function, it is only used to provide information to
-	// the user when the "radiuslimit" is close to the boxsize. Note that the perimeter of the
-	// box is sometimes smoothed when a Fourier Transform is carried out. To prevent this
-	// situation this parameter is provided, but it is only informative via the standard output
-	void findCliffValue(MultidimArray<double> radMap, MultidimArray<double> &inputmap,
-			double &radius,	double &radiuslimit, MultidimArray<int> &mask, double &rsmooth);
+	// a map, "inputmap", the radius measured from the origin for which the map is masked with a
+        // spherical mask is detected. Outside of this sphere there is no noise. Once the all voxels of  
+	// of the mask with corresponding radiues greater than "radiuslimit" has been set to -1, the 
+	// parameter "rsmooth" does not affect to the output of this function, it is only used to 
+	// provide information to the user when the "radiuslimit" is close to the boxsize. Note that 
+	// the perimeter of the box is sometimes smoothed when a Fourier Transform is carried out. 
+	// To prevent this situation this parameter is provided, but it is only informative via 
+	// the standard output
+	void findCliffValue(MultidimArray<double> &inputmap,
+			double &radius,	double &radiuslimit, MultidimArray<int> &mask, double rsmooth);
 
+
+        //FOURIERFREQVECTOR: It defines a vector, freq_fourier, that contains
+        // the frequencies of the Fourier direction. Where dimarrayFourier is the
+        // number of components of the vector, and dimarrayReal is the dimensions
+        // of the map along the direction for which the fft is computed
+        Matrix1D<double> fourierFreqVector(size_t dimarrayFourier, size_t dimarrayReal);
 
 	//FOURIERFREQS_3D: Determine the map of frequencies in the Fourier Space as an output.
 	// Also, the accesible frequencies along each direction are calculated, they are
@@ -76,7 +83,7 @@ public:
 			Matrix1D<double> &freq_fourier_z);
 
 	//RESOLUTION2EVAL: Determines the resoltion to be analzed in the estimation
-	//of the local resolution. These resolution are freq, freqL (diginal units)
+	//of the local resolution. These resolution are freq, freqL (digital units)
 	// being freqL the tail of the raise cosine centered at freq. The parameter
 	// resolution is the frequency freq in converted into Angstrom. The parameters
 	//minRes and maxRes, determines the limits of the resolution range to be
@@ -154,7 +161,7 @@ public:
 	// "myfftV", this function computes the monogenic amplitude "amplitude" 
 	// iu is the inverse of the frequency in Fourier space.
 	void monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<double> > &myfftV,
-			MultidimArray<double> iu, MultidimArray<double> &amplitude, int numberOfThreads);
+			MultidimArray<double> &iu, MultidimArray<double> &amplitude, int numberOfThreads);
 
 	//ADDNOISE: This function add gaussian with mean = double mean and standard deviation
 	// equal to  double stddev to a map given by "vol"

@@ -28,7 +28,7 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
 #include <core/metadata_extension.h>
-#include <data/monogenic.h>
+#include <data/monogenic_signal.h>
 
 class ProgResolutionDirectionalFsc : public XmippProgram
 {
@@ -1873,5 +1873,4 @@ void getErrorCurves(int &m1sizeX, int &m1sizeY, int &m1sizeZ,
 		saveAnisotropyToMetadata(mdani, freq, aniParam, fnmd);
 	}
 }
-
 };
