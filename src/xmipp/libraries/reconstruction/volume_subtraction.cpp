@@ -75,8 +75,8 @@ protected:
         //Usage
         addUsageLine("This program scales a volume in order to assimilate it to another one. Then, it can calculate the subtraction of the two volumes.");
         //Parameters
-        addParamsLine("-i1 <volume>          	: Reference volume");
-        addParamsLine("-i2 <volume>          	: Volume to modify");
+        addParamsLine("--i1 <volume>          	: Reference volume");
+        addParamsLine("--i2 <volume>          	: Volume to modify");
         addParamsLine("[-o <structure=\"\">] 	: Volume 2 modified or volume difference");
         addParamsLine("                      	: If no name is given, then output_volume.mrc");
 //        addParamsLine("[--pdb]    			 	: Second volume come from a pdb");
@@ -90,8 +90,8 @@ protected:
 
     void readParams()
     {
-    	fnVol1=getParam("-i1");
-    	fnVol2=getParam("-i2");
+    	fnVol1=getParam("--i1");
+    	fnVol2=getParam("--i2");
     	fnDiff=getParam("-o");
     	if (fnDiff=="")
     		fnDiff="output_volume.mrc";

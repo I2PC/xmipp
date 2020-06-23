@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """"
 **************************************************************************
 *
@@ -27,7 +28,6 @@
 **************************************************************************
 """
 
-import sys
 import shutil
 import numpy as np
 import mrcfile
@@ -42,43 +42,43 @@ class ScriptVolumeConsensus(XmippScript):
 
     def defineParams(self):
         self.addUsageLine('Volume consensus')
-        self.addParamsLine('-i1 <inputFile1>   : Volume 1 filename')
-        self.addParamsLine('-i2 <inputFile2>   : Volume 2 filename')
+        ## params
+        self.addParamsLine('--i1 <inputFile1>   : Volume 1 filename')
+        self.addParamsLine('--i2 <inputFile2>   : Volume 2 filename')
         self.addParamsLine('-o  <outputFile>   : Consensus volume filename')
+        ## examples
         self.addExampleLine('xmipp_volume_consensus -i1 path/to/inputs/file1.mrc -i2 path/to/inputs/file2.mrc '
                             '-o path/to/outFile.mrc')
 
     def run(self):
-        vol1fn = self.getParam('-i1')
-        vol2fn = self.getParam('-i2')
+        vol1fn = self.getParam('--i1')
+        vol2fn = self.getParam('--i2')
         outVol = self.getParam('-o')
-        vol1 = loadVol(vol1fn)
-        vol2 = loadVol(vol2fn)
-        outVolData = computeVolumeConsensus(vol1, vol2)
-        saveVol(outVolData, outVol, vol1fn)
+        vol1 = self.loadVol(vol1fn)
+        vol2 = self.loadVol(vol2fn)
+        outVolData = self.computeVolumeConsensus(vol1, vol2)
+        self.saveVol(outVolData, outVol, vol1fn)
+
+    def computeVolumeConsensus(self, vol1, vol2, wavelet='sym11'):
+        coeffDict1 = pywt.swtn(vol1, wavelet, 1)
+        coeffDict2 = pywt.swtn(vol2, wavelet, 1)
+        newDict={}
+        print("---------hola----------")
+        for key in coeffDict1:
+            newDict[key] = np.where(np.abs(coeffDict1[key]) > np.abs(coeffDict2[key]), coeffDict1[key], coeffDict2[key])
+            print("-------------------", coeffDict1[key].shape)
+        consensus = pywt.iswtn(newDict, wavelet)
+        return consensus
+
+    def saveVol(self, data, fname, fnameToCopyHeader):
+        shutil.copyfile(fnameToCopyHeader, fname)
+        with mrcfile.open(fname, "r+", permissive=True) as f:
+            f.data[:] = data
+
+    def loadVol(self, fname):
+        with mrcfile.open(fname, permissive=True) as f:
+            return f.data.astype(np.float32)
 
 
-def computeVolumeConsensus(vol1, vol2, wavelet='sym11'):
-    coeffDict1 = pywt.dwtn(vol1, wavelet)
-    coeffDict2 = pywt.dwtn(vol2, wavelet)
-    newDict={}
-    for key in coeffDict1:
-        newDict[key] = np.where(np.abs(coeffDict1[key]) > np.abs(coeffDict2[key]), coeffDict1[key], coeffDict2[key])
-    consensus = pywt.idwtn(newDict, wavelet)
-    return consensus
-
-
-def saveVol(data, fname, fnameToCopyHeader):
-    shutil.copyfile(fnameToCopyHeader, fname)
-    with mrcfile.open(fname, "r+", permissive=True) as f:
-        f.data[:] = data
-
-
-def loadVol(fname):
-    with mrcfile.open(fname, permissive=True) as f:
-        return f.data.astype(np.float32)
-
-
-if __name__ == "__main__":
-    exitCode = ScriptVolumeConsensus().tryRun()
-    sys.exit(exitCode)
+if __name__=="__main__":
+    ScriptVolumeConsensus().tryRun()
