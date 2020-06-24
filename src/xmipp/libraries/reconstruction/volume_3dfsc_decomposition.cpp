@@ -26,23 +26,32 @@
 
 #include "volume_3dfsc_decomposition.h"
 #include "resolution_directional.h"
-//#define DEBUG
-//#define DEBUG_MASK
 
 void Prog3dDecomp::readParams()
 {
         fnVol = getParam("--vol");
+        fnHalf1 = getParam("--half1");
+        fnHalf2 = getParam("--half2");
         fnMask = getParam("--mask");
         Nthread = getIntParam("-n");
+        sampling = getDoubleParam("--sampling");
         icosahedron = checkParam("--ico");
+        wfsc = checkParam("--fsc");
+        mask_exist = checkParam("--mask");
+        local = checkParam("--local");
 }
 
 void Prog3dDecomp::defineParams()
 {
         addUsageLine("This function performs local sharpening");
         addParamsLine("  --vol <vol_file=\"\">                  : Input volume");
-        addParamsLine("  --mask <vol_file=\"\">                 : Binary mask");
+        addParamsLine("  --half1 <half1_file=\"\">              : Input half map 1");
+        addParamsLine("  --half2 <half2_file=\"\">              : Input half map 2");
+        addParamsLine("  [--mask <vol_file=\"\">]               : Binary mask");
+        addParamsLine("  --sampling <s=1>                       : sampling");
         addParamsLine("  [--ico]:                               : Use icosahedron as coverage of the projection sphere");
+        addParamsLine("  [--fsc]:                               : Wheigt by directional fsc");
+        addParamsLine("  [--local]:                             : Take into account the locality");
         addParamsLine("  [-n <Nthread=1>]                       : Number of threads");
 }
 
@@ -53,19 +62,14 @@ void Prog3dDecomp::produceSideInfo()
         Monogenic mono;
         MultidimArray<double> inputVol;
 
-
         std::cout << "Reading data..." << std::endl;
         Image<double> V;
         V.read(fnVol);
         V().setXmippOrigin();
         inputVol = V();
-        mask.read(fnMask);
-        mask().setXmippOrigin();
 
 
         FourierTransformer transformer;
-
-
 
         //TODO: check if its possible to use only one transformer instead of transformer_inv and transformer
         transformer_inv.setThreadsNumber(Nthread);
@@ -74,15 +78,6 @@ void Prog3dDecomp::produceSideInfo()
 
         // Frequency volume
         iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
-        Image<double> im;
-        im()=iu;
-        im.write("freq.mrc");
-
-        MultidimArray<int> &pMask=mask();
-
-        double radius_aux, radiuslimit;
-        MultidimArray<double> radMap;
-
 }
 
 
@@ -301,14 +296,9 @@ void Prog3dDecomp::getFaceVectorSimple(Matrix2D<double> &facesVector, Matrix2D<d
     }
 }
 
-
 void Prog3dDecomp::defineIcosahedronCone(int face_number, double &x1, double &y1, double &z1,
         MultidimArray< std::complex<double> > &myfftV, MultidimArray<double> &conefilter, double coneAngle)
 {
-//  std::cout << x1 << " " << y1 << " " << z1 << std::endl;
-
-//  MultidimArray<double> conetest;
-//  conetest.resizeNoCopy(myfftV);
 
     conefilter.initZeros(myfftV);
 
@@ -349,12 +339,12 @@ void Prog3dDecomp::defineIcosahedronCone(int face_number, double &x1, double &y1
             }
         }
     }
-//
-    Image<double> icosahedronMasked;
-    icosahedronMasked = conefilter;
-    FileName fnmasked;
-    fnmasked = formatString("maskConeFourier_%i.mrc",face_number);
-    icosahedronMasked.write(fnmasked);
+
+//    Image<double> icosahedronMasked;
+//    icosahedronMasked = conefilter;
+//    FileName fnmasked;
+//    fnmasked = formatString("maskConeFourier_%i.mrc",face_number);
+//    icosahedronMasked.write(fnmasked);
 }
 
 void Prog3dDecomp::defineSimpleCaps(MultidimArray<int> &coneMask, Matrix2D<double> &limits,
@@ -428,18 +418,46 @@ void Prog3dDecomp::defineSimpleCaps(MultidimArray<int> &coneMask, Matrix2D<doubl
             }
         }
     }
-    FileName fnmasked;
-    fnmasked = "maskCone.mrc";
-    int m1sizeX = 240;
-    int m1sizeY = 240;
-    int m1sizeZ = 240;
+//    FileName fnmasked;
+//    fnmasked = "maskCone.mrc";
+//    int m1sizeX = 240;
+//    int m1sizeY = 240;
+//    int m1sizeZ = 240;
 
-    MultidimArray<double> fullMap;
+//    MultidimArray<double> fullMap;
 //  createFullFourier(coneMask, fnmasked, m1sizeX, m1sizeY, m1sizeZ, fullMap);
 
-    Image<int> icosahedronMasked;
-    icosahedronMasked = coneMask;
-    icosahedronMasked.write(fnmasked);
+//    Image<int> icosahedronMasked;
+//    icosahedronMasked = coneMask;
+//    icosahedronMasked.write(fnmasked);
+}
+
+void cleanFaces2(Matrix2D<int> &faces, Matrix2D<double> &vertex)
+{
+    int NewNumFaces = 0;
+
+    for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
+    {
+        if (MAT_ELEM(faces, face_number, 0) < 0)
+            continue;
+        NewNumFaces++;
+    }
+    Matrix2D<int> facesNew;
+    facesNew.initZeros(NewNumFaces,3);
+
+    NewNumFaces = 0;
+    for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
+    {
+        if (MAT_ELEM(faces, face_number, 0) < 0)
+            continue;
+
+        MAT_ELEM(facesNew, NewNumFaces, 0) = MAT_ELEM(faces, face_number, 0);
+        MAT_ELEM(facesNew, NewNumFaces, 1) = MAT_ELEM(faces, face_number, 1);
+        MAT_ELEM(facesNew, NewNumFaces, 2) = MAT_ELEM(faces, face_number, 2);
+        ++NewNumFaces;
+    }
+    faces = facesNew;
+
 }
 
 
@@ -492,84 +510,373 @@ void Prog3dDecomp::defineComplexCaps(Matrix2D<double> &facesVector,
         }
     }
 
-    FileName fnmasked;
-    fnmasked = "coneMask.mrc";
-    int m1sizeX = 240;
-    int m1sizeY = 240;
-    int m1sizeZ = 240;
-
-
-    Image<int> icosahedronMasked;
-    icosahedronMasked = coneMask;
-    icosahedronMasked.write(fnmasked);
-}
-
-void Prog3dDecomp::createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
-        int m1sizeX, int m1sizeY, int m1sizeZ, MultidimArray<double> &fullMap)
-{
-//  MultidimArray<double> fullMap;
-    getCompleteFourier(fourierHalf, fullMap, m1sizeX, m1sizeY, m1sizeZ);
-    CenterFFT(fullMap, true);
-    Image<double> saveImg;
-    saveImg() = fullMap;
-    saveImg.write(fnMap);
+//    FileName fnmasked;
+//    fnmasked = "coneMask.mrc";
+//    int m1sizeX = 240;
+//    int m1sizeY = 240;
+//    int m1sizeZ = 240;
+//
+//
+//    Image<int> icosahedronMasked;
+//    icosahedronMasked = coneMask;
+//    icosahedronMasked.write(fnmasked);
 }
 
 
-void Prog3dDecomp::getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
-        int m1sizeX, int m1sizeY, int m1sizeZ)
-    {
-    newV.resizeNoCopy(m1sizeX, m1sizeY, m1sizeZ);
-    int ndim=3;
-    if (m1sizeX==1)
-    {
-        ndim=2;
-        if (m1sizeY==1)
-            ndim=1;
-    }
-    double *ptrSource=NULL;
-    double *ptrDest=NULL;
-    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(newV)
-    {
-        ptrDest=(double*)&DIRECT_A3D_ELEM(newV,k,i,j);
-        if (j<XSIZE(V))
-        {
-            ptrSource=(double*)&DIRECT_A3D_ELEM(V,k,i,j);
-            *ptrDest=*ptrSource;
-//              *(ptrDest+1)=*(ptrSource+1);
-        }
-        else
-        {
-            ptrSource=(double*)&DIRECT_A3D_ELEM(V,
-                                                (m1sizeZ-k)%m1sizeZ,
-                                                (m1sizeY-i)%m1sizeY,
-                                                m1sizeX-j);
-            *ptrDest=*ptrSource;
-//              *(ptrDest+1)=-(*(ptrSource+1));
-        }
-    }
-    }
-
-
-
-void Prog3dDecomp::FilterFunction(size_t &Nfaces, MultidimArray<int> &maskCone,
-        MultidimArray<double> &vol, FourierTransformer &transformer_inv)
+void Prog3dDecomp::FilterFunction(size_t &Nfaces, MultidimArray<int> &maskCone, MultidimArray<double> &vol,
+        MultidimArray<double> &hmap1, MultidimArray<double> &hmap2, FourierTransformer &transformer_inv)
 {
 
-    MultidimArray<double> Vorig;
+////    ProgVolumeCorrectBfactor bfactor;
+//    std::vector<double> snr;
+//    std::vector<fit_point2D> guinierweighted;
+//    double slope;
+//    double intercept = 0.;
+//    double BfactorToAplly;
+//    xsize = XSIZE(vol);
+//    fit_minres = 10;
+
+
+    MultidimArray<double> Vorig, localV, localH1, localH2;
+    MultidimArray< std::complex<double> > fftM1, fftM2;
     Vorig = vol;
-    transformer.setThreadsNumber(Nthread);
-    transformer.FourierTransform(vol, fftV);
+    xsize = XSIZE(Vorig);
 
-    MultidimArray< std::complex<double> > fftVfilter;
-    MultidimArray<double> filteredVol;
+    //****Final sharpened Volume
+    MultidimArray<double> dsharpVolFinal;
+    dsharpVolFinal.initZeros(Vorig);
+
+    //******Introduce the locality
+    if (local == true)
+    {
+        transformer.setThreadsNumber(Nthread);
+
+        int boxdim = static_cast<int>(xsize/2);
+        std::cerr <<"xsize "<< xsize <<std::endl;
+        std::cerr <<"boxdim "<< boxdim <<std::endl;
+
+        localV.initZeros(Vorig);
+        localH1.initZeros(hmap1);
+        localH2.initZeros(hmap2);
+
+
+        //***supose cubic map (xsize=ysize=zsize)
+
+        for (int ii=0; ii<xsize; ii+=boxdim)
+        {
+            for (int jj=0; jj<xsize; jj+=boxdim)
+            {
+                for (int kk=0; kk<xsize; kk+=boxdim)
+                {
+                    long n=0;
+                    for (int xx=0; xx<xsize; ++xx)
+                    {
+                        for (int yy=0; yy<xsize; ++yy)
+                        {
+                            for (int zz=0; zz<xsize; ++zz)
+                            {
+                                if ( ((xx>=ii) && (xx<ii+boxdim)) && ((yy>=jj) && (yy<jj+boxdim)) && ((zz>=kk) && (zz<kk+boxdim)) )
+                                {
+                                    DIRECT_MULTIDIM_ELEM(localV,n) = DIRECT_MULTIDIM_ELEM(Vorig,n);
+                                    DIRECT_MULTIDIM_ELEM(localH1,n) = DIRECT_MULTIDIM_ELEM(hmap1,n);
+                                    DIRECT_MULTIDIM_ELEM(localH2,n) = DIRECT_MULTIDIM_ELEM(hmap2,n);
+                                }
+                                ++n;
+
+                            }
+                        }
+
+                    }
+                    std::cerr <<"ii "<< ii <<std::endl;
+                    std::cerr <<"jj "<< jj <<std::endl;
+                    std::cerr <<"kk "<< kk <<std::endl;
+                    transformer.FourierTransform(localV, fftV);
+                    transformer.FourierTransform(localH1, fftM1);
+                    transformer.FourierTransform(localH2, fftM2);
+                    directionalFilter(Nfaces, maskCone, vol, fftV, fftM1, fftM2, transformer_inv, dsharpVolFinal);
+
+//                    FileName fs1;
+//                    Image<double> saveImg1;
+//                    fs1 = formatString("localMap_%i_%i_%i.vol", ii, jj, kk);
+//                    saveImg1() = localV;
+//                    saveImg1.write(fs1);
+//                    exit(0);
+
+                }
+
+            }
+        }
+
+    }
+    else
+    {
+
+        transformer.setThreadsNumber(Nthread);
+        transformer.FourierTransform(vol, fftV);
+        transformer.FourierTransform(hmap1, fftM1);
+        transformer.FourierTransform(hmap2, fftM2);
+
+    //    MultidimArray<double> dsharpVolFinal;
+        dsharpVolFinal.initZeros(Vorig);
+        directionalFilter(Nfaces, maskCone, Vorig, fftV, fftM1, fftM2, transformer_inv, dsharpVolFinal);
+    }
+
+//    MultidimArray< std::complex<double> > fftVfilter, fftM1filter, fftM2filter;
+//    MultidimArray<double> dsharpVolFinal, dsharpVol, filteredMap1, filteredMap2;
+//
+//    dsharpVolFinal.initZeros(Vorig);
+
+//    for (size_t face_number = 0; face_number<Nfaces; ++face_number)
+//    {
+//
+//        fftVfilter.initZeros(fftV);
+//        fftM1filter.initZeros(fftM1);
+//        fftM2filter.initZeros(fftM2);
+//        dsharpVol.initZeros(Vorig);
+//
+//        // Filter the input volume and add it to amplitude
+//        long n=0;
+//        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftV)
+//        {
+//            if (DIRECT_MULTIDIM_ELEM(maskCone, n) == face_number)
+//            {
+//
+//                DIRECT_MULTIDIM_ELEM(fftVfilter, n) = DIRECT_MULTIDIM_ELEM(fftV, n);
+//                DIRECT_MULTIDIM_ELEM(fftM1filter, n) = DIRECT_MULTIDIM_ELEM(fftM1, n);
+//                DIRECT_MULTIDIM_ELEM(fftM2filter, n) = DIRECT_MULTIDIM_ELEM(fftM2, n);
+//
+//            }
+//        }
+//
+//        ///// ***** Determine the FSC between half maps
+//        FscCalculation(fftM1filter, fftM2filter, frc);
+//        apply_maxres = resol;
+//        if (resol < 4)
+//        {
+//            fit_maxres = 4;
+//        }
+//        else
+//            fit_maxres = resol;
+//
+//
+//        ///// ***** Weight the map and apply b-factor
+//
+//        if (wfsc == true)
+//        {
+//            std::cerr<<"calculando fsc"<<std::endl;
+//            snrWeights(snr);
+//            apply_snrWeights(fftVfilter,snr);
+//        }
+//        make_guinier_plot(fftVfilter,guinierweighted);
+//        least_squares_line_fit(guinierweighted, slope, intercept);
+//        BfactorToAplly = 4. * slope;
+////        BfactorToAplly = -60;
+//        std::cerr<<"Applying B-factor of "<< BfactorToAplly << " squared Angstroms"<<std::endl;
+//        apply_bfactor(fftVfilter,BfactorToAplly);
+//
+//        transformer_inv.inverseFourierTransform(fftVfilter, dsharpVol);
+//
+//
+//        //******** Sum all directions
+//
+//        if (std::isnan(BfactorToAplly))
+//            continue;
+//        else
+//            dsharpVolFinal += dsharpVol;
+//
+//        FileName fsk;
+//        Image<double> saveImgk;
+//        fsk = formatString("sharp_total.vol");
+//        saveImgk() = dsharpVolFinal;
+//        saveImgk.write(fsk);
+//
+//    }
+
+}
+
+
+//************Calculation of the FSC******************
+
+void Prog3dDecomp::FscCalculation(MultidimArray< std::complex<double> > &FThalf1,
+                                  MultidimArray< std::complex<double> > &FThalf2,
+                                  MultidimArray<double> &frc)
+//void Prog3dDecomp::FscCalculation(MultidimArray<double> &FThalf1,
+//                                  MultidimArray<double> &FThalf2)
+
+{
+    MultidimArray<double> freq, dpr, frc_noise, error_l2;
+    double rFactor = -1.;
+    double min_samp = 0.;
+    double max_samp = 2 * sampling;
+    resol = 0;
+    frc.clear();
+
+    frc_dpr(FThalf1, FThalf2, sampling, freq, frc, frc_noise, dpr, error_l2,
+            false, false, min_samp, sampling/max_samp, &rFactor);
+
+    long i = 0;
+
+    FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
+    {
+        if (i>0)
+        {
+            if (dAi(frc, i) <= 0.143)
+            {
+                resol = 1/(dAi(freq, i));
+                break;
+            }
+        }
+    }
+    std::cout <<  " resol " <<  resol << std::endl;
+
+}
+
+//void Prog3dDecomp::VolumesFsc(MultidimArray<double> &FThalf1,
+//                              MultidimArray<double> &FThalf2)
+void Prog3dDecomp::VolumesFsc(MultidimArray< std::complex<double> > &FT1,
+                              MultidimArray< std::complex<double> > &FT2)
+{
+    FscCalculation(FT1, FT2, frc);
+}
+
+
+//************Calculation of the b-factor******************
+
+void Prog3dDecomp::snrWeights(std::vector<double> &snr)
+{
+    snr.clear();
+    double fsc;
+
+    FOR_ALL_ELEMENTS_IN_ARRAY1D(frc)
+    {
+        if (i>0)
+        {
+            fsc=dAi(frc, i);
+            double mysnr = XMIPP_MAX( (2*fsc) / (1+fsc), 0.);
+            snr.push_back( sqrt(mysnr) );
+        }
+    }
+}
+
+void  Prog3dDecomp::apply_snrWeights(MultidimArray< std::complex< double > > &FT1,
+        std::vector<double> &snr)
+{
+
+    Matrix1D<double> f(3);
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(FT1)
+    {
+        FFT_IDX2DIGFREQ(j,xsize,XX(f));
+        FFT_IDX2DIGFREQ(i,YSIZE(FT1),YY(f));
+        FFT_IDX2DIGFREQ(k,ZSIZE(FT1),ZZ(f));
+        double R = f.module();
+        if (sampling / R >= apply_maxres)
+        {
+            int idx=ROUND(R*xsize);
+            dAkij(FT1, k, i, j) *= snr[idx];
+        }
+    }
+}
+
+void  Prog3dDecomp::make_guinier_plot(MultidimArray< std::complex< double > > &FT1,
+        std::vector<fit_point2D> &guinier)
+{
+    MultidimArray< int >  radial_count(xsize);
+    MultidimArray<double> lnF(xsize);
+    Matrix1D<double>      f(3);
+    fit_point2D      onepoint;
+
+    lnF.initZeros();
+    for (size_t k=0; k<ZSIZE(FT1); k++)
+    {
+        FFT_IDX2DIGFREQ(k,ZSIZE(FT1),ZZ(f));
+        double z2=ZZ(f)*ZZ(f);
+        for (size_t i=0; i<YSIZE(FT1); i++)
+        {
+            FFT_IDX2DIGFREQ(i,YSIZE(FT1),YY(f));
+            double y2z2=z2+YY(f)*YY(f);
+            for (size_t j=0; j<XSIZE(FT1); j++)
+            {
+                FFT_IDX2DIGFREQ(j,xsize,XX(f));
+                double R2=y2z2+XX(f)*XX(f);
+                if (R2>0.25)
+                    continue;
+                double R=sqrt(R2);
+                int idx=ROUND(R*xsize);
+                A1D_ELEM(lnF,idx) += abs(dAkij(FT1, k, i, j));
+                ++A1D_ELEM(radial_count,idx);
+            }
+        }
+    }
+
+    guinier.clear();
+    for (size_t i = 0; i < XSIZE(radial_count); i++)
+    {
+        double res = (xsize * sampling)/(double)i;
+        if (res >= apply_maxres)
+        {
+            onepoint.x = 1. / (res * res);
+            if (lnF(i)>0.)
+            {
+                onepoint.y = log ( lnF(i) / radial_count(i) );
+                if (res <= fit_minres && res >= fit_maxres)
+                {
+                    onepoint.w = 1.;
+                }
+                else
+                {
+                    onepoint.w = 0.;
+                }
+            }
+            else
+            {
+                onepoint.y = 0.;
+                onepoint.w = 0.;
+            }
+            guinier.push_back(onepoint);
+        }
+    }
+}
+
+void  Prog3dDecomp::apply_bfactor(MultidimArray< std::complex< double > > &FT1,
+                                        double bfactor)
+{
+    Matrix1D<double> f(3);
+    double isampling_rate=1.0/sampling;
+    FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(FT1)
+    {
+        FFT_IDX2DIGFREQ(j,xsize,XX(f));
+        FFT_IDX2DIGFREQ(i,YSIZE(FT1),YY(f));
+        FFT_IDX2DIGFREQ(k,ZSIZE(FT1),ZZ(f));
+        double R = f.module() * isampling_rate;
+        if (1./R >= apply_maxres)
+        {
+            dAkij(FT1, k, i, j) *= exp( -0.25* bfactor  * R * R);
+        }
+    }
+}
+
+void  Prog3dDecomp::directionalFilter(size_t &Nfaces, MultidimArray<int> &maskCone, MultidimArray<double> &Vorig,
+            MultidimArray< std::complex< double > > &fftV, MultidimArray< std::complex< double > > &fftM1,
+            MultidimArray< std::complex< double > > &fftM2, FourierTransformer &transformer_inv, MultidimArray<double> dsharpVolFinal)
+{
+
+    //    ProgVolumeCorrectBfactor bfactor;
+    std::vector<double> snr;
+    std::vector<fit_point2D> guinierweighted;
+    double slope;
+    double intercept = 0.;
+    double BfactorToAplly;
+    fit_minres = 10;
+
+    MultidimArray< std::complex<double> > fftVfilter, fftM1filter, fftM2filter;
+    MultidimArray<double> dsharpVol;
 
     for (size_t face_number = 0; face_number<Nfaces; ++face_number)
     {
-
         fftVfilter.initZeros(fftV);
-        filteredVol.initZeros(Vorig);
-
+        fftM1filter.initZeros(fftM1);
+        fftM2filter.initZeros(fftM2);
+        dsharpVol.initZeros(Vorig);
 
         // Filter the input volume and add it to amplitude
         long n=0;
@@ -579,50 +886,53 @@ void Prog3dDecomp::FilterFunction(size_t &Nfaces, MultidimArray<int> &maskCone,
             {
 
                 DIRECT_MULTIDIM_ELEM(fftVfilter, n) = DIRECT_MULTIDIM_ELEM(fftV, n);
+                DIRECT_MULTIDIM_ELEM(fftM1filter, n) = DIRECT_MULTIDIM_ELEM(fftM1, n);
+                DIRECT_MULTIDIM_ELEM(fftM2filter, n) = DIRECT_MULTIDIM_ELEM(fftM2, n);
 
             }
         }
 
-        filteredVol.resizeNoCopy(Vorig);
+        ///// ***** Determine the FSC between half maps
+        FscCalculation(fftM1filter, fftM2filter, frc);
+        apply_maxres = resol;
+        fit_maxres = resol;
+//        if (resol < 4)
+//        {
+//            fit_maxres = 4;
+//        }
+//        else
+//            fit_maxres = resol;
 
-        transformer_inv.inverseFourierTransform(fftVfilter, filteredVol);
+        ///// ***** Weight the map and apply b-factor
 
-        FileName fs1;
-        Image<double> saveImg1;
-        fs1 = formatString("Filtered_%i.vol", face_number);
-        saveImg1() = filteredVol;
-        saveImg1.write(fs1);
+        if (wfsc == true)
+        {
+            std::cerr<<"calculando fsc"<<std::endl;
+            snrWeights(snr);
+            apply_snrWeights(fftVfilter,snr);
+        }
+        make_guinier_plot(fftVfilter,guinierweighted);
+        least_squares_line_fit(guinierweighted, slope, intercept);
+        BfactorToAplly = 4. * slope;
+        std::cerr<<"Applying B-factor of "<< BfactorToAplly << " squared Angstroms"<<std::endl;
+        apply_bfactor(fftVfilter,BfactorToAplly);
 
-    }
-
-}
+        transformer_inv.inverseFourierTransform(fftVfilter, dsharpVol);
 
 
-void cleanFaces2(Matrix2D<int> &faces, Matrix2D<double> &vertex)
-{
-    int NewNumFaces = 0;
+        //******** Sum all directions
 
-    for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
-    {
-        if (MAT_ELEM(faces, face_number, 0) < 0)
+        if (std::isnan(BfactorToAplly))
             continue;
-        NewNumFaces++;
-    }
-    Matrix2D<int> facesNew;
-    facesNew.initZeros(NewNumFaces,3);
+        else
+            dsharpVolFinal += dsharpVol;
 
-    NewNumFaces = 0;
-    for (size_t face_number = 0; face_number<MAT_YSIZE(faces); ++face_number)
-    {
-        if (MAT_ELEM(faces, face_number, 0) < 0)
-            continue;
-
-        MAT_ELEM(facesNew, NewNumFaces, 0) = MAT_ELEM(faces, face_number, 0);
-        MAT_ELEM(facesNew, NewNumFaces, 1) = MAT_ELEM(faces, face_number, 1);
-        MAT_ELEM(facesNew, NewNumFaces, 2) = MAT_ELEM(faces, face_number, 2);
-        ++NewNumFaces;
     }
-    faces = facesNew;
+    FileName fsk;
+    Image<double> saveImgk;
+    fsk = formatString("sharp_total.vol");
+    saveImgk() = dsharpVolFinal;
+    saveImgk.write(fsk);
 
 }
 
@@ -638,7 +948,7 @@ void Prog3dDecomp::run()
     Matrix2D<int> faces;
     double coneAngle = PI/6;
     MultidimArray< std::complex<double> > fftCone;
-    MultidimArray<double> conefilter, localResolutionMap;
+    MultidimArray<double> conefilter;
     MultidimArray<int> coneMask;
     Monogenic mono;
     size_t Nfaces;
@@ -663,7 +973,6 @@ void Prog3dDecomp::run()
         coneAngle = PI/4;
     }
 
-//  std::cout << "Vectex " << vertex << std::endl;
     std::cout << "faceVector " << faceVector << std::endl;
 
     unsigned t0, t1;
@@ -678,21 +987,53 @@ void Prog3dDecomp::run()
 
         std::cout << x1 << " " << y1 << " " << z1 << std::endl;
         defineIcosahedronCone(face_number, x1, y1, z1, fftV, conefilter, coneAngle);
-        //defineMask_test();
 
         fftCone = mono.applyMaskFourier(fftV, conefilter);
-        //defineIcosahedronCone_test();
 
     }
     t1 = clock();
 
     double time = (double(t1-t0)/CLOCKS_PER_SEC);
     std::cout << "%Execution Time: " << time << std::endl;
-    Image<double> Vin;
+    Image<double> Vin, Hin1, Hin2;
     Vin.read(fnVol);
+    Hin1.read(fnHalf1);
+    Hin2.read(fnHalf2);
+
     Vin().setXmippOrigin();
+    Hin1().setXmippOrigin();
+    Hin2().setXmippOrigin();
+
     MultidimArray<double> Vorig = Vin();
-    FilterFunction(Nfaces, coneMask, Vorig, transformer_inv);
+    MultidimArray<double> Hmap1 = Hin1();
+    MultidimArray<double> Hmap2 = Hin2();
+
+    ////*********mask
+    if (mask_exist == true)
+    {
+        Image<int> mask;
+        mask.read(fnMask);
+        mask().setXmippOrigin();
+        MultidimArray<int> pMask=mask();
+        mono.applyMask(Hmap1, mask());
+        mono.applyMask(Hmap1, mask());
+//        mono.applyMask(Vorig, mask());
+    }
+
+    FilterFunction(Nfaces, coneMask, Vorig, Hmap1, Hmap2, transformer_inv);
+
+//    transformer.setThreadsNumber(Nthread);
+//    MultidimArray< std::complex<double> > fftM1, fftM2;
+//
+//    FourierTransformer transformer1(FFTW_BACKWARD);
+//    FourierTransformer transformer2(FFTW_BACKWARD);
+//
+//    std::cout << "Hago transformadas" << std::endl;
+//    transformer1.FourierTransform(Hmap1, fftM1, false);
+//    transformer2.FourierTransform(Hmap2, fftM2, false);
+//    std::cout << "Termino transformadas" << std::endl;
+//
+//    VolumesFsc(fftM1,fftM2);
 
 }
 
