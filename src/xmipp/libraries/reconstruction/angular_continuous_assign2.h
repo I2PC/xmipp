@@ -87,6 +87,9 @@ public:
     // Penalization for the average
     // double penalization;
 public:
+    // Rank (used for MPI version)
+    int rank;
+
     // 2D mask in real space
     MultidimArray<int> mask2D;
     // Inverse of the sum of Mask2D

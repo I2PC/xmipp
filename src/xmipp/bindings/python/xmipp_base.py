@@ -129,24 +129,15 @@ class XmippScript:
             but employ conda. The class should possess a _conda_env attribute to be used.
             Otherwise  CONDA_DEFAULT_ENVIRON is used. To use xmipp dependent
             programs, runCondaJob within a XmippProtocol is preferred.
-                :param program:str. A program/pythonScript to execute
+                :param program: str. A program/pythonScript to execute
                 :param arguments: str. The arguments for the program
                 :param kwargs: options
                 :return: None
         """
-        if "env" not in kwargs:
-            kwargs["env"] = os.environ
+        condaEnvName = CondaEnvManager.getCondaName(cls)
 
-        if hasattr(cls, "_conda_env"):
-            condaEnvName = cls._conda_env
-        else:
-            condaEnvName = CondaEnvManager.CONDA_DEFAULT_ENVIRON
-            print("Warning: '_conda_env' not defined in '%s'. "
-                  "Using the default one ('%s')" % (cls, condaEnvName))
-
-        program, arguments, kwargs = prepareRunConda(program, arguments,
-                                                     condaEnvName, **kwargs)
-
+        kwargs['env'] = CondaEnvManager.getCondaEnv(kwargs.get('env', os.environ),
+                                                    condaEnvName)
         cmd_args = program + " " + arguments
         print(cmd_args)
         try:
@@ -155,109 +146,141 @@ class XmippScript:
             subprocess.check_call(cmd_args, shell=True, **kwargs)
 
 
-def prepareRunConda(program, arguments, condaEnvName, **kwargs):
-    '''
-    Used to get the arguments for the methods runCondaJob or runCondaCmd
-    :param program: string
-    :param arguments: string
-    :param condaEnvName: string
-    :param kwargs:
-    :return: (program, arguments, kwargs). Updated values
-    '''
-    # print(kwargs['env'])
-    kwargs['env'] = CondaEnvManager.modifyEnvToUseConda(kwargs['env'],
-                                                        condaEnvName)
-
-    kwargs['env']['PYTHONWARNINGS'] = 'ignore::FutureWarning'
-    usePython = False
-    programFn = os.path.join(getXmippPath('bin'), program)
-
-    try:
-        with open(programFn) as f:
-            if "python" in f.read(32):
-                usePython = True
-    except (OSError, IOError):
-        pass
-
-    if usePython:
-        return "python", programFn + " " + arguments, kwargs
-    else:
-        return program, arguments, kwargs
-
-
 class CondaEnvManager(object):
     CONDA_DEFAULT_ENVIRON = "xmipp_DLTK_v0.3"
     from xmipp_conda_envs import XMIPP_CONDA_ENVS
 
     @staticmethod
-    def getCondaRoot(env=None):
-        """ Tries to find the conda root path given an environment
-            :param: env. An environ obtaining using Plugin.getEnviron()
-            :return: None if CondaRoot not found via CONDA_HOME,
-                     CONDA_ACTIVATION_CMD, CONDA_EXE nor 'which conda'.
+    def getCondaName(xmippCls, **kwargs):
+        """ Returns the conda environ name associated to the xmippCls.
+                XmippCls can be:
+                  - XmippProtocol (Scipion's plugin)
+                  - XmippScript (defined above)
+            > _conda_env preference: kwargs > protocol default > general default
         """
-        if env is None:
-            env = {}
-
-        if "CONDA_HOME" in env:
-            condaRoot = env["CONDA_HOME"]
-        elif "CONDA_ACTIVATION_CMD" in env:
-            # CONDA_ACTIVATION_CMD = ". '/path/to/condaRoot/etc/profile.d/conda.sh'"  ('<=>")
-            condaRoot = re.sub("^\. ", "", env["CONDA_ACTIVATION_CMD"]).strip('"').strip("'")
-            # root    =   condaRoot    <      etc      <   profile.d   <   conda.sh
-            condaRoot = os.path.dirname(os.path.dirname(os.path.dirname(condaRoot)))
+        name = kwargs.get('_conda_env', None)
+        if name is None and hasattr(xmippCls, '_conda_env'):
+            name = xmippCls._conda_env
         else:
-            # At last, we assume CONDA_EXE is an executable inside the conda/bin
-            condaRoot = find_executable(env.get("CONDA_EXE", "conda"))
-            if condaRoot is not None:
-                # root    =   condaRoot    <      bin      <  conda
-                condaRoot = os.path.dirname(os.path.dirname(condaRoot))
-
-        assert condaRoot is not None, "Error, conda was not found at:\n"+str(env)
-        return os.path.expanduser(condaRoot)
+            name = CondaEnvManager.CONDA_DEFAULT_ENVIRON
+            print("Warning: using default Xmipp conda environment '%s'. "
+                  "CondaJobs should be run under a specific environment to "
+                  "avoid problems. Please, fix it or contact to the developer."
+                  % name)
+        return name
 
     @staticmethod
-    def getCondaPathInEnv(condaRoot, condaEnv, condaSubDir=""):
-        """ :param condaRoot: The path where conda is installed. E.g. ~/tools/miniconda3
-            :param condaEnv: The name (prefix) of the conda environment that will be used
-            :param condaSubDir: The path of the subdirectory within conda env.
-                   E.g. condaSubDir="bin -> path/to/env/bin
-            :return: the path to a subdirectory within condaEnv
+    def getCondaExe(env=None):
+        """ Tries to find the conda executable in an environment
+            :param: env. An environ, using os.environ by default
+            :return: None if CondaExe not found via CONDA_EXE,
+                     CONDA_ACTIVATION_CMD, CONDA_HOME nor 'which conda'.
         """
-        return os.path.join(condaRoot, "envs", condaEnv, condaSubDir)
+        env = env if env else os.environ
+
+        condaExe = find_executable(env.get("CONDA_EXE", "conda"), env['PATH'])
+        condaHome = ''
+        condaActCmd = env.get("CONDA_ACTIVATION_CMD", None)
+        if not condaExe and condaActCmd:
+            # CONDA_ACTIVATION_CMD = "eval '$(condaExe shell.bash hook)'"  ('<=>")
+            condaRe = re.match("[\'\"]?eval [\'\"]?\$\((.*) shell.bash hook\)[\'\"]?",
+                               condaActCmd)
+            if condaRe:
+                condaExe = condaRe.group(1)
+            else:
+                # CONDA_ACTIVATION_CMD = ". '/path/to/condaHome/etc/profile.d/conda.sh)'"  ('<=>")
+                condaRe = re.match("[\'\"]?\. [\'\"]?(.*)/etc/profile.d/conda.sh[\'\"]?[\'\"]?",
+                                   condaActCmd)
+                if condaRe:
+                    condaHome = condaRe.group(1)
+                    p = subprocess.Popen(condaActCmd+"&& echo $_CONDA_EXE",
+                                         shell=True,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT)
+                    condaExe = p.stdout.readline().decode('utf8').strip()
+            # print("getting conda from CONDA_ACTIVATION_CMD = %s" % condaActCmd)
+
+        condaHome = env.get("CONDA_HOME", condaHome)
+        if not condaExe and condaHome:
+            condaExe = os.path.join(condaHome, 'bin', 'conda')
+
+        condaExe = os.path.expanduser(condaExe if condaExe else '')
+        if os.path.isfile(condaExe):
+            return condaExe
+        else:
+            print("No conda found...")
+            if condaActCmd:
+                print("please, check the CONDA_ACTIVATION_CMD = %s "
+                      "in the config file. If it seems fine, try to add "
+                      "CONDA_EXE = /path/to/conda/executable" % condaActCmd)
 
     @staticmethod
-    def modifyEnvToUseConda(env, condaEnv):
-        pathInEnv = CondaEnvManager.getCondaPathInEnv
-        envBin = pathInEnv(CondaEnvManager.getCondaRoot(env), condaEnv, "bin")
-        env.update({"PATH": envBin+':'+env["PATH"]})
+    def getEnvironDir(condaEnv):
+        """ This function returns the condaEnv directory
+            using the 'conda info --env' command.
+        """
+        cmd = "%s info --env" % CondaEnvManager.getCondaExe()
+        p = subprocess.Popen(cmd, shell=True,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output = p.stdout.readlines()
+        for line in output:
+            regex = re.match(condaEnv+"[ ]+(\*)?[ ]+(.*)", line.decode("utf-8"))
+            if regex:
+                # isActived = regex.group(1) is not None
+                return regex.group(2)
+        print("\n$ "+cmd)
+        print("".join([l.decode('utf8') for l in output]))
+        print(" >>> '%s' conda environment not found... (check list above)" % condaEnv)
 
-        # TODO: Check that 'python*' is allowed in PYTHONPATH
-        # TODO: Is site-packages of the launching conda-python needed?
+    @staticmethod
+    def getCondaEnv(env, condaEnv):
+        """ Setting the environ (based on 'env')
+            according to the 'condaEnv' name passed.
+            'environDir/bin' is prepended in PATH
+            PYTHONPATH is set/prepend (depending on the 'xmippEnviron' flag)
+               with 'environDir/lib/python*/site-packages'
+            TODO: consider to also prepend the LD_LIBRARY_PATH
+        """
+        environDir = CondaEnvManager.getEnvironDir(condaEnv)
+        envBin = os.path.join(environDir, "bin")
+        env.update({"PATH": envBin+':'+env["PATH"]})  # <- PATH
+
         sitePackages = os.path.join("lib", "python*", "site-packages")
-        newPythonPath= pathInEnv(CondaEnvManager.getCondaRoot(env),
-                                 condaEnv, sitePackages)
+        newPythonPath= os.path.join(environDir, sitePackages)
         if CondaEnvManager.XMIPP_CONDA_ENVS[condaEnv]["xmippEnviron"]:
             newPythonPath += ":"+env["PYTHONPATH"]
-        env.update({"PYTHONPATH": newPythonPath})
+        env.update({"PYTHONPATH": newPythonPath})  # <- PYTHONPATH
         # print(env["PYTHONPATH"])
+        env['PYTHONWARNINGS'] = 'ignore::FutureWarning'  # to skip warnings
         return env
 
     @staticmethod
     def getCondaActivationCmd():
-        condaActivationCmd = os.environ.get('CONDA_ACTIVATION_CMD', "")
-        if not condaActivationCmd:
-            condaRoot = CondaEnvManager.getCondaRoot()
-            condaActivationCmd = ". "+os.path.join(condaRoot,
-                                                   "etc/profile.d/conda.sh")
-        condaActivationCmd = condaActivationCmd.strip().strip('"').strip("'")
+        """ This method takes the command to activate conda
+            the CONDA_ACTIVATION_CMD present in the environ.
+            If not there or it fails, we construct one from
+            the 'conda' executable if found.
+        """
+        condaActCmd = os.environ.get('CONDA_ACTIVATION_CMD', "")
+        if (condaActCmd.startswith("'") and condaActCmd.endswith("'") or
+            condaActCmd.startswith('"') and condaActCmd.endswith('"')):
+            condaActCmd = condaActCmd[1:-1]  # remove extra quotes
 
-        if condaActivationCmd.endswith("&&"):
-            condaActivationCmd = condaActivationCmd[:-2]
-        elif condaActivationCmd.endswith(";") or condaActivationCmd.endswith("&"):
-            condaActivationCmd = condaActivationCmd[:-1]
+        if ((not condaActCmd or os.system(condaActCmd))
+            and CondaEnvManager.getCondaExe()):
+            condaActCmd = ('eval "$(%s shell.bash hook)"'
+                           % CondaEnvManager.getCondaExe())
 
-        return condaActivationCmd
+        if condaActCmd.endswith("&&"):
+            condaActCmd = condaActCmd[:-2]
+        elif condaActCmd.endswith(";") or condaActCmd.endswith("&"):
+            condaActCmd = condaActCmd[:-1]
+
+        if not condaActCmd:
+            msg = ("\n\nConda activation command not found. "
+                   "Please, add CONDA_ACTIVATION_CMD to the config file.\n\n\n")
+            condaActCmd = "echo %s exit " % msg
+        return condaActCmd
 
     @staticmethod
     def yieldInstallAllCmds(useGpu):
@@ -265,6 +288,26 @@ class CondaEnvManager(object):
 
         for envName, envDict in CondaEnvManager.XMIPP_CONDA_ENVS.items():
             yield CondaEnvManager.installEnvironCmd(envName, options, **envDict)
+
+    @staticmethod
+    def getCurInstalledDep(dependency, defaultVersion=None, environ=None):
+        """ Returns the current version of a certain dependency
+            installed in pip. Returns just the dependency if not found.
+            i.e.: 'numpy==1.18.1'=getCurInstalledDep('numpy') <- 1.18.1 ver. found
+                  'numpy==1.18.0'=getCurInstalledDep('numpy', 1.18.0) <- no ver. found
+                  'numpy'=getCurInstalledDep('numpy') <- no ver. found
+        """
+        env = environ if environ else os.environ
+        p = subprocess.Popen("pip list --no-cache-dir | grep "+dependency,
+                             shell=True, env=env,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            # expected string: "dep    1.2.34a3"
+            reMatch = re.match("%s +([0-9a-zA-Z\.]+)" % dependency,
+                               line.decode('utf8').strip())
+            if reMatch:
+                defaultVersion = reMatch.group(1)
+        return dependency+'=='+defaultVersion if defaultVersion else dependency
 
     @staticmethod
     def installEnvironCmd(environName, installCmdOptions=None, **kwargs):
@@ -287,12 +330,16 @@ class CondaEnvManager(object):
 
         options = installCmdOptions or kwargs.get('defaultInstallOptions', {})
         pipPack = kwargs.get('pipPackages', [])
+        if kwargs.get('xmippEnviron', True):
+            # xmippLib is compiled using a certain numpy.
+            #  If it is load in the conda environment, numpy must be the same.
+            pipPack.append(CondaEnvManager.getCurInstalledDep('numpy'))
 
         # Composing the commands
         cmdList = []
         cmdList.append("export PYTHONPATH=\"\"")  # TODO: consider if from kwargs
         cmdList.append(CondaEnvManager.getCondaActivationCmd())
-        cmdList.append("conda create -q --force --yes -n %s %s %s %s"
+        cmdList.append("conda create --force --yes -n %s %s %s %s"
                        % (environName, python, deps, chFlags))
         cmdList.append("conda activate %s" % environName)
         if pipPack:
