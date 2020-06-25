@@ -43,31 +43,39 @@ class ScriptVolumeConsensus(XmippScript):
     def defineParams(self):
         self.addUsageLine('Volume consensus')
         ## params
-        self.addParamsLine('--i1 <inputFile1>   : Volume 1 filename')
-        self.addParamsLine('--i2 <inputFile2>   : Volume 2 filename')
+        self.addParamsLine('-i <inputFile>   : A .txt file that contains the path of input volumes')
         self.addParamsLine('-o  <outputFile>   : Consensus volume filename')
         ## examples
-        self.addExampleLine('xmipp_volume_consensus -i1 path/to/inputs/file1.mrc -i2 path/to/inputs/file2.mrc '
-                            '-o path/to/outFile.mrc')
+        self.addExampleLine('xmipp_volume_consensus -i1 path/to/inputs/file.txt -o path/to/outFile.mrc')
 
     def run(self):
-        vol1fn = self.getParam('--i1')
-        vol2fn = self.getParam('--i2')
-        outVol = self.getParam('-o')
-        vol1 = self.loadVol(vol1fn)
-        vol2 = self.loadVol(vol2fn)
-        outVolData = self.computeVolumeConsensus(vol1, vol2)
-        self.saveVol(outVolData, outVol, vol1fn)
+        inputFile = self.getParam('-i')
+        outVolFn = self.getParam('-o')
+        # inputVols = []
+        # with open(inputFile) as f:
+        #     for line in f:
+        #         inputVols.append(self.loadVol(line.split()[0]))
+        # f.close()
+        self.computeVolumeConsensus(inputFile, outVolFn)
 
-    def computeVolumeConsensus(self, vol1, vol2, wavelet='sym11'):
-        coeffDict1 = pywt.swtn(vol1, wavelet, 1)
-        coeffDict2 = pywt.swtn(vol2, wavelet, 1)
-        newDict={}
-        print("---------hola----------")
-        for key in coeffDict1:
-            newDict[key] = np.where(np.abs(coeffDict1[key]) > np.abs(coeffDict2[key]), coeffDict1[key], coeffDict2[key])
-            print("-------------------", coeffDict1[key].shape)
+    def computeVolumeConsensus(self, inputFile, outVolFn, wavelet='sym11'):
+        coeffDictList = []
+        # for vol in inputVols.iterItems():
+        with open(inputFile) as f:
+            for line in f:
+                vol = self.loadVol(line.split()[0])
+            coeffDict = pywt.swtn(vol, wavelet, 1)
+            coeffDictList.append(coeffDict)
+        f.close()
+        newDict = {}
+        for key, _ in enumerate(coeffDict):
+            coeffInPosKey = []
+            for coeffDict in coeffDictList:
+                coeffInPosKey.append(coeffDict[key])
+            newDict[key] = max(coeffInPosKey)
+            # print("-------------------", coeffDict[key].shape)
         consensus = pywt.iswtn(newDict, wavelet)
+        self.saveVol(consensus, outVolFn, line)
         return consensus
 
     def saveVol(self, data, fname, fnameToCopyHeader):
