@@ -556,20 +556,25 @@ def configOpenCV(configDict):
 def getDependenciesInclude():
     return ['../']
 
-def askPath(default='', noAsk=False):
-    question = yellow("Please, give us a path to locate it: ")
-    if noAsk:
-        print(yellow("Using '%s'." % default))
-        return default
+
+def askPath(default='', ask=True):
+    question = "type a path where to locate it: "
+    if ask:
+        if default:
+            print(yellow("Alternative found at '%s'." % default))
+            question = "press [return] to use it or " + question
+        result = input(yellow("Please, "+question))
+        if not result:
+            print(green(" -> "+default))
+        print()
+        return result if result else default
     else:
         if default:
-            print("Alternative found at '%s'."% default)
-            question = question + "[leave empty to use that alternative]"
-        result = input(question)
-        if not result:
-            print(" -> "+default)
-            print("")
-        return result if result else default
+            print(yellow("Using '%s'." % default))
+        else:
+            print(red("No alternative found."))
+        return default
+
 
 def configCompiler(configDict):
     if configDict["DEBUG"] == "":
@@ -618,7 +623,7 @@ def configCompiler(configDict):
         if not findFileInDirList("libhdf5*", localLib):
             print(yellow("'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib/x86_64-linux-gnu"])
-            hdf5Lib = askPath(hdf5Lib)
+            hdf5Lib = askPath(hdf5Lib, askUser)
             configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
             updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
 
@@ -631,7 +636,7 @@ def configCompiler(configDict):
         if not findFileInDirList("libhdf5*", localInc):
             print(yellow("Headers for 'libhdf5' not found at '%s'." % localInc))
             hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
-            hdf5Inc = askPath(hdf5Inc)
+            hdf5Inc = askPath(hdf5Inc, askUser)
             configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
     if configDict["PYTHON_LIB"] == "":
@@ -713,7 +718,7 @@ def configMPI(configDict):
         else:
             print(yellow("'mpirun' and 'mpiexec' not found in the PATH"))
             mpiDir = findFileInDirList('mpirun', mpiBinCandidates)
-            mpiDir = askPath(mpiDir)
+            mpiDir = askPath(mpiDir, askUser)
             configDict["MPI_RUN"] = os.path.join(mpiDir, "mpirun")
             checkProgram(configDict["MPI_RUN"])
             updateXmippEnv(PATH=mpiDir)
@@ -724,7 +729,7 @@ def configMPI(configDict):
         else:
             print(yellow("'mpicc' not found in the PATH"))
             mpiDir = findFileInDirList('mpicc', mpiBinCandidates)
-            mpiDir = askPath(mpiDir)
+            mpiDir = askPath(mpiDir, askUser)
             configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
             checkProgram(configDict["MPI_CC"])
     if configDict["MPI_CXX"] == "":
@@ -734,7 +739,7 @@ def configMPI(configDict):
         else:
             print(yellow("'mpicxx' not found in the PATH"))
             mpiDir = findFileInDirList('mpicxx', mpiBinCandidates)
-            mpiDir = askPath(mpiDir)
+            mpiDir = askPath(mpiDir, askUser)
             configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
             checkProgram(configDict["MPI_CXX"])
 
@@ -783,7 +788,7 @@ def configJava(configDict):
         if not javaProgramPath:
             print(yellow("'java' not found in the PATH"))
             javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
-            javaProgramPath = askPath(javaProgramPath)
+            javaProgramPath = askPath(javaProgramPath, askUser)
         if javaProgramPath:
             updateXmippEnv(PATH=javaProgramPath)
             javaHomeDir = javaProgramPath.replace("/jre/bin", "")
@@ -849,7 +854,7 @@ def configCuda(configDict):
             cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda-8.0/bin",
                                                  "/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
-            cudaBin = askPath(cudaBin)
+            cudaBin = askPath(cudaBin, askUser)
             if checkProgram(cudaBin, False):
                 configDict["CUDA"] = "True"
                 cudaBin = os.path.realpath(cudaBin)  # If using generic cuda, expliciting the version
@@ -888,7 +893,7 @@ def configCuda(configDict):
                         configDict["CXX_CUDA"] = cxx4cuda
                         break
                 if configDict["CXX_CUDA"]:
-                    configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"])
+                    configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"], askUser)
                 else:
                     print(red("No alternative found. Skipping CUDA compilation.\n"
                               "If an alternative exists, please set 'CXX_CUDA' "
@@ -917,7 +922,7 @@ def configCuda(configDict):
                         break
 
                 cudaLib = os.path.realpath(cudaLib)
-                cudaLib = askPath(cudaLib, noAsk=True)
+                cudaLib = askPath(cudaLib, ask=False)
                 if os.path.isdir(cudaLib):
                     configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
                                                     " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
@@ -1070,12 +1075,15 @@ def checkConfig():
                   "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
             print("\nRemember to re-run './xmipp config' after installing libraries in order to "
                   "take into account the new system configuration.")
+            runJob("rm xmipp_test_main*")
             return False
         if not checkMPI(configDict):
             print(red("Cannot compile with MPI or use it"))
+            runJob("rm xmipp_mpi_test_main*")
             return False
         if not checkJava(configDict):
             print(red("Cannot compile with Java"))
+            runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
             return False
         if not checkCuda(configDict):
             print(red("Cannot compile with NVCC, continuing without CUDA"))
@@ -1084,6 +1092,7 @@ def checkConfig():
         if not checkMatlab(configDict):
             print(red("Cannot compile with Matlab, continuing without Matlab"))
             newConf["MATLAB"]="False"
+            runJob("rm xmipp_mex*")
         newConf['VERIFIED']="True"
         updateConfig(newConf)
     else:
@@ -1499,7 +1508,7 @@ def usage(msg=''):
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
           "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + CONFIG_FILE_NAME + ")\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
-          "   config:                     Configure compilation variables. Set the environment variable XMIPP_NOSCIPION=True\n"
+          "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
@@ -1627,6 +1636,11 @@ if __name__ == '__main__':
         mode = sys.argv[1]
     else:
         mode = "all"
+
+    askUser = True
+    if 'noAsk' in sys.argv:
+        askUser = False
+        sys.argv.pop(sys.argv.index('noAsk'))
 
     # if not ensureGit():
     #     sys.exit(-1)
