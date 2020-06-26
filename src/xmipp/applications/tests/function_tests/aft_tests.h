@@ -233,6 +233,11 @@ public:
             if (condition(x, y, z, n, b, inPlace, isForward)) {
                 // make sure we have enough memory
                 size_t totalBytes = ft->estimateTotalBytes(settings);
+                // since version 9.1 // FIXME DS check
+                // forward transformation can use much less memory than inverse one
+                if (bothDirections) {
+                    totalBytes = std::max(totalBytes, ft->estimateTotalBytes(settings.createInverse()));
+                }
                 if (availableBytes < totalBytes) {
                     skippedSize++;
                     continue;
