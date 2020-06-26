@@ -48,7 +48,7 @@ public:
             T re = out[i].real();
             T im = out[i].imag();
             T mag = (re * re) + (im * im);
-            ASSERT_NEAR((T)1, std::sqrt(mag), delta);
+            ASSERT_NEAR((T)1, std::sqrt(mag), delta) << " at " << i;
         }
 
         delete[] in;
