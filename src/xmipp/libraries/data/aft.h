@@ -28,6 +28,7 @@
 
 #include <type_traits>
 #include <complex>
+#include <limits>
 #include "hw.h"
 #include "data/fft_settings_new.h"
 
@@ -42,6 +43,10 @@ public:
     virtual size_t estimatePlanBytes(const FFTSettingsNew<T> &settings) = 0;
     virtual size_t estimateTotalBytes(const FFTSettingsNew<T> &settings) {
         size_t planBytes = estimatePlanBytes(settings);
+        if (0 ==  planBytes) {
+            // plan cannot be created
+            return std::numeric_limits<size_t>::max(); // FIXME DS improve API
+        }
         size_t dataBytes = settings.sBytesBatch()
                 + (settings.isInPlace() ? 0 : settings.fBytesBatch());
         return planBytes + dataBytes;
