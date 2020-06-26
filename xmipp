@@ -624,8 +624,9 @@ def configCompiler(configDict):
             print(yellow("'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib/x86_64-linux-gnu"])
             hdf5Lib = askPath(hdf5Lib, askUser)
-            configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
-            updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
+            if hdf5Lib:
+                configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
+                updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
 
     if configDict["INCDIRFLAGS"] == "":
         localInc = "%s/include" % info['data']  # /usr/local/include or /path/to/virtEnv/include
@@ -637,7 +638,8 @@ def configCompiler(configDict):
             print(yellow("Headers for 'libhdf5' not found at '%s'." % localInc))
             hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
             hdf5Inc = askPath(hdf5Inc, askUser)
-            configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
+            if hdf5Inc:
+                configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
     if configDict["PYTHON_LIB"] == "":
         # malloc flavour is not needed from 3.8
@@ -719,9 +721,10 @@ def configMPI(configDict):
             print(yellow("'mpirun' and 'mpiexec' not found in the PATH"))
             mpiDir = findFileInDirList('mpirun', mpiBinCandidates)
             mpiDir = askPath(mpiDir, askUser)
-            configDict["MPI_RUN"] = os.path.join(mpiDir, "mpirun")
-            checkProgram(configDict["MPI_RUN"])
-            updateXmippEnv(PATH=mpiDir)
+            if mpiDir:
+                configDict["MPI_RUN"] = os.path.join(mpiDir, "mpirun")
+                checkProgram(configDict["MPI_RUN"])
+                updateXmippEnv(PATH=mpiDir)
     if configDict["MPI_CC"] == "":
         if checkProgram("mpicc", False):
             configDict["MPI_CC"] = "mpicc"
@@ -730,8 +733,9 @@ def configMPI(configDict):
             print(yellow("'mpicc' not found in the PATH"))
             mpiDir = findFileInDirList('mpicc', mpiBinCandidates)
             mpiDir = askPath(mpiDir, askUser)
-            configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
-            checkProgram(configDict["MPI_CC"])
+            if mpiDir:
+                configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
+                checkProgram(configDict["MPI_CC"])
     if configDict["MPI_CXX"] == "":
         if checkProgram("mpicxx", False):
             configDict["MPI_CXX"] = "mpicxx"
@@ -740,8 +744,9 @@ def configMPI(configDict):
             print(yellow("'mpicxx' not found in the PATH"))
             mpiDir = findFileInDirList('mpicxx', mpiBinCandidates)
             mpiDir = askPath(mpiDir, askUser)
-            configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
-            checkProgram(configDict["MPI_CXX"])
+            if mpiDir:
+                configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
+                checkProgram(configDict["MPI_CXX"])
 
     if configDict["MPI_LINKERFORPROGRAMS"] == "":
         configDict["MPI_LINKERFORPROGRAMS"] = configDict["MPI_CXX"]
