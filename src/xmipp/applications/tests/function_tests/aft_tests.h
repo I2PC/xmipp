@@ -185,7 +185,7 @@ public:
                 for (size_t y = 0; y < s.sDim().y(); ++y) {
                     for (size_t x = 0; x < s.sDim().x(); ++x) {
                         size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
-                        ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta);
+                        ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta) << " at " << index;
                     }
                 }
             }
