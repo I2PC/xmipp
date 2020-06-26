@@ -19,11 +19,11 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": False
   },
 
-  "xmipp_deepVolPostPro": {
+  "xmipp_deepEMhancer": {
     "pythonVersion": "3.6",
-    "dependencies": ["tensorflow-gpu=1.14", "keras=2.2.4", "numba=0.45.1", "pandas=0.25", "scikit-image=0.15", "scikit-learn=0.21", "scipy=1.3", "tqdm=4"],
+    "dependencies": ["deepemhancer=0.12", "numba=0.45"],
     "channels": ["rsanchez1369", "anaconda", "conda-forge"],
-    "pipPackages": ['alt-model-checkpoint==1.13.0', 'git+https://www.github.com/keras-team/keras-contrib.git', 'mrcfile==1.1.2', 'keras-radam==0.12.0'],
+    "pipPackages": [],
     "defaultInstallOptions": {},
     "xmippEnviron": False
 }

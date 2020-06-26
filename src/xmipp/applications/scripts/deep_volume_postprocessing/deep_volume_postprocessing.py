@@ -33,7 +33,7 @@ import xmippLib
 
 
 class ScriptMicrographCleanerEm(XmippScript):
-    _conda_env = 'xmipp_deepVolPostPro'
+    _conda_env = 'xmipp_deepEMhancer'
 
     def __init__(self):
 
@@ -49,7 +49,7 @@ class ScriptMicrographCleanerEm(XmippScript):
         return defaultVal
 
     def defineParams(self):
-        self.addUsageLine('Apply a CCN to post-process an EM volume to obtain a masked and sharpened-like volume in an automatic fashion\n.'
+        self.addUsageLine('DeepEHhancer. Apply a CCN to post-process an EM volume to obtain a masked and sharpened-like volume in an automatic fashion\n.'
                           'Normalization of the input volume is key, so unmasked volumes should be provided as input. There are 3 normalization options: \n'
                           '1) Automatic (default)\n'
                           '2) Providing the statistics of the noise'
@@ -68,10 +68,11 @@ class ScriptMicrographCleanerEm(XmippScript):
 
 
         self.addParamsLine(' [--sizeThr <sizeThr> <F=0.8> ]: Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
-                           '. Ranges 0..1. Default 0.8')
+                             '. Ranges 0..1. Default 0.8')
 
         self.addParamsLine('[ -g <gpuId>   <N=0> ] : GPU id to employ. Default 0. use -1 for CPU-only computation or "all" to use all devices found in '
                            'CUDA_VISIBLE_DEVICES (option for slurm)')
+        self.addParamsLine('[ -b <batchSize>   <N=6> ] : Number of cubes to process simultaneously. Lower it if CUDA Out Of Memory error happens and increase it if low GPU performance observed')
 
         self.addParamsLine(' [--binaryMask <binMask>]        : Normalization-> Binary mask volume to compute stats for normalization. Only mrc format allowed ')
         self.addParamsLine(' [--noise_stats_mean <mean> ]   : Normalization-> Noise stats mean  for normalization ')
@@ -81,37 +82,36 @@ class ScriptMicrographCleanerEm(XmippScript):
         ## examples
         self.addExampleLine('xmipp_deep_volume_postprocessing -i path/to/inputVol.mrc -o path/to/outputVol.mrc ')
         
-    def run(self): #TODO: Use externally instaled DVP instead of this fixup
+    def run(self):
 
-        params = " && python -m deepVolumePostprocessing.applyProcessVol.processVol "
-        params += "  --locscale "
-        params += " -i %s " % self.getParam('-i')
+
+        params= " -i %s " % self.getParam('-i')
         if self.checkParam('-i2'):
           params += " -i2 %s " % self.getParam('-i2')
 
         params += " -o %s " % self.getParam('-o')
 
         if self.checkParam('--checkpoint'):
-          params += " -c %s "%os.path.expanduser(self.getParam("--checkpoint"))
+          params += " --deepLearningModelPath %s "%os.path.expanduser(self.getParam("--checkpoint"))
         else:
-          params += " -c  %s "%XmippScript.getModel("deepVolProc", "bestCheckpoint_locscale.hd5")
+          params += " --deepLearningModelPath  %s "%XmippScript.getModel("deepEMhancer", "production_checkpoints/deepEMhancer_tightTarget.hd5")
 
         if self.checkParam('--sampling_rate'):
-          params += " --sampling_rate %f" %  self.getDoubleParam('--sampling_rate')
+          params += " --samplingRate %f" %  self.getDoubleParam('--sampling_rate')
 
         if self.checkParam('--binaryMask'):
           params += " --binaryMask %s " % (os.path.abspath(self.getParam('--binaryMask')))
 
         elif self.checkParam('--noise_stats_mean'):
-          params += " --noise_stats %f %f " % (self.getDoubleParam('--noise_stats_mean'), self.getDoubleParam('--noise_stats_std'))
+          params += " --noiseStats %f %f " % (self.getDoubleParam('--noise_stats_mean'), self.getDoubleParam('--noise_stats_std'))
 
         if self.checkParam('--cleaningStrengh'):
-          params += " --cleaningStrengh %f " % self.getDoubleParamWithDefault('--cleaningStrengh', defaultVal=0.1)
+          params += " --cleaningStrengh %f " % self.getDoubleParamWithDefault('--cleaningStrengh', defaultVal=-1)
 
-        #TODO: change it to directly call the class method
-        import xmippPyModules.deepVolumePostprocessing as dvp_module
-        rootDir=os.path.abspath( os.path.split(os.path.split(dvp_module.__file__)[0])[0] )
-        cmd= "cd  "+rootDir
+        params+= "-g %s "%self.getParam("-g")
+        params+= "-b %s "%self.getParam("-b")
+
+        cmd= "deepemhancer"
         print( cmd+" "+params)
         self.runCondaCmd(cmd, params)
 
