@@ -1625,6 +1625,11 @@ if __name__ == '__main__':
     # Running always under this own directory.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+    askUser = True
+    if 'noAsk' in sys.argv:
+        askUser = False
+        sys.argv.pop(sys.argv.index('noAsk'))
+
     n = len(sys.argv)
     if n == 2 and (sys.argv[1]=="help" or sys.argv[1]=="-help" or sys.argv[1]=="--help" or sys.argv[1]=="-h"):
         usage()
@@ -1636,11 +1641,6 @@ if __name__ == '__main__':
         mode = sys.argv[1]
     else:
         mode = "all"
-
-    askUser = True
-    if 'noAsk' in sys.argv:
-        askUser = False
-        sys.argv.pop(sys.argv.index('noAsk'))
 
     # if not ensureGit():
     #     sys.exit(-1)
