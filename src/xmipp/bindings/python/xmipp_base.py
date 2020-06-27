@@ -204,14 +204,14 @@ class CondaEnvManager(object):
         if not condaExe and condaHome:
             condaExe = os.path.join(condaHome, 'bin', 'conda')
 
-        condaExe = os.path.expanduser(condaExe)
+        condaExe = os.path.expanduser(condaExe if condaExe else '')
         if os.path.isfile(condaExe):
             return condaExe
         else:
             print("No conda found...")
             if condaActCmd:
                 print("please, check the CONDA_ACTIVATION_CMD = %s "
-                      "in the config file. If it is fine, try to add "
+                      "in the config file. If it seems fine, try to add "
                       "CONDA_EXE = /path/to/conda/executable" % condaActCmd)
 
     @staticmethod
@@ -222,11 +222,15 @@ class CondaEnvManager(object):
         cmd = "%s info --env" % CondaEnvManager.getCondaExe()
         p = subprocess.Popen(cmd, shell=True,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in p.stdout.readlines():
+        output = p.stdout.readlines()
+        for line in output:
             regex = re.match(condaEnv+"[ ]+(\*)?[ ]+(.*)", line.decode("utf-8"))
             if regex:
                 # isActived = regex.group(1) is not None
                 return regex.group(2)
+        print("\n$ "+cmd)
+        print("".join([l.decode('utf8') for l in output]))
+        print(" >>> '%s' conda environment not found... (check list above)" % condaEnv)
 
     @staticmethod
     def getCondaEnv(env, condaEnv):
@@ -273,8 +277,9 @@ class CondaEnvManager(object):
             condaActCmd = condaActCmd[:-1]
 
         if not condaActCmd:
-            print("Conda activation command not found. "
-                  "Please, add CONDA_ACTIVATION_CMD to the config file.")
+            msg = ("\n\nConda activation command not found. "
+                   "Please, add CONDA_ACTIVATION_CMD to the config file.\n\n\n")
+            condaActCmd = "echo %s exit " % msg
         return condaActCmd
 
     @staticmethod
@@ -283,6 +288,26 @@ class CondaEnvManager(object):
 
         for envName, envDict in CondaEnvManager.XMIPP_CONDA_ENVS.items():
             yield CondaEnvManager.installEnvironCmd(envName, options, **envDict)
+
+    @staticmethod
+    def getCurInstalledDep(dependency, defaultVersion=None, environ=None):
+        """ Returns the current version of a certain dependency
+            installed in pip. Returns just the dependency if not found.
+            i.e.: 'numpy==1.18.1'=getCurInstalledDep('numpy') <- 1.18.1 ver. found
+                  'numpy==1.18.0'=getCurInstalledDep('numpy', 1.18.0) <- no ver. found
+                  'numpy'=getCurInstalledDep('numpy') <- no ver. found
+        """
+        env = environ if environ else os.environ
+        p = subprocess.Popen("pip list --no-cache-dir | grep "+dependency,
+                             shell=True, env=env,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in p.stdout.readlines():
+            # expected string: "dep    1.2.34a3"
+            reMatch = re.match("%s +([0-9a-zA-Z\.]+)" % dependency,
+                               line.decode('utf8').strip())
+            if reMatch:
+                defaultVersion = reMatch.group(1)
+        return dependency+'=='+defaultVersion if defaultVersion else dependency
 
     @staticmethod
     def installEnvironCmd(environName, installCmdOptions=None, **kwargs):
@@ -305,6 +330,10 @@ class CondaEnvManager(object):
 
         options = installCmdOptions or kwargs.get('defaultInstallOptions', {})
         pipPack = kwargs.get('pipPackages', [])
+        if kwargs.get('xmippEnviron', True):
+            # xmippLib is compiled using a certain numpy.
+            #  If it is load in the conda environment, numpy must be the same.
+            pipPack.append(CondaEnvManager.getCurInstalledDep('numpy'))
 
         # Composing the commands
         cmdList = []

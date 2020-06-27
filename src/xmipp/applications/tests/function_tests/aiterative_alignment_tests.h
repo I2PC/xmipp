@@ -72,9 +72,9 @@ public:
             } else {
                 float refR = expR.at(std::floor((expR.size() - 1) * 0.72f));
                 EXPECT_GE(10 * refR, diffsR.at(std::floor((expR.size() - 1) * 0.77f))) << "percentile 77";
-                EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.51f))) << "percentile 51";//-
+                EXPECT_GE(1, diffsX.at(std::floor((diffsX.size() - 1) * 0.50f))) << "percentile 50";//-
                 EXPECT_GE(2, diffsX.at(std::floor((diffsX.size() - 1) * 0.63f))) << "percentile 63";
-                EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.48f))) << "percentile 48";//-
+                EXPECT_GE(1, diffsY.at(std::floor((diffsY.size() - 1) * 0.47f))) << "percentile 47";//-
                 EXPECT_GE(2, diffsY.at(std::floor((diffsY.size() - 1) * 0.63f))) << "percentile 63";
             }
         } else {
