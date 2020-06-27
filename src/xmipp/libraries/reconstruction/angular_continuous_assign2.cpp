@@ -35,6 +35,7 @@ ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()
     each_image_produces_an_output = true;
     projector = NULL;
     ctfImage = NULL;
+    rank = 0;
 }
 
 ProgAngularContinuousAssign2::~ProgAngularContinuousAssign2()
@@ -151,10 +152,18 @@ void ProgAngularContinuousAssign2::startProcessing()
 void ProgAngularContinuousAssign2::preProcess()
 {
     // Read the reference volume
-    Image<double> V;
-    V.read(fnVol);
-    V().setXmippOrigin();
-    Xdim=XSIZE(V());
+	Image<double> V;
+	if (rank==0)
+	{
+		V.read(fnVol);
+		V().setXmippOrigin();
+	    Xdim=XSIZE(V());
+	}
+	else
+	{
+		size_t ydim, zdim, ndim;
+		getImageSize(fnVol, Xdim, ydim, zdim, ndim);
+	}
 
     Ip().initZeros(Xdim,Xdim);
     E().initZeros(Xdim,Xdim);
@@ -187,7 +196,10 @@ void ProgAngularContinuousAssign2::preProcess()
     }
 
     // Construct projector
-    projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    if (rank==0)
+    	projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    else
+    	projector = new FourierProjector(pad,Ts/maxResol,BSPLINE3);
 
     // Low pass filter
     filter.FilterBand=LOWPASS;
