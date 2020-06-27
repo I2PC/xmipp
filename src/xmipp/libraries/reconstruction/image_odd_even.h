@@ -41,15 +41,16 @@
 
 class ProgOddEven : public XmippProgram
 {
-public:
+private:
 	 /** Filenames */
 	FileName fnOut_odd, fnOut_even, fnImg, splitType;
 	bool sumFrames;
 
-public:
+private:
     void defineParams();
     void readParams();
-    void produceSideInfo();
+    // This function generates the metadata associated to the input image stack
+    void fromimageToMd(FileName fnImg, MetaData &movienew);
     void run();
 
 
