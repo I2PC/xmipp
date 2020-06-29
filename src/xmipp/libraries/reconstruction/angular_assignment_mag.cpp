@@ -102,11 +102,19 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
 	double maxSphericalDistance = angStep*2.;
+	std::cout<< "processing neighbors graph..."<<std::endl;;
 
+/*comment
+std::ofstream outCoord("/home/jeison/Escritorio/projCoordinates.txt"); // */
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
 		double tiltj;
 		double psij;
+/*comment
+double cx,cy,cz;
+mdRef.getValue(MDL_X,cx,__iter.objId);
+mdRef.getValue(MDL_Y,cy,__iter.objId);
+mdRef.getValue(MDL_Z,cz,__iter.objId); // */
 		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
@@ -135,7 +143,12 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
+/*comment
+outCoord<<cx<<"\t"<<cy<<"\t"<<cz<<"\n"; // */
 	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
+
+/*comment
+outCoord.close(); // */
 
 	// compute Laplacian Matrix
 	DMatrix L_mat;
@@ -156,11 +169,11 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 
 /* Laplacian Matrix is basic for signal graph processing stage
  * is computed only once within preProcess() method */
-void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
+void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &matL,
 		const std::vector< std::vector<int> > &allNeighborsjp,
 		const std::vector< std::vector<double> > &allWeightsjp){
 
-	L.initZeros(sizeMdRef,sizeMdRef);
+	matL.initZeros(sizeMdRef,sizeMdRef);
 
 	for(int i=0; i<sizeMdRef; ++i){
 		std::vector<int> neighborsjp = allNeighborsjp[i];
@@ -171,11 +184,15 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &L,
 		for(std::vector<int>::iterator it=neighborsjp.begin(); it!=neighborsjp.end(); ++it){
 			j += 1;
 			indx = (*it);
-			MAT_ELEM(L,i,indx) = -weightsjp[j];
+			MAT_ELEM(matL,i,indx) = -weightsjp[j];
 			sumWeight += weightsjp[j];
 		}
-		MAT_ELEM(L,i,i) = sumWeight - 1.; // -1 because is necessary to remove the "central" weight
+		MAT_ELEM(matL,i,i) = sumWeight - 1.; // -1 because is necessary to remove the "central" weight
 	}
+
+
+/*comment write-out Laplacian matrix to check
+matL.write("/home/jeison/Escritorio/LaplacianMatrix.txt"); // */
 }
 
 void ProgAngularAssignmentMag::preProcess() {
@@ -226,7 +243,7 @@ void ProgAngularAssignmentMag::preProcess() {
 	// for storage of rot and tilt of reference images
 	referenceRot.resize(sizeMdRef);
 	referenceTilt.resize(sizeMdRef);
-
+	std::cout<<"processing reference library..."<<std::endl;;
 	int j = -1;
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;
@@ -259,6 +276,7 @@ void ProgAngularAssignmentMag::preProcess() {
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
 	// check if eigenvectors file already created
+
 	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
 	std::ifstream in;
 	in.open(fnEigenVect.c_str(), std::ios::in);
@@ -271,9 +289,10 @@ void ProgAngularAssignmentMag::preProcess() {
 		in.close();
 		eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
 		eigenvectors.read(fnEigenVect);
-	}
+	} // */
 
 	// Symmetry List
+
 	if (fnSym != "") {
 		SL.readSymmetryFile(fnSym);
 		for (int sym = 0; sym < SL.symsNo(); sym++) {
@@ -284,7 +303,7 @@ void ProgAngularAssignmentMag::preProcess() {
 			L.push_back(auxL);
 			R.push_back(auxR);
 		}
-	}
+	} // */
 
 	if(useForValidation){
 		// read reference volume to be re-projected when comparing previous assignment
@@ -313,6 +332,9 @@ void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Mat
 
 	Matrix2D<double> eigenvectorTrans = eigenvectors.transpose();
 	ccGFT = eigenvectorTrans*ccVecIn;
+
+/*comment
+ccGFT.write("/home/jeison/Escritorio/ccGFT.txt"); // */
 
 	// define filtering base
 	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
@@ -370,6 +392,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	MultidimArray<double> ccVectorRot;
 
 	// loop over all reference images
+	// /*
 	for (int k = 0; k < sizeMdRef; ++k) {
 		// computing relative rotation and shift
 		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot);
@@ -417,7 +440,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			mCurrentImageAligned.setXmippOrigin();
 			corr = alignImages(vecMDaRef[Idx[k]], mCurrentImageAligned, M, DONT_WRAP);
 			M = M.inv();
-			transformationMatrix2Parameters2D(M,flip,scale,Tx,Ty,psi);
+			transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
 
 			if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
 				corr /= 3;
@@ -433,6 +456,40 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
 		}
 	}
+	// */
+
+	// one loop search using alignImages
+	/*
+	std::vector<double> bestTx2(sizeMdRef, 0.);
+	std::vector<double> bestTy2(sizeMdRef, 0.);
+	std::vector<double> bestPsi2(sizeMdRef, 0.);
+	MultidimArray<double> &MDaInAux = ImgIn();
+	MDaInAux.setXmippOrigin();
+	MultidimArray<double> mCurrentImageAligned;
+	double corr, scale;
+	bool flip;
+	for (int k = 0; k < sizeMdRef; ++k) {
+		// find rotation and shift using alignImages
+		Matrix2D<double> M;
+		mCurrentImageAligned = MDaInAux;
+		mCurrentImageAligned.setXmippOrigin();
+		corr = alignImages(vecMDaRef[k], mCurrentImageAligned, M, DONT_WRAP);
+		M = M.inv();
+		transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
+
+		if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
+			corr /= 3;
+
+		VEC_ELEM(ccvec, k) = corr;
+		bestTx2[k] = Tx;
+		bestTy2[k] = Ty;
+		bestPsi2[k] = psi;
+	}
+	// */
+
+/*comment
+ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
+// */
 
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
@@ -444,8 +501,19 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	// choose best candidate direction from graph filtered ccvect signal
 	int idxfilt = ccvec_filt.maxIndex();
 
+/*comment
+ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
+std::ofstream outCandidateBef("/home/jeison/Escritorio/bestCandidateBefore.txt");
+outCandidateBef<<idx<<"\n";
+outCandidateBef.close();
+std::ofstream outCandidate("/home/jeison/Escritorio/bestCandidateGraph.txt");
+outCandidate<<idxfilt<<"\n";
+outCandidate.close();
+// */
+
 
 	// angular distance between this two directions
+	// /*
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
 	double rotj = referenceRot.at(idx);
@@ -468,10 +536,10 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		auxSphericalDist = RAD2DEG(spherical_distance(dirj, dirjp));
 		if (auxSphericalDist < sphericalDistance)
 			sphericalDistance = auxSphericalDist;
-	}
+	} // */
 
-	// reading info of reference image candidate
 	// set output alignment parameters values
+	// idx --> idxfilt
 	double rotRef = referenceRot.at(idx);
 	double tiltRef = referenceTilt.at(idx);
 	double shiftX = bestTx2[idx];
@@ -479,10 +547,11 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	double anglePsi = bestPsi2[idx];
 	corr = ccvec[idx];
 
-	// is this direction a reliable candidate?
-	double maxDistance = 3. * angStep;
-	if (sphericalDistance > maxDistance)
-		corr *= exp(-.5*sphericalDistance/angStep);
+//	// is this direction a reliable candidate?
+//	double maxDistance = 3. * angStep;
+//	// remove this condition
+//	if (sphericalDistance > maxDistance)
+//		corr *= exp(-.5*sphericalDistance/angStep);
 
 	//save metadata of images with angles
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
@@ -496,9 +565,43 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	//rowOut.setValue(MDL_FLIP, flip);
 	rowOut.setValue(MDL_WEIGHT, 1.);
 	rowOut.setValue(MDL_WEIGHT_SIGNIFICANT, 1.);
+	rowOut.setValue(MDL_GRAPH_DISTANCE2MAX, sphericalDistance);
 
 
-	if(useForValidation){
+	if(!useForValidation){
+		// align & correlation between reference images located at idx and idxfilt
+		Matrix2D<double> M2;
+		double graphCorr = alignImages(vecMDaRef[idx], vecMDaRef[idxfilt], M2, DONT_WRAP);
+		rowOut.setValue(MDL_GRAPH_CC, graphCorr);
+	}
+	else{
+		// assignment in this run
+		// get projection of volume from coordinates computed using my method
+		Projection P2;
+		double initPsiAngle = 0.;
+		projectVolume(refVol(), P2, refYdim, refXdim, rotRef, tiltRef, initPsiAngle);
+		MultidimArray<double> projectedReference2(Ydim, Xdim);
+		projectedReference2 = P2();
+
+		/*comment
+		std::cout<< formatString("\033[31m correlacion entre referencias %.4f !! \033[0m \n",refCorr);
+		Image<double> save;
+		save() = projectedReference2;
+		save.write("/home/jeison/Escritorio/projectionIdx.xmp"); // */
+
+		double filtRotRef = referenceRot.at(idxfilt);
+		double filtTiltRef = referenceTilt.at(idxfilt);
+		Projection P3;
+		projectVolume(refVol(), P3, refYdim, refXdim, filtRotRef, filtTiltRef, initPsiAngle);
+		MultidimArray<double> projectedReference3(Ydim, Xdim);
+		projectedReference3 = P3();
+
+		// align & correlation between reference images located at idx and idxfilt
+		Matrix2D<double> M2;
+		double graphCorr = alignImages(projectedReference2, projectedReference3, M2, DONT_WRAP);
+		rowOut.setValue(MDL_GRAPH_CC, graphCorr);
+
+		// related to previous assignment
 		double old_rot, old_tilt, old_psi, old_shiftX, old_shiftY;
 		rowIn.getValue(MDL_ANGLE_ROT, old_rot);
 		rowIn.getValue(MDL_ANGLE_TILT, old_tilt);
@@ -508,10 +611,27 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 
 		// get projection of volume from this coordinates
 		Projection P;
-		double initPsiAngle = 0.;
 		projectVolume(refVol(), P, refYdim, refXdim, old_rot, old_tilt, initPsiAngle);
 		MultidimArray<double> projectedReference(Ydim, Xdim);
 		projectedReference = P();
+
+		/*comment
+		Image<double> save2;
+		save2() = projectedReference;
+		save2.write("/home/jeison/Escritorio/projectionPrevious.xmp"); // */
+
+		// align & correlation between reference images both methods
+		// projectedReference2 is from this assignment
+		Matrix2D<double> M;
+		projectedReference2 = P2();
+		double refCorr = alignImages(projectedReference, projectedReference2, M, DONT_WRAP);
+
+
+		// align & correlation between reference images by previous assignment and idxfilt
+		projectedReference = P();
+		projectedReference3 = P3();
+		graphCorr = alignImages(projectedReference, projectedReference3, M, DONT_WRAP);
+
 
 		MultidimArray<double> mdainShifted(Ydim, Xdim);
 		mdainShifted.setXmippOrigin();
@@ -541,10 +661,38 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 				algorithmSD = auxSphericalDist2;
 
 		}
-		// to assess previous alignment
-		if (algorithmSD > maxDistance)
-			prevCorr *= exp(-.5*algorithmSD/angStep);
-		rowOut.setValue(MDL_ANGULAR_GRAPHCONSISTENCE, prevCorr);
+
+		/*comment
+		std::cout<< formatString("\033[35m correlacion %.4f antes \033[0m \n",prevCorr); // */
+
+		// remove this condition based on distance
+//		// to assess previous alignment
+//		if (algorithmSD > maxDistance)
+//			prevCorr *= exp(-.5*algorithmSD/angStep);
+//		rowOut.setValue(MDL_REF_CONSISTENCY, prevCorr);
+
+		// change correlation value based on similarity of projection images
+		// prevCorr *= exp(-.5 * (1 - refCorr) * (1 - refCorr) / (0.01)); // (1-refCorr)^2 / (1-0.90)^2
+		rowOut.setValue(MDL_MAXCC_PREVIOUS, prevCorr);
+		rowOut.setValue(MDL_GRAPH_DISTANCE2MAX_PREVIOUS, algorithmSD);
+		rowOut.setValue(MDL_GRAPH_CC_PREVIOUS, graphCorr);
+		//double refSimilarity =  exp(-.5 * (1 - refCorr) * (1 - refCorr) / (0.01)); // (1-refCorr)^2 / (1-0.90)^2
+		rowOut.setValue(MDL_ASSIGNED_DIR_REF_CC, refCorr);
+
+
+		/*comment
+		double factor = exp(-.5*(1-refCorr)*(1-refCorr)/( 0.04 ));
+		std::cout<< formatString("\033[35m correlacion %.4f despues factor %.4f \033[0m \n",prevCorr, factor);
+
+		std::ofstream prevCoord("/home/jeison/Escritorio/previousCoordinates.txt");
+		prevCoord<<old_rot<<"\n";
+		prevCoord<<old_tilt<<"\n";
+		prevCoord.close();  // */
+
+		/*comment
+		std::cout<<"Press enter!\n";
+		std::cin.ignore();
+		// */
 	}// end if(useForValidation)
 }
 
@@ -591,13 +739,13 @@ void ProgAngularAssignmentMag::applyCircularMask(
 	}
 }
 
-/* get COMPLETE fourier spectrum of Images. It should be changed for half */
+/* get COMPLETE fourier spectrum of Images */
 void ProgAngularAssignmentMag::applyFourierImage(MultidimArray<double> &data,
 		MultidimArray<std::complex<double> > &FourierData) {
 	transformerImage.completeFourierTransform(data, FourierData);
 }
 
-/* get COMPLETE fourier spectrum of polarRepresentation of Magnitude. It should be changed for half */
+/* get COMPLETE fourier spectrum of polarRepresentation of Magnitude.*/
 void ProgAngularAssignmentMag::applyFourierImage(MultidimArray<double> &data,
 		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
 	(void)ang;
@@ -614,7 +762,7 @@ void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
 void ProgAngularAssignmentMag::applyFourierImage2(MultidimArray<double> &data,
 		MultidimArray<std::complex<double> > &FourierData, const size_t &ang) {
 	(void)ang;
-	transformerPolarImage.FourierTransform(data, FourierData, true); // false --> true para generar copia
+	transformerPolarImage.FourierTransform(data, FourierData, true); // false --> true, to make a copy
 }
 
 /* first try one half of fourier spectrum of polarRepresentation of image in real space*/
