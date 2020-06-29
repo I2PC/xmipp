@@ -49,7 +49,7 @@ class ScriptMicrographCleanerEm(XmippScript):
         return defaultVal
 
     def defineParams(self):
-        self.addUsageLine('DeepEHhancer. Apply a CCN to post-process an EM volume to obtain a masked and sharpened-like volume in an automatic fashion\n.'
+        self.addUsageLine('DeepEMhancer. Apply a CCN to post-process an EM volume to obtain a masked and sharpened-like volume in an automatic fashion\n.'
                           'Normalization of the input volume is key, so unmasked volumes should be provided as input. There are 3 normalization options: \n'
                           '1) Automatic (default)\n'
                           '2) Providing the statistics of the noise'
