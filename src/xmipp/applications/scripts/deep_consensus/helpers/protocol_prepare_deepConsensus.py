@@ -80,7 +80,8 @@ class XmippProtPrepareDeepConsensus(ProtParticlePicking, XmippProtocol):
 
     def _defineParams(self, form):
         # GPU settings
-        form.addHidden(params.USE_GPU, params.BooleanParam, default=True,
+        form.addHidden(params.USE_GPU, params.BooleanParam,
+                       default=self.isCudaInstalled(),
                        expertLevel=params.LEVEL_ADVANCED,
                        label="Use GPU (vs CPU)",
                        help="Set to true if you want to use GPU implementation "

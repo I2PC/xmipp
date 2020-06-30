@@ -75,7 +75,8 @@ SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
 XMIPP_ENV = {}
 
 def updateXmippEnv(pos='begin', realPath=True, **kwargs):
-    """ Add/update a variable in XMIPP_ENV dictionary (never delete/replace)
+    """ Add/update a variable in XMIPP_ENV dictionary
+        pos = {'begin', 'end', 'replace'}
     """
     for key, value in kwargs.items():
         if isinstance(value, str) and realPath:
@@ -83,8 +84,10 @@ def updateXmippEnv(pos='begin', realPath=True, **kwargs):
         if key in XMIPP_ENV:
             if pos == 'begin':
                 XMIPP_ENV[key] = value + os.pathsep + XMIPP_ENV[key]
-            else:
+            elif pos == 'end':
                 XMIPP_ENV[key] = XMIPP_ENV[key] + os.pathsep + value
+            elif pos == 'replace':
+                XMIPP_ENV[key] = value
         else:
             XMIPP_ENV[key] = value
 
@@ -898,6 +901,7 @@ def configCuda(configDict):
             else:
                 print(yellow("CUDA not found. Continuing only with CPU integration."))
                 configDict["CUDA"] = "False"
+    updateXmippEnv(CUDA=configDict["CUDA"]=="True")
     if configDict["CUDA"]=="True":
         if configDict["NVCC"]=="":
             if checkProgram(nvcc):
@@ -925,16 +929,19 @@ def configCuda(configDict):
                 compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
                 for ver in compVers:
                     cxx4cuda = currentCxx+'-'+ver
-                    if checkProgram(cxx4cuda):
+                    if checkProgram(cxx4cuda, False):
                         configDict["CXX_CUDA"] = cxx4cuda
                         break
                 if configDict["CXX_CUDA"]:
                     configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"], askUser)
-                else:
-                    print(red("No alternative found. Skipping CUDA compilation.\n"
-                              "If an alternative exists, please set 'CXX_CUDA' "
-                              "in '%s' to point to there." % CONFIG_FILE_NAME))
+                if not checkProgram(configDict["CXX_CUDA"], False):
+                    print(red("No alternative found or not working. "
+                              "Skipping CUDA compilation.\n"
+                              "If an alternative exists, please set "
+                              "'CXX_CUDA=/path/to/g++5' and 'CUDA=True' in '%s'."
+                              % CONFIG_FILE_NAME))
                     configDict["CUDA"] = "False"
+                    updateXmippEnv(CUDA=False, pos='replace')
                     return
             else:
                 configDict["CXX_CUDA"] = currentCxx
@@ -964,7 +971,6 @@ def configCuda(configDict):
                                                     " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
                     updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
                     updateXmippEnv(LD_LIBRARY_PATH=cudaLib+"/stubs")
-                    updateXmippEnv(CUDA=True, realPath=False)
                 else:
                     print(yellow("WARNING: system libraries for CUDA not found at '%s'!\n"
                                  "         If cuda code is not compiling, "
