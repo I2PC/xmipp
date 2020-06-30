@@ -403,9 +403,11 @@ def getDefaultBranch(repo):
     # and https://stackoverflow.com/questions/2832269/git-remote-head-is-ambiguous
     # In such a case we return None (and during e.g. clone the client should decide what is the default branch)
     if repo != XMIPP:
-        r, br = getCurrentBranch('.')
-        if r:
-            return r, br
+        r1, br = getCurrentBranch('.')
+        r2, brList = getAllBranches(repo)
+        print(brList)
+        if r1 and r2 and br in brList:
+            return True, br
     result = runJob('git remote show %s' % REPOSITORIES[repo],
         show_output=False, log=log, show_command=False)
     if result:
