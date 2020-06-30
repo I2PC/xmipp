@@ -502,6 +502,7 @@ def findFileInDirList(fnH,dirlist):
     """
     for dir in dirlist:
         validDirs = glob.glob(os.path.join(dir, fnH))
+        if fnH == 'hdf5.h': print(os.path.join(dir, fnH))
         if len(validDirs) > 0:
             return os.path.dirname(validDirs[0])
     return ''
@@ -580,7 +581,7 @@ def askPath(default='', ask=True):
         if default:
             print(yellow("Using '%s'." % default))
         else:
-            print(red("No alternative found."))
+            print(red("No alternative found in the system."))
         return default
 
 
@@ -636,7 +637,7 @@ def configCompiler(configDict):
 
         # extra libs
         if not findFileInDirList("libhdf5*", localLib):
-            print(yellow("'libhdf5' not found at '%s'." % localLib))
+            print(yellow("\n'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib/x86_64-linux-gnu"])
             hdf5Lib = askPath(hdf5Lib, askUser)
             if hdf5Lib:
@@ -646,8 +647,10 @@ def configCompiler(configDict):
                 installDepConda('hdf5')
 
     if not checkLib('-lfftw3'):
+        print(red("'libfftw3' not found in the system"))
         installDepConda('fftw')
     if not checkLib('-ltiff'):
+        print(red("'libtiff' not found in the system"))
         installDepConda('libtiff')
 
     if configDict["INCDIRFLAGS"] == "":
@@ -656,8 +659,8 @@ def configCompiler(configDict):
         configDict["INCDIRFLAGS"] += " -I%s" % localInc
 
         # extra includes
-        if not findFileInDirList("libhdf5*", localInc):
-            print(yellow("Headers for 'libhdf5' not found at '%s'." % localInc))
+        if not findFileInDirList("hdf5.h", [localInc]):
+            print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
             hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
             hdf5Inc = askPath(hdf5Inc, askUser)
             if hdf5Inc:
@@ -740,7 +743,7 @@ def configMPI(configDict):
             configDict["MPI_RUN"] = "mpiexec"
             print(green("'mpiexec' detected."))
         else:
-            print(yellow("'mpirun' and 'mpiexec' not found in the PATH"))
+            print(yellow("\n'mpirun' and 'mpiexec' not found in the PATH"))
             mpiDir = findFileInDirList('mpirun', mpiBinCandidates)
             mpiDir = askPath(mpiDir, askUser)
             if mpiDir:
@@ -752,7 +755,7 @@ def configMPI(configDict):
             configDict["MPI_CC"] = "mpicc"
             print(green("'mpicc' detected."))
         else:
-            print(yellow("'mpicc' not found in the PATH"))
+            print(yellow("\n'mpicc' not found in the PATH"))
             mpiDir = findFileInDirList('mpicc', mpiBinCandidates)
             mpiDir = askPath(mpiDir, askUser)
             if mpiDir:
@@ -763,7 +766,7 @@ def configMPI(configDict):
             configDict["MPI_CXX"] = "mpicxx"
             print(green("'mpicxx' detected."))
         else:
-            print(yellow("'mpicxx' not found in the PATH"))
+            print(yellow("\n'mpicxx' not found in the PATH"))
             mpiDir = findFileInDirList('mpicxx', mpiBinCandidates)
             mpiDir = askPath(mpiDir, askUser)
             if mpiDir:
@@ -813,7 +816,7 @@ def configJava(configDict):
     if configDict["JAVA_HOME"]=="":
         javaProgramPath = whereis('java', findReal=True)
         if not javaProgramPath:
-            print(yellow("'java' not found in the PATH"))
+            print(yellow("\n'java' not found in the PATH"))
             javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
             javaProgramPath = askPath(javaProgramPath, askUser)
         if not os.path.isdir(javaProgramPath):
@@ -883,7 +886,7 @@ def configCuda(configDict):
         if checkProgram(nvcc, False):
             configDict["CUDA"]="True"
         else:
-            print(yellow("'nvcc' not found in the PATH"))
+            print(yellow("\n'nvcc' not found in the PATH"))
             cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda-8.0/bin",
                                                  "/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
@@ -1079,7 +1082,6 @@ def config():
         new_config_dict['VERIFIED'] = 'False'
 
     configCompiler(new_config_dict)
-    getDepsWithConda(new_config_dict)
     configMPI(new_config_dict)
     configJava(new_config_dict)
     configCuda(new_config_dict)
@@ -1206,13 +1208,14 @@ def askYesNo(msg='', default=True):
 
 def installDepConda(dep):
     condaEnv = os.environ.get('CONDA_DEFAULT_ENV', 'base')
-    if (condaEnv != 'base' and
-        (not askUser or askYesNo(yellow("'%s' dependency not found. Do you want "
+    if condaEnv != 'base':
+        if not askUser or askYesNo(yellow("'%s' dependency not found. Do you want "
                                         "to install it using conda? [YES/no] "
-                                         % dep)))
-        and runJob("conda activate %s ; conda install %s -y" % (condaEnv, dep))):
-        print(green("'%s' installed in conda environ '%s'." % (dep, condaEnv)))
-        return True
+                                         % dep)):
+            print(yellow("Trying to install %s with conda" % dep))
+            if runJob("conda activate %s ; conda install %s -y" % (condaEnv, dep)):
+                print(green("'%s' installed in conda environ '%s'.\n" % (dep, condaEnv)))
+                return True
     return False
 
 
