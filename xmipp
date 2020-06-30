@@ -584,10 +584,10 @@ def askPath(default='', ask=True):
         return default
 
 
-def checkLib(libFlag):
+def checkLib(gxx, libFlag):
     """ Returns True if lib is found. """
     lines = []
-    runJob(configDict['CXX'] + ' ' + libFlag, log=lines,
+    runJob(gxx + ' ' + libFlag, log=lines,
            show_output=False, show_command=False)
     return not any(['cannot find '+libFlag in l for l in lines])
 
@@ -642,13 +642,13 @@ def configCompiler(configDict):
             if hdf5Lib:
                 configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
                 updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
-            elif not checkLib('-lhdf5_cpp'):
+            elif not checkLib(configDict['CXX'], '-lhdf5_cpp'):
                 installDepConda('hdf5')
 
-    if not checkLib('-lfftw3'):
+    if not checkLib(configDict['CXX'], '-lfftw3'):
         print(red("'libfftw3' not found in the system"))
         installDepConda('fftw')
-    if not checkLib('-ltiff'):
+    if not checkLib(configDict['CXX'], '-ltiff'):
         print(red("'libtiff' not found in the system"))
         installDepConda('libtiff')
 
