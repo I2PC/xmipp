@@ -445,8 +445,8 @@ def getDepsWithConda(configDict):
                    ('libtiff', '-ltiff')]
     for libName, libFlag in libsToCheck:
         lines = []
-        runJob(configDict['CXX'] + libFlag, log=lines,
-               show_output=False, show_command=False)
+        runJob(configDict['CXX'] + ' ' + libFlag, log=lines)#,
+               #show_output=False, show_command=False)
         if any(['cannot find '+libFlag in l for l in lines]):
             installDepConda(libName)
 
@@ -813,6 +813,10 @@ def configJava(configDict):
             print(yellow("'java' not found in the PATH"))
             javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
             javaProgramPath = askPath(javaProgramPath, askUser)
+        if not os.path.isdir(javaProgramPath):
+            installDepConda('openjdk')
+            javaProgramPath = whereis('java', findReal=True)
+
         if javaProgramPath:
             updateXmippEnv(PATH=javaProgramPath)
             javaHomeDir = javaProgramPath.replace("/jre/bin", "")
@@ -828,10 +832,9 @@ def configJava(configDict):
     if configDict["JNI_CPPPATH"]=="" and configDict["JAVA_HOME"]:
         configDict["JNI_CPPPATH"]="%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
 
-    if ((os.path.isfile((configDict["JAVAC"] % configDict) % configDict) and
+    if (os.path.isfile((configDict["JAVAC"] % configDict) % configDict) and
             os.path.isfile((configDict["JAR"] % configDict) % configDict) and
-            os.path.isdir("%(JAVA_HOME)s/include" % configDict))
-                or installDepConda('openjdk')):
+            os.path.isdir("%(JAVA_HOME)s/include" % configDict)):
         print(green("Java detected at: %s" % configDict["JAVA_HOME"]))
     else:
         print(red("No development environ for 'java' found. "
