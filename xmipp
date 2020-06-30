@@ -325,7 +325,7 @@ def pull():
 
 
 def cloneOrCheckout(repo, branch):
-    repo_dir = os.path.join('src', repo)
+    repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
     branch = branch or getBranch(repo, repo_dir)[1]
     if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
@@ -402,6 +402,10 @@ def getDefaultBranch(repo):
     # see https://stackoverflow.com/a/32503667/5484355
     # and https://stackoverflow.com/questions/2832269/git-remote-head-is-ambiguous
     # In such a case we return None (and during e.g. clone the client should decide what is the default branch)
+    if repo != XMIPP:
+        r, br = getCurrentBranch('.')
+        if r:
+            return r, br
     result = runJob('git remote show %s' % REPOSITORIES[repo],
         show_output=False, log=log, show_command=False)
     if result:
@@ -1531,9 +1535,9 @@ def usage(msg=''):
           "   create_devel_paths:         Create bashrc files for devel\n"
           "   git ...:                    Git command to all 4 repositories\n"
           "   gitConfig:                  Change the git config from https to git\n"
-          "   addModel login modelName:   Takes a deepLearning model from the src/xmipp/models/<modelName>, makes a tgz, \n"
+          "   addModel login modelPath:   Takes a deepLearning model from the 'modelPath', makes a tgz of it and \n"
           "                                   uploads the .tgz according to the <login>. \n"
-          "                                   Note that login=usr@server must have write permisions to Nolan machine.\n"
+          "                                   Note the login (usr@server) must have write permisions to Nolan machine.\n"
           "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
           "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
           "                                   <ver> usually X.YY.MM\n"
