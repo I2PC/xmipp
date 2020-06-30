@@ -437,6 +437,18 @@ def getSources(branch):
 def is_config_true(key):
     return configDict and (key in configDict) and (configDict[key] == 'True')
 
+def getDepsWithConda(configDict):
+    #           CondaName , compilingFlag
+    libsToCheck = [('fftw', '-lfftw3'),
+                   ('hdf5', '-lhdf5_cpp'),
+                   ('libtiff', '-ltiff')]
+    for libName, libFlag in libsToCheck:
+        lines = []
+        runJob(configDict['CXX'] + libFlag, log=lines,
+               show_output=False, show_command=False)
+        if any(['cannot find '+libFlag in l for l in lines]):
+            installDepConda(libName)
+
 
 def getDependencies():
     print("Getting Dependencies -------------------------------------")
@@ -815,9 +827,12 @@ def configJava(configDict):
     if configDict["JNI_CPPPATH"]=="" and configDict["JAVA_HOME"]:
         configDict["JNI_CPPPATH"]="%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
 
-    if not (os.path.isfile((configDict["JAVAC"] % configDict) % configDict) and
+    if ((os.path.isfile((configDict["JAVAC"] % configDict) % configDict) and
             os.path.isfile((configDict["JAR"] % configDict) % configDict) and
-            os.path.isdir("%(JAVA_HOME)s/include" % configDict)):
+            os.path.isdir("%(JAVA_HOME)s/include" % configDict))
+                or installDepConda('openjdk')):
+        print(green("Java detected at: %s" % configDict["JAVA_HOME"]))
+    else:
         print(red("No development environ for 'java' found. "
                   "Please, check JAVA_HOME, JAVAC, JAR and JNI_CPPPATH variables."))
 
@@ -1057,6 +1072,7 @@ def config():
         new_config_dict['VERIFIED'] = 'False'
 
     configCompiler(new_config_dict)
+    getDepsWithConda(new_config_dict)
     configMPI(new_config_dict)
     configJava(new_config_dict)
     configCuda(new_config_dict)
@@ -1176,13 +1192,19 @@ def compile(Nproc):
         return False
     return compileXmipp(Nproc)
 
+def askYesNo(msg='', default=True):
+    r = input(msg)
+    return (r.lower() not in ['n', 'no', '0'] if default else
+            r.lower() in ['y', 'yes', '1'])
 
 def installDepConda(dep):
     condaEnv = os.environ.get('CONDA_DEFAULT_ENV', 'base')
-    if condaEnv != 'base' and runJob("conda activate %s ; "
-                                     "conda install %s -y"
-                                     % (condaEnv, dep)):
-        print(green("'%s' installed using conda" % dep))
+    if (condaEnv != 'base' and
+        (not askUser or askYesNo(yellow("'%s' dependency not found. Do you want "
+                                        "to install it using conda? [YES/no] "
+                                         % dep)))
+        and runJob("conda activate %s ; conda install %s -y" % (condaEnv, dep))):
+        print(green("'%s' installed in conda environ '%s'." % (dep, condaEnv)))
         return True
     return False
 
