@@ -74,11 +74,12 @@ SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
 
 XMIPP_ENV = {}
 
-def updateXmippEnv(pos='begin', **kwargs):
+def updateXmippEnv(pos='begin', realPath=True, **kwargs):
     """ Add/update a variable in XMIPP_ENV dictionary (never delete/replace)
     """
     for key, value in kwargs.items():
-        value = os.path.realpath(value)
+        if isinstance(value, str) and realPath:
+            value = os.path.realpath(value)
         if key in XMIPP_ENV:
             if pos == 'begin':
                 XMIPP_ENV[key] = value + os.pathsep + XMIPP_ENV[key]
@@ -963,6 +964,7 @@ def configCuda(configDict):
                                                     " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
                     updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
                     updateXmippEnv(LD_LIBRARY_PATH=cudaLib+"/stubs")
+                    updateXmippEnv(CUDA=True, realPath=False)
                 else:
                     print(yellow("WARNING: system libraries for CUDA not found at '%s'!\n"
                                  "         If cuda code is not compiling, "
@@ -1051,7 +1053,7 @@ def updateConfig(updatingDict):
 
 def writeEnviron():
     with open('xmippEnv.json', 'w') as f:
-        json.dump(XMIPP_ENV, f)
+        json.dump(XMIPP_ENV, f, indent=4)
 
 def config_DL(configDict):
     k = 'USE_DL'
