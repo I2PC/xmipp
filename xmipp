@@ -326,7 +326,8 @@ def pull():
 
 def cloneOrCheckout(repo, branch):
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
-    branch = branch or getBranch(repo, repo_dir)[1]
+    if branch not in getAllBranches(repo):
+        branch = getBranch(repo, repo_dir)[1]
     if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
         if branch is None:
@@ -380,7 +381,7 @@ def getAllBranches(repo):
     if result:
         branches = [l.split(prefix)[1] for l in log]
         return True, branches
-    print(red('Cannot listl branches for ' + repo))
+    print(red('Cannot list branches for ' + repo))
     return False, None
 
 def getBranch(repo, repo_dir):
