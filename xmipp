@@ -406,7 +406,6 @@ def getDefaultBranch(repo):
     if repo != XMIPP:
         r1, br = getCurrentBranch('.')
         r2, brList = getAllBranches(repo)
-        print(brList)
         if r1 and r2 and br in brList:
             return True, br
     result = runJob('git remote show %s' % REPOSITORIES[repo],
@@ -437,18 +436,6 @@ def getSources(branch):
 
 def is_config_true(key):
     return configDict and (key in configDict) and (configDict[key] == 'True')
-
-def getDepsWithConda(configDict):
-    #           CondaName , compilingFlag
-    libsToCheck = [('fftw', '-lfftw3'),
-                   ('hdf5', '-lhdf5_cpp'),
-                   ('libtiff', '-ltiff')]
-    for libName, libFlag in libsToCheck:
-        lines = []
-        runJob(configDict['CXX'] + ' ' + libFlag, log=lines)#,
-               #show_output=False, show_command=False)
-        if any(['cannot find '+libFlag in l for l in lines]):
-            installDepConda(libName)
 
 
 def getDependencies():
@@ -577,13 +564,15 @@ def getDependenciesInclude():
 
 
 def askPath(default='', ask=True):
-    question = "type a path where to locate it: "
+    question = "type a path where to locate it"
     if ask:
         if default:
             print(yellow("Alternative found at '%s'." % default))
             question = "press [return] to use it or " + question
-        result = input(yellow("Please, "+question))
-        if not result:
+        else:
+            question = question+" or press [return] to continue"
+        result = input(yellow("Please, "+question+": "))
+        if not result and default:
             print(green(" -> "+default))
         print()
         return result if result else default
@@ -594,6 +583,13 @@ def askPath(default='', ask=True):
             print(red("No alternative found."))
         return default
 
+
+def checkLib(libFlag):
+    """ Returns True if lib is found. """
+    lines = []
+    runJob(configDict['CXX'] + ' ' + libFlag, log=lines,
+           show_output=False, show_command=False)
+    return not any(['cannot find '+libFlag in l for l in lines])
 
 def configCompiler(configDict):
     if configDict["DEBUG"] == "":
@@ -646,6 +642,13 @@ def configCompiler(configDict):
             if hdf5Lib:
                 configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
                 updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
+            elif not checkLib('-lhdf5_cpp'):
+                installDepConda('hdf5')
+
+    if not checkLib('-lfftw3'):
+        installDepConda('fftw')
+    if not checkLib('-ltiff'):
+        installDepConda('libtiff')
 
     if configDict["INCDIRFLAGS"] == "":
         localInc = "%s/include" % info['data']  # /usr/local/include or /path/to/virtEnv/include
