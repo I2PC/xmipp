@@ -922,29 +922,32 @@ def configCuda(configDict):
             currentCxx = configDict["CXX"].split()[-1]
             cxxVersion, cxxStrVersion = getGccVersion(currentCxx)
             nvccVersion, nvccFullVersion = getCudaVersion(configDict["NVCC"])
-            if cxxVersion >= 6 and nvccVersion <= 8:
-                print(yellow("Using '%s' version later than 5, "
-                             "which is incompatible with cuda-%s."
-                             % (currentCxx, nvccVersion)))
-                compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
-                for ver in compVers:
-                    cxx4cuda = currentCxx+'-'+ver
-                    if checkProgram(cxx4cuda, False):
-                        configDict["CXX_CUDA"] = cxx4cuda
-                        break
-                if configDict["CXX_CUDA"]:
-                    configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"], askUser)
-                if not checkProgram(configDict["CXX_CUDA"], False):
-                    print(red("No alternative found or not working. "
-                              "Skipping CUDA compilation.\n"
-                              "If an alternative exists, please set "
-                              "'CXX_CUDA=/path/to/g++5' and 'CUDA=True' in '%s'."
-                              % CONFIG_FILE_NAME))
-                    configDict["CUDA"] = "False"
-                    updateXmippEnv(CUDA=False, pos='replace')
-                    return
-            else:
-                configDict["CXX_CUDA"] = currentCxx
+            if configDict["CXX_CUDA"] == '':
+                # Alternative C++ compiler for cuda if current is incompatible
+                if cxxVersion >= 6 and nvccVersion <= 8:
+                    # gcc>=6 is incompatible with cuda<=8
+                    print(yellow("Using '%s' version later than 5, "
+                                 "which is incompatible with cuda-%s."
+                                 % (currentCxx, nvccVersion)))
+                    compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
+                    for ver in compVers:
+                        cxx4cuda = currentCxx+'-'+ver
+                        if checkProgram(cxx4cuda, False):
+                            configDict["CXX_CUDA"] = cxx4cuda
+                            break
+                    if configDict["CXX_CUDA"]:
+                        configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"], askUser)
+                    if not checkProgram(configDict["CXX_CUDA"], False):
+                        print(red("No alternative found or not working. "
+                                  "Skipping CUDA compilation.\n"
+                                  "If an alternative exists, please "
+                                  "'export CXX_CUDA=/path/to/g++5' and "
+                                  "run again 'xmipp config'."))
+                        configDict["CUDA"] = "False"
+                        updateXmippEnv(CUDA=False, pos='replace')
+                        return
+                else:  # TODO: Consider the CUDA-11 incompatibilities
+                    configDict["CXX_CUDA"] = currentCxx
             configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                            "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
