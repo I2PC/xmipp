@@ -30,7 +30,7 @@
 // protein. The radius is defines has the distance from the center of the cube to the farthest
 // point of the protein measured from the center. The volumen "vol" represent the number of
 // voxels of the mask
-void Monogenic::proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &mask, double &radius,
+void Monogenic::proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &mask, int &radius,
 		long &vol)
 {
 	vol = 0;
@@ -40,13 +40,13 @@ void Monogenic::proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &
 
 		if (A3D_ELEM(mask, k, i, j) == 1)
 		{		
-                        double R2 = (k*k + i*i + j*j);
+                        int R2 = (k*k + i*i + j*j);
 			++vol;
 			if (R2>radius)
 				radius = R2;
 		}
 	}
-	radius = round(sqrt(radius));
+	radius = sqrt(radius);
 	std::cout << "                                     " << std::endl;
 	std::cout << "The protein has a radius of "<< radius << " px " << std::endl;
 }
@@ -62,15 +62,16 @@ void Monogenic::proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &
 // To prevent this situation this parameter is provided, but it is only informative via 
 // the standard output
 void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
-		double &radius, double &radiuslimit, MultidimArray<int> &mask, double rsmooth)
+		int &radius, int &radiuslimit, MultidimArray<int> &mask, double rsmooth)
 {
 	double criticalZ = icdf_gauss(0.95);
-	radiuslimit = floor((double) XSIZE(inputmap)*0.5);
-	double last_mean, last_std2=DBL_MIN, last_N;
+	radiuslimit = XSIZE(inputmap)/2;
+	double last_mean, last_std2=std::numeric_limits<double>::lowest(), last_N;
 
-	for (double rad = radius; rad<radiuslimit; rad++)
+	for (int rad = radius; rad<radiuslimit; rad++)
 	{
-		double sup, inf, sum=0, sum2=0, N=0;
+		double sum=0, sum2=0, N=0;
+		int sup, inf;
 		inf = rad*rad;
 		sup = (rad + 1)*(rad + 1);
 		FOR_ALL_ELEMENTS_IN_ARRAY3D(inputmap)
@@ -129,7 +130,7 @@ Matrix1D<double> Monogenic::fourierFreqVector(size_t dimarrayFourier, size_t dim
         double u;
         Matrix1D<double> freq_fourier;
 	freq_fourier.initZeros(dimarrayFourier);
-        VEC_ELEM(freq_fourier,0) = DBL_MIN;
+        VEC_ELEM(freq_fourier,0) = std::numeric_limits<double>::lowest();
 	for(size_t k=1; k<dimarrayFourier; ++k){
 		FFT_IDX2DIGFREQ(k,dimarrayReal, u);
 		VEC_ELEM(freq_fourier, k) = u;
@@ -181,7 +182,7 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 				}
 				else
 				{
-					DIRECT_MULTIDIM_ELEM(iu,n) = DBL_MAX;
+					DIRECT_MULTIDIM_ELEM(iu,n) = std::numeric_limits<double>::max();
 				}
 				++n;
 			}
@@ -208,6 +209,7 @@ void Monogenic::resolution2eval(int &count_res, double step,
 		double &sampling, double &minRes, double &maxRes,
 		bool &doNextIteration)
 {
+//TODO: simplify this function
 	resolution = maxRes - count_res*step;
 
 	freq = sampling/resolution;
@@ -279,6 +281,7 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 		Matrix1D<double> &freq_fourier_z, MultidimArray<double> &amplitude,
 		int count, FileName fnDebug)
 {
+//FIXME: use atf.h
 //	FourierTransformer transformer_inv;
 
 	fftVRiesz.initZeros(myfftV);
@@ -501,7 +504,7 @@ void Monogenic::statisticsInOutBinaryMask2(const MultidimArray<double> &volS,
 // of the analisys two loops ago (see monores method)
 void Monogenic::setLocalResolutionHalfMaps(const MultidimArray<double> &amplitudeMS,
 		MultidimArray<int> &pMask, MultidimArray<double> &plocalResolutionMap,
-		double &thresholdNoise, double &resolution, double &resolution_2)
+		double thresholdNoise, double resolution, double resolution_2)
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitudeMS)
 		{
@@ -531,7 +534,7 @@ void Monogenic::setLocalResolutionHalfMaps(const MultidimArray<double> &amplitud
 // of the analisys two loops ago (see monores method)
 void Monogenic::setLocalResolutionMap(const MultidimArray<double> &amplitudeMS,
 		MultidimArray<int> &pMask, MultidimArray<double> &plocalResolutionMap,
-		double &thresholdNoise, double &resolution, double &resolution_2)
+		double thresholdNoise, double resolution, double resolution_2)
 	{
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitudeMS)
 		{
@@ -583,6 +586,7 @@ void Monogenic::monogenicAmplitude_3D_Fourier(const MultidimArray< std::complex<
 	VRiesz.resizeNoCopy(amplitude);
 
 	FourierTransformer transformer_inv;
+        transformer_inv.setThreadsNumber(numberOfThreads);
 	transformer_inv.inverseFourierTransform(fftVRiesz, VRiesz);
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
