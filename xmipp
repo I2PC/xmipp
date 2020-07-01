@@ -79,12 +79,13 @@ def updateXmippEnv(pos='begin', realPath=True, **kwargs):
         pos = {'begin', 'end', 'replace'}
     """
     for key, value in kwargs.items():
-        if isinstance(value, str) and realPath:
+        isString = isinstance(value, str)
+        if isString and realPath:
             value = os.path.realpath(value)
         if key in XMIPP_ENV:
-            if pos == 'begin':
+            if pos == 'begin' and isString:
                 XMIPP_ENV[key] = value + os.pathsep + XMIPP_ENV[key]
-            elif pos == 'end':
+            elif pos == 'end' and isString:
                 XMIPP_ENV[key] = XMIPP_ENV[key] + os.pathsep + value
             elif pos == 'replace':
                 XMIPP_ENV[key] = value
