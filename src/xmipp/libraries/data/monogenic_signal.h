@@ -50,7 +50,7 @@ public:
 	// the radius and the volumen "vol" of the protein. The radius is defines has the distance
 	// from the center of the cube to the farthest point of the protein measured from the center.
 	// The volumen "vol" represent the number of voxels of the mask.
-	void proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &mask, double &radius,
+	void proteinRadiusVolumeAndShellStatistics(const MultidimArray<int> &mask, int &radius,
 			long &vol);
 
 
@@ -64,7 +64,7 @@ public:
 	// To prevent this situation this parameter is provided, but it is only informative via 
 	// the standard output
 	void findCliffValue(MultidimArray<double> &inputmap,
-			double &radius,	double &radiuslimit, MultidimArray<int> &mask, double rsmooth);
+			int &radius, int &radiuslimit, MultidimArray<int> &mask, double rsmooth);
 
 
         //FOURIERFREQVECTOR: It defines a vector, freq_fourier, that contains
@@ -144,7 +144,7 @@ public:
 	// of the analisys two loops ago (see monores method)
 	void setLocalResolutionHalfMaps(const MultidimArray<double> &amplitudeMS,
 			MultidimArray<int> &pMask, MultidimArray<double> &plocalResolutionMap,
-			double &thresholdNoise, double &resolution, double &resolution_2);
+			double thresholdNoise, double resolution, double resolution_2);
 
 	// SETLOCALRESOLUTIONMAP: Set the local resolution of a voxel, by
 	// determining if the monogenic amplitude "amplitudeMS" is higher than
@@ -155,7 +155,7 @@ public:
 	// of the analisys two loops ago (see monores method)
 	void setLocalResolutionMap(const MultidimArray<double> &amplitudeMS,
 		MultidimArray<int> &pMask, MultidimArray<double> &plocalResolutionMap,
-		double &thresholdNoise, double &resolution, double &resolution_2);
+		double thresholdNoise, double resolution, double resolution_2);
 
 	// MONOGENICAMPLITUDE_3D_FOURIER: Given the fourier transform of a map
 	// "myfftV", this function computes the monogenic amplitude "amplitude" 

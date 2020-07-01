@@ -126,7 +126,8 @@ void ProgMonogenicSignalRes::produceSideInfo()
 		std::cout << "Error: a mask ought to be provided" << std::endl;
 		exit(0);}
 
-	double radius, radiuslimit, smoothparam = 0;
+	double smoothparam = 0;
+	int radiuslimit, radius;
 	Monogenic mono;
 	//The mask changes!! all voxels out of the inscribed sphere are set to -1
 	mono.proteinRadiusVolumeAndShellStatistics(pMask, radius, NVoxelsOriginalMask);

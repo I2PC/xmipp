@@ -43,7 +43,7 @@ public:
     void defineParams()
     {
         addUsageLine("Calculate global resolution anisotropy - OFSC curve - via directional FSC measurements.");
-        addUsageLine("If a set of particle is given, the contribution of the particle distribution to the resolution is also analyzed");
+        //addUsageLine("If a set of particle is given, the contribution of the particle distribution to the resolution is also analyzed");
         addUsageLine("Reference: J.L. Vilas, H.D. Tagare, XXXXX (2020)");
         addUsageLine("+ ");
         addUsageLine("+* Directional Fourier Shell Correlation (FSC)", true);
@@ -114,6 +114,7 @@ public:
         test = checkParam("--test");
     }
 
+    //The frequency map in fourier space is created
     MultidimArray<double> defineFrequencies(const MultidimArray< std::complex<double> > &myfftV,
     		const MultidimArray<double> &inputVol,
     		Matrix1D<double> &freq_fourier_x,
@@ -195,6 +196,8 @@ public:
     	return iu;
     }
 
+    //This function computers the directional FSC along the direction given by rot an tilt
+    //for two half maps.
     void fscDir(MultidimArray< std::complex< double > > & FT1,
             	 MultidimArray< std::complex< double > > & FT2,
                  double sampling_rate,
@@ -304,7 +307,7 @@ public:
 		 }
     }
 
-
+    //The global FSC between two half maps is computed
     void fscGlobal(const MultidimArray< std::complex< double > > & FT1,
     		     const MultidimArray< std::complex< double > > & FT2,
                  double sampling_rate,
@@ -475,8 +478,8 @@ public:
 //        std::cout << "-----------" << std::endl;
 
 		std::complex<double> f1_orig, f2_orig;
-		f1_mean = (0,0);
-		f2_mean = (0,0);
+		f1_mean = (0, 0);
+		f2_mean = (0, 0);
 		n = 0;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(f1)
 		{
@@ -1199,7 +1202,7 @@ public:
 			half1 = imgHalf1();
 			half2 = imgHalf2();
 
-			if (fnmask!="")
+			if (! fnmask.isEmpty())
 			{
 				mask.read(fnmask);
 				FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
@@ -1257,7 +1260,7 @@ public:
     }
 
 
-
+    // A directional filtered map is obtained by applying the 3dfsc as filter in Fourier domain
     void directionalFilter(MultidimArray<std::complex<double>> &FThalf1,
     		MultidimArray<double> &threeDfsc, MultidimArray<double> &filteredMap, int m1sizeX, int m1sizeY, int m1sizeZ)
     {
@@ -1267,6 +1270,7 @@ public:
     	MultidimArray<double> half1;
     	half1 = imgHalf1();
 
+	//FIXME: Use atf.h
         FourierTransformer transformer1(FFTW_BACKWARD);
         transformer1.FourierTransform(half1, FThalf1, false);
 
@@ -1287,12 +1291,12 @@ public:
     	transformer1.inverseFourierTransform(FThalf1, filteredMap);
     }
 
-
+    //It creates a metadata with the directional resolution distribution
     void resolutionDistribution(MultidimArray<double> &resDirFSC, FileName &fn)
     {
     	Matrix2D<int> anglesResolution;
-    	size_t Nrot = 360;
-    	size_t Ntilt = 91;
+    	size_t Nrot = 360; //Considering all angles in plane 
+    	size_t Ntilt = 91; //tilting from 0-90
     	size_t objIdOut;
 
     	MetaData mdOut;
@@ -1828,7 +1832,7 @@ void getErrorCurves(int &m1sizeX, int &m1sizeY, int &m1sizeZ,
 		mono.addNoise(half1, 0.0, stddev);
 		mono.addNoise(half2, 0.0, stddev);
 
-		if (fnmask!="")
+		if (! fnmask.isEmpty())
 		{
 			mask.read(fnmask);
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
