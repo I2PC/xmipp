@@ -477,8 +477,8 @@ public:
 //        std::cout << "wt" << wt << std::endl;
 //        std::cout << "-----------" << std::endl;
 
-		f1_mean = complex<double>(0, 0);
-		f2_mean = complex<double>(0, 0);
+		f1_mean = std::complex<double>(0,0);
+		f2_mean = std::complex<double>(0,0);
 		n = 0;
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(f1)
 		{
@@ -542,9 +542,9 @@ public:
         wt = 1/wt;
 
 
-        std::complex<double> f1_mean, f2_mean;
-        f1_mean = complex<double>(0,0);
-        f2_mean = complex<double>(0,0);
+        auto f1_mean = std::complex<double>(0,0);
+        auto f2_mean = std::complex<double>(0,0);
+
         n = 0;
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(f1)
         {
