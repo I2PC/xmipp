@@ -67,7 +67,7 @@ def run(label, version, branch):
                                 stdout=subprocess.PIPE).stdout.read().decode("utf-8")
         os.system("sed -i -e 's/^RELEASE_HASH = .*/{0: <28} #/' xmipp"
                   .format('RELEASE_HASH = "%s"' % hash.strip()))
-        os.system('./xmipp config')  # just to write the config file
+        os.system('./xmipp config noAsk')  # just to write the config file
         os.system('./xmipp get_dependencies')
         os.system('./xmipp get_devel_sources %s' % branch)
         os.chdir(cwd)
@@ -102,7 +102,8 @@ def run(label, version, branch):
     elif label == 'Sources':
         target = 'xmippSrc-v'+version
         makeTarget(target, label)
-        excludeTgz = " --exclude='xmipp.conf' "
+        excludeTgz = (" --exclude='xmipp.conf' --exclude='xmippEnv.json'"
+                      " --exclude='src/scipion-em-xmipp' ")
     else:
         usage("Incorrect <mode>")
 
