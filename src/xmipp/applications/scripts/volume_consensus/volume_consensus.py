@@ -34,6 +34,7 @@ import mrcfile
 import pywt
 import pywt.data
 from xmipp_base import XmippScript
+import xmippLib
 
 
 class ScriptVolumeConsensus(XmippScript):
@@ -51,36 +52,48 @@ class ScriptVolumeConsensus(XmippScript):
     def run(self):
         inputFile = self.getParam('-i')
         outVolFn = self.getParam('-o')
-        # inputVols = []
-        # with open(inputFile) as f:
-        #     for line in f:
-        #         inputVols.append(self.loadVol(line.split()[0]))
-        # f.close()
         self.computeVolumeConsensus(inputFile, outVolFn)
 
     def computeVolumeConsensus(self, inputFile, outVolFn, wavelet='sym11'):
-        coeffDictList = []
-        # for vol in inputVols.iterItems():
+        wtVols = []  # list of wt transform of all volumes (list of dicts with len = #inputVols)
+        outputWt = None
+        outputMin = None
+        nlevel = 3
         with open(inputFile) as f:
             for line in f:
-                vol = self.loadVol(line.split()[0])
-            coeffDict = pywt.swtn(vol, wavelet, 1)
-            coeffDictList.append(coeffDict)
-        f.close()
-        newDict = {}
-        for key, _ in enumerate(coeffDict):
-            coeffInPosKey = []
-            for coeffDict in coeffDictList:
-                coeffInPosKey.append(coeffDict[key])
-            newDict[key] = max(coeffInPosKey)
-            # print("-------------------", coeffDict[key].shape)
-        consensus = pywt.iswtn(newDict, wavelet)
-        self.saveVol(consensus, outVolFn, line)
+                # vol = self.loadVol(line.split()[0])
+                fileName = line.split()[0]
+                if fileName.endswith('.mrc'):
+                    fileName += ':mrc'
+                V = xmippLib.Image(line.split()[0])
+                vol = V.getData()
+                wt = pywt.swtn(vol, wavelet, nlevel)  # compute wt of each volume (list of dicts with len = 1 )
+                if outputWt == None:
+                    outputWt = wt
+                    outputMin = wt[0]['aaa']*0
+                else:
+                    for level in range(0, nlevel):
+                        wtLevel = wt[level]
+                        outputWtLevel = outputWt[level]
+                        for key in wtLevel:
+                            outputWtLevel[key] = np.where(np.abs(outputWtLevel[key]) > np.abs(wtLevel[key]),
+                                                          outputWtLevel[key], wtLevel[key])
+                            outputMin = np.max(outputMin, np.abs((np.abs(outputWtLevel[key]) - np.abs(wtLevel[key])) /
+                                                                np.abs(outputWtLevel[key])))
+
+            f.close()
+
+        consensus = pywt.iswtn(outputWt, wavelet)  # compute inverse of the new wt ==> vol fusion
+        V = xmippLib.Image()
+        V.setData(consensus)
+        V.write(outVolFn)
+        V.setData(outputMin)
+        V.write("kkk.mrc")
         return consensus
 
     def saveVol(self, data, fname, fnameToCopyHeader):
         shutil.copyfile(fnameToCopyHeader, fname)
-        with mrcfile.open(fname, "r+", permissive=True) as f:
+        with mrcfile.open(fname, "w+", permissive=True) as f:
             f.data[:] = data
 
     def loadVol(self, fname):
