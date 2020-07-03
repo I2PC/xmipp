@@ -66,7 +66,7 @@ void ProgMonogenicSignalRes::defineParams()
 	addParamsLine("  [--vol2 <vol_file=\"\">]: Half volume 2");
 	addParamsLine("  [-o <output=\"MGresolution.vol\">]: Local resolution volume (in Angstroms)");
 	addParamsLine("  [--meanVol <vol_file=\"\">]: Mean volume of half1 and half2 (only it is neccesary the two haves are used)");
-	addParamsLine("  --sym <symmetry>: Symmetry (c1, c2, c3,..d1, d2, d3,...)");
+	addParamsLine("  [--sym <s=c1>]: Symmetry (c1, c2, c3,..d1, d2, d3,...)");
 	addParamsLine("  [--chimera_volume <output=\"Chimera_resolution_volume.vol\">]: Local resolution volume for chimera viewer (in Angstroms)");
 	addParamsLine("  [--sampling_rate <s=1>]   : Sampling rate (A/px)");
 	addParamsLine("                            : Use -1 to disable this option");
