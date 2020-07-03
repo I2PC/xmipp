@@ -1,7 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2019)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,37 +23,32 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_SPLIT_ODD_EVEN
-#define _PROG_SPLIT_ODD_EVEN
 
-#include <iostream>
+#ifndef PROG_EXTRACT_SUBSET_H_
+#define PROG_EXTRACT_SUBSET_H_
+
 #include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
-#include <string>
-#include "core/metadata_extension.h"
+#include <reconstruction/extract_subset.h>
 
-/**@defgroup Odd Even
-   @ingroup ReconsLibrary */
-//@{
-/** SSNR parameters. */
-
-class ProgOddEven : public XmippProgram
-{
-private:
-	 /** Filenames */
-	FileName fnOut_odd, fnOut_even, fnImg, splitType;
-	bool sumFrames;
+class ProgExtractSubset: public XmippProgram {
+public:
+    virtual void readParams() override;
+    virtual void defineParams() override;
+    virtual void show() const override;
+    virtual void run() override;
 
 private:
-    void defineParams();
-    void readParams();
-    // This function generates the metadata associated to the input image stack
-    void fromimageToMd(FileName fnImg, MetaData &movienew);
-    void run();
+    /**
+     * Set output directory and files
+     */
+    void prepareOutput();
 
+    const char *OPT_LAST = "--last";
+    const char *OPT_FIRST = "--first";
+    const char *OPT_RANGE = "--range";
 
+    /** Settings used for extraction */
+    ExtractSubset::Settings m_settings = {};
 };
-//@}
-#endif
 
+#endif /* PROG_EXTRACT_SUBSET_H_ */
