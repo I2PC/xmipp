@@ -276,7 +276,6 @@ void ProgAngularAssignmentMag::preProcess() {
 	mdOut.setComment("experiment for metadata output containing data for reconstruction");
 
 	// check if eigenvectors file already created
-
 	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
 	std::ifstream in;
 	in.open(fnEigenVect.c_str(), std::ios::in);
@@ -307,7 +306,7 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	if(useForValidation){
 		// read reference volume to be re-projected when comparing previous assignment
-		//If there is no reference available exit
+		// If there is no reference available exit
 		try{
 			refVol.read(inputReference_volume);
 		}
@@ -458,39 +457,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	}
 	// */
 
-	// one loop search using alignImages
-	/*
-	std::vector<double> bestTx2(sizeMdRef, 0.);
-	std::vector<double> bestTy2(sizeMdRef, 0.);
-	std::vector<double> bestPsi2(sizeMdRef, 0.);
-	MultidimArray<double> &MDaInAux = ImgIn();
-	MDaInAux.setXmippOrigin();
-	MultidimArray<double> mCurrentImageAligned;
-	double corr, scale;
-	bool flip;
-	for (int k = 0; k < sizeMdRef; ++k) {
-		// find rotation and shift using alignImages
-		Matrix2D<double> M;
-		mCurrentImageAligned = MDaInAux;
-		mCurrentImageAligned.setXmippOrigin();
-		corr = alignImages(vecMDaRef[k], mCurrentImageAligned, M, DONT_WRAP);
-		M = M.inv();
-		transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
-
-		if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
-			corr /= 3;
-
-		VEC_ELEM(ccvec, k) = corr;
-		bestTx2[k] = Tx;
-		bestTy2[k] = Ty;
-		bestPsi2[k] = psi;
-	}
-	// */
-
-/*comment
-ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
-// */
-
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
 	graphFourierFilter(ccvec,ccvec_filt);
@@ -500,16 +466,6 @@ ccvec.write("/home/jeison/Escritorio/testVectCC_2ndLoop.txt");
 
 	// choose best candidate direction from graph filtered ccvect signal
 	int idxfilt = ccvec_filt.maxIndex();
-
-/*comment
-ccvec_filt.write("/home/jeison/Escritorio/test_ccVect_filt.txt");
-std::ofstream outCandidateBef("/home/jeison/Escritorio/bestCandidateBefore.txt");
-outCandidateBef<<idx<<"\n";
-outCandidateBef.close();
-std::ofstream outCandidate("/home/jeison/Escritorio/bestCandidateGraph.txt");
-outCandidate<<idxfilt<<"\n";
-outCandidate.close();
-// */
 
 
 	// angular distance between this two directions
@@ -539,19 +495,12 @@ outCandidate.close();
 	} // */
 
 	// set output alignment parameters values
-	// idx --> idxfilt
 	double rotRef = referenceRot.at(idx);
 	double tiltRef = referenceTilt.at(idx);
 	double shiftX = bestTx2[idx];
 	double shiftY = bestTy2[idx];
 	double anglePsi = bestPsi2[idx];
 	corr = ccvec[idx];
-
-//	// is this direction a reliable candidate?
-//	double maxDistance = 3. * angStep;
-//	// remove this condition
-//	if (sphericalDistance > maxDistance)
-//		corr *= exp(-.5*sphericalDistance/angStep);
 
 	//save metadata of images with angles
 	rowOut.setValue(MDL_IMAGE, fnImgOut);
@@ -583,12 +532,6 @@ outCandidate.close();
 		MultidimArray<double> projectedReference2(Ydim, Xdim);
 		projectedReference2 = P2();
 
-		/*comment
-		std::cout<< formatString("\033[31m correlacion entre referencias %.4f !! \033[0m \n",refCorr);
-		Image<double> save;
-		save() = projectedReference2;
-		save.write("/home/jeison/Escritorio/projectionIdx.xmp"); // */
-
 		double filtRotRef = referenceRot.at(idxfilt);
 		double filtTiltRef = referenceTilt.at(idxfilt);
 		Projection P3;
@@ -615,23 +558,16 @@ outCandidate.close();
 		MultidimArray<double> projectedReference(Ydim, Xdim);
 		projectedReference = P();
 
-		/*comment
-		Image<double> save2;
-		save2() = projectedReference;
-		save2.write("/home/jeison/Escritorio/projectionPrevious.xmp"); // */
-
 		// align & correlation between reference images both methods
 		// projectedReference2 is from this assignment
 		Matrix2D<double> M;
 		projectedReference2 = P2();
 		double refCorr = alignImages(projectedReference, projectedReference2, M, DONT_WRAP);
 
-
 		// align & correlation between reference images by previous assignment and idxfilt
 		projectedReference = P();
 		projectedReference3 = P3();
 		graphCorr = alignImages(projectedReference, projectedReference3, M, DONT_WRAP);
-
 
 		MultidimArray<double> mdainShifted(Ydim, Xdim);
 		mdainShifted.setXmippOrigin();
@@ -662,37 +598,10 @@ outCandidate.close();
 
 		}
 
-		/*comment
-		std::cout<< formatString("\033[35m correlacion %.4f antes \033[0m \n",prevCorr); // */
-
-		// remove this condition based on distance
-//		// to assess previous alignment
-//		if (algorithmSD > maxDistance)
-//			prevCorr *= exp(-.5*algorithmSD/angStep);
-//		rowOut.setValue(MDL_REF_CONSISTENCY, prevCorr);
-
-		// change correlation value based on similarity of projection images
-		// prevCorr *= exp(-.5 * (1 - refCorr) * (1 - refCorr) / (0.01)); // (1-refCorr)^2 / (1-0.90)^2
 		rowOut.setValue(MDL_MAXCC_PREVIOUS, prevCorr);
 		rowOut.setValue(MDL_GRAPH_DISTANCE2MAX_PREVIOUS, algorithmSD);
 		rowOut.setValue(MDL_GRAPH_CC_PREVIOUS, graphCorr);
-		//double refSimilarity =  exp(-.5 * (1 - refCorr) * (1 - refCorr) / (0.01)); // (1-refCorr)^2 / (1-0.90)^2
 		rowOut.setValue(MDL_ASSIGNED_DIR_REF_CC, refCorr);
-
-
-		/*comment
-		double factor = exp(-.5*(1-refCorr)*(1-refCorr)/( 0.04 ));
-		std::cout<< formatString("\033[35m correlacion %.4f despues factor %.4f \033[0m \n",prevCorr, factor);
-
-		std::ofstream prevCoord("/home/jeison/Escritorio/previousCoordinates.txt");
-		prevCoord<<old_rot<<"\n";
-		prevCoord<<old_tilt<<"\n";
-		prevCoord.close();  // */
-
-		/*comment
-		std::cout<<"Press enter!\n";
-		std::cin.ignore();
-		// */
 	}// end if(useForValidation)
 }
 
