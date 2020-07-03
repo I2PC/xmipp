@@ -218,7 +218,6 @@ public:
         int seed = 42;
         std::mt19937 mt(seed);
         std::uniform_int_distribution<> dist(0, 4097);
-        size_t availableBytes = hw->lastFreeBytes();
         while ((executed < EXECUTIONS)
                 && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
             size_t x = xSet.at(dist(mt) % xSet.size());
@@ -238,6 +237,8 @@ public:
                 if (bothDirections) {
                     totalBytes = std::max(totalBytes, ft->estimateTotalBytes(settings.createInverse()));
                 }
+                hw->updateMemoryInfo();
+                size_t availableBytes = hw->lastFreeBytes();
                 if (availableBytes < totalBytes) {
                     skippedSize++;
                     continue;
