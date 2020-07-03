@@ -1355,7 +1355,7 @@ def addDeepLearninModel(login, modelPath='', update=None):
     print("Creating the '%s' model." % tgzFn)
     runJob("tar czf %s %s" % (tgzFn, modelName), cwd=modelsDir)
 
-    remotePath = "scipion_em_packages/"
+    remotePath = "scipionfiles/downloads/scipion/software/em"
     print("Warning: Uploading, please BE CAREFUL! This can be dangerous.")
     print('You are going to be connected to "%s" to write in folder '
            '"%s".' % (login, remotePath))
