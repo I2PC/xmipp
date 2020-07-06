@@ -10,13 +10,13 @@ XMIPP_CONDA_ENVS = {
     "xmippEnviron": True
   },
 
-  "xmipp_MicCleaner": {
-    "pythonVersion": "3.6",
-    "dependencies": ["micrograph-cleaner-em=0.35"],
-    "channels": ["rsanchez1369", "anaconda", "conda-forge"],
-    "pipPackages": [],
-    "defaultInstallOptions": {},
-    "xmippEnviron": False
-  }
+#   "xmipp_MicCleaner": {
+#     "pythonVersion": "3.6",
+#     "dependencies": ["micrograph-cleaner-em=0.35"],
+#     "channels": ["rsanchez1369", "anaconda", "conda-forge"],
+#     "pipPackages": [],
+#     "defaultInstallOptions": {},
+#     "xmippEnviron": False
+#   }
 
 }
