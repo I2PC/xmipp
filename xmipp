@@ -44,6 +44,8 @@ RELEASE_BRANCH = '*None*'    # <-- to be filled by scripts/tar.py (for prod.)
 RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py (for prod.)
 ##############################
 
+NO_HASH_ID = '*******'  # Do NOT merge with RELEASE_HASH
+
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
 XMIPP_VIZ = 'xmippViz'
@@ -1655,7 +1657,7 @@ def ensureConfig():
 
 def ensureGit(critical=False):
     if not checkProgram('git', critical):
-        if critical or RELEASE_HASH == '*******':
+        if critical or RELEASE_HASH == NO_HASH_ID:
             print(red("Git not found."))
             sys.exit(-1)
         else:
