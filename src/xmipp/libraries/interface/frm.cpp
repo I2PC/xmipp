@@ -44,15 +44,18 @@ void findWhichPython(String &whichPython)
 void initializePython(String &whichPython)
 {
     findWhichPython(whichPython);
-//    wchar_t *program = Py_DecodeLocale(whichPython.c_str(), NULL);
-//    if (program == NULL) {
-//        fprintf(stderr, "Fatal error: cannot decode the python\n");
-//        exit(1);
-//    }
-	Py_SetProgramName((wchar_t *)whichPython.c_str());
-	Py_Initialize();
-//    #define NUMPY_IMPORT_ARRAY_RETVAL
-//	import_array(); // For working with numpy
+    wchar_t *program = Py_DecodeLocale(whichPython.c_str(), NULL);
+    if (program == NULL) {
+        fprintf(stderr, "Fatal error: cannot decode the python\n");
+        exit(1);
+    }
+    Py_SetProgramName(program);
+    Py_Initialize();
+    std::cout << "initialize works" << std::endl;
+    #define NUMPY_IMPORT_ARRAY_RETVAL
+    auto init = []() -> std::nullptr_t{
+        import_array(); // For working with numpy
+    }();
 }
 
 PyObject* convertToNumpy(const MultidimArray<double> &I)
