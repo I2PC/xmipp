@@ -5,7 +5,7 @@ Created on Sep 16, 2011
 '''
 
 import numpy as np
-from src.xmipp.external.sh_alignment.swig_frm import * # the path of this swig module should be set correctly in $PYTHONPATH
+from . import swig_frm # the path of this swig module should be set correctly in $PYTHONPATH
 from .vol2sf import vol2sf, fvol2sf
 
 
@@ -26,7 +26,7 @@ def enlarge2(corr):
     corr = corr.reshape((nx*ny*nz,))
     res = np.zeros((nx*2*ny*2*nz*2,), dtype='double')
 
-    enlarge2(corr, nx, ny, nz, res)
+    swig_frm.enlarge2(corr, nx, ny, nz, res)
 
     return res.reshape(nx*2, ny*2, nz*2)
 
@@ -114,7 +114,7 @@ def frm_corr_peaks(f, g, npeaks=10, norm=False):
     
     peaks = np.zeros(4*npeaks)
     
-    if frm(f, g, peaks) != 0:
+    if swig_frm.frm(f, g, peaks) != 0:
         raise RuntimeError('Something is wrong during FRM!')
     
     res = []
@@ -160,7 +160,7 @@ def frm_corr(f, g):
         raise RuntimeError('Bandwidth too small: %d' % b)
     c = np.zeros(16*b**3, dtype='double')
 
-    if frm_corr(f, g, c) != 0:
+    if swig_frm.frm_corr(f, g, c) != 0:
         raise RuntimeError('Something is wrong during FRM!')
 
     c = c[::2] # retrieve the real part only
@@ -217,7 +217,7 @@ def frm_fourier_corr(fr, fi, gr, gi, return_real=False):
         raise RuntimeError('Bandwidth too small: %d' % b)
     c = np.zeros(16*b**3, dtype='double')
     
-    if frm_fourier_corr(fr, fi, gr, gi, c) != 0:
+    if swig_frm.frm_fourier_corr(fr, fi, gr, gi, c) != 0:
         raise RuntimeError('Something is wrong during FRM!')
     
     if return_real: # return the real part only
@@ -662,7 +662,7 @@ def frm_find_topn_angles_interp(corr, n=5, dist=3.0):
     -------
     List: [(phi, psi, theta, peak_value), ...]
     """
-    from ..python.tompy.tools import rotation_distance
+    from .tompy.tools import rotation_distance
 
     b = corr.shape[0]/2
     
@@ -716,7 +716,7 @@ def frm_find_topn_angles_interp2(corr, n=5, dist=3.0):
 
     peaks = np.zeros((n*4,), dtype='double')
     
-    if find_topn_angles(corr, b, peaks, dist) != 0:
+    if swig_frm.find_topn_angles(corr, int(b), peaks, dist) != 0:
         raise RuntimeError('Error happens in finding peaks!')
     
     peaks = peaks.reshape((n, 4))
@@ -925,7 +925,7 @@ def frm_correlate(vf, wf, vg, wg, b, max_freq, weights=None, ps=False, denominat
     if not weights: # weights, not used yet
         weights = [1 for i in range(max_freq)]
 
-    from ..python.tompy.transform import (rfft, fftshift, ifftshift,
+    from .tompy.transform import (rfft, fftshift, ifftshift,
                                           fourier_reduced2full)
 
     # IMPORTANT!!! Should firstly do the IFFTSHIFT on the volume data (NOT FFTSHIFT since for odd-sized data it matters!),
@@ -1031,7 +1031,7 @@ def frm_correlate_prepare(vf, wf, vg, wg, b, max_freq):
     -------
     (svf, swf, svg, swg)
     """
-    from ..python.tompy.transform import rfft, fftshift, ifftshift, fourier_reduced2full
+    from .tompy.transform import rfft, fftshift, ifftshift, fourier_reduced2full
 
     # IMPORTANT!!! Should firstly do the IFFTSHIFT on the volume data (NOT FFTSHIFT since for odd-sized data it matters!),
     # and then followed by the FFT.
@@ -1263,10 +1263,10 @@ def frm_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, weights=
     (The best translation and rotation (Euler angle, ZXZ convention [Phi, Psi, Theta]) to transform vg to match vf.
     (best_translation, best_rotation, correlation_score)
     """
-    from ..python.tompy.filter import SingleTiltWedge, bandpass
-    from ..python.tompy.tools import create_sphere
-    from ..python.tompy.transform import rotate3d, translate3d_f
-    from ..python.tompy.score import FLCF, find_peak_position
+    from .tompy.filter import SingleTiltWedge, bandpass
+    from .tompy.tools import create_sphere
+    from .tompy.transform import rotate3d, translate3d_f
+    from .tompy.score import FLCF, find_peak_position
 
     if vf.shape[0]!=vg.shape[0] or vf.shape[1]!=vg.shape[1] or vf.shape[2]!=vg.shape[2]:
         raise RuntimeError('Two volumes must have the same size!')
@@ -1309,7 +1309,7 @@ def frm_align(vf, wf, vg, wg, b, max_freq, peak_offset=None, mask=None, weights=
         return position, orientation, max_value
 
     # iteratively refine the position & orientation
-    from ..python.tompy.tools import euclidian_distance
+    from .tompy.tools import euclidian_distance
     max_iter = 10 # maximal number of iterations
     lowpass_vf = bandpass(vf, 0, max_freq, max_freq/10.)
 

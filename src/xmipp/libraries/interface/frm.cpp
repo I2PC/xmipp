@@ -52,7 +52,9 @@ void initializePython(String &whichPython)
     Py_SetProgramName(program);
     Py_Initialize();
     std::cout << "initialize works" << std::endl;
-    #define NUMPY_IMPORT_ARRAY_RETVAL
+#ifndef NUMPY_IMPORT_ARRAY_RETVAL
+    #define NUMPY_IMPORT_ARRAY_RETVAL NULL
+#endif
     auto init = []() -> std::nullptr_t{
         import_array(); // For working with numpy
     }();

@@ -120,6 +120,7 @@ def fvol2sf(vol, r, b):
     # fill in the other half
     ind = np.arange(2*b**2)
     cind = (2*b-1-(ind+2*b**2)/(2*b))*2*b + np.mod(np.mod(ind, 2*b)+b, 2*b)
+    cind = cind.astype(int, copy=False)
 
     res_r = np.zeros((4*b**2,))
     res_r[:2*b**2] = res_r_a
@@ -239,7 +240,7 @@ if __name__ == '__main__':
         if o in ("-o"):
             filename = a
     
-    from ..python.tompy.io import read
+    from .tompy.io import read
     vol = read(vol_name)
     sf = vol2sf(vol, radius, bw)
     sf2file(sf, filename, conv)

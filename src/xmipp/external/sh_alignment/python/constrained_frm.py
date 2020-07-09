@@ -1,5 +1,4 @@
 from .frm import *
-from src.xmipp.external.sh_alignment.swig_frm import *
 from pytom.basic.structures import PyTomClass
 
 class AngularConstraint(PyTomClass):
