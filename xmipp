@@ -1570,7 +1570,7 @@ def usage(msg=''):
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
           "   compile N dependencies:     Compile dependencies\n"
-          "   compileAndInstall [N]:      Compile all modules with N processors (8 by default) and install in the default directory\n"
+          "   compileAndInstall [N] [dir] Compile all modules with N processors (8 by default) and install in the dir directory ('build' by default)\n"
           "   compile  N xmippCore:       Compile xmippCore\n"
           "   compile  N xmipp:           Compile xmipp\n"
           "   compile  N xmippViz:        Compile xmippViz\n"
@@ -1755,13 +1755,22 @@ if __name__ == '__main__':
         else:
             print(red("\nSome error occurred during the compilation\n"))
             sys.exit(1)
-    elif mode=="compileAndInstall":
-        if n>2:
-            Nproc=sys.argv[2]
-        else:
-            Nproc=8
-        compile(Nproc)
-        install("build")
+    elif mode == "compileAndInstall":
+        Nproc = 8
+        dir = "build"
+        if n > 2:
+            for arg in sys.argv[2:]:
+                if arg.isdigit():
+                    Nproc = arg
+                else:
+                    dir = arg
+
+        ok = compile(Nproc)
+        ok = ok and install(dir)
+        if not ok:
+            print(red("\nSome error occurred...\n"))
+            sys.exit(1)
+
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
