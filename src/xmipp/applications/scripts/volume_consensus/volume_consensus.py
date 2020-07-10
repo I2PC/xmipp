@@ -74,15 +74,9 @@ class ScriptVolumeConsensus(XmippScript):
                         for key in wtLevel:
                             outputWtLevel[key] = np.where(np.abs(outputWtLevel[key]) > np.abs(wtLevel[key]),
                                                           outputWtLevel[key], wtLevel[key])
-                            # outputMin = np.max(outputMin, np.abs((np.abs(outputWtLevel[key]) - np.abs(wtLevel[key])) /
-                            #                                      np.abs(outputWtLevel[key])))
-                            outputMin = np.where(outputMin > np.abs((np.abs(outputWtLevel[key]) - np.abs(wtLevel[key]))
-                                                                    / np.abs(outputWtLevel[key])),
-                                                 outputMin, np.abs((np.abs(outputWtLevel[key]) - np.abs(wtLevel[key])) /
-                                                                   np.abs(outputWtLevel[key])))
-
+                            diff = np.abs(np.abs(outputWtLevel[key]) - np.abs(wtLevel[key]))
+                            outputMin = np.where(outputMin > diff, outputMin, diff)
             f.close()
-
         consensus = pywt.iswtn(outputWt, wavelet)
         V = xmippLib.Image()
         V.setData(consensus)
