@@ -28,6 +28,32 @@
 #include <core/geometry.h>
 #include <core/transformations.h>
 
+void print_traceback(){
+   PyObject* type;
+   PyObject* value;
+   PyObject* traceback;
+
+   PyErr_Fetch(&type, &value, &traceback);
+   PyErr_NormalizeException(&type, &value, &traceback); // Added line
+
+   std::string fcn = "";
+   fcn += "def get_pretty_traceback(exc_type, exc_value, exc_tb):\n";
+   fcn += "    import sys, traceback\n";
+   fcn += "    lines = []\n";
+   fcn += "    lines = traceback.format_exception(exc_type, exc_value, exc_tb)\n";
+   fcn += "    output = '\\n'.join(lines)\n";
+   fcn += "    return output\n";
+
+   PyRun_SimpleString(fcn.c_str());
+   PyObject* mod = PyImport_ImportModule("__main__");
+   PyObject* method = PyObject_GetAttrString(mod, "get_pretty_traceback");
+   PyObject* outStr = PyObject_CallObject(method, Py_BuildValue("OOO", type, value, traceback));
+   PyObject* str_exc_type = PyObject_Str(outStr); //Now a unicode
+   auto pretty = PyUnicode_AsUTF8(str_exc_type);
+   std::cout << pretty << std::endl;
+}
+
+
 void findWhichPython(String &whichPython)
 {
     char path[1035];
@@ -51,7 +77,6 @@ void initializePython(String &whichPython)
     }
     Py_SetProgramName(program);
     Py_Initialize();
-    std::cout << "initialize works" << std::endl;
 #ifndef NUMPY_IMPORT_ARRAY_RETVAL
     #define NUMPY_IMPORT_ARRAY_RETVAL NULL
 #endif
@@ -117,7 +142,6 @@ PyObject * getPointerToPythonSingleTiltWedgeClass()
 	Py_DECREF(pDict);
 	return pSTMMclass;
 }
-
 
 #define DEBUG
 #ifdef DEBUG
@@ -207,16 +231,7 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 		A.initIdentity(4);
 
 		std::cout << "No result\n";
-		PyObject *ptype, *pvalue, *ptraceback;
-		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-		//pvalue contains error message
-		//ptraceback contains stack snapshot and many other information
-		//(see python traceback structure)
-
-		//Get error message
-		PyObject* str_exc_type = PyObject_Str(pvalue); //Now a unicode
-        const char *strExcType =  PyUnicode_AsUTF8(str_exc_type);
-		std::cout << strExcType << std::endl;
+		print_traceback();
 	}
 }
 #undef DEBUG

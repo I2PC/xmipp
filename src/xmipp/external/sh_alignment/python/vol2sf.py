@@ -42,7 +42,7 @@ def vol2sf(vol, r, b, center=None):
         m_x, m_y, m_z = center
     else:
         # the middle point of the volume
-        m_x = vol.shape[0]/2; m_y = vol.shape[1]/2; m_z = vol.shape[2]/2
+        m_x = int(vol.shape[0]/2); m_y = int(vol.shape[1]/2); m_z = int(vol.shape[2]/2)
 
     the = np.pi*(2*np.arange(2*b)+1) / (4*b)
     phi = np.pi*np.arange(2*b) / b
@@ -92,7 +92,7 @@ def fvol2sf(vol, r, b):
         pass
     
     # zero frequency position
-    m_x = vol.shape[0]/2; m_y = vol.shape[1]/2; m_z = vol.shape[2]/2
+    m_x = int(vol.shape[0]/2); m_y = int(vol.shape[1]/2); m_z = int(vol.shape[2]/2)
 
     # only half
     the = np.pi*(2*np.arange(b)+1) / (4*b)
@@ -119,8 +119,7 @@ def fvol2sf(vol, r, b):
 
     # fill in the other half
     ind = np.arange(2*b**2)
-    cind = (2*b-1-(ind+2*b**2)/(2*b))*2*b + np.mod(np.mod(ind, 2*b)+b, 2*b)
-    cind = cind.astype(int, copy=False)
+    cind = (2*b-1-np.floor_divide(ind+2*b**2, 2*b))*2*b + np.mod(np.mod(ind, 2*b)+b, 2*b)
 
     res_r = np.zeros((4*b**2,))
     res_r[:2*b**2] = res_r_a
