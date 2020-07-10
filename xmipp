@@ -384,7 +384,7 @@ def getAllBranches(repo):
     log = []
     prefix = 'refs/heads/'
     result = runJob('git ls-remote -h %s' % REPOSITORIES[repo],
-        show_output=False, log=log, show_command=False)
+                    show_output=False, log=log, show_command=False)
     if result:
         branches = [l.split(prefix)[1] for l in log]
         return True, branches
@@ -392,15 +392,18 @@ def getAllBranches(repo):
     return False, None
 
 def getBranch(repo, repo_dir):
-    if 'TRAVIS' in os.environ:
-        # we need to get current branch of the xmipp
-        r1, branchHint = getCurrentTravisBranch()
-        r2, branches = getAllBranches(repo)
-        if r1 and r2 and branchHint in branches:
-            return True, branchHint
+    # return current branch
     r, branch = getCurrentBranch(repo_dir)
     if r:
         return r, branch
+    # return same branch as xmipp
+    # we need to get current branch of the xmipp
+    r1, branchHint = (getCurrentTravisBranch() if 'TRAVIS' in os.environ
+                      else getCurrentBranch())
+    r2, branches = getAllBranches(repo)
+    if r1 and r2 and branchHint in branches:
+        return True, branchHint
+    # default branch
     return getDefaultBranch(repo)
 
 def getDefaultBranch(repo):
@@ -409,20 +412,17 @@ def getDefaultBranch(repo):
     # this might not work for git < 1.8.5,
     # see https://stackoverflow.com/a/32503667/5484355
     # and https://stackoverflow.com/questions/2832269/git-remote-head-is-ambiguous
-    # In such a case we return None (and during e.g. clone the client should decide what is the default branch)
-    if repo != XMIPP:
-        r1, br = getCurrentBranch('.')
-        r2, brList = getAllBranches(repo)
-        if r1 and r2 and br in brList:
-            return True, br
+    # In such a case we return None (and during e.g. clone the client should
+    # decide what is the default branch)
     result = runJob('git remote show %s' % REPOSITORIES[repo],
-        show_output=False, log=log, show_command=False)
+                    show_output=False, log=log, show_command=False)
     if result:
         for l in log:
             if key in l:
                 branch = l.split(key)[1] # HEAD branch: devel
                 return (True, branch.strip())
-    print(red('Cannot auto-detect default branch for ' + repo + '. Maybe git version < 1.8.5?'))
+    print(red('Cannot auto-detect default branch for ' + repo +
+              '. Maybe git version < 1.8.5?'))
     return (False, None)
 
 
