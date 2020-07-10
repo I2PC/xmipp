@@ -221,7 +221,8 @@ def checkProgram(programName, show=True):
     systemInstructions["scons"] = ['sudo apt-get -y install scons or make sure that Scipion Scons is in the path',"sudo pacman -Syu --noconfirm scons"]
     systemInstructions["javac"] = ['sudo apt-get -y install default-jdk default-jre',"sudo pacman -Syu --noconfirm jre"]
     systemInstructions["rsync"] = ["sudo apt-get -y install rsync" , "sudo pacman -Syu --noconfirm rsync"]
-    systemInstructions["pip"] = ["sudo apt-get -y install python3-pip" , "sudo pacman -Syu --noconfirm rsync"]
+    systemInstructions["pip"] = ["sudo apt-get -y install python3-pip" , "sudo pacman -Syu --noconfirm pip"]
+    systemInstructions["make"] = ["sudo apt-get -y install make" , "sudo pacman -Syu --noconfirm make"]
     ok=True
     cont = True
     if not whereis(programName):
@@ -894,11 +895,10 @@ def configCuda(configDict):
             configDict["CUDA"]="True"
         else:
             print(yellow("\n'nvcc' not found in the PATH"))
-            cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda-8.0/bin",
-                                                 "/usr/local/cuda/bin",
+            cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
             cudaBin = askPath(cudaBin, askUser)
-            if checkProgram(cudaBin, False):
+            if os.path.isfile(os.path.join(cudaBin, 'nvcc')):
                 configDict["CUDA"] = "True"
                 cudaBin = os.path.realpath(cudaBin)  # If using generic cuda, expliciting the version
                 nvcc = os.path.join(cudaBin, nvcc)
@@ -1242,7 +1242,7 @@ def compileDependencies(Nproc):
         if not checkProgram(nvccBaseName, False) and checkProgram(configDict['NVCC'], False):
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
-        result = result and (checkProgram('make', False) or installDepConda('make'))
+        result = result and (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
     if not result:
         print(red("Cannot build dependencies"))
