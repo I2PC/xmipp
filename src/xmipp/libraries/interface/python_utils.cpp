@@ -64,16 +64,16 @@ std::string whichPython() {
 void initPython(const std::string &path) {
 #if PY_MAJOR_VERSION >= 3
     #if PY_MINOR_VERSION > 4
-        wchar_t *program = Py_DecodeLocale(path.c_str(), NULL);
+        auto program = Py_DecodeLocale(path.c_str(), NULL);
     #else // PY_MINOR_VERSION > 4
-        char *program = path.c_str();
+        std::vector<wchar_t> tmp(path.begin(), path.end());
+        auto program = tmp.data();
     #endif // PY_MINOR_VERSION > 4
 #else // PY_MAJOR_VERSION >= 3
     #error Python version >= 3 expected
 #endif // PY_MAJOR_VERSION >= 3
     if (nullptr == program) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Cannot decode the python path\n");
-        exit(1);
     }
     Py_SetProgramName(program);
     Py_Initialize();
