@@ -63,14 +63,14 @@ std::string whichPython() {
 
 void initPython(const std::string &path) {
 #if PY_MAJOR_VERSION >= 3
-    #if PY_MINOR_VERSION > 4
-        auto program = Py_DecodeLocale(path.c_str(), NULL);
-    #else // PY_MINOR_VERSION > 4
-        std::vector<wchar_t> tmp(path.begin(), path.end());
-        auto program = tmp.data();
-    #endif // PY_MINOR_VERSION > 4
+#if PY_MINOR_VERSION > 4
+    auto program = Py_DecodeLocale(path.c_str(), NULL);
+#else // PY_MINOR_VERSION > 4
+    std::vector<wchar_t> tmp(path.begin(), path.end());
+    auto program = tmp.data();
+#endif // PY_MINOR_VERSION > 4
 #else // PY_MAJOR_VERSION >= 3
-    #error Python version >= 3 expected
+#error Python version >= 3 expected
 #endif // PY_MAJOR_VERSION >= 3
     if (nullptr == program) {
         REPORT_ERROR(ERR_VALUE_INCORRECT, "Cannot decode the python path\n");
@@ -115,21 +115,22 @@ PyObject* convertToNumpy(const MultidimArray<T> &array) {
     dim[1]=YSIZE(array);
     dim[2]=ZSIZE(array);
     if (std::is_same<T, int>::value) {
-        PyObject* pyI=PyArray_SimpleNewFromData(3, dim, NPY_INT, array.data);
+        return PyArray_SimpleNewFromData(3, dim, NPY_INT, array.data);
     } else if (std::is_same<T, double>::value){
-        PyObject* pyI=PyArray_SimpleNewFromData(3, dim, NPY_DOUBLE, array.data);
+       return PyArray_SimpleNewFromData(3, dim, NPY_DOUBLE, array.data);
     } else {
         REPORT_ERROR(ERR_TYPE_INCORRECT, "Not implemented");
     }
 }
 
 void initNumpy() {
-    #ifndef NUMPY_IMPORT_ARRAY_RETVAL
-        #define NUMPY_IMPORT_ARRAY_RETVAL NULL
-    #endif
-    auto init = []() -> std::nullptr_t{
+#ifndef NUMPY_IMPORT_ARRAY_RETVAL
+#define NUMPY_IMPORT_ARRAY_RETVAL NULL
+#endif
+    auto init = []() -> std::nullptr_t { // explicit on purpose
         import_array();
-    }();
+    };
+    init();
 }
 
 // explicit instantiation

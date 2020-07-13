@@ -403,7 +403,6 @@ public:
         }
         else if (useFRM)
         {
-    		String whichPython;
     		Python::initPythonAndNumpy();
     		PyObject * pFunc = Python::getFunctionRef("sh_alignment.frm", "frm_align");
     		double rot,tilt,psi,x,y,z,score;
