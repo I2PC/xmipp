@@ -80,7 +80,7 @@ def rotate3d(data, phi=0, psi=0, the=0, center=None, order=2):
 
     from scipy import mgrid
     grid = mgrid[-cx:data.shape[0]-cx, -cy:data.shape[1]-cy, -cz:data.shape[2]-cz]
-    temp = grid.reshape((3, int(grid.size / 3)))
+    temp = grid.reshape((3, grid.size // 3))
     temp = np.dot(Inv_R, temp)
     grid = np.reshape(temp, grid.shape)
     grid[0] += cx
@@ -290,7 +290,7 @@ def fourier_reduced2full(data, isodd=False):
 
 
 def fourier_full2reduced(data):
-    return data[:,:,0:int(data.shape[2]/2)+1]
+    return data[:,:,0:data.shape[2]//2+1]
 
 
 def fourier_filter(data, fltr, human=True):
