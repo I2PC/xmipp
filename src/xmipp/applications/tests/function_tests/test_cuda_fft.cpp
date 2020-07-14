@@ -23,14 +23,23 @@ int CUDA_VERSION = 0;
         const auto &d = s.sDim(); \
         if (10020 == CUDA_VERSION) { \
             if (std::is_same<T, float>::value) { \
-                if ((2049 == d.x() && 1 == d.y() && 1 == d.z() && 6 == d.n() && 5 == s.batch() && s.isInPlace())
-                    || (2049 == d.x() && 1 == d.y() && 1 == d.z() && 6 == d.n() && 5 == s.batch() && s.isInPlace())
-                    || (2049 == d.x() && 106 == d.y() && 2 == d.z() && 24 == d.n() && 23 == s.batch() && s.isInPlace())
-                    || (15 == d.x() && 15 == d.y() && 2048 == d.z() && 12 == d.n() && 7 == s.batch() && s.isInPlace())) { \
+                if ((2049 == d.x() && 1 == d.y() && 1 == d.z() && 6 == d.n() && 5 == s.batch() && s.isInPlace()) \
+                    || (!isBothDirection && 2049 == d.x() && 1 == d.y() && 1 == d.z() && 6 == d.n() && 5 == s.batch() && s.isInPlace() && s.isForward()) \
+                    || (!isBothDirection && 2049 == d.x() && 106 == d.y() && 2 == d.z() && 24 == d.n() && 23 == s.batch() && s.isInPlace() && s.isForward()) \
+                    || (!isBothDirection && 15 == d.x() && 15 == d.y() && 2048 == d.z() && 12 == d.n() && 7 == s.batch() && s.isInPlace() && s.isForward()) \
+                    || (isBothDirection && 2 == d.x() && 1 == d.y() && 1 == d.z() && 23 == d.n() && 2 == s.batch() && s.isInPlace()) \
+                    || (isBothDirection && 2 == d.x() && 1 == d.y() && 1 == d.z() && 5 == d.n() && 2 == s.batch() && s.isInPlace()) \
+                    || (isBothDirection && 3 == d.x() && 2048 == d.y() && 1 == d.z() && 24 == d.n() && 23 == s.batch() && s.isInPlace()) \
+                    || (isBothDirection && 2049 == d.x() && 2048 == d.y() && 1 == d.z() && 24 == d.n() && 23 == s.batch() && s.isInPlace()) \
+                    || (isBothDirection && 3 == d.x() && 15 == d.y() && 2049 == d.z() && 10 == d.n() && 7 == s.batch() && s.isInPlace()) \
+                    ) { \
                     return true; \
                 } \
             } else if (std::is_same<T, double>::value) { \
-                return false; \
+                if ((isBothDirection && 2 == d.x() && 1 == d.y() && 1 == d.z() && 23 == d.n() && 2 == s.batch() && s.isInPlace()) \
+                    || (isBothDirection && 2 == d.x() && 1 == d.y() && 1 == d.z() && 5 == d.n() && 2 == s.batch() && s.isInPlace())) { \
+                    return true; \
+                } \
             } \
         } \
         return false; \
