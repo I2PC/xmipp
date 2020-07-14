@@ -112,6 +112,8 @@ public:
 
     bool isGpuPointer(const void *);
 
+    int getCudaVersion();
+
 private:
     int m_device;
     int m_streamId;
