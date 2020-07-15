@@ -165,7 +165,18 @@ double ProgVolDeformSph::distance(double *pclnm)
 						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
 					}
 				}
-
+				if (applyTransformation)
+				{
+					voxelR=A3D_ELEM(VR(),k,i,j);
+					voxelI=VI().interpolatedElement3D(j+gx,i+gy,k+gz);
+					if (voxelI >= 0.0)
+						sumVD += voxelI;
+					VO(k,i,j)=voxelI;
+					diff=voxelR-voxelI;
+					diff2+=diff*diff;
+					modg+=gx*gx+gy*gy+gz*gz;
+					Ncount++;
+				}
 				for (int idv=0; idv<volumesR.size(); idv++)
 				{
 					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
@@ -173,8 +184,6 @@ double ProgVolDeformSph::distance(double *pclnm)
 					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
 					if (voxelI >= 0.0)
 						sumVD += voxelI;
-					if (applyTransformation && idv == 0)
-						VO(k,i,j)=voxelI;
 					diff=voxelR-voxelI;
 					// diff2+=absMaxR_vec[idv]*diff*diff;
 					diff2+=diff*diff;
