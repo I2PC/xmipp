@@ -189,7 +189,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
 
         float atomS=0.0;
         float atomP=0.0;
-        float atomN=0.0;
         float value=0.0;
         int cont=0;
         for (int k = k0; k <= kF; k++)
