@@ -220,15 +220,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
                             else
                                 atomP += A3D_ELEM(inputVol,k, i, j);
 
-//                            //Negativity
-//                            if (A3D_ELEM(inputVol,k, i, j) > 0)
-//                            {
-//                                value = -A3D_ELEM(inputVol,k, i, j);
-//                                atomN += atomN;
-//                            }
-//                            else
-//                                atomN += A3D_ELEM(inputVol,k, i, j);
-
                         }
                     }
                     else
@@ -246,16 +237,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
                             }
                             else
                                 atomP += A3D_ELEM(inputVol,k, i, j);
-
-
-//                            //Negativity
-//                            if (A3D_ELEM(inputVol,k, i, j) > 0)
-//                            {
-//                                value = -A3D_ELEM(inputVol,k, i, j);
-//                                atomN += atomN;
-//                            }
-//                            else
-//                                atomN += A3D_ELEM(inputVol,k, i, j);
 
                         }
                     }
