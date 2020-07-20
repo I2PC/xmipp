@@ -41,6 +41,12 @@ GPU::~GPU() {
     m_isSet = false;
 }
 
+int GPU::getCudaVersion() {
+    int version = 0;
+    gpuErrchk(cudaRuntimeGetVersion(&version));
+    return version;
+}
+
 void GPU::set() {
     // set device (for current context / thread)
     setDevice(m_device);
