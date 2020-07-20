@@ -643,7 +643,8 @@ def configCompiler(configDict):
         updateXmippEnv(LD_LIBRARY_PATH=localLib)
 
         # extra libs
-        if not findFileInDirList("libhdf5*", localLib):
+        if not (findFileInDirList("libhdf5*", localLib) or
+                checkLib(configDict['CXX'], '-lhdf5_cpp')):
             print(yellow("\n'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
                                                      "/usr/lib/x86_64-linux-gnu"])
@@ -667,7 +668,7 @@ def configCompiler(configDict):
         configDict["INCDIRFLAGS"] += " -I%s" % localInc
 
         # extra includes
-        if not findFileInDirList("hdf5.h", [localInc]):
+        if not findFileInDirList("hdf5.h", [localInc, "/usr/include"]):
             print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
             hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
             hdf5Inc = askPath(hdf5Inc, askUser)
