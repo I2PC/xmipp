@@ -277,7 +277,7 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 		fseek(global_nma_vol_prog->AnglesShiftsAndScore, -10, SEEK_END);
 		err = fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->fit_value);
 		if(1!=err)
-				REPORT_ERROR(ERR_IO, "reading the fitness value was not successful");
+			REPORT_ERROR(ERR_IO, "reading the fitness value was not successful");
 		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
 		retval = 1 + global_nma_vol_prog->fit_value;
 	}
