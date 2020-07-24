@@ -150,6 +150,9 @@ protected:
     	transformer.FourierTransform(V(),V1Fourier,false);
     	FFT_magnitude(V1Fourier,V1FourierMag);
 		double std1 = V().computeStddev();
+		std::cout << "std1 " << std1 << std::endl;
+		double mean1 = V().computeMean();
+		std::cout << "mean1 " << mean1 << std::endl;
 //		V.write("V1masked.mrc");
 		V.read(fnVol2);
 		POCSmask(mask(),V());
@@ -174,6 +177,9 @@ protected:
 //    		V.write(formatString("V2masked_Amp1_ph2_%d.mrc", n));
         	POCSnonnegative(V());
 			double  std2 = V().computeStddev();
+			std::cout << "std2 " << std2 << std::endl;
+			double mean2 = V().computeMean();
+			std::cout << "mean2 " << mean2 << std::endl;
 			V()*=std1/std2;
 //    		V.write(formatString("V2masked_Amp1_ph2_nonneg_%d.mrc", n));
     	}
