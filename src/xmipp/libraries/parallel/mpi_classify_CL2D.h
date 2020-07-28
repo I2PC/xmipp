@@ -104,7 +104,7 @@ public:
 
     // List of neighbour indexes
     std::vector<int> neighboursIdx;
-public:
+
     /** Empty constructor */
     CL2DClass();
 
@@ -139,6 +139,8 @@ public:
 
     /// Look for K-nearest neighbours
     void lookForNeighbours(const std::vector<CL2DClass *> listP, int K);
+private:
+    Polar<double> fitBasic_aux;
 };
 
 struct SDescendingClusterSort
