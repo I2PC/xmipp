@@ -56,6 +56,8 @@ class ScriptVolumeConsensus(XmippScript):
         outputWt = None
         outputMin = None
         nlevel = 3
+        fnCoef = splitext(outVolFn)[0] + '_coef.txt'
+        fhCoef = open(fnCoef, 'w')
         with open(inputFile) as f:
             for line in f:
                 fileName = line.split()[0]
@@ -74,9 +76,11 @@ class ScriptVolumeConsensus(XmippScript):
                         for key in wtLevel:
                             outputWtLevel[key] = np.where(np.abs(outputWtLevel[key]) > np.abs(wtLevel[key]),
                                                           outputWtLevel[key], wtLevel[key])
+                            fhCoef.write(str(outputWtLevel[key]))
                             diff = np.abs(np.abs(outputWtLevel[key]) - np.abs(wtLevel[key]))
                             outputMin = np.where(outputMin > diff, outputMin, diff)
             f.close()
+        fhCoef.close()
         consensus = pywt.iswtn(outputWt, wavelet)
         V = xmippLib.Image()
         V.setData(consensus)
