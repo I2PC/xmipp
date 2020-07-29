@@ -813,8 +813,8 @@ int main(){}
     runJob("rm xmipp_mpi_test_main*")
 
     echoString = blue("   > This sentence should be printed 4 times if mpi runs fine")
-    if not (runJob("%s -np 4 echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
-            runJob("%s -np 4 --allow-run-as-root echo '%s.'" % (configDict['MPI_RUN'], echoString))):
+    if not (runJob("%s -np 4 --oversubscribe echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
+            runJob("%s -np 4 --allow-run-as-root --oversubscribe echo '%s.'" % (configDict['MPI_RUN'], echoString))):
         print(red("mpirun or mpiexec have failed."))
         return False
     return True
