@@ -168,8 +168,8 @@ class SingleTiltWedge(Wedge):
         filter_vol[angles > -self.start_ang] = 0
         filter_vol[angles < -self.end_ang] = 0
 
-        filter_vol[size[0]/2, :, :] = 0
-        filter_vol[size[0]/2, :, size[2]/2] = 1
+        filter_vol[size[0]//2, :, :] = 0
+        filter_vol[size[0]//2, :, size[2]//2] = 1
 
         # create a sphere and multiple it with the wedge
         from .tools import create_sphere

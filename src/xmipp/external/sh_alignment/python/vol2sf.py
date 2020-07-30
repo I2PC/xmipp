@@ -42,7 +42,7 @@ def vol2sf(vol, r, b, center=None):
         m_x, m_y, m_z = center
     else:
         # the middle point of the volume
-        m_x = vol.shape[0]/2; m_y = vol.shape[1]/2; m_z = vol.shape[2]/2
+        m_x = vol.shape[0]//2; m_y = vol.shape[1]//2; m_z = vol.shape[2]//2
 
     the = np.pi*(2*np.arange(2*b)+1) / (4*b)
     phi = np.pi*np.arange(2*b) / b
@@ -84,7 +84,7 @@ def fvol2sf(vol, r, b):
     f(the_0, phi_0) ... f(the_0, phi_2B-1), f(the_2B-1, phi_0) ... f(the_2B-1, phi_2B-1)
     List
     """
-    if r > vol.shape[0]/2 or r > vol.shape[1]/2 or r > vol.shape[2]/2:
+    if r > vol.shape[0]//2 or r > vol.shape[1]//2 or r > vol.shape[2]//2:
         raise RuntimeError("Given radius is larger than the volume!")
     elif r <= 0:
         raise RuntimeError("Radius should be larger than the 0!")
@@ -92,7 +92,7 @@ def fvol2sf(vol, r, b):
         pass
     
     # zero frequency position
-    m_x = vol.shape[0]/2; m_y = vol.shape[1]/2; m_z = vol.shape[2]/2
+    m_x = vol.shape[0]//2; m_y = vol.shape[1]//2; m_z = vol.shape[2]//2
 
     # only half
     the = np.pi*(2*np.arange(b)+1) / (4*b)
@@ -119,7 +119,7 @@ def fvol2sf(vol, r, b):
 
     # fill in the other half
     ind = np.arange(2*b**2)
-    cind = (2*b-1-(ind+2*b**2)/(2*b))*2*b + np.mod(np.mod(ind, 2*b)+b, 2*b)
+    cind = (2*b-1-(ind+2*b**2)//(2*b))*2*b + np.mod(np.mod(ind, 2*b)+b, 2*b)
 
     res_r = np.zeros((4*b**2,))
     res_r[:2*b**2] = res_r_a
@@ -239,7 +239,7 @@ if __name__ == '__main__':
         if o in ("-o"):
             filename = a
     
-    from ..python.tompy.io import read
+    from .tompy.io import read
     vol = read(vol_name)
     sf = vol2sf(vol, radius, bw)
     sf2file(sf, filename, conv)
