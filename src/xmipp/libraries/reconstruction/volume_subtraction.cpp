@@ -25,6 +25,7 @@
 
 #include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
+#include <core/histogram.h>
 #include <data/fourier_filter.h>
 
 
@@ -66,7 +67,7 @@ class ProgVolumeSubtraction: public XmippProgram
 protected:
 	FileName fnVol1, fnVol2, fnDiff, fnMask1, fnMask2;
 //	bool pdb;
-	bool sub;
+	bool sub, eq;
 	int iter, sigma;
 	double cutFreq;
 
@@ -86,6 +87,7 @@ protected:
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
+        addParamsLine("[--eq]       			: Perform histogram equalization");
     }
 
     void readParams()
@@ -102,6 +104,7 @@ protected:
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
     	cutFreq=getDoubleParam("--cutFreq");
+    	eq=checkParam("--eq");
     }
 
     void show()
@@ -126,8 +129,6 @@ protected:
     	FourierTransformer transformer;
     	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
     	MultidimArray<double> V1FourierMag;
-
-    	V.read(fnVol1);
     	MultidimArray<double> mask1;
 		Image<double> mask;
 		// if masks => compute common mask
@@ -154,10 +155,22 @@ protected:
 		double mean1 = V().computeAvg();
 		std::cout << "mean1 " << mean1 << std::endl;
 //		V.write("V1masked.mrc");
+    	if (eq==true)
+    	{
+			Histogram1D hist1;
+			compute_hist(V(), hist1, 100);
+			std::cout << "hist1: " << hist1 << std::endl;
+    	}
+
 		V.read(fnVol2);
 		POCSmask(mask(),V());
 //		V.write("V2masked.mrc");
-
+    	if (eq==true)
+    	{
+			Histogram1D hist2;
+			compute_hist(V(), hist2, 100);
+			std::cout << "hist2: " << hist2 << std::endl;
+    	}
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
