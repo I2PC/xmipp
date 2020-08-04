@@ -814,13 +814,18 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
     int xDim = 0, yDim = 0, zDim = 1;
-
-    if (self != NULL && PyArg_ParseTuple(args, "ii|i", &xDim, &yDim, &zDim))
+    int forceVolume=0;
+    if (self != NULL && PyArg_ParseTuple(args, "ii|ii", &xDim, &yDim, &zDim, &forceVolume))
     {
         try
         {
-            MULTIDIM_ARRAY_GENERIC(Image_Value(self)).setXmippOrigin();
-            selfScaleToSize(BSPLINE2, MULTIDIM_ARRAY_GENERIC(Image_Value(self)), xDim, yDim, zDim);
+            MultidimArrayGeneric& I=MULTIDIM_ARRAY_GENERIC(Image_Value(self));
+            I.setXmippOrigin();
+            size_t xdim, ydim, zdim, ndim;
+            I.getDimensions(xdim, ydim, zdim, ndim);
+            if (forceVolume && zdim==1 && ndim>1)
+               I.setDimensions(xdim,ydim,ndim,1);
+            selfScaleToSize(LINEAR, I, xDim, yDim, zDim);
             Py_RETURN_NONE;
         }
         catch (XmippError &xe)
