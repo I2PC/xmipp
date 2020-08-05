@@ -129,6 +129,7 @@ protected:
     	FourierTransformer transformer;
     	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
     	MultidimArray<double> V1FourierMag;
+    	V.read(fnVol1);
     	MultidimArray<double> mask1;
 		Image<double> mask;
 		// if masks => compute common mask
@@ -159,7 +160,7 @@ protected:
     	{
 			Histogram1D hist1;
 			compute_hist(V(), hist1, 100);
-			std::cout << "hist1: " << hist1 << std::endl;
+//			std::cout << "hist1: " << hist1 << std::endl;
     	}
 
 		V.read(fnVol2);
@@ -169,7 +170,7 @@ protected:
     	{
 			Histogram1D hist2;
 			compute_hist(V(), hist2, 100);
-			std::cout << "hist2: " << hist2 << std::endl;
+//			std::cout << "hist2: " << hist2 << std::endl;
     	}
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer.FourierTransform(V(),V2FourierPhase,true);
@@ -189,7 +190,7 @@ protected:
         	transformer.inverseFourierTransform();
 //    		V.write(formatString("V2masked_Amp1_ph2_%d.mrc", n));
         	POCSnonnegative(V());
-			double  std2 = V().computeStddev();
+			double std2 = V().computeStddev();
 			std::cout << "std2 " << std2 << std::endl;
 			double mean2 = V().computeAvg();
 			std::cout << "mean2 " << mean2 << std::endl;
