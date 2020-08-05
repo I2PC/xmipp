@@ -17,6 +17,16 @@ XMIPP_CONDA_ENVS = {
     "pipPackages": [],
     "defaultInstallOptions": {},
     "xmippEnviron": False
-  }
+  },
+
+  "xmipp_deepEMhancer": {
+    "pythonVersion": "3.6",
+    "dependencies": ["deepemhancer=0.12", "numba=0.45"],
+    "channels": ["rsanchez1369", "anaconda", "conda-forge"],
+    "pipPackages": [],
+    "defaultInstallOptions": {},
+    "xmippEnviron": False
+}
+
 
 }
