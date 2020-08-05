@@ -442,6 +442,7 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
         const auto labels = rows.at(0).getLabels();
         MetaData md(&labels);
         md.addRows(rows);
+	md.write(m_fnOut);
     } else {
         MetaData().write(m_fnOut);
     }
