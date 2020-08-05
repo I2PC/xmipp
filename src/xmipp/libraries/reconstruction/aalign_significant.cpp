@@ -411,7 +411,6 @@ template<typename T>
 template<bool USE_WEIGHT>
 void AProgAlignSignificant<T>::storeAlignedImages() {
     auto &md = m_imagesToAlign.md;
-    auto result = MetaData();
 
     std::sort(m_assignments.begin(), m_assignments.end(),
             [](const Assignment &l, const Assignment &r) {
@@ -422,21 +421,30 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
                   :(l.merit > r.merit));
     });
 
-    MDRow row;
     size_t i = 0;
+    std::vector<MDRow> rows;
+    rows.reserve(md.size() * m_noOfBestToKeep);
     FOR_ALL_OBJECTS_IN_METADATA(md) {
         // get the original row from the input metadata
+        MDRow row;
         md.getRow(row, __iter.objId);
         auto maxVote = m_assignments.at(i).merit;
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
+            rows.emplace_back(row);
+            auto &r = rows.back();
             const auto &a = m_assignments.at(i);
-            fillRow(row, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
-            result.addRow(row);
+            fillRow(r, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
             i++;
         }
     }
-    result.write(m_fnOut);
+    if (0 != rows.size()) {
+        const auto labels = rows.at(0).getLabels();
+        MetaData md(&labels);
+        md.addRows(rows);
+    } else {
+        MetaData().write(m_fnOut);
+    }
 }
 
 template<typename T>
@@ -502,17 +510,20 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
     std::sort(images.begin(), images.end(), [](const Assignment &l, const Assignment &r) {
        return l.imgIndex < r.imgIndex; // sort by image index
     });
-    auto &md = m_updateHelper.imgBlocks.at(refIndex);
 
     const size_t noOfImages = images.size();
-    std::vector<MDRow> rows(noOfImages);
-    for (size_t i = 0; i < noOfImages; ++i) {
-        auto &row = rows.at(i);
-        const auto &a = images.at(i);
-        getImgRow(row, a.imgIndex);
-        fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
+    if (0 != noOfImages) {
+        std::vector<MDRow> rows(noOfImages);
+        for (size_t i = 0; i < noOfImages; ++i) {
+            auto &row = rows.at(i);
+            const auto &a = images.at(i);
+            getImgRow(row, a.imgIndex);
+            fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
+        }
+        const auto labels = rows.at(0).getLabels();
+        auto &md = m_updateHelper.imgBlocks.at(refIndex) = MetaData(&labels);
+        md.addRows(rows);
     }
-    md.addRows(rows);
 }
 
 template<typename T>
