@@ -503,13 +503,16 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
        return l.imgIndex < r.imgIndex; // sort by image index
     });
     auto &md = m_updateHelper.imgBlocks.at(refIndex);
-    MDRow row;
+
     const size_t noOfImages = images.size();
-    for (const auto &a : images) {
+    std::vector<MDRow> rows(noOfImages);
+    for (size_t i = 0; i < noOfImages; ++i) {
+        auto &row = rows.at(i);
+        const auto &a = images.at(i);
         getImgRow(row, a.imgIndex);
         fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
-        md.addRowOpt(row);
     }
+    md.addRows(rows);
 }
 
 template<typename T>
