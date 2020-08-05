@@ -1,7 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2019)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,37 +23,40 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_SPLIT_ODD_EVEN
-#define _PROG_SPLIT_ODD_EVEN
+#ifndef EXTRACT_SUBSET_H_
+#define EXTRACT_SUBSET_H_
 
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
-#include <string>
-#include "core/metadata_extension.h"
+#include "core/xmipp_filename.h"
+#include "core/metadata.h"
+#include <iosfwd>
+#include "core/xmipp_image.h"
 
-/**@defgroup Odd Even
-   @ingroup ReconsLibrary */
-//@{
-/** SSNR parameters. */
+/**
+ * Class responsible for extracting particles from metadata / stack file into
+ * a new metadata / stack file
+ *
+ */
+class ExtractSubset final {
+public:
+    class Settings {
+    public:
+        MetaData md; // input
+        FileName outXmd; // parent directory expected to exist
+        FileName outStk; // parent directory expected to exist
+        size_t first; // 0-based index
+        size_t count; // number of items to be included
+        bool skipDisabled;
 
-class ProgOddEven : public XmippProgram
-{
-private:
-	 /** Filenames */
-	FileName fnOut_odd, fnOut_even, fnImg, splitType;
-	bool sumFrames;
+        void check() const;
+    };
 
-private:
-    void defineParams();
-    void readParams();
-    // This function generates the metadata associated to the input image stack
-    void fromimageToMd(FileName fnImg, MetaData &movienew);
-    void run();
+    friend std::ostream& operator<<(std::ostream &os, const Settings &s);
 
-
+    /**
+     * This method will extract particles according to the passed settings.
+     * New files containing the subset shall be created.
+     */
+    static void createSubset(const Settings &s);
 };
-//@}
-#endif
 
+#endif /* EXTRACT_SUBSET_H_ */

@@ -265,15 +265,20 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 
 	const char * Volume1 = fnVolume1.c_str();
 	const char * Volume2 = fnVolume2.c_str();
+	
+	int err;
 
 	if (global_nma_vol_prog->alignVolumes){
 		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
 				Volume1,Volume2,global_nma_vol_prog->frm_freq, global_nma_vol_prog->frm_shift, global_nma_vol_prog->tilt0, global_nma_vol_prog->tiltF, shifts_angles));
 		//first just see what is the score
 		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
-		// fit_value is the last element in shifts_angles. To get it without looping on all the file, we seek the end_of_file -10 (10 always work because fit_value is always < 1).
-		fseek(global_nma_vol_prog->AnglesShiftsAndScore, -10, SEEK_END);
-		fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->fit_value);
+		//fit_value is the 7th element in a single line CSV
+		for (int i = 0; i < 7; i++){
+			err = fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->fit_value);
+			if (1!=err)
+				REPORT_ERROR(ERR_IO, "reading the fitness value was not successful");
+		}
 		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
 		retval = 1 + global_nma_vol_prog->fit_value;
 	}
@@ -290,7 +295,9 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 	if(global_nma_vol_prog->updateBestFit(retval, dim) && global_nma_vol_prog->alignVolumes){
 		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		for (int i = 0; i < 6; i++){
-		       fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->Best_Angles_Shifts[i]);
+			err = fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->Best_Angles_Shifts[i]);
+			if (1!=err)
+				REPORT_ERROR(ERR_IO, "reading the angles and shifts was not successful");
 		    }
 		fclose(global_nma_vol_prog->AnglesShiftsAndScore);
 	}

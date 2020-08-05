@@ -108,6 +108,8 @@ PyMethodDef Image_methods[] =
           "Scale the image" },
         { "reslice", (PyCFunction) Image_reslice, METH_VARARGS,
             "Change the slices order in a volume" },
+		{ "writeSlices", (PyCFunction) Image_writeSlices, METH_VARARGS,
+		  "Write slices as separate files (rootname, extension, axis). Axis is 'X', 'Y' or 'Z'" },
         { "patch", (PyCFunction) Image_patch, METH_VARARGS,
           "Make a patch with other image" },
         { "getDataType", (PyCFunction) Image_getDataType, METH_VARARGS,
@@ -812,13 +814,18 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
     int xDim = 0, yDim = 0, zDim = 1;
-
-    if (self != NULL && PyArg_ParseTuple(args, "ii|i", &xDim, &yDim, &zDim))
+    int forceVolume=0;
+    if (self != NULL && PyArg_ParseTuple(args, "ii|ii", &xDim, &yDim, &zDim, &forceVolume))
     {
         try
         {
-            MULTIDIM_ARRAY_GENERIC(Image_Value(self)).setXmippOrigin();
-            selfScaleToSize(BSPLINE2, MULTIDIM_ARRAY_GENERIC(Image_Value(self)), xDim, yDim, zDim);
+            MultidimArrayGeneric& I=MULTIDIM_ARRAY_GENERIC(Image_Value(self));
+            I.setXmippOrigin();
+            size_t xdim, ydim, zdim, ndim;
+            I.getDimensions(xdim, ydim, zdim, ndim);
+            if (forceVolume && zdim==1 && ndim>1)
+               I.setDimensions(xdim,ydim,ndim,1);
+            selfScaleToSize(LINEAR, I, xDim, yDim, zDim);
             Py_RETURN_NONE;
         }
         catch (XmippError &xe)
@@ -850,6 +857,54 @@ Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
     return NULL;
 }//function Image_reslice
+
+/* Change the slices order in a volume */
+PyObject *
+Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (self != NULL)
+    {
+        PyObject *oRootname = NULL;
+        PyObject *oExt = NULL;
+        PyObject *oAxis = NULL;
+        if (PyArg_ParseTuple(args, "OOO", &oRootname, &oExt, &oAxis))
+        {
+            try
+            {
+                // Get the index and filename from the Python tuple object
+                const char * rootname = PyUnicode_AsUTF8(PyObject_Str(oRootname));
+                const char * ext = PyUnicode_AsUTF8(PyObject_Str(oExt));
+                const char * axis = PyUnicode_AsUTF8(PyObject_Str(oAxis));
+                // Now read using both of index and filename
+
+                ImageGeneric Iout;
+                Iout.setDatatype(self->image->getDatatype());
+
+				size_t xdim, ydim, zdim, ndim;
+				MULTIDIM_ARRAY_GENERIC(*(self->image)).getDimensions(xdim, ydim, zdim, ndim);
+				size_t N=zdim;
+				char caxis=axis[0];
+                if (caxis=='Y')
+                	N=ydim;
+                else if (caxis=='X')
+                	N=xdim;
+                for (size_t n=0; n<N; n++)
+                {
+                	MULTIDIM_ARRAY_GENERIC(*(self->image)).getSlice(n,&MULTIDIM_ARRAY_GENERIC(Iout),caxis);
+                	Iout.write(formatString("%s_%04d.%s",rootname,n,ext));
+                }
+                Py_RETURN_NONE;
+            }
+            catch (XmippError &xe)
+            {
+                PyErr_SetString(PyXmippError, xe.msg.c_str());
+            }
+        }
+    }
+    return NULL;
+
+}//function writeSlices
 
 /* Patch Image */
 PyObject *
