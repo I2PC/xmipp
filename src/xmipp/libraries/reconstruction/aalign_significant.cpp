@@ -508,7 +508,7 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
     for (const auto &a : images) {
         getImgRow(row, a.imgIndex);
         fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
-        md.addRow(row);
+        md.addRowOpt(row);
     }
 }
 
