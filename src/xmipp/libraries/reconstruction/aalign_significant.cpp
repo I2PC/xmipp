@@ -155,20 +155,30 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     futures.reserve(Ndim);
     h.rots.reserve(Ndim);
     h.tilts.reserve(Ndim);
+
+    std::vector<MDObject> values;
+    values.emplace_back(MDL_IMAGE); // 0
+    if (IS_REF) {
+        values.emplace_back(MDL_ANGLE_ROT); // 1
+        values.emplace_back(MDL_ANGLE_TILT); // 2
+        values.emplace_back(MDL_REF); // 3
+    }
+
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
+        md.getRowValues(__iter.objId, values);
         FileName fn;
-        md.getValue(MDL_IMAGE, fn, __iter.objId);
+        values.at(0).getValue(fn);
         if (IS_REF) {
             // if these labels are not present, we will use our default values
             float rot = 0.f;
-            md.getValue(MDL_ANGLE_ROT, rot,__iter.objId);
+            values.at(1).getValue(rot);
             float tilt = 0.f;
-            md.getValue(MDL_ANGLE_TILT, tilt,__iter.objId);
+            values.at(2).getValue(tilt);
             // ref label is required, as it allows for manual check of the result
             // without it, we don't know which reference is which
             int ref;
-            md.getValue(MDL_REF, ref,__iter.objId);
+            values.at(3).getValue(ref);
             h.rots.emplace_back(rot);
             h.tilts.emplace_back(tilt);
             h.indexes.emplace_back(ref);
