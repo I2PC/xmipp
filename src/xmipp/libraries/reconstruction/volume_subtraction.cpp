@@ -87,7 +87,7 @@ protected:
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
-        addParamsLine("[--eq]       			: Perform histogram equalization");
+//        addParamsLine("[--eq]       			: Perform histogram equalization");
     }
 
     void readParams()
@@ -104,7 +104,7 @@ protected:
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
     	cutFreq=getDoubleParam("--cutFreq");
-    	eq=checkParam("--eq");
+//    	eq=checkParam("--eq");
     }
 
     void show()
@@ -152,26 +152,26 @@ protected:
     	transformer.FourierTransform(V(),V1Fourier,false);
     	FFT_magnitude(V1Fourier,V1FourierMag);
 		double std1 = V().computeStddev();
-		std::cout << "std1 " << std1 << std::endl;
-		double mean1 = V().computeAvg();
-		std::cout << "mean1 " << mean1 << std::endl;
+//		std::cout << "std1 " << std1 << std::endl;
+//		double mean1 = V().computeAvg();
+//		std::cout << "mean1 " << mean1 << std::endl;
 //		V.write("V1masked.mrc");
-    	if (eq==true)
-    	{
-			Histogram1D hist1;
-			compute_hist(V(), hist1, 100);
-//			std::cout << "hist1: " << hist1 << std::endl;
-    	}
+//    	if (eq==true)
+//    	{
+//			Histogram1D hist1;
+//			compute_hist(V(), hist1, 100);
+////			std::cout << "hist1: " << hist1 << std::endl;
+//    	}
 
 		V.read(fnVol2);
 		POCSmask(mask(),V());
 //		V.write("V2masked.mrc");
-    	if (eq==true)
-    	{
-			Histogram1D hist2;
-			compute_hist(V(), hist2, 100);
-//			std::cout << "hist2: " << hist2 << std::endl;
-    	}
+//    	if (eq==true)
+//    	{
+//			Histogram1D hist2;
+//			compute_hist(V(), hist2, 100);
+////			std::cout << "hist2: " << hist2 << std::endl;
+//    	}
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
@@ -191,9 +191,9 @@ protected:
 //    		V.write(formatString("V2masked_Amp1_ph2_%d.mrc", n));
         	POCSnonnegative(V());
 			double std2 = V().computeStddev();
-			std::cout << "std2 " << std2 << std::endl;
-			double mean2 = V().computeAvg();
-			std::cout << "mean2 " << mean2 << std::endl;
+//			std::cout << "std2 " << std2 << std::endl;
+//			double mean2 = V().computeAvg();
+//			std::cout << "mean2 " << mean2 << std::endl;
 			V()*=std1/std2;
 //    		V.write(formatString("V2masked_Amp1_ph2_nonneg_%d.mrc", n));
     	}
