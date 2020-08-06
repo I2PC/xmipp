@@ -153,42 +153,28 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     // load all images in parallel
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
-    h.rots.reserve(Ndim);
-    h.tilts.reserve(Ndim);
-
-    std::vector<MDObject> values;
-    values.emplace_back(MDL_IMAGE); // 0
     if (IS_REF) {
-        values.emplace_back(MDL_ANGLE_ROT); // 1
-        values.emplace_back(MDL_ANGLE_TILT); // 2
-        values.emplace_back(MDL_REF); // 3
+        h.rots.reserve(Ndim);
+        md.getColumnValuesOpt(MDL_ANGLE_ROT, h.rots);
+        h.tilts.reserve(Ndim);
+        md.getColumnValuesOpt(MDL_ANGLE_TILT, h.tilts);
+        h.indexes.reserve(Ndim);
+        md.getColumnValuesOpt(MDL_REF, h.indexes);
     }
 
+    std::vector<FileName> fileNames;
+    fileNames.reserve(Ndim);
+    md.getColumnValuesOpt(MDL_IMAGE, fileNames);
     size_t i = 0;
     FOR_ALL_OBJECTS_IN_METADATA(md) {
-        md.getRowValues(__iter.objId, values);
         FileName fn;
-        values.at(0).getValue(fn);
-        if (IS_REF) {
-            // if these labels are not present, we will use our default values
-            float rot = 0.f;
-            values.at(1).getValue(rot);
-            float tilt = 0.f;
-            values.at(2).getValue(tilt);
-            // ref label is required, as it allows for manual check of the result
-            // without it, we don't know which reference is which
-            int ref;
-            values.at(3).getValue(ref);
-            h.rots.emplace_back(rot);
-            h.tilts.emplace_back(tilt);
-            h.indexes.emplace_back(ref);
-        } else {
+        if ( ! IS_REF) {
             h.rowIds.emplace_back(__iter.objId);
         }
         if (mustCrop) {
-            futures.emplace_back(m_threadPool.push(routineCrop, fn, i));
+            futures.emplace_back(m_threadPool.push(routineCrop, fileNames.at(i), i));
         } else {
-            futures.emplace_back(m_threadPool.push(routine, fn, i));
+            futures.emplace_back(m_threadPool.push(routine, fileNames.at(i), i));
         }
         i++;
     }
