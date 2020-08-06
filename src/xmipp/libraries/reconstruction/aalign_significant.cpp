@@ -442,7 +442,7 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
         const auto labels = rows.at(0).getLabels();
         MetaData md(&labels);
         md.addRows(rows);
-	md.write(m_fnOut);
+        md.write(m_fnOut);
     } else {
         MetaData().write(m_fnOut);
     }
@@ -501,11 +501,12 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
     // name of the reference
     refName.compose(indexInStk, m_updateHelper.fnStk);
     // some info about it
-    size_t id = refMeta.addObject();
+    auto refRow = MDRow();
     assert(std::numeric_limits<int>::max() >= refIndex);
-    refMeta.setValue(MDL_REF, getRefMetaIndex(refIndex), id);
-    refMeta.setValue(MDL_IMAGE, refName, id);
-    refMeta.setValue(MDL_CLASS_COUNT, images.size(), id);
+    refRow.setValue(MDL_REF, getRefMetaIndex(refIndex), true);
+    refRow.setValue(MDL_IMAGE, refName, true);
+    refRow.setValue(MDL_CLASS_COUNT, images.size(), true);
+    refMeta.addRowOpt(refRow);
 
     // create image description block
     std::sort(images.begin(), images.end(), [](const Assignment &l, const Assignment &r) {
@@ -522,7 +523,10 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
             fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
         }
         const auto labels = rows.at(0).getLabels();
-        auto &md = m_updateHelper.imgBlocks.at(refIndex) = MetaData(&labels);
+        if (0 == m_updateHelper.imgBlocks.size()) {
+            m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n(), &labels);
+        }
+        auto &md = m_updateHelper.imgBlocks.at(refIndex);
         md.addRows(rows);
     }
 }
@@ -541,7 +545,7 @@ void AProgAlignSignificant<T>::updateRefs() {
         std::cout << "Each experimental image will contribute to more than one reference image.\n";
     }
     // make sure we start from scratch
-    m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n());
+    m_updateHelper.imgBlocks.clear(); // postpone allocation for better performance
     m_updateHelper.refBlock = MetaData();
     // update references. Metadata will be updated on background
     updateRefs(m_referenceImages.data.get(), m_imagesToAlign.data.get(), m_assignments);
