@@ -32,6 +32,9 @@
 #include "reconstruction_cuda/cuda_fft.h"
 #include "cuda_cdf.h"
 
+/**@defgroup VolumeHalvesRestorator Volume Halves Restorator
+   @ingroup ReconsLibrary */
+//@{
 /*
 * Computation for ProgVolumeHalvesRestorationGpu
 * This class does not check validity of parameters, it assumes
@@ -278,5 +281,5 @@ struct VolumeHalvesRestorator<T>::Builder {
 				bankOverlap, weightFun, weightPower };
 	}
 };
-
+//@}
 #endif // CUDA_VOLUME_HALVES_RESTORATOR

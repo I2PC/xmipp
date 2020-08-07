@@ -29,6 +29,9 @@
 #include <core/multidim_array.h>
 #include <core/matrix2d.h>
 
+/**@defgroup Polynomials Polynomials
+   @ingroup DataLibrary */
+//@{
 // This class performs all the work related with Polynomials. This is a base class
 class Polynomials
 {

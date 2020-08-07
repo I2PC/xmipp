@@ -9,6 +9,9 @@
 
 #include <data/fourier_filter.h>
 
+/**@defgroup ProgCTFBasicParams Program CTF Basic Parameters
+   @ingroup ReconsLibrary */
+//@{
 class ProgCTFBasicParams: public XmippProgram
 {
 public:
@@ -154,5 +157,5 @@ public:
 };
 
 double evaluateIceness(MultidimArray<double> &psd, double Tm);
-
+//@}
 #endif

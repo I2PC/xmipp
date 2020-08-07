@@ -25,6 +25,9 @@
 
 #include <core/xmipp_program.h>
 
+/**@defgroup ProgImageSSNR Estimate the SSNR
+   @ingroup ReconsLibrary */
+//@{
 /** Estimate the SSNR on images, or selfiles */
 class ProgImageSSNR: public XmippMetadataProgram
 {
@@ -45,6 +48,7 @@ public:
     MultidimArray<double> maskS, maskN, spectrumS, spectrumN;
     size_t imin, imax;
 }
+//@}
 ;//end of class ProgFilter
 
 

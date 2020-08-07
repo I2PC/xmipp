@@ -28,6 +28,9 @@
 #include <core/xmipp_program.h>
 #include <reconstruction_cuda/gpu.h>
 
+/**@defgroup ProgGpuCorrelation GPU Correlation
+   @ingroup ReconsLibrary */
+//@{
 class ProgGpuCorrelation: public XmippProgram
 {
 private:

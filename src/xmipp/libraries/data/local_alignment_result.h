@@ -31,6 +31,9 @@
 #include "core/optional.h"
 #include "bspline_grid.h"
 
+/**@defgroup LocalAlignmentResult Local Alignment Result
+   @ingroup DataLibrary */
+//@{
 template<typename T>
 struct FramePatchMeta {
     // rectangle representing the patch
@@ -51,6 +54,5 @@ struct LocalAlignmentResult {
     std::vector<std::pair<FramePatchMeta<T>, Point2D<T>>> shifts;
     core::optional<BSplineGrid<T>> bsplineRep;
 };
-
-
+//@}
 #endif /* LIBRARIES_DATA_LOCAL_ALIGNMENT_RESULT_H_ */

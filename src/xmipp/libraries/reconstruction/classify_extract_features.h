@@ -34,7 +34,9 @@
 #include <string>
 #include <set>
 
-
+/**@defgroup ProgExtractFeatures ProgExtractFeatures
+   @ingroup ReconsLibrary */
+//@{
 class ProgExtractFeatures: public XmippProgram
 {
 public:
@@ -127,4 +129,5 @@ public:
     FitPoint *fitPoints;
     int NmaskPoints;
 };
+//@}
 #endif

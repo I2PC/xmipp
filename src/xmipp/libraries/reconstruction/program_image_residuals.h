@@ -25,6 +25,9 @@
 
 #include <core/xmipp_program.h>
 
+/**@defgroup ProgImageResiduals Image Residuals
+   @ingroup ReconsLibrary */
+//@{
 /** Apply some filter operation on images, or selfiles */
 class ProgImageResiduals: public XmippMetadataProgram
 {

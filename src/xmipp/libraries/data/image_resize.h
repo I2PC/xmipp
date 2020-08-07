@@ -37,7 +37,9 @@
 
 typedef enum { RESIZE_NONE, RESIZE_FACTOR, RESIZE_FOURIER, RESIZE_PYRAMID_EXPAND, RESIZE_PYRAMID_REDUCE } ScaleType;
 #define INTERP_FOURIER -1
-
+/**@defgroup ProgImageResize Image Resize class
+   @ingroup DataLibrary */
+//@{
 class ProgImageResize: public XmippMetadataProgram
 {
 public:
@@ -61,4 +63,5 @@ protected:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
 };
+//@}
 #endif //IMAGE_RESIZE_H

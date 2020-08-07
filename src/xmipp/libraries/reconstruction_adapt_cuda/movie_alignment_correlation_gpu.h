@@ -43,6 +43,9 @@
 #include "core/optional.h"
 #include "reconstruction_cuda/cuda_fft.h"
 
+/**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
+   @ingroup ReconsCUDALibrary */
+//@{
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
 public:
@@ -316,5 +319,5 @@ private:
     std::string optSizeYStr = std::string("optSizeY");
     std::string optBatchSizeStr = std::string("optBatchSize");
 };
-
+//@}
 #endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */

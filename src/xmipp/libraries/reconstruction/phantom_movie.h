@@ -29,6 +29,9 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 
+/**@defgroup PhantomMovie Phantom Movie
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class PhantomMovie: public XmippProgram {
 public:

@@ -31,6 +31,9 @@
 #include <core/xmipp_program.h>
 #include <core/alglib/ap.h>
 
+/**@defgroup ProgassignmentTiltPair Image Assignment Tilt Pair
+   @ingroup ReconsLibrary */
+//@{
 class ProgassignmentTiltPair: public XmippProgram
 {
 
@@ -71,4 +74,5 @@ public:
 
 
 };
+//@}
 #endif

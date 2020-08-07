@@ -33,6 +33,10 @@
 #include <core/xmipp_program.h>
 #include <data/fourier_projection.h>
 
+/**@defgroup ParametersProjectionTomography Parameters Projection for Tomography
+   @ingroup DataLibrary */
+//@{
+
 // These two structures are needed when projecting and backprojecting using
 // threads. They make mutual exclusion and synchronization possible.
 extern barrier_t project_barrier;

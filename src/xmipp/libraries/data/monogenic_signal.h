@@ -42,7 +42,9 @@
 //@{
 /** Routines for working with monogenic signals
 */
-
+/**@defgroup Monogenic Monogenic Signal
+   @ingroup DataLibrary */
+//@{
 class Monogenic
 {
 public:

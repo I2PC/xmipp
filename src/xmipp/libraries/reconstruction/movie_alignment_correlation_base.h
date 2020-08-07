@@ -48,6 +48,9 @@
 #include "bspline_helper.h"
 #include "data/point2D.h"
 
+/**@defgroup AProgMovieAlignmentCorrelation Movie Alignment Correlation
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class AProgMovieAlignmentCorrelation: public XmippProgram {
 
@@ -382,4 +385,5 @@ private:
     bool useInputShifts;
 
 };
+//@}
 #endif

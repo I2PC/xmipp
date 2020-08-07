@@ -35,6 +35,9 @@
 #include <core/symmetries.h>
 #include <data/grids.h>
 
+/**@defgroup symmetrizeCrystalVectors Symmetries
+   @ingroup DataLibrary */
+//@{
 /** Applies to the crystal vectors de n-th symmetry  matrix, It also
    initializes the shift vector. The crystal vectors and the basis must be
    the same  except for a constant!!

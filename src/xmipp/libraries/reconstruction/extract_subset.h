@@ -31,6 +31,9 @@
 #include <iosfwd>
 #include "core/xmipp_image.h"
 
+/**@defgroup ExtractSubset Extracting Particles From Metadata
+   @ingroup ReconsLibrary */
+//@{
 /**
  * Class responsible for extracting particles from metadata / stack file into
  * a new metadata / stack file
@@ -58,5 +61,5 @@ public:
      */
     static void createSubset(const Settings &s);
 };
-
+//@}
 #endif /* EXTRACT_SUBSET_H_ */

@@ -36,6 +36,9 @@
 #include <algorithm>
 #include <numeric> // std::accumulate
 
+/**@defgroup ProgAlignSignificantGPU Align Significant GPU
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -85,5 +88,5 @@ private:
 
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_ALIGN_SIGNIFICANT_GPU_H_ */

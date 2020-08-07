@@ -30,7 +30,9 @@
 #include <reconstruction/volumeset_align.h>
 #include <memory>
 
-
+/**@defgroup MpiProgVolumeSetAlign MPI Volume Set Align
+ @ingroup Programs */
+//@{
 class MpiProgVolumeSetAlign: public ProgVolumeSetAlign
 {
 private:
@@ -60,4 +62,5 @@ public:
     //void read(int arg1, char **arg2);
     void read(int argc, char ** argv, bool reportErrors = true) override;
 }
+//@}
 ;//end of class MpiProgVolumeSetAlign
