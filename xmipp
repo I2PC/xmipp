@@ -1228,7 +1228,7 @@ def installDepConda(dep):
                                         "to install it using conda? [YES/no] "
                                          % dep)):
             print(yellow("Trying to install %s with conda" % dep))
-            if runJob("conda activate %s ; conda install %s -y" % (condaEnv, dep)):
+            if runJob("conda activate %s ; conda install %s -y -c defaults" % (condaEnv, dep)):
                 print(green("'%s' installed in conda environ '%s'.\n" % (dep, condaEnv)))
                 return True
     return False
