@@ -977,7 +977,8 @@ def configCuda(configDict):
             nvccDir = whereis(configDict["NVCC"])
             if not checkCudaLib(cudaLib) and nvccDir:
                 cudaLib = None
-                libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib']  # add more condidates
+                libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
+                           'lib/x86_64-linux-gnu']  # add more condidates
                 for lib in libDirs:
                     candidate = nvccDir.replace("bin", lib)
                     if checkCudaLib(candidate):
