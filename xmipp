@@ -741,7 +741,8 @@ def checkCompiler(configDict):
     return True
 
 def configMPI(configDict):
-    mpiBinCandidates = ['/usr/lib/openmpi/bin',
+    mpiBinCandidates = [os.environ.get('MPI_BIN', 'None'),
+                        '/usr/lib/openmpi/bin',
                         '/usr/lib64/openmpi/bin']
     if configDict["MPI_RUN"] == "":
         if checkProgram("mpirun", False):
@@ -780,6 +781,14 @@ def configMPI(configDict):
             if mpiDir:
                 configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
                 checkProgram(configDict["MPI_CXX"])
+
+    mpiLib_env = os.environ.get('MPI_LIBDIR', '')
+    if mpiLib_env:
+        configDict['MPI_CXXFLAGS'] += ' -L'+mpiLib_env
+
+    mpiInc_env = os.environ.get('MPI_INCLUDE', '')
+    if mpiInc_env:
+        configDict['MPI_CXXFLAGS'] += ' -I'+mpiInc_env
 
     if configDict["MPI_LINKERFORPROGRAMS"] == "":
         configDict["MPI_LINKERFORPROGRAMS"] = configDict["MPI_CXX"]
@@ -895,7 +904,8 @@ def configCuda(configDict):
             configDict["CUDA"]="True"
         else:
             print(yellow("\n'nvcc' not found in the PATH"))
-            cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda/bin",
+            cudaBin = findFileInDirList('nvcc', [os.environ.get('CUDA_BIN', 'None'),
+                                                 "/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
             cudaBin = askPath(cudaBin, askUser)
             if os.path.isfile(os.path.join(cudaBin, 'nvcc')):
@@ -961,8 +971,9 @@ def configCuda(configDict):
                                            "-gencode=arch=compute_60,code=compute_60 "
                                            "-gencode=arch=compute_61,code=compute_61")
         if configDict["NVCC_LINKFLAGS"]=="":
-            nvccDir=whereis(configDict["NVCC"])
-            if nvccDir:
+            cudaLib = os.environ.get('CUDA_LIB', '')
+            nvccDir = whereis(configDict["NVCC"])
+            if not cudaLib and nvccDir:
                 cudaLib = None
                 libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib']  # add more condidates
                 for lib in libDirs:
@@ -973,20 +984,21 @@ def configCuda(configDict):
 
                 cudaLib = os.path.realpath(cudaLib)
                 cudaLib = askPath(cudaLib, ask=False)
-                if os.path.isdir(cudaLib):
-                    configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
-                                                    " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
-                    updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
-                    updateXmippEnv(LD_LIBRARY_PATH=cudaLib+"/stubs")
-                else:
-                    print(yellow("WARNING: system libraries for CUDA not found at '%s'!\n"
-                                 "         If cuda code is not compiling, "
-                                 "please, find 'libcudart.so' and manually add\n"
-                                 "         the containing folder (e.g. '/usr/local/cuda/lib') at %s\n"
-                                 "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
-                                 "         If the problem persist, 'export CUDA=False' before "
-                                 "compiling to skip cuda compilation."
-                                 % (cudaLib, CONFIG_FILE_NAME)))
+
+            if os.path.isdir(cudaLib):
+                configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
+                                                " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
+                updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
+                updateXmippEnv(LD_LIBRARY_PATH=cudaLib+"/stubs")
+            else:
+                print(yellow("WARNING: system libraries for CUDA not found at '%s'!\n"
+                             "         If cuda code is not compiling, "
+                             "please, find 'libcudart.so' and manually add\n"
+                             "         the containing folder (e.g. '/usr/local/cuda/lib') at %s\n"
+                             "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
+                             "         If the problem persist, 'export CUDA=False' before "
+                             "compiling to skip cuda compilation."
+                             % (cudaLib, CONFIG_FILE_NAME)))
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
