@@ -970,22 +970,28 @@ def configCuda(configDict):
                                            "-gencode=arch=compute_50,code=compute_50 "
                                            "-gencode=arch=compute_60,code=compute_60 "
                                            "-gencode=arch=compute_61,code=compute_61")
+
         if configDict["NVCC_LINKFLAGS"]=="":
+            checkCudaLib = lambda x: os.path.isfile(x+"/libcudart.so")
             cudaLib = os.environ.get('CUDA_LIB', '')
             nvccDir = whereis(configDict["NVCC"])
-            if not cudaLib and nvccDir:
+            if not checkCudaLib(cudaLib) and nvccDir:
                 cudaLib = None
                 libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib']  # add more condidates
                 for lib in libDirs:
                     candidate = nvccDir.replace("bin", lib)
-                    if os.path.exists(candidate+"/libcudart.so"):
+                    if checkCudaLib(candidate):
+                        cudaLib = candidate
+                        break
+                    candidate = '/usr/' + lib
+                    if checkCudaLib(candidate):
                         cudaLib = candidate
                         break
 
                 cudaLib = os.path.realpath(cudaLib)
                 cudaLib = askPath(cudaLib, ask=False)
 
-            if os.path.isdir(cudaLib):
+            if checkCudaLib(cudaLib):
                 configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
                                                 " -L%s/stubs"%cudaLib)  # nvidia-ml is in stubs folder
                 updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
