@@ -972,25 +972,35 @@ def configCuda(configDict):
                                            "-gencode=arch=compute_61,code=compute_61")
 
         if configDict["NVCC_LINKFLAGS"]=="":
+            # Looking for Cuda libraries:
+            libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
+                       'lib/x86_64-linux-gnu']  # add more condidates
             checkCudaLib = lambda x: os.path.isfile(x+"/libcudart.so")
+
+            def searchCudaLib(root, cudaLib):
+                check = False
+                for lib in libDirs:
+                    candidate = os.path.join(root, lib)
+                    if checkCudaLib(candidate):
+                        cudaLib = candidate
+                        check = True
+                        break
+                if check:
+                    cudaLib = os.path.realpath(cudaLib)
+                    cudaLib = askPath(cudaLib, ask=askUser)
+                return cudaLib
+
+            # Looking for user defined CUDA_LIB
             cudaLib = os.environ.get('CUDA_LIB', '')
+
             nvccDir = whereis(configDict["NVCC"])
             if not checkCudaLib(cudaLib) and nvccDir:
-                cudaLib = None
-                libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
-                           'lib/x86_64-linux-gnu']  # add more condidates
-                for lib in libDirs:
-                    candidate = nvccDir.replace("bin", lib)
-                    if checkCudaLib(candidate):
-                        cudaLib = candidate
-                        break
-                    candidate = '/usr/' + lib
-                    if checkCudaLib(candidate):
-                        cudaLib = candidate
-                        break
+                # Looking for Cuda libs under active nvcc.
+                cudaLib = searchCudaLib(os.path.dirname(nvccDir), cudaLib)
 
-                cudaLib = os.path.realpath(cudaLib)
-                cudaLib = askPath(cudaLib, ask=False)
+            if not checkCudaLib(cudaLib):
+                # Looking for Cuda libs in user root libs.
+                cudaLib = searchCudaLib('/usr', cudaLib)
 
             if checkCudaLib(cudaLib):
                 configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
@@ -998,14 +1008,14 @@ def configCuda(configDict):
                 updateXmippEnv(LD_LIBRARY_PATH=cudaLib)
                 updateXmippEnv(LD_LIBRARY_PATH=cudaLib+"/stubs")
             else:
-                print(yellow("WARNING: system libraries for CUDA not found at '%s'!\n"
+                print(yellow("WARNING: system libraries for CUDA not found!\n"
                              "         If cuda code is not compiling, "
                              "please, find 'libcudart.so' and manually add\n"
-                             "         the containing folder (e.g. '/usr/local/cuda/lib') at %s\n"
-                             "   NVCC_LINKFLAGS = -LmyCudaLib -LmyCudaLib/stubs\n"
-                             "         If the problem persist, 'export CUDA=False' before "
+                             "         the containing folder (e.g. '/my/cuda/lib') at %s\n"
+                             " > NVCC_LINKFLAGS = -L/my/cuda/lib -L/my/cuda/lib/stubs\n"
+                             "         If the problem persist, set 'CUDA=False' before "
                              "compiling to skip cuda compilation."
-                             % (cudaLib, CONFIG_FILE_NAME)))
+                             % (CONFIG_FILE_NAME)))
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
