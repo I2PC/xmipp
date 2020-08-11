@@ -35,6 +35,7 @@
 #include <core/xmipp_threads.h>
 #include <data/basic_pca.h>
 #include <data/normalize.h>
+#include "core/xmipp_image_generic.h"
 
 /* Read parameters ========================================================= */
 ProgCTFEstimateFromMicrograph::ProgCTFEstimateFromMicrograph()

@@ -27,6 +27,7 @@
 #include "image_rotational_pca.h"
 #include <data/mask.h>
 #include <core/metadata_extension.h>
+#include "core/transformations.h"
 
 // Empty constructor =======================================================
 ProgImageRotationalPCA::ProgImageRotationalPCA()

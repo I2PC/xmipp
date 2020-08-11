@@ -28,6 +28,7 @@
 #include <core/xmipp_fftw.h>
 #include <data/filters.h>
 #include <typeinfo>
+#include "core/xmipp_image_generic.h"
 
 #define OUTSIDE_WRAP 0
 #define OUTSIDE_AVG 1

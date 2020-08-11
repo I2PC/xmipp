@@ -34,7 +34,7 @@
 #include <fstream>
 #include <queue>
 #include <iostream>
-
+#include "data/mask.h"
 #include <data/fourier_filter.h>
 
 /* Generate mask ----------------------------------------------------------- */

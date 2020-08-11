@@ -27,6 +27,7 @@
 #include "directions.h"
 #include "project_real_shears.h"
 #include <data/fourier_projection.h>
+#include "core/xmipp_image_generic.h"
 
 #include <core/args.h>
 

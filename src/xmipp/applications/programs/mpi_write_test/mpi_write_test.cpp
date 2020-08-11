@@ -43,6 +43,7 @@
 #include "parallel/xmipp_mpi.h"
 #include <core/args.h>
 #include <core/xmipp_program.h>
+#include "core/xmipp_image_generic.h"
 
 //Some useful macros
 #define CREATE_LOG() FILE * _logML = fopen(formatString("nodo%02d.log", node->rank).c_str(), "w+")

@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "psf_xr.h"
-
+#include "core/transformations.h"
 
 XRayPSF::XRayPSF()
 {

@@ -28,6 +28,7 @@
 #include <core/xmipp_funcs.h>
 #include <data/mask.h>
 #include <data/filters.h>
+#include "core/xmipp_image_generic.h"
 
 // Read arguments ==========================================================
 void ProgAlign2d::readParams()

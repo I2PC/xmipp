@@ -26,7 +26,6 @@
 
 #include "sparse_matrix2d.h"
 
-
 // Sparse matrices --------------------------------------------------------
 SparseMatrix2D::SparseMatrix2D(){
 	N 		= 0;

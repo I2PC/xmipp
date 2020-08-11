@@ -25,6 +25,8 @@
 
 #include <core/args.h>
 #include "tomo_map_back.h"
+#include "core/matrix2d.h"
+#include "core/transformations.h"
 
 // Read arguments ==========================================================
 void ProgTomoMapBack::readParams()

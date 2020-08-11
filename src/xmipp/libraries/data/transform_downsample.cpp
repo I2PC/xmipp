@@ -28,6 +28,7 @@
 #include <core/xvsmooth.h>
 #include "transform_downsample.h"
 #include "mask.h"
+#include "core/xmipp_image_generic.h"
 
 // Read --------------------------------------------------------------------
 void ProgTransformDownsample::readParams()

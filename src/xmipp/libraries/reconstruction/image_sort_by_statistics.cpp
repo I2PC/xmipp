@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "image_sort_by_statistics.h"
+#include "core/metadata_extension.h"
 
 void ProgSortByStatistics::clear()
 {

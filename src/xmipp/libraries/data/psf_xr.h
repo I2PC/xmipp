@@ -31,6 +31,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_program.h>
 #include <data/projection.h>
+#include "core/xmipp_image_generic.h"
 
 /**@defgroup PSFXRSupport X-Ray Microscope PSF class
    @ingroup DataLibrary */

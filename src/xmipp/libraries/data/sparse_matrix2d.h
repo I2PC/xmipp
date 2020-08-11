@@ -28,6 +28,22 @@
 
 #include <core/multidim_array.h>
 
+/** Sparse element.
+ *  This class is used to create the SparseMatrices. */
+class SparseElement
+{
+public:
+    size_t i;
+    size_t j;
+    double value;
+};
+
+/** Function to sort the sparse elements by their i,j position */
+inline bool operator< (const SparseElement& _x, const SparseElement& _y)
+{
+    return ( _x.i < _y.i) || (( _x.i== _y.i) && ( _x.j< _y.j));
+}
+
 /** @ingroup Matrices
  */
 //@{
