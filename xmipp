@@ -904,7 +904,9 @@ def configCuda(configDict):
             configDict["CUDA"]="True"
         else:
             print(yellow("\n'nvcc' not found in the PATH"))
-            cudaBin = findFileInDirList('nvcc', [os.environ.get('CUDA_BIN', 'None'),
+            environCudaBin = os.environ.get('XMIPP_CUDA_LIB',
+                                            os.environ.get('CUDA_BIN', 'None'))
+            cudaBin = findFileInDirList('nvcc', [environCudaBin,
                                                  "/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
             cudaBin = askPath(cudaBin, askUser)
