@@ -990,8 +990,9 @@ def configCuda(configDict):
                     cudaLib = askPath(cudaLib, ask=askUser)
                 return cudaLib
 
-            # Looking for user defined CUDA_LIB
-            cudaLib = os.environ.get('CUDA_LIB', '')
+            # Looking for user defined XMIPP_CUDA_LIB and CUDA_LIB
+            cudaLib = os.environ.get('XMIPP_CUDA_LIB',
+                                     os.environ.get('CUDA_LIB', ''))
 
             nvccDir = whereis(configDict["NVCC"])
             if not checkCudaLib(cudaLib) and nvccDir:
