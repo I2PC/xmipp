@@ -31,6 +31,7 @@
 #include <data/mask.h>
 #include <data/integration.h>
 #include <data/numerical_tools.h>
+#include "core/transformations.h"
 
 /* Atom charge ------------------------------------------------------------- */
 int atomCharge(const std::string &atom)

@@ -28,6 +28,8 @@
 #include <data/mask.h>
 #include <data/polar.h>
 #include <core/xmipp_image_generic.h>
+#include <core/xmipp_color.h>
+
 
 // Pointer to parameters
 ProgClassifyCL2D *prm = NULL;

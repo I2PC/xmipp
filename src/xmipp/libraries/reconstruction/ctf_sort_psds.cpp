@@ -30,7 +30,7 @@
 #include <data/filters.h>
 #include <core/transformations.h>
 #include <core/histogram.h>
-
+#include "core/xmipp_image_generic.h"
 
 /* Constructor ------------------------------------------------------------- */
 ProgPSDSort::ProgPSDSort()

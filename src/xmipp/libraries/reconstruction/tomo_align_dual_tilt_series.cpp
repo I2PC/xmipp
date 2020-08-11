@@ -27,6 +27,7 @@
 #include <core/args.h>
 #include <data/filters.h>
 #include <core/xmipp_fftw.h>
+#include "core/geometry.h"
 
 double wrapperDualAligment(double *p, void *prm)
 {

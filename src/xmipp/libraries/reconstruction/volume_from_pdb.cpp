@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include "volume_from_pdb.h"
-
+#include "core/transformations.h"
 #include <core/args.h>
 
 #include <fstream>

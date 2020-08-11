@@ -25,7 +25,7 @@
  ***************************************************************************/
 
 #include "mpi_angular_class_average.h"
-
+#include "core/xmipp_image_generic.h"
 
 MpiProgAngularClassAverage::MpiProgAngularClassAverage()
 {}

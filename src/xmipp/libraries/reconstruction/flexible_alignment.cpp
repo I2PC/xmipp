@@ -30,10 +30,11 @@
 #include <core/bilib/messagedisplay.h>
 #include <core/bilib/error.h>
 #include <core/bilib/configs.h>
+#include "core/bilib/linearalgebra.h"
 #include "flexible_alignment.h"
 #include "pdb_nma_deform.h"
 #include "program_extension.h"
-
+#include "core/transformations.h"
 
 // Empty constructor =======================================================
 ProgFlexibleAlignment::ProgFlexibleAlignment()

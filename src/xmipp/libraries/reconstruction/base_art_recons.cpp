@@ -27,7 +27,7 @@
 #include "base_art_recons.h"
 #include "recons_misc.h"
 #include <data/fourier_filter.h>
-
+#include "data/wavelet.h"
 
 void ARTReconsBase::readParams(XmippProgram * program)
 {

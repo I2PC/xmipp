@@ -25,6 +25,7 @@
 
 #include "projection.h"
 #include <core/geometry.h>
+#include "core/transformations.h"
 
 #define x0   STARTINGX(IMGMATRIX(proj))
 #define xF   FINISHINGX(IMGMATRIX(proj))

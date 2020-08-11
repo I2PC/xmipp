@@ -26,6 +26,7 @@
 #include <data/basis.h>
 #include <data/fourier_filter.h>
 #include <data/normalize.h>
+#include <iterator>
 
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {

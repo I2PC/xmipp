@@ -26,6 +26,7 @@
 #include <core/args.h>
 #include <data/filters.h>
 #include "volume_pca.h"
+#include "core/xmipp_image_generic.h"
 
 // Read arguments ==========================================================
 void ProgVolumePCA::readParams()

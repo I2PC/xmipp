@@ -35,7 +35,9 @@
 #include <core/geometry.h>
 //#include <relion-1.3/include/relion-1.3/src/matrix1d.h>
 #include <core/matrix1d.h>
-//#include <core/multidim_array.h>
+#include "core/linear_system_helper.h"
+#include "core/xmipp_image_extension.h"
+
 
 void ProgassignmentTiltPair::readParams()
 {

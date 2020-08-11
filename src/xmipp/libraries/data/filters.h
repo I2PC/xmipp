@@ -28,12 +28,10 @@
 
 #define LOG2 0.693147181
 
-#include <queue>
 #include <core/xmipp_image.h>
 #include <core/histogram.h>
 #include <core/xmipp_program.h>
 #include <data/numerical_tools.h>
-#include <data/mask.h>
 #include <data/polar.h>
 
 /// @defgroup Filters Filters
