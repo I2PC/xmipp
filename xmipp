@@ -741,7 +741,7 @@ def checkCompiler(configDict):
     return True
 
 def configMPI(configDict):
-    mpiBinCandidates = [os.environ.get('MPI_BIN', 'None'),
+    mpiBinCandidates = [os.environ.get('MPI_BINDIR', 'None'),
                         '/usr/lib/openmpi/bin',
                         '/usr/lib64/openmpi/bin']
     if configDict["MPI_RUN"] == "":
