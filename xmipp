@@ -614,6 +614,7 @@ def configCompiler(configDict):
             configDict["CXX"] = "ccache g++" if checkProgram("g++") else ""
         else:
             configDict["CXX"] = "g++" if checkProgram("g++") else ""
+    print('configDict["CXX"] : ', configDict["CXX"])
     if configDict["LINKERFORPROGRAMS"] == "":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
