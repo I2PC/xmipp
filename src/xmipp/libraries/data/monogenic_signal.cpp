@@ -66,7 +66,7 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 {
 	double criticalZ = icdf_gauss(0.95);
 	radiuslimit = XSIZE(inputmap)/2;
-	double last_mean, last_std2=std::numeric_limits<double>::lowest(), last_N;
+	double last_mean, last_std2=1e-38, last_N;
 
 	for (int rad = radius; rad<radiuslimit; rad++)
 	{
@@ -130,7 +130,7 @@ Matrix1D<double> Monogenic::fourierFreqVector(size_t dimarrayFourier, size_t dim
         double u;
         Matrix1D<double> freq_fourier;
 	freq_fourier.initZeros(dimarrayFourier);
-        VEC_ELEM(freq_fourier,0) = std::numeric_limits<double>::lowest();
+        VEC_ELEM(freq_fourier,0) = 1e-38; //A really low value to represent 0 avooiding singularities
 	for(size_t k=1; k<dimarrayFourier; ++k){
 		FFT_IDX2DIGFREQ(k,dimarrayReal, u);
 		VEC_ELEM(freq_fourier, k) = u;
@@ -182,7 +182,7 @@ MultidimArray<double> Monogenic::fourierFreqs_3D(const MultidimArray< std::compl
 				}
 				else
 				{
-					DIRECT_MULTIDIM_ELEM(iu,n) = std::numeric_limits<double>::max();
+					DIRECT_MULTIDIM_ELEM(iu,n) = 1e38;
 				}
 				++n;
 			}
@@ -323,6 +323,7 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(amplitude)
 		DIRECT_MULTIDIM_ELEM(amplitude,n) *= DIRECT_MULTIDIM_ELEM(amplitude,n);
 
+
 	//TODO: create a macro with these kind of code
 	// Calculate first component of Riesz vector
 	double ux;
@@ -375,8 +376,6 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 		DIRECT_MULTIDIM_ELEM(amplitude,n)+=DIRECT_MULTIDIM_ELEM(VRiesz,n)*DIRECT_MULTIDIM_ELEM(VRiesz,n);
 		DIRECT_MULTIDIM_ELEM(amplitude,n)=sqrt(DIRECT_MULTIDIM_ELEM(amplitude,n));
 	}
-
-
 
 	transformer_inv.FourierTransform(amplitude, fftVRiesz, false);
 
@@ -492,6 +491,7 @@ void Monogenic::statisticsInOutBinaryMask2(const MultidimArray<double> &volS,
 	meanN = sumN/NN;
 	sdS2 = sumS2/NS - meanS*meanS;
 	sdN2 = sumN2/NN - meanN*meanN;
+
 }
 
 
