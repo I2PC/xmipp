@@ -608,6 +608,7 @@ def configCompiler(configDict):
     if configDict["CC"] == "" and checkProgram("gcc"):
         configDict["CC"] = "gcc"
         print(green('gcc detected'))
+    print('pre >>> configDict["CXX"] : ', configDict["CXX"])
     if configDict["CXX"] == "":
         if 'TRAVIS' in os.environ:
             # on TRAVIS, we can use cache to speed up the build
