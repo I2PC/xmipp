@@ -600,6 +600,8 @@ def checkLib(gxx, libFlag):
     return not any(['cannot find '+libFlag in l for l in lines])
 
 def configCompiler(configDict):
+    print("os.environ.get('TRAVIS', 'myNone'): ",
+           os.environ.get('TRAVIS', 'myNone'))
     if configDict["DEBUG"] == "":
         configDict["DEBUG"] = "False"
 
