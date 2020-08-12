@@ -50,7 +50,7 @@ void ProgMonogenicSignalRes::readParams()
 
 void ProgMonogenicSignalRes::defineParams()
 {
-	addUsageLine("MONORES: This algorithm estimate the local resolution map from a single reconstruction");
+	addUsageLine("MONORES: This algorithm estimates the local resolution map from a single reconstruction");
 	addUsageLine("or two half maps.");
 	addUsageLine("Reference: J.L. Vilas et al, MonoRes: Automatic and Accurate Estimation of ");
 	addUsageLine("Local Resolution for Electron Microscopy Maps, Structure, 26, 337-344, (2018).");
@@ -150,13 +150,12 @@ void ProgMonogenicSignalRes::produceSideInfo()
 		}
 	}
 
-
 	transformer_inv.setThreadsNumber(nthrs);
 	FourierTransformer transformer;
         transformer.setThreadsNumber(nthrs);
 	VRiesz.resizeNoCopy(inputVol);
 	transformer.FourierTransform(inputVol, fftV);
-	std::cout << "asdad" << std::endl;
+
 	// Frequency volume
 	iu = mono.fourierFreqs_3D(fftV, inputVol, freq_fourier_x, freq_fourier_y, freq_fourier_z);
 
@@ -496,7 +495,6 @@ void ProgMonogenicSignalRes::run()
 				thresholdNoise = meanN+criticalZ*sqrt(sdN2);
 			else
 				thresholdNoise = thr95;
-
 
 			if (meanS>max_meanS)
 				max_meanS = meanS;
