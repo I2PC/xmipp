@@ -20,6 +20,7 @@ before_install:
  - source scripts/install_cuda_travis.sh
 script:
  - |
+     export CXX='ccache g++' && \
      build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk && \
      sonar-scanner && \
      ccache -s
