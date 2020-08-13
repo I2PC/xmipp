@@ -32,6 +32,7 @@
 #include <data/polar.h>
 #include <core/histogram.h>
 #include <data/filters.h>
+#include <core/xmipp_image_generic.h>
 
 //#define FTTRI_ALREADY_COMPUTED
 

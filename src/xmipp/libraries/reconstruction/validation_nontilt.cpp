@@ -28,6 +28,7 @@
 #include <ctime>        // std::time
 #include <algorithm>
 #include "data/sampling.h"
+#include "core/metadata_sql.h"
 
 
 ProgValidationNonTilt::ProgValidationNonTilt()

@@ -28,6 +28,7 @@
 #include <core/xmipp_image.h>
 #include <core/xmipp_program.h>
 #include <core/xmipp_fftw.h>
+#include "core/matrix2d.h"
 
 /**@defgroup FourierProjection Fourier projection
    @ingroup ReconsLibrary */

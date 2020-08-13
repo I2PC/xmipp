@@ -1,6 +1,9 @@
 #include <core/matrix2d.h>
 #include <iostream>
 #include <gtest/gtest.h>
+#include "core/xmipp_filename.h"
+#include "core/linear_system_helper.h"
+#include "core/xmipp_funcs.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class MatrixTest : public ::testing::Test
 {

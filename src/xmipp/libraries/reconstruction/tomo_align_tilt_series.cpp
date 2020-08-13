@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "tomo_align_tilt_series.h"
-
+#include "core/metadata_sql.h"
 #include <core/args.h>
 #include <data/filters.h>
 #include <core/xmipp_fftw.h>
@@ -34,7 +34,7 @@
 #include <fstream>
 #include <queue>
 #include <iostream>
-
+#include "data/mask.h"
 #include <data/fourier_filter.h>
 
 /* Generate mask ----------------------------------------------------------- */

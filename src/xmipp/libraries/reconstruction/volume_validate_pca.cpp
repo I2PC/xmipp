@@ -26,6 +26,7 @@
 #include "volume_validate_pca.h"
 #include <numeric>
 #include <core/geometry.h>
+#include "core/metadata_sql.h"
 
 // Define params
 void ProgVolumeValidationPCA::defineParams()

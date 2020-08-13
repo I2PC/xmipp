@@ -28,6 +28,7 @@
 #include <core/metadata_extension.h>
 #include <data/numerical_tools.h>
 #include <core/xmipp_fft.h>
+#include "core/transformations.h"
 
 void minus(Image<double> &op1, const Image<double> &op2)
 {

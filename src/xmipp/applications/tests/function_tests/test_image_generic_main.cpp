@@ -3,6 +3,8 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <data/ctf.h>
+#include "core/xmipp_image_generic.h"
+
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
 // test case.

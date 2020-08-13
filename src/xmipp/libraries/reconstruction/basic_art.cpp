@@ -32,6 +32,8 @@
 #include "basic_art.h"
 #include <data/fourier_filter.h>
 #include "recons_misc.h"
+#include "core/metadata_extension.h"
+#include "core/metadata_sql.h"
 
 /* Desctructor */
 BasicARTParameters::~BasicARTParameters()

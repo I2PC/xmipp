@@ -27,6 +27,7 @@
 #include <core/args.h>
 #include <core/xmipp_fftw.h>
 #include <data/numerical_tools.h>
+#include "core/geometry.h"
 
 // Evaluate plane ----------------------------------------------------------
 double evaluatePlane(double rot, double tilt,

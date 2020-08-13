@@ -27,6 +27,7 @@
 #define IMAGE_CONVERT_H_
 
 #include <core/xmipp_program.h>
+#include "core/xmipp_image_generic.h"
 
 typedef enum
 {

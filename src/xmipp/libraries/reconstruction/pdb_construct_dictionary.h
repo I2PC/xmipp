@@ -26,6 +26,8 @@
 #define _PROG_CONSTRUCT_DICTIONARY_HH
 
 #include <core/xmipp_program.h>
+#include "core/matrix2d.h"
+#include "core/matrix1d.h"
 
 /**@defgroup PDBConstructDictionary Construct a low and high resolution dictionary
    @ingroup ReconsLibrary */

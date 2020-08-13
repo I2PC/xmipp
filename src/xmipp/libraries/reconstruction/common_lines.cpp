@@ -33,6 +33,7 @@
 #include <reconstruction/radon.h>
 #include <fstream>
 #include <iomanip>
+#include "core/linear_system_helper.h"
 
 /* Common line ------------------------------------------------------------- */
 CommonLine::CommonLine()

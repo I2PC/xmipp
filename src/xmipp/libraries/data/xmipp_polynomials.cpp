@@ -28,6 +28,7 @@
 #include "xmipp_polynomials.h"
 #include "numerical_tools.h"
 #include "mask.h"
+#include "core/linear_system_helper.h"
 
 
 #define PR(x) std::cout << #x " = " << x << std::endl;

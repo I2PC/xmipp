@@ -28,6 +28,8 @@
 
 #include <core/xmipp_program.h>
 
+class ImageGeneric;
+
 ///@defgroup MicrographDownsample Micrograph Downsample
 /// @ingroup ReconsLibrary
 //@{

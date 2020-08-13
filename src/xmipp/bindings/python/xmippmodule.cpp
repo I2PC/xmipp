@@ -27,7 +27,7 @@
 #include <data/ctf.h>
 #include <reconstruction/ctf_enhance_psd.h>
 #include <core/xmipp_image_macros.h>
-
+#include "core/metadata_sql.h"
 PyObject * PyXmippError;
 #include <numpy/ndarraytypes.h>
 #include <numpy/ndarrayobject.h>

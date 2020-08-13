@@ -26,6 +26,8 @@
 #include "pdb_construct_dictionary.h"
 #include <core/xmipp_image_extension.h>
 #include <data/numerical_tools.h>
+#include "core/xmipp_image_generic.h"
+#include "core/transformations.h"
 
 void ProgPDBDictionary::defineParams()
 {

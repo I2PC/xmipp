@@ -28,6 +28,8 @@
 #include <data/filters.h>
 #include <core/xmipp_image_extension.h>
 #include "xray_import.h"
+#include "core/xmipp_image_generic.h"
+#include "core/metadata_extension.h"
 
 // usage ===================================================================
 void ProgXrayImport::defineParams()

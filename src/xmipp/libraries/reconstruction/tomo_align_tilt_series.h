@@ -31,6 +31,7 @@
 #include <core/metadata_extension.h>
 #include <core/xmipp_program.h>
 #include <pthread.h>
+#include "core/matrix2d.h"
 
 /**@defgroup AngularAssignTiltSeries angular_assign_for_tilt_series
              (Simultaneous assignment)

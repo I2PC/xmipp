@@ -27,7 +27,7 @@
 #include <sys/stat.h>
 #include <condor/Solver.h>
 #include <condor/tools.h>
-
+#include "core/transformations.h"
 #include <core/metadata_extension.h>
 #include "program_extension.h"
 #include "nma_alignment.h"
