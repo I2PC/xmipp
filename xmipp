@@ -674,12 +674,14 @@ def configCompiler(configDict):
             if hdf5Inc:
                 configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
+    print(' >>pre>> configDict["PYTHON_LIB"] : ', configDict["PYTHON_LIB"])
     if configDict["PYTHON_LIB"] == "":
         # malloc flavour is not needed from 3.8
         malloc = "m" if sys.version_info.minor < 8 else ""
         configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
                                                       sys.version_info.minor,
                                                       malloc)
+        print(' >>>> configDict["PYTHON_LIB"] : ', configDict["PYTHON_LIB"])
 
     if configDict["PYTHONINCFLAGS"] == "":
         import numpy
