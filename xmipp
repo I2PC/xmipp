@@ -186,8 +186,8 @@ int main(int argc, char** argv){
 """ % compilingInfo)
 
 
-def whereis(program, findReal=False):
-    programPath=distutils.spawn.find_executable(program)
+def whereis(program, findReal=False, env=None):
+    programPath=distutils.spawn.find_executable(program, path=env)
     if programPath:
         if findReal:
             programPath = os.path.realpath(programPath)
@@ -901,16 +901,16 @@ def configCuda(configDict):
     nvcc = 'nvcc'
     environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
                                     os.environ.get('CUDA_BIN', ''))
-    if environCudaBin:
-        os.environ.update({'PATH': os.environ.get('PATH', '')+':' +
-                                   environCudaBin})
     if configDict["CUDA"]=="":
-        if checkProgram(nvcc, False):
+        cudaBin = whereis(nvcc, findReal=True,
+                          env=environCudaBin + ':' + os.environ.get('PATH', ''))
+        if cudaBin:
             configDict["CUDA"]="True"
+            nvcc = os.path.join(cudaBin, nvcc)
         else:
-            print(yellow("\n'nvcc' not found in the PATH"))
-            cudaBin = findFileInDirList('nvcc', [environCudaBin,
-                                                 "/usr/local/cuda/bin",
+            print(yellow("\n'nvcc' not found in the PATH "
+                         "(either in CUDA_BIN/XMIPP_CUDA_BIN)"))
+            cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda/bin",
                                                  "/usr/local/cuda*/bin"])  # check order
             cudaBin = askPath(cudaBin, askUser)
             if os.path.isfile(os.path.join(cudaBin, 'nvcc')):
