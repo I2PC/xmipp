@@ -26,17 +26,29 @@ git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
 ```
 
-In case you don't want to import settings from Scipion, set XMIPP_NOSCIPION flag to true (`export XMIPP_NOSCIPION=True`). 
+* In case that you want to use/develop it under Scipion:
+  
+  First download the rest of sources by
+  ```
+  ./xmipp get_devel_sources [branch]
+  ```
+  where the optional 'branch' parameter will set that given branch.
+  
+  Secondly, install the 'scipion-em-xmipp' plugin in development mode
+  ```
+  scipion3 installp -p $PWD/src/scipion-em-xmipp
+  ```
+  note that 'scipion3' should be installed and visible in the path (check the [Scipion installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html)).
+  
+  Finally, compile Xmipp under Scipion's environ
+  ```
+  scipion3 installb xmippDev -j 8
+  ```
+  where `-j 8` indicates that 8 cores will be used to compile Xmipp.
+  
+* In case you don't want to run Xmipp under Scipion, just run (it might be necessary to add execute permission via `chmod +x xmipp`)
+  ```
+  ./xmipp 
+  ```
 
-Otherwise, run `xmipp` script in the root folder via Scipion (it might be necessary to add execute permission via `chmod +x xmipp`)
-```
-/<path to scipion>/scipion run ./xmipp
-```
-Running the script through Scipion will properly set the enviroment. This script will checkout additional repositories and build Xmipp for you.
-
-You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build.
-
-
-## FAQ
-
-If you want to use your specific version of Xmipp as a Scipion plugin, see following wiki [page](https://github.com/I2PC/xmipp/wiki/Migrating-branches-from-nonPluginized-Scipion-to-the-new-Scipion-Xmipp-structure#xmipp-plugin).
+You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option.
