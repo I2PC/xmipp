@@ -643,7 +643,8 @@ def configCompiler(configDict):
         updateXmippEnv(LD_LIBRARY_PATH=localLib)
 
         # extra libs
-        if not findFileInDirList("libhdf5*", localLib):
+        if not (findFileInDirList("libhdf5*", localLib) or
+                checkLib(configDict['CXX'], '-lhdf5_cpp')):
             print(yellow("\n'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
                                                      "/usr/lib/x86_64-linux-gnu"])
@@ -667,19 +668,21 @@ def configCompiler(configDict):
         configDict["INCDIRFLAGS"] += " -I%s" % localInc
 
         # extra includes
-        if not findFileInDirList("hdf5.h", [localInc]):
+        if not findFileInDirList("hdf5.h", [localInc, "/usr/include"]):
             print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
             hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
             hdf5Inc = askPath(hdf5Inc, askUser)
             if hdf5Inc:
                 configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
+    print(' >>pre>> configDict["PYTHON_LIB"] : ', configDict["PYTHON_LIB"])
     if configDict["PYTHON_LIB"] == "":
         # malloc flavour is not needed from 3.8
         malloc = "m" if sys.version_info.minor < 8 else ""
         configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
                                                       sys.version_info.minor,
                                                       malloc)
+        print(' >>>> configDict["PYTHON_LIB"] : ', configDict["PYTHON_LIB"])
 
     if configDict["PYTHONINCFLAGS"] == "":
         import numpy
@@ -1607,7 +1610,7 @@ def usage(msg=''):
           "   check_config:               Check that the configuration is correct\n"
           "   compile [N]:                Compile all modules with N processors (8 by default)\n"
           "   compile N dependencies:     Compile dependencies\n"
-          "   compileAndInstall [N]:      Compile all modules with N processors (8 by default) and install in the default directory\n"
+          "   compileAndInstall [N] [dir] Compile all modules with N processors (8 by default) and install in the dir directory ('build' by default)\n"
           "   compile  N xmippCore:       Compile xmippCore\n"
           "   compile  N xmipp:           Compile xmipp\n"
           "   compile  N xmippViz:        Compile xmippViz\n"
@@ -1792,13 +1795,22 @@ if __name__ == '__main__':
         else:
             print(red("\nSome error occurred during the compilation\n"))
             sys.exit(1)
-    elif mode=="compileAndInstall":
-        if n>2:
-            Nproc=sys.argv[2]
-        else:
-            Nproc=8
-        compile(Nproc)
-        install("build")
+    elif mode == "compileAndInstall":
+        Nproc = 8
+        dir = "build"
+        if n > 2:
+            for arg in sys.argv[2:]:
+                if arg.isdigit():
+                    Nproc = arg
+                else:
+                    dir = arg
+
+        ok = compile(Nproc)
+        ok = ok and install(dir)
+        if not ok:
+            print(red("\nSome error occurred...\n"))
+            sys.exit(1)
+
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
