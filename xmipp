@@ -1194,7 +1194,6 @@ def compileModule(Nproc,module):
     if module == "xmipp":
         stampVersion()
     log = []
-    print(" >>>> ", readConfigFile(CONFIG_FILE_NAME)['CXX'])
     ok = runJob("scons -j%s" % Nproc, "src/%s" % module, log=log)
     if not ok:
         failingBin = None
