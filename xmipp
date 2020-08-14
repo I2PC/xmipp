@@ -899,9 +899,9 @@ int dummy(){}
 def configCuda(configDict):
     configDict["CUDA"] = os.environ.get("CUDA", "")
     nvcc = 'nvcc'
-    environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
-                                    os.environ.get('CUDA_BIN', ''))
     if configDict["CUDA"]=="":
+        environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
+                                        os.environ.get('CUDA_BIN', ''))
         cudaBin = whereis(nvcc, findReal=True,
                           env=environCudaBin + ':' + os.environ.get('PATH', ''))
         if cudaBin:
