@@ -36,6 +36,9 @@ private:
     // Read CTF
     bool readCTF;
 
+    // Working image
+    Image<double> m_img;
+
 protected:
     void defineParams();
     void readParams();
