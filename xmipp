@@ -982,7 +982,7 @@ def configCuda(configDict):
                        'lib/x86_64-linux-gnu']  # add more condidates
             checkCudaLib = lambda x: os.path.isfile(x+"/libcudart.so")
 
-            def searchCudaLib(root, cudaLib):
+            def searchCudaLib(root, cudaLib, ask=False):
                 check = False
                 for lib in libDirs:
                     candidate = os.path.join(root, lib)
@@ -992,7 +992,7 @@ def configCuda(configDict):
                         break
                 if check:
                     cudaLib = os.path.realpath(cudaLib)
-                    cudaLib = askPath(cudaLib, ask=askUser)
+                    cudaLib = askPath(cudaLib, ask=ask)
                 return cudaLib
 
             # Looking for user defined XMIPP_CUDA_LIB and CUDA_LIB
@@ -1002,11 +1002,11 @@ def configCuda(configDict):
             nvccDir = whereis(configDict["NVCC"])
             if not checkCudaLib(cudaLib) and nvccDir:
                 # Looking for Cuda libs under active nvcc.
-                cudaLib = searchCudaLib(os.path.dirname(nvccDir), cudaLib)
+                cudaLib = searchCudaLib(os.path.dirname(nvccDir), cudaLib, False)
 
             if not checkCudaLib(cudaLib):
                 # Looking for Cuda libs in user root libs.
-                cudaLib = searchCudaLib('/usr', cudaLib)
+                cudaLib = searchCudaLib('/usr', cudaLib, askUser)
 
             if checkCudaLib(cudaLib):
                 configDict["NVCC_LINKFLAGS"] = ("-L%s"%cudaLib +
