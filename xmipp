@@ -644,7 +644,8 @@ def configCompiler(configDict):
 
         # extra libs
         if not (findFileInDirList("libhdf5*", localLib) or
-                checkLib(configDict['CXX'], '-lhdf5_cpp')):
+                checkLib(configDict['CXX'], '-lhdf5_cpp') or
+                checkLib(configDict['CXX'], '-lhdf5')):
             print(yellow("\n'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
                                                      "/usr/lib/x86_64-linux-gnu"])
@@ -675,14 +676,12 @@ def configCompiler(configDict):
             if hdf5Inc:
                 configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
-    print(' >>pre>> configDict["PYTHON_LIB"] : ', configDict["PYTHON_LIB"])
     if configDict["PYTHON_LIB"] == "":
         # malloc flavour is not needed from 3.8
         malloc = "m" if sys.version_info.minor < 8 else ""
         configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
                                                       sys.version_info.minor,
                                                       malloc)
-        print(' >>>> configDict["PYTHON_LIB"] : ', configDict["PYTHON_LIB"])
 
     if configDict["PYTHONINCFLAGS"] == "":
         import numpy
