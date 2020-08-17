@@ -1344,8 +1344,9 @@ def runTests(testNames):
     configDict = readConfigFile(CONFIG_FILE_NAME)
     noCudaStr = '--noCuda' if not is_config_true('CUDA') else ''
     print(" Tests to do: %s" % ', '.join(testNames))
-    runJob("(cd src/xmipp/tests; %s test.py %s %s)"
-           % (getPython(), ' '.join(testNames), noCudaStr))
+    if not runJob("(cd src/xmipp/tests; %s test.py %s %s)"
+                  % (getPython(), ' '.join(testNames), noCudaStr)):
+        sys.exit(-1)
 
 def getPython():
     if checkProgram("scipion3", False):
