@@ -643,9 +643,10 @@ def configCompiler(configDict):
         updateXmippEnv(LD_LIBRARY_PATH=localLib)
 
         # extra libs
-        if not (findFileInDirList("libhdf5*", localLib) or
-                checkLib(configDict['CXX'], '-lhdf5_cpp') or
-                checkLib(configDict['CXX'], '-lhdf5')):
+        hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
+        isHdf5CppLinking = checkLib(configDict['CXX'], '-lhdf5_cpp')
+        isHdf5Linking = checkLib(configDict['CXX'], '-lhdf5')
+        if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
             print(yellow("\n'libhdf5' not found at '%s'." % localLib))
             hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
                                                      "/usr/lib/x86_64-linux-gnu"])
@@ -653,7 +654,7 @@ def configCompiler(configDict):
             if hdf5Lib:
                 configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
                 updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
-            elif not checkLib(configDict['CXX'], '-lhdf5_cpp'):
+            elif not isHdf5CppLinking and isHdf5Linking:
                 installDepConda('hdf5')
 
     if not checkLib(configDict['CXX'], '-lfftw3'):
