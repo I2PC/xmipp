@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "xmippmodule.h"
-
+#include "core/metadata_sql.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */

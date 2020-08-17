@@ -25,6 +25,7 @@
 
 #include "directions.h"
 #include "core/geometry.h"
+#include "core/metadata_sql.h"
 
 // Check whether projection directions are unique =================================
 bool directions_are_unique(double rot,  double tilt,

@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 #include "ml_align2d.h"
+#include "core/metadata_sql.h"
 //#define DEBUG_JM
 
 //Mutex for each thread update sums

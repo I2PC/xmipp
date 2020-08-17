@@ -28,6 +28,7 @@
 #include <core/xmipp_program.h>
 #include <data/numerical_tools.h>
 #include <classification/ahc_classifier.h>
+#include "core/metadata_sql.h"
 
 class ProgMetadataSplit: public XmippProgram
 {

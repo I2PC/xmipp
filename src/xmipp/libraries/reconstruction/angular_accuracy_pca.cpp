@@ -26,6 +26,7 @@
 #include "angular_accuracy_pca.h"
 #include <math.h>
 #include <core/transformations.h>
+#include "core/metadata_sql.h"
 
 ProgAngularAccuracyPCA::ProgAngularAccuracyPCA()
 {

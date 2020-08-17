@@ -28,6 +28,7 @@
  ***************************************************************************/
 
 #include "reconstruct_fourier_gpu.h"
+#include "core/metadata_sql.h"
 
 // Define params
 void ProgRecFourierGPU::defineParams()

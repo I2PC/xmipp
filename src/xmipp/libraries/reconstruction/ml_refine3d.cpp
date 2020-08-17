@@ -42,6 +42,7 @@
 #include "symmetrize.h"
 #include "volume_segment.h"
 #include "core/xmipp_image_generic.h"
+#include "core/metadata_sql.h"
 
 //#define DEBUG
 //Macro to obtain the iteration base name

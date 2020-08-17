@@ -32,6 +32,7 @@
 #include <iostream>
 #include <fstream>
 #include <core/xmipp_funcs.h>
+#include "core/metadata_sql.h"
 
 class ProgMetadataUtilities: public XmippProgram
 {

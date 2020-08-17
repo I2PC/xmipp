@@ -25,6 +25,7 @@
 
 #include "reconstruct_wbp.h"
 #include <core/metadata_extension.h>
+#include "core/metadata_sql.h"
 
 ProgRecWbp::ProgRecWbp()
 {
