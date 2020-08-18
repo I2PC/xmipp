@@ -62,7 +62,7 @@ class ScriptCompile(XmippScript):
             sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
         flagDict=dict(cf.items('BUILD'))
 
-        flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
+        flags="-I"+xmippSrc+"/xmippCore -I"+xmippSrc+"/xmipp -I"+xmippSrc+"/xmipp/libraries -lXmipp -lXmippCore "+flagDict["INCDIRFLAGS"]+" "+\
               flagDict["CXXFLAGS"]+" "+flagDict["LIBDIRFLAGS"]
         return flags
 

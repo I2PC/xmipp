@@ -391,7 +391,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	MultidimArray<double> ccVectorRot;
 
 	// loop over all reference images
-	// /*
+//	 /*
 	for (int k = 0; k < sizeMdRef; ++k) {
 		// computing relative rotation and shift
 		ccMatrix(MDaInFMs_polarF, vecMDaRefFMs_polarF[k], ccMatrixRot);
@@ -414,13 +414,40 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	// but for I1 symmetry, for example, should be at least 50%.
 	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
 
+//	double minval, maxval;
+//	ccvec.computeMinMax(minval, maxval);
+//	std::cout << "minval y maxval: " << minval << ", " << maxval << std::endl;
+//	double thr = maxval - (maxval - minval) / 4.;
+//	std::cout << "thr: " << thr << std::endl;
+//	double thr2 = maxval - (maxval - minval) / 2.;
+//	std::cout << "thr2: " << thr2 << std::endl;
+//	double thr3 = maxval - (maxval - minval) / 3.;
+//	std::cout << "thr3: " << thr3 << std::endl;
+//	int counttest = 0;
+//	int counttest2 = 0;
+//	int counttest3 = 0;
+//	for (int k = 0; k < sizeMdRef; ++k) {
+//		if (VEC_ELEM(ccvec,k) > thr) {
+//			counttest += 1;
+//		}
+//		if (VEC_ELEM(ccvec,k) > thr2) {
+//			counttest2 += 1;
+//		}
+//		if (VEC_ELEM(ccvec,k) > thr3) {
+//			counttest3 += 1;
+//		}
+//	}
+//	std::cout<<"cont: "<< counttest << " of sizeMdref: " << sizeMdRef << std::endl;
+//	std::cout<<"cont2: "<< counttest2 << " of sizeMdref: " << sizeMdRef << std::endl;
+//	std::cout<<"cont3: "<< counttest3 << " of sizeMdref: " << sizeMdRef << std::endl;
+//	exit(1);
+
 	// ordering using cross-corr coefficient values computed in first loop
 	// only best reference directions should be refined with alignImages()
 	std::partial_sort(Idx.begin(), Idx.begin() + nCand, Idx.end(),
 			[&ccvec](int i, int j) {
 				return ccvec[i] > ccvec[j];
 			});
-
 	// variables for second loop
 	std::vector<double> bestTx2(sizeMdRef, 0.);
 	std::vector<double> bestTy2(sizeMdRef, 0.);
@@ -454,6 +481,36 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			bestTy2[Idx[k]] = bestTy[Idx[k]];
 			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
 		}
+	}
+	// */
+
+	// one loop search using alignImages
+	/*
+	std::vector<double> bestTx2(sizeMdRef, 0.);
+	std::vector<double> bestTy2(sizeMdRef, 0.);
+	std::vector<double> bestPsi2(sizeMdRef, 0.);
+	MultidimArray<double> &MDaInAux = ImgIn();
+	MDaInAux.setXmippOrigin();
+	MultidimArray<double> mCurrentImageAligned;
+	double corr, scale;
+	bool flip;
+	for (int k = 0; k < sizeMdRef; ++k) {
+		// find rotation and shift using alignImages
+		Matrix2D<double> M;
+		mCurrentImageAligned = MDaInAux;
+		mCurrentImageAligned.setXmippOrigin();
+		corr = alignImages(vecMDaRef[k], mCurrentImageAligned, M,
+				DONT_WRAP);
+		M = M.inv();
+		transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
+
+		if (maxShift > 0 && (fabs(Tx) > maxShift || fabs(Ty) > maxShift))
+			corr /= 3;
+
+		VEC_ELEM(ccvec, k) = corr;
+		bestTx2[k] = Tx;
+		bestTy2[k] = Ty;
+		bestPsi2[k] = psi;
 	}
 	// */
 
