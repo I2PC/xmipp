@@ -65,8 +65,7 @@ void POCSFourierPhase(const MultidimArray< std::complex<double> > &phase, Multid
 class ProgVolumeSubtraction: public XmippProgram
 {
 protected:
-	FileName fnVol1, fnVol2, fnDiff, fnMask1, fnMask2;
-//	bool pdb;
+	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2;
 	bool sub, eq;
 	int iter, sigma;
 	double cutFreq;
@@ -80,31 +79,27 @@ protected:
         addParamsLine("--i2 <volume>          	: Volume to modify");
         addParamsLine("[-o <structure=\"\">] 	: Volume 2 modified or volume difference");
         addParamsLine("                      	: If no name is given, then output_volume.mrc");
-//        addParamsLine("[--pdb]    			 	: Second volume come from a pdb");
         addParamsLine("[--sub] 			        : Perform the subtraction of the volumes. Output will be the difference");
         addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
         addParamsLine("[--iter <n=1>]        	: Number of iterations");
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
-//        addParamsLine("[--eq]       			: Perform histogram equalization");
     }
 
     void readParams()
     {
     	fnVol1=getParam("--i1");
     	fnVol2=getParam("--i2");
-    	fnDiff=getParam("-o");
-    	if (fnDiff=="")
-    		fnDiff="output_volume.mrc";
-//    	pdb=checkParam("--pdb");
+    	fnOut=getParam("-o");
+    	if (fnOut=="")
+    		fnOut="output_volume.mrc";
     	sub=checkParam("--sub");
     	iter=getIntParam("--iter");
     	sigma=getIntParam("--sigma");
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
     	cutFreq=getDoubleParam("--cutFreq");
-//    	eq=checkParam("--eq");
     }
 
     void show()
@@ -117,7 +112,7 @@ protected:
     	<< "Sigma:    	   			" << sigma       << std::endl
     	<< "Iterations:    	   		" << iter        << std::endl
     	<< "Cutoff frequency:   	" << cutFreq     << std::endl
-    	<< "Output difference: 		" << fnDiff 	 << std::endl
+    	<< "Output: 		        " << fnOut 	     << std::endl
     	;
     }
 
@@ -132,7 +127,6 @@ protected:
     	V.read(fnVol1);
     	MultidimArray<double> mask1;
 		Image<double> mask;
-		// if masks => compute common mask
     	if (fnMask1!="" && fnMask2!="")
     	{
 			mask.read(fnMask1);
@@ -140,38 +134,21 @@ protected:
 			mask.read(fnMask2);
 			mask()*=mask1;
 		}
-		else  // mask all 1s of size V1
+		else
 		{
             mask().resizeNoCopy(V());
             mask().initConstant(1.0);
 		}
     	mask1.clear();
-//		mask.write("commonmask.mrc");
 		POCSmask(mask(),V());
     	POCSnonnegative(V());
     	transformer.FourierTransform(V(),V1Fourier,false);
     	FFT_magnitude(V1Fourier,V1FourierMag);
 		double std1 = V().computeStddev();
-//		std::cout << "std1 " << std1 << std::endl;
-//		double mean1 = V().computeAvg();
-//		std::cout << "mean1 " << mean1 << std::endl;
-//		V.write("V1masked.mrc");
-//    	if (eq==true)
-//    	{
-//			Histogram1D hist1;
-//			compute_hist(V(), hist1, 100);
-////			std::cout << "hist1: " << hist1 << std::endl;
-//    	}
 
 		V.read(fnVol2);
 		POCSmask(mask(),V());
-//		V.write("V2masked.mrc");
-//    	if (eq==true)
-//    	{
-//			Histogram1D hist2;
-//			compute_hist(V(), hist2, 100);
-////			std::cout << "hist2: " << hist2 << std::endl;
-//    	}
+
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
@@ -182,37 +159,22 @@ protected:
     		POCSFourierAmplitude(V1FourierMag,V2Fourier);
         	transformer.inverseFourierTransform();
 			POCSmask(mask(),V());
-//    		V.write(formatString("V2masked_Amp1_%d.mrc", n));
     		transformer.FourierTransform();
-    		//V2FourierPhase = V2Fourier;
-        	//extractPhase(V2FourierPhase);
     		POCSFourierPhase(V2FourierPhase,V2Fourier);
         	transformer.inverseFourierTransform();
-//    		V.write(formatString("V2masked_Amp1_ph2_%d.mrc", n));
         	POCSnonnegative(V());
 			double std2 = V().computeStddev();
-//			std::cout << "std2 " << std2 << std::endl;
-//			double mean2 = V().computeAvg();
-//			std::cout << "mean2 " << mean2 << std::endl;
 			V()*=std1/std2;
-//    		V.write(formatString("V2masked_Amp1_ph2_nonneg_%d.mrc", n));
     	}
 
-//		Image<double> V1, V1Filtered;
-//    	V1.read(fnVol1);
-//    	V1() -= V();
-//    	V1.write("subtraction.mrc");
-		// Filter common mask with gaussian for smoothing
 		FourierFilter Filter;
 		Filter.FilterShape=REALGAUSSIAN;
 		Filter.FilterBand=LOWPASS;
 		Filter.w1=sigma;
 		Filter.applyMaskSpace(mask());
-//		mask.write("maskfilter.mrc");
 		Image<double> V1, V1Filtered;
 		V1.read(fnVol1);
 		V1Filtered() = V1();
-		// If cutoff freq param is passed, filter V1 and V2
 		if (cutFreq!=0)
 		{
 			FourierFilter Filter2;
@@ -223,9 +185,7 @@ protected:
 			Filter2.generateMask(V());
 			Filter2.do_generate_3dmask=true;
 			Filter2.applyMaskSpace(V());
-//			V.write("V2filter.mrc");
 			Filter2.applyMaskSpace(V1Filtered());
-//			V1Filtered.write("V1filter.mrc");
 		}
 
     	if (sub==true)
@@ -233,10 +193,10 @@ protected:
     		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
     		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
     				std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-    		V1.write(fnDiff);
+    		V1.write(fnOut);
     	}
 
     	else
-    		V.write(fnDiff);
+    		V.write(fnOut);
     }
 };
