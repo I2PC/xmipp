@@ -23,7 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <set>
 #include "classify_extract_features.h"
+#include "core/metadata.h"
+#include "data/filters.h"
+#include "data/mask.h"
 
 ProgExtractFeatures::ProgExtractFeatures(): XmippProgram()
 {

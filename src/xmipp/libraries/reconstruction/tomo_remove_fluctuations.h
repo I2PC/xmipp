@@ -26,9 +26,9 @@
 #ifndef SERIES_REMOVE_FLUCTUATIONS_H
 #define SERIES_REMOVE_FLUCTUATIONS_H
 
-#include <core/multidim_array.h>
-#include <core/metadata.h>
-#include <core/xmipp_program.h>
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
 
 /// @defgroup RemoveFluctuations Remove fluctuations in tilt series
 /// @ingroup ReconsLibrary

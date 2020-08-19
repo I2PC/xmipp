@@ -24,9 +24,9 @@
  ***************************************************************************/
 
 #include "angular_continuous_assign2.h"
-#include "program_image_residuals.h"
-#include <data/mask.h>
-#include <data/numerical_tools.h>
+#include "core/xmipp_image_extension.h"
+#include "data/mask.h"
+//#include <data/numerical_tools.h>
 #include "core/xmipp_image_generic.h"
 
 // Empty constructor =======================================================

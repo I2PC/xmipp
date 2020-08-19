@@ -25,7 +25,8 @@
 #ifndef _PROG_EVALUATECOORDINATES
 #define _PROG_EVALUATECOORDINATES
 
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "core/metadata.h"
 
 class ProgEvaluateCoordinates: public XmippProgram
 {

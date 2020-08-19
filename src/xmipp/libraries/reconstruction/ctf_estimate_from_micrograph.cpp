@@ -26,16 +26,11 @@
 
 #include "ctf_estimate_from_micrograph.h"
 #include "ctf_enhance_psd.h"
-
-#include <core/args.h>
-#include <data/micrograph.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_threads.h>
-#include <data/basic_pca.h>
-#include <data/normalize.h>
 #include "core/xmipp_image_generic.h"
+#include "core/metadata_extension.h"
+#include "core/xmipp_threads.h"
+#include "data/basic_pca.h"
+#include "data/normalize.h"
 
 /* Read parameters ========================================================= */
 ProgCTFEstimateFromMicrograph::ProgCTFEstimateFromMicrograph()

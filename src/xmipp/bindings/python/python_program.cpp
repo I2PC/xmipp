@@ -23,7 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_program.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_filename.h"
 
 /***************************************************************/
 /*                            Program                         */

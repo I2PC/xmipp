@@ -25,17 +25,13 @@
 #ifndef _PROG_ANGULAR_PREDICT
 #define _PROG_ANGULAR_PREDICT
 
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_image.h>
-#include <classification/pca.h>
-
+#include "core/xmipp_metadata_program.h"
+#include "core/matrix1d.h"
+#include "core/multidim_array.h"
 #include "angular_distance.h"
-#include <core/symmetries.h>
 
-#include <map>
-#include <algorithm>
+template<typename T>
+class Image;
 
 /**@defgroup AngularPredict angular_discrete_assign (Discrete angular assignment)
    @ingroup ReconsLibrary */

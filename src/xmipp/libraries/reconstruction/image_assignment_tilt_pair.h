@@ -25,11 +25,15 @@
 
 #ifndef ASSIGNMENT_TILT_PAIR_H_
 #define ASSIGNMENT_TILT_PAIR_H_
-#define PI 3.14159265
 
-#include <math.h>
-#include <core/xmipp_program.h>
-#include <core/alglib/ap.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/metadata.h"
+
+template<typename T>
+class Matrix1D;
+template<typename T>
+class Matrix2D;
 
 class ProgassignmentTiltPair: public XmippProgram
 {
@@ -61,7 +65,7 @@ public:
 
     void search_affine_transform(float u1x, float u1y, float u2x, float u2y, float u3x, float u3y, float t1x,
     		float t1y, float t2x, float t2y, float t3x, float t3y,
-    		Matrix1D<double> ux, Matrix1D<double> uy, size_t Xdim, size_t Ydim, struct Delaunay_T &delaunay_tilt, int &bestInliers,
+    		const Matrix1D<double> &ux, const Matrix1D<double> &uy, size_t Xdim, size_t Ydim, struct Delaunay_T &delaunay_tilt, int &bestInliers,
     		Matrix2D<double> &A_coarse, Matrix1D<double> &T_coarse, bool contingency, int thrs);
 
     void findMaximumMinimum(const float u1, const float u2, const float u3, double &u_max, double &u_min);

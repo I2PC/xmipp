@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "movie_estimate_gain.h"
+#include "core/metadata.h"
 
 void ProgMovieEstimateGain::defineParams()
 {

@@ -23,15 +23,9 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <iostream>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <stdio.h>
-
-#include <core/metadata_extension.h>
-#include <data/filters.h>
 #include "program_extension.h"
 #include "volumeset_align.h"
+#include "core/metadata.h"
 
 // Empty constructor =======================================================
 ProgVolumeSetAlign::ProgVolumeSetAlign() {

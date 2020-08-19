@@ -26,10 +26,12 @@
 #ifndef _PROG_ANGULAR_PREDICT_CONTINOUOS2
 #define _PROG_ANGULAR_PREDICT_CONTINUOUS2
 
-#include <core/xmipp_program.h>
-#include <data/ctf.h>
-#include <data/fourier_projection.h>
-#include <data/fourier_filter.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_image.h"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
+#include "data/projection.h"
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */

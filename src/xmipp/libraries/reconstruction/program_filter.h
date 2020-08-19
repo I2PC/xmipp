@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <data/filters.h>
+#include "core/xmipp_metadata_program.h"
+
+class XmippFilter;
 
 /** Apply some filter operation on images, or selfiles */
 class ProgFilter: public XmippMetadataProgram

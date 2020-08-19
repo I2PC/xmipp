@@ -29,6 +29,27 @@
 
 #include "reconstruct_fourier_accel.h"
 
+#include "core/symmetries.h"
+#include "core/xmipp_fftw.h"
+#include "data/array_2D.h"
+#include "data/ctf.h"
+#include "data/fourier_projection.h"
+
+void ProjectionData::clean() {
+    delete img;
+    delete CTF;
+    delete modulator;
+    img = 0;
+    CTF = modulator = 0;
+    skip = true;
+}
+
+void ProgRecFourierAccel::allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier) {
+    if ((NULL == VoutFourier.data) || (0 == VoutFourier.getSize())) {
+        VoutFourier.initZeros(paddedImgSize, paddedImgSize, paddedImgSize/2 +1);
+    }
+}
+
 // Define params
 void ProgRecFourierAccel::defineParams()
 {

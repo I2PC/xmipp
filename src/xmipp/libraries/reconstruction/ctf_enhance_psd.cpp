@@ -32,10 +32,9 @@
 
 #include "ctf_enhance_psd.h"
 
-#include <core/args.h>
-#include <core/xmipp_fft.h>
-#include <data/filters.h>
-#include <data/fourier_filter.h>
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
+#include "data/fourier_filter.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgCTFEnhancePSD::readParams()

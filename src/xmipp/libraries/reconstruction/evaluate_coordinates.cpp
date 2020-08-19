@@ -24,7 +24,6 @@
  ***************************************************************************/
 
 #include "evaluate_coordinates.h"
-#include <core/xmipp_funcs.h>
 
 // Read arguments ==========================================================
 void ProgEvaluateCoordinates::readParams()

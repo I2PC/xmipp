@@ -23,7 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include "data/filters.h"
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
 #include "classify_kmeans_2d.h"
+#include "classify_extract_features.h"
 
 // Read arguments ==========================================================
 void ProgClassifyKmeans2D::readParams()

@@ -26,10 +26,17 @@
 #ifndef _CORE_CTF_HH
 #define _CORE_CTF_HH
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_filename.h>
-#include <core/metadata.h>
-#include <core/xmipp_fft.h>
+#include <complex>
+#include "core/metadata.h"
+#include "core/numerical_recipes.h"
+#include "core/xmipp_fft.h"
+#include "core/xmipp_macros.h"
+
+template<typename T>
+class MultidimArray;
+template<typename T>
+class Matrix1D;
+class XmippProgram;
 
 const int CTF_BASIC_LABELS_SIZE = 5;
 const MDLabel CTF_BASIC_LABELS[] =
