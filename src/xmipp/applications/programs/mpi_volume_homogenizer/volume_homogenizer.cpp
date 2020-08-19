@@ -25,6 +25,7 @@
 
 #include "../mpi_volume_homogenizer/volume_homogenizer.h"
 #include <core/xmipp_image_generic.h>
+#include "data/fourier_projection.h"
 #define numParams 3
 //# define DEBUG
 
