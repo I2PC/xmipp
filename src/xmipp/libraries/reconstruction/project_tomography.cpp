@@ -25,8 +25,7 @@
 
 #include "project_tomography.h"
 #include "directions.h"
-
-#include <core/args.h>
+#include "data/fourier_projection.h"
 
 void ProgProjectTomography::defineParams()
 {

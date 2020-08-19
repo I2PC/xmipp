@@ -25,11 +25,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #ifndef _PROG_PDB_FROM_VOLUME_HH
-#  define _PROG_PDB_FROM_VOLUME_HH
+#define _PROG_PDB_FROM_VOLUME_HH
 
-#include <data/blobs.h>
-#include <data/pdb.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "core/multidim_array.h"
 
 /**@defgroup PDBPhantom convert_pdb2vol (PDB Phantom program)
    @ingroup ReconsLibrary */

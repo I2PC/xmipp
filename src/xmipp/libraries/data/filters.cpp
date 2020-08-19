@@ -25,10 +25,14 @@
 
 #include <queue>
 #include <list>
+#include "core/metadata_extension.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_program.h"
+#include "data/fourier_filter.h"
 #include "filters.h"
-#include "morphology.h"
-#include <data/fourier_filter.h>
 #include "mask.h"
+#include "morphology.h"
+#include "wavelet.h"
 
 /* Subtract background ---------------------------------------------------- */
 void substractBackgroundPlane(MultidimArray<double> &I)

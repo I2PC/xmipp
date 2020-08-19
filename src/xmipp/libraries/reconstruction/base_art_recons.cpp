@@ -23,11 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <algorithm>
 #include "base_art_recons.h"
-#include "recons_misc.h"
-#include <data/fourier_filter.h>
+#include "core/xmipp_threads.h"
+#include "data/fourier_filter.h"
 #include "data/wavelet.h"
+#include "data/projection.h"
+#include "recons_misc.h"
 
 void ARTReconsBase::readParams(XmippProgram * program)
 {

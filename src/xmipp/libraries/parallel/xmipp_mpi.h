@@ -27,14 +27,11 @@
 #define XMIPP_MPI_H_
 
 #include <mpi.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
+#include "core/xmipp_threads.h"
+#include "core/xmipp_program.h"
+#include "core/metadata.h"
 
-#include <core/xmipp_threads.h>
-#include <core/xmipp_program.h>
+class FileName;
 
 #define XMIPP_MPI_SIZE_T MPI_UNSIGNED_LONG
 

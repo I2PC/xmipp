@@ -30,24 +30,19 @@
 #ifndef __RECONSTRUCT_FOURIER_ACCEL_H
 #define __RECONSTRUCT_FOURIER_ACCEL_H
 
-#include <iostream>
-#include <limits>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <data/projection.h>
-#include <core/xmipp_threads.h>
-#include <data/blobs.h>
-#include <core/metadata.h>
-#include <data/ctf.h>
-#include <data/array_2D.h>
-#include <core/args.h>
-#include <core/xmipp_fft.h>
-#include <sys/time.h>
-#include <core/metadata.h>
+#include <complex>
 #include "recons.h"
-#include <reconstruction/directions.h>
-#include <reconstruction/symmetrize.h>
+#include "core/matrix2d.h"
+#include "core/xmipp_threads.h"
+#include "core/metadata.h"
+#include "core/matrix1d.h"
+#include "data/blobs.h"
+
+template<typename T>
+class MultidimArray;
+template<typename T>
+struct Array2D;
+
 #define BLOB_TABLE_SIZE 5000
 #define BLOB_TABLE_SIZE_SQRT 10000
 
@@ -81,14 +76,7 @@ public:
 		imgIndex = -1;
 	}
 	/** Remove stored data and set to skip */
-	void clean() {
-		delete img;
-		delete CTF;
-		delete modulator;
-		img = 0;
-		CTF = modulator = 0;
-		skip = true;
-	}
+	void clean();
 };
 
 /** Struct represents a point in 3D */
@@ -445,11 +433,7 @@ private:
      * Method will allocate space for output Fourier transformation.
      * If space is already allocated, method will have no effect
      */
-    void allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier) {
-    	if ((NULL == VoutFourier.data) || (0 == VoutFourier.getSize())) {
-    		VoutFourier.initZeros(paddedImgSize, paddedImgSize, paddedImgSize/2 +1);
-    	}
-    }
+    void allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier);
 
     /**
      * Method will process one projection image and add result to temporal

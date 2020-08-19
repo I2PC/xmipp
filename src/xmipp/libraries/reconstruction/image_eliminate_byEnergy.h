@@ -25,9 +25,7 @@
 #ifndef _PROG_ELIMINATE_BY_ENERGY_HH
 #define _PROG_ELIMINATE_BY_ENERGY_HH
 
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
 
 /**@defgroup EliminateByEnergyProgram Eliminate images whose energy is extremely large or extremely low
    @ingroup ReconsLibrary */

@@ -22,10 +22,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <iostream>
 #include "resolution_ibw.h"
-#include <data/filters.h>
-#include <data/morphology.h>
+#include "data/filters.h"
+#include "data/morphology.h"
 #include "data/mask.h"
 
 /* Read parameters --------------------------------------------------------- */

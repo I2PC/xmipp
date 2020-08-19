@@ -27,6 +27,9 @@
  ***************************************************************************/
 
 #include "reconstruct_fourier.h"
+#include "core/matrix2d.h"
+#include "core/symmetries.h"
+#include "data/fourier_projection.h"
 
 // Define params
 void ProgRecFourier::defineParams()

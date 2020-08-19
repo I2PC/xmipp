@@ -29,7 +29,9 @@
 /* him. Translated into C by Juan P. Secilla (MSC)  Jun/86      */
 /****************************************************************************/
 
-#include <core/xmipp_program.h>
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 // Old code -----------------------------------------------------------------
 #define NATURAL       1                /* natural, 1 byte/pixel format */

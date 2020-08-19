@@ -25,11 +25,9 @@
 #ifndef _PROG_FLEXIBLE_ALIGNMENT
 #define _PROG_FLEXIBLE_ALIGNMENT
 
-#include <vector>
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include "volume_from_pdb.h"
+#include "core/xmipp_metadata_program.h"
+#include "core/matrix1d.h"
+#include "core/metadata.h"
 
 /**@defgroup NMAAlignment Alignment with Normal modes
    @ingroup ReconsLibrary */

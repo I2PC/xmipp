@@ -26,7 +26,8 @@
 #ifndef _DOWNSAMPLE
 #define _DOWNSAMPLE
 
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/multidim_array.h"
 
 class ImageGeneric;
 

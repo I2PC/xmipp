@@ -23,8 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
 #include <random>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_image.h"
 
 class ProgAddNoise: public XmippMetadataProgram
 {

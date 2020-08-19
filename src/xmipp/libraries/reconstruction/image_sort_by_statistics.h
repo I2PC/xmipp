@@ -26,13 +26,10 @@
 #ifndef _PROG_IMAGE_SORT
 #define _PROG_IMAGE_SORT
 
-#include <core/xmipp_program.h>
-#include <data/basic_pca.h>
-#include <core/histogram.h>
-#include "fringe_processing.h"
-#include <data/filters.h>
-#include <math.h>
-
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/metadata.h"
+#include "data/basic_pca.h"
 
 /**@defgroup ImageSort Image sort by statistics
    @ingroup ReconsLibrary */

@@ -26,15 +26,10 @@
  ***************************************************************************/
 
 #include "mpi_classify_FTTRI.h"
-#include <core/metadata_extension.h>
-#include <data/numerical_tools.h>
-#include <core/xmipp_fftw.h>
-#include <data/polar.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_image_generic.h>
-
-//#define FTTRI_ALREADY_COMPUTED
+#include "core/metadata_extension.h"
+#include "core/xmipp_fftw.h"
+#include "data/filters.h"
+#include "core/xmipp_image_generic.h"
 
 // Empty constructor =======================================================
 ProgClassifyFTTRI::ProgClassifyFTTRI(int argc, char **argv)

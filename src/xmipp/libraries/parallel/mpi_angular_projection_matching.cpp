@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "mpi_angular_projection_matching.h"
+#include "core/xmipp_image_macros.h"
 
 /*Some constast to message passing tags */
 #define TAG_JOB_REQUEST 1

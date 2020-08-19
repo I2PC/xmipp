@@ -28,11 +28,18 @@
 
 #define LOG2 0.693147181
 
-#include <core/xmipp_image.h>
-#include <core/histogram.h>
-#include <core/xmipp_program.h>
-#include <data/numerical_tools.h>
-#include <data/polar.h>
+#include <complex>
+#include "core/histogram.h"
+#include "core/multidim_array_base.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_macros.h"
+#include "data/numerical_tools.h"
+#include "data/polar.h"
+
+template<typename T>
+class MultidimArray;
+class XmippProgram;
+class MetaData;
 
 /// @defgroup Filters Filters
 /// @ingroup DataLibrary

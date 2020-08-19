@@ -30,10 +30,11 @@
    implementation (single particles, crystals, ...) */
 
 #include "basic_art.h"
-#include <data/fourier_filter.h>
-#include "recons_misc.h"
-#include "core/metadata_extension.h"
+#include "data/projection.h"
+#include "core/metadata.h"
 #include "core/metadata_sql.h"
+#include "core/metadata_extension.h"
+#include "recons_misc.h"
 
 /* Desctructor */
 BasicARTParameters::~BasicARTParameters()

@@ -41,8 +41,7 @@
  ***************************************************************************/
 
 #include "parallel/xmipp_mpi.h"
-#include <core/args.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_image.h"
 #include "core/xmipp_image_generic.h"
 
 //Some useful macros

@@ -24,9 +24,10 @@
  ***************************************************************************/
 
 #include "ctf.h"
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <math.h>
+#include "core/multidim_array.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
 
 bool containsCTFBasicLabels(const MetaData & md)
 {

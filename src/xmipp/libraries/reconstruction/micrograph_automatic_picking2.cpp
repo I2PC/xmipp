@@ -23,14 +23,13 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include <math.h>
+
+#include <random>
 #include "micrograph_automatic_picking2.h"
-#include <data/filters.h>
-#include <data/rotational_spectrum.h>
-#include <reconstruction/denoise.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_filename.h>
-#include <algorithm>
+#include "core/xmipp_image_generic.h"
+#include "data/mask.h"
+#include "data/fourier_filter.h"
+#include "data/normalize.h"
 
 int flagAbort=0;
 

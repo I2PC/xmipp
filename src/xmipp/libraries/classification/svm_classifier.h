@@ -28,8 +28,11 @@
 #define XMIPP__SVM_CLASSIFIER_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include <core/xmipp_program.h>
 #include "svm.h"
+
+template<typename T>
+class MultidimArray;
+class FileName;
 
 /**@defgroup SVMClassifier SVM Classifier
    @ingroup ClassificationLibrary */

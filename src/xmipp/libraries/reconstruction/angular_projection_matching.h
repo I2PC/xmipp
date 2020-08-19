@@ -27,23 +27,15 @@
 #ifndef _angular_projection_matching_H
 #define _angular_projection_matching_H
 
-#include <core/args.h>
-#include <core/xmipp_funcs.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <data/filters.h>
-#include <data/mask.h>
-#include <data/polar.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_threads.h>
-#include <pthread.h>
+#include "core/metadata.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_threads.h"
+#include "data/polar.h"
+#include "data/sampling.h"
 
-#include <data/projection.h>
-#include <core/symmetries.h>
-#include <data/sampling.h>
-#include <data/ctf.h>
-
-#include <core/xmipp_program.h>
+template<typename T>
+class Image;
 
 #define MY_OUPUT_SIZE 10
 

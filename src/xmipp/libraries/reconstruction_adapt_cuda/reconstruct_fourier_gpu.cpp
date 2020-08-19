@@ -27,8 +27,15 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "reconstruct_fourier_gpu.h"
 #include "core/metadata_sql.h"
+#include "core/argsparser.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
+#include "data/ctf.h"
+#include "reconstruct_fourier_gpu.h"
+#include "reconstruction/symmetrize.h"
+#include "reconstruction_cuda/cuda_gpu_reconstruct_fourier.h"
+#include "reconstruction_cuda/gpu.h"
 
 // Define params
 void ProgRecFourierGPU::defineParams()
@@ -490,7 +497,7 @@ void ProgRecFourierGPU::createProjectionCuboid(Point3D<float>* cuboid, float siz
 	cuboid[7].z = cuboid[4].z = cuboid[5].z = cuboid[6].z = 0.f - blobSize;
 }
 
-inline void ProgRecFourierGPU::translateCuboid(Point3D<float>* cuboid, Point3D<float> vector) {
+inline void ProgRecFourierGPU::translateCuboid(Point3D<float>* cuboid, const Point3D<float> &vector) {
 	for (int i = 0; i < 8; i++) {
 		cuboid[i].x += vector.x;
 		cuboid[i].y += vector.y;
