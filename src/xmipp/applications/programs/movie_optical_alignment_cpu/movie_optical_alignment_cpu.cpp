@@ -50,6 +50,8 @@
 #include <core/transformations.h>
 
 #include <reconstruction/movie_filter_dose.h>
+#include "core/metadata.h"
+#include "core/metadata_extension.h"
 
 using namespace std;
 
