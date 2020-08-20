@@ -35,6 +35,7 @@
 #include <core/multidim_array.h>
 #include <core/transformations.h>
 #include <core/xmipp_fftw.h>
+#include <mutex>
 
 #define FULL_CIRCLES 0
 #define HALF_CIRCLES 1
@@ -617,13 +618,13 @@ public:
                                       double xoff = 0., double yoff = 0.,
                                       double oversample1 = 1., int mode1 = FULL_CIRCLES)
     {
-        int nsam;
         double twopi;
         double xp, yp, minxp, maxxp, minyp, maxyp;
 
-        MultidimArray<T> Mring;
-        rings.clear();
-        ring_radius.clear();
+        auto noOfRings = getNoOfRings(first_ring, last_ring);
+        rings.resize(noOfRings);
+        ring_radius.resize(noOfRings);
+
         mode = mode1;
         oversample = oversample1;
 
@@ -645,57 +646,28 @@ public:
         double maxxp_e=maxxp+XMIPP_EQUAL_ACCURACY;
         double maxyp_e=maxyp+XMIPP_EQUAL_ACCURACY;
 
+        std::lock_guard<std::mutex> lockGuard(m_mutex);
+
+        ensureAngleCache(first_ring, last_ring);
+
         // Loop over all polar coordinates
-        for (int iring = first_ring; iring <= last_ring; iring++)
+        for (int r = 0; r < noOfRings; ++r)
         {
-            float radius = (float) iring;
+            float radius = (float) r + first_ring;
+            ring_radius.at(r) = radius;
+            auto &Mring = rings.at(r);
             // Non-constant sampling!! (always even for convenient Half2Whole of FTs)
-            nsam = 2 * (int)( 0.5 * oversample * twopi * radius );
-            nsam = XMIPP_MAX(1, nsam);
-            float dphi = twopi / (float)nsam;
+            int nsam = getNoOfSamples(twopi, radius);
             Mring.resizeNoCopy(nsam);
-            int iphi = 0;
-#define VEC_LEN 8
-            double axp[VEC_LEN];
-            double ayp[VEC_LEN];
-            for (iphi = 0; iphi < nsam-VEC_LEN; iphi+=VEC_LEN)
-            {
-                for (int jphi = 0; jphi < VEC_LEN; jphi++) {
-                    // from polar to original cartesian coordinates
-                    float phi = (iphi+jphi) * dphi;
-                    axp[jphi] = sin(phi) * radius;
-                    ayp[jphi] = cos(phi) * radius;
 
-                    // Origin offsets
-                    axp[jphi] += xoff;
-                    ayp[jphi] += yoff;
-                }
+            auto &s = m_lastSinRadius.at(r);
+            auto &c = m_lastCosRadius.at(r);
 
-                for (int jphi = 0; jphi < VEC_LEN; jphi++) {
-                    // Wrap coordinates
-   	                axp[jphi] = realWRAP(axp[jphi], minxp - 0.5, maxxp + 0.5);
-   	                ayp[jphi] = realWRAP(ayp[jphi], minyp - 0.5, maxyp + 0.5);
-                }
-
-                // Perform the convolution interpolation
-                if (BsplineOrder==1) {
-                    #pragma simd
-                    for (int jphi = 0; jphi < VEC_LEN; jphi++) {
-                        DIRECT_A1D_ELEM(Mring,iphi+jphi) = M1.interpolatedElement2DOutsideZero(axp[jphi],ayp[jphi]);
-                    }
-                }
-                else {
-                    for (int jphi = 0; jphi < VEC_LEN; jphi++) {
-                        DIRECT_A1D_ELEM(Mring,iphi+jphi) = M1.interpolatedElementBSpline2D(axp[jphi],ayp[jphi],BsplineOrder);
-                    }
-                }
-            }
-            for (; iphi < nsam; iphi++)
+            for (int sample = 0; sample < nsam; ++sample)
             {
                 // from polar to original cartesian coordinates
-                float phi = iphi * dphi;
-                xp = sin(phi) * radius;
-                yp = cos(phi) * radius;
+                xp = s.at(sample);
+                yp = c.at(sample);
 
                 // Origin offsets
                 xp += xoff;
@@ -709,12 +681,10 @@ public:
 
                 // Perform the convolution interpolation
                 if (BsplineOrder==1)
-                    DIRECT_A1D_ELEM(Mring,iphi) = M1.interpolatedElement2DOutsideZero(xp,yp);
+                    DIRECT_A1D_ELEM(Mring,sample) = M1.interpolatedElement2DOutsideZero(xp,yp);
                 else
-                    DIRECT_A1D_ELEM(Mring,iphi) = M1.interpolatedElementBSpline2D(xp,yp,BsplineOrder);
+                    DIRECT_A1D_ELEM(Mring,sample) = M1.interpolatedElementBSpline2D(xp,yp,BsplineOrder);
             }
-            rings.push_back(Mring);
-            ring_radius.push_back(radius);
         }
     }
 
@@ -732,6 +702,25 @@ public:
             out.transformers.push_back(ptr_transformer);
         }
     }
+
+private:
+    void ensureAngleCache(int firstRing, int lastRing);
+
+    int getNoOfSamples(double angle, double radius) {
+        int result = 2 * (int)( 0.5 * oversample * angle * radius );
+        return XMIPP_MAX(1, result);
+    }
+
+    int getNoOfRings(int firstRing, int lastRing) {
+        return lastRing - firstRing + 1;
+    }
+
+    int m_lastFirstRing = 0;
+    int m_lastLastRing = 0;
+    int m_lastMode = 0;
+    std::vector<std::vector<float>> m_lastSinRadius;
+    std::vector<std::vector<float>> m_lastCosRadius;
+    std::mutex m_mutex;
 };
 
 /** Calculate FourierTransform of all rings
@@ -829,6 +818,12 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
 
 /** Compute a polar Fourier transform (with/out normalization) of the input image.
     If plans is NULL, they are computed and returned. */
+template<bool NORMALIZE>
+void polarFourierTransform(const MultidimArray<double> &in,
+        Polar<double> &inAux,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder);
+
 template<bool NORMALIZE>
 void polarFourierTransform(const MultidimArray<double> &in,
                                      Polar< std::complex<double> > &out, bool flag,
