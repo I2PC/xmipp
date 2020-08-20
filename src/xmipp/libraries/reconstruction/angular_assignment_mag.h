@@ -56,6 +56,8 @@ public:
     FileName fnSym;
     FileName fnRef;
 
+    size_t rank, Nprocessors;
+
     // Metadata with input images and input volumes
     MetaData mdIn;
     MetaData mdRef;
@@ -185,6 +187,10 @@ public:
     void maxByRow(MultidimArray<double> &in, MultidimArray<double> &out);
 
     void psiCandidates(MultidimArray<double> &in, std::vector<double> &cand, const size_t &size);
+
+
+    /// Synchronize with other processors
+    virtual void synchronize() {}
 
 private:
 

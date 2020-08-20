@@ -29,6 +29,8 @@
 ProgAngularAssignmentMag::ProgAngularAssignmentMag() {
 	produces_a_metadata = true;
 	each_image_produces_an_output = false;
+	rank=0;
+	Nprocessors=1;
 }
 
 ProgAngularAssignmentMag::~ProgAngularAssignmentMag() {
@@ -243,7 +245,8 @@ void ProgAngularAssignmentMag::preProcess() {
 	// for storage of rot and tilt of reference images
 	referenceRot.resize(sizeMdRef);
 	referenceTilt.resize(sizeMdRef);
-	std::cout<<"processing reference library..."<<std::endl;;
+	if (rank == 0)
+		std::cout << "processing reference library..." << std::endl;
 	int j = -1;
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;
@@ -273,22 +276,24 @@ void ProgAngularAssignmentMag::preProcess() {
 		vecMDaRefFMs_polarF.push_back(MDaRefFMs_polarF);
 	}
 
-	mdOut.setComment("experiment for metadata output containing data for reconstruction");
-
 	// check if eigenvectors file already created
 	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
 	std::ifstream in;
-	in.open(fnEigenVect.c_str(), std::ios::in);
+	in.open(fnEigenVect.c_str()); //, std::ios::in);
 	if(!in){
 		in.close();
 		// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
-		computingNeighborGraph();
+		if(rank == 0)
+			computingNeighborGraph();
 	}
-	else{
-		in.close();
-		eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
-		eigenvectors.read(fnEigenVect);
-	} // */
+
+	// synch with other processors
+	synchronize();
+
+	// prepare and read from file
+	eigenvectors.clear();
+	eigenvectors.resizeNoCopy(sizeMdRef, sizeMdRef);
+	eigenvectors.read(fnEigenVect);
 
 	// Symmetry List
 
@@ -663,13 +668,13 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 }
 
 void ProgAngularAssignmentMag::postProcess() {
-
 	// from angularContinousAssign2
 	MetaData &ptrMdOut = *getOutputMd();
 
 	ptrMdOut.removeDisabled();
 	double maxCC = -1.;
-	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
+	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+	{
 		double thisMaxCC;
 		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
 		if (thisMaxCC > maxCC)
@@ -677,11 +682,13 @@ void ProgAngularAssignmentMag::postProcess() {
 		if (thisMaxCC == 0.0)
 			ptrMdOut.removeObject(__iter.objId);
 	}
-	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut){
+	FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+	{
 		double thisMaxCC;
 		ptrMdOut.getValue(MDL_MAXCC, thisMaxCC, __iter.objId);
 		ptrMdOut.setValue(MDL_WEIGHT, thisMaxCC / maxCC, __iter.objId);
-		ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC, __iter.objId);
+		ptrMdOut.setValue(MDL_WEIGHT_SIGNIFICANT, thisMaxCC / maxCC,
+				__iter.objId);
 	}
 
 	ptrMdOut.write(XmippMetadataProgram::fn_out.replaceExtension("xmd"));
