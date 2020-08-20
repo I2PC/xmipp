@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
 
 class XmippFilter;
 
