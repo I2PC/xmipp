@@ -31,7 +31,9 @@
 
 ProgFilter::ProgFilter(){}
 
-ProgFilter::~ProgFilter(){}
+ProgFilter::~ProgFilter(){
+    delete filter;
+}
 
 void ProgFilter::defineParams()
 {
