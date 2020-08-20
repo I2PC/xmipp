@@ -30,6 +30,7 @@
 //-----------------------------------------------------------------------------
 
 #include <fstream>
+#include <utils/prng.h>
 
 #include "kerdensom.h"
 
@@ -373,16 +374,18 @@ double KerDenSOM::randApproxGVC(const TS* _examples, const FuzzyMap* _som, doubl
             num += VV[j] * VV[j];
     }
 
-    init_random_generator();
+
+    GaussGenerator<double> gauss_gen;
+    gauss_gen.reseed(0);
     for (vv = 0; vv < numVectors; vv++)
     {
         for (j = 0; j < dim; j++)
-            tmpTS.theItems[vv][j] += rnd_gaus() * _dataSD;
+            tmpTS.theItems[vv][j] += gauss_gen.rand() * _dataSD;
     }
     updateV(&tmpSOM, &tmpTS, _reg);
     den = 0.0;
 
-    init_random_generator();
+    gauss_gen.reseed(0);
     for (vv = 0; vv < numVectors; vv++)
     {
         for (j = 0; j < dim; j++)
@@ -394,7 +397,7 @@ double KerDenSOM::randApproxGVC(const TS* _examples, const FuzzyMap* _som, doubl
         }
         r = 0.;
         for (j = 0; j < dim; j++)
-            r += VV[j] * rnd_gaus() * _dataSD;
+            r += VV[j] * gauss_gen.rand() * _dataSD;
         den += r * r;
     }
     if (den != 0)

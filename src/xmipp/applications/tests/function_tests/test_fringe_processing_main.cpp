@@ -25,6 +25,7 @@
 
 #include <core/multidim_array.h>
 #include <reconstruction/fringe_processing.h>
+#include <utils/prng.h>
 #include <core/xmipp_image.h>
 #include <iostream>
 #include <gtest/gtest.h>
@@ -267,9 +268,10 @@ TEST_F( FringeProcessingTests, unwrapping)
     refPhase.setXmippOrigin();
     im.setXmippOrigin();
 
+    GaussGenerator<double> gauss_gen(0, noiseLevel);
     FOR_ALL_ELEMENTS_IN_ARRAY2D(refPhase)
     {
-        A2D_ELEM(refPhase,i,j) = (50*std::exp(-0.5*(std::pow(i*iMaxDim2,2)+std::pow(j*iMaxDim2,2))))+rnd_gaus(0,noiseLevel);
+        A2D_ELEM(refPhase,i,j) = (50*std::exp(-0.5*(std::pow(i*iMaxDim2,2)+std::pow(j*iMaxDim2,2))))+gauss_gen.rand();
         A2D_ELEM(im,i,j) = std::cos(A2D_ELEM(refPhase,i,j));
     }
     //We wrap the phase inside [0 2pi]
