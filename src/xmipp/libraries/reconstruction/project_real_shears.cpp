@@ -32,6 +32,7 @@
 #include "core/bilib/getputd.h"
 #include "core/bilib/changebasis.h"
 #include "core/bilib/configs.h"
+#include "core/bilib/kernel.h"
 #include "core/transformations.h"
 #include "data/fourier_projection.h"
 

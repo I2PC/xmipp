@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "volume_correct_bfactor.h"
 #include "core/xmipp_image.h"
 #include "core/metadata.h"

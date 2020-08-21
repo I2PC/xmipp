@@ -21,6 +21,7 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
+#include <limits>
 #include "nma_alignment_vol.h"
 #include "volume_from_pdb.h"
 #include "program_extension.h"

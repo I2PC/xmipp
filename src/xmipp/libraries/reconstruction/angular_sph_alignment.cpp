@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "angular_sph_alignment.h"
+#include "core/transformations.h"
 #include "data/mask.h"
 #include "data/projection.h"
 

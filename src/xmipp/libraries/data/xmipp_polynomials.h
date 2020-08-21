@@ -26,8 +26,11 @@
 #ifndef CORE_POLYNOMIALS_H_
 #define CORE_POLYNOMIALS_H_
 
-#include <core/multidim_array.h>
-#include <core/matrix2d.h>
+//#include <core/multidim_array.h>
+#include "core/matrix1d.h"
+
+template<typename T>
+class MultidimArray;
 
 // This class performs all the work related with Polynomials. This is a base class
 class Polynomials
@@ -44,8 +47,8 @@ public :
 
 public:
 	// fitting a surface given by member im using the polynomials
-	virtual void fit(const Matrix1D<int> & coef, MultidimArray<double> & im, MultidimArray<double> &weight,
-			         MultidimArray<bool> & ROI, int verbose=0)=0;
+	virtual void fit(const Matrix1D<int> & coef, MultidimArray<double> & im, const MultidimArray<double> &weight,
+			         const MultidimArray<bool> & ROI, int verbose=0)=0;
 
 protected:
 	// Create the polynomials
@@ -73,10 +76,10 @@ public:
 	void create(const Matrix1D<int> & coef);
 	//This function obtains the Zernike coefficients from the matrix 1D coeff. This array is formed by zeros and ones.
 	// If the value of one element of coef is
-	void fit(const Matrix1D<int> & coef, MultidimArray<double> & im, MultidimArray<double> &weight,
-			 MultidimArray<bool> & ROI, int verbose=0);
+	void fit(const Matrix1D<int> & coef, MultidimArray<double> & im, const MultidimArray<double> &weight,
+			 const MultidimArray<bool> & ROI, int verbose=0);
 	//Gives the zernike polynomio of index zerIndex that it is stored in im
-	void zernikePols(const Matrix1D<int> coef, MultidimArray<double> & im, MultidimArray<bool> & ROI, int verbose=0);
+	void zernikePols(const Matrix1D<int> coef, MultidimArray<double> & im, const MultidimArray<bool> & ROI, int verbose=0);
 };
 
 #endif /* POLYNOMIALS_H_ */

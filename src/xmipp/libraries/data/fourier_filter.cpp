@@ -23,12 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/fourier_filter.h>
-
-#include <core/args.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
+#include "data/fourier_filter.h"
 #include "mask.h"
+#include "core/xmipp_program.h"
+#include "core/transformations.h"
 
 /* Clear ------------------------------------------------------------------- */
 void FourierFilter::init()

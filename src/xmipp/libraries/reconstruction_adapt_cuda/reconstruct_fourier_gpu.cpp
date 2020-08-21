@@ -27,8 +27,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "core/metadata_sql.h"
 #include "core/argsparser.h"
+#include "core/bilib/kernel.h"
+#include "core/metadata_sql.h"
 #include "core/xmipp_fftw.h"
 #include "data/fourier_projection.h"
 #include "data/ctf.h"

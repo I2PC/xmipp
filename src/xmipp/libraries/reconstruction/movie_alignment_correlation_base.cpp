@@ -24,6 +24,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "reconstruction/movie_alignment_correlation_base.h"
 #include "core/xmipp_image_generic.h"
 

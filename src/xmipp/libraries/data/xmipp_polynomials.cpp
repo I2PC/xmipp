@@ -23,13 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
 #include "xmipp_polynomials.h"
-#include "numerical_tools.h"
-#include "mask.h"
 #include "core/linear_system_helper.h"
-
+#include "core/numerical_recipes.h"
+#include "core/xmipp_image.h"
 
 #define PR(x) std::cout << #x " = " << x << std::endl;
 #define ZERNIKE_ORDER(n) ceil((-3+sqrt(9+8*(double)(n)))/2.);
@@ -85,8 +82,8 @@ void PolyZernikes::create(const Matrix1D<int> & coef)
     }
 }
 
-void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, MultidimArray<double> &weight,
-                       MultidimArray<bool> & ROI, int verbose)
+void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, const MultidimArray<double> &weight,
+                       const MultidimArray<bool> & ROI, int verbose)
 {
     this->create(coef);
 
@@ -193,7 +190,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, M
     }
 }
 
-void PolyZernikes::zernikePols(const Matrix1D<int> coef, MultidimArray<double> & im, MultidimArray<bool> & ROI, int verbose)
+void PolyZernikes::zernikePols(const Matrix1D<int> coef, MultidimArray<double> & im, const MultidimArray<bool> & ROI, int verbose)
 {
 
     this->create(coef);

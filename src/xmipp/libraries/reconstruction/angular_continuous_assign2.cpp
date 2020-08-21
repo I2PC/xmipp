@@ -24,10 +24,10 @@
  ***************************************************************************/
 
 #include "angular_continuous_assign2.h"
+#include "core/transformations.h"
 #include "core/xmipp_image_extension.h"
-#include "data/mask.h"
-//#include <data/numerical_tools.h>
 #include "core/xmipp_image_generic.h"
+#include "data/mask.h"
 
 // Empty constructor =======================================================
 ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()
@@ -238,7 +238,7 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 
 //#define DEBUG
 double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt, double psi,
-		double a, double b, Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
+		double a, double b, const Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
 {
     if (prm->hasCTF)
     {

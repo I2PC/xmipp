@@ -23,13 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "mpi_classify_CL2D.h"
-#include <data/filters.h>
-#include <data/mask.h>
-#include <data/polar.h>
-#include <core/xmipp_image_generic.h>
-#include <core/xmipp_color.h>
-
+#include "xmipp_mpi.h"
+#include "core/transformations.h"
+#include "core/metadata_extension.h"
+#include "data/filters.h"
+#include "data/mask.h"
 
 // Pointer to parameters
 ProgClassifyCL2D *prm = NULL;
@@ -1111,7 +1111,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
             double avgSimilarity = corrSum / Nimgs;
             if (avgSimilarity==0)
             {
-            	std::cerr << colorString("The average correlation is 0.0, make sure that the maximum allowed shift is enough\n",RED);
+            	std::cerr << "The average correlation is 0.0, make sure that the maximum allowed shift is enough\n";
                    
             	//MPI_Abort(MPI_COMM_WORLD,ERR_UNCLASSIFIED);
                 finish=1;

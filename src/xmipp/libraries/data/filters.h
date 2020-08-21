@@ -28,16 +28,11 @@
 
 #define LOG2 0.693147181
 
-#include <complex>
-#include "core/histogram.h"
-#include "core/multidim_array_base.h"
 #include "core/xmipp_image.h"
-#include "core/xmipp_macros.h"
+#include "core/matrix2d.h"
 #include "data/numerical_tools.h"
 #include "data/polar.h"
 
-template<typename T>
-class MultidimArray;
 class XmippProgram;
 class MetaData;
 
@@ -702,77 +697,7 @@ double mutualInformation(const MultidimArray< T >& x,
                          const MultidimArray< T >& y,
                          int nx = 0,
                          int ny = 0,
-                         const MultidimArray< int >* mask = NULL)
-{
-    SPEED_UP_temps;
-
-    long n = 0;
-    Histogram1D histx, histy;
-    Histogram2D histxy;
-    MultidimArray< T > aux_x, aux_y;
-    MultidimArray< double > mx, my;
-    MultidimArray< double > mxy;
-    int xdim, ydim, zdim;
-    double retval = 0.0;
-
-    xdim=XSIZE(x);
-    ydim=YSIZE(x);
-    zdim=ZSIZE(x);
-    aux_x.resize(xdim * ydim * zdim);
-    xdim=XSIZE(y);
-    ydim=YSIZE(y);
-    zdim=ZSIZE(y);
-    aux_y.resize(xdim * ydim * zdim);
-
-    FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
-    {
-        if (mask != NULL)
-            if (!(*mask)(k, i, j))
-                continue;
-
-        aux_x(n) = A3D_ELEM(x, k, i, j);
-        aux_y(n) = A3D_ELEM(y, k, i, j);
-        n++;
-    }
-
-    aux_x.resize(n);
-    aux_y.resize(n);
-
-    if (n != 0)
-    {
-        if (nx == 0)
-            //Assume Gaussian distribution
-            nx = (int)((log((double) n) / LOG2) + 1);
-
-        if (ny == 0)
-            //Assume Gaussian distribution
-            ny = (int)((log((double) n) / LOG2) + 1);
-
-        compute_hist(aux_x, histx, nx);
-        compute_hist(aux_y, histy, ny);
-        compute_hist(aux_x, aux_y, histxy, nx, ny);
-
-        mx = histx;
-        my = histy;
-        mxy = histxy;
-        for (int i = 0; i < nx; i++)
-        {
-            double histxi = (histx(i)) / n;
-            for (int j = 0; j < ny; j++)
-            {
-                double histyj = (histy(j)) / n;
-                double histxyij = (histxy(i, j)) / n;
-                if (histxyij > 0)
-                    retval += histxyij * log(histxyij / (histxi * histyj)) /
-                              LOG2;
-            }
-        }
-
-        return retval;
-    }
-    else
-        return 0;
-}
+                         const MultidimArray< int >* mask = NULL);
 
 /** RMS nD
  * @ingroup Filters

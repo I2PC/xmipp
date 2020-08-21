@@ -23,12 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "reconstruct_art.h"
 #include "art_crystal.h"
-//#include "art_xray.h"
-#include "denoise.h"
-#include <data/fourier_filter.h>
-#include <data/wavelet.h>
 #include <sys/time.h>
 
 

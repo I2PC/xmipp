@@ -31,11 +31,11 @@
  ***************************************************************************/
 #ifndef POLAR_H
 #define POLAR_H
-#include <core/xmipp_funcs.h>
-#include <core/multidim_array.h>
-#include <core/transformations.h>
-#include <core/xmipp_fftw.h>
 #include <mutex>
+#include "core/multidim_array.h"
+#include "core/transformations_defines.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_filename.h"
 
 #define FULL_CIRCLES 0
 #define HALF_CIRCLES 1

@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "reconstruction/movie_alignment_correlation.h"
+#include "core/transformations.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelation<T>::defineParams() {

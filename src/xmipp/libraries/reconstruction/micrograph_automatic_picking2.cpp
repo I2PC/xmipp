@@ -24,8 +24,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include <random>
 #include "micrograph_automatic_picking2.h"
+#include "core/transformations.h"
 #include "core/xmipp_image_generic.h"
 #include "data/mask.h"
 #include "data/fourier_filter.h"

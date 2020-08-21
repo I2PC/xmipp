@@ -25,6 +25,7 @@
 
 #include "tomo_align_refinement.h"
 #include "core/metadata.h"
+#include "core/transformations.h"
 #include "data/filters.h"
 #include "data/fourier_projection.h"
 #include "data/projection.h"

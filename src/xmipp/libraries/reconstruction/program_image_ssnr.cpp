@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-
+#include <algorithm>
 #include "program_image_ssnr.h"
 #include "data/mask.h"
 #include "core/xmipp_fftw.h"

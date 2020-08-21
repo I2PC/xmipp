@@ -21,12 +21,11 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include "volume_deform_sph.h"
-#include <data/numerical_tools.h>
-#include <data/basis.h>
-#include <data/fourier_filter.h>
-#include <data/normalize.h>
+#include <fstream>
 #include <iterator>
+#include "volume_deform_sph.h"
+#include "data/fourier_filter.h"
+#include "data/normalize.h"
 
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {

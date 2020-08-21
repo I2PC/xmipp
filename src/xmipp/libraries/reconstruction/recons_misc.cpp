@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "recons_misc.h"
 #include "basic_art.h"
 #include "core/metadata.h"

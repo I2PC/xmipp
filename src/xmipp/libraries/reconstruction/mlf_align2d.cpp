@@ -24,6 +24,7 @@
  ***************************************************************************/
 #include "mlf_align2d.h"
 #include "core/metadata_sql.h"
+#include "core/transformations.h"
 
 // Constructor ===============================================
 ProgMLF2D::ProgMLF2D(int nr_vols, int rank, int size)
