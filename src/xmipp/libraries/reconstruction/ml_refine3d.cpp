@@ -25,24 +25,20 @@
 
 #include "ml_refine3d.h"
 
-#include <core/xmipp_fft.h>
-#include <core/args.h>
-#include <core/xmipp_funcs.h>
-#include <data/filters.h>
-#include <data/mask.h>
-#include <data/morphology.h>
-#include <data/grids.h>
-#include <data/blobs.h>
-#include <core/symmetries.h>
-#include <data/projection.h>
-#include "directions.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_generic.h"
+#include "core/xmipp_log.h"
+#include "data/morphology.h"
+#include "data/fourier_projection.h"
+#include "data/projection.h"
 #include "reconstruct_art.h"
 #include "reconstruct_fourier.h"
-#include <data/fourier_filter.h>
+#include "data/fourier_filter.h"
+#include "mlf_align2d.h"
+#include "ml_align2d.h"
 #include "symmetrize.h"
 #include "volume_segment.h"
-#include "core/xmipp_image_generic.h"
-#include "core/metadata_sql.h"
 
 //#define DEBUG
 //Macro to obtain the iteration base name

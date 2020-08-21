@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include <random>
 #include "validation_nontilt.h"
 #include "core/xmipp_funcs.h"

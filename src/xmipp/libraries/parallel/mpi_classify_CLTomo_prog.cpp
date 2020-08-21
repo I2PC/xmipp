@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include <data/mask.h>
 #include <data/polar.h>
 #include <data/filters.h>

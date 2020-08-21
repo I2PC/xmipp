@@ -28,7 +28,7 @@
  ***************************************************************************/
 
 #include "reconstruct_fourier_accel.h"
-
+#include "core/bilib/kernel.h"
 #include "core/symmetries.h"
 #include "core/xmipp_fftw.h"
 #include "data/array_2D.h"

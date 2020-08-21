@@ -33,6 +33,7 @@
 #include "core/xmipp_threads.h"
 #include "core/metadata.h"
 #include "core/matrix2d.h"
+#include "core/numerical_recipes.h"
 #include "data/blobs.h"
 #include "reconstruction/recons.h"
 #include "reconstruction/reconstruct_fourier_defines.h"

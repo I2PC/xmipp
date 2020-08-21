@@ -25,6 +25,8 @@
 
 #include "phantom_simulate_microscope.h"
 #include "core/metadata_extension.h"
+#include "core/histogram.h"
+#include "core/transformations.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgSimulateMicroscope::readParams()

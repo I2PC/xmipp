@@ -25,13 +25,11 @@
 #ifndef _PROG_ANGULAR_ASSIGN_FOR_TILTSERIES
 #define _PROG_ANGULAR_ASSIGN_FOR_TILTSERIES
 
-#include <vector>
-#include <core/matrix1d.h>
-#include <core/metadata.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_program.h>
-#include <pthread.h>
+#include "core/matrix1d.h"
 #include "core/matrix2d.h"
+#include "core/metadata.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_program.h"
 
 /**@defgroup AngularAssignTiltSeries angular_assign_for_tilt_series
              (Simultaneous assignment)

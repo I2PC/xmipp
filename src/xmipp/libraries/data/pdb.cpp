@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include <string>
 #include "pdb.h"
 #include "core/matrix2d.h"

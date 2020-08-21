@@ -26,7 +26,7 @@
 #ifndef SPARSE_MATRIX2D_H_
 #define SPARSE_MATRIX2D_H_
 
-#include <core/multidim_array.h>
+#include "core/multidim_array.h"
 
 /** Sparse element.
  *  This class is used to create the SparseMatrices. */

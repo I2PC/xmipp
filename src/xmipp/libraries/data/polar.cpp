@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "polar.h"
+#include "core/transformations.h"
 
 Polar_fftw_plans::~Polar_fftw_plans()
 {

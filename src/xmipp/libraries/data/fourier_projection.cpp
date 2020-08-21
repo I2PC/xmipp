@@ -24,9 +24,10 @@
  ***************************************************************************/
 
 #include "fourier_projection.h"
-#include <core/xmipp_fft.h>
+#include "core/bilib/kernel.h"
 #include "core/geometry.h"
 #include "core/transformations.h"
+#include "core/xmipp_fftw.h"
 
 /* Empty constructor ======================================================= */
 Projection::Projection(): Image<double>()

@@ -22,6 +22,7 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "core/bilib/messagedisplay.h"
 #include "core/bilib/error.h"
 #include "core/bilib/configs.h"
