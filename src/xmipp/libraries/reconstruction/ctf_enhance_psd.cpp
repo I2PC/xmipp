@@ -31,10 +31,10 @@
  ***************************************************************************/
 
 #include "ctf_enhance_psd.h"
-
-#include "core/xmipp_fftw.h"
-#include "core/xmipp_image.h"
+//
 #include "data/fourier_filter.h"
+#include "core/histogram.h"
+#include "core/xmipp_image.h"
 
 /* Read parameters --------------------------------------------------------- */
 void ProgCTFEnhancePSD::readParams()

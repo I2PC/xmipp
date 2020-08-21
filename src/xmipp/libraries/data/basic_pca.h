@@ -28,7 +28,7 @@
 #define _CORE_BASICPCA_HH
 
 #include <vector>
-#include <core/multidim_array.h>
+#include "core/multidim_array.h"
 
 
 /**@defgroup BasicPCA Basic PCA class

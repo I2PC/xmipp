@@ -26,10 +26,8 @@
 #ifndef CORE_NORMALIZE_H
 #define CORE_NORMALIZE_H
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <data/mask.h>
-#include <core/xmipp_error.h>
+#include "core/xmipp_metadata_program.h"
+#include "data/mask.h"
 
 /// @defgroup Normalize Normalization of images and volumes
 /// @ingroup DataLibrary

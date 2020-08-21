@@ -25,6 +25,7 @@
 
 #include "denoise.h"
 #include "core/xmipp_program.h"
+#include "core/histogram.h"
 #include "data/wavelet.h"
 
 // Empty constructor -------------------------------------------------------

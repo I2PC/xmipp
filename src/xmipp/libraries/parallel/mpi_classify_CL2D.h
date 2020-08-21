@@ -25,15 +25,15 @@
 #ifndef _PROG_VQ_PROJECTIONS
 #define _PROG_VQ_PROJECTIONS
 
-#include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
-#include <core/metadata_extension.h>
-#include <data/polar.h>
-#include <core/xmipp_fftw.h>
-#include <core/histogram.h>
-#include <data/numerical_tools.h>
-#include <core/xmipp_program.h>
-#include <vector>
+#include "core/metadata.h"
+#include "data/polar.h"
+#include "core/histogram.h"
+#include "data/numerical_tools.h"
+#include "core/xmipp_program.h"
+
+class MpiNode;
+template<typename T>
+class Image;
 
 /**@defgroup VQforProjections Vector Quantization for Projections
    @ingroup ClassificationLibrary */

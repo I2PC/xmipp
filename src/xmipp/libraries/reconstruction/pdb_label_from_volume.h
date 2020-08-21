@@ -29,6 +29,7 @@
 
 #include "core/xmipp_program.h"
 #include "core/multidim_array.h"
+#include "core/xmipp_filename.h"
 
 /**@defgroup PDBPhantom convert_pdb2vol (PDB Phantom program)
    @ingroup ReconsLibrary */

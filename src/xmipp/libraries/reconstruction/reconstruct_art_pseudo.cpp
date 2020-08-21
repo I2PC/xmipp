@@ -24,6 +24,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "reconstruct_art_pseudo.h"
 #include "core/histogram.h"
 #include "core/geometry.h"

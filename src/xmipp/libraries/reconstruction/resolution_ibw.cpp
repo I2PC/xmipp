@@ -23,6 +23,7 @@
  ***************************************************************************/
 
 #include "resolution_ibw.h"
+#include "core/transformations.h"
 #include "data/filters.h"
 #include "data/morphology.h"
 #include "data/mask.h"

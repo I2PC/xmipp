@@ -23,19 +23,16 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "tomo_align_tilt_series.h"
-#include "core/metadata_sql.h"
-#include <core/args.h>
-#include <data/filters.h>
-#include <core/xmipp_fftw.h>
-#include <core/metadata.h>
-#include <data/numerical_tools.h>
-#include <data/morphology.h>
 #include <fstream>
 #include <queue>
-#include <iostream>
+#include "tomo_align_tilt_series.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_image.h"
+#include "core/transformations.h"
+#include "data/fourier_filter.h"
 #include "data/mask.h"
-#include <data/fourier_filter.h>
+#include "data/morphology.h"
+#include "data/numerical_tools.h"
 
 /* Generate mask ----------------------------------------------------------- */
 //#define DEBUG
