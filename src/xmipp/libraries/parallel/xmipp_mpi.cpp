@@ -23,9 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <unistd.h>
 #include "xmipp_mpi.h"
-#include <core/xmipp_log.h>
-
+#include "core/xmipp_filename.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_macros.h"
 
 MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize,
                                        MpiNode *node) :

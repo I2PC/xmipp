@@ -24,7 +24,10 @@
  ***************************************************************************/
 
 #include "mask.h"
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_image_generic.h"
+#include "core/transformations.h"
+#include "data/wavelet.h"
 
 /*---------------------------------------------------------------------------*/
 /* Multidim Masks                                                            */

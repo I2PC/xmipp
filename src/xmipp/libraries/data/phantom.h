@@ -29,12 +29,18 @@
 #ifndef _PHANTOM_HH
 #define _PHANTOM_HH
 
-#include <vector>
+#include "core/matrix1d.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_filename.h"
 
-#include <core/multidim_array.h>
-#include <core/metadata_label.h>
-#include <data/blobs.h>
-#include <data/projection.h>
+class Metadata;
+template<typename T>
+class MultidimArray;
+template<typename T>
+class Image;
+class Projection;
+class MetaData;
+class MDRow;
 
 /**@defgroup Phantoms Phantoms
  * @ingroup DataLibrary
@@ -438,11 +444,7 @@ public:
     {}
 
     /** Compute Euler and inverse Euler matrices from the Euler angles. */
-    void prepare_Euler()
-    {
-        Euler_angles2matrix(rot, tilt, psi, euler);
-        eulert = euler.transpose();
-    }
+    void prepare_Euler();
 
     /// Assigment
     Oriented_Feature & operator = (const Oriented_Feature & OF);
@@ -621,10 +623,7 @@ public:
     /** Mass of a Blob.
         This function returns mass inside a blob. 3 is the dimension
         See \ref Feature::volume */
-    double volume() const
-    {
-        return basvolume(radius, alpha, m, 3);
-    }
+    double volume() const;
 
     /** Read specific description for a blob.
         An exception is thrown if the line doesn't conform the standard

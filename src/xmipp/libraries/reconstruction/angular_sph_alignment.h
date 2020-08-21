@@ -26,10 +26,11 @@
 #ifndef _PROG_ANGULAR_SPH_ALIGNMENT
 #define _PROG_ANGULAR_SPH_ALIGNMENT
 
-#include <core/xmipp_program.h>
-#include <data/ctf.h>
-#include <data/projection.h>
-#include <data/fourier_filter.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/matrix1d.h"
+#include "core/xmipp_image.h"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */

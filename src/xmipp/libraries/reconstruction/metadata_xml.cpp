@@ -23,7 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
+#include <fstream>
+#include "core/xmipp_program.h"
+#include "core/metadata.h"
 
 class ProgTest: public XmippProgram
 {

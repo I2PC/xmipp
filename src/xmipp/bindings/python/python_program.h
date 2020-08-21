@@ -28,7 +28,9 @@
 #define _PYTHON_PROGRAM_H
 
 #include <Python.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+
+extern PyObject * PyXmippError;
 
 /***************************************************************/
 /*                            Program                         */

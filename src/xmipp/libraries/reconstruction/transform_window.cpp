@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <data/unitCell.h>
+#include "core/xmipp_metadata_program.h"
+#include "data/unitCell.h"
 
 class ProgWindow: public XmippMetadataProgram {
 public:

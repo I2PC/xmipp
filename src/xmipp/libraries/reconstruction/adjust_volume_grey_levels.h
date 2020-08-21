@@ -25,10 +25,10 @@
 #ifndef _PROG_ADJUST_VOLUME_HH
 #define _PROG_ADJUST_VOLUME_HH
 
-#include <core/xmipp_funcs.h>
-#include <core/metadata.h>
-#include <core/multidim_array.h>
-#include <core/xmipp_program.h>
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_image.h"
 
 /**@defgroup AdjustVolumeProgram adjust_volume_grey_values (Adjust volume grey values to a set of projections)
    @ingroup ReconsLibrary */

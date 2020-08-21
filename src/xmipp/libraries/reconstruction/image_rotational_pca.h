@@ -25,10 +25,12 @@
 #ifndef _PROG_IMAGE_ROTATIONAL_PCA
 #define _PROG_IMAGE_ROTATIONAL_PCA
 
-#include <core/metadata.h>
-#include <core/xmipp_program.h>
-#include <core/xmipp_threads.h>
-#include <classification/pca.h>
+#include "core/metadata.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_threads.h"
+#include "core/xmipp_image.h"
 
 #define IS_MASTER (rank == 0)
 

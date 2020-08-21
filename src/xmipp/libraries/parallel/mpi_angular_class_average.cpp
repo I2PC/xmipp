@@ -25,7 +25,12 @@
  ***************************************************************************/
 
 #include "mpi_angular_class_average.h"
-
+#include "core/metadata_sql.h"
+#include "core/matrix2d.h"
+#include "core/metadata_extension.h"
+#include "core/transformations.h"
+#include "core/xmipp_image_generic.h"
+#include "core/xmipp_image_extension.h"
 
 MpiProgAngularClassAverage::MpiProgAngularClassAverage()
 {}

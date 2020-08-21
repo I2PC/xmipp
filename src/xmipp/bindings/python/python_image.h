@@ -30,10 +30,11 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION // this code is NumPy 1.8 compliant (i.e. we don't need API deprecated in 1.7)
 
 #include "Python.h"
-#include "python_metadata.h"
+#include "core/xmipp_image_generic.h"
 #include <numpy/ndarraytypes.h>
-#include <numpy/ndarrayobject.h>
+#include <numpy/arrayobject.h>
 
+extern PyObject * PyXmippError;
 /***************************************************************/
 /*                            Image                         */
 /**************************************************************/

@@ -38,6 +38,7 @@
 #include <core/xmipp_program.h>
 #include <core/symmetries.h>
 #include <vector>
+#include "data/mask.h"
 
 /**@defgroup VQforVolumes Vector Quantization for Volumes
    @ingroup ClassificationLibrary */

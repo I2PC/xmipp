@@ -23,10 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-
+#include <algorithm>
 #include "program_image_ssnr.h"
-#include <data/mask.h>
-#include <core/xmipp_fftw.h>
+#include "data/mask.h"
+#include "core/xmipp_fftw.h"
+#include "core/metadata_extension.h"
 
 void ProgImageSSNR::defineParams()
 {

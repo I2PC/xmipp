@@ -26,12 +26,6 @@
 #ifndef CORE_INTEGRATION_H
 #define CORE_INTEGRATION_H
 
-#include <cstdlib>
-#include <cmath>
-#include <cstdio>
-#include <iostream>
-#include <core/multidim_array.h>
-
 /** @defgroup NumericalIntegration Numerical integration
  *  @ingroup DataLibrary
  *

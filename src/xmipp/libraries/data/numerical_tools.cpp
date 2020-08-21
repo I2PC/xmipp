@@ -23,6 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "numerical_tools.h"
+#include "core/matrix2d.h"
+#include "core/numerical_recipes.h"
+#include "core/xmipp_funcs.h"
+#include "core/xmipp_memory.h"
 
 /* Random permutation ------------------------------------------------------ */
 void randomPermutation(int N, MultidimArray<int>& result)
@@ -1331,3 +1335,64 @@ int spherical_lnm2index(int l, int n, int m)
 	}
 	return idx;
 }
+
+template<typename T>
+void solveBySVD(const Matrix2D< T >& A, const Matrix1D< T >& b,
+                  Matrix1D< double >& result, double tolerance)
+{
+    if (A.Xdim() == 0)
+        REPORT_ERROR(ERR_MATRIX_EMPTY, "Solve: Matrix is empty");
+
+    if (A.Xdim() != A.Ydim())
+        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Matrix is not squared");
+
+    if (A.Xdim() != b.size())
+        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Different sizes of Matrix and Vector");
+
+    if (b.isRow())
+        REPORT_ERROR(ERR_MATRIX_DIM, "Solve: Not correct vector shape");
+
+    // First perform de single value decomposition
+    // Xmipp interface that calls to svdcmp of numerical recipes
+    Matrix2D< double > u, v;
+    Matrix1D< double > w;
+    svdcmp(A, u, w, v);
+
+    // Here is checked if eigenvalues of the svd decomposition are acceptable
+    // If a value is lower than tolerance, the it's zeroed, as this increases
+    // the precision of the routine.
+    for (int i = 0; i < w.size(); i++)
+        if (w(i) < tolerance)
+            w(i) = 0;
+
+    // Set size of matrices
+    result.resize(b.size());
+
+    // Xmipp interface that calls to svdksb of numerical recipes
+    Matrix1D< double > bd;
+    typeCast(b, bd);
+    svbksb(u, w, v, bd, result);
+}
+
+template<typename T>
+void solve(const Matrix2D<T>& A, const Matrix2D<T>& b, Matrix2D<T>& result)
+{
+    if (A.Xdim() == 0)
+        REPORT_ERROR(ERR_MATRIX_EMPTY, "Solve: Matrix is empty");
+
+    if (A.Xdim() != A.Ydim())
+        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Matrix is not squared");
+
+    if (A.Ydim() != b.Ydim())
+        REPORT_ERROR(ERR_MATRIX_SIZE, "Solve: Different sizes of A and b");
+
+    // Solve
+    result = b;
+    Matrix2D<T> Aux = A;
+    gaussj(Aux.adaptForNumericalRecipes2(), Aux.Ydim(),
+           result.adaptForNumericalRecipes2(), b.Xdim());
+}
+
+// explicit instantiation
+template void solveBySVD<double>(Matrix2D<double> const&, Matrix1D<double> const&, Matrix1D<double>&, double);
+template void solve<double>(Matrix2D<double> const&, Matrix2D<double> const&, Matrix2D<double>&);

@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "project_xray.h"
+#include "core/transformations.h"
 
 void ProgXrayProject::defineParams()
 {

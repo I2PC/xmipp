@@ -22,9 +22,9 @@
  *  All comments concerning this program package may be sent to the    
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
-#include <core/args.h>
-#include <interface/spider.h>
-#include <core/xmipp_program.h>
+
+#include "interface/spider.h"
+#include "core/xmipp_metadata_program.h"
 
 class ProgSpiderTranslate: public XmippMetadataProgram
 {

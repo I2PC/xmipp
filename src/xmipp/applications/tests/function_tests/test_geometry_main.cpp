@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <core/geometry.h>
 #include <data/normalize.h>
+#include "core/transformations.h"
 
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class GeometryTest : public ::testing::Test

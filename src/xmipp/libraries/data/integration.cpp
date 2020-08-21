@@ -24,6 +24,8 @@
  ***************************************************************************/
 
 #include "integration.h"
+#include "core/matrix1d.h"
+#include "core/numerical_recipes.h"
 
 /* Integrate --------------------------------------------------------------- */
 double integrateNewtonCotes(double(*f)(double),

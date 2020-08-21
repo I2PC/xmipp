@@ -24,10 +24,8 @@
  ***************************************************************************/
 
 #include "movie_filter_dose.h"
-#include <core/metadata_extension.h>
-#include <core/xmipp_fftw.h>
-#include <data/filters.h>
-#include <typeinfo>
+#include "core/xmipp_image_generic.h"
+#include "data/fourier_filter.h"
 
 #define OUTSIDE_WRAP 0
 #define OUTSIDE_AVG 1

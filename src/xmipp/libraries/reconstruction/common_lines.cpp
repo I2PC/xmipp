@@ -23,16 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "common_lines.h"
-
-#include <core/args.h>
-#include <data/mask.h>
-#include <core/metadata_extension.h>
-#include <data/filters.h>
-#include <data/fourier_filter.h>
-#include <reconstruction/radon.h>
 #include <fstream>
-#include <iomanip>
+#include "common_lines.h"
+#include "data/mask.h"
+#include "core/metadata_extension.h"
+#include "data/fourier_filter.h"
+#include "reconstruction/radon.h"
+#include "core/linear_system_helper.h"
 
 /* Common line ------------------------------------------------------------- */
 CommonLine::CommonLine()

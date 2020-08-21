@@ -26,9 +26,12 @@
 #ifndef _PROJECTXRAY_H_
 #define _PROJECTXRAY_H_
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_threads.h>
-#include <data/psf_xr.h>
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_threads.h"
+#include "data/fourier_projection.h"
+#include "data/projection.h"
+#include "data/psf_xr.h"
 
 /**@defgroup ProjectionXRProgram project_xr (project for tilt series)
    @ingroup ReconsLibrary */

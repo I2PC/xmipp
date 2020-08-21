@@ -28,6 +28,7 @@
 
 #include "parallel/xmipp_mpi.h"
 #include "reconstruction/ml_align2d.h"
+#include "reconstruction/mlf_align2d.h"
 #include "reconstruction/ml_refine3d.h"
 #include "reconstruction/ml_tomo.h"
 

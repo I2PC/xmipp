@@ -23,14 +23,37 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
+#include <string>
 #include "pdb.h"
-#include "fstream"
-#include <core/args.h>
-#include <core/matrix2d.h>
-#include <core/xmipp_fftw.h>
-#include <data/mask.h>
-#include <data/integration.h>
-#include <data/numerical_tools.h>
+#include "core/matrix2d.h"
+#include "core/multidim_array.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
+#include "data/integration.h"
+#include "data/mask.h"
+#include "data/numerical_tools.h"
+
+double AtomInterpolator::volumeAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return volumeProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
+
+double AtomInterpolator::projectionAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return projectionProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
 
 /* Atom charge ------------------------------------------------------------- */
 int atomCharge(const std::string &atom)

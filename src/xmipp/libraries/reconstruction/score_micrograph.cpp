@@ -26,7 +26,7 @@
 #include <core/args.h>
 #include <data/filters.h>
 #include <core/xmipp_fft.h>
-
+#include "data/mask.h"
 #include "score_micrograph.h"
 #include <data/fourier_filter.h>
 #include "fringe_processing.h"

@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <data/filters.h>
+#include "core/transformations.h"
+#include "core/xmipp_metadata_program.h"
+#include "data/filters.h"
 
 class ProgCenterImage: public XmippMetadataProgram
 {

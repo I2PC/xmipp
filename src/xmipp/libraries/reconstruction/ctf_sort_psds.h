@@ -24,12 +24,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #ifndef _PROG_CTF_SORT_PSDS_HH
-#  define _PROG_CTF_SORT_PSDS_HH
+#define _PROG_CTF_SORT_PSDS_HH
 
-#include <core/xmipp_funcs.h>
-#include <core/metadata.h>
-#include <core/multidim_array.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
 
 /**@defgroup SortPSD psd_Sort (Sort visualization of the PSD)
    @ingroup ReconsLibrary */

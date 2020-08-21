@@ -25,6 +25,7 @@
 
 #include "reconstruct_significant.h"
 #include <algorithm>
+#include "core/metadata_sql.h"
 
 // Define params
 ProgReconstructSignificant::ProgReconstructSignificant()

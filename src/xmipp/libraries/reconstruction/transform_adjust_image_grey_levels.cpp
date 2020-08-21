@@ -24,8 +24,7 @@
  ***************************************************************************/
 
 #include "transform_adjust_image_grey_levels.h"
-#include <data/mask.h>
-#include <data/numerical_tools.h>
+#include "data/mask.h"
 
 // Empty constructor =======================================================
 ProgTransformImageGreyLevels::ProgTransformImageGreyLevels()
