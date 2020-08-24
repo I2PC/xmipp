@@ -1834,7 +1834,7 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
     if (nullptr == self) return nullptr;
-    try {
+//    try {
 //        // keep default values consistent with the python
 //        float overlap = 0.4f;
 //        int dimX = 384;
@@ -1862,11 +1862,11 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
             // call the estimation
             radialAverageAxis(*in, center, radial_mean, radial_count);
         }
-        else {
-            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
-        }
+//        else {
+//            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+//        }
         return (PyObject *)result;
-    } catch (XmippError &xe) {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
-    }
+//    } catch (XmippError &xe) {
+//        PyErr_SetString(PyXmippError, xe.msg.c_str());
+//    }
 }
