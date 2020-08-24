@@ -87,7 +87,7 @@ void ProgNmaAlignmentVol::readParams() {
 	fnmask = getParam("--mask");
 	do_centerPDB = checkParam("--centerPDB");
 	do_FilterPDBVol = checkParam("--filterVol");
-	trustradius_scale = abs(getDoubleParam("--trustradius_scale"));
+	trustradius_scale = std::abs(getDoubleParam("--trustradius_scale"));
 	if (do_FilterPDBVol)
 		cutoff_LPfilter = getDoubleParam("--filterVol");
 	useFixedGaussian = checkParam("--fixed_Gaussian");
