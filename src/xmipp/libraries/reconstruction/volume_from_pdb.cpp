@@ -452,10 +452,12 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     // Create an empty volume to hold the protein
     Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
     Vlow().setXmippOrigin();
-    STARTINGX(Vlow()) = orig_x;
-    STARTINGY(Vlow()) = orig_y;
-    STARTINGZ(Vlow()) = orig_z;
-
+    if (orig_x!=0)
+    {
+		STARTINGX(Vlow()) = orig_x;
+		STARTINGY(Vlow()) = orig_y;
+		STARTINGZ(Vlow()) = orig_z;
+    }
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
