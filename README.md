@@ -70,4 +70,4 @@ pip install -e xmipp-bundle/src/scipion-em-xmipp    # this installs Xmipp plugin
 ./xmipp install [directory]    # This install Xmipp to a certain directory
 ```
 
-Please, check [the Xmipp configuration guide](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07). 
+Please, check [the Xmipp configuration guide](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
