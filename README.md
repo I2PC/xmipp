@@ -57,17 +57,22 @@ You can see the whole usage of the script with `./xmipp --help`. The most useful
 ---------------
 
 
-##### In case you want an installation step-by-step. Follow the next receip (also read `./xmipp help`): \
+##### Detailed installation for Developers.
+
+Follow the next receip (also read `./xmipp help`):
+
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
 cd xmipp-bundle
 ./xmipp get_devel_sources [branch]                    # This downloads the rest of Xmipp repos in a certain branch
-pip install -e xmipp-bundle/src/scipion-em-xmipp      # this installs Xmipp plugin for Scipion (check the environ/python you are using)
 ./xmipp config                                        # This configures the Xmipp installation according to the system
-./xmipp get_dependencies                              # This downloads the dependencies that Xmipp needs according to the configuration
 ./xmipp check_config                                  # This checks the configuration set
+./xmipp get_dependencies                              # This downloads the dependencies that Xmipp needs according to the configuration
 ./xmipp compile [N]                                   # This compiles Xmipp using N processors
 ./xmipp install [directory]                           # This install Xmipp to a certain directory
+
+# Optionally, Xmipp plugin for Scipion can be installed under the python/environ of Scipion
+pip install -e src/scipion-em-xmipp                   # CHECK the ENVIRON that are present in the session!!
 ```
 
 Please, check [the Xmipp configuration guide](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
