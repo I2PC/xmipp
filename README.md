@@ -15,7 +15,7 @@ Recently we have changed the directory structure. See this wiki [page](https://g
 ## Getting started
 **Xmipp as a Scipion package**
 
-The recommended way to use Xmipp is via [Scipion](https://scipion-em.github.io/docs/index.html).
+The recommended way to use/install Xmipp is via [Scipion](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html).
 It can be easily installed using the [Plugin manager](https://scipion-em.github.io/docs/docs/user/plugin-manager.html).
 
 **Xmipp as a standalone bundle (useful for developers)**
@@ -57,7 +57,7 @@ You can see the whole usage of the script with `./xmipp --help`. The most useful
 ---------------
 
 
-##### Detailed installation for Developers.
+### Detailed installation for Developers.
 
 Follow the next receip (also read `./xmipp help`):
 
@@ -69,7 +69,7 @@ cd xmipp-bundle
 ./xmipp check_config                                  # This checks the configuration set
 ./xmipp get_dependencies                              # This downloads the dependencies that Xmipp needs according to the configuration
 ./xmipp compile [N]                                   # This compiles Xmipp using N processors
-./xmipp install [directory]                           # This install Xmipp to a certain directory
+./xmipp install [directory]                           # This installs Xmipp to a certain directory
 
 # Optionally, Xmipp plugin for Scipion can be installed under the python/environ of Scipion
 pip install -e src/scipion-em-xmipp                   # CHECK the ENVIRON that are present in the session!!
