@@ -26,7 +26,7 @@ git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
 ```
 
-* In case that you want to use/develop it under Scipion:
+* In case that you want to use/develop it **under Scipion**:
   
   First download the rest of sources by
   ```
@@ -46,7 +46,7 @@ cd xmipp-bundle
   ```
   where `-j 8` indicates that 8 cores will be used to compile Xmipp.
   
-* In case you don't want to run Xmipp under Scipion, just run (it might be necessary to add execute permission via `chmod +x xmipp`)
+* In case you **do NOT want to run Xmipp under Scipion**, just run (it might be necessary to add execute permission via `chmod +x xmipp`)
   ```
   ./xmipp 
   ```
