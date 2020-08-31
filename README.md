@@ -61,13 +61,13 @@ You can see the whole usage of the script with `./xmipp --help`. The most useful
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
 cd xmipp-bundle
-./xmipp get_devel_sources [branch]      # This downloads the rest of Xmipp repos in a certain branch
-pip install -e xmipp-bundle/src/scipion-em-xmipp    # this installs Xmipp plugin for Scipion (check the environ/python to use)
-./xmipp config    # This configures the Xmipp installation according to the system
-./xmipp get_dependencies    # This downloads the dependencies that Xmipp needs according to the configuration
-./xmipp check_config     # This checks the configuration set
-./xmipp compile [N]    # This compiles Xmipp using N processors
-./xmipp install [directory]    # This install Xmipp to a certain directory
+./xmipp get_devel_sources [branch]                    # This downloads the rest of Xmipp repos in a certain branch
+pip install -e xmipp-bundle/src/scipion-em-xmipp      # this installs Xmipp plugin for Scipion (check the environ/python you are using)
+./xmipp config                                        # This configures the Xmipp installation according to the system
+./xmipp get_dependencies                              # This downloads the dependencies that Xmipp needs according to the configuration
+./xmipp check_config                                  # This checks the configuration set
+./xmipp compile [N]                                   # This compiles Xmipp using N processors
+./xmipp install [directory]                           # This install Xmipp to a certain directory
 ```
 
 Please, check [the Xmipp configuration guide](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
