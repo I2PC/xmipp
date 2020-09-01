@@ -102,7 +102,7 @@ void ProgDimRed::defineParams()
     addParamsLine("                  CorrDim: Correlation dimension");
     addParamsLine("                  MLE: Maximum Likelihood Estimate");
     addParamsLine("  [--saveMapping <fn=\"\">] : Save mapping if available (PCA, LLTSA, LPP, pPCA, NPE) so that it can be reused later (Y=X*M)");
-    addParamsLine("                            :+X is the input matrix with individuals as rows");
+    addParamsLine("                            :+X is the input matrix with individuals as rows (mean subtracted from the columns)");
     addParamsLine("                            :+Y is the output matrix with individuals as rows");
 }
 
