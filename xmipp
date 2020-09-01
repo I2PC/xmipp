@@ -504,10 +504,13 @@ def createEmptyConfig():
     return configDict
 
 
-def findFileInDirList(fnH,dirlist):
+def findFileInDirList(fnH, dirlist):
     """ :returns the dir where found or an empty string if not found.
         dirs can contain *, then first found is returned.
     """
+    if isinstance(dirlist, str):
+        dirlist = [dirlist]
+
     for dir in dirlist:
         validDirs = glob.glob(os.path.join(dir, fnH))
         if len(validDirs) > 0:
@@ -672,7 +675,7 @@ def configCompiler(configDict):
         # extra includes
         if not findFileInDirList("hdf5.h", [localInc, "/usr/include"]):
             print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
-            hdf5Inc = findFileInDirList("hdf5.h", ["/usr/include/hdf5/serial"])
+            hdf5Inc = findFileInDirList("hdf5.h", "/usr/include/hdf5/serial")    # Add more candidates if needed
             hdf5Inc = askPath(hdf5Inc, askUser)
             if hdf5Inc:
                 configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc

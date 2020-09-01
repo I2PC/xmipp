@@ -176,7 +176,7 @@ void ProgCTFEstimateFromPSDFast::readParams()
 /* Usage ------------------------------------------------------------------- */
 void ProgCTFEstimateFromPSDFast::defineBasicParams(XmippProgram * program)
 {
-	CTFDescription1D::defineParams(program);
+	CTFDescription::defineParams(program);
 }
 
 void ProgCTFEstimateFromPSDFast::defineParams()

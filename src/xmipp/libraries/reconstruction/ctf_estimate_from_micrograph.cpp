@@ -128,6 +128,7 @@ void ProgCTFEstimateFromMicrograph::defineParams()
     addParamsLine("  [--acceleration1D]          : Accelerate PSD estimation");
     ARMA_parameters::defineParams(this);
     ProgCTFEstimateFromPSD::defineBasicParams(this);
+    ProgCTFBasicParams::defineBasicParams(this);
     addExampleLine("Estimate PSD", false);
     addExampleLine("xmipp_ctf_estimate_from_micrograph --micrograph micrograph.mrc --dont_estimate_ctf");
     addExampleLine("Estimate a single CTF for the whole micrograph", false);
