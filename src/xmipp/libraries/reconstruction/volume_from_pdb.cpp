@@ -103,8 +103,6 @@ void ProgPdbConverter::produceSideInfo()
                 continue;
             std::vector< std::string > results;
             splitString(line," ",results);
-            if (results[1]=="xmipp_convert_vol2pseudo")
-                useFixedGaussian=true;
             if (useFixedGaussian && results[1]=="fixedGaussian")
                 sigmaGaussian=textToFloat(results[2]);
             if (useFixedGaussian && results[1]=="intensityColumn")
