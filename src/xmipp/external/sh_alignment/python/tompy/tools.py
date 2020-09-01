@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import scipy
-
-from filter import gaussian3d
 from numpy.random import standard_normal
 
 
@@ -51,7 +48,7 @@ def prepare_mask(v, threshold, smooth):
 
     @return: mask.
     """
-    from filter import gaussian3d
+    from .filter import gaussian3d
     ind = np.where(v>threshold)
     mask = np.zeros(v.shape)
     mask[ind] = 1

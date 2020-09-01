@@ -1,6 +1,6 @@
 /***************************************************************************
+ * Authors:     Carlos Oscar Sorzano (coss@cnb.csic.es)
  *
- * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -22,39 +22,11 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#ifndef _PROG_ELIMINATE_LARGE_ENERGY_HH
-#define _PROG_ELIMINATE_LARGE_ENERGY_HH
 
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
+#include <parallel/xmipp_mpi.h>
+#include <reconstruction/ctf_correct_phase.h>
 
-/**@defgroup EliminateLargeEnergyProgram Eliminate images whose energy is extremely large
-   @ingroup ReconsLibrary */
-//@{
-/// Threshold Parameters
-class ProgEliminateLargeEnergy : public XmippMetadataProgram
-{
-public:
-	// Confidence
-	double confidence;
-    // Reference variance
-    double sigma20;
-public:
-    /** Read parameters from command line. */
-    void readParams();
 
-    /** Define Parameters */
-    void defineParams();
+CREATE_MPI_METADATA_PROGRAM(ProgCorrectPhaseFlip2D, MpiProgCorrectPhaseFlip2D)
 
-    /** Show parameters */
-    void show();
-
-    /// Process image or volume
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
-
-    /// Finish processing
-    void finishProcessing();
-};
-//@}
-#endif
+RUN_XMIPP_PROGRAM(MpiProgCorrectPhaseFlip2D)

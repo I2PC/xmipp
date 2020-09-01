@@ -24,15 +24,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "ctf_estimate_from_psd_fast.h"
-#include "ctf_estimate_from_psd.h"
-#include "ctf_enhance_psd.h"
-
-#include <core/args.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_fft.h>
+#include <fstream>
 #include <numeric>
+#include "ctf_estimate_from_psd.h"
+#include "ctf_estimate_from_psd_fast.h"
+#include "data/numerical_tools.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_fftw.h"
 
 /* prototypes */
 double CTF_fitness_fast(double *, void *);
@@ -112,7 +110,7 @@ void ProgCTFEstimateFromPSDFast::assignCTFfromParameters_fast(double *p, CTFDesc
 
 #define ASSIGN_PARAM_CTF(index, paramName) if (ia <= index && l > 0) { p[index] = ctf1Dmodel.paramName; --l; }
 
-void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(CTFDescription1D &ctf1Dmodel, double *p, int ia,
+void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(const CTFDescription1D &ctf1Dmodel, double *p, int ia,
                              int l, int modelSimplification)
 {
 
@@ -160,11 +158,11 @@ void ProgCTFEstimateFromPSDFast::readBasicParams(XmippProgram *program)
 
 	initial_ctfmodel.enable_CTF = initial_ctfmodel.enable_CTFnoise = true;
 	initial_ctfmodel.readParams(program);
+	initial_ctfmodel2D.readParams(program);
 
 	if (initial_ctfmodel.Defocus>100e3)
 		REPORT_ERROR(ERR_ARG_INCORRECT,"Defocus cannot be larger than 10 microns (100,000 Angstroms)");
 	Tm = initial_ctfmodel.Tm;
-
 }
 
 void ProgCTFEstimateFromPSDFast::readParams()
@@ -384,13 +382,13 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     }
     if (action > 3
         && (fabs((current_ctfmodel.Defocus - ctfmodel_defoci.Defocus)
-                / ctfmodel_defoci.Defocus) > 0.2))
+                / ctfmodel_defoci.Defocus) > 0.2)  && !noDefocusEstimate)
     {
         if (show_inf >= 2)
             std::cout << "Too large defocus\n";
         return heavy_penalization;
     }
-    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation)
+    if (initial_ctfmodel.Defocus != 0 && action >= 3 && !selfEstimation && !noDefocusEstimate)
     {
         // If there is an initial model, the true solution
         // cannot be too far
@@ -1096,7 +1094,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 	else
 	{
 		/*
-		 * Defocus estimation s² stigmator
+		 * Defocus estimation s^2 stigmator
 		 *
 		 * CTF = sin(PI*lambda*defocus*R^2)
 		 * CTF = sin(PI*lambda*defocus*w^2/Ts^2)
@@ -1516,7 +1514,10 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	/* STEP 7:  defocus and angular parameters	                            */
 	/************************************************************************/
 	prm.action = 3;
-	prm.estimate_defoci_fast();
+	if (!prm.noDefocusEstimate)
+	   prm.estimate_defoci_fast();
+	else
+		prm.current_ctfmodel.Defocus = prm.initial_ctfmodel.Defocus;
 	DEBUG_TEXTFILE(formatString("Step 7: Defocus=%f",prm.current_ctfmodel.Defocus));
 	DEBUG_MODEL_TEXTFILE;
 	/************************************************************************/
@@ -1531,6 +1532,8 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	steps(1) = 0; // kV
 	steps(3) = 0; // The spherical aberration (Cs) is not optimized
 	steps(27) = 0; //VPP radius not optimized
+	if (prm.noDefocusEstimate)
+		steps(0)=0; // Defocus
 	if (prm.initial_ctfmodel.Q0 != 0)
 		steps(13) = 0; // Q0
 	if (prm.modelSimplification >= 1)
@@ -1556,11 +1559,21 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	/************************************************************************/
 	prm.adjust_params->resize(ALL_CTF_PARAMETERS2D);
 	ProgCTFEstimateFromPSD *prm2D = new ProgCTFEstimateFromPSD(&prm);
+	if (prm.noDefocusEstimate)
+	{
+		prm2D->current_ctfmodel.DeltafU=prm.initial_ctfmodel2D.DeltafU;
+		prm2D->current_ctfmodel.DeltafV=prm.initial_ctfmodel2D.DeltafV;
+		prm2D->current_ctfmodel.azimuthal_angle=prm.initial_ctfmodel2D.azimuthal_angle;
+		prm2D->noDefocusEstimate=true;
+	}
+
 	steps.resize(ALL_CTF_PARAMETERS2D);
 	steps.initConstant(1);
 	steps(3) = 0; // kV
 	steps(5) = 0; // The spherical aberration (Cs) is not optimized
 	steps(37) = 0; //VPP radius not optimized
+	if (prm.noDefocusEstimate)
+		steps(0)=steps(1)=steps(2)=0; // Defocus and azimuthal angle
 	if (prm2D->initial_ctfmodel.Q0 != 0)
 	    steps(15) = 0; // Q0
 	 if (prm2D->modelSimplification >= 3)
@@ -1584,7 +1597,7 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	prm2D->current_ctfmodel.forcePhysicalMeaning();
 
 	//We adopt that always  DeltafU > DeltafV so if this is not the case we change the values and the angle
-	if ( prm2D->current_ctfmodel.DeltafV > prm2D->current_ctfmodel.DeltafU)
+	if (!prm.noDefocusEstimate && prm2D->current_ctfmodel.DeltafV > prm2D->current_ctfmodel.DeltafU)
 	{
 		double temp;
 		temp = prm2D->current_ctfmodel.DeltafU;

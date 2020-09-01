@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_fourierprojector.h"
 #include "python_image.h"
+#include "data/fourier_projection.h"
 
 /***************************************************************/
 /*                            FourierProjector                         */
@@ -42,7 +43,6 @@
  PyTypeObject FourierProjectorType =
  {
      PyObject_HEAD_INIT(NULL)
-     0, /*ob_size*/
      "xmipp.FourierProjector", /*tp_name*/
      sizeof(FourierProjectorObject), /*tp_basicsize*/
      0, /*tp_itemsize*/
@@ -88,7 +88,7 @@
  FourierProjector_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
  {
 
-     FourierProjectorObject *self = (FourierProjectorObject*) type->tp_alloc(type, 0);
+     FourierProjectorObject *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
      XMIPP_TRY
 
      if (self != NULL)
@@ -110,7 +110,7 @@
      }
      XMIPP_CATCH
 
-     return (PyObject *) self;
+     return (PyObject *)self;
  }
 
  /* Destructor */
@@ -118,7 +118,7 @@
  {
      delete self->fourier_projector;
      //delete self->dims;
-     self->ob_type->tp_free((PyObject*) self);
+     Py_TYPE(self)->tp_free((PyObject*)self);
  }
 
 /* projectVolume */

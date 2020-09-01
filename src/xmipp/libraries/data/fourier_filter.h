@@ -26,9 +26,8 @@
 #ifndef _FOURIER_FILTER_HH
 #define _FOURIER_FILTER_HH
 
-#include <data/ctf.h>
-#include <core/xmipp_fftw.h>
 #include "filters.h"
+#include "data/ctf.h"
 
 /**@defgroup FourierMasks Masks in Fourier space
    @ingroup ReconsLibrary */

@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.M. de la Rosa Trevin (jmdelarosa@cnb.csic.es)
+ * Authors:    Carlos Oscar            coss@cnb.csic.es (1999)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,4 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "recons.h"
+#include <reconstruction/image_eliminate_byEnergy.h>
+
+RUN_XMIPP_PROGRAM(ProgEliminateByEnergy)

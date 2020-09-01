@@ -24,11 +24,11 @@
  ***************************************************************************/
 
 #include "tomo_align_refinement.h"
-#include <data/projection.h>
-
-#include <core/args.h>
-#include <data/filters.h>
-#include <core/xmipp_image_base.h>
+#include "core/metadata.h"
+#include "core/transformations.h"
+#include "data/filters.h"
+#include "data/fourier_projection.h"
+#include "data/projection.h"
 
 // Empty constructor =======================================================
 AlignmentTomography::AlignmentTomography()

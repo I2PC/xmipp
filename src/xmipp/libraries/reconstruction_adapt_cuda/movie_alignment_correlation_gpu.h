@@ -150,12 +150,10 @@ private:
 
     /**
      * Get best FFT settings for correlations of the original data
-     * @param orig data
-     * @param dowscale that should be applied for correlation
+     * @param s settings for the input data
      * @return optimal FFT settings
      */
-    FFTSettings<T> getCorrelationSettings(const FFTSettings<T> &orig,
-            const std::pair<T, T> &downscale);
+    FFTSettings<T> getCorrelationSettings(const FFTSettings<T> &orig);
 
     /**
      * Get FFT settings for each patch used for local alignment
@@ -186,15 +184,6 @@ private:
      */
     void storeSizes(const Dimensions &dim, const FFTSettings<T> &s,
             bool applyCrop);
-
-    /**
-     * Returns best FFT setting for correlation of the given setting
-     * @param s original setting
-     * @param requested downscale used during correlation
-     * @return FFT setting describing requested correlation
-     */
-    Dimensions getCorrelationHint(const FFTSettings<T> &s,
-            const std::pair<T, T> &downscale);
 
     /**
      * Loads whole movie to the RAM
@@ -286,13 +275,6 @@ private:
             size_t& N, const LocalAlignmentResult<T> &alignment);
 
     /**
-     * Method returns requested downscale (<1) for the correlations used
-     * for local alignment
-     */
-    std::pair<T,T> getLocalAlignmentCorrelationDownscale(
-            const Dimensions &patchDim, T maxShift);
-
-    /**
      * Method copies raw movie data according to the settings
      * @param settings new sizes of the movie
      * @param output where 'windowed' movie should be copied
@@ -300,14 +282,20 @@ private:
     void getCroppedMovie(const FFTSettings<T> &settings,
             T *output);
 
+    /**
+     * @param shift that we allow
+     * @returns size of the (square) window where we can search for shift
+     */
+    size_t getCenterSize(size_t shift) {
+        return std::ceil(shift * 2 + 1);
+    }
+
 private:
-
-    /** downscale to be used for local alignment correlation (<1) */
-    std::pair<T,T> localCorrelationDownscale;
-
     /** No of frames used for averaging a single patch */
     int patchesAvg;
 
+    /** Skip autotuning of the cuFFT library */
+    bool skipAutotuning;
 
     /** Path to file where results of the benchmark might be stored */
     std::string storage;

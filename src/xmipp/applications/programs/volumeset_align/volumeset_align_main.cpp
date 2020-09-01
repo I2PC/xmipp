@@ -1,9 +1,8 @@
 /***************************************************************************
  *
- * Authors:  Carlos Oscar Sanchez Sorzano coss.eps@ceu.es
+ * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
- * Lab. de Bioingenieria, Univ. San Pablo CEU
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +20,9 @@
  * 02111-1307  USA
  *
  *  All comments concerning this program package may be sent to the
- *  e-mail address 'xmipp@cnb.uam.es'
+ *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/image_eliminate_largeEnergy.h>
+#include <reconstruction/volumeset_align.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgEliminateLargeEnergy, MpiProgEliminateLargeEnergy)
-
-RUN_XMIPP_PROGRAM(MpiProgEliminateLargeEnergy)
+RUN_XMIPP_PROGRAM(ProgVolumeSetAlign)

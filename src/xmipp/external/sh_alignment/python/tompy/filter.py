@@ -28,7 +28,7 @@ def bandpass(v, low=0, high=-1, sigma=0):
     @return: bandpass filtered volume.
     """
     assert low >= 0
-    from tools import create_sphere
+    from .tools import create_sphere
     if high == -1:
         high = np.min(v.shape)/2
     assert low < high
@@ -40,7 +40,7 @@ def bandpass(v, low=0, high=-1, sigma=0):
         # the sigma
         mask = create_sphere(v.shape, high, sigma) - create_sphere(v.shape, low, sigma)
 
-    from transform import fourier_filter
+    from .transform import fourier_filter
     res = fourier_filter(v, mask, True)
 
     return res
@@ -100,24 +100,24 @@ class GeneralWedge(Wedge):
             self._volume = wedge_vol
 
             # human understandable version with 0-freq in the center
-            from transform import fourier_reduced2full, fftshift
+            from .transform import fourier_reduced2full, fftshift
             self._whole_volume = fftshift(fourier_reduced2full(self._volume, isodd))
         else:
             self._whole_volume = wedge_vol
 
-            from transform import fourier_full2reduced, ifftshift
+            from .transform import fourier_full2reduced, ifftshift
             self._volume = fourier_full2reduced(ifftshift(self._whole_volume))
 
     def apply(self, data, rotation=None):
         if rotation is not None: # rotate the wedge first
             assert len(rotation) == 3
-            from transform import rotate3d, fourier_full2reduced, ifftshift
+            from .transform import rotate3d, fourier_full2reduced, ifftshift
             filter_vol = rotate3d(self._whole_volume, rotation[0], rotation[1], rotation[2])
             filter_vol = fourier_full2reduced(ifftshift(filter_vol))
         else:
             filter_vol = self._volume
 
-        from transform import fourier_filter
+        from .transform import fourier_filter
         res = fourier_filter(data, filter_vol, False)
 
         return res
@@ -126,7 +126,7 @@ class GeneralWedge(Wedge):
         assert(bw<=128)
 
         # start sampling
-        from vol2sf import vol2sf
+        from ..vol2sf import vol2sf
         sf = vol2sf(self._whole_volume, radius, bw)
         
         return sf
@@ -145,7 +145,7 @@ class SingleTiltWedge(Wedge):
         self._sf = None # store the spherical function
     
     def _create_wedge_volume(self, size):
-        from transform import fftshift, fourier_full2reduced
+        from .transform import fftshift, fourier_full2reduced
         # if no missing wedge
         if self.start_ang == -90 and self.end_ang == 90:
             filter_vol = np.ones(size)
@@ -168,11 +168,11 @@ class SingleTiltWedge(Wedge):
         filter_vol[angles > -self.start_ang] = 0
         filter_vol[angles < -self.end_ang] = 0
 
-        filter_vol[size[0]/2, :, :] = 0
-        filter_vol[size[0]/2, :, size[2]/2] = 1
+        filter_vol[size[0]//2, :, :] = 0
+        filter_vol[size[0]//2, :, size[2]//2] = 1
 
         # create a sphere and multiple it with the wedge
-        from tools import create_sphere
+        from .tools import create_sphere
         mask = create_sphere(size)
         filter_vol *= mask
 
@@ -197,7 +197,7 @@ class SingleTiltWedge(Wedge):
 
         if rotation is not None: # rotate the wedge first
             assert len(rotation) == 3
-            from transform import rotate3d, fourier_reduced2full, fourier_full2reduced, fftshift, ifftshift
+            from .transform import rotate3d, fourier_reduced2full, fourier_full2reduced, fftshift, ifftshift
             isodd = self._volume_shape[2] % 2
             filter_vol = fftshift(fourier_reduced2full(self._volume, isodd))
             filter_vol = rotate3d(filter_vol, rotation[0], rotation[1], rotation[2])
@@ -205,7 +205,7 @@ class SingleTiltWedge(Wedge):
         else:
             filter_vol = self._volume
 
-        from transform import fourier_filter
+        from .transform import fourier_filter
         res = fourier_filter(data, filter_vol, False)
 
         return res
@@ -235,7 +235,7 @@ class SingleTiltWedge(Wedge):
         else:
             self._bw = bw
         
-        from transform import fourier_reduced2full, fftshift
+        from .transform import fourier_reduced2full, fftshift
         isodd = self._volume_shape[2] % 2
         filter_vol = fftshift(fourier_reduced2full(self._volume, isodd))
 
@@ -243,8 +243,8 @@ class SingleTiltWedge(Wedge):
         from math import pi, sin, cos
         res = []
         
-        for j in xrange(2*bw):
-            for k in xrange(2*bw):
+        for j in range(2*bw):
+            for k in range(2*bw):
                 the = pi*(2*j+1)/(4*bw) # (0,pi)
                 phi = pi*k/bw # [0,2*pi)
                 

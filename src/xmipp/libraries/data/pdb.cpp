@@ -23,14 +23,37 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
+#include <string>
 #include "pdb.h"
-#include "fstream"
-#include <core/args.h>
-#include <core/matrix2d.h>
-#include <core/xmipp_fftw.h>
-#include <data/mask.h>
-#include <data/integration.h>
-#include <data/numerical_tools.h>
+#include "core/matrix2d.h"
+#include "core/multidim_array.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
+#include "data/integration.h"
+#include "data/mask.h"
+#include "data/numerical_tools.h"
+
+double AtomInterpolator::volumeAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return volumeProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
+
+double AtomInterpolator::projectionAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return projectionProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
 
 /* Atom charge ------------------------------------------------------------- */
 int atomCharge(const std::string &atom)
@@ -55,8 +78,23 @@ int atomCharge(const std::string &atom)
     case 'S':
         return 16;
         break;
-    case 'F': // Iron
+    case 'E': // Iron Fe
         return 26;
+        break;
+    case 'K':
+        return 19;
+        break;
+    case 'F':
+        return 9;
+        break;
+    case 'G': // Magnesium Mg
+        return 12;
+        break;
+    case 'L': // Chlorine Cl
+        return 17;
+        break;
+    case 'A': // Calcium Ca
+        return 20;
         break;
     default:
         return 0;
@@ -86,8 +124,23 @@ double atomRadius(const std::string &atom)
     case 'S':
         return 1.00;
         break;
-    case 'F': // Iron
+    case 'E': // Iron Fe
         return 1.40;
+        break;
+    case 'K':
+        return 2.20;
+        break;
+    case 'F':
+        return 0.50;
+        break;
+    case 'G': // Magnesium Mg
+        return 1.50;
+        break;
+    case 'L': // Chlorine Cl
+        return 1.00;
+        break;
+    case 'A': // Calcium Ca
+        return 1.80;
         break;
     default:
         return 0;
@@ -482,6 +535,76 @@ void atomDescriptors(const std::string &atom, Matrix1D<double> &descriptors)
         descriptors( 9)=22.8500; // b4
         descriptors(10)=76.7309; // b5
     }
+    else if (atom=="K")
+    {
+        descriptors( 0)=19;     // Z
+        descriptors( 1)= 0.2149; // a1
+        descriptors( 2)= 0.8703; // a2
+        descriptors( 3)= 2.4999; // a3
+        descriptors( 4)= 2.3591; // a4
+        descriptors( 5)= 3.0318; // a5
+        descriptors( 6)= 0.1660; // b1
+        descriptors( 7)= 1.6906; // b2
+        descriptors( 8)= 8.7447; // b3
+        descriptors( 9)=46.7825; // b4
+        descriptors(10)=165.6923; // b5
+    }
+    else if (atom=="F")
+    {
+        descriptors( 0)=9;     // Z
+        descriptors( 1)= 0.0382; // a1
+        descriptors( 2)= 0.1822; // a2
+        descriptors( 3)= 0.5972; // a3
+        descriptors( 4)= 0.7707; // a4
+        descriptors( 5)= 0.2130; // a5
+        descriptors( 6)= 0.0613; // b1
+        descriptors( 7)= 0.5753; // b2
+        descriptors( 8)= 2.6858; // b3
+        descriptors( 9)= 8.8214; // b4
+        descriptors(10)=25.6668; // b5
+    }
+    else if (atom=="Mg")
+    {
+        descriptors( 0)=12;     // Z
+        descriptors( 1)= 0.1130; // a1
+        descriptors( 2)= 0.5575; // a2
+        descriptors( 3)= 0.9046; // a3
+        descriptors( 4)= 2.1580; // a4
+        descriptors( 5)= 1.4735; // a5
+        descriptors( 6)= 0.1356; // b1
+        descriptors( 7)= 1.3579; // b2
+        descriptors( 8)= 6.9255; // b3
+        descriptors( 9)=32.3165; // b4
+        descriptors(10)=92.1138; // b5
+    }
+    else if (atom=="Cl")
+    {
+        descriptors( 0)=17;     // Z
+        descriptors( 1)= 0.0799; // a1
+        descriptors( 2)= 0.3891; // a2
+        descriptors( 3)= 1.0037; // a3
+        descriptors( 4)= 2.3332; // a4
+        descriptors( 5)= 1.0507; // a5
+        descriptors( 6)= 0.0694; // b1
+        descriptors( 7)= 0.6443; // b2
+        descriptors( 8)= 3.5351; // b3
+        descriptors( 9)=12.5058; // b4
+        descriptors(10)=35.8633; // b5
+    }
+    else if (atom=="Ca")
+    {
+        descriptors( 0)=20;     // Z
+        descriptors( 1)= 0.2355; // a1
+        descriptors( 2)= 0.9916; // a2
+        descriptors( 3)= 2.3959; // a3
+        descriptors( 4)= 3.7252; // a4
+        descriptors( 5)= 2.5647; // a5
+        descriptors( 6)= 0.1742; // b1
+        descriptors( 7)= 1.8329; // b2
+        descriptors( 8)= 8.8407; // b3
+        descriptors( 9)=47.4583; // b4
+        descriptors(10)=134.9613; // b5
+    }
     else
         REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)"atomDescriptors: Unknown atom "+atom);
 }
@@ -829,7 +952,7 @@ void AtomInterpolator::setup(int m, double hights, bool computeProjection)
 {
     M=m;
     highTs=hights;
-    if (volumeProfileCoefficients.size()==7)
+    if (volumeProfileCoefficients.size()==12)
     	return;
     addAtom("H",computeProjection);
     addAtom("C",computeProjection);
@@ -838,6 +961,11 @@ void AtomInterpolator::setup(int m, double hights, bool computeProjection)
     addAtom("P",computeProjection);
     addAtom("S",computeProjection);
     addAtom("Fe",computeProjection);
+    addAtom("K",computeProjection);
+    addAtom("F",computeProjection);
+    addAtom("Mg",computeProjection);
+    addAtom("Cl",computeProjection);
+    addAtom("Ca",computeProjection);
 }
 
 void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)

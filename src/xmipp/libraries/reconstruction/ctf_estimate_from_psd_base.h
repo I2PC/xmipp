@@ -7,7 +7,9 @@
 #ifndef _ADJUST_CTF_BASIC_PARAMS
 #define _ADJUST_CTF_BASIC_PARAMS
 
-#include <data/fourier_filter.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_image.h"
 
 class ProgCTFBasicParams: public XmippProgram
 {
@@ -33,6 +35,8 @@ public:
 	bool                 refineAmplitudeContrast;
 	/// Fast defocus estimate
 	bool                 fastDefocusEstimate;
+	/// No defocus estimate
+	bool                 noDefocusEstimate;
 	/// Regularization factor for the phase direction and unwrapping estimates (used in Zernike estimate)
 	double               lambdaPhase;
 	/// Size of the average window used during phase direction and unwrapping estimates (used in Zernike estimate)

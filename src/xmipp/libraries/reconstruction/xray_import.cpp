@@ -24,10 +24,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/args.h>
-#include <data/filters.h>
-#include <core/xmipp_image_extension.h>
 #include "xray_import.h"
+#include "core/metadata_extension.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/filters.h"
 
 // usage ===================================================================
 void ProgXrayImport::defineParams()

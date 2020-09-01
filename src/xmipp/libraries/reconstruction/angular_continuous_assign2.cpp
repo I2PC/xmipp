@@ -24,9 +24,10 @@
  ***************************************************************************/
 
 #include "angular_continuous_assign2.h"
-#include "program_image_residuals.h"
-#include <data/mask.h>
-#include <data/numerical_tools.h>
+#include "core/transformations.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/mask.h"
 
 // Empty constructor =======================================================
 ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()
@@ -35,6 +36,7 @@ ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()
     each_image_produces_an_output = true;
     projector = NULL;
     ctfImage = NULL;
+    rank = 0;
 }
 
 ProgAngularContinuousAssign2::~ProgAngularContinuousAssign2()
@@ -151,10 +153,18 @@ void ProgAngularContinuousAssign2::startProcessing()
 void ProgAngularContinuousAssign2::preProcess()
 {
     // Read the reference volume
-    Image<double> V;
-    V.read(fnVol);
-    V().setXmippOrigin();
-    Xdim=XSIZE(V());
+	Image<double> V;
+	if (rank==0)
+	{
+		V.read(fnVol);
+		V().setXmippOrigin();
+	    Xdim=XSIZE(V());
+	}
+	else
+	{
+		size_t ydim, zdim, ndim;
+		getImageSize(fnVol, Xdim, ydim, zdim, ndim);
+	}
 
     Ip().initZeros(Xdim,Xdim);
     E().initZeros(Xdim,Xdim);
@@ -187,7 +197,10 @@ void ProgAngularContinuousAssign2::preProcess()
     }
 
     // Construct projector
-    projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    if (rank==0)
+    	projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    else
+    	projector = new FourierProjector(pad,Ts/maxResol,BSPLINE3);
 
     // Low pass filter
     filter.FilterBand=LOWPASS;
@@ -225,7 +238,7 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 
 //#define DEBUG
 double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt, double psi,
-		double a, double b, Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
+		double a, double b, const Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle, int degree)
 {
     if (prm->hasCTF)
     {

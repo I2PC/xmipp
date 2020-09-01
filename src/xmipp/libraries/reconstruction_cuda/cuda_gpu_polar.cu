@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "cuda_basic_math.h"
-#include "core/xmipp_macros.h"
+//#include "core/xmipp_macros.h" // for Nearest Neighbor interpolation
 #include "cuda_compatibility.h"
 
 template<typename T, bool FULL_CIRCLE>
@@ -47,6 +47,7 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
     T sinPhi = sin(phi);
     T cosPhi = cos(phi);
 
+    T maxR = rings + posOfFirstRing - 1;
     // transform current polar position to cartesian
     // shift origin to center of the input image
     for (int r = 0; r < rings; ++r) {
@@ -73,7 +74,9 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
 //                s, r,firstRing, r + firstRing, n,
 //                cartXRound, cartYRound,
 //                val, offset);
-        out[offset] = val;
+        T weight = (r + posOfFirstRing) / maxR;
+
+        out[offset] = val * weight;
     }
 }
 

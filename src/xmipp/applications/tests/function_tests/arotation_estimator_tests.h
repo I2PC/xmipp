@@ -41,9 +41,7 @@ public:
     template<bool ADD_NOISE>
     void rotate2D(const Dimensions &dims, size_t batch)
     {
-        using Alignment::AlignType;
-        using Alignment::ARotationEstimator;
-        using Alignment::RotationEstimationSetting;
+        using namespace Alignment;
         float maxRotation = RotationEstimationSetting::getMaxRotation();
 
 //        printf("testing: %lu x %lu x %lu (batch %lu)\n",
@@ -72,10 +70,11 @@ public:
         settings.otherDims = dims;
         settings.batch = batch;
         settings.maxRotDeg = maxRotation;
-        settings.firstRing = settings.getDefaultFirstRing();
-        settings.lastRing = settings.getDefaultLastRing();
+        settings.firstRing = RotationEstimationSetting::getDefaultFirstRing(dims);
+        settings.lastRing = RotationEstimationSetting::getDefaultLastRing(dims);
         settings.fullCircle = true;
         settings.allowTuningOfNumberOfSamples = false; // to make sure that we always use the same settings
+        settings.allowDataOverwrite = false; // we cannot reuse it, as this test needs to work both for CPU and GPU version
 
         estimator->init(settings, true);
         hw.at(0)->lockMemory(others, dims.size() * sizeof(T));
@@ -138,8 +137,10 @@ std::mt19937 ARotationEstimator_Test<T>::mt(42); // fixed seed to ensure reprodu
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToOne)
 {
+    XMIPP_TRY
     // test one reference vs one image
     ARotationEstimator_Test<TypeParam>::template generateAndTest2D<false>(1, 1);
+    XMIPP_CATCH
 }
 
 TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToMany)

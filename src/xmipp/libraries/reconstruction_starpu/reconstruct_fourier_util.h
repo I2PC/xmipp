@@ -63,12 +63,6 @@ inline T align(T number, uint32_t alignment) {
 	}
 }
 
-#ifdef __GNUC__
-#  define XMIPP_ASSUME_ALIGNED(ptr, bytes) (__builtin_assume_aligned(ptr, bytes))
-#else
-#  define XMIPP_ASSUME_ALIGNED(ptr, bytes) (ptr)
-#endif
-
 /** Wrap calls to error-returning StarPU functions with this to error on non-zero values. */
 #define CHECK_STARPU(operationWithReturnCode) do {\
 	int check_result = (operationWithReturnCode);\

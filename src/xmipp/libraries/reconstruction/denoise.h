@@ -26,8 +26,7 @@
 #ifndef DENOISE_H
 #define DENOISE_H
 
-#include <string>
-#include <data/filters.h>
+#include "data/filters.h"
 
 /// @defgroup Denoise Image denoising
 /// @ingroup ReconsLibrary

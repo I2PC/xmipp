@@ -24,12 +24,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <iostream>
-
-#include <core/args.h>
-#include <core/metadata.h>
-#include <data/projection.h>
-#include <core/xmipp_fftw.h>
+#include "core/metadata.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
 
 #include "reconstruct_fourier_codelets.h"
 #include "reconstruct_fourier_starpu_util.h"

@@ -28,20 +28,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <cstdint>
-#include <iostream>
-#include <limits>
-#include <sys/time.h>
-
-#include <core/args.h>
-#include <data/array_2D.h>
-#include <core/metadata.h>
-#include <data/projection.h>
-#include <data/symmetries.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_threads.h>
+#include "core/bilib/kernel.h"
+#include "core/metadata_sql.h"
+#include "core/symmetries.h"
+#include "core/xmipp_fftw.h"
 
 #include "reconstruct_fourier_starpu.h"
 

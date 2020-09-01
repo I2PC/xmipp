@@ -25,16 +25,15 @@
  ***************************************************************************/
 
 #include "ctf_estimate_from_micrograph.h"
-#include "ctf_enhance_psd.h" //Al final hay una funcion que lo necesita. Pero es necesaria?
-
-#include <core/args.h>
-#include <data/micrograph.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_threads.h>
-#include <data/basic_pca.h>
-#include <data/normalize.h>
+#include "ctf_enhance_psd.h"
+#include "core/xmipp_fftw.h"
+#include "core/metadata_extension.h"
+#include "core/transformations.h"
+#include "core/xmipp_threads.h"
+#include "core/xmipp_image_generic.h"
+#include "data/basic_pca.h"
+#include "data/normalize.h"
+#include "data/numerical_tools.h"
 
 /* Read parameters ========================================================= */
 ProgCTFEstimateFromMicrograph::ProgCTFEstimateFromMicrograph()
@@ -83,8 +82,7 @@ void ProgCTFEstimateFromMicrograph::readParams()
     	if (!acceleration1D)
     		prmEstimateCTFFromPSD.readBasicParams(this);
     	else
-    		prmEstimateCTFFromPSDFast.readBasicParams(this); //Nuevo
-
+    		prmEstimateCTFFromPSDFast.readBasicParams(this);
     }
 
     bootstrapN = getIntParam("--bootstrapFit");
@@ -361,7 +359,6 @@ void ProgCTFEstimateFromMicrograph::run()
     	fn_psd.deleteFile();
     if (fileExists(fn_root+".ctfparam"))
     	FileName(fn_root+".ctfparam").deleteFile();
-    printf("FileName = %s \n",fn_psd.c_str());
 
     if (verbose)
         init_progress_bar(div_Number);
@@ -568,7 +565,6 @@ void ProgCTFEstimateFromMicrograph::run()
     // If averaging, compute the CTF model ----------------------------------  //Program execution
     if (psd_mode == OnePerMicrograph)
     {
-
         // Compute the avg and stddev of the local PSDs
         const MultidimArray<double> &mpsd_std = psd_std();
         const MultidimArray<double> &mpsd_avg = psd_avg();
@@ -593,7 +589,7 @@ void ProgCTFEstimateFromMicrograph::run()
             prmEstimateCTFFromPSD.fn_psd = fn_psd;
             prmEstimateCTFFromPSDFast.fn_psd = fn_psd;
 			CTFDescription ctfmodel;
-			CTFDescription1D ctf1Dmodel; //Nuevo
+			CTFDescription1D ctf1Dmodel;
 
             if (bootstrapN == -1)
             {
@@ -638,24 +634,23 @@ void ProgCTFEstimateFromMicrograph::run()
                     psign += "+";
                 double zrandomness = checkRandomness(psign);
 
-				if(!acceleration1D)
+				if (!acceleration1D)
 				{
-                ctfmodel.isLocalCTF = false;
-                ctfmodel.x0 = 0;
-                ctfmodel.xF = (Xdim-1);
-                ctfmodel.y0 = 0;
-                ctfmodel.yF = (Ydim-1);
-                ROUT_Adjust_CTF(prmEstimateCTFFromPSD,ctfmodel, false);
+					ctfmodel.isLocalCTF = false;
+					ctfmodel.x0 = 0;
+					ctfmodel.xF = (Xdim-1);
+					ctfmodel.y0 = 0;
+					ctfmodel.yF = (Ydim-1);
+					ROUT_Adjust_CTF(prmEstimateCTFFromPSD,ctfmodel, false);
 				}
 				else
 				{
-				std::cout << "1D acceleration" << std::endl;
-                ctf1Dmodel.isLocalCTF = false;
-				ctf1Dmodel.x0 = 0;
-				ctf1Dmodel.xF = (Xdim-1);
-				ctf1Dmodel.y0 = 0;
-				ctf1Dmodel.yF = (Ydim-1);
-                ROUT_Adjust_CTFFast(prmEstimateCTFFromPSDFast,ctf1Dmodel, false);
+					ctf1Dmodel.isLocalCTF = false;
+					ctf1Dmodel.x0 = 0;
+					ctf1Dmodel.xF = (Xdim-1);
+					ctf1Dmodel.y0 = 0;
+					ctf1Dmodel.yF = (Ydim-1);
+					ROUT_Adjust_CTFFast(prmEstimateCTFFromPSDFast,ctf1Dmodel, false);
 				}
                 // Evaluate PSD variance and write into the CTF
                 double stdQ = 0;
@@ -674,7 +669,6 @@ void ProgCTFEstimateFromMicrograph::run()
             else
             {
                 // If bootstrapping
-
                 prmEstimateCTFFromPSD.bootstrap = true;
                 prmEstimateCTFFromPSD.show_optimization = true;
                 if (!acceleration1D)

@@ -22,7 +22,7 @@ class AShiftEstimator_Test;
     }
 
 #define INIT \
-    ((Alignment::CudaShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true); \
+    ((Alignment::CudaShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true, false); \
     hw.at(0)->lockMemory(others, dims.sBytes());
 
 #define TEARDOWN \

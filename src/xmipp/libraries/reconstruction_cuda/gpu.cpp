@@ -61,7 +61,7 @@ void GPU::obtainUUID() {
     nvmlDevice_t device;
     // https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html#group__nvmlDeviceQueries_1g84dca2d06974131ccec1651428596191
     if (NVML_SUCCESS == nvmlInit()) {
-        if (NVML_SUCCESS == nvmlDeviceGetHandleByIndex(m_device, &device)) {
+        if (NVML_SUCCESS == nvmlDeviceGetHandleByIndex(m_device, &device)) { // FIXME DS this will return ID of the nth device, but not of the 'nth visible device'
             char uuid[80];
             if (NVML_SUCCESS == nvmlDeviceGetUUID(device, uuid, 80)) {
                 ss <<  uuid;
@@ -138,4 +138,13 @@ bool GPU::isMemoryPinned(const void *h_mem) {
         return false;
     }
     return true;
+}
+
+bool GPU::isGpuPointer(const void *p) {
+    cudaPointerAttributes attr;
+    if (cudaPointerGetAttributes(&attr, p) == cudaErrorInvalidValue) {
+        cudaGetLastError(); // clear out the previous API error
+        return false;
+    }
+    return cudaMemoryTypeDevice == attr.memoryType;
 }

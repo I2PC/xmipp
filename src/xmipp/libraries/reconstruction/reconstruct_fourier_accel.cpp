@@ -28,6 +28,27 @@
  ***************************************************************************/
 
 #include "reconstruct_fourier_accel.h"
+#include "core/bilib/kernel.h"
+#include "core/symmetries.h"
+#include "core/xmipp_fftw.h"
+#include "data/array_2D.h"
+#include "data/ctf.h"
+#include "data/fourier_projection.h"
+
+void ProjectionData::clean() {
+    delete img;
+    delete CTF;
+    delete modulator;
+    img = 0;
+    CTF = modulator = 0;
+    skip = true;
+}
+
+void ProgRecFourierAccel::allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier) {
+    if ((NULL == VoutFourier.data) || (0 == VoutFourier.getSize())) {
+        VoutFourier.initZeros(paddedImgSize, paddedImgSize, paddedImgSize/2 +1);
+    }
+}
 
 // Define params
 void ProgRecFourierAccel::defineParams()
@@ -950,13 +971,9 @@ void ProgRecFourierAccel::processWeights() {
 		for (int y = 0; y <= maxVolumeIndexYZ; y++) {
 			for (int x = 0; x <= maxVolumeIndexX; x++) {
 				float weight = tempWeights[z][y][x];
-				std::complex<float> val = tempVolume[z][y][x];
-				if (fabs(weight) > 1e-3) {
-					weight = 1.f/weight;
-				}
 
-				if (1.0/weight > ACCURACY)
-					tempVolume[z][y][x] *= corr2D_3D*weight;
+				if (weight > ACCURACY)
+					tempVolume[z][y][x] *= corr2D_3D / weight;
 				else
 					tempVolume[z][y][x] = 0;
 			}

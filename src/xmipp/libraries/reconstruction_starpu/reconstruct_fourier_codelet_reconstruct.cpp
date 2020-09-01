@@ -54,14 +54,14 @@ extern __shared__ float2 IMG[];
 // NOTE(jp): These are all used exclusively in this file. It was originally in constant storage, so it has been kept there.
 // StarPU would probably like to put it in codelet arguments, but that would uglify the code a lot and I am not sure about performance impact of that.
 struct CodeletConstants {
-	int cMaxVolumeIndexX = 0;
-	int cMaxVolumeIndexYZ = 0;
-	float cBlobRadius = 0.f;
-	float cOneOverBlobRadiusSqr = 0.f;
-	float cBlobAlpha = 0.f;
-	float cIw0 = 0.f;
-	float cIDeltaSqrt = 0.f;
-	float cOneOverBessiOrderAlpha = 0.f;
+	int cMaxVolumeIndexX;
+	int cMaxVolumeIndexYZ;
+	float cBlobRadius;
+	float cOneOverBlobRadiusSqr;
+	float cBlobAlpha;
+	float cIw0;
+	float cIDeltaSqrt;
+	float cOneOverBessiOrderAlpha;
 };
 
 __device__ __constant__ CodeletConstants gpuC;
@@ -75,7 +75,7 @@ void reconstruct_cuda_initialize_constants(
 		int maxVolIndexX, int maxVolIndexYZ,
 		float blobRadius, float blobAlpha,
 		float iDeltaSqrt, float iw0, float oneOverBessiOrderAlpha) {
-	CodeletConstants constants;
+	CodeletConstants constants = {0};
 	constants.cMaxVolumeIndexX = maxVolIndexX;
 	constants.cMaxVolumeIndexYZ = maxVolIndexYZ;
 	constants.cBlobRadius = blobRadius;

@@ -26,8 +26,8 @@
 #ifndef MPI_RECONSTRUCT_ART_H_
 #define MPI_RECONSTRUCT_ART_H_
 
+#include "reconstruction/reconstruct_art.h"
 #include "xmipp_mpi.h"
-#include <reconstruction/reconstruct_art.h>
 
 class ProgMPIReconsArt: public ProgReconsART, public XmippMpiProgram
 {

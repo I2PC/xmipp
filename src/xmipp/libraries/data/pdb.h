@@ -29,10 +29,18 @@
 #ifndef _XMIPP_PDB_HH
 #define _XMIPP_PDB_HH
 
-#include <string>
-#include <core/matrix1d.h>
-#include <data/projection.h>
-#include <core/histogram.h>
+#include <vector>
+#include "core/xmipp_error.h"
+
+template<typename T>
+class Matrix1D;
+template<typename T>
+class Matrix2D;
+template<typename T>
+class MultidimArray;
+class FileName;
+class Projection;
+class Histogram1D;
 
 /**@defgroup PDBinterface PDB
    @ingroup InterfaceLibrary */
@@ -140,13 +148,13 @@ public:
     double z;
 
     /// Name
-    String name;
+    std::string name;
 
     /// Alternate location
     char altloc;
 
     /// Residue name
-    String resname;
+    std::string resname;
 
     /// ChainId
     char chainid;
@@ -169,7 +177,7 @@ class PDBRichPhantom
 {
 public:
 	/// List of remarks
-	std::vector<String> remarks;
+	std::vector<std::string> remarks;
 public:
     /// List of atoms
     std::vector<RichAtom> atomList;
@@ -282,9 +290,24 @@ public:
         case 'S':
             idx=5;
             break;
-        case 'F':
+        case 'E': // Iron Fe
             idx=6;
             break;
+        case 'K':
+            idx=7;
+            break;
+        case 'F':
+             idx=8;
+             break;
+        case 'G': // Magnesium Mg
+             idx=9;
+             break;
+        case 'L': // Chlorine Cl
+             idx=10;
+             break;
+        case 'A': // Calcium Ca
+             idx=11;
+             break;
         default:
             REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)
                          "AtomInterpolator::getAtomIndex: Atom "+atom+" unknown");
@@ -300,27 +323,11 @@ public:
 
     /** Volume value at a distance r of the atom whose first letter
         is the one provided as atom. */
-    double volumeAtDistance(char atom, double r) const
-    {
-        int idx=getAtomIndex(atom);
-        if (r>radii[idx])
-            return 0;
-        else
-            return volumeProfileCoefficients[idx].
-                   interpolatedElementBSpline1D(r*M,3);
-    }
+    double volumeAtDistance(char atom, double r) const;
 
     /** Projection value at a distance r of the atom whose first letter
         is the one provided as atom. */
-    double projectionAtDistance(char atom, double r) const
-    {
-        int idx=getAtomIndex(atom);
-        if (r>radii[idx])
-            return 0;
-        else
-            return projectionProfileCoefficients[idx].
-                   interpolatedElementBSpline1D(r*M,3);
-    }
+    double projectionAtDistance(char atom, double r) const;
 };
 
 /** Project PDB.

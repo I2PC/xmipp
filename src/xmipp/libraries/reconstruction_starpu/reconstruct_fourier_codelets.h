@@ -26,11 +26,10 @@
 #ifndef XMIPP_LIBRARIES_RECONSTRUCT_FOURIER_STARPU_CODELETS_H_
 #define XMIPP_LIBRARIES_RECONSTRUCT_FOURIER_STARPU_CODELETS_H_
 
-#include <vector>
-#include <cstdint>
-#include <core/metadata.h>
 #include <core/matrix2d.h>
 #include <starpu.h>
+
+class MetaData;
 
 /* Contains StarPU codelets and associated structures */
 

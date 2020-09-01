@@ -18,7 +18,7 @@ class AShiftEstimator_Test;
     }
 
 #define INIT \
-    ((Alignment::ShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true);
+    ((Alignment::ShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true, true);
 
 #define TEARDOWN \
     hw.at(0)->unlockMemory(others);

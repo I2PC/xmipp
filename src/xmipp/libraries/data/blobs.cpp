@@ -23,14 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-
+#include <pthread.h>
 #include "blobs.h"
-
-#include <core/xmipp_funcs.h>
-#include <core/geometry.h>
+#include "core/numerical_recipes.h"
+#include "xmipp_image_over.h"
 
 pthread_mutex_t blobs_conv_mutex = PTHREAD_MUTEX_INITIALIZER;
 

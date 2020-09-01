@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "eq_system_solver.h"
-
+#include "core/linear_system_helper.h"
 
 template void EquationSystemSolver::solve(Matrix1D<float>& bXt,
         Matrix1D<float>& bYt, Matrix2D<float>& At, Matrix1D<float>& shiftXt,
@@ -62,7 +62,7 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
     bY.computeMeanAndStddev(mean, varbY);
     varbY *= varbY;
     if (verbosity > 1)
-        std::cout << "Solving for the shifts ...\n";
+        std::cout << "Solving equation system ...\n";
     do {
         // Solve the equation system
         helper.b = bX;

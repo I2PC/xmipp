@@ -23,10 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "basic_pca.h"
-#include <core/matrix2d.h>
-#include <iostream>
+#include <algorithm>
 #include <fstream>
+#include "basic_pca.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_funcs.h"
 
 /* Subtract average ------------------------------------------------------- */
 void PCAMahalanobisAnalyzer::subtractAvg()

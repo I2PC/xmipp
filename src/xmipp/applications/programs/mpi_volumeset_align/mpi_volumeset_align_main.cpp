@@ -1,8 +1,11 @@
 /***************************************************************************
  *
- * Authors:    Carlos Oscar            coss@cnb.csic.es (1999)
+ * Authors:  Mohamad Harastani mohamad.harastani@upmc.fr
+ *	         Slavica Jonic slavica.jonic@upmc.fr
+ *           Carlos Oscar Sanchez Sorzano coss.eps@ceu.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ * Lab. de Bioingenieria, Univ. San Pablo CEU
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +23,8 @@
  * 02111-1307  USA
  *
  *  All comments concerning this program package may be sent to the
- *  e-mail address 'xmipp@cnb.csic.es'
+ *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
+#include <parallel/mpi_volumeset_align.h>
 
-#include <reconstruction/image_eliminate_largeEnergy.h>
-
-RUN_XMIPP_PROGRAM(ProgEliminateLargeEnergy)
+RUN_XMIPP_PROGRAM(MpiProgVolumeSetAlign)

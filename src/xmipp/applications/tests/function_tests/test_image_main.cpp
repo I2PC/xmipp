@@ -5,6 +5,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <core/metadata.h>
+#include "core/transformations.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
 // test case.

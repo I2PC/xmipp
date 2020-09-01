@@ -9,6 +9,7 @@
 #include <string.h>
 #include <fstream>
 #include <sys/time.h>
+#include "core/metadata_sql.h"
 
 #define N_ROWS_TEST		2
 #define N_ROWS_PERFORMANCE_TEST		8000

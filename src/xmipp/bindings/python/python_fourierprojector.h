@@ -28,6 +28,9 @@
 #define _FOURIER_PROJECTOR_H
 
 #include "Python.h"
+#include "core/xmipp_array_dim.h"
+
+class FourierProjector;
 
 /***************************************************************/
 /*                            Fourier Projector                */

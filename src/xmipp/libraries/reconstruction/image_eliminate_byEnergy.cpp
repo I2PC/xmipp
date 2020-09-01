@@ -23,18 +23,21 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "image_eliminate_largeEnergy.h"
+#include "image_eliminate_byEnergy.h"
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
 
 /* Read parameters --------------------------------------------------------- */
-void ProgEliminateLargeEnergy::readParams()
+void ProgEliminateByEnergy::readParams()
 {
     XmippMetadataProgram::readParams();
     confidence=getDoubleParam("--confidence");
     sigma20=getDoubleParam("--sigma2");
+    minSigma2=getDoubleParam("--minSigma2");
 }
 
 /* Usage ------------------------------------------------------------------- */
-void ProgEliminateLargeEnergy::defineParams()
+void ProgEliminateByEnergy::defineParams()
 {
     addUsageLine("Eliminate images whose variance is extremely large");
     each_image_produces_an_output=false;
@@ -43,37 +46,40 @@ void ProgEliminateLargeEnergy::defineParams()
     XmippMetadataProgram::defineParams();
     addParamsLine("[--confidence <conf=0.99>] : Remove an image if its variance is outside this confidence beyond sigma^2_0");
     addParamsLine("[--sigma2 <sigma20=1>] : Reference variance");
+    addParamsLine("[--minSigma2 <sigma2=0.01>] : Minimum variance");
 }
 
 /* Show ------------------------------------------------------------------- */
-void ProgEliminateLargeEnergy::show()
+void ProgEliminateByEnergy::show()
 {
     if (verbose==0)
         return;
     XmippMetadataProgram::show();
     std::cout
     << "Confidence:    " << confidence    << std::endl
-    << "Sigma2:        " << sigma20        << std::endl;
+    << "Sigma2:        " << sigma20       << std::endl
+    << "MinSigma2:     " << minSigma2     << std::endl;
 }
 
 /* Process image ------------------------------------------------------------- */
-void ProgEliminateLargeEnergy::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
+void ProgEliminateByEnergy::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
     rowOut = rowIn;
     Image<double> I;
     I.read(fnImg);
-    double stddev=I().computeStddev();
+    double avg, stddev;
+    I().computeAvgStdev(avg,stddev);
     double sigma2=stddev*stddev;
 
     double z=(sigma2/sigma20-1);
     double zalpha=fabs(icdf_gauss(confidence));
-    if (z>zalpha)
+    if (z>zalpha || sigma2<minSigma2 || !std::isfinite(stddev) || fabs(avg)>sigma20/9.0)
         rowOut.setValue(MDL_ENABLED,-1);
     else
         rowOut.setValue(MDL_ENABLED,1);
 }
 
-void ProgEliminateLargeEnergy::finishProcessing() {
+void ProgEliminateByEnergy::finishProcessing() {
     getOutputMd()->removeDisabled();
     XmippMetadataProgram::finishProcessing();
 }

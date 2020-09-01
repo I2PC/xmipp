@@ -23,9 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "ctf_correct_wiener3d.h"
-
-#include <core/xmipp_fft.h>
 
 #define OVERSAMPLE 8
 

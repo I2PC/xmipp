@@ -29,6 +29,12 @@
 
 #include "Python.h"
 
+class MDQuery;
+class MetaData;
+class MDIterator;
+class MDObject;
+extern PyObject * PyXmippError;
+
 //#define MetaData_Check(v)  (((v)->ob_type == &MetaDataType))
 #define MetaData_Check(v)  (((v)->ob_type == &MetaDataType))
 #define MetaData_Value(v)  ((*((MetaDataObject*)(v))->metadata))
@@ -180,8 +186,8 @@ PyObject *
 MetaData_repr(PyObject * obj);
 
 /* MetaData compare function */
-int
-MetaData_compare(PyObject * obj, PyObject * obj2);
+PyObject*
+MetaData_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
 
 /* read */
 PyObject *

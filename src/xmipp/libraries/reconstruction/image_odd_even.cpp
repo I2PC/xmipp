@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "image_odd_even.h"
+#include "core/xmipp_image_generic.h"
 //#define DEBUG
 //#define DEBUG_MASK
 
@@ -51,13 +52,32 @@ void ProgOddEven::defineParams()
 }
 
 
+void ProgOddEven::fromimageToMd(FileName fnImg, MetaData &movienew)
+{
+	ImageGeneric movieStack;
+	movieStack.read(fnImg, HEADER);
+	size_t Xdim, Ydim, Zdim, Ndim;
+	movieStack.getDimensions(Xdim, Ydim, Zdim, Ndim);
+	if (fnImg.getExtension() == "mrc" and Ndim == 1)
+	{
+		Ndim = Zdim;
+	}
+	size_t id;
+	FileName fn;
+	for (size_t i = 0; i < Ndim; i++) 
+	{
+		id = movienew.addObject();
+		fn.compose(i + FIRST_IMAGE, fnImg);
+		movienew.setValue(MDL_IMAGE, fn, id);
+	}
+}
+
+
 void ProgOddEven::run()
 {
 	std::cout << "Starting..." << std::endl;
 
-
-
-	if ((splitType != "frames") or (splitType != "frames"))
+	if ((splitType != "frames") and (splitType != "images"))
 	{
 		std::cout << "ERROR: Please specify the type of splitting in frames or images" << std::endl;
 		std::cout << "       --type frames for splitting the set of frames or --type images for splitting"
@@ -65,7 +85,7 @@ void ProgOddEven::run()
 		exit(0);
 	}
 
-	MetaData movie;
+	MetaData movie, movienew;
 	movie.read(fnImg);
 
 	if (splitType == "frames")
@@ -76,66 +96,64 @@ void ProgOddEven::run()
 		}
 		else
 		{
-			ImageGeneric movieStack;
-			movieStack.read(fnImg, HEADER);
-			size_t Xdim, Ydim, Zdim, Ndim;
-			movieStack.getDimensions(Xdim, Ydim, Zdim, Ndim);
-			if (fnImg.getExtension() == "mrc" and Ndim == 1)
-				Ndim = Zdim;
-			size_t id;
-			FileName fn;
-			for (size_t i = 0; i < Ndim; i++) {
-				id = movie.addObject();
-				fn.compose(i + FIRST_IMAGE, fnImg);
-				movie.setValue(MDL_IMAGE, fn, id);
-			}
+        fromimageToMd(fnImg, movienew);
 		}
 	}
-//
-//	if (splitType == "images")
-//	{
-//		std::cout << "TODO" << std::endl;
-//	}
+
+	if (splitType == "images")
+	{
+		fromimageToMd(fnImg, movienew);
+	}
 
 	long  n = 1;
 	MetaData movieOdd, movieEven;
 
 	FileName fnFrame;
-	size_t objId, objId_odd, objId_even;
+	size_t objId, objId_odd, objId_even, Xdim, Ydim, Zdim, Ndim;
 	Image<double> frame, imgOdd, imgEven;
 
+	frame.read(fnImg);
+	frame.getDimensions(Xdim, Ydim, Zdim, Ndim);
 
-	int counter=0;
+	MultidimArray<double> &img = imgEven();
 
-	FOR_ALL_OBJECTS_IN_METADATA(movie)
+#ifdef DEBUG
+	std::cout << Xdim << std::endl;
+	std::cout << Ydim << std::endl;
+	std::cout << Zdim << std::endl;
+	std::cout << Ndim << std::endl;
+#endif
+
+	img.initZeros(Xdim, Ydim);
+	imgEven() = img;
+	imgOdd() = img;
+
+	FOR_ALL_OBJECTS_IN_METADATA(movienew)
 	{
 		objId = __iter.objId;
-		movie.getValue(MDL_IMAGE, fnFrame, objId);
+		movienew.getValue(MDL_IMAGE, fnFrame, objId);
 		if (sumFrames)
+		{
 			frame.read(fnFrame);
-
+		}
 
 		if (objId%2 == 0)
 		{
 			objId_even = movieEven.addObject();
 			movieEven.setValue(MDL_IMAGE, fnFrame, objId_even);
 			if (sumFrames)
-				if (counter > 1)
-					imgEven() += frame();
-				else
-					imgEven() = frame();
-			++counter;
+			{
+				imgEven() += frame();
+			}
 		}
 		else
 		{
 			objId_odd = movieOdd.addObject();
 			movieOdd.setValue(MDL_IMAGE, fnFrame, objId_odd);
 			if (sumFrames)
-				if (counter > 1)
-					imgOdd() += frame();
-				else
-					imgOdd() = frame();
-			++counter;
+			{
+				imgOdd() += frame();
+			}
 		}
 	}
 

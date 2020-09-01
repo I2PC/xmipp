@@ -27,9 +27,10 @@
 #ifndef XMIPP_LIBRARIES_RECONSTRUCT_FOURIER_STARPU_UTIL_H_
 #define XMIPP_LIBRARIES_RECONSTRUCT_FOURIER_STARPU_UTIL_H_
 
-#include <data/point3D.h>
-#include <data/blobs.h>
-#include <reconstruction/reconstruct_fourier_projection_traverse_space.h>
+#include "core/numerical_recipes.h"
+#include "data/point3D.h"
+#include "data/blobs.h"
+#include "reconstruction/reconstruct_fourier_projection_traverse_space.h"
 #include "reconstruct_fourier_defines.h"
 
 

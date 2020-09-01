@@ -24,7 +24,11 @@
  ***************************************************************************/
 
 #include "psf_xr.h"
-
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+#include "core/args.h"
+#include "core/xmipp_fftw.h"
+#include "core/transformations.h"
 
 XRayPSF::XRayPSF()
 {

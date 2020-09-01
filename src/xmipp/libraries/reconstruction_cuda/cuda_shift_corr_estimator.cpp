@@ -33,21 +33,23 @@ namespace Alignment {
 template<typename T>
 void CudaShiftCorrEstimator<T>::init2D(const std::vector<HW*> &hw, AlignType type,
         const FFTSettingsNew<T> &settings, size_t maxShift,
-        bool includingBatchFT, bool includingSingleFT) {
+        bool includingBatchFT, bool includingSingleFT,
+        bool allowDataOvewrite) {
     // FIXME DS consider tunning the size of the input (e.g. 436x436x50)
     if (2 != hw.size()) {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Two GPU streams are needed");
     }
     release(); // FIXME DS implement lazy init
-    try {
-        m_workStream = dynamic_cast<GPU*>(hw.at(0));
-        m_loadStream = dynamic_cast<GPU*>(hw.at(1));
-    } catch (std::bad_cast&) {
-        REPORT_ERROR(ERR_ARG_INCORRECT, "Instance of GPU expected");
+    m_workStream = dynamic_cast<GPU*>(hw.at(0));
+    m_loadStream = dynamic_cast<GPU*>(hw.at(1));
+    if ((nullptr == m_workStream)
+        || (nullptr == m_loadStream)) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Instance of GPU is expected");
     }
-
+    m_workStream->set();
+    m_loadStream->set();
     AShiftCorrEstimator<T>::init2D(type, settings, maxShift,
-        includingBatchFT, includingSingleFT);
+        includingBatchFT, includingSingleFT, allowDataOvewrite);
 
     // synch primitives
     m_mutex = new std::mutex();
@@ -131,7 +133,9 @@ void CudaShiftCorrEstimator<T>::release() {
     gpuErrchk(cudaFree(m_d_batch_FD));
     gpuErrchk(cudaFree(m_d_single_SD));
     gpuErrchk(cudaFree(m_d_batch_SD_work));
-    gpuErrchk(cudaFree(m_d_batch_SD_load));
+    if ( ! this->m_allowDataOverwrite) {
+        gpuErrchk(cudaFree(m_d_batch_SD_load));
+    }
 
     // host memory
     delete[] m_h_centers;
@@ -165,7 +169,9 @@ void CudaShiftCorrEstimator<T>::init2DOneToN() {
     auto settingsForw = this->m_settingsInv->createInverse();
     if (this->m_includingBatchFT) {
         gpuErrchk(cudaMalloc(&m_d_batch_SD_work, this->m_settingsInv->sBytesBatch()));
-        gpuErrchk(cudaMalloc(&m_d_batch_SD_load, this->m_settingsInv->sBytesBatch()));
+        if ( ! this->m_allowDataOverwrite) {
+            gpuErrchk(cudaMalloc(&m_d_batch_SD_load, this->m_settingsInv->sBytesBatch()));
+        }
         m_batchToFD = CudaFFT<T>::createPlan(*m_workStream, settingsForw);
     }
     if (this->m_includingSingleFT) {
@@ -222,7 +228,7 @@ void CudaShiftCorrEstimator<T>::computeCorrelations2DOneToN(
 }
 
 template<typename T>
-void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *h_others) {
+void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *others) {
     m_loadStream->set();
     auto lStream = *(cudaStream_t*)m_loadStream->stream();
     for (size_t offset = 0; offset < this->m_settingsInv->fDim().n(); offset += this->m_settingsInv->batch()) {
@@ -233,15 +239,18 @@ void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *h_others) {
         while (m_isDataReady) {
             m_cv->wait(lk);
         }
-        T *h_src = h_others + offset * this->m_settingsInv->sDim().xy();
+        T *src = others + offset * this->m_settingsInv->sDim().xy();
         size_t bytes = toProcess * this->m_settingsInv->sBytesSingle();
 
+        auto kind = m_loadStream->isGpuPointer(src)
+                ? cudaMemcpyDeviceToDevice
+                : cudaMemcpyHostToDevice;
         // copy memory
         gpuErrchk(cudaMemcpyAsync(
                m_d_batch_SD_load,
-               h_src,
+               src,
                bytes,
-               cudaMemcpyHostToDevice, lStream));
+               kind, lStream));
         // block until data is loaded
         m_loadStream->synch();
 
@@ -252,16 +261,36 @@ void CudaShiftCorrEstimator<T>::loadThreadRoutine(T *h_others) {
 }
 
 template<typename T>
+void CudaShiftCorrEstimator<T>::waitAndConvert() {
+    // block until data is loaded
+    // mutex will be freed once leaving this block
+    std::unique_lock<std::mutex> lk(*m_mutex);
+    while(!m_isDataReady) {
+        m_cv->wait(lk);
+    }
+    // perform FT
+    CudaFFT<T>::fft(*m_batchToFD, m_d_batch_SD_load, m_d_batch_FD);
+
+    // notify that buffer is processed (new will be loaded in background)
+    m_workStream->synch();
+    m_isDataReady = false;
+    m_cv->notify_one();
+}
+
+template<typename T>
 void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
-        T *h_others) {
+        T *others) {
     bool isReady = (this->m_isInit && (AlignType::OneToN == this->m_type)
             && m_is_d_single_FD_loaded && this->m_includingBatchFT);
 
     if ( ! isReady) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Not ready to execute. Call init() before");
     }
-    if ( ! GPU::isMemoryPinned(h_others)) {
+    if ( ! GPU::isMemoryPinned(others)) {
         REPORT_ERROR(ERR_LOGIC_ERROR, "Input memory has to be pinned (page-locked)");
+    }
+    if (this->m_allowDataOverwrite && ( ! m_workStream->isGpuPointer(others))) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "Incompatible parameters: allowDataOverwrite && 'others' data on host");
     }
 
     m_workStream->set();
@@ -270,29 +299,29 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
     m_workStream->synch();
     // start loading data at the background
     m_isDataReady = false;
-    auto loadingThread = std::thread(&CudaShiftCorrEstimator<T>::loadThreadRoutine, this, h_others);
+    const bool createLocalCopy = ( ! this->m_allowDataOverwrite);
+    std::thread loadingThread;
+    if (createLocalCopy) {
+        loadingThread = std::thread(&CudaShiftCorrEstimator<T>::loadThreadRoutine, this, others);
+    }
 
     // reserve enough space for shifts
     this->m_shifts2D.reserve(this->m_settingsInv->fDim().n());
     // process signals
     for (size_t offset = 0; offset < this->m_settingsInv->fDim().n(); offset += this->m_settingsInv->batch()) {
+        size_t batchOffset = createLocalCopy
+                ? offset
+                : std::min(offset, this->m_settingsInv->fDim().n() - this->m_settingsInv->batch());
         // how many signals to process
-        size_t toProcess = std::min(this->m_settingsInv->batch(), this->m_settingsInv->fDim().n() - offset);
+        size_t toProcess = std::min(
+                this->m_settingsInv->batch(),
+                this->m_settingsInv->fDim().n() - batchOffset);
 
-        {
-            // block until data is loaded
-            // mutex will be freed once leaving this block
-            std::unique_lock<std::mutex> lk(*m_mutex);
-            while(!m_isDataReady) {
-                m_cv->wait(lk);
-            }
-            // perform FT
-            CudaFFT<T>::fft(*m_batchToFD, m_d_batch_SD_load, m_d_batch_FD);
-
-            // notify that buffer is processed (new will be loaded in background)
-            m_workStream->synch();
-            m_isDataReady = false;
-            m_cv->notify_one();
+        if (createLocalCopy) {
+            waitAndConvert();
+        } else {
+            T *in = others + (batchOffset * this->m_settingsInv->sDim().sizeSingle());
+            CudaFFT<T>::fft(*m_batchToFD, in, m_d_batch_FD);
         }
 
         // compute shifts
@@ -306,10 +335,17 @@ void CudaShiftCorrEstimator<T>::computeShift2DOneToN(
                 this->m_h_centers,
                 this->m_maxShift);
 
+        size_t start = createLocalCopy
+                ? 0
+                : (offset - batchOffset);
         // append shifts to existing results
-        this->m_shifts2D.insert(this->m_shifts2D.end(), shifts.begin(), shifts.end());
+        this->m_shifts2D.insert(this->m_shifts2D.end(),
+                shifts.begin() + start,
+                shifts.end());
     }
-    loadingThread.join();
+    if (createLocalCopy) {
+        loadingThread.join();
+    }
     // update state
     this->m_is_shift_computed = true;
 }

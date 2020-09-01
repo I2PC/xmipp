@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 #include "classify_first_split3.h"
-#include <core/symmetries.h>
-#include <data/filters.h>
+#include "core/transformations.h"
+#include "data/filters.h"
 
 // Read arguments ==========================================================
 void ProgClassifyFirstSplit3::readParams()

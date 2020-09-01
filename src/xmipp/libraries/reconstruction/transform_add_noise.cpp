@@ -23,10 +23,16 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
+#include <random>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_image.h"
 
 class ProgAddNoise: public XmippMetadataProgram
 {
+private:
+    const std::string TYPE_POISSON = "poisson";
+
 protected:
     double param1, param2;
     double df, limit0, limitF;
@@ -46,6 +52,7 @@ protected:
         addParamsLine("              gaussian <stddev> <avg=0.>     :Gaussian distribution parameters");
         addParamsLine("              student <df> <stddev> <avg=0.> :t-student distribution parameters");
         addParamsLine("              uniform  <min> <max>           :Uniform distribution parameters");
+        addParamsLine("              " + TYPE_POISSON + "  <min> <max>          :Poission distribution. Each pixel i of output is generated as poisson(ref-input[i])");
         addParamsLine("  [--limit0 <float> ]               :Crop noise histogram below this value ");
         addParamsLine("  [--limitF <float> ]               :Crop noise histogram above this value ");
         //Examples
@@ -88,6 +95,11 @@ protected:
             param1 = getDoubleParam("--type", 1);
             param2 = getDoubleParam("--type", 2);
         }
+        else if (TYPE_POISSON == noise_type)
+        {
+            param1 = getDoubleParam("--type", 1);
+            param2 = getDoubleParam("--type", 2);
+        }
         else
             REPORT_ERROR(ERR_ARG_INCORRECT, "Unknown noise type");
     }
@@ -105,32 +117,59 @@ protected:
         else if (noise_type == "uniform")
             std::cout << "Noise min=" << param1 << std::endl
             << "Noise max=" << param2 << std::endl;
+        else if (TYPE_POISSON == noise_type)
+            std::cout << "Mean background=" << param1 << std::endl
+                        << "Mean foreground=" << param2 << std::endl;
         if (do_limit0)
             std::cout << "Crop noise histogram below=" << limit0 << std::endl;
         if (do_limitF)
             std::cout << "Crop noise histogram above=" << limitF << std::endl;
     }
 
+    template<typename T>
+    void limit(Image<T> &img) {
+        if (do_limit0) {
+            const size_t count = img.data.nzyxdim;
+            for (size_t i = 0; i < count; ++i) {
+                img.data[i] = XMIPP_MAX(img.data[i], limit0);
+            }
+        }
+        if (do_limitF) {
+            const size_t count = img.data.nzyxdim;
+            for (size_t i = 0; i < count; ++i) {
+                img.data[i] = XMIPP_MIN(img.data[i], limitF);
+            }
+        }
+    }
 
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
     {
-        Image<double> img;
-        img.readApplyGeo(fnImg, rowIn);
-        img().addNoise(param1, param2, noise_type, df);
 
-        if (do_limit0)
-            FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(img())
-        {
-            dAkij(img(),k,i,j) = XMIPP_MAX(dAkij(img(),k,i,j), limit0);
+        if (TYPE_POISSON == noise_type) {
+            Image<float> img;
+            img.readApplyGeo(fnImg, rowIn);
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            Image<int> res(img.data.xdim, img.data.ydim, img.data.zdim, img.data.ndim);
+            const size_t count = res.data.nzyxdim;
+            const float gap = param1 - param2;
+            auto dist = std::poisson_distribution<>(0);
+            for (size_t i = 0; i < count; ++i) {
+                float mean = param1 - gap * img.data[i];
+                if (dist.mean() != mean) { // reuse distribution, if possible
+                    dist = std::poisson_distribution<>(mean);
+                }
+                res.data[i] = dist(gen);
+            }
+            limit(res);
+            res.write(fnImgOut);
+        } else {
+            Image<double> img;
+            img.readApplyGeo(fnImg, rowIn);
+            img().addNoise(param1, param2, noise_type, df);
+            limit(img);
+            img.write(fnImgOut);
         }
-
-        if (do_limitF)
-            FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(img())
-        {
-            dAkij(img(),k,i,j) = XMIPP_MIN(dAkij(img(),k,i,j), limitF);
-        }
-
-        img.write(fnImgOut);
 
     }
 

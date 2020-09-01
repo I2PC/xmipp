@@ -24,7 +24,15 @@
  ***************************************************************************/
 
 #include "reconstruct_wbp.h"
-#include <core/metadata_extension.h>
+#include "core/geometry.h"
+#include "core/metadata_extension.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_fft.h"
+#include "data/fourier_projection.h"
+#include "data/mask.h"
+#include "directions.h"
+#include "reconstruction/symmetrize.h"
+
 
 ProgRecWbp::ProgRecWbp()
 {

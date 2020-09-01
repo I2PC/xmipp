@@ -24,16 +24,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "ctf_estimate_psd_with_arma.h"
+//#include "ctf_estimate_psd_with_arma.h"
+#include <fstream>
 #include "ctf_estimate_from_psd.h"
-#include "ctf_enhance_psd.h"
-#include <data/fourier_filter.h>
+#include "ctf_estimate_from_psd_fast.h"
+#include "core/matrix2d.h"
+#include "core/transformations.h"
+#include "data/numerical_tools.h"
 #include "fringe_processing.h"
-
-#include <core/args.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_fft.h>
 
 /* prototypes */
 double CTF_fitness(double *, void *);
@@ -86,7 +84,7 @@ void ProgCTFEstimateFromPSD::assignCTFfromParameters(double *p, CTFDescription &
 	ctfmodel.Tm = Tm;
 
     /*
-        ¡¡ BE CAREFULL in add new parameters between the existing ones !!
+        BE CAREFULL in add new parameters between the existing ones !!
              below in the core of the program we set step(i) = 0 or 1 
         if you change here the value of certain param, change it everywhere!
     */
@@ -174,11 +172,11 @@ void ProgCTFEstimateFromPSD::assignCTFfromParameters(double *p, CTFDescription &
 
 #define ASSIGN_PARAM_CTF(index, paramName) if (ia <= index && l > 0) { p[index] = ctfmodel.paramName; --l; }
 
-void ProgCTFEstimateFromPSD::assignParametersFromCTF(CTFDescription &ctfmodel, double *p, int ia,
+void ProgCTFEstimateFromPSD::assignParametersFromCTF(const CTFDescription &ctfmodel, double *p, int ia,
                              int l, int modelSimplification)
 {
     /*
-        ¡¡ BE CAREFULL in add new parameters between the existing ones !!
+        BE CAREFUL in add new parameters between the existing ones !!
              below in the core of the program we set step(i) to 0 or 1 
         if you change here the value of certain param, change it everywhere!
     */
@@ -694,7 +692,7 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
         return heavy_penalization;
     }
 
-    if (action > 3
+    if (action > 3 && !noDefocusEstimate
         && (fabs(
                 (current_ctfmodel.DeltafU - ctfmodel_defoci.DeltafU)
                 / ctfmodel_defoci.DeltafU) > 0.2
@@ -1934,7 +1932,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci()
 #undef DEBUG
 
 // Estimate defoci with Zernike and SPTH transform---------------------------------------------
-void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(MultidimArray<double> &psdToModelFullSize, double min_freq, double max_freq, double Tm,
+void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double> &psdToModelFullSize, double min_freq, double max_freq, double Tm,
                              double kV, double lambdaPhase, int sizeWindowPhase,
                              double &defocusU, double &defocusV, double &ellipseAngle, int verbose)
 {
@@ -2317,8 +2315,15 @@ double ROUT_Adjust_CTF(ProgCTFEstimateFromPSD &prm, CTFDescription &output_ctfmo
     prm.evaluation_reduction = 1;
     if (prm.fastDefocusEstimate)
         prm.estimate_defoci_Zernike();
-    else
+    else if (!prm.noDefocusEstimate)
         prm.estimate_defoci();
+    else
+    {
+    	prm.current_ctfmodel.DeltafU=prm.initial_ctfmodel.DeltafU;
+    	prm.current_ctfmodel.DeltafV=prm.initial_ctfmodel.DeltafV;
+    	if (prm.current_ctfmodel.DeltafV==0.0)
+    		prm.current_ctfmodel.DeltafV=prm.current_ctfmodel.DeltafU;
+    }
 
     DEBUG_TEXTFILE(formatString("Step 7: DeltafU=%f",prm.current_ctfmodel.DeltafU));
     DEBUG_TEXTFILE(formatString("Step 7: DeltafV=%f",prm.current_ctfmodel.DeltafV));
@@ -2472,4 +2477,56 @@ void ProgCTFEstimateFromPSD::run()
 {
     CTFDescription ctfmodel;
     ROUT_Adjust_CTF(*this, ctfmodel);
+}
+
+ProgCTFEstimateFromPSD::ProgCTFEstimateFromPSD(const ProgCTFEstimateFromPSDFast *copy)
+{
+    action = copy->action;
+    x_contfreq = copy->x_contfreq;
+    y_contfreq = copy->y_contfreq;
+    w_contfreq = copy->w_contfreq;
+    x_digfreq = copy->x_digfreq;
+    y_digfreq = copy->y_digfreq;
+    w_digfreq = copy->w_digfreq;
+    ///PSD data
+    psd_exp_radial = copy->psd_exp_radial;
+    psd_exp_enhanced_radial = copy->psd_exp_enhanced_radial;
+    psd_exp_enhanced_radial_derivative = copy->psd_exp_enhanced_radial_derivative;
+    psd_theo_radial_derivative = copy->psd_theo_radial_derivative;
+    psd_exp_radial_derivative = copy->psd_exp_radial_derivative;
+    psd_theo_radial = copy->psd_theo_radial;
+    w_digfreq_r_iN = copy->w_digfreq_r_iN;
+    w_digfreq_r = copy->w_digfreq_r;
+    ///Masks
+    mask = copy->mask;
+    mask_between_zeroes = copy->mask_between_zeroes;
+    max_freq = copy->max_freq;
+    min_freq = copy->min_freq;
+    min_freq_psd = copy->min_freq_psd;
+    max_freq_psd = copy->max_freq_psd;
+    corr13 = copy->corr13;
+
+    show_inf = copy->show_inf;
+    heavy_penalization = copy->heavy_penalization;
+    penalize = copy->penalize;
+    evaluation_reduction = copy->evaluation_reduction;
+    modelSimplification = copy->modelSimplification;
+    defocus_range = copy->defocus_range;
+    downsampleFactor = copy->downsampleFactor;
+
+    enhanced_ctftomodel() = copy->enhanced_ctftomodel();
+    enhanced_ctftomodel_fullsize() = copy->enhanced_ctftomodel_fullsize();
+    enhanced_weight = copy->enhanced_weight;
+
+    current_ctfmodel = copy->current_ctfmodel;
+    initial_ctfmodel = copy->initial_ctfmodel;
+    ctfmodel_defoci = copy->ctfmodel_defoci;
+    current_ctfmodel.precomputeValues(x_contfreq,y_contfreq);
+
+    Tm = copy->Tm;
+    f = copy->f;
+    ctfmodelSize = copy->ctfmodelSize;
+    show_optimization = copy->show_optimization;
+    fn_psd = copy->fn_psd;
+
 }

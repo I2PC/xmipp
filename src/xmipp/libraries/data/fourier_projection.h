@@ -25,9 +25,9 @@
 #ifndef _CORE_FOURIER_FOURIER_PROJECTION_H
 #define _CORE_FOURIER_FOURIER_PROJECTION_H
 
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
-#include <core/xmipp_fftw.h>
+#include "core/matrix2d.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
 
 /**@defgroup FourierProjection Fourier projection
    @ingroup ReconsLibrary */
@@ -168,11 +168,12 @@ public:
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
-private:
-    /*
-     * This is a private method which provides the values for the class variable
-     */
+public:
+    /// Prepare the Spline coefficients and projection space
     void produceSideInfo();
+
+    /// Prepare projection space
+    void produceSideInfoProjection();
 };
 
 /*

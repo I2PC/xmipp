@@ -23,15 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
-
-#include <core/xmipp_image.h>
-#include <data/filters.h>
-#include <core/geometry.h>
-#include <data/mask.h>
-#include <core/xmipp_program.h>
+#include "interface/frm.h"  // must be included first as it defines _POSIX_C_SOURCE
 #include <fstream>
-#include <iostream>
+#include "core/xmipp_image.h"
+#include "data/filters.h"
+#include "core/geometry.h"
+#include "data/mask.h"
+#include "core/xmipp_program.h"
+#include "core/transformations.h"
 
 // Alignment parameters needed by fitness ----------------------------------
 class AlignParams
@@ -122,9 +121,9 @@ public:
     double   grey_shift0, grey_shiftF, step_grey_shift;
     int      tell;
     bool     apply;
-    FileName fnOut, fnGeo, fnStore;
+    FileName fnOut, fnGeo, fnGray, fnStore;
     bool     mask_enabled;
-    bool     usePowell, onlyShift, useFRM, copyGeo, store;
+    bool     usePowell, onlyShift, useFRM, copyGeo, copyGray, store;
     double   maxFreq;
     int      maxShift;
     bool     dontScale;
@@ -160,6 +159,7 @@ public:
         addParamsLine("  [--onlyShift]     : Only shift");
         addParamsLine("  [--dontScale]     : Do not look for scale changes");
         addParamsLine("  [--copyGeo <file=\"\">] : copy transformation matrix in a txt file. ('A' matrix elements)");
+        addParamsLine("  [--copyGray <file=\"\">] : copy gray scale and shift txt file.)");
         addParamsLine("  [--store <file=\"\">] : copy angles and shifts to a txt file.");
         addParamsLine(" == Mask Options == ");
         mask.defineParams(this,INT_MASK,NULL,NULL,true);
@@ -168,6 +168,7 @@ public:
         addExampleLine("Then, assume the best alignment is obtained for rot=45, tilt=60, psi=90",false);
         addExampleLine("Now you perform a local search to refine the estimation and apply",false);
         addExampleLine("xmipp_volume_align --i1 volume1.vol --i2 volume2.vol --rot 45 --tilt 60 --psi 90 --local --apply volume2aligned.vol");
+        addSeeAlsoLine("xmipp_volumeset_align");
     }
 
     void readParams()
@@ -250,7 +251,9 @@ public:
         apply = checkParam("--apply");
         fnOut = getParam("--apply");
         copyGeo = checkParam("--copyGeo");
+        copyGray = checkParam("--copyGray");
         fnGeo = getParam("--copyGeo");
+        fnGray = getParam("--copyGray");
         store = checkParam("--store");
         fnStore = getParam("--store");
         dontScale = checkParam("--dontScale");
@@ -399,14 +402,13 @@ public:
         }
         else if (useFRM)
         {
-    		String whichPython;
-    		initializePython(whichPython);
-    		PyObject * pFunc = getPointerToPythonFRMFunction();
+    		Python::initPythonAndNumpy();
+    		PyObject * pFunc = Python::getFunctionRef("sh_alignment.frm", "frm_align");
     		double rot,tilt,psi,x,y,z,score;
     		Matrix2D<double> A;
     		if(starting_tilt!=-90 || ending_tilt!=90){
     			std::cout<<"you are compensating for the missing wedge, the first volume should be rotated with 90 degrees about the y-axis"<<std::endl;
-    			PyObject * pSTMMclass = getPointerToPythonSingleTiltWedgeClass();
+    			PyObject * pSTMMclass = Python::getClassRef("sh_alignment.tompy.filter", "SingleTiltWedge");
     			PyObject * arglist = Py_BuildValue("(ii)", starting_tilt , ending_tilt);
     			PyObject * SingleTiltWedgeMask = PyObject_CallObject(pSTMMclass, arglist);
     			// The order of volumes has to be flipped in order to compensate for a single tilt missing wedge. For those who are not using this mask, no changes in results will happen.
@@ -481,6 +483,14 @@ public:
 					  << A(3,0) << "\n" << A(3,1) << "\n" << A(3,2) << "\n" << A(3,3) << "\n"
 					  << std::endl;
         	outputGeo.close();
+        }
+        if (copyGray)
+        {
+        	std::ofstream outputGray (fnGray.c_str());
+        	outputGray << best_align(0) << "\n"
+        			   << best_align(1) << "\n"
+					   << std::endl;
+        	outputGray.close();
         }
         if (store)
         {
