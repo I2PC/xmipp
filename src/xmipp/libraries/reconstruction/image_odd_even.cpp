@@ -42,20 +42,20 @@ void ProgOddEven::defineParams()
 {
 	addUsageLine("This function splits a set of images or frames in two subsets named odd and even");
 	addParamsLine("  --img <img_file=\"\">   : File of input images (movie or images tilt series)");
-	addParamsLine("  --type <split_type>  : Type of splitting");
+	addParamsLine("  --type <split_type>  	 : Type of splitting");
 	addParamsLine("                          :+ frames  -  If the frames will be split)");
 	addParamsLine("                          :+ images  -  If the images will be split)");
-	addParamsLine("[  --sum_frames]           : Sum the set of split frames");
+	addParamsLine("[  --sum_frames]          : Sum the set of split frames");
 	addParamsLine("  -o <img_file=\"\">      : File of odd images/frames)");
 	addParamsLine("  -e <img_file=\"\">      : File of even images/frames)");
 }
 
 
-void ProgOddEven::fromimageToMd(FileName fnImg, MetaData &movienew)
+void ProgOddEven::fromimageToMd(FileName fnImg, MetaData &movienew, size_t &Xdim, size_t &Ydim)
 {
 	ImageGeneric movieStack;
 	movieStack.read(fnImg, HEADER);
-	size_t Xdim, Ydim, Zdim, Ndim;
+	size_t Zdim, Ndim;
 	movieStack.getDimensions(Xdim, Ydim, Zdim, Ndim);
 	if (fnImg.getExtension() == "mrc" and Ndim == 1)
 	{
@@ -75,7 +75,7 @@ void ProgOddEven::fromimageToMd(FileName fnImg, MetaData &movienew)
 void ProgOddEven::run()
 {
 	std::cout << "Starting..." << std::endl;
-
+	size_t Xdim, Ydim, Zdim, Ndim;
 	if ((splitType != "frames") and (splitType != "images"))
 	{
 		std::cout << "ERROR: Please specify the type of splitting in frames or images" << std::endl;
@@ -85,7 +85,6 @@ void ProgOddEven::run()
 	}
 
 	MetaData movie, movienew;
-	movie.read(fnImg);
 
 	if (splitType == "frames")
 	{
@@ -95,37 +94,28 @@ void ProgOddEven::run()
 		}
 		else
 		{
-        fromimageToMd(fnImg, movienew);
+        		fromimageToMd(fnImg, movienew, Xdim, Ydim);
 		}
 	}
 
 	if (splitType == "images")
 	{
-		fromimageToMd(fnImg, movienew);
+		fromimageToMd(fnImg, movienew, Xdim, Ydim);
 	}
 
 	long  n = 1;
 	MetaData movieOdd, movieEven;
 
 	FileName fnFrame;
-	size_t objId, objId_odd, objId_even, Xdim, Ydim, Zdim, Ndim;
+	size_t objId, objId_odd, objId_even;
 	Image<double> frame, imgOdd, imgEven;
 
-	frame.read(fnImg);
-	frame.getDimensions(Xdim, Ydim, Zdim, Ndim);
+	MultidimArray<double> &ptrEven = imgEven();
+	MultidimArray<double> &ptrOdd = imgOdd();
+	MultidimArray<double> &ptrframe = frame();
 
-	MultidimArray<double> &img = imgEven();
-
-#ifdef DEBUG
-	std::cout << Xdim << std::endl;
-	std::cout << Ydim << std::endl;
-	std::cout << Zdim << std::endl;
-	std::cout << Ndim << std::endl;
-#endif
-
-	img.initZeros(Xdim, Ydim);
-	imgEven() = img;
-	imgOdd() = img;
+	ptrEven.initZeros(Ydim, Xdim);
+	ptrOdd.initZeros(Ydim, Xdim);
 
 	FOR_ALL_OBJECTS_IN_METADATA(movienew)
 	{
@@ -134,6 +124,7 @@ void ProgOddEven::run()
 		if (sumFrames)
 		{
 			frame.read(fnFrame);
+
 		}
 
 		if (objId%2 == 0)
@@ -142,7 +133,13 @@ void ProgOddEven::run()
 			movieEven.setValue(MDL_IMAGE, fnFrame, objId_even);
 			if (sumFrames)
 			{
-				imgEven() += frame();
+				for (size_t i =0; i<Ydim;++i)
+				{
+					for (size_t j =0; j<Xdim;++j)
+					{
+						DIRECT_A2D_ELEM(ptrEven, i, j) += DIRECT_A2D_ELEM(ptrframe, i, j);
+					}
+				}
 			}
 		}
 		else
@@ -151,7 +148,13 @@ void ProgOddEven::run()
 			movieOdd.setValue(MDL_IMAGE, fnFrame, objId_odd);
 			if (sumFrames)
 			{
-				imgOdd() += frame();
+				for (size_t i =0; i<Ydim;++i)
+				{
+					for (size_t j =0; j<Xdim;++j)
+					{
+						DIRECT_A2D_ELEM(ptrOdd, i, j) += DIRECT_A2D_ELEM(ptrframe, i, j);
+					}
+				}
 			}
 		}
 	}
