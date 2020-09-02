@@ -41,8 +41,11 @@ public:
     /** Output fileroot */
     FileName fn_out;
 
-    //Vector containing the deformation coefficients
+    // Vector containing the deformation coefficients
 	Matrix1D<double> clnm;
+
+    // Maximum degree Zernike Polynomials
+    int maxl1;
 
 public:
     /** Params definitions */

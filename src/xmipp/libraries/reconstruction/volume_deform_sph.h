@@ -55,7 +55,10 @@ public:
     bool optimizeRadius;
 
     /// Degree of Zernike polynomials and spherical harmonics
-    int depth;
+    int L1, L2;
+
+    /// Zernike and SPH coefficients vectors
+    Matrix1D<int> vL1, vN, vL2, vM;
 
     /// Gaussian width to filter the volumes
     std::vector<double> sigma;
@@ -67,8 +70,8 @@ public:
 	double Rmax;
 
 public:
-	/// Degree of the spherical harmonic
-	int L, prevL;
+	/// Coefficient vector size
+	int vecSize;
 
     /// Images
 	Image<double> VI, VR, VO, Gx, Gy, Gz;
@@ -107,14 +110,20 @@ public:
     /// Run
     void run();
 
-    /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
-    void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
+    // /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
+    // void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
 
-    /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
+    // /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
+    // void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
 
-    ///Compute the number of spherical harmonics in l=0,1,...,depth
-    void Numsph(Matrix1D<int> &sphD);
+    // ///Compute the number of spherical harmonics in l=0,1,...,depth
+    // void Numsph(Matrix1D<int> &sphD);
+
+    /// Length of coefficients vector
+    void numCoefficients(int l1, int l2, int &vecSize);
+
+    /// Zernike and SPH coefficients allocation
+    void fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
     /// Compute strain
     void computeStrain();

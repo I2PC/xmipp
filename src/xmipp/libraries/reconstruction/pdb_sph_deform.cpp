@@ -31,6 +31,7 @@ void ProgPdbSphDeform::defineParams()
 	addUsageLine("Deform a PDB according to a list of SPH deformation coefficients");
 	addParamsLine("--pdb <file>            : PDB to deform");
 	addParamsLine("--clnm <metadata_file>  : List of deformation coefficients");
+	addParamsLine("--l1 <metadata_file>  : : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("-o <file>               : Deformed PDB");
 	addExampleLine("xmipp_pdb_sph_deform --pdb 2tbv.pdb -o 2tbv_deformed.pdb --clnm coefficients.txt");
 }
@@ -39,6 +40,7 @@ void ProgPdbSphDeform::readParams()
 {
 	fn_pdb=getParam("--pdb");
 	fn_sph=getParam("--clnm");
+	maxl1 = getIntParam("--l1");
 	fn_out=getParam("-o");
 }
 
@@ -60,8 +62,8 @@ void ProgPdbSphDeform::run()
 	int nCoeff = numberCoefficients();
 	clnm.resize(nCoeff);
 	clnm.read(fn_sph);
-	int l,n,m;
-	size_t idxY0=VEC_XSIZE(clnm)/4;
+	int l1,n,l2,m;
+	size_t idxY0=VEC_XSIZE(clnm)/3;
 	size_t idxZ0=2*idxY0;
 	size_t idxR=3*idxY0;
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
@@ -86,10 +88,10 @@ void ProgPdbSphDeform::run()
 			double zsph=0.0;
 			if (r2<Rmax2)
 			{
-				spherical_index2lnm(idx,l,n,m);
-				zsph=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,rr);
+				spherical_index2lnm(idx,l1,n,l2,m,maxl1);
+				zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 			}
-			if (rr>0 || l==0)
+			if (rr>0 || (l2==0 && l1==0))
 			{
 				gx += VEC_ELEM(clnm,idx)        *(zsph);
 				gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
