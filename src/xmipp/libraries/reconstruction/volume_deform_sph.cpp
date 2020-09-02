@@ -130,46 +130,49 @@ double ProgVolDeformSph::distance(double *pclnm)
 				double gx=0.0, gy=0.0, gz=0.0;
 				for (size_t idx=0; idx<idxY0; idx++)
 				{
-					// double Rmax=VEC_ELEM(clnm,idx+idxR);
-					double k2=k*k;
-					double kr=k*iRmax;
-					double k2i2=k2+i*i;
-					double ir=i*iRmax;
-					double r2=k2i2+j*j;
-					double jr=j*iRmax;
-					double rr=std::sqrt(r2)*iRmax;
-					double zsph=0.0;
-					if (r2<Rmax2)
+					if (VEC_ELEM(steps_cp,idx) == 1)
 					{
-						l1 = VEC_ELEM(vL1,idx);
-						n = VEC_ELEM(vN,idx);
-						l2 = VEC_ELEM(vL2,idx);
-						m = VEC_ELEM(vM,idx);
-						zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-					}
+						// double Rmax=VEC_ELEM(clnm,idx+idxR);
+						double k2=k*k;
+						double kr=k*iRmax;
+						double k2i2=k2+i*i;
+						double ir=i*iRmax;
+						double r2=k2i2+j*j;
+						double jr=j*iRmax;
+						double rr=std::sqrt(r2)*iRmax;
+						double zsph=0.0;
+						if (r2<Rmax2)
+						{
+							l1 = VEC_ELEM(vL1,idx);
+							n = VEC_ELEM(vN,idx);
+							l2 = VEC_ELEM(vL2,idx);
+							m = VEC_ELEM(vM,idx);
+							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+						}
 
 #ifdef NEVERDEFINED
-					if (ir!=0&jr!=0&rr!=0)
-					{
-						x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
-						y = zsph*(ir/rr);
-						z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
-						gx += VEC_ELEM(clnm,idx)      *x;
-						gy += VEC_ELEM(clnm,idx+idxY0)*y;
-						gz += VEC_ELEM(clnm,idx+idxZ0)*z;
-					}
-					else
-					{
-						gx += VEC_ELEM(clnm,idx)      *zsph;
-						gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
-						gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
-					}
+						if (ir!=0&jr!=0&rr!=0)
+						{
+							x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
+							y = zsph*(ir/rr);
+							z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
+							gx += VEC_ELEM(clnm,idx)      *x;
+							gy += VEC_ELEM(clnm,idx+idxY0)*y;
+							gz += VEC_ELEM(clnm,idx+idxZ0)*z;
+						}
+						else
+						{
+							gx += VEC_ELEM(clnm,idx)      *zsph;
+							gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
+							gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
+						}
 #endif
-					if (rr>0 || (l2==0 && l1==0))
-					{
-						gx += VEC_ELEM(clnm,idx)        *(zsph);
-						gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+						if (rr>0 || (l2==0 && l1==0))
+						{
+							gx += VEC_ELEM(clnm,idx)        *(zsph);
+							gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
+							gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+						}
 					}
 				}
 				if (applyTransformation)
@@ -329,21 +332,29 @@ void ProgVolDeformSph::run() {
 	}
 
     Matrix1D<double> steps, x;
-    // for (int h=0;h<VEC_XSIZE(nh)-1;h++)
-    // {
+	numCoefficients(L1,L2,vecSize);
+	size_t totalSize = 3*vecSize;
+	fillVectorTerms(vL1,vN,vL2,vM);
+	clnm.initZeros(totalSize);
+	x.initZeros(totalSize);
+    for (int h=0;h<=L2;h++)
+    {
     	// L = nh(h+1);
     	// prevL = nh(h);
     	// prevsteps=steps;
-		numCoefficients(L1,L2,vecSize);
-		fillVectorTerms(vL1,vN,vL2,vM);
-    	std::cout<<std::endl;
-    	std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<L2<<") --------------------------"<<std::endl;
 		steps.clear();
-        steps.initConstant(3*vecSize,1);
+    	steps.initConstant(totalSize,0);
+		minimizepos(steps,h);
+		steps_cp = steps;
+		std::cout << "(";
+		FOR_ALL_ELEMENTS_IN_MATRIX1D(steps)
+			std::cout<<VEC_ELEM(steps,i)<<",";
+		std::cout << ")" << std::endl;
+
+    	std::cout<<std::endl;
+    	std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<h<<") --------------------------"<<std::endl;
     	// if (h==0)
     	// {
-		clnm.initZeros(VEC_XSIZE(steps));
-		x.initZeros(VEC_XSIZE(steps));
 
     	// }
     	// else
@@ -387,7 +398,7 @@ void ProgVolDeformSph::run() {
         // }
         int iter;
         double fitness;
-        powellOptimizer(x, 1, VEC_XSIZE(steps), &volDeformSphGoal, this,
+        powellOptimizer(x, 1, totalSize, &volDeformSphGoal, this,
 		                0.01, fitness, iter, steps, true);
 
         std::cout<<std::endl;
@@ -411,7 +422,7 @@ void ProgVolDeformSph::run() {
 	char c; std::cin >> c;
 #endif
 
-    // }
+    }
     applyTransformation=true;
 	x.write(fnRoot+"_clnm.txt");
     if (analyzeStrain)
@@ -474,6 +485,18 @@ void ProgVolDeformSph::run() {
 // 		}
 // 	}
 // }
+
+// Minimize Positions ======================================================
+void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, int &current_l2)
+{
+	size_t currentSize = std::floor((4+4*L1+std::pow(L1,2))/4)*std::pow(current_l2+1,2);
+	for (int i=0;i<currentSize;i++)
+	{
+		VEC_ELEM(vectpos,i) = 1;
+		VEC_ELEM(vectpos,i+vecSize) = 1;
+		VEC_ELEM(vectpos,i+2*vecSize) = 1;
+	}
+}
 
 // // Number Spherical Harmonics ==============================================
 // void ProgVolDeformSph::Numsph(Matrix1D<int> &sphD)

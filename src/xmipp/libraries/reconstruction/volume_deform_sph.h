@@ -82,6 +82,9 @@ public:
 	//Vector containing the degree of the Zernike-Spherical harmonics
 	Matrix1D<double> clnm;
 
+    //Copy of Optimizer steps
+    Matrix1D<double> steps_cp;
+
 	//Deformation in pixels, sumVI, sumVD
 	double deformation, sumVI, sumVD;
 
@@ -115,6 +118,9 @@ public:
 
     // /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
     // void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
+
+    /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
+    void minimizepos(Matrix1D<double> &vectpos, int &current_l2);
 
     // ///Compute the number of spherical harmonics in l=0,1,...,depth
     // void Numsph(Matrix1D<int> &sphD);
