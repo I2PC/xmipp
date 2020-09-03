@@ -594,10 +594,11 @@ def askPath(default='', ask=True):
 
 def checkLib(gxx, libFlag):
     """ Returns True if lib is found. """
-    lines = []
-    runJob(gxx + ' ' + libFlag, log=lines,
-           show_output=False, show_command=False)
-    return not any(['cannot find '+libFlag in l for l in lines])
+    result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
+                    gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
+                    show_output=False, show_command=False)
+    os.remove('xmipp_check_lib.cpp')
+    return result
 
 def configCompiler(configDict):
     if configDict["DEBUG"] == "":
@@ -654,7 +655,7 @@ def configCompiler(configDict):
             if hdf5Lib:
                 configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
                 updateXmippEnv(LD_LIBRARY_PATH=hdf5Lib)
-            elif not isHdf5CppLinking and isHdf5Linking:
+            else:
                 installDepConda('hdf5')
 
     if not checkLib(configDict['CXX'], '-lfftw3'):
@@ -1262,8 +1263,8 @@ def installDepConda(dep):
     condaEnv = os.environ.get('CONDA_DEFAULT_ENV', 'base')
     if condaEnv != 'base':
         if not askUser or askYesNo(yellow("'%s' dependency not found. Do you want "
-                                        "to install it using conda? [YES/no] "
-                                         % dep)):
+                                          "to install it using conda? [YES/no] "
+                                          % dep)):
             print(yellow("Trying to install %s with conda" % dep))
             if runJob("conda activate %s ; conda install %s -y -c defaults" % (condaEnv, dep)):
                 print(green("'%s' installed in conda environ '%s'.\n" % (dep, condaEnv)))
