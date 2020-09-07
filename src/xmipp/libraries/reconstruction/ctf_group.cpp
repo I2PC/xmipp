@@ -28,7 +28,7 @@
 #include "ctf_group.h"
 #include <core/xmipp_fft.h>
 #include <core/metadata_extension.h>
-#include <core/metadata_extension.h>
+#include "core/metadata_sql.h"
 
 /* Read parameters from command line. -------------------------------------- */
 void ProgCtfGroup::readParams()

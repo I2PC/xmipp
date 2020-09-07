@@ -24,12 +24,9 @@
  ***************************************************************************/
 
 #include "denoise.h"
-#include <core/args.h>
-#include <data/wavelet.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-
-#include <iomanip>
+#include "core/xmipp_program.h"
+#include "core/histogram.h"
+#include "data/wavelet.h"
 
 // Empty constructor -------------------------------------------------------
 WaveletFilter::WaveletFilter()

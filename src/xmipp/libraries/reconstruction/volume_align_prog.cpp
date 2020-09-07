@@ -23,15 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
-
-#include <core/xmipp_image.h>
-#include <data/filters.h>
-#include <core/geometry.h>
-#include <data/mask.h>
-#include <core/xmipp_program.h>
+#include "interface/frm.h"  // must be included first as it defines _POSIX_C_SOURCE
 #include <fstream>
-#include <iostream>
+#include "core/xmipp_image.h"
+#include "data/filters.h"
+#include "core/geometry.h"
+#include "data/mask.h"
+#include "core/xmipp_program.h"
+#include "core/transformations.h"
 
 // Alignment parameters needed by fitness ----------------------------------
 class AlignParams
@@ -403,14 +402,13 @@ public:
         }
         else if (useFRM)
         {
-    		String whichPython;
-    		initializePython(whichPython);
-    		PyObject * pFunc = getPointerToPythonFRMFunction();
+    		Python::initPythonAndNumpy();
+    		PyObject * pFunc = Python::getFunctionRef("sh_alignment.frm", "frm_align");
     		double rot,tilt,psi,x,y,z,score;
     		Matrix2D<double> A;
     		if(starting_tilt!=-90 || ending_tilt!=90){
     			std::cout<<"you are compensating for the missing wedge, the first volume should be rotated with 90 degrees about the y-axis"<<std::endl;
-    			PyObject * pSTMMclass = getPointerToPythonSingleTiltWedgeClass();
+    			PyObject * pSTMMclass = Python::getClassRef("sh_alignment.tompy.filter", "SingleTiltWedge");
     			PyObject * arglist = Py_BuildValue("(ii)", starting_tilt , ending_tilt);
     			PyObject * SingleTiltWedgeMask = PyObject_CallObject(pSTMMclass, arglist);
     			// The order of volumes has to be flipped in order to compensate for a single tilt missing wedge. For those who are not using this mask, no changes in results will happen.

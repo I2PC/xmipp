@@ -28,12 +28,8 @@
 #define XMIPP__NAIVE_BAYES_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include <vector>
-#include <cmath>
-
-#include <core/matrix2d.h>
-#include <core/matrix1d.h>
-#include <core/histogram.h>
+#include "core/histogram.h"
+#include "core/matrix2d.h"
 
 /**@defgroup NaiveBayesClassifier Naive Bayes Classifier
    @ingroup ClassificationLibrary */

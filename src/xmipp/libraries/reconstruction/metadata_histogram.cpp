@@ -22,8 +22,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/histogram.h>
-#include <core/xmipp_program.h>
+#include "core/histogram.h"
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
 
 class ProgMetadataHistogram: public XmippProgram
 {

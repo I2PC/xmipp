@@ -29,6 +29,12 @@
 
 #include "Python.h"
 
+class MDQuery;
+class MetaData;
+class MDIterator;
+class MDObject;
+extern PyObject * PyXmippError;
+
 //#define MetaData_Check(v)  (((v)->ob_type == &MetaDataType))
 #define MetaData_Check(v)  (((v)->ob_type == &MetaDataType))
 #define MetaData_Value(v)  ((*((MetaDataObject*)(v))->metadata))

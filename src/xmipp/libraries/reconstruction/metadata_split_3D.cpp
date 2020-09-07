@@ -23,10 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "metadata_split_3D.h"
-#include <core/geometry.h>
-#include <data/filters.h>
-#include <data/basic_pca.h>
+#include "core/geometry.h"
+#include "data/filters.h"
+#include "data/basic_pca.h"
 
 // Read arguments ==========================================================
 void ProgMetadataSplit3D::readParams()

@@ -23,14 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <string>
-#include <iostream>
-
-#include <core/args.h>
-#include "micrograph.h"
+#include <algorithm>
 #include "normalize.h"
-#include <core/metadata.h>
-#include <core/xmipp_image_generic.h>
+#include "core/metadata.h"
+#include "core/transformations.h"
+#include "core/xmipp_image_generic.h"
 
 /* Normalizations ---------------------------------------------------------- */
 void normalize_OldXmipp(MultidimArray<double> &I)

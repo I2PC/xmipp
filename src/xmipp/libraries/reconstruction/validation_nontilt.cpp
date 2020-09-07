@@ -23,12 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "validation_nontilt.h"
-#include <cstdlib>      // std::rand, std::srand
-#include <ctime>        // std::time
 #include <algorithm>
-#include "data/sampling.h"
-
+#include <random>
+#include "validation_nontilt.h"
+#include "core/xmipp_funcs.h"
+#include "core/symmetries.h"
+#include "core/metadata_sql.h"
 
 ProgValidationNonTilt::ProgValidationNonTilt()
 {

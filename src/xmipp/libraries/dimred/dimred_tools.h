@@ -27,6 +27,7 @@
 
 #include <core/matrix2d.h>
 #include <core/matrix1d.h>
+#include "core/xmipp_filename.h"
 
 
 /**@defgroup DimRedTools Tools for dimensionality reduction

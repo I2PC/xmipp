@@ -28,11 +28,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/bilib/getputd.h>
-#include <core/bilib/changebasis.h>
-#include <core/bilib/configs.h>
-
 #include "project_real_shears.h"
+#include "core/bilib/getputd.h"
+#include "core/bilib/changebasis.h"
+#include "core/bilib/configs.h"
+#include "core/bilib/kernel.h"
+#include "core/transformations.h"
+#include "data/fourier_projection.h"
 
 #ifndef DBL_EPSILON
 #define DBL_EPSILON 2.2204460492503130808472633361816000000000e-16

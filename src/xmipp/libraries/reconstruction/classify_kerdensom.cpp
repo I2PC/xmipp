@@ -24,9 +24,9 @@
  ***************************************************************************/
 
 #include <fstream>
-
-#include <core/xmipp_program.h>
-#include <classification/gaussian_kerdensom.h>
+#include "core/xmipp_program.h"
+#include "classification/gaussian_kerdensom.h"
+#include "core/metadata.h"
 
 /* Parameters class ======================================================= */
 class ProgKenderSOM: public XmippProgram

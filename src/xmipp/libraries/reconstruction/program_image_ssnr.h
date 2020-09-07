@@ -23,7 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
 
 /** Estimate the SSNR on images, or selfiles */
 class ProgImageSSNR: public XmippMetadataProgram

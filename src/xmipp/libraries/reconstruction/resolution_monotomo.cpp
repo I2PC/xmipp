@@ -26,6 +26,7 @@
 
 #include "resolution_monotomo.h"
 #include <core/bilib/kernel.h>
+#include "core/linear_system_helper.h"
 //#define DEBUG
 //#define DEBUG_MASK
 //#define TEST_FRINGES

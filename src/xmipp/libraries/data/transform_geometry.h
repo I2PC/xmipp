@@ -27,13 +27,10 @@
 #ifndef TRANSFORMGEOMETRY_H
 #define TRANSFORMGEOMETRY_H
 
-#include <core/transformations.h>
-#include <core/xmipp_image_generic.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_program.h>
-#include <core/matrix2d.h>
-
+#include "core/matrix2d.h"
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_generic.h"
 
 class ProgTransformGeometry: public XmippMetadataProgram
 {

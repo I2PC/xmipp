@@ -26,9 +26,12 @@
 #ifndef _PROG_CLASSIFICATION_FIRST_SPLIT3
 #define _PROG_CLASSIFICATION_FIRST_SPLIT3
 
-#include <core/xmipp_program.h>
-#include <data/mask.h>
-#include <data/fourier_projection.h>
+#include "core/metadata.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "data/mask.h"
+#include "data/fourier_projection.h"
 
 /**@defgroup ClassificationFirstSplit Classification first split2
    @ingroup ReconsLibrary */

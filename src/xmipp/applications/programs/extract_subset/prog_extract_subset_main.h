@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.M. de la Rosa Trevin (jmdelarosa@cnb.csic.es)
+ * Authors:    David Strelak (davidstrelak@gmail.com)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,4 +23,32 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "recons.h"
+
+#ifndef PROG_EXTRACT_SUBSET_H_
+#define PROG_EXTRACT_SUBSET_H_
+
+#include <core/xmipp_program.h>
+#include <reconstruction/extract_subset.h>
+
+class ProgExtractSubset: public XmippProgram {
+public:
+    virtual void readParams() override;
+    virtual void defineParams() override;
+    virtual void show() const override;
+    virtual void run() override;
+
+private:
+    /**
+     * Set output directory and files
+     */
+    void prepareOutput();
+
+    const char *OPT_LAST = "--last";
+    const char *OPT_FIRST = "--first";
+    const char *OPT_RANGE = "--range";
+
+    /** Settings used for extraction */
+    ExtractSubset::Settings m_settings = {};
+};
+
+#endif /* PROG_EXTRACT_SUBSET_H_ */

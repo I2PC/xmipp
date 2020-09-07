@@ -25,6 +25,7 @@
 
 #include "mpi_classify_CL2D_core_analysis.h"
 #include <classification/analyze_cluster.h>
+#include "core/matrix2d.h"
 
 // Show block ==============================================================
 std::ostream & operator << (std::ostream &out, const CL2DBlock &block)

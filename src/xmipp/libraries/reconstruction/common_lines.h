@@ -24,14 +24,15 @@
  ***************************************************************************/
 
 #ifndef _PROG_COMMONLINES_HH
-#  define _PROG_COMMONLINES_HH
+#define _PROG_COMMONLINES_HH
 
-#include <core/xmipp_funcs.h>
-#include <core/metadata.h>
-#include <core/multidim_array.h>
-#include <data/numerical_tools.h>
-#include <core/xmipp_program.h>
-#include <iostream>
+#include "core/matrix1d.h"
+#include "core/matrix2d.h"
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+
+template<typename T>
+class MultidimArray;
 
 /**@defgroup CommonLinesProgram Common Lines (find common lines between projections)
    @ingroup ReconsLibrary */

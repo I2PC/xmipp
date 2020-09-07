@@ -24,9 +24,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
 
-#include "naive_bayes.h"
-#include <string>
 #include <queue>
+#include "naive_bayes.h"
+#include "core/xmipp_funcs.h"
 
 bool debugging = true;
 //#define DEBUG_SPLITTING_USING_ENTROPY

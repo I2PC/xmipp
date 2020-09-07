@@ -26,14 +26,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "pdb_label_from_volume.h"
-
-#include <core/args.h>
-
 #include <fstream>
-#include <sstream>
-#include <string>
-#include <iostream>
+#include <iomanip>
+#include "pdb_label_from_volume.h"
+#include "core/xmipp_image.h"
+#include "core/metadata.h"
 
 /* Usage ------------------------------------------------------------------- */
 

@@ -23,7 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_metadata.h"
+#include "python_symmetry.h"
+#include "core/geometry.h"
+#include "core/symmetries.h"
 
 /***************************************************************/
 /*                            SymList                          */

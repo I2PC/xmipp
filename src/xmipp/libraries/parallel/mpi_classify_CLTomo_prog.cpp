@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include <data/mask.h>
 #include <data/polar.h>
 #include <data/filters.h>
@@ -303,7 +304,7 @@ void CL3DClass::constructFourierMaskFRM()
 		A3D_ELEM(IfourierMaskFRM,j,ip,kp)=A3D_ELEM(IfourierMaskFRM,-j,-ip,-kp)=1;
 	}
 
-    PyObject *pyMask=convertToNumpy(IfourierMaskFRM);
+    PyObject *pyMask=Python::convertToNumpy(IfourierMaskFRM);
 	PyObject *arglist = Py_BuildValue("(Oi)", pyMask,0);
 	if (pyIfourierMaskFRM!=NULL)
 		Py_DECREF(pyIfourierMaskFRM);
@@ -1472,10 +1473,9 @@ void ProgClassifyCL3D::produceSideInfo()
 
 void ProgClassifyCL3D::run()
 {
-    String whichPython;
-	initializePython(whichPython);
-    frmFunc = getPointerToPythonFRMFunction();
-    wedgeClass = getPointerToPythonGeneralWedgeClass();
+    Python::initPythonAndNumpy();
+    frmFunc = Python::getFunctionRef("sh_alignment.frm", "frm_align");
+    wedgeClass = Python::getClassRef("sh_alignment.tompy.filter", "GeneralWedge");
 
     CREATE_LOG();
     show();
