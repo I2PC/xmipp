@@ -25,6 +25,7 @@
 
 #include "pdb_sph_deform.h"
 #include <data/numerical_tools.h>
+#include <fstream>
 
 void ProgPdbSphDeform::defineParams()
 {

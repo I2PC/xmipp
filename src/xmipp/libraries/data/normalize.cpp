@@ -28,6 +28,7 @@
 #include "core/metadata.h"
 #include "core/transformations.h"
 #include "core/xmipp_image_generic.h"
+#include "filters.h"
 
 /* Normalizations ---------------------------------------------------------- */
 void normalize_OldXmipp(MultidimArray<double> &I)
