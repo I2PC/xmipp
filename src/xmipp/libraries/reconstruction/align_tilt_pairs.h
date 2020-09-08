@@ -27,16 +27,12 @@
 #ifndef ALIGN_TILT_PAIRS_H
 #define ALIGN_TILT_PAIRS_H
 
-#include <core/xmipp_fftw.h>
-#include <core/args.h>
-#include <core/xmipp_funcs.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
 
-#include <core/metadata.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_image.h>
-#include <core/geometry.h>
-#include <data/filters.h>
-#include <core/xmipp_program.h>
+template<typename T>
+class MultidimArray;
+class CorrelationAux;
 
 /**@defgroup Centilt align_tilt_pairs (Align tilted and untilted images in a random conical tilt experiment)
    @ingroup ReconsLibrary */
@@ -77,7 +73,7 @@ public:
     bool centerTiltedImage(const MultidimArray<double> &imgU, bool flip,
     		double inPlaneU, double shiftXu, double shiftYu,
     		double alphaT, double alphaU, double tilt,
-    		MultidimArray<double> &imgT,
+    		const MultidimArray<double> &imgT,
     		double &shiftX, double &shiftY, CorrelationAux &auxCorr);
 };
 //@}

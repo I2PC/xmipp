@@ -25,11 +25,9 @@
 #ifndef _PROG_ART_HH
 #define _PROG_ART_HH
 
-#include <iostream>
-
-#include "base_art_recons.h"
 #include "recons.h"
 
+class ARTReconsBase;
 
 /**@defgroup Reconstruction Program ART
    @ingroup ReconsLibrary */

@@ -23,7 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include <sstream>
+#include "python_metadata.h"
+#include "python_filename.h"
+#include "core/metadata.h"
+#include "core/metadata_sql.h"
 
 /***************************************************************/
 /*                            MDQuery                          */

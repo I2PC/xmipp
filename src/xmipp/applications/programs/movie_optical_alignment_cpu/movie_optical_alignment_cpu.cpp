@@ -44,10 +44,14 @@
 
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
+#include <core/xmipp_image_generic.h>
 #include <data/normalize.h>
 #include <core/xmipp_fftw.h>
+#include <core/transformations.h>
 
 #include <reconstruction/movie_filter_dose.h>
+#include "core/metadata.h"
+#include "core/metadata_extension.h"
 
 using namespace std;
 

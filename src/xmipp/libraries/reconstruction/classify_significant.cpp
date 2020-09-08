@@ -23,8 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "classify_significant.h"
-#include <data/mask.h>
+#include "core/transformations.h"
+#include "data/mask.h"
+#include "data/filters.h"
 
 // Empty constructor =======================================================
 ProgClassifySignificant::~ProgClassifySignificant()

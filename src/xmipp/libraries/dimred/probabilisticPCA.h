@@ -25,8 +25,7 @@
 #ifndef _PROBABILISTIC_PCA
 #define _PROBABILISTIC_PCA
 
-#include <core/matrix2d.h>
-#include <core/matrix1d.h>
+#include "core/matrix2d.h"
 #include "dimred_tools.h"
 
 /**@defgroup ProbabilisticPCA Probabilistic PCA

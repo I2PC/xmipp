@@ -27,12 +27,10 @@
 #ifndef _SAMPLING1_HH
 #define _SAMPLING1_HH
 #include <vector>
-#include <iterator>
+#include "core/matrix1d.h"
+#include "core/symmetries.h"
 
-#include <core/matrix1d.h>
-#include <core/xmipp_filename.h>
-#include <core/metadata.h>
-#include <core/symmetries.h>
+class MetaData;
 
 #define cte_w 1.107149
 /**@defgroup SphereSampling sampling (Sampling the projection sphere)
@@ -146,14 +144,14 @@ public:
                                  double max_tilt= 180,
                                  double min_tilt= 0);
     /** fill edge */
-    void fillEdge(Matrix1D<double> starting_point,
-                   Matrix1D<double> ending_point,
-                   std::vector <Matrix1D<double> > &edge_vector,
+    void fillEdge(const Matrix1D<double> &starting_point,
+                const Matrix1D<double> &ending_point,
+                std::vector <Matrix1D<double> > &edge_vector,
                    bool FLAG_END
                   );
     /** fill distance */
-    void fillDistance(Matrix1D<double> starting_point,
-                       Matrix1D<double> ending_point,
+    void fillDistance(const Matrix1D<double> &starting_point,
+                       const Matrix1D<double> &ending_point,
                        std::vector <Matrix1D<double> > &edge_vector,
                        int number,
                        bool only_half_spheree,
@@ -189,11 +187,11 @@ public:
                                             double max_ang);
 
     /* sorting criteria for euler angles */
-    int sortFunc(Matrix1D<double> & a, Matrix1D<double> & b);
+    int sortFunc(const Matrix1D<double> & a, const Matrix1D<double> & b);
 
     /** create symmetry file from introduced symmetry
         see  SymList class */
-    void createSymFile(FileName simFp,int  symmetry, int sym_order);
+    void createSymFile(const FileName &simFp,int  symmetry, int sym_order);
 
     /** save asymmetric unit sampling in a doc file */
     void createAsymUnitFile(const FileName& docfilename);
@@ -220,7 +218,7 @@ public:
     void removePointsFarAwayFromExperimentalData();
 
     /** Find the closest sampling point for a docfile of experimental projections*/
-    void findClosestSamplingPoint(MetaData &DFi,
+    void findClosestSamplingPoint(const MetaData &DFi,
                                      const FileName &output_file_root);
 
     /** Find the closest sampling point for a docfile of experimental projections*/
@@ -232,7 +230,7 @@ public:
     void findClosestExperimentalPoint();
 
     /** Precalculate exp_data by symmetry matrices (speeds up calculations)*/
-    void fillExpDataProjectionDirectionByLR(MetaData &DFi);
+    void fillExpDataProjectionDirectionByLR(const MetaData &DFi);
 
     /** Precalculate exp_data by symmetry matrices (speeds up calculations)*/
     void fillExpDataProjectionDirectionByLR(const FileName &FnexperimentalImages);

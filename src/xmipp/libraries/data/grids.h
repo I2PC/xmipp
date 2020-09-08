@@ -34,6 +34,7 @@
 #include <core/xmipp_image.h>
 #include <core/geometry.h>
 #include <core/args.h>
+#include "core/matrix2d.h"
 
 /* Forward declarations ---------------------------------------------------- */
 template <class T>

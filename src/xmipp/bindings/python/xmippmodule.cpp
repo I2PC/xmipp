@@ -22,15 +22,28 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
-#include "Python.h"
 #include "xmippmodule.h"
-#include <data/ctf.h>
-#include <reconstruction/ctf_enhance_psd.h>
-#include <core/xmipp_image_macros.h>
+#include "core/geometry.h"
+#include "core/matrix2d.h"
+#include "core/metadata.h"
+#include "core/metadata_extension.h"
+#include "core/metadata_sql.h"
+#include "core/transformations.h"
+#include "core/xmipp_image_generic.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_color.h"
+#include "data/fourier_filter.h"
+#include "data/fourier_projection.h"
+#include "data/projection.h"
+#include "python_fourierprojector.h"
+#include "python_filename.h"
+#include "python_image.h"
+#include "python_program.h"
+#include "python_metadata.h"
+#include "python_symmetry.h"
+#include "reconstruction/ctf_estimate_from_micrograph.h"
 
 PyObject * PyXmippError;
-#include <numpy/ndarraytypes.h>
-#include <numpy/ndarrayobject.h>
 
 /***************************************************************/
 /*                            Global methods                   */

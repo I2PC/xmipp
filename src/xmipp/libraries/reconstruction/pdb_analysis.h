@@ -25,8 +25,8 @@
 #ifndef _PROG_PDB_NMA_DEFORM_HH
 #define _PROG_PDB_NMA_DEFORM_HH
 
-#include <data/pdb.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
 
 /**@defgroup PDBAnalysis Different statistics of the PDB
    @ingroup ReconsLibrary */

@@ -24,6 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "transform_geometry.h"
+#include "core/geometry.h"
+#include "core/transformations.h"
 
 ProgTransformGeometry::ProgTransformGeometry()
 {}

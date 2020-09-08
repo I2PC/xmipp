@@ -23,11 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/fourier_filter.h>
-
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "data/fourier_filter.h"
 
 /**@defgroup CorrectAmplitude3D ctf_correct_amplitude3D (3D Wiener filtering)
    @ingroup ReconsLibrary */

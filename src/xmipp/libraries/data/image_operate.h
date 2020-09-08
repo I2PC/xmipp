@@ -27,10 +27,12 @@
 #ifndef IMAGE_OPERATE_H
 #define IMAGE_OPERATE_H
 
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_strings.h>
-#include <core/xmipp_program.h>
+#include "core/metadata.h"
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
+
+template<typename T>
+class Image;
 
 /// @defgroup ImageOperate Mathematical operations of images and volumes
 /// @ingroup DataLibrary

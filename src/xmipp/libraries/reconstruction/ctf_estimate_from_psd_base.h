@@ -7,7 +7,9 @@
 #ifndef _ADJUST_CTF_BASIC_PARAMS
 #define _ADJUST_CTF_BASIC_PARAMS
 
-#include <data/fourier_filter.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
+#include "core/xmipp_image.h"
 
 /**@defgroup ProgCTFBasicParams Program CTF Basic Parameters
    @ingroup ReconsLibrary */

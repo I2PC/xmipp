@@ -25,9 +25,10 @@
  ***************************************************************************/
 
 #include <fstream>
-
-#include <core/histogram.h>
 #include "reconstruct_art_pseudo.h"
+#include "core/histogram.h"
+#include "core/geometry.h"
+#include "core/xmipp_image.h"
 
 #define FORWARD   1
 #define BACKWARD -1

@@ -24,11 +24,9 @@
  ***************************************************************************/
 
 #include "angular_sph_alignment.h"
-#include "program_image_residuals.h"
-#include <data/mask.h>
-#include <data/numerical_tools.h>
-#include <iostream>
-#include <fstream>
+#include "core/transformations.h"
+#include "data/mask.h"
+#include "data/projection.h"
 
 // Empty constructor =======================================================
 ProgAngularSphAlignment::ProgAngularSphAlignment()

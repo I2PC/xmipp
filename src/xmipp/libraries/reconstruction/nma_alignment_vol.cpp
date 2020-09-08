@@ -21,17 +21,11 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <iostream>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <condor/Solver.h>
-#include <condor/tools.h>
-#include <stdio.h>
-
-#include <core/metadata_extension.h>
-#include <data/filters.h>
-#include "program_extension.h"
+#include <limits>
 #include "nma_alignment_vol.h"
+#include "volume_from_pdb.h"
+#include "program_extension.h"
+#include "condor/Solver.h"
 
 // Empty constructor =======================================================
 ProgNmaAlignmentVol::ProgNmaAlignmentVol() {
@@ -93,7 +87,7 @@ void ProgNmaAlignmentVol::readParams() {
 	fnmask = getParam("--mask");
 	do_centerPDB = checkParam("--centerPDB");
 	do_FilterPDBVol = checkParam("--filterVol");
-	trustradius_scale = abs(getDoubleParam("--trustradius_scale"));
+	trustradius_scale = std::abs(getDoubleParam("--trustradius_scale"));
 	if (do_FilterPDBVol)
 		cutoff_LPfilter = getDoubleParam("--filterVol");
 	useFixedGaussian = checkParam("--fixed_Gaussian");

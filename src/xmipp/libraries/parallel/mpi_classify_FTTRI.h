@@ -27,9 +27,9 @@
 #ifndef _PROG_CLASSIFY_FTTRI
 #define _PROG_CLASSIFY_FTTRI
 
-#include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
-
+#include "parallel/xmipp_mpi.h"
+#include "core/xmipp_image.h"
+#include "core/metadata.h"
 
 /**@defgroup ClassifyFTTRI Classification with Fourier Transform based Translational and Rotational Invariants
    @ingroup ReconsLibrary */

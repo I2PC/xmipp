@@ -26,6 +26,7 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 #include "mpi_volumeset_align.h"
+#include "core/metadata.h"
 
 // Redefine read to initialize MPI environment =======================
 void MpiProgVolumeSetAlign::read(int argc, char **argv, bool )

@@ -27,6 +27,7 @@
 #include <core/args.h>
 #include <data/filters.h>
 #include <data/mask.h>
+#include "core/metadata_sql.h"
 
 // Minimum number of images to perform a PCA
 const size_t Nmin=10;

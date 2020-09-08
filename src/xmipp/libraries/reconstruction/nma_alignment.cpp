@@ -22,16 +22,11 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <iostream>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <condor/Solver.h>
-#include <condor/tools.h>
-
-#include <core/metadata_extension.h>
-#include "program_extension.h"
 #include "nma_alignment.h"
-
+#include "volume_from_pdb.h"
+#include "core/transformations.h"
+#include "program_extension.h"
+#include "condor/Solver.h"
 
 // Empty constructor =======================================================
 ProgNmaAlignment::ProgNmaAlignment() {
@@ -86,7 +81,7 @@ void ProgNmaAlignment::readParams() {
 	fnOutDir = getParam("--odir");
 	fnModeList = getParam("--modes");
 	resume = checkParam("--resume");
-	trustradius_scale = abs(getDoubleParam("--trustradius_scale"));
+	trustradius_scale = std::abs(getDoubleParam("--trustradius_scale"));
 	sampling_rate = getDoubleParam("--sampling_rate");
 	fnmask = getParam("--mask");
 	gaussian_DFT_sigma = getDoubleParam("--gaussian_Fourier");

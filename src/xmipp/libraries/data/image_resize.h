@@ -27,12 +27,9 @@
 #ifndef IMAGE_RESIZE_H
 #define IMAGE_RESIZE_H
 
-#include <core/transformations.h>
-#include <core/xmipp_image_generic.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_program.h>
-#include <core/matrix2d.h>
+#include "core/matrix1d.h"
+#include "core/xmipp_image_generic.h"
+#include "core/xmipp_metadata_program.h"
 
 
 typedef enum { RESIZE_NONE, RESIZE_FACTOR, RESIZE_FOURIER, RESIZE_PYRAMID_EXPAND, RESIZE_PYRAMID_REDUCE } ScaleType;

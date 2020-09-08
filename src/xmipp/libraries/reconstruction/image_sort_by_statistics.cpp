@@ -24,6 +24,12 @@
  ***************************************************************************/
 
 #include "image_sort_by_statistics.h"
+#include "core/metadata_extension.h"
+#include "core/histogram.h"
+#include "core/transformations.h"
+#include "core/xmipp_image.h"
+#include "data/filters.h"
+#include "fringe_processing.h"
 
 void ProgSortByStatistics::clear()
 {

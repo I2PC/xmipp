@@ -23,9 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
-#include <data/ctf.h>
-#include <data/filters.h>
+#include "python_image.h"
+#include "python_metadata.h"
+#include "core/transformations.h"
 #include "data/dimensions.h"
 #include "reconstruction/psd_estimator.h"
 

@@ -29,6 +29,7 @@
 #include <core/histogram.h>
 #include <data/filters.h>
 #include <data/morphology.h>
+#include "core/geometry.h"
 
 // Remove wedge ------------------------------------------------------------
 void MissingWedge::removeWedge(MultidimArray<double> &V) const

@@ -24,10 +24,9 @@
  ***************************************************************************/
 
 #include "adjust_volume_grey_levels.h"
-#include <data/numerical_tools.h>
-#include <data/projection.h>
-#include <core/xmipp_image.h>
-#include <core/args.h>
+#include "data/numerical_tools.h"
+#include "data/projection.h"
+#include "data/fourier_projection.h"
 
 void ProgAdjustVolume::defineParams()
 {

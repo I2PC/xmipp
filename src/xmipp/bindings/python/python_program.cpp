@@ -23,11 +23,51 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_program.h"
+#include "core/xmipp_error.h"
+#include "core/xmipp_filename.h"
+#include "core/argsparser.h"
 
 /***************************************************************/
 /*                            Program                         */
 /**************************************************************/
+
+PythonProgram::PythonProgram()
+{
+    initComments();
+    progDef = new ProgramDef();
+    definitionComplete = false;
+}
+
+void PythonProgram::endDefinition()
+{
+    definitionComplete = true;
+    this->defineCommons();
+    progDef->parse();
+}
+
+void PythonProgram::read(int argc, const char ** argv, bool reportErrors)
+{
+    if (!definitionComplete)
+        endDefinition();
+    XmippProgram::read(argc, argv, reportErrors);
+}
+
+void PythonProgram::read(int argc, char ** argv, bool reportErrors)
+{
+    if (!definitionComplete)
+        endDefinition();
+    XmippProgram::read(argc, argv, reportErrors);
+}
+//All the following are necessary to override the base class implementation
+void PythonProgram::readParams()
+{}
+void PythonProgram::defineParams()
+{}
+void PythonProgram::show() const
+{}
+void PythonProgram::run()
+{}
 
 /* Program methods */
 PyMethodDef Program_methods[] =
@@ -111,7 +151,7 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     ProgramObject *self = (ProgramObject*) type->tp_alloc(type, 0);
     if (self != NULL)
     {
-        self->program = new XmippProgramGeneric();
+        self->program = new PythonProgram();
         PyObject * runWithoutArgs = Py_False;
         if (PyArg_ParseTuple(args, "|O", &runWithoutArgs))
         {

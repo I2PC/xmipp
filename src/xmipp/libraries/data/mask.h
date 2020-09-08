@@ -26,19 +26,14 @@
 #ifndef CORE_MASK_H
 #define CORE_MASK_H
 
-#include <core/multidim_array.h>
-#include <core/multidim_array_generic.h>
-#include <core/histogram.h>
 #include "blobs.h"
+#include "core/histogram.h"
+#include "core/xmipp_metadata_program.h"
 
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/args.h>
-#include "wavelet.h"
-
-#include <core/xmipp_program.h>
-#include <core/metadata_extension.h>
-
+template<typename T>
+class MultidimArray;
+template<typename T>
+class Matrix2D;
 
 void apply_geo_binary_2D_mask(MultidimArray< int > &mask,
                               const Matrix2D< double >& A);

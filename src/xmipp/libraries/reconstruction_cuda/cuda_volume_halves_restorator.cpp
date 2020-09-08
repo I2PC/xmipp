@@ -24,10 +24,9 @@
  ***************************************************************************/
 #include "cuda_volume_halves_restorator.h"
 
-#include <data/numerical_tools.h>
-
+#include "core/xmipp_funcs.h"
+#include "data/numerical_tools.h"
 #include "cuda_asserts.h"
-
 #include "cuda_volume_restoration_kernels.h"
 
 template< typename T >

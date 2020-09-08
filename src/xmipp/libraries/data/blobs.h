@@ -27,9 +27,8 @@
 #define _CORE_BLOBS_HH
 
 #include "grids.h"
-#include <core/multidim_array.h>
-#include "xmipp_image_over.h"
-#include <pthread.h>
+
+class ImageOver;
 
 // Thread declaration
 void * blobs2voxels_SimpleGrid( void * data );

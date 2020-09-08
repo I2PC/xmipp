@@ -28,7 +28,7 @@
 
 #include "project_xray.h"
 #include "recons.h"
-
+#include "data/basis.h"
 
 /**@defgroup Reconstruction Program ART
    @ingroup ReconsLibrary */

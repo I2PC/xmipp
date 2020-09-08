@@ -25,14 +25,9 @@
 #ifndef _PROG_ALIGN2D
 #define _PROG_ALIGN2D
 
-#include <core/xmipp_fftw.h>
-#include <core/args.h>
-#include <core/xmipp_funcs.h>
-#include <core/metadata_extension.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
-#include <vector>
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
 
 /**@defgroup Align2DProgram align2d (Align a set of 2D images)
    @ingroup ReconsLibrary */
