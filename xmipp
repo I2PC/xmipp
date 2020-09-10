@@ -841,7 +841,7 @@ def configJava(configDict):
         javaProgramPath = whereis('javac', findReal=True)
         if not javaProgramPath:
             print(yellow("\n'javac' not found in the PATH"))
-            javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
+            javaProgramPath = findFileInDirList('javac', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
             javaProgramPath = askPath(javaProgramPath, askUser)
         if not os.path.isdir(javaProgramPath):
             installDepConda('openjdk')
