@@ -828,9 +828,9 @@ int main(){}
         return False
     runJob("rm xmipp_mpi_test_main*")
 
-    echoString = blue("   > This sentence should be printed 4 times if mpi runs fine")
-    if not (runJob("%s -np 4 echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
-            runJob("%s -np 4 --allow-run-as-root echo '%s.'" % (configDict['MPI_RUN'], echoString))):
+    echoString = blue("   > This sentence should be printed 2 times if mpi runs fine")
+    if not (runJob("%s -np 2 echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
+            runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (configDict['MPI_RUN'], echoString))):
         print(red("mpirun or mpiexec have failed."))
         return False
     return True
@@ -838,14 +838,14 @@ int main(){}
 
 def configJava(configDict):
     if configDict["JAVA_HOME"]=="":
-        javaProgramPath = whereis('java', findReal=True)
+        javaProgramPath = whereis('javac', findReal=True)
         if not javaProgramPath:
-            print(yellow("\n'java' not found in the PATH"))
+            print(yellow("\n'javac' not found in the PATH"))
             javaProgramPath = findFileInDirList('java', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
             javaProgramPath = askPath(javaProgramPath, askUser)
         if not os.path.isdir(javaProgramPath):
             installDepConda('openjdk')
-            javaProgramPath = whereis('java', findReal=True)
+            javaProgramPath = whereis('javac', findReal=True)
 
         if javaProgramPath:
             updateXmippEnv(PATH=javaProgramPath)
