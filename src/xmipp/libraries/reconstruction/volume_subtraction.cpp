@@ -29,6 +29,7 @@
 #include <data/fourier_filter.h>
 
 
+
 void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
@@ -44,14 +45,23 @@ void POCSnonnegative(MultidimArray<double> &I)
 void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
-	DIRECT_MULTIDIM_ELEM(FI,n)=(lambda*DIRECT_MULTIDIM_ELEM(FI,n)+(1-lambda)*DIRECT_MULTIDIM_ELEM(A,n))/std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
+		{
+		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
+		if (mod>1e-6)
+			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
+		}
 }
 
-void POCSMinMax(MultidimArray<double> &I, double min, double max)
+void POCSMinMax(MultidimArray<double> &V, double v1m, double v1M)
 {
-
-//convert V2 min and max to V1 min and max
-
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
+		{
+		double val = DIRECT_MULTIDIM_ELEM(V,n);
+		if (val<v1m)
+			DIRECT_MULTIDIM_ELEM(V,n) = v1m;
+		else if (val>v1M)
+			DIRECT_MULTIDIM_ELEM(V,n) = v1M;
+		}
 }
 
 void extractPhase(MultidimArray< std::complex<double> > &FI)
@@ -74,6 +84,7 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 	Vdiff = Vdiff - Vact;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
 	energy+=DIRECT_MULTIDIM_ELEM(Vdiff,n)*DIRECT_MULTIDIM_ELEM(Vdiff,n);
+	energy = sqrt(energy/MULTIDIM_SIZE(Vdiff));
 	std::cout<< "Energy: " << energy << std::endl;
 }
 
@@ -100,7 +111,7 @@ protected:
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
-        addParamsLine("[--lambda <f=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
+        addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
     }
 
     void readParams()
@@ -138,11 +149,11 @@ protected:
     {
     	show();
 
-    	Image<double> V, Vdiff;
+    	Image<double> V, Vdiff, V1;
     	FourierTransformer transformer;
     	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
     	MultidimArray<double> V1FourierMag;
-    	V.read(fnVol1);
+    	V1.read(fnVol1);
     	MultidimArray<double> mask1;
 		Image<double> mask;
     	if (fnMask1!="" && fnMask2!="")
@@ -154,17 +165,19 @@ protected:
 		}
 		else
 		{
-            mask().resizeNoCopy(V());
+            mask().resizeNoCopy(V1());
             mask().initConstant(1.0);
 		}
     	mask1.clear();
-		POCSmask(mask(),V());
-    	POCSnonnegative(V());
-    	double min = V().computeMin();
-    	double max = V().computeMax();
-    	transformer.FourierTransform(V(),V1Fourier,false);
+		POCSmask(mask(),V1());
+    	POCSnonnegative(V1());
+
+    	double v1min, v1max;
+		V1().computeDoubleMinMax(v1min, v1max);
+
+    	transformer.FourierTransform(V1(),V1Fourier,false);
     	FFT_magnitude(V1Fourier,V1FourierMag);
-		double std1 = V().computeStddev();
+		double std1 = V1().computeStddev();
 
 		V.read(fnVol2);
 		POCSmask(mask(),V());
@@ -172,20 +185,30 @@ protected:
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
+
 		FourierFilter Filter2;
-		double energy = 0;
+		double energy, std2;
+		energy = 0;
 		Vdiff = V;
+
+		Filter2.FilterBand=LOWPASS;
+		Filter2.FilterShape=RAISED_COSINE;
+		Filter2.raised_w=0.02;
+		Filter2.w1=cutFreq;
 
     	for (int n=0; n<iter; ++n)
     	{
+    		std::cout<< "---Iter " << n << std::endl;
     		transformer.FourierTransform(V(),V2Fourier,false);
-    		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda); // Relaxation factor added
+    		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
         	transformer.inverseFourierTransform();
         	computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
-    		POCSMinMax(V(), min, max); // New POCSminmax added => in real space!
+
+    		POCSMinMax(V(), v1min, v1max);
         	computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
+
 			POCSmask(mask(),V());
         	computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
@@ -196,9 +219,19 @@ protected:
         	Vdiff = V;
         	POCSnonnegative(V());
         	computeEnergy(Vdiff(), V(), energy);
-			double std2 = V().computeStddev();
+        	Vdiff = V;
+			std2 = V().computeStddev();
 			V()*=std1/std2;
-
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
+    		if (cutFreq!=0)
+    		{
+    			Filter2.generateMask(V());
+				Filter2.do_generate_3dmask=true;
+				Filter2.applyMaskSpace(V());
+				computeEnergy(Vdiff(), V(), energy);
+	        	Vdiff = V;
+    		}
     	}
 
 		FourierFilter Filter;
@@ -206,24 +239,11 @@ protected:
 		Filter.FilterBand=LOWPASS;
 		Filter.w1=sigma;
 		Filter.applyMaskSpace(mask());
-		Image<double> V1, V1Filtered;
+		Image<double> V1Filtered;
 		V1.read(fnVol1);
 		V1Filtered() = V1();
-
 		if (cutFreq!=0)
-		{
-        	Vdiff = V;
-			Filter2.FilterBand=LOWPASS;
-			Filter2.FilterShape=RAISED_COSINE;
-			Filter2.raised_w=0.02;
-			Filter2.w1=cutFreq;
-			Filter2.generateMask(V());
-			Filter2.do_generate_3dmask=true;
-			Filter2.applyMaskSpace(V());
 			Filter2.applyMaskSpace(V1Filtered());
-        	computeEnergy(Vdiff(), V(), energy);
-		}
-
 
     	if (sub==true)
     	{
