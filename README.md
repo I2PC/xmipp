@@ -28,7 +28,7 @@ cd xmipp-bundle
   ```
   ./xmipp get_devel_sources [branch]
   ```
-  where the optional 'branch' parameter will set that given branch.
+  where the optional 'branch' parameter will set that given branch (devel by default).
   
   Secondly, install the 'scipion-em-xmipp' plugin in development mode
   ```
