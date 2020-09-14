@@ -49,6 +49,7 @@ cd xmipp-bundle
 
 You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option).
 
+Please, check [**the Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
 
 ---------------
 
@@ -56,7 +57,6 @@ You can see the whole usage of the script with `./xmipp --help`. The most useful
 ### Detailed installation for Developers.
 
 Follow the next receip (also read `./xmipp help`):\
-_The `./xmipp` and `./xmipp all` command makes the same at once taking the default values_
 
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
@@ -72,4 +72,4 @@ cd xmipp-bundle
 pip install -e src/scipion-em-xmipp                   # CHECK the ENVIRON that are present in the session!!
 ```
 
-Please, check [the Xmipp configuration guide](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
+_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the last command) by taking the default values_
