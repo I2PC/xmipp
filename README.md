@@ -49,7 +49,7 @@ cd xmipp-bundle
 
 You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option).
 
-Please, check [**the Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
+Please, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
 
 ---------------
 
