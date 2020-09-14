@@ -14,7 +14,7 @@ Welcome to Xmipp. Xmipp is a suite of image processing programs, primarily aimed
 The recommended way to use/install Xmipp is via [Scipion](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html).
 It can be easily installed using the [Plugin manager](https://scipion-em.github.io/docs/docs/user/plugin-manager.html).
 
-**Xmipp as a standalone bundle (useful for developers)**
+**Xmipp as a standalone bundle (for developers)**
 
 Start by cloning the repository from GitHub and go there.
 ```
