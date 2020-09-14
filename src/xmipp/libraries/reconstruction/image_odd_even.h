@@ -50,7 +50,7 @@ private:
     void defineParams();
     void readParams();
     // This function generates the metadata associated to the input image stack
-    void fromimageToMd(FileName fnImg, MetaData &movienew);
+    void fromimageToMd(FileName fnImg, MetaData &movienew, size_t &Xdim, size_t &Ydim);
     void run();
 
 
