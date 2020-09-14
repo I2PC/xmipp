@@ -55,7 +55,8 @@ You can see the whole usage of the script with `./xmipp --help`. The most useful
 
 ### Detailed installation for Developers.
 
-Follow the next receip (also read `./xmipp help`):
+Follow the next receip (also read `./xmipp help`):\
+_The `./xmipp` and `./xmipp all` command makes the same at once taking the default values_
 
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
