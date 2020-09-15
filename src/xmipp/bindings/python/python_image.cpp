@@ -1832,56 +1832,30 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-//    ImageObject *self = (ImageObject*) obj;
-//    if (nullptr == self) return nullptr;
-    try {
-    	PyObject *volume = NULL;
+	ImageObject *self = (ImageObject*) obj;
+	    if (nullptr == self) return nullptr;
+	    try {
+	    	char axis = 'z';
 
-
-    	char axis = 'z';
-	    MultidimArray< double > radial_mean;
-	    MultidimArray< int > radial_count;
-
-
-        if (PyArg_ParseTuple(args, "O|c", &volume, &axis)) {
-
-            ImageGeneric igvolume = Image_Value(volume);
-            igvolume.convert2Datatype(DT_Double);
-            MultidimArray<double> *mself;
-            MultidimArray<double> *mvolume;
-//            MULTIDIM_ARRAY_GENERIC(Image_Value(self)).getMultidimArrayPointer(mself);
-//            MULTIDIM_ARRAY_GENERIC(igvolume).getMultidimArrayPointer(mvolume);
-
-            ImageObject *img2=(ImageObject *)volume;
-			ImageGeneric *image2 = img2->image;
-			image2->convert2Datatype(DT_Double);
-			MultidimArray<double> * pImage2=NULL;
-			MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
-
-            ImageObject *img=(ImageObject *)obj;
-			ImageGeneric *image = img->image;
-			MultidimArray<double> * pImage=NULL;
-
-			if (image == NULL)
-			{
-	            img->image = new ImageGeneric(DT_Double);
-	            image = img->image;
-			}
-			else
-			{
-				image->convert2Datatype(DT_Double);
-			}
-			MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
-
-//            radialAverageAxis(*mvolume, axis, *mself);
-            Py_RETURN_NONE;
-
-        }
-//        else {
-//            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
-//        }
-    } catch (XmippError &xe) {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
-    }
-    return NULL;
+	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+	        if (PyArg_ParseTuple(args, "|c", &axis)
+	                && (nullptr != result)) {
+	            // prepare input image
+	            ImageGeneric *volume = self->image;
+	            volume->convert2Datatype(DT_Double);
+	            MultidimArray<double> *in;
+	            MULTIDIM_ARRAY_GENERIC(*volume).getMultidimArrayPointer(in);
+	            // prepare output image
+	            result->image = new ImageGeneric(DT_Double);
+	            MultidimArray<double> *out;
+	            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+	            // call the estimation
+	            radialAverageAxis(*in, axis, *out);
+	        } else {
+	            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+	        }
+	        return (PyObject *)result;
+	    } catch (XmippError &xe) {
+	        PyErr_SetString(PyXmippError, xe.msg.c_str());
+	    }
 }
