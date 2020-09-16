@@ -37,7 +37,7 @@ Please, folow one of the two point below depending on your case. Also, check the
   ```
   scipion3 installp -p $PWD/src/scipion-em-xmipp
   ```
-  note that 'scipion3' should be installed and visible in the path (check the [Scipion installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html)).
+  note that 'scipion3' should be installed and visible in the path (check the [Scipion installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#launching-scipion3)).
   
   Finally, compile Xmipp under Scipion's environ
   ```
