@@ -45,6 +45,8 @@ Please, folow one of the two point below depending on your case. Also, check the
   ```
   where `-j 8` indicates that 8 cores will be used to compile Xmipp.
   
+  > For a manual step compilation of Xmipp, consider to use `scipion3 run ./xmipp [options]`
+  
 * In case you **do NOT want to get Xmipp under Scipion (only for experts)**, just run
   ```
   ./xmipp 
@@ -58,6 +60,7 @@ Please, folow one of the two point below depending on your case. Also, check the
 ### Detailed installation for Developers.
 
 Follow the next receip (also read `./xmipp help`):
+> use `scipion3 run ./xmipp [options]` if you are installing Xmipp under Scipion
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
 cd xmipp-bundle
@@ -72,4 +75,4 @@ cd xmipp-bundle
 pip install -e src/scipion-em-xmipp                   # CHECK the ENVIRON that are present in the session!!
 ```
 
-_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the first and last command) by taking the default values_
+_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the first and last commands) by taking the default values_
