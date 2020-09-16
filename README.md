@@ -24,7 +24,7 @@ cd xmipp-bundle
 
 Please, folow one of the two point below depending on your case. Also, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
 
-* In case that you want to use/develop it **under Scipion**:
+* In case that you want to use/develop Xmipp **under Scipion**:
   
   First download the rest of sources by
   ```
@@ -44,7 +44,7 @@ Please, folow one of the two point below depending on your case. Also, check the
   ```
   where `-j 8` indicates that 8 cores will be used to compile Xmipp.
   
-* In case you **do NOT want to run Xmipp under Scipion**, just run (it might be necessary to add execute permission via `chmod +x xmipp`)
+* In case you **do NOT want to get Xmipp under Scipion**, just run (it might be necessary to add execute permission via `chmod +x xmipp`)
   ```
   ./xmipp 
   ```
