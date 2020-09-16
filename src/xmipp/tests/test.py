@@ -236,11 +236,10 @@ class GTestResult(unittest.TestResult):
         sys.stderr.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), self.numberTests, secs))
         if self.testFailed:
-            sys.stderr.write(red("[  FAILED  ]") + " %d tests" % self.testFailed)
+            sys.stderr.write(red("[  FAILED  ]") + " %d tests\n" % self.testFailed)
         sys.stderr.write(green("[  PASSED  ]") + " %d tests" % (self.numberTests - self.testFailed))
         sys.stdout.flush()
-        # self.xml.write('</testsuite>\n')
-        # self.xml.close()
+        return -1 if self.testFailed else 0
 
     def tic(self):
         self.startTime = time.time()
@@ -368,7 +367,7 @@ if __name__ == "__main__":
         elif '--allPrograms' in testNames:
             result = GTestResult()
             tests.run(result)
-            result.doReport()
+            sys.exit(result.doReport())
     elif '--allFuncs' in testNames:
         xmippBinDir = os.path.join(os.environ.get("XMIPP_SRC"), 'xmipp', 'bin')
         errors = []
@@ -385,13 +384,16 @@ if __name__ == "__main__":
         sys.stdout.write(blue("\n\n -- End of all function tests -- \n\n"))
         sys.stdout.write("%s run %d tests (%0.3f secs)\n" %
                          (green("[==========]"), len(cTests), secs))
-        sys.stdout.write(green("[  PASSED  ]") + " %d tests \n" % (len(cTests) - len(errors)))
+        sys.stdout.write(green("[  PASSED  ]") + " %d tests \n"
+                         % (len(cTests) - len(errors)))
         sys.stdout.flush()
         if errors:
             sys.stdout.write(red("[  FAILED  ]") + " %d tests:\n" % len(errors))
         for fail in errors:
             sys.stdout.write(red("\t* %s\n" % fail))
         sys.stdout.flush()
+        if errors:
+            sys.exit(-1)
     else:
         for test in testNames:
             test = 'tests.test_programs_xmipp.' + test
@@ -403,4 +405,4 @@ if __name__ == "__main__":
 
             result = GTestResult()
             tests.run(result)
-            result.doReport()
+            sys.exit(result.doReport())
