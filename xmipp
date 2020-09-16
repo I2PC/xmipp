@@ -601,6 +601,7 @@ def checkLib(gxx, libFlag):
                     gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
                     show_output=False, show_command=False)
     os.remove('xmipp_check_lib.cpp')
+    os.remove('a.out') if os.path.isfile('a.out') else None
     return result
 
 def configCompiler(configDict):
