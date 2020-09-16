@@ -56,8 +56,7 @@ Please, folow one of the two point below depending on your case. Also, check the
 
 ### Detailed installation for Developers.
 
-Follow the next receip (also read `./xmipp help`):\
-
+Follow the next receip (also read `./xmipp help`):
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
 cd xmipp-bundle
