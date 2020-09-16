@@ -45,7 +45,7 @@ Please, folow one of the two point below depending on your case. Also, check the
   ```
   where `-j 8` indicates that 8 cores will be used to compile Xmipp.
   
-  > For a manual step compilation of Xmipp, consider to use `scipion3 run ./xmipp [options]`
+  > For a manual compilation of Xmipp, consider to use `scipion3 run ./xmipp [options]`
   
 * In case you **do NOT want to get Xmipp under Scipion (only for experts)**, just run
   ```
