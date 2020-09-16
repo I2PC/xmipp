@@ -49,7 +49,7 @@ Please, folow one of the two point below depending on your case. Also, check the
   ./xmipp 
   ```
 
-You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option).
+  You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option).
 
 ---------------
 
@@ -72,4 +72,4 @@ cd xmipp-bundle
 pip install -e src/scipion-em-xmipp                   # CHECK the ENVIRON that are present in the session!!
 ```
 
-_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the last command) by taking the default values_
+_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the first and last command) by taking the default values_
