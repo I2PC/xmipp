@@ -9,12 +9,13 @@ Welcome to Xmipp. Xmipp is a suite of image processing programs, primarily aimed
 
 
 ## Getting started
-**Xmipp as a Scipion package**
+
+#### Xmipp as a Scipion package (strongly recommended for non-developers)
 
 The recommended way to use/install Xmipp is via [Scipion](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html).
 It can be easily installed using the [Plugin manager](https://scipion-em.github.io/docs/docs/user/plugin-manager.html).
 
-**Xmipp as a standalone bundle (for developers)**
+#### Xmipp as a standalone bundle (for developers)
 
 Start by cloning the repository from GitHub and go there.
 ```
@@ -22,7 +23,9 @@ git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
 ```
 
-* In case that you want to use/develop it **under Scipion**:
+Please, folow one of the two point below depending on your case. Also, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
+
+* In case that you want to use/develop Xmipp **under Scipion (recommended)**:
   
   First download the rest of sources by
   ```
@@ -34,7 +37,7 @@ cd xmipp-bundle
   ```
   scipion3 installp -p $PWD/src/scipion-em-xmipp
   ```
-  note that 'scipion3' should be installed and visible in the path (check the [Scipion installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html)).
+  note that `scipion3` should be installed and visible in the path (check the [Scipion's installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#launching-scipion3)).
   
   Finally, compile Xmipp under Scipion's environ
   ```
@@ -42,22 +45,22 @@ cd xmipp-bundle
   ```
   where `-j 8` indicates that 8 cores will be used to compile Xmipp.
   
-* In case you **do NOT want to run Xmipp under Scipion**, just run (it might be necessary to add execute permission via `chmod +x xmipp`)
+  > For a manual compilation of Xmipp, consider to use `scipion3 run ./xmipp [options]`
+  
+* In case you **do NOT want to get Xmipp under Scipion (only for experts)**, just run
   ```
   ./xmipp 
   ```
 
-You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option).
-
-Please, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
+  You can see the whole usage of the script with `./xmipp --help`. The most useful options are `br=branch_name` to select a specific branch to be checkout-ed, and `N=#processors` to use for the build (they must be in combination with the `all` option).
 
 ---------------
 
 
 ### Detailed installation for Developers.
 
-Follow the next receip (also read `./xmipp help`):\
-
+Follow the next receip (also read `./xmipp help`):
+> use `scipion3 run ./xmipp [options]` if you are installing Xmipp under Scipion
 ```
 git clone https://github.com/I2PC/xmipp xmipp-bundle  # This clones the main Xmipp repo into xmipp-bundle directory
 cd xmipp-bundle
@@ -72,4 +75,4 @@ cd xmipp-bundle
 pip install -e src/scipion-em-xmipp                   # CHECK the ENVIRON that are present in the session!!
 ```
 
-_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the last command) by taking the default values_
+_The `./xmipp` and `./xmipp all` commands make the same than the receip above at once (except for the first and last commands) by taking the default values_
