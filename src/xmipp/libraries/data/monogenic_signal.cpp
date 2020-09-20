@@ -66,7 +66,7 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 {
 	double criticalZ = icdf_gauss(0.95);
 	radiuslimit = XSIZE(inputmap)/2;
-	double last_mean, last_std2=1e-38, last_N;
+	double last_mean=0, last_std2=1e-38;
 
 	for (int rad = radius; rad<radiuslimit; rad++)
 	{
@@ -88,16 +88,13 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 		double mean = sum/N;
 		double std2 = sum2/N - mean*mean;
 
-		double z=(mean-last_mean)/sqrt(std2/N + last_std2/last_N);
-
 		if (std2/last_std2<0.01)
 		{
 			radiuslimit = rad - 1;
 			break;
 		}
 
-		last_mean = mean, last_std2 = std2, last_N = N;
-		double last_mean = mean, last_std2 = std2;
+		last_mean = mean, last_std2 = std2;
 	}
 
 	std::cout << "There is no noise beyond a radius of " << radiuslimit << " px " << std::endl;
