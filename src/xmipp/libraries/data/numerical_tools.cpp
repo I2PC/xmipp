@@ -816,6 +816,7 @@ double checkRandomness(const std::string &sequence)
     return ABS(z);
 }
 
+#ifdef NEVERDEFINED
 double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r)
 {
 	// General variables
@@ -887,6 +888,215 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 			R = r2*r2*r;
 			break;
 		}break;
+	}
+
+	// Spherical harmonic
+	double Y=0.0;
+
+	switch (l2)
+	{
+	case 0:
+		Y = (1.0/2.0)*sqrt(1.0/PI);
+		break;
+	case 1:
+		switch (m)
+		{
+		case -1:
+			Y = sqrt(3.0/(4.0*PI))*yr;
+			break;
+		case 0:
+			Y = sqrt(3.0/(4.0*PI))*zr;
+			break;
+		case 1:
+			Y = sqrt(3.0/(4.0*PI))*xr;
+			break;
+		} break;
+	case 2:
+		switch (m)
+		{
+		case -2:
+			Y = sqrt(15.0/(4.0*PI))*xr*yr;
+			break;
+		case -1:
+			Y = sqrt(15.0/(4.0*PI))*zr*yr;
+			break;
+		case 0:
+			Y = sqrt(5.0/(16.0*PI))*(-xr2-yr2+2.0*zr2);
+			break;
+		case 1:
+			Y = sqrt(15.0/(4.0*PI))*xr*zr;
+			break;
+		case 2:
+			Y = sqrt(15.0/(16.0*PI))*(xr2-yr2);
+			break;
+		} break;
+	case 3:
+		switch (m)
+		{
+		case -3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*yr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt(105.0/(4.0*PI))*zr*yr*xr;
+			break;
+		case -1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*yr*(4.0*zr2-xr2-yr2);
+			break;
+		case 0:
+			Y = sqrt(7.0/(16.0*PI))*zr*(2.0*zr2-3.0*xr2-3.0*yr2);
+			break;
+		case 1:
+			Y = sqrt(21.0/(16.0*2.0*PI))*xr*(4.0*zr2-xr2-yr2);
+			break;
+		case 2:
+			Y = sqrt(105.0/(16.0*PI))*zr*(xr2-yr2);
+			break;
+		case 3:
+			Y = sqrt(35.0/(16.0*2.0*PI))*xr*(xr2-3.0*yr2);
+			break;
+		} break;
+	case 4:
+		switch (m)
+		{
+		case -4:
+			Y = sqrt((35.0*9.0)/(16.0*PI))*yr*xr*(xr2-yr2);
+			break;
+		case -3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*yr*zr*(3.0*xr2-yr2);
+			break;
+		case -2:
+			Y = sqrt((9.0*5.0)/(16.0*PI))*yr*xr*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case -1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*yr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 0:
+			Y = sqrt(9.0/(16.0*16.0*PI))*(35.0*zr2*zr2-30.0*zr2+3.0);
+			break;
+		case 1:
+			Y = sqrt((9.0*5.0)/(16.0*2.0*PI))*xr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
+			break;
+		case 2:
+			Y = sqrt((9.0*5.0)/(8.0*8.0*PI))*(xr2-yr2)*(7.0*zr2-(xr2+yr2+zr2));
+			break;
+		case 3:
+			Y = sqrt((9.0*35.0)/(16.0*2.0*PI))*xr*zr*(xr2-3.0*yr2);
+			break;
+		case 4:
+			Y = sqrt((9.0*35.0)/(16.0*16.0*PI))*(xr2*(xr2-3.0*yr2)-yr2*(3.0*xr2-yr2));
+			break;
+		} break;
+	case 5:
+		switch (m)
+		{
+		case -5:
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*sin(5.0*phi);
+			break;
+		case -4:
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*sin(4.0*phi);
+			break;
+		case -3:
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*sin(3.0*phi);
+			break;
+		case -2:
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*sin(2.0*phi);
+			break;
+		case -1:
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
+			break;
+		case 0:
+			Y = (1.0/16.0)*sqrt(11.0/PI)*(63.0*cost2*cost2*cost-70.0*cost2*cost+15.0*cost);
+			break;
+		case 1:
+			Y = (1.0/8.0)*sqrt(165.0/(4.0*PI))*sint*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
+			break;
+		case 2:
+			Y = (1.0/4.0)*sqrt(1155.0/(4.0*PI))*sint2*(3.0*cost2*cost-cost)*cos(2.0*phi);
+			break;
+		case 3:
+			Y = (1.0/16.0)*sqrt(385.0/(2.0*PI))*sint2*sint*(9.0*cost2-1.0)*cos(3.0*phi);
+			break;
+		case 4:
+			Y = (3.0/8.0)*sqrt(385.0/(2.0*PI))*sint2*sint2*cos(4.0*phi);
+			break;
+		case 5:
+			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*cos(5.0*phi);
+			break;
+		}break;
+	}
+
+	return R*Y;
+}
+#endif
+
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r)
+{
+	// General variables
+	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
+
+	//Variables needed for l>=5
+	double tht=0.0,phi=0.0,cost=0.0,sint=0.0,cost2=0.0,sint2=0.0;
+	if (l2>=5)
+	{
+		tht = atan2(yr,xr);
+		phi = atan2(zr,sqrt(xr2 + yr2));
+		sint = sin(phi); cost = cos(tht);
+		sint2 = sint*sint; cost2 = cost*cost;
+	}
+
+	// Zernike polynomial
+	double R=0.0;
+
+	switch (l1)
+	{
+	case 0:
+		R = std::sqrt(3);
+		break;
+	case 1:
+		R = std::sqrt(5)*r;
+		break;
+	case 2:
+		switch (n)
+		{
+		case 0:
+			R = -0.5*std::sqrt(7)*(2.5*(1-2*r2)+0.5);
+			break;
+		case 2:
+			R = std::sqrt(7)*r2;
+			break;
+		} break;
+	case 3:
+		switch (n)
+		{
+		case 1:
+			R = -1.5*r*(3.5*(1-2*r2)+1.5);
+			break;
+		case 3:
+			R = 3*r2*r;
+		} break;
+	case 4:
+		switch (n)
+		{
+		case 0:
+			R = std::sqrt(11)*((63*r2*r2/8)-(35*r2/4)+(15/8));
+			break;
+		case 2:
+			R = -0.5*std::sqrt(11)*r2*(4.5*(1-2*r2)+2.5);
+			break;
+		case 4:
+			R = std::sqrt(11)*r2*r2;
+			break;
+		} break;
+	case 5:
+		switch (n)
+		{
+		case 1:
+			R = std::sqrt(13)*r*((99*r2*r2/8)-(63*r2/4)+(35/8));
+			break;
+		case 3:
+			R = -0.5*std::sqrt(13)*r2*r*(5.5*(1-2*r2)+3.5);
+			break;
+		} break;
 	}
 
 	// Spherical harmonic
