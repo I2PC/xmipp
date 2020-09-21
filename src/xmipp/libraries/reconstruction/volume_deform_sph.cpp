@@ -334,7 +334,7 @@ void ProgVolDeformSph::run() {
     Matrix1D<double> steps, x;
 	numCoefficients(L1,L2,vecSize);
 	size_t totalSize = 3*vecSize;
-	fillVectorTerms(vL1,vN,vL2,vM);
+	fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
 	clnm.initZeros(totalSize);
 	x.initZeros(totalSize);
     for (int h=0;h<=L2;h++)
@@ -343,13 +343,9 @@ void ProgVolDeformSph::run() {
     	// prevL = nh(h);
     	// prevsteps=steps;
 		steps.clear();
-    	steps.initConstant(totalSize,0);
-		minimizepos(steps,h);
+    	steps.initZeros(totalSize);
+		minimizepos(L1,h,steps);
 		steps_cp = steps;
-		std::cout << "(";
-		FOR_ALL_ELEMENTS_IN_MATRIX1D(steps)
-			std::cout<<VEC_ELEM(steps,i)<<",";
-		std::cout << ")" << std::endl;
 
     	std::cout<<std::endl;
     	std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<h<<") --------------------------"<<std::endl;
@@ -487,15 +483,28 @@ void ProgVolDeformSph::run() {
 // }
 
 // Minimize Positions ======================================================
-void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, int &current_l2)
+// void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, int &current_l2)
+// {
+// 	size_t currentSize = std::floor((4+4*L1+std::pow(L1,2))/4)*std::pow(current_l2+1,2);
+// 	for (int i=0;i<currentSize;i++)
+// 	{
+// 		VEC_ELEM(vectpos,i) = 1;
+// 		VEC_ELEM(vectpos,i+vecSize) = 1;
+// 		VEC_ELEM(vectpos,i+2*vecSize) = 1;
+// 	}
+// }
+
+void ProgVolDeformSph::minimizepos(int L1, int l2, Matrix1D<double> &steps)
 {
-	size_t currentSize = std::floor((4+4*L1+std::pow(L1,2))/4)*std::pow(current_l2+1,2);
-	for (int i=0;i<currentSize;i++)
-	{
-		VEC_ELEM(vectpos,i) = 1;
-		VEC_ELEM(vectpos,i+vecSize) = 1;
-		VEC_ELEM(vectpos,i+2*vecSize) = 1;
-	}
+    int size = 0;
+	numCoefficients(L1,l2,size);
+    int totalSize = steps.size()/3;
+    for (int idx=0; idx<size; idx++)
+    {
+        VEC_ELEM(steps,idx) = 1;
+        VEC_ELEM(steps,idx+totalSize) = 1;
+        VEC_ELEM(steps,idx+2*totalSize) = 1;
+    }	
 }
 
 // // Number Spherical Harmonics ==============================================
@@ -515,27 +524,67 @@ void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, int &current_l2)
 // }
 
 // Length of coefficients vector
+// void ProgVolDeformSph::numCoefficients(int l1, int l2, int &vecSize)
+// {
+// 	vecSize = std::floor((4+4*l1+std::pow(l1,2))/4)*std::pow(l2+1,2);
+// }
+
 void ProgVolDeformSph::numCoefficients(int l1, int l2, int &vecSize)
 {
-	vecSize = std::floor((4+4*l1+std::pow(l1,2))/4)*std::pow(l2+1,2);
+    for (int h=0; h<=l2; h++)
+    {
+        int numSPH = 2*h+1;
+        int count=l1-h+1;
+        int numEven=(count>>1)+(count&1 && !(h&1));
+        if (h%2 == 0)
+            vecSize += numSPH*numEven;
+        else
+        	vecSize += numSPH*(l1-h+1-numEven);
+    }
 }
 
-void ProgVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM)
+void ProgVolDeformSph::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
+    int idx = 0;
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
 	vM.initZeros(vecSize);
-	for (int idx=0;idx<vecSize;idx++)
-	{
-		int l1,n,l2,m;
-		spherical_index2lnm(idx,l1,n,l2,m,L1);
-		VEC_ELEM(vL1,idx) = l1;
-		VEC_ELEM(vN,idx)  = n;
-		VEC_ELEM(vL2,idx) = l2;
-		VEC_ELEM(vM,idx)  = m;
-	}
+    for (int h=0; h<=l2; h++)
+    {
+        int totalSPH = 2*h+1;
+        int aux = std::floor(totalSPH/2);
+        for (int l=h; l<=l1; l+=2)
+        {
+            for (int m=0; m<totalSPH; m++)
+            {
+                VEC_ELEM(vL1,idx) = l;
+                VEC_ELEM(vN,idx) = h;
+                VEC_ELEM(vL2,idx) = h;
+                VEC_ELEM(vM,idx) = m-aux;
+                idx++;
+            }
+        }
+    }
 }
+
+// void ProgVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM)
+// {
+// 	vL1.initZeros(vecSize);
+// 	vN.initZeros(vecSize);
+// 	vL2.initZeros(vecSize);
+// 	vM.initZeros(vecSize);
+// 	for (int idx=0;idx<vecSize;idx++)
+// 	{
+// 		int l1,n,l2,m;
+// 		spherical_index2lnm(idx,l1,n,l2,m,L1);
+// 		VEC_ELEM(vL1,idx) = l1;
+// 		VEC_ELEM(vN,idx)  = n;
+// 		VEC_ELEM(vL2,idx) = l2;
+// 		VEC_ELEM(vM,idx)  = m;
+// 	}
+// }
 
 // Number Spherical Harmonics ==============================================
 #define Dx(V) (A3D_ELEM(V,k,i,jm2)-8*A3D_ELEM(V,k,i,jm1)+8*A3D_ELEM(V,k,i,jp1)-A3D_ELEM(V,k,i,jp2))/12.0

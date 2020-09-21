@@ -120,7 +120,7 @@ public:
     // void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    void minimizepos(Matrix1D<double> &vectpos, int &current_l2);
+    void minimizepos(int L1, int l2, Matrix1D<double> &steps);
 
     // ///Compute the number of spherical harmonics in l=0,1,...,depth
     // void Numsph(Matrix1D<int> &sphD);
@@ -129,7 +129,8 @@ public:
     void numCoefficients(int l1, int l2, int &vecSize);
 
     /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM);
+    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
     /// Compute strain
     void computeStrain();
