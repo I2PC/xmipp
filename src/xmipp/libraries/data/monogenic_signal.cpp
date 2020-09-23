@@ -24,7 +24,7 @@
  ***************************************************************************/
 #include "monogenic_signal.h"
 #include <cfloat>
-
+#include <random>
 
 // This function takes as input a "mask" and returns the radius and the volumen "vol" of the
 // protein. The radius is defines has the distance from the center of the cube to the farthest
