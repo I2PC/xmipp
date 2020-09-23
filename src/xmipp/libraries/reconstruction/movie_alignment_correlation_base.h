@@ -223,7 +223,7 @@ protected:
 
     /** Returns size of the patch as requested by user */
     std::pair<size_t, size_t> getRequestedPatchSize() {
-        return {Ts * minLocalRes, Ts * minLocalRes};
+        return {minLocalRes / Ts, minLocalRes / Ts};
     }
 
     /** Sets number of patches, based on size of the movie and patch */
