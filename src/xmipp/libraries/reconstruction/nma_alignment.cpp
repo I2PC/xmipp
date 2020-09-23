@@ -81,7 +81,7 @@ void ProgNmaAlignment::readParams() {
 	fnOutDir = getParam("--odir");
 	fnModeList = getParam("--modes");
 	resume = checkParam("--resume");
-	trustradius_scale = abs(getDoubleParam("--trustradius_scale"));
+	trustradius_scale = std::abs(getDoubleParam("--trustradius_scale"));
 	sampling_rate = getDoubleParam("--sampling_rate");
 	fnmask = getParam("--mask");
 	gaussian_DFT_sigma = getDoubleParam("--gaussian_Fourier");
