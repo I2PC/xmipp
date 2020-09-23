@@ -22,6 +22,11 @@ class AFT_Test;
     auto ySet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513}; \
     auto xSet = std::vector<size_t>{1, 2, 3, 8, 15, 32, 42, 106, 512, 513};
 
+#define MUSTBESKIPPED \
+    bool mustBeSkipped(const FFTSettingsNew<T> &s, bool isBothDirection) { \
+        return false; \
+    }
+
 #define EXECUTIONS 10
 
 #include "aft_tests.h"

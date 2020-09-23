@@ -36,6 +36,28 @@ extern PyObject * PyXmippError;
 /*                            Program                         */
 /**************************************************************/
 
+/** This class will serve as an interface for python scripts
+ * useful for command line parsing and help message printing
+ */
+class PythonProgram: public XmippProgram
+{
+public:
+    bool definitionComplete;
+    ///Constructor
+    PythonProgram();
+    void endDefinition();
+    virtual void read(int argc, const char ** argv, bool reportErrors = true) override;
+    virtual void read(int argc, char ** argv, bool reportErrors = true) override;
+
+protected:
+    virtual void defineParams() override;
+    virtual void readParams() override;
+    virtual void show() const override;
+    virtual void run() override;
+}
+;// end of class XmippProgramGeneric
+
+
 #define Program_Check(v) (((v)->ob_type == &ProgramType))
 #define Program_Value(v) ((*((ProgramObject*)(v))->program))
 
@@ -43,7 +65,7 @@ extern PyObject * PyXmippError;
 typedef struct
 {
     PyObject_HEAD
-    XmippProgramGeneric * program;
+    PythonProgram * program;
 }
 ProgramObject;
 

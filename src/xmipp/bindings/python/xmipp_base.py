@@ -366,7 +366,6 @@ def getModel(*modelPath, **kwargs):
               asserions!
     """
     model = getXmippPath('models', *modelPath)
-
     # Raising an error to prevent posterior errors and to print a hint
     if kwargs.get('doRaise', True) and not os.path.exists(model):
         raise Exception("'%s' model not found. Please, run: \n"
