@@ -32,7 +32,6 @@ void ProgPdbSphDeform::defineParams()
 	addUsageLine("Deform a PDB according to a list of SPH deformation coefficients");
 	addParamsLine("--pdb <file>            : PDB to deform");
 	addParamsLine("--clnm <metadata_file>  : List of deformation coefficients");
-	addParamsLine("--l1 <metadata_file>  : : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("-o <file>               : Deformed PDB");
 	addExampleLine("xmipp_pdb_sph_deform --pdb 2tbv.pdb -o 2tbv_deformed.pdb --clnm coefficients.txt");
 }
@@ -41,7 +40,6 @@ void ProgPdbSphDeform::readParams()
 {
 	fn_pdb=getParam("--pdb");
 	fn_sph=getParam("--clnm");
-	maxl1 = getIntParam("--l1");
 	fn_out=getParam("-o");
 }
 
@@ -60,11 +58,14 @@ void ProgPdbSphDeform::run()
 {
 	PDBRichPhantom pdb;
 	pdb.read(fn_pdb);
-	int nCoeff = numberCoefficients();
-	clnm.resize(nCoeff);
-	clnm.read(fn_sph);
+	std::string line;
+	line = readNthLine(0);
+	basisParams = string2vector(line);
+	line = readNthLine(1);
+	clnm = string2vector(line);
+	fillVectorTerms(vL1,vN,vL2,vM);
 	int l1,n,l2,m;
-	size_t idxY0=VEC_XSIZE(clnm)/3;
+	size_t idxY0=clnm.size()/3;
 	size_t idxZ0=2*idxY0;
 	size_t idxR=3*idxY0;
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
@@ -76,7 +77,7 @@ void ProgPdbSphDeform::run()
 		int j = atom_i.x;
 		for (size_t idx=0; idx<idxY0; idx++)
 		{
-			double Rmax=VEC_ELEM(clnm,idx+idxR);
+			double Rmax=basisParams[2];
 			double Rmax2=Rmax*Rmax;
 			double iRmax=1.0/Rmax;
 			double k2=k*k;
@@ -89,14 +90,18 @@ void ProgPdbSphDeform::run()
 			double zsph=0.0;
 			if (r2<Rmax2)
 			{
-				spherical_index2lnm(idx,l1,n,l2,m,maxl1);
+				// spherical_index2lnm(idx,l1,n,l2,m,maxl1);
+				l1 = VEC_ELEM(vL1,idx);
+				n = VEC_ELEM(vN,idx);
+				l2 = VEC_ELEM(vL2,idx);
+				m = VEC_ELEM(vM,idx);
 				zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 			}
 			if (rr>0 || (l2==0 && l1==0))
 			{
-				gx += VEC_ELEM(clnm,idx)        *(zsph);
-				gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-				gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+				gx += clnm[idx]        *(zsph);
+				gy += clnm[idx+idxY0]  *(zsph);
+				gz += clnm[idx+idxZ0]  *(zsph);
 			}
 		}
 		atom_i.x += gx;
@@ -106,15 +111,52 @@ void ProgPdbSphDeform::run()
 	pdb.write(fn_out);
 }
 
-int ProgPdbSphDeform::numberCoefficients()
+std::string ProgPdbSphDeform::readNthLine(int N)
 {
-	int nCoeff = 0;
-	std::ifstream coeff_file;
-	coeff_file.open(fn_sph.getString());
-	float i;
-	while (coeff_file >> i)
-	{
-		nCoeff++;
-	}
-	return nCoeff;
+	std::ifstream in(fn_sph.getString());
+	std::string s;  
+
+	//skip N lines
+	for(int i = 0; i < N; ++i)
+		std::getline(in, s);
+
+	std::getline(in,s);
+	return s;
+}
+
+std::vector<double> ProgPdbSphDeform::string2vector(std::string s)
+{
+	std::stringstream iss(s);
+    double number;
+    std::vector<double> v;
+    while (iss >> number)
+        v.push_back(number);
+    return v;
+}
+
+void ProgPdbSphDeform::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
+{
+    int idx = 0;
+	int vecSize = clnm.size()/3;
+	vL1.initZeros(vecSize);
+	vN.initZeros(vecSize);
+	vL2.initZeros(vecSize);
+	vM.initZeros(vecSize);
+    for (int h=0; h<=basisParams[1]; h++)
+    {
+        int totalSPH = 2*h+1;
+        int aux = std::floor(totalSPH/2);
+        for (int l=h; l<=basisParams[0]; l+=2)
+        {
+            for (int m=0; m<totalSPH; m++)
+            {
+                VEC_ELEM(vL1,idx) = l;
+                VEC_ELEM(vN,idx) = h;
+                VEC_ELEM(vL2,idx) = h;
+                VEC_ELEM(vM,idx) = m-aux;
+                idx++;
+            }
+        }
+    }
 }

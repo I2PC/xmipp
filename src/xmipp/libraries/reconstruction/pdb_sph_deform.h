@@ -30,7 +30,6 @@
 #include <core/metadata.h>
 #include <core/matrix1d.h>
 
-
 class ProgPdbSphDeform: public XmippProgram
 {
 public:
@@ -43,11 +42,14 @@ public:
     /** Output fileroot */
     FileName fn_out;
 
-    // Vector containing the deformation coefficients
-	Matrix1D<double> clnm;
+    /** Vector containing the deformation coefficients */
+	std::vector<double> clnm;
 
-    // Maximum degree Zernike Polynomials
-    int maxl1;
+    /** Vector containing the degrees and Rmax of the basis */
+	std::vector<double> basisParams;
+
+    /** Zernike and SPH coefficients vectors */
+    Matrix1D<int> vL1, vN, vL2, vM;
 
 public:
     /** Params definitions */
@@ -62,8 +64,15 @@ public:
     /** Run. */
     void run();
 
-    /** Number of coefficients */
-    int numberCoefficients();
+    /** Read Nth line of file */
+    std::string readNthLine(int N);
+
+    /** Convert String to Vector */
+    std::vector<double> string2vector(std::string s);
+
+    /** Fill degree and order vectors */
+    void fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+						 Matrix1D<int> &vL2, Matrix1D<int> &vM);
 };
 //@}
 #endif
