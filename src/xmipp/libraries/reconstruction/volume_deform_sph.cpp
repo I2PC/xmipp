@@ -167,7 +167,8 @@ double ProgVolDeformSph::distance(double *pclnm)
 							gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
 						}
 #endif
-						if (rr>0 || (l2==0 && l1==0))
+						// if (rr>0 || (l2==0 && l1==0))
+						if (rr>0 || l2==0)
 						{
 							gx += VEC_ELEM(clnm,idx)        *(zsph);
 							gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
@@ -177,6 +178,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 				}
 				if (applyTransformation)
 				{
+					absVoxelR=fabs(voxelR);
 					voxelR=A3D_ELEM(VR(),k,i,j);
 					voxelI=VI().interpolatedElement3D(j+gx,i+gy,k+gz);
 					if (voxelI >= 0.0)
@@ -186,11 +188,12 @@ double ProgVolDeformSph::distance(double *pclnm)
 					diff2+=diff*diff;
 					modg+=gx*gx+gy*gy+gz*gz;
 					Ncount++;
+					totalVal += absVoxelR;
 				}
 				for (int idv=0; idv<volumesR.size(); idv++)
 				{
 					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
-					// absVoxelR=fabs(voxelR);
+					absVoxelR=fabs(voxelR);
 					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
 					if (voxelI >= 0.0)
 						sumVD += voxelI;
@@ -200,7 +203,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 					// modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
 					modg+=gx*gx+gy*gy+gz*gz;
 					Ncount++;
-					// totalVal += absVoxelR;
+					totalVal += absVoxelR;
 				}
 
 				if (saveDeformation) 
@@ -240,9 +243,9 @@ double ProgVolDeformSph::distance(double *pclnm)
 	if (applyTransformation)
 		VO.write(fnVolOut);
 	// return std::sqrt(diff2/totalVal);
-	sumVD /= volumesR.size();
+	//// sumVD /= volumesR.size();
 	double massDiff=std::abs(sumVI-sumVD)/sumVI;
-	return std::sqrt(diff2/Ncount)+lambda*(deformation+massDiff);
+	return std::sqrt(diff2/totalVal)+lambda*(deformation+massDiff);
 }
 #undef DEBUG
 
@@ -286,8 +289,10 @@ void ProgVolDeformSph::run() {
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     bg_mask.setXmippOrigin();
 	normalize_Robust(auxI(), bg_mask, true);
+	// auxI.write("input_filt.vol");
 	bg_mask *= 0;
 	normalize_Robust(auxR(), bg_mask, true);
+	// auxR.write("ref_filt.vol");
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxI())
 	{
@@ -320,12 +325,19 @@ void ProgVolDeformSph::run() {
 			bg_mask *= 0;
 			normalize_Robust(auxI(), bg_mask, true);
 			volumesI.push_back(auxI);
+			FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxI())
+			{
+				if (DIRECT_A3D_ELEM(auxI(),k,i,j) >= 0.0)
+    				sumVI += DIRECT_A3D_ELEM(auxI(),k,i,j);
+			}
+			// auxI.write("input_filt.vol");
 
 			// Filter ref vol
 			filter.applyMaskSpace(auxR());
 			bg_mask *= 0;
 			normalize_Robust(auxR(), bg_mask, true);
 			volumesR.push_back(auxR);
+			// auxR.write("ref_filt.vol"); 
 			// maxVoxelR = auxR().computeMax();
 			// absMaxR_vec.push_back(fabs(maxVoxelR));
 		}
@@ -420,7 +432,14 @@ void ProgVolDeformSph::run() {
 
     }
     applyTransformation=true;
-	x.write(fnRoot+"_clnm.txt");
+	// x.write(fnRoot+"_clnm.txt");
+	Matrix1D<double> degrees;
+	degrees.initZeros(3);
+	VEC_ELEM(degrees,0) = L1;
+	VEC_ELEM(degrees,1) = L2;
+	VEC_ELEM(degrees,2) = Rmax;
+	writeVector(fnRoot+"_clnm.txt", degrees, false);
+	writeVector(fnRoot+"_clnm.txt", x, true);
     if (analyzeStrain)
     {
     	saveDeformation=true;
@@ -670,6 +689,18 @@ void ProgVolDeformSph::computeStrain()
 		LS.write(fnVolOut.withoutExtension()+"_strain.mrc");
 		LR.write(fnVolOut.withoutExtension()+"_rotation.mrc");
 	}
+}
+
+void ProgVolDeformSph::writeVector(std::string outPath, Matrix1D<double> v, bool append)
+{
+    std::ofstream outFile;
+    if (append == false)
+        outFile.open(outPath);
+    else
+        outFile.open(outPath, std::ios_base::app);
+    FOR_ALL_ELEMENTS_IN_MATRIX1D(v)
+        outFile << VEC_ELEM(v,i) << " ";
+    outFile << std::endl;
 }
 
 

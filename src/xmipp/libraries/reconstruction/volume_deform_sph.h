@@ -134,6 +134,9 @@ public:
 
     /// Compute strain
     void computeStrain();
+
+    /// Save vector to file
+    void writeVector(std::string outPath, Matrix1D<double> v, bool append);
 };
 
 //@}
