@@ -32,8 +32,12 @@
 #include <core/metadata_extension.h>
 #include <core/multidim_array.h>
 #include <core/symmetries.h>
+#include <core/xmipp_image.h>
+#include <core/metadata.h>
 #include <data/mask.h>
 #include <data/filters.h>
+#include "data/projection.h"
+#include "data/fourier_projection.h"
 #include <reconstruction/project_real_shears.h>
 
 #include <vector>
