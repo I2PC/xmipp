@@ -1836,7 +1836,6 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	    if (nullptr == self) return nullptr;
 	    try {
 	    	char axis = 'z';
-//	        std::cout << "----c0-------" << std::endl;
 	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
 	        if (PyArg_ParseTuple(args, "|c", &axis)
 	                && (nullptr != result)) {
@@ -1850,9 +1849,7 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	            MultidimArray<double> *out;
 	            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
 	            // call the estimation
-//		        std::cout << "----c1-------" << std::endl;
 	            radialAverageAxis(*in, axis, *out);
-//		        std::cout << "----c2-------" << std::endl;
 	        } else {
 	            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
 	        }
