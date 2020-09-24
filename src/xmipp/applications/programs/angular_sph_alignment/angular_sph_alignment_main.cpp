@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-// #include <reconstruction/angular_sph_alignment.h>
+#include <reconstruction/angular_sph_alignment.h>
 
-// RUN_XMIPP_PROGRAM(ProgAngularSphAlignment)
+RUN_XMIPP_PROGRAM(ProgAngularSphAlignment)

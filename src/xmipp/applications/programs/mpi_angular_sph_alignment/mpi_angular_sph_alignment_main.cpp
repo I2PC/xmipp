@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-// #include <parallel/mpi_angular_sph_alignment.cpp>
+#include <parallel/mpi_angular_sph_alignment.cpp>
 
-// RUN_XMIPP_PROGRAM(MpiProgAngularSphAlignment)
+RUN_XMIPP_PROGRAM(MpiProgAngularSphAlignment)
