@@ -1,6 +1,7 @@
 /***************************************************************************
  *
  * Authors:    Carlos Oscar             coss@cnb.csic.es
+ * 			   David Herreros Calero    dherreros@cnb.csic.es
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +39,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("  [--sigma <Matrix1D=\"\">]	          : Sigma values to filter the volume to perform a multiresolution analysis");
 	addParamsLine("  [--analyzeStrain]                    : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--optimizeRadius]                   : Optimize the radius of each spherical harmonic");
-	addParamsLine("  [--l1 <l1=2>]                        : Degree Zernike Polynomials=1,2,3,...");
+	addParamsLine("  [--l1 <l1=3>]                        : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("  [--l2 <l2=2>]                        : Harmonical depth of the deformation=1,2,3,...");
 	addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
@@ -101,7 +102,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 		VO().initZeros(VR());
 		VO().setXmippOrigin();
 	}
-	int maxl1 = L1;
+	// int maxl1 = L1;
 	int l1,n,l2,m;
 	size_t idxY0=VEC_XSIZE(clnm)/3;
 	size_t idxZ0=2*idxY0;
