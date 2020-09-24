@@ -337,6 +337,10 @@ void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Mat
 	Matrix2D<double> eigenvectorTrans = eigenvectors.transpose();
 	ccGFT = eigenvectorTrans*ccVecIn;
 
+//	// energía antes
+//	double ener = ccGFT.dotProduct(ccGFT);
+//	std::cout<<formatString("energía antes:\t %.4f\n", ener);
+
 /*comment
 ccGFT.write("/home/jeison/Escritorio/ccGFT.txt"); // */
 
@@ -345,6 +349,11 @@ ccGFT.write("/home/jeison/Escritorio/ccGFT.txt"); // */
 	for(int k = cutEig; k < sizeMdRef; ++k){
 		VEC_ELEM(ccGFT,k) = 0.;
 	}
+//	// energía despues
+//	double ener2 = ccGFT.dotProduct(ccGFT);
+//	std::cout<<formatString("energía despues:\t %.4f\n", ener2);
+//
+//	std::cout<<formatString("porcentaje: %.4f\n\n",ener2/ener);
 
 	// apply filter to ccvec
 	ccVecOut = eigenvectors*ccGFT;
@@ -445,14 +454,17 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 //	std::cout<<"cont: "<< counttest << " of sizeMdref: " << sizeMdRef << std::endl;
 //	std::cout<<"cont2: "<< counttest2 << " of sizeMdref: " << sizeMdRef << std::endl;
 //	std::cout<<"cont3: "<< counttest3 << " of sizeMdref: " << sizeMdRef << std::endl;
-//	exit(1);
+//
+//	std::cout<<"press to continue!"<<std::endl;
+//	std::cin.ignore();
 
-	// ordering using cross-corr coefficient values computed in first loop
-	// only best reference directions should be refined with alignImages()
-	std::partial_sort(Idx.begin(), Idx.begin() + nCand, Idx.end(),
-			[&ccvec](int i, int j) {
-				return ccvec[i] > ccvec[j];
-			});
+//	// ordering using cross-corr coefficient values computed in first loop
+//	// only best reference directions should be refined with alignImages()
+//	std::partial_sort(Idx.begin(), Idx.begin() + nCand, Idx.end(),
+//			[&ccvec](int i, int j) {
+//				return ccvec[i] > ccvec[j];
+//			});
+
 	// variables for second loop
 	std::vector<double> bestTx2(sizeMdRef, 0.);
 	std::vector<double> bestTy2(sizeMdRef, 0.);
@@ -463,30 +475,69 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	MultidimArray<double> mCurrentImageAligned;
 	double corr, scale;
 	bool flip;
+
+	double minval, maxval;
+	ccvec.computeMinMax(minval, maxval);
+	double thres = 0.;
+	if (SL.symsNo()<=4)
+		thres = maxval - (maxval - minval) / 3.;
+	else
+		thres = maxval - (maxval - minval) / 2.;
+//	int cont = 0;
+//	std::cout<<"thres: "<<thres << std::endl;
 	for(int k = 0; k < sizeMdRef; ++k) {
-		if(k<nCand){
+		if(VEC_ELEM(ccvec,k)>thres){
 			// find rotation and shift using alignImages
 			Matrix2D<double> M;
 			mCurrentImageAligned = MDaInAux;
 			mCurrentImageAligned.setXmippOrigin();
-			corr = alignImages(vecMDaRef[Idx[k]], mCurrentImageAligned, M, DONT_WRAP);
+			corr = alignImages(vecMDaRef[k], mCurrentImageAligned, M, DONT_WRAP);
 			M = M.inv();
 			transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
 
 			if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
 				corr /= 3;
 
-			VEC_ELEM(ccvec, Idx[k]) = corr;
-			bestTx2[Idx[k]] = Tx;
-			bestTy2[Idx[k]] = Ty;
-			bestPsi2[Idx[k]] = psi;
+			VEC_ELEM(ccvec, k) = corr;
+			bestTx2[k] = Tx;
+			bestTy2[k] = Ty;
+			bestPsi2[k] = psi;
+
+//			cont+=1;
 		}
 		else{
-			bestTx2[Idx[k]] = bestTx[Idx[k]];
-			bestTy2[Idx[k]] = bestTy[Idx[k]];
-			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
+			bestTx2[k] = bestTx[k];
+			bestTy2[k] = bestTy[k];
+			bestPsi2[k] = bestPsi[k];
 		}
 	}
+//	std::cout<<"cont: "<<cont << std::endl;
+
+// 	// lo que tenía antes
+//	for(int k = 0; k < sizeMdRef; ++k) {
+//		if(k<nCand){
+//			// find rotation and shift using alignImages
+//			Matrix2D<double> M;
+//			mCurrentImageAligned = MDaInAux;
+//			mCurrentImageAligned.setXmippOrigin();
+//			corr = alignImages(vecMDaRef[Idx[k]], mCurrentImageAligned, M, DONT_WRAP);
+//			M = M.inv();
+//			transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
+//
+//			if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
+//				corr /= 3;
+//
+//			VEC_ELEM(ccvec, Idx[k]) = corr;
+//			bestTx2[Idx[k]] = Tx;
+//			bestTy2[Idx[k]] = Ty;
+//			bestPsi2[Idx[k]] = psi;
+//		}
+//		else{
+//			bestTx2[Idx[k]] = bestTx[Idx[k]];
+//			bestTy2[Idx[k]] = bestTy[Idx[k]];
+//			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
+//		}
+//	}
 	// */
 
 	// one loop search using alignImages
