@@ -67,7 +67,6 @@ void ProgPdbSphDeform::run()
 	int l1,n,l2,m;
 	size_t idxY0=clnm.size()/3;
 	size_t idxZ0=2*idxY0;
-	size_t idxR=3*idxY0;
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
 	{
 		double gx=0.0, gy=0.0, gz=0.0;
@@ -97,7 +96,8 @@ void ProgPdbSphDeform::run()
 				m = VEC_ELEM(vM,idx);
 				zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 			}
-			if (rr>0 || (l2==0 && l1==0))
+			// if (rr>0 || (l2==0 && l1==0))
+			if (rr>0 || l2==0)
 			{
 				gx += clnm[idx]        *(zsph);
 				gy += clnm[idx+idxY0]  *(zsph);
