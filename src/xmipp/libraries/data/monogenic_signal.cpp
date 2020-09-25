@@ -28,6 +28,7 @@
 #include <random>
 #include <algorithm>
 
+
 // This function takes as input a "mask" and returns the radius and the volumen "vol" of the
 // protein. The radius is defines has the distance from the center of the cube to the farthest
 // point of the protein measured from the center. The volumen "vol" represent the number of
