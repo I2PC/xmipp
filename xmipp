@@ -38,13 +38,14 @@ from datetime import datetime
 # --K-E-E-P--U-P-D-A-T-E-D-- #
 VERSION_TAG = "Xmipp version"
 ##############################
-XMIPP_VERSION = '3.20.07b1'  #
+XMIPP_VERSION = '3.20.07rc'  #
+XMIPP_VERNAME = 'Boreas'     #
 RELEASE_DATE = 'not released yet'  #
 RELEASE_BRANCH = '*None*'    # <-- to be filled by scripts/tar.py (for prod.)
 RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py (for prod.)
 ##############################
 
-NO_HASH_ID = '*******'  # Do NOT merge with RELEASE_HASH
+NO_HASH_ID = '*******'  # This is something like a token
 
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
@@ -125,6 +126,7 @@ def stampVersion():
                      'CORE_BRANCH': getCommit(XMIPP_CORE),
                      'VIZ_BRANCH': getCommit(XMIPP_VIZ),
                      'LAST_COMPILATION': LAST_COMPILATION,
+                     'XMIPP_VERNAME': XMIPP_VERNAME
                      }
 
     versionBinFn = os.path.join('src', 'xmipp', 'applications', 'programs',
@@ -167,7 +169,7 @@ int main(int argc, char** argv){
         ret = uname(utsname_ptr);
     
         std::cout << std::endl;
-        std::cout << "  \033[4m%(VERSION_TAG)s\033[24m: \033[1m%(XMIPP_VERSION)s\033[0m" << std::endl;
+        std::cout << "  \033[4m%(VERSION_TAG)s\033[24m: \033[1m%(XMIPP_VERSION)s (%(XMIPP_VERNAME)s)\033[0m" << std::endl;
         std::cout << std::endl;
         std::cout << "  Release date:     %(RELEASE_DATE)s" << std::endl;
         std::cout << "  Xmipp branch:     %(XMIPP_BRANCH)s" << std::endl;
@@ -1770,10 +1772,12 @@ if __name__ == '__main__':
     elif mode=="cleanBin":
         cleanBinaries()
     elif mode=="version":
-        if n>2 and sys.argv[2]=='--short':
-            runJob("src/xmipp/bin/xmipp_version --short")
+        versionBin = "src/xmipp/bin/xmipp_version"
+        shortFlag = '--short' if n>2 and sys.argv[2]==' --short' else ""
+        if not os.path.isfile(versionBin):
+            print("No compilation found...")
         else:
-            runJob("src/xmipp/bin/xmipp_version")
+            runJob(versionBin + shortFlag)
     elif mode=="get_devel_sources":
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
