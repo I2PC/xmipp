@@ -605,7 +605,7 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
     int l1,n,l2,m;
 	size_t idxY0=(VEC_XSIZE(clnm)-5)/3;
 	double Ncount=0.0;
-	double totalVal=0.0;
+	// double totalVal=0.0;
 	// double voxModg=0.0;
     double modg=0.0;
 	double diff2=0.0;
@@ -657,11 +657,11 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 				}
 				mVD(k,i,j) = mV.interpolatedElement3D(j+gx,i+gy,k+gz);
 				double voxelR=A3D_ELEM(mV,k,i,j);
-				double absVoxelR=std::abs(voxelR);
+				// double absVoxelR=std::abs(voxelR);
 				// voxModg += absVoxelR*(gx*gx+gy*gy+gz*gz);
                 modg += gx*gx+gy*gy+gz*gz;
                 Ncount++;
-				totalVal += absVoxelR;
+				// totalVal += absVoxelR;
 
 				double voxelI=A3D_ELEM(mVD,k,i,j);
 				double diff=voxelR-voxelI;

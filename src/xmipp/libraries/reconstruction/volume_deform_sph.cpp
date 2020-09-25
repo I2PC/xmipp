@@ -108,7 +108,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	size_t idxZ0=2*idxY0;
 	// size_t idxR=3*idxY0;
 	double Ncount=0.0;
-	double totalVal=0.0;
+	// double totalVal=0.0;
 	double diff2=0.0;
 	sumVD = 0.0;
 	const MultidimArray<double> &mVR=VR();
@@ -119,7 +119,8 @@ double ProgVolDeformSph::distance(double *pclnm)
 	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 	double modg=0.0;
-	double voxelR, absVoxelR, voxelI, diff;
+	// double absVoxelR;
+	double voxelR, voxelI, diff;
 	double Rmax2=Rmax*Rmax;
 	double iRmax=1.0/Rmax;
 	for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++)
@@ -179,7 +180,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 				}
 				if (applyTransformation)
 				{
-					absVoxelR=fabs(voxelR);
+					// absVoxelR=fabs(voxelR);
 					voxelR=A3D_ELEM(VR(),k,i,j);
 					voxelI=VI().interpolatedElement3D(j+gx,i+gy,k+gz);
 					if (voxelI >= 0.0)
@@ -189,12 +190,12 @@ double ProgVolDeformSph::distance(double *pclnm)
 					diff2+=diff*diff;
 					modg+=gx*gx+gy*gy+gz*gz;
 					Ncount++;
-					totalVal += absVoxelR;
+					// totalVal += absVoxelR;
 				}
 				for (int idv=0; idv<volumesR.size(); idv++)
 				{
 					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
-					absVoxelR=fabs(voxelR);
+					// absVoxelR=fabs(voxelR);
 					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
 					if (voxelI >= 0.0)
 						sumVD += voxelI;
@@ -204,7 +205,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 					// modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
 					modg+=gx*gx+gy*gy+gz*gz;
 					Ncount++;
-					totalVal += absVoxelR;
+					// totalVal += absVoxelR;
 				}
 
 				if (saveDeformation) 
@@ -246,7 +247,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	// return std::sqrt(diff2/totalVal);
 	//// sumVD /= volumesR.size();
 	double massDiff=std::abs(sumVI-sumVD)/sumVI;
-	return std::sqrt(diff2/totalVal)+lambda*(deformation+massDiff);
+	return std::sqrt(diff2/Ncount)+lambda*(deformation+massDiff);
 }
 #undef DEBUG
 
