@@ -1809,7 +1809,7 @@ if __name__ == '__main__':
         dir = "build"
         if n > 2:
             for arg in sys.argv[2:]:
-                if arg.isdigit():
+                if arg.isdigit() or arg.startswith('N='):
                     Nproc = arg
                 else:
                     dir = arg
