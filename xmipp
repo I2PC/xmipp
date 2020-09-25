@@ -35,17 +35,12 @@ import subprocess
 from datetime import datetime
 
 
-# --K-E-E-P--U-P-D-A-T-E-D-- #
-VERSION_TAG = "Xmipp version"
-##############################
-XMIPP_VERSION = '3.20.07rc'  #
-XMIPP_VERNAME = 'Boreas'     #
+# ----K-E-E-P----U-P-D-A-T-E-D---- #
+####################################
+XMIPP_VERSION = '3.20.07rc'        #
+XMIPP_VERNAME = 'Boreas'           #
 RELEASE_DATE = 'not released yet'  #
-RELEASE_BRANCH = '*None*'    # <-- to be filled by scripts/tar.py (for prod.)
-RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py (for prod.)
-##############################
-
-NO_HASH_ID = '*******'  # This is something like a token
+####################################
 
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
@@ -57,7 +52,7 @@ CTPL = 'CTPL'
 XMIPP_SCRIPT_VERSION = ''
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
-                XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
+                XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
@@ -112,14 +107,24 @@ def stampVersion():
     LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
 
     def getCommit(repo):
-        commitStr = "%s (%s)" % (RELEASE_BRANCH, RELEASE_HASH)
-        if ensureGit(False):
-            found, br, hsh = getCurrentBranch(os.path.join('src', repo), getHash=True)
-            commitStr = "%s (%s)" % (br, hsh) if found else "(no git repo detected)"
-        return commitStr
+        """ In devel mode 'commit.info' should not exist.
+            In production mode 'commit.info' is added by tar.py
+        """
+        commitFn = os.path.join('src', repo, 'commit.info')
+        notFoundInfo = "(no git repo detected)"
+        if os.path.isfile(commitFn):
+            with open(commitFn, 'r') as file:
+                commitInfo = file.readline()
+        elif ensureGit(False):
+            found, br, hsh = getCurrentBranch(os.path.join('src', repo),
+                                              getHash=True)
+            commitInfo = "%s (%s)" % (br, hsh) if found else notFoundInfo
+        else:
+            commitInfo = notFoundInfo
 
-    compilingInfo = {'VERSION_TAG': VERSION_TAG,
-                     'XMIPP_VERSION': XMIPP_VERSION,
+        return commitInfo
+
+    compilingInfo = {'XMIPP_VERSION': XMIPP_VERSION,
                      'RELEASE_DATE': RELEASE_DATE,
                      'XMIPP_BRANCH': getCommit(XMIPP),
                      'PLUGIN_BRANCH': getCommit(SCIPION_EM_XMIPP),
@@ -160,7 +165,7 @@ int main(int argc, char** argv){
 
     if (shrt==1)
     {
-        std::cout << "%(VERSION_TAG)s: %(XMIPP_VERSION)s" << std::endl;
+        std::cout << "%(XMIPP_VERSION)s" << std::endl;
     }else{
         struct utsname utsname; // stores the data returned by uname()
         struct utsname *utsname_ptr = &utsname; // pointer to the struct holding the data returned by uname()
@@ -169,12 +174,12 @@ int main(int argc, char** argv){
         ret = uname(utsname_ptr);
     
         std::cout << std::endl;
-        std::cout << "  \033[4m%(VERSION_TAG)s\033[24m: \033[1m%(XMIPP_VERSION)s (%(XMIPP_VERNAME)s)\033[0m" << std::endl;
+        std::cout << "  \033[4mXmipp version\033[24m: \033[1m%(XMIPP_VERSION)s (%(XMIPP_VERNAME)s)\033[0m" << std::endl;
         std::cout << std::endl;
         std::cout << "  Release date:     %(RELEASE_DATE)s" << std::endl;
         std::cout << "  Xmipp branch:     %(XMIPP_BRANCH)s" << std::endl;
         std::cout << "  Plugin branch:    %(PLUGIN_BRANCH)s" << std::endl;
-        std::cout << "  Core branch :     %(CORE_BRANCH)s" << std::endl;
+        std::cout << "  Core branch:      %(CORE_BRANCH)s" << std::endl;
         std::cout << "  Viz branch:       %(VIZ_BRANCH)s" << std::endl;
         std::cout << "  Compilation date: %(LAST_COMPILATION)s" << std::endl;
         std::cout << "  Compiler:         g++ " << __VERSION__ << std::endl;
@@ -1606,7 +1611,7 @@ def usage(msg=''):
     if msg != '':
         print(red(msg))
     print("Usage: xmipp [options]\n"
-          "   version                     Returns the version information\n"
+          "   version [dir=build];        Returns the version information. Add '--short' to print only the version number.\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
@@ -1635,22 +1640,8 @@ def usage(msg=''):
           "                                   Note the login (usr@server) must have write permisions to Nolan machine.\n"
           "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
           "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
-          "                                   <ver> usually X.YY.MM\n"
+          "                                   <ver> usually X.YY.MM (add debug to package this local script and the local scripts/tar.py) \n"
           )
-
-
-def getVersion(onlyNumbers=False):
-    import re  # To clean colors and format
-    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-
-    lines = subprocess.check_output(["src/xmipp/bin/xmipp_version"])
-    verInfo = [line for line in lines.splitlines() if VERSION_TAG in line]
-    cleanInfo = ansi_escape.sub('', verInfo[0])
-
-    if onlyNumbers:
-        cleanInfo = cleanInfo.split(':')[1]
-
-    return cleanInfo.strip(' ')
 
 def getCudaVersion(nvcc):
     # FIXME: Refator/unify this with getGccVersion()
@@ -1704,7 +1695,8 @@ def ensureConfig():
 
 def ensureGit(critical=False):
     if not checkProgram('git', critical):
-        if critical or RELEASE_HASH == NO_HASH_ID:
+        if critical or os.path.isdir('.git'):
+            # .git dir found means devel mode, which needs git
             print(red("Git not found."))
             sys.exit(-1)
         else:
@@ -1713,16 +1705,25 @@ def ensureGit(critical=False):
 
 
 def getScriptVersion():
+    """ If git not present means it is in production mode
+        and version can be retrieved from the commit.info file
+    """
+    commitFn = os.path.join('src', 'xmipp', 'commit.info')
+    notFound = "(no git repo detected)"
     if ensureGit(False):
         scriptName = os.path.basename(__file__)
         lastCommit = []
         # get hash of the last commit changing this script
         if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
             return lastCommit[0].strip()
+        elif os.path.isfile(commitFn):
+            with open(commitFn, 'r') as file:
+                commitInfo = file.readline()
+            return commitInfo
         else:
-            return RELEASE_HASH
+            return notFound
     else:
-        return RELEASE_HASH
+        return notFound
 
 
 if __name__ == '__main__':
@@ -1772,12 +1773,20 @@ if __name__ == '__main__':
     elif mode=="cleanBin":
         cleanBinaries()
     elif mode=="version":
-        versionBin = "src/xmipp/bin/xmipp_version"
-        shortFlag = '--short' if n>2 and sys.argv[2]==' --short' else ""
-        if not os.path.isfile(versionBin):
-            print("No compilation found...")
+        buildDir = 'build'
+        shortFlag = ''
+        for arg in sys.argv[2:]:
+            if arg == '--short':
+                shortFlag = '--short'
+            elif arg.startswith('dir='):
+                buildDir = arg[4:]
+        versionBin = "%s/bin/xmipp_version" % buildDir
+        envSetting = "%s/xmipp.bashrc" % buildDir
+        if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
+            print("Build not found...")
         else:
-            runJob(versionBin + shortFlag)
+            runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
+                   show_command=False)
     elif mode=="get_devel_sources":
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
@@ -1895,12 +1904,15 @@ if __name__ == '__main__':
         ver = XMIPP_VERSION
         br = 'master'
         mode = sys.argv[2]
+        debugFlag = ''
         for arg in sys.argv[3:]:
             if arg.startswith('br='):
                 br = arg.split('br=')[1]
             if arg.startswith('v='):
                 ver = arg.split('v=')[1]
-        runJob("scripts/tar.py %s %s %s" % (mode, ver, br))
+            if arg.lower() == 'debug':
+                debugFlag = 'debug'
+        runJob("scripts/tar.py %s %s %s %s" % (mode, ver, br, debugFlag))
 
     else:
         usage(" -> option not found <- \n")

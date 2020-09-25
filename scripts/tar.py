@@ -47,8 +47,19 @@ def usage(error=''):
     sys.exit(1)
 
 
-def run(label, version, branch):
+def run(label, version, branch, debug):
     MODES = {'Binaries': 'build', 'Sources': 'src'}
+
+    def getAndWriteCommitInfo(repo):
+        """ We write the last commit info in the commit.info file
+        """
+        cwd = os.getcwd()
+        os.chdir('src/%s' % repo)
+        hash = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
+                                stdout=subprocess.PIPE).stdout.read().decode("utf-8")
+        with open('commit.info', 'w') as file:
+            file.write("%s (%s)" % (branch, hash.strip()))
+        os.chdir(cwd)
 
     def makeTarget(target, label):
         if exists(target):
@@ -58,18 +69,19 @@ def run(label, version, branch):
         sys.stdout.flush()
         cwd = os.getcwd()
         os.system('git clone https://github.com/I2PC/xmipp %s -b %s'
-                  % (target, branch))
+                   % (target, branch))
+        if debug:  # in debug mode, the main script and this one is packed
+            os.system('cp xmipp %s/xmipp' % target)
+            os.system('cp scripts/tar.py %s/scripts/tar.py' % target)
         os.chdir(target)
-        os.environ['CUDA'] = 'True'
-        os.system("sed -i -e 's/^RELEASE_BRANCH = .*/{0: <28} #/' xmipp"
-                  .format('RELEASE_BRANCH = "%s"' % branch))
-        hash = subprocess.Popen(["git", "rev-parse", "--short", "HEAD"],
-                                stdout=subprocess.PIPE).stdout.read().decode("utf-8")
-        os.system("sed -i -e 's/^RELEASE_HASH = .*/{0: <28} #/' xmipp"
-                  .format('RELEASE_HASH = "%s"' % hash.strip()))
+        os.system('./xmipp get_devel_sources %s' % branch)
+        getAndWriteCommitInfo('xmipp')
+        getAndWriteCommitInfo('xmippCore')
+        getAndWriteCommitInfo('xmippViz')
+        getAndWriteCommitInfo('scipion-em-xmipp')
+        os.environ['CUDA'] = 'True'  # To include cuFFTAdvisor
         os.system('./xmipp config noAsk')  # just to write the config file
         os.system('./xmipp get_dependencies')
-        os.system('./xmipp get_devel_sources %s' % branch)
         os.chdir(cwd)
 
     excludeTgz = ''
@@ -138,5 +150,6 @@ if __name__ == '__main__':
     label = sys.argv[1]
     version = sys.argv[2]
     branch = sys.argv[3] if len(sys.argv)>3 else 'master'
+    debug = any([x.lower() == 'debug' for x in sys.argv])
 
-    run(label, version, branch)
+    run(label, version, branch, debug)
