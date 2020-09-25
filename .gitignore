@@ -43,6 +43,7 @@ gmon.out
 *~
 \#*
 .\#*
+*.DS_Store
 .directory
 .settings
 
