@@ -268,7 +268,7 @@ void ProgCTFEstimateFromPSD::assignParametersFromCTF(const CTFDescription &ctfmo
 /* Read parameters --------------------------------------------------------- */
 void ProgCTFEstimateFromPSD::readBasicParams(XmippProgram *program)
 {
-	//ProgCTFBasicParams::readBasicParams(program);
+	ProgCTFBasicParams::readBasicParams(program);
 
     initial_ctfmodel.enable_CTF = initial_ctfmodel.enable_CTFnoise = true;
     initial_ctfmodel.readParams(program);
@@ -287,7 +287,7 @@ void ProgCTFEstimateFromPSD::readParams()
 /* Usage ------------------------------------------------------------------- */
 void ProgCTFEstimateFromPSD::defineBasicParams(XmippProgram * program)
 {
-	ProgCTFBasicParams::defineBasicParams(program);
+//	ProgCTFBasicParams::defineBasicParams(program);
 	CTFDescription::defineParams(program);
 
 }
@@ -295,6 +295,7 @@ void ProgCTFEstimateFromPSD::defineBasicParams(XmippProgram * program)
 void ProgCTFEstimateFromPSD::defineParams()
 {
     defineBasicParams(this);
+    ProgCTFBasicParams::defineParams();
 }
 
 /* Produce side information ------------------------------------------------ */

@@ -1,7 +1,6 @@
 /***************************************************************************
  *
- * Authors:    Jose Luis Vilas, 					  jlvilas@cnb.csic.es
- * 			   Carlos Oscar S. Sorzano            coss@cnb.csic.es (2019)
+ * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -24,37 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_SPLIT_ODD_EVEN
-#define _PROG_SPLIT_ODD_EVEN
+#include <reconstruction/volume_subtraction.cpp>
 
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
-#include <string>
-#include "core/metadata_extension.h"
-
-/**@defgroup Odd Even
-   @ingroup ReconsLibrary */
-//@{
-/** SSNR parameters. */
-
-class ProgOddEven : public XmippProgram
-{
-private:
-	 /** Filenames */
-	FileName fnOut_odd, fnOut_even, fnImg, splitType;
-	bool sumFrames;
-
-private:
-    void defineParams();
-    void readParams();
-    // This function generates the metadata associated to the input image stack
-    void fromimageToMd(FileName fnImg, MetaData &movienew, size_t &Xdim, size_t &Ydim);
-    void run();
-
-
-};
-//@}
-#endif
-
+RUN_XMIPP_PROGRAM(ProgVolumeSubtraction)

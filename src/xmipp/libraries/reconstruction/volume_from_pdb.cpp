@@ -36,7 +36,10 @@ ProgPdbConverter::ProgPdbConverter()
     blob.radius = 2;   // Blob radius in voxels
     blob.order  = 2;   // Order of the Bessel function
     blob.alpha  = 3.6; // Smoothness parameter
-    output_dim = -1;
+    output_dim_x = -1;
+    output_dim_y = -1;
+    output_dim_z = -1;
+
     fn_pdb = "";
     Ts = 1;
     highTs = 1.0/12.0;
@@ -185,7 +188,9 @@ void ProgPdbConverter::defineParams()
     addParamsLine("  [-o <fn_root>]                     : Root name for output");
     addParamsLine("  [--sampling <Ts=1>]                : Sampling rate (Angstroms/pixel)");
     addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]: Sampling rate before downsampling");
-    addParamsLine("  [--size <output_dim=-1>]               : Final size in pixels (must be a power of 2, if blobs are used)");
+    addParamsLine("  [--size <output_dim_x=-1> <output_dim_y=-1> <output_dim_z=-1>]: Final size in pixels (must be a power of 2, if blobs are used)");
+    addParamsLine("  [--orig <orig_x=0> <orig_y=0> <orig_z=0>]: Define origin of the output volume");
+    addParamsLine("  				                     : If just one dimension is introduced dim_x = dim_y = dim_z");
     addParamsLine("  [--centerPDB]                       : Center PDB with the center of mass");
     addParamsLine("  [--noHet]                           : Heteroatoms are not converted");
     addParamsLine("  [--blobs]                           : Use blobs instead of scattering factors");
@@ -203,7 +208,12 @@ void ProgPdbConverter::readParams()
     fn_out = checkParam("-o") ? getParam("-o") : fn_pdb.withoutExtension();
     Ts = getDoubleParam("--sampling");
     highTs = getDoubleParam("--high_sampling_rate");
-    output_dim = getIntParam("--size");
+    output_dim_x = getIntParam("--size", 0);
+    output_dim_y = getIntParam("--size", 1);
+    output_dim_z = getIntParam("--size", 2);
+    orig_x = getIntParam("--orig", 0);
+    orig_y = getIntParam("--orig", 1);
+    orig_z = getIntParam("--orig", 2);
     useBlobs = checkParam("--blobs");
     usePoorGaussian = checkParam("--poor_Gaussian");
     useFixedGaussian = checkParam("--fixed_Gaussian");
@@ -222,7 +232,8 @@ void ProgPdbConverter::show()
     std::cout << "PDB file:           " << fn_pdb           << std::endl
     << "Sampling rate:      " << Ts               << std::endl
     << "High sampling rate: " << highTs           << std::endl
-    << "Size:               " << output_dim       << std::endl
+    << "Size:               " << output_dim_x << " " << output_dim_y << " " << output_dim_z << std::endl
+    << "Origin:             " << orig_x << " " << orig_y << " " << orig_z << std::endl
     << "Center PDB:         " << doCenter         << std::endl
     << "Do not Hetatm:      " << noHet         << std::endl
     << "Use blobs:          " << useBlobs         << std::endl
@@ -250,14 +261,30 @@ void ProgPdbConverter::computeProteinGeometry()
     ZZ(limit) = XMIPP_MAX(ABS(ZZ(limit0)), ABS(ZZ(limitF)));
 
     // Update output size if necessary
-    if (output_dim == -1)
+    if (output_dim_x == -1)
     {
         int max_dim = XMIPP_MAX(CEIL(ZZ(limit) * 2 / Ts) + 5, CEIL(YY(limit) * 2 / Ts) + 5);
         max_dim = XMIPP_MAX(max_dim, CEIL(XX(limit) * 2 / Ts) + 5);
         if (useBlobs)
-            output_dim = (int)NEXT_POWER_OF_2(max_dim);
+        {
+            output_dim_x = (int)NEXT_POWER_OF_2(max_dim);
+        	output_dim_y = output_dim_x;
+			output_dim_z = output_dim_x;
+        }
         else
-            output_dim = max_dim+10;
+        {
+            output_dim_x = max_dim+10;
+            output_dim_y = output_dim_x;
+			output_dim_z = output_dim_x;
+        }
+    }
+    else
+    {
+    	if (output_dim_y == -1)
+    	{
+    		output_dim_y = output_dim_x;
+    		output_dim_z = output_dim_x;
+    	}
     }
 }
 
@@ -265,12 +292,20 @@ void ProgPdbConverter::computeProteinGeometry()
 void ProgPdbConverter::createProteinAtHighSamplingRate()
 {
     // Create an empty volume to hold the protein
-    int finalDim;
+    int finalDim_x, finalDim_y, finalDim_z;
     if (highTs!=Ts)
-        finalDim=(int)NEXT_POWER_OF_2(output_dim / (highTs/Ts));
+    {
+        finalDim_x=(int)NEXT_POWER_OF_2(output_dim_x / (highTs/Ts));
+        finalDim_y=(int)NEXT_POWER_OF_2(output_dim_y / (highTs/Ts));
+        finalDim_z=(int)NEXT_POWER_OF_2(output_dim_z / (highTs/Ts));
+    }
     else
-        finalDim=output_dim;
-    Vhigh().initZeros(finalDim,finalDim,finalDim);
+    {
+        finalDim_x=output_dim_x;
+        finalDim_y=output_dim_y;
+        finalDim_z=output_dim_z;
+    }
+    Vhigh().initZeros(finalDim_x,finalDim_y,finalDim_z);
     Vhigh().setXmippOrigin();
     if (verbose)
     	std::cout << "The highly sampled volume is of size " << XSIZE(Vhigh())
@@ -387,9 +422,9 @@ void ProgPdbConverter::createProteinAtLowSamplingRate()
     Vlow().setXmippOrigin();
 
     // Return to the desired size
-    Vlow().selfWindow(FIRST_XMIPP_INDEX(output_dim), FIRST_XMIPP_INDEX(output_dim),
-                  FIRST_XMIPP_INDEX(output_dim), LAST_XMIPP_INDEX(output_dim),
-                  LAST_XMIPP_INDEX(output_dim), LAST_XMIPP_INDEX(output_dim));
+    Vlow().selfWindow(FIRST_XMIPP_INDEX(output_dim_x), FIRST_XMIPP_INDEX(output_dim_y),
+                  FIRST_XMIPP_INDEX(output_dim_z), LAST_XMIPP_INDEX(output_dim_x),
+                  LAST_XMIPP_INDEX(output_dim_y), LAST_XMIPP_INDEX(output_dim_z));
 }
 
 /* Blob properties --------------------------------------------------------- */
@@ -413,8 +448,14 @@ void ProgPdbConverter::blobProperties() const
 void ProgPdbConverter::createProteinUsingScatteringProfiles()
 {
     // Create an empty volume to hold the protein
-    Vlow().initZeros(output_dim,output_dim,output_dim);
+    Vlow().initZeros(output_dim_x,output_dim_y,output_dim_z);
     Vlow().setXmippOrigin();
+    if (orig_x!=0)
+    {
+		STARTINGX(Vlow()) = orig_x;
+		STARTINGY(Vlow()) = orig_y;
+		STARTINGZ(Vlow()) = orig_z;
+    }
 
     // Fill the volume with the different atoms
     std::ifstream fh_pdb;
