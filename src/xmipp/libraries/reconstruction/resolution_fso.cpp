@@ -25,10 +25,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_fftw.h>
-#include <core/metadata_extension.h>
-#include <data/monogenic_signal.h>
+#include "core/xmipp_program.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_fftw.h"
+#include "core/metadata_extension.h"
+#include "data/monogenic_signal.h"
 
 class ProgResolutionDirectionalFsc : public XmippProgram
 {
