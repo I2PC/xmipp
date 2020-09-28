@@ -495,8 +495,9 @@ def createEmptyConfig():
               'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_RUN','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
               'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
               'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED',
-              'CONFIG_VERSION', 'PYTHON_LIB']
+              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH',
+              'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
+              'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
     configDict = {}
     for label in labels:
         # We let to set up the xmipp configuration via environ.
@@ -1093,6 +1094,54 @@ def checkMatlab(configDict):
         runJob("rm xmipp_mex*")
     return ans
 
+def configStarPU(configDict):
+    # TODO(Jan Polak): This check would be probably better done with pkg-config
+    if configDict["STARPU"]=="":
+        if checkProgram("starpu_sched_display", show=False): # Heuristic only, StarPU has no main executable
+            configDict["STARPU"]="True"
+        else:
+            configDict["STARPU"]="False"
+    if configDict["STARPU"]=="True":
+        if configDict["STARPU_HOME"]=="" and checkProgram("starpu_sched_display"):
+            starpuBinDir = os.path.dirname(os.path.realpath(distutils.spawn.find_executable("starpu_sched_display")))
+            configDict["STARPU_HOME"] = starpuBinDir.replace("/bin","")
+    if configDict["STARPU_INCLUDE"]=="":
+        configDict["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
+    if configDict["STARPU_LIB"]=="":
+        configDict["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
+    if configDict["STARPU_LIBRARY"]=="":
+        configDict["STARPU_LIBRARY"] = "libstarpu-1.3"
+
+def checkStarPU(configDict):
+    ans = True
+    if configDict["STARPU"] == "True":
+        if configDict["CUDA"] != "True":
+            ans = False
+            print(red("CUDA must be enabled together with STARPU"))
+        if configDict["STARPU_INCLUDE"] == "" or not os.path.isdir(configDict["STARPU_INCLUDE"]):
+            ans = False
+            print(red("Check the STARPU_INCLUDE directory: " + configDict["STARPU_INCLUDE"]))
+        if configDict["STARPU_LIB"] == "" or not os.path.isdir(configDict["STARPU_LIB"]):
+            ans = False
+            print(red("Check the STARPU_LIB directory: " + configDict["STARPU_LIB"]))
+        if configDict["STARPU_LIBRARY"] == "":
+            ans = False
+            print(red("STARPU_LIBRARY must be specified (link library name)"))
+
+        if ans:
+            with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
+                cppFile.write("""
+                #include <starpu.h>
+                int dummy(){}
+                """)
+
+            if not runJob("%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o"% \
+                    (configDict["NVCC"], configDict["NVCC_CXXFLAGS"], configDict["INCDIRFLAGS"],
+                     configDict["STARPU_INCLUDE"], configDict["STARPU_LIB"], configDict["STARPU_LIBRARY"])):
+                print(red("Check STARPU_* settings"))
+                ans = False
+            runJob("rm xmipp_starpu_config_test*")
+    return ans
 
 def writeConfig(configDict):
     with open(CONFIG_FILE_NAME, "w") as configFile:
@@ -1143,6 +1192,7 @@ def config():
     configJava(new_config_dict)
     configCuda(new_config_dict)
     configMatlab(new_config_dict)
+    configStarPU(new_config_dict)
     config_DL(new_config_dict)
     configConfigVersion(new_config_dict)
 
@@ -1186,6 +1236,9 @@ def checkConfig():
             print(red("Cannot compile with Matlab, continuing without Matlab"))
             newConf["MATLAB"]="False"
             runJob("rm xmipp_mex*")
+        if not checkStarPU(configDict):
+            print(red("Cannot compile with StarPU, continuing without StarPU"))
+            newConf["STARPU"]="False"
         newConf['VERIFIED']="True"
         updateConfig(newConf)
     else:
