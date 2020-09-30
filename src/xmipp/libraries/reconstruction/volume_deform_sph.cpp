@@ -130,51 +130,50 @@ double ProgVolDeformSph::distance(double *pclnm)
 			for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++)
 			{
 				double gx=0.0, gy=0.0, gz=0.0;
-				for (size_t idx=0; idx<idxY0; idx++)
+				double k2=k*k;
+				double kr=k*iRmax;
+				double k2i2=k2+i*i;
+				double ir=i*iRmax;
+				double r2=k2i2+j*j;
+				double jr=j*iRmax;
+				double rr=std::sqrt(r2)*iRmax;
+				if (r2<Rmax2)
 				{
-					if (VEC_ELEM(steps_cp,idx) == 1)
+					for (size_t idx=0; idx<idxY0; idx++)
 					{
-						// double Rmax=VEC_ELEM(clnm,idx+idxR);
-						double k2=k*k;
-						double kr=k*iRmax;
-						double k2i2=k2+i*i;
-						double ir=i*iRmax;
-						double r2=k2i2+j*j;
-						double jr=j*iRmax;
-						double rr=std::sqrt(r2)*iRmax;
-						double zsph=0.0;
-						if (r2<Rmax2)
+						if (VEC_ELEM(steps_cp,idx) == 1)
 						{
+							// double Rmax=VEC_ELEM(clnm,idx+idxR);
+							double zsph=0.0;
 							l1 = VEC_ELEM(vL1,idx);
 							n = VEC_ELEM(vN,idx);
 							l2 = VEC_ELEM(vL2,idx);
 							m = VEC_ELEM(vM,idx);
 							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-						}
-
 #ifdef NEVERDEFINED
-						if (ir!=0&jr!=0&rr!=0)
-						{
-							x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
-							y = zsph*(ir/rr);
-							z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
-							gx += VEC_ELEM(clnm,idx)      *x;
-							gy += VEC_ELEM(clnm,idx+idxY0)*y;
-							gz += VEC_ELEM(clnm,idx+idxZ0)*z;
-						}
-						else
-						{
-							gx += VEC_ELEM(clnm,idx)      *zsph;
-							gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
-							gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
-						}
+							if (ir!=0&jr!=0&rr!=0)
+							{
+								x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
+								y = zsph*(ir/rr);
+								z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
+								gx += VEC_ELEM(clnm,idx)      *x;
+								gy += VEC_ELEM(clnm,idx+idxY0)*y;
+								gz += VEC_ELEM(clnm,idx+idxZ0)*z;
+							}
+							else
+							{
+								gx += VEC_ELEM(clnm,idx)      *zsph;
+								gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
+								gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
+							}
 #endif
 						// if (rr>0 || (l2==0 && l1==0))
-						if (rr>0 || l2==0)
-						{
-							gx += VEC_ELEM(clnm,idx)        *(zsph);
-							gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-							gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+							if (rr>0 || l2==0)
+							{
+								gx += VEC_ELEM(clnm,idx)        *(zsph);
+								gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
+								gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+							}
 						}
 					}
 				}
