@@ -345,6 +345,7 @@ void ProgVolDeformSph::run() {
 	}
 
     Matrix1D<double> steps, x;
+	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
 	size_t totalSize = 3*vecSize;
 	fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
