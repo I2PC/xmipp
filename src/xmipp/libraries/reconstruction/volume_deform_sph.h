@@ -26,7 +26,7 @@
 #define _PROG_VOL_DEFORM_SPH
 
 #include <vector>
-
+#include <CTPL/ctpl_stl.h>
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 
@@ -138,6 +138,9 @@ public:
 
     /// Save vector to file
     void writeVector(std::string outPath, Matrix1D<double> v, bool append);
+
+private:
+    ctpl::thread_pool m_threadPool;
 };
 
 //@}

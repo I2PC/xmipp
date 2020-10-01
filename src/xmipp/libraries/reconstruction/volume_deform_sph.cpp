@@ -24,6 +24,8 @@
 
 #include <fstream>
 #include <iterator>
+#include <numeric>
+#include "data/cpu.h"
 #include "volume_deform_sph.h"
 #include "data/fourier_filter.h"
 #include "data/normalize.h"
@@ -43,6 +45,7 @@ void ProgVolDeformSph::defineParams() {
 	addParamsLine("  [--l2 <l2=2>]                        : Harmonical depth of the deformation=1,2,3,...");
 	addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
+	addParamsLine("   [--thr <N=-1>]                      : Maximal number of the processing CPU threads");
 	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
 }
 
@@ -75,6 +78,11 @@ void ProgVolDeformSph::readParams() {
 	lambda = getDoubleParam("--regularization");
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
+    int threads = getIntParam("--thr");
+    if (0 >= threads) {
+        threads = CPU::findCores();
+    }
+    m_threadPool.resize(threads);
 }
 
 // Show ====================================================================
@@ -93,6 +101,9 @@ void ProgVolDeformSph::show() {
 
 }
 
+
+
+
 // Distance function =======================================================
 // #define DEBUG
 double ProgVolDeformSph::distance(double *pclnm)
@@ -103,13 +114,13 @@ double ProgVolDeformSph::distance(double *pclnm)
 		VO().setXmippOrigin();
 	}
 	// int maxl1 = L1;
-	int l1,n,l2,m;
+//	int l1,n,l2,m;
 	size_t idxY0=VEC_XSIZE(clnm)/3;
 	size_t idxZ0=2*idxY0;
 	// size_t idxR=3*idxY0;
-	double Ncount=0.0;
+	std::atomic<long> Ncount;
+	Ncount = 0;
 	// double totalVal=0.0;
-	double diff2=0.0;
 	sumVD = 0.0;
 	const MultidimArray<double> &mVR=VR();
 	const MultidimArray<double> &mVI=VI();
@@ -118,107 +129,118 @@ double ProgVolDeformSph::distance(double *pclnm)
 #ifdef DEBUG
 	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
-	double modg=0.0;
 	// double absVoxelR;
-	double voxelR, voxelI, diff;
 	double Rmax2=Rmax*Rmax;
 	double iRmax=1.0/Rmax;
+
+	auto diffs = std::vector<double>(FINISHINGZ(mVR) + 1, 0.0);
+	auto modsg = std::vector<double>(FINISHINGZ(mVR) + 1, 0.0);
+    auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, this, &diffs, &modsg, &Ncount](int thrId, int k) {
+        for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++)
+        {
+            for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++)
+            {
+                double gx=0.0, gy=0.0, gz=0.0;
+                double k2=k*k;
+                double kr=k*iRmax;
+                double k2i2=k2+i*i;
+                double ir=i*iRmax;
+                double r2=k2i2+j*j;
+                double jr=j*iRmax;
+                double rr=std::sqrt(r2)*iRmax;
+                if (r2<Rmax2)
+                {
+                    for (size_t idx=0; idx<idxY0; idx++)
+                    {
+                        if (VEC_ELEM(steps_cp,idx) == 1)
+                        {
+                            // double Rmax=VEC_ELEM(clnm,idx+idxR);
+                            int l1 = VEC_ELEM(vL1,idx);
+                            int n = VEC_ELEM(vN,idx);
+                            int l2 = VEC_ELEM(vL2,idx);
+                            int m = VEC_ELEM(vM,idx);
+                            double zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+#ifdef NEVERDEFINED
+                            if (ir!=0&jr!=0&rr!=0)
+                            {
+                                x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
+                                y = zsph*(ir/rr);
+                                z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
+                                gx += VEC_ELEM(clnm,idx)      *x;
+                                gy += VEC_ELEM(clnm,idx+idxY0)*y;
+                                gz += VEC_ELEM(clnm,idx+idxZ0)*z;
+                            }
+                            else
+                            {
+                                gx += VEC_ELEM(clnm,idx)      *zsph;
+                                gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
+                                gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
+                            }
+#endif
+                        // if (rr>0 || (l2==0 && l1==0))
+                            if (rr>0 || l2==0)
+                            {
+                                gx += VEC_ELEM(clnm,idx)        *(zsph);
+                                gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
+                                gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+                            }
+                        }
+                    }
+                }
+            	double voxelR, voxelI, diff;
+                if (applyTransformation)
+                {
+                    // absVoxelR=fabs(voxelR);
+                    voxelR=A3D_ELEM(VR(),k,i,j);
+                    voxelI=VI().interpolatedElement3D(j+gx,i+gy,k+gz);
+                    if (voxelI >= 0.0)
+                        sumVD += voxelI;
+                    VO(k,i,j)=voxelI;
+                    diff=voxelR-voxelI;
+                    diffs.at(k) += diff*diff;
+                    modsg.at(k) += gx*gx+gy*gy+gz*gz;
+                    Ncount++;
+                    // totalVal += absVoxelR;
+                }
+                for (int idv=0; idv<volumesR.size(); idv++)
+                {
+                    voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
+                    // absVoxelR=fabs(voxelR);
+                    voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
+                    if (voxelI >= 0.0)
+                        sumVD += voxelI;
+                    diff=voxelR-voxelI;
+                    // diff2+=absMaxR_vec[idv]*diff*diff;
+                    diffs.at(k) += diff*diff;
+                    // modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
+                    modsg.at(k) += gx*gx+gy*gy+gz*gz;
+                    Ncount++;
+                    // totalVal += absVoxelR;
+                }
+
+                if (saveDeformation)
+                {
+                    Gx(k,i,j)=gx;
+                    Gy(k,i,j)=gy;
+                    Gz(k,i,j)=gz;
+                }
+            }
+        }
+    };
+
+    auto futures = std::vector<std::future<void>>();
 	for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++)
 	{
-		for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++)
-		{
-			for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++)
-			{
-				double gx=0.0, gy=0.0, gz=0.0;
-				double k2=k*k;
-				double kr=k*iRmax;
-				double k2i2=k2+i*i;
-				double ir=i*iRmax;
-				double r2=k2i2+j*j;
-				double jr=j*iRmax;
-				double rr=std::sqrt(r2)*iRmax;
-				if (r2<Rmax2)
-				{
-					for (size_t idx=0; idx<idxY0; idx++)
-					{
-						if (VEC_ELEM(steps_cp,idx) == 1)
-						{
-							// double Rmax=VEC_ELEM(clnm,idx+idxR);
-							double zsph=0.0;
-							l1 = VEC_ELEM(vL1,idx);
-							n = VEC_ELEM(vN,idx);
-							l2 = VEC_ELEM(vL2,idx);
-							m = VEC_ELEM(vM,idx);
-							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-#ifdef NEVERDEFINED
-							if (ir!=0&jr!=0&rr!=0)
-							{
-								x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
-								y = zsph*(ir/rr);
-								z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
-								gx += VEC_ELEM(clnm,idx)      *x;
-								gy += VEC_ELEM(clnm,idx+idxY0)*y;
-								gz += VEC_ELEM(clnm,idx+idxZ0)*z;
-							}
-							else
-							{
-								gx += VEC_ELEM(clnm,idx)      *zsph;
-								gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
-								gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
-							}
-#endif
-						// if (rr>0 || (l2==0 && l1==0))
-							if (rr>0 || l2==0)
-							{
-								gx += VEC_ELEM(clnm,idx)        *(zsph);
-								gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-								gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
-							}
-						}
-					}
-				}
-				if (applyTransformation)
-				{
-					// absVoxelR=fabs(voxelR);
-					voxelR=A3D_ELEM(VR(),k,i,j);
-					voxelI=VI().interpolatedElement3D(j+gx,i+gy,k+gz);
-					if (voxelI >= 0.0)
-						sumVD += voxelI;
-					VO(k,i,j)=voxelI;
-					diff=voxelR-voxelI;
-					diff2+=diff*diff;
-					modg+=gx*gx+gy*gy+gz*gz;
-					Ncount++;
-					// totalVal += absVoxelR;
-				}
-				for (int idv=0; idv<volumesR.size(); idv++)
-				{
-					voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
-					// absVoxelR=fabs(voxelR);
-					voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
-					if (voxelI >= 0.0)
-						sumVD += voxelI;
-					diff=voxelR-voxelI;
-					// diff2+=absMaxR_vec[idv]*diff*diff;
-					diff2+=diff*diff;
-					// modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
-					modg+=gx*gx+gy*gy+gz*gz;
-					Ncount++;
-					// totalVal += absVoxelR;
-				}
-
-				if (saveDeformation) 
-				{
-					Gx(k,i,j)=gx;
-					Gy(k,i,j)=gy;
-					Gz(k,i,j)=gz;
-				}
-			}
-		}
+	    diffs.emplace_back(0);
+	    futures.emplace_back(m_threadPool.push(routineDist, k));
 	}
-
+    // wait till done
+    for (auto &f : futures) {
+        f.get();
+    }
 	// deformation=std::sqrt(modg/(totalVal));
-	deformation=std::sqrt(modg/(Ncount));
+    double modg = std::accumulate(modsg.begin(), modsg.end(), 0.0);
+	deformation=std::sqrt(modg/(double)Ncount);
 
 #ifdef DEBUG
 	Image<double> save;
@@ -246,7 +268,8 @@ double ProgVolDeformSph::distance(double *pclnm)
 	// return std::sqrt(diff2/totalVal);
 	//// sumVD /= volumesR.size();
 	double massDiff=std::abs(sumVI-sumVD)/sumVI;
-	return std::sqrt(diff2/Ncount)+lambda*(deformation+massDiff);
+	double diff2 = std::accumulate(diffs.begin(), diffs.end(), 0.0);
+	return std::sqrt(diff2/(double)Ncount)+lambda*(deformation+massDiff);
 }
 #undef DEBUG
 
