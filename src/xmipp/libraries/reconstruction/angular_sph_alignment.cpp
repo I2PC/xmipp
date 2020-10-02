@@ -404,6 +404,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 				// 	}
 				// }
 			}
+			steps_cp = steps;
 			powellOptimizer(p, 1, totalSize, &continuousSphCost, this, 0.01, cost, iter, steps, verbose>=2);
 
 			if (verbose>=3)
@@ -616,6 +617,9 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 	size_t idxZ0=2*idxY0;
 	// size_t idxR=3*idxY0;
 	sumVd=0.0;
+	double RmaxF=RmaxDef;
+	double RmaxF2=RmaxF*RmaxF;
+	double iRmaxF=1.0/RmaxF;
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
 	{
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
@@ -624,37 +628,37 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const Multid
 			{
 
 				double gx=0.0, gy=0.0, gz=0.0;
-				for (size_t idx=0; idx<idxY0; idx++)
+				double k2=k*k;
+				double kr=k*iRmaxF;
+				double k2i2=k2+i*i;
+				double ir=i*iRmaxF;
+				double r2=k2i2+j*j;
+				double jr=j*iRmaxF;
+				double rr=sqrt(r2)*iRmaxF;
+				if (r2<RmaxF2)
 				{
-					// double RmaxF=VEC_ELEM(clnm,idx+idxR);
-                    double RmaxF=RmaxDef;
-					double RmaxF2=RmaxF*RmaxF;
-					double iRmaxF=1.0/RmaxF;
-					double k2=k*k;
-					double kr=k*iRmaxF;
-					double k2i2=k2+i*i;
-					double ir=i*iRmaxF;
-					double r2=k2i2+j*j;
-					double jr=j*iRmaxF;
-					double zsph=0.0;
-					double rr=sqrt(r2)*iRmaxF;
-					if (r2<RmaxF2)
+					for (size_t idx=0; idx<idxY0; idx++)
 					{
-                        l1 = VEC_ELEM(vL1,idx);
-                        n = VEC_ELEM(vN,idx);
-                        l2 = VEC_ELEM(vL2,idx);
-                        m = VEC_ELEM(vM,idx);
-                        zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-						// spherical_index2lnm(idx+1,l,n,m);
-						// zsph=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,rr);
-					}
-					// if (rr>0 || l==0)
-                    // if (rr>0 || (l2==0 && l1==0))
-                    if (rr>0 || l2==0)
-					{
-						gx += VEC_ELEM(clnm,idx)        *(zsph);
-						gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+						// double RmaxF=VEC_ELEM(clnm,idx+idxR);
+						if (VEC_ELEM(steps_cp,idx) == 1)
+						{
+							double zsph=0.0;
+							l1 = VEC_ELEM(vL1,idx);
+							n = VEC_ELEM(vN,idx);
+							l2 = VEC_ELEM(vL2,idx);
+							m = VEC_ELEM(vM,idx);
+							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+							// spherical_index2lnm(idx+1,l,n,m);
+							// zsph=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,rr);
+							// if (rr>0 || l==0)
+							// if (rr>0 || (l2==0 && l1==0))
+							if (rr>0 || l2==0)
+							{
+								gx += VEC_ELEM(clnm,idx)        *(zsph);
+								gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
+								gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+							}
+						}
 					}
 				}
 				mVD(k,i,j) = mV.interpolatedElement3D(j+gx,i+gy,k+gz);
