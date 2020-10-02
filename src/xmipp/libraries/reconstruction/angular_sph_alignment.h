@@ -108,6 +108,8 @@ public:
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
 	Matrix1D<double> clnm;
+    //Copy of Optimizer steps
+    Matrix1D<double> steps_cp;
 	//Total Deformation, sumV, sumVd
 	double totalDeformation, sumV, sumVd;
 	// Show optimization
