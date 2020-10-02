@@ -178,6 +178,10 @@ void ProgAngularSphAlignment::preProcess()
     // Transformation matrix
     A.initIdentity(3);
 
+	vecSize = 0;
+	numCoefficients(L1,L2,vecSize);
+    fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
+
     createWorkFiles();
 }
 
@@ -287,8 +291,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	// nh.resize(depth+2);
 	// nh.initConstant(0);
 	// Numsph(nh);
-    numCoefficients(L1,L2,vecSize);
-    fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
 
 	if (RmaxDef<0)
 		RmaxDef = Xdim/2;
