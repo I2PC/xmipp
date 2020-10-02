@@ -118,8 +118,6 @@ double ProgVolDeformSph::distance(double *pclnm)
 	size_t idxY0=VEC_XSIZE(clnm)/3;
 	size_t idxZ0=2*idxY0;
 	// size_t idxR=3*idxY0;
-	std::atomic<long> Ncount;
-	Ncount = 0;
 	// double totalVal=0.0;
 	sumVD = 0.0;
 	const MultidimArray<double> &mVR=VR();
@@ -133,9 +131,17 @@ double ProgVolDeformSph::distance(double *pclnm)
 	double Rmax2=Rmax*Rmax;
 	double iRmax=1.0/Rmax;
 
-	auto diffs = std::vector<double>(FINISHINGZ(mVR) + 1, 0.0);
-	auto modsg = std::vector<double>(FINISHINGZ(mVR) + 1, 0.0);
-    auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, this, &diffs, &modsg, &Ncount](int thrId, int k) {
+	// prepare a vector for each output variable. We cannot use atomic, as there's non for doubles
+	auto zSlices = mVR.zdim;
+	auto diffs = std::vector<double>(zSlices, 0.0);
+	auto modsg = std::vector<double>(zSlices, 0.0);
+	auto counts = std::vector<size_t>(zSlices, 0);
+    auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, this, &diffs, &modsg, &counts]
+                        (int thrId, int k, size_t idxZ) {
+        // local variables keep it in cache
+        size_t sliceCount = 0;
+        double sliceModg = 0;
+        double sliceDiff = 0;
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++)
         {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++)
@@ -197,9 +203,9 @@ double ProgVolDeformSph::distance(double *pclnm)
                         sumVD += voxelI;
                     VO(k,i,j)=voxelI;
                     diff=voxelR-voxelI;
-                    diffs.at(k) += diff*diff;
-                    modsg.at(k) += gx*gx+gy*gy+gz*gz;
-                    Ncount++;
+                    sliceDiff += diff*diff;
+                    sliceModg += gx*gx+gy*gy+gz*gz;
+                    sliceCount++;
                     // totalVal += absVoxelR;
                 }
                 for (int idv=0; idv<volumesR.size(); idv++)
@@ -211,10 +217,10 @@ double ProgVolDeformSph::distance(double *pclnm)
                         sumVD += voxelI;
                     diff=voxelR-voxelI;
                     // diff2+=absMaxR_vec[idv]*diff*diff;
-                    diffs.at(k) += diff*diff;
+                    sliceDiff += diff*diff;
                     // modg+=absVoxelR*(gx*gx+gy*gy+gz*gz);
-                    modsg.at(k) += gx*gx+gy*gy+gz*gz;
-                    Ncount++;
+                    sliceModg += gx*gx+gy*gy+gz*gz;
+                    sliceCount++;
                     // totalVal += absVoxelR;
                 }
 
@@ -226,20 +232,27 @@ double ProgVolDeformSph::distance(double *pclnm)
                 }
             }
         }
+        // update values outside of this thread
+        counts.at(idxZ) = sliceCount;
+        modsg.at(idxZ) = sliceModg;
+        diffs.at(idxZ) = sliceDiff;
     };
 
+    // create a job for each slice
     auto futures = std::vector<std::future<void>>();
+    size_t idxZ = 0;
 	for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++)
 	{
-	    diffs.emplace_back(0);
-	    futures.emplace_back(m_threadPool.push(routineDist, k));
+	    futures.emplace_back(m_threadPool.push(routineDist, k, idxZ));
+	    idxZ++;
 	}
-    // wait till done
+    // wait till all slices are processed
     for (auto &f : futures) {
         f.get();
     }
 	// deformation=std::sqrt(modg/(totalVal));
     double modg = std::accumulate(modsg.begin(), modsg.end(), 0.0);
+    size_t Ncount = std::accumulate(counts.begin(), counts.end(), 0);
 	deformation=std::sqrt(modg/(double)Ncount);
 
 #ifdef DEBUG
