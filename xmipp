@@ -48,6 +48,7 @@ XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
+GTEST = 'googletest'
 
 XMIPP_SCRIPT_VERSION = ''
 
@@ -56,11 +57,13 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-                CTPL: 'https://github.com/vit-vit/CTPL.git'}
+                CTPL: 'https://github.com/vit-vit/CTPL.git',
+                GTEST: 'https://github.com/google/googletest'}
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
-                CTPL: ('master', None)}
+                CTPL: ('master', None),
+                GTEST: ('release-1.10.0', None)}
 
 CONFIG_FILE_NAME = "xmipp.conf"
 
