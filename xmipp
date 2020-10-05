@@ -334,8 +334,9 @@ def pull():
 
 def cloneOrCheckout(repo, branch):
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
-    if branch not in getAllBranches(repo):
+    if branch not in getAllBranchesAndTags(repo)[1]:
         branch = getBranch(repo, repo_dir)[1]
+
     if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
         if branch is None:
@@ -346,7 +347,7 @@ def cloneOrCheckout(repo, branch):
     else:
         workDir = os.getcwd()
         os.chdir(repo_dir)
-        print(green('Checkouting ' + repo + ' ...'))
+        print(green(f'Checkouting {repo}:{branch} ...'))
         res = checkout(branch) and pull()
         os.chdir(workDir)
         return res
@@ -381,16 +382,17 @@ def getCurrentBranch(cwd='./', getHash=False):
     print(red('Cannot get current branch'))
     return (False,) + (None,)*outBranchArgs
 
-def getAllBranches(repo):
+
+def getAllBranchesAndTags(repo):
     log = []
-    prefix = 'refs/heads/'
-    result = runJob('git ls-remote -h %s' % REPOSITORIES[repo],
+    result = runJob('git ls-remote -th %s' % REPOSITORIES[repo],
                     show_output=False, log=log, show_command=False)
     if result:
-        branches = [l.split(prefix)[1] for l in log]
-        return True, branches
+        branchesAndTags = [l.split('/')[-1] for l in log]
+        return True, branchesAndTags
     print(red('Cannot list branches for ' + repo))
     return False, None
+
 
 def getBranch(repo, repo_dir):
     # return current branch
@@ -401,11 +403,12 @@ def getBranch(repo, repo_dir):
     # we need to get current branch of the xmipp
     r1, branchHint = (getCurrentTravisBranch() if 'TRAVIS' in os.environ
                       else getCurrentBranch())
-    r2, branches = getAllBranches(repo)
+    r2, branches = getAllBranchesAndTags(repo)
     if r1 and r2 and branchHint in branches:
         return True, branchHint
     # default branch
     return getDefaultBranch(repo)
+
 
 def getDefaultBranch(repo):
     log = []
