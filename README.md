@@ -35,7 +35,7 @@ Please, folow one of the two point below depending on your case. Also, check the
   
   Secondly, install the 'scipion-em-xmipp' plugin in development mode
   ```
-  scipion3 installp -p $PWD/src/scipion-em-xmipp
+  scipion3 installp -p $PWD/src/scipion-em-xmipp --devel
   ```
   note that `scipion3` should be installed and visible in the path (check the [Scipion's installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#launching-scipion3)).
   
