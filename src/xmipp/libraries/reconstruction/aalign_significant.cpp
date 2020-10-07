@@ -444,6 +444,7 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
     }
 }
 
+
 template<typename T>
 void AProgAlignSignificant<T>::updateSettings() {
     m_settings.refDims = m_referenceImages.dims;
