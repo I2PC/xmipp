@@ -423,20 +423,27 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
     });
 
     MDRow row;
-    size_t i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(md) {
-        // get the original row from the input metadata
-        md.getRow(row, __iter.objId);
-        auto maxVote = m_assignments.at(i).merit;
-        // for all references that we want to store, starting from the best matching one
-        for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
-            const auto &a = m_assignments.at(i);
-            fillRow(row, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
-            result.addRow(row);
-            i++;
+
+    try{
+        size_t i = 0;
+        FOR_ALL_OBJECTS_IN_METADATA(md) {
+            // get the original row from the input metadata
+            md.getRow(row, __iter.objId);
+            auto maxVote = m_assignments.at(i).merit;
+            // for all references that we want to store, starting from the best matching one
+            for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
+                const auto &a = m_assignments.at(i);
+                fillRow(row, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
+                result.addRow(row);
+                i++;
+            }
         }
+        result.write(m_fnOut);
     }
-    result.write(m_fnOut);
+    catch(const std::exception& e) {
+    	std::cout << e.what();
+    }
+
 }
 
 template<typename T>
