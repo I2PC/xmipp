@@ -63,6 +63,10 @@ public:
     bool optimizeAlignment;
     //Optimize deformation
     bool optimizeDeformation;
+    //Optimize defocus
+    bool optimizeDefocus;
+    // Ignore CTF
+    bool ignoreCTF;
     //Radius optimization
     bool optimizeRadius;
     // Phase Flipped
@@ -76,6 +80,10 @@ public:
     int flagEnabled;
 
 public:
+    // // Rank (used for MPI version)
+    // int rank;
+    // /** Padding factor */
+    // int pad;
     /** Resume computations */
     bool resume;
     // 2D mask in real space
@@ -86,6 +94,8 @@ public:
     size_t Xdim;
     // Input image
 	Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
+    // Fourier projector
+    // FourierProjector *projector;
 	// Theoretical projection
 	Projection P;
 	// Filter
@@ -98,10 +108,18 @@ public:
 	double old_shiftX, old_shiftY;
 	// Original flip
 	bool old_flip;
-//	// CTF
-//	CTFDescription ctf;
+    // CTF Check
+    bool hasCTF;
+    // Original defocus
+	double old_defocusU, old_defocusV, old_defocusAngle;
+    // Current defoci
+	double currentDefocusU, currentDefocusV, currentAngle;
+	// CTF
+	CTFDescription ctf;
+    // CTF filter
+    FourierFilter FilterCTF;
 	// CTF image
-//	MultidimArray<double> *ctfImage;
+	MultidimArray<double> *ctfImage;
 	// // Degree of the spherical harmonic
 	// int prevL, L;
 	// Vector Size
@@ -169,8 +187,11 @@ public:
     ///Deform a volumen using Zernike-Spherical harmonic basis
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def);
 
+    void updateCTFImage(double defocusU, double defocusV, double angle);
+
     double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-    		                Matrix2D<double> &A);
+    		                Matrix2D<double> &A, double deltaDefocusU, 
+                            double deltaDefocusV, double deltaDefocusAngle);
 
     //AJ new
     /** Write the final parameters. */
