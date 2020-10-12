@@ -1315,6 +1315,17 @@ def compile_cuFFTAdvisor():
     return ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 
 
+def compile_googletest():
+    currDir = os.getcwd()
+    buildDir = os.path.join("src", "googletest", "build")
+    createDir(buildDir)
+    os.chdir(buildDir)
+    ok = runJob("cmake ..")
+    ok = ok and runJob("make gtest")
+    os.chdir(currDir)
+    return ok
+
+
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
@@ -1353,6 +1364,7 @@ def compileDependencies(Nproc):
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
+    result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))
     return result
