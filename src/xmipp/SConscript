@@ -58,9 +58,9 @@ if opencv:
         if opencv_3:
             opencvLibs+=['libopencv_cudaoptflow', 'libopencv_cudaarithm']
         else:
-            opencvLibs+=['libopencv_gpu'] 
+            opencvLibs+=['libopencv_gpu']
 
-            
+
 else:
     opencvLibs = []
 
@@ -120,11 +120,14 @@ def addLib(name, **kwargs):
     # If pattern not provided use *.cpp as default
     patterns = kwargs.get('patterns', '*.cpp')
     kwargs['patterns'] = patterns
-    
-    libpath = kwargs.get('libpath', [])
-    kwargs['libpath'] = libpath+[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
 
-    lib = env.AddCppLibrary(name, **kwargs)	
+    libpath = kwargs.get('libpath', [])
+    kwargs['libpath'] = libpath + [
+        join(XMIPP_BUNDLE, 'xmippCore', 'lib'),
+        join(XMIPP_BUNDLE, 'xmipp', 'lib'),
+    ]
+
+    lib = env.AddCppLibrary(name, **kwargs)
     env.Alias('xmipp-libs', lib)
 
     return lib
@@ -198,9 +201,11 @@ addLib('XmippParallel',dirs=dirs,patterns=patterns, incs=python_incdirs,
 XMIPP_LIBS = ['Xmipp']
 PROG_DEPS = XMIPP_LIBS
 
-PROG_LIBS = XMIPP_LIBS + [getHdf5Name(env['EXTERNAL_LIBDIRS']),
-                          'hdf5_cpp','fftw3','fftw3_threads','jpeg','tiff',
-                          'fftw3f', 'fftw3f_threads', 'pthread', PYTHON_LIB]
+PROG_LIBS = XMIPP_LIBS + [
+    getHdf5Name(env['EXTERNAL_LIBDIRS']),
+    'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f',
+    'fftw3f_threads', 'pthread', PYTHON_LIB, 'libgtest'
+]
 
 # Shortcut function to add the Xmipp programs.
 def addProg(progName, **kwargs):
@@ -228,10 +233,13 @@ def addProg(progName, **kwargs):
         join(XMIPP_BUNDLE, join('googletest', 'googletest', 'include')),
     ]
     kwargs['incs'] = incs
-    if 'libPaths' in kwargs:
-        kwargs['libPaths'] +=[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
-    else:
-        kwargs['libPaths'] =[join(XMIPP_BUNDLE,'xmippCore','lib'),join(XMIPP_BUNDLE,'xmipp','lib')]
+    if 'libPaths' not in kwargs:
+        kwargs['libPaths'] = []
+    kwargs['libPaths'] += [
+        join(XMIPP_BUNDLE, 'xmippCore', 'lib'),
+        join(XMIPP_BUNDLE, 'xmipp', 'lib'),
+        join(XMIPP_BUNDLE, 'googletest', 'build', 'lib'),
+    ]
 
     if progName.startswith('mpi_'):
         kwargs['mpi'] = True
@@ -304,7 +312,7 @@ addLib('xmippLib.so',
        incs=python_incdirs,
        libs=[PYTHON_LIB, 'XmippCore', 'Xmipp', 'fftw3f'],
        prefix='', target='xmippLib')
-       
+
 #  ***********************************************************************
 #  *                      Xmipp Scripts                                  *
 #  ***********************************************************************
@@ -326,8 +334,8 @@ for file in glob(os.path.join(XMIPP_PATH, 'bin', '*')):
         os.remove(file)
 # Batches (apps)
 for scriptName in glob(os.path.join(XMIPP_PATH,'applications','scripts','*','*.[ps]*')):
-	dirName = os.path.basename(os.path.dirname(scriptName))
-	addBatch(dirName,scriptName)
+    dirName = os.path.basename(os.path.dirname(scriptName))
+    addBatch(dirName,scriptName)
 
 # # Python tests
 # testPythonInterface = env.SymLink('bin/xmipp_test_pythoninterface', 'applications/tests/test_pythoninterface/batch_test_pythoninterface.py')
@@ -371,10 +379,10 @@ def addMatlabBinding(name):
     return cmdTarget
 
 if matlab:
-	for pname in glob(os.path.join(XMIPP_PATH,'bindings','matlab','*.cpp')):
-		addMatlabBinding(pname)
-	env.Default('xmipp-matlab')
-	env.Alias('xmipp', 'xmipp-matlab')
+    for pname in glob(os.path.join(XMIPP_PATH,'bindings','matlab','*.cpp')):
+        addMatlabBinding(pname)
+    env.Default('xmipp-matlab')
+    env.Alias('xmipp', 'xmipp-matlab')
 
 XmippAlias = env.Alias('xmipp', ['xmipp-libs',
                                  'xmipp-programs',
