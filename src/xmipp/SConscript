@@ -204,7 +204,7 @@ PROG_DEPS = XMIPP_LIBS
 PROG_LIBS = XMIPP_LIBS + [
     getHdf5Name(env['EXTERNAL_LIBDIRS']),
     'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f',
-    'fftw3f_threads', 'pthread', PYTHON_LIB, 'libgtest'
+    'fftw3f_threads', 'pthread', PYTHON_LIB, 'libgtest', 'libgtest_main'
 ]
 
 # Shortcut function to add the Xmipp programs.
