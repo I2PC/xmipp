@@ -68,7 +68,7 @@ void ProgApplyVolDeformSph::run()
 	clnm = string2vector(line);
 	fillVectorTerms(vL1,vN,vL2,vM);
 	int l1,n,l2,m;
-	size_t idxY0=clnm.size()/3;
+	size_t idxY0=(clnm.size()-8)/3;
 	size_t idxZ0=2*idxY0;
 	const MultidimArray<double> &mVI=VI();
 	double voxelI;
@@ -143,7 +143,7 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
 									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
     int idx = 0;
-	int vecSize = clnm.size()/3;
+	int vecSize = (clnm.size()-8)/3;
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
