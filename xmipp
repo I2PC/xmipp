@@ -1314,7 +1314,7 @@ def compile_googletest():
     createDir(buildDir)
     os.chdir(buildDir)
     ok = runJob("cmake ..")
-    ok = ok and runJob("make gtest")
+    ok = ok and runJob("make gtest gtest_main")
     os.chdir(currDir)
     return ok
 
