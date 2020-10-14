@@ -252,6 +252,8 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 	{
 		FilterCTF.ctf = ctf;
 		FilterCTF.generateMask(P());
+		if (phaseFlipped)
+			FilterCTF.correctPhase();
 		FilterCTF.applyMaskSpace(P());
 	}
     double cost=0;
@@ -381,6 +383,10 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	{
 		hasCTF=true;
 		ctf.readFromMdRow(rowIn);
+		// std::cout << std::endl;
+		// std::cout << "Old Tm = " << ctf.Tm << std::endl;
+		ctf.Tm = Ts;
+		// std::cout << "New Tm = " << ctf.Tm << std::endl;
 		ctf.produceSideInfo();
 		old_defocusU=ctf.DeltafU;
 		old_defocusV=ctf.DeltafV;
@@ -678,16 +684,16 @@ void ProgAngularSphAlignment::updateCTFImage(double defocusU, double defocusV, d
 	currentDefocusV=ctf.DeltafV=defocusV;
 	currentAngle=ctf.azimuthal_angle=angle;
 	ctf.produceSideInfo();
-	if (ctfImage==NULL)
-	{
-		ctfImage = new MultidimArray<double>();
-		ctfImage->resizeNoCopy(Ifiltered());
-		STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
-	}
-	ctf.generateCTF(YSIZE(Ifiltered()),XSIZE(Ifiltered()),*ctfImage,Ts);
-	if (phaseFlipped)
-		FOR_ALL_ELEMENTS_IN_ARRAY2D(*ctfImage)
-			A2D_ELEM(*ctfImage,i,j)=fabs(A2D_ELEM(*ctfImage,i,j));
+	// if (ctfImage==NULL)
+	// {
+	// 	ctfImage = new MultidimArray<double>();
+	// 	ctfImage->resizeNoCopy(Ifiltered());
+	// 	STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
+	// }
+	// ctf.generateCTF(YSIZE(Ifiltered()),XSIZE(Ifiltered()),*ctfImage,Ts);
+	// if (phaseFlipped)
+	// 	FOR_ALL_ELEMENTS_IN_ARRAY2D(*ctfImage)
+	// 		A2D_ELEM(*ctfImage,i,j)=fabs(A2D_ELEM(*ctfImage,i,j));
 }
 
 void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def)
