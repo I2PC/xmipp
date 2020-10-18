@@ -198,8 +198,3 @@ TEST_F( FiltersTest, regionGrowing3DEqualValue)
     EXPECT_DOUBLE_EQ(result,1.);
 
 }
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

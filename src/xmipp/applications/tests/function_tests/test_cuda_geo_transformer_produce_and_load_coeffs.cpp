@@ -229,10 +229,3 @@ REGISTER_TYPED_TEST_SUITE_P(GeoTransformerProduceAndLoadCoeffsTest,
 
 using ScalarTypes = ::testing::Types< float, double >;
 INSTANTIATE_TYPED_TEST_SUITE_P(ScalarTypesInstantiation, GeoTransformerProduceAndLoadCoeffsTest, ScalarTypes);
-
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

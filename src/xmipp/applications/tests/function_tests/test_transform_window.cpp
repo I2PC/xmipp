@@ -168,9 +168,3 @@ TEST_F( TransformWindowTest, unitcell)
 	ASSERT_TRUE(true);
 #undef DEBUG
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

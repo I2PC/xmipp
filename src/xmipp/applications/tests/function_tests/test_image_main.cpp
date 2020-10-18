@@ -420,9 +420,3 @@ TEST_F( ImageTest, checkImageFileSize)
     EXPECT_FALSE(checkImageFileSize("image/smallVolumeStackCorrupted.stk"));
     XMIPP_CATCH
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

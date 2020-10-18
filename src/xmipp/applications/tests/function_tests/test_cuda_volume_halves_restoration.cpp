@@ -269,11 +269,3 @@ REGISTER_TYPED_TEST_SUITE_P(CudaVolumeHalvesRestorationTest,
 
 using ScalarTypes = ::testing::Types< double >;
 INSTANTIATE_TYPED_TEST_SUITE_P(ScalarTypesInstantiation, CudaVolumeHalvesRestorationTest, ScalarTypes);
-
-
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

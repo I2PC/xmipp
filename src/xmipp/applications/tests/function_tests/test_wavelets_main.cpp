@@ -62,11 +62,3 @@ TEST_F(WaveletTests, phaseCongMono)
 
     phaseCongMono(im,Or,Ph,Energy,lowPass,Radius,H,nScale,minWaveLength,mult,sigmaOnf);
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-
-
