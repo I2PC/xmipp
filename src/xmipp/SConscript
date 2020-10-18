@@ -161,7 +161,7 @@ addLib('swig_frm', prefix="_", dirs=dirs, patterns=patterns, incs=python_incdirs
 
 # CUDA
 if cuda:
-    addLib('XmippInterfaceCuda', dirs=['libraries'], patterns=['reconstruction_adapt_cuda/*.cpp'], libs=['Xmipp'])
+    addLib('XmippInterfaceCuda', dirs=['libraries'], patterns=['reconstruction_adapt_cuda/*.cpp'], libs=['Xmipp', 'XmippCore'])
     addLib('XmippCuda', dirs=['libraries'], patterns=['reconstruction_cuda/*.cpp'], nvcc=True, suffix=".a")
     addLib('XmippParallelCuda', dirs=['libraries'], patterns=['parallel_adapt_cuda/*.cpp'],
            libs=['Xmipp','XmippInterfaceCuda','XmippCuda'], mpi=True)
