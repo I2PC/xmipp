@@ -13,7 +13,7 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
        //get example images/staks
         source1 = "funcs/singleImage.spi";
         source2 = "funcs/singleImage.mrc";

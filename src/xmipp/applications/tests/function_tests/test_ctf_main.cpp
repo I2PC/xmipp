@@ -20,7 +20,7 @@ protected:
         {
             //get example images/staks
             if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-            	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+                REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
             // testBaseName = xmippPath + "/resources/test";
             imageName = "image/singleImage.spi";
 
@@ -105,7 +105,7 @@ TEST_F( CtfTest, errorMaxFreqCTFs)
     metadata1.setValue(MDL_CTF_Q0, 0.1, objectId);
     double resolution;
 //    for (double f=0; f < 4000; f+=100.){
-//    		metadata1.setValue(MDL_CTF_DEFOCUSV, f, objectId);
+//          metadata1.setValue(MDL_CTF_DEFOCUSV, f, objectId);
 //            resolution = errorMaxFreqCTFs(metadata1,HALFPI);
 //            std::cerr << "f=" << f << " " << resolution <<std::endl;
 //    }

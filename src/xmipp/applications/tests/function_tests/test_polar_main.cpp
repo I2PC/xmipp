@@ -31,9 +31,9 @@ protected:
 };
 TEST_F( PolarTest, computeAverageAndStddev)
 {
-	Polar<double>                 P;
-	double mean, stddev;
-	P.getPolarFromCartesianBSpline(mulDouble,0,1);
+    Polar<double> P;
+    double mean, stddev;
+    P.getPolarFromCartesianBSpline(mulDouble,0,1);
     P.computeAverageAndStddev(mean,stddev);
     EXPECT_NEAR(mean,1.886528450043468,XMIPP_EQUAL_ACCURACY);
     EXPECT_NEAR(stddev,0.49643800057938808,XMIPP_EQUAL_ACCURACY);
