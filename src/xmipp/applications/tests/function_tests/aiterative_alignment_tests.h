@@ -319,7 +319,7 @@ private:
         }
     }
 };
-TYPED_TEST_CASE_P(IterativeAlignmentEstimator_Test);
+TYPED_TEST_SUITE_P(IterativeAlignmentEstimator_Test);
 
 template<typename T>
 Alignment::ARotationEstimator<T> *IterativeAlignmentEstimator_Test<T>::rotationAligner = nullptr;
@@ -433,7 +433,7 @@ TYPED_TEST_P( IterativeAlignmentEstimator_Test, clearStatisticsNoise)
 //    XMIPP_CATCH
 //}
 
-REGISTER_TYPED_TEST_CASE_P(IterativeAlignmentEstimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(IterativeAlignmentEstimator_Test,
 //    debug
     // tests run different scenarios...
     align2DOneToOneNoNoise,
