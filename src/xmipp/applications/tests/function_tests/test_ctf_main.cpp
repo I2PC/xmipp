@@ -172,11 +172,3 @@ TEST_F( CtfTest, phaseFlip)
 
     XMIPP_CATCH
 }
-
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-

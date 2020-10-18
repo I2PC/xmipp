@@ -124,9 +124,3 @@ TEST_F(SamplingTest, computeDistanceMetadata)
     EXPECT_NEAR (total, 5.23652,0.00001);
     XMIPP_CATCH
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

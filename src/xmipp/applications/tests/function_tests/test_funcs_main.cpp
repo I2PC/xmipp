@@ -30,10 +30,3 @@ TEST_F( FuncTest, CompareTwoFiles)
     ASSERT_TRUE(compareTwoFiles(source1,source1,0));
     ASSERT_FALSE(compareTwoFiles(source1,source2,0));
 }
-
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

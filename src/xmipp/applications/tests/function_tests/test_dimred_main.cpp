@@ -160,9 +160,3 @@ TEST_F( DimRedTest, nca)
 	expectedY.read("dimred/nca.txt");
 	ASSERT_TRUE(expectedY.equal(Y,1e-4));
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

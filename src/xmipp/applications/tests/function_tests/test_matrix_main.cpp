@@ -324,9 +324,3 @@ TEST_F( MatrixTest, matrixOperation_AtA)
     expectedB(1,0)=1.15; expectedB(1,1)=1.5;
     EXPECT_EQ(expectedB,B) << "matrixOperation_AtA failed";
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
