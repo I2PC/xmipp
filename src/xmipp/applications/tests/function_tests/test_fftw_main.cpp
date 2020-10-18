@@ -79,7 +79,7 @@ TEST_F( FftwTest, directFourierTransformComplex)
 
 TEST_F( FftwTest, fft_IDX2DIGFREQ)
 {
-	double w;
+    double w;
     FFT_IDX2DIGFREQ(0,128,w);
     EXPECT_EQ(0,w);
     FFT_IDX2DIGFREQ(1,128,w);

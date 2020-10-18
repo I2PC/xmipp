@@ -12,7 +12,7 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
     }
 
     Matrix1D<double> origin,xaxis,yaxis,zaxis;
