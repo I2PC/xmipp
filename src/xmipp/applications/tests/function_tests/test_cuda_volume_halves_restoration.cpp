@@ -132,7 +132,7 @@ private:
 	std::mt19937 gen;
 };
 
-TYPED_TEST_CASE_P(CudaVolumeHalvesRestorationTest);
+TYPED_TEST_SUITE_P(CudaVolumeHalvesRestorationTest);
 
 TYPED_TEST_P(CudaVolumeHalvesRestorationTest, FilterBankTest) {
 	this->bankStep = 0.07;
@@ -260,7 +260,7 @@ TYPED_TEST_P(CudaVolumeHalvesRestorationTest, DifferenceTest) {
 	this->compare_diff(cuda_restorator);
 }
 
-REGISTER_TYPED_TEST_CASE_P(CudaVolumeHalvesRestorationTest,
+REGISTER_TYPED_TEST_SUITE_P(CudaVolumeHalvesRestorationTest,
 	FilterBankTest,
 	DenoisingTest,
 	DeconvolutionTest,
@@ -268,7 +268,7 @@ REGISTER_TYPED_TEST_CASE_P(CudaVolumeHalvesRestorationTest,
 	);
 
 using ScalarTypes = ::testing::Types< double >;
-INSTANTIATE_TYPED_TEST_CASE_P(ScalarTypesInstantiation, CudaVolumeHalvesRestorationTest, ScalarTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(ScalarTypesInstantiation, CudaVolumeHalvesRestorationTest, ScalarTypes);
 
 
 
