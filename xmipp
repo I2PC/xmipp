@@ -357,7 +357,7 @@ def cloneOrCheckout(repo, branch):
     else:
         workDir = os.getcwd()
         os.chdir(repo_dir)
-        print(green(f'Checkouting {repo}:{branch} ...'))
+        print(green('Checkouting %s:%s ...' % (repo, branch)))
         res = checkout(branch) and pull()
         os.chdir(workDir)
         return res
