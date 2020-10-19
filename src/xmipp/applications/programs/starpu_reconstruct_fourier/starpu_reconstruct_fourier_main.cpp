@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.M. de la Rosa Trevin (jmdelarosa@cnb.csic.es)
+ * Authors:     Jan Polak (456647@mail.muni.cz)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,4 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "recons.h"
+#include <reconstruction_starpu/reconstruct_fourier_starpu.h>
+
+int main(int argc, const char **argv) {
+    ProgRecFourierStarPU program;
+    program.read(argc, argv);
+    return program.tryRun();
+}

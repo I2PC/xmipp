@@ -25,9 +25,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <data/morphology.h>
-#include <data/filters.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
+#include "data/morphology.h"
+#include "data/filters.h"
 
 class ProgMorphology: public XmippMetadataProgram
 {

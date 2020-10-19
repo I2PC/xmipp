@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "xmippmodule.h"
+#include "python_fourierprojector.h"
 #include "python_image.h"
+#include "data/fourier_projection.h"
 
 /***************************************************************/
 /*                            FourierProjector                         */

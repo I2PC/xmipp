@@ -23,9 +23,15 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "recons_misc.h"
+#include "basic_art.h"
+#include "core/metadata.h"
+#include "core/symmetries.h"
+#include "data/mask.h"
+#include "data/projection.h"
+#include "data/wavelet.h"
 #include "symmetrize.h"
-
 
 /* Fill Reconstruction info structure -------------------------------------- */
 void buildReconsInfo(MetaData &selfile,

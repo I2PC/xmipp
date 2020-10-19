@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "angular_project_library.h"
+#include "core/xmipp_image_generic.h"
 
 /* Empty constructor ------------------------------------------------------- */
 ProgAngularProjectLibrary::ProgAngularProjectLibrary()

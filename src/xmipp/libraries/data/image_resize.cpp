@@ -24,6 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "image_resize.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
 
 ProgImageResize::ProgImageResize()
 {}

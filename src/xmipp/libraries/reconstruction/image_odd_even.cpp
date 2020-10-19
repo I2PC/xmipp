@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "image_odd_even.h"
+#include "core/xmipp_image_generic.h"
 //#define DEBUG
 //#define DEBUG_MASK
 

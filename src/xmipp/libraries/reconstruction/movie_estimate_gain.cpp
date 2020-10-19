@@ -25,7 +25,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "movie_estimate_gain.h"
+#include "core/metadata.h"
 
 void ProgMovieEstimateGain::defineParams()
 {

@@ -23,6 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
 #include "svm_classifier.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_filename.h"
 
 #ifdef UNUSED // detected as unused 29.6.2018
 bool findElementIn1DArray(MultidimArray<double> &inputArray,double element)

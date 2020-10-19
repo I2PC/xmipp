@@ -1,4 +1,5 @@
 #include <core/xmipp_image.h>
+#include "core/transformations.h"
 #include <data/filters.h>
 #include <core/xmipp_fftw.h>
 #include <iostream>

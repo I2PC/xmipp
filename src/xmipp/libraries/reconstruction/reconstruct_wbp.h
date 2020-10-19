@@ -23,18 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_fft.h>
-#include <core/args.h>
-#include <core/xmipp_funcs.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_image.h>
-#include <data/projection.h>
-#include <data/filters.h>
+#include "core/symmetries.h"
+#include "core/xmipp_image.h"
+#include "reconstruction/recons.h"
 
-#include <reconstruction/recons.h>
-
-#include <reconstruction/directions.h>
-#include <reconstruction/symmetrize.h>
+class Projection;
 
 /**@defgroup WBP reconstruct_wbp (Weighted Back Projection)
    @ingroup ReconsLibrary */

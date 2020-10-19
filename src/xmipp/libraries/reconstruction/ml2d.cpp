@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include <algorithm>
+#include <iomanip>
 #include "ml2d.h"
 
 ML2DBaseProgram::ML2DBaseProgram()

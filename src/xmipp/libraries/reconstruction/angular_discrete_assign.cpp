@@ -24,15 +24,12 @@
  ***************************************************************************/
 
 #include "angular_discrete_assign.h"
-#include <data/fourier_filter.h>
+#include "classification/base_algorithm.h" // std::vector to std::cout
+#include "core/metadata_extension.h"
+#include "data/wavelet.h"
+#include "data/mask.h"
+#include "data/filters.h"
 
-#include <core/args.h>
-#include <core/histogram.h>
-#include <core/geometry.h>
-#include <data/wavelet.h>
-#include <data/mask.h>
-#include <data/filters.h>
-#include <algorithm>
 
 // Empty constructor =======================================================
 ProgAngularDiscreteAssign::ProgAngularDiscreteAssign()

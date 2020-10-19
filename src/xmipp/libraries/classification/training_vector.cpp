@@ -28,6 +28,7 @@
 //-----------------------------------------------------------------------------
 
 #include <cmath>
+#include <fstream>
 
 #include "training_vector.h"
 #include <core/args.h>

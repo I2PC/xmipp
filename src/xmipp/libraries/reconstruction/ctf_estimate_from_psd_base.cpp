@@ -26,11 +26,7 @@
 
 #include "ctf_estimate_from_psd_base.h"
 #include "ctf_enhance_psd.h"
-
-#include <core/args.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_fft.h>
+#include "data/fourier_filter.h"
 
 
 /* Read parameters --------------------------------------------------------- */

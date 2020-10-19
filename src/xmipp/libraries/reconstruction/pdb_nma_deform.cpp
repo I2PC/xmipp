@@ -24,7 +24,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
 #include "pdb_nma_deform.h"
+#include "core/metadata.h"
+#include "data/pdb.h"
 
 void ProgPdbNmaDeform::defineParams()
 {

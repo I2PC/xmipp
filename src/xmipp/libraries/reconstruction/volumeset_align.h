@@ -25,9 +25,8 @@
 #ifndef _PROG_VOLUMESET_ALIGN
 #define _PROG_VOLUMESET_ALIGN
 
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/matrix1d.h"
 
 class ProgVolumeSetAlign: public XmippMetadataProgram
 {

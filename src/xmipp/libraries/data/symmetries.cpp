@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <stdio.h>
-
+#include <limits>
 #include "symmetries.h"
 
 // Symmetrize_crystal_vectors==========================================

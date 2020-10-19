@@ -25,9 +25,9 @@
 #ifndef _PROG_TOMO_MAP_BACK
 #define _PROG_TOMO_MAP_BACK
 
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "core/metadata.h"
 
 ///@defgroup TomoMapBack Tomo map back
 ///@ingroup ReconsLibrary

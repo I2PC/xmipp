@@ -27,6 +27,7 @@
 #include <core/geometry.h>
 #include <data/phantom.h>
 #include <data/pdb.h>
+#include "core/transformations.h"
 
 class Phantom_transform_parameters: public XmippProgram
 {

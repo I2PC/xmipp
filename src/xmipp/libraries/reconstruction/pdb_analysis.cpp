@@ -25,6 +25,8 @@
  ***************************************************************************/
 
 #include "pdb_analysis.h"
+#include "core/histogram.h"
+#include "data/pdb.h"
 
 void ProgPdbAnalysis::defineParams()
 {

@@ -23,11 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/args.h>
-#include <core/xmipp_fftw.h>
-#include <core/xvsmooth.h>
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image_generic.h"
+#include "core/xvsmooth.h"
 #include "transform_downsample.h"
-#include "mask.h"
 
 // Read --------------------------------------------------------------------
 void ProgTransformDownsample::readParams()

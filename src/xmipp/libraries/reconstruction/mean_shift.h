@@ -27,11 +27,7 @@
 #ifndef _MEAN_SHIFT_H
 #define _MEAN_SHIFT_H
 
-#include <string>
-#include <data/filters.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_threads.h>
-#include <core/histogram.h>
+#include "data/filters.h"
 
 /// @defgroup Denoise Image denoising
 /// @ingroup ReconsLibrary

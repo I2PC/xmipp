@@ -26,11 +26,10 @@
 #ifndef ANGULAR_ACCURACY_PCA_H_
 #define ANGULAR_ACCURACY_PCA_H_
 
-#include <core/xmipp_program.h>
-#include <math.h>
-#include <data/basic_pca.h>
-#include <data/projection.h>
-#include <data/filters.h>
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "data/basic_pca.h"
 
 
 /**@defgroup Assign accuracy to angular assignment by pca

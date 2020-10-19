@@ -23,8 +23,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/args.h>
 #include "tomo_map_back.h"
+#include "core/transformations.h"
 
 // Read arguments ==========================================================
 void ProgTomoMapBack::readParams()

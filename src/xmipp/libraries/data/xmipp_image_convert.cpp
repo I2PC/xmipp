@@ -24,9 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/metadata_extension.h>
-#include <core/xmipp_image_generic.h>
 #include "xmipp_image_convert.h"
+#include "core/metadata.h"
 
 ProgConvImg::ProgConvImg()
 {

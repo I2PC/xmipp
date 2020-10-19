@@ -25,11 +25,7 @@
  ***************************************************************************/
 
 #include "transform_dimred.h"
-#include <data/mask.h>
-#include <core/matrix1d.h>
-#include <core/matrix2d.h>
-#include <time.h>
-#include "diffusionMaps.h"
+#include "core/metadata_extension.h"
 
 void ProgTransformDimRed::readParams()
 {

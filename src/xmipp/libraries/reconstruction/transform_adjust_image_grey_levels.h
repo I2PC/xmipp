@@ -26,9 +26,9 @@
 #ifndef _PROG_TRANSFORM_IMAGE_GRAY_VALUES
 #define _PROG_TRANSFORM_IMAGE_GRAY_VALUES
 
-#include <core/xmipp_program.h>
-#include <data/fourier_projection.h>
-#include <data/fourier_filter.h>
+#include "core/xmipp_metadata_program.h"
+#include "data/fourier_projection.h"
+#include "data/fourier_filter.h"
 
 /**@defgroup TransformImageGray Change the image gray values to match a volume projection
    @ingroup ReconsLibrary */
