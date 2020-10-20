@@ -21,7 +21,7 @@ if [ ${CUDA_INSTALL_EXTRA_LIBS:-1} -ne 0 ]; then
   if [ ${CUDA_VER_TMP%.*} -lt 7 ]; then
     travis_retry sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cublas-dev-${CUDA_APT} cuda-cusparse-dev-${CUDA_APT} cuda-curand-dev-${CUDA_APT}
   else
-    travis_retry sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cublas-dev-${CUDA_APT} cuda-cusparse-dev-${CUDA_APT} cuda-curand-dev-${CUDA_APT}  cuda-cusolver-dev-${CUDA_APT} cuda-nvml-dev-${CUDA_APT}
+    travis_retry sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cublas-dev-${CUDA_APT} cuda-cusparse-dev-${CUDA_APT} cuda-curand-dev-${CUDA_APT}  cuda-cusolver-dev-${CUDA_APT} cuda-nvml-dev-${CUDA_APT} cuda-nvtx-${CUDA_APT} 
   fi
 fi
 travis_retry sudo apt-get clean
