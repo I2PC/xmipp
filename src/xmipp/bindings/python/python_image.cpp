@@ -152,6 +152,8 @@ PyMethodDef Image_methods[] =
           "Divide image by a constant (does not create another Image instance)" },
         { "applyWarpAffine", (PyCFunction) Image_warpAffine, METH_VARARGS,
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
+		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
+		  "compute radial average around an axis" },
 
 
         { NULL } /* Sentinel */
@@ -1823,4 +1825,36 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
         }
     }
     return NULL;
+}
+
+
+/* Compute radial average around an axis, operator * */
+PyObject *
+Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+	ImageObject *self = (ImageObject*) obj;
+	    if (nullptr == self) return nullptr;
+	    try {
+	    	char axis = 'z';
+	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+	        if (PyArg_ParseTuple(args, "|c", &axis)
+	                && (nullptr != result)) {
+	            // prepare input image
+	            ImageGeneric *volume = self->image;
+	            volume->convert2Datatype(DT_Double);
+	            MultidimArray<double> *in;
+	            MULTIDIM_ARRAY_GENERIC(*volume).getMultidimArrayPointer(in);
+	            // prepare output image
+	            result->image = new ImageGeneric(DT_Double);
+	            MultidimArray<double> *out;
+	            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+	            // call the estimation
+	            radialAverageAxis(*in, axis, *out);
+	        } else {
+	            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+	        }
+	        return (PyObject *)result;
+	    } catch (XmippError &xe) {
+	        PyErr_SetString(PyXmippError, xe.msg.c_str());
+	    }
 }
