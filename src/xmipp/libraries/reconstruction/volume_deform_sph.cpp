@@ -136,12 +136,31 @@ double ProgVolDeformSph::distance(double *pclnm)
 	auto diffs = std::vector<double>(zSlices, 0.0);
 	auto modsg = std::vector<double>(zSlices, 0.0);
 	auto counts = std::vector<size_t>(zSlices, 0);
-    auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, this, &diffs, &modsg, &counts]
+	auto sumVDs = std::vector<double>(zSlices, 0.0);
+	const auto &steps_cp_c = steps_cp;
+	const auto &vL1_c = vL1;
+	const auto &vN_c = vN;
+	const auto &vL2_c = vL2;
+	const auto &vM_c = vM;
+	const auto &clnm_c = clnm;
+	const auto &VR_c = VR;
+	const auto &VI_c = VI;
+	const auto &volumesR_c = volumesR;
+	const auto &volumesI_c = volumesI;
+	const auto &VO_c = VO;
+	const auto &Gx_c = Gx;
+	const auto &Gy_c = Gy;
+	const auto &Gz_c = Gz;
+	auto aT = applyTransformation;
+	auto sD = saveDeformation;
+	// gosh, this is some ugly code right here ... but it's faster (compiler knows that all those are read-only
+	auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, &diffs, &modsg, &counts, &steps_cp_c, &vL1_c, &vL2_c, &vM_c, &vN_c, &clnm_c, aT, sD, &VR_c, &VI_c, &sumVDs, &volumesR_c, &VO_c, &volumesI_c, &Gx_c, &Gy_c, &Gz_c]
                         (int thrId, int k, size_t idxZ) {
         // local variables keep it in cache
         size_t sliceCount = 0;
         double sliceModg = 0;
         double sliceDiff = 0;
+        double sliceSumVD = 0;
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++)
         {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++)
@@ -158,14 +177,15 @@ double ProgVolDeformSph::distance(double *pclnm)
                 {
                     for (size_t idx=0; idx<idxY0; idx++)
                     {
-                        if (VEC_ELEM(steps_cp,idx) == 1)
+                        if (VEC_ELEM(steps_cp_c,idx) == 1)
                         {
                             // double Rmax=VEC_ELEM(clnm,idx+idxR);
-                            int l1 = VEC_ELEM(vL1,idx);
-                            int n = VEC_ELEM(vN,idx);
-                            int l2 = VEC_ELEM(vL2,idx);
-                            int m = VEC_ELEM(vM,idx);
-                            double zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+                            int l1 = VEC_ELEM(vL1_c,idx);
+                            int n = VEC_ELEM(vN_c,idx);
+                            int l2 = VEC_ELEM(vL2_c,idx);
+                            int m = VEC_ELEM(vM_c,idx);
+                            if (rr>0 || l2==0) {
+                                double zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 #ifdef NEVERDEFINED
                             if (ir!=0&jr!=0&rr!=0)
                             {
@@ -183,38 +203,35 @@ double ProgVolDeformSph::distance(double *pclnm)
                                 gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
                             }
 #endif
-                        // if (rr>0 || (l2==0 && l1==0))
-                            if (rr>0 || l2==0)
-                            {
-                                gx += VEC_ELEM(clnm,idx)        *(zsph);
-                                gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-                                gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+                                gx += VEC_ELEM(clnm_c,idx)        *(zsph);
+                                gy += VEC_ELEM(clnm_c,idx+idxY0)  *(zsph);
+                                gz += VEC_ELEM(clnm_c,idx+idxZ0)  *(zsph);
                             }
                         }
                     }
                 }
             	double voxelR, voxelI, diff;
-                if (applyTransformation)
+                if (aT)
                 {
                     // absVoxelR=fabs(voxelR);
-                    voxelR=A3D_ELEM(VR(),k,i,j);
-                    voxelI=VI().interpolatedElement3D(j+gx,i+gy,k+gz);
+                    voxelR=A3D_ELEM(VR_c(),k,i,j);
+                    voxelI=VI_c().interpolatedElement3D(j+gx,i+gy,k+gz);
                     if (voxelI >= 0.0)
-                        sumVD += voxelI;
-                    VO(k,i,j)=voxelI;
+                        sliceSumVD += voxelI;
+                    VO_c(k,i,j)=voxelI;
                     diff=voxelR-voxelI;
                     sliceDiff += diff*diff;
                     sliceModg += gx*gx+gy*gy+gz*gz;
                     sliceCount++;
                     // totalVal += absVoxelR;
                 }
-                for (int idv=0; idv<volumesR.size(); idv++)
+                for (int idv=0; idv<volumesR_c.size(); idv++)
                 {
-                    voxelR=A3D_ELEM(volumesR[idv](),k,i,j);
+                    voxelR=A3D_ELEM(volumesR_c[idv](),k,i,j);
                     // absVoxelR=fabs(voxelR);
-                    voxelI=volumesI[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
+                    voxelI=volumesI_c[idv]().interpolatedElement3D(j+gx,i+gy,k+gz);
                     if (voxelI >= 0.0)
-                        sumVD += voxelI;
+                        sliceSumVD += voxelI;
                     diff=voxelR-voxelI;
                     // diff2+=absMaxR_vec[idv]*diff*diff;
                     sliceDiff += diff*diff;
@@ -224,11 +241,11 @@ double ProgVolDeformSph::distance(double *pclnm)
                     // totalVal += absVoxelR;
                 }
 
-                if (saveDeformation)
+                if (sD)
                 {
-                    Gx(k,i,j)=gx;
-                    Gy(k,i,j)=gy;
-                    Gz(k,i,j)=gz;
+                    Gx_c(k,i,j)=gx;
+                    Gy_c(k,i,j)=gy;
+                    Gz_c(k,i,j)=gz;
                 }
             }
         }
@@ -236,6 +253,7 @@ double ProgVolDeformSph::distance(double *pclnm)
         counts.at(idxZ) = sliceCount;
         modsg.at(idxZ) = sliceModg;
         diffs.at(idxZ) = sliceDiff;
+        sumVDs.at(idxZ) = sliceSumVD;
     };
 
     // create a job for each slice
@@ -254,6 +272,7 @@ double ProgVolDeformSph::distance(double *pclnm)
     double modg = std::accumulate(modsg.begin(), modsg.end(), 0.0);
     size_t Ncount = std::accumulate(counts.begin(), counts.end(), 0);
 	deformation=std::sqrt(modg/(double)Ncount);
+	sumVD = std::accumulate(sumVDs.begin(), sumVDs.end(), 0.0);
 
 #ifdef DEBUG
 	Image<double> save;
