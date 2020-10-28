@@ -395,7 +395,7 @@ def getCurrentBranch(cwd='./', getHash=False):
 
 def getAllBranchesAndTags(repo):
     log = []
-    result = runJob('git ls-remote -th %s' % REPOSITORIES[repo],
+    result = runJob('git ls-remote -t -h %s' % REPOSITORIES[repo],
                     show_output=False, log=log, show_command=False)
     if result:
         branchesAndTags = [l.split('/')[-1] for l in log]
