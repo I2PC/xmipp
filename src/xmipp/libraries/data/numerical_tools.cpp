@@ -1029,14 +1029,15 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 }
 #endif
 
-double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r)
+template<int L1, int L2>
+double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, double r)
 {
 	// General variables
 	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
 
 	//Variables needed for l>=5
 	double tht=0.0,phi=0.0,cost=0.0,sint=0.0,cost2=0.0,sint2=0.0;
-	if (l2>=5)
+	if (L2>=5)
 	{
 		tht = atan2(yr,xr);
 		phi = atan2(zr,sqrt(xr2 + yr2));
@@ -1047,7 +1048,7 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 	// Zernike polynomial
 	double R=0.0;
 
-	switch (l1)
+	switch (L1)
 	{
 	case 0:
 		R = std::sqrt(3);
@@ -1102,7 +1103,7 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 	// Spherical harmonic
 	double Y=0.0;
 
-	switch (l2)
+	switch (L2)
 	{
 	case 0:
 		Y = (1.0/2.0)*sqrt(1.0/PI);
@@ -1235,6 +1236,79 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 	}
 
 	return R*Y;
+}
+
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r) {
+    switch (l1) {
+        case 0 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<0, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<0, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<0, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<0, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<0, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<0, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 1 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<1, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<1, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<1, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<1, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<1, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<1, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 2 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<2, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<2, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<2, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<2, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<2, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<2, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 3 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<3, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<3, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<3, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<3, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<3, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<3, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 4 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<4, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<4, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<4, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<4, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<4, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<4, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        case 5 : {
+            switch (l2) {
+            case 0: return ZernikeSphericalHarmonics<5, 0>(n, m, xr, yr, zr, r);
+            case 1: return ZernikeSphericalHarmonics<5, 1>(n, m, xr, yr, zr, r);
+            case 2: return ZernikeSphericalHarmonics<5, 2>(n, m, xr, yr, zr, r);
+            case 3: return ZernikeSphericalHarmonics<5, 3>(n, m, xr, yr, zr, r);
+            case 4: return ZernikeSphericalHarmonics<5, 4>(n, m, xr, yr, zr, r);
+            case 5: return ZernikeSphericalHarmonics<5, 5>(n, m, xr, yr, zr, r);
+            default: break;
+            }
+        } break;
+        default: break;
+    }
+    REPORT_ERROR(ERR_ARG_INCORRECT, "ZernikeSphericalHarmonics not supported for l1 = " + std::to_string(l1) + " and l2 = " + std::to_string(l2));
 }
 
 #ifdef NEVERDEFINED
