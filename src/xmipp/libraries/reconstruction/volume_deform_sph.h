@@ -162,6 +162,17 @@ private:
         double diff;
         double modg;
         size_t count;
+        Distance_vals& operator+=(const Distance_vals& rhs) {
+              this->VD += rhs.VD;
+              this->diff += rhs.diff;
+              this->modg += rhs.modg;
+              this->count += rhs.count;
+              return *this;
+        }
+        friend Distance_vals operator+(Distance_vals lhs, const Distance_vals& rhs) {
+            lhs += rhs;
+            return lhs;
+        }
     };
 
     // Zernike and SPH coefficients vectors
@@ -172,7 +183,11 @@ private:
 
     void computeShift(int k);
 
+    void computeDistance(size_t idv, Distance_vals &vals);
+
     template<bool APPLY_TRANSFORM, bool SAVE_DEFORMATION>
+    void computeDistance(Distance_vals &vals);
+
     Distance_vals computeDistance();
 
     std::vector<Point3D<double>> m_shifts;

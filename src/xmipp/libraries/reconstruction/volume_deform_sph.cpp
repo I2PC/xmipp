@@ -136,14 +136,13 @@ void ProgVolDeformSph::computeShift(int unused) {
 }
 
 template<bool APPLY_TRANSFORM, bool SAVE_DEFORMATION>
-ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
+void ProgVolDeformSph::computeDistance(Distance_vals &vals) {
     const auto &mVR = VR();
     const auto &VR_c = VR;
     const auto &VI_c = VI;
     const auto &VO_c = VO;
     const auto &volumesR_c = volumesR;
     const auto &volumesI_c = volumesI;
-    auto vals = Distance_vals{0};
     size_t vec_idx = 0;
     for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
@@ -179,14 +178,12 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
             }
         }
     }
-    return vals;
 }
 
-template<>
-ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance<false, false>() {
+void ProgVolDeformSph::computeDistance(size_t idv, Distance_vals &vals) {
     const auto &mVR = VR();
-    auto vals = Distance_vals{0};
-    for (int idv=0; idv<volumesR.size(); idv++) {
+//    auto vals = Distance_vals{0};
+//    for (int idv=0; idv<volumesR.size(); idv++) {
         size_t voxel_idx = 0;
         const auto &volR = volumesR[idv]();
         const auto &volI = volumesI[idv]();
@@ -205,8 +202,46 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance<false, false>(
                 }
             }
         }
+//    }
+}
+
+ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
+    if (( ! applyTransformation) && ( ! saveDeformation)) {
+        // this is the most often used case
+        // parallelize it at the level of volumes
+        const size_t noOfVolumes = volumesR.size();
+        auto vals = std::vector<Distance_vals>(noOfVolumes);
+        auto futures = std::vector<std::future<void>>();
+        futures.reserve(noOfVolumes);
+        auto routine = [this, &vals](int thrId, size_t volumeIdx) {
+            computeDistance(volumeIdx, vals[volumeIdx]);
+        };
+        for (size_t i = 0; i < noOfVolumes; ++i) {
+            futures.emplace_back(m_threadPool.push(routine, i));
+        }
+        // wait till all volumes are processed
+        for (auto &f : futures) {
+            f.get();
+        }
+        // merge results
+        return std::accumulate(vals.begin(), vals.end(), Distance_vals());
+    } else {
+        auto result = Distance_vals{};
+        if (applyTransformation) {
+            if (saveDeformation) {
+                computeDistance<true, true>(result);
+            } else {
+                computeDistance<true, false>(result);
+            }
+        } else {
+            if (saveDeformation) {
+                computeDistance<false, true>(result);
+            } else {
+                computeDistance<false, false>(result);
+            }
+        }
+        return result;
     }
-    return vals;
 }
 
 // Distance function =======================================================
@@ -229,21 +264,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	}
 
     computeShift(0);
-    const auto distance_vals = [this]() {
-        if (applyTransformation) {
-            if (saveDeformation) {
-                return computeDistance<true, true>();
-            } else {
-                return computeDistance<true, false>();
-            }
-        } else {
-            if (saveDeformation) {
-                return computeDistance<false, true>();
-            } else {
-                return computeDistance<false, false>();
-            }
-        }
-    }();
+    const auto distance_vals = computeDistance();
 	deformation=std::sqrt(distance_vals.modg / (double)distance_vals.count);
 	sumVD = distance_vals.VD;
 
@@ -413,7 +434,7 @@ void ProgVolDeformSph::run() {
         int iter;
         double fitness;
         powellOptimizer(x, 1, totalSize, &volDeformSphGoal, this,
-		                0.01, fitness, iter, steps, false);
+		                0.01, fitness, iter, steps, true);
 
         std::cout<<std::endl;
         std::cout << "Deformation " << deformation << std::endl;
