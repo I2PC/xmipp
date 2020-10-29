@@ -58,9 +58,6 @@ public:
     /// Degree of Zernike polynomials and spherical harmonics
     int L1, L2;
 
-    /// Zernike and SPH coefficients vectors
-    Matrix1D<int> vL1, vN, vL2, vM;
-
     /// Gaussian width to filter the volumes
     std::vector<double> sigma;
 
@@ -130,8 +127,7 @@ public:
     void numCoefficients(int l1, int l2, int &vecSize);
 
     /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
+    void fillVectorTerms(int l1, int l2);
 
     /// Compute strain
     void computeStrain();
@@ -141,6 +137,15 @@ public:
 
 private:
     ctpl::thread_pool m_threadPool;
+    struct ZSH_vals {
+        int l1;
+        int n;
+        int l2;
+        int m;
+    };
+
+    // Zernike and SPH coefficients vectors
+    std::vector<ZSH_vals> m_zshVals;
 };
 
 //@}

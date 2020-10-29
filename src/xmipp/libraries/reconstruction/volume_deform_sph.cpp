@@ -138,10 +138,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	auto counts = std::vector<size_t>(zSlices, 0);
 	auto sumVDs = std::vector<double>(zSlices, 0.0);
 	const auto &steps_cp_c = steps_cp;
-	const auto &vL1_c = vL1;
-	const auto &vN_c = vN;
-	const auto &vL2_c = vL2;
-	const auto &vM_c = vM;
+	const auto &zsh_vals_c = m_zshVals;
 	const auto &clnm_c = clnm;
 	const auto &VR_c = VR;
 	const auto &VI_c = VI;
@@ -154,7 +151,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	auto aT = applyTransformation;
 	auto sD = saveDeformation;
 	// gosh, this is some ugly code right here ... but it's faster (compiler knows that all those are read-only
-	auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, &diffs, &modsg, &counts, &steps_cp_c, &vL1_c, &vL2_c, &vM_c, &vN_c, &clnm_c, aT, sD, &VR_c, &VI_c, &sumVDs, &volumesR_c, &VO_c, &volumesI_c, &Gx_c, &Gy_c, &Gz_c]
+	auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, &diffs, &modsg, &counts, &steps_cp_c, &zsh_vals_c, &clnm_c, aT, sD, &VR_c, &VI_c, &sumVDs, &volumesR_c, &VO_c, &volumesI_c, &Gx_c, &Gy_c, &Gz_c]
                         (int thrId, int k, size_t idxZ) {
         // local variables keep it in cache
         size_t sliceCount = 0;
@@ -180,12 +177,9 @@ double ProgVolDeformSph::distance(double *pclnm)
                         if (VEC_ELEM(steps_cp_c,idx) == 1)
                         {
                             // double Rmax=VEC_ELEM(clnm,idx+idxR);
-                            int l1 = VEC_ELEM(vL1_c,idx);
-                            int n = VEC_ELEM(vN_c,idx);
-                            int l2 = VEC_ELEM(vL2_c,idx);
-                            int m = VEC_ELEM(vM_c,idx);
-                            if (rr>0 || l2==0) {
-                                double zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+                            auto &tmp = zsh_vals_c.at(idx);
+                            if (rr>0 || tmp.l2==0) {
+                                double zsph=ZernikeSphericalHarmonics(tmp.l1,tmp.n,tmp.l2,tmp.m,jr,ir,kr,rr);
 #ifdef NEVERDEFINED
                             if (ir!=0&jr!=0&rr!=0)
                             {
@@ -403,7 +397,7 @@ void ProgVolDeformSph::run() {
 	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
 	size_t totalSize = 3*vecSize;
-	fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
+	fillVectorTerms(L1,L2);
 	clnm.initZeros(totalSize);
 	x.initZeros(totalSize);
     for (int h=0;h<=L2;h++)
@@ -619,14 +613,10 @@ void ProgVolDeformSph::numCoefficients(int l1, int l2, int &vecSize)
     }
 }
 
-void ProgVolDeformSph::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
+void ProgVolDeformSph::fillVectorTerms(int l1, int l2)
 {
+    m_zshVals.resize(vecSize);
     int idx = 0;
-	vL1.initZeros(vecSize);
-	vN.initZeros(vecSize);
-	vL2.initZeros(vecSize);
-	vM.initZeros(vecSize);
     for (int h=0; h<=l2; h++)
     {
         int totalSPH = 2*h+1;
@@ -635,10 +625,11 @@ void ProgVolDeformSph::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matri
         {
             for (int m=0; m<totalSPH; m++)
             {
-                VEC_ELEM(vL1,idx) = l;
-                VEC_ELEM(vN,idx) = h;
-                VEC_ELEM(vL2,idx) = h;
-                VEC_ELEM(vM,idx) = m-aux;
+                auto &t = m_zshVals.at(idx);
+                t.l1 = l;
+                t.n = h;
+                t.l2 = h;
+                t.m = m - aux;
                 idx++;
             }
         }
