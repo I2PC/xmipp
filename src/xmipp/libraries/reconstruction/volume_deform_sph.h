@@ -29,6 +29,7 @@
 #include <CTPL/ctpl_stl.h>
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
+#include "data/point3D.h"
 
 /**@defgroup VolDeformSph Deform a volume using spherical harmonics
    @ingroup ReconsLibrary */
@@ -76,9 +77,6 @@ public:
 
     /// Maxima of reference volumes (in absolute value)
     std::vector<double> absMaxR_vec;
-
-	//Vector containing the degree of the Zernike-Spherical harmonics
-	Matrix1D<double> clnm;
 
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
@@ -146,6 +144,9 @@ private:
 
     // Zernike and SPH coefficients vectors
     std::vector<ZSH_vals> m_zshVals;
+
+    //Vector containing the degree of the Zernike-Spherical harmonics
+    std::vector<Point3D<double>> m_clnm;
 };
 
 //@}

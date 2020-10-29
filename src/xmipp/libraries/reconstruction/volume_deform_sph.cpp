@@ -113,17 +113,18 @@ double ProgVolDeformSph::distance(double *pclnm)
 		VO().initZeros(VR());
 		VO().setXmippOrigin();
 	}
-	// int maxl1 = L1;
-//	int l1,n,l2,m;
-	size_t idxY0=VEC_XSIZE(clnm)/3;
-	size_t idxZ0=2*idxY0;
 	// size_t idxR=3*idxY0;
 	// double totalVal=0.0;
 	sumVD = 0.0;
 	const MultidimArray<double> &mVR=VR();
 	const MultidimArray<double> &mVI=VI();
-	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
-		VEC_ELEM(clnm,i)=pclnm[i+1];
+	const size_t size = m_clnm.size();
+	for (size_t i = 0; i < size; ++i) {
+	    auto &p = m_clnm.at(i);
+	    p.x = pclnm[i + 1];
+	    p.y = pclnm[i + size + 1];
+	    p.z = pclnm[i + size + size + 1];
+	}
 #ifdef DEBUG
 	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
@@ -139,7 +140,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	auto sumVDs = std::vector<double>(zSlices, 0.0);
 	const auto &steps_cp_c = steps_cp;
 	const auto &zsh_vals_c = m_zshVals;
-	const auto &clnm_c = clnm;
+	const auto &clnm_c = m_clnm;
 	const auto &VR_c = VR;
 	const auto &VI_c = VI;
 	const auto &volumesR_c = volumesR;
@@ -151,7 +152,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	auto aT = applyTransformation;
 	auto sD = saveDeformation;
 	// gosh, this is some ugly code right here ... but it's faster (compiler knows that all those are read-only
-	auto routineDist = [&mVR, iRmax, Rmax2, idxY0, idxZ0, &diffs, &modsg, &counts, &steps_cp_c, &zsh_vals_c, &clnm_c, aT, sD, &VR_c, &VI_c, &sumVDs, &volumesR_c, &VO_c, &volumesI_c, &Gx_c, &Gy_c, &Gz_c]
+	auto routineDist = [&mVR, iRmax, Rmax2, &diffs, &modsg, &counts, &steps_cp_c, &zsh_vals_c, &clnm_c, aT, sD, &VR_c, &VI_c, &sumVDs, &volumesR_c, &VO_c, &volumesI_c, &Gx_c, &Gy_c, &Gz_c]
                         (int thrId, int k, size_t idxZ) {
         // local variables keep it in cache
         size_t sliceCount = 0;
@@ -172,7 +173,7 @@ double ProgVolDeformSph::distance(double *pclnm)
                 double rr=std::sqrt(r2)*iRmax;
                 if (r2<Rmax2)
                 {
-                    for (size_t idx=0; idx<idxY0; idx++)
+                    for (size_t idx=0; idx<clnm_c.size(); idx++)
                     {
                         if (VEC_ELEM(steps_cp_c,idx) == 1)
                         {
@@ -180,26 +181,10 @@ double ProgVolDeformSph::distance(double *pclnm)
                             auto &tmp = zsh_vals_c.at(idx);
                             if (rr>0 || tmp.l2==0) {
                                 double zsph=ZernikeSphericalHarmonics(tmp.l1,tmp.n,tmp.l2,tmp.m,jr,ir,kr,rr);
-#ifdef NEVERDEFINED
-                            if (ir!=0&jr!=0&rr!=0)
-                            {
-                                x = zsph*(ir/std::sqrt(ir*ir+jr*jr))*(kr/rr);
-                                y = zsph*(ir/rr);
-                                z = zsph*(jr/std::sqrt(ir*ir+jr*jr));
-                                gx += VEC_ELEM(clnm,idx)      *x;
-                                gy += VEC_ELEM(clnm,idx+idxY0)*y;
-                                gz += VEC_ELEM(clnm,idx+idxZ0)*z;
-                            }
-                            else
-                            {
-                                gx += VEC_ELEM(clnm,idx)      *zsph;
-                                gy += VEC_ELEM(clnm,idx+idxY0)*zsph;
-                                gz += VEC_ELEM(clnm,idx+idxZ0)*zsph;
-                            }
-#endif
-                                gx += VEC_ELEM(clnm_c,idx)        *(zsph);
-                                gy += VEC_ELEM(clnm_c,idx+idxY0)  *(zsph);
-                                gz += VEC_ELEM(clnm_c,idx+idxZ0)  *(zsph);
+                                auto &c = clnm_c.at(idx);
+                                gx += c.x * (zsph);
+                                gy += c.y * (zsph);
+                                gz += c.z * (zsph);
                             }
                         }
                     }
@@ -398,7 +383,7 @@ void ProgVolDeformSph::run() {
 	numCoefficients(L1,L2,vecSize);
 	size_t totalSize = 3*vecSize;
 	fillVectorTerms(L1,L2);
-	clnm.initZeros(totalSize);
+	m_clnm.resize(vecSize);
 	x.initZeros(totalSize);
     for (int h=0;h<=L2;h++)
     {
