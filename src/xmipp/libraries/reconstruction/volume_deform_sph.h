@@ -142,11 +142,43 @@ private:
         int m;
     };
 
+    struct Radius_vals {
+        Radius_vals(int i, int j, int k, double iRmax) {
+            double k2 = k * k;
+            double k2i2 = k2 + i * i;
+            r2 = k2i2 + j * j;
+            ir = i * iRmax;
+            jr = j * iRmax;
+            kr = k * iRmax;
+            rr = std::sqrt(r2) * iRmax;
+        }
+        double r2;
+        double jr;
+        double ir;
+        double kr;
+        double rr;
+
+    };
+
+    struct Distance_vals {
+        double VD;
+        double diff;
+        double modg;
+        size_t count;
+    };
+
     // Zernike and SPH coefficients vectors
     std::vector<ZSH_vals> m_zshVals;
 
     //Vector containing the degree of the Zernike-Spherical harmonics
     std::vector<Point3D<double>> m_clnm;
+
+    void computeShift(int k);
+
+    template<bool APPLY_TRANSFORM, bool SAVE_DEFORMATION>
+    Distance_vals computeDistance();
+
+    std::vector<Point3D<double>> m_shifts;
 };
 
 //@}
