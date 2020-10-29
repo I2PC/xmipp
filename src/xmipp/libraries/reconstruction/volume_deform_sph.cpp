@@ -29,7 +29,6 @@
 #include "volume_deform_sph.h"
 #include "data/fourier_filter.h"
 #include "data/normalize.h"
-#include "core/utils/time_utils.h"
 
 // Params definition =======================================================
 void ProgVolDeformSph::defineParams() {
@@ -110,19 +109,14 @@ void ProgVolDeformSph::computeShift(int unused) {
     m_shifts.resize(mVR.nzyxdim, 0);
     const auto &clnm_c = m_clnm;
     const auto &zsh_vals_c = m_zshVals;
-    const auto &steps_cp_c = steps_cp;
     for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++vec_idx) {
                 const auto r_vals = Radius_vals(i, j, k, iRmax);
-                if (r_vals.r2 < Rmax2)
-                {
+                if (r_vals.r2 < Rmax2) {
                     Point3D<double> g;
-                    for (size_t idx=0; idx<clnm_c.size(); idx++)
-                    {
-                        if (VEC_ELEM(steps_cp_c,idx) == 1)
-//                        if (clnm_c.at(idx).x != 0)
-                        {
+                    for (size_t idx=0; idx<clnm_c.size(); idx++) {
+                        if (clnm_c[idx].x != 0) {
                             auto &tmp = zsh_vals_c[idx];
                             if (r_vals.rr>0 || tmp.l2==0) {
                                 double zsph=ZernikeSphericalHarmonics(tmp.l1,tmp.n,tmp.l2,tmp.m,
@@ -151,7 +145,6 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
     const auto &volumesI_c = volumesI;
     auto vals = Distance_vals{0};
     size_t vec_idx = 0;
-    timeUtils::reportTimeMs("computeDistance", [&]{
     for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++vec_idx) {
@@ -186,7 +179,6 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
             }
         }
     }
-    });
     return vals;
 }
 
@@ -194,7 +186,6 @@ template<>
 ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance<false, false>() {
     const auto &mVR = VR();
     auto vals = Distance_vals{0};
-    timeUtils::reportTimeMs("computeDistance_fast", [&]{
     for (int idv=0; idv<volumesR.size(); idv++) {
         size_t voxel_idx = 0;
         const auto &volR = volumesR[idv]();
@@ -215,7 +206,6 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance<false, false>(
             }
         }
     }
-    });
     return vals;
 }
 
@@ -238,9 +228,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	    p.z = pclnm[i + size + size + 1];
 	}
 
-	timeUtils::reportTimeMs("computeShift", [&]{
     computeShift(0);
-	});
     const auto distance_vals = [this]() {
         if (applyTransformation) {
             if (saveDeformation) {
@@ -376,7 +364,6 @@ void ProgVolDeformSph::run() {
 		steps.clear();
     	steps.initZeros(totalSize);
 		minimizepos(L1,h,steps);
-		steps_cp = steps;
 
     	std::cout<<std::endl;
     	std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<h<<") --------------------------"<<std::endl;

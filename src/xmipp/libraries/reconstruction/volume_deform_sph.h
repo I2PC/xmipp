@@ -78,9 +78,6 @@ public:
     /// Maxima of reference volumes (in absolute value)
     std::vector<double> absMaxR_vec;
 
-    //Copy of Optimizer steps
-    Matrix1D<double> steps_cp;
-
 	//Deformation in pixels, sumVI, sumVD
 	double deformation, sumVI, sumVD;
 
