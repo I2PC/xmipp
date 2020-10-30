@@ -114,7 +114,7 @@ void ProgVolDeformSph::computeShift(int k) {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++vec_idx) {
                 const auto r_vals = Radius_vals(i, j, k, iRmax);
                 if (r_vals.r2 < Rmax2) {
-                    Point3D<double> g;
+                    auto &g = m_shifts[vec_idx] = 0;
                     for (size_t idx=0; idx<clnm_c.size(); idx++) {
                         if (clnm_c[idx].x != 0) {
                             auto &tmp = zsh_vals_c[idx];
@@ -128,7 +128,6 @@ void ProgVolDeformSph::computeShift(int k) {
                             }
                         }
                     }
-                    m_shifts[vec_idx] = g;
                 }
             }
         }
@@ -180,14 +179,15 @@ void ProgVolDeformSph::computeDistance(Distance_vals &vals) {
     }
 }
 
-void ProgVolDeformSph::computeDistance(size_t idv, Distance_vals &vals) {
+void ProgVolDeformSph::computeDistance(int k, Distance_vals &vals) {
     const auto &mVR = VR();
 //    auto vals = Distance_vals{0};
-//    for (int idv=0; idv<volumesR.size(); idv++) {
-        size_t voxel_idx = 0;
+    for (int idv=0; idv<volumesR.size(); idv++) {
+//        size_t voxel_idx = 0;
+        size_t voxel_idx = mVR.yxdim * (k - STARTINGZ(mVR));
         const auto &volR = volumesR[idv]();
         const auto &volI = volumesI[idv]();
-        for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
+//        for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
             for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
                 for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++voxel_idx) {
                     const auto &g = m_shifts[voxel_idx];
@@ -206,61 +206,53 @@ void ProgVolDeformSph::computeDistance(size_t idv, Distance_vals &vals) {
 }
 
 ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
-    if (( ! applyTransformation) && ( ! saveDeformation)) {
-        // this is the most often used case
-        // parallelize it at the level of volumes
-        const size_t noOfVolumes = volumesR.size();
-        auto futures = std::vector<std::future<void>>();
-        futures.reserve(noOfVolumes);
-        auto vals = std::vector<Distance_vals>(m_threadPool.size());
-        auto routine = [this, &vals](int thrId, size_t volumeIdx) {
-            computeDistance(volumeIdx, vals[thrId]);
-        };
-        for (size_t i = 0; i < noOfVolumes; ++i) {
-            futures.emplace_back(m_threadPool.push(routine, i));
-        }
-        // wait till all volumes are processed
-        for (auto &f : futures) {
-            f.get();
-        }
-        // merge results
-        return std::accumulate(vals.begin(), vals.end(), Distance_vals());
-    } else {
-        auto result = Distance_vals{};
-        if (applyTransformation) {
-            if (saveDeformation) {
-                computeDistance<true, true>(result);
-            } else {
-                computeDistance<true, false>(result);
-            }
-        } else {
-            if (saveDeformation) {
-                computeDistance<false, true>(result);
-            } else {
-                computeDistance<false, false>(result);
-            }
-        }
-        return result;
-    }
-}
-
-void ProgVolDeformSph::computeShift() {
+    const bool usual_case = ( ! applyTransformation) && ( ! saveDeformation);
     // parallelize at the level of Z slices
     const auto &mVR = VR();
-    const size_t noOfSlices = mVR.nzyxdim;
-    m_shifts.resize(noOfSlices, 0);
+    m_shifts.resize(mVR.zyxdim);
     auto futures = std::vector<std::future<void>>();
-    futures.reserve(noOfSlices);
-    auto routine = [this](int thrId, int k) {
+    futures.reserve(mVR.zdim);
+    auto vals = std::vector<Distance_vals>(m_threadPool.size());
+    // most common routine, run during the computation
+    // for each Z slice, compute shift and distance
+    auto usual_routine = [this, &vals](int thrId, int k) {
+        computeShift(k);
+        computeDistance(k, vals[thrId]);
+    };
+    // special routine, run at the end for the computation
+    // for each Z slice, compute shift. Distance will be computed later
+    auto special_routine = [this](int thrId, int k) {
         computeShift(k);
     };
     for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); ++k) {
-        futures.emplace_back(m_threadPool.push(routine, k));
+        if (usual_case) {
+            futures.emplace_back(m_threadPool.push(usual_routine, k));
+        } else {
+            futures.emplace_back(m_threadPool.push(special_routine, k));
+        }
     }
-    // wait till all volumes are processed
+    // wait till all slices are processed
     for (auto &f : futures) {
         f.get();
     }
+    if ( ! usual_case) {
+        // shifts have been already computed, now compute the final distance
+        if (applyTransformation) {
+            if (saveDeformation) {
+                computeDistance<true, true>(vals[0]);
+            } else {
+                computeDistance<true, false>(vals[0]);
+            }
+        } else {
+            if (saveDeformation) {
+                computeDistance<false, true>(vals[0]);
+            } else {
+                computeDistance<false, false>(vals[0]);
+            }
+        }
+    }
+    // merge results
+    return std::accumulate(vals.begin(), vals.end(), Distance_vals());
 }
 
 // Distance function =======================================================
@@ -276,13 +268,12 @@ double ProgVolDeformSph::distance(double *pclnm)
 	const MultidimArray<double> &mVI=VI();
 	const size_t size = m_clnm.size();
 	for (size_t i = 0; i < size; ++i) {
-	    auto &p = m_clnm.at(i);
+	    auto &p = m_clnm[i];
 	    p.x = pclnm[i + 1];
 	    p.y = pclnm[i + size + 1];
 	    p.z = pclnm[i + size + size + 1];
 	}
 
-    computeShift();
     const auto distance_vals = computeDistance();
 	deformation=std::sqrt(distance_vals.modg / (double)distance_vals.count);
 	sumVD = distance_vals.VD;
@@ -620,7 +611,7 @@ void ProgVolDeformSph::fillVectorTerms(int l1, int l2)
         {
             for (int m=0; m<totalSPH; m++)
             {
-                auto &t = m_zshVals.at(idx);
+                auto &t = m_zshVals[idx];
                 t.l1 = l;
                 t.n = h;
                 t.l2 = h;

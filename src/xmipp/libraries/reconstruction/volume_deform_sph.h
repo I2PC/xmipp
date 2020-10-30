@@ -183,9 +183,7 @@ private:
 
     void computeShift(int k);
 
-    void computeShift();
-
-    void computeDistance(size_t idv, Distance_vals &vals);
+    void computeDistance(int k, Distance_vals &vals);
 
     template<bool APPLY_TRANSFORM, bool SAVE_DEFORMATION>
     void computeDistance(Distance_vals &vals);
