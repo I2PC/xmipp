@@ -101,15 +101,15 @@ void ProgVolDeformSph::show() {
 
 }
 
-void ProgVolDeformSph::computeShift(int unused) {
+void ProgVolDeformSph::computeShift(int k) {
     const auto &mVR = VR();
     const double Rmax2=Rmax*Rmax;
     const double iRmax = 1.0 / Rmax;
-    size_t vec_idx = 0;
-    m_shifts.resize(mVR.nzyxdim, 0);
+//    size_t vec_idx = 0;
+    size_t vec_idx = mVR.yxdim * (k - STARTINGZ(mVR));
     const auto &clnm_c = m_clnm;
     const auto &zsh_vals_c = m_zshVals;
-    for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
+//    for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++vec_idx) {
                 const auto r_vals = Radius_vals(i, j, k, iRmax);
@@ -132,7 +132,7 @@ void ProgVolDeformSph::computeShift(int unused) {
                 }
             }
         }
-    }
+//    }
 }
 
 template<bool APPLY_TRANSFORM, bool SAVE_DEFORMATION>
@@ -210,11 +210,11 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
         // this is the most often used case
         // parallelize it at the level of volumes
         const size_t noOfVolumes = volumesR.size();
-        auto vals = std::vector<Distance_vals>(noOfVolumes);
         auto futures = std::vector<std::future<void>>();
         futures.reserve(noOfVolumes);
+        auto vals = std::vector<Distance_vals>(m_threadPool.size());
         auto routine = [this, &vals](int thrId, size_t volumeIdx) {
-            computeDistance(volumeIdx, vals[volumeIdx]);
+            computeDistance(volumeIdx, vals[thrId]);
         };
         for (size_t i = 0; i < noOfVolumes; ++i) {
             futures.emplace_back(m_threadPool.push(routine, i));
@@ -244,6 +244,25 @@ ProgVolDeformSph::Distance_vals ProgVolDeformSph::computeDistance() {
     }
 }
 
+void ProgVolDeformSph::computeShift() {
+    // parallelize at the level of Z slices
+    const auto &mVR = VR();
+    const size_t noOfSlices = mVR.nzyxdim;
+    m_shifts.resize(noOfSlices, 0);
+    auto futures = std::vector<std::future<void>>();
+    futures.reserve(noOfSlices);
+    auto routine = [this](int thrId, int k) {
+        computeShift(k);
+    };
+    for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); ++k) {
+        futures.emplace_back(m_threadPool.push(routine, k));
+    }
+    // wait till all volumes are processed
+    for (auto &f : futures) {
+        f.get();
+    }
+}
+
 // Distance function =======================================================
 // #define DEBUG
 double ProgVolDeformSph::distance(double *pclnm)
@@ -263,7 +282,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 	    p.z = pclnm[i + size + size + 1];
 	}
 
-    computeShift(0);
+    computeShift();
     const auto distance_vals = computeDistance();
 	deformation=std::sqrt(distance_vals.modg / (double)distance_vals.count);
 	sumVD = distance_vals.VD;
