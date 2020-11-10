@@ -22,4 +22,4 @@ class ARotationEstimator_Test;
 #include "arotation_estimator_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(Cpu, ARotationEstimator_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(Cpu, ARotationEstimator_Test, TestTypes);

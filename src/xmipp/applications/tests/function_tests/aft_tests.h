@@ -203,6 +203,7 @@ public:
         size_t executed = 0;
         size_t skippedSize = 0;
         size_t skippedCondition = 0;
+        size_t skippedSpecific = 0;
         TEST_VALUES
         size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
 
@@ -243,6 +244,10 @@ public:
                     skippedSize++;
                     continue;
                 }
+                if (mustBeSkipped(settings, bothDirections)) {
+                    skippedSize++;
+                    continue;
+                }
                 // make sure we did not test this before
                 auto result = tested.insert(settings);
                 if ( ! result.second) continue;
@@ -268,14 +273,17 @@ public:
     //    std::cout << "Executed: " << executed
     //            << "\nSkipped (condition): " << skippedCondition
     //            << "\nSkipped (size):" << skippedSize << std::endl;
+    //            << "\nSkipped (specific):" << skippedSpecific << std::endl;
     }
 
 private:
     AFT<T> *ft;
     static HW *hw;
 
+    MUSTBESKIPPED
+
 };
-TYPED_TEST_CASE_P(AFT_Test);
+TYPED_TEST_SUITE_P(AFT_Test);
 
 template<typename T>
 HW* AFT_Test<T>::hw;
@@ -836,7 +844,7 @@ TYPED_TEST_P( AFT_Test, IP_Batch3)
 //    AFT_Test<TypeParam>::generateAndTest(condition);
 //}
 
-REGISTER_TYPED_TEST_CASE_P(AFT_Test,
+REGISTER_TYPED_TEST_SUITE_P(AFT_Test,
 //    DEBUG,
     // FFT out-of-place
     fft_OOP_Single,

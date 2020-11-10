@@ -186,7 +186,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
 
         float atomS=0.0;
         float atomP=0.0;
-        float atomN=0.0;
         float value=0.0;
         int cont=0;
         for (int k = k0; k <= kF; k++)
@@ -208,23 +207,14 @@ void ProgPdbValueToVol::computeProteinGeometry()
                             atomS += A3D_ELEM(inputVol,k, i, j);
                             ++cont;
 
-                            //Positivity
+                            //Absolute
                             if (A3D_ELEM(inputVol,k, i, j) < 0)
                             {
                                 value = -A3D_ELEM(inputVol,k, i, j);
-                                atomP += atomP;
+                                atomP += value;
                             }
                             else
                                 atomP += A3D_ELEM(inputVol,k, i, j);
-
-                            //Negativity
-                            if (A3D_ELEM(inputVol,k, i, j) > 0)
-                            {
-                                value = -A3D_ELEM(inputVol,k, i, j);
-                                atomN += atomN;
-                            }
-                            else
-                                atomN += A3D_ELEM(inputVol,k, i, j);
 
                         }
                     }
@@ -235,7 +225,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
                             atomS+=A3D_ELEM(inputVol,k, i, j);
                             ++cont;
 
-                            //Positivity
+                            //Absolute
                             if (A3D_ELEM(inputVol,k, i, j) < 0)
                             {
                                 value = -A3D_ELEM(inputVol,k, i, j);
@@ -243,16 +233,6 @@ void ProgPdbValueToVol::computeProteinGeometry()
                             }
                             else
                                 atomP += A3D_ELEM(inputVol,k, i, j);
-
-
-                            //Negativity
-                            if (A3D_ELEM(inputVol,k, i, j) > 0)
-                            {
-                                value = -A3D_ELEM(inputVol,k, i, j);
-                                atomN += atomN;
-                            }
-                            else
-                                atomN += A3D_ELEM(inputVol,k, i, j);
 
                         }
                     }
@@ -264,7 +244,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
         if (atomS>=0)
             atomS = atomP;
         else
-            atomS = atomN;
+            atomS = -atomP;
 
         if (atomS != 0)
             atomS=atomS/cont;

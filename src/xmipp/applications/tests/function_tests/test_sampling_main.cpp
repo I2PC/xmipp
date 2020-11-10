@@ -193,9 +193,3 @@ TEST_F(SamplingTest, computeNeighborsC1)
     EXPECT_EQ(s1, s2);
     XMIPP_CATCH
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

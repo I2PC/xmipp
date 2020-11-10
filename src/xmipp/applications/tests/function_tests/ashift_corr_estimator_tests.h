@@ -68,7 +68,7 @@ private:
     static std::vector<HW*> hw;
 
 };
-TYPED_TEST_CASE_P(AShiftCorrEstimator_Test);
+TYPED_TEST_SUITE_P(AShiftCorrEstimator_Test);
 
 template<typename T>
 std::vector<HW*> AShiftCorrEstimator_Test<T>::hw;
@@ -104,7 +104,7 @@ TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToManyBatched2)
     AShiftCorrEstimator_Test<TypeParam>::correlate2DNoCenter(6, 3);
 }
 
-REGISTER_TYPED_TEST_CASE_P(AShiftCorrEstimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(AShiftCorrEstimator_Test,
         correlate2DOneToOne,
         correlate2DOneToMany,
         correlate2DOneToManyBatched1,

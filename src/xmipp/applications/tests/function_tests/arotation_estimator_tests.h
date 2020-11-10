@@ -122,7 +122,7 @@ private:
         img.write(fn);
     }
 };
-TYPED_TEST_CASE_P(ARotationEstimator_Test);
+TYPED_TEST_SUITE_P(ARotationEstimator_Test);
 
 template<typename T>
 std::vector<HW*> ARotationEstimator_Test<T>::hw;
@@ -190,7 +190,7 @@ TYPED_TEST_P( ARotationEstimator_Test, rotate2DOneToManyBatched2Noise)
 //    ARotationEstimator_Test<TypeParam>::rotate2D(Dimensions(13, 13, 1, 2), 1);
 //}
 
-REGISTER_TYPED_TEST_CASE_P(ARotationEstimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(ARotationEstimator_Test,
 //    DEBUG
     rotate2DOneToOne,
     rotate2DOneToMany,
