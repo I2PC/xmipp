@@ -449,10 +449,10 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 			if (optimizeDeformation)
 			{
 		        minimizepos(L1,h,steps);
-                std::cout << "(";
-                FOR_ALL_ELEMENTS_IN_MATRIX1D(steps)
-                    std::cout << VEC_ELEM(steps,i) << ",";
-                std::cout << ")" << std::endl;
+                // std::cout << "(";
+                // FOR_ALL_ELEMENTS_IN_MATRIX1D(steps)
+                //     std::cout << VEC_ELEM(steps,i) << ",";
+                // std::cout << ")" << std::endl;
 				// if (h!=1)
 				// {
 				// 	for (int i=0;i<3*pos/4;i++)
