@@ -1,25 +1,16 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
-#import cv2
-import math
 import numpy as np
 import os
-import random
-import string
 import sys
 import xmippLib
-import time
 from time import time
-
-
-#batch_size = 516 # Number of boxes per batch
 
 
 if __name__=="__main__":
 
     from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed
     checkIf_tf_keras_installed()
-
     fnXmdExp = sys.argv[1]
     fnLabels = sys.argv[2]
     fnODir = sys.argv[3]
@@ -96,7 +87,7 @@ if __name__=="__main__":
             for i in range(int(self.batch_size//2)):
                 list_IDs_temp.append(indexes_ones[i])
 
-	        # Generate data
+            # Generate data
             Xexp, y = self.__data_generation(list_IDs_temp)
 
             return Xexp, y
@@ -115,48 +106,23 @@ if __name__=="__main__":
             Xexp = np.zeros((self.batch_size,self.dim,self.dim,1),dtype=np.float64)
             y = np.empty((self.batch_size), dtype=np.int64)
 
-	        # Generate data
+            # Generate data
             for i, ID in enumerate(list_IDs_temp):
-	            # Store sample
+                # Store sample
                 Iexp = np.reshape(xmippLib.Image(self.pathsExp[ID]).getData(),(self.dim,self.dim,1))
                 Iexp = (Iexp-np.mean(Iexp))/np.std(Iexp)
-                #psiDeg = np.random.uniform(-180, 180)
-                #psi = psiDeg * math.pi / 180.0
-                #maxShift = round(self.dim / 10)
-                #deltaX = np.random.uniform(-maxShift, maxShift)
-                #deltaY = np.random.uniform(-maxShift, maxShift)
-                #c = math.cos(psi)
-                #s = math.sin(psi)
-                #M = np.float32([[c, s, (1 - c) * Xdim - s * Xdim + deltaX], [-s, c, s * Xdim + (1 - c) * Xdim + deltaY]])
-                #newImg = cv2.warpAffine(Iexp, M, (Xdim, Xdim), borderMode=cv2.BORDER_REFLECT_101)
-                #newImg = (newImg-np.mean(newImg))/np.std(newImg)
-                #newImg = np.reshape(newImg,(self.dim,self.dim,1))
                 Xexp[i,] = Iexp
 
-	            # Store class
+                # Store class
                 y[i] = self.labels[ID]
 
             return Xexp, y
 
-	 
+
     def constructModel(Xdim, numOut):
         inputLayer = Input(shape=(Xdim,Xdim,1), name="input")
 
-	#    #First network model
-	#    L = Conv2D(16, (11,11), activation="relu") (inputLayer)
-	#    L = BatchNormalization()(L)
-	#    L = MaxPooling2D()(L)
-	#    L = Conv2D(16, (5,5), activation="relu") (L)
-	#    L = BatchNormalization()(L)
-	#    L = MaxPooling2D()(L)
-	#    L = Dropout(0.2)(L)
-	#    L = Flatten() (L)
-
-	#    L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-	#    L = BatchNormalization()(L)
-
-
-		#Second network model
+        #Network model
         L = Conv2D(16, (int(Xdim/3), int(Xdim/3)), activation="relu") (inputLayer) #33 filter size before
         L = BatchNormalization()(L)
         L = MaxPooling2D()(L)
@@ -171,45 +137,6 @@ if __name__=="__main__":
         L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
         L = BatchNormalization()(L)
 
-	#    #Fourth network model
-	#    L = Conv2D(16, (11,11), activation="relu") (inputLayer)
-	#    L = BatchNormalization()(L)
-	#    L = MaxPooling2D()(L)
-	#    L = Dropout(0.2)(L)
-	#    L = Conv2D(32, (11,11), activation="relu") (L)
-	#    L = BatchNormalization()(L)
-	#    L = Dropout(0.2)(L)
-	#    L = Conv2D(64, (11,11), activation="relu") (L)
-	#    L = BatchNormalization()(L)
-	#    L = MaxPooling2D()(L)
-	#    L = Dropout(0.2)(L)
-	#    L = Flatten() (L)
-	#    L = Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-	#    L = BatchNormalization()(L)
-
-
-	#    #Third network model
-	#    r_hyp = 0.001
-	#    L = SeparableConv2D(32, (64, 64), activation='relu', kernel_regularizer=regularizers.l2(r_hyp))(inputLayer)
-	#    L = BatchNormalization()(L)
-	#
-	#    L = SeparableConv2D(64, 3, activation='relu', kernel_regularizer=regularizers.l2(r_hyp))(L)
-	#    L = BatchNormalization()(L)
-	#    L = MaxPooling2D(2)(L)
-	#    
-	#    L = SeparableConv2D(128, 3, activation='relu', kernel_regularizer=regularizers.l2(r_hyp))(L)
-	#    L = BatchNormalization()(L)
-	#    
-	#    L = SeparableConv2D(128, 3, activation='relu', kernel_regularizer=regularizers.l2(r_hyp))(L)
-	#    L = BatchNormalization()(L)
-	#    L = MaxPooling2D(2)(L)
-	#    
-	#    L = SeparableConv2D(256, 3, activation='relu', kernel_regularizer=regularizers.l2(r_hyp))(L)
-	#    L = BatchNormalization()(L)
-	#    L = GlobalAveragePooling2D()(L)
-	#    L = Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.001))(L)
-	#    L = BatchNormalization()(L)
-
         if numOut>2:
             L = Dense(numOut, name="output", activation="softmax") (L)
         elif numOut==2:
@@ -219,7 +146,6 @@ if __name__=="__main__":
 
     def createValidationData(pathsExp, labels_vector, numOut, percent=0.1):
         sizeValData = int(round(len(pathsExp)*percent))
-        print("sizeValData",sizeValData)
         val_img_exp = []
         val_labels = []
         if numOut>2:
@@ -233,20 +159,15 @@ if __name__=="__main__":
                 del pathsExp[k]
                 del labels_vector[k]
         elif numOut==2:
-			#sizeOnes=int(round(sizeValData*0.5))
-			#sizeZeros=sizeValData-sizeOnes
-            labels = np.array(labels_vector)	
+            labels = np.array(labels_vector)
             vectorOnes = np.where(labels==1)
-            print("vectorOnes",vectorOnes)
             numberOnes = int(len(vectorOnes[0])*percent)
             vectorZeros = np.where(labels==0)
             numberZeros = int(len(vectorZeros[0])*percent)
-            print("ones and zeros ", len(vectorOnes[0]), len(vectorZeros[0]), numberOnes, numberZeros)
             if numberZeros>numberOnes:
                 numberZeros= numberOnes
             elif numberOnes>numberZeros:
                 numberOnes=numberZeros
-            print("ones and zeros ", numberOnes, numberZeros)
             for i in range(numberOnes):
                 labels = np.array(labels_vector)
                 vectorOnes = np.where(labels==1)
@@ -281,7 +202,7 @@ if __name__=="__main__":
     Nexp = mdExp.size()
     labels = np.loadtxt(fnLabels)
 
-    #AJ new code to generate data for validation set
+    #To generate data for validation set
     pathsExp = []
     labels_vector = []
     cont=0
@@ -293,13 +214,9 @@ if __name__=="__main__":
     print(cont, len(labels_vector))
 
     x_val, y_val = createValidationData(pathsExp, labels_vector, numOut, 0.2)
-    #END AJ
 
     # Parameters
-    params = {'dim': Xdim,
-          'batch_size': batch_size,
-          'shuffle': True,
-	  'pathsExp': pathsExp}
+    params = {'dim': Xdim, 'batch_size': batch_size, 'shuffle': True, 'pathsExp': pathsExp}
     # Datasets
     list_IDs_zeros = np.where(np.array(labels_vector)==0)
     list_IDs_ones = np.where(np.array(labels_vector)==1)
@@ -309,20 +226,20 @@ if __name__=="__main__":
     list_IDs_ones_orig = list_IDs_ones
     lenTotal = len(list_IDs_zeros)+len(list_IDs_ones)
     if len(list_IDs_zeros)<lenTotal:
-	for i in range((lenTotal//len(list_IDs_zeros))-1):
-	    list_IDs_zeros = np.append(list_IDs_zeros, list_IDs_zeros_orig)
-	list_IDs_zeros = np.append(list_IDs_zeros, list_IDs_zeros[0:(lenTotal%len(list_IDs_zeros))])
+        for i in range((lenTotal//len(list_IDs_zeros))-1):
+            list_IDs_zeros = np.append(list_IDs_zeros, list_IDs_zeros_orig)
+        list_IDs_zeros = np.append(list_IDs_zeros, list_IDs_zeros[0:(lenTotal%len(list_IDs_zeros))])
     if len(list_IDs_ones)<lenTotal:
-	for i in range((lenTotal//len(list_IDs_ones))-1):
-	    list_IDs_ones = np.append(list_IDs_ones, list_IDs_ones_orig)
-	list_IDs_ones = np.append(list_IDs_ones, list_IDs_ones[0:(lenTotal%len(list_IDs_ones))])
+        for i in range((lenTotal//len(list_IDs_ones))-1):
+            list_IDs_ones = np.append(list_IDs_ones, list_IDs_ones_orig)
+        list_IDs_ones = np.append(list_IDs_ones, list_IDs_ones[0:(lenTotal%len(list_IDs_ones))])
     print(len(list_IDs_zeros), len(list_IDs_ones))
     print(len(pathsExp), batch_size, round(len(pathsExp)/batch_size))
     labels = labels_vector
     # Generator
     training_generator = DataGenerator(list_IDs_zeros, list_IDs_ones, labels, **params)
 
-    print('Train mode')
+    print('Training')
     start_time = time()
     model = constructModel(Xdim, numOut)
 
@@ -332,26 +249,18 @@ if __name__=="__main__":
     callbacks_list = [callbacks.ModelCheckpoint(filepath=name_model, monitor='val_loss', save_best_only=True),
     		      EarlyStoppingByLossVal(monitor='val_loss', value=0.05)]
 
-    #callbacks_list = [callbacks.ModelCheckpoint(filepath=name_model, monitor='val_loss', save_best_only=True)]
-
-
     model.summary()
     adam_opt = Adam(lr=0.001)
     if numOut>2:
         model.compile(loss='sparse_categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
     elif numOut==2:
-	#model.compile(loss='binary_crossentropy', optimizer='Adam')
-	model.compile(loss='mean_absolute_error', optimizer=adam_opt, metrics=['accuracy'])
+        model.compile(loss='mean_absolute_error', optimizer=adam_opt, metrics=['accuracy'])
 
     steps = round(len(pathsExp)/batch_size)
     history = model.fit_generator(generator = training_generator, steps_per_epoch = steps, epochs=numEpochs, verbose=1, validation_data = (x_val, y_val), callbacks=callbacks_list, workers=4, use_multiprocessing=True)    #AJ probar estas cosas de multiprocessing
-    #myValLoss=np.zeros((1))
-    #myValLoss[0] = history.history['val_loss'][-1]
-    #np.savetxt(os.path.join(fnODir,modelFn+'.txt'), myValLoss)
-    model.save(name_model) #AJ necesario o no???
+    model.save(name_model)
     elapsed_time = time() - start_time
     print("Time in training model: %0.10f seconds." % elapsed_time)
-    print("name_model: ", name_model)
 
     model = load_model(name_model)
     Ypred = model.predict(x_val)
@@ -359,7 +268,7 @@ if __name__=="__main__":
     mae = mean_absolute_error(y_val, Ypred)
     print("Final model mean absolute error val_loss", mae)
     f = open (os.path.join(fnODir, modelFn+'.txt'),'w')
-    f.write(mae)
+    f.write(str(mae))
     f.close()
 
 
