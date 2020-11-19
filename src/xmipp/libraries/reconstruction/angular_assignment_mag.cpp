@@ -95,7 +95,7 @@ void ProgAngularAssignmentMag::startProcessing() {
 }
 
 /*
- * In this method, for each direction, I look for neighbors within certain distance
+ * In this method, for each direction, I look for neighbors within some distance
  * */
 void ProgAngularAssignmentMag::computingNeighborGraph() {
 	std::vector< std::vector<int> > allNeighborsjp;
@@ -106,17 +106,10 @@ void ProgAngularAssignmentMag::computingNeighborGraph() {
 	double maxSphericalDistance = angStep*2.;
 	std::cout<< "processing neighbors graph..."<<std::endl;;
 
-/*comment
-std::ofstream outCoord("/home/jeison/Escritorio/projCoordinates.txt"); // */
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		double rotj;
 		double tiltj;
 		double psij;
-/*comment
-double cx,cy,cz;
-mdRef.getValue(MDL_X,cx,__iter.objId);
-mdRef.getValue(MDL_Y,cy,__iter.objId);
-mdRef.getValue(MDL_Z,cz,__iter.objId); // */
 		mdRef.getValue(MDL_ANGLE_ROT, rotj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_TILT, tiltj, __iter.objId);
 		mdRef.getValue(MDL_ANGLE_PSI, psij, __iter.objId);
@@ -145,12 +138,7 @@ mdRef.getValue(MDL_Z,cz,__iter.objId); // */
 		}
 		allNeighborsjp.push_back(neighborsjp);
 		allWeightsjp.push_back(weightsjp);
-/*comment
-outCoord<<cx<<"\t"<<cy<<"\t"<<cz<<"\n"; // */
 	} // END FOR_ALL_OBJECTS_IN_METADATA(mdRef)
-
-/*comment
-outCoord.close(); // */
 
 	// compute Laplacian Matrix
 	DMatrix L_mat;
@@ -191,10 +179,6 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &matL,
 		}
 		MAT_ELEM(matL,i,i) = sumWeight - 1.; // -1 because is necessary to remove the "central" weight
 	}
-
-
-/*comment write-out Laplacian matrix to check
-matL.write("/home/jeison/Escritorio/LaplacianMatrix.txt"); // */
 }
 
 void ProgAngularAssignmentMag::preProcess() {
@@ -279,7 +263,7 @@ void ProgAngularAssignmentMag::preProcess() {
 	// check if eigenvectors file already created
 	String fnEigenVect = formatString("%s/outEigenVect.txt",fnDir.c_str());
 	std::ifstream in;
-	in.open(fnEigenVect.c_str()); //, std::ios::in);
+	in.open(fnEigenVect.c_str());
 	if(!in){
 		in.close();
 		// Define the neighborhood graph, Laplacian Matrix and eigendecomposition
@@ -296,7 +280,6 @@ void ProgAngularAssignmentMag::preProcess() {
 	eigenvectors.read(fnEigenVect);
 
 	// Symmetry List
-
 	if (fnSym != "") {
 		SL.readSymmetryFile(fnSym);
 		for (int sym = 0; sym < SL.symsNo(); sym++) {
@@ -311,7 +294,7 @@ void ProgAngularAssignmentMag::preProcess() {
 
 	if(useForValidation){
 		// read reference volume to be re-projected when comparing previous assignment
-		// If there is no reference available exit
+		// If there is no reference available, exit
 		try{
 			refVol.read(inputReference_volume);
 		}
@@ -337,24 +320,11 @@ void ProgAngularAssignmentMag::graphFourierFilter(Matrix1D<double> &ccVecIn, Mat
 	Matrix2D<double> eigenvectorTrans = eigenvectors.transpose();
 	ccGFT = eigenvectorTrans*ccVecIn;
 
-//	// energía antes
-//	double ener = ccGFT.dotProduct(ccGFT);
-//	std::cout<<formatString("energía antes:\t %.4f\n", ener);
-
-/*comment
-ccGFT.write("/home/jeison/Escritorio/ccGFT.txt"); // */
-
 	// define filtering base
 	int cutEig = (sizeMdRef>1000) ? int(.05 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
 	for(int k = cutEig; k < sizeMdRef; ++k){
 		VEC_ELEM(ccGFT,k) = 0.;
 	}
-//	// energía despues
-//	double ener2 = ccGFT.dotProduct(ccGFT);
-//	std::cout<<formatString("energía despues:\t %.4f\n", ener2);
-//
-//	std::cout<<formatString("porcentaje: %.4f\n\n",ener2/ener);
-
 	// apply filter to ccvec
 	ccVecOut = eigenvectors*ccGFT;
 }
@@ -422,49 +392,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		bestPsi[k] = psi;
 	}
 
-
-	// search rotation with 10% of reference images
-	// nCand value should be 10% for experiments with C1 symmetry (more than 1000 references)
-	// but for I1 symmetry, for example, should be at least 50%.
-	int nCand = (sizeMdRef>1000) ? int(.10 * sizeMdRef + 1) : int(.50 * sizeMdRef + 1);
-
-//	double minval, maxval;
-//	ccvec.computeMinMax(minval, maxval);
-//	std::cout << "minval y maxval: " << minval << ", " << maxval << std::endl;
-//	double thr = maxval - (maxval - minval) / 4.;
-//	std::cout << "thr: " << thr << std::endl;
-//	double thr2 = maxval - (maxval - minval) / 2.;
-//	std::cout << "thr2: " << thr2 << std::endl;
-//	double thr3 = maxval - (maxval - minval) / 3.;
-//	std::cout << "thr3: " << thr3 << std::endl;
-//	int counttest = 0;
-//	int counttest2 = 0;
-//	int counttest3 = 0;
-//	for (int k = 0; k < sizeMdRef; ++k) {
-//		if (VEC_ELEM(ccvec,k) > thr) {
-//			counttest += 1;
-//		}
-//		if (VEC_ELEM(ccvec,k) > thr2) {
-//			counttest2 += 1;
-//		}
-//		if (VEC_ELEM(ccvec,k) > thr3) {
-//			counttest3 += 1;
-//		}
-//	}
-//	std::cout<<"cont: "<< counttest << " of sizeMdref: " << sizeMdRef << std::endl;
-//	std::cout<<"cont2: "<< counttest2 << " of sizeMdref: " << sizeMdRef << std::endl;
-//	std::cout<<"cont3: "<< counttest3 << " of sizeMdref: " << sizeMdRef << std::endl;
-//
-//	std::cout<<"press to continue!"<<std::endl;
-//	std::cin.ignore();
-
-//	// ordering using cross-corr coefficient values computed in first loop
-//	// only best reference directions should be refined with alignImages()
-//	std::partial_sort(Idx.begin(), Idx.begin() + nCand, Idx.end(),
-//			[&ccvec](int i, int j) {
-//				return ccvec[i] > ccvec[j];
-//			});
-
 	// variables for second loop
 	std::vector<double> bestTx2(sizeMdRef, 0.);
 	std::vector<double> bestTy2(sizeMdRef, 0.);
@@ -483,8 +410,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		thres = maxval - (maxval - minval) / 3.;
 	else
 		thres = maxval - (maxval - minval) / 2.;
-//	int cont = 0;
-//	std::cout<<"thres: "<<thres << std::endl;
+
 	for(int k = 0; k < sizeMdRef; ++k) {
 		if(VEC_ELEM(ccvec,k)>thres){
 			// find rotation and shift using alignImages
@@ -503,7 +429,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			bestTy2[k] = Ty;
 			bestPsi2[k] = psi;
 
-//			cont+=1;
 		}
 		else{
 			bestTx2[k] = bestTx[k];
@@ -511,64 +436,6 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 			bestPsi2[k] = bestPsi[k];
 		}
 	}
-//	std::cout<<"cont: "<<cont << std::endl;
-
-// 	// lo que tenía antes
-//	for(int k = 0; k < sizeMdRef; ++k) {
-//		if(k<nCand){
-//			// find rotation and shift using alignImages
-//			Matrix2D<double> M;
-//			mCurrentImageAligned = MDaInAux;
-//			mCurrentImageAligned.setXmippOrigin();
-//			corr = alignImages(vecMDaRef[Idx[k]], mCurrentImageAligned, M, DONT_WRAP);
-//			M = M.inv();
-//			transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
-//
-//			if (maxShift>0 && (fabs(Tx)>maxShift || fabs(Ty)>maxShift))
-//				corr /= 3;
-//
-//			VEC_ELEM(ccvec, Idx[k]) = corr;
-//			bestTx2[Idx[k]] = Tx;
-//			bestTy2[Idx[k]] = Ty;
-//			bestPsi2[Idx[k]] = psi;
-//		}
-//		else{
-//			bestTx2[Idx[k]] = bestTx[Idx[k]];
-//			bestTy2[Idx[k]] = bestTy[Idx[k]];
-//			bestPsi2[Idx[k]] = bestPsi[Idx[k]];
-//		}
-//	}
-	// */
-
-	// one loop search using alignImages
-	/*
-	std::vector<double> bestTx2(sizeMdRef, 0.);
-	std::vector<double> bestTy2(sizeMdRef, 0.);
-	std::vector<double> bestPsi2(sizeMdRef, 0.);
-	MultidimArray<double> &MDaInAux = ImgIn();
-	MDaInAux.setXmippOrigin();
-	MultidimArray<double> mCurrentImageAligned;
-	double corr, scale;
-	bool flip;
-	for (int k = 0; k < sizeMdRef; ++k) {
-		// find rotation and shift using alignImages
-		Matrix2D<double> M;
-		mCurrentImageAligned = MDaInAux;
-		mCurrentImageAligned.setXmippOrigin();
-		corr = alignImages(vecMDaRef[k], mCurrentImageAligned, M,
-				DONT_WRAP);
-		M = M.inv();
-		transformationMatrix2Parameters2D(M, flip, scale, Tx, Ty, psi);
-
-		if (maxShift > 0 && (fabs(Tx) > maxShift || fabs(Ty) > maxShift))
-			corr /= 3;
-
-		VEC_ELEM(ccvec, k) = corr;
-		bestTx2[k] = Tx;
-		bestTy2[k] = Ty;
-		bestPsi2[k] = psi;
-	}
-	// */
 
 	// ================ Graph Filter Process after second loop =================
 	Matrix1D<double> ccvec_filt;
@@ -580,9 +447,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 	// choose best candidate direction from graph filtered ccvect signal
 	int idxfilt = ccvec_filt.maxIndex();
 
-
 	// angular distance between this two directions
-	// /*
 	Matrix1D<double> dirj;
 	Matrix1D<double> dirjp;
 	double rotj = referenceRot.at(idx);
@@ -605,7 +470,7 @@ void ProgAngularAssignmentMag::processImage(const FileName &fnImg,const FileName
 		auxSphericalDist = RAD2DEG(spherical_distance(dirj, dirjp));
 		if (auxSphericalDist < sphericalDistance)
 			sphericalDistance = auxSphericalDist;
-	} // */
+	}
 
 	// set output alignment parameters values
 	double rotRef = referenceRot.at(idx);
@@ -877,8 +742,6 @@ void ProgAngularAssignmentMag::completeFourierShift(MultidimArray<double> &in,
 
 	size_t Cf = (size_t) (YSIZE(in) / 2.0 + 0.5);
 	size_t Cc = (size_t) (XSIZE(in) / 2.0 + 0.5);
-	//	size_t Cf = (Ydim + (Ydim % 2)) / 2.0; // for odd/even images ?
-	//	size_t Cc = (Xdim + (Xdim % 2)) / 2.0;
 
 	size_t ff;
 	size_t cc;
@@ -944,7 +807,7 @@ void ProgAngularAssignmentMag::maxByColumn(MultidimArray<double> &in,
 	}
 }
 
-/* gets maximum value for each column*/
+/* gets mean value for each column*/
 void ProgAngularAssignmentMag::meanByColumn(MultidimArray<double> &in,
 		MultidimArray<double> &out) {
 
@@ -979,7 +842,7 @@ void ProgAngularAssignmentMag::maxByRow(MultidimArray<double> &in,
 	}
 }
 
-/* gets maximum value for each row */
+/* gets mean value for each row */
 void ProgAngularAssignmentMag::meanByRow(MultidimArray<double> &in,
 		MultidimArray<double> &out) {
 
@@ -1033,8 +896,8 @@ void ProgAngularAssignmentMag::circularWindow(MultidimArray<double> &in) {
 	}
 }
 
-/* Only for 180 angles */
-/* approach which selects only two locations of maximum peaks in ccvRot */
+/* Only for 180 angles
+ * just two locations of maximum peaks in ccvRot */
 void ProgAngularAssignmentMag::psiCandidates(MultidimArray<double> &in,
 		std::vector<double> &cand, const size_t &size) {
 	double max1 = -1000.;
@@ -1119,7 +982,7 @@ void ProgAngularAssignmentMag::bestCand(/*inputs*/
 	for (int i = 0; i < peaksFound; ++i) {
 		rotVar = -1. * cand[i];  //negative, because is for reference rotation
 		applyRotation(MDaRef, rotVar, MDaRefRot); //rotation to reference image
-		applyFourierImage2(MDaRefRot, MDaRefRotF); //Fourier
+		applyFourierImage2(MDaRefRot, MDaRefRotF);
 		ccMatrix(MDaInF, MDaRefRotF, ccMatrixShift); // cross-correlation matrix
 
 		maxByColumn(ccMatrixShift, ccVectorTx); // ccvMatrix to ccVector
@@ -1202,7 +1065,7 @@ void ProgAngularAssignmentMag::applyRotation(MultidimArray<double> &MDaRef,
 	applyGeometry(LINEAR, MDaRefRot, MDaRef, A, IS_NOT_INV, DONT_WRAP);
 }
 
-/* apply translation */
+/* apply shift */
 void ProgAngularAssignmentMag::applyShift(MultidimArray<double> &input,
 		double &tx, double &ty, MultidimArray<double> &output) {
 	// Transform matrix
@@ -1216,7 +1079,7 @@ void ProgAngularAssignmentMag::applyShift(MultidimArray<double> &input,
 	applyGeometry(LINEAR, output, input, A, IS_NOT_INV, DONT_WRAP);
 }
 
-/* apply translation */
+/* apply shift */
 void ProgAngularAssignmentMag::applyShift(const MultidimArray<double> &input,
 		double &tx, double &ty, MultidimArray<double> &output) {
 	// Transform matrix
@@ -1237,7 +1100,7 @@ void ProgAngularAssignmentMag::getShift(MultidimArray<double> &ccVector,
 	int idx = 0;
 	int lb = int(size / 2 - maxShift);
 	int hb = int(size / 2 + maxShift);
-	for (int i = lb; i < hb; ++i) { //i= lb : hb or i= 1: size-1
+	for (int i = lb; i < hb; ++i) {
 		if (( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i - 1)))
 				&& ( dAi(ccVector,size_t(i)) > dAi(ccVector, size_t(i + 1))) && // is this value a peak value?
 				(dAi(ccVector,i) > maxVal)) {  // is the biggest?
