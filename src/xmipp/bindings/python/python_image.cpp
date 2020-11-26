@@ -1865,51 +1865,6 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
     }
 }
 
-PyObject *
-Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
-{
-    ImageObject *self = (ImageObject*) obj;
-    if (nullptr == self) return nullptr;
-    try {
-        // keep default values consistent with the python
-        int x0 = 0;
-        int y0 = 0;
-        int xF = 384;
-        int yF = 384;
-        int dim = 1;
-        ImageObject *result = PyObject_New(ImageObject, &ImageType);
 
-        if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
-                && (nullptr != result)) {
-            // prepare dims
-            auto dims = Dimensions(xF-x0+1, yF-y0+1);
-            // prepare input image
-            ImageGeneric *image = self->image;
-            image->convert2Datatype(DT_Double);
-            MultidimArray<double> *pImage_in;
-            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage_in);
-
-            // prepare output image
-            result->image = new ImageGeneric(DT_Double);
-            MultidimArray<double> *pImage_out;
-            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(pImage_out);
-            // call the estimation
-            pImage_out.resizeNoCopy((size_t)(yF-y0+1),(size_t)(xF-x0+1)); // dims.yDim, dims.xdim
-            STARTINGY(pImage_out) = y0;
-            STARTINGX(pImage_out) = x0;
-
-            size_t sizeToCopy=XSIZE(pImage_out)*sizeof(T);
-            for (int y=y0; y<=yF; y++){
-    	        memcpy( &A2D_ELEM(pImage_out,y,STARTINGX(pImage_out)), &A2D_ELEM(pImage_in,y,STARTINGX(pImage_out)), sizeToCopy);
-    	    }
-
-        } else {
-            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
-        }
-        return (PyObject *)result;
-    } catch (XmippError &xe) {
-        PyErr_SetString(PyXmippError, xe.msg.c_str());
-    }
-}
 
 
