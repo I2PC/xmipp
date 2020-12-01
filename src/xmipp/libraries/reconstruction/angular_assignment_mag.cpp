@@ -25,6 +25,7 @@
  ***************************************************************************/
 
 #include "angular_assignment_mag.h"
+#include <unistd.h>
 
 ProgAngularAssignmentMag::ProgAngularAssignmentMag() {
 	produces_a_metadata = true;
@@ -47,7 +48,7 @@ void ProgAngularAssignmentMag::defineParams() {
 	addParamsLine("  [-sampling <sampling=1.>]   : sampling");
 	addParamsLine("  [-angleStep <angStep=3.>]   : angStep");
 	addParamsLine("  [--maxShift <maxShift=-1.>]  : Maximum shift allowed (+-this amount)");
-	addParamsLine("  [--Nsimultaneous <Nsim=1>]  : Nsimultaneous");
+	addParamsLine("  [--Nsimultaneous <Nprocessors=1>]  : Nsimultaneous");
 	addParamsLine("  [--refVol <refVolFile=NULL>]  : reference volume to be reprojected when comparing with previous alignment");
 	addParamsLine("  [--useForValidation] : Use the program for validation");
 }
@@ -181,6 +182,13 @@ void ProgAngularAssignmentMag::computeLaplacianMatrix(Matrix2D<double> &matL,
 	}
 }
 
+unsigned long long getTotalSystemMemory()
+{
+    long pages = sysconf(_SC_PHYS_PAGES);
+    long page_size = sysconf(_SC_PAGE_SIZE);
+    return pages * page_size;
+}
+
 void ProgAngularAssignmentMag::preProcess() {
 
 	mdIn.read(fnIn);
@@ -229,8 +237,28 @@ void ProgAngularAssignmentMag::preProcess() {
 	// for storage of rot and tilt of reference images
 	referenceRot.resize(sizeMdRef);
 	referenceTilt.resize(sizeMdRef);
-	if (rank == 0)
+	if (rank == 0) {
 		std::cout << "processing reference library..." << std::endl;
+		// memory check
+		size_t dataSize = Xdim * Ydim * sizeMdRef * sizeof(double);
+		size_t matrixSize = sizeMdRef * sizeMdRef * sizeof(double);
+		size_t polarFourierSize = n_bands * n_ang2 * sizeMdRef * sizeof(std::complex<double>);
+
+		size_t totMemory = dataSize + matrixSize + polarFourierSize;
+		totMemory = memoryUtils::MB(totMemory) * Nprocessors;
+		std::cout << "approx. memory to allocate: " << totMemory << " MB" << std::endl;
+		std::cout << "simultaneous MPI processes: " << Nprocessors << std::endl;
+
+		size_t available = getTotalSystemMemory();
+		available = memoryUtils::MB(available);
+		std::cout << "total available system memory: " << available << " MB" << std::endl;
+		available -= 1500;
+
+	    if (available < totMemory ) {
+	        REPORT_ERROR(ERR_MEM_NOTENOUGH,"You don't have enough memory. Try to use less MPI processes.");
+	    }
+	}
+
 	int j = -1;
 	FOR_ALL_OBJECTS_IN_METADATA(mdRef){
 		j += 1;

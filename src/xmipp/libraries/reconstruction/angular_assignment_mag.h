@@ -34,6 +34,7 @@
 #include <core/symmetries.h>
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
+#include <core/utils/memory_utils.h>
 #include <data/mask.h>
 #include <data/filters.h>
 #include "data/projection.h"
