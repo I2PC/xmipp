@@ -35,7 +35,7 @@
 
 // explicit instantiations
 //template class VolumeDeformSph<float>;
-template class VolumeDeformSph<ComputationDataType>;
+//template class VolumeDeformSph<ComputationDataType>;
 
 // Common functions
 template<typename T>
@@ -113,8 +113,7 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
 */
 // VolumeDeformSph methods
 
-template<typename T>
-VolumeDeformSph<T>::~VolumeDeformSph() 
+VolumeDeformSph::~VolumeDeformSph() 
 {
     freeImage(images.VI);
     freeImage(images.VR);
@@ -142,21 +141,18 @@ VolumeDeformSph<T>::~VolumeDeformSph()
     freeImage(deformImages.Gz);
 }
 
-template<typename T>
-void VolumeDeformSph<T>::freeImage(ImageData<T> &im) 
+void VolumeDeformSph::freeImage(ImageData &im) 
 {
     if (im.data != nullptr)
         cudaFree(im.data);
 }
 
-template<typename T>
-void VolumeDeformSph<T>::associateWith(ProgVolumeDeformSphGpu* prog) 
+void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog) 
 {
     program = prog;
 }
 
-template<typename T>
-void VolumeDeformSph<T>::setupConstantParameters() 
+void VolumeDeformSph::setupConstantParameters() 
 {
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
@@ -169,14 +165,13 @@ void VolumeDeformSph<T>::setupConstantParameters()
     setupVolumes();
 }
 
-template<typename T>
-void VolumeDeformSph<T>::setupChangingParameters() 
+void VolumeDeformSph::setupChangingParameters() 
 {
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
-    unsigned stepsSize = program->steps_cp.size() * sizeof(T);
-    unsigned clnmSize = program->clnm.size() * sizeof(T);
+    unsigned stepsSize = program->steps_cp.size() * sizeof(ComputationDataType);
+    unsigned clnmSize = program->clnm.size() * sizeof(ComputationDataType);
 
     if (this->steps == nullptr)
         if (cudaMalloc(&(this->steps), stepsSize) != cudaSuccess)
@@ -207,18 +202,16 @@ void VolumeDeformSph<T>::setupChangingParameters()
     }
 }
 
-template<typename T>
-KernelOutputs<T> VolumeDeformSph<T>::getOutputs() 
+KernelOutputs VolumeDeformSph::getOutputs() 
 {
     return exOuts;
 }
 
-template<typename T>
-void VolumeDeformSph<T>::transferImageData(Image<double>& outputImage, ImageData<T>& inputData) 
+void VolumeDeformSph::transferImageData(Image<double>& outputImage, ImageData& inputData) 
 {
     size_t elements = inputData.xDim * inputData.yDim * inputData.zDim;
-    std::vector<T> tVec(elements);
-    cudaMemcpy(tVec.data(), inputData.data, sizeof(T) * elements, cudaMemcpyDeviceToHost);
+    std::vector<ComputationDataType> tVec(elements);
+    cudaMemcpy(tVec.data(), inputData.data, sizeof(ComputationDataType) * elements, cudaMemcpyDeviceToHost);
     std::vector<double> dVec(tVec.begin(), tVec.end());
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
     /*
@@ -232,8 +225,7 @@ void VolumeDeformSph<T>::transferImageData(Image<double>& outputImage, ImageData
     */
 }
 
-template<typename T>
-void VolumeDeformSph<T>::runKernel() 
+void VolumeDeformSph::runKernel() 
 {
     // Does not work in general case, but test data have nice sizes
     dim3 grid;
@@ -248,7 +240,7 @@ void VolumeDeformSph<T>::runKernel()
 
     // thrust experiment
     int TOTAL_GRID_SIZE = grid.x * grid.y * grid.z;
-    thrust::device_vector<T> t_out(TOTAL_GRID_SIZE * 4, 0.0);
+    thrust::device_vector<ComputationDataType> t_out(TOTAL_GRID_SIZE * 4, 0.0);
 
     computeDeform<<< grid, block >>>(Rmax2, iRmax,
             images, zshparams, steps, clnm,
@@ -266,8 +258,7 @@ void VolumeDeformSph<T>::runKernel()
     exOuts.Ncount = thrust::reduce(NcountIt, t_out.end());
 }
 
-template<typename T>
-void VolumeDeformSph<T>::transferResults() 
+void VolumeDeformSph::transferResults() 
 {
     if (applyTransformation) {
         transferImageData(program->VO, images.VO);
@@ -279,8 +270,7 @@ void VolumeDeformSph<T>::transferResults()
     }
 }
 
-template<typename T>
-void VolumeDeformSph<T>::setupZSHparams()
+void VolumeDeformSph::setupZSHparams()
 {
     zshparams.size = program->vL1.size();
 
@@ -294,8 +284,7 @@ void VolumeDeformSph<T>::setupZSHparams()
         printCudaError();
 }
 
-template<typename T>
-void VolumeDeformSph<T>::setupVolumes()
+void VolumeDeformSph::setupVolumes()
 {
     volumes.size = program->volumesR.size();
 
@@ -313,8 +302,7 @@ void VolumeDeformSph<T>::setupVolumes()
         printCudaError();
 }
 
-template<typename T>
-void VolumeDeformSph<T>::setupImage(Image<double>& inputImage, ImageData<T>& outputImageData) 
+void VolumeDeformSph::setupImage(Image<double>& inputImage, ImageData& outputImageData) 
 {
     auto& mda = inputImage();
 
@@ -337,8 +325,7 @@ void VolumeDeformSph<T>::setupImage(Image<double>& inputImage, ImageData<T>& out
     transformData(&outputImageData.data, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
-template<typename T>
-void VolumeDeformSph<T>::setupImage(ImageData<T>& inputImage, ImageData<T>& outputImageData, bool copyData) 
+void VolumeDeformSph::setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData) 
 {
     outputImageData.xShift = inputImage.xShift;
     outputImageData.yShift = inputImage.yShift;
@@ -347,7 +334,7 @@ void VolumeDeformSph<T>::setupImage(ImageData<T>& inputImage, ImageData<T>& outp
     outputImageData.yDim = inputImage.yDim;
     outputImageData.zDim = inputImage.zDim;
 
-    size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(T);
+    size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(ComputationDataType);
     if (cudaMalloc(&outputImageData.data, size) != cudaSuccess)
         printCudaError();
 

@@ -65,7 +65,7 @@ __device__ float ZernikeSphericalHarmonics(int l1, int n, int l2, int m, float x
 #endif
 
 template<typename T>
-__device__ T interpolatedElement3D(ImageData<T> ImD,
+__device__ T interpolatedElement3D(ImageData ImD,
         T x, T y, T z, T doutside_value = 0) 
 {
         int x0 = FLOOR(x);
@@ -108,9 +108,9 @@ __device__ T interpolatedElement3D(ImageData<T> ImD,
 }
 
 template<typename T>
-__global__ void computeDeform(T Rmax2, T iRmax, IROimages<T> images,
+__global__ void computeDeform(T Rmax2, T iRmax, IROimages images,
         ZSHparams zshparams, T* steps_cp, T* clnm,
-        Volumes<T> volumes, DeformImages<T> deformImages, bool applyTransformation,
+        Volumes volumes, DeformImages deformImages, bool applyTransformation,
         bool saveDeformation, thrust::device_ptr<T> g_outArr) 
 {
     __shared__ T sumArray[TOTAL_BLOCK_SIZE * 4];

@@ -40,7 +40,7 @@ class ProgVolumeDeformSphGpu: public XmippProgram
 {
 public:
     /// GPU computer
-    VolumeDeformSph<ComputationDataType> volDefSphGpu;
+    VolumeDeformSph volDefSphGpu;
 
 	/// Volume to deform
 	FileName fnVolI;

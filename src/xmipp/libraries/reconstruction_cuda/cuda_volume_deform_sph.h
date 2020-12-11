@@ -14,7 +14,6 @@ using ComputationDataType = float;
 // Forward declarations
 class ProgVolumeDeformSphGpu;
 
-template<typename T>
 struct ImageData
 {
     int xShift = 0;
@@ -25,7 +24,7 @@ struct ImageData
     int yDim = 0;
     int zDim = 0;
 
-    T* data = nullptr;
+    ComputationDataType* data = nullptr;
 };
 
 struct ZSHparams 
@@ -37,40 +36,35 @@ struct ZSHparams
     unsigned size = 0;
 };
 
-template<typename T>
 struct Volumes 
 {
-    ImageData<T>* I = nullptr;
-    ImageData<T>* R = nullptr;
+    ImageData* I = nullptr;
+    ImageData* R = nullptr;
     unsigned size = 0;
 };
 
-template<typename T>
 struct IROimages 
 {
-    ImageData<T> VI;
-    ImageData<T> VR;
-    ImageData<T> VO;
+    ImageData VI;
+    ImageData VR;
+    ImageData VO;
 };
 
-template<typename T>
 struct DeformImages 
 {
-    ImageData<T> Gx;
-    ImageData<T> Gy;
-    ImageData<T> Gz;
+    ImageData Gx;
+    ImageData Gy;
+    ImageData Gz;
 };
 
-template<typename T>
 struct KernelOutputs 
 {
-    T diff2 = 0.0;
-    T sumVD = 0.0;
-    T modg = 0.0;
-    T Ncount = 0.0;
+    ComputationDataType diff2 = 0.0;
+    ComputationDataType sumVD = 0.0;
+    ComputationDataType modg = 0.0;
+    ComputationDataType Ncount = 0.0;
 };
 
-template<typename T>
 class VolumeDeformSph
 {
 public:
@@ -81,8 +75,8 @@ public:
     void runKernel();
     void transferResults();
 
-    KernelOutputs<T> getOutputs();
-    void transferImageData(Image<double>& outputImage, ImageData<T>& inputData);
+    KernelOutputs getOutputs();
+    void transferImageData(Image<double>& outputImage, ImageData& inputData);
 
     ~VolumeDeformSph();
 
@@ -90,13 +84,13 @@ private:
     ProgVolumeDeformSphGpu* program = nullptr;
 
     // Variables transfered to the GPU memory
-    T Rmax2;
+    ComputationDataType Rmax2;
 
-    T iRmax;
+    ComputationDataType iRmax;
 
-    T* steps = nullptr;
+    ComputationDataType* steps = nullptr;
 
-    T* clnm = nullptr;
+    ComputationDataType* clnm = nullptr;
 
     bool applyTransformation;
 
@@ -104,28 +98,28 @@ private:
 
     // Inside pointers point to the GPU memory
 
-    IROimages<T> images;
+    IROimages images;
 
-    DeformImages<T> deformImages;
+    DeformImages deformImages;
 
     ZSHparams zshparams;
 
-    Volumes<T> volumes;
+    Volumes volumes;
     // because of the stupid design... :(
-    std::vector<ImageData<T>> justForFreeI;
-    std::vector<ImageData<T>> justForFreeR;
+    std::vector<ImageData> justForFreeI;
+    std::vector<ImageData> justForFreeR;
 
-    KernelOutputs<T> *outputs = nullptr;
-    KernelOutputs<T> exOuts;
+    KernelOutputs *outputs = nullptr;
+    KernelOutputs exOuts;
 
     // helper methods for simplifying and transfering data to gpu
 
-    void setupImage(Image<double>& inputImage, ImageData<T>& outputImageData);
-    void setupImage(ImageData<T>& inputImage, ImageData<T>& outputImageData, bool copyData = false);
+    void setupImage(Image<double>& inputImage, ImageData& outputImageData);
+    void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
 
-    void freeImage(ImageData<T> &im);
+    void freeImage(ImageData &im);
 
-    void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData<T>>& res);
+    void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
 
     void setupVolumes();
 
