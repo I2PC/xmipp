@@ -25,6 +25,7 @@
 
 #include "pseudoatoms_sph_deform.h"
 #include <data/numerical_tools.h>
+#include "data/fourier_filter.h"
 #include <fstream>
 
 void ProgPseudoAtomsSphDeform::defineParams()
@@ -33,6 +34,7 @@ void ProgPseudoAtomsSphDeform::defineParams()
 	addParamsLine("-i <file>               				  : Atoms to deform");
 	addParamsLine("-r <file>               				  : Reference atoms");
 	addParamsLine("-o <file=\"\">          				  : Deformed atoms");
+	addParamsLine("-vol <volume>          				  : Volume to be deformed (reference atoms volume)");
 	addParamsLine("  [--oroot <rootname=\"Output\">]      : Root name for output files");
 	addParamsLine("  [--analyzeStrain]     				  : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--optimizeRadius]    				  : Optimize the radius of each spherical harmonic");
@@ -48,6 +50,7 @@ void ProgPseudoAtomsSphDeform::readParams()
 	fn_input=getParam("-i");
 	fn_ref=getParam("-r");
 	fn_out=getParam("-o");
+	fn_vol = getParam("-vol");
 	fn_root = getParam("--oroot");
 	if (fn_out=="")
 		fn_out=fn_input;
@@ -168,7 +171,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		Ai.write(fn_out);
 	deformation=std::sqrt(modg/(XSIZE(Ci)));
 	// deformation=std::sqrt(modg/(Ncount));
-	return 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr))) + lambda*(deformation);
+	return std::sqrt(rmse_i/XSIZE(Ci)) + 0.25*std::sqrt(rmse_o/XSIZE(Cr)) + lambda*(deformation);
 	// return std::sqrt(rmse/Ncount) + lambda*(deformation);
 }
 
@@ -221,7 +224,7 @@ void ProgPseudoAtomsSphDeform::run() {
 		std::cout<<std::endl;
         std::cout << "Deformation " << deformation << std::endl;
         std::ofstream deformFile;
-		deformFile.open (fn_root+"_deformation.txt");
+		deformFile.open(fn_root+"_deformation.txt");
         deformFile << deformation;
         deformFile.close();
 	}
@@ -233,20 +236,29 @@ void ProgPseudoAtomsSphDeform::run() {
 	VEC_ELEM(degrees,2) = Rmax;
 	writeVector(fn_root+"_clnm.txt", degrees, false);
 	writeVector(fn_root+"_clnm.txt", x, true);
-	// if (analyzeStrain)
-    // {
-    // 	saveDeformation=true;
-    // 	Gx().initZeros(VR());
-    // 	Gy().initZeros(VR());
-    // 	Gz().initZeros(VR());
-    // 	Gx().setXmippOrigin();
-    // 	Gy().setXmippOrigin();
-    // 	Gz().setXmippOrigin();
-    // }
-	distance(x.adaptForNumericalRecipes()); // To save the output atoms
 
-	// if (analyzeStrain)
-    // 	computeStrain();
+	// Preprocessing needed to deform provided volume
+	V.read(fn_vol);
+	V().setXmippOrigin();
+	Vo().initZeros(V());
+	Vo().setXmippOrigin();
+
+	if (analyzeStrain)
+    {
+    	saveDeformation=true;
+    	Gx().initZeros(V());
+    	Gy().initZeros(V());
+    	Gz().initZeros(V());
+    	Gx().setXmippOrigin();
+    	Gy().setXmippOrigin();
+    	Gz().setXmippOrigin();
+    }
+
+	distance(x.adaptForNumericalRecipes()); // To save the output atoms
+	deformVolume(x); //Apply deformation to provided volume
+
+	if (analyzeStrain)
+    	computeStrain();
 }
 
 void ProgPseudoAtomsSphDeform::atoms2Coords(PDBRichPhantom &A, MultidimArray<double> &C) {
@@ -374,88 +386,132 @@ void ProgPseudoAtomsSphDeform::writeVector(std::string outPath, Matrix1D<double>
     outFile << std::endl;
 }
 
-// // Number Spherical Harmonics ==============================================
-// #define Dx(V) (A3D_ELEM(V,k,i,jm2)-8*A3D_ELEM(V,k,i,jm1)+8*A3D_ELEM(V,k,i,jp1)-A3D_ELEM(V,k,i,jp2))/12.0
-// #define Dy(V) (A3D_ELEM(V,k,im2,j)-8*A3D_ELEM(V,k,im1,j)+8*A3D_ELEM(V,k,ip1,j)-A3D_ELEM(V,k,ip2,j))/12.0
-// #define Dz(V) (A3D_ELEM(V,km2,i,j)-8*A3D_ELEM(V,km1,i,j)+8*A3D_ELEM(V,kp1,i,j)-A3D_ELEM(V,kp2,i,j))/12.0
+void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm) {
+	const MultidimArray<double> &mV=V();
+	double voxelI;
+	size_t idxY0=clnm.size()/3;
+	size_t idxZ0=2*idxY0;
+	int l1,n,l2,m;
+	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)	{
+		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++) {
+			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++) {
+				double gx=0.0, gy=0.0, gz=0.0;
+				double Rmax2=Rmax*Rmax;
+				double iRmax=1.0/Rmax;
+				double k2=k*k;
+				double kr=k*iRmax;
+				double k2i2=k2+i*i;
+				double ir=i*iRmax;
+				double r2=k2i2+j*j;
+				double jr=j*iRmax;
+				double rr=std::sqrt(r2)*iRmax;
+				double zsph=0.0;
+				for (size_t idx=0; idx<idxY0; idx++) {
+					if (r2<Rmax2) {
+                        l1 = VEC_ELEM(vL1,idx);
+                        n = VEC_ELEM(vN,idx);
+                        l2 = VEC_ELEM(vL2,idx);
+                        m = VEC_ELEM(vM,idx);
+                        zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+					}
+                    // if (rr>0 || (l2==0 && l1==0))
+					if (rr>0 || l2==0) {
+						gx += VEC_ELEM(clnm,idx)        *(zsph);
+						gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
+						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+					}
+				}
+				voxelI=mV.interpolatedElement3D(j-gx,i-gy,k-gz);
+				Vo(k,i,j)=voxelI;
 
-// void ProgPseudoAtomsSphDeform::computeStrain()
-// {
-// 	Image<double> LS, LR;
-// 	LS().initZeros(Gx());
-// 	LR().initZeros(Gx());
+				if (saveDeformation) {
+					Gx(k,i,j)=gx;
+					Gy(k,i,j)=gy;
+					Gz(k,i,j)=gz;
+				}
+			}
+		}
+	}
+	Vo.write(fn_vol.withoutExtension()+"_deformed_volume.vol");
+}
 
-// 	// Gaussian filter of the derivatives
-//     FourierFilter f;
-//     f.FilterBand=LOWPASS;
-//     f.FilterShape=REALGAUSSIAN;
-//     f.w1=2;
-//     f.applyMaskSpace(Gx());
-//     f.applyMaskSpace(Gy());
-//     f.applyMaskSpace(Gz());
+// Number Spherical Harmonics ==============================================
+#define Dx(V) (A3D_ELEM(V,k,i,jm2)-8*A3D_ELEM(V,k,i,jm1)+8*A3D_ELEM(V,k,i,jp1)-A3D_ELEM(V,k,i,jp2))/12.0
+#define Dy(V) (A3D_ELEM(V,k,im2,j)-8*A3D_ELEM(V,k,im1,j)+8*A3D_ELEM(V,k,ip1,j)-A3D_ELEM(V,k,ip2,j))/12.0
+#define Dz(V) (A3D_ELEM(V,km2,i,j)-8*A3D_ELEM(V,km1,i,j)+8*A3D_ELEM(V,kp1,i,j)-A3D_ELEM(V,kp2,i,j))/12.0
 
-// 	Gx.write(fnRoot+"_PPPGx.vol");
-// 	Gy.write(fnRoot+"_PPPGy.vol");
-// 	Gz.write(fnRoot+"_PPPGz.vol");
+void ProgPseudoAtomsSphDeform::computeStrain()
+{
+	Image<double> LS, LR;
+	LS().initZeros(Gx());
+	LR().initZeros(Gx());
 
-// 	MultidimArray<double> &mLS=LS();
-// 	MultidimArray<double> &mLR=LR();
-// 	MultidimArray<double> &mGx=Gx();
-// 	MultidimArray<double> &mGy=Gy();
-// 	MultidimArray<double> &mGz=Gz();
-// 	Matrix2D<double> U(3,3), D(3,3), H(3,3);
-// 	std::vector< std::complex<double> > eigs;
-// 	H.initZeros();
-// 	for (int k=STARTINGZ(mLS)+2; k<=FINISHINGZ(mLS)-2; ++k)
-// 	{
-// 		int km1=k-1;
-// 		int kp1=k+1;
-// 		int km2=k-2;
-// 		int kp2=k+2;
-// 		for (int i=STARTINGY(mLS)+2; i<=FINISHINGY(mLS)-2; ++i)
-// 		{
-// 			int im1=i-1;
-// 			int ip1=i+1;
-// 			int im2=i-2;
-// 			int ip2=i+2;
-// 			for (int j=STARTINGX(mLS)+2; j<=FINISHINGX(mLS)-2; ++j)
-// 			{
-// 				int jm1=j-1;
-// 				int jp1=j+1;
-// 				int jm2=j-2;
-// 				int jp2=j+2;
-// 				MAT_ELEM(U,0,0)=Dx(mGx); MAT_ELEM(U,0,1)=Dy(mGx); MAT_ELEM(U,0,2)=Dz(mGx);
-// 				MAT_ELEM(U,1,0)=Dx(mGy); MAT_ELEM(U,1,1)=Dy(mGy); MAT_ELEM(U,1,2)=Dz(mGy);
-// 				MAT_ELEM(U,2,0)=Dx(mGz); MAT_ELEM(U,2,1)=Dy(mGz); MAT_ELEM(U,2,2)=Dz(mGz);
+	// Gaussian filter of the derivatives
+    FourierFilter f;
+    f.FilterBand=LOWPASS;
+    f.FilterShape=REALGAUSSIAN;
+    f.w1=2;
+    f.applyMaskSpace(Gx());
+    f.applyMaskSpace(Gy());
+    f.applyMaskSpace(Gz());
 
-// 				MAT_ELEM(D,0,0) = MAT_ELEM(U,0,0);
-// 				MAT_ELEM(D,0,1) = MAT_ELEM(D,1,0) = 0.5*(MAT_ELEM(U,0,1)+MAT_ELEM(U,1,0));
-// 				MAT_ELEM(D,0,2) = MAT_ELEM(D,2,0) = 0.5*(MAT_ELEM(U,0,2)+MAT_ELEM(U,2,0));
-// 				MAT_ELEM(D,1,1) = MAT_ELEM(U,1,1);
-// 				MAT_ELEM(D,1,2) = MAT_ELEM(D,2,1) = 0.5*(MAT_ELEM(U,1,2)+MAT_ELEM(U,2,1));
-// 				MAT_ELEM(D,2,2) = MAT_ELEM(U,2,2);
+	Gx.write(fn_root+"_PPPGx.vol");
+	Gy.write(fn_root+"_PPPGy.vol");
+	Gz.write(fn_root+"_PPPGz.vol");
 
-// 				MAT_ELEM(H,0,1) = 0.5*(MAT_ELEM(U,0,1)-MAT_ELEM(U,1,0));
-// 				MAT_ELEM(H,0,2) = 0.5*(MAT_ELEM(U,0,2)-MAT_ELEM(U,2,0));
-// 				MAT_ELEM(H,1,2) = 0.5*(MAT_ELEM(U,1,2)-MAT_ELEM(U,2,1));
-// 				MAT_ELEM(H,1,0) = -MAT_ELEM(H,0,1);
-// 				MAT_ELEM(H,2,0) = -MAT_ELEM(H,0,2);
-// 				MAT_ELEM(H,2,1) = -MAT_ELEM(H,1,2);
+	MultidimArray<double> &mLS=LS();
+	MultidimArray<double> &mLR=LR();
+	MultidimArray<double> &mGx=Gx();
+	MultidimArray<double> &mGy=Gy();
+	MultidimArray<double> &mGz=Gz();
+	Matrix2D<double> U(3,3), D(3,3), H(3,3);
+	std::vector< std::complex<double> > eigs;
+	H.initZeros();
+	for (int k=STARTINGZ(mLS)+2; k<=FINISHINGZ(mLS)-2; ++k) {
+		int km1=k-1;
+		int kp1=k+1;
+		int km2=k-2;
+		int kp2=k+2;
+		for (int i=STARTINGY(mLS)+2; i<=FINISHINGY(mLS)-2; ++i) {
+			int im1=i-1;
+			int ip1=i+1;
+			int im2=i-2;
+			int ip2=i+2;
+			for (int j=STARTINGX(mLS)+2; j<=FINISHINGX(mLS)-2; ++j) {
+				int jm1=j-1;
+				int jp1=j+1;
+				int jm2=j-2;
+				int jp2=j+2;
+				MAT_ELEM(U,0,0)=Dx(mGx); MAT_ELEM(U,0,1)=Dy(mGx); MAT_ELEM(U,0,2)=Dz(mGx);
+				MAT_ELEM(U,1,0)=Dx(mGy); MAT_ELEM(U,1,1)=Dy(mGy); MAT_ELEM(U,1,2)=Dz(mGy);
+				MAT_ELEM(U,2,0)=Dx(mGz); MAT_ELEM(U,2,1)=Dy(mGz); MAT_ELEM(U,2,2)=Dz(mGz);
 
-// 				A3D_ELEM(mLS,k,i,j)=fabs(D.det());
-// 				allEigs(H,eigs);
-// 				for (size_t n=0; n < eigs.size(); n++)
-// 				{
-// 					double imagabs=fabs(eigs[n].imag());
-// 					if (imagabs>1e-6)
-// 					{
-// 						A3D_ELEM(mLR,k,i,j)=imagabs*180/PI;
-// 						break;
-// 					}
-// 				}
-// 			}
-// 		}
-// 		LS.write(fnVolOut.withoutExtension()+"_strain.mrc");
-// 		LR.write(fnVolOut.withoutExtension()+"_rotation.mrc");
-// 	}
-// }
+				MAT_ELEM(D,0,0) = MAT_ELEM(U,0,0);
+				MAT_ELEM(D,0,1) = MAT_ELEM(D,1,0) = 0.5*(MAT_ELEM(U,0,1)+MAT_ELEM(U,1,0));
+				MAT_ELEM(D,0,2) = MAT_ELEM(D,2,0) = 0.5*(MAT_ELEM(U,0,2)+MAT_ELEM(U,2,0));
+				MAT_ELEM(D,1,1) = MAT_ELEM(U,1,1);
+				MAT_ELEM(D,1,2) = MAT_ELEM(D,2,1) = 0.5*(MAT_ELEM(U,1,2)+MAT_ELEM(U,2,1));
+				MAT_ELEM(D,2,2) = MAT_ELEM(U,2,2);
+
+				MAT_ELEM(H,0,1) = 0.5*(MAT_ELEM(U,0,1)-MAT_ELEM(U,1,0));
+				MAT_ELEM(H,0,2) = 0.5*(MAT_ELEM(U,0,2)-MAT_ELEM(U,2,0));
+				MAT_ELEM(H,1,2) = 0.5*(MAT_ELEM(U,1,2)-MAT_ELEM(U,2,1));
+				MAT_ELEM(H,1,0) = -MAT_ELEM(H,0,1);
+				MAT_ELEM(H,2,0) = -MAT_ELEM(H,0,2);
+				MAT_ELEM(H,2,1) = -MAT_ELEM(H,1,2);
+
+				A3D_ELEM(mLS,k,i,j)=fabs(D.det());
+				allEigs(H,eigs);
+				for (size_t n=0; n < eigs.size(); n++) {
+					double imagabs=fabs(eigs[n].imag());
+					if (imagabs>1e-6) {
+						A3D_ELEM(mLR,k,i,j)=imagabs*180/PI;
+						break;
+					}
+				}
+			}
+		}
+		LS.write(fn_out.withoutExtension()+"_strain.mrc");
+		LR.write(fn_out.withoutExtension()+"_rotation.mrc");
+	}
+}

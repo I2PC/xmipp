@@ -55,6 +55,9 @@ public:
     /** Root name for several output files */
     FileName fn_root;
 
+    /** Volume to deform */
+	FileName fn_vol;
+
     /** Vector containing the deformation coefficients */
 	Matrix1D<double> clnm;
 
@@ -75,6 +78,9 @@ public:
 
     /** Images */
 	Image<double> Gx, Gy, Gz;
+
+    /** Volumes */
+	Image<double> V, Vo;
 
     /** Zernike and SPH coefficients vectors */
     Matrix1D<int> vL1, vN, vL2, vM;
@@ -151,6 +157,9 @@ public:
 
     /** Save vector to file */
     void writeVector(std::string outPath, Matrix1D<double> v, bool append);
+
+    /** Apply deformation to volume */
+    void deformVolume(Matrix1D<double> clnm);
 
     /** Compute strain */
     void computeStrain();
