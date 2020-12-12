@@ -63,7 +63,7 @@ void ProgVolumeToPseudoatoms::readParams()
     allowMovement = !checkParam("--dontAllowMovement");
     allowIntensity = !checkParam("--dontAllowIntensity");
     if (!allowIntensity)
-    	intensityFraction = getDoubleParam("--dontAllowIntensity",1);
+    	intensityFraction = getDoubleParam("--dontAllowIntensity");
     intensityColumn = getParam("--intensityColumn");
     Nclosest = getIntParam("--Nclosest");
     minDistance = getDoubleParam("--minDistance");
