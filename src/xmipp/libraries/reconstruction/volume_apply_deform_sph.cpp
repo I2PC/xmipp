@@ -68,7 +68,13 @@ void ProgApplyVolDeformSph::run()
 	clnm = string2vector(line);
 	fillVectorTerms(vL1,vN,vL2,vM);
 	int l1,n,l2,m;
-	size_t idxY0=(clnm.size()-8)/3;
+	vecSize = 0;
+	numCoefficients(basisParams[0], basisParams[1], vecSize);
+	size_t idxY0;
+	if (3*vecSize+8 == clnm.size())
+		idxY0=(clnm.size()-8)/3;
+	else if (3*vecSize == clnm.size())
+		idxY0=(clnm.size())/3;
 	size_t idxZ0=2*idxY0;
 	const MultidimArray<double> &mVI=VI();
 	double voxelI;
@@ -116,6 +122,20 @@ void ProgApplyVolDeformSph::run()
 	VO.write(fn_out);
 }
 
+void ProgApplyVolDeformSph::numCoefficients(int l1, int l2, int &vecSize)
+{
+    for (int h=0; h<=l2; h++)
+    {
+        int numSPH = 2*h+1;
+        int count=l1-h+1;
+        int numEven=(count>>1)+(count&1 && !(h&1));
+        if (h%2 == 0)
+            vecSize += numSPH*numEven;
+        else
+        	vecSize += numSPH*(l1-h+1-numEven);
+    }
+}
+
 std::string ProgApplyVolDeformSph::readNthLine(int N)
 {
 	std::ifstream in(fn_sph.getString());
@@ -143,11 +163,15 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
 									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
     int idx = 0;
-	int vecSize = (clnm.size()-8)/3;
-	vL1.initZeros(vecSize);
-	vN.initZeros(vecSize);
-	vL2.initZeros(vecSize);
-	vM.initZeros(vecSize);
+	int size;
+	if (3*vecSize+8 == clnm.size())
+		size=(clnm.size()-8)/3;
+	else if (3*vecSize == clnm.size())
+		size=(clnm.size())/3;
+	vL1.initZeros(size);
+	vN.initZeros(size);
+	vL2.initZeros(size);
+	vM.initZeros(size);
     for (int h=0; h<=basisParams[1]; h++)
     {
         int totalSPH = 2*h+1;

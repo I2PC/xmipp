@@ -31,7 +31,7 @@
 class ProgApplyVolDeformSph: public XmippProgram
 {
 public:
-    /** PDB file */
+    /** Input volume */
     FileName fn_vol;
 
     /** Deformation coefficients list */
@@ -45,6 +45,9 @@ public:
 
     /** Vector containing the degrees and Rmax of the basis */
 	std::vector<double> basisParams;
+
+    /** Coefficient vector size */
+	int vecSize;
 
     /** Zernike and SPH coefficients vectors */
     Matrix1D<int> vL1, vN, vL2, vM;
@@ -61,6 +64,9 @@ public:
 
     /** Run. */
     void run();
+
+    /** Number of basis coefficients */
+    void numCoefficients(int l1, int l2, int &vecSize);
 
     /** Read Nth line of file */
     std::string readNthLine(int N);
