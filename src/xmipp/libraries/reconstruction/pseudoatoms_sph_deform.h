@@ -112,6 +112,9 @@ public:
     /** Save the values of gx, gy and gz for local strain and rotation analysis */
 	bool saveDeformation;
 
+    /** Refine alignment of point cloud */\
+    bool refineAlignment;
+
     /** KDTree for nearest neighbour search */
     knn::KDTreeMinkowski<double, knn::EuclideanDistance<double>> kdtree;
 

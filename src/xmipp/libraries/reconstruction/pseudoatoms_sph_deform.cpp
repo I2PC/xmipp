@@ -86,7 +86,11 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	double rmse_o=0.0;
 	double modg=0.0;
 	double meanDistance;
-	int k_nn = 5;
+	int k_nn;
+	if (refineAlignment)
+		k_nn = 1;
+	else
+		k_nn = 5;
 	Matrixi indices;
     Matrix distances;
 	Matrix queryPoint(3, 1);
@@ -171,7 +175,8 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		Ai.write(fn_out);
 	deformation=std::sqrt(modg/(XSIZE(Ci)));
 	// deformation=std::sqrt(modg/(Ncount));
-	return std::sqrt(rmse_i/XSIZE(Ci)) + 0.25*std::sqrt(rmse_o/XSIZE(Cr)) + lambda*(deformation);
+	// return 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr))) + lambda*(deformation);
+	return 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr)));
 	// return std::sqrt(rmse/Ncount) + lambda*(deformation);
 }
 
@@ -208,6 +213,9 @@ void ProgPseudoAtomsSphDeform::run() {
 	clnm.initZeros(totalSize);
 	x.initZeros(totalSize);
 
+	// Initial alignment of point clouds
+	refineAlignment = false;
+
 	// Minimization Loop
 	for (int h=0;h<=L2;h++) {
 		steps.clear();
@@ -223,11 +231,39 @@ void ProgPseudoAtomsSphDeform::run() {
 		                0.01, fitness, iter, steps, true);
 		std::cout<<std::endl;
         std::cout << "Deformation " << deformation << std::endl;
-        std::ofstream deformFile;
-		deformFile.open(fn_root+"_deformation.txt");
-        deformFile << deformation;
-        deformFile.close();
+        // std::ofstream deformFile;
+		// deformFile.open(fn_root+"_deformation.txt");
+        // deformFile << deformation;
+        // deformFile.close();
 	}
+
+	// Refine alignment of point cloud to approximate better to true neighbours
+	// applyTransformation=true;
+	// distance(x.adaptForNumericalRecipes());
+	// applyTransformation=false;
+	// atoms2Coords(Ai, Ci);
+	refineAlignment = true;
+	for (int h=0;h<=L2;h++) {
+		// x.clear();
+		// x.initZeros(totalSize);
+		steps.clear();
+    	steps.initZeros(totalSize);
+		minimizepos(L1,h,steps);
+		steps_cp = steps;
+		int iter;
+		double fitness;
+		std::cout<<std::endl;
+		std::cout<< "-------------------------- Refining Alignment: ("<<L1<<","<<h<<") --------------------------" << std::endl;
+		powellOptimizer(x, 1, totalSize, &atomsDeformSphGoal, this,
+						0.01, fitness, iter, steps, true);
+		std::cout<<std::endl;
+		std::cout << "Deformation " << deformation << std::endl;
+		std::ofstream deformFile;
+		deformFile.open(fn_root+"_deformation.txt");
+		deformFile << deformation;
+		deformFile.close();
+	}
+
 	applyTransformation=true;
 	Matrix1D<double> degrees;
 	degrees.initZeros(3);
