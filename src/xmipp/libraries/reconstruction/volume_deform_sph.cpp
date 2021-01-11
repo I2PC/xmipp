@@ -29,6 +29,7 @@
 #include "data/normalize.h"
 
 // Params definition =======================================================
+// -i ---> V2 (paper) / -r --> V1 (paper)
 void ProgVolDeformSph::defineParams() {
 	addUsageLine("Compute the deformation that properly fits two volumes using spherical harmonics");
 	addParamsLine("   -i <volume>                         : Volume to deform");
