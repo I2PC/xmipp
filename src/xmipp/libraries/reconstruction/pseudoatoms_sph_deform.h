@@ -71,10 +71,10 @@ public:
     PDBRichPhantom Ai, Ar;
 
     /** Coords set */
-    MultidimArray<double> Ci, Cr, Co;
+    MultidimArray<double> Ci, Cr, Co_i, Co_r;
 
     /** Eigen (software) Matrix */
-    Matrix Er;
+    Matrix Er, Ei;
 
     /** Images */
 	Image<double> Gx, Gy, Gz;
@@ -86,7 +86,7 @@ public:
     Matrix1D<int> vL1, vN, vL2, vM;
 
     /** Deformation in pixels*/
-	double deformation;
+	double deformation_1_2, deformation_2_1;
 
     /** Regularization */
     double lambda;
@@ -116,7 +116,7 @@ public:
     bool refineAlignment;
 
     /** KDTree for nearest neighbour search */
-    knn::KDTreeMinkowski<double, knn::EuclideanDistance<double>> kdtree;
+    knn::KDTreeMinkowski<double, knn::EuclideanDistance<double>> kdtree_r, kdtree_i;
 
 public:
     /** Params definitions */
