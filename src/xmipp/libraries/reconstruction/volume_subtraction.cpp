@@ -92,7 +92,7 @@ class ProgVolumeSubtraction: public XmippProgram
 {
 protected:
 	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A;
-	bool sub, eq, save;
+	bool sub, eq;
 	int iter, sigma;
 	double cutFreq, lambda;
 
