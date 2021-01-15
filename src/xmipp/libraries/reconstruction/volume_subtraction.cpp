@@ -91,8 +91,8 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 class ProgVolumeSubtraction: public XmippProgram
 {
 protected:
-	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2;
-	bool sub, eq;
+	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A;
+	bool sub, eq, save;
 	int iter, sigma;
 	double cutFreq, lambda;
 
@@ -112,6 +112,9 @@ protected:
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
         addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
+        addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
+        addParamsLine("[--saveV2 <structure=\"\"> ]  : Save subtraction intermediate files (vol2 adjusted)");
+
     }
 
     void readParams()
@@ -128,6 +131,12 @@ protected:
     	fnMask2=getParam("--mask2");
     	cutFreq=getDoubleParam("--cutFreq");
     	lambda=getDoubleParam("--lambda");
+    	fnVol1F=getParam("--saveV1");
+    	if (fnVol1F=="")
+    		fnVol1F="volume1_filtered.mrc";
+    	fnVol2A=getParam("--saveV2");
+    	if (fnVol2A=="")
+    		fnVol2A="volume2_adjusted.mrc";
     }
 
     void show()
@@ -247,6 +256,11 @@ protected:
 
     	if (sub==true)
     	{
+    		if (save==true)
+    		{
+    			V1Filtered.write(fnVol1F);
+    			V.write(fnVol2A);
+    		}
     		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
     		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
     				std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
