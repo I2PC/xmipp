@@ -31,10 +31,10 @@
 void ProgPseudoAtomsSphDeform::defineParams()
 {
 	addUsageLine("Compute the deformation that properly fits two atoms set using spherical harmonics");
-	addParamsLine("-i <file>               				  : Atoms to deform");
-	addParamsLine("-r <file>               				  : Reference atoms");
-	addParamsLine("-o <file=\"\">          				  : Deformed atoms");
-	addParamsLine("-vol <volume>          				  : Volume to be deformed (reference atoms volume)");
+	addParamsLine("-a1 <file>               			  : First PDB to be deformed");
+	addParamsLine("-a2 <file>               			  : Second PDB to be deformed");
+	addParamsLine("  [-o <file=\"\">]          			  : Deformed atoms");
+	addParamsLine("  [-vol <volume=\"\">]          		  : Volume to be deformed (reference atoms volume)");
 	addParamsLine("  [--oroot <rootname=\"Output\">]      : Root name for output files");
 	addParamsLine("  [--analyzeStrain]     				  : Save the deformation of each voxel for local strain and rotation analysis");
 	addParamsLine("  [--optimizeRadius]    				  : Optimize the radius of each spherical harmonic");
@@ -47,8 +47,8 @@ void ProgPseudoAtomsSphDeform::defineParams()
 
 void ProgPseudoAtomsSphDeform::readParams()
 {
-	fn_input=getParam("-i");
-	fn_ref=getParam("-r");
+	fn_input=getParam("-a1");
+	fn_ref=getParam("-a2");
 	fn_out=getParam("-o");
 	fn_vol = getParam("-vol");
 	fn_root = getParam("--oroot");
@@ -176,8 +176,9 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	// 	meanDistance = pow(j-centerMass(0,0),2) + pow(i-centerMass(1,0),2) + pow(k-centerMass(2,0),2);
 	// 	rmse_o += meanDistance;
 	// }
-	if (applyTransformation)
-		Ai.write(fn_out);
+	// if (applyTransformation)
+	// 	Ai.write(fn_out);
+		// Ai.write(fn_input.withoutExtension() + "_deformed.pdb");
 	deformation_1_2=std::sqrt(modg/(XSIZE(Ci)));
 	cost += 1*std::sqrt(rmse_i/XSIZE(Ci));
 	// cost += 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr)));
@@ -266,8 +267,9 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	// 	meanDistance = pow(j-centerMass(0,0),2) + pow(i-centerMass(1,0),2) + pow(k-centerMass(2,0),2);
 	// 	rmse_o += meanDistance;
 	// }
-	if (applyTransformation)
-		Ar.write(fn_out);
+	// if (applyTransformation)
+	// 	Ar.write(fn_out);
+		// Ar.write(fn_ref.withoutExtension() + "_deformed.pdb");
 	deformation_2_1=std::sqrt(modg/(XSIZE(Cr)));
 	cost += 1*std::sqrt(rmse_i/XSIZE(Cr));
 	// cost += 0.5*(std::sqrt(rmse_i/XSIZE(Cr)) + std::sqrt(rmse_o/XSIZE(Ci)));
@@ -358,7 +360,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		cost += 1*E_minus / XSIZE(Cr);
 	// }
 
-	
+
 	// deformation=std::sqrt(modg/(Ncount));
 	// return 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr))) + lambda*(deformation);
 	return cost;
@@ -467,12 +469,14 @@ void ProgPseudoAtomsSphDeform::run() {
 	writeVector(fn_root+"_clnm.txt", x, true);
 
 	// Preprocessing needed to deform provided volume
-	V.read(fn_vol);
-	V().setXmippOrigin();
-	Vo().initZeros(V());
-	Vo().setXmippOrigin();
+	if (fn_vol!="") {
+		V.read(fn_vol);
+		V().setXmippOrigin();
+		Vo().initZeros(V());
+		Vo().setXmippOrigin();
+	}
 
-	if (analyzeStrain)
+	if (analyzeStrain && fn_vol!="")
     {
     	saveDeformation=true;
     	Gx().initZeros(V());
@@ -484,9 +488,12 @@ void ProgPseudoAtomsSphDeform::run() {
     }
 
 	distance(x.adaptForNumericalRecipes()); // To save the output atoms
-	deformVolume(x); //Apply deformation to provided volume
+	Ai.write(fn_input.withoutExtension() + "_deformed.pdb");
+	Ar.write(fn_ref.withoutExtension() + "_deformed.pdb");
+	if (fn_vol!="")
+		deformVolume(x); //Apply deformation to provided volume
 
-	if (analyzeStrain)
+	if (analyzeStrain && fn_vol!="")
     	computeStrain();
 }
 
