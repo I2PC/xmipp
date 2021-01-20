@@ -34,13 +34,14 @@ void ProgPseudoAtomsSphDeform::defineParams()
 	addParamsLine("-a1 <file>               			  : First PDB to be deformed");
 	addParamsLine("-a2 <file>               			  : Second PDB to be deformed");
 	addParamsLine("  [-o <file=\"\">]          			  : Deformed atoms");
-	addParamsLine("  [-vol <volume=\"\">]          		  : Volume to be deformed (reference atoms volume)");
+	addParamsLine("  [-v1 <volume=\"\">]          		  : Volume (of first PDB) to be deformed");
+	addParamsLine("  [-v2 <volume=\"\">]          		  : Volume (of second PDB) to be deformed");
 	addParamsLine("  [--oroot <rootname=\"Output\">]      : Root name for output files");
 	addParamsLine("  [--analyzeStrain]     				  : Save the deformation of each voxel for local strain and rotation analysis");
-	addParamsLine("  [--optimizeRadius]    				  : Optimize the radius of each spherical harmonic");
+	// addParamsLine("  [--optimizeRadius]    				  : Optimize the radius of each spherical harmonic");
 	addParamsLine("  [--l1 <l1=3>]         				  : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("  [--l2 <l2=2>]         				  : Harmonical depth of the deformation=1,2,3,...");
-	addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
+	// addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
 	addParamsLine("  [--Rmax <r=-1>]       				  : Maximum radius for the transformation");
 	addExampleLine("xmipp_pseudoatoms_sph_deform -i input.pdb -r ref.pdb -o input_deformed.pdb");
 }
@@ -50,15 +51,16 @@ void ProgPseudoAtomsSphDeform::readParams()
 	fn_input=getParam("-a1");
 	fn_ref=getParam("-a2");
 	fn_out=getParam("-o");
-	fn_vol = getParam("-vol");
+	fn_vol1 = getParam("-v1");
+	fn_vol2 = getParam("-v2");
 	fn_root = getParam("--oroot");
 	if (fn_out=="")
 		fn_out=fn_input;
 	L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
-	lambda = getDoubleParam("--regularization");
+	// lambda = getDoubleParam("--regularization");
 	analyzeStrain=checkParam("--analyzeStrain");
-	optimizeRadius=checkParam("--optimizeRadius");
+	// optimizeRadius=checkParam("--optimizeRadius");
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
 }
@@ -133,6 +135,11 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 				}
 			}
 		}
+		if (saveDeformation) {
+			Gx1(k,i,j)=gx;
+			Gy1(k,i,j)=gy;
+			Gz1(k,i,j)=gz;
+		}
 		if (applyTransformation) {
 			RichAtom& atom_i=Ai.atomList[a];
 			atom_i.x += gx;
@@ -180,7 +187,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	// 	Ai.write(fn_out);
 		// Ai.write(fn_input.withoutExtension() + "_deformed.pdb");
 	deformation_1_2=std::sqrt(modg/(XSIZE(Ci)));
-	cost += 1*std::sqrt(rmse_i/XSIZE(Ci));
+	cost += 2*std::sqrt(rmse_i/XSIZE(Ci));
 	// cost += 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr)));
 
 
@@ -223,6 +230,11 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 					}
 				}
 			}
+		}
+		if (saveDeformation) {
+			Gx2(k,i,j)=gx;
+			Gy2(k,i,j)=gy;
+			Gz2(k,i,j)=gz;
 		}
 		if (applyTransformation) {
 			RichAtom& atom_i=Ar.atomList[a];
@@ -271,7 +283,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	// 	Ar.write(fn_out);
 		// Ar.write(fn_ref.withoutExtension() + "_deformed.pdb");
 	deformation_2_1=std::sqrt(modg/(XSIZE(Cr)));
-	cost += 1*std::sqrt(rmse_i/XSIZE(Cr));
+	cost += 2*std::sqrt(rmse_i/XSIZE(Cr));
 	// cost += 0.5*(std::sqrt(rmse_i/XSIZE(Cr)) + std::sqrt(rmse_o/XSIZE(Ci)));
 
 	// if (refineAlignment) {
@@ -469,32 +481,50 @@ void ProgPseudoAtomsSphDeform::run() {
 	writeVector(fn_root+"_clnm.txt", x, true);
 
 	// Preprocessing needed to deform provided volume
-	if (fn_vol!="") {
-		V.read(fn_vol);
-		V().setXmippOrigin();
-		Vo().initZeros(V());
-		Vo().setXmippOrigin();
+	if (fn_vol1!="") {
+		V1.read(fn_vol1);
+		V1().setXmippOrigin();
+		Vo1().initZeros(V1());
+		Vo1().setXmippOrigin();
 	}
 
-	if (analyzeStrain && fn_vol!="")
+	if (fn_vol2!="") {
+		V2.read(fn_vol2);
+		V2().setXmippOrigin();
+		Vo2().initZeros(V2());
+		Vo2().setXmippOrigin();
+	}
+
+	if (analyzeStrain)
     {
     	saveDeformation=true;
-    	Gx().initZeros(V());
-    	Gy().initZeros(V());
-    	Gz().initZeros(V());
-    	Gx().setXmippOrigin();
-    	Gy().setXmippOrigin();
-    	Gz().setXmippOrigin();
+    	Gx1().initZeros(2*int(std::ceil(Rmax)), 2*int(std::ceil(Rmax)), 2*int(std::ceil(Rmax)));
+    	Gy1().initZeros(Gx1());
+    	Gz1().initZeros(Gx1());
+    	Gx2().initZeros(Gx1());
+    	Gy2().initZeros(Gx1());
+    	Gz2().initZeros(Gx1());
+		Gx1().setXmippOrigin();
+    	Gy1().setXmippOrigin();
+    	Gz1().setXmippOrigin();
+    	Gx2().setXmippOrigin();
+    	Gy2().setXmippOrigin();
+    	Gz2().setXmippOrigin();
     }
 
 	distance(x.adaptForNumericalRecipes()); // To save the output atoms
 	Ai.write(fn_input.withoutExtension() + "_deformed.pdb");
 	Ar.write(fn_ref.withoutExtension() + "_deformed.pdb");
-	if (fn_vol!="")
-		deformVolume(x); //Apply deformation to provided volume
 
-	if (analyzeStrain && fn_vol!="")
-    	computeStrain();
+	if (fn_vol1!="")
+		deformVolume(x, V1, Vo1, "-", fn_vol1, Gx1, Gy1, Gz1); //Apply deformation to volume 1
+	if (fn_vol2!="")
+		deformVolume(x, V2, Vo2, "+", fn_vol2, Gx2, Gy2, Gz2); //Apply deformation to volume 2
+
+	if (analyzeStrain) {
+    	computeStrain(Gx1, Gy1, Gz1, fn_input);  //! In order to use xmipp_pdb_label_from_volume, origin should be moved to x,y,z Rmax,Rmax,Rmax
+    	computeStrain(Gx2, Gy2, Gz2, fn_ref);  //! In order to use xmipp_pdb_label_from_volume, origin should be moved to x,y,z Rmax,Rmax,Rmax
+	}
 }
 
 void ProgPseudoAtomsSphDeform::atoms2Coords(PDBRichPhantom &A, MultidimArray<double> &C) {
@@ -628,12 +658,24 @@ void ProgPseudoAtomsSphDeform::writeVector(std::string outPath, Matrix1D<double>
     outFile << std::endl;
 }
 
-void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm) {
+void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm, Image<double> &V, Image<double> &Vo,
+											std::string mode, FileName fn_vol, Image<double> &Gx, Image<double> &Gy, 
+											Image<double> &Gz) {
 	const MultidimArray<double> &mV=V();
 	double voxelI;
-	size_t idxX0=3*VEC_XSIZE(clnm)/6;
-	size_t idxY0=4*VEC_XSIZE(clnm)/6;
-	size_t idxZ0=5*VEC_XSIZE(clnm)/6;
+	size_t idxX0;
+	size_t idxY0;
+	size_t idxZ0;
+	if (mode=="+"){
+		idxX0=0;
+		idxY0=VEC_XSIZE(clnm)/6;
+		idxZ0=2*idxY0;
+	}
+	else {
+		idxX0=3*VEC_XSIZE(clnm)/6;
+		idxY0=4*VEC_XSIZE(clnm)/6;
+		idxZ0=5*VEC_XSIZE(clnm)/6;
+	}
 	int l1,n,l2,m;
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)	{
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++) {
@@ -667,11 +709,11 @@ void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm) {
 				voxelI=mV.interpolatedElement3D(j+gx,i+gy,k+gz);
 				Vo(k,i,j)=voxelI;
 
-				if (saveDeformation) {
-					Gx(k,i,j)=gx;
-					Gy(k,i,j)=gy;
-					Gz(k,i,j)=gz;
-				}
+				// if (saveDeformation) {
+				// 	Gx(k,i,j)=gx;
+				// 	Gy(k,i,j)=gy;
+				// 	Gz(k,i,j)=gz;
+				// }
 			}
 		}
 	}
@@ -683,7 +725,7 @@ void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm) {
 #define Dy(V) (A3D_ELEM(V,k,im2,j)-8*A3D_ELEM(V,k,im1,j)+8*A3D_ELEM(V,k,ip1,j)-A3D_ELEM(V,k,ip2,j))/12.0
 #define Dz(V) (A3D_ELEM(V,km2,i,j)-8*A3D_ELEM(V,km1,i,j)+8*A3D_ELEM(V,kp1,i,j)-A3D_ELEM(V,kp2,i,j))/12.0
 
-void ProgPseudoAtomsSphDeform::computeStrain()
+void ProgPseudoAtomsSphDeform::computeStrain(Image<double> &Gx, Image<double> &Gy, Image<double> &Gz, FileName fn_out)
 {
 	Image<double> LS, LR;
 	LS().initZeros(Gx());
@@ -754,7 +796,7 @@ void ProgPseudoAtomsSphDeform::computeStrain()
 				}
 			}
 		}
-		LS.write(fn_out.withoutExtension()+"_strain.mrc");
-		LR.write(fn_out.withoutExtension()+"_rotation.mrc");
 	}
+	LS.write(fn_out.withoutExtension()+"_strain.mrc");
+	LR.write(fn_out.withoutExtension()+"_rotation.mrc");
 }

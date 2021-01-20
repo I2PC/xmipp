@@ -56,7 +56,7 @@ public:
     FileName fn_root;
 
     /** Volume to deform */
-	FileName fn_vol;
+	FileName fn_vol1, fn_vol2;
 
     /** Vector containing the deformation coefficients */
 	Matrix1D<double> clnm;
@@ -77,10 +77,10 @@ public:
     Matrix Er, Ei;
 
     /** Images */
-	Image<double> Gx, Gy, Gz;
+	Image<double> Gx1, Gy1, Gz1, Gx2, Gy2, Gz2;
 
     /** Volumes */
-	Image<double> V, Vo;
+	Image<double> V1, Vo1, V2, Vo2;
 
     /** Zernike and SPH coefficients vectors */
     Matrix1D<int> vL1, vN, vL2, vM;
@@ -162,10 +162,11 @@ public:
     void writeVector(std::string outPath, Matrix1D<double> v, bool append);
 
     /** Apply deformation to volume */
-    void deformVolume(Matrix1D<double> clnm);
+    void deformVolume(Matrix1D<double> clnm, Image<double> &V, Image<double> &Vo, std::string mode, FileName fn_vol, 
+                      Image<double> &Gx, Image<double> &Gy, Image<double> &Gz);
 
     /** Compute strain */
-    void computeStrain();
+    void computeStrain(Image<double> &Gx, Image<double> &Gy, Image<double> &Gz, FileName fn_out);
 };
 //@}
 #endif
