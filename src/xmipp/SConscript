@@ -306,11 +306,14 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
     else:
         addProg(pname)
 
-for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
-    if not cuda and 'cuda' in p:
-        continue # if user doesn't want cuda, skip all programs / tests that use it
-    pname = os.path.basename(p).replace('.cpp','')
-    addProg(pname)
+
+build_tests = get('BUILD_TESTS')
+if build_tests:
+    for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
+        if not cuda and 'cuda' in p:
+            continue # if user doesn't want cuda, skip all programs / tests that use it
+        pname = os.path.basename(p).replace('.cpp','')
+        addProg(pname)
 
 addLib('xmippLib.so',
        dirs=['bindings'],
