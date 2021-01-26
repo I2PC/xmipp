@@ -256,7 +256,7 @@ protected:
 
     	if (sub==true)
     	{
-    		if (save==true)
+        	if (fnVol1F!="" && fnVol2A!="")
     		{
     			V1Filtered.write(fnVol1F);
     			V.write(fnVol2A);
