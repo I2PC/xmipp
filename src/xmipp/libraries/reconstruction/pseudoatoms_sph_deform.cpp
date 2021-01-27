@@ -38,7 +38,6 @@ void ProgPseudoAtomsSphDeform::defineParams()
 	addParamsLine("  [-v2 <volume=\"\">]          		  : Volume (of second PDB) to be deformed");
 	addParamsLine("  [--oroot <rootname=\"Output\">]      : Root name for output files");
 	addParamsLine("  [--analyzeStrain]     				  : Save the deformation of each voxel for local strain and rotation analysis");
-	// addParamsLine("  [--optimizeRadius]    				  : Optimize the radius of each spherical harmonic");
 	addParamsLine("  [--l1 <l1=3>]         				  : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("  [--l2 <l2=2>]         				  : Harmonical depth of the deformation=1,2,3,...");
 	// addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
@@ -60,7 +59,6 @@ void ProgPseudoAtomsSphDeform::readParams()
 	L2 = getIntParam("--l2");
 	// lambda = getDoubleParam("--regularization");
 	analyzeStrain=checkParam("--analyzeStrain");
-	// optimizeRadius=checkParam("--optimizeRadius");
 	Rmax = getDoubleParam("--Rmax");
 	applyTransformation = false;
 }
@@ -83,13 +81,12 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 
 	// Deformation for g_plus
 	int l1,n,l2,m;
+	int idc;
 	double cost=0;
 	size_t idxX0=0;
-	size_t idxY0=VEC_XSIZE(clnm)/6;
+	size_t idxY0=VEC_XSIZE(clnm)/3;
 	size_t idxZ0=2*idxY0;
-	// double Ncount=0.0;
 	double rmse_i=0.0;
-	double rmse_o=0.0;
 	double modg=0.0;
 	double meanDistance;
 	int k_nn;
@@ -118,8 +115,9 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		double r2=k2i2+j*j;
 		double jr=j*iRmax;
 		double rr=std::sqrt(r2)*iRmax;
-		for (size_t idx=idxX0; idx<idxY0; idx++) {
-			if (VEC_ELEM(steps_cp,idx) == 1) {
+		for (size_t idx=idxX0; idx<idxY0/2; idx++) {
+			idc = 2*idx;
+			if (VEC_ELEM(steps_cp,idc) == 1) {
 				if (r2<Rmax2) {
 					double zsph=0.0;
 					l1 = VEC_ELEM(vL1,idx);
@@ -128,9 +126,9 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 					m = VEC_ELEM(vM,idx);
 					zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 					if (rr>0 || l2==0) {
-						gx += clnm[idx]        *(zsph);
-						gy += clnm[idx+idxY0]  *(zsph);
-						gz += clnm[idx+idxZ0]  *(zsph);
+						gx += clnm[idc+idxX0]  *(zsph);
+						gy += clnm[idc+idxY0]  *(zsph);
+						gz += clnm[idc+idxZ0]  *(zsph);
 					}
 				}
 			}
@@ -146,12 +144,10 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 			atom_i.y += gy;
 			atom_i.z += gz;
 		}
-		// queryPoint(0,0) = j; queryPoint(1,0) = i; queryPoint(2,0) = k;
 		queryPoint(0,0) = j+gx; queryPoint(1,0) = i+gy; queryPoint(2,0) = k+gz;
 		Eo_i(0,a) = j+gx; Eo_i(1,a) = i+gy; Eo_i(2,a) = k+gz;
 		A2D_ELEM(Co_i, 0, a) = j+gx; A2D_ELEM(Co_i, 1, a) = i+gy; A2D_ELEM(Co_i, 2, a) = k+gz;
 		kdtree_r.query(queryPoint, k_nn, indices, distances);
-		// meanDistance = 0.0;
 		centerMass *= 0;
 		for (size_t idp=0; idp<k_nn; idp++) {
 			centerMass(0,0) += Er(0,indices(idp));
@@ -160,44 +156,15 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		}
 		centerMass /= k_nn;
 		meanDistance = pow(j+gx-centerMass(0,0),2) + pow(i+gy-centerMass(1,0),2) + pow(k+gz-centerMass(2,0),2);
-		// meanDistance /= k_nn;
 		rmse_i += meanDistance;
 		modg+=gx*gx+gy*gy+gz*gz;
-		// Ncount++;
 	}
-	// knn::KDTreeMinkowski<double, knn::EuclideanDistance<double>> kdtree_o_i;
-	// buildTree(kdtree_o_i, Eo_i);
-	// for (size_t a=0; a<XSIZE(Cr); ++a) {
-	// 	double k = A2D_ELEM(Cr, 2, a);
-	// 	double i = A2D_ELEM(Cr, 1, a);
-	// 	double j = A2D_ELEM(Cr, 0, a);
-	// 	queryPoint(0,0) = j; queryPoint(1,0) = i; queryPoint(2,0) = k;
-	// 	kdtree_o_i.query(queryPoint, k_nn, indices, distances);
-	// 	centerMass *= 0;
-	// 	for (size_t idp=0; idp<k_nn; idp++) {
-	// 		centerMass(0,0) += Eo_i(0,indices(idp));
-	// 		centerMass(1,0) += Eo_i(1,indices(idp));
-	// 		centerMass(2,0) += Eo_i(2,indices(idp));
-	// 	}
-	// 	centerMass /= k_nn;
-	// 	meanDistance = pow(j-centerMass(0,0),2) + pow(i-centerMass(1,0),2) + pow(k-centerMass(2,0),2);
-	// 	rmse_o += meanDistance;
-	// }
-	// if (applyTransformation)
-	// 	Ai.write(fn_out);
-		// Ai.write(fn_input.withoutExtension() + "_deformed.pdb");
 	deformation_1_2=std::sqrt(modg/(XSIZE(Ci)));
 	cost += 2*std::sqrt(rmse_i/XSIZE(Ci));
-	// cost += 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr)));
 
 
 	// Deformation for g_minus
-	idxX0=3*VEC_XSIZE(clnm)/6;
-	idxY0=4*VEC_XSIZE(clnm)/6;
-	idxZ0=5*VEC_XSIZE(clnm)/6;
-	// double Ncount=0.0;
 	rmse_i=0.0;
-	rmse_o=0.0;
 	modg=0.0;
 	Matrix Eo_r(3, Ar.getNumberOfAtoms());
 	for (size_t a=0; a<XSIZE(Cr); ++a) {
@@ -214,8 +181,9 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		double r2=k2i2+j*j;
 		double jr=j*iRmax;
 		double rr=std::sqrt(r2)*iRmax;
-		for (size_t idx=0; idx<VEC_XSIZE(clnm)/6; idx++) {
-			if (VEC_ELEM(steps_cp,idx) == 1) {
+		for (size_t idx=0; idx<idxY0/2; idx++) {
+			idc = 2*idx+1;
+			if (VEC_ELEM(steps_cp,idc) == 1) {
 				if (r2<Rmax2) {
 					double zsph=0.0;
 					l1 = VEC_ELEM(vL1,idx);
@@ -224,9 +192,9 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 					m = VEC_ELEM(vM,idx);
 					zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 					if (rr>0 || l2==0) {
-						gx += clnm[idx+idxX0]  *(zsph);
-						gy += clnm[idx+idxY0]  *(zsph);
-						gz += clnm[idx+idxZ0]  *(zsph);
+						gx += clnm[idc+idxX0]  *(zsph);
+						gy += clnm[idc+idxY0]  *(zsph);
+						gz += clnm[idc+idxZ0]  *(zsph);
 					}
 				}
 			}
@@ -242,12 +210,10 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 			atom_i.y += gy;
 			atom_i.z += gz;
 		}
-		// queryPoint(0,0) = j; queryPoint(1,0) = i; queryPoint(2,0) = k;
 		queryPoint(0,0) = j+gx; queryPoint(1,0) = i+gy; queryPoint(2,0) = k+gz;
 		Eo_r(0,a) = j+gx; Eo_r(1,a) = i+gy; Eo_r(2,a) = k+gz;
 		A2D_ELEM(Co_r, 0, a) = j+gx; A2D_ELEM(Co_r, 1, a) = i+gy; A2D_ELEM(Co_r, 2, a) = k+gz;
 		kdtree_i.query(queryPoint, k_nn, indices, distances);
-		// meanDistance = 0.0;
 		centerMass *= 0;
 		for (size_t idp=0; idp<k_nn; idp++) {
 			centerMass(0,0) += Ei(0,indices(idp));
@@ -256,127 +222,90 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		}
 		centerMass /= k_nn;
 		meanDistance = pow(j+gx-centerMass(0,0),2) + pow(i+gy-centerMass(1,0),2) + pow(k+gz-centerMass(2,0),2);
-		// meanDistance /= k_nn;
 		rmse_i += meanDistance;
 		modg+=gx*gx+gy*gy+gz*gz;
-		// Ncount++;
 	}
-	// knn::KDTreeMinkowski<double, knn::EuclideanDistance<double>> kdtree_o_r;
-	// buildTree(kdtree_o_r, Eo_r);
-	// for (size_t a=0; a<XSIZE(Ci); ++a) {
-	// 	double k = A2D_ELEM(Ci, 2, a);
-	// 	double i = A2D_ELEM(Ci, 1, a);
-	// 	double j = A2D_ELEM(Ci, 0, a);
-	// 	queryPoint(0,0) = j; queryPoint(1,0) = i; queryPoint(2,0) = k;
-	// 	kdtree_o_r.query(queryPoint, k_nn, indices, distances);
-	// 	centerMass *= 0;
-	// 	for (size_t idp=0; idp<k_nn; idp++) {
-	// 		centerMass(0,0) += Eo_r(0,indices(idp));
-	// 		centerMass(1,0) += Eo_r(1,indices(idp));
-	// 		centerMass(2,0) += Eo_r(2,indices(idp));
-	// 	}
-	// 	centerMass /= k_nn;
-	// 	meanDistance = pow(j-centerMass(0,0),2) + pow(i-centerMass(1,0),2) + pow(k-centerMass(2,0),2);
-	// 	rmse_o += meanDistance;
-	// }
-	// if (applyTransformation)
-	// 	Ar.write(fn_out);
-		// Ar.write(fn_ref.withoutExtension() + "_deformed.pdb");
 	deformation_2_1=std::sqrt(modg/(XSIZE(Cr)));
 	cost += 2*std::sqrt(rmse_i/XSIZE(Cr));
-	// cost += 0.5*(std::sqrt(rmse_i/XSIZE(Cr)) + std::sqrt(rmse_o/XSIZE(Ci)));
 
-	// if (refineAlignment) {
-		// Consistency g_plus
-		idxX0=3*VEC_XSIZE(clnm)/6;
-		idxY0=4*VEC_XSIZE(clnm)/6;
-		idxZ0=5*VEC_XSIZE(clnm)/6;
-		// double Ncount=0.0;
-		double E_plus=0.0;
-		for (size_t a=0; a<XSIZE(Co_i); ++a) {
-			double gx=0.0, gy=0.0, gz=0.0;
-			double k = A2D_ELEM(Co_i, 2, a);
-			double i = A2D_ELEM(Co_i, 1, a);
-			double j = A2D_ELEM(Co_i, 0, a);
-			double Rmax2=Rmax*Rmax;
-			double iRmax=1.0/Rmax;
-			double k2=k*k;
-			double kr=k*iRmax;
-			double k2i2=k2+i*i;
-			double ir=i*iRmax;
-			double r2=k2i2+j*j;
-			double jr=j*iRmax;
-			double rr=std::sqrt(r2)*iRmax;
-			for (size_t idx=0; idx<VEC_XSIZE(clnm)/6; idx++) {
-				if (VEC_ELEM(steps_cp,idx) == 1) {
-					if (r2<Rmax2) {
-						double zsph=0.0;
-						l1 = VEC_ELEM(vL1,idx);
-						n = VEC_ELEM(vN,idx);
-						l2 = VEC_ELEM(vL2,idx);
-						m = VEC_ELEM(vM,idx);
-						zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-						if (rr>0 || l2==0) {
-							gx += clnm[idx+idxX0]  *(zsph);
-							gy += clnm[idx+idxY0]  *(zsph);
-							gz += clnm[idx+idxZ0]  *(zsph);
-						}
+	double E_plus=0.0;
+	for (size_t a=0; a<XSIZE(Co_i); ++a) {
+		double gx=0.0, gy=0.0, gz=0.0;
+		double k = A2D_ELEM(Co_i, 2, a);
+		double i = A2D_ELEM(Co_i, 1, a);
+		double j = A2D_ELEM(Co_i, 0, a);
+		double Rmax2=Rmax*Rmax;
+		double iRmax=1.0/Rmax;
+		double k2=k*k;
+		double kr=k*iRmax;
+		double k2i2=k2+i*i;
+		double ir=i*iRmax;
+		double r2=k2i2+j*j;
+		double jr=j*iRmax;
+		double rr=std::sqrt(r2)*iRmax;
+		for (size_t idx=0; idx<idxY0/2; idx++) {
+			idc = 2*idx+1;
+			if (VEC_ELEM(steps_cp,idc) == 1) {
+				if (r2<Rmax2) {
+					double zsph=0.0;
+					l1 = VEC_ELEM(vL1,idx);
+					n = VEC_ELEM(vN,idx);
+					l2 = VEC_ELEM(vL2,idx);
+					m = VEC_ELEM(vM,idx);
+					zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+					if (rr>0 || l2==0) {
+						gx += clnm[idc+idxX0]  *(zsph);
+						gy += clnm[idc+idxY0]  *(zsph);
+						gz += clnm[idc+idxZ0]  *(zsph);
 					}
 				}
 			}
-			E_plus += std::pow(A2D_ELEM(Ci, 0, a)-(j+gx), 2) + std::pow(A2D_ELEM(Ci, 1, a)-(i+gy), 2) + std::pow(A2D_ELEM(Ci, 2, a)-(k+gz), 2);
 		}
-		cost += 1*E_plus / XSIZE(Ci);
+		E_plus += std::pow(A2D_ELEM(Ci, 0, a)-(j+gx), 2) + std::pow(A2D_ELEM(Ci, 1, a)-(i+gy), 2) + std::pow(A2D_ELEM(Ci, 2, a)-(k+gz), 2);
+	}
+	cost += 2*E_plus / XSIZE(Ci);
 
 
-		// Consistency g_minus
-		idxX0=0;
-		idxY0=VEC_XSIZE(clnm)/6;
-		idxZ0=2*idxY0;
-		// double Ncount=0.0;
-		double E_minus=0.0;
-		for (size_t a=0; a<XSIZE(Co_r); ++a) {
-			double gx=0.0, gy=0.0, gz=0.0;
-			double k = A2D_ELEM(Co_r, 2, a);
-			double i = A2D_ELEM(Co_r, 1, a);
-			double j = A2D_ELEM(Co_r, 0, a);
-			double Rmax2=Rmax*Rmax;
-			double iRmax=1.0/Rmax;
-			double k2=k*k;
-			double kr=k*iRmax;
-			double k2i2=k2+i*i;
-			double ir=i*iRmax;
-			double r2=k2i2+j*j;
-			double jr=j*iRmax;
-			double rr=std::sqrt(r2)*iRmax;
-			for (size_t idx=idxX0; idx<idxY0; idx++) {
-				if (VEC_ELEM(steps_cp,idx) == 1) {
-					if (r2<Rmax2) {
-						double zsph=0.0;
-						l1 = VEC_ELEM(vL1,idx);
-						n = VEC_ELEM(vN,idx);
-						l2 = VEC_ELEM(vL2,idx);
-						m = VEC_ELEM(vM,idx);
-						zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-						if (rr>0 || l2==0) {
-							gx += clnm[idx]        *(zsph);
-							gy += clnm[idx+idxY0]  *(zsph);
-							gz += clnm[idx+idxZ0]  *(zsph);
-						}
+	// Consistency g_minus
+	double E_minus=0.0;
+	for (size_t a=0; a<XSIZE(Co_r); ++a) {
+		double gx=0.0, gy=0.0, gz=0.0;
+		double k = A2D_ELEM(Co_r, 2, a);
+		double i = A2D_ELEM(Co_r, 1, a);
+		double j = A2D_ELEM(Co_r, 0, a);
+		double Rmax2=Rmax*Rmax;
+		double iRmax=1.0/Rmax;
+		double k2=k*k;
+		double kr=k*iRmax;
+		double k2i2=k2+i*i;
+		double ir=i*iRmax;
+		double r2=k2i2+j*j;
+		double jr=j*iRmax;
+		double rr=std::sqrt(r2)*iRmax;
+		for (size_t idx=idxX0; idx<idxY0/2; idx++) {
+			idc = 2*idx;
+			if (VEC_ELEM(steps_cp,idc) == 1) {
+				if (r2<Rmax2) {
+					double zsph=0.0;
+					l1 = VEC_ELEM(vL1,idx);
+					n = VEC_ELEM(vN,idx);
+					l2 = VEC_ELEM(vL2,idx);
+					m = VEC_ELEM(vM,idx);
+					zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+					if (rr>0 || l2==0) {
+						gx += clnm[idc+idxX0]  *(zsph);
+						gy += clnm[idc+idxY0]  *(zsph);
+						gz += clnm[idc+idxZ0]  *(zsph);
 					}
 				}
 			}
-			E_minus += std::pow(A2D_ELEM(Cr, 0, a)-(j+gx), 2) + std::pow(A2D_ELEM(Cr, 1, a)-(i+gy), 2) + std::pow(A2D_ELEM(Cr, 2, a)-(k+gz), 2);
 		}
+		E_minus += std::pow(A2D_ELEM(Cr, 0, a)-(j+gx), 2) + std::pow(A2D_ELEM(Cr, 1, a)-(i+gy), 2) + std::pow(A2D_ELEM(Cr, 2, a)-(k+gz), 2);
+	}
 
-		cost += 1*E_minus / XSIZE(Cr);
-	// }
+	cost += 2*E_minus / XSIZE(Cr);
 
-
-	// deformation=std::sqrt(modg/(Ncount));
-	// return 0.5*(std::sqrt(rmse_i/XSIZE(Ci)) + std::sqrt(rmse_o/XSIZE(Cr))) + lambda*(deformation);
 	return cost;
-	// return std::sqrt(rmse/Ncount) + lambda*(deformation);
 }
 
 double atomsDeformSphGoal(double *p, void *vprm)
@@ -393,7 +322,6 @@ void ProgPseudoAtomsSphDeform::run() {
 	Ar.read(fn_ref);
 	atoms2Coords(Ai, Ci);
 	atoms2Coords(Ar, Cr);
-	// Matrix Er(3, Ar.getNumberOfAtoms());
 	Er.resize(3, Ar.getNumberOfAtoms());
 	array2eigen(Cr, Er);
 	buildTree(kdtree_r, Er);
@@ -436,21 +364,11 @@ void ProgPseudoAtomsSphDeform::run() {
 		std::cout<<std::endl;
         std::cout << "Deformation S1 to S2: " << deformation_1_2 << std::endl;
 		std::cout << "Deformation S2 to S1: " << deformation_2_1 << std::endl;
-        // std::ofstream deformFile;
-		// deformFile.open(fn_root+"_deformation.txt");
-        // deformFile << deformation;
-        // deformFile.close();
 	}
 
 	// Refine alignment of point cloud to approximate better to true neighbours
-	// applyTransformation=true;
-	// distance(x.adaptForNumericalRecipes());
-	// applyTransformation=false;
-	// atoms2Coords(Ai, Ci);
 	refineAlignment = true;
 	for (int h=0;h<=L2;h++) {
-		// x.clear();
-		// x.initZeros(totalSize);
 		steps.clear();
     	steps.initZeros(2*totalSize);
 		minimizepos(L1,h,steps);
@@ -555,10 +473,7 @@ void ProgPseudoAtomsSphDeform::buildTree(knn::KDTreeMinkowski<double, knn::Eucli
 	kdtree.setTakeRoot(true);
 	kdtree.setMaxDistance(0);
 	kdtree.setThreads(1);
-	// std::cout << std::endl;
-	// std::cout << "Building Tree..." << std::endl;
 	kdtree.build();
-	// std::cout << "Done!" << std::endl;
 }
 
 void ProgPseudoAtomsSphDeform::massCenter(MultidimArray<double> &C, Matrix1D<double> &center) {
@@ -631,18 +546,18 @@ void ProgPseudoAtomsSphDeform::minimizepos(int L1, int l2, Matrix1D<double> &ste
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
-    int totalSize = steps.size()/6;
+    int totalSize = steps.size()/3;
     for (int idx=0; idx<size; idx++)
     {
 		// g_plus
-        VEC_ELEM(steps,idx) = 1;
-        VEC_ELEM(steps,idx+totalSize) = 1;
-        VEC_ELEM(steps,idx+2*totalSize) = 1;
+        VEC_ELEM(steps,2*idx) = 1;
+        VEC_ELEM(steps,2*idx+totalSize) = 1;
+        VEC_ELEM(steps,2*idx+2*totalSize) = 1;
 
 		// g_minus
-		VEC_ELEM(steps,idx+3*totalSize) = 1;
-        VEC_ELEM(steps,idx+4*totalSize) = 1;
-        VEC_ELEM(steps,idx+5*totalSize) = 1;
+		VEC_ELEM(steps,2*idx+1) = 1;
+        VEC_ELEM(steps,2*idx+1+totalSize) = 1;
+        VEC_ELEM(steps,2*idx+1+2*totalSize) = 1;
     }	
 }
 
@@ -663,19 +578,10 @@ void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm, Image<double>
 											Image<double> &Gz) {
 	const MultidimArray<double> &mV=V();
 	double voxelI;
-	size_t idxX0;
-	size_t idxY0;
-	size_t idxZ0;
-	if (mode=="+"){
-		idxX0=0;
-		idxY0=VEC_XSIZE(clnm)/6;
-		idxZ0=2*idxY0;
-	}
-	else {
-		idxX0=3*VEC_XSIZE(clnm)/6;
-		idxY0=4*VEC_XSIZE(clnm)/6;
-		idxZ0=5*VEC_XSIZE(clnm)/6;
-	}
+	int idc;
+	size_t idxX0=0;
+	size_t idxY0=VEC_XSIZE(clnm)/3;
+	size_t idxZ0=2*idxY0;
 	int l1,n,l2,m;
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)	{
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++) {
@@ -691,7 +597,13 @@ void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm, Image<double>
 				double jr=j*iRmax;
 				double rr=std::sqrt(r2)*iRmax;
 				double zsph=0.0;
-				for (size_t idx=0; idx<VEC_XSIZE(clnm)/6; idx++) {
+				for (size_t idx=0; idx<idxY0/2; idx++) {
+					if (mode=="+") {
+						idc = 2*idx;
+					}
+					else {
+						idc = 2*idx+1;
+					}
 					if (r2<Rmax2) {
                         l1 = VEC_ELEM(vL1,idx);
                         n = VEC_ELEM(vN,idx);
@@ -699,21 +611,14 @@ void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm, Image<double>
                         m = VEC_ELEM(vM,idx);
                         zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 					}
-                    // if (rr>0 || (l2==0 && l1==0))
 					if (rr>0 || l2==0) {
-						gx += VEC_ELEM(clnm,idx+idxX0)  *(zsph);
-						gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-						gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+						gx += VEC_ELEM(clnm,idc+idxX0)  *(zsph);
+						gy += VEC_ELEM(clnm,idc+idxY0)  *(zsph);
+						gz += VEC_ELEM(clnm,idc+idxZ0)  *(zsph);
 					}
 				}
 				voxelI=mV.interpolatedElement3D(j+gx,i+gy,k+gz);
 				Vo(k,i,j)=voxelI;
-
-				// if (saveDeformation) {
-				// 	Gx(k,i,j)=gx;
-				// 	Gy(k,i,j)=gy;
-				// 	Gz(k,i,j)=gz;
-				// }
 			}
 		}
 	}
@@ -797,6 +702,9 @@ void ProgPseudoAtomsSphDeform::computeStrain(Image<double> &Gx, Image<double> &G
 			}
 		}
 	}
+	// LS() = LS()-(LS().computeMin());
+	// LS() = LS()/(LS().computeMax() - LS().computeMin());
+	LS() = LS()/(LS().computeAvg());
 	LS.write(fn_out.withoutExtension()+"_strain.mrc");
 	LR.write(fn_out.withoutExtension()+"_rotation.mrc");
 }
