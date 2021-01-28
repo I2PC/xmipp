@@ -80,16 +80,18 @@ void ProgPseudoAtomsSphDeform::show()
 double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 
 	// Deformation for g_plus
-	int l1,n,l2,m;
-	int idc;
+	int l1=0;
+	int n=0;
+	int l2=0;
+	int m=0;
+	int idc=0;
 	double cost=0;
 	size_t idxX0=0;
 	size_t idxY0=VEC_XSIZE(clnm)/3;
 	size_t idxZ0=2*idxY0;
 	double rmse_i=0.0;
 	double modg=0.0;
-	double meanDistance;
-	int k_nn;
+	int k_nn = 0;
 	if (refineAlignment)
 		k_nn = 1;
 	else
@@ -97,7 +99,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	Matrixi indices;
     Matrix distances;
 	Matrix queryPoint(3, 1);
-	Matrix centerMass(3, 1);
+	// Matrix centerMass(3, 1);
 	Matrix Eo_i(3, Ai.getNumberOfAtoms());
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
 		VEC_ELEM(clnm,i)=pclnm[i+1];
@@ -148,19 +150,20 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		Eo_i(0,a) = j+gx; Eo_i(1,a) = i+gy; Eo_i(2,a) = k+gz;
 		A2D_ELEM(Co_i, 0, a) = j+gx; A2D_ELEM(Co_i, 1, a) = i+gy; A2D_ELEM(Co_i, 2, a) = k+gz;
 		kdtree_r.query(queryPoint, k_nn, indices, distances);
-		centerMass *= 0;
+		// centerMass *= 0;
+		double centerMass[3] = {0};
 		for (size_t idp=0; idp<k_nn; idp++) {
-			centerMass(0,0) += Er(0,indices(idp));
-			centerMass(1,0) += Er(1,indices(idp));
-			centerMass(2,0) += Er(2,indices(idp));
+			centerMass[0] += Er(0,indices(idp));
+			centerMass[1] += Er(1,indices(idp));
+			centerMass[2] += Er(2,indices(idp));
 		}
-		centerMass /= k_nn;
-		meanDistance = pow(j+gx-centerMass(0,0),2) + pow(i+gy-centerMass(1,0),2) + pow(k+gz-centerMass(2,0),2);
+		centerMass[0] /= k_nn; centerMass[1] /= k_nn; centerMass[2] /= k_nn;
+		double meanDistance = pow(j+gx-centerMass[0],2) + pow(i+gy-centerMass[1],2) + pow(k+gz-centerMass[2],2);
 		rmse_i += meanDistance;
 		modg+=gx*gx+gy*gy+gz*gz;
 	}
 	deformation_1_2=std::sqrt(modg/(XSIZE(Ci)));
-	cost += 2*std::sqrt(rmse_i/XSIZE(Ci));
+	cost += std::sqrt(rmse_i/XSIZE(Ci));
 
 
 	// Deformation for g_minus
@@ -214,19 +217,20 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		Eo_r(0,a) = j+gx; Eo_r(1,a) = i+gy; Eo_r(2,a) = k+gz;
 		A2D_ELEM(Co_r, 0, a) = j+gx; A2D_ELEM(Co_r, 1, a) = i+gy; A2D_ELEM(Co_r, 2, a) = k+gz;
 		kdtree_i.query(queryPoint, k_nn, indices, distances);
-		centerMass *= 0;
+		// centerMass *= 0;
+		double centerMass[3] = {0};
 		for (size_t idp=0; idp<k_nn; idp++) {
-			centerMass(0,0) += Ei(0,indices(idp));
-			centerMass(1,0) += Ei(1,indices(idp));
-			centerMass(2,0) += Ei(2,indices(idp));
+			centerMass[0] += Ei(0,indices(idp));
+			centerMass[1] += Ei(1,indices(idp));
+			centerMass[2] += Ei(2,indices(idp));
 		}
-		centerMass /= k_nn;
-		meanDistance = pow(j+gx-centerMass(0,0),2) + pow(i+gy-centerMass(1,0),2) + pow(k+gz-centerMass(2,0),2);
+		centerMass[0] /= k_nn; centerMass[1] /= k_nn; centerMass[2] /= k_nn;
+		double meanDistance = pow(j+gx-centerMass[0],2) + pow(i+gy-centerMass[1],2) + pow(k+gz-centerMass[2],2);
 		rmse_i += meanDistance;
 		modg+=gx*gx+gy*gy+gz*gz;
 	}
 	deformation_2_1=std::sqrt(modg/(XSIZE(Cr)));
-	cost += 2*std::sqrt(rmse_i/XSIZE(Cr));
+	cost += std::sqrt(rmse_i/XSIZE(Cr));
 
 	double E_plus=0.0;
 	for (size_t a=0; a<XSIZE(Co_i); ++a) {
@@ -263,7 +267,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		}
 		E_plus += std::pow(A2D_ELEM(Ci, 0, a)-(j+gx), 2) + std::pow(A2D_ELEM(Ci, 1, a)-(i+gy), 2) + std::pow(A2D_ELEM(Ci, 2, a)-(k+gz), 2);
 	}
-	cost += 2*E_plus / XSIZE(Ci);
+	cost += E_plus / XSIZE(Ci);
 
 
 	// Consistency g_minus
@@ -303,7 +307,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 		E_minus += std::pow(A2D_ELEM(Cr, 0, a)-(j+gx), 2) + std::pow(A2D_ELEM(Cr, 1, a)-(i+gy), 2) + std::pow(A2D_ELEM(Cr, 2, a)-(k+gz), 2);
 	}
 
-	cost += 2*E_minus / XSIZE(Cr);
+	cost += E_minus / XSIZE(Cr);
 
 	return cost;
 }
@@ -331,10 +335,7 @@ void ProgPseudoAtomsSphDeform::run() {
 	Co_i.initZeros(3, Ai.getNumberOfAtoms());
 	Co_r.initZeros(3, Ar.getNumberOfAtoms());
 	if (Rmax<0) {
-		double maxRi, maxRr;
-		inscribedRadius(Ci, maxRi);
-		inscribedRadius(Cr, maxRr);
-		Rmax = std::max(maxRi, maxRr);
+		Rmax = std::max(inscribedRadius(Ci), inscribedRadius(Cr));
 	}
 	Matrix1D<double> steps, x;
 	vecSize = 0;
@@ -357,10 +358,10 @@ void ProgPseudoAtomsSphDeform::run() {
 
 		std::cout<<std::endl;
 		std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<h<<") --------------------------"<<std::endl;
-		int iter;
-        double fitness;
+		int iter=0;
+        double fitness=0;
 		powellOptimizer(x, 1, 2*totalSize, &atomsDeformSphGoal, this,
-		                0.01, fitness, iter, steps, true);
+		                0.005, fitness, iter, steps, true);
 		std::cout<<std::endl;
         std::cout << "Deformation S1 to S2: " << deformation_1_2 << std::endl;
 		std::cout << "Deformation S2 to S1: " << deformation_2_1 << std::endl;
@@ -378,7 +379,7 @@ void ProgPseudoAtomsSphDeform::run() {
 		std::cout<<std::endl;
 		std::cout<< "-------------------------- Refining Alignment: ("<<L1<<","<<h<<") --------------------------" << std::endl;
 		powellOptimizer(x, 1, 2*totalSize, &atomsDeformSphGoal, this,
-						0.01, fitness, iter, steps, true);
+						0.005, fitness, iter, steps, true);
 		std::cout<<std::endl;
 		std::cout << "Deformation S1 to S2: " << deformation_1_2 << std::endl;
 		std::cout << "Deformation S2 to S1: " << deformation_2_1 << std::endl;
@@ -391,13 +392,15 @@ void ProgPseudoAtomsSphDeform::run() {
 
 	applyTransformation=true;
 	Matrix1D<double> degrees;
-	degrees.initZeros(3);
+	degrees.initZeros(6);
 	VEC_ELEM(degrees,0) = L1;
-	VEC_ELEM(degrees,1) = L2;
-	VEC_ELEM(degrees,2) = Rmax;
-	writeVector(fn_root+"_clnm.txt", degrees, false);
-	writeVector(fn_root+"_clnm.txt", x, true);
-
+	VEC_ELEM(degrees,1) = L1;
+	VEC_ELEM(degrees,2) = L2;
+	VEC_ELEM(degrees,3) = L2;
+	VEC_ELEM(degrees,4) = Rmax;
+	VEC_ELEM(degrees,5) = Rmax;
+	writeVector(degrees, false);
+	writeVector(x, true);
 	// Preprocessing needed to deform provided volume
 	if (fn_vol1!="") {
 		V1.read(fn_vol1);
@@ -488,9 +491,10 @@ void ProgPseudoAtomsSphDeform::massCenter(MultidimArray<double> &C, Matrix1D<dou
 	center[2] /= XSIZE(C);
 }
 
-void ProgPseudoAtomsSphDeform::inscribedRadius(MultidimArray<double> &C, double &Rmax) {
+double ProgPseudoAtomsSphDeform::inscribedRadius(MultidimArray<double> &C) {
 	Matrix1D<double> centerMass;
 	double dist=0;
+	double Rmax=0;
 	// massCenter(C, centerMass);
 	centerMass.initZeros(3);
 	for (size_t j=0; j<XSIZE(C); ++j) {
@@ -501,6 +505,7 @@ void ProgPseudoAtomsSphDeform::inscribedRadius(MultidimArray<double> &C, double 
 			Rmax = dist;
 	}
 	Rmax += 0.1*Rmax;
+	return Rmax;
 }
 
 void ProgPseudoAtomsSphDeform::numCoefficients(int l1, int l2, int &vecSize)
@@ -561,16 +566,29 @@ void ProgPseudoAtomsSphDeform::minimizepos(int L1, int l2, Matrix1D<double> &ste
     }	
 }
 
-void ProgPseudoAtomsSphDeform::writeVector(std::string outPath, Matrix1D<double> v, bool append)
+void ProgPseudoAtomsSphDeform::writeVector(Matrix1D<double> &v, bool append)
 {
-    std::ofstream outFile;
-    if (append == false)
-        outFile.open(outPath);
-    else
-        outFile.open(outPath, std::ios_base::app);
-    FOR_ALL_ELEMENTS_IN_MATRIX1D(v)
-        outFile << VEC_ELEM(v,i) << " ";
-    outFile << std::endl;
+    std::ofstream outFile_plus, outFile_minus;
+	FileName outPlus = fn_root + "_clnm_plus.txt"; 
+	FileName outMinus = fn_root + "_clnm_minus.txt";
+    if (append) {
+		outFile_plus.open(outPlus.c_str(), std::ios_base::app);
+		outFile_minus.open(outMinus.c_str(), std::ios_base::app);
+
+	}
+    else {
+		outFile_plus.open(outPlus.c_str());
+		outFile_minus.open(outMinus.c_str());
+	}
+    for (int i=0; i<v.size()/2; i++)
+	{
+		outFile_plus << VEC_ELEM(v,2*i) << " ";
+		outFile_minus << VEC_ELEM(v,2*i+1) << " ";
+	}
+    outFile_plus << std::endl;
+	outFile_minus << std::endl;
+	outFile_plus.close();
+	outFile_minus.close();
 }
 
 void ProgPseudoAtomsSphDeform::deformVolume(Matrix1D<double> clnm, Image<double> &V, Image<double> &Vo,

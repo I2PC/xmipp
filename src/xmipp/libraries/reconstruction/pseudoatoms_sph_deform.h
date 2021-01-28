@@ -150,7 +150,7 @@ public:
     void massCenter(MultidimArray<double> &C, Matrix1D<double> &center);
 
     /** Inscribed radius search */
-    void inscribedRadius(MultidimArray<double> &C, double &Rmax);
+    double inscribedRadius(MultidimArray<double> &C);
 
     /** Number of basis coefficients */
     void numCoefficients(int l1, int l2, int &vecSize);
@@ -159,7 +159,7 @@ public:
     void minimizepos(int L1, int l2, Matrix1D<double> &steps);
 
     /** Save vector to file */
-    void writeVector(std::string outPath, Matrix1D<double> v, bool append);
+    void writeVector(Matrix1D<double> &v, bool append);
 
     /** Apply deformation to volume */
     void deformVolume(Matrix1D<double> clnm, Image<double> &V, Image<double> &Vo, std::string mode, FileName fn_vol, 
