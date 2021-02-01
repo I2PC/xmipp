@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include "image_peak_high_contrast.h"
 
 void ProgPeakHighContrast::readParams()
 {
@@ -61,54 +62,17 @@ void ProgPeakHighContrast ::getHighContrastCoordinates()
 
 	double thresholdValue = tomoVector[size_t(tomoVector.size()*thr)];
 
-	std::cout << "threshold value = " << thresholdResolution << std::endl;
+	std::cout << "threshold value = " << thresholdValue << std::endl;
 
-	size_t xdim, ydim, zdim, ndim;
-	inputTomo.getDimensions(xdim, ydim, zdim, ndim);
+    MultidimArray<int> coordinates3D;
 
-	xdim = xdim/2;	
-	ydim = ydim/2;
-	zdim = zdim/2;
+    FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
+    {
+        double res = A3D_ELEM(inputTomo, k, i, j);
 
-	MultidimArray<double> radAvg(xdim), counter(xdim);
-	radAvg.initZeros();
-	counter.initZeros();
-
-	if (aroundcenter)
-	{
-		FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
-		{
-			double res = A3D_ELEM(inputTomo, k, i, j);
-			int radius = floor(sqrt((i-ydim)*(i-ydim) + (j-xdim)*(j-xdim) + (k-zdim)*(k-zdim)));
-
-			if ((res<=thresholdResolution) && (radius<xdim))
-			{
-				//std::cout << "i " << i << " j " << j << " k" << k << " " << radius << std::endl;
-				DIRECT_MULTIDIM_ELEM(radAvg, radius) +=res;
-				DIRECT_MULTIDIM_ELEM(counter, radius) +=1;
-			}
-		}
-
-	}
-	else
-	{
-		FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
-		{
-			double res = A3D_ELEM(inputTomo, k, i, j);
-			int radius = floor(sqrt((j-xdim)*(j-xdim)));
-
-			if ((res<=thresholdResolution) && (radius<xdim))
-			{
-				//std::cout << "i " << i << " j " << j << " k" << k << " " << radius << std::endl;
-				DIRECT_MULTIDIM_ELEM(radAvg, radius) +=res;
-				DIRECT_MULTIDIM_ELEM(counter, radius) +=1;
-			}
-		}
-	}
-
-
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(radAvg)
-		DIRECT_MULTIDIM_ELEM(radAvg, n) /= DIRECT_MULTIDIM_ELEM(counter, n);
-
-	std::cout << radAvg << std::endl;
-	
+        if (res<=thresholdValue)
+        {
+            //std::cout << "i " << i << " j " << j << " k" << k << std::endl;
+            coordinates3D += [i, j, k];
+        }
+    }
