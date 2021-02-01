@@ -39,7 +39,7 @@ void ProgPeakHighContrast::defineParams()
 	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
 	addParamsLine("  -o <output=\"coordinaates3D.txt\">        : Output file containing the 3D coodinates");
 	addParamsLine("  [--thr <thr=0.9>]                		 : Threshold");
-  	addParamsLine("  [--samp <samp=10>]                		 : Number of slices to use to determin ");
+  	addParamsLine("  [--samp <samp=10>]                		 : Number of slices to use to determin the threshold value");
 
 }
 
