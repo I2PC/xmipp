@@ -43,7 +43,7 @@ void ProgPeakHighContrast::defineParams()
 
 }
 
-void ProgPeakHighContrast ::getHighContrastCoordinates()
+void ProgPeakHighContrast::getHighContrastCoordinates()
 {
 	std::cout << "Starting..." << std::endl;
 

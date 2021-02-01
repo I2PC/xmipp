@@ -22,3 +22,38 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+
+#ifndef __IMAGE_PEAK_HIGH_CONTRAST
+#define __IMAGE_PEAK_HIGH_CONTRAST
+
+#include <iostream>
+#include <core/xmipp_program.h>
+#include <core/xmipp_image.h>
+
+
+class ProgPeakHighContrast : public XmippProgram
+{
+public:
+    /** Filenames */
+    FileName fnVol, fnOut;
+
+    /** Threshold */
+    double thr
+
+    /** Number of slices */
+    int samp
+
+public:
+
+    void readParams();
+    void defineParams();
+
+    /**
+     * Peaks the high contrast regions in a volume.
+     * 
+     * @param 
+     * @return
+     * 
+    */
+    void getHighContrastCoordinates
+}
