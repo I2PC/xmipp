@@ -1,6 +1,7 @@
 /***************************************************************************
  *
- * Authors:    Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
+ * Authors:     J.L. Vilas  (jlvilas@cnb.csic.es)
+ *              H.D. Tagare (hemant.tagare@yale.edu)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,49 +24,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef __IMAGE_PEAK_HIGH_CONTRAST
-#define __IMAGE_PEAK_HIGH_CONTRAST
+#include <reconstruction/image_peak_high_contrast.cpp>
 
-#include <iostream>
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <math.h>
-#include <limits>
-#include <complex>
-#include <data/fourier_filter.h>
-#include <data/filters.h>
-#include <string>
-#include "symmetrize.h"
-
-
-class ProgImagePeakHighContrast : public XmippProgram
+int main(int argc, char **argv)
 {
-public:
-    /** Filenames */
-    FileName fnVol, fnOut;
-
-    /** Threshold */
-    double thr;
-
-    /** Number of slices */
-    int samp;
-
-public:
-
-    void readParams();
-    void defineParams();
-
-    /**
-     * Peaks the high contrast regions in a volume.
-     * 
-     * @param 
-     * @return
-     * 
-    */
-    void getHighContrastCoordinates();
-};
-
-#endif
+	ProgImagePeakHighContrast program;
+    program.read(argc, argv);
+    return program.tryRun();
+}

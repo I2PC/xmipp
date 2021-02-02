@@ -25,25 +25,25 @@
 
 #include "image_peak_high_contrast.h"
 
-void ProgPeakHighContrast::readParams()
+void ProgImagePeakHighContrast::readParams()
 {
 	fnVol = getParam("--vol");
 	fnOut = getParam("-o");
 	thr = getDoubleParam("--thr");
-    samp = getIntParam("--samp")
+    samp = getIntParam("--samp");
 }
 
-void ProgPeakHighContrast::defineParams()
+void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
 	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
 	addParamsLine("  -o <output=\"coordinaates3D.txt\">        : Output file containing the 3D coodinates");
-	addParamsLine("  [--thr <thr=0.9>]                		 : Threshold");
+	addParamsLine("  [--thr <thr=0.1>]                		 : Threshold");
   	addParamsLine("  [--samp <samp=10>]                		 : Number of slices to use to determin the threshold value");
 
 }
 
-void ProgPeakHighContrast::getHighContrastCoordinates()
+void ProgImagePeakHighContrast::getHighContrastCoordinates()
 {
 	std::cout << "Starting..." << std::endl;
 
@@ -60,19 +60,26 @@ void ProgPeakHighContrast::getHighContrastCoordinates()
 	
 	std::sort(tomoVector.begin(),tomoVector.end());
 
-	double thresholdValue = tomoVector[size_t(tomoVector.size()*thr)];
+	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(thr/2))];
+    double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(thr/2)))];
 
-	std::cout << "threshold value = " << thresholdValue << std::endl;
+	std::cout << "high threshold value = " << highThresholdValue << std::endl;
+    std::cout << "low threshold value = " << lowThresholdValue << std::endl;
 
-    MultidimArray<int> coordinates3D;
+    std::vector<int> coordinates3Dx(0);
+    std::vector<int> coordinates3Dy(0);
+    std::vector<int> coordinates3Dz(0);
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
     {
-        double res = A3D_ELEM(inputTomo, k, i, j);
+        double value = A3D_ELEM(inputTomo, k, i, j);
 
-        if (res<=thresholdValue)
+        if (value<=lowThresholdValue or value>=highThresholdValue)
         {
             //std::cout << "i " << i << " j " << j << " k" << k << std::endl;
-            coordinates3D += [i, j, k];
+            coordinates3Dx.push_back(i);
+            coordinates3Dy.push_back(j);
+            coordinates3Dz.push_back(k);
         }
     }
+}
