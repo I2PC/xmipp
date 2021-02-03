@@ -66,6 +66,8 @@ public:
      * 
     */
     void getHighContrastCoordinates();
+
+    void run();
 };
 
 #endif

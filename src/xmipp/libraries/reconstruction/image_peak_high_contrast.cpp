@@ -54,17 +54,63 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 	MultidimArray<double> &inputTomo=inputVolume();
 	std::vector<double> tomoVector;
+
+	size_t centralSlice = NSIZE(inputTomo);
+
+	std::cout << "oooooole 1" << std::endl;
+
+	std::cout << centralSlice << std::endl;
+	std::cout << samp << std::endl;
+	std::cout << centralSlice - (samp/2) << std::endl;
+	std::cout << centralSlice + (samp / 2) << std::endl;
+				
+	std::cout << "-------------" << std::endl;
+	std::cout << ZSIZE(inputTomo) << std::endl;
+	std::cout << XSIZE(inputTomo) << std::endl;
+	std::cout << YSIZE(inputTomo) << std::endl;
+	std::cout << NSIZE(inputTomo) << std::endl;
+
+				std::cout << "-------------" << std::endl;
+
+	for(size_t k = centralSlice - (samp/2); k <= centralSlice + (samp / 2); ++k)
+	{
+		for(size_t j = 0; j < YSIZE(inputTomo); ++j)
+		{
+			for(size_t i = 0; i < XSIZE(inputTomo); ++i)
+			{
+				
+				std::cout << "i=" << i << std::endl;
+				std::cout << "j=" << j << std::endl;
+				std::cout << "k=" << k << std::endl;
+				std::cout << "-------------" << std::endl;
+
+				tomoVector.push_back(NZYX_ELEM(inputTomo, 1, k, i ,j));
+			}
+
+		}
+	}
 	
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(inputTomo)
-		tomoVector.push_back(DIRECT_MULTIDIM_ELEM(inputTomo, n));
+		std::cout << "oooooole 2" << std::endl;
+
+
+	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(inputTomo)
+	// 	tomoVector.push_back(DIRECT_MULTIDIM_ELEM(inputTomo, n));
 	
 	std::sort(tomoVector.begin(),tomoVector.end());
+
+	std::cout << "oooooole 3" << std::endl;
+
+	std::cout << tomoVector.size() << std::endl;
+	std::cout << tomoVector.size()*(thr/2) << std::endl;
+	std::cout << tomoVector.size()*(1-(thr/2)) << std::endl;
 
 	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(thr/2))];
     double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(thr/2)))];
 
 	std::cout << "high threshold value = " << highThresholdValue << std::endl;
     std::cout << "low threshold value = " << lowThresholdValue << std::endl;
+
+	std::cout << "oooooole 4" << std::endl;
 
     std::vector<int> coordinates3Dx(0);
     std::vector<int> coordinates3Dy(0);
@@ -82,4 +128,12 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
             coordinates3Dz.push_back(k);
         }
     }
+
+	std::cout << "oooooole 5" << std::endl;
+
+}
+
+void ProgImagePeakHighContrast::run()
+{
+	getHighContrastCoordinates();
 }
