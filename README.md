@@ -23,7 +23,7 @@ git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
 ```
 
-Please, folow one of the two point below depending on your case. Also, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
+Please, folow one of the two points below depending on your case. Also, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
 
 * In case that you want to use/develop Xmipp **under Scipion (recommended)**:
   
@@ -31,7 +31,7 @@ Please, folow one of the two point below depending on your case. Also, check the
   ```
   ./xmipp get_devel_sources [branch]
   ```
-  where the optional 'branch' parameter will set that given branch (devel by default).
+  where the optional 'branch' parameter will set that given git branch (devel by default).
   
   Secondly, install the 'scipion-em-xmipp' plugin in development mode
   ```

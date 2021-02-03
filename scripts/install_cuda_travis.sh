@@ -10,9 +10,9 @@
 # 'source' this script, rather than executing it in a sub-process.
 #
 
-travis_retry wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_${CUDA_VER}_amd64.deb
+travis_retry wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA_VER}_amd64.deb
 travis_retry sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
-travis_retry sudo dpkg -i cuda-repo-ubuntu1404_${CUDA_VER}_amd64.deb
+travis_retry sudo dpkg -i cuda-repo-ubuntu1604_${CUDA_VER}_amd64.deb
 travis_retry sudo apt-get update -qq
 export CUDA_VER_TMP=$(expr ${CUDA_VER} : '\([0-9]*\.[0-9]*\)')
 export CUDA_APT=${CUDA_VER_TMP/./-}
@@ -21,7 +21,7 @@ if [ ${CUDA_INSTALL_EXTRA_LIBS:-1} -ne 0 ]; then
   if [ ${CUDA_VER_TMP%.*} -lt 7 ]; then
     travis_retry sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cublas-dev-${CUDA_APT} cuda-cusparse-dev-${CUDA_APT} cuda-curand-dev-${CUDA_APT}
   else
-    travis_retry sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cublas-dev-${CUDA_APT} cuda-cusparse-dev-${CUDA_APT} cuda-curand-dev-${CUDA_APT}  cuda-cusolver-dev-${CUDA_APT} cuda-nvml-dev-${CUDA_APT}
+    travis_retry sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cublas-dev-${CUDA_APT} cuda-cusparse-dev-${CUDA_APT} cuda-curand-dev-${CUDA_APT}  cuda-cusolver-dev-${CUDA_APT} cuda-nvml-dev-${CUDA_APT} cuda-nvtx-${CUDA_APT} 
   fi
 fi
 travis_retry sudo apt-get clean

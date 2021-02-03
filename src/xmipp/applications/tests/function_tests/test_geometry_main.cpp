@@ -168,9 +168,3 @@ TEST_F( GeometryTest, normalize_ramp)
     EXPECT_NEAR(img.sum(),0,XMIPP_EQUAL_ACCURACY);
     XMIPP_CATCH
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

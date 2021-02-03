@@ -57,4 +57,4 @@ int CUDA_VERSION = 0;
 #include "aft_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(Cuda, AFT_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(Cuda, AFT_Test, TestTypes);

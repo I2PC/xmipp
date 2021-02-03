@@ -154,6 +154,9 @@ PyMethodDef Image_methods[] =
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
         { "window2D", (PyCFunction) Image_window2D, METH_VARARGS,
           "Return a window of the input image" },
+		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
+		  "compute radial average around an axis" },
+
 
         { NULL } /* Sentinel */
     };//Image_methods
@@ -1774,6 +1777,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
         else
         {
             PyErr_SetString(PyExc_TypeError, "ImageGeneric::warpAffine: Expecting a list");
+
         }
     }
     catch (XmippError &xe)
@@ -1868,3 +1872,35 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 
 
+
+
+/* Compute radial average around an axis, operator * */
+PyObject *
+Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+	ImageObject *self = (ImageObject*) obj;
+	    if (nullptr == self) return nullptr;
+	    try {
+	    	char axis = 'z';
+	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+	        if (PyArg_ParseTuple(args, "|c", &axis)
+	                && (nullptr != result)) {
+	            // prepare input image
+	            ImageGeneric *volume = self->image;
+	            volume->convert2Datatype(DT_Double);
+	            MultidimArray<double> *in;
+	            MULTIDIM_ARRAY_GENERIC(*volume).getMultidimArrayPointer(in);
+	            // prepare output image
+	            result->image = new ImageGeneric(DT_Double);
+	            MultidimArray<double> *out;
+	            MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
+	            // call the estimation
+	            radialAverageAxis(*in, axis, *out);
+	        } else {
+	            PyErr_SetString(PyXmippError, "Unknown error while allocating data for output or parsing data");
+	        }
+	        return (PyObject *)result;
+	    } catch (XmippError &xe) {
+	        PyErr_SetString(PyXmippError, xe.msg.c_str());
+	    }
+}

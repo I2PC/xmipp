@@ -16,4 +16,4 @@ class IterativeAlignmentEstimator_Test;
 #include "aiterative_alignment_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(CPU, IterativeAlignmentEstimator_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(CPU, IterativeAlignmentEstimator_Test, TestTypes);
