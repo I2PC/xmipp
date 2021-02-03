@@ -53,9 +53,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	//inputVolume().setXmippOrigin();
 
 	MultidimArray<double> &inputTomo=inputVolume();
-	std::vector<double> tomoVector;
+	std::vector<double> tomoVector(0);
 
-	size_t centralSlice = NSIZE(inputTomo);
+	size_t centralSlice = NSIZE(inputTomo)/2;
 
 	std::cout << "oooooole 1" << std::endl;
 
@@ -70,7 +70,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << YSIZE(inputTomo) << std::endl;
 	std::cout << NSIZE(inputTomo) << std::endl;
 
-				std::cout << "-------------" << std::endl;
+	std::cout << "-------------" << std::endl;
 
 	for(size_t k = centralSlice - (samp/2); k <= centralSlice + (samp / 2); ++k)
 	{
@@ -79,10 +79,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			for(size_t i = 0; i < XSIZE(inputTomo); ++i)
 			{
 				
-				std::cout << "i=" << i << std::endl;
-				std::cout << "j=" << j << std::endl;
-				std::cout << "k=" << k << std::endl;
-				std::cout << "-------------" << std::endl;
+				// std::cout << "i=" << i << std::endl;
+				// std::cout << "j=" << j << std::endl;
+				// std::cout << "k=" << k << std::endl;
+				// std::cout << "-------------" << std::endl;
 
 				tomoVector.push_back(NZYX_ELEM(inputTomo, 1, k, i ,j));
 			}
