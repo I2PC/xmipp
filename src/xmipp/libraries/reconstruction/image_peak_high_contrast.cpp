@@ -47,6 +47,13 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 {
 	std::cout << "Starting..." << std::endl;
 
+	#define DEBUG
+
+	#ifdef DEBUG
+	std::cout << "# sampling slices: " << samp << std::endl;
+	std::cout << "Threshold: " << thr << std::endl;
+	#endif
+
 	Image<double> inputVolume;
 	inputVolume.read(fnVol);
 
@@ -57,20 +64,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 	size_t centralSlice = NSIZE(inputTomo)/2;
 
-	std::cout << "oooooole 1" << std::endl;
-
-	std::cout << centralSlice << std::endl;
-	std::cout << samp << std::endl;
-	std::cout << centralSlice - (samp/2) << std::endl;
-	std::cout << centralSlice + (samp / 2) << std::endl;
-				
-	std::cout << "-------------" << std::endl;
-	std::cout << ZSIZE(inputTomo) << std::endl;
-	std::cout << XSIZE(inputTomo) << std::endl;
-	std::cout << YSIZE(inputTomo) << std::endl;
-	std::cout << NSIZE(inputTomo) << std::endl;
-
-	std::cout << "-------------" << std::endl;
+	#ifdef DEBUG
+	std::cout << "Sampling region from slice " << centralSlice - (samp/2) << " to " 
+	<< centralSlice + (samp / 2) << std::endl;
+	#endif
 
 	for(size_t k = centralSlice - (samp/2); k <= centralSlice + (samp / 2); ++k)
 	{
@@ -78,43 +75,31 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 		{
 			for(size_t i = 0; i < XSIZE(inputTomo); ++i)
 			{
-				
-				// std::cout << "i=" << i << std::endl;
-				// std::cout << "j=" << j << std::endl;
-				// std::cout << "k=" << k << std::endl;
-				// std::cout << "-------------" << std::endl;
-
 				tomoVector.push_back(NZYX_ELEM(inputTomo, 1, k, i ,j));
 			}
 
 		}
 	}
 	
-		std::cout << "oooooole 2" << std::endl;
-
-
-	// FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(inputTomo)
-	// 	tomoVector.push_back(DIRECT_MULTIDIM_ELEM(inputTomo, n));
-	
 	std::sort(tomoVector.begin(),tomoVector.end());
 
-	std::cout << "oooooole 3" << std::endl;
 
-	std::cout << tomoVector.size() << std::endl;
-	std::cout << tomoVector.size()*(thr/2) << std::endl;
-	std::cout << tomoVector.size()*(1-(thr/2)) << std::endl;
+	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(thr/2)))];
+    double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(thr/2))];
 
-	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(thr/2))];
-    double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(thr/2)))];
-
+	#ifdef DEBUG
 	std::cout << "high threshold value = " << highThresholdValue << std::endl;
     std::cout << "low threshold value = " << lowThresholdValue << std::endl;
-
-	std::cout << "oooooole 4" << std::endl;
+	#endif
 
     std::vector<int> coordinates3Dx(0);
     std::vector<int> coordinates3Dy(0);
     std::vector<int> coordinates3Dz(0);
+
+	#ifdef DEBUG
+	std::cout << "Peaked coordinates" << std::endl;
+	std::cout << "-----------------------------" << std::endl;
+	#endif
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
     {
@@ -122,15 +107,15 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
         if (value<=lowThresholdValue or value>=highThresholdValue)
         {
-            //std::cout << "i " << i << " j " << j << " k" << k << std::endl;
+			#ifdef DEBUG
+            std::cout << "(" << i << "," << j << "," << k << ")" << std::endl;
+			#endif
+
             coordinates3Dx.push_back(i);
             coordinates3Dy.push_back(j);
             coordinates3Dz.push_back(k);
         }
     }
-
-	std::cout << "oooooole 5" << std::endl;
-
 }
 
 void ProgImagePeakHighContrast::run()
