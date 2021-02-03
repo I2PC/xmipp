@@ -1843,7 +1843,7 @@ Image_window2D(PyObject *obj, PyObject *args, PyObject *kwargs)
         if (PyArg_ParseTuple(args, "|IIII", &x0, &y0, &xF, &yF)
                 && (nullptr != result)) {
             // prepare dims
-            auto dims = Dimensions(xF-x0+1, yF-y0+1);
+            auto dims = Dimensions(xF-x0+1, yF-y0+1); //quitar esta linea no lo usas
             // prepare input image
             ImageGeneric *image = self->image;
             image->convert2Datatype(DT_Double);
