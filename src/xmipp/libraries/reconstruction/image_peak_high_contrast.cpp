@@ -48,6 +48,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "Starting..." << std::endl;
 
 	#define DEBUG
+	#define DEBUG_DIM
 
 	#ifdef DEBUG
 	std::cout << "# sampling slices: " << samp << std::endl;
@@ -62,7 +63,14 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	MultidimArray<double> &inputTomo=inputVolume();
 	std::vector<double> tomoVector(0);
 
-	size_t centralSlice = NSIZE(inputTomo)/2;
+	size_t centralSlice = ZSIZE(inputTomo)/2;
+
+	#ifdef DEBUG_DIM
+	std::cout << "x " << XSIZE(inputTomo) << std::endl;
+	std::cout << "y " << YSIZE(inputTomo) << std::endl;
+	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
+	std::cout << "n " << NSIZE(inputTomo) << std::endl;
+	#endif
 
 	#ifdef DEBUG
 	std::cout << "Sampling region from slice " << centralSlice - (samp/2) << " to " 
@@ -75,7 +83,11 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 		{
 			for(size_t i = 0; i < XSIZE(inputTomo); ++i)
 			{
-				tomoVector.push_back(NZYX_ELEM(inputTomo, 1, k, i ,j));
+				#ifdef DEBUG_DIM
+				std::cout << i << " " << j << " " << k << std::endl;
+				#endif
+				
+				tomoVector.push_back(NZYX_ELEM(inputTomo, k, 1, i ,j));
 			}
 
 		}
