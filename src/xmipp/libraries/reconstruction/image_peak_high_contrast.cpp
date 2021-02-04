@@ -48,7 +48,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "Starting..." << std::endl;
 
 	#define DEBUG
-	#define DEBUG_DIM
+	//#define DEBUG_DIM
+	//#define DEBUG_COOR
 
 	#ifdef DEBUG
 	std::cout << "# sampling slices: " << samp << std::endl;
@@ -84,12 +85,11 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			for(size_t i = 0; i < XSIZE(inputTomo); ++i)
 			{
 				#ifdef DEBUG_DIM
-				std::cout << i << " " << j << " " << k << std::endl;
+				std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
 				#endif
-				
-				tomoVector.push_back(NZYX_ELEM(inputTomo, k, 1, i ,j));
-			}
 
+				tomoVector.push_back(DIRECT_ZYX_ELEM(inputTomo, k, i ,j));
+			}
 		}
 	}
 	
@@ -108,7 +108,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
     std::vector<int> coordinates3Dy(0);
     std::vector<int> coordinates3Dz(0);
 
-	#ifdef DEBUG
+	#ifdef DEBUG_COOR
 	std::cout << "Peaked coordinates" << std::endl;
 	std::cout << "-----------------------------" << std::endl;
 	#endif
@@ -119,7 +119,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
         if (value<=lowThresholdValue or value>=highThresholdValue)
         {
-			#ifdef DEBUG
+			#ifdef DEBUG_COOR
             std::cout << "(" << i << "," << j << "," << k << ")" << std::endl;
 			#endif
 
@@ -128,6 +128,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
             coordinates3Dz.push_back(k);
         }
     }
+
+	#ifdef DEBUG
+	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl
+	#endif
 }
 
 void ProgImagePeakHighContrast::run()
