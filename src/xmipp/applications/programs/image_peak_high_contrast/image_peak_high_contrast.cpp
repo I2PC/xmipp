@@ -1,7 +1,6 @@
 /***************************************************************************
  *
- * Authors:     J.L. Vilas  (jlvilas@cnb.csic.es)
- *              H.D. Tagare (hemant.tagare@yale.edu)
+ * Authors:    Federico P. de Isidro Gomez			  fp.deisidro@cnb.csic.es
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
