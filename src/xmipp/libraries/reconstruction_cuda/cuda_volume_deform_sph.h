@@ -37,7 +37,6 @@ struct ImageData
     PrecisionType* data = nullptr;
 };
 
-#ifdef USE_SCATTERED_ZSH_CLNM
 struct ZSHparams 
 {
     int* vL1 = nullptr;
@@ -46,7 +45,6 @@ struct ZSHparams
     int* vM = nullptr;
     unsigned size = 0;
 };
-#endif
 
 struct Volumes 
 {
@@ -119,11 +117,10 @@ private:
     ktt::ArgumentId stepsId;
 
     ktt::ArgumentId clnmId;
-#ifdef USE_SCATTERED_ZSH_CLNM
-    std::vector<PrecisionType> clnmVec;
-#else
     std::vector<PrecisionType3> clnmVec;
-#endif
+
+    ktt::ArgumentId clnmSCATTEREDId;
+    std::vector<PrecisionType> clnmVecSCATTERED;
 
     ktt::ArgumentId applyTransformationId;
     bool applyTransformation;
@@ -140,11 +137,10 @@ private:
     DeformImages deformImages;
 
     ktt::ArgumentId zshparamsId;
-#ifdef USE_SCATTERED_ZSH_CLNM
-    ZSHparams zshparams;
-#else
     std::vector<int4> zshparamsVec;
-#endif
+
+    ktt::ArgumentId zshparamsSCATTEREDId;
+    ZSHparams zshparamsSCATTERED;
 
     ktt::ArgumentId volumesId;
     Volumes volumes;
@@ -162,14 +158,17 @@ private:
     void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
 
     void freeImage(ImageData &im);
+    void freeZSHSCATTERED();
 
     void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
 
     void setupVolumes();
 
     void setupZSHparams();
+    void setupZSHparamsSCATTERED();
 
     void setupClnm();
+    void setupClnmSCATTERED();
 };
 
 #endif// VOLUME_DEFORM_SPH_H

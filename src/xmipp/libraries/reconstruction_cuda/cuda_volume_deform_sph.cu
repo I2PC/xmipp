@@ -4,7 +4,7 @@
 
 // Compilation settings
 
-#ifdef USE_DOUBLE_PRECISION
+#if USE_DOUBLE_PRECISION == 1
 // Types
 using PrecisionType = double;
 using PrecisionType3 = double3;
@@ -30,7 +30,7 @@ using PrecisionType3 = float3;
 
 #endif// USE_DOUBLE_PRECISION
 
-#ifdef USE_SCATTERED_ZSH_CLNM
+#if USE_SCATTERED_ZSH_CLNM == 1
 using ClnmType = PrecisionType*;
 using ZshParamsType =
     struct ZSHparams { int *vL1, *vN, *vL2, *vM; unsigned size; };
@@ -147,6 +147,8 @@ extern "C" __global__ void computeDeform(
         IROimages images,
         ZshParamsType zshparams,
         ClnmType clnm,
+        ZshParamsType zshparamsSCATTERED,// just for tuning
+        ClnmType clnmSCATTERED,// just for tuning
         int steps,
         Volumes volumes,
         DeformImages deformImages,
@@ -176,18 +178,18 @@ extern "C" __global__ void computeDeform(
 
     if (r2 < Rmax2) {
         for (int idx = 0; idx < steps; idx++) {
-#ifdef USE_SCATTERED_ZSH_CLNM
-            int l1 = zshparams.vL1[idx];
-            int n = zshparams.vN[idx];
-            int l2 = zshparams.vL2[idx];
-            int m = zshparams.vM[idx];
+#if USE_SCATTERED_ZSH_CLNM == 1
+            int l1 = zshparamsSCATTERED.vL1[idx];
+            int n = zshparamsSCATTERED.vN[idx];
+            int l2 = zshparamsSCATTERED.vL2[idx];
+            int m = zshparamsSCATTERED.vM[idx];
 #else
             int l1 = zshparams[idx].w;
             int n = zshparams[idx].x;
             int l2 = zshparams[idx].y;
             int m = zshparams[idx].z;
 #endif
-#ifdef USE_ZSH_FUNCTION
+#if USE_ZSH_FUNCTION == 1
             PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m,
                     j * iRmax, i * iRmax, k * iRmax, rr);
 #else
@@ -465,10 +467,10 @@ extern "C" __global__ void computeDeform(
 #endif// USE_ZSH_FUNCTION
 
             if (rr > 0 || l2 == 0) {
-#ifdef USE_SCATTERED_ZSH_CLNM
-                gx += zsph * clnm[idx];
-                gy += zsph * clnm[idx + zshparams.size];
-                gz += zsph * clnm[idx + zshparams.size * 2];
+#if USE_SCATTERED_ZSH_CLNM == 1
+                gx += zsph * clnmSCATTERED[idx];
+                gy += zsph * clnmSCATTERED[idx + zshparamsSCATTERED.size];
+                gz += zsph * clnmSCATTERED[idx + zshparamsSCATTERED.size * 2];
 #else
                 gx += zsph * clnm[idx].x;
                 gy += zsph * clnm[idx].y;
@@ -518,7 +520,7 @@ extern "C" __global__ void computeDeform(
     sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] = localNcount;
 
     __syncthreads();
-#ifdef USE_NAIVE_BLOCK_REDUCTION
+#if USE_NAIVE_BLOCK_REDUCTION == 1
     // Block reduction   
     for (unsigned s = TOTAL_BLOCK_SIZE / 2; s > 0; s /= 2) {
         if (tIdx < s) {
@@ -581,7 +583,7 @@ extern "C" __global__ void computeDeform(
     if (tIdx == 0) {
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned TOTAL_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
-#ifdef USE_NAIVE_BLOCK_REDUCTION
+#if USE_NAIVE_BLOCK_REDUCTION == 1
         g_outArr[bIdx] = sumArray[0];
         g_outArr[bIdx + TOTAL_GRID_SIZE] = sumArray[TOTAL_BLOCK_SIZE];
         g_outArr[bIdx + TOTAL_GRID_SIZE * 2] = sumArray[TOTAL_BLOCK_SIZE * 2];
