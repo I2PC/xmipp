@@ -37,15 +37,12 @@ ProgAngularSphAlignment::ProgAngularSphAlignment()
 	resume = false;
     produces_a_metadata = true;
     each_image_produces_an_output = false;
-	// projector = NULL;
     ctfImage = NULL;
     showOptimization = false;
-	// rank = 0;
 }
 
 ProgAngularSphAlignment::~ProgAngularSphAlignment()
 {
-	// delete projector;
 	delete ctfImage;
 }
 
@@ -64,9 +61,6 @@ void ProgAngularSphAlignment::readParams()
     optimizeAlignment = checkParam("--optimizeAlignment");
     optimizeDeformation = checkParam("--optimizeDeformation");
 	optimizeDefocus = checkParam("--optimizeDefocus");
-	ignoreCTF = checkParam("--ignoreCTF");
-	// pad = getIntParam("--padding");
-    // optimizeRadius = checkParam("--optimizeRadius");
     phaseFlipped = checkParam("--phaseFlipped");
     L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
@@ -91,12 +85,9 @@ void ProgAngularSphAlignment::show()
     << "Max. Radius Deform.  " << RmaxDef            << std::endl
     << "Zernike Degree:      " << L1                 << std::endl
     << "SH Degree:           " << L2                 << std::endl
-	// << "Padding factor:      " << pad                << std::endl
     << "Optimize alignment:  " << optimizeAlignment  << std::endl
     << "Optimize deformation:" << optimizeDeformation<< std::endl
 	<< "Optimize defocus;    " << optimizeDefocus    << std::endl
-	<< "Ignore CTF:          " << ignoreCTF          << std::endl
-    // << "Optimize radius      " << optimizeRadius     << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
     << "Regularization:      " << lambda             << std::endl
     ;
@@ -121,14 +112,11 @@ void ProgAngularSphAlignment::defineParams()
     addParamsLine("  [--RDef <r=-1>]              : Maximum radius of the deformation (px). -1=Half of volume size");
     addParamsLine("  [--l1 <l1=3>]                : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("  [--l2 <l2=2>]                : Harmonical depth of the deformation=1,2,3,...");
-	// addParamsLine("  [--padding <p=2>]            : Padding factor");
     addParamsLine("  [--optimizeAlignment]        : Optimize alignment");
     addParamsLine("  [--optimizeDeformation]      : Optimize deformation");
 	addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
-	addParamsLine("  [--ignoreCTF]                : Ignore CTF");
-    // addParamsLine("  [--optimizeRadius]           : Optimize the radius of each spherical harmonic");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
-    addParamsLine("  [--regularization <l=0.005>] : Regularization weight");
+    addParamsLine("  [--regularization <l=0.01>] : Regularization weight");
 	addParamsLine("  [--resume]                           : Resume processing");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
@@ -163,25 +151,12 @@ void ProgAngularSphAlignment::createWorkFiles() {
 
 void ProgAngularSphAlignment::preProcess()
 {
-    // Read the reference volume
-	// if (rank==0)
-	// {
-	// 	V.read(fnVolR);
-	// 	V().setXmippOrigin();
-	//     Xdim=XSIZE(V());
-	// }
-	// else
-	// {
-	// 	size_t ydim, zdim, ndim;
-	// 	getImageSize(fnVolR, Xdim, ydim, zdim, ndim);
-	// }
     V.read(fnVolR);
     V().setXmippOrigin();
     Xdim=XSIZE(V());
     Vdeformed().initZeros(V());
     sumV=V().sum();
 
-    //Ip().initZeros(Xdim,Xdim);
     Ifilteredp().initZeros(Xdim,Xdim);
     Ifilteredp().setXmippOrigin();
 
@@ -199,12 +174,6 @@ void ProgAngularSphAlignment::preProcess()
     filter.FilterBand=LOWPASS;
     filter.w1=Ts/maxResol;
     filter.raised_w=0.02;
-
-	// Construct projector
-	// if (rank==0)
-	// 	projector = new FourierProjector(Vdeformed(),pad,Ts/maxResol,BSPLINE3);
-	// else
-	// 	projector = new FourierProjector(pad,Ts/maxResol,BSPLINE3);
 
     // Transformation matrix
     A.initIdentity(3);
@@ -231,25 +200,21 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
 {
 	const MultidimArray<double> &mV=V();
-	MultidimArray<double> &mVD=Vdeformed();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
 		VEC_ELEM(clnm,i)=pclnm[i+1];
 	double deformation=0.0;
 	totalDeformation=0.0;
-	deformVol(mVD, mV, deformation);
-	// projector->updateVolume(mVD);
+	P().initZeros((int)XSIZE(I()),(int)XSIZE(I()));
+    P().setXmippOrigin();
+	deformVol(P(), mV, deformation, rot, tilt, psi);
 	if (hasCTF)
     {
     	double defocusU=old_defocusU+deltaDefocusU;
     	double defocusV=old_defocusV+deltaDefocusV;
     	double angle=old_defocusAngle+deltaDefocusAngle;
-    	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle)
+    	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
     		updateCTFImage(defocusU,defocusV,angle);
-    }
-	// projectVolume(*projector, P, (int)XSIZE(I()), (int)XSIZE(I()),  rot, tilt, psi, (const MultidimArray<double> *)ctfImage);
-	projectVolume(mVD, P, (int)XSIZE(I()), (int)XSIZE(I()),  rot, tilt, psi);
-	if (hasCTF)
-	{
+		}
 		FilterCTF.ctf = ctf;
 		FilterCTF.generateMask(P());
 		if (phaseFlipped)
@@ -265,7 +230,8 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 	}
 
 	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
-	const MultidimArray<double> &mP=P();
+	filter.applyMaskSpace(P());
+	const MultidimArray<double> mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
 	MultidimArray<double> &mIfilteredp=Ifilteredp();
 	double corr=correlationIndex(mIfilteredp,mP,&mMask2D);
@@ -303,8 +269,8 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		char c; std::cin >> c;
     }
 
-    double massDiff=std::abs(sumV-sumVd)/sumV*100;
-    double retval=cost+lambda*(deformation+massDiff*massDiff);
+    double massDiff=100.0*std::abs(sumV-sumVd)/sumV;
+    double retval=cost+lambda*(deformation);
 	if (showOptimization)
 		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << sumVd << " " << massDiff << " " << retval << std::endl;
 	return retval;
@@ -342,19 +308,9 @@ double continuousSphCost(double *x, void *_prm)
 //#define DEBUG
 void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
-	// if (depth==0)
-	// 	depth = 1;
-	// Matrix1D<int> nh;
-	// nh.resize(depth+2);
-	// nh.initConstant(0);
-	// Numsph(nh);
-
 	if (RmaxDef<0)
 		RmaxDef = Xdim/2;
 
-	// L = nh(2);
-	// prevL = nh(1);
-	// pos = 4*L;
     Matrix1D<double> steps;
     int totalSize = 3*vecSize+8;
 	p.resize(totalSize);
@@ -379,14 +335,11 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	else
 		old_flip = false;
 	
-	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && !ignoreCTF)
+	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
 	{
 		hasCTF=true;
 		ctf.readFromMdRow(rowIn);
-		// std::cout << std::endl;
-		// std::cout << "Old Tm = " << ctf.Tm << std::endl;
 		ctf.Tm = Ts;
-		// std::cout << "New Tm = " << ctf.Tm << std::endl;
 		ctf.produceSideInfo();
 		old_defocusU=ctf.DeltafU;
 		old_defocusV=ctf.DeltafV;
@@ -412,27 +365,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 		}
         steps.clear();
         steps.initZeros(totalSize);
-		// if (h!=1)
-		// {
-		// 	L = nh(h+1);
-		// 	prevL = nh(h);
-		// 	pos = 4*L;
-		// }
-
-    	// if (h!=1)
-    	// {
-    	// 	p.resize(pos+5,false);
-    	// 	copyvectors(clnm,p);
-    	// 	clnm=p;
-    	// }
-    	// else
-        // 	clnm=p;
-
-        // for(int d=VEC_XSIZE(p)-5-L+prevL;d<VEC_XSIZE(p)-5;d++)
-    	// {
-		// 	p(d)=RmaxDef;
-		// 	clnm(d)=RmaxDef;
-    	// }
 
 		// Optimize
 		double cost=-1;
@@ -440,8 +372,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 		{
 			cost=1e38;
 			int iter;
-			// steps.resize(pos+5,true);
-			// steps.initZeros();
 			if (optimizeAlignment)
 				steps(totalSize-8)=steps(totalSize-7)=steps(totalSize-6)=steps(totalSize-5)=steps(totalSize-4)=1.;
 			if (optimizeDefocus)
@@ -449,35 +379,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 			if (optimizeDeformation)
 			{
 		        minimizepos(L1,h,steps);
-                // std::cout << "(";
-                // FOR_ALL_ELEMENTS_IN_MATRIX1D(steps)
-                //     std::cout << VEC_ELEM(steps,i) << ",";
-                // std::cout << ")" << std::endl;
-				// if (h!=1)
-				// {
-				// 	for (int i=0;i<3*pos/4;i++)
-				// 	{
-				// 		steps(i)=1.;
-				// 	}
-				// 	if (optimizeRadius)
-				// 		minimizepos(steps);
-				// }
-				// else
-				// {
-				// 	if (optimizeRadius){
-				// 		for (int i=0;i<pos;i++)
-				// 		{
-				// 			steps(i) = 1.;
-				// 		}
-				// 	}
-				// 	else
-				// 	{
-				// 		for (int i=0;i<3*pos/4;i++)
-				// 		{
-				// 			steps(i) = 1.;
-				// 		}
-				// 	}
-				// }
 			}
 			steps_cp = steps;
 			powellOptimizer(p, 1, totalSize, &continuousSphCost, this, 0.01, cost, iter, steps, verbose>=2);
@@ -491,7 +392,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 
 			if (cost>0)
 			{
-				//rowOut.setValue(MDL_ENABLED,-1);
 				flagEnabled=-1;
 				p.initZeros();
 			}
@@ -513,9 +413,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 					case 3:
 						std::cout << "Z Coefficients=(";
 						break;
-					// case 4:
-					// 	std::cout << "Radius=(";
-					// 	break;
 					}
 					for (int i=(j-1)*vecSize;i<j*vecSize;i++)
 					{
@@ -537,7 +434,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 		{
 			std::cerr << XE << std::endl;
 			std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
-			//rowOut.setValue(MDL_ENABLED,-1);
 			flagEnabled=-1;
 		}
 	}
@@ -553,13 +449,11 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	MetaData md;
     int pos = 3*vecSize;
 	size_t objId = md.addObject();
-	//std::cout << "AQUIIIII " << objId << " " << flagEnabled << std::endl;
 	md.setValue(MDL_IMAGE, fnImg, objId);
-	if (flagEnabled==1){
-		//std::cout << "ENABLED" << std::endl;
+	if (flagEnabled==1) {
 		md.setValue(MDL_ENABLED, 1, objId);
-	}else{
-		//std::cout << "NOT ENABLED" << std::endl;
+	}
+	else {
 		md.setValue(MDL_ENABLED, -1, objId);
 	}
 	md.setValue(MDL_ANGLE_ROT,   old_rot+p(pos+2), objId);
@@ -570,29 +464,13 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	md.setValue(MDL_FLIP,        old_flip, objId);
 	md.setValue(MDL_SPH_DEFORMATION, totalDeformation, objId);
 	std::vector<double> vectortemp;
-	for (int j = 0; j < VEC_XSIZE(clnm); j++)
-	{
+	for (int j = 0; j < VEC_XSIZE(clnm); j++) {
 		vectortemp.push_back(clnm(j));
 	}
 	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
 	md.setValue(MDL_COST,        correlation, objId);
 	md.append(fnOutDir+"/sphDone.xmd");
 }
-
-// void ProgAngularSphAlignment::Numsph(Matrix1D<int> &sphD)
-// {
-// 	for (int d=1;d<(VEC_XSIZE(sphD)-1);d++)
-// 	{
-// 	    if (d%2==0)
-// 	    {
-// 	    	sphD(d+1) = sphD(d)+((d/2)+1)*(2*d+1);
-// 	    }
-// 	    else
-// 	    {
-// 	    	sphD(d+1) = sphD(d)+(((d-1)/2)+1)*(2*d+1);
-// 	    }
-// 	}
-// }
 
 void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &vecSize)
 {
@@ -601,55 +479,26 @@ void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &vecSize)
         int numSPH = 2*h+1;
         int count=l1-h+1;
         int numEven=(count>>1)+(count&1 && !(h&1));
-        if (h%2 == 0)
+        if (h%2 == 0) {
             vecSize += numSPH*numEven;
-        else
+		}
+        else {
         	vecSize += numSPH*(l1-h+1-numEven);
+		}
     }
 }
-
-// void ProgAngularSphAlignment::minimizepos(Matrix1D<double> &vectpos)
-// {
-// 	size_t groups = 4;
-// 	size_t olditems = (4*prevL)/groups;
-// 	size_t newitems = (4*L)/groups;
-// 	size_t initial = 3*newitems+olditems;
-// 	for (int i=initial;i<pos;i++)
-// 		{
-// 			vectpos(i) = 1;
-// 		}
-// }
 
 void ProgAngularSphAlignment::minimizepos(int L1, int l2, Matrix1D<double> &steps)
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
     int totalSize = (steps.size()-8)/3;
-    for (int idx=0; idx<size; idx++)
-    {
+    for (int idx=0; idx<size; idx++) {
         VEC_ELEM(steps,idx) = 1.;
         VEC_ELEM(steps,idx+totalSize) = 1.;
         VEC_ELEM(steps,idx+2*totalSize) = 1.;
     }	
 }
-
-// void ProgAngularSphAlignment::copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect)
-// {
-// 	size_t groups = 4;
-// 	size_t olditems = (4*prevL)/groups;
-// 	size_t newitems = (4*L)/groups;
-// 	for (int g=0;g<groups;g++)
-// 	{
-// 		for (int i=0;i<olditems;i++)
-// 			{
-// 			    newvect(g*newitems+i) = oldvect(g*olditems+i);
-// 			}
-// 	}
-// 	for (int i=0;i<5;i++)
-// 	{
-// 		newvect(groups*newitems+i) = oldvect(groups*olditems+i);
-// 	}
-// }
 
 void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
 									          Matrix1D<int> &vL2, Matrix1D<int> &vM)
@@ -659,14 +508,11 @@ void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
 	vM.initZeros(vecSize);
-    for (int h=0; h<=l2; h++)
-    {
+    for (int h=0; h<=l2; h++) {
         int totalSPH = 2*h+1;
         int aux = std::floor(totalSPH/2);
-        for (int l=h; l<=l1; l+=2)
-        {
-            for (int m=0; m<totalSPH; m++)
-            {
+        for (int l=h; l<=l1; l+=2) {
+            for (int m=0; m<totalSPH; m++) {
                 VEC_ELEM(vL1,idx) = l;
                 VEC_ELEM(vN,idx) = h;
                 VEC_ELEM(vL2,idx) = h;
@@ -684,98 +530,83 @@ void ProgAngularSphAlignment::updateCTFImage(double defocusU, double defocusV, d
 	currentDefocusV=ctf.DeltafV=defocusV;
 	currentAngle=ctf.azimuthal_angle=angle;
 	ctf.produceSideInfo();
-	// if (ctfImage==NULL)
-	// {
-	// 	ctfImage = new MultidimArray<double>();
-	// 	ctfImage->resizeNoCopy(Ifiltered());
-	// 	STARTINGY(*ctfImage)=STARTINGX(*ctfImage)=0;
-	// }
-	// ctf.generateCTF(YSIZE(Ifiltered()),XSIZE(Ifiltered()),*ctfImage,Ts);
-	// if (phaseFlipped)
-	// 	FOR_ALL_ELEMENTS_IN_ARRAY2D(*ctfImage)
-	// 		A2D_ELEM(*ctfImage,i,j)=fabs(A2D_ELEM(*ctfImage,i,j));
 }
 
-void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def)
+void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const MultidimArray<double> &mV, double &def,
+                                        double rot, double tilt, double psi)
 {
-	// int l,n,m;
     int l1,n,l2,m;
+	l1 = 0;
+	n = 0;
+	l2 = 0;
+	m = 0;
 	size_t idxY0=(VEC_XSIZE(clnm)-8)/3;
 	double Ncount=0.0;
-	// double totalVal=0.0;
-	// double voxModg=0.0;
     double modg=0.0;
 	double diff2=0.0;
 
 	def=0.0;
 	size_t idxZ0=2*idxY0;
-	// size_t idxR=3*idxY0;
 	sumVd=0.0;
 	double RmaxF=RmaxDef;
 	double RmaxF2=RmaxF*RmaxF;
 	double iRmaxF=1.0/RmaxF;
+    // Rotation Matrix
+    Matrix2D<double> R;
+    R.initIdentity(3);
+    Euler_angles2matrix(rot, tilt, psi, R, false);
+    R = R.inv();
+    Matrix1D<double> pos;
+    pos.initZeros(3);
+
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
 	{
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
 		{
 			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++)
 			{
-
+                XX(pos) = j; YY(pos) = i; ZZ(pos) = k;
+                pos = R * pos;
 				double gx=0.0, gy=0.0, gz=0.0;
-				double k2=k*k;
-				double kr=k*iRmaxF;
-				double k2i2=k2+i*i;
-				double ir=i*iRmaxF;
-				double r2=k2i2+j*j;
-				double jr=j*iRmaxF;
+				double k2=ZZ(pos)*ZZ(pos);
+				double kr=ZZ(pos)*iRmaxF;
+				double k2i2=k2+YY(pos)*YY(pos);
+				double ir=YY(pos)*iRmaxF;
+				double r2=k2i2+XX(pos)*XX(pos);
+				double jr=XX(pos)*iRmaxF;
 				double rr=sqrt(r2)*iRmaxF;
-				if (r2<RmaxF2)
-				{
-					for (size_t idx=0; idx<idxY0; idx++)
-					{
-						// double RmaxF=VEC_ELEM(clnm,idx+idxR);
-						if (VEC_ELEM(steps_cp,idx) == 1)
-						{
+				if (r2<RmaxF2) {
+					for (size_t idx=0; idx<idxY0; idx++) {
+						if (VEC_ELEM(steps_cp,idx) == 1) {
 							double zsph=0.0;
 							l1 = VEC_ELEM(vL1,idx);
 							n = VEC_ELEM(vN,idx);
 							l2 = VEC_ELEM(vL2,idx);
 							m = VEC_ELEM(vM,idx);
 							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-							// spherical_index2lnm(idx+1,l,n,m);
-							// zsph=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,rr);
-							// if (rr>0 || l==0)
-							// if (rr>0 || (l2==0 && l1==0))
-							if (rr>0 || l2==0)
-							{
+							if (rr>0 || l2==0) {
 								gx += VEC_ELEM(clnm,idx)        *(zsph);
 								gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
 								gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
 							}
 						}
 					}
-				}
-				mVD(k,i,j) = mV.interpolatedElement3D(j+gx,i+gy,k+gz);
-				double voxelR=A3D_ELEM(mV,k,i,j);
-				// double absVoxelR=std::abs(voxelR);
-				// voxModg += absVoxelR*(gx*gx+gy*gy+gz*gz);
-                modg += gx*gx+gy*gy+gz*gz;
-                Ncount++;
-				// totalVal += absVoxelR;
+					double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);
+					A2D_ELEM(mP,i,j) += voxelI;
+					// double voxelR=mV.interpolatedElement3D(XX(pos),YY(pos),ZZ(pos));
+					modg += gx*gx+gy*gy+gz*gz;
+					Ncount++;
 
-				double voxelI=A3D_ELEM(mVD,k,i,j);
-				double diff=voxelR-voxelI;
-				// diff2+=absVoxelR*diff*diff;
-                diff2+=diff*diff;
-				sumVd+=voxelI;
+					// double diff=voxelR-voxelI;
+					// diff2+=diff*diff;
+					sumVd+=voxelI;
+				}
 			}
 		}
 	}
 
-	// COSS def=5e-3*sqrt(diff2/totalVal)+sqrt(voxModg/totalVal);
-	// def=sqrt(voxModg/totalVal);
-	// totalDeformation = sqrt(voxModg/totalVal);
-    def=sqrt(modg/Ncount);
-	totalDeformation = sqrt(modg/Ncount);
+    // def=sqrt(modg/Ncount);
+	def = sqrt(modg/Ncount);
+	totalDeformation = def;
 }
 

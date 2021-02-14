@@ -80,24 +80,16 @@ public:
     int flagEnabled;
 
 public:
-    // // Rank (used for MPI version)
-    // int rank;
-    // /** Padding factor */
-    // int pad;
     /** Resume computations */
     bool resume;
     // 2D mask in real space
     MultidimArray<int> mask2D;
-    // Inverse of the sum of Mask2D
-//    double iMask2Dsum;
     // Volume size
     size_t Xdim;
     // Input image
 	Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
-    // Fourier projector
-    // FourierProjector *projector;
 	// Theoretical projection
-	Projection P;
+	Image<double> P;
 	// Filter
     FourierFilter filter;
     // Transformation matrix
@@ -120,8 +112,6 @@ public:
     FourierFilter FilterCTF;
 	// CTF image
 	MultidimArray<double> *ctfImage;
-	// // Degree of the spherical harmonic
-	// int prevL, L;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
@@ -167,9 +157,6 @@ public:
         parameters. At the output they have the estimated pose.*/
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
-    // ///Compute the number of spherical harmonics in l=0,1,...,depth
-    // void Numsph(Matrix1D<int> &sphD);
-
     /// Length of coefficients vector
     void numCoefficients(int l1, int l2, int &vecSize);
 
@@ -181,11 +168,9 @@ public:
     void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
                          Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
-    // /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
-    // void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
-
     ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def);
+    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
+                   double rot, double tilt, double psi);
 
     void updateCTFImage(double defocusU, double defocusV, double angle);
 

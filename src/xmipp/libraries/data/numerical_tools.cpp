@@ -1050,19 +1050,19 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 	switch (l1)
 	{
 	case 0:
-		R = std::sqrt(3);
+		R = std::sqrt(3.0);
 		break;
 	case 1:
-		R = std::sqrt(5)*r;
+		R = std::sqrt(5.0)*r;
 		break;
 	case 2:
 		switch (n)
 		{
 		case 0:
-			R = -0.5*std::sqrt(7)*(2.5*(1-2*r2)+0.5);
+			R = -0.5*std::sqrt(7.0)*(2.5*(1-2*r2)+0.5);
 			break;
 		case 2:
-			R = std::sqrt(7)*r2;
+			R = std::sqrt(7.0)*r2;
 			break;
 		} break;
 	case 3:
@@ -1072,29 +1072,29 @@ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double
 			R = -1.5*r*(3.5*(1-2*r2)+1.5);
 			break;
 		case 3:
-			R = 3*r2*r;
+			R = 3.0*r2*r;
 		} break;
 	case 4:
 		switch (n)
 		{
 		case 0:
-			R = std::sqrt(11)*((63*r2*r2/8)-(35*r2/4)+(15/8));
+			R = std::sqrt(11.0)*((63.0*r2*r2/8.0)-(35.0*r2/4.0)+(15.0/8.0));
 			break;
 		case 2:
-			R = -0.5*std::sqrt(11)*r2*(4.5*(1-2*r2)+2.5);
+			R = -0.5*std::sqrt(11.0)*r2*(4.5*(1-2*r2)+2.5);
 			break;
 		case 4:
-			R = std::sqrt(11)*r2*r2;
+			R = std::sqrt(11.0)*r2*r2;
 			break;
 		} break;
 	case 5:
 		switch (n)
 		{
 		case 1:
-			R = std::sqrt(13)*r*((99*r2*r2/8)-(63*r2/4)+(35/8));
+			R = std::sqrt(13.0)*r*((99.0*r2*r2/8.0)-(63.0*r2/4.0)+(35.0/8.0));
 			break;
 		case 3:
-			R = -0.5*std::sqrt(13)*r2*r*(5.5*(1-2*r2)+3.5);
+			R = -0.5*std::sqrt(13.0)*r2*r*(5.5*(1-2*r2)+3.5);
 			break;
 		} break;
 	}
