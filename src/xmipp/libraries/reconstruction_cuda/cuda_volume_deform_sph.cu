@@ -55,18 +55,7 @@ struct ImageData
 
     PrecisionType* data;
 };
-/*
-#ifdef USE_SCATTERED_ZSH_CLNM
-struct ZSHparams 
-{
-    int* vL1;
-    int* vN;
-    int* vL2;
-    int* vM;
-    unsigned size;
-};
-#endif
-*/
+
 struct Volumes 
 {
     ImageData* I;
@@ -169,7 +158,7 @@ extern "C" __global__ void computeDeform(
     __shared__ PrecisionType sumArray[TOTAL_BLOCK_SIZE * 4];
 
     // Compute thread index in a block
-    int tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 
     // Get physical indexes
     int kPhys = blockIdx.z * blockDim.z + threadIdx.z;
@@ -529,9 +518,9 @@ extern "C" __global__ void computeDeform(
     sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] = localNcount;
 
     __syncthreads();
-    
+#ifdef USE_NAIVE_BLOCK_REDUCTION
     // Block reduction   
-    for (int s = TOTAL_BLOCK_SIZE / 2; s > 0; s /= 2) {
+    for (unsigned s = TOTAL_BLOCK_SIZE / 2; s > 0; s /= 2) {
         if (tIdx < s) {
             sumArray[tIdx] += sumArray[tIdx + s];
             sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + s];
@@ -540,15 +529,70 @@ extern "C" __global__ void computeDeform(
         }
         __syncthreads();
     }
+#else
+    //TODO preprocess variable sizes
+
+    // Block reductions
+    if (TOTAL_BLOCK_SIZE >= 512) {
+        if (tIdx < 256) {
+            sumArray[tIdx] += sumArray[tIdx + 256];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + 256];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 256];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 256];
+        }
+        __syncthreads();
+    }
+    if (TOTAL_BLOCK_SIZE >= 256) {
+        if (tIdx < 128) {
+            sumArray[tIdx] += sumArray[tIdx + 128];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + 128];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 128];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 128];
+        }
+        __syncthreads();
+    }
+    if (TOTAL_BLOCK_SIZE >= 128) {
+        if (tIdx < 64) {
+            sumArray[tIdx] += sumArray[tIdx + 64];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + 64];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 64];
+            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 64];
+        }
+        __syncthreads();
+    }
+    // Last warp reduction
+    if (tIdx < 32) {
+        // Recycle registers
+        localDiff2 = sumArray[tIdx] + sumArray[tIdx + 32];
+        localSumVD = sumArray[tIdx + TOTAL_BLOCK_SIZE] + sumArray[tIdx + TOTAL_BLOCK_SIZE + 32];
+        localModg = sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] + sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 32];
+        localNcount = sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] + sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 32];
+        // Reduce warp
+        for (int offset = 32 / 2; offset > 0; offset >>= 1) {
+            localDiff2 += __shfl_down_sync(0xFFFFFFFF, localDiff2, offset);
+            localSumVD += __shfl_down_sync(0xFFFFFFFF, localSumVD, offset);
+            localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
+            localNcount += __shfl_down_sync(0xFFFFFFFF, localNcount, offset);
+        }
+    }
+#endif
 
     // Save values to the global memory for later
     if (tIdx == 0) {
-        int bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
-        int TOTAL_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
+        unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
+        unsigned TOTAL_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
+#ifdef USE_NAIVE_BLOCK_REDUCTION
         g_outArr[bIdx] = sumArray[0];
         g_outArr[bIdx + TOTAL_GRID_SIZE] = sumArray[TOTAL_BLOCK_SIZE];
         g_outArr[bIdx + TOTAL_GRID_SIZE * 2] = sumArray[TOTAL_BLOCK_SIZE * 2];
         g_outArr[bIdx + TOTAL_GRID_SIZE * 3] = sumArray[TOTAL_BLOCK_SIZE * 3];
+#else
+        // Resulting values are in registers local* => no need to go into shared mem
+        g_outArr[bIdx] = localDiff2;
+        g_outArr[bIdx + TOTAL_GRID_SIZE] = localSumVD;
+        g_outArr[bIdx + TOTAL_GRID_SIZE * 2] = localModg;
+        g_outArr[bIdx + TOTAL_GRID_SIZE * 3] = localNcount;
+#endif
     }
 
     if (saveDeformation) {
@@ -814,430 +858,6 @@ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
 
 	return R*Y;
 }
-
-
-// Function redefinition
-#ifdef USE_DOUBLE_PRECISION 
-/*
-__device__ double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r)
-{
-	// General variables
-	double r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
-
-	//Variables needed for l>=5
-	double tht=0.0,phi=0.0,cost=0.0,sint=0.0,cost2=0.0,sint2=0.0;
-	if (l2>=5)
-	{
-		tht = atan2(yr,xr);
-		phi = atan2(zr,sqrt(xr2 + yr2));
-		sint = sin(phi); cost = cos(tht);
-		sint2 = sint*sint; cost2 = cost*cost;
-	}
-
-	// Zernike polynomial
-	double R=0.0;
-
-	switch (l1)
-	{
-	case 0:
-		R = sqrt((double) 3);
-		break;
-	case 1:
-		R = sqrt((double) 5)*r;
-		break;
-	case 2:
-		switch (n)
-		{
-		case 0:
-			R = -0.5*sqrt((double) 7)*(2.5*(1-2*r2)+0.5);
-			break;
-		case 2:
-			R = sqrt((double) 7)*r2;
-			break;
-		} break;
-	case 3:
-		switch (n)
-		{
-		case 1:
-			R = -1.5*r*(3.5*(1-2*r2)+1.5);
-			break;
-		case 3:
-			R = 3*r2*r;
-		} break;
-	case 4:
-		switch (n)
-		{
-		case 0:
-			R = sqrt((double) 11)*((63*r2*r2/8)-(35*r2/4)+(15/8));
-			break;
-		case 2:
-			R = -0.5*sqrt((double) 11)*r2*(4.5*(1-2*r2)+2.5);
-			break;
-		case 4:
-			R = sqrt((double) 11)*r2*r2;
-			break;
-		} break;
-	case 5:
-		switch (n)
-		{
-		case 1:
-			R = sqrt((double) 13)*r*((99*r2*r2/8)-(63*r2/4)+(35/8));
-			break;
-		case 3:
-			R = -0.5*sqrt((double) 13)*r2*r*(5.5*(1-2*r2)+3.5);
-			break;
-		} break;
-	}
-
-	// Spherical harmonic
-	double Y=0.0;
-
-	switch (l2)
-	{
-	case 0:
-		Y = (1.0/2.0)*sqrt((double) 1.0/_PI_);
-		break;
-	case 1:
-		switch (m)
-		{
-		case -1:
-			Y = sqrt(3.0/(4.0*_PI_))*yr;
-			break;
-		case 0:
-			Y = sqrt(3.0/(4.0*_PI_))*zr;
-			break;
-		case 1:
-			Y = sqrt(3.0/(4.0*_PI_))*xr;
-			break;
-		} break;
-	case 2:
-		switch (m)
-		{
-		case -2:
-			Y = sqrt(15.0/(4.0*_PI_))*xr*yr;
-			break;
-		case -1:
-			Y = sqrt(15.0/(4.0*_PI_))*zr*yr;
-			break;
-		case 0:
-			Y = sqrt(5.0/(16.0*_PI_))*(-xr2-yr2+2.0*zr2);
-			break;
-		case 1:
-			Y = sqrt(15.0/(4.0*_PI_))*xr*zr;
-			break;
-		case 2:
-			Y = sqrt(15.0/(16.0*_PI_))*(xr2-yr2);
-			break;
-		} break;
-	case 3:
-		switch (m)
-		{
-		case -3:
-			Y = sqrt(35.0/(16.0*2.0*_PI_))*yr*(3.0*xr2-yr2);
-			break;
-		case -2:
-			Y = sqrt(105.0/(4.0*_PI_))*zr*yr*xr;
-			break;
-		case -1:
-			Y = sqrt(21.0/(16.0*2.0*_PI_))*yr*(4.0*zr2-xr2-yr2);
-			break;
-		case 0:
-			Y = sqrt(7.0/(16.0*_PI_))*zr*(2.0*zr2-3.0*xr2-3.0*yr2);
-			break;
-		case 1:
-			Y = sqrt(21.0/(16.0*2.0*_PI_))*xr*(4.0*zr2-xr2-yr2);
-			break;
-		case 2:
-			Y = sqrt(105.0/(16.0*_PI_))*zr*(xr2-yr2);
-			break;
-		case 3:
-			Y = sqrt(35.0/(16.0*2.0*_PI_))*xr*(xr2-3.0*yr2);
-			break;
-		} break;
-	case 4:
-		switch (m)
-		{
-		case -4:
-			Y = sqrt((35.0*9.0)/(16.0*_PI_))*yr*xr*(xr2-yr2);
-			break;
-		case -3:
-			Y = sqrt((9.0*35.0)/(16.0*2.0*_PI_))*yr*zr*(3.0*xr2-yr2);
-			break;
-		case -2:
-			Y = sqrt((9.0*5.0)/(16.0*_PI_))*yr*xr*(7.0*zr2-(xr2+yr2+zr2));
-			break;
-		case -1:
-			Y = sqrt((9.0*5.0)/(16.0*2.0*_PI_))*yr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
-			break;
-		case 0:
-			Y = sqrt(9.0/(16.0*16.0*_PI_))*(35.0*zr2*zr2-30.0*zr2+3.0);
-			break;
-		case 1:
-			Y = sqrt((9.0*5.0)/(16.0*2.0*_PI_))*xr*zr*(7.0*zr2-3.0*(xr2+yr2+zr2));
-			break;
-		case 2:
-			Y = sqrt((9.0*5.0)/(8.0*8.0*_PI_))*(xr2-yr2)*(7.0*zr2-(xr2+yr2+zr2));
-			break;
-		case 3:
-			Y = sqrt((9.0*35.0)/(16.0*2.0*_PI_))*xr*zr*(xr2-3.0*yr2);
-			break;
-		case 4:
-			Y = sqrt((9.0*35.0)/(16.0*16.0*_PI_))*(xr2*(xr2-3.0*yr2)-yr2*(3.0*xr2-yr2));
-			break;
-		} break;
-	case 5:
-		switch (m)
-		{
-		case -5:
-			Y = (3.0/16.0)*sqrt(77.0/(2.0*_PI_))*sint2*sint2*sint*sin(5.0*phi);
-			break;
-		case -4:
-			Y = (3.0/8.0)*sqrt(385.0/(2.0*_PI_))*sint2*sint2*sin(4.0*phi);
-			break;
-		case -3:
-			Y = (1.0/16.0)*sqrt(385.0/(2.0*_PI_))*sint2*sint*(9.0*cost2-1.0)*sin(3.0*phi);
-			break;
-		case -2:
-			Y = (1.0/4.0)*sqrt(1155.0/(4.0*_PI_))*sint2*(3.0*cost2*cost-cost)*sin(2.0*phi);
-			break;
-		case -1:
-			Y = (1.0/8.0)*sqrt(165.0/(4.0*_PI_))*sint*(21.0*cost2*cost2-14.0*cost2+1)*sin(phi);
-			break;
-		case 0:
-			Y = (1.0/16.0)*sqrt(11.0/_PI_)*(63.0*cost2*cost2*cost-70.0*cost2*cost+15.0*cost);
-			break;
-		case 1:
-			Y = (1.0/8.0)*sqrt(165.0/(4.0*_PI_))*sint*(21.0*cost2*cost2-14.0*cost2+1)*cos(phi);
-			break;
-		case 2:
-			Y = (1.0/4.0)*sqrt(1155.0/(4.0*_PI_))*sint2*(3.0*cost2*cost-cost)*cos(2.0*phi);
-			break;
-		case 3:
-			Y = (1.0/16.0)*sqrt(385.0/(2.0*_PI_))*sint2*sint*(9.0*cost2-1.0)*cos(3.0*phi);
-			break;
-		case 4:
-			Y = (3.0/8.0)*sqrt(385.0/(2.0*_PI_))*sint2*sint2*cos(4.0*phi);
-			break;
-		case 5:
-			Y = (3.0/16.0)*sqrt(77.0/(2.0*_PI_))*sint2*sint2*sint*cos(5.0*phi);
-			break;
-		}break;
-	}
-
-	return R*Y;
-}
-*/
-#else
-/*
-__device__ float ZernikeSphericalHarmonics(int l1, int n, int l2, int m, float xr, float yr, float zr, float r)
-{
-	// General variables
-	float r2=r*r,xr2=xr*xr,yr2=yr*yr,zr2=zr*zr;
-
-	//Variables needed for l>=5
-	float tht=0.0f,phi=0.0f,cost=0.0f,sint=0.0f,cost2=0.0f,sint2=0.0f;
-	if (l2>=5)
-	{
-		tht = atan2f(yr,xr);
-		phi = atan2f(zr,sqrtf(xr2 + yr2));
-		sint = sinf(phi); cost = cosf(tht);
-		sint2 = sint*sint; cost2 = cost*cost;
-	}
-
-	// Zernike polynomial
-	float R=0.0f;
-
-	switch (l1)
-	{
-	case 0:
-		R = sqrtf((float) 3);
-		break;
-	case 1:
-		R = sqrtf((float) 5)*r;
-		break;
-	case 2:
-		switch (n)
-		{
-		case 0:
-			R = -0.5f*sqrtf((float) 7)*(2.5f*(1-2*r2)+0.5f);
-			break;
-		case 2:
-			R = sqrtf((float) 7)*r2;
-			break;
-		} break;
-	case 3:
-		switch (n)
-		{
-		case 1:
-			R = -1.5f*r*(3.5f*(1-2*r2)+1.5f);
-			break;
-		case 3:
-			R = 3*r2*r;
-		} break;
-	case 4:
-		switch (n)
-		{
-		case 0:
-			R = sqrtf((float) 11)*((63*r2*r2/8)-(35*r2/4)+(15/8));
-			break;
-		case 2:
-			R = -0.5f*sqrtf((float) 11)*r2*(4.5f*(1-2*r2)+2.5f);
-			break;
-		case 4:
-			R = sqrtf((float) 11)*r2*r2;
-			break;
-		} break;
-	case 5:
-		switch (n)
-		{
-		case 1:
-			R = sqrtf((float) 13)*r*((99*r2*r2/8)-(63*r2/4)+(35/8));
-			break;
-		case 3:
-			R = -0.5f*sqrtf((float) 13)*r2*r*(5.5f*(1-2*r2)+3.5f);
-			break;
-		} break;
-	}
-
-	// Spherical harmonic
-	float Y=0.0f;
-
-	switch (l2)
-	{
-	case 0:
-		Y = (1.0f/2.0f)*sqrtf((float) 1.0f/_PI_);
-		break;
-	case 1:
-		switch (m)
-		{
-		case -1:
-			Y = sqrtf(3.0f/(4.0f*_PI_))*yr;
-			break;
-		case 0:
-			Y = sqrtf(3.0f/(4.0f*_PI_))*zr;
-			break;
-		case 1:
-			Y = sqrtf(3.0f/(4.0f*_PI_))*xr;
-			break;
-		} break;
-	case 2:
-		switch (m)
-		{
-		case -2:
-			Y = sqrtf(15.0f/(4.0f*_PI_))*xr*yr;
-			break;
-		case -1:
-			Y = sqrtf(15.0f/(4.0f*_PI_))*zr*yr;
-			break;
-		case 0:
-			Y = sqrtf(5.0f/(16.0f*_PI_))*(-xr2-yr2+2.0f*zr2);
-			break;
-		case 1:
-			Y = sqrtf(15.0f/(4.0f*_PI_))*xr*zr;
-			break;
-		case 2:
-			Y = sqrtf(15.0f/(16.0f*_PI_))*(xr2-yr2);
-			break;
-		} break;
-	case 3:
-		switch (m)
-		{
-		case -3:
-			Y = sqrtf(35.0f/(16.0f*2.0f*_PI_))*yr*(3.0f*xr2-yr2);
-			break;
-		case -2:
-			Y = sqrtf(105.0f/(4.0f*_PI_))*zr*yr*xr;
-			break;
-		case -1:
-			Y = sqrtf(21.0f/(16.0f*2.0f*_PI_))*yr*(4.0f*zr2-xr2-yr2);
-			break;
-		case 0:
-			Y = sqrtf(7.0f/(16.0f*_PI_))*zr*(2.0f*zr2-3.0f*xr2-3.0f*yr2);
-			break;
-		case 1:
-			Y = sqrtf(21.0f/(16.0f*2.0f*_PI_))*xr*(4.0f*zr2-xr2-yr2);
-			break;
-		case 2:
-			Y = sqrtf(105.0f/(16.0f*_PI_))*zr*(xr2-yr2);
-			break;
-		case 3:
-			Y = sqrtf(35.0f/(16.0f*2.0f*_PI_))*xr*(xr2-3.0f*yr2);
-			break;
-		} break;
-	case 4:
-		switch (m)
-		{
-		case -4:
-			Y = sqrtf((35.0f*9.0f)/(16.0f*_PI_))*yr*xr*(xr2-yr2);
-			break;
-		case -3:
-			Y = sqrtf((9.0f*35.0f)/(16.0f*2.0f*_PI_))*yr*zr*(3.0f*xr2-yr2);
-			break;
-		case -2:
-			Y = sqrtf((9.0f*5.0f)/(16.0f*_PI_))*yr*xr*(7.0f*zr2-(xr2+yr2+zr2));
-			break;
-		case -1:
-			Y = sqrtf((9.0f*5.0f)/(16.0f*2.0f*_PI_))*yr*zr*(7.0f*zr2-3.0f*(xr2+yr2+zr2));
-			break;
-		case 0:
-			Y = sqrtf(9.0f/(16.0f*16.0f*_PI_))*(35.0f*zr2*zr2-30.0f*zr2+3.0f);
-			break;
-		case 1:
-			Y = sqrtf((9.0f*5.0f)/(16.0f*2.0f*_PI_))*xr*zr*(7.0f*zr2-3.0f*(xr2+yr2+zr2));
-			break;
-		case 2:
-			Y = sqrtf((9.0f*5.0f)/(8.0f*8.0f*_PI_))*(xr2-yr2)*(7.0f*zr2-(xr2+yr2+zr2));
-			break;
-		case 3:
-			Y = sqrtf((9.0f*35.0f)/(16.0f*2.0f*_PI_))*xr*zr*(xr2-3.0f*yr2);
-			break;
-		case 4:
-			Y = sqrtf((9.0f*35.0f)/(16.0f*16.0f*_PI_))*(xr2*(xr2-3.0f*yr2)-yr2*(3.0f*xr2-yr2));
-			break;
-		} break;
-	case 5:
-		switch (m)
-		{
-		case -5:
-			Y = (3.0f/16.0f)*sqrtf(77.0f/(2.0f*_PI_))*sint2*sint2*sint*sinf(5.0f*phi);
-			break;
-		case -4:
-			Y = (3.0f/8.0f)*sqrtf(385.0f/(2.0f*_PI_))*sint2*sint2*sinf(4.0f*phi);
-			break;
-		case -3:
-			Y = (1.0f/16.0f)*sqrtf(385.0f/(2.0f*_PI_))*sint2*sint*(9.0f*cost2-1.0f)*sinf(3.0f*phi);
-			break;
-		case -2:
-			Y = (1.0f/4.0f)*sqrtf(1155.0f/(4.0f*_PI_))*sint2*(3.0f*cost2*cost-cost)*sinf(2.0f*phi);
-			break;
-		case -1:
-			Y = (1.0f/8.0f)*sqrtf(165.0f/(4.0f*_PI_))*sint*(21.0f*cost2*cost2-14.0f*cost2+1)*sinf(phi);
-			break;
-		case 0:
-			Y = (1.0f/16.0f)*sqrtf(11.0f/_PI_)*(63.0f*cost2*cost2*cost-70.0f*cost2*cost+15.0f*cost);
-			break;
-		case 1:
-			Y = (1.0f/8.0f)*sqrtf(165.0f/(4.0f*_PI_))*sint*(21.0f*cost2*cost2-14.0f*cost2+1)*cosf(phi);
-			break;
-		case 2:
-			Y = (1.0f/4.0f)*sqrtf(1155.0f/(4.0f*_PI_))*sint2*(3.0f*cost2*cost-cost)*cosf(2.0f*phi);
-			break;
-		case 3:
-			Y = (1.0f/16.0f)*sqrtf(385.0f/(2.0f*_PI_))*sint2*sint*(9.0f*cost2-1.0f)*cosf(3.0f*phi);
-			break;
-		case 4:
-			Y = (3.0f/8.0f)*sqrtf(385.0f/(2.0f*_PI_))*sint2*sint2*cosf(4.0f*phi);
-			break;
-		case 5:
-			Y = (3.0f/16.0f)*sqrtf(77.0f/(2.0f*_PI_))*sint2*sint2*sint*cosf(5.0f*phi);
-			break;
-		}break;
-	}
-
-	return R*Y;
-}
-*/
-#endif//COMP_DOUBLE
 
 
 #endif //CUDA_VOLUME_DEFORM_SPH_CU

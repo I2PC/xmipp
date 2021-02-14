@@ -104,11 +104,14 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
 VolumeDeformSph::VolumeDeformSph() : tuner(0, 0, ktt::ComputeAPI::CUDA)
 {
     tuner.setLoggingLevel(ktt::LoggingLevel::Off);
+    tuner.setCompilerOptions("-std=c++14"
 #ifdef USE_DOUBLE_PRECISION
-    tuner.setCompilerOptions("-std=c++14 -DUSE_DOUBLE_PRECISION");
-#else
-    tuner.setCompilerOptions("-std=c++14");
+    " -DUSE_DOUBLE_PRECISION"
 #endif
+#ifdef USE_SCATTERED_ZSH_CLNM 
+    " -DUSE_SCATTERED_ZSH_CLNM"
+#endif
+            );
 }
 
 VolumeDeformSph::~VolumeDeformSph() 
@@ -186,8 +189,8 @@ void VolumeDeformSph::setupConstantParameters()
     kernelId = tuner.addKernelFromFile(pathToXmipp + pathToKernel, "computeDeform", kttGrid, kttBlock);
 
     // kernel parameters
-    tuner.addParameter(kernelId, "L1", std::vector<size_t>{static_cast<unsigned>(program->L1)});
-    tuner.addParameter(kernelId, "L2", std::vector<size_t>{static_cast<unsigned>(program->L2)});
+    tuner.addParameter(kernelId, "L1", std::vector<size_t>{static_cast<size_t>(program->L1)});
+    tuner.addParameter(kernelId, "L2", std::vector<size_t>{static_cast<size_t>(program->L2)});
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -275,10 +278,9 @@ void VolumeDeformSph::runKernel()
             });
 
     // Run kernel
-    //tuner.runKernel(kernelId, {}, {});
     tuner.tuneKernel(kernelId);
 
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 
     auto diff2It = thrustVec.begin();
     auto sumVDIt = diff2It + kttGrid.getTotalSize();
