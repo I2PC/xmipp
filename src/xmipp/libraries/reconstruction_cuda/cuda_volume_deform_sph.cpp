@@ -104,7 +104,7 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
 VolumeDeformSph::VolumeDeformSph() : tuner(0, 0, ktt::ComputeAPI::CUDA)
 {
     tuner.setLoggingLevel(ktt::LoggingLevel::Off);
-    tuner.setCompilerOptions("-std=c++14"
+    tuner.setCompilerOptions("-std=c++14 -lineinfo"
 #ifdef USE_DOUBLE_PRECISION
     " -DUSE_DOUBLE_PRECISION=1"
 #endif
