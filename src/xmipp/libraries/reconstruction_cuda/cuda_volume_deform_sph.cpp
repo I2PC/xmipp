@@ -193,6 +193,7 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0, 1});
     tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0, 1});
     tuner.addParameter(kernelId, "USE_NAIVE_BLOCK_REDUCTION", {0, 1});
+    tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {0, 1});
 }
 
 void VolumeDeformSph::setupChangingParameters() 

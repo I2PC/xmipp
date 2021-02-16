@@ -31,12 +31,12 @@ using PrecisionType3 = float3;
 #endif// USE_DOUBLE_PRECISION
 
 #if USE_SCATTERED_ZSH_CLNM == 1
-using ClnmType = PrecisionType*;
+using ClnmType = PrecisionType;
 using ZshParamsType =
     struct ZSHparams { int *vL1, *vN, *vL2, *vM; unsigned size; };
 #else
-using ClnmType = PrecisionType3*;
-using ZshParamsType = int4*;
+using ClnmType = PrecisionType3;
+using ZshParamsType = int4;
 #endif// USE_SCATTERED_ZSH_CLNM
 
 // Compilation settings - end
@@ -145,10 +145,10 @@ extern "C" __global__ void computeDeform(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         IROimages images,
-        ZshParamsType zshparams,
-        ClnmType clnm,
+        ZshParamsType* zshparams,
+        ClnmType* clnm,
         ZshParamsType zshparamsSCATTERED,// just for tuning
-        ClnmType clnmSCATTERED,// just for tuning
+        ClnmType* clnmSCATTERED,// just for tuning
         int steps,
         Volumes volumes,
         DeformImages deformImages,
@@ -161,6 +161,17 @@ extern "C" __global__ void computeDeform(
 
     // Compute thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+#if USE_SHARED_MEM_ZSH_CLNM == 1 && USE_SCATTERED_ZSH_CLNM == 0
+    __shared__ ZshParamsType zshShared[64];//size for testing, should not be larger, ever
+    __shared__ ClnmType clnmShared[64];
+
+    if (tIdx < steps) {
+        zshShared[tIdx] = zshparams[tIdx];
+        clnmShared[tIdx] = clnm[tIdx];
+    }
+    __syncthreads();
+#endif
 
     // Get physical indexes
     int kPhys = blockIdx.z * blockDim.z + threadIdx.z;
@@ -184,11 +195,19 @@ extern "C" __global__ void computeDeform(
             int l2 = zshparamsSCATTERED.vL2[idx];
             int m = zshparamsSCATTERED.vM[idx];
 #else
+#if USE_SHARED_MEM_ZSH_CLNM == 1
+            int l1 = zshShared[idx].w;
+            int n = zshShared[idx].x;
+            int l2 = zshShared[idx].y;
+            int m = zshShared[idx].z;
+#else
             int l1 = zshparams[idx].w;
             int n = zshparams[idx].x;
             int l2 = zshparams[idx].y;
             int m = zshparams[idx].z;
-#endif
+#endif// USE_SHARED_MEM_ZSH_CLNM
+#endif// USE_SCATTERED_ZSH_CLNM
+
 #if USE_ZSH_FUNCTION == 1
             PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m,
                     j * iRmax, i * iRmax, k * iRmax, rr);
@@ -472,10 +491,16 @@ extern "C" __global__ void computeDeform(
                 gy += zsph * clnmSCATTERED[idx + zshparamsSCATTERED.size];
                 gz += zsph * clnmSCATTERED[idx + zshparamsSCATTERED.size * 2];
 #else
+#if USE_SHARED_MEM_ZSH_CLNM == 1
+                gx += zsph * clnmShared[idx].x;
+                gy += zsph * clnmShared[idx].y;
+                gz += zsph * clnmShared[idx].z;
+#else
                 gx += zsph * clnm[idx].x;
                 gy += zsph * clnm[idx].y;
                 gz += zsph * clnm[idx].z;
-#endif
+#endif// USE_SHARED_MEM_ZSH_CLNM
+#endif// USE_SCATTERED_ZSH_CLNM
             }
         }
     }
