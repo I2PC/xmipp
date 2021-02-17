@@ -1,6 +1,5 @@
 #ifndef CUDA_VOLUME_DEFORM_SPH_CU
 #define CUDA_VOLUME_DEFORM_SPH_CU
-//#include "cuda_volume_deform_sph.h"
 
 // Compilation settings
 
@@ -41,7 +40,7 @@ using ZshParamsType = int4;
 
 // Compilation settings - end
 
-// Define used data structures
+// Define data structures
 
 struct ImageData
 {
@@ -81,7 +80,7 @@ struct DeformImages
 #define BLOCK_X_DIM 8
 #define BLOCK_Y_DIM 4
 #define BLOCK_Z_DIM 4
-#define TOTAL_BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
+#define BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
 
 // ImageData macros
 
@@ -154,13 +153,22 @@ extern "C" __global__ void computeDeform(
         DeformImages deformImages,
         bool applyTransformation,
         bool saveDeformation,
-        PrecisionType* g_outArr
+        PrecisionType* outArrayGlobal
         ) 
 {
-    __shared__ PrecisionType sumArray[TOTAL_BLOCK_SIZE * 4];
+    __shared__ PrecisionType sumArrayShared[BLOCK_SIZE * 4];
 
     // Compute thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+#if USE_SHARED_VOLUME_METADATA == 1
+    __shared__ ImageData volRMetaShared[VOL_COUNT];
+    __shared__ ImageData volIMetaShared[VOL_COUNT];
+    for (int i = 0; i < VOL_COUNT; i++) {
+        volRMetaShared[i] = volumes.R[i];
+        volIMetaShared[i] = volumes.I[i];
+    }
+#endif
 
 #if USE_SHARED_MEM_ZSH_CLNM == 1 && USE_SCATTERED_ZSH_CLNM == 0
     __shared__ ZshParamsType zshShared[64];//size for testing, should not be larger, ever
@@ -183,6 +191,7 @@ extern "C" __global__ void computeDeform(
     int i = P2L_Y_IDX(images.VR, iPhys);
     int j = P2L_X_IDX(images.VR, jPhys);
 
+    // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
     PrecisionType rr = SQRT(r2) * iRmax;
     PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
@@ -527,8 +536,13 @@ extern "C" __global__ void computeDeform(
     }
 
     for (unsigned idv = 0; idv < volumes.size; idv++) {
+#if USE_SHARED_VOLUME_METADATA == 1
+        voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
+        voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
+#else
         voxelR = ELEM_3D(volumes.R[idv], kPhys, iPhys, jPhys);
         voxelI = interpolatedElement3D(volumes.I[idv], j + gx, i + gy, k + gz);
+#endif// USE_SHARED_VOLUME_METADATA
 
         if (voxelI >= 0.0)
             localSumVD += voxelI;
@@ -539,61 +553,61 @@ extern "C" __global__ void computeDeform(
         localNcount++;
     }
 
-    sumArray[tIdx] = localDiff2;
-    sumArray[tIdx + TOTAL_BLOCK_SIZE] = localSumVD;
-    sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] = localModg;
-    sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] = localNcount;
+    sumArrayShared[tIdx] = localDiff2;
+    sumArrayShared[tIdx + BLOCK_SIZE] = localSumVD;
+    sumArrayShared[tIdx + BLOCK_SIZE * 2] = localModg;
+    sumArrayShared[tIdx + BLOCK_SIZE * 3] = localNcount;
 
     __syncthreads();
+
+    // Block reduction
 #if USE_NAIVE_BLOCK_REDUCTION == 1
-    // Block reduction   
-    for (unsigned s = TOTAL_BLOCK_SIZE / 2; s > 0; s /= 2) {
+    for (unsigned s = BLOCK_SIZE / 2; s > 0; s /= 2) {
         if (tIdx < s) {
-            sumArray[tIdx] += sumArray[tIdx + s];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + s];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + s];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + s];
+            sumArrayShared[tIdx] += sumArrayShared[tIdx + s];
+            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + s];
+            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + s];
+            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + s];
         }
         __syncthreads();
     }
 #else
     //TODO preprocess variable sizes
 
-    // Block reductions
-    if (TOTAL_BLOCK_SIZE >= 512) {
+    if (BLOCK_SIZE >= 512) {
         if (tIdx < 256) {
-            sumArray[tIdx] += sumArray[tIdx + 256];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + 256];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 256];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 256];
+            sumArrayShared[tIdx] += sumArrayShared[tIdx + 256];
+            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + 256];
+            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 256];
+            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 256];
         }
         __syncthreads();
     }
-    if (TOTAL_BLOCK_SIZE >= 256) {
+    if (BLOCK_SIZE >= 256) {
         if (tIdx < 128) {
-            sumArray[tIdx] += sumArray[tIdx + 128];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + 128];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 128];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 128];
+            sumArrayShared[tIdx] += sumArrayShared[tIdx + 128];
+            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + 128];
+            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 128];
+            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 128];
         }
         __syncthreads();
     }
-    if (TOTAL_BLOCK_SIZE >= 128) {
+    if (BLOCK_SIZE >= 128) {
         if (tIdx < 64) {
-            sumArray[tIdx] += sumArray[tIdx + 64];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE] += sumArray[tIdx + TOTAL_BLOCK_SIZE + 64];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 64];
-            sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] += sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 64];
+            sumArrayShared[tIdx] += sumArrayShared[tIdx + 64];
+            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + 64];
+            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 64];
+            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 64];
         }
         __syncthreads();
     }
     // Last warp reduction
     if (tIdx < 32) {
         // Recycle registers
-        localDiff2 = sumArray[tIdx] + sumArray[tIdx + 32];
-        localSumVD = sumArray[tIdx + TOTAL_BLOCK_SIZE] + sumArray[tIdx + TOTAL_BLOCK_SIZE + 32];
-        localModg = sumArray[tIdx + TOTAL_BLOCK_SIZE * 2] + sumArray[tIdx + TOTAL_BLOCK_SIZE * 2 + 32];
-        localNcount = sumArray[tIdx + TOTAL_BLOCK_SIZE * 3] + sumArray[tIdx + TOTAL_BLOCK_SIZE * 3 + 32];
+        localDiff2 = sumArrayShared[tIdx] + sumArrayShared[tIdx + 32];
+        localSumVD = sumArrayShared[tIdx + BLOCK_SIZE] + sumArrayShared[tIdx + BLOCK_SIZE + 32];
+        localModg = sumArrayShared[tIdx + BLOCK_SIZE * 2] + sumArrayShared[tIdx + BLOCK_SIZE * 2 + 32];
+        localNcount = sumArrayShared[tIdx + BLOCK_SIZE * 3] + sumArrayShared[tIdx + BLOCK_SIZE * 3 + 32];
         // Reduce warp
         for (int offset = 32 / 2; offset > 0; offset >>= 1) {
             localDiff2 += __shfl_down_sync(0xFFFFFFFF, localDiff2, offset);
@@ -607,18 +621,18 @@ extern "C" __global__ void computeDeform(
     // Save values to the global memory for later
     if (tIdx == 0) {
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
-        unsigned TOTAL_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
+        unsigned GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
 #if USE_NAIVE_BLOCK_REDUCTION == 1
-        g_outArr[bIdx] = sumArray[0];
-        g_outArr[bIdx + TOTAL_GRID_SIZE] = sumArray[TOTAL_BLOCK_SIZE];
-        g_outArr[bIdx + TOTAL_GRID_SIZE * 2] = sumArray[TOTAL_BLOCK_SIZE * 2];
-        g_outArr[bIdx + TOTAL_GRID_SIZE * 3] = sumArray[TOTAL_BLOCK_SIZE * 3];
+        outArrayGlobal[bIdx] = sumArrayShared[0];
+        outArrayGlobal[bIdx + GRID_SIZE] = sumArrayShared[BLOCK_SIZE];
+        outArrayGlobal[bIdx + GRID_SIZE * 2] = sumArrayShared[BLOCK_SIZE * 2];
+        outArrayGlobal[bIdx + GRID_SIZE * 3] = sumArrayShared[BLOCK_SIZE * 3];
 #else
         // Resulting values are in registers local* => no need to go into shared mem
-        g_outArr[bIdx] = localDiff2;
-        g_outArr[bIdx + TOTAL_GRID_SIZE] = localSumVD;
-        g_outArr[bIdx + TOTAL_GRID_SIZE * 2] = localModg;
-        g_outArr[bIdx + TOTAL_GRID_SIZE * 3] = localNcount;
+        outArrayGlobal[bIdx] = localDiff2;
+        outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
+        outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
+        outArrayGlobal[bIdx + GRID_SIZE * 3] = localNcount;
 #endif
     }
 

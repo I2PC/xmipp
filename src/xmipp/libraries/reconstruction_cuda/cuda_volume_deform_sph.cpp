@@ -188,12 +188,16 @@ void VolumeDeformSph::setupConstantParameters()
     kernelId = tuner.addKernelFromFile(pathToXmipp + pathToKernel, "computeDeform", kttGrid, kttBlock);
 
     // kernel parameters
-    tuner.addParameter(kernelId, "L1", std::vector<size_t>{static_cast<size_t>(program->L1)});
-    tuner.addParameter(kernelId, "L2", std::vector<size_t>{static_cast<size_t>(program->L2)});
+    // simple defines
+    tuner.addParameter(kernelId, "L1", {static_cast<unsigned>(program->L1)});
+    tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
+    tuner.addParameter(kernelId, "VOL_COUNT", {volumes.size});
+    // tuning parameters
     tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0, 1});
     tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0, 1});
     tuner.addParameter(kernelId, "USE_NAIVE_BLOCK_REDUCTION", {0, 1});
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {0, 1});
+    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {0, 1});
 }
 
 void VolumeDeformSph::setupChangingParameters() 
