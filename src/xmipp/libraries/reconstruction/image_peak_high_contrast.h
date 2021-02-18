@@ -50,8 +50,8 @@ public:
     /** Threshold */
     double thr;
 
-    /** Number of slices */
-    int samp;
+    /** Number of slices and original centers of mass */
+    int samp, numberCenterOfMass, distanceThr;
 
     /** Output coordinates */
     // extern std::vector<int> coordinates3Dx(0);

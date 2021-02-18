@@ -31,15 +31,20 @@ void ProgImagePeakHighContrast::readParams()
 	fnOut = getParam("-o");
 	thr = getDoubleParam("--thr");
     samp = getIntParam("--samp");
+	numberCenterOfMass = getIntParam("--numberCenterOfMass");
+	distanceThr = getIntParam("--distanceThr");
+
 }
 
 void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
-	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
-	addParamsLine("  -o <output=\"coordinaates3D.txt\">        : Output file containing the 3D coodinates");
-	addParamsLine("  [--thr <thr=0.1>]                		 : Threshold");
-  	addParamsLine("  [--samp <samp=10>]                		 : Number of slices to use to determin the threshold value");
+	addParamsLine("  --vol <vol_file=\"\">                   		: Input volume");
+	addParamsLine("  -o <output=\"coordinates3D.xmd\">        		: Output file containing the 3D coodinates");
+	addParamsLine("  [--thr <thr=0.1>]                		 		: Threshold");
+  	addParamsLine("  [--samp <samp=10>]                		 		: Number of slices to use to determin the threshold value");
+  	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]	: Number of initial center of mass to trim coordinates");
+  	addParamsLine("  [--distanceThr <distanceThr=10>]				: Minimum distance to consider two coordinates belong to the same feature");
 
 }
 
@@ -47,7 +52,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 {
 	std::cout << "Starting..." << std::endl;
 
-	// #define DEBUG
+	#define DEBUG
 	// #define DEBUG_DIM
 	// #define DEBUG_COOR
 	// #define DEBUG_DIM
@@ -133,7 +138,61 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	#ifdef DEBUG
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
-	
+
+
+	/////////////////////////////////////////////////////////////////////////////////////////////// TRIM COORDINATES
+
+	std::vector<int> centerOfMassX(0);
+    std::vector<int> centerOfMassY(0);
+    std::vector<int> centerOfMassZ(0);
+
+	for(int i=0;i<numberCenterOfMass;i++)
+	{
+		int randomIndex = rand() % coordinates3Dx.size();
+
+		centerOfMassX.push_back(coordinates3Dx[randomIndex]);
+		centerOfMassY.push_back(coordinates3Dy[randomIndex]);
+		centerOfMassZ.push_back(coordinates3Dz[randomIndex]);
+	}
+
+	int squareDistanceThr = distanceThr*distanceThr;
+	// int squareDistance;
+	bool attractedToMassCenter;
+
+	for(size_t i=0;i<coordinates3Dx.size();i++)
+	{
+		// Check if the coordinate is attracted to any centre of mass
+		attractedToMassCenter = false;
+
+		for(size_t j=0;j<centerOfMassX.size();j++)
+		{
+			int squareDistance =
+			(coordinates3Dx[i]-centerOfMassX[j])*(coordinates3Dx[i]-centerOfMassX[j])+
+			(coordinates3Dy[i]-centerOfMassY[j])*(coordinates3Dy[i]-centerOfMassY[j])+
+			(coordinates3Dz[i]-centerOfMassZ[j])*(coordinates3Dz[i]-centerOfMassZ[j]);
+
+			if(squareDistance < squareDistanceThr)
+			{
+				centerOfMassX[j]=(coordinates3Dx[i]+centerOfMassX[j])/2;
+				centerOfMassY[j]=(coordinates3Dy[i]+centerOfMassY[j])/2;
+				centerOfMassZ[j]=(coordinates3Dz[i]+centerOfMassZ[j])/2;
+
+				attractedToMassCenter = true;
+			}
+		}
+
+		if (attractedToMassCenter=false)
+		{
+			centerOfMassX.push_back(coordinates3Dx[i]);
+			centerOfMassY.push_back(coordinates3Dy[i]);
+			centerOfMassZ.push_back(coordinates3Dz[i]);
+		}
+	}
+
+	#ifdef DEBUG
+	std::cout << "Number of centers of mass: " << centerOfMassX.size() << std::endl;
+	#endif
+
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////// SAVE COORDINATES
@@ -145,11 +204,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	for(size_t i=0;i<coordinates3Dx.size();i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
-		md.setValue(MDL_YCOOR, coordinates3Dy[i], id);
-		md.setValue(MDL_ZCOOR, coordinates3Dz[i], id);
-
-		std::cout << coordinates3Dx[i] << "\t" << coordinates3Dy[i] << "\t"<< coordinates3Dz[i] << "\n" << std::endl;
+		md.setValue(MDL_XCOOR, centerOfMassX[i], id);
+		md.setValue(MDL_YCOOR, centerOfMassY[i], id);
+		md.setValue(MDL_ZCOOR, centerOfMassZ[i], id);
 	}
 
 	md.write(fnOut);
