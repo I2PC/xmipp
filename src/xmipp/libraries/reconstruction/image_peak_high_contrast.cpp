@@ -31,18 +31,15 @@ void ProgImagePeakHighContrast::readParams()
 	fnOut = getParam("-o");
 	thr = getDoubleParam("--thr");
     samp = getIntParam("--samp");
-	numberCenterOfMass = getIntParam("--numberCenterOfMass");
-
 }
 
 void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
-	addParamsLine("  --vol <vol_file=\"\">                   		: Input volume");
-	addParamsLine("  -o <output=\"coordinates3D.xmd\">        		: Output file containing the 3D coodinates");
-	addParamsLine("  [--thr <thr=0.1>]                		 		: Threshold");
-  	addParamsLine("  [--samp <samp=10>]                		 		: Number of slices to use to determin the threshold value");
-  	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]	: Number of initial center of mass to trim coordinates");
+	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
+	addParamsLine("  -o <output=\"coordinaates3D.txt\">        : Output file containing the 3D coodinates");
+	addParamsLine("  [--thr <thr=0.1>]                		 : Threshold");
+  	addParamsLine("  [--samp <samp=10>]                		 : Number of slices to use to determin the threshold value");
 
 }
 
@@ -136,18 +133,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	#ifdef DEBUG
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
-
-
-	/////////////////////////////////////////////////////////////////////////////////////////////// TRIM COORDINATES
-
-
-	std::vector<int> centerOfMassX(0);
-    std::vector<int> centerOfMassY(0);
-    std::vector<int> centerOfMassZ(0);
-
-	for(int i=0<)
-
-
+	
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////// SAVE COORDINATES
