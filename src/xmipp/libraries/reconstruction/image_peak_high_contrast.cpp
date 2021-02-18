@@ -31,15 +31,18 @@ void ProgImagePeakHighContrast::readParams()
 	fnOut = getParam("-o");
 	thr = getDoubleParam("--thr");
     samp = getIntParam("--samp");
+	numberCenterOfMass = getIntParam("--numberCenterOfMass");
+
 }
 
 void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
-	addParamsLine("  --vol <vol_file=\"\">                   : Input volume");
-	addParamsLine("  -o <output=\"coordinaates3D.txt\">        : Output file containing the 3D coodinates");
-	addParamsLine("  [--thr <thr=0.1>]                		 : Threshold");
-  	addParamsLine("  [--samp <samp=10>]                		 : Number of slices to use to determin the threshold value");
+	addParamsLine("  --vol <vol_file=\"\">                   		: Input volume");
+	addParamsLine("  -o <output=\"coordinates3D.xmd\">        		: Output file containing the 3D coodinates");
+	addParamsLine("  [--thr <thr=0.1>]                		 		: Threshold");
+  	addParamsLine("  [--samp <samp=10>]                		 		: Number of slices to use to determin the threshold value");
+  	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]	: Number of initial center of mass to trim coordinates");
 
 }
 
@@ -47,9 +50,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 {
 	std::cout << "Starting..." << std::endl;
 
-	#define DEBUG
-	//#define DEBUG_DIM
-	//#define DEBUG_COOR
+	// #define DEBUG
+	// #define DEBUG_DIM
+	// #define DEBUG_COOR
+	// #define DEBUG_DIM
 
 	#ifdef DEBUG
 	std::cout << "# sampling slices: " << samp << std::endl;
@@ -58,8 +62,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 	Image<double> inputVolume;
 	inputVolume.read(fnVol);
-
-	//inputVolume().setXmippOrigin();
 
 	MultidimArray<double> &inputTomo=inputVolume();
 	std::vector<double> tomoVector(0);
@@ -72,6 +74,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
 
 	#ifdef DEBUG
 	std::cout << "Sampling region from slice " << centralSlice - (samp/2) << " to " 
@@ -104,14 +108,14 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
     std::cout << "low threshold value = " << lowThresholdValue << std::endl;
 	#endif
 
-    std::vector<int> coordinates3Dx(0);
-    std::vector<int> coordinates3Dy(0);
-    std::vector<int> coordinates3Dz(0);
-
 	#ifdef DEBUG_COOR
 	std::cout << "Peaked coordinates" << std::endl;
 	std::cout << "-----------------------------" << std::endl;
 	#endif
+
+	std::vector<int> coordinates3Dx(0);
+    std::vector<int> coordinates3Dy(0);
+    std::vector<int> coordinates3Dz(0);
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
     {
@@ -123,16 +127,60 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
             std::cout << "(" << i << "," << j << "," << k << ")" << std::endl;
 			#endif
 
-            coordinates3Dx.push_back(i);
-            coordinates3Dy.push_back(j);
+            coordinates3Dx.push_back(j);
+            coordinates3Dy.push_back(i);
             coordinates3Dz.push_back(k);
         }
     }
 
 	#ifdef DEBUG
-	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl
+	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
+
+
+	/////////////////////////////////////////////////////////////////////////////////////////////// TRIM COORDINATES
+
+
+	std::vector<int> centerOfMassX(0);
+    std::vector<int> centerOfMassY(0);
+    std::vector<int> centerOfMassZ(0);
+
+	for(int i=0<)
+
+
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////// SAVE COORDINATES
+	MetaData md;
+
+	size_t id;
+
+
+	for(size_t i=0;i<coordinates3Dx.size();i++)
+	{
+		id = md.addObject();
+		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
+		md.setValue(MDL_YCOOR, coordinates3Dy[i], id);
+		md.setValue(MDL_ZCOOR, coordinates3Dz[i], id);
+
+		std::cout << coordinates3Dx[i] << "\t" << coordinates3Dy[i] << "\t"<< coordinates3Dz[i] << "\n" << std::endl;
+	}
+
+	md.write(fnOut);
+
 }
+
+// void ProgImagePealHighContrast::writeOutputCoordinates()
+// {
+// 	std::ofstream outputFile;
+// 	outputFile.open(fnOut);
+
+// 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(coordinates3Dx){
+// 		outputFile << coordinates3Dx(i) << "\t" << coordinates3Dy(i) << "\t"<< coordinates3Dz(i) << "\n" 
+// 	}
+
+// 	outputFile.close()
+// }
 
 void ProgImagePeakHighContrast::run()
 {

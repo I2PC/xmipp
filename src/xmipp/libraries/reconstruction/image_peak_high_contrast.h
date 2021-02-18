@@ -50,8 +50,13 @@ public:
     /** Threshold */
     double thr;
 
-    /** Number of slices */
-    int samp;
+    /** Number of slices and original centers of mass */
+    int samp, numbCenterMass;
+
+    /** Output coordinates */
+    // extern std::vector<int> coordinates3Dx(0);
+    // extern std::vector<int> coordinates3Dy(0);
+    // extern std::vector<int> coordinates3Dz(0);
 
 public:
 
@@ -60,12 +65,21 @@ public:
 
     /**
      * Peaks the high contrast regions in a volume.
-     * 
-     * @param 
+     *
+     * @param
      * @return
-     * 
+     *
     */
     void getHighContrastCoordinates();
+
+    /**
+     * Write obtained coordinates in output file.
+     *
+     * @param
+     * @return
+     *
+    */
+    // void writeOutputCoordinates();
 
     void run();
 };
