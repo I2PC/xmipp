@@ -56,9 +56,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	// #define DEBUG_DIM
 	// #define DEBUG_COOR
 	// #define DEBUG_DIM
+	// #define DEBUG_DIST
 
 	#ifdef DEBUG
-	std::cout << "# sampling slices: " << samp << std::endl;
+	std::cout << "Number of sampling slices: " << samp << std::endl;
 	std::cout << "Threshold: " << thr << std::endl;
 	#endif
 
@@ -77,7 +78,14 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 
-	///////////////////////////////////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
+	//////////////////////////////////////////////////////////////////////////// CONTRAST ENHANCEMENT
+	// Image <double> enhancedVolume;
+
+	// enhancedVolume().resizeNoCopy(inputVolume)
+	// enhancedVolume().initConstant(255) // TODO: This shold be the image average
+	
+
+	///////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
 
 	#ifdef DEBUG
 	std::cout << "Sampling region from slice " << centralSlice - (samp/2) << " to " 
@@ -106,8 +114,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
     double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(thr/2))];
 
 	#ifdef DEBUG
-	std::cout << "high threshold value = " << highThresholdValue << std::endl;
-    std::cout << "low threshold value = " << lowThresholdValue << std::endl;
+	std::cout << "High threshold value = " << highThresholdValue << std::endl;
+    std::cout << "Low threshold value = " << lowThresholdValue << std::endl;
 	#endif
 
 	#ifdef DEBUG_COOR
@@ -139,8 +147,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
 
-
-	/////////////////////////////////////////////////////////////////////////////////////////////// TRIM COORDINATES
+	////////////////////////////////////////////////////////////////////////////////// TRIM COORDINATES
 
 	std::vector<int> centerOfMassX(0);
     std::vector<int> centerOfMassY(0);
@@ -157,47 +164,60 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 	int squareDistanceThr = distanceThr*distanceThr;
 	// int squareDistance;
-	bool attractedToMassCenter;
+	bool attractedToMassCenter = false;
 
 	for(size_t i=0;i<coordinates3Dx.size();i++)
 	{
 		// Check if the coordinate is attracted to any centre of mass
-		attractedToMassCenter = false;
+		attractedToMassCenter = false; 
+
+		int xCor = coordinates3Dx[i];
+		int yCor = coordinates3Dy[i];
+		int zCor = coordinates3Dz[i];
 
 		for(size_t j=0;j<centerOfMassX.size();j++)
 		{
-			//std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+			int xCM = centerOfMassX[j];
+			int yCM = centerOfMassY[j];
+			int zCM = centerOfMassZ[j];
 
 			int squareDistance =
 			(coordinates3Dx[i]-centerOfMassX[j])*(coordinates3Dx[i]-centerOfMassX[j])+
 			(coordinates3Dy[i]-centerOfMassY[j])*(coordinates3Dy[i]-centerOfMassY[j])+
 			(coordinates3Dz[i]-centerOfMassZ[j])*(coordinates3Dz[i]-centerOfMassZ[j]);
 			
+			#ifdef DEBUG_DIST
 			std::cout << "-----------------------------------------------------------------------" << std::endl;
 			std::cout << "distance: " << squareDistance<< std::endl;
 			std::cout << "threshold: " << squareDistanceThr<< std::endl;
-			std::cout << "-----------------------------------------------------------------------" << std::endl;
-
+			#endif
 
 			if(squareDistance < squareDistanceThr)
 			{
-				std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" << std::endl;
+				// std::cout << centerOfMassX[j] << std::endl;
+				// std::cout << coordinates3Dx[i] << std::endl;
 
+				centerOfMassX[j]=centerOfMassX[j]+(coordinates3Dx[i]-centerOfMassX[j])/2;
+				centerOfMassY[j]=centerOfMassY[j]+(coordinates3Dy[i]-centerOfMassY[j])/2;
+				centerOfMassZ[j]=centerOfMassZ[j]+(coordinates3Dz[i]-centerOfMassZ[j])/2;
 
-				centerOfMassX[j]=(coordinates3Dx[i]+centerOfMassX[j])/2;
-				centerOfMassY[j]=(coordinates3Dy[i]+centerOfMassY[j])/2;
-				centerOfMassZ[j]=(coordinates3Dz[i]+centerOfMassZ[j])/2;
+				// std::cout << centerOfMassX[j] << std::endl;
+				// std::cout << "-----------------------------------------------------------------------" << std::endl;
 
 				attractedToMassCenter = true;
 				break;
 			}
 		}
 
-		std::cout << "-----------------------------------------------------------------------" << attractedToMassCenter << std::endl;
-
-		if (attractedToMassCenter=false)
+		if (attractedToMassCenter==false)
 		{
-			std::cout << "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" << std::endl;
+				std::cout << coordinates3Dx[i] << std::endl;
+
+				std::cout << coordinates3Dx[i] << std::endl;
+
+				std::cout << coordinates3Dx[i] << std::endl;
+				std::cout << "-----------------------------------------------------------------------" << std::endl;
+
 			centerOfMassX.push_back(coordinates3Dx[i]);
 			centerOfMassY.push_back(coordinates3Dy[i]);
 			centerOfMassZ.push_back(coordinates3Dz[i]);
@@ -209,6 +229,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	#endif
 
 
+	////// trim center of mass checking how many coordinates are atracted
 
 	////////////////////////////////////////////////////////////////////////////////////////////// SAVE COORDINATES
 	MetaData md;
@@ -216,7 +237,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	size_t id;
 
 
-	for(size_t i=0;i<coordinates3Dx.size();i++)
+	for(size_t i=0;i<centerOfMassX.size();i++)
 	{
 		id = md.addObject();
 		md.setValue(MDL_XCOOR, centerOfMassX[i], id);
