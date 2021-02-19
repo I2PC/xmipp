@@ -166,23 +166,38 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 		for(size_t j=0;j<centerOfMassX.size();j++)
 		{
+			//std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+
 			int squareDistance =
 			(coordinates3Dx[i]-centerOfMassX[j])*(coordinates3Dx[i]-centerOfMassX[j])+
 			(coordinates3Dy[i]-centerOfMassY[j])*(coordinates3Dy[i]-centerOfMassY[j])+
 			(coordinates3Dz[i]-centerOfMassZ[j])*(coordinates3Dz[i]-centerOfMassZ[j]);
+			
+			std::cout << "-----------------------------------------------------------------------" << std::endl;
+			std::cout << "distance: " << squareDistance<< std::endl;
+			std::cout << "threshold: " << squareDistanceThr<< std::endl;
+			std::cout << "-----------------------------------------------------------------------" << std::endl;
+
 
 			if(squareDistance < squareDistanceThr)
 			{
+				std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" << std::endl;
+
+
 				centerOfMassX[j]=(coordinates3Dx[i]+centerOfMassX[j])/2;
 				centerOfMassY[j]=(coordinates3Dy[i]+centerOfMassY[j])/2;
 				centerOfMassZ[j]=(coordinates3Dz[i]+centerOfMassZ[j])/2;
 
 				attractedToMassCenter = true;
+				break;
 			}
 		}
 
+		std::cout << "-----------------------------------------------------------------------" << attractedToMassCenter << std::endl;
+
 		if (attractedToMassCenter=false)
 		{
+			std::cout << "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" << std::endl;
 			centerOfMassX.push_back(coordinates3Dx[i]);
 			centerOfMassY.push_back(coordinates3Dy[i]);
 			centerOfMassZ.push_back(coordinates3Dz[i]);
