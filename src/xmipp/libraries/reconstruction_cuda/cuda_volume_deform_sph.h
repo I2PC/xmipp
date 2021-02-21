@@ -101,6 +101,10 @@ private:
     // Kernel dimensions
     ktt::DimensionVector kttBlock;
     ktt::DimensionVector kttGrid;
+    // Kernel dimensions tuning
+    const std::string BLOCK_X_DIM = "BLOCK_X_DIM";
+    const std::string BLOCK_Y_DIM = "BLOCK_Y_DIM";
+    const std::string BLOCK_Z_DIM = "BLOCK_Z_DIM";
 
     // Kernel path
     const std::string pathToXmipp = "/home/david/thesis/xmipp-bundle/";//TODO

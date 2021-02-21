@@ -6,6 +6,9 @@
 #include "enum/argument_memory_location.h"
 #include "enum/compute_api.h"
 #include "enum/logging_level.h"
+#include "enum/modifier_action.h"
+#include "enum/modifier_dimension.h"
+#include "enum/modifier_type.h"
 #include "ktt_types.h"
 #include "reconstruction_adapt_cuda/volume_deform_sph_gpu.h"
 #include "cuda_volume_deform_sph.h"
@@ -25,11 +28,12 @@
 //#include "cuda_volume_deform_sph.cu"
 
 // CUDA kernel defines
+/*
 #define BLOCK_X_DIM 8
 #define BLOCK_Y_DIM 4
 #define BLOCK_Z_DIM 4
 #define TOTAL_BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
-
+*/
 
 // Not everything will be needed to transfer every time.
 // Some parameters stay the same for the whole time.
@@ -163,6 +167,7 @@ void VolumeDeformSph::setupConstantParameters()
     setupZSHparams();
     setupZSHparamsSCATTERED();
     setupVolumes();
+    //this->retuneKernel = program->retuneKernel;
 
     // ktt stuff
     Rmax2Id = tuner.addArgumentScalar(Rmax2);
@@ -177,15 +182,36 @@ void VolumeDeformSph::setupConstantParameters()
     deformImagesId = tuner.addArgumentScalar(deformImages);
 
     // kernel dimension
-    kttBlock.setSizeX(BLOCK_X_DIM);
-    kttBlock.setSizeY(BLOCK_Y_DIM);
-    kttBlock.setSizeZ(BLOCK_Z_DIM);
-    kttGrid.setSizeX(images.VR.xDim / BLOCK_X_DIM);
-    kttGrid.setSizeY(images.VR.yDim / BLOCK_Y_DIM);
-    kttGrid.setSizeZ(images.VR.zDim / BLOCK_Z_DIM);
+    // Supposes the input sizes are nicely divisible -> TODO
+    kttBlock.setSizeX(1);
+    kttBlock.setSizeY(1);
+    kttBlock.setSizeZ(1);
+    kttGrid.setSizeX(images.VR.xDim);
+    kttGrid.setSizeY(images.VR.yDim);
+    kttGrid.setSizeZ(images.VR.zDim);
 
     // kernel init
     kernelId = tuner.addKernelFromFile(pathToXmipp + pathToKernel, "computeDeform", kttGrid, kttBlock);
+
+    // tuning block/grid size
+    tuner.addParameter(kernelId, BLOCK_X_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
+    tuner.addParameter(kernelId, BLOCK_Y_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
+    tuner.addParameter(kernelId, BLOCK_Z_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
+    // block size modification
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Multiply);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Multiply);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::Multiply);
+    // grid size modification
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Divide);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Divide);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::Divide);
+    // constrains
+    tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
+            [&VR = images.VR](std::vector<size_t> vec)
+            {
+                return vec[0] * vec[1] * vec[2] < VR.xDim * VR.yDim * VR.zDim
+                    && vec[0] < VR.xDim && vec[1] < VR.yDim && vec[2] < VR.zDim;
+            });
 
     // kernel parameters
     // simple defines

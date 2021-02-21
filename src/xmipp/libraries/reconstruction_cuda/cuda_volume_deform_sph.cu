@@ -77,9 +77,15 @@ struct DeformImages
 };
 
 // CUDA kernel defines
+#ifndef BLOCK_X_DIM
 #define BLOCK_X_DIM 8
+#endif
+#ifndef BLOCK_Y_DIM
 #define BLOCK_Y_DIM 4
+#endif
+#ifndef BLOCK_Z_DIM
 #define BLOCK_Z_DIM 4
+#endif
 #define BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
 
 // ImageData macros
