@@ -1,0 +1,107 @@
+/***************************************************************************
+ *
+ * Authors:    Jose Luis Vilas, 		jlvilas@cnb.csic.es
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
+#ifndef _PROG_RESBFACTOR
+#define _PROG_RESBFACTOR
+
+#include <iostream>
+#include <core/xmipp_program.h>
+#include <core/xmipp_image.h>
+#include <core/metadata.h>
+#include <core/xmipp_fft.h>
+#include <core/xmipp_fftw.h>
+#include <math.h>
+#include <limits>
+#include <complex>
+#include <data/fourier_filter.h>
+#include <data/filters.h>
+#include <string>
+
+
+/**@defgroup Resolution B-Factor
+   @ingroup ReconsLibrary */
+//@{
+
+class ProgResBFactor : public XmippProgram
+{
+public:
+	 /** Filenames */
+	FileName fnOut, fn_pdb, fn_locres;
+
+	/** sampling rate*/
+	double sampling;
+
+	/** Number of atoms in the pdb or alpha-carbons*/
+	int numberOfAtoms;
+
+	bool medianTrue;
+
+	std::vector<double> residuesToChimera;
+	double fscResolution;
+
+	struct pdbdata
+	{
+		std::vector<double> x;
+		std::vector<double> y;
+		std::vector<double> z;
+		std::vector<double> b;
+		std::vector<int> residue;
+		std::vector<double> atomCovRad;
+	};
+	struct pdbdata at_pos;
+
+private:
+
+    void defineParams();
+    void readParams();
+
+    // ANALYZEPDB: This function read the atomic model and selects the position of alpha carbons.
+    // Positions are stored in a structure with 3 arrays at_pos.x, at_pos.y and at_pos.z.
+    void analyzePDB();
+
+    // SORT_INDEXES: This function takes a vector, it is sorted from low to high and the permutation
+    // indexes are returned. Example, the vector (5, 4, 7, 3), is sorted as (3, 4, 5, 7) and the output
+    // of the function will be (3, 1, 0, 2), because the number 3, is in the fourth position, number 4 is
+    // in the second position, and so on. Remeber that natural numbers start at 0.
+    template<typename T>
+    std::vector<size_t> sort_indexes(const std::vector<T> &v);
+ 
+
+    // SWEEPBYRESIDUE: This function creates a vector with the normalized local resolution per residue.
+    // Later, this vector will be used by generateOutput to create a pdb to visualize the normalized
+    // local resolution in chimera using on the pdb.
+    // Also the Normalized local resolution in stored in an output metadata
+    void sweepByResidue(std::vector<double> &residuesToChimera);
+
+    // GENERATEOUTPUTPDB: The normalized local resolution per residue is taken, residuesToChimera,
+    // and the values are stored in and output pdb file by substituting the bfactor column by the
+    // normalized local resolution of each residue. This file has visualization purpose (in Chimera).
+    void generateOutputPDB(std::vector<double> &residuesToChimera);
+
+
+    void run();
+};
+//@}
+#endif

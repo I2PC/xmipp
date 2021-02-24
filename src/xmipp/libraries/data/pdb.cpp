@@ -147,6 +147,37 @@ double atomRadius(const std::string &atom)
     }
 }
 
+/* Atom Covalent radius ------------------------------------------------------------- */
+double atomCovalentRadius(const std::string &atom)
+{
+    switch (atom[0])
+    {
+    case 'H':
+        return 0.38;
+        break;
+    case 'C':
+        return 0.77;
+        break;
+    case 'N':
+        return 0.75;
+        break;
+    case 'O':
+        return 0.73;
+        break;
+    case 'P':
+        return 1.06;
+        break;
+    case 'S':
+        return 1.02;
+        break;
+    case 'F': // Iron
+        return 1.25;
+        break;
+    default:
+        return 0;
+    }
+}
+
 /* Compute geometry -------------------------------------------------------- */
 void computePDBgeometry(const std::string &fnPDB,
                         Matrix1D<double> &centerOfMass,
@@ -624,7 +655,6 @@ double electronFormFactorFourier(double f, const Matrix1D<double> &descriptors)
 
 /* Electron form factor in real space -------------------------------------- */
 /* We know the transform pair
-
    sqrt(pi/b)*exp(-x^2/(4*b)) <----> exp(-b*W^2)
    
    We also know that 
