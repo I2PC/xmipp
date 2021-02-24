@@ -58,6 +58,13 @@ int atomCharge(const std::string &atom);
     radius. */
 double atomRadius(const std::string &atom);
 
+/** Returns the covalent radius of an atom.
+    Returns 0 if the atom is not within the short list (H, C, N, O, S, P, Fe)
+    of valid atoms.
+    The radius data is taken from http://www.webelements.com as the empirical
+    radius. */
+double atomCovalentRadius(const std::string &atom);
+
 /** Compute the center of mass and limits of a PDB file.
     The intensity column is used only for the pseudoatoms. It specifies
     from which column we should read the intensity. Valid columns are
