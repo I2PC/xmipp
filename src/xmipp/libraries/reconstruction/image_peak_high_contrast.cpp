@@ -42,7 +42,7 @@ void ProgImagePeakHighContrast::defineParams()
 	addUsageLine("This function determines the location of the outliers points in a volume");
 	addParamsLine("  --vol <vol_file=\"\">                   		: Input volume");
 	addParamsLine("  -o <output=\"coordinates3D.xmd\">        		: Output file containing the 3D coodinates");
-	addParamsLine("  [--thr <thr=0.1>]                		 		: Threshold");
+	addParamsLine("  [--thr <thr=0.1>]                		 		: Threshold to detect outlier pixes values");
   	addParamsLine("  [--samp <samp=10>]                		 		: Number of slices to use to determin the threshold value");
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]	: Number of initial center of mass to trim coordinates");
   	addParamsLine("  [--distanceThr <distanceThr=10>]				: Minimum distance to consider two coordinates belong to the same center of mass");
@@ -244,7 +244,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
 	#endif
 
-	////// trim center of mass checking how many coordinates are atracted
 	///// probar sin numeros aleatorios 
 	///// probar por separado los mas claros y los mas oscuros
 
