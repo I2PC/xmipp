@@ -48,10 +48,10 @@ public:
     FileName fnVol, fnOut;
 
     /** Threshold */
-    double thr;
+    double pixelValueThr;
 
     /** Number of slices and original centers of mass */
-    int samp, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
+    int numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
 
     /** Output coordinates */
     // extern std::vector<int> coordinates3Dx(0);

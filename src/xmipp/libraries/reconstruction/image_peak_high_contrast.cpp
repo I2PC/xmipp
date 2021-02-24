@@ -29,8 +29,8 @@ void ProgImagePeakHighContrast::readParams()
 {
 	fnVol = getParam("--vol");
 	fnOut = getParam("-o");
-	thr = getDoubleParam("--thr");
-    samp = getIntParam("--samp");
+	pixelValueThr = getDoubleParam("--pixelValueThr");
+    numberSampSlices = getIntParam("--numberSampSlices");
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
 	distanceThr = getIntParam("--distanceThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
@@ -42,8 +42,8 @@ void ProgImagePeakHighContrast::defineParams()
 	addUsageLine("This function determines the location of the outliers points in a volume");
 	addParamsLine("  --vol <vol_file=\"\">                   		: Input volume");
 	addParamsLine("  -o <output=\"coordinates3D.xmd\">        		: Output file containing the 3D coodinates");
-	addParamsLine("  [--thr <thr=0.1>]                		 		: Threshold to detect outlier pixes values");
-  	addParamsLine("  [--samp <samp=10>]                		 		: Number of slices to use to determin the threshold value");
+	addParamsLine("  [--pixelValueThr <pixelValueThr=0.1>]          : Threshold to detect outlier pixes values");
+  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     : Number of slices to use to determin the threshold value");
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]	: Number of initial center of mass to trim coordinates");
   	addParamsLine("  [--distanceThr <distanceThr=10>]				: Minimum distance to consider two coordinates belong to the same center of mass");
   	addParamsLine("  [--numberOfCoordinatesThr <distanceThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it");
@@ -61,8 +61,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	// #define DEBUG_DIST
 
 	#ifdef DEBUG
-	std::cout << "Number of sampling slices: " << samp << std::endl;
-	std::cout << "Threshold: " << thr << std::endl;
+	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
+	std::cout << "Threshold: " << pixelValueThr << std::endl;
 	#endif
 
 	Image<double> inputVolume;
@@ -90,11 +90,11 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	///////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
 
 	#ifdef DEBUG
-	std::cout << "Sampling region from slice " << centralSlice - (samp/2) << " to " 
-	<< centralSlice + (samp / 2) << std::endl;
+	std::cout << "Sampling region from slice " << centralSlice - (numberSampSlices/2) << " to " 
+	<< centralSlice + (numberSampSlices / 2) << std::endl;
 	#endif
 
-	for(size_t k = centralSlice - (samp/2); k <= centralSlice + (samp / 2); ++k)
+	for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
 	{
 		for(size_t j = 0; j < YSIZE(inputTomo); ++j)
 		{
@@ -112,8 +112,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::sort(tomoVector.begin(),tomoVector.end());
 
 
-	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(thr/2)))];
-    double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(thr/2))];
+	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(pixelValueThr/2)))];
+    double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(pixelValueThr/2))];
 
 	#ifdef DEBUG
 	std::cout << "High threshold value = " << highThresholdValue << std::endl;
