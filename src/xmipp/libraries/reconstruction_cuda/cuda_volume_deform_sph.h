@@ -2,6 +2,7 @@
 #define VOLUME_DEFORM_SPH_H
 // Xmipp includes
 #include "api/dimension_vector.h"
+#include "api/parameter_pair.h"
 #include "core/xmipp_image.h"
 #include "core/multidim_array.h"
 // Standard includes
@@ -82,6 +83,7 @@ public:
     void setupConstantParameters();
     void setupChangingParameters();
 
+    void pretuneKernel();
     void runKernel();
     void transferResults();
 
@@ -97,18 +99,21 @@ private:
     // KTT tuner and kernel
     ktt::Tuner tuner;
     ktt::KernelId kernelId;
+    std::vector<ktt::ParameterPair> bestKernelConfig;
+    bool tuneKernel = true;
 
     // Kernel dimensions
     ktt::DimensionVector kttBlock;
     ktt::DimensionVector kttGrid;
+    int tunedGridSize = 1;
     // Kernel dimensions tuning
     const std::string BLOCK_X_DIM = "BLOCK_X_DIM";
     const std::string BLOCK_Y_DIM = "BLOCK_Y_DIM";
     const std::string BLOCK_Z_DIM = "BLOCK_Z_DIM";
 
     // Kernel path
-    const std::string pathToXmipp = "/home/david/thesis/xmipp-bundle/";//TODO
-    const std::string pathToKernel = "src/xmipp/libraries/reconstruction_cuda/cuda_volume_deform_sph.cu";
+    std::string pathToXmipp = "/home/david/thesis/xmipp-bundle/";
+    std::string pathToKernel = "src/xmipp/libraries/reconstruction_cuda/cuda_volume_deform_sph.cu";
 
     // Variables transfered to the GPU memory
 

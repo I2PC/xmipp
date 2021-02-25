@@ -170,9 +170,11 @@ extern "C" __global__ void computeDeform(
 #if USE_SHARED_VOLUME_METADATA == 1
     __shared__ ImageData volRMetaShared[VOL_COUNT];
     __shared__ ImageData volIMetaShared[VOL_COUNT];
-    for (int i = 0; i < VOL_COUNT; i++) {
-        volRMetaShared[i] = volumes.R[i];
-        volIMetaShared[i] = volumes.I[i];
+    if (tIdx == 0) {
+        for (int i = 0; i < VOL_COUNT; i++) {
+            volRMetaShared[i] = volumes.R[i];
+            volIMetaShared[i] = volumes.I[i];
+        }
     }
 #endif
 
@@ -609,11 +611,16 @@ extern "C" __global__ void computeDeform(
     }
     // Last warp reduction
     if (tIdx < 32) {
-        // Recycle registers
-        localDiff2 = sumArrayShared[tIdx] + sumArrayShared[tIdx + 32];
-        localSumVD = sumArrayShared[tIdx + BLOCK_SIZE] + sumArrayShared[tIdx + BLOCK_SIZE + 32];
-        localModg = sumArrayShared[tIdx + BLOCK_SIZE * 2] + sumArrayShared[tIdx + BLOCK_SIZE * 2 + 32];
-        localNcount = sumArrayShared[tIdx + BLOCK_SIZE * 3] + sumArrayShared[tIdx + BLOCK_SIZE * 3 + 32];
+        localDiff2 = sumArrayShared[tIdx];
+        localSumVD = sumArrayShared[tIdx + BLOCK_SIZE];
+        localModg = sumArrayShared[tIdx + BLOCK_SIZE * 2];
+        localNcount = sumArrayShared[tIdx + BLOCK_SIZE * 3];
+        if (BLOCK_SIZE >= 64) {
+            localDiff2 += sumArrayShared[tIdx + 32];
+            localSumVD += sumArrayShared[tIdx + BLOCK_SIZE + 32];
+            localModg += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 32];
+            localNcount += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 32];
+        }
         // Reduce warp
         for (int offset = 32 / 2; offset > 0; offset >>= 1) {
             localDiff2 += __shfl_down_sync(0xFFFFFFFF, localDiff2, offset);
@@ -634,7 +641,7 @@ extern "C" __global__ void computeDeform(
         outArrayGlobal[bIdx + GRID_SIZE * 2] = sumArrayShared[BLOCK_SIZE * 2];
         outArrayGlobal[bIdx + GRID_SIZE * 3] = sumArrayShared[BLOCK_SIZE * 3];
 #else
-        // Resulting values are in registers local* => no need to go into shared mem
+        // Resulting values are in variables local* => no need to go into shared mem
         outArrayGlobal[bIdx] = localDiff2;
         outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
         outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;

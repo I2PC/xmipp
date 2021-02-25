@@ -9,6 +9,8 @@
 #include "enum/modifier_action.h"
 #include "enum/modifier_dimension.h"
 #include "enum/modifier_type.h"
+#include "enum/print_format.h"
+#include "enum/time_unit.h"
 #include "ktt_types.h"
 #include "reconstruction_adapt_cuda/volume_deform_sph_gpu.h"
 #include "cuda_volume_deform_sph.h"
@@ -24,34 +26,7 @@
 #include <thrust/device_vector.h>
 // KTT includes
 #include "tuner_api.h"
-// Cuda kernel include
-//#include "cuda_volume_deform_sph.cu"
 
-// CUDA kernel defines
-/*
-#define BLOCK_X_DIM 8
-#define BLOCK_Y_DIM 4
-#define BLOCK_Z_DIM 4
-#define TOTAL_BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
-*/
-
-// Not everything will be needed to transfer every time.
-// Some parameters stay the same for the whole time.
-//----------------------------------------------------
-// constant params:
-//      Rmax2, iRmax, VI, VR, vL1, vN, vL2, vM,
-//      volumesI, volumesR
-//----------------------------------------------------
-// changing params:
-//      steps, clnm, 
-//----------------------------------------------------
-// parameters that can be initialized at gpu:
-//      outputs(diff2,sumVD,modg,Ncount) = 0
-//      VO().initZeros(VR()).setXmippOrigin()
-//      Gx().initZeros(VR()).setXmippOrigin(), Gy..., Gz...
-//----------------------------------------------------
-// applyTransformation is true only in the very last call.
-// saveDeformation is true only in the very last call and only when analyzeStrain is true
 
 // Common functions
 template<typename T>
@@ -113,6 +88,8 @@ VolumeDeformSph::VolumeDeformSph() : tuner(0, 0, ktt::ComputeAPI::CUDA)
     " -DUSE_DOUBLE_PRECISION=1"
 #endif
             );
+    //std::string tmp = std::string(__FILE__);
+    //pathToKernel = tmp.substr(0, tmp.length() - 3) + "cu";
 }
 
 void VolumeDeformSph::freeZSHSCATTERED()
@@ -209,7 +186,7 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
             [&VR = images.VR](std::vector<size_t> vec)
             {
-                return vec[0] * vec[1] * vec[2] < VR.xDim * VR.yDim * VR.zDim
+                return 32 <= vec[0] * vec[1] * vec[2]
                     && vec[0] < VR.xDim && vec[1] < VR.yDim && vec[2] < VR.zDim;
             });
 
@@ -219,11 +196,11 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
     tuner.addParameter(kernelId, "VOL_COUNT", {volumes.size});
     // tuning parameters
-    tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0, 1});
-    tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0, 1});
-    tuner.addParameter(kernelId, "USE_NAIVE_BLOCK_REDUCTION", {0, 1});
-    tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {0, 1});
-    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {0, 1});
+    tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0});
+    tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0});
+    tuner.addParameter(kernelId, "USE_NAIVE_BLOCK_REDUCTION", {0});
+    tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
+    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {1});
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -288,9 +265,13 @@ void VolumeDeformSph::transferImageData(Image<double>& outputImage, ImageData& i
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
 }
 
-void VolumeDeformSph::runKernel() 
+void VolumeDeformSph::pretuneKernel() 
 {
     // Does not work in general case, but test data have nice sizes
+
+    if (!tuneKernel) {
+        return;
+    }
 
     // Define thrust reduction vector
     thrust::device_vector<PrecisionType> thrustVec(kttGrid.getTotalSize() * 4, 0.0);
@@ -315,14 +296,67 @@ void VolumeDeformSph::runKernel()
             thrustVecId
             });
 
-    // Run/tune kernel
+    // Tune kernel
     tuner.tuneKernel(kernelId);
+    tuneKernel = false;
 
+    if (!program->kttTuningLog.isEmpty()) {
+        tuner.setPrintingTimeUnit(ktt::TimeUnit::Microseconds);
+        tuner.printResult(kernelId, program->kttTuningLog, ktt::PrintFormat::CSV);
+    }
+
+    bestKernelConfig = tuner.getBestComputationResult(kernelId).getConfiguration();
+    for (const auto& pair : bestKernelConfig) {
+        if (pair.getName() == BLOCK_X_DIM) {
+            tunedGridSize *= (kttGrid.getSizeX() / pair.getValue());
+        }
+        if (pair.getName() == BLOCK_Y_DIM) {
+            tunedGridSize *= (kttGrid.getSizeY() / pair.getValue());
+        }
+        if (pair.getName() == BLOCK_Z_DIM) {
+            tunedGridSize *= (kttGrid.getSizeZ() / pair.getValue());
+        }
+    }
+}
+
+void VolumeDeformSph::runKernel() 
+{
+    if (tuneKernel) {
+        pretuneKernel();
+    }
+
+    // Does not work in general case, but test data have nice sizes
+
+    // Define thrust reduction vector
+    thrust::device_vector<PrecisionType> thrustVec(tunedGridSize * 4, 0.0);
+
+    // Add arguments for the kernel
+    ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())), thrustVec.size() * sizeof(PrecisionType), ktt::ArgumentAccessType::ReadWrite, ktt::ArgumentMemoryLocation::Device);
+
+    // Assign arguments to the kernel
+    tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
+            Rmax2Id,
+            iRmaxId,
+            imagesId,
+            zshparamsId,
+            clnmId,
+            zshparamsSCATTEREDId,
+            clnmSCATTEREDId,
+            stepsId,
+            volumesId,
+            deformImagesId,
+            applyTransformationId,
+            saveDeformationId,
+            thrustVecId
+            });
+
+    // Run kernel
+    tuner.runKernel(kernelId, bestKernelConfig, {});
 
     auto diff2It = thrustVec.begin();
-    auto sumVDIt = diff2It + kttGrid.getTotalSize();
-    auto modgIt = sumVDIt + kttGrid.getTotalSize();
-    auto NcountIt = modgIt + kttGrid.getTotalSize();
+    auto sumVDIt = diff2It + tunedGridSize;
+    auto modgIt = sumVDIt + tunedGridSize;
+    auto NcountIt = modgIt + tunedGridSize;
 
     outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
     outputs.sumVD = thrust::reduce(sumVDIt, modgIt);

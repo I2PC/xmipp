@@ -41,6 +41,7 @@ class ProgVolumeDeformSphGpu: public XmippProgram
 public:
     /// GPU computer
     VolumeDeformSph volDefSphGpu;
+    FileName kttTuningLog;
 
 	/// Volume to deform
 	FileName fnVolI;
