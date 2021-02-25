@@ -46,6 +46,7 @@ void ProgVolumeDeformSphGpu::defineParams() {
 	addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
 	addParamsLine("  [--kttLog <logfile=\"\">]            : KTT tuning result file");
+	addParamsLine("  [--xmipp <pathToXmipp=\"\">]         : Absolute path to xmipp-bundle");
 	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
 }
 
@@ -58,6 +59,7 @@ void ProgVolumeDeformSphGpu::readParams() {
 	L2 = getIntParam("--l2");
 	fnRoot = getParam("--oroot");
     kttTuningLog = getParam("--kttLog");
+    pathToXmipp = getParam("--xmipp");
 	
 	aux = getParam("--sigma");
 	// Transform string ov values separated by white spaces into substrings stored in a vector

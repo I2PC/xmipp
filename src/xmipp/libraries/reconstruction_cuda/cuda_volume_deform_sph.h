@@ -112,7 +112,7 @@ private:
     const std::string BLOCK_Z_DIM = "BLOCK_Z_DIM";
 
     // Kernel path
-    std::string pathToXmipp = "/home/david/thesis/xmipp-bundle/";
+    std::string pathToXmipp = "/home/david/thesis/xmipp-bundle/";//default
     std::string pathToKernel = "src/xmipp/libraries/reconstruction_cuda/cuda_volume_deform_sph.cu";
 
     // Variables transfered to the GPU memory

@@ -42,6 +42,7 @@ public:
     /// GPU computer
     VolumeDeformSph volDefSphGpu;
     FileName kttTuningLog;
+    FileName pathToXmipp;
 
 	/// Volume to deform
 	FileName fnVolI;

@@ -88,8 +88,6 @@ VolumeDeformSph::VolumeDeformSph() : tuner(0, 0, ktt::ComputeAPI::CUDA)
     " -DUSE_DOUBLE_PRECISION=1"
 #endif
             );
-    //std::string tmp = std::string(__FILE__);
-    //pathToKernel = tmp.substr(0, tmp.length() - 3) + "cu";
 }
 
 void VolumeDeformSph::freeZSHSCATTERED()
@@ -136,6 +134,11 @@ void VolumeDeformSph::setupConstantParameters()
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
+    // paths
+    if (!program->pathToXmipp.isEmpty()) {
+        pathToXmipp = program->pathToXmipp;
+    }
+
     // kernel arguments
     this->Rmax2 = program->Rmax * program->Rmax;
     this->iRmax = 1 / program->Rmax;
@@ -144,7 +147,6 @@ void VolumeDeformSph::setupConstantParameters()
     setupZSHparams();
     setupZSHparamsSCATTERED();
     setupVolumes();
-    //this->retuneKernel = program->retuneKernel;
 
     // ktt stuff
     Rmax2Id = tuner.addArgumentScalar(Rmax2);
