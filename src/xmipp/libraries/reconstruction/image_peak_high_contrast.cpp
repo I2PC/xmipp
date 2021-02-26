@@ -29,6 +29,7 @@ void ProgImagePeakHighContrast::readParams()
 {
 	fnVol = getParam("--vol");
 	fnOut = getParam("-o");
+	boxSize = getIntParam("--boxSize");
 	pixelValueThr = getDoubleParam("--pixelValueThr");
     numberSampSlices = getIntParam("--numberSampSlices");
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
@@ -40,13 +41,14 @@ void ProgImagePeakHighContrast::readParams()
 void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
-	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume");
-	addParamsLine("  -o <output=\"coordinates3D.xmd\">        				: Output file containing the 3D coodinates");
-	addParamsLine("  [--pixelValueThr <pixelValueThr=0.1>]          		: Threshold to detect outlier pixes values");
-  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value");
-  	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates");
-  	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass");
-  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it");
+	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume. It is recommended that it is gaussian filtered previously.");
+	addParamsLine("  -o <output=\"coordinates3D.xmd\">        				: Output file containing the 3D coodinates.");
+  	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
+	addParamsLine("  [--pixelValueThr <pixelValueThr=0.1>]          		: Threshold to detect outlier pixes values.");
+  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
+  	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
+  	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
+  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
 
 }
 
@@ -218,6 +220,25 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	#endif
 
 	///////////////////////////////////////////////////////////////////////////////////////////////TRIM CENTER OF MASS
+
+	// Check that coordinates at the border of the volume are not outside when considering the box size
+	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
+	{
+		if(centerOfMassX[i]<boxSize/2 or XSIZE(inputTomo)-centerOfMassX[i]<boxSize/2 or
+		   centerOfMassY[i]<boxSize/2 or YSIZE(inputTomo)-centerOfMassY[i]<boxSize/2 or
+		   centerOfMassZ[i]<boxSize/2 or ZSIZE(inputTomo)-centerOfMassZ[i]<boxSize/2)
+		{
+			numberOfCoordsPerCM.erase(numberOfCoordsPerCM.begin()+i);
+			centerOfMassX.erase(centerOfMassX.begin()+i);
+			centerOfMassY.erase(centerOfMassY.begin()+i);
+			centerOfMassZ.erase(centerOfMassZ.begin()+i);
+			i--;
+		}
+
+	}
+
+
+	// Check number of coordinates per center of mass
 	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
 	{
 		if(numberOfCoordsPerCM[i]<numberOfCoordinatesThr)
@@ -235,7 +256,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
 	#endif
 
-	///// probar por separado los mas claros y los mas oscuros
 
 	////////////////////////////////////////////////////////////////////////////////////////////// SAVE COORDINATES
 	MetaData md;

@@ -51,7 +51,7 @@ public:
     double pixelValueThr;
 
     /** Number of slices and original centers of mass */
-    int numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
+    int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
 
     /** Output coordinates */
     // extern std::vector<int> coordinates3Dx(0);
