@@ -28,7 +28,6 @@
 #include "data/pdb.h"
 #include <numeric>
 #include <algorithm>
-#include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <string.h>
@@ -39,7 +38,7 @@ void ProgResBFactor::readParams()
 	fn_pdb = getParam("--atmodel");
 	fn_locres = getParam("--vol");
 	sampling = getDoubleParam("--sampling");
-	medianTrue = checkParam("--median");
+	medianTrue = checkParam("--hasMedian");
 	fscResolution = getDoubleParam("--fscResolution");
 	fnOut = getParam("-o");
 }
@@ -47,17 +46,16 @@ void ProgResBFactor::readParams()
 
 void ProgResBFactor::defineParams()
 {
-	addUsageLine("The matching between the local b-factor of an atomic model and the local resolution of a cryoEM map.");
+	addUsageLine("The local b-factor of an atomic model (from xray or cryoem) are compared with the local resolution of a cryoEM map. To do that, the atom positions are selected and the local resolution around that atom is taken to determine an estimation of the local resolution of the residue. Only alpha carbons are selected to carry out this task. Tha output is a metadata with the residues, local resolution estimation of the residue, and local bfactor");
 	addParamsLine("  --atmodel <pdb_file=\"\">   		: Atomic model (pdb). Ensure it is aligned/fitted to the local resolution map");
 	addParamsLine("  --vol <vol_file=\"\">			: Local resolution map");
 	addParamsLine("  [--sampling <sampling=1>]		: Sampling Rate (A)");
-	addParamsLine("  [--median]			        : The resolution an bfactor per residue are averaged instead of computed the median");
+	addParamsLine("  [--hasMedian]			        : The resolution an bfactor per residue are averaged instead of computed the median");
 	addParamsLine("  [--fscResolution <fscResolution=-1>]	: If this is provided, the FSC resolution, R, in Angstrom is used to normalized the local resolution, LR, as (LR-R)/R, where LR is the local resoluion and R is the global resolution");
 	addParamsLine("  -o <output=\"amap.mrc\">		: Output of the algorithm");
 }
 
-// ANALYZEPDB: This function read the atomic model and selects the position of alpha carbons.
-// Positions are stored in a structure with 3 arrays at_pos.x, at_pos.y and at_pos.z.
+
 void ProgResBFactor::analyzePDB()
 {
 	//Open the pdb file
@@ -79,7 +77,14 @@ void ProgResBFactor::analyzePDB()
 		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
 		{
 			// Type of Atom
-			std::string at = line.substr(13,2);
+			std::string at;
+                        try
+                        {
+			    at = line.substr(13,2);
+                        }catch (const std::out_of_range& oor)
+                        {
+                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+                        }
 
 			if (at == "CA")
 			{
@@ -110,10 +115,7 @@ void ProgResBFactor::analyzePDB()
 	}
 }
 
-// SORT_INDEXES: This function takes a vector, it is sorted from low to high and the permutation
-// indexes are returned. Example, the vector (5, 4, 7, 3), is sorted as (3, 4, 5, 7) and the output
-// of the function will be (3, 1, 0, 2), because the number 3, is in the fourth position, number 4 is
-// in the second position, and so on. Remeber that natural numbers start at 0.
+
 template <typename T>
 std::vector<size_t> ProgResBFactor::sort_indexes(const std::vector<T> &v)
 {
@@ -132,10 +134,7 @@ std::vector<size_t> ProgResBFactor::sort_indexes(const std::vector<T> &v)
 }
 
 
-// SWEEPBYRESIDUE: This function creates a vector with the normalized local resolution per residue.
-// Later, this vector will be used by generateOutput to create a pdb to visualize the normalized
-// local resolution in chimera using on the pdb.
-// Also the Normalized local resolution in stored in an output metadata
+
 void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 {
 	// Reading Local Resolution Map
@@ -276,73 +275,10 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 		// Total Displacement in voxels
 		int totRad = 3; //round( (covRad + bfactorRad)/sampling );
 
-		int dim = totRad*totRad;
-
 		// All resolutions around the atom position are stored in a vector to estimate
                 // the local resolution of the residue
-		for (size_t kk = 0; kk<totRad; ++kk)
-		{
-			size_t kk2 = kk * kk;
-			for (size_t jj = 0; jj<totRad; ++jj)
-			{
-				size_t jj2kk2 = jj * jj + kk2;
-				for (size_t ii = 0; ii<totRad; ++ii)
-				{
-					size_t dist2 = (ii)*(ii) + (jj)*(jj) + (kk)*(kk);
-					if (dist2 <= dim)
-					{
-						A3D_ELEM(mask, k-kk, i-ii, j-jj) = 1;
-						A3D_ELEM(mask, k-kk, i-ii, j+jj) = 1;
-						A3D_ELEM(mask, k-kk, i+ii, j-jj) = 1;
-						A3D_ELEM(mask, k-kk, i+ii, j+jj) = 1;
-						A3D_ELEM(mask, k+kk, i-ii, j-jj) = 1;
-						A3D_ELEM(mask, k+kk, i-ii, j+jj) = 1;
-						A3D_ELEM(mask, k+kk, i+ii, j-jj) = 1;
-						A3D_ELEM(mask, k+kk, i+ii, j+jj) = 1;
-
-						double &z1 = A3D_ELEM(resvol, k-kk, i-ii, j-jj);
-						resolution_to_estimate.push_back(z1);
-						resolution_mean += z1;
-						N_elems++;
-
-						double &z2 = A3D_ELEM(resvol, k-kk, i-ii, j+jj);
-						resolution_to_estimate.push_back(z2);
-						resolution_mean += z2;
-						N_elems++;
-
-						double &z3 = A3D_ELEM(resvol, k-kk, i+ii, j-jj);
-						resolution_to_estimate.push_back(z3);
-						resolution_mean += z3;
-						N_elems++;
-
-						double &z4 = A3D_ELEM(resvol, k-kk, i+ii, j+jj);
-						resolution_to_estimate.push_back(z4);
-						resolution_mean += z4;
-						N_elems++;
-
-						double &z5 = A3D_ELEM(resvol, k+kk, i-ii, j-jj);
-						resolution_to_estimate.push_back(z5);
-						resolution_mean += z5;
-
-						double &z6 = A3D_ELEM(resvol, k+kk, i-ii, j+jj);
-						resolution_to_estimate.push_back(z6);
-						resolution_mean += z6;
-						N_elems++;
-
-						double &z7 = A3D_ELEM(resvol, k+kk, i+ii, j-jj);
-						resolution_to_estimate.push_back(z7);
-						resolution_mean += z7;
-						N_elems++;
-
-						double &z8 = A3D_ELEM(resvol, k+kk, i+ii, j+jj);
-						resolution_to_estimate.push_back(z8);
-						resolution_mean += z8;
-						N_elems++;
-					}
-				}
-			}
-		}
-
+		estimatingResolutionOfResidue(k, i, j, totRad, mask, resvol, resolution_mean, N_elems, resolution_to_estimate);
+		
 
 	}
 
@@ -396,11 +332,77 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 
 }
 
+void ProgResBFactor::estimatingResolutionOfResidue(int k, int i, int j, int totRad, MultidimArray<int> &mask, MultidimArray<double> &resvol, double &resolution_mean, int &N_elems, std::vector<double> &resolution_to_estimate)
+{
+    int dim = totRad*totRad;
 
-// GENERATEOUTPUTPDB: The normalized local resolution per residue is taken, residuesToChimera,
-// and the values are stored in and output pdb file by substituting the bfactor column by the
-// normalized local resolution of each residue. This file has visualization purpose (in Chimera).
-void ProgResBFactor::generateOutputPDB(std::vector<double> &residuesToChimera)
+    for (size_t kk = 0; kk<totRad; ++kk)
+	{
+	size_t kk2 = kk * kk;
+	for (size_t jj = 0; jj<totRad; ++jj)
+	{
+		size_t jj2kk2 = jj * jj + kk2;
+		for (size_t ii = 0; ii<totRad; ++ii)
+		{
+			size_t dist2 = (ii)*(ii) + (jj)*(jj) + (kk)*(kk);
+			if (dist2 <= dim)
+			{
+				A3D_ELEM(mask, k-kk, i-ii, j-jj) = 1;
+				A3D_ELEM(mask, k-kk, i-ii, j+jj) = 1;
+				A3D_ELEM(mask, k-kk, i+ii, j-jj) = 1;
+				A3D_ELEM(mask, k-kk, i+ii, j+jj) = 1;
+				A3D_ELEM(mask, k+kk, i-ii, j-jj) = 1;
+				A3D_ELEM(mask, k+kk, i-ii, j+jj) = 1;
+				A3D_ELEM(mask, k+kk, i+ii, j-jj) = 1;
+				A3D_ELEM(mask, k+kk, i+ii, j+jj) = 1;
+
+				double &z1 = A3D_ELEM(resvol, k-kk, i-ii, j-jj);
+				resolution_to_estimate.push_back(z1);
+				resolution_mean += z1;
+				N_elems++;
+
+				double &z2 = A3D_ELEM(resvol, k-kk, i-ii, j+jj);
+				resolution_to_estimate.push_back(z2);
+				resolution_mean += z2;
+				N_elems++;
+
+				double &z3 = A3D_ELEM(resvol, k-kk, i+ii, j-jj);
+				resolution_to_estimate.push_back(z3);
+				resolution_mean += z3;
+				N_elems++;
+
+				double &z4 = A3D_ELEM(resvol, k-kk, i+ii, j+jj);
+				resolution_to_estimate.push_back(z4);
+				resolution_mean += z4;
+				N_elems++;
+
+				double &z5 = A3D_ELEM(resvol, k+kk, i-ii, j-jj);
+				resolution_to_estimate.push_back(z5);
+				resolution_mean += z5;
+
+				double &z6 = A3D_ELEM(resvol, k+kk, i-ii, j+jj);
+				resolution_to_estimate.push_back(z6);
+				resolution_mean += z6;
+				N_elems++;
+
+				double &z7 = A3D_ELEM(resvol, k+kk, i+ii, j-jj);
+				resolution_to_estimate.push_back(z7);
+				resolution_mean += z7;
+				N_elems++;
+
+				double &z8 = A3D_ELEM(resvol, k+kk, i+ii, j+jj);
+				resolution_to_estimate.push_back(z8);
+				resolution_mean += z8;
+				N_elems++;
+			}
+		}
+	}
+    }
+}
+
+
+
+void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChimera)
 {
 	//Open the pdb file
 	std::ifstream f2parse;
@@ -422,22 +424,22 @@ void ProgResBFactor::generateOutputPDB(std::vector<double> &residuesToChimera)
 		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
 		{
 			std::string lineInit = line.substr(0,61);
-			std::string lineEnd = line.substr(66, line.length()-1);
+			std::string lineEnd = line.substr(66,  std::string::npos);
 
                         // The residue is read
 			int resi = (int) textToFloat(line.substr(23,5));
 			std::string lineMiddle;
 			int digitNumber = 5;
-
-			std::stringstream ss;
-			std::string auxstr;
-			auxstr = std::to_string(residuesToChimera[resi-1]);
+			
+			std::string auxstr = std::to_string(residuesToChimera[resi-1]);
 
 			// The bfactor column has 5 digits so we set the normalized resolution to 
                         // 5 digits
 			auxstr = auxstr.substr(0, 5);
-			ss << std::setfill('0') << std::setw(5)  << auxstr;
-			lineMiddle = ss.str();
+                        std::stringstream ss;
+			//ss << std::setfill('0') << std::setw(5)  << auxstr;
+			ss << std::setfill('0') << std::setw(5) << residuesToChimera[resi-1];
+                        lineMiddle = ss.str();
 
 			std::string linePDB;
 			linePDB = lineInit + lineMiddle + lineEnd;
@@ -452,7 +454,7 @@ void ProgResBFactor::generateOutputPDB(std::vector<double> &residuesToChimera)
 }
 
 
-// RUN: This is the main execution of the algorithm. All methods are called from here
+
 void ProgResBFactor::run()
 {
 	std::cout << "Start" << std::endl;
@@ -468,5 +470,5 @@ void ProgResBFactor::run()
         // the local resolution of the residue. Also a smoothing is carried out
 	generateOutputPDB(residuesToChimera);
 
-	std::cout << "Fisnished" << std::endl;
+	std::cout << "Finished" << std::endl;
 }
