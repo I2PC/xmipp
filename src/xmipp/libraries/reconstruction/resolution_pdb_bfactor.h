@@ -30,13 +30,7 @@
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <math.h>
 #include <limits>
-#include <complex>
-#include <data/fourier_filter.h>
-#include <data/filters.h>
 #include <string>
 
 
@@ -46,7 +40,7 @@
 
 class ProgResBFactor : public XmippProgram
 {
-public:
+private:
 	 /** Filenames */
 	FileName fnOut, fn_pdb, fn_locres;
 
@@ -76,29 +70,44 @@ private:
 
     void defineParams();
     void readParams();
-
-    // ANALYZEPDB: This function read the atomic model and selects the position of alpha carbons.
-    // Positions are stored in a structure with 3 arrays at_pos.x, at_pos.y and at_pos.z.
+    /**
+    * ANALYZEPDB: This function read the atomic model and selects the position of alpha carbons.
+    * Positions are stored in a structure with 3 arrays at_pos.x, at_pos.y and at_pos.z.
+    */
     void analyzePDB();
 
-    // SORT_INDEXES: This function takes a vector, it is sorted from low to high and the permutation
-    // indexes are returned. Example, the vector (5, 4, 7, 3), is sorted as (3, 4, 5, 7) and the output
-    // of the function will be (3, 1, 0, 2), because the number 3, is in the fourth position, number 4 is
-    // in the second position, and so on. Remeber that natural numbers start at 0.
+    /**
+    * SORT_INDEXES: This function takes a vector, it is sorted from low to high and the permutation
+    * indexes are returned. Example, the vector (5, 4, 7, 3), is sorted as (3, 4, 5, 7) and the output
+    * of the function will be (3, 1, 0, 2), because the number 3, is in the fourth position, number 4 is
+    * in the second position, and so on. Remeber that natural numbers start at 0.
+    */
     template<typename T>
     std::vector<size_t> sort_indexes(const std::vector<T> &v);
  
-
-    // SWEEPBYRESIDUE: This function creates a vector with the normalized local resolution per residue.
-    // Later, this vector will be used by generateOutput to create a pdb to visualize the normalized
-    // local resolution in chimera using on the pdb.
-    // Also the Normalized local resolution in stored in an output metadata
+    /**
+    * SWEEPBYRESIDUE: This function creates a vector with the normalized local resolution per residue.
+    * Later, this vector will be used by generateOutput to create a pdb to visualize the normalized
+    * local resolution in chimera using on the pdb.
+    * Also the Normalized local resolution in stored in an output metadata
+    */
     void sweepByResidue(std::vector<double> &residuesToChimera);
 
-    // GENERATEOUTPUTPDB: The normalized local resolution per residue is taken, residuesToChimera,
-    // and the values are stored in and output pdb file by substituting the bfactor column by the
-    // normalized local resolution of each residue. This file has visualization purpose (in Chimera).
-    void generateOutputPDB(std::vector<double> &residuesToChimera);
+    /**
+    * GENERATEOUTPUTPDB: The normalized local resolution per residue is taken, residuesToChimera,
+    * and the values are stored in and output pdb file by substituting the bfactor column by the
+    * normalized local resolution of each residue. This file has visualization purpose (in Chimera).
+    */
+    void generateOutputPDB(const std::vector<double> &residuesToChimera);
+
+    /**
+    * For each atom position k, i, j, and a radius, totRad, the local resolution values of a local
+    * resolution map, resvol, around such position and inside a sphere of radiue totRad are taken to
+    * compute the mean resolution, the number of voxels, of the sphere. Also a Mask is created with
+    * the sphere and the local resolution values are stored in a vector, resolution_to_estimate, to 
+    * compute the median resolution in a later step.
+    */
+    void estimatingResolutionOfResidue(int k, int i, int j, int totRad, MultidimArray<int> &mask, MultidimArray<double> &resvol, double &resolution_mean, int &N_elems, std::vector<double> &resolution_to_estimate);
 
 
     void run();
