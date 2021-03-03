@@ -101,7 +101,7 @@ struct pdbInfo
 the typeOfAtom, (for instance the C-alpha atoms) storing the atom positions, b- factor,
 the residue of each atom, and the covalent radiues in a struct vector at_pos. Also the number
 of atoms is kept.*/
-void analyzePDBAtoms(const FileName fn_pdb, const std::string typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos);
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos);
 
 
 /** Atom class. */

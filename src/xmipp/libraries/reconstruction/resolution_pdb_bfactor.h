@@ -30,15 +30,14 @@
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
 #include "data/pdb.h"
-#include <core/bilib/kernel.h>
+//#include <core/bilib/kernel.h>
 #include <limits>
 #include <string>
-#include <numeric>
+//#include <numeric>
 #include <algorithm>
 #include <fstream>
-#include <iostream>
+//#include <iostream>
 #include <iomanip>
-#include <string.h>
 
 
 /**@defgroup Resolution B-Factor
@@ -115,7 +114,7 @@ private:
     * the sphere and the local resolution values are stored in a vector, resolution_to_estimate, to 
     * compute the median resolution in a later step.
     */
-    void estimatingResolutionOfResidue(int k, int i, int j, int totRad, MultidimArray<int> &mask, MultidimArray<double> &resvol, double &resolution_mean, int &N_elems, std::vector<double> &resolution_to_estimate);
+    void estimatingResolutionOfResidue(int k, int i, int j, int totRad, MultidimArray<int> &mask, const MultidimArray<double> &resvol, double &resolution_mean, int &N_elems, std::vector<double> &resolution_to_estimate);
 
 
     void run();
