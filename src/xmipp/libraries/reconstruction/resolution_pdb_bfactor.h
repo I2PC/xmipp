@@ -26,12 +26,19 @@
 #ifndef _PROG_RESBFACTOR
 #define _PROG_RESBFACTOR
 
-#include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
+#include "data/pdb.h"
+#include <core/bilib/kernel.h>
 #include <limits>
 #include <string>
+#include <numeric>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <string.h>
 
 
 /**@defgroup Resolution B-Factor
@@ -55,7 +62,10 @@ private:
 	std::vector<double> residuesToChimera;
 	double fscResolution;
 
-	struct pdbdata
+        pdbInfo at_pos;
+
+/*
+        pdbdata at_pos
 	{
 		std::vector<double> x;
 		std::vector<double> y;
@@ -64,17 +74,15 @@ private:
 		std::vector<int> residue;
 		std::vector<double> atomCovRad;
 	};
-	struct pdbdata at_pos;
+*/
+//	pdbdata at_pos;
+
+
 
 private:
 
     void defineParams();
     void readParams();
-    /**
-    * ANALYZEPDB: This function read the atomic model and selects the position of alpha carbons.
-    * Positions are stored in a structure with 3 arrays at_pos.x, at_pos.y and at_pos.z.
-    */
-    void analyzePDB();
 
     /**
     * SORT_INDEXES: This function takes a vector, it is sorted from low to high and the permutation
