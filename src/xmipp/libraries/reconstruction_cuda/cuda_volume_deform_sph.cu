@@ -183,7 +183,6 @@ extern "C" __global__ void computeDeform(
         PrecisionType* outArrayGlobal
         ) 
 {
-    __shared__ PrecisionType sumArrayShared[BLOCK_SIZE * 4];
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -211,11 +210,11 @@ extern "C" __global__ void computeDeform(
 #if USE_SHARED_VOLUME_DATA == 1
     __syncthreads();
 
-    __shared__ PrecisionType volRDataShared[VOL_COUNT * BLOCK_SIZE];
-    __shared__ PrecisionType volIDataShared[VOL_COUNT * BLOCK_SIZE];
+    __shared__ PrecisionType volRDataShared[VOL_COUNT][BLOCK_SIZE];
+    __shared__ PrecisionType volIDataShared[VOL_COUNT][BLOCK_SIZE];
     for (int idx = 0; idx < VOL_COUNT; idx++) {
-        ELEM_3D_SHARED(volRDataShared+idx*BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
-        ELEM_3D_SHARED(volIDataShared+idx*BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volIMetaShared[idx], kPhys, iPhys, jPhys);
+        ELEM_3D_SHARED(volRDataShared[idx],kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
+        ELEM_3D_SHARED(volIDataShared[idx],kPhys,iPhys,jPhys) = ELEM_3D(volIMetaShared[idx], kPhys, iPhys, jPhys);
     }
 
 #endif// USE_SHARED_VOLUME_DATA
@@ -583,8 +582,8 @@ extern "C" __global__ void computeDeform(
     for (unsigned idv = 0; idv < volumes.size; idv++) {
 #if USE_SHARED_VOLUME_METADATA == 1
 #if USE_SHARED_VOLUME_DATA == 1
-        voxelR = volRDataShared[idv * BLOCK_SIZE + tIdx];
-        voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared + idv * BLOCK_SIZE, jPhys + gx, iPhys + gy, kPhys + gz);
+        voxelR = volRDataShared[idv][tIdx];
+        voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared[idv], jPhys + gx, iPhys + gy, kPhys + gz);
 #else
         voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
         voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
@@ -603,10 +602,15 @@ extern "C" __global__ void computeDeform(
         localNcount++;
     }
 
-    sumArrayShared[tIdx] = localDiff2;
-    sumArrayShared[tIdx + BLOCK_SIZE] = localSumVD;
-    sumArrayShared[tIdx + BLOCK_SIZE * 2] = localModg;
-    sumArrayShared[tIdx + BLOCK_SIZE * 3] = localNcount;
+    __shared__ PrecisionType diff2Shared[BLOCK_SIZE];
+    __shared__ PrecisionType sumVDShared[BLOCK_SIZE];
+    __shared__ PrecisionType modfgShared[BLOCK_SIZE];
+    __shared__ PrecisionType countShared[BLOCK_SIZE];
+
+    diff2Shared[tIdx] = localDiff2;
+    sumVDShared[tIdx] = localSumVD;
+    modfgShared[tIdx] = localModg;
+    countShared[tIdx] = localNcount;
 
     __syncthreads();
 
@@ -614,10 +618,10 @@ extern "C" __global__ void computeDeform(
 #if USE_NAIVE_BLOCK_REDUCTION == 1
     for (unsigned s = BLOCK_SIZE / 2; s > 0; s /= 2) {
         if (tIdx < s) {
-            sumArrayShared[tIdx] += sumArrayShared[tIdx + s];
-            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + s];
-            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + s];
-            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + s];
+            diff2Shared[tIdx] += diff2Shared[tIdx + s];
+            sumVDShared[tIdx] += sumVDShared[tIdx + s];
+            modfgShared[tIdx] += modfgShared[tIdx + s];
+            countShared[tIdx] += countShared[tIdx + s];
         }
         __syncthreads();
     }
@@ -626,42 +630,42 @@ extern "C" __global__ void computeDeform(
 
     if (BLOCK_SIZE >= 512) {
         if (tIdx < 256) {
-            sumArrayShared[tIdx] += sumArrayShared[tIdx + 256];
-            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + 256];
-            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 256];
-            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 256];
+            diff2Shared[tIdx] += diff2Shared[tIdx + 256];
+            sumVDShared[tIdx] += sumVDShared[tIdx + 256];
+            modfgShared[tIdx] += modfgShared[tIdx + 256];
+            countShared[tIdx] += countShared[tIdx + 256];
         }
         __syncthreads();
     }
     if (BLOCK_SIZE >= 256) {
         if (tIdx < 128) {
-            sumArrayShared[tIdx] += sumArrayShared[tIdx + 128];
-            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + 128];
-            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 128];
-            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 128];
+            diff2Shared[tIdx] += diff2Shared[tIdx + 128];
+            sumVDShared[tIdx] += sumVDShared[tIdx + 128];
+            modfgShared[tIdx] += modfgShared[tIdx + 128];
+            countShared[tIdx] += countShared[tIdx + 128];
         }
         __syncthreads();
     }
     if (BLOCK_SIZE >= 128) {
         if (tIdx < 64) {
-            sumArrayShared[tIdx] += sumArrayShared[tIdx + 64];
-            sumArrayShared[tIdx + BLOCK_SIZE] += sumArrayShared[tIdx + BLOCK_SIZE + 64];
-            sumArrayShared[tIdx + BLOCK_SIZE * 2] += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 64];
-            sumArrayShared[tIdx + BLOCK_SIZE * 3] += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 64];
+            diff2Shared[tIdx] += diff2Shared[tIdx + 64];
+            sumVDShared[tIdx] += sumVDShared[tIdx + 64];
+            modfgShared[tIdx] += modfgShared[tIdx + 64];
+            countShared[tIdx] += countShared[tIdx + 64];
         }
         __syncthreads();
     }
     // Last warp reduction
     if (tIdx < 32) {
-        localDiff2 = sumArrayShared[tIdx];
-        localSumVD = sumArrayShared[tIdx + BLOCK_SIZE];
-        localModg = sumArrayShared[tIdx + BLOCK_SIZE * 2];
-        localNcount = sumArrayShared[tIdx + BLOCK_SIZE * 3];
+        localDiff2 = diff2Shared[tIdx];
+        localSumVD = sumVDShared[tIdx];
+        localModg = modfgShared[tIdx];
+        localNcount = countShared[tIdx];
         if (BLOCK_SIZE >= 64) {
-            localDiff2 += sumArrayShared[tIdx + 32];
-            localSumVD += sumArrayShared[tIdx + BLOCK_SIZE + 32];
-            localModg += sumArrayShared[tIdx + BLOCK_SIZE * 2 + 32];
-            localNcount += sumArrayShared[tIdx + BLOCK_SIZE * 3 + 32];
+            localDiff2 += diff2Shared[tIdx + 32];
+            localSumVD += sumVDShared[tIdx + 32];
+            localModg += modfgShared[tIdx + 32];
+            localNcount += countShared[tIdx + 32];
         }
         // Reduce warp
         for (int offset = 32 / 2; offset > 0; offset >>= 1) {
@@ -678,10 +682,10 @@ extern "C" __global__ void computeDeform(
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
 #if USE_NAIVE_BLOCK_REDUCTION == 1
-        outArrayGlobal[bIdx] = sumArrayShared[0];
-        outArrayGlobal[bIdx + GRID_SIZE] = sumArrayShared[BLOCK_SIZE];
-        outArrayGlobal[bIdx + GRID_SIZE * 2] = sumArrayShared[BLOCK_SIZE * 2];
-        outArrayGlobal[bIdx + GRID_SIZE * 3] = sumArrayShared[BLOCK_SIZE * 3];
+        outArrayGlobal[bIdx] = diff2Shared[0];
+        outArrayGlobal[bIdx + GRID_SIZE] = sumVDShared[0];
+        outArrayGlobal[bIdx + GRID_SIZE * 2] = modfgShared[0];
+        outArrayGlobal[bIdx + GRID_SIZE * 3] = countShared[0];
 #else
         // Resulting values are in variables local* => no need to go into shared mem
         outArrayGlobal[bIdx] = localDiff2;
