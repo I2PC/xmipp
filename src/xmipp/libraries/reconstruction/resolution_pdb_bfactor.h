@@ -30,13 +30,10 @@
 #include <core/xmipp_image.h>
 #include <core/metadata.h>
 #include "data/pdb.h"
-//#include <core/bilib/kernel.h>
 #include <limits>
 #include <string>
-//#include <numeric>
 #include <algorithm>
 #include <fstream>
-//#include <iostream>
 #include <iomanip>
 
 
