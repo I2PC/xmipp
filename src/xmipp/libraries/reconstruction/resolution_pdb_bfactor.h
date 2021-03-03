@@ -27,14 +27,10 @@
 #define _PROG_RESBFACTOR
 
 #include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
-#include <core/metadata.h>
+#include <core/xmipp_filename.h>
 #include "data/pdb.h"
-#include <limits>
-#include <string>
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
+
+
 
 
 /**@defgroup Resolution B-Factor
@@ -58,21 +54,7 @@ private:
 	std::vector<double> residuesToChimera;
 	double fscResolution;
 
-        pdbInfo at_pos;
-
-/*
-        pdbdata at_pos
-	{
-		std::vector<double> x;
-		std::vector<double> y;
-		std::vector<double> z;
-		std::vector<double> b;
-		std::vector<int> residue;
-		std::vector<double> atomCovRad;
-	};
-*/
-//	pdbdata at_pos;
-
+    pdbInfo at_pos;
 
 
 private:

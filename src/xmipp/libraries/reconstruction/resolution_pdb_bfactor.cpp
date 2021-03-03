@@ -24,6 +24,12 @@
  ***************************************************************************/
 
 #include "resolution_pdb_bfactor.h"
+#include <core/xmipp_image.h>
+#include <core/metadata.h>
+#include <fstream>
+#include <iomanip>
+#include <limits>
+#include <algorithm>
 
 
 
