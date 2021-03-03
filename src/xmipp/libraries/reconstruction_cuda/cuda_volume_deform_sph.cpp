@@ -173,9 +173,9 @@ void VolumeDeformSph::setupConstantParameters()
     kernelId = tuner.addKernelFromFile(pathToXmipp + pathToKernel, "computeDeform", kttGrid, kttBlock);
 
     // tuning block/grid size
-    tuner.addParameter(kernelId, BLOCK_X_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
-    tuner.addParameter(kernelId, BLOCK_Y_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
-    tuner.addParameter(kernelId, BLOCK_Z_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
+    tuner.addParameter(kernelId, BLOCK_X_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{16});
+    tuner.addParameter(kernelId, BLOCK_Y_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{8});
+    tuner.addParameter(kernelId, BLOCK_Z_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{1});
     // block size modification
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Multiply);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Multiply);
@@ -203,6 +203,7 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "USE_NAIVE_BLOCK_REDUCTION", {0});
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
     tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {1});
+    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {1});
 }
 
 void VolumeDeformSph::setupChangingParameters() 

@@ -132,14 +132,6 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     modg = result.modg;
     sumVD = result.sumVD;
     Ncount = result.Ncount;
-/*
-    if (applyTransformation) {
-        volDefSphGpu.getVO(VO);
-    }
-    if (saveDeformation) {
-        volDefSphGpu.getDeform(Gx, Gy, Gz);
-    }
-*/
 // GPU section end
 
 	deformation=std::sqrt(modg/(Ncount));
