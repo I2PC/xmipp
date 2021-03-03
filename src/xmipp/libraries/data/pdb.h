@@ -79,9 +79,30 @@ void computePDBgeometry(const std::string &fnPDB,
     The result is written in the output PDB. Set centerPDB if you
     want to compute the center of mass first and apply the transformation
     after centering the PDB. */
+
 void applyGeometryToPDBFile(const std::string &fn_in, const std::string &fn_out,
                    const Matrix2D<double> &A, bool centerPDB=true,
                    const std::string &intensityColumn="occupancy");
+
+/** pdbdata is an struct that contains the coordiantes of the atom positions defined
+as x, y, z, the b factor, b, the residue of each atom, and the covalent radiues. These
+variables are defined as vectors*/
+struct pdbInfo
+{
+	std::vector<double> x;
+	std::vector<double> y;
+	std::vector<double> z;
+	std::vector<double> b;
+	std::vector<int> residue;
+	std::vector<double> atomCovRad;
+};
+
+/** ANALYZEPDBDATA takes as input a filename of a pdb file (atomic model) and selects only
+the typeOfAtom, (for instance the C-alpha atoms) storing the atom positions, b- factor,
+the residue of each atom, and the covalent radiues in a struct vector at_pos. Also the number
+of atoms is kept.*/
+void analyzePDBAtoms(const FileName fn_pdb, const std::string typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos);
+
 
 /** Atom class. */
 class Atom

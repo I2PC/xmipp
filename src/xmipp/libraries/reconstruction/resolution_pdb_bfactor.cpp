@@ -24,13 +24,7 @@
  ***************************************************************************/
 
 #include "resolution_pdb_bfactor.h"
-#include <core/bilib/kernel.h>
-#include "data/pdb.h"
-#include <numeric>
-#include <algorithm>
-#include <fstream>
-#include <iomanip>
-#include <string.h>
+
 
 
 void ProgResBFactor::readParams()
@@ -53,66 +47,6 @@ void ProgResBFactor::defineParams()
 	addParamsLine("  [--hasMedian]			        : The resolution an bfactor per residue are averaged instead of computed the median");
 	addParamsLine("  [--fscResolution <fscResolution=-1>]	: If this is provided, the FSC resolution, R, in Angstrom is used to normalized the local resolution, LR, as (LR-R)/R, where LR is the local resoluion and R is the global resolution");
 	addParamsLine("  -o <output=\"amap.mrc\">		: Output of the algorithm");
-}
-
-
-void ProgResBFactor::analyzePDB()
-{
-	//Open the pdb file
-	std::ifstream f2parse;
-	f2parse.open(fn_pdb.c_str());
-
-	numberOfAtoms = 0;
-
-	//int last_resi = 0;
-
-	while (!f2parse.eof())
-	{
-		std::string line;
-		getline(f2parse, line);
-
-		// The type of record (line) is defined in the first 6 characters of the pdb
-		std::string typeOfline = line.substr(0,4);
-
-		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
-		{
-			// Type of Atom
-			std::string at;
-                        try
-                        {
-			    at = line.substr(13,2);
-                        }catch (const std::out_of_range& oor)
-                        {
-                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
-                        }
-
-			if (at == "CA")
-			{
-				// Atom positions
-				numberOfAtoms++;
-				double x = textToFloat(line.substr(30,8));
-				double y = textToFloat(line.substr(38,8));
-				double z = textToFloat(line.substr(46,8));
-
-				// storing coordinates
-				at_pos.x.push_back(x);
-				at_pos.y.push_back(y);
-				at_pos.z.push_back(z);
-
-                                // Residue Number
-				int resi = (int) textToFloat(line.substr(23,5));
-				at_pos.residue.push_back(resi);
-
-				// Getting the bfactor = 8pi^2*u
-				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
-				at_pos.b.push_back(bfactorRad);
-
-                                // Covalent radius of the atom
-				double rad = atomCovalentRadius(line.substr(13,2));
-				at_pos.atomCovRad.push_back(rad);
-			}
-		}
-	}
 }
 
 
@@ -191,15 +125,11 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	MetaData md;
 	size_t objId;
 
-	std::cout << "numberOfAtoms = " << numberOfAtoms << std::endl;
-
 	// Selecting the residue
 	int resi, last_resi;
 
 	size_t first_index = 0;
 	size_t last_index = idx_residue.size()-1;
-
-	//std::cout << "last_index = " << at_pos.residue[idx_residue[last_index]] << std::endl;
 
 	last_resi = at_pos.residue[idx_residue[first_index]];
 
@@ -281,8 +211,6 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 		
 
 	}
-
-	std::cout << "................................" << std::endl;
 
 	// Smoothing the output
 	std::vector<double> smoothedResolution(ma_c.size());
@@ -437,7 +365,6 @@ void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChim
                         // 5 digits
 			auxstr = auxstr.substr(0, 5);
                         std::stringstream ss;
-			//ss << std::setfill('0') << std::setw(5)  << auxstr;
 			ss << std::setfill('0') << std::setw(5) << residuesToChimera[resi-1];
                         lineMiddle = ss.str();
 
@@ -460,7 +387,11 @@ void ProgResBFactor::run()
 	std::cout << "Start" << std::endl;
 
         // Reading the atomic model and getting the atom positions
-	analyzePDB();
+	//analyzePDB();
+
+        std::string typeOfAtom = "CA";
+        numberOfAtoms = 0;
+        analyzePDBAtoms(fn_pdb, typeOfAtom, numberOfAtoms, at_pos);
 
 	// Estimating the local resolution per residue
 	std::vector<double> residuesToChimera;

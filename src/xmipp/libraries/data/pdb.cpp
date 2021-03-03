@@ -35,6 +35,64 @@
 #include "data/mask.h"
 #include "data/numerical_tools.h"
 
+void analyzePDBAtoms(const FileName fn_pdb, const std::string typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
+{
+	//Open the pdb file
+	std::ifstream f2parse;
+	f2parse.open(fn_pdb.c_str());
+
+	numberOfAtoms = 0;
+
+	while (!f2parse.eof())
+	{
+		std::string line;
+		getline(f2parse, line);
+
+		// The type of record (line) is defined in the first 6 characters of the pdb
+		std::string typeOfline = line.substr(0,4);
+
+		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
+		{
+			// Type of Atom
+			std::string at;
+                        try
+                        {
+			    at = line.substr(13,2);
+                        }catch (const std::out_of_range& oor)
+                        {
+                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+                        }
+
+			if (at == typeOfAtom)
+			{
+				// Atom positions
+				numberOfAtoms++;
+				double x = textToFloat(line.substr(30,8));
+				double y = textToFloat(line.substr(38,8));
+				double z = textToFloat(line.substr(46,8));
+
+				// storing coordinates
+				at_pos.x.push_back(x);
+				at_pos.y.push_back(y);
+				at_pos.z.push_back(z);
+
+                                // Residue Number
+				int resi = (int) textToFloat(line.substr(23,5));
+				at_pos.residue.push_back(resi);
+
+				// Getting the bfactor = 8pi^2*u
+				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
+				at_pos.b.push_back(bfactorRad);
+
+                                // Covalent radius of the atom
+				double rad = atomCovalentRadius(line.substr(13,2));
+				at_pos.atomCovRad.push_back(rad);
+			}
+		}
+	}
+}
+
+
 
 double AtomInterpolator::volumeAtDistance(char atom, double r) const
 {
