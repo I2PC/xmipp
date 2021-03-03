@@ -114,7 +114,8 @@ class ScriptDeepDenoising(XmippScript):
     outputParticlesMdName = self.getParam('-o')
     outputParticlesStackName = re.sub(r"\.xmd$", ".stk", outputParticlesMdName)
 
-    useProjections = not dataPathProjections
+    #useProjections = not dataPathProjections # problem with this assignment because later on it doesn't enter line 153 if useProjections when in fact there is "input projections to train"
+    useProjections = dataPathProjections  
 
     if useProjections:
       inputProjectionsStackName = re.sub(r"\.xmd$", ".stk", dataPathProjections)

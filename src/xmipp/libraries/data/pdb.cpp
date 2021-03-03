@@ -155,8 +155,8 @@ void computePDBgeometry(const std::string &fnPDB,
 {
     // Initialization
     centerOfMass.initZeros(3);
-    limit0.initZeros(3);
-    limitF.initZeros(3);
+    limit0.resizeNoCopy(3);
+    limitF.resizeNoCopy(3);
     limit0.initConstant(1e30);
     limitF.initConstant(-1e30);
     double total_mass = 0;
