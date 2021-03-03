@@ -35,7 +35,7 @@
 #include "data/mask.h"
 #include "data/numerical_tools.h"
 
-void analyzePDBAtoms(const FileName fn_pdb, const std::string typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
 {
 	//Open the pdb file
 	std::ifstream f2parse;

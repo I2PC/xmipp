@@ -260,7 +260,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 
 }
 
-void ProgResBFactor::estimatingResolutionOfResidue(int k, int i, int j, int totRad, MultidimArray<int> &mask, MultidimArray<double> &resvol, double &resolution_mean, int &N_elems, std::vector<double> &resolution_to_estimate)
+void ProgResBFactor::estimatingResolutionOfResidue(int k, int i, int j, int totRad, MultidimArray<int> &mask, const MultidimArray<double> &resvol, double &resolution_mean, int &N_elems, std::vector<double> &resolution_to_estimate)
 {
     int dim = totRad*totRad;
 
