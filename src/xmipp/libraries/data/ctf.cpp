@@ -37,7 +37,7 @@ bool containsCTFBasicLabels(const MetaData & md)
 	return true;
 }
 
-void groupCTFMetaData(const MetaData &imgMd, MetaData &ctfMd, std::vector<MDLabel> &groupbyLabels)
+void groupCTFMetaData(const MetaDataDb &imgMd, MetaDataDb &ctfMd, std::vector<MDLabel> &groupbyLabels)
 {
   //number of different CTFs
   if (imgMd.containsLabel(MDL_CTF_MODEL))
@@ -49,12 +49,12 @@ void groupCTFMetaData(const MetaData &imgMd, MetaData &ctfMd, std::vector<MDLabe
   {
       groupbyLabels.clear();
       for(int i=0; i < CTF_ALL_LABELS_SIZE; i++)
-        if (imgMd.containsLabel(CTF_ALL_LABELS[i]))
-          groupbyLabels.push_back(CTF_ALL_LABELS[i]);
+          if (imgMd.containsLabel(CTF_ALL_LABELS[i]))
+              groupbyLabels.push_back(CTF_ALL_LABELS[i]);
       if (imgMd.containsLabel(MDL_MICROGRAPH_ID))
-        groupbyLabels.push_back(MDL_MICROGRAPH_ID);
+          groupbyLabels.push_back(MDL_MICROGRAPH_ID);
       else
-    	  REPORT_ERROR(ERR_MD_MISSINGLABEL,"ERROR: Input metadata does not have micrographId");
+          REPORT_ERROR(ERR_MD_MISSINGLABEL,"ERROR: Input metadata does not have micrographId");
       ctfMd.aggregateGroupBy(imgMd, AGGR_COUNT, groupbyLabels, MDL_CTF_DEFOCUSU, MDL_COUNT);
   }
   else
@@ -383,9 +383,9 @@ void CTFDescription1D::readFromMdRow(const MDRow &row, bool disable_if_not_K)
     	{
     		FileName fnctf;
     		row.getValue(MDL_CTF_MODEL,fnctf);
-    		MetaData ctfparam;
+    		MetaDataVec ctfparam;
     		ctfparam.read(fnctf);
-    		readFromMetadataRow(ctfparam,ctfparam.firstObject(),disable_if_not_K);
+    		readFromMetadataRow(ctfparam,ctfparam.firstRowId(), disable_if_not_K);
     	}
 
         if (K == 0 && disable_if_not_K)
@@ -414,19 +414,18 @@ void CTFDescription1D::readFromMdRow(const MDRow &row, bool disable_if_not_K)
 
 void CTFDescription1D::readFromMetadataRow(const MetaData &md, size_t id, bool disable_if_not_K)
 {
-    MDRow row;
-    md.getRow(row, id);
-    readFromMdRow(row, disable_if_not_K);
+    std::unique_ptr<MDRow> row = std::move(md.getRow(id));
+    readFromMdRow(*row, disable_if_not_K);
 }
 
 void CTFDescription1D::read(const FileName &fn, bool disable_if_not_K)
 {
 	if (fn.isMetaData())
 	{
-		MetaData md;
+		MetaDataVec md;
 		md.read(fn);
-		MDRow row;
-		md.getRow(row, md.firstObject());
+		MDRowVec row;
+		md.getRow(row, md.firstRowId());
 		readFromMdRow(row, disable_if_not_K);
 	}
 }
@@ -478,10 +477,10 @@ void CTFDescription1D::setRow(MDRow &row) const
 
 void CTFDescription1D::write(const FileName &fn)
 {
-	MDRow row;
+	MDRowVec row;
 	setRow(row);
 
-	MetaData md;
+	MetaDataVec md;
 	md.setColumnFormat(false);
 	md.addRow(row);
 	md.write(fn);
@@ -1179,9 +1178,9 @@ void CTFDescription::readFromMdRow(const MDRow &row, bool disable_if_not_K)
     	{
     		FileName fnctf;
     		row.getValue(MDL_CTF_MODEL,fnctf);
-    		MetaData ctfparam;
+    		MetaDataVec ctfparam;
     		ctfparam.read(fnctf);
-    		readFromMetadataRow(ctfparam,ctfparam.firstObject(),disable_if_not_K);
+    		readFromMetadataRow(ctfparam, ctfparam.firstRowId(), disable_if_not_K);
     	}
 
     }
@@ -1205,19 +1204,18 @@ void CTFDescription::readFromMdRow(const MDRow &row, bool disable_if_not_K)
 
 void CTFDescription::readFromMetadataRow(const MetaData &md, size_t id, bool disable_if_not_K)
 {
-	MDRow row;
-	md.getRow(row, id);
-	readFromMdRow(row, disable_if_not_K);
+	std::unique_ptr<MDRow> row = std::move(md.getRow(id));
+	readFromMdRow(*row, disable_if_not_K);
 }
 
 void CTFDescription::read(const FileName &fn, bool disable_if_not_K)
 {
 	if (fn.isMetaData())
 	{
-		MetaData md;
+		MetaDataVec md;
 		md.read(fn);
-		MDRow row;
-		md.getRow(row, md.firstObject());
+		MDRowVec row;
+		md.getRow(row, md.firstRowId());
 		readFromMdRow(row, disable_if_not_K);
 	}
 }
@@ -1267,10 +1265,10 @@ void CTFDescription::setRow(MDRow &row) const
 
 void CTFDescription::write(const FileName &fn)
 {
-	MDRow row;
+	MDRowVec row;
 	setRow(row);
 
-	MetaData md;
+	MetaDataVec md;
 	md.setColumnFormat(false);
 	md.addRow(row);
 	md.write(fn);
