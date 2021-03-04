@@ -26,6 +26,7 @@
 #include "sampling.h"
 #include "core/geometry.h"
 #include "core/xmipp_image_macros.h"
+#include "core/metadata_vec.h"
 
 /* Default Constructor */
 Sampling::Sampling()
@@ -1438,7 +1439,7 @@ void Sampling::createSymFile(const FileName &simFp,int symmetry, int sym_order)
 }
 void Sampling::createAsymUnitFile(const FileName &docfilename)
 {
-    MetaData DF;
+    MetaDataVec DF;
     FileName tmp_filename;
     //#define CHIMERA
 #ifdef CHIMERA
@@ -1455,7 +1456,7 @@ void Sampling::createAsymUnitFile(const FileName &docfilename)
     ;
 #endif
 
-    MDRow row;
+    MDRowVec row;
     for (size_t i = 0; i < no_redundant_sampling_points_vector.size(); i++)
     {
 #ifdef CHIMERA
@@ -1493,8 +1494,8 @@ void Sampling::createAsymUnitFile(const FileName &docfilename)
 
 void Sampling::saveSamplingFile(const FileName &fn_base, bool write_vectors, bool write_sampling_sphere)
 {
-    MetaData md;
-    MDRow row;
+    MetaDataVec md;
+    MDRowVec row;
 
     row.setValue(MDL_SAMPLINGRATE, sampling_rate_rad);
     row.setValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius);
@@ -1588,8 +1589,8 @@ void Sampling::readSamplingFile(const FileName &fn_base,
 		bool read_sampling_sphere)
 {
     //Read extra info
-    MetaData md(FN_SAMPLING_EXTRA(fn_base));
-    size_t id = md.firstObject();
+    MetaDataVec md(FN_SAMPLING_EXTRA(fn_base));
+    size_t id = md.firstRowId();
     md.getValue(MDL_SAMPLINGRATE, sampling_rate_rad, id);
     md.getValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius, id);
     md.getValue(MDL_POINTSASYMETRICUNIT,numberSamplesAsymmetricUnit,id);
@@ -1603,12 +1604,14 @@ void Sampling::readSamplingFile(const FileName &fn_base,
         exp_data_fileNames.clear();
         exp_data_fileNames.resize(md.size());
     }
-    int ii=0;
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    size_t i = 0;
+    size_t ii = 0;
+    for (size_t objId : md.ids())
     {
         if (readFileName)
-            md.getValue(MDL_IMAGE,exp_data_fileNames[ii++], __iter.objId);
-        md.getValue(MDL_NEIGHBORS, my_neighbors[__iter.objIndex], __iter.objId);
+            md.getValue(MDL_IMAGE,exp_data_fileNames[ii++], objId);
+        md.getValue(MDL_NEIGHBORS, my_neighbors[i], objId);
+        i++;
     }
 
     //Read projection directions
@@ -1619,30 +1622,31 @@ void Sampling::readSamplingFile(const FileName &fn_base,
     if (read_vectors)
         no_redundant_sampling_points_vector.resize(size);
 
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    i = 0;
+    for (size_t objId : md.ids())
     {
         /** This is the object ID in the metadata, usually starts at 1 */
         //size_t objId;
         /** This is the index of the object, starts at 0 */
         //size_t objIndex;
-        size_t &i = __iter.objIndex;
-        size_t &id = __iter.objId;
 
         Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
         angles.resizeNoCopy(3);
-        md.getValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i], id);
-        md.getValue(MDL_ANGLE_ROT, XX(angles), id);
-        md.getValue(MDL_ANGLE_TILT, YY(angles), id);
-        md.getValue(MDL_ANGLE_PSI, ZZ(angles), id);
+        md.getValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i], objId);
+        md.getValue(MDL_ANGLE_ROT, XX(angles), objId);
+        md.getValue(MDL_ANGLE_TILT, YY(angles), objId);
+        md.getValue(MDL_ANGLE_PSI, ZZ(angles), objId);
 
         if (read_vectors)
         {
             Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
             vectors.resizeNoCopy(3);
-            md.getValue(MDL_X, XX(vectors), id);
-            md.getValue(MDL_Y, YY(vectors), id);
-            md.getValue(MDL_Z, ZZ(vectors), id);
+            md.getValue(MDL_X, XX(vectors), objId);
+            md.getValue(MDL_Y, YY(vectors), objId);
+            md.getValue(MDL_Z, ZZ(vectors), objId);
         }
+
+        i++;
     }
 //#define DEBUG5
 #ifdef  DEBUG5
@@ -1674,25 +1678,25 @@ void Sampling::readSamplingFile(const FileName &fn_base,
         if (read_vectors)
             sampling_points_vector.resize(size);
 
-        FOR_ALL_OBJECTS_IN_METADATA(md)
+        size_t i = 0;
+        for (size_t objId : md.ids())
         {
-            size_t &i = __iter.objIndex;
-            size_t &id = __iter.objId;
-
             Matrix1D<double> &angles = sampling_points_angles[i];
             angles.resizeNoCopy(3);
-            md.getValue(MDL_ANGLE_ROT, XX(angles), id);
-            md.getValue(MDL_ANGLE_TILT, YY(angles), id);
-            md.getValue(MDL_ANGLE_PSI, ZZ(angles), id);
+            md.getValue(MDL_ANGLE_ROT, XX(angles), objId);
+            md.getValue(MDL_ANGLE_TILT, YY(angles), objId);
+            md.getValue(MDL_ANGLE_PSI, ZZ(angles), objId);
 
             if (read_vectors)
             {
                 Matrix1D<double> &vectors = sampling_points_vector[i];
                 vectors.resizeNoCopy(3);
-                md.getValue(MDL_X, XX(vectors), id);
-                md.getValue(MDL_Y, YY(vectors), id);
-                md.getValue(MDL_Z, ZZ(vectors), id);
+                md.getValue(MDL_X, XX(vectors), objId);
+                md.getValue(MDL_Y, YY(vectors), objId);
+                md.getValue(MDL_Z, ZZ(vectors), objId);
             }
+
+            i++;
         }
 
     }
@@ -1969,9 +1973,9 @@ void Sampling::findClosestSamplingPoint(const FileName &FnexperimentalImages,
                                         const FileName &output_file_root)
 {
     //read input files
-    MetaData DFi;
+    MetaDataVec DFi;
     DFi.read(FnexperimentalImages);//experimental points
-    findClosestSamplingPoint(DFi,output_file_root);
+    findClosestSamplingPoint(DFi, output_file_root);
 
 }
 void Sampling::findClosestSamplingPoint(const MetaData &DFi,
@@ -1988,7 +1992,7 @@ void Sampling::findClosestSamplingPoint(const MetaData &DFi,
     int winner_exp_L_R=-1;
 #endif
 
-    MetaData DFo;
+    MetaDataVec DFo;
     size_t id;
 
     DFo.setComment("Original rot, tilt, psi, Xoff, Yoff are stored as comments");
@@ -2001,8 +2005,8 @@ void Sampling::findClosestSamplingPoint(const MetaData &DFi,
     int exp_image=1;
 #endif
 
-    MDIterator iter(DFi);
-    for(size_t i=0;i< exp_data_projection_direction_by_L_R.size();)
+    auto idIter(DFi.ids().begin());
+    for (size_t i = 0; i <  exp_data_projection_direction_by_L_R.size(); )
     {
         my_dotProduct=-2;
         for (size_t k = 0; k < R_repository.size(); k++,i++)
@@ -2045,16 +2049,17 @@ void Sampling::findClosestSamplingPoint(const MetaData &DFi,
         //add winner to the DOC fILE
         std::string fnImg, comment;
         double aux;
-        DFi.getValue(MDL_IMAGE, fnImg, iter.objId);
-        DFi.getValue(MDL_ANGLE_ROT,aux, iter.objId);
+        size_t objId = *idIter;
+        DFi.getValue(MDL_IMAGE, fnImg, objId);
+        DFi.getValue(MDL_ANGLE_ROT,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_ANGLE_TILT,aux, iter.objId);
+        DFi.getValue(MDL_ANGLE_TILT,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_ANGLE_PSI,aux, iter.objId);
+        DFi.getValue(MDL_ANGLE_PSI,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_SHIFT_X,aux, iter.objId);
+        DFi.getValue(MDL_SHIFT_X,aux, objId);
         comment+=floatToString(aux)+" ";
-        DFi.getValue(MDL_SHIFT_Y,aux, iter.objId);
+        DFi.getValue(MDL_SHIFT_Y,aux, objId);
         comment+=floatToString(aux);
         id = DFo.addObject();
         DFo.setValue(MDL_STAR_COMMENT,comment, id);
@@ -2070,8 +2075,9 @@ void Sampling::findClosestSamplingPoint(const MetaData &DFi,
         DFo.setValue(MDL_ANGLE_TILT,YY(no_redundant_sampling_points_angles[winner_sampling]), id);
         DFo.setValue(MDL_ANGLE_PSI,ZZ(no_redundant_sampling_points_angles[winner_sampling]), id);
 
-        iter.moveNext();
+        ++idIter;
     }//for i
+
     if (output_file_root.size() > 0)
         DFo.write(output_file_root+ "_closest_sampling_points.doc");
 #ifdef  DEBUG3
@@ -2232,7 +2238,7 @@ void Sampling::fillExpDataProjectionDirectionByLR(
     const FileName &FnexperimentalImages)
 {
     //read input files
-    MetaData DFi;
+    MetaDataVec DFi;
     DFi.read(FnexperimentalImages);//experimental points
     fillExpDataProjectionDirectionByLR(DFi);
 }
@@ -2260,14 +2266,14 @@ void Sampling::fillExpDataProjectionDirectionByLR(const MetaData &DFi)
     double img_tilt,img_rot,img_psi;
     FileName imgName;
     exp_data_fileNames.clear();
-    FOR_ALL_OBJECTS_IN_METADATA(DFi)
+    for (size_t objId : DFi.ids())
     {
-        DFi.getValue(MDL_ANGLE_ROT,img_rot,__iter.objId);
-        DFi.getValue(MDL_ANGLE_TILT,img_tilt,__iter.objId);
-        DFi.getValue(MDL_ANGLE_PSI,img_psi,__iter.objId);
+        DFi.getValue(MDL_ANGLE_ROT,img_rot, objId);
+        DFi.getValue(MDL_ANGLE_TILT,img_tilt, objId);
+        DFi.getValue(MDL_ANGLE_PSI,img_psi, objId);
         Euler_direction(img_rot, img_tilt, img_psi, direction);
         exp_data_projection_direction.push_back(direction);
-        DFi.getValue(MDL_IMAGE,imgName,__iter.objId);
+        DFi.getValue(MDL_IMAGE,imgName, objId);
         exp_data_fileNames.push_back(imgName);
     }
 

@@ -531,7 +531,7 @@ void ProgOperate::readParams()
             {
                 if (mdInSize != md2.size())
                     REPORT_ERROR(ERR_MD, "Both metadatas operands should be of same size.");
-                md2Iterator.init(md2);
+                md2IdIterator = md2.ids().begin();
             }
             else
             {
@@ -555,8 +555,8 @@ void ProgOperate::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     {
         if (!isValue)
         {
-            img2.readApplyGeo(md2, md2Iterator.objId);
-            md2Iterator.moveNext();
+            img2.readApplyGeo(md2, *md2IdIterator);
+            ++md2IdIterator;
         }
         binaryOperator(img, img2);
     }
