@@ -151,9 +151,9 @@ void ProgSimulateMicroscope::estimateSigma()
     FileName fnImg;
     Image<double> proj;
     size_t nImg=0;
-    FOR_ALL_OBJECTS_IN_METADATA(*pmdIn)
+    for (size_t objId : *pmdIn.ids())
     {
-        pmdIn->getValue(image_label, fnImg,__iter.objId);
+        pmdIn->getValue(image_label, fnImg,objId);
         proj.read(fnImg);
         MultidimArray<double> mProj=proj();
 

@@ -96,11 +96,11 @@ void ProgMovieEstimateGain::produceSideInfo()
 	sumObs.initZeros(Ydim,Xdim);
 
     int iFrame=0;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+    for (size_t objId : mdIn.ids())
 	{
 	    if (iFrame%frameStep==0)
 	    {
-               mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+               mdIn.getValue(MDL_IMAGE,fnFrame,objId);
                Iframe.read(fnFrame);
                MultidimArray<double>  mIframe=Iframe();
                MultidimArray<double>  mICorrection=ICorrection();
@@ -161,9 +161,9 @@ void ProgMovieEstimateGain::run()
 	if (applyGain)
 	{
             int idx=1;
-            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            for (size_t objId : mdIn.ids())
             {
-                mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+                mdIn.getValue(MDL_IMAGE,fnFrame,objId);
                 Iframe.read(fnFrame);
                 MultidimArray<double> &mIframe = Iframe();
                 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
@@ -177,11 +177,11 @@ void ProgMovieEstimateGain::run()
             std::cout << "Iteration " << n << std::endl;
             sumIdeal.initZeros(Ydim,Xdim);
             int iFrame=0;
-            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            for (size_t objId : mdIn.ids())
             {
                 if (iFrame%frameStep==0)
                 {
-                    mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
+                    mdIn.getValue(MDL_IMAGE,fnFrame,objId);
                     std::cout << "   Frame " << fnFrame << std::endl;
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();

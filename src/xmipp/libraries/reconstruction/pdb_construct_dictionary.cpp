@@ -607,13 +607,15 @@ void ProgConstructPDBDictionary::run()
     patchLow.setXmippOrigin();
     patchHigh=patchLow;
 
-    FOR_ALL_OBJECTS_IN_METADATA2(mdlow,mdhigh)
+    auto itIdLow = mdlow.ids().begin();
+    auto itIdHigh = mdhigh.ids().end();
+    for (; itIdLow != mdlow.ids().end(); ++itIdLow, ++itIdHigh)
     {
     	// Read the low and high resolution volumes
-    	mdlow.getValue(MDL_IMAGE,fnVol,__iter.objId);
+    	mdlow.getValue(MDL_IMAGE,fnVol, *itIdLow);
     	Vlow.read(fnVol);
     	std::cout << "Processing " << fnVol << " and ";
-    	mdhigh.getValue(MDL_IMAGE,fnVol,__iter2.objId);
+    	mdhigh.getValue(MDL_IMAGE,fnVol, *itIdHight);
     	std::cout << fnVol << std::endl;
     	Vhigh.read(fnVol);
 

@@ -658,7 +658,7 @@ int AutoParticlePicking2::automaticWithouThread(FileName fnmicrograph, int proc_
     Particle2 p;
     MultidimArray<double> featVec, featVecNN;
     std::vector<Particle2> positionArray;
-    MetaData md;
+    MetaDataVec md;
 
     generateFeatVec(fnmicrograph,proc_prec,positionArray);
 
@@ -898,12 +898,13 @@ void AutoParticlePicking2::add2Dataset(const MetaData &removedParticlesMD)
     int cntNeg=0;
     int enabled;
     double cost;
-    FOR_ALL_OBJECTS_IN_METADATA(removedParticlesMD)
+
+    for (size_t objId : removedParticlesMD.ids())
     {
-        removedParticlesMD.getValue(MDL_ENABLED,enabled, __iter.objId);
+        removedParticlesMD.getValue(MDL_ENABLED,enabled, objId);
         if (enabled == -1)
         {
-            removedParticlesMD.getValue(MDL_COST,cost, __iter.objId);
+            removedParticlesMD.getValue(MDL_COST,cost, objId);
             if (cost!=-1)
                 cntNeg++;
         }
@@ -915,12 +916,13 @@ void AutoParticlePicking2::add2Dataset(const MetaData &removedParticlesMD)
     for (int n=yDataSet;n<limit;n++)
         classLabel(n)=3;
     int cnt=0;
-    FOR_ALL_OBJECTS_IN_METADATA(removedParticlesMD)
+
+    for (size_t objId : removedParticlesMD.ids())
     {
-        removedParticlesMD.getValue(MDL_ENABLED,enabled, __iter.objId);
+        removedParticlesMD.getValue(MDL_ENABLED,enabled, objId);
         if (enabled == -1)
         {
-            removedParticlesMD.getValue(MDL_COST,cost, __iter.objId);
+            removedParticlesMD.getValue(MDL_COST,cost, objId);
             if (cost!=-1)
             {
                 for (size_t j=0;j<XSIZE(dataSet);j++)
@@ -1816,7 +1818,7 @@ void ProgMicrographAutomaticPicking2::defineParams()
 void ProgMicrographAutomaticPicking2::run()
 {
     int proc_prec;
-    MetaData MD;
+    MetaDataVec MD;
     FileName fnAutoParticles = formatString("particles_auto@%s.pos", fn_root.c_str());
     MD.read(fn_model.beforeLastOf("/")+"/config.xmd");
     MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstObject());

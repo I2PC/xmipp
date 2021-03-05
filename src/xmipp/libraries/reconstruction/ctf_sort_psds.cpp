@@ -248,7 +248,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     evaluation.PSDcorrelation90=correlationIndex(PSD(), PSDrotated());
 
     // Get the fitting score and other quality criteria computed by ctf_estimate_from_micrograph
-    MetaData MDctf1;
+    MetaDataVec MDctf1;
     MDctf1.read(fnCTF);
     size_t objId1 = MDctf1.firstObject();
 
@@ -292,7 +292,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 		f2pixel*=aux;
 	}
 
-	MetaData mdEnvelope;
+	MetaDataVec mdEnvelope;
 	Matrix1D< double > envelope(100);
 	envelope.initZeros();
 	double Nalpha = 180;

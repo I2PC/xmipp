@@ -155,21 +155,21 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     futures.reserve(Ndim);
     if (IS_REF) {
         h.rots.reserve(Ndim);
-        md.getColumnValuesOpt(MDL_ANGLE_ROT, h.rots);
+        md.getColumnValues(MDL_ANGLE_ROT, h.rots);
         h.tilts.reserve(Ndim);
-        md.getColumnValuesOpt(MDL_ANGLE_TILT, h.tilts);
+        md.getColumnValues(MDL_ANGLE_TILT, h.tilts);
         h.indexes.reserve(Ndim);
-        md.getColumnValuesOpt(MDL_REF, h.indexes);
+        md.getColumnValues(MDL_REF, h.indexes);
     }
 
     std::vector<FileName> fileNames;
     fileNames.reserve(Ndim);
-    md.getColumnValuesOpt(MDL_IMAGE, fileNames);
+    md.getColumnValues(MDL_IMAGE, fileNames);
     size_t i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(md) {
+    for (size_t objId : md.ids()) {
         FileName fn;
-        if ( ! IS_REF) {
-            h.rowIds.emplace_back(__iter.objId);
+        if (! IS_REF) {
+            h.rowIds.emplace_back(objId);
         }
         if (mustCrop) {
             futures.emplace_back(m_threadPool.push(routineCrop, fileNames.at(i), i));
@@ -418,12 +418,11 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
     });
 
     size_t i = 0;
-    std::vector<MDRow> rows;
+    std::vector<MDRowVec> rows;
     rows.reserve(md.size() * m_noOfBestToKeep);
-    FOR_ALL_OBJECTS_IN_METADATA(md) {
+    for (const auto& _row : md) {
+        const MDRowVec& row = dynamic_cast<const MDRowVec&>(_row);
         // get the original row from the input metadata
-        MDRow row;
-        md.getRow(row, __iter.objId);
         auto maxVote = m_assignments.at(i).merit;
         // for all references that we want to store, starting from the best matching one
         for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
@@ -435,12 +434,12 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
         }
     }
     if (0 != rows.size()) {
-        const auto labels = rows.at(0).getLabels();
-        MetaData md(&labels);
+        const auto labels = rows.at(0).labels();
+        MetaDataVec md(labels);
         md.addRows(rows);
         md.write(m_fnOut);
     } else {
-        MetaData().write(m_fnOut);
+        MetaDataVec().write(m_fnOut);
     }
 }
 
@@ -497,12 +496,12 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
     // name of the reference
     refName.compose(indexInStk, m_updateHelper.fnStk);
     // some info about it
-    auto refRow = MDRow();
+    auto refRow = MDRowVec();
     assert(std::numeric_limits<int>::max() >= refIndex);
     refRow.setValue(MDL_REF, getRefMetaIndex(refIndex), true);
     refRow.setValue(MDL_IMAGE, refName, true);
     refRow.setValue(MDL_CLASS_COUNT, images.size(), true);
-    refMeta.addRowOpt(refRow);
+    refMeta.addRows({refRow});
 
     // create image description block
     std::sort(images.begin(), images.end(), [](const Assignment &l, const Assignment &r) {
@@ -511,16 +510,16 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
 
     const size_t noOfImages = images.size();
     if (0 != noOfImages) {
-        std::vector<MDRow> rows(noOfImages);
+        std::vector<MDRowVec> rows(noOfImages);
         for (size_t i = 0; i < noOfImages; ++i) {
             auto &row = rows.at(i);
             const auto &a = images.at(i);
             getImgRow(row, a.imgIndex);
             fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
         }
-        const auto labels = rows.at(0).getLabels();
+        const auto labels = rows.at(0).labels();
         if (0 == m_updateHelper.imgBlocks.size()) {
-            m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n(), &labels);
+            m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n(), labels);
         }
         auto &md = m_updateHelper.imgBlocks.at(refIndex);
         md.addRows(rows);
@@ -542,7 +541,7 @@ void AProgAlignSignificant<T>::updateRefs() {
     }
     // make sure we start from scratch
     m_updateHelper.imgBlocks.clear(); // postpone allocation for better performance
-    m_updateHelper.refBlock = MetaData();
+    m_updateHelper.refBlock = MetaDataVec();
     // update references. Metadata will be updated on background
     updateRefs(m_referenceImages.data.get(), m_imagesToAlign.data.get(), m_assignments);
     // store result to drive

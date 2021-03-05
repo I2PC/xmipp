@@ -178,12 +178,12 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     Image<double> img;
     FourierTransformer transformer(FFTW_BACKWARD);
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objID : SF.ids())
     {
         if (thereIsEnable)
         {
             int enabled;
-            SF.getValue(MDL_ENABLED,enabled,__iter.objId);
+            SF.getValue(MDL_ENABLED,enabled, objId);
             if ( (enabled==-1)  )
             {
                 imgno++;
@@ -191,7 +191,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
             }
         }
 
-        img.readApplyGeo(SF,__iter.objId);
+        img.readApplyGeo(SF, objId);
         if (targetXdim!=-1 && targetXdim<XSIZE(img()))
         	selfScaleToSize(LINEAR,img(),targetXdim,targetXdim,1);
 
@@ -326,7 +326,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         }
         tempPcaAnalyzer4.addVector(v4);
         if (addFeatures)
-        	SF.setValue(MDL_SCORE_BY_SCREENING,v04,__iter.objId);
+        	SF.setValue(MDL_SCORE_BY_SCREENING,v04, objId);
         v04all.push_back(v04);
 
 #ifdef DEBUG
@@ -372,7 +372,7 @@ void ProgSortByStatistics::run()
     // Process input selfile ..............................................
     SF.read(fn);
     SF.removeDisabled();
-    MetaData SF2 = SF;
+    MetaDataVec SF2 = SF;
     SF = SF2;
 
     if (fn_train != "")
@@ -410,9 +410,9 @@ void ProgSortByStatistics::run()
     double zScore=0;
     int enabled;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId: SF.ids())
     {
-        SF.getValue(MDL_ENABLED,enabled,__iter.objId);
+        SF.getValue(MDL_ENABLED,enabled, objId);
         if ( (enabled==-1)  )
         {
             A1D_ELEM(finalZscore,imgno) = 1e3;
@@ -461,7 +461,7 @@ void ProgSortByStatistics::run()
     pcaAnalyzer.clear();
 
     // Produce output .....................................................
-    MetaData SFout;
+    MetaDataVec SFout;
     std::ofstream fh_zind;
 
     if (verbose==2 && !fn_out.empty())
@@ -614,22 +614,20 @@ void ProgSortByStatistics::run()
         fh_zind.close();
     if (!fn_out.empty())
     {
-        MetaData SFsorted;
+        MetaDataVec SFsorted;
         if (fn_out.exists()) SFsorted.read(fn_out);
         int countItems = 0;
-        MDRow row;
-        FOR_ALL_OBJECTS_IN_METADATA(SFsorted)
+        for (const auto& row : SFsorted)
         {
             countItems++;
-    	    SFsorted.getRow(row, countItems);
-    	    SFout.addRow(row);
-    	}
+            SFout.addRow(row);
+        }
         SFsorted.sort(SFout,MDL_ZSCORE);
         SFsorted.write(formatString("@%s", fn_out.c_str()), MD_APPEND);
     }
     if (addToInput)
     {
-        MetaData SFsorted;
+        MetaDataVec SFsorted;
         SFsorted.sort(SF,MDL_ZSCORE);
         SFsorted.write(fn,MD_APPEND);
     }

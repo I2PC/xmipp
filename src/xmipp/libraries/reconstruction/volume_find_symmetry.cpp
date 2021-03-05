@@ -261,7 +261,7 @@ public:
                 direction.push_back(YY(sym_axis));
                 direction.push_back(ZZ(sym_axis));
 
-                MetaData MD;
+                MetaDataVec MD;
                 size_t id=MD.addObject();
                 MD.setValue(MDL_ANGLE_ROT,best_rot,id);
                 MD.setValue(MDL_ANGLE_TILT,best_tilt,id);
@@ -332,7 +332,7 @@ public:
                 std::cout << "Symmetry parameters (z,rot)= " << best_z*Ts << " " << best_rot << " correlation=" << best_corr << std::endl;
             if (fn_output!="")
             {
-                MetaData MD;
+                MetaDataVec MD;
                 size_t id=MD.addObject();
                 MD.setValue(MDL_ANGLE_ROT,best_rot,id);
                 MD.setValue(MDL_SHIFT_Z,best_z*Ts,id);

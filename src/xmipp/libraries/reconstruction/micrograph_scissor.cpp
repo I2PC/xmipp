@@ -147,7 +147,7 @@ public:
 
             if (checkParam("--ctfparam"))
             {
-              MetaData ctfparam(getParam("--ctfparam"));
+              MetaDataVec ctfparam(getParam("--ctfparam"));
               MDRow ctfRow;
               ctfparam.getRow(ctfRow, ctfparam.firstObject());
               m.set_ctfparams(ctfRow);
@@ -161,7 +161,7 @@ public:
             		row.getValue(MDL_MICROGRAPH_ID,micId);
 
             	// Rewrite the input posfile with the true noise coordinates
-            	MetaData MD;
+            	MetaDataVec MD;
             	for (size_t i=0; i<m.coords.size(); i++)
                 {
             		size_t id=MD.addObject();
@@ -174,7 +174,7 @@ public:
         }
         else
         {
-            MetaData auxMd;
+            MetaDataVec auxMd;
             // Read angles
             double alpha_u, alpha_t, tilt_angle;
             auxMd.read(fn_angles);

@@ -114,7 +114,7 @@ void * threadPrepareImages(void * args)
 {
     ThreadPrepareImages * master = (ThreadPrepareImages *) args;
     ProgCommonLine * parent = master->parent;
-    MetaData SFi = *(master->SFi);
+    MetaDataVec SFi = *(master->SFi);
     size_t Ydim, Xdim, Zdim, Ndim;
     getImageSize(SFi, Xdim, Ydim, Zdim, Ndim);
 
@@ -153,10 +153,10 @@ void * threadPrepareImages(void * args)
 	transformer.setReal(linei);
 	MultidimArray<std::complex<double> >&mlineiFourier=transformer.fFourier;
 	MultidimArray<std::complex<double> > RTFourier;
-	FOR_ALL_OBJECTS_IN_METADATA(SFi)
+    for (size_t objId : SFi.ids())
 	{
 		if ((ii + 1) % parent->Nthr == master->myThreadID) {
-			I.readApplyGeo(SFi, __iter.objId);
+			I.readApplyGeo(SFi, objId);
 			I().setXmippOrigin();
 			MultidimArray<double> &mI = I();
 
@@ -214,7 +214,7 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 		std::vector<MultidimArray<std::complex<double> > > &blockRTFs,
 		std::vector<MultidimArray<double> > &blockRTs) {
 	// Get the selfile
-	MetaData SFi;
+	MetaDataVec SFi;
 	SFi.selectPart(SF, i * Nblock, Nblock);
 
 	// Ask for space for all the block images
@@ -473,10 +473,10 @@ void ProgCommonLine::writeResults()
 
 	// Write the aligned images
     int idx=0;
-	FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
 	{
-		SF.setValue(MDL_SHIFT_X,-shift(idx++)/2,__iter.objId); // *** FIXME: COSS Why /2?
-		SF.setValue(MDL_SHIFT_Y,-shift(idx++)/2,__iter.objId);
+		SF.setValue(MDL_SHIFT_X,-shift(idx++)/2, objId); // *** FIXME: COSS Why /2?
+		SF.setValue(MDL_SHIFT_Y,-shift(idx++)/2, objId);
 	}
 	SF.write(fn_out.insertBeforeExtension("_aligned_images"));
 }
@@ -1053,8 +1053,8 @@ void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
     DVector v1, v2, v3(3);
     std::vector<DMatrix> rotations(K);
 
-    MetaData MD("images.xmd");
-    MDIterator it(MD);
+    MetaDataVec MD("images.xmd");
+    auto& idTt(MD.ids()begin());
     for (int i = 0; i < K; ++i)
     {
       DMatrix &R = rotations[i];
@@ -1073,10 +1073,10 @@ void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
       double rot, tilt, psi;
       //
       Euler_matrix2angles(R.transpose(), rot, tilt, psi);
-      MD.setValue(MDL_ANGLE_ROT,rot,it.objId);
-      MD.setValue(MDL_ANGLE_TILT,tilt,it.objId);
-      MD.setValue(MDL_ANGLE_PSI,psi,it.objId);
-      it.moveNext();
+      MD.setValue(MDL_ANGLE_ROT,rot,*idTt);
+      MD.setValue(MDL_ANGLE_TILT,tilt,*idTt);
+      MD.setValue(MDL_ANGLE_PSI,psi,*idIt);
+      ++idIt;
 
       std::cerr << "DEBUG_JM: R" << i << " : " << R << std::endl;
     }

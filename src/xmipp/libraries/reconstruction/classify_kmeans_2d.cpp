@@ -420,9 +420,9 @@ void ProgClassifyKmeans2D::run()
 
     // reading new images from input file
     SF.read(fnSel);
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-    	SF.getValue(MDL_IMAGE, fnImg,__iter.objId);
+    	SF.getValue(MDL_IMAGE, fnImg, objId);
     	I.read(fnImg);
     	I().setXmippOrigin();
     	centerImageTranslationally(I(), aux);
@@ -451,7 +451,7 @@ void ProgClassifyKmeans2D::run()
     }
 
     int allItems = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         allItems++;
         Point p(allItems, fvs.front());

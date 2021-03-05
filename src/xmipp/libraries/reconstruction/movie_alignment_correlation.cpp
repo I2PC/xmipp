@@ -84,11 +84,11 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
         init_progress_bar(movie.size());
     }
 
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         ++n;
         if (n >= this->nfirst && n <= this->nlast) {
-            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
+            this->loadFrame(movie, dark, igain, objId, croppedFrame);
 
             if (firstImage) {
                 firstImage = false;
@@ -160,7 +160,8 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
     int frameIndex = -1;
     Ninitial = N = 0;
     const T binning = this->getOutputBinning();
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+
+    for (size_t objId : movie.ids())
     {
         frameIndex++;
         if ((frameIndex >= this->nfirstSum) && (frameIndex <= this->nlastSum)) {
@@ -174,7 +175,7 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                     && (XX(shift) == (T)0); // and it's zero
 
             // load frame
-            this->loadFrame(movie, dark, igain, __iter.objId, croppedFrame);
+            this->loadFrame(movie, dark, igain, objId, croppedFrame);
             if (binning > 0) {
                 scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
                         floor(XSIZE(croppedFrame()) / binning),

@@ -2453,7 +2453,7 @@ double ROUT_Adjust_CTF(ProgCTFEstimateFromPSD &prm, CTFDescription &output_ctfmo
         prm.current_ctfmodel.Tm /= prm.downsampleFactor;
         prm.current_ctfmodel.azimuthal_angle = std::fmod(prm.current_ctfmodel.azimuthal_angle,360.);
         prm.current_ctfmodel.write(fn_rootCTFPARAM + ".ctfparam_tmp");
-        MetaData MD;
+        MetaDataVec MD;
         MD.read(fn_rootCTFPARAM + ".ctfparam_tmp");
         size_t id = MD.firstObject();
         MD.setValue(MDL_CTF_X0, (double)output_ctfmodel.x0*prm.Tm, id);

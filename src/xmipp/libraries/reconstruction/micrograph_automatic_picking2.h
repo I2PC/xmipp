@@ -71,7 +71,6 @@ public:
     ProgImageRotationalPCA rotPcaAnalyzer;
     Point p1,p2;
     FeaturesThread * thread;
-//    MetaData micList;
     Micrograph m, mPrev;
 
     Image<double> microImage, micrographStack, micrographStackPre, microImagePrev;
@@ -110,11 +109,8 @@ public:
 
     void filterBankGenerator();
 
-//    void batchBuildInvariant(const MetaData &MD);
-
     void batchBuildInvariant(const std::vector<MDRow> &MD);
 
-//    void buildInvariant(const MetaData &MD);
     void buildInvariant(const std::vector<MDRow> &MD);
     void extractInvariant();
 
@@ -126,18 +122,13 @@ public:
 
     void add2Dataset(int flagNegPos);
 
-//    void train(const MetaData &MD, bool corrFlag, int x, int y, int width, int height);
-
     void train(const std::vector<MDRow> &MD, bool corrFlag, int x, int y, int width, int height);
 
-//    void correction(const MetaData &addedParticlesMD,const MetaData &removedParticlesMD);
     void correction(const std::vector<MDRow> &addedParticlesMD,const std::vector<MDRow> &removedParticlesMD);
 
     void add2Dataset(const MetaData &removedParticlesMD);
 
     void saveTrainingSet();
-
-//    int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, MetaData &md);
 
     int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRow> &md);
 

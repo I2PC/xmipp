@@ -54,7 +54,7 @@ public:
     FourierFilter ctf;
     
     /// Side Info: ctfdat
-    MetaData ctfdat;
+    MetaDataVec ctfdat;
 
     /// The 3D CTFs and Wiener filters
     std::vector< MultidimArray<double> > Vctfs1D, Vwien1D;

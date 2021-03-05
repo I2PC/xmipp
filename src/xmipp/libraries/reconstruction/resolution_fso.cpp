@@ -1300,7 +1300,7 @@ public:
     	size_t Ntilt = 91; //tilting from 0-90
     	size_t objIdOut;
 
-    	MetaData mdOut;
+    	MetaDataVec mdOut;
     	Matrix2D<double> w, wt;
     	w.initZeros(Nrot, Ntilt);
     	wt = w;
@@ -1445,7 +1445,7 @@ public:
     	threeD_FSC.initZeros();
     	counterMap.initConstant(1e-38);
 
-    	MetaData mdFSC;
+    	MetaDataVec mdFSC;
     	MultidimArray<double> fscglobal, freqglobal;
     	double resol, resInterp;
     	fscGlobal(FT1, FT2, sampling, freq_fourier_x, freq_fourier_y, freq_fourier_z, freqMap, freqglobal, fscglobal, 0.5,
@@ -1469,7 +1469,7 @@ public:
     		generateDirections(angles, true);
 			double angCon, cross;
 			size_t objId;
-			MetaData mdcrossval;
+			MetaDataVec mdcrossval;
 
 			for (double myangle = 10; myangle < 41; myangle = myangle + 1)
 			{
@@ -1499,7 +1499,7 @@ public:
 				{
 					//ANISOTROPY CURVE
 					aniParam /= (double) angles.mdimx;
-					MetaData mdani;
+					MetaDataVec mdani;
 					fnmd = fn_fscmd_folder+formatString("AniIterAngle_%i.xmd", count);
 					saveAnisotropyToMetadata(mdani, freq, aniParam, fnmd);
 					++count;
@@ -1538,7 +1538,7 @@ public:
 
     	MultidimArray<double> directionAnisotropy(angles.mdimx), resDirFSC(angles.mdimx);;
     	aniParam.initZeros(m1sizeX/2+1);
-    	MetaData mdAnisotropy;
+    	MetaDataVec mdAnisotropy;
 
     	size_t objId;
     	for (size_t k = 0; k<angles.mdimx; k++)
@@ -1565,7 +1565,7 @@ public:
 					m1sizeX, m1sizeY, m1sizeZ, rot, tilt, ang_con, k);
 	    	}
 
-			MetaData mdRes;
+			MetaDataVec mdRes;
 			fnmd = formatString("fscDirection_%i.xmd", k);
 			fnmd = fn_fscmd_folder + fnmd;
 			saveFSCToMetadata(mdRes, freq, fsc, fnmd);
@@ -1587,7 +1587,7 @@ public:
 
     	//ANISOTROPY CURVE
     	aniParam /= (double) angles.mdimx;
-    	MetaData mdani;
+    	MetaDataVec mdani;
 		saveAnisotropyToMetadata(mdani, freq, aniParam, fn_ani);
 
 		//HALF 3DFSC MAP
@@ -1771,7 +1771,7 @@ void directionalSSNR(MultidimArray< std::complex< double > > & FT1,
 		dAi(z2i,i) = dAi(z2i,i)/dAi(counter,i);
 	}
 
-	MetaData mdRes;
+	MetaDataVec mdRes;
 	size_t id;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
 	{
@@ -1856,7 +1856,7 @@ void getErrorCurves(int &m1sizeX, int &m1sizeY, int &m1sizeZ,
 		transformer2.FourierTransform(phalf2, FT2, false);
 
 		aniParam.initZeros(m1sizeX/2+1);
-		MetaData mdAnisotropy;
+		MetaDataVec mdAnisotropy;
 		double dresfsc;
 		size_t objId;
 		for (size_t k = 0; k<angles.mdimx; k++)
@@ -1873,7 +1873,7 @@ void getErrorCurves(int &m1sizeX, int &m1sizeY, int &m1sizeZ,
 
 		//ANISOTROPY CURVE
 		aniParam /= (double) angles.mdimx;
-		MetaData mdani;
+		MetaDataVec mdani;
 		fnmd = fn_fscmd_folder+formatString("AniIter_%i.xmd", k);
 		saveAnisotropyToMetadata(mdani, freq, aniParam, fnmd);
 	}

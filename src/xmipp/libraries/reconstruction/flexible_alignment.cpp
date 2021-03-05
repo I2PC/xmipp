@@ -142,7 +142,7 @@ ProgFlexibleAlignment *global_flexible_prog;
 void ProgFlexibleAlignment::createWorkFiles()
 {
     MetaData *pmdIn = getInputMd();
-    MetaData mdTodo, mdDone;
+    MetaDataVec mdTodo, mdDone;
     mdTodo = *pmdIn;
     FileName fn(fnOutDir+"/nmaDone.xmd");
     if (fn.exists() && resume)
@@ -168,7 +168,7 @@ void ProgFlexibleAlignment::createWorkFiles()
 
 void ProgFlexibleAlignment::preProcess()
 {
-    MetaData SF(fnModeList);
+    MetaDataVec SF(fnModeList);
     numberOfModes = SF.size();
     SF.getColumnValues(MDL_NMA_MODEFILE,modeList);
 
@@ -1932,7 +1932,7 @@ std::cout << "2074" << fnDown << std::endl;
               //   system(command.c_str());
               //}
 
-              MetaData DF_out_discrete;
+              MetaDataVec DF_out_discrete;
               size_t id=DF_out_discrete.addObject();
               DF_out_discrete.setValue(MDL_IMAGE,currentImgName,id);
               std::vector<double> aux;
@@ -2124,7 +2124,7 @@ std::cout << "parameters2" << parameters(2) << std::endl;
 std::cout << "parameters3" << parameters(3) << std::endl;
 std::cout << "parameters4" << parameters(4) << std::endl;
 
-              MetaData md;
+              MetaDataVec md;
               size_t objId = md.addObject();
               md.setValue(MDL_IMAGE, fnImg, objId);
               md.setValue(MDL_ENABLED, 1, objId);

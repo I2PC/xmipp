@@ -124,8 +124,8 @@ void ProgNmaAlignment::show() {
 ProgNmaAlignment *global_nma_prog;
 
 void ProgNmaAlignment::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
+	MetaDataVec *pmdIn = getInputMd();
+	MetaDataVec mdTodo, mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/nmaDone.xmd");
 	if (fn.exists() && resume) {
@@ -148,7 +148,7 @@ void ProgNmaAlignment::createWorkFiles() {
 }
 
 void ProgNmaAlignment::preProcess() {
-	MetaData SF(fnModeList);
+	MetaDataVec SF(fnModeList);
 	SF.removeDisabled();
 	numberOfModes = SF.size();
 	// Get the size of the images in the selfile
@@ -274,7 +274,7 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 	runSystem(program, arguments, false);
 	if (projMatch)
 	{
-		MetaData MD;
+		MetaDataVec MD;
 		MD.read(fnOut);
 		bool flip;
 		size_t id=MD.firstObject();
@@ -317,7 +317,7 @@ double ProgNmaAlignment::performContinuousAssignment(const FileName &fnRandom,
 	runSystem(program, arguments, false);
 
 	// Pick up results
-	MetaData DF(fnResults);
+	MetaDataVec DF(fnResults);
 	MDRow row;
 	DF.getRow(row, DF.firstObject());
 	row.getValue(MDL_ANGLE_ROT, trial(VEC_XSIZE(trial) - 5));
@@ -361,7 +361,7 @@ double ObjFunc_nma_alignment::eval(Vector X, int *nerror) {
 		global_nma_prog->performCompleteSearch(fnRandom, pyramidLevelDisc);
 	} else {
 		double rot, tilt, psi, xshift, yshift;
-		MetaData DF;
+		MetaDataVec DF;
 
 		rot = global_nma_prog->bestStage1(
 				VEC_XSIZE(global_nma_prog->bestStage1) - 5);
@@ -506,7 +506,7 @@ void ProgNmaAlignment::processImage(const FileName &fnImg,
 }
 
 void ProgNmaAlignment::writeImageParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);

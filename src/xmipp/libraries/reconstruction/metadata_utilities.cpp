@@ -303,8 +303,8 @@ protected:
                 double n=1;
                 double iN=1.0/md.size();
                 MDLabel labelOut=MDL::str2Label(getParam("--operate", 2));
-				FOR_ALL_OBJECTS_IN_METADATA(mdIn)
-                	mdIn.setValue(labelOut,(n++)*iN,__iter.objId);
+                for (size_t objId : mdIn.ids())
+                    mdIn.setValue(labelOut,(n++)*iN,objId);
             }
             else if (operation == "randomize")
                 mdIn.randomize(md);
@@ -313,8 +313,8 @@ protected:
                 std::vector<size_t> objId;
                 objId.resize(md.size());
                 size_t n=0;
-                FOR_ALL_OBJECTS_IN_METADATA(md)
-                objId[n++]=__iter.objId;
+                for (size_t objId : md.ids())
+                    objId[n++] = objId;
                 // md.getColumnValues(MDL_OBJID,objId); COSS: It should work, but it does not
                 int N_1=((int)objId.size())-1;
                 MDRow row;
@@ -469,10 +469,9 @@ protected:
             doWrite = !doDelete;
 
             int counter=FIRST_IMAGE;
-            FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+            for (size_t objId : mdIn.ids())
             {
-
-                mdIn.getValue(label, inFnImg, __iter.objId);
+                mdIn.getValue(label, inFnImg, objId);
                 bool isStack=inFnImg.isInStack();
                 if (doDelete)
                 {
@@ -494,7 +493,7 @@ protected:
                         oldOutFnImg = outFnImg;
                         outFnImg.compose(counter, outFnImg);
                     }
-                    mdIn.setValue(label, outFnImg, __iter.objId);
+                    mdIn.setValue(label, outFnImg, objId);
                     //output file name for copy
                     if (operation == "copy" && isStack)
                     {

@@ -83,10 +83,10 @@ void ProgAlignDualTiltSeries::readDual()
     Image<double> I;
     FileName fnImg;
     double minAbsTilt=1000;
-    FOR_ALL_OBJECTS_IN_METADATA(SFDual)
+    for (size_t objId: SFDual.ids())
     {
-        SFDual.getValue(MDL_IMAGE,fnImg, __iter.objId);
-        SFDual.getValue(MDL_ANGLE_TILT,tiltDual(i), __iter.objId);
+        SFDual.getValue(MDL_IMAGE,fnImg, objId);
+        SFDual.getValue(MDL_ANGLE_TILT,tiltDual(i), objId);
         if (fabs(tiltDual(i))<minAbsTilt)
         {
             minAbsTilt=fabs(tiltDual(i));
@@ -120,10 +120,10 @@ void ProgAlignDualTiltSeries::produceSideInfo()
     Image<double> I;
     FileName fnImg;
     double minAbsTilt=1000;
-    FOR_ALL_OBJECTS_IN_METADATA(SFRef)
+    for (size_t objId: SFRef.ids())
     {
-        SFRef.getValue(MDL_IMAGE,fnImg,__iter.objId);
-        SFRef.getValue(MDL_ANGLE_TILT,tiltRef(i),__iter.objId);
+        SFRef.getValue(MDL_IMAGE,fnImg,objId);
+        SFRef.getValue(MDL_ANGLE_TILT,tiltRef(i),objId);
         if (fabs(tiltRef(i))<minAbsTilt)
         {
             minAbsTilt=fabs(tiltRef(i));
@@ -401,15 +401,16 @@ void ProgAlignDualTiltSeries::alignDual()
     Matrix1D<double> shift2D=vectorR2(alignment(3),alignment(4));
     shift3D/=scaleFactor;
     shift2D/=scaleFactor;
-    MetaData SFout;
+    MetaDataVec SFout;
     int n=0;
     //std::cout << "Aligning dual" << std::endl;
     Image<double> Idual;
     Matrix2D<double> Edual;
     FileName fnImg, fn;
-    FOR_ALL_OBJECTS_IN_METADATA(SFDual)
+
+    for (size_t objId : SFDuals.ids())
     {
-        SFDual.getValue(MDL_IMAGE,fnImg,__iter.objId);
+        SFDual.getValue(MDL_IMAGE,fnImg,objId);
         Idual.read(fnImg);
         Idual().setXmippOrigin();
         if (rotatedDual)

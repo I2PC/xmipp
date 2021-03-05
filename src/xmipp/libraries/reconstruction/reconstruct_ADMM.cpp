@@ -111,12 +111,10 @@ void ProgReconsADMM::produceSideInfo()
 	// Symmetrize input images
 #ifdef SYMMETRIZE_PROJECTIONS
 	Matrix2D<double> Lsym(3,3), Rsym(3,3);
-	MetaData mdSym;
-	MDRow row;
+	MetaDataVec mdSym;
 	double rot, tilt, psi, newrot, newtilt, newpsi;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (const auto& row : mdIn)
 	{
-		mdIn.getRow(row,__iter.objId);
 		row.getValue(MDL_ANGLE_ROT,rot);
 		row.getValue(MDL_ANGLE_TILT,tilt);
 		row.getValue(MDL_ANGLE_PSI,psi);
@@ -261,17 +259,17 @@ void ProgReconsADMM::constructHtb()
 	ApplyGeoParams geoParams;
 	geoParams.only_apply_shifts=true;
 	geoParams.wrap=DONT_WRAP;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (size_t objId : mdIn.ids())
 	{
 		if ((i+1)%Nprocs==rank)
 		{
-			I.readApplyGeo(mdIn,__iter.objId,geoParams);
+			I.readApplyGeo(mdIn,objId,geoParams);
 			I().setXmippOrigin();
-			mdIn.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+			mdIn.getValue(MDL_ANGLE_ROT,rot,objId);
+			mdIn.getValue(MDL_ANGLE_TILT,tilt,objId);
+			mdIn.getValue(MDL_ANGLE_PSI,psi,objId);
 			if (useWeights && mdIn.containsLabel(MDL_WEIGHT))
-				mdIn.getValue(MDL_WEIGHT,weight,__iter.objId);
+				mdIn.getValue(MDL_WEIGHT,weight,objId);
 
 			project(rot,tilt,psi,I(),true,weight);
 		}
@@ -386,19 +384,19 @@ void ProgReconsADMM::computeHtKH(MultidimArray<double> &kernelV)
 		kernel.getKernelAutocorrelation(kernelAutocorr);
 	Matrix2D<double> E;
 	Matrix1D<double> r1(3), r2(3);
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (size_t objId : mdIn.ids())
 	{
 		if ((i+1)%Nprocs==rank)
 		{
 			// COSS: Read also MIRROR
-			mdIn.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-			mdIn.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
+			mdIn.getValue(MDL_ANGLE_ROT,rot,objId);
+			mdIn.getValue(MDL_ANGLE_TILT,tilt,objId);
+			mdIn.getValue(MDL_ANGLE_PSI,psi,objId);
 			if (hasWeight)
-				mdIn.getValue(MDL_WEIGHT,weight,__iter.objId);
+				mdIn.getValue(MDL_WEIGHT,weight,objId);
 			if (hasCTF)
 			{
-				ctf.readFromMetadataRow(mdIn,__iter.objId);
+				ctf.readFromMetadataRow(mdIn,objId);
 				ctf.produceSideInfo();
 				kernel.applyCTFToKernelAutocorrelation(ctf,Ts,kernelAutocorr);
 			}

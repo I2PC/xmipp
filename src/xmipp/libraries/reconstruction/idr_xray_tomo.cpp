@@ -219,12 +219,12 @@ void ProgIDRXrayTomo::run()
         size_t imgNo = 1; // Image number
         double meanError = 0.;
 
-        FOR_ALL_OBJECTS_IN_METADATA(projMD)
+        for (size_t objId : projMD.ids())
         {
-            projMD.getValue(MDL_IMAGE , fnProj, __iter.objId);
-            projMD.getValue(MDL_ANGLE_ROT , rot, __iter.objId);
-            projMD.getValue(MDL_ANGLE_TILT, tilt, __iter.objId);
-            projMD.getValue(MDL_ANGLE_PSI , psi, __iter.objId);
+            projMD.getValue(MDL_IMAGE , fnProj, objId);
+            projMD.getValue(MDL_ANGLE_ROT , rot, objId);
+            projMD.getValue(MDL_ANGLE_TILT, tilt, objId);
+            projMD.getValue(MDL_ANGLE_PSI , psi, objId);
             proj.setAngles(rot, tilt, psi);
 
             XrayRotateAndProjectVolumeOffCentered(phantom, psf, proj, stdProj, YSIZE(MULTIDIM_ARRAY(phantom.iniVol)),

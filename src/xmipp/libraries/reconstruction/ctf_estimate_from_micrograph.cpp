@@ -290,7 +290,7 @@ void ProgCTFEstimateFromMicrograph::run()
 {
     // Open input files -----------------------------------------------------
     // Open coordinates
-    MetaData posFile;
+    MetaDataVec posFile;
     if (fn_pos != "")
         posFile.read(fn_pos);
     MDIterator iterPosFile(posFile);
@@ -659,7 +659,7 @@ void ProgCTFEstimateFromMicrograph::run()
                 stdQ += A2D_ELEM(mpsd_std,i,j)/A2D_ELEM(mpsd_avg,i,j);
                 stdQ /= MULTIDIM_SIZE(psd_std());
 
-                MetaData MD;
+                MetaDataVec MD;
                 MD.read(fn_psd.withoutExtension() + ".ctfparam");
                 size_t id = MD.firstObject();
                 MD.setValue(MDL_CTF_CRIT_PSDVARIANCE, stdQ, id);
@@ -807,14 +807,14 @@ void ProgCTFEstimateFromMicrograph::run()
         double pV0 = 0, pV1 = 0, pV2 = 0;
         planeFit(defocusPlanefittingV, Xm, Ym, pV0, pV1, pV2);
 
-        MetaData MDctf;
+        MetaDataVec MDctf;
         MDctf.read(fn_root+".ctfparam");
         double Tm, downsampling;
         size_t id=MDctf.firstObject();
         MDctf.getValue(MDL_CTF_SAMPLING_RATE,Tm,id);
         MDctf.getValue(MDL_CTF_DOWNSAMPLE_PERFORMED,downsampling,id);
 
-        MetaData MD;
+        MetaDataVec MD;
         MD.setColumnFormat(false);
         id = MD.addObject();
         MD.setValue(MDL_CTF_DEFOCUS_PLANEUA, pU1, id);
@@ -833,11 +833,11 @@ void ProgCTFEstimateFromMicrograph::run()
         {
             FileName fn_img, fn_psd_piece, fn_ctfparam_piece;
             int Y, X;
-            FOR_ALL_OBJECTS_IN_METADATA(posFile)
+            for (size_t objId : posFile.ids())
             {
-                posFile.getValue(MDL_IMAGE, fn_img, __iter.objId);
-                posFile.getValue(MDL_X, X, __iter.objId);
-                posFile.getValue(MDL_Y, Y, __iter.objId);
+                posFile.getValue(MDL_IMAGE, fn_img, objId);
+                posFile.getValue(MDL_X, X, objId);
+                posFile.getValue(MDL_Y, Y, objId);
                 int idx_X = (int)floor((double) X / pieceDim);
                 int idx_Y = (int)floor((double) Y / pieceDim);
                 int N = idx_Y * div_NumberX + idx_X + 1;
@@ -845,9 +845,8 @@ void ProgCTFEstimateFromMicrograph::run()
                 fn_psd_piece.compose(N, fn_psd);
                 fn_ctfparam_piece = fn_psd_piece.withoutExtension()
                                     + ".ctfparam";
-                posFile.setValue(MDL_PSD, fn_psd_piece, __iter.objId);
-                posFile.setValue(MDL_CTF_MODEL, fn_ctfparam_piece,
-                                 __iter.objId);
+                posFile.setValue(MDL_PSD, fn_psd_piece, objId);
+                posFile.setValue(MDL_CTF_MODEL, fn_ctfparam_piece, objId);
             }
         }
     }

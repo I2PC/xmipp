@@ -100,10 +100,10 @@ public:
             if (!fhOutRaw)
                 REPORT_ERROR(ERR_IO_NOWRITE,fnOutRaw);
             size_t vectorSize;
-            MDRow row;
-            FOR_ALL_OBJECTS_IN_METADATA(SF)
+
+            for (auto& row : SF)
             {
-                img.readApplyGeo(SF, __iter.objId);
+                img.readApplyGeo(SF, row.id());
 
                 // Create header
                 if (first)
@@ -131,8 +131,7 @@ public:
                 }
 
                 // Save this image in the output metadata
-                SF.getRow(row,__iter.objId);
-                row.setValue(MDL_ORDER,order++);
+                row.setValue(MDL_ORDER, order++);
                 vectorContent.addRow(row);
 
                 // Save raw values
@@ -188,10 +187,11 @@ public:
                 REPORT_ERROR(ERR_IO_NOTEXIST,fnInRaw);
             size_t order;
             size_t idx=1;
-            FOR_ALL_OBJECTS_IN_METADATA(vectorContent)
+
+            for (size_t objId : vectorContent.ids())
             {
-                vectorContent.getValue(MDL_IMAGE,fnImg,__iter.objId);
-                vectorContent.getValue(MDL_ORDER,order,__iter.objId);
+                vectorContent.getValue(MDL_IMAGE, fnImg, objId);
+                vectorContent.getValue(MDL_ORDER, order, objId);
 
                 // Read raw values
                 fhInRaw.seekg(order*vectorSize*sizeof(float));

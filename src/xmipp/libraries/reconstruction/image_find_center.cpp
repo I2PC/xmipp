@@ -673,11 +673,11 @@ public:
         Image<double> I, Iaux;
         if (fnIn.isMetaData())
         {
-            MetaData MD(fnIn);
+            MetaDataVec MD(fnIn);
             int N=0;
-            FOR_ALL_OBJECTS_IN_METADATA(MD)
+            for (size_t objId : MD.ids())
             {
-                Iaux.readApplyGeo(MD,__iter.objId);
+                Iaux.readApplyGeo(MD, objId);
                 if (N==0)
                     I()=Iaux();
                 else
@@ -740,7 +740,7 @@ public:
         largo=YSIZE(I());
         lancho=XSIZE(I());
         busca();
-        MetaData MD;
+        MetaDataVec MD;
         id=MD.addObject();
         if (yc0>0)
         {

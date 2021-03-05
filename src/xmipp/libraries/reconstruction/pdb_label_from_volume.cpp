@@ -127,7 +127,7 @@ void ProgPdbValueToVol::computeProteinGeometry()
     std::ofstream fh_out(fn_out);
     fh_pdb.open(fn_pdb.c_str());
 
-    MetaData mdmean;
+    MetaDataVec mdmean;
     size_t objId;
     objId = mdmean.addObject();
 

@@ -48,7 +48,7 @@ public:
     /** Filenames */
     FileName fn_out, fn_sym, fn_sel;
     /** SelFile containing all projections and angles */
-    MetaData SF;
+    MetaDataVec SF;
     /** Lower threshold for the filter */
     double threshold;
     /** Counter for how many times the threshold was not reached */

@@ -118,22 +118,22 @@ void ProgImageSSNR::processImage(const FileName &fnImg, const FileName &fnImgOut
 
 void thresholdSSNR(MetaData &mdOut, double ssnrcut)
 {
-	FOR_ALL_OBJECTS_IN_METADATA(mdOut)
+	for (size_t objId : mdOut.ids())
 	{
 		double ssnr;
-		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,__iter.objId);
+		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,objId);
 		if (ssnr<ssnrcut)
-			mdOut.setValue(MDL_ENABLED,-1,__iter.objId);
+			mdOut.setValue(MDL_ENABLED,-1,objId);
 	}
 }
 
 void normalizeSSNR(MetaData &mdOut)
 {
 	double maxSSNR=-1e38;
-	FOR_ALL_OBJECTS_IN_METADATA(mdOut)
+	for (size_t objId : mdOut.ids())
 	{
 		double ssnr;
-		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,__iter.objId);
+		mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,objId);
 		if (ssnr>maxSSNR)
 			maxSSNR=ssnr;
 	}
@@ -141,11 +141,11 @@ void normalizeSSNR(MetaData &mdOut)
 	if (maxSSNR>0)
 	{
 		double imaxSSNR=1/maxSSNR;
-		FOR_ALL_OBJECTS_IN_METADATA(mdOut)
+		for (size_t objId : mdOut.ids())
 		{
 			double ssnr;
-			mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,__iter.objId);
-			mdOut.setValue(MDL_WEIGHT_SSNR,ssnr*imaxSSNR,__iter.objId);
+			mdOut.getValue(MDL_CUMULATIVE_SSNR,ssnr,objId);
+			mdOut.setValue(MDL_WEIGHT_SSNR,ssnr*imaxSSNR,objId);
 		}
 	}
 }

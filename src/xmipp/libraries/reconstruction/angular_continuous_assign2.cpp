@@ -613,7 +613,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 
 #ifdef DEBUG
     std::cout << "p=" << p << std::endl;
-    MetaData MDaux;
+    MetaDataVec MDaux;
     MDaux.addRow(rowOut);
     MDaux.write("PPPmd.xmd");
     Image<double> save;
@@ -637,40 +637,40 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 
 void ProgAngularContinuousAssign2::postProcess()
 {
-	MetaData &ptrMdOut=*getOutputMd();
+	MetaData &ptrMdOut = getOutputMd();
 	ptrMdOut.removeDisabled();
 	if (contCost==CONTCOST_L1)
 	{
 		double minCost=1e38;
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
 			if (cost<minCost)
 				minCost=cost;
 		}
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
-			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,minCost/cost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
+			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,minCost/cost,objId);
 		}
 	}
 	else
 	{
 		double maxCost=-1e38;
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
 			if (cost>maxCost)
 				maxCost=cost;
 		}
-		FOR_ALL_OBJECTS_IN_METADATA(ptrMdOut)
+        for (size_t objId : ptrMdOut.ids())
 		{
 			double cost;
-			ptrMdOut.getValue(MDL_COST,cost,__iter.objId);
-			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,cost/maxCost,__iter.objId);
+			ptrMdOut.getValue(MDL_COST,cost,objId);
+			ptrMdOut.setValue(MDL_WEIGHT_CONTINUOUS2,cost/maxCost,objId);
 		}
 	}
 

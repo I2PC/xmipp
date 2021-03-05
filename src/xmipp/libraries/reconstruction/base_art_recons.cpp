@@ -101,7 +101,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
     // Noisy reconstruction .................................................
     GridVolume vol_basis_noisy; // Output volume (only for ART)
     Projection noisy_projection;
-    MetaData SF_noise, SF_signal;
+    MetaDataVec SF_noise, SF_signal;
     if (artPrm.noisy_reconstruction)
     {
         vol_basis_noisy = vol_basis;
@@ -214,7 +214,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
                 if ( it == 0 && imgInfo.sym==-1 )
                 {
                     FileName fn_noise;
-                    MDRow row;
+                    MDRowVec row;
                     fn_noise.compose(read_proj.name().getPrefixNumber(),artPrm.fn_root+"_noise_proj.stk");
 
                     noisy_projection.write(fn_noise);
@@ -740,7 +740,7 @@ void ARTReconsBase::initHistory(const GridVolume &vol_basis0)
 
     // Show angles .............................................................
     // Prepare info structure for showing
-    MetaData MD;
+    MetaDataVec MD;
     double dfrot, dftilt, dfpsi;
     size_t id;
     for (int i=0; i<artPrm.numIMG; i++)
@@ -754,11 +754,11 @@ void ARTReconsBase::initHistory(const GridVolume &vol_basis0)
 
     // Now show
     *artPrm.fh_hist << " Projection angles -----------------------------------------\n";
-    FOR_ALL_OBJECTS_IN_METADATA(MD)
+    for (size_t objId : MD.ids())
     {
-        MD.getValue(MDL_ANGLE_ROT, dfrot,__iter.objId);
-        MD.getValue(MDL_ANGLE_TILT, dftilt,__iter.objId);
-        MD.getValue(MDL_ANGLE_PSI, dfpsi,__iter.objId);
+        MD.getValue(MDL_ANGLE_ROT, dfrot, objId);
+        MD.getValue(MDL_ANGLE_TILT, dftilt, objId);
+        MD.getValue(MDL_ANGLE_PSI, dfpsi, objId);
 
         *artPrm.fh_hist << "rot= "<<dfrot<<" tilt= "<<dftilt<<" psi= "<<dfpsi<<std::endl;
     }

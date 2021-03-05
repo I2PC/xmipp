@@ -185,7 +185,7 @@ void make_even_distribution(std::vector<double> &rotList, std::vector<double> &t
 void limit_tilt_range(MetaData &DF, double tilt_range0, double tilt_rangeF)
 {
 
-    MetaData DFaux;
+    MetaDataVec DFaux;
     DFaux.importObjects(DF, MDValueRange(MDL_ANGLE_TILT, tilt_range0, tilt_rangeF));
     DF = DFaux;
 }

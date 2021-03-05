@@ -785,9 +785,9 @@ void ProgTomographAlignment::produceSideInfo()
         bool nonZeroTilt=false;
         Image<double> imgaux;
         FileName fn;
-        FOR_ALL_OBJECTS_IN_METADATA(SF)
+        for (size_t objId : SF.ids())
         {
-            SF.getValue( MDL_IMAGE, fn ,__iter.objId);
+            SF.getValue( MDL_IMAGE, fn, objId);
             imgaux.read(fn);
             if (difficult)
             {
@@ -840,7 +840,7 @@ void ProgTomographAlignment::produceSideInfo()
 
             double tiltAngle;
             if (SF.containsLabel(MDL_ANGLE_TILT))
-                SF.getValue(MDL_ANGLE_TILT,tiltAngle,__iter.objId);
+                SF.getValue(MDL_ANGLE_TILT,tiltAngle, objId);
             else
                 tiltAngle=imgaux.tilt();
             tiltList.push_back(tiltAngle);
@@ -2278,7 +2278,7 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         REPORT_ERROR(ERR_VALUE_INCORRECT,"There is no landmark at 0 degrees");
     z0/=z0N;
     std::cout << "Average height of the landmarks at 0 degrees=" << z0 << std::endl;
-    MetaData DF;
+    MetaDataVec DF;
 
     MDIterator * iter = NULL;
 

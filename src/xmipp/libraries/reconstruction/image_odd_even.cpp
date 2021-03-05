@@ -108,7 +108,7 @@ void ProgOddEven::run()
 	MetaData movieOdd, movieEven;
 
 	FileName fnFrame;
-	size_t objId, objId_odd, objId_even;
+	size_t objId_odd, objId_even;
 	Image<double> frame, imgOdd, imgEven;
 
 	MultidimArray<double> &ptrEven = imgEven();
@@ -118,14 +118,12 @@ void ProgOddEven::run()
 	ptrEven.initZeros(Ydim, Xdim);
 	ptrOdd.initZeros(Ydim, Xdim);
 
-	FOR_ALL_OBJECTS_IN_METADATA(movienew)
+	for (size_t objId : movienew.ids())
 	{
-		objId = __iter.objId;
 		movienew.getValue(MDL_IMAGE, fnFrame, objId);
 		if (sumFrames)
 		{
 			frame.read(fnFrame);
-
 		}
 
 		if (objId%2 == 0)

@@ -97,18 +97,18 @@ void ProgClassifySignificant::defineParams()
 // Produce side information ================================================
 void ProgClassifySignificant::produceSideInfo()
 {
-	if (verbose>0)
-		std::cerr << "Producing side info ..." << std::endl;
+    if (verbose>0)
+        std::cerr << "Producing side info ..." << std::endl;
     // Read the reference volumes
     Image<double> V;
-    MetaData mdVols, mdAngles, mdAnglesSorted;
+    MetaDataVec mdVols, mdAngles, mdAnglesSorted;
     mdVols.read(fnVols);
     FileName fnVol;
     int i=1;
-    FOR_ALL_OBJECTS_IN_METADATA(mdVols)
+    for (size_t objId : mdVols.ids())
     {
-    	mdVols.getValue(MDL_IMAGE,fnVol,__iter.objId);
-    	std::cout << fnVol << std::endl;
+        mdVols.getValue(MDL_IMAGE,fnVol, objId);
+        std::cout << fnVol << std::endl;
         V.read(fnVol);
         V().setXmippOrigin();
         projector.push_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
@@ -127,7 +127,7 @@ void ProgClassifySignificant::produceSideInfo()
     }
 
     //Read FSC if present
-    MetaData mdFsc;
+    MetaDataVec mdFsc;
     std::vector<double> fscAux;
     if(isFsc){
     	for (int i=0; i<numFsc; i++){
@@ -139,7 +139,7 @@ void ProgClassifySignificant::produceSideInfo()
     }
 
     // Read the Ids
-    MetaData mdIds;
+    MetaDataVec mdIds;
     mdIds.read(fnIds);
     mdIds.getColumnValues(MDL_PARTICLE_ID,setIds);
 }
@@ -1032,7 +1032,7 @@ void ProgClassifySignificant::run()
 	progress_bar(setIds.size());
 
 	// Write output
-	MetaData md;
+	MetaDataVec md;
 	for (size_t ivol=0; ivol<projector.size(); ivol++)
 	{
 		size_t objId=md.addObject();

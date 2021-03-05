@@ -36,6 +36,7 @@
 #include "core/geometry.h"
 #include "reconstruction/single_extrema_finder.h"
 #include "core/transformations.h"
+#include "core/xmipp_image_extension.h"
 
 namespace Alignment {
 
