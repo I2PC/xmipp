@@ -35,6 +35,7 @@ void ProgVolumeDeformSphGpu::defineParams() {
 	addUsageLine("Compute the deformation that properly fits two volumes using spherical harmonics (GPU accelerated)");
 	addParamsLine("   -i <volume>                         : Volume to deform");
 	addParamsLine("   -r <volume>                         : Reference volume");
+	addParamsLine("   --xmipp <pathToXmipp>               : Absolute path to xmipp-bundle");
 	addParamsLine("  [-o <volume=\"\">]                   : Output volume which is the deformed input volume");
 	addParamsLine("  [--oroot <rootname=\"Volumes\">]     : Root name for output files");
 	addParamsLine("                                       : By default, the input file is rewritten");
@@ -46,7 +47,6 @@ void ProgVolumeDeformSphGpu::defineParams() {
 	addParamsLine("  [--regularization <l=0.00025>]       : Regularization weight");
 	addParamsLine("  [--Rmax <r=-1>]                      : Maximum radius for the transformation");
 	addParamsLine("  [--kttLog <logfile=\"\">]            : KTT tuning result file");
-	addParamsLine("  [--xmipp <pathToXmipp=\"\">]         : Absolute path to xmipp-bundle");
 	addExampleLine("xmipp_volume_deform_sph -i vol1.vol -r vol2.vol -o vol1DeformedTo2.vol");
 }
 
