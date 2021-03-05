@@ -23,6 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <reconstruction/subtract_projection.cpp>
+#include <reconstruction/subtract_projection.h>
 
-RUN_XMIPP_PROGRAM(ProgProjectionSubtraction)
+RUN_XMIPP_PROGRAM(ProgSubtractProjection)

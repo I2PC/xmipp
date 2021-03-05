@@ -33,7 +33,7 @@
  #include "data/fourier_projection.h"
 
 
- class ProgSubtractProjection: public XmippMetadataProgram
+ class ProgSubtractProjection: public XmippProgram
  {
  public:
     /** Filename of the reference volume */
@@ -57,6 +57,15 @@
  	Projection P;
  	// Filter
     FourierFilter filter;
+    // CTF Check
+    bool hasCTF;
+    // CTF params
+ 	double defocusU, defocusV, ctfAngle;
+ 	// CTF
+ 	CTFDescription ctf;
+    // CTF filter
+    FourierFilter FilterCTF;
+ 	// CTF image
 
  public:
     /// Empty constructor
