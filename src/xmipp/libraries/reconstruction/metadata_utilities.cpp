@@ -388,6 +388,12 @@ protected:
 
     void doQuery()
     {
+    	if (mdIn.size()==0)
+    	{
+    		md2.clear();
+    		return;
+    	}
+
         operation = getParam("--query", 0);
         String expression;
 
