@@ -29,6 +29,11 @@
  #include "core/xmipp_image_generic.h"
  #include "data/projection.h"
  #include "data/mask.h"
+ #include <iostream>
+ #include <string>
+ #include <sstream>
+
+
 // #include "volume_subtraction.cpp"
 
 
@@ -141,7 +146,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      addParamsLine("[--mask <mask=\"\">]  	: Mask for the region of subtraction");
      addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
      addParamsLine("[--iter <n=1>]        	: Number of iterations");
-     addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
+     addParamsLine("[--cutFreq <f=0>]       : Cutoff frequency (<0.5)");
      addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
 //        addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
 //        addParamsLine("[--saveV2 <structure=\"\"> ]  : Save subtraction intermediate files (vol2 adjusted)");
@@ -158,6 +163,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	MDRow row;
  	double rot, tilt, psi;
  	FileName fnImage;
+ 	String ix;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
@@ -295,8 +301,8 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
 				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-		I.write(fnOut);
-
+		row.getValue(MDL_IDX, ix);
+		I.write("proj_sub_" + ix);
     }
 
  }
