@@ -102,7 +102,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	fnVolR = getParam("--ref");
 	fnOut=getParam("-o");
 	if (fnOut=="")
-		fnOut="output_particles.xmd";
+		fnOut="output_particle_";
 	fnMask=getParam("--mask");
 	iter=getIntParam("--iter");
 	sigma=getIntParam("--sigma");
@@ -141,7 +141,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      //Parameters
      addParamsLine("-i <particles>          : Particles metadata (.xmd file)");
      addParamsLine("--ref <volume>      	: Reference volume to subtract");
-     addParamsLine("[-o <structure=\"\">] 	: Output metadata (.xmd) of subtracted particles");
+     addParamsLine("[-o <structure=\"\">] 	: Output filename suffix for subtracted particles");
      addParamsLine("                      	: If no name is given, then output_particles.xmd");
      addParamsLine("[--mask <mask=\"\">]  	: Mask for the region of subtraction");
      addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
@@ -301,8 +301,8 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
 				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-		row.getValue(MDL_IDX, ix);
-		I.write("proj_sub_" + ix);
+		row.getValue(MDL_ITEM_ID, ix);
+		I.write(fnOut + ix);
     }
 
  }
