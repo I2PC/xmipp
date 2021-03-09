@@ -44,6 +44,8 @@
     FileName fnOut;
     /// Filename of input mask
     FileName fnMask;
+    /// Filenames for intermediate results
+    FileName fnPart, fnProj;
 
  public:
     // Input particles metadata

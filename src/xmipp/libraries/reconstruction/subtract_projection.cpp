@@ -108,12 +108,12 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 	sigma=getIntParam("--sigma");
 	cutFreq=getDoubleParam("--cutFreq");
 	lambda=getDoubleParam("--lambda");
-//	fnVol1F=getParam("--saveV1");
-//	if (fnVol1F=="")
-//		fnVol1F="volume1_filtered.mrc";
-//	fnVol2A=getParam("--saveV2");
-//	if (fnVol2A=="")
-//		fnVol2A="volume2_adjusted.mrc";
+	fnPart=getParam("--savePart");
+	if (fnPart=="")
+		fnPart="particle_filtered.mrc";
+	fnProj=getParam("--saveProj");
+	if (fnProj=="")
+		fnProj="projection_adjusted.mrc";
  }
 
  // Show ====================================================================
@@ -148,22 +148,21 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      addParamsLine("[--iter <n=1>]        	: Number of iterations");
      addParamsLine("[--cutFreq <f=0>]       : Cutoff frequency (<0.5)");
      addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
-//        addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
-//        addParamsLine("[--saveV2 <structure=\"\"> ]  : Save subtraction intermediate files (vol2 adjusted)");
-    addExampleLine("A typical use is:",false);
-    addExampleLine("");
+	 addParamsLine("[--savePart <structure=\"\"> ]  : Save subtraction intermediate files (particle filtered)");
+	 addParamsLine("[--saveProj <structure=\"\"> ]  : Save subtraction intermediate files (projection adjusted)");
+     addExampleLine("A typical use is:",false);
+     addExampleLine("");
  }
 
  void ProgSubtractProjection::run()
  {
 	show();
 	V.read(fnVolR);
- 	MultidimArray<double> &mV=P();
+ 	MultidimArray<double> &mV=V();
  	mdParticles.read(fnParticles);
  	MDRow row;
  	double rot, tilt, psi;
  	FileName fnImage;
- 	String ix;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
@@ -187,9 +186,10 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      		ctfAngle=ctf.azimuthal_angle;
      	}
      	else
+     	{
      		hasCTF=false;
+     	}
 
-     	// If it has CTF, apply it
  	 	if (hasCTF)
  	 	{
  	 	 	FilterCTF.FilterBand = CTF;
@@ -199,12 +199,10 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	 		FilterCTF.applyMaskSpace(P());
  	 	}
 
- 	 	// Projection subtraction
- 	 	Image<double> Idiff;  // I = V1, P = V
+ 	 	Image<double> Idiff;
 		FourierTransformer transformer;
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
-//		MultidimArray<double> mask1;
 		Image<double> mask;
 		if (fnMask!="")
 		{
@@ -216,7 +214,6 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 			mask().resizeNoCopy(I());
 			mask().initConstant(1.0);
 		}
-		mask.clear();
 		POCSmaskProj(mask(),I());
 		POCSnonnegativeProj(I());
 
@@ -290,21 +287,24 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
     	I.read(fnImage);
 		IFiltered() = I();
 		if (cutFreq!=0)
+		{
 			Filter2.applyMaskSpace(IFiltered());
+		}
 
-//		if (fnVol1F!="" && fnVol2A!="")
-//		{
-//			IFiltered.write(fnVol1F);
-//			V.write(fnVol2A);
-//		}
+		if (fnPart!="" && fnProj!="")
+		{
+			IFiltered.write(fnPart);
+			Idiff.write(fnProj);
+		}
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
 				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-		row.getValue(MDL_ITEM_ID, ix);
-		I.write(fnOut + ix);
+		std::cout << "--------------106-----------------" << std::endl;
+		I.write(fnOut);
+		std::cout << "--------------109-----------------" << std::endl;
     }
-
+    std::cout << "--------------110-----------------" << std::endl;
  }
 
 
