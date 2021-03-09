@@ -1213,7 +1213,7 @@ def ensureConfigVersion(configDict):
 
 def configTests(configDict):
     if configDict[KEY_BUILD_TESTS] == "":
-        configDict[KEY_BUILD_TESTS] = askYesNo(yellow(f'\nDo you want to build tests [yes/NO]'), default=False)
+        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False)
 
 
 def config():
