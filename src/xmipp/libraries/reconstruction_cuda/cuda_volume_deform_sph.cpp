@@ -161,7 +161,6 @@ void VolumeDeformSph::setupConstantParameters()
     deformImagesId = tuner.addArgumentScalar(deformImages);
 
     // kernel dimension
-    // Supposes the input sizes are nicely divisible -> TODO
     kttBlock.setSizeX(1);
     kttBlock.setSizeY(1);
     kttBlock.setSizeZ(1);
@@ -170,10 +169,10 @@ void VolumeDeformSph::setupConstantParameters()
     kttGrid.setSizeZ(images.VR.zDim);
 
     // kernel init
-    kernelId = tuner.addKernelFromFile(pathToXmipp + pathToKernel, "computeDeform", kttGrid, kttBlock);
+    kernelId = tuner.addKernelFromFile(pathToXmipp + "/" + pathToKernel, "computeDeform", kttGrid, kttBlock);
 
     // tuning block/grid size
-    tuner.addParameter(kernelId, BLOCK_X_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{16});
+    tuner.addParameter(kernelId, BLOCK_X_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{8});
     tuner.addParameter(kernelId, BLOCK_Y_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{8});
     tuner.addParameter(kernelId, BLOCK_Z_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{1});
     // block size modification
@@ -184,6 +183,7 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Divide);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Divide);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::Divide);
+    tuner.setAutomaticGlobalSizeCorrection(true);
     // constrains
     tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
             [&VR = images.VR](std::vector<size_t> vec)
@@ -203,7 +203,7 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "USE_NAIVE_BLOCK_REDUCTION", {0});
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
     tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {1});
-    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {1});
+    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {0});
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -270,13 +270,13 @@ void VolumeDeformSph::transferImageData(Image<double>& outputImage, ImageData& i
 
 void VolumeDeformSph::pretuneKernel() 
 {
-    // Does not work in general case, but test data have nice sizes
-
     if (!tuneKernel) {
         return;
     }
 
     // Define thrust reduction vector
+    // During the tuning process it needs to be able to accomodate all the possible
+    // variations of block sizes. That is why it is so large.
     thrust::device_vector<PrecisionType> thrustVec(kttGrid.getTotalSize() * 4, 0.0);
 
     // Add arguments for the kernel
@@ -311,13 +311,13 @@ void VolumeDeformSph::pretuneKernel()
     bestKernelConfig = tuner.getBestComputationResult(kernelId).getConfiguration();
     for (const auto& pair : bestKernelConfig) {
         if (pair.getName() == BLOCK_X_DIM) {
-            tunedGridSize *= (kttGrid.getSizeX() / pair.getValue());
+            tunedGridSize *= ((kttGrid.getSizeX() + pair.getValue() - 1) / pair.getValue());
         }
         if (pair.getName() == BLOCK_Y_DIM) {
-            tunedGridSize *= (kttGrid.getSizeY() / pair.getValue());
+            tunedGridSize *= ((kttGrid.getSizeY() + pair.getValue() - 1) / pair.getValue());
         }
         if (pair.getName() == BLOCK_Z_DIM) {
-            tunedGridSize *= (kttGrid.getSizeZ() / pair.getValue());
+            tunedGridSize *= ((kttGrid.getSizeZ() + pair.getValue() - 1) / pair.getValue());
         }
     }
 }
@@ -327,8 +327,6 @@ void VolumeDeformSph::runKernel()
     if (tuneKernel) {
         pretuneKernel();
     }
-
-    // Does not work in general case, but test data have nice sizes
 
     // Define thrust reduction vector
     thrust::device_vector<PrecisionType> thrustVec(tunedGridSize * 4, 0.0);

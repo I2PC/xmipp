@@ -200,18 +200,28 @@ extern "C" __global__ void computeDeform(
 #if USE_SHARED_VOLUME_METADATA == 1
     __shared__ ImageData volRMetaShared[VOL_COUNT];
     __shared__ ImageData volIMetaShared[VOL_COUNT];
+    // Load metadata about volumes to the shared memory
+#if VOL_COUNT < BLOCK_SIZE
+    if (tIdx < VOL_COUNT) {
+        volRMetaShared[tIdx] = volumes.R[tIdx];
+        volIMetaShared[tIdx] = volumes.I[tIdx];
+    }
+#else
     if (tIdx == 0) {
         for (int idx = 0; idx < VOL_COUNT; idx++) {
             volRMetaShared[idx] = volumes.R[idx];
             volIMetaShared[idx] = volumes.I[idx];
         }
     }
+#endif
 
 #if USE_SHARED_VOLUME_DATA == 1
+    // wait for metadata to be in shared mem
     __syncthreads();
 
     __shared__ PrecisionType volRDataShared[VOL_COUNT][BLOCK_SIZE];
     __shared__ PrecisionType volIDataShared[VOL_COUNT][BLOCK_SIZE];
+    // Load data related to the current block into the shared mem
     for (int idx = 0; idx < VOL_COUNT; idx++) {
         ELEM_3D_SHARED(volRDataShared[idx],kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
         ELEM_3D_SHARED(volIDataShared[idx],kPhys,iPhys,jPhys) = ELEM_3D(volIMetaShared[idx], kPhys, iPhys, jPhys);
@@ -563,7 +573,9 @@ extern "C" __global__ void computeDeform(
 
     PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0, localNcount = 0.0;
 
-    if (applyTransformation) {
+    bool isOutside = IS_OUTSIDE_PHYS(images.VR, kPhys, iPhys, jPhys);
+
+    if (applyTransformation && !isOutside) {
         // Indexing requires physical indexes
         voxelR = ELEM_3D(images.VR, kPhys, iPhys, jPhys);
         // Logical indexes used to check whether the point is in the matrix
@@ -579,6 +591,7 @@ extern "C" __global__ void computeDeform(
         localNcount++;
     }
 
+    if (!isOutside) {
     for (unsigned idv = 0; idv < volumes.size; idv++) {
 #if USE_SHARED_VOLUME_METADATA == 1
 #if USE_SHARED_VOLUME_DATA == 1
@@ -600,6 +613,7 @@ extern "C" __global__ void computeDeform(
         localDiff2 += diff * diff;
         localModg += gx*gx + gy*gy + gz*gz;
         localNcount++;
+    }
     }
 
     __shared__ PrecisionType diff2Shared[BLOCK_SIZE];
@@ -628,6 +642,15 @@ extern "C" __global__ void computeDeform(
 #else
     //TODO preprocess variable sizes
 
+    if (BLOCK_SIZE >= 1024) {
+        if (tIdx < 512) {
+            diff2Shared[tIdx] += diff2Shared[tIdx + 512];
+            sumVDShared[tIdx] += sumVDShared[tIdx + 512];
+            modfgShared[tIdx] += modfgShared[tIdx + 512];
+            countShared[tIdx] += countShared[tIdx + 512];
+        }
+        __syncthreads();
+    }
     if (BLOCK_SIZE >= 512) {
         if (tIdx < 256) {
             diff2Shared[tIdx] += diff2Shared[tIdx + 256];
@@ -695,7 +718,7 @@ extern "C" __global__ void computeDeform(
 #endif
     }
 
-    if (saveDeformation) {
+    if (saveDeformation && !isOutside) {
         ELEM_3D(deformImages.Gx, kPhys, iPhys, jPhys) = gx;
         ELEM_3D(deformImages.Gy, kPhys, iPhys, jPhys) = gy;
         ELEM_3D(deformImages.Gz, kPhys, iPhys, jPhys) = gz;
