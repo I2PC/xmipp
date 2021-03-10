@@ -38,13 +38,15 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
         Matrix1D<T>& shiftYt, int verbosity, int iterations) {
     Matrix1D<double> ex;
     Matrix1D<double> ey;
-    WeightedLeastSquaresHelper helper;
+    WeightedLeastSquaresHelperMany helper;
+    helper.bs.resize(2);
+    std::vector<Matrix1D<double>> shifts(2);
     Matrix2D<double> A;
     Matrix1D<double> bX;
     Matrix1D<double> bY;
-    Matrix1D<double> shiftX;
-    Matrix1D<double> shiftY;
-    typeCast(At, helper.A);
+    Matrix1D<double> &shiftX = shifts[0];
+    Matrix1D<double> &shiftY = shifts[1];
+    
     typeCast(bXt, bX);
     typeCast(bYt, bY);
     typeCast(shiftXt, shiftX);
@@ -65,11 +67,11 @@ void EquationSystemSolver::solve(Matrix1D<T>& bXt,
         std::cout << "Solving equation system ...\n";
     do {
         // Solve the equation system
-        helper.b = bX;
-        weightedLeastSquares(helper, shiftX);
-        helper.b = bY;
-        weightedLeastSquares(helper, shiftY);
-
+        helper.bs[0] = bX;
+        helper.bs[1] = bY;
+        typeCast(At, helper.A);
+        weightedLeastSquares(helper, shifts); // we have updated A, is that OK?
+        
         // Compute residuals
         ex = bX - helper.A * shiftX;
         ey = bY - helper.A * shiftY;
