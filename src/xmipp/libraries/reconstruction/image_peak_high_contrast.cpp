@@ -35,6 +35,8 @@ void ProgImagePeakHighContrast::readParams()
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
 	distanceThr = getIntParam("--distanceThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
+	fiducialSize = getDoubleParam("--fiducalSize");
+	samplingRate = getDoubleParam("--samplingRate");
 
 }
 
@@ -49,6 +51,8 @@ void ProgImagePeakHighContrast::defineParams()
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
   	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
+  	addParamsLine("  [--fiducalSize <fiducalSize=100>]						: Fiducial size in Angstroms (A)");
+  	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px)");
 
 }
 
@@ -82,12 +86,99 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 
-	//////////////////////////////////////////////////////////////////////////// CONTRAST ENHANCEMENT
-	// Image <double> enhancedVolume;
-
-	// enhancedVolume().resizeNoCopy(inputVolume)
-	// enhancedVolume().initConstant(255) // TODO: This shold be the image average
+	//////////////////////////////////////////////////////////////////////////// VOLUME FILTERING
 	
+	// #include <data/filters.h>
+
+	int siz_x = XSIZE(inputTomo)*0.5;
+	int siz_y = YSIZE(inputTomo)*0.5;
+	int siz_z = ZSIZE(inputTomo)*0.5;
+	int N_smoothing = 10;
+
+	size_t ux, uy, uz, uz2, uz2y2;
+
+	int limit_distance_x = (siz_x-N_smoothing);
+	int limit_distance_y = (siz_y-N_smoothing);
+	int limit_distance_z = (siz_z-N_smoothing);
+
+	long n=0;
+	for(int k=0; k<ZSIZE(inputTomo); ++k)
+	{
+		uz = (k - siz_z);
+		for(int i=0; i<YSIZE(inputTomo); ++i)
+		{
+			uy = (i - siz_y);
+			for(int j=0; j<XSIZE(inputTomo); ++j)
+			{
+				ux = (j - siz_x);
+
+				if (abs(ux)>=limit_distance_x)
+				{
+					DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+				}
+				if (abs(uy)>=limit_distance_y)
+				{
+					DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+				}
+				if (abs(uz)>=limit_distance_z)
+				{
+					DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_z - abs(uz))/(N_smoothing)));
+				}
+				++n;
+			}
+		}
+	}
+
+	MultidimArray< std::complex<double> > fftV;
+
+	FourierTransformer transformer;
+	transformer.FourierTransform(inputTomo, fftV);
+
+	// Calculate u
+	n=0;
+
+	MultidimArray< std::complex<double> >  fftFiltered;
+
+	fftFiltered = fftV;
+	double freqHigh = samplingRate/fiducialSize, freqLow;
+	double w = 0.02; 
+	double cutoffFreq = freqHigh + w;
+	double delta = PI / w;
+
+	for(size_t k=0; k<ZSIZE(fftV); ++k)
+	{
+		FFT_IDX2DIGFREQ(k,ZSIZE(inputTomo),uz);
+		uz2=uz*uz;
+
+		for(size_t i=0; i<YSIZE(fftV); ++i)
+		{
+			FFT_IDX2DIGFREQ(i,YSIZE(inputTomo),uy);
+			uz2y2=uz2+uy*uy;
+
+			for(size_t j=0; j<XSIZE(fftV); ++j)
+			{
+				FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
+				double u=sqrt(uz2y2+ux*ux);
+				if(u>cutoffFreq)
+				{
+					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
+				} 
+				
+				else if(u>=freqHigh && u < cutoffFreq)
+				{
+					DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
+				}
+				++n;
+			}
+		}
+	}
+
+	MultidimArray<double>  volFiltered;
+	volFiltered.resizeNoCopy(inputTomo);
+	transformer.inverseFourierTransform(fftFiltered, volFiltered);
+	Image<double> saveImage;
+	saveImage() = volFiltered; 
+	saveImage.write("filteredVolume.mrc");
 
 	///////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
 

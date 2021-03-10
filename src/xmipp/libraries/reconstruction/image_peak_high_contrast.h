@@ -48,7 +48,7 @@ public:
     FileName fnVol, fnOut;
 
     /** Threshold */
-    double pixelValueThr;
+    double pixelValueThr, fiducialSize, samplingRate;
 
     /** Number of slices and original centers of mass */
     int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
