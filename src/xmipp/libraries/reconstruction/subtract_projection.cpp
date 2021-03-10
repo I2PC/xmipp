@@ -300,11 +300,12 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
 				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-		std::cout << "--------------106-----------------" << std::endl;
-		I.write(fnOut);
-		std::cout << "--------------109-----------------" << std::endl;
+
+		size_t id;
+		row.getValue(MDL_ITEM_ID, id);
+		FileName out = formatString("%s_%d.mrc", fnOut.c_str(), id);
+		I.write(out);
     }
-    std::cout << "--------------110-----------------" << std::endl;
  }
 
 
