@@ -92,7 +92,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
 	energy+=DIRECT_MULTIDIM_ELEM(Idiff,n)*DIRECT_MULTIDIM_ELEM(Idiff,n);
 	energy = sqrt(energy/MULTIDIM_SIZE(Idiff));
-	std::cout<< "Energy: " << energy << std::endl;
+//	std::cout<< "Energy: " << energy << std::endl;
 }
 
  // Read arguments ==========================================================
@@ -158,6 +158,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  {
 	show();
 	V.read(fnVolR);
+	V().setXmippOrigin();
  	MultidimArray<double> &mV=V();
  	mdParticles.read(fnParticles);
  	MDRow row;
@@ -169,11 +170,14 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
     	// Compute projection of the volume
     	mdParticles.getRow(row,__iter.objId);
     	row.getValue(MDL_IMAGE, fnImage);
+		std::cout<< "Particle: " << fnImage << std::endl;
     	I.read(fnImage);
+    	I().setXmippOrigin();
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	P.write(formatString("%s.mrc", fnProj.c_str()));
 
     	// Check if particle has CTF
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
@@ -242,7 +246,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 
 		for (int n=0; n<iter; ++n)
 		{
-			std::cout<< "---Iter " << n << std::endl;
+//			std::cout<< "---Iter " << n << std::endl;
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda);
 			transformer.inverseFourierTransform();
@@ -294,7 +298,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		if (fnPart!="" && fnProj!="")
 		{
 			IFiltered.write(fnPart);
-			Idiff.write(fnProj);
+			Idiff.write(formatString("%s_adjusted.mrc", fnProj.c_str()));
 		}
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
