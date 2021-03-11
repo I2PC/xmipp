@@ -592,13 +592,13 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    T *data = new T[elems];
+    T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
     getCroppedMovie(movieSettings, data);
 
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);
-    delete[] data;
+    free(data);
     return result;
 }
 
@@ -657,7 +657,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
                     this->nlast - this->nfirst + 1);
             auto settings = FFTSettings<T>(rawMovieDim, 1, false);
-            imgs = new T[std::max(settings.elemsFreq(), settings.elemsSpacial())]();
+            imgs = memoryUtils::page_aligned_alloc<T>(std::max(settings.elemsFreq(), settings.elemsSpacial()), true);
         }
 
         // copy all frames to memory, consecutively. There will be a space behind
