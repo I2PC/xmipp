@@ -48,7 +48,7 @@ private:
      * Inherited, see parent
      */
     void releaseAll() {
-        delete[] movieRawData;
+        free(movieRawData);
         movieRawData = nullptr;
     };
 
