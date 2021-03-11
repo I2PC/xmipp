@@ -176,9 +176,15 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	MultidimArray<double>  volFiltered;
 	volFiltered.resizeNoCopy(inputTomo);
 	transformer.inverseFourierTransform(fftFiltered, volFiltered);
+
+	size_t lastindex = fnVol.find_last_of("."); 
+	std::string rawname = fnVol.substr(0, lastindex); 
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume= rawname + "_filter.mrc";
+
 	Image<double> saveImage;
 	saveImage() = volFiltered; 
-	saveImage.write("filteredVolume.mrc");
+	saveImage.write(outputFileNameFilteredVolume);
 
 	///////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
 
