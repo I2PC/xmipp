@@ -155,9 +155,15 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     futures.reserve(Ndim);
     if (IS_REF) {
         h.rots.reserve(Ndim);
-        md.getColumnValuesOpt(MDL_ANGLE_ROT, h.rots);
+        if ( ! md.getColumnValuesOpt(MDL_ANGLE_ROT, h.rots)) {
+            std::cerr << "No roration specified for reference images. Using 0 by default\n";
+            h.rots.resize(Ndim, 0); // rotation not specified, use default value
+        }
         h.tilts.reserve(Ndim);
-        md.getColumnValuesOpt(MDL_ANGLE_TILT, h.tilts);
+        if ( ! md.getColumnValuesOpt(MDL_ANGLE_TILT, h.tilts)) {
+            std::cerr << "No tilt specified for reference images. Using 0 by default\n";
+            h.tilts.resize(Ndim, 0); // tilt not specified, use default value
+        }
         h.indexes.reserve(Ndim);
         md.getColumnValuesOpt(MDL_REF, h.indexes);
     }
