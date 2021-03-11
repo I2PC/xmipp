@@ -34,9 +34,6 @@
  #include <sstream>
 
 
-// #include "volume_subtraction.cpp"
-
-
 void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
@@ -92,7 +89,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
 	energy+=DIRECT_MULTIDIM_ELEM(Idiff,n)*DIRECT_MULTIDIM_ELEM(Idiff,n);
 	energy = sqrt(energy/MULTIDIM_SIZE(Idiff));
-//	std::cout<< "Energy: " << energy << std::endl;
+	std::cout<< "Energy: " << energy << std::endl;
 }
 
  // Read arguments ==========================================================
@@ -164,6 +161,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	MDRow row;
  	double rot, tilt, psi;
  	FileName fnImage;
+ 	int n = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
@@ -177,7 +175,6 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-    	P.write(formatString("%s.mrc", fnProj.c_str()));
 
     	// Check if particle has CTF
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
@@ -250,35 +247,35 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda);
 			transformer.inverseFourierTransform();
-			computeEnergyProj(Idiff(), P(), energy);
-			Idiff = P;
+//			computeEnergyProj(Idiff(), P(), energy);
+//			Idiff = P;
 
 			POCSMinMaxProj(P(), Imin, Imax);
-			computeEnergyProj(Idiff(), P(), energy);
-			Idiff = P;
+//			computeEnergyProj(Idiff(), P(), energy);
+//			Idiff = P;
 
 			POCSmaskProj(mask(),P());
-			computeEnergyProj(Idiff(), P(), energy);
-			Idiff = P;
+//			computeEnergyProj(Idiff(), P(), energy);
+//			Idiff = P;
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
-			computeEnergyProj(Idiff(), P(), energy);
-			Idiff = P;
+//			computeEnergyProj(Idiff(), P(), energy);
+//			Idiff = P;
 			POCSnonnegativeProj(P());
-			computeEnergyProj(Idiff(), P(), energy);
-			Idiff = P;
+//			computeEnergyProj(Idiff(), P(), energy);
+//			Idiff = P;
 			std2 = P().computeStddev();
 			P()*=std1/std2;
-			computeEnergyProj(Idiff(), P(), energy);
-			Idiff = P;
+//			computeEnergyProj(Idiff(), P(), energy);
+//			Idiff = P;
 			if (cutFreq!=0)
 			{
 				Filter2.generateMask(P());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(P());
-				computeEnergyProj(Idiff(), P(), energy);
-				Idiff = P;
+//				computeEnergyProj(Idiff(), P(), energy);
+//				Idiff = P;
 			}
 		}
 
@@ -298,18 +295,19 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		if (fnPart!="" && fnProj!="")
 		{
 			IFiltered.write(fnPart);
-			Idiff.write(formatString("%s_adjusted.mrc", fnProj.c_str()));
+			P.write(fnProj);
 		}
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
 				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
 
-		size_t id;
-		row.getValue(MDL_ITEM_ID, id);
-		FileName out = formatString("%s_%d.mrc", fnOut.c_str(), id);
+		n++;
+		FileName out = formatString("%d@%s.mrcs", n, fnOut.c_str());
 		I.write(out);
+		mdParticles.setValue(MDL_IMAGE, out, n);
     }
+    mdParticles.write(fnParticles);
  }
 
 
