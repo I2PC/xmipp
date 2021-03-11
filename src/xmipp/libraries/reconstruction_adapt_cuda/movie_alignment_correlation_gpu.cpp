@@ -24,6 +24,13 @@
  ***************************************************************************/
 
 #include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
+#include "core/utils/memory_utils.h"
+#include <thread>
+#include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
+#include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
+#include "data/filters.h"
+#include "core/userSettings.h"
+#include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
