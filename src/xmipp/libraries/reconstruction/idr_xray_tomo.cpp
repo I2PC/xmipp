@@ -295,7 +295,7 @@ void ProgIDRXrayTomo::reconstruct(const FileName &fnProjsMD, const FileName &fnV
 {
     if (reconsMethod == RECONS_TOMO3D)
     {
-        MetaData MD(fnProjsMD);
+        MetaDataVec MD(fnProjsMD);
         FileName fnProjs;
         MD.getValue(MDL_IMAGE, fnProjs, MD.firstRowId());
 

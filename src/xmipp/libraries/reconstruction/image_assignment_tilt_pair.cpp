@@ -226,7 +226,7 @@ void ProgassignmentTiltPair::run()
 	std::cout << "Starting..." << std::endl;
 
 	//LOAD METADATA and TRIANGULATIONS
-	MetaData md_untilt, md_tilt, mduntilt, mdtilt;
+	MetaDataVec md_untilt, md_tilt, mduntilt, mdtilt;
 	size_t Ndim, Zdim, Ydim , Xdim, objId;
 
 	getImageSize(fnmic, Xdim, Ydim, Zdim, Ndim);

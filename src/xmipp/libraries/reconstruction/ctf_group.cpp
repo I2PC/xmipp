@@ -220,7 +220,7 @@ void ProgCtfGroup::produceSideInfo()
     }
 
 
-    MetaDataVec ctfMD;
+    MetaDataDb ctfMD;
     groupCTFMetaData(ImagesMD, ctfMD, groupbyLabels);
 
     int nCTFs = ctfMD.size();
@@ -263,7 +263,7 @@ void ProgCtfGroup::produceSideInfo()
     size_t counter=0;
     if (verbose!=0)
         std::cout << "\nFill multiarray with ctfs" <<std::endl;
-    for (size_t objId : mtfMD.ids())
+    for (size_t objId : ctfMD.ids())
     {
         ctf.readFromMetadataRow(ctfMD, objId);
         ctf.enable_CTF = true;
@@ -330,7 +330,7 @@ void ProgCtfGroup::produceSideInfo()
 
         double sumimg = 0.;
         double result;
-        for (size_t objId : mtfMD.ids())
+        for (size_t objId : ctfMD.ids())
         {
             ctfMD.getValue(MDL_COUNT,count, objId);
             ctfMD.getValue(MDL_ORDER,counter,objId);
@@ -498,7 +498,7 @@ void ProgCtfGroup::autoRun()
 /////////////////////////////////////////////
 void ProgCtfGroup::manualRun()
 {
-    MetaDataVec DF;
+    MetaDataDb DF;
     int groupNumber = 1;
     DF.read(fn_split);
     int counter=0;
@@ -550,7 +550,7 @@ void ProgCtfGroup::manualRun()
 void ProgCtfGroup::writeOutputToDisc()
 {
     //(1) compute no of micrographs, no of images , minimum defocus ,maximum defocus, average defocus per ctf group
-    MetaDataVec ctfInfo,ctfImagesGroup,auxMetaData;
+    MetaDataDb ctfInfo,ctfImagesGroup,auxMetaData;
 
     const AggregateOperation MyaggregateOperations[] =
         {
@@ -583,14 +583,16 @@ void ProgCtfGroup::writeOutputToDisc()
     //(2)save auxiliary file for defocus split
 
     double maxDef,minDef;
-    MDIterator it(ctfInfo);
+    auto it = ctfInfo.ids().begin();
     size_t id1,id2,id;
     auxMetaData.clear();
     auxMetaData.setComment(formatString("Defocus values to split into %lu ctf groups", ctfInfo.size()));
-    id1=it.objId;
-    while(it.moveNext())
+
+    id1 = *it;
+    while (it != ctfInfo.ids().end())
     {
-        id2=it.objId;
+        ++it;
+        id2 = *it;
         ctfInfo.getValue(MDL_MIN,minDef,id1);
         ctfInfo.getValue(MDL_MAX,maxDef,id2);
         id1=id2;

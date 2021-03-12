@@ -141,8 +141,8 @@ ProgFlexibleAlignment *global_flexible_prog;
 
 void ProgFlexibleAlignment::createWorkFiles()
 {
-    MetaData *pmdIn = getInputMd();
-    MetaDataVec mdTodo, mdDone;
+    MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+    MetaDataDb mdTodo, mdDone;
     mdTodo = *pmdIn;
     FileName fn(fnOutDir+"/nmaDone.xmd");
     if (fn.exists() && resume)

@@ -29,7 +29,7 @@
 /* him. Translated into C by Juan P. Secilla (MSC)  Jun/86      */
 /****************************************************************************/
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 

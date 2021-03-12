@@ -85,7 +85,7 @@ void ProgOddEven::run()
 		exit(0);
 	}
 
-	MetaData movie, movienew;
+	MetaDataVec movie, movienew;
 
 	if (splitType == "frames")
 	{
@@ -105,7 +105,7 @@ void ProgOddEven::run()
 	}
 
 	long  n = 1;
-	MetaData movieOdd, movieEven;
+	MetaDataVec movieOdd, movieEven;
 
 	FileName fnFrame;
 	size_t objId_odd, objId_even;

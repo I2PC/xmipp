@@ -111,10 +111,10 @@ public:
     std::vector<double> mics_defocus;
 
     // Input set of images
-    MetaDataVec ImagesMD;
+    MetaDataDb ImagesMD;
 
     //Metadata with ctfs sorted by average defocus
-    MetaDataVec sortedCtfMD;
+    MetaDataDb sortedCtfMD;
 
     // Vector with number of images per defocus group
     //std::vector<int> mics_count;
