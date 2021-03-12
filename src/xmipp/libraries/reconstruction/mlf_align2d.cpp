@@ -107,7 +107,7 @@ void ProgMLF2D::readParams()
 
         MDrestart.read(getParameter(argc, argv, "--restart"));
         cline = MDrestart.getComment();
-        size_t id = MDrestart.firstObject();
+        size_t id = MDrestart.firstRowId();
         MDrestart.getValue(MDL_SIGMAOFFSET, restart_offset, id);
         MDrestart.getValue(MDL_IMGMD, restart_imgmd, id);
         MDrestart.getValue(MDL_REFMD, restart_refmd, id);

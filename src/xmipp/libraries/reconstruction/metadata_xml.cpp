@@ -89,13 +89,13 @@ class ProgTest: public XmippProgram
             std::cout << fnIn << std::endl;
             sortedMD.sort(MD,MDL_MICROGRAPH);
 
-            sortedMD.getValue(MDL_MICROGRAPH, name, MD.firstObject());
+            sortedMD.getValue(MDL_MICROGRAPH, name, MD.firstRowId());
             nodirName=name.removeDirectories();
             nodirName=nodirName.removeAllExtensions();
             fhOut<<"<micrograph id=\""<<nodirName<<"\">"<<std::endl;
 
-            sortedMD.getValue(MDL_XCOOR, x, sortedMD.firstObject());
-            sortedMD.getValue(MDL_YCOOR, y, sortedMD.firstObject());
+            sortedMD.getValue(MDL_XCOOR, x, sortedMD.firstRowId());
+            sortedMD.getValue(MDL_YCOOR, y, sortedMD.firstRowId());
             fhOut<<"<coordinate x=\""<<x<<"\" y=\""<<y<<"\"/>"<<std::endl;
 
             for (auto idIt = sortedMD.ids().begin(); idIt != sortedMD.ids().end(); ++idIt)

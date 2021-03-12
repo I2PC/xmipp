@@ -250,7 +250,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     // Get the fitting score and other quality criteria computed by ctf_estimate_from_micrograph
     MetaDataVec MDctf1;
     MDctf1.read(fnCTF);
-    size_t objId1 = MDctf1.firstObject();
+    size_t objId1 = MDctf1.firstRowId();
 
 #define GET_CTF_CRITERION(labelll,xxx) \
     if (rowIn.containsLabel(labelll)) \
@@ -351,7 +351,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	}
     }
 
-    size_t objId2 = mdEnvelope.firstObject();
+    size_t objId2 = mdEnvelope.firstRowId();
     int idx=0;
 	for (double w=0; w<wmax; w+=wmax/99.0)
 	{

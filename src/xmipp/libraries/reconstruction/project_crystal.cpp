@@ -56,7 +56,7 @@ void Crystal_Projection_Parameters::read(const FileName &fn, double scale)
                      "opening the file " + fn_crystal);
 
     std::vector <double> ParamVec;
-    objId = MD.firstObject();
+    objId = MD.firstRowId();
     MD.getValue(MDL_DIMENSIONS_2D, ParamVec, objId);
     crystal_Xdim = (int)ParamVec[0];
     crystal_Ydim = (int)ParamVec[1];

@@ -248,7 +248,7 @@ public:
         vectorHeaderIn.read(formatString("vectorHeader@%s",fn_in.c_str()));
         vectorHeaderOut.setColumnFormat(false);
         size_t size, vectorSize;
-        size_t idIn=vectorHeaderIn.firstObject();
+        size_t idIn=vectorHeaderIn.firstRowId();
         size_t idOut=vectorHeaderOut.addObject();
         vectorHeaderIn.getValue(MDL_XSIZE,size,idIn);
         vectorHeaderOut.setValue(MDL_XSIZE,size,idOut);

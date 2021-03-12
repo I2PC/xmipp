@@ -164,7 +164,7 @@ public:
             MetaData vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
 
             // Read header
-            size_t headerId=vectorHeader.firstObject();
+            size_t headerId=vectorHeader.firstRowId();
             size_t Xdim, Ydim, Zdim, vectorSize, imgNo;
             vectorHeader.getValue(MDL_XSIZE,Xdim,headerId);
             vectorHeader.getValue(MDL_YSIZE,Ydim,headerId);

@@ -2335,7 +2335,7 @@ void ProgML2D::readModel(ModelML2D &model, int block)
     model.dim = dim;
 
     {
-        size_t id = MDi.firstObject();
+        size_t id = MDi.firstRowId();
         MDi.getValue(MDL_LL, model.LL, id);
         MDi.getValue(MDL_PMAX, model.sumfracweight, id);
         MDi.getValue(MDL_SIGMANOISE, model.wsum_sigma_noise, id);

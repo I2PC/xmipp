@@ -149,7 +149,7 @@ public:
             {
               MetaDataVec ctfparam(getParam("--ctfparam"));
               MDRow ctfRow;
-              ctfparam.getRow(ctfRow, ctfparam.firstObject());
+              ctfparam.getRow(ctfRow, ctfparam.firstRowId());
               m.set_ctfparams(ctfRow);
             }
             m.produce_all_images(0, -1, fn_out, fn_orig, 0.,0.,0., rmStack, fillBorders, extractNoise, Nnoise);
@@ -178,7 +178,7 @@ public:
             // Read angles
             double alpha_u, alpha_t, tilt_angle;
             auxMd.read(fn_angles);
-            size_t objId = auxMd.firstObject();
+            size_t objId = auxMd.firstRowId();
             auxMd.getValue(MDL_ANGLE_Y, alpha_u, objId);
             auxMd.getValue(MDL_ANGLE_Y2, alpha_t, objId);
             auxMd.getValue(MDL_ANGLE_TILT, tilt_angle, objId);

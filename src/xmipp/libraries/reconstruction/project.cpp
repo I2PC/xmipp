@@ -238,7 +238,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
         size_t objId;
 
         // Read data from the MetaData
-        objId = MD.firstObject();
+        objId = MD.firstRowId();
         MD.getValue(MDL_DIMENSIONS_2D, ParamVec, objId);
         proj_Xdim = (int)ParamVec[0];
         proj_Ydim = (int)ParamVec[1];
@@ -654,7 +654,7 @@ void generate_angles(int ExtProjs, const Angle_range &range,
                         iproj = proj_number(ExtProjs, j, k, i);
                         break;
                     }
-                    size_t idx_tmp=DFaux.firstObject(MDValueEQ(MDL_ORDER,iproj));
+                    size_t idx_tmp=DFaux.firstRowId(MDValueEQ(MDL_ORDER,iproj));
                     if (idx_tmp==BAD_OBJID)
                     {
                         idx_tmp=DFaux.addObject();
@@ -677,7 +677,7 @@ void generate_angles(int ExtProjs, const Angle_range &range,
         else
         {
             size_t iproj=ExtProjs + i;
-            size_t dfidx=DFaux.firstObject(MDValueEQ(MDL_ORDER,iproj));
+            size_t dfidx=DFaux.firstRowId(MDValueEQ(MDL_ORDER,iproj));
             if (dfidx==BAD_OBJID)
             {
                 dfidx=DFaux.addObject();
@@ -750,7 +750,7 @@ void generate_even_angles(int ExtProjs, int Nrottilt, MetaData &DF,
                           (double)(Npsi - 1) * k;
 
                 size_t iproj = ExtProjs + N + Nrottilt * k;
-                size_t idx_tmp=DFaux.firstObject(MDValueEQ(MDL_ORDER,iproj));
+                size_t idx_tmp=DFaux.firstRowId(MDValueEQ(MDL_ORDER,iproj));
                 if (idx_tmp==BAD_OBJID)
                 {
                     idx_tmp=DFaux.addObject();
@@ -1179,7 +1179,7 @@ int ROUT_project(ProgProject &prm, Projection &proj, MetaData &SF)
         MetaDataVec MD;
         size_t objId;
         MD.read(prm.fn_proj_param);
-        objId = MD.firstObject();
+        objId = MD.firstRowId();
         MD.getValue(MDL_CRYSTAL_PROJ,side.doCrystal,objId);
     }
     if (side.doCrystal)

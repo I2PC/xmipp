@@ -1821,7 +1821,7 @@ void ProgMicrographAutomaticPicking2::run()
     MetaDataVec MD;
     FileName fnAutoParticles = formatString("particles_auto@%s.pos", fn_root.c_str());
     MD.read(fn_model.beforeLastOf("/")+"/config.xmd");
-    MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstObject());
+    MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstRowId());
 
     autoPicking = new AutoParticlePicking2(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model,std::vector<MDRow>());
     autoPicking->automaticWithouThread(fn_micrograph,proc_prec,fnAutoParticles);

@@ -81,7 +81,7 @@ void ProgCtfCorrectAmplitude3D::produceSideInfo()
     ctfdat.read(fnIn);
 
     // Get dimensions of the volumes
-    size_t id = ctfdat.firstObject();
+    size_t id = ctfdat.firstRowId();
     FileName fnVol, fnCTF;
     ctfdat.getValue(MDL_IMAGE,fnVol, id);
     ctfdat.getValue(MDL_CTF_MODEL,fnCTF, id);

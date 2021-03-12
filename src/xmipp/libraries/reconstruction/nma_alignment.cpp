@@ -277,7 +277,7 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 		MetaDataVec MD;
 		MD.read(fnOut);
 		bool flip;
-		size_t id=MD.firstObject();
+		size_t id=MD.firstRowId();
 		MD.getValue(MDL_FLIP,flip,id);
 		if (flip)
 		{
@@ -319,7 +319,7 @@ double ProgNmaAlignment::performContinuousAssignment(const FileName &fnRandom,
 	// Pick up results
 	MetaDataVec DF(fnResults);
 	MDRow row;
-	DF.getRow(row, DF.firstObject());
+	DF.getRow(row, DF.firstRowId());
 	row.getValue(MDL_ANGLE_ROT, trial(VEC_XSIZE(trial) - 5));
 	row.getValue(MDL_ANGLE_TILT, trial(VEC_XSIZE(trial) - 4));
 	row.getValue(MDL_ANGLE_PSI, trial(VEC_XSIZE(trial) - 3));

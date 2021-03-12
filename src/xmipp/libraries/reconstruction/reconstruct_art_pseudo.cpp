@@ -324,7 +324,7 @@ void ProgARTPseudo::writePseudo()
 {
     // Convert from pseudoatoms to volume
     Image<double> V;
-    size_t objId = DF.firstObject();
+    size_t objId = DF.firstRowId();
     FileName fnExp;
     DF.getValue( MDL_IMAGE, fnExp, objId);
     Image<double> I;

@@ -163,7 +163,7 @@ void ProgCtfGroup::produceSideInfo()
     ImagesMD.read(fn_ctfdat);
     getImageSize(ImagesMD,dim,ydim,zdim,ndim);
     //set output format
-    ImagesMD.getValue(MDL_IMAGE,aux,ImagesMD.firstObject());
+    ImagesMD.getValue(MDL_IMAGE,aux,ImagesMD.firstRowId());
     if(format=="")
         format=aux.getFileFormat();
 
@@ -238,7 +238,7 @@ void ProgCtfGroup::produceSideInfo()
     {
         ctfMD.setValueCol(MDL_CTF_SAMPLING_RATE, samplingRate);
     }
-    ctf.readFromMetadataRow(ctfMD,ctfMD.firstObject());
+    ctf.readFromMetadataRow(ctfMD,ctfMD.firstRowId());
 
     //do not read directly Tm from metadata because it may be not there
     pixel_size = ctf.Tm;

@@ -46,7 +46,7 @@ void buildReconsInfo(MetaData &selfile,
     bool              is_ctf_unique = false;
 
     int trueIMG = selfile.size();
-    selfile.firstObject();
+    selfile.firstRowId();
     int numIMG;
     if (!do_not_use_symproj)
         numIMG = trueIMG * (SL.symsNo() + 1);

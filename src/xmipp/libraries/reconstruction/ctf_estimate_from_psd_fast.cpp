@@ -1674,7 +1674,7 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 		prm2D->current_ctfmodel.write(fn_rootCTFPARAM + ".ctfparam_tmp");
 		MetaDataVec MD;
 		MD.read(fn_rootCTFPARAM + ".ctfparam_tmp");
-		size_t id = MD.firstObject();
+		size_t id = MD.firstRowId();
 		MD.setValue(MDL_CTF_X0, (double)output_ctfmodel.x0*prm2D->Tm, id);
 		MD.setValue(MDL_CTF_XF, (double)output_ctfmodel.xF*prm2D->Tm, id);
 		MD.setValue(MDL_CTF_Y0, (double)output_ctfmodel.y0*prm2D->Tm, id);

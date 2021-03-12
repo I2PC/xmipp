@@ -661,7 +661,7 @@ void ProgCTFEstimateFromMicrograph::run()
 
                 MetaDataVec MD;
                 MD.read(fn_psd.withoutExtension() + ".ctfparam");
-                size_t id = MD.firstObject();
+                size_t id = MD.firstRowId();
                 MD.setValue(MDL_CTF_CRIT_PSDVARIANCE, stdQ, id);
                 MD.setValue(MDL_CTF_CRIT_PSDPCA1VARIANCE, pstd, id);
                 MD.setValue(MDL_CTF_CRIT_PSDPCARUNSTEST, zrandomness, id);
@@ -810,7 +810,7 @@ void ProgCTFEstimateFromMicrograph::run()
         MetaDataVec MDctf;
         MDctf.read(fn_root+".ctfparam");
         double Tm, downsampling;
-        size_t id=MDctf.firstObject();
+        size_t id=MDctf.firstRowId();
         MDctf.getValue(MDL_CTF_SAMPLING_RATE,Tm,id);
         MDctf.getValue(MDL_CTF_DOWNSAMPLE_PERFORMED,downsampling,id);
 

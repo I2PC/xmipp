@@ -74,7 +74,7 @@ void ProgMovieEstimateGain::produceSideInfo()
 		exit(0);
 	Image<double> Iframe;
 	FileName fnFrame;
-	mdIn.getValue(MDL_IMAGE,fnFrame,mdIn.firstObject());
+	mdIn.getValue(MDL_IMAGE,fnFrame,mdIn.firstRowId());
 	Iframe.read(fnFrame);
 	Xdim=XSIZE(Iframe());
 	Ydim=YSIZE(Iframe());

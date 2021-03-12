@@ -154,7 +154,7 @@ void ProgIDRXrayTomo::preRun()
     fnInterProjsMD.deleteFile();
 
     FileName fnProjs;
-    projMD.getValue(MDL_IMAGE, fnProjs, projMD.firstObject());
+    projMD.getValue(MDL_IMAGE, fnProjs, projMD.firstRowId());
     // We generate the MD of temporary projections to be used for further reconstructions
     interProjMD = projMD;
     interProjMD.replace(MDL_IMAGE, fnProjs.removePrefixNumber(), fnInterProjs);
@@ -297,7 +297,7 @@ void ProgIDRXrayTomo::reconstruct(const FileName &fnProjsMD, const FileName &fnV
     {
         MetaData MD(fnProjsMD);
         FileName fnProjs;
-        MD.getValue(MDL_IMAGE, fnProjs, MD.firstObject());
+        MD.getValue(MDL_IMAGE, fnProjs, MD.firstRowId());
 
         reconsTomo3D(fnInterAngles, fnProjs.removePrefixNumber(), fnVol);
         phantom.read(fnVol);
@@ -325,7 +325,7 @@ int reconsTomo3D(const MetaData& MD, const FileName& fnOut, const String& params
 
     FileName fnProjs;
 
-    MD.getValue(MDL_IMAGE, fnProjs, MD.firstObject());
+    MD.getValue(MDL_IMAGE, fnProjs, MD.firstRowId());
 
     // Projections must be in an MRC stack to be passed
     if ( !(fnProjs.isInStack() && (fnProjs.contains("mrc") || fnProjs.contains("st"))))

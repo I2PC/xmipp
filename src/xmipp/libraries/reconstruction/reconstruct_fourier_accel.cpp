@@ -182,7 +182,7 @@ void ProgRecFourierAccel::produceSideinfo()
     SF.removeDisabled();
 
     // Ask for memory for the output volume and its Fourier transform
-    size_t objId = SF.firstObject();
+    size_t objId = SF.firstRowId();
     FileName fnImg;
     SF.getValue(MDL_IMAGE,fnImg,objId);
     Image<double> I;
