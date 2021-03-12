@@ -62,7 +62,7 @@ void ProgValidationNonTilt::run()
     //Clustering Tendency and Cluster Validity Stephen D. Scott
     randomize_random_generator();
     MetaDataVec md,mdGallery,mdOut,mdOut2,mdSort;
-    MDRow row;
+    MDRowVec row;
 
     FileName fnOut,fnOut2, fnGallery;
     fnOut = fnDir+"/clusteringTendency.xmd";
@@ -85,7 +85,7 @@ void ProgValidationNonTilt::run()
     }
 
     String expression;
-    MDRow rowP,row2;
+    MDRowVec rowP,row2;
     SymList SL;
     int symmetry, sym_order;
     SL.readSymmetryFile(fnSym.c_str());

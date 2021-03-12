@@ -76,7 +76,7 @@ void ProgEliminateEmptyParticles::run()
     FileName fnImg;
     Image<double> I;
     CorrelationAux aux;
-    MDRow row;
+    MDRowVec row;
     MetaDataVec MDclass, MDclassEl, MDclassT, MDclassElT;
     ProgExtractFeatures ef;
     int countItems = 0;

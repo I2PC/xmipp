@@ -3364,7 +3364,7 @@ ProgMLTomo::addPartialDocfileData(const MultidimArray<double> &data,
                                   size_t first, size_t last)
 {
     size_t index;
-    MDRow row;
+    MDRowVec row;
 
     for (size_t imgno = first; imgno <= last; ++imgno)
     {

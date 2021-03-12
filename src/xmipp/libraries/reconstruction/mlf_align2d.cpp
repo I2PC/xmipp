@@ -993,7 +993,7 @@ void ProgMLF2D::updateWienerFilters(const MultidimArray<double> &spectral_signal
     double resol_step = 1. / (sampling * dim);
     double resol_freq = 0;
     double resol_real = 999.;
-    MDRow row;
+    MDRowVec row;
 
     if (verbose > 0)
     {
@@ -2715,7 +2715,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     // Write out current reference images and fill sel & log-file
     // First time for _ref, second time for _cref
     FileName fn_base_cref = FN_CREF_IMG;
-    MDRow row;
+    MDRowVec row;
     MDIterator mdIter(MDref);
     MDo = MDref;
 

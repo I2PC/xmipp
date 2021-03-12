@@ -125,7 +125,6 @@ void ProgTomoMapBack::run()
     MultidimArray<double> referenceRotated;
     Matrix2D<double> A;
     A.initIdentity(4);
-    MDRow row;
 
     for (const auto& row : mdGeom)
     {

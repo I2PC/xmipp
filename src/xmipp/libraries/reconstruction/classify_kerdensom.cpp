@@ -217,12 +217,12 @@ public:
         vectorContentIn.read(formatString("vectorContent@%s",fn_in.c_str()));
         std::vector<size_t> objIds;
         vectorContentIn.findObjects(objIds);
-        MDRow row;
         for (unsigned i = 0; i < myMap->size(); i++)
         {
         	MetaDataVec MD;
             for (size_t j = 0; j < myMap->classifAt(i).size(); j++)
             {
+                MDRowVec row;
             	size_t order=myMap->classifAt(i)[j];
             	vectorContentIn.getRow(row,objIds[order]);
             	row.setValue(MDL_REF,(int) i+1);

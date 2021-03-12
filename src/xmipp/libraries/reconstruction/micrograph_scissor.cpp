@@ -148,14 +148,14 @@ public:
             if (checkParam("--ctfparam"))
             {
               MetaDataVec ctfparam(getParam("--ctfparam"));
-              MDRow ctfRow;
+              MDRowVec ctfRow;
               ctfparam.getRow(ctfRow, ctfparam.firstRowId());
               m.set_ctfparams(ctfRow);
             }
             m.produce_all_images(0, -1, fn_out, fn_orig, 0.,0.,0., rmStack, fillBorders, extractNoise, Nnoise);
             if (extractNoise)
             {
-            	MDRow row=firstRow(fn_pos);
+            	MDRowVec row=firstRow(fn_pos);
             	size_t micId=0;
             	if (row.containsLabel(MDL_MICROGRAPH_ID))
             		row.getValue(MDL_MICROGRAPH_ID,micId);

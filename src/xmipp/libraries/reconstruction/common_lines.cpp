@@ -1054,7 +1054,7 @@ void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
     std::vector<DMatrix> rotations(K);
 
     MetaDataVec MD("images.xmd");
-    auto& idTt(MD.ids()begin());
+    auto idIt(MD.ids().begin());
     for (int i = 0; i < K; ++i)
     {
       DMatrix &R = rotations[i];
@@ -1073,8 +1073,8 @@ void rotationsFromSyncMatrix(const DMatrix &sMatrix, DMatrix * pQuaternions)
       double rot, tilt, psi;
       //
       Euler_matrix2angles(R.transpose(), rot, tilt, psi);
-      MD.setValue(MDL_ANGLE_ROT,rot,*idTt);
-      MD.setValue(MDL_ANGLE_TILT,tilt,*idTt);
+      MD.setValue(MDL_ANGLE_ROT,rot,*idIt);
+      MD.setValue(MDL_ANGLE_TILT,tilt,*idIt);
       MD.setValue(MDL_ANGLE_PSI,psi,*idIt);
       ++idIt;
 

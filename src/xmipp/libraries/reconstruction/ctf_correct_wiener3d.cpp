@@ -137,7 +137,7 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
     Vwien1D.clear();
     int ii = 0;
     FileName fnVol, fnCTF;
-    for (size_t objId : mtfdat.ids())
+    for (size_t objId : ctfdat.ids())
     {
         // Calculate 1D CTF
         ctfdat.getValue(MDL_IMAGE,fnVol,objId);

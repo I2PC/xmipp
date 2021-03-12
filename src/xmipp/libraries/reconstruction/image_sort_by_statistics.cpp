@@ -472,7 +472,7 @@ void ProgSortByStatistics::run()
 
     int nr_imgs = SF.size();
     bool thereIsEnable=SF.containsLabel(MDL_ENABLED);
-    MDRow row;
+    MDRowVec row;
 
     for (int imgno = 0; imgno < nr_imgs; imgno++)
     {

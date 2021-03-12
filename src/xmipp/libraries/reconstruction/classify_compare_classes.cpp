@@ -60,8 +60,8 @@ void ProgCompareClass::show()
 
 void ProgCompareClass::run()
 {
-	MetaData MD1(formatString("classes@%s",fnClass1.c_str()));
-	MetaData MD2(formatString("classes@%s",fnClass2.c_str()));
+	MetaDataVec MD1(formatString("classes@%s",fnClass1.c_str()));
+	MetaDataVec MD2(formatString("classes@%s",fnClass2.c_str()));
     std::vector<int> ref1, ref2;
     int aux;
     for (size_t objId : MD1.ids())
@@ -79,7 +79,7 @@ void ProgCompareClass::run()
 	Matrix1D<int> MD1classSize(MAT_YSIZE(comparisonMatrix)), MD2classSize(MAT_XSIZE(comparisonMatrix));
 
 	// Read the size of the individual classes
-	MetaData MDclass1, MDclass2;
+	MetaDataDb MDclass1, MDclass2;
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(MD1classSize)
 	{
 		MDclass1.read(formatString("class%06d_images@%s",ref1[i],fnClass1.c_str()));

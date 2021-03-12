@@ -293,7 +293,7 @@ void ProgCTFEstimateFromMicrograph::run()
     MetaDataVec posFile;
     if (fn_pos != "")
         posFile.read(fn_pos);
-    MDIterator iterPosFile(posFile);
+    auto iterPosFile = posFile.ids().begin();
 
     // Open the micrograph --------------------------------------------------
     Image<double> M_in;
@@ -381,8 +381,8 @@ void ProgCTFEstimateFromMicrograph::run()
         	if (psd_mode == OnePerParticle)
         	{
         		// Read position of the particle
-        		posFile.getValue(MDL_X, piecej, iterPosFile.objId);
-        		posFile.getValue(MDL_Y, piecei, iterPosFile.objId);
+        		posFile.getValue(MDL_X, piecej, *iterPosFile);
+        		posFile.getValue(MDL_Y, piecei, *iterPosFile);
 
         		// j,i are the selfWindow center, we need the top-left corner
         		piecej -= (int) (pieceDim / 2);
@@ -505,7 +505,7 @@ void ProgCTFEstimateFromMicrograph::run()
         			fn_psd_piece.compose(N, fn_psd);
         			psd.write(fn_psd_piece);
         			if (psd_mode == OnePerParticle)
-        				posFile.setValue(MDL_PSD, fn_psd_piece, iterPosFile.objId);
+        				posFile.setValue(MDL_PSD, fn_psd_piece, *iterPosFile);
         			if (estimate_ctf)
         			{
         				// Estimate the CTF parameters of this piece
@@ -545,7 +545,7 @@ void ProgCTFEstimateFromMicrograph::run()
         				if (psd_mode == OnePerParticle)
         					posFile.setValue(MDL_CTF_MODEL,
         							fn_psd_piece.withoutExtension() + ".ctfparam",
-        							iterPosFile.objId);
+        							*iterPosFile);
         			}
         		}
         	}
@@ -554,7 +554,7 @@ void ProgCTFEstimateFromMicrograph::run()
         	if (verbose)
         		progress_bar(N);
         	if (psd_mode == OnePerParticle)
-        		iterPosFile.moveNext();
+        		++iterPosFile;
         }
 
         init_progress_bar(div_Number);

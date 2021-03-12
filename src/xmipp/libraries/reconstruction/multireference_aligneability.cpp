@@ -98,7 +98,7 @@ void MultireferenceAligneability::run()
 	mdExpSort.getValue(MDL_IMAGE_IDX,maxNImg,sz);
 
 	String expression;
-	MDRow row,rowInput,rowInputRef;
+	MDRowVec row,rowInput,rowInputRef;
 
 	double validationAlignabilityPrecision, validationAlignabilityAccuracy, validationAlignability, validationMirror;
 	validationAlignabilityPrecision = 0;

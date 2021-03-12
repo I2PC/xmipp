@@ -317,7 +317,7 @@ protected:
                     objId[n++] = objId;
                 // md.getColumnValues(MDL_OBJID,objId); COSS: It should work, but it does not
                 int N_1=((int)objId.size())-1;
-                MDRow row;
+                MDRowVec row;
                 MetaData mdAux;
                 FOR_ALL_OBJECTS_IN_METADATA(md)
                 {

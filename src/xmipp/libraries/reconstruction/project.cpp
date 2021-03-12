@@ -1046,7 +1046,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
     	{
     		//JV he tenido que tocar esta funcion para poder acceder al sampling rate
     		hasCTF = true;
-    		MDRow row;
+    		MDRowVec row;
     		side.DF.getRow(row,objId);
     		ctf.readFromMdRow(row);
         	ctf.produceSideInfo();

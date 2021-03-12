@@ -582,14 +582,13 @@ void ProgExtractFeatures::run()
     SF.read(fnSel);
     Image<double> I, Imasked;
     FileName fnImg;
-    MDRow row;
 	CorrelationAux aux;
 	std::vector<double> fv;
 
 	if (verbose>0)
 		init_progress_bar(SF.size());
 	size_t idx=0;
-    for (size_t objId : DF.ids())
+    for (size_t objId : SF.ids())
     {
     	SF.getValue(MDL_IMAGE, fnImg, objId);
     	I.read(fnImg);

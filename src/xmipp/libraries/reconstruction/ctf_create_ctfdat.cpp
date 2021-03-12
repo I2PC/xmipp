@@ -132,7 +132,7 @@ public:
 
         auto itIdIn = mdIn.ids().begin();
         auto itIdCtf = mdIn.ids().begin();
-        for (; itIdIn != mdIn.ids().end(); ++itItId, ++itIdCtf)
+        for (; itIdIn != mdIn.ids().end(); ++itIdIn, ++itIdCtf)
         {
             mdIn.getValue(MDL_SELFILE,fnsel, *itIdIn);
             mdCtf.getValue(MDL_CTF_MODEL,fnctf, *itIdCtf);

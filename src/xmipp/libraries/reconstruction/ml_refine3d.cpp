@@ -618,7 +618,6 @@ void ProgMLRefine3D::makeNoiseImages()
     FileName   fn_noise(FN_NOISE_IMG), fn_img;
     MetaData    mdNoise(ml2d->MDref);
     int refno = 0;
-    MDRow row;
 
     for (size_t objId : mdNoise.ids())
     {

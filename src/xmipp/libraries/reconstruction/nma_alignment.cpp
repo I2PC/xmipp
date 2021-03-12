@@ -318,7 +318,7 @@ double ProgNmaAlignment::performContinuousAssignment(const FileName &fnRandom,
 
 	// Pick up results
 	MetaDataVec DF(fnResults);
-	MDRow row;
+	MDRowVec row;
 	DF.getRow(row, DF.firstRowId());
 	row.getValue(MDL_ANGLE_ROT, trial(VEC_XSIZE(trial) - 5));
 	row.getValue(MDL_ANGLE_TILT, trial(VEC_XSIZE(trial) - 4));

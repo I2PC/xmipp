@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <fstream>
 #include "data/filters.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_image.h"
 #include "classify_kmeans_2d.h"
 #include "classify_extract_features.h"
@@ -405,8 +405,7 @@ public:
 
 void ProgClassifyKmeans2D::run()
 {
-    MetaData SF, MDsummary, MDclass, MDallDone;
-    MDRow row;
+    MetaDataVec SF, MDsummary, MDclass, MDallDone;
     FileName fnImg, fnClass, fnallDone;
     Image<double> I, Imasked;
     MultidimArray< std::complex<double> > Icomplex;
@@ -515,6 +514,7 @@ void ProgClassifyKmeans2D::run()
 
         for (int j = 0; j < total_points_cluster; j++)
         {
+            MDRowVec row;
             MDallDone.getRow(row, clusters[i].getPoint(j).getID());
             size_t recId = MDclass.addRow(row);
             MDclass.setValue(MDL_REF, i+1, recId);

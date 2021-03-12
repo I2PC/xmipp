@@ -1572,7 +1572,7 @@ void AutoParticlePicking2::saveAutoParticles(MetaData &md)
 void AutoParticlePicking2::saveAutoParticles(std::vector<MDRow> &md)
 {
     size_t nmax=auto_candidates.size();
-    MDRow row;
+    MDRowVec row;
     for (size_t n=0;n<nmax;++n)
     {
         const Particle2 &p=auto_candidates[n];

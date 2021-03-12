@@ -534,7 +534,7 @@ void runThread(ThreadArgument &thArg)
             ptrProg->inMD.getValue(MDL_IMAGE, fnImgIn, ptrProg->objIds[i]);
 
 
-            MDRow rowGeo;
+            MDRowVec rowGeo;
             ptrProg->readGeoInfo(fnImgIn, rowGeo);
 //            ptrProg->readAndCrop(fnImgIn, Iaux, ptrProg->cropSizeX, ptrProg->cropSizeY);
 

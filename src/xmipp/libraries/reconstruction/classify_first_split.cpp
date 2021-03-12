@@ -73,7 +73,7 @@ void ProgClassifyFirstSplit::run()
 {
     show();
 
-    MetaData md, mdRec;
+    MetaDataVec md, mdRec;
     md.read(fnClasses);
 
     // Generate the mean
