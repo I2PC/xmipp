@@ -56,7 +56,7 @@
     // Input image
  	Image<double> V, I;
  	// Theoretical projection
- 	Projection P;
+ 	Projection P, Pmask;
  	// Filter
     FourierFilter filter;
     // CTF Check

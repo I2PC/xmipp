@@ -140,7 +140,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      addParamsLine("--ref <volume>      	: Reference volume to subtract");
      addParamsLine("[-o <structure=\"\">] 	: Output filename suffix for subtracted particles");
      addParamsLine("                      	: If no name is given, then output_particles.xmd");
-     addParamsLine("[--mask <mask=\"\">]  	: Mask for the region of subtraction");
+     addParamsLine("[--mask <mask=\"\">]  	: 3D mask for the region of subtraction");
      addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
      addParamsLine("[--iter <n=1>]        	: Number of iterations");
      addParamsLine("[--cutFreq <f=0>]       : Cutoff frequency (<0.5)");
@@ -161,6 +161,20 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	MDRow row;
  	double rot, tilt, psi;
  	FileName fnImage;
+	Image<double> mask;
+
+	if (fnMask!="")
+	{
+		mask.read(fnMask);
+		mask=mask();
+		mask().setXmippOrigin();
+	}
+	else
+	{
+		mask().resizeNoCopy(I());
+		mask().initConstant(1.0);
+	}
+
  	int n = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
@@ -204,19 +218,18 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		FourierTransformer transformer;
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
-		Image<double> mask;
-		if (fnMask!="")
-		{
-			mask.read(fnMask);
-			mask=mask();
-		}
-		else
-		{
-			mask().resizeNoCopy(I());
-			mask().initConstant(1.0);
-		}
-		POCSmaskProj(mask(),I());
-		POCSnonnegativeProj(I());
+//		if (fnMask!="")
+//		{
+//			mask.read(fnMask);
+//			mask=mask();
+//		}
+//		else
+//		{
+//			mask().resizeNoCopy(I());
+//			mask().initConstant(1.0);
+//		}
+//		POCSmaskProj(mask(),I());
+//		POCSnonnegativeProj(I());
 
 		double Imin, Imax;
 		I().computeDoubleMinMax(Imin, Imax);
@@ -225,7 +238,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		FFT_magnitude(IFourier,IFourierMag);
 		double std1 = I().computeStddev();
 
-		POCSmaskProj(mask(),P());
+//		POCSmaskProj(mask(),P());
 
 		MultidimArray<std::complex<double> > PFourierPhase;
 		transformer.FourierTransform(P(),PFourierPhase,true);
@@ -254,7 +267,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 //			computeEnergyProj(Idiff(), P(), energy);
 //			Idiff = P;
 
-			POCSmaskProj(mask(),P());
+//			POCSmaskProj(mask(),P());
 //			computeEnergyProj(Idiff(), P(), energy);
 //			Idiff = P;
 			transformer.FourierTransform();
@@ -262,7 +275,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 			transformer.inverseFourierTransform();
 //			computeEnergyProj(Idiff(), P(), energy);
 //			Idiff = P;
-			POCSnonnegativeProj(P());
+//			POCSnonnegativeProj(P());
 //			computeEnergyProj(Idiff(), P(), energy);
 //			Idiff = P;
 			std2 = P().computeStddev();
@@ -298,9 +311,12 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 			P.write(fnProj);
 		}
 
+		MultidimArray<double> &mMask=mask();
+    	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
-				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
+		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(Pmask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
+				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(Pmask,n);
 
 		n++;
 		FileName out = formatString("%d@%s.mrcs", n, fnOut.c_str());
