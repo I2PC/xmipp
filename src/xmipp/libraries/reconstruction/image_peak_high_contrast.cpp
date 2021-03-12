@@ -65,6 +65,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	// #define DEBUG_COOR
 	// #define DEBUG_DIM
 	// #define DEBUG_DIST
+	// #define DEBUG_FILTERPARAMS
 
 	#ifdef DEBUG
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
@@ -88,8 +89,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 	//////////////////////////////////////////////////////////////////////////// VOLUME FILTERING
 	
-	// #include <data/filters.h>
-
 	int siz_x = XSIZE(inputTomo)*0.5;
 	int siz_y = YSIZE(inputTomo)*0.5;
 	int siz_z = ZSIZE(inputTomo)*0.5;
@@ -132,21 +131,40 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	MultidimArray< std::complex<double> > fftV;
 
 	FourierTransformer transformer;
-	transformer.FourierTransform(inputTomo, fftV);
+	transformer.FourierTransform(inputTomo, fftV, false);
 
 	// Calculate u
 	n=0;
 
 	MultidimArray< std::complex<double> >  fftFiltered;
+	MultidimArray<double> fftTest;
+
+	fftTest.resizeNoCopy(fftV);
+	fftTest.initZeros();
 
 	fftFiltered = fftV;
-	double freqHigh = samplingRate/fiducialSize, freqLow;
+	// double freqLow = samplingRate/tlf;
+	double freqLow = samplingRate / (fiducialSize*1.1);
+	double freqHigh = samplingRate/(fiducialSize*0.9);
+	
 	double w = 0.02; 
-	double cutoffFreq = freqHigh + w;
+	double cutoffFreqHigh = freqHigh + w;
+	double cutoffFreqLow = freqLow - w;
 	double delta = PI / w;
+
+	#ifdef DEBUG_FILTERPARAMS
+	std::cout << samplingRate << std::endl; //6.86
+	std::cout << fiducialSize << std::endl; // 100
+	std::cout << freqLow << std::endl; //0.062
+	std::cout << freqHigh << std::endl; //0.076
+	std::cout << cutoffFreqLow << std::endl; //0.042
+	std::cout << cutoffFreqHigh << std::endl; //0.096
+	#endif
 
 	for(size_t k=0; k<ZSIZE(fftV); ++k)
 	{
+		double uz, uy, ux, uz2y2, uz2;
+
 		FFT_IDX2DIGFREQ(k,ZSIZE(inputTomo),uz);
 		uz2=uz*uz;
 
@@ -159,14 +177,28 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			{
 				FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
 				double u=sqrt(uz2y2+ux*ux);
-				if(u>cutoffFreq)
+
+				DIRECT_MULTIDIM_ELEM(fftTest, n) = u;
+
+				if(u > cutoffFreqHigh)
+				{
+					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
+				} 
+
+				if(u < cutoffFreqLow)
 				{
 					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
 				} 
 				
-				else if(u>=freqHigh && u < cutoffFreq)
+				if(u >= freqHigh && u < cutoffFreqHigh)
 				{
 					DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
+				}
+				
+				if (u <= freqLow && u > cutoffFreqLow)
+				{
+					DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqLow)*delta));
+
 				}
 				++n;
 			}
@@ -180,7 +212,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	size_t lastindex = fnVol.find_last_of("."); 
 	std::string rawname = fnVol.substr(0, lastindex); 
 	std::string outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume= rawname + "_filter.mrc";
+    outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
 	Image<double> saveImage;
 	saveImage() = volFiltered; 
@@ -195,15 +227,15 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 	for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
 	{
-		for(size_t j = 0; j < YSIZE(inputTomo); ++j)
+		for(size_t j = 0; j < YSIZE(volFiltered); ++j)
 		{
-			for(size_t i = 0; i < XSIZE(inputTomo); ++i)
+			for(size_t i = 0; i < XSIZE(volFiltered); ++i)
 			{
 				#ifdef DEBUG_DIM
 				std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
 				#endif
 
-				tomoVector.push_back(DIRECT_ZYX_ELEM(inputTomo, k, i ,j));
+				tomoVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
 			}
 		}
 	}
@@ -228,9 +260,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
     std::vector<int> coordinates3Dy(0);
     std::vector<int> coordinates3Dz(0);
 
-    FOR_ALL_ELEMENTS_IN_ARRAY3D(inputTomo)
+    FOR_ALL_ELEMENTS_IN_ARRAY3D(volFiltered)
     {
-        double value = A3D_ELEM(inputTomo, k, i, j);
+        double value = A3D_ELEM(volFiltered, k, i, j);
 
         if (value<=lowThresholdValue or value>=highThresholdValue)
         {
@@ -321,9 +353,9 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	// Check that coordinates at the border of the volume are not outside when considering the box size
 	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
 	{
-		if(centerOfMassX[i]<boxSize/2 or XSIZE(inputTomo)-centerOfMassX[i]<boxSize/2 or
-		   centerOfMassY[i]<boxSize/2 or YSIZE(inputTomo)-centerOfMassY[i]<boxSize/2 or
-		   centerOfMassZ[i]<boxSize/2 or ZSIZE(inputTomo)-centerOfMassZ[i]<boxSize/2)
+		if(centerOfMassX[i]<boxSize/2 or XSIZE(volFiltered)-centerOfMassX[i]<boxSize/2 or
+		   centerOfMassY[i]<boxSize/2 or YSIZE(volFiltered)-centerOfMassY[i]<boxSize/2 or
+		   centerOfMassZ[i]<boxSize/2 or ZSIZE(volFiltered)-centerOfMassZ[i]<boxSize/2)
 		{
 			numberOfCoordsPerCM.erase(numberOfCoordsPerCM.begin()+i);
 			centerOfMassX.erase(centerOfMassX.begin()+i);
