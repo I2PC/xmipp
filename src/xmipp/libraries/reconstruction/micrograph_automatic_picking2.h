@@ -79,7 +79,7 @@ public:
     std::vector<Particle2> rejected_particles;
     std::vector<Particle2> accepted_particles;
     std::vector<Particle2> negative_candidates;
-    std::vector<MDRow> micList;
+    std::vector<MDRowVec> micList;
 
     FileName fn_micrograph, fn_model, fnPCAModel, fnPCARotModel, fnAvgModel;
     FileName fnVector, fnSVMModel, fnSVMModel2, fnInvariant, fnParticles;
@@ -95,7 +95,7 @@ public:
 //    AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
 //                         const FileName &model_name=NULL, const FileName &micsFn=NULL);
     AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
-                         const FileName &model_name=NULL, const std::vector<MDRow> &vMicList = std::vector<MDRow>());
+                         const FileName &model_name=NULL, const std::vector<MDRow> &vMicList);
 
     AutoParticlePicking2();
 

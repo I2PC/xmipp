@@ -25,7 +25,7 @@
 
 #include <fstream>
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 class ProgTest: public XmippProgram
 {
@@ -54,7 +54,7 @@ class ProgTest: public XmippProgram
     void run()
     {
 
-        MetaData MD, sortedMD;
+        MetaDataVec MD, sortedMD;
         std::ofstream fhOut;
         StringVector blockList;
         fhOut.open(fnOut.c_str());
@@ -99,7 +99,6 @@ class ProgTest: public XmippProgram
             fhOut<<"<coordinate x=\""<<x<<"\" y=\""<<y<<"\"/>"<<std::endl;
 
             for (auto idIt = sortedMD.ids().begin(); idIt != sortedMD.ids().end(); ++idIt)
-            for (size_t sortedMD.ids())
             {
             	if (*idIt == MD.firstRowId())
                     ++idIt;

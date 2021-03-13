@@ -87,8 +87,8 @@ public:
         if (!headerFound)
         {
             // Image -> Vector
-            MetaData SF(fnIn);
-            MetaData vectorContent, vectorHeader;
+            MetaDataVec SF(fnIn);
+            MetaDataVec vectorContent, vectorHeader;
             vectorHeader.setColumnFormat(false);
             Image<double> img;
             bool first=true;
@@ -132,7 +132,7 @@ public:
 
                 // Save this image in the output metadata
                 row.setValue(MDL_ORDER, order++);
-                vectorContent.addRow(row);
+                vectorContent.addRow(dynamic_cast<const MDRowVec&>(row));
 
                 // Save raw values
                 const MultidimArray<double> &mimg=img();
@@ -160,8 +160,8 @@ public:
             // Vector -> Image
             fnOut.deleteFile();
 
-            MetaData vectorHeader(formatString("vectorHeader@%s",fnIn.c_str()));
-            MetaData vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
+            MetaDataVec vectorHeader(formatString("vectorHeader@%s",fnIn.c_str()));
+            MetaDataVec vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
 
             // Read header
             size_t headerId=vectorHeader.firstRowId();

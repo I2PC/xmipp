@@ -69,12 +69,12 @@ void ProgMetadataSplit3D::defineParams()
     addExampleLine("xmipp_metadata_split_3D -i projections.sel --vol volume.vol --oroot split");
 }
 
-void getNeighbours(MetaData &mdIn, const Matrix1D<double> &projectionDir, MetaData &mdNeighbours, double maxDist)
+void getNeighbours(MetaDataDb &mdIn, const Matrix1D<double> &projectionDir, MetaDataDb &mdNeighbours, double maxDist)
 {
 	Matrix1D<double> projectionDir2;
 	FileName fnImg;
 	mdNeighbours.clear();
-	MetaDataVec mdAux;
+	MetaDataDb mdAux;
 	size_t refno;
 	double cc;
 	for (size_t objId : mdIn.ids())
@@ -157,7 +157,7 @@ void ProgMetadataSplit3D::run()
 	std::vector<FileName> fnNeighbours;
 	FileName fnImg;
 	maxDist=DEG2RAD(maxDist);
-    MetaDataVec mdNeighbours;
+    MetaDataDb mdNeighbours;
     std::vector<size_t> refs;
     std::vector<double> upperHalf;
     int i=0;
@@ -193,7 +193,7 @@ void ProgMetadataSplit3D::run()
 	progress_bar(mdRef.size());
 
 	// Split in two metadatas
-	MetaDataVec mdUpper, mdLower;
+	MetaDataDb mdUpper, mdLower;
 	for (auto& row : mdIn)
 	{
 		mdIn.getValue(MDL_IMAGE_IDX, refno, row.id());

@@ -103,7 +103,7 @@ void ProgMakeSpectra::run()
 
     for (auto& row : MD)
     {
-        MD.getValue(MDL_IMAGE,fnImg, row.ids());
+        MD.getValue(MDL_IMAGE,fnImg, row.id());
         I.readApplyGeo(fnImg,MD, row.id());
         rot_spt.compute_rotational_spectrum(I(), rot_spt.rl, rot_spt.rh,
                                             rot_spt.dr, rot_spt.rh - rot_spt.rl);
@@ -130,7 +130,7 @@ void ProgMakeSpectra::run()
 
         // Save this image in the output metadata
         row.setValue(MDL_ORDER, order++);
-        vectorContent.addRow(row);
+        vectorContent.addRow(dynamic_cast<MDRowVec&>(row));
     }
     vectorContent.write(formatString("vectorContent@%s",fn_out.c_str()),MD_APPEND);
 }

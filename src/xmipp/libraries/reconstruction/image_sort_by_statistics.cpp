@@ -178,7 +178,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     Image<double> img;
     FourierTransformer transformer(FFTW_BACKWARD);
 
-    for (size_t objID : SF.ids())
+    for (size_t objId : SF.ids())
     {
         if (thereIsEnable)
         {
@@ -620,7 +620,7 @@ void ProgSortByStatistics::run()
         for (const auto& row : SFsorted)
         {
             countItems++;
-            SFout.addRow(row);
+            SFout.addRow(dynamic_cast<const MDRowVec&>(row));
         }
         SFsorted.sort(SFout,MDL_ZSCORE);
         SFsorted.write(formatString("@%s", fn_out.c_str()), MD_APPEND);
