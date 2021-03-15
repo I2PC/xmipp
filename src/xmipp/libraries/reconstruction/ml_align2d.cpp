@@ -531,7 +531,7 @@ void ProgML2D::produceSideInfo2()
         istart = SPECIAL_ITER;
 
         //Expand MDref because it will be re-used in writeOutputFiles
-        MetaDataVec MDaux(MDref);
+        MetaDataDb MDaux(MDref);
 
         for (int group = 1; group < factor_nref; ++group)
         {
@@ -2293,7 +2293,7 @@ void ProgML2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
 
         // Write out log-file
         MetaDataVec mdLog;
-        objId = mdLog.addObject();
+        size_t objId = mdLog.addObject();
         mdLog.setValue(MDL_ITER, iter, objId);
         mdLog.setValue(MDL_LL, model.LL, objId);
         mdLog.setValue(MDL_PMAX, avePmax, objId);

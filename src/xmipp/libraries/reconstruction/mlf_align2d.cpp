@@ -385,7 +385,7 @@ void ProgMLF2D::produceSideInfo()
         FileName fn_ctf;
 
         //CTF info now comes on input metadatas
-        MetaDataVec mdCTF;
+        MetaDataDb mdCTF;
         std::vector<MDLabel> groupby;
         groupCTFMetaData(MDimg, mdCTF, groupby);
 
@@ -477,7 +477,7 @@ void ProgMLF2D::produceSideInfo()
         }
 
         // Make a join to set the MDL_DEFGROUP to each image
-        MetaDataVec md(MDimg);
+        MetaDataDb md(MDimg);
         MDimg.joinNatural(md, mdCTF);
     }
 
@@ -2716,10 +2716,10 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     // First time for _ref, second time for _cref
     FileName fn_base_cref = FN_CREF_IMG;
     MDRowVec row;
-    MDIterator mdIter(MDref);
+    auto idIter = MDref.ids().begin();
     MDo = MDref;
 
-    for (int refno = 0; refno < model.n_ref; ++refno, mdIter.moveNext())
+    for (int refno = 0; refno < model.n_ref; ++refno, ++idIter)
     {
         //row.setValue(MDL_ITER, iter);
         row.setValue(MDL_REF, refno + 1);
@@ -2736,13 +2736,13 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         //write ctf
         fn_tmp.compose(refno + 1, fn_base_cref);
         writeImage(Ictf[refno], fn_tmp, row);
-        MDo.setRow(row, mdIter.objId);
+        MDo.setRow(row, *idIter);
 
         //write image
         fn_tmp = FN_REF(fn_base, refno + 1);
         Itmp = model.Iref[refno];
         writeImage(Itmp, fn_tmp, row);
-        MDref.setRow(row, mdIter.objId);
+        MDref.setRow(row, *idIter);
     }
 
     // Write out reference md file

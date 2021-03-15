@@ -127,7 +127,7 @@ double computeCovarianceMatrixDivergence(const Matrix2D<double> &C1, const Matri
 void ProgImageResiduals::postProcess()
 {
 	FileName fnMDout=fn_out.replaceExtension("xmd");
-	MetaData mdR(fnMDout);
+	MetaDataVec mdR(fnMDout);
 
 	// Ravg
 	Matrix2D<double> Ravg;

@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "pdb_construct_dictionary.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/transformations.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_image_extension.h"
@@ -583,7 +583,7 @@ void ProgConstructPDBDictionary::run()
     if (fileExists(fnRoot+"_low.mrcs"))
     	loadDictionaries();
 
-    MetaData mdlow, mdhigh;
+    MetaDataVec mdlow, mdhigh;
     mdlow.read(fnLow);
     mdhigh.read(fnHigh);
     if (mode==0)
@@ -615,7 +615,7 @@ void ProgConstructPDBDictionary::run()
     	mdlow.getValue(MDL_IMAGE,fnVol, *itIdLow);
     	Vlow.read(fnVol);
     	std::cout << "Processing " << fnVol << " and ";
-    	mdhigh.getValue(MDL_IMAGE,fnVol, *itIdHight);
+    	mdhigh.getValue(MDL_IMAGE,fnVol, *itIdHigh);
     	std::cout << fnVol << std::endl;
     	Vhigh.read(fnVol);
 

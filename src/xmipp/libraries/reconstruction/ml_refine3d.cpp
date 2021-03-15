@@ -550,10 +550,10 @@ void ProgMLRefine3D::projectVolumes(MetaData &mdProj)
     volno = nr_dir = 0;
 
     //std::cerr << "DEBUG_JM: ProgMLRefine3D::projectVolumes" <<std::endl;
-    MDIterator iter(mdVol);
+    auto idIter = mdVol.ids().begin();
     for (size_t i = 0; i < Nvols; ++i)
     {
-        mdVol.getValue(MDL_IMAGE, fn_tmp, iter.objId);
+        mdVol.getValue(MDL_IMAGE, fn_tmp, *idIter);
         //std::cerr << "DEBUG_JM: fn_tmp: " << fn_tmp << std::endl;
         vol.read(fn_tmp);
         vol().setXmippOrigin();
@@ -587,7 +587,7 @@ void ProgMLRefine3D::projectVolumes(MetaData &mdProj)
             if (verbose && (nr_dir % bar_step == 0))
                 progress_bar(nr_dir);
         }
-        iter.moveNext();
+        ++idIter;
     }
 
     if (verbose)
@@ -615,8 +615,8 @@ void ProgMLRefine3D::makeNoiseImages()
 
     Image<double> img;
     std::vector<Image<double> > & Iref = ml2d->model.Iref;
-    FileName   fn_noise(FN_NOISE_IMG), fn_img;
-    MetaData    mdNoise(ml2d->MDref);
+    FileName fn_noise(FN_NOISE_IMG), fn_img;
+    MetaDataVec mdNoise(ml2d->MDref);
     int refno = 0;
 
     for (size_t objId : mdNoise.ids())
@@ -738,7 +738,7 @@ void ProgMLRefine3D::reconstructVolumes()
   LOG_FUNCTION();
 
     FileName fn_vol, fn_vol_prev, fn_one;
-    MetaData mdOne, mdProj, mdOutVols;
+    MetaDataVec mdOne, mdProj, mdOutVols;
     size_t id;
 
 
@@ -792,7 +792,7 @@ void ProgMLRefine3D::calculate3DSSNR(MultidimArray<double> &spectral_signal)
 
   LOG_FUNCTION();
 
-    MetaData                    mdNoiseAll, mdNoiseOne;
+    MetaDataVec                 mdNoiseAll, mdNoiseOne;
     MultidimArray<std::complex<double> >  Faux;
     Image<double>              vol, nvol;
     FileName                    fn_tmp, fn_tmp2;

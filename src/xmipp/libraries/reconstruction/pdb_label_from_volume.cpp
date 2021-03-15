@@ -30,7 +30,7 @@
 #include <iomanip>
 #include "pdb_label_from_volume.h"
 #include "core/xmipp_image.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /* Usage ------------------------------------------------------------------- */
 

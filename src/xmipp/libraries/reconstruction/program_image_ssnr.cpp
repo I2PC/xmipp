@@ -153,21 +153,21 @@ void normalizeSSNR(MetaData &mdOut)
 void ProgImageSSNR::postProcess()
 {
 	if (ssnrcut>0)
-		thresholdSSNR(*getOutputMd(),ssnrcut);
+		thresholdSSNR(getOutputMd(), ssnrcut);
 
 	if (ssnrpercent>0)
 	{
 		std::vector<double> ssnr;
-		getOutputMd()->getColumnValues(MDL_CUMULATIVE_SSNR,ssnr);
+		getOutputMd().getColumnValues(MDL_CUMULATIVE_SSNR,ssnr);
 		std::sort(ssnr.begin(),ssnr.end());
 		size_t idx=(size_t)(ssnrpercent/100.0*ssnr.size());
-		thresholdSSNR(*getOutputMd(),ssnr[idx]);
+		thresholdSSNR(getOutputMd(),ssnr[idx]);
 	}
 
 	if (normalizessnr)
-		normalizeSSNR(*getOutputMd());
+		normalizeSSNR(getOutputMd());
 	if (fn_out!="")
-		getOutputMd()->write(fn_out);
+		getOutputMd().write(fn_out);
 	else
-		getOutputMd()->write(fn_in);
+		getOutputMd().write(fn_in);
 }

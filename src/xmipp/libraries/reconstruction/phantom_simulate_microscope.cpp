@@ -34,7 +34,7 @@ void ProgSimulateMicroscope::readParams()
     XmippMetadataProgram::readParams();
 
     fn_ctf = "";//initialize empty, force recalculation of first time
-    pmdIn = getInputMd();
+    pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
     CTFpresent=true;
     if (checkParam("--ctf"))
     {
@@ -50,7 +50,7 @@ void ProgSimulateMicroscope::readParams()
         {
             //sort the images according to the ctf to avoid the recaculation of it
             //beeten images of the same ctf group
-            MetaData md(*pmdIn);
+            MetaDataDb md(*pmdIn);
             pmdIn->sort(md, MDL_CTF_MODEL);
         }
         else
@@ -151,7 +151,7 @@ void ProgSimulateMicroscope::estimateSigma()
     FileName fnImg;
     Image<double> proj;
     size_t nImg=0;
-    for (size_t objId : *pmdIn.ids())
+    for (size_t objId : pmdIn->ids())
     {
         pmdIn->getValue(image_label, fnImg,objId);
         proj.read(fnImg);

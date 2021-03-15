@@ -563,7 +563,7 @@ void generate_angles(int ExtProjs, const Angle_range &range,
     int   i, j, k;
     size_t iproj, idx=0;
     int   limit=0;
-    MetaData DFaux=DF;
+    MetaDataVec DFaux=DF;
 
     // Select loop limit ....................................................
     switch (range.randomness)
@@ -654,7 +654,7 @@ void generate_angles(int ExtProjs, const Angle_range &range,
                         iproj = proj_number(ExtProjs, j, k, i);
                         break;
                     }
-                    size_t idx_tmp=DFaux.firstRowId(MDValueEQ(MDL_ORDER,iproj));
+                    size_t idx_tmp=DFaux.firstObject(MDValueEQ(MDL_ORDER,iproj));
                     if (idx_tmp==BAD_OBJID)
                     {
                         idx_tmp=DFaux.addObject();
@@ -677,7 +677,7 @@ void generate_angles(int ExtProjs, const Angle_range &range,
         else
         {
             size_t iproj=ExtProjs + i;
-            size_t dfidx=DFaux.firstRowId(MDValueEQ(MDL_ORDER,iproj));
+            size_t dfidx=DFaux.firstObject(MDValueEQ(MDL_ORDER,iproj));
             if (dfidx==BAD_OBJID)
             {
                 dfidx=DFaux.addObject();
@@ -750,7 +750,7 @@ void generate_even_angles(int ExtProjs, int Nrottilt, MetaData &DF,
                           (double)(Npsi - 1) * k;
 
                 size_t iproj = ExtProjs + N + Nrottilt * k;
-                size_t idx_tmp=DFaux.firstRowId(MDValueEQ(MDL_ORDER,iproj));
+                size_t idx_tmp=DFaux.firstObject(MDValueEQ(MDL_ORDER,iproj));
                 if (idx_tmp==BAD_OBJID)
                 {
                     idx_tmp=DFaux.addObject();

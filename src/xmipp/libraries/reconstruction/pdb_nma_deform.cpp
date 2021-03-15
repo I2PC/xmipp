@@ -26,7 +26,7 @@
 
 #include <fstream>
 #include "pdb_nma_deform.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "data/pdb.h"
 
 void ProgPdbNmaDeform::defineParams()

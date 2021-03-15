@@ -95,7 +95,7 @@ public:
 //    AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
 //                         const FileName &model_name=NULL, const FileName &micsFn=NULL);
     AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
-                         const FileName &model_name=NULL, const std::vector<MDRow> &vMicList);
+                         const FileName &model_name=NULL, const std::vector<MDRowVec> &vMicList={});
 
     AutoParticlePicking2();
 
@@ -109,9 +109,9 @@ public:
 
     void filterBankGenerator();
 
-    void batchBuildInvariant(const std::vector<MDRow> &MD);
+    void batchBuildInvariant(const std::vector<MDRowVec> &MD);
 
-    void buildInvariant(const std::vector<MDRow> &MD);
+    void buildInvariant(const std::vector<MDRowVec> &MD);
     void extractInvariant();
 
     void extractPositiveInvariant();
@@ -122,21 +122,21 @@ public:
 
     void add2Dataset(int flagNegPos);
 
-    void train(const std::vector<MDRow> &MD, bool corrFlag, int x, int y, int width, int height);
+    void train(const std::vector<MDRowVec> &MD, bool corrFlag, int x, int y, int width, int height);
 
-    void correction(const std::vector<MDRow> &addedParticlesMD,const std::vector<MDRow> &removedParticlesMD);
+    void correction(const std::vector<MDRowVec> &addedParticlesMD,const std::vector<MDRowVec> &removedParticlesMD);
 
     void add2Dataset(const MetaData &removedParticlesMD);
 
     void saveTrainingSet();
 
-    int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRow> &md);
+    int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRowVec> &md);
 
     int automaticWithouThread(FileName fnmicrograph, int proc_prec, const FileName &fn);
 
     void saveAutoParticles(MetaData &md);
 
-    void saveAutoParticles(std::vector<MDRow> &md);
+    void saveAutoParticles(std::vector<MDRowVec> &md);
     /// Define the parameters of the main program
     static void defineParams(XmippProgram * program);
 

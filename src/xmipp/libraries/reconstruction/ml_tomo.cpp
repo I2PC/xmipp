@@ -2836,7 +2836,7 @@ threadMLTomoExpectationSingleImage(void * data)
 }
 
 void
-ProgMLTomo::expectation(MetaData &MDimg, std::vector<Image<double> > &Iref,
+ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
                         int iter, double &LL, double &sumfracweight,
                         std::vector<MultidimArray<double> > &wsumimgs,
                         std::vector<MultidimArray<double> > &wsumweds, double &wsum_sigma_noise,
