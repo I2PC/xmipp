@@ -30,12 +30,12 @@ void ProgImagePeakHighContrast::readParams()
 	fnVol = getParam("--vol");
 	fnOut = getParam("-o");
 	boxSize = getIntParam("--boxSize");
+	fiducialSize = getDoubleParam("--fiducialSize");
 	pixelValueThr = getDoubleParam("--pixelValueThr");
     numberSampSlices = getIntParam("--numberSampSlices");
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
 	distanceThr = getIntParam("--distanceThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
-	fiducialSize = getDoubleParam("--fiducalSize");
 	samplingRate = getDoubleParam("--samplingRate");
 
 }
@@ -51,7 +51,7 @@ void ProgImagePeakHighContrast::defineParams()
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
   	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
-  	addParamsLine("  [--fiducalSize <fiducalSize=100>]						: Fiducial size in Angstroms (A)");
+  	addParamsLine("  [--fiducialSize <fiducialSize=100>]						: Fiducial size in Angstroms (A)");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px)");
 
 }
