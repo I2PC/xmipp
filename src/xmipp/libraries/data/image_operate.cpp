@@ -531,7 +531,8 @@ void ProgOperate::readParams()
             {
                 if (mdInSize != md2.size())
                     REPORT_ERROR(ERR_MD, "Both metadatas operands should be of same size.");
-                md2IdIterator = md2.ids().begin();
+                md2IdIterator = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(md2.ids().begin()));
+                md2.ids().begin();
             }
             else
             {
@@ -555,8 +556,8 @@ void ProgOperate::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     {
         if (!isValue)
         {
-            img2.readApplyGeo(md2, *md2IdIterator);
-            ++md2IdIterator;
+            img2.readApplyGeo(md2, **md2IdIterator);
+            ++(*md2IdIterator);
         }
         binaryOperator(img, img2);
     }
