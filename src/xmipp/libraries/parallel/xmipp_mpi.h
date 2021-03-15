@@ -29,7 +29,7 @@
 #include <mpi.h>
 #include "core/xmipp_threads.h"
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 class FileName;
 
@@ -261,11 +261,11 @@ public:\
     }\
     void finishProcessing()\
     {\
-        node->gatherMetadatas(*getOutputMd(), fn_out);\
-    	MetaData MDaux; \
-    	MDaux.sort(*getOutputMd(), MDL_GATHER_ID); \
+        node->gatherMetadatas(getOutputMd(), fn_out);\
+    	MetaDataVec MDaux; \
+    	MDaux.sort(getOutputMd(), MDL_GATHER_ID); \
         MDaux.removeLabel(MDL_GATHER_ID); \
-        *getOutputMd()=MDaux; \
+        getOutputMd() = MDaux; \
         if (node->isMaster())\
             baseClassName::finishProcessing();\
     }\

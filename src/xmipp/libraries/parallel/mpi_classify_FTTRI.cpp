@@ -758,7 +758,7 @@ void ProgClassifyFTTRI::computeClassCentroids(bool FTTRI)
     MultidimArray<double> &mCentroid=centroid();
     MultidimArray<int> &mMask=mask();
     MultidimArray<double> intraclassDistance, sortedDistance;
-    MetaData MDclass;
+    MetaDataVec MDclass;
     for (size_t i=0; i<nref; i++)
         if (((i+1)%node->size)==node->rank)
         {
@@ -1045,7 +1045,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
 void ProgClassifyFTTRI::writeResults(bool FTTRI)
 {
     int imax=bestEpsilonClasses.size();
-    MetaData MDclass, MDsummary;
+    MetaDataVec MDclass, MDsummary;
     FileName fnImg, fnCandidate;
     FileName fnClasses=fnRoot+"_classes.xmd";
     if (fnClasses.exists())
@@ -1141,7 +1141,7 @@ void ProgClassifyFTTRI::alignImagesWithinClasses()
 
     MultidimArray<double> &mCentroid=centroid();
     MultidimArray<int> &mMask=mask();
-    MetaData MDclass, MDaux;
+    MetaDataVec MDclass, MDaux;
     Matrix2D<double> M;
     MDRow row;
     for (size_t i=0; i<nref; i++)
@@ -1169,19 +1169,19 @@ void ProgClassifyFTTRI::alignImagesWithinClasses()
                     DIRECT_MULTIDIM_ELEM(mCentroid,n)=0.0;
 
                 // Align images within class to centroid
-                FOR_ALL_OBJECTS_IN_METADATA(MDclass)
+                for (size_t objId : MDclass.ids())
                 {
-                	MDclass.getValue(MDL_IMAGE,fnCandidate,__iter.objId);
+                	MDclass.getValue(MDL_IMAGE,fnCandidate,objId);
                     candidate.read(fnCandidate);
                     candidate().setXmippOrigin();
                     double corr=alignImages(mCentroid,candidate(),M);
                     bool flip;
                     double scale, shiftx, shifty, psi;
                     transformationMatrix2Parameters2D(M, flip, scale, shiftx, shifty, psi);
-                    MDclass.setValue(MDL_SHIFT_X, shiftx, __iter.objId);
-                    MDclass.setValue(MDL_SHIFT_Y, shifty, __iter.objId);
-                    MDclass.setValue(MDL_ANGLE_PSI, psi, __iter.objId);
-                    MDclass.setValue(MDL_MAXCC, corr, __iter.objId);
+                    MDclass.setValue(MDL_SHIFT_X, shiftx, objId);
+                    MDclass.setValue(MDL_SHIFT_Y, shifty, objId);
+                    MDclass.setValue(MDL_ANGLE_PSI, psi, objId);
+                    MDclass.setValue(MDL_MAXCC, corr, objId);
                 }
             }
 
@@ -1205,15 +1205,15 @@ void ProgClassifyFTTRI::alignImagesWithinClasses()
         	fnClass.deleteFile();
         }
 
-        MetaData MDsummary;
+        MetaDataVec MDsummary;
         FileName classesBlock=(String)"classes@"+fnClasses;
         MDsummary.read(classesBlock);
         int nref=1;
         FileName fnRef;
-        FOR_ALL_OBJECTS_IN_METADATA(MDsummary)
+        for (size_t objId : MDsummary.ids())
         {
         	fnRef.compose(nref++,fnCentroids);
-        	MDsummary.setValue(MDL_IMAGE,fnRef,__iter.objId);
+        	MDsummary.setValue(MDL_IMAGE,fnRef,objId);
         }
         MDsummary.write(classesBlock,MD_APPEND);
     }

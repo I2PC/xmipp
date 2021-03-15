@@ -211,7 +211,7 @@ void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
     barrierWait();
     if (isMaster()) //master should collect and join workers results
     {
-        MetaData mdAll(MD), mdSlave;
+        MetaDataVec mdAll(MD), mdSlave;
         for (size_t nodeRank = 1; nodeRank < size; nodeRank++)
         {
             fn = formatString("%s_node%d.xmd", rootname.c_str(), nodeRank);

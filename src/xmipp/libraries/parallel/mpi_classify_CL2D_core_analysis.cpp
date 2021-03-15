@@ -196,7 +196,6 @@ void ProgClassifyCL2DCore::computeStableCores()
     if (verbose && node->rank==0)
         std::cerr << "Computing stable cores ...\n";
     MetaData thisClass, anotherClass, commonImages, thisClassCore;
-    MDRow row;
     size_t first, last;
     Matrix2D<unsigned char> coocurrence;
     Matrix1D<unsigned char> maximalCoocurrence;
@@ -222,9 +221,9 @@ void ProgClassifyCL2DCore::computeStableCores()
             {
                 size_t order=0;
                 thisClassOrder.clear();
-                FOR_ALL_OBJECTS_IN_METADATA(thisClass)
+                for (size_t objId : thisClass.ids())
                 {
-                    thisClass.getValue(MDL_IMAGE,fnImg,__iter.objId);
+                    thisClass.getValue(MDL_IMAGE,fnImg,objId);
                     thisClassOrder[fnImg]=order++;
                 }
 
@@ -253,9 +252,9 @@ void ProgClassifyCL2DCore::computeStableCores()
                         commonImages.join1(anotherClass, thisClass, MDL_IMAGE,LEFT);
                         commonIdx.resize(commonImages.size());
                         size_t idx=0;
-                        FOR_ALL_OBJECTS_IN_METADATA(commonImages)
+                        for (size_t objId : commonImages.ids())
                         {
-                            commonImages.getValue(MDL_IMAGE,fnImg,__iter.objId);
+                            commonImages.getValue(MDL_IMAGE,fnImg,objId);
                             commonIdx[idx++]=thisClassOrder[fnImg];
                         }
                         size_t Ncommon=commonIdx.size();
@@ -279,13 +278,14 @@ void ProgClassifyCL2DCore::computeStableCores()
                     VEC_ELEM(maximalCoocurrence,i)=VEC_ELEM(maximalCoocurrence,j)=1;
 
                 // Now compute core
-                FOR_ALL_OBJECTS_IN_METADATA(thisClass)
+                for (size_t objId : thisClass.ids())
                 {
-                    thisClass.getValue(MDL_IMAGE,fnImg,__iter.objId);
+                    thisClass.getValue(MDL_IMAGE,fnImg,objId);
                     size_t idx=thisClassOrder[fnImg];
                     if (VEC_ELEM(maximalCoocurrence,idx))
                     {
-                        thisClass.getRow(row,__iter.objId);
+                        MDRowVec row;
+                        thisClass.getRow(row, objId);
                         thisClassCore.addRow(row);
                     }
                 }

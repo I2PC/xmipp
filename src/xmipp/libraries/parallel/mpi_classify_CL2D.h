@@ -25,7 +25,7 @@
 #ifndef _PROG_VQ_PROJECTIONS
 #define _PROG_VQ_PROJECTIONS
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "data/polar.h"
 #include "core/histogram.h"
 #include "data/numerical_tools.h"
@@ -158,7 +158,7 @@ public:
 	size_t Nimgs;
 
 	/// Pointer to input metadata
-	MetaData *SF;
+	MetaDataVec *SF;
 
     /// List of nodes
     std::vector<CL2DClass *> P;
@@ -293,7 +293,7 @@ public:
     void run();
 public:
     // Selfile with all the input images
-    MetaData SF;
+    MetaDataVec SF;
     
     // Object Ids
     std::vector<size_t> objId;

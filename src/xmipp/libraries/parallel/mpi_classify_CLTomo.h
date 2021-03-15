@@ -28,7 +28,7 @@
 #include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/metadata_extension.h>
 #include <data/filters.h>
 #include <data/polar.h>
@@ -160,7 +160,7 @@ public:
 	size_t Nimgs;
 
 	/// Pointer to input metadata
-	MetaData *SF;
+	MetaDataVec *SF;
 
     /// List of nodes
     std::vector<CL3DClass *> P;
@@ -306,7 +306,7 @@ public:
     void run();
 public:
     // Selfile with all the input images
-    MetaData SF;
+    MetaDataVec SF;
     
     // Object Ids
     std::vector<size_t> objId;
