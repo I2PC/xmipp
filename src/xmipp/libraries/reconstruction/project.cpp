@@ -556,7 +556,7 @@ void ParametersProjection::read(const FileName &fn_proj_param)
 #define Npsi  prm.psi_range.samples
 #define proj_number(base,irot,itilt,ipsi) base+irot*Ntilt*Npsi+itilt*Npsi+ipsi
 void generate_angles(int ExtProjs, const Angle_range &range,
-                     MetaData &DF, char ang_name, const ParametersProjection &prm)
+                     MetaDataVec &DF, char ang_name, const ParametersProjection &prm)
 {
     double ang;
     int   N1=0, N2=0;
@@ -701,7 +701,7 @@ void generate_angles(int ExtProjs, const Angle_range &range,
 }
 
 /* Generate evenly distributed angles ====================================== */
-void generate_even_angles(int ExtProjs, int Nrottilt, MetaData &DF,
+void generate_even_angles(int ExtProjs, int Nrottilt, MetaDataVec &DF,
                           const ParametersProjection &prm)
 {
     // We will run over the tilt angle in a deterministic way
@@ -794,7 +794,7 @@ int count_even_angles(const ParametersProjection &prm)
 }
 
 /* Assign angles =========================================================== */
-int Assign_angles(MetaData &DF, const ParametersProjection &prm,
+int Assign_angles(MetaDataVec &DF, const ParametersProjection &prm,
                   const FileName &fn_sym)
 {
     int ExtProjs = 0, IntProjs = 0;    // External and internal projections

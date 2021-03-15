@@ -25,7 +25,7 @@
 
 #include "program_extension.h"
 #include "volumeset_align.h"
-#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 
 // Empty constructor =======================================================
 ProgVolumeSetAlign::ProgVolumeSetAlign() {
@@ -64,10 +64,10 @@ void ProgVolumeSetAlign::readParams() {
 // Produce side information ================================================
 
 void ProgVolumeSetAlign::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
+	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
 	// this will serve to resume
-	MetaDataVec mdTodo;
-	MetaDataVec mdDone;
+	MetaDataDb mdTodo;
+	MetaDataDb mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/AlignedSoFar.xmd");
 	if (fn.exists() && resume) {

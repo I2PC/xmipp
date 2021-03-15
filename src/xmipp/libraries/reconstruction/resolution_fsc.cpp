@@ -207,7 +207,7 @@ public:
 
     bool process_sel()
     {
-        MetaDataVec MD(fn_sel), MDout;
+        MetaDataDb MD(fn_sel), MDout;
         MultidimArray<double> freq, frc, dpr, frc_noise, ssnr, error_l2;
         getFourierStatistics(MD, sam, MDout, do_dpr, max_sam);
         FileName fnRoot=(fn_root.empty())?fn_sel:fn_root;

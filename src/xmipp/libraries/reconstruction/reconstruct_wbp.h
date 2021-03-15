@@ -23,8 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <memory>
 #include "core/symmetries.h"
 #include "core/xmipp_image.h"
+#include "core/metadata_vec.h"
 #include "reconstruction/recons.h"
 
 class Projection;
@@ -75,13 +77,10 @@ public:
     /// Time bar variables
     size_t time_bar_step, time_bar_size, time_bar_done;
     /// Iterator over input metadata
-    MDIterator * iter;
+    std::unique_ptr<MetaDataVec::id_iterator> iter;
     /// Reconstructed volume
     Image<double> reconstructedVolume;
 public:
-
-    ProgRecWbp();
-    ~ProgRecWbp();
 
     /// Read arguments from command line
     void readParams();

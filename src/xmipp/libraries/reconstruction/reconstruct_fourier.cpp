@@ -146,7 +146,7 @@ void ProgRecFourier::run()
         // Passing parameters to each thread
         th_args[nt].parent = this;
         th_args[nt].myThreadID = nt;
-        th_args[nt].selFile = new MetaData(SF);
+        th_args[nt].selFile = new MetaDataVec(SF);
         pthread_create( (th_ids+nt) , NULL, processImageThread, (void *)(th_args+nt) );
     }
 

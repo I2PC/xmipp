@@ -2280,11 +2280,11 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
     std::cout << "Average height of the landmarks at 0 degrees=" << z0 << std::endl;
     MetaDataVec DF;
 
-    MDIterator * iter = NULL;
+    std::unique_ptr<MetaDataVec::id_iterator> idIter;
 
     if (!fnSelOrig.empty())
     {
-        iter = new MDIterator(SForig);
+        idIter = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(SForig.ids().begin()));
     }
     DF.setComment("First shift by -(shiftX,shiftY), then rotate by psi");
 
@@ -2328,11 +2328,11 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         if (fnSelOrig!="")
         {
             FileName auxFn;
-            SForig.getValue( MDL_IMAGE, auxFn, iter->objId);
+            SForig.getValue( MDL_IMAGE, auxFn, **idIter);
             Image<double> Iorig;
             Iorig.read( auxFn );
             //SForig.nextObject();
-            iter->moveNext();
+            ++(*idIter);
             mask.initZeros(Iorig());
             FOR_ALL_ELEMENTS_IN_ARRAY2D(Iorig())
             if (Iorig(i,j)!=0)
@@ -2367,7 +2367,6 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         DF.setValue(MDL_SHIFT_Y, YY(alignment.di[n]+alignment.diaxis[n]), id);
     }
     DF.write(fnRoot+"_correction_parameters.txt");
-    delete iter;
 #ifdef DEBUG
 
     Image<double> save;

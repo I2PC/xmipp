@@ -521,7 +521,7 @@ void runThread(ThreadArgument &thArg)
     int thread_id = thArg.thread_id;
     ProgXrayImport * ptrProg= (ProgXrayImport *)thArg.workClass;
 
-    MetaDataVec localMD;
+    MetaDataDb localMD;
     Image<double> Iaux;
     FileName fnImgIn, fnImgOut;
     size_t first = 0, last = 0;
@@ -735,7 +735,7 @@ void ProgXrayImport::run()
     progress_bar(nIm);
 
     // Write Metadata and angles
-    MetaDataVec MDSorted;
+    MetaDataDb MDSorted;
     MDSorted.sort(outMD,MDL_ANGLE_TILT);
     MDSorted.write("tomo@"+fnRoot + ".xmd");
     if ( fMD.size() > 0 )

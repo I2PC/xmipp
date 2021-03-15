@@ -265,7 +265,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 	    	// Keep the best assignment for the projection matching
 	    	// Each process keeps a list of the images for each volume
-			MetaData &mdProjectionMatching=mdReconstructionProjectionMatching[bestVolume];
+			MetaDataVec &mdProjectionMatching=mdReconstructionProjectionMatching[bestVolume];
 			double scale, shiftX, shiftY, anglePsi;
 			bool flip;
 			transformationMatrix2Parameters2D(bestM,flip,scale,shiftX,shiftY,anglePsi);
@@ -274,7 +274,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 			if (maxShift<0 || (maxShift>0 && fabs(shiftX)<maxShift && fabs(shiftY)<maxShift))
 			{
-				size_t recId=mdProjectionMatching.addRow(row);
+				size_t recId=mdProjectionMatching.addRow(dynamic_cast<MDRowVec&>(row));
 				mdProjectionMatching.setValue(MDL_ENABLED,1,recId);
 				mdProjectionMatching.setValue(MDL_MAXCC,bestCorr,recId);
 				mdProjectionMatching.setValue(MDL_ANGLE_ROT,bestRot,recId);
@@ -302,7 +302,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 	    	// Get the best images
 			for (size_t nVolume=firstVolume; nVolume<=lastVolume; ++nVolume)
 			{
-				MetaData &mdPartial=mdReconstructionPartial[nVolume];
+				MetaDataVec &mdPartial=mdReconstructionPartial[nVolume];
 				for (size_t nDir=0; nDir<Ndirs; ++nDir)
 				{
 					size_t idx=nVolume*Ndirs+nDir;
@@ -349,7 +349,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 						          << "shiftX=" << shiftX << " shiftY=" << shiftY << std::endl;
 			#endif
 
-						size_t recId=mdPartial.addRow(row);
+						size_t recId=mdPartial.addRow(dynamic_cast<MDRowVec&>(row));
 						mdPartial.setValue(MDL_ENABLED,1,recId);
 						mdPartial.setValue(MDL_MAXCC,cc,recId);
 						mdPartial.setValue(MDL_COST,imed,recId);
@@ -497,7 +497,7 @@ void ProgReconstructSignificant::run()
 			// Write the corresponding angular metadata
 			for (size_t nVolume=0; nVolume<(size_t)Nvolumes; ++nVolume)
 			{
-				MetaData &mdReconstruction=mdReconstructionPartial[nVolume];
+				MetaDataVec &mdReconstruction=mdReconstructionPartial[nVolume];
 				// Readjust weights with direction weights
 				for (size_t objId : mdReconstruction.ids())
 				{

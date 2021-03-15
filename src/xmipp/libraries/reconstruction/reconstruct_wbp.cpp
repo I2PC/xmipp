@@ -34,16 +34,6 @@
 #include "reconstruction/symmetrize.h"
 
 
-ProgRecWbp::ProgRecWbp()
-{
-    iter = NULL;
-}
-
-ProgRecWbp::~ProgRecWbp()
-{
-    delete iter;
-}
-
 // Read arguments ==========================================================
 void ProgRecWbp::readParams()
 {
@@ -504,14 +494,18 @@ void ProgRecWbp::filterOneImage(Projection &proj, Tabsinc &TSINC)
 
 bool ProgRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
 {
-    if (time_bar_done == 0)
-        iter = new MDIterator(SF);
-    else
-        iter->moveNext();
+    static size_t _objIndex = 0;
+    if (time_bar_done == 0) {
+        iter = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(SF.ids().begin()));
+        _objIndex = 0;
+    } else {
+        ++(*iter);
+        ++_objIndex;
+    }
 
     ++time_bar_done;
-    objIndex = iter->objIndex;
-    return ((objId = iter->objId) != BAD_OBJID);
+    objIndex = _objIndex;
+    return ((objId = **iter) != BAD_OBJID);
 }
 
 void ProgRecWbp::showProgress()

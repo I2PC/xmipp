@@ -113,12 +113,12 @@ void ProgReconsADMM::produceSideInfo()
 	Matrix2D<double> Lsym(3,3), Rsym(3,3);
 	MetaDataVec mdSym;
 	double rot, tilt, psi, newrot, newtilt, newpsi;
-	for (const auto& row : mdIn)
+	for (auto& row : mdIn)
 	{
 		row.getValue(MDL_ANGLE_ROT,rot);
 		row.getValue(MDL_ANGLE_TILT,tilt);
 		row.getValue(MDL_ANGLE_PSI,psi);
-		mdSym.addRow(row);
+		mdSym.addRow(dynamic_cast<MDRowVec&>(row));
 		for (int isym = 0; isym < SL.symsNo(); isym++)
 		{
 			SL.getMatrices(isym, Lsym, Rsym, false);
@@ -126,7 +126,7 @@ void ProgReconsADMM::produceSideInfo()
 			row.setValue(MDL_ANGLE_ROT,newrot);
 			row.setValue(MDL_ANGLE_TILT,newtilt);
 			row.setValue(MDL_ANGLE_PSI,newpsi);
-			mdSym.addRow(row);
+			mdSym.addRow(dynamic_cast<MDRowVec&>(row));
 		}
 	}
 	mdIn=mdSym;

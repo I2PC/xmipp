@@ -269,7 +269,7 @@ void ProgARTPseudo::produceSideInfo()
     // NMA
     if (!fnNMA.empty())
     {
-        MetaData DFNMA(fnNMA);
+        MetaDataVec DFNMA(fnNMA);
         DFNMA.removeDisabled();
         for (size_t objId : DFNMA.ids())
         {

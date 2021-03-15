@@ -247,7 +247,7 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     	SF_S.getValue(MDL_IMAGE,fn_img, *iterIdS);
         Is.read(fn_img);
         Is().setXmippOrigin();
-    	SF_N.getValue(MDL_IMAGE,fn_img, *IterIdN);
+    	SF_N.getValue(MDL_IMAGE,fn_img, *iterIdN);
         In.read(fn_img);
         In().setXmippOrigin();
 

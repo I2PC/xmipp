@@ -408,7 +408,7 @@ void ProgAlignDualTiltSeries::alignDual()
     Matrix2D<double> Edual;
     FileName fnImg, fn;
 
-    for (size_t objId : SFDuals.ids())
+    for (size_t objId : SFDual.ids())
     {
         SFDual.getValue(MDL_IMAGE,fnImg,objId);
         Idual.read(fnImg);

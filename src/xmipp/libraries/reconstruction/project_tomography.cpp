@@ -55,7 +55,7 @@ void ProgProjectTomography::run()
 {
 
     Projection         proj;
-    MetaData           projMD;
+    MetaDataVec        projMD;
 
     randomize_random_generator();
 
