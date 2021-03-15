@@ -43,6 +43,7 @@ RELEASE_DATE = '14/10/2020'        #
 ####################################
 
 
+KEY_BUILD_TESTS = 'BUILD_TESTS'
 
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
@@ -65,7 +66,7 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('release-1.10.0', None)}
+                GTEST: ('release-1.10.0', KEY_BUILD_TESTS)}
 
 CONFIG_FILE_NAME = "xmipp.conf"
 
@@ -506,11 +507,11 @@ def readConfigFile(fnConfig):
 
 
 def createEmptyConfig():
-    labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
-              'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_RUN','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
-              'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
-              'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH',
+    labels = [KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
+              'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
+              'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
+              'MATLAB_DIR', 'CUDA','DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
+              'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
               'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
               'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
     configDict = {}
@@ -1210,6 +1211,11 @@ def ensureConfigVersion(configDict):
         exit(-1)
 
 
+def configTests(configDict):
+    if configDict[KEY_BUILD_TESTS] == "":
+        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False)
+
+
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
@@ -1225,6 +1231,7 @@ def config():
     configStarPU(new_config_dict)
     config_DL(new_config_dict)
     configConfigVersion(new_config_dict)
+    configTests(new_config_dict)
 
     writeConfig(new_config_dict)
     writeEnviron()
@@ -1381,7 +1388,8 @@ def compileDependencies(Nproc):
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
-    result = result and compile_googletest()
+    if is_config_true(KEY_BUILD_TESTS):
+        result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))
     return result
@@ -2005,5 +2013,4 @@ if __name__ == '__main__':
 
     else:
         usage(" -> option not found <- \n")
-
 
