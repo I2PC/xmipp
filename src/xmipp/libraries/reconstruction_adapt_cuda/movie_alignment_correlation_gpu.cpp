@@ -636,7 +636,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
     Image<T> frame;
 
     int movieImgIndex = -1;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         // update variables
         movieImgIndex++;
@@ -644,7 +644,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, igain, __iter.objId, frame);
+        this->loadFrame(movie, dark, igain, objId, frame);
 
         if (nullptr == imgs) {
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
