@@ -31,7 +31,7 @@ void ProgImagePeakHighContrast::readParams()
 	fnOut = getParam("-o");
 	boxSize = getIntParam("--boxSize");
 	fiducialSize = getDoubleParam("--fiducialSize");
-	pixelValueThr = getDoubleParam("--pixelValueThr");
+	numberOfInitialCoordinates = getIntParam("--numberInitialCoor");
     numberSampSlices = getIntParam("--numberSampSlices");
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
 	distanceThr = getIntParam("--distanceThr");
@@ -46,7 +46,7 @@ void ProgImagePeakHighContrast::defineParams()
 	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume. It is recommended that it is gaussian filtered previously.");
 	addParamsLine("  -o <output=\"coordinates3D.xmd\">        				: Output file containing the 3D coodinates.");
   	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
-	addParamsLine("  [--pixelValueThr <pixelValueThr=0.1>]          		: Threshold to detect outlier pixes values.");
+	addParamsLine("  [--numberInitialCoor <numberInitialCoor=15000>]      	: Threshold to detect outlier pixes values.");
   	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
   	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
@@ -65,11 +65,11 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	// #define DEBUG_COOR
 	// #define DEBUG_DIM
 	// #define DEBUG_DIST
-	// #define DEBUG_FILTERPARAMS
+	#define DEBUG_FILTERPARAMS
 
 	#ifdef DEBUG
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
-	std::cout << "Threshold: " << pixelValueThr << std::endl;
+	std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
 	#endif
 
 	Image<double> inputVolume;
@@ -209,8 +209,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	volFiltered.resizeNoCopy(inputTomo);
 	transformer.inverseFourierTransform(fftFiltered, volFiltered);
 
-	size_t lastindex = fnVol.find_last_of("."); 
-	std::string rawname = fnVol.substr(0, lastindex); 
+	size_t lastindex = fnOut.find_last_of("."); 
+	std::string rawname = fnOut.substr(0, lastindex); 
 	std::string outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
@@ -243,8 +243,8 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::sort(tomoVector.begin(),tomoVector.end());
 
 
-	double highThresholdValue = tomoVector[size_t(tomoVector.size()*(1-(pixelValueThr/2)))];
-    double lowThresholdValue = tomoVector[size_t(tomoVector.size()*(pixelValueThr/2))];
+	double highThresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates/2))];
+    double lowThresholdValue = tomoVector[size_t(numberOfInitialCoordinates/2)];
 
 	#ifdef DEBUG
 	std::cout << "High threshold value = " << highThresholdValue << std::endl;
