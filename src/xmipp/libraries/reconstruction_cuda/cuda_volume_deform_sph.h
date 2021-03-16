@@ -1,18 +1,26 @@
 #ifndef VOLUME_DEFORM_SPH_H
 #define VOLUME_DEFORM_SPH_H
-
-#include <vector>
+// Xmipp includes
+#include "api/dimension_vector.h"
+#include "api/parameter_pair.h"
 #include "core/xmipp_image.h"
 #include "core/multidim_array.h"
-
-#ifdef COMP_DOUBLE
-using ComputationDataType = double;
-#else
-using ComputationDataType = float;
-#endif
+// Standard includes
+#include <vector>
 
 // Forward declarations
 class ProgVolumeDeformSphGpu;
+struct int4;
+struct float3;
+struct double3;
+
+#ifdef USE_DOUBLE_PRECISION
+using PrecisionType = double;
+using PrecisionType3 = double3;
+#else
+using PrecisionType = float;
+using PrecisionType3 = float3;
+#endif
 
 struct ImageData
 {
@@ -24,7 +32,7 @@ struct ImageData
     int yDim = 0;
     int zDim = 0;
 
-    ComputationDataType* data = nullptr;
+    PrecisionType* data = nullptr;
 };
 
 struct ZSHparams 
@@ -59,10 +67,10 @@ struct DeformImages
 
 struct KernelOutputs 
 {
-    ComputationDataType diff2 = 0.0;
-    ComputationDataType sumVD = 0.0;
-    ComputationDataType modg = 0.0;
-    ComputationDataType Ncount = 0.0;
+    PrecisionType diff2 = 0.0;
+    PrecisionType sumVD = 0.0;
+    PrecisionType modg = 0.0;
+    PrecisionType Ncount = 0.0;
 };
 
 class VolumeDeformSph
@@ -72,25 +80,41 @@ public:
     void setupConstantParameters();
     void setupChangingParameters();
 
+    void pretuneKernel();
     void runKernel();
     void transferResults();
 
     KernelOutputs getOutputs();
     void transferImageData(Image<double>& outputImage, ImageData& inputData);
 
+    VolumeDeformSph();
     ~VolumeDeformSph();
 
 private:
     ProgVolumeDeformSphGpu* program = nullptr;
 
+    // Kernel stuff
+    size_t sharedMemSize;
+
+    // Kernel dimensions
+    //dim3 block;
+    //dim3 grid;
+
+    size_t totalGridSize;
+
     // Variables transfered to the GPU memory
-    ComputationDataType Rmax2;
 
-    ComputationDataType iRmax;
+    PrecisionType Rmax2;
 
-    ComputationDataType* steps = nullptr;
+    PrecisionType iRmax;
 
-    ComputationDataType* clnm = nullptr;
+    int steps;
+
+    PrecisionType3* dClnm;
+    std::vector<PrecisionType3> clnmVec;
+
+    PrecisionType* dClnmSCATTERED;
+    std::vector<PrecisionType> clnmVecSCATTERED;
 
     bool applyTransformation;
 
@@ -102,28 +126,37 @@ private:
 
     DeformImages deformImages;
 
-    ZSHparams zshparams;
+    int4* dZshParams;
+    std::vector<int4> zshparamsVec;
+
+    ZSHparams zshparamsSCATTERED;
 
     Volumes volumes;
     // because of the stupid design... :(
     std::vector<ImageData> justForFreeI;
     std::vector<ImageData> justForFreeR;
 
-    KernelOutputs *outputs = nullptr;
-    KernelOutputs exOuts;
+    KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
+
+    void reduceResults();
 
     void setupImage(Image<double>& inputImage, ImageData& outputImageData);
     void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
 
     void freeImage(ImageData &im);
+    void freeZSHSCATTERED();
 
     void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
 
     void setupVolumes();
 
     void setupZSHparams();
+    void setupZSHparamsSCATTERED();
+
+    void setupClnm();
+    void setupClnmSCATTERED();
 };
 
 #endif// VOLUME_DEFORM_SPH_H

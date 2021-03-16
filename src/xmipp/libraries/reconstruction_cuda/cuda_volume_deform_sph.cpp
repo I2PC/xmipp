@@ -1,45 +1,26 @@
+// Xmipp includes
+#include "api/dimension_vector.h"
 #include "core/metadata_label.h"
 #include "core/xmipp_random_mode.h"
+#include "core/matrix1d.h"
 #include "reconstruction_adapt_cuda/volume_deform_sph_gpu.h"
 #include "cuda_volume_deform_sph.h"
-#include "core/matrix1d.h"
+#include "cuda_volume_deform_sph.cu"
+#include "cuda_volume_deform_sph_defines.h"
+// Standard includes
 #include <iterator>
 #include <stdexcept>
 #include <stdio.h>
 #include <iostream>
 #include <exception>
-
+// Thrust includes
 #include <thrust/reduce.h>
 #include <thrust/device_vector.h>
 
-#include "cuda_volume_deform_sph.cu"
-
-
-// Not everything will be needed to transfer every time.
-// Some parameters stay the same for the whole time.
-//----------------------------------------------------
-// constant params:
-//      Rmax2, iRmax, VI, VR, vL1, vN, vL2, vM,
-//      volumesI, volumesR
-//----------------------------------------------------
-// changing params:
-//      steps, clnm, 
-//----------------------------------------------------
-// parameters that can be initialized at gpu:
-//      outputs(diff2,sumVD,modg,Ncount) = 0
-//      VO().initZeros(VR()).setXmippOrigin()
-//      Gx().initZeros(VR()).setXmippOrigin(), Gy..., Gz...
-//----------------------------------------------------
-// applyTransformation is true only in the very last call.
-// saveDeformation is true only in the very last call and only when analyzeStrain is true
-
-// explicit instantiations
-//template class VolumeDeformSph<float>;
-//template class VolumeDeformSph<ComputationDataType>;
 
 // Common functions
 template<typename T>
-cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements, size_t memSize = 0) 
+cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements, size_t memSize = 0)
 {
     size_t elemSize = numberOfElements * sizeof(T);
     memSize = memSize == 0 ? elemSize : memSize * sizeof(T);
@@ -86,32 +67,20 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
         printCudaError();
     }
 }
-/*
-// Copies data from CPU to the GPU and at the same time transforms from
-// type 'U' to type 'T'. Works only for numeric types
-template<typename Target, typename Source>
-void transformData(Target** dest, Source* source, size_t n, bool mallocMem = true)
-{
-    size_t aligned = n + COPY_BLOCK_X_DIM - (n % COPY_BLOCK_X_DIM);
 
-    Source* gpuSource;
-    if (cudaMallocAndCopy(&gpuSource, source, n, aligned) != cudaSuccess) {
-        printCudaError();
-    }
-
-    if (mallocMem){
-        if (cudaMalloc(dest, aligned * sizeof(Target)) != cudaSuccess) {
-            printCudaError();
-        }
-    }
-
-    transformAndCopyKernel<<<aligned / COPY_BLOCK_X_DIM, COPY_BLOCK_X_DIM>>>(*dest, gpuSource);
-    cudaDeviceSynchronize();
-
-    cudaFree(gpuSource);
-}
-*/
 // VolumeDeformSph methods
+
+VolumeDeformSph::VolumeDeformSph()
+{
+}
+
+void VolumeDeformSph::freeZSHSCATTERED()
+{
+    cudaFree(zshparamsSCATTERED.vL1);
+    cudaFree(zshparamsSCATTERED.vL2);
+    cudaFree(zshparamsSCATTERED.vN);
+    cudaFree(zshparamsSCATTERED.vM);
+}
 
 VolumeDeformSph::~VolumeDeformSph() 
 {
@@ -119,10 +88,7 @@ VolumeDeformSph::~VolumeDeformSph()
     freeImage(images.VR);
     freeImage(images.VO);
 
-    cudaFree(zshparams.vL1);
-    cudaFree(zshparams.vL2);
-    cudaFree(zshparams.vN);
-    cudaFree(zshparams.vM);
+    freeZSHSCATTERED();
 
     for (size_t i = 0; i < volumes.size; i++) {
         freeImage(justForFreeR[i]);
@@ -130,11 +96,6 @@ VolumeDeformSph::~VolumeDeformSph()
     }
     cudaFree(volumes.R);
     cudaFree(volumes.I);
-
-    cudaFree(steps);
-    cudaFree(clnm);
-
-    cudaFree(outputs);
 
     freeImage(deformImages.Gx);
     freeImage(deformImages.Gy);
@@ -152,17 +113,42 @@ void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog)
     program = prog;
 }
 
+//TEMPORARY SOLUTION
+static dim3 grid;
+static dim3 block;
+
 void VolumeDeformSph::setupConstantParameters() 
 {
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
+    // kernel arguments
     this->Rmax2 = program->Rmax * program->Rmax;
     this->iRmax = 1 / program->Rmax;
     setupImage(program->VI, images.VI);
     setupImage(program->VR, images.VR);
     setupZSHparams();
+    setupZSHparamsSCATTERED();
     setupVolumes();
+
+    // kernel dimension
+    block.x = BLOCK_X_DIM;
+    block.y = BLOCK_Y_DIM;
+    block.z = BLOCK_Z_DIM;
+    grid.x = ((images.VR.xDim + block.x - 1) / block.x);
+    grid.y = ((images.VR.yDim + block.y - 1) / block.y);
+    grid.z = ((images.VR.zDim + block.z - 1) / block.z);
+
+    totalGridSize = grid.x * grid.y * grid.z;
+
+    // Dynamic shared memory
+    sharedMemSize = 0;
+#if USE_SHARED_VOLUME_METADATA == 1
+    sharedMemSize += sizeof(ImageData) * volumes.size * 2;
+#endif
+#if USE_SHARED_VOLUME_DATA == 1
+    sharedMemSize += sizeof(PrecisionType) * block.x * block.y * block.z * volumes.size * 2;
+#endif
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -170,25 +156,12 @@ void VolumeDeformSph::setupChangingParameters()
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
-    unsigned stepsSize = program->steps_cp.size() * sizeof(ComputationDataType);
-    unsigned clnmSize = program->clnm.size() * sizeof(ComputationDataType);
+    setupClnm();
+    setupClnmSCATTERED();
 
-    if (this->steps == nullptr)
-        if (cudaMalloc(&(this->steps), stepsSize) != cudaSuccess)
-            printCudaError();
-    if (this->clnm == nullptr)
-        if (cudaMalloc(&(this->clnm), clnmSize) != cudaSuccess)
-            printCudaError();
+    steps = program->onesInSteps;
 
-/*
-    if (cudaMemcpy(this->steps, program->steps_cp.vdata, stepsSize, cudaMemcpyHostToDevice) != cudaSuccess)
-        printCudaError();
-    if (cudaMemcpy(this->clnm, program->clnm.vdata, clnmSize, cudaMemcpyHostToDevice) != cudaSuccess)
-        printCudaError();
-*/
-    transformData(&(this->steps), program->steps_cp.vdata, program->steps_cp.size(), false);
-    transformData(&(this->clnm), program->clnm.vdata, program->clnm.size(), false);
-
+    // Deformation and transformation booleans
     this->applyTransformation = program->applyTransformation;
     this->saveDeformation = program->saveDeformation;
 
@@ -202,60 +175,75 @@ void VolumeDeformSph::setupChangingParameters()
     }
 }
 
+void VolumeDeformSph::setupClnm()
+{
+    clnmVec.resize(program->vL1.size());
+
+    for (unsigned i = 0; i < program->vL1.size(); ++i) {
+        clnmVec[i].x = program->clnm[i];
+        clnmVec[i].y = program->clnm[i + program->vL1.size()];
+        clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
+    }
+
+    if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
+        printCudaError();
+}
+
+void VolumeDeformSph::setupClnmSCATTERED()
+{
+    clnmVecSCATTERED.assign(program->clnm.vdata, program->clnm.vdata + program->clnm.size());
+    if (cudaMallocAndCopy(&dClnmSCATTERED, clnmVecSCATTERED.data(), clnmVecSCATTERED.size()) != cudaSuccess)
+        printCudaError();
+}
+
 KernelOutputs VolumeDeformSph::getOutputs() 
 {
-    return exOuts;
+    return outputs;
 }
 
 void VolumeDeformSph::transferImageData(Image<double>& outputImage, ImageData& inputData) 
 {
     size_t elements = inputData.xDim * inputData.yDim * inputData.zDim;
-    std::vector<ComputationDataType> tVec(elements);
-    cudaMemcpy(tVec.data(), inputData.data, sizeof(ComputationDataType) * elements, cudaMemcpyDeviceToHost);
+    std::vector<PrecisionType> tVec(elements);
+    cudaMemcpy(tVec.data(), inputData.data, sizeof(PrecisionType) * elements, cudaMemcpyDeviceToHost);
     std::vector<double> dVec(tVec.begin(), tVec.end());
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
-    /*
-    size_t size = inputData.xDim * inputData.yDim * inputData.zDim * sizeof(T);
-    cudaMemcpy(outputImage().data, inputData.data, size, cudaMemcpyDeviceToHost);
-    */
-    /*
-    double* tmp;
-    transformData(&tmp, inputData.data, elements);
-    cudaMemcpy(outputImage().data, tmp, elements * sizeof(double), cudaMemcpyDeviceToHost);
-    */
 }
 
 void VolumeDeformSph::runKernel() 
 {
-    // Does not work in general case, but test data have nice sizes
-    dim3 grid;
-    grid.x = images.VR.xDim / BLOCK_X_DIM;
-    grid.y = images.VR.yDim / BLOCK_Y_DIM;
-    grid.z = images.VR.zDim / BLOCK_Z_DIM;
 
-    dim3 block;
-    block.x = BLOCK_X_DIM;
-    block.y = BLOCK_Y_DIM;
-    block.z = BLOCK_Z_DIM;
+    // Define thrust reduction vector
+    thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 4, 0.0);
 
-    // thrust experiment
-    int TOTAL_GRID_SIZE = grid.x * grid.y * grid.z;
-    thrust::device_vector<ComputationDataType> t_out(TOTAL_GRID_SIZE * 4, 0.0);
+    // Run kernel
+    computeDeform<<<grid, block, sharedMemSize>>>(
+            Rmax2,
+            iRmax,
+            images,
+            dZshParams,
+            dClnm,
+            zshparamsSCATTERED,
+            dClnmSCATTERED,
+            steps,
+            volumes,
+            deformImages,
+            applyTransformation,
+            saveDeformation,
+            thrust::raw_pointer_cast(thrustVec.data())
+            );
 
-    computeDeform<<< grid, block >>>(Rmax2, iRmax,
-            images, zshparams, steps, clnm,
-            volumes, deformImages, applyTransformation, saveDeformation, t_out.data());
     cudaDeviceSynchronize();
 
-    auto diff2It = t_out.begin();
-    auto sumVDIt = diff2It + TOTAL_GRID_SIZE;
-    auto modgIt = sumVDIt + TOTAL_GRID_SIZE;
-    auto NcountIt = modgIt + TOTAL_GRID_SIZE;
+    auto diff2It = thrustVec.begin();
+    auto sumVDIt = diff2It + totalGridSize;
+    auto modgIt = sumVDIt + totalGridSize;
+    auto NcountIt = modgIt + totalGridSize;
 
-    exOuts.diff2 = thrust::reduce(diff2It, sumVDIt);
-    exOuts.sumVD = thrust::reduce(sumVDIt, modgIt);
-    exOuts.modg = thrust::reduce(modgIt, NcountIt);
-    exOuts.Ncount = thrust::reduce(NcountIt, t_out.end());
+    outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
+    outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
+    outputs.modg = thrust::reduce(modgIt, NcountIt);
+    outputs.Ncount = thrust::reduce(NcountIt, thrustVec.end());
 }
 
 void VolumeDeformSph::transferResults() 
@@ -272,15 +260,30 @@ void VolumeDeformSph::transferResults()
 
 void VolumeDeformSph::setupZSHparams()
 {
-    zshparams.size = program->vL1.size();
+    zshparamsVec.resize(program->vL1.size());
 
-    if (cudaMallocAndCopy(&zshparams.vL1, program->vL1.vdata, zshparams.size) != cudaSuccess)
+    for (unsigned i = 0; i < zshparamsVec.size(); ++i) {
+        zshparamsVec[i].w = program->vL1[i];
+        zshparamsVec[i].x = program->vN[i];
+        zshparamsVec[i].y = program->vL2[i];
+        zshparamsVec[i].z = program->vM[i];
+    }
+
+    if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
         printCudaError();
-    if (cudaMallocAndCopy(&zshparams.vL2, program->vL2.vdata, zshparams.size) != cudaSuccess)
+}
+
+void VolumeDeformSph::setupZSHparamsSCATTERED()
+{
+    zshparamsSCATTERED.size = program->vL1.size();
+
+    if (cudaMallocAndCopy(&zshparamsSCATTERED.vL1, program->vL1.vdata, zshparamsSCATTERED.size) != cudaSuccess)
         printCudaError();
-    if (cudaMallocAndCopy(&zshparams.vN, program->vN.vdata, zshparams.size) != cudaSuccess)
+    if (cudaMallocAndCopy(&zshparamsSCATTERED.vL2, program->vL2.vdata, zshparamsSCATTERED.size) != cudaSuccess)
         printCudaError();
-    if (cudaMallocAndCopy(&zshparams.vM, program->vM.vdata, zshparams.size) != cudaSuccess)
+    if (cudaMallocAndCopy(&zshparamsSCATTERED.vN, program->vN.vdata, zshparamsSCATTERED.size) != cudaSuccess)
+        printCudaError();
+    if (cudaMallocAndCopy(&zshparamsSCATTERED.vM, program->vM.vdata, zshparamsSCATTERED.size) != cudaSuccess)
         printCudaError();
 }
 
@@ -313,15 +316,6 @@ void VolumeDeformSph::setupImage(Image<double>& inputImage, ImageData& outputIma
     outputImageData.yDim = mda.ydim;
     outputImageData.zDim = mda.zdim;
 
-    // if T is smaller than double -> error
-    // might be replaced with cudaMallocAndCopy, but there are different sizes: T vs double
-    /*
-    int size = outputImageData.xDim * outputImageData.yDim * outputImageData.zDim * sizeof(T);
-    if (cudaMalloc(&outputImageData.data, size) != cudaSuccess)
-        printCudaError();
-    if (cudaMemcpy(outputImageData.data, mda.data, size, cudaMemcpyHostToDevice) != cudaSuccess)
-        printCudaError();
-    */
     transformData(&outputImageData.data, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
@@ -334,7 +328,7 @@ void VolumeDeformSph::setupImage(ImageData& inputImage, ImageData& outputImageDa
     outputImageData.yDim = inputImage.yDim;
     outputImageData.zDim = inputImage.zDim;
 
-    size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(ComputationDataType);
+    size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(PrecisionType);
     if (cudaMalloc(&outputImageData.data, size) != cudaSuccess)
         printCudaError();
 

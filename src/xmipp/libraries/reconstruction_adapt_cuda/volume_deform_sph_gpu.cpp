@@ -428,6 +428,7 @@ void ProgVolumeDeformSphGpu::minimizepos(int L1, int l2, Matrix1D<double> &steps
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
+    onesInSteps = size;
     int totalSize = steps.size()/3;
     for (int idx=0; idx<size; idx++)
     {

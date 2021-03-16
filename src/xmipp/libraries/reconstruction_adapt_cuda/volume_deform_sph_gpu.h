@@ -91,6 +91,9 @@ public:
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
 
+    // Number of ones in steps
+    int onesInSteps;
+
 	//Deformation in pixels, sumVI, sumVD
 	double deformation, sumVI, sumVD;
 
