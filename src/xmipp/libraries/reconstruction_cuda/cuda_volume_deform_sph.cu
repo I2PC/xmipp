@@ -214,7 +214,7 @@ extern "C" __global__ void computeDeform(
     sharedBufferOffset += sizeof(ImageData) * volumes.size;
 
     // Load metadata about volumes to the shared memory
-    if (volumes.size < BLOCK_SIZE) {
+    if (volumes.size <= BLOCK_SIZE) {
         if (tIdx < volumes.size) {
             volRMetaShared[tIdx] = volumes.R[tIdx];
             volIMetaShared[tIdx] = volumes.I[tIdx];
@@ -254,10 +254,19 @@ extern "C" __global__ void computeDeform(
     PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(PrecisionType3) * steps;
 
-    // TODO more general
-    if (tIdx < steps) {
-        zshShared[tIdx] = zshparams[tIdx];
-        clnmShared[tIdx] = clnm[tIdx];
+    // Load zsh, clnm parameters to the shared memory
+    if (steps <= BLOCK_SIZE) {
+        if (tIdx < steps) {
+            zshShared[tIdx] = zshparams[tIdx];
+            clnmShared[tIdx] = clnm[tIdx];
+        }
+    } else {
+        if (tIdx == 0) {
+            for (unsigned idx = 0; idx < steps; idx++) {
+                zshShared[idx] = zshparams[idx];
+                clnmShared[idx] = clnm[idx];
+            }
+        }
     }
 #endif
 
