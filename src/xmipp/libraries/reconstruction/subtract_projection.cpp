@@ -101,6 +101,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 	if (fnOut=="")
 		fnOut="output_particle_";
 	fnMask=getParam("--mask");
+	fnMaskVol=getParam("--maskVol");
 	iter=getIntParam("--iter");
 	sigma=getIntParam("--sigma");
 	cutFreq=getDoubleParam("--cutFreq");
@@ -121,6 +122,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 	std::cout
 	<< "Input particles:   	" << fnParticles << std::endl
 	<< "Reference volume:   " << fnVolR      << std::endl
+	<< "Volume mask:  		" << fnMaskVol   << std::endl
 	<< "Mask:    	   		" << fnMask      << std::endl
 	<< "Sigma:				" << sigma       << std::endl
 	<< "Iterations:    	   	" << iter        << std::endl
@@ -136,19 +138,20 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      //Usage
      addUsageLine("");
      //Parameters
-     addParamsLine("-i <particles>          : Particles metadata (.xmd file)");
-     addParamsLine("--ref <volume>      	: Reference volume to subtract");
-     addParamsLine("[-o <structure=\"\">] 	: Output filename suffix for subtracted particles");
-     addParamsLine("                      	: If no name is given, then output_particles.xmd");
-     addParamsLine("[--mask <mask=\"\">]  	: 3D mask for the region of subtraction");
-     addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
-     addParamsLine("[--iter <n=1>]        	: Number of iterations");
-     addParamsLine("[--cutFreq <f=0>]       : Cutoff frequency (<0.5)");
-     addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
+     addParamsLine("-i <particles>          	: Particles metadata (.xmd file)");
+     addParamsLine("--ref <volume>      		: Reference volume to subtract");
+     addParamsLine("[-o <structure=\"\">] 		: Output filename suffix for subtracted particles");
+     addParamsLine("                      		: If no name is given, then output_particles.xmd");
+     addParamsLine("[--maskVol <maskVol=\"\">]  : 3D mask for input volume");
+     addParamsLine("[--mask <mask=\"\">]  		: 3D mask for the region of subtraction");
+     addParamsLine("[--sigma <s=3>]    			: Decay of the filter (sigma) to smooth the mask transition");
+     addParamsLine("[--iter <n=1>]        		: Number of iterations");
+     addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
+     addParamsLine("[--lambda <l=0>]       		: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
 	 addParamsLine("[--savePart <structure=\"\"> ]  : Save subtraction intermediate files (particle filtered)");
 	 addParamsLine("[--saveProj <structure=\"\"> ]  : Save subtraction intermediate files (projection adjusted)");
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
+     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
 
  void ProgSubtractProjection::run()
@@ -161,7 +164,19 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	MDRow row;
  	double rot, tilt, psi;
  	FileName fnImage;
-	Image<double> mask;
+	Image<double> mask, maskVol;
+
+	if (fnMaskVol!="")
+	{
+		maskVol.read(fnMaskVol);
+		maskVol=maskVol();
+		maskVol().setXmippOrigin();
+	}
+	else
+	{
+		maskVol().resizeNoCopy(I());
+		maskVol().initConstant(1.0);
+	}
 
 	if (fnMask!="")
 	{
@@ -193,7 +208,6 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
-    	// Compute projection of the volume
     	mdParticles.getRow(row,__iter.objId);
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
@@ -202,7 +216,17 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
+    	// Compute projection of the volume
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	// Compute projection of the volume mask
+		MultidimArray<double> &mMaskVol=maskVol();
+    	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	// Binarize volume mask
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskVol())
+			DIRECT_MULTIDIM_ELEM(PmaskVol,n) =(DIRECT_MULTIDIM_ELEM(PmaskVol,n)>1) ? 1:0;
+		// Apply bin volume mask to particle and volume projection
+		POCSmaskProj(PmaskVol(), P());
+		POCSmaskProj(PmaskVol(), I());
 
     	// Check if particle has CTF
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
@@ -213,6 +237,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      		defocusU=ctf.DeltafU;
      		defocusV=ctf.DeltafV;
      		ctfAngle=ctf.azimuthal_angle;
+
  	 	 	FilterCTF.FilterBand = CTF;
  	 	 	FilterCTF.ctf.enable_CTFnoise = false;
  	 		FilterCTF.ctf = ctf;
@@ -220,13 +245,9 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	 		FilterCTF.applyMaskSpace(P());
  	 	}
 
-// 	 	Image<double> Idiff;
 		FourierTransformer transformer;
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
-
-//		POCSmaskProj(mask(),I());
-//		POCSnonnegativeProj(I());
 
 		double Imin, Imax;
 		I().computeDoubleMinMax(Imin, Imax);
@@ -235,51 +256,26 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		FFT_magnitude(IFourier,IFourierMag);
 		double std1 = I().computeStddev();
 
-//		POCSmaskProj(mask(),P());
-
 		MultidimArray<std::complex<double> > PFourierPhase;
 		transformer.FourierTransform(P(),PFourierPhase,true);
 		extractPhaseProj(PFourierPhase);
-
-//		double energy;
-//		energy = 0;
-//		Idiff = P;
-
 
 		for (int n=0; n<iter; ++n)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda);
 			transformer.inverseFourierTransform();
-//			computeEnergyProj(Idiff(), P(), energy);
-//			Idiff = P;
-
 			POCSMinMaxProj(P(), Imin, Imax);
-//			computeEnergyProj(Idiff(), P(), energy);
-//			Idiff = P;
-
-//			POCSmaskProj(mask(),P());
-//			computeEnergyProj(Idiff(), P(), energy);
-//			Idiff = P;
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
-//			computeEnergyProj(Idiff(), P(), energy);
-//			Idiff = P;
-//			POCSnonnegativeProj(P());
-//			computeEnergyProj(Idiff(), P(), energy);
-//			Idiff = P;
 			double std2 = P().computeStddev();
 			P()*=std1/std2;
-//			computeEnergyProj(Idiff(), P(), energy);
-//			Idiff = P;
 			if (cutFreq!=0)
 			{
 				Filter2.generateMask(P());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(P());
-//				computeEnergyProj(Idiff(), P(), energy);
-//				Idiff = P;
 			}
 		}
 
@@ -297,12 +293,6 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 
 		MultidimArray<double> &mMask=mask();
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-
-//    	Pmask.write("mask_proj.mrc");
-    	// bin mask
-//    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
-//    		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>1) ? 1:0;
-//    	Pmask.write("mask_bin.mrc");
 
     	// invert projected mask
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())

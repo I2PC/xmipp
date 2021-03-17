@@ -43,7 +43,7 @@
     /// Filename of output particles
     FileName fnOut;
     /// Filename of input mask
-    FileName fnMask;
+    FileName fnMask, fnMaskVol;
     /// Filenames for intermediate results
     FileName fnPart, fnProj;
 
@@ -56,7 +56,7 @@
     // Input image
  	Image<double> V, I;
  	// Theoretical projection
- 	Projection P, Pmask;
+ 	Projection P, Pmask, PmaskVol;
  	// Filter
     FourierFilter filter;
     // CTF Check
