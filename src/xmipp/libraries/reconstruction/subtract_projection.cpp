@@ -148,7 +148,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 	 addParamsLine("[--savePart <structure=\"\"> ]  : Save subtraction intermediate files (particle filtered)");
 	 addParamsLine("[--saveProj <structure=\"\"> ]  : Save subtraction intermediate files (projection adjusted)");
      addExampleLine("A typical use is:",false);
-     addExampleLine("");
+     addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
 
  void ProgSubtractProjection::run()
@@ -174,6 +174,20 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		mask().resizeNoCopy(I());
 		mask().initConstant(1.0);
 	}
+
+	// Gaussian LPF to smooth mask
+	FourierFilter Filter;
+	Filter.FilterShape=REALGAUSSIAN;
+	Filter.FilterBand=LOWPASS;
+	Filter.w1=sigma;
+	Filter.applyMaskSpace(mask());
+
+	// LPF to filter at desired resolution
+	FourierFilter Filter2;
+	Filter2.FilterBand=LOWPASS;
+	Filter2.FilterShape=RAISED_COSINE;
+	Filter2.raised_w=0.02;
+	Filter2.w1=cutFreq;
 
  	int n = 0;
 
@@ -201,9 +215,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      		ctfAngle=ctf.azimuthal_angle;
      	}
      	else
-     	{
      		hasCTF=false;
-     	}
 
  	 	if (hasCTF)
  	 	{
@@ -214,20 +226,11 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  	 		FilterCTF.applyMaskSpace(P());
  	 	}
 
- 	 	Image<double> Idiff;
+// 	 	Image<double> Idiff;
 		FourierTransformer transformer;
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
-//		if (fnMask!="")
-//		{
-//			mask.read(fnMask);
-//			mask=mask();
-//		}
-//		else
-//		{
-//			mask().resizeNoCopy(I());
-//			mask().initConstant(1.0);
-//		}
+
 //		POCSmaskProj(mask(),I());
 //		POCSnonnegativeProj(I());
 
@@ -244,19 +247,13 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		transformer.FourierTransform(P(),PFourierPhase,true);
 		extractPhaseProj(PFourierPhase);
 
-		FourierFilter Filter2;
-		double energy, std2;
-		energy = 0;
-		Idiff = P;
+//		double energy;
+//		energy = 0;
+//		Idiff = P;
 
-		Filter2.FilterBand=LOWPASS;
-		Filter2.FilterShape=RAISED_COSINE;
-		Filter2.raised_w=0.02;
-		Filter2.w1=cutFreq;
 
 		for (int n=0; n<iter; ++n)
 		{
-//			std::cout<< "---Iter " << n << std::endl;
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda);
 			transformer.inverseFourierTransform();
@@ -278,7 +275,7 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 //			POCSnonnegativeProj(P());
 //			computeEnergyProj(Idiff(), P(), energy);
 //			Idiff = P;
-			std2 = P().computeStddev();
+			double std2 = P().computeStddev();
 			P()*=std1/std2;
 //			computeEnergyProj(Idiff(), P(), energy);
 //			Idiff = P;
@@ -292,18 +289,11 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 			}
 		}
 
-		FourierFilter Filter;
-		Filter.FilterShape=REALGAUSSIAN;
-		Filter.FilterBand=LOWPASS;
-		Filter.w1=sigma;
-		Filter.applyMaskSpace(mask());
 		Image<double> IFiltered;
     	I.read(fnImage);
 		IFiltered() = I();
 		if (cutFreq!=0)
-		{
 			Filter2.applyMaskSpace(IFiltered());
-		}
 
 		if (fnPart!="" && fnProj!="")
 		{
@@ -314,6 +304,19 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		MultidimArray<double> &mMask=mask();
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
 
+    	//
+    	Pmask.write("mask_proj.mrc");
+    	// bin mask
+//    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
+//    		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>1) ? 1:0;
+//    	Pmask.write("mask_bin.mrc");
+    	// invert projected mask
+    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
+    			DIRECT_MULTIDIM_ELEM(Pmask,n) = (DIRECT_MULTIDIM_ELEM(Pmask,n)*(-1))+1;
+    	Pmask.write("mask_inv.mrc");
+    	//
+
+    	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(Pmask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
 				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(Pmask,n);
