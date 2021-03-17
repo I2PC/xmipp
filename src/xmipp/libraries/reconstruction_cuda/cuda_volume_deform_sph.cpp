@@ -142,12 +142,12 @@ void VolumeDeformSph::setupConstantParameters()
     totalGridSize = grid.x * grid.y * grid.z;
 
     // Dynamic shared memory
-    sharedMemSize = 0;
+    constantSharedMemSize = 0;
 #if USE_SHARED_VOLUME_METADATA == 1
-    sharedMemSize += sizeof(ImageData) * volumes.size * 2;
+    constantSharedMemSize += sizeof(ImageData) * volumes.size * 2;
 #endif
 #if USE_SHARED_VOLUME_DATA == 1
-    sharedMemSize += sizeof(PrecisionType) * block.x * block.y * block.z * volumes.size * 2;
+    constantSharedMemSize += sizeof(PrecisionType) * block.x * block.y * block.z * volumes.size * 2;
 #endif
 }
 
@@ -160,6 +160,12 @@ void VolumeDeformSph::setupChangingParameters()
     setupClnmSCATTERED();
 
     steps = program->onesInSteps;
+
+    changingSharedMemSize = 0;
+#if USE_SHARED_MEM_ZSH_CLNM == 1
+    changingSharedMemSize += sizeof(int4) * steps;
+    changingSharedMemSize += sizeof(PrecisionType3) * steps;
+#endif
 
     // Deformation and transformation booleans
     this->applyTransformation = program->applyTransformation;
@@ -217,7 +223,7 @@ void VolumeDeformSph::runKernel()
     thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 4, 0.0);
 
     // Run kernel
-    computeDeform<<<grid, block, sharedMemSize>>>(
+    computeDeform<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
             Rmax2,
             iRmax,
             images,

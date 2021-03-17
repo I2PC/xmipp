@@ -94,7 +94,8 @@ private:
     ProgVolumeDeformSphGpu* program = nullptr;
 
     // Kernel stuff
-    size_t sharedMemSize;
+    size_t constantSharedMemSize;
+    size_t changingSharedMemSize;
 
     // Kernel dimensions
     //dim3 block;

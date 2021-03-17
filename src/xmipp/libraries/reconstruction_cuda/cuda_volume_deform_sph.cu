@@ -34,17 +34,6 @@ using PrecisionType3 = float3;
 
 #endif// USE_DOUBLE_PRECISION
 
-/*
-#if USE_SCATTERED_ZSH_CLNM == 1
-using ClnmType = PrecisionType;
-using ZshParamsType =
-    struct ZSHparams { int *vL1, *vN, *vL2, *vM; unsigned size; };
-#else
-using ClnmType = PrecisionType3;
-using ZshParamsType = int4;
-#endif// USE_SCATTERED_ZSH_CLNM
-*/
-
 // Compilation settings - end
 
 // Define data structures
@@ -190,8 +179,8 @@ extern "C" __global__ void computeDeform(
         IROimages images,
         int4* zshparams,
         PrecisionType3* clnm,
-        ZSHparams zshparamsSCATTERED,// just for tuning
-        PrecisionType* clnmSCATTERED,// just for tuning
+        ZSHparams zshparamsSCATTERED,// necessary for tuning
+        PrecisionType* clnmSCATTERED,// necessary for tuning
         int steps,
         Volumes volumes,
         DeformImages deformImages,
@@ -202,6 +191,7 @@ extern "C" __global__ void computeDeform(
 {
 
     extern __shared__ char sharedBuffer[];
+    unsigned sharedBufferOffset = 0;
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -217,10 +207,13 @@ extern "C" __global__ void computeDeform(
     int j = P2L_X_IDX(images.VR, jPhys);
 
 #if USE_SHARED_VOLUME_METADATA == 1
-    ImageData* volRMetaShared = (ImageData*)sharedBuffer;
-    ImageData* volIMetaShared = volRMetaShared + volumes.size;
-    // Load metadata about volumes to the shared memory
+    ImageData* volRMetaShared = (ImageData*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(ImageData) * volumes.size;
 
+    ImageData* volIMetaShared = (ImageData*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(ImageData) * volumes.size;
+
+    // Load metadata about volumes to the shared memory
     if (volumes.size < BLOCK_SIZE) {
         if (tIdx < volumes.size) {
             volRMetaShared[tIdx] = volumes.R[tIdx];
@@ -239,8 +232,12 @@ extern "C" __global__ void computeDeform(
     // wait for metadata to be in shared mem
     __syncthreads();
 
-    PrecisionType* volRDataShared = (PrecisionType*)(volIMetaShared + volumes.size);
-    PrecisionType* volIDataShared = volRDataShared + volumes.size * BLOCK_SIZE;
+    PrecisionType* volRDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
+
+    PrecisionType* volIDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
+
     // Load data related to the current block into the shared mem
     for (int idx = 0; idx < volumes.size; idx++) {
         ELEM_3D_SHARED(volRDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
@@ -251,10 +248,11 @@ extern "C" __global__ void computeDeform(
 #endif// USE_SHARED_VOLUME_METADATA
 
 #if USE_SHARED_MEM_ZSH_CLNM == 1 && USE_SCATTERED_ZSH_CLNM == 0
-    // As long as Zernike spherical harmonics are defined only for
-    // L1 <= 5 and L2 <= 5, following parameters have sufficient sizes
-    __shared__ int4 zshShared[64];
-    __shared__ PrecisionType3 clnmShared[64];
+    int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(int4) * steps;
+
+    PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(PrecisionType3) * steps;
 
     // TODO more general
     if (tIdx < steps) {
