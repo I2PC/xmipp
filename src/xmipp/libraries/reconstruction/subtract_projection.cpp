@@ -213,12 +213,6 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
      		defocusU=ctf.DeltafU;
      		defocusV=ctf.DeltafV;
      		ctfAngle=ctf.azimuthal_angle;
-     	}
-     	else
-     		hasCTF=false;
-
- 	 	if (hasCTF)
- 	 	{
  	 	 	FilterCTF.FilterBand = CTF;
  	 	 	FilterCTF.ctf.enable_CTFnoise = false;
  	 		FilterCTF.ctf = ctf;
@@ -304,17 +298,16 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		MultidimArray<double> &mMask=mask();
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
 
-    	//
-    	Pmask.write("mask_proj.mrc");
+//    	Pmask.write("mask_proj.mrc");
     	// bin mask
 //    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
 //    		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>1) ? 1:0;
 //    	Pmask.write("mask_bin.mrc");
+
     	// invert projected mask
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
     			DIRECT_MULTIDIM_ELEM(Pmask,n) = (DIRECT_MULTIDIM_ELEM(Pmask,n)*(-1))+1;
-    	Pmask.write("mask_inv.mrc");
-    	//
+//    	Pmask.write("mask_inv.mrc");
 
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
