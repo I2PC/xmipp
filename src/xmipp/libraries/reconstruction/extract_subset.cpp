@@ -44,8 +44,7 @@ void ExtractSubset::createSubset(const Settings &s) {
         FileName newName;
         newName.compose(i + 1, s.outStk); // within stk file, index images from one (1)
         // copy row, replace name
-        MDRowVec row;
-        s.md.getRow(row, *it);
+        MDRowVec row = s.md.getRowVec(*it);
         row.setValue(MDL_IMAGE, newName);
         row.setValue(MDL_ENABLED, 1);
         destMD.addRow(row);

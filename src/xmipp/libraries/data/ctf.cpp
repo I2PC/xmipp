@@ -414,7 +414,7 @@ void CTFDescription1D::readFromMdRow(const MDRow &row, bool disable_if_not_K)
 
 void CTFDescription1D::readFromMetadataRow(const MetaData &md, size_t id, bool disable_if_not_K)
 {
-    std::unique_ptr<MDRow> row = std::move(md.getRow(id));
+    std::unique_ptr<const MDRow> row = std::move(md.getRow(id));
     readFromMdRow(*row, disable_if_not_K);
 }
 
@@ -1204,7 +1204,7 @@ void CTFDescription::readFromMdRow(const MDRow &row, bool disable_if_not_K)
 
 void CTFDescription::readFromMetadataRow(const MetaData &md, size_t id, bool disable_if_not_K)
 {
-	std::unique_ptr<MDRow> row = std::move(md.getRow(id));
+	std::unique_ptr<const MDRow> row = std::move(md.getRow(id));
 	readFromMdRow(*row, disable_if_not_K);
 }
 
