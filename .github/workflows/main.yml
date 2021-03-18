@@ -25,10 +25,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install dependencies
-        run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy
+        run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev 
       
       - name: Compile Xmipp
         run: ./xmipp noAsk
         env:
           TRAVIS: 1
           XMIPP_NOSCIPION: True
+          BUILD_TESTS: False
