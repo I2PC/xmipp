@@ -29,6 +29,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <numeric>
 #include <algorithm>
 
 
