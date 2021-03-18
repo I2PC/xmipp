@@ -43,6 +43,14 @@
 
 class ProgImagePeakHighContrast : public XmippProgram
 {
+
+
+#define DEBUG
+// #define DEBUG_DIM
+// #define DEBUG_DIST
+// #define DEBUG_FILTERPARAMS
+
+
 public:
     /** Filenames */
     FileName fnVol, fnOut;
@@ -53,15 +61,11 @@ public:
     /** Number of slices and original centers of mass */
     int boxSize, numberSampSlices, numberOfInitialCoordinates, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
 
-    /** Output coordinates */
-    // extern std::vector<int> coordinates3Dx(0);
-    // extern std::vector<int> coordinates3Dy(0);
-    // extern std::vector<int> coordinates3Dz(0);
-
 public:
 
     void readParams();
     void defineParams();
+
 
     /**
      * Peaks the high contrast regions in a volume.
@@ -70,7 +74,19 @@ public:
      * @return
      *
     */
-    void getHighContrastCoordinates();
+    MultidimArray<double> preprocessVolume(MultidimArray<double> &inputTomo,
+                                           size_t xSize,
+                                           size_t ySize,
+                                           size_t zSize);
+
+    /**
+     * Peaks the high contrast regions in a volume.
+     *
+     * @param
+     * @return
+     *
+    */
+    void getHighContrastCoordinates(MultidimArray<double> volFiltered);
 
     /**
      * Write obtained coordinates in output file.
@@ -79,7 +95,21 @@ public:
      * @return
      *
     */
-    // void writeOutputCoordinates();
+    void clusterHighContrastCoordinates(MultidimArray<double> &volFiltered,
+                                        std::vector<int> coordinates3Dx,
+										std::vector<int> coordinates3Dy,
+										std::vector<int> coordinates3Dz);
+
+    /**
+     * Write obtained coordinates in output file.
+     *
+     * @param
+     * @return
+     *
+    */
+    void writeOutputCoordinates(std::vector<int> centerOfMassX,
+								std::vector<int> centerOfMassY,
+                                std::vector<int> centerOfMassZ);
 
     void run();
 };

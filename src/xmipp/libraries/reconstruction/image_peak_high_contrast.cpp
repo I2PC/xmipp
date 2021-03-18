@@ -25,6 +25,7 @@
 
 #include "image_peak_high_contrast.h"
 
+
 void ProgImagePeakHighContrast::readParams()
 {
 	fnVol = getParam("--vol");
@@ -39,6 +40,7 @@ void ProgImagePeakHighContrast::readParams()
 	samplingRate = getDoubleParam("--samplingRate");
 
 }
+
 
 void ProgImagePeakHighContrast::defineParams()
 {
@@ -56,42 +58,19 @@ void ProgImagePeakHighContrast::defineParams()
 
 }
 
-void ProgImagePeakHighContrast::getHighContrastCoordinates()
+
+MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo,
+																  size_t xSize,
+																  size_t ySize,
+																  size_t zSize)
 {
-	std::cout << "Starting..." << std::endl;
+	std::cout << "Preprocessing volume..." << std::endl;
 
-	#define DEBUG
-	// #define DEBUG_DIM
-	// #define DEBUG_COOR
-	// #define DEBUG_DIM
-	// #define DEBUG_DIST
-	#define DEBUG_FILTERPARAMS
-
-	#ifdef DEBUG
-	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
-	std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
-	#endif
-
-	Image<double> inputVolume;
-	inputVolume.read(fnVol);
-
-	MultidimArray<double> &inputTomo=inputVolume();
-	std::vector<double> tomoVector(0);
-
-	size_t centralSlice = ZSIZE(inputTomo)/2;
-
-	#ifdef DEBUG_DIM
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
-	#endif
-
-	//////////////////////////////////////////////////////////////////////////// VOLUME FILTERING
+	// Smoothing
 	
-	int siz_x = XSIZE(inputTomo)*0.5;
-	int siz_y = YSIZE(inputTomo)*0.5;
-	int siz_z = ZSIZE(inputTomo)*0.5;
+	int siz_x = xSize*0.5;
+	int siz_y = ySize*0.5;
+	int siz_z = zSize*0.5;
 	int N_smoothing = 10;
 
 	size_t ux, uy, uz, uz2, uz2y2;
@@ -101,13 +80,13 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	int limit_distance_z = (siz_z-N_smoothing);
 
 	long n=0;
-	for(int k=0; k<ZSIZE(inputTomo); ++k)
+	for(int k=0; k<zSize; ++k)
 	{
 		uz = (k - siz_z);
-		for(int i=0; i<YSIZE(inputTomo); ++i)
+		for(int i=0; i<ySize; ++i)
 		{
 			uy = (i - siz_y);
-			for(int j=0; j<XSIZE(inputTomo); ++j)
+			for(int j=0; j<xSize; ++j)
 			{
 				ux = (j - siz_x);
 
@@ -133,17 +112,11 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	FourierTransformer transformer;
 	transformer.FourierTransform(inputTomo, fftV, false);
 
-	// Calculate u
 	n=0;
 
 	MultidimArray< std::complex<double> >  fftFiltered;
-	MultidimArray<double> fftTest;
-
-	fftTest.resizeNoCopy(fftV);
-	fftTest.initZeros();
 
 	fftFiltered = fftV;
-	// double freqLow = samplingRate/tlf;
 	double freqLow = samplingRate / (fiducialSize*1.1);
 	double freqHigh = samplingRate/(fiducialSize*0.9);
 	
@@ -177,8 +150,6 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			{
 				FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
 				double u=sqrt(uz2y2+ux*ux);
-
-				DIRECT_MULTIDIM_ELEM(fftTest, n) = u;
 
 				if(u > cutoffFreqHigh)
 				{
@@ -218,9 +189,21 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	saveImage() = volFiltered; 
 	saveImage.write(outputFileNameFilteredVolume);
 
-	///////////////////////////////////////////////////////////////////////////////// PICK OUTLIERS
+	return volFiltered;
+}
+
+
+	void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered)
+{
+	std::cout << "Picking coordinates..." << std::endl;
+
+	size_t centralSlice = ZSIZE(volFiltered)/2;
+	std::vector<double> tomoVector(0);
 
 	#ifdef DEBUG
+	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
+	std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
+
 	std::cout << "Sampling region from slice " << centralSlice - (numberSampSlices/2) << " to " 
 	<< centralSlice + (numberSampSlices / 2) << std::endl;
 	#endif
@@ -251,12 +234,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
     std::cout << "Low threshold value = " << lowThresholdValue << std::endl;
 	#endif
 
-	#ifdef DEBUG_COOR
-	std::cout << "Peaked coordinates" << std::endl;
-	std::cout << "-----------------------------" << std::endl;
-	#endif
-
-	std::vector<int> coordinates3Dx(0);
+    std::vector<int> coordinates3Dx(0);
     std::vector<int> coordinates3Dy(0);
     std::vector<int> coordinates3Dz(0);
 
@@ -276,11 +254,30 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
 
-	////////////////////////////////////////////////////////////////////////////////// GENERATE CENTERS OF MASS
+	clusterHighContrastCoordinates(volFiltered,
+								   coordinates3Dx,
+								   coordinates3Dy,
+								   coordinates3Dz);
+}
 
+
+	void ProgImagePeakHighContrast::clusterHighContrastCoordinates(MultidimArray<double> &volFiltered,
+																   std::vector<int> coordinates3Dx,
+																   std::vector<int> coordinates3Dy,
+																   std::vector<int> coordinates3Dz)
+{
+	std::cout << "Clustering coordinates..." << std::endl;
+
+
+	// These vectors keep track of the position of the center of mass
 	std::vector<int> centerOfMassX(0);
     std::vector<int> centerOfMassY(0);
     std::vector<int> centerOfMassZ(0);
+
+	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
+	std::vector<int> centerOfMassXAcc(0);
+    std::vector<int> centerOfMassYAcc(0);
+    std::vector<int> centerOfMassZAcc(0);
 	
 	std::vector<int> numberOfCoordsPerCM(0);
 
@@ -291,6 +288,10 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 		centerOfMassX.push_back(coordinates3Dx[randomIndex]);
 		centerOfMassY.push_back(coordinates3Dy[randomIndex]);
 		centerOfMassZ.push_back(coordinates3Dz[randomIndex]);
+
+		centerOfMassXAcc.push_back(coordinates3Dx[randomIndex]);
+		centerOfMassYAcc.push_back(coordinates3Dy[randomIndex]);
+		centerOfMassZAcc.push_back(coordinates3Dz[randomIndex]);
 		
 		numberOfCoordsPerCM.push_back(1);
 	}
@@ -298,7 +299,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	int squareDistanceThr = distanceThr*distanceThr;
 	bool attractedToMassCenter = false;
 
-	for(size_t i=0;i<coordinates3Dx.size();i++)
+	for(size_t i = 0; i < coordinates3Dx.size(); i++)
 	{
 		// Check if the coordinate is attracted to any centre of mass
 		attractedToMassCenter = false; 
@@ -307,7 +308,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 		int yCoor = coordinates3Dy[i];
 		int zCoor = coordinates3Dz[i];
 
-		for(size_t j=0;j<centerOfMassX.size();j++)
+		for(size_t j = 0; j < centerOfMassX.size(); j++)
 		{
 			int xCM = centerOfMassX[j];
 			int yCM = centerOfMassY[j];
@@ -323,9 +324,16 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 
 			if(squareDistance < squareDistanceThr)
 			{
+
+				// Update center of mass with new coordinate
 				centerOfMassX[j]=centerOfMassX[j]+(coordinates3Dx[i]-centerOfMassX[j])/2;
 				centerOfMassY[j]=centerOfMassY[j]+(coordinates3Dy[i]-centerOfMassY[j])/2;
 				centerOfMassZ[j]=centerOfMassZ[j]+(coordinates3Dz[i]-centerOfMassZ[j])/2;
+
+				// Add all the coordinate vectors to each center of mass
+				centerOfMassXAcc[j] = centerOfMassXAcc[j] + coordinates3Dx[i];
+				centerOfMassYAcc[j] = centerOfMassYAcc[j] + coordinates3Dy[i];
+				centerOfMassZAcc[j] = centerOfMassZAcc[j] + coordinates3Dz[i];
 
 				numberOfCoordsPerCM[j]++;
 
@@ -334,21 +342,19 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			}
 		}
 
-		if (attractedToMassCenter==false)
+		if (attractedToMassCenter == false)
 		{
 			centerOfMassX.push_back(coordinates3Dx[i]);
 			centerOfMassY.push_back(coordinates3Dy[i]);
 			centerOfMassZ.push_back(coordinates3Dz[i]);
 
+			centerOfMassXAcc.push_back(coordinates3Dx[i]);
+			centerOfMassYAcc.push_back(coordinates3Dy[i]);
+			centerOfMassZAcc.push_back(coordinates3Dz[i]);
+
 			numberOfCoordsPerCM.push_back(1);
 		}
 	}
-
-	#ifdef DEBUG
-	std::cout << "Number of centers of mass: " << centerOfMassX.size() << std::endl;
-	#endif
-
-	///////////////////////////////////////////////////////////////////////////////////////////////TRIM CENTER OF MASS
 
 	// Check that coordinates at the border of the volume are not outside when considering the box size
 	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
@@ -363,9 +369,7 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
 			i--;
 		}
-
 	}
-
 
 	// Check number of coordinates per center of mass
 	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
@@ -378,18 +382,24 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
 			i--;
 		}
-
 	}
 
 	#ifdef DEBUG
 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
 	#endif
 
+	writeOutputCoordinates(centerOfMassX,
+						   centerOfMassY,
+						   centerOfMassZ);
+}
 
-	////////////////////////////////////////////////////////////////////////////////////////////// SAVE COORDINATES
+
+	void ProgImagePeakHighContrast::writeOutputCoordinates(std::vector<int> centerOfMassX,
+														   std::vector<int> centerOfMassY,
+														   std::vector<int> centerOfMassZ)
+{
 	MetaData md;
 	size_t id;
-
 
 	for(size_t i=0;i<centerOfMassX.size();i++)
 	{
@@ -400,22 +410,34 @@ void ProgImagePeakHighContrast::getHighContrastCoordinates()
 	}
 
 	md.write(fnOut);
+	
+	#ifdef DEBUG
+	std::cout << "Coordinates metadata saved at: " << fnOut << std::endl;
+	#endif
 
 }
 
-// void ProgImagePealHighContrast::writeOutputCoordinates()
-// {
-// 	std::ofstream outputFile;
-// 	outputFile.open(fnOut);
-
-// 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(coordinates3Dx){
-// 		outputFile << coordinates3Dx(i) << "\t" << coordinates3Dy(i) << "\t"<< coordinates3Dz(i) << "\n" 
-// 	}
-
-// 	outputFile.close()
-// }
-
 void ProgImagePeakHighContrast::run()
 {
-	getHighContrastCoordinates();
+	Image<double> inputVolume;
+	inputVolume.read(fnVol);
+
+	MultidimArray<double> &inputTomo=inputVolume();
+
+	size_t xSize = XSIZE(inputTomo);
+	size_t ySize = YSIZE(inputTomo);
+	size_t zSize = ZSIZE(inputTomo);
+
+	#ifdef DEBUG_DIM
+	std::cout << "x " << XSIZE(inputTomo) << std::endl;
+	std::cout << "y " << YSIZE(inputTomo) << std::endl;
+	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
+	std::cout << "n " << NSIZE(inputTomo) << std::endl;
+	#endif
+
+	MultidimArray<double> volFiltered;
+
+ 	volFiltered = preprocessVolume(inputTomo, xSize, ySize, zSize);
+	
+	getHighContrastCoordinates(volFiltered);
 }
