@@ -26,6 +26,7 @@
 #include "core/xmipp_program.h"
 #include "core/metadata_db.h"
 #include "core/metadata_sql.h"
+#include "core/metadata_generator.h"
 #include "core/xmipp_image_macros.h"
 #include "core/xmipp_funcs.h"
 
