@@ -1,8 +1,6 @@
 #ifndef VOLUME_DEFORM_SPH_H
 #define VOLUME_DEFORM_SPH_H
 // Xmipp includes
-#include "api/dimension_vector.h"
-#include "api/parameter_pair.h"
 #include "core/xmipp_image.h"
 #include "core/multidim_array.h"
 // Standard includes

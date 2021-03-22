@@ -1,5 +1,4 @@
 // Xmipp includes
-#include "api/dimension_vector.h"
 #include "core/metadata_label.h"
 #include "core/xmipp_random_mode.h"
 #include "core/matrix1d.h"
