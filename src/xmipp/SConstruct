@@ -390,7 +390,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     libPathsCopy = libPaths + [Dir('lib').abspath]
     incsCopy = list(incs) or []
     if cuda or nvcc:
-        libs += ['cuFFTAdvisor', 'cudart', 'cufft', 'pthread']
+        libs += ['cuFFTAdvisor', 'cudart', 'cufft', 'nvidia-ml', 'pthread']
 
     sources = []
     for s, p in izip(src, pattern):
