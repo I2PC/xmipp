@@ -26,6 +26,11 @@ jobs:
       
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
+        
+      - name: Install CUDA
+        run: source scripts/install_cuda_github.sh
+        env: 
+          CUDA_VER: 10.2.89
 
       - name: Install dependencies
         run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev 
