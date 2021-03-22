@@ -28,7 +28,7 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.0.3
         
       - name: Install CUDA
-        run: source scripts/install_cuda_travis.sh
+        run: source scripts/install_cuda_github.sh
         env: 
           CUDA_VER: 10.2.89
           CUDA_INSTALL_EXTRA_LIBS: 1
