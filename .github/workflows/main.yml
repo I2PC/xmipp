@@ -31,7 +31,7 @@ jobs:
         uses: Jimver/cuda-toolkit@v0.1.0
         with:
           cuda: 10.2
-          subPackages: ['nvcc', 'cublas_dev', 'cudart', 'cufft_dev', 'cusparse_dev', 'curand_dev', 'cusolver_dev', 'nvml-dev']
+          subPackages: '["nvcc", "cublas_dev", "cudart", "cufft_dev", "cusparse_dev", "curand_dev", "cusolver_dev", "nvml-dev"]'
 
       - name: Install dependencies
         run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev 
