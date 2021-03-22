@@ -51,6 +51,7 @@ void ProgAngularSphAlignment::readParams()
 {
 	XmippMetadataProgram::readParams();
 	fnVolR = getParam("--ref");
+	fnMaskR = getParam("--mask");
 	fnOutDir = getParam("--odir");
     maxShift = getDoubleParam("--max_shift");
     maxAngularChange = getDoubleParam("--max_angular_change");
@@ -75,8 +76,9 @@ void ProgAngularSphAlignment::show()
         return;
 	XmippMetadataProgram::show();
     std::cout
-    << "Output directory:     " << fnOutDir << std::endl
+    << "Output directory:    " << fnOutDir 			 << std::endl
     << "Reference volume:    " << fnVolR             << std::endl
+	<< "Reference mask:      " << fnMaskR            << std::endl
     << "Max. Shift:          " << maxShift           << std::endl
     << "Max. Angular Change: " << maxAngularChange   << std::endl
     << "Max. Resolution:     " << maxResol           << std::endl
@@ -103,7 +105,8 @@ void ProgAngularSphAlignment::defineParams()
 	defaultComments["-o"].addComment("Metadata with the angular alignment and deformation parameters");
     XmippMetadataProgram::defineParams();
     addParamsLine("   --ref <volume>              : Reference volume");
-	addParamsLine("  [--odir <outputDir=\".\">]           : Output directory");
+	addParamsLine("  [--mask <m=\"\">]            : Reference volume");
+	addParamsLine("  [--odir <outputDir=\".\">]   : Output directory");
     addParamsLine("  [--max_shift <s=-1>]         : Maximum shift allowed in pixels");
     addParamsLine("  [--max_angular_change <a=5>] : Maximum angular change allowed (in degrees)");
     addParamsLine("  [--max_resolution <f=4>]     : Maximum resolution (A)");
@@ -116,8 +119,8 @@ void ProgAngularSphAlignment::defineParams()
     addParamsLine("  [--optimizeDeformation]      : Optimize deformation");
 	addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
-    addParamsLine("  [--regularization <l=0.01>] : Regularization weight");
-	addParamsLine("  [--resume]                           : Resume processing");
+    addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
+	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
@@ -155,17 +158,42 @@ void ProgAngularSphAlignment::preProcess()
     V().setXmippOrigin();
     Xdim=XSIZE(V());
     Vdeformed().initZeros(V());
-    sumV=V().sum();
+    // sumV=V().sum();
 
     Ifilteredp().initZeros(Xdim,Xdim);
     Ifilteredp().setXmippOrigin();
 
+	if (RmaxDef<0)
+		RmaxDef = Xdim/2;
+
+	// Read Reference mask if avalaible (otherwise sphere of radius RmaxDef is used)
+	Mask mask;
+	mask.type = BINARY_CIRCULAR_MASK;
+	mask.mode = INNER_MASK;
+	if (fnMaskR != "") {
+		Image<double> aux;
+		aux.read(fnMaskR);
+		typeCast(aux(), V_mask);
+		V_mask.setXmippOrigin();
+	}
+	else {
+		mask.R1 = RmaxDef;
+		mask.generate_mask(V());
+		V_mask = mask.get_binary_mask();
+		V_mask.setXmippOrigin();
+	}
+
+	// Total Volume Mass (Inside Mask)
+	sumV = 0.0;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V_mask) {
+		if (DIRECT_MULTIDIM_ELEM(V_mask,n) == 1) {
+			sumV += DIRECT_MULTIDIM_ELEM(V(),n);
+		}
+	}
+
     // Construct mask
     if (Rmax<0)
     	Rmax=Xdim/2;
-    Mask mask;
-    mask.type = BINARY_CIRCULAR_MASK;
-    mask.mode = INNER_MASK;
     mask.R1 = Rmax;
     mask.generate_mask(Xdim,Xdim);
     mask2D=mask.get_binary_mask();
@@ -269,7 +297,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		char c; std::cin >> c;
     }
 
-    double massDiff=100.0*std::abs(sumV-sumVd)/sumV;
+    double massDiff=std::abs(sumV-sumVd)/sumV;
     double retval=cost+lambda*(deformation);
 	if (showOptimization)
 		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << sumVd << " " << massDiff << " " << retval << std::endl;
@@ -308,9 +336,6 @@ double continuousSphCost(double *x, void *_prm)
 //#define DEBUG
 void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
-	if (RmaxDef<0)
-		RmaxDef = Xdim/2;
-
     Matrix1D<double> steps;
     int totalSize = 3*vecSize+8;
 	p.resize(totalSize);
@@ -559,15 +584,17 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
     Matrix1D<double> pos;
     pos.initZeros(3);
 
+	// TODO: Poner primero i y j en el loop, acumular suma y guardar al final
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
 	{
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
 		{
 			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++)
 			{
-                XX(pos) = j; YY(pos) = i; ZZ(pos) = k;
+                ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
                 pos = R * pos;
 				double gx=0.0, gy=0.0, gz=0.0;
+				// TODO: Sacar al bucle de z
 				double k2=ZZ(pos)*ZZ(pos);
 				double kr=ZZ(pos)*iRmaxF;
 				double k2i2=k2+YY(pos)*YY(pos);
@@ -575,6 +602,7 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 				double r2=k2i2+XX(pos)*XX(pos);
 				double jr=XX(pos)*iRmaxF;
 				double rr=sqrt(r2)*iRmaxF;
+				// if (r2<RmaxF2 && A3D_ELEM(V_mask, (int)round(ZZ(pos)), (int)round(YY(pos)), (int)round(XX(pos))) == 1) {
 				if (r2<RmaxF2) {
 					for (size_t idx=0; idx<idxY0; idx++) {
 						if (VEC_ELEM(steps_cp,idx) == 1) {
@@ -591,15 +619,25 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 							}
 						}
 					}
-					double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);
-					A2D_ELEM(mP,i,j) += voxelI;
-					// double voxelR=mV.interpolatedElement3D(XX(pos),YY(pos),ZZ(pos));
-					modg += gx*gx+gy*gy+gz*gz;
-					Ncount++;
-
+					int k_mask, i_mask, j_mask;
+					int voxelI_mask;
+					k_mask = (int)(ZZ(pos)+gz); i_mask = (int)(YY(pos)+gy); j_mask = (int)(XX(pos)+gx);
+					if (V_mask.outside(k_mask, i_mask, j_mask)) {
+						voxelI_mask = 0;
+					}
+					else {
+						voxelI_mask = A3D_ELEM(V_mask, k_mask, i_mask, j_mask);
+					}
+					if (voxelI_mask == 1) {
+						double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);
+						// double voxelR=mV.interpolatedElement3D(XX(pos),YY(pos),ZZ(pos));
+						A2D_ELEM(mP,i,j) += voxelI;
+						sumVd += voxelI;
+						modg += gx*gx+gy*gy+gz*gz;
+						Ncount++;
+					}
 					// double diff=voxelR-voxelI;
 					// diff2+=diff*diff;
-					sumVd+=voxelI;
 				}
 			}
 		}

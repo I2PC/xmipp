@@ -43,6 +43,8 @@ class ProgAngularSphAlignment: public XmippMetadataProgram
 public:
     /** Filename of the reference volume */
     FileName fnVolR;
+    /** Filename of the reference volume mask */
+    FileName fnMaskR;
     /// Output directory
     FileName fnOutDir;
     /** Degrees of Zernike polynomials and spherical harmonics */
@@ -82,8 +84,8 @@ public:
 public:
     /** Resume computations */
     bool resume;
-    // 2D mask in real space
-    MultidimArray<int> mask2D;
+    // 2D and 3D masks in real space
+    MultidimArray<int> mask2D, V_mask;
     // Volume size
     size_t Xdim;
     // Input image
