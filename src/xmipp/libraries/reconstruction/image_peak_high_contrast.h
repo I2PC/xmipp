@@ -86,7 +86,10 @@ public:
      * @return
      *
     */
-    void getHighContrastCoordinates(MultidimArray<double> volFiltered);
+    void getHighContrastCoordinates(MultidimArray<double> volFiltered,
+									size_t xSize,
+									size_t ySize,
+									size_t zSize);
 
     /**
      * Write obtained coordinates in output file.
@@ -95,10 +98,12 @@ public:
      * @return
      *
     */
-    void clusterHighContrastCoordinates(MultidimArray<double> &volFiltered,
-                                        std::vector<int> coordinates3Dx,
+    void clusterHighContrastCoordinates(std::vector<int> coordinates3Dx,
 										std::vector<int> coordinates3Dy,
-										std::vector<int> coordinates3Dz);
+										std::vector<int> coordinates3Dz,
+                                        size_t xSize,
+                                        size_t ySize,
+                                        size_t zSize);
 
     /**
      * Write obtained coordinates in output file.

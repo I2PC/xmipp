@@ -193,11 +193,14 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 }
 
 
-	void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered)
+	void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered,
+															   size_t xSize,
+															   size_t ySize,
+															   size_t zSize)
 {
 	std::cout << "Picking coordinates..." << std::endl;
 
-	size_t centralSlice = ZSIZE(volFiltered)/2;
+	size_t centralSlice = zSize/2;
 	std::vector<double> tomoVector(0);
 
 	#ifdef DEBUG
@@ -210,9 +213,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
 	{
-		for(size_t j = 0; j < YSIZE(volFiltered); ++j)
+		for(size_t j = 0; j < ySize; ++j)
 		{
-			for(size_t i = 0; i < XSIZE(volFiltered); ++i)
+			for(size_t i = 0; i < xSize; ++i)
 			{
 				#ifdef DEBUG_DIM
 				std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
@@ -254,17 +257,21 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
 
-	clusterHighContrastCoordinates(volFiltered,
-								   coordinates3Dx,
+	clusterHighContrastCoordinates(coordinates3Dx,
 								   coordinates3Dy,
-								   coordinates3Dz);
+								   coordinates3Dz,
+								   xSize,
+								   ySize,
+								   zSize);
 }
 
 
-	void ProgImagePeakHighContrast::clusterHighContrastCoordinates(MultidimArray<double> &volFiltered,
-																   std::vector<int> coordinates3Dx,
+	void ProgImagePeakHighContrast::clusterHighContrastCoordinates(std::vector<int> coordinates3Dx,
 																   std::vector<int> coordinates3Dy,
-																   std::vector<int> coordinates3Dz)
+																   std::vector<int> coordinates3Dz,
+																   size_t xSize,
+															   	   size_t ySize,
+															       size_t zSize)
 {
 	std::cout << "Clustering coordinates..." << std::endl;
 
@@ -359,9 +366,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	// Check that coordinates at the border of the volume are not outside when considering the box size
 	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
 	{
-		if(centerOfMassX[i]<boxSize/2 or XSIZE(volFiltered)-centerOfMassX[i]<boxSize/2 or
-		   centerOfMassY[i]<boxSize/2 or YSIZE(volFiltered)-centerOfMassY[i]<boxSize/2 or
-		   centerOfMassZ[i]<boxSize/2 or ZSIZE(volFiltered)-centerOfMassZ[i]<boxSize/2)
+		if(centerOfMassX[i]<boxSize/2 or xSize-centerOfMassX[i]<boxSize/2 or
+		   centerOfMassY[i]<boxSize/2 or ySize-centerOfMassY[i]<boxSize/2 or
+		   centerOfMassZ[i]<boxSize/2 or zSize-centerOfMassZ[i]<boxSize/2)
 		{
 			numberOfCoordsPerCM.erase(numberOfCoordsPerCM.begin()+i);
 			centerOfMassX.erase(centerOfMassX.begin()+i);
@@ -438,6 +445,18 @@ void ProgImagePeakHighContrast::run()
 	MultidimArray<double> volFiltered;
 
  	volFiltered = preprocessVolume(inputTomo, xSize, ySize, zSize);
+
+	size_t xSizeFilter = XSIZE(volFiltered);
+	size_t ySizeFilter = YSIZE(volFiltered);
+	size_t zSizeFilter = ZSIZE(volFiltered);
+
+	#ifdef DEBUG_DIM
+	std::cout << "------------------ after Filtering:" << std::endl;
+	std::cout << "x " << XSIZE(volFiltered) << std::endl;
+	std::cout << "y " << YSIZE(volFiltered) << std::endl;
+	std::cout << "z " << ZSIZE(volFiltered) << std::endl;
+	std::cout << "n " << NSIZE(volFiltered) << std::endl;
+	#endif
 	
-	getHighContrastCoordinates(volFiltered);
+	getHighContrastCoordinates(volFiltered, xSizeFilter, ySizeFilter, zSizeFilter);
 }
