@@ -28,9 +28,10 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.0.3
         
       - name: Install CUDA
-        uses: Jimver/cuda-toolkit@v0.1.0
-        with:
-          cuda: 10.2.89
+        run: source scripts/install_cuda_travis.sh
+        env: 
+          CUDA_VER: 10.2.89
+          CUDA_INSTALL_EXTRA_LIBS: 1
 
       - name: Install dependencies
         run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev 
