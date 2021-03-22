@@ -30,7 +30,7 @@ jobs:
       - name: Install CUDA
         uses: Jimver/cuda-toolkit@v0.1.0
         with:
-          cuda: 10.2
+          cuda: 10.2.89
           subPackages: '["nvcc", "cublas_dev", "cudart", "cufft_dev", "cusparse_dev", "curand_dev", "cusolver_dev", "nvml-dev"]'
 
       - name: Install dependencies
