@@ -27,7 +27,7 @@ sudo add-apt-repository "deb ${REPO_URL} /"
 sudo apt-get update
 
 echo "Installing CUDA"
-sudo apt-get install -y cuda-cufft-dev-${CUDA_APT} cuda-cudart-dev-${CUDA_APT}
+sudo apt-get install -y cuda-nvcc-${CUDA_APT} cuda-cufft-dev-${CUDA_APT} cuda-cudart-dev-${CUDA_APT}
 
 
 export CUDA_HOME=/usr/local/cuda-${CUDA_VER_TMP}
