@@ -54,7 +54,9 @@ jobs:
           BUILD_TESTS: False
           
       - name: SonarCloud Scan
-        run: sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc
+        run: |
+          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc
+          ls -al .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
