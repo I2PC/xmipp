@@ -29,12 +29,15 @@ jobs:
       
       - name: Prepare Sonar scanner
         run: |
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
+          wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
           unzip -q sonar-scanner-cli-4.6.0.2311-linux.zip
-          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          wget -nv https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip -q build-wrapper-linux-x86.zip
-          echo "${HOME}/build-wrapper-linux-x86"
-          echo "${HOME}/sonar-scanner-4.6.0.2311-linux/bin/"
+          echo "${HOME}/build-wrapper-linux-x86" >> $GITHUB_PATH
+          echo "${HOME}/sonar-scanner-4.6.0.2311-linux/bin/"  >> $GITHUB_PATH
+          sonar-scanner -h
+          build-wrapper-linux-x86-64 -h
+          
       
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
