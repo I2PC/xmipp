@@ -128,9 +128,14 @@ class DeepTFSupervised(object):
     '''
     '''
     if self.numberOfThreads is None:
-      self.session = tf.Session()
+      physical_devices = tf.config.experimental.list_physical_devices('GPU')
+      assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+      config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
+      self.session = tf.Session(config=config)
     else:
-      self.session= tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=self.numberOfThreads))
+      self.session= tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=self.numberOfThreads,
+                                                     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7),
+                                                     allow_soft_placement = True))
     K.set_session(self.session)
     return self.session
 

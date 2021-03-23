@@ -95,7 +95,7 @@ class ScriptPreproMics(XmippScript):
             argsList+=[  (mic_fname, samplingRate, out_name, ctf_fname, 
                           invert_contrast, phase_flip, downFactor)]
       Parallel(n_jobs= numberOfThreads, backend="multiprocessing", verbose=1)(
-                  delayed(preproOneMic, check_pickle=False)(*arg) for arg in argsList)
+                  delayed(preproOneMic)(*arg) for arg in argsList)
 
    
 def preproOneMic(mic_fname, samplingRate, out_name, ctf_fname=None, invert_contrast=False, phase_flip=False, downFactor=1):
