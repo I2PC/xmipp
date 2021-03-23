@@ -23,6 +23,18 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        with:
+          fetch-depth: 0
+      
+      - name: Prepare Sonar scanner
+        run: |
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
+          unzip -q sonar-scanner-cli-4.6.0.2311-linux.zip
+          https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -q build-wrapper-linux-x86.zip
+          echo "${HOME}/build-wrapper-linux-x86"
+          echo "${HOME}/sonar-scanner-4.6.0.2311-linux/bin/"
       
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
@@ -35,16 +47,14 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
         
-      - name: Prepare Sonar scanner
-        run: |
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
-          unzip sonar-scanner-cli-4.6.0.2311-linux.zip
-          echo "sonar-scanner-4.6.0.2311-linux/bin" >> $GITHUB_PATH
-          sonar-scanner -h 
-      
+      # echo "C:\directory\to\add\to\path" >> $GITHUB_PATH
       - name: Compile Xmipp
         run: ./xmipp noAsk
         env:
           TRAVIS: 1
-          XMIPP_NOSCIPION: True
           BUILD_TESTS: False
+          
+      - name: SonarCloud Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
