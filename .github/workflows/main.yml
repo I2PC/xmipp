@@ -26,6 +26,12 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+          
+      - name: Fetch cache
+        uses: actions/cache@v2.1.4
+        with:
+          path: sonarCache
+          key: ${{ runner.os }}-sonarCache
       
       - name: Prepare Sonar scanner
         run: |
@@ -38,7 +44,7 @@ jobs:
       
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
-        
+                
         # - name: Install CUDA
         #run: source scripts/install_cuda_github.sh
         #env: 
@@ -55,7 +61,7 @@ jobs:
           
       - name: SonarCloud Scan
         run: |
-          sonar-scanner -X -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc -Dsonar.login=$SONAR_TOKEN
+          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc -Dsonar.login=$SONAR_TOKEN
           ls -al .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
