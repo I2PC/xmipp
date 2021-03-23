@@ -31,7 +31,7 @@ jobs:
         run: |
           wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
           unzip -q sonar-scanner-cli-4.6.0.2311-linux.zip
-          https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip -q build-wrapper-linux-x86.zip
           echo "${HOME}/build-wrapper-linux-x86"
           echo "${HOME}/sonar-scanner-4.6.0.2311-linux/bin/"
