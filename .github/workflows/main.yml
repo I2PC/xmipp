@@ -36,15 +36,20 @@ jobs:
       
       - name: Check Sonar scanner
         run: |
-          echo "${PWD}/build-wrapper-linux-x86" >> $PATH
-          echo "${PWD}/sonar-scanner-4.6.0.2311-linux/bin/"  >> $PATH
-          echo "path set to"
-          echo $PATH
-          echo "ls ->"
-          ls ${PWD}/sonar-scanner-4.6.0.2311-linux/bin/
-          echo " trying to execute both ->"
+          echo '${PWD}/build-wrapper-linux-x86' >>"${GITHUB_PATH}"
+          echo '${PWD}/sonar-scanner-4.6.0.2311-linux/bin/' >>"${GITHUB_PATH}"
+          echo "$PATH"
           sonar-scanner -h
-          build-wrapper-linux-x86-64 -h
+        #run: |
+          # echo "${PWD}/build-wrapper-linux-x86" >> $PATH
+          #echo "${PWD}/sonar-scanner-4.6.0.2311-linux/bin/"  >> $PATH
+          #echo "path set to"
+          #echo $PATH
+          #echo "ls ->"
+          #ls ${PWD}/sonar-scanner-4.6.0.2311-linux/bin/
+          #echo " trying to execute both ->"
+          #sonar-scanner -h
+          #build-wrapper-linux-x86-64 -h
       
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
