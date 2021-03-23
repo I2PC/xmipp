@@ -102,6 +102,8 @@ private:
     std::vector<ktt::ParameterPair> bestKernelConfig;
     bool tuneKernel = true;
 
+    ktt::ArgumentId sharedMemId;
+
     // Kernel dimensions
     ktt::DimensionVector kttBlock;
     ktt::DimensionVector kttGrid;

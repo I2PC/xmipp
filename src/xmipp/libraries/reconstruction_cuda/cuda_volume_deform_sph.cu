@@ -3,6 +3,11 @@
 
 // Compilation settings
 
+#ifndef KTT_USED
+#include "cuda_volume_deform_sph_defines.h"
+#include "cuda_volume_deform_sph.h"
+#endif
+
 #if USE_DOUBLE_PRECISION == 1
 // Types
 using PrecisionType = double;
@@ -29,19 +34,10 @@ using PrecisionType3 = float3;
 
 #endif// USE_DOUBLE_PRECISION
 
-#if USE_SCATTERED_ZSH_CLNM == 1
-using ClnmType = PrecisionType;
-using ZshParamsType =
-    struct ZSHparams { int *vL1, *vN, *vL2, *vM; unsigned size; };
-#else
-using ClnmType = PrecisionType3;
-using ZshParamsType = int4;
-#endif// USE_SCATTERED_ZSH_CLNM
-
 // Compilation settings - end
 
 // Define data structures
-
+#ifdef KTT_USED
 struct ImageData
 {
     int xShift;
@@ -53,6 +49,15 @@ struct ImageData
     int zDim;
 
     PrecisionType* data;
+};
+
+struct ZSHparams
+{ 
+    int* vL1;
+    int* vN;
+    int* vL2;
+    int* vM;
+    unsigned size;
 };
 
 struct Volumes 
@@ -75,6 +80,7 @@ struct DeformImages
     ImageData Gy;
     ImageData Gz;
 };
+#endif// KTT_USED
 
 // CUDA kernel defines
 #ifndef BLOCK_X_DIM
@@ -171,10 +177,10 @@ extern "C" __global__ void computeDeform(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         IROimages images,
-        ZshParamsType* zshparams,
-        ClnmType* clnm,
-        ZshParamsType zshparamsSCATTERED,// just for tuning
-        ClnmType* clnmSCATTERED,// just for tuning
+        int4* zshparams,
+        PrecisionType3* clnm,
+        ZSHparams zshparamsSCATTERED,// necessary for tuning
+        PrecisionType* clnmSCATTERED,// necessary for tuning
         int steps,
         Volumes volumes,
         DeformImages deformImages,
@@ -183,6 +189,9 @@ extern "C" __global__ void computeDeform(
         PrecisionType* outArrayGlobal
         ) 
 {
+
+    extern __shared__ char sharedBuffer[];
+    unsigned sharedBufferOffset = 0;
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -198,46 +207,66 @@ extern "C" __global__ void computeDeform(
     int j = P2L_X_IDX(images.VR, jPhys);
 
 #if USE_SHARED_VOLUME_METADATA == 1
-    __shared__ ImageData volRMetaShared[VOL_COUNT];
-    __shared__ ImageData volIMetaShared[VOL_COUNT];
+    ImageData* volRMetaShared = (ImageData*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(ImageData) * volumes.size;
+
+    ImageData* volIMetaShared = (ImageData*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(ImageData) * volumes.size;
+
     // Load metadata about volumes to the shared memory
-#if VOL_COUNT < BLOCK_SIZE
-    if (tIdx < VOL_COUNT) {
-        volRMetaShared[tIdx] = volumes.R[tIdx];
-        volIMetaShared[tIdx] = volumes.I[tIdx];
-    }
-#else
-    if (tIdx == 0) {
-        for (int idx = 0; idx < VOL_COUNT; idx++) {
-            volRMetaShared[idx] = volumes.R[idx];
-            volIMetaShared[idx] = volumes.I[idx];
+    if (volumes.size <= BLOCK_SIZE) {
+        if (tIdx < volumes.size) {
+            volRMetaShared[tIdx] = volumes.R[tIdx];
+            volIMetaShared[tIdx] = volumes.I[tIdx];
+        }
+    } else {
+        if (tIdx == 0) {
+            for (unsigned idx = 0; idx < volumes.size; idx++) {
+                volRMetaShared[idx] = volumes.R[idx];
+                volIMetaShared[idx] = volumes.I[idx];
+            }
         }
     }
-#endif
 
 #if USE_SHARED_VOLUME_DATA == 1
     // wait for metadata to be in shared mem
     __syncthreads();
 
-    __shared__ PrecisionType volRDataShared[VOL_COUNT][BLOCK_SIZE];
-    __shared__ PrecisionType volIDataShared[VOL_COUNT][BLOCK_SIZE];
+    PrecisionType* volRDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
+
+    PrecisionType* volIDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
+
     // Load data related to the current block into the shared mem
-    for (int idx = 0; idx < VOL_COUNT; idx++) {
-        ELEM_3D_SHARED(volRDataShared[idx],kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
-        ELEM_3D_SHARED(volIDataShared[idx],kPhys,iPhys,jPhys) = ELEM_3D(volIMetaShared[idx], kPhys, iPhys, jPhys);
+    for (int idx = 0; idx < volumes.size; idx++) {
+        ELEM_3D_SHARED(volRDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
+        ELEM_3D_SHARED(volIDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volIMetaShared[idx], kPhys, iPhys, jPhys);
     }
 
 #endif// USE_SHARED_VOLUME_DATA
 #endif// USE_SHARED_VOLUME_METADATA
 
 #if USE_SHARED_MEM_ZSH_CLNM == 1 && USE_SCATTERED_ZSH_CLNM == 0
-    __shared__ ZshParamsType zshShared[64];//size for testing, should not be larger, ever
-    __shared__ ClnmType clnmShared[64];
+    int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(int4) * steps;
 
-    // TODO more general
-    if (tIdx < steps) {
-        zshShared[tIdx] = zshparams[tIdx];
-        clnmShared[tIdx] = clnm[tIdx];
+    PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
+    sharedBufferOffset += sizeof(PrecisionType3) * steps;
+
+    // Load zsh, clnm parameters to the shared memory
+    if (steps <= BLOCK_SIZE) {
+        if (tIdx < steps) {
+            zshShared[tIdx] = zshparams[tIdx];
+            clnmShared[tIdx] = clnm[tIdx];
+        }
+    } else {
+        if (tIdx == 0) {
+            for (unsigned idx = 0; idx < steps; idx++) {
+                zshShared[idx] = zshparams[idx];
+                clnmShared[idx] = clnm[idx];
+            }
+        }
     }
 #endif
 
@@ -592,28 +621,28 @@ extern "C" __global__ void computeDeform(
     }
 
     if (!isOutside) {
-    for (unsigned idv = 0; idv < volumes.size; idv++) {
+        for (unsigned idv = 0; idv < volumes.size; idv++) {
 #if USE_SHARED_VOLUME_METADATA == 1
 #if USE_SHARED_VOLUME_DATA == 1
-        voxelR = volRDataShared[idv][tIdx];
-        voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared[idv], jPhys + gx, iPhys + gy, kPhys + gz);
+            voxelR = (volRDataShared + idv * BLOCK_SIZE)[tIdx];
+            voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared + idv * BLOCK_SIZE, jPhys + gx, iPhys + gy, kPhys + gz);
 #else
-        voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
-        voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
+            voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
+            voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
 #endif// USE_SHARED_VOLUME_DATA
 #else
-        voxelR = ELEM_3D(volumes.R[idv], kPhys, iPhys, jPhys);
-        voxelI = interpolatedElement3D(volumes.I[idv], j + gx, i + gy, k + gz);
+            voxelR = ELEM_3D(volumes.R[idv], kPhys, iPhys, jPhys);
+            voxelI = interpolatedElement3D(volumes.I[idv], j + gx, i + gy, k + gz);
 #endif// USE_SHARED_VOLUME_METADATA
 
-        if (voxelI >= 0.0)
-            localSumVD += voxelI;
+            if (voxelI >= 0.0)
+                localSumVD += voxelI;
 
-        diff = voxelR - voxelI;
-        localDiff2 += diff * diff;
-        localModg += gx*gx + gy*gy + gz*gz;
-        localNcount++;
-    }
+            diff = voxelR - voxelI;
+            localDiff2 += diff * diff;
+            localModg += gx*gx + gy*gy + gz*gz;
+            localNcount++;
+        }
     }
 
     __shared__ PrecisionType diff2Shared[BLOCK_SIZE];
@@ -640,8 +669,8 @@ extern "C" __global__ void computeDeform(
         __syncthreads();
     }
 #else
-    //TODO preprocess variable sizes
 
+    // First level of conditions are evaluated during compilation
     if (BLOCK_SIZE >= 1024) {
         if (tIdx < 512) {
             diff2Shared[tIdx] += diff2Shared[tIdx + 512];

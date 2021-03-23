@@ -183,10 +183,9 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::DivideCeil);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::DivideCeil);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::DivideCeil);
-    //tuner.setAutomaticGlobalSizeCorrection(true);
     // constrains
     tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
-            [&VR = images.VR](std::vector<size_t> vec)
+            [&VR = images.VR](const std::vector<size_t>& vec)
             {
                 return 32 <= vec[0] * vec[1] * vec[2]
                     && vec[0] < VR.xDim && vec[1] < VR.yDim && vec[2] < VR.zDim;
@@ -196,7 +195,7 @@ void VolumeDeformSph::setupConstantParameters()
     // simple defines
     tuner.addParameter(kernelId, "L1", {static_cast<unsigned>(program->L1)});
     tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
-    tuner.addParameter(kernelId, "VOL_COUNT", {volumes.size});
+    tuner.addParameter(kernelId, "KTT_USED", {1});
     // tuning parameters
     tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0});
     tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0});
@@ -204,6 +203,26 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
     tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {1});
     tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {0});
+
+    // Dynamic shared memory allocation
+    sharedMemId = tuner.addArgumentLocal<char>(1);// cannot be zero
+
+    tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_VOLUME_METADATA", "USE_SHARED_VOLUME_DATA", "USE_SHARED_MEM_ZSH_CLNM" },
+            [&vols = volumes.size, &steps = program->onesInSteps](const size_t size, const std::vector<size_t>& vec)
+            {
+                size_t sharedMemSize = 0;
+                if (vec[3] == 1) { // volume metadata
+                    sharedMemSize += sizeof(ImageData) * vols * 2;
+                }
+                if (vec[4] == 1) { // volume data
+                    sharedMemSize += sizeof(PrecisionType) * vec[0] * vec[1] * vec[2] * vols * 2;
+                }
+                if (vec[5] == 1) { // zsh, clnm
+                    sharedMemSize += sizeof(int4) * steps;
+                    sharedMemSize += sizeof(PrecisionType3) * steps;
+                }
+                return sharedMemSize;
+            });
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -296,7 +315,8 @@ void VolumeDeformSph::pretuneKernel()
             deformImagesId,
             applyTransformationId,
             saveDeformationId,
-            thrustVecId
+            thrustVecId,
+            sharedMemId
             });
 
     // Tune kernel
@@ -348,7 +368,8 @@ void VolumeDeformSph::runKernel()
             deformImagesId,
             applyTransformationId,
             saveDeformationId,
-            thrustVecId
+            thrustVecId,
+            sharedMemId
             });
 
     // Run kernel
