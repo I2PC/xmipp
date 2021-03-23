@@ -36,10 +36,10 @@ jobs:
       
       - name: Check Sonar scanner
         run: |
-          echo "${PWD}/build-wrapper-linux-x86" >> $GITHUB_PATH
-          echo "${PWD}/sonar-scanner-4.6.0.2311-linux/bin/"  >> $GITHUB_PATH
+          echo "${PWD}/build-wrapper-linux-x86" >> $PATH
+          echo "${PWD}/sonar-scanner-4.6.0.2311-linux/bin/"  >> $PATH
           echo "path set to"
-          echo ${GITHUB_PATH}
+          echo $PATH
           echo "ls ->"
           ls ${PWD}/sonar-scanner-4.6.0.2311-linux/bin/
           echo " trying to execute both ->"
