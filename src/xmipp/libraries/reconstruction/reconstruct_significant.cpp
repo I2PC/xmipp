@@ -265,7 +265,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 	    	// Keep the best assignment for the projection matching
 	    	// Each process keeps a list of the images for each volume
-			MetaDataVec &mdProjectionMatching=mdReconstructionProjectionMatching[bestVolume];
+			MetaDataDb &mdProjectionMatching=mdReconstructionProjectionMatching[bestVolume];
 			double scale, shiftX, shiftY, anglePsi;
 			bool flip;
 			transformationMatrix2Parameters2D(bestM,flip,scale,shiftX,shiftY,anglePsi);
@@ -302,7 +302,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 	    	// Get the best images
 			for (size_t nVolume=firstVolume; nVolume<=lastVolume; ++nVolume)
 			{
-				MetaDataVec &mdPartial=mdReconstructionPartial[nVolume];
+				MetaDataDb &mdPartial=mdReconstructionPartial[nVolume];
 				for (size_t nDir=0; nDir<Ndirs; ++nDir)
 				{
 					size_t idx=nVolume*Ndirs+nDir;
@@ -497,7 +497,7 @@ void ProgReconstructSignificant::run()
 			// Write the corresponding angular metadata
 			for (size_t nVolume=0; nVolume<(size_t)Nvolumes; ++nVolume)
 			{
-				MetaDataVec &mdReconstruction=mdReconstructionPartial[nVolume];
+				MetaDataDb &mdReconstruction=mdReconstructionPartial[nVolume];
 				// Readjust weights with direction weights
 				for (size_t objId : mdReconstruction.ids())
 				{
@@ -851,7 +851,7 @@ void ProgReconstructSignificant::produceSideinfo()
 	// Copy all input values as iteration 0 volumes
 	FileName fnAngles;
 	Image<double> galleryDummy;
-	MetaDataVec mdPartial, mdProjMatch;
+	MetaDataDb mdPartial, mdProjMatch;
 	for (int idx=0; idx<Nvolumes; ++idx)
 	{
 		if (rank==0)

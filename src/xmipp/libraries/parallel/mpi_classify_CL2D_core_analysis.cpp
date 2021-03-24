@@ -160,7 +160,7 @@ void ProgClassifyCL2DCore::computeCores()
     analyzeCluster.distThreshold=thPCAZscore;
     analyzeCluster.dontMask=false;
 
-    MetaData MD;
+    MetaDataVec MD;
     size_t first, last;
     size_t Nblocks=blocks.size();
     if (verbose && node->rank==0)
@@ -195,7 +195,7 @@ void ProgClassifyCL2DCore::computeStableCores()
 {
     if (verbose && node->rank==0)
         std::cerr << "Computing stable cores ...\n";
-    MetaData thisClass, anotherClass, commonImages, thisClassCore;
+    MetaDataDb thisClass, anotherClass, commonImages, thisClassCore;
     size_t first, last;
     Matrix2D<unsigned char> coocurrence;
     Matrix1D<unsigned char> maximalCoocurrence;
@@ -306,7 +306,7 @@ void ProgClassifyCL2DCore::gatherResults(int firstLevel, const String &suffix)
         FileName fnBlock, fnClass, fnSummary;
         Image<double> classAverage;
         // Compute class averages
-        MetaData classes, MD, MDoriginal;
+        MetaDataVec classes, MD, MDoriginal;
         int Nblocks=blocks.size();
         for (int level=firstLevel; level<=maxLevel; level++)
         {

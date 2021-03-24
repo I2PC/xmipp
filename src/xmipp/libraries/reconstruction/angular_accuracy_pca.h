@@ -27,6 +27,7 @@
 #define ANGULAR_ACCURACY_PCA_H_
 
 #include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
 #include "data/basic_pca.h"
@@ -45,7 +46,7 @@ public:
 
     Image<double> phantomVol;
 
-    MetaDataVec mdPartial;
+    MetaDataDb mdPartial;
 
     size_t rank, Nprocessors;
 

@@ -112,7 +112,7 @@ void ProgAngularAccuracyPCA::run()
 		String expression;
 		size_t maxIdx;
 		MDRowVec row;
-		MetaDataVec MDSort, tempMd, MDOut, MDOutQ;
+		MetaDataDb MDSort, tempMd, MDOut, MDOutQ;
 		MDSort.sort(mdPartial,MDL_ITEM_ID,true,-1,0);
 		MDSort.getValue(MDL_ITEM_ID,maxIdx,MDSort.lastObject());
 

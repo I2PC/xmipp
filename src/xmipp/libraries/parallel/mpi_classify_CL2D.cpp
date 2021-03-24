@@ -738,7 +738,7 @@ void CL2D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
 
 /* CL2D initialization ------------------------------------------------ */
 //#define DEBUG
-void CL2D::initialize(MetaData &_SF,
+void CL2D::initialize(MetaDataDb &_SF,
                       std::vector<MultidimArray<double> > &_codes0)
 {
     if (prm->node->rank == 1)
@@ -1837,7 +1837,7 @@ void ProgClassifyCL2D::run()
     {
         std::sort(vq.P.begin(), vq.P.end(), SDescendingClusterSort());
         Q = vq.P.size();
-        MetaDataVec SFq, SFclassified, SFaux, SFaux2;
+        MetaDataDb SFq, SFclassified, SFaux, SFaux2;
         for (int q = 0; q < Q; q++)
         {
             SFq.read(formatString("class%06d_images@%s/level_%02d/%s_classes.xmd",q+1,fnODir.c_str(),level,fnOut.c_str()));

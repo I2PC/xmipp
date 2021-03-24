@@ -1230,7 +1230,7 @@ void MpiProgAngularClassAverage::filterInputMetadata()
         auxF1.addLabel(MDL_ENABLED);
         auxF1.setValueCol(MDL_ENABLED, 1);
 
-        for (size_t ovjId : auxF1.ids())
+        for (size_t objId : auxF1.ids())
         {
             auxF1.getValue(MDL_REF3D, ref3d, objId);
             auxF1.getValue(MDL_DEFGROUP, defgroup, objId);

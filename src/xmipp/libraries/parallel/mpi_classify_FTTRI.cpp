@@ -1101,7 +1101,7 @@ void ProgClassifyFTTRI::writeResults(bool FTTRI)
         distance.indexSort(idx);
 
         // Write the class
-        MDRow row;
+        MDRowVec row;
         for (size_t n=0; n<nmax; n++)
         {
             int trueIdx=A1D_ELEM(idx,n)-1;
@@ -1143,7 +1143,7 @@ void ProgClassifyFTTRI::alignImagesWithinClasses()
     MultidimArray<int> &mMask=mask();
     MetaDataVec MDclass, MDaux;
     Matrix2D<double> M;
-    MDRow row;
+    MDRowVec row;
     for (size_t i=0; i<nref; i++)
         if (((i+1)%node->size)==node->rank)
         {

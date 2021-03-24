@@ -25,7 +25,7 @@
 #ifndef _PROG_VQ_PROJECTIONS
 #define _PROG_VQ_PROJECTIONS
 
-#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 #include "data/polar.h"
 #include "core/histogram.h"
 #include "data/numerical_tools.h"
@@ -158,7 +158,7 @@ public:
 	size_t Nimgs;
 
 	/// Pointer to input metadata
-	MetaDataVec *SF;
+	MetaDataDb *SF;
 
     /// List of nodes
     std::vector<CL2DClass *> P;
@@ -171,7 +171,7 @@ public:
     void readImage(Image<double> &I, size_t objId, bool applyGeo) const;
 
     /// Initialize
-    void initialize(MetaData &_SF,
+    void initialize(MetaDataDb &_SF,
     		        std::vector< MultidimArray<double> > &_codes0);
     
     /// Share assignments
@@ -293,7 +293,7 @@ public:
     void run();
 public:
     // Selfile with all the input images
-    MetaDataVec SF;
+    MetaDataDb SF;
     
     // Object Ids
     std::vector<size_t> objId;

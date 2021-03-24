@@ -28,7 +28,7 @@
 
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
-#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 
 /**@defgroup Validation without tilt
    @ingroup ReconsLibrary */
@@ -41,7 +41,7 @@ public:
     /** Filenames */
     FileName fnDir, fnSym, fnInit, fnParticles;
 
-    MetaDataVec mdPartial;
+    MetaDataDb mdPartial;
 
     size_t rank, Nprocessors;
 

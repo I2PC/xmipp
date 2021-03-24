@@ -28,6 +28,7 @@
 #include "core/xmipp_filename.h"
 #include "core/xmipp_error.h"
 #include "core/xmipp_macros.h"
+#include "core/metadata_db.h"
 
 MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize,
                                        MpiNode *node) :
@@ -211,7 +212,7 @@ void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
     barrierWait();
     if (isMaster()) //master should collect and join workers results
     {
-        MetaDataVec mdAll(MD), mdSlave;
+        MetaDataDb mdAll(MD), mdSlave;
         for (size_t nodeRank = 1; nodeRank < size; nodeRank++)
         {
             fn = formatString("%s_node%d.xmd", rootname.c_str(), nodeRank);

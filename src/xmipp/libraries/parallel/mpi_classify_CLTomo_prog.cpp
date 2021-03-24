@@ -570,7 +570,7 @@ void CL3D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
 
 /* CL3D initialization ------------------------------------------------ */
 //#define DEBUG
-void CL3D::initialize(MetaData &_SF,
+void CL3D::initialize(MetaDataDb &_SF,
                       std::vector<MultidimArray<double> > &_codes0)
 {
     if (prmCL3Dprog->node->rank == 0)
@@ -600,7 +600,7 @@ void CL3D::initialize(MetaData &_SF,
     MultidimArray<double> Iaux, Ibest;
     CL3DAssignment bestAssignment;
     size_t imgCounter=0, localCounter=0;
-    for (size_t _ : prmCF3Dprog->SF.ids())
+    for (size_t _ : prmCL3Dprog->SF.ids())
     {
         if ((imgCounter+1)%prmCL3Dprog->node->size==prmCL3Dprog->node->rank)
         {
@@ -666,7 +666,7 @@ void CL3D::initialize(MetaData &_SF,
 void CL3D::write(const FileName &fnRoot, int level) const
 {
     int Q = P.size();
-    MetaDataVec SFout;
+    MetaDataDb SFout;
     Image<double> I;
     FileName fnOut = formatString("%s_classes_level_%02d.stk",fnRoot.c_str(),level), fnClass;
     fnOut.deleteFile();
@@ -685,10 +685,10 @@ void CL3D::write(const FileName &fnRoot, int level) const
 
     // Make the selfiles of each class
     FileName fnImg;
-    MDRow row;
+    MDRowSql row;
     for (int q = 0; q < Q; q++)
     {
-        MetaDataVec SFq;
+        MetaDataDb SFq;
         std::vector<CL3DAssignment> &currentListImg = P[q]->currentListImg;
         int imax = currentListImg.size();
         for (int i = 0; i < imax; i++)
@@ -703,7 +703,7 @@ void CL3D::write(const FileName &fnRoot, int level) const
             row.setValue(MDL_ANGLE_PSI, assignment.psi);
             SFq.addRow(row);
         }
-        MetaDataVec SFq_sorted;
+        MetaDataDb SFq_sorted;
         SFq_sorted.sort(SFq, MDL_IMAGE);
         SFq_sorted.write(formatString("class%06d_images@%s",q+1, fnSFout.c_str()), MD_APPEND);
     }
@@ -812,7 +812,7 @@ void CL3D::run(const FileName &fnOut, int level)
 
     int iter = 1;
     bool goOn = true;
-    MetaDataVec MDChanges;
+    MetaDataDb MDChanges;
     Image<double> I;
     int progressStep = XMIPP_MAX(1,Nimgs/60);
     CL3DAssignment assignment;
@@ -1458,7 +1458,7 @@ void ProgClassifyCL3D::produceSideInfo()
     if (fnCodes0 != "")
     {
         Image<double> I;
-        MetaDataVec SFCodes(fnCodes0);
+        MetaDataDb SFCodes(fnCodes0);
 
         for (size_t objId : SFCodes.ids())
         {
@@ -1510,7 +1510,7 @@ void ProgClassifyCL3D::run()
     {
         std::sort(vq.P.begin(), vq.P.end(), SDescendingClusterSort());
         Q = vq.P.size();
-        MetaDataVec SFq, SFclassified, SFaux, SFaux2;
+        MetaDataDb SFq, SFclassified, SFaux, SFaux2;
         for (int q = 0; q < Q; q++)
         {
             SFq.read(formatString("class%06d_images@%s_classes_level_%02d.xmd", q + 1,
@@ -1534,7 +1534,7 @@ void ProgClassifyCL3D::run()
     if (generateAlignedVolumes)
     {
     	node->barrierWait();
-    	MetaDataVec MDimages, MDaligned;
+    	MetaDataDb MDimages, MDaligned;
     	MDimages.read(fnOut+"_images.xmd");
     	FileName fnAligned=fnOut+"_aligned.stk";
     	FileName fnAlignedMD=fnOut+"_aligned.xmd";
@@ -1588,7 +1588,7 @@ void ProgClassifyCL3D::run()
 
 			// Correct the class groups
 			Q = vq.P.size();
-			MetaDataVec SFq, SFqaligned;
+			MetaDataDb SFq, SFqaligned;
 			FileName fnClass;
 			for (int q = 0; q < Q; q++)
 			{

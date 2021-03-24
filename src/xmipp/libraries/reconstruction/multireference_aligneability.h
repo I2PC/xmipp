@@ -30,7 +30,7 @@
 #include <core/xmipp_program.h>
 #include "validation_nontilt.h"
 #include <math.h>
-#include <core/metadata_vec.h>
+#include <core/metadata_db.h>
 #include <string.h>
 #include <data/mask.h>
 #include <core/symmetries.h>
@@ -52,7 +52,7 @@ public:
 
     size_t rank, Nprocessors;
 
-    MetaDataVec mdPartialParticles;
+    MetaDataDb mdPartialParticles;
 
 private:
     size_t Xdim,Ydim,Zdim,Ndim;

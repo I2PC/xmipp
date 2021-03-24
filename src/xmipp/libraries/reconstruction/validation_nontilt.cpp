@@ -61,7 +61,7 @@ void ProgValidationNonTilt::run()
 {
     //Clustering Tendency and Cluster Validity Stephen D. Scott
     randomize_random_generator();
-    MetaDataVec md,mdGallery,mdOut,mdOut2,mdSort;
+    MetaDataDb md,mdGallery,mdOut,mdOut2,mdSort;
     MDRowVec row;
 
     FileName fnOut,fnOut2, fnGallery;
@@ -100,7 +100,7 @@ void ProgValidationNonTilt::run()
     double validation = 0;
     double num_images = 0;
 
-	MetaDataVec tempMd;
+	MetaDataDb tempMd;
 	std::vector<double> sum_u(nSamplesRandom);
 	double sum_w=0;
 	std::vector<double> H0(nSamplesRandom);

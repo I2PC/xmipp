@@ -29,7 +29,7 @@
 //mpirun -np 5 xmipp_mpi_angular_class_average --nJobs 70
 
 #include "parallel/xmipp_mpi.h"
-#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 #include "core/xmipp_image.h"
 #include "data/polar.h"
 
@@ -72,12 +72,12 @@ public:
     unsigned int master_seed;
 
     // Metadata with the list of jobs
-    MetaDataVec mdJobList;
+    MetaDataDb mdJobList;
 
     /** Input and library docfiles */
-    MetaDataVec      DF, DFlib, DFscore;
+    MetaDataDb      DF, DFlib, DFscore;
     /** metadata with classes which have experimental images applied to them */
-    MetaDataVec      DFclassesExp;
+    MetaDataDb      DFclassesExp;
     /** Output rootnames */
     FileName         fn_out, fn_out1, fn_out2, fn_wien, fn_ref;
     /** Column numbers */
@@ -105,7 +105,7 @@ public:
     /** Wiener filter image */
     MultidimArray<double> Mwien;
     /** Selfiles containing all class averages */
-    MetaDataVec      SFclasses, SFclasses1, SFclasses2;
+    MetaDataDb      SFclasses, SFclasses1, SFclasses2;
 
     /** Re-alignment of classes */
 
@@ -211,10 +211,10 @@ public:
         Image<double> avg,
         Image<double> avg1,
         Image<double> avg2,
-        MetaDataVec SFclass,
-        MetaDataVec SFclass1,
-        MetaDataVec SFclass2,
-        MetaDataVec SFclassDiscarded,
+        MetaDataDb SFclass,
+        MetaDataDb SFclass1,
+        MetaDataDb SFclass2,
+        MetaDataDb SFclassDiscarded,
         double w1,
         double w2,
         double old_w,
@@ -228,11 +228,11 @@ public:
             Image<double> avg,
             Image<double> avg1,
             Image<double> avg2,
-            MetaDataVec SFclass,
-            MetaDataVec SFclass1,
-            MetaDataVec SFclass2,
-            MetaDataVec SFclassDiscarded,
-            MetaDataVec _DF,
+            MetaDataDb SFclass,
+            MetaDataDb SFclass1,
+            MetaDataDb SFclass2,
+            MetaDataDb SFclassDiscarded,
+            MetaDataDb _DF,
             double w1,
             double w2,
 	    double w,
@@ -260,8 +260,8 @@ public:
     void reAlignClass(
     		Image<double> &avg1,
     		Image<double> &avg2,
-    		MetaDataVec &SFclass1,
-    		MetaDataVec &SFclass2,
+    		MetaData &SFclass1,
+    		MetaData &SFclass2,
     		std::vector<Image<double> > imgs,
     		std::vector<int> splits,
     		std::vector<int> numbers,
