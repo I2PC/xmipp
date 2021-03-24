@@ -20,24 +20,48 @@ jobs:
     runs-on: ubuntu-16.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
+    # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          
+      - name: Fetch cache
+        uses: actions/cache@v2.1.4
+        with:
+          path: sonarCache
+          key: ${{ runner.os }}-sonarCache
+      
+      - name: Prepare Sonar scanner
+        run: |
+          wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.0.2311-linux.zip
+          unzip -q sonar-scanner-cli-4.6.0.2311-linux.zip
+          echo "${PWD}/sonar-scanner-4.6.0.2311-linux/bin/" >> $GITHUB_PATH
+          wget -nv https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -q build-wrapper-linux-x86.zip          
+          echo "${PWD}/build-wrapper-linux-x86" >> $GITHUB_PATH
       
       - name: Install ccache
         uses: hendrikmuhs/ccache-action@v1.0.3
-        
+                
       - name: Install CUDA
         run: source scripts/install_cuda_github.sh
         env: 
           CUDA_VER: 10.2.89
 
       - name: Install dependencies
-        run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev 
-      
+        run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
+
       - name: Compile Xmipp
-        run: ./xmipp noAsk
+        run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
         env:
           TRAVIS: 1
-          XMIPP_NOSCIPION: True
           BUILD_TESTS: False
+          
+      - name: SonarCloud Scan
+        run: |
+          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=i2pc -Dsonar.login=$SONAR_TOKEN
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
