@@ -67,11 +67,17 @@ void ProgApplyVolDeformSph::run()
 	line = readNthLine(1);
 	clnm = string2vector(line);
 	fillVectorTerms(vL1,vN,vL2,vM);
+	getBasisConstants(vL1,vL2);
 	int l1,n,l2,m;
-	size_t idxY0=(clnm.size()-8)/3;
+	size_t idxY0=(clnm.size())/3;
 	size_t idxZ0=2*idxY0;
 	const MultidimArray<double> &mVI=VI();
-	double voxelI;
+	double voxelI=0.0;
+	double Rmax=basisParams[2];
+	double Rmax2=Rmax*Rmax;
+	double iRmax=1.0/Rmax;
+	double zsph=0.0;
+	double constant_zsph = 0.0;
 	for (int k=STARTINGZ(mVI); k<=FINISHINGZ(mVI); k++)
 	{
 		for (int i=STARTINGY(mVI); i<=FINISHINGY(mVI); i++)
@@ -79,37 +85,35 @@ void ProgApplyVolDeformSph::run()
 			for (int j=STARTINGX(mVI); j<=FINISHINGX(mVI); j++)
 			{
 				double gx=0.0, gy=0.0, gz=0.0;
-				for (size_t idx=0; idx<idxY0; idx++)
+				double k2=k*k;
+				double kr=k*iRmax;
+				double k2i2=k2+i*i;
+				double ir=i*iRmax;
+				double r2=k2i2+j*j;
+				double jr=j*iRmax;
+				double rr=std::sqrt(r2)*iRmax;
+				if (r2<Rmax2)
 				{
-					double Rmax=basisParams[2];
-					double Rmax2=Rmax*Rmax;
-					double iRmax=1.0/Rmax;
-					double k2=k*k;
-					double kr=k*iRmax;
-					double k2i2=k2+i*i;
-					double ir=i*iRmax;
-					double r2=k2i2+j*j;
-					double jr=j*iRmax;
-					double rr=std::sqrt(r2)*iRmax;
-					double zsph=0.0;
-					if (r2<Rmax2)
+					for (size_t idx=0; idx<idxY0; idx++)
 					{
-                        l1 = VEC_ELEM(vL1,idx);
-                        n = VEC_ELEM(vN,idx);
-                        l2 = VEC_ELEM(vL2,idx);
-                        m = VEC_ELEM(vM,idx);
-                        zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-					}
-                    // if (rr>0 || (l2==0 && l1==0))
-					if (rr>0 || l2==0)
-					{
-						gx += clnm[idx]        *(zsph);
-						gy += clnm[idx+idxY0]  *(zsph);
-						gz += clnm[idx+idxZ0]  *(zsph);
+						l1 = VEC_ELEM(vL1,idx);
+						n = VEC_ELEM(vN,idx);
+						l2 = VEC_ELEM(vL2,idx);
+						m = VEC_ELEM(vM,idx);
+						constant_zsph = const_zsph[idx];
+						zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+						// if (rr>0 || (l2==0 && l1==0))
+						if (rr>0 && l2!=0)  //? Seems to work
+						// if (rr>0 || l2==0)
+						{
+							gx += clnm[idx]        *(zsph);
+							gy += clnm[idx+idxY0]  *(zsph);
+							gz += clnm[idx+idxZ0]  *(zsph);
+						}
 					}
 				}
 				voxelI=mVI.interpolatedElement3D(j+gx,i+gy,k+gz);
-				VO(k,i,j)=voxelI;
+				A3D_ELEM(VO(), k, i, j)=voxelI;
 			}
 		}
 	}
@@ -143,7 +147,7 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
 									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
     int idx = 0;
-	int vecSize = (clnm.size()-8)/3;
+	int vecSize = (clnm.size())/3;
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
@@ -164,4 +168,19 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
             }
         }
     }
+}
+
+void ProgApplyVolDeformSph::getBasisConstants(Matrix1D<int> &vL1, Matrix1D<int> &vL2) 
+{
+	double constant = 0.0;
+	FOR_ALL_ELEMENTS_IN_MATRIX1D(vL2) {
+		if (VEC_ELEM(vL2,i) == 0) {
+			int l1 = VEC_ELEM(vL1,i);
+			constant = -ZernikeSphericalHarmonics(l1,0,0,0,0,0,0,0);
+			const_zsph.push_back(constant);
+		}
+		else {
+			const_zsph.push_back(0.0);
+		}
+	}
 }

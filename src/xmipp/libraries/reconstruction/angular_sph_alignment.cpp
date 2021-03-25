@@ -298,7 +298,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
     }
 
     double massDiff=std::abs(sumV-sumVd)/sumV;
-    double retval=cost+lambda*(deformation);
+    double retval=cost+lambda*(deformation + massDiff);
 	if (showOptimization)
 		std::cout << cost << " " << deformation << " " << lambda*deformation << " " << sumV << " " << sumVd << " " << massDiff << " " << retval << std::endl;
 	return retval;
