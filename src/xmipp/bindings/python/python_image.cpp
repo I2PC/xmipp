@@ -882,6 +882,14 @@ Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
 
                 ImageGeneric Iout;
                 Iout.setDatatype(self->image->getDatatype());
+                if (strcmp(ext,"jpg")==0)
+                {
+    	            ImageGeneric *image = self->image;
+    	            image->convert2Datatype(DT_Double);
+    	            MultidimArray<double> * pImage=NULL;
+    	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
+    	            pImage->rangeAdjust(0,255);
+                }
 
 				size_t xdim, ydim, zdim, ndim;
 				MULTIDIM_ARRAY_GENERIC(*(self->image)).getDimensions(xdim, ydim, zdim, ndim);
