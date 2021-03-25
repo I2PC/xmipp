@@ -38,8 +38,8 @@
  public:
     /** Filename of the reference volume */
     FileName fnVolR;
-    /// Filename of input particles
-    FileName fnParticles;
+    /// Filename of input xmd particles and particle images
+    FileName fnParticles, fnImage;
     /// Filename of output particles
     FileName fnOut;
     /// Filename of input mask
@@ -50,12 +50,13 @@
  public:
     // Input particles metadata
     MetaData mdParticles;
-    // Input subtraction parameters
-    double cutFreq, lambda;
+ 	MDRow row;
+    // Input subtraction parameters and particle angles
+    double cutFreq, lambda, rot, tilt, psi;
  	int sigma, iter;
-    // Input image
- 	Image<double> V, I;
- 	// Theoretical projection
+    // Input volume, particle, subtraction mask, inverse subtraction mask, gaussian-filtered subtraction mask, volume mask
+ 	Image<double> V, I, mask, PmaskInv, PmaskG, maskVol;
+ 	// Theoretical projection of volume, subtraction mask and volume mask
  	Projection P, Pmask, PmaskVol;
  	// Filter
     FourierFilter filter;

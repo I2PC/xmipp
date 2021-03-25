@@ -40,11 +40,11 @@ void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
 	DIRECT_MULTIDIM_ELEM(I,n)*=DIRECT_MULTIDIM_ELEM(mask,n);
 }
 
-void POCSnonnegativeProj(MultidimArray<double> &I)
-{
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
-}
+//void POCSnonnegativeProj(MultidimArray<double> &I)
+//{
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
+//	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
+//}
 
 void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda)
 {
@@ -83,13 +83,21 @@ void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, Mu
 	DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
 }
 
-void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact, double energy)
+//void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact, double energy)
+//{
+//	Idiff = Idiff - Iact;
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
+//	energy+=DIRECT_MULTIDIM_ELEM(Idiff,n)*DIRECT_MULTIDIM_ELEM(Idiff,n);
+//	energy = sqrt(energy/MULTIDIM_SIZE(Idiff));
+//	std::cout<< "Energy: " << energy << std::endl;
+//}
+
+void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 {
-	Idiff = Idiff - Iact;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
-	energy+=DIRECT_MULTIDIM_ELEM(Idiff,n)*DIRECT_MULTIDIM_ELEM(Idiff,n);
-	energy = sqrt(energy/MULTIDIM_SIZE(Idiff));
-	std::cout<< "Energy: " << energy << std::endl;
+	double maxMaskVol, minMaskVol;
+	mask().computeDoubleMinMax(minMaskVol, maxMaskVol);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
+		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.1*maxMaskVol) ? 1:0;
 }
 
  // Read arguments ==========================================================
@@ -157,15 +165,13 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
  void ProgSubtractProjection::run()
  {
 	show();
+	// Read input volume and particles.xmd
 	V.read(fnVolR);
 	V().setXmippOrigin();
  	MultidimArray<double> &mV=V();
  	mdParticles.read(fnParticles);
- 	MDRow row;
- 	double rot, tilt, psi;
- 	FileName fnImage;
-	Image<double> mask, maskVol;
 
+ 	// Read or create input masks
 	if (fnMaskVol!="")
 	{
 		maskVol.read(fnMaskVol);
@@ -190,24 +196,26 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		mask().initConstant(1.0);
 	}
 
-	// Gaussian LPF to smooth mask
-	FourierFilter Filter;
-	Filter.FilterShape=REALGAUSSIAN;
-	Filter.FilterBand=LOWPASS;
-	Filter.w1=sigma;
-	Filter.applyMaskSpace(mask());
+	// Gaussian LPF to smooth mask => after project!
+	FourierFilter FilterG;
+	FilterG.FilterShape=REALGAUSSIAN;
+	FilterG.FilterBand=LOWPASS;
+	FilterG.w1=sigma;
+//	Filter.applyMaskSpace(mask());
 
-	// LPF to filter at desired resolution
+
+	// LPF to filter at desired resolution => just for volume projection?
 	FourierFilter Filter2;
 	Filter2.FilterBand=LOWPASS;
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
 
- 	int n = 0;
+ 	int ix_particle = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
+    	// Read particle image and metadata
     	mdParticles.getRow(row,__iter.objId);
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
@@ -222,13 +230,18 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 		MultidimArray<double> &mMaskVol=maskVol();
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
     	// Binarize volume mask
-		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskVol())
-			DIRECT_MULTIDIM_ELEM(PmaskVol,n) =(DIRECT_MULTIDIM_ELEM(PmaskVol,n)>1) ? 1:0;
+    	BinarizeMask(maskVol(), PmaskVol());
+
+//    	double maxMaskVol, minMaskVol;
+//    	maskVol().computeDoubleMinMax(minMaskVol, maxMaskVol);
+//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskVol())
+//			DIRECT_MULTIDIM_ELEM(PmaskVol,n) =(DIRECT_MULTIDIM_ELEM(PmaskVol,n)>0.1*maxMaskVol) ? 1:0;
+
 		// Apply bin volume mask to particle and volume projection
 		POCSmaskProj(PmaskVol(), P());
 		POCSmaskProj(PmaskVol(), I());
 
-    	// Check if particle has CTF
+    	// Check if particle has CTF and apply it
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
      	{
      		hasCTF=true;
@@ -279,35 +292,53 @@ void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact
 			}
 		}
 
-		Image<double> IFiltered;
-    	I.read(fnImage);
-		IFiltered() = I();
-		if (cutFreq!=0)
-			Filter2.applyMaskSpace(IFiltered());
+//		Image<double> IFiltered;
+//    	I.read(fnImage);
+//		IFiltered() = I();
+//		if (cutFreq!=0)
+//			Filter2.applyMaskSpace(IFiltered());
 
-		if (fnPart!="" && fnProj!="")
-		{
-			IFiltered.write(fnPart);
-			P.write(fnProj);
-		}
-
+		// Project subtraction mask
 		MultidimArray<double> &mMask=mask();
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	// Binarize subtraction mask
+    	BinarizeMask(mask(), Pmask());
 
-    	// invert projected mask
+		// Save binarized mask and projection adjusted
+		if (fnPart!="" && fnProj!="")
+		{
+			Pmask.write(fnPart);
+			P.write(fnProj);
+		}
+		std::cout << "--------------3---------------" << std::endl;
+    	// Invert projected mask
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
-    			DIRECT_MULTIDIM_ELEM(Pmask,n) = (DIRECT_MULTIDIM_ELEM(Pmask,n)*(-1))+1;
-//    	Pmask.write("mask_inv.mrc");
+		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(Pmask,n)*(-1))+1;  // FAIL!!
+		std::cout << "--------------4---------------" << std::endl;
 
+
+    	// Filter mask with Gaussian
+		FilterG.applyMaskSpace(Pmask());
+		std::cout << "--------------5---------------" << std::endl;
+
+		// Save binarized mask and projection adjusted
+//		if (fnPart!="" && fnProj!="")
+//		{
+//			std::cout << "--------------6---------------" << std::endl;
+//			Pmask.write(fnPart);
+//			P.write(fnProj);
+//		}
+
+		std::cout << "--------------7---------------" << std::endl;
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-		DIRECT_MULTIDIM_ELEM(I,n) = DIRECT_MULTIDIM_ELEM(I,n)*(1-DIRECT_MULTIDIM_ELEM(Pmask,n)) + (DIRECT_MULTIDIM_ELEM(IFiltered, n) -
-				std::min(DIRECT_MULTIDIM_ELEM(P,n), DIRECT_MULTIDIM_ELEM(IFiltered, n)))*DIRECT_MULTIDIM_ELEM(Pmask,n);
+		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-(DIRECT_MULTIDIM_ELEM(P,n)*DIRECT_MULTIDIM_ELEM(PmaskInv,n))) * (DIRECT_MULTIDIM_ELEM(Pmask,n));
 
-		n++;
-		FileName out = formatString("%d@%s.mrcs", n, fnOut.c_str());
+		// Save subtracted particles in metadata
+		ix_particle++;
+		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
 		I.write(out);
-		mdParticles.setValue(MDL_IMAGE, out, n);
+		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
     }
     mdParticles.write(fnParticles);
  }
