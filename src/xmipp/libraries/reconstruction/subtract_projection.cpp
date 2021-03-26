@@ -201,8 +201,6 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
-//	Filter.applyMaskSpace(mask());
-
 
 	// LPF to filter at desired resolution => just for volume projection?
 	FourierFilter Filter2;
@@ -231,11 +229,8 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
     	// Binarize volume mask
     	BinarizeMask(maskVol(), PmaskVol());
-
-//    	double maxMaskVol, minMaskVol;
-//    	maskVol().computeDoubleMinMax(minMaskVol, maxMaskVol);
-//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskVol())
-//			DIRECT_MULTIDIM_ELEM(PmaskVol,n) =(DIRECT_MULTIDIM_ELEM(PmaskVol,n)>0.1*maxMaskVol) ? 1:0;
+    	// Filter mask with Gaussian
+		FilterG.applyMaskSpace(PmaskVol());
 
 		// Apply bin volume mask to particle and volume projection
 		POCSmaskProj(PmaskVol(), P());
@@ -304,32 +299,21 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
     	// Binarize subtraction mask
     	BinarizeMask(mask(), Pmask());
 
+    	// Invert projected mask
+		PmaskInv = Pmask;
+    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskInv())
+		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(PmaskInv,n)*(-1))+1;
+
+    	// Filter mask with Gaussian
+		FilterG.applyMaskSpace(Pmask());
+
 		// Save binarized mask and projection adjusted
 		if (fnPart!="" && fnProj!="")
 		{
 			Pmask.write(fnPart);
 			P.write(fnProj);
 		}
-		std::cout << "--------------3---------------" << std::endl;
-    	// Invert projected mask
-    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask())
-		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(Pmask,n)*(-1))+1;  // FAIL!!
-		std::cout << "--------------4---------------" << std::endl;
 
-
-    	// Filter mask with Gaussian
-		FilterG.applyMaskSpace(Pmask());
-		std::cout << "--------------5---------------" << std::endl;
-
-		// Save binarized mask and projection adjusted
-//		if (fnPart!="" && fnProj!="")
-//		{
-//			std::cout << "--------------6---------------" << std::endl;
-//			Pmask.write(fnPart);
-//			P.write(fnProj);
-//		}
-
-		std::cout << "--------------7---------------" << std::endl;
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-(DIRECT_MULTIDIM_ELEM(P,n)*DIRECT_MULTIDIM_ELEM(PmaskInv,n))) * (DIRECT_MULTIDIM_ELEM(Pmask,n));
