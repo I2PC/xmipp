@@ -27,21 +27,17 @@ protected:
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
-        //Md1
+        // Md1
         id = mDsource.addObject();
-        mDsource.setValue(MDL_X,1.,id);
-        mDsource.setValue(MDL_Y,2.,id);
+        mDsourceIds.push_back(id);
+        mDsource.setValue(MDL_X, 1., id);
+        mDsource.setValue(MDL_Y, 2., id);
         id = mDsource.addObject();
-        mDsource.setValue(MDL_X,3.,id);
-        mDsource.setValue(MDL_Y,4.,id);
-        //Mdjoin
-        id = mDjoin.addObject();
-        mDjoin.setValue(MDL_X,1.,id);
-        mDjoin.setValue(MDL_Z,222.,id);
-        id = mDjoin.addObject();
-        mDjoin.setValue(MDL_X,3.,id);
-        mDjoin.setValue(MDL_Z,444.,id);
-        //mDanotherSource
+        mDsourceIds.push_back(id);
+        mDsource.setValue(MDL_X, 3., id);
+        mDsource.setValue(MDL_Y, 4., id);
+
+        // mDanotherSource
         id = mDanotherSource.addObject();
         mDanotherSource.setValue(MDL_X,11.,id);
         mDanotherSource.setValue(MDL_Y,22.,id);
@@ -49,7 +45,7 @@ protected:
         mDanotherSource.setValue(MDL_X,33.,id);
         mDanotherSource.setValue(MDL_Y,44.,id);
 
-        //Md UnionAll
+        // Md UnionAll
         mDunion = mDsource;
         id1 = mDunion.addObject();
         mDunion.setValue(MDL_X,11.,id1);
@@ -59,19 +55,32 @@ protected:
         mDunion.setValue(MDL_Y,44.,id2);
     }
 
-    // virtual void TearDown() {}//Destructor
-
-    MetaDataVec mDsource,mDanotherSource;
-    MetaDataVec mDunion, mDjoin;
-    size_t id, id1,id2;
+    MetaDataVec mDsource, mDanotherSource;
+    MetaDataVec mDunion;
+    size_t id, id1, id2;
+    std::vector<int> mDsourceIds;
 };
 
-TEST_F( MetadataTest, SimilarToOperator)
+TEST_F(MetadataTest, IdIteration)
+{
+    auto it = mDsource.ids().begin();
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    ASSERT_EQ(it, mDsource.ids().end());
+
+    size_t i = 0;
+    for (size_t objId : mDsource.ids()) {
+        ASSERT_EQ(objId, mDsourceIds[i]);
+        i++;
+    }
+    ASSERT_EQ(i, mDsourceIds.size());
+}
+
+TEST_F(MetadataTest, SimilarToOperator)
 {
     ASSERT_EQ(mDsource,mDsource);
     ASSERT_FALSE(mDsource==mDanotherSource);
     //attribute order should not be important
-    MetaDataVec auxMetadata ;
+    MetaDataVec auxMetadata;
     id = auxMetadata.addObject();
     auxMetadata.setValue(MDL_Y,2.,id);
     auxMetadata.setValue(MDL_X,1.,id);
@@ -97,7 +106,7 @@ TEST_F( MetadataTest, SimilarToOperator)
  *
  */
 
-TEST_F( MetadataTest, AddLabel)
+TEST_F(MetadataTest, AddLabel)
 {
     MetaDataVec auxMetadata = mDunion;
     auxMetadata.addLabel(MDL_Z);
@@ -109,7 +118,7 @@ TEST_F( MetadataTest, AddLabel)
     EXPECT_EQ(v2,v1);
 }
 
-TEST_F( MetadataTest, AddRow)
+TEST_F(MetadataTest, AddRow)
 {
     MetaDataVec md, md2;
 
@@ -132,7 +141,7 @@ TEST_F( MetadataTest, AddRow)
     EXPECT_EQ(md2, mDsource);
 }
 
-TEST_F( MetadataTest, AddRowsPerformance)
+TEST_F(MetadataTest, AddRowsPerformance)
 {
     MetaDataVec md, md2, md3;
     MDRowVec row;  // Sample row
@@ -199,7 +208,7 @@ TEST_F( MetadataTest, AddRowsPerformance)
     EXPECT_EQ(md2, md3);
 }
 
-TEST_F( MetadataTest, addLabelAlias)
+TEST_F(MetadataTest, addLabelAlias)
 {
     //metada with no xmipp labels    //metada with no xmipp labels
     FileName fnNonXmippSTAR = (String)"metadata/noXmipp.xmd";
@@ -208,7 +217,7 @@ TEST_F( MetadataTest, addLabelAlias)
     EXPECT_EQ(mDsource, md);
 }
 
-TEST_F( MetadataTest, getNewAlias)
+TEST_F(MetadataTest, getNewAlias)
 {
     //metada with no xmipp labels
     FileName fnNonXmippSTAR = (String)"metadata/noXmipp.xmd";
@@ -226,7 +235,7 @@ TEST_F( MetadataTest, getNewAlias)
         EXPECT_FLOAT_EQ(yValues[i], textToFloat(y2Values[i]));
 }
 
-TEST_F( MetadataTest, Clear)
+TEST_F(MetadataTest, Clear)
 {
     MetaDataVec auxMetadata = mDsource;
     EXPECT_EQ((size_t)2,auxMetadata.size());
@@ -234,13 +243,13 @@ TEST_F( MetadataTest, Clear)
     EXPECT_EQ((size_t)0,auxMetadata.size());
 }
 
-TEST_F( MetadataTest, Copy)
+TEST_F(MetadataTest, Copy)
 {
     MetaDataVec auxMetadata = mDsource;
     EXPECT_EQ(mDsource,auxMetadata);
 }
 
-TEST_F( MetadataTest, MDInfo)
+TEST_F(MetadataTest, MDInfo)
 {
     //char sfnStar[64] = "";
     //char sfnSqlite[64] = "";
@@ -283,7 +292,7 @@ TEST_F( MetadataTest, MDInfo)
     unlink(fnSTAR.c_str());
 }
 
-TEST_F( MetadataTest,multiWrite)
+TEST_F(MetadataTest,multiWrite)
 {
     FileName fn   ;
     // FileName fnDB   ;
@@ -314,7 +323,7 @@ TEST_F( MetadataTest,multiWrite)
     unlink(fnSTAR.c_str());
 }
 
-TEST_F( MetadataTest, ReadEmptyBlock)
+TEST_F(MetadataTest, ReadEmptyBlock)
 {
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
@@ -333,7 +342,7 @@ TEST_F( MetadataTest, ReadEmptyBlock)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, GetBlocksInMetadata)
+TEST_F(MetadataTest, GetBlocksInMetadata)
 {
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
@@ -366,7 +375,7 @@ TEST_F( MetadataTest, GetBlocksInMetadata)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, CheckRegularExpression)
+TEST_F(MetadataTest, CheckRegularExpression)
 {
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
@@ -409,7 +418,7 @@ TEST_F( MetadataTest, CheckRegularExpression)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, CheckRegularExpression2)
+TEST_F(MetadataTest, CheckRegularExpression2)
 {
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
@@ -446,7 +455,7 @@ TEST_F( MetadataTest, CheckRegularExpression2)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, compareTwoMetadataFiles)
+TEST_F(MetadataTest, compareTwoMetadataFiles)
 {
     XMIPP_TRY
     char sfn[64] = "";
@@ -503,7 +512,7 @@ TEST_F( MetadataTest, compareTwoMetadataFiles)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, FillExpand)
+TEST_F(MetadataTest, FillExpand)
 {
     XMIPP_TRY
     //create 2 temporary CTFs plus a metadata with dependences
@@ -571,7 +580,7 @@ TEST_F( MetadataTest, FillExpand)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, ImportObject)
+TEST_F(MetadataTest, ImportObject)
 {
     //FIXME importObjects test is in the test named select
     MetaDataVec auxMetadata = mDsource;
@@ -580,7 +589,7 @@ TEST_F( MetadataTest, ImportObject)
     EXPECT_EQ(auxMetadata,mDunion);
 }
 
-TEST_F( MetadataTest, MultiQuery)
+TEST_F(MetadataTest, MultiQuery)
 {
     MetaDataVec auxMetadata;
     MetaDataVec auxMetadata3;
@@ -623,7 +632,7 @@ TEST_F( MetadataTest, MultiQuery)
     EXPECT_EQ(outMetadata,auxMetadata);
 }
 
-TEST_F( MetadataTest, MDValueEQ)
+TEST_F(MetadataTest, MDValueEQ)
 {
     try
     {
@@ -649,7 +658,7 @@ TEST_F( MetadataTest, MDValueEQ)
     }
 }
 
-TEST_F( MetadataTest, Operate)
+TEST_F(MetadataTest, Operate)
 {
     MetaDataVec auxMetadata = mDunion;
     MetaDataVec auxMetadata2 = mDunion;
@@ -663,8 +672,9 @@ TEST_F( MetadataTest, Operate)
 
     EXPECT_EQ(auxMetadata,auxMetadata2);
 }
+
 #include <math.h>
-TEST_F( MetadataTest, OperateExt)
+TEST_F(MetadataTest, OperateExt)
 {
     MetaDataVec auxMetadata = mDunion;
     MetaDataVec auxMetadata2 = mDunion;
@@ -680,7 +690,7 @@ TEST_F( MetadataTest, OperateExt)
     EXPECT_EQ(auxMetadata,auxMetadata2);
 }
 
-TEST_F( MetadataTest, RegularExp)
+TEST_F(MetadataTest, RegularExp)
 {
     XMIPP_TRY
 
@@ -747,7 +757,7 @@ TEST_F( MetadataTest, RegularExp)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, Query)
+TEST_F(MetadataTest, Query)
 {
     MetaDataVec auxMetadata;
     MetaDataVec auxMetadata3;
@@ -780,7 +790,7 @@ TEST_F( MetadataTest, Query)
 }
 
 
-TEST_F( MetadataTest, Randomize)
+TEST_F(MetadataTest, Randomize)
 {
     MetaDataVec auxMetadata;
     const int tries = 50;
@@ -800,7 +810,7 @@ TEST_F( MetadataTest, Randomize)
     FAIL() << "Randomization did not change the content of the metadata even after " << tries << " times.";
 }
 
-TEST_F( MetadataTest, ReadMultipleBlocks)
+TEST_F(MetadataTest, ReadMultipleBlocks)
 {
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testReadMultipleBlocks_XXXXXX", sizeof sfn);
@@ -852,7 +862,7 @@ TEST_F( MetadataTest, ReadMultipleBlocks)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, ReadEmptyBlocks)
+TEST_F(MetadataTest, ReadEmptyBlocks)
 {
 #define sizesfn 64
     char sfn[sizesfn] = "";
@@ -895,7 +905,7 @@ TEST_F( MetadataTest, ReadEmptyBlocks)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, ReadEmptyBlocksII)
+TEST_F(MetadataTest, ReadEmptyBlocksII)
 {
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testReadMultipleBlocks_XXXXXX", sizeof sfn);
@@ -914,7 +924,7 @@ TEST_F( MetadataTest, ReadEmptyBlocksII)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, ReadWrite)
+TEST_F(MetadataTest, ReadWrite)
 {
     //temp file name
     char sfn[32] = "";
@@ -929,7 +939,7 @@ TEST_F( MetadataTest, ReadWrite)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, WriteIntermediateBlock)
+TEST_F(MetadataTest, WriteIntermediateBlock)
 {
     //read metadata block between another two
     FileName filename("metadata/WriteIntermediateBlock.xmd");
@@ -972,7 +982,7 @@ TEST_F( MetadataTest, WriteIntermediateBlock)
     unlink(sfn2);
 }
 
-TEST_F( MetadataTest, ExistsBlock)
+TEST_F(MetadataTest, ExistsBlock)
 {
     //temp file name
     char sfn[32] = "";
@@ -990,7 +1000,7 @@ TEST_F( MetadataTest, ExistsBlock)
     unlink(sfn);
 }
 
-TEST_F( MetadataTest, ReadWriteAppendBlock)
+TEST_F(MetadataTest, ReadWriteAppendBlock)
 {
     XMIPP_TRY
     //temp file name
@@ -1008,7 +1018,7 @@ TEST_F( MetadataTest, ReadWriteAppendBlock)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, RemoveDuplicates)
+TEST_F(MetadataTest, RemoveDuplicates)
 {
     MetaDataVec auxMetadata1,auxMetadata3;
     id = auxMetadata3.addObject();
@@ -1024,7 +1034,7 @@ TEST_F( MetadataTest, RemoveDuplicates)
     EXPECT_EQ(auxMetadata1,mDsource);//print mDjoin if error
 }
 
-TEST_F( MetadataTest, Removelabel)
+TEST_F(MetadataTest, Removelabel)
 {
     MetaDataVec auxMetadata = mDunion;
     auxMetadata.removeLabel(MDL_X);
@@ -1034,7 +1044,7 @@ TEST_F( MetadataTest, Removelabel)
     EXPECT_EQ(v2,v1);
 }
 
-TEST_F( MetadataTest, Select)
+TEST_F(MetadataTest, Select)
 {
     MetaDataVec auxMetadata;
     MetaDataVec auxMetadata2;
@@ -1047,12 +1057,12 @@ TEST_F( MetadataTest, Select)
 }
 
 
-TEST_F( MetadataTest, Size)
+TEST_F(MetadataTest, Size)
 {
     EXPECT_EQ((size_t)2, mDsource.size());
 }
 
-TEST_F( MetadataTest, Sort)
+TEST_F(MetadataTest, Sort)
 {
     MetaDataVec auxMetadata,auxMetadata2,auxMetadata3,outMetadata;
     id = auxMetadata.addObject();
@@ -1089,7 +1099,7 @@ TEST_F( MetadataTest, Sort)
 
 //check if mdl label match its type and
 //check if int is different from size_t
-TEST_F( MetadataTest, setGetValue)
+TEST_F(MetadataTest, setGetValue)
 {
     size_t t;
     int i;
@@ -1105,7 +1115,7 @@ TEST_F( MetadataTest, setGetValue)
     std::cerr << "TEST COMMENT: you should get the ERROR: Mismatch Label (order_) and value type(INT)" <<std::endl;
     EXPECT_THROW(auxMetadata.getValue(MDL_ORDER, i, id), XmippError);
 }
-TEST_F( MetadataTest, Comment)
+TEST_F(MetadataTest, Comment)
 {
     XMIPP_TRY
     char sfn[64] = "";
@@ -1128,7 +1138,7 @@ TEST_F( MetadataTest, Comment)
     XMIPP_CATCH
 }
 //read file with vector
-TEST_F( MetadataTest, getValue)
+TEST_F(MetadataTest, getValue)
 {
     XMIPP_TRY
     std::vector<double> v1(3);
@@ -1148,7 +1158,7 @@ TEST_F( MetadataTest, getValue)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, getValueDefault)
+TEST_F(MetadataTest, getValueDefault)
 {
     XMIPP_TRY
     MetaDataVec auxMD1;
@@ -1180,7 +1190,8 @@ TEST_F( MetadataTest, getValueDefault)
 
     XMIPP_CATCH
 }
-TEST_F( MetadataTest, getValueAbort)
+
+TEST_F(MetadataTest, getValueAbort)
 {
     XMIPP_TRY
     MetaDataVec auxMD1;
@@ -1198,7 +1209,7 @@ TEST_F( MetadataTest, getValueAbort)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, CopyColumn)
+TEST_F(MetadataTest, CopyColumn)
 {
     XMIPP_TRY
     MetaDataVec md1(mDsource), md2(mDsource);
@@ -1216,7 +1227,7 @@ TEST_F( MetadataTest, CopyColumn)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, RenameColumn)
+TEST_F(MetadataTest, RenameColumn)
 {
     XMIPP_TRY
     MetaDataVec md1(mDsource);
@@ -1235,7 +1246,7 @@ TEST_F( MetadataTest, RenameColumn)
 }
 
 //Copy images on metadata using ImageConvert logic
-TEST_F( MetadataTest, copyImages)
+TEST_F(MetadataTest, copyImages)
 {
     XMIPP_TRY
     FileName fn = "metadata/smallStack.stk";
@@ -1302,7 +1313,7 @@ TEST_F( MetadataTest, copyImages)
     XMIPP_CATCH
 }
 
-TEST_F( MetadataTest, updateRow)
+TEST_F(MetadataTest, updateRow)
 {
     ASSERT_EQ(mDsource,mDsource);
     ASSERT_FALSE(mDsource==mDanotherSource);
