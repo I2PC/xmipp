@@ -128,12 +128,9 @@ TEST_F(MetadataTest, AddLabel)
 {
     MetaDataVec auxMetadata = mDunion;
     auxMetadata.addLabel(MDL_Z);
-    std::vector<MDLabel> v1,v2;
-    v1.push_back(MDL_X);
-    v1.push_back(MDL_Y);
-    v1.push_back(MDL_Z);
-    v2 = auxMetadata.getActiveLabels();
-    EXPECT_EQ(v2,v1);
+    std::vector<MDLabel> v1 = {MDL_X, MDL_Y, MDL_Z};
+    std::vector<MDLabel> v2 = auxMetadata.getActiveLabels();
+    EXPECT_EQ(v2, v1);
 }
 
 TEST_F(MetadataTest, AddRow)
