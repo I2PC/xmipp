@@ -597,10 +597,9 @@ TEST_F(MetadataTest, FillExpand)
 
 TEST_F(MetadataTest, ImportObject)
 {
-    //FIXME importObjects test is in the test named select
     MetaDataVec auxMetadata = mDsource;
-    //auxMetadata.importObject(mDunion, id1, false); FIXME
-    //auxMetadata.importObject(mDunion, id2, false);
+    for (size_t objId : mDanotherSource.ids())
+        auxMetadata.importObject(mDanotherSource, objId, false);
     EXPECT_EQ(auxMetadata, mDunion);
 }
 
