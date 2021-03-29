@@ -43,9 +43,6 @@ public:
     /** Vector containing the deformation coefficients */
 	std::vector<double> clnm;
 
-    /** Vector containing the basis constants */
-	std::vector<double> const_zsph;
-
     /** Vector containing the degrees and Rmax of the basis */
 	std::vector<double> basisParams;
 
@@ -74,9 +71,6 @@ public:
     /** Fill degree and order vectors */
     void fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, 
 						 Matrix1D<int> &vL2, Matrix1D<int> &vM);
-
-    /** Fill basis constants vector */
-    void getBasisConstants(Matrix1D<int> &vL1, Matrix1D<int> &vL2);
 };
 //@}
 #endif

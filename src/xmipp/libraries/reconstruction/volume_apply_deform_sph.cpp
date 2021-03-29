@@ -60,14 +60,12 @@ void ProgApplyVolDeformSph::run()
 	VI.read(fn_vol);
 	VI().setXmippOrigin();
 	VO().initZeros(VI());
-	VO().setXmippOrigin();
 	std::string line;
 	line = readNthLine(0);
 	basisParams = string2vector(line);
 	line = readNthLine(1);
 	clnm = string2vector(line);
 	fillVectorTerms(vL1,vN,vL2,vM);
-	getBasisConstants(vL1,vL2);
 	int l1,n,l2,m;
 	size_t idxY0=(clnm.size())/3;
 	size_t idxZ0=2*idxY0;
@@ -77,7 +75,6 @@ void ProgApplyVolDeformSph::run()
 	double Rmax2=Rmax*Rmax;
 	double iRmax=1.0/Rmax;
 	double zsph=0.0;
-	double constant_zsph = 0.0;
 	for (int k=STARTINGZ(mVI); k<=FINISHINGZ(mVI); k++)
 	{
 		for (int i=STARTINGY(mVI); i<=FINISHINGY(mVI); i++)
@@ -100,11 +97,10 @@ void ProgApplyVolDeformSph::run()
 						n = VEC_ELEM(vN,idx);
 						l2 = VEC_ELEM(vL2,idx);
 						m = VEC_ELEM(vM,idx);
-						constant_zsph = const_zsph[idx];
 						zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 						// if (rr>0 || (l2==0 && l1==0))
-						if (rr>0 && l2!=0)  //? Seems to work
-						// if (rr>0 || l2==0)
+//						if (rr>0 && l2!=0)  //? Seems to work
+						if (rr>0 || l2==0)
 						{
 							gx += clnm[idx]        *(zsph);
 							gy += clnm[idx+idxY0]  *(zsph);
@@ -168,19 +164,4 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
             }
         }
     }
-}
-
-void ProgApplyVolDeformSph::getBasisConstants(Matrix1D<int> &vL1, Matrix1D<int> &vL2) 
-{
-	double constant = 0.0;
-	FOR_ALL_ELEMENTS_IN_MATRIX1D(vL2) {
-		if (VEC_ELEM(vL2,i) == 0) {
-			int l1 = VEC_ELEM(vL1,i);
-			constant = -ZernikeSphericalHarmonics(l1,0,0,0,0,0,0,0);
-			const_zsph.push_back(constant);
-		}
-		else {
-			const_zsph.push_back(0.0);
-		}
-	}
 }
