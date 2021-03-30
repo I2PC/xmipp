@@ -1035,7 +1035,7 @@ void ProgClassifySignificant::run()
 	progress_bar(setIds.size());
 
 	// Write output
-	MetaDataVec md;
+	MetaDataDb md;
 	for (size_t ivol=0; ivol<projector.size(); ivol++)
 	{
 		size_t objId=md.addObject();

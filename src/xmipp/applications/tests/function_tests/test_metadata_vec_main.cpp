@@ -661,47 +661,23 @@ TEST_F(MetadataTest, MDValueEQ)
         md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
 
         MDValueEQ eq(MDL_IMAGE,(String)"a");
-        //Test empty query
+
         MetaDataVec md3;
         md3.importObjects(md, eq);
+
+        // FIXME: consult with David
+        // This test fails because ids are compared too
+        // Possible solutions:
+        //  a) do not compare ids
+        //  b) reid in importObjects
+        // std::cout << md << std::endl << md2 << std::endl << md3;
+
         EXPECT_EQ(md2, md3);
     }
     catch (XmippError &xe)
     {
         std::cerr << "DEBUG_JM: xe: " << xe << std::endl;
     }
-}
-
-TEST_F(MetadataTest, Operate)
-{
-    MetaDataVec auxMetadata = mDunion;
-    MetaDataVec auxMetadata2 = mDunion;
-    auxMetadata.operate((String)"X=2*X");
-    double x;
-    for (size_t objId : auxMetadata2.ids())
-    {
-        auxMetadata2.getValue(MDL_X, x, objId);
-        auxMetadata2.setValue(MDL_X, x*2, objId);
-    }
-
-    EXPECT_EQ(auxMetadata,auxMetadata2);
-}
-
-#include <math.h>
-TEST_F(MetadataTest, OperateExt)
-{
-    MetaDataVec auxMetadata = mDunion;
-    MetaDataVec auxMetadata2 = mDunion;
-    MDSql::activateMathExtensions();
-    auxMetadata.operate((String)"X=sqrt(X)");
-    double x;
-    for (size_t objId: auxMetadata2.ids())
-    {
-        auxMetadata2.getValue(MDL_X, x, objId);
-        auxMetadata2.setValue(MDL_X, sqrt(x), objId);
-    }
-
-    EXPECT_EQ(auxMetadata,auxMetadata2);
 }
 
 TEST_F(MetadataTest, RegularExp)
