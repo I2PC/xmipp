@@ -266,75 +266,47 @@ TEST_F(MetadataTest, Copy)
 
 TEST_F(MetadataTest, MDInfo)
 {
-    //char sfnStar[64] = "";
-    //char sfnSqlite[64] = "";
-    //strncpy(sfnStar, "MDInfo_XXXXXX.xmd", sizeof "MDInfo_XXXXXX.xmd");
-    //strncpy(sfnSqlite, "MDInfo_XXXXXX.sqlite", sizeof "MDInfo_XXXXXX.sqlite");
     FileName fn;
     fn.initUniqueName("MDInfo_XXXXXX");
-    FileName fnDB;
-    fnDB = fn + ".sqlite";
     FileName fnSTAR;
     fnSTAR = fn + ".xmd";
 
     XMIPP_TRY
 
-    mDsource.write(fnDB);
     mDsource.write(fnSTAR);
 
     MetaDataVec md;
-    //Read from sqlite
-    md.read(fnDB);
+    md.read(fnSTAR);
+
     MetaDataVec mdOnlyOne;
     mdOnlyOne.setMaxRows(1);
-    mdOnlyOne.read(fnDB);
-    EXPECT_EQ(md.size(), mdOnlyOne.getParsedLines());
-
     mdOnlyOne.read(fnSTAR);
     EXPECT_EQ(md.size(), mdOnlyOne.getParsedLines());
 
-    // Read from STAR
-    md.read(fnSTAR);
     MDLabelVector labels = md.getActiveLabels();
-    // Check containsLabel is true for all md labels
     for (size_t i = 0; i < labels.size(); ++i)
-      EXPECT_TRUE(mdOnlyOne.containsLabel(labels[i]));
+        EXPECT_TRUE(mdOnlyOne.containsLabel(labels[i]));
 
     XMIPP_CATCH
 
     unlink(fn.c_str());
-    unlink(fnDB.c_str());
     unlink(fnSTAR.c_str());
 }
 
-TEST_F(MetadataTest,multiWrite)
+TEST_F(MetadataTest, multiWrite)
 {
-    FileName fn   ;
-    // FileName fnDB   ;
-    FileName fnXML  ;
-    FileName fnSTAR ;
-    fn.initUniqueName("/tmp/testReadMultipleBlocks_XXXXXX");
-    // fnDB = fn + ".sqlite";
-    fnXML = fn + ".xml";
-    fnSTAR = fn + ".xmd";
+    FileName fnSTAR;
+    fnSTAR.initUniqueName("/tmp/testReadMultipleBlocks_XXXXXX");
+    fnSTAR += ".xmd";
 
-    // FileName fnDBref   =(String)"metadata/mDsource.sqlite";
-    FileName fnXMLref  =(String)"metadata/mDsource.xml";
-    FileName fnSTARref =(String)"metadata/mDsource.xmd";
+    FileName fnSTARref = (String)"metadata/mDsource.xmd";
 
     XMIPP_TRY
-    // mDsource.write((String)"myblock@"+fnDB);
-    mDsource.write((String)"myblock@"+fnXML);
     mDsource.write((String)"myblock@"+fnSTAR);
     XMIPP_CATCH
 
-    // EXPECT_TRUE(compareTwoFiles(fnDB, fnDBref));
-    EXPECT_TRUE(compareTwoFiles(fnXML, fnXMLref));
     EXPECT_TRUE(compareTwoFiles(fnSTAR, fnSTARref));
 
-    unlink(fn.c_str());
-    // unlink(fnDB.c_str());
-    unlink(fnXML.c_str());
     unlink(fnSTAR.c_str());
 }
 
