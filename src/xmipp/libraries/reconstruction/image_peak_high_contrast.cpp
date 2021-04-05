@@ -46,7 +46,7 @@ void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
 	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume. It is recommended that it is gaussian filtered previously.");
-	addParamsLine("  -o <output=\"coordinates3D.xmd\">        				: Output file containing the 3D coodinates.");
+	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
   	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
 	addParamsLine("  [--numberInitialCoor <numberInitialCoor=15000>]      	: Threshold to detect outlier pixes values.");
   	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
@@ -106,6 +106,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			}
 		}
 	}
+
+
+	// Band-pass filtering
 
 	MultidimArray< std::complex<double> > fftV;
 
@@ -180,8 +183,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	volFiltered.resizeNoCopy(inputTomo);
 	transformer.inverseFourierTransform(fftFiltered, volFiltered);
 
-	size_t lastindex = fnOut.find_last_of("."); 
-	std::string rawname = fnOut.substr(0, lastindex); 
+	size_t lastindex = fnVol.find_last_of(".");
+	std::string rawname = fnVol.substr(0, lastindex);
 	std::string outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
