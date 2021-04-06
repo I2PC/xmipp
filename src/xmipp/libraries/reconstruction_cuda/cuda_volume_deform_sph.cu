@@ -19,6 +19,7 @@ using PrecisionType3 = double3;
 #define ATAN2 atan2
 #define COS cos
 #define SIN sin
+#define CUDA_FLOOR floor
 
 #else
 // Types
@@ -31,6 +32,7 @@ using PrecisionType3 = float3;
 #define ATAN2 atan2f
 #define COS cosf
 #define SIN sinf
+#define CUDA_FLOOR floorf
 
 #endif// USE_DOUBLE_PRECISION
 
@@ -154,8 +156,6 @@ struct DeformImages
 // ...just shorter static_cast
 #define CST(num) (static_cast<PrecisionType>((num)))
 
-#define FLOOR(x) (((x) == (int)(x)) ? (int)(x):(((x) > 0) ? (int)(x) : \
-                  (int)((x) - 1)))
 #define LIN_INTERP(a, l, h) ((l) + ((h) - (l)) * (a))
 
 // Forward declarations
@@ -761,15 +761,15 @@ __device__ PrecisionType interpolatedElement3Dshared(ImageData ImD, PrecisionTyp
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType outside_value) 
 {
-        int x0 = FLOOR(x);
+        int x0 = (int)CUDA_FLOOR(x);
         PrecisionType fx = x - x0;
         int x1 = x0 + 1;
 
-        int y0 = FLOOR(y);
+        int y0 = (int)CUDA_FLOOR(y);
         PrecisionType fy = y - y0;
         int y1 = y0 + 1;
 
-        int z0 = FLOOR(z);
+        int z0 = (int)CUDA_FLOOR(z);
         PrecisionType fz = z - z0;
         int z1 = z0 + 1;
 
@@ -878,15 +878,15 @@ __device__ PrecisionType interpolatedElement3D(ImageData ImD,
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType outside_value) 
 {
-        int x0 = FLOOR(x);
+        int x0 = (int)CUDA_FLOOR(x);
         PrecisionType fx = x - x0;
         int x1 = x0 + 1;
 
-        int y0 = FLOOR(y);
+        int y0 = (int)CUDA_FLOOR(y);
         PrecisionType fy = y - y0;
         int y1 = y0 + 1;
 
-        int z0 = FLOOR(z);
+        int z0 = (int)CUDA_FLOOR(z);
         PrecisionType fz = z - z0;
         int z1 = z0 + 1;
 
