@@ -196,7 +196,7 @@ extern "C" __global__ void computeDeform(
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 
-    // Get physical indexes
+    // Get physical indices
     int kPhys = blockIdx.z * blockDim.z + threadIdx.z;
     int iPhys = blockIdx.y * blockDim.y + threadIdx.y;
     int jPhys = blockIdx.x * blockDim.x + threadIdx.x;
@@ -649,17 +649,6 @@ extern "C" __global__ void computeDeform(
     __syncthreads();
 
     // Block reduction
-#if USE_NAIVE_BLOCK_REDUCTION == 1
-    for (unsigned s = BLOCK_SIZE / 2; s > 0; s /= 2) {
-        if (tIdx < s) {
-            diff2Shared[tIdx] += diff2Shared[tIdx + s];
-            sumVDShared[tIdx] += sumVDShared[tIdx + s];
-            modfgShared[tIdx] += modfgShared[tIdx + s];
-        }
-        __syncthreads();
-    }
-#else
-
     // First level of conditions are evaluated during compilation
     if (BLOCK_SIZE >= 1024) {
         if (tIdx < 512) {
@@ -710,22 +699,15 @@ extern "C" __global__ void computeDeform(
             localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
         }
     }
-#endif
 
     // Save values to the global memory for later
     if (tIdx == 0) {
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
-#if USE_NAIVE_BLOCK_REDUCTION == 1
-        outArrayGlobal[bIdx] = diff2Shared[0];
-        outArrayGlobal[bIdx + GRID_SIZE] = sumVDShared[0];
-        outArrayGlobal[bIdx + GRID_SIZE * 2] = modfgShared[0];
-#else
         // Resulting values are in variables local* => no need to go into shared mem
         outArrayGlobal[bIdx] = localDiff2;
         outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
         outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
-#endif
     }
 
 }
