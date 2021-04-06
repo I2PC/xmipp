@@ -56,10 +56,10 @@ public:
     FileName fnVol, fnOut;
 
     /** Threshold */
-    double fiducialSize, samplingRate;
+    double fiducialSize, samplingRate, ratioOfInitialCoordinates;
 
     /** Number of slices and original centers of mass */
-    int boxSize, numberSampSlices, numberOfInitialCoordinates, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
+    int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
 
 public:
 

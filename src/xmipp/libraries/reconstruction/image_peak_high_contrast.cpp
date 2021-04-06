@@ -32,7 +32,7 @@ void ProgImagePeakHighContrast::readParams()
 	fnOut = getParam("-o");
 	boxSize = getIntParam("--boxSize");
 	fiducialSize = getDoubleParam("--fiducialSize");
-	numberOfInitialCoordinates = getIntParam("--numberInitialCoor");
+	ratioOfInitialCoordinates = getIntParam("--ratioInitialCoor");
     numberSampSlices = getIntParam("--numberSampSlices");
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
 	distanceThr = getIntParam("--distanceThr");
@@ -45,10 +45,10 @@ void ProgImagePeakHighContrast::readParams()
 void ProgImagePeakHighContrast::defineParams()
 {
 	addUsageLine("This function determines the location of the outliers points in a volume");
-	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume. It is recommended that it is gaussian filtered previously.");
+	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume.");
 	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
   	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
-	addParamsLine("  [--numberInitialCoor <numberInitialCoor=15000>]      	: Threshold to detect outlier pixes values.");
+	addParamsLine("  [--ratioInitialCoor <ratioInitialCoor=1>]      		: Ratio of initial coordinates to be considered as outliers. Ratio expressed as one coordinate per million.");
   	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
   	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
@@ -206,6 +206,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	size_t centralSlice = zSize/2;
 	std::vector<double> tomoVector(0);
 
+	double numberOfInitialCoordinates = xSize * ySize * numberSampSlices * (ratioOfInitialCoordinates / 1000000);
+
 	#ifdef DEBUG
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
 	std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
@@ -230,7 +232,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	}
 	
 	std::sort(tomoVector.begin(),tomoVector.end());
-
 
 	double highThresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates/2))];
     double lowThresholdValue = tomoVector[size_t(numberOfInitialCoordinates/2)];
