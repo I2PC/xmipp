@@ -44,13 +44,6 @@
 class ProgImagePeakHighContrast : public XmippProgram
 {
 
-
-#define DEBUG
-// #define DEBUG_DIM
-// #define DEBUG_DIST
-// #define DEBUG_FILTERPARAMS
-
-
 public:
     /** Filenames */
     FileName fnVol, fnOut;
