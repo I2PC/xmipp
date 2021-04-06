@@ -597,47 +597,42 @@ extern "C" __global__ void computeDeform(
         }
     }
 
-    PrecisionType voxelI, voxelR;
-    PrecisionType diff;
-
-    PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
-
     bool isOutside = IS_OUTSIDE_PHYS(images.VR, kPhys, iPhys, jPhys);
 
-    if (applyTransformation && !isOutside) {
-        // Indexing requires physical indexes
-        voxelR = ELEM_3D(images.VR, kPhys, iPhys, jPhys);
-        // Logical indexes used to check whether the point is in the matrix
-        voxelI = interpolatedElement3D(images.VI, j + gx, i + gy, k + gz);
-
-        if (voxelI >= 0.0)
-            localSumVD += voxelI;
-
-        ELEM_3D(images.VO, kPhys, iPhys, jPhys) = voxelI;
-        diff = voxelR - voxelI;
-        localDiff2 += diff * diff;
-        localModg += gx*gx + gy*gy + gz*gz;
+    if (saveDeformation && !isOutside) {
+        ELEM_3D(deformImages.Gx, kPhys, iPhys, jPhys) = gx;
+        ELEM_3D(deformImages.Gy, kPhys, iPhys, jPhys) = gy;
+        ELEM_3D(deformImages.Gz, kPhys, iPhys, jPhys) = gz;
     }
+
+    if (applyTransformation) {
+        if (!isOutside) {
+            ELEM_3D(images.VO, kPhys, iPhys, jPhys) = interpolatedElement3D(images.VI, j + gx, i + gy, k + gz);
+        }
+        return;
+    }
+
+    PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.size; idv++) {
 #if USE_SHARED_VOLUME_METADATA == 1
 #if USE_SHARED_VOLUME_DATA == 1
-            voxelR = (volRDataShared + idv * BLOCK_SIZE)[tIdx];
-            voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared + idv * BLOCK_SIZE, jPhys + gx, iPhys + gy, kPhys + gz);
+            PrecisionType voxelR = (volRDataShared + idv * BLOCK_SIZE)[tIdx];
+            PrecisionType voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared + idv * BLOCK_SIZE, jPhys + gx, iPhys + gy, kPhys + gz);
 #else
-            voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
-            voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
+            PrecisionType voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
+            PrecisionType voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
 #endif// USE_SHARED_VOLUME_DATA
 #else
-            voxelR = ELEM_3D(volumes.R[idv], kPhys, iPhys, jPhys);
-            voxelI = interpolatedElement3D(volumes.I[idv], j + gx, i + gy, k + gz);
+            PrecisionType voxelR = ELEM_3D(volumes.R[idv], kPhys, iPhys, jPhys);
+            PrecisionType voxelI = interpolatedElement3D(volumes.I[idv], j + gx, i + gy, k + gz);
 #endif// USE_SHARED_VOLUME_METADATA
 
             if (voxelI >= 0.0)
                 localSumVD += voxelI;
 
-            diff = voxelR - voxelI;
+            PrecisionType diff = voxelR - voxelI;
             localDiff2 += diff * diff;
             localModg += gx*gx + gy*gy + gz*gz;
         }
@@ -646,7 +641,6 @@ extern "C" __global__ void computeDeform(
     __shared__ PrecisionType diff2Shared[BLOCK_SIZE];
     __shared__ PrecisionType sumVDShared[BLOCK_SIZE];
     __shared__ PrecisionType modfgShared[BLOCK_SIZE];
-    __shared__ PrecisionType countShared[BLOCK_SIZE];
 
     diff2Shared[tIdx] = localDiff2;
     sumVDShared[tIdx] = localSumVD;
@@ -734,11 +728,6 @@ extern "C" __global__ void computeDeform(
 #endif
     }
 
-    if (saveDeformation && !isOutside) {
-        ELEM_3D(deformImages.Gx, kPhys, iPhys, jPhys) = gx;
-        ELEM_3D(deformImages.Gy, kPhys, iPhys, jPhys) = gy;
-        ELEM_3D(deformImages.Gz, kPhys, iPhys, jPhys) = gz;
-    }
 }
 
 /*
