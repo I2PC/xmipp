@@ -30,11 +30,15 @@ protected:
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         //Md1
         id = mDsource.addObject();
+        mDsourceIds.push_back(id);
         mDsource.setValue(MDL_X,1.,id);
         mDsource.setValue(MDL_Y,2.,id);
+
         id = mDsource.addObject();
+        mDsourceIds.push_back(id);
         mDsource.setValue(MDL_X,3.,id);
         mDsource.setValue(MDL_Y,4.,id);
+
         //Mdjoin
         id = mDjoin.addObject();
         mDjoin.setValue(MDL_X,1.,id);
@@ -42,6 +46,7 @@ protected:
         id = mDjoin.addObject();
         mDjoin.setValue(MDL_X,3.,id);
         mDjoin.setValue(MDL_Z,444.,id);
+
         //mDanotherSource
         id = mDanotherSource.addObject();
         mDanotherSource.setValue(MDL_X,11.,id);
@@ -65,7 +70,36 @@ protected:
     MetaDataDb mDsource,mDanotherSource;
     MetaDataDb mDunion, mDjoin;
     size_t id, id1,id2;
+    std::vector<int> mDsourceIds;
 };
+
+TEST_F( MetadataTest, IdIteration)
+{
+    auto it = mDsource.ids().begin();
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    ASSERT_EQ(it, mDsource.ids().end());
+
+    size_t i = 0;
+    for (size_t objId : mDsource.ids()) {
+        ASSERT_EQ(objId, mDsourceIds[i]);
+        i++;
+    }
+    ASSERT_EQ(i, mDsourceIds.size());
+}
+
+TEST_F( MetadataTest, RowIteration)
+{
+    auto it = mDsource.begin();
+    /*for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    ASSERT_EQ(it, mDsource.end());*/
+
+    /*size_t i = 0;
+    for (const auto& row : mDsource) {
+        ASSERT_EQ(row.id(), mDsourceIds[i]);
+        i++;
+    }
+    ASSERT_EQ(i, mDsourceIds.size());*/
+}
 
 TEST_F( MetadataTest, SimilarToOperator)
 {
@@ -126,6 +160,7 @@ TEST_F( MetadataTest, AddRow)
     row.setValue(MDL_X, 1.);
     row.setValue(MDL_Y, 2.);
     md.addRow(row);
+
     row.setValue(MDL_X, 3.);
     row.setValue(MDL_Y, 4.);
     md.addRow(row);
