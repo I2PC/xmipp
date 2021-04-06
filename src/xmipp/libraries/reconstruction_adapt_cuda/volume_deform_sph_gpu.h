@@ -96,6 +96,9 @@ public:
     // Number of ones in steps
     int onesInSteps;
 
+    // Precomputed number of voxels
+    double Ncount;
+
 	//Deformation in pixels, sumVI, sumVD
 	double deformation, sumVI, sumVD;
 

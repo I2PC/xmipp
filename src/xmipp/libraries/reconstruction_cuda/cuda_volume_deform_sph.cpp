@@ -296,7 +296,7 @@ void VolumeDeformSph::pretuneKernel()
     // Define thrust reduction vector
     // During the tuning process it needs to be able to accomodate all the possible
     // variations of block sizes. That is why it is so large.
-    thrust::device_vector<PrecisionType> thrustVec(kttGrid.getTotalSize() * 4, 0.0);
+    thrust::device_vector<PrecisionType> thrustVec(kttGrid.getTotalSize() * 3, 0.0);
 
     // Add arguments for the kernel
     ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())), thrustVec.size() * sizeof(PrecisionType), ktt::ArgumentAccessType::ReadWrite, ktt::ArgumentMemoryLocation::Device);
@@ -349,7 +349,7 @@ void VolumeDeformSph::runKernel()
     }
 
     // Define thrust reduction vector
-    thrust::device_vector<PrecisionType> thrustVec(tunedGridSize * 4, 0.0);
+    thrust::device_vector<PrecisionType> thrustVec(tunedGridSize * 3, 0.0);
 
     // Add arguments for the kernel
     ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())), thrustVec.size() * sizeof(PrecisionType), ktt::ArgumentAccessType::ReadWrite, ktt::ArgumentMemoryLocation::Device);
@@ -378,12 +378,10 @@ void VolumeDeformSph::runKernel()
     auto diff2It = thrustVec.begin();
     auto sumVDIt = diff2It + tunedGridSize;
     auto modgIt = sumVDIt + tunedGridSize;
-    auto NcountIt = modgIt + tunedGridSize;
 
     outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
     outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
-    outputs.modg = thrust::reduce(modgIt, NcountIt);
-    outputs.Ncount = thrust::reduce(NcountIt, thrustVec.end());
+    outputs.modg = thrust::reduce(modgIt, thrustVec.end());
 }
 
 void VolumeDeformSph::transferResults() 

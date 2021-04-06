@@ -600,7 +600,7 @@ extern "C" __global__ void computeDeform(
     PrecisionType voxelI, voxelR;
     PrecisionType diff;
 
-    PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0, localNcount = 0.0;
+    PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     bool isOutside = IS_OUTSIDE_PHYS(images.VR, kPhys, iPhys, jPhys);
 
@@ -617,7 +617,6 @@ extern "C" __global__ void computeDeform(
         diff = voxelR - voxelI;
         localDiff2 += diff * diff;
         localModg += gx*gx + gy*gy + gz*gz;
-        localNcount++;
     }
 
     if (!isOutside) {
@@ -641,7 +640,6 @@ extern "C" __global__ void computeDeform(
             diff = voxelR - voxelI;
             localDiff2 += diff * diff;
             localModg += gx*gx + gy*gy + gz*gz;
-            localNcount++;
         }
     }
 
@@ -653,7 +651,6 @@ extern "C" __global__ void computeDeform(
     diff2Shared[tIdx] = localDiff2;
     sumVDShared[tIdx] = localSumVD;
     modfgShared[tIdx] = localModg;
-    countShared[tIdx] = localNcount;
 
     __syncthreads();
 
@@ -664,7 +661,6 @@ extern "C" __global__ void computeDeform(
             diff2Shared[tIdx] += diff2Shared[tIdx + s];
             sumVDShared[tIdx] += sumVDShared[tIdx + s];
             modfgShared[tIdx] += modfgShared[tIdx + s];
-            countShared[tIdx] += countShared[tIdx + s];
         }
         __syncthreads();
     }
@@ -676,7 +672,6 @@ extern "C" __global__ void computeDeform(
             diff2Shared[tIdx] += diff2Shared[tIdx + 512];
             sumVDShared[tIdx] += sumVDShared[tIdx + 512];
             modfgShared[tIdx] += modfgShared[tIdx + 512];
-            countShared[tIdx] += countShared[tIdx + 512];
         }
         __syncthreads();
     }
@@ -685,7 +680,6 @@ extern "C" __global__ void computeDeform(
             diff2Shared[tIdx] += diff2Shared[tIdx + 256];
             sumVDShared[tIdx] += sumVDShared[tIdx + 256];
             modfgShared[tIdx] += modfgShared[tIdx + 256];
-            countShared[tIdx] += countShared[tIdx + 256];
         }
         __syncthreads();
     }
@@ -694,7 +688,6 @@ extern "C" __global__ void computeDeform(
             diff2Shared[tIdx] += diff2Shared[tIdx + 128];
             sumVDShared[tIdx] += sumVDShared[tIdx + 128];
             modfgShared[tIdx] += modfgShared[tIdx + 128];
-            countShared[tIdx] += countShared[tIdx + 128];
         }
         __syncthreads();
     }
@@ -703,7 +696,6 @@ extern "C" __global__ void computeDeform(
             diff2Shared[tIdx] += diff2Shared[tIdx + 64];
             sumVDShared[tIdx] += sumVDShared[tIdx + 64];
             modfgShared[tIdx] += modfgShared[tIdx + 64];
-            countShared[tIdx] += countShared[tIdx + 64];
         }
         __syncthreads();
     }
@@ -712,19 +704,16 @@ extern "C" __global__ void computeDeform(
         localDiff2 = diff2Shared[tIdx];
         localSumVD = sumVDShared[tIdx];
         localModg = modfgShared[tIdx];
-        localNcount = countShared[tIdx];
         if (BLOCK_SIZE >= 64) {
             localDiff2 += diff2Shared[tIdx + 32];
             localSumVD += sumVDShared[tIdx + 32];
             localModg += modfgShared[tIdx + 32];
-            localNcount += countShared[tIdx + 32];
         }
         // Reduce warp
         for (int offset = 32 / 2; offset > 0; offset >>= 1) {
             localDiff2 += __shfl_down_sync(0xFFFFFFFF, localDiff2, offset);
             localSumVD += __shfl_down_sync(0xFFFFFFFF, localSumVD, offset);
             localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
-            localNcount += __shfl_down_sync(0xFFFFFFFF, localNcount, offset);
         }
     }
 #endif
@@ -737,13 +726,11 @@ extern "C" __global__ void computeDeform(
         outArrayGlobal[bIdx] = diff2Shared[0];
         outArrayGlobal[bIdx + GRID_SIZE] = sumVDShared[0];
         outArrayGlobal[bIdx + GRID_SIZE * 2] = modfgShared[0];
-        outArrayGlobal[bIdx + GRID_SIZE * 3] = countShared[0];
 #else
         // Resulting values are in variables local* => no need to go into shared mem
         outArrayGlobal[bIdx] = localDiff2;
         outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
         outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
-        outArrayGlobal[bIdx + GRID_SIZE * 3] = localNcount;
 #endif
     }
 

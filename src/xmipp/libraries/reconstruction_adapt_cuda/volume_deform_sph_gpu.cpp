@@ -108,14 +108,12 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
 		VO().setXmippOrigin();
 	}
 
-    // This copy is not really nessesary? CHECK
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
 		VEC_ELEM(clnm,i)=pclnm[i+1];
 #ifdef DEBUG
 	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 
-	double Ncount=0.0;
 	double diff2=0.0;
 	sumVD = 0.0;
 	double modg=0.0;
@@ -131,7 +129,6 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     diff2 = result.diff2;
     modg = result.modg;
     sumVD = result.sumVD;
-    Ncount = result.Ncount;
 // GPU section end
 
 	deformation=std::sqrt(modg/(Ncount));
@@ -257,6 +254,7 @@ void ProgVolumeDeformSphGpu::run() {
 
     // GPU section
     volDefSphGpu.setupConstantParameters();
+    Ncount = volumesR.size() * VR.getSize();
     // GPU srction end
 
     for (int h=0;h<=L2;h++)
