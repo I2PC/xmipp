@@ -360,7 +360,12 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
               if ((pyStr = PyObject_Str(input)) != NULL)
               {
                   const char * filename = PyUnicode_AsUTF8(pyStr);
-                  self->image->write(filename);
+
+                  CastWriteMode castMode=CW_CAST;
+                  if (endsWith(filename,".jpg"))
+                	  castMode=CW_ADJUST;
+
+                  self->image->write(filename, ALL_IMAGES, false, WRITE_OVERWRITE, castMode);
                   Py_RETURN_NONE;
               }
               else
