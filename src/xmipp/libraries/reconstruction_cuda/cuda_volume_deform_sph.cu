@@ -709,7 +709,6 @@ extern "C" __global__ void computeDeform(
         outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
         outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
     }
-
 }
 
 /*

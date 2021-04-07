@@ -75,21 +75,70 @@ struct KernelOutputs
     PrecisionType modg = 0.0;
 };
 
+/**
+ * Class that takes care of the data preparation, data transfer to the GPU,
+ * calling kernel and returning kernel outputs.
+ */
 class VolumeDeformSph
 {
 public:
+
+    /**
+     * Method associates VolumeDeformSph class with the ProgVolumeDeformSphGpu.
+     *
+     * This method has to be called before any other method of the VolumeDeformSph class.
+     *
+     * \param prog Pointer to the program class.
+     */
     void associateWith(ProgVolumeDeformSphGpu* prog);
+
+    /**
+     * Method has to be called after the class has been associated with a program by
+     * calling associateWith method.
+     *
+     * Calling this method prepares and transfers data which need to be
+     * transferred to the GPU only once per runtime.
+     *
+     * Constant parameters are: Rmax2, iRmax, volumesR, volumesI, ...
+     */
     void setupConstantParameters();
+
+    /**
+     * Method has to be called after the class has been associated with a program by
+     * calling associateWith method.
+     *
+     * Calling this method prepares and transfers data which need to be updated
+     * before each kernel call.
+     *
+     * Changing parameters are: clnm, steps
+     */
     void setupChangingParameters();
 
-    void pretuneKernel();
+    /**
+     * All the data need to be ready before calling this method.
+     *
+     * Calling this method invokes a GPU kernel.
+     */
     void runKernel();
+
+    /**
+     * Transfers results from GPU to the CPU.
+     */
     void transferResults();
 
+    /**
+     * Returns results computed by the GPU kernel.
+     */
     KernelOutputs getOutputs();
-    void transferImageData(Image<double>& outputImage, ImageData& inputData);
 
+    /**
+     * Constructs an object of VolumeDeformSph class
+     */
     VolumeDeformSph();
+
+    /**
+     * Destroys an object of VolumeDeformSph class
+     */
     ~VolumeDeformSph();
 
 private:
@@ -161,6 +210,10 @@ private:
     KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
+
+    void transferImageData(Image<double>& outputImage, ImageData& inputData);
+
+    void pretuneKernel();
 
     void reduceResults();
 
