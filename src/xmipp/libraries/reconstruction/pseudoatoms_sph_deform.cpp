@@ -95,7 +95,7 @@ double ProgPseudoAtomsSphDeform::distance(double *pclnm) {
 	if (refineAlignment)
 		k_nn = 1;
 	else
-		k_nn = 2;  //!  1 (could also work) 2 and 3 seems like a good option if no double comparison is perfomred per deformed-initial pair of volumes
+		k_nn = 1;  //!  1 (could also work) 2 and 3 seems like a good option if no double comparison is perfomred per deformed-initial pair of volumes
 	Matrixi indices;
     Matrix distances;
 	Matrix queryPoint(3, 1);
