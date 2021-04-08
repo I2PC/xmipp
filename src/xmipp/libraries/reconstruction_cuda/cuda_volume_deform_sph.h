@@ -25,17 +25,15 @@ using PrecisionType = float;
 using PrecisionType3 = float3;
 #endif
 
-struct ImageData
+struct ImageMetaData
 {
-    int xShift = 0;
-    int yShift = 0;
-    int zShift = 0;
+    int xShift;
+    int yShift;
+    int zShift;
 
-    int xDim = 0;
-    int yDim = 0;
-    int zDim = 0;
-
-    PrecisionType* data = nullptr;
+    int xDim;
+    int yDim;
+    int zDim;
 };
 
 struct ZSHparams 
@@ -49,23 +47,17 @@ struct ZSHparams
 
 struct Volumes 
 {
-    ImageData* I = nullptr;
-    ImageData* R = nullptr;
+    PrecisionType** I = nullptr;
+    PrecisionType** R = nullptr;
     unsigned size = 0;
 };
 
-struct IROimages 
+struct OutputImages 
 {
-    ImageData VI;
-    ImageData VR;
-    ImageData VO;
-};
-
-struct DeformImages 
-{
-    ImageData Gx;
-    ImageData Gy;
-    ImageData Gz;
+    PrecisionType* Gx;
+    PrecisionType* Gy;
+    PrecisionType* Gz;
+    PrecisionType* VO;
 };
 
 struct KernelOutputs 
@@ -189,11 +181,8 @@ private:
 
     // Inside pointers point to the GPU memory
 
-    ktt::ArgumentId imagesId;
-    IROimages images;
-
-    ktt::ArgumentId deformImagesId;
-    DeformImages deformImages;
+    ktt::ArgumentId outputImagesId;
+    OutputImages outputImages;
 
     ktt::ArgumentId zshparamsId;
     std::vector<int4> zshparamsVec;
@@ -201,31 +190,32 @@ private:
     ktt::ArgumentId zshparamsSCATTEREDId;
     ZSHparams zshparamsSCATTERED;
 
+    ktt::ArgumentId imageMetaDataId;
+    ImageMetaData imageMetaData;
+
     ktt::ArgumentId volumesId;
     Volumes volumes;
-    // because of the stupid design... :(
-    std::vector<ImageData> justForFreeI;
-    std::vector<ImageData> justForFreeR;
+    std::vector<PrecisionType*> justForFreeI;
+    std::vector<PrecisionType*> justForFreeR;
 
     KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
-    void transferImageData(Image<double>& outputImage, ImageData& inputData);
+    void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
 
     void pretuneKernel();
 
     void reduceResults();
 
-    void setupImage(Image<double>& inputImage, ImageData& outputImageData);
-    void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
+    void setupImageMetaData(Image<double>& inputImage);
+    void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
+    void setupImage(PrecisionType** imageData);
 
-    void freeImage(ImageData &im);
     void freeZSHSCATTERED();
 
-    void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
-
     void setupVolumes();
+    void setupOutputImages();
 
     void setupZSHparams();
     void setupZSHparamsSCATTERED();

@@ -61,7 +61,7 @@ void printCudaError()
 }
 
 // Copies data from CPU to the GPU and at the same time transforms from
-// type 'U' to type 'T'. Works only for numeric types
+// type 'Source' to type 'Target'. Works only for numeric types
 template<typename Target, typename Source>
 void transformData(Target** dest, Source* source, size_t n, bool mallocMem = true)
 {
@@ -100,28 +100,19 @@ void VolumeDeformSph::freeZSHSCATTERED()
 
 VolumeDeformSph::~VolumeDeformSph() 
 {
-    freeImage(images.VI);
-    freeImage(images.VR);
-    freeImage(images.VO);
-
     freeZSHSCATTERED();
 
     for (size_t i = 0; i < volumes.size; i++) {
-        freeImage(justForFreeR[i]);
-        freeImage(justForFreeI[i]);
+        cudaFree(justForFreeR[i]);
+        cudaFree(justForFreeI[i]);
     }
     cudaFree(volumes.R);
     cudaFree(volumes.I);
 
-    freeImage(deformImages.Gx);
-    freeImage(deformImages.Gy);
-    freeImage(deformImages.Gz);
-}
-
-void VolumeDeformSph::freeImage(ImageData &im) 
-{
-    if (im.data != nullptr)
-        cudaFree(im.data);
+    cudaFree(outputImages.Gx);
+    cudaFree(outputImages.Gy);
+    cudaFree(outputImages.Gz);
+    cudaFree(outputImages.VO);
 }
 
 void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog) 
@@ -142,31 +133,28 @@ void VolumeDeformSph::setupConstantParameters()
     // kernel arguments
     this->Rmax2 = program->Rmax * program->Rmax;
     this->iRmax = 1 / program->Rmax;
-    setupImage(program->VI, images.VI);
-    setupImage(program->VR, images.VR);
+    setupImageMetaData(program->VR);
     setupZSHparams();
     setupZSHparamsSCATTERED();
     setupVolumes();
+    setupOutputImages();
 
     // ktt stuff
     Rmax2Id = tuner.addArgumentScalar(Rmax2);
     iRmaxId = tuner.addArgumentScalar(iRmax);
-    imagesId = tuner.addArgumentScalar(images);
     zshparamsSCATTEREDId = tuner.addArgumentScalar(zshparamsSCATTERED);
     zshparamsId = tuner.addArgumentVector(zshparamsVec, ktt::ArgumentAccessType::ReadOnly);
+    imageMetaDataId = tuner.addArgumentScalar(imageMetaData);
     volumesId = tuner.addArgumentScalar(volumes);
-    // this one is just a dummy argument, for real it is initilized
-    // in the setupChangingParameters, but it has to be initilized here
-    // (or elsewhere) for successful kernel call
-    deformImagesId = tuner.addArgumentScalar(deformImages);
+    outputImagesId = tuner.addArgumentScalar(outputImages);
 
     // kernel dimension
     kttBlock.setSizeX(1);
     kttBlock.setSizeY(1);
     kttBlock.setSizeZ(1);
-    kttGrid.setSizeX(images.VR.xDim);
-    kttGrid.setSizeY(images.VR.yDim);
-    kttGrid.setSizeZ(images.VR.zDim);
+    kttGrid.setSizeX(imageMetaData.xDim);
+    kttGrid.setSizeY(imageMetaData.yDim);
+    kttGrid.setSizeZ(imageMetaData.zDim);
 
     // kernel init
     kernelId = tuner.addKernelFromFile(pathToXmipp + "/" + pathToKernel, "computeDeform", kttGrid, kttBlock);
@@ -185,10 +173,10 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::DivideCeil);
     // constrains
     tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
-            [&VR = images.VR](const std::vector<size_t>& vec)
+            [&metaData = imageMetaData](const std::vector<size_t>& vec)
             {
                 return 32 <= vec[0] * vec[1] * vec[2]
-                    && vec[0] < VR.xDim && vec[1] < VR.yDim && vec[2] < VR.zDim;
+                    && vec[0] < metaData.xDim && vec[1] < metaData.yDim && vec[2] < metaData.zDim;
             });
 
     // kernel parameters
@@ -200,23 +188,19 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0});
     tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0});
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
-    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_METADATA", {1});
     tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {0});
 
     // Dynamic shared memory allocation
     sharedMemId = tuner.addArgumentLocal<char>(1);// cannot be zero
 
-    tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_VOLUME_METADATA", "USE_SHARED_VOLUME_DATA", "USE_SHARED_MEM_ZSH_CLNM" },
+    tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_VOLUME_DATA", "USE_SHARED_MEM_ZSH_CLNM" },
             [&vols = volumes.size, &steps = program->onesInSteps](const size_t size, const std::vector<size_t>& vec)
             {
-                size_t sharedMemSize = 0;
-                if (vec[3] == 1) { // volume metadata
-                    sharedMemSize += sizeof(ImageData) * vols * 2;
-                }
-                if (vec[4] == 1) { // volume data
+                size_t sharedMemSize = sizeof(PrecisionType*) * vols * 2;
+                if (vec[3] == 1) { // volume data
                     sharedMemSize += sizeof(PrecisionType) * vec[0] * vec[1] * vec[2] * vols * 2;
                 }
-                if (vec[5] == 1) { // zsh, clnm
+                if (vec[4] == 1) { // zsh, clnm
                     sharedMemSize += sizeof(int4) * steps;
                     sharedMemSize += sizeof(PrecisionType3) * steps;
                 }
@@ -243,17 +227,6 @@ void VolumeDeformSph::setupChangingParameters()
     // ktt stuff
     applyTransformationId = tuner.addArgumentScalar(static_cast<int>(applyTransformation));
     saveDeformationId = tuner.addArgumentScalar(static_cast<int>(saveDeformation));
-
-    if (applyTransformation) {
-        setupImage(images.VR, images.VO);
-        imagesId = tuner.addArgumentScalar(images);
-    }
-    if (saveDeformation) {
-        setupImage(images.VR, deformImages.Gx);
-        setupImage(images.VR, deformImages.Gy);
-        setupImage(images.VR, deformImages.Gz);
-        deformImagesId = tuner.addArgumentScalar(deformImages);
-    }
 }
 
 void VolumeDeformSph::setupClnm()
@@ -277,11 +250,11 @@ KernelOutputs VolumeDeformSph::getOutputs()
     return outputs;
 }
 
-void VolumeDeformSph::transferImageData(Image<double>& outputImage, ImageData& inputData) 
+void VolumeDeformSph::transferImageData(Image<double>& outputImage, PrecisionType* inputData) 
 {
-    size_t elements = inputData.xDim * inputData.yDim * inputData.zDim;
+    size_t elements = imageMetaData.xDim * imageMetaData.yDim * imageMetaData.zDim;
     std::vector<PrecisionType> tVec(elements);
-    cudaMemcpy(tVec.data(), inputData.data, sizeof(PrecisionType) * elements, cudaMemcpyDeviceToHost);
+    cudaMemcpy(tVec.data(), inputData, sizeof(PrecisionType) * elements, cudaMemcpyDeviceToHost);
     std::vector<double> dVec(tVec.begin(), tVec.end());
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
 }
@@ -304,14 +277,14 @@ void VolumeDeformSph::pretuneKernel()
     tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
             Rmax2Id,
             iRmaxId,
-            imagesId,
             zshparamsId,
             clnmId,
             zshparamsSCATTEREDId,
             clnmSCATTEREDId,
             stepsId,
+            imageMetaDataId,
             volumesId,
-            deformImagesId,
+            outputImagesId,
             applyTransformationId,
             saveDeformationId,
             thrustVecId,
@@ -357,14 +330,14 @@ void VolumeDeformSph::runKernel()
     tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
             Rmax2Id,
             iRmaxId,
-            imagesId,
             zshparamsId,
             clnmId,
             zshparamsSCATTEREDId,
             clnmSCATTEREDId,
             stepsId,
+            imageMetaDataId,
             volumesId,
-            deformImagesId,
+            outputImagesId,
             applyTransformationId,
             saveDeformationId,
             thrustVecId,
@@ -386,12 +359,12 @@ void VolumeDeformSph::runKernel()
 void VolumeDeformSph::transferResults() 
 {
     if (applyTransformation) {
-        transferImageData(program->VO, images.VO);
+        transferImageData(program->VO, outputImages.VO);
     }
     if (saveDeformation) {
-        transferImageData(program->Gx, deformImages.Gx);
-        transferImageData(program->Gy, deformImages.Gy);
-        transferImageData(program->Gz, deformImages.Gz);
+        transferImageData(program->Gx, outputImages.Gx);
+        transferImageData(program->Gy, outputImages.Gy);
+        transferImageData(program->Gz, outputImages.Gz);
     }
 }
 
@@ -429,45 +402,47 @@ void VolumeDeformSph::setupVolumes()
     justForFreeI.resize(volumes.size);
 
     for (size_t i = 0; i < volumes.size; i++) {
-        setupImage(program->volumesR[i], justForFreeR[i]);
-        setupImage(program->volumesI[i], justForFreeI[i]);
+        setupImage(program->volumesR[i], &justForFreeR[i]);
+        setupImage(program->volumesI[i], &justForFreeI[i]);
     }
 
     if (cudaMallocAndCopy(&volumes.R, justForFreeR.data(), volumes.size) != cudaSuccess)
         printCudaError();
     if (cudaMallocAndCopy(&volumes.I, justForFreeI.data(), volumes.size) != cudaSuccess)
         printCudaError();
+
 }
 
-void VolumeDeformSph::setupImage(Image<double>& inputImage, ImageData& outputImageData) 
+void VolumeDeformSph::setupOutputImages()
+{
+    setupImage(&outputImages.Gx);
+    setupImage(&outputImages.Gy);
+    setupImage(&outputImages.Gz);
+    setupImage(&outputImages.VO);
+}
+
+void VolumeDeformSph::setupImageMetaData(Image<double>& inputImage) 
 {
     auto& mda = inputImage();
 
-    outputImageData.xShift = mda.xinit;
-    outputImageData.yShift = mda.yinit;
-    outputImageData.zShift = mda.zinit;
-    outputImageData.xDim = mda.xdim;
-    outputImageData.yDim = mda.ydim;
-    outputImageData.zDim = mda.zdim;
-
-    transformData(&outputImageData.data, mda.data, mda.xdim * mda.ydim * mda.zdim);
+    imageMetaData.xShift = mda.xinit;
+    imageMetaData.yShift = mda.yinit;
+    imageMetaData.zShift = mda.zinit;
+    imageMetaData.xDim = mda.xdim;
+    imageMetaData.yDim = mda.ydim;
+    imageMetaData.zDim = mda.zdim;
 }
 
-void VolumeDeformSph::setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData) 
+void VolumeDeformSph::setupImage(PrecisionType** imageData)
 {
-    outputImageData.xShift = inputImage.xShift;
-    outputImageData.yShift = inputImage.yShift;
-    outputImageData.zShift = inputImage.zShift;
-    outputImageData.xDim = inputImage.xDim;
-    outputImageData.yDim = inputImage.yDim;
-    outputImageData.zDim = inputImage.zDim;
-
-    size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(PrecisionType);
-    if (cudaMalloc(&outputImageData.data, size) != cudaSuccess)
+    if (cudaMalloc(imageData, sizeof(PrecisionType) * imageMetaData.xDim * imageMetaData.yDim * imageMetaData.zDim) != cudaSuccess)
         printCudaError();
-
-    if (copyData) {
-        if (cudaMemcpy(outputImageData.data, inputImage.data, size, cudaMemcpyHostToDevice) != cudaSuccess)
-            printCudaError();
-    }
 }
+
+void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outputImageData) 
+{
+    auto& mda = inputImage();
+
+    transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
+}
+
