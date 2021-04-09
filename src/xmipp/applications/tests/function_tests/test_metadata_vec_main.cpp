@@ -634,7 +634,6 @@ TEST_F(MetadataTest, RegularExp)
     auxMetadata2.setValue(MDL_IMAGE,(String)"image_data_2_1.xmp",auxMetadata2.addObject());
     auxMetadata2.setValue(MDL_IMAGE,(String)"image_data_2_2.xmp",auxMetadata2.addObject());
     MDSql::activateRegExtensions();
-    auxMetadata2.write("/tmp/kk.sqlite");
     //query file
     MetaDataVec md;
     FileName blockFileName;
