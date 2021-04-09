@@ -875,24 +875,6 @@ TEST_F(MetadataTest, WriteIntermediateBlock)
     unlink(sfn2);
 }
 
-TEST_F(MetadataTest, ExistsBlock)
-{
-    //temp file name
-    char sfn[32] = "";
-    strncpy(sfn, "/tmp/testWrite_XXXXXX", sizeof sfn);
-    if (mkstemp(sfn)==-1)
-        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
-    FileName tmpFileName((String) "kk@" + sfn);
-    mDsource.write(tmpFileName);
-    MetaDataVec auxMetadata;
-    bool result1 = auxMetadata.existsBlock(tmpFileName);
-    EXPECT_EQ(result1,true);
-    tmpFileName =(String) "kk2@" + sfn;
-    result1 = auxMetadata.existsBlock(tmpFileName);
-    EXPECT_EQ(result1,false);
-    unlink(sfn);
-}
-
 TEST_F(MetadataTest, ReadWriteAppendBlock)
 {
     XMIPP_TRY
