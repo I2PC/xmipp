@@ -350,10 +350,19 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
                 size_t index = PyLong_AsSsize_t(PyTuple_GetItem(input, 0));
                 PyObject* repr = PyObject_Str(PyTuple_GetItem(input, 1));
                 const char * filename = PyUnicode_AsUTF8(repr);
-                // Now read using both of index and filename
-                bool isStack = (index > 0);
-                WriteMode writeMode = isStack ? WRITE_REPLACE : WRITE_OVERWRITE;
-                self->image->write(filename, index, isStack, writeMode);
+
+                if (endsWith(filename,".jpg"))
+                {
+                    CastWriteMode castMode=CW_ADJUST;
+                    self->image->write(filename, ALL_IMAGES, false, WRITE_OVERWRITE, castMode);
+                }
+                else
+                {
+                    // Now read using both of index and filename
+                    bool isStack = (index > 0);
+                    WriteMode writeMode = isStack ? WRITE_REPLACE : WRITE_OVERWRITE;
+                    self->image->write(filename, index, isStack, writeMode);
+                }
 
                 Py_RETURN_NONE;
               }
