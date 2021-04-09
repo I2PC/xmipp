@@ -919,19 +919,6 @@ TEST_F(MetadataTest, Removelabel)
     EXPECT_EQ(v2,v1);
 }
 
-TEST_F(MetadataTest, Select)
-{
-    MetaDataVec auxMetadata;
-    MetaDataVec auxMetadata2;
-    size_t id = auxMetadata2.addObject();
-    auxMetadata2.setValue(MDL_X,3.,id);
-    auxMetadata2.setValue(MDL_Y,4.,id);
-
-    auxMetadata.importObjects(mDsource,MDExpression((String)"x>2"));
-    EXPECT_EQ(auxMetadata,auxMetadata2);
-}
-
-
 TEST_F(MetadataTest, Size)
 {
     EXPECT_EQ((size_t)2, mDsource.size());
