@@ -330,6 +330,12 @@ Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
     return NULL;
 }//function Image_equal
 
+/* Check if string ends with a suffix */
+bool endsWith(const std::string& s, const std::string& suffix)
+{
+    return s.rfind(suffix) == (s.size()-suffix.size());
+}//function endsWith
+
 /* write */
 PyObject *
 Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)

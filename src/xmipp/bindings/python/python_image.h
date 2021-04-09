@@ -72,6 +72,9 @@ Image_RichCompareBool(PyObject * obj, PyObject * obj2, int opid);
 PyObject *
 Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* Check if string ends with a suffix */
+bool endsWith(const std::string& s, const std::string& suffix);
+
 /* write */
 PyObject *
 Image_write(PyObject *obj, PyObject *args, PyObject *kwargs);
