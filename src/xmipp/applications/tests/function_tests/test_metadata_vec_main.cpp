@@ -569,13 +569,6 @@ TEST_F(MetadataTest, MDValueEQ)
         MetaDataVec md3;
         md3.importObjects(md, eq);
 
-        // FIXME: consult with David
-        // This test fails because ids are compared too
-        // Possible solutions:
-        //  a) do not compare ids
-        //  b) reid in importObjects
-        // std::cout << md << std::endl << md2 << std::endl << md3;
-
         EXPECT_EQ(md2, md3);
     }
     catch (XmippError &xe)
@@ -945,6 +938,7 @@ TEST_F(MetadataTest, Sort)
     id = outMetadata.addObject();
     outMetadata.setValue(MDL_X,1.,id);
     outMetadata.setValue(MDL_Y,2.,id);
+
     EXPECT_EQ(auxMetadata2,outMetadata);
 
     auxMetadata2.clear();
