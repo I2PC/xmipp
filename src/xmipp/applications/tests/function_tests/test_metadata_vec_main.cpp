@@ -1055,14 +1055,16 @@ TEST_F(MetadataTest, getValueAbort)
     double rot=1.;
     id = auxMD1.addObject();
     auxMD1.setValue(MDL_ANGLE_ROT,rot,id);
-    //psi assigned by defaults
+
     id = auxMD1.firstRowId();
-    std::cerr << "TEST COMMENT: You should get the error  Cannot find label: order_" <<std::endl;
+    std::cerr << "TEST COMMENT: You should get the error  Cannot find label: order_" << std::endl;
     EXPECT_THROW(auxMD1.getValueOrAbort(MDL_ORDER, rot, id), XmippError);
+
     MDRowVec rowIn;
     auxMD1.getRow(rowIn, id);
-    std::cerr << "TEST COMMENT: You should get the error  Cannot find label: anglePsi" <<std::endl;
-    EXPECT_THROW(rowGetValueOrAbort(rowIn,MDL_ANGLE_PSI,rot), XmippError);
+    std::cerr << "TEST COMMENT: You should get the error  Cannot find label: anglePsi" << std::endl;
+    EXPECT_THROW(rowGetValueOrAbort(rowIn, MDL_ANGLE_PSI, rot), XmippError);
+
     XMIPP_CATCH
 }
 
