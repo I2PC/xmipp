@@ -77,8 +77,13 @@ void computeSumSumSqr2D(const T * __restrict__ in,
         // perform additional (column-wise) sum
         // intrawarp sum
         for (int offset = 16; offset > 0; offset /= 2) {
-            sum += __shfl_down(sum, offset);
-            sum2 += __shfl_down(sum2, offset);
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 900
+          sum += __shfl_down_sync(0xffffffff, sum, offset);
+          sum2 += __shfl_down_sync(0xffffffff, sum2, offset);
+#else
+          sum += __shfl_down(sum, offset);
+          sum2 += __shfl_down(sum2, offset);
+#endif
         }
         if (idx != idOfFirstThreadInWarp) {
             // only first thread in the warp will write to the output
@@ -149,9 +154,15 @@ void computeCorrIndexStat2DOneToN(
         // perform additional (column-wise) sum
         // intrawarp sum
         for (int offset = 16; offset > 0; offset /= 2) {
-            corr += __shfl_down(corr, offset);
-            sum += __shfl_down(sum, offset);
-            sum2 += __shfl_down(sum2, offset);
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 900
+          corr += __shfl_down_sync(0xffffffff, corr, offset);
+          sum += __shfl_down_sync(0xffffffff, sum, offset);
+          sum2 += __shfl_down_sync(0xffffffff, sum2, offset);
+#else
+          corr += __shfl_down(corr, offset);
+          sum += __shfl_down(sum, offset);
+          sum2 += __shfl_down(sum2, offset);
+#endif
         }
         if (idx != idOfFirstThreadInWarp) {
             // only first thread in the warp will write to the output
