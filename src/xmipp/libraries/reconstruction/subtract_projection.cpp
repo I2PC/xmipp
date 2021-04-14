@@ -32,6 +32,7 @@
  #include <iostream>
  #include <string>
  #include <sstream>
+ #include "data/image_operate.h"
 
 
 void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
@@ -224,6 +225,12 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
      	row.getValue(MDL_ANGLE_PSI, psi);
     	// Compute projection of the volume
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+
+     	// Compute radial averages
+//    	MultidimArray<double> &Irad, &Prad;
+     	radialAvg(I); //, Irad());
+     	radialAvg(P); //, Prad());
+
     	// Compute projection of the volume mask
 		MultidimArray<double> &mMaskVol=maskVol();
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
@@ -277,8 +284,8 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
-			double std2 = P().computeStddev();
-			P()*=std1/std2;
+//			double std2 = P().computeStddev();
+//			P()*=std1/std2;
 			if (cutFreq!=0)
 			{
 				Filter2.generateMask(P());
