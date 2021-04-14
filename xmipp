@@ -1080,11 +1080,11 @@ def checkCuda(configDict):
                   (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
             print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
-        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
+        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" % \
                   (configDict["NVCC"], configDict["NVCC_LINKFLAGS"])):
             print(red("Check the NVCC and NVCC_LINKFLAGS"))
             return False
-        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
+        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" % \
                   (configDict["CXX"], configDict["NVCC_LINKFLAGS"])):
             print(red("Check the CXX and NVCC_LINKFLAGS"))
             return False
