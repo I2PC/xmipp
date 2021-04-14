@@ -1132,7 +1132,7 @@ Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDRow &mainHeader = self->image->image->MD[0];
+            MDRow &mainHeader = *(self->image->image->MD[0]);
             if (mainHeader.containsLabel((MDLabel)label))
             {
                 MDObject * object = mainHeader.getObject((MDLabel) label);
@@ -1162,7 +1162,7 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDRow &mainHeader = self->image->image->MD[0];
+            MDRow &mainHeader = *(self->image->image->MD[0]);
 
             MDObject * object = createMDObject(label, pyValue);
             if (!object)

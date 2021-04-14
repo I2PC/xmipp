@@ -810,7 +810,7 @@ PyObject *
 MetaData_firstObject(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
-    return PyLong_FromUnsignedLong(self->metadata->firstObject());
+    return PyLong_FromUnsignedLong(self->metadata->firstRowId());
 }
 /* lastObject */
 PyObject *
@@ -1084,10 +1084,10 @@ MetaData_setColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
                 if (self->metadata->size()!=size)
                     PyErr_SetString(PyXmippError, "Metadata size different from list size");
                 size_t i=0;
-                FOR_ALL_OBJECTS_IN_METADATA(*(self->metadata))
+                for (size_t objId : self->metadata->ids())
                 {
                     setMDObjectValue(&object,PyList_GetItem(list,i++));
-                    self->metadata->setValue(object,__iter.objId);
+                    self->metadata->setValue(object, objId);
                 }
             }
         }
@@ -1107,12 +1107,12 @@ MetaData_getActiveLabels(PyObject *obj, PyObject *args, PyObject *kwargs)
     try
     {
         MetaDataObject *self = (MetaDataObject*) obj;
-        std::vector<MDLabel>* labels = self->metadata->getActiveLabelsAddress();
-        int size = labels->size();
+        std::vector<MDLabel> labels = self->metadata->getActiveLabels();
+        int size = labels.size();
         PyObject * list = PyList_New(size);
 
         for (int i = 0; i < size; ++i)
-            PyList_SetItem(list, i, PyLong_FromLong(labels->at(i)));
+            PyList_SetItem(list, i, PyLong_FromLong(labels.at(i)));
 
         return list;
 
@@ -1499,7 +1499,7 @@ MetaData_iter(PyObject *obj)
     try
     {
         MetaDataObject *self = (MetaDataObject*) obj;
-        self->iter = new MDIterator(*(self->metadata));
+        self->iter = new MetaDataDb::id_iterator(self->metadata->ids().begin());
         Py_INCREF(self);
         return (PyObject *) self;
         //return Py_BuildValue("l", self->metadata->iteratorBegin());
@@ -1516,9 +1516,9 @@ MetaData_iternext(PyObject *obj)
     try
     {
         MetaDataObject *self = (MetaDataObject*) obj;
-        size_t objId = self->iter->objId;
-        self->iter->moveNext();
-        if (objId == BAD_OBJID)
+        size_t objId = **(self->iter);
+        ++(self->iter);
+        if (*(self->iter) == self->metadata->ids().end())
             return NULL;
         //type format should be "n" instead of "i" but I put i since python 2.4 does not support n
         return Py_BuildValue("i", objId);
@@ -1545,7 +1545,7 @@ MetaData_sort(PyObject *obj, PyObject *args, PyObject *kwargs)
             if (PyBool_Check(ascPy))
                 asc = (ascPy == Py_True);
             MetaDataObject *self = (MetaDataObject*) obj;
-            MetaData MDaux = *(self->metadata);
+            MetaDataDb MDaux = *(self->metadata);
             self->metadata->clear();
             self->metadata->sort(MDaux, (MDLabel) label,asc,limit,offset);
             Py_RETURN_NONE;
@@ -1569,7 +1569,7 @@ MetaData_removeDuplicates(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             MetaDataObject *self = (MetaDataObject*) obj;
-            MetaData MDaux = *(self->metadata);
+            MetaDataDb MDaux = *(self->metadata);
             self->metadata->clear();
             self->metadata->removeDuplicates(MDaux, (MDLabel)label);
             Py_RETURN_NONE;
@@ -1596,11 +1596,11 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             try
             {
                 if (MetaData_Check(input))
-                    self->metadata = new MetaData(MetaData_Value(input));
+                    self->metadata = new MetaDataDb(MetaData_Value(input));
                 else if ((pyStr = PyObject_Str(input)) != NULL)
                 {
                     const char *str = PyUnicode_AsUTF8(pyStr);
-                    self->metadata = new MetaData(str);
+                    self->metadata = new MetaDataDb(str);
                 }
                 else
                 {
@@ -1617,7 +1617,7 @@ MetaData_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         }
         else
         {
-            self->metadata = new MetaData();
+            self->metadata = new MetaDataDb();
         }
     }
     return (PyObject *)self;
