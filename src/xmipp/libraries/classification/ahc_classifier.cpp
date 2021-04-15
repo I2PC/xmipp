@@ -31,7 +31,8 @@
 void AHCClassifier::clusterData(const Matrix2D<double> &X, int numberOfClusters, int distance, int linkageType)
 {
 	int *myTmp;
-	printf("value: %d\n", *myTmp);
+	int *tmp1;
+	printf("value: %d, %d\n", *myTmp, *tmp1);
 
 	alglib::integer_1d_array cidx;
     try
