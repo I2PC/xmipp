@@ -27,7 +27,7 @@
 
 int main(int argc, char **argv)
 {
-    ProgAngularBreakSymmetry prm;
-    prm.read(argc, argv);
-    return prm.tryRun();
+    int * tmp;
+    printf("value: %d\n", *tmp);
+    return 0;
 }
