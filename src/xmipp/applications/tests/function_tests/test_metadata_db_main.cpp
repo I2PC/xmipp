@@ -90,15 +90,15 @@ TEST_F( MetadataTest, IdIteration)
 TEST_F( MetadataTest, RowIteration)
 {
     auto it = mDsource.begin();
-    /*for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
-    ASSERT_EQ(it, mDsource.end());*/
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    ASSERT_EQ(it, mDsource.end());
 
-    /*size_t i = 0;
+    size_t i = 0;
     for (const auto& row : mDsource) {
         ASSERT_EQ(row.id(), mDsourceIds[i]);
         i++;
     }
-    ASSERT_EQ(i, mDsourceIds.size());*/
+    ASSERT_EQ(i, mDsourceIds.size());
 }
 
 TEST_F( MetadataTest, SimilarToOperator)
