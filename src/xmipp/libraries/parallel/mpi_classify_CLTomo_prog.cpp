@@ -688,7 +688,7 @@ void CL3D::write(const FileName &fnRoot, int level) const
     MDRowSql row;
     for (int q = 0; q < Q; q++)
     {
-        MetaDataDb SFq;
+        MetaDataVec SFq;
         std::vector<CL3DAssignment> &currentListImg = P[q]->currentListImg;
         int imax = currentListImg.size();
         for (int i = 0; i < imax; i++)
@@ -703,7 +703,7 @@ void CL3D::write(const FileName &fnRoot, int level) const
             row.setValue(MDL_ANGLE_PSI, assignment.psi);
             SFq.addRow(row);
         }
-        MetaDataDb SFq_sorted;
+        MetaDataVec SFq_sorted;
         SFq_sorted.sort(SFq, MDL_IMAGE);
         SFq_sorted.write(formatString("class%06d_images@%s",q+1, fnSFout.c_str()), MD_APPEND);
     }
