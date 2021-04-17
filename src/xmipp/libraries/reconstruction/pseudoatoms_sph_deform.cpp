@@ -326,6 +326,8 @@ void ProgPseudoAtomsSphDeform::run() {
 	Ar.read(fn_ref);
 	atoms2Coords(Ai, Ci);
 	atoms2Coords(Ar, Cr);
+	moveToOrigin(Ci);
+	moveToOrigin(Cr);
 	Er.resize(3, Ar.getNumberOfAtoms());
 	array2eigen(Cr, Er);
 	buildTree(kdtree_r, Er);
@@ -449,13 +451,22 @@ void ProgPseudoAtomsSphDeform::run() {
 }
 
 void ProgPseudoAtomsSphDeform::atoms2Coords(PDBRichPhantom &A, MultidimArray<double> &C) {
-	C.initZeros(3, A.getNumberOfAtoms());
+    C.initZeros(3, A.getNumberOfAtoms());
 	for (size_t a=0; a<A.getNumberOfAtoms(); a++) {
 		RichAtom& atom=A.atomList[a];
 		A2D_ELEM(C, 0, a) = atom.x;
 		A2D_ELEM(C, 1, a) = atom.y;
 		A2D_ELEM(C, 2, a) = atom.z;
 	}
+}
+
+void ProgPseudoAtomsSphDeform::moveToOrigin(MultidimArray<double> &C) {
+    massCenter(C, origin);
+    for (size_t j=0; j<XSIZE(C); ++j) {
+        A2D_ELEM(C, 0, j) = A2D_ELEM(C, 0, j) - origin[0];
+        A2D_ELEM(C, 1, j) = A2D_ELEM(C, 1, j) - origin[1];
+        A2D_ELEM(C, 2, j) = A2D_ELEM(C, 2, j) - origin[2];
+    }
 }
 
 void ProgPseudoAtomsSphDeform::array2eigen(MultidimArray<double> &C, Matrix &E) {
@@ -492,15 +503,12 @@ void ProgPseudoAtomsSphDeform::massCenter(MultidimArray<double> &C, Matrix1D<dou
 }
 
 double ProgPseudoAtomsSphDeform::inscribedRadius(MultidimArray<double> &C) {
-	Matrix1D<double> centerMass;
 	double dist=0;
 	double Rmax=0;
-	// massCenter(C, centerMass);
-	centerMass.initZeros(3);
 	for (size_t j=0; j<XSIZE(C); ++j) {
-		dist = sqrt(pow(centerMass[0]-A2D_ELEM(C, 0, j), 2.0) + 
-					pow(centerMass[1]-A2D_ELEM(C, 1, j), 2.0) + 
-					pow(centerMass[2]-A2D_ELEM(C, 2, j), 2.0));
+		dist = sqrt(pow(A2D_ELEM(C, 0, j), 2.0) +
+					pow(A2D_ELEM(C, 1, j), 2.0) +
+					pow(A2D_ELEM(C, 2, j), 2.0));
 		if (dist > Rmax)
 			Rmax = dist;
 	}

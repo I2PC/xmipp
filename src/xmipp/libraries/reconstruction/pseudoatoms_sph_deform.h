@@ -58,6 +58,9 @@ public:
     /** Volume to deform */
 	FileName fn_vol1, fn_vol2;
 
+    /** Origin Vector */
+    Matrix1D<double> origin;
+
     /** Vector containing the deformation coefficients */
 	Matrix1D<double> clnm;
 
@@ -139,6 +142,9 @@ public:
 
     /** Extract atom coordinates */
     void atoms2Coords(PDBRichPhantom &A, MultidimArray<double> &C);
+
+    /** Move coordinates to origin */
+    void moveToOrigin(MultidimArray<double> &C);
 
     /** Convert MultidimArray to Eigen (software) matrix */
     void array2eigen(MultidimArray<double> &C, Matrix &E);
