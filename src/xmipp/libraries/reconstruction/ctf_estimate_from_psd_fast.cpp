@@ -31,6 +31,7 @@
 #include "data/numerical_tools.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_fftw.h"
+#include "core/metadata_vec.h"
 
 /* prototypes */
 double CTF_fitness_fast(double *, void *);

@@ -27,7 +27,6 @@
 #define _CORE_CTF_HH
 
 #include <complex>
-#include "core/metadata_vec.h"
 #include "core/metadata_db.h"
 #include "core/numerical_recipes.h"
 #include "core/xmipp_fft.h"

@@ -26,6 +26,7 @@
 #include <fstream>
 #include "base_art_recons.h"
 #include "core/xmipp_threads.h"
+#include "core/metadata_vec.h"
 #include "data/fourier_filter.h"
 #include "data/wavelet.h"
 #include "data/projection.h"

@@ -25,6 +25,7 @@
 
 #include "image_eliminate_empty_particles.h"
 #include "classify_extract_features.h"
+#include "core/metadata_vec.h"
 #include <data/filters.h>
 #include <fstream>
 

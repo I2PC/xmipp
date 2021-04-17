@@ -30,6 +30,7 @@
 #include "ctf_estimate_from_psd_fast.h"
 #include "core/matrix2d.h"
 #include "core/transformations.h"
+#include "core/metadata_vec.h"
 #include "data/numerical_tools.h"
 #include "fringe_processing.h"
 
