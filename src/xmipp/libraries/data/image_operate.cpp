@@ -28,6 +28,7 @@
 #include "core/transformations.h"
 #include "core/xmipp_fft.h"
 #include "data/numerical_tools.h"
+#include "core/utils/memory_utils.h"
 
 void minus(Image<double> &op1, const Image<double> &op2)
 {
@@ -531,7 +532,7 @@ void ProgOperate::readParams()
             {
                 if (mdInSize != md2.size())
                     REPORT_ERROR(ERR_MD, "Both metadatas operands should be of same size.");
-                md2IdIterator = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(md2.ids().begin()));
+                md2IdIterator = memoryUtils::make_unique<MetaDataVec::id_iterator>(md2.ids().begin());
                 md2.ids().begin();
             }
             else
