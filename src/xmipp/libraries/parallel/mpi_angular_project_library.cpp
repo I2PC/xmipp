@@ -385,21 +385,21 @@ public:
                 size_t myCounter = 0;
                 size_t id;
                 int ref;
-                for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i) {
-                    for (size_t objId : mySFin.ids())
-                    {
 
-                        double x,y,z, rot, tilt, psi;
-                        mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
-                        mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
-                        mySFin.getValue(MDL_ANGLE_PSI,psi,objId);
-                        mySFin.getValue(MDL_X,x,objId);
-                        mySFin.getValue(MDL_Y,y,objId);
-                        mySFin.getValue(MDL_Z,z,objId);
-                        mySFin.getValue(MDL_REF,ref,objId);
+                for (size_t objId : mySFin.ids())
+                {
+                    double x,y,z, rot, tilt, psi;
+                    mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
+                    mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
+                    mySFin.getValue(MDL_ANGLE_PSI,psi,objId);
+                    mySFin.getValue(MDL_X,x,objId);
+                    mySFin.getValue(MDL_Y,y,objId);
+                    mySFin.getValue(MDL_Z,z,objId);
+                    mySFin.getValue(MDL_REF,ref,objId);
 
+                    for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i) {
                         //FIXME, do I have order?
-                        fn_temp.compose( ++myCounter,output_file);
+                        fn_temp.compose(++myCounter,output_file);
                         id = mySF.addObject();
                         mySF.setValue(MDL_IMAGE,fn_temp, id);
                         mySF.setValue(MDL_ENABLED,1, id);
