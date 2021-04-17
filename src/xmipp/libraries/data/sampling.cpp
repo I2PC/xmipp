@@ -1604,14 +1604,16 @@ void Sampling::readSamplingFile(const FileName &fn_base,
         exp_data_fileNames.clear();
         exp_data_fileNames.resize(md.size());
     }
-    size_t i = 0;
-    size_t ii = 0;
-    for (size_t objId : md.ids())
+
     {
-        if (readFileName)
-            md.getValue(MDL_IMAGE,exp_data_fileNames[ii++], objId);
-        md.getValue(MDL_NEIGHBORS, my_neighbors[i], objId);
-        i++;
+        size_t i = 0, ii = 0;
+        for (size_t objId : md.ids())
+        {
+            if (readFileName)
+                md.getValue(MDL_IMAGE,exp_data_fileNames[ii++], objId);
+            md.getValue(MDL_NEIGHBORS, my_neighbors[i], objId);
+            i++;
+        }
     }
 
     //Read projection directions
@@ -1622,32 +1624,35 @@ void Sampling::readSamplingFile(const FileName &fn_base,
     if (read_vectors)
         no_redundant_sampling_points_vector.resize(size);
 
-    i = 0;
-    for (size_t objId : md.ids())
     {
-        /** This is the object ID in the metadata, usually starts at 1 */
-        //size_t objId;
-        /** This is the index of the object, starts at 0 */
-        //size_t objIndex;
-
-        Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
-        angles.resizeNoCopy(3);
-        md.getValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i], objId);
-        md.getValue(MDL_ANGLE_ROT, XX(angles), objId);
-        md.getValue(MDL_ANGLE_TILT, YY(angles), objId);
-        md.getValue(MDL_ANGLE_PSI, ZZ(angles), objId);
-
-        if (read_vectors)
+        size_t i = 0;
+        for (size_t objId : md.ids())
         {
-            Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
-            vectors.resizeNoCopy(3);
-            md.getValue(MDL_X, XX(vectors), objId);
-            md.getValue(MDL_Y, YY(vectors), objId);
-            md.getValue(MDL_Z, ZZ(vectors), objId);
-        }
+            /** This is the object ID in the metadata, usually starts at 1 */
+            //size_t objId;
+            /** This is the index of the object, starts at 0 */
+            //size_t objIndex;
 
-        i++;
+            Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
+            angles.resizeNoCopy(3);
+            md.getValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i], objId);
+            md.getValue(MDL_ANGLE_ROT, XX(angles), objId);
+            md.getValue(MDL_ANGLE_TILT, YY(angles), objId);
+            md.getValue(MDL_ANGLE_PSI, ZZ(angles), objId);
+
+            if (read_vectors)
+            {
+                Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
+                vectors.resizeNoCopy(3);
+                md.getValue(MDL_X, XX(vectors), objId);
+                md.getValue(MDL_Y, YY(vectors), objId);
+                md.getValue(MDL_Z, ZZ(vectors), objId);
+            }
+
+            i++;
+        }
     }
+
 //#define DEBUG5
 #ifdef  DEBUG5
 //This bild file does not make sense since x,y,z are angles
