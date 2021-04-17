@@ -68,7 +68,7 @@ protected:
 TEST_F(MetadataTest, IdIteration)
 {
     auto it = mDsource.ids().begin();
-    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it); // reach end of MetaData
     ASSERT_EQ(it, mDsource.ids().end());
 
     size_t i = 0;
@@ -158,7 +158,7 @@ TEST_F(MetadataTest, AddRow)
 
 TEST_F(MetadataTest, AddRowsPerformance)
 {
-    MetaDataVec md, md2, md3;
+    MetaDataVec md;
     MDRowVec row;  // Sample row
 
     printf("N_ROWS_PERFORMANCE_TEST = %d\n", N_ROWS_PERFORMANCE_TEST);
@@ -185,42 +185,12 @@ TEST_F(MetadataTest, AddRowsPerformance)
     row.setValue(MDL_SHIFT_Z, 3.5);
 
     Timer t;
-    size_t s1, s2, s3;
-
+    size_t s1;
     t.tic();
 
     for (int i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
-    {
         md.addRow(row);
-    }
-    s1 = t.toc("Time original:", false);
-
-    t.tic();
-    for (int i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
-    {
-        md2.addRow(row);
-    }
-
-    s2 = t.toc("Time by row: ", false);
-    printf("    Speed up from original: %f\n", ((float) s1 / (float) s2));
-
-    // Initialize insertion.
-    t.tic();
-    // Add rows loop.
-    int i=0;
-    do
-    {
-        // Insert row and increase number of insertions.
-        md3.addRow(row);
-        i++;
-    }
-    while (i<N_ROWS_PERFORMANCE_TEST);
-    s3 = t.toc("Time by set:", false);
-    printf("    Speed up from original: %f\n", ((float) s1 / (float) s3));
-    printf("    Speed up from row: %f\n", ((float) s2 / (float) s3));
-    // Check result.
-    EXPECT_EQ(md, md2);
-    EXPECT_EQ(md2, md3);
+    s1 = t.toc("Time:", false);
 }
 
 TEST_F(MetadataTest, addLabelAlias)

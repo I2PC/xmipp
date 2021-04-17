@@ -76,7 +76,7 @@ protected:
 TEST_F( MetadataTest, IdIteration)
 {
     auto it = mDsource.ids().begin();
-    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it); // reach end of MetaData
     ASSERT_EQ(it, mDsource.ids().end());
 
     size_t i = 0;
