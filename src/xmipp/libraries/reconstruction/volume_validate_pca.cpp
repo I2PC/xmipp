@@ -180,7 +180,7 @@ void ProgVolumeValidationPCA::evaluate()
     MetaDataVec auxMetadata;
     double distance = 0;
 
-    for (auto& row : md)
+    for (const auto& row : md)
     {
         row.getValue(MDL_IMAGE, imag);
         row.getValue(MDL_ANGLE_ROT, rot);
@@ -198,7 +198,7 @@ void ProgVolumeValidationPCA::evaluate()
             query.addAndQuery(eq);
             auxMetadata.importObjects(md2, eq);
 
-            for (auto& rowAux : auxMetadata)
+            for (const auto& rowAux : auxMetadata)
             {
                 rowAux.getValue(MDL_ANGLE_ROT, rot2);
                 rowAux.getValue(MDL_ANGLE_TILT,tilt2);

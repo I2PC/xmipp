@@ -29,6 +29,7 @@
 #include "core/metadata_sql.h"
 #include "core/xmipp_image.h"
 #include "core/transformations.h"
+#include "core/utils/memory_utils.h"
 #include "data/fourier_filter.h"
 #include "data/mask.h"
 #include "data/morphology.h"
@@ -2284,7 +2285,7 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
 
     if (!fnSelOrig.empty())
     {
-        idIter = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(SForig.ids().begin()));
+        idIter = memoryUtils::make_unique<MetaDataVec::id_iterator>(SForig.ids().begin());
     }
     DF.setComment("First shift by -(shiftX,shiftY), then rotate by psi");
 

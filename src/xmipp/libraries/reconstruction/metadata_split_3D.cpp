@@ -26,6 +26,7 @@
 #include <algorithm>
 #include "metadata_split_3D.h"
 #include "core/geometry.h"
+#include "core/metadata_vec.h"
 #include "data/filters.h"
 #include "data/basic_pca.h"
 
@@ -193,7 +194,7 @@ void ProgMetadataSplit3D::run()
 	progress_bar(mdRef.size());
 
 	// Split in two metadatas
-	MetaDataDb mdUpper, mdLower;
+	MetaDataVec mdUpper, mdLower;
 	for (auto& row : mdIn)
 	{
 		mdIn.getValue(MDL_IMAGE_IDX, refno, row.id());

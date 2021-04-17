@@ -150,7 +150,7 @@ public:
             }
             if (proceed)
             {
-                toClassify.push_back(dynamic_cast<MDRowVec&>(row));
+                toClassify.emplace_back(dynamic_cast<MDRowVec&>(row));
                 row.getValue(MDL_IMAGE,fnImg);
                 if (!firstSelected)
                 {

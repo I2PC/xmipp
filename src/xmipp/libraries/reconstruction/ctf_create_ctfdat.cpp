@@ -131,7 +131,7 @@ public:
         size_t id;
 
         auto itIdIn = mdIn.ids().begin();
-        auto itIdCtf = mdIn.ids().begin();
+        auto itIdCtf = mdCtf.ids().begin();
         for (; itIdIn != mdIn.ids().end(); ++itIdIn, ++itIdCtf)
         {
             mdIn.getValue(MDL_SELFILE,fnsel, *itIdIn);
@@ -139,7 +139,7 @@ public:
             SFind.read(fnsel);
             for (size_t objId : SFind.ids())
             {
-                SFind.getValue(MDL_IMAGE,fnimg, *itIdIn);
+                SFind.getValue(MDL_IMAGE,fnimg, objId);
                 id = ctfdat.addObject();
                 ctfdat.setValue(MDL_IMAGE,fnimg, id);
                 ctfdat.setValue(MDL_CTF_MODEL,fnctf, id);

@@ -826,7 +826,6 @@ void ProgClassifySignificant::updateClass(int n, double wn)
 	double CCbest=-1e38;
 	int idCCbest=-1;
 	MetaDataVec &subsetAngles_n = subsetAngles[n];
-	size_t i = 0;
 	for (size_t objId : subsetAngles_n.ids())
 	{
 		double cc;

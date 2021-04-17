@@ -283,11 +283,7 @@ void ProgClassifyCL2DCore::computeStableCores()
                     thisClass.getValue(MDL_IMAGE,fnImg,objId);
                     size_t idx=thisClassOrder[fnImg];
                     if (VEC_ELEM(maximalCoocurrence,idx))
-                    {
-                        MDRowVec row;
-                        thisClass.getRow(row, objId);
-                        thisClassCore.addRow(row);
-                    }
+                        thisClassCore.addRow(*thisClass.getRow(objId));
                 }
             }
             thisClassCore.write(thisBlock.fnLevel.insertBeforeExtension((String)"_stable_core_"+thisBlock.block),MD_APPEND);

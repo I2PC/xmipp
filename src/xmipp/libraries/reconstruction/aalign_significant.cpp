@@ -24,6 +24,7 @@
  ***************************************************************************/
 
 #include "aalign_significant.h"
+#include "core/xmipp_image_extension.h"
 
 namespace Alignment {
 
@@ -517,7 +518,7 @@ void AProgAlignSignificant<T>::updateRefXmd(size_t refIndex, std::vector<Assignm
             getImgRow(row, a.imgIndex);
             fillRow(row, a.pose, refIndex, a.weight, a.imgIndex);
         }
-        const auto labels = rows.at(0).labels();
+        const auto& labels = rows.at(0).labels();
         if (0 == m_updateHelper.imgBlocks.size()) {
             m_updateHelper.imgBlocks.resize(m_referenceImages.dims.n(), labels);
         }
