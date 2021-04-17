@@ -85,6 +85,12 @@ void AProgMovieAlignmentCorrelation<T>::checkSettings() {
                 "Check the intervals of the alignment and summation "
                 "(--frameRange and --frameRangeSum).");
     }
+    if (getScaleFactor() >= 1) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "The correlation scale factor is bigger than one. "
+                "Check that the sampling rate (--sampling) and maximal resolution to align "
+                "(--maxResForCorrelation) are correctly set. For current sampling, you can "
+                "use maximal resolution of " + std::to_string(this->Ts * 8 * getC()) + " or higher.");
+    }
 }
 
 template<typename T>

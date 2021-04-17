@@ -159,6 +159,19 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
         md.getColumnValues(MDL_ANGLE_ROT, h.rots);
         h.tilts.reserve(Ndim);
         md.getColumnValues(MDL_ANGLE_TILT, h.tilts);
+        if (!md.containsLabel(MDL_ANGLE_ROT)) {
+            std::cerr << "No roration specified for reference images. Using 0 by default\n";
+            h.rots.resize(Ndim, 0); // rotation not specified, use default value
+        } else {
+            md.getColumnValues(MDL_ANGLE_ROT, h.rots);
+        }
+        h.tilts.reserve(Ndim);
+        if (!md.containsLabel(MDL_ANGLE_TILT)) {
+            std::cerr << "No tilt specified for reference images. Using 0 by default\n";
+            h.tilts.resize(Ndim, 0); // tilt not specified, use default value
+        } else {
+            md.getColumnValues(MDL_ANGLE_TILT, h.tilts);
+        }
         h.indexes.reserve(Ndim);
         md.getColumnValues(MDL_REF, h.indexes);
     }
@@ -407,7 +420,12 @@ void AProgAlignSignificant<T>::computeAssignment(
 template<typename T>
 template<bool USE_WEIGHT>
 void AProgAlignSignificant<T>::storeAlignedImages() {
-    auto &md = m_imagesToAlign.md;
+    if (0 == m_assignments.size()) {
+    	MetaDataVec().write(m_fnOut);
+    	return;
+    }
+
+	auto &md = m_imagesToAlign.md;
 
     std::sort(m_assignments.begin(), m_assignments.end(),
             [](const Assignment &l, const Assignment &r) {
@@ -418,30 +436,40 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
                   :(l.merit > r.merit));
     });
 
-    size_t i = 0;
     std::vector<MDRowVec> rows;
-    rows.reserve(md.size() * m_noOfBestToKeep);
+    size_t indexMeta = 0;
+    size_t indexAssign = 0; // if we're here, we have at least one assignment
+    rows.reserve(m_assignments.size());
     for (const auto& _row : md) {
         const MDRowVec& row = dynamic_cast<const MDRowVec&>(_row);
+        // we migh have skipped some images due to bad reference
+        if (indexMeta != m_assignments.at(indexAssign).imgIndex) {
+            indexMeta++;
+            continue;
+        }
+        // we found the first row in metadata with image that we have
         // get the original row from the input metadata
-        auto maxVote = m_assignments.at(i).merit;
-        // for all references that we want to store, starting from the best matching one
-        for (size_t nthBest = 0; nthBest < m_noOfBestToKeep; ++nthBest) {
+        auto maxVote = m_assignments.at(indexAssign).merit; // because we sorted it above
+        while (m_assignments.at(indexAssign).imgIndex == indexMeta) {
+            // create new record using the data
             rows.emplace_back(row);
             auto &r = rows.back();
-            const auto &a = m_assignments.at(i);
+            const auto &a = m_assignments.at(indexAssign);
             fillRow(r, a.pose, a.refIndex, a.weight, a.imgIndex, maxVote);
-            i++;
+            // continue with next assignment
+            indexAssign++;
+            if (indexAssign == m_assignments.size()) {
+                goto storeData; // we're done here
+            }
         }
+        indexMeta++;
     }
-    if (0 != rows.size()) {
-        const auto labels = rows.at(0).labels();
-        MetaDataVec md(labels);
-        md.addRows(rows);
-        md.write(m_fnOut);
-    } else {
-        MetaDataVec().write(m_fnOut);
-    }
+
+    storeData:
+	const auto labels = rows.at(0).labels();
+	MetaDataVec mdOut(labels);
+	mdOut.addRows(rows);
+	mdOut.write(m_fnOut);
 }
 
 template<typename T>
