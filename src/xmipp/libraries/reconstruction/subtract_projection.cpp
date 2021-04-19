@@ -27,6 +27,8 @@
  #include "core/transformations.h"
  #include "core/xmipp_image_extension.h"
  #include "core/xmipp_image_generic.h"
+ #include "core/xmipp_fft.h"
+ #include "core/xmipp_fftw.h"
  #include "data/projection.h"
  #include "data/mask.h"
  #include <iostream>
@@ -223,14 +225,9 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
+
     	// Compute projection of the volume
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-
-     	// Compute radial averages
-//    	MultidimArray<double> &Irad, &Prad;
-     	radialAvg(I); //, Irad());
-     	radialAvg(P); //, Prad());
-
     	// Compute projection of the volume mask
 		MultidimArray<double> &mMaskVol=maskVol();
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
@@ -260,21 +257,41 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
  	 		FilterCTF.applyMaskSpace(P());
  	 	}
 
+     	// Compute radial averages
+    	Image<double> Irad, Prad;
+    	Irad = I;
+    	Prad = P;
+     	radialAvg(Irad);
+     	radialAvg(Prad);
+		Irad.write("Irad.txt");
+		Prad.write("Prad.txt");
+		// Compute |FT(radial averages)|
+		FourierTransformer transformerRad;
+		MultidimArray< std::complex<double> > IFourierRad, PFourierRad;
+		MultidimArray<double> IFourierMagRad, PFourierMagRad, radQuotient;
+		transformerRad.completeFourierTransform(Irad(),IFourierRad);
+		CenterFFT(IFourierRad, true);
+		FFT_magnitude(IFourierRad,IFourierMagRad);
+		transformerRad.completeFourierTransform(Prad(),PFourierRad);
+		CenterFFT(PFourierRad, true);
+		FFT_magnitude(PFourierRad,PFourierMagRad);
+		// Compute adjustment quotient for POCS amplitude (and POCS phase?)
+		radQuotient = IFourierMagRad/PFourierMagRad;
+
+     	// Compute what need for the loop of POCS
 		FourierTransformer transformer;
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
-
 		double Imin, Imax;
 		I().computeDoubleMinMax(Imin, Imax);
-
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
 		double std1 = I().computeStddev();
-
 		MultidimArray<std::complex<double> > PFourierPhase;
 		transformer.FourierTransform(P(),PFourierPhase,true);
 		extractPhaseProj(PFourierPhase);
 
+		// POCS loop
 		for (int n=0; n<iter; ++n)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
