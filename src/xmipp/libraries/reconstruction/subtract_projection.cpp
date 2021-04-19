@@ -49,13 +49,13 @@ void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
 //	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
 //}
 
-void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda)
+void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, MultidimArray<double> &rQ)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
 		{
 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
 		if (mod>1e-6)
-			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
+			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod*DIRECT_MULTIDIM_ELEM(rQ,n);
 		}
 }
 
@@ -199,7 +199,7 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		mask().initConstant(1.0);
 	}
 
-	// Gaussian LPF to smooth mask => after project!
+	// Gaussian LPF to smooth mask => after projection!
 	FourierFilter FilterG;
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
@@ -216,29 +216,37 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
-    	// Read particle image and metadata
+    	// Read particle image
     	mdParticles.getRow(row,__iter.objId);
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
     	I.read(fnImage);
     	I().setXmippOrigin();
+		I.write("I.mrc");
+		// Read particle metadata
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
 
     	// Compute projection of the volume
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+		P.write("P.mrc");
     	// Compute projection of the volume mask
 		MultidimArray<double> &mMaskVol=maskVol();
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	PmaskVol.write("mask.mrc");
     	// Binarize volume mask
     	BinarizeMask(maskVol(), PmaskVol());
+    	PmaskVol.write("maskBin.mrc");
     	// Filter mask with Gaussian
 		FilterG.applyMaskSpace(PmaskVol());
+    	PmaskVol.write("maskBinGaus.mrc");
 
 		// Apply bin volume mask to particle and volume projection
 		POCSmaskProj(PmaskVol(), P());
 		POCSmaskProj(PmaskVol(), I());
+		I.write("Imask.mrc");
+		P.write("Pmask.mrc");
 
     	// Check if particle has CTF and apply it
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
@@ -255,6 +263,7 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
  	 		FilterCTF.ctf = ctf;
  	 		FilterCTF.generateMask(P());
  	 		FilterCTF.applyMaskSpace(P());
+ 			P.write("Pctf.mrc");
  	 	}
 
      	// Compute radial averages
@@ -263,8 +272,8 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
     	Prad = P;
      	radialAvg(Irad);
      	radialAvg(Prad);
-		Irad.write("Irad.txt");
-		Prad.write("Prad.txt");
+		Irad.write("Irad.mrc");
+		Prad.write("Prad.mrc");
 		// Compute |FT(radial averages)|
 		FourierTransformer transformerRad;
 		MultidimArray< std::complex<double> > IFourierRad, PFourierRad;
@@ -286,7 +295,7 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		I().computeDoubleMinMax(Imin, Imax);
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
-		double std1 = I().computeStddev();
+//		double std1 = I().computeStddev();
 		MultidimArray<std::complex<double> > PFourierPhase;
 		transformer.FourierTransform(P(),PFourierPhase,true);
 		extractPhaseProj(PFourierPhase);
@@ -295,12 +304,15 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		for (int n=0; n<iter; ++n)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
-			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda);
+			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient);
 			transformer.inverseFourierTransform();
+			P.write("Pamp.mrc");
 			POCSMinMaxProj(P(), Imin, Imax);
+			P.write("Pminmax.mrc");
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
+			P.write("Pphase.mrc");
 //			double std2 = P().computeStddev();
 //			P()*=std1/std2;
 			if (cutFreq!=0)
@@ -308,6 +320,7 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 				Filter2.generateMask(P());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(P());
+				P.write("Pfilt.mrc");
 			}
 		}
 
@@ -320,21 +333,26 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		// Project subtraction mask
 		MultidimArray<double> &mMask=mask();
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	Pmask.write("maskfocus.mrc");
     	// Binarize subtraction mask
     	BinarizeMask(mask(), Pmask());
+    	Pmask.write("maskfocusbin.mrc");
 
     	// Invert projected mask
 		PmaskInv = Pmask;
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskInv())
 		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(PmaskInv,n)*(-1))+1;
+    	Pmask.write("maskfocusbin2.mrc");
+    	PmaskInv.write("maskfocusInv.mrc");
 
     	// Filter mask with Gaussian
 		FilterG.applyMaskSpace(Pmask());
+    	Pmask.write("maskfocusbingaus.mrc");
 
-		// Save binarized mask and projection adjusted
+		// Save particle and projection adjusted
 		if (fnPart!="" && fnProj!="")
 		{
-			Pmask.write(fnPart);
+			I.write(fnPart);
 			P.write(fnProj);
 		}
 
