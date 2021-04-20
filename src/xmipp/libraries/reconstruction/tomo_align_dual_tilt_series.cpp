@@ -24,9 +24,11 @@
  ***************************************************************************/
 
 #include "tomo_align_dual_tilt_series.h"
-#include <core/args.h>
-#include <data/filters.h>
-#include <core/xmipp_fftw.h>
+#include "data/filters.h"
+#include "core/xmipp_fftw.h"
+#include "core/geometry.h"
+#include "core/transformations.h"
+#include "core/xmipp_image.h"
 
 double wrapperDualAligment(double *p, void *prm)
 {
@@ -414,7 +416,7 @@ void ProgAlignDualTiltSeries::alignDual()
             selfRotate(BSPLINE3,Idual(),180,DONT_WRAP);
         selfTranslate(BSPLINE3,Idual(),shift2D,DONT_WRAP);
         shiftProjectionInZ(Idual(), n, ZZ(shift3D));
-        Euler_angles2matrix(0, tiltDual(n), 0, Edual);
+        Euler_angles2matrix(0., tiltDual(n), 0., Edual);
         Edual=Edual*E;
         double rot, tilt, psi;
         Euler_matrix2angles(Edual, rot, tilt, psi);
@@ -468,7 +470,7 @@ void ProgAlignDualTiltSeries::shiftProjectionInZ(MultidimArray<double> &I, int d
     Matrix1D<double> w(3);
     Matrix1D<int> idx(3);
     Matrix2D<double> Edual, Edualt;
-    Euler_angles2matrix(0, tiltDual(dualj), 0, Edual);
+    Euler_angles2matrix(0., tiltDual(dualj), 0., Edual);
     Edualt=Edual.transpose();
     transformer.FourierTransform(I,Ifft,false);
     FOR_ALL_ELEMENTS_IN_ARRAY2D(Ifft)

@@ -25,8 +25,9 @@
 #ifndef _PROG_PDB_NMA_DEFORM_HH
 #define _PROG_PDB_NMA_DEFORM_HH
 
-#include <data/pdb.h>
-#include <core/xmipp_program.h>
+#include "core/xmipp_program.h"
+#include "core/multidim_array.h"
+#include "core/xmipp_filename.h"
 
 /**@defgroup PDBNMADeform Deform PDB according to NMA
    @ingroup ReconsLibrary */

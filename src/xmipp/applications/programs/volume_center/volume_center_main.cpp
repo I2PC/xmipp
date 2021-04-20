@@ -25,6 +25,7 @@
 
 #include <data/mask.h>
 #include <core/xmipp_program.h>
+#include "core/transformations.h"
 
 class ProgVolumeCenter: public XmippMetadataProgram
 {

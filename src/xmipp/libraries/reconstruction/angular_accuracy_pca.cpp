@@ -24,8 +24,10 @@
  ***************************************************************************/
 
 #include "angular_accuracy_pca.h"
-#include <math.h>
-#include <core/transformations.h>
+#include "core/metadata_sql.h"
+#include "core/transformations.h"
+#include "data/projection.h"
+#include "data/fourier_projection.h"
 
 ProgAngularAccuracyPCA::ProgAngularAccuracyPCA()
 {

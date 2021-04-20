@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia rsanchez@cnb.csic.es
@@ -27,17 +27,16 @@
 
 import os
 import sys
-import xmipp_base
-from xmipp3 import Plugin
-import pyworkflow.em.metadata as md
 
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+from xmipp_base import XmippScript
+import xmippLib
 
 
-class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
+class ScriptMicrographCleanerEm(XmippScript):
+    _conda_env="xmipp_MicCleaner"
     def __init__(self):
 
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
 
     def getDoubleParamWithDefault(self, paramName, conditionFun= lambda x: False, defaultVal=None):
       if self.checkParam(paramName):
@@ -60,7 +59,7 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         self.addParamsLine(' [ -o <outputCoordsDir> ] : output coordinates directory.')
         self.addParamsLine(' [ -d <deepLearningModel> ]  : (optional) deep learning model filename. If not provided, default model will be used')
         self.addParamsLine('-b <boxSize>     : particles box size in pixels')
-        self.addParamsLine('-s <downFactor>   <F=1.0>   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
+        self.addParamsLine(' [ -s <downFactor>   <F=1.0> ]   : (optional) micrograph downsampling factor to scale coordinates, Default no scaling')
         self.addParamsLine(' [ --deepThr <deepThr> ]: (optional) deep learning threshold to rule out a coordinate. The smaller the treshold '+
                            'the more coordiantes will be rule out. Ranges 0..1. Recommended 0.8')
         self.addParamsLine(' [--sizeThr <sizeThr> <F=0.8> ]: Failure threshold. Fraction of the micrograph predicted as contamination to ignore predictions. '+
@@ -74,22 +73,22 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         self.addExampleLine('xmipp_deep_micrograph_cleaner -c path/to/inputCoords/ -o path/to/outputCoords -b $BOX_SIXE  -i  /path/to/micrographs/')
         
     def run(self):
-        checkIf_tf_keras_installed()
+        # checkIf_tf_keras_installed()
         args={}
         gpusToUse="0"
         if self.checkParam('-g'):
           gpusToUse= self.getParam('-g')
           if "None" in gpusToUse or "-1" in gpusToUse:
-            gpusToUse=None
+            gpusToUse=-1
         args["gpus"]=gpusToUse
 
-        updateEnviron(gpusToUse)
-        
         if self.checkParam('-i'):
-          mdObj= md.MetaData(os.path.expanduser( self.getParam('-i')))
+          mdObj= xmippLib.MetaData(os.path.expanduser( self.getParam('-i')))
+
           args["inputMicsPath"]= []
           for objId in mdObj:
-            args["inputMicsPath"]+= [mdObj.getValue(md.MDL_IMAGE, objId)]
+            args["inputMicsPath"]+= [mdObj.getValue(xmippLib.MDL_IMAGE, objId)]
+          args["inputMicsPath"]= " ".join(args["inputMicsPath"])
         else:
           raise Exception("Error, input micrographs fnames are requried as argument")
 
@@ -127,15 +126,10 @@ class ScriptMicrographCleanerEm(xmipp_base.XmippScript):
         if self.checkParam('-d'):
           args["deepLearningModel"]= self.getParam('-d')
         else:
-          args["deepLearningModel"]=Plugin.getModel('deepMicrographCleaner', 'defaultModel.keras')
+          args["deepLearningModel"]= self.getModel('deepMicrographCleaner', 'defaultModel.keras')
 
-        try:
-          from xmippPyModules.micrograph_cleaner_em.cleanMics import main
-        except ImportError as e:
-          print(e)
-          raise ValueError("Error, micrograph_cleaner_em packages was not properly imported")
-        main(** args)
- 
+        cmdArgs= " ".join(["--"+str(key)+" "+str(args[key]) for key in args if args[key] is not None ])
+        self.runCondaCmd("cleanMics", cmdArgs)
 
 if __name__ == '__main__':
     '''

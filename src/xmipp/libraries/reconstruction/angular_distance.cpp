@@ -27,6 +27,7 @@
 
 #include <core/args.h>
 #include <core/histogram.h>
+#include "core/geometry.h"
 
 // Read arguments ==========================================================
 void ProgAngularDistance::readParams()

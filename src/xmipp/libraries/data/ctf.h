@@ -26,10 +26,17 @@
 #ifndef _CORE_CTF_HH
 #define _CORE_CTF_HH
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_filename.h>
-#include <core/metadata.h>
-#include <core/xmipp_fft.h>
+#include <complex>
+#include "core/metadata.h"
+#include "core/numerical_recipes.h"
+#include "core/xmipp_fft.h"
+#include "core/xmipp_macros.h"
+
+template<typename T>
+class MultidimArray;
+template<typename T>
+class Matrix1D;
+class XmippProgram;
 
 const int CTF_BASIC_LABELS_SIZE = 5;
 const MDLabel CTF_BASIC_LABELS[] =
@@ -200,11 +207,10 @@ int main(int argc, char **argv)
 */
 
 /////////////////////////////////CTF1D///////////////////////////////////////////
-
 class CTFDescription1D
 {
 public:
-	// Electron wavelength (Amstrongs)
+	// Electron wavelength (Angstroms)
 	double lambda;
 	// Squared frequency associated to the aperture
 	// double ua2;
@@ -219,7 +225,7 @@ public:
 	double Ksin;
 	double Kcos;
 	/** Standard error of defocus Gaussian function due to chromatic aberration.
-		in Amstrong */
+		in Angstroms */
 	double D;
 	// Precomputed values
 	PrecomputedForCTF precomputed;
@@ -628,6 +634,12 @@ public:
 
 	/// Apply CTF to an image
 	void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray<double> &I, double Ts);
 
 	/** Generate CTF image.
 		The sample image is used only to take its dimensions. */
@@ -1191,6 +1203,12 @@ public:
     /// Apply CTF to an image
     void applyCTF(MultidimArray <double> &I, double Ts, bool absPhase=false);
 
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts);
+
+    /// Correct phase flip of an image
+    void correctPhase(MultidimArray<double> &I, double Ts);
+
     /** Generate CTF image.
         The sample image is used only to take its dimensions. */
     template <class T1, class T2>
@@ -1243,7 +1261,7 @@ public:
 				A2D_ELEM(CTF, i, j) = (T) getValueAt();
 				#ifdef DEBUG
 						if (i == 0)
-							std::cout << i << " " << j << " " << YY(freq) << " " << XX(freq)
+							std::cout << i << " " << j << " " << fy << " " << fx
 							<< " " << CTF(i, j) << std::endl;
 				#endif
         	}

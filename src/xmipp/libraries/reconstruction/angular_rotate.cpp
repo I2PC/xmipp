@@ -23,10 +23,12 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/xmipp_program.h>
-#include <core/transformations.h>
-#include <core/matrix2d.h>
-
+#include "core/geometry.h"
+#include "core/matrix2d.h"
+#include "core/metadata.h"
+#include "core/transformations.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_filename.h"
 
 class ProgAngularRotate: public XmippProgram
 {
@@ -73,7 +75,7 @@ protected:
         Matrix1D<double> xyz(3);
 
         if (checkParam("--ang"))
-            Euler_angles2matrix(0, 0,getDoubleParam("--ang"), R, true);
+            Euler_angles2matrix(0., 0.,getDoubleParam("--ang"), R, true);
         else if (checkParam("--axis"))
         {
             double ang = getDoubleParam("--axis", 0);

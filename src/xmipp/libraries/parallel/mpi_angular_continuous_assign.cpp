@@ -31,19 +31,16 @@
 class MpiProgAngularContinuousAssign2: public ProgAngularContinuousAssign2, public MpiMetadataProgram
 {
 public:
-	int Nsimul;
 
     void defineParams()
     {
         ProgAngularContinuousAssign2::defineParams();
         MpiMetadataProgram::defineParams();
-        addParamsLine("  [--Nsimultaneous <N=1>]     : Number of simultaneous processes that can enter in preprocessing");
     }
     void readParams()
     {
         MpiMetadataProgram::readParams();
         ProgAngularContinuousAssign2::readParams();
-        Nsimul = getIntParam("--Nsimultaneous");
     }
     void read(int argc, char **argv, bool reportErrors = true)
     {
@@ -51,14 +48,34 @@ public:
     }
     void preProcess()
     {
-        int Nturns = (int)ceil(node->size/Nsimul);
-        int myTurn = (int)floor(node->rank/Nsimul);
-        for (int turn=0; turn<=Nturns; turn++)
+    	rank=node->rank;
+        ProgAngularContinuousAssign2::preProcess();
+   		node->barrierWait();
+
+   		// Get the volume padded size from rank 0
+   		int realSize, origin;
+   		if (node->rank==0)
+   		{
+   			realSize = XSIZE(projector->VfourierRealCoefs);
+   			origin = STARTINGX(projector->VfourierRealCoefs);
+   		}
+        MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+        MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        if (rank!=0)
         {
-        	if (turn==myTurn)
-        		ProgAngularContinuousAssign2::preProcess();
-    		node->barrierWait();
+        	projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
+        	projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
+        	STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
+        	STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
         }
+        MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    	if (rank!=0)
+        	projector->produceSideInfoProjection();
+
         MetaData &mdIn = *getInputMd();
         mdIn.addLabel(MDL_GATHER_ID);
         mdIn.fillLinear(MDL_GATHER_ID,1,1);

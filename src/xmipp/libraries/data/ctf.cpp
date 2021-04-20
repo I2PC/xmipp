@@ -24,9 +24,10 @@
  ***************************************************************************/
 
 #include "ctf.h"
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <math.h>
+#include "core/multidim_array.h"
+#include "core/xmipp_fftw.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
 
 bool containsCTFBasicLabels(const MetaData & md)
 {
@@ -820,6 +821,37 @@ void CTFDescription1D::applyCTF(MultidimArray <double> &I, double Ts, bool absPh
 	transformer.inverseFourierTransform();
 }
 
+/* Apply the CTF to an image ----------------------------------------------- */
+void CTFDescription1D::correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts)
+{
+    Matrix1D<int>    idx(2);
+    Matrix1D<double> freq(2);
+    if ( ZSIZE(FFTI) > 1 )
+        REPORT_ERROR(ERR_MULTIDIM_DIM,"ERROR: Correct phase only works on 2D images, not 3D.");
+
+    double iTs=1.0/Ts;
+    FOR_ALL_ELEMENTS_IN_ARRAY2D(FFTI)
+    {
+        XX(idx) = j;
+        YY(idx) = i;
+        FFT_idx2digfreq(I, idx, freq);
+        precomputeValues(XX(freq)*iTs);
+        double ctf = getValuePureAt();
+        if (ctf<0)
+            A2D_ELEM(FFTI, i, j) *= -1;
+    }
+}
+
+void CTFDescription1D::correctPhase(MultidimArray <double> &I, double Ts)
+{
+	FourierTransformer transformer;
+	MultidimArray<double> FFTI;
+	transformer.setReal(I);
+	transformer.FourierTransform();
+	correctPhase(transformer.fFourier, I, Ts);
+	transformer.inverseFourierTransform();
+}
+
 /* Get profiles ------------------------------------------------------------ */
 void CTFDescription1D::getProfile(double fmax, int nsamples,
                                 MultidimArray<double> &profiles)
@@ -1503,6 +1535,37 @@ void CTFDescription::applyCTF(MultidimArray <double> &I, double Ts, bool absPhas
 	transformer.setReal(I);
 	transformer.FourierTransform();
 	applyCTF(transformer.fFourier, I, Ts, absPhase);
+	transformer.inverseFourierTransform();
+}
+
+/* Apply the CTF to an image ----------------------------------------------- */
+void CTFDescription::correctPhase(MultidimArray < std::complex<double> > &FFTI, const MultidimArray<double> &I, double Ts)
+{
+    Matrix1D<int>    idx(2);
+    Matrix1D<double> freq(2);
+    if ( ZSIZE(FFTI) > 1 )
+        REPORT_ERROR(ERR_MULTIDIM_DIM,"ERROR: Apply_CTF only works on 2D images, not 3D.");
+
+    double iTs=1.0/Ts;
+    FOR_ALL_ELEMENTS_IN_ARRAY2D(FFTI)
+    {
+        XX(idx) = j;
+        YY(idx) = i;
+        FFT_idx2digfreq(I, idx, freq);
+        precomputeValues(XX(freq)*iTs, YY(freq)*iTs);
+        double ctf = getValuePureAt();
+        if (ctf<0)
+            A2D_ELEM(FFTI, i, j) *= -1;
+    }
+}
+
+void CTFDescription::correctPhase(MultidimArray <double> &I, double Ts)
+{
+	FourierTransformer transformer;
+	MultidimArray<double> FFTI;
+	transformer.setReal(I);
+	transformer.FourierTransform();
+	correctPhase(transformer.fFourier, I, Ts);
 	transformer.inverseFourierTransform();
 }
 

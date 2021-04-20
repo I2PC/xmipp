@@ -13,8 +13,8 @@ import numpy as np
 import keras
 from keras.models import Model, Sequential, load_model
 from keras.utils import multi_gpu_model
-from keras.layers import Input, Conv2D, BatchNormalization, LeakyReLU, Activation, \
-                         Lambda, Dropout, Flatten, Reshape, Dense, MaxPooling2D
+from keras.layers import (Input, Conv2D, BatchNormalization, LeakyReLU, Activation,
+                         Lambda, Dropout, Flatten, Reshape, Dense, MaxPooling2D)
 from keras.optimizers import Adam
 from keras.layers.merge import _Merge
 from functools import partial
@@ -26,7 +26,7 @@ from skimage.transform import rotate
 
 import xmippLib
 import matplotlib.pyplot as plt
-import pyworkflow.em.metadata as md
+import pwem.metadata as md
 from .DeepLearningGeneric import DeepLearningModel
 from .dataGenerator import normalizeImgs, getDataGenerator, extractNBatches
 

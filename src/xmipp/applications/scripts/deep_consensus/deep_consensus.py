@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -24,23 +24,22 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 """
-
-import sys, os
-import xmipp_base
+from xmipp_base import *
 import xmippLib
-
-from xmippPyModules.deepLearningToolkitUtils.utils import checkIf_tf_keras_installed, updateEnviron
+from xmippPyModules.deepLearningToolkitUtils.utils import (checkIf_tf_keras_installed,
+                                                                         updateEnviron)
 
 checkIf_tf_keras_installed()
 
 from xmippPyModules.deepConsensusWorkers.deepConsensus_deepLearning1 import (loadNetShape, writeNetShape,
-                                                                               DeepTFSupervised, DataManager,
-                                                                               tf_intarnalError)
+                                                                                           DeepTFSupervised, DataManager,
+                                                                                           tf_intarnalError)
 WRITE_TEST_SCORES= True
 
-class ScriptDeepScreeningTrain(xmipp_base.XmippScript):
+class ScriptDeepScreeningTrain(XmippScript):
+    _conda_env= CondaEnvManager.CONDA_DEFAULT_ENVIRON
     def __init__(self):
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Cleans sets of particles using Deep Learning. It works in two modes:\n'

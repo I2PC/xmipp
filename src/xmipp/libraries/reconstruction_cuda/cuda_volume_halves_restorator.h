@@ -25,10 +25,7 @@
 #ifndef CUDA_VOLUME_HALVES_RESTORATOR
 #define CUDA_VOLUME_HALVES_RESTORATOR
 
-#include <iostream>
-
-#include <core/multidim_array.h>
-
+#include "core/multidim_array.h"
 #include "reconstruction_cuda/cuda_fft.h"
 #include "cuda_cdf.h"
 

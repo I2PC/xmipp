@@ -44,6 +44,7 @@ public:
     int rot_sym;
     bool useSplines;
     FileName fn_input, fn_output;
+    String sym2;
     double   rot0,  rotF,  step_rot, rotLocal;
     double   tilt0, tiltF, step_tilt;
     double   z0, zF, step_z, zLocal, Ts, heightFraction;
@@ -51,6 +52,7 @@ public:
     bool     helical, helicalDihedral;
     Mask mask_prm;
     int numberOfThreads;
+    int Cn;
 
     // Define parameters
     void defineParams()
@@ -76,6 +78,7 @@ public:
         addParamsLine("           rot <n>              : Order of the rotational axis");
         addParamsLine("           helical              : Helical symmetry.");
         addParamsLine("           helicalDihedral      : Helical-Dihedral symmetry.");
+        addParamsLine("[--sym2 <Cn=C1>]                : Additional Cn symmetry. Only for helical and helicalDihedral");
         addParamsLine("==Locate rotational axis==");
         addParamsLine("[--rot  <rot0=0>  <rotF=355> <step=5>]: Limits for rotational angle search");
         addParamsLine("[--tilt <tilt0=0> <tiltF=90> <step=5>]: Limits for tilt angle search");
@@ -131,6 +134,8 @@ public:
 			rot0=getDoubleParam("--rotHelical",0);
 			rotF=getDoubleParam("--rotHelical",1);
 			step_rot=getDoubleParam("--rotHelical",2);
+	        sym2 = getParam("--sym2");
+	        Cn=std::stoi(sym2.substr(1));
         }
         else
         {
@@ -249,7 +254,7 @@ public:
             }
             Matrix2D<double> Euler;
             Matrix1D<double> sym_axis;
-            Euler_angles2matrix(best_rot, best_tilt, 0, Euler);
+            Euler_angles2matrix(best_rot, best_tilt, 0., Euler);
             Euler.getRow(2, sym_axis);
             if (verbose!=0)
                 std::cout << "Symmetry axis (rot,tilt)= " << best_rot << " "
@@ -365,7 +370,7 @@ public:
             double tilt=p[2];
 
             // Compute symmetry axis
-            Euler_angles2matrix(rot, tilt, 0, Euler);
+            Euler_angles2matrix(rot, tilt, 0., Euler);
             Euler.getRow(2, sym_axis);
             sym_axis.selfTranspose();
 
@@ -392,7 +397,7 @@ public:
             	return 1e38;
             if (zHelical<z0 || zHelical>zF || rotHelical<rot0 || rotHelical>rotF)
             	return 1e38;
-            symmetry_Helical(volume_sym, mVolume, zHelical, DEG2RAD(rotHelical), 0, &mask_prm.get_binary_mask(), helicalDihedral, heightFraction);
+            symmetry_Helical(volume_sym, mVolume, zHelical, DEG2RAD(rotHelical), 0, &mask_prm.get_binary_mask(), helicalDihedral, heightFraction,Cn);
 			double corr=correlationIndex(mVolume, volume_sym, &mask_prm.get_binary_mask());
 //#define DEBUG
 #ifdef DEBUG

@@ -103,7 +103,7 @@ private:
     }
 
 };
-TYPED_TEST_CASE_P(AShiftEstimator_Test);
+TYPED_TEST_SUITE_P(AShiftEstimator_Test);
 
 template<typename T>
 std::vector<HW*> AShiftEstimator_Test<T>::hw;
@@ -118,8 +118,10 @@ std::mt19937 AShiftEstimator_Test<T>::mt(42); // fixed seed to ensure reproducib
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToOne)
 {
+    XMIPP_TRY
     // test one reference vs one image
     AShiftEstimator_Test<TypeParam>::generateAndTest2D(1, 1);
+    XMIPP_CATCH
 }
 
 TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToMany)
@@ -142,7 +144,7 @@ TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched2)
 }
 
 
-REGISTER_TYPED_TEST_CASE_P(AShiftEstimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(AShiftEstimator_Test,
     shift2DOneToOne,
     shift2DOneToMany,
     shift2DOneToManyBatched1,

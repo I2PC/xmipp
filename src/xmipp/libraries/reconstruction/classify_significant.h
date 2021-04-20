@@ -26,10 +26,9 @@
 #ifndef _PROG_CLASSIFY_SIGNIFICANT
 #define _PROG_CLASSIFY_SIGNIFICANT
 
-#include <core/xmipp_program.h>
-#include <data/fourier_projection.h>
-#include <data/fourier_filter.h>
-#include <data/filters.h>
+#include "core/xmipp_program.h"
+#include "data/fourier_projection.h"
+#include "core/metadata.h"
 
 /**@defgroup ClassifySignificant Classify a set of images into a discrete set of classes
    @ingroup ReconsLibrary */

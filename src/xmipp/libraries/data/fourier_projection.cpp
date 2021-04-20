@@ -24,7 +24,10 @@
  ***************************************************************************/
 
 #include "fourier_projection.h"
-#include <core/xmipp_fft.h>
+#include "core/bilib/kernel.h"
+#include "core/geometry.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
 
 /* Empty constructor ======================================================= */
 Projection::Projection(): Image<double>()
@@ -83,6 +86,7 @@ FourierProjector::FourierProjector(double paddFactor, double maxFreq, int degree
     paddingFactor = paddFactor;
     maxFrequency = maxFreq;
     BSplineDeg = degree;
+    volume = NULL;
 }
 
 FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
@@ -99,7 +103,6 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
     volumeSize=XSIZE(*volume);
     produceSideInfo();
 }
-
 
 void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
@@ -260,8 +263,6 @@ void FourierProjector::produceSideInfo()
     // Zero padding
     MultidimArray<double> Vpadded;
     int paddedDim=(int)(paddingFactor*volumeSize);
-    // JMRT: TODO: I think it is a very poor design to modify the volume passed
-    // in the construct, it will be padded anyway, so new memory should be allocated
     volume->window(Vpadded,FIRST_XMIPP_INDEX(paddedDim),FIRST_XMIPP_INDEX(paddedDim),FIRST_XMIPP_INDEX(paddedDim),
                    LAST_XMIPP_INDEX(paddedDim),LAST_XMIPP_INDEX(paddedDim),LAST_XMIPP_INDEX(paddedDim));
     volume->clear();
@@ -300,9 +301,16 @@ void FourierProjector::produceSideInfo()
         VfourierImagAux.clear();
         VfourierImagCoefs.selfWindow(idxMin,idxMin,idxMin,idxMax,idxMax,idxMax);
     }
-    else
+    else {
         Complex2RealImag(Vfourier, VfourierRealCoefs, VfourierImagCoefs);
+        volumePaddedSize=XSIZE(VfourierRealCoefs);
+    }
 
+    produceSideInfoProjection();
+}
+
+void FourierProjector::produceSideInfoProjection()
+{
     // Allocate memory for the 2D Fourier transform
     projection().initZeros(volumeSize,volumeSize);
     projection().setXmippOrigin();

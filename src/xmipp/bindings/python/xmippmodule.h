@@ -28,21 +28,8 @@
 #define _XMIPPMODULE_H
 
 #include "Python.h"
-#include <reconstruction/ctf_estimate_from_micrograph.h>
-#include <data/projection.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_image_generic.h>
-#include <core/xmipp_image_extension.h>
-#include <core/xmipp_color.h>
-#include <core/symmetries.h>
 
-#include "python_fourierprojector.h"
-#include "python_filename.h"
-#include "python_image.h"
-#include "python_program.h"
-#include "python_metadata.h"
-#include "python_symmetry.h"
-
+class FileName;
 extern PyObject * PyXmippError;
 
 #define SymList_Check(v) (((v)->ob_type == &SymListType))
@@ -184,5 +171,7 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs);
 /* Apply CTF to this image */
 PyObject *
 Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs);
+
+PyMODINIT_FUNC PyInit_xmippLib(void);
 
 #endif

@@ -24,6 +24,7 @@
  ***************************************************************************/
 #include "ml_tomo.h"
 #include <core/metadata_extension.h>
+#include "core/metadata_sql.h"
 
 //#define JM_DEBUG
 

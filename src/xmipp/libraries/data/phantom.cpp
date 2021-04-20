@@ -27,10 +27,13 @@
 /* PHANTOMS                                                                  */
 /* ------------------------------------------------------------------------- */
 
-#include <stdio.h>
-
 #include "phantom.h"
-#include <core/geometry.h>
+#include "core/geometry.h"
+#include "core/metadata_label.h"
+#include "core/metadata.h"
+#include "core/xmipp_error.h"
+#include "data/blobs.h"
+#include "data/fourier_projection.h"
 
 /* ######################################################################### */
 /* Features                                                                  */
@@ -120,6 +123,13 @@ void Oriented_Feature::assign(const Oriented_Feature &OF)
 {
     *this = OF;
 }
+
+void Oriented_Feature::prepare_Euler()
+{
+    Euler_angles2matrix(rot, tilt, psi, euler);
+    eulert = euler.transpose();
+}
+
 
 Sphere & Sphere::operator = (const Sphere &F)
 {
@@ -352,6 +362,11 @@ void Blob::read_specific(const std::vector<double> &vect)
     alpha = vect[1];
     m = (int)vect[2];
     prepare();
+}
+
+double Blob::volume() const
+{
+    return basvolume(radius, alpha, m, 3);
 }
 
 /* Read a Gaussian --------------------------------------------------------- */

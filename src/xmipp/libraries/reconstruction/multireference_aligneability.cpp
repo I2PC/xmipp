@@ -33,7 +33,7 @@
 #include "project.h"
 #include <string>
 #include <core/metadata.h>
-
+#include "core/metadata_sql.h"
 
 MultireferenceAligneability::MultireferenceAligneability()
 {

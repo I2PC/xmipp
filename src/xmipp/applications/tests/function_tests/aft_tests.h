@@ -48,7 +48,7 @@ public:
             T re = out[i].real();
             T im = out[i].imag();
             T mag = (re * re) + (im * im);
-            ASSERT_NEAR((T)1, std::sqrt(mag), delta);
+            ASSERT_NEAR((T)1, std::sqrt(mag), delta) << " at " << i;
         }
 
         delete[] in;
@@ -185,7 +185,7 @@ public:
                 for (size_t y = 0; y < s.sDim().y(); ++y) {
                     for (size_t x = 0; x < s.sDim().x(); ++x) {
                         size_t index = offset + z * s.sDim().xyPadded() + y * s.sDim().xPadded() + x;
-                        ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta);
+                        ASSERT_NEAR(ref[index], inOut[index] / s.sDim().xyz(), delta) << " at " << index;
                     }
                 }
             }
@@ -203,6 +203,7 @@ public:
         size_t executed = 0;
         size_t skippedSize = 0;
         size_t skippedCondition = 0;
+        size_t skippedSpecific = 0;
         TEST_VALUES
         size_t combinations = batch.size() * nSet.size() * zSet.size() * ySet.size() * xSet.size() * 4;
 
@@ -218,7 +219,6 @@ public:
         int seed = 42;
         std::mt19937 mt(seed);
         std::uniform_int_distribution<> dist(0, 4097);
-        size_t availableBytes = hw->lastFreeBytes();
         while ((executed < EXECUTIONS)
                 && ((skippedCondition + skippedSize) < combinations)) { // avoid endless loop
             size_t x = xSet.at(dist(mt) % xSet.size());
@@ -233,7 +233,18 @@ public:
             if (condition(x, y, z, n, b, inPlace, isForward)) {
                 // make sure we have enough memory
                 size_t totalBytes = ft->estimateTotalBytes(settings);
+                // since version 9.1 // FIXME DS check
+                // forward transformation can use much less memory than inverse one
+                if (bothDirections) {
+                    totalBytes = std::max(totalBytes, ft->estimateTotalBytes(settings.createInverse()));
+                }
+                hw->updateMemoryInfo();
+                size_t availableBytes = hw->lastFreeBytes();
                 if (availableBytes < totalBytes) {
+                    skippedSize++;
+                    continue;
+                }
+                if (mustBeSkipped(settings, bothDirections)) {
                     skippedSize++;
                     continue;
                 }
@@ -262,14 +273,17 @@ public:
     //    std::cout << "Executed: " << executed
     //            << "\nSkipped (condition): " << skippedCondition
     //            << "\nSkipped (size):" << skippedSize << std::endl;
+    //            << "\nSkipped (specific):" << skippedSpecific << std::endl;
     }
 
 private:
     AFT<T> *ft;
     static HW *hw;
 
+    MUSTBESKIPPED
+
 };
-TYPED_TEST_CASE_P(AFT_Test);
+TYPED_TEST_SUITE_P(AFT_Test);
 
 template<typename T>
 HW* AFT_Test<T>::hw;
@@ -830,7 +844,7 @@ TYPED_TEST_P( AFT_Test, IP_Batch3)
 //    AFT_Test<TypeParam>::generateAndTest(condition);
 //}
 
-REGISTER_TYPED_TEST_CASE_P(AFT_Test,
+REGISTER_TYPED_TEST_SUITE_P(AFT_Test,
 //    DEBUG,
     // FFT out-of-place
     fft_OOP_Single,

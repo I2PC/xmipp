@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "cuda_basic_math.h"
-#include "core/xmipp_macros.h"
+//#include "core/xmipp_macros.h" // for Nearest Neighbor interpolation
 #include "cuda_compatibility.h"
 
 template<typename T, bool FULL_CIRCLE>
@@ -47,6 +47,7 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
     T sinPhi = sin(phi);
     T cosPhi = cos(phi);
 
+    T maxR = rings + posOfFirstRing - 1;
     // transform current polar position to cartesian
     // shift origin to center of the input image
     for (int r = 0; r < rings; ++r) {
@@ -73,7 +74,9 @@ void polarFromCartesian(const T *__restrict__ in, int inX, int inY,
 //                s, r,firstRing, r + firstRing, n,
 //                cartXRound, cartYRound,
 //                val, offset);
-        out[offset] = val;
+        T weight = (r + posOfFirstRing) / maxR;
+
+        out[offset] = val * weight;
     }
 }
 
@@ -128,18 +131,15 @@ void computeSumSumSqr(const T * __restrict__ in,
     }
     if (isSameSignalInWarp) {
         // intrawarp sum
-//#if (CUDART_VERSION >= 9000) // FIXME DS correct and test
-//        __syncwarp();
-//        for (int offset = 16; offset > 0; offset /= 2) {
-//            sum += __shfl_down_sync(mask, sum, offset);
-//            sum2 += __shfl_down_sync(mask, sum2, offset);
-//        }
-//#else
         for (int offset = 16; offset > 0; offset /= 2) {
-            sum += __shfl_down(sum, offset);
-            sum2 += __shfl_down(sum2, offset);
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 900
+          sum += __shfl_down_sync(0xffffffff, sum, offset);
+          sum2 += __shfl_down_sync(0xffffffff, sum2, offset);
+#else
+          sum += __shfl_down(sum, offset);
+          sum2 += __shfl_down(sum2, offset);
+#endif
         }
-//#endif
         if (idx != idOfFirstThreadInWarp) {
             // only first thread in the warp will write to the output
             return;

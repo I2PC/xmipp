@@ -22,18 +22,17 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <iostream>
-#include <unistd.h>
-#include <sys/stat.h>
-
-#include <core/metadata_extension.h>
-#include <core/bilib/messagedisplay.h>
-#include <core/bilib/error.h>
-#include <core/bilib/configs.h>
+#include <fstream>
+#include "core/bilib/messagedisplay.h"
+#include "core/bilib/error.h"
+#include "core/bilib/configs.h"
+#include "core/bilib/linearalgebra.h"
+#include "core/multidim_array.h"
+#include "core/transformations.h"
+#include "core/xmipp_image.h"
 #include "flexible_alignment.h"
-#include "pdb_nma_deform.h"
+#include "data/pdb.h"
 #include "program_extension.h"
-
 
 // Empty constructor =======================================================
 ProgFlexibleAlignment::ProgFlexibleAlignment()

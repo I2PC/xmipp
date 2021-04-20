@@ -22,10 +22,10 @@
  *  All comments concerning this program package may be sent to the
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
+#include <fstream>
 #include "sampling.h"
-#include <core/matrix2d.h>
-#include <core/geometry.h>
-#include <core/xmipp_image.h>
+#include "core/geometry.h"
+#include "core/xmipp_image_macros.h"
 
 /* Default Constructor */
 Sampling::Sampling()
@@ -582,7 +582,7 @@ void Sampling::computeSamplingPoints(bool only_half_sphere,
 }
 
 // return 1 if a should go first 0 is equal -1 if before
-int Sampling::sortFunc(Matrix1D<double> &t, Matrix1D<double> &a)
+int Sampling::sortFunc(const Matrix1D<double> &t, const Matrix1D<double> &a)
 {
     if (YY(t) - 0.000001 > YY(a))
     {
@@ -602,8 +602,8 @@ int Sampling::sortFunc(Matrix1D<double> &t, Matrix1D<double> &a)
     };
 }
 
-void Sampling::fillEdge(Matrix1D<double> starting_point,
-                        Matrix1D<double> ending_point,
+void Sampling::fillEdge(const Matrix1D<double> &starting_point,
+                        const Matrix1D<double> &ending_point,
                         std::vector <Matrix1D<double> > & edge_vector,
                         bool END_FLAG
                        )
@@ -627,8 +627,8 @@ void Sampling::fillEdge(Matrix1D<double> starting_point,
         edge_vector.push_back(v_aux);
     }
 }
-void Sampling::fillDistance(Matrix1D<double> starting_point,
-                            Matrix1D<double> ending_point,
+void Sampling::fillDistance(const Matrix1D<double> &starting_point,
+                            const Matrix1D<double> &ending_point,
                             std::vector <Matrix1D<double> > &
                             sampling_points_vector,
                             int my_number_of_samples,
@@ -975,7 +975,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I1)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0, 90, 0, A);
+        Euler_angles2matrix(0., 90., 0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1006,7 +1006,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I3)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,31.7174745559,0, A);
+        Euler_angles2matrix(0.,31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1037,7 +1037,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I4)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,-31.7174745559,0, A);
+        Euler_angles2matrix(0.,-31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1107,7 +1107,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I1H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0, 90, 0, A);
+        Euler_angles2matrix(0., 90., 0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 1., 0.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1140,7 +1140,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I3H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,31.7174745559,0, A);
+        Euler_angles2matrix(0.,31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1178,7 +1178,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     else if (symmetry  == pg_I4H)
     {//OK
         Matrix2D<double>  A(3, 3);
-        Euler_angles2matrix(0,-31.7174745559,0, A);
+        Euler_angles2matrix(0.,-31.7174745559,0., A);
         Matrix1D<double>  _5_fold_axis_1_by_5_fold_axis_2(3);
         _5_fold_axis_1_by_5_fold_axis_2 = A * vectorR3(0., 0., 1.);
         _5_fold_axis_1_by_5_fold_axis_2.selfNormalize();
@@ -1315,7 +1315,7 @@ void Sampling::removeRedundantPointsExhaustive(const int symmetry,
 //SINCE readSymmetryFile does not longer need a file
 //use symmetry functions instead
 /* Create symmetry file----------------------------------------------------- */
-void Sampling::createSymFile(FileName simFp,int symmetry, int sym_order)
+void Sampling::createSymFile(const FileName &simFp,int symmetry, int sym_order)
 {
     symmetry_file = simFp + ".sym";
     std::ofstream SymFile;
@@ -1974,7 +1974,7 @@ void Sampling::findClosestSamplingPoint(const FileName &FnexperimentalImages,
     findClosestSamplingPoint(DFi,output_file_root);
 
 }
-void Sampling::findClosestSamplingPoint(MetaData &DFi,
+void Sampling::findClosestSamplingPoint(const MetaData &DFi,
                                         const FileName &output_file_root)
 {
     double my_dotProduct,my_dotProduct_aux;
@@ -2237,7 +2237,7 @@ void Sampling::fillExpDataProjectionDirectionByLR(
     fillExpDataProjectionDirectionByLR(DFi);
 }
 
-void Sampling::fillExpDataProjectionDirectionByLR(MetaData &DFi)
+void Sampling::fillExpDataProjectionDirectionByLR(const MetaData &DFi)
 {
     std::vector <Matrix1D<double> > exp_data_projection_direction;
     Matrix1D<double>  direction(3);

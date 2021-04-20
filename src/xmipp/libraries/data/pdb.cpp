@@ -23,14 +23,96 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
+#include <string>
 #include "pdb.h"
-#include "fstream"
-#include <core/args.h>
-#include <core/matrix2d.h>
-#include <core/xmipp_fftw.h>
-#include <data/mask.h>
-#include <data/integration.h>
-#include <data/numerical_tools.h>
+#include "core/matrix2d.h"
+#include "core/multidim_array.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
+#include "data/integration.h"
+#include "data/mask.h"
+#include "data/numerical_tools.h"
+
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
+{
+	//Open the pdb file
+	std::ifstream f2parse;
+	f2parse.open(fn_pdb.c_str());
+
+	numberOfAtoms = 0;
+
+	while (!f2parse.eof())
+	{
+		std::string line;
+		getline(f2parse, line);
+
+		// The type of record (line) is defined in the first 6 characters of the pdb
+		std::string typeOfline = line.substr(0,4);
+
+		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
+		{
+			// Type of Atom
+			std::string at;
+                        try
+                        {
+			    at = line.substr(13,2);
+                        }catch (const std::out_of_range& oor)
+                        {
+                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+                        }
+
+			if (at == typeOfAtom)
+			{
+				// Atom positions
+				numberOfAtoms++;
+				double x = textToFloat(line.substr(30,8));
+				double y = textToFloat(line.substr(38,8));
+				double z = textToFloat(line.substr(46,8));
+
+				// storing coordinates
+				at_pos.x.push_back(x);
+				at_pos.y.push_back(y);
+				at_pos.z.push_back(z);
+
+                                // Residue Number
+				int resi = (int) textToFloat(line.substr(23,5));
+				at_pos.residue.push_back(resi);
+
+				// Getting the bfactor = 8pi^2*u
+				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
+				at_pos.b.push_back(bfactorRad);
+
+                                // Covalent radius of the atom
+				double rad = atomCovalentRadius(line.substr(13,2));
+				at_pos.atomCovRad.push_back(rad);
+			}
+		}
+	}
+}
+
+
+
+double AtomInterpolator::volumeAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return volumeProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
+
+double AtomInterpolator::projectionAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return projectionProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
 
 /* Atom charge ------------------------------------------------------------- */
 int atomCharge(const std::string &atom)
@@ -55,8 +137,23 @@ int atomCharge(const std::string &atom)
     case 'S':
         return 16;
         break;
-    case 'F': // Iron
+    case 'E': // Iron Fe
         return 26;
+        break;
+    case 'K':
+        return 19;
+        break;
+    case 'F':
+        return 9;
+        break;
+    case 'G': // Magnesium Mg
+        return 12;
+        break;
+    case 'L': // Chlorine Cl
+        return 17;
+        break;
+    case 'A': // Calcium Ca
+        return 20;
         break;
     default:
         return 0;
@@ -86,9 +183,48 @@ double atomRadius(const std::string &atom)
     case 'S':
         return 1.00;
         break;
-    case 'F': // Iron
+    case 'E': // Iron Fe
         return 1.40;
         break;
+    case 'K':
+        return 2.20;
+        break;
+    case 'F':
+        return 0.50;
+        break;
+    case 'G': // Magnesium Mg
+        return 1.50;
+        break;
+    case 'L': // Chlorine Cl
+        return 1.00;
+        break;
+    case 'A': // Calcium Ca
+        return 1.80;
+        break;
+    default:
+        return 0;
+    }
+}
+
+/* Atom Covalent radius ------------------------------------------------------------- */
+double atomCovalentRadius(const std::string &atom)
+{
+    switch (atom[0])
+    {
+    case 'H':
+        return 0.38;
+    case 'C':
+        return 0.77;
+    case 'N':
+        return 0.75;
+    case 'O':
+        return 0.73;
+    case 'P':
+        return 1.06;
+    case 'S':
+        return 1.02;
+    case 'F': // Iron
+        return 1.25;
     default:
         return 0;
     }
@@ -102,8 +238,8 @@ void computePDBgeometry(const std::string &fnPDB,
 {
     // Initialization
     centerOfMass.initZeros(3);
-    limit0.initZeros(3);
-    limitF.initZeros(3);
+    limit0.resizeNoCopy(3);
+    limitF.resizeNoCopy(3);
     limit0.initConstant(1e30);
     limitF.initConstant(-1e30);
     double total_mass = 0;
@@ -482,6 +618,76 @@ void atomDescriptors(const std::string &atom, Matrix1D<double> &descriptors)
         descriptors( 9)=22.8500; // b4
         descriptors(10)=76.7309; // b5
     }
+    else if (atom=="K")
+    {
+        descriptors( 0)=19;     // Z
+        descriptors( 1)= 0.2149; // a1
+        descriptors( 2)= 0.8703; // a2
+        descriptors( 3)= 2.4999; // a3
+        descriptors( 4)= 2.3591; // a4
+        descriptors( 5)= 3.0318; // a5
+        descriptors( 6)= 0.1660; // b1
+        descriptors( 7)= 1.6906; // b2
+        descriptors( 8)= 8.7447; // b3
+        descriptors( 9)=46.7825; // b4
+        descriptors(10)=165.6923; // b5
+    }
+    else if (atom=="F")
+    {
+        descriptors( 0)=9;     // Z
+        descriptors( 1)= 0.0382; // a1
+        descriptors( 2)= 0.1822; // a2
+        descriptors( 3)= 0.5972; // a3
+        descriptors( 4)= 0.7707; // a4
+        descriptors( 5)= 0.2130; // a5
+        descriptors( 6)= 0.0613; // b1
+        descriptors( 7)= 0.5753; // b2
+        descriptors( 8)= 2.6858; // b3
+        descriptors( 9)= 8.8214; // b4
+        descriptors(10)=25.6668; // b5
+    }
+    else if (atom=="Mg")
+    {
+        descriptors( 0)=12;     // Z
+        descriptors( 1)= 0.1130; // a1
+        descriptors( 2)= 0.5575; // a2
+        descriptors( 3)= 0.9046; // a3
+        descriptors( 4)= 2.1580; // a4
+        descriptors( 5)= 1.4735; // a5
+        descriptors( 6)= 0.1356; // b1
+        descriptors( 7)= 1.3579; // b2
+        descriptors( 8)= 6.9255; // b3
+        descriptors( 9)=32.3165; // b4
+        descriptors(10)=92.1138; // b5
+    }
+    else if (atom=="Cl")
+    {
+        descriptors( 0)=17;     // Z
+        descriptors( 1)= 0.0799; // a1
+        descriptors( 2)= 0.3891; // a2
+        descriptors( 3)= 1.0037; // a3
+        descriptors( 4)= 2.3332; // a4
+        descriptors( 5)= 1.0507; // a5
+        descriptors( 6)= 0.0694; // b1
+        descriptors( 7)= 0.6443; // b2
+        descriptors( 8)= 3.5351; // b3
+        descriptors( 9)=12.5058; // b4
+        descriptors(10)=35.8633; // b5
+    }
+    else if (atom=="Ca")
+    {
+        descriptors( 0)=20;     // Z
+        descriptors( 1)= 0.2355; // a1
+        descriptors( 2)= 0.9916; // a2
+        descriptors( 3)= 2.3959; // a3
+        descriptors( 4)= 3.7252; // a4
+        descriptors( 5)= 2.5647; // a5
+        descriptors( 6)= 0.1742; // b1
+        descriptors( 7)= 1.8329; // b2
+        descriptors( 8)= 8.8407; // b3
+        descriptors( 9)=47.4583; // b4
+        descriptors(10)=134.9613; // b5
+    }
     else
         REPORT_ERROR(ERR_VALUE_INCORRECT,(std::string)"atomDescriptors: Unknown atom "+atom);
 }
@@ -501,7 +707,6 @@ double electronFormFactorFourier(double f, const Matrix1D<double> &descriptors)
 
 /* Electron form factor in real space -------------------------------------- */
 /* We know the transform pair
-
    sqrt(pi/b)*exp(-x^2/(4*b)) <----> exp(-b*W^2)
    
    We also know that 
@@ -829,7 +1034,7 @@ void AtomInterpolator::setup(int m, double hights, bool computeProjection)
 {
     M=m;
     highTs=hights;
-    if (volumeProfileCoefficients.size()==7)
+    if (volumeProfileCoefficients.size()==12)
     	return;
     addAtom("H",computeProjection);
     addAtom("C",computeProjection);
@@ -838,6 +1043,11 @@ void AtomInterpolator::setup(int m, double hights, bool computeProjection)
     addAtom("P",computeProjection);
     addAtom("S",computeProjection);
     addAtom("Fe",computeProjection);
+    addAtom("K",computeProjection);
+    addAtom("F",computeProjection);
+    addAtom("Mg",computeProjection);
+    addAtom("Cl",computeProjection);
+    addAtom("Ca",computeProjection);
 }
 
 void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)

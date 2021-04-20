@@ -22,7 +22,7 @@ class AShiftEstimator_Test;
     }
 
 #define INIT \
-    ((Alignment::CudaShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true); \
+    ((Alignment::CudaShiftCorrEstimator<T>*)estimator)->init2D(hw, AlignType::OneToN, dims, maxShift, true, true, false); \
     hw.at(0)->lockMemory(others, dims.sBytes());
 
 #define TEARDOWN \
@@ -31,9 +31,9 @@ class AShiftEstimator_Test;
 #include "ashift_corr_estimator_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(Cuda, AShiftCorrEstimator_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(Cuda, AShiftCorrEstimator_Test, TestTypes);
 
 #include "ashift_estimator_tests.h"
 
-INSTANTIATE_TYPED_TEST_CASE_P(CudaShiftCorrEstimator, AShiftEstimator_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(CudaShiftCorrEstimator, AShiftEstimator_Test, TestTypes);
 

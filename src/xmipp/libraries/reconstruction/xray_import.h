@@ -27,12 +27,11 @@
 #ifndef _PROG_XRAY_IMPORT
 #define _PROG_XRAY_IMPORT
 
-#include <core/xmipp_funcs.h>
-#include <core/multidim_array.h>
-#include <core/xmipp_image.h>
-#include <core/xmipp_program.h>
-#include <core/xmipp_hdf5.h>
-#include <core/xmipp_threads.h>
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_hdf5.h"
+#include "core/xmipp_threads.h"
+#include "core/metadata.h"
 
 ///@defgroup XrayImport Xray import
 ///@ingroup ReconsLibrary

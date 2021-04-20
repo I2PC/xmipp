@@ -40,7 +40,7 @@ public:
             }
         }
 
-        estimator->init2D(hw, AlignType::OneToN, dims, 1, false, false);
+        estimator->init2D(hw, AlignType::OneToN, dims, 1, false, false, false);
         estimator->load2DReferenceOneToN(ref);
         estimator->computeCorrelations2DOneToN(inOut, false);
         for (auto h : hw) h->synch();
@@ -68,7 +68,7 @@ private:
     static std::vector<HW*> hw;
 
 };
-TYPED_TEST_CASE_P(AShiftCorrEstimator_Test);
+TYPED_TEST_SUITE_P(AShiftCorrEstimator_Test);
 
 template<typename T>
 std::vector<HW*> AShiftCorrEstimator_Test<T>::hw;
@@ -80,8 +80,10 @@ std::vector<HW*> AShiftCorrEstimator_Test<T>::hw;
 
 TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToOne)
  {
+    XMIPP_TRY
      // test one reference vs one image
     AShiftCorrEstimator_Test<TypeParam>::correlate2DNoCenter(1, 1);
+    XMIPP_CATCH
 }
 
 TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToMany)
@@ -102,7 +104,7 @@ TYPED_TEST_P( AShiftCorrEstimator_Test, correlate2DOneToManyBatched2)
     AShiftCorrEstimator_Test<TypeParam>::correlate2DNoCenter(6, 3);
 }
 
-REGISTER_TYPED_TEST_CASE_P(AShiftCorrEstimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(AShiftCorrEstimator_Test,
         correlate2DOneToOne,
         correlate2DOneToMany,
         correlate2DOneToManyBatched1,

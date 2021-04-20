@@ -23,8 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "mpi_reconstruct_art.h"
+#include <fstream>
 #include <sys/resource.h>
+#include "mpi_reconstruct_art.h"
+#include "reconstruction/base_art_recons.h"
 
 /** Empty constructor */
 ProgMPIReconsArt::ProgMPIReconsArt()

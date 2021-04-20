@@ -24,6 +24,13 @@
  ***************************************************************************/
 #include "align_tilt_pairs.h"
 
+#include "core/geometry.h"
+#include "core/matrix2d.h"
+#include "core/metadata.h"
+#include "core/transformations.h"
+#include "core/xmipp_image.h"
+#include "data/filters.h"
+
 //#define DEBUG
 
 //Define Program parameters
@@ -84,7 +91,7 @@ bool ProgAlignTiltPairs::centerTiltedImage(const MultidimArray<double> &imgRefU,
         bool flip,
         double inPlaneU, double shiftXu, double shiftYu,
         double alphaT, double alphaU,
-        double tilt, MultidimArray<double> &imgT, double &shiftX,
+        double tilt, const MultidimArray<double> &imgT, double &shiftX,
         double &shiftY, CorrelationAux &auxCorr)
 {
     // Cosine stretching, store stretched image in imgT2DClass

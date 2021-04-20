@@ -23,9 +23,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-
+#include <algorithm>
+#include <fstream>
 #include "sparse_matrix2d.h"
-
+#include "core/xmipp_filename.h"
 
 // Sparse matrices --------------------------------------------------------
 SparseMatrix2D::SparseMatrix2D(){

@@ -33,10 +33,10 @@ from glob import glob
 import json
 from pyworkflow.utils.path import makePath, cleanPattern, cleanPath, copyTree, createLink
 from pyworkflow.protocol.constants import *
-from pyworkflow.em.constants import RELATION_CTF, ALIGN_NONE
-from pyworkflow.em.convert import ImageHandler
-from pyworkflow.em.data import SetOfCoordinates, Coordinate, SetOfParticles
-from pyworkflow.em.protocol import ProtParticlePicking
+from pwem.constants import RELATION_CTF, ALIGN_NONE
+from pwem.convert import ImageHandler
+from pwem.objects import SetOfCoordinates, Coordinate, SetOfParticles
+from pwem.protocols import ProtParticlePicking
 
 import pyworkflow.utils as pwutils
 import pyworkflow.protocol.params as params
@@ -80,7 +80,8 @@ class XmippProtPrepareDeepConsensus(ProtParticlePicking, XmippProtocol):
 
     def _defineParams(self, form):
         # GPU settings
-        form.addHidden(params.USE_GPU, params.BooleanParam, default=True,
+        form.addHidden(params.USE_GPU, params.BooleanParam,
+                       default=True,
                        expertLevel=params.LEVEL_ADVANCED,
                        label="Use GPU (vs CPU)",
                        help="Set to true if you want to use GPU implementation "

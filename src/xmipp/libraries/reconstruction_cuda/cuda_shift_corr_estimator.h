@@ -50,7 +50,8 @@ public:
     }
 
     void init2D(const std::vector<HW*> &hw, AlignType type, const FFTSettingsNew<T> &dims, size_t maxShift,
-            bool includingBatchFT=false, bool includingSingleFT=false) override;
+            bool includingBatchFT, bool includingSingleFT,
+            bool allowDataOverwrite) override;
 
     void release();
 
@@ -67,7 +68,7 @@ public:
         const Dimensions &dims,
         bool center) override;
 
-    void computeShift2DOneToN(T *h_others) override;
+    void computeShift2DOneToN(T *others) override;
 
     static std::vector<Point2D<float>> computeShifts2DOneToN(
         const std::vector<GPU*> &gpus,
@@ -121,7 +122,8 @@ private:
     void init2DOneToN() override;
     void setDefault();
     void check() override;
-    void loadThreadRoutine(T *h_others);
+    void loadThreadRoutine(T *others);
+    void waitAndConvert();
     using AShiftEstimator<T>::init2D;
 };
 

@@ -25,6 +25,7 @@
 
 #include "classify_compare_classes.h"
 #include <core/metadata_extension.h>
+#include "core/matrix2d.h"
 
 // Evaluate classes program -------------------------------------------
 void ProgCompareClass::readParams()

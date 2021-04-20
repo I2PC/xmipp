@@ -24,6 +24,8 @@
  ***************************************************************************/
 
 #include "ctf_show.h"
+#include "core/xmipp_image.h"
+#include "data/ctf.h"
 
 void ProgCTFShow::defineParams()
 {

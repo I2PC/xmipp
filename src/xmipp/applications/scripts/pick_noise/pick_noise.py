@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """/***************************************************************************
  *
  * Authors:    Ruben Sanchez Garcia
@@ -30,15 +30,16 @@ from joblib import delayed, Parallel
 from scipy.spatial.distance import cdist
 
 import numpy as np
-import xmipp_base
+from xmipp_base import *
 import xmippLib
 from xmipp3.convert import readPosCoordinates
-from pyworkflow.em.data import Coordinate, Micrograph
-from xmippPyModules.coordinatesTools.coordinatesTools import readPosCoordsFromFName, writeCoordsListToPosFname
+from pwem.objects import Coordinate, Micrograph
+from xmippPyModules.coordinatesTools.coordinatesTools import (readPosCoordsFromFName,
+                                                                            writeCoordsListToPosFname)
 
-class ScriptPickNoise(xmipp_base.XmippScript):
+class ScriptPickNoise(XmippScript):
     def __init__(self):
-        xmipp_base.XmippScript.__init__(self)
+        XmippScript.__init__(self)
         
     def defineParams(self):
         self.addUsageLine('Picks random coordinates from one micrograph')
@@ -91,7 +92,7 @@ class ScriptPickNoise(xmipp_base.XmippScript):
             argsList.append( (baseName, micName, posName, micShape, outDir, numberToPick, boxSize))
 
         Parallel(n_jobs= numberOfThreads, backend="multiprocessing", verbose=1)(
-                    delayed(pickNoiseOneMic, check_pickle=False)(*arg) for arg in argsList)
+                    delayed(pickNoiseOneMic)(*arg) for arg in argsList)
 
    
 def pickNoiseOneMic(baseName, mic_fname, posName, mic_shape, outputRoot,

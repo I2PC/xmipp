@@ -22,9 +22,11 @@
  *  All comments concerning this program package may be sent to the    
  *  e-mail address 'xmipp@cnb.csic.es'                                  
  ***************************************************************************/
-#include <core/args.h>
-#include <interface/spider.h>
-#include <core/xmipp_program.h>
+
+#include <fstream>
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 class ProgMrcCreateMetaData: public XmippProgram
 {

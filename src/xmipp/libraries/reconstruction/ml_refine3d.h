@@ -26,10 +26,12 @@
 #ifndef _ML_REFINE3D_H
 #define _ML_REFINE3D_H
 
-#include "ml_align2d.h"
-#include "mlf_align2d.h"
-#include <data/sampling.h>
-#include "recons.h"
+#include "core/metadata.h"
+#include "core/xmipp_program.h"
+#include "data/sampling.h"
+
+class ProgReconsBase;
+class ML2DBaseProgram;
 
 //types of reconstructions to be used
 #define RECONS_ART 0

@@ -24,18 +24,12 @@
  ***************************************************************************/
 
 #include "image_assignment_tilt_pair.h"
-#include <cstdlib>      // std::rand, std::srand
-#include <ctime>        // std::time
-#include <algorithm>
-#include <iostream>
-#include <core/xmipp_image.h>
-#include <data/micrograph.h>
-#include <delaunay/delaunay.h>
-#include <delaunay/dcel.h>
-#include <core/geometry.h>
-//#include <relion-1.3/include/relion-1.3/src/matrix1d.h>
-#include <core/matrix1d.h>
-//#include <core/multidim_array.h>
+#include "delaunay/delaunay.h"
+#include "core/geometry.h"
+#include "core/matrix1d.h"
+#include "core/matrix2d.h"
+#include "core/linear_system_helper.h"
+#include "core/xmipp_image_extension.h"
 
 void ProgassignmentTiltPair::readParams()
 {
@@ -67,7 +61,7 @@ void ProgassignmentTiltPair::defineParams()
 
 void ProgassignmentTiltPair::search_affine_transform(float u1x, float u1y, float u2x, float u2y, float u3x, float u3y, float t1x,
 		float t1y, float t2x, float t2y, float t3x, float t3y,
-		Matrix1D<double> ux, Matrix1D<double> uy, size_t Xdim, size_t Ydim, struct Delaunay_T &delaunay_tilt,
+		const Matrix1D<double> &ux, const Matrix1D<double> &uy, size_t Xdim, size_t Ydim, struct Delaunay_T &delaunay_tilt,
 		int &bestInliers, Matrix2D<double> &A_coarse, Matrix1D<double> &T_coarse, bool contingency, int thrs)
 {
 	double estimator, dist;

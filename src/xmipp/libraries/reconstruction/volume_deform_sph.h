@@ -26,8 +26,8 @@
 
 #include <vector>
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 /**@defgroup VolDeformSph Deform a volume using spherical harmonics
    @ingroup ReconsLibrary */
@@ -53,6 +53,12 @@ public:
 
     /// Degree of Zernike polynomials and spherical harmonics
     int depth;
+
+    /// Gaussian width to filter the volumes
+    std::vector<double> sigma;
+
+    /// Image Vector
+    std::vector<Image<double>> volumesI, volumesR;
 
     /// Maximum radius for the transformation
 	double Rmax;

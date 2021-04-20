@@ -25,7 +25,10 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "movie_estimate_gain.h"
+#include <core/metadata.h>
+#include <core/xmipp_image_generic.h>
 
 void ProgMovieEstimateGain::defineParams()
 {
@@ -41,7 +44,7 @@ void ProgMovieEstimateGain::defineParams()
     addParamsLine(" [--sigmaStep <s=0.5>]: Step size for sigma");
     addParamsLine(" [--singleRef] : Use a single histogram reference");
     addParamsLine("               :+This assumes that there is no image contamination or carbon holes");
-    addParamsLine(" [--gainImage <fn=\"\">] : Reference to external gain image (we will multiply by it)");
+    addParamsLine(" [--gainImage <fn=\"\">] : Reference to external gain image (we will divide by it)");
     addParamsLine(" [--applyGain <fnOut>] : Flag for using external gain image");
     addParamsLine("               : applyGain=True will use external gain image");
 }
@@ -81,14 +84,14 @@ void ProgMovieEstimateGain::produceSideInfo()
 	rowH.initZeros(Ydim,Xdim);
 	if (fnGain!="")
 	{
-		ICorrection.read(fnGain);
-		if (YSIZE(ICorrection())!=Ydim || XSIZE(ICorrection())!=Xdim)
+		IGain.read(fnGain);
+		if (YSIZE(IGain())!=Ydim || XSIZE(IGain())!=Xdim)
 			REPORT_ERROR(ERR_MULTIDIM_SIZE,"The gain image and the movie do not have the same dimensions");
 	}
 	else
 	{
-		ICorrection().resizeNoCopy(Ydim,Xdim);
-		ICorrection().initConstant(1);
+		IGain().resizeNoCopy(Ydim,Xdim);
+		IGain().initConstant(1);
 	}
 
 	sumObs.initZeros(Ydim,Xdim);
@@ -101,9 +104,9 @@ void ProgMovieEstimateGain::produceSideInfo()
                mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
                Iframe.read(fnFrame);
                MultidimArray<double>  mIframe=Iframe();
-               MultidimArray<double>  mICorrection=ICorrection();
+               MultidimArray<double>  mIGain=IGain();
                FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
-                   DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mICorrection,n);               sumObs+=Iframe();
+                   DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mIGain,n);               sumObs+=Iframe();
 	    }
 	    iFrame++;
 	}
@@ -154,20 +157,22 @@ void ProgMovieEstimateGain::run()
 	Image<double> Iframe;
 	MultidimArray<double> IframeTransformed, IframeIdeal;
 	MultidimArray<double> sumIdeal;
-	MultidimArray<double> &mICorrection=ICorrection();
+	MultidimArray<double> &mIGain=IGain();
 
 	if (applyGain)
 	{
             int idx=1;
+            createEmptyFile(fnCorrected, Xdim, Ydim, 1, mdIn.size());
             FOR_ALL_OBJECTS_IN_METADATA(mdIn)
             {
                 mdIn.getValue(MDL_IMAGE,fnFrame,__iter.objId);
                 Iframe.read(fnFrame);
                 MultidimArray<double> &mIframe = Iframe();
                 FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mIframe)
-                    DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mICorrection,n);
+                    DIRECT_MULTIDIM_ELEM(mIframe,n) /= DIRECT_MULTIDIM_ELEM(mIGain,n);
                 //Iframe.write(formatString("%i@%s"%(idx,fnCorrected)));
                 Iframe.write(fnCorrected, idx, WRITE_REPLACE);
+                idx++;
             }
 	}else{
         for (int n=0; n<Niter; n++)
@@ -184,7 +189,7 @@ void ProgMovieEstimateGain::run()
                     Iframe.read(fnFrame);
                     IframeIdeal = Iframe();
                     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(IframeIdeal)
-                        DIRECT_A2D_ELEM(IframeIdeal,i,j)/=DIRECT_A2D_ELEM(mICorrection,i,j);
+                        DIRECT_A2D_ELEM(IframeIdeal,i,j)/=DIRECT_A2D_ELEM(mIGain,i,j);
                     computeHistograms(IframeIdeal);
 
                     //sigma=0;
@@ -230,18 +235,18 @@ void ProgMovieEstimateGain::run()
                  iFrame++;
             }
 
-            FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mICorrection)
+            FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mIGain)
             {
                 double den=DIRECT_A2D_ELEM(sumObs,i,j);
                 if (fabs(den)<1e-6)
-                    DIRECT_A2D_ELEM(mICorrection,i,j)=1.0;
+                    DIRECT_A2D_ELEM(mIGain,i,j)=1.0;
                 else
-                    DIRECT_A2D_ELEM(mICorrection,i,j)=DIRECT_A2D_ELEM(sumIdeal,i,j)/den;
+                    DIRECT_A2D_ELEM(mIGain,i,j)=DIRECT_A2D_ELEM(sumIdeal,i,j)/den;
             }
-            mICorrection/=mICorrection.computeAvg();
+            mIGain/=mIGain.computeAvg();
 
     #ifdef NEVER_DEFINED
-        ICorrection.write(fnCorr);
+        IGain.write(fnCorr);
         Image<double> save;
         typeCast(sumIdeal,save());
         save.write("PPPSumIdeal.xmp");
@@ -252,14 +257,7 @@ void ProgMovieEstimateGain::run()
     #endif
         }
     }
-	ICorrection.write(fnRoot+"_correction.xmp");
-	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mICorrection)
-		if (DIRECT_A2D_ELEM(mICorrection,i,j)>1e-5)
-			DIRECT_A2D_ELEM(mICorrection,i,j)=1.0/DIRECT_A2D_ELEM(mICorrection,i,j);
-		else
-			DIRECT_A2D_ELEM(mICorrection,i,j)=1;
-	mICorrection/=mICorrection.computeAvg();
-	ICorrection.write(fnRoot+"_gain.xmp");
+	IGain.write(fnRoot+"_gain.xmp");
 }
 
 void ProgMovieEstimateGain::computeHistograms(const MultidimArray<double> &Iframe)

@@ -20,7 +20,7 @@ protected:
         {
             //get example images/staks
             if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-            	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+                REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
             // testBaseName = xmippPath + "/resources/test";
             imageName = "image/singleImage.spi";
 
@@ -105,7 +105,7 @@ TEST_F( CtfTest, errorMaxFreqCTFs)
     metadata1.setValue(MDL_CTF_Q0, 0.1, objectId);
     double resolution;
 //    for (double f=0; f < 4000; f+=100.){
-//    		metadata1.setValue(MDL_CTF_DEFOCUSV, f, objectId);
+//          metadata1.setValue(MDL_CTF_DEFOCUSV, f, objectId);
 //            resolution = errorMaxFreqCTFs(metadata1,HALFPI);
 //            std::cerr << "f=" << f << " " << resolution <<std::endl;
 //    }
@@ -143,9 +143,32 @@ TEST_F( CtfTest, errorMaxFreqCTFs2D)
     XMIPP_CATCH
 }
 
-GTEST_API_ int main(int argc, char **argv)
+TEST_F( CtfTest, phaseFlip)
 {
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+    XMIPP_TRY
+    MetaData metadata1;
+    long objectId = metadata1.addObject();
+    metadata1.setValue(MDL_CTF_SAMPLING_RATE, 1., objectId);
+    metadata1.setValue(MDL_CTF_VOLTAGE, 300., objectId);
+    metadata1.setValue(MDL_CTF_DEFOCUSU, 20000., objectId);
+    metadata1.setValue(MDL_CTF_DEFOCUSV, 20000., objectId);
+    metadata1.setValue(MDL_CTF_CS, 2., objectId);
+    metadata1.setValue(MDL_CTF_Q0, 0.1, objectId);
+    metadata1.setValue(MDL_CTF_K, 1.0, objectId);
+    CTFDescription ctf;
+    ctf.readFromMetadataRow(metadata1, objectId);
+    ctf.produceSideInfo();
 
+    Image<double> delta;
+    delta().initZeros(256,256);
+    delta().setXmippOrigin();
+    delta(0,0)=1;
+
+    ctf.correctPhase(delta(),1.0);
+    double minval, maxval, avgval, devval;
+    delta().computeStats(avgval, devval, minval, maxval);
+    EXPECT_NEAR(devval,0.003906,0.0001);
+    EXPECT_NEAR(maxval,0.017565,0.0001);
+
+    XMIPP_CATCH
+}

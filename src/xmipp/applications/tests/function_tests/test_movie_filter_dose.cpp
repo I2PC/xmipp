@@ -8,77 +8,77 @@ protected:
     //init metadatas
     virtual void SetUp()
     {
-    	// nothing to do
+        // nothing to do
     }
 };
 
 TEST_F( MovieFilterDoseTest, doseFilter)
 {
-	ProgMovieFilterDose pmfdProg(200);
-	double doseFilterValue;
-	double dose_finish =  4.;
-	double current_critical_dose =  412084.3;
-	double doseFilter =  0.9999952;
+    ProgMovieFilterDose pmfdProg(200);
+    double doseFilterValue;
+    double dose_finish =  4.;
+    double current_critical_dose =  412084.3;
+    double doseFilter =  0.9999952;
 
-	doseFilterValue = pmfdProg.doseFilter(dose_finish,current_critical_dose);
-	EXPECT_FLOAT_EQ(doseFilter,doseFilterValue);
+    doseFilterValue = pmfdProg.doseFilter(dose_finish,current_critical_dose);
+    EXPECT_FLOAT_EQ(doseFilter,doseFilterValue);
 
-	dose_finish =  4.000000;
-	current_critical_dose =  12.82717;
-	doseFilter =  0.8556285;
-	doseFilterValue = pmfdProg.doseFilter(dose_finish,current_critical_dose);
-	EXPECT_FLOAT_EQ(doseFilter,doseFilterValue);
+    dose_finish =  4.000000;
+    current_critical_dose =  12.82717;
+    doseFilter =  0.8556285;
+    doseFilterValue = pmfdProg.doseFilter(dose_finish,current_critical_dose);
+    EXPECT_FLOAT_EQ(doseFilter,doseFilterValue);
 }
 
 TEST_F( MovieFilterDoseTest, movieFilterDose)
 {
-	double acceleration_voltage = 300;
-	double voltage_scaling_factor = 1;
-	ProgMovieFilterDose pmfdProg(acceleration_voltage);
-	EXPECT_FLOAT_EQ(acceleration_voltage,pmfdProg.acceleration_voltage);
-	EXPECT_FLOAT_EQ(voltage_scaling_factor,pmfdProg.voltage_scaling_factor);
+    double acceleration_voltage = 300;
+    double voltage_scaling_factor = 1;
+    ProgMovieFilterDose pmfdProg(acceleration_voltage);
+    EXPECT_FLOAT_EQ(acceleration_voltage,pmfdProg.acceleration_voltage);
+    EXPECT_FLOAT_EQ(voltage_scaling_factor,pmfdProg.voltage_scaling_factor);
 
-	acceleration_voltage = 200;
-	voltage_scaling_factor = 0.8;
-	ProgMovieFilterDose pmfdProg2(acceleration_voltage);
-	EXPECT_FLOAT_EQ(acceleration_voltage,pmfdProg2.acceleration_voltage);
-	EXPECT_FLOAT_EQ(voltage_scaling_factor,pmfdProg2.voltage_scaling_factor);
+    acceleration_voltage = 200;
+    voltage_scaling_factor = 0.8;
+    ProgMovieFilterDose pmfdProg2(acceleration_voltage);
+    EXPECT_FLOAT_EQ(acceleration_voltage,pmfdProg2.acceleration_voltage);
+    EXPECT_FLOAT_EQ(voltage_scaling_factor,pmfdProg2.voltage_scaling_factor);
 
 }
 
 TEST_F( MovieFilterDoseTest, criticalDose)
 {
-	double acceleration_voltage = 300;
-	ProgMovieFilterDose pmfdProg(acceleration_voltage);
+    double acceleration_voltage = 300;
+    ProgMovieFilterDose pmfdProg(acceleration_voltage);
     double criticalDose2;
-	double criticalDose=  412084.3;
-	double spatial_frequency=  1.8219448E-04;
-	criticalDose2 =  pmfdProg.criticalDose(spatial_frequency);
-	EXPECT_EQ(int(criticalDose2),int(criticalDose));
+    double criticalDose=  412084.3;
+    double spatial_frequency=  1.8219448E-04;
+    criticalDose2 =  pmfdProg.criticalDose(spatial_frequency);
+    EXPECT_EQ(int(criticalDose2),int(criticalDose));
 
-	criticalDose=  4.163977;
-	spatial_frequency=  0.3587903;
-	criticalDose2 = pmfdProg.criticalDose(spatial_frequency);
-	EXPECT_FLOAT_EQ(criticalDose2,criticalDose);
+    criticalDose=  4.163977;
+    spatial_frequency=  0.3587903;
+    criticalDose2 = pmfdProg.criticalDose(spatial_frequency);
+    EXPECT_FLOAT_EQ(criticalDose2,criticalDose);
 
-	criticalDose=  200000;
-	spatial_frequency=  0.3587903;
-	criticalDose2 = pmfdProg.criticalDose(spatial_frequency);
-	EXPECT_NE(criticalDose2,criticalDose);
+    criticalDose=  200000;
+    spatial_frequency=  0.3587903;
+    criticalDose2 = pmfdProg.criticalDose(spatial_frequency);
+    EXPECT_NE(criticalDose2,criticalDose);
 }
 
 TEST_F( MovieFilterDoseTest, optimalDoseGivenCriticalDose)
 {
-	double acceleration_voltage = 300;
-	double current_critical_dose = 38.49693;
-	double current_optimal_dose = 96.73663;
-	double current_optimal_dose2 = 0.;
-	ProgMovieFilterDose pmfdProg(acceleration_voltage);
-	current_optimal_dose2 =  pmfdProg.optimalDoseGivenCriticalDose(current_critical_dose);
-	EXPECT_FLOAT_EQ(current_optimal_dose2,current_optimal_dose);
+    double acceleration_voltage = 300;
+    double current_critical_dose = 38.49693;
+    double current_optimal_dose = 96.73663;
+    double current_optimal_dose2 = 0.;
+    ProgMovieFilterDose pmfdProg(acceleration_voltage);
+    current_optimal_dose2 =  pmfdProg.optimalDoseGivenCriticalDose(current_critical_dose);
+    EXPECT_FLOAT_EQ(current_optimal_dose2,current_optimal_dose);
 
-	current_optimal_dose=  200000;
-	EXPECT_NE(current_optimal_dose2,current_optimal_dose);
+    current_optimal_dose=  200000;
+    EXPECT_NE(current_optimal_dose2,current_optimal_dose);
 
 }
 
@@ -112,7 +112,7 @@ TEST_F( FftwTest, directFourierTransformComplex)
 
 TEST_F( FftwTest, fft_IDX2DIGFREQ)
 {
-	double w;
+    double w;
     FFT_IDX2DIGFREQ(0,128,w);
     EXPECT_EQ(0,w);
     FFT_IDX2DIGFREQ(1,128,w);
@@ -141,8 +141,3 @@ TEST_F( FftwTest, fft_IDX2DIGFREQ)
     EXPECT_EQ(-1.0/256.0,w);
 }
 */
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

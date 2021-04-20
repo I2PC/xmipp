@@ -24,9 +24,10 @@
  ***************************************************************************/
 
 #include "tomo_detect_missing_wedge.h"
-#include <core/args.h>
-#include <core/xmipp_fftw.h>
-#include <data/numerical_tools.h>
+#include "core/geometry.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_fftw.h"
+#include "data/numerical_tools.h"
 
 // Evaluate plane ----------------------------------------------------------
 double evaluatePlane(double rot, double tilt,
@@ -39,13 +40,13 @@ double evaluatePlane(double rot, double tilt,
         return 0;
 
     Matrix2D<double> E, Einv;
-    Euler_angles2matrix(rot,tilt,0,E);
+    Euler_angles2matrix(rot,tilt,0.,E);
     Einv=E.transpose();
 
     if (setPos)
     {
         Matrix2D<double> Epos;
-        Euler_angles2matrix(rotPos,tiltPos,0,Epos);
+        Euler_angles2matrix(rotPos,tiltPos,0.,Epos);
         double angle=acos(E(2,0)*Epos(2,0)+E(2,1)*Epos(2,1)+E(2,2)*Epos(2,2));
         angle=RAD2DEG(angle);
         if (fabs(angle)<20 || fabs(180-angle)<20)
@@ -246,8 +247,8 @@ void drawWedge(double rotPos, double tiltPos, double rotNeg, double tiltNeg,
                const MultidimArray<double> *Vmag, MultidimArray<double> *Vdraw)
 {
     Matrix2D<double> Epos, Eneg;
-    Euler_angles2matrix(rotPos,tiltPos,0,Epos);
-    Euler_angles2matrix(rotNeg,tiltNeg,0,Eneg);
+    Euler_angles2matrix(rotPos,tiltPos,0.,Epos);
+    Euler_angles2matrix(rotNeg,tiltNeg,0.,Eneg);
 
     Matrix1D<double> freq(3), freqPos, freqNeg;
     Matrix1D<int> idx(3);

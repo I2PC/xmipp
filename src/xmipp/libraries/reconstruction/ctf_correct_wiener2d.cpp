@@ -121,7 +121,6 @@ void ProgCorrectWiener2D::generateWienerFilter(MultidimArray<double> &Mwien, CTF
 
 	if (correct_envelope)
 		ctf.generateCTF(paddimY, paddimX, ctfComplex);
-
 	else
 		ctf.generateCTFWithoutDamping(paddimY, paddimX, ctfComplex);
 
