@@ -388,6 +388,7 @@ public:
 
                 for (size_t objId : mySFin.ids())
                 {
+                    // FIXME: read whole row at once
                     double x,y,z, rot, tilt, psi;
                     mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
                     mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
