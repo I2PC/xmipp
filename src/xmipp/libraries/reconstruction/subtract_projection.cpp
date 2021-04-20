@@ -98,9 +98,10 @@ void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, Mu
 void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 {
 	double maxMaskVol, minMaskVol;
-	mask().computeDoubleMinMax(minMaskVol, maxMaskVol);
+	mask().computeDoubleMinMax(minMaskVol, maxMaskVol);  // = 1!  => it should be Pmask but fails
+	std::cout << maxMaskVol << std::endl;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
-		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.1*maxMaskVol) ? 1:0;
+		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.15*maxMaskVol) ? 1:0;
 }
 
  // Read arguments ==========================================================
@@ -245,8 +246,8 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		// Apply bin volume mask to particle and volume projection
 		POCSmaskProj(PmaskVol(), P());
 		POCSmaskProj(PmaskVol(), I());
-		I.write("Imask.mrc");
-		P.write("Pmask.mrc");
+		I.write("ImaskVol.mrc");
+		P.write("PmaskVol.mrc");
 
     	// Check if particle has CTF and apply it
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
@@ -270,22 +271,54 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
     	Image<double> Irad, Prad;
     	Irad = I;
     	Prad = P;
-     	radialAvg(Irad);
-     	radialAvg(Prad);
+    	// Compute radAvg 2D
+//     	radialAvg(Irad);
+//     	radialAvg(Prad);
+
+    	// Compute IradAvg profile (1D)
+        MultidimArray<double> &mOp = Irad();
+        mOp.setXmippOrigin();
+        Matrix1D<int> center(3);
+        center.initZeros();
+        MultidimArray<double> radial_meanI;
+        MultidimArray<int> radial_count;
+        radialAverage(mOp, center, radial_meanI, radial_count);
+        radial_meanI.write("Irad.txt");
+        int my_rad;
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(mOp)
+        {
+            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+            Irad(k, i, j) = radial_meanI(my_rad);
+        }
 		Irad.write("Irad.mrc");
+    	// Compute PradAvg profile (1D)
+        MultidimArray<double> &mOp2 = Prad();
+        mOp2.setXmippOrigin();
+        center.initZeros();
+        MultidimArray<double> radial_meanP;
+        radialAverage(mOp2, center, radial_meanP, radial_count);
+        radial_meanP.write("Prad.txt");
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(mOp2)
+        {
+            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+            Prad(k, i, j) = radial_meanP(my_rad);
+        }
 		Prad.write("Prad.mrc");
+
+
 		// Compute |FT(radial averages)|
 		FourierTransformer transformerRad;
 		MultidimArray< std::complex<double> > IFourierRad, PFourierRad;
 		MultidimArray<double> IFourierMagRad, PFourierMagRad, radQuotient;
-		transformerRad.completeFourierTransform(Irad(),IFourierRad);
+		transformerRad.completeFourierTransform(radial_meanI,IFourierRad);  //Irad for 2D
 		CenterFFT(IFourierRad, true);
 		FFT_magnitude(IFourierRad,IFourierMagRad);
-		transformerRad.completeFourierTransform(Prad(),PFourierRad);
+		transformerRad.completeFourierTransform(radial_meanP,PFourierRad);  //Prad for 2D
 		CenterFFT(PFourierRad, true);
 		FFT_magnitude(PFourierRad,PFourierMagRad);
 		// Compute adjustment quotient for POCS amplitude (and POCS phase?)
 		radQuotient = IFourierMagRad/PFourierMagRad;
+		radQuotient.write("radQuotient.txt");
 
      	// Compute what need for the loop of POCS
 		FourierTransformer transformer;
@@ -342,7 +375,6 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		PmaskInv = Pmask;
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskInv())
 		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(PmaskInv,n)*(-1))+1;
-    	Pmask.write("maskfocusbin2.mrc");
     	PmaskInv.write("maskfocusInv.mrc");
 
     	// Filter mask with Gaussian
@@ -355,6 +387,13 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 			I.write(fnPart);
 			P.write(fnProj);
 		}
+
+		// DEBUG: Compute I*mask to see differences with subtraction result
+    	Image<double> Imask;
+    	Imask = I;
+    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imask())
+		DIRECT_MULTIDIM_ELEM(Imask,n) = DIRECT_MULTIDIM_ELEM(Imask,n)*DIRECT_MULTIDIM_ELEM(Pmask,n);
+    	Imask.write("I*mask.mrc");
 
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
