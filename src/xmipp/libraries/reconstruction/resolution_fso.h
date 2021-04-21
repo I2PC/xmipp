@@ -83,8 +83,17 @@ public:
         void defineFrequencies(const MultidimArray< std::complex<double> > &myfftV,
     		                      const MultidimArray<double> &inputVol);
 
-        /* Estimates the global FSC between two half maps FT1 and FT2 (in Fourier Space)*/
-		    void arrangeFSC_and_fscGlobal(double sampling_rate, 
+        /* Estimates the global FSC between two half maps FT1 and FT2 (in Fourier Space)
+         * ARRANGEFSC_AND_FSCGLOBAL: This function estimates the global resolution FSC FSC=real(z1*conj(z2)/(||z1||·||z2||)
+         * and precomputes the products z1*conj(z2),  ||z1||, ||z2||, to calculate faster the directional FSC. The input are
+         * the Fourier transform of two half maps (FT1, FT2) defined in the .h, the sampling_rate, the used threshold (thrs)
+         * to that define the resolution (FSC-threshold). The output are 1) the resolution of the map, fscResolution, in Angstrom.
+         * 2) three vectors defined in the .h, real_z1z2, absz1_vec, absz2_vec, with z1*conj(z2),  ||z1||, ||z2||, defined in
+         * float to speed up the computation and reduce the use of memory. These vector make use of the two half maps FT1, and FT2. 3)
+         * 3) To speed up the algorithm, only are considered those voxels with frequency lesser than Nyquist, 0.5. The vector idx_count
+         * stores all frequencies lesser than Nyquist. This vector determines the frequency of each component of
+         * real_z1z2, absz1_vec, absz2_vec.*/
+		void arrangeFSC_and_fscGlobal(double sampling_rate,
 				                    	double &thrs, double &resInterp, MultidimArray<double> &freq);
 
         /* Defines a Matrix2D with coordinates Rot and tilt achieving a uniform coverage of the
