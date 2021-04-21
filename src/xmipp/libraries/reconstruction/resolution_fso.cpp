@@ -109,12 +109,7 @@ void ProgFSO::readParams()
 	Nthreads = getDoubleParam("--threads");
 }
 
-// DEFINEFREQUENCIES - This function creates a new volume (MultidimArray) in Fourier Space named freqMap.
-// Each voxel of the new volume is the corresponding frequency in Fourier Space. The input myfftV is used
-// to determine the size of the freqMap map, and inputVol to define the frequencies in the Fourier space.
-// The frequencies along thre three axis are defined as freq_fourier_x, freq_fourier_y, freq_fourier_z.
-// Also a sphere is created to localize the frequencies in Fourier space, by means of the chimera threshold.
-// The output variables sphere, freq_fourier_x, freq_fourier_y, freq_fourier_z, freqElems, freqMap.
+
 void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myfftV,
 		const MultidimArray<double> &inputVol)
 {
@@ -220,15 +215,7 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myf
 }
 
 
-// ARRANGEFSC_AND_FSCGLOBAL: This function estimates the global resolution FSC FSC=real(z1*conj(z2)/(||z1||·||z2||)
-// and precomputes the products z1*conj(z2),  ||z1||, ||z2||, to calculate faster the directional FSC. The input are
-// the Fourier transform of two half maps (FT1, FT2) defined in the .h, the sampling_rate, the used threshold (thrs) 
-// to that define the resolution (FSC-threshold). The output are 1) the resolution of the map, fscResolution, in Angstrom.
-// 2) three vectors defined in the .h, real_z1z2, absz1_vec, absz2_vec, with z1*conj(z2),  ||z1||, ||z2||, defined in 
-// float to speed up the computation and reduce the use of memory. These vector make use of the two half maps FT1, and FT2. 3) 
-// 3) To speed up the algorithm, only are considered those voxels with frequency lesser than Nyquist, 0.5. The vector idx_count
-// stores all frequencies lesser than Nyquist. This vector determines the frequency of each component of 
-// real_z1z2, absz1_vec, absz2_vec.
+
 void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 				double &thrs, double &fscResolution, MultidimArray<double> &freq)
 	{
@@ -394,16 +381,17 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 	}
 
 
-// FSCDIR_FAST: computes the directional FSC along a direction given by the angles rot and tilt. 
-// Thus the directional resolution, resol, is estimated with the threshold, thrs.
-// The direcional FSC is stored in a metadata mdRes and in the multidimarray fsc. Later, this multidimarray
-// will be used to estimate the FSO.
-// In addition, the 3dfsc and a normalizationmap (needed to estimate the 3dfsc) are created. For each direction
-// these vectors are updated
+
 void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 				MultidimArray<double> &threeD_FSC, MultidimArray<double> &normalizationMap,
 				double &fscFreq, double &thrs, double &resol, size_t dirnumber)
 {
+	// FSCDIR_FAST: computes the directional FSC along a direction given by the angles rot and tilt.
+	// Thus the directional resolution, resol, is estimated with the threshold, thrs.
+	// The direcional FSC is stored in a metadata mdRes and in the multidimarray fsc. Later, this multidimarray
+	// will be used to estimate the FSO.
+	// In addition, the 3dfsc and a normalizationmap (needed to estimate the 3dfsc) are created. For each direction
+	// these vectors are updated
 	size_t dim = NZYXSIZE(freqElems);
 	
 	// numerator and denominator of the fsc
@@ -524,13 +512,6 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 }
 
 
-// GENERATEDIRECTIONS: This functions provides a uniform coverage of the projection sphere.
-// The picking on the sphere is given by two angle rot and tilt which are kept in a matrix2d
-// the first row is the rot from 0-360 latitude (angle measured in the horizontal plane)
-// the second row is the tilt from 0-90  angle between the horizontal plane and the  point 
-// on the sphere 
-// The flag true set the number of picked points (alot = true means 321, alot=false means 80)
-// Angles are in radians
 void ProgFSO::generateDirections(Matrix2D<float> &angles, bool alot)
 {
 	if (alot == true)
@@ -1014,7 +995,7 @@ void ProgFSO::saveAnisotropyToMetadata(MetaData &mdAnisotropy,
 		{
 		objId = mdAnisotropy.addObject();
 		mdAnisotropy.setValue(MDL_RESOLUTION_FREQ, dAi(freq, i),objId);
-		mdAnisotropy.setValue(MDL_RESOLUTION_FRC, dAi(anisotropy, i),objId);
+		mdAnisotropy.setValue(MDL_RESOLUTION_FSO, dAi(anisotropy, i),objId);
 		mdAnisotropy.setValue(MDL_RESOLUTION_FREQREAL, 1.0/dAi(freq, i),objId);
 		}
 	}
@@ -1195,7 +1176,7 @@ void ProgFSO::run()
 		std::cout << " " << std::endl;
 		FT2.clear();
 
-		// Generiting the set of directions to be analyzed
+		// Generating the set of directions to be analyzed
 		// And converting the cone angle to radians
     	generateDirections(angles, true);
     	ang_con = ang_con*PI/180;
@@ -1231,17 +1212,15 @@ void ProgFSO::run()
     	std::cout << "   " <<  std::endl;
     	std::cout << "Preparing results ..." <<  std::endl;
 
-		FileName fn;
-
     	// ANISOTROPY CURVE
     	aniParam /= (double) angles.mdimx;
     	MetaData mdani;
 		saveAnisotropyToMetadata(mdani, freq, aniParam);
+		FileName fn;
 		
 		if (do_3dfsc_filter)
 		{
 			// HALF 3DFSC MAP
-			// TODO: do this step before
 			MultidimArray<double> d3_FSCMap;
 			MultidimArray<double> d3_aniFilter;
 			d3_FSCMap.resizeNoCopy(FT1);
@@ -1262,13 +1241,8 @@ void ProgFSO::run()
 					DIRECT_MULTIDIM_ELEM(d3_FSCMap, idx) = value;
 					DIRECT_MULTIDIM_ELEM(d3_aniFilter, idx) = DIRECT_MULTIDIM_ELEM(aniFilter, n);
 			}
-			// MultidimArray<double> filteredMap;
-			// filteredMap.resizeNoCopy(xvoldim, yvoldim, zvoldim);
-			// transformer1.inverseFourierTransform(FT1, filteredMap);
-			// CenterFFT(filteredMap, false);
 
 			// This code fix the empty line line in Fourier space
-			//TODO enhance performance
 			size_t auxVal;
 			auxVal = YSIZE(d3_FSCMap)/2;
 			
@@ -1289,7 +1263,6 @@ void ProgFSO::run()
 
 			realGaussianFilter(d3_aniFilter, sigma);
 
-			//TODO: directionalFilter reads the original map, avoid that
 			// DIRECTIONAL FILTERED MAP
 			MultidimArray<double> filteredMap;
 			directionalFilter(FT1, d3_aniFilter, filteredMap, xvoldim, yvoldim, zvoldim);
@@ -1299,9 +1272,9 @@ void ProgFSO::run()
 			
 			
 			//FULL 3DFSC MAP
+
 			fn = fnOut+"/3dFSC.mrc";
 			createFullFourier(d3_FSCMap, fn, xvoldim, yvoldim, zvoldim);
-			//createFullFourier(d3_aniFilter, fn, xvoldim, yvoldim, zvoldim);
 			
 		}
 
