@@ -49,14 +49,26 @@ void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
 //	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
 //}
 
-void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, MultidimArray<double> &rQ)
+void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, MultidimArray<double> &rQ, int Isize)
 {
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
+	int Isize2 = Isize/2;
+	double wx, wy;
+	A.printShape();
+	FI.printShape();
+	for (int i=0; i<YSIZE(A); ++i)
+	{
+		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isize,wy);
+		double wy2 = wy*wy;
+		for (int j=0; j<XSIZE(A); ++j)
 		{
-		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
-		if (mod>1e-6)
-			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod*DIRECT_MULTIDIM_ELEM(rQ,n);
+			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isize,wx);
+			double w = sqrt(wx*wx + wy2);
+			int iw = (int)round(w*Isize);
+			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
+			if (mod>1e-6)
+				DIRECT_A2D_ELEM(FI,i,j)*=((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod*DIRECT_MULTIDIM_ELEM(rQ,iw);
 		}
+	}
 }
 
 void POCSMinMaxProj(MultidimArray<double> &P, double Im, double IM)
@@ -100,26 +112,26 @@ void binarizeMask(MultidimArray<double> &Pmask)
 	double maxMaskVol, minMaskVol;
 	Pmask.computeDoubleMinMax(minMaskVol, maxMaskVol);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
-		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.15*maxMaskVol) ? 1:0;
+		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.1*maxMaskVol) ? 1:0;
 }
 
-void normMask(MultidimArray<double> &Pmask)
-{
-	double maxMaskVol, minMaskVol;
-	Pmask.computeDoubleMinMax(minMaskVol, maxMaskVol);
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
-		DIRECT_MULTIDIM_ELEM(Pmask,n) /= maxMaskVol;
-}
+//void normMask(MultidimArray<double> &Pmask)
+//{
+//	double maxMaskVol, minMaskVol;
+//	Pmask.computeDoubleMinMax(minMaskVol, maxMaskVol);
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
+//		DIRECT_MULTIDIM_ELEM(Pmask,n) /= maxMaskVol;
+//}
 
 void percentileMinMax(MultidimArray<double> &I, double min, double max)
 {
 	MultidimArray<double> sortedI;
-	int p05, p99, size;
+	int p0005, p99, size;
 	size = I.xdim * I.ydim;
-	p05 = size * 0.005;
-	p99 = size * 0.99;
+	p0005 = size * 0.005;
+	p99 = size * 0.995;
 	I.sort(sortedI);
-	min = sortedI(p05);
+	min = sortedI(p0005);
 	max = sortedI(p99);
 	std::cout << min << std::endl;
 	std::cout << max << std::endl;
@@ -297,10 +309,23 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 //     	radialAvg(Irad);
 //     	radialAvg(Prad);
 
+
+		// Compute |FT(radial averages)|
+		FourierTransformer transformerRad;
+		MultidimArray< std::complex<double> > IFourierRad, PFourierRad;
+		MultidimArray<double> IFourierMagRad, PFourierMagRad, radQuotient;
+		transformerRad.completeFourierTransform(Irad(),IFourierRad);  //Irad for 2D
+		CenterFFT(IFourierRad, true);
+		FFT_magnitude(IFourierRad,IFourierMagRad);
+		transformerRad.completeFourierTransform(Prad(),PFourierRad);  //Prad for 2D
+		CenterFFT(PFourierRad, true);
+		FFT_magnitude(PFourierRad,PFourierMagRad);
+
+
     	// Compute IradAvg profile (1D)
-        MultidimArray<double> &mOp = Irad();
+        MultidimArray<double> &mOp = IFourierMagRad;
         mOp.setXmippOrigin();
-        Matrix1D<int> center(3);
+        Matrix1D<int> center(2);
         center.initZeros();
         MultidimArray<double> radial_meanI;
         MultidimArray<int> radial_count;
@@ -314,7 +339,7 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
         }
 		Irad.write("Irad.mrc");
     	// Compute PradAvg profile (1D)
-        MultidimArray<double> &mOp2 = Prad();
+        MultidimArray<double> &mOp2 = PFourierMagRad;
         mOp2.setXmippOrigin();
         center.initZeros();
         MultidimArray<double> radial_meanP;
@@ -328,18 +353,12 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 		Prad.write("Prad.mrc");
 
 
-		// Compute |FT(radial averages)|
-		FourierTransformer transformerRad;
-		MultidimArray< std::complex<double> > IFourierRad, PFourierRad;
-		MultidimArray<double> IFourierMagRad, PFourierMagRad, radQuotient;
-		transformerRad.completeFourierTransform(radial_meanI,IFourierRad);  //Irad for 2D
-		CenterFFT(IFourierRad, true);
-		FFT_magnitude(IFourierRad,IFourierMagRad);
-		transformerRad.completeFourierTransform(radial_meanP,PFourierRad);  //Prad for 2D
-		CenterFFT(PFourierRad, true);
-		FFT_magnitude(PFourierRad,PFourierMagRad);
 		// Compute adjustment quotient for POCS amplitude (and POCS phase?)
-		radQuotient = IFourierMagRad/PFourierMagRad;
+		radQuotient = radial_meanI/radial_meanP;
+		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
+		{
+			radQuotient(i) = std::min(radQuotient(i), 1.0);
+		}
 		radQuotient.write("radQuotient.txt");
 
      	// Compute what need for the loop of POCS
@@ -347,8 +366,8 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
 		double Imin, Imax;
-		I().computeDoubleMinMax(Imin, Imax);
-//		percentileMinMax(I(), Imin, Imax);
+//		I().computeDoubleMinMax(Imin, Imax);
+		percentileMinMax(I(), Imin, Imax);
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
 //		double std1 = I().computeStddev();
@@ -360,7 +379,7 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 		for (int n=0; n<iter; ++n)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
-			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient);
+			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
 			transformer.inverseFourierTransform();
 			P.write("Pamp.mrc");
 			POCSMinMaxProj(P(), Imin, Imax);
