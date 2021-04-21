@@ -95,14 +95,36 @@ void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, Mu
 //	std::cout<< "Energy: " << energy << std::endl;
 //}
 
-void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
+void binarizeMask(MultidimArray<double> &Pmask)
 {
 	double maxMaskVol, minMaskVol;
-	mask().computeDoubleMinMax(minMaskVol, maxMaskVol);  // = 1!  => it should be Pmask but fails
-	std::cout << maxMaskVol << std::endl;
+	Pmask.computeDoubleMinMax(minMaskVol, maxMaskVol);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
 		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.15*maxMaskVol) ? 1:0;
 }
+
+void normMask(MultidimArray<double> &Pmask)
+{
+	double maxMaskVol, minMaskVol;
+	Pmask.computeDoubleMinMax(minMaskVol, maxMaskVol);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
+		DIRECT_MULTIDIM_ELEM(Pmask,n) /= maxMaskVol;
+}
+
+void percentileMinMax(MultidimArray<double> &I, double min, double max)
+{
+	MultidimArray<double> sortedI;
+	int p05, p99, size;
+	size = I.xdim * I.ydim;
+	p05 = size * 0.005;
+	p99 = size * 0.99;
+	I.sort(sortedI);
+	min = sortedI(p05);
+	max = sortedI(p99);
+	std::cout << min << std::endl;
+	std::cout << max << std::endl;
+}
+
 
  // Read arguments ==========================================================
  void ProgSubtractProjection::readParams()
@@ -237,7 +259,7 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
     	PmaskVol.write("mask.mrc");
     	// Binarize volume mask
-    	BinarizeMask(maskVol(), PmaskVol());
+    	binarizeMask(PmaskVol());
     	PmaskVol.write("maskBin.mrc");
     	// Filter mask with Gaussian
 		FilterG.applyMaskSpace(PmaskVol());
@@ -326,6 +348,7 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
 		MultidimArray<double> IFourierMag;
 		double Imin, Imax;
 		I().computeDoubleMinMax(Imin, Imax);
+//		percentileMinMax(I(), Imin, Imax);
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
 //		double std1 = I().computeStddev();
@@ -368,7 +391,8 @@ void BinarizeMask(const Image<double> &mask, MultidimArray<double> &Pmask)
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
     	Pmask.write("maskfocus.mrc");
     	// Binarize subtraction mask
-    	BinarizeMask(mask(), Pmask());
+    	binarizeMask(Pmask());
+//    	normMask(Pmask());
     	Pmask.write("maskfocusbin.mrc");
 
     	// Invert projected mask
