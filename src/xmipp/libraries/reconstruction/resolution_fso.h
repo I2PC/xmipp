@@ -32,8 +32,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/matrix2d.h>
 #include <core/xmipp_filename.h>
-#include <core/metadata_extension.h>
-#include <data/monogenic_signal.h>
+#include <core/metadata.h>
 
 
 class ProgFSO : public XmippProgram
@@ -58,20 +57,20 @@ private:
     // Int params
     size_t xvoldim, yvoldim, zvoldim, fscshellNum;
 
-		//Frequency vectors and frequency map
-		Matrix1D<double> freq_fourier_x;
-		Matrix1D<double> freq_fourier_y;
-		Matrix1D<double> freq_fourier_z;
-		MultidimArray<float> fx, fy, fz;
-	  MultidimArray<float> threeD_FSC, normalizationMap, aniFilter;
-		MultidimArray< double > freqMap;
+	//Frequency vectors and frequency map
+	Matrix1D<double> freq_fourier_x;
+	Matrix1D<double> freq_fourier_y;
+	Matrix1D<double> freq_fourier_z;
+	MultidimArray<float> fx, fy, fz;
+	MultidimArray<float> threeD_FSC, normalizationMap, aniFilter;
+    MultidimArray< double > freqMap;
 
-		//Half maps
-		MultidimArray< std::complex< double > > FT1, FT2;
-		MultidimArray<float> real_z1z2, absz1_vec, absz2_vec;
+	//Half maps
+	MultidimArray< std::complex< double > > FT1, FT2;
+	MultidimArray<float> real_z1z2, absz1_vec, absz2_vec;
 
-		//Access indices
-		MultidimArray<long> freqElems, cumpos, freqidx, arr2indx;
+	//Access indices
+	MultidimArray<long> freqElems, cumpos, freqidx, arr2indx;
 
 
 public:
@@ -109,7 +108,7 @@ public:
 
         /* Estimates the directional FSC between two half maps FT1 and FT2 (in Fourier Space)
         * requires the sampling rate, and the frequency vectors,  */
-		    void fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
+		void fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 				                      MultidimArray<double> &threeD_FSC, 
 						                  MultidimArray<double> &normalizationMap,
 						                  double &fscFreq, double &thrs, double &resol, size_t dirnumber);
