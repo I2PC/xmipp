@@ -28,7 +28,7 @@
 
 #include "core/xmipp_program.h"
 #include "data/fourier_projection.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /**@defgroup ClassifySignificant Classify a set of images into a discrete set of classes
    @ingroup ReconsLibrary */
@@ -68,13 +68,13 @@ public:
 	// Set of Ids
 	std::vector<size_t> setIds;
 	// Set of Angles
-	std::vector<VMetaData> setAngles;
+	std::vector<MetaDataVec> setAngles;
 	// Set of Angles
-	std::vector<VMetaData> classifiedAngles;
+	std::vector<MetaDataVec> classifiedAngles;
 	// Current row
 	std::vector<size_t> currentRowIdx;
 	// Set of Angles for a particular image
-	std::vector<VMetaData> subsetAngles;
+	std::vector<MetaDataVec> subsetAngles;
 	// Set of projections for a particular image, they act as a pool of projections
 	std::vector<MultidimArray<double> *> subsetProjections;
 	// Set of indexes of the projections for a particular image

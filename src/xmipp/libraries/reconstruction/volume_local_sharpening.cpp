@@ -304,7 +304,7 @@ void ProgLocSharpening::run()
         sharpenedMap.resizeNoCopy(Vorig);
 		double normOrig=0;
 
-		MetaData mditer;
+		MetaDataVec mditer;
 		size_t objId;
 		objId = mditer.addObject();
 

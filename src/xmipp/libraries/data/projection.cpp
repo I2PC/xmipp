@@ -25,7 +25,7 @@
 
 #include "projection.h"
 #include "core/geometry.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_macros.h"
@@ -130,10 +130,10 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
 {
     if (fn_proj_param.isMetaData())
     {
-        MetaData MD;
+        MetaDataVec MD;
         size_t objId;
         MD.read(fn_proj_param);
-        objId = MD.firstObject();
+        objId = MD.firstRowId();
         //        MD.getValue(MDL_PRJ_VOL, fnPhantom, objId);
         std::vector<double> vecD;
         MD.getValue(MDL_PRJ_DIMENSIONS, vecD, objId);

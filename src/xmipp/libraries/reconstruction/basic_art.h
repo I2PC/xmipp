@@ -60,7 +60,7 @@ struct ReconsInfo
     /// Projection filename
     FileName fn_proj;
     /// Header information of projection
-    MDRow    row;
+    MDRowVec    row;
     /// CTF filename
     FileName fn_ctf;
     /// Rotational angle

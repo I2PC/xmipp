@@ -69,9 +69,9 @@ void ProgClassifyFirstSplit3::defineParams()
 
 void ProgClassifyFirstSplit3::updateVolume(const std::vector<size_t> &objIds, const FileName &fnRoot, FourierProjector &projector)
 {
-	MetaData mdOut;
-	MDRow row;
+	MetaDataVec mdOut;
 	for(size_t i=0; i<objIds.size(); i++){
+        MDRowVec row;
 		md.getRow(row, objIds[i]);
 		mdOut.addRow(row);
 	}
@@ -100,7 +100,7 @@ void ProgClassifyFirstSplit3::calculateProjectedIms (size_t id, double &corrI_P1
 	//Project the first volume with the parameters in the randomly selected image
 	double rot, tilt, psi, x, y;
 	bool flip;
-	MDRow currentRow;
+	MDRowVec currentRow;
 	FileName fnImg;
 	Matrix2D<double> A;
 
@@ -147,12 +147,12 @@ void ProgClassifyFirstSplit3::run()
     md.read(fnClasses);
     std::vector<size_t> objIds1, objIds2;
 
-	FOR_ALL_OBJECTS_IN_METADATA(md){
-		if(rnd_unif()<0.5)
-			objIds1.push_back(__iter.objId);
-		else
-			objIds2.push_back(__iter.objId);
-	}
+    for (size_t objId : md.ids()) {
+        if(rnd_unif()<0.5)
+            objIds1.push_back(objId);
+        else
+            objIds2.push_back(objId);
+    }
 
 	projectorV1 = new FourierProjector(2,0.5,BSPLINE3);
 	projectorV2 = new FourierProjector(2,0.5,BSPLINE3);

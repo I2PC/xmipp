@@ -220,20 +220,20 @@ void ProgReconsXrayART::run()
     {
         //        preIteration();
         double itError=0;
-        FOR_ALL_OBJECTS_IN_METADATA(MDin)
+        for (size_t objId : MDin.ids())
         {
             FileName fnExp;
-            MDin.getValue( MDL_IMAGE, fnExp,__iter.objId);
+            MDin.getValue( MDL_IMAGE, fnExp,objId);
             double rot;
-            MDin.getValue( MDL_ANGLE_ROT, rot,__iter.objId);
+            MDin.getValue( MDL_ANGLE_ROT, rot,objId);
             double tilt;
-            MDin.getValue( MDL_ANGLE_TILT, tilt,__iter.objId);
+            MDin.getValue( MDL_ANGLE_TILT, tilt,objId);
             double psi;
-            MDin.getValue( MDL_ANGLE_PSI, psi,__iter.objId);
+            MDin.getValue( MDL_ANGLE_PSI, psi,objId);
             double shiftX;
-            MDin.getValue( MDL_SHIFT_X, shiftX,__iter.objId);
+            MDin.getValue( MDL_SHIFT_X, shiftX,objId);
             double shiftY;
-            MDin.getValue( MDL_SHIFT_Y, shiftY,__iter.objId);
+            MDin.getValue( MDL_SHIFT_Y, shiftY,objId);
 
             projExp.read(fnExp);
             projExp().setXmippOrigin();

@@ -1852,7 +1852,7 @@ void ProgResDir::run()
 	removeOutliers(trigProducts, resolutionMatrix);
 
 	MultidimArray<double> radial, azimuthal, lowestResolution, highestResolution, doavol1, doavol2;
-	MetaData prefDir;
+	MetaDataVec prefDir;
 
 	double radialThr, azimuthalThr;
 	radialAzimuthalResolution(resolutionMatrix, mask(), radial, azimuthal,
@@ -1872,7 +1872,7 @@ void ProgResDir::run()
 	imgdoa = doavol2;
 	imgdoa.write(fnDoa2);
 
-	MetaData mdRadialAzimuthalThr;
+	MetaDataVec mdRadialAzimuthalThr;
 	size_t objIdx;
 	objIdx = mdRadialAzimuthalThr.addObject();
 	mdRadialAzimuthalThr.setValue(MDL_RESOLUTION_FREQ, radialThr, objIdx);
@@ -1884,7 +1884,7 @@ void ProgResDir::run()
 	std::cout << "Calculating the radial and azimuthal resolution " << std::endl;
 
 
-	MetaData mdRadial, mdAvg, mdHighest, mdLowest;
+	MetaDataVec mdRadial, mdAvg, mdHighest, mdLowest;
 
 	Image<double> monores;
 	monores.read(fnMonoRes);

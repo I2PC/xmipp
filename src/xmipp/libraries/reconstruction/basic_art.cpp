@@ -469,7 +469,7 @@ void BasicARTParameters::readParams(XmippProgram * program)
 void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
         int rank)
 {
-    MetaData     selfile;
+    MetaDataVec     selfile;
 
     /* If checking the variability --------------------------------------------- */
     if (variability_analysis)
@@ -490,7 +490,7 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
         //take into account weights here
         if (WLS)
         {
-            MetaData SF_aux;
+            MetaDataVec SF_aux;
             SF_aux.read(fn_sel);
             if (SF_aux.containsLabel(MDL_ENABLED))
                 SF_aux.removeObjects(MDValueEQ(MDL_ENABLED, -1));

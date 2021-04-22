@@ -226,7 +226,7 @@ void ProgassignmentTiltPair::run()
 	std::cout << "Starting..." << std::endl;
 
 	//LOAD METADATA and TRIANGULATIONS
-	MetaData md_untilt, md_tilt, mduntilt, mdtilt;
+	MetaDataVec md_untilt, md_tilt, mduntilt, mdtilt;
 	size_t Ndim, Zdim, Ydim , Xdim, objId;
 
 	getImageSize(fnmic, Xdim, Ydim, Zdim, Ndim);
@@ -248,10 +248,10 @@ void ProgassignmentTiltPair::run()
 	struct Delaunay_T delaunay_untilt;
 	Matrix1D<double> ux(md_untilt.size()), uy(md_untilt.size()), tx(md_tilt.size()), ty(md_tilt.size());
 	init_Delaunay( &delaunay_untilt, md_untilt.size());
-	FOR_ALL_OBJECTS_IN_METADATA(md_untilt)
+	for (size_t objId : md_untilt.ids())
 	{
-		md_untilt.getValue(MDL_XCOOR, x, __iter.objId);
-		md_untilt.getValue(MDL_YCOOR, y, __iter.objId);
+		md_untilt.getValue(MDL_XCOOR, x, objId);
+		md_untilt.getValue(MDL_YCOOR, y, objId);
 
 		VEC_ELEM(ux,len_u) = x;
 		VEC_ELEM(uy,len_u) = y;
@@ -265,10 +265,10 @@ void ProgassignmentTiltPair::run()
 	//storing tilted points and creating Delaunay triangulation
 	struct Delaunay_T delaunay_tilt;
 	init_Delaunay( &delaunay_tilt, md_tilt.size());
-	FOR_ALL_OBJECTS_IN_METADATA(md_tilt)
+	for (size_t objId : md_tilt.ids())
 	{
-		md_tilt.getValue(MDL_XCOOR, x,__iter.objId);
-		md_tilt.getValue(MDL_YCOOR, y,__iter.objId);
+		md_tilt.getValue(MDL_XCOOR, x, objId);
+		md_tilt.getValue(MDL_YCOOR, y, objId);
 
 		VEC_ELEM(tx,len_t) = x;
 		VEC_ELEM(ty,len_t) = y;

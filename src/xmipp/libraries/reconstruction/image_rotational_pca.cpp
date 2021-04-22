@@ -114,7 +114,7 @@ ProgImageRotationalPCA::defineParams()
 
 void ProgImageRotationalPCA::selectPartFromMd(MetaData &MDin)
 {
-    MetaData MDaux;
+    MetaDataVec MDaux;
     MDaux.randomize(MDin);
     MDin.selectPart(MDaux, 0, maxNimgs);
 }
@@ -133,7 +133,7 @@ void ProgImageRotationalPCA::createMutexes(size_t Nimgs)
 void ProgImageRotationalPCA::produceSideInfo()
 {
   time_config();
-  MetaData MDin(fnIn);
+  MetaDataVec MDin(fnIn);
 
   if (maxNimgs > 0)
     selectPartFromMd(MDin);
@@ -238,7 +238,7 @@ void threadApplyT(ThreadArgument &thArg)
   int rank = self->rank;
   ThreadTaskDistributor *taskDistributor=self->taskDistributor;
   std::vector<size_t> &objId=self->objId;
-  MetaData &MD=self->MD[thArg.thread_id];
+  MetaDataVec &MD=self->MD[thArg.thread_id];
 
   Image<double> &I=self->I[thArg.thread_id];
   MultidimArray<double> &Iaux=self->Iaux[thArg.thread_id];
@@ -354,7 +354,7 @@ void threadApplyTt(ThreadArgument &thArg)
   int rank = self->rank;
   ThreadTaskDistributor *taskDistributor=self->taskDistributor;
   std::vector<size_t> &objId=self->objId;
-  MetaData &MD=self->MD[thArg.thread_id];
+  MetaDataVec &MD=self->MD[thArg.thread_id];
 
   Image<double> &I=self->I[thArg.thread_id];
   MultidimArray<double> &Iaux=self->Iaux[thArg.thread_id];
@@ -551,7 +551,7 @@ void ProgImageRotationalPCA::applySVD()
     I().resizeNoCopy(Xdim,Xdim);
     const MultidimArray<double> &mI=I();
     FileName fnImg;
-    MetaData MD;
+    MetaDataVec MD;
     for (int eig=0; eig<Neigen; eig++)
     {
       int Un=0;

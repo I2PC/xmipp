@@ -4,7 +4,7 @@
 #include <core/xmipp_image_extension.h>
 #include <iostream>
 #include <gtest/gtest.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include "core/transformations.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
@@ -82,7 +82,7 @@ TEST_F( ImageTest, readApplyGeo)
 {
     XMIPP_TRY
     FileName auxFn = "image/test2.spi";
-    MetaData md;
+    MetaDataVec md;
     size_t id = md.addObject();
     md.setValue(MDL_IMAGE, auxFn, id);
     md.setValue(MDL_ANGLE_PSI, 45., id);
@@ -105,7 +105,7 @@ TEST_F( ImageTest, readApplyGeoFromMatrix)
   // Same as readApplyGeo, but using the transformation matrix
     XMIPP_TRY
     FileName auxFn = "image/test2.spi";
-    MetaData md;
+    MetaDataVec md;
     size_t id = md.addObject();
     md.setValue(MDL_IMAGE, auxFn, id);
     // Equivalent matrix to a 45 in-plane rotation
@@ -135,8 +135,8 @@ TEST_F( ImageTest, readImageFromStackMetadata)
     stackSliceFn.compose(2, stackName);
     Image<double> img1;
     img1.read(stackSliceFn);
-    MetaData md(stackSliceFn);
-    size_t id = md.firstObject();
+    MetaDataVec md(stackSliceFn);
+    size_t id = md.firstRowId();
     md.getValue(MDL_IMAGE, auxFn, id);
     Image<double> img2;
     img2.read(auxFn);

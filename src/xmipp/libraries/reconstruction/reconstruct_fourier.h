@@ -29,7 +29,7 @@
 #ifndef __RECONSTRUCT_FOURIER_H
 #define __RECONSTRUCT_FOURIER_H
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_fftw.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_threads.h"
@@ -80,7 +80,7 @@ public:
     FileName fn_out, fn_sym, fn_sel, fn_doc, fn_fsc;
 
     /** SelFile containing all projections */
-    MetaData SF;
+    MetaDataVec SF;
 
     /** Flag whether to use the weights in the image metadata */
     bool do_weights;

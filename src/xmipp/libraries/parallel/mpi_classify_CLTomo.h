@@ -28,7 +28,7 @@
 #include <interface/frm.h>  // must be included first as it defines _POSIX_C_SOURCE
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
+#include <core/metadata_db.h>
 #include <core/metadata_extension.h>
 #include <data/filters.h>
 #include <data/polar.h>
@@ -160,7 +160,7 @@ public:
 	size_t Nimgs;
 
 	/// Pointer to input metadata
-	MetaData *SF;
+	MetaDataDb *SF;
 
     /// List of nodes
     std::vector<CL3DClass *> P;
@@ -170,7 +170,7 @@ public:
     void readImage(Image<double> &I, size_t objId, bool applyGeo) const;
 
     /// Initialize
-    void initialize(MetaData &_SF,
+    void initialize(MetaDataDb &_SF,
     		        std::vector< MultidimArray<double> > &_codes0);
     
     /// Share assignments
@@ -306,7 +306,7 @@ public:
     void run();
 public:
     // Selfile with all the input images
-    MetaData SF;
+    MetaDataDb SF;
     
     // Object Ids
     std::vector<size_t> objId;

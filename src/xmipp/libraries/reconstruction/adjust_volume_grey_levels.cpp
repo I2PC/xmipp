@@ -123,7 +123,7 @@ double ProgAdjustVolume::mismatching(double a, double b)
     Image<double> I;
     ApplyGeoParams params;
     params.only_apply_shifts=true;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         // Skip randomly some images
         double x = rnd_unif(0, 1);
@@ -131,7 +131,7 @@ double ProgAdjustVolume::mismatching(double a, double b)
             continue;
         N++;
 
-        I.readApplyGeo(SF,__iter.objId, params);
+        I.readApplyGeo(SF, objId, params);
         I().setXmippOrigin();
 
         // Project the auxiliary volume in the same direction
@@ -183,10 +183,10 @@ void ProgAdjustVolume::apply(MultidimArray<float> &out)
         exit(1);
     }
     Image<double> I;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
         // Read image
-        I.readApplyGeo(SF,__iter.objId);
+        I.readApplyGeo(SF, objId);
         projXdim = XSIZE(I());
         projYdim = YSIZE(I());
 

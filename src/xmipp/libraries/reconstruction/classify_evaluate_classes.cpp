@@ -39,8 +39,8 @@ void evaluateClass(MetaData &MD, ClassEvaluation &eval)
     if (MD.size()<10)
     	return;
 
-    MetaData MDrandomized;
-	std::vector<MetaData> vMD;
+    MetaDataVec MDrandomized;
+	std::vector<MetaDataVec> vMD;
     MultidimArray<double> I0, I1, freq, frc, dpr, frc_noise, error_l2;
 
     // Compute FRC
@@ -103,19 +103,19 @@ void ProgEvaluateClass::show()
 
 void ProgEvaluateClass::run()
 {
-	MetaData MD((String)"classes@"+fnClass), MDclass;
+	MetaDataVec MD((String)"classes@"+fnClass), MDclass;
 	ClassEvaluation eval;
 	if (verbose>0)
 		init_progress_bar(MD.size());
 	int idx=0;
-	FOR_ALL_OBJECTS_IN_METADATA(MD)
+    for (size_t objId : MD.ids())
 	{
 		int classNo;
-		MD.getValue(MDL_REF,classNo,__iter.objId);
+		MD.getValue(MDL_REF,classNo,objId);
 		MDclass.read(formatString("class%06d_images@%s",classNo,fnClass.c_str()));
 		evaluateClass(MDclass,eval);
-		MD.setValue(MDL_CLASSIFICATION_FRC_05,eval.FRC_05,__iter.objId);
-		MD.setValue(MDL_CLASSIFICATION_DPR_05,eval.DPR_05,__iter.objId);
+		MD.setValue(MDL_CLASSIFICATION_FRC_05,eval.FRC_05,objId);
+		MD.setValue(MDL_CLASSIFICATION_DPR_05,eval.DPR_05,objId);
 		idx++;
 		if (verbose>0)
 			progress_bar(idx);

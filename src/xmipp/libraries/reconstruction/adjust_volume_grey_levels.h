@@ -25,7 +25,7 @@
 #ifndef _PROG_ADJUST_VOLUME_HH
 #define _PROG_ADJUST_VOLUME_HH
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
 #include "core/xmipp_image.h"
@@ -56,7 +56,7 @@ public:
     Image<double> ImIn;
     MultidimArray<double> V;
     // SelFile
-    MetaData SF;
+    MetaDataVec SF;
 
 protected:
     void defineParams();

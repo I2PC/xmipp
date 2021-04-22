@@ -2129,9 +2129,9 @@ void alignSetOfImages(MetaData &MD, MultidimArray<double>& Iavg, int Niter,
         bool lastIteration = (n == (Niter - 1));
         InewAvg.initZeros(Ydim, Xdim);
         InewAvg.setXmippOrigin();
-        FOR_ALL_OBJECTS_IN_METADATA(MD)
+        for (size_t objId : MD.ids())
         {
-            MD.getValue(MDL_IMAGE, fnImg, __iter.objId);
+            MD.getValue(MDL_IMAGE, fnImg, objId);
             I.read(fnImg);
             I().setXmippOrigin();
             double corr;
@@ -2149,11 +2149,11 @@ void alignSetOfImages(MetaData &MD, MultidimArray<double>& Iavg, int Niter,
                 bool flip;
                 transformationMatrix2Parameters2D(M, flip, scale, shiftx,
                                                   shifty, psi);
-                MD.setValue(MDL_FLIP, flip, __iter.objId);
-                MD.setValue(MDL_SHIFT_X, shiftx, __iter.objId);
-                MD.setValue(MDL_SHIFT_Y, shifty, __iter.objId);
-                MD.setValue(MDL_ANGLE_PSI, psi, __iter.objId);
-                MD.setValue(MDL_MAXCC, corr, __iter.objId);
+                MD.setValue(MDL_FLIP, flip, objId);
+                MD.setValue(MDL_SHIFT_X, shiftx, objId);
+                MD.setValue(MDL_SHIFT_Y, shifty, objId);
+                MD.setValue(MDL_ANGLE_PSI, psi, objId);
+                MD.setValue(MDL_MAXCC, corr, objId);
             }
         }
         InewAvg /= Nimgs;

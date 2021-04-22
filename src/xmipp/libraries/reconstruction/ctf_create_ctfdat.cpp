@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <data/ctf.h>
 
 #include <core/xmipp_program.h>
@@ -80,7 +80,7 @@ public:
 
     void run()
     {
-        MetaData mdIn, SFind, mdCtf, ctfdat;
+        MetaDataVec mdIn, SFind, mdCtf, ctfdat;
         FileName fnsel, fnimg, fnctf;
 
         mdIn.read(fn_sel);
@@ -93,7 +93,7 @@ public:
         {
             // Write param files for each micrograph to disc and make an internal SFctf
             CTFDescription ctf;
-            MetaData DFdef;
+            MetaDataVec DFdef;
             double defU, defV, azi;
             int ii = 0;
             DFdef.read(fn_doc);
@@ -104,13 +104,13 @@ public:
             if (mdIn.size() != DFdef.size())
                 REPORT_ERROR(ERR_IO_SIZE, "Sizes between input images (-i) and docfile(-doc) should be the same!!! ");
 
-            FOR_ALL_OBJECTS_IN_METADATA(DFdef)
+            for (size_t objId : DFdef.ids())
             {
                 ii++;
-                DFdef.getValue(MDL_CTF_DEFOCUSU, defU, __iter.objId);
-                if (!DFdef.getValue(MDL_CTF_DEFOCUSU,defV,__iter.objId))
+                DFdef.getValue(MDL_CTF_DEFOCUSU, defU, objId);
+                if (!DFdef.getValue(MDL_CTF_DEFOCUSU, defV, objId))
                     defV=defU;
-                if (!DFdef.getValue(MDL_CTF_DEFOCUS_ANGLE,azi,__iter.objId))
+                if (!DFdef.getValue(MDL_CTF_DEFOCUS_ANGLE, azi, objId))
                     azi=0;
 
                 ctf.DeltafU = defU;
@@ -130,14 +130,16 @@ public:
 
         size_t id;
 
-        FOR_ALL_OBJECTS_IN_METADATA2(mdIn, mdCtf)
+        auto itIdIn = mdIn.ids().begin();
+        auto itIdCtf = mdCtf.ids().begin();
+        for (; itIdIn != mdIn.ids().end(); ++itIdIn, ++itIdCtf)
         {
-            mdIn.getValue(MDL_SELFILE,fnsel,__iter.objId);
-            mdCtf.getValue(MDL_CTF_MODEL,fnctf,__iter2.objId);
+            mdIn.getValue(MDL_SELFILE,fnsel, *itIdIn);
+            mdCtf.getValue(MDL_CTF_MODEL,fnctf, *itIdCtf);
             SFind.read(fnsel);
-            FOR_ALL_OBJECTS_IN_METADATA(SFind)
+            for (size_t objId : SFind.ids())
             {
-                SFind.getValue(MDL_IMAGE,fnimg,__iter.objId);
+                SFind.getValue(MDL_IMAGE,fnimg, objId);
                 id = ctfdat.addObject();
                 ctfdat.setValue(MDL_IMAGE,fnimg, id);
                 ctfdat.setValue(MDL_CTF_MODEL,fnctf, id);

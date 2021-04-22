@@ -369,7 +369,7 @@ void ProgAngularProjectLibrary::run()
                          mysampling.no_redundant_sampling_points_angles.size()-1,verbose);
 
     //only rank 0 create sel file
-    MetaData  mySFin, mySFout;
+    MetaDataVec  mySFin, mySFout;
     FileName fn_temp;
     mySFin.read(output_file_root+"_angles.doc");
     size_t myCounter=0;
@@ -377,16 +377,16 @@ void ProgAngularProjectLibrary::run()
     int ref;
     for (double mypsi=0;mypsi<360;mypsi += psi_sampling)
     {
-        FOR_ALL_OBJECTS_IN_METADATA(mySFin)
+        for (size_t objId : mySFin.ids())
         {
             double x,y,z, rot, tilt, psi;
-            mySFin.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-            mySFin.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-            mySFin.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-            mySFin.getValue(MDL_X,x,__iter.objId);
-            mySFin.getValue(MDL_Y,y,__iter.objId);
-            mySFin.getValue(MDL_Z,z,__iter.objId);
-            mySFin.getValue(MDL_REF,ref,__iter.objId);
+            mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
+            mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
+            mySFin.getValue(MDL_ANGLE_PSI,psi,objId);
+            mySFin.getValue(MDL_X,x,objId);
+            mySFin.getValue(MDL_Y,y,objId);
+            mySFin.getValue(MDL_Z,z,objId);
+            mySFin.getValue(MDL_REF,ref,objId);
             fn_temp.compose( ++myCounter,output_file);
             id = mySFout.addObject();
             mySFout.setValue(MDL_IMAGE,fn_temp,id);
@@ -433,7 +433,7 @@ void ProgAngularProjectLibrary::createGroupSamplingFiles(void)
     getBlocksInMetaDataFile(fn_groups,blockList);
     FileName fn_temp, fn_exp;
     FileName my_output_file_root;
-    MetaData SFBlock;
+    MetaDataVec SFBlock;
 
     fn_exp = FnexperimentalImages.removeBlockName();
     int igrp=1;

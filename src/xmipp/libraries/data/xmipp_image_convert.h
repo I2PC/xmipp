@@ -43,7 +43,6 @@ private:
     String  type;       // Type of output conversion
     String  depth;
     ImageGeneric imIn, *imOut;
-    MDRow        row;
     ImageConv    convMode;
     CastWriteMode  castMode;
     size_t        k;

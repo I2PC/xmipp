@@ -29,7 +29,7 @@
 /* him. Translated into C by Juan P. Secilla (MSC)  Jun/86      */
 /****************************************************************************/
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_image.h"
 
@@ -673,11 +673,11 @@ public:
         Image<double> I, Iaux;
         if (fnIn.isMetaData())
         {
-            MetaData MD(fnIn);
+            MetaDataVec MD(fnIn);
             int N=0;
-            FOR_ALL_OBJECTS_IN_METADATA(MD)
+            for (size_t objId : MD.ids())
             {
-                Iaux.readApplyGeo(MD,__iter.objId);
+                Iaux.readApplyGeo(MD, objId);
                 if (N==0)
                     I()=Iaux();
                 else
@@ -740,7 +740,7 @@ public:
         largo=YSIZE(I());
         lancho=XSIZE(I());
         busca();
-        MetaData MD;
+        MetaDataVec MD;
         id=MD.addObject();
         if (yc0>0)
         {

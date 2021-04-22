@@ -121,7 +121,7 @@ void ProgResolutionFsc::writeFiles(const FileName &fnRoot,
 				const MultidimArray<double> &error_l2,
 				double max_sam, bool do_dpr, double rFactor)
 {
-	MetaData MD;
+	MetaDataVec MD;
 
 	FileName  fn_frc;
 	if (do_o)
@@ -156,7 +156,7 @@ void ProgResolutionFsc::writeFiles(const FileName &fnRoot,
 		}
 	}
 	MD.write(fn_frc);
-	MetaData MD2;
+	MetaDataVec MD2;
 	MD2.setColumnFormat(false);
 	id=MD2.addObject();
 	MD2.setValue(MDL_RESOLUTION_RFACTOR,rFactor,id);
@@ -194,7 +194,7 @@ bool ProgResolutionFsc::process_img()
 
 bool ProgResolutionFsc::process_sel()
 {
-	MetaData MD(fn_sel), MDout;
+	MetaDataDb MD(fn_sel), MDout;
 	MultidimArray<double> freq, frc, dpr, frc_noise, ssnr, error_l2;
 	getFourierStatistics(MD, sam, MDout, do_dpr, max_sam);
 	FileName fnRoot=(fn_root.empty())?fn_sel:fn_root;

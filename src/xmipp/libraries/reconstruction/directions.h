@@ -27,7 +27,7 @@
 #define _DIRECTIONS_H
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 #include <core/symmetries.h>
 

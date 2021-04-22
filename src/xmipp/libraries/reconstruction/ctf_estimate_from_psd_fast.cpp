@@ -31,6 +31,7 @@
 #include "data/numerical_tools.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_fftw.h"
+#include "core/metadata_vec.h"
 
 /* prototypes */
 double CTF_fitness_fast(double *, void *);
@@ -1672,9 +1673,9 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 			prm2D->current_ctfmodel.phase_shift = 0.0;
 
 		prm2D->current_ctfmodel.write(fn_rootCTFPARAM + ".ctfparam_tmp");
-		MetaData MD;
+		MetaDataVec MD;
 		MD.read(fn_rootCTFPARAM + ".ctfparam_tmp");
-		size_t id = MD.firstObject();
+		size_t id = MD.firstRowId();
 		MD.setValue(MDL_CTF_X0, (double)output_ctfmodel.x0*prm2D->Tm, id);
 		MD.setValue(MDL_CTF_XF, (double)output_ctfmodel.xF*prm2D->Tm, id);
 		MD.setValue(MDL_CTF_Y0, (double)output_ctfmodel.y0*prm2D->Tm, id);

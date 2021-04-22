@@ -27,7 +27,7 @@
 
 #include "core/matrix1d.h"
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/multidim_array.h"
 #include "core/xmipp_program.h"
 
@@ -228,10 +228,10 @@ public:
 
 public:
     // MetaData with the input images
-    MetaData SF;
+    MetaDataVec SF;
 
     // MetaData with the input images
-    MetaData SForig;
+    MetaDataVec SForig;
 
     // List of image pointers
     std::vector < MultidimArray<unsigned char> *> img;

@@ -26,7 +26,7 @@
 #ifndef _PROJECTXRAY_H_
 #define _PROJECTXRAY_H_
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_threads.h"
 #include "data/fourier_projection.h"
@@ -104,7 +104,7 @@ public:
 
     XrayProjPhantom phantom;
     Projection   proj, stdProj;
-    MetaData     projMD;
+    MetaDataVec  projMD;
     ParallelTaskDistributor * td;
 
 protected:

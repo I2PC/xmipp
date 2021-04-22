@@ -333,9 +333,9 @@ void ProgML2D::produceSideInfo()
         avg().initZeros();
         avg().setXmippOrigin();
 
-        FOR_ALL_OBJECTS_IN_METADATA(MDimg)
+        for (size_t objId : MDimg.ids())
         {
-            MDimg.getValue(MDL_IMAGE, fn_tmp, __iter.objId);
+            MDimg.getValue(MDL_IMAGE, fn_tmp, objId);
             img.read(fn_tmp);
             img().setXmippOrigin();
             avg() += img();
@@ -369,11 +369,11 @@ void ProgML2D::produceSideInfo2()
     double weight = fraction * (double) nr_images_global;
     double rot = 0., tilt = 0.;
 
-    FOR_ALL_OBJECTS_IN_METADATA(MDref)
+    for (size_t objId : MDref.ids())
     {
-        MDref.getValue(MDL_IMAGE, fn_tmp, __iter.objId);
-        MDref.getValue(MDL_ANGLE_ROT, rot, __iter.objId);
-        MDref.getValue(MDL_ANGLE_TILT, rot, __iter.objId);
+        MDref.getValue(MDL_IMAGE, fn_tmp, objId);
+        MDref.getValue(MDL_ANGLE_ROT, rot, objId);
+        MDref.getValue(MDL_ANGLE_TILT, rot, objId);
         img.read(fn_tmp);
         img.setEulerAngles(rot, tilt, 0.);
         img().setXmippOrigin();
@@ -531,14 +531,12 @@ void ProgML2D::produceSideInfo2()
         istart = SPECIAL_ITER;
 
         //Expand MDref because it will be re-used in writeOutputFiles
-        MetaData MDaux(MDref);
+        MetaDataDb MDaux(MDref);
 
         for (int group = 1; group < factor_nref; ++group)
         {
-            FOR_ALL_OBJECTS_IN_METADATA(MDaux)
-            {
-                MDaux.setValue(MDL_REF3D, group + 1, __iter.objId);
-            }
+            for (size_t objId : MDaux.ids())
+                MDaux.setValue(MDL_REF3D, group + 1, objId);
             MDref.unionAll(MDaux);
         }
 
@@ -2166,7 +2164,7 @@ void ProgML2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
 {
     FileName fn_tmp, fn_prefix, fn_base;
     Image<double> Itmp;
-    MetaData MDo;
+    MetaDataVec MDo;
     bool write_img_xmd = true, write_refs_log = true, write_conv = !do_ML3D;
     bool write_norm = model.do_norm;
 
@@ -2243,7 +2241,6 @@ void ProgML2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         // Re-use the MDref metadata that was read in produceSideInfo2
         // This way. MDL_ANGLE_ROT, MDL_ANGLE_TILT, MDL_REF etc are treated ok for do_ML3D
         int refno = 0;
-        size_t objId;
         int select_img;
         double weight;
         size_t count;
@@ -2255,9 +2252,8 @@ void ProgML2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         //        else
         //            fn_tmp = formatString("%s_%s_refs.stk", rootStr, prefixStr);
 
-        FOR_ALL_OBJECTS_IN_METADATA(MDref)
+        for (size_t objId : MDref.ids())
         {
-            objId = __iter.objId;
             select_img = refno + 1;
             //Itmp = model.Iref[refno];
             //std::cerr << "DEBUG_JM: refno: " << refno << std::endl;
@@ -2296,8 +2292,8 @@ void ProgML2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
           outRefsMd = fn_tmp;
 
         // Write out log-file
-        MetaData mdLog;
-        objId = mdLog.addObject();
+        MetaDataVec mdLog;
+        size_t objId = mdLog.addObject();
         mdLog.setValue(MDL_ITER, iter, objId);
         mdLog.setValue(MDL_LL, model.LL, objId);
         mdLog.setValue(MDL_PMAX, avePmax, objId);
@@ -2311,7 +2307,7 @@ void ProgML2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
 
         if (write_img_xmd)
         {
-            MetaData mdImgs;
+            MetaDataVec mdImgs;
             size_t n = MDref.size();
             for (size_t ref = 1; ref <= n; ++ref)
             {
@@ -2334,14 +2330,17 @@ void ProgML2D::readModel(ModelML2D &model, int block)
 
     // First read general model parameters from _log.xmd
     FileName fn_base = formatString("%s_block%03d", fn_root.c_str(), (block + 1));
-    MetaData MDi;
+    MetaDataVec MDi;
     MDi.read(fn_base + "_logs.xmd");
     model.dim = dim;
-    size_t id = MDi.firstObject();
-    MDi.getValue(MDL_LL, model.LL, id);
-    MDi.getValue(MDL_PMAX, model.sumfracweight, id);
-    MDi.getValue(MDL_SIGMANOISE, model.wsum_sigma_noise, id);
-    MDi.getValue(MDL_SIGMAOFFSET, model.wsum_sigma_offset, id);
+
+    {
+        size_t id = MDi.firstRowId();
+        MDi.getValue(MDL_LL, model.LL, id);
+        MDi.getValue(MDL_PMAX, model.sumfracweight, id);
+        MDi.getValue(MDL_SIGMANOISE, model.wsum_sigma_noise, id);
+        MDi.getValue(MDL_SIGMAOFFSET, model.wsum_sigma_offset, id);
+    }
 
     //Then read reference model parameters from _ref.xmd
     FileName fn_img;
@@ -2352,19 +2351,18 @@ void ProgML2D::readModel(ModelML2D &model, int block)
     double weight = 0;
 
     model.sumw_allrefs = 0.;
-    FOR_ALL_OBJECTS_IN_METADATA(MDi)
+    for (size_t objId : MDi.ids())
     {
-        id = __iter.objId;
-        MDi.getValue(MDL_IMAGE, fn_img, id);
+        MDi.getValue(MDL_IMAGE, fn_img, objId);
         img.read(fn_img);
         img().setXmippOrigin();
         model.WsumMref[refno] = img;
-        MDi.getValue(MDL_WEIGHT, weight, id);
+        MDi.getValue(MDL_WEIGHT, weight, objId);
         model.WsumMref[refno].setWeight(weight);
         model.sumw_allrefs += weight;
         model.sumw_mirror[refno] = 0.;
         if (do_mirror)
-            MDi.getValue(MDL_MIRRORFRAC, model.sumw_mirror[refno], id);
+            MDi.getValue(MDL_MIRRORFRAC, model.sumw_mirror[refno], objId);
         refno++;
     }
 }//close function readModel

@@ -26,7 +26,7 @@
 #define _PROG_METADATA_SPLIT3D
 
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/matrix1d.h"
 
 /**@defgroup MetadataSplit3D Split a metadata according to a 3D volume
@@ -50,10 +50,10 @@ public:
     double maxDist;
 public:
     // Metadata with reference images
-    MetaData mdRef;
+    MetaDataDb mdRef;
 
     // Metadata with experimental images
-    MetaData mdIn;
+    MetaDataDb mdIn;
 
     // Correlates_well vector
     Matrix1D<int> correlatesWell;

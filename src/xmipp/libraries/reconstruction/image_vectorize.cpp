@@ -87,8 +87,8 @@ public:
         if (!headerFound)
         {
             // Image -> Vector
-            MetaData SF(fnIn);
-            MetaData vectorContent, vectorHeader;
+            MetaDataVec SF(fnIn);
+            MetaDataVec vectorContent, vectorHeader;
             vectorHeader.setColumnFormat(false);
             Image<double> img;
             bool first=true;
@@ -100,10 +100,10 @@ public:
             if (!fhOutRaw)
                 REPORT_ERROR(ERR_IO_NOWRITE,fnOutRaw);
             size_t vectorSize;
-            MDRow row;
-            FOR_ALL_OBJECTS_IN_METADATA(SF)
+
+            for (auto& row : SF)
             {
-                img.readApplyGeo(SF, __iter.objId);
+                img.readApplyGeo(SF, row.id());
 
                 // Create header
                 if (first)
@@ -131,9 +131,8 @@ public:
                 }
 
                 // Save this image in the output metadata
-                SF.getRow(row,__iter.objId);
-                row.setValue(MDL_ORDER,order++);
-                vectorContent.addRow(row);
+                row.setValue(MDL_ORDER, order++);
+                vectorContent.addRow(dynamic_cast<const MDRowVec&>(row));
 
                 // Save raw values
                 const MultidimArray<double> &mimg=img();
@@ -161,11 +160,11 @@ public:
             // Vector -> Image
             fnOut.deleteFile();
 
-            MetaData vectorHeader(formatString("vectorHeader@%s",fnIn.c_str()));
-            MetaData vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
+            MetaDataVec vectorHeader(formatString("vectorHeader@%s",fnIn.c_str()));
+            MetaDataVec vectorContent(formatString("vectorContent@%s",fnIn.c_str()));
 
             // Read header
-            size_t headerId=vectorHeader.firstObject();
+            size_t headerId=vectorHeader.firstRowId();
             size_t Xdim, Ydim, Zdim, vectorSize, imgNo;
             vectorHeader.getValue(MDL_XSIZE,Xdim,headerId);
             vectorHeader.getValue(MDL_YSIZE,Ydim,headerId);
@@ -188,10 +187,11 @@ public:
                 REPORT_ERROR(ERR_IO_NOTEXIST,fnInRaw);
             size_t order;
             size_t idx=1;
-            FOR_ALL_OBJECTS_IN_METADATA(vectorContent)
+
+            for (size_t objId : vectorContent.ids())
             {
-                vectorContent.getValue(MDL_IMAGE,fnImg,__iter.objId);
-                vectorContent.getValue(MDL_ORDER,order,__iter.objId);
+                vectorContent.getValue(MDL_IMAGE, fnImg, objId);
+                vectorContent.getValue(MDL_ORDER, order, objId);
 
                 // Read raw values
                 fhInRaw.seekg(order*vectorSize*sizeof(float));

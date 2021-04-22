@@ -144,7 +144,7 @@ TEST_F( FiltersTest, alignImages)
     bool flip;
     double scale, shiftX, shiftY, psi;
     transformationMatrix2Parameters2D(M2, flip, scale, shiftX, shiftY, psi);
-    MDRow row;
+    MDRowVec row;
     row.setValue(MDL_FLIP,flip);
     row.setValue(MDL_SCALE,scale);
     row.setValue(MDL_SHIFT_X,shiftX);

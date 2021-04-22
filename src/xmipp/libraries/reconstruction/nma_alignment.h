@@ -27,7 +27,7 @@
 
 #include "condor/ObjectiveFunction.h"
 #include "core/matrix1d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_metadata_program.h"
 
 class ProgPdbConverter;
@@ -126,7 +126,7 @@ public:
     Matrix1D<double> bestStage1;
     
     // Temporary document file
-    MetaData DF_out;
+    MetaDataVec DF_out;
 
     // Template for temporal filename generation
     char nameTemplate[256];

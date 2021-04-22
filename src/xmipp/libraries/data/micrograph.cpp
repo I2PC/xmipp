@@ -229,16 +229,15 @@ void Micrograph::write_coordinates(int label, double minCost,
     if (_fn_coords != "")
         fn_coords = _fn_coords;
 
-    MetaData MD;
+    MetaDataVec MD;
     MD.setComment((std::string) "Selected Coordinates for file " + fn_coords);
     int imax = coords.size();
-    size_t id;
     for (int i = 0; i < imax; i++)
     {
         if (coords[i].valid && coords[i].cost > minCost
                 && coords[i].label == label)
         {
-            id = MD.addObject();
+            size_t id = MD.addObject();
             MD.setValue(MDL_XCOOR, coords[i].X, id);
             MD.setValue(MDL_YCOOR, coords[i].Y, id);
         }
@@ -255,7 +254,7 @@ void Micrograph::read_coordinates(int label, const FileName &_fn_coords)
 
     fn_coords = _fn_coords;
 
-    MetaData MD;
+    MetaDataVec MD;
     MD.read(fn_coords);
     line_no = MD.size();
 
@@ -268,14 +267,14 @@ void Micrograph::read_coordinates(int label, const FileName &_fn_coords)
     aux.scoreVar = -1;
     aux.scoreGini = -1;
 
-    FOR_ALL_OBJECTS_IN_METADATA(MD)
+    for (size_t objId : MD.ids())
     {
-        MD.getValue(MDL_XCOOR, aux.X, __iter.objId); //aux.X=x;
-        MD.getValue(MDL_YCOOR, aux.Y, __iter.objId); //aux.Y=y;
+        MD.getValue(MDL_XCOOR, aux.X, objId); //aux.X=x;
+        MD.getValue(MDL_YCOOR, aux.Y, objId); //aux.Y=y;
         if (MD.containsLabel(MDL_SCORE_BY_VAR))
         {
-            MD.getValue(MDL_SCORE_BY_VAR, aux.scoreVar, __iter.objId);
-            MD.getValue(MDL_SCORE_BY_GINI, aux.scoreGini, __iter.objId);
+            MD.getValue(MDL_SCORE_BY_VAR, aux.scoreVar, objId);
+            MD.getValue(MDL_SCORE_BY_GINI, aux.scoreGini, objId);
         }
         coords.push_back(aux);
     }
@@ -353,7 +352,7 @@ void Micrograph::produce_all_images(int label, double minCost,
                                     double tilt, double psi, bool rmStack, bool fillBorders,
 									bool extractNoise, int Nnoise)
 {
-    MetaData SF;
+    MetaDataVec SF;
     Image<double> I;
     Micrograph *M;
 

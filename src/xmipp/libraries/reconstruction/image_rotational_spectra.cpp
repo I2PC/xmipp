@@ -82,13 +82,13 @@ void ProgMakeSpectra::show()
 // Run -----------------------------------------------------------------
 void ProgMakeSpectra::run()
 {
-    MetaData vectorContent, vectorHeader;
+    MetaDataVec vectorContent, vectorHeader;
     vectorHeader.setColumnFormat(false);
     bool first=true;
     size_t order=0;
     FileName fnImg;
     Image<double> I;
-    MetaData MD;
+    MetaDataVec MD;
     MD.read(fn_in);
     std::ofstream fhOutRaw;
     MultidimArray<float> spectrum;
@@ -101,16 +101,15 @@ void ProgMakeSpectra::run()
     rot_spt.rl=(int)((rot_spt.rl/100.0)*Xdim/2);
     rot_spt.rh=(int)((rot_spt.rh/100.0)*Xdim/2);
 
-    MDRow row;
-    FOR_ALL_OBJECTS_IN_METADATA(MD)
+    for (auto& row : MD)
     {
-        MD.getValue(MDL_IMAGE,fnImg,__iter.objId);
-    	I.readApplyGeo(fnImg,MD,__iter.objId);
+        MD.getValue(MDL_IMAGE,fnImg, row.id());
+        I.readApplyGeo(fnImg,MD, row.id());
         rot_spt.compute_rotational_spectrum(I(), rot_spt.rl, rot_spt.rh,
                                             rot_spt.dr, rot_spt.rh - rot_spt.rl);
         fhOutRaw.open(fnOutRaw.c_str(),std::ios::app | std::ios::binary);
         if (!fhOutRaw)
-        	REPORT_ERROR(ERR_IO_NOWRITE,fnOutRaw);
+            REPORT_ERROR(ERR_IO_NOWRITE,fnOutRaw);
         typeCast(rot_spt.rot_spectrum,spectrum);
         fhOutRaw.write((char*)MULTIDIM_ARRAY(spectrum),XSIZE(spectrum)*sizeof(float));
         fhOutRaw.close();
@@ -130,9 +129,8 @@ void ProgMakeSpectra::run()
         }
 
         // Save this image in the output metadata
-        MD.getRow(row,__iter.objId);
-        row.setValue(MDL_ORDER,order++);
-        vectorContent.addRow(row);
+        row.setValue(MDL_ORDER, order++);
+        vectorContent.addRow(dynamic_cast<MDRowVec&>(row));
     }
     vectorContent.write(formatString("vectorContent@%s",fn_out.c_str()),MD_APPEND);
 }

@@ -1297,14 +1297,14 @@ void DocFile::merge(DocFile& DF, int mode, int sumcol)
 {
 
     DocLine  DL, DLold;
-    MetaData  SF;
+    MetaDataVec  SF;
     FileName fn_img;
     double   w;
 
     DF.get_selfile(SF);
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE,fn_img, __iter.objId);
+        SF.getValue(MDL_IMAGE,fn_img, objId);
         DF.search_comment(fn_img);
         DL=DF.get_current_line();
         if (search_comment(fn_img))
@@ -1468,13 +1468,13 @@ void select_images(DocFile& doc, MetaData& sel, int col, bool en_limit0,
 {
     doc.go_first_data_line();
     int enabled;
-    FOR_ALL_OBJECTS_IN_METADATA(sel)
+    for (size_t objId : sel.ids())
     {
-        sel.getValue(MDL_ENABLED,enabled, __iter.objId);
+        sel.getValue(MDL_ENABLED,enabled, objId);
         if (enabled == 1)
         {
             if ((en_limit0 && doc(col) < limit0) || (en_limitF && doc(col) > limitF))
-                sel.setValue(MDL_ENABLED, -1, __iter.objId);
+                sel.setValue(MDL_ENABLED, -1, objId);
         }
 
         doc.next_data_line();
@@ -1497,9 +1497,9 @@ void get_subset_docfile(DocFile& DFin, MetaData& SF, DocFile& DFout)
         // append the same header to DFout
         DFout.append_comment(fn_tmp.removeSubstring(" ; "));
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE,fn_tmp, __iter.objId);
+        SF.getValue(MDL_IMAGE,fn_tmp, objId);
         if (DFin.search_comment(fn_tmp))
         {
             DFout.append_comment(fn_tmp);

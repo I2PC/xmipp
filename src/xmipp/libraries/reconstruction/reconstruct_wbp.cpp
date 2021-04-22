@@ -34,16 +34,6 @@
 #include "reconstruction/symmetrize.h"
 
 
-ProgRecWbp::ProgRecWbp()
-{
-    iter = NULL;
-}
-
-ProgRecWbp::~ProgRecWbp()
-{
-    delete iter;
-}
-
 // Read arguments ==========================================================
 void ProgRecWbp::readParams()
 {
@@ -260,10 +250,10 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     count_imgs.resize(NN);
     // Each experimental image contributes to the nearest of these directions
     FileName fn_img;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE, fn_img, __iter.objId);
-        getAnglesForImage(__iter.objId, rot, tilt, dum, dum, dum, dumB, weight);
+        SF.getValue(MDL_IMAGE, fn_img, objId);
+        getAnglesForImage(objId, rot, tilt, dum, dum, dum, dumB, weight);
         int idx = find_nearest_direction(rot, tilt, rotList, tiltList, SL, L,
                                          R);
         if (do_weights)
@@ -331,10 +321,10 @@ void ProgRecWbp::getAllMatrices(MetaData &SF)
     mat_g = (WBPInfo*) malloc(NN * sizeof(WBPInfo));
     FileName fn_img;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        SF.getValue(MDL_IMAGE, fn_img, __iter.objId);
-        getAnglesForImage(__iter.objId, rot, tilt, psi, dum, dum, dumB, weight);
+        SF.getValue(MDL_IMAGE, fn_img, objId);
+        getAnglesForImage(objId, rot, tilt, psi, dum, dum, dumB, weight);
         Euler_angles2matrix(rot, -tilt, psi, A);
         mat_g[no_mats].x = MAT_ELEM(A, 2, 0);
         mat_g[no_mats].y = MAT_ELEM(A, 2, 1);
@@ -504,14 +494,18 @@ void ProgRecWbp::filterOneImage(Projection &proj, Tabsinc &TSINC)
 
 bool ProgRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
 {
-    if (time_bar_done == 0)
-        iter = new MDIterator(SF);
-    else
-        iter->moveNext();
+    static size_t _objIndex = 0;
+    if (time_bar_done == 0) {
+        iter = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(SF.ids().begin()));
+        _objIndex = 0;
+    } else {
+        ++(*iter);
+        ++_objIndex;
+    }
 
     ++time_bar_done;
-    objIndex = iter->objIndex;
-    return ((objId = iter->objId) != BAD_OBJID);
+    objIndex = _objIndex;
+    return ((objId = **iter) != BAD_OBJID);
 }
 
 void ProgRecWbp::showProgress()

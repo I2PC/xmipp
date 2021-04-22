@@ -66,7 +66,7 @@ public:
     bool basis;
 
     // SelFiles of images
-    MetaData SFin, SFout;
+    MetaDataVec SFin, SFout;
 
     // Mask of the background
     MultidimArray<int> mask;

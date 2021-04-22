@@ -28,7 +28,7 @@
 #include "core/xmipp_program.h"
 #include "reconstruction_cuda/gpu.h"
 #include "core/xmipp_filename.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 class ProgGpuCorrelation: public XmippProgram
 {
@@ -47,7 +47,7 @@ private:
 
 public:
     //Input metadata file
-    MetaData SF, SFexp;
+    MetaDataVec SF, SFexp;
 
     /// Read argument from command line
     void readParams();

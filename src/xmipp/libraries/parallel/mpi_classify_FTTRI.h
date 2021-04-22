@@ -29,7 +29,7 @@
 
 #include "parallel/xmipp_mpi.h"
 #include "core/xmipp_image.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /**@defgroup ClassifyFTTRI Classification with Fourier Transform based Translational and Rotational Invariants
    @ingroup ReconsLibrary */
@@ -93,7 +93,7 @@ public:
     // FileTaskDistributor
     MpiTaskDistributor *taskDistributor;
     // MetaData In
-    MetaData mdIn;
+    MetaDataVec mdIn;
     // Object Ids
     std::vector<size_t> imgsId;
     // Padded size

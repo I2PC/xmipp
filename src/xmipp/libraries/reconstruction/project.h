@@ -26,7 +26,7 @@
 #define _PROG_PROJECTION_HH
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <data/projection.h>
 #include <core/xmipp_program.h>
 #include <data/pdb.h>
@@ -214,7 +214,7 @@ class PROJECT_Side_Info
 {
 public:
     /// Document File for the projecting angles. Order: rot, tilt, psi
-    MetaData       DF;
+    MetaDataVec    DF;
     /// Types of phantom: voxel, Xmipp, PDB
     enum PhantomType {VOXEL, XMIPP, PDB};
     /// Projecting from a voxel volume, Xmipp description or PDB?

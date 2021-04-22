@@ -127,8 +127,8 @@ void ProgNmaAlignmentVol::show() {
 ProgNmaAlignmentVol *global_nma_vol_prog;
 
 void ProgNmaAlignmentVol::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
+	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+	MetaDataDb mdTodo, mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/nmaDone.xmd");
 	if (fn.exists() && resume) {
@@ -155,7 +155,7 @@ void ProgNmaAlignmentVol::createWorkFiles() {
 }
 
 void ProgNmaAlignmentVol::preProcess() {
-	MetaData SF(fnModeList);
+	MetaDataVec SF(fnModeList);
 	SF.removeDisabled();
 	numberOfModes = SF.size();
 	// Get the size of the images in the selfile
@@ -346,7 +346,7 @@ void ProgNmaAlignmentVol::processImage(const FileName &fnImg,
 }
 
 void ProgNmaAlignmentVol::writeVolumeParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);

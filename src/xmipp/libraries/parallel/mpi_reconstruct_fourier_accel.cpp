@@ -81,7 +81,7 @@ void ProgMPIRecFourierAccel::preRun()
     else
     {
         produceSideinfo();
-        SF.firstObject();
+        SF.firstRowId();
     }
 
     //read projection file / divide by mpi_job_size

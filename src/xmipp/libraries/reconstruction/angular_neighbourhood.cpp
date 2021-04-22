@@ -79,30 +79,30 @@ void ProgAngularNeighbourhood::run()
 {
     show();
     fn_out.deleteFile();
-    MetaData SF_out;
+    MetaDataVec SF_out;
     FileName fn2, fn1, fnAux;
 
     std::cerr << "Calculating ...\n";
-    FOR_ALL_OBJECTS_IN_METADATA(DF2)
+    for (size_t objId : DF2.ids())
     {
         // Read reference projection direction
         double rot2, tilt2;
-        DF2.getValue(MDL_IMAGE,fn2,__iter.objId);
-        DF2.getValue(MDL_ANGLE_ROT,rot2,__iter.objId);
-        DF2.getValue(MDL_ANGLE_TILT,tilt2,__iter.objId);
-        FOR_ALL_OBJECTS_IN_METADATA(DF1)
+        DF2.getValue(MDL_IMAGE,fn2,objId);
+        DF2.getValue(MDL_ANGLE_ROT,rot2,objId);
+        DF2.getValue(MDL_ANGLE_TILT,tilt2,objId);
+        for (size_t objId2 : DF1.ids())
         {
             // Read assigned angles from document file
             double rot1, tilt1;
-            DF1.getValue(MDL_ANGLE_ROT,rot1,__iter.objId);
-            DF1.getValue(MDL_ANGLE_TILT,tilt1,__iter.objId);
+            DF1.getValue(MDL_ANGLE_ROT,rot1,objId2);
+            DF1.getValue(MDL_ANGLE_TILT,tilt1,objId2);
             double psi1=0.;
             double dist = SL.computeDistance(rot2, tilt2, 0., rot1, tilt1, psi1,
                                              true, check_mirrors, false);
             if (dist <= maxdist)
             {
-            	MDRow row;
-            	DF1.getRow(row,__iter.objId);
+                MDRowVec row;
+                DF1.getRow(row, objId2);
                 SF_out.addRow(row);
             }
         }
