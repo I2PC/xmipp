@@ -50,14 +50,13 @@ private:
     // Bool params
     bool do_3dfsc_filter;
 
-private:
-    //Matrix2d for the projection angles
+    // Matrix2d for the projection angles
     Matrix2D<float> angles;
 
     // Int params
     size_t xvoldim, yvoldim, zvoldim, fscshellNum;
 
-	//Frequency vectors and frequency map
+	// Frequency vectors and frequency map
 	Matrix1D<double> freq_fourier_x;
 	Matrix1D<double> freq_fourier_y;
 	Matrix1D<double> freq_fourier_z;
@@ -65,7 +64,7 @@ private:
 	MultidimArray<float> threeD_FSC, normalizationMap, aniFilter;
     MultidimArray< double > freqMap;
 
-	//Half maps
+	// Half maps
 	MultidimArray< std::complex< double > > FT1, FT2;
 	MultidimArray<float> real_z1z2, absz1_vec, absz2_vec;
 
@@ -73,36 +72,35 @@ private:
 	MultidimArray<long> freqElems, cumpos, freqidx, arr2indx;
 
 
-public:
-        /* The output is a multidim array that define INVERSE of the value of the frequency in Fourier Space
-        * To do that, it makes use of myfftV to detemine the size of the output map (myfftV and
+private:
+        /* Once done, the result of the computation is stored in freqMap (class field)
+        * freqMap is a multidim array that define INVERSE of the value of the frequency in Fourier Space
+        * To do that, it makes use of myfftV to detemine the size of the output map (mapfftV and
         * the output will have the same size), and the vectors freq_fourier_x, freq_fourier_y, 
         * and freq_fourier_z that defines the frequencies along the 3 axis. The output will be
         * sqrt(freq_fourier_x^2+freq_fourier_y^2+freq_fourier_x^2) */
-        void defineFrequencies(const MultidimArray< std::complex<double> > &myfftV,
+        void defineFrequencies(const MultidimArray< std::complex<double> > &mapfftV,
     		                      const MultidimArray<double> &inputVol);
 
         /* Estimates the global FSC between two half maps FT1 and FT2 (in Fourier Space)
          * ARRANGEFSC_AND_FSCGLOBAL: This function estimates the global resolution FSC FSC=real(z1*conj(z2)/(||z1||·||z2||)
          * and precomputes the products z1*conj(z2),  ||z1||, ||z2||, to calculate faster the directional FSC. The input are
          * the Fourier transform of two half maps (FT1, FT2) defined in the .h, the sampling_rate, the used threshold (thrs)
-         * to that define the resolution (FSC-threshold). The output are 1) the resolution of the map, fscResolution, in Angstrom.
+         * to that define the resolution (FSC-threshold). The output are: 1) The resolution of the map in Angstrom (In the terminal).
          * 2) three vectors defined in the .h, real_z1z2, absz1_vec, absz2_vec, with z1*conj(z2),  ||z1||, ||z2||, defined in
-         * float to speed up the computation and reduce the use of memory. These vector make use of the two half maps FT1, and FT2. 3)
-         * 3) To speed up the algorithm, only are considered those voxels with frequency lesser than Nyquist, 0.5. The vector idx_count
-         * stores all frequencies lesser than Nyquist. This vector determines the frequency of each component of
-         * real_z1z2, absz1_vec, absz2_vec.*/
+         * float to speed up the computation and reduce the use of memory. These vector make use of the two half maps FT1, and FT2.
+         */
 		void arrangeFSC_and_fscGlobal(double sampling_rate,
 				                    	double &thrs, MultidimArray<double> &freq);
 
         /* Defines a Matrix2D with coordinates Rot and tilt achieving a uniform coverage of the
-        * projection sphere. Bool alot = True, implies a dense converage */
+        * projection sphere. Bool alot = True, implies a dense coverage */
         void generateDirections(Matrix2D<float> &angles, bool alot);
 
         /* ANISOTROPYPARAMETER: Given a directional FSC it is determined how many 
-        * frequencyes/points of the FSC has a greater fsc than the fsc threshold, thrs, 
+        * frequencies/points of the FSC has a greater fsc than the fsc threshold, thrs,
         * This is carried out in aniParam, . */
-        void anistropyParameter(const MultidimArray<double> FSC,
+        void anistropyParameter(const MultidimArray<double> &FSC,
     	                      	MultidimArray<double> &directionAnisotropy, size_t dirnumber,
 			                    MultidimArray<double> &aniParam, double thrs);
 
@@ -147,6 +145,7 @@ public:
         void createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
     	                      	int m1sizeX, int m1sizeY, int m1sizeZ);
 
+public:
         /* Defining the params and help of the algorithm */
         void defineParams();
 
