@@ -118,7 +118,7 @@ void ProgAngularSphAlignment::defineParams()
 
 // Produce side information ================================================
 void ProgAngularSphAlignment::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
+	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
 	MetaDataDb mdTodo, mdDone;
 	mdTodo = dynamic_cast<MetaDataDb&>(*pmdIn);
 	FileName fn(fnOutDir+"/sphDone.xmd");

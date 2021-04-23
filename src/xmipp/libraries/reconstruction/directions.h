@@ -51,7 +51,7 @@ void make_even_distribution(std::vector<double> &rotList, std::vector<double> &t
 							double sampling, SymList &SL, bool include_mirror);
 
 /// Select a user-provided tilt range
-void limit_tilt_range(MetaData &DF, double tilt_range0, double tilt_rangeF);
+void limit_tilt_range(MetaDataVec &DF, double tilt_range0, double tilt_rangeF);
 
 /// Determine which of the entries in DFlib is closest to [rot1,tilt1]
 int find_nearest_direction(double rot1, double tilt1,
