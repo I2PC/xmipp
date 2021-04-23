@@ -1187,7 +1187,7 @@ void ProgFSO::run()
 
 		// Computing directional FSC and 3DFSC
 		MultidimArray<double> fsc, threeD_FSC, normalizationMap;
-		double resInterp;
+		double resInterp = -1;
 		threeD_FSC.resizeNoCopy(real_z1z2);
 		threeD_FSC.initZeros();
 		normalizationMap.resizeNoCopy(real_z1z2);
