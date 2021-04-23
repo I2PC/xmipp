@@ -217,7 +217,7 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myf
 
 
 void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
-				double &thrs, double &fscResolution, MultidimArray<double> &freq)
+				double &thrs, MultidimArray<double> &freq)
 	{
 		// Determining the cumulative number of frequencies per shell number, cumpos
 		// First shell has 0 elements
@@ -349,7 +349,6 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		}
 		mdRes.write(fnOut+"/GlobalFSC.xmd");
 
-		
 		std::cout << "    " << std::endl;
 		
 		// Here the FSC at 0.143 is obtained byt interpolating
@@ -370,11 +369,13 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 				slope = (y2 - y1)/(x2 - x1);
 				ny = y2 - slope*x2;
 
+				double fscResolution;
 				fscResolution = 1/(slope*thrs + ny);
+				std::cout << "Resolution " << fscResolution << std::endl;
 				break;
 			}
 		}
-		std::cout << "Resolution " << fscResolution << std::endl;
+
 
 		aniFilter.initZeros(freqidx);
 
@@ -384,7 +385,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 
 void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 				MultidimArray<double> &threeD_FSC, MultidimArray<double> &normalizationMap,
-				double &fscFreq, double &thrs, double &resol, size_t dirnumber)
+				double &thrs, double &resol, size_t dirnumber)
 {
 	// FSCDIR_FAST: computes the directional FSC along a direction given by the angles rot and tilt.
 	// Thus the directional resolution, resol, is estimated with the threshold, thrs.
@@ -1170,8 +1171,7 @@ void ProgFSO::run()
 		// Storing the shell of both maps as vectors global
 		// The global FSC is also computed
 		MultidimArray<double> freq;
-		double resol, resInterp;
-		arrangeFSC_and_fscGlobal(sampling, thrs, resInterp, freq);
+		arrangeFSC_and_fscGlobal(sampling, thrs, freq);
 
 		std::cout << " " << std::endl;
 		FT2.clear();
@@ -1187,6 +1187,7 @@ void ProgFSO::run()
 
 		// Computing directional FSC and 3DFSC
 		MultidimArray<double> fsc, threeD_FSC, normalizationMap;
+		double resInterp;
 		threeD_FSC.resizeNoCopy(real_z1z2);
 		threeD_FSC.initZeros();
 		normalizationMap.resizeNoCopy(real_z1z2);
@@ -1198,7 +1199,7 @@ void ProgFSO::run()
 			float tilt = MAT_ELEM(angles, 1, k);
 
 			// Estimating the direction FSC along the diretion given by rot and tilt
-			fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, resol, thrs, resInterp, k);
+			fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp, k);
 
 			printf ("Direction %zu/%zu -> %.2f A \n", k, angles.mdimx, resInterp);
 

@@ -93,7 +93,7 @@ public:
          * stores all frequencies lesser than Nyquist. This vector determines the frequency of each component of
          * real_z1z2, absz1_vec, absz2_vec.*/
 		void arrangeFSC_and_fscGlobal(double sampling_rate,
-				                    	double &thrs, double &resInterp, MultidimArray<double> &freq);
+				                    	double &thrs, MultidimArray<double> &freq);
 
         /* Defines a Matrix2D with coordinates Rot and tilt achieving a uniform coverage of the
         * projection sphere. Bool alot = True, implies a dense converage */
@@ -104,14 +104,14 @@ public:
         * This is carried out in aniParam, . */
         void anistropyParameter(const MultidimArray<double> FSC,
     	                      	MultidimArray<double> &directionAnisotropy, size_t dirnumber,
-			                        MultidimArray<double> &aniParam, double thrs);
+			                    MultidimArray<double> &aniParam, double thrs);
 
         /* Estimates the directional FSC between two half maps FT1 and FT2 (in Fourier Space)
         * requires the sampling rate, and the frequency vectors,  */
 		void fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 				                      MultidimArray<double> &threeD_FSC, 
-						                  MultidimArray<double> &normalizationMap,
-						                  double &fscFreq, double &thrs, double &resol, size_t dirnumber);
+						              MultidimArray<double> &normalizationMap,
+						              double &thrs, double &resol, size_t dirnumber);
 
         /* PREPAREDATA: Data are prepared to be taken by the algorithm. 
         * The half maps will be read and stored in the multidimarray half1, and half2.
@@ -128,7 +128,7 @@ public:
         * by an anisotropic filter with cutoff the isosurface of the fsc at the given threshold
         * introduced by the user. */
         void directionalFilter(MultidimArray<std::complex<double>> &FThalf1,
-    		                    	MultidimArray<double> &threeDfsc, MultidimArray<double> &filteredMap, 
+    		                    MultidimArray<double> &threeDfsc, MultidimArray<double> &filteredMap,
                             	int m1sizeX, int m1sizeY, int m1sizeZ);
 
         /* RESOLUTIONDISTRIBUTION: This function stores in a metadata the resolution distribution on the
@@ -140,7 +140,7 @@ public:
         /* GETCOMPLETEFOURIER: Because of the hermitician symmetry of the Fourier space, xmipp works with the half
         *  of the space. This function recover the whole Fourier space (both halfs). */
         void getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
-    		                    	int m1sizeX, int m1sizeY, int m1sizeZ);
+    		                    int m1sizeX, int m1sizeY, int m1sizeZ);
 
         /* CREATEFULLFOURIER: The inpur is a Fourier Transform, the function will compute the full Fourier
         *  and will save it in disc, with the name of fnMap m1sizeX, m1sizeY, m1sizeZ, define the size. */
