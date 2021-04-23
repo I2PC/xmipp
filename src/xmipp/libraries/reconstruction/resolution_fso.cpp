@@ -81,16 +81,16 @@ void ProgFSO::defineParams()
 	addParamsLine("   [--mask <input_file=\"\">]         : (Optional) Smooth mask to remove noise. If it is not provided, the computation will be carried out without mask.");
 
 	addParamsLine("   [--anglecone <ang_con=17>]         : (Optional) Angle Cone (angle between the axis and the  generatrix) for estimating the directional FSC");
-	addParamsLine("   [--threshold <thrs=0.143>]		 : (Optional) Threshold for the FSC/directionalFSC estimation ");
+	addParamsLine("   [--threshold <thrs=0.143>]         : (Optional) Threshold for the FSC/directionalFSC estimation ");
 
-    addParamsLine("   [--threedfsc_filter]           	 : (Optional) Put this flag to estimate the 3DFSC, and apply it as low pass filter to obtain a directionally filtered map. It mean to apply an anisotropic filter.");
+    addParamsLine("   [--threedfsc_filter]               : (Optional) Put this flag to estimate the 3DFSC, and apply it as low pass filter to obtain a directionally filtered map. It mean to apply an anisotropic filter.");
 	
-	addParamsLine("   [--threads <Nthreads=1>]		     : (Optional) Number of threads to be used");
+	addParamsLine("   [--threads <Nthreads=1>]           : (Optional) Number of threads to be used");
 
 	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px", false);
-	addExampleLine("xmipp_resolution_fso --half1 half1.mrc  --half2 half2.mrc --sampling_rate 2 ");
+	addExampleLine("xmipp_resolution_fso --half1 half1.mrc --half2 half2.mrc --sampling_rate 2 ");
 	addExampleLine("Resolution of two half maps half1.mrc and half2.mrc with a sampling rate of 2 A/px and a mask mask.mrc", false);
-	addExampleLine("xmipp_resolution_fso --half1 half1.mrc  --half2 half2.mrc --mask mask.mrc --sampling_rate 2 ");
+	addExampleLine("xmipp_resolution_fso --half1 half1.mrc --half2 half2.mrc --mask mask.mrc --sampling_rate 2 ");
 }
 
 void ProgFSO::readParams()
