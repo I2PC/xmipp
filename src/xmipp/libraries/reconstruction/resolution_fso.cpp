@@ -33,12 +33,11 @@
 #include <chrono> 
 
 #define SAVE_DIR_FSC
-//#define SPHERE
 
 void ProgFSO::defineParams()
 {
 	addUsageLine("Calculate Fourier Shell Occupancy - FSO curve - via directional FSC measurements.");
-	addUsageLine("Next results are obtained:");
+	addUsageLine("Following outputs are generated:");
 	addUsageLine("  1) FSO curve");
 	addUsageLine("  2) Global resolution from FSO and FSC");
 	addUsageLine("  3) 3DFSC");
@@ -48,9 +47,9 @@ void ProgFSO::defineParams()
 	addUsageLine("+ The Fourier Shell Occupancy Curve can be obtained from a set of directional FSC (see below).");
 	addUsageLine("+ To do that, two half maps are used to determine the Global FSC at threshold 0.143. Then, the ratio between the number");
 	addUsageLine("+ of directions with resolution higher (better) than the Global resolution and the total number of measured directions is");
-	addUsageLine("+ calculated at different frequencies (resolutions). Note that this ratio is between 0 (all directions presents worse)");
+	addUsageLine("+ calculated at different frequencies (resolutions). Note that this ratio is between 0 (resolution of all directions is worse than the global FSC)");
 	addUsageLine("+ resolution than the global FSC)  and 1 (all directions present better resolution than the FSC) at a given resolution.");
-	addUsageLine("+ In the particular case for which the FSO curve takes the value of 0.5, then half of the directions are better, and.");
+	addUsageLine("+ In the particular case, FSO curve takes the value of 0.5 (FSO=0.5), then half of the directions are better, and.");
 	addUsageLine("+ the other half are worse than the FSC, this situation occurs at the resoltuion of hte map. It means the FSO = 0.5 at the ");
 	addUsageLine("+ FSC resolution. A map is isotropic if all directional resolution are similar, and anisotropic is there are significant resolution values along");
 	addUsageLine("+ different directions. Thus, when the FSO presents a sharp cliff, a step-like function, the map will be isotropic.");
@@ -61,8 +60,8 @@ void ProgFSO::defineParams()
 	addUsageLine("+ The directionality is measured by means of conical-like filters in Fourier Space. To avoid possible Gibbs effects ");
 	addUsageLine("+ the filters are gaussian functions with their respective maxima along the filtering direction. A set of 321 directions ");
 	addUsageLine("+ is used to cover the projection sphere, computing for each direction the directional FSC at 0.143 between the two half maps.");
-	addUsageLine("+ The result is a set of 321 FSC curves. From then a 3DFSC is obtained by interpolation. Note that as well as it occurs with");
-	addUsageLine("+ global FSC, the directional FSC is mask dependent.");
+	addUsageLine("+ The result is a set of 321 FSC curves (321 is the number of analyzed directions).");
+	addUsageLine("+ The 3DFSC is then obtained from all curves by interpolation. Note that as well as it occurs with global FSC, the directional FSC is mask dependent.");
 	addUsageLine(" ");
 	addUsageLine("+* Resolution Distribution and 3DFSC", true);
 	addUsageLine("+ The directional-FSC, dFSC is estimated along 321 directions on the projection sphere. For each direction the corresponding");
@@ -81,10 +80,10 @@ void ProgFSO::defineParams()
 	addParamsLine("   [--sampling <Ts=1>]                : (Optical) Pixel size (Angstrom). If it is not provided by default will be 1 A/px.");
 	addParamsLine("   [--mask <input_file=\"\">]         : (Optional) Smooth mask to remove noise. If it is not provided, the computation will be carried out without mask.");
 
-	addParamsLine("   [--anglecone <ang_con=17>]         : (Optional) Angle Cone (angle axis-generatrix) for estimating the directional FSC");	
+	addParamsLine("   [--anglecone <ang_con=17>]         : (Optional) Angle Cone (angle between the axis and the  generatrix) for estimating the directional FSC");
 	addParamsLine("   [--threshold <thrs=0.143>]		 : (Optional) Threshold for the FSC/directionalFSC estimation ");
 
-    addParamsLine("   [--threedfsc_filter]           	 : (Optional) Put this flag to estimate the 3DFSC, and use it to obtain a directionally filtered map. It mean to apply an anisotropic filter.");	
+    addParamsLine("   [--threedfsc_filter]           	 : (Optional) Put this flag to estimate the 3DFSC, and apply it as low pass filter to obtain a directionally filtered map. It mean to apply an anisotropic filter.");
 	
 	addParamsLine("   [--threads <Nthreads=1>]		     : (Optional) Number of threads to be used");
 
@@ -106,42 +105,42 @@ void ProgFSO::readParams()
 	thrs = getDoubleParam("--threshold");
 	do_3dfsc_filter = checkParam("--threedfsc_filter");
 	
-	Nthreads = getDoubleParam("--threads");
+	Nthreads = getIntParam("--threads");
 }
 
 
-void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myfftV,
+void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &mapfftV,
 		const MultidimArray<double> &inputVol)
 {
 	// Initializing the frequency vectors
-	freq_fourier_z.initZeros(ZSIZE(myfftV));
-	freq_fourier_x.initZeros(XSIZE(myfftV));
-	freq_fourier_y.initZeros(YSIZE(myfftV));
+	freq_fourier_z.initZeros(ZSIZE(mapfftV));
+	freq_fourier_x.initZeros(XSIZE(mapfftV));
+	freq_fourier_y.initZeros(YSIZE(mapfftV));
 
 	// u is the frequency
 	double u;
 
 	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
 	VEC_ELEM(freq_fourier_z,0) = 1e-38;
-	for(size_t k=1; k<ZSIZE(myfftV); ++k){
+	for(size_t k=1; k<ZSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,ZSIZE(inputVol), u);
 		VEC_ELEM(freq_fourier_z,k) = u;
 	}
 
 	VEC_ELEM(freq_fourier_y,0) = 1e-38;
-	for(size_t k=1; k<YSIZE(myfftV); ++k){
+	for(size_t k=1; k<YSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,YSIZE(inputVol), u);
 		VEC_ELEM(freq_fourier_y,k) = u;
 	}
 
 	VEC_ELEM(freq_fourier_x,0) = 1e-38;
-	for(size_t k=1; k<XSIZE(myfftV); ++k){
+	for(size_t k=1; k<XSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,XSIZE(inputVol), u);
 		VEC_ELEM(freq_fourier_x,k) = u;
 	}
 
 	//Initializing map with frequencies
-	freqMap.resizeNoCopy(myfftV);
+	freqMap.resizeNoCopy(mapfftV);
 	freqMap.initConstant(1.9);  //Nyquist is 2, we take 1.9 greater than Nyquist
 
 	xvoldim = XSIZE(inputVol);
@@ -150,28 +149,23 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myf
 	freqElems.initZeros(xvoldim/2+1);
 
 	// Directional frequencies along each direction
-	double uz, uy, ux, uz2, u2, uz2y2;
+	double uz, uy, ux, uz2, uz2y2;
 	long n=0;
 	int idx = 0;
 
 	// Ncomps is the number of frequencies lesser than Nyquist
 	long Ncomps = 0;
 		
-	//SPHERE FREQUENCY REFERENCE
-	MultidimArray<double> sphere;
-	sphere.resizeNoCopy(freqMap);
-
-	//TODO: check if the for enter in the if conditions
-	for(size_t k=0; k<ZSIZE(myfftV); ++k)
+	for(size_t k=0; k<ZSIZE(mapfftV); ++k)
 	{
 		uz = VEC_ELEM(freq_fourier_z, k);
 		uz2 = uz*uz;
-		for(size_t i=0; i<YSIZE(myfftV); ++i)
+		for(size_t i=0; i<YSIZE(mapfftV); ++i)
 		{
 			uy = VEC_ELEM(freq_fourier_y, i);
 			uz2y2 = uz2 + uy*uy;
 
-			for(size_t j=0; j<XSIZE(myfftV); ++j)
+			for(size_t j=0; j<XSIZE(mapfftV); ++j)
 			{
 				ux = VEC_ELEM(freq_fourier_x, j);
 				ux = sqrt(uz2y2 + ux*ux);
@@ -181,10 +175,8 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myf
 					idx = (int) round(ux * xvoldim);
 					++Ncomps;
 					DIRECT_MULTIDIM_ELEM(freqElems, idx) += 1;
-					DIRECT_MULTIDIM_ELEM(sphere,n) = -ux;
 
 					DIRECT_MULTIDIM_ELEM(freqMap,n) = 1/ux;
-
 
 					if ((j == 0) && (uy<0))
 					{
@@ -206,12 +198,6 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myf
 		}
 	}
 	real_z1z2.initZeros(Ncomps);
-    #ifdef SPHERE
-	FileName fn;
-	fn = fnOut+"/sphere.mrc";
-	The fftshift is removed and the sphere is stored in disc
-	createFullFourier(sphere, fn, xvoldim, yvoldim, zvoldim);
-	#endif
 }
 
 
@@ -219,11 +205,11 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &myf
 void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 				double &thrs, MultidimArray<double> &freq)
 	{
-		// Determining the cumulative number of frequencies per shell number, cumpos
+		// cumpos is the the cumulative number of frequencies per shell number
 		// First shell has 0 elements
 		// second shell has the number of elements of the first shell
 		// Third shell has the number of elements of the first+sencond shells and so on
-		//freqElems in .h and set in defineFreq function
+		// freqElems in .h and set in defineFreq function
 		cumpos.resizeNoCopy(NZYXSIZE(freqElems));
 
 		DIRECT_MULTIDIM_ELEM(cumpos,0) = 0;
@@ -236,6 +222,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		//Fourier Coefficients z1, and z2 of both half maps. The storage will be in order, first elements of
 		// the vector are the freq 0, next freq 1 and so on. Ncomps is the number of components with frequency
 		// lesser than Nyquist (defined in defineFreq)
+
 		absz1_vec = real_z1z2;
 		absz2_vec = real_z1z2;
 		
@@ -287,6 +274,9 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 					++n;
 
 					// Only reachable frequencies
+					// To speed up the algorithm, only are considered those voxels with frequency lesser than Nyquist, 0.5. The vector idx_count
+					// stores all frequencies lesser than Nyquist. This vector determines the frequency of each component of
+					// real_z1z2, absz1_vec, absz2_vec.
 					if (f>0.5)
 						continue;
 					
@@ -335,7 +325,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		frc.initZeros(freqElems);
 		FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
 		{
-			dAi(frc,i) = dAi(num,i)/sqrt(dAi(den1,i)*dAi(den2,i));
+			dAi(frc,i) = dAi(num,i)/sqrt( (dAi(den1,i)) * (dAi(den2,i)) );
 			dAi(freq,i) = (float) i / (xvoldim * sampling_rate);
 
 			if (i>0)
@@ -349,15 +339,15 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		}
 		mdRes.write(fnOut+"/GlobalFSC.xmd");
 
-		std::cout << "    " << std::endl;
 		
+
 		// Here the FSC at 0.143 is obtained byt interpolating
 		FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
 		{
 			double ff = dAi(frc,i);
 			if ( (ff<=thrs) && (i>2) )
 			{
-				std::cout << "shell = " << i << std::endl;
+				std::cout << std::endl << "shell = " << i << std::endl;
 				fscshellNum = i;
 				double y2, y1, x2, x1, slope, ny;
 				y2 = ff;
@@ -439,7 +429,7 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 		if (cosine >= cosAngle)	
 		{
 			// in fact it is sqrt(exp( -((cosine -1)*(cosine -1))*aux )); 
-			// For shake of performance The sqrt is avoided dividing the by 2 in aux
+			// For sake of performance The sqrt is avoided dividing the by 2 in aux
 			cosine = expf( -((cosine -1)*(cosine -1))*aux); 
 
 			vecidx.push_back(n);
@@ -466,10 +456,8 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 	MetaData mdRes;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(num)
 	{
-		dAi(fsc,i) = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
-
-		if (dAi(fsc,i)<0)
-			dAi(fsc,i) = 0;
+		double auxfsc = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
+		dAi(fsc,i) = std::max(0.0, auxfsc);
 
 		if (i>0)
 		{
@@ -518,59 +506,59 @@ void ProgFSO::generateDirections(Matrix2D<float> &angles, bool alot)
 	if (alot == true)
 	{
 		angles.initZeros(2,321);
-		MAT_ELEM(angles,0,0)=0;			MAT_ELEM(angles,1,0)=0;
-		MAT_ELEM(angles,0,1)=324;		MAT_ELEM(angles,1,1)=63.4349;
-		MAT_ELEM(angles,0,2)=36;		MAT_ELEM(angles,1,2)=63.4349;
-		MAT_ELEM(angles,0,3)=180;		MAT_ELEM(angles,1,3)=63.435;
-		MAT_ELEM(angles,0,4)=252;		MAT_ELEM(angles,1,4)=63.435;
-		MAT_ELEM(angles,0,5)=108;		MAT_ELEM(angles,1,5)=63.435;
-		MAT_ELEM(angles,0,6)=324;		MAT_ELEM(angles,1,6)=31.7175;
-		MAT_ELEM(angles,0,7)=36;		MAT_ELEM(angles,1,7)=31.7175;
-		MAT_ELEM(angles,0,8)=0;			MAT_ELEM(angles,1,8)=58.2825;
-		MAT_ELEM(angles,0,9)=288;		MAT_ELEM(angles,1,9)=58.2825;
-		MAT_ELEM(angles,0,10)=342;		MAT_ELEM(angles,1,10)=90;
-		MAT_ELEM(angles,0,11)=306;		MAT_ELEM(angles,1,11)=90;
-		MAT_ELEM(angles,0,12)=72;		MAT_ELEM(angles,1,12)=58.2825;
-		MAT_ELEM(angles,0,13)=18;		MAT_ELEM(angles,1,13)=90;
-		MAT_ELEM(angles,0,14)=54;		MAT_ELEM(angles,1,14)=90;
-		MAT_ELEM(angles,0,15)=90;		MAT_ELEM(angles,1,15)=90;
-		MAT_ELEM(angles,0,16)=216;		MAT_ELEM(angles,1,16)=58.282;
-		MAT_ELEM(angles,0,17)=144;		MAT_ELEM(angles,1,17)=58.282;
-		MAT_ELEM(angles,0,18)=180;		MAT_ELEM(angles,1,18)=31.718;
-		MAT_ELEM(angles,0,19)=252;		MAT_ELEM(angles,1,19)=31.718;
-		MAT_ELEM(angles,0,20)=108;		MAT_ELEM(angles,1,20)=31.718;
-		MAT_ELEM(angles,0,21)=346.3862;	MAT_ELEM(angles,1,21)=43.6469;
-		MAT_ELEM(angles,0,22)=58.3862;	MAT_ELEM(angles,1,22)=43.6469;
-		MAT_ELEM(angles,0,23)=274.3862;	MAT_ELEM(angles,1,23)=43.6469;
-		MAT_ELEM(angles,0,24)=0;		MAT_ELEM(angles,1,24)=90;
-		MAT_ELEM(angles,0,25)=72;		MAT_ELEM(angles,1,25)=90;
-		MAT_ELEM(angles,0,26)=288;		MAT_ELEM(angles,1,26)=90;
-		MAT_ELEM(angles,0,27)=225.7323;	MAT_ELEM(angles,1,27)=73.955;
-		MAT_ELEM(angles,0,28)=153.7323;	MAT_ELEM(angles,1,28)=73.955;
-		MAT_ELEM(angles,0,29)=216;		MAT_ELEM(angles,1,29)=26.565;
-		MAT_ELEM(angles,0,30)=144;		MAT_ELEM(angles,1,30)=26.565;
-		MAT_ELEM(angles,0,31)=0;		MAT_ELEM(angles,1,31)=26.5651;
-		MAT_ELEM(angles,0,32)=72;		MAT_ELEM(angles,1,32)=26.5651;
-		MAT_ELEM(angles,0,33)=288;		MAT_ELEM(angles,1,33)=26.5651;
-		MAT_ELEM(angles,0,34)=350.2677;	MAT_ELEM(angles,1,34)=73.9549;
-		MAT_ELEM(angles,0,35)=62.2677;	MAT_ELEM(angles,1,35)=73.9549;
-		MAT_ELEM(angles,0,36)=278.2677;	MAT_ELEM(angles,1,36)=73.9549;
-		MAT_ELEM(angles,0,37)=206.2677;	MAT_ELEM(angles,1,37)=73.955;
-		MAT_ELEM(angles,0,38)=134.2677;	MAT_ELEM(angles,1,38)=73.955;
-		MAT_ELEM(angles,0,39)=202.3862;	MAT_ELEM(angles,1,39)=43.647;
-		MAT_ELEM(angles,0,40)=130.3862;	MAT_ELEM(angles,1,40)=43.647;
-		MAT_ELEM(angles,0,41)=13.6138;	MAT_ELEM(angles,1,41)=43.6469;
-		MAT_ELEM(angles,0,42)=85.6138;	MAT_ELEM(angles,1,42)=43.6469;
-		MAT_ELEM(angles,0,43)=301.6138;	MAT_ELEM(angles,1,43)=43.6469;
-		MAT_ELEM(angles,0,44)=9.7323;	MAT_ELEM(angles,1,44)=73.9549;
-		MAT_ELEM(angles,0,45)=81.7323;	MAT_ELEM(angles,1,45)=73.9549;
-		MAT_ELEM(angles,0,46)=297.7323;	MAT_ELEM(angles,1,46)=73.9549;
-		MAT_ELEM(angles,0,47)=36;		MAT_ELEM(angles,1,47)=90;
-		MAT_ELEM(angles,0,48)=324;		MAT_ELEM(angles,1,48)=90;
-		MAT_ELEM(angles,0,49)=229.6138;	MAT_ELEM(angles,1,49)=43.647;
-		MAT_ELEM(angles,0,50)=157.6138;	MAT_ELEM(angles,1,50)=43.647;
-		MAT_ELEM(angles,0,51)=324;		MAT_ELEM(angles,1,51)=15.8587;
-		MAT_ELEM(angles,0,52)=36;		MAT_ELEM(angles,1,52)=15.8587;
+		MAT_ELEM(angles,0,0)=0.0f;			MAT_ELEM(angles,1,0)=0.0f;
+		MAT_ELEM(angles,0,1)=324.0f;		MAT_ELEM(angles,1,1)=63.4349f;
+		MAT_ELEM(angles,0,2)=36.0f;			MAT_ELEM(angles,1,2)=63.4349f;
+		MAT_ELEM(angles,0,3)=180.0f;		MAT_ELEM(angles,1,3)=63.435f;
+		MAT_ELEM(angles,0,4)=252.0f;		MAT_ELEM(angles,1,4)=63.435f;
+		MAT_ELEM(angles,0,5)=108.0f;		MAT_ELEM(angles,1,5)=63.435f;
+		MAT_ELEM(angles,0,6)=324.0f;		MAT_ELEM(angles,1,6)=31.7175f;
+		MAT_ELEM(angles,0,7)=36.0f;			MAT_ELEM(angles,1,7)=31.7175f;
+		MAT_ELEM(angles,0,8)=0.0f;			MAT_ELEM(angles,1,8)=58.2825f;
+		MAT_ELEM(angles,0,9)=288.0f;		MAT_ELEM(angles,1,9)=58.2825f;
+		MAT_ELEM(angles,0,10)=342.0f;		MAT_ELEM(angles,1,10)=90.0f;
+		MAT_ELEM(angles,0,11)=306.0f;		MAT_ELEM(angles,1,11)=90.0f;
+		MAT_ELEM(angles,0,12)=72.0f;		MAT_ELEM(angles,1,12)=58.2825f;
+		MAT_ELEM(angles,0,13)=18.0f;		MAT_ELEM(angles,1,13)=90.0f;
+		MAT_ELEM(angles,0,14)=54.0f;		MAT_ELEM(angles,1,14)=90.0f;
+		MAT_ELEM(angles,0,15)=90.0f;		MAT_ELEM(angles,1,15)=90.0f;
+		MAT_ELEM(angles,0,16)=216.0f;		MAT_ELEM(angles,1,16)=58.282f;
+		MAT_ELEM(angles,0,17)=144.0f;		MAT_ELEM(angles,1,17)=58.282f;
+		MAT_ELEM(angles,0,18)=180.0f;		MAT_ELEM(angles,1,18)=31.718f;
+		MAT_ELEM(angles,0,19)=252.0f;		MAT_ELEM(angles,1,19)=31.718f;
+		MAT_ELEM(angles,0,20)=108.0f;		MAT_ELEM(angles,1,20)=31.718f;
+		MAT_ELEM(angles,0,21)=346.3862f;	MAT_ELEM(angles,1,21)=43.6469f;
+		MAT_ELEM(angles,0,22)=58.3862f;		MAT_ELEM(angles,1,22)=43.6469f;
+		MAT_ELEM(angles,0,23)=274.3862f;	MAT_ELEM(angles,1,23)=43.6469f;
+		MAT_ELEM(angles,0,24)=0.0f;			MAT_ELEM(angles,1,24)=90.0f;
+		MAT_ELEM(angles,0,25)=72.0f;		MAT_ELEM(angles,1,25)=90.0f;
+		MAT_ELEM(angles,0,26)=288.0f;		MAT_ELEM(angles,1,26)=90.0f;
+		MAT_ELEM(angles,0,27)=225.7323f;	MAT_ELEM(angles,1,27)=73.955f;
+		MAT_ELEM(angles,0,28)=153.7323f;	MAT_ELEM(angles,1,28)=73.955f;
+		MAT_ELEM(angles,0,29)=216.0f;		MAT_ELEM(angles,1,29)=26.565f;
+		MAT_ELEM(angles,0,30)=144.0f;		MAT_ELEM(angles,1,30)=26.565f;
+		MAT_ELEM(angles,0,31)=0.0f;			MAT_ELEM(angles,1,31)=26.5651f;
+		MAT_ELEM(angles,0,32)=72.0f;		MAT_ELEM(angles,1,32)=26.5651f;
+		MAT_ELEM(angles,0,33)=288.0f;		MAT_ELEM(angles,1,33)=26.5651f;
+		MAT_ELEM(angles,0,34)=350.2677f;	MAT_ELEM(angles,1,34)=73.9549f;
+		MAT_ELEM(angles,0,35)=62.2677f;		MAT_ELEM(angles,1,35)=73.9549f;
+		MAT_ELEM(angles,0,36)=278.2677f;	MAT_ELEM(angles,1,36)=73.9549f;
+		MAT_ELEM(angles,0,37)=206.2677f;	MAT_ELEM(angles,1,37)=73.955f;
+		MAT_ELEM(angles,0,38)=134.2677f;	MAT_ELEM(angles,1,38)=73.955f;
+		MAT_ELEM(angles,0,39)=202.3862f;	MAT_ELEM(angles,1,39)=43.647f;
+		MAT_ELEM(angles,0,40)=130.3862f;	MAT_ELEM(angles,1,40)=43.647f;
+		MAT_ELEM(angles,0,41)=13.6138f;		MAT_ELEM(angles,1,41)=43.6469f;
+		MAT_ELEM(angles,0,42)=85.6138f;		MAT_ELEM(angles,1,42)=43.6469f;
+		MAT_ELEM(angles,0,43)=301.6138f;	MAT_ELEM(angles,1,43)=43.6469f;
+		MAT_ELEM(angles,0,44)=9.7323f;		MAT_ELEM(angles,1,44)=73.9549f;
+		MAT_ELEM(angles,0,45)=81.7323f;		MAT_ELEM(angles,1,45)=73.9549f;
+		MAT_ELEM(angles,0,46)=297.7323f;	MAT_ELEM(angles,1,46)=73.9549f;
+		MAT_ELEM(angles,0,47)=36.0f;		MAT_ELEM(angles,1,47)=90.0f;
+		MAT_ELEM(angles,0,48)=324.0f;		MAT_ELEM(angles,1,48)=90.0f;
+		MAT_ELEM(angles,0,49)=229.6138f;	MAT_ELEM(angles,1,49)=43.647f;
+		MAT_ELEM(angles,0,50)=157.6138f;	MAT_ELEM(angles,1,50)=43.647f;
+		MAT_ELEM(angles,0,51)=324.0f;		MAT_ELEM(angles,1,51)=15.8587f;
+		MAT_ELEM(angles,0,52)=36.0f;		MAT_ELEM(angles,1,52)=15.8587f;
 		MAT_ELEM(angles,0,53)=341.533;	MAT_ELEM(angles,1,53)=59.6208;
 		MAT_ELEM(angles,0,54)=306.467;	MAT_ELEM(angles,1,54)=59.6208;
 		MAT_ELEM(angles,0,55)=333.5057;	MAT_ELEM(angles,1,55)=76.5584;
@@ -930,7 +918,7 @@ void ProgFSO::generateDirections(Matrix2D<float> &angles, bool alot)
 }
 
 
-void ProgFSO::anistropyParameter(const MultidimArray<double> FSC,
+void ProgFSO::anistropyParameter(const MultidimArray<double> &FSC,
 		MultidimArray<double> &directionAnisotropy, size_t dirnumber,
 		MultidimArray<double> &	aniParam, double thrs)
 {
@@ -949,8 +937,7 @@ void ProgFSO::anistropyParameter(const MultidimArray<double> FSC,
 
 void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &half2)
 {
-	Image<double> mask;
-	MultidimArray<double> &pmask = mask();
+
 
 	
 	std::cout << "Reading data..." << std::endl;
@@ -964,6 +951,8 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 	// Applying the mask
 	if (fnmask!="")
 	{
+		Image<double> mask;
+		MultidimArray<double> &pmask = mask();
 		mask.read(fnmask);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
 		{
@@ -972,9 +961,6 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 			DIRECT_MULTIDIM_ELEM(half2, n) = DIRECT_MULTIDIM_ELEM(half2, n) * valmask;
 		}
 	}
-	mask.clear();
-	pmask.clear();
-
 
 	half1.setXmippOrigin();
 	half2.setXmippOrigin();
@@ -1011,9 +997,9 @@ void ProgFSO::directionalFilter(MultidimArray<std::complex<double>> &FThalf1,
     	Image<double> imgHalf1, imgHalf2;
     	imgHalf1.read(fnhalf1);
 		imgHalf2.read(fnhalf2);
-    	MultidimArray<double> half1, half2;
-    	half1 = imgHalf1();
-		half2 = imgHalf2();
+
+    	auto &half1 = imgHalf1();
+    	auto &half2 = imgHalf2();
 
         FourierTransformer transformer1(FFTW_BACKWARD);
         transformer1.FourierTransform(half1, FThalf1);//, false);
@@ -1035,8 +1021,8 @@ void ProgFSO::directionalFilter(MultidimArray<std::complex<double>> &FThalf1,
 void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName &fn)
     {
     	Matrix2D<int> anglesResolution;
-    	size_t Nrot = 360;
-    	size_t Ntilt = 91;
+    	const size_t Nrot = 360;
+    	const size_t Ntilt = 91;
     	size_t objIdOut;
 
     	MetaData mdOut;
@@ -1144,8 +1130,7 @@ void ProgFSO::createFullFourier(MultidimArray<double> &fourierHalf, FileName &fn
 
 void ProgFSO::run()
 	{
-		std::cout << "Starting ... " << std::endl;
-		std::cout << " " << std::endl;
+		std::cout << "Starting ... " << std::endl << std::endl;
 		
 		MultidimArray<double> half1, half2;
     	MultidimArray<double> &phalf1 = half1, &phalf2 = half2;
@@ -1198,7 +1183,7 @@ void ProgFSO::run()
 			float rot  = MAT_ELEM(angles, 0, k);
 			float tilt = MAT_ELEM(angles, 1, k);
 
-			// Estimating the direction FSC along the diretion given by rot and tilt
+			// Estimating the direction FSC along the direction given by rot and tilt
 			fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp, k);
 
 			printf ("Direction %zu/%zu -> %.2f A \n", k, angles.mdimx, resInterp);
@@ -1209,8 +1194,7 @@ void ProgFSO::run()
 			anistropyParameter(fsc, directionAnisotropy, k, aniParam, thrs);
 		}
 
-		std::cout << "----- Directional resolution estimated -----" <<  std::endl;
-    	std::cout << "   " <<  std::endl;
+		std::cout << "----- Directional resolution estimated -----" <<  std::endl <<  std::endl;
     	std::cout << "Preparing results ..." <<  std::endl;
 
     	// ANISOTROPY CURVE
