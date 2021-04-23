@@ -51,10 +51,14 @@ void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
 
 void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, MultidimArray<double> &rQ, int Isize)
 {
+//	POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
 	int Isize2 = Isize/2;
 	double wx, wy;
-	A.printShape();
-	FI.printShape();
+//	std::cout << "rQ: " << rQ << std::endl;
+//	A.printShape();   // 300x151
+//	FI.printShape();  // 300x151
+//	rQ.printShape();  // 213
+
 	for (int i=0; i<YSIZE(A); ++i)
 	{
 		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isize,wy);
@@ -62,13 +66,29 @@ void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std
 		for (int j=0; j<XSIZE(A); ++j)
 		{
 			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isize,wx);
-			double w = sqrt(wx*wx + wy2);
-			int iw = (int)round(w*Isize);
+			double w = sqrt(wx*wx + wy2); //convert each value (i,j) of IFourierMag into digital freq (w)
+//			int iw = (int)round(w*Isize);
+			int iw = (int)round(w/Isize);
 			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
 			if (mod>1e-6)
-				DIRECT_A2D_ELEM(FI,i,j)*=((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod*DIRECT_MULTIDIM_ELEM(rQ,iw);
+				std::cout << "iw: " << iw << std::endl;
+				std::cout << "rQ(iw): " << DIRECT_MULTIDIM_ELEM(rQ,iw) << std::endl;
+//				std::cout << DIRECT_A2D_ELEM(FI,i,j)*(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod) << std::endl;
+//				std::cout << DIRECT_A2D_ELEM(FI,i,j)*(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw) << std::endl;
+				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
+				//multiply each value of PFourier for each correspondent freq of the radQuotient array
 		}
 	}
+}
+
+void POCSFourierAmplitudeProj0(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda)
+{
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
+		{
+		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
+		if (mod>1e-6)
+			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
+		}
 }
 
 void POCSMinMaxProj(MultidimArray<double> &P, double Im, double IM)
@@ -112,7 +132,7 @@ void binarizeMask(MultidimArray<double> &Pmask)
 	double maxMaskVol, minMaskVol;
 	Pmask.computeDoubleMinMax(minMaskVol, maxMaskVol);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Pmask)
-		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.1*maxMaskVol) ? 1:0;
+		DIRECT_MULTIDIM_ELEM(Pmask,n) =(DIRECT_MULTIDIM_ELEM(Pmask,n)>0.05*maxMaskVol) ? 1:0;
 }
 
 //void normMask(MultidimArray<double> &Pmask)
@@ -123,7 +143,7 @@ void binarizeMask(MultidimArray<double> &Pmask)
 //		DIRECT_MULTIDIM_ELEM(Pmask,n) /= maxMaskVol;
 //}
 
-void percentileMinMax(MultidimArray<double> &I, double min, double max)
+void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 {
 	MultidimArray<double> sortedI;
 	int p0005, p99, size;
@@ -133,8 +153,6 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 	I.sort(sortedI);
 	min = sortedI(p0005);
 	max = sortedI(p99);
-	std::cout << min << std::endl;
-	std::cout << max << std::endl;
 }
 
 
@@ -323,35 +341,32 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 
 
     	// Compute IradAvg profile (1D)
-        MultidimArray<double> &mOp = IFourierMagRad;
-        mOp.setXmippOrigin();
+        IFourierMagRad.setXmippOrigin();
         Matrix1D<int> center(2);
         center.initZeros();
         MultidimArray<double> radial_meanI;
         MultidimArray<int> radial_count;
-        radialAverage(mOp, center, radial_meanI, radial_count);
+        radialAverage(IFourierMagRad, center, radial_meanI, radial_count);
         radial_meanI.write("Irad.txt");
         int my_rad;
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(mOp)
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(IFourierMagRad)
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
             Irad(k, i, j) = radial_meanI(my_rad);
         }
 		Irad.write("Irad.mrc");
     	// Compute PradAvg profile (1D)
-        MultidimArray<double> &mOp2 = PFourierMagRad;
-        mOp2.setXmippOrigin();
+		PFourierMagRad.setXmippOrigin();
         center.initZeros();
         MultidimArray<double> radial_meanP;
-        radialAverage(mOp2, center, radial_meanP, radial_count);
+        radialAverage(PFourierMagRad, center, radial_meanP, radial_count);
         radial_meanP.write("Prad.txt");
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(mOp2)
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(PFourierMagRad)
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
             Prad(k, i, j) = radial_meanP(my_rad);
         }
 		Prad.write("Prad.mrc");
-
 
 		// Compute adjustment quotient for POCS amplitude (and POCS phase?)
 		radQuotient = radial_meanI/radial_meanP;
@@ -366,11 +381,9 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 		MultidimArray< std::complex<double> > IFourier, PFourier;
 		MultidimArray<double> IFourierMag;
 		double Imin, Imax;
-//		I().computeDoubleMinMax(Imin, Imax);
 		percentileMinMax(I(), Imin, Imax);
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
-//		double std1 = I().computeStddev();
 		MultidimArray<std::complex<double> > PFourierPhase;
 		transformer.FourierTransform(P(),PFourierPhase,true);
 		extractPhaseProj(PFourierPhase);
@@ -380,6 +393,7 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
+//			POCSFourierAmplitudeProj0(IFourierMag,PFourier, lambda);
 			transformer.inverseFourierTransform();
 			P.write("Pamp.mrc");
 			POCSMinMaxProj(P(), Imin, Imax);
@@ -388,8 +402,6 @@ void percentileMinMax(MultidimArray<double> &I, double min, double max)
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
 			P.write("Pphase.mrc");
-//			double std2 = P().computeStddev();
-//			P()*=std1/std2;
 			if (cutFreq!=0)
 			{
 				Filter2.generateMask(P());
