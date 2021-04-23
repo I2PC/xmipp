@@ -30,6 +30,7 @@
 #include "core/xmipp_threads.h"
 #include "core/xmipp_program.h"
 #include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 
 class FileName;
 
@@ -59,7 +60,8 @@ public:
     void barrierWait();
 
     /** Gather metadatas */
-    void gatherMetadatas(MetaData &MD, const FileName &rootName);
+    template <typename T> // T = MetaData*
+    void gatherMetadatas(T &MD, const FileName &rootName);
 
     /** Update the MPI communicator to connect the currently active nodes */
 //    void updateComm();
