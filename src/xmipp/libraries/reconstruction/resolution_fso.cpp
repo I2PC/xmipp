@@ -671,8 +671,8 @@ void ProgFSO::generateDirections(Matrix2D<float> &angles, bool alot)
 		MAT_ELEM(angles,0,162)=80.2677f;	MAT_ELEM(angles,1,162)=34.9243f;
 		MAT_ELEM(angles,0,163)=296.2677f;	MAT_ELEM(angles,1,163)=34.9243f;
 		MAT_ELEM(angles,0,164)=0.0f;		MAT_ELEM(angles,1,164)=73.733f;
-		MAT_ELEM(angles,0,165)=72f;			MAT_ELEM(angles,1,165)=73.733f;
-		MAT_ELEM(angles,0,166)=288f;		MAT_ELEM(angles,1,166)=73.733f;
+		MAT_ELEM(angles,0,165)=72.0f;			MAT_ELEM(angles,1,165)=73.733f;
+		MAT_ELEM(angles,0,166)=288.0f;		MAT_ELEM(angles,1,166)=73.733f;
 		MAT_ELEM(angles,0,167)=211.2307f;	MAT_ELEM(angles,1,167)=81.9488f;
 		MAT_ELEM(angles,0,168)=139.2307f;	MAT_ELEM(angles,1,168)=81.9488f;
 		MAT_ELEM(angles,0,169)=216.0f;		MAT_ELEM(angles,1,169)=42.832f;
