@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include "core/metadata_sql.h"
 #include "core/metadata_db.h"
+#include "core/metadata_vec.h"
 
 #define N_ROWS_TEST 2
 #define N_ROWS_PERFORMANCE_TEST 8000
@@ -1893,4 +1894,12 @@ TEST_F( MetadataTest, updateRow)
     row.setValue(MDL_Y, 2.);
     md.addRow(row);
     */
+}
+
+TEST_F(MetadataTest, DbToVecAndBack)
+{
+    MetaDataVec mdVec(mDsource);
+    ASSERT_EQ(mdVec.size(), mDsource.size());
+    MetaDataDb mdDb(mdVec);
+    ASSERT_EQ(mDsource, mdDb);
 }

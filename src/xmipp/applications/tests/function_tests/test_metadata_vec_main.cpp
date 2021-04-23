@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sys/time.h>
 #include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 
 #define N_ROWS_TEST 2
 #define N_ROWS_PERFORMANCE_TEST 8000
@@ -1177,4 +1178,12 @@ TEST_F(MetadataTest, updateRow)
     auxMetadata.setRow(row, id2);
 
     ASSERT_EQ(auxMetadata,mDsource);
+}
+
+TEST_F(MetadataTest, VecToDbAndBack)
+{
+    MetaDataDb mdDb(mDsource);
+    ASSERT_EQ(mdDb.size(), mDsource.size());
+    MetaDataVec mdVec(mdDb);
+    ASSERT_EQ(mDsource, mdVec);
 }
