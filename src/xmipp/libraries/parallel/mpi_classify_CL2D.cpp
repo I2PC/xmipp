@@ -774,7 +774,7 @@ void CL2D::initialize(MetaDataDb &_SF,
     CL2DAssignment bestAssignment;
     size_t idx=0;
     SF->fillConstant(MDL_REF,"-1");
-    for (size_t objId : prm->SF.ids())
+    for (size_t _ : prm->SF.ids())
     {
         if ((idx+1)%prm->node->size==prm->node->rank)
         {
@@ -844,7 +844,7 @@ void CL2D::initialize(MetaDataDb &_SF,
 
         CL2DAssignment inClass, outClass;
         size_t idx=0;
-        for (size_t objId : prm->SF.ids())
+        for (size_t _ : prm->SF.ids())
         {
             if ((idx+1)%prm->node->size==prm->node->rank)
             {
@@ -1079,7 +1079,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
             *ptrOld -= 1;
         SF->fillConstant(MDL_REF, "-1");
         size_t idx=0;
-        for (size_t objId : prm->SF.ids())
+        for (size_t _ : prm->SF.ids())
         {
             if ((idx+1)%prm->node->size==prm->node->rank)
             {

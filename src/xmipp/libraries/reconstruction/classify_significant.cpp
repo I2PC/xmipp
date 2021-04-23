@@ -57,7 +57,7 @@ void ProgClassifySignificant::readParams()
     	numFsc = getIntParam("--fsc", 0);
     	for (int i=1; i<=numFsc; i++){
     		fnFsc = getParam("--fsc", i);
-    		setFsc.push_back(fnFsc);
+    		setFsc.emplace_back(fnFsc);
     	}
     }
 }
@@ -111,7 +111,7 @@ void ProgClassifySignificant::produceSideInfo()
         std::cout << fnVol << std::endl;
         V.read(fnVol);
         V().setXmippOrigin();
-        projector.push_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
+        projector.emplace_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
         currentRowIdx.push_back(0);
 
         MetaDataVec mdAngles, mdAnglesSorted;
@@ -119,10 +119,10 @@ void ProgClassifySignificant::produceSideInfo()
         mdAngles.read(formatString("angles_%02d@%s",i,fnAngles.c_str()));
         mdAnglesSorted.sort(mdAngles, MDL_ITEM_ID, true);
 
-        setAngles.push_back(mdAnglesSorted);
-        classifiedAngles.push_back(MetaDataVec());
-        subsetAngles.push_back(MetaDataVec());
-        subsetProjectionIdx.push_back(* (new std::vector<size_t>));
+        setAngles.emplace_back(mdAnglesSorted);
+        classifiedAngles.emplace_back(MetaDataVec());
+        subsetAngles.emplace_back(MetaDataVec());
+        subsetProjectionIdx.emplace_back(* (new std::vector<size_t>));
         i += 1;
     }
 
@@ -134,7 +134,7 @@ void ProgClassifySignificant::produceSideInfo()
     		std::cout << " fnFsc: " << setFsc[i] << std::endl;
 			mdFsc.read(setFsc[i]);
 			mdFsc.getColumnValues(MDL_RESOLUTION_FRC,fscAux);
-			setFscValues.push_back(fscAux);
+			setFscValues.emplace_back(fscAux);
     	}
     }
 
@@ -171,7 +171,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	projectVolume(*(projector[volumeIdx]), Paux, xdim, xdim,  rot, tilt, psi);
 
 	if (poolIdx>=subsetProjections.size())
-		subsetProjections.push_back(new MultidimArray<double>);
+		subsetProjections.emplace_back(new MultidimArray<double>);
 	subsetProjections[poolIdx]->resizeNoCopy(xdim, xdim);
 	applyGeometry(LINEAR,*(subsetProjections[poolIdx]),Paux(),A,IS_INV,DONT_WRAP,0.);
 
@@ -214,9 +214,9 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 			{
 				flagEmpty=false;
 				subsetAngles[i].addRow(currentRow);
-				subsetProjectionIdx[i].push_back(poolIdx);
+				subsetProjectionIdx[i].emplace_back(poolIdx);
 				currentRow.getValue(MDL_IMAGE,fnImg);
-				Iexp.push_back(new Image<double>);
+				Iexp.emplace_back(new Image<double>);
 				Iexp[poolIdx]->read(fnImg);
 				//std::cout << "Particle fnImg: " << fnImg << " in " << poolIdx << std::endl;
 				generateProjection(i,poolIdx,currentRow);
