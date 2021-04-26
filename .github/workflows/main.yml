@@ -57,7 +57,7 @@ jobs:
       - name: Create Travis variables
         run: |
           echo "TRAVIS_PULL_REQUEST_BRANCH=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
-          echo "TRAVIS_BRANCH=${GITHUB_REF}" >> $GITHUB_ENV
+          echo "TRAVIS_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
