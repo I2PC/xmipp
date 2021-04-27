@@ -939,6 +939,8 @@ def getCompatibleGCC(nvcc_version):
         return v[v.index('7.3') :]
     elif 10.1<= nvcc_version <= 10.2:
         return v[v.index('8.4') :]
+    elif 11.0<= nvcc_version <= 11.2:
+        return v[v.index('9.3') :]
     return [] # not supported
 
 
@@ -974,9 +976,6 @@ def configCuda(configDict):
                 print(green('CUDA-' + nvccFullVersion + ' detected.'))
                 if nvccVersion != 10.2:
                     print(yellow('CUDA-10.2 is recommended.'))
-                if nvccVersion >= 11.0:
-                    print(red('CUDA-11 or newer is not supported.'))
-                    return
                 configDict["NVCC"] = nvcc
             else:
                 print(yellow("Warning: 'nvcc' not found. "
@@ -1008,13 +1007,22 @@ def configCuda(configDict):
                     configDict["CUDA"] = "False"
                     updateXmippEnv(CUDA=False, pos='replace')
                     return
-            configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                           "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
-                                           # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
-                                           "-gencode=arch=compute_35,code=compute_35 "
-                                           "-gencode=arch=compute_50,code=compute_50 "
-                                           "-gencode=arch=compute_60,code=compute_60 "
-                                           "-gencode=arch=compute_61,code=compute_61")
+            if nvccVersion >= 11:
+                configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                                            "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
+                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                                            "-gencode=arch=compute_60,code=compute_60 "
+                                            "-gencode=arch=compute_61,code=compute_61 "
+                                            "-gencode=arch=compute_75,code=compute_75 "
+                                            "-gencode=arch=compute_86,code=compute_86")
+            else:
+                configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                                            "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
+                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                                            "-gencode=arch=compute_35,code=compute_35 "
+                                            "-gencode=arch=compute_50,code=compute_50 "
+                                            "-gencode=arch=compute_60,code=compute_60 "
+                                            "-gencode=arch=compute_61,code=compute_61")
 
         if configDict["NVCC_LINKFLAGS"]=="":
             # Looking for Cuda libraries:
