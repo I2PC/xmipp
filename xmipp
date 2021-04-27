@@ -37,9 +37,9 @@ from datetime import datetime
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.20.07'          #
-XMIPP_VERNAME = 'Boreas'           #
-RELEASE_DATE = '14/10/2020'        #
+XMIPP_VERSION = '3.21.04'          #
+XMIPP_VERNAME = 'Calypso'          #
+RELEASE_DATE = '29/04/2021'        #
 ####################################
 
 
