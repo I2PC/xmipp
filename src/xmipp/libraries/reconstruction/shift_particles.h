@@ -49,21 +49,11 @@
  	MDRow row;
     // Input new center coordinates and rot tilt psi from metadata
     double x0, y0, z0, rot, tilt, psi, shiftx, shifty;
-    // Input volume, particle, subtraction mask, inverse subtraction mask, gaussian-filtered subtraction mask, volume mask
- 	Image<double> V, I, mask, PmaskInv, PmaskG, maskVol;
+    // Particle transform matrix
+ 	Matrix2D<double> R;
+    // Input particle
+ 	Image<double> I;
  	// Theoretical projection of volume, subtraction mask and volume mask
- 	Projection P, Pmask, PmaskVol;
- 	// Filter
-    FourierFilter filter;
-    // CTF Check
-    bool hasCTF;
-    // CTF params
- 	double defocusU, defocusV, ctfAngle;
- 	// CTF
- 	CTFDescription ctf;
-    // CTF filter
-    FourierFilter FilterCTF;
- 	// CTF image
 
  public:
     /// Empty constructor

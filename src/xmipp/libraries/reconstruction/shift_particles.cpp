@@ -103,26 +103,26 @@
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
     	I.read(fnImage);
-    	I().setXmippOrigin();
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
      	row.getValue(MDL_SHIFT_X, shiftx);
      	row.getValue(MDL_SHIFT_Y, shifty);
 
-     	Matrix2D<double> R;
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
 //		std::cout << "R: " << R << std::endl;
-//		R = R.inv();
+		//R = R.inv();
 		pos = R * pos;
 		std::cout << "R*pos: " << pos << std::endl;
-
-		// check and correct origins
-
-		// compute the distance between the center of the particle ((0,0)?) and ppos
-		// do the centering at desired boxsize (see program center particles??)
-
+//		//add pos to R
+//		R(0,3) += pos(0);
+//		R(1,3) += pos(1);
+//		std::cout << "R: " << R << std::endl;
+//		R(2,3) += pos(2);
+    	I().setXmippOrigin();
+		//I().resize(1, zdimOut, ydimOut, xdimOut, false);
+		applyGeometry(LINEAR, I(), I(), R, IS_NOT_INV, true, 0.);  //=> no es R sino la de matriz de transf entera!!!
 		// Save shifted particles in metadata
 		ix_particle++;
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
