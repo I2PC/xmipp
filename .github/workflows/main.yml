@@ -63,7 +63,7 @@ jobs:
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
         env:
           CIBuild: 1
-          BUILD_TESTS: False
+          BUILD_TESTS: True
           
       - name: SonarCloud Scan
         run: |
