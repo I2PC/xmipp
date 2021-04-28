@@ -476,7 +476,7 @@ def getSources(branch):
 
 
 def is_config_true(key):
-    return configDict and (key in configDict) and (configDict[key] == 'True')
+    return configDict and (key in configDict) and (configDict[key].lower() == 'true')
 
 
 def getDependencies():
