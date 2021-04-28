@@ -745,7 +745,10 @@ def getHdf5Name(libdirflags):
 
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
-    ensureCompilerVersion(configDict["CXX"])
+    # in case user specified some wrapper of the compiler
+    # get rid of it: 'ccache g++' -> 'g++'
+    currentCxx = configDict["CXX"].split()[-1]
+    ensureCompilerVersion(currentCxx)
 
     cppProg="""
 #include <fftw3.h>
