@@ -29,8 +29,8 @@
 #define _PROG_RES_FSO
 
 #include <core/xmipp_program.h>
-#include <core/xmipp_fftw.h>
 #include <core/matrix2d.h>
+#include <core/xmipp_fftw.h>
 #include <core/xmipp_filename.h>
 #include <core/metadata.h>
 
@@ -144,6 +144,9 @@ private:
         *  and will save it in disc, with the name of fnMap m1sizeX, m1sizeY, m1sizeZ, define the size. */
         void createFullFourier(MultidimArray<double> &fourierHalf, FileName &fnMap,
     	                      	int m1sizeX, int m1sizeY, int m1sizeZ);
+
+        /* FSCINTERPOLATION: The exact resolution of the the FSC = thrs is estimated. thrs is a global variable */
+        void fscInterpolation(MultidimArray<double> &freq, MultidimArray< double > &frc);
 
 public:
         /* Defining the params and help of the algorithm */

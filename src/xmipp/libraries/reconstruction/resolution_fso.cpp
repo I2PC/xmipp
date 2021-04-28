@@ -30,7 +30,7 @@
 #include <data/monogenic_signal.h>
 #include <data/fourier_filter.h>
 #include <random>
-#include <chrono> 
+#include <limits>
 
 #define SAVE_DIR_FSC
 
@@ -60,7 +60,7 @@ void ProgFSO::defineParams()
 	addUsageLine("+ The directionality is measured by means of conical-like filters in Fourier Space. To avoid possible Gibbs effects ");
 	addUsageLine("+ the filters are gaussian functions with their respective maxima along the filtering direction. A set of 321 directions ");
 	addUsageLine("+ is used to cover the projection sphere, computing for each direction the directional FSC at 0.143 between the two half maps.");
-	addUsageLine("+ The result is a set of 321 FSC curves (321 is the number of analyzed directions).");
+	addUsageLine("+ The result is a set of 321 FSC curves (321 is the number of analyzed directions, densely covering the projection sphere).");
 	addUsageLine("+ The 3DFSC is then obtained from all curves by interpolation. Note that as well as it occurs with global FSC, the directional FSC is mask dependent.");
 	addUsageLine(" ");
 	addUsageLine("+* Resolution Distribution and 3DFSC", true);
@@ -121,22 +121,25 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &map
 	double u;
 
 	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
+
 	VEC_ELEM(freq_fourier_z,0) = 1e-38;
+	VEC_ELEM(freq_fourier_z,0) = std::numeric_limits<double>::min();
+	std::cout << VEC_ELEM(freq_fourier_z,0) << std::endl;
 	for(size_t k=1; k<ZSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,ZSIZE(inputVol), u);
-		VEC_ELEM(freq_fourier_z,k) = u;
+		VEC_ELEM(freq_fourier_z, k) = u;
 	}
 
 	VEC_ELEM(freq_fourier_y,0) = 1e-38;
 	for(size_t k=1; k<YSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,YSIZE(inputVol), u);
-		VEC_ELEM(freq_fourier_y,k) = u;
+		VEC_ELEM(freq_fourier_y, k) = u;
 	}
 
 	VEC_ELEM(freq_fourier_x,0) = 1e-38;
 	for(size_t k=1; k<XSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,XSIZE(inputVol), u);
-		VEC_ELEM(freq_fourier_x,k) = u;
+		VEC_ELEM(freq_fourier_x, k) = u;
 	}
 
 	//Initializing map with frequencies
@@ -316,7 +319,6 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 			}
 		}
 
-
 		// The global FSC is stored as a metadata
 		size_t id;
 		MetaData mdRes;
@@ -339,37 +341,36 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		}
 		mdRes.write(fnOut+"/GlobalFSC.xmd");
 
-		
-
-		// Here the FSC at 0.143 is obtained byt interpolating
-		FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
-		{
-			double ff = dAi(frc,i);
-			if ( (ff<=thrs) && (i>2) )
-			{
-				std::cout << std::endl << "shell = " << i << std::endl;
-				fscshellNum = i;
-				double y2, y1, x2, x1, slope, ny;
-				y2 = ff;
-				double ff_1 = dAi(freq, i-1);
-				y1 = ff_1;
-				x2 = ff;
-				x1 = ff_1;
-
-				slope = (y2 - y1)/(x2 - x1);
-				ny = y2 - slope*x2;
-
-				double fscResolution;
-				fscResolution = 1/(slope*thrs + ny);
-				std::cout << "Resolution " << fscResolution << std::endl;
-				break;
-			}
-		}
-
+		// Here the FSC at 0.143 is obtained by interpolating
+		fscInterpolation(freq, frc);
 
 		aniFilter.initZeros(freqidx);
-
 	}
+
+
+void ProgFSO::fscInterpolation(MultidimArray<double> &freq, MultidimArray< double > &frc)
+{
+	// Here the FSC at 0.143 is obtained by interpolating
+	FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
+	{
+		double ff = dAi(frc,i);
+		if ( (ff<=thrs) && (i>2) )
+		{
+			double y2, y1, x2, x1, slope, ny;
+			y1 = ff;
+			x1 = dAi(freq,i);
+			y2 = dAi(frc, i-1);
+			x2 = dAi(freq, i-1);
+			slope = (y2 - y1)/(x2 - x1);
+			ny = y2 - slope*x2;
+
+			double fscResolution;
+			fscResolution = (thrs - ny)/slope;
+			std::cout << "Resolution " << 1/fscResolution << std::endl;
+			break;
+		}
+	}
+}
 
 
 
@@ -395,16 +396,17 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 	// this allow to have a quick access to the frequencies and the
 	// positions of the threeD_FSC without sweeping all positions
 	std::vector<long> vecidx;
+	vecidx.reserve(real_z1z2.nzyxdim);
 	// the used weight of the directional filter 
 	std::vector<double> weightFSC3D;
+	weightFSC3D.reserve(real_z1z2.nzyxdim);
+
 
 	//Parameter to determine the direction of the cone
 	float x_dir, y_dir, z_dir, cosAngle, aux;
 	x_dir = sinf(tilt)*cosf(rot);
 	y_dir = sinf(tilt)*sinf(rot);
 	z_dir = cosf(tilt);
-
-	
 
 	cosAngle = (float) cos(ang_con);
 
@@ -454,6 +456,7 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 	bool flagRes = true;
 	size_t id;
 	MetaData mdRes;
+	MDRow row;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(num)
 	{
 		double auxfsc = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
@@ -462,11 +465,11 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 		if (i>0)
 		{
 			#ifdef SAVE_DIR_FSC
-			id=mdRes.addObject();
 			double ff = (float) i / (xvoldim * sampling); // frequency
-			mdRes.setValue(MDL_RESOLUTION_FREQ,ff,id);
-			mdRes.setValue(MDL_RESOLUTION_FRC,dAi(fsc, i),id);
-			mdRes.setValue(MDL_RESOLUTION_FREQREAL, 1./ff, id);
+			row.setValue(MDL_RESOLUTION_FREQ, ff);
+			row.setValue(MDL_RESOLUTION_FRC, dAi(fsc, i));
+			row.setValue(MDL_RESOLUTION_FREQREAL, 1./ff);
+			mdRes.addRow(row);
 			#endif
 			if ((i>2) && (dAi(fsc,i)<=thrs) && (flagRes))
 			{
@@ -914,7 +917,7 @@ void ProgFSO::generateDirections(Matrix2D<float> &angles, bool alot)
 		MAT_ELEM(angles, 0, 80) = 27.132791f;	 MAT_ELEM(angles, 1, 80) = -75.219088f;
 	}
 
-	angles *= PI/180;
+	angles *= PI/180.0;
 }
 
 
@@ -945,6 +948,10 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 	half1 = imgHalf1();
 	half2 = imgHalf2();
 
+	MultidimArray<double> &ptrhalf1 = half1;
+    MultidimArray<double> &ptrhalf2 = half2;
+
+
 	// Applying the mask
 	if (fnmask!="")
 	{
@@ -954,17 +961,17 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
 		{
 			double valmask = (double) DIRECT_MULTIDIM_ELEM(pmask, n);
-			DIRECT_MULTIDIM_ELEM(half1, n) = DIRECT_MULTIDIM_ELEM(half1, n) * valmask;
-			DIRECT_MULTIDIM_ELEM(half2, n) = DIRECT_MULTIDIM_ELEM(half2, n) * valmask;
+			DIRECT_MULTIDIM_ELEM(ptrhalf1, n) = DIRECT_MULTIDIM_ELEM(ptrhalf1, n) * valmask;
+			DIRECT_MULTIDIM_ELEM(ptrhalf2, n) = DIRECT_MULTIDIM_ELEM(ptrhalf2, n) * valmask;
 		}
 	}
 
-	half1.setXmippOrigin();
-	half2.setXmippOrigin();
+	ptrhalf1.setXmippOrigin();
+	ptrhalf2.setXmippOrigin();
 
 	// fftshift must by applied before computing the fft. This will be computed later
-	CenterFFT(half1, true);
-	CenterFFT(half2, true);
+	CenterFFT(ptrhalf1, true);
+	CenterFFT(ptrhalf2, true);
 }
 
 
@@ -972,15 +979,16 @@ void ProgFSO::saveAnisotropyToMetadata(MetaData &mdAnisotropy,
 		const MultidimArray<double> &freq,
 		const MultidimArray<double> &anisotropy)
 {
+	MDRow row;
 	size_t objId;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(anisotropy)
 	{
 		if (i>0)
 		{
-		objId = mdAnisotropy.addObject();
-		mdAnisotropy.setValue(MDL_RESOLUTION_FREQ, dAi(freq, i),objId);
-		mdAnisotropy.setValue(MDL_RESOLUTION_FSO, dAi(anisotropy, i),objId);
-		mdAnisotropy.setValue(MDL_RESOLUTION_FREQREAL, 1.0/dAi(freq, i),objId);
+		row.setValue(MDL_RESOLUTION_FREQ, dAi(freq, i));
+		row.setValue(MDL_RESOLUTION_FSO, dAi(anisotropy, i));
+		row.setValue(MDL_RESOLUTION_FREQREAL, 1.0/dAi(freq, i));
+		mdAnisotropy.addRow(row);
 		}
 	}
 	mdAnisotropy.write(fnOut+"/fso.xmd");
@@ -1026,10 +1034,11 @@ void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName 
     	Matrix2D<double> w, wt;
     	w.initZeros(Nrot, Ntilt);
     	wt = w;
-    	float cosAngle = cosf(ang_con);
-    	float aux = 4.0/((cosAngle -1)*(cosAngle -1));
+    	const float cosAngle = cosf(ang_con);
+    	const float aux = 4.0/((cosAngle -1)*(cosAngle -1));
     	// Directional resolution is store in a metadata
 			
+    	MDRow row;
 		for (int i=0; i<Nrot; i++)
 		{
 			float rotmatrix =  i*PI/180.0;
@@ -1068,16 +1077,15 @@ void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName 
 				}
 
 			double wRes = w/wt;
-			objIdOut = mdOut.addObject();
-			mdOut.setValue(MDL_ANGLE_ROT, (double) i, objIdOut);
-			mdOut.setValue(MDL_ANGLE_TILT, (double) j, objIdOut);
-			mdOut.setValue(MDL_RESOLUTION_FRC, wRes, objIdOut);
+			row.setValue(MDL_ANGLE_ROT, (double) i);
+			row.setValue(MDL_ANGLE_TILT, (double) j);
+			row.setValue(MDL_RESOLUTION_FRC, wRes);
+			mdOut.addRow(row);
 			}
 		}
 
 		mdOut.write(fn);
     }
-
 
 
 void ProgFSO::getCompleteFourier(MultidimArray<double> &V, MultidimArray<double> &newV,
@@ -1155,13 +1163,12 @@ void ProgFSO::run()
 		MultidimArray<double> freq;
 		arrangeFSC_and_fscGlobal(sampling, thrs, freq);
 
-		std::cout << " " << std::endl;
 		FT2.clear();
 
 		// Generating the set of directions to be analyzed
 		// And converting the cone angle to radians
     	generateDirections(angles, true);
-    	ang_con = ang_con*PI/180;
+    	ang_con = ang_con*PI/180.0;
 
 		// Preparing the metadata for storing the FSO
 		MultidimArray<double> directionAnisotropy(angles.mdimx), resDirFSC(angles.mdimx), aniParam;
@@ -1213,12 +1220,12 @@ void ProgFSO::run()
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(threeD_FSC)
 			{
 					double value = DIRECT_MULTIDIM_ELEM(threeD_FSC, n) /= DIRECT_MULTIDIM_ELEM(normalizationMap, n);
-					if (std::isnan(value) == 1)
+					if (std::isnan(value) == true)
 						value = 1.0;
-					
+
 					if ((DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs) )//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
 						DIRECT_MULTIDIM_ELEM(aniFilter, n) = 1;
-					
+
 					size_t idx = DIRECT_MULTIDIM_ELEM(arr2indx, n);
 					DIRECT_MULTIDIM_ELEM(d3_FSCMap, idx) = value;
 					DIRECT_MULTIDIM_ELEM(d3_aniFilter, idx) = DIRECT_MULTIDIM_ELEM(aniFilter, n);
@@ -1227,7 +1234,7 @@ void ProgFSO::run()
 			// This code fix the empty line line in Fourier space
 			size_t auxVal;
 			auxVal = YSIZE(d3_FSCMap)/2;
-			
+
 			size_t j = 0;
 			for(size_t i=0; i<YSIZE(d3_FSCMap); ++i)
 			{
@@ -1248,16 +1255,15 @@ void ProgFSO::run()
 			// DIRECTIONAL FILTERED MAP
 			MultidimArray<double> filteredMap;
 			directionalFilter(FT1, d3_aniFilter, filteredMap, xvoldim, yvoldim, zvoldim);
-			Image<double> saveImg2;
-			saveImg2() = filteredMap;
+			Image<double> saveImg2(filteredMap);
 			saveImg2.write(fnOut+"/filteredMap.mrc");
-			
-			
+
+
 			//FULL 3DFSC MAP
 
 			fn = fnOut+"/3dFSC.mrc";
 			createFullFourier(d3_FSCMap, fn, xvoldim, yvoldim, zvoldim);
-			
+
 		}
 
 		// DIRECTIONAL RESOLUTION DISTRIBUTION ON THE PROJECTION SPHERE
