@@ -43,6 +43,7 @@ gmon.out
 *~
 \#*
 .\#*
+*.DS_Store
 .directory
 .settings
 
@@ -58,6 +59,7 @@ gmon.out
 /src/xmipp/tests/data
 *.conf
 xmippEnv.json
+*.tgz
 
 # Ignore version file
 .devel_version

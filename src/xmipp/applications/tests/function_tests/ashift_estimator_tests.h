@@ -103,7 +103,7 @@ private:
     }
 
 };
-TYPED_TEST_CASE_P(AShiftEstimator_Test);
+TYPED_TEST_SUITE_P(AShiftEstimator_Test);
 
 template<typename T>
 std::vector<HW*> AShiftEstimator_Test<T>::hw;
@@ -144,7 +144,7 @@ TYPED_TEST_P( AShiftEstimator_Test, shift2DOneToManyBatched2)
 }
 
 
-REGISTER_TYPED_TEST_CASE_P(AShiftEstimator_Test,
+REGISTER_TYPED_TEST_SUITE_P(AShiftEstimator_Test,
     shift2DOneToOne,
     shift2DOneToMany,
     shift2DOneToManyBatched1,

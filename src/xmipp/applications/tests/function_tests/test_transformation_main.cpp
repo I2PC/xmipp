@@ -261,9 +261,3 @@ DEBUG_JM: A:
  1.4961143  1.2963904 0.28462967          6
          0          0          0          1
  */
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

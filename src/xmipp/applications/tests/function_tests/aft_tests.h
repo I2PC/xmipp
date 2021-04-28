@@ -283,7 +283,7 @@ private:
     MUSTBESKIPPED
 
 };
-TYPED_TEST_CASE_P(AFT_Test);
+TYPED_TEST_SUITE_P(AFT_Test);
 
 template<typename T>
 HW* AFT_Test<T>::hw;
@@ -844,7 +844,7 @@ TYPED_TEST_P( AFT_Test, IP_Batch3)
 //    AFT_Test<TypeParam>::generateAndTest(condition);
 //}
 
-REGISTER_TYPED_TEST_CASE_P(AFT_Test,
+REGISTER_TYPED_TEST_SUITE_P(AFT_Test,
 //    DEBUG,
     // FFT out-of-place
     fft_OOP_Single,

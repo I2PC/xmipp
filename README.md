@@ -1,8 +1,6 @@
-[![Build Status](https://travis-ci.com/I2PC/xmipp.svg?branch=devel)](https://travis-ci.com/I2PC/xmipp)
-<!---  [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=Xmipp&metric=alert_status)](https://sonarcloud.io/dashboard?id=Xmipp)
-[![Technical debt](https://sonarcloud.io/api/project_badges/measure?project=Xmipp&metric=sqale_index)](https://sonarcloud.io/component_measures?id=Xmipp&metric=sqale_index)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=Xmipp&metric=bugs)](https://sonarcloud.io/project/issues?id=Xmipp&resolved=false&types=BUG)
---->
+[![Build Status](https://github.com/I2PC/xmipp/actions/workflows/main.yml/badge.svg)](https://github.com/I2PC/xmipp/actions/workflows/main.yml)
+
+
 # Xmipp
 
 Welcome to Xmipp. Xmipp is a suite of image processing programs, primarily aimed at single-particle 3D electron microscopy.
@@ -23,7 +21,7 @@ git clone https://github.com/I2PC/xmipp xmipp-bundle
 cd xmipp-bundle
 ```
 
-Please, folow one of the two point below depending on your case. Also, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
+Please, folow one of the two points below depending on your case. Also, check the [**Xmipp configuration guide**](https://github.com/I2PC/xmipp/wiki/Xmipp-configuration-(version-20.07)). 
 
 * In case that you want to use/develop Xmipp **under Scipion (recommended)**:
   
@@ -31,11 +29,11 @@ Please, folow one of the two point below depending on your case. Also, check the
   ```
   ./xmipp get_devel_sources [branch]
   ```
-  where the optional 'branch' parameter will set that given branch (devel by default).
+  where the optional 'branch' parameter will set that given git branch (devel by default).
   
   Secondly, install the 'scipion-em-xmipp' plugin in development mode
   ```
-  scipion3 installp -p $PWD/src/scipion-em-xmipp
+  scipion3 installp -p $PWD/src/scipion-em-xmipp --devel
   ```
   note that `scipion3` should be installed and visible in the path (check the [Scipion's installation guide](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#launching-scipion3)).
   

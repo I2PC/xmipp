@@ -25,20 +25,13 @@
 #ifndef _MONOGENIC_HH
 #define _MONOGENIC_HH
 
-#include <stdio.h>
-#include <iostream>
-#include <math.h>
-#include <stdlib.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include <data/sampling.h>
-#include <core/xmipp_fft.h>
-#include <core/xmipp_fftw.h>
-#include <math.h>
-#include <limits>
 #include <complex>
-#include <data/fourier_filter.h>
-#include <data/filters.h>
+#include "core/matrix1d.h"
+
+template<typename T>
+class MultidimArray;
+class FourierTransformer;
+
 //@{
 /** Routines for working with monogenic signals
 */

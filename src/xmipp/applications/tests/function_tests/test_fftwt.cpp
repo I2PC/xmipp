@@ -32,4 +32,4 @@ class AFT_Test;
 #include "aft_tests.h"
 
 typedef ::testing::Types<float, double> TestTypes;
-INSTANTIATE_TYPED_TEST_CASE_P(Cpu, AFT_Test, TestTypes);
+INSTANTIATE_TYPED_TEST_SUITE_P(Cpu, AFT_Test, TestTypes);

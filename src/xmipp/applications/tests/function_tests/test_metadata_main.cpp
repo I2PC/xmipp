@@ -11,8 +11,8 @@
 #include <sys/time.h>
 #include "core/metadata_sql.h"
 
-#define N_ROWS_TEST		2
-#define N_ROWS_PERFORMANCE_TEST		8000
+#define N_ROWS_TEST 2
+#define N_ROWS_PERFORMANCE_TEST 8000
 
 
 /*
@@ -26,7 +26,7 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         //Md1
         id = mDsource.addObject();
         mDsource.setValue(MDL_X,1.,id);
@@ -119,7 +119,7 @@ TEST_F( MetadataTest, AddIndex)
 
 TEST_F( MetadataTest, AddRow)
 {
-	MetaData md, md2;
+    MetaData md, md2;
 
     MDRow row;
     row.setValue(MDL_X, 1.);
@@ -142,10 +142,10 @@ TEST_F( MetadataTest, AddRow)
 
 TEST_F( MetadataTest, AddRows)
 {
-    int 	i;					// Loop counter.
-    bool	inserted;			// Insertion return value.
+    int i;                  // Loop counter.
+    bool inserted;          // Insertion return value.
     MetaData md;
-    MDRow row[N_ROWS_TEST];		// Rows array.
+    MDRow row[N_ROWS_TEST];     // Rows array.
 
     // Initialize rows.
     row[0].setValue(MDL_X, 1.);
@@ -157,14 +157,14 @@ TEST_F( MetadataTest, AddRows)
     if (md.initAddRow( row[0]))
     {
         // Add rows loop.
-    	i=0;
-    	do
-    	{
-    		// Insert row and increase number of insertions.
-    		inserted = md.execAddRow(row[i]);
-        	i++;
-    	}
-    	while ((i<N_ROWS_TEST) && (inserted));
+        i=0;
+        do
+        {
+            // Insert row and increase number of insertions.
+            inserted = md.execAddRow(row[i]);
+            i++;
+        }
+        while ((i<N_ROWS_TEST) && (inserted));
 
         // Finalize statement.
         md.finalizeAddRow();
@@ -177,7 +177,7 @@ TEST_F( MetadataTest, AddRows)
 TEST_F( MetadataTest, AddRowsPerformance)
 {
     MetaData md, md2, md3;
-    MDRow 	row;	// Sample row
+    MDRow row;  // Sample row
 
     printf("N_ROWS_PERFORMANCE_TEST = %d\n", N_ROWS_PERFORMANCE_TEST);
 
@@ -209,14 +209,14 @@ TEST_F( MetadataTest, AddRowsPerformance)
 
     for (int i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
     {
-    	md.addRow(row);
+        md.addRow(row);
     }
     s1 = t.toc("Time original:", false);
 
     t.tic();
     for (int i=0; i<N_ROWS_PERFORMANCE_TEST; i++)
     {
-    	md2.addRow2(row);
+        md2.addRow2(row);
     }
 
     s2 = t.toc("Time by row: ", false);
@@ -227,17 +227,17 @@ TEST_F( MetadataTest, AddRowsPerformance)
     if (md3.initAddRow(row))
     {
         // Add rows loop.
-    	int i=0;
-    	do
-    	{
-    		// Insert row and increase number of insertions.
-    		md3.execAddRow(row);
-        	i++;
-    	}
-    	while (i<N_ROWS_PERFORMANCE_TEST);
+        int i=0;
+        do
+        {
+            // Insert row and increase number of insertions.
+            md3.execAddRow(row);
+            i++;
+        }
+        while (i<N_ROWS_PERFORMANCE_TEST);
 
         // Finalize statement.
-    	md3.finalizeAddRow();
+        md3.finalizeAddRow();
     }
     s3 = t.toc("Time by set:", false);
     printf("    Speed up from original: %f\n", ((float) s1 / (float) s3));
@@ -248,10 +248,10 @@ TEST_F( MetadataTest, AddRowsPerformance)
 }
 
 TEST_F( MetadataTest, addLabelAlias)
-{	
-    //metada with no xmipp labels	    //metada with no xmipp labels
+{
+    //metada with no xmipp labels    //metada with no xmipp labels
     FileName fnNonXmippSTAR = (String)"metadata/noXmipp.xmd";
-    MDL::addLabelAlias(MDL_Y,(String)"noExixtingLabel");	    
+    MDL::addLabelAlias(MDL_Y,(String)"noExixtingLabel");
     MetaData md = MetaData(fnNonXmippSTAR);
     EXPECT_EQ(mDsource, md);
 }
@@ -272,7 +272,7 @@ TEST_F( MetadataTest, getNewAlias)
     md.getColumnValues(newLabel, y2Values);
     for (int i = 0; i < yValues.size(); ++i)
         EXPECT_FLOAT_EQ(yValues[i], textToFloat(y2Values[i]));
-}	
+}
 
 TEST_F( MetadataTest, Aggregate1)
 {
@@ -507,7 +507,7 @@ TEST_F( MetadataTest,multiWriteSqlite)
     //char sfn[64] = "";
     //strncpy(sfn, "/tmp/multiWriteSqlite_XXXXXX.sqlite", sizeof sfn);
     //if (mkstemps(sfn,7)==-1)
-    // 	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+    //  REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     FileName fn   ;
     FileName fnDB   ;
     fn.initUniqueName("/tmp/multiWriteSqlite_XXXXXX");
@@ -574,7 +574,7 @@ TEST_F( MetadataTest, ReadEmptyBlock)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     MetaData md;
     FileName fn = (String)"block_Empty@"+sfn;
     md.write(fn, MD_OVERWRITE);
@@ -593,7 +593,7 @@ TEST_F( MetadataTest, GetBlocksInMetadata)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMetadata;
     auxMetadata.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMetadata.addObject());
@@ -626,7 +626,7 @@ TEST_F( MetadataTest, CheckRegularExpression)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMd, auxMd2;
     auxMd.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMd.addObject());
@@ -669,7 +669,7 @@ TEST_F( MetadataTest, CheckRegularExpression2)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMd, auxMd2;
     auxMd.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMd.addObject());
@@ -707,15 +707,15 @@ TEST_F( MetadataTest, compareTwoMetadataFiles)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     char sfn2[64] = "";
     strncpy(sfn2, "/tmp/testGetBlocks_XXXXXX", sizeof sfn2);
     if (mkstemp(sfn2)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     char sfn3[64] = "";
     strncpy(sfn3, "/tmp/testGetBlocks_XXXXXX", sizeof sfn3);
     if (mkstemp(sfn3)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMd, auxMd2;
     auxMd.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMd.addObject());
@@ -748,7 +748,7 @@ TEST_F( MetadataTest, compareTwoMetadataFiles)
 
     String command=(String)"sed 's/SPACE/ /g' " + sfn2 + (String) ">" + sfn3;
     if (system (command.c_str())==-1)
-    	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not open shell");
+        REPORT_ERROR(ERR_UNCLASSIFIED,"Could not open shell");
 
     EXPECT_TRUE(compareTwoMetadataFiles(sfn, sfn3));
 
@@ -761,15 +761,15 @@ TEST_F( MetadataTest, compareTwoMetadataFiles)
 TEST_F( MetadataTest, FillExpand)
 {
     XMIPP_TRY
-	//create 2 temporary CTFs plus a metadata with dependences
+    //create 2 temporary CTFs plus a metadata with dependences
     char sfn1[64] = "";
     strncpy(sfn1, "/tmp/FillExpandCTF2_XXXXXX", sizeof sfn1);
     if (mkstemp(sfn1)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     char sfn2[64] = "";
     strncpy(sfn2, "/tmp/FillExpandMD_XXXXXX", sizeof sfn2);
     if (mkstemp(sfn2)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     //create 2 CTFs
     MetaData ctfMd1, ctfMd2, md;
@@ -1087,10 +1087,10 @@ TEST_F( MetadataTest, RegularExp)
     //char sfnSqlite[64] = "";
     //strncpy(sfnStar, "/tmp/testReadMultipleBlocks_XXXXXX.xmd", sizeof sfnStar);
     //if (mkstemps(sfnStar,4)==-1)
-    //	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary STAR file");
+    //  REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary STAR file");
 //    strncpy(sfnSqlite, "/tmp/testReadMultipleBlocks_XXXXXX.sqlite", sizeof sfnSqlite);
 //    if (mkstemps(sfnSqlite,7)==-1)
-//    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary SQLITE file");
+//      REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary SQLITE file");
 
     FileName fn;
     fn.initUniqueName("/tmp/testReadMultipleBlocks_XXXXXX");
@@ -1203,7 +1203,7 @@ TEST_F( MetadataTest, ReadMultipleBlocks)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testReadMultipleBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMetadata;
     auxMetadata.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMetadata.addObject());
@@ -1256,7 +1256,7 @@ TEST_F( MetadataTest, ReadEmptyBlocks)
     char sfn[sizesfn] = "";
     strncpy(sfn, "/tmp/testReadMultipleBlocks_XXXXXX", sizesfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMetadata;
     id=auxMetadata.addObject();
@@ -1298,7 +1298,7 @@ TEST_F( MetadataTest, ReadEmptyBlocksII)
     char sfn[64] = "";
     strncpy(sfn, "/tmp/testReadMultipleBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     MetaData auxMetadata;
 
@@ -1318,7 +1318,7 @@ TEST_F( MetadataTest, ReadWrite)
     char sfn[32] = "";
     strncpy(sfn, "/tmp/testWrite_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     mDsource.write(sfn);
     MetaData auxMetadata;
     auxMetadata.read(sfn);
@@ -1347,7 +1347,7 @@ TEST_F( MetadataTest, WriteIntermediateBlock)
     char sfn2[32] = "";
     strncpy(sfn2, "/tmp/testWrite_XXXXXX", sizeof sfn2);
     if (mkstemp(sfn2)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     //copy input metadata file
     std::ifstream src; // the source file
@@ -1376,7 +1376,7 @@ TEST_F( MetadataTest, ExistsBlock)
     char sfn[32] = "";
     strncpy(sfn, "/tmp/testWrite_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     FileName tmpFileName((String) "kk@" + sfn);
     mDsource.write(tmpFileName);
     MetaData auxMetadata;
@@ -1395,7 +1395,7 @@ TEST_F( MetadataTest, ReadWriteAppendBlock)
     char sfn[32] = "";
     strncpy(sfn, "/tmp/testWrite_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     mDsource.write((String)"one@"+sfn);
     mDsource.write((String)"two@"+sfn,MD_APPEND);
     mDsource.write((String)"three@"+sfn,MD_APPEND);
@@ -1547,7 +1547,7 @@ TEST_F( MetadataTest, Comment)
     MetaData md1(mDsource);
     strncpy(sfn, "/tmp/testComment_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
-    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+        REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     String s1((String)"This is a very long comment that has more than 80 characters"+
               " Therefore should be split in several lines"+
               " Let us see what happened");
@@ -1676,7 +1676,7 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    char sfn[64] = "";
 //    strncpy(sfn, "/tmp/BsoftRemoveLoopBlock1_XXXXXX.star", sizeof sfn);
 //    if (mkstemps(sfn,5)==-1)
-//    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+//      REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 //    bsoftRemoveLoopBlock(fnSTAR,sfn);
 //    size_t id;
 //    MetaData readMd;
@@ -1757,11 +1757,11 @@ TEST_F( MetadataTest, bsoftRestoreLoopBlock)
 //    char sfn[64] = "";
 //    strncpy(sfn, "/tmp/BsoftRemoveLoopBlock1_XXXXXX.star", sizeof sfn);
 //    if (mkstemps(sfn,5)==-1)
-//    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+//      REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 //    char sfn2[64] = "";
 //    strncpy(sfn2, "/tmp/BsoftRemoveLoopBlock2_XXXXXX.star", sizeof sfn);
 //    if (mkstemps(sfn2,5)==-1)
-//    	REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
+//      REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 //    size_t id;
 //    MetaData readMd;
 //
@@ -1910,10 +1910,4 @@ TEST_F( MetadataTest, updateRow)
     row.setValue(MDL_Y, 2.);
     md.addRow(row);
     */
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

@@ -35,16 +35,15 @@ import subprocess
 from datetime import datetime
 
 
-# --K-E-E-P--U-P-D-A-T-E-D-- #
-VERSION_TAG = "Xmipp version"
-##############################
-XMIPP_VERSION = '3.20.07b1'  #
-RELEASE_DATE = 'not released yet'  #
-RELEASE_BRANCH = '*None*'    # <-- to be filled by scripts/tar.py (for prod.)
-RELEASE_HASH = '*******'     # <-- to be filled by scripts/tar.py (for prod.)
-##############################
+# ----K-E-E-P----U-P-D-A-T-E-D---- #
+####################################
+XMIPP_VERSION = '3.20.07'          #
+XMIPP_VERNAME = 'Boreas'           #
+RELEASE_DATE = '14/10/2020'        #
+####################################
 
-NO_HASH_ID = '*******'  # Do NOT merge with RELEASE_HASH
+
+KEY_BUILD_TESTS = 'BUILD_TESTS'
 
 XMIPP = 'xmipp'
 XMIPP_CORE = 'xmippCore'
@@ -52,19 +51,22 @@ XMIPP_VIZ = 'xmippViz'
 SCIPION_EM_XMIPP = 'scipion-em-xmipp'
 CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
+GTEST = 'googletest'
 
 XMIPP_SCRIPT_VERSION = ''
 
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
-                XMIPP_CORE : 'https://github.com/I2PC/xmippCore.git',
+                XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
                 SCIPION_EM_XMIPP: 'https://github.com/I2PC/scipion-em-xmipp.git',
                 CUFFTADVISOR: 'https://github.com/DStrelak/cuFFTAdvisor.git',
-                CTPL: 'https://github.com/vit-vit/CTPL.git'}
+                CTPL: 'https://github.com/vit-vit/CTPL.git',
+                GTEST: 'https://github.com/google/googletest'}
 
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
-                CTPL: ('master', None)}
+                CTPL: ('master', None),
+                GTEST: ('release-1.10.0', KEY_BUILD_TESTS)}
 
 CONFIG_FILE_NAME = "xmipp.conf"
 
@@ -111,20 +113,31 @@ def stampVersion():
     LAST_COMPILATION = datetime.now().strftime("%d/%m/%Y")
 
     def getCommit(repo):
-        commitStr = "%s (%s)" % (RELEASE_BRANCH, RELEASE_HASH)
-        if ensureGit(False):
-            found, br, hsh = getCurrentBranch(os.path.join('src', repo), getHash=True)
-            commitStr = "%s (%s)" % (br, hsh) if found else "(no git repo detected)"
-        return commitStr
+        """ In devel mode 'commit.info' should not exist.
+            In production mode 'commit.info' is added by tar.py
+        """
+        commitFn = os.path.join('src', repo, 'commit.info')
+        notFoundInfo = "(no git repo detected)"
+        if os.path.isfile(commitFn):
+            with open(commitFn, 'r') as file:
+                commitInfo = file.readline()
+        elif ensureGit(False):
+            found, br, hsh = getCurrentBranch(os.path.join('src', repo),
+                                              getHash=True)
+            commitInfo = "%s (%s)" % (br, hsh) if found else notFoundInfo
+        else:
+            commitInfo = notFoundInfo
 
-    compilingInfo = {'VERSION_TAG': VERSION_TAG,
-                     'XMIPP_VERSION': XMIPP_VERSION,
+        return commitInfo
+
+    compilingInfo = {'XMIPP_VERSION': XMIPP_VERSION,
                      'RELEASE_DATE': RELEASE_DATE,
                      'XMIPP_BRANCH': getCommit(XMIPP),
                      'PLUGIN_BRANCH': getCommit(SCIPION_EM_XMIPP),
                      'CORE_BRANCH': getCommit(XMIPP_CORE),
                      'VIZ_BRANCH': getCommit(XMIPP_VIZ),
                      'LAST_COMPILATION': LAST_COMPILATION,
+                     'XMIPP_VERNAME': XMIPP_VERNAME
                      }
 
     versionBinFn = os.path.join('src', 'xmipp', 'applications', 'programs',
@@ -158,7 +171,7 @@ int main(int argc, char** argv){
 
     if (shrt==1)
     {
-        std::cout << "%(VERSION_TAG)s: %(XMIPP_VERSION)s" << std::endl;
+        std::cout << "%(XMIPP_VERSION)s" << std::endl;
     }else{
         struct utsname utsname; // stores the data returned by uname()
         struct utsname *utsname_ptr = &utsname; // pointer to the struct holding the data returned by uname()
@@ -167,12 +180,12 @@ int main(int argc, char** argv){
         ret = uname(utsname_ptr);
     
         std::cout << std::endl;
-        std::cout << "  \033[4m%(VERSION_TAG)s\033[24m: \033[1m%(XMIPP_VERSION)s\033[0m" << std::endl;
+        std::cout << "  \033[4mXmipp version\033[24m: \033[1m%(XMIPP_VERSION)s (%(XMIPP_VERNAME)s)\033[0m" << std::endl;
         std::cout << std::endl;
         std::cout << "  Release date:     %(RELEASE_DATE)s" << std::endl;
         std::cout << "  Xmipp branch:     %(XMIPP_BRANCH)s" << std::endl;
         std::cout << "  Plugin branch:    %(PLUGIN_BRANCH)s" << std::endl;
-        std::cout << "  Core branch :     %(CORE_BRANCH)s" << std::endl;
+        std::cout << "  Core branch:      %(CORE_BRANCH)s" << std::endl;
         std::cout << "  Viz branch:       %(VIZ_BRANCH)s" << std::endl;
         std::cout << "  Compilation date: %(LAST_COMPILATION)s" << std::endl;
         std::cout << "  Compiler:         g++ " << __VERSION__ << std::endl;
@@ -333,8 +346,9 @@ def pull():
 
 def cloneOrCheckout(repo, branch):
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
-    if branch not in getAllBranches(repo):
+    if branch not in getAllBranchesAndTags(repo)[1]:
         branch = getBranch(repo, repo_dir)[1]
+
     if not os.path.exists(repo_dir):
         # If the repo doesn't exist, just clone the whole repo
         if branch is None:
@@ -345,7 +359,7 @@ def cloneOrCheckout(repo, branch):
     else:
         workDir = os.getcwd()
         os.chdir(repo_dir)
-        print(green('Checkouting ' + repo + ' ...'))
+        print(green('Checkouting %s:%s ...' % (repo, branch)))
         res = checkout(branch) and pull()
         os.chdir(workDir)
         return res
@@ -380,16 +394,17 @@ def getCurrentBranch(cwd='./', getHash=False):
     print(red('Cannot get current branch'))
     return (False,) + (None,)*outBranchArgs
 
-def getAllBranches(repo):
+
+def getAllBranchesAndTags(repo):
     log = []
-    prefix = 'refs/heads/'
-    result = runJob('git ls-remote -h %s' % REPOSITORIES[repo],
+    result = runJob('git ls-remote -t -h %s' % REPOSITORIES[repo],
                     show_output=False, log=log, show_command=False)
     if result:
-        branches = [l.split(prefix)[1] for l in log]
-        return True, branches
+        branchesAndTags = [l.split('/')[-1] for l in log]
+        return True, branchesAndTags
     print(red('Cannot list branches for ' + repo))
     return False, None
+
 
 def getBranch(repo, repo_dir):
     # return current branch
@@ -400,11 +415,12 @@ def getBranch(repo, repo_dir):
     # we need to get current branch of the xmipp
     r1, branchHint = (getCurrentTravisBranch() if 'TRAVIS' in os.environ
                       else getCurrentBranch())
-    r2, branches = getAllBranches(repo)
+    r2, branches = getAllBranchesAndTags(repo)
     if r1 and r2 and branchHint in branches:
         return True, branchHint
     # default branch
     return getDefaultBranch(repo)
+
 
 def getDefaultBranch(repo):
     log = []
@@ -490,12 +506,13 @@ def readConfigFile(fnConfig):
 
 
 def createEmptyConfig():
-    labels = ['CC','CXX','LINKERFORPROGRAMS','INCDIRFLAGS','LIBDIRFLAGS','CCFLAGS','CXXFLAGS',
-              'LINKFLAGS','PYTHONINCFLAGS','MPI_CC','MPI_CXX','MPI_RUN','MPI_LINKERFORPROGRAMS','MPI_CXXFLAGS',
-              'MPI_LINKFLAGS','NVCC','CXX_CUDA','NVCC_CXXFLAGS','NVCC_LINKFLAGS',
-              'MATLAB_DIR','CUDA','DEBUG','MATLAB','OPENCV','OPENCVSUPPORTSCUDA','OPENCV3',
-              'JAVA_HOME','JAVA_BINDIR','JAVAC','JAR','JNI_CPPPATH', 'USE_DL', 'VERIFIED',
-              'CONFIG_VERSION', 'PYTHON_LIB']
+    labels = [KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
+              'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
+              'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
+              'MATLAB_DIR', 'CUDA','DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
+              'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
+              'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
+              'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
     configDict = {}
     for label in labels:
         # We let to set up the xmipp configuration via environ.
@@ -903,6 +920,29 @@ int dummy(){}
     runJob("rm xmipp_jni_test*")
     return True
 
+
+def getCompatibleGCC(nvcc_version):
+# https://gist.github.com/ax3l/9489132
+    v = ['10.2', '10.1', '10',
+        '9.3', '9.2', '9.1', '9',
+        '8.4', '8.3', '8.2', '8.1', '8',
+        '7.5', '7.4', '7.3', '7.2', '7.1', '7',
+        '6.5', '6.4', '6.3', '6.2', '6.1', '6',
+        '5.5', '5.4', '5.3', '5.2', '5.1', '5',
+        '4.9', '4.8']
+    if 8.0 <= nvcc_version < 9.0:
+        return v[v.index('5.3') :]
+    elif 9.0 <= nvcc_version < 9.2:
+        return v[v.index('5.5') :]
+    elif 9.2<= nvcc_version < 10.1:
+        return v[v.index('7.3') :]
+    elif 10.1<= nvcc_version <= 10.2:
+        return v[v.index('8.4') :]
+    elif 11.0<= nvcc_version <= 11.2:
+        return v[v.index('9.3') :]
+    return [] # not supported
+
+
 def configCuda(configDict):
     configDict["CUDA"] = os.environ.get("CUDA", "")
     nvcc = 'nvcc'
@@ -933,8 +973,8 @@ def configCuda(configDict):
             if checkProgram(nvcc):
                 nvccVersion, nvccFullVersion = getCudaVersion(nvcc)
                 print(green('CUDA-' + nvccFullVersion + ' detected.'))
-                if nvccVersion != 8.0:
-                    print(yellow('CUDA-8.0 is recommended.'))
+                if nvccVersion != 10.2:
+                    print(yellow('CUDA-10.2 is recommended.'))
                 configDict["NVCC"] = nvcc
             else:
                 print(yellow("Warning: 'nvcc' not found. "
@@ -949,39 +989,39 @@ def configCuda(configDict):
             cxxVersion, cxxStrVersion = getGccVersion(currentCxx)
             nvccVersion, nvccFullVersion = getCudaVersion(configDict["NVCC"])
             if configDict["CXX_CUDA"] == '':
-                # Alternative C++ compiler for cuda if current is incompatible
-                if cxxVersion >= 6 and nvccVersion <= 8:
-                    # gcc>=6 is incompatible with cuda<=8
-                    print(yellow("Using '%s' version later than 5, "
-                                 "which is incompatible with cuda-%s."
-                                 % (currentCxx, nvccVersion)))
-                    compVers = ['5', '5.5', '5.4', '5.3', '5.2', '5.1', '4.9', '4.8']
-                    for ver in compVers:
-                        cxx4cuda = currentCxx+'-'+ver
-                        if checkProgram(cxx4cuda, False):
-                            configDict["CXX_CUDA"] = cxx4cuda
-                            break
-                    if configDict["CXX_CUDA"]:
-                        configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"], askUser)
-                    if not checkProgram(configDict["CXX_CUDA"], False):
-                        print(red("No alternative found or not working. "
-                                  "Skipping CUDA compilation.\n"
-                                  "If an alternative exists, please "
-                                  "'export CXX_CUDA=/path/to/g++5' and "
-                                  "run again 'xmipp config'."))
-                        configDict["CUDA"] = "False"
-                        updateXmippEnv(CUDA=False, pos='replace')
-                        return
-                else:  # TODO: Consider the CUDA-11 incompatibilities
-                    configDict["CXX_CUDA"] = currentCxx
-            configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                           "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
-                                           # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
-                                           "-gencode=arch=compute_30,code=compute_30 "
-                                           "-gencode=arch=compute_35,code=compute_35 "
-                                           "-gencode=arch=compute_50,code=compute_50 "
-                                           "-gencode=arch=compute_60,code=compute_60 "
-                                           "-gencode=arch=compute_61,code=compute_61")
+                print(yellow('Checking for compatible GCC to be used with your CUDA'))
+                candidates = getCompatibleGCC(nvccVersion)
+                for c in candidates:
+                    p = 'g++-' + c
+                    if checkProgram(p, False):
+                        configDict["CXX_CUDA"] = p
+                        break
+                if configDict["CXX_CUDA"]:
+                    configDict["CXX_CUDA"] = askPath(configDict["CXX_CUDA"], askUser)
+                if not checkProgram(configDict["CXX_CUDA"], False):
+                    print(red("No valid compiler found. "
+                              "Skipping CUDA compilation.\n"
+                              "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "
+                              "run again 'xmipp config'."))
+                    configDict["CUDA"] = "False"
+                    updateXmippEnv(CUDA=False, pos='replace')
+                    return
+            if nvccVersion >= 11:
+                configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                                            "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
+                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                                            "-gencode=arch=compute_60,code=compute_60 "
+                                            "-gencode=arch=compute_61,code=compute_61 "
+                                            "-gencode=arch=compute_75,code=compute_75 "
+                                            "-gencode=arch=compute_86,code=compute_86")
+            else:
+                configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                                            "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
+                                            # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                                            "-gencode=arch=compute_35,code=compute_35 "
+                                            "-gencode=arch=compute_50,code=compute_50 "
+                                            "-gencode=arch=compute_60,code=compute_60 "
+                                            "-gencode=arch=compute_61,code=compute_61")
 
         if configDict["NVCC_LINKFLAGS"]=="":
             # Looking for Cuda libraries:
@@ -1047,11 +1087,11 @@ def checkCuda(configDict):
                   (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
             print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
             return False
-        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
+        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" % \
                   (configDict["NVCC"], configDict["NVCC_LINKFLAGS"])):
             print(red("Check the NVCC and NVCC_LINKFLAGS"))
             return False
-        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcublas -lcufft -lcurand -lcusparse -lnvToolsExt" % \
+        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" % \
                   (configDict["CXX"], configDict["NVCC_LINKFLAGS"])):
             print(red("Check the CXX and NVCC_LINKFLAGS"))
             return False
@@ -1092,6 +1132,54 @@ def checkMatlab(configDict):
         runJob("rm xmipp_mex*")
     return ans
 
+def configStarPU(configDict):
+    # TODO(Jan Polak): This check would be probably better done with pkg-config
+    if configDict["STARPU"]=="":
+        if checkProgram("starpu_sched_display", show=False): # Heuristic only, StarPU has no main executable
+            configDict["STARPU"]="True"
+        else:
+            configDict["STARPU"]="False"
+    if configDict["STARPU"]=="True":
+        if configDict["STARPU_HOME"]=="" and checkProgram("starpu_sched_display"):
+            starpuBinDir = os.path.dirname(os.path.realpath(distutils.spawn.find_executable("starpu_sched_display")))
+            configDict["STARPU_HOME"] = starpuBinDir.replace("/bin","")
+    if configDict["STARPU_INCLUDE"]=="":
+        configDict["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
+    if configDict["STARPU_LIB"]=="":
+        configDict["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
+    if configDict["STARPU_LIBRARY"]=="":
+        configDict["STARPU_LIBRARY"] = "libstarpu-1.3"
+
+def checkStarPU(configDict):
+    ans = True
+    if configDict["STARPU"] == "True":
+        if configDict["CUDA"] != "True":
+            ans = False
+            print(red("CUDA must be enabled together with STARPU"))
+        if configDict["STARPU_INCLUDE"] == "" or not os.path.isdir(configDict["STARPU_INCLUDE"]):
+            ans = False
+            print(red("Check the STARPU_INCLUDE directory: " + configDict["STARPU_INCLUDE"]))
+        if configDict["STARPU_LIB"] == "" or not os.path.isdir(configDict["STARPU_LIB"]):
+            ans = False
+            print(red("Check the STARPU_LIB directory: " + configDict["STARPU_LIB"]))
+        if configDict["STARPU_LIBRARY"] == "":
+            ans = False
+            print(red("STARPU_LIBRARY must be specified (link library name)"))
+
+        if ans:
+            with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
+                cppFile.write("""
+                #include <starpu.h>
+                int dummy(){}
+                """)
+
+            if not runJob("%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o"% \
+                    (configDict["NVCC"], configDict["NVCC_CXXFLAGS"], configDict["INCDIRFLAGS"],
+                     configDict["STARPU_INCLUDE"], configDict["STARPU_LIB"], configDict["STARPU_LIBRARY"])):
+                print(red("Check STARPU_* settings"))
+                ans = False
+            runJob("rm xmipp_starpu_config_test*")
+    return ans
 
 def writeConfig(configDict):
     with open(CONFIG_FILE_NAME, "w") as configFile:
@@ -1130,6 +1218,11 @@ def ensureConfigVersion(configDict):
         exit(-1)
 
 
+def configTests(configDict):
+    if configDict[KEY_BUILD_TESTS] == "":
+        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False)
+
+
 def config():
     print("Configuring -----------------------------------------")
     new_config_dict = createEmptyConfig()
@@ -1142,8 +1235,10 @@ def config():
     configJava(new_config_dict)
     configCuda(new_config_dict)
     configMatlab(new_config_dict)
+    configStarPU(new_config_dict)
     config_DL(new_config_dict)
     configConfigVersion(new_config_dict)
+    configTests(new_config_dict)
 
     writeConfig(new_config_dict)
     writeEnviron()
@@ -1185,6 +1280,9 @@ def checkConfig():
             print(red("Cannot compile with Matlab, continuing without Matlab"))
             newConf["MATLAB"]="False"
             runJob("rm xmipp_mex*")
+        if not checkStarPU(configDict):
+            print(red("Cannot compile with StarPU, continuing without StarPU"))
+            newConf["STARPU"]="False"
         newConf['VERIFIED']="True"
         updateConfig(newConf)
     else:
@@ -1248,6 +1346,17 @@ def compile_cuFFTAdvisor():
     return ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 
 
+def compile_googletest():
+    currDir = os.getcwd()
+    buildDir = os.path.join("src", "googletest", "build")
+    createDir(buildDir)
+    os.chdir(buildDir)
+    ok = runJob("cmake ..")
+    ok = ok and runJob("make gtest gtest_main")
+    os.chdir(currDir)
+    return ok
+
+
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
@@ -1280,12 +1389,14 @@ def compileDependencies(Nproc):
     result = True
     if is_config_true('CUDA'):
         cudaBinDir, nvccBaseName = os.path.split(configDict['NVCC'])
-        # cuFFTAdvisor compilation needs 'nvcc' accessible thru the PATH
+        # cuFFTAdvisor compilation needs 'nvcc' accessible through the PATH
         if not checkProgram(nvccBaseName, False) and checkProgram(configDict['NVCC'], False):
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
+    if is_config_true(KEY_BUILD_TESTS):
+        result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))
     return result
@@ -1603,7 +1714,7 @@ def usage(msg=''):
     if msg != '':
         print(red(msg))
     print("Usage: xmipp [options]\n"
-          "   version                     Returns the version information\n"
+          "   version [dir=build];        Returns the version information. Add '--short' to print only the version number.\n"
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
@@ -1632,29 +1743,16 @@ def usage(msg=''):
           "                                   Note the login (usr@server) must have write permisions to Nolan machine.\n"
           "   tar <mode> [v=ver] [br=br]: Create a bundle of the xmipp (without arguments shows a detailed help)\n"
           "                                   <mode> can be 'Sources', 'BinDebian' or 'BinCentos', when Sources put a branch (default: master).'\n"
-          "                                   <ver> usually X.YY.MM\n"
+          "                                   <ver> usually X.YY.MM (add debug to package this local script and the local scripts/tar.py) \n"
           )
 
-
-def getVersion(onlyNumbers=False):
-    import re  # To clean colors and format
-    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-
-    lines = subprocess.check_output(["src/xmipp/bin/xmipp_version"])
-    verInfo = [line for line in lines.splitlines() if VERSION_TAG in line]
-    cleanInfo = ansi_escape.sub('', verInfo[0])
-
-    if onlyNumbers:
-        cleanInfo = cleanInfo.split(':')[1]
-
-    return cleanInfo.strip(' ')
-
 def getCudaVersion(nvcc):
-    # FIXME: Refator/unify this with getGccVersion()
     log = []
     runJob(nvcc + " --version", show_output=False, show_command=False, log=log)
-    # expected lst line: 'Cuda compilation tools, release 8.0, V8.0.61'
-    full_version = log[-1].strip().split(', ')[-1].lstrip('V')
+    # find 'Cuda compilation tools' line (last for older versions, one before last otherwise)
+    # expected format: 'Cuda compilation tools, release 8.0, V8.0.61'
+    full_version_line = next(l for l in log if 'compilation tools' in l)
+    full_version = full_version_line.strip().split(', ')[-1].lstrip('V')
     tokens = full_version.split('.')
     if len(tokens) < 2:
         tokens.append('0')  # just in case when only one digit is returned
@@ -1701,7 +1799,8 @@ def ensureConfig():
 
 def ensureGit(critical=False):
     if not checkProgram('git', critical):
-        if critical or RELEASE_HASH == NO_HASH_ID:
+        if critical or os.path.isdir('.git'):
+            # .git dir found means devel mode, which needs git
             print(red("Git not found."))
             sys.exit(-1)
         else:
@@ -1710,16 +1809,25 @@ def ensureGit(critical=False):
 
 
 def getScriptVersion():
+    """ If git not present means it is in production mode
+        and version can be retrieved from the commit.info file
+    """
+    commitFn = os.path.join('src', 'xmipp', 'commit.info')
+    notFound = "(no git repo detected)"
     if ensureGit(False):
         scriptName = os.path.basename(__file__)
         lastCommit = []
         # get hash of the last commit changing this script
         if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
             return lastCommit[0].strip()
+        elif os.path.isfile(commitFn):
+            with open(commitFn, 'r') as file:
+                commitInfo = file.readline()
+            return commitInfo
         else:
-            return RELEASE_HASH
+            return notFound
     else:
-        return RELEASE_HASH
+        return notFound
 
 
 if __name__ == '__main__':
@@ -1769,10 +1877,20 @@ if __name__ == '__main__':
     elif mode=="cleanBin":
         cleanBinaries()
     elif mode=="version":
-        if n>2 and sys.argv[2]=='--short':
-            runJob("src/xmipp/bin/xmipp_version --short")
+        buildDir = 'build'
+        shortFlag = ''
+        for arg in sys.argv[2:]:
+            if arg == '--short':
+                shortFlag = '--short'
+            elif arg.startswith('dir='):
+                buildDir = arg[4:]
+        versionBin = "%s/bin/xmipp_version" % buildDir
+        envSetting = "%s/xmipp.bashrc" % buildDir
+        if not (os.path.isfile(versionBin) and os.path.isfile(envSetting)):
+            print("Build not found...")
         else:
-            runJob("src/xmipp/bin/xmipp_version")
+            runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
+                   show_command=False)
     elif mode=="get_devel_sources":
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
@@ -1804,7 +1922,7 @@ if __name__ == '__main__':
         dir = "build"
         if n > 2:
             for arg in sys.argv[2:]:
-                if arg.isdigit():
+                if arg.isdigit() or arg.startswith('N='):
                     Nproc = arg
                 else:
                     dir = arg
@@ -1890,12 +2008,15 @@ if __name__ == '__main__':
         ver = XMIPP_VERSION
         br = 'master'
         mode = sys.argv[2]
+        debugFlag = ''
         for arg in sys.argv[3:]:
             if arg.startswith('br='):
                 br = arg.split('br=')[1]
             if arg.startswith('v='):
                 ver = arg.split('v=')[1]
-        runJob("scripts/tar.py %s %s %s" % (mode, ver, br))
+            if arg.lower() == 'debug':
+                debugFlag = 'debug'
+        runJob("scripts/tar.py %s %s %s %s" % (mode, ver, br, debugFlag))
 
     else:
         usage(" -> option not found <- \n")

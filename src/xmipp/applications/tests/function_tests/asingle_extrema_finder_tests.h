@@ -231,7 +231,7 @@ private:
 public:
     static std::vector<HW*> hw; // public to be able to use it in testcases
 };
-TYPED_TEST_CASE_P(SingleExtremaFinder_Test);
+TYPED_TEST_SUITE_P(SingleExtremaFinder_Test);
 
 template<typename T>
 T *SingleExtremaFinder_Test<T>::data = nullptr;
@@ -590,7 +590,7 @@ TYPED_TEST_P( SingleExtremaFinder_Test, findLowest2DAroundCenterMany)
 //    XMIPP_CATCH;
 //}
 
-REGISTER_TYPED_TEST_CASE_P(SingleExtremaFinder_Test,
+REGISTER_TYPED_TEST_SUITE_P(SingleExtremaFinder_Test,
 //    debug
     findMax1D,
     findMax1DMany,
