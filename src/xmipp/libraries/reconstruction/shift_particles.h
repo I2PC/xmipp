@@ -48,7 +48,7 @@
     MetaData mdParticles;
  	MDRow row;
     // Input new center coordinates and rot tilt psi from metadata
-    double x0, y0, z0, rot, tilt, psi;
+    double x0, y0, z0, rot, tilt, psi, shiftx, shifty;
     // Input volume, particle, subtraction mask, inverse subtraction mask, gaussian-filtered subtraction mask, volume mask
  	Image<double> V, I, mask, PmaskInv, PmaskG, maskVol;
  	// Theoretical projection of volume, subtraction mask and volume mask

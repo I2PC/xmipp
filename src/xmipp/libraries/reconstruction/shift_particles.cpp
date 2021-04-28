@@ -41,7 +41,7 @@
  void ProgShiftParticles::readParams()
  {
 	fnParticles = getParam("-i");
- 	fnVolR = getParam("--ref");
+// 	fnVolR = getParam("--ref");
 	x0=getDoubleParam("--center",0);
 	y0=getDoubleParam("--center",1);
 	z0=getDoubleParam("--center",2);
@@ -57,7 +57,7 @@
         return;
 	std::cout
 	<< "Input particles:   	" << fnParticles << std::endl
-	<< "Reference volume:   " << fnVolR      << std::endl
+//	<< "Reference volume:   " << fnVolR      << std::endl
 	<< "New center:  		" << x0 << ", " << y0 << ", "  << z0 << std::endl
 	<< "Output particles: 	" << fnOut 	     << std::endl
 	;
@@ -70,7 +70,7 @@
      addUsageLine("Center particles into a selected point of a volume.");
      //Parameters
      addParamsLine("-i <particles>         			: Particles metadata (.xmd file)");
-     addParamsLine("--ref <volume>         			: Reference volume to subtract");
+//     addParamsLine("--ref <volume>         			: Reference volume to subtract");
      addParamsLine("[-o <structure=\"\">]  			: Output filename suffix for shifted particles");
      addParamsLine("                       			: If no name is given, then output_particles.xmd");
      addParamsLine("[--center <x0=0> <y0=0> <z0=0>] : New center coordinates x,y,z");
@@ -81,17 +81,24 @@
  void ProgShiftParticles::run()
  {
 	show();
-	// Read input volume and particles.xmd
-	V.read(fnVolR);
-	V().setXmippOrigin();
- 	MultidimArray<double> &mV=V();
- 	mdParticles.read(fnParticles);
+	// Read input volume
+//	V.read(fnVolR);
+//	V().setXmippOrigin();
+// 	MultidimArray<double> &mV=V();
 
+	// Read input center
+	Matrix1D<double> pos;
+	pos.initZeros(3);
+	pos(0) = x0;
+	pos(1) = y0;
+	pos(2) = z0;
+	// Read input particles.xmd
+ 	mdParticles.read(fnParticles);
  	int ix_particle = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
-    	// Read particle image
+    	// Read particle image and metadata
     	mdParticles.getRow(row,__iter.objId);
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
@@ -100,23 +107,29 @@
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
-    	// Compute projection of the volume (point mask)
-    	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-		// Look for the max value of the projection and get the coordinates
-		int imax, jmax;
-		P().maxIndex(imax, jmax);
-		std::cout << "imax: " << imax << std::endl;
-		std::cout << "jmax: " << jmax << std::endl;
+     	row.getValue(MDL_SHIFT_X, shiftx);
+     	row.getValue(MDL_SHIFT_Y, shifty);
+
+     	Matrix2D<double> R;
+		R.initIdentity(3);
+		Euler_angles2matrix(rot, tilt, psi, R, false);
+//		std::cout << "R: " << R << std::endl;
+//		R = R.inv();
+		pos = R * pos;
+		std::cout << "R*pos: " << pos << std::endl;
+
 		// check and correct origins
-		// compute the distance between the center of the particle and the coordinates of the max value
-		// convert that distance into transf matrix, apply it to the particles and save transform matrix in the md
+
+		// compute the distance between the center of the particle ((0,0)?) and ppos
+		// do the centering at desired boxsize (see program center particles??)
 
 		// Save shifted particles in metadata
 		ix_particle++;
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
-		P.write(out);
-//		I.write(out);
+		I.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
+		mdParticles.setValue(MDL_SHIFT_X, shiftx+pos(0), ix_particle);
+		mdParticles.setValue(MDL_SHIFT_Y, shifty+pos(1), ix_particle);
     }
     mdParticles.write(fnParticles);
  }
