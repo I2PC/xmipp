@@ -366,15 +366,29 @@ def cloneOrCheckout(repo, branch):
         return res
 
 
-def getCurrentTravisBranch():
+def removePrefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+
+def getCurrentCIBranch():
     # see https://docs.travis-ci.com/user/environment-variables/
+    # see https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
     # On Travis, PR will have the TRAVIS_PULL_REQUEST_BRANCH variable non-empty
     # otherwise the TRAVIS_BRANCH will hold the name of the current branch
-    if 'TRAVIS_PULL_REQUEST_BRANCH' in os.environ and 'TRAVIS_BRANCH' in os.environ:
-        current_branch = os.environ['TRAVIS_PULL_REQUEST_BRANCH'] or os.environ['TRAVIS_BRANCH']
-        print(green("Detected branch: " + current_branch))
-        return True, current_branch
-    return False, None
+    # On Github Actions, GITHUB_REF will hold either the tag or branch (including prefix) to the branch which triggered 
+    # the workflow
+    # For pull request, GITHUB_HEAD_REF will be set (no prefix)
+    current_branch = (
+        os.environ.get('TRAVIS_PULL_REQUEST_BRANCH') or
+        os.environ.get('TRAVIS_BRANCH') or
+        os.environ.get('GITHUB_HEAD_REF') or
+        os.environ.get('GITHUB_REF'))
+    current_branch = removePrefix(current_branch, 'refs/heads/')
+    current_branch = removePrefix(current_branch, 'refs/tags/')
+    print(green("Detected branch: " + current_branch))
+    return current_branch is not None, current_branch
 
 
 def getCurrentBranch(cwd='./', getHash=False):
@@ -414,7 +428,7 @@ def getBranch(repo, repo_dir):
         return r, branch
     # return same branch as xmipp
     # we need to get current branch of the xmipp
-    r1, branchHint = (getCurrentTravisBranch() if 'TRAVIS' in os.environ
+    r1, branchHint = (getCurrentCIBranch() if 'TRAVIS' in os.environ
                       else getCurrentBranch())
     r2, branches = getAllBranchesAndTags(repo)
     if r1 and r2 and branchHint in branches:
