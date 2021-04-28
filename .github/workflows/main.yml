@@ -62,7 +62,7 @@ jobs:
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
         env:
-          TRAVIS: 1
+          CIBuild: 1
           BUILD_TESTS: False
           
       - name: SonarCloud Scan
