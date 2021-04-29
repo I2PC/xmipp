@@ -39,7 +39,7 @@ void ProgResBFactor::readParams()
 	fn_pdb = getParam("--atmodel");
 	fn_locres = getParam("--vol");
 	sampling = getDoubleParam("--sampling");
-	medianTrue = checkParam("--hasMedian");
+	medianTrue = checkParam("--useMedian");
 	fscResolution = getDoubleParam("--fscResolution");
 	fnOut = getParam("-o");
 }
@@ -51,7 +51,7 @@ void ProgResBFactor::defineParams()
 	addParamsLine("  --atmodel <pdb_file=\"\">   		: Atomic model (pdb). Ensure it is aligned/fitted to the local resolution map");
 	addParamsLine("  --vol <vol_file=\"\">			: Local resolution map");
 	addParamsLine("  [--sampling <sampling=1>]		: Sampling Rate (A)");
-	addParamsLine("  [--hasMedian]			        : The resolution an bfactor per residue are averaged instead of computed the median");
+	addParamsLine("  [--useMedian]			        : The resolution an bfactor per residue are averaged instead of computed the median");
 	addParamsLine("  [--fscResolution <fscResolution=-1>]	: If this is provided, the FSC resolution, R, in Angstrom is used to normalized the local resolution, LR, as (LR-R)/R, where LR is the local resoluion and R is the global resolution");
 	addParamsLine("  -o <output=\"amap.mrc\">		: Output of the algorithm");
 }
