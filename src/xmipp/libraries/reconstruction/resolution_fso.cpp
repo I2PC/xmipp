@@ -948,10 +948,6 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 	half1 = imgHalf1();
 	half2 = imgHalf2();
 
-	MultidimArray<double> &ptrhalf1 = half1;
-    MultidimArray<double> &ptrhalf2 = half2;
-
-
 	// Applying the mask
 	if (fnmask!="")
 	{
@@ -961,17 +957,17 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
 		{
 			double valmask = (double) DIRECT_MULTIDIM_ELEM(pmask, n);
-			DIRECT_MULTIDIM_ELEM(ptrhalf1, n) = DIRECT_MULTIDIM_ELEM(ptrhalf1, n) * valmask;
-			DIRECT_MULTIDIM_ELEM(ptrhalf2, n) = DIRECT_MULTIDIM_ELEM(ptrhalf2, n) * valmask;
+			DIRECT_MULTIDIM_ELEM(half1, n) = DIRECT_MULTIDIM_ELEM(half1, n) * valmask;
+			DIRECT_MULTIDIM_ELEM(half2, n) = DIRECT_MULTIDIM_ELEM(half2, n) * valmask;
 		}
 	}
 
-	ptrhalf1.setXmippOrigin();
-	ptrhalf2.setXmippOrigin();
+	half1.setXmippOrigin();
+	half2.setXmippOrigin();
 
 	// fftshift must by applied before computing the fft. This will be computed later
-	CenterFFT(ptrhalf1, true);
-	CenterFFT(ptrhalf2, true);
+	CenterFFT(half1, true);
+	CenterFFT(half2, true);
 }
 
 
