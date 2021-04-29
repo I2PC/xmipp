@@ -41,10 +41,10 @@
  void ProgShiftParticles::readParams()
  {
 	fnParticles = getParam("-i");
-// 	fnVolR = getParam("--ref");
 	x0=getDoubleParam("--center",0);
 	y0=getDoubleParam("--center",1);
 	z0=getDoubleParam("--center",2);
+	boxSize=getIntParam("--boxSize");
 	fnOut=getParam("-o");
 	if (fnOut=="")
 		fnOut="output_particle_";
@@ -57,8 +57,8 @@
         return;
 	std::cout
 	<< "Input particles:   	" << fnParticles << std::endl
-//	<< "Reference volume:   " << fnVolR      << std::endl
-	<< "New center:  		" << x0 << ", " << y0 << ", "  << z0 << std::endl
+	<< "New center:  		" << x0 << ", "  << y0 << ", "  << z0 << std::endl
+	<< "Output box size: 	" << boxSize     << std::endl
 	<< "Output particles: 	" << fnOut 	     << std::endl
 	;
  }
@@ -70,22 +70,17 @@
      addUsageLine("Center particles into a selected point of a volume.");
      //Parameters
      addParamsLine("-i <particles>         			: Particles metadata (.xmd file)");
-//     addParamsLine("--ref <volume>         			: Reference volume to subtract");
      addParamsLine("[-o <structure=\"\">]  			: Output filename suffix for shifted particles");
      addParamsLine("                       			: If no name is given, then output_particles.xmd");
      addParamsLine("[--center <x0=0> <y0=0> <z0=0>] : New center coordinates x,y,z");
+     addParamsLine("[--boxSize <b=300>]             : Output box size");
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_shift_particles -i input_particles.xmd --ref input_map.mrc -o output_particles --center 0 0 0");
+     addExampleLine("xmipp_shift_particles -i input_particles.xmd --ref input_map.mrc -o output_particles --center 0 0 0 --boxSize 300");
  }
 
  void ProgShiftParticles::run()
  {
 	show();
-	// Read input volume
-//	V.read(fnVolR);
-//	V().setXmippOrigin();
-// 	MultidimArray<double> &mV=V();
-
 	// Read input center
 	Matrix1D<double> pos;
 	pos.initZeros(3);
@@ -111,22 +106,28 @@
 
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
-//		std::cout << "R: " << R << std::endl;
-		//R = R.inv();
+//		R = R.inv();
 		pos = R * pos;
-		std::cout << "R*pos: " << pos << std::endl;
-//		//add pos to R
-//		R(0,3) += pos(0);
-//		R(1,3) += pos(1);
-//		std::cout << "R: " << R << std::endl;
-//		R(2,3) += pos(2);
+
+		MDRow rowGeo;
+		rowGeo.setValue(MDL_SHIFT_X, pos(0));
+		rowGeo.setValue(MDL_SHIFT_Y, pos(1));
+//		rowGeo.setValue(MDL_SHIFT_Z, pos(2));
+
+	    A.initIdentity(3);
+	    geo2TransformationMatrix(rowGeo, A);
+	    RA.initIdentity(3);
+	    A = A * RA;
+
     	I().setXmippOrigin();
-		//I().resize(1, zdimOut, ydimOut, xdimOut, false);
-		applyGeometry(LINEAR, I(), I(), R, IS_NOT_INV, true, 0.);  //=> no es R sino la de matriz de transf entera!!!
+    	Iout().resize(1, 1, boxSize, boxSize, false);
+    	Iout().setXmippOrigin();
+		applyGeometry(LINEAR, Iout(), I(), A, IS_NOT_INV, true, 0.);
+
 		// Save shifted particles in metadata
 		ix_particle++;
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
-		I.write(out);
+		Iout.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
 		mdParticles.setValue(MDL_SHIFT_X, shiftx+pos(0), ix_particle);
 		mdParticles.setValue(MDL_SHIFT_Y, shifty+pos(1), ix_particle);
