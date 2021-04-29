@@ -47,13 +47,13 @@
     // Input particles metadata
     MetaData mdParticles;
  	MDRow row;
-    // Input new center coordinates and rot tilt psi from metadata
+    // Input center coordinates, rot, tilt, psi and shifts from metadata, output box size
     double x0, y0, z0, rot, tilt, psi, shiftx, shifty;
-    // Particle transform matrix
- 	Matrix2D<double> R;
-    // Input particle
- 	Image<double> I;
- 	// Theoretical projection of volume, subtraction mask and volume mask
+    int boxSize;
+    // Particle rotation matrix, new shift matrix, aux matrix
+ 	Matrix2D<double> R, A, RA;
+    // Input particle, output particle
+ 	Image<double> I, Iout;
 
  public:
     /// Empty constructor
