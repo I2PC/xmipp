@@ -37,7 +37,7 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     assert((inX / 2 + 1) >= outFFTX);
     assert(inY >= outY);
     mycufftHandle handle;
-    int counter = 0;
+    size_t counter = 0;
     std::complex<T>* h_result = (std::complex<T>*)inOutData;
     // since memory where the input images are will be reused, we have to make
     // sure it's big enough
@@ -53,7 +53,7 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
     GpuMultidimArrayAtGpu<std::complex<T> > resultingFFT;
 
     auto loadImgs = [&](){
-        int imgToProcess = std::min(inBatch, noOfImgs - counter);
+        int imgToProcess = std::min(inBatch, noOfImgs - static_cast<int>(counter));
         if (imgToProcess < 1) return (size_t)0;
         T* h_imgLoad = inOutData + counter * inX * inY;
         size_t bytesIn = imgToProcess * inX * inY * sizeof(T);
