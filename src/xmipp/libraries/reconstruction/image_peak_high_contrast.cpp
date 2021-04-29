@@ -287,8 +287,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
 	std::vector<std::vector<int>> centerOfMassXAcc;
-	std::vector<int> centerOfMassYAcc(0);
-    std::vector<int> centerOfMassZAcc(0);
+	std::vector<std::vector<int>> centerOfMassYAcc;
+	std::vector<std::vector<int>> centerOfMassZAcc;
+
 	
 	std::vector<int> numberOfCoordsPerCM(0);
 
@@ -301,12 +302,17 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		centerOfMassZ.push_back(coordinates3Dz[randomIndex]);
 
 		std::vector<int> newCenterOfMassX;
+		std::vector<int> newCenterOfMassY;
+		std::vector<int> newCenterOfMassZ;
+
 		newCenterOfMassX.push_back(coordinates3Dx[randomIndex]);
+		newCenterOfMassY.push_back(coordinates3Dy[randomIndex]);
+		newCenterOfMassZ.push_back(coordinates3Dz[randomIndex]);
 
 		centerOfMassXAcc.push_back(newCenterOfMassX);
-		centerOfMassYAcc.push_back(coordinates3Dy[randomIndex]);
-		centerOfMassZAcc.push_back(coordinates3Dz[randomIndex]);
-		
+		centerOfMassYAcc.push_back(newCenterOfMassY);
+		centerOfMassZAcc.push_back(newCenterOfMassZ);
+
 		numberOfCoordsPerCM.push_back(1);
 	}
 
@@ -346,8 +352,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 				// Add all the coordinate vectors to each center of mass
 				centerOfMassXAcc[j].push_back(coordinates3Dx[i]);
-				centerOfMassYAcc[j] = centerOfMassYAcc[j] + coordinates3Dy[i];
-				centerOfMassZAcc[j] = centerOfMassZAcc[j] + coordinates3Dz[i];
+				centerOfMassYAcc[j].push_back(coordinates3Dy[i]);
+				centerOfMassZAcc[j].push_back(coordinates3Dz[i]);
 
 				numberOfCoordsPerCM[j]++;
 
@@ -363,13 +369,20 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			centerOfMassZ.push_back(coordinates3Dz[i]);
 
 			std::vector<int> newCenterOfMassX;
+			std::vector<int> newCenterOfMassY;
+			std::vector<int> newCenterOfMassZ;
+
 			newCenterOfMassX.push_back(coordinates3Dx[i]);
+			newCenterOfMassY.push_back(coordinates3Dy[i]);
+			newCenterOfMassZ.push_back(coordinates3Dz[i]);
+
 			
 			centerOfMassXAcc.push_back(newCenterOfMassX);
-			centerOfMassYAcc.push_back(coordinates3Dy[i]);
-			centerOfMassZAcc.push_back(coordinates3Dz[i]);
+			centerOfMassYAcc.push_back(newCenterOfMassY);
+			centerOfMassZAcc.push_back(newCenterOfMassZ);
 
 			numberOfCoordsPerCM.push_back(1);
+
 		}
 	}
 
@@ -386,15 +399,19 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	for(size_t i = 0; i < centerOfMassX.size(); i++)
 	{
 		int sumX = 0;
+		int sumY = 0;
+		int sumZ = 0;
 
-		for( size_t j = 0; j < centerOfMassXAcc[i].size(); j++){
-			sumX +=  centerOfMassXAcc[i][j];
+		for( size_t j = 0; j < centerOfMassXAcc[i].size(); j++)
+		{
+			sumX += centerOfMassXAcc[i][j];
+			sumY += centerOfMassYAcc[i][j];
+			sumZ += centerOfMassZAcc[i][j];
 		}
 
 		centerOfMassX[i] = sumX / centerOfMassXAcc[i].size();
-
-		centerOfMassY[i] = centerOfMassYAcc[i] / numberOfCoordsPerCM[i];
-		centerOfMassZ[i] = centerOfMassZAcc[i] / numberOfCoordsPerCM[i];
+		centerOfMassY[i] = sumY / centerOfMassYAcc[i].size();
+		centerOfMassZ[i] = sumZ / centerOfMassZAcc[i].size();
 	}
 
 	// Check that coordinates at the border of the volume are not outside when considering the box size
