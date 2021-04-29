@@ -286,8 +286,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
     std::vector<int> centerOfMassZ(0);
 
 	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
-	std::vector<int> centerOfMassXAcc(0);
-    std::vector<int> centerOfMassYAcc(0);
+	std::vector<std::vector<int>> centerOfMassXAcc;
+	std::vector<int> centerOfMassYAcc(0);
     std::vector<int> centerOfMassZAcc(0);
 	
 	std::vector<int> numberOfCoordsPerCM(0);
@@ -300,7 +300,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		centerOfMassY.push_back(coordinates3Dy[randomIndex]);
 		centerOfMassZ.push_back(coordinates3Dz[randomIndex]);
 
-		centerOfMassXAcc.push_back(coordinates3Dx[randomIndex]);
+		std::vector<int> newCenterOfMassX;
+		newCenterOfMassX.push_back(coordinates3Dx[randomIndex]);
+
+		centerOfMassXAcc.push_back(newCenterOfMassX);
 		centerOfMassYAcc.push_back(coordinates3Dy[randomIndex]);
 		centerOfMassZAcc.push_back(coordinates3Dz[randomIndex]);
 		
@@ -342,7 +345,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				centerOfMassZ[j]=centerOfMassZ[j]+(coordinates3Dz[i]-centerOfMassZ[j])/2;
 
 				// Add all the coordinate vectors to each center of mass
-				centerOfMassXAcc[j] = centerOfMassXAcc[j] + coordinates3Dx[i];
+				centerOfMassXAcc[j].push_back(coordinates3Dx[i]);
 				centerOfMassYAcc[j] = centerOfMassYAcc[j] + coordinates3Dy[i];
 				centerOfMassZAcc[j] = centerOfMassZAcc[j] + coordinates3Dz[i];
 
@@ -359,12 +362,39 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			centerOfMassY.push_back(coordinates3Dy[i]);
 			centerOfMassZ.push_back(coordinates3Dz[i]);
 
-			centerOfMassXAcc.push_back(coordinates3Dx[i]);
+			std::vector<int> newCenterOfMassX;
+			newCenterOfMassX.push_back(coordinates3Dx[i]);
+			
+			centerOfMassXAcc.push_back(newCenterOfMassX);
 			centerOfMassYAcc.push_back(coordinates3Dy[i]);
 			centerOfMassZAcc.push_back(coordinates3Dz[i]);
 
 			numberOfCoordsPerCM.push_back(1);
 		}
+	}
+
+	// Complete the coordinates associated to each center of mass finding coordinates within distanceThr distance 
+	// to any of the coordinates of the set.
+	// for(size_t i = 0; i < centerOfMassX.size(); i++)
+	// {
+	// 	centerOfMassX[i] = centerOfMassXAcc[i] / numberOfCoordsPerCM[i];
+	// 	centerOfMassY[i] = centerOfMassYAcc[i] / numberOfCoordsPerCM[i];
+	// 	centerOfMassZ[i] = centerOfMassZAcc[i] / numberOfCoordsPerCM[i];
+	// }
+
+	// Update the center of mass coordinates as the average of the accumulated vectors
+	for(size_t i = 0; i < centerOfMassX.size(); i++)
+	{
+		int sumX = 0;
+
+		for( size_t j = 0; j < centerOfMassXAcc[i].size(); j++){
+			sumX +=  centerOfMassXAcc[i][j];
+		}
+
+		centerOfMassX[i] = sumX / centerOfMassXAcc[i].size();
+
+		centerOfMassY[i] = centerOfMassYAcc[i] / numberOfCoordsPerCM[i];
+		centerOfMassZ[i] = centerOfMassZAcc[i] / numberOfCoordsPerCM[i];
 	}
 
 	// Check that coordinates at the border of the volume are not outside when considering the box size
