@@ -152,5 +152,9 @@ bool GPU::isGpuPointer(const void *p) {
         cudaGetLastError(); // clear out the previous API error
         return false;
     }
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 10000
+    return cudaMemoryTypeDevice == attr.type;
+#else
     return cudaMemoryTypeDevice == attr.memoryType;
+#endif
 }

@@ -27,11 +27,15 @@ jobs:
         with:
           fetch-depth: 0
           
+      # This will try to fetch cache for current commit
+      # Since no such cache exists, it will try to bring newest restore-key one
+      # i.e. the one from latest build. See https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows#matching-a-cache-key
       - name: Fetch cache
-        uses: actions/cache@v2.1.4
+        uses: actions/cache@v2.1.5
         with:
           path: sonarCache
-          key: ${{ runner.os }}-sonarCache
+          key: ${{ runner.os }}-sonarCache-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-sonarCache-
       
       - name: Prepare Sonar scanner
         run: |
@@ -46,9 +50,11 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.0.3
                 
       - name: Install CUDA
-        run: source scripts/install_cuda_github.sh
-        env: 
-          CUDA_VER: 10.2.89
+        uses: Jimver/cuda-toolkit@v0.2.0
+        with: 
+          cuda: 10.2.89
+          method: network
+          sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
       - name: Install dependencies
         run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
@@ -56,8 +62,8 @@ jobs:
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
         env:
-          TRAVIS: 1
-          BUILD_TESTS: False
+          CIBuild: 1
+          BUILD_TESTS: True
           
       - name: SonarCloud Scan
         run: |
