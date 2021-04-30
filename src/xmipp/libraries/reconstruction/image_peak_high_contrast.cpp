@@ -385,6 +385,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	// 	centerOfMassZ[i] = centerOfMassZAcc[i] / numberOfCoordsPerCM[i];
 	// }
 
+	std::cout << "Prunning coordinates..." << std::endl;
+
+
 	// Update the center of mass coordinates as the average of the accumulated vectors
 	for(size_t i = 0; i < centerOfMassX.size(); i++)
 	{
@@ -404,9 +407,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		centerOfMassZ[i] = sumZ / centerOfMassZAcc[i].size();
 	}
 
-	// Check that coordinates at the border of the volume are not outside when considering the box size
 	for(size_t i=0;i<centerOfMassX.size();i++)
 	{
+		// Check that coordinates at the border of the volume are not outside when considering the box size
 		if(centerOfMassX[i]<boxSize/2 or xSize-centerOfMassX[i]<boxSize/2 or
 		   centerOfMassY[i]<boxSize/2 or ySize-centerOfMassY[i]<boxSize/2 or
 		   centerOfMassZ[i]<boxSize/2 or zSize-centerOfMassZ[i]<boxSize/2)
@@ -419,21 +422,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
 			i--;
 		}
-	}
 
-	std::cout<<"thr= "<<numberOfCoordinatesThr<<std::endl;
-	std::cout<<"centerOfMassXAcc.size()= "<<centerOfMassXAcc.size()<<std::endl;
-	std::cout<<"centerOfMassX.size()= "<<centerOfMassX.size()<<std::endl;
-	std::cout<<"-----------------------------------"<<std::endl;
-
-	// Check number of coordinates per center of mass
-	for(size_t i=0;i<centerOfMassX.size();i++)
-	{
-		std::cout<<"centerOfMassXAcc[i].size()"<< centerOfMassXAcc[i].size() <<std::endl;
-		
+		// Check that number of coordinates per center of mass is higher than numberOfCoordinatesThr threshold
 		if(centerOfMassXAcc[i].size() < numberOfCoordinatesThr)
 		{
-			std::cout<<"i= "<<i<<std::endl;
 			centerOfMassX.erase(centerOfMassX.begin()+i);
 			centerOfMassY.erase(centerOfMassY.begin()+i);
 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
