@@ -339,7 +339,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 			if(squareDistance < squareDistanceThr)
 			{
-
 				// Update center of mass with new coordinate
 				centerOfMassX[j]=centerOfMassX[j]+(coordinates3Dx[i]-centerOfMassX[j])/2;
 				centerOfMassY[j]=centerOfMassY[j]+(coordinates3Dy[i]-centerOfMassY[j])/2;
@@ -369,7 +368,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			newCenterOfMassY.push_back(coordinates3Dy[i]);
 			newCenterOfMassZ.push_back(coordinates3Dz[i]);
 
-			
 			centerOfMassXAcc.push_back(newCenterOfMassX);
 			centerOfMassYAcc.push_back(newCenterOfMassY);
 			centerOfMassZAcc.push_back(newCenterOfMassZ);
@@ -394,17 +392,18 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		int sumX = 0;
 		int sumY = 0;
 		int sumZ = 0;
+		size_t centerOfMassAccSize = centerOfMassXAcc[i].size();
 
-		for( size_t j = 0; j < centerOfMassXAcc[i].size(); j++)
+		for( size_t j = 0; j < centerOfMassAccSize; j++)
 		{
 			sumX += centerOfMassXAcc[i][j];
 			sumY += centerOfMassYAcc[i][j];
 			sumZ += centerOfMassZAcc[i][j];
 		}
 
-		centerOfMassX[i] = sumX / centerOfMassXAcc[i].size();
-		centerOfMassY[i] = sumY / centerOfMassYAcc[i].size();
-		centerOfMassZ[i] = sumZ / centerOfMassZAcc[i].size();
+		centerOfMassX[i] = sumX / centerOfMassAccSize;
+		centerOfMassY[i] = sumY / centerOfMassAccSize;
+		centerOfMassZ[i] = sumZ / centerOfMassAccSize;
 	}
 
 	for(size_t i=0;i<centerOfMassX.size();i++)
