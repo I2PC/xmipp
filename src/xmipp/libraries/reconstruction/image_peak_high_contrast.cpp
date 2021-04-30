@@ -290,9 +290,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	std::vector<std::vector<int>> centerOfMassYAcc;
 	std::vector<std::vector<int>> centerOfMassZAcc;
 
-	
-	std::vector<int> numberOfCoordsPerCM(0);
-
 	for(int i=0;i<numberCenterOfMass;i++)
 	{
 		int randomIndex = rand() % coordinates3Dx.size();
@@ -312,8 +309,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		centerOfMassXAcc.push_back(newCenterOfMassX);
 		centerOfMassYAcc.push_back(newCenterOfMassY);
 		centerOfMassZAcc.push_back(newCenterOfMassZ);
-
-		numberOfCoordsPerCM.push_back(1);
 	}
 
 	int squareDistanceThr = distanceThr*distanceThr;
@@ -355,8 +350,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				centerOfMassYAcc[j].push_back(coordinates3Dy[i]);
 				centerOfMassZAcc[j].push_back(coordinates3Dz[i]);
 
-				numberOfCoordsPerCM[j]++;
-
 				attractedToMassCenter = true;
 				break;
 			}
@@ -380,9 +373,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			centerOfMassXAcc.push_back(newCenterOfMassX);
 			centerOfMassYAcc.push_back(newCenterOfMassY);
 			centerOfMassZAcc.push_back(newCenterOfMassZ);
-
-			numberOfCoordsPerCM.push_back(1);
-
 		}
 	}
 
@@ -415,29 +405,41 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	}
 
 	// Check that coordinates at the border of the volume are not outside when considering the box size
-	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
+	for(size_t i=0;i<centerOfMassX.size();i++)
 	{
 		if(centerOfMassX[i]<boxSize/2 or xSize-centerOfMassX[i]<boxSize/2 or
 		   centerOfMassY[i]<boxSize/2 or ySize-centerOfMassY[i]<boxSize/2 or
 		   centerOfMassZ[i]<boxSize/2 or zSize-centerOfMassZ[i]<boxSize/2)
 		{
-			numberOfCoordsPerCM.erase(numberOfCoordsPerCM.begin()+i);
 			centerOfMassX.erase(centerOfMassX.begin()+i);
 			centerOfMassY.erase(centerOfMassY.begin()+i);
 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
+			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
+			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
+			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
 			i--;
 		}
 	}
 
+	std::cout<<"thr= "<<numberOfCoordinatesThr<<std::endl;
+	std::cout<<"centerOfMassXAcc.size()= "<<centerOfMassXAcc.size()<<std::endl;
+	std::cout<<"centerOfMassX.size()= "<<centerOfMassX.size()<<std::endl;
+	std::cout<<"-----------------------------------"<<std::endl;
+
 	// Check number of coordinates per center of mass
-	for(size_t i=0;i<numberOfCoordsPerCM.size();i++)
+	for(size_t i=0;i<centerOfMassX.size();i++)
 	{
-		if(numberOfCoordsPerCM[i]<numberOfCoordinatesThr)
+		std::cout<<"centerOfMassXAcc[i].size()"<< centerOfMassXAcc[i].size() <<std::endl;
+		
+		if(centerOfMassXAcc[i].size() < numberOfCoordinatesThr)
 		{
-			numberOfCoordsPerCM.erase(numberOfCoordsPerCM.begin()+i);
+			std::cout<<"i= "<<i<<std::endl;
 			centerOfMassX.erase(centerOfMassX.begin()+i);
 			centerOfMassY.erase(centerOfMassY.begin()+i);
 			centerOfMassZ.erase(centerOfMassZ.begin()+i);
+			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
+			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
+			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
 			i--;
 		}
 	}
