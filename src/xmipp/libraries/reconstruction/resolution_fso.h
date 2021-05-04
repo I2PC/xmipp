@@ -109,7 +109,7 @@ private:
 		void fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 				                      MultidimArray<double> &threeD_FSC, 
 						              MultidimArray<double> &normalizationMap,
-						              double &thrs, double &resol, size_t dirnumber);
+						              double &thrs, double &resol);
 
         /* PREPAREDATA: Data are prepared to be taken by the algorithm. 
         * The half maps will be read and stored in the multidimarray half1, and half2.
