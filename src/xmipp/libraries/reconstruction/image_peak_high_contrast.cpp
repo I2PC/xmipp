@@ -204,9 +204,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	std::cout << "Picking coordinates..." << std::endl;
 
 	size_t centralSlice = zSize/2;
-	std::vector<double> tomoVector(0);
+	// std::vector<double> tomoVector(0);
 
-	double numberOfInitialCoordinates = xSize * ySize * numberSampSlices * (ratioOfInitialCoordinates / 1000000);
+	// double numberOfInitialCoordinates = xSize * ySize * numberSampSlices * (ratioOfInitialCoordinates / 1000000);
 
 	#ifdef DEBUG
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
@@ -216,8 +216,27 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	<< centralSlice + (numberSampSlices / 2) << std::endl;
 	#endif
 
-	for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
+	// for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
+	// {
+	// 	for(size_t j = 0; j < ySize; ++j)
+	// 	{
+	// 		for(size_t i = 0; i < xSize; ++i)
+	// 		{
+	// 			#ifdef DEBUG_DIM
+	// 			std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
+	// 			#endif
+
+	// 			tomoVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
+	// 		}
+	// 	}
+	// }
+
+	std::vector<double> sliceThresholdValue(0);
+	
+	for(size_t k = 0; k < zSize; ++k)
 	{
+		std::vector<int> sliceVector(0);
+
 		for(size_t j = 0; j < ySize; ++j)
 		{
 			for(size_t i = 0; i < xSize; ++i)
@@ -226,28 +245,76 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
 				#endif
 
-				tomoVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
+				sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
 			}
 		}
+		// Calculate threshols value for each slice of the volume
+		double sum = 0;
+		double average = 0;
+		double standardDeviation = 0;
+		double sliceVectorSize = sliceVector.size();
+
+		for(size_t e = 0; e < sliceVectorSize; e++)
+		{
+			sum += sliceVector[e];
+		}
+
+		average = sum / sliceVectorSize;
+
+		std::cout<< "sum " << sum << std::endl;
+		std::cout<< "siliceVector.size() " << sliceVectorSize << std::endl;
+		std::cout<< "Average " << average << std::endl;
+
+
+		for(size_t f = 0; f < sliceVectorSize; f++)
+		{
+			standardDeviation += (sliceVector[f]-average)*(sliceVector[f]-average);
+		}
+		std::cout<< "SD " << standardDeviation << std::endl;
+
+		standardDeviation = sqrt(standardDeviation/sliceVectorSize);
+
+		sliceThresholdValue.push_back(average-ratioOfInitialCoordinates*standardDeviation);
+		std::cout<< "slice " << k <<  " threshold " << sliceThresholdValue[k] << std::endl;
+		std::cout<< "SD " << standardDeviation << std::endl;
+		std::cout<< "---------------------------------------" << std::endl;
+
+
 	}
 	
-	std::sort(tomoVector.begin(),tomoVector.end());
+	// std::sort(tomoVector.begin(),tomoVector.end());
 
-	double thresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates))];
+	// double thresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates))];
+
+	#define DEBUG
 
 	#ifdef DEBUG
-	std::cout << "Threshold value = " << thresholdValue << std::endl;
+	// std::cout << "Threshold value = " << thresholdValue << std::endl;
 	#endif
 
     std::vector<int> coordinates3Dx(0);
     std::vector<int> coordinates3Dy(0);
     std::vector<int> coordinates3Dz(0);
 
-    FOR_ALL_ELEMENTS_IN_ARRAY3D(volFiltered)
+    // FOR_ALL_ELEMENTS_IN_ARRAY3D(volFiltered)
+    // {
+    //     double value = A3D_ELEM(volFiltered, k, i, j);
+
+    //     if (value>=thresholdValue)
+    //     {
+    //         coordinates3Dx.push_back(j);
+    //         coordinates3Dy.push_back(i);
+    //         coordinates3Dz.push_back(k);
+    //     }
+    // }
+
+
+	double maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
+	FOR_ALL_ELEMENTS_IN_ARRAY3D(volFiltered)
     {
         double value = A3D_ELEM(volFiltered, k, i, j);
 
-        if (value>=thresholdValue)
+        if (value<maxThreshold)
         {
             coordinates3Dx.push_back(j);
             coordinates3Dy.push_back(i);
