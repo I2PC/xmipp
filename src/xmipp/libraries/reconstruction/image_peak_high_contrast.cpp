@@ -376,11 +376,48 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	// Complete the coordinates associated to each center of mass finding coordinates within distanceThr distance 
 	// to any of the coordinates of the set.
-	// for(size_t i = 0; i < centerOfMassX.size(); i++)
+
+	// std::cout << "centerOfMassX.size()="<<centerOfMassX.size()<<std::endl;
+	// std::cout << "centerOfMassXAcc.size()="<<centerOfMassXAcc.size()<<std::endl;
+	// std::cout << "coordinates3Dx.size()="<<coordinates3Dx.size()<<std::endl;
+
+	// for(size_t i = 0; i < centerOfMassXAcc.size(); i++)
 	// {
-	// 	centerOfMassX[i] = centerOfMassXAcc[i] / numberOfCoordsPerCM[i];
-	// 	centerOfMassY[i] = centerOfMassYAcc[i] / numberOfCoordsPerCM[i];
-	// 	centerOfMassZ[i] = centerOfMassZAcc[i] / numberOfCoordsPerCM[i];
+	// 	std::cout << "centerOfMassXAcc["<<i<<"].size()="<<centerOfMassXAcc[i].size()<<std::endl;
+	// }
+
+
+
+	// for(size_t i = 0; i < centerOfMassXAcc.size(); i++)
+	// {
+	// 	std::cout << "centerOfMassXAcc["<<i<<"].size()="<<centerOfMassXAcc[i].size()<<std::endl;
+
+	// 	for(size_t j = 0; j < centerOfMassXAcc[i].size(); j++)
+	// 	{
+	// 		int xCMA = centerOfMassXAcc[i][j];
+	// 		int yCMA = centerOfMassYAcc[i][j];
+	// 		int zCMA = centerOfMassZAcc[i][j];
+
+	// 		for(size_t k = 0; k < coordinates3Dx.size(); ++k)
+	// 		{
+
+	// 			std::cout<<"i="<<i<<", j="<<j<<", k="<<k<<std::endl;
+	// 			int xCoor = coordinates3Dx[k];
+	// 			int yCoor = coordinates3Dy[k];
+	// 			int zCoor = coordinates3Dz[k];
+				
+	// 			int squareDistance = (xCoor-xCMA)*(xCoor-xCMA)+(yCoor-yCMA)*(yCoor-yCMA)+(zCoor-zCMA)*(zCoor-zCMA);
+
+	// 			if(squareDistance < squareDistanceThr)
+	// 			{
+	// 				std::cout << "squareDistance < squareDistanceThr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<< std::endl;
+	// 				// Add all the coordinate vectors to each center of mass
+	// 				centerOfMassXAcc[j].push_back(coordinates3Dx[k]);
+	// 				centerOfMassYAcc[j].push_back(coordinates3Dy[k]);
+	// 				centerOfMassZAcc[j].push_back(coordinates3Dz[k]);
+	// 			}
+	// 		}
+	// 	}
 	// }
 
 	std::cout << "Prunning coordinates..." << std::endl;
