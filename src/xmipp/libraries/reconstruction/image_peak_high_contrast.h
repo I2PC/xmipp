@@ -40,6 +40,7 @@
 #include <string>
 #include "symmetrize.h"
 
+#define DEBUG
 
 class ProgImagePeakHighContrast : public XmippProgram
 {
