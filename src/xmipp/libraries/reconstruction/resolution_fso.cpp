@@ -31,8 +31,7 @@
 #include <data/fourier_filter.h>
 #include <random>
 #include <limits>
-
-#define SAVE_DIR_FSC
+#include <CTPL/ctpl_stl.h>
 
 void ProgFSO::defineParams()
 {
@@ -374,7 +373,7 @@ void ProgFSO::fscInterpolation(const MultidimArray<double> &freq, const Multidim
 
 void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 				MultidimArray<double> &threeD_FSC, MultidimArray<double> &normalizationMap,
-				double &thrs, double &resol, size_t dirnumber)
+				double &thrs, double &resol)
 {
 	// FSCDIR_FAST: computes the directional FSC along a direction given by the angles rot and tilt.
 	// Thus the directional resolution, resol, is estimated with the threshold, thrs.
@@ -450,37 +449,19 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 	fsc.initConstant(1.0);
 
 	//The fsc is stored in a metadata and saved
-	FileName fnmd;
 	bool flagRes = true;
-	size_t id;
-	MetaData mdRes;
-	MDRow row;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(num)
 	{
 		double auxfsc = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
 		dAi(fsc,i) = std::max(0.0, auxfsc);
 
-		if (i>0)
+		if ((i>2) && (dAi(fsc,i)<=thrs) && (flagRes))
 		{
-			#ifdef SAVE_DIR_FSC
 			double ff = (float) i / (xvoldim * sampling); // frequency
-			row.setValue(MDL_RESOLUTION_FREQ, ff);
-			row.setValue(MDL_RESOLUTION_FRC, dAi(fsc, i));
-			row.setValue(MDL_RESOLUTION_FREQREAL, 1./ff);
-			mdRes.addRow(row);
-			#endif
-			if ((i>2) && (dAi(fsc,i)<=thrs) && (flagRes))
-			{
-				flagRes = false;
-				resol = 1./ff;
-			}
+			flagRes = false;
+			resol = 1./ff;
 		}
 	}
-
-	#ifdef SAVE_DIR_FSC
-	fnmd = fnOut + formatString("/fscDirection_%i.xmd", dirnumber);
-	mdRes.write(fnmd);
-	#endif
 
 	// the 3dfsc is computed and updated
 	if (do_3dfsc_filter)
@@ -1170,26 +1151,39 @@ void ProgFSO::run()
 
 		// Computing directional FSC and 3DFSC
 		MultidimArray<double> fsc, threeD_FSC, normalizationMap;
-		double resInterp = -1;
 		threeD_FSC.resizeNoCopy(real_z1z2);
 		threeD_FSC.initZeros();
 		normalizationMap.resizeNoCopy(real_z1z2);
 		normalizationMap.initZeros();
+
+		ctpl::thread_pool threadPool;
+		threadPool.resize(Nthreads);
+		auto futures = std::vector<std::future<void>>();
+    	futures.reserve(angles.mdimx);
 		
     	for (size_t k = 0; k<angles.mdimx; k++)
 		{
-			float rot  = MAT_ELEM(angles, 0, k);
-			float tilt = MAT_ELEM(angles, 1, k);
+			futures.emplace_back(threadPool.push(
+				[k, this, &fsc, &threeD_FSC, &normalizationMap, &resDirFSC, &directionAnisotropy, &aniParam](int thrId){
+				float rot  = MAT_ELEM(angles, 0, k);
+				float tilt = MAT_ELEM(angles, 1, k);
 
-			// Estimating the direction FSC along the direction given by rot and tilt
-			fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp, k);
+				double resInterp = -1;	
+				// Estimating the direction FSC along the direction given by rot and tilt
+				fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp);
 
-			printf ("Direction %zu/%zu -> %.2f A \n", k, angles.mdimx, resInterp);
+				printf ("Direction %zu/%zu -> %.2f A \n", k, angles.mdimx, resInterp);
 
-			dAi(resDirFSC, k) = resInterp;
-			
-			// Updating the FSO curve
-			anistropyParameter(fsc, directionAnisotropy, k, aniParam, thrs);
+				dAi(resDirFSC, k) = resInterp;
+				
+				// Updating the FSO curve
+				anistropyParameter(fsc, directionAnisotropy, k, aniParam, thrs);
+			}));
+		}
+
+		// wait till done
+    	for (auto &f : futures) {
+			f.get();
 		}
 
 		std::cout << "----- Directional resolution estimated -----" <<  std::endl <<  std::endl;
