@@ -183,8 +183,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	volFiltered.resizeNoCopy(inputTomo);
 	transformer.inverseFourierTransform(fftFiltered, volFiltered);
 
-	size_t lastindex = fnVol.find_last_of(".");
-	std::string rawname = fnVol.substr(0, lastindex);
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
 	std::string outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
@@ -233,12 +233,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	
 	std::sort(tomoVector.begin(),tomoVector.end());
 
-	double highThresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates/2))];
-    double lowThresholdValue = tomoVector[size_t(numberOfInitialCoordinates/2)];
+	double thresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates))];
 
 	#ifdef DEBUG
-	std::cout << "High threshold value = " << highThresholdValue << std::endl;
-    std::cout << "Low threshold value = " << lowThresholdValue << std::endl;
+	std::cout << "Threshold value = " << thresholdValue << std::endl;
 	#endif
 
     std::vector<int> coordinates3Dx(0);
@@ -249,7 +247,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
     {
         double value = A3D_ELEM(volFiltered, k, i, j);
 
-        if (value<=lowThresholdValue or value>=highThresholdValue)
+        if (value>=thresholdValue)
         {
             coordinates3Dx.push_back(j);
             coordinates3Dy.push_back(i);
