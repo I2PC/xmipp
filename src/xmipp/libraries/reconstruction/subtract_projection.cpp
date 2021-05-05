@@ -51,32 +51,22 @@ void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I)
 
 void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, MultidimArray<double> &rQ, int Isize)
 {
-//	POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
 	int Isize2 = Isize/2;
+	double Isizei = 1.0/Isize;
 	double wx, wy;
-//	std::cout << "rQ: " << rQ << std::endl;
-//	A.printShape();   // 300x151
-//	FI.printShape();  // 300x151
-//	rQ.printShape();  // 213
-
 	for (int i=0; i<YSIZE(A); ++i)
 	{
-		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isize,wy);
+		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isizei,wy);
 		double wy2 = wy*wy;
 		for (int j=0; j<XSIZE(A); ++j)
 		{
-			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isize,wx);
-			double w = sqrt(wx*wx + wy2); //convert each value (i,j) of IFourierMag into digital freq (w)
-//			int iw = (int)round(w*Isize);
-			int iw = (int)round(w/Isize);
+			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isizei,wx);
+			double w = sqrt(wx*wx + wy2);
+			int iw = (int)round(w*Isize);
 			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
 			if (mod>1e-6)
-				std::cout << "iw: " << iw << std::endl;
-				std::cout << "rQ(iw): " << DIRECT_MULTIDIM_ELEM(rQ,iw) << std::endl;
-//				std::cout << DIRECT_A2D_ELEM(FI,i,j)*(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod) << std::endl;
-//				std::cout << DIRECT_A2D_ELEM(FI,i,j)*(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw) << std::endl;
 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
-				//multiply each value of PFourier for each correspondent freq of the radQuotient array
+
 		}
 	}
 }
