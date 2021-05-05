@@ -188,9 +188,11 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	std::string outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
+	#ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
 	saveImage() = volFiltered; 
 	saveImage.write(outputFileNameFilteredVolume);
+	#endif
 
 	return volFiltered;
 }
@@ -204,16 +206,17 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	std::cout << "Picking coordinates..." << std::endl;
 
 	size_t centralSlice = zSize/2;
+	size_t minSamplingSlice = centralSlice - (numberSampSlices / 2);
+	size_t maxSamplingSlice = centralSlice + (numberSampSlices / 2);
+
 	// std::vector<double> tomoVector(0);
 
 	// double numberOfInitialCoordinates = xSize * ySize * numberSampSlices * (ratioOfInitialCoordinates / 1000000);
 
 	#ifdef DEBUG
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
-	std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
-
-	std::cout << "Sampling region from slice " << centralSlice - (numberSampSlices/2) << " to " 
-	<< centralSlice + (numberSampSlices / 2) << std::endl;
+	// std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
+	std::cout << "Sampling region from slice " << minSamplingSlice << " to " << maxSamplingSlice << std::endl;
 	#endif
 
 	// for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
@@ -231,62 +234,59 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	// 	}
 	// }
 
-	std::vector<double> sliceThresholdValue(0);
+	std::vector<double> sliceThresholdValue;
 	
 	for(size_t k = 0; k < zSize; ++k)
 	{
-		std::vector<int> sliceVector(0);
-
-		for(size_t j = 0; j < ySize; ++j)
+		std::vector<int> sliceVector;
+		
+		// Calculate threshols value for the central slices of the volume
+		if(k < maxSamplingSlice && k > minSamplingSlice)
 		{
-			for(size_t i = 0; i < xSize; ++i)
+			for(size_t j = 0; j < ySize; ++j)
 			{
-				#ifdef DEBUG_DIM
-				std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
-				#endif
+				for(size_t i = 0; i < xSize; ++i)
+				{
+					#ifdef DEBUG_DIM
+					std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
+					#endif
 
-				sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
+					sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
+				}
 			}
+
+			double sum = 0;
+			double average = 0;
+			double standardDeviation = 0;
+			double sliceVectorSize = sliceVector.size();
+
+			for(size_t e = 0; e < sliceVectorSize; e++)
+			{
+				sum += sliceVector[e];
+			}
+
+			average = sum / sliceVectorSize;
+
+			for(size_t f = 0; f < sliceVectorSize; f++)
+			{
+				standardDeviation += (sliceVector[f]-average)*(sliceVector[f]-average);
+			}
+
+			standardDeviation = sqrt(standardDeviation/sliceVectorSize);
+			double threshold = average-ratioOfInitialCoordinates*standardDeviation;
+
+			sliceThresholdValue.push_back(threshold);
+
+			#ifdef DEBUG
+			std::cout<< "Slice: " << k <<  " Threshold: " << threshold << std::endl;
+			#endif
 		}
-		// Calculate threshols value for each slice of the volume
-		double sum = 0;
-		double average = 0;
-		double standardDeviation = 0;
-		double sliceVectorSize = sliceVector.size();
-
-		for(size_t e = 0; e < sliceVectorSize; e++)
-		{
-			sum += sliceVector[e];
-		}
-
-		average = sum / sliceVectorSize;
-
-		std::cout<< "sum " << sum << std::endl;
-		std::cout<< "siliceVector.size() " << sliceVectorSize << std::endl;
-		std::cout<< "Average " << average << std::endl;
-
-
-		for(size_t f = 0; f < sliceVectorSize; f++)
-		{
-			standardDeviation += (sliceVector[f]-average)*(sliceVector[f]-average);
-		}
-		std::cout<< "SD " << standardDeviation << std::endl;
-
-		standardDeviation = sqrt(standardDeviation/sliceVectorSize);
-
-		sliceThresholdValue.push_back(average-ratioOfInitialCoordinates*standardDeviation);
-		std::cout<< "slice " << k <<  " threshold " << sliceThresholdValue[k] << std::endl;
-		std::cout<< "SD " << standardDeviation << std::endl;
-		std::cout<< "---------------------------------------" << std::endl;
-
-
 	}
-	
+
 	// std::sort(tomoVector.begin(),tomoVector.end());
 
 	// double thresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates))];
 
-	#define DEBUG
 
 	#ifdef DEBUG
 	// std::cout << "Threshold value = " << thresholdValue << std::endl;
@@ -308,23 +308,49 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
     //     }
     // }
 
+	MultidimArray<double> binaryCoordinatesMapSlice;
+	MultidimArray<double> labelCoordiantesMapSlice;
 
 	double maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(volFiltered)
-    {
-        double value = A3D_ELEM(volFiltered, k, i, j);
+	
+	for(size_t k = 0; k < coordinates3Dz.size(); k++)
+	{
+		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
-        if (value<maxThreshold)
-        {
-            coordinates3Dx.push_back(j);
-            coordinates3Dy.push_back(i);
-            coordinates3Dz.push_back(k);
-        }
+		for(size_t j = 0; j < coordinates3Dy.size(); j++)
+		{
+			for(size_t i = 0; i < coordinates3Dx.size(); i++)
+			{
+				double value = A3D_ELEM(volFiltered, k, i, j);
+
+				if (value<maxThreshold)
+				{
+					coordinates3Dx.push_back(j);
+					coordinates3Dy.push_back(i);
+					coordinates3Dz.push_back(k);
+					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+
+				}
+			}
+		}
+		std::cout << "labeling slice " << k << std::endl;
+
+		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 4);
+		std::cout << "Colour: " << colour << std::endl;
     }
 
 	#ifdef DEBUG
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
+
+	// size_t lastindex = fnOut.find_last_of(".");
+	// std::string rawname = fnOut.substr(0, lastindex);
+	// std::string outputFileNameFilteredVolume;
+    // outputFileNameFilteredVolume = rawname + "_label.mrc";
+
+	// Image<double> saveImage;
+	// saveImage() = labelCoordiantesMap; 
+	// saveImage.write(outputFileNameFilteredVolume);
 
 	clusterHighContrastCoordinates(coordinates3Dx,
 								   coordinates3Dy,
@@ -332,6 +358,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 								   xSize,
 								   ySize,
 								   zSize);
+
 }
 
 
