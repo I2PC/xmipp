@@ -110,8 +110,8 @@
 		pos = R * pos;
 
 		MDRow rowGeo;
-		rowGeo.setValue(MDL_SHIFT_X, pos(0));
-		rowGeo.setValue(MDL_SHIFT_Y, pos(1));
+		rowGeo.setValue(MDL_SHIFT_X, -pos(0));
+		rowGeo.setValue(MDL_SHIFT_Y, -pos(1));
 //		rowGeo.setValue(MDL_SHIFT_Z, pos(2));
 
 	    A.initIdentity(3);

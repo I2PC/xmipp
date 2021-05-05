@@ -180,87 +180,87 @@ protected:
     	mask1.clear();
 		POCSmask(mask(),V1());
     	POCSnonnegative(V1());
-
-    	double v1min, v1max;
-		V1().computeDoubleMinMax(v1min, v1max);
-
-    	transformer.FourierTransform(V1(),V1Fourier,false);
-    	FFT_magnitude(V1Fourier,V1FourierMag);
-		double std1 = V1().computeStddev();
-
+//
+//    	double v1min, v1max;
+//		V1().computeDoubleMinMax(v1min, v1max);
+//
+//    	transformer.FourierTransform(V1(),V1Fourier,false);
+//    	FFT_magnitude(V1Fourier,V1FourierMag);
+//		double std1 = V1().computeStddev();
+//
 		V.read(fnVol2);
 		POCSmask(mask(),V());
-
-    	MultidimArray<std::complex<double> > V2FourierPhase;
-    	transformer.FourierTransform(V(),V2FourierPhase,true);
-    	extractPhase(V2FourierPhase);
-
-		FourierFilter Filter2;
-		double energy, std2;
-		energy = 0;
-		Vdiff = V;
-
-		Filter2.FilterBand=LOWPASS;
-		Filter2.FilterShape=RAISED_COSINE;
-		Filter2.raised_w=0.02;
-		Filter2.w1=cutFreq;
-
+//
+//    	MultidimArray<std::complex<double> > V2FourierPhase;
+//    	transformer.FourierTransform(V(),V2FourierPhase,true);
+//    	extractPhase(V2FourierPhase);
+//
+//		FourierFilter Filter2;
+//		double energy, std2;
+//		energy = 0;
+//		Vdiff = V;
+//
+//		Filter2.FilterBand=LOWPASS;
+//		Filter2.FilterShape=RAISED_COSINE;
+//		Filter2.raised_w=0.02;
+//		Filter2.w1=cutFreq;
+//
     	for (int n=0; n<iter; ++n)
     	{
-    		std::cout<< "---Iter " << n << std::endl;
-    		transformer.FourierTransform(V(),V2Fourier,false);
-    		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
-        	transformer.inverseFourierTransform();
-        	computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
-
-    		POCSMinMax(V(), v1min, v1max);
-        	computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
-
-			POCSmask(mask(),V());
-        	computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
-    		transformer.FourierTransform();
-    		POCSFourierPhase(V2FourierPhase,V2Fourier);
-        	transformer.inverseFourierTransform();
-        	computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+//    		std::cout<< "---Iter " << n << std::endl;
+//    		transformer.FourierTransform(V(),V2Fourier,false);
+//    		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
+//        	transformer.inverseFourierTransform();
+//        	computeEnergy(Vdiff(), V(), energy);
+//        	Vdiff = V;
+//
+//    		POCSMinMax(V(), v1min, v1max);
+//        	computeEnergy(Vdiff(), V(), energy);
+//        	Vdiff = V;
+//
+//			POCSmask(mask(),V());
+//        	computeEnergy(Vdiff(), V(), energy);
+//        	Vdiff = V;
+//    		transformer.FourierTransform();
+//    		POCSFourierPhase(V2FourierPhase,V2Fourier);
+//        	transformer.inverseFourierTransform();
+//        	computeEnergy(Vdiff(), V(), energy);
+//        	Vdiff = V;
         	POCSnonnegative(V());
-        	computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
-			std2 = V().computeStddev();
-			V()*=std1/std2;
-        	computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
-    		if (cutFreq!=0)
-    		{
-    			Filter2.generateMask(V());
-				Filter2.do_generate_3dmask=true;
-				Filter2.applyMaskSpace(V());
-				computeEnergy(Vdiff(), V(), energy);
-	        	Vdiff = V;
-    		}
+//        	computeEnergy(Vdiff(), V(), energy);
+//        	Vdiff = V;
+//			std2 = V().computeStddev();
+//			V()*=std1/std2;
+//        	computeEnergy(Vdiff(), V(), energy);
+//        	Vdiff = V;
+//    		if (cutFreq!=0)
+//    		{
+//    			Filter2.generateMask(V());
+//				Filter2.do_generate_3dmask=true;
+//				Filter2.applyMaskSpace(V());
+//				computeEnergy(Vdiff(), V(), energy);
+//	        	Vdiff = V;
+//    		}
     	}
-
-		FourierFilter Filter;
-		Filter.FilterShape=REALGAUSSIAN;
-		Filter.FilterBand=LOWPASS;
-		Filter.w1=sigma;
-		Filter.applyMaskSpace(mask());
+//
+//		FourierFilter Filter;
+//		Filter.FilterShape=REALGAUSSIAN;
+//		Filter.FilterBand=LOWPASS;
+//		Filter.w1=sigma;
+//		Filter.applyMaskSpace(mask());
 		Image<double> V1Filtered;
-		V1.read(fnVol1);
+////		V1.read(fnVol1);
 		V1Filtered() = V1();
-		if (cutFreq!=0)
-			Filter2.applyMaskSpace(V1Filtered());
+//		if (cutFreq!=0)
+//			Filter2.applyMaskSpace(V1Filtered());
 
     	if (sub==true)
     	{
-        	if (fnVol1F!="" && fnVol2A!="")
-    		{
-    			V1Filtered.write(fnVol1F);
-    			V.write(fnVol2A);
-    		}
+//        	if (fnVol1F!="" && fnVol2A!="")
+//    		{
+//    			V1Filtered.write(fnVol1F);
+//    			V.write(fnVol2A);
+//    		}
     		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
     		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
     				std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
