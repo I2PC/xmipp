@@ -48,7 +48,7 @@
     MetaData mdParticles;
  	MDRow row;
     // Input center coordinates, rot, tilt, psi and shifts from metadata, output box size
-    double x0, y0, z0, rot, tilt, psi, shiftx, shifty;
+    double x0, y0, z0, rot, tilt, psi, shiftx, shifty, shiftz;
     int boxSize;
     // Particle rotation matrix, new shift matrix, aux matrix
  	Matrix2D<double> R, A, RA;
