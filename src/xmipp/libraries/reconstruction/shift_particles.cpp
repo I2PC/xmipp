@@ -103,21 +103,20 @@
      	row.getValue(MDL_ANGLE_PSI, psi);
      	row.getValue(MDL_SHIFT_X, shiftx);
      	row.getValue(MDL_SHIFT_Y, shifty);
+     	row.getValue(MDL_SHIFT_Z, shiftz);
 
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
-//		R = R.inv();
+		R = R.inv();
 		pos = R * pos;
 
 		MDRow rowGeo;
 		rowGeo.setValue(MDL_SHIFT_X, -pos(0));
 		rowGeo.setValue(MDL_SHIFT_Y, -pos(1));
-//		rowGeo.setValue(MDL_SHIFT_Z, pos(2));
+		rowGeo.setValue(MDL_SHIFT_Z, -pos(2));
 
 	    A.initIdentity(3);
 	    geo2TransformationMatrix(rowGeo, A);
-	    RA.initIdentity(3);
-	    A = A * RA;
 
     	I().setXmippOrigin();
     	Iout().resize(1, 1, boxSize, boxSize, false);
@@ -129,6 +128,7 @@
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
 		Iout.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
+		// CHECK!!!
 		mdParticles.setValue(MDL_SHIFT_X, shiftx+pos(0), ix_particle);
 		mdParticles.setValue(MDL_SHIFT_Y, shifty+pos(1), ix_particle);
     }
