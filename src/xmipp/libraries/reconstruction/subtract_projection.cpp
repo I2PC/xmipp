@@ -292,6 +292,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		P.write("PmaskVol.mrc");
 
     	// Check if particle has CTF and apply it
+		//
      	if ((row.containsLabel(MDL_CTF_DEFOCUSU) || row.containsLabel(MDL_CTF_MODEL)))
      	{
      		hasCTF=true;
