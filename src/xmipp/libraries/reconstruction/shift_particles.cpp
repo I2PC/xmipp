@@ -36,6 +36,25 @@
  #include <sstream>
  #include "data/image_operate.h"
 
+void geo2TransformationMatrixShift(const MDRow &imageGeo, Matrix2D<double> &A)
+{
+    double shiftX = 0., shiftY = 0., shiftZ = 0.;
+
+    imageGeo.getValue(MDL_SHIFT_X, shiftX);
+    imageGeo.getValue(MDL_SHIFT_Y, shiftY);
+    imageGeo.getValue(MDL_SHIFT_Z, shiftZ);
+    int dim = A.Xdim() - 1;
+    //This check the case when matrix A is not initialized with correct size
+    if (dim < 2 || dim > 3)
+    {
+        dim = 3;
+        A.resizeNoCopy(dim + 1, dim + 1);
+    }
+	A.initIdentity();
+    dMij(A, 0, dim) = shiftX;
+    dMij(A, 1, dim) = shiftY;
+    dMij(A, 2, dim) = shiftZ;
+}
 
  // Read arguments ==========================================================
  void ProgShiftParticles::readParams()
@@ -109,6 +128,7 @@
 		Euler_angles2matrix(rot, tilt, psi, R, false);
 		R = R.inv();
 		pos = R * pos;
+		std::cout<< "pos: " << pos << std::endl;
 
 		MDRow rowGeo;
 		rowGeo.setValue(MDL_SHIFT_X, -pos(0));
@@ -116,7 +136,9 @@
 		rowGeo.setValue(MDL_SHIFT_Z, -pos(2));
 
 	    A.initIdentity(3);
-	    geo2TransformationMatrix(rowGeo, A);
+	    geo2TransformationMatrix(rowGeo, A, true);
+//	    geo2TransformationMatrixShift(rowGeo, A);
+		std::cout<< "A: " << A << std::endl;
 
     	I().setXmippOrigin();
     	Iout().resize(1, 1, boxSize, boxSize, false);
@@ -131,6 +153,7 @@
 		// CHECK!!!
 		mdParticles.setValue(MDL_SHIFT_X, shiftx+pos(0), ix_particle);
 		mdParticles.setValue(MDL_SHIFT_Y, shifty+pos(1), ix_particle);
+		mdParticles.setValue(MDL_SHIFT_Z, shiftz+pos(2), ix_particle);
     }
     mdParticles.write(fnParticles);
  }
