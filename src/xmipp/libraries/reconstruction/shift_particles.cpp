@@ -121,8 +121,8 @@
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
 		Iout.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
-		mdParticles.setValue(MDL_SHIFT_X, shiftx+pos(0), ix_particle);
-		mdParticles.setValue(MDL_SHIFT_Y, shifty+pos(1), ix_particle);
+		mdParticles.setValue(MDL_SHIFT_X, shiftx+posp(0), ix_particle);
+		mdParticles.setValue(MDL_SHIFT_Y, shifty+posp(1), ix_particle);
     }
     mdParticles.write(fnParticles);
  }
