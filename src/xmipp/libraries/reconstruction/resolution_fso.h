@@ -146,7 +146,7 @@ private:
     	                      	int m1sizeX, int m1sizeY, int m1sizeZ);
 
         /* FSCINTERPOLATION: The exact resolution of the the FSC = thrs is estimated. thrs is a global variable */
-        void fscInterpolation(MultidimArray<double> &freq, MultidimArray< double > &frc);
+        void fscInterpolation(const MultidimArray<double> &freq, const MultidimArray< double > &frc);
 
 public:
         /* Defining the params and help of the algorithm */
