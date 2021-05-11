@@ -122,21 +122,19 @@ void ProgFSO::defineFrequencies(const MultidimArray< std::complex<double> > &map
 
 	// Defining frequency components. First element should be 0, it is set as the smallest number to avoid singularities
 
-	VEC_ELEM(freq_fourier_z,0) = 1e-38;
 	VEC_ELEM(freq_fourier_z,0) = std::numeric_limits<double>::min();
-	std::cout << VEC_ELEM(freq_fourier_z,0) << std::endl;
 	for(size_t k=1; k<ZSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,ZSIZE(inputVol), u);
 		VEC_ELEM(freq_fourier_z, k) = u;
 	}
 
-	VEC_ELEM(freq_fourier_y,0) = 1e-38;
+	VEC_ELEM(freq_fourier_y,0) = std::numeric_limits<double>::min();
 	for(size_t k=1; k<YSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,YSIZE(inputVol), u);
 		VEC_ELEM(freq_fourier_y, k) = u;
 	}
 
-	VEC_ELEM(freq_fourier_x,0) = 1e-38;
+	VEC_ELEM(freq_fourier_x,0) = std::numeric_limits<double>::min();
 	for(size_t k=1; k<XSIZE(mapfftV); ++k){
 		FFT_IDX2DIGFREQ(k,XSIZE(inputVol), u);
 		VEC_ELEM(freq_fourier_x, k) = u;
@@ -348,7 +346,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 	}
 
 
-void ProgFSO::fscInterpolation(MultidimArray<double> &freq, MultidimArray< double > &frc)
+void ProgFSO::fscInterpolation(const MultidimArray<double> &freq, const MultidimArray< double > &frc)
 {
 	// Here the FSC at 0.143 is obtained by interpolating
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(freq)
@@ -1216,7 +1214,7 @@ void ProgFSO::run()
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(threeD_FSC)
 			{
 					double value = DIRECT_MULTIDIM_ELEM(threeD_FSC, n) /= DIRECT_MULTIDIM_ELEM(normalizationMap, n);
-					if (std::isnan(value) == true)
+					if (std::isnan(value))
 						value = 1.0;
 
 					if ((DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs) )//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
