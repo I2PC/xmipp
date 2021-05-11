@@ -314,10 +314,6 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
     	Image<double> Irad, Prad;
     	Irad = I;
     	Prad = P;
-    	// Compute radAvg 2D
-//     	radialAvg(Irad);
-//     	radialAvg(Prad);
-
 
 		// Compute |FT(radial averages)|
 		FourierTransformer transformerRad;
@@ -329,7 +325,6 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		transformerRad.completeFourierTransform(Prad(),PFourierRad);  //Prad for 2D
 		CenterFFT(PFourierRad, true);
 		FFT_magnitude(PFourierRad,PFourierMagRad);
-
 
     	// Compute IradAvg profile (1D)
         IFourierMagRad.setXmippOrigin();
@@ -346,6 +341,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
             Irad(k, i, j) = radial_meanI(my_rad);
         }
 		Irad.write("Irad.mrc");
+
     	// Compute PradAvg profile (1D)
 		PFourierMagRad.setXmippOrigin();
         center.initZeros();
@@ -384,7 +380,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
-//			POCSFourierAmplitudeProj0(IFourierMag,PFourier, lambda);
+//			POCSFourierAmplitudeProj0(IFourierMag,PFourier, lambda);  // Same result
 			transformer.inverseFourierTransform();
 			P.write("Pamp.mrc");
 			POCSMinMaxProj(P(), Imin, Imax);
@@ -428,22 +424,22 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
     	Pmask.write("maskfocusbingaus.mrc");
 
 		// Save particle and projection adjusted
-		if (fnPart!="" && fnProj!="")
-		{
-			I.write(fnPart);
-			P.write(fnProj);
-		}
+//		if (fnPart!="" && fnProj!="")
+//		{
+		I.write("Ifilt.mrc");
+		P.write("Padj.mrc");
+//		}
 
-		// DEBUG: Compute I*mask to see differences with subtraction result
-    	Image<double> Imask;
-    	Imask = I;
-    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imask())
-		DIRECT_MULTIDIM_ELEM(Imask,n) = DIRECT_MULTIDIM_ELEM(Imask,n)*DIRECT_MULTIDIM_ELEM(Pmask,n);
-    	Imask.write("I*mask.mrc");
+//		// DEBUG: Compute I*mask to see differences with subtraction result
+//    	Image<double> Imask;
+//    	Imask = I;
+//    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imask())
+//		DIRECT_MULTIDIM_ELEM(Imask,n) = DIRECT_MULTIDIM_ELEM(Imask,n)*DIRECT_MULTIDIM_ELEM(Pmask,n);
+//    	Imask.write("I*mask.mrc");
 
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-(DIRECT_MULTIDIM_ELEM(P,n)*DIRECT_MULTIDIM_ELEM(PmaskInv,n))) * (DIRECT_MULTIDIM_ELEM(Pmask,n));
+		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-(DIRECT_MULTIDIM_ELEM(P,n)*DIRECT_MULTIDIM_ELEM(PmaskInv,n))) * DIRECT_MULTIDIM_ELEM(Pmask,n);
 
 		// Save subtracted particles in metadata
 		ix_particle++;
