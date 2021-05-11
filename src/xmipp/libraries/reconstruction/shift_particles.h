@@ -36,8 +36,6 @@
  class ProgShiftParticles: public XmippProgram
  {
  public:
-    /** Filename of the reference volume */
-    FileName fnVolR;
     /// Filename of input xmd particles and particle images
     FileName fnParticles, fnImage;
     /// Filename of output particles
@@ -50,15 +48,14 @@
     // Input center coordinates, rot, tilt, psi and shifts from metadata, output box size
     double x0, y0, z0, rot, tilt, psi, shiftx, shifty, shiftz;
     int boxSize;
+    // Input position and aux position variable
+	Matrix1D<double> pos, posp;
     // Particle rotation matrix, new shift matrix, aux matrix
- 	Matrix2D<double> R, A, RA;
+ 	Matrix2D<double> R, A;
     // Input particle, output particle
  	Image<double> I, Iout;
 
  public:
-    /// Empty constructor
-// 	ProgSubtractProjection();
-
     /// Read argument from command line
     void readParams();
 

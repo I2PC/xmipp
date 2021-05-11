@@ -36,25 +36,6 @@
  #include <sstream>
  #include "data/image_operate.h"
 
-void geo2TransformationMatrixShift(const MDRow &imageGeo, Matrix2D<double> &A)
-{
-    double shiftX = 0., shiftY = 0., shiftZ = 0.;
-
-    imageGeo.getValue(MDL_SHIFT_X, shiftX);
-    imageGeo.getValue(MDL_SHIFT_Y, shiftY);
-    imageGeo.getValue(MDL_SHIFT_Z, shiftZ);
-    int dim = A.Xdim() - 1;
-    //This check the case when matrix A is not initialized with correct size
-    if (dim < 2 || dim > 3)
-    {
-        dim = 3;
-        A.resizeNoCopy(dim + 1, dim + 1);
-    }
-	A.initIdentity();
-    dMij(A, 0, dim) = shiftX;
-    dMij(A, 1, dim) = shiftY;
-    dMij(A, 2, dim) = shiftZ;
-}
 
  // Read arguments ==========================================================
  void ProgShiftParticles::readParams()
@@ -100,19 +81,15 @@ void geo2TransformationMatrixShift(const MDRow &imageGeo, Matrix2D<double> &A)
  void ProgShiftParticles::run()
  {
 	show();
-	// Read input center
-	Matrix1D<double> pos;
 	pos.initZeros(3);
 	pos(0) = x0;
 	pos(1) = y0;
 	pos(2) = z0;
-	// Read input particles.xmd
  	mdParticles.read(fnParticles);
  	int ix_particle = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
     {
-    	// Read particle image and metadata
     	mdParticles.getRow(row,__iter.objId);
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
@@ -127,33 +104,25 @@ void geo2TransformationMatrixShift(const MDRow &imageGeo, Matrix2D<double> &A)
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
 		R = R.inv();
-		pos = R * pos;
-		std::cout<< "pos: " << pos << std::endl;
+		posp = R * pos;
 
 		MDRow rowGeo;
-		rowGeo.setValue(MDL_SHIFT_X, -pos(0));
-		rowGeo.setValue(MDL_SHIFT_Y, -pos(1));
-		rowGeo.setValue(MDL_SHIFT_Z, -pos(2));
-
+		rowGeo.setValue(MDL_SHIFT_X, -posp(0));
+		rowGeo.setValue(MDL_SHIFT_Y, -posp(1));
 	    A.initIdentity(3);
 	    geo2TransformationMatrix(rowGeo, A, true);
-//	    geo2TransformationMatrixShift(rowGeo, A);
-		std::cout<< "A: " << A << std::endl;
 
     	I().setXmippOrigin();
     	Iout().resize(1, 1, boxSize, boxSize, false);
     	Iout().setXmippOrigin();
-		applyGeometry(LINEAR, Iout(), I(), A, IS_NOT_INV, true, 0.);
+		applyGeometry(LINEAR, Iout(), I(), A, IS_NOT_INV, false, 0.);
 
-		// Save shifted particles in metadata
 		ix_particle++;
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
 		Iout.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
-		// CHECK!!!
 		mdParticles.setValue(MDL_SHIFT_X, shiftx+pos(0), ix_particle);
 		mdParticles.setValue(MDL_SHIFT_Y, shifty+pos(1), ix_particle);
-		mdParticles.setValue(MDL_SHIFT_Z, shiftz+pos(2), ix_particle);
     }
     mdParticles.write(fnParticles);
  }
