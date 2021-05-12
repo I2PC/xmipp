@@ -216,40 +216,40 @@ protected:
     	for (int n=0; n<iter; ++n)
     	{
     		std::cout<< "---Iter " << n << std::endl;
-    		transformer2.FourierTransform(V(),V2Fourier,false);  // same with true
+    		transformer2.FourierTransform(V(),V2Fourier,false);
     		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
-        	transformer2.inverseFourierTransform(); // not empty just doing FT and FT-1 => pattern with values ~0
-//        	computeEnergy(Vdiff(), V(), energy);
-//        	Vdiff = V;
-
+        	transformer2.inverseFourierTransform();
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
     		POCSMinMax(V(), v1min, v1max);
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
+			POCSmask(mask(),V());
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
+    		transformer2.FourierTransform();
+    		POCSFourierPhase(V2FourierPhase,V2Fourier);
+        	transformer2.inverseFourierTransform();
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
+        	POCSnonnegative(V());
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
 
-//        	computeEnergy(Vdiff(), V(), energy);
-//        	Vdiff = V;
-//			POCSmask(mask(),V());
-//        	computeEnergy(Vdiff(), V(), energy);
-//        	Vdiff = V;
-//    		transformer.FourierTransform();
-//    		POCSFourierPhase(V2FourierPhase,V2Fourier);
-//        	transformer.inverseFourierTransform();
-//        	computeEnergy(Vdiff(), V(), energy);
-//        	Vdiff = V;
-//        	POCSnonnegative(V());
-//        	computeEnergy(Vdiff(), V(), energy);
-//        	Vdiff = V;
 //			std2 = V().computeStddev();
-//			V()*=std1/std2;
-//        	computeEnergy(Vdiff(), V(), energy);
-//        	Vdiff = V;
+//			V()*=std1/std2;  // Returns the structure with values ~0.01
 
-//    		if (cutFreq!=0)
-//    		{
-//    			Filter2.generateMask(V());
-//				Filter2.do_generate_3dmask=true;
-//				Filter2.applyMaskSpace(V());
-//				computeEnergy(Vdiff(), V(), energy);
-//	        	Vdiff = V;
-//    		}
+        	computeEnergy(Vdiff(), V(), energy);
+        	Vdiff = V;
+
+    		if (cutFreq!=0)
+    		{
+    			Filter2.generateMask(V());
+				Filter2.do_generate_3dmask=true;
+				Filter2.applyMaskSpace(V());
+				computeEnergy(Vdiff(), V(), energy);
+	        	Vdiff = V;
+    		}
     	}
 
 		FourierFilter Filter;
@@ -260,8 +260,8 @@ protected:
 		Image<double> V1Filtered;
 		V1.read(fnVol1);
 		V1Filtered() = V1();
-//		if (cutFreq!=0)
-//			Filter2.applyMaskSpace(V1Filtered());
+		if (cutFreq!=0)
+			Filter2.applyMaskSpace(V1Filtered());
 
     	if (sub==true)
     	{
