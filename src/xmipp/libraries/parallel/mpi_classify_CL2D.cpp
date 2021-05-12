@@ -920,8 +920,7 @@ void CL2D::write(const FileName &fnODir, const FileName &fnRoot, int level) cons
         for (int i = 0; i < imax; i++)
         {
             const CL2DAssignment &assignment = currentListImg[i];
-            MDRowVec row;
-            SF->getRow(row,assignment.objId);
+            MDRowSql row = SF->getRowSql(assignment.objId);
             row.setValue(MDL_FLIP, assignment.flip);
             row.setValue(MDL_SHIFT_X, assignment.shiftx);
             row.setValue(MDL_SHIFT_Y, assignment.shifty);

@@ -26,7 +26,7 @@
 #include <fstream>
 #include "recons_misc.h"
 #include "basic_art.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/symmetries.h"
 #include "data/mask.h"
 #include "data/projection.h"
@@ -34,7 +34,7 @@
 #include "symmetrize.h"
 
 /* Fill Reconstruction info structure -------------------------------------- */
-void buildReconsInfo(MetaData &selfile,
+void buildReconsInfo(MetaDataVec &selfile,
                      const FileName &fn_ctf, const SymList &SL,
                      ReconsInfo * &IMG_Inf, bool do_not_use_symproj)
 {
@@ -85,7 +85,7 @@ void buildReconsInfo(MetaData &selfile,
             //            read_proj.read(fn_proj, false, HEADER);
             // Filling structure
             imgInfo.fn_proj = fn_proj;
-            selfile.getRow(imgInfo.row, objId);
+            imgInfo.row = selfile.getRowVec(objId);
             if (is_ctf_unique)
                 imgInfo.fn_ctf = fn_ctf;
             else if (is_there_ctf)

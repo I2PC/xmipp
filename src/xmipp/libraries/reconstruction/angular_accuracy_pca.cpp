@@ -111,7 +111,7 @@ void ProgAngularAccuracyPCA::run()
 
 		String expression;
 		size_t maxIdx;
-		MDRowVec row;
+		MDRowSql row;
 		MetaDataDb MDSort, tempMd, MDOut, MDOutQ;
 		MDSort.sort(mdPartial,MDL_ITEM_ID,true,-1,0);
 		MDSort.getValue(MDL_ITEM_ID,maxIdx,MDSort.lastObject());
@@ -129,7 +129,7 @@ void ProgAngularAccuracyPCA::run()
 			pcaResidual = -1e3;
 			Zscore = -1e3;
 
-			tempMd.getRow(row, tempMd.firstRowId());
+			row = tempMd.getRowSql(tempMd.firstRowId());
 
             for (size_t objId : tempMd.ids())
 			{

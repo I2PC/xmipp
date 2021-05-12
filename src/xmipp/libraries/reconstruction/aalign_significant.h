@@ -175,7 +175,7 @@ private:
         return index;
     }
 
-    inline void getImgRow(MDRow &row, size_t imgIndex) {
+    inline void getImgRow(MDRowVec &row, size_t imgIndex) {
         m_imagesToAlign.md.getRow(row, m_imagesToAlign.rowIds.at(imgIndex));
     }
 
