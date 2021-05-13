@@ -47,13 +47,6 @@ void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::co
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
 		{
 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
-//		if (mod != DIRECT_MULTIDIM_ELEM(A,n))
-//			{
-//				std::cout<< "n " << n << std::endl;
-//				std::cout<< "mod " << mod << std::endl;
-//				std::cout<< "A(n) " << DIRECT_MULTIDIM_ELEM(A,n) << std::endl;
-//			}
-
 		if (mod>1e-10)
 			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
 		}
@@ -98,7 +91,7 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 class ProgVolumeSubtraction: public XmippProgram
 {
 protected:
-	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A;
+	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
 	bool sub, eq;
 	int iter, sigma;
 	double cutFreq, lambda;
@@ -117,6 +110,7 @@ protected:
         addParamsLine("[--iter <n=1>]        	: Number of iterations");
         addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
+        addParamsLine("[--maskSub <mask=\"\">]  : Mask for subtraction region");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
         addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
         addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
@@ -136,6 +130,7 @@ protected:
     	sigma=getIntParam("--sigma");
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
+    	fnMaskSub=getParam("--maskSub");
     	cutFreq=getDoubleParam("--cutFreq");
     	lambda=getDoubleParam("--lambda");
     	fnVol1F=getParam("--saveV1");
@@ -153,6 +148,7 @@ protected:
     	<< "Input volume 2:    	   	" << fnVol2      << std::endl
     	<< "Input mask 1:    	   	" << fnMask1     << std::endl
     	<< "Input mask 2:    	   	" << fnMask2     << std::endl
+    	<< "Input mask sub:    	   	" << fnMaskSub   << std::endl
     	<< "Sigma:					" << sigma       << std::endl
     	<< "Iterations:    	   		" << iter        << std::endl
     	<< "Cutoff frequency:   	" << cutFreq     << std::endl
@@ -270,9 +266,20 @@ protected:
     			V1Filtered.write(fnVol1F);
     			V.write(fnVol2A);
     		}
-    		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
-    		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
-    				std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
+
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
+			DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
+					std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
+        	if (fnMaskSub!="")
+        	{
+        		Image<double> maskSub;
+        		maskSub.read(fnMaskSub);
+        		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
+        					DIRECT_MULTIDIM_ELEM(V1,n) *=DIRECT_MULTIDIM_ELEM(maskSub,n);
+        	}
+
+
+
     		V1.write(fnOut);
     	}
 
