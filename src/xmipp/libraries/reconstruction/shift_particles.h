@@ -35,27 +35,19 @@
 
  class ProgShiftParticles: public XmippProgram
  {
- public:
-    /// Filename of input xmd particles and particle images
-    FileName fnParticles, fnImage;
-    /// Filename of output particles
+ private:
+    /// Filename of input particles metadata
+    FileName fnParticles;
+    /// Filename of output particles stack
     FileName fnOut;
-
- public:
     // Input particles metadata
     MetaData mdParticles;
- 	MDRow row;
-    // Input center coordinates, rot, tilt, psi and shifts from metadata, output box size
-    double x0, y0, z0, rot, tilt, psi, shiftx, shifty, shiftz;
+    // Input center coordinates
+    double x0, y0, z0;
+    // Input box size
     int boxSize;
-    // Input position and aux position variable
-	Matrix1D<double> pos, posp;
-    // Particle rotation matrix, new shift matrix, aux matrix
- 	Matrix2D<double> R, A;
-    // Input particle, output particle
- 	Image<double> I, Iout;
 
- public:
+ private:
     /// Read argument from command line
     void readParams();
 

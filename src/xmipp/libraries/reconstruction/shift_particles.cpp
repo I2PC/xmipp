@@ -47,7 +47,7 @@
 	boxSize=getIntParam("--boxSize");
 	fnOut=getParam("-o");
 	if (fnOut=="")
-		fnOut="output_particle_";
+		fnOut="output_particles.mrcs";
  }
 
  // Show ====================================================================
@@ -70,36 +70,44 @@
      addUsageLine("Center particles into a selected point of a volume.");
      //Parameters
      addParamsLine("-i <particles>         			: Particles metadata (.xmd file)");
-     addParamsLine("[-o <structure=\"\">]  			: Output filename suffix for shifted particles");
-     addParamsLine("                       			: If no name is given, then output_particles.xmd");
+     addParamsLine("[-o <structure=\"\">]  			: Output filename for shifted particles");
+     addParamsLine("                       			: If no name is given, then output_particles.mrcs is used");
      addParamsLine("[--center <x0=0> <y0=0> <z0=0>] : New center coordinates x,y,z");
      addParamsLine("[--boxSize <b=300>]             : Output box size");
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_shift_particles -i input_particles.xmd --ref input_map.mrc -o output_particles --center 0 0 0 --boxSize 300");
+     addExampleLine("xmipp_shift_particles -i input_particles.xmd -o output_particles.xmd --center 0 0 0 --boxSize 300");
  }
 
  void ProgShiftParticles::run()
  {
 	show();
+
+	Matrix1D<double> pos, posp;
+    FileName fnImage;
+ 	MDRow row;
+ 	Matrix2D<double> R, A;
+ 	Image<double> I, Iout;
+    double rot, tilt, psi, shiftx, shifty, shiftz;
+
 	pos.initZeros(3);
 	pos(0) = x0;
 	pos(1) = y0;
 	pos(2) = z0;
- 	mdParticles.read(fnParticles);
- 	int ix_particle = 0;
+	mdParticles.read(fnParticles);
+	int ix_particle = 0;
 
     FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
-    {
-    	mdParticles.getRow(row,__iter.objId);
-    	row.getValue(MDL_IMAGE, fnImage);
+	{
+		mdParticles.getRow(row,__iter.objId);
+		row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
-    	I.read(fnImage);
-     	row.getValue(MDL_ANGLE_ROT, rot);
-     	row.getValue(MDL_ANGLE_TILT, tilt);
-     	row.getValue(MDL_ANGLE_PSI, psi);
-     	row.getValue(MDL_SHIFT_X, shiftx);
-     	row.getValue(MDL_SHIFT_Y, shifty);
-     	row.getValue(MDL_SHIFT_Z, shiftz);
+		I.read(fnImage);
+		row.getValue(MDL_ANGLE_ROT, rot);
+		row.getValue(MDL_ANGLE_TILT, tilt);
+		row.getValue(MDL_ANGLE_PSI, psi);
+		row.getValue(MDL_SHIFT_X, shiftx);
+		row.getValue(MDL_SHIFT_Y, shifty);
+		row.getValue(MDL_SHIFT_Z, shiftz);
 
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
@@ -109,16 +117,16 @@
 		MDRow rowGeo;
 		rowGeo.setValue(MDL_SHIFT_X, -posp(0));
 		rowGeo.setValue(MDL_SHIFT_Y, -posp(1));
-	    A.initIdentity(3);
-	    geo2TransformationMatrix(rowGeo, A, true);
+		A.initIdentity(3);
+		geo2TransformationMatrix(rowGeo, A, true);
 
-    	I().setXmippOrigin();
-    	Iout().resize(1, 1, boxSize, boxSize, false);
-    	Iout().setXmippOrigin();
+		I().setXmippOrigin();
+		Iout().resize(1, 1, boxSize, boxSize, false);
+		Iout().setXmippOrigin();
 		applyGeometry(LINEAR, Iout(), I(), A, IS_NOT_INV, false, 0.);
 
 		ix_particle++;
-		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
+		FileName out = formatString("%d@%s", ix_particle, fnOut.c_str());
 		Iout.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
 		mdParticles.setValue(MDL_SHIFT_X, shiftx+posp(0), ix_particle);
