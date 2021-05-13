@@ -75,7 +75,7 @@
      addParamsLine("[--center <x0=0> <y0=0> <z0=0>] : New center coordinates x,y,z");
      addParamsLine("[--boxSize <b=300>]             : Output box size");
      addExampleLine("A typical use is:",false);
-     addExampleLine("xmipp_shift_particles -i input_particles.xmd -o output_particles.xmd --center 0 0 0 --boxSize 300");
+     addExampleLine("xmipp_shift_particles -i input_particles.xmd -o output_particles.mrcs --center 0 0 0 --boxSize 300");
  }
 
  void ProgShiftParticles::run()
@@ -83,11 +83,11 @@
 	show();
 
 	Matrix1D<double> pos, posp;
-    FileName fnImage;
- 	MDRow row;
- 	Matrix2D<double> R, A;
- 	Image<double> I, Iout;
-    double rot, tilt, psi, shiftx, shifty, shiftz;
+	FileName fnImage;
+	MDRow row;
+	Matrix2D<double> R, A;
+	Image<double> I, Iout;
+	double rot, tilt, psi, shiftx, shifty;
 
 	pos.initZeros(3);
 	pos(0) = x0;
@@ -107,7 +107,6 @@
 		row.getValue(MDL_ANGLE_PSI, psi);
 		row.getValue(MDL_SHIFT_X, shiftx);
 		row.getValue(MDL_SHIFT_Y, shifty);
-		row.getValue(MDL_SHIFT_Z, shiftz);
 
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
@@ -129,8 +128,6 @@
 		FileName out = formatString("%d@%s", ix_particle, fnOut.c_str());
 		Iout.write(out);
 		mdParticles.setValue(MDL_IMAGE, out, ix_particle);
-		mdParticles.setValue(MDL_SHIFT_X, shiftx+posp(0), ix_particle);
-		mdParticles.setValue(MDL_SHIFT_Y, shifty+posp(1), ix_particle);
     }
     mdParticles.write(fnParticles);
  }
