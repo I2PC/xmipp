@@ -154,7 +154,7 @@ private:
     const std::string BLOCK_Z_DIM = "BLOCK_Z_DIM";
 
     // Kernel path
-    std::string pathToXmipp = "/home/david/thesis/xmipp-bundle/";//default
+    std::string pathToXmipp;
     std::string pathToKernel = "src/xmipp/libraries/reconstruction_cuda/cuda_volume_deform_sph.cu";
 
     // Variables transfered to the GPU memory
@@ -170,25 +170,17 @@ private:
     ktt::ArgumentId clnmId;
     std::vector<PrecisionType3> clnmVec;
 
-    ktt::ArgumentId clnmSCATTEREDId;
-    std::vector<PrecisionType> clnmVecSCATTERED;
-
     ktt::ArgumentId applyTransformationId;
     bool applyTransformation;
 
     ktt::ArgumentId saveDeformationId;
     bool saveDeformation;
 
-    // Inside pointers point to the GPU memory
-
     ktt::ArgumentId outputImagesId;
     OutputImages outputImages;
 
     ktt::ArgumentId zshparamsId;
     std::vector<int4> zshparamsVec;
-
-    ktt::ArgumentId zshparamsSCATTEREDId;
-    ZSHparams zshparamsSCATTERED;
 
     ktt::ArgumentId imageMetaDataId;
     ImageMetaData imageMetaData;

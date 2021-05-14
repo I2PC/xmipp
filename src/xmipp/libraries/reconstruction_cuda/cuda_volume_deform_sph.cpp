@@ -90,18 +90,8 @@ VolumeDeformSph::VolumeDeformSph() : tuner(0, 0, ktt::ComputeAPI::CUDA)
             );
 }
 
-void VolumeDeformSph::freeZSHSCATTERED()
-{
-    cudaFree(zshparamsSCATTERED.vL1);
-    cudaFree(zshparamsSCATTERED.vL2);
-    cudaFree(zshparamsSCATTERED.vN);
-    cudaFree(zshparamsSCATTERED.vM);
-}
-
 VolumeDeformSph::~VolumeDeformSph() 
 {
-    freeZSHSCATTERED();
-
     for (size_t i = 0; i < volumes.size; i++) {
         cudaFree(justForFreeR[i]);
         cudaFree(justForFreeI[i]);
@@ -135,14 +125,12 @@ void VolumeDeformSph::setupConstantParameters()
     this->iRmax = 1 / program->Rmax;
     setupImageMetaData(program->VR);
     setupZSHparams();
-    setupZSHparamsSCATTERED();
     setupVolumes();
     setupOutputImages();
 
     // ktt stuff
     Rmax2Id = tuner.addArgumentScalar(Rmax2);
     iRmaxId = tuner.addArgumentScalar(iRmax);
-    zshparamsSCATTEREDId = tuner.addArgumentScalar(zshparamsSCATTERED);
     zshparamsId = tuner.addArgumentVector(zshparamsVec, ktt::ArgumentAccessType::ReadOnly);
     imageMetaDataId = tuner.addArgumentScalar(imageMetaData);
     volumesId = tuner.addArgumentScalar(volumes);
@@ -185,7 +173,6 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
     tuner.addParameter(kernelId, "KTT_USED", {1});
     // tuning parameters
-    tuner.addParameter(kernelId, "USE_SCATTERED_ZSH_CLNM", {0});
     tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0});
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
     tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {0});
@@ -214,10 +201,8 @@ void VolumeDeformSph::setupChangingParameters()
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
     setupClnm();
-    setupClnmSCATTERED();
 
     clnmId = tuner.addArgumentVector(clnmVec, ktt::ArgumentAccessType::ReadOnly);
-    clnmSCATTEREDId = tuner.addArgumentVector(clnmVecSCATTERED, ktt::ArgumentAccessType::ReadOnly);
     stepsId = tuner.addArgumentScalar(program->onesInSteps);
 
     // Deformation and transformation booleans
@@ -238,11 +223,6 @@ void VolumeDeformSph::setupClnm()
         clnmVec[i].y = program->clnm[i + program->vL1.size()];
         clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
     }
-}
-
-void VolumeDeformSph::setupClnmSCATTERED()
-{
-    clnmVecSCATTERED.assign(program->clnm.vdata, program->clnm.vdata + program->clnm.size());
 }
 
 KernelOutputs VolumeDeformSph::getOutputs() 
@@ -279,8 +259,6 @@ void VolumeDeformSph::pretuneKernel()
             iRmaxId,
             zshparamsId,
             clnmId,
-            zshparamsSCATTEREDId,
-            clnmSCATTEREDId,
             stepsId,
             imageMetaDataId,
             volumesId,
@@ -332,8 +310,6 @@ void VolumeDeformSph::runKernel()
             iRmaxId,
             zshparamsId,
             clnmId,
-            zshparamsSCATTEREDId,
-            clnmSCATTEREDId,
             stepsId,
             imageMetaDataId,
             volumesId,
@@ -378,20 +354,6 @@ void VolumeDeformSph::setupZSHparams()
         zshparamsVec[i].y = program->vL2[i];
         zshparamsVec[i].z = program->vM[i];
     }
-}
-
-void VolumeDeformSph::setupZSHparamsSCATTERED()
-{
-    zshparamsSCATTERED.size = program->vL1.size();
-
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vL1, program->vL1.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vL2, program->vL2.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vN, program->vN.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vM, program->vM.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
 }
 
 void VolumeDeformSph::setupVolumes()
