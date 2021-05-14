@@ -159,11 +159,6 @@ __device__ PrecisionType interpolatedElement3D(PrecisionType* ImD, ImageMetaData
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType doutside_value = 0);
 
-__device__ PrecisionType interpolatedElement3Dshared(PrecisionType* ImD,
-        PrecisionType* volData, ImageMetaData imageMetaData,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType doutside_value = 0);
-
 /*
  * The beast
  */
@@ -210,24 +205,6 @@ extern "C" __global__ void computeDeform(
         }
     }
 
-#if USE_SHARED_VOLUME_DATA == 1
-    // wait for metadata to be in shared mem
-    __syncthreads();
-
-    PrecisionType* volRDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
-
-    PrecisionType* volIDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
-
-    // Load data related to the current block into the shared mem
-    for (int idx = 0; idx < volumes.size; idx++) {
-        ELEM_3D_SHARED(volRDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volRPtrShared[idx], imageMetaData, kPhys, iPhys, jPhys);
-        ELEM_3D_SHARED(volIDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volIPtrShared[idx], imageMetaData, kPhys, iPhys, jPhys);
-    }
-
-#endif// USE_SHARED_VOLUME_DATA
-
 #if USE_SHARED_MEM_ZSH_CLNM == 1 
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
@@ -251,9 +228,7 @@ extern "C" __global__ void computeDeform(
     }
 #endif
 
-#if USE_SHARED_MEM_ZSH_CLNM + USE_SHARED_VOLUME_DATA > 0
     __syncthreads();
-#endif
 
     // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
@@ -312,13 +287,8 @@ extern "C" __global__ void computeDeform(
 
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.size; idv++) {
-#if USE_SHARED_VOLUME_DATA == 1
-            PrecisionType voxelR = (volRDataShared + idv * BLOCK_SIZE)[tIdx];
-            PrecisionType voxelI = interpolatedElement3Dshared(volIPtrShared[idv], volIDataShared + idv * BLOCK_SIZE, imageMetaData, jPhys + gx, iPhys + gy, kPhys + gz);
-#else
             PrecisionType voxelR = ELEM_3D(volRPtrShared[idv], imageMetaData, kPhys, iPhys, jPhys);
             PrecisionType voxelI = interpolatedElement3D(volIPtrShared[idv], imageMetaData, j + gx, i + gy, k + gz);
-#endif// USE_SHARED_VOLUME_DATA
 
             if (voxelI >= 0.0)
                 localSumVD += voxelI;
@@ -400,124 +370,6 @@ extern "C" __global__ void computeDeform(
         outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
         outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
     }
-}
-
-/*
- * Linear interpolation
- */
-__device__ PrecisionType interpolatedElement3Dshared(PrecisionType* ImD,
-        PrecisionType* volData, ImageMetaData imageMetaData,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType outside_value) 
-{
-        int x0 = (int)CUDA_FLOOR(x);
-        PrecisionType fx = x - x0;
-        int x1 = x0 + 1;
-
-        int y0 = (int)CUDA_FLOOR(y);
-        PrecisionType fy = y - y0;
-        int y1 = y0 + 1;
-
-        int z0 = (int)CUDA_FLOOR(z);
-        PrecisionType fz = z - z0;
-        int z1 = z0 + 1;
-
-        PrecisionType d000;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z0, y0, x0)) {
-            d000 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z0, y0, x0)) {
-                d000 = ELEM_3D(ImD, imageMetaData, z0, y0, x0);
-            } else {
-                d000 = ELEM_3D_SHARED(volData, z0, y0, x0);
-            }
-        }
-
-        PrecisionType d001;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z0, y0, x1)) {
-            d001 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z0, y0, x1)) {
-                d001 = ELEM_3D(ImD, imageMetaData, z0, y0, x1);
-            } else {
-                d001 = ELEM_3D_SHARED(volData, z0, y0, x1);
-            }
-        }
-
-        PrecisionType d010;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z0, y1, x0)) {
-            d010 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z0, y1, x0)) {
-                d010 = ELEM_3D(ImD, imageMetaData, z0, y1, x0);
-            } else {
-                d010 = ELEM_3D_SHARED(volData, z0, y1, x0);
-            }
-        }
-
-        PrecisionType d011;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z0, y1, x1)) {
-            d011 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z0, y1, x1)) {
-                d011 = ELEM_3D(ImD, imageMetaData, z0, y1, x1);
-            } else {
-                d011 = ELEM_3D_SHARED(volData, z0, y1, x1);
-            }
-        }
-
-        PrecisionType d100;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z1, y0, x0)) {
-            d100 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z1, y0, x0)) {
-                d100 = ELEM_3D(ImD, imageMetaData, z1, y0, x0);
-            } else {
-                d100 = ELEM_3D_SHARED(volData, z1, y0, x0);
-            }
-        }
-
-        PrecisionType d101;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z1, y0, x1)) {
-            d101 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z1, y0, x1)) {
-                d101 = ELEM_3D(ImD, imageMetaData, z1, y0, x1);
-            } else {
-                d101 = ELEM_3D_SHARED(volData, z1, y0, x1);
-            }
-        }
-
-        PrecisionType d110;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z1, y1, x0)) {
-            d110 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z1, y1, x0)) {
-                d110 = ELEM_3D(ImD, imageMetaData, z1, y1, x0);
-            } else {
-                d110 = ELEM_3D_SHARED(volData, z1, y1, x0);
-            }
-        }
-
-        PrecisionType d111;
-        if (IS_OUTSIDE_PHYS(imageMetaData, z1, y1, x1)) {
-            d111 = outside_value;
-        } else {
-            if (IS_OUTSIDE_SHARED(z1, y1, x1)) {
-                d111 = ELEM_3D(ImD, imageMetaData, z1, y1, x1);
-            } else {
-                d111 = ELEM_3D_SHARED(volData, z1, y1, x1);
-            }
-        }
-
-        PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
-        PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
-        PrecisionType dx10 = LIN_INTERP(fx, d010, d011);
-        PrecisionType dx11 = LIN_INTERP(fx, d110, d111);
-        PrecisionType dxy0 = LIN_INTERP(fy, dx00, dx10);
-        PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
-
-        return LIN_INTERP(fz, dxy0, dxy1);
 }
 
 /*

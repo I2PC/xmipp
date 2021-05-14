@@ -173,21 +173,16 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
     tuner.addParameter(kernelId, "KTT_USED", {1});
     // tuning parameters
-    tuner.addParameter(kernelId, "USE_ZSH_FUNCTION", {0});
     tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
-    tuner.addParameter(kernelId, "USE_SHARED_VOLUME_DATA", {0});
 
     // Dynamic shared memory allocation
     sharedMemId = tuner.addArgumentLocal<char>(1);// cannot be zero
 
-    tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_VOLUME_DATA", "USE_SHARED_MEM_ZSH_CLNM" },
+    tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_MEM_ZSH_CLNM" },
             [&vols = volumes.size, &steps = program->onesInSteps](const size_t size, const std::vector<size_t>& vec)
             {
                 size_t sharedMemSize = sizeof(PrecisionType*) * vols * 2;
-                if (vec[3] == 1) { // volume data
-                    sharedMemSize += sizeof(PrecisionType) * vec[0] * vec[1] * vec[2] * vols * 2;
-                }
-                if (vec[4] == 1) { // zsh, clnm
+                if (vec[3] == 1) { // zsh, clnm
                     sharedMemSize += sizeof(int4) * steps;
                     sharedMemSize += sizeof(PrecisionType3) * steps;
                 }
