@@ -94,7 +94,7 @@ public:
     Matrix1D<double> steps_cp;
 
     // Number of ones in steps
-    int onesInSteps;
+    unsigned onesInSteps;
 
     // Precomputed number of voxels
     double Ncount;

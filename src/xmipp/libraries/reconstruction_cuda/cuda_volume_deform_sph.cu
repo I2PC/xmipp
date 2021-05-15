@@ -78,6 +78,7 @@ struct OutputImages
 #endif// KTT_USED
 
 // CUDA kernel defines
+/*
 #ifndef BLOCK_X_DIM
 #define BLOCK_X_DIM 8
 #endif
@@ -87,6 +88,7 @@ struct OutputImages
 #ifndef BLOCK_Z_DIM
 #define BLOCK_Z_DIM 4
 #endif
+*/
 #define BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
 
 // ImageData macros
@@ -94,10 +96,6 @@ struct OutputImages
 // Index to global memory
 #define GET_IDX(ImD,k,i,j) \
     ((ImD).xDim * (ImD).yDim * (k) + (ImD).xDim * (i) + (j))
-
-// Index to shared memory
-#define GET_IDX_SHARED(k,i,j) \
-    (blockDim.x * blockDim.y * ((k) % blockDim.z) + blockDim.x * ((i) % blockDim.y) + ((j) % blockDim.x))
 
 // Logical index = Physical index + shift
 #define P2L_X_IDX(ImD,j) \
@@ -126,9 +124,6 @@ struct OutputImages
 #define ELEM_3D_SHIFTED(data,ImD,k,i,j) \
     (ELEM_3D((data), (ImD), (k) - (ImD).zShift, (i) - (ImD).yShift, (j) - (ImD).xShift))
 
-#define ELEM_3D_SHARED(VolData,k,i,j) \
-    ((VolData)[GET_IDX_SHARED((k), (i), (j))])
-
 // Utility macros
 #define IS_OUTSIDE(ImD,k,i,j) \
     ((j) < (ImD).xShift || (j) > (ImD).xShift + (ImD).xDim - 1 || \
@@ -139,11 +134,6 @@ struct OutputImages
     ((j) < 0 || (ImD).xDim <= (j) || \
      (i) < 0 || (ImD).yDim <= (i) || \
      (k) < 0 || (ImD).zDim <= (k))
-
-#define IS_OUTSIDE_SHARED(k,i,j) \
-    ((j) < blockIdx.x * blockDim.x || blockIdx.x * blockDim.x + blockDim.x <= (j) || \
-     (i) < blockIdx.y * blockDim.y || blockIdx.y * blockDim.y + blockDim.y <= (i) || \
-     (k) < blockIdx.z * blockDim.z || blockIdx.z * blockDim.z + blockDim.z <= (k))
 
 // Smart casting to selected precision (at compile time)
 // ...just shorter static_cast
@@ -162,12 +152,12 @@ __device__ PrecisionType interpolatedElement3D(PrecisionType* ImD, ImageMetaData
 /*
  * The beast
  */
-extern "C" __global__ void computeDeform(
+extern "C" __global__ void computeDeformation(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         int4* zshparams,
         PrecisionType3* clnm,
-        int steps,
+        unsigned steps,
         ImageMetaData imageMetaData,
         Volumes volumes,
         OutputImages outputImages,
@@ -233,8 +223,9 @@ extern "C" __global__ void computeDeform(
     PrecisionType rr = SQRT(r2) * iRmax;
     PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 
+    // Compute deformation in specified radius
     if (r2 < Rmax2) {
-        for (int idx = 0; idx < steps; idx++) {
+        for (unsigned idx = 0; idx < steps; idx++) {
             int l1 = zshShared[idx].w;
             int n = zshShared[idx].x;
             int l2 = zshShared[idx].y;

@@ -145,21 +145,24 @@ void VolumeDeformSph::setupConstantParameters()
     kttGrid.setSizeZ(imageMetaData.zDim);
 
     // kernel init
-    kernelId = tuner.addKernelFromFile(pathToXmipp + "/" + pathToKernel, "computeDeform", kttGrid, kttBlock);
+    kernelId = tuner.addKernelFromFile(pathToXmipp + "/" + pathToKernel, "computeDeformation", kttGrid, kttBlock);
 
     // tuning block/grid size
     tuner.addParameter(kernelId, BLOCK_X_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{16});
     tuner.addParameter(kernelId, BLOCK_Y_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{8});
     tuner.addParameter(kernelId, BLOCK_Z_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{1});
+
     // block size modification
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Multiply);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Multiply);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::Multiply);
+
     // grid size modification
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::DivideCeil);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::DivideCeil);
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::DivideCeil);
-    // constrains
+
+    // block size constrains
     tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
             [&metaData = imageMetaData](const std::vector<size_t>& vec)
             {
