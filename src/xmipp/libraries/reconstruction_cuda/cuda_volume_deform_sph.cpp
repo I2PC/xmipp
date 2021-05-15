@@ -42,11 +42,13 @@ cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements
     return err;
 }
 
-void printCudaError() 
+void processCudaError() 
 {
     cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
+    if (err != cudaSuccess) {
         fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
+        exit(err);
+    }
 }
 
 // Copies data from CPU to the GPU and at the same time transforms from
@@ -58,12 +60,12 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
 
     if (mallocMem){
         if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess){
-            printCudaError();
+            processCudaError();
         }
     }
 
     if (cudaMemcpy(*dest, tmp.data(), sizeof(Target) * n, cudaMemcpyHostToDevice) != cudaSuccess){
-        printCudaError();
+        processCudaError();
     }
 }
 
@@ -79,10 +81,6 @@ VolumeDeformSph::~VolumeDeformSph()
     freeImage(images.VR);
     freeImage(images.VO);
 
-    for (size_t i = 0; i < volumes.size; i++) {
-        freeImage(justForFreeR[i]);
-        freeImage(justForFreeI[i]);
-    }
     cudaFree(volumes.R);
     cudaFree(volumes.I);
 
@@ -116,6 +114,7 @@ void VolumeDeformSph::setupConstantParameters()
     this->iRmax = 1 / program->Rmax;
     setupImage(program->VI, images.VI);
     setupImage(program->VR, images.VR);
+    setupImageMetaData(program->VR);
     setupZSHparams();
     setupVolumes();
 
@@ -131,9 +130,6 @@ void VolumeDeformSph::setupConstantParameters()
 
     // Dynamic shared memory
     constantSharedMemSize = 0;
-#if USE_SHARED_VOLUME_METADATA == 1
-    constantSharedMemSize += sizeof(ImageData) * volumes.size * 2;
-#endif
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -174,7 +170,7 @@ void VolumeDeformSph::setupClnm()
     }
 
     if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
-        printCudaError();
+        processCudaError();
 }
 
 KernelOutputs VolumeDeformSph::getOutputs() 
@@ -205,6 +201,7 @@ void VolumeDeformSph::runKernel()
             dZshParams,
             dClnm,
             steps,
+            imageMetaData,
             volumes,
             deformImages,
             applyTransformation,
@@ -249,25 +246,42 @@ void VolumeDeformSph::setupZSHparams()
     }
 
     if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
-        printCudaError();
+        processCudaError();
+}
+
+void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData) 
+{
+    auto& mda = inputImage();
+    transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
 void VolumeDeformSph::setupVolumes()
 {
-    volumes.size = program->volumesR.size();
+    volumes.count = program->volumesR.size();
+    volumes.volumeSize = program->VR().getSize();
 
-    justForFreeR.resize(volumes.size);
-    justForFreeI.resize(volumes.size);
+    if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
+    if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
 
-    for (size_t i = 0; i < volumes.size; i++) {
-        setupImage(program->volumesR[i], justForFreeR[i]);
-        setupImage(program->volumesI[i], justForFreeI[i]);
+    for (size_t i = 0; i < volumes.count; i++) {
+        PrecisionType* tmpI = volumes.I + i * volumes.volumeSize;
+        PrecisionType* tmpR = volumes.R + i * volumes.volumeSize;
+        transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
+        transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
     }
+}
 
-    if (cudaMallocAndCopy(&volumes.R, justForFreeR.data(), volumes.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&volumes.I, justForFreeI.data(), volumes.size) != cudaSuccess)
-        printCudaError();
+void VolumeDeformSph::setupImageMetaData(const Image<double>& mda) 
+{
+
+    imageMetaData.xShift = mda().xinit;
+    imageMetaData.yShift = mda().yinit;
+    imageMetaData.zShift = mda().zinit;
+    imageMetaData.xDim = mda().xdim;
+    imageMetaData.yDim = mda().ydim;
+    imageMetaData.zDim = mda().zdim;
 }
 
 void VolumeDeformSph::setupImage(Image<double>& inputImage, ImageData& outputImageData) 
@@ -295,10 +309,10 @@ void VolumeDeformSph::setupImage(ImageData& inputImage, ImageData& outputImageDa
 
     size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(PrecisionType);
     if (cudaMalloc(&outputImageData.data, size) != cudaSuccess)
-        printCudaError();
+        processCudaError();
 
     if (copyData) {
         if (cudaMemcpy(outputImageData.data, inputImage.data, size, cudaMemcpyHostToDevice) != cudaSuccess)
-            printCudaError();
+            processCudaError();
     }
 }

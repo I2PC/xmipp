@@ -92,7 +92,7 @@ public:
     Matrix1D<double> steps_cp;
 
     // Number of ones in steps
-    int onesInSteps;
+    unsigned onesInSteps;
 
 	//Deformation in pixels, sumVI, sumVD
 	double deformation, sumVI, sumVD;

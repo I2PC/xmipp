@@ -20,6 +20,17 @@ using PrecisionType = float;
 using PrecisionType3 = float3;
 #endif
 
+struct ImageMetaData
+{
+    int xShift = 0;
+    int yShift = 0;
+    int zShift = 0;
+
+    int xDim = 0;
+    int yDim = 0;
+    int zDim = 0;
+};
+
 struct ImageData
 {
     int xShift = 0;
@@ -33,20 +44,12 @@ struct ImageData
     PrecisionType* data = nullptr;
 };
 
-struct ZSHparams 
-{
-    int* vL1 = nullptr;
-    int* vN = nullptr;
-    int* vL2 = nullptr;
-    int* vM = nullptr;
-    unsigned size = 0;
-};
-
 struct Volumes 
 {
-    ImageData* I = nullptr;
-    ImageData* R = nullptr;
-    unsigned size = 0;
+    PrecisionType* I = nullptr;
+    PrecisionType* R = nullptr;
+    unsigned count = 0;
+    unsigned volumeSize = 0;
 };
 
 struct IROimages 
@@ -112,7 +115,6 @@ private:
     PrecisionType3* dClnm;
     std::vector<PrecisionType3> clnmVec;
 
-
     bool applyTransformation;
 
     bool saveDeformation;
@@ -126,19 +128,17 @@ private:
     int4* dZshParams;
     std::vector<int4> zshparamsVec;
 
+    ImageMetaData imageMetaData;
+
     Volumes volumes;
-    // because of the stupid design... :(
-    std::vector<ImageData> justForFreeI;
-    std::vector<ImageData> justForFreeR;
 
     KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
-    void reduceResults();
-
     void setupImage(Image<double>& inputImage, ImageData& outputImageData);
     void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
+    void setupImageMetaData(const Image<double>& inputImage);
 
     void freeImage(ImageData &im);
 
