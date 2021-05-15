@@ -30,10 +30,9 @@
 
 // Common functions
 template<typename T>
-cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements, size_t memSize = 0)
+cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements)
 {
-    size_t elemSize = numberOfElements * sizeof(T);
-    memSize = memSize == 0 ? elemSize : memSize * sizeof(T);
+    size_t memSize = numberOfElements * sizeof(T);
 
     cudaError err = cudaSuccess;
     if ((err = cudaMalloc(target, memSize)) != cudaSuccess) {
@@ -41,40 +40,36 @@ cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements
         return err;
     }
 
-    if ((err = cudaMemcpy(*target, source, elemSize, cudaMemcpyHostToDevice)) != cudaSuccess) {
+    if ((err = cudaMemcpy(*target, source, memSize, cudaMemcpyHostToDevice)) != cudaSuccess) {
         cudaFree(*target);
         *target = NULL;
-    }
-
-    if (memSize > elemSize) {
-        cudaMemset((*target) + numberOfElements, 0, memSize - elemSize);
     }
 
     return err;
 }
 
-void printCudaError() 
+void processCudaError() 
 {
     cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
+    if (err != cudaSuccess) {
         fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
+        exit(err);
+    }
 }
 
 // Copies data from CPU to the GPU and at the same time transforms from
 // type 'Source' to type 'Target'. Works only for numeric types
 template<typename Target, typename Source>
-void transformData(Target** dest, Source* source, size_t n, bool mallocMem = true)
+void transformData(Target** dest, Source* source, size_t n)
 {
     std::vector<Target> tmp(source, source + n);
 
-    if (mallocMem){
-        if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess){
-            printCudaError();
-        }
+    if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess){
+        processCudaError();
     }
 
     if (cudaMemcpy(*dest, tmp.data(), sizeof(Target) * n, cudaMemcpyHostToDevice) != cudaSuccess){
-        printCudaError();
+        processCudaError();
     }
 }
 
@@ -115,27 +110,27 @@ void VolumeDeformSph::setupConstantParameters()
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
-    // paths
-    if (!program->pathToXmipp.isEmpty()) {
-        pathToXmipp = program->pathToXmipp;
+    if (program->pathToXmipp.isEmpty()) {
+        throw new std::runtime_error("Path to the Xmipp-bundle in not specified!");
     }
 
-    // kernel arguments
+    pathToXmipp = program->pathToXmipp;
+
     this->Rmax2 = program->Rmax * program->Rmax;
     this->iRmax = 1 / program->Rmax;
+
     setupImageMetaData(program->VR);
     setupZSHparams();
     setupVolumes();
     setupOutputImages();
 
-    // ktt stuff
-    Rmax2Id = tuner.addArgumentScalar(Rmax2);
-    iRmaxId = tuner.addArgumentScalar(iRmax);
-    zshparamsId = tuner.addArgumentVector(zshparamsVec, ktt::ArgumentAccessType::ReadOnly);
-    imageMetaDataId = tuner.addArgumentScalar(imageMetaData);
-    volumesId = tuner.addArgumentScalar(volumes);
-    outputImagesId = tuner.addArgumentScalar(outputImages);
+    setupConstantKtt();
 
+    constantDataReady = true;
+}
+
+void VolumeDeformSph::setupKttKernel() 
+{
     // kernel dimension
     kttBlock.setSizeX(1);
     kttBlock.setSizeY(1);
@@ -145,54 +140,84 @@ void VolumeDeformSph::setupConstantParameters()
     kttGrid.setSizeZ(imageMetaData.zDim);
 
     // kernel init
-    kernelId = tuner.addKernelFromFile(pathToXmipp + "/" + pathToKernel, "computeDeformation", kttGrid, kttBlock);
+    kernelId = tuner.addKernelFromFile(pathToXmipp + "/" + pathToKernel,
+            "computeDeformation", kttGrid, kttBlock);
+}
 
+void VolumeDeformSph::setupKttBlockSize() 
+{
     // tuning block/grid size
     tuner.addParameter(kernelId, BLOCK_X_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{16});
     tuner.addParameter(kernelId, BLOCK_Y_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{8});
     tuner.addParameter(kernelId, BLOCK_Z_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{1});
 
     // block size modification
-    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Multiply);
-    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Multiply);
-    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::Multiply);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local,
+            ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::Multiply);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local,
+            ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::Multiply);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Local,
+            ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::Multiply);
 
     // grid size modification
-    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::DivideCeil);
-    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::DivideCeil);
-    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global, ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::DivideCeil);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global,
+            ktt::ModifierDimension::X, BLOCK_X_DIM, ktt::ModifierAction::DivideCeil);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global,
+            ktt::ModifierDimension::Y, BLOCK_Y_DIM, ktt::ModifierAction::DivideCeil);
+    tuner.setThreadModifier(kernelId, ktt::ModifierType::Global,
+            ktt::ModifierDimension::Z, BLOCK_Z_DIM, ktt::ModifierAction::DivideCeil);
 
     // block size constrains
     tuner.addConstraint(kernelId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM },
             [&metaData = imageMetaData](const std::vector<size_t>& vec)
             {
                 return 32 <= vec[0] * vec[1] * vec[2]
-                    && vec[0] < metaData.xDim && vec[1] < metaData.yDim && vec[2] < metaData.zDim;
+                    && vec[0] < metaData.xDim
+                    && vec[1] < metaData.yDim
+                    && vec[2] < metaData.zDim;
             });
+}
 
-    // kernel parameters
-    // simple defines
+void VolumeDeformSph::setupKttDefines()
+{
     tuner.addParameter(kernelId, "L1", {static_cast<unsigned>(program->L1)});
     tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
     tuner.addParameter(kernelId, "KTT_USED", {1});
+}
 
+void VolumeDeformSph::setupKttTuningParameters()
+{
+
+}
+
+void VolumeDeformSph::setupKttConstantKernelArguments()
+{
+    Rmax2Id = tuner.addArgumentScalar(Rmax2);
+    iRmaxId = tuner.addArgumentScalar(iRmax);
+    zshparamsId = tuner.addArgumentVector(zshparamsVec, ktt::ArgumentAccessType::ReadOnly);
+    imageMetaDataId = tuner.addArgumentScalar(imageMetaData);
+    volumesId = tuner.addArgumentScalar(volumes);
+    outputImagesId = tuner.addArgumentScalar(outputImages);
+}
+
+void VolumeDeformSph::setupKttSharedMemory()
+{
     // Dynamic shared memory allocation
     size_t sharedMemSize = sizeof(PrecisionType*) * volumes.size * 2;
     sharedMemSize += sizeof(int4) * program->vecSize;
     sharedMemSize += sizeof(PrecisionType3) * program->vecSize;
     sharedMemId = tuner.addArgumentLocal<char>(sharedMemSize);
-/*
-    tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_MEM_ZSH_CLNM" },
-            [&vols = volumes.size, &steps = program->onesInSteps](const size_t size, const std::vector<size_t>& vec)
-            {
-                size_t sharedMemSize = sizeof(PrecisionType*) * vols * 2;
-                if (vec[3] == 1) { // zsh, clnm
-                    sharedMemSize += sizeof(int4) * steps;
-                    sharedMemSize += sizeof(PrecisionType3) * steps;
-                }
-                return sharedMemSize;
-            });
-*/
+}
+
+void VolumeDeformSph::setupConstantKtt()
+{
+    setupKttConstantKernelArguments();
+    setupKttKernel();
+    setupKttBlockSize();
+
+    setupKttDefines();
+    setupKttTuningParameters();
+    setupKttSharedMemory();
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -202,14 +227,19 @@ void VolumeDeformSph::setupChangingParameters()
 
     setupClnm();
 
-    clnmId = tuner.addArgumentVector(clnmVec, ktt::ArgumentAccessType::ReadOnly);
-    stepsId = tuner.addArgumentScalar(program->onesInSteps);
-
-    // Deformation and transformation booleans
     this->applyTransformation = program->applyTransformation;
     this->saveDeformation = program->saveDeformation;
 
-    // ktt stuff
+    setupChangingKtt();
+
+    changingDataReady = true;
+}
+
+void VolumeDeformSph::setupChangingKtt() 
+{
+    clnmId = tuner.addArgumentVector(clnmVec, ktt::ArgumentAccessType::ReadOnly);
+    stepsId = tuner.addArgumentScalar(program->onesInSteps);
+
     applyTransformationId = tuner.addArgumentScalar(static_cast<int>(applyTransformation));
     saveDeformationId = tuner.addArgumentScalar(static_cast<int>(saveDeformation));
 }
@@ -246,12 +276,14 @@ void VolumeDeformSph::pretuneKernel()
     }
 
     // Define thrust reduction vector
-    // During the tuning process it needs to be able to accomodate all the possible
-    // variations of block sizes. That is why it is so large.
     thrust::device_vector<PrecisionType> thrustVec(kttGrid.getTotalSize() * 3, 0.0);
 
     // Add arguments for the kernel
-    ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())), thrustVec.size() * sizeof(PrecisionType), ktt::ArgumentAccessType::ReadWrite, ktt::ArgumentMemoryLocation::Device);
+    ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(
+            static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())),
+            thrustVec.size() * sizeof(PrecisionType),
+            ktt::ArgumentAccessType::ReadWrite,
+            ktt::ArgumentMemoryLocation::Device);
 
     // Assign arguments to the kernel
     tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
@@ -278,6 +310,7 @@ void VolumeDeformSph::pretuneKernel()
         tuner.printResult(kernelId, program->kttTuningLog, ktt::PrintFormat::CSV);
     }
 
+    tunedGridSize = 1; // needed for multiple tuning in single run
     bestKernelConfig = tuner.getBestComputationResult(kernelId).getConfiguration();
     for (const auto& pair : bestKernelConfig) {
         if (pair.getName() == BLOCK_X_DIM) {
@@ -294,6 +327,10 @@ void VolumeDeformSph::pretuneKernel()
 
 void VolumeDeformSph::runKernel() 
 {
+    if (!constantDataReady || !changingDataReady) {
+        throw new std::runtime_error("VolumeDeformSph - runKernel called before data setup!");
+    }
+
     if (tuneKernel) {
         pretuneKernel();
     }
@@ -302,7 +339,11 @@ void VolumeDeformSph::runKernel()
     thrust::device_vector<PrecisionType> thrustVec(tunedGridSize * 3, 0.0);
 
     // Add arguments for the kernel
-    ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())), thrustVec.size() * sizeof(PrecisionType), ktt::ArgumentAccessType::ReadWrite, ktt::ArgumentMemoryLocation::Device);
+    ktt::ArgumentId thrustVecId = tuner.addArgumentVector<PrecisionType>(
+            static_cast<ktt::UserBuffer>(thrust::raw_pointer_cast(thrustVec.data())),
+            thrustVec.size() * sizeof(PrecisionType),
+            ktt::ArgumentAccessType::ReadWrite,
+            ktt::ArgumentMemoryLocation::Device);
 
     // Assign arguments to the kernel
     tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
@@ -369,9 +410,9 @@ void VolumeDeformSph::setupVolumes()
     }
 
     if (cudaMallocAndCopy(&volumes.R, justForFreeR.data(), volumes.size) != cudaSuccess)
-        printCudaError();
+        processCudaError();
     if (cudaMallocAndCopy(&volumes.I, justForFreeI.data(), volumes.size) != cudaSuccess)
-        printCudaError();
+        processCudaError();
 
 }
 
@@ -398,7 +439,7 @@ void VolumeDeformSph::setupImageMetaData(Image<double>& inputImage)
 void VolumeDeformSph::setupImage(PrecisionType** imageData)
 {
     if (cudaMalloc(imageData, sizeof(PrecisionType) * imageMetaData.xDim * imageMetaData.yDim * imageMetaData.zDim) != cudaSuccess)
-        printCudaError();
+        processCudaError();
 }
 
 void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outputImageData) 

@@ -78,20 +78,7 @@ struct OutputImages
 #endif// KTT_USED
 
 // CUDA kernel defines
-/*
-#ifndef BLOCK_X_DIM
-#define BLOCK_X_DIM 8
-#endif
-#ifndef BLOCK_Y_DIM
-#define BLOCK_Y_DIM 4
-#endif
-#ifndef BLOCK_Z_DIM
-#define BLOCK_Z_DIM 4
-#endif
-*/
 #define BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
-
-// ImageData macros
 
 // Index to global memory
 #define GET_IDX(ImD,k,i,j) \
@@ -183,11 +170,13 @@ extern "C" __global__ void computeDeformation(
     int i = P2L_Y_IDX(imageMetaData, iPhys);
     int j = P2L_X_IDX(imageMetaData, jPhys);
 
-    // Load volume pointers to the shared memory
+    // Prepare shared memory for volume pointers
     PrecisionType** volRPtrShared = (PrecisionType**)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(PrecisionType*) * volumes.size;
     PrecisionType** volIPtrShared = (PrecisionType**)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(PrecisionType*) * volumes.size;
+
+    // Load volume pointers to the shared memory
     if (volumes.size <= BLOCK_SIZE) {
         if (tIdx < volumes.size) {
             volRPtrShared[tIdx] = volumes.R[tIdx];
@@ -195,9 +184,11 @@ extern "C" __global__ void computeDeformation(
         }
     }
 
+    // Prepare shared memory for ZSH parameters
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
 
+    // Prepare shared memory for clnm parameters
     PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(PrecisionType3) * steps;
 
@@ -242,26 +233,27 @@ extern "C" __global__ void computeDeformation(
         }
     }
 
-    bool isOutside = IS_OUTSIDE_PHYS(imageMetaData, kPhys, iPhys, jPhys);
+    bool inVolume = !IS_OUTSIDE_PHYS(imageMetaData, kPhys, iPhys, jPhys);
 
-    if (saveDeformation && !isOutside) {
+    if (saveDeformation && inVolume) {
         ELEM_3D(outputImages.Gx, imageMetaData, kPhys, iPhys, jPhys) = gx;
         ELEM_3D(outputImages.Gy, imageMetaData, kPhys, iPhys, jPhys) = gy;
         ELEM_3D(outputImages.Gz, imageMetaData, kPhys, iPhys, jPhys) = gz;
     }
 
     // applyTransformation is true only in the very last call of this kernel,
-    // which doesn't use any data that are computed after this point
+    // and we don't need any data that are computed after this point
     if (applyTransformation) {
-        if (!isOutside) {
-            ELEM_3D(outputImages.VO, imageMetaData, kPhys, iPhys, jPhys) = interpolatedElement3D(volIPtrShared[0], imageMetaData, j + gx, i + gy, k + gz);
+        if (inVolume) {
+            ELEM_3D(outputImages.VO, imageMetaData, kPhys, iPhys, jPhys) =
+                interpolatedElement3D(volIPtrShared[0], imageMetaData, j + gx, i + gy, k + gz);
         }
         return;
     }
 
     PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
-    if (!isOutside) {
+    if (inVolume) {
         for (unsigned idv = 0; idv < volumes.size; idv++) {
             PrecisionType voxelR = ELEM_3D(volRPtrShared[idv], imageMetaData, kPhys, iPhys, jPhys);
             PrecisionType voxelI = interpolatedElement3D(volIPtrShared[idv], imageMetaData, j + gx, i + gy, k + gz);
@@ -271,8 +263,8 @@ extern "C" __global__ void computeDeformation(
 
             PrecisionType diff = voxelR - voxelI;
             localDiff2 += diff * diff;
-            localModg += gx*gx + gy*gy + gz*gz;
         }
+        localModg += volumes.size * (gx*gx + gy*gy + gz*gz);
     }
 
     __shared__ PrecisionType diff2Shared[BLOCK_SIZE];
@@ -283,6 +275,7 @@ extern "C" __global__ void computeDeformation(
     sumVDShared[tIdx] = localSumVD;
     modfgShared[tIdx] = localModg;
 
+    // Wait for all the threads to fill the shared memory
     __syncthreads();
 
     // Block reduction

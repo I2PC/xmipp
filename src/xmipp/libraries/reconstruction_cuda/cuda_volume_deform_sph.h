@@ -141,6 +141,8 @@ private:
     ktt::KernelId kernelId;
     std::vector<ktt::ParameterPair> bestKernelConfig;
     bool tuneKernel = true;
+    bool constantDataReady = false;
+    bool changingDataReady = false;
 
     ktt::ArgumentId sharedMemId;
 
@@ -204,16 +206,22 @@ private:
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(PrecisionType** imageData);
 
-    void freeZSHSCATTERED();
-
     void setupVolumes();
     void setupOutputImages();
 
     void setupZSHparams();
-    void setupZSHparamsSCATTERED();
 
     void setupClnm();
-    void setupClnmSCATTERED();
+
+    void setupConstantKtt();
+    void setupChangingKtt();
+
+    void setupKttKernel();
+    void setupKttBlockSize();
+    void setupKttDefines();
+    void setupKttTuningParameters();
+    void setupKttSharedMemory();
+    void setupKttConstantKernelArguments();
 };
 
 #endif// VOLUME_DEFORM_SPH_H
