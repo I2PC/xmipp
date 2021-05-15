@@ -172,12 +172,13 @@ void VolumeDeformSph::setupConstantParameters()
     tuner.addParameter(kernelId, "L1", {static_cast<unsigned>(program->L1)});
     tuner.addParameter(kernelId, "L2", {static_cast<unsigned>(program->L2)});
     tuner.addParameter(kernelId, "KTT_USED", {1});
-    // tuning parameters
-    tuner.addParameter(kernelId, "USE_SHARED_MEM_ZSH_CLNM", {1});
 
     // Dynamic shared memory allocation
-    sharedMemId = tuner.addArgumentLocal<char>(1);// cannot be zero
-
+    size_t sharedMemSize = sizeof(PrecisionType*) * volumes.size * 2;
+    sharedMemSize += sizeof(int4) * program->vecSize;
+    sharedMemSize += sizeof(PrecisionType3) * program->vecSize;
+    sharedMemId = tuner.addArgumentLocal<char>(sharedMemSize);
+/*
     tuner.setLocalMemoryModifier(kernelId, sharedMemId, { BLOCK_X_DIM, BLOCK_Y_DIM, BLOCK_Z_DIM, "USE_SHARED_MEM_ZSH_CLNM" },
             [&vols = volumes.size, &steps = program->onesInSteps](const size_t size, const std::vector<size_t>& vec)
             {
@@ -188,6 +189,7 @@ void VolumeDeformSph::setupConstantParameters()
                 }
                 return sharedMemSize;
             });
+*/
 }
 
 void VolumeDeformSph::setupChangingParameters() 

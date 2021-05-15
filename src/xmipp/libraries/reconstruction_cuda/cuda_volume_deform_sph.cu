@@ -205,7 +205,6 @@ extern "C" __global__ void computeDeform(
         }
     }
 
-#if USE_SHARED_MEM_ZSH_CLNM == 1 
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
 
@@ -226,7 +225,6 @@ extern "C" __global__ void computeDeform(
             }
         }
     }
-#endif
 
     __syncthreads();
 
@@ -237,31 +235,18 @@ extern "C" __global__ void computeDeform(
 
     if (r2 < Rmax2) {
         for (int idx = 0; idx < steps; idx++) {
-#if USE_SHARED_MEM_ZSH_CLNM == 1
             int l1 = zshShared[idx].w;
             int n = zshShared[idx].x;
             int l2 = zshShared[idx].y;
             int m = zshShared[idx].z;
-#else
-            int l1 = zshparams[idx].w;
-            int n = zshparams[idx].x;
-            int l2 = zshparams[idx].y;
-            int m = zshparams[idx].z;
-#endif// USE_SHARED_MEM_ZSH_CLNM
 
             PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m,
                     j * iRmax, i * iRmax, k * iRmax, rr);
 
             if (rr > 0 || l2 == 0) {
-#if USE_SHARED_MEM_ZSH_CLNM == 1
                 gx += zsph * clnmShared[idx].x;
                 gy += zsph * clnmShared[idx].y;
                 gz += zsph * clnmShared[idx].z;
-#else
-                gx += zsph * clnm[idx].x;
-                gy += zsph * clnm[idx].y;
-                gz += zsph * clnm[idx].z;
-#endif// USE_SHARED_MEM_ZSH_CLNM
             }
         }
     }
