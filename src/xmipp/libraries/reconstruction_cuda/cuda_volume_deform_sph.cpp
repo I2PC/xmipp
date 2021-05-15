@@ -73,21 +73,11 @@ VolumeDeformSph::VolumeDeformSph()
 {
 }
 
-void VolumeDeformSph::freeZSHSCATTERED()
-{
-    cudaFree(zshparamsSCATTERED.vL1);
-    cudaFree(zshparamsSCATTERED.vL2);
-    cudaFree(zshparamsSCATTERED.vN);
-    cudaFree(zshparamsSCATTERED.vM);
-}
-
 VolumeDeformSph::~VolumeDeformSph() 
 {
     freeImage(images.VI);
     freeImage(images.VR);
     freeImage(images.VO);
-
-    freeZSHSCATTERED();
 
     for (size_t i = 0; i < volumes.size; i++) {
         freeImage(justForFreeR[i]);
@@ -127,7 +117,6 @@ void VolumeDeformSph::setupConstantParameters()
     setupImage(program->VI, images.VI);
     setupImage(program->VR, images.VR);
     setupZSHparams();
-    setupZSHparamsSCATTERED();
     setupVolumes();
 
     // kernel dimension
@@ -156,7 +145,6 @@ void VolumeDeformSph::setupChangingParameters()
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
     setupClnm();
-    setupClnmSCATTERED();
 
     steps = program->onesInSteps;
 
@@ -194,13 +182,6 @@ void VolumeDeformSph::setupClnm()
         printCudaError();
 }
 
-void VolumeDeformSph::setupClnmSCATTERED()
-{
-    clnmVecSCATTERED.assign(program->clnm.vdata, program->clnm.vdata + program->clnm.size());
-    if (cudaMallocAndCopy(&dClnmSCATTERED, clnmVecSCATTERED.data(), clnmVecSCATTERED.size()) != cudaSuccess)
-        printCudaError();
-}
-
 KernelOutputs VolumeDeformSph::getOutputs() 
 {
     return outputs;
@@ -228,8 +209,6 @@ void VolumeDeformSph::runKernel()
             images,
             dZshParams,
             dClnm,
-            zshparamsSCATTERED,
-            dClnmSCATTERED,
             steps,
             volumes,
             deformImages,
@@ -275,20 +254,6 @@ void VolumeDeformSph::setupZSHparams()
     }
 
     if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
-        printCudaError();
-}
-
-void VolumeDeformSph::setupZSHparamsSCATTERED()
-{
-    zshparamsSCATTERED.size = program->vL1.size();
-
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vL1, program->vL1.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vL2, program->vL2.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vN, program->vN.vdata, zshparamsSCATTERED.size) != cudaSuccess)
-        printCudaError();
-    if (cudaMallocAndCopy(&zshparamsSCATTERED.vM, program->vM.vdata, zshparamsSCATTERED.size) != cudaSuccess)
         printCudaError();
 }
 

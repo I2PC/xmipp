@@ -112,8 +112,6 @@ private:
     PrecisionType3* dClnm;
     std::vector<PrecisionType3> clnmVec;
 
-    PrecisionType* dClnmSCATTERED;
-    std::vector<PrecisionType> clnmVecSCATTERED;
 
     bool applyTransformation;
 
@@ -127,8 +125,6 @@ private:
 
     int4* dZshParams;
     std::vector<int4> zshparamsVec;
-
-    ZSHparams zshparamsSCATTERED;
 
     Volumes volumes;
     // because of the stupid design... :(
@@ -145,17 +141,14 @@ private:
     void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
 
     void freeImage(ImageData &im);
-    void freeZSHSCATTERED();
 
     void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
 
     void setupVolumes();
 
     void setupZSHparams();
-    void setupZSHparamsSCATTERED();
 
     void setupClnm();
-    void setupClnmSCATTERED();
 };
 
 #endif// VOLUME_DEFORM_SPH_H

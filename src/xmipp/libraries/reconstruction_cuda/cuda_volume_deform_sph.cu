@@ -179,8 +179,6 @@ extern "C" __global__ void computeDeform(
         IROimages images,
         int4* zshparams,
         PrecisionType3* clnm,
-        ZSHparams zshparamsSCATTERED,// necessary for tuning
-        PrecisionType* clnmSCATTERED,// necessary for tuning
         int steps,
         Volumes volumes,
         DeformImages deformImages,
@@ -281,12 +279,6 @@ extern "C" __global__ void computeDeform(
 
     if (r2 < Rmax2) {
         for (int idx = 0; idx < steps; idx++) {
-#if USE_SCATTERED_ZSH_CLNM == 1
-            int l1 = zshparamsSCATTERED.vL1[idx];
-            int n = zshparamsSCATTERED.vN[idx];
-            int l2 = zshparamsSCATTERED.vL2[idx];
-            int m = zshparamsSCATTERED.vM[idx];
-#else
 #if USE_SHARED_MEM_ZSH_CLNM == 1
             int l1 = zshShared[idx].w;
             int n = zshShared[idx].x;
@@ -298,7 +290,6 @@ extern "C" __global__ void computeDeform(
             int l2 = zshparams[idx].y;
             int m = zshparams[idx].z;
 #endif// USE_SHARED_MEM_ZSH_CLNM
-#endif// USE_SCATTERED_ZSH_CLNM
 
 #if USE_ZSH_FUNCTION == 1
             PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m,
@@ -578,11 +569,6 @@ extern "C" __global__ void computeDeform(
 #endif// USE_ZSH_FUNCTION
 
             if (rr > 0 || l2 == 0) {
-#if USE_SCATTERED_ZSH_CLNM == 1
-                gx += zsph * clnmSCATTERED[idx];
-                gy += zsph * clnmSCATTERED[idx + zshparamsSCATTERED.size];
-                gz += zsph * clnmSCATTERED[idx + zshparamsSCATTERED.size * 2];
-#else
 #if USE_SHARED_MEM_ZSH_CLNM == 1
                 gx += zsph * clnmShared[idx].x;
                 gy += zsph * clnmShared[idx].y;
@@ -592,7 +578,6 @@ extern "C" __global__ void computeDeform(
                 gy += zsph * clnm[idx].y;
                 gz += zsph * clnm[idx].z;
 #endif// USE_SHARED_MEM_ZSH_CLNM
-#endif// USE_SCATTERED_ZSH_CLNM
             }
         }
     }
