@@ -146,10 +146,8 @@ void VolumeDeformSph::setupChangingParameters()
     steps = program->onesInSteps;
 
     changingSharedMemSize = 0;
-#if USE_SHARED_MEM_ZSH_CLNM == 1
     changingSharedMemSize += sizeof(int4) * steps;
     changingSharedMemSize += sizeof(PrecisionType3) * steps;
-#endif
 
     // Deformation and transformation booleans
     this->applyTransformation = program->applyTransformation;

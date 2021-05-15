@@ -83,15 +83,6 @@ struct DeformImages
 #endif// KTT_USED
 
 // CUDA kernel defines
-#ifndef BLOCK_X_DIM
-#define BLOCK_X_DIM 8
-#endif
-#ifndef BLOCK_Y_DIM
-#define BLOCK_Y_DIM 4
-#endif
-#ifndef BLOCK_Z_DIM
-#define BLOCK_Z_DIM 4
-#endif
 #define BLOCK_SIZE (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM)
 
 // ImageData macros
@@ -99,10 +90,6 @@ struct DeformImages
 // Index to global memory
 #define GET_IDX(ImD,k,i,j) \
     ((ImD).xDim * (ImD).yDim * (k) + (ImD).xDim * (i) + (j))
-
-// Index to shared memory
-#define GET_IDX_SHARED(k,i,j) \
-    (blockDim.x * blockDim.y * ((k) % blockDim.z) + blockDim.x * ((i) % blockDim.y) + ((j) % blockDim.x))
 
 // Logical index = Physical index + shift
 #define P2L_X_IDX(ImD,j) \
@@ -131,9 +118,6 @@ struct DeformImages
 #define ELEM_3D_SHIFTED(ImD,k,i,j) \
     (ELEM_3D((ImD), (k) - (ImD).zShift, (i) - (ImD).yShift, (j) - (ImD).xShift))
 
-#define ELEM_3D_SHARED(VolData,k,i,j) \
-    ((VolData)[GET_IDX_SHARED((k), (i), (j))])
-
 // Utility macros
 #define IS_OUTSIDE(ImD,k,i,j) \
     ((j) < (ImD).xShift || (j) > (ImD).xShift + (ImD).xDim - 1 || \
@@ -144,11 +128,6 @@ struct DeformImages
     ((j) < 0 || (ImD).xDim <= (j) || \
      (i) < 0 || (ImD).yDim <= (i) || \
      (k) < 0 || (ImD).zDim <= (k))
-
-#define IS_OUTSIDE_SHARED(k,i,j) \
-    ((j) < blockIdx.x * blockDim.x || blockIdx.x * blockDim.x + blockDim.x <= (j) || \
-     (i) < blockIdx.y * blockDim.y || blockIdx.y * blockDim.y + blockDim.y <= (i) || \
-     (k) < blockIdx.z * blockDim.z || blockIdx.z * blockDim.z + blockDim.z <= (k))
 
 // Smart casting to selected precision (at compile time)
 // ...just shorter static_cast
@@ -224,7 +203,6 @@ extern "C" __global__ void computeDeform(
 
 #endif// USE_SHARED_VOLUME_METADATA
 
-#if USE_SHARED_MEM_ZSH_CLNM == 1 && USE_SCATTERED_ZSH_CLNM == 0
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
 
@@ -245,11 +223,8 @@ extern "C" __global__ void computeDeform(
             }
         }
     }
-#endif
 
-#if USE_SHARED_MEM_ZSH_CLNM + USE_SHARED_VOLUME_METADATA + USE_SHARED_VOLUME_DATA > 0
     __syncthreads();
-#endif
 
     // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
@@ -258,31 +233,18 @@ extern "C" __global__ void computeDeform(
 
     if (r2 < Rmax2) {
         for (int idx = 0; idx < steps; idx++) {
-#if USE_SHARED_MEM_ZSH_CLNM == 1
             int l1 = zshShared[idx].w;
             int n = zshShared[idx].x;
             int l2 = zshShared[idx].y;
             int m = zshShared[idx].z;
-#else
-            int l1 = zshparams[idx].w;
-            int n = zshparams[idx].x;
-            int l2 = zshparams[idx].y;
-            int m = zshparams[idx].z;
-#endif// USE_SHARED_MEM_ZSH_CLNM
 
             PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m,
                     j * iRmax, i * iRmax, k * iRmax, rr);
 
             if (rr > 0 || l2 == 0) {
-#if USE_SHARED_MEM_ZSH_CLNM == 1
                 gx += zsph * clnmShared[idx].x;
                 gy += zsph * clnmShared[idx].y;
                 gz += zsph * clnmShared[idx].z;
-#else
-                gx += zsph * clnm[idx].x;
-                gy += zsph * clnm[idx].y;
-                gz += zsph * clnm[idx].z;
-#endif// USE_SHARED_MEM_ZSH_CLNM
             }
         }
     }
