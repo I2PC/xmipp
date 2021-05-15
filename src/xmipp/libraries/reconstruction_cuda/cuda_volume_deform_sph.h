@@ -36,6 +36,13 @@ struct ImageMetaData
     int zDim;
 };
 
+struct IROimages 
+{
+    PrecisionType* I = nullptr;
+    PrecisionType* R = nullptr;
+    PrecisionType* O = nullptr;
+};
+
 struct ZSHparams 
 {
     int* vL1 = nullptr;
@@ -47,17 +54,17 @@ struct ZSHparams
 
 struct Volumes 
 {
-    PrecisionType** I = nullptr;
-    PrecisionType** R = nullptr;
-    unsigned size = 0;
+    PrecisionType* I = nullptr;
+    PrecisionType* R = nullptr;
+    unsigned count = 0;
+    unsigned volumeSize = 0;
 };
 
 struct OutputImages 
 {
-    PrecisionType* Gx;
-    PrecisionType* Gy;
-    PrecisionType* Gz;
-    PrecisionType* VO;
+    PrecisionType* Gx = nullptr;
+    PrecisionType* Gy = nullptr;
+    PrecisionType* Gz = nullptr;
 };
 
 struct KernelOutputs 
@@ -166,6 +173,9 @@ private:
 
     ktt::ArgumentId iRmaxId;
     PrecisionType iRmax;
+
+    ktt::ArgumentId imagesId;
+    IROimages images;
 
     ktt::ArgumentId stepsId;
 

@@ -52,20 +52,19 @@ struct ImageMetaData
     int zDim;
 };
 
-struct ZSHparams
-{ 
-    int* vL1;
-    int* vN;
-    int* vL2;
-    int* vM;
-    unsigned size;
+struct IROimages 
+{
+    PrecisionType* I;
+    PrecisionType* R;
+    PrecisionType* O;
 };
 
 struct Volumes 
 {
-    PrecisionType** I;
-    PrecisionType** R;
-    unsigned size;
+    PrecisionType* I;
+    PrecisionType* R;
+    unsigned count;
+    unsigned volumeSize;
 };
 
 struct OutputImages 
@@ -73,7 +72,6 @@ struct OutputImages
     PrecisionType* Gx;
     PrecisionType* Gy;
     PrecisionType* Gz;
-    PrecisionType* VO;
 };
 #endif// KTT_USED
 
@@ -142,6 +140,7 @@ __device__ PrecisionType interpolatedElement3D(PrecisionType* ImD, ImageMetaData
 extern "C" __global__ void computeDeformation(
         PrecisionType Rmax2,
         PrecisionType iRmax,
+        IROimages images,
         int4* zshparams,
         PrecisionType3* clnm,
         unsigned steps,
@@ -169,7 +168,7 @@ extern "C" __global__ void computeDeformation(
     int k = P2L_Z_IDX(imageMetaData, kPhys);
     int i = P2L_Y_IDX(imageMetaData, iPhys);
     int j = P2L_X_IDX(imageMetaData, jPhys);
-
+/*
     // Prepare shared memory for volume pointers
     PrecisionType** volRPtrShared = (PrecisionType**)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(PrecisionType*) * volumes.size;
@@ -183,7 +182,7 @@ extern "C" __global__ void computeDeformation(
             volIPtrShared[tIdx] = volumes.I[tIdx];
         }
     }
-
+*/
     // Prepare shared memory for ZSH parameters
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
@@ -245,8 +244,8 @@ extern "C" __global__ void computeDeformation(
     // and we don't need any data that are computed after this point
     if (applyTransformation) {
         if (inVolume) {
-            ELEM_3D(outputImages.VO, imageMetaData, kPhys, iPhys, jPhys) =
-                interpolatedElement3D(volIPtrShared[0], imageMetaData, j + gx, i + gy, k + gz);
+            ELEM_3D(images.O, imageMetaData, kPhys, iPhys, jPhys) =
+                interpolatedElement3D(images.I, imageMetaData, j + gx, i + gy, k + gz);
         }
         return;
     }
@@ -254,9 +253,11 @@ extern "C" __global__ void computeDeformation(
     PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     if (inVolume) {
-        for (unsigned idv = 0; idv < volumes.size; idv++) {
-            PrecisionType voxelR = ELEM_3D(volRPtrShared[idv], imageMetaData, kPhys, iPhys, jPhys);
-            PrecisionType voxelI = interpolatedElement3D(volIPtrShared[idv], imageMetaData, j + gx, i + gy, k + gz);
+        for (unsigned idv = 0; idv < volumes.count; idv++) {
+            PrecisionType voxelR = ELEM_3D(volumes.R + idv * volumes.volumeSize,
+                    imageMetaData, kPhys, iPhys, jPhys);
+            PrecisionType voxelI = interpolatedElement3D(volumes.I + idv * volumes.volumeSize,
+                    imageMetaData, j + gx, i + gy, k + gz);
 
             if (voxelI >= 0.0)
                 localSumVD += voxelI;
@@ -264,7 +265,7 @@ extern "C" __global__ void computeDeformation(
             PrecisionType diff = voxelR - voxelI;
             localDiff2 += diff * diff;
         }
-        localModg += volumes.size * (gx*gx + gy*gy + gz*gz);
+        localModg += volumes.count * (gx*gx + gy*gy + gz*gz);
     }
 
     __shared__ PrecisionType diff2Shared[BLOCK_SIZE];

@@ -60,12 +60,14 @@ void processCudaError()
 // Copies data from CPU to the GPU and at the same time transforms from
 // type 'Source' to type 'Target'. Works only for numeric types
 template<typename Target, typename Source>
-void transformData(Target** dest, Source* source, size_t n)
+void transformData(Target** dest, Source* source, size_t n, bool mallocMem = true)
 {
     std::vector<Target> tmp(source, source + n);
 
-    if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess){
-        processCudaError();
+    if (mallocMem) {
+        if (cudaMalloc(dest, sizeof(Target) * n) != cudaSuccess){
+            processCudaError();
+        }
     }
 
     if (cudaMemcpy(*dest, tmp.data(), sizeof(Target) * n, cudaMemcpyHostToDevice) != cudaSuccess){
@@ -87,17 +89,16 @@ VolumeDeformSph::VolumeDeformSph() : tuner(0, 0, ktt::ComputeAPI::CUDA)
 
 VolumeDeformSph::~VolumeDeformSph() 
 {
-    for (size_t i = 0; i < volumes.size; i++) {
-        cudaFree(justForFreeR[i]);
-        cudaFree(justForFreeI[i]);
-    }
+    cudaFree(images.I);
+    cudaFree(images.R);
+    cudaFree(images.O);
+
     cudaFree(volumes.R);
     cudaFree(volumes.I);
 
     cudaFree(outputImages.Gx);
     cudaFree(outputImages.Gy);
     cudaFree(outputImages.Gz);
-    cudaFree(outputImages.VO);
 }
 
 void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog) 
@@ -120,6 +121,9 @@ void VolumeDeformSph::setupConstantParameters()
     this->iRmax = 1 / program->Rmax;
 
     setupImageMetaData(program->VR);
+    setupImage(program->VI, &images.I);
+    //setupImage(program->VR, &images.R);
+    setupImage(&images.O);
     setupZSHparams();
     setupVolumes();
     setupOutputImages();
@@ -147,9 +151,9 @@ void VolumeDeformSph::setupKttKernel()
 void VolumeDeformSph::setupKttBlockSize() 
 {
     // tuning block/grid size
-    tuner.addParameter(kernelId, BLOCK_X_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{16});
-    tuner.addParameter(kernelId, BLOCK_Y_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{8});
-    tuner.addParameter(kernelId, BLOCK_Z_DIM, /*{ 1, 2, 4, 8, 16, 32, 64, 128}*/{1});
+    tuner.addParameter(kernelId, BLOCK_X_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
+    tuner.addParameter(kernelId, BLOCK_Y_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
+    tuner.addParameter(kernelId, BLOCK_Z_DIM, { 1, 2, 4, 8, 16, 32, 64, 128});
 
     // block size modification
     tuner.setThreadModifier(kernelId, ktt::ModifierType::Local,
@@ -194,6 +198,7 @@ void VolumeDeformSph::setupKttConstantKernelArguments()
 {
     Rmax2Id = tuner.addArgumentScalar(Rmax2);
     iRmaxId = tuner.addArgumentScalar(iRmax);
+    imagesId = tuner.addArgumentScalar(images);
     zshparamsId = tuner.addArgumentVector(zshparamsVec, ktt::ArgumentAccessType::ReadOnly);
     imageMetaDataId = tuner.addArgumentScalar(imageMetaData);
     volumesId = tuner.addArgumentScalar(volumes);
@@ -203,7 +208,7 @@ void VolumeDeformSph::setupKttConstantKernelArguments()
 void VolumeDeformSph::setupKttSharedMemory()
 {
     // Dynamic shared memory allocation
-    size_t sharedMemSize = sizeof(PrecisionType*) * volumes.size * 2;
+    size_t sharedMemSize = sizeof(PrecisionType*) * volumes.count * 2;
     sharedMemSize += sizeof(int4) * program->vecSize;
     sharedMemSize += sizeof(PrecisionType3) * program->vecSize;
     sharedMemId = tuner.addArgumentLocal<char>(sharedMemSize);
@@ -289,6 +294,7 @@ void VolumeDeformSph::pretuneKernel()
     tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
             Rmax2Id,
             iRmaxId,
+            imagesId,
             zshparamsId,
             clnmId,
             stepsId,
@@ -349,6 +355,7 @@ void VolumeDeformSph::runKernel()
     tuner.setKernelArguments(kernelId, std::vector<ktt::ArgumentId>{
             Rmax2Id,
             iRmaxId,
+            imagesId,
             zshparamsId,
             clnmId,
             stepsId,
@@ -376,7 +383,7 @@ void VolumeDeformSph::runKernel()
 void VolumeDeformSph::transferResults() 
 {
     if (applyTransformation) {
-        transferImageData(program->VO, outputImages.VO);
+        transferImageData(program->VO, images.O);
     }
     if (saveDeformation) {
         transferImageData(program->Gx, outputImages.Gx);
@@ -399,21 +406,20 @@ void VolumeDeformSph::setupZSHparams()
 
 void VolumeDeformSph::setupVolumes()
 {
-    volumes.size = program->volumesR.size();
+    volumes.count = program->volumesR.size();
+    volumes.volumeSize = program->VR().getSize();
 
-    justForFreeR.resize(volumes.size);
-    justForFreeI.resize(volumes.size);
+    if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
+    if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
 
-    for (size_t i = 0; i < volumes.size; i++) {
-        setupImage(program->volumesR[i], &justForFreeR[i]);
-        setupImage(program->volumesI[i], &justForFreeI[i]);
+    for (int i = 0; i < volumes.count; i++) {
+        PrecisionType* tmpI = volumes.I + i * volumes.volumeSize;
+        PrecisionType* tmpR = volumes.R + i * volumes.volumeSize;
+        transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
+        transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
     }
-
-    if (cudaMallocAndCopy(&volumes.R, justForFreeR.data(), volumes.size) != cudaSuccess)
-        processCudaError();
-    if (cudaMallocAndCopy(&volumes.I, justForFreeI.data(), volumes.size) != cudaSuccess)
-        processCudaError();
-
 }
 
 void VolumeDeformSph::setupOutputImages()
@@ -421,7 +427,6 @@ void VolumeDeformSph::setupOutputImages()
     setupImage(&outputImages.Gx);
     setupImage(&outputImages.Gy);
     setupImage(&outputImages.Gz);
-    setupImage(&outputImages.VO);
 }
 
 void VolumeDeformSph::setupImageMetaData(Image<double>& inputImage) 
@@ -445,7 +450,6 @@ void VolumeDeformSph::setupImage(PrecisionType** imageData)
 void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outputImageData) 
 {
     auto& mda = inputImage();
-
     transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
