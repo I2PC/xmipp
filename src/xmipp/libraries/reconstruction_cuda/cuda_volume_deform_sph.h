@@ -31,19 +31,6 @@ struct ImageMetaData
     int zDim = 0;
 };
 
-struct ImageData
-{
-    int xShift = 0;
-    int yShift = 0;
-    int zShift = 0;
-
-    int xDim = 0;
-    int yDim = 0;
-    int zDim = 0;
-
-    PrecisionType* data = nullptr;
-};
-
 struct Volumes 
 {
     PrecisionType* I = nullptr;
@@ -54,16 +41,16 @@ struct Volumes
 
 struct IROimages 
 {
-    ImageData VI;
-    ImageData VR;
-    ImageData VO;
+    PrecisionType* VI;
+    PrecisionType* VR;
+    PrecisionType* VO;
 };
 
 struct DeformImages 
 {
-    ImageData Gx;
-    ImageData Gy;
-    ImageData Gz;
+    PrecisionType* Gx;
+    PrecisionType* Gy;
+    PrecisionType* Gz;
 };
 
 struct KernelOutputs 
@@ -85,7 +72,6 @@ public:
     void transferResults();
 
     KernelOutputs getOutputs();
-    void transferImageData(Image<double>& outputImage, ImageData& inputData);
 
     VolumeDeformSph();
     ~VolumeDeformSph();
@@ -135,19 +121,16 @@ private:
 
     // helper methods for simplifying and transfering data to gpu
 
-    void setupImage(Image<double>& inputImage, ImageData& outputImageData);
-    void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
+    void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
+    void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
     void setupImageMetaData(const Image<double>& inputImage);
-
-    void freeImage(ImageData &im);
-
-    void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
 
     void setupVolumes();
 
     void setupZSHparams();
 
     void setupClnm();
+    void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
 };
 
 #endif// VOLUME_DEFORM_SPH_H

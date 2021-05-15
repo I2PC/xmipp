@@ -52,19 +52,6 @@ struct ImageMetaData
     int zDim;
 }
 
-struct ImageData
-{
-    int xShift;
-    int yShift;
-    int zShift;
-
-    int xDim;
-    int yDim;
-    int zDim;
-
-    PrecisionType* data;
-};
-
 struct Volumes 
 {
     PrecisionType* I;
@@ -75,16 +62,16 @@ struct Volumes
 
 struct IROimages 
 {
-    ImageData VI;
-    ImageData VR;
-    ImageData VO;
+    PrecisionType* VI;
+    PrecisionType* VR;
+    PrecisionType* VO;
 };
 
 struct DeformImages 
 {
-    ImageData Gx;
-    ImageData Gy;
-    ImageData Gz;
+    PrecisionType* Gx;
+    PrecisionType* Gy;
+    PrecisionType* Gz;
 };
 #endif// KTT_USED
 
@@ -170,7 +157,6 @@ extern "C" __global__ void computeDeform(
         PrecisionType* outArrayGlobal
         ) 
 {
-
     extern __shared__ char sharedBuffer[];
     unsigned sharedBufferOffset = 0;
 
@@ -243,10 +229,10 @@ extern "C" __global__ void computeDeform(
 
     if (applyTransformation && !isOutside) {
         // Logical indexes used to check whether the point is in the matrix
-        voxelI = interpolatedElement3D(images.VI.data, imageMetaData,
+        voxelI = interpolatedElement3D(images.VI, imageMetaData,
                 j + gx, i + gy, k + gz);
 
-        ELEM_3D(images.VO.data, imageMetaData, kPhys, iPhys, jPhys) = voxelI;
+        ELEM_3D(images.VO, imageMetaData, kPhys, iPhys, jPhys) = voxelI;
     }
 
     if (!isOutside) {
@@ -337,9 +323,9 @@ extern "C" __global__ void computeDeform(
     }
 
     if (saveDeformation && !isOutside) {
-        ELEM_3D(deformImages.Gx.data, imageMetaData, kPhys, iPhys, jPhys) = gx;
-        ELEM_3D(deformImages.Gy.data, imageMetaData, kPhys, iPhys, jPhys) = gy;
-        ELEM_3D(deformImages.Gz.data, imageMetaData, kPhys, iPhys, jPhys) = gz;
+        ELEM_3D(deformImages.Gx, imageMetaData, kPhys, iPhys, jPhys) = gx;
+        ELEM_3D(deformImages.Gy, imageMetaData, kPhys, iPhys, jPhys) = gy;
+        ELEM_3D(deformImages.Gz, imageMetaData, kPhys, iPhys, jPhys) = gz;
     }
 }
 
