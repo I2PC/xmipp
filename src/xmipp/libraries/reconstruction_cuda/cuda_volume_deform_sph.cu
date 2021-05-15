@@ -166,10 +166,6 @@ __device__ PrecisionType interpolatedElement3D(ImageData ImD,
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType doutside_value = 0);
 
-__device__ PrecisionType interpolatedElement3Dshared(ImageData ImD, PrecisionType* volData,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType doutside_value = 0);
-
 /*
  * The beast
  */
@@ -226,23 +222,6 @@ extern "C" __global__ void computeDeform(
         }
     }
 
-#if USE_SHARED_VOLUME_DATA == 1
-    // wait for metadata to be in shared mem
-    __syncthreads();
-
-    PrecisionType* volRDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
-
-    PrecisionType* volIDataShared = (PrecisionType*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType) * volumes.size * BLOCK_SIZE;
-
-    // Load data related to the current block into the shared mem
-    for (int idx = 0; idx < volumes.size; idx++) {
-        ELEM_3D_SHARED(volRDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volRMetaShared[idx], kPhys, iPhys, jPhys);
-        ELEM_3D_SHARED(volIDataShared + idx * BLOCK_SIZE,kPhys,iPhys,jPhys) = ELEM_3D(volIMetaShared[idx], kPhys, iPhys, jPhys);
-    }
-
-#endif// USE_SHARED_VOLUME_DATA
 #endif// USE_SHARED_VOLUME_METADATA
 
 #if USE_SHARED_MEM_ZSH_CLNM == 1 && USE_SCATTERED_ZSH_CLNM == 0
@@ -608,13 +587,8 @@ extern "C" __global__ void computeDeform(
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.size; idv++) {
 #if USE_SHARED_VOLUME_METADATA == 1
-#if USE_SHARED_VOLUME_DATA == 1
-            voxelR = (volRDataShared + idv * BLOCK_SIZE)[tIdx];
-            voxelI = interpolatedElement3Dshared(volIMetaShared[idv], volIDataShared + idv * BLOCK_SIZE, jPhys + gx, iPhys + gy, kPhys + gz);
-#else
             voxelR = ELEM_3D(volRMetaShared[idv], kPhys, iPhys, jPhys);
             voxelI = interpolatedElement3D(volIMetaShared[idv], j + gx, i + gy, k + gz);
-#endif// USE_SHARED_VOLUME_DATA
 #else
             voxelR = ELEM_3D(volumes.R[idv], kPhys, iPhys, jPhys);
             voxelI = interpolatedElement3D(volumes.I[idv], j + gx, i + gy, k + gz);
@@ -641,19 +615,6 @@ extern "C" __global__ void computeDeform(
     countShared[tIdx] = localNcount;
 
     __syncthreads();
-
-    // Block reduction
-#if USE_NAIVE_BLOCK_REDUCTION == 1
-    for (unsigned s = BLOCK_SIZE / 2; s > 0; s /= 2) {
-        if (tIdx < s) {
-            diff2Shared[tIdx] += diff2Shared[tIdx + s];
-            sumVDShared[tIdx] += sumVDShared[tIdx + s];
-            modfgShared[tIdx] += modfgShared[tIdx + s];
-            countShared[tIdx] += countShared[tIdx + s];
-        }
-        __syncthreads();
-    }
-#else
 
     // First level of conditions are evaluated during compilation
     if (BLOCK_SIZE >= 1024) {
@@ -712,24 +673,16 @@ extern "C" __global__ void computeDeform(
             localNcount += __shfl_down_sync(0xFFFFFFFF, localNcount, offset);
         }
     }
-#endif
 
     // Save values to the global memory for later
     if (tIdx == 0) {
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
-#if USE_NAIVE_BLOCK_REDUCTION == 1
-        outArrayGlobal[bIdx] = diff2Shared[0];
-        outArrayGlobal[bIdx + GRID_SIZE] = sumVDShared[0];
-        outArrayGlobal[bIdx + GRID_SIZE * 2] = modfgShared[0];
-        outArrayGlobal[bIdx + GRID_SIZE * 3] = countShared[0];
-#else
         // Resulting values are in variables local* => no need to go into shared mem
         outArrayGlobal[bIdx] = localDiff2;
         outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
         outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
         outArrayGlobal[bIdx + GRID_SIZE * 3] = localNcount;
-#endif
     }
 
     if (saveDeformation && !isOutside) {

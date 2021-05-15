@@ -7,12 +7,9 @@
 #define BLOCK_Z_DIM 1
 
 // Tuning parameters
-#define USE_SCATTERED_ZSH_CLNM 0
 #define USE_ZSH_FUNCTION 0
-#define USE_NAIVE_BLOCK_REDUCTION 0
 #define USE_SHARED_MEM_ZSH_CLNM 1
 #define USE_SHARED_VOLUME_METADATA 1
-#define USE_SHARED_VOLUME_DATA 0
 
 #ifndef L1
 #define L1 5

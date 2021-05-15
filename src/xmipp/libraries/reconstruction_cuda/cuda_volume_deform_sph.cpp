@@ -134,9 +134,6 @@ void VolumeDeformSph::setupConstantParameters()
 #if USE_SHARED_VOLUME_METADATA == 1
     constantSharedMemSize += sizeof(ImageData) * volumes.size * 2;
 #endif
-#if USE_SHARED_VOLUME_DATA == 1
-    constantSharedMemSize += sizeof(PrecisionType) * block.x * block.y * block.z * volumes.size * 2;
-#endif
 }
 
 void VolumeDeformSph::setupChangingParameters() 
