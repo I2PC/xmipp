@@ -71,7 +71,6 @@ struct KernelOutputs
     PrecisionType diff2 = 0.0;
     PrecisionType sumVD = 0.0;
     PrecisionType modg = 0.0;
-    PrecisionType Ncount = 0.0;
 };
 
 class VolumeDeformSph

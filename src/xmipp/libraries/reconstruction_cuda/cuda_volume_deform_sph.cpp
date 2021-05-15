@@ -191,7 +191,7 @@ void VolumeDeformSph::runKernel()
 {
 
     // Define thrust reduction vector
-    thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 4, 0.0);
+    thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
 
     // Run kernel
     computeDeform<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
@@ -214,12 +214,10 @@ void VolumeDeformSph::runKernel()
     auto diff2It = thrustVec.begin();
     auto sumVDIt = diff2It + totalGridSize;
     auto modgIt = sumVDIt + totalGridSize;
-    auto NcountIt = modgIt + totalGridSize;
 
     outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
     outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
-    outputs.modg = thrust::reduce(modgIt, NcountIt);
-    outputs.Ncount = thrust::reduce(NcountIt, thrustVec.end());
+    outputs.modg = thrust::reduce(modgIt, thrustVec.end());
 }
 
 void VolumeDeformSph::transferResults() 

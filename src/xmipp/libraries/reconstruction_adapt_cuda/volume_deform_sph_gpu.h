@@ -94,6 +94,9 @@ public:
     // Number of ones in steps
     unsigned onesInSteps;
 
+    // Number of participating voxels
+    unsigned Ncount;
+
 	//Deformation in pixels, sumVI, sumVD
 	double deformation, sumVI, sumVD;
 

@@ -104,19 +104,17 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
 		VO().setXmippOrigin();
 	}
 
-    // This copy is not really nessesary? CHECK
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
 		VEC_ELEM(clnm,i)=pclnm[i+1];
 #ifdef DEBUG
 	std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 
-	double Ncount=0.0;
 	double diff2=0.0;
 	sumVD = 0.0;
 	double modg=0.0;
 
-// GPU section
+// GPU computation 
     volDefSphGpu.setupChangingParameters();
 
     volDefSphGpu.runKernel();
@@ -127,16 +125,7 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     diff2 = result.diff2;
     modg = result.modg;
     sumVD = result.sumVD;
-    Ncount = result.Ncount;
-/*
-    if (applyTransformation) {
-        volDefSphGpu.getVO(VO);
-    }
-    if (saveDeformation) {
-        volDefSphGpu.getDeform(Gx, Gy, Gz);
-    }
-*/
-// GPU section end
+// GPU computation end
 
 	deformation=std::sqrt(modg/(Ncount));
 
@@ -190,9 +179,9 @@ void ProgVolumeDeformSphGpu::run() {
 	VI().setXmippOrigin();
 	VR().setXmippOrigin();
 
-    //GPU section
+    //GPU preparation
     volDefSphGpu.associateWith(this);
-    //GPU section end
+    //GPU preparation end
 
 	// Filter input and reference volumes according to the values of sigma
 	FourierFilter filter;
@@ -259,9 +248,10 @@ void ProgVolumeDeformSphGpu::run() {
 	clnm.initZeros(totalSize);
 	x.initZeros(totalSize);
 
-    // GPU section
+    // GPU preparation
     volDefSphGpu.setupConstantParameters();
-    // GPU srction end
+    Ncount = volumesR.size() * VR().getSize();
+    // GPU preparation end
 
     for (int h=0;h<=L2;h++)
     {
