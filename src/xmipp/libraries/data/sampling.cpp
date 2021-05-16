@@ -1494,69 +1494,74 @@ void Sampling::createAsymUnitFile(const FileName &docfilename)
 
 void Sampling::saveSamplingFile(const FileName &fn_base, bool write_vectors, bool write_sampling_sphere)
 {
-    MetaDataVec md;
-    MDRowVec row;
-
-    row.setValue(MDL_SAMPLINGRATE, sampling_rate_rad);
-    row.setValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius);
-    row.setValue(MDL_POINTSASYMETRICUNIT,numberSamplesAsymmetricUnit);
-    md.setComment("data_extra -> sampling description;"\
-                  " data_neighbors --> List with order of each"\
-                  "experimental images and its neighbors"\
-                 );
-    md.setColumnFormat(false);
-    md.addRow(row);
-    md.write(FN_SAMPLING_EXTRA(fn_base), MD_OVERWRITE);
-
-    md.clear();
-    md.setColumnFormat(true);
-    row.clear();
-    size_t size = my_neighbors.size();
-    //Write first block with experimental images order and its neighbors
-    bool writeFileName = !exp_data_fileNames.empty();
-    for(size_t i = 0; i < size; ++i)
     {
-        row.setValue(MDL_ORDER,i+FIRST_IMAGE);
-        if (writeFileName)
-            row.setValue(MDL_IMAGE,exp_data_fileNames[i]);
-        row.setValue(MDL_NEIGHBORS, my_neighbors[i]);
+        MetaDataVec md;
+        MDRowVec row;
+        row.setValue(MDL_SAMPLINGRATE, sampling_rate_rad);
+        row.setValue(MDL_NEIGHBORHOOD_RADIUS, cos_neighborhood_radius);
+        row.setValue(MDL_POINTSASYMETRICUNIT,numberSamplesAsymmetricUnit);
+        md.setComment("data_extra -> sampling description;"\
+                      " data_neighbors --> List with order of each"\
+                      "experimental images and its neighbors"\
+                     );
+        md.setColumnFormat(false);
         md.addRow(row);
+        md.write(FN_SAMPLING_EXTRA(fn_base), MD_OVERWRITE);
     }
 
-    md.write(FN_SAMPLING_NEI(fn_base), MD_APPEND);
-
-    //Write projection directions
-    md.clear();
-    row.clear();
-    size = no_redundant_sampling_points_index.size();
-
-    for (size_t i = 0; i < size; ++i)
     {
-        Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
-        row.setValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i]);
-        row.setValue(MDL_ANGLE_ROT, XX(angles));
-        row.setValue(MDL_ANGLE_TILT, YY(angles));
-        row.setValue(MDL_ANGLE_PSI, ZZ(angles));
-
-        if (write_vectors)
+        MetaDataVec md;
+        md.setColumnFormat(true);
+        size_t size = my_neighbors.size();
+        //Write first block with experimental images order and its neighbors
+        bool writeFileName = !exp_data_fileNames.empty();
+        for(size_t i = 0; i < size; ++i)
         {
-            Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
-            row.setValue(MDL_X, XX(vectors));
-            row.setValue(MDL_Y, YY(vectors));
-            row.setValue(MDL_Z, ZZ(vectors));
+            MDRowVec row;
+            row.setValue(MDL_ORDER,i+FIRST_IMAGE);
+            if (writeFileName)
+                row.setValue(MDL_IMAGE,exp_data_fileNames[i]);
+            row.setValue(MDL_NEIGHBORS, my_neighbors[i]);
+            md.addRow(row);
         }
-        md.addRow(row);
-    }
-    md.write(FN_SAMPLING_PROJ(fn_base), MD_APPEND);
 
-    if (write_sampling_sphere)
+        md.write(FN_SAMPLING_NEI(fn_base), MD_APPEND);
+    }
+
     {
-        md.clear();
-        row.clear();
-        size = sampling_points_angles.size();
+        //Write projection directions
+        MetaDataVec md;
+        size_t size = no_redundant_sampling_points_index.size();
 
         for (size_t i = 0; i < size; ++i)
         {
+            MDRowVec row;
+            Matrix1D<double> &angles = no_redundant_sampling_points_angles[i];
+            row.setValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i]);
+            row.setValue(MDL_ANGLE_ROT, XX(angles));
+            row.setValue(MDL_ANGLE_TILT, YY(angles));
+            row.setValue(MDL_ANGLE_PSI, ZZ(angles));
+
+            if (write_vectors)
+            {
+                Matrix1D<double> &vectors = no_redundant_sampling_points_vector[i];
+                row.setValue(MDL_X, XX(vectors));
+                row.setValue(MDL_Y, YY(vectors));
+                row.setValue(MDL_Z, ZZ(vectors));
+            }
+            md.addRow(row);
+        }
+        md.write(FN_SAMPLING_PROJ(fn_base), MD_APPEND);
+    }
+
+    if (write_sampling_sphere)
+    {
+        MetaDataVec md;
+        size_t size = sampling_points_angles.size();
+
+        for (size_t i = 0; i < size; ++i)
+        {
+            MDRowVec row;
             row.setValue(MDL_NEIGHBOR, no_redundant_sampling_points_index[i]);
             Matrix1D<double> &angles = sampling_points_angles[i];
             row.setValue(MDL_ANGLE_ROT, XX(angles));
