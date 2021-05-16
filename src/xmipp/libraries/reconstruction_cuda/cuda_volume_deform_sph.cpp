@@ -280,6 +280,8 @@ void VolumeDeformSph::pretuneKernel()
         return;
     }
 
+    std::cout << "KTT is tuning the kernel" << std::endl;
+
     // Define thrust reduction vector
     thrust::device_vector<PrecisionType> thrustVec(kttGrid.getTotalSize() * 3, 0.0);
 
