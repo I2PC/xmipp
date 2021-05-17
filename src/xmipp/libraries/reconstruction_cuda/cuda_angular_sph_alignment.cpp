@@ -4,7 +4,7 @@
 #include "core/matrix1d.h"
 #include "reconstruction_adapt_cuda/angular_sph_alignment_gpu.h"
 #include "cuda_angular_sph_alignment.h"
-//#include "cuda_volume_deform_sph.cu"
+#include "cuda_angular_sph_alignment.cu"
 #include "cuda_volume_deform_sph_defines.h"//TODO
 // Standard includes
 #include <iterator>
@@ -346,7 +346,7 @@ void AngularSphAlignment::runKernelTest(
                                                         int n = VEC_ELEM(vN,idx);
                                                         int l2 = VEC_ELEM(vL2,idx);
                                                         int m = VEC_ELEM(vM,idx);
-                                                        zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+                                                        zsph=::ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
                                                         if (rr>0 || l2==0) {
                                                                 gx += VEC_ELEM(clnm,idx)        *(zsph);
                                                                 gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
