@@ -33,7 +33,7 @@
 #include "data/fourier_filter.h"
 #include "data/fourier_projection.h"
 
-//#include "reconstruction_cuda/cuda_angular_sph_alignment.h"
+#include "reconstruction_cuda/cuda_angular_sph_alignment.h"
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */
@@ -129,7 +129,7 @@ public:
 	// Correlation
 	double correlation;
     // GPU compute class
-    //AngularSphAlignmentGpu angSphAlignGpu;
+    AngularAlignmentGpu::AngularSphAlignment angularAlignGpu;
     // Number of ones in steps array
     int onesInSteps;
 

@@ -580,12 +580,12 @@ void ProgAngularSphAlignmentGpu::deformVol(MultidimArray<double> &mP, const Mult
 
     //angSphAlignGpu.setupChangingParameters(R);
     //angSphAlignGpu.runKernel();
-    //angSphAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
+    angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
 
-    //KernelOutputs outputs = angSphAlignGpu.getOutputs();
+    auto outputs = angularAlignGpu.getOutputs();
 
-    //sumVd = outputs.sumVD;
-	//def = sqrt(outputs.modg/outputs.Ncount);
+    sumVd = outputs.sumVD;
+	def = sqrt(outputs.modg/outputs.count);
 	totalDeformation = 1;//def;
 }
 
