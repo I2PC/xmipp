@@ -371,8 +371,8 @@ void ProgFSO::fscInterpolation(const MultidimArray<double> &freq, const Multidim
 
 
 
-void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
-				MultidimArray<double> &threeD_FSC, MultidimArray<double> &normalizationMap,
+void ProgFSO::fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
+				MultidimArray<float> &threeD_FSC, MultidimArray<float> &normalizationMap,
 				double &thrs, double &resol)
 {
 	// FSCDIR_FAST: computes the directional FSC along a direction given by the angles rot and tilt.
@@ -455,10 +455,10 @@ void ProgFSO::fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
 		double auxfsc = (dAi(num,i))/(sqrt(dAi(den1,i)*dAi(den2,i))+1e-38);
 		dAi(fsc,i) = std::max(0.0, auxfsc);
 
-		if ((i>2) && (dAi(fsc,i)<=thrs) && (flagRes))
+		if (flagRes && (i>2) && (dAi(fsc,i)<=thrs))
 		{
-			double ff = (float) i / (xvoldim * sampling); // frequency
 			flagRes = false;
+			double ff = (float) i / (xvoldim * sampling); // frequency
 			resol = 1./ff;
 		}
 	}
@@ -900,20 +900,16 @@ void ProgFSO::generateDirections(Matrix2D<float> &angles, bool alot)
 }
 
 
-void ProgFSO::anistropyParameter(const MultidimArray<double> &FSC,
-		MultidimArray<double> &directionAnisotropy, size_t dirnumber,
-		MultidimArray<double> &	aniParam, double thrs)
+void ProgFSO::anistropyParameter(const MultidimArray<float> &FSC,
+		MultidimArray<float> &	aniParam, double thrs)
 {
-	double N = 0;
 	for (size_t k = 0; k<aniParam.nzyxdim; k++)
 	{
 		if (DIRECT_MULTIDIM_ELEM(FSC, k) >= thrs)
 		{
 			DIRECT_MULTIDIM_ELEM(aniParam, k) += 1.0;
-			N++;
 		}
 	}
-	DIRECT_MULTIDIM_ELEM(directionAnisotropy, dirnumber) = N;
 }
 
 
@@ -952,7 +948,7 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 
 void ProgFSO::saveAnisotropyToMetadata(MetaData &mdAnisotropy,
 		const MultidimArray<double> &freq,
-		const MultidimArray<double> &anisotropy)
+		const MultidimArray<float> &anisotropy)
 {
 	MDRow row;
 	size_t objId;
@@ -961,7 +957,7 @@ void ProgFSO::saveAnisotropyToMetadata(MetaData &mdAnisotropy,
 		if (i>0)
 		{
 		row.setValue(MDL_RESOLUTION_FREQ, dAi(freq, i));
-		row.setValue(MDL_RESOLUTION_FSO, dAi(anisotropy, i));
+		row.setValue(MDL_RESOLUTION_FSO, static_cast<double>(dAi(anisotropy, i)));
 		row.setValue(MDL_RESOLUTION_FREQREAL, 1.0/dAi(freq, i));
 		mdAnisotropy.addRow(row);
 		}
@@ -1146,15 +1142,23 @@ void ProgFSO::run()
     	ang_con = ang_con*PI/180.0;
 
 		// Preparing the metadata for storing the FSO
-		MultidimArray<double> directionAnisotropy(angles.mdimx), resDirFSC(angles.mdimx), aniParam;
+		MultidimArray<double> resDirFSC(angles.mdimx), aniParam;
     	aniParam.initZeros(xvoldim/2+1);
 
 		// Computing directional FSC and 3DFSC
-		MultidimArray<double> fsc, threeD_FSC, normalizationMap;
-		threeD_FSC.resizeNoCopy(real_z1z2);
-		threeD_FSC.initZeros();
-		normalizationMap.resizeNoCopy(real_z1z2);
-		normalizationMap.initZeros();
+		// Create one copy for each thread
+		std::vector<MultidimArray<float>> threeD_FSCs(Nthreads);
+		std::vector<MultidimArray<float>> normalizationMaps(Nthreads);
+		std::vector<MultidimArray<float>> aniParams(Nthreads);
+		for (auto & ma : threeD_FSCs) {
+			ma.initZeros(real_z1z2);
+		}
+		for (auto & ma : normalizationMaps) {
+			ma.initZeros(real_z1z2);
+		}
+		for (auto & ma : aniParams) {
+			ma.initZeros(xvoldim/2+1);
+		}
 
 		ctpl::thread_pool threadPool;
 		threadPool.resize(Nthreads);
@@ -1164,11 +1168,15 @@ void ProgFSO::run()
     	for (size_t k = 0; k<angles.mdimx; k++)
 		{
 			futures.emplace_back(threadPool.push(
-				[k, this, &fsc, &threeD_FSC, &normalizationMap, &resDirFSC, &directionAnisotropy, &aniParam](int thrId){
+				[k, this, &resDirFSC, &threeD_FSCs, &normalizationMaps, &aniParams](int thrId){
 				float rot  = MAT_ELEM(angles, 0, k);
 				float tilt = MAT_ELEM(angles, 1, k);
 
 				double resInterp = -1;	
+				MultidimArray<float> fsc;
+
+				auto &threeD_FSC = threeD_FSCs.at(thrId);
+				auto &normalizationMap = normalizationMaps.at(thrId);
 				// Estimating the direction FSC along the direction given by rot and tilt
 				fscDir_fast(fsc, rot, tilt, threeD_FSC, normalizationMap, thrs, resInterp);
 
@@ -1177,7 +1185,7 @@ void ProgFSO::run()
 				dAi(resDirFSC, k) = resInterp;
 				
 				// Updating the FSO curve
-				anistropyParameter(fsc, directionAnisotropy, k, aniParam, thrs);
+				anistropyParameter(fsc, aniParams.at(thrId), thrs);
 			}));
 		}
 
@@ -1189,10 +1197,14 @@ void ProgFSO::run()
 		std::cout << "----- Directional resolution estimated -----" <<  std::endl <<  std::endl;
     	std::cout << "Preparing results ..." <<  std::endl;
 
+		// merge results from multiple threads
+		for (size_t i = 1; i < aniParams.size(); ++i) {
+			aniParams.at(0) += aniParams.at(i);
+		}
     	// ANISOTROPY CURVE
-    	aniParam /= (double) angles.mdimx;
+    	aniParams.at(0) /= (double) angles.mdimx;
     	MetaData mdani;
-		saveAnisotropyToMetadata(mdani, freq, aniParam);
+		saveAnisotropyToMetadata(mdani, freq, aniParams.at(0));
 		FileName fn;
 		
 		if (do_3dfsc_filter)
@@ -1204,6 +1216,14 @@ void ProgFSO::run()
 			d3_FSCMap.initConstant(0);
 			d3_aniFilter.resizeNoCopy(FT1);
 			d3_aniFilter.initConstant(0);
+
+			// merge results from multiple threads
+			for (size_t i = 1; i < Nthreads; ++i) {
+				threeD_FSCs.at(0) += threeD_FSCs.at(i);
+				normalizationMaps.at(0) += normalizationMaps.at(i);
+			}
+			auto &threeD_FSC = threeD_FSCs.at(0);
+			auto &normalizationMap = normalizationMaps.at(0);
 
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(threeD_FSC)
 			{
