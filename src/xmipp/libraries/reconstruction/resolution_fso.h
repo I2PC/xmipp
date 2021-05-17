@@ -100,15 +100,14 @@ private:
         /* ANISOTROPYPARAMETER: Given a directional FSC it is determined how many 
         * frequencies/points of the FSC has a greater fsc than the fsc threshold, thrs,
         * This is carried out in aniParam, . */
-        void anistropyParameter(const MultidimArray<double> &FSC,
-    	                      	MultidimArray<double> &directionAnisotropy, size_t dirnumber,
-			                    MultidimArray<double> &aniParam, double thrs);
+        void anistropyParameter(const MultidimArray<float> &FSC,
+			                    MultidimArray<float> &aniParam, double thrs);
 
         /* Estimates the directional FSC between two half maps FT1 and FT2 (in Fourier Space)
         * requires the sampling rate, and the frequency vectors,  */
-		void fscDir_fast(MultidimArray<double> &fsc, double rot, double tilt,
-				                      MultidimArray<double> &threeD_FSC, 
-						              MultidimArray<double> &normalizationMap,
+		void fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
+				                      MultidimArray<float> &threeD_FSC, 
+						              MultidimArray<float> &normalizationMap,
 						              double &thrs, double &resol);
 
         /* PREPAREDATA: Data are prepared to be taken by the algorithm. 
@@ -120,7 +119,7 @@ private:
         * anisotropy and the frequencies from freq. */
         void saveAnisotropyToMetadata(MetaData &mdAnisotropy,
     		                    	const MultidimArray<double> &freq,
-			                      	const MultidimArray<double> &anisotropy);
+			                      	const MultidimArray<float> &anisotropy);
 
         /* DIRECTIONALFILTER: The half maps are summed to get the full map, and are filtered
         * by an anisotropic filter with cutoff the isosurface of the fsc at the given threshold
