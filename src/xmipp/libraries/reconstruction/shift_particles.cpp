@@ -113,6 +113,10 @@
 		R = R.inv();
 		posp = R * pos;
 
+		std::cout << "posp: " << posp << std::endl;
+		std::cout << "R: " << R << std::endl;
+
+
 		MDRow rowGeo;
 		rowGeo.setValue(MDL_SHIFT_X, -posp(0));
 		rowGeo.setValue(MDL_SHIFT_Y, -posp(1));
