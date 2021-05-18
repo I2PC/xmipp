@@ -79,20 +79,23 @@ void POCSFourierPhase(const MultidimArray< std::complex<double> > &phase, Multid
 	DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
 }
 
-void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, double energy)
+void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, double energy, bool dontE)
 {
-	Vdiff = Vdiff - Vact;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
-	energy+=DIRECT_MULTIDIM_ELEM(Vdiff,n)*DIRECT_MULTIDIM_ELEM(Vdiff,n);
-	energy = sqrt(energy/MULTIDIM_SIZE(Vdiff));
-	std::cout<< "Energy: " << energy << std::endl;
+	if (dontE != true)
+	{
+		Vdiff = Vdiff - Vact;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
+		energy+=DIRECT_MULTIDIM_ELEM(Vdiff,n)*DIRECT_MULTIDIM_ELEM(Vdiff,n);
+		energy = sqrt(energy/MULTIDIM_SIZE(Vdiff));
+		std::cout<< "Energy: " << energy << std::endl;
+	}
 }
 
 class ProgVolumeSubtraction: public XmippProgram
 {
 protected:
 	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
-	bool sub, eq;
+	bool sub, eq, dontE;
 	int iter, sigma;
 	double cutFreq, lambda;
 
@@ -115,6 +118,7 @@ protected:
         addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
         addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
         addParamsLine("[--saveV2 <structure=\"\"> ]  : Save subtraction intermediate files (vol2 adjusted)");
+        addParamsLine("[--dont_compute_E] 			 : Do not compute the energy difference between each step");
 
     }
 
@@ -139,6 +143,7 @@ protected:
     	fnVol2A=getParam("--saveV2");
     	if (fnVol2A=="")
     		fnVol2A="volume2_adjusted.mrc";
+    	dontE=checkParam("--dont_compute_E");
     }
 
     void show()
@@ -215,27 +220,27 @@ protected:
     		transformer2.FourierTransform(V(),V2Fourier,false);
     		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
         	transformer2.inverseFourierTransform();
-        	computeEnergy(Vdiff(), V(), energy);
+        	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
     		POCSMinMax(V(), v1min, v1max);
-        	computeEnergy(Vdiff(), V(), energy);
+        	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
 			POCSmask(mask(),V());
-        	computeEnergy(Vdiff(), V(), energy);
+        	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
     		transformer2.FourierTransform();
     		POCSFourierPhase(V2FourierPhase,V2Fourier);
         	transformer2.inverseFourierTransform();
-        	computeEnergy(Vdiff(), V(), energy);
+        	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
         	POCSnonnegative(V());
-        	computeEnergy(Vdiff(), V(), energy);
+        	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
 
-//			std2 = V().computeStddev();
-//			V()*=std1/std2;  // Returns the structure with values ~0.01
+			std2 = V().computeStddev();
+			V()*=std1/std2;  // Returns the structure with values ~0.01
 
-        	computeEnergy(Vdiff(), V(), energy);
+        	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
 
     		if (cutFreq!=0)
@@ -243,7 +248,7 @@ protected:
     			Filter2.generateMask(V());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(V());
-				computeEnergy(Vdiff(), V(), energy);
+				computeEnergy(Vdiff(), V(), energy, dontE);
 	        	Vdiff = V;
     		}
     	}
@@ -267,19 +272,14 @@ protected:
     			V.write(fnVol2A);
     		}
 
+        	if (fnMaskSub!="")
+        	{
+        		mask.read(fnMaskSub);
+        	}
+
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
 			DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
 					std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-        	if (fnMaskSub!="")
-        	{
-        		Image<double> maskSub;
-        		maskSub.read(fnMaskSub);
-        		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
-        					DIRECT_MULTIDIM_ELEM(V1,n) *=DIRECT_MULTIDIM_ELEM(maskSub,n);
-        	}
-
-
-
     		V1.write(fnOut);
     	}
 
