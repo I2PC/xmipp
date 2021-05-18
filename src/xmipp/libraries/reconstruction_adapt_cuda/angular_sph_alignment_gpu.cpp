@@ -228,8 +228,9 @@ void ProgAngularSphAlignmentGpu::finishProcessing() {
 }
 
 // #define DEBUG
-double ProgAngularSphAlignmentGpu::tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-		Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
+double ProgAngularSphAlignmentGpu::tranformImageSph(
+        double *pclnm, double rot, double tilt, double psi, Matrix2D<double> &A,
+        double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
 {
 	const MultidimArray<double> &mV=V();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
@@ -263,6 +264,7 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(double *pclnm, double rot, d
 
 	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
 	filter.applyMaskSpace(P());
+    //DM -> useless copy TODO
 	const MultidimArray<double> mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
 	MultidimArray<double> &mIfilteredp=Ifilteredp();
@@ -571,14 +573,13 @@ void ProgAngularSphAlignmentGpu::deformVol(MultidimArray<double> &mP, const Mult
 	size_t idxY0=(VEC_XSIZE(clnm)-8)/3;
 
     // Rotation Matrix
-    Matrix2D<double> R;
     R.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
     R = R.inv();
 
 	double RmaxF=RmaxDef;
 
-    //angSphAlignGpu.setupChangingParameters(R);
+    //angSphAlignGpu.setupChangingParameters();
     //angSphAlignGpu.runKernel();
     angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
 
@@ -586,6 +587,6 @@ void ProgAngularSphAlignmentGpu::deformVol(MultidimArray<double> &mP, const Mult
 
     sumVd = outputs.sumVD;
 	def = sqrt(outputs.modg/outputs.count);
-	totalDeformation = 1;//def;
+	totalDeformation = def;
 }
 

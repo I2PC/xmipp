@@ -79,16 +79,6 @@ AngularSphAlignment::AngularSphAlignment()
 
 AngularSphAlignment::~AngularSphAlignment() 
 {
-    cudaFree(images.VI);
-    cudaFree(images.VR);
-    cudaFree(images.VO);
-
-    cudaFree(volumes.R);
-    cudaFree(volumes.I);
-
-    cudaFree(deformImages.Gx);
-    cudaFree(deformImages.Gy);
-    cudaFree(deformImages.Gz);
 }
 
 void AngularSphAlignment::associateWith(ProgAngularSphAlignmentGpu* prog) 
@@ -109,9 +99,10 @@ void AngularSphAlignment::setupConstantParameters()
     this->iRmax = 1 / program->Rmax;
     //setupImage(program->VI, &images.VI);
     //setupImage(program->VR, &images.VR);
-    //setupImageMetaData(program->VR);
+    setupImageMetaData(program->V);
+    setupVolumeData();
+    setupVolumeMask();
     //setupZSHparams();
-    //setupVolumes();
 
     // kernel dimension
     block.x = BLOCK_X_DIM;
@@ -184,9 +175,51 @@ void AngularSphAlignment::transferImageData(Image<double>& outputImage, Precisio
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
 }
 
+void AngularSphAlignment::setupVolumeData() 
+{
+    const auto& vol = program->V();
+    volDataVec.assign(vol.data, vol.data + vol.getSize());
+    dVolData = volDataVec.data();
+}
+
+void AngularSphAlignment::setupRotation() 
+{
+    rotationVec.assign(program->R.mdata, program->R.mdata + program->R.mdim);
+    dRotation = rotationVec.data();
+}
+
+void AngularSphAlignment::setupVolumeMask() 
+{
+    dVolMask = program->V_mask.data;
+}
+
+void AngularSphAlignment::setupProjectionPlane() 
+{
+    const auto& projPlane = program->P();
+    // pro GPU jen malloc o velikosti pp.yxdim * sizeof
+    // pripadne memset na 0
+    projectionPlaneVec.assign(projPlane.data, projPlane.data + projPlane.yxdim);
+    dProjectionPlane = projectionPlaneVec.data();
+
+}
+
 void AngularSphAlignment::runKernel() 
 {
 
+    /*
+    fakeKernel(
+            Rmax2,
+            iRmax,
+            imageMetaData,
+            dVolData,
+            dRotation,
+            steps,
+            dZshParams,
+            dClnm,
+            dVolMask,
+            dProjectionPlane,
+            &outputs);
+    */
     /*
     // Define thrust reduction vector
     thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
@@ -254,29 +287,8 @@ void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData)
     transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
-void AngularSphAlignment::setupVolumes()
-{
-    /*
-    volumes.count = program->volumesR.size();
-    volumes.volumeSize = program->VR().getSize();
-
-    if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
-        processCudaError();
-    if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
-        processCudaError();
-
-    for (size_t i = 0; i < volumes.count; i++) {
-        PrecisionType* tmpI = volumes.I + i * volumes.volumeSize;
-        PrecisionType* tmpR = volumes.R + i * volumes.volumeSize;
-        transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
-        transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
-    }
-    */
-}
-
 void AngularSphAlignment::setupImageMetaData(const Image<double>& mda) 
 {
-
     imageMetaData.xShift = mda().xinit;
     imageMetaData.yShift = mda().yinit;
     imageMetaData.zShift = mda().zinit;
@@ -304,7 +316,7 @@ void AngularSphAlignment::runKernelTest(
         double RmaxF2,
         double iRmaxF,
         Matrix2D<double> R,
-        MultidimArray<double> mV,
+        const MultidimArray<double>& mV,
         Matrix1D<double>& steps_cp,
         Matrix1D<int>& vL1,
         Matrix1D<int>& vN,
@@ -370,6 +382,137 @@ void AngularSphAlignment::runKernelTest(
                                                 outputs.modg += gx*gx+gy*gy+gz*gz;
                                                 outputs.count++;
                                         }
+                                }
+                        }
+                }
+        }
+}
+
+void rotate(PrecisionType* pos, PrecisionType* rotation)
+{
+    PrecisionType tmp[3] = {0};
+
+    for (size_t i = 0; i < 3; i++)
+        for (size_t j = 0; j < 3; j++)
+            tmp[i] += rotation[3 * i + j] * pos[j];
+
+    pos[0] = tmp[0];
+    pos[1] = tmp[1];
+    pos[2] = tmp[2];
+}
+
+PrecisionType interpolatedElement3DTEST(PrecisionType* data, ImageMetaData ImD,
+        PrecisionType x, PrecisionType y, PrecisionType z,
+        PrecisionType outside_value = 0) 
+{
+        int x0 = FLOOR(x);
+        PrecisionType fx = x - x0;
+        int x1 = x0 + 1;
+
+        int y0 = FLOOR(y);
+        PrecisionType fy = y - y0;
+        int y1 = y0 + 1;
+
+        int z0 = FLOOR(z);
+        PrecisionType fz = z - z0;
+        int z1 = z0 + 1;
+
+        PrecisionType d000 = (IS_OUTSIDE(ImD, z0, y0, x0)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z0, y0, x0);
+        PrecisionType d001 = (IS_OUTSIDE(ImD, z0, y0, x1)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z0, y0, x1);
+        PrecisionType d010 = (IS_OUTSIDE(ImD, z0, y1, x0)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z0, y1, x0);
+        PrecisionType d011 = (IS_OUTSIDE(ImD, z0, y1, x1)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z0, y1, x1);
+        PrecisionType d100 = (IS_OUTSIDE(ImD, z1, y0, x0)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z1, y0, x0);
+        PrecisionType d101 = (IS_OUTSIDE(ImD, z1, y0, x1)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z1, y0, x1);
+        PrecisionType d110 = (IS_OUTSIDE(ImD, z1, y1, x0)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z1, y1, x0);
+        PrecisionType d111 = (IS_OUTSIDE(ImD, z1, y1, x1)) ?
+            outside_value : ELEM_3D_SHIFTED(data, ImD, z1, y1, x1);
+
+        PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
+        PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
+        PrecisionType dx10 = LIN_INTERP(fx, d010, d011);
+        PrecisionType dx11 = LIN_INTERP(fx, d110, d111);
+        PrecisionType dxy0 = LIN_INTERP(fy, dx00, dx10);
+        PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
+
+        return LIN_INTERP(fz, dxy0, dxy1);
+}
+
+void fakeKernel(
+        PrecisionType Rmax2,
+        PrecisionType iRmax,
+        ImageMetaData volMeta,
+        PrecisionType* volData,
+        PrecisionType* rotation,
+        int steps,
+        int4* zshparams,
+        PrecisionType3* clnm,
+        int* Vmask,
+        PrecisionType* projectionPlane,
+        KernelOutputs* outputs
+        ) 
+{
+        outputs->sumVD = 0.0;
+    outputs->modg = 0.0;
+    outputs->count = 0.0;
+
+    PrecisionType pos[3];
+
+        for (int k = P2L_Z_IDX(volMeta, 0); k < P2L_Z_IDX(volMeta, volMeta.zDim); k++)
+        {
+            for (int i = P2L_Y_IDX(volMeta, 0); i < P2L_Y_IDX(volMeta, volMeta.yDim); i++)
+                {
+                for (int j = P2L_X_IDX(volMeta, 0); j < P2L_X_IDX(volMeta, volMeta.xDim); j++)
+                        {
+                pos[2] = k; pos[1] = i; pos[0] = j;
+                rotate(pos, rotation);
+                                double gx=0.0, gy=0.0, gz=0.0;
+                                double k2=pos[2]*pos[2];
+                                double kr=pos[2]*iRmax;
+                                double k2i2=k2+pos[1]*pos[1];
+                                double ir=pos[1]*iRmax;
+                                double r2=k2i2+pos[0]*pos[0];
+                                double jr=pos[0]*iRmax;
+                                double rr=sqrt(r2)*iRmax;
+                                if (r2<Rmax2) {
+                                        for (int idx = 0; idx < steps; idx++) {
+                                                        int l1 = zshparams[idx].w;
+                                                        int n = zshparams[idx].x;
+                                                        int l2 = zshparams[idx].y;
+                                                        int m = zshparams[idx].z;
+                                                        PrecisionType zsph = ::ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+                                                        if (rr>0 || l2==0) {
+                                                                gx += zsph * clnm[idx].x;
+                                                                gy += zsph * clnm[idx].y;
+                                                                gz += zsph * clnm[idx].z;
+                                                        }
+                                        }
+
+                                        int k_mask, i_mask, j_mask;
+                                        int voxelI_mask;
+                                        k_mask = (int)(pos[2]+gz);
+                    i_mask = (int)(pos[1]+gy);
+                    j_mask = (int)(pos[0]+gx);
+                                        if (IS_OUTSIDE(volMeta, k_mask, i_mask, j_mask)) {
+                                                voxelI_mask = 0;
+                                        }
+                                        else {
+                                                voxelI_mask = ELEM_3D_SHIFTED(Vmask, volMeta, k_mask, i_mask, j_mask);
+                                        }
+                                        if (voxelI_mask == 1) {
+                                                double voxelI=interpolatedElement3DTEST(volData, volMeta, pos[0]+gx,pos[1]+gy,pos[2]+gz);
+                                                ELEM_2D_SHIFTED(projectionPlane, volMeta,i,j) += voxelI;
+                                                outputs->sumVD += voxelI;
+                                                outputs->modg += gx*gx+gy*gy+gz*gz;
+                                                outputs->count++;
+                                        }
+
                                 }
                         }
                 }

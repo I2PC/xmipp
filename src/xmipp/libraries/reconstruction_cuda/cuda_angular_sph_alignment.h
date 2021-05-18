@@ -78,7 +78,7 @@ public:
         double RmaxF2,
         double iRmaxF,
         Matrix2D<double> R,
-        MultidimArray<double> mV,
+        const MultidimArray<double>& mV,
         Matrix1D<double>& steps_cp,
         Matrix1D<int>& vL1,
         Matrix1D<int>& vN,
@@ -112,31 +112,34 @@ private:
 
     PrecisionType iRmax;
 
-    int steps;
-
-    PrecisionType3* dClnm;
-    std::vector<PrecisionType3> clnmVec;
-
-    bool applyTransformation;
-
-    bool saveDeformation;
-
-    // Inside pointers point to the GPU memory
-
-    IROimages images;
-
-    DeformImages deformImages;
-
-    int4* dZshParams;
-    std::vector<int4> zshparamsVec;
-
     ImageMetaData imageMetaData;
 
-    Volumes volumes;
+    PrecisionType* dVolData = nullptr;
+    std::vector<PrecisionType> volDataVec;
+
+    PrecisionType* dRotation = nullptr;
+    std::vector<PrecisionType> rotationVec;
+
+    int steps;
+
+    int4* dZshParams = nullptr;
+    std::vector<int4> zshparamsVec;
+
+    PrecisionType3* dClnm = nullptr;
+    std::vector<PrecisionType3> clnmVec;
+
+    int* dVolMask = nullptr;
+
+    PrecisionType* dProjectionPlane = nullptr;
+    std::vector<PrecisionType> projectionPlaneVec;
 
     KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
+    void setupVolumeData();
+    void setupRotation();
+    void setupVolumeMask();
+    void setupProjectionPlane();
 
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);

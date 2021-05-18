@@ -132,6 +132,8 @@ public:
     AngularAlignmentGpu::AngularSphAlignment angularAlignGpu;
     // Number of ones in steps array
     int onesInSteps;
+    // Rotation matrix
+    Matrix2D<double> R;
 
 public:
     /// Empty constructor
