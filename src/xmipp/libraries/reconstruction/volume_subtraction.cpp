@@ -236,10 +236,8 @@ protected:
         	POCSnonnegative(V());
         	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
-
 			std2 = V().computeStddev();
-			V()*=std1/std2;  // Returns the structure with values ~0.01
-
+			V()*=std1/std2;
         	computeEnergy(Vdiff(), V(), energy, dontE);
         	Vdiff = V;
 
