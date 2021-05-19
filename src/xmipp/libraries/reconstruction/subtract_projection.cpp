@@ -108,15 +108,6 @@ void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, Mu
 	DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
 }
 
-//void computeEnergyProj(MultidimArray<double> &Idiff, MultidimArray<double> &Iact, double energy)
-//{
-//	Idiff = Idiff - Iact;
-//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Idiff)
-//	energy+=DIRECT_MULTIDIM_ELEM(Idiff,n)*DIRECT_MULTIDIM_ELEM(Idiff,n);
-//	energy = sqrt(energy/MULTIDIM_SIZE(Idiff));
-//	std::cout<< "Energy: " << energy << std::endl;
-//}
-
 void binarizeMask(MultidimArray<double> &Pmask)
 {
 	double maxMaskVol, minMaskVol;
@@ -288,7 +279,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		// Apply bin volume mask to particle and volume projection
 		POCSmaskProj(PmaskVol(), P());
 		POCSmaskProj(PmaskVol(), I());
-		I.write("ImaskVol.mrc");
+		I.write("ImaskVol.mrc");  //
 		P.write("PmaskVol.mrc");
 
     	// Check if particle has CTF and apply it
@@ -380,7 +371,6 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		{
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
-//			POCSFourierAmplitudeProj0(IFourierMag,PFourier, lambda);  // Same result
 			transformer.inverseFourierTransform();
 			P.write("Pamp.mrc");
 			POCSMinMaxProj(P(), Imin, Imax);
@@ -429,13 +419,6 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		I.write("Ifilt.mrc");
 		P.write("Padj.mrc");
 //		}
-
-//		// DEBUG: Compute I*mask to see differences with subtraction result
-//    	Image<double> Imask;
-//    	Imask = I;
-//    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Imask())
-//		DIRECT_MULTIDIM_ELEM(Imask,n) = DIRECT_MULTIDIM_ELEM(Imask,n)*DIRECT_MULTIDIM_ELEM(Pmask,n);
-//    	Imask.write("I*mask.mrc");
 
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
