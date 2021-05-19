@@ -130,7 +130,6 @@ void AngularSphAlignment::setupChangingParameters()
     changingSharedMemSize = 0;
     changingSharedMemSize += sizeof(int4) * steps;
     changingSharedMemSize += sizeof(PrecisionType3) * steps;
-
 }
 
 void AngularSphAlignment::setupClnm()
@@ -143,11 +142,15 @@ void AngularSphAlignment::setupClnm()
         clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
     }
 
-    dClnm = clnmVec.data();
-    /*
-    if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
-        processCudaError();
-    */
+    //dClnm = clnmVec.data();
+    if (dClnm == nullptr) {
+        if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
+            processCudaError();
+    } else {
+        if (cudaMemcpy(dClnm, clnmVec.data(), clnmVec.size() * sizeof(PrecisionType3),
+                    cudaMemcpyHostToDevice) != cudaSuccess)
+            processCudaError();
+    }
 }
 
 KernelOutputs AngularSphAlignment::getOutputs() 
@@ -167,19 +170,24 @@ void AngularSphAlignment::transferImageData(Image<double>& outputImage, Precisio
 void AngularSphAlignment::setupVolumeData() 
 {
     const auto& vol = program->V();
-    volDataVec.assign(vol.data, vol.data + vol.getSize());
-    dVolData = volDataVec.data();
+    //volDataVec.assign(vol.data, vol.data + vol.getSize());
+    //dVolData = volDataVec.data();
+    //cudaMallocAndCopy(&dVolData, volDataVec.data(), volDataVec.size());
+    transformData(&dVolData, vol.data, vol.getSize());
 }
 
 void AngularSphAlignment::setupRotation() 
 {
-    rotationVec.assign(program->R.mdata, program->R.mdata + program->R.mdim);
-    dRotation = rotationVec.data();
+    //rotationVec.assign(program->R.mdata, program->R.mdata + program->R.mdim);
+    //dRotation = rotationVec.data();
+    transformData(&dRotation, program->R.mdata, program->R.mdim, dRotation == nullptr);
 }
 
 void AngularSphAlignment::setupVolumeMask() 
 {
-    dVolMask = program->V_mask.data;
+    //dVolMask = program->V_mask.data;
+    if (cudaMallocAndCopy(&dVolMask, program->V_mask.data, program->V_mask.getSize()) != cudaSuccess)
+        processCudaError();
 }
 
 void AngularSphAlignment::setupProjectionPlane() 
@@ -187,8 +195,13 @@ void AngularSphAlignment::setupProjectionPlane()
     const auto& projPlane = program->P();
     // pro GPU jen malloc o velikosti pp.yxdim * sizeof
     // pripadne memset na 0
-    projectionPlaneVec.assign(projPlane.data, projPlane.data + projPlane.yxdim);
-    dProjectionPlane = projectionPlaneVec.data();
+    //projectionPlaneVec.assign(projPlane.data, projPlane.data + projPlane.yxdim);
+    //dProjectionPlane = projectionPlaneVec.data();
+    if (dProjectionPlane == nullptr) {
+        if (cudaMalloc(&dProjectionPlane, projPlane.yxdim * sizeof(PrecisionType)) != cudaSuccess)
+            processCudaError();
+    }
+    cudaMemset(dProjectionPlane, 0, projPlane.yxdim * sizeof(PrecisionType));
 }
 
 void fakeKernel(
@@ -207,7 +220,7 @@ void fakeKernel(
 
 void AngularSphAlignment::runKernel() 
 {
-
+/*
     fakeKernel(
             Rmax2,
             iRmax,
@@ -220,23 +233,22 @@ void AngularSphAlignment::runKernel()
             dVolMask,
             dProjectionPlane,
             &outputs);
-    /*
+*/
     // Define thrust reduction vector
     thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
 
     // Run kernel
-    computeDeform<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
+    projectionKernel<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
             Rmax2,
             iRmax,
-            images,
+            imageMetaData,
+            dVolData,
+            dRotation,
+            steps,
             dZshParams,
             dClnm,
-            steps,
-            imageMetaData,
-            volumes,
-            deformImages,
-            applyTransformation,
-            saveDeformation,
+            dVolMask,
+            dProjectionPlane,
             thrust::raw_pointer_cast(thrustVec.data())
             );
 
@@ -249,21 +261,12 @@ void AngularSphAlignment::runKernel()
     outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
     outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
     outputs.modg = thrust::reduce(modgIt, thrustVec.end());
-    */
 }
 
 void AngularSphAlignment::transferResults() 
 {
-    /*
-    if (applyTransformation) {
-        transferImageData(program->VO, images.VO);
-    }
-    if (saveDeformation) {
-        transferImageData(program->Gx, deformImages.Gx);
-        transferImageData(program->Gy, deformImages.Gy);
-        transferImageData(program->Gz, deformImages.Gz);
-    }
-    */
+    //TODO check
+    cudaMemcpy(program->P().data, dProjectionPlane, program->P().yxdim * sizeof(PrecisionType), cudaMemcpyDeviceToHost);
 }
 
 void AngularSphAlignment::setupZSHparams()
@@ -277,11 +280,9 @@ void AngularSphAlignment::setupZSHparams()
         zshparamsVec[i].z = program->vM[i];
     }
 
-    dZshParams = zshparamsVec.data();
-    /*
+    //dZshParams = zshparamsVec.data();
     if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
         processCudaError();
-    */
 }
 
 void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData) 
