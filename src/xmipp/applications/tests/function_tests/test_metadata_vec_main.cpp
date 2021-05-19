@@ -1217,9 +1217,12 @@ TEST_F(MetadataTest, split)
 
     original.split(3, splitted, MDL_X);
     ASSERT_EQ(splitted.size(), 3);
+    size_t total_size = 0;
     for (const auto& split : splitted) {
         ASSERT_TRUE(split.size() >= 1);
         ASSERT_TRUE(split.size() <= 2);
+        total_size += split.size();
     }
+    ASSERT_EQ(total_size, original.size());
     ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
 }
