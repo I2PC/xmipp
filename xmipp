@@ -78,6 +78,9 @@ SKIPPABLE_BINS = {"optical_alignment": "OPENCV=False",
 
 XMIPP_ENV = {}
 
+def isCIBuild():
+    return 'CIBuild' in os.environ
+
 def updateXmippEnv(pos='begin', realPath=True, **kwargs):
     """ Add/update a variable in XMIPP_ENV dictionary
         pos = {'begin', 'end', 'replace'}
@@ -366,15 +369,29 @@ def cloneOrCheckout(repo, branch):
         return res
 
 
-def getCurrentTravisBranch():
+def removePrefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+
+def getCurrentCIBranch():
     # see https://docs.travis-ci.com/user/environment-variables/
+    # see https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
     # On Travis, PR will have the TRAVIS_PULL_REQUEST_BRANCH variable non-empty
     # otherwise the TRAVIS_BRANCH will hold the name of the current branch
-    if 'TRAVIS_PULL_REQUEST_BRANCH' in os.environ and 'TRAVIS_BRANCH' in os.environ:
-        current_branch = os.environ['TRAVIS_PULL_REQUEST_BRANCH'] or os.environ['TRAVIS_BRANCH']
-        print(green("Detected branch: " + current_branch))
-        return True, current_branch
-    return False, None
+    # On Github Actions, GITHUB_REF will hold either the tag or branch (including prefix) to the branch which triggered 
+    # the workflow
+    # For pull request, GITHUB_HEAD_REF will be set (no prefix)
+    current_branch = (
+        os.environ.get('TRAVIS_PULL_REQUEST_BRANCH') or
+        os.environ.get('TRAVIS_BRANCH') or
+        os.environ.get('GITHUB_HEAD_REF') or
+        os.environ.get('GITHUB_REF'))
+    current_branch = removePrefix(current_branch, 'refs/heads/')
+    current_branch = removePrefix(current_branch, 'refs/tags/')
+    print(green("Detected branch: " + current_branch))
+    return current_branch is not None, current_branch
 
 
 def getCurrentBranch(cwd='./', getHash=False):
@@ -414,7 +431,7 @@ def getBranch(repo, repo_dir):
         return r, branch
     # return same branch as xmipp
     # we need to get current branch of the xmipp
-    r1, branchHint = (getCurrentTravisBranch() if 'TRAVIS' in os.environ
+    r1, branchHint = (getCurrentCIBranch() if isCIBuild()
                       else getCurrentBranch())
     r2, branches = getAllBranchesAndTags(repo)
     if r1 and r2 and branchHint in branches:
@@ -448,8 +465,8 @@ def getSources(branch):
     ensureGit(True)
     createDir("src")
     repos = [XMIPP_CORE, XMIPP_VIZ, SCIPION_EM_XMIPP]
-    if 'TRAVIS' not in os.environ: 
-        # on Travis, do not change current commit
+    if not isCIBuild():
+        # do not change current commit
         repos.append(XMIPP)
     for r in repos:
         if not cloneOrCheckout(r, branch):
@@ -459,7 +476,7 @@ def getSources(branch):
 
 
 def is_config_true(key):
-    return configDict and (key in configDict) and (configDict[key] == 'True')
+    return configDict and (key in configDict) and (configDict[key].lower() == 'true')
 
 
 def getDependencies():
@@ -629,14 +646,14 @@ def configCompiler(configDict):
         configDict["CC"] = "gcc"
         print(green('gcc detected'))
     if configDict["CXX"] == "":
-        if 'TRAVIS' in os.environ:
-            # on TRAVIS, we can use cache to speed up the build
+        if isCIBuild():
+            # we can use cache to speed up the build
             configDict["CXX"] = "ccache g++" if checkProgram("g++") else ""
         else:
             configDict["CXX"] = "g++" if checkProgram("g++") else ""
     if configDict["LINKERFORPROGRAMS"] == "":
-        if 'TRAVIS' in os.environ:
-            # on TRAVIS, we can use cache to speed up the build
+        if isCIBuild():
+            # we can use cache to speed up the build
             configDict["LINKERFORPROGRAMS"] = "ccache g++" if checkProgram("g++") else ""
         else:
             configDict["LINKERFORPROGRAMS"] = "g++" if checkProgram("g++") else ""
@@ -648,9 +665,9 @@ def configCompiler(configDict):
         configDict["CXXFLAGS"] += " -mtune=native -march=native"  # optimize for current machine
         if "-std=c99" not in configDict["CXXFLAGS"]:
             configDict["CXXFLAGS"] += " -std=c++11"
-        if 'TRAVIS' in os.environ:
+        if isCIBuild():
             configDict["CXXFLAGS"] += " -Werror"  # don't tolerate any warnings on build machine
-            configDict["CXXFLAGS"] += " -O0"  # don't optimize on Travis, as it slows down the build
+            configDict["CXXFLAGS"] += " -O0"  # don't optimize, as it slows down the build
         else:
             configDict["CXXFLAGS"] += " -O3"
         if is_config_true("DEBUG"):
@@ -728,7 +745,10 @@ def getHdf5Name(libdirflags):
 
 def checkCompiler(configDict):
     print("Checking compiler configuration ...")
-    ensureCompilerVersion(configDict["CXX"])
+    # in case user specified some wrapper of the compiler
+    # get rid of it: 'ccache g++' -> 'g++'
+    currentCxx = configDict["CXX"].split()[-1]
+    ensureCompilerVersion(currentCxx)
 
     cppProg="""
 #include <fftw3.h>
@@ -1778,8 +1798,6 @@ def ensureCompilerVersion(compiler):
 
 
 def ensureGCC_GPPVersion(compiler):
-    if 'TRAVIS' in os.environ:
-        return  # skip detection on TRAVIS
     if not checkProgram(compiler, True):
         sys.exit(-7)
     gccVersion, fullVersion = getGccVersion(compiler)
