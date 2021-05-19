@@ -95,14 +95,12 @@ void AngularSphAlignment::setupConstantParameters()
         throw new std::runtime_error("AngularSphAlignment not associated with the program!");
 
     // kernel arguments
-    this->Rmax2 = program->Rmax * program->Rmax;
-    this->iRmax = 1 / program->Rmax;
-    //setupImage(program->VI, &images.VI);
-    //setupImage(program->VR, &images.VR);
+    this->Rmax2 = program->RmaxDef * program->RmaxDef;
+    this->iRmax = 1.0 / program->RmaxDef;
     setupImageMetaData(program->V);
     setupVolumeData();
     setupVolumeMask();
-    //setupZSHparams();
+    setupZSHparams();
 
     // kernel dimension
     block.x = BLOCK_X_DIM;
@@ -123,7 +121,9 @@ void AngularSphAlignment::setupChangingParameters()
     if (program == nullptr)
         throw new std::runtime_error("AngularSphAlignment not associated with the program!");
 
-    //setupClnm();
+    setupClnm();
+    setupRotation();
+    setupProjectionPlane();
 
     steps = program->onesInSteps;
 
@@ -131,20 +131,6 @@ void AngularSphAlignment::setupChangingParameters()
     changingSharedMemSize += sizeof(int4) * steps;
     changingSharedMemSize += sizeof(PrecisionType3) * steps;
 
-    // Deformation and transformation booleans
-    //this->applyTransformation = program->applyTransformation;
-    //this->saveDeformation = program->saveDeformation;
-
-    /*
-    if (applyTransformation) {
-        setupImage(imageMetaData, &images.VO);
-    }
-    if (saveDeformation) {
-        setupImage(imageMetaData, &deformImages.Gx);
-        setupImage(imageMetaData, &deformImages.Gy);
-        setupImage(imageMetaData, &deformImages.Gz);
-    }
-    */
 }
 
 void AngularSphAlignment::setupClnm()
@@ -157,8 +143,11 @@ void AngularSphAlignment::setupClnm()
         clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
     }
 
+    dClnm = clnmVec.data();
+    /*
     if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
         processCudaError();
+    */
 }
 
 KernelOutputs AngularSphAlignment::getOutputs() 
@@ -200,13 +189,25 @@ void AngularSphAlignment::setupProjectionPlane()
     // pripadne memset na 0
     projectionPlaneVec.assign(projPlane.data, projPlane.data + projPlane.yxdim);
     dProjectionPlane = projectionPlaneVec.data();
-
 }
+
+void fakeKernel(
+        PrecisionType Rmax2,
+        PrecisionType iRmax,
+        ImageMetaData volMeta,
+        PrecisionType* volData,
+        PrecisionType* rotation,
+        int steps,
+        int4* zshparams,
+        PrecisionType3* clnm,
+        int* Vmask,
+        PrecisionType* projectionPlane,
+        KernelOutputs* outputs
+        );
 
 void AngularSphAlignment::runKernel() 
 {
 
-    /*
     fakeKernel(
             Rmax2,
             iRmax,
@@ -219,7 +220,6 @@ void AngularSphAlignment::runKernel()
             dVolMask,
             dProjectionPlane,
             &outputs);
-    */
     /*
     // Define thrust reduction vector
     thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
@@ -277,8 +277,11 @@ void AngularSphAlignment::setupZSHparams()
         zshparamsVec[i].z = program->vM[i];
     }
 
+    dZshParams = zshparamsVec.data();
+    /*
     if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
         processCudaError();
+    */
 }
 
 void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData) 

@@ -30,7 +30,6 @@
 #include "core/xmipp_image_generic.h"
 #include "data/projection.h"
 #include "data/mask.h"
-//#include "reconstruction_cuda/cuda_angular_sph_alignment.h"
 
 // Empty constructor =======================================================
 ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
@@ -219,7 +218,7 @@ void ProgAngularSphAlignmentGpu::preProcess()
     createWorkFiles();
 
     // GPU preparation
-    //angSphAlignGpu.associateWith(this);
+    angularAlignGpu.associateWith(this);
 }
 
 void ProgAngularSphAlignmentGpu::finishProcessing() {
@@ -388,7 +387,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 	filter.applyMaskSpace(Ifiltered());
 
     // GPU preparation
-    //angSphAlignGpu.setupConstantParameters();
+    angularAlignGpu.setupConstantParameters();
 
 	for (int h=1;h<=L2;h++)
 	{
@@ -579,9 +578,9 @@ void ProgAngularSphAlignmentGpu::deformVol(MultidimArray<double> &mP, const Mult
 
 	double RmaxF=RmaxDef;
 
-    //angSphAlignGpu.setupChangingParameters();
-    //angSphAlignGpu.runKernel();
-    angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
+    angularAlignGpu.setupChangingParameters();
+    angularAlignGpu.runKernel();
+    //angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
 
     auto outputs = angularAlignGpu.getOutputs();
 
