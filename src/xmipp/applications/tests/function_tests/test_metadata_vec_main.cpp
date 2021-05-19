@@ -1187,3 +1187,39 @@ TEST_F(MetadataTest, VecToDbAndBack)
     MetaDataVec mdVec(mdDb);
     ASSERT_EQ(mDsource, mdVec);
 }
+
+TEST_F(MetadataTest, split)
+{
+    MetaDataVec original;
+    for (int value = 3; value >= 0; value--) {
+        MDRowVec row;
+        row.setValue(MDL_X, static_cast<double>(value));
+        original.addRow(row);
+    }
+    ASSERT_EQ(original.size(), 4);
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+
+    std::vector<MetaDataVec> splitted;
+
+    original.split(1, splitted, MDL_X);
+    ASSERT_EQ(splitted.size(), 1);
+    ASSERT_EQ(splitted[0].size(), 4);
+    ASSERT_EQ(splitted[0].getColumnValues<double>(MDL_X), (std::vector<double>{0., 1., 2., 3.}));
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+
+    original.split(2, splitted, MDL_X);
+    ASSERT_EQ(splitted.size(), 2);
+    ASSERT_EQ(splitted[0].size(), 2);
+    ASSERT_EQ(splitted[1].size(), 2);
+    ASSERT_EQ(splitted[0].getColumnValues<double>(MDL_X), (std::vector<double>{0., 1.}));
+    ASSERT_EQ(splitted[1].getColumnValues<double>(MDL_X), (std::vector<double>{2., 3.}));
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+
+    original.split(3, splitted, MDL_X);
+    ASSERT_EQ(splitted.size(), 3);
+    for (const auto& split : splitted) {
+        ASSERT_TRUE(split.size() >= 1);
+        ASSERT_TRUE(split.size() <= 2);
+    }
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+}
