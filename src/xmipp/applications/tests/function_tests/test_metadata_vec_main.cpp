@@ -875,12 +875,39 @@ TEST_F(MetadataTest, RemoveDuplicates)
 
 TEST_F(MetadataTest, Removelabel)
 {
-    MetaDataVec auxMetadata = mDunion;
-    auxMetadata.removeLabel(MDL_X);
-    std::vector<MDLabel> v1,v2;
-    v1.push_back(MDL_Y);
-    v2 = auxMetadata.getActiveLabels();
-    EXPECT_EQ(v2,v1);
+    MetaDataVec aux = mDunion;
+    ASSERT_TRUE(aux.containsLabel(MDL_X));
+    ASSERT_EQ(aux.getColumnValues<double>(MDL_X), (std::vector<double>{1., 3., 11., 33.}));
+    ASSERT_EQ(aux.getColumnValues<double>(MDL_Y), (std::vector<double>{2., 4., 22., 44.}));
+
+    ASSERT_TRUE(aux.removeLabel(MDL_X));
+    EXPECT_FALSE(aux.containsLabel(MDL_X));
+    EXPECT_EQ(aux.getColumnValues<double>(MDL_Y), (std::vector<double>{2., 4., 22., 44.}));
+    for (const auto& row : aux) {
+        EXPECT_FALSE(row.containsLabel(MDL_X));
+        EXPECT_TRUE(row.containsLabel(MDL_Y));
+        EXPECT_EQ(row.getValueOrDefault<double>(MDL_X, 42.), 42.);
+        EXPECT_NE(row.getValueOrDefault<double>(MDL_Y, 42.), 42.);
+    }
+
+    EXPECT_FALSE(aux.removeLabel(MDL_X));
+    aux.setColumnValues(MDL_Z, std::vector<double>{0., 1., 2., 3.});
+    EXPECT_EQ(aux.getColumnValues<double>(MDL_Z), (std::vector<double>{0., 1., 2., 3.}));
+    for (size_t i = 0; i < aux.size(); i++)
+        EXPECT_EQ(aux.getValue<double>(MDL_Z, aux.getRowId(i)), i);
+
+    ASSERT_TRUE(aux.addLabel(MDL_X));
+    EXPECT_TRUE(aux.containsLabel(MDL_X));
+    ASSERT_TRUE(aux.removeLabel(MDL_X));
+    EXPECT_FALSE(aux.containsLabel(MDL_X));
+
+    aux.setColumnValues(MDL_X, std::vector<double>{1., 2., 3., 4.});
+    EXPECT_EQ(aux.getColumnValues<double>(MDL_X), (std::vector<double>{1., 2., 3., 4.}));
+    EXPECT_EQ(aux.getColumnValues<double>(MDL_Z), (std::vector<double>{0., 1., 2., 3.}));
+    for (size_t i = 0; i < aux.size(); i++) {
+        EXPECT_EQ(aux.getValue<double>(MDL_X, aux.getRowId(i)), i+1);
+        EXPECT_EQ(aux.getValue<double>(MDL_Z, aux.getRowId(i)), i);
+    }
 }
 
 TEST_F(MetadataTest, Size)
