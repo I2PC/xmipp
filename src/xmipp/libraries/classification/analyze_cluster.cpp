@@ -212,11 +212,11 @@ void ProgAnalyzeCluster::run()
 		{
 			int trueIdx=pcaAnalyzer.getSorted(n);
 			double zscore=pcaAnalyzer.getSortedZscore(n);
-			SFout.setValue(MDL_ZSCORE, zscore, trueIdx+1);
+			SFout.setValue(MDL_ZSCORE, zscore, SFout.getRowId(trueIdx));
 			if (zscore<distThreshold || distThreshold<0)
-				SFout.setValue(MDL_ENABLED,1, trueIdx+1);
+				SFout.setValue(MDL_ENABLED,1, SFout.getRowId(trueIdx));
 			else
-				SFout.setValue(MDL_ENABLED,-1, trueIdx+1);
+				SFout.setValue(MDL_ENABLED,-1, SFout.getRowId(trueIdx));
 		}
     }
     SFout.write(fnOut,MD_APPEND);
