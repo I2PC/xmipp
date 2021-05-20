@@ -373,7 +373,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
 			transformer.inverseFourierTransform();
 			P.write("Pamp.mrc");
-			POCSMinMaxProj(P(), Imin, Imax);
+//			POCSMinMaxProj(P(), Imin, Imax);
 			P.write("Pminmax.mrc");
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
@@ -423,6 +423,10 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-(DIRECT_MULTIDIM_ELEM(P,n)*DIRECT_MULTIDIM_ELEM(PmaskInv,n))) * DIRECT_MULTIDIM_ELEM(Pmask,n);
+
+
+//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
+//		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-DIRECT_MULTIDIM_ELEM(P,n))* DIRECT_MULTIDIM_ELEM(Pmask,n);
 
 		// Save subtracted particles in metadata
 		ix_particle++;
