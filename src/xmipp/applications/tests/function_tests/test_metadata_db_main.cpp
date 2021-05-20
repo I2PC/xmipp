@@ -336,23 +336,16 @@ TEST_F( MetadataTest, Aggregate1)
     EXPECT_EQ(count,(size_t)1);
 
     MDObject mdValueOut(MDL_Y);
-    double d;
     md.aggregateSingle(mdValueOut, AGGR_MAX ,MDL_Y);
-    mdValueOut.getValue(d);
-    EXPECT_EQ(d,4);
+    EXPECT_EQ(mdValueOut.getValue2(double()), 4);
 
     MDObject mdValueOut2(MDL_ORDER);
-    size_t t;
     md.aggregateSingleSizeT(mdValueOut2, AGGR_MAX ,MDL_ORDER);
-    mdValueOut2.getValue(t);
-    EXPECT_EQ(t,(size_t)1);
+    EXPECT_EQ(mdValueOut2.getValue2(size_t()), 1);
 
     MDObject mdValueOut3(MDL_DEFGROUP);
-    int i;
     md.aggregateSingleInt(mdValueOut3, AGGR_MAX ,MDL_DEFGROUP);
-    mdValueOut3.getValue(i);
-    EXPECT_EQ(i,(int)23);
-
+    EXPECT_EQ(mdValueOut3.getValue2(int()), 23);
 }
 
 TEST_F( MetadataTest, Aggregate2)

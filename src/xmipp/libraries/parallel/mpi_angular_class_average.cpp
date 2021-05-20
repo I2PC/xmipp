@@ -1188,15 +1188,15 @@ void MpiProgAngularClassAverage::filterInputMetadata()
         // Output stack size (number of valid projection directions)
         MDObject mdValueOut1(MDL_ORDER);
         auxMdJobList.aggregateSingleSizeT(mdValueOut1, AGGR_MAX ,MDL_ORDER);
-        mdValueOut1.getValue(Ndim);
+        Ndim = mdValueOut1.getValue2(Ndim);
 
         MDObject mdValueOut2(MDL_DEFGROUP);
         auxMdJobList.aggregateSingleInt(mdValueOut2, AGGR_MAX ,MDL_DEFGROUP);
-        mdValueOut2.getValue(ctfNum);
+        ctfNum = mdValueOut2.getValue2(ctfNum);
 
         MDObject mdValueOut3(MDL_REF3D);
         auxMdJobList.aggregateSingleInt(mdValueOut3, AGGR_MAX ,MDL_REF3D);
-        mdValueOut3.getValue(ref3dNum);
+        ref3dNum = mdValueOut3.getValue2(ref3dNum);
         MultidimArray <int> multiCounter(Ndim+1, ctfNum+1, ref3dNum+1);
         multiCounter.initZeros();
 
@@ -1295,15 +1295,15 @@ void MpiProgAngularClassAverage::initDimentions()
     // Output stack size (number of valid projection directions)
     MDObject mdValueOut1(MDL_ORDER);
     mdJobList.aggregateSingleSizeT(mdValueOut1, AGGR_MAX ,MDL_ORDER);
-    mdValueOut1.getValue(Ndim);
+    Ndim = mdValueOut1.getValue2(Ndim);
 
     MDObject mdValueOut2(MDL_DEFGROUP);
     mdJobList.aggregateSingleInt(mdValueOut2, AGGR_MAX ,MDL_DEFGROUP);
-    mdValueOut2.getValue(ctfNum);
+    ctfNum = mdValueOut2.getValue2(ctfNum);
 
     MDObject mdValueOut3(MDL_REF3D);
     mdJobList.aggregateSingleInt(mdValueOut3, AGGR_MAX ,MDL_REF3D);
-    mdValueOut3.getValue(ref3dNum);
+    ref3dNum = mdValueOut3.getValue2(ref3dNum);
 
     //Check Wiener filter image has correct size
     if (fn_wien != "")
