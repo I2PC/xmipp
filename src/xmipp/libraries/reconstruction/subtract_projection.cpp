@@ -424,10 +424,6 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
 		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-(DIRECT_MULTIDIM_ELEM(P,n)*DIRECT_MULTIDIM_ELEM(PmaskInv,n))) * DIRECT_MULTIDIM_ELEM(Pmask,n);
 
-
-//		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
-//		DIRECT_MULTIDIM_ELEM(I,n) = (DIRECT_MULTIDIM_ELEM(I,n)-DIRECT_MULTIDIM_ELEM(P,n))* DIRECT_MULTIDIM_ELEM(Pmask,n);
-
 		// Save subtracted particles in metadata
 		ix_particle++;
 		FileName out = formatString("%d@%s.mrcs", ix_particle, fnOut.c_str());
