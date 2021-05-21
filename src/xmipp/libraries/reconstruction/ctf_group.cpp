@@ -589,9 +589,9 @@ void ProgCtfGroup::writeOutputToDisc()
     auxMetaData.setComment(formatString("Defocus values to split into %lu ctf groups", ctfInfo.size()));
 
     id1 = *it;
+    ++it;
     while (it != ctfInfo.ids().end())
     {
-        ++it;
         id2 = *it;
         ctfInfo.getValue(MDL_MIN,minDef,id1);
         ctfInfo.getValue(MDL_MAX,maxDef,id2);
@@ -599,6 +599,7 @@ void ProgCtfGroup::writeOutputToDisc()
 
         id=auxMetaData.addObject();
         auxMetaData.setValue(MDL_CTF_DEFOCUSA,(minDef+maxDef)/2.,id);
+        ++it;
     }
     auxMetaData.write(fn_root+"_split.doc");
 
