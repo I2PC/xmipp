@@ -93,11 +93,11 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 
 class ProgVolumeSubtraction: public XmippProgram
 {
-protected:
+private:
 	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
-	bool sub, eq, dontE;
-	int iter, sigma;
-	double cutFreq, lambda;
+	bool sub; bool eq; bool dontE;
+	int iter; int sigma;
+	double cutFreq; double lambda;
 
     void defineParams()
     {
@@ -118,7 +118,7 @@ protected:
         addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
         addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
         addParamsLine("[--saveV2 <structure=\"\"> ]  : Save subtraction intermediate files (vol2 adjusted)");
-        addParamsLine("[--dont_compute_E] 			 : Do not compute the energy difference between each step");
+        addParamsLine("[--dont_compute_E]		: Do not compute the energy difference between each step");
 
     }
 
@@ -153,12 +153,12 @@ protected:
     	<< "Input volume 2:    	   	" << fnVol2      << std::endl
     	<< "Input mask 1:    	   	" << fnMask1     << std::endl
     	<< "Input mask 2:    	   	" << fnMask2     << std::endl
-    	<< "Input mask sub:    	   	" << fnMaskSub   << std::endl
+    	<< "Input mask sub:			" << fnMaskSub   << std::endl
     	<< "Sigma:					" << sigma       << std::endl
-    	<< "Iterations:    	   		" << iter        << std::endl
-    	<< "Cutoff frequency:   	" << cutFreq     << std::endl
-    	<< "Relaxation factor:   	" << lambda      << std::endl
-    	<< "Output: 		        " << fnOut 	     << std::endl
+    	<< "Iterations:				" << iter        << std::endl
+    	<< "Cutoff frequency:		" << cutFreq     << std::endl
+    	<< "Relaxation factor:		" << lambda      << std::endl
+    	<< "Output:					" << fnOut 	     << std::endl
     	;
     }
 
@@ -167,7 +167,7 @@ protected:
     	show();
 
     	Image<double> V, Vdiff, V1;
-    	FourierTransformer transformer1, transformer2;
+    	FourierTransformer transformer1; FourierTransformer transformer2;
     	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
     	MultidimArray<double> V1FourierMag;
     	V1.read(fnVol1);
