@@ -981,8 +981,9 @@ void ProgMLRefine3D::updateVolumesMetadata()
         {
         	COMPOSE_VOL_FN(fn_vol, volno, fn_base);
             //fn_vol.compose(volno, fn_base);
-            mdVol.setValue(MDL_IMAGE, fn_vol, mdVol.addObject());
-            mdVol.setValue(MDL_ENABLED, 1);
+            auto objId = mdVol.addObject();
+            mdVol.setValue(MDL_IMAGE, fn_vol, objId);
+            mdVol.setValue(MDL_ENABLED, objId);
         }
     }
 }
