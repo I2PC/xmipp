@@ -39,6 +39,7 @@
 #include <data/filters.h>
 #include <string>
 #include "symmetrize.h"
+#include <data/morphology.h>
 
 #define DEBUG
 #define DEBUG_OUTPUT_FILES

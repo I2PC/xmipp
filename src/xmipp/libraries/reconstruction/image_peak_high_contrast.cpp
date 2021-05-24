@@ -310,16 +310,19 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	MultidimArray<double> binaryCoordinatesMapSlice;
 	MultidimArray<double> labelCoordiantesMapSlice;
+	MultidimArray<double> labelCoordiantesMap;
+
+	labelCoordiantesMap.initZeros(zSize, ySize, xSize);
 
 	double maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
 	
-	for(size_t k = 0; k < coordinates3Dz.size(); k++)
+	for(size_t k = 0; k < zSize; k++)
 	{
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
-		for(size_t j = 0; j < coordinates3Dy.size(); j++)
+		for(size_t j = 0; j < ySize; j++)
 		{
-			for(size_t i = 0; i < coordinates3Dx.size(); i++)
+			for(size_t i = 0; i < xSize; i++)
 			{
 				double value = A3D_ELEM(volFiltered, k, i, j);
 
@@ -329,7 +332,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 					coordinates3Dy.push_back(i);
 					coordinates3Dz.push_back(k);
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
-
 				}
 			}
 		}
@@ -337,20 +339,52 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 4);
 		std::cout << "Colour: " << colour << std::endl;
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(labelCoordiantesMapSlice){
+			DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+		}
     }
 
 	#ifdef DEBUG
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
 
-	// size_t lastindex = fnOut.find_last_of(".");
-	// std::string rawname = fnOut.substr(0, lastindex);
-	// std::string outputFileNameFilteredVolume;
-    // outputFileNameFilteredVolume = rawname + "_label.mrc";
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_label.mrc";
 
-	// Image<double> saveImage;
-	// saveImage() = labelCoordiantesMap; 
-	// saveImage.write(outputFileNameFilteredVolume);
+	Image<double> saveImage;
+	saveImage() = labelCoordiantesMap; 
+	saveImage.write(outputFileNameFilteredVolume);
+
+	// MultidimArray<double> maskCoorinateMap;
+	// maskCoorinateMap.initZeros(zSize, ySize, xSize);
+
+	// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(labelCoordiantesMap)
+	// {
+	// 	if(DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j)>0)
+	// 	{
+	// 		DIRECT_A3D_ELEM(maskCoorinateMap, k, i, j)=1;
+	// 	}
+	// }
+
+	// MultidimArray<double> erodedMaskCoordinatesMap;
+
+	// erodedMaskCoordinatesMap.initZeros(zSize, ySize, xSize);
+
+	// erode3D(maskCoorinateMap, erodedMaskCoordinatesMap, 18, 1, 1);
+
+	// size_t lastIndex = fnOut.find_last_of(".");
+	// std::string rawName = fnOut.substr(0, lastIndex);
+	// std::string outputFileNameErodedVolume;
+    // // outputFileNameErodedVolume = rawName + "_eroded.mrc";
+
+	// Image<double> saveImageBis;
+	// saveImageBis() = erodedMaskCoordinatesMap; 
+	// saveImageBis.write(outputFileNameErodedVolume);
+
+
 
 	clusterHighContrastCoordinates(coordinates3Dx,
 								   coordinates3Dy,
