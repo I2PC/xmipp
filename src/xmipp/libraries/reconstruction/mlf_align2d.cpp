@@ -2715,12 +2715,13 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     // Write out current reference images and fill sel & log-file
     // First time for _ref, second time for _cref
     FileName fn_base_cref = FN_CREF_IMG;
-    MDRowVec row;
-    auto idIter = MDref.ids().begin();
     MDo = MDref;
+    auto iterMDo = MDo.ids().begin();
+    auto iterMDref = MDref.ids().begin();
 
-    for (int refno = 0; refno < model.n_ref; ++refno, ++idIter)
+    for (int refno = 0; refno < model.n_ref; ++refno, ++iterMDo, ++iterMDref)
     {
+        MDRowVec row;
         //row.setValue(MDL_ITER, iter);
         row.setValue(MDL_REF, refno + 1);
 
@@ -2736,13 +2737,13 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         //write ctf
         fn_tmp.compose(refno + 1, fn_base_cref);
         writeImage(Ictf[refno], fn_tmp, row);
-        MDo.setRow(row, *idIter);
+        MDo.setRow(row, *iterMDo);
 
         //write image
         fn_tmp = FN_REF(fn_base, refno + 1);
         Itmp = model.Iref[refno];
         writeImage(Itmp, fn_tmp, row);
-        MDref.setRow(row, *idIter);
+        MDref.setRow(row, *iterMDref);
     }
 
     // Write out reference md file
