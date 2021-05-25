@@ -1253,3 +1253,31 @@ TEST_F(MetadataTest, split)
     ASSERT_EQ(total_size, original.size());
     ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
 }
+
+TEST_F(MetadataTest, rowDetach)
+{
+    MetaDataVec orig;
+    MDRowVec row;
+    row.setValue(MDL_X, 10.);
+    orig.addRow(row);
+
+    // Change in iteration changes original value
+    ASSERT_EQ(orig.getValue<double>(MDL_X, orig.firstRowId()), 10.);
+    for (auto& row : orig)
+        row.setValue(MDL_X, 5.);
+    ASSERT_EQ(orig.getValue<double>(MDL_X, orig.firstRowId()), 5.);
+
+    // Original value is not changed after detaching
+    for (auto& row : orig) {
+        row.detach();
+        row.setValue(MDL_X, 10.);
+    }
+    ASSERT_EQ(orig.getValue<double>(MDL_X, orig.firstRowId()), 5.);
+
+    // MetaDataRowVec::deepCopy should work too
+    for (auto& row : orig) {
+        MDRowVec detached = MDRowVec::deepCopy(dynamic_cast<MDRowVec&>(row));
+        detached.setValue(MDL_X, 10.);
+    }
+    ASSERT_EQ(orig.getValue<double>(MDL_X, orig.firstRowId()), 5.);
+}
