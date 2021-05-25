@@ -150,6 +150,7 @@ public:
             }
             if (proceed)
             {
+                row.detach(); // so that we can copy it outside of the metadata
                 toClassify.emplace_back(dynamic_cast<MDRowVec&>(row));
                 row.getValue(MDL_IMAGE,fnImg);
                 if (!firstSelected)
