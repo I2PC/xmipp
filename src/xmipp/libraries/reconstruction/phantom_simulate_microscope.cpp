@@ -35,7 +35,7 @@ void ProgSimulateMicroscope::readParams()
     XmippMetadataProgram::readParams();
 
     fn_ctf = "";//initialize empty, force recalculation of first time
-    pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+    pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
     CTFpresent=true;
     if (checkParam("--ctf"))
     {

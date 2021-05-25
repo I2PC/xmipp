@@ -67,7 +67,7 @@ public:
     /// Input image Ydim
     size_t   Ydim;
     /// Particular reference to mdIn to manipulated
-    MetaDataDb *pmdIn;
+    MetaDataVec *pmdIn;
     /** Downsampling factor */
     double downsampling;
     /* save U defocus in case we randomize it */
