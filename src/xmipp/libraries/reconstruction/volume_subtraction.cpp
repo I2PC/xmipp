@@ -47,7 +47,7 @@ void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::co
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
 		{
 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
-		if (mod>1e-6)
+		if (mod>1e-10)  // Condition to avoid divide by zero, values smaller than this threshold are considered zero
 			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
 		}
 }
@@ -81,20 +81,20 @@ void POCSFourierPhase(const MultidimArray< std::complex<double> > &phase, Multid
 
 void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, double energy)
 {
-	Vdiff = Vdiff - Vact;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
-	energy+=DIRECT_MULTIDIM_ELEM(Vdiff,n)*DIRECT_MULTIDIM_ELEM(Vdiff,n);
-	energy = sqrt(energy/MULTIDIM_SIZE(Vdiff));
-	std::cout<< "Energy: " << energy << std::endl;
+		Vdiff = Vdiff - Vact;
+		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
+		energy+=DIRECT_MULTIDIM_ELEM(Vdiff,n)*DIRECT_MULTIDIM_ELEM(Vdiff,n);
+		energy = sqrt(energy/MULTIDIM_SIZE(Vdiff));
+		std::cout<< "Energy: " << energy << std::endl;
 }
 
 class ProgVolumeSubtraction: public XmippProgram
 {
-protected:
-	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A;
-	bool sub, eq;
-	int iter, sigma;
-	double cutFreq, lambda;
+private:
+	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
+	bool sub; bool eq; bool computeE;
+	int iter; int sigma;
+	double cutFreq; double lambda;
 
     void defineParams()
     {
@@ -107,13 +107,15 @@ protected:
         addParamsLine("                      	: If no name is given, then output_volume.mrc");
         addParamsLine("[--sub] 			        : Perform the subtraction of the volumes. Output will be the difference");
         addParamsLine("[--sigma <s=3>]    		: Decay of the filter (sigma) to smooth the mask transition");
-        addParamsLine("[--iter <n=1>]        	: Number of iterations");
-        addParamsLine("[--mask1 <mask=\"\">]  	: Mask for volume 1");
-        addParamsLine("[--mask2 <mask=\"\">]  	: Mask for volume 2");
+        addParamsLine("[--iter <n=1>]			: Number of iterations");
+        addParamsLine("[--mask1 <mask=\"\">]	: Mask for volume 1");
+        addParamsLine("[--mask2 <mask=\"\">]	: Mask for volume 2");
+        addParamsLine("[--maskSub <mask=\"\">]	: Mask for subtraction region");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
         addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
-        addParamsLine("[--saveV1 <structure=\"\"> ]  : Save subtraction intermediate files (vol1 filtered)");
-        addParamsLine("[--saveV2 <structure=\"\"> ]  : Save subtraction intermediate files (vol2 adjusted)");
+        addParamsLine("[--saveV1 <structure=\"\"> ]	: Save subtraction intermediate files (vol1 filtered)");
+        addParamsLine("[--saveV2 <structure=\"\"> ]	: Save subtraction intermediate files (vol2 adjusted)");
+        addParamsLine("[--computeEnergy]			: Do not compute the energy difference between each step");
 
     }
 
@@ -129,6 +131,7 @@ protected:
     	sigma=getIntParam("--sigma");
     	fnMask1=getParam("--mask1");
     	fnMask2=getParam("--mask2");
+    	fnMaskSub=getParam("--maskSub");
     	cutFreq=getDoubleParam("--cutFreq");
     	lambda=getDoubleParam("--lambda");
     	fnVol1F=getParam("--saveV1");
@@ -137,6 +140,7 @@ protected:
     	fnVol2A=getParam("--saveV2");
     	if (fnVol2A=="")
     		fnVol2A="volume2_adjusted.mrc";
+    	computeE=checkParam("--computeEnergy");
     }
 
     void show()
@@ -146,11 +150,12 @@ protected:
     	<< "Input volume 2:    	   	" << fnVol2      << std::endl
     	<< "Input mask 1:    	   	" << fnMask1     << std::endl
     	<< "Input mask 2:    	   	" << fnMask2     << std::endl
+    	<< "Input mask sub:			" << fnMaskSub   << std::endl
     	<< "Sigma:					" << sigma       << std::endl
-    	<< "Iterations:    	   		" << iter        << std::endl
-    	<< "Cutoff frequency:   	" << cutFreq     << std::endl
-    	<< "Relaxation factor:   	" << lambda      << std::endl
-    	<< "Output: 		        " << fnOut 	     << std::endl
+    	<< "Iterations:				" << iter        << std::endl
+    	<< "Cutoff frequency:		" << cutFreq     << std::endl
+    	<< "Relaxation factor:		" << lambda      << std::endl
+    	<< "Output:					" << fnOut 	     << std::endl
     	;
     }
 
@@ -159,7 +164,7 @@ protected:
     	show();
 
     	Image<double> V, Vdiff, V1;
-    	FourierTransformer transformer;
+    	FourierTransformer transformer1; FourierTransformer transformer2;
     	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
     	MultidimArray<double> V1FourierMag;
     	V1.read(fnVol1);
@@ -184,15 +189,16 @@ protected:
     	double v1min, v1max;
 		V1().computeDoubleMinMax(v1min, v1max);
 
-    	transformer.FourierTransform(V1(),V1Fourier,false);
+    	transformer1.FourierTransform(V1(),V1Fourier,false);
     	FFT_magnitude(V1Fourier,V1FourierMag);
 		double std1 = V1().computeStddev();
 
 		V.read(fnVol2);
 		POCSmask(mask(),V());
+    	POCSnonnegative(V());
 
     	MultidimArray<std::complex<double> > V2FourierPhase;
-    	transformer.FourierTransform(V(),V2FourierPhase,true);
+    	transformer2.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
 
 		FourierFilter Filter2;
@@ -207,38 +213,45 @@ protected:
 
     	for (int n=0; n<iter; ++n)
     	{
-    		std::cout<< "---Iter " << n << std::endl;
-    		transformer.FourierTransform(V(),V2Fourier,false);
+        	if (computeE)
+        		std::cout<< "---Iter " << n << std::endl;
+    		transformer2.FourierTransform(V(),V2Fourier,false);
     		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
-        	transformer.inverseFourierTransform();
-        	computeEnergy(Vdiff(), V(), energy);
+        	transformer2.inverseFourierTransform();
+        	if (computeE)
+        		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
-
     		POCSMinMax(V(), v1min, v1max);
-        	computeEnergy(Vdiff(), V(), energy);
+        	if (computeE)
+        		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
-
 			POCSmask(mask(),V());
-        	computeEnergy(Vdiff(), V(), energy);
+        	if (computeE)
+        		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
-    		transformer.FourierTransform();
+    		transformer2.FourierTransform();
     		POCSFourierPhase(V2FourierPhase,V2Fourier);
-        	transformer.inverseFourierTransform();
-        	computeEnergy(Vdiff(), V(), energy);
+        	transformer2.inverseFourierTransform();
+        	if (computeE)
+        		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
         	POCSnonnegative(V());
-        	computeEnergy(Vdiff(), V(), energy);
+        	if (computeE)
+        		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
 			std2 = V().computeStddev();
 			V()*=std1/std2;
-        	computeEnergy(Vdiff(), V(), energy);
+        	if (computeE)
+        		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
+
     		if (cutFreq!=0)
     		{
     			Filter2.generateMask(V());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(V());
-				computeEnergy(Vdiff(), V(), energy);
+	        	if (computeE)
+	        		computeEnergy(Vdiff(), V(), energy);
 	        	Vdiff = V;
     		}
     	}
@@ -256,14 +269,20 @@ protected:
 
     	if (sub==true)
     	{
-        	if (fnVol1F!="" && fnVol2A!="")
+        	if (!fnVol1F.isEmpty() && !fnVol2A.isEmpty())
     		{
     			V1Filtered.write(fnVol1F);
     			V.write(fnVol2A);
     		}
-    		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
-    		DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
-    				std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
+
+        	if (!fnMaskSub.isEmpty())
+        	{
+        		mask.read(fnMaskSub);
+        	}
+
+			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
+			DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
+					std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
     		V1.write(fnOut);
     	}
 
