@@ -86,6 +86,7 @@ void buildReconsInfo(MetaDataVec &selfile,
             // Filling structure
             imgInfo.fn_proj = fn_proj;
             imgInfo.row = selfile.getRowVec(objId);
+            imgInfo.row.detach();
             if (is_ctf_unique)
                 imgInfo.fn_ctf = fn_ctf;
             else if (is_there_ctf)
