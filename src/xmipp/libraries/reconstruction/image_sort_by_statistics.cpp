@@ -476,9 +476,9 @@ void ProgSortByStatistics::run()
 
     for (int imgno = 0; imgno < nr_imgs; imgno++)
     {
-        int isort_1 = DIRECT_A1D_ELEM(sorted,imgno);
-        int isort = isort_1 - 1;
-        SF.getRow(row, isort_1);
+        int isort = DIRECT_A1D_ELEM(sorted,imgno) - 1;
+        size_t objId = SF.getRowId(isort);
+        SF.getRow(row, objId);
 
         if (thereIsEnable)
         {
@@ -505,13 +505,13 @@ void ProgSortByStatistics::run()
         {
             row.setValue(MDL_ENABLED,-1);
             if (addToInput)
-                SF.setValue(MDL_ENABLED,-1,isort_1);
+                SF.setValue(MDL_ENABLED, -1, objId);
         }
         else
         {
             row.setValue(MDL_ENABLED,1);
             if (addToInput)
-                SF.setValue(MDL_ENABLED,1,isort_1);
+                SF.setValue(MDL_ENABLED, 1, objId);
         }
 
         row.setValue(MDL_ZSCORE,zscore);
@@ -523,12 +523,12 @@ void ProgSortByStatistics::run()
 
         if (addToInput)
         {
-            SF.setValue(MDL_ZSCORE,zscore,isort_1);
-            SF.setValue(MDL_ZSCORE_SHAPE1,zscoreShape1,isort_1);
-            SF.setValue(MDL_ZSCORE_SHAPE2,zscoreShape2,isort_1);
-            SF.setValue(MDL_ZSCORE_SNR1,zscoreSNR1,isort_1);
-            SF.setValue(MDL_ZSCORE_SNR2,zscoreSNR2,isort_1);
-            SF.setValue(MDL_ZSCORE_HISTOGRAM,zscoreHist,isort_1);
+            SF.setValue(MDL_ZSCORE, zscore, objId);
+            SF.setValue(MDL_ZSCORE_SHAPE1, zscoreShape1, objId);
+            SF.setValue(MDL_ZSCORE_SHAPE2, zscoreShape2, objId);
+            SF.setValue(MDL_ZSCORE_SNR1, zscoreSNR1, objId);
+            SF.setValue(MDL_ZSCORE_SNR2, zscoreSNR2, objId);
+            SF.setValue(MDL_ZSCORE_HISTOGRAM, zscoreHist, objId);
         }
 
         SFout.addRow(row);
@@ -549,30 +549,30 @@ void ProgSortByStatistics::run()
 
         for (size_t numPar = SF.size()-1; numPar > (SF.size()-numPartReject); --numPar)
         {
-            int isort_1 = DIRECT_A1D_ELEM(sortedShape1,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
+            size_t objId = SF.getRowId(DIRECT_A1D_ELEM(sortedShape1,numPar)-1);
+            SFout.getRow(row, objId);
+            row.setValue(MDL_ENABLED, -1);
+            SFout.setRow(row, objId);
 
-            isort_1 = DIRECT_A1D_ELEM(sortedShape2,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
+            objId = SF.getRowId(DIRECT_A1D_ELEM(sortedShape2,numPar)-1);
+            SFout.getRow(row, objId);
+            row.setValue(MDL_ENABLED, -1);
+            SFout.setRow(row, objId);
 
-            isort_1 = DIRECT_A1D_ELEM(sortedSNR1,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
+            objId = SF.getRowId(DIRECT_A1D_ELEM(sortedSNR1,numPar)-1);
+            SFout.getRow(row, objId);
+            row.setValue(MDL_ENABLED, -1);
+            SFout.setRow(row, objId);
 
-            isort_1 = DIRECT_A1D_ELEM(sortedSNR2,numPar);
-            SFout.getRow(row, isort_1);
+            objId = SF.getRowId(DIRECT_A1D_ELEM(sortedSNR2,numPar)-1);
+            SFout.getRow(row, objId);
             row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
+            SFout.setRow(row, objId);
 
-            isort_1 = DIRECT_A1D_ELEM(sortedHist,numPar);
-            SFout.getRow(row, isort_1);
-            row.setValue(MDL_ENABLED,-1);
-            SFout.setRow(row,isort_1);
+            objId = SF.getRowId(DIRECT_A1D_ELEM(sortedHist,numPar));
+            SFout.getRow(row, objId);
+            row.setValue(MDL_ENABLED, -1);
+            SFout.setRow(row, objId);
 
             if (addToInput)
             {
@@ -582,30 +582,30 @@ void ProgSortByStatistics::run()
                 ZscoreSNR2.indexSort(sortedSNR2SF);
                 ZscoreHist.indexSort(sortedHistSF);
 
-                isort_1 = DIRECT_A1D_ELEM(sortedShapeSF1,numPar);
-                SF.getRow(row, isort_1);
+                objId = SF.getRowId(DIRECT_A1D_ELEM(sortedShapeSF1,numPar)-1);
+                SF.getRow(row, objId);
                 row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
+                SF.setRow(row, objId);
 
-                isort_1 = DIRECT_A1D_ELEM(sortedShapeSF2,numPar);
-                SF.getRow(row, isort_1);
-                row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
+                objId = SF.getRowId(DIRECT_A1D_ELEM(sortedShapeSF2,numPar)-1);
+                SF.getRow(row, objId);
+                row.setValue(MDL_ENABLED, -1);
+                SF.setRow(row, objId);
 
-                isort_1 = DIRECT_A1D_ELEM(sortedSNR1SF,numPar);
-                SF.getRow(row, isort_1);
+                objId = SF.getRowId(DIRECT_A1D_ELEM(sortedSNR1SF,numPar)-1);
+                SF.getRow(row, objId);
                 row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
+                SF.setRow(row, objId);
 
-                isort_1 = DIRECT_A1D_ELEM(sortedSNR2SF,numPar);
-                SF.getRow(row, isort_1);
+                objId = SF.getRowId(DIRECT_A1D_ELEM(sortedSNR2SF,numPar)-1);
+                SF.getRow(row, objId);
                 row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
+                SF.setRow(row, objId);
 
-                isort_1 = DIRECT_A1D_ELEM(sortedHistSF,numPar);
-                SF.getRow(row, isort_1);
+                objId = SF.getRowId(DIRECT_A1D_ELEM(sortedHistSF,numPar)-1);
+                SF.getRow(row, objId);
                 row.setValue(MDL_ENABLED,-1);
-                SF.setRow(row,isort_1);
+                SF.setRow(row, objId);
             }
         }
     }
