@@ -53,7 +53,7 @@ void ProgImagePeakHighContrast::defineParams()
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
   	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
-  	addParamsLine("  [--fiducialSize <fiducialSize=100>]						: Fiducial size in Angstroms (A)");
+  	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A)");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px)");
 
 }
@@ -154,26 +154,29 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
 				double u=sqrt(uz2y2+ux*ux);
 
-				if(u > cutoffFreqHigh)
+				if(u > cutoffFreqHigh || u < cutoffFreqLow)
 				{
 					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
 				} 
 
-				if(u < cutoffFreqLow)
-				{
-					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
-				} 
-				
-				if(u >= freqHigh && u < cutoffFreqHigh)
-				{
-					DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
-				}
-				
-				if (u <= freqLow && u > cutoffFreqLow)
-				{
-					DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqLow)*delta));
+				// if(u < cutoffFreqLow)
+				// {
+				// 	DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
+				// } 
 
+				else
+				{
+					if(u >= freqHigh && u < cutoffFreqHigh)
+					{
+						DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
+					}
+				
+					if (u <= freqLow && u > cutoffFreqLow)
+					{
+						DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqLow)*delta));
+					}
 				}
+				
 				++n;
 			}
 		}
@@ -194,6 +197,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
 
+	// *** make output volFiltered as the input volume (override)
 	return volFiltered;
 }
 
@@ -269,7 +273,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 			for(size_t f = 0; f < sliceVectorSize; f++)
 			{
-				standardDeviation += (sliceVector[f]-average)*(sliceVector[f]-average);
+				int sliceVectorValue = sliceVector[f];
+				standardDeviation += (sliceVectorValue-average)*(sliceVectorValue-average);
 			}
 
 			standardDeviation = sqrt(standardDeviation/sliceVectorSize);
@@ -283,13 +288,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
 	}
 
-	// std::sort(tomoVector.begin(),tomoVector.end());
-
-	// double thresholdValue = tomoVector[size_t(tomoVector.size()-(numberOfInitialCoordinates))];
-
+	double maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
 
 	#ifdef DEBUG
-	// std::cout << "Threshold value = " << thresholdValue << std::endl;
+	std::cout << "Threshold value = " << maxThreshold << std::endl;
 	#endif
 
     std::vector<int> coordinates3Dx(0);
@@ -314,34 +316,108 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	labelCoordiantesMap.initZeros(zSize, ySize, xSize);
 
-	double maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
 	
 	for(size_t k = 0; k < zSize; k++)
-	{
+	{	
+		std::cout << "k=" << k << std::endl;
+
+
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
-		for(size_t j = 0; j < ySize; j++)
+		for(size_t j = 0; j < xSize; j++)
 		{
-			for(size_t i = 0; i < xSize; i++)
+			for(size_t i = 0; i < ySize; i++)
 			{
-				double value = A3D_ELEM(volFiltered, k, i, j);
+				double value = DIRECT_A3D_ELEM(volFiltered, k, i, j);
 
 				if (value<maxThreshold)
 				{
-					coordinates3Dx.push_back(j);
-					coordinates3Dy.push_back(i);
-					coordinates3Dz.push_back(k);
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 				}
 			}
 		}
 		std::cout << "labeling slice " << k << std::endl;
 
-		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 4);
+		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
+
 		std::cout << "Colour: " << colour << std::endl;
 
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(labelCoordiantesMapSlice){
-			DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+		// OLD
+		// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(labelCoordiantesMapSlice){
+		// 	DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+		// }
+
+		// NEW
+		/////////////////////////////////////////////////////////////////////////////////// REMOVE COORDINATES BY NUMBER OF ELEMENTS
+
+		// These vectors will hold the list of labels and the nuber of coordinates associated to each of them
+		std::vector<int> label;
+		std::vector<int> numberCoordsPerLabel;
+		
+		for(size_t j = 0; j < xSize; j++)
+		{
+			for(size_t i = 0; i < ySize; i++)
+			{
+				int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+
+				if(value!=0)
+				{
+					bool labelExists = false;
+					
+					for(size_t n=0; n<label.size(); n++)
+					{
+						if(label[n]==value)
+						{
+						 	numberCoordsPerLabel[n] += 1;
+							labelExists = true;
+						}
+					}
+
+					if(labelExists==false)
+					{
+						label.push_back(value);
+						numberCoordsPerLabel.push_back(1);
+					}
+				}
+			}
+		}
+
+		std::cout << "numberCoordsPerLabel generated!!" << std::endl;
+		std::cout << label.size() << std::endl;
+		std::cout << numberCoordsPerLabel.size() << std::endl;
+
+		// for(int i=0; i<label.size(); i++)
+		// {
+		// 		std::cout << label[i] << std::endl;
+		// 		std::cout << numberCoordsPerLabel[i] << std::endl;
+		// 		std::cout << "---" << std::endl;
+		// }
+
+		for(size_t j = 0; j < xSize; j++)
+		{
+			for(size_t i = 0; i < ySize; i++)
+			{
+				// std::cout << "+++++++++" << std::endl;
+				// std::cout << DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j) << std::endl;
+				// std::cout << "k=" << k << " j=" << j << " i=" << i << std::endl;
+
+				for(size_t n=0; n<label.size(); n++)
+				{
+					if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
+					{
+						if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
+						{						
+							coordinates3Dx.push_back(j);
+							coordinates3Dy.push_back(i);
+							coordinates3Dz.push_back(k);
+
+							DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+						}
+
+						break;
+					}
+				}
+			}
 		}
     }
 
@@ -357,6 +433,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
 	saveImage.write(outputFileNameFilteredVolume);
+
+	//////////////////////////////////////////////////////////////////////////////// ERODE OUTPUT LABELED MAP
 
 	// MultidimArray<double> maskCoorinateMap;
 	// maskCoorinateMap.initZeros(zSize, ySize, xSize);
