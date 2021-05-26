@@ -217,18 +217,15 @@ void ProgRecWbp::produceSideInfo()
 void ProgRecWbp::getAnglesForImage(size_t id, double &rot, double &tilt,
                                    double &psi, double &xoff, double &yoff, bool &flip, double &weight)
 {
-    if (id != BAD_OBJID)
-    {
-        SF.getValue(MDL_ANGLE_ROT, rot, id);
-        SF.getValue(MDL_ANGLE_TILT, tilt, id);
-        SF.getValue(MDL_ANGLE_PSI, psi, id);
-        SF.getValue(MDL_SHIFT_X, xoff, id);
-        SF.getValue(MDL_SHIFT_Y, yoff, id);
-        flip = 0;
-        SF.getValue(MDL_FLIP, flip, id);
-        weight = 1;
-        SF.getValue(MDL_WEIGHT, weight, id);
-    }
+    SF.getValue(MDL_ANGLE_ROT, rot, id);
+    SF.getValue(MDL_ANGLE_TILT, tilt, id);
+    SF.getValue(MDL_ANGLE_PSI, psi, id);
+    SF.getValue(MDL_SHIFT_X, xoff, id);
+    SF.getValue(MDL_SHIFT_Y, yoff, id);
+    flip = 0;
+    SF.getValue(MDL_FLIP, flip, id);
+    weight = 1;
+    SF.getValue(MDL_WEIGHT, weight, id);
 }
 
 void ProgRecWbp::getSampledMatrices(MetaData &SF)
@@ -505,7 +502,11 @@ bool ProgRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
 
     ++time_bar_done;
     objIndex = _objIndex;
-    return ((objId = **iter) != BAD_OBJID);
+    bool isValid = *iter != SF.ids().end();
+    if (isValid) {
+        objId = **iter;
+    }
+    return isValid;
 }
 
 void ProgRecWbp::showProgress()
