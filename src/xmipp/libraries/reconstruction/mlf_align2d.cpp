@@ -2716,34 +2716,37 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     // First time for _ref, second time for _cref
     FileName fn_base_cref = FN_CREF_IMG;
     MDo = MDref;
-    auto iterMDo = MDo.ids().begin();
-    auto iterMDref = MDref.ids().begin();
+    auto iterMDo = MDo.begin();
+    auto iterMDref = MDref.begin();
 
     for (int refno = 0; refno < model.n_ref; ++refno, ++iterMDo, ++iterMDref)
     {
-        MDRowVec row;
-        //row.setValue(MDL_ITER, iter);
-        row.setValue(MDL_REF, refno + 1);
+        (*iterMDo).setValue(MDL_REF, refno + 1);
+        (*iterMDref).setValue(MDL_REF, refno + 1);
 
-        if (do_mirror)
-            row.setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+        if (do_mirror) {
+            (*iterMDo).setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+            (*iterMDref).setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+        }
 
-        if (write_conv)
-            row.setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+        if (write_conv) {
+            (*iterMDo).setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+            (*iterMDref).setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+        }
 
-        if (do_norm)
-            row.setValue(MDL_INTSCALE, refs_avgscale[refno]);
+        if (do_norm) {
+            (*iterMDo).setValue(MDL_INTSCALE, refs_avgscale[refno]);
+            (*iterMDref).setValue(MDL_INTSCALE, refs_avgscale[refno]);
+        }
 
         //write ctf
         fn_tmp.compose(refno + 1, fn_base_cref);
-        writeImage(Ictf[refno], fn_tmp, row);
-        MDo.setRow(row, *iterMDo);
+        writeImage(Ictf[refno], fn_tmp, *iterMDo);
 
         //write image
         fn_tmp = FN_REF(fn_base, refno + 1);
         Itmp = model.Iref[refno];
-        writeImage(Itmp, fn_tmp, row);
-        MDref.setRow(row, *iterMDref);
+        writeImage(Itmp, fn_tmp, *iterMDref);
     }
 
     // Write out reference md file
