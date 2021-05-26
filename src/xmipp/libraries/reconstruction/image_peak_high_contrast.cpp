@@ -159,11 +159,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
 				} 
 
-				// if(u < cutoffFreqLow)
-				// {
-				// 	DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
-				// } 
-
 				else
 				{
 					if(u >= freqHigh && u < cutoffFreqHigh)
@@ -213,30 +208,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	size_t minSamplingSlice = centralSlice - (numberSampSlices / 2);
 	size_t maxSamplingSlice = centralSlice + (numberSampSlices / 2);
 
-	// std::vector<double> tomoVector(0);
-
-	// double numberOfInitialCoordinates = xSize * ySize * numberSampSlices * (ratioOfInitialCoordinates / 1000000);
-
 	#ifdef DEBUG
 	std::cout << "Number of sampling slices: " << numberSampSlices << std::endl;
-	// std::cout << "Number of initial coordinates: " << numberOfInitialCoordinates << std::endl;
 	std::cout << "Sampling region from slice " << minSamplingSlice << " to " << maxSamplingSlice << std::endl;
 	#endif
-
-	// for(size_t k = centralSlice - (numberSampSlices/2); k <= centralSlice + (numberSampSlices / 2); ++k)
-	// {
-	// 	for(size_t j = 0; j < ySize; ++j)
-	// 	{
-	// 		for(size_t i = 0; i < xSize; ++i)
-	// 		{
-	// 			#ifdef DEBUG_DIM
-	// 			std::cout << "i: " << i << " j: " << j << " k:" << k << std::endl;
-	// 			#endif
-
-	// 			tomoVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
-	// 		}
-	// 	}
-	// }
 
 	std::vector<double> sliceThresholdValue;
 	
@@ -298,18 +273,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
     std::vector<int> coordinates3Dy(0);
     std::vector<int> coordinates3Dz(0);
 
-    // FOR_ALL_ELEMENTS_IN_ARRAY3D(volFiltered)
-    // {
-    //     double value = A3D_ELEM(volFiltered, k, i, j);
-
-    //     if (value>=thresholdValue)
-    //     {
-    //         coordinates3Dx.push_back(j);
-    //         coordinates3Dy.push_back(i);
-    //         coordinates3Dz.push_back(k);
-    //     }
-    // }
-
 	MultidimArray<double> binaryCoordinatesMapSlice;
 	MultidimArray<double> labelCoordiantesMapSlice;
 	MultidimArray<double> labelCoordiantesMap;
@@ -319,9 +282,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	
 	for(size_t k = 0; k < zSize; k++)
 	{	
-		std::cout << "k=" << k << std::endl;
-
-
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
 		for(size_t j = 0; j < xSize; j++)
@@ -336,19 +296,13 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				}
 			}
 		}
-		std::cout << "labeling slice " << k << std::endl;
+		std::cout << "Labeling slice " << k << std::endl;
 
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
 		std::cout << "Colour: " << colour << std::endl;
 
-		// OLD
-		// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(labelCoordiantesMapSlice){
-		// 	DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-		// }
-
-		// NEW
-		/////////////////////////////////////////////////////////////////////////////////// REMOVE COORDINATES BY NUMBER OF ELEMENTS
+		// REMOVE COORDINATES BY NUMBER OF ELEMENTS
 
 		// These vectors will hold the list of labels and the nuber of coordinates associated to each of them
 		std::vector<int> label;
@@ -382,25 +336,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			}
 		}
 
-		std::cout << "numberCoordsPerLabel generated!!" << std::endl;
-		std::cout << label.size() << std::endl;
-		std::cout << numberCoordsPerLabel.size() << std::endl;
-
-		// for(int i=0; i<label.size(); i++)
-		// {
-		// 		std::cout << label[i] << std::endl;
-		// 		std::cout << numberCoordsPerLabel[i] << std::endl;
-		// 		std::cout << "---" << std::endl;
-		// }
-
 		for(size_t j = 0; j < xSize; j++)
 		{
 			for(size_t i = 0; i < ySize; i++)
 			{
-				// std::cout << "+++++++++" << std::endl;
-				// std::cout << DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j) << std::endl;
-				// std::cout << "k=" << k << " j=" << j << " i=" << i << std::endl;
-
 				for(size_t n=0; n<label.size(); n++)
 				{
 					if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
