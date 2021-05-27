@@ -32,7 +32,7 @@ void ProgImagePeakHighContrast::readParams()
 	fnOut = getParam("-o");
 	boxSize = getIntParam("--boxSize");
 	fiducialSize = getDoubleParam("--fiducialSize");
-	ratioOfInitialCoordinates = getIntParam("--ratioInitialCoor");
+	sdThreshold = getIntParam("--sdThreshold");
     numberSampSlices = getIntParam("--numberSampSlices");
 	numberCenterOfMass = getIntParam("--numberCenterOfMass");
 	distanceThr = getIntParam("--distanceThr");
@@ -48,7 +48,7 @@ void ProgImagePeakHighContrast::defineParams()
 	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume.");
 	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
   	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
-	addParamsLine("  [--ratioInitialCoor <ratioInitialCoor=1>]      		: Ratio of initial coordinates to be considered as outliers. Ratio expressed as one coordinate per million.");
+	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
   	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
   	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
   	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
@@ -257,7 +257,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			}
 
 			standardDeviation = sqrt(standardDeviation/sliceVectorSize);
-			double threshold = average-ratioOfInitialCoordinates*standardDeviation;
+			double threshold = average-sdThreshold*standardDeviation;
 
 			sliceThresholdValue.push_back(threshold);
 
@@ -310,7 +310,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
 
-		// REMOVE COORDINATES BY NUMBER OF ELEMENTS
+		// Remove coordinates thresholding the number of elements per label
 
 		// These vectors will hold the list of labels and the nuber of coordinates associated to each of them
 		std::vector<int> label;
@@ -383,7 +383,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
 
-	// ERODE OUTPUT LABELED MAP
+	// Erode the output labeled map
 
 	// MultidimArray<double> maskCoorinateMap;
 	// maskCoorinateMap.initZeros(zSize, ySize, xSize);
@@ -402,14 +402,16 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	// erode3D(maskCoorinateMap, erodedMaskCoordinatesMap, 18, 1, 1);
 
+	// #ifdef DEBUG_OUTPUT_FILES
 	// size_t lastIndex = fnOut.find_last_of(".");
 	// std::string rawName = fnOut.substr(0, lastIndex);
 	// std::string outputFileNameErodedVolume;
-    // // outputFileNameErodedVolume = rawName + "_eroded.mrc";
+    // outputFileNameErodedVolume = rawName + "_eroded.mrc";
 
 	// Image<double> saveImageBis;
 	// saveImageBis() = erodedMaskCoordinatesMap; 
 	// saveImageBis.write(outputFileNameErodedVolume);
+	// #endif
 
 
 
