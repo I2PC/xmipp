@@ -75,6 +75,7 @@ TEST_F(MetadataTest, IdIteration)
     size_t i = 0;
     for (size_t objId : mDsource.ids()) {
         ASSERT_EQ(objId, mDsourceIds[i]);
+        ASSERT_NE(objId, BAD_OBJID);
         i++;
     }
     ASSERT_EQ(i, mDsourceIds.size());
