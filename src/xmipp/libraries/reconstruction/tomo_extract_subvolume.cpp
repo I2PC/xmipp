@@ -230,9 +230,9 @@ void ProgTomoExtractSubvolume::processImage(const FileName &fnImg2
 #endif
 
     //    for (int imgno=imgno_start; imgno <imgno_end; imgno++)
-    rot = (rowIn.getValue(MDL_ANGLE_ROT,rot)) ? rot : 0;
-    tilt = (rowIn.getValue(MDL_ANGLE_TILT,tilt)) ? tilt : 0;
-    psi = (rowIn.getValue(MDL_ANGLE_PSI,psi)) ? psi : 0;
+    rot = rowIn.getValueOrDefault(MDL_ANGLE_ROT, 0.);
+    tilt = rowIn.getValueOrDefault(MDL_ANGLE_TILT, 0.);
+    psi = rowIn.getValueOrDefault(MDL_ANGLE_PSI, 0.);
 
     double auxD;
     rowIn.getValue(MDL_ORIGIN_X,auxD);
