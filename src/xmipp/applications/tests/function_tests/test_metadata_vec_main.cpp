@@ -81,6 +81,36 @@ TEST_F(MetadataTest, IdIteration)
     ASSERT_EQ(i, mDsourceIds.size());
 }
 
+TEST_F(MetadataTest, GetValue)
+{
+    MetaDataVec md;
+    MDRowVec row;
+    row.setValue(MDL_X, 10.);
+    size_t id = md.addRow(row);
+
+    EXPECT_EQ(md.getValue<double>(MDL_X, id), 10.);
+    EXPECT_EQ(md.getValue<double>(MDL_X, id), 10.);
+
+    {
+        double value;
+        md.getValue<double>(MDL_X, value, id);
+        EXPECT_EQ(value, 10.);
+    }
+
+    MDObject obj(MDL_X);
+    md.getValue(obj, id);
+    EXPECT_EQ(obj.getValue2(1.), 10.);
+
+    {
+        const double value = md.getValueOrDefault<double>(MDL_X, id, 0.);
+        EXPECT_EQ(value, 10.);
+    }
+    {
+        const double value = md.getValueOrDefault<double>(MDL_Y, id, 0.);
+        EXPECT_EQ(value, 0.);
+    }
+}
+
 TEST_F(MetadataTest, RowIteration)
 {
     auto it = mDsource.begin();
