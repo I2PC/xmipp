@@ -2614,7 +2614,8 @@ void ProgMLF2D::maximization()
             rmean_sigma2.initZeros();
             radialAverage(Maux, center, rmean_sigma2, radial_count, true);
             // Factor 2 here, because the Gaussian distribution is 2D!
-            for (size_t irr = 0; irr <= current_highres_limit; irr++)
+            size_t maxIrr = std::min(current_highres_limit, MULTIDIM_SIZE(Vsig[ifocus]) - 1);
+            for (size_t irr = 0; irr <= maxIrr; irr++)
             {
                 aux = dAi(rmean_sigma2, irr) / (2. * sumw_defocus[ifocus]);
                 if (aux > 0.)
