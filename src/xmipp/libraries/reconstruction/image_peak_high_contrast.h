@@ -41,7 +41,11 @@
 #include "symmetrize.h"
 #include <data/morphology.h>
 
+#define VERBOSE_OUTPUT
 #define DEBUG
+// #define DEBUG_FILTERPARAMS
+// #define DEBUG_DIM
+// #define DEBUG_DIST
 #define DEBUG_OUTPUT_FILES
 
 class ProgImagePeakHighContrast : public XmippProgram

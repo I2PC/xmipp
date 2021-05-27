@@ -64,7 +64,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 																  size_t ySize,
 																  size_t zSize)
 {
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Preprocessing volume..." << std::endl;
+	#endif
 
 	// Smoothing
 	
@@ -129,12 +131,12 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	double delta = PI / w;
 
 	#ifdef DEBUG_FILTERPARAMS
-	std::cout << samplingRate << std::endl; //6.86
-	std::cout << fiducialSize << std::endl; // 100
-	std::cout << freqLow << std::endl; //0.062
-	std::cout << freqHigh << std::endl; //0.076
-	std::cout << cutoffFreqLow << std::endl; //0.042
-	std::cout << cutoffFreqHigh << std::endl; //0.096
+	std::cout << samplingRate << std::endl;
+	std::cout << fiducialSize << std::endl;
+	std::cout << freqLow << std::endl;
+	std::cout << freqHigh << std::endl;
+	std::cout << cutoffFreqLow << std::endl;
+	std::cout << cutoffFreqHigh << std::endl;
 	#endif
 
 	for(size_t k=0; k<ZSIZE(fftV); ++k)
@@ -181,12 +183,12 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	volFiltered.resizeNoCopy(inputTomo);
 	transformer.inverseFourierTransform(fftFiltered, volFiltered);
 
+	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
 	std::string rawname = fnOut.substr(0, lastindex);
 	std::string outputFileNameFilteredVolume;
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
-	#ifdef DEBUG_OUTPUT_FILES
 	Image<double> saveImage;
 	saveImage() = volFiltered; 
 	saveImage.write(outputFileNameFilteredVolume);
@@ -202,7 +204,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 															   size_t ySize,
 															   size_t zSize)
 {
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
+	#endif
 
 	size_t centralSlice = zSize/2;
 	size_t minSamplingSlice = centralSlice - (numberSampSlices / 2);
@@ -296,11 +300,15 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				}
 			}
 		}
+		#ifdef DEBUG
 		std::cout << "Labeling slice " << k << std::endl;
+		#endif
 
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
+		#ifdef DEBUG
 		std::cout << "Colour: " << colour << std::endl;
+		#endif
 
 		// REMOVE COORDINATES BY NUMBER OF ELEMENTS
 
@@ -360,10 +368,11 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
     }
 
-	#ifdef DEBUG
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
 	#endif
 
+	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
 	std::string rawname = fnOut.substr(0, lastindex);
 	std::string outputFileNameFilteredVolume;
@@ -372,8 +381,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
 	saveImage.write(outputFileNameFilteredVolume);
+	#endif
 
-	//////////////////////////////////////////////////////////////////////////////// ERODE OUTPUT LABELED MAP
+	// ERODE OUTPUT LABELED MAP
 
 	// MultidimArray<double> maskCoorinateMap;
 	// maskCoorinateMap.initZeros(zSize, ySize, xSize);
@@ -420,7 +430,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 															   	   size_t ySize,
 															       size_t zSize)
 {
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Clustering coordinates..." << std::endl;
+	#endif
 
 
 	// These vectors keep track of the position of the center of mass
@@ -563,9 +575,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	// 	}
 	// }
 
-	std::cout << "Prunning coordinates..." << std::endl;
-
-
 	// Update the center of mass coordinates as the average of the accumulated vectors
 	for(size_t i = 0; i < centerOfMassX.size(); i++)
 	{
@@ -585,6 +594,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		centerOfMassY[i] = sumY / centerOfMassAccSize;
 		centerOfMassZ[i] = sumZ / centerOfMassAccSize;
 	}
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Prunning coordinates..." << std::endl;
+	#endif
 
 	for(size_t i=0;i<centerOfMassX.size();i++)
 	{
@@ -615,7 +628,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
 	}
 
-	#ifdef DEBUG
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
 	#endif
 
@@ -642,7 +655,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 	md.write(fnOut);
 	
-	#ifdef DEBUG
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
 
@@ -660,6 +673,7 @@ void ProgImagePeakHighContrast::run()
 	size_t zSize = ZSIZE(inputTomo);
 
 	#ifdef DEBUG_DIM
+	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
 	std::cout << "x " << XSIZE(inputTomo) << std::endl;
 	std::cout << "y " << YSIZE(inputTomo) << std::endl;
 	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
@@ -675,7 +689,7 @@ void ProgImagePeakHighContrast::run()
 	size_t zSizeFilter = ZSIZE(volFiltered);
 
 	#ifdef DEBUG_DIM
-	std::cout << "------------------ after Filtering:" << std::endl;
+	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
 	std::cout << "x " << XSIZE(volFiltered) << std::endl;
 	std::cout << "y " << YSIZE(volFiltered) << std::endl;
 	std::cout << "z " << ZSIZE(volFiltered) << std::endl;
