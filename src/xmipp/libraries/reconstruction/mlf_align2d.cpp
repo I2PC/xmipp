@@ -2717,26 +2717,27 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     FileName fn_base_cref = FN_CREF_IMG;
     MDo = MDref;
     auto iterMDo = MDo.begin();
-    auto iterMDref = MDref.begin();
+    auto iterMDref = MDref.ids().begin();
 
     for (int refno = 0; refno < model.n_ref; ++refno, ++iterMDo, ++iterMDref)
     {
+        MDRowSql sqlRow;
         (*iterMDo).setValue(MDL_REF, refno + 1);
-        (*iterMDref).setValue(MDL_REF, refno + 1);
+        sqlRow.setValue(MDL_REF, refno + 1);
 
         if (do_mirror) {
             (*iterMDo).setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
-            (*iterMDref).setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+            sqlRow.setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
         }
 
         if (write_conv) {
             (*iterMDo).setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
-            (*iterMDref).setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+            sqlRow.setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
         }
 
         if (do_norm) {
             (*iterMDo).setValue(MDL_INTSCALE, refs_avgscale[refno]);
-            (*iterMDref).setValue(MDL_INTSCALE, refs_avgscale[refno]);
+            sqlRow.setValue(MDL_INTSCALE, refs_avgscale[refno]);
         }
 
         //write ctf
@@ -2746,7 +2747,8 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         //write image
         fn_tmp = FN_REF(fn_base, refno + 1);
         Itmp = model.Iref[refno];
-        writeImage(Itmp, fn_tmp, *iterMDref);
+        writeImage(Itmp, fn_tmp, sqlRow);
+        MDref.setRow(sqlRow, *iterMDref);
     }
 
     // Write out reference md file
