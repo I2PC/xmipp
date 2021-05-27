@@ -124,7 +124,7 @@ void ProgNmaAlignment::show() {
 ProgNmaAlignment *global_nma_prog;
 
 void ProgNmaAlignment::createWorkFiles() {
-	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+	auto *pmdIn = getInputMd();
 	MetaDataDb mdTodo, mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/nmaDone.xmd");
