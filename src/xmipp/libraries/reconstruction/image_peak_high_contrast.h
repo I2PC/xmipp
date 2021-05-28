@@ -60,6 +60,11 @@ public:
 
     /** Number of slices and original centers of mass */
     int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
+    
+private:
+    std::vector<int> coordinates3Dx;
+    std::vector<int> coordinates3Dy;
+    std::vector<int> coordinates3Dz;
 
 public:
 
@@ -98,12 +103,7 @@ public:
      * @return
      *
     */
-    void clusterHighContrastCoordinates(std::vector<int> coordinates3Dx,
-										std::vector<int> coordinates3Dy,
-										std::vector<int> coordinates3Dz,
-                                        size_t xSize,
-                                        size_t ySize,
-                                        size_t zSize);
+    void clusterHighContrastCoordinates(size_t xSize, size_t ySize, size_t zSize);
 
     /**
      * Write obtained coordinates in output file.

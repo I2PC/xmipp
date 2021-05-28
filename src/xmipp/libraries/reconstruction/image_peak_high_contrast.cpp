@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "image_peak_high_contrast.h"
-
+#include <chrono>
 
 void ProgImagePeakHighContrast::readParams()
 {
@@ -160,7 +160,6 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				{
 					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
 				} 
-
 				else
 				{
 					if(u >= freqHigh && u < cutoffFreqHigh)
@@ -218,6 +217,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	#endif
 
 	std::vector<double> sliceThresholdValue;
+	double maxThreshold;
 	
 	for(size_t k = 0; k < zSize; ++k)
 	{
@@ -238,26 +238,27 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 				}
 			}
 
-			double sum = 0;
+			double sum = 0, sum2 = 0;
+			int Nelems = 0;
 			double average = 0;
 			double standardDeviation = 0;
 			double sliceVectorSize = sliceVector.size();
 
 			for(size_t e = 0; e < sliceVectorSize; e++)
 			{
-				sum += sliceVector[e];
+				int value = sliceVector[e];
+				sum += value;
+				sum2 += value*value;
+				++Nelems;
 			}
 
 			average = sum / sliceVectorSize;
+			standardDeviation = sqrt(sum2/Nelems - average*average);
 
-			for(size_t f = 0; f < sliceVectorSize; f++)
-			{
-				int sliceVectorValue = sliceVector[f];
-				standardDeviation += (sliceVectorValue-average)*(sliceVectorValue-average);
-			}
-
-			standardDeviation = sqrt(standardDeviation/sliceVectorSize);
 			double threshold = average-sdThreshold*standardDeviation;
+
+			if (maxThreshold < threshold)
+				maxThreshold = threshold;
 
 			sliceThresholdValue.push_back(threshold);
 
@@ -267,15 +268,15 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
 	}
 
-	double maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
+	std::cout << "Threshold value = " << maxThreshold << std::endl;
+	maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
+
+	std::cout << "Threshold value = " << maxThreshold << std::endl;
 
 	#ifdef DEBUG
 	std::cout << "Threshold value = " << maxThreshold << std::endl;
 	#endif
 
-    std::vector<int> coordinates3Dx(0);
-    std::vector<int> coordinates3Dy(0);
-    std::vector<int> coordinates3Dz(0);
 
 	MultidimArray<double> binaryCoordinatesMapSlice;
 	MultidimArray<double> labelCoordiantesMapSlice;
@@ -304,6 +305,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		std::cout << "Labeling slice " << k << std::endl;
 		#endif
 
+		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
 		#ifdef DEBUG
@@ -382,55 +384,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	saveImage() = labelCoordiantesMap; 
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
-
-	// Erode the output labeled map
-
-	// MultidimArray<double> maskCoorinateMap;
-	// maskCoorinateMap.initZeros(zSize, ySize, xSize);
-
-	// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(labelCoordiantesMap)
-	// {
-	// 	if(DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j)>0)
-	// 	{
-	// 		DIRECT_A3D_ELEM(maskCoorinateMap, k, i, j)=1;
-	// 	}
-	// }
-
-	// MultidimArray<double> erodedMaskCoordinatesMap;
-
-	// erodedMaskCoordinatesMap.initZeros(zSize, ySize, xSize);
-
-	// erode3D(maskCoorinateMap, erodedMaskCoordinatesMap, 18, 1, 1);
-
-	// #ifdef DEBUG_OUTPUT_FILES
-	// size_t lastIndex = fnOut.find_last_of(".");
-	// std::string rawName = fnOut.substr(0, lastIndex);
-	// std::string outputFileNameErodedVolume;
-    // outputFileNameErodedVolume = rawName + "_eroded.mrc";
-
-	// Image<double> saveImageBis;
-	// saveImageBis() = erodedMaskCoordinatesMap; 
-	// saveImageBis.write(outputFileNameErodedVolume);
-	// #endif
-
-
-
-	clusterHighContrastCoordinates(coordinates3Dx,
-								   coordinates3Dy,
-								   coordinates3Dz,
-								   xSize,
-								   ySize,
-								   zSize);
-
 }
 
 
-	void ProgImagePeakHighContrast::clusterHighContrastCoordinates(std::vector<int> coordinates3Dx,
-																   std::vector<int> coordinates3Dy,
-																   std::vector<int> coordinates3Dz,
-																   size_t xSize,
-															   	   size_t ySize,
-															       size_t zSize)
+	void ProgImagePeakHighContrast::clusterHighContrastCoordinates(size_t xSize, size_t ySize, size_t zSize)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Clustering coordinates..." << std::endl;
@@ -451,17 +408,20 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	{
 		int randomIndex = rand() % coordinates3Dx.size();
 
-		centerOfMassX.push_back(coordinates3Dx[randomIndex]);
-		centerOfMassY.push_back(coordinates3Dy[randomIndex]);
-		centerOfMassZ.push_back(coordinates3Dz[randomIndex]);
+		int cx = coordinates3Dx[randomIndex];
+		int cy = coordinates3Dy[randomIndex];
+		int cz = coordinates3Dz[randomIndex];
+		centerOfMassX.push_back(cx);
+		centerOfMassY.push_back(cy);
+		centerOfMassZ.push_back(cz);
 
 		std::vector<int> newCenterOfMassX;
 		std::vector<int> newCenterOfMassY;
 		std::vector<int> newCenterOfMassZ;
 
-		newCenterOfMassX.push_back(coordinates3Dx[randomIndex]);
-		newCenterOfMassY.push_back(coordinates3Dy[randomIndex]);
-		newCenterOfMassZ.push_back(coordinates3Dz[randomIndex]);
+		newCenterOfMassX.push_back(cx);
+		newCenterOfMassY.push_back(cy);
+		newCenterOfMassZ.push_back(cz);
 
 		centerOfMassXAcc.push_back(newCenterOfMassX);
 		centerOfMassYAcc.push_back(newCenterOfMassY);
@@ -497,14 +457,14 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			if(squareDistance < squareDistanceThr)
 			{
 				// Update center of mass with new coordinate
-				centerOfMassX[j]=centerOfMassX[j]+(coordinates3Dx[i]-centerOfMassX[j])/2;
-				centerOfMassY[j]=centerOfMassY[j]+(coordinates3Dy[i]-centerOfMassY[j])/2;
-				centerOfMassZ[j]=centerOfMassZ[j]+(coordinates3Dz[i]-centerOfMassZ[j])/2;
+				centerOfMassX[j]=xCM+(xCoor-xCM)/2;
+				centerOfMassY[j]=yCM+(yCoor-yCM)/2;
+				centerOfMassZ[j]=zCM+(zCoor-zCM)/2;
 
 				// Add all the coordinate vectors to each center of mass
-				centerOfMassXAcc[j].push_back(coordinates3Dx[i]);
-				centerOfMassYAcc[j].push_back(coordinates3Dy[i]);
-				centerOfMassZAcc[j].push_back(coordinates3Dz[i]);
+				centerOfMassXAcc[j].push_back(xCoor);
+				centerOfMassYAcc[j].push_back(yCoor);
+				centerOfMassZAcc[j].push_back(zCoor);
 
 				attractedToMassCenter = true;
 				break;
@@ -513,69 +473,23 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 		if (attractedToMassCenter == false)
 		{
-			centerOfMassX.push_back(coordinates3Dx[i]);
-			centerOfMassY.push_back(coordinates3Dy[i]);
-			centerOfMassZ.push_back(coordinates3Dz[i]);
+			centerOfMassX.push_back(xCoor);
+			centerOfMassY.push_back(yCoor);
+			centerOfMassZ.push_back(zCoor);
 
 			std::vector<int> newCenterOfMassX;
 			std::vector<int> newCenterOfMassY;
 			std::vector<int> newCenterOfMassZ;
 
-			newCenterOfMassX.push_back(coordinates3Dx[i]);
-			newCenterOfMassY.push_back(coordinates3Dy[i]);
-			newCenterOfMassZ.push_back(coordinates3Dz[i]);
+			newCenterOfMassX.push_back(xCoor);
+			newCenterOfMassY.push_back(yCoor);
+			newCenterOfMassZ.push_back(zCoor);
 
 			centerOfMassXAcc.push_back(newCenterOfMassX);
 			centerOfMassYAcc.push_back(newCenterOfMassY);
 			centerOfMassZAcc.push_back(newCenterOfMassZ);
 		}
 	}
-
-	// Complete the coordinates associated to each center of mass finding coordinates within distanceThr distance 
-	// to any of the coordinates of the set.
-
-	// std::cout << "centerOfMassX.size()="<<centerOfMassX.size()<<std::endl;
-	// std::cout << "centerOfMassXAcc.size()="<<centerOfMassXAcc.size()<<std::endl;
-	// std::cout << "coordinates3Dx.size()="<<coordinates3Dx.size()<<std::endl;
-
-	// for(size_t i = 0; i < centerOfMassXAcc.size(); i++)
-	// {
-	// 	std::cout << "centerOfMassXAcc["<<i<<"].size()="<<centerOfMassXAcc[i].size()<<std::endl;
-	// }
-
-
-
-	// for(size_t i = 0; i < centerOfMassXAcc.size(); i++)
-	// {
-	// 	std::cout << "centerOfMassXAcc["<<i<<"].size()="<<centerOfMassXAcc[i].size()<<std::endl;
-
-	// 	for(size_t j = 0; j < centerOfMassXAcc[i].size(); j++)
-	// 	{
-	// 		int xCMA = centerOfMassXAcc[i][j];
-	// 		int yCMA = centerOfMassYAcc[i][j];
-	// 		int zCMA = centerOfMassZAcc[i][j];
-
-	// 		for(size_t k = 0; k < coordinates3Dx.size(); ++k)
-	// 		{
-
-	// 			std::cout<<"i="<<i<<", j="<<j<<", k="<<k<<std::endl;
-	// 			int xCoor = coordinates3Dx[k];
-	// 			int yCoor = coordinates3Dy[k];
-	// 			int zCoor = coordinates3Dz[k];
-				
-	// 			int squareDistance = (xCoor-xCMA)*(xCoor-xCMA)+(yCoor-yCMA)*(yCoor-yCMA)+(zCoor-zCMA)*(zCoor-zCMA);
-
-	// 			if(squareDistance < squareDistanceThr)
-	// 			{
-	// 				std::cout << "squareDistance < squareDistanceThr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<< std::endl;
-	// 				// Add all the coordinate vectors to each center of mass
-	// 				centerOfMassXAcc[j].push_back(coordinates3Dx[k]);
-	// 				centerOfMassYAcc[j].push_back(coordinates3Dy[k]);
-	// 				centerOfMassZAcc[j].push_back(coordinates3Dz[k]);
-	// 			}
-	// 		}
-	// 	}
-	// }
 
 	// Update the center of mass coordinates as the average of the accumulated vectors
 	for(size_t i = 0; i < centerOfMassX.size(); i++)
@@ -665,10 +579,17 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 void ProgImagePeakHighContrast::run()
 {
+	using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
+
+	auto t1 = high_resolution_clock::now();
+	
 	Image<double> inputVolume;
 	inputVolume.read(fnVol);
 
-	MultidimArray<double> &inputTomo=inputVolume();
+	auto &inputTomo=inputVolume();
 
 	size_t xSize = XSIZE(inputTomo);
 	size_t ySize = YSIZE(inputTomo);
@@ -686,10 +607,6 @@ void ProgImagePeakHighContrast::run()
 
  	volFiltered = preprocessVolume(inputTomo, xSize, ySize, zSize);
 
-	size_t xSizeFilter = XSIZE(volFiltered);
-	size_t ySizeFilter = YSIZE(volFiltered);
-	size_t zSizeFilter = ZSIZE(volFiltered);
-
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
 	std::cout << "x " << XSIZE(volFiltered) << std::endl;
@@ -698,5 +615,14 @@ void ProgImagePeakHighContrast::run()
 	std::cout << "n " << NSIZE(volFiltered) << std::endl;
 	#endif
 	
-	getHighContrastCoordinates(volFiltered, xSizeFilter, ySizeFilter, zSizeFilter);
+	getHighContrastCoordinates(volFiltered, xSize, ySize, zSize);
+
+	clusterHighContrastCoordinates(xSize, ySize, zSize);
+
+	
+	auto t2 = high_resolution_clock::now();
+	/* Getting number of milliseconds as an integer. */
+    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+ 	std::cout << ms_int.count() << "ms\n";
+
 }
