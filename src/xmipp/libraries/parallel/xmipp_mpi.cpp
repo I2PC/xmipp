@@ -336,14 +336,13 @@ void MpiMetadataProgram::createTaskDistributor(MetaData &mdIn,
 }
 
 //Now use the distributor to grasp images
-bool MpiMetadataProgram::getTaskToProcess(size_t &objId, size_t &objIndex)
+bool MpiMetadataProgram::getTaskToProcess(size_t &objId)
 {
     bool moreTasks = true;
     if (first > last)
         moreTasks = distributor->getTasks(first, last);
     if (moreTasks)
     {
-        objIndex = first;
         objId = imgsId[first++];
         return true;
     }

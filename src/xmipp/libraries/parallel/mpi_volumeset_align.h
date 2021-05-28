@@ -48,7 +48,7 @@ private:
     void showProgress();
     
     //Now use the distributor to grasp volumes
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
+    bool getImageToProcess(size_t &objId) override;
 
     void finishProcessing();
 

@@ -489,21 +489,17 @@ void ProgRecWbp::filterOneImage(Projection &proj, Tabsinc &TSINC)
     InverseFourierTransform(IMG, proj());
 }
 
-bool ProgRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
+bool ProgRecWbp::getImageToProcess(size_t &objId)
 {
-    static size_t _objIndex = 0;
     if (time_bar_done == 0) {
         iter = std::unique_ptr<MetaDataVec::id_iterator>(new MetaDataVec::id_iterator(SF.ids().begin()));
-        _objIndex = 0;
     } else {
         ++(*iter);
-        ++_objIndex;
     }
 
-    ++time_bar_done;
-    objIndex = _objIndex;
     bool isValid = *iter != SF.ids().end();
     if (isValid) {
+        ++time_bar_done;
         objId = **iter;
     }
     return isValid;
@@ -539,8 +535,8 @@ void ProgRecWbp::apply2DFilterArbitraryGeometry()
     mat_f = (WBPInfo*) malloc(no_mats * sizeof(WBPInfo));
     Tabsinc TSINC(0.0001, dim);
 
-    size_t objId, objIndex;
-    while (getImageToProcess(objId, objIndex))
+    size_t objId;
+    while (getImageToProcess(objId))
     {
         SF.getValue(MDL_IMAGE, fn_img, objId);
         proj.read(fn_img, false);

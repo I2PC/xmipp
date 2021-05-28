@@ -98,9 +98,9 @@ public:
             ProgAngularContinuousAssign2::showProgress();
         }
     }
-    bool getImageToProcess(size_t &objId, size_t &objIndex)
+    virtual bool getImageToProcess(size_t &objId) override
     {
-        return getTaskToProcess(objId, objIndex);
+        return getTaskToProcess(objId);
     }
     void finishProcessing()
     {

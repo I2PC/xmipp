@@ -71,7 +71,7 @@ void MpiProgVolumeSetAlign::showProgress()
 }
 
 // Now use the distributor to grasp images
-bool MpiProgVolumeSetAlign::getImageToProcess(size_t &objId, size_t &objIndex)
+bool MpiProgVolumeSetAlign::getImageToProcess(size_t &objId)
 {
 	size_t first;
 	size_t last;
@@ -79,13 +79,11 @@ bool MpiProgVolumeSetAlign::getImageToProcess(size_t &objId, size_t &objIndex)
 
 	if (moreTasks){
 		time_bar_done = first + 1;
-		objIndex = first;
 		objId = imgsId[first];
 		return true;
 	}
 	time_bar_done = getInputMd()->size();
 	objId = BAD_OBJID;
-	objIndex = BAD_INDEX;
 	return false;
 }
 

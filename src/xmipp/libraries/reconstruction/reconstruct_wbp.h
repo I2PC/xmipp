@@ -107,7 +107,7 @@ public:
     virtual void produceSideInfo() ;
 
     /// Get 1 image to process
-    virtual bool getImageToProcess(size_t &objId, size_t &objIndex);
+    virtual bool getImageToProcess(size_t &objId);
 
     /// Get angles (either from reading the header or from a docfile)
     void getAnglesForImage(size_t id, double &rot, double &tilt, double &psi,

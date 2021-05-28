@@ -85,9 +85,9 @@ public:
         }
     }
 
-    bool getImageToProcess(size_t &objId, size_t &objIndex)
+    bool getImageToProcess(size_t &objId) override
     {
-        return getTaskToProcess(objId, objIndex);
+        return getTaskToProcess(objId);
     }
 
     void finishProcessing()
