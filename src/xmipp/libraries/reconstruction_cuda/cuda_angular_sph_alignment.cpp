@@ -44,11 +44,12 @@ cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements
     return err;
 }
 
-void processCudaError() 
+#define processCudaError() (_processCudaError(__FILE__, __LINE__))
+void _processCudaError(const char* file, int line) 
 {
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
+        fprintf(stderr, "File: %s: line %d\nCuda error: %s\n", file, line, cudaGetErrorString(err));
         exit(err);
     }
 }
@@ -293,11 +294,11 @@ void AngularSphAlignment::runKernel()
 
         cudaDeviceSynchronize();
 
-        auto diff2It = thrustVec.begin();
-        auto sumVDIt = diff2It + totalGridSize;
+        auto countIt = thrustVec.begin();
+        auto sumVDIt = countIt + totalGridSize;
         auto modgIt = sumVDIt + totalGridSize;
 
-        outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
+        outputs.count = thrust::reduce(countIt, sumVDIt);
         outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
         outputs.modg = thrust::reduce(modgIt, thrustVec.end());
     }
@@ -305,8 +306,13 @@ void AngularSphAlignment::runKernel()
 
 void AngularSphAlignment::transferProjectionPlane() 
 {
-    //TODO check
-    cudaMemcpy(program->P().data, dProjectionPlane, program->P().yxdim * sizeof(PrecisionType), cudaMemcpyDeviceToHost);
+    // mozna lepsi nez neustale pretypovavat a kopirovat vectory, to proste ukladat v double na GPU
+    // nic se tam nepocita jen se to ulozi (tzn "jedno" pretypovani z float na double)
+    std::vector<PrecisionType> tmp(program->P().zyxdim);
+    cudaMemcpy(tmp.data(), dProjectionPlane, tmp.size() * sizeof(PrecisionType),
+            cudaMemcpyDeviceToHost);
+    std::vector<double> tmpDouble(tmp.begin(), tmp.end());
+    memcpy(program->P().data, tmpDouble.data(), tmpDouble.size() * sizeof(double));
 }
 
 void AngularSphAlignment::transferProjectionPlaneCpu() 
