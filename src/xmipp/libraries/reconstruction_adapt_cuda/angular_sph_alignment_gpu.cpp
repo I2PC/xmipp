@@ -67,6 +67,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 	L2 = getIntParam("--l2");
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
+    useFakeKernel = checkParam("--fakeKernel");
 }
 
 // Show ====================================================================
@@ -121,6 +122,7 @@ void ProgAngularSphAlignmentGpu::defineParams()
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
 	addParamsLine("  [--resume]                   : Resume processing");
+	addParamsLine("  [--fakeKernel]               : Uses fake kernel (CPU) instead of GPU kernel");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
@@ -263,8 +265,7 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
 
 	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
 	filter.applyMaskSpace(P());
-    //DM -> useless copy TODO
-	const MultidimArray<double> mP=P();
+	const MultidimArray<double> &mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
 	MultidimArray<double> &mIfilteredp=Ifilteredp();
 	double corr=correlationIndex(mIfilteredp,mP,&mMask2D);
@@ -566,8 +567,13 @@ void ProgAngularSphAlignmentGpu::updateCTFImage(double defocusU, double defocusV
 	ctf.produceSideInfo();
 }
 
-void ProgAngularSphAlignmentGpu::deformVol(MultidimArray<double> &mP, const MultidimArray<double> &mV, double &def,
-                                        double rot, double tilt, double psi)
+void ProgAngularSphAlignmentGpu::deformVol(
+        MultidimArray<double> &mP,
+        const MultidimArray<double> &mV,
+        double &def,
+        double rot,
+        double tilt,
+        double psi)
 {
 	size_t idxY0=(VEC_XSIZE(clnm)-8)/3;
 
@@ -579,9 +585,11 @@ void ProgAngularSphAlignmentGpu::deformVol(MultidimArray<double> &mP, const Mult
 	double RmaxF=RmaxDef;
 
     angularAlignGpu.setupChangingParameters();
+
     angularAlignGpu.runKernel();
     //angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
 
+    angularAlignGpu.transferResults();
     auto outputs = angularAlignGpu.getOutputs();
 
     sumVd = outputs.sumVD;

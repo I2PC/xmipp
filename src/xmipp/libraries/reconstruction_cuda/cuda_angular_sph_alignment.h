@@ -136,20 +136,30 @@ private:
     KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
+
     void setupVolumeData();
     void setupRotation();
     void setupVolumeMask();
     void setupProjectionPlane();
 
+    void setupVolumeDataCpu();
+    void setupRotationCpu();
+    void setupVolumeMaskCpu();
+    void setupProjectionPlaneCpu();
+
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
     void setupImageMetaData(const Image<double>& inputImage);
 
-    void setupVolumes();
-
     void setupZSHparams();
-
     void setupClnm();
+
+    void setupZSHparamsCpu();
+    void setupClnmCpu();
+
+    void transferProjectionPlane();
+    void transferProjectionPlaneCpu();
+
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
 };
 
