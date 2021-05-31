@@ -39,7 +39,7 @@ AutoParticlePicking2::AutoParticlePicking2()
 {}
 
 AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum, int basisPCA,
-        const FileName &model_name, const std::vector<MDRowVec> &vMicList)
+        const FileName &model_name, const std::vector<MDRowSql> &vMicList)
 {
     // Defining the paths for pca, svm, ... models.
     fn_model=model_name;
@@ -159,7 +159,7 @@ void AutoParticlePicking2::filterBankGenerator()
     }
 }
 
-void AutoParticlePicking2::buildInvariant(const std::vector<MDRowVec> &MD)
+void AutoParticlePicking2::buildInvariant(const std::vector<MDRowSql> &MD)
 {
     int x, y;
     mPrev.point1.x=-1;
@@ -172,7 +172,7 @@ void AutoParticlePicking2::buildInvariant(const std::vector<MDRowVec> &MD)
     extractInvariant(fnInvariant,fnParticles,true);
 }
 
-void AutoParticlePicking2::batchBuildInvariant(const std::vector<MDRowVec> &MD)
+void AutoParticlePicking2::batchBuildInvariant(const std::vector<MDRowSql> &MD)
 {
     int x, y, flag=0;
     FileName micFile, posFile, preMicFile;
@@ -456,7 +456,7 @@ void AutoParticlePicking2::add2Dataset(int flagNegPos)
     }
 }
 
-void AutoParticlePicking2::train(const std::vector<MDRowVec> &MD, bool corrFlag, int x, int y, int width, int height)
+void AutoParticlePicking2::train(const std::vector<MDRowSql> &MD, bool corrFlag, int x, int y, int width, int height)
 {
     if (width!=0)
     {
@@ -540,7 +540,7 @@ void AutoParticlePicking2::saveTrainingSet()
     fhTrain.close();
 }
 
-int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRowVec> &md)
+int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRowSql> &md)
 {
     // bool error=MDSql::deactivateThreadMuting();
     auto_candidates.clear();
@@ -852,7 +852,7 @@ int AutoParticlePicking2::getParticlesThreshold()
 
 }
 
-void AutoParticlePicking2::correction(const std::vector<MDRowVec> &addedParticlesMD,const std::vector<MDRowVec> &removedParticlesMD)
+void AutoParticlePicking2::correction(const std::vector<MDRowSql> &addedParticlesMD,const std::vector<MDRowSql> &removedParticlesMD)
 {
     //    dataSet.clear();
     dataSetNormal.clear();
@@ -1569,10 +1569,10 @@ void AutoParticlePicking2::saveAutoParticles(MetaData &md)
     }
 }
 
-void AutoParticlePicking2::saveAutoParticles(std::vector<MDRowVec> &md)
+void AutoParticlePicking2::saveAutoParticles(std::vector<MDRowSql> &md)
 {
     size_t nmax=auto_candidates.size();
-    MDRowVec row;
+    MDRowSql row;
     for (size_t n=0;n<nmax;++n)
     {
         const Particle2 &p=auto_candidates[n];
@@ -1823,6 +1823,6 @@ void ProgMicrographAutomaticPicking2::run()
     MD.read(fn_model.beforeLastOf("/")+"/config.xmd");
     MD.getValue( MDL_PICKING_AUTOPICKPERCENT,proc_prec,MD.firstRowId());
 
-    autoPicking = new AutoParticlePicking2(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model,std::vector<MDRowVec>());
+    autoPicking = new AutoParticlePicking2(autoPicking->particle_size,autoPicking->filter_num,autoPicking->corr_num,autoPicking->NPCA,fn_model, {});
     autoPicking->automaticWithouThread(fn_micrograph,proc_prec,fnAutoParticles);
 }
