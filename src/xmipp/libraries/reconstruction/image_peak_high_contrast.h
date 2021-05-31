@@ -62,9 +62,20 @@ public:
     int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
     
 private:
+    /** Input tomogram dimensions */
+    size_t xSize;
+	size_t ySize;
+	size_t zSize;
+
+    /** Vectors for peaked coordinates components */
     std::vector<int> coordinates3Dx;
     std::vector<int> coordinates3Dy;
     std::vector<int> coordinates3Dz;
+
+    /** Vectors for centers of mass components after coordinates clusterings */
+    std::vector<int> centerOfMassX;
+    std::vector<int> centerOfMassY;
+    std::vector<int> centerOfMassZ;
 
 public:
 
@@ -79,10 +90,7 @@ public:
      * @return
      *
     */
-    MultidimArray<double> preprocessVolume(MultidimArray<double> &inputTomo,
-                                           size_t xSize,
-                                           size_t ySize,
-                                           size_t zSize);
+    MultidimArray<double> preprocessVolume(MultidimArray<double> &inputTomo);
 
     /**
      * Peaks the high contrast regions in a volume.
@@ -91,10 +99,7 @@ public:
      * @return
      *
     */
-    void getHighContrastCoordinates(MultidimArray<double> volFiltered,
-									size_t xSize,
-									size_t ySize,
-									size_t zSize);
+    void getHighContrastCoordinates(MultidimArray<double> volFiltered);
 
     /**
      * Write obtained coordinates in output file.
@@ -103,7 +108,7 @@ public:
      * @return
      *
     */
-    void clusterHighContrastCoordinates(size_t xSize, size_t ySize, size_t zSize);
+    void clusterHighContrastCoordinates();
 
     /**
      * Write obtained coordinates in output file.
@@ -112,9 +117,7 @@ public:
      * @return
      *
     */
-    void writeOutputCoordinates(std::vector<int> centerOfMassX,
-								std::vector<int> centerOfMassY,
-                                std::vector<int> centerOfMassZ);
+    void writeOutputCoordinates();
 
     void run();
 };

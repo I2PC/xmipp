@@ -59,10 +59,7 @@ void ProgImagePeakHighContrast::defineParams()
 }
 
 
-MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo,
-																  size_t xSize,
-																  size_t ySize,
-																  size_t zSize)
+MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<double> &inputTomo)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Preprocessing volume..." << std::endl;
@@ -198,10 +195,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 }
 
 
-	void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered,
-															   size_t xSize,
-															   size_t ySize,
-															   size_t zSize)
+	void ProgImagePeakHighContrast::getHighContrastCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
@@ -387,17 +381,11 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 }
 
 
-	void ProgImagePeakHighContrast::clusterHighContrastCoordinates(size_t xSize, size_t ySize, size_t zSize)
+	void ProgImagePeakHighContrast::clusterHighContrastCoordinates()
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Clustering coordinates..." << std::endl;
 	#endif
-
-
-	// These vectors keep track of the position of the center of mass
-	std::vector<int> centerOfMassX(0);
-    std::vector<int> centerOfMassY(0);
-    std::vector<int> centerOfMassZ(0);
 
 	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
 	std::vector<std::vector<int>> centerOfMassXAcc;
@@ -547,16 +535,10 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
 	#endif
-
-	writeOutputCoordinates(centerOfMassX,
-						   centerOfMassY,
-						   centerOfMassZ);
 }
 
 
-	void ProgImagePeakHighContrast::writeOutputCoordinates(std::vector<int> centerOfMassX,
-														   std::vector<int> centerOfMassY,
-														   std::vector<int> centerOfMassZ)
+	void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
 	MetaData md;
 	size_t id;
@@ -591,9 +573,9 @@ void ProgImagePeakHighContrast::run()
 
 	auto &inputTomo=inputVolume();
 
-	size_t xSize = XSIZE(inputTomo);
-	size_t ySize = YSIZE(inputTomo);
-	size_t zSize = ZSIZE(inputTomo);
+	xSize = XSIZE(inputTomo);
+	ySize = YSIZE(inputTomo);
+	zSize = ZSIZE(inputTomo);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
@@ -605,7 +587,7 @@ void ProgImagePeakHighContrast::run()
 
 	MultidimArray<double> volFiltered;
 
- 	volFiltered = preprocessVolume(inputTomo, xSize, ySize, zSize);
+ 	volFiltered = preprocessVolume(inputTomo);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
@@ -615,14 +597,14 @@ void ProgImagePeakHighContrast::run()
 	std::cout << "n " << NSIZE(volFiltered) << std::endl;
 	#endif
 	
-	getHighContrastCoordinates(volFiltered, xSize, ySize, zSize);
+	getHighContrastCoordinates(volFiltered);
 
-	clusterHighContrastCoordinates(xSize, ySize, zSize);
+	clusterHighContrastCoordinates();
 
+	writeOutputCoordinates();
 	
 	auto t2 = high_resolution_clock::now();
 	/* Getting number of milliseconds as an integer. */
     auto ms_int = duration_cast<milliseconds>(t2 - t1);
- 	std::cout << ms_int.count() << "ms\n";
-
+ 	std::cout << "Execution time: " << ms_int.count() << "ms\n";
 }
