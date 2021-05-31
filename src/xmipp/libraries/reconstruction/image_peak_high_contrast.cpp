@@ -175,9 +175,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
 	}
 
-	MultidimArray<double>  volFiltered;
-	volFiltered.resizeNoCopy(inputTomo);
-	transformer.inverseFourierTransform(fftFiltered, volFiltered);
+	// Input tomogram (inputTomo) is overrided with the filtered volume searching memory efficency
+	transformer.inverseFourierTransform(fftFiltered, inputTomo);
 
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
@@ -186,12 +185,11 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
     outputFileNameFilteredVolume = rawname + "_filter.mrc";
 
 	Image<double> saveImage;
-	saveImage() = volFiltered; 
+	saveImage() = inputTomo;
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
 
-	// *** make output volFiltered as the input volume (override)
-	return volFiltered;
+	return inputTomo;
 }
 
 
@@ -371,12 +369,12 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	#ifdef DEBUG_OUTPUT_FILES
 	size_t lastindex = fnOut.find_last_of(".");
 	std::string rawname = fnOut.substr(0, lastindex);
-	std::string outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume = rawname + "_label.mrc";
+	std::string outputFileNameLabeledVolume;
+    outputFileNameLabeledVolume = rawname + "_label.mrc";
 
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
-	saveImage.write(outputFileNameFilteredVolume);
+	saveImage.write(outputFileNameLabeledVolume);
 	#endif
 }
 
