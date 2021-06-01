@@ -384,6 +384,9 @@ extern "C" __global__ void computeDeform(
                 R = CST(-0.5) * SQRT(CST(13)) * r2 * rr *
                     (CST(5.5) * (1 - 2 * r2) + CST(3.5));
                 break;
+              case 5:
+                R = SQRT(CST(13)) * r2 * r2 * rr;
+                break;
               }
               break;
 #endif// L1 >= 5
@@ -987,6 +990,9 @@ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
 		case 3:
 			R = CST(-0.5)*SQRT(CST(13))*r2*r*(CST(5.5)*(1-2*r2)+CST(3.5));
 			break;
+        case 5:
+            R = SQRT(CST(13))*r2*r2*r;
+            break;
 		} break;
 	}
 

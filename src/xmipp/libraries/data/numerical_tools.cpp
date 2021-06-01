@@ -1097,7 +1097,10 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 		case 3:
 			R = -0.5*std::sqrt(13.0)*r2*r*(5.5*(1-2*r2)+3.5);
 			break;
-		} break;
+        case 5:
+            R = std::sqrt(13.0)*r2*r2*r;
+            break; 
+        } break;
 	}
 
 	// Spherical harmonic
