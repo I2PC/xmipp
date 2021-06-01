@@ -90,11 +90,19 @@ struct ImageMetaData
 #define ELEM_2D(data,ImD,i,j) \
     ((data)[GET_IDX((ImD), 0, (i), (j))])
 
+// TEST PRO ATOMIC_ADD
+#define ELEM_2D_ADDR(data,ImD,i,j) \
+    ((data) + GET_IDX((ImD), 0, (i), (j)))
+
 #define ELEM_3D_SHIFTED(ImD,meta,k,i,j) \
     (ELEM_3D((ImD), (meta), (k) - (meta).zShift, (i) - (meta).yShift, (j) - (meta).xShift))
 
 #define ELEM_2D_SHIFTED(data,ImD,i,j) \
     (ELEM_2D((data), (ImD), (i) - (ImD).yShift, (j) - (ImD).xShift))
+
+// TEST PRO ATOMIC_ADD
+#define ELEM_2D_SHIFTED_ADDR(data,ImD,i,j) \
+    (ELEM_2D_ADDR((data), (ImD), (i) - (ImD).yShift, (j) - (ImD).xShift))
 
 // Utility macros
 #define IS_OUTSIDE(ImD,k,i,j) \
@@ -200,7 +208,7 @@ extern "C" __global__ void projectionKernel(
     PrecisionType gx = 0.0, gy = 0.0, gz = 0.0;
 
     if (r2 < Rmax2) {
-        for (int idx = 0; idx < steps; idx++) {
+        for (unsigned idx = 0; idx < steps; idx++) {
             int l1 = zshShared[idx].w;
             int n = zshShared[idx].x;
             int l2 = zshShared[idx].y;
@@ -218,9 +226,9 @@ extern "C" __global__ void projectionKernel(
     }
 
     int maskVoxel;
-    int kMask = (int)(pos[2]+gz);
-    int iMask = (int)(pos[1]+gy);
-    int jMask = (int)(pos[0]+gx);
+    int kMask = (int)(pos[2] + gz);
+    int iMask = (int)(pos[1] + gy);
+    int jMask = (int)(pos[0] + gx);
 
     if (IS_OUTSIDE(volMeta, kMask, iMask, jMask)) {
         maskVoxel = 0;
@@ -231,10 +239,12 @@ extern "C" __global__ void projectionKernel(
     PrecisionType localCount = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     if (maskVoxel == 1) {
-        double voxelI = interpolatedElement3D(volData, volMeta,
+        PrecisionType voxelI = interpolatedElement3D(volData, volMeta,
                 pos[0] + gx, pos[1] + gy, pos[2] + gz);
-        ELEM_2D_SHIFTED(projectionPlane, volMeta,
-                P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)) += voxelI;
+        //ELEM_2D_SHIFTED(projectionPlane, volMeta,
+        //        P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)) += voxelI;
+        atomicAdd(ELEM_2D_SHIFTED_ADDR(projectionPlane, volMeta,
+                P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)), voxelI);
         localSumVD += voxelI;
         localModg += gx*gx + gy*gy + gz*gz;
         localCount++;

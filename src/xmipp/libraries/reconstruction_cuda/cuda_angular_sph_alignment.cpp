@@ -578,6 +578,7 @@ void fakeKernel(
                 double r2= k2i2 + pos[0] * pos[0];
                 double jr= pos[0] * iRmax;
                 double rr = sqrt(r2) * iRmax;
+
                 if (r2 < Rmax2) {
                     for (int idx = 0; idx < steps; idx++) {
                         int l1 = zshparams[idx].w;
