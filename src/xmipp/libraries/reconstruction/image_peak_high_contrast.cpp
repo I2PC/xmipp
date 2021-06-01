@@ -208,8 +208,7 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	std::cout << "Sampling region from slice " << minSamplingSlice << " to " << maxSamplingSlice << std::endl;
 	#endif
 
-	std::vector<double> sliceThresholdValue;
-	double maxThreshold;
+	double maxThreshold = MAXDOUBLE;
 	
 	for(size_t k = 0; k < zSize; ++k)
 	{
@@ -249,10 +248,8 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 
 			double threshold = average-sdThreshold*standardDeviation;
 
-			if (maxThreshold < threshold)
+			if (maxThreshold > threshold)
 				maxThreshold = threshold;
-
-			sliceThresholdValue.push_back(threshold);
 
 			#ifdef DEBUG
 			std::cout<< "Slice: " << k <<  " Threshold: " << threshold << std::endl;
@@ -260,15 +257,9 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 		}
 	}
 
-	std::cout << "Threshold value = " << maxThreshold << std::endl;
-	maxThreshold = *std::min_element(sliceThresholdValue.begin(), sliceThresholdValue.end());
-
-	std::cout << "Threshold value = " << maxThreshold << std::endl;
-
-	#ifdef DEBUG
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Threshold value = " << maxThreshold << std::endl;
 	#endif
-
 
 	MultidimArray<double> binaryCoordinatesMapSlice;
 	MultidimArray<double> labelCoordiantesMapSlice;
@@ -535,6 +526,52 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	#endif
 }
 
+	void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
+{
+	size_t halfBoxSize = boxSize / 2;
+	size_t correlationWedge = boxSize / 3;
+	size_t numberOfFeatures = centerOfMassX.size();
+	MultidimArray<double> feature, symmetricFeature;
+
+	// Contruct feature and its symmetric
+		
+	std::cout << "NUMBER OF COORDINATES: " << numberOfFeatures << std::endl;
+
+	for(size_t n = 0; n < numberOfFeatures; n++)
+	{
+		feature.initZeros(boxSize, boxSize, boxSize);
+		symmetricFeature.initZeros(boxSize, boxSize, boxSize);
+		
+		for(int k = 0; k < boxSize; k++) // zDim
+		{	
+			for(int j = 0; j < boxSize; j++) // xDim
+			{
+				for(int i = 0; i < boxSize; i++) // yDim
+				{
+					DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
+																		centerOfMassZ[n] - halfBoxSize + k, 
+																		centerOfMassY[n] - halfBoxSize + i,
+																		centerOfMassX[n] - halfBoxSize + j);
+
+					DIRECT_A3D_ELEM(symmetricFeature, boxSize - k, boxSize - i, boxSize - j) = DIRECT_A3D_ELEM(volFiltered, 
+																									centerOfMassZ[n] - halfBoxSize + k, 
+																									centerOfMassY[n] - halfBoxSize + i,
+																									centerOfMassX[n] - halfBoxSize + j);
+				}
+			}
+		}
+		std::cout << "COORDINATE: " << n << std::endl;
+
+		double result = correlationIndex(feature, feature);
+		std::cout << result << std::endl;
+		result = correlationIndex(feature, symmetricFeature);
+		std::cout << result << std::endl;
+		std::cout << "==============================================" << std::endl;
+
+	}
+	std::cout << "FINAAAAAAAAAAAAAALLL ==============================================" << std::endl;
+}
+
 
 	void ProgImagePeakHighContrast::writeOutputCoordinates()
 {
@@ -598,6 +635,9 @@ void ProgImagePeakHighContrast::run()
 	getHighContrastCoordinates(volFiltered);
 
 	clusterHighContrastCoordinates();
+
+	centerCoordinates(volFiltered);
+	std::cout << "METADATAAAAAAAAAAAAAAAAAA" << std::endl;
 
 	writeOutputCoordinates();
 	
