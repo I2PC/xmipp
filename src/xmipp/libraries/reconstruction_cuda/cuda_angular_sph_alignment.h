@@ -6,6 +6,8 @@
 // Standard includes
 #include <vector>
 
+//#define USE_DOUBLE_PRECISION 1
+
 // Forward declarations
 class ProgAngularSphAlignmentGpu;
 struct int4;
