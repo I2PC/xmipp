@@ -146,11 +146,11 @@ __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType r);
 
 __device__ PrecisionType interpolatedElement3D(
-        PrecisionType* ImD, ImageMetaData imgMeta,
+        const PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType doutside_value = 0);
 
-__forceinline__ __device__ void rotateCoordinates(PrecisionType* pos, PrecisionType* rotation)
+__forceinline__ __device__ void rotateCoordinates(PrecisionType* pos, const PrecisionType* rotation)
 {
     PrecisionType tmp[3] = {0};
 
@@ -170,12 +170,12 @@ extern "C" __global__ void projectionKernel(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         ImageMetaData volMeta,
-        PrecisionType* volData,
-        PrecisionType* rotation,
+        const PrecisionType* volData,
+        const PrecisionType* rotation,
         unsigned steps,
-        int4* zshparams,
-        PrecisionType3* clnm,
-        int* volMask,
+        const int4* zshparams,
+        const PrecisionType3* clnm,
+        const int* volMask,
         PrecisionType* projectionPlane,
         PrecisionType* outArrayGlobal
         ) 
@@ -346,7 +346,7 @@ extern "C" __global__ void projectionKernel(
  * Linear interpolation
  */
 __device__ PrecisionType interpolatedElement3D(
-        PrecisionType* ImD, ImageMetaData imgMeta,
+        const PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType outside_value) 
 {

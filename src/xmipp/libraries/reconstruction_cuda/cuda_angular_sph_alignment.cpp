@@ -80,6 +80,7 @@ AngularSphAlignment::AngularSphAlignment()
 
 AngularSphAlignment::~AngularSphAlignment() 
 {
+    //TODO free memory
 }
 
 void AngularSphAlignment::associateWith(ProgAngularSphAlignmentGpu* prog) 
@@ -276,6 +277,9 @@ void AngularSphAlignment::runKernel()
     } else {
         // Define thrust reduction vector
         thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
+
+        // TEST make sure everything is ready before kernel starts
+        cudaDeviceSynchronize();
 
         // Run kernel
         projectionKernel<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
