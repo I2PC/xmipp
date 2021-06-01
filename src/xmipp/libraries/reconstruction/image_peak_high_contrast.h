@@ -84,7 +84,7 @@ public:
 
 
     /**
-     * Peaks the high contrast regions in a volume.
+     * Smoothing and filtering the input volume.
      *
      * @param
      * @return
@@ -102,7 +102,7 @@ public:
     void getHighContrastCoordinates(MultidimArray<double> volFiltered);
 
     /**
-     * Write obtained coordinates in output file.
+     * Cluster 3d coordinates into its center of mass.
      *
      * @param
      * @return
@@ -112,6 +112,15 @@ public:
 
     /**
      * Write obtained coordinates in output file.
+     *
+     * @param
+     * @return
+     *
+    */
+    void centerCoordinates();
+
+    /**
+     * Center the picked features into the box.
      *
      * @param
      * @return
