@@ -93,11 +93,12 @@ public:
 #define ASTIGMATISMPROFILE 18
 #define CTFINV       19
 #define CTFPOSINV    20
+#define CTFDEF       21
 
     /** Pass band. LOWPASS, HIGHPASS, BANDPASS, STOPBAND, CTF, CTFPOS,
        WEDGE, CONE, GAUSSIAN, FROM_FILE, REALGAUSSIAN, BFACTOR, SPARSIFY,
        STOPLOWBANDX, STOPLOWBANDY, FSCPROFILE, BINARYFILE, ASTIGMATISMPROFILE,
-       CTFINV, CTFPOSINV */
+       CTFINV, CTFPOSINV, CTFDEF */
     int FilterBand;
 
     /** Cut frequency for Low and High pass filters, first freq for bandpass.

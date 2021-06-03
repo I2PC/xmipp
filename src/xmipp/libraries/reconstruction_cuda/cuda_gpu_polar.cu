@@ -131,18 +131,15 @@ void computeSumSumSqr(const T * __restrict__ in,
     }
     if (isSameSignalInWarp) {
         // intrawarp sum
-//#if (CUDART_VERSION >= 9000) // FIXME DS correct and test
-//        __syncwarp();
-//        for (int offset = 16; offset > 0; offset /= 2) {
-//            sum += __shfl_down_sync(mask, sum, offset);
-//            sum2 += __shfl_down_sync(mask, sum2, offset);
-//        }
-//#else
         for (int offset = 16; offset > 0; offset /= 2) {
-            sum += __shfl_down(sum, offset);
-            sum2 += __shfl_down(sum2, offset);
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 9000
+          sum += __shfl_down_sync(0xffffffff, sum, offset);
+          sum2 += __shfl_down_sync(0xffffffff, sum2, offset);
+#else
+          sum += __shfl_down(sum, offset);
+          sum2 += __shfl_down(sum2, offset);
+#endif
         }
-//#endif
         if (idx != idOfFirstThreadInWarp) {
             // only first thread in the warp will write to the output
             return;
