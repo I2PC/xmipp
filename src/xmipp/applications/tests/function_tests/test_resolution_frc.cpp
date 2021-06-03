@@ -145,9 +145,3 @@ TEST_F( ResolutionFSCTest, copy)
     //std::cerr << "rFactor: " << fabs(Rfactor-rFactor) << " " << Rfactor << " " << rFactor << std::endl;
     ASSERT_TRUE( fabs(Rfactor-rFactor) < 0.00001);
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
