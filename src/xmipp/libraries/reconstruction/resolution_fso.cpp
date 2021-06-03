@@ -1203,6 +1203,8 @@ void ProgFSO::run()
 		}
     	// ANISOTROPY CURVE
     	aniParams.at(0) /= (double) angles.mdimx;
+    	for (size_t k = 0; k<5; k++)
+    		DIRECT_MULTIDIM_ELEM(aniParams.at(0), k) = 1.0;
     	MetaData mdani;
 		saveAnisotropyToMetadata(mdani, freq, aniParams.at(0));
 		FileName fn;
