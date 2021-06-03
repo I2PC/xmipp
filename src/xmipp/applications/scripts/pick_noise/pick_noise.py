@@ -92,7 +92,7 @@ class ScriptPickNoise(XmippScript):
             argsList.append( (baseName, micName, posName, micShape, outDir, numberToPick, boxSize))
 
         Parallel(n_jobs= numberOfThreads, backend="multiprocessing", verbose=1)(
-                    delayed(pickNoiseOneMic, check_pickle=False)(*arg) for arg in argsList)
+                    delayed(pickNoiseOneMic)(*arg) for arg in argsList)
 
    
 def pickNoiseOneMic(baseName, mic_fname, posName, mic_shape, outputRoot,
