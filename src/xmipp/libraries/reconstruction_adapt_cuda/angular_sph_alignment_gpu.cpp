@@ -344,7 +344,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 {
     Matrix1D<double> steps;
     int totalSize = 3*vecSize+8;
-	p.resize(totalSize);
+	p.initZeros(totalSize);
 	clnm.initZeros(totalSize);
 
 	rowOut=rowIn;
