@@ -60,6 +60,7 @@ void ProgVolumeSetAlign::readParams() {
 	frm_shift= getIntParam("--frm_parameters",1);
 	tilt0=getIntParam("--tilt_values",0);
 	tiltF=getIntParam("--tilt_values",1);
+	mask_option = checkParam("--mask");
 	if(mask_option)
 		mask_fn = getParam("--mask");
 }
@@ -132,8 +133,8 @@ void ProgVolumeSetAlign::computeFitness(){
 	String fnMask;
 	if (this->mask_option){
 		fnMask = this->mask_fn;
-		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 --mask %s",
-			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles, fnMask));}
+		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 --mask binary_file %s",
+			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles, fnMask.c_str()));}
 	else{
 		runSystem("xmipp_volume_align",formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0 ",
 			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles));}
