@@ -20,7 +20,7 @@ using PrecisionType = float;
 using PrecisionType3 = float3;
 #endif
 
-struct ImageData
+struct ImageMetaData
 {
     int xShift = 0;
     int yShift = 0;
@@ -29,38 +29,28 @@ struct ImageData
     int xDim = 0;
     int yDim = 0;
     int zDim = 0;
-
-    PrecisionType* data = nullptr;
-};
-
-struct ZSHparams 
-{
-    int* vL1 = nullptr;
-    int* vN = nullptr;
-    int* vL2 = nullptr;
-    int* vM = nullptr;
-    unsigned size = 0;
 };
 
 struct Volumes 
 {
-    ImageData* I = nullptr;
-    ImageData* R = nullptr;
-    unsigned size = 0;
+    PrecisionType* I = nullptr;
+    PrecisionType* R = nullptr;
+    unsigned count = 0;
+    unsigned volumeSize = 0;
 };
 
 struct IROimages 
 {
-    ImageData VI;
-    ImageData VR;
-    ImageData VO;
+    PrecisionType* VI;
+    PrecisionType* VR;
+    PrecisionType* VO;
 };
 
 struct DeformImages 
 {
-    ImageData Gx;
-    ImageData Gy;
-    ImageData Gz;
+    PrecisionType* Gx;
+    PrecisionType* Gy;
+    PrecisionType* Gz;
 };
 
 struct KernelOutputs 
@@ -68,7 +58,6 @@ struct KernelOutputs
     PrecisionType diff2 = 0.0;
     PrecisionType sumVD = 0.0;
     PrecisionType modg = 0.0;
-    PrecisionType Ncount = 0.0;
 };
 
 class VolumeDeformSph
@@ -83,7 +72,6 @@ public:
     void transferResults();
 
     KernelOutputs getOutputs();
-    void transferImageData(Image<double>& outputImage, ImageData& inputData);
 
     VolumeDeformSph();
     ~VolumeDeformSph();
@@ -112,9 +100,6 @@ private:
     PrecisionType3* dClnm;
     std::vector<PrecisionType3> clnmVec;
 
-    PrecisionType* dClnmSCATTERED;
-    std::vector<PrecisionType> clnmVecSCATTERED;
-
     bool applyTransformation;
 
     bool saveDeformation;
@@ -128,34 +113,24 @@ private:
     int4* dZshParams;
     std::vector<int4> zshparamsVec;
 
-    ZSHparams zshparamsSCATTERED;
+    ImageMetaData imageMetaData;
 
     Volumes volumes;
-    // because of the stupid design... :(
-    std::vector<ImageData> justForFreeI;
-    std::vector<ImageData> justForFreeR;
 
     KernelOutputs outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
-    void reduceResults();
-
-    void setupImage(Image<double>& inputImage, ImageData& outputImageData);
-    void setupImage(ImageData& inputImage, ImageData& outputImageData, bool copyData = false);
-
-    void freeImage(ImageData &im);
-    void freeZSHSCATTERED();
-
-    void simplifyVec(std::vector<Image<double>>& vec, std::vector<ImageData>& res);
+    void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
+    void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
+    void setupImageMetaData(const Image<double>& inputImage);
 
     void setupVolumes();
 
     void setupZSHparams();
-    void setupZSHparamsSCATTERED();
 
     void setupClnm();
-    void setupClnmSCATTERED();
+    void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
 };
 
 #endif// VOLUME_DEFORM_SPH_H
