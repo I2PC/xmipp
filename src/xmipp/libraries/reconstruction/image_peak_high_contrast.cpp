@@ -526,16 +526,18 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 	#endif
 }
 
-	void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
+void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFiltered)
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Centering coordinates..." << std::endl;
+	#endif
+
 	size_t halfBoxSize = boxSize / 2;
 	size_t correlationWedge = boxSize / 3;
 	size_t numberOfFeatures = centerOfMassX.size();
 	MultidimArray<double> feature, symmetricFeature;
 
-	// Contruct feature and its symmetric
-		
-	std::cout << "NUMBER OF COORDINATES: " << numberOfFeatures << std::endl;
+	// Construct feature and its symmetric
 
 	for(size_t n = 0; n < numberOfFeatures; n++)
 	{
@@ -548,28 +550,95 @@ MultidimArray<double> ProgImagePeakHighContrast::preprocessVolume(MultidimArray<
 			{
 				for(int i = 0; i < boxSize; i++) // yDim
 				{
-					DIRECT_A3D_ELEM(feature, k, i, j) = DIRECT_A3D_ELEM(volFiltered, 
-																		centerOfMassZ[n] - halfBoxSize + k, 
-																		centerOfMassY[n] - halfBoxSize + i,
-																		centerOfMassX[n] - halfBoxSize + j);
+					DIRECT_A3D_ELEM(feature, k, i, j) = 
+					DIRECT_A3D_ELEM(volFiltered, 
+									centerOfMassZ[n] - halfBoxSize + k, 
+									centerOfMassY[n] - halfBoxSize + i, 
+									centerOfMassX[n] - halfBoxSize + j);
 
-					DIRECT_A3D_ELEM(symmetricFeature, boxSize - k, boxSize - i, boxSize - j) = DIRECT_A3D_ELEM(volFiltered, 
-																									centerOfMassZ[n] - halfBoxSize + k, 
-																									centerOfMassY[n] - halfBoxSize + i,
-																									centerOfMassX[n] - halfBoxSize + j);
+					DIRECT_A3D_ELEM(symmetricFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
+					DIRECT_A3D_ELEM(volFiltered, 
+									centerOfMassZ[n] - halfBoxSize + k, 
+									centerOfMassY[n] - halfBoxSize + i,
+									centerOfMassX[n] - halfBoxSize + j);
 				}
 			}
 		}
-		std::cout << "COORDINATE: " << n << std::endl;
 
-		double result = correlationIndex(feature, feature);
-		std::cout << result << std::endl;
-		result = correlationIndex(feature, symmetricFeature);
-		std::cout << result << std::endl;
-		std::cout << "==============================================" << std::endl;
+		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
+		int correlationWedge = boxSize / 3;
+		double maxCorrelation = MINDOUBLE;
+		int xDisplacement, yDisplacement, zDisplacement;
 
+		for(int kaux = -1 * correlationWedge; kaux < correlationWedge; kaux++) // zDim
+		{	
+			std::cout << "kaux=" << kaux << std::endl;
+			for(int jaux = -1 * correlationWedge; jaux < correlationWedge; jaux++) // xDim
+			{
+				for(int iaux = -1 * correlationWedge; iaux < correlationWedge; iaux++) // yDim
+				{
+					
+					MultidimArray<double> auxSymmetricFeature;
+					auxSymmetricFeature.initZeros();
+					
+					FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxSymmetricFeature)
+					{
+						if(k + kaux > 0 && k + kaux < boxSize - 1)
+						{
+							DIRECT_A3D_ELEM(auxSymmetricFeature, k + kaux, i + iaux, j + jaux) = 
+							DIRECT_A3D_ELEM(symmetricFeature, k, i, j);	
+						}
+					}
+
+					if(kaux==-3 && iaux==3 && jaux==-3)
+					{
+						size_t lastindex;
+						Image<double> saveImage;
+						std::string rawname;
+
+						lastindex = fnOut.find_last_of(".");
+						rawname = fnOut.substr(0, lastindex);
+						std::string outputAuxSymmetricFeature;
+						outputAuxSymmetricFeature = rawname + "_outputAuxSymmetricFeature.mrc";
+
+						saveImage() = auxSymmetricFeature; 
+						saveImage.write(outputAuxSymmetricFeature);
+
+						lastindex = fnOut.find_last_of(".");
+						rawname = fnOut.substr(0, lastindex);
+						std::string outputSymmetricFeature;
+						outputSymmetricFeature = rawname + "_outputSymmetricFeature.mrc";
+
+						saveImage() = symmetricFeature; 
+						saveImage.write(outputSymmetricFeature);
+					}
+
+					double correlation = correlationIndex(feature, symmetricFeature);
+					std::cout << "correlationIndex(feature, symmetricFeature)" << correlation << std::endl;
+					std::cout << "correlationIndex(symmetricFeature, symmetricFeature)" << correlationIndex(symmetricFeature, symmetricFeature) << std::endl;
+
+					if(correlation> maxCorrelation)
+					{
+						maxCorrelation = correlation;
+						xDisplacement = jaux;
+						yDisplacement = iaux;
+						zDisplacement = kaux;
+						std::cout << maxCorrelation << std::endl;
+						std::cout << xDisplacement << std::endl;
+						std::cout << yDisplacement << std::endl;
+						std::cout << zDisplacement << std::endl;
+						
+						std::cout << "---------------------------------------------------" << std::endl;
+					}
+				}
+			}
+		}
+
+		// Update coordinate
+		centerOfMassX[n] = centerOfMassX[n] + xDisplacement;
+		centerOfMassY[n] = centerOfMassY[n] + yDisplacement;
+		centerOfMassZ[n] = centerOfMassZ[n] + zDisplacement;
 	}
-	std::cout << "FINAAAAAAAAAAAAAALLL ==============================================" << std::endl;
 }
 
 
@@ -637,8 +706,6 @@ void ProgImagePeakHighContrast::run()
 	clusterHighContrastCoordinates();
 
 	centerCoordinates(volFiltered);
-	std::cout << "METADATAAAAAAAAAAAAAAAAAA" << std::endl;
-
 	writeOutputCoordinates();
 	
 	auto t2 = high_resolution_clock::now();
