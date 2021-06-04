@@ -80,7 +80,15 @@ AngularSphAlignment::AngularSphAlignment()
 
 AngularSphAlignment::~AngularSphAlignment() 
 {
-    //TODO free memory
+    if (program->useFakeKernel) {
+    } else {
+        cudaFree(dVolData);
+        cudaFree(dRotation);
+        cudaFree(dZshParams);
+        cudaFree(dClnm);
+        cudaFree(dVolMask);
+        cudaFree(dProjectionPlane);
+    }
 }
 
 void AngularSphAlignment::associateWith(ProgAngularSphAlignmentGpu* prog) 
@@ -196,7 +204,7 @@ void AngularSphAlignment::transferImageData(Image<double>& outputImage, Precisio
 void AngularSphAlignment::setupVolumeData() 
 {
     const auto& vol = program->V();
-    transformData(&dVolData, vol.data, vol.zyxdim);
+    transformData(&dVolData, vol.data, vol.zyxdim, dVolData == nullptr);
 }
 
 void AngularSphAlignment::setupVolumeDataCpu() 
@@ -219,8 +227,15 @@ void AngularSphAlignment::setupRotationCpu()
 
 void AngularSphAlignment::setupVolumeMask() 
 {
-    if (cudaMallocAndCopy(&dVolMask, program->V_mask.data, program->V_mask.getSize()) != cudaSuccess)
-        processCudaError();
+    if (dVolMask == nullptr) {
+        if (cudaMallocAndCopy(&dVolMask, program->V_mask.data, program->V_mask.getSize())
+                != cudaSuccess)
+            processCudaError();
+    } else {
+        if (cudaMemcpy(dVolMask, program->V_mask.data, program->V_mask.getSize() * sizeof(int),
+                    cudaMemcpyHostToDevice) != cudaSuccess)
+            processCudaError();
+    }
 }
 
 void AngularSphAlignment::setupVolumeMaskCpu()
@@ -344,8 +359,15 @@ void AngularSphAlignment::setupZSHparams()
         zshparamsVec[i].y = program->vL2[i];
         zshparamsVec[i].z = program->vM[i];
     }
-    if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
-        processCudaError();
+
+    if (dZshParams == nullptr) {
+        if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
+            processCudaError();
+    } else {
+        if (cudaMemcpy(dZshParams, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4), 
+                    cudaMemcpyHostToDevice) != cudaSuccess)
+            processCudaError();
+    }
 }
 
 void AngularSphAlignment::setupZSHparamsCpu()
