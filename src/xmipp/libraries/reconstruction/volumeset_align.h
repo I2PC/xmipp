@@ -53,8 +53,7 @@ public:
     int frm_shift;
     
     // mask
-    bool mask_option = false;
-    FileName mask_fn;
+    FileName fnMask;
 
     // for fetching the rigid-body alignment parameters for each volume
     FILE *fnAnglesAndShifts;
