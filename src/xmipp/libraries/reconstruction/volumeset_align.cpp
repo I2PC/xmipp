@@ -131,7 +131,7 @@ void ProgVolumeSetAlign::computeFitness(){
 	String args = formatString("--i1 %s --i2 %s --frm %f %d %d %d --store %s -v 0",
 			Volume1,Volume2,this->frm_freq, this->frm_shift, this->tilt0, this->tiltF, shifts_angles);
 		
-	if (""!=fnMask){
+	if (!fnMask.isEmpty()){
 		const char * mask = this->fnMask.c_str(); 
 		args += formatString(" --mask binary_file %s", mask);
 	}
