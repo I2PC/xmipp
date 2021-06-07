@@ -32,7 +32,6 @@ template<typename T>
 class MultidimArray;
 class FourierTransformer;
 
-//@{
 /** Routines for working with monogenic signals
 */
 /**@defgroup Monogenic Monogenic Signal
