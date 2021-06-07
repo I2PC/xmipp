@@ -79,3 +79,4 @@ protected:
     FileName fn_out;};
 
 #endif /* PHANTOM_MOVIE_H_ */
+//@}
