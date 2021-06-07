@@ -78,5 +78,6 @@ protected:
     const std::string barrel_param = std::string("--barrel");
     FileName fn_out;};
 
-#endif /* PHANTOM_MOVIE_H_ */
 //@}
+#endif /* PHANTOM_MOVIE_H_ */
+
