@@ -25,6 +25,7 @@
 /*xmipp includes */
 #include "tom_xmipp_helpers.h"
 #include <core/xmipp_image.h>
+#include <core/transformations.h>
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 {

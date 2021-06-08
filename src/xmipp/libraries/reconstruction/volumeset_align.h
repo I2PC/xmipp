@@ -55,6 +55,9 @@ public:
     double frm_freq;
     int frm_shift;
     
+    // mask
+    FileName fnMask;
+
     // for fetching the rigid-body alignment parameters for each volume
     FILE *fnAnglesAndShifts;
     float Matrix_Angles_Shifts[6];
