@@ -256,7 +256,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		std::cout<< "Particle: " << fnImage << std::endl;
     	I.read(fnImage);
     	I().setXmippOrigin();
-		I.write("I.mrc");
+		I.write(formatString("%s/I.mrc", fnProj.c_str()));
 		// Read particle metadata
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
@@ -264,23 +264,23 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 
     	// Compute projection of the volume
     	projectVolume(mV, P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-		P.write("P.mrc");
+		P.write(formatString("%s/P.mrc", fnProj.c_str()));
     	// Compute projection of the volume mask
 		MultidimArray<double> &mMaskVol=maskVol();
     	projectVolume(mMaskVol, PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-    	PmaskVol.write("mask.mrc");
+    	PmaskVol.write(formatString("%s/mask.mrc", fnProj.c_str()));
     	// Binarize volume mask
     	binarizeMask(PmaskVol());
-    	PmaskVol.write("maskBin.mrc");
+    	PmaskVol.write(formatString("%s/maskBin.mrc", fnProj.c_str()));
     	// Filter mask with Gaussian
 		FilterG.applyMaskSpace(PmaskVol());
-    	PmaskVol.write("maskBinGaus.mrc");
+    	PmaskVol.write(formatString("%s/maskBinGauss.mrc", fnProj.c_str()));
 
 		// Apply bin volume mask to particle and volume projection
 		POCSmaskProj(PmaskVol(), P());
 		POCSmaskProj(PmaskVol(), I());
-		I.write("ImaskVol.mrc");  //
-		P.write("PmaskVol.mrc");
+		I.write(formatString("%s/ImaskVol.mrc", fnProj.c_str()));  //
+		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
 
     	// Check if particle has CTF and apply it
 		//
@@ -298,7 +298,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
  	 		FilterCTF.ctf = ctf;
  	 		FilterCTF.generateMask(P());
  	 		FilterCTF.applyMaskSpace(P());
- 			P.write("Pctf.mrc");
+ 			P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
  	 	}
 
      	// Compute radial averages
@@ -324,27 +324,27 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
         MultidimArray<double> radial_meanI;
         MultidimArray<int> radial_count;
         radialAverage(IFourierMagRad, center, radial_meanI, radial_count);
-        radial_meanI.write("Irad.txt");
+        radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
         int my_rad;
         FOR_ALL_ELEMENTS_IN_ARRAY3D(IFourierMagRad)
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
             Irad(k, i, j) = radial_meanI(my_rad);
         }
-		Irad.write("Irad.mrc");
+		Irad.write(formatString("%s/Irad.mrc", fnProj.c_str()));
 
     	// Compute PradAvg profile (1D)
 		PFourierMagRad.setXmippOrigin();
         center.initZeros();
         MultidimArray<double> radial_meanP;
         radialAverage(PFourierMagRad, center, radial_meanP, radial_count);
-        radial_meanP.write("Prad.txt");
+        radial_meanP.write(formatString("%s/Prad.txt", fnProj.c_str()));
         FOR_ALL_ELEMENTS_IN_ARRAY3D(PFourierMagRad)
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
             Prad(k, i, j) = radial_meanP(my_rad);
         }
-		Prad.write("Prad.mrc");
+		Prad.write(formatString("%s/Prad.mrc", fnProj.c_str()));
 
 		// Compute adjustment quotient for POCS amplitude (and POCS phase?)
 		radQuotient = radial_meanI/radial_meanP;
@@ -352,7 +352,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		{
 			radQuotient(i) = std::min(radQuotient(i), 1.0);
 		}
-		radQuotient.write("radQuotient.txt");
+		radQuotient.write(formatString("%s/radQuotient.txt", fnProj.c_str()));
 
      	// Compute what need for the loop of POCS
 		FourierTransformer transformer;
@@ -372,19 +372,19 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 			transformer.FourierTransform(P(),PFourier,false);
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
 			transformer.inverseFourierTransform();
-			P.write("Pamp.mrc");
+			P.write(formatString("%s/Pamp.mrc", fnProj.c_str()));
 //			POCSMinMaxProj(P(), Imin, Imax);
-			P.write("Pminmax.mrc");
+//			P.write(formatString("%s/Pminmax.mrc", fnProj.c_str()));
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
-			P.write("Pphase.mrc");
+			P.write(formatString("%s/Pphase.mrc", fnProj.c_str()));
 			if (cutFreq!=0)
 			{
 				Filter2.generateMask(P());
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(P());
-				P.write("Pfilt.mrc");
+				P.write(formatString("%s/Pfilt.mrc", fnProj.c_str()));
 			}
 		}
 
@@ -397,27 +397,27 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		// Project subtraction mask
 		MultidimArray<double> &mMask=mask();
     	projectVolume(mMask, Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
-    	Pmask.write("maskfocus.mrc");
+    	Pmask.write(formatString("%s/maskFocus.mrc", fnProj.c_str()));
     	// Binarize subtraction mask
     	binarizeMask(Pmask());
 //    	normMask(Pmask());
-    	Pmask.write("maskfocusbin.mrc");
+    	Pmask.write(formatString("%s/maskFocusBin.mrc", fnProj.c_str()));
 
     	// Invert projected mask
 		PmaskInv = Pmask;
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskInv())
 		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(PmaskInv,n)*(-1))+1;
-    	PmaskInv.write("maskfocusInv.mrc");
+    	PmaskInv.write(formatString("%s/maskFocusInv.mrc", fnProj.c_str()));
 
     	// Filter mask with Gaussian
 		FilterG.applyMaskSpace(Pmask());
-    	Pmask.write("maskfocusbingaus.mrc");
+    	Pmask.write(formatString("%s/maskFocusBinGauss.mrc", fnProj.c_str()));
 
 		// Save particle and projection adjusted
 //		if (fnPart!="" && fnProj!="")
 //		{
-		I.write("Ifilt.mrc");
-		P.write("Padj.mrc");
+		I.write(formatString("%s/Ifilt.mrc", fnProj.c_str()));
+		P.write(formatString("%s/Padj.mrc", fnProj.c_str()));
 //		}
 
     	// SUBTRACTION
