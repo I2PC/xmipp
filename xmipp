@@ -201,6 +201,7 @@ int main(int argc, char** argv){
 }
 """ % compilingInfo)
 
+
 def whereis(program, findReal=False, env=None):
     programPath=distutils.spawn.find_executable(program, path=env)
     if programPath:
