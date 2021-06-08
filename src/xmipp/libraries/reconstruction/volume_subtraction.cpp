@@ -27,7 +27,7 @@
 #include <core/xmipp_fftw.h>
 #include <core/histogram.h>
 #include <data/fourier_filter.h>
-
+#include "core/transformations.h"
 
 
 void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I)
@@ -42,13 +42,29 @@ void POCSnonnegative(MultidimArray<double> &I)
 	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
 }
 
-void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda)
+void POCSFourierAmplitude(const MultidimArray<double> &V1, MultidimArray< std::complex<double> > &V, double lambda, MultidimArray<double> &rQ, int V1size)
 {
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
+	int V1size2 = V1size/2;
+	double V1sizei = 1.0/V1size;
+	double wx, wy, wz;
+	for (int k=0; k<ZSIZE(V1); ++k)
 		{
-		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
-		if (mod>1e-10)  // Condition to avoid divide by zero, values smaller than this threshold are considered zero
-			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
+			FFT_IDX2DIGFREQ_FAST(k,V1size,V1size2,V1sizei,wz);
+			double wz2 = wz*wz;
+			for (int i=0; i<YSIZE(V1); ++i)
+			{
+				FFT_IDX2DIGFREQ_FAST(i,V1size,V1size2,V1sizei,wy);
+				double wy2 = wy*wy;
+				for (int j=0; j<XSIZE(V1); ++j)
+				{
+					FFT_IDX2DIGFREQ_FAST(j,V1size,V1size2,V1sizei,wx);
+					double w = sqrt(wx*wx + wy2 + wz2);
+					int iw = (int)round(w*V1size);
+					double mod = std::abs(DIRECT_A3D_ELEM(V,k,i,j));
+					if (mod>1e-6)
+						DIRECT_A3D_ELEM(V,k,i,j)*=(((1-lambda)+lambda*DIRECT_A3D_ELEM(V1,k,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
+				}
+			}
 		}
 }
 
@@ -164,9 +180,6 @@ private:
     	show();
 
     	Image<double> V, Vdiff, V1;
-    	FourierTransformer transformer1; FourierTransformer transformer2;
-    	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
-    	MultidimArray<double> V1FourierMag;
     	V1.read(fnVol1);
     	MultidimArray<double> mask1;
 		Image<double> mask;
@@ -185,18 +198,70 @@ private:
     	mask1.clear();
 		POCSmask(mask(),V1());
     	POCSnonnegative(V1());
-
     	double v1min, v1max;
 		V1().computeDoubleMinMax(v1min, v1max);
-
-    	transformer1.FourierTransform(V1(),V1Fourier,false);
-    	FFT_magnitude(V1Fourier,V1FourierMag);
-		double std1 = V1().computeStddev();
 
 		V.read(fnVol2);
 		POCSmask(mask(),V());
     	POCSnonnegative(V());
 
+		// Compute |FT(radial averages)|
+    	Image<double> V1rad, Vrad;
+    	V1rad = V1;
+    	Vrad = V;
+		FourierTransformer transformerRad;
+		MultidimArray< std::complex<double> > V1FourierRad, VFourierRad;
+		MultidimArray<double> V1FourierMagRad, VFourierMagRad, radQuotient;
+		transformerRad.completeFourierTransform(V1rad(),V1FourierRad);
+		CenterFFT(V1FourierRad, true);
+		FFT_magnitude(V1FourierRad,V1FourierMagRad);
+		transformerRad.completeFourierTransform(Vrad(),VFourierRad);
+		CenterFFT(VFourierRad, true);
+		FFT_magnitude(VFourierRad,VFourierMagRad);
+    	// Compute V1radAvg and VradAvg profile (1D)
+        V1FourierMagRad.setXmippOrigin();
+        MultidimArray<double> radial_meanV1;
+        MultidimArray<int> radial_count;
+        Matrix1D<int> center(2);
+        center.initZeros();
+        radialAverage(V1FourierMagRad, center, radial_meanV1, radial_count);
+//        radial_meanV1.write("V1rad.txt");
+        int my_rad;
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierMagRad)
+        {
+            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+            V1rad(k, i, j) = radial_meanV1(my_rad);
+        }
+//		V1rad.write("V1rad.mrc");
+		VFourierMagRad.setXmippOrigin();
+        center.initZeros();
+        MultidimArray<double> radial_meanV;
+        radialAverage(VFourierMagRad, center, radial_meanV, radial_count);
+//        radial_meanV.write("Vrad.txt");
+        int my_radV;
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(VFourierMagRad)
+        {
+            my_radV = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+            Vrad(k, i, j) = radial_meanV(my_radV);
+        }
+//		Vrad.write("Vrad.mrc");
+		// Compute adjustment quotient for POCS amplitude
+		radQuotient = radial_meanV1/radial_meanV;
+//		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
+//		{
+//			radQuotient(i) = std::min(radQuotient(i), 1.0);
+//		}
+//		radQuotient.write("radQuotient.txt");
+
+
+
+     	// Compute what need for the loop of POCS
+    	FourierTransformer transformer1; FourierTransformer transformer2;
+    	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
+    	MultidimArray<double> V1FourierMag;
+    	transformer1.FourierTransform(V1(),V1Fourier,false);
+    	FFT_magnitude(V1Fourier,V1FourierMag);
+		double std1 = V1().computeStddev();
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer2.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
@@ -216,8 +281,9 @@ private:
         	if (computeE)
         		std::cout<< "---Iter " << n << std::endl;
     		transformer2.FourierTransform(V(),V2Fourier,false);
-    		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
+			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda, radQuotient, (int)XSIZE(V1()));
         	transformer2.inverseFourierTransform();
+//    		V.write("VPOCSAmp.mrc");
         	if (computeE)
         		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
@@ -279,11 +345,10 @@ private:
         	{
         		mask.read(fnMaskSub);
         	}
-
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
 			DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
 					std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
-    		V1.write(fnOut);
+			V1.write(fnOut);
     	}
 
     	else
