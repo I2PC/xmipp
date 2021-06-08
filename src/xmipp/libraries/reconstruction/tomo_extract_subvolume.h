@@ -42,6 +42,9 @@
 #include <pthread.h>
 #include <vector>
 
+/**@defgroup ProgTomoExtractSubvolume Tomo Extract Subvolume
+   @ingroup ReconsLibrary */
+//@{
 /** tomo_extract_subvolume parameters. */
 class ProgTomoExtractSubvolume: public XmippMetadataProgram
 {

@@ -28,6 +28,9 @@
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
 
+/**@defgroup ProgVolumeSetAlign Volume Set Align
+   @ingroup ReconsLibrary */
+//@{
 class ProgVolumeSetAlign: public XmippMetadataProgram
 {
 public:
@@ -108,6 +111,6 @@ private:
     void computeFitness();
    
 };
-
+//@}
 #endif
 

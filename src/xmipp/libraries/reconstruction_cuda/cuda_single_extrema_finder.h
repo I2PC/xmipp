@@ -33,6 +33,9 @@
 #include <core/utils/memory_utils.h>
 #include "reconstruction/aextrema_finder.h"
 
+/**@defgroup CudaExtremaFinder CudaExtremaFinder
+   @ingroup ReconsLibrary */
+//@{
 namespace ExtremaFinder {
 
 template<typename T>
@@ -169,5 +172,5 @@ private:
 };
 
 } /* namespace ExtremaFinder */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_FIND_EXTREMA_H_ */

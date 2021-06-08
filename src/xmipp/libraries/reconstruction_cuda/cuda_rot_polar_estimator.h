@@ -35,6 +35,9 @@
 
 #include "cuda_single_extrema_finder.h"
 
+/**@defgroup CudaRotPolarEstimator Cuda Rotation Polar Estimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -162,5 +165,5 @@ private:
 };
 
 }/* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_ROT_POLAR_ESTIMATOR_H_ */

@@ -30,6 +30,9 @@
 #include "core/xmipp_filename.h"
 #include "core/metadata.h"
 
+/**@defgroup ProgGpuCorrelation GPU Correlation
+   @ingroup ReconsLibrary */
+//@{
 class ProgGpuCorrelation: public XmippProgram
 {
 private:
