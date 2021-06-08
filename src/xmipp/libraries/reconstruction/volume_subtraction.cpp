@@ -227,26 +227,27 @@ private:
         radialAverage(V1FourierMagRad, center, radial_meanV1, radial_count);
 //        radial_meanV1.write("V1rad.txt");
         int my_rad;
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierMagRad)
-        {
-            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            V1rad(k, i, j) = radial_meanV1(my_rad);
-        }
+//        FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierMagRad)
+//        {
+//            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+//            V1rad(k, i, j) = radial_meanV1(my_rad);
+//        }
 //		V1rad.write("V1rad.mrc");
 		VFourierMagRad.setXmippOrigin();
         center.initZeros();
         MultidimArray<double> radial_meanV;
         radialAverage(VFourierMagRad, center, radial_meanV, radial_count);
 //        radial_meanV.write("Vrad.txt");
-        int my_radV;
+
         FOR_ALL_ELEMENTS_IN_ARRAY3D(VFourierMagRad)
         {
-            my_radV = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            Vrad(k, i, j) = radial_meanV(my_radV);
+            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
+            Vrad(k, i, j) = radial_meanV(my_rad);
         }
+
 //		Vrad.write("Vrad.mrc");
 		// Compute adjustment quotient for POCS amplitude
-		radQuotient = radial_meanV1/radial_meanV;
+//		radQuotient = radial_meanV1/radial_meanV;
 //		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 //		{
 //			radQuotient(i) = std::min(radQuotient(i), 1.0);
@@ -281,7 +282,7 @@ private:
         	if (computeE)
         		std::cout<< "---Iter " << n << std::endl;
     		transformer2.FourierTransform(V(),V2Fourier,false);
-			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda, radQuotient, (int)XSIZE(V1()));
+//			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda, radQuotient, (int)XSIZE(V1()));
         	transformer2.inverseFourierTransform();
 //    		V.write("VPOCSAmp.mrc");
         	if (computeE)
