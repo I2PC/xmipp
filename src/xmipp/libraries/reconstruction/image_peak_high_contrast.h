@@ -60,6 +60,9 @@ public:
 
     /** Number of slices and original centers of mass */
     int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
+
+    /** Center features **/
+    bool centerFeatures;
     
 private:
     /** Input tomogram dimensions */
