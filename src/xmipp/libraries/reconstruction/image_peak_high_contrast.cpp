@@ -535,7 +535,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	size_t halfBoxSize = boxSize / 2;
 	size_t correlationWedge = boxSize / 3;
 	size_t numberOfFeatures = centerOfMassX.size();
-	MultidimArray<double> feature, symmetricFeature;
+	MultidimArray<double> feature, symmetricFeature, auxSymmetricFeature;
 
 	// Construct feature and its symmetric
 
@@ -567,57 +567,37 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 
 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
 		int correlationWedge = boxSize / 3;
-		double maxCorrelation = MINDOUBLE;
-		int xDisplacement, yDisplacement, zDisplacement;
+		int xDisplacement = 0, yDisplacement = 0, zDisplacement = 0;
+
+		double maxCorrelation = correlationIndex(feature, symmetricFeature);
 
 		for(int kaux = -1 * correlationWedge; kaux < correlationWedge; kaux++) // zDim
 		{	
-			std::cout << "kaux=" << kaux << std::endl;
 			for(int jaux = -1 * correlationWedge; jaux < correlationWedge; jaux++) // xDim
 			{
 				for(int iaux = -1 * correlationWedge; iaux < correlationWedge; iaux++) // yDim
 				{
 					
-					MultidimArray<double> auxSymmetricFeature;
-					auxSymmetricFeature.initZeros();
+					auxSymmetricFeature.initZeros(boxSize, boxSize, boxSize);
 					
+					// Construct auxiliar symmetric feature shifting the symmetric feature to calculate 
+					// the correlation with the extracted feature
+
 					FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxSymmetricFeature)
 					{
-						if(k + kaux > 0 && k + kaux < boxSize - 1)
+						if(k + kaux >= 0 && k + kaux < boxSize - 1 &&
+							j + jaux >= 0 && j + jaux < boxSize - 1 &&
+							i + iaux >= 0 && i + iaux < boxSize - 1)
 						{
 							DIRECT_A3D_ELEM(auxSymmetricFeature, k + kaux, i + iaux, j + jaux) = 
 							DIRECT_A3D_ELEM(symmetricFeature, k, i, j);	
 						}
 					}
 
-					if(kaux==-3 && iaux==3 && jaux==-3)
-					{
-						size_t lastindex;
-						Image<double> saveImage;
-						std::string rawname;
+					double correlation = correlationIndex(feature, auxSymmetricFeature);
+					std::cout << "correlationIndex(symmetricFeature, auxSymmetricFeature)" << correlation << std::endl;
 
-						lastindex = fnOut.find_last_of(".");
-						rawname = fnOut.substr(0, lastindex);
-						std::string outputAuxSymmetricFeature;
-						outputAuxSymmetricFeature = rawname + "_outputAuxSymmetricFeature.mrc";
-
-						saveImage() = auxSymmetricFeature; 
-						saveImage.write(outputAuxSymmetricFeature);
-
-						lastindex = fnOut.find_last_of(".");
-						rawname = fnOut.substr(0, lastindex);
-						std::string outputSymmetricFeature;
-						outputSymmetricFeature = rawname + "_outputSymmetricFeature.mrc";
-
-						saveImage() = symmetricFeature; 
-						saveImage.write(outputSymmetricFeature);
-					}
-
-					double correlation = correlationIndex(feature, symmetricFeature);
-					std::cout << "correlationIndex(feature, symmetricFeature)" << correlation << std::endl;
-					std::cout << "correlationIndex(symmetricFeature, symmetricFeature)" << correlationIndex(symmetricFeature, symmetricFeature) << std::endl;
-
-					if(correlation> maxCorrelation)
+					if(correlation > maxCorrelation)
 					{
 						maxCorrelation = correlation;
 						xDisplacement = jaux;
