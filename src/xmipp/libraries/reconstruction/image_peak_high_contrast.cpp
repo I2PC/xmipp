@@ -535,7 +535,7 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 	size_t halfBoxSize = boxSize / 2;
 	size_t correlationWedge = boxSize / 3;
 	size_t numberOfFeatures = centerOfMassX.size();
-	MultidimArray<double> feature, symmetricFeature, auxSymmetricFeature;
+	MultidimArray<double> feature, symmetricFeature, correlationVolumeR;
 
 	// Construct feature and its symmetric
 
@@ -550,68 +550,49 @@ void ProgImagePeakHighContrast::centerCoordinates(MultidimArray<double> volFilte
 			{
 				for(int i = 0; i < boxSize; i++) // yDim
 				{
+					int cmXhalf = centerOfMassX[n] - halfBoxSize;
+					int cmYhalf = centerOfMassY[n] - halfBoxSize;
+					int cmZhalf = centerOfMassZ[n] - halfBoxSize;
+
 					DIRECT_A3D_ELEM(feature, k, i, j) = 
 					DIRECT_A3D_ELEM(volFiltered, 
-									centerOfMassZ[n] - halfBoxSize + k, 
-									centerOfMassY[n] - halfBoxSize + i, 
-									centerOfMassX[n] - halfBoxSize + j);
+									cmZhalf + k, 
+									cmYhalf + i, 
+									cmXhalf + j);
 
 					DIRECT_A3D_ELEM(symmetricFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
 					DIRECT_A3D_ELEM(volFiltered, 
-									centerOfMassZ[n] - halfBoxSize + k, 
-									centerOfMassY[n] - halfBoxSize + i,
-									centerOfMassX[n] - halfBoxSize + j);
+									cmZhalf + k, 
+									cmYhalf + i,
+									cmXhalf + j);
 				}
 			}
 		}
 
 		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
-		int correlationWedge = boxSize / 3;
-		int xDisplacement = 0, yDisplacement = 0, zDisplacement = 0;
+		CorrelationAux aux;
+		correlation_matrix(feature, symmetricFeature, correlationVolumeR, aux, true);
 
-		double maxCorrelation = correlationIndex(feature, symmetricFeature);
+		double maximumCorrelation = MINDOUBLE;
+		double xDisplacement = 0, yDisplacement = 0, zDisplacement = 0;
 
-		for(int kaux = -1 * correlationWedge; kaux < correlationWedge; kaux++) // zDim
-		{	
-			for(int jaux = -1 * correlationWedge; jaux < correlationWedge; jaux++) // xDim
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(correlationVolumeR)
+		{
+			double value = DIRECT_A3D_ELEM(correlationVolumeR, k, j, i);
+			
+			if (value > maximumCorrelation)
 			{
-				for(int iaux = -1 * correlationWedge; iaux < correlationWedge; iaux++) // yDim
-				{
-					
-					auxSymmetricFeature.initZeros(boxSize, boxSize, boxSize);
-					
-					// Construct auxiliar symmetric feature shifting the symmetric feature to calculate 
-					// the correlation with the extracted feature
-
-					FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxSymmetricFeature)
-					{
-						if(k + kaux >= 0 && k + kaux < boxSize - 1 &&
-							j + jaux >= 0 && j + jaux < boxSize - 1 &&
-							i + iaux >= 0 && i + iaux < boxSize - 1)
-						{
-							DIRECT_A3D_ELEM(auxSymmetricFeature, k + kaux, i + iaux, j + jaux) = 
-							DIRECT_A3D_ELEM(symmetricFeature, k, i, j);	
-						}
-					}
-
-					double correlation = correlationIndex(feature, auxSymmetricFeature);
-					std::cout << "correlationIndex(symmetricFeature, auxSymmetricFeature)" << correlation << std::endl;
-
-					if(correlation > maxCorrelation)
-					{
-						maxCorrelation = correlation;
-						xDisplacement = jaux;
-						yDisplacement = iaux;
-						zDisplacement = kaux;
-					}
-				}
+				maximumCorrelation = value;
+				xDisplacement = j;
+				yDisplacement = i;
+				zDisplacement = k;
 			}
 		}
 
 		// Update coordinate
-		centerOfMassX[n] = centerOfMassX[n] + xDisplacement;
-		centerOfMassY[n] = centerOfMassY[n] + yDisplacement;
-		centerOfMassZ[n] = centerOfMassZ[n] + zDisplacement;
+		centerOfMassX[n] += ((int) xDisplacement - boxSize / 2) / 2;
+		centerOfMassY[n] += ((int) yDisplacement - boxSize / 2) / 2;
+		centerOfMassZ[n] += ((int) zDisplacement - boxSize / 2) / 2;
 	}
 }
 
