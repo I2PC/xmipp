@@ -178,7 +178,6 @@ private:
     void run()
     {
     	show();
-
     	Image<double> V, Vdiff, V1;
     	V1.read(fnVol1);
     	MultidimArray<double> mask1;
@@ -230,7 +229,7 @@ private:
         FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierMagRad)
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            V1rad(k, i, j) = radial_meanV1(my_rad);
+            V1rad(k, i, j) = radial_meanV1(my_rad);  // Fails at the end because of this line
         }
 		V1rad.write("V1rad.mrc");
 		VFourierMagRad.setXmippOrigin();
@@ -238,24 +237,17 @@ private:
         MultidimArray<double> radial_meanV;
         radialAverage(VFourierMagRad, center, radial_meanV, radial_count);
         radial_meanV.write("Vrad.txt");
-
         FOR_ALL_ELEMENTS_IN_ARRAY3D(VFourierMagRad)
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            std::cout<< "---my_rad " << my_rad << std::endl;
             Vrad(k, i, j) = radial_meanV(my_rad);
         }
-
 		Vrad.write("Vrad.mrc");
 		// Compute adjustment quotient for POCS amplitude
-//		radQuotient = radial_meanV1/radial_meanV;
-//		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
-//		{
-//			radQuotient(i) = std::min(radQuotient(i), 1.0);
-//		}
-//		radQuotient.write("radQuotient.txt");
-
-
+		radQuotient = radial_meanV1/radial_meanV;
+		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
+			radQuotient(i) = std::min(radQuotient(i), 1.0);
+		radQuotient.write("radQuotient.txt");
 
      	// Compute what need for the loop of POCS
     	FourierTransformer transformer1; FourierTransformer transformer2;
@@ -283,9 +275,9 @@ private:
         	if (computeE)
         		std::cout<< "---Iter " << n << std::endl;
     		transformer2.FourierTransform(V(),V2Fourier,false);
-//			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda, radQuotient, (int)XSIZE(V1()));
+			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda, radQuotient, (int)XSIZE(V1()));
         	transformer2.inverseFourierTransform();
-//    		V.write("VPOCSAmp.mrc");
+    		V.write("VPOCSAmp.mrc");
         	if (computeE)
         		computeEnergy(Vdiff(), V(), energy);
         	Vdiff = V;
@@ -344,9 +336,7 @@ private:
     		}
 
         	if (!fnMaskSub.isEmpty())
-        	{
         		mask.read(fnMaskSub);
-        	}
 			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
 			DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
 					std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
