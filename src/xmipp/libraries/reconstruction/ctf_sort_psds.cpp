@@ -351,13 +351,12 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     	}
     }
 
-    size_t objId2 = mdEnvelope.firstRowId();
     int idx=0;
 	for (double w=0; w<wmax; w+=wmax/99.0)
 	{
+		size_t objId2 = mdEnvelope.addObject();
 		mdEnvelope.setValue(MDL_RESOLUTION_FREQ,w,objId2);
 		mdEnvelope.setValue(MDL_CTF_ENVELOPE,VEC_ELEM(envelope,idx)/Nalpha,objId2);
-		objId2 = mdEnvelope.addObject();
 		idx++;
 	}
     evaluation.firstZeroAvg/=N;
