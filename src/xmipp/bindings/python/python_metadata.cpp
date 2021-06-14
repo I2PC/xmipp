@@ -1517,7 +1517,7 @@ MetaData_iternext(PyObject *obj)
     {
         MetaDataObject *self = (MetaDataObject*) obj;
         size_t objId = **(self->iter);
-        ++(self->iter);
+        ++(*self->iter);
         if (*(self->iter) == self->metadata->ids().end())
             return NULL;
         //type format should be "n" instead of "i" but I put i since python 2.4 does not support n
