@@ -42,27 +42,39 @@ void POCSnonnegative(MultidimArray<double> &I)
 	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
 }
 
-void POCSFourierAmplitude(const MultidimArray<double> &V1, MultidimArray< std::complex<double> > &V, double lambda, MultidimArray<double> &rQ, int V1size)
+void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda)
 {
-	int V1size2 = V1size/2;
-	double V1sizei = 1.0/V1size;
-	double wx, wy, wz;
-	for (int k=0; k<ZSIZE(V1); ++k)
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A)
 		{
-			FFT_IDX2DIGFREQ_FAST(k,V1size,V1size2,V1sizei,wz);
+		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
+		if (mod>1e-10)  // Condition to avoid divide by zero, values smaller than this threshold are considered zero
+			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
+		}
+}
+
+void POCSFourierAmplitudeRadAvg(MultidimArray< std::complex<double> > &V, double lambda, MultidimArray<double> &rQ, int V1size_x, int V1size_y, int V1size_z)
+{
+	int V1size2_x = V1size_x/2;
+	double V1sizei_x = 1.0/V1size_x;
+	int V1size2_y = V1size_y/2;
+	double V1sizei_y = 1.0/V1size_y;
+	int V1size2_z = V1size_z/2;
+	double V1sizei_z = 1.0/V1size_z;
+	double wx, wy, wz;
+	for (int k=0; k<V1size_z; ++k)
+		{
+			FFT_IDX2DIGFREQ_FAST(k,V1size_z,V1size2_z,V1sizei_z,wz);
 			double wz2 = wz*wz;
-			for (int i=0; i<YSIZE(V1); ++i)
+			for (int i=0; i<V1size_y; ++i)
 			{
-				FFT_IDX2DIGFREQ_FAST(i,V1size,V1size2,V1sizei,wy);
+				FFT_IDX2DIGFREQ_FAST(i,V1size_y,V1size2_y,V1sizei_y,wy);
 				double wy2 = wy*wy;
-				for (int j=0; j<XSIZE(V1); ++j)
+				for (int j=0; j<V1size_x; ++j)
 				{
-					FFT_IDX2DIGFREQ_FAST(j,V1size,V1size2,V1sizei,wx);
+					FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx);
 					double w = sqrt(wx*wx + wy2 + wz2);
-					int iw = (int)round(w*V1size);
-					double mod = std::abs(DIRECT_A3D_ELEM(V,k,i,j));
-					if (mod>1e-6)
-						DIRECT_A3D_ELEM(V,k,i,j)*=(((1-lambda)+lambda*DIRECT_A3D_ELEM(V1,k,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
+					int iw = (int)round(w*V1size_x); // size_x??
+					DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
 				}
 			}
 		}
@@ -108,7 +120,7 @@ class ProgVolumeSubtraction: public XmippProgram
 {
 private:
 	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
-	bool sub; bool eq; bool computeE;
+	bool sub; bool eq; bool computeE; bool radavg;
 	int iter; int sigma;
 	double cutFreq; double lambda;
 
@@ -129,10 +141,10 @@ private:
         addParamsLine("[--maskSub <mask=\"\">]	: Mask for subtraction region");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
         addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
+        addParamsLine("[--radavg]				: Match the rotationally averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
+        addParamsLine("[--computeEnergy]		: Do not compute the energy difference between each step");
         addParamsLine("[--saveV1 <structure=\"\"> ]	: Save subtraction intermediate files (vol1 filtered)");
         addParamsLine("[--saveV2 <structure=\"\"> ]	: Save subtraction intermediate files (vol2 adjusted)");
-        addParamsLine("[--computeEnergy]			: Do not compute the energy difference between each step");
-
     }
 
     void readParams()
@@ -156,6 +168,7 @@ private:
     	fnVol2A=getParam("--saveV2");
     	if (fnVol2A=="")
     		fnVol2A="volume2_adjusted.mrc";
+    	radavg=checkParam("--radavg");
     	computeE=checkParam("--computeEnergy");
     }
 
@@ -171,6 +184,7 @@ private:
     	<< "Iterations:				" << iter        << std::endl
     	<< "Cutoff frequency:		" << cutFreq     << std::endl
     	<< "Relaxation factor:		" << lambda      << std::endl
+		<< "Match radial averages	" << radavg		 << std::endl
     	<< "Output:					" << fnOut 	     << std::endl
     	;
     }
@@ -208,6 +222,8 @@ private:
     	Image<double> V1rad, Vrad;
     	V1rad = V1;
     	Vrad = V;
+    	V1rad().setXmippOrigin();
+    	Vrad().setXmippOrigin();
 		FourierTransformer transformerRad;
 		MultidimArray< std::complex<double> > V1FourierRad, VFourierRad;
 		MultidimArray<double> V1FourierMagRad, VFourierMagRad, radQuotient;
@@ -226,10 +242,10 @@ private:
         radialAverage(V1FourierMagRad, center, radial_meanV1, radial_count);
         radial_meanV1.write("V1rad.txt");
         int my_rad;
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierMagRad)
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierRad) //1D
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            V1rad(k, i, j) = radial_meanV1(my_rad);  // Fails at the end because of this line
+            V1rad(k, i, j) = radial_meanV1(my_rad);
         }
 		V1rad.write("V1rad.mrc");
 		VFourierMagRad.setXmippOrigin();
@@ -237,7 +253,7 @@ private:
         MultidimArray<double> radial_meanV;
         radialAverage(VFourierMagRad, center, radial_meanV, radial_count);
         radial_meanV.write("Vrad.txt");
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(VFourierMagRad)
+        FOR_ALL_ELEMENTS_IN_ARRAY3D(VFourierMagRad) //1D
         {
             my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
             Vrad(k, i, j) = radial_meanV(my_rad);
@@ -259,11 +275,17 @@ private:
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer2.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
+    	int V1size_x = (int)XSIZE(V1());
+    	int V1size_y = (int)YSIZE(V1());
+    	int V1size_z = (int)ZSIZE(V1());
 
 		FourierFilter Filter2;
 		double energy, std2;
-		energy = 0;
-		Vdiff = V;
+		if (computeE)
+		{
+			energy = 0;
+			Vdiff = V;
+		}
 
 		Filter2.FilterBand=LOWPASS;
 		Filter2.FilterShape=RAISED_COSINE;
@@ -275,35 +297,50 @@ private:
         	if (computeE)
         		std::cout<< "---Iter " << n << std::endl;
     		transformer2.FourierTransform(V(),V2Fourier,false);
-			POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda, radQuotient, (int)XSIZE(V1()));
+    		if (radavg)
+    			POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
+    		else
+    			POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
         	transformer2.inverseFourierTransform();
     		V.write("VPOCSAmp.mrc");
         	if (computeE)
+        	{
         		computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+        		Vdiff = V;
+        	}
     		POCSMinMax(V(), v1min, v1max);
         	if (computeE)
+        	{
         		computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+        		Vdiff = V;
+        	}
 			POCSmask(mask(),V());
         	if (computeE)
+        	{
         		computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+        		Vdiff = V;
+        	}
     		transformer2.FourierTransform();
     		POCSFourierPhase(V2FourierPhase,V2Fourier);
         	transformer2.inverseFourierTransform();
         	if (computeE)
+        	{
         		computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+        		Vdiff = V;
+        	}
         	POCSnonnegative(V());
         	if (computeE)
+        	{
         		computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+        		Vdiff = V;
+        	}
 			std2 = V().computeStddev();
 			V()*=std1/std2;
         	if (computeE)
+        	{
         		computeEnergy(Vdiff(), V(), energy);
-        	Vdiff = V;
+        		Vdiff = V;
+        	}
 
     		if (cutFreq!=0)
     		{
@@ -311,8 +348,10 @@ private:
 				Filter2.do_generate_3dmask=true;
 				Filter2.applyMaskSpace(V());
 	        	if (computeE)
+	        	{
 	        		computeEnergy(Vdiff(), V(), energy);
-	        	Vdiff = V;
+	        		Vdiff = V;
+	        	}
     		}
     	}
 
