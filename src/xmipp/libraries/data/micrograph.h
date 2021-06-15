@@ -152,6 +152,7 @@ public:
     void set_ctfparams(const MDRowVec &ctf)
     {
         ctfRow = ctf;
+        ctfRow.detach();
     }
 
     /** Return the row with CTF params. */
