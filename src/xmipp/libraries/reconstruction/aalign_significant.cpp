@@ -101,7 +101,7 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     size_t Ydim;
     size_t Zdim;
     size_t Ndim;
-    getImageSize(h.fn, Xdim, Ydim, Zdim, Ndim);
+    getImageSize(md, Xdim, Ydim, Zdim, Ndim);
     Ndim = md.size();
 
     if (IS_REF && (origN != Ndim)) {
