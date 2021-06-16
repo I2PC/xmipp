@@ -274,7 +274,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 			if (maxShift<0 || (maxShift>0 && fabs(shiftX)<maxShift && fabs(shiftY)<maxShift))
 			{
-				size_t recId=mdProjectionMatching.addRow(dynamic_cast<MDRowVec&>(row));
+				size_t recId=mdProjectionMatching.addRow(dynamic_cast<MDRowSql&>(row));
 				mdProjectionMatching.setValue(MDL_ENABLED,1,recId);
 				mdProjectionMatching.setValue(MDL_MAXCC,bestCorr,recId);
 				mdProjectionMatching.setValue(MDL_ANGLE_ROT,bestRot,recId);
@@ -349,7 +349,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 						          << "shiftX=" << shiftX << " shiftY=" << shiftY << std::endl;
 			#endif
 
-						size_t recId=mdPartial.addRow(dynamic_cast<MDRowVec&>(row));
+						size_t recId=mdPartial.addRow(dynamic_cast<MDRowSql&>(row));
 						mdPartial.setValue(MDL_ENABLED,1,recId);
 						mdPartial.setValue(MDL_MAXCC,cc,recId);
 						mdPartial.setValue(MDL_COST,imed,recId);
