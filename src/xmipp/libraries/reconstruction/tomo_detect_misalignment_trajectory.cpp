@@ -129,8 +129,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 	std::cout << cutoffFreqHigh << std::endl;
 	#endif
 
-    double uy, ux;
-
     for(size_t i=0; i<YSIZE(fftV); ++i)
     {
         FFT_IDX2DIGFREQ(i,YSIZE(inputTomo),uy);
@@ -186,14 +184,13 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 	std::cout << "Picking coordinates..." << std::endl;
 	#endif
 
-	double maxThreshold = MAXDOUBLE;
-
     MultidimArray<double> binaryCoordinatesMapSlice;
     MultidimArray<double> labelCoordiantesMapSlice;
     MultidimArray<double> labelCoordiantesMap;
 	
 	for(size_t k = 0; k < zSize; ++k)
 	{
+		std::cout << "-----------------------------------------------" << std::endl;
 		std::vector<int> sliceVector;
 		
 		// Calculate threshold value for each image of the series
@@ -226,7 +223,10 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        double threshold = average-sdThreshold*standardDeviation;
+		std::cout<<average<<std::endl;
+ 		std::cout<<standardDeviation<<std::endl;
+
+        double threshold = average + sdThreshold * standardDeviation;
 
         #ifdef VERBOSE_OUTPUT
         std::cout<< "Slice: " << k <<  " Threshold: " << threshold << std::endl;
@@ -235,20 +235,27 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
         labelCoordiantesMap.initZeros(zSize, ySize, xSize);
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
+		int test = 0;
+
 		for(size_t j = 0; j < xSize; j++)
 		{
 			for(size_t i = 0; i < ySize; i++)
 			{
 				double value = DIRECT_A3D_ELEM(volFiltered, k, i, j);
 
-				if (value<maxThreshold)
+				if (value > threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
+					test += 1;
 				}
 			}
 		}
+
+		std::cout << "Number of points in the binary map: " << test << std::endl;
+
+
 		#ifdef DEBUG
-		std::cout << "Labeling slice " << k << std::endl;
+		std::cout << "Labelling slice " << k << std::endl;
 		#endif
 
 		// The value 8 is the neighbourhood
@@ -266,7 +273,8 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 
 		std::vector<std::vector<int>> coordinatesPerLabelX (colour);
 		std::vector<std::vector<int>> coordinatesPerLabelY (colour);
-		
+
+
 		for(size_t j = 0; j < xSize; j++)
 		{
 			for(size_t i = 0; i < ySize; i++)
@@ -275,13 +283,9 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 
 				if(value!=0)
 				{
-					coordinatesPerLabelX[value].push_back(j);
-					coordinatesPerLabelY[value].push_back(i);
-
-
+					coordinatesPerLabelX[value-1].push_back(j);
+					coordinatesPerLabelY[value-1].push_back(i);
 					
-
-
 					// bool labelExists = false;
 					
 					// for(size_t n=0; n<label.size(); n++)
@@ -308,30 +312,69 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 			}
 		}
 
-		for(size_t n; )
 
-		for(size_t j = 0; j < xSize; j++)
+		std::cout << "coordinatesPerLabelX" << coordinatesPerLabelX.size() << std::endl;
+		std::cout << "coordinatesPerLabelY" << coordinatesPerLabelY.size() << std::endl;
+
+		for(int a = 0 ; a < coordinatesPerLabelX.size(); a++)
 		{
-			for(size_t i = 0; i < ySize; i++)
+			std::cout << "coordinatesPerLabelX[" << a << "].size() " << coordinatesPerLabelX[a].size() << std::endl;
+		}
+		exit(0);
+
+
+		int fedetest = 0;
+		size_t numberOfCoordinatesPerValue;
+
+		for(size_t value = 0; value < colour; value++)
+		{
+			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
+
+			std::cout << "numberOfCoordinatesThr" << numberOfCoordinatesPerValue << std::endl; 
+
+			if(numberOfCoordinatesPerValue > numberOfCoordinatesThr)
 			{
-				for(size_t n=0; n<label.size(); n++)
+				int xCoor = 0;
+				int yCoor = 0;
+
+				for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
 				{
-					if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
-					{
-						if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
-						{						
-							coordinates3Dx.push_back(j);
-							coordinates3Dy.push_back(i);
-							coordinates3Dz.push_back(k);
-
-							DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-						}
-
-						break;
-					}
+					xCoor += coordinatesPerLabelX[value][coordinate];
+					yCoor += coordinatesPerLabelY[value][coordinate];
 				}
+
+				coordinates3Dx.push_back(xCoor/coordinatesPerLabelX[value].size());
+				coordinates3Dy.push_back(yCoor/coordinatesPerLabelY[value].size());
+				fedetest += 1;
 			}
 		}
+
+		std::cout << "Number of coordinates added " << fedetest <<std::endl;
+		std::cout << "coordinates3Dx.size() " << coordinates3Dx.size() <<std::endl;
+
+
+		// for(size_t j = 0; j < xSize; j++)
+		// {
+		// 	for(size_t i = 0; i < ySize; i++)
+		// 	{
+		// 		for(size_t n=0; n<label.size(); n++)
+		// 		{
+		// 			if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
+		// 			{
+		// 				if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
+		// 				{						
+		// 					coordinates3Dx.push_back(j);
+		// 					coordinates3Dy.push_back(i);
+		// 					coordinates3Dz.push_back(k);
+
+		// 					DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+		// 				}
+
+		// 				break;
+		// 			}
+		// 		}
+		// 	}
+		// }
     }
 
 	#ifdef VERBOSE_OUTPUT
@@ -602,12 +645,14 @@ void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<doubl
 	MetaData md;
 	size_t id;
 
-	for(size_t i=0;i<centerOfMassX.size();i++)
+	for(size_t i=0;i<coordinates3Dx.size();i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, centerOfMassX[i], id);
-		md.setValue(MDL_YCOOR, centerOfMassY[i], id);
-		md.setValue(MDL_ZCOOR, centerOfMassZ[i], id);
+		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
+		md.setValue(MDL_YCOOR, coordinates3Dy[i], id);
+		// md.setValue(MDL_XCOOR, centerOfMassX[i], id);
+		// md.setValue(MDL_YCOOR, centerOfMassY[i], id);
+		// md.setValue(MDL_ZCOOR, centerOfMassZ[i], id);
 	}
 
 	md.write(fnOut);
@@ -660,10 +705,10 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	// clusterHighContrastCoordinates();
 
-	if(centerFeatures==true)
-	{
-		centerCoordinates(volFiltered);
-	}
+	// if(centerFeatures==true)
+	// {
+	// 	centerCoordinates(volFiltered);
+	// }
 
 	writeOutputCoordinates();
 	
