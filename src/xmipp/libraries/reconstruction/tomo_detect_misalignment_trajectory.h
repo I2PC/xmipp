@@ -42,7 +42,7 @@
 #include <data/morphology.h>
 
 #define VERBOSE_OUTPUT
-// #define DEBUG
+#define DEBUG
 // #define DEBUG_FILTERPARAMS
 // #define DEBUG_DIM
 // #define DEBUG_DIST
