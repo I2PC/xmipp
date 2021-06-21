@@ -219,46 +219,41 @@ private:
     	POCSnonnegative(V());
 
 		// Compute |FT(radial averages)|
-    	Image<double> V1rad, Vrad;
-    	V1rad = V1;
-    	Vrad = V;
-    	V1rad().setXmippOrigin();
-    	Vrad().setXmippOrigin();
+    	MultidimArray<double> V1rad, Vrad;
+    	V1rad = V1();
+    	Vrad = V();
+    	V1rad.setXmippOrigin();
+    	Vrad.setXmippOrigin();
 		FourierTransformer transformerRad;
 		MultidimArray< std::complex<double> > V1FourierRad, VFourierRad;
 		MultidimArray<double> V1FourierMagRad, VFourierMagRad, radQuotient;
-		transformerRad.completeFourierTransform(V1rad(),V1FourierRad);
+		transformerRad.completeFourierTransform(V1rad,V1FourierRad);
 		CenterFFT(V1FourierRad, true);
 		FFT_magnitude(V1FourierRad,V1FourierMagRad);
-		transformerRad.completeFourierTransform(Vrad(),VFourierRad);
+		transformerRad.completeFourierTransform(Vrad,VFourierRad);
 		CenterFFT(VFourierRad, true);
 		FFT_magnitude(VFourierRad,VFourierMagRad);
+
     	// Compute V1radAvg and VradAvg profile (1D)
         V1FourierMagRad.setXmippOrigin();
         MultidimArray<double> radial_meanV1;
         MultidimArray<int> radial_count;
         Matrix1D<int> center(2);
         center.initZeros();
-        radialAverage(V1FourierMagRad, center, radial_meanV1, radial_count);
+        radialAverageNonCubic(V1FourierMagRad, center, radial_meanV1, radial_count);
         radial_meanV1.write("V1rad.txt");
-        int my_rad;
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(V1FourierRad) //1D
-        {
-            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            V1rad(k, i, j) = radial_meanV1(my_rad);
-        }
+        FOR_ALL_ELEMENTS_IN_ARRAY1D(V1FourierRad)
+            V1rad(i) = radial_meanV1(i);
 		V1rad.write("V1rad.mrc");
 		VFourierMagRad.setXmippOrigin();
         center.initZeros();
         MultidimArray<double> radial_meanV;
-        radialAverage(VFourierMagRad, center, radial_meanV, radial_count);
+        radialAverageNonCubic(VFourierMagRad, center, radial_meanV, radial_count);
         radial_meanV.write("Vrad.txt");
-        FOR_ALL_ELEMENTS_IN_ARRAY3D(VFourierMagRad) //1D
-        {
-            my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
-            Vrad(k, i, j) = radial_meanV(my_rad);
-        }
+        FOR_ALL_ELEMENTS_IN_ARRAY1D(VFourierMagRad)
+        	Vrad(i) = radial_meanV(i);
 		Vrad.write("Vrad.mrc");
+
 		// Compute adjustment quotient for POCS amplitude
 		radQuotient = radial_meanV1/radial_meanV;
 		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
