@@ -1241,7 +1241,7 @@ def ensureConfigVersion(configDict):
 
 def configTests(configDict):
     if configDict[KEY_BUILD_TESTS] == "":
-        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False)
+        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False, actually_ask=askUser)
 
 
 def config():
@@ -1387,7 +1387,10 @@ def compile(Nproc):
         return False
     return compileXmipp(Nproc)
 
-def askYesNo(msg='', default=True):
+def askYesNo(msg='', default=True, actually_ask=True):
+    if not actually_ask:
+        print(msg, default)
+        return default
     r = input(msg)
     return (r.lower() not in ['n', 'no', '0'] if default else
             r.lower() in ['y', 'yes', '1'])
