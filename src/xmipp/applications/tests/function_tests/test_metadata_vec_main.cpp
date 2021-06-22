@@ -1312,3 +1312,27 @@ TEST_F(MetadataTest, rowDetach)
     }
     ASSERT_EQ(orig.getValue<double>(MDL_X, orig.firstRowId()), 5.);
 }
+
+TEST_F(MetadataTest, selectPart)
+{
+    MetaDataVec orig;
+    for (size_t i = 0; i < 2; i++) {
+        MDRowVec row;
+        row.setValue(MDL_X, static_cast<double>(i));
+        orig.addRow(row);
+    }
+
+    for (size_t i = 0; i < 2; i++) {
+        MetaDataVec part;
+        part.selectPart(orig, i, 1, MDL_OBJID);
+        EXPECT_EQ(part.size(), 1);
+        EXPECT_EQ(part.getValue<double>(MDL_X, part.firstRowId()), static_cast<double>(i));
+    }
+
+    {
+        MetaDataVec part;
+        part.selectPart(orig, 0, 2, MDL_OBJID);
+        EXPECT_EQ(part.size(), 2);
+        EXPECT_EQ(part.getColumnValues<double>(MDL_X), (std::vector<double>{0., 1.}));
+    }
+}
