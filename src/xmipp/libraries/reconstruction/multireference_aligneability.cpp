@@ -79,7 +79,7 @@ void MultireferenceAligneability::run()
     randomize_random_generator();
 
     MetaDataVec mdOutQ;
-	MetaDataVec mdExp, mdExpSort, mdProj, mdGallery, mdInputParticles, mdInputParticlesRef;
+	MetaDataDb mdExp, mdExpSort, mdProj, mdGallery, mdInputParticles, mdInputParticlesRef;
 	size_t maxNImg;
 	FileName fnOutCL, fnOutQ;
 	fnOutCL = fnDir+"/pruned_particles_alignability.xmd";
@@ -98,7 +98,7 @@ void MultireferenceAligneability::run()
 	mdExpSort.getValue(MDL_IMAGE_IDX,maxNImg,sz);
 
 	String expression;
-	MDRowVec row,rowInput,rowInputRef;
+	MDRowSql row,rowInput,rowInputRef;
 
 	double validationAlignabilityPrecision, validationAlignabilityAccuracy, validationAlignability, validationMirror;
 	validationAlignabilityPrecision = 0;
