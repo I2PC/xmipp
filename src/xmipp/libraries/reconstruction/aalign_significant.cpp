@@ -92,7 +92,7 @@ void AProgAlignSignificant<T>::show() const {
 template<typename T>
 template<bool IS_REF>
 void AProgAlignSignificant<T>::load(DataHelper &h) {
-    auto &md = h.md;
+    MetaDataVec &md = h.md;
     md.read(h.fn);
     size_t origN = md.size();
     md.removeDisabled();
@@ -156,29 +156,27 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     futures.reserve(Ndim);
     if (IS_REF) {
         h.rots.reserve(Ndim);
-        md.getColumnValues(MDL_ANGLE_ROT, h.rots);
         h.tilts.reserve(Ndim);
-        md.getColumnValues(MDL_ANGLE_TILT, h.tilts);
         if (!md.containsLabel(MDL_ANGLE_ROT)) {
             std::cerr << "No roration specified for reference images. Using 0 by default\n";
             h.rots.resize(Ndim, 0); // rotation not specified, use default value
         } else {
-            md.getColumnValues(MDL_ANGLE_ROT, h.rots);
+            h.rots = md.getColumnValues<float>(MDL_ANGLE_ROT);
         }
         h.tilts.reserve(Ndim);
         if (!md.containsLabel(MDL_ANGLE_TILT)) {
             std::cerr << "No tilt specified for reference images. Using 0 by default\n";
             h.tilts.resize(Ndim, 0); // tilt not specified, use default value
         } else {
-            md.getColumnValues(MDL_ANGLE_TILT, h.tilts);
+            h.tilts = md.getColumnValues<float>(MDL_ANGLE_TILT);
         }
         h.indexes.reserve(Ndim);
-        md.getColumnValues(MDL_REF, h.indexes);
+        h.indexes = md.getColumnValues<int>(MDL_REF);
     }
 
     std::vector<FileName> fileNames;
     fileNames.reserve(Ndim);
-    md.getColumnValues(MDL_IMAGE, fileNames);
+    fileNames = md.getColumnValues<FileName>(MDL_IMAGE);
     size_t i = 0;
     for (size_t objId : md.ids()) {
         FileName fn;
