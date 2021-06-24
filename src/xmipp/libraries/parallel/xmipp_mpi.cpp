@@ -230,9 +230,7 @@ void MpiNode::gatherMetadatas(T &MD, const FileName &rootname)
         fn = formatString("%s_node%d.xmd", rootname.c_str(), 1);
         fn = fn.removeBlockName();
         remove(fn.c_str());
-        MetaDataDb single;
-        single.removeDuplicates(mdAll, MDL_IMAGE);
-        MD = T(single);
+        MD = T(mdAll);
     }
 }
 
