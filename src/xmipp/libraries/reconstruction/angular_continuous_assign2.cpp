@@ -71,6 +71,7 @@ void ProgAngularContinuousAssign2::readParams()
     // penalization = getDoubleParam("--penalization");
     fnResiduals = getParam("--oresiduals");
     fnProjections = getParam("--oprojections");
+	keep_input_columns = true; // each output metadata row is a deep copy of the input metadata row
 }
 
 // Show ====================================================================
@@ -378,8 +379,6 @@ double continuous2cost(double *x, void *_prm)
 //#define DEBUG
 void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
-    rowOut=rowIn;
-
     // Read input image and initial parameters
 //  ApplyGeoParams geoParams;
 //	geoParams.only_apply_shifts=false;
@@ -392,30 +391,30 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     double imedDist = 0.0;
 
 
-	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
-	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
-	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
-	rowIn.getValue(MDL_SHIFT_X,old_shiftX);
-	rowIn.getValue(MDL_SHIFT_Y,old_shiftY);
-	rowIn.getValue(MDL_FLIP,old_flip);
+	old_rot = rowIn.getValueOrDefault(MDL_ANGLE_ROT, 0.);
+	old_tilt = rowIn.getValueOrDefault(MDL_ANGLE_TILT, 0.);
+	old_psi = rowIn.getValueOrDefault(MDL_ANGLE_PSI, 0.);
+	old_shiftX = rowIn.getValueOrDefault(MDL_SHIFT_X, 0.);
+	old_shiftY = rowIn.getValueOrDefault(MDL_SHIFT_Y, 0.);
+	old_flip = rowIn.getValueOrDefault(MDL_FLIP, false);
 	double old_scaleX=0, old_scaleY=0, old_scaleAngle=0;
 	old_grayA=1;
 	old_grayB=0;
 	if (rowIn.containsLabel(MDL_CONTINUOUS_SCALE_X))
 	{
-		rowIn.getValue(MDL_CONTINUOUS_SCALE_X,old_scaleX);
-		rowIn.getValue(MDL_CONTINUOUS_SCALE_Y,old_scaleY);
+		old_scaleX = rowIn.getValue<double>(MDL_CONTINUOUS_SCALE_X);
+		old_scaleY = rowIn.getValue<double>(MDL_CONTINUOUS_SCALE_Y);
 		if (rowIn.containsLabel(MDL_CONTINUOUS_SCALE_ANGLE))
-			rowIn.getValue(MDL_CONTINUOUS_SCALE_ANGLE,old_scaleAngle);
-		rowIn.getValue(MDL_CONTINUOUS_X,old_shiftX);
-		rowIn.getValue(MDL_CONTINUOUS_Y,old_shiftY);
-		rowIn.getValue(MDL_CONTINUOUS_FLIP,old_flip);
+			old_scaleAngle = rowIn.getValue<double>(MDL_CONTINUOUS_SCALE_ANGLE);
+		old_shiftX = rowIn.getValue<double>(MDL_CONTINUOUS_X);
+		old_shiftY = rowIn.getValue<double>(MDL_CONTINUOUS_Y);
+		old_flip = rowIn.getValue<bool>(MDL_CONTINUOUS_FLIP);
 	}
 
 	if (optimizeGrayValues && rowIn.containsLabel(MDL_CONTINUOUS_GRAY_A))
 	{
-		rowIn.getValue(MDL_CONTINUOUS_GRAY_A,old_grayA);
-		rowIn.getValue(MDL_CONTINUOUS_GRAY_B,old_grayB);
+		old_grayA = rowIn.getValue<double>(MDL_CONTINUOUS_GRAY_A);
+		old_grayB = rowIn.getValue<double>(MDL_CONTINUOUS_GRAY_B);
 	}
 
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && !ignoreCTF)
@@ -454,6 +453,9 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     p(4)=old_scaleX;
     p(5)=old_scaleY;
     p(6)=old_scaleAngle;
+
+	rowOut.setValue<String>(MDL_IMAGE_RESIDUAL,""); // default values
+	rowOut.setValue<String>(MDL_IMAGE_REF,"");
 
     // Optimize
 	double cost=-1;
