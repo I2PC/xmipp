@@ -59,6 +59,49 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 }
 
 
+void ProgTomoFidAlign::lowPassFilter(
+		MultidimArray<std::complex<double>> &fftImg,
+		MultidimArray<double> &imgTofilter)
+{
+	// Filter frequencies
+	double highFreqFilt = sampling/fidSize;
+	double tail = highFreqFilt + 0.02;
+
+    double lowFreqFilt = sampling/fidSize;
+
+	double idelta = PI/(highFreqFilt-tail);
+
+    double uy, ux, u, uy2;
+    size_t ydimImg = YSIZE(imgTofilter);
+    size_t xdimImg = XSIZE(imgTofilter);
+
+	long n=0;
+	for(size_t i=0; i<YSIZE(fftImg); ++i)
+	{
+		FFT_IDX2DIGFREQ(i, ydimImg, uy);
+		uy2=uy*uy;
+		for(size_t j=0; j<XSIZE(fftImg); ++j)
+		{
+			FFT_IDX2DIGFREQ(j, xdimImg, ux);
+			u=sqrt(uy2+ux*ux);
+            if (u>=highFreqFilt && u<=lowFreqFilt)
+            {
+                //double H=0.5*(1+cos((un-w1)*ideltal));
+                DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*idelta));//H;
+            }
+            else if (u>tail)
+            {
+                DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
+            }
+			++n;
+		}
+	}
+
+	FourierTransformer transformer_inv;
+	transformer_inv.inverseFourierTransform(fftImg, imgTofilter);
+
+}
+
 MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(MultidimArray<double> &inputTomo)
 {
 	#ifdef VERBOSE_OUTPUT
