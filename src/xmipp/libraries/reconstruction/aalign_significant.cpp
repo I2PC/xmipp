@@ -155,8 +155,6 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
     auto futures = std::vector<std::future<void>>();
     futures.reserve(Ndim);
     if (IS_REF) {
-        h.rots.reserve(Ndim);
-        h.tilts.reserve(Ndim);
         if (!md.containsLabel(MDL_ANGLE_ROT)) {
             std::cerr << "No roration specified for reference images. Using 0 by default\n";
             h.rots.resize(Ndim, 0); // rotation not specified, use default value
@@ -170,13 +168,10 @@ void AProgAlignSignificant<T>::load(DataHelper &h) {
         } else {
             h.tilts = md.getColumnValues<float>(MDL_ANGLE_TILT);
         }
-        h.indexes.reserve(Ndim);
         h.indexes = md.getColumnValues<int>(MDL_REF);
     }
 
-    std::vector<FileName> fileNames;
-    fileNames.reserve(Ndim);
-    fileNames = md.getColumnValues<FileName>(MDL_IMAGE);
+    auto fileNames = md.getColumnValues<FileName>(MDL_IMAGE);
     size_t i = 0;
     for (size_t objId : md.ids()) {
         FileName fn;
