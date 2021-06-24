@@ -67,37 +67,37 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 
 	// Smoothing
 	
-	int siz_x = xSize*0.5;
-	int siz_y = ySize*0.5;
-	int N_smoothing = 10;
+	// int siz_x = xSize*0.5;
+	// int siz_y = ySize*0.5;
+	// int N_smoothing = 10;
 
-	size_t ux, uy;
+	// size_t ux, uy;
 
-	int limit_distance_x = (siz_x-N_smoothing);
-	int limit_distance_y = (siz_y-N_smoothing);
+	// int limit_distance_x = (siz_x-N_smoothing);
+	// int limit_distance_y = (siz_y-N_smoothing);
 
-	long n=0;
+	// long n=0;
 
-	for(int i=0; i<ySize; ++i)
-	{
-		uy = (i - siz_y);
+	// for(int i=0; i<ySize; ++i)
+	// {
+	// 	uy = (i - siz_y);
 		
-		for(int j=0; j<xSize; ++j)
-		{
-			ux = (j - siz_x);
+	// 	for(int j=0; j<xSize; ++j)
+	// 	{
+	// 		ux = (j - siz_x);
 
-			if (abs(ux)>=limit_distance_x)
-			{
-				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
-			}
-			if (abs(uy)>=limit_distance_y)
-			{
-				DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
-			}
+	// 		if (abs(ux)>=limit_distance_x)
+	// 		{
+	// 			DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_x - abs(ux))/(N_smoothing)));
+	// 		}
+	// 		if (abs(uy)>=limit_distance_y)
+	// 		{
+	// 			DIRECT_MULTIDIM_ELEM(inputTomo, n) *= 0.5*(1+cos(PI*(limit_distance_y - abs(uy))/(N_smoothing)));
+	// 		}
 
-			++n;
-		}
-	}
+	// 		++n;
+	// 	}
+	// }
 
 
 	// Band-pass filtering
@@ -106,8 +106,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 
 	FourierTransformer transformer;
 	transformer.FourierTransform(inputTomo, fftV, false);
-
-	n=0;
 
 	MultidimArray< std::complex<double> >  fftFiltered;
 
@@ -120,45 +118,75 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 	double cutoffFreqLow = freqLow - w;
 	double delta = PI / w;
 
+	long n=0;
+
 	#ifdef DEBUG_FILTERPARAMS
-	std::cout << samplingRate << std::endl;
-	std::cout << fiducialSize << std::endl;
-	std::cout << freqLow << std::endl;
-	std::cout << freqHigh << std::endl;
-	std::cout << cutoffFreqLow << std::endl;
-	std::cout << cutoffFreqHigh << std::endl;
+	std::cout << "samplingRate " << samplingRate << std::endl; //6.86
+	std::cout << "fiducialSize " << fiducialSize << std::endl; //100
+	std::cout << "freqLow " << freqLow << std::endl; //0.062
+	std::cout << "freqHigh " << freqHigh << std::endl; //0.076
+	std::cout << "cutoffFreqLow " << cutoffFreqLow << std::endl; //0.042
+	std::cout << "cutoffFreqHigh " << cutoffFreqHigh << std::endl;  //0.096
 	#endif
 
-    for(size_t i=0; i<YSIZE(fftV); ++i)
-    {
-        FFT_IDX2DIGFREQ(i,YSIZE(inputTomo),uy);
+	for(size_t k=0; k<ZSIZE(fftV); ++k)
+	{
+		for(size_t i=0; i<YSIZE(fftV); ++i)
+		{
+			double ux, uy;
 
-        for(size_t j=0; j<XSIZE(fftV); ++j)
-        {
-            FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
-            double u=sqrt(uy*uy+ux*ux);
+			FFT_IDX2DIGFREQ(i,YSIZE(inputTomo),uy);
 
-            if(u > cutoffFreqHigh || u < cutoffFreqLow)
-            {
-                DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
-            } 
-            else
-            {
-                if(u >= freqHigh && u < cutoffFreqHigh)
-                {
-                    DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
-                }
-            
-                if (u <= freqLow && u > cutoffFreqLow)
-                {
-                    DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqLow)*delta));
-                }
-            }
-            
-            ++n;
-        }
-    }
-	
+			for(size_t j=0; j<XSIZE(fftV); ++j)
+			{
+				FFT_IDX2DIGFREQ(j,XSIZE(inputTomo),ux);
+				
+				double u=sqrt(uy*uy+ux*ux);
+
+				if(u > cutoffFreqHigh || u < cutoffFreqLow)
+				{
+					DIRECT_MULTIDIM_ELEM(fftFiltered, n) = 0;
+				} 
+				else
+				{
+					if(u >= freqHigh && u < cutoffFreqHigh)
+					{
+						DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqHigh)*delta));
+					}
+				
+					if (u <= freqLow && u > cutoffFreqLow)
+					{
+						DIRECT_MULTIDIM_ELEM(fftFiltered, n) *= 0.5*(1+cos((u-freqLow)*delta));
+					}
+				}
+				
+				++n;
+			}
+		}
+	}
+
+	// 	// Filter frequencies
+// 	double highFreqFilt = sampling/fidSize;
+// 	double tail = highFreqFilt + 0.02;
+
+// 	double idelta = PI/(highFreqFilt-tail);
+// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftImg)
+// 	{
+// 		double u = DIRECT_MULTIDIM_ELEM(freqMap, n);
+
+// 		if (u>=highFreqFilt && u<=tail)
+// 		{
+// 			//double H=0.5*(1+cos((un-w1)*ideltal));
+// 			DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*idelta));//H;
+// 		}
+// 		else if (u>tail)
+// 		{
+// 			DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
+// 		}
+// 	}
+
+// 	FourierTransformer transformer_inv;
+// 	transformer_inv.inverseFourierTransform(fftImg, imgTofilter);
 
 	// Input tomogram (inputTomo) is overrided with the filtered volume searching memory efficency
 	transformer.inverseFourierTransform(fftFiltered, inputTomo);
@@ -320,8 +348,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 		{
 			std::cout << "coordinatesPerLabelX[" << a << "].size() " << coordinatesPerLabelX[a].size() << std::endl;
 		}
-		exit(0);
-
 
 		int fedetest = 0;
 		size_t numberOfCoordinatesPerValue;
