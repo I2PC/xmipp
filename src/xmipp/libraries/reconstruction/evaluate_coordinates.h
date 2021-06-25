@@ -28,6 +28,9 @@
 #include "core/xmipp_program.h"
 #include "core/metadata.h"
 
+/**@defgroup ProgEvaluateCoordinates Evaluate Coordinates
+   @ingroup ReconsLibrary */
+//@{
 class ProgEvaluateCoordinates: public XmippProgram
 {
 public:
@@ -65,4 +68,5 @@ public:
     /// Main routine
     void run();
 };
+//@}
 #endif

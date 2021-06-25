@@ -32,6 +32,9 @@
 #include <complex>
 #include <limits>
 
+/**@defgroup AShiftCorrEstimator AShiftCorrEstimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -92,5 +95,5 @@ protected:
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_CORR_ESTIMATOR_H_ */

@@ -24,6 +24,10 @@ void gpuCopyFromCPUToGPU(void* data, void* d_data, size_t Nbytes);
 void gpuCopyFromGPUToCPU(void* d_data, void* data, size_t Nbytes);
 int gridFromBlock(int tasks, int Nthreads);
 
+/**@defgroup CudaXmippUtils Cuda Xmipp Utils
+   @ingroup ReconsLibrary */
+//@{
+
 template<typename T>
 T* loadToGPU(const T* data, size_t items);
 
@@ -313,5 +317,5 @@ private:
 		nzyxdim=zyxdim*_Ndim;
 	}
 };
-
+//@}
 #endif

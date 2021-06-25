@@ -28,6 +28,9 @@
 
 #include <ostream>
 
+/**@defgroup Dimensions Dimensions
+   @ingroup DataLibrary */
+//@{
 class Dimensions {
 public:
     explicit constexpr Dimensions(size_t x, size_t y = 1, size_t z = 1, size_t n = 1,
@@ -166,7 +169,5 @@ private:
     size_t m_pad_y;
     size_t m_pad_z;
 };
-
-
-
+//@}
 #endif /* LIBRARIES_DATA_DIMENSIONS_H_ */
