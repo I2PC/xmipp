@@ -61,6 +61,7 @@ void POCSFourierAmplitudeRadAvg(MultidimArray< std::complex<double> > &V, double
 	int V1size2_z = V1size_z/2;
 	double V1sizei_z = 1.0/V1size_z;
 	double wx, wy, wz;
+
 	for (int k=0; k<V1size_z; ++k)
 		{
 			FFT_IDX2DIGFREQ_FAST(k,V1size_z,V1size2_z,V1sizei_z,wz);
@@ -74,7 +75,7 @@ void POCSFourierAmplitudeRadAvg(MultidimArray< std::complex<double> > &V, double
 					FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx);
 					double w = sqrt(wx*wx + wy2 + wz2);
 					int iw = (int)round(w*V1size_x); // size_x??
-					DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
+					DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda);//+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
 				}
 			}
 		}
@@ -270,10 +271,6 @@ private:
     	MultidimArray<std::complex<double> > V2FourierPhase;
     	transformer2.FourierTransform(V(),V2FourierPhase,true);
     	extractPhase(V2FourierPhase);
-    	int V1size_x = (int)XSIZE(V1());
-    	int V1size_y = (int)YSIZE(V1());
-    	int V1size_z = (int)ZSIZE(V1());
-
 		FourierFilter Filter2;
 		double energy, std2;
 		if (computeE)
@@ -291,10 +288,17 @@ private:
     	{
         	if (computeE)
         		std::cout<< "---Iter " << n << std::endl;
-    		transformer2.FourierTransform(V(),V2Fourier,false);
     		if (radavg)
+    		{
+    	    	int V1size_x = (int)XSIZE(V1());
+    	    	int V1size_y = (int)YSIZE(V1());
+    	    	int V1size_z = (int)ZSIZE(V1());
+    			transformer2.completeFourierTransform(V(),V2Fourier);
+    			CenterFFT(V2Fourier, true);
     			POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
+    		}
     		else
+        		transformer2.FourierTransform(V(),V2Fourier,false);
     			POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
         	transformer2.inverseFourierTransform();
     		V.write("VPOCSAmp.mrc");
