@@ -59,21 +59,24 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 }
 
 
-void ProgTomoFidAlign::lowPassFilter(
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(
 		MultidimArray<std::complex<double>> &fftImg,
 		MultidimArray<double> &imgTofilter)
 {
 	// Filter frequencies
-	double highFreqFilt = sampling/fidSize;
+	double highFreqFilt = samplingRate/fiducialSize;
 	double tail = highFreqFilt + 0.02;
 
-    double lowFreqFilt = sampling/fidSize;
+    double lowFreqFilt = samplingRate/fiducialSize;
 
 	double idelta = PI/(highFreqFilt-tail);
 
     double uy, ux, u, uy2;
     size_t ydimImg = YSIZE(imgTofilter);
     size_t xdimImg = XSIZE(imgTofilter);
+
+	        std::cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" << std::endl;
+
 
 	long n=0;
 	for(size_t i=0; i<YSIZE(fftImg); ++i)
@@ -86,7 +89,6 @@ void ProgTomoFidAlign::lowPassFilter(
 			u=sqrt(uy2+ux*ux);
             if (u>=highFreqFilt && u<=lowFreqFilt)
             {
-                //double H=0.5*(1+cos((un-w1)*ideltal));
                 DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*idelta));//H;
             }
             else if (u>tail)
@@ -96,9 +98,27 @@ void ProgTomoFidAlign::lowPassFilter(
 			++n;
 		}
 	}
+		        std::cout << "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" << std::endl;
+
 
 	FourierTransformer transformer_inv;
 	transformer_inv.inverseFourierTransform(fftImg, imgTofilter);
+
+    std::cout << XSIZE(imgTofilter)<<std::endl;
+	std::cout << YSIZE(imgTofilter) <<std::endl;
+    std::cout << ZSIZE(imgTofilter)<<std::endl;
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_filter.mrc";
+
+	Image<double> saveImage;
+	saveImage() = imgTofilter;
+	saveImage.write(outputFileNameFilteredVolume);
+	#endif
+    std::cout << "ccccccccccccccccccccccccccccccccccccccccccc" << std::endl;
 
 }
 
@@ -207,29 +227,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 			}
 		}
 	}
-
-	// 	// Filter frequencies
-// 	double highFreqFilt = sampling/fidSize;
-// 	double tail = highFreqFilt + 0.02;
-
-// 	double idelta = PI/(highFreqFilt-tail);
-// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftImg)
-// 	{
-// 		double u = DIRECT_MULTIDIM_ELEM(freqMap, n);
-
-// 		if (u>=highFreqFilt && u<=tail)
-// 		{
-// 			//double H=0.5*(1+cos((un-w1)*ideltal));
-// 			DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*idelta));//H;
-// 		}
-// 		else if (u>tail)
-// 		{
-// 			DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
-// 		}
-// 	}
-
-// 	FourierTransformer transformer_inv;
-// 	transformer_inv.inverseFourierTransform(fftImg, imgTofilter);
 
 	// Input tomogram (inputTomo) is overrided with the filtered volume searching memory efficency
 	transformer.inverseFourierTransform(fftFiltered, inputTomo);
@@ -740,15 +737,114 @@ void ProgTomoDetectMisalignmentTrajectory::run()
     using std::chrono::milliseconds;
 
 	auto t1 = high_resolution_clock::now();
+
+	std::cout << "Starting..." << std::endl;
+	size_t Xdim, Ydim;
 	
-	Image<double> inputVolume;
-	inputVolume.read(fnVol);
+	MetaData tiltseriesmd;
 
-	auto &inputTomo=inputVolume();
+    if (fnVol.isMetaData())
+    {
+        tiltseriesmd.read(fnVol);
+    }
+    else
+    {
+        ImageGeneric tiltSeriesImages;
+        tiltSeriesImages.read(fnVol, HEADER);
 
-	xSize = XSIZE(inputTomo);
-	ySize = YSIZE(inputTomo);
-	zSize = ZSIZE(inputTomo);
+        size_t Zdim, Ndim;
+        tiltSeriesImages.getDimensions(Xdim, Ydim, Zdim, Ndim);
+
+        if (fnVol.getExtension() == "mrc" and Ndim == 1)
+            Ndim = Zdim;
+
+        size_t id;
+        FileName fn;
+        for (size_t i = 0; i < Ndim; i++) 
+        {
+            id = tiltseriesmd.addObject();
+            fn.compose(i + FIRST_IMAGE, fnVol);
+            tiltseriesmd.setValue(MDL_IMAGE, fn, id);
+        }
+    }
+
+	FileName fnTSimg;
+	size_t objId, objId_ts;
+	Image<double> imgTS;
+
+	MultidimArray<double> &ptrImg = imgTS();
+    MultidimArray<double> projImgTS;
+    MultidimArray<double> filteredImg;
+    MultidimArray<std::complex<double>> fftImg;
+    MultidimArray<double> freqMap;
+
+	projImgTS.initZeros(Ydim, Xdim);
+
+	size_t Ndim, counter = 0;
+	Ndim = tiltseriesmd.size();
+
+	MultidimArray<double> filteredTiltSeries;
+	filteredTiltSeries.initZeros(Ndim, Ydim, Xdim);
+
+	FOR_ALL_OBJECTS_IN_METADATA(tiltseriesmd)
+	{
+		objId = __iter.objId;
+		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
+
+        std::cout << fnTSimg << std::endl;
+        imgTS.read(fnTSimg);
+
+        FourierTransformer transformer1(FFTW_BACKWARD);
+        transformer1.FourierTransform(ptrImg, fftImg);
+		
+		std::cout << XSIZE(ptrImg) << std::endl; //1024
+        std::cout << YSIZE(ptrImg) << std::endl; // 1440
+        std::cout << ZSIZE(ptrImg) << std::endl; //41
+
+        std::cout << "11111111111111111111111111111111111" << std::endl;
+        std::cout << XSIZE(fftImg) << std::endl; //513
+        std::cout << YSIZE(fftImg) << std::endl; //1440
+        std::cout << ZSIZE(fftImg) << std::endl; //41
+
+
+		MultidimArray<double> auxOutput;
+		auxOutput.initZeros(Ydim, Xdim);
+
+        std::cout << "qwertyqwertyqwertyqwertyqwertyqwertyqwerty" << std::endl;
+
+        bandPassFilter(fftImg, auxOutput);
+        std::cout << "22222222222222222222222222222222222" << std::endl;
+
+
+        for (size_t i = 0; i < Ydim; ++i)
+        {
+            for (size_t j = 0; j < Xdim; ++j)
+            {
+				DIRECT_A3D_ELEM(filteredTiltSeries, counter, i, j) = DIRECT_A2D_ELEM(auxOutput, i, j);
+			}
+		}
+
+        std::cout << "3333333333333333333333333333333333333" << std::endl;
+
+		std::cout << counter << std::endl;
+		counter++;
+	}
+	
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_filter.mrc";
+
+	Image<double> saveImage;
+	saveImage() = filteredTiltSeries;
+	saveImage.write(outputFileNameFilteredVolume);
+	#endif
+
+
+	xSize = XSIZE(filteredTiltSeries);
+	ySize = YSIZE(filteredTiltSeries);
+	zSize = ZSIZE(filteredTiltSeries);
 
 	#ifdef DEBUG_DIM
 	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
@@ -758,19 +854,19 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	std::cout << "n " << NSIZE(inputTomo) << std::endl;
 	#endif
 
-	MultidimArray<double> volFiltered;
+	// MultidimArray<double> volFiltered;
 
- 	volFiltered = preprocessVolume(inputTomo);
+ 	// volFiltered = preprocessVolume(inputTomo);
 
-	#ifdef DEBUG_DIM
-	std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(volFiltered) << std::endl;
-	std::cout << "y " << YSIZE(volFiltered) << std::endl;
-	std::cout << "z " << ZSIZE(volFiltered) << std::endl;
-	std::cout << "n " << NSIZE(volFiltered) << std::endl;
-	#endif
+	// #ifdef DEBUG_DIM
+	// std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
+	// std::cout << "x " << XSIZE(volFiltered) << std::endl;
+	// std::cout << "y " << YSIZE(volFiltered) << std::endl;
+	// std::cout << "z " << ZSIZE(volFiltered) << std::endl;
+	// std::cout << "n " << NSIZE(volFiltered) << std::endl;
+	// #endif
 	
-	getHighContrastCoordinates(volFiltered);
+	getHighContrastCoordinates(filteredTiltSeries);
 
 	// clusterHighContrastCoordinates();
 

@@ -40,6 +40,7 @@
 #include <string>
 #include "symmetrize.h"
 #include <data/morphology.h>
+#include "core/xmipp_image_generic.h"
 
 #define VERBOSE_OUTPUT
 #define DEBUG
@@ -84,6 +85,15 @@ public:
 
     void readParams();
     void defineParams();
+
+    /**
+     * Bandpass filtering the input volume.
+     *
+     * @param
+     * @return
+     *
+    */
+    void bandPassFilter(MultidimArray<std::complex<double>> &fftImg, MultidimArray<double> &imgTofilter);
 
 
     /**
