@@ -141,7 +141,7 @@ private:
         addParamsLine("[--mask2 <mask=\"\">]	: Mask for volume 2");
         addParamsLine("[--maskSub <mask=\"\">]	: Mask for subtraction region");
         addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
-        addParamsLine("[--lambda <l=0>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
+        addParamsLine("[--lambda <l=1>]       	: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
         addParamsLine("[--radavg]				: Match the rotationally averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
         addParamsLine("[--computeEnergy]		: Do not compute the energy difference between each step");
         addParamsLine("[--saveV1 <structure=\"\"> ]	: Save subtraction intermediate files (vol1 filtered)");
