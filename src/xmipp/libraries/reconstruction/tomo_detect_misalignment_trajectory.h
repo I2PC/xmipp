@@ -81,6 +81,9 @@ private:
     std::vector<int> centerOfMassY;
     std::vector<int> centerOfMassZ;
 
+    /** Fourier Transform */
+    
+
 public:
 
     void readParams();
@@ -93,7 +96,7 @@ public:
      * @return
      *
     */
-    void bandPassFilter(MultidimArray<std::complex<double>> &fftImg, MultidimArray<double> &imgTofilter);
+    void bandPassFilter(MultidimArray<double> &origImg);
 
 
     /**
