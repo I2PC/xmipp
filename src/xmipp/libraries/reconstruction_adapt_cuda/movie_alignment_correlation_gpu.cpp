@@ -94,6 +94,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
+    gpu.value().updateMemoryInfo();
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
     this->loadFrame(movie, movie.firstObject(), frame);
@@ -110,6 +111,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &s) {
+    gpu.value().updateMemoryInfo();
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
         size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
         while ((size / (float)v) < minScale) {
@@ -133,6 +135,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
+    gpu.value().updateMemoryInfo();
     const auto reqSize = this->getRequestedPatchSize();
     Dimensions hint(reqSize.first, reqSize.second,
             orig.dim.z(), orig.dim.n());
@@ -261,7 +264,6 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
             && UserSettings::get(storage).find(*this,
                     getKey(minMemoryStr, dim, applyCrop), neededMB);
     // check available memory
-    gpu.value().updateMemoryInfo();
     res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
     if (res) {
         return core::optional<FFTSettings<T>>(
@@ -319,6 +321,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
+    assert(patchSettings.dim.x() >= this->localAlignmentControlPoints.x());
+    assert(patchSettings.dim.y() >= this->localAlignmentControlPoints.y());
     this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
     auto correlationSettings = this->getCorrelationSettings(patchSettings);
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
