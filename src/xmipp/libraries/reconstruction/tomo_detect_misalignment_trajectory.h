@@ -66,10 +66,11 @@ public:
     bool centerFeatures;
     
 private:
-    /** Input tomogram dimensions */
+    /** Input tilt-series dimensions */
     size_t xSize;
 	size_t ySize;
 	size_t zSize;
+    size_t nSize;
 
     /** Vectors for peaked coordinates components */
     std::vector<int> coordinates3Dx;
@@ -115,7 +116,7 @@ public:
      * @return
      *
     */
-    void getHighContrastCoordinates(MultidimArray<double> volFiltered);
+    void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     /**
      * Cluster 3d coordinates into its center of mass.

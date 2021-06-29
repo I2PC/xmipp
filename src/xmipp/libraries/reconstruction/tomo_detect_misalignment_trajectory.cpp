@@ -228,7 +228,7 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 }
 
 
-	void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> volFiltered)
+	void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
@@ -238,9 +238,9 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
     MultidimArray<double> labelCoordiantesMapSlice;
     MultidimArray<double> labelCoordiantesMap;
 	
-	for(size_t k = 0; k < zSize; ++k)
+	for(size_t k = 0; k < nSize; ++k)
 	{
-		std::cout << "-----------------------------------------------" << std::endl;
+		std::cout << "----------------------------------------------- Processing slide " << k << std::endl;
 		std::vector<int> sliceVector;
 		
 		// Calculate threshold value for each image of the series
@@ -248,7 +248,7 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
         {
             for(size_t i = 0; i < xSize; ++i)
             {
-                sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
+                sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 1, i ,j));
             }
         }
 
@@ -269,27 +269,31 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-		std::cout<<average<<std::endl;
- 		std::cout<<standardDeviation<<std::endl;
+        #ifdef VERBOSE_OUTPUT
+		std::cout << "Average: " << average << std::endl;
+ 		std::cout << "SD: " << standardDeviation << std::endl;
+		#endif
 
-        double threshold = average + sdThreshold * standardDeviation;
+        double threshold = average - sdThreshold * standardDeviation;
 
         #ifdef VERBOSE_OUTPUT
-        std::cout<< "Slice: " << k <<  " Threshold: " << threshold << std::endl;
+        std::cout<< "Threshold: " << threshold << std::endl;
         #endif
 
-        labelCoordiantesMap.initZeros(zSize, ySize, xSize);
+        labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
+
+		// *** test
 		int test = 0;
 
 		for(size_t j = 0; j < xSize; j++)
 		{
 			for(size_t i = 0; i < ySize; i++)
 			{
-				double value = DIRECT_A3D_ELEM(volFiltered, k, i, j);
+				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
-				if (value > threshold)
+				if (value < threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 					test += 1;
@@ -717,9 +721,10 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	auto t1 = high_resolution_clock::now();
 
 	std::cout << "Starting..." << std::endl;
-	size_t Xdim, Ydim, Zdim, Ndim;
+	size_t Xdim, Ydim;
 	
 	MetaData tiltseriesmd;
+    ImageGeneric tiltSeriesImages;
 
     if (fnVol.isMetaData())
     {
@@ -727,7 +732,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
     }
     else
     {
-        ImageGeneric tiltSeriesImages;
         tiltSeriesImages.read(fnVol, HEADER);
 
         size_t Zdim, Ndim;
@@ -747,11 +751,14 @@ void ProgTomoDetectMisalignmentTrajectory::run()
     }
 
 	#ifdef DEBUG_DIM
+	size_t checkXdim, checkYdim, checkZdim, checkNdim;
+	tiltSeriesImages.getDimensions(checkXdim, checkYdim, checkZdim, checkNdim);
+
 	std::cout << "Input tilt-series dimensions:" << std::endl;
-	std::cout << "x " << Xdim << std::endl;
-	std::cout << "y " << Ydim << std::endl;
-	std::cout << "z " << Zdim << std::endl;
-	std::cout << "n " << Ndim << std::endl;
+	std::cout << "x " << checkXdim << std::endl;
+	std::cout << "y " << checkYdim << std::endl;
+	std::cout << "z " << checkZdim << std::endl;
+	std::cout << "n " << checkNdim << std::endl;
 	#endif
 
 	FileName fnTSimg;
@@ -765,11 +772,11 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	projImgTS.initZeros(Ydim, Xdim);
 
-	size_t counter = 0;
+	size_t Ndim, counter = 0;
 	Ndim = tiltseriesmd.size();
 
 	MultidimArray<double> filteredTiltSeries;
-	filteredTiltSeries.initZeros(Ndim, Ydim, Xdim);
+	filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
 
 	FOR_ALL_OBJECTS_IN_METADATA(tiltseriesmd)
 	{
@@ -784,12 +791,11 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
         bandPassFilter(ptrImg);
 
-
         for (size_t i = 0; i < Ydim; ++i)
         {
             for (size_t j = 0; j < Xdim; ++j)
             {
-				DIRECT_A3D_ELEM(filteredTiltSeries, counter, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
+				DIRECT_NZYX_ELEM(filteredTiltSeries, counter, 0, i, j) = DIRECT_A2D_ELEM(ptrImg, i, j);
 			}
 		}
 
@@ -810,6 +816,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	xSize = XSIZE(filteredTiltSeries);
 	ySize = YSIZE(filteredTiltSeries);
 	zSize = ZSIZE(filteredTiltSeries);
+	nSize = NSIZE(filteredTiltSeries);
 
 
 	#ifdef DEBUG_DIM
