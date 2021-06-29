@@ -103,6 +103,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	transformer1.inverseFourierTransform(fftImg, origImg);
 }
 
+
 void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -429,6 +430,7 @@ void ProgTomoDetectMisalignmentTrajectory::clusterHighContrastCoordinates()
 	#endif
 }
 
+
 void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<double> volFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -659,6 +661,25 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	getHighContrastCoordinates(filteredTiltSeries);
+
+	MultidimArray<int> proyectedCoordinates;
+	proyectedCoordinates.initZeros(ySize, xSize);
+
+	for(size_t n; n < coordinates3Dn.size(); n++)
+	{
+		DIRECT_A2D_ELEM(proyectedCoordinates, coordinates3Dy[n], coordinates3Dx[n]) = 1;
+	}
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindexBis = fnOut.find_last_of(".");
+	std::string rawnameBis = fnOut.substr(0, lastindexBis);
+	std::string outputFileNameFilteredVolumeBis;
+    outputFileNameFilteredVolumeBis = rawnameBis + "_proyected.mrc";
+
+	Image<int> saveImageBis;
+	saveImageBis() = proyectedCoordinates;
+	saveImageBis.write(outputFileNameFilteredVolumeBis);
+	#endif
 
 	// clusterHighContrastCoordinates();
 
