@@ -321,8 +321,6 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, false);
     auto patchSettings = this->getPatchSettings(movieSettings);
-    assert(patchSettings.dim.x() >= this->localAlignmentControlPoints.x());
-    assert(patchSettings.dim.y() >= this->localAlignmentControlPoints.y());
     this->setNoOfPaches(movieSettings.dim, patchSettings.dim);
     auto correlationSettings = this->getCorrelationSettings(patchSettings);
     auto borders = getMovieBorders(globAlignment, this->verbose > 1);
@@ -335,6 +333,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
+    }
+    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x() 
+        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+            throw std::logic_error("More control points than patches. Decrease the number of control points.");
     }
 
     if ((movieSettings.dim.x() < patchSettings.dim.x())
