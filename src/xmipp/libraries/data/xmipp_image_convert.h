@@ -26,8 +26,12 @@
 #ifndef IMAGE_CONVERT_H_
 #define IMAGE_CONVERT_H_
 
-#include <core/xmipp_program.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image_generic.h"
 
+/**@defgroup ProgConvImg Image Convert
+   @ingroup DataLibrary */
+//@{
 typedef enum
 {
     MD2MD,
@@ -66,5 +70,5 @@ protected:
     void finishProcessing();
     void show();
 };//class ProgConvImg
-
+//@}
 #endif /* IMAGE_CONVERT_H_ */

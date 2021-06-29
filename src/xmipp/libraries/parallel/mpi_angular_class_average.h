@@ -27,19 +27,11 @@
 #define MPI_ANGULAR_CLASS_AVERAGE_H_
 
 //mpirun -np 5 xmipp_mpi_angular_class_average --nJobs 70
-#include <parallel/xmipp_mpi.h>
-#include <core/xmipp_funcs.h>
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
 
-#include <core/xmipp_fftw.h>
-#include <core/args.h>
-#include <core/xmipp_image.h>
-#include <data/filters.h>
-#include <data/mask.h>
-#include <data/polar.h>
-#include <data/basic_pca.h>
-#include <data/sampling.h>
+#include "parallel/xmipp_mpi.h"
+#include "core/metadata.h"
+#include "core/xmipp_image.h"
+#include "data/polar.h"
 
 //Tags already defined in xmipp
 //#define TAG_WORK                     0
@@ -73,6 +65,9 @@
 #define split1 1
 #define split2 2
 
+/// @defgroup MpiProgAngularClassAverage MPI Angular Class Average
+/// @ingroup ParallelLibrary
+//@{
 class MpiProgAngularClassAverage : public XmippMpiProgram
 {
 public:
@@ -281,7 +276,7 @@ public:
     void applyWienerFilter(MultidimArray<double> &img);
 
 };
-
+//@}
 #endif /* MPI_ANGULAR_CLASS_AVERAGE_H_ */
 
 

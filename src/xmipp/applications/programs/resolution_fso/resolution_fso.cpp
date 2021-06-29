@@ -28,7 +28,7 @@
 
 int main(int argc, char **argv)
 {
-	ProgResolutionDirectionalFsc program;
+    ProgFSO program;
     program.read(argc, argv);
     return program.tryRun();
 }

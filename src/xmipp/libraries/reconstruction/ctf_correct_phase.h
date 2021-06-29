@@ -26,14 +26,10 @@
 #ifndef CTF_CORRECT_PHASE_H_
 #define CTF_CORRECT_PHASE_H_
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_funcs.h>
-#include <core/metadata.h>
-#include <core/xmipp_fftw.h>
-#include <core/args.h>
-#include <data/ctf.h>
-#include <core/xmipp_image.h>
-#include <data/filters.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_fftw.h"
+#include "data/ctf.h"
+#include "core/xmipp_image.h"
 
 /**@defgroup Correct CTF Phase flip in 2D particles
    @ingroup ReconsLibrary */

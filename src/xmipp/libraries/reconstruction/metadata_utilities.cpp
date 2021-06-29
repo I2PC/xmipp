@@ -23,15 +23,11 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/argsparser.h>
-#include <core/xmipp_program.h>
-#include <string.h>
-#include <core/metadata.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <iostream>
-#include <fstream>
-#include <core/xmipp_funcs.h>
+#include "core/xmipp_program.h"
+#include "core/metadata.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_image_macros.h"
+#include "core/xmipp_funcs.h"
 
 class ProgMetadataUtilities: public XmippProgram
 {
@@ -392,6 +388,12 @@ protected:
 
     void doQuery()
     {
+    	if (mdIn.size()==0)
+    	{
+    		md2.clear();
+    		return;
+    	}
+
         operation = getParam("--query", 0);
         String expression;
 

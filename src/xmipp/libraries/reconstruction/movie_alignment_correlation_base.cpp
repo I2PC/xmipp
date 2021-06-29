@@ -24,7 +24,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "reconstruction/movie_alignment_correlation_base.h"
+#include "core/xmipp_image_generic.h"
 
 template<typename T>
 void AProgMovieAlignmentCorrelation<T>::readParams() {
@@ -82,6 +84,12 @@ void AProgMovieAlignmentCorrelation<T>::checkSettings() {
         REPORT_ERROR(ERR_ARG_INCORRECT, "Summing frames that were not aligned is not allowed. "
                 "Check the intervals of the alignment and summation "
                 "(--frameRange and --frameRangeSum).");
+    }
+    if (getScaleFactor() >= 1) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "The correlation scale factor is bigger than one. "
+                "Check that the sampling rate (--sampling) and maximal resolution to align "
+                "(--maxResForCorrelation) are correctly set. For current sampling, you can "
+                "use maximal resolution of " + std::to_string(this->Ts * 8 * getC()) + " or higher.");
     }
 }
 

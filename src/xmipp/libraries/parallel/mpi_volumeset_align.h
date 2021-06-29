@@ -26,10 +26,13 @@
  *  e-mail address 'xmipp@cnb.uam.es'
  ***************************************************************************/
 
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/volumeset_align.h>
 #include <memory>
+#include "parallel/xmipp_mpi.h"
+#include "reconstruction/volumeset_align.h"
 
+/**@defgroup MpiProgVolumeSetAlign MPI Volume Set Align
+ @ingroup Programs */
+//@{
 
 class MpiProgVolumeSetAlign: public ProgVolumeSetAlign
 {
@@ -60,4 +63,5 @@ public:
     //void read(int arg1, char **arg2);
     void read(int argc, char ** argv, bool reportErrors = true) override;
 }
+//@}
 ;//end of class MpiProgVolumeSetAlign

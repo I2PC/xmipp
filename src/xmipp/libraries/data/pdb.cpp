@@ -23,14 +23,96 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <fstream>
+#include <string>
 #include "pdb.h"
-#include "fstream"
-#include <core/args.h>
-#include <core/matrix2d.h>
-#include <core/xmipp_fftw.h>
-#include <data/mask.h>
-#include <data/integration.h>
-#include <data/numerical_tools.h>
+#include "core/matrix2d.h"
+#include "core/multidim_array.h"
+#include "core/transformations.h"
+#include "core/xmipp_fftw.h"
+#include "data/fourier_projection.h"
+#include "data/integration.h"
+#include "data/mask.h"
+#include "data/numerical_tools.h"
+
+void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int &numberOfAtoms, pdbInfo &at_pos)
+{
+	//Open the pdb file
+	std::ifstream f2parse;
+	f2parse.open(fn_pdb.c_str());
+
+	numberOfAtoms = 0;
+
+	while (!f2parse.eof())
+	{
+		std::string line;
+		getline(f2parse, line);
+
+		// The type of record (line) is defined in the first 6 characters of the pdb
+		std::string typeOfline = line.substr(0,4);
+
+		if ( (typeOfline == "ATOM") || (typeOfline == "HETA"))
+		{
+			// Type of Atom
+			std::string at;
+                        try
+                        {
+			    at = line.substr(13,2);
+                        }catch (const std::out_of_range& oor)
+                        {
+                            std::cerr << "Out of Range error: One of the pdb lines failed selecting the atom type" << '\n';
+                        }
+
+			if (at == typeOfAtom)
+			{
+				// Atom positions
+				numberOfAtoms++;
+				double x = textToFloat(line.substr(30,8));
+				double y = textToFloat(line.substr(38,8));
+				double z = textToFloat(line.substr(46,8));
+
+				// storing coordinates
+				at_pos.x.push_back(x);
+				at_pos.y.push_back(y);
+				at_pos.z.push_back(z);
+
+                                // Residue Number
+				int resi = (int) textToFloat(line.substr(23,5));
+				at_pos.residue.push_back(resi);
+
+				// Getting the bfactor = 8pi^2*u
+				double bfactorRad = sqrt(textToFloat(line.substr(60,6))/(8*PI*PI));
+				at_pos.b.push_back(bfactorRad);
+
+                                // Covalent radius of the atom
+				double rad = atomCovalentRadius(line.substr(13,2));
+				at_pos.atomCovRad.push_back(rad);
+			}
+		}
+	}
+}
+
+
+
+double AtomInterpolator::volumeAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return volumeProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
+
+double AtomInterpolator::projectionAtDistance(char atom, double r) const
+{
+    int idx=getAtomIndex(atom);
+    if (r>radii[idx])
+        return 0;
+    else
+        return projectionProfileCoefficients[idx].
+               interpolatedElementBSpline1D(r*M,3);
+}
 
 /* Atom charge ------------------------------------------------------------- */
 int atomCharge(const std::string &atom)
@@ -124,6 +206,30 @@ double atomRadius(const std::string &atom)
     }
 }
 
+/* Atom Covalent radius ------------------------------------------------------------- */
+double atomCovalentRadius(const std::string &atom)
+{
+    switch (atom[0])
+    {
+    case 'H':
+        return 0.38;
+    case 'C':
+        return 0.77;
+    case 'N':
+        return 0.75;
+    case 'O':
+        return 0.73;
+    case 'P':
+        return 1.06;
+    case 'S':
+        return 1.02;
+    case 'F': // Iron
+        return 1.25;
+    default:
+        return 0;
+    }
+}
+
 /* Compute geometry -------------------------------------------------------- */
 void computePDBgeometry(const std::string &fnPDB,
                         Matrix1D<double> &centerOfMass,
@@ -132,8 +238,8 @@ void computePDBgeometry(const std::string &fnPDB,
 {
     // Initialization
     centerOfMass.initZeros(3);
-    limit0.initZeros(3);
-    limitF.initZeros(3);
+    limit0.resizeNoCopy(3);
+    limitF.resizeNoCopy(3);
     limit0.initConstant(1e30);
     limitF.initConstant(-1e30);
     double total_mass = 0;
@@ -601,7 +707,6 @@ double electronFormFactorFourier(double f, const Matrix1D<double> &descriptors)
 
 /* Electron form factor in real space -------------------------------------- */
 /* We know the transform pair
-
    sqrt(pi/b)*exp(-x^2/(4*b)) <----> exp(-b*W^2)
    
    We also know that 

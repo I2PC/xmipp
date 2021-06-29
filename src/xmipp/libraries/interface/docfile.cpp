@@ -26,7 +26,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstdio>
-
+#include "core/transformations.h"
 #include "docfile.h"
 #include <core/args.h>
 

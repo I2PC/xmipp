@@ -1,4 +1,5 @@
 #include <core/xmipp_image.h>
+#include "core/transformations.h"
 #include <data/filters.h>
 #include <core/xmipp_fftw.h>
 #include <iostream>
@@ -11,7 +12,7 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
 
         mulDouble1.resize(3,3);
         DIRECT_A2D_ELEM(mulDouble1,0,0) = 1;
@@ -173,32 +174,27 @@ TEST_F( FiltersTest, regionGrowing3DEqualValue)
 {
     Image<double> img;
     MultidimArray<int> img_out;
-	img().initZeros(50,50,50);
+    img().initZeros(50,50,50);
 
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(img())
-	{
-		if ((i>24))
-			A3D_ELEM(img(),k,i,j) = i+j;
-	}
+    FOR_ALL_ELEMENTS_IN_ARRAY3D(img())
+    {
+        if ((i>24))
+            A3D_ELEM(img(),k,i,j) = i+j;
+    }
 
     double result;
     int Nzeros=0;
     regionGrowing3DEqualValue(img(), img_out, 0);
 
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(img_out)
-	{
-		if (A3D_ELEM(img_out,k,i,j) > 0)
-			++Nzeros;
-	}
+    FOR_ALL_ELEMENTS_IN_ARRAY3D(img_out)
+    {
+        if (A3D_ELEM(img_out,k,i,j) > 0)
+            ++Nzeros;
+    }
 
     if (Nzeros == int (25*50*50))
-    	result = 1.;
+        result = 1.;
 
     EXPECT_DOUBLE_EQ(result,1.);
 
-}
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

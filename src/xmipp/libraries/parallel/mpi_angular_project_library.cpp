@@ -33,6 +33,7 @@
 #include <fstream>
 #include <iomanip>
 #include <random>
+#include "core/xmipp_image_generic.h"
 
 #include <reconstruction/angular_project_library.h>
 

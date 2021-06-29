@@ -23,11 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/metadata.h>
-#include <core/args.h>
-#include <core/xmipp_program.h>
-#include <data/numerical_tools.h>
-#include <classification/ahc_classifier.h>
+#include "core/matrix2d.h"
+#include "core/metadata.h"
+#include "core/metadata_sql.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_program.h"
+#include "data/numerical_tools.h"
+#include "classification/ahc_classifier.h"
 
 class ProgMetadataSplit: public XmippProgram
 {

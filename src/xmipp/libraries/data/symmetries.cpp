@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include <stdio.h>
-
+#include <limits>
 #include "symmetries.h"
 
 // Symmetrize_crystal_vectors==========================================
@@ -2292,7 +2292,7 @@ double interpolatedElement3DHelical(const MultidimArray<double> &Vin, double x, 
 }
 
 void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &Vin, double zHelical, double rotHelical,
-                      double rot0, MultidimArray<int> *mask, bool dihedral, double heightFraction)
+                      double rot0, MultidimArray<int> *mask, bool dihedral, double heightFraction, int Cn)
 {
 	int zFirst=FIRST_XMIPP_INDEX(round(heightFraction*ZSIZE(Vin)));
 	int zLast=LAST_XMIPP_INDEX(round(heightFraction*ZSIZE(Vin)));
@@ -2302,6 +2302,16 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
     double sinRotHelical, cosRotHelical;
     sincos(rotHelical,&sinRotHelical,&cosRotHelical);
     int Llength=ceil(ZSIZE(Vin)*izHelical);
+
+    Matrix1D<double> sinCn, cosCn;
+    sinCn.initZeros(Cn);
+    cosCn.initZeros(Cn);
+	for (int n=0; n<Cn; ++n)
+	{
+		VEC_ELEM(sinCn,n)=sin(n*TWOPI/Cn);
+		VEC_ELEM(cosCn,n)=cos(n*TWOPI/Cn);
+	}
+
     FOR_ALL_ELEMENTS_IN_ARRAY3D(Vin)
     {
         if (mask!=NULL && !A3D_ELEM(*mask,k,i,j))
@@ -2324,10 +2334,24 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 				jp*=rho;
 				finalValue+=interpolatedElement3DHelical(Vin,jp,ip,kp,zHelical,sinRotHelical,cosRotHelical);
 				L+=1.0;
+				for (int n=1; n<Cn; ++n)
+				{
+					double jpp=VEC_ELEM(cosCn,n)*jp-VEC_ELEM(sinCn,n)*ip;
+					double ipp=VEC_ELEM(sinCn,n)*jp+VEC_ELEM(cosCn,n)*ip;
+					finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,kp,zHelical,sinRotHelical,cosRotHelical);
+					L+=1.0;
+				}
 				if (dihedral)
 				{
 					finalValue+=interpolatedElement3DHelical(Vin,jp,-ip,-kp,zHelical,sinRotHelical,cosRotHelical);
 					L+=1.0;
+					for (int n=1; n<Cn; ++n)
+					{
+						double jpp=VEC_ELEM(cosCn,n)*(jp)-VEC_ELEM(sinCn,n)*(-ip);
+						double ipp=VEC_ELEM(sinCn,n)*(jp)+VEC_ELEM(cosCn,n)*(-ip);
+						finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,-kp,zHelical,sinRotHelical,cosRotHelical);
+						L+=1.0;
+					}
 				}
             }
         }

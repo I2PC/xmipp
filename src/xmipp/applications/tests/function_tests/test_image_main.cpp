@@ -5,6 +5,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <core/metadata.h>
+#include "core/transformations.h"
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 // This test is named "Size", and belongs to the "MetadataTest"
 // test case.
@@ -18,7 +19,7 @@ protected:
         //get example images/staks
         xmippPath = getXmippPath();
         if (chdir(((String)(xmippPath + "/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         // testBaseName = xmippPath + "/resources/test";
         imageName = "image/singleImage.spi";
         stackName = "image/smallStack.stk";
@@ -418,10 +419,4 @@ TEST_F( ImageTest, checkImageFileSize)
     EXPECT_TRUE(checkImageFileSize("image/smallVolumeStack.stk"));
     EXPECT_FALSE(checkImageFileSize("image/smallVolumeStackCorrupted.stk"));
     XMIPP_CATCH
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

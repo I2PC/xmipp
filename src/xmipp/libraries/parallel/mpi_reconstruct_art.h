@@ -26,9 +26,12 @@
 #ifndef MPI_RECONSTRUCT_ART_H_
 #define MPI_RECONSTRUCT_ART_H_
 
+#include "reconstruction/reconstruct_art.h"
 #include "xmipp_mpi.h"
-#include <reconstruction/reconstruct_art.h>
 
+/**@defgroup ProgMPIReconsArt ProgMPIReconsArt
+   @ingroup Programs */
+//@{
 class ProgMPIReconsArt: public ProgReconsART, public XmippMpiProgram
 {
 public:
@@ -62,5 +65,5 @@ USWtime_t;
 
 // Gets User and System times for use with MPI
 void uswtime(USWtime_t *tm);
-
+//@}
 #endif /* MPI_RECONSTRUCT_ART_H_ */

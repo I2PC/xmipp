@@ -23,7 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "xmippmodule.h"
-
+#include "core/transformations_defines.h"
+#include "core/metadata_sql.h"
+#include "core/metadata_writemode.h"
+#include "core/xmipp_datatype.h"
+#include "core/xmipp_color.h"
+#include "core/xmipp_image_base.h"
+#include "core/axis_view.h"
+#include "core/xmipp_random_mode.h"
 
 /***************************************************************/
 /*                    MDLabels constants                       */
@@ -104,6 +111,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_AVG_CHANGES_CLASSES);
 
     ADD_CONST(MDL_BGMEAN);
+    ADD_CONST(MDL_BFACTOR);
     ADD_CONST(MDL_BLOCK_NUMBER);
 
     ADD_CONST(MDL_CLASS_COUNT);
@@ -331,6 +339,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_REF);
     ADD_CONST(MDL_REF2);
     ADD_CONST(MDL_REFMD);
+    ADD_CONST(MDL_RESIDUE);
     ADD_CONST(MDL_RESOLUTION_DPR);
     ADD_CONST(MDL_RESOLUTION_ERRORL2);
     ADD_CONST(MDL_RESOLUTION_FRC);
@@ -338,10 +347,12 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_RESOLUTION_FREQ);
     ADD_CONST(MDL_RESOLUTION_FREQ2);
     ADD_CONST(MDL_RESOLUTION_FREQREAL);
+    ADD_CONST(MDL_RESOLUTION_FSO);
     ADD_CONST(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR);
     ADD_CONST(MDL_RESOLUTION_SSNR);
     ADD_CONST(MDL_RESOLUTION_STRUCTURE_FACTOR);
     ADD_CONST(MDL_RESOLUTION_RFACTOR);
+    ADD_CONST(MDL_RESOLUTION_LOCAL_RESIDUE);
 
     ADD_CONST(MDL_SAMPLINGRATE);
     ADD_CONST(MDL_SAMPLINGRATE_ORIGINAL);

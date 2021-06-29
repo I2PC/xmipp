@@ -27,6 +27,7 @@
 #include "npe.h"
 #include <core/matrix2d.h>
 #include <core/matrix1d.h>
+#include "core/linear_system_helper.h"
 
 void NPE::setSpecificParameters(int k){
 	this->k=k;

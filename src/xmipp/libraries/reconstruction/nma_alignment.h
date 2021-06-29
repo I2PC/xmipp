@@ -25,14 +25,12 @@
 #ifndef _PROG_NMA_ALIGNMENT
 #define _PROG_NMA_ALIGNMENT
 
-#include <vector>
-#include <condor/ObjectiveFunction.h>
-#include <condor/Vector.h>
+#include "condor/ObjectiveFunction.h"
+#include "core/matrix1d.h"
+#include "core/metadata.h"
+#include "core/xmipp_metadata_program.h"
 
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
-#include "volume_from_pdb.h"
+class ProgPdbConverter;
 
 /**@defgroup NMAAlignment Alignment with Normal modes
    @ingroup ReconsLibrary */

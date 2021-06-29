@@ -40,7 +40,7 @@ protected:
 #define len 128
         //get example down1_42_Periodogramavg.psd
         if (chdir(((String)(getXmippPath() + (String)"/resources/test/filters")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
         Image<double> img;
         img.read("KLH.tif");
         im = img();
@@ -62,11 +62,3 @@ TEST_F(WaveletTests, phaseCongMono)
 
     phaseCongMono(im,Or,Ph,Energy,lowPass,Radius,H,nScale,minWaveLength,mult,sigmaOnf);
 }
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-
-

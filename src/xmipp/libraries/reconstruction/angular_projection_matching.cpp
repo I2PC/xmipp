@@ -25,8 +25,10 @@
  ***************************************************************************/
 
 #include "angular_projection_matching.h"
-
-#include <core/xmipp_image.h>
+#include "core/xmipp_image.h"
+#include "data/fourier_projection.h"
+#include "data/ctf.h"
+#include "data/filters.h"
 
 //#define DEBUG
 //#define TIMING

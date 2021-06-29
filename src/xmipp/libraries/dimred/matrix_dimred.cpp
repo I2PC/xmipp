@@ -101,9 +101,13 @@ void ProgDimRed::defineParams()
     addParamsLine("       where <method>");
     addParamsLine("                  CorrDim: Correlation dimension");
     addParamsLine("                  MLE: Maximum Likelihood Estimate");
-    addParamsLine("  [--saveMapping <fn=\"\">] : Save mapping if available (PCA, LLTSA, LPP, pPCA, NPE) so that it can be reused later (Y=X*M)");
-    addParamsLine("                            :+X is the input matrix with individuals as rows");
-    addParamsLine("                            :+Y is the output matrix with individuals as rows");
+    addParamsLine("  [--saveMapping <fn=\"\">] : Save mapping if available (PCA, LLTSA, LPP, pPCA, NPE) so that it can be reused later (Y=X*M) (use the flag --more for details)");
+    addParamsLine("                            :+Y is the output matrix with individuals as rows, M is the mapping matrix");
+    addParamsLine("                            :+X is the input matrix with individuals as rows, with the mean subtracted from the columns");
+    addParamsLine("                            :+Python code to generate X:");
+    addParamsLine("                            :+    from numpy import loadtxt, mean, outer, ones");
+    addParamsLine("                            :+    X_original = loadtxt('data.txt')");
+    addParamsLine("                            :+    X = X_original - outer(ones(X_original.shape[0]),mean(X_original, axis=0))");
 }
 
 // Produce Side info  ====================================================================

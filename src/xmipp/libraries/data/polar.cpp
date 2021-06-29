@@ -23,6 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 #include "polar.h"
+#include "core/transformations.h"
 
 Polar_fftw_plans::~Polar_fftw_plans()
 {
@@ -51,6 +52,36 @@ void fourierTransformRings(Polar<double> & in,
 	out.mode = in.mode;
 	out.ring_radius = in.ring_radius;
 }
+
+template<typename T>
+void Polar<T>::ensureAngleCache(int firstRing, int lastRing) {
+    if ((m_lastFirstRing != firstRing) || (m_lastLastRing != lastRing) || (m_lastMode != mode)) {
+        // update info
+        m_lastFirstRing = firstRing;
+        m_lastLastRing = lastRing;
+        m_lastMode = mode;
+        auto noOfRings = getNoOfRings(firstRing, lastRing);
+        m_lastSinRadius.resize(noOfRings);
+        m_lastCosRadius.resize(noOfRings);
+        double angle = m_lastMode == FULL_CIRCLES ? TWOPI : PI;
+
+        for (int r = 0; r < noOfRings; ++r) {
+            float radius = r + firstRing;
+            auto noOfSamples = getNoOfSamples(angle, radius);
+            auto &s = m_lastSinRadius.at(r);
+            auto &c = m_lastCosRadius.at(r);
+            s.resize(noOfSamples);
+            c.resize(noOfSamples);
+            float dphi = angle / (float)noOfSamples;
+            for (int i = 0; i < noOfSamples; ++i) {
+                float phi = i * dphi;
+                s.at(i) = sin(phi) * radius;
+                c.at(i) = cos(phi) * radius;
+            }
+        }
+    }
+}
+
 
 void inverseFourierTransformRings(Polar<std::complex<double> > & in,
 		Polar<double> &out, Polar_fftw_plans &plans, bool conjugated) {
@@ -116,29 +147,39 @@ void rotationalCorrelation(const Polar<std::complex<double> > &M1,
 }
 
 // Compute the Polar Fourier transform --------------------------
+
+template<bool NORMALIZE>
+void polarFourierTransform(const MultidimArray<double> &in,
+        Polar<double> &inAux,
+        Polar<std::complex<double> > &out, bool conjugated, int first_ring,
+        int last_ring, Polar_fftw_plans *&plans, int BsplineOrder) {
+    if (BsplineOrder == 1)
+        inAux.getPolarFromCartesianBSpline(in, first_ring, last_ring, 1);
+    else {
+        MultidimArray<double> Maux;
+        produceSplineCoefficients(3, Maux, in);
+        inAux.getPolarFromCartesianBSpline(Maux, first_ring, last_ring,
+                BsplineOrder);
+    }
+    if (NORMALIZE) {
+        double mean, stddev;
+        inAux.computeAverageAndStddev(mean, stddev);
+        inAux.normalize(mean, stddev);
+    }
+    if (plans == NULL) {
+        plans = new Polar_fftw_plans();
+        inAux.calculateFftwPlans(*plans);
+    }
+    fourierTransformRings(inAux, out, *plans, conjugated);
+}
+
+
 template<bool NORMALIZE>
 void polarFourierTransform(const MultidimArray<double> &in,
 		Polar<std::complex<double> > &out, bool conjugated, int first_ring,
 		int last_ring, Polar_fftw_plans *&plans, int BsplineOrder) {
 	Polar<double> polarIn;
-	if (BsplineOrder == 1)
-		polarIn.getPolarFromCartesianBSpline(in, first_ring, last_ring, 1);
-	else {
-		MultidimArray<double> Maux;
-		produceSplineCoefficients(3, Maux, in);
-		polarIn.getPolarFromCartesianBSpline(Maux, first_ring, last_ring,
-				BsplineOrder);
-	}
-	if (NORMALIZE) {
-        double mean, stddev;
-        polarIn.computeAverageAndStddev(mean, stddev);
-        polarIn.normalize(mean, stddev);
-	}
-	if (plans == NULL) {
-		plans = new Polar_fftw_plans();
-		polarIn.calculateFftwPlans(*plans);
-	}
-	fourierTransformRings(polarIn, out, *plans, conjugated);
+	polarFourierTransform<NORMALIZE>(in, polarIn, out, conjugated, first_ring, last_ring, plans, BsplineOrder);
 }
 template void polarFourierTransform<true>(const MultidimArray<double> &in,
         Polar<std::complex<double> > &out, bool conjugated, int first_ring,

@@ -25,10 +25,12 @@
 #ifndef _PROG_VOLUMESET_ALIGN
 #define _PROG_VOLUMESET_ALIGN
 
-#include <core/xmipp_program.h>
-#include <core/metadata.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_metadata_program.h"
+#include "core/matrix1d.h"
 
+/**@defgroup ProgVolumeSetAlign Volume Set Align
+   @ingroup ReconsLibrary */
+//@{
 class ProgVolumeSetAlign: public XmippMetadataProgram
 {
 public:
@@ -53,6 +55,9 @@ public:
     double frm_freq;
     int frm_shift;
     
+    // mask
+    FileName fnMask;
+
     // for fetching the rigid-body alignment parameters for each volume
     FILE *fnAnglesAndShifts;
     float Matrix_Angles_Shifts[6];
@@ -106,6 +111,6 @@ private:
     void computeFitness();
    
 };
-
+//@}
 #endif
 

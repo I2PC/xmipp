@@ -27,14 +27,14 @@
 #ifndef TRANSFORMGEOMETRY_H
 #define TRANSFORMGEOMETRY_H
 
-#include <core/transformations.h>
-#include <core/xmipp_image_generic.h>
-#include <core/metadata_extension.h>
-#include <core/xmipp_fftw.h>
-#include <core/xmipp_program.h>
-#include <core/matrix2d.h>
+#include "core/matrix2d.h"
+#include "core/xmipp_metadata_program.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_generic.h"
 
-
+/**@defgroup ProgTransformGeometry Transform Geometry
+   @ingroup DataLibrary */
+//@{
 class ProgTransformGeometry: public XmippMetadataProgram
 {
 public:
@@ -58,4 +58,5 @@ protected:
     void preProcess();
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 };
+//@}
 #endif //TRANSFORMGEOMETRY_H

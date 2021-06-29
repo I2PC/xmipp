@@ -23,11 +23,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <algorithm>
 #include "mpi_classify_CL2D.h"
-#include <data/filters.h>
-#include <data/mask.h>
-#include <data/polar.h>
-#include <core/xmipp_image_generic.h>
+#include "xmipp_mpi.h"
+#include "core/transformations.h"
+#include "core/metadata_extension.h"
+#include "data/filters.h"
+#include "data/mask.h"
 
 // Pointer to parameters
 ProgClassifyCL2D *prm = NULL;
@@ -217,11 +219,14 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
         I.setXmippOrigin();
     }
 
-    Matrix2D<double> ARS, ASR, R(3, 3);
+    Matrix2D<double> ARS, ASR, R(3, 3), INV;
     ARS.initIdentity(3);
     ASR = ARS;
+    INV = ARS; // avoid creating a new transformation matrix per applyGeometry call
     MultidimArray<double> IauxSR = I, IauxRS = I;
+//    Mcorr.resizeNoCopy(I);
     Polar<std::complex<double> > polarFourierI;
+    corrAux.transformer1.FourierTransform(P, corrAux.FFT1, false);
 #ifdef DEBUG_MORE
     Image<double> save2;
     save2()=P;
@@ -240,10 +245,11 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 			if (((shiftXSR > SHIFT_THRESHOLD) || (shiftXSR < (-SHIFT_THRESHOLD))) ||
 				((shiftYSR > SHIFT_THRESHOLD) || (shiftYSR < (-SHIFT_THRESHOLD))))
 			{
-				bestShift(P, IauxSR, shiftXSR, shiftYSR, corrAux);
+				bestShift(P, corrAux.FFT1, IauxSR, shiftXSR, shiftYSR, corrAux);
 				MAT_ELEM(ASR,0,2) += shiftXSR;
 				MAT_ELEM(ASR,1,2) += shiftYSR;
-				applyGeometry(LINEAR, IauxSR, I, ASR, IS_NOT_INV, WRAP);
+				ASR.inv(INV);
+				applyGeometry(LINEAR, IauxSR, I, INV, IS_INV, WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -255,13 +261,14 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 			SPEED_UP_tempsDouble;
 			if (bestRotSR > ROTATE_THRESHOLD)
 			{
-				polarFourierTransform<true>(IauxSR, polarFourierI, true,
+				polarFourierTransform<true>(IauxSR, fitBasic_aux, polarFourierI, true,
 												XSIZE(P) / 5, XSIZE(P) / 2-2, plans, 1);
 
 				bestRotSR = best_rotation(polarFourierP, polarFourierI, rotAux);
 				rotation2DMatrix(bestRotSR, R);
 				M3x3_BY_M3x3(ASR,R,ASR);
-				applyGeometry(LINEAR, IauxSR, I, ASR, IS_NOT_INV, WRAP);
+				ASR.inv(INV);
+				applyGeometry(LINEAR, IauxSR, I, INV, IS_INV, WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -273,13 +280,14 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 			// Rotate then shift
 			if (bestRotRS > ROTATE_THRESHOLD)
 			{
-				polarFourierTransform<true>(IauxRS, polarFourierI, true,
+				polarFourierTransform<true>(IauxRS, fitBasic_aux, polarFourierI, true,
 												XSIZE(P) / 5, XSIZE(P) / 2-2, plans, 1);
 
 				bestRotRS = best_rotation(polarFourierP, polarFourierI, rotAux);
 				rotation2DMatrix(bestRotRS, R);
 				M3x3_BY_M3x3(ARS,R,ARS);
-				applyGeometry(LINEAR, IauxRS, I, ARS, IS_NOT_INV, WRAP);
+				ARS.inv(INV);
+				applyGeometry(LINEAR, IauxRS, I, INV, IS_INV, WRAP);
 			}
 
 #ifdef DEBUG_MORE
@@ -291,10 +299,11 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 			if (((shiftXRS > SHIFT_THRESHOLD) || (shiftXRS < (-SHIFT_THRESHOLD))) ||
 				((shiftYRS > SHIFT_THRESHOLD) || (shiftYRS < (-SHIFT_THRESHOLD))))
 			{
-				bestShift(P, IauxRS, shiftXRS, shiftYRS, corrAux);
+				bestShift(P, corrAux.FFT1, IauxRS, shiftXRS, shiftYRS, corrAux);
 				MAT_ELEM(ARS,0,2) += shiftXRS;
 				MAT_ELEM(ARS,1,2) += shiftYRS;
-				applyGeometry(LINEAR, IauxRS, I, ARS, IS_NOT_INV, WRAP);
+				ARS.inv(INV);
+				applyGeometry(LINEAR, IauxRS, I, INV, IS_INV, WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -1102,7 +1111,7 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
             double avgSimilarity = corrSum / Nimgs;
             if (avgSimilarity==0)
             {
-            	std::cerr << colorString("The average correlation is 0.0, make sure that the maximum allowed shift is enough\n",RED);
+            	std::cerr << "The average correlation is 0.0, make sure that the maximum allowed shift is enough\n";
                    
             	//MPI_Abort(MPI_COMM_WORLD,ERR_UNCLASSIFIED);
                 finish=1;

@@ -25,6 +25,7 @@
 
 #include "bspline_geo_transformer.h"
 #include "data/filters.h"
+#include "core/transformations.h"
 
 template<typename T>
 void BSplineGeoTransformer<T>::initialize(bool doAllocation) {

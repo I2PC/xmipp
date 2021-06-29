@@ -29,6 +29,10 @@
 #include "dimensions.h"
 #include "core/matrix1d.h"
 
+/**@defgroup BSplineGrid BSplineGrid
+   @ingroup DataLibrary */
+//@{
+
 template<typename T>
 class BSplineGrid {
 public:
@@ -52,5 +56,5 @@ private:
     Matrix1D<T> coeffsX;
     Matrix1D<T> coeffsY;
 };
-
+//@}
 #endif /* LIBRARIES_DATA_BSPLINE_GRID_H_ */

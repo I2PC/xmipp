@@ -23,8 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <data/phantom.h>
-#include <core/xmipp_program.h>
+#include "data/phantom.h"
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 class ProgPhantomCreate: public XmippProgram
 {

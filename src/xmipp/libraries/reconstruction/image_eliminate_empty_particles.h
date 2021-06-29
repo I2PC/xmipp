@@ -28,6 +28,9 @@
 #include <core/xmipp_program.h>
 #include <data/fourier_filter.h>
 
+/**@defgroup ProgEliminateEmptyParticles Eliminate Empty Particles
+   @ingroup ReconsLibrary */
+//@{
 class ProgEliminateEmptyParticles: public XmippProgram
 {
 public:
@@ -65,5 +68,5 @@ public:
     /// Execute
     void run();
 };
-
+//@}
 #endif

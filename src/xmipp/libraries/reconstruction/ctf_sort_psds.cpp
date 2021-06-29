@@ -22,15 +22,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <vector>
 #include "ctf_sort_psds.h"
+#include "data/ctf.h"
 #include "ctf_enhance_psd.h"
-#include "ctf_estimate_from_micrograph.h"
-#include <core/args.h>
-#include <data/filters.h>
-#include <core/transformations.h>
-#include <core/histogram.h>
-
+#include "core/transformations.h"
+#include "core/histogram.h"
+#include "core/xmipp_image.h"
+#include "core/xmipp_image_generic.h"
 
 /* Constructor ------------------------------------------------------------- */
 ProgPSDSort::ProgPSDSort()

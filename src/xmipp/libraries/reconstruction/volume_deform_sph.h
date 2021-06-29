@@ -26,8 +26,8 @@
 
 #include <vector>
 
-#include <core/xmipp_program.h>
-#include <core/xmipp_image.h>
+#include "core/xmipp_program.h"
+#include "core/xmipp_image.h"
 
 /**@defgroup VolDeformSph Deform a volume using spherical harmonics
    @ingroup ReconsLibrary */

@@ -33,6 +33,9 @@
 #include "fftwT.h"
 #include "data/fft_settings_new.h"
 
+/**@defgroup PSDEstimator PSD Estimator
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class PSDEstimator {
 public:
@@ -68,5 +71,5 @@ public:
 
 
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_PSD_ESTIMATOR_H_ */

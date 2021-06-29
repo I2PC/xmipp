@@ -24,15 +24,13 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "ctf_estimate_from_psd_fast.h"
-#include "ctf_estimate_from_psd.h"
-#include "ctf_enhance_psd.h"
-
-#include <core/args.h>
-#include <core/histogram.h>
-#include <data/filters.h>
-#include <core/xmipp_fft.h>
+#include <fstream>
 #include <numeric>
+#include "ctf_estimate_from_psd.h"
+#include "ctf_estimate_from_psd_fast.h"
+#include "data/numerical_tools.h"
+#include "core/matrix2d.h"
+#include "core/xmipp_fftw.h"
 
 /* prototypes */
 double CTF_fitness_fast(double *, void *);
@@ -112,7 +110,7 @@ void ProgCTFEstimateFromPSDFast::assignCTFfromParameters_fast(double *p, CTFDesc
 
 #define ASSIGN_PARAM_CTF(index, paramName) if (ia <= index && l > 0) { p[index] = ctf1Dmodel.paramName; --l; }
 
-void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(CTFDescription1D &ctf1Dmodel, double *p, int ia,
+void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(const CTFDescription1D &ctf1Dmodel, double *p, int ia,
                              int l, int modelSimplification)
 {
 

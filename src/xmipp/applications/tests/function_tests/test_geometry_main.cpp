@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <core/geometry.h>
 #include <data/normalize.h>
+#include "core/transformations.h"
 
 // MORE INFO HERE: http://code.google.com/p/googletest/wiki/AdvancedGuide
 class GeometryTest : public ::testing::Test
@@ -166,10 +167,4 @@ TEST_F( GeometryTest, normalize_ramp)
     img.selfABS();
     EXPECT_NEAR(img.sum(),0,XMIPP_EQUAL_ACCURACY);
     XMIPP_CATCH
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

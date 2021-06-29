@@ -12,7 +12,7 @@ protected:
     virtual void SetUp()
     {
         if (chdir(((String)(getXmippPath() + (String)"/resources/test")).c_str())==-1)
-        	REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
     }
 
     Matrix1D<double> origin,xaxis,yaxis,zaxis;
@@ -279,10 +279,4 @@ TEST_F( EulerTest, extract)
                     }
                 }
     }
-}
-
-GTEST_API_ int main(int argc, char **argv)
-{
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }
