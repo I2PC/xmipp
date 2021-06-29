@@ -59,8 +59,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(
-		MultidimArray<double> &origImg)
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &origImg)
 {
 	// imgTofilter.resizeNoCopy(origImg);
 	FourierTransformer transformer1(FFTW_BACKWARD);
@@ -228,7 +227,7 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 }
 
 
-	void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
+void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Picking coordinates..." << std::endl;
@@ -253,8 +252,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
             }
         }
-
-		std::cout << "-------------------------------------------" << sliceVector.size() << std::endl;
 
         double sum = 0, sum2 = 0;
         int Nelems = 0;
@@ -400,7 +397,7 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 }
 
 
-	void ProgTomoDetectMisalignmentTrajectory::clusterHighContrastCoordinates()
+void ProgTomoDetectMisalignmentTrajectory::clusterHighContrastCoordinates()
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Clustering coordinates..." << std::endl;
@@ -646,7 +643,7 @@ void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<doubl
 }
 
 
-	void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
+void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 {
 	MetaData md;
 	size_t id;
