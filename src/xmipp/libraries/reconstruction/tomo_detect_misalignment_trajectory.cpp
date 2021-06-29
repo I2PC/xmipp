@@ -254,6 +254,8 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
             }
         }
 
+		std::cout << "-------------------------------------------" << sliceVector.size() << std::endl;
+
         double sum = 0, sum2 = 0;
         int Nelems = 0;
         double average = 0;
@@ -287,7 +289,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 		// *** test
 		int test = 0;
 
-
 		for(size_t i = 0; i < ySize; i++)
 		{
 			for(size_t j = 0; j < xSize; j++)
@@ -304,7 +305,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 
 		std::cout << "Number of points in the binary map: " << test << std::endl;
 
-
 		#ifdef DEBUG
 		std::cout << "Labelling slice " << k << std::endl;
 		#endif
@@ -319,7 +319,7 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 				
 				if (value > 0)
-				{
+				{			
 					DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
 				}
 			}
@@ -328,10 +328,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 		#ifdef DEBUG
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
-
-		// These vectors will hold the list of labels and the nuber of coordinates associated to each of them
-		std::vector<int> label;
-		std::vector<int> numberCoordsPerLabel;
 
 		std::vector<std::vector<int>> coordinatesPerLabelX (colour);
 		std::vector<std::vector<int>> coordinatesPerLabelY (colour);
@@ -381,8 +377,10 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 			}
 		}
 
+		#ifdef DEBUG
 		std::cout << "Number of coordinates added " << fedetest <<std::endl;
-		std::cout << "coordinates3Dx.size() " << coordinates3Dx.size() <<std::endl;
+		std::cout << "coordinates3Dx.size()=" << coordinates3Dx.size() <<std::endl;
+		#endif
     }
 
 	#ifdef VERBOSE_OUTPUT
