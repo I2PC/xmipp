@@ -76,8 +76,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(
 	double idelta = PI/(highFreqFilt-tail);
 
     double uy, ux, u, uy2;
-    // size_t ydimImg = YSIZE(imgTofilter);
-    // size_t xdimImg = XSIZE(imgTofilter);
 
     size_t ydimImg = YSIZE(origImg);
     size_t xdimImg = XSIZE(origImg);
@@ -250,10 +248,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
         {
             for(size_t i = 0; i < xSize; ++i)
             {
-                #ifdef DEBUG_DIM
-                std::cout << "i: " << i << " j: " << j << std::endl;
-                #endif
-
                 sliceVector.push_back(DIRECT_ZYX_ELEM(volFiltered, k, i ,j));
             }
         }
@@ -723,7 +717,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	auto t1 = high_resolution_clock::now();
 
 	std::cout << "Starting..." << std::endl;
-	size_t Xdim, Ydim;
+	size_t Xdim, Ydim, Zdim, Ndim;
 	
 	MetaData tiltseriesmd;
 
@@ -752,6 +746,14 @@ void ProgTomoDetectMisalignmentTrajectory::run()
         }
     }
 
+	#ifdef DEBUG_DIM
+	std::cout << "Input tilt-series dimensions:" << std::endl;
+	std::cout << "x " << Xdim << std::endl;
+	std::cout << "y " << Ydim << std::endl;
+	std::cout << "z " << Zdim << std::endl;
+	std::cout << "n " << Ndim << std::endl;
+	#endif
+
 	FileName fnTSimg;
 	size_t objId, objId_ts;
 	Image<double> imgTS;
@@ -763,7 +765,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	projImgTS.initZeros(Ydim, Xdim);
 
-	size_t Ndim, counter = 0;
+	size_t counter = 0;
 	Ndim = tiltseriesmd.size();
 
 	MultidimArray<double> filteredTiltSeries;
@@ -774,7 +776,10 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 		objId = __iter.objId;
 		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
+		#ifdef DEBUG
         std::cout << fnTSimg << std::endl;
+		#endif
+
         imgTS.read(fnTSimg);
 
         bandPassFilter(ptrImg);
@@ -802,31 +807,19 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
 
-
 	xSize = XSIZE(filteredTiltSeries);
 	ySize = YSIZE(filteredTiltSeries);
 	zSize = ZSIZE(filteredTiltSeries);
 
+
 	#ifdef DEBUG_DIM
-	std::cout << "------------------ Input tomogram dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
+	std::cout << "Filtered tilt-series dimensions:" << std::endl;
+	std::cout << "x " << xSize << std::endl;
+	std::cout << "y " << ySize << std::endl;
+	std::cout << "z " << zSize << std::endl;
+	std::cout << "n " << NSIZE(filteredTiltSeries) << std::endl;
 	#endif
 
-	// MultidimArray<double> volFiltered;
-
- 	// volFiltered = preprocessVolume(inputTomo);
-
-	// #ifdef DEBUG_DIM
-	// std::cout << "------------------ Filtered tomogram dimensions:" << std::endl;
-	// std::cout << "x " << XSIZE(volFiltered) << std::endl;
-	// std::cout << "y " << YSIZE(volFiltered) << std::endl;
-	// std::cout << "z " << ZSIZE(volFiltered) << std::endl;
-	// std::cout << "n " << NSIZE(volFiltered) << std::endl;
-	// #endif
-	
 	getHighContrastCoordinates(filteredTiltSeries);
 
 	// clusterHighContrastCoordinates();
