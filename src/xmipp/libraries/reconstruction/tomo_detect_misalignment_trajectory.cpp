@@ -237,6 +237,8 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
     MultidimArray<double> binaryCoordinatesMapSlice;
     MultidimArray<double> labelCoordiantesMapSlice;
     MultidimArray<double> labelCoordiantesMap;
+
+	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
 	
 	for(size_t k = 0; k < nSize; ++k)
 	{
@@ -244,11 +246,11 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 		std::vector<int> sliceVector;
 		
 		// Calculate threshold value for each image of the series
-        for(size_t j = 0; j < ySize; ++j)
+        for(size_t i = 0; i < ySize; ++i)
         {
-            for(size_t i = 0; i < xSize; ++i)
+            for(size_t j = 0; j < xSize; ++j)
             {
-                sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 1, i ,j));
+                sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
             }
         }
 
@@ -280,16 +282,15 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
         std::cout<< "Threshold: " << threshold << std::endl;
         #endif
 
-        labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
-
 
 		// *** test
 		int test = 0;
 
-		for(size_t j = 0; j < xSize; j++)
+
+		for(size_t i = 0; i < ySize; i++)
 		{
-			for(size_t i = 0; i < ySize; i++)
+			for(size_t j = 0; j < xSize; j++)
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
@@ -311,11 +312,22 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
+        for (size_t i = 0; i < ySize; ++i)
+        {
+            for (size_t j = 0; j < xSize; ++j)
+            {
+				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
+				
+				if (value > 0)
+				{
+					DIRECT_NZYX_ELEM(labelCoordiantesMap, k, 0, i, j) = value;
+				}
+			}
+		}
+
 		#ifdef DEBUG
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
-
-		// Remove coordinates thresholding the number of elements per label
 
 		// These vectors will hold the list of labels and the nuber of coordinates associated to each of them
 		std::vector<int> label;
@@ -335,29 +347,6 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 				{
 					coordinatesPerLabelX[value-1].push_back(j);
 					coordinatesPerLabelY[value-1].push_back(i);
-					
-					// bool labelExists = false;
-					
-					// for(size_t n=0; n<label.size(); n++)
-					// {
-					// 	if(label[n]==value)
-					// 	{
-					// 	 	numberCoordsPerLabel[n] += 1;
-					// 		labelExists = true;
-					// 	}
-					// }
-
-					// if(labelExists==false)
-					// {
-					// 	std::vector<int> coordinatesX;
-					// 	std::vector<int> coordinatesY;
-
-					// 	coordinatesX.push_back(j);
-					// 	coordinatesY.push_back(i);
-
-					// 	coordinatesPerLabelX.push_back(coordinatesX);
-					// 	coordinatesPerLabelY.push_back(coordinatesY);
-					// }
 				}
 			}
 		}
@@ -366,19 +355,13 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 		std::cout << "coordinatesPerLabelX" << coordinatesPerLabelX.size() << std::endl;
 		std::cout << "coordinatesPerLabelY" << coordinatesPerLabelY.size() << std::endl;
 
-		for(int a = 0 ; a < coordinatesPerLabelX.size(); a++)
-		{
-			std::cout << "coordinatesPerLabelX[" << a << "].size() " << coordinatesPerLabelX[a].size() << std::endl;
-		}
-
 		int fedetest = 0;
 		size_t numberOfCoordinatesPerValue;
 
+		// Trim coordinates thresholding the number of elements per label
 		for(size_t value = 0; value < colour; value++)
 		{
 			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
-
-			std::cout << "numberOfCoordinatesThr" << numberOfCoordinatesPerValue << std::endl; 
 
 			if(numberOfCoordinatesPerValue > numberOfCoordinatesThr)
 			{
@@ -393,36 +376,13 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 
 				coordinates3Dx.push_back(xCoor/coordinatesPerLabelX[value].size());
 				coordinates3Dy.push_back(yCoor/coordinatesPerLabelY[value].size());
+				coordinates3Dn.push_back(k);
 				fedetest += 1;
 			}
 		}
 
 		std::cout << "Number of coordinates added " << fedetest <<std::endl;
 		std::cout << "coordinates3Dx.size() " << coordinates3Dx.size() <<std::endl;
-
-
-		// for(size_t j = 0; j < xSize; j++)
-		// {
-		// 	for(size_t i = 0; i < ySize; i++)
-		// 	{
-		// 		for(size_t n=0; n<label.size(); n++)
-		// 		{
-		// 			if(label[n]==DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j))
-		// 			{
-		// 				if(numberCoordsPerLabel[n]>numberOfCoordinatesThr)
-		// 				{						
-		// 					coordinates3Dx.push_back(j);
-		// 					coordinates3Dy.push_back(i);
-		// 					coordinates3Dz.push_back(k);
-
-		// 					DIRECT_A3D_ELEM(labelCoordiantesMap, k, i, j) = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
-		// 				}
-
-		// 				break;
-		// 			}
-		// 		}
-		// 	}
-		// }
     }
 
 	#ifdef VERBOSE_OUTPUT
@@ -433,7 +393,7 @@ MultidimArray<double> ProgTomoDetectMisalignmentTrajectory::preprocessVolume(Mul
 	size_t lastindex = fnOut.find_last_of(".");
 	std::string rawname = fnOut.substr(0, lastindex);
 	std::string outputFileNameLabeledVolume;
-    outputFileNameLabeledVolume = rawname + "_label.mrc";
+    outputFileNameLabeledVolume = rawname + "_label.mrcs";
 
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
@@ -698,6 +658,7 @@ void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<doubl
 		id = md.addObject();
 		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
 		md.setValue(MDL_YCOOR, coordinates3Dy[i], id);
+		md.setValue(MDL_ZCOOR, coordinates3Dn[i], id);
 		// md.setValue(MDL_XCOOR, centerOfMassX[i], id);
 		// md.setValue(MDL_YCOOR, centerOfMassY[i], id);
 		// md.setValue(MDL_ZCOOR, centerOfMassZ[i], id);
@@ -818,13 +779,12 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	zSize = ZSIZE(filteredTiltSeries);
 	nSize = NSIZE(filteredTiltSeries);
 
-
 	#ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
 	std::cout << "x " << xSize << std::endl;
 	std::cout << "y " << ySize << std::endl;
 	std::cout << "z " << zSize << std::endl;
-	std::cout << "n " << NSIZE(filteredTiltSeries) << std::endl;
+	std::cout << "n " << nSize << std::endl;
 	#endif
 
 	getHighContrastCoordinates(filteredTiltSeries);
