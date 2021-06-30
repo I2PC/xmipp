@@ -59,12 +59,11 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &origImg)
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries)
 {
-	// imgTofilter.resizeNoCopy(origImg);
 	FourierTransformer transformer1(FFTW_BACKWARD);
 	MultidimArray<std::complex<double>> fftImg;
-	transformer1.FourierTransform(origImg, fftImg, true);
+	transformer1.FourierTransform(inputTiltSeries, fftImg, true);
 
 	// Filter frequencies
 	double highFreqFilt = samplingRate/fiducialSize;
@@ -76,8 +75,8 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
     double uy, ux, u, uy2;
 
-    size_t ydimImg = YSIZE(origImg);
-    size_t xdimImg = XSIZE(origImg);
+    size_t ydimImg = YSIZE(inputTiltSeries);
+    size_t xdimImg = XSIZE(inputTiltSeries);
 
 	long n=0;
 	for(size_t i=0; i<YSIZE(fftImg); ++i)
@@ -100,7 +99,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	transformer1.inverseFourierTransform(fftImg, origImg);
+	transformer1.inverseFourierTransform(fftImg, inputTiltSeries);
 }
 
 

@@ -92,13 +92,13 @@ public:
     void defineParams();
 
     /**
-     * Bandpass filtering the input volume.
+     * Bandpass filtering the input tilt-series.
      *
      * @param
      * @return
      *
     */
-    void bandPassFilter(MultidimArray<double> &origImg);
+    void bandPassFilter(MultidimArray<double> &inputTiltSeries);
 
 
     /**
