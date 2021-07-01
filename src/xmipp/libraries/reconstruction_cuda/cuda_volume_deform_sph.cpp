@@ -120,6 +120,7 @@ void VolumeDeformSph::setupConstantParameters()
     grid.z = ((imageMetaData.zDim + block.z - 1) / block.z);
 
     totalGridSize = grid.x * grid.y * grid.z;
+    setupOutputArray();
 
     // Dynamic shared memory
     constantSharedMemSize = 0;
@@ -150,6 +151,12 @@ void VolumeDeformSph::setupChangingParameters()
         setupImage(imageMetaData, &deformImages.Gy);
         setupImage(imageMetaData, &deformImages.Gz);
     }
+}
+
+void VolumeDeformSph::setupOutputArray() 
+{
+    if (cudaMalloc(&reductionArray, 3 * totalGridSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
 }
 
 void VolumeDeformSph::setupClnm()
@@ -184,7 +191,7 @@ void VolumeDeformSph::runKernel()
 {
 
     // Define thrust reduction vector
-    thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
+    //thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
 
     // Run kernel
     computeDeform<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
@@ -199,11 +206,13 @@ void VolumeDeformSph::runKernel()
             deformImages,
             applyTransformation,
             saveDeformation,
-            thrust::raw_pointer_cast(thrustVec.data())
+            //thrust::raw_pointer_cast(thrustVec.data())
+            reductionArray
             );
 
     cudaDeviceSynchronize();
 
+    /*
     auto diff2It = thrustVec.begin();
     auto sumVDIt = diff2It + totalGridSize;
     auto modgIt = sumVDIt + totalGridSize;
@@ -211,6 +220,14 @@ void VolumeDeformSph::runKernel()
     outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
     outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
     outputs.modg = thrust::reduce(modgIt, thrustVec.end());
+    */
+    PrecisionType* diff2Ptr = reductionArray;
+    PrecisionType* sumVDPtr = diff2Ptr + totalGridSize;
+    PrecisionType* modgPtr = sumVDPtr + totalGridSize;
+
+    outputs.diff2 = reduction.reduceDeviceArray(diff2Ptr, totalGridSize);
+    outputs.sumVD = reduction.reduceDeviceArray(sumVDPtr, totalGridSize);
+    outputs.modg = reduction.reduceDeviceArray(modgPtr, totalGridSize);
 }
 
 void VolumeDeformSph::transferResults() 

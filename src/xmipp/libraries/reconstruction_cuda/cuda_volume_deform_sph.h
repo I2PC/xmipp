@@ -3,6 +3,7 @@
 // Xmipp includes
 #include "core/xmipp_image.h"
 #include "core/multidim_array.h"
+#include "reconstruction_cuda/cuda_reduction.h"
 // Standard includes
 #include <vector>
 
@@ -79,13 +80,12 @@ public:
 private:
     ProgVolumeDeformSphGpu* program = nullptr;
 
+    GpuReduction<PrecisionType> reduction;
+    PrecisionType* reductionArray = nullptr;
+
     // Kernel stuff
     size_t constantSharedMemSize;
     size_t changingSharedMemSize;
-
-    // Kernel dimensions
-    //dim3 block;
-    //dim3 grid;
 
     size_t totalGridSize;
 
@@ -131,6 +131,7 @@ private:
 
     void setupClnm();
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
+    void setupOutputArray();
 };
 
 #endif// VOLUME_DEFORM_SPH_H
