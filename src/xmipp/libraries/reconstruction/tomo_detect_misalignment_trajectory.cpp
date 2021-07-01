@@ -59,19 +59,22 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries)
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries) //*** tiltImage*
 {
 	FourierTransformer transformer1(FFTW_BACKWARD);
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(inputTiltSeries, fftImg, true);
 
 	// Filter frequencies
-	double highFreqFilt = samplingRate/fiducialSize;
-	double tail = highFreqFilt + 0.02;
+	double w = 0.03;
 
-    double lowFreqFilt = samplingRate/fiducialSize;
+    double lowFreqFilt = samplingRate/(1.1*fiducialSize);
+	double highFreqFilt = samplingRate/(0.9*fiducialSize);
 
-	double idelta = PI/(highFreqFilt-tail);
+	double tail_high = highFreqFilt + w;
+    double tail_low = lowFreqFilt - w;
+
+	double delta = PI / w;
 
     double uy, ux, u, uy2;
 
@@ -79,27 +82,132 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
     size_t xdimImg = XSIZE(inputTiltSeries);
 
 	long n=0;
+
 	for(size_t i=0; i<YSIZE(fftImg); ++i)
 	{
 		FFT_IDX2DIGFREQ(i, ydimImg, uy);
 		uy2=uy*uy;
+
 		for(size_t j=0; j<XSIZE(fftImg); ++j)
 		{
 			FFT_IDX2DIGFREQ(j, xdimImg, ux);
 			u=sqrt(uy2+ux*ux);
-            if (u>=highFreqFilt && u<=lowFreqFilt)
-            {
-                DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*idelta));//H;
-            }
-            else if (u>tail)
-            {
-                DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
-            }
+
+			if (u > tail_high || u < tail_low)
+			{
+				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
+			}
+			else
+			{
+				if (u >= highFreqFilt && u <=tail_high)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
+				}
+
+				if (u <= lowFreqFilt && u >= tail_low)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
+				}
+			}
+
 			++n;
 		}
 	}
 
 	transformer1.inverseFourierTransform(fftImg, inputTiltSeries);
+
+}
+
+
+ size_t ProgTomoDetectMisalignmentTrajectory::enhanceGoldBeads(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+{
+	std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+
+	double maxSquareDistance = 0;
+	double distance;
+
+	size_t debugN;
+
+	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
+	{
+		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
+
+		if(distance > maxSquareDistance)
+		{
+			debugN = n;
+			maxSquareDistance = distance;
+		}
+	}
+
+	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+	std::cout << "centroX " << centroX << std::endl;
+	std::cout << "centroY " << centroY << std::endl;
+
+	double maxDistace;
+	maxDistace = sqrt(maxSquareDistance);
+	
+	double area;
+	double ocupation;
+
+	area = PI * (maxDistace * maxDistace);
+
+	ocupation = 0.0 + (double)coordinatesPerLabelX.size();
+	ocupation = ocupation  / area;
+
+	std::cout << "area " << area << std::endl;
+	std::cout << "maxDistace " << maxDistace << std::endl;
+	std::cout << "ocupation " << ocupation << std::endl;
+
+	std::cout << typeid(ocupation).name() << std::endl;
+
+	size_t retornar;
+
+	if(ocupation > 0.5)
+	{
+		retornar =  1;
+	}
+	if(ocupation < 0.5)
+	{
+		retornar = 0;
+	}
+	std::cout << retornar << std::endl;
+
+
+	std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+
+return retornar;
+// 	size_t pxFiducialSize = fiducialSize / samplingRate;
+
+// 	for(size_t k = 0; k < nSize; ++k)
+// 	{
+// 		std::cout << "----------------------------------------------- Processing slide " << k << std::endl;
+// 		std::vector<int> sliceVector;
+		
+// 		// Calculate threshold value for each image of the series
+//         for(size_t i = 0; i < ySize; ++i)
+//         {
+//             for(size_t j = 0; j < xSize; ++j)
+//             {
+//                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
+//             }
+//         }
+
+// 		double max sliceVector.max()
+// 		double min sliceVector.min()
+
+
+// 		for(size_t i = 0; i < ySize; ++i)
+//         {
+//             for(size_t j = 0; j < xSize; ++j)
+//             {
+// 				up =
+// 				left =
+// 				valor =
+//                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
+//             }
+//         }
+
 }
 
 
@@ -243,10 +351,20 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 					yCoor += coordinatesPerLabelY[value][coordinate];
 				}
 
-				coordinates3Dx.push_back(xCoor/coordinatesPerLabelX[value].size());
-				coordinates3Dy.push_back(yCoor/coordinatesPerLabelY[value].size());
-				coordinates3Dn.push_back(k);
-				fedetest += 1;
+				double xCoorCM = xCoor/coordinatesPerLabelX[value].size();
+				double yCoorCM = yCoor/coordinatesPerLabelY[value].size();
+
+				size_t keep = enhanceGoldBeads(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+					std::cout << keep<< std::endl;
+
+				if(keep)
+				{
+					std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<< std::endl;
+					coordinates3Dx.push_back(xCoor/coordinatesPerLabelX[value].size());
+					coordinates3Dy.push_back(yCoor/coordinatesPerLabelY[value].size());
+					coordinates3Dn.push_back(k);
+					fedetest += 1;
+				}
 			}
 		}
 
@@ -254,6 +372,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		std::cout << "Number of coordinates added " << fedetest <<std::endl;
 		std::cout << "coordinates3Dx.size()=" << coordinates3Dx.size() <<std::endl;
 		#endif
+
     }
 
 	#ifdef VERBOSE_OUTPUT

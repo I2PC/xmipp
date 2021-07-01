@@ -102,13 +102,13 @@ public:
 
 
     /**
-     * Smoothing and filtering the input volume.
+     * Enhanced gold beads in the tilt-series images.
      *
      * @param
      * @return
      *
     */
-    MultidimArray<double> preprocessVolume(MultidimArray<double> &inputTomo);
+    size_t enhanceGoldBeads(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centro);
 
     /**
      * Peaks the high contrast regions in a volume.
