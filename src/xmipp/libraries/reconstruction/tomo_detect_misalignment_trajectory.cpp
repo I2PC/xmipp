@@ -28,34 +28,24 @@
 
 void ProgTomoDetectMisalignmentTrajectory::readParams()
 {
-	fnVol = getParam("--vol");
+	fnVol = getParam("-i");
 	fnOut = getParam("-o");
-	boxSize = getIntParam("--boxSize");
+	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
 	sdThreshold = getIntParam("--sdThreshold");
-    numberSampSlices = getIntParam("--numberSampSlices");
-	numberCenterOfMass = getIntParam("--numberCenterOfMass");
-	distanceThr = getIntParam("--distanceThr");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
-	samplingRate = getDoubleParam("--samplingRate");
-	centerFeatures = checkParam("--centerFeatures");
 }
 
 
 void ProgTomoDetectMisalignmentTrajectory::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  --vol <vol_file=\"\">                   				: Input volume.");
+	addParamsLine("  -i <vol_file=\"\">                   				: Input volume.");
 	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
-  	addParamsLine("  [--boxSize <boxSize=32>]								: Box size of the peaked coordinates.");
 	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
-  	addParamsLine("  [--numberSampSlices <numberSampSlices=10>]     		: Number of slices to use to determin the threshold value.");
-  	addParamsLine("  [--numberCenterOfMass <numberCenterOfMass=10>]			: Number of initial center of mass to trim coordinates.");
-  	addParamsLine("  [--distanceThr <distanceThr=10>]						: Minimum distance to consider two coordinates belong to the same center of mass.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
-  	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
-	addParamsLine("  [--centerFeatures]										: Center peaked features in box.");
+	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 }
 
 
@@ -65,7 +55,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(inputTiltSeries, fftImg, true);
 
-	// Filter frequencies
 	double w = 0.03;
 
     double lowFreqFilt = samplingRate/(1.1*fiducialSize);
@@ -118,7 +107,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 }
 
 
- bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+ bool ProgTomoDetectMisalignmentTrajectory::filterLabdownloadeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
@@ -324,7 +313,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				coordinates3Dx.push_back(xCoorCM);
 				coordinates3Dy.push_back(yCoorCM);
 				coordinates3Dn.push_back(k);
+
+				#ifdef DEBUG
 				numberOfNewPeakedCoordinates += 1;
+				#endif
 			
 			}
 		}
@@ -509,11 +501,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImageBis() = proyectedCoordinates;
 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 	#endif
-
-	// if(centerFeatures==true)
-	// {
-	// 	centerCoordinates(volFiltered);
-	// }
 
 	writeOutputCoordinates();
 	
