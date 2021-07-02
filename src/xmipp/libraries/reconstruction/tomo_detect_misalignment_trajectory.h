@@ -108,7 +108,7 @@ public:
      * @return
      *
     */
-    size_t enhanceGoldBeads(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centro);
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centro);
 
     /**
      * Peaks the high contrast regions in a volume.

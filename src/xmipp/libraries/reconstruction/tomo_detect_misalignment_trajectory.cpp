@@ -119,10 +119,15 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 }
 
 
- size_t ProgTomoDetectMisalignmentTrajectory::enhanceGoldBeads(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
-	std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
+	// Check number of elements of the label
+	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
+	{
+		return false;
+	}
 
+	// Check spehricity of the label
 	double maxSquareDistance = 0;
 	double distance;
 
@@ -159,55 +164,14 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	std::cout << "maxDistace " << maxDistace << std::endl;
 	std::cout << "ocupation " << ocupation << std::endl;
 
-	std::cout << typeid(ocupation).name() << std::endl;
-
-	size_t retornar;
-
-	if(ocupation > 0.5)
+	if(ocupation > 0.65)
 	{
-		retornar =  1;
+		return true;
 	}
-	if(ocupation < 0.5)
+	if(ocupation <= 0.65)
 	{
-		retornar = 0;
+		return false;
 	}
-	std::cout << retornar << std::endl;
-
-
-	std::cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << std::endl;
-
-return retornar;
-// 	size_t pxFiducialSize = fiducialSize / samplingRate;
-
-// 	for(size_t k = 0; k < nSize; ++k)
-// 	{
-// 		std::cout << "----------------------------------------------- Processing slide " << k << std::endl;
-// 		std::vector<int> sliceVector;
-		
-// 		// Calculate threshold value for each image of the series
-//         for(size_t i = 0; i < ySize; ++i)
-//         {
-//             for(size_t j = 0; j < xSize; ++j)
-//             {
-//                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
-//             }
-//         }
-
-// 		double max sliceVector.max()
-// 		double min sliceVector.min()
-
-
-// 		for(size_t i = 0; i < ySize; ++i)
-//         {
-//             for(size_t j = 0; j < xSize; ++j)
-//             {
-// 				up =
-// 				left =
-// 				valor =
-//                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
-//             }
-//         }
-
 }
 
 
@@ -335,36 +299,34 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		int fedetest = 0;
 		size_t numberOfCoordinatesPerValue;
 
-		// Trim coordinates thresholding the number of elements per label
+		// Trim coordinates based on the characteristics of the labeled region
 		for(size_t value = 0; value < colour; value++)
 		{
 			numberOfCoordinatesPerValue =  coordinatesPerLabelX[value].size();
 
-			if(numberOfCoordinatesPerValue > numberOfCoordinatesThr)
+			int xCoor = 0;
+			int yCoor = 0;
+
+			for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
 			{
-				int xCoor = 0;
-				int yCoor = 0;
+				xCoor += coordinatesPerLabelX[value][coordinate];
+				yCoor += coordinatesPerLabelY[value][coordinate];
+			}
 
-				for(size_t coordinate=0; coordinate < coordinatesPerLabelX[value].size(); coordinate++)
-				{
-					xCoor += coordinatesPerLabelX[value][coordinate];
-					yCoor += coordinatesPerLabelY[value][coordinate];
-				}
+			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
-				double xCoorCM = xCoor/coordinatesPerLabelX[value].size();
-				double yCoorCM = yCoor/coordinatesPerLabelY[value].size();
+			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
+			std::cout << keep<< std::endl;
 
-				size_t keep = enhanceGoldBeads(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-					std::cout << keep<< std::endl;
-
-				if(keep)
-				{
-					std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<< std::endl;
-					coordinates3Dx.push_back(xCoor/coordinatesPerLabelX[value].size());
-					coordinates3Dy.push_back(yCoor/coordinatesPerLabelY[value].size());
-					coordinates3Dn.push_back(k);
-					fedetest += 1;
-				}
+			if(keep)
+			{
+				std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<< std::endl;
+				coordinates3Dx.push_back(xCoorCM);
+				coordinates3Dy.push_back(yCoorCM);
+				coordinates3Dn.push_back(k);
+				fedetest += 1;
+			
 			}
 		}
 
