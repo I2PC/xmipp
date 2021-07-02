@@ -53,7 +53,7 @@ class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
 
 public:
     /** Filenames */
-    FileName fnVol, fnOut;
+    FileName fnVol, fnOut, fnInputCoord, fnTiltAngles;
 
     /** Threshold */
     double fiducialSize, samplingRate, sdThreshold;
@@ -62,7 +62,7 @@ public:
     int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
 
     /** Center features **/
-    bool centerFeatures;
+    bool checkInputCoord;
     
 private:
     /** Input tilt-series dimensions */
@@ -71,10 +71,17 @@ private:
 	size_t zSize;
     size_t nSize;
 
+    /** Vector containig the tilt angles from the series */
+    std::vector<int> tiltAngles;
+
     /** Vectors for peaked coordinates components */
     std::vector<int> coordinates3Dx;
     std::vector<int> coordinates3Dy;
-    std::vector<int> coordinates3Dn;  
+    std::vector<int> coordinates3Dn;
+
+    /** Vectors for calculated residuals components */
+    std::vector<int> residualX;
+    std::vector<int> residualY;
 
 public:
 
@@ -98,7 +105,7 @@ public:
      * @return
      *
     */
-    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centro);
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
 
     /**
      * Peaks high contrast regions in a volume.
@@ -117,6 +124,15 @@ public:
      *
     */
     void writeOutputCoordinates();
+
+    /**
+     * Calculate residual vectors from the 3D landmark and the obtained coordinates.
+     *
+     * @param
+     * @return
+     *
+    */
+    void calculateResidualVectors(MetaData inputCoordMd);
 
     void run();
 };

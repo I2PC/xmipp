@@ -30,22 +30,30 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 {
 	fnVol = getParam("-i");
 	fnOut = getParam("-o");
+	fnTiltAngles = getParam("-inputTiltAngleFile");
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
 	sdThreshold = getIntParam("--sdThreshold");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
+	checkInputCoord = checkParam("--inputCoord");
+	if(checkInputCoord)
+	{
+		fnInputCoord = getParam("--inputCoord");
+	}
 }
 
 
 void ProgTomoDetectMisalignmentTrajectory::defineParams()
 {
 	addUsageLine("This function determines the location of high contrast features in a volume.");
-	addParamsLine("  -i <vol_file=\"\">                   				: Input volume.");
+	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
+	addParamsLine("  -inputTiltAngleFile <xmd_file=\"\">      				: Input file containning the tilt angles of the tilt-series in .xmd format.");
 	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
 	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
+	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
 }
 
 
@@ -107,7 +115,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 }
 
 
- bool ProgTomoDetectMisalignmentTrajectory::filterLabdownloadeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Check number of elements of the label
 	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
@@ -366,12 +374,53 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 
 }
 
+void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inputCoordMd)
+{
+	size_t objId;
+	int coorX, coorY, coorZ;
+	FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
+	{
+		objId = __iter.objId;
+		inputCoordMd.getValue(MDL_XCOOR, coorX, objId);
+		inputCoordMd.getValue(MDL_YCOOR, coorY, objId);
+		inputCoordMd.getValue(MDL_ZCOOR, coorZ, objId);
+
+
+	}
+
+/*
+    def getProjectedCoordinate2D(self, angle, coordinate3D):
+        """ Method to calculate the projection of a 3D coordinate onto a plane defined by its angle (rotates
+        around the Y axis). """
+
+        rotationMatrix = self.getRotationMatrix(angle)
+
+        projectedCoordinate2D = np.matmul(self.getXYCoordinatesMatrix,
+                                          np.matmul(rotationMatrix,
+                                                    coordinate3D))
+
+        return projectedCoordinate2D
+
+
+		def getRotationMatrix(angle):
+	""" Method to calculate the 3D rotation matrix of a plane given its tilt angle. """
+
+	angleRad = np.deg2rad(angle)
+
+	rotationMatrix = [[np.cos(angleRad), 0, np.sin(angleRad)],
+						[0, 1, 0],
+						[-np.sin(angleRad), 0, np.cos(angleRad)]]
+
+	return rotationMatrix
+*/
+}
+
 void ProgTomoDetectMisalignmentTrajectory::run()
 {
 	using std::chrono::high_resolution_clock;
     using std::chrono::duration_cast;
     using std::chrono::duration;
-    using std::chrono::milliseconds;
+    using std::chrono::milliseconds;	
 
 	auto t1 = high_resolution_clock::now();
 
@@ -503,9 +552,31 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	writeOutputCoordinates();
+
+	MetaData inputTiltAnglesMd;
+	double tiltAngle;
+	inputTiltAnglesMd.read(fnTiltAngles);
+
+	FOR_ALL_OBJECTS_IN_METADATA(inputTiltAnglesMd)
+	{
+		objId = __iter.objId;
+		inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objId);
+		tiltAngles.push_back(tiltAngle);
+	}
+
+	if(checkInputCoord)
+	{
+		MetaData inputCoordMd;
+		inputCoordMd.read(fnInputCoord);
+
+		calculateResidualVectors(inputCoordMd);
+	}
 	
 	auto t2 = high_resolution_clock::now();
 	/* Getting number of milliseconds as an integer. */
     auto ms_int = duration_cast<milliseconds>(t2 - t1);
  	std::cout << "Execution time: " << ms_int.count() << "ms\n";
 }
+
+// --------------------------- UTILS functions ----------------------------
+
