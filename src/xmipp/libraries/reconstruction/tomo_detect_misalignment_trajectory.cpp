@@ -26,6 +26,8 @@
 #include "tomo_detect_misalignment_trajectory.h"
 #include <chrono>
 
+// --------------------------- INFO functions ----------------------------
+
 void ProgTomoDetectMisalignmentTrajectory::readParams()
 {
 	fnVol = getParam("-i");
@@ -55,6 +57,9 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
 }
+
+
+// --------------------------- HEAD functions ----------------------------
 
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries) //*** tiltImage*
@@ -112,63 +117,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	}
 
 	transformer1.inverseFourierTransform(fftImg, inputTiltSeries);
-}
-
-
-bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
-{
-	// Check number of elements of the label
-	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
-	{
-		return false;
-	}
-
-	// Check spehricity of the label
-	double maxSquareDistance = 0;
-	double distance;
-
-	size_t debugN;
-
-	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
-	{
-		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
-
-		if(distance > maxSquareDistance)
-		{
-			debugN = n;
-			maxSquareDistance = distance;
-		}
-	}
-
-	double maxDistace;
-	maxDistace = sqrt(maxSquareDistance);
-	
-	double area;
-	double ocupation;
-
-	area = PI * (maxDistace * maxDistace);
-
-	ocupation = 0.0 + (double)coordinatesPerLabelX.size();
-	ocupation = ocupation  / area;
-
-	#ifdef DEBUG_FILTERLABEL
-	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
-	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
-	std::cout << "centroX " << centroX << std::endl;
-	std::cout << "centroY " << centroY << std::endl;
-	std::cout << "area " << area << std::endl;
-	std::cout << "maxDistace " << maxDistace << std::endl;
-	std::cout << "ocupation " << ocupation << std::endl;
-	#endif
-
-	if(ocupation > 0.65)
-	{
-		return true;
-	}
-	if(ocupation <= 0.65)
-	{
-		return false;
-	}
 }
 
 
@@ -374,6 +322,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 
 }
 
+
 void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inputCoordMd)
 {
 	size_t objId;
@@ -414,6 +363,9 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 	return rotationMatrix
 */
 }
+
+
+// --------------------------- MAIN ----------------------------------
 
 void ProgTomoDetectMisalignmentTrajectory::run()
 {
@@ -580,3 +532,58 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 // --------------------------- UTILS functions ----------------------------
 
+bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
+{
+	// Check number of elements of the label
+	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
+	{
+		return false;
+	}
+
+	// Check spehricity of the label
+	double maxSquareDistance = 0;
+	double distance;
+
+	size_t debugN;
+
+	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
+	{
+		distance = (coordinatesPerLabelX[n]-centroX)*(coordinatesPerLabelX[n]-centroX)+(coordinatesPerLabelY[n]-centroY)*(coordinatesPerLabelY[n]-centroY);
+
+		if(distance > maxSquareDistance)
+		{
+			debugN = n;
+			maxSquareDistance = distance;
+		}
+	}
+
+	double maxDistace;
+	maxDistace = sqrt(maxSquareDistance);
+	
+	double area;
+	double ocupation;
+
+	area = PI * (maxDistace * maxDistace);
+
+	ocupation = 0.0 + (double)coordinatesPerLabelX.size();
+	ocupation = ocupation  / area;
+
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+	std::cout << "centroX " << centroX << std::endl;
+	std::cout << "centroY " << centroY << std::endl;
+	std::cout << "area " << area << std::endl;
+	std::cout << "maxDistace " << maxDistace << std::endl;
+	std::cout << "ocupation " << ocupation << std::endl;
+	#endif
+
+	if(ocupation > 0.65)
+	{
+		return true;
+	}
+	if(ocupation <= 0.65)
+	{
+		return false;
+	}
+}
