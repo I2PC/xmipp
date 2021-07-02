@@ -44,9 +44,8 @@
 
 #define VERBOSE_OUTPUT
 #define DEBUG
-#define DEBUG_FILTERPARAMS
-#define DEBUG_DIM
-#define DEBUG_DIST
+// #define DEBUG_DIM
+// #define DEBUG_FILTERLABEL
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
@@ -75,16 +74,7 @@ private:
     /** Vectors for peaked coordinates components */
     std::vector<int> coordinates3Dx;
     std::vector<int> coordinates3Dy;
-    std::vector<int> coordinates3Dz;
-    std::vector<int> coordinates3Dn;
-
-    /** Vectors for centers of mass components after coordinates clusterings */
-    std::vector<int> centerOfMassX;
-    std::vector<int> centerOfMassY;
-    std::vector<int> centerOfMassZ;
-
-    /** Fourier Transform */
-    
+    std::vector<int> coordinates3Dn;  
 
 public:
 
@@ -102,7 +92,7 @@ public:
 
 
     /**
-     * Enhanced gold beads in the tilt-series images.
+     * Filter labeled regions.
      *
      * @param
      * @return
@@ -111,7 +101,7 @@ public:
     bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centro);
 
     /**
-     * Peaks the high contrast regions in a volume.
+     * Peaks high contrast regions in a volume.
      *
      * @param
      * @return
@@ -120,25 +110,7 @@ public:
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     /**
-     * Cluster 3d coordinates into its center of mass.
-     *
-     * @param
-     * @return
-     *
-    */
-    void clusterHighContrastCoordinates();
-
-    /**
      * Write obtained coordinates in output file.
-     *
-     * @param
-     * @return
-     *
-    */
-    void centerCoordinates(MultidimArray<double> volFiltered);
-
-    /**
-     * Center the picked features into the box.
      *
      * @param
      * @return

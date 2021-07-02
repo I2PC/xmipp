@@ -115,7 +115,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	}
 
 	transformer1.inverseFourierTransform(fftImg, inputTiltSeries);
-
 }
 
 
@@ -144,11 +143,6 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
-	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
-	std::cout << "centroX " << centroX << std::endl;
-	std::cout << "centroY " << centroY << std::endl;
-
 	double maxDistace;
 	maxDistace = sqrt(maxSquareDistance);
 	
@@ -160,9 +154,15 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	ocupation = 0.0 + (double)coordinatesPerLabelX.size();
 	ocupation = ocupation  / area;
 
+	#ifdef DEBUG_FILTERLABEL
+	std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+	std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+	std::cout << "centroX " << centroX << std::endl;
+	std::cout << "centroY " << centroY << std::endl;
 	std::cout << "area " << area << std::endl;
 	std::cout << "maxDistace " << maxDistace << std::endl;
 	std::cout << "ocupation " << ocupation << std::endl;
+	#endif
 
 	if(ocupation > 0.65)
 	{
@@ -189,7 +189,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	
 	for(size_t k = 0; k < nSize; ++k)
 	{
-		std::cout << "----------------------------------------------- Processing slide " << k << std::endl;
+		std::cout << "----------------------------------------------- Processing slice " << k + 1 << std::endl;
 		std::vector<int> sliceVector;
 		
 		// Calculate threshold value for each image of the series
@@ -231,8 +231,9 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
-		// *** test
-		int test = 0;
+		#ifdef DEBUG
+		int numberOfPointsAddedBinaryMap = 0;
+		#endif
 
 		for(size_t i = 0; i < ySize; i++)
 		{
@@ -243,15 +244,16 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				if (value < threshold)
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
-					test += 1;
+					
+					#ifdef DEBUG
+					numberOfPointsAddedBinaryMap += 1;
+					#endif
 				}
 			}
 		}
 
-		std::cout << "Number of points in the binary map: " << test << std::endl;
-
 		#ifdef DEBUG
-		std::cout << "Labelling slice " << k << std::endl;
+		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
 		#endif
 
 		// The value 8 is the neighbourhood
@@ -292,11 +294,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			}
 		}
 
+		#ifdef DEBUG
+		int numberOfNewPeakedCoordinates = 0;
+		#endif
 
-		std::cout << "coordinatesPerLabelX" << coordinatesPerLabelX.size() << std::endl;
-		std::cout << "coordinatesPerLabelY" << coordinatesPerLabelY.size() << std::endl;
-
-		int fedetest = 0;
 		size_t numberOfCoordinatesPerValue;
 
 		// Trim coordinates based on the characteristics of the labeled region
@@ -317,21 +318,19 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
 
 			bool keep = filterLabeledRegions(coordinatesPerLabelX[value], coordinatesPerLabelY[value], xCoorCM, yCoorCM);
-			std::cout << keep<< std::endl;
 
 			if(keep)
 			{
-				std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<< std::endl;
 				coordinates3Dx.push_back(xCoorCM);
 				coordinates3Dy.push_back(yCoorCM);
 				coordinates3Dn.push_back(k);
-				fedetest += 1;
+				numberOfNewPeakedCoordinates += 1;
 			
 			}
 		}
 
 		#ifdef DEBUG
-		std::cout << "Number of coordinates added " << fedetest <<std::endl;
+		std::cout << "Number of coordinates added " << numberOfNewPeakedCoordinates <<std::endl;
 		std::cout << "coordinates3Dx.size()=" << coordinates3Dx.size() <<std::endl;
 		#endif
 
@@ -354,253 +353,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::clusterHighContrastCoordinates()
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Clustering coordinates..." << std::endl;
-	#endif
-
-	// These vectors accumulate each coordinate attracted by every center of mass of calculate its mean at the end
-	std::vector<std::vector<int>> centerOfMassXAcc;
-	std::vector<std::vector<int>> centerOfMassYAcc;
-	std::vector<std::vector<int>> centerOfMassZAcc;
-
-	// for(int i=0;i<numberCenterOfMass;i++)
-	// {
-	// 	int randomIndex = rand() % coordinates3Dx.size();
-
-	// 	int cx = coordinates3Dx[randomIndex];
-	// 	int cy = coordinates3Dy[randomIndex];
-	// 	int cz = coordinates3Dz[randomIndex];
-	// 	centerOfMassX.push_back(cx);
-	// 	centerOfMassY.push_back(cy);
-	// 	centerOfMassZ.push_back(cz);
-
-	// 	std::vector<int> newCenterOfMassX;
-	// 	std::vector<int> newCenterOfMassY;
-	// 	std::vector<int> newCenterOfMassZ;
-
-	// 	newCenterOfMassX.push_back(cx);
-	// 	newCenterOfMassY.push_back(cy);
-	// 	newCenterOfMassZ.push_back(cz);
-
-	// 	centerOfMassXAcc.push_back(newCenterOfMassX);
-	// 	centerOfMassYAcc.push_back(newCenterOfMassY);
-	// 	centerOfMassZAcc.push_back(newCenterOfMassZ);
-	// }
-
-	int squareDistanceThr = distanceThr*distanceThr;
-	bool attractedToMassCenter = false;
-
-	for(size_t m = 0; m < coordinates3Dx.size(); m++)
-	{
-		// Check if the coordinate is attracted to any centre of mass
-		attractedToMassCenter = false; 
-
-		int xCoor = coordinates3Dx[m];
-		int yCoor = coordinates3Dy[m];
-		int zCoor = coordinates3Dz[m];
-
-		for(size_t n = 0; n < centerOfMassX.size(); n++)
-		{
-			int xCM = centerOfMassX[n];
-			int yCM = centerOfMassY[n];
-			int zCM = centerOfMassZ[n];
-
-			int squareDistance = (xCoor-xCM)*(xCoor-xCM)+(yCoor-yCM)*(yCoor-yCM)+(zCoor-zCM)*(zCoor-zCM);
-			
-			#ifdef DEBUG_DIST
-			std::cout << "-----------------------------------------------------------------------" << std::endl;
-			std::cout << "distance: " << squareDistance<< std::endl;
-			std::cout << "threshold: " << squareDistanceThr<< std::endl;
-			#endif
-
-			if(squareDistance < squareDistanceThr)
-			{
-				// Update center of mass with new coordinate
-				centerOfMassX[n]=xCM+(xCoor-xCM)/2;
-				centerOfMassY[n]=yCM+(yCoor-yCM)/2;
-				centerOfMassZ[n]=zCM+(zCoor-zCM)/2;
-
-				// Add all the coordinate vectors to each center of mass
-				centerOfMassXAcc[n].push_back(xCoor);
-				centerOfMassYAcc[n].push_back(yCoor);
-				centerOfMassZAcc[n].push_back(zCoor);
-
-				attractedToMassCenter = true;
-				break;
-			}
-		}
-
-		if (attractedToMassCenter == false)
-		{
-			centerOfMassX.push_back(xCoor);
-			centerOfMassY.push_back(yCoor);
-			centerOfMassZ.push_back(zCoor);
-
-			std::vector<int> newCenterOfMassX;
-			std::vector<int> newCenterOfMassY;
-			std::vector<int> newCenterOfMassZ;
-
-			newCenterOfMassX.push_back(xCoor);
-			newCenterOfMassY.push_back(yCoor);
-			newCenterOfMassZ.push_back(zCoor);
-
-			centerOfMassXAcc.push_back(newCenterOfMassX);
-			centerOfMassYAcc.push_back(newCenterOfMassY);
-			centerOfMassZAcc.push_back(newCenterOfMassZ);
-		}
-	}
-
-	// Update the center of mass coordinates as the average of the accumulated vectors
-	for(size_t i = 0; i < centerOfMassX.size(); i++)
-	{
-		int sumX = 0;
-		int sumY = 0;
-		int sumZ = 0;
-		size_t centerOfMassAccSize = centerOfMassXAcc[i].size();
-
-		for( size_t j = 0; j < centerOfMassAccSize; j++)
-		{
-			sumX += centerOfMassXAcc[i][j];
-			sumY += centerOfMassYAcc[i][j];
-			sumZ += centerOfMassZAcc[i][j];
-		}
-
-		centerOfMassX[i] = sumX / centerOfMassAccSize;
-		centerOfMassY[i] = sumY / centerOfMassAccSize;
-		centerOfMassZ[i] = sumZ / centerOfMassAccSize;
-	}
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Prunning coordinates..." << std::endl;
-	#endif
-
-	for(size_t i=0;i<centerOfMassX.size();i++)
-	{
-		// Check that coordinates at the border of the volume are not outside when considering the box size
-		if(centerOfMassX[i]<boxSize/2 or xSize-centerOfMassX[i]<boxSize/2 or
-		   centerOfMassY[i]<boxSize/2 or ySize-centerOfMassY[i]<boxSize/2 or
-		   centerOfMassZ[i]<boxSize/2 or zSize-centerOfMassZ[i]<boxSize/2)
-		{
-			centerOfMassX.erase(centerOfMassX.begin()+i);
-			centerOfMassY.erase(centerOfMassY.begin()+i);
-			centerOfMassZ.erase(centerOfMassZ.begin()+i);
-			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
-			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
-			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
-			i--;
-		}
-
-		// Check that number of coordinates per center of mass is higher than numberOfCoordinatesThr threshold
-		if(centerOfMassXAcc[i].size() < numberOfCoordinatesThr)
-		{
-			centerOfMassX.erase(centerOfMassX.begin()+i);
-			centerOfMassY.erase(centerOfMassY.begin()+i);
-			centerOfMassZ.erase(centerOfMassZ.begin()+i);
-			centerOfMassXAcc.erase(centerOfMassXAcc.begin()+i);
-			centerOfMassYAcc.erase(centerOfMassYAcc.begin()+i);
-			centerOfMassZAcc.erase(centerOfMassZAcc.begin()+i);
-			i--;
-		}
-	}
-
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of centers of mass after trimming: " << centerOfMassX.size() << std::endl;
-	#endif
-}
-
-
-void ProgTomoDetectMisalignmentTrajectory::centerCoordinates(MultidimArray<double> volFiltered)
-{
-	#ifdef VERBOSE_OUTPUT
-	std::cout << "Centering coordinates..." << std::endl;
-	#endif
-
-	size_t halfBoxSize = boxSize / 2;
-	size_t correlationWedge = boxSize / 3;
-	size_t numberOfFeatures = centerOfMassX.size();
-	MultidimArray<double> feature, symmetricFeature, auxSymmetricFeature;
-
-	// Construct feature and its symmetric
-
-	for(size_t n = 0; n < numberOfFeatures; n++)
-	{
-		feature.initZeros(boxSize, boxSize, boxSize);
-		symmetricFeature.initZeros(boxSize, boxSize, boxSize);
-		
-		for(int k = 0; k < boxSize; k++) // zDim
-		{	
-			for(int j = 0; j < boxSize; j++) // xDim
-			{
-				for(int i = 0; i < boxSize; i++) // yDim
-				{
-					DIRECT_A3D_ELEM(feature, k, i, j) = 
-					DIRECT_A3D_ELEM(volFiltered, 
-									centerOfMassZ[n] - halfBoxSize + k, 
-									centerOfMassY[n] - halfBoxSize + i, 
-									centerOfMassX[n] - halfBoxSize + j);
-
-					DIRECT_A3D_ELEM(symmetricFeature, boxSize -1 - k, boxSize -1 - i, boxSize -1 - j) = 
-					DIRECT_A3D_ELEM(volFiltered, 
-									centerOfMassZ[n] - halfBoxSize + k, 
-									centerOfMassY[n] - halfBoxSize + i,
-									centerOfMassX[n] - halfBoxSize + j);
-				}
-			}
-		}
-
-		// Shift the particle respect to its symmetric to look for the maximum correlation displacement
-		int correlationWedge = boxSize / 3;
-		int xDisplacement = 0, yDisplacement = 0, zDisplacement = 0;
-
-		double maxCorrelation = correlationIndex(feature, symmetricFeature);
-
-		for(int kaux = -1 * correlationWedge; kaux < correlationWedge; kaux++) // zDim
-		{	
-			for(int jaux = -1 * correlationWedge; jaux < correlationWedge; jaux++) // xDim
-			{
-				for(int iaux = -1 * correlationWedge; iaux < correlationWedge; iaux++) // yDim
-				{
-					
-					auxSymmetricFeature.initZeros(boxSize, boxSize, boxSize);
-					
-					// Construct auxiliar symmetric feature shifting the symmetric feature to calculate 
-					// the correlation with the extracted feature
-
-					FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxSymmetricFeature)
-					{
-						if(k + kaux >= 0 && k + kaux < boxSize - 1 &&
-							j + jaux >= 0 && j + jaux < boxSize - 1 &&
-							i + iaux >= 0 && i + iaux < boxSize - 1)
-						{
-							DIRECT_A3D_ELEM(auxSymmetricFeature, k + kaux, i + iaux, j + jaux) = 
-							DIRECT_A3D_ELEM(symmetricFeature, k, i, j);	
-						}
-					}
-
-					double correlation = correlationIndex(feature, auxSymmetricFeature);
-					std::cout << "correlationIndex(symmetricFeature, auxSymmetricFeature)" << correlation << std::endl;
-
-					if(correlation > maxCorrelation)
-					{
-						maxCorrelation = correlation;
-						xDisplacement = jaux;
-						yDisplacement = iaux;
-						zDisplacement = kaux;
-					}
-				}
-			}
-		}
-
-		// Update coordinate
-		centerOfMassX[n] = centerOfMassX[n] + xDisplacement;
-		centerOfMassY[n] = centerOfMassY[n] + yDisplacement;
-		centerOfMassZ[n] = centerOfMassZ[n] + zDisplacement;
-	}
-}
-
-
 void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 {
 	MetaData md;
@@ -612,9 +364,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
 		md.setValue(MDL_YCOOR, coordinates3Dy[i], id);
 		md.setValue(MDL_ZCOOR, coordinates3Dn[i], id);
-		// md.setValue(MDL_XCOOR, centerOfMassX[i], id);
-		// md.setValue(MDL_YCOOR, centerOfMassY[i], id);
-		// md.setValue(MDL_ZCOOR, centerOfMassZ[i], id);
 	}
 
 	md.write(fnOut);
@@ -760,8 +509,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImageBis() = proyectedCoordinates;
 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 	#endif
-
-	// clusterHighContrastCoordinates();
 
 	// if(centerFeatures==true)
 	// {
