@@ -327,6 +327,16 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 {
 	size_t objId;
 	int coorX, coorY, coorZ;
+	double tiltAngle;
+
+	for(size_t n = 0; n<tiltAngles.size(); n++)
+	{	
+		tiltAngle = tiltAngles[n];
+
+		Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
+
+	}
+
 	FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
 	{
 		objId = __iter.objId;
@@ -336,32 +346,6 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 
 
 	}
-
-/*
-    def getProjectedCoordinate2D(self, angle, coordinate3D):
-        """ Method to calculate the projection of a 3D coordinate onto a plane defined by its angle (rotates
-        around the Y axis). """
-
-        rotationMatrix = self.getRotationMatrix(angle)
-
-        projectedCoordinate2D = np.matmul(self.getXYCoordinatesMatrix,
-                                          np.matmul(rotationMatrix,
-                                                    coordinate3D))
-
-        return projectedCoordinate2D
-
-
-		def getRotationMatrix(angle):
-	""" Method to calculate the 3D rotation matrix of a plane given its tilt angle. """
-
-	angleRad = np.deg2rad(angle)
-
-	rotationMatrix = [[np.cos(angleRad), 0, np.sin(angleRad)],
-						[0, 1, 0],
-						[-np.sin(angleRad), 0, np.cos(angleRad)]]
-
-	return rotationMatrix
-*/
 }
 
 
@@ -505,19 +489,19 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	writeOutputCoordinates();
 
-	MetaData inputTiltAnglesMd;
-	double tiltAngle;
-	inputTiltAnglesMd.read(fnTiltAngles);
-
-	FOR_ALL_OBJECTS_IN_METADATA(inputTiltAnglesMd)
-	{
-		objId = __iter.objId;
-		inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objId);
-		tiltAngles.push_back(tiltAngle);
-	}
-
 	if(checkInputCoord)
 	{
+		MetaData inputTiltAnglesMd;
+		double tiltAngle;
+		inputTiltAnglesMd.read(fnTiltAngles);
+
+		FOR_ALL_OBJECTS_IN_METADATA(inputTiltAnglesMd)
+		{
+			objId = __iter.objId;
+			inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objId);
+			tiltAngles.push_back(tiltAngle);
+		}
+
 		MetaData inputCoordMd;
 		inputCoordMd.read(fnInputCoord);
 
@@ -587,3 +571,24 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 		return false;
 	}
 }
+
+
+    Matrix2D<double> getProjectionMatrix(double tiltAngle)
+	{
+		double cosTiltAngle = cos(tiltAngle);
+		double sinTiltAngle = sin(tiltAngle);
+
+		Matrix2D<double> projectionMatrix(3,3);
+
+		MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
+		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+		MAT_ELEM(projectionMatrix, 0, 0) = sinTiltAngle;
+		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+		MAT_ELEM(projectionMatrix, 0, 0) = 1;
+		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+		MAT_ELEM(projectionMatrix, 0, 0) = -sinTiltAngle;
+		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+		MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
+
+		return projectionMatrix;
+	}

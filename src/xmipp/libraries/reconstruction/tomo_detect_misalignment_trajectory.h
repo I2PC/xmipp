@@ -97,16 +97,6 @@ public:
     */
     void bandPassFilter(MultidimArray<double> &inputTiltSeries);
 
-
-    /**
-     * Filter labeled regions.
-     *
-     * @param
-     * @return
-     *
-    */
-    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
-
     /**
      * Peaks high contrast regions in a volume.
      *
@@ -133,6 +123,24 @@ public:
      *
     */
     void calculateResidualVectors(MetaData inputCoordMd);
+
+    /**
+     * Filter labeled regions.
+     *
+     * @param
+     * @return
+     *
+    */
+    bool filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY);
+
+    /**
+     * Calculation of the projection matrix given the projection angle.
+     *
+     * @param
+     * @return
+     *
+    */
+    Matrix2D<double> getProjectionMatrix(double tiltAngle);
 
     void run();
 };
