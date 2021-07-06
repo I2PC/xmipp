@@ -86,8 +86,14 @@ private:
 
 public:
 
+    // --------------------------- INFO functions ----------------------------
+
     void readParams();
+
     void defineParams();
+
+
+    // --------------------------- HEAD functions ----------------------------
 
     /**
      * Bandpass filtering the input tilt-series.
@@ -108,6 +114,18 @@ public:
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     /**
+     * Calculate residual vectors from the 3D landmark and the obtained coordinates.
+     *
+     * @param
+     * @return
+     *
+    */
+    void calculateResidualVectors(MetaData inputCoordMd);
+
+
+    // --------------------------- I/O functions ----------------------------
+
+    /**
      * Write obtained coordinates in output file.
      *
      * @param
@@ -126,14 +144,8 @@ public:
     */
     void writeOutputResidualVectors();
 
-    /**
-     * Calculate residual vectors from the 3D landmark and the obtained coordinates.
-     *
-     * @param
-     * @return
-     *
-    */
-    void calculateResidualVectors(MetaData inputCoordMd);
+
+    // --------------------------- UTILS functions ----------------------------
 
     /**
      * Filter labeled regions.
@@ -162,6 +174,8 @@ public:
     */
     std::vector<Matrix1D<int>> getCoordinatesInSlice(int slice);
 
+
+    // --------------------------- MAIN ----------------------------------
 
     void run();
 };
