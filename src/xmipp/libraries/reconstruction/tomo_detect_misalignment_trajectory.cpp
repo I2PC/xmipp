@@ -61,7 +61,6 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 // --------------------------- HEAD functions ----------------------------
 
-
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries) //*** tiltImage*
 {
 	FourierTransformer transformer1(FFTW_BACKWARD);
@@ -391,7 +390,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
 	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
 	std::string fnOutResiduals;
-    fnOutResiduals = rawname + "residuals2d.mrc";
+    fnOutResiduals = rawname + "/residuals2d.xmd";
 
 	md.write(fnOutResiduals);
 	
