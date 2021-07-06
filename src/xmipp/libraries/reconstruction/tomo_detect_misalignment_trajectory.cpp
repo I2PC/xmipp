@@ -134,7 +134,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	
 	for(size_t k = 0; k < nSize; ++k)
 	{
-		std::cout << "----------------------------------------------- Processing slice " << k + 1 << std::endl;
 		std::vector<int> sliceVector;
 		
 		// Calculate threshold value for each image of the series
@@ -163,15 +162,11 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        #ifdef VERBOSE_OUTPUT
-		std::cout << "Average: " << average << std::endl;
- 		std::cout << "SD: " << standardDeviation << std::endl;
-		#endif
-
         double threshold = average - sdThreshold * standardDeviation;
 
+
         #ifdef VERBOSE_OUTPUT
-        std::cout<< "Threshold: " << threshold << std::endl;
+		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << " Threshold: " << threshold << std::endl;
         #endif
 
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
@@ -278,8 +273,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		}
 
 		#ifdef DEBUG
-		std::cout << "Number of coordinates added " << numberOfNewPeakedCoordinates <<std::endl;
-		std::cout << "coordinates3Dx.size()=" << coordinates3Dx.size() <<std::endl;
+		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
+		std::cout << "Accumulated number of coordinates: " << coordinates3Dx.size() <<std::endl;
 		#endif
 
     }
@@ -327,30 +322,52 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 {
 	size_t objId;
 	double tiltAngle;
+	double distance;
+	double maxDistance;
 
 	Matrix2D<double> projectionMatrix;
 	Matrix1D<int> goldBead3d;
 	Matrix1D<double> projectedGoldBead;
 
+	std::vector<Matrix1D<int>> coordinatesInSlice;
+
 	goldBead3d.initZeros(3);
 
-	FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
-	{
-		objId = __iter.objId;
-		inputCoordMd.getValue(MDL_XCOOR, XX(goldBead3d), objId);
-		inputCoordMd.getValue(MDL_YCOOR, YY(goldBead3d), objId);
-		inputCoordMd.getValue(MDL_ZCOOR, ZZ(goldBead3d), objId);
+	// Iterate through every tilt-image
+	for(size_t n = 0; n<tiltAngles.size(); n++)
+	{	
+		tiltAngle = tiltAngles[n];
 
-		for(size_t n = 0; n<tiltAngles.size(); n++)
-		{	
-			tiltAngle = tiltAngles[n];
+		coordinatesInSlice = getCoordinatesInSlice(n);
 
-			Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
+		Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
+
+		// Iterate through every input 3d gold bead coordinate
+		FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
+		{
+			maxDistance = 0;
+
+			objId = __iter.objId;
+			inputCoordMd.getValue(MDL_XCOOR, XX(goldBead3d), objId);
+			inputCoordMd.getValue(MDL_YCOOR, YY(goldBead3d), objId);
+			inputCoordMd.getValue(MDL_ZCOOR, ZZ(goldBead3d), objId);
 
 			projectedGoldBead = projectionMatrix.operator*(goldBead3d);
 
-			projectedGoldBead.operator-
+			// Iterate though every coordinate in the tilt-image and calculate the maximum distance
+			for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+			{
+				distance = abs(XX(projectedGoldBead) - XX(coordinatesInSlice[i])) + abs(YY(projectedGoldBead) - YY(coordinatesInSlice[i]));
 
+				if(maxDistance > distance)
+				{
+					maxDistance = distance;
+
+					residualX.push_back(XX(coordinatesInSlice[i]) - XX(projectedGoldBead));
+					residualY.push_back(YY(coordinatesInSlice[i]) - YY(projectedGoldBead));
+					residualZ.push_back(n);
+				}
+			}
 		}
 	}
 }
@@ -431,7 +448,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
 		#ifdef DEBUG
-        std::cout << fnTSimg << std::endl;
+        std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
 		#endif
 
         imgTS.read(fnTSimg);
@@ -521,6 +538,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
  	std::cout << "Execution time: " << ms_int.count() << "ms\n";
 }
 
+
 // --------------------------- UTILS functions ----------------------------
 
 bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
@@ -598,4 +616,22 @@ Matrix2D<double> ProgTomoDetectMisalignmentTrajectory::getProjectionMatrix(doubl
 	MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
 
 	return projectionMatrix;
+}
+
+std::vector<Matrix1D<int>> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSlice(int slice)
+{
+	std::vector<Matrix1D<int>> coordinatesInSlice;
+	Matrix1D<int> coordinate(2);
+
+	for(size_t n = 0; n < coordinates3Dx.size(); n++)
+	{
+		if(slice == coordinates3Dn[n])
+		{
+			XX(coordinate) = coordinates3Dx[n];
+			YY(coordinate) = coordinates3Dy[n];
+			coordinatesInSlice.push_back(coordinate);
+		}
+	}
+
+	return coordinatesInSlice;
 }
