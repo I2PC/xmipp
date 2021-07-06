@@ -326,25 +326,32 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inputCoordMd)
 {
 	size_t objId;
-	int coorX, coorY, coorZ;
 	double tiltAngle;
 
-	for(size_t n = 0; n<tiltAngles.size(); n++)
-	{	
-		tiltAngle = tiltAngles[n];
+	Matrix2D<double> projectionMatrix;
+	Matrix1D<int> goldBead3d;
+	Matrix1D<double> projectedGoldBead;
 
-		Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
-
-	}
+	goldBead3d.initZeros(3);
 
 	FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
 	{
 		objId = __iter.objId;
-		inputCoordMd.getValue(MDL_XCOOR, coorX, objId);
-		inputCoordMd.getValue(MDL_YCOOR, coorY, objId);
-		inputCoordMd.getValue(MDL_ZCOOR, coorZ, objId);
+		inputCoordMd.getValue(MDL_XCOOR, XX(goldBead3d), objId);
+		inputCoordMd.getValue(MDL_YCOOR, YY(goldBead3d), objId);
+		inputCoordMd.getValue(MDL_ZCOOR, ZZ(goldBead3d), objId);
 
+		for(size_t n = 0; n<tiltAngles.size(); n++)
+		{	
+			tiltAngle = tiltAngles[n];
 
+			Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
+
+			projectedGoldBead = projectionMatrix.operator*(goldBead3d);
+
+			projectedGoldBead.operator-
+
+		}
 	}
 }
 
@@ -573,22 +580,22 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 }
 
 
-    Matrix2D<double> getProjectionMatrix(double tiltAngle)
-	{
-		double cosTiltAngle = cos(tiltAngle);
-		double sinTiltAngle = sin(tiltAngle);
+Matrix2D<double> ProgTomoDetectMisalignmentTrajectory::getProjectionMatrix(double tiltAngle)
+{
+	double cosTiltAngle = cos(tiltAngle);
+	double sinTiltAngle = sin(tiltAngle);
 
-		Matrix2D<double> projectionMatrix(3,3);
+	Matrix2D<double> projectionMatrix(3,3);
 
-		MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
-		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
-		MAT_ELEM(projectionMatrix, 0, 0) = sinTiltAngle;
-		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
-		MAT_ELEM(projectionMatrix, 0, 0) = 1;
-		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
-		MAT_ELEM(projectionMatrix, 0, 0) = -sinTiltAngle;
-		// MAT_ELEM(projectionMatrix, 0, 0) = 0;
-		MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
+	MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
+	// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+	MAT_ELEM(projectionMatrix, 0, 0) = sinTiltAngle;
+	// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+	MAT_ELEM(projectionMatrix, 0, 0) = 1;
+	// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+	MAT_ELEM(projectionMatrix, 0, 0) = -sinTiltAngle;
+	// MAT_ELEM(projectionMatrix, 0, 0) = 0;
+	MAT_ELEM(projectionMatrix, 0, 0) = cosTiltAngle;
 
-		return projectionMatrix;
-	}
+	return projectionMatrix;
+}
