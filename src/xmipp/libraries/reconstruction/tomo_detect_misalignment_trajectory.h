@@ -80,8 +80,9 @@ private:
     std::vector<int> coordinates3Dn;
 
     /** Vectors for calculated residuals components */
-    std::vector<int> residualX;
-    std::vector<int> residualY;
+    std::vector<double> residualX;
+    std::vector<double> residualY;
+    std::vector<size_t> residualZ;
 
 public:
 
@@ -141,6 +142,16 @@ public:
      *
     */
     Matrix2D<double> getProjectionMatrix(double tiltAngle);
+
+    /**
+     * Retrieve all coordinates peaked from the same slice.
+     *
+     * @param
+     * @return
+     *
+    */
+    std::vector<Matrix1D<int>> getCoordinatesInSlice(int slice);
+
 
     void run();
 };
