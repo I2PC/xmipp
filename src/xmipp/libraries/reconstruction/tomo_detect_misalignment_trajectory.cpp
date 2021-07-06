@@ -358,7 +358,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 	MetaData md;
 	size_t id;
 
-	for(size_t i=0;i<coordinates3Dx.size();i++)
+	for(size_t i = 0; i < coordinates3Dx.size(); i++)
 	{
 		id = md.addObject();
 		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
@@ -370,6 +370,33 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 	
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Coordinates metadata saved at: " << fnOut << std::endl;
+	#endif
+
+}
+
+
+void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
+{
+	MetaData md;
+	size_t id;
+
+	for(size_t i = 0; i < residualX.size(); i++)
+	{
+		id = md.addObject();
+		md.setValue(MDL_XCOOR, residualX[i], id);
+		md.setValue(MDL_YCOOR, residualY[i], id);
+		md.setValue(MDL_ZCOOR, residualZ[i], id);
+	}
+
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string fnOutResiduals;
+    fnOutResiduals = rawname + "residuals2d.mrc";
+
+	md.write(fnOutResiduals);
+	
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Residuals metadata saved at: " << fnOutResiduals << std::endl;
 	#endif
 
 }

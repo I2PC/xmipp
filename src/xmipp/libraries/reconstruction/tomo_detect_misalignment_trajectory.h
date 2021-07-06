@@ -116,6 +116,16 @@ public:
     */
     void writeOutputCoordinates();
 
+
+    /**
+     * Write obtained coordinates in output file.
+     *
+     * @param
+     * @return
+     *
+    */
+    void writeOutputResidualVectors();
+
     /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
      *
