@@ -559,6 +559,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 		inputCoordMd.read(fnInputCoord);
 
 		calculateResidualVectors(inputCoordMd);
+		writeOutputResidualVectors();
 	}
 	
 	auto t2 = high_resolution_clock::now();
@@ -646,6 +647,7 @@ Matrix2D<double> ProgTomoDetectMisalignmentTrajectory::getProjectionMatrix(doubl
 
 	return projectionMatrix;
 }
+
 
 std::vector<Matrix1D<int>> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSlice(int slice)
 {
