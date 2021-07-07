@@ -94,7 +94,7 @@ public:
         }
         node->barrierWait();
     }
-    virtual bool getImageToProcess(size_t &objId) override
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         //return getTaskToProcess(objId, objIndex);
         size_t first, last;
@@ -103,11 +103,13 @@ public:
         if (moreTasks)
         {
             time_bar_done = first + 1;
+            objIndex = first;
             objId = imgsId[first];
             return true;
         }
         time_bar_done = getInputMd()->size();
         objId = BAD_OBJID;
+        objIndex = BAD_INDEX;
         return false;
     }
     /*void gatherMetadatas()

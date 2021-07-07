@@ -63,7 +63,8 @@ void ProgMPIRecWbp::showProgress()
 }
 bool ProgMPIRecWbp::getImageToProcess(size_t &objId)
 {
-    return getTaskToProcess(objId);
+    size_t tmp;
+    return getTaskToProcess(objId, tmp);
 }
 void ProgMPIRecWbp::finishProcessing()
 {

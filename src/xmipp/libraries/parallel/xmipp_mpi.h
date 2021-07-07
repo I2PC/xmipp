@@ -209,7 +209,7 @@ public:
     /** finishProcessing */
     void finishProcessing();
     /** Get task to process */
-    bool getTaskToProcess(size_t &objId);
+    bool getTaskToProcess(size_t &objId, size_t &objIndex);
 };
 
 /** Macro to define a simple MPI parallelization
@@ -257,9 +257,9 @@ public:\
             baseClassName::showProgress();\
         }\
     }\
-    bool getImageToProcess(size_t &objId) override\
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override\
     {\
-        return getTaskToProcess(objId);\
+        return getTaskToProcess(objId, objIndex);\
     }\
     void finishProcessing()\
     {\

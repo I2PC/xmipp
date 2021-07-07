@@ -48,8 +48,7 @@ private:
     //Only master show progress
     void showProgress();
     
-    //Now use the distributor to grasp volumes
-    virtual bool getImageToProcess(size_t &objId) override;
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override;
 
     void finishProcessing();
 

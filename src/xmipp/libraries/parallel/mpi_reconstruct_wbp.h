@@ -44,7 +44,7 @@ public:
     void read(int argc, char **argv);
     void produceSideInfo();
     void showProgress();
-    virtual bool getImageToProcess(size_t &objId) override;
+    bool getImageToProcess(size_t &objId) override;
     void finishProcessing();
 };
 
