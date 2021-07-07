@@ -454,8 +454,13 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
     p(5)=old_scaleY;
     p(6)=old_scaleAngle;
 
-	rowOut.setValue<String>(MDL_IMAGE_RESIDUAL,""); // default values
-	rowOut.setValue<String>(MDL_IMAGE_REF,"");
+    // default values
+    if (fnResiduals != "") {
+      rowOut.setValue<String>(MDL_IMAGE_RESIDUAL, "");
+    }
+    if (fnProjections != "") {
+      rowOut.setValue<String>(MDL_IMAGE_REF, "");
+    }
 
     // Optimize
 	double cost=-1;
@@ -478,6 +483,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 				steps(7)=steps(8)=steps(9)=1.;
 			if (optimizeDefocus)
 				steps(10)=steps(11)=steps(12)=1.;
+			currentDefocusU = currentDefocusV = currentAngle = std::numeric_limits<double>::quiet_NaN(); // initialize default values
 			powellOptimizer(p, 1, 13, &continuous2cost, this, 0.01, cost, iter, steps, verbose>=2);
 			if (cost>1e30 || (cost>0 && contCost==CONTCOST_CORR))
 			{
