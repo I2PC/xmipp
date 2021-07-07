@@ -139,6 +139,10 @@ __device__ PrecisionType interpolatedElement3D(
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType doutside_value = 0);
 
+__device__ PrecisionType interpolateNoChecks(
+        PrecisionType* ImD, ImageMetaData imgMeta,
+        PrecisionType x, PrecisionType y, PrecisionType z);
+
 /*
  * The beast
  */
@@ -226,6 +230,7 @@ extern "C" __global__ void computeDeform(
     PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     bool isOutside = IS_OUTSIDE_PHYS(imageMetaData, kPhys, iPhys, jPhys);
+    PrecisionType testR2 = (k+gz)*(k+gz) + (i+gy)*(i+gy) + (j+gx)*(j+gx);
 
     if (applyTransformation && !isOutside) {
         // Logical indexes used to check whether the point is in the matrix
@@ -235,12 +240,18 @@ extern "C" __global__ void computeDeform(
         ELEM_3D(images.VO, imageMetaData, kPhys, iPhys, jPhys) = voxelI;
     }
 
+    PrecisionType testRmax2 = SQRT(Rmax2) - 1;
+    testRmax2 *= testRmax2;
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.count; idv++) {
             voxelR = ELEM_3D(volumes.R + idv * volumes.volumeSize,
                     imageMetaData, kPhys, iPhys, jPhys);
-            voxelI = interpolatedElement3D(volumes.I + idv * volumes.volumeSize,
-                    imageMetaData, j + gx, i + gy, k + gz);
+            if (testR2 < testRmax2) {
+                voxelI = interpolateNoChecks(volumes.I + idv * volumes.volumeSize,
+                        imageMetaData, j + gx, i + gy, k + gz);
+            } else {
+                voxelI = 0.0;
+            }
 
             if (voxelI >= 0.0)
                 localSumVD += voxelI;
@@ -365,6 +376,44 @@ __device__ PrecisionType interpolatedElement3D(
             outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x0);
         PrecisionType d111 = (IS_OUTSIDE(imgMeta, z1, y1, x1)) ?
             outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x1);
+
+        PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
+        PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
+        PrecisionType dx10 = LIN_INTERP(fx, d010, d011);
+        PrecisionType dx11 = LIN_INTERP(fx, d110, d111);
+        PrecisionType dxy0 = LIN_INTERP(fy, dx00, dx10);
+        PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
+
+        return LIN_INTERP(fz, dxy0, dxy1);
+}
+
+/*
+ * Linear interpolation
+ */
+__device__ PrecisionType interpolateNoChecks(
+        PrecisionType* ImD, ImageMetaData imgMeta,
+        PrecisionType x, PrecisionType y, PrecisionType z) 
+{
+        int x0 = (int)CUDA_FLOOR(x);
+        PrecisionType fx = x - x0;
+        int x1 = x0 + 1;
+
+        int y0 = (int)CUDA_FLOOR(y);
+        PrecisionType fy = y - y0;
+        int y1 = y0 + 1;
+
+        int z0 = (int)CUDA_FLOOR(z);
+        PrecisionType fz = z - z0;
+        int z1 = z0 + 1;
+
+        PrecisionType d000 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x0);
+        PrecisionType d001 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x1);
+        PrecisionType d010 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x0);
+        PrecisionType d011 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x1);
+        PrecisionType d100 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x0);
+        PrecisionType d101 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x1);
+        PrecisionType d110 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x0);
+        PrecisionType d111 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x1);
 
         PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
         PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
