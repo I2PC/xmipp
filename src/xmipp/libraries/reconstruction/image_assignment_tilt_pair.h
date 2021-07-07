@@ -35,6 +35,9 @@ class Matrix1D;
 template<typename T>
 class Matrix2D;
 
+/**@defgroup ProgassignmentTiltPair Image Assignment Tilt Pair
+   @ingroup ReconsLibrary */
+//@{
 class ProgassignmentTiltPair: public XmippProgram
 {
 
@@ -75,4 +78,5 @@ public:
 
 
 };
+//@}
 #endif

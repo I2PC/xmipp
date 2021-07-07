@@ -65,6 +65,9 @@
 #define split1 1
 #define split2 2
 
+/// @defgroup MpiProgAngularClassAverage MPI Angular Class Average
+/// @ingroup ParallelLibrary
+//@{
 class MpiProgAngularClassAverage : public XmippMpiProgram
 {
 public:
@@ -273,7 +276,7 @@ public:
     void applyWienerFilter(MultidimArray<double> &img);
 
 };
-
+//@}
 #endif /* MPI_ANGULAR_CLASS_AVERAGE_H_ */
 
 

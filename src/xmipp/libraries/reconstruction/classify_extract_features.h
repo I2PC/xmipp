@@ -31,7 +31,9 @@
 #include "core/multidim_array.h"
 
 class FitPoint;
-
+/**@defgroup ProgExtractFeatures ProgExtractFeatures
+   @ingroup ReconsLibrary */
+//@{
 class ProgExtractFeatures: public XmippProgram
 {
 public:
@@ -124,4 +126,5 @@ public:
     FitPoint *fitPoints;
     int NmaskPoints;
 };
+//@}
 #endif

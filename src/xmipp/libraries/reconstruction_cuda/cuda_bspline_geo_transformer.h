@@ -29,6 +29,9 @@
 #include "gpu.h"
 #include "reconstruction/bspline_geo_transformer.h"
 
+/**@defgroup CudaBSplineGeoTransformer Cuda BSpline GeoTransformer
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class CudaBSplineGeoTransformer : public BSplineGeoTransformer<T> {
 public:
@@ -63,6 +66,5 @@ private:
     void allocate();
     void check() override;
 };
-
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_CUDA_BSPLINE_GEO_TRANSFORMER_H_ */

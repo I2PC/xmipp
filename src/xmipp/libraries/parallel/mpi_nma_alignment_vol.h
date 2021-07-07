@@ -30,6 +30,9 @@
 #include <reconstruction/nma_alignment_vol.h>
 #include <memory>
 
+/// @defgroup MpiProgNMAVol NMA Alignment for volumes with  MPI parallelization
+/// @ingroup ParallelLibrary
+//@{
 /** Class to perform the NMA Alignment for volumes with  MPI parallelization */
 class MpiProgNMAVol: public ProgNmaAlignmentVol
 {
@@ -58,4 +61,5 @@ public:
     // Redefine read to initialize MPI environment
     void read(int argc, char **argv);
 }
+//@}
 ;//end of class MpiProgNMAVol

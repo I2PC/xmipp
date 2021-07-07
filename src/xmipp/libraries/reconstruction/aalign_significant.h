@@ -37,6 +37,9 @@
 #include "reconstruction/single_extrema_finder.h"
 #include "core/transformations.h"
 
+/**@defgroup Alignment Alignment
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -183,5 +186,5 @@ private:
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* AALIGN_SIGNIFICANT */

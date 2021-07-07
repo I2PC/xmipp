@@ -37,9 +37,9 @@ from datetime import datetime
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
 ####################################
-XMIPP_VERSION = '3.20.07'          #
-XMIPP_VERNAME = 'Boreas'           #
-RELEASE_DATE = '14/10/2020'        #
+XMIPP_VERSION = '3.21.06.0'        #
+XMIPP_VERNAME = 'Caerus'           #
+RELEASE_DATE = '22/06/2021'        #
 ####################################
 
 
@@ -1241,7 +1241,7 @@ def ensureConfigVersion(configDict):
 
 def configTests(configDict):
     if configDict[KEY_BUILD_TESTS] == "":
-        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False)
+        configDict[KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False, actually_ask=askUser)
 
 
 def config():
@@ -1387,7 +1387,10 @@ def compile(Nproc):
         return False
     return compileXmipp(Nproc)
 
-def askYesNo(msg='', default=True):
+def askYesNo(msg='', default=True, actually_ask=True):
+    if not actually_ask:
+        print(msg, default)
+        return default
     r = input(msg)
     return (r.lower() not in ['n', 'no', '0'] if default else
             r.lower() in ['y', 'yes', '1'])

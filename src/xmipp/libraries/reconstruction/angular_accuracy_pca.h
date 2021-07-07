@@ -79,5 +79,5 @@ public:
     virtual void synchronize() {}
 
 };
-
+//@}
 #endif /* ANGULAR_ACCURACY_PCA_H_ */

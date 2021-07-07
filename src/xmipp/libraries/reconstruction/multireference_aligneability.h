@@ -35,7 +35,9 @@
 #include <data/mask.h>
 #include <core/symmetries.h>
 
-
+/**@defgroup MultireferenceAligneability Multireference Aligneability
+   @ingroup ReconsLibrary */
+//@{
 
 class MultireferenceAligneability: public XmippProgram
 {
@@ -88,6 +90,6 @@ private:
     /// Synchronize with other processors
     virtual void synchronize() {}
 };
-
+//@}
 
 #endif /* MULTIREFERENCE_ALIGNEABILITY_H_ */

@@ -20,14 +20,15 @@
  *=================================================================*/
 
 #include <mex.h>
+#include <core/matrix2d.h>
 #include <core/multidim_array.h>
 
 template <class T>
    void getMatrix1D(const mxArray* prhs, MultidimArray<T> &output)
 {
-    const int  *input_dims = mxGetDimensions(prhs);
+    const mwSize  *input_dims = mxGetDimensions(prhs);
     T *indatapt=(T*)mxGetData(prhs);
-    output.resize(input_dims[0]);
+    output.resize((size_t)input_dims[0]);
     FOR_ALL_ELEMENTS_IN_ARRAY1D(output)
        A1D_ELEM(output,i)=*indatapt++;
 }
@@ -36,9 +37,9 @@ template <class T>
 template <class T>
    void getMatrix2D(const mxArray* prhs, MultidimArray<T> &output)
 {
-    const int  *input_dims = mxGetDimensions(prhs);
+    const mwSize  *input_dims = mxGetDimensions(prhs);
     T *indatapt=(T*)mxGetData(prhs);
-    output.resize(input_dims[0],input_dims[1]);
+    output.resize((size_t)input_dims[0],(size_t)input_dims[1]);
     FOR_ALL_ELEMENTS_IN_ARRAY2D(output)
     	A2D_ELEM(output,i,j)=*indatapt++;
 }
@@ -46,9 +47,9 @@ template <class T>
 template <class T>
    void getMatrix1D(const mxArray* prhs, Matrix1D<T> &output)
 {
-    const int  *input_dims = mxGetDimensions(prhs);
+    const mwSize  *input_dims = mxGetDimensions(prhs);
     T *indatapt=(T*)mxGetData(prhs);
-    output.resize(input_dims[0]);
+    output.resize((size_t)input_dims[0]);
     FOR_ALL_ELEMENTS_IN_MATRIX1D(output)
        VEC_ELEM(output,i)=*indatapt++;
 }
@@ -57,9 +58,9 @@ template <class T>
 template <class T>
    void getMatrix2D(const mxArray* prhs, Matrix2D<T> &output)
 {
-    const int  *input_dims = mxGetDimensions(prhs);
+    const mwSize  *input_dims = mxGetDimensions(prhs);
     T *indatapt=(T*)mxGetData(prhs);
-    output.resize(input_dims[0],input_dims[1]);
+    output.resize((size_t)input_dims[0],(size_t)input_dims[1]);
     FOR_ALL_ELEMENTS_IN_MATRIX2D(output)
     	MAT_ELEM(output,i,j)=*indatapt++;
 }
@@ -67,9 +68,9 @@ template <class T>
 template <class T>
    void getMatrix3D(const mxArray* prhs, MultidimArray<T> &output)
 {
-    const int  *input_dims = mxGetDimensions(prhs);
+    const mwSize  *input_dims = mxGetDimensions(prhs);
     T *indatapt=(T*)mxGetData(prhs);
-    output.resize(input_dims[2],input_dims[0],input_dims[1]);
+    output.resize((size_t)input_dims[2],(size_t)input_dims[0],(size_t)input_dims[1]);
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(output)
        DIRECT_A3D_ELEM(output,k,i,j)=*indatapt++;
 }
@@ -78,7 +79,7 @@ template <class T>
 template <class T>
    void setMatrix1D(const MultidimArray<T> &input, mxArray* &plhs)
 {
-    int output_dims[2];
+    mwSize output_dims[2];
     output_dims[0] = XSIZE(input);
     output_dims[1] = 1;
     mxClassID typeClass;
@@ -97,7 +98,7 @@ template <class T>
 template <class T>
    void setMatrix2D(const MultidimArray<T> &input, mxArray* &plhs)
 {
-    int output_dims[2];
+    mwSize output_dims[2];
     output_dims[0] = XSIZE(input);
     output_dims[1] = YSIZE(input);
     
@@ -117,7 +118,7 @@ template <class T>
 template <class T>
    void setMatrix2D(const Matrix2D<T> &input, mxArray* &plhs)
 {
-    int output_dims[2];
+    mwSize output_dims[2];
     output_dims[0] = MAT_XSIZE(input);
     output_dims[1] = MAT_YSIZE(input);
 
@@ -137,7 +138,7 @@ template <class T>
 template <class T>
    void setMatrix3D(const MultidimArray<T> &input, mxArray* &plhs)
 {
-    int output_dims[3];
+    mwSize output_dims[3];
     output_dims[0] = XSIZE(input);
     output_dims[1] = YSIZE(input);
     output_dims[2] = ZSIZE(input);
