@@ -30,6 +30,7 @@
 #include "core/xmipp_image_generic.h"
 #include "data/projection.h"
 #include "data/mask.h"
+#include "reconstruction_cuda/gpu.h"
 
 // Empty constructor =======================================================
 ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
@@ -68,6 +69,7 @@ void ProgAngularSphAlignmentGpu::readParams()
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
     useFakeKernel = checkParam("--fakeKernel");
+	device = getIntParam("--device");
 }
 
 // Show ====================================================================
@@ -93,6 +95,7 @@ void ProgAngularSphAlignmentGpu::show()
 	<< "Optimize defocus;    " << optimizeDefocus    << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
     << "Regularization:      " << lambda             << std::endl
+	<< "Device:              " << device             << std::endl
     ;
 }
 
@@ -123,12 +126,15 @@ void ProgAngularSphAlignmentGpu::defineParams()
     addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
 	addParamsLine("  [--resume]                   : Resume processing");
 	addParamsLine("  [--fakeKernel]               : Uses fake kernel (CPU) instead of GPU kernel");
+	addParamsLine("  [--device <dev=0>]           : GPU device to use. 0th by default");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
 
 // Produce side information ================================================
 void ProgAngularSphAlignmentGpu::createWorkFiles() {
+	auto gpu = GPU(device);
+	gpu.set();
 	MetaData *pmdIn = getInputMd();
 	MetaData mdTodo, mdDone;
 	mdTodo = *pmdIn;
@@ -136,6 +142,8 @@ void ProgAngularSphAlignmentGpu::createWorkFiles() {
 	if (fn.exists() && resume) {
 		mdDone.read(fn);
 		mdTodo.subtraction(mdDone, MDL_IMAGE);
+		mdTodo.write(fnOutDir + "/sphTodo.xmd");
+		mdTodo.read(fnOutDir + "/sphTodo.xmd");
 	} else //if not exists create metadata only with headers
 	{
 		mdDone.addLabel(MDL_IMAGE);

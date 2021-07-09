@@ -83,6 +83,9 @@ public:
     Matrix1D<double> p;
     int flagEnabled;
 
+    // CUDA device to use
+    int device;
+
 public:
     /** Resume computations */
     bool resume;
