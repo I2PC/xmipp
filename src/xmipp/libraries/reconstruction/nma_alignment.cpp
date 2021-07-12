@@ -124,7 +124,7 @@ void ProgNmaAlignment::show() {
 ProgNmaAlignment *global_nma_prog;
 
 void ProgNmaAlignment::createWorkFiles() {
-	auto *pmdIn = getInputMd();
+	MetaDataVec *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
 	MetaDataDb mdTodo, mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/nmaDone.xmd");
@@ -144,7 +144,7 @@ void ProgNmaAlignment::createWorkFiles() {
 		mdDone.addLabel(MDL_COST);
 		mdDone.write(fn);
 	}
-	*pmdIn = mdTodo;
+	*pmdIn = MetaDataVec(mdTodo);
 }
 
 void ProgNmaAlignment::preProcess() {
