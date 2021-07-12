@@ -25,7 +25,7 @@
 
 #include "program_extension.h"
 #include "volumeset_align.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 
 // Empty constructor =======================================================
 ProgVolumeSetAlign::ProgVolumeSetAlign() {
@@ -66,10 +66,10 @@ void ProgVolumeSetAlign::readParams() {
 // Produce side information ================================================
 
 void ProgVolumeSetAlign::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
+	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
 	// this will serve to resume
-	MetaData mdTodo;
-	MetaData mdDone;
+	MetaDataDb mdTodo;
+	MetaDataDb mdDone;
 	mdTodo = *pmdIn;
 	FileName fn(fnOutDir+"/AlignedSoFar.xmd");
 	if (fn.exists() && resume) {
@@ -168,7 +168,7 @@ void ProgVolumeSetAlign::processImage(const FileName &fnImg,
 }
 
 void ProgVolumeSetAlign::writeVolumeParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
 	md.setValue(MDL_ENABLED, 1, objId);

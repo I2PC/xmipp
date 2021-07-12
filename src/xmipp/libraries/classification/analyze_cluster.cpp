@@ -94,7 +94,7 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
             return;
         if (SFin.containsLabel(MDL_ENABLED))
             SFin.removeObjects(MDValueEQ(MDL_ENABLED, -1));
-        MetaData SFaux;
+        MetaDataVec SFaux;
         SFaux.removeDuplicates(SFin,MDL_IMAGE);
         SFin=SFaux;
     }
@@ -136,21 +136,21 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
     FileName fnImg;
-    FOR_ALL_OBJECTS_IN_METADATA(SFin)
+    for (size_t objId : SFin.ids())
     {
-    	SFin.getValue(image_label,fnImg,__iter.objId);
-        I.readApplyGeo( fnImg, SFin, __iter.objId );
+        SFin.getValue(image_label,fnImg, objId);
+        I.readApplyGeo( fnImg, SFin, objId);
         if (XSIZE(I())!=Xdim || YSIZE(I())!=Ydim)
-        	REPORT_ERROR(ERR_MULTIDIM_SIZE,"All images must be of the same size");
+            REPORT_ERROR(ERR_MULTIDIM_SIZE,"All images must be of the same size");
         I().setXmippOrigin();
         int idx=0;
         if (subtractRef)
         {
             // Choose between this image and its mirror
-        	Ialigned=I();
-        	ImirrorAligned=Ialigned;
-        	ImirrorAligned.selfReverseX();
-        	ImirrorAligned.setXmippOrigin();
+            Ialigned=I();
+            ImirrorAligned=Ialigned;
+            ImirrorAligned.selfReverseX();
+            ImirrorAligned.setXmippOrigin();
             alignImages(mIref,Ialigned,M,WRAP,aux,aux2,aux3);
             alignImages(mIref,ImirrorAligned,M,WRAP,aux,aux2,aux3);
             double corr=correlationIndex(mIref,Ialigned,&mask);
@@ -212,11 +212,11 @@ void ProgAnalyzeCluster::run()
 		{
 			int trueIdx=pcaAnalyzer.getSorted(n);
 			double zscore=pcaAnalyzer.getSortedZscore(n);
-			SFout.setValue(MDL_ZSCORE, zscore, trueIdx+1);
+			SFout.setValue(MDL_ZSCORE, zscore, SFout.getRowId(trueIdx));
 			if (zscore<distThreshold || distThreshold<0)
-				SFout.setValue(MDL_ENABLED,1, trueIdx+1);
+				SFout.setValue(MDL_ENABLED,1, SFout.getRowId(trueIdx));
 			else
-				SFout.setValue(MDL_ENABLED,-1, trueIdx+1);
+				SFout.setValue(MDL_ENABLED,-1, SFout.getRowId(trueIdx));
 		}
     }
     SFout.write(fnOut,MD_APPEND);

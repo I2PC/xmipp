@@ -104,9 +104,9 @@ void ProgVolumePCA::run()
 
     // Add all volumes to the analyzer
     FileName fnVol;
-    FOR_ALL_OBJECTS_IN_METADATA(mdVols)
+    for (size_t objId : mdVols.ids())
     {
-    	mdVols.getValue(MDL_IMAGE,fnVol,__iter.objId);
+    	mdVols.getValue(MDL_IMAGE,fnVol,objId);
     	V.read(fnVol);
 
     	// Construct vector
@@ -131,10 +131,10 @@ void ProgVolumePCA::run()
     std::vector<double> dimredProj;
     dimredProj.resize(NPCA);
     int i=0;
-    FOR_ALL_OBJECTS_IN_METADATA(mdVols)
+    for (size_t objId : mdVols.ids())
     {
         memcpy(&dimredProj[0],&MAT_ELEM(proj,i,0),NPCA*sizeof(double));
-        mdVols.setValue(MDL_DIMRED,dimredProj,__iter.objId);
+        mdVols.setValue(MDL_DIMRED,dimredProj,objId);
         i++;
     }
     if (fnVolsOut!="")

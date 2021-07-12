@@ -61,9 +61,10 @@ void ProgMPIRecWbp::showProgress()
         progress_bar(time_bar_done);
     }
 }
-bool ProgMPIRecWbp::getImageToProcess(size_t &objId, size_t &objIndex)
+bool ProgMPIRecWbp::getImageToProcess(size_t &objId)
 {
-    return getTaskToProcess(objId, objIndex);
+    size_t tmp;
+    return getTaskToProcess(objId, tmp);
 }
 void ProgMPIRecWbp::finishProcessing()
 {

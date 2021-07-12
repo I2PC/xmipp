@@ -81,11 +81,11 @@ public:
     ProgReconsBase *reconsProgram;
 
     Image<double> muVol;
-    MetaData     projMD;
-    MetaData     interProjMD;
+    MetaDataVec projMD;
+    MetaDataVec interProjMD;
     XrayProjPhantom phantom;
-    Projection   proj;
-    ParallelTaskDistributor * td;
+    Projection proj;
+    ParallelTaskDistributor *td;
 
 
 protected:

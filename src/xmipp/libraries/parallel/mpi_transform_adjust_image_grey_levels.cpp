@@ -85,18 +85,18 @@ public:
         }
     }
 
-    bool getImageToProcess(size_t &objId, size_t &objIndex)
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         return getTaskToProcess(objId, objIndex);
     }
 
     void finishProcessing()
     {
-        node->gatherMetadatas(*getOutputMd(), fn_out);
-    	MetaData MDaux;
-    	MDaux.sort(*getOutputMd(), MDL_GATHER_ID);
+        node->gatherMetadatas(getOutputMd(), fn_out);
+    	MetaDataVec MDaux;
+    	MDaux.sort(getOutputMd(), MDL_GATHER_ID);
         MDaux.removeLabel(MDL_GATHER_ID);
-        *getOutputMd()=MDaux;
+        getOutputMd()=MDaux;
         if (node->isMaster())
         	ProgTransformImageGreyLevels::finishProcessing();
     }

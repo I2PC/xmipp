@@ -26,7 +26,7 @@
 #ifndef _ML_REFINE3D_H
 #define _ML_REFINE3D_H
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "data/sampling.h"
 
@@ -53,7 +53,7 @@ public:
     // Filenames for input images, reference volumes, symmetry file and output rootname
     FileName fn_sel, fn_ref, fn_sym, fn_root, fn_solv, fn_iter, fn_symmask;
     // Metadata with reference volumes
-    MetaData mdVol;
+    MetaDataVec mdVol;
     // Number of volumes to refine
     size_t Nvols;
     // Iteration numbers

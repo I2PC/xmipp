@@ -26,7 +26,7 @@
 #define _PROG_EVALUATECOORDINATES
 
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /**@defgroup ProgEvaluateCoordinates Evaluate Coordinates
    @ingroup ReconsLibrary */
@@ -35,10 +35,10 @@ class ProgEvaluateCoordinates: public XmippProgram
 {
 public:
     // SelFile with the ground truth
-    MetaData GT;
+    MetaDataVec GT;
 
     // SelFile with the coordinates for evaluation
-    MetaData Eval;
+    MetaDataVec Eval;
 
     /** Filename of ground truth coordinates */
     FileName fnGt;

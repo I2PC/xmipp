@@ -80,6 +80,6 @@ void ProgEliminateByEnergy::processImage(const FileName &fnImg, const FileName &
 }
 
 void ProgEliminateByEnergy::finishProcessing() {
-    getOutputMd()->removeDisabled();
+    getOutputMd().removeDisabled();
     XmippMetadataProgram::finishProcessing();
 }

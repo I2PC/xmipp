@@ -177,13 +177,11 @@ void ProgReconstructSignificant::alignImagesToGallery()
 	}
 
 	MultidimArray<double> ccVol(Nvols);
-	MDRow row;
-	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+	for (auto& row : mdIn)
 	{
 		if ((nImg+1)%Nprocessors==rank)
 		{
-			mdIn.getValue(MDL_IMAGE,fnImg,__iter.objId);
-			mdIn.getRow(row,__iter.objId);
+			mdIn.getValue(MDL_IMAGE,fnImg, row.id());
 #ifdef DEBUG
 			std::cout << "Processing: " << fnImg << std::endl;
 #endif
@@ -267,7 +265,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 	    	// Keep the best assignment for the projection matching
 	    	// Each process keeps a list of the images for each volume
-			MetaData &mdProjectionMatching=mdReconstructionProjectionMatching[bestVolume];
+			MetaDataDb &mdProjectionMatching=mdReconstructionProjectionMatching[bestVolume];
 			double scale, shiftX, shiftY, anglePsi;
 			bool flip;
 			transformationMatrix2Parameters2D(bestM,flip,scale,shiftX,shiftY,anglePsi);
@@ -276,7 +274,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 			if (maxShift<0 || (maxShift>0 && fabs(shiftX)<maxShift && fabs(shiftY)<maxShift))
 			{
-				size_t recId=mdProjectionMatching.addRow(row);
+				size_t recId=mdProjectionMatching.addRow(dynamic_cast<MDRowSql&>(row));
 				mdProjectionMatching.setValue(MDL_ENABLED,1,recId);
 				mdProjectionMatching.setValue(MDL_MAXCC,bestCorr,recId);
 				mdProjectionMatching.setValue(MDL_ANGLE_ROT,bestRot,recId);
@@ -304,7 +302,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 	    	// Get the best images
 			for (size_t nVolume=firstVolume; nVolume<=lastVolume; ++nVolume)
 			{
-				MetaData &mdPartial=mdReconstructionPartial[nVolume];
+				MetaDataDb &mdPartial=mdReconstructionPartial[nVolume];
 				for (size_t nDir=0; nDir<Ndirs; ++nDir)
 				{
 					size_t idx=nVolume*Ndirs+nDir;
@@ -351,7 +349,7 @@ void ProgReconstructSignificant::alignImagesToGallery()
 						          << "shiftX=" << shiftX << " shiftY=" << shiftY << std::endl;
 			#endif
 
-						size_t recId=mdPartial.addRow(row);
+						size_t recId=mdPartial.addRow(dynamic_cast<MDRowSql&>(row));
 						mdPartial.setValue(MDL_ENABLED,1,recId);
 						mdPartial.setValue(MDL_MAXCC,cc,recId);
 						mdPartial.setValue(MDL_COST,imed,recId);
@@ -398,7 +396,7 @@ void ProgReconstructSignificant::run()
     else
     	deltaAlpha=0;
 */
-    MetaData mdAux;
+    MetaDataVec mdAux;
 	size_t Nimgs=mdIn.size();
 	Image<double> save;
 	MultidimArray<double> ccdir, cdfccdir;
@@ -499,17 +497,17 @@ void ProgReconstructSignificant::run()
 			// Write the corresponding angular metadata
 			for (size_t nVolume=0; nVolume<(size_t)Nvolumes; ++nVolume)
 			{
-				MetaData &mdReconstruction=mdReconstructionPartial[nVolume];
+				MetaDataDb &mdReconstruction=mdReconstructionPartial[nVolume];
 				// Readjust weights with direction weights
-				FOR_ALL_OBJECTS_IN_METADATA(mdReconstruction)
+				for (size_t objId : mdReconstruction.ids())
 				{
 					size_t nImg;
 					int nVol, nDir;
-					mdReconstruction.getValue(MDL_IMAGE_IDX,nImg,__iter.objId);
-					mdReconstruction.getValue(MDL_REF,nDir,__iter.objId);
-					mdReconstruction.getValue(MDL_REF3D,nVol,__iter.objId);
-					mdReconstruction.setValue(MDL_WEIGHT,DIRECT_A3D_ELEM(weight,nImg,nVol,nDir),__iter.objId);
-					mdReconstruction.setValue(MDL_WEIGHT_SIGNIFICANT,DIRECT_A3D_ELEM(weight,nImg,nVol,nDir),__iter.objId);
+					mdReconstruction.getValue(MDL_IMAGE_IDX,nImg,objId);
+					mdReconstruction.getValue(MDL_REF,nDir,objId);
+					mdReconstruction.getValue(MDL_REF3D,nVol,objId);
+					mdReconstruction.setValue(MDL_WEIGHT,DIRECT_A3D_ELEM(weight,nImg,nVol,nDir),objId);
+					mdReconstruction.setValue(MDL_WEIGHT_SIGNIFICANT,DIRECT_A3D_ELEM(weight,nImg,nVol,nDir),objId);
 					//if (DIRECT_A3D_ELEM(weight,nImg,nVol,nDir)==0)
 					//	std::cout << "Direction " << nDir << " does not accept img " << nImg << std::endl;
 				}
@@ -592,7 +590,7 @@ void ProgReconstructSignificant::reconstructCurrent()
 {
 	if (rank==0)
 		std::cerr << "Reconstructing volumes ..." << std::endl;
-	MetaData MD;
+	MetaDataVec MD;
 	for (size_t nVolume=0; nVolume<(size_t)Nvolumes; ++nVolume)
 	{
 		if ((nVolume+1)%Nprocessors!=rank)
@@ -672,14 +670,14 @@ void ProgReconstructSignificant::generateProjections()
 			fnGalleryMetaData=fnFirstGallery;
 			fnGallery=fnFirstGallery.replaceExtension("stk");
 		}
-		MetaData mdAux(fnGalleryMetaData);
+		MetaDataVec mdAux(fnGalleryMetaData);
 		galleryNames.clear();
-		FOR_ALL_OBJECTS_IN_METADATA(mdAux)
+		for (size_t objId : mdAux.ids())
 		{
 			GalleryImage I;
-			mdAux.getValue(MDL_IMAGE,I.fnImg,__iter.objId);
-			mdAux.getValue(MDL_ANGLE_ROT,I.rot,__iter.objId);
-			mdAux.getValue(MDL_ANGLE_TILT,I.tilt,__iter.objId);
+			mdAux.getValue(MDL_IMAGE,I.fnImg,objId);
+			mdAux.getValue(MDL_ANGLE_ROT,I.rot,objId);
+			mdAux.getValue(MDL_ANGLE_TILT,I.tilt,objId);
 			mdGallery[n].push_back(I);
 		}
 		gallery[n].read(fnGallery);
@@ -773,21 +771,21 @@ void ProgReconstructSignificant::produceSideinfo()
 		if (fnInit=="")
 		{
 			deleteInit=true;
-			MetaData mdAux;
+			MetaDataVec mdAux;
 			for (int n=0; n<Nvolumes; ++n)
 			{
 				fnInit=fnDir+"/volume_random.xmd";
 				if (rank==0)
 				{
-					MetaData mdRandom;
+					MetaDataVec mdRandom;
 					mdRandom=mdIn;
-					FOR_ALL_OBJECTS_IN_METADATA(mdRandom)
+					for (size_t objId : mdRandom.ids())
 					{
-						mdRandom.setValue(MDL_ANGLE_ROT,rnd_unif(0,360),__iter.objId);
-						mdRandom.setValue(MDL_ANGLE_TILT,rnd_unif(0,180),__iter.objId);
-						mdRandom.setValue(MDL_ANGLE_PSI,rnd_unif(0,360),__iter.objId);
-						mdRandom.setValue(MDL_SHIFT_X,0.0,__iter.objId);
-						mdRandom.setValue(MDL_SHIFT_Y,0.0,__iter.objId);
+						mdRandom.setValue(MDL_ANGLE_ROT,rnd_unif(0,360),objId);
+						mdRandom.setValue(MDL_ANGLE_TILT,rnd_unif(0,180),objId);
+						mdRandom.setValue(MDL_ANGLE_PSI,rnd_unif(0,360),objId);
+						mdRandom.setValue(MDL_SHIFT_X,0.0,objId);
+						mdRandom.setValue(MDL_SHIFT_Y,0.0,objId);
 					}
 					FileName fnAngles=fnDir+formatString("/angles_random_%02d.xmd",n);
 					FileName fnVolume=fnDir+formatString("/volume_random_%02d.vol",n);
@@ -822,20 +820,20 @@ void ProgReconstructSignificant::produceSideinfo()
 		}
 
 		// Copy all input values as iteration 0 volumes
-		MetaData mdInit;
+		MetaDataVec mdInit;
 		mdInit.read(fnInit);
 		FileName fnVol;
 		Image<double> V;
 		int idx=0;
-		FOR_ALL_OBJECTS_IN_METADATA(mdInit)
+		for (size_t objId : mdInit.ids())
 		{
 			if (rank==0)
 			{
-				mdInit.getValue(MDL_IMAGE,fnVol,__iter.objId);
+				mdInit.getValue(MDL_IMAGE,fnVol,objId);
 				V.read(fnVol);
 				fnVol=formatString("%s/volume_iter000_%02d.vol",fnDir.c_str(),idx);
 				V.write(fnVol);
-				mdInit.setValue(MDL_IMAGE,fnVol,__iter.objId);
+				mdInit.setValue(MDL_IMAGE,fnVol,objId);
 			}
 			idx++;
 		}
@@ -853,7 +851,7 @@ void ProgReconstructSignificant::produceSideinfo()
 	// Copy all input values as iteration 0 volumes
 	FileName fnAngles;
 	Image<double> galleryDummy;
-	MetaData mdPartial, mdProjMatch;
+	MetaDataDb mdPartial, mdProjMatch;
 	for (int idx=0; idx<Nvolumes; ++idx)
 	{
 		if (rank==0)

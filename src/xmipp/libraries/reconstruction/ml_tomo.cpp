@@ -697,7 +697,7 @@ ProgMLTomo::produceSideInfo()
             REPORT_ERROR(ERR_MD_OBJECTNUMBER, "missingRegionNumber is missing from input images metadata"
                          "and your missing region metadata contains more than one missing region");
         int missno=0;
-        MDmissing.getValue(MDL_MISSINGREGION_NR, missno, MDmissing.firstObject());
+        MDmissing.getValue(MDL_MISSINGREGION_NR, missno, MDmissing.firstRowId());
         MDimg.fillConstant(MDL_MISSINGREGION_NR, formatString("%d", missno));
         std::cerr << "WARNING: missingRegionNumber is missing from input images metadata,"
         "column filled with unique missing region provided" <<std::endl;
@@ -861,9 +861,9 @@ ProgMLTomo::produceSideInfo()
     {
         int refno;
         nr_ref = 0;
-        FOR_ALL_OBJECTS_IN_METADATA(MDimg)
+        for (size_t objId : MDimg.ids())
         {
-            if (MDimg.getValue(MDL_REF, refno, __iter.objId))
+            if (MDimg.getValue(MDL_REF, refno, objId))
             {
                 nr_ref = XMIPP_MAX(refno, nr_ref);
             }
@@ -904,8 +904,8 @@ ProgMLTomo::generateInitialReferences()
     Matrix1D<double> my_offsets(3); //1D
     FileName fn_tmp;
     //SelLine line;
-    MetaData MDrand;
-    std::vector<MetaData> MDtmp(nr_ref);
+    MetaDataVec MDrand;
+    std::vector<MetaDataVec> MDtmp(nr_ref);
     int Nsub = ROUND((double)nr_images_global / nr_ref);
     double my_rot, my_tilt, my_psi, resolution;
     //DocLine DL;
@@ -949,23 +949,23 @@ ProgMLTomo::generateInitialReferences()
         Msumwedge1.initZeros();
         Msumwedge2.initZeros();
 
-        MetaData &md = MDtmp[refno];
-        FOR_ALL_OBJECTS_IN_METADATA(md)
+        MetaDataVec &md = MDtmp[refno];
+        for (size_t objId : md.ids())
         {
-            md.getValue(MDL_IMAGE, fn_tmp, __iter.objId);
+            md.getValue(MDL_IMAGE, fn_tmp, objId);
             Itmp.read(fn_tmp);
             Itmp().setXmippOrigin();
             reScaleVolume(Itmp(), true);
             if (do_keep_angles || dont_align || dont_rotate)
             {
                 // angles from MetaData
-                md.getValue(MDL_ANGLE_ROT, my_rot, __iter.objId);
-                md.getValue(MDL_ANGLE_TILT, my_tilt, __iter.objId);
-                md.getValue(MDL_ANGLE_PSI, my_psi, __iter.objId);
+                md.getValue(MDL_ANGLE_ROT, my_rot, objId);
+                md.getValue(MDL_ANGLE_TILT, my_tilt, objId);
+                md.getValue(MDL_ANGLE_PSI, my_psi, objId);
 
-                md.getValue(MDL_SHIFT_X, my_offsets(0), __iter.objId);
-                md.getValue(MDL_SHIFT_Y, my_offsets(1), __iter.objId);
-                md.getValue(MDL_SHIFT_Z, my_offsets(2), __iter.objId);
+                md.getValue(MDL_SHIFT_X, my_offsets(0), objId);
+                md.getValue(MDL_SHIFT_Y, my_offsets(1), objId);
+                md.getValue(MDL_SHIFT_Z, my_offsets(2), objId);
                 my_offsets *= scale_factor;
 
                 selfTranslate(LINEAR, Itmp(), my_offsets, DONT_WRAP);
@@ -988,7 +988,7 @@ ProgMLTomo::generateInitialReferences()
                 Iave2() += Itmp();
             if (do_missing)
             {
-                md.getValue(MDL_MISSINGREGION_NR, missno, __iter.objId);
+                md.getValue(MDL_MISSINGREGION_NR, missno, objId);
                 --missno;
                 getMissingRegion(Mmissing, my_A, missno);
                 if (iran_fsc == 0)
@@ -1082,7 +1082,7 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
     std::cerr<<"Start produceSideInfo2"<<std::endl;
 #endif
 
-    MetaData DF, DFsub;
+    MetaDataVec DF, DFsub;
     FileName fn_tmp;
     Image<double> img, Vaux;
     std::vector<Matrix1D<double> > Vdm;
@@ -1109,14 +1109,13 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
     // Read in MetaData with wedge info, optimal angles, etc.
     size_t count = 0, imgno;
     int refno;
-    MetaData MDsub;
-    MDRow row;
+    MetaDataVec MDsub;
+
     double rot, tilt, psi;
 
-    //FOR_ALL_OBJECTS_IN_METADATA(MDimg)
     for (size_t img = myFirstImg; img <= myLastImg; ++img)
     {
-
+        MDRowVec row;
         imgno = img - myFirstImg;
         MDimg.getRow(row, imgs_id[imgno]);
         // Get missing wedge type
@@ -1198,9 +1197,8 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
         nr_ang = 0;
         /*DFsub.go_first_data_line();
          while (!DFsub.eof())*/
-        FOR_ALL_OBJECTS_IN_METADATA(MDsub)
+        for (const auto& row : MDsub)
         {
-            MDsub.getRow(row, __iter.objId);
             row.getValue(MDL_ANGLE_ROT, myinfo.rot);
             row.getValue(MDL_ANGLE_TILT, myinfo.tilt);
             row.getValue(MDL_ANGLE_PSI, myinfo.psi);
@@ -1272,7 +1270,7 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
 
 #ifdef JM_DEBUG  //////////////////////////////////////////////////////////////////
 
-    MetaData DFt;
+    MetaDataVec DFt;
     size_t _id;
     for (int angno = 0; angno < nr_ang; angno++)
     {
@@ -1310,9 +1308,9 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
         MDref.read(fn_ref);
         nr_ref = MDref.size();
         FileName fn_img;
-        FOR_ALL_OBJECTS_IN_METADATA(MDref)
+        for (size_t objId : MDref.ids())
         {
-            MDref.getValue(MDL_IMAGE, fn_img, __iter.objId);
+            MDref.getValue(MDL_IMAGE, fn_img, objId);
             img.read(fn_img);
             img().setXmippOrigin();
 
@@ -1351,9 +1349,9 @@ ProgMLTomo::produceSideInfo2(int nr_vols)
         //DF.go_first_data_line();
         //for (int refno = 0; refno < nr_ref; refno++)
         int refno = 0;
-        FOR_ALL_OBJECTS_IN_METADATA(MDref)
+        for (size_t objId : MDref.ids())
         {
-            MDref.getValue(MDL_WEIGHT, alpha_k(refno), __iter.objId);
+            MDref.getValue(MDL_WEIGHT, alpha_k(refno), objId);
             //DL = DF.get_current_line();
             //alpha_k(refno) = DL[0];
             sumfrac += alpha_k(refno);
@@ -1464,16 +1462,13 @@ ProgMLTomo::readMissingInfo()
 
         int missno = 0;
         String missingType;
-        MDRow row;
 
-        FOR_ALL_OBJECTS_IN_METADATA(MDmissing)
+        for (const auto& row : MDmissing)
         {
             //Note: Now we are assuming that all missing regions will be numerate
             //from 0 to n - 1 (missno), and images belonging to missno 0 will
             //have the value 1 in MDL_MISSINGREGION_NR and so on...
             MissingInfo &myinfo = all_missing_info[missno];
-            MDmissing.getRow(row, __iter.objId);
-            //MDmissing.getValue(MDL_MISSINGREGION_NR, missno, __iter.objId);
             row.getValue(MDL_MISSINGREGION_TYPE, missingType);
             if (missingType == "wedge_y")
                 myinfo.type = MISSING_WEDGE_Y;
@@ -2712,7 +2707,7 @@ threadMLTomoExpectationSingleImage(void * data)
     // Variables from above
     int thread_id = thread_data->thread_id;
     ProgMLTomo *prm = thread_data->prm;
-    MetaData *MDimg = thread_data->MDimg;
+    MetaDataVec *MDimg = thread_data->MDimg;
     double *wsum_sigma_noise = thread_data->wsum_sigma_noise;
     double *wsum_sigma_offset = thread_data->wsum_sigma_offset;
     double *sumfracweight = thread_data->sumfracweight;
@@ -2841,7 +2836,7 @@ threadMLTomoExpectationSingleImage(void * data)
 }
 
 void
-ProgMLTomo::expectation(MetaData &MDimg, std::vector<Image<double> > &Iref,
+ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
                         int iter, double &LL, double &sumfracweight,
                         std::vector<MultidimArray<double> > &wsumimgs,
                         std::vector<MultidimArray<double> > &wsumweds, double &wsum_sigma_noise,
@@ -3369,7 +3364,7 @@ ProgMLTomo::addPartialDocfileData(const MultidimArray<double> &data,
                                   size_t first, size_t last)
 {
     size_t index;
-    MDRow row;
+    MDRowVec row;
 
     for (size_t imgno = first; imgno <= last; ++imgno)
     {
@@ -3397,9 +3392,9 @@ ProgMLTomo::writeOutputFiles(const int iter,
 
     FileName fn_tmp, fn_base, fn_tmp2;
     MultidimArray<double> fracline(2);
-    MetaData SFo, SFc;
-    MetaData DFl;
-    MetaData MDo, MDo_sorted, MDSel, MDfsc;
+    MetaDataVec SFo, SFc;
+    MetaDataVec DFl;
+    MetaDataVec MDo, MDo_sorted, MDSel, MDfsc;
     std::string comment;
     Image<double> Vt;
 
@@ -3417,21 +3412,21 @@ ProgMLTomo::writeOutputFiles(const int iter,
     //Re-use the MDref that were read in produceSideInfo2
     int refno = 0;
     //for (int refno = 0; refno < nr_ref; refno++)
-    FOR_ALL_OBJECTS_IN_METADATA(MDref)
+    for (size_t objId : MDref.ids())
     {
         fn_tmp = formatString("%s_ref%06d.vol", fn_base.c_str(), refno + 1);
         Vt = Iref[refno];
         reScaleVolume(Vt(), false);
         Vt.write(fn_tmp);
 
-        MDref.setValue(MDL_IMAGE, fn_tmp, __iter.objId);
-        MDref.setValue(MDL_ENABLED, 1, __iter.objId);
-        MDref.setValue(MDL_REF, refno + 1, __iter.objId);
+        MDref.setValue(MDL_IMAGE, fn_tmp, objId);
+        MDref.setValue(MDL_ENABLED, 1, objId);
+        MDref.setValue(MDL_REF, refno + 1, objId);
         //SFo.insert(fn_tmp, SelLine::ACTIVE);
         //fracline(0) = alpha_k(refno);
         //fracline(1) = 1000 * conv[refno]; // Output 1000x the change for precision
-        MDref.setValue(MDL_WEIGHT, alpha_k(refno), __iter.objId);
-        MDref.setValue(MDL_SIGNALCHANGE, conv[refno] * 1000, __iter.objId);
+        MDref.setValue(MDL_WEIGHT, alpha_k(refno), objId);
+        MDref.setValue(MDL_SIGNALCHANGE, conv[refno] * 1000, objId);
         //DFl.insert_comment(fn_tmp);
         //DFl.insert_data_line(fracline);
 
