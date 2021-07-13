@@ -72,7 +72,7 @@ private:
     size_t nSize;
 
     /** Vector containig the tilt angles from the series */
-    std::vector<int> tiltAngles;
+    std::vector<double> tiltAngles;
 
     /** Vectors for peaked coordinates components */
     std::vector<int> coordinates3Dx;
@@ -82,7 +82,9 @@ private:
     /** Vectors for calculated residuals components */
     std::vector<double> residualX;
     std::vector<double> residualY;
-    std::vector<size_t> residualZ;
+    std::vector<int> residualCoordinateX;
+    std::vector<int> residualCoordinateY;
+    std::vector<int> residualCoordinateZ;
 
 public:
 
