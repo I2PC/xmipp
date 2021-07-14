@@ -307,8 +307,10 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 	double distance;
 	double maxDistance;
 
+	int goldBeadX, goldBeadY, goldBeadZ;
+
 	Matrix2D<double> projectionMatrix;
-	Matrix1D<int> goldBead3d;
+	Matrix1D<double> goldBead3d;
 	Matrix1D<double> projectedGoldBead;
 
 	std::vector<Matrix1D<int>> coordinatesInSlice;
@@ -328,19 +330,35 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 
 		Matrix2D<double> projectionMatrix = getProjectionMatrix(tiltAngle);
 
+		#ifdef DEBUG_RESID
+		std::cout << "Projection matrix------------------------------------"<<std::endl;
+		std::cout << MAT_ELEM(projectionMatrix, 0, 0) << " " << MAT_ELEM(projectionMatrix, 0, 1) << " " << MAT_ELEM(projectionMatrix, 0, 2) << std::endl;
+		std::cout << MAT_ELEM(projectionMatrix, 1, 0) << " " << MAT_ELEM(projectionMatrix, 1, 1) << " " << MAT_ELEM(projectionMatrix, 1, 2) << std::endl;
+		std::cout << MAT_ELEM(projectionMatrix, 2, 0) << " " << MAT_ELEM(projectionMatrix, 2, 1) << " " << MAT_ELEM(projectionMatrix, 2, 2) << std::endl;
+		std::cout << "------------------------------------"<<std::endl;
+		#endif 
+
 		// Iterate through every input 3d gold bead coordinate
 		FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
 		{
 			maxDistance = MAXDOUBLE;
 
 			objId = __iter.objId;
-			inputCoordMd.getValue(MDL_XCOOR, XX(goldBead3d), objId);
-			inputCoordMd.getValue(MDL_YCOOR, YY(goldBead3d), objId);
-			inputCoordMd.getValue(MDL_ZCOOR, ZZ(goldBead3d), objId);
+			inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
+			inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
+			inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
 
-			projectedGoldBead = projectionMatrix.operator*(goldBead3d);
+			XX(goldBead3d) = (double) goldBeadX;
+			YY(goldBead3d) = (double) goldBeadY;
+			ZZ(goldBead3d) = (double) goldBeadZ;
 
+			projectedGoldBead = projectionMatrix * goldBead3d;
+
+			#ifdef DEBUG_RESID
+			std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
 			std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
+			std::cout << "------------------------------------"<<std::endl;
+			#endif
 
 			// Iterate though every coordinate in the tilt-image and calculate the maximum distance
 			for(size_t i = 0; i < coordinatesInSlice.size(); i++)

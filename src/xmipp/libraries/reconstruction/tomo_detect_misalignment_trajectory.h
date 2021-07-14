@@ -46,6 +46,7 @@
 #define DEBUG
 // #define DEBUG_DIM
 // #define DEBUG_FILTERLABEL
+#define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
