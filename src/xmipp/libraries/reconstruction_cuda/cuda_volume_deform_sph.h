@@ -87,6 +87,7 @@ private:
     size_t constantSharedMemSize;
     size_t changingSharedMemSize;
 
+    //FIXME better naming, it is not really grid size, but size of output arrays
     size_t totalGridSize;
 
     // Variables transfered to the GPU memory
