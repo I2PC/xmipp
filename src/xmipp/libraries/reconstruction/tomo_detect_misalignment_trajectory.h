@@ -76,8 +76,8 @@ private:
     std::vector<double> tiltAngles;
 
     /** Vectors for peaked coordinates components */
-    std::vector<int> coordinates3Dx;
-    std::vector<int> coordinates3Dy;
+    std::vector<double> coordinates3Dx;
+    std::vector<double> coordinates3Dy;
     std::vector<int> coordinates3Dn;
 
     /** Vectors for calculated residuals components */
@@ -175,7 +175,7 @@ public:
      * @return
      *
     */
-    std::vector<Matrix1D<int>> getCoordinatesInSlice(int slice);
+    std::vector<Matrix1D<double>> getCoordinatesInSlice(int slice);
 
 
     // --------------------------- MAIN ----------------------------------

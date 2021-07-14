@@ -313,7 +313,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 	Matrix1D<double> goldBead3d;
 	Matrix1D<double> projectedGoldBead;
 
-	std::vector<Matrix1D<int>> coordinatesInSlice;
+	std::vector<Matrix1D<double>> coordinatesInSlice;
 
 	goldBead3d.initZeros(3);
 
@@ -396,8 +396,8 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 	for(size_t i = 0; i < coordinates3Dx.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, coordinates3Dx[i], id);
-		md.setValue(MDL_YCOOR, coordinates3Dy[i], id);
+		md.setValue(MDL_XCOOR, (int)coordinates3Dx[i], id);
+		md.setValue(MDL_YCOOR, (int)coordinates3Dy[i], id);
 		md.setValue(MDL_ZCOOR, coordinates3Dn[i], id);
 	}
 
@@ -563,7 +563,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	for(size_t n; n < coordinates3Dn.size(); n++)
 	{
-		DIRECT_A2D_ELEM(proyectedCoordinates, coordinates3Dy[n], coordinates3Dx[n]) = 1;
+		DIRECT_A2D_ELEM(proyectedCoordinates, (int)coordinates3Dy[n], (int)coordinates3Dx[n]) = 1;
 	}
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -686,10 +686,10 @@ Matrix2D<double> ProgTomoDetectMisalignmentTrajectory::getProjectionMatrix(doubl
 }
 
 
-std::vector<Matrix1D<int>> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSlice(int slice)
+std::vector<Matrix1D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinatesInSlice(int slice)
 {
-	std::vector<Matrix1D<int>> coordinatesInSlice;
-	Matrix1D<int> coordinate(2);
+	std::vector<Matrix1D<double>> coordinatesInSlice;
+	Matrix1D<double> coordinate(2);
 
 	for(size_t n = 0; n < coordinates3Dx.size(); n++)
 	{
