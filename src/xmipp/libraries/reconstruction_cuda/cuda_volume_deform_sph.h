@@ -119,7 +119,7 @@ private:
 
     Volumes volumes;
 
-    KernelOutputs outputs;
+    KernelOutputs* outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
@@ -134,6 +134,7 @@ private:
     void setupClnm();
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
     void setupOutputArray();
+    void setupOutputs();
 };
 
 #endif// VOLUME_DEFORM_SPH_H

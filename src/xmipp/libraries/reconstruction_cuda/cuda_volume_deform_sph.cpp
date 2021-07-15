@@ -87,6 +87,8 @@ VolumeDeformSph::~VolumeDeformSph()
     cudaFree(deformImages.Gx);
     cudaFree(deformImages.Gy);
     cudaFree(deformImages.Gz);
+
+    cudaFreeHost(outputs);
 }
 
 void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog) 
@@ -106,7 +108,6 @@ void VolumeDeformSph::setupConstantParameters()
     this->Rmax2 = program->Rmax * program->Rmax;
     this->iRmax = 1 / program->Rmax;
     setupImage(program->VI, &images.VI);
-    //setupImage(program->VR, &images.VR);
     setupImageMetaData(program->VR);
     setupZSHparams();
     setupVolumes();
@@ -121,6 +122,7 @@ void VolumeDeformSph::setupConstantParameters()
 
     totalGridSize = grid.x * grid.y * grid.z;
     setupOutputArray();
+    setupOutputs();
 
     // Dynamic shared memory
     constantSharedMemSize = 0;
@@ -153,6 +155,12 @@ void VolumeDeformSph::setupChangingParameters()
     }
 }
 
+void VolumeDeformSph::setupOutputs() 
+{
+    if (cudaMallocHost(&outputs, sizeof(KernelOutputs)) != cudaSuccess)
+        processCudaError();
+}
+
 void VolumeDeformSph::setupOutputArray() 
 {
     if (cudaMalloc(&reductionArray, 3 * totalGridSize * sizeof(PrecisionType)) != cudaSuccess)
@@ -175,7 +183,7 @@ void VolumeDeformSph::setupClnm()
 
 KernelOutputs VolumeDeformSph::getOutputs() 
 {
-    return outputs;
+    return *outputs;
 }
 
 void VolumeDeformSph::transferImageData(Image<double>& outputImage, PrecisionType* inputData) 
@@ -211,9 +219,9 @@ void VolumeDeformSph::runKernel()
     PrecisionType* sumVDPtr = diff2Ptr + totalGridSize;
     PrecisionType* modgPtr = sumVDPtr + totalGridSize;
 
-    reduceDiff.reduceDeviceArrayAsync(diff2Ptr, totalGridSize, &outputs.diff2);
-    reduceSumVD.reduceDeviceArrayAsync(sumVDPtr, totalGridSize, &outputs.sumVD);
-    reduceModg.reduceDeviceArrayAsync(modgPtr, totalGridSize, &outputs.modg);
+    reduceDiff.reduceDeviceArrayAsync(diff2Ptr, totalGridSize, &outputs->diff2);
+    reduceSumVD.reduceDeviceArrayAsync(sumVDPtr, totalGridSize, &outputs->sumVD);
+    reduceModg.reduceDeviceArrayAsync(modgPtr, totalGridSize, &outputs->modg);
 
     cudaDeviceSynchronize();
 }
