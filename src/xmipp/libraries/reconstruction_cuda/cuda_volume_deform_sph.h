@@ -99,7 +99,7 @@ private:
 
     int steps;
 
-    PrecisionType3* dClnm;
+    PrecisionType3* dClnm = nullptr;
     std::vector<PrecisionType3> clnmVec;
 
     bool applyTransformation;
@@ -132,6 +132,7 @@ private:
     void setupZSHparams();
 
     void setupClnm();
+    void fillClnm();
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
     void setupOutputArray();
     void setupOutputs();

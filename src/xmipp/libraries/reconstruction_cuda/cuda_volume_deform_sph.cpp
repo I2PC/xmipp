@@ -111,6 +111,7 @@ void VolumeDeformSph::setupConstantParameters()
     setupImageMetaData(program->VR);
     setupZSHparams();
     setupVolumes();
+    setupClnm();
 
     // kernel dimension
     block.x = BLOCK_X_DIM;
@@ -133,8 +134,7 @@ void VolumeDeformSph::setupChangingParameters()
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
-    setupClnm();
-
+    fillClnm();
     steps = program->onesInSteps;
 
     changingSharedMemSize = 0;
@@ -167,17 +167,23 @@ void VolumeDeformSph::setupOutputArray()
         processCudaError();
 }
 
-void VolumeDeformSph::setupClnm()
+void VolumeDeformSph::fillClnm()
 {
-    clnmVec.resize(program->vL1.size());
-
-    for (unsigned i = 0; i < program->vL1.size(); ++i) {
+    for (unsigned i = 0; i < clnmVec.size(); ++i) {
         clnmVec[i].x = program->clnm[i];
         clnmVec[i].y = program->clnm[i + program->vL1.size()];
         clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
     }
 
-    if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
+    if (cudaMemcpy(dClnm, clnmVec.data(), clnmVec.size() * sizeof(PrecisionType3),
+                cudaMemcpyHostToDevice) != cudaSuccess)
+        processCudaError();
+}
+
+void VolumeDeformSph::setupClnm()
+{
+    clnmVec.resize(program->vL1.size());
+    if (cudaMalloc(&dClnm, clnmVec.size() * sizeof(PrecisionType3)) != cudaSuccess)
         processCudaError();
 }
 
