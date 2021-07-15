@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CUDA_REDUCTION_CU
+#define CUDA_REDUCTION_CU
 
 template<typename T, unsigned BLOCK_SIZE>
 __global__ void reduction_kernel(const T* g_inData, T* g_outData, unsigned n) 
@@ -48,3 +49,5 @@ __global__ void reduction_kernel(const T* g_inData, T* g_outData, unsigned n)
         g_outData[blockIdx.x] = sum;
     }
 }
+
+#endif//CUDA_REDUCTION_CU

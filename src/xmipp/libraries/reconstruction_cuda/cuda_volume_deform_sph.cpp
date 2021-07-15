@@ -189,10 +189,6 @@ void VolumeDeformSph::transferImageData(Image<double>& outputImage, PrecisionTyp
 
 void VolumeDeformSph::runKernel() 
 {
-
-    // Define thrust reduction vector
-    //thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
-
     // Run kernel
     computeDeform<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
             Rmax2,
@@ -206,28 +202,20 @@ void VolumeDeformSph::runKernel()
             deformImages,
             applyTransformation,
             saveDeformation,
-            //thrust::raw_pointer_cast(thrustVec.data())
             reductionArray
             );
 
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 
-    /*
-    auto diff2It = thrustVec.begin();
-    auto sumVDIt = diff2It + totalGridSize;
-    auto modgIt = sumVDIt + totalGridSize;
-
-    outputs.diff2 = thrust::reduce(diff2It, sumVDIt);
-    outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
-    outputs.modg = thrust::reduce(modgIt, thrustVec.end());
-    */
     PrecisionType* diff2Ptr = reductionArray;
     PrecisionType* sumVDPtr = diff2Ptr + totalGridSize;
     PrecisionType* modgPtr = sumVDPtr + totalGridSize;
 
-    outputs.diff2 = reduction.reduceDeviceArray(diff2Ptr, totalGridSize);
-    outputs.sumVD = reduction.reduceDeviceArray(sumVDPtr, totalGridSize);
-    outputs.modg = reduction.reduceDeviceArray(modgPtr, totalGridSize);
+    reduceDiff.reduceDeviceArrayAsync(diff2Ptr, totalGridSize, &outputs.diff2);
+    reduceSumVD.reduceDeviceArrayAsync(sumVDPtr, totalGridSize, &outputs.sumVD);
+    reduceModg.reduceDeviceArrayAsync(modgPtr, totalGridSize, &outputs.modg);
+
+    cudaDeviceSynchronize();
 }
 
 void VolumeDeformSph::transferResults() 

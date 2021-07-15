@@ -80,7 +80,9 @@ public:
 private:
     ProgVolumeDeformSphGpu* program = nullptr;
 
-    GpuReduction<PrecisionType> reduction;
+    GpuReduction<PrecisionType> reduceDiff;
+    GpuReduction<PrecisionType> reduceModg;
+    GpuReduction<PrecisionType> reduceSumVD;
     PrecisionType* reductionArray = nullptr;
 
     // Kernel stuff
