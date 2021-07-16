@@ -89,6 +89,8 @@ VolumeDeformSph::~VolumeDeformSph()
     cudaFree(deformImages.Gz);
 
     cudaFreeHost(outputs);
+    //cudaFree(dClnm);
+    cudaFree(mClnm);
 }
 
 void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog) 
@@ -169,22 +171,29 @@ void VolumeDeformSph::setupOutputArray()
 
 void VolumeDeformSph::fillClnm()
 {
-    for (unsigned i = 0; i < clnmVec.size(); ++i) {
-        clnmVec[i].x = program->clnm[i];
-        clnmVec[i].y = program->clnm[i + program->vL1.size()];
-        clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
-    }
+    //for (unsigned i = 0; i < clnmVec.size(); ++i) {
+    //    clnmVec[i].x = program->clnm[i];
+    //    clnmVec[i].y = program->clnm[i + program->vL1.size()];
+    //    clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
+    //}
 
-    if (cudaMemcpy(dClnm, clnmVec.data(), clnmVec.size() * sizeof(PrecisionType3),
-                cudaMemcpyHostToDevice) != cudaSuccess)
-        processCudaError();
+    //if (cudaMemcpy(dClnm, clnmVec.data(), clnmVec.size() * sizeof(PrecisionType3),
+    //            cudaMemcpyHostToDevice) != cudaSuccess)
+    //    processCudaError();
+
+    for (unsigned i = 0; i < program->vL1.size(); ++i) {
+        mClnm[i].x = program->clnm[i];
+        mClnm[i].y = program->clnm[i + program->vL1.size()];
+        mClnm[i].z = program->clnm[i + program->vL1.size() * 2];
+    }
 }
 
 void VolumeDeformSph::setupClnm()
 {
-    clnmVec.resize(program->vL1.size());
-    if (cudaMalloc(&dClnm, clnmVec.size() * sizeof(PrecisionType3)) != cudaSuccess)
-        processCudaError();
+    //clnmVec.resize(program->vL1.size());
+    //if (cudaMalloc(&dClnm, clnmVec.size() * sizeof(PrecisionType3)) != cudaSuccess)
+    //    processCudaError();
+    cudaMallocManaged(&mClnm, program->vL1.size() * sizeof(PrecisionType3));
 }
 
 KernelOutputs VolumeDeformSph::getOutputs() 
@@ -209,7 +218,7 @@ void VolumeDeformSph::runKernel()
             iRmax,
             images,
             dZshParams,
-            dClnm,
+            mClnm,
             steps,
             imageMetaData,
             volumes,

@@ -101,6 +101,7 @@ private:
 
     PrecisionType3* dClnm = nullptr;
     std::vector<PrecisionType3> clnmVec;
+    PrecisionType3* mClnm = nullptr;
 
     bool applyTransformation;
 
