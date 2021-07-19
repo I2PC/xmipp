@@ -32,6 +32,7 @@
 #include <core/metadata.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
+#include <core/geometry.h>
 #include <math.h>
 #include <limits>
 #include <complex>

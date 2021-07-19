@@ -314,6 +314,13 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 	Matrix1D<double> projectedGoldBead;
 
 	std::vector<Matrix1D<double>> coordinatesInSlice;
+	std::vector<Matrix1D<double>> projectedGoldBeads;
+
+	Matrix2D<double> A_alignment;
+	Matrix1D<double> T_alignment;
+	Matrix2D<double> invW_alignment;
+	Matrix2D<double> alignment_matrix;
+
 
 	goldBead3d.initZeros(3);
 
@@ -338,7 +345,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 		std::cout << "------------------------------------"<<std::endl;
 		#endif 
 
-		// Iterate through every input 3d gold bead coordinate
+		// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
 		FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
 		{
 			maxDistance = MAXDOUBLE;
@@ -354,23 +361,67 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 
 			projectedGoldBead = projectionMatrix * goldBead3d;
 
-			#ifdef DEBUG_RESID
-			std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
-			std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
-			std::cout << "------------------------------------"<<std::endl;
-			#endif
+			projectedGoldBeads.push_back(projectedGoldBead);
+		}
 
-			// Iterate though every coordinate in the tilt-image and calculate the maximum distance
-			for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+		std::vector<size_t> randomIndexes = getRandomIndexes(projectedGoldBead.size());
+
+		for(size_t i = 0; i < coordinatesInSlice.size(); i ++)
+		{
+			for(size_t j = 0; j < coordinatesInSlice.size(); j ++)
 			{
-				distance = abs(XX(projectedGoldBead) - XX(coordinatesInSlice[i])) + abs(YY(projectedGoldBead) - YY(coordinatesInSlice[i]));
-
-				if(maxDistance > distance)
+				for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
 				{
-					maxDistance = distance;
-					maxIndex = i;
+					def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
+								 YY(projectedGoldBeads[randomIndexes[0]]),
+								 XX(projectedGoldBeads[randomIndexes[1]]),
+								 YY(projectedGoldBeads[randomIndexes[1]]),
+								 XX(projectedGoldBeads[randomIndexes[2]]),
+								 YY(projectedGoldBeads[randomIndexes[2]]),
+								 XX(coordinatesInSlice[i]),
+								 YY(coordinatesInSlice[i]),
+								 XX(coordinatesInSlice[j]),
+								 YY(coordinatesInSlice[j]),
+								 XX(coordinatesInSlice[k]),
+								 YY(coordinatesInSlice[k]),
+								 A_alignment,
+								 T_alignment,
+								 invW_alignment)
+
+					MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
+					MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
+					MAT_ELEM(alignment_matrix, 1, 0) = MAT_ELEM(A_alignment, 1, 0);
+					MAT_ELEM(alignment_matrix, 1, 1) = MAT_ELEM(A_alignment, 1, 1);
+					MAT_ELEM(alignment_matrix, 0, 2) = XX(T_alignment);
+					MAT_ELEM(alignment_matrix, 1, 2) = YY(T_alignment);
+					MAT_ELEM(alignment_matrix, 2, 0) = 0;
+					MAT_ELEM(alignment_matrix, 2, 1) = 0;
+					MAT_ELEM(alignment_matrix, 2, 2) = 1;
 				}
 			}
+		}
+
+
+
+
+
+			// #ifdef DEBUG_RESID
+			// std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
+			// std::cout << XX(projectedGoldBead) << " " << YY(projectedGoldBead) << " " << ZZ(projectedGoldBead) << std::endl;
+			// std::cout << "------------------------------------"<<std::endl;
+			// #endif
+
+			// // Iterate though every coordinate in the tilt-image and calculate the maximum distance
+			// for(size_t i = 0; i < coordinatesInSlice.size(); i++)
+			// {
+			// 	distance = abs(XX(projectedGoldBead) - XX(coordinatesInSlice[i])) + abs(YY(projectedGoldBead) - YY(coordinatesInSlice[i]));
+
+			// 	if(maxDistance > distance)
+			// 	{
+			// 		maxDistance = distance;
+			// 		maxIndex = i;
+			// 	}
+			// }
 			
 			residualX.push_back(XX(coordinatesInSlice[maxIndex]) - XX(projectedGoldBead));
 			residualY.push_back(YY(coordinatesInSlice[maxIndex]) - YY(projectedGoldBead));
@@ -703,3 +754,29 @@ std::vector<Matrix1D<double>> ProgTomoDetectMisalignmentTrajectory::getCoordinat
 
 	return coordinatesInSlice;
 }
+
+
+std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_t size)
+{
+	std::vector<size_t> indexes;
+	size_t randomIndex;
+
+	indexes.push_back(randomIndex);
+
+	while (indexes.size() != 3)
+	{
+		randomIndex = rand() % size;
+
+		for(size_t n = 0; n < indexes.size(); n++)
+		{
+			if(indexes[n] != randomIndex)
+			{
+				indexes.push_back(randomIndex);
+				break;
+			}
+		}
+	}
+	
+	return indexes;
+}
+
