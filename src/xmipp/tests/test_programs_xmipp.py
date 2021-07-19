@@ -1537,5 +1537,5 @@ class VolSubtraction(XmippProgramTest):
         return 'xmipp_volume_subtraction'
 
     def test_case1(self):
-        self.runCase("xmipp_volume_subtraction --i1 ~/phantom000.vol --i2 ~/phantom000.vol -o ~/output_volume.mrc --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --radavg --computeEnergy",
-                outputs=["~/output_volume.mrc"])
+        self.runCase("--i1 input/phantomBacteriorhodopsin.vol --i2 input/phantomBacteriorhodopsin.vol -o %o/output_volume.mrc --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --radavg --computeEnergy",
+                outputs=["output_volume.mrc"])
