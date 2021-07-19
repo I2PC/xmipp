@@ -117,11 +117,18 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 		std::cout<< "Energy: " << energy << std::endl;
 }
 
+void subtraction(MultidimArray<double> &V1, MultidimArray<double> &V1Filtered, MultidimArray<double> &V, MultidimArray<double> &mask)
+{
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1)
+	DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
+			std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
+}
+
 class ProgVolumeSubtraction: public XmippProgram
 {
 private:
 	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
-	bool sub; bool eq; bool computeE; bool radavg;
+	bool sub; bool eq; bool computeE; bool radavg; bool Vol1F; bool Vol2A;
 	int iter; int sigma;
 	double cutFreq; double lambda;
 
@@ -166,12 +173,10 @@ private:
     	fnMaskSub=getParam("--maskSub");
     	cutFreq=getDoubleParam("--cutFreq");
     	lambda=getDoubleParam("--lambda");
+    	Vol1F=checkParam("--saveV1");
+    	Vol2A=checkParam("--saveV2");
     	fnVol1F=getParam("--saveV1");
-    	if (fnVol1F=="")
-    		fnVol1F="volume1_filtered.mrc";
     	fnVol2A=getParam("--saveV2");
-    	if (fnVol2A=="")
-    		fnVol2A="volume2_adjusted.mrc";
     	radavg=checkParam("--radavg");
     	computeE=checkParam("--computeEnergy");
     }
@@ -245,24 +250,19 @@ private:
         Matrix1D<int> center(2);
         center.initZeros();
         radialAverageNonCubic(V1FourierMagRad, center, radial_meanV1, radial_count);
-        radial_meanV1.write("V1rad.txt");
         FOR_ALL_ELEMENTS_IN_ARRAY1D(V1FourierRad)
             V1rad(i) = radial_meanV1(i);
-		V1rad.write("V1rad.mrc");
 		VFourierMagRad.setXmippOrigin();
         center.initZeros();
         MultidimArray<double> radial_meanV;
         radialAverageNonCubic(VFourierMagRad, center, radial_meanV, radial_count);
-        radial_meanV.write("Vrad.txt");
         FOR_ALL_ELEMENTS_IN_ARRAY1D(VFourierMagRad)
         	Vrad(i) = radial_meanV(i);
-		Vrad.write("Vrad.mrc");
 
 		// Compute adjustment quotient for POCS amplitude
 		radQuotient = radial_meanV1/radial_meanV;
 		FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 			radQuotient(i) = std::min(radQuotient(i), 1.0);
-		radQuotient.write("radQuotient.txt");
 
      	// Compute what need for the loop of POCS
     	FourierTransformer transformer1; FourierTransformer transformer2;
@@ -304,7 +304,6 @@ private:
         		transformer2.FourierTransform(V(),V2Fourier,false);
     			POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
         	transformer2.inverseFourierTransform();
-    		V.write("VPOCSAmp.mrc");
         	if (computeE)
         	{
         		computeEnergy(Vdiff(), V(), energy);
@@ -370,17 +369,23 @@ private:
 
     	if (sub==true)
     	{
-        	if (!fnVol1F.isEmpty() && !fnVol2A.isEmpty())
+        	if (Vol1F)
     		{
+        		if (fnVol1F=="")
+        			fnVol1F="volume1_filtered.mrc";
     			V1Filtered.write(fnVol1F);
+    		}
+        	if (Vol2A)
+        	{
+				if (fnVol2A=="")
+					fnVol2A="volume2_adjusted.mrc";
     			V.write(fnVol2A);
     		}
 
         	if (!fnMaskSub.isEmpty())
         		mask.read(fnMaskSub);
-			FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
-			DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
-					std::min(DIRECT_MULTIDIM_ELEM(V,n), DIRECT_MULTIDIM_ELEM(V1Filtered, n)))*DIRECT_MULTIDIM_ELEM(mask,n);
+
+        	subtraction(V1(), V1Filtered(), V(), mask());
 			V1.write(fnOut);
     	}
 
