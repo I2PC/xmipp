@@ -55,8 +55,7 @@ void ProgCorrectWiener2D::defineParams()
 // Define parameters ==========================================================
 void ProgCorrectWiener2D::postProcess()
 {
-
-	MetaData &ptrMdOut=*getOutputMd();
+	MetaData &ptrMdOut = getOutputMd();
 
 	ptrMdOut.removeLabel(MDL_CTF_DEFOCUSA);
 	ptrMdOut.removeLabel(MDL_CTF_DEFOCUSU);

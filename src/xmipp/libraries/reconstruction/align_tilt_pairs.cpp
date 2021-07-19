@@ -26,7 +26,7 @@
 
 #include "core/geometry.h"
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/transformations.h"
 #include "core/xmipp_image.h"
 #include "data/filters.h"
@@ -180,11 +180,11 @@ void ProgAlignTiltPairs::run()
     MultidimArray<double> Maux;
     Matrix2D<double> A(3, 3);
 
-    MetaData mdIn, mdOut;
+    MetaDataVec mdIn, mdOut;
     mdIn.read(fnIn);
     mdIn.removeDisabled();
     if (!mdIn.containsLabel(MDL_ANGLE_TILT))
-    	REPORT_ERROR(ERR_ARG_INCORRECT,"Input metadata does not have tilt information");
+        REPORT_ERROR(ERR_ARG_INCORRECT,"Input metadata does not have tilt information");
 
     initProgress(mdIn.size());
 
@@ -201,13 +201,10 @@ void ProgAlignTiltPairs::run()
     Matrix1D<double> vShift(3);
     vShift.initZeros();
     CorrelationAux auxCorr;
-    MDRow row, rowOut;
     bool flip;
 
-    FOR_ALL_OBJECTS_IN_METADATA(mdIn)
+    for (const auto& row : mdIn)
     {
-        mdIn.getRow(row, __iter.objId);
-
         row.getValue(MDL_FLIP, flip);
         // Read untilted and tilted images
         row.getValue(MDL_ANGLE_PSI, inPlaneU);
@@ -272,6 +269,7 @@ void ProgAlignTiltPairs::run()
         }
 
         // Write results
+        MDRowVec rowOut;
         rowOut.setValue(MDL_IMAGE, fnTilted);
         rowOut.setValue(MDL_ANGLE_ROT, minusInPlaneU);
         rowOut.setValue(MDL_ANGLE_TILT, tilt);

@@ -1,3 +1,14 @@
+## Release 3.21.06 -
+
+- CUDA-11 support
+- New protocol: Deep align
+- ChimeraX support
+- Improvements of streaming process
+- Several performance optimizations
+- Build time optimization
+- Multiple bug fixes
+- Improved documentation
+
 
 ## Release 3.20.07 -
 

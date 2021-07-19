@@ -24,7 +24,7 @@
  ***************************************************************************/
 
 #include "psf_xr.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_program.h"
 #include "core/args.h"
 #include "core/xmipp_fftw.h"
@@ -90,9 +90,9 @@ void XRayPSF::read(const FileName &fn, bool readVolume)
 
     if (fn.isMetaData())
     {
-        MetaData MD;
+        MetaDataVec MD;
         MD.read(fn);
-        size_t id = MD.firstObject();
+        size_t id = MD.firstRowId();
 
         FileName fnPSF;
         if ( MD.getValue(MDL_IMAGE,fnPSF, id) && readVolume )
@@ -183,7 +183,7 @@ void XRayPSF::read(const FileName &fn, bool readVolume)
 /* Write ------------------------------------------------------------------- */
 void XRayPSF::write(const FileName &fn)
 {
-    MetaData MD;
+    MetaDataVec MD;
     MD.setColumnFormat(false);
     size_t id = MD.addObject();
 

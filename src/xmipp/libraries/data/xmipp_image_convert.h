@@ -45,8 +45,8 @@ class ProgConvImg: public XmippMetadataProgram
 private:
     String  type;       // Type of output conversion
     String  depth;
-    ImageGeneric imIn, *imOut;
-    MDRow        row;
+    ImageGeneric imIn;
+    ImageGeneric *imOut = nullptr;
     ImageConv    convMode;
     CastWriteMode  castMode;
     size_t        k;
@@ -57,6 +57,11 @@ private:
 public:
     /** Constructor */
     ProgConvImg();
+    virtual ~ProgConvImg() {
+        if (imOut) {
+            delete imOut;
+        }
+    }
     void setType(const String &sType)
     {
     	type = sType;

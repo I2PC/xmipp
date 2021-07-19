@@ -85,7 +85,7 @@ protected:
 private:
     struct DataHelper {
         FileName fn;
-        MetaData md;
+        MetaDataVec md;
         Dimensions dims = Dimensions(0);
         std::unique_ptr<T[]> data;
         // reference data only (will be empty for experimental images)
@@ -98,8 +98,8 @@ private:
 
     struct UpdateRefHelper {
         bool doUpdate;
-        std::vector<MetaData> imgBlocks;
-        MetaData refBlock;
+        std::vector<MetaDataVec> imgBlocks;
+        MetaDataVec refBlock;
         FileName fnXmd;
         FileName fnStk;
     };
@@ -178,7 +178,7 @@ private:
         return index;
     }
 
-    inline void getImgRow(MDRow &row, size_t imgIndex) {
+    inline void getImgRow(MDRowVec &row, size_t imgIndex) {
         m_imagesToAlign.md.getRow(row, m_imagesToAlign.rowIds.at(imgIndex));
     }
 

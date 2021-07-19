@@ -176,7 +176,7 @@ void ProgTransformGeometry::preProcess()
     R.initIdentity(dim + 1);
     A.initIdentity(dim + 1);
 
-    MDRow rowGeo;
+    MDRowVec rowGeo;
     rowGeo.setValue(MDL_SHIFT_X, getDoubleParam("--shift", 0));
     rowGeo.setValue(MDL_SHIFT_Y, getDoubleParam("--shift", 1));
     rowGeo.setValue(MDL_SCALE, getDoubleParam("--scale"));

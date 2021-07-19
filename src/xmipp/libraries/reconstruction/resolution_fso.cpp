@@ -318,7 +318,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 
 		// The global FSC is stored as a metadata
 		size_t id;
-		MetaData mdRes;
+		MetaDataVec mdRes;
 		MultidimArray< double > frc;
 		freq.initZeros(freqElems);
 		frc.initZeros(freqElems);
@@ -946,12 +946,11 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 }
 
 
-void ProgFSO::saveAnisotropyToMetadata(MetaData &mdAnisotropy,
+void ProgFSO::saveAnisotropyToMetadata(MetaDataVec &mdAnisotropy,
 		const MultidimArray<double> &freq,
 		const MultidimArray<float> &anisotropy)
 {
-	MDRow row;
-	size_t objId;
+	MDRowVec row;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(anisotropy)
 	{
 		if (i>0)
@@ -1001,7 +1000,7 @@ void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName 
     	const size_t Ntilt = 91;
     	size_t objIdOut;
 
-    	MetaData mdOut;
+    	MetaDataVec mdOut;
     	Matrix2D<double> w, wt;
     	w.initZeros(Nrot, Ntilt);
     	wt = w;
@@ -1009,7 +1008,6 @@ void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName 
     	const float aux = 4.0/((cosAngle -1)*(cosAngle -1));
     	// Directional resolution is store in a metadata
 			
-    	MDRow row;
 		for (int i=0; i<Nrot; i++)
 		{
 			float rotmatrix =  i*PI/180.0;
@@ -1047,11 +1045,14 @@ void ProgFSO::resolutionDistribution(MultidimArray<double> &resDirFSC, FileName 
 					}
 				}
 
-			double wRes = w/wt;
-			row.setValue(MDL_ANGLE_ROT, (double) i);
-			row.setValue(MDL_ANGLE_TILT, (double) j);
-			row.setValue(MDL_RESOLUTION_FRC, wRes);
-			mdOut.addRow(row);
+				double wRes = w/wt;
+				{
+					MDRowVec row;
+					row.setValue(MDL_ANGLE_ROT, (double) i);
+					row.setValue(MDL_ANGLE_TILT, (double) j);
+					row.setValue(MDL_RESOLUTION_FRC, wRes);
+					mdOut.addRow(row);
+				}
 			}
 		}
 
@@ -1205,7 +1206,7 @@ void ProgFSO::run()
     	aniParams.at(0) /= (double) angles.mdimx;
     	for (size_t k = 0; k<5; k++)
     		DIRECT_MULTIDIM_ELEM(aniParams.at(0), k) = 1.0;
-    	MetaData mdani;
+    	MetaDataVec mdani;
 		saveAnisotropyToMetadata(mdani, freq, aniParams.at(0));
 		FileName fn;
 		
