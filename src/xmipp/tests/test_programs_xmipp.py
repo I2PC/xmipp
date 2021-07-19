@@ -1530,3 +1530,12 @@ class MlTomoMpi(XmippProgramTest):
                 outputs=["test1/iter22_img.xmd","test1/iter22_it000001_ref.xmd","test1/iter22_ref.xmd"])
 
 
+class VolSubtraction(XmippProgramTest):
+    _owner = DISCONTINUED
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_volume_subtraction'
+
+    def test_case1(self):
+        self.runCase("xmipp_volume_subtraction --i1 ~/phantom000.vol --i2 ~/phantom000.vol -o ~/output_volume.mrc --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --radavg --computeEnergy",
+                outputs=["~/output_volume.mrc"])
