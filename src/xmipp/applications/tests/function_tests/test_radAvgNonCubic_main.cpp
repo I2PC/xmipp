@@ -31,7 +31,6 @@ TEST_F(RadAvgNonCubicTest, radavgNonCubic)
 	img().setXmippOrigin();
 
     radialAverageNonCubic(img(), center, radial_meanV, radial_count);
-    radial_meanV.write("rad_mean.txt");
 
 	ASSERT_TRUE(XSIZE(radial_meanV)==45);
 }
