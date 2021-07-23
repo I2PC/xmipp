@@ -66,7 +66,6 @@ struct KernelOutputs
 class VolumeDeformSph
 {
 public:
-    void associateWith(ProgVolumeDeformSphGpu* prog);
     void setupConstantParameters();
     void setupChangingParameters();
 
@@ -76,7 +75,7 @@ public:
 
     KernelOutputs getOutputs();
 
-    VolumeDeformSph();
+    VolumeDeformSph(ProgVolumeDeformSphGpu* prog);
     ~VolumeDeformSph();
 
 private:

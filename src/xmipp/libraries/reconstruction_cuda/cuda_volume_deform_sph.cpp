@@ -71,8 +71,9 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
 
 // VolumeDeformSph methods
 
-VolumeDeformSph::VolumeDeformSph()
+VolumeDeformSph::VolumeDeformSph(ProgVolumeDeformSphGpu* program)
 {
+    this->program = program;
 }
 
 VolumeDeformSph::~VolumeDeformSph() 
@@ -89,13 +90,7 @@ VolumeDeformSph::~VolumeDeformSph()
     cudaFree(deformImages.Gz);
 
     cudaFreeHost(outputs);
-    //cudaFree(dClnm);
     cudaFree(mClnm);
-}
-
-void VolumeDeformSph::associateWith(ProgVolumeDeformSphGpu* prog) 
-{
-    program = prog;
 }
 
 static dim3 grid;
@@ -171,16 +166,6 @@ void VolumeDeformSph::setupOutputArray()
 
 void VolumeDeformSph::fillClnm()
 {
-    //for (unsigned i = 0; i < clnmVec.size(); ++i) {
-    //    clnmVec[i].x = program->clnm[i];
-    //    clnmVec[i].y = program->clnm[i + program->vL1.size()];
-    //    clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
-    //}
-
-    //if (cudaMemcpy(dClnm, clnmVec.data(), clnmVec.size() * sizeof(PrecisionType3),
-    //            cudaMemcpyHostToDevice) != cudaSuccess)
-    //    processCudaError();
-
     for (unsigned i = 0; i < program->vL1.size(); ++i) {
         mClnm[i].x = program->clnm[i];
         mClnm[i].y = program->clnm[i + program->vL1.size()];
@@ -190,9 +175,6 @@ void VolumeDeformSph::fillClnm()
 
 void VolumeDeformSph::setupClnm()
 {
-    //clnmVec.resize(program->vL1.size());
-    //if (cudaMalloc(&dClnm, clnmVec.size() * sizeof(PrecisionType3)) != cudaSuccess)
-    //    processCudaError();
     cudaMallocManaged(&mClnm, program->vL1.size() * sizeof(PrecisionType3));
 }
 
@@ -321,22 +303,8 @@ void VolumeDeformSph::setupVolumes()
     for (size_t i = 0; i < volumes.count; i++) {
         PrecisionType* tmpI = volumes.I + i * volumes.volumeSize;
         PrecisionType* tmpR = volumes.R + i * volumes.volumeSize;
-        //transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
-        //transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
         makePadded(program->volumesI[i](), tmpI, volumes.volumeSize);
         makePadded(program->volumesR[i](), tmpR, volumes.volumeSize);
-        //MultidimArray<PrecisionType> tmpMAI;
-        //MultidimArray<PrecisionType> tmpMAR;
-        //typeCast(program->volumesI[i](), tmpMAI);
-        //typeCast(program->volumesR[i](), tmpMAR);
-        //tmpMAI.selfWindow(STARTINGZ(tmpMAI) - 1, STARTINGY(tmpMAI) - 1, STARTINGX(tmpMAI) - 1,
-        //        FINISHINGZ(tmpMAI) + 1, FINISHINGY(tmpMAI) + 1, FINISHINGX(tmpMAI) + 1);
-        //tmpMAR.selfWindow(STARTINGZ(tmpMAR) - 1, STARTINGY(tmpMAR) - 1, STARTINGX(tmpMAR) - 1,
-        //        FINISHINGZ(tmpMAR) + 1, FINISHINGY(tmpMAR) + 1, FINISHINGX(tmpMAR) + 1);
-        //if (cudaMemcpy(tmpI, tmpMAI.data, volumes.volumeSize * sizeof(PrecisionType), cudaMemcpyHostToDevice) != cudaSuccess)
-        //    processCudaError();
-        //if (cudaMemcpy(tmpR, tmpMAR.data, volumes.volumeSize * sizeof(PrecisionType), cudaMemcpyHostToDevice) != cudaSuccess)
-        //    processCudaError();
     }
 }
 
@@ -354,7 +322,6 @@ void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outp
 {
     auto& mda = inputImage();
     size_t size = (mda.xdim + 2) * (mda.ydim + 2) * (mda.zdim + 2);
-    //transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
     cudaMalloc(outputImageData, size * sizeof(PrecisionType));
     makePadded(mda, *outputImageData, size);
 }

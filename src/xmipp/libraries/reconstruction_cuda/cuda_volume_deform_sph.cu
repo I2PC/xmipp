@@ -148,7 +148,7 @@ struct DeformImages
 
 // Forward declarations
 template<int _L1 = 5, int _L2 = 5>
-__device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
+__forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType r);
 
 __device__ PrecisionType interpolateNoChecks(
@@ -342,9 +342,6 @@ __device__ PrecisionType interpolateNoChecks(
         return LIN_INTERP(fz, dxy0, dxy1);
 }
 
-/*
- * ZSH
- */
 template<int _L1, int _L2>
 __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType rr)
