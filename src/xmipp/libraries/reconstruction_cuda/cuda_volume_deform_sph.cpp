@@ -212,23 +212,43 @@ void VolumeDeformSph::transferImageData(Image<double>& outputImage, PrecisionTyp
 
 void VolumeDeformSph::runKernel() 
 {
-    // Run kernel
-    computeDeform<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
-            Rmax2,
-            iRmax,
-            images,
-            dZshParams,
-            mClnm,
-            steps,
-            imageMetaData,
-            volumes,
-            deformImages,
-            applyTransformation,
-            saveDeformation,
-            reductionArray
-            );
+    // Before and after running the kernel is no need for explicit synchronization,
+    // because it is being run in the default cuda stream, therefore it is synchronized automatically
+    // If the cuda stream of this kernel ever changes explicit synchronization is needed!
+    if (program->L1 > 3 || program->L2 > 3) {
+        computeDeform<BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM, 5, 5>
+            <<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
+                    Rmax2,
+                    iRmax,
+                    images,
+                    dZshParams,
+                    mClnm,
+                    steps,
+                    imageMetaData,
+                    volumes,
+                    deformImages,
+                    applyTransformation,
+                    saveDeformation,
+                    reductionArray
+                    );
 
-    //cudaDeviceSynchronize();
+    } else {
+        computeDeform<BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM, 3, 3>
+            <<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
+                    Rmax2,
+                    iRmax,
+                    images,
+                    dZshParams,
+                    mClnm,
+                    steps,
+                    imageMetaData,
+                    volumes,
+                    deformImages,
+                    applyTransformation,
+                    saveDeformation,
+                    reductionArray
+                    );
+    }
 
     PrecisionType* diff2Ptr = reductionArray;
     PrecisionType* sumVDPtr = diff2Ptr + totalGridSize;
