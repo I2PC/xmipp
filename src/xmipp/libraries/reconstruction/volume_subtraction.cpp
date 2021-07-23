@@ -156,7 +156,7 @@ private:
         addParamsLine("[--cutFreq <f=0>]\t: Filter both volumes with a filter which specified cutoff frequency (i.e. resolution inverse, <0.5)");
         addParamsLine("[--lambda <l=1>]\t: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
         addParamsLine("[--radavg]\t: Match the radially averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
-        addParamsLine("[--computeEnergy]\t: Do not compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
+        addParamsLine("[--computeEnergy]\t: Compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
         addParamsLine("[--saveV1 <structure=\"\"> ]\t: Save subtraction intermediate file (vol1 filtered) just when option --sub is passed, if not passed the input reference volume is not modified");
         addParamsLine("[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file (vol2 adjusted) just when option --sub is passed, if not passed the output of the program is this file");
     }
