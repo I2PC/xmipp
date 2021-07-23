@@ -148,16 +148,16 @@ private:
         addParamsLine("								: If no name is given, then output_volume.mrc");
         addParamsLine("[--sub]						: Perform the subtraction of the volumes. Output will be the difference");
         addParamsLine("[--sigma <s=3>]				: Decay of the filter (sigma) to smooth the mask transition");
-        addParamsLine("[--iter <n=5>]				: Number of iterations for the adjustment process");
+        addParamsLine("[--iter <n=5>]\t: Number of iterations for the adjustment process");
         addParamsLine("[--mask1 <mask=\"\">]		: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]		: Mask for volume 2");
         addParamsLine("[--maskSub <mask=\"\">]		: Mask for subtraction region");
-        addParamsLine("[--cutFreq <f=0>]			: Filter both volumes with a filter which specified cutoff frequency (i.e. resolution inverse, <0.5)");
-        addParamsLine("[--lambda <l=1>]				: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
-        addParamsLine("[--radavg]					: Match the radially averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
-        addParamsLine("[--computeEnergy]			: Do not compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
-        addParamsLine("[--saveV1 <structure=\"\"> ]	: Save subtraction intermediate file (vol1 filtered) just when option --sub is passed, if not passed the input reference volume is not modified");
-        addParamsLine("[--saveV2 <structure=\"\"> ]	: Save subtraction intermediate file (vol2 adjusted) just when option --sub is passed, if not passed the output of the program is this file");
+        addParamsLine("[--cutFreq <f=0>]\t: Filter both volumes with a filter which specified cutoff frequency (i.e. resolution inverse, <0.5)");
+        addParamsLine("[--lambda <l=1>]\t: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
+        addParamsLine("[--radavg]\t: Match the radially averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
+        addParamsLine("[--computeEnergy]\t: Do not compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
+        addParamsLine("[--saveV1 <structure=\"\"> ]\t: Save subtraction intermediate file (vol1 filtered) just when option --sub is passed, if not passed the input reference volume is not modified");
+        addParamsLine("[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file (vol2 adjusted) just when option --sub is passed, if not passed the output of the program is this file");
     }
 
     void readParams()
@@ -195,7 +195,7 @@ private:
 		<< "Iterations:				" << iter        << std::endl
 		<< "Cutoff frequency:		" << cutFreq     << std::endl
 		<< "Relaxation factor:		" << lambda      << std::endl
-		<< "Match radial averages:	" << radavg		 << std::endl
+		<< "Match radial averages:\t" << radavg		 << std::endl
 		<< "Output:					" << fnOut 	     << std::endl
     	;
     }
