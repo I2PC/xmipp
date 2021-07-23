@@ -11,7 +11,6 @@ class VolSubtractionTest : public ::testing::Test
 protected:
     virtual void SetUp()
     {
-#define len 128
         //get example volume
         if (chdir(((String)(getXmippPath() + (String)"/resources/test/image")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
@@ -24,12 +23,13 @@ protected:
 
 TEST_F(VolSubtractionTest, subtraction)
 {
+	// Substract two identical images with a non-specific mask (all 1s)
+	// expecting for the result to be an empty image (all 0s)
 	Image<double> empty, mask;
 	empty().initZeros(4, 64, 64);
 	mask().initZeros(4, 64, 64);
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask())
-	DIRECT_MULTIDIM_ELEM(mask(),n)+=1;
+	mask().initConstant(1);
 	subtraction(img(), img(), img(), mask());
-	ASSERT_TRUE(img()==empty());
+	ASSERT_EQ(img(), empty());
 }
 
