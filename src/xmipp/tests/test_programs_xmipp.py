@@ -1531,7 +1531,7 @@ class MlTomoMpi(XmippProgramTest):
 
 
 class VolSubtraction(XmippProgramTest):
-    _owner = DISCONTINUED
+    _owner = EFG
     @classmethod
     def getProgram(cls):
         return 'xmipp_volume_subtraction'

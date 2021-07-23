@@ -52,7 +52,7 @@ void POCSFourierAmplitude(const MultidimArray<double> &A, MultidimArray< std::co
 		}
 }
 
-void POCSFourierAmplitudeRadAvg(MultidimArray< std::complex<double> > &V, double lambda, MultidimArray<double> &rQ, int V1size_x, int V1size_y, int V1size_z)
+void POCSFourierAmplitudeRadAvg(MultidimArray< std::complex<double> > &V, double lambda, const MultidimArray<double> &rQ, int V1size_x, int V1size_y, int V1size_z)
 {
 	int V1size2_x = V1size_x/2;
 	double V1sizei_x = 1.0/V1size_x;
@@ -60,22 +60,24 @@ void POCSFourierAmplitudeRadAvg(MultidimArray< std::complex<double> > &V, double
 	double V1sizei_y = 1.0/V1size_y;
 	int V1size2_z = V1size_z/2;
 	double V1sizei_z = 1.0/V1size_z;
-	double wx, wy, wz;
+	double wx;
+	double wy;
+	double wz;
 
 	for (int k=0; k<V1size_z; ++k)
 		{
-			FFT_IDX2DIGFREQ_FAST(k,V1size_z,V1size2_z,V1sizei_z,wz);
+			FFT_IDX2DIGFREQ_FAST(k,V1size_z,V1size2_z,V1sizei_z,wz)
 			double wz2 = wz*wz;
 			for (int i=0; i<V1size_y; ++i)
 			{
-				FFT_IDX2DIGFREQ_FAST(i,V1size_y,V1size2_y,V1sizei_y,wy);
+				FFT_IDX2DIGFREQ_FAST(i,V1size_y,V1size2_y,V1sizei_y,wy)
 				double wy2 = wy*wy;
 				for (int j=0; j<V1size_x; ++j)
 				{
-					FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx);
+					FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx)
 					double w = sqrt(wx*wx + wy2 + wz2);
-					int iw = (int)round(w*V1size_x); // size_x??
-					DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda);//+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
+					auto iw = (int)round(w*V1size_x);
+					DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
 				}
 			}
 		}
@@ -117,7 +119,7 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 		std::cout<< "Energy: " << energy << std::endl;
 }
 
-void subtraction(MultidimArray<double> &V1, MultidimArray<double> &V1Filtered, MultidimArray<double> &V, MultidimArray<double> &mask)
+void subtraction(MultidimArray<double> &V1, const MultidimArray<double> &V1Filtered, const MultidimArray<double> &V, const MultidimArray<double> &mask)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1)
 	DIRECT_MULTIDIM_ELEM(V1,n) = DIRECT_MULTIDIM_ELEM(V1,n)*(1-DIRECT_MULTIDIM_ELEM(mask,n)) + (DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
@@ -128,7 +130,7 @@ class ProgVolumeSubtraction: public XmippProgram
 {
 private:
 	FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
-	bool sub; bool eq; bool computeE; bool radavg; bool Vol1F; bool Vol2A;
+	bool sub; bool computeE; bool radavg; bool saveVol1Filt; bool saveVol2Adj;
 	int iter; int sigma;
 	double cutFreq; double lambda;
 
@@ -150,9 +152,9 @@ private:
         addParamsLine("[--mask1 <mask=\"\">]	: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]	: Mask for volume 2");
         addParamsLine("[--maskSub <mask=\"\">]	: Mask for subtraction region");
-        addParamsLine("[--cutFreq <f=0>]       	: Filter both volumes with a filter which specified cutoff frequency (i.e. resolution inverse, <0.5)");
-        addParamsLine("[--lambda <l=1>]       	: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
-        addParamsLine("[--radavg]				: Match the rotationally averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
+        addParamsLine("[--cutFreq <f=0>]		: Filter both volumes with a filter which specified cutoff frequency (i.e. resolution inverse, <0.5)");
+        addParamsLine("[--lambda <l=1>]			: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
+        addParamsLine("[--radavg]				: Match the radially averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
         addParamsLine("[--computeEnergy]		: Do not compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
         addParamsLine("[--saveV1 <structure=\"\"> ]	: Save subtraction intermediate file (vol1 filtered) just when option --sub is passed, if not passed the input reference volume is not modified");
         addParamsLine("[--saveV2 <structure=\"\"> ]	: Save subtraction intermediate file (vol2 adjusted) just when option --sub is passed, if not passed the output of the program is this file");
@@ -163,7 +165,7 @@ private:
     	fnVol1=getParam("--i1");
     	fnVol2=getParam("--i2");
     	fnOut=getParam("-o");
-    	if (fnOut=="")
+    	if (fnOut.isEmpty())
     		fnOut="output_volume.mrc";
     	sub=checkParam("--sub");
     	iter=getIntParam("--iter");
@@ -173,8 +175,8 @@ private:
     	fnMaskSub=getParam("--maskSub");
     	cutFreq=getDoubleParam("--cutFreq");
     	lambda=getDoubleParam("--lambda");
-    	Vol1F=checkParam("--saveV1");
-    	Vol2A=checkParam("--saveV2");
+    	saveVol1Filt=checkParam("--saveV1");
+    	saveVol2Adj=checkParam("--saveV2");
     	fnVol1F=getParam("--saveV1");
     	fnVol2A=getParam("--saveV2");
     	radavg=checkParam("--radavg");
@@ -228,14 +230,18 @@ private:
     	POCSnonnegative(V());
 
 		// Compute |FT(radial averages)|
-    	MultidimArray<double> V1rad, Vrad;
+    	MultidimArray<double> V1rad;
+    	MultidimArray<double> Vrad;
     	V1rad = V1();
     	Vrad = V();
     	V1rad.setXmippOrigin();
     	Vrad.setXmippOrigin();
-		FourierTransformer transformerRad;
-		MultidimArray< std::complex<double> > V1FourierRad, VFourierRad;
-		MultidimArray<double> V1FourierMagRad, VFourierMagRad, radQuotient;
+    	FourierTransformer transformerRad;
+		MultidimArray< std::complex<double> > V1FourierRad;
+		MultidimArray< std::complex<double> > VFourierRad;
+		MultidimArray<double> V1FourierMagRad;
+		MultidimArray<double> VFourierMagRad;
+		MultidimArray<double> radQuotient;
 		transformerRad.completeFourierTransform(V1rad,V1FourierRad);
 		CenterFFT(V1FourierRad, true);
 		FFT_magnitude(V1FourierRad,V1FourierMagRad);
@@ -293,9 +299,9 @@ private:
         		std::cout<< "---Iter " << n << std::endl;
     		if (radavg)
     		{
-    	    	int V1size_x = (int)XSIZE(V1());
-    	    	int V1size_y = (int)YSIZE(V1());
-    	    	int V1size_z = (int)ZSIZE(V1());
+    	    	auto V1size_x = (int)XSIZE(V1());
+    	    	auto V1size_y = (int)YSIZE(V1());
+    	    	auto V1size_z = (int)ZSIZE(V1());
     			transformer2.completeFourierTransform(V(),V2Fourier);
     			CenterFFT(V2Fourier, true);
     			POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
@@ -369,15 +375,15 @@ private:
 
     	if (sub==true)
     	{
-        	if (Vol1F)
+        	if (saveVol1Filt)
     		{
-        		if (fnVol1F=="")
+        		if (fnVol1F.isEmpty())
         			fnVol1F="volume1_filtered.mrc";
     			V1Filtered.write(fnVol1F);
     		}
-        	if (Vol2A)
+        	if (saveVol2Adj)
         	{
-				if (fnVol2A=="")
+				if (fnVol2A.isEmpty())
 					fnVol2A="volume2_adjusted.mrc";
     			V.write(fnVol2A);
     		}
