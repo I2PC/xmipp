@@ -274,27 +274,54 @@ void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData)
     transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
+void makePadded(const MultidimArray<double>& orig, void* dest, size_t size) 
+{
+    MultidimArray<PrecisionType> tmpMA;
+    typeCast(orig, tmpMA);
+    tmpMA.selfWindow(STARTINGZ(tmpMA) - 1, STARTINGY(tmpMA) - 1, STARTINGX(tmpMA) - 1,
+            FINISHINGZ(tmpMA) + 1, FINISHINGY(tmpMA) + 1, FINISHINGX(tmpMA) + 1);
+    if (cudaMemcpy(dest, tmpMA.data, size * sizeof(PrecisionType), cudaMemcpyHostToDevice) != cudaSuccess)
+        processCudaError();
+}
+
+//FIXME VR should not be padded (it is not necessary)
 void VolumeDeformSph::setupVolumes()
 {
     volumes.count = program->volumesR.size();
-    volumes.volumeSize = program->VR().getSize();
+    volumes.volumeSize = (program->VR().xdim + 2) *
+        (program->VR().ydim + 2) * (program->VR().zdim + 2);
 
     if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
         processCudaError();
     if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
         processCudaError();
 
+    //FIXME should be working now, but can be faster -> transfer non-padded data, malloc space for padded data,
+    //make kernel that places the data correctly in the padded memory (plus it will be done in async!)
     for (size_t i = 0; i < volumes.count; i++) {
         PrecisionType* tmpI = volumes.I + i * volumes.volumeSize;
         PrecisionType* tmpR = volumes.R + i * volumes.volumeSize;
-        transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
-        transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
+        //transformData(&tmpI, program->volumesI[i]().data, volumes.volumeSize, false);
+        //transformData(&tmpR, program->volumesR[i]().data, volumes.volumeSize, false);
+        makePadded(program->volumesI[i](), tmpI, volumes.volumeSize);
+        makePadded(program->volumesR[i](), tmpR, volumes.volumeSize);
+        //MultidimArray<PrecisionType> tmpMAI;
+        //MultidimArray<PrecisionType> tmpMAR;
+        //typeCast(program->volumesI[i](), tmpMAI);
+        //typeCast(program->volumesR[i](), tmpMAR);
+        //tmpMAI.selfWindow(STARTINGZ(tmpMAI) - 1, STARTINGY(tmpMAI) - 1, STARTINGX(tmpMAI) - 1,
+        //        FINISHINGZ(tmpMAI) + 1, FINISHINGY(tmpMAI) + 1, FINISHINGX(tmpMAI) + 1);
+        //tmpMAR.selfWindow(STARTINGZ(tmpMAR) - 1, STARTINGY(tmpMAR) - 1, STARTINGX(tmpMAR) - 1,
+        //        FINISHINGZ(tmpMAR) + 1, FINISHINGY(tmpMAR) + 1, FINISHINGX(tmpMAR) + 1);
+        //if (cudaMemcpy(tmpI, tmpMAI.data, volumes.volumeSize * sizeof(PrecisionType), cudaMemcpyHostToDevice) != cudaSuccess)
+        //    processCudaError();
+        //if (cudaMemcpy(tmpR, tmpMAR.data, volumes.volumeSize * sizeof(PrecisionType), cudaMemcpyHostToDevice) != cudaSuccess)
+        //    processCudaError();
     }
 }
 
 void VolumeDeformSph::setupImageMetaData(const Image<double>& mda) 
 {
-
     imageMetaData.xShift = mda().xinit;
     imageMetaData.yShift = mda().yinit;
     imageMetaData.zShift = mda().zinit;
@@ -306,7 +333,10 @@ void VolumeDeformSph::setupImageMetaData(const Image<double>& mda)
 void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outputImageData) 
 {
     auto& mda = inputImage();
-    transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
+    size_t size = (mda.xdim + 2) * (mda.ydim + 2) * (mda.zdim + 2);
+    //transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
+    cudaMalloc(outputImageData, size * sizeof(PrecisionType));
+    makePadded(mda, *outputImageData, size);
 }
 
 void VolumeDeformSph::setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData) 

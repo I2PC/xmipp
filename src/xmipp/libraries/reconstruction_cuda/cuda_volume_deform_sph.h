@@ -30,6 +30,8 @@ struct ImageMetaData
     int xDim = 0;
     int yDim = 0;
     int zDim = 0;
+
+    int padding = 0;
 };
 
 struct Volumes 
