@@ -150,11 +150,6 @@ struct DeformImages
 __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType r);
 
-__device__ PrecisionType interpolatedElement3D(
-        PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType doutside_value = 0);
-
 __device__ PrecisionType interpolateNoChecks(
         PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z);
@@ -249,21 +244,15 @@ extern "C" __global__ void computeDeform(
     PrecisionType kDef = k + gz;
     PrecisionType iDef = i + gy;
     PrecisionType jDef = j + gx;
-    PrecisionType testR2 = kDef*kDef + iDef*iDef + jDef*jDef;
-
-    PrecisionType testRmax2 = SQRT(Rmax2) - 1;
-    testRmax2 *= testRmax2;
 
     if (applyTransformation && !isOutside) {
         // Logical indexes used to check whether the point is in the matrix
-            if (testR2 < testRmax2) {
-                voxelI = interpolateNoChecks(images.VI,
-                        imageMetaData, jDef, iDef, kDef);
-            } else {
-                voxelI = 0.0;
-            }
-        //voxelI = interpolatedElement3D(images.VI, imageMetaData,
-        //        j + gx, i + gy, k + gz);
+        if (!IS_OUTSIDE_PADDED(imageMetaData, kDef, iDef, jDef)) {
+            voxelI = interpolateNoChecks(images.VI,
+                    imageMetaData, jDef, iDef, kDef);
+        } else {
+            voxelI = 0.0;
+        }
 
         ELEM_3D(images.VO, imageMetaData, kPhys, iPhys, jPhys) = voxelI;
     }
@@ -272,7 +261,7 @@ extern "C" __global__ void computeDeform(
         for (unsigned idv = 0; idv < volumes.count; idv++) {
             voxelR = ELEM_3D_PADDED(volumes.R + idv * volumes.volumeSize,
                     imageMetaData, kPhys, iPhys, jPhys);
-            if (testR2 < testRmax2) {
+            if (!IS_OUTSIDE_PADDED(imageMetaData, kDef, iDef, jDef)) {
                 voxelI = interpolateNoChecks(volumes.I + idv * volumes.volumeSize,
                         imageMetaData, jDef, iDef, kDef);
             } else {
@@ -364,53 +353,6 @@ extern "C" __global__ void computeDeform(
         ELEM_3D(deformImages.Gy, imageMetaData, kPhys, iPhys, jPhys) = gy;
         ELEM_3D(deformImages.Gz, imageMetaData, kPhys, iPhys, jPhys) = gz;
     }
-}
-
-/*
- * Linear interpolation
- */
-__device__ PrecisionType interpolatedElement3D(
-        PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType outside_value) 
-{
-        int x0 = (int)CUDA_FLOOR(x);
-        PrecisionType fx = x - x0;
-        int x1 = x0 + 1;
-
-        int y0 = (int)CUDA_FLOOR(y);
-        PrecisionType fy = y - y0;
-        int y1 = y0 + 1;
-
-        int z0 = (int)CUDA_FLOOR(z);
-        PrecisionType fz = z - z0;
-        int z1 = z0 + 1;
-
-        PrecisionType d000 = (IS_OUTSIDE(imgMeta, z0, y0, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x0);
-        PrecisionType d001 = (IS_OUTSIDE(imgMeta, z0, y0, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x1);
-        PrecisionType d010 = (IS_OUTSIDE(imgMeta, z0, y1, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x0);
-        PrecisionType d011 = (IS_OUTSIDE(imgMeta, z0, y1, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x1);
-        PrecisionType d100 = (IS_OUTSIDE(imgMeta, z1, y0, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x0);
-        PrecisionType d101 = (IS_OUTSIDE(imgMeta, z1, y0, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x1);
-        PrecisionType d110 = (IS_OUTSIDE(imgMeta, z1, y1, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x0);
-        PrecisionType d111 = (IS_OUTSIDE(imgMeta, z1, y1, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x1);
-
-        PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
-        PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
-        PrecisionType dx10 = LIN_INTERP(fx, d010, d011);
-        PrecisionType dx11 = LIN_INTERP(fx, d110, d111);
-        PrecisionType dxy0 = LIN_INTERP(fy, dx00, dx10);
-        PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
-
-        return LIN_INTERP(fz, dxy0, dxy1);
 }
 
 /*
