@@ -50,6 +50,8 @@ struct ImageMetaData
     int xDim;
     int yDim;
     int zDim;
+
+    int padding;
 }
 
 struct Volumes 
@@ -84,6 +86,9 @@ struct DeformImages
 #define GET_IDX(ImD,k,i,j) \
     ((ImD).xDim * (ImD).yDim * (k) + (ImD).xDim * (i) + (j))
 
+#define GET_IDX_PADDED(ImD,k,i,j) \
+    (((ImD).xDim + 2) * ((ImD).yDim + 2) * ((k) + 1) + ((ImD).xDim + 2) * ((i) + 1) + ((j) + 1))
+
 // Logical index = Physical index + shift
 #define P2L_X_IDX(ImD,j) \
     ((j) + (ImD).xShift)
@@ -108,14 +113,25 @@ struct DeformImages
 #define ELEM_3D(ImD,meta,k,i,j) \
     ((ImD)[GET_IDX((meta), (k), (i), (j))])
 
+#define ELEM_3D_PADDED(ImD,meta,k,i,j) \
+    ((ImD)[GET_IDX_PADDED((meta), (k), (i), (j))])
+
 #define ELEM_3D_SHIFTED(ImD,meta,k,i,j) \
     (ELEM_3D((ImD), (meta), (k) - (meta).zShift, (i) - (meta).yShift, (j) - (meta).xShift))
+
+#define ELEM_3D_SHIFTED_PADDED(ImD,meta,k,i,j) \
+    (ELEM_3D_PADDED((ImD), (meta), (k) - (meta).zShift, (i) - (meta).yShift, (j) - (meta).xShift))
 
 // Utility macros
 #define IS_OUTSIDE(ImD,k,i,j) \
     ((j) < (ImD).xShift || (j) > (ImD).xShift + (ImD).xDim - 1 || \
      (i) < (ImD).yShift || (i) > (ImD).yShift + (ImD).yDim - 1 || \
      (k) < (ImD).zShift || (k) > (ImD).zShift + (ImD).zDim - 1)
+
+#define IS_OUTSIDE_PADDED(ImD,k,i,j) \
+    ((j) < (ImD).xShift - 1 || (j) > (ImD).xShift + (ImD).xDim - 1 || \
+     (i) < (ImD).yShift - 1 || (i) > (ImD).yShift + (ImD).yDim - 1 || \
+     (k) < (ImD).zShift - 1 || (k) > (ImD).zShift + (ImD).zDim - 1)
 
 #define IS_OUTSIDE_PHYS(ImD,k,i,j) \
     ((j) < 0 || (ImD).xDim <= (j) || \
@@ -230,25 +246,35 @@ extern "C" __global__ void computeDeform(
     PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     bool isOutside = IS_OUTSIDE_PHYS(imageMetaData, kPhys, iPhys, jPhys);
-    PrecisionType testR2 = (k+gz)*(k+gz) + (i+gy)*(i+gy) + (j+gx)*(j+gx);
+    PrecisionType kDef = k + gz;
+    PrecisionType iDef = i + gy;
+    PrecisionType jDef = j + gx;
+    PrecisionType testR2 = kDef*kDef + iDef*iDef + jDef*jDef;
+
+    PrecisionType testRmax2 = SQRT(Rmax2) - 1;
+    testRmax2 *= testRmax2;
 
     if (applyTransformation && !isOutside) {
         // Logical indexes used to check whether the point is in the matrix
-        voxelI = interpolatedElement3D(images.VI, imageMetaData,
-                j + gx, i + gy, k + gz);
+            if (testR2 < testRmax2) {
+                voxelI = interpolateNoChecks(images.VI,
+                        imageMetaData, jDef, iDef, kDef);
+            } else {
+                voxelI = 0.0;
+            }
+        //voxelI = interpolatedElement3D(images.VI, imageMetaData,
+        //        j + gx, i + gy, k + gz);
 
         ELEM_3D(images.VO, imageMetaData, kPhys, iPhys, jPhys) = voxelI;
     }
 
-    PrecisionType testRmax2 = SQRT(Rmax2) - 1;
-    testRmax2 *= testRmax2;
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.count; idv++) {
-            voxelR = ELEM_3D(volumes.R + idv * volumes.volumeSize,
+            voxelR = ELEM_3D_PADDED(volumes.R + idv * volumes.volumeSize,
                     imageMetaData, kPhys, iPhys, jPhys);
             if (testR2 < testRmax2) {
                 voxelI = interpolateNoChecks(volumes.I + idv * volumes.volumeSize,
-                        imageMetaData, j + gx, i + gy, k + gz);
+                        imageMetaData, jDef, iDef, kDef);
             } else {
                 voxelI = 0.0;
             }
@@ -406,14 +432,14 @@ __device__ PrecisionType interpolateNoChecks(
         PrecisionType fz = z - z0;
         int z1 = z0 + 1;
 
-        PrecisionType d000 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x0);
-        PrecisionType d001 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x1);
-        PrecisionType d010 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x0);
-        PrecisionType d011 = ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x1);
-        PrecisionType d100 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x0);
-        PrecisionType d101 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x1);
-        PrecisionType d110 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x0);
-        PrecisionType d111 = ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x1);
+        PrecisionType d000 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x0);
+        PrecisionType d001 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x1);
+        PrecisionType d010 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x0);
+        PrecisionType d011 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x1);
+        PrecisionType d100 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x0);
+        PrecisionType d101 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x1);
+        PrecisionType d110 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x0);
+        PrecisionType d111 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x1);
 
         PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
         PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
