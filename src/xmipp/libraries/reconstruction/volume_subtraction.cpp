@@ -146,10 +146,9 @@ private:
         addParamsLine("--i1 <volume>			: Reference volume");
         addParamsLine("--i2 <volume>			: Volume to modify");
         addParamsLine("[-o <structure=\"\">]		: Volume 2 modified or volume difference");
-<<<<<<< HEAD
-        addParamsLine("								: If no name is given, then output_volume.mrc");
-        addParamsLine("[--sub]						: Perform the subtraction of the volumes. Output will be the difference");
-        addParamsLine("[--sigma <s=3>]				: Decay of the filter (sigma) to smooth the mask transition");
+        addParamsLine("					: If no name is given, then output_volume.mrc");
+        addParamsLine("[--sub]				: Perform the subtraction of the volumes. Output will be the difference");
+        addParamsLine("[--sigma <s=3>]			: Decay of the filter (sigma) to smooth the mask transition");
         addParamsLine("[--iter <n=5>]\t: Number of iterations for the adjustment process");
         addParamsLine("[--mask1 <mask=\"\">]		: Mask for volume 1");
         addParamsLine("[--mask2 <mask=\"\">]		: Mask for volume 2");
@@ -160,21 +159,6 @@ private:
         addParamsLine("[--computeEnergy]\t: Do not compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
         addParamsLine("[--saveV1 <structure=\"\"> ]\t: Save subtraction intermediate file (vol1 filtered) just when option --sub is passed, if not passed the input reference volume is not modified");
         addParamsLine("[--saveV2 <structure=\"\"> ]\t: Save subtraction intermediate file (vol2 adjusted) just when option --sub is passed, if not passed the output of the program is this file");
-=======
-        addParamsLine("					: If no name is given, then output_volume.mrc");
-        addParamsLine("[--sub]				: Perform the subtraction of the volumes. Output will be the difference");
-        addParamsLine("[--sigma <s=3>]			: Decay of the filter (sigma) to smooth the mask transition");
-        addParamsLine("[--iter <n=5>]			: Number of iterations for the adjustment process");
-        addParamsLine("[--mask1 <mask=\"\">]		: Mask for volume 1");
-        addParamsLine("[--mask2 <mask=\"\">]		: Mask for volume 2");
-        addParamsLine("[--maskSub <mask=\"\">]		: Mask for subtraction region");
-        addParamsLine("[--cutFreq <f=0>]		: Filter both volumes with a filter which specified cutoff frequency (i.e. resolution inverse, <0.5)");
-        addParamsLine("[--lambda <l=1>]			: Relaxation factor for Fourier Amplitude POCS, i.e. 'how much modification of volume Fourier amplitudes', between 1 (full modification, recommended) and 0 (no modification)");
-        addParamsLine("[--radavg]			: Match the radially averaged Fourier amplitudes when adjusting the amplitudes instead of taking directly them from the reference volume");
-        addParamsLine("[--computeEnergy]		: Do not compute the energy difference between each step (energy difference gives information about the convergence of the adjustment process, while it can slightly slow the performance)");
-        addParamsLine("[--saveV1 <structure=\"\"> ]	: Save subtraction intermediate file (vol1 filtered) just when option --sub is passed, if not passed the input reference volume is not modified");
-        addParamsLine("[--saveV2 <structure=\"\"> ]	: Save subtraction intermediate file (vol2 adjusted) just when option --sub is passed, if not passed the output of the program is this file");
->>>>>>> f6c495cee494ec223d4576c20681f350b6820efe
     }
 
     void readParams()
@@ -203,19 +187,6 @@ private:
     void show()
     {
     	std::cout
-<<<<<<< HEAD
-		<< "Input volume 1:    		" << fnVol1      << std::endl
-		<< "Input volume 2:    	   	" << fnVol2      << std::endl
-		<< "Input mask 1:    	   	" << fnMask1     << std::endl
-		<< "Input mask 2:    	   	" << fnMask2     << std::endl
-		<< "Input mask sub:			" << fnMaskSub   << std::endl
-		<< "Sigma:					" << sigma       << std::endl
-		<< "Iterations:				" << iter        << std::endl
-		<< "Cutoff frequency:		" << cutFreq     << std::endl
-		<< "Relaxation factor:		" << lambda      << std::endl
-		<< "Match radial averages:\t" << radavg		 << std::endl
-		<< "Output:					" << fnOut 	     << std::endl
-=======
 	<< "Input volume 1:    		" << fnVol1      << std::endl
 	<< "Input volume 2:    	   	" << fnVol2      << std::endl
 	<< "Input mask 1:    	   	" << fnMask1     << std::endl
@@ -225,9 +196,8 @@ private:
 	<< "Iterations:			" << iter        << std::endl
 	<< "Cutoff frequency:		" << cutFreq     << std::endl
 	<< "Relaxation factor:		" << lambda      << std::endl
-	<< "Match radial averages:	" << radavg	 << std::endl
+	<< "Match radial averages:\t" << radavg	 << std::endl
 	<< "Output:			" << fnOut 	 << std::endl
->>>>>>> f6c495cee494ec223d4576c20681f350b6820efe
     	;
     }
 
