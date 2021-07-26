@@ -170,8 +170,6 @@ __global__ void computeDeform(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         IROimages images,
-        const int4* zshparams,
-        const PrecisionType3* clnm,
         unsigned steps,
         ImageMetaData imageMetaData,
         Volumes volumes,
@@ -197,30 +195,6 @@ __global__ void computeDeform(
     int i = P2L_Y_IDX(imageMetaData, iPhys);
     int j = P2L_X_IDX(imageMetaData, jPhys);
 
-/*
-    int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(int4) * steps;
-
-    PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType3) * steps;
-
-    // Load zsh, clnm parameters to the shared memory
-    if (steps <= _BLOCK_SIZE) {
-        if (tIdx < steps) {
-            zshShared[tIdx] = zshparams[tIdx];
-            clnmShared[tIdx] = clnm[tIdx];
-        }
-    } else {
-        if (tIdx == 0) {
-            for (unsigned idx = 0; idx < steps; idx++) {
-                zshShared[idx] = zshparams[idx];
-                clnmShared[idx] = clnm[idx];
-            }
-        }
-    }
-
-    __syncthreads();
-*/
     // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
     PrecisionType rr = SQRT(r2) * iRmax;
@@ -297,7 +271,7 @@ __global__ void computeDeform(
 
     // Save values to the global memory for later
     if (isFirstThreadInWarp) {
-        unsigned warpsInBlock = _BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division? 
+        unsigned warpsInBlock = _BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division?
         unsigned warpInCurrentBlock = tIdx / 32;//FIXME division is slow, can it be done without division?
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned wIdx = bIdx * warpsInBlock + warpInCurrentBlock;
@@ -319,7 +293,7 @@ __global__ void computeDeform(
  */
 __device__ PrecisionType interpolateNoChecks(
         PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z) 
+        PrecisionType x, PrecisionType y, PrecisionType z)
 {
         int x0 = (int)CUDA_FLOOR(x);
         PrecisionType fx = x - x0;

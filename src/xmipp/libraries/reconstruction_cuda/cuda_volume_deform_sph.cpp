@@ -90,8 +90,6 @@ VolumeDeformSph::~VolumeDeformSph()
     cudaFree(deformImages.Gz);
 
     cudaFreeHost(outputs);
-    cudaFree(mClnm);
-    // zsh should be freed
 }
 
 static dim3 grid;
@@ -109,7 +107,6 @@ void VolumeDeformSph::setupConstantParameters()
     setupImageMetaData(program->VR);
     setupZSHparams();
     setupVolumes();
-    setupClnm();
 
     // kernel dimension
     block.x = BLOCK_X_DIM;
@@ -132,12 +129,10 @@ void VolumeDeformSph::setupChangingParameters()
     if (program == nullptr)
         throw new std::runtime_error("VolumeDeformSph not associated with the program!");
 
-    fillClnm();
+    setupClnm();
     steps = program->onesInSteps;
 
     changingSharedMemSize = 0;
-    changingSharedMemSize += sizeof(int4) * steps;
-    changingSharedMemSize += sizeof(PrecisionType3) * steps;
 
     // Deformation and transformation booleans
     this->applyTransformation = program->applyTransformation;
@@ -153,7 +148,7 @@ void VolumeDeformSph::setupChangingParameters()
     }
 }
 
-void VolumeDeformSph::setupOutputs() 
+void VolumeDeformSph::setupOutputs()
 {
     if (cudaMallocHost(&outputs, sizeof(KernelOutputs)) != cudaSuccess)
         processCudaError();
@@ -165,24 +160,16 @@ void VolumeDeformSph::setupOutputArray()
         processCudaError();
 }
 
-void VolumeDeformSph::fillClnm()
+void VolumeDeformSph::setupClnm()
 {
-    std::vector<PrecisionType3> tmp(56);
+    std::vector<PrecisionType3> tmp(MAX_COEF_COUNT);
     for (unsigned i = 0; i < program->vL1.size(); ++i) {
         tmp[i].x = program->clnm[i];
         tmp[i].y = program->clnm[i + program->vL1.size()];
         tmp[i].z = program->clnm[i + program->vL1.size() * 2];
-        //mClnm[i].x = program->clnm[i];
-        //mClnm[i].y = program->clnm[i + program->vL1.size()];
-        //mClnm[i].z = program->clnm[i + program->vL1.size() * 2];
     }
     if (cudaMemcpyToSymbol(clnmShared, tmp.data(), 56 * sizeof(PrecisionType3)) != cudaSuccess)
         processCudaError();
-}
-
-void VolumeDeformSph::setupClnm()
-{
-    cudaMallocManaged(&mClnm, program->vL1.size() * sizeof(PrecisionType3));
 }
 
 KernelOutputs VolumeDeformSph::getOutputs() 
@@ -210,8 +197,6 @@ void VolumeDeformSph::runKernel()
                     Rmax2,
                     iRmax,
                     images,
-                    dZshParams,
-                    mClnm,
                     steps,
                     imageMetaData,
                     volumes,
@@ -227,8 +212,6 @@ void VolumeDeformSph::runKernel()
                     Rmax2,
                     iRmax,
                     images,
-                    dZshParams,
-                    mClnm,
                     steps,
                     imageMetaData,
                     volumes,
@@ -264,7 +247,7 @@ void VolumeDeformSph::transferResults()
 
 void VolumeDeformSph::setupZSHparams()
 {
-    zshparamsVec.resize(program->vL1.size());
+    std::vector<int4> zshparamsVec(program->vL1.size());
 
     for (unsigned i = 0; i < zshparamsVec.size(); ++i) {
         zshparamsVec[i].w = program->vL1[i];
@@ -273,19 +256,18 @@ void VolumeDeformSph::setupZSHparams()
         zshparamsVec[i].z = program->vM[i];
     }
 
-    //if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
-    //    processCudaError();
-    if (cudaMemcpyToSymbol(zshShared, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4)) != cudaSuccess)
+    if (cudaMemcpyToSymbol(zshShared, zshparamsVec.data(),
+                zshparamsVec.size() * sizeof(int4)) != cudaSuccess)
         processCudaError();
 }
 
-void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData) 
+void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData)
 {
     auto& mda = inputImage();
     transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
-void makePadded(const MultidimArray<double>& orig, void* dest, size_t size) 
+void makePadded(const MultidimArray<double>& orig, void* dest, size_t size)
 {
     MultidimArray<PrecisionType> tmpMA;
     typeCast(orig, tmpMA);
