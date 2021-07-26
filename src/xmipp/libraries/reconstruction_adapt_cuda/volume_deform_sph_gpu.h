@@ -76,7 +76,7 @@ public:
     double Rmax;
 
     /// Coefficient vector size
-    int vecSize;
+    int vecSize = 0;
 
     /// Images
     Image<double> VI, VR, VO, Gx, Gy, Gz;
@@ -97,7 +97,7 @@ public:
     unsigned Ncount;
 
     //Deformation in pixels, sumVI, sumVD
-    double deformation, sumVI, sumVD;
+    double deformation, sumVI = 0.0, sumVD;
 
     // Regularization
     double lambda;
@@ -106,7 +106,7 @@ public:
     bool applyTransformation;
 
     // Save the values of gx, gy and gz for local strain and rotation analysis
-    bool saveDeformation;
+    bool saveDeformation = false;
 
     /// Default constructor
     ProgVolumeDeformSphGpu();

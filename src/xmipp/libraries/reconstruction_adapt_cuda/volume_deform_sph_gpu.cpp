@@ -24,6 +24,7 @@
 
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <vector>
 #include "volume_deform_sph_gpu.h"
 #include "data/fourier_filter.h"
@@ -33,7 +34,8 @@
 ProgVolumeDeformSphGpu::ProgVolumeDeformSphGpu() : volDefSphGpu(this) {}
 
 // Params definition =======================================================
-void ProgVolumeDeformSphGpu::defineParams() {
+void ProgVolumeDeformSphGpu::defineParams()
+{
     addUsageLine("Compute the deformation that properly fits two volumes using spherical harmonics (GPU accelerated)");
     addParamsLine("   -i <volume>                         : Volume to deform");
     addParamsLine("   -r <volume>                         : Reference volume");
@@ -51,7 +53,8 @@ void ProgVolumeDeformSphGpu::defineParams() {
 }
 
 // Read arguments ==========================================================
-void ProgVolumeDeformSphGpu::readParams() {
+void ProgVolumeDeformSphGpu::readParams()
+{
     std::string aux;
     fnVolI = getParam("-i");
     fnVolR = getParam("-r");
@@ -66,10 +69,8 @@ void ProgVolumeDeformSphGpu::readParams() {
     std::istream_iterator<std::string> end;
     std::vector<std::string> vstrings(begin, end);
     sigma.resize(vstrings.size());
-    std::transform(vstrings.begin(), vstrings.end(), sigma.begin(), [](const std::string& val)
-            {
-            return std::stod(val);
-            });
+    std::transform(vstrings.begin(), vstrings.end(), sigma.begin(),
+            [](const std::string& val) { return std::stod(val); });
 
     fnVolOut = getParam("-o");
     if (fnVolOut=="")
@@ -82,7 +83,8 @@ void ProgVolumeDeformSphGpu::readParams() {
 }
 
 // Show ====================================================================
-void ProgVolumeDeformSphGpu::show() const {
+void ProgVolumeDeformSphGpu::show() const
+{
     if (verbose==0)
         return;
     std::cout
@@ -98,23 +100,17 @@ void ProgVolumeDeformSphGpu::show() const {
 // Distance function =======================================================
 double ProgVolumeDeformSphGpu::distance(double *pclnm)
 {
-    if (applyTransformation)
-    {
-        VO().initZeros(VR());
-        VO().setXmippOrigin();
-    }
-
     FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
-        VEC_ELEM(clnm,i)=pclnm[i+1];
+        VEC_ELEM(clnm, i) = pclnm[i + 1];
+
 #ifdef DEBUG
     std::cout << "Starting to evaluate\n" << clnm << std::endl;
 #endif
 
     double diff2=0.0;
-    sumVD = 0.0;
     double modg=0.0;
+    sumVD = 0.0;
 
-    // GPU computation
     volDefSphGpu.setupChangingParameters();
 
     volDefSphGpu.runKernel();
@@ -125,9 +121,8 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     diff2 = result.diff2;
     modg = result.modg;
     sumVD = result.sumVD;
-    // GPU computation end
 
-    deformation=std::sqrt(modg/(Ncount));
+    deformation=std::sqrt(modg / Ncount);
 
 #ifdef DEBUG
     Image<double> save;
@@ -146,7 +141,7 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
         save() = Gz();
         save.write(fnRoot+"_PPPGz.vol");
     }
-    std::cout << "Error=" << deformation << " " << std::sqrt(diff2/totalVal) << std::endl;
+    std::cout << "Error=" << deformation << " " << std::sqrt(diff2 / totalVal) << std::endl;
     std::cout << "Press any key\n";
     char c; std::cin >> c;
 #endif
@@ -154,29 +149,28 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     if (applyTransformation)
         VO.write(fnVolOut);
 
-    double massDiff=std::abs(sumVI-sumVD)/sumVI;
-    return std::sqrt(diff2/Ncount)+lambda*(deformation+massDiff);
+    double massDiff = std::abs(sumVI - sumVD) / sumVI;
+    return std::sqrt(diff2 / Ncount) + lambda * (deformation + massDiff);
 }
 
 double volDeformSphGoal(double *p, void *vprm)
 {
-    ProgVolumeDeformSphGpu *prm=(ProgVolumeDeformSphGpu *) vprm;
-    return prm->distance(p);
+    return reinterpret_cast<ProgVolumeDeformSphGpu *>(vprm)->distance(p);
 }
 
 // Run =====================================================================
-void ProgVolumeDeformSphGpu::run() {
-
-    saveDeformation=false;
-
+void ProgVolumeDeformSphGpu::run()
+{
     VI.read(fnVolI);
     VR.read(fnVolR);
-    sumVI = 0.0;
-    if (Rmax<0)
-        Rmax=XSIZE(VI())/2;
+    VO().initZeros(VR());
 
     VI().setXmippOrigin();
     VR().setXmippOrigin();
+    VO().setXmippOrigin();
+
+    if (Rmax<0)
+        Rmax=XSIZE(VI())/2;
 
     // Filter input and reference volumes according to the values of sigma
     FourierFilter filter;
@@ -201,16 +195,10 @@ void ProgVolumeDeformSphGpu::run() {
             sumVI += DIRECT_A3D_ELEM(auxI(),k,i,j);
     }
 
-    if (sigma.size() == 1 && sigma[0] == 0)
-    {
-        volumesI.push_back(auxI());
-        volumesR.push_back(auxR());
-    }
-    else
-    {
-        volumesI.push_back(auxI());
-        volumesR.push_back(auxR());
-        for (unsigned ids=0; ids<sigma.size(); ids++)
+    volumesI.push_back(auxI());
+    volumesR.push_back(auxR());
+    if (sigma.size() != 1 || sigma[0] != 0) {
+        for (unsigned ids = 0; ids < sigma.size(); ids++)
         {
             Image<double> auxI = VI;
             Image<double> auxR = VR;
@@ -236,17 +224,14 @@ void ProgVolumeDeformSphGpu::run() {
 
     Matrix1D<double> x;
     Matrix1D<double> steps;
-    vecSize = 0;
     numCoefficients(L1,L2,vecSize);
     size_t totalSize = 3*vecSize;
     fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
     clnm.initZeros(totalSize);
     x.initZeros(totalSize);
 
-    // GPU preparation
     volDefSphGpu.setupConstantParameters();
     Ncount = volumesR.size() * VR().getSize();
-    // GPU preparation end
 
     for (int h=0;h<=L2;h++)
     {
@@ -282,8 +267,8 @@ void ProgVolumeDeformSphGpu::run() {
         std::cout << "Press any key\n";
         char c; std::cin >> c;
 #endif
-
     }
+
     applyTransformation=true;
     Matrix1D<double> degrees;
     degrees.initZeros(3);
