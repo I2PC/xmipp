@@ -155,6 +155,16 @@ __device__ PrecisionType interpolateNoChecks(
         PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z);
 
+// For the current supported degrees L1, L2, the max is 56 coeficients
+// if there is added support for higher degrees of L1, L2 then the
+// max number of coeficient NEEDS to be recalculated and updated
+#ifndef MAX_COEF_COUNT
+#define MAX_COEF_COUNT 56
+#endif
+
+__constant__ PrecisionType3 clnmShared[MAX_COEF_COUNT];
+__constant__ int4 zshShared[MAX_COEF_COUNT];
+
 template<int _BLOCK_SIZE = BLOCK_SIZE, int _L1 = 5, int _L2 = 5>
 __global__ void computeDeform(
         PrecisionType Rmax2,
@@ -172,7 +182,7 @@ __global__ void computeDeform(
         ) 
 {
     extern __shared__ char sharedBuffer[];
-    unsigned sharedBufferOffset = 0;
+    //unsigned sharedBufferOffset = 0;
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -187,7 +197,7 @@ __global__ void computeDeform(
     int i = P2L_Y_IDX(imageMetaData, iPhys);
     int j = P2L_X_IDX(imageMetaData, jPhys);
 
-
+/*
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
 
@@ -210,7 +220,7 @@ __global__ void computeDeform(
     }
 
     __syncthreads();
-
+*/
     // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
     PrecisionType rr = SQRT(r2) * iRmax;

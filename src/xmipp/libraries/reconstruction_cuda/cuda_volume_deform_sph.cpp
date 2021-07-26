@@ -91,6 +91,7 @@ VolumeDeformSph::~VolumeDeformSph()
 
     cudaFreeHost(outputs);
     cudaFree(mClnm);
+    // zsh should be freed
 }
 
 static dim3 grid;
@@ -166,11 +167,17 @@ void VolumeDeformSph::setupOutputArray()
 
 void VolumeDeformSph::fillClnm()
 {
+    std::vector<PrecisionType3> tmp(56);
     for (unsigned i = 0; i < program->vL1.size(); ++i) {
-        mClnm[i].x = program->clnm[i];
-        mClnm[i].y = program->clnm[i + program->vL1.size()];
-        mClnm[i].z = program->clnm[i + program->vL1.size() * 2];
+        tmp[i].x = program->clnm[i];
+        tmp[i].y = program->clnm[i + program->vL1.size()];
+        tmp[i].z = program->clnm[i + program->vL1.size() * 2];
+        //mClnm[i].x = program->clnm[i];
+        //mClnm[i].y = program->clnm[i + program->vL1.size()];
+        //mClnm[i].z = program->clnm[i + program->vL1.size() * 2];
     }
+    if (cudaMemcpyToSymbol(clnmShared, tmp.data(), 56 * sizeof(PrecisionType3)) != cudaSuccess)
+        processCudaError();
 }
 
 void VolumeDeformSph::setupClnm()
@@ -266,7 +273,9 @@ void VolumeDeformSph::setupZSHparams()
         zshparamsVec[i].z = program->vM[i];
     }
 
-    if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
+    //if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
+    //    processCudaError();
+    if (cudaMemcpyToSymbol(zshShared, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4)) != cudaSuccess)
         processCudaError();
 }
 
@@ -308,7 +317,7 @@ void VolumeDeformSph::setupVolumes()
     }
 }
 
-void VolumeDeformSph::setupImageMetaData(const Image<double>& mda) 
+void VolumeDeformSph::setupImageMetaData(const Image<double>& mda)
 {
     imageMetaData.xShift = mda().xinit;
     imageMetaData.yShift = mda().yinit;
@@ -318,7 +327,7 @@ void VolumeDeformSph::setupImageMetaData(const Image<double>& mda)
     imageMetaData.zDim = mda().zdim;
 }
 
-void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outputImageData) 
+void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outputImageData)
 {
     auto& mda = inputImage();
     size_t size = (mda.xdim + 2) * (mda.ydim + 2) * (mda.zdim + 2);
@@ -326,7 +335,7 @@ void VolumeDeformSph::setupImage(Image<double>& inputImage, PrecisionType** outp
     makePadded(mda, *outputImageData, size);
 }
 
-void VolumeDeformSph::setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData) 
+void VolumeDeformSph::setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData)
 {
     size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(PrecisionType);
     if (cudaMalloc(outputImageData, size) != cudaSuccess)
