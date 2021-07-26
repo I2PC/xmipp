@@ -120,6 +120,25 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact, do
 	std::cout<< "Energy: " << energy << std::endl;
 }
 
+void centerFFTMagnitude(MultidimArray<double> &VolRad, MultidimArray< std::complex<double> > &VolFourierRad, MultidimArray<double> &VolFourierMagRad)
+{
+	FourierTransformer transformerRad;
+	transformerRad.completeFourierTransform(VolRad,VolFourierRad);
+	CenterFFT(VolFourierRad, true);
+	FFT_magnitude(VolFourierRad,VolFourierMagRad);
+    VolFourierMagRad.setXmippOrigin();
+}
+
+void radialAverage(MultidimArray<double> &VolFourierMagRad, MultidimArray< std::complex<double> > &VolFourierRad, MultidimArray<double> Volrad, MultidimArray<double> radial_mean)
+{
+	Matrix1D<int> center(2);
+	center.initZeros();
+    MultidimArray<int> radial_count;
+	radialAverageNonCubic(VolFourierMagRad, center, radial_mean, radial_count);
+	FOR_ALL_ELEMENTS_IN_ARRAY1D(VolFourierRad)
+		Volrad(i) = radial_mean(i);
+}
+
 void subtraction(MultidimArray<double> &V1, const MultidimArray<double> &V1Filtered, const MultidimArray<double> &V, const MultidimArray<double> &mask)
 {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1)
@@ -232,41 +251,29 @@ private:
 
 	// Compute |FT(radial averages)|
     	MultidimArray<double> V1rad;
-    	MultidimArray<double> Vrad;
     	V1rad = V1();
-    	Vrad = V();
     	V1rad.setXmippOrigin();
+    	MultidimArray< std::complex<double> > V1FourierRad;
+		MultidimArray<double> V1FourierMagRad;
+		centerFFTMagnitude(V1rad, V1FourierRad, V1FourierMagRad);
+
+    	MultidimArray<double> Vrad;
+    	Vrad = V();
     	Vrad.setXmippOrigin();
-    	FourierTransformer transformerRad;
-	MultidimArray< std::complex<double> > V1FourierRad;
-	MultidimArray< std::complex<double> > VFourierRad;
-	MultidimArray<double> V1FourierMagRad;
-	MultidimArray<double> VFourierMagRad;
-	MultidimArray<double> radQuotient;
-	transformerRad.completeFourierTransform(V1rad,V1FourierRad);
-	CenterFFT(V1FourierRad, true);
-	FFT_magnitude(V1FourierRad,V1FourierMagRad);
-	transformerRad.completeFourierTransform(Vrad,VFourierRad);
-	CenterFFT(VFourierRad, true);
-	FFT_magnitude(VFourierRad,VFourierMagRad);
+		MultidimArray< std::complex<double> > VFourierRad;
+		MultidimArray<double> VFourierMagRad;
+		centerFFTMagnitude(Vrad, VFourierRad, VFourierMagRad);
 
     	// Compute V1radAvg and VradAvg profile (1D)
-        V1FourierMagRad.setXmippOrigin();
         MultidimArray<double> radial_meanV1;
-        MultidimArray<int> radial_count;
-        Matrix1D<int> center(2);
-        center.initZeros();
-        radialAverageNonCubic(V1FourierMagRad, center, radial_meanV1, radial_count);
-        FOR_ALL_ELEMENTS_IN_ARRAY1D(V1FourierRad)
-            V1rad(i) = radial_meanV1(i);
-	VFourierMagRad.setXmippOrigin();
-        center.initZeros();
+        radialAverage(V1FourierMagRad, V1FourierRad, V1rad, radial_meanV1);
+		std::cout<< "---5 " << std::endl;
         MultidimArray<double> radial_meanV;
-        radialAverageNonCubic(VFourierMagRad, center, radial_meanV, radial_count);
-        FOR_ALL_ELEMENTS_IN_ARRAY1D(VFourierMagRad)
-		Vrad(i) = radial_meanV(i);
+        radialAverage(VFourierMagRad, VFourierRad, Vrad, radial_meanV);
+		std::cout<< "---7 " << std::endl;
 
 	// Compute adjustment quotient for POCS amplitude
+	MultidimArray<double> radQuotient;
 	radQuotient = radial_meanV1/radial_meanV;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 		radQuotient(i) = std::min(radQuotient(i), 1.0);
