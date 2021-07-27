@@ -106,11 +106,11 @@ void POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
       std::abs(DIRECT_MULTIDIM_ELEM(FI, n)) * DIRECT_MULTIDIM_ELEM(phase, n);
 }
 
-void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact,
-                   double energy) {
+void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact) {
   Vdiff = Vdiff - Vact;
+  double energy = 0;
   FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
-  energy += DIRECT_MULTIDIM_ELEM(Vdiff, n) * DIRECT_MULTIDIM_ELEM(Vdiff, n);
+    energy += DIRECT_MULTIDIM_ELEM(Vdiff, n) * DIRECT_MULTIDIM_ELEM(Vdiff, n);
   energy = sqrt(energy / MULTIDIM_SIZE(Vdiff));
   std::cout << "Energy: " << energy << std::endl;
 }
@@ -372,9 +372,8 @@ private:
     transformer2.FourierTransform(V(), V2FourierPhase, true);
     extractPhase(V2FourierPhase);
 
-    double energy, std2;
+    double std2;
     if (computeE) {
-      energy = 0;
       Vdiff = V;
     }
 
@@ -391,40 +390,41 @@ private:
         CenterFFT(V2Fourier, true);
         POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x,
                                    V1size_y, V1size_z);
-      } else
+      } else {
         transformer2.FourierTransform(V(), V2Fourier, false);
+      }
       POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
       transformer2.inverseFourierTransform();
       if (computeE) {
-        computeEnergy(Vdiff(), V(), energy);
+        computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
       POCSMinMax(V(), v1min, v1max);
       if (computeE) {
-        computeEnergy(Vdiff(), V(), energy);
+        computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
       POCSmask(mask, V());
       if (computeE) {
-        computeEnergy(Vdiff(), V(), energy);
+        computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
       transformer2.FourierTransform();
       POCSFourierPhase(V2FourierPhase, V2Fourier);
       transformer2.inverseFourierTransform();
       if (computeE) {
-        computeEnergy(Vdiff(), V(), energy);
+        computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
       POCSnonnegative(V());
       if (computeE) {
-        computeEnergy(Vdiff(), V(), energy);
+        computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
       std2 = V().computeStddev();
       V() *= std1 / std2;
       if (computeE) {
-        computeEnergy(Vdiff(), V(), energy);
+        computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
 
@@ -433,7 +433,7 @@ private:
         Filter2.do_generate_3dmask = true;
         Filter2.applyMaskSpace(V());
         if (computeE) {
-          computeEnergy(Vdiff(), V(), energy);
+          computeEnergy(Vdiff(), V());
           Vdiff = V;
         }
       }
