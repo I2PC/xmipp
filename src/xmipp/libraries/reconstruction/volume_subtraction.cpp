@@ -158,7 +158,7 @@ private:
   bool radavg;
   bool saveVol1Filt;
   bool saveVol2Adj;
-  int iter;
+  size_t iter;
   int sigma;
   double cutFreq;
   double lambda;
@@ -412,35 +412,34 @@ private:
       }
   }
 
+  MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &volume) {
+    MultidimArray<std::complex<double>> phase;
+    transformer2.FourierTransform(volume, phase, true);
+    extractPhase(phase);
+    return phase;
+  }
+
   void run() {
     show();
-    Image<double> V, Vdiff, V1;
-    V1.read(fnVol1);
 
+    Image<double> V1;
+    V1.read(fnVol1);
     createMask(V1);
     POCSmask(mask, V1());
     POCSnonnegative(V1());
     V1().computeDoubleMinMax(v1min, v1max);
 
-    createFilter();
-
+    Image<double> V;
     V.read(fnVol2);
     POCSmask(mask, V());
     POCSnonnegative(V());
 
-    // Compute what need for the loop of POCS
-
     double std1 = V1().computeStddev();
-    MultidimArray<std::complex<double>> V2FourierPhase;
-    transformer2.FourierTransform(V(), V2FourierPhase, true);
-    extractPhase(V2FourierPhase);
-
-    if (computeE) {
-      Vdiff = V;
-    }
-
+    Image<double> Vdiff = V;
+    auto V2FourierPhase = computePhase(V());
     auto radQuotient = computeRadQuotient(V1(), V());
     auto V1FourierMag = computeMagnitude(V1());
+    createFilter();
     
     for (size_t n = 0; n < iter; ++n) {
       computeE 
