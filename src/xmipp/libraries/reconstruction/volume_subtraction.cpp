@@ -110,7 +110,7 @@ void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact) {
   Vdiff = Vdiff - Vact;
   double energy = 0;
   FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
-    energy += DIRECT_MULTIDIM_ELEM(Vdiff, n) * DIRECT_MULTIDIM_ELEM(Vdiff, n);
+  energy += DIRECT_MULTIDIM_ELEM(Vdiff, n) * DIRECT_MULTIDIM_ELEM(Vdiff, n);
   energy = sqrt(energy / MULTIDIM_SIZE(Vdiff));
   std::cout << "Energy: " << energy << std::endl;
 }
@@ -320,7 +320,8 @@ private:
     Filter.applyMaskSpace(mask);
   }
 
-  void writeResults(Image<double> &V, Image<double> &V1, MultidimArray<double> &mask) {
+  void writeResults(Image<double> &V, Image<double> &V1,
+                    MultidimArray<double> &mask) {
     if (performSubtraction) {
       Image<double> V1Filtered;
       V1.read(fnVol1);
@@ -349,70 +350,72 @@ private:
     }
   }
 
-  template<bool computeE>
-  void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff, Image<double> &V1,
-    MultidimArray<double> &radQuotient, MultidimArray<double> &V1FourierMag,
-    double std1, const MultidimArray<std::complex<double>> &V2FourierPhase) {
+  template <bool computeE>
+  void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
+                    Image<double> &V1, MultidimArray<double> &radQuotient,
+                    MultidimArray<double> &V1FourierMag, double std1,
+                    const MultidimArray<std::complex<double>> &V2FourierPhase) {
     if (computeE)
-        std::cout << "---Iter " << n << std::endl;
-      if (radavg) {
-        auto V1size_x = (int)XSIZE(V1());
-        auto V1size_y = (int)YSIZE(V1());
-        auto V1size_z = (int)ZSIZE(V1());
-        transformer2.completeFourierTransform(V(), V2Fourier);
-        CenterFFT(V2Fourier, true);
-        POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x,
-                                   V1size_y, V1size_z);
-      } else {
-        transformer2.FourierTransform(V(), V2Fourier, false);
-      }
-      POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
-      transformer2.inverseFourierTransform();
-      if (computeE) {
-        computeEnergy(Vdiff(), V());
-        Vdiff = V;
-      }
-      POCSMinMax(V(), v1min, v1max);
-      if (computeE) {
-        computeEnergy(Vdiff(), V());
-        Vdiff = V;
-      }
-      POCSmask(mask, V());
-      if (computeE) {
-        computeEnergy(Vdiff(), V());
-        Vdiff = V;
-      }
-      transformer2.FourierTransform();
-      POCSFourierPhase(V2FourierPhase, V2Fourier);
-      transformer2.inverseFourierTransform();
-      if (computeE) {
-        computeEnergy(Vdiff(), V());
-        Vdiff = V;
-      }
-      POCSnonnegative(V());
-      if (computeE) {
-        computeEnergy(Vdiff(), V());
-        Vdiff = V;
-      }
-      double std2 = V().computeStddev();
-      V() *= std1 / std2;
-      if (computeE) {
-        computeEnergy(Vdiff(), V());
-        Vdiff = V;
-      }
+      std::cout << "---Iter " << n << std::endl;
+    if (radavg) {
+      auto V1size_x = (int)XSIZE(V1());
+      auto V1size_y = (int)YSIZE(V1());
+      auto V1size_z = (int)ZSIZE(V1());
+      transformer2.completeFourierTransform(V(), V2Fourier);
+      CenterFFT(V2Fourier, true);
+      POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x,
+                                 V1size_y, V1size_z);
+    } else {
+      transformer2.FourierTransform(V(), V2Fourier, false);
+    }
+    POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
+    transformer2.inverseFourierTransform();
+    if (computeE) {
+      computeEnergy(Vdiff(), V());
+      Vdiff = V;
+    }
+    POCSMinMax(V(), v1min, v1max);
+    if (computeE) {
+      computeEnergy(Vdiff(), V());
+      Vdiff = V;
+    }
+    POCSmask(mask, V());
+    if (computeE) {
+      computeEnergy(Vdiff(), V());
+      Vdiff = V;
+    }
+    transformer2.FourierTransform();
+    POCSFourierPhase(V2FourierPhase, V2Fourier);
+    transformer2.inverseFourierTransform();
+    if (computeE) {
+      computeEnergy(Vdiff(), V());
+      Vdiff = V;
+    }
+    POCSnonnegative(V());
+    if (computeE) {
+      computeEnergy(Vdiff(), V());
+      Vdiff = V;
+    }
+    double std2 = V().computeStddev();
+    V() *= std1 / std2;
+    if (computeE) {
+      computeEnergy(Vdiff(), V());
+      Vdiff = V;
+    }
 
-      if (cutFreq != 0) {
-        Filter2.generateMask(V());
-        Filter2.do_generate_3dmask = true;
-        Filter2.applyMaskSpace(V());
-        if (computeE) {
-          computeEnergy(Vdiff(), V());
-          Vdiff = V;
-        }
+    if (cutFreq != 0) {
+      Filter2.generateMask(V());
+      Filter2.do_generate_3dmask = true;
+      Filter2.applyMaskSpace(V());
+      if (computeE) {
+        computeEnergy(Vdiff(), V());
+        Vdiff = V;
       }
+    }
   }
 
-  MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &volume) {
+  MultidimArray<std::complex<double>>
+  computePhase(MultidimArray<double> &volume) {
     MultidimArray<std::complex<double>> phase;
     transformer2.FourierTransform(volume, phase, true);
     extractPhase(phase);
@@ -440,11 +443,12 @@ private:
     auto radQuotient = computeRadQuotient(V1(), V());
     auto V1FourierMag = computeMagnitude(V1());
     createFilter();
-    
+
     for (size_t n = 0; n < iter; ++n) {
-      computeE 
-        ? runIteration<true>(n, V, Vdiff, V1, radQuotient, V1FourierMag, std1, V2FourierPhase) 
-        : runIteration<false>(n, V, Vdiff, V1, radQuotient, V1FourierMag, std1, V2FourierPhase);
+      computeE ? runIteration<true>(n, V, Vdiff, V1, radQuotient, V1FourierMag,
+                                    std1, V2FourierPhase)
+               : runIteration<false>(n, V, Vdiff, V1, radQuotient, V1FourierMag,
+                                     std1, V2FourierPhase);
     }
 
     writeResults(V1, V, mask);
