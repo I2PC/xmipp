@@ -69,6 +69,7 @@ class VolumeDeformSph
 {
 public:
     void initVolumes();
+    void prepareVI();
     void prepareInputVolume(const MultidimArray<double>& vol);
     void prepareReferenceVolume(const MultidimArray<double>& vol);
     void waitToFinishPreparations();
@@ -120,6 +121,7 @@ private:
     // Inside pointers point to the GPU memory
 
     IROimages images;
+    double* dTmpVI;
 
     DeformImages deformImages;
 
@@ -131,9 +133,7 @@ private:
     Volumes<PrecisionType> volumes;
     Volumes<double> prepVolumes;
     int posR;
-    void* streamR;
     int posI;
-    void* streamI;
 
     KernelOutputs* outputs;
 
@@ -144,6 +144,8 @@ private:
     void setupImageMetaData(const Image<double>& inputImage);
 
     void setupVolumes();
+    template<bool PADDING = false>
+    void prepareVolume(const double* mdaData, double* prepVol, PrecisionType* volume);
 
     void setupZSHparams();
 

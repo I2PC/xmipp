@@ -173,6 +173,7 @@ void ProgVolumeDeformSphGpu::run()
         Rmax=XSIZE(VI())/2;
 
     volDefSphGpu.initVolumes();
+    volDefSphGpu.prepareVI();
 
     // Filter input and reference volumes according to the values of sigma
     FourierFilter filter;
