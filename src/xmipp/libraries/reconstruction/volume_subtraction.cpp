@@ -164,6 +164,10 @@ private:
   double lambda;
   FourierTransformer transformer2;
   FourierFilter Filter2;
+  MultidimArray<std::complex<double>> V2Fourier;
+  MultidimArray<double> mask;
+  double v1min;
+  double v1max;
 
   MultidimArray<double> computeRadialMean(MultidimArray<double> volume) {
     volume.setXmippOrigin();
@@ -295,19 +299,17 @@ private:
     return magnitude;
   }
 
-  MultidimArray<double> computeMask(const Image<double> &volume) {
-    MultidimArray<double> result;
+  void createMask(const Image<double> &volume) {
     if (fnMask1 != "" && fnMask2 != "") {
       Image<double> mask1;
       Image<double> mask2;
       mask1.read(fnMask1);
       mask2.read(fnMask2);
-      result = mask1() * mask2();
+      mask = mask1() * mask2();
     } else {
-      result.resizeNoCopy(volume());
-      result.initConstant(1.0);
+      mask.resizeNoCopy(volume());
+      mask.initConstant(1.0);
     }
-    return result;
   }
 
   void filterMask(MultidimArray<double> &mask) {
@@ -347,40 +349,11 @@ private:
     }
   }
 
-  void run() {
-    show();
-    Image<double> V, Vdiff, V1;
-    V1.read(fnVol1);
-
-    auto mask = computeMask(V1);
-    POCSmask(mask, V1());
-    POCSnonnegative(V1());
-    double v1min, v1max;
-    V1().computeDoubleMinMax(v1min, v1max);
-
-    createFilter();
-
-    V.read(fnVol2);
-    POCSmask(mask, V());
-    POCSnonnegative(V());
-
-    // Compute what need for the loop of POCS
-    auto V1FourierMag = computeMagnitude(V1());
-
-    double std1 = V1().computeStddev();
-    MultidimArray<std::complex<double>> V2FourierPhase;
-    transformer2.FourierTransform(V(), V2FourierPhase, true);
-    extractPhase(V2FourierPhase);
-
-    double std2;
-    if (computeE) {
-      Vdiff = V;
-    }
-
-    auto radQuotient = computeRadQuotient(V1(), V());
-    MultidimArray<std::complex<double>> V2Fourier;
-    for (int n = 0; n < iter; ++n) {
-      if (computeE)
+  template<bool computeE>
+  void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff, Image<double> &V1,
+    MultidimArray<double> &radQuotient, MultidimArray<double> &V1FourierMag,
+    double std1, const MultidimArray<std::complex<double>> &V2FourierPhase) {
+    if (computeE)
         std::cout << "---Iter " << n << std::endl;
       if (radavg) {
         auto V1size_x = (int)XSIZE(V1());
@@ -421,7 +394,7 @@ private:
         computeEnergy(Vdiff(), V());
         Vdiff = V;
       }
-      std2 = V().computeStddev();
+      double std2 = V().computeStddev();
       V() *= std1 / std2;
       if (computeE) {
         computeEnergy(Vdiff(), V());
@@ -437,6 +410,42 @@ private:
           Vdiff = V;
         }
       }
+  }
+
+  void run() {
+    show();
+    Image<double> V, Vdiff, V1;
+    V1.read(fnVol1);
+
+    createMask(V1);
+    POCSmask(mask, V1());
+    POCSnonnegative(V1());
+    V1().computeDoubleMinMax(v1min, v1max);
+
+    createFilter();
+
+    V.read(fnVol2);
+    POCSmask(mask, V());
+    POCSnonnegative(V());
+
+    // Compute what need for the loop of POCS
+
+    double std1 = V1().computeStddev();
+    MultidimArray<std::complex<double>> V2FourierPhase;
+    transformer2.FourierTransform(V(), V2FourierPhase, true);
+    extractPhase(V2FourierPhase);
+
+    if (computeE) {
+      Vdiff = V;
+    }
+
+    auto radQuotient = computeRadQuotient(V1(), V());
+    auto V1FourierMag = computeMagnitude(V1());
+    
+    for (size_t n = 0; n < iter; ++n) {
+      computeE 
+        ? runIteration<true>(n, V, Vdiff, V1, radQuotient, V1FourierMag, std1, V2FourierPhase) 
+        : runIteration<false>(n, V, Vdiff, V1, radQuotient, V1FourierMag, std1, V2FourierPhase);
     }
 
     writeResults(V1, V, mask);
