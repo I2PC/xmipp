@@ -171,7 +171,7 @@ __global__ void computeDeform(
         bool applyTransformation,
         bool saveDeformation,
         PrecisionType* outArrayGlobal
-        ) 
+        )
 {
     extern __shared__ char sharedBuffer[];
     unsigned sharedBufferOffset = 0;
@@ -260,10 +260,10 @@ __global__ void computeDeform(
 
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.count; idv++) {
-            voxelR = ELEM_3D_PADDED(volumes.R + idv * volumes.volumeSize,
+            voxelR = ELEM_3D(volumes.R + idv * volumes.volumeSize,
                     imageMetaData, kPhys, iPhys, jPhys);
             if (!IS_OUTSIDE_PADDED(imageMetaData, kDef, iDef, jDef)) {
-                voxelI = interpolateNoChecks(volumes.I + idv * volumes.volumeSize,
+                voxelI = interpolateNoChecks(volumes.I + idv * volumes.volumePaddedSize,
                         imageMetaData, jDef, iDef, kDef);
             } else {
                 voxelI = 0.0;
@@ -626,14 +626,14 @@ __global__ void prepareVolumes(PrecisionType* output, double* input, ImageMetaDa
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    int z = blockIdx.z * blockDim.z + threadIdx.x;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
 
     // TODO maybe more work per thread would be better
-    if (!IS_OUTSIDE_PHYS(metaData, x, y, z)) {
+    if (!IS_OUTSIDE_PHYS(metaData, z, y, x)) {
         if (PADDING) {
-            ELEM_3D_PADDED(output, metaData, x, y, z) = ELEM_3D(input, metaData, x, y, z);
+            ELEM_3D_PADDED(output, metaData, z, y, x) = ELEM_3D(input, metaData, z, y, x);
         } else {
-            ELEM_3D(output, metaData, x, y, z) = ELEM_3D(input, metaData, x, y, z);
+            ELEM_3D(output, metaData, z, y, x) = ELEM_3D(input, metaData, z, y, x);
         }
     }
 }

@@ -182,17 +182,21 @@ void VolumeDeformSph::initVolumes()
     streamR = malloc(volumes.count * sizeof(cudaStream_t));
     streamI = malloc(volumes.count * sizeof(cudaStream_t));
     if (streamR == nullptr || streamI == nullptr)
-        throw new std::runtime_error("Malloc failed!");
+        throw new std::runtime_error("Malloc failed!");// just for debug
 
     if (cudaMalloc(&prepVolumes.I, prepVolumes.count * prepVolumes.volumeSize * sizeof(double)) != cudaSuccess)
         processCudaError();
+    cudaMemset(prepVolumes.I, 0, prepVolumes.count * prepVolumes.volumeSize * sizeof(double));//not needed, proly
     if (cudaMalloc(&prepVolumes.R, prepVolumes.count * prepVolumes.volumeSize * sizeof(double)) != cudaSuccess)
         processCudaError();
+    cudaMemset(prepVolumes.R, 0, prepVolumes.count * prepVolumes.volumeSize * sizeof(double));//not needed, proly
 
     if (cudaMalloc(&volumes.I, volumes.count * volumes.volumePaddedSize * sizeof(PrecisionType)) != cudaSuccess)
         processCudaError();
+    cudaMemset(volumes.I, 0, volumes.count * volumes.volumePaddedSize * sizeof(PrecisionType));
     if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
         processCudaError();
+    cudaMemset(prepVolumes.R, 0, volumes.count * volumes.volumeSize * sizeof(PrecisionType));
 }
 
 void VolumeDeformSph::prepareInputVolume(const MultidimArray<double>& vol)
@@ -235,9 +239,9 @@ void VolumeDeformSph::cleanupPreparations()
     if (cudaFree(prepVolumes.R) != cudaSuccess)
         processCudaError();
     for (unsigned i = 0; i < prepVolumes.count; i++) {
-        if (cudaStreamDestroy(*reinterpret_cast<cudaStream_t*>(streamR)) != cudaSuccess)
+        if (cudaStreamDestroy(*(reinterpret_cast<cudaStream_t*>(streamR) + i)) != cudaSuccess)
             processCudaError();
-        if (cudaStreamDestroy(*reinterpret_cast<cudaStream_t*>(streamI)) != cudaSuccess)
+        if (cudaStreamDestroy(*(reinterpret_cast<cudaStream_t*>(streamI) + i)) != cudaSuccess)
             processCudaError();
     }
     // Make it more c++
