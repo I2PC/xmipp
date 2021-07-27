@@ -54,12 +54,14 @@ struct ImageMetaData
     int padding;
 }
 
+template<typename T>
 struct Volumes 
 {
-    PrecisionType* I;
-    PrecisionType* R;
+    T* I;
+    T* R;
     unsigned count;
     unsigned volumeSize;
+    unsigned volumePaddedSize;
 };
 
 struct IROimages 
@@ -164,7 +166,7 @@ __global__ void computeDeform(
         const PrecisionType3* clnm,
         unsigned steps,
         ImageMetaData imageMetaData,
-        Volumes volumes,
+        Volumes<PrecisionType> volumes,
         DeformImages deformImages,
         bool applyTransformation,
         bool saveDeformation,
@@ -618,5 +620,22 @@ __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n
     return R * Y;
 }
 
+// Cast input volume to the result type. Depending on template parameter may add padding.
+template<bool PADDING = false>
+__global__ void prepareVolumes(PrecisionType* output, double* input, ImageMetaData metaData)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.x;
+
+    // TODO maybe more work per thread would be better
+    if (!IS_OUTSIDE_PHYS(metaData, x, y, z)) {
+        if (PADDING) {
+            ELEM_3D_PADDED(output, metaData, x, y, z) = ELEM_3D(input, metaData, x, y, z);
+        } else {
+            ELEM_3D(output, metaData, x, y, z) = ELEM_3D(input, metaData, x, y, z);
+        }
+    }
+}
 
 #endif //CUDA_VOLUME_DEFORM_SPH_CU

@@ -105,12 +105,22 @@ void VolumeDeformSph::setupConstantParameters()
     this->Rmax2 = program->Rmax * program->Rmax;
     this->iRmax = 1 / program->Rmax;
     setupImage(program->VI, &images.VI);
-    setupImageMetaData(program->VR);
+    //setupImageMetaData(program->VR);
     setupZSHparams();
-    setupVolumes();
+    //setupVolumes();
     setupClnm();
 
-    // kernel dimension
+    //setupGpuBlocks();
+
+    setupOutputArray();
+    setupOutputs();
+
+    // Dynamic shared memory
+    constantSharedMemSize = 0;
+}
+
+void VolumeDeformSph::setupGpuBlocks()
+{
     block.x = BLOCK_X_DIM;
     block.y = BLOCK_Y_DIM;
     block.z = BLOCK_Z_DIM;
@@ -119,11 +129,6 @@ void VolumeDeformSph::setupConstantParameters()
     grid.z = ((imageMetaData.zDim + block.z - 1) / block.z);
 
     totalGridSize = grid.x * grid.y * grid.z * (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM / 32);
-    setupOutputArray();
-    setupOutputs();
-
-    // Dynamic shared memory
-    constantSharedMemSize = 0;
 }
 
 void VolumeDeformSph::setupChangingParameters() 
@@ -152,13 +157,100 @@ void VolumeDeformSph::setupChangingParameters()
     }
 }
 
-void VolumeDeformSph::setupOutputs() 
+// maybe this requires too much memory... 
+void VolumeDeformSph::initVolumes()
+{
+    setupImageMetaData(program->VR);
+    setupGpuBlocks();
+
+    volumes.count = 1;
+    if (program->sigma.size() != 1 || program->sigma[0] != 0) {
+        volumes.count += program->sigma.size();
+    }
+    volumes.volumeSize = program->VR().xdim * program->VR().ydim * program->VR().zdim;
+    //volumes.volumeSize = (program->VR().xdim + 2) *
+    //    (program->VR().ydim + 2) * (program->VR().zdim + 2);
+    volumes.volumePaddedSize = (program->VR().xdim + 2) *
+        (program->VR().ydim + 2) * (program->VR().zdim + 2);
+
+    prepVolumes.count = volumes.count;
+    prepVolumes.volumeSize = volumes.volumeSize;
+    prepVolumes.volumePaddedSize = volumes.volumePaddedSize;
+
+    // Make it more c++
+    streamR = malloc(volumes.count * sizeof(cudaStream_t));
+    streamI = malloc(volumes.count * sizeof(cudaStream_t));
+    if (streamR == nullptr || streamI == nullptr)
+        throw new std::runtime_error("Malloc failed!");
+
+    if (cudaMalloc(&prepVolumes.I, prepVolumes.count * prepVolumes.volumeSize * sizeof(double)) != cudaSuccess)
+        processCudaError();
+    if (cudaMalloc(&prepVolumes.R, prepVolumes.count * prepVolumes.volumeSize * sizeof(double)) != cudaSuccess)
+        processCudaError();
+
+    if (cudaMalloc(&volumes.I, volumes.count * volumes.volumePaddedSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
+    if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
+}
+
+void VolumeDeformSph::prepareInputVolume(const MultidimArray<double>& vol)
+{
+    cudaStream_t* cuStream = reinterpret_cast<cudaStream_t*>(streamI) + posI;
+    if (cudaStreamCreate(cuStream) != cudaSuccess)
+        processCudaError();
+    if (cudaMemcpyAsync(prepVolumes.I + posI * prepVolumes.volumeSize, vol.data, prepVolumes.volumeSize * sizeof(double),
+            cudaMemcpyHostToDevice, *cuStream) != cudaSuccess)
+        processCudaError();
+    prepareVolumes<true><<<grid, block, 0, *cuStream>>>
+        (volumes.I + posI * volumes.volumePaddedSize,
+         prepVolumes.I + posI * prepVolumes.volumeSize, imageMetaData);
+    posI++;
+}
+
+void VolumeDeformSph::prepareReferenceVolume(const MultidimArray<double>& vol)
+{
+    cudaStream_t* cuStream = reinterpret_cast<cudaStream_t*>(streamR) + posR;
+    if (cudaStreamCreate(cuStream) != cudaSuccess)
+        processCudaError();
+    if (cudaMemcpyAsync(prepVolumes.R + posR * prepVolumes.volumeSize, vol.data, prepVolumes.volumeSize * sizeof(double),
+            cudaMemcpyHostToDevice, *cuStream) != cudaSuccess)
+        processCudaError();
+    prepareVolumes<false><<<grid, block, 0, *cuStream>>>
+        (volumes.R + posR * volumes.volumeSize,
+         prepVolumes.R + posR * prepVolumes.volumeSize, imageMetaData);
+    posR++;
+}
+
+void VolumeDeformSph::waitToFinishPreparations()
+{
+    cudaDeviceSynchronize();
+}
+
+void VolumeDeformSph::cleanupPreparations()
+{
+    if (cudaFree(prepVolumes.I) != cudaSuccess)
+        processCudaError();
+    if (cudaFree(prepVolumes.R) != cudaSuccess)
+        processCudaError();
+    for (unsigned i = 0; i < prepVolumes.count; i++) {
+        if (cudaStreamDestroy(*reinterpret_cast<cudaStream_t*>(streamR)) != cudaSuccess)
+            processCudaError();
+        if (cudaStreamDestroy(*reinterpret_cast<cudaStream_t*>(streamI)) != cudaSuccess)
+            processCudaError();
+    }
+    // Make it more c++
+    free(streamR);
+    free(streamI);
+}
+
+void VolumeDeformSph::setupOutputs()
 {
     if (cudaMallocHost(&outputs, sizeof(KernelOutputs)) != cudaSuccess)
         processCudaError();
 }
 
-void VolumeDeformSph::setupOutputArray() 
+void VolumeDeformSph::setupOutputArray()
 {
     if (cudaMalloc(&reductionArray, 3 * totalGridSize * sizeof(PrecisionType)) != cudaSuccess)
         processCudaError();
@@ -178,7 +270,7 @@ void VolumeDeformSph::setupClnm()
     cudaMallocManaged(&mClnm, program->vL1.size() * sizeof(PrecisionType3));
 }
 
-KernelOutputs VolumeDeformSph::getOutputs() 
+KernelOutputs VolumeDeformSph::getOutputs()
 {
     return *outputs;
 }
@@ -289,14 +381,14 @@ void makePadded(const MultidimArray<double>& orig, void* dest, size_t size)
 //FIXME VR should not be padded (it is not necessary)
 void VolumeDeformSph::setupVolumes()
 {
-    volumes.count = program->volumesR.size();
-    volumes.volumeSize = (program->VR().xdim + 2) *
-        (program->VR().ydim + 2) * (program->VR().zdim + 2);
+    //volumes.count = program->volumesR.size();
+    //volumes.volumeSize = (program->VR().xdim + 2) *
+    //    (program->VR().ydim + 2) * (program->VR().zdim + 2);
 
-    if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
-        processCudaError();
-    if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
-        processCudaError();
+    //if (cudaMalloc(&volumes.I, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+    //    processCudaError();
+    //if (cudaMalloc(&volumes.R, volumes.count * volumes.volumeSize * sizeof(PrecisionType)) != cudaSuccess)
+    //    processCudaError();
 
     //FIXME should be working now, but can be faster -> transfer non-padded data, malloc space for padded data,
     //make kernel that places the data correctly in the padded memory (plus it will be done in async!)

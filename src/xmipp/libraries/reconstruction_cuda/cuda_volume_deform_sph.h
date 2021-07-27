@@ -34,12 +34,14 @@ struct ImageMetaData
     int padding = 0;
 };
 
+template<typename T>
 struct Volumes 
 {
-    PrecisionType* I = nullptr;
-    PrecisionType* R = nullptr;
+    T* I = nullptr;
+    T* R = nullptr;
     unsigned count = 0;
     unsigned volumeSize = 0;
+    unsigned volumePaddedSize = 0;
 };
 
 struct IROimages 
@@ -66,6 +68,12 @@ struct KernelOutputs
 class VolumeDeformSph
 {
 public:
+    void initVolumes();
+    void prepareInputVolume(const MultidimArray<double>& vol);
+    void prepareReferenceVolume(const MultidimArray<double>& vol);
+    void waitToFinishPreparations();
+    void cleanupPreparations();
+
     void setupConstantParameters();
     void setupChangingParameters();
 
@@ -120,7 +128,12 @@ private:
 
     ImageMetaData imageMetaData;
 
-    Volumes volumes;
+    Volumes<PrecisionType> volumes;
+    Volumes<double> prepVolumes;
+    int posR;
+    void* streamR;
+    int posI;
+    void* streamI;
 
     KernelOutputs* outputs;
 
@@ -139,6 +152,8 @@ private:
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
     void setupOutputArray();
     void setupOutputs();
+
+    void setupGpuBlocks();
 };
 
 #endif// VOLUME_DEFORM_SPH_H

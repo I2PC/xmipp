@@ -172,6 +172,8 @@ void ProgVolumeDeformSphGpu::run()
     if (Rmax<0)
         Rmax=XSIZE(VI())/2;
 
+    volDefSphGpu.initVolumes();
+
     // Filter input and reference volumes according to the values of sigma
     FourierFilter filter;
     filter.FilterShape = REALGAUSSIAN;
@@ -196,7 +198,9 @@ void ProgVolumeDeformSphGpu::run()
     }
 
     volumesI.push_back(auxI());
+    volDefSphGpu.prepareInputVolume(auxI());
     volumesR.push_back(auxR());
+    volDefSphGpu.prepareReferenceVolume(auxR());
     if (sigma.size() != 1 || sigma[0] != 0) {
         for (unsigned ids = 0; ids < sigma.size(); ids++)
         {
@@ -210,6 +214,7 @@ void ProgVolumeDeformSphGpu::run()
             bg_mask *= 0;
             normalize_Robust(auxI(), bg_mask, true);
             volumesI.push_back(auxI);
+            volDefSphGpu.prepareInputVolume(auxI());
             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxI())
             {
                 if (DIRECT_A3D_ELEM(auxI(),k,i,j) >= 0.0)
@@ -219,6 +224,7 @@ void ProgVolumeDeformSphGpu::run()
             bg_mask *= 0;
             normalize_Robust(auxR(), bg_mask, true);
             volumesR.push_back(auxR);
+            volDefSphGpu.prepareReferenceVolume(auxR());
         }
     }
 
@@ -232,6 +238,9 @@ void ProgVolumeDeformSphGpu::run()
 
     volDefSphGpu.setupConstantParameters();
     Ncount = volumesR.size() * VR().getSize();
+
+    volDefSphGpu.waitToFinishPreparations();
+    volDefSphGpu.cleanupPreparations();
 
     for (int h=0;h<=L2;h++)
     {
