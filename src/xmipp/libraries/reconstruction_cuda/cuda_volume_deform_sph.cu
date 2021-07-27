@@ -157,13 +157,21 @@ __device__ PrecisionType interpolateNoChecks(
         PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z);
 
+// For the current supported degrees L1, L2, the max is 56 coeficients
+// if there is added support for higher degrees of L1, L2 then the
+// max number of coeficient NEEDS to be recalculated and updated
+#ifndef MAX_COEF_COUNT
+#define MAX_COEF_COUNT 56
+#endif
+
+__constant__ PrecisionType3 clnmShared[MAX_COEF_COUNT];
+__constant__ int4 zshShared[MAX_COEF_COUNT];
+
 template<int _BLOCK_SIZE = BLOCK_SIZE, int _L1 = 5, int _L2 = 5>
 __global__ void computeDeform(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         IROimages images,
-        const int4* zshparams,
-        const PrecisionType3* clnm,
         unsigned steps,
         ImageMetaData imageMetaData,
         Volumes<PrecisionType> volumes,
@@ -174,7 +182,7 @@ __global__ void computeDeform(
         )
 {
     extern __shared__ char sharedBuffer[];
-    unsigned sharedBufferOffset = 0;
+    //unsigned sharedBufferOffset = 0;
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -188,30 +196,6 @@ __global__ void computeDeform(
     int k = P2L_Z_IDX(imageMetaData, kPhys);
     int i = P2L_Y_IDX(imageMetaData, iPhys);
     int j = P2L_X_IDX(imageMetaData, jPhys);
-
-
-    int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(int4) * steps;
-
-    PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType3) * steps;
-
-    // Load zsh, clnm parameters to the shared memory
-    if (steps <= _BLOCK_SIZE) {
-        if (tIdx < steps) {
-            zshShared[tIdx] = zshparams[tIdx];
-            clnmShared[tIdx] = clnm[tIdx];
-        }
-    } else {
-        if (tIdx == 0) {
-            for (unsigned idx = 0; idx < steps; idx++) {
-                zshShared[idx] = zshparams[idx];
-                clnmShared[idx] = clnm[idx];
-            }
-        }
-    }
-
-    __syncthreads();
 
     // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
@@ -289,7 +273,7 @@ __global__ void computeDeform(
 
     // Save values to the global memory for later
     if (isFirstThreadInWarp) {
-        unsigned warpsInBlock = _BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division? 
+        unsigned warpsInBlock = _BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division?
         unsigned warpInCurrentBlock = tIdx / 32;//FIXME division is slow, can it be done without division?
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned wIdx = bIdx * warpsInBlock + warpInCurrentBlock;
@@ -311,7 +295,7 @@ __global__ void computeDeform(
  */
 __device__ PrecisionType interpolateNoChecks(
         PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z) 
+        PrecisionType x, PrecisionType y, PrecisionType z)
 {
         int x0 = (int)CUDA_FLOOR(x);
         PrecisionType fx = x - x0;

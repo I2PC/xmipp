@@ -35,7 +35,7 @@ struct ImageMetaData
 };
 
 template<typename T>
-struct Volumes 
+struct Volumes
 {
     T* I = nullptr;
     T* R = nullptr;
@@ -44,21 +44,21 @@ struct Volumes
     unsigned volumePaddedSize = 0;
 };
 
-struct IROimages 
+struct IROimages
 {
     PrecisionType* VI;
     PrecisionType* VR;
     PrecisionType* VO;
 };
 
-struct DeformImages 
+struct DeformImages
 {
     PrecisionType* Gx;
     PrecisionType* Gy;
     PrecisionType* Gz;
 };
 
-struct KernelOutputs 
+struct KernelOutputs
 {
     PrecisionType diff2 = 0.0;
     PrecisionType sumVD = 0.0;
@@ -110,10 +110,6 @@ private:
 
     int steps;
 
-    PrecisionType3* dClnm = nullptr;
-    std::vector<PrecisionType3> clnmVec;
-    PrecisionType3* mClnm = nullptr;
-
     bool applyTransformation;
 
     bool saveDeformation;
@@ -124,9 +120,6 @@ private:
     double* dTmpVI;
 
     DeformImages deformImages;
-
-    int4* dZshParams;
-    std::vector<int4> zshparamsVec;
 
     ImageMetaData imageMetaData;
 
@@ -150,7 +143,6 @@ private:
     void setupZSHparams();
 
     void setupClnm();
-    void fillClnm();
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
     void setupOutputArray();
     void setupOutputs();

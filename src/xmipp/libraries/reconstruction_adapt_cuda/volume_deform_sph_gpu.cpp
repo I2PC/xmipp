@@ -329,6 +329,7 @@ void ProgVolumeDeformSphGpu::minimizepos(int L1, int l2, Matrix1D<double> &steps
     }
 }
 
+// For supported L1 and L2, the highest possible vecSize is 56 (when L1, L2 = 5)
 void ProgVolumeDeformSphGpu::numCoefficients(int l1, int l2, int &vecSize)
 {
     for (int h=0; h<=l2; h++)
