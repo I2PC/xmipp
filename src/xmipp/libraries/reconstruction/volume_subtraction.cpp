@@ -153,7 +153,7 @@ void subtraction(MultidimArray<double> &V1,
 class ProgVolumeSubtraction : public XmippProgram {
 private:
   FileName fnVol1, fnVol2, fnOut, fnMask1, fnMask2, fnVol1F, fnVol2A, fnMaskSub;
-  bool sub;
+  bool performSubtraction;
   bool computeE;
   bool radavg;
   bool saveVol1Filt;
@@ -245,7 +245,7 @@ private:
     fnOut = getParam("-o");
     if (fnOut.isEmpty())
       fnOut = "output_volume.mrc";
-    sub = checkParam("--sub");
+    performSubtraction = checkParam("--sub");
     iter = getIntParam("--iter");
     sigma = getIntParam("--sigma");
     fnMask1 = getParam("--mask1");
@@ -256,7 +256,11 @@ private:
     saveVol1Filt = checkParam("--saveV1");
     saveVol2Adj = checkParam("--saveV2");
     fnVol1F = getParam("--saveV1");
+    if (fnVol1F.isEmpty())
+      fnVol1F = "volume1_filtered.mrc";
     fnVol2A = getParam("--saveV2");
+    if (fnVol2A.isEmpty())
+      fnVol2A = "volume2_adjusted.mrc";
     radavg = checkParam("--radavg");
     computeE = checkParam("--computeEnergy");
   }
@@ -312,6 +316,35 @@ private:
     Filter.FilterBand = LOWPASS;
     Filter.w1 = sigma;
     Filter.applyMaskSpace(mask);
+  }
+
+  void writeResults(Image<double> &V, Image<double> &V1, MultidimArray<double> &mask) {
+    if (performSubtraction) {
+      Image<double> V1Filtered;
+      V1.read(fnVol1);
+      V1Filtered() = V1();
+      if (cutFreq != 0)
+        Filter2.applyMaskSpace(V1Filtered());
+
+      if (saveVol1Filt) {
+        V1Filtered.write(fnVol1F);
+      }
+      if (saveVol2Adj) {
+        V.write(fnVol2A);
+      }
+
+      if (!fnMaskSub.isEmpty()) {
+        Image<double> tmp(mask);
+        tmp.read(fnMaskSub);
+      } else {
+        filterMask(mask);
+      }
+
+      subtraction(V1(), V1Filtered(), V(), mask);
+      V1.write(fnOut);
+    } else {
+      V.write(fnOut);
+    }
   }
 
   void run() {
@@ -406,36 +439,6 @@ private:
       }
     }
 
-    Image<double> V1Filtered;
-    V1.read(fnVol1);
-    V1Filtered() = V1();
-    if (cutFreq != 0)
-      Filter2.applyMaskSpace(V1Filtered());
-
-    if (sub == true) {
-      if (saveVol1Filt) {
-        if (fnVol1F.isEmpty())
-          fnVol1F = "volume1_filtered.mrc";
-        V1Filtered.write(fnVol1F);
-      }
-      if (saveVol2Adj) {
-        if (fnVol2A.isEmpty())
-          fnVol2A = "volume2_adjusted.mrc";
-        V.write(fnVol2A);
-      }
-
-      if (!fnMaskSub.isEmpty()) {
-        Image<double> tmp(mask);
-        tmp.read(fnMaskSub);
-      } else {
-        filterMask(mask);
-      }
-
-      subtraction(V1(), V1Filtered(), V(), mask);
-      V1.write(fnOut);
-    }
-
-    else
-      V.write(fnOut);
+    writeResults(V1, V, mask);
   }
 };
