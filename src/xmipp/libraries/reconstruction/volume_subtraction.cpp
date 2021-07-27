@@ -220,188 +220,171 @@ private:
     	;
     }
 
-    void run()
-    {
-    	show();
-    	Image<double> V, Vdiff, V1;
-    	V1.read(fnVol1);
-    	MultidimArray<double> mask1;
-	Image<double> mask;
-    	if (fnMask1!="" && fnMask2!="")
-    	{
-		mask.read(fnMask1);
-    		mask1=mask();
-		mask.read(fnMask2);
-		mask()*=mask1;
-	}
-	else
-	{
-            mask().resizeNoCopy(V1());
-            mask().initConstant(1.0);
-	}
-    	mask1.clear();
-	POCSmask(mask(),V1());
-    	POCSnonnegative(V1());
-    	double v1min, v1max;
-	V1().computeDoubleMinMax(v1min, v1max);
+    void run() {
+      show();
+      Image<double> V, Vdiff, V1;
+      V1.read(fnVol1);
+      MultidimArray<double> mask1;
+      Image<double> mask;
+      if (fnMask1 != "" && fnMask2 != "") {
+        mask.read(fnMask1);
+        mask1 = mask();
+        mask.read(fnMask2);
+        mask() *= mask1;
+      } else {
+        mask().resizeNoCopy(V1());
+        mask().initConstant(1.0);
+      }
+      mask1.clear();
+      POCSmask(mask(), V1());
+      POCSnonnegative(V1());
+      double v1min, v1max;
+      V1().computeDoubleMinMax(v1min, v1max);
 
-	V.read(fnVol2);
-	POCSmask(mask(),V());
-    	POCSnonnegative(V());
+      V.read(fnVol2);
+      POCSmask(mask(), V());
+      POCSnonnegative(V());
 
-	// Compute |FT(radial averages)|
-    	MultidimArray<double> V1rad;
-    	V1rad = V1();
-    	V1rad.setXmippOrigin();
-    	MultidimArray< std::complex<double> > V1FourierRad;
-		MultidimArray<double> V1FourierMagRad;
-		centerFFTMagnitude(V1rad, V1FourierRad, V1FourierMagRad);
+      // Compute |FT(radial averages)|
+      MultidimArray<double> V1rad;
+      V1rad = V1();
+      V1rad.setXmippOrigin();
+      MultidimArray<std::complex<double>> V1FourierRad;
+      MultidimArray<double> V1FourierMagRad;
+      centerFFTMagnitude(V1rad, V1FourierRad, V1FourierMagRad);
 
-    	MultidimArray<double> Vrad;
-    	Vrad = V();
-    	Vrad.setXmippOrigin();
-		MultidimArray< std::complex<double> > VFourierRad;
-		MultidimArray<double> VFourierMagRad;
-		centerFFTMagnitude(Vrad, VFourierRad, VFourierMagRad);
+      MultidimArray<double> Vrad;
+      Vrad = V();
+      Vrad.setXmippOrigin();
+      MultidimArray<std::complex<double>> VFourierRad;
+      MultidimArray<double> VFourierMagRad;
+      centerFFTMagnitude(Vrad, VFourierRad, VFourierMagRad);
 
-    	// Compute V1radAvg and VradAvg profile (1D)
-        MultidimArray<double> radial_meanV1;
-        radialAverage(V1FourierMagRad, V1FourierRad, V1rad, radial_meanV1);
-        MultidimArray<double> radial_meanV;
-        radialAverage(VFourierMagRad, VFourierRad, Vrad, radial_meanV);
+      // Compute V1radAvg and VradAvg profile (1D)
+      MultidimArray<double> radial_meanV1;
+      radialAverage(V1FourierMagRad, V1FourierRad, V1rad, radial_meanV1);
+      MultidimArray<double> radial_meanV;
+      radialAverage(VFourierMagRad, VFourierRad, Vrad, radial_meanV);
 
-	// Compute adjustment quotient for POCS amplitude
-	MultidimArray<double> radQuotient;
-	radQuotient = radial_meanV1/radial_meanV;
-	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
-		radQuotient(i) = std::min(radQuotient(i), 1.0);
+      // Compute adjustment quotient for POCS amplitude
+      MultidimArray<double> radQuotient;
+      radQuotient = radial_meanV1 / radial_meanV;
+      FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
+      radQuotient(i) = std::min(radQuotient(i), 1.0);
 
-     	// Compute what need for the loop of POCS
-    	FourierTransformer transformer1; FourierTransformer transformer2;
-    	MultidimArray< std::complex<double> > V1Fourier, V2Fourier;
-    	MultidimArray<double> V1FourierMag;
-    	transformer1.FourierTransform(V1(),V1Fourier,false);
-    	FFT_magnitude(V1Fourier,V1FourierMag);
-	double std1 = V1().computeStddev();
-    	MultidimArray<std::complex<double> > V2FourierPhase;
-    	transformer2.FourierTransform(V(),V2FourierPhase,true);
-    	extractPhase(V2FourierPhase);
-	FourierFilter Filter2;
-	double energy, std2;
-	if (computeE)
-	{
-		energy = 0;
-		Vdiff = V;
-	}
+      // Compute what need for the loop of POCS
+      FourierTransformer transformer1;
+      FourierTransformer transformer2;
+      MultidimArray<std::complex<double>> V1Fourier, V2Fourier;
+      MultidimArray<double> V1FourierMag;
+      transformer1.FourierTransform(V1(), V1Fourier, false);
+      FFT_magnitude(V1Fourier, V1FourierMag);
+      double std1 = V1().computeStddev();
+      MultidimArray<std::complex<double>> V2FourierPhase;
+      transformer2.FourierTransform(V(), V2FourierPhase, true);
+      extractPhase(V2FourierPhase);
+      FourierFilter Filter2;
+      double energy, std2;
+      if (computeE) {
+        energy = 0;
+        Vdiff = V;
+      }
 
-	Filter2.FilterBand=LOWPASS;
-	Filter2.FilterShape=RAISED_COSINE;
-	Filter2.raised_w=0.02;
-	Filter2.w1=cutFreq;
+      Filter2.FilterBand = LOWPASS;
+      Filter2.FilterShape = RAISED_COSINE;
+      Filter2.raised_w = 0.02;
+      Filter2.w1 = cutFreq;
 
-    	for (int n=0; n<iter; ++n)
-    	{
-        	if (computeE)
-        		std::cout<< "---Iter " << n << std::endl;
-    		if (radavg)
-    		{
-			auto V1size_x = (int)XSIZE(V1());
-			auto V1size_y = (int)YSIZE(V1());
-			auto V1size_z = (int)ZSIZE(V1());
-    			transformer2.completeFourierTransform(V(),V2Fourier);
-    			CenterFFT(V2Fourier, true);
-    			POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
-    		}
-    		else
-        		transformer2.FourierTransform(V(),V2Fourier,false);
-		POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
-        	transformer2.inverseFourierTransform();
-        	if (computeE)
-        	{
-        		computeEnergy(Vdiff(), V(), energy);
-        		Vdiff = V;
-        	}
-    		POCSMinMax(V(), v1min, v1max);
-        	if (computeE)
-        	{
-        		computeEnergy(Vdiff(), V(), energy);
-        		Vdiff = V;
-        	}
-		POCSmask(mask(),V());
-        	if (computeE)
-        	{
-        		computeEnergy(Vdiff(), V(), energy);
-        		Vdiff = V;
-        	}
-    		transformer2.FourierTransform();
-    		POCSFourierPhase(V2FourierPhase,V2Fourier);
-        	transformer2.inverseFourierTransform();
-        	if (computeE)
-        	{
-        		computeEnergy(Vdiff(), V(), energy);
-        		Vdiff = V;
-        	}
-        	POCSnonnegative(V());
-        	if (computeE)
-        	{
-        		computeEnergy(Vdiff(), V(), energy);
-        		Vdiff = V;
-        	}
-		std2 = V().computeStddev();
-		V()*=std1/std2;
-        	if (computeE)
-        	{
-        		computeEnergy(Vdiff(), V(), energy);
-        		Vdiff = V;
-        	}
+      for (int n = 0; n < iter; ++n) {
+        if (computeE)
+          std::cout << "---Iter " << n << std::endl;
+        if (radavg) {
+          auto V1size_x = (int)XSIZE(V1());
+          auto V1size_y = (int)YSIZE(V1());
+          auto V1size_z = (int)ZSIZE(V1());
+          transformer2.completeFourierTransform(V(), V2Fourier);
+          CenterFFT(V2Fourier, true);
+          POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x,
+                                     V1size_y, V1size_z);
+        } else
+          transformer2.FourierTransform(V(), V2Fourier, false);
+        POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
+        transformer2.inverseFourierTransform();
+        if (computeE) {
+          computeEnergy(Vdiff(), V(), energy);
+          Vdiff = V;
+        }
+        POCSMinMax(V(), v1min, v1max);
+        if (computeE) {
+          computeEnergy(Vdiff(), V(), energy);
+          Vdiff = V;
+        }
+        POCSmask(mask(), V());
+        if (computeE) {
+          computeEnergy(Vdiff(), V(), energy);
+          Vdiff = V;
+        }
+        transformer2.FourierTransform();
+        POCSFourierPhase(V2FourierPhase, V2Fourier);
+        transformer2.inverseFourierTransform();
+        if (computeE) {
+          computeEnergy(Vdiff(), V(), energy);
+          Vdiff = V;
+        }
+        POCSnonnegative(V());
+        if (computeE) {
+          computeEnergy(Vdiff(), V(), energy);
+          Vdiff = V;
+        }
+        std2 = V().computeStddev();
+        V() *= std1 / std2;
+        if (computeE) {
+          computeEnergy(Vdiff(), V(), energy);
+          Vdiff = V;
+        }
 
-    		if (cutFreq!=0)
-    		{
-    			Filter2.generateMask(V());
-			Filter2.do_generate_3dmask=true;
-			Filter2.applyMaskSpace(V());
-	        	if (computeE)
-	        	{
-	        		computeEnergy(Vdiff(), V(), energy);
-	        		Vdiff = V;
-	        	}
-    		}
-    	}
+        if (cutFreq != 0) {
+          Filter2.generateMask(V());
+          Filter2.do_generate_3dmask = true;
+          Filter2.applyMaskSpace(V());
+          if (computeE) {
+            computeEnergy(Vdiff(), V(), energy);
+            Vdiff = V;
+          }
+        }
+      }
 
-	FourierFilter Filter;
-	Filter.FilterShape=REALGAUSSIAN;
-	Filter.FilterBand=LOWPASS;
-	Filter.w1=sigma;
-	Filter.applyMaskSpace(mask());
-	Image<double> V1Filtered;
-	V1.read(fnVol1);
-	V1Filtered() = V1();
-	if (cutFreq!=0)
-		Filter2.applyMaskSpace(V1Filtered());
+      FourierFilter Filter;
+      Filter.FilterShape = REALGAUSSIAN;
+      Filter.FilterBand = LOWPASS;
+      Filter.w1 = sigma;
+      Filter.applyMaskSpace(mask());
+      Image<double> V1Filtered;
+      V1.read(fnVol1);
+      V1Filtered() = V1();
+      if (cutFreq != 0)
+        Filter2.applyMaskSpace(V1Filtered());
 
-    	if (sub==true)
-    	{
-        	if (saveVol1Filt)
-    		{
-        		if (fnVol1F.isEmpty())
-        			fnVol1F="volume1_filtered.mrc";
-    			V1Filtered.write(fnVol1F);
-    		}
-        	if (saveVol2Adj)
-        	{
-			if (fnVol2A.isEmpty())
-				fnVol2A="volume2_adjusted.mrc";
-    			V.write(fnVol2A);
-    		}
+      if (sub == true) {
+        if (saveVol1Filt) {
+          if (fnVol1F.isEmpty())
+            fnVol1F = "volume1_filtered.mrc";
+          V1Filtered.write(fnVol1F);
+        }
+        if (saveVol2Adj) {
+          if (fnVol2A.isEmpty())
+            fnVol2A = "volume2_adjusted.mrc";
+          V.write(fnVol2A);
+        }
 
-        	if (!fnMaskSub.isEmpty())
-        		mask.read(fnMaskSub);
+        if (!fnMaskSub.isEmpty())
+          mask.read(fnMaskSub);
 
-        	subtraction(V1(), V1Filtered(), V(), mask());
-		V1.write(fnOut);
-    	}
+        subtraction(V1(), V1Filtered(), V(), mask());
+        V1.write(fnOut);
+      }
 
-    	else
-    		V.write(fnOut);
+      else
+        V.write(fnOut);
     }
 };
