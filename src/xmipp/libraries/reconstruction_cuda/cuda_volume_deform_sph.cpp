@@ -42,11 +42,12 @@ cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements
     return err;
 }
 
-void processCudaError() 
+#define processCudaError() (_processCudaError(__FILE__, __LINE__))
+void _processCudaError(const char* file, int line)
 {
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        fprintf(stderr, "Cuda error: %s\n", cudaGetErrorString(err));
+        fprintf(stderr, "File: %s: line %d\nCuda error: %s\n", file, line, cudaGetErrorString(err));
         exit(err);
     }
 }
