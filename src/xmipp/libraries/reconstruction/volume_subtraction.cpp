@@ -306,6 +306,14 @@ private:
     return result;
   }
 
+  void filterMask(MultidimArray<double> &mask) {
+    FourierFilter Filter;
+    Filter.FilterShape = REALGAUSSIAN;
+    Filter.FilterBand = LOWPASS;
+    Filter.w1 = sigma;
+    Filter.applyMaskSpace(mask);
+  }
+
   void run() {
     show();
     Image<double> V, Vdiff, V1;
@@ -330,7 +338,7 @@ private:
     MultidimArray<std::complex<double>> V2FourierPhase;
     transformer2.FourierTransform(V(), V2FourierPhase, true);
     extractPhase(V2FourierPhase);
-    
+
     double energy, std2;
     if (computeE) {
       energy = 0;
@@ -398,11 +406,6 @@ private:
       }
     }
 
-    FourierFilter Filter;
-    Filter.FilterShape = REALGAUSSIAN;
-    Filter.FilterBand = LOWPASS;
-    Filter.w1 = sigma;
-    Filter.applyMaskSpace(mask);
     Image<double> V1Filtered;
     V1.read(fnVol1);
     V1Filtered() = V1();
@@ -424,6 +427,8 @@ private:
       if (!fnMaskSub.isEmpty()) {
         Image<double> tmp(mask);
         tmp.read(fnMaskSub);
+      } else {
+        filterMask(mask);
       }
 
       subtraction(V1(), V1Filtered(), V(), mask);
