@@ -162,16 +162,15 @@ private:
   int sigma;
   double cutFreq;
   double lambda;
+  FourierTransformer transformer2;
 
   MultidimArray<double> computeRadialMean(MultidimArray<double> volume) {
-
     volume.setXmippOrigin();
     MultidimArray<std::complex<double>> fourierRad;
     MultidimArray<double> fourierMagRad;
     centerFFTMagnitude(volume, fourierRad, fourierMagRad);
     MultidimArray<double> radialMean;
     radialAverage(fourierMagRad, fourierRad, volume, radialMean);
-
     return radialMean;
   }
 
@@ -275,6 +274,15 @@ private:
               << "Output:			" << fnOut << std::endl;
   }
 
+  MultidimArray<double> computeMagnitude(const MultidimArray<double> &volume) {
+    FourierTransformer transformer;
+    MultidimArray<std::complex<double>> fourier;
+    MultidimArray<double> magnitude;
+    transformer.FourierTransform(volume, fourier, false);
+    FFT_magnitude(fourier, magnitude);
+    return magnitude;
+  }
+
   void run() {
     show();
     Image<double> V, Vdiff, V1;
@@ -301,12 +309,8 @@ private:
     POCSnonnegative(V());
 
     // Compute what need for the loop of POCS
-    FourierTransformer transformer1;
-    FourierTransformer transformer2;
-    MultidimArray<std::complex<double>> V1Fourier, V2Fourier;
-    MultidimArray<double> V1FourierMag;
-    transformer1.FourierTransform(V1(), V1Fourier, false);
-    FFT_magnitude(V1Fourier, V1FourierMag);
+    V1FourierMag = computeFourierMagnitude(V1());
+
     double std1 = V1().computeStddev();
     MultidimArray<std::complex<double>> V2FourierPhase;
     transformer2.FourierTransform(V(), V2FourierPhase, true);
@@ -324,6 +328,7 @@ private:
     Filter2.w1 = cutFreq;
 
     auto radQuotient = computeRadQuotient(V1(), V());
+    MultidimArray<std::complex<double>> V2Fourier;
 
     for (int n = 0; n < iter; ++n) {
       if (computeE)
