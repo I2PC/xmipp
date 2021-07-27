@@ -163,6 +163,7 @@ private:
   double cutFreq;
   double lambda;
   FourierTransformer transformer2;
+  FourierFilter Filter2;
 
   MultidimArray<double> computeRadialMean(MultidimArray<double> volume) {
     volume.setXmippOrigin();
@@ -274,7 +275,14 @@ private:
               << "Output:			" << fnOut << std::endl;
   }
 
-  MultidimArray<double> computeMagnitude(const MultidimArray<double> &volume) {
+  void createFilter() {
+    Filter2.FilterBand = LOWPASS;
+    Filter2.FilterShape = RAISED_COSINE;
+    Filter2.raised_w = 0.02;
+    Filter2.w1 = cutFreq;
+  }
+
+  MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
     FourierTransformer transformer;
     MultidimArray<std::complex<double>> fourier;
     MultidimArray<double> magnitude;
@@ -304,28 +312,25 @@ private:
     double v1min, v1max;
     V1().computeDoubleMinMax(v1min, v1max);
 
+    createFilter();
+
     V.read(fnVol2);
     POCSmask(mask(), V());
     POCSnonnegative(V());
 
     // Compute what need for the loop of POCS
-    V1FourierMag = computeFourierMagnitude(V1());
+    auto V1FourierMag = computeMagnitude(V1());
 
     double std1 = V1().computeStddev();
     MultidimArray<std::complex<double>> V2FourierPhase;
     transformer2.FourierTransform(V(), V2FourierPhase, true);
     extractPhase(V2FourierPhase);
-    FourierFilter Filter2;
+    
     double energy, std2;
     if (computeE) {
       energy = 0;
       Vdiff = V;
     }
-
-    Filter2.FilterBand = LOWPASS;
-    Filter2.FilterShape = RAISED_COSINE;
-    Filter2.raised_w = 0.02;
-    Filter2.w1 = cutFreq;
 
     auto radQuotient = computeRadQuotient(V1(), V());
     MultidimArray<std::complex<double>> V2Fourier;
