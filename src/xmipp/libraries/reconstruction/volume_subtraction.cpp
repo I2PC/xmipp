@@ -291,23 +291,28 @@ private:
     return magnitude;
   }
 
+  MultidimArray<double> computeMask(const Image<double> &volume) {
+    MultidimArray<double> result;
+    if (fnMask1 != "" && fnMask2 != "") {
+      Image<double> mask1;
+      Image<double> mask2;
+      mask1.read(fnMask1);
+      mask2.read(fnMask2);
+      result = mask1() * mask2();
+    } else {
+      result.resizeNoCopy(volume());
+      result.initConstant(1.0);
+    }
+    return result;
+  }
+
   void run() {
     show();
     Image<double> V, Vdiff, V1;
     V1.read(fnVol1);
-    MultidimArray<double> mask1;
-    Image<double> mask;
-    if (fnMask1 != "" && fnMask2 != "") {
-      mask.read(fnMask1);
-      mask1 = mask();
-      mask.read(fnMask2);
-      mask() *= mask1;
-    } else {
-      mask().resizeNoCopy(V1());
-      mask().initConstant(1.0);
-    }
-    mask1.clear();
-    POCSmask(mask(), V1());
+
+    auto mask = computeMask(V1);
+    POCSmask(mask, V1());
     POCSnonnegative(V1());
     double v1min, v1max;
     V1().computeDoubleMinMax(v1min, v1max);
@@ -315,7 +320,7 @@ private:
     createFilter();
 
     V.read(fnVol2);
-    POCSmask(mask(), V());
+    POCSmask(mask, V());
     POCSnonnegative(V());
 
     // Compute what need for the loop of POCS
@@ -334,7 +339,6 @@ private:
 
     auto radQuotient = computeRadQuotient(V1(), V());
     MultidimArray<std::complex<double>> V2Fourier;
-
     for (int n = 0; n < iter; ++n) {
       if (computeE)
         std::cout << "---Iter " << n << std::endl;
@@ -359,7 +363,7 @@ private:
         computeEnergy(Vdiff(), V(), energy);
         Vdiff = V;
       }
-      POCSmask(mask(), V());
+      POCSmask(mask, V());
       if (computeE) {
         computeEnergy(Vdiff(), V(), energy);
         Vdiff = V;
@@ -398,7 +402,7 @@ private:
     Filter.FilterShape = REALGAUSSIAN;
     Filter.FilterBand = LOWPASS;
     Filter.w1 = sigma;
-    Filter.applyMaskSpace(mask());
+    Filter.applyMaskSpace(mask);
     Image<double> V1Filtered;
     V1.read(fnVol1);
     V1Filtered() = V1();
@@ -417,10 +421,12 @@ private:
         V.write(fnVol2A);
       }
 
-      if (!fnMaskSub.isEmpty())
-        mask.read(fnMaskSub);
+      if (!fnMaskSub.isEmpty()) {
+        Image<double> tmp(mask);
+        tmp.read(fnMaskSub);
+      }
 
-      subtraction(V1(), V1Filtered(), V(), mask());
+      subtraction(V1(), V1Filtered(), V(), mask);
       V1.write(fnOut);
     }
 
