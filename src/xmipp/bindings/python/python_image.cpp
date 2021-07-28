@@ -1239,6 +1239,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
     } catch (XmippError &xe) {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
+    return Py_BuildValue("");
 }
 
 /* Return image dimensions as a tuple */
@@ -1857,4 +1858,5 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	    } catch (XmippError &xe) {
 	        PyErr_SetString(PyXmippError, xe.msg.c_str());
 	    }
+    return Py_BuildValue("");
 }
