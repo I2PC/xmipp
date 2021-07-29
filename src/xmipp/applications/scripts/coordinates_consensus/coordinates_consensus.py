@@ -94,7 +94,7 @@ class ScriptCordsConsensus(xmipp_base.XmippScript):
               argsList+=[  ( lineArray, boxSize, consensusRadius, consensusCriterium, outDir)]
               
       Parallel(n_jobs= numberOfThreads, backend="multiprocessing", verbose=1)(
-                  delayed(consensusCoordsOneMic, check_pickle=True)(*arg) for arg in argsList)
+                  delayed(consensusCoordsOneMic)(*arg) for arg in argsList)
 
    
 def consensusCoordsOneMic(coords_files, boxSize, consensusRadius, consensusCriterium, outDir):

@@ -7,16 +7,6 @@
 #define TURING  6
 #define AMPERE  7
 
-// Degrees of the basis
-// (Setting exact degrees you use in the run may increase performance,
-// especially when the degrees are low)
-#ifndef L1
-#define L1 5
-#endif
-#ifndef L2
-#define L2 5
-#endif
-
 // Universal block sizes
 // (cannot be done fully automatic because we are using BLOCK_*_DIM macros in host code)
 

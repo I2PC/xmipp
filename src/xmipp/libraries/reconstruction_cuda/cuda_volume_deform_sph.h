@@ -3,6 +3,7 @@
 // Xmipp includes
 #include "core/xmipp_image.h"
 #include "core/multidim_array.h"
+#include "reconstruction_cuda/cuda_reduction.h"
 // Standard includes
 #include <vector>
 
@@ -29,31 +30,35 @@ struct ImageMetaData
     int xDim = 0;
     int yDim = 0;
     int zDim = 0;
+
+    int padding = 0;
 };
 
-struct Volumes 
+template<typename T>
+struct Volumes
 {
-    PrecisionType* I = nullptr;
-    PrecisionType* R = nullptr;
+    T* I = nullptr;
+    T* R = nullptr;
     unsigned count = 0;
     unsigned volumeSize = 0;
+    unsigned volumePaddedSize = 0;
 };
 
-struct IROimages 
+struct IROimages
 {
     PrecisionType* VI;
     PrecisionType* VR;
     PrecisionType* VO;
 };
 
-struct DeformImages 
+struct DeformImages
 {
     PrecisionType* Gx;
     PrecisionType* Gy;
     PrecisionType* Gz;
 };
 
-struct KernelOutputs 
+struct KernelOutputs
 {
     PrecisionType diff2 = 0.0;
     PrecisionType sumVD = 0.0;
@@ -63,7 +68,13 @@ struct KernelOutputs
 class VolumeDeformSph
 {
 public:
-    void associateWith(ProgVolumeDeformSphGpu* prog);
+    void initVolumes();
+    void prepareVI();
+    void prepareInputVolume(const MultidimArray<double>& vol);
+    void prepareReferenceVolume(const MultidimArray<double>& vol);
+    void waitToFinishPreparations();
+    void cleanupPreparations();
+
     void setupConstantParameters();
     void setupChangingParameters();
 
@@ -73,20 +84,22 @@ public:
 
     KernelOutputs getOutputs();
 
-    VolumeDeformSph();
+    VolumeDeformSph(ProgVolumeDeformSphGpu* prog);
     ~VolumeDeformSph();
 
 private:
     ProgVolumeDeformSphGpu* program = nullptr;
 
+    GpuReduction<PrecisionType> reduceDiff;
+    GpuReduction<PrecisionType> reduceModg;
+    GpuReduction<PrecisionType> reduceSumVD;
+    PrecisionType* reductionArray = nullptr;
+
     // Kernel stuff
     size_t constantSharedMemSize;
     size_t changingSharedMemSize;
 
-    // Kernel dimensions
-    //dim3 block;
-    //dim3 grid;
-
+    //FIXME better naming, it is not really grid size, but size of output arrays
     size_t totalGridSize;
 
     // Variables transfered to the GPU memory
@@ -97,9 +110,6 @@ private:
 
     int steps;
 
-    PrecisionType3* dClnm;
-    std::vector<PrecisionType3> clnmVec;
-
     bool applyTransformation;
 
     bool saveDeformation;
@@ -107,17 +117,18 @@ private:
     // Inside pointers point to the GPU memory
 
     IROimages images;
+    double* dTmpVI;
 
     DeformImages deformImages;
 
-    int4* dZshParams;
-    std::vector<int4> zshparamsVec;
-
     ImageMetaData imageMetaData;
 
-    Volumes volumes;
+    Volumes<PrecisionType> volumes;
+    Volumes<double> prepVolumes;
+    int posR;
+    int posI;
 
-    KernelOutputs outputs;
+    KernelOutputs* outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
@@ -126,11 +137,17 @@ private:
     void setupImageMetaData(const Image<double>& inputImage);
 
     void setupVolumes();
+    template<bool PADDING = false>
+    void prepareVolume(const double* mdaData, double* prepVol, PrecisionType* volume);
 
     void setupZSHparams();
 
     void setupClnm();
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
+    void setupOutputArray();
+    void setupOutputs();
+
+    void setupGpuBlocks();
 };
 
 #endif// VOLUME_DEFORM_SPH_H
