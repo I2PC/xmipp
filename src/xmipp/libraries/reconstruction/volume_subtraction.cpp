@@ -338,20 +338,18 @@ void writeResults(Image<double> &V, Image<double> &V1,
 		Image<double> V1Filtered;
 		V1.read(fnVol1);
 		V1Filtered() = V1();
-		if (cutFreq != 0)
+		if (cutFreq != 0){
 			Filter2.applyMaskSpace(V1Filtered());
-
+		}
 		if (saveVol1Filt) {
 			V1Filtered.write(fnVol1F);
 		}
 		if (saveVol2Adj) {
 			V.write(fnVol2A);
 		}
-
 		if (fnMaskSub.isEmpty()) {
 			filterMask(mask);
 		}
-
 		subtraction(V1(), V1Filtered(), V(), mask);
 		V1.write(fnOutVol);
 	} else {
