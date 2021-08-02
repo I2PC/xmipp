@@ -132,8 +132,6 @@ public:
     AngularAlignmentGpu::AngularSphAlignment angularAlignGpu;
     // Number of ones in steps array
     int onesInSteps;
-    // Switch between GPU and CPU version
-    bool useFakeKernel;
     // Rotation matrix
     Matrix2D<double> R;
 

@@ -74,20 +74,6 @@ public:
 
     void pretuneKernel();
     void runKernel();
-    void runKernelTest(
-        Matrix1D<double>& clnm,
-        size_t idxY0,
-        double RmaxF2,
-        double iRmaxF,
-        Matrix2D<double> R,
-        const MultidimArray<double>& mV,
-        Matrix1D<double>& steps_cp,
-        Matrix1D<int>& vL1,
-        Matrix1D<int>& vN,
-        Matrix1D<int>& vL2,
-        Matrix1D<int>& vM,
-        MultidimArray<int>& V_mask,
-        MultidimArray<double>& mP);
     void transferResults();
 
     KernelOutputs getOutputs();
@@ -150,21 +136,11 @@ private:
     void setupZSHparams();
     void setupClnm();
 
-    void setupVolumeDataCpu();
-    void setupRotationCpu();
-    void setupVolumeMaskCpu();
-    void setupProjectionPlaneCpu();
-    void setupZSHparamsCpu();
-    void setupClnmCpu();
-
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
     void setupImageMetaData(const Image<double>& inputImage);
 
-
-
     void transferProjectionPlane();
-    void transferProjectionPlaneCpu();
 
     void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
 };

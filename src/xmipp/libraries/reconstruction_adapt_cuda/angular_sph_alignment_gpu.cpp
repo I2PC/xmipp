@@ -67,7 +67,6 @@ void ProgAngularSphAlignmentGpu::readParams()
 	L2 = getIntParam("--l2");
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
-    useFakeKernel = checkParam("--fakeKernel");
 }
 
 // Show ====================================================================
