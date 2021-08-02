@@ -141,6 +141,17 @@ struct ImageMetaData
 
 #define LIN_INTERP(a, l, h) ((l) + ((h) - (l)) * (a))
 
+// For the current supported degrees L1, L2, the max is 56 coeficients
+// if there is added support for higher degrees of L1, L2 then the
+// max number of coeficient NEEDS to be recalculated and updated
+#ifndef MAX_COEF_COUNT
+#define MAX_COEF_COUNT 56
+#endif
+
+__constant__ PrecisionType3 cClnm[MAX_COEF_COUNT];
+__constant__ int4 cZsh[MAX_COEF_COUNT];
+__constant__ PrecisionType cRotation[3*3];
+
 // Forward declarations
 template<int _L1 = 5, int _L2 = 5>
 __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
@@ -164,9 +175,6 @@ __forceinline__ __device__ void rotateCoordinates(PrecisionType* pos, const Prec
     pos[2] = tmp[2];
 }
 
-/*
- * The beast
- */
 template<int _BLOCK_SIZE = BLOCK_SIZE, int _L1 = 5, int _L2 = 5>
 __global__ void projectionKernel(
         PrecisionType Rmax2,
@@ -183,7 +191,7 @@ __global__ void projectionKernel(
         )
 {
     extern __shared__ char sharedBuffer[];
-    unsigned sharedBufferOffset = 0;
+    //unsigned sharedBufferOffset = 0;
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -199,8 +207,8 @@ __global__ void projectionKernel(
     pos[1] = P2L_Y_IDX(volMeta, iPhys);
     pos[0] = P2L_X_IDX(volMeta, jPhys);
 
-    rotateCoordinates(pos, rotation);
-
+    rotateCoordinates(pos, cRotation);
+/*
     int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
     sharedBufferOffset += sizeof(int4) * steps;
 
@@ -223,7 +231,7 @@ __global__ void projectionKernel(
     }
 
     __syncthreads();
-
+*/
     // Define and compute necessary values
     PrecisionType r2 = pos[2]*pos[2] + pos[1]*pos[1] + pos[0]*pos[0];
     PrecisionType rr = SQRT(r2) * iRmax;
@@ -231,18 +239,18 @@ __global__ void projectionKernel(
 
     if (r2 < Rmax2) {
         for (unsigned idx = 0; idx < steps; idx++) {
-            int l1 = zshShared[idx].w;
-            int n = zshShared[idx].x;
-            int l2 = zshShared[idx].y;
-            int m = zshShared[idx].z;
+            int l1 = cZsh[idx].w;
+            int n = cZsh[idx].x;
+            int l2 = cZsh[idx].y;
+            int m = cZsh[idx].z;
 
             PrecisionType zsph = ZernikeSphericalHarmonics<_L1, _L2>(l1, n, l2, m,
                     pos[0] * iRmax, pos[1] * iRmax, pos[2] * iRmax, rr);
 
             if (rr > 0 || l2 == 0) {
-                gx += zsph * clnmShared[idx].x;
-                gy += zsph * clnmShared[idx].y;
-                gz += zsph * clnmShared[idx].z;
+                gx += zsph * cClnm[idx].x;
+                gy += zsph * cClnm[idx].y;
+                gz += zsph * cClnm[idx].z;
             }
         }
     }

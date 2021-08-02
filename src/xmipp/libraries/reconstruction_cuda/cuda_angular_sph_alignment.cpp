@@ -148,7 +148,7 @@ void AngularSphAlignment::setupGpuBlocks()
 
 void AngularSphAlignment::setupClnm()
 {
-    clnmVec.resize(program->vL1.size());
+    clnmVec.resize(MAX_COEF_COUNT);
 
     for (unsigned i = 0; i < program->vL1.size(); ++i) {
         clnmVec[i].x = program->clnm[i];
@@ -156,14 +156,8 @@ void AngularSphAlignment::setupClnm()
         clnmVec[i].z = program->clnm[i + program->vL1.size() * 2];
     }
 
-    if (dClnm == nullptr) {
-        if (cudaMallocAndCopy(&dClnm, clnmVec.data(), clnmVec.size()) != cudaSuccess)
-            processCudaError();
-    } else {
-        if (cudaMemcpy(dClnm, clnmVec.data(), clnmVec.size() * sizeof(PrecisionType3),
-                    cudaMemcpyHostToDevice) != cudaSuccess)
-            processCudaError();
-    }
+    if (cudaMemcpyToSymbol(cClnm, clnmVec.data(), MAX_COEF_COUNT * sizeof(PrecisionType3)) != cudaSuccess)
+        processCudaError();
 }
 
 void AngularSphAlignment::setupOutputs()
@@ -200,7 +194,10 @@ void AngularSphAlignment::setupVolumeData()
 
 void AngularSphAlignment::setupRotation()
 {
-    transformData(&dRotation, program->R.mdata, program->R.mdim, dRotation == nullptr);
+    std::vector<PrecisionType> tmp(program->R.mdata, program->R.mdata + program->R.mdim);
+    if (cudaMemcpyToSymbol(cRotation, tmp.data(), 9 * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
+    //transformData(&dRotation, program->R.mdata, program->R.mdim, dRotation == nullptr);
 }
 
 void AngularSphAlignment::setupVolumeMask()
@@ -294,7 +291,7 @@ void AngularSphAlignment::transferResults()
 
 void AngularSphAlignment::setupZSHparams()
 {
-    zshparamsVec.resize(program->vL1.size());
+    std::vector<int4> zshparamsVec(program->vL1.size());
 
     for (unsigned i = 0; i < zshparamsVec.size(); ++i) {
         zshparamsVec[i].w = program->vL1[i];
@@ -303,14 +300,8 @@ void AngularSphAlignment::setupZSHparams()
         zshparamsVec[i].z = program->vM[i];
     }
 
-    if (dZshParams == nullptr) {
-        if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
-            processCudaError();
-    } else {
-        if (cudaMemcpy(dZshParams, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4),
-                    cudaMemcpyHostToDevice) != cudaSuccess)
-            processCudaError();
-    }
+    if (cudaMemcpyToSymbol(cZsh, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4)) != cudaSuccess)
+        processCudaError();
 }
 
 void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData)
