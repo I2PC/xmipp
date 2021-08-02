@@ -17,9 +17,22 @@ protected:
         if (chdir(((String)(getXmippPath() + (String)"/resources/test/image")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
         img.read("smallVolume.vol");
+        //get results to compare
+        pocsmask.read("pocsmask.mrc");
+        pocsnonnegative.read("pocsnonnegative.mrc");
+        pocsamplitude.read("pocsamplitude.mrc");
+        pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
+        pocsminmax.read("pocsminmax.mrc");
+        pocsphase.read("pocsphase.mrc");
     }
 
     Image<double> img;
+    Image<double> pocsmask;
+    Image<double> pocsnonnegative;
+    Image<double> pocsamplitude;
+    Image<double> pocsamplitude_radavg;
+    Image<double> pocsminmax;
+    Image<double> pocsphase;
 	double min, max;
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > IFourier;
@@ -38,13 +51,13 @@ TEST_F(POCSTest, pocsmask)
 	mask().initZeros(4, 64, 64);
 	mask().initConstant(1);
 	POCSmask(mask(), img());
-//	ASSERT_EQ(img(), pocsmask());
+	ASSERT_EQ(img(), pocsmask());
 }
 
 TEST_F(POCSTest, pocsnonnegative)
 {
 	POCSnonnegative(img());
-//	ASSERT_EQ(img(), pocsnonnegative());
+	ASSERT_EQ(img(), pocsnonnegative());
 }
 
 TEST_F(POCSTest, pocsamplitude)
@@ -52,7 +65,8 @@ TEST_F(POCSTest, pocsamplitude)
 	transformer.completeFourierTransform(img(), IFourier);
 	FFT_magnitude(IFourier,IFourierMag);
 	POCSFourierAmplitude(IFourierMag, IFourier, 1);
-//	ASSERT_EQ(img(), pocsamplitude());
+	transformer.inverseFourierTransform();
+	ASSERT_EQ(img(), pocsamplitude());
 }
 
 TEST_F(POCSTest, pocsamplituderadAvg)
@@ -65,14 +79,15 @@ TEST_F(POCSTest, pocsamplituderadAvg)
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 		radQuotient(i) = std::min(radQuotient(i), 1.0);
 	POCSFourierAmplitudeRadAvg(IFourier, 1, radQuotient, XSIZE(img()),  YSIZE(img()),  ZSIZE(img()));
-//	ASSERT_EQ(img(), pocsamplitude_radavg());
+	transformer.inverseFourierTransform();
+	ASSERT_EQ(img(), pocsamplitude_radavg());
 }
 
 TEST_F(POCSTest, pocsminmax)
 {
 	img().computeDoubleMinMax(min, max);
 	POCSMinMax(img(), min, max);
-//	ASSERT_EQ(img(), pocsminmax());
+	ASSERT_EQ(img(), pocsminmax());
 }
 
 TEST_F(POCSTest, pocsphase)
@@ -80,5 +95,6 @@ TEST_F(POCSTest, pocsphase)
 	transformer.FourierTransform(img(),IFourier,false);
 	transformer2.FourierTransform(img(),IFourierPhase,true);
 	POCSFourierPhase(IFourierPhase,IFourier);
-//	ASSERT_EQ(img(), pocsphase());
+	transformer2.inverseFourierTransform();
+	ASSERT_EQ(img(), pocsphase());
 }
