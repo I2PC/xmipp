@@ -28,8 +28,10 @@ TEST_F(RadAvgNonCubicTest, radavgNonCubic)
 	Matrix1D<int> center(2);
 	center.initZeros();
     radialAverageNonCubic(img(), center, radial_meanV, radial_count);
-    ASSERT_TRUE(XSIZE(radial_meanV)==45);
-    ASSERT_TRUE(XSIZE(radial_count)==45);
+    ASSERT_TRUE(XSIZE(radial_meanV)==46);
+    ASSERT_TRUE(XSIZE(radial_count)==46);
+    ASSERT_TRUE(radial_meanV(45)==0);
+    ASSERT_TRUE(radial_count(0)==4);
 }
 
 TEST_F(RadAvgNonCubicTest, radavgNonCubicRounding)
@@ -38,6 +40,8 @@ TEST_F(RadAvgNonCubicTest, radavgNonCubicRounding)
 	Matrix1D<int> center(2);
 	center.initZeros();
     radialAverageNonCubic(img(), center, radial_meanV, radial_count, true);
-    ASSERT_TRUE(XSIZE(radial_meanV)==46);
-    ASSERT_TRUE(XSIZE(radial_count)==46);
+    ASSERT_TRUE(XSIZE(radial_meanV)==47);
+    ASSERT_TRUE(XSIZE(radial_count)==47);
+    ASSERT_TRUE(radial_meanV(46)==0);
+    ASSERT_TRUE(radial_count(0)==4);
 }

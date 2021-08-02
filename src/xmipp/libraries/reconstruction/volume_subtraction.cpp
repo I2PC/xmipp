@@ -317,7 +317,6 @@ private:
 				POCSFourierAmplitude(V1FourierMag,V2Fourier, lambda);
 			}
 			transformer2.inverseFourierTransform();
-
 			if (computeE)
 			{
 				computeEnergy(Vdiff(), V(), energy);
