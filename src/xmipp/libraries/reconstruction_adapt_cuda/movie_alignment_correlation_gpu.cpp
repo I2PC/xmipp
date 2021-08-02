@@ -97,7 +97,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
     gpu.value().updateMemoryInfo();
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
-    this->loadFrame(movie, movie.firstObject(), frame);
+    this->loadFrame(movie, movie.firstRowId(), frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
 
     if (optimize) {
