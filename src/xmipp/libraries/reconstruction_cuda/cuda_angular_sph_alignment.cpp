@@ -71,8 +71,9 @@ void transformData(Target** dest, Source* source, size_t n, bool mallocMem = tru
 
 // AngularSphAlignment methods
 
-AngularSphAlignment::AngularSphAlignment()
+AngularSphAlignment::AngularSphAlignment(ProgAngularSphAlignmentGpu* prog)
 {
+    program = prog;
 }
 
 AngularSphAlignment::~AngularSphAlignment()
@@ -87,13 +88,10 @@ AngularSphAlignment::~AngularSphAlignment()
     cudaFreeHost(outputs);
 }
 
-void AngularSphAlignment::associateWith(ProgAngularSphAlignmentGpu* prog) 
-{
-    program = prog;
+namespace {
+    dim3 grid;
+    dim3 block;
 }
-
-static dim3 grid;
-static dim3 block;
 
 void AngularSphAlignment::setupConstantParameters() 
 {
@@ -110,15 +108,7 @@ void AngularSphAlignment::setupConstantParameters()
     setupZSHparams();
     setupOutputs();
 
-    // kernel dimension
-    block.x = BLOCK_X_DIM;
-    block.y = BLOCK_Y_DIM;
-    block.z = BLOCK_Z_DIM;
-    grid.x = ((imageMetaData.xDim + block.x - 1) / block.x);
-    grid.y = ((imageMetaData.yDim + block.y - 1) / block.y);
-    grid.z = ((imageMetaData.zDim + block.z - 1) / block.z);
-
-    totalGridSize = grid.x * grid.y * grid.z;
+    setupGpuBlocks();
 
     setupOutputArray();
 
@@ -140,6 +130,20 @@ void AngularSphAlignment::setupChangingParameters()
     changingSharedMemSize = 0;
     changingSharedMemSize += sizeof(int4) * steps;
     changingSharedMemSize += sizeof(PrecisionType3) * steps;
+}
+
+void AngularSphAlignment::setupGpuBlocks()
+{
+    block.x = BLOCK_X_DIM;
+    block.y = BLOCK_Y_DIM;
+    block.z = BLOCK_Z_DIM;
+    grid.x = ((imageMetaData.xDim + block.x - 1) / block.x);
+    grid.y = ((imageMetaData.yDim + block.y - 1) / block.y);
+    grid.z = ((imageMetaData.zDim + block.z - 1) / block.z);
+
+    totalGridSize = grid.x * grid.y * grid.z;
+    // prepped for warp only reduction
+    //totalGridSize = grid.x * grid.y * grid.z * (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM / 32);
 }
 
 void AngularSphAlignment::setupClnm()
@@ -174,12 +178,12 @@ void AngularSphAlignment::setupOutputArray()
         processCudaError();
 }
 
-KernelOutputs AngularSphAlignment::getOutputs() 
+KernelOutputs AngularSphAlignment::getOutputs()
 {
     return *outputs;
 }
 
-void AngularSphAlignment::transferImageData(Image<double>& outputImage, PrecisionType* inputData) 
+void AngularSphAlignment::transferImageData(Image<double>& outputImage, PrecisionType* inputData)
 {
     size_t elements = imageMetaData.xDim * imageMetaData.yDim * imageMetaData.zDim;
     std::vector<PrecisionType> tVec(elements);
@@ -194,12 +198,12 @@ void AngularSphAlignment::setupVolumeData()
     transformData(&dVolData, vol.data, vol.zyxdim, dVolData == nullptr);
 }
 
-void AngularSphAlignment::setupRotation() 
+void AngularSphAlignment::setupRotation()
 {
     transformData(&dRotation, program->R.mdata, program->R.mdim, dRotation == nullptr);
 }
 
-void AngularSphAlignment::setupVolumeMask() 
+void AngularSphAlignment::setupVolumeMask()
 {
     if (dVolMask == nullptr) {
         if (cudaMallocAndCopy(&dVolMask, program->V_mask.data, program->V_mask.getSize())
@@ -263,7 +267,7 @@ void AngularSphAlignment::transferProjectionPlane()
     memcpy(program->P().data, tmpDouble.data(), tmpDouble.size() * sizeof(double));
 }
 
-void AngularSphAlignment::transferResults() 
+void AngularSphAlignment::transferResults()
 {
     transferProjectionPlane();
 }
@@ -289,13 +293,13 @@ void AngularSphAlignment::setupZSHparams()
     }
 }
 
-void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData) 
+void setupImageNew(Image<double>& inputImage, PrecisionType** outputImageData)
 {
     auto& mda = inputImage();
     transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
-void AngularSphAlignment::setupImageMetaData(const Image<double>& mda) 
+void AngularSphAlignment::setupImageMetaData(const Image<double>& mda)
 {
     imageMetaData.xShift = mda().xinit;
     imageMetaData.yShift = mda().yinit;

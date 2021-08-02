@@ -32,7 +32,7 @@
 #include "data/mask.h"
 
 // Empty constructor =======================================================
-ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
+ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu() : angularAlignGpu(this)
 {
 	resume = false;
     produces_a_metadata = true;
@@ -218,8 +218,6 @@ void ProgAngularSphAlignmentGpu::preProcess()
 
     createWorkFiles();
 
-    // GPU preparation
-    angularAlignGpu.associateWith(this);
 }
 
 void ProgAngularSphAlignmentGpu::finishProcessing() {

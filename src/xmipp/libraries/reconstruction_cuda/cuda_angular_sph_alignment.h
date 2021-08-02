@@ -7,8 +7,6 @@
 // Standard includes
 #include <vector>
 
-//#define USE_DOUBLE_PRECISION 1
-
 // Forward declarations
 class ProgAngularSphAlignmentGpu;
 struct int4;
@@ -68,17 +66,16 @@ struct KernelOutputs
 class AngularSphAlignment
 {
 public:
-    void associateWith(ProgAngularSphAlignmentGpu* prog);
     void setupConstantParameters();
     void setupChangingParameters();
 
     void pretuneKernel();
     void runKernel();
-    void transferResults();
 
+    void transferResults();
     KernelOutputs getOutputs();
 
-    AngularSphAlignment();
+    AngularSphAlignment(ProgAngularSphAlignmentGpu* prog);
     ~AngularSphAlignment();
 
 private:
@@ -135,6 +132,7 @@ private:
     void setupOutputs();
     void setupZSHparams();
     void setupClnm();
+    void setupGpuBlocks();
 
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
