@@ -270,75 +270,25 @@ extern "C" __global__ void projectionKernel(
         localCount++;
     }
 
-    __shared__ PrecisionType countShared[BLOCK_SIZE];
-    __shared__ PrecisionType sumVDShared[BLOCK_SIZE];
-    __shared__ PrecisionType modfgShared[BLOCK_SIZE];
+    // Reduce warp
+    for (int offset = 32 / 2; offset > 0; offset >>= 1) {
+        localCount += __shfl_down_sync(0xFFFFFFFF, localCount, offset);
+        localSumVD += __shfl_down_sync(0xFFFFFFFF, localSumVD, offset);
+        localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
+    }
 
-    countShared[tIdx] = localCount;
-    sumVDShared[tIdx] = localSumVD;
-    modfgShared[tIdx] = localModg;
-
-    __syncthreads();
-
-    // First level of conditions are evaluated during compilation
-    if (BLOCK_SIZE >= 1024) {
-        if (tIdx < 512) {
-            countShared[tIdx] += countShared[tIdx + 512];
-            sumVDShared[tIdx] += sumVDShared[tIdx + 512];
-            modfgShared[tIdx] += modfgShared[tIdx + 512];
-        }
-        __syncthreads();
-    }
-    if (BLOCK_SIZE >= 512) {
-        if (tIdx < 256) {
-            countShared[tIdx] += countShared[tIdx + 256];
-            sumVDShared[tIdx] += sumVDShared[tIdx + 256];
-            modfgShared[tIdx] += modfgShared[tIdx + 256];
-        }
-        __syncthreads();
-    }
-    if (BLOCK_SIZE >= 256) {
-        if (tIdx < 128) {
-            countShared[tIdx] += countShared[tIdx + 128];
-            sumVDShared[tIdx] += sumVDShared[tIdx + 128];
-            modfgShared[tIdx] += modfgShared[tIdx + 128];
-        }
-        __syncthreads();
-    }
-    if (BLOCK_SIZE >= 128) {
-        if (tIdx < 64) {
-            countShared[tIdx] += countShared[tIdx + 64];
-            sumVDShared[tIdx] += sumVDShared[tIdx + 64];
-            modfgShared[tIdx] += modfgShared[tIdx + 64];
-        }
-        __syncthreads();
-    }
-    // Last warp reduction
-    if (tIdx < 32) {
-        localCount = countShared[tIdx];
-        localSumVD = sumVDShared[tIdx];
-        localModg = modfgShared[tIdx];
-        if (BLOCK_SIZE >= 64) {
-            localCount += countShared[tIdx + 32];
-            localSumVD += sumVDShared[tIdx + 32];
-            localModg += modfgShared[tIdx + 32];
-        }
-        // Reduce warp
-        for (int offset = 32 / 2; offset > 0; offset >>= 1) {
-            localCount += __shfl_down_sync(0xFFFFFFFF, localCount, offset);
-            localSumVD += __shfl_down_sync(0xFFFFFFFF, localSumVD, offset);
-            localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
-        }
-    }
+    bool isFirstThreadInWarp = tIdx % 32 == 0;//FIXME modulo is slow, can it be done without modulo?? (n & (d - 1))
 
     // Save values to the global memory for later
-    if (tIdx == 0) {
+    if (isFirstThreadInWarp) {
+        unsigned warpsInBlock = BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division?
+        unsigned warpInCurrentBlock = tIdx / 32;//FIXME division is slow, can it be done without division?
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
-        unsigned GRID_SIZE = gridDim.x * gridDim.y * gridDim.z;
-        // Resulting values are in variables local* => no need to go into shared mem
-        outArrayGlobal[bIdx] = localCount;
-        outArrayGlobal[bIdx + GRID_SIZE] = localSumVD;
-        outArrayGlobal[bIdx + GRID_SIZE * 2] = localModg;
+        unsigned wIdx = bIdx * warpsInBlock + warpInCurrentBlock;
+        unsigned WARP_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z * warpsInBlock;
+        outArrayGlobal[wIdx] = localCount;
+        outArrayGlobal[wIdx + WARP_GRID_SIZE] = localSumVD;
+        outArrayGlobal[wIdx + WARP_GRID_SIZE * 2] = localModg;
     }
 }
 
