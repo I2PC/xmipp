@@ -91,6 +91,11 @@ AngularSphAlignment::~AngularSphAlignment()
 namespace {
     dim3 grid;
     dim3 block;
+    // Cuda stream used during the data preparation. More streams could be used
+    // but at this point preparations on GPU are not as intesive as to require
+    // more streams. More streams might be useful for combination of
+    // weak GPU and powerful CPU.
+    cudaStream_t prepStream;
 }
 
 void AngularSphAlignment::setupConstantParameters()
