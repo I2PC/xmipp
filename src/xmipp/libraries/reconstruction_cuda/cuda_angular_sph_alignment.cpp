@@ -12,9 +12,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <exception>
-// Thrust includes
-#include <thrust/reduce.h>
-#include <thrust/device_vector.h>
 
 
 namespace AngularAlignmentGpu {
@@ -88,6 +85,8 @@ AngularSphAlignment::~AngularSphAlignment()
         cudaFree(dClnm);
         cudaFree(dVolMask);
         cudaFree(dProjectionPlane);
+        cudaFree(reductionArray);
+        cudaFreeHost(outputs);
     }
 }
 
@@ -117,6 +116,7 @@ void AngularSphAlignment::setupConstantParameters()
         setupVolumeData();
         setupVolumeMask();
         setupZSHparams();
+        setupOutputs();
     }
 
     // kernel dimension
@@ -129,11 +129,13 @@ void AngularSphAlignment::setupConstantParameters()
 
     totalGridSize = grid.x * grid.y * grid.z;
 
+    setupOutputArray();
+
     // Dynamic shared memory
     constantSharedMemSize = 0;
 }
 
-void AngularSphAlignment::setupChangingParameters() 
+void AngularSphAlignment::setupChangingParameters()
 {
     if (program == nullptr)
         throw new std::runtime_error("AngularSphAlignment not associated with the program!");
@@ -175,6 +177,18 @@ void AngularSphAlignment::setupClnm()
     }
 }
 
+void AngularSphAlignment::setupOutputs()
+{
+    if (cudaMallocHost(&outputs, sizeof(KernelOutputs)) != cudaSuccess)
+        processCudaError();
+}
+
+void AngularSphAlignment::setupOutputArray()
+{
+    if (cudaMalloc(&reductionArray, 3 * totalGridSize * sizeof(PrecisionType)) != cudaSuccess)
+        processCudaError();
+}
+
 void AngularSphAlignment::setupClnmCpu()
 {
     clnmVec.resize(program->vL1.size());
@@ -189,7 +203,7 @@ void AngularSphAlignment::setupClnmCpu()
 
 KernelOutputs AngularSphAlignment::getOutputs() 
 {
-    return outputs;
+    return *outputs;
 }
 
 void AngularSphAlignment::transferImageData(Image<double>& outputImage, PrecisionType* inputData) 
@@ -288,14 +302,10 @@ void AngularSphAlignment::runKernel()
                 dClnm,
                 dVolMask,
                 dProjectionPlane,
-                &outputs);
+                outputs);
     } else {
-        // Define thrust reduction vector
-        thrust::device_vector<PrecisionType> thrustVec(totalGridSize * 3, 0.0);
 
-        // TEST make sure everything is ready before kernel starts
         cudaDeviceSynchronize();
-
         // Run kernel
         projectionKernel<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
                 Rmax2,
@@ -308,33 +318,36 @@ void AngularSphAlignment::runKernel()
                 dClnm,
                 dVolMask,
                 dProjectionPlane,
-                thrust::raw_pointer_cast(thrustVec.data())
+                reductionArray
                 );
-
         cudaDeviceSynchronize();
 
-        auto countIt = thrustVec.begin();
-        auto sumVDIt = countIt + totalGridSize;
-        auto modgIt = sumVDIt + totalGridSize;
+        PrecisionType* countPtr = reductionArray;
+        PrecisionType* sumVDPtr = countPtr + totalGridSize;
+        PrecisionType* modgPtr = sumVDPtr + totalGridSize;
 
-        outputs.count = thrust::reduce(countIt, sumVDIt);
-        outputs.sumVD = thrust::reduce(sumVDIt, modgIt);
-        outputs.modg = thrust::reduce(modgIt, thrustVec.end());
+        reduceDiff.reduceDeviceArrayAsync(countPtr, totalGridSize, &outputs->count);
+        reduceSumVD.reduceDeviceArrayAsync(sumVDPtr, totalGridSize, &outputs->sumVD);
+        reduceModg.reduceDeviceArrayAsync(modgPtr, totalGridSize, &outputs->modg);
+
+        if (cudaDeviceSynchronize() != cudaSuccess)
+            processCudaError();
     }
 }
 
-void AngularSphAlignment::transferProjectionPlane() 
+void AngularSphAlignment::transferProjectionPlane()
 {
     // mozna lepsi nez neustale pretypovavat a kopirovat vectory, to proste ukladat v double na GPU
     // nic se tam nepocita jen se to ulozi (tzn "jedno" pretypovani z float na double)
     std::vector<PrecisionType> tmp(program->P().zyxdim);
-    cudaMemcpy(tmp.data(), dProjectionPlane, tmp.size() * sizeof(PrecisionType),
-            cudaMemcpyDeviceToHost);
+    if (cudaMemcpy(tmp.data(), dProjectionPlane, tmp.size() * sizeof(PrecisionType),
+            cudaMemcpyDeviceToHost) != cudaSuccess)
+        processCudaError();
     std::vector<double> tmpDouble(tmp.begin(), tmp.end());
     memcpy(program->P().data, tmpDouble.data(), tmpDouble.size() * sizeof(double));
 }
 
-void AngularSphAlignment::transferProjectionPlaneCpu() 
+void AngularSphAlignment::transferProjectionPlaneCpu()
 {
     std::vector<double> tmp(projectionPlaneVec.begin(), projectionPlaneVec.end());
     memcpy(program->P().data, tmp.data(), tmp.size() * sizeof(double));
@@ -429,30 +442,18 @@ void AngularSphAlignment::runKernelTest(
         )
 {
     size_t idxZ0=2*idxY0;
-    outputs.sumVD = 0.0;
-    outputs.modg = 0.0;
-    outputs.count = 0.0;
+    outputs->sumVD = 0.0;
+    outputs->modg = 0.0;
+    outputs->count = 0.0;
 
     Matrix1D<double> pos;
     pos.initZeros(3);
-
-    /*
-    std::cout 
-        << "clnm: " << clnm[0] << "," << clnm[1] << "," << clnm[2] << "\n"
-        << "Rmax2: " << RmaxF2 << "\n"
-        << "iRmax: " << iRmaxF << "\n"
-        << "Rotation: " << R(0, 0) << "," << R(0, 1) << "," << R(1, 2) << "\n"
-        << "Volume: " << mV(0, 0, 0) << "," << mV(0, 0, 1) << "," << mV(0, 1, 2) << "\n"
-        << "" << std::endl;
-    */
 
     for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++) {
         for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++) {
             for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++) {
                 ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
                 pos = R * pos;
-                //if (k == 10 && i == 10 && j == 10)
-                //    std::cout << "pos("<<pos[0]<<","<<pos[1]<<","<<pos[2]<<")" << std::endl;
                 double gx=0.0, gy=0.0, gz=0.0;
                 double k2=ZZ(pos)*ZZ(pos);
                 double kr=ZZ(pos)*iRmaxF;
@@ -493,9 +494,9 @@ void AngularSphAlignment::runKernelTest(
                     if (voxelI_mask == 1) {
                         double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);
                         A2D_ELEM(mP,i,j) += voxelI;
-                        outputs.sumVD += voxelI;
-                        outputs.modg += gx*gx+gy*gy+gz*gz;
-                        outputs.count++;
+                        outputs->sumVD += voxelI;
+                        outputs->modg += gx*gx+gy*gy+gz*gz;
+                        outputs->count++;
                     }
                 }
             }
@@ -579,23 +580,11 @@ void fakeKernel(
 
     PrecisionType pos[3];
 
-    /*
-    std::cout 
-        << "clnm: " << clnm[0].x << "," << clnm[1].x << "," << clnm[2].x << "\n"
-        << "Rmax2: " << Rmax2 << "\n"
-        << "iRmax: " << iRmax << "\n"
-        << "Rotation: " << rotation[0] << "," << rotation[1] << "," << rotation[5] << "\n"
-        << "Volume: " << ELEM_3D_SHIFTED(volData, volMeta, 0, 0, 0) << "," << ELEM_3D_SHIFTED(volData, volMeta, 0, 0, 1) << "," << ELEM_3D_SHIFTED(volData, volMeta, 0, 1, 2) << "\n"
-        << "" << std::endl;
-    */
-
     for (int k = P2L_Z_IDX(volMeta, 0); k < P2L_Z_IDX(volMeta, volMeta.zDim); k++) {
         for (int i = P2L_Y_IDX(volMeta, 0); i < P2L_Y_IDX(volMeta, volMeta.yDim); i++) {
             for (int j = P2L_X_IDX(volMeta, 0); j < P2L_X_IDX(volMeta, volMeta.xDim); j++) {
                 pos[2] = k; pos[1] = i; pos[0] = j;
                 rotate(pos, rotation);
-                //if (k == 10 && i == 10 && j == 10)
-                //    std::cout << "pos("<<pos[0]<<","<<pos[1]<<","<<pos[2]<<")" << std::endl;
                 double gx = 0.0, gy = 0.0, gz = 0.0;
                 double k2= pos[2] * pos[2];
                 double kr= pos[2] * iRmax;

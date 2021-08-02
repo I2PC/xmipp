@@ -26,6 +26,7 @@ template<typename T>
 GpuReduction<T>::~GpuReduction() 
 {
     reset();
+    //FIXME: wait for stream to finish computations
     cudaStreamDestroy(*reinterpret_cast<cudaStream_t*>(stream));
     delete reinterpret_cast<cudaStream_t*>(stream);
 }
@@ -100,7 +101,8 @@ void GpuReduction<T>::reduceDeviceArrayAsync(const T* d_inData, size_t n, T* h_o
     }
 
     //check
-    cudaMemcpyAsync(h_output, d_output, sizeof(T), cudaMemcpyDeviceToHost, *cudaStream);
+    if (cudaMemcpyAsync(h_output, d_output, sizeof(T), cudaMemcpyDeviceToHost, *cudaStream) != cudaSuccess)
+        throw std::runtime_error(cudaGetErrorString(cudaGetLastError()));
 }
 
 template<typename T>

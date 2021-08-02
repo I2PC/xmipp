@@ -3,6 +3,7 @@
 // Xmipp includes
 #include "core/xmipp_image.h"
 #include "core/multidim_array.h"
+#include "reconstruction_cuda/cuda_reduction.h"
 // Standard includes
 #include <vector>
 
@@ -97,14 +98,16 @@ public:
 private:
     ProgAngularSphAlignmentGpu* program = nullptr;
 
+    GpuReduction<PrecisionType> reduceDiff;
+    GpuReduction<PrecisionType> reduceModg;
+    GpuReduction<PrecisionType> reduceSumVD;
+    PrecisionType* reductionArray = nullptr;
+
     // Kernel stuff
     size_t constantSharedMemSize;
     size_t changingSharedMemSize;
 
-    // Kernel dimensions
-    //dim3 block;
-    //dim3 grid;
-
+    //FIXME better naming, it is not really grid size, but size of output arrays, kernelOutputSize??
     size_t totalGridSize;
 
     // Variables transfered to the GPU memory
@@ -134,7 +137,7 @@ private:
     PrecisionType* dProjectionPlane = nullptr;
     std::vector<PrecisionType> projectionPlaneVec;
 
-    KernelOutputs outputs;
+    KernelOutputs* outputs;
 
     // helper methods for simplifying and transfering data to gpu
 
@@ -142,21 +145,23 @@ private:
     void setupRotation();
     void setupVolumeMask();
     void setupProjectionPlane();
+    void setupOutputArray();
+    void setupOutputs();
+    void setupZSHparams();
+    void setupClnm();
 
     void setupVolumeDataCpu();
     void setupRotationCpu();
     void setupVolumeMaskCpu();
     void setupProjectionPlaneCpu();
+    void setupZSHparamsCpu();
+    void setupClnmCpu();
 
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
     void setupImageMetaData(const Image<double>& inputImage);
 
-    void setupZSHparams();
-    void setupClnm();
 
-    void setupZSHparamsCpu();
-    void setupClnmCpu();
 
     void transferProjectionPlane();
     void transferProjectionPlaneCpu();

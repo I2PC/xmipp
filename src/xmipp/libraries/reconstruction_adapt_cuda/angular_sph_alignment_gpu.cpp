@@ -587,7 +587,6 @@ void ProgAngularSphAlignmentGpu::deformVol(
     angularAlignGpu.setupChangingParameters();
 
     angularAlignGpu.runKernel();
-    //angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
 
     angularAlignGpu.transferResults();
     auto outputs = angularAlignGpu.getOutputs();
