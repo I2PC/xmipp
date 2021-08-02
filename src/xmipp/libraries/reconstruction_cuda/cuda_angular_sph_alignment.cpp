@@ -42,7 +42,7 @@ cudaError cudaMallocAndCopy(T** target, const T* source, size_t numberOfElements
 }
 
 #define processCudaError() (_processCudaError(__FILE__, __LINE__))
-void _processCudaError(const char* file, int line) 
+void _processCudaError(const char* file, int line)
 {
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -93,7 +93,7 @@ namespace {
     dim3 block;
 }
 
-void AngularSphAlignment::setupConstantParameters() 
+void AngularSphAlignment::setupConstantParameters()
 {
     if (program == nullptr)
         throw new std::runtime_error("AngularSphAlignment not associated with the program!");
@@ -192,7 +192,7 @@ void AngularSphAlignment::transferImageData(Image<double>& outputImage, Precisio
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
 }
 
-void AngularSphAlignment::setupVolumeData() 
+void AngularSphAlignment::setupVolumeData()
 {
     const auto& vol = program->V();
     transformData(&dVolData, vol.data, vol.zyxdim, dVolData == nullptr);
@@ -216,7 +216,7 @@ void AngularSphAlignment::setupVolumeMask()
     }
 }
 
-void AngularSphAlignment::setupProjectionPlane() 
+void AngularSphAlignment::setupProjectionPlane()
 {
     const auto& projPlane = program->P();
     if (dProjectionPlane == nullptr) {
@@ -226,22 +226,42 @@ void AngularSphAlignment::setupProjectionPlane()
     cudaMemset(dProjectionPlane, 0, projPlane.yxdim * sizeof(PrecisionType));
 }
 
-void AngularSphAlignment::runKernel() 
+void AngularSphAlignment::runKernel()
 {
-    // Run kernel
-    projectionKernel<<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
-            Rmax2,
-            iRmax,
-            imageMetaData,
-            dVolData,
-            dRotation,
-            steps,
-            dZshParams,
-            dClnm,
-            dVolMask,
-            dProjectionPlane,
-            reductionArray
-            );
+    // Before and after running the kernel is no need for explicit synchronization,
+    // because it is being run in the default cuda stream, therefore it is synchronized automatically
+    // If the cuda stream of this kernel ever changes explicit synchronization is needed!
+    if (program->L1 > 3 || program->L2 > 3) {
+        projectionKernel<BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM, 5, 5>
+            <<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
+                    Rmax2,
+                    iRmax,
+                    imageMetaData,
+                    dVolData,
+                    dRotation,
+                    steps,
+                    dZshParams,
+                    dClnm,
+                    dVolMask,
+                    dProjectionPlane,
+                    reductionArray
+                    );
+    } else {
+        projectionKernel<BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM, 3, 3>
+            <<<grid, block, constantSharedMemSize + changingSharedMemSize>>>(
+                    Rmax2,
+                    iRmax,
+                    imageMetaData,
+                    dVolData,
+                    dRotation,
+                    steps,
+                    dZshParams,
+                    dClnm,
+                    dVolMask,
+                    dProjectionPlane,
+                    reductionArray
+                    );
+    }
 
     PrecisionType* countPtr = reductionArray;
     PrecisionType* sumVDPtr = countPtr + totalGridSize;
@@ -287,7 +307,7 @@ void AngularSphAlignment::setupZSHparams()
         if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
             processCudaError();
     } else {
-        if (cudaMemcpy(dZshParams, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4), 
+        if (cudaMemcpy(dZshParams, zshparamsVec.data(), zshparamsVec.size() * sizeof(int4),
                     cudaMemcpyHostToDevice) != cudaSuccess)
             processCudaError();
     }
@@ -309,13 +329,13 @@ void AngularSphAlignment::setupImageMetaData(const Image<double>& mda)
     imageMetaData.zDim = mda().zdim;
 }
 
-void AngularSphAlignment::setupImage(Image<double>& inputImage, PrecisionType** outputImageData) 
+void AngularSphAlignment::setupImage(Image<double>& inputImage, PrecisionType** outputImageData)
 {
     auto& mda = inputImage();
     transformData(outputImageData, mda.data, mda.xdim * mda.ydim * mda.zdim);
 }
 
-void AngularSphAlignment::setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData) 
+void AngularSphAlignment::setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData)
 {
     size_t size = inputImage.xDim * inputImage.yDim * inputImage.zDim * sizeof(PrecisionType);
     if (cudaMalloc(outputImageData, size) != cudaSuccess)
