@@ -142,6 +142,7 @@ struct ImageMetaData
 #define LIN_INTERP(a, l, h) ((l) + ((h) - (l)) * (a))
 
 // Forward declarations
+template<int _L1 = 5, int _L2 = 5>
 __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType r);
 
@@ -166,7 +167,8 @@ __forceinline__ __device__ void rotateCoordinates(PrecisionType* pos, const Prec
 /*
  * The beast
  */
-extern "C" __global__ void projectionKernel(
+template<int _BLOCK_SIZE = BLOCK_SIZE, int _L1 = 5, int _L2 = 5>
+__global__ void projectionKernel(
         PrecisionType Rmax2,
         PrecisionType iRmax,
         ImageMetaData volMeta,
@@ -178,7 +180,7 @@ extern "C" __global__ void projectionKernel(
         const int* volMask,
         PrecisionType* projectionPlane,
         PrecisionType* outArrayGlobal
-        ) 
+        )
 {
     extern __shared__ char sharedBuffer[];
     unsigned sharedBufferOffset = 0;
@@ -206,7 +208,7 @@ extern "C" __global__ void projectionKernel(
     sharedBufferOffset += sizeof(PrecisionType3) * steps;
 
     // Load zsh, clnm parameters to the shared memory
-    if (steps <= BLOCK_SIZE) {
+    if (steps <= _BLOCK_SIZE) {
         if (tIdx < steps) {
             zshShared[tIdx] = zshparams[tIdx];
             clnmShared[tIdx] = clnm[tIdx];
@@ -234,7 +236,7 @@ extern "C" __global__ void projectionKernel(
             int l2 = zshShared[idx].y;
             int m = zshShared[idx].z;
 
-            PrecisionType zsph = ZernikeSphericalHarmonics(l1, n, l2, m,
+            PrecisionType zsph = ZernikeSphericalHarmonics<_L1, _L2>(l1, n, l2, m,
                     pos[0] * iRmax, pos[1] * iRmax, pos[2] * iRmax, rr);
 
             if (rr > 0 || l2 == 0) {
@@ -270,9 +272,9 @@ extern "C" __global__ void projectionKernel(
         localCount++;
     }
 
-    __shared__ PrecisionType countShared[BLOCK_SIZE];
-    __shared__ PrecisionType sumVDShared[BLOCK_SIZE];
-    __shared__ PrecisionType modfgShared[BLOCK_SIZE];
+    __shared__ PrecisionType countShared[_BLOCK_SIZE];
+    __shared__ PrecisionType sumVDShared[_BLOCK_SIZE];
+    __shared__ PrecisionType modfgShared[_BLOCK_SIZE];
 
     countShared[tIdx] = localCount;
     sumVDShared[tIdx] = localSumVD;
@@ -281,7 +283,7 @@ extern "C" __global__ void projectionKernel(
     __syncthreads();
 
     // First level of conditions are evaluated during compilation
-    if (BLOCK_SIZE >= 1024) {
+    if (_BLOCK_SIZE >= 1024) {
         if (tIdx < 512) {
             countShared[tIdx] += countShared[tIdx + 512];
             sumVDShared[tIdx] += sumVDShared[tIdx + 512];
@@ -289,7 +291,7 @@ extern "C" __global__ void projectionKernel(
         }
         __syncthreads();
     }
-    if (BLOCK_SIZE >= 512) {
+    if (_BLOCK_SIZE >= 512) {
         if (tIdx < 256) {
             countShared[tIdx] += countShared[tIdx + 256];
             sumVDShared[tIdx] += sumVDShared[tIdx + 256];
@@ -297,7 +299,7 @@ extern "C" __global__ void projectionKernel(
         }
         __syncthreads();
     }
-    if (BLOCK_SIZE >= 256) {
+    if (_BLOCK_SIZE >= 256) {
         if (tIdx < 128) {
             countShared[tIdx] += countShared[tIdx + 128];
             sumVDShared[tIdx] += sumVDShared[tIdx + 128];
@@ -305,7 +307,7 @@ extern "C" __global__ void projectionKernel(
         }
         __syncthreads();
     }
-    if (BLOCK_SIZE >= 128) {
+    if (_BLOCK_SIZE >= 128) {
         if (tIdx < 64) {
             countShared[tIdx] += countShared[tIdx + 64];
             sumVDShared[tIdx] += sumVDShared[tIdx + 64];
@@ -318,7 +320,7 @@ extern "C" __global__ void projectionKernel(
         localCount = countShared[tIdx];
         localSumVD = sumVDShared[tIdx];
         localModg = modfgShared[tIdx];
-        if (BLOCK_SIZE >= 64) {
+        if (_BLOCK_SIZE >= 64) {
             localCount += countShared[tIdx + 32];
             localSumVD += sumVDShared[tIdx + 32];
             localModg += modfgShared[tIdx + 32];
@@ -348,7 +350,7 @@ extern "C" __global__ void projectionKernel(
 __device__ PrecisionType interpolatedElement3D(
         const PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType outside_value) 
+        PrecisionType outside_value)
 {
         int x0 = (int)CUDA_FLOOR(x);
         PrecisionType fx = x - x0;
@@ -389,281 +391,280 @@ __device__ PrecisionType interpolatedElement3D(
         return LIN_INTERP(fz, dxy0, dxy1);
 }
 
-/*
- * ZSH
- */
+template<int _L1, int _L2>
 __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType rr)
 {
-            // General variables
-            PrecisionType r2 = rr * rr, xr2 = xr * xr, yr2 = yr * yr,
-                          zr2 = zr * zr;
+    // General variables
+    PrecisionType r2 = rr * rr, xr2 = xr * xr, yr2 = yr * yr,
+                  zr2 = zr * zr;
 
-#if L2 >= 5
-            // Variables needed for l2 >= 5
-            PrecisionType tht = CST(0.0), phi = CST(0.0), cost = CST(0.0),
-                          sint = CST(0.0), cost2 = CST(0.0), sint2 = CST(0.0);
-            if (l2 >= 5) {
-              tht = ATAN2(yr, xr);
-              phi = ATAN2(zr, SQRT(xr2 + yr2));
-              sint = SIN(phi);
-              cost = COS(tht);
-              sint2 = sint * sint;
-              cost2 = cost * cost;
+
+    // Variables needed for l2 >= 5
+    PrecisionType tht = CST(0.0), phi = CST(0.0), cost = CST(0.0),
+                  sint = CST(0.0), cost2 = CST(0.0), sint2 = CST(0.0);
+    if (_L2 >= 5) {
+        if (l2 >= 5) {
+            tht = ATAN2(yr, xr);
+            phi = ATAN2(zr, SQRT(xr2 + yr2));
+            sint = SIN(phi);
+            cost = COS(tht);
+            sint2 = sint * sint;
+            cost2 = cost * cost;
+        }
+    }
+
+    // Zernike polynomial
+    PrecisionType R = CST(0.0);
+
+    switch (l1) {
+        case 0:
+            R = SQRT(CST(3));
+            break;
+        case 1:
+            R = SQRT(CST(5)) * rr;
+            break;
+        case 2:
+            switch (n) {
+                case 0:
+                    R = CST(-0.5) * SQRT(CST(7)) *
+                        (CST(2.5) * (1 - 2 * r2) + CST(0.5));
+                    break;
+                case 2:
+                    R = SQRT(CST(7)) * r2;
+                    break;
             }
-#endif// L2 >= 5
-
-            // Zernike polynomial
-            PrecisionType R = CST(0.0);
-
-            switch (l1) {
-            case 0:
-              R = SQRT(CST(3));
-              break;
-            case 1:
-              R = SQRT(CST(5)) * rr;
-              break;
-            case 2:
-              switch (n) {
-              case 0:
-                R = CST(-0.5) * SQRT(CST(7)) *
-                    (CST(2.5) * (1 - 2 * r2) + CST(0.5));
-                break;
-              case 2:
-                R = SQRT(CST(7)) * r2;
-                break;
-              }
-              break;
-#if L1 >= 3
-            case 3:
-              switch (n) {
-              case 1:
-                R = CST(-1.5) * rr * (CST(3.5) * (1 - 2 * r2) + CST(1.5));
-                break;
-              case 3:
-                R = 3 * r2 * rr;
-              }
-              break;
-#endif// L1 >= 3
-#if L1 >= 4
-            case 4:
-              switch (n) {
-              case 0:
-                R = SQRT(CST(11)) *
-                    ((63 * r2 * r2 / 8) - (35 * r2 / 4) + (CST(15) / CST(8)));
-                break;
-              case 2:
-                R = CST(-0.5) * SQRT(CST(11)) * r2 *
-                    (CST(4.5) * (1 - 2 * r2) + CST(2.5));
-                break;
-              case 4:
-                R = SQRT(CST(11)) * r2 * r2;
-                break;
-              }
-              break;
-#endif// L1 >= 4
-#if L1 >= 5
-            case 5:
-              switch (n) {
-              case 1:
-                R = SQRT(CST(13)) * rr *
-                    ((99 * r2 * r2 / 8) - (63 * r2 / 4) + (CST(35) / CST(8)));
-                break;
-              case 3:
-                R = CST(-0.5) * SQRT(CST(13)) * r2 * rr *
-                    (CST(5.5) * (1 - 2 * r2) + CST(3.5));
-                break;
-              }
-              break;
-#endif// L1 >= 5
+            break;
+            if (_L1 >= 3) {
+                case 3:
+                    switch (n) {
+                        case 1:
+                            R = CST(-1.5) * rr * (CST(3.5) * (1 - 2 * r2) + CST(1.5));
+                            break;
+                        case 3:
+                            R = 3 * r2 * rr;
+                    }
+                    break;
             }
-
-            // Spherical harmonic
-            PrecisionType Y = CST(0.0);
-
-            switch (l2) {
-            case 0:
-              Y = (CST(1.0) / CST(2.0)) * SQRT((PrecisionType)CST(1.0) / _PI_);
-              break;
-            case 1:
-              switch (m) {
-              case -1:
-                Y = SQRT(CST(3.0) / (CST(4.0) * _PI_)) * yr;
-                break;
-              case 0:
-                Y = SQRT(CST(3.0) / (CST(4.0) * _PI_)) * zr;
-                break;
-              case 1:
-                Y = SQRT(CST(3.0) / (CST(4.0) * _PI_)) * xr;
-                break;
-              }
-              break;
-            case 2:
-              switch (m) {
-              case -2:
-                Y = SQRT(CST(15.0) / (CST(4.0) * _PI_)) * xr * yr;
-                break;
-              case -1:
-                Y = SQRT(CST(15.0) / (CST(4.0) * _PI_)) * zr * yr;
-                break;
-              case 0:
-                Y = SQRT(CST(5.0) / (CST(16.0) * _PI_)) *
-                    (-xr2 - yr2 + CST(2.0) * zr2);
-                break;
-              case 1:
-                Y = SQRT(CST(15.0) / (CST(4.0) * _PI_)) * xr * zr;
-                break;
-              case 2:
-                Y = SQRT(CST(15.0) / (CST(16.0) * _PI_)) * (xr2 - yr2);
-                break;
-              }
-              break;
-#if L2 >= 3
-            case 3:
-              switch (m) {
-              case -3:
-                Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * _PI_)) * yr *
-                    (CST(3.0) * xr2 - yr2);
-                break;
-              case -2:
-                Y = SQRT(CST(105.0) / (CST(4.0) * _PI_)) * zr * yr * xr;
-                break;
-              case -1:
-                Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * _PI_)) * yr *
-                    (CST(4.0) * zr2 - xr2 - yr2);
-                break;
-              case 0:
-                Y = SQRT(CST(7.0) / (CST(16.0) * _PI_)) * zr *
-                    (CST(2.0) * zr2 - CST(3.0) * xr2 - CST(3.0) * yr2);
-                break;
-              case 1:
-                Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * _PI_)) * xr *
-                    (CST(4.0) * zr2 - xr2 - yr2);
-                break;
-              case 2:
-                Y = SQRT(CST(105.0) / (CST(16.0) * _PI_)) * zr * (xr2 - yr2);
-                break;
-              case 3:
-                Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * _PI_)) * xr *
-                    (xr2 - CST(3.0) * yr2);
-                break;
-              }
-              break;
-#endif// L2 >= 3
-#if L2 >= 4
-            case 4:
-              switch (m) {
-              case -4:
-                Y = SQRT((CST(35.0) * CST(9.0)) / (CST(16.0) * _PI_)) * yr *
-                    xr * (xr2 - yr2);
-                break;
-              case -3:
-                Y = SQRT((CST(9.0) * CST(35.0)) /
-                         (CST(16.0) * CST(2.0) * _PI_)) *
-                    yr * zr * (CST(3.0) * xr2 - yr2);
-                break;
-              case -2:
-                Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * _PI_)) * yr * xr *
-                    (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
-                break;
-              case -1:
-                Y = SQRT((CST(9.0) * CST(5.0)) /
-                         (CST(16.0) * CST(2.0) * _PI_)) *
-                    yr * zr * (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
-                break;
-              case 0:
-                Y = SQRT(CST(9.0) / (CST(16.0) * CST(16.0) * _PI_)) *
-                    (CST(35.0) * zr2 * zr2 - CST(30.0) * zr2 + CST(3.0));
-                break;
-              case 1:
-                Y = SQRT((CST(9.0) * CST(5.0)) /
-                         (CST(16.0) * CST(2.0) * _PI_)) *
-                    xr * zr * (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
-                break;
-              case 2:
-                Y = SQRT((CST(9.0) * CST(5.0)) / (CST(8.0) * CST(8.0) * _PI_)) *
-                    (xr2 - yr2) * (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
-                break;
-              case 3:
-                Y = SQRT((CST(9.0) * CST(35.0)) /
-                         (CST(16.0) * CST(2.0) * _PI_)) *
-                    xr * zr * (xr2 - CST(3.0) * yr2);
-                break;
-              case 4:
-                Y = SQRT((CST(9.0) * CST(35.0)) /
-                         (CST(16.0) * CST(16.0) * _PI_)) *
-                    (xr2 * (xr2 - CST(3.0) * yr2) -
-                     yr2 * (CST(3.0) * xr2 - yr2));
-                break;
-              }
-              break;
-#endif// L2 >= 4
-#if L2 >= 5
-            case 5:
-              switch (m) {
-              case -5:
-                Y = (CST(3.0) / CST(16.0)) *
-                    SQRT(CST(77.0) / (CST(2.0) * _PI_)) * sint2 * sint2 * sint *
-                    SIN(CST(5.0) * phi);
-                break;
-              case -4:
-                Y = (CST(3.0) / CST(8.0)) *
-                    SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint2 *
-                    SIN(CST(4.0) * phi);
-                break;
-              case -3:
-                Y = (CST(1.0) / CST(16.0)) *
-                    SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint *
-                    (CST(9.0) * cost2 - CST(1.0)) * SIN(CST(3.0) * phi);
-                break;
-              case -2:
-                Y = (CST(1.0) / CST(4.0)) *
-                    SQRT(CST(1155.0) / (CST(4.0) * _PI_)) * sint2 *
-                    (CST(3.0) * cost2 * cost - cost) * SIN(CST(2.0) * phi);
-                break;
-              case -1:
-                Y = (CST(1.0) / CST(8.0)) *
-                    SQRT(CST(165.0) / (CST(4.0) * _PI_)) * sint *
-                    (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) *
-                    SIN(phi);
-                break;
-              case 0:
-                Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / _PI_) *
-                    (CST(63.0) * cost2 * cost2 * cost -
-                     CST(70.0) * cost2 * cost + CST(15.0) * cost);
-                break;
-              case 1:
-                Y = (CST(1.0) / CST(8.0)) *
-                    SQRT(CST(165.0) / (CST(4.0) * _PI_)) * sint *
-                    (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) *
-                    COS(phi);
-                break;
-              case 2:
-                Y = (CST(1.0) / CST(4.0)) *
-                    SQRT(CST(1155.0) / (CST(4.0) * _PI_)) * sint2 *
-                    (CST(3.0) * cost2 * cost - cost) * COS(CST(2.0) * phi);
-                break;
-              case 3:
-                Y = (CST(1.0) / CST(16.0)) *
-                    SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint *
-                    (CST(9.0) * cost2 - CST(1.0)) * COS(CST(3.0) * phi);
-                break;
-              case 4:
-                Y = (CST(3.0) / CST(8.0)) *
-                    SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint2 *
-                    COS(CST(4.0) * phi);
-                break;
-              case 5:
-                Y = (CST(3.0) / CST(16.0)) *
-                    SQRT(CST(77.0) / (CST(2.0) * _PI_)) * sint2 * sint2 * sint *
-                    COS(CST(5.0) * phi);
-                break;
-              }
-              break;
-#endif// L2 >= 5
+            if (_L1 >= 4) {
+                case 4:
+                    switch (n) {
+                        case 0:
+                            R = SQRT(CST(11)) *
+                                ((63 * r2 * r2 / 8) - (35 * r2 / 4) + (CST(15) / CST(8)));
+                            break;
+                        case 2:
+                            R = CST(-0.5) * SQRT(CST(11)) * r2 *
+                                (CST(4.5) * (1 - 2 * r2) + CST(2.5));
+                            break;
+                        case 4:
+                            R = SQRT(CST(11)) * r2 * r2;
+                            break;
+                    }
+                    break;
             }
+            if (_L1 >= 5) {
+                case 5:
+                    switch (n) {
+                        case 1:
+                            R = SQRT(CST(13)) * rr *
+                                ((99 * r2 * r2 / 8) - (63 * r2 / 4) + (CST(35) / CST(8)));
+                            break;
+                        case 3:
+                            R = CST(-0.5) * SQRT(CST(13)) * r2 * rr *
+                                (CST(5.5) * (1 - 2 * r2) + CST(3.5));
+                            break;
+                    }
+                    break;
+            }
+    }
 
-            return R * Y;
+    // Spherical harmonic
+    PrecisionType Y = CST(0.0);
+
+    switch (l2) {
+        case 0:
+            Y = (CST(1.0) / CST(2.0)) * SQRT((PrecisionType)CST(1.0) / _PI_);
+            break;
+        case 1:
+            switch (m) {
+                case -1:
+                    Y = SQRT(CST(3.0) / (CST(4.0) * _PI_)) * yr;
+                    break;
+                case 0:
+                    Y = SQRT(CST(3.0) / (CST(4.0) * _PI_)) * zr;
+                    break;
+                case 1:
+                    Y = SQRT(CST(3.0) / (CST(4.0) * _PI_)) * xr;
+                    break;
+            }
+            break;
+        case 2:
+            switch (m) {
+                case -2:
+                    Y = SQRT(CST(15.0) / (CST(4.0) * _PI_)) * xr * yr;
+                    break;
+                case -1:
+                    Y = SQRT(CST(15.0) / (CST(4.0) * _PI_)) * zr * yr;
+                    break;
+                case 0:
+                    Y = SQRT(CST(5.0) / (CST(16.0) * _PI_)) *
+                        (-xr2 - yr2 + CST(2.0) * zr2);
+                    break;
+                case 1:
+                    Y = SQRT(CST(15.0) / (CST(4.0) * _PI_)) * xr * zr;
+                    break;
+                case 2:
+                    Y = SQRT(CST(15.0) / (CST(16.0) * _PI_)) * (xr2 - yr2);
+                    break;
+            }
+            break;
+            if (_L2 >= 3) {
+                case 3:
+                    switch (m) {
+                        case -3:
+                            Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * _PI_)) * yr *
+                                (CST(3.0) * xr2 - yr2);
+                            break;
+                        case -2:
+                            Y = SQRT(CST(105.0) / (CST(4.0) * _PI_)) * zr * yr * xr;
+                            break;
+                        case -1:
+                            Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * _PI_)) * yr *
+                                (CST(4.0) * zr2 - xr2 - yr2);
+                            break;
+                        case 0:
+                            Y = SQRT(CST(7.0) / (CST(16.0) * _PI_)) * zr *
+                                (CST(2.0) * zr2 - CST(3.0) * xr2 - CST(3.0) * yr2);
+                            break;
+                        case 1:
+                            Y = SQRT(CST(21.0) / (CST(16.0) * CST(2.0) * _PI_)) * xr *
+                                (CST(4.0) * zr2 - xr2 - yr2);
+                            break;
+                        case 2:
+                            Y = SQRT(CST(105.0) / (CST(16.0) * _PI_)) * zr * (xr2 - yr2);
+                            break;
+                        case 3:
+                            Y = SQRT(CST(35.0) / (CST(16.0) * CST(2.0) * _PI_)) * xr *
+                                (xr2 - CST(3.0) * yr2);
+                            break;
+                    }
+                    break;
+            }
+            if (_L2 >= 4) {
+                case 4:
+                    switch (m) {
+                        case -4:
+                            Y = SQRT((CST(35.0) * CST(9.0)) / (CST(16.0) * _PI_)) * yr *
+                                xr * (xr2 - yr2);
+                            break;
+                        case -3:
+                            Y = SQRT((CST(9.0) * CST(35.0)) /
+                                    (CST(16.0) * CST(2.0) * _PI_)) *
+                                yr * zr * (CST(3.0) * xr2 - yr2);
+                            break;
+                        case -2:
+                            Y = SQRT((CST(9.0) * CST(5.0)) / (CST(16.0) * _PI_)) * yr * xr *
+                                (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
+                            break;
+                        case -1:
+                            Y = SQRT((CST(9.0) * CST(5.0)) /
+                                    (CST(16.0) * CST(2.0) * _PI_)) *
+                                yr * zr * (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
+                            break;
+                        case 0:
+                            Y = SQRT(CST(9.0) / (CST(16.0) * CST(16.0) * _PI_)) *
+                                (CST(35.0) * zr2 * zr2 - CST(30.0) * zr2 + CST(3.0));
+                            break;
+                        case 1:
+                            Y = SQRT((CST(9.0) * CST(5.0)) /
+                                    (CST(16.0) * CST(2.0) * _PI_)) *
+                                xr * zr * (CST(7.0) * zr2 - CST(3.0) * (xr2 + yr2 + zr2));
+                            break;
+                        case 2:
+                            Y = SQRT((CST(9.0) * CST(5.0)) / (CST(8.0) * CST(8.0) * _PI_)) *
+                                (xr2 - yr2) * (CST(7.0) * zr2 - (xr2 + yr2 + zr2));
+                            break;
+                        case 3:
+                            Y = SQRT((CST(9.0) * CST(35.0)) /
+                                    (CST(16.0) * CST(2.0) * _PI_)) *
+                                xr * zr * (xr2 - CST(3.0) * yr2);
+                            break;
+                        case 4:
+                            Y = SQRT((CST(9.0) * CST(35.0)) /
+                                    (CST(16.0) * CST(16.0) * _PI_)) *
+                                (xr2 * (xr2 - CST(3.0) * yr2) -
+                                 yr2 * (CST(3.0) * xr2 - yr2));
+                            break;
+                    }
+                    break;
+            }
+            if (_L2 >= 5) {
+                case 5:
+                    switch (m) {
+                        case -5:
+                            Y = (CST(3.0) / CST(16.0)) *
+                                SQRT(CST(77.0) / (CST(2.0) * _PI_)) * sint2 * sint2 * sint *
+                                SIN(CST(5.0) * phi);
+                            break;
+                        case -4:
+                            Y = (CST(3.0) / CST(8.0)) *
+                                SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint2 *
+                                SIN(CST(4.0) * phi);
+                            break;
+                        case -3:
+                            Y = (CST(1.0) / CST(16.0)) *
+                                SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint *
+                                (CST(9.0) * cost2 - CST(1.0)) * SIN(CST(3.0) * phi);
+                            break;
+                        case -2:
+                            Y = (CST(1.0) / CST(4.0)) *
+                                SQRT(CST(1155.0) / (CST(4.0) * _PI_)) * sint2 *
+                                (CST(3.0) * cost2 * cost - cost) * SIN(CST(2.0) * phi);
+                            break;
+                        case -1:
+                            Y = (CST(1.0) / CST(8.0)) *
+                                SQRT(CST(165.0) / (CST(4.0) * _PI_)) * sint *
+                                (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) *
+                                SIN(phi);
+                            break;
+                        case 0:
+                            Y = (CST(1.0) / CST(16.0)) * SQRT(CST(11.0) / _PI_) *
+                                (CST(63.0) * cost2 * cost2 * cost -
+                                 CST(70.0) * cost2 * cost + CST(15.0) * cost);
+                            break;
+                        case 1:
+                            Y = (CST(1.0) / CST(8.0)) *
+                                SQRT(CST(165.0) / (CST(4.0) * _PI_)) * sint *
+                                (CST(21.0) * cost2 * cost2 - CST(14.0) * cost2 + 1) *
+                                COS(phi);
+                            break;
+                        case 2:
+                            Y = (CST(1.0) / CST(4.0)) *
+                                SQRT(CST(1155.0) / (CST(4.0) * _PI_)) * sint2 *
+                                (CST(3.0) * cost2 * cost - cost) * COS(CST(2.0) * phi);
+                            break;
+                        case 3:
+                            Y = (CST(1.0) / CST(16.0)) *
+                                SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint *
+                                (CST(9.0) * cost2 - CST(1.0)) * COS(CST(3.0) * phi);
+                            break;
+                        case 4:
+                            Y = (CST(3.0) / CST(8.0)) *
+                                SQRT(CST(385.0) / (CST(2.0) * _PI_)) * sint2 * sint2 *
+                                COS(CST(4.0) * phi);
+                            break;
+                        case 5:
+                            Y = (CST(3.0) / CST(16.0)) *
+                                SQRT(CST(77.0) / (CST(2.0) * _PI_)) * sint2 * sint2 * sint *
+                                COS(CST(5.0) * phi);
+                            break;
+                    }
+                    break;
+            }
+    }
+
+    return R * Y;
 }
 
 } // namespace AngularAlignmentGpu
