@@ -135,9 +135,10 @@ void ProgAngularSphAlignmentGpu::defineParams()
 void ProgAngularSphAlignmentGpu::createWorkFiles() {
 	auto gpu = GPU(device);
 	gpu.set();
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
-	mdTodo = *pmdIn;
+	// ? Could it be MetaDataVec (not MetaDataDb), dynamic_cast and no casting when equal pointer?
+	MetaDataVec *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
+	MetaDataDb mdTodo, mdDone;
+	mdTodo =*pmdIn;
 	FileName fn(fnOutDir+"/sphDone.xmd");
 	if (fn.exists() && resume) {
 		mdDone.read(fn);
@@ -488,7 +489,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 #undef DEBUG
 
 void ProgAngularSphAlignmentGpu::writeImageParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
     int pos = 3*vecSize;
 	size_t objId = md.addObject();
 	md.setValue(MDL_IMAGE, fnImg, objId);
