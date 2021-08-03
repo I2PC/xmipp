@@ -67,6 +67,7 @@ void ProgAngularSphAlignment::readParams()
 	L2 = getIntParam("--l2");
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
+	fnDone = fnOutDir + "/sphDone.xmd";
 }
 
 // Show ====================================================================
@@ -127,29 +128,28 @@ void ProgAngularSphAlignment::defineParams()
 
 // Produce side information ================================================
 void ProgAngularSphAlignment::createWorkFiles() {
-	MetaDataVec *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
-	MetaDataDb mdTodo, mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/sphDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
+	if (resume && fnDone.exists()) {
+		MetaDataDb done(fnDone);
+		auto *candidates = getInputMd();
+		MetaDataDb toDo(*candidates);
+		toDo.subtraction(done, MDL_IMAGE);
+		*candidates = toDo;
 	} else //if not exists create metadata only with headers
 	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_FLIP);
-		mdDone.addLabel(MDL_SPH_DEFORMATION);
-		mdDone.addLabel(MDL_SPH_COEFFICIENTS);
-		mdDone.addLabel(MDL_COST);
-		mdDone.write(fn);
+		MetaDataVec done;
+		done.addLabel(MDL_IMAGE);
+		done.addLabel(MDL_ENABLED);
+		done.addLabel(MDL_ANGLE_ROT);
+		done.addLabel(MDL_ANGLE_TILT);
+		done.addLabel(MDL_ANGLE_PSI);
+		done.addLabel(MDL_SHIFT_X);
+		done.addLabel(MDL_SHIFT_Y);
+		done.addLabel(MDL_FLIP);
+		done.addLabel(MDL_SPH_DEFORMATION);
+		done.addLabel(MDL_SPH_COEFFICIENTS);
+		done.addLabel(MDL_COST);
+		done.write(fnDone);
 	}
-	*pmdIn = mdTodo;
 }
 
 void ProgAngularSphAlignment::preProcess()
@@ -220,7 +220,7 @@ void ProgAngularSphAlignment::preProcess()
 
 void ProgAngularSphAlignment::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir+"/sphDone.xmd").c_str(), fn_out.c_str());
+	rename(fnDone.c_str(), fn_out.c_str());
 }
 
 // #define DEBUG
@@ -494,7 +494,7 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	}
 	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
 	md.setValue(MDL_COST,        correlation, objId);
-	md.append(fnOutDir+"/sphDone.xmd");
+	md.append(fnDone);
 }
 
 void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &vecSize)

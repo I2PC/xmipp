@@ -47,6 +47,8 @@ public:
     FileName fnMaskR;
     /// Output directory
     FileName fnOutDir;
+    // Metadata with already processed images
+    FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
     int L1, L2;
     /** Zernike and SPH coefficients vectors */
