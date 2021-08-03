@@ -239,7 +239,6 @@ void radialAverage(const MultidimArray<double> &VolFourierMagRad,
 		MultidimArray<double> radial_mean) {
 	Matrix1D<int> center(2);
 	center.initZeros();
-	MultidimArray<double> radial_mean;
 	MultidimArray<int> radial_count;
 	radialAverageNonCubic(VolFourierMagRad, center, radial_mean, radial_count);
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(VolFourierRad)
