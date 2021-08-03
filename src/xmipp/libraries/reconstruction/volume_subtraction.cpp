@@ -31,7 +31,7 @@
 #include <data/fourier_filter.h>
 
 
- // Usage ===================================================================
+// Usage ===================================================================
 void ProgVolumeSubtraction::defineParams() {
 	// Usage
 	addUsageLine("This program modifies a volume as much as possible in order "
@@ -45,7 +45,7 @@ void ProgVolumeSubtraction::defineParams() {
 	// Parameters
 	addParamsLine("--i1 <volume>			: Reference volume");
 	addParamsLine("--i2 <volume>			: Volume to modify");
-	addParamsLine("[-o <structure=\"\">]		: Volume 2 modified or "
+	addParamsLine("[-o <structure=\"\">]\t: Volume 2 modified or "
 			"volume difference");
 	addParamsLine("					: If no name is given, "
 			"then output_volume.mrc");
@@ -139,13 +139,13 @@ void ProgVolumeSubtraction::show() const {
 the use of Projectors Onto Convex Sets (POCS) */
 void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-			DIRECT_MULTIDIM_ELEM(I, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
-	}
+							DIRECT_MULTIDIM_ELEM(I, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
+}
 
 void POCSnonnegative(MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-			DIRECT_MULTIDIM_ELEM(I, n) = std::max(0.0, DIRECT_MULTIDIM_ELEM(I, n));
-	}
+							DIRECT_MULTIDIM_ELEM(I, n) = std::max(0.0, DIRECT_MULTIDIM_ELEM(I, n));
+}
 
 void POCSFourierAmplitude(const MultidimArray<double> &A,
 		MultidimArray<std::complex<double>> &FI,
@@ -162,31 +162,34 @@ void POCSFourierAmplitude(const MultidimArray<double> &A,
 void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
 		double lambda, const MultidimArray<double> &rQ,
 		int V1size_x, int V1size_y, int V1size_z) {
-	int V1size2_x = V1size_x / 2;
-	double V1sizei_x = 1.0 / V1size_x;
-	int V1size2_y = V1size_y / 2;
-	double V1sizei_y = 1.0 / V1size_y;
-	int V1size2_z = V1size_z / 2;
-	double V1sizei_z = 1.0 / V1size_z;
+	int V1size2_x = V1size_x/2;
+	double V1sizei_x = 1.0/V1size_x;
+	int V1size2_y = V1size_y/2;
+	double V1sizei_y = 1.0/V1size_y;
+	int V1size2_z = V1size_z/2;
+	double V1sizei_z = 1.0/V1size_z;
 	double wx;
 	double wy;
 	double wz;
-	for (int k = 0; k < V1size_z; ++k) {
-		FFT_IDX2DIGFREQ_FAST(k, V1size_z, V1size2_z, V1sizei_z, wz)
-    		  double wz2 = wz * wz;
-		for (int i = 0; i < V1size_y; ++i) {
-			FFT_IDX2DIGFREQ_FAST(i, V1size_y, V1size2_y, V1sizei_y, wy)
-        		double wy2 = wy * wy;
-			for (int j = 0; j < V1size_x; ++j) {
-				FFT_IDX2DIGFREQ_FAST(j, V1size_x, V1size2_x, V1sizei_x, wx)
-        		  double w = sqrt(wx * wx + wy2 + wz2);
-				auto iw = (int)round(w * V1size_x);
-				DIRECT_A3D_ELEM(V, k, i, j) *=
-						(1 - lambda) + lambda * DIRECT_MULTIDIM_ELEM(rQ, iw);
+	for (int k=0; k<V1size_z; ++k)
+	{
+		FFT_IDX2DIGFREQ_FAST(k,V1size_z,V1size2_z,V1sizei_z,wz)
+				double wz2 = wz*wz;
+		for (int i=0; i<V1size_y; ++i)
+		{
+			FFT_IDX2DIGFREQ_FAST(i,V1size_y,V1size2_y,V1sizei_y,wy)
+					double wy2 = wy*wy;
+			for (int j=0; j<V1size_x; ++j)
+			{
+				FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx)
+						double w = sqrt(wx*wx + wy2 + wz2);
+				auto iw = (int)round(w*V1size_x);
+				DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
 			}
 		}
 	}
 }
+
 
 void POCSMinMax(MultidimArray<double> &V, double v1m, double v1M) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V) {
@@ -201,8 +204,8 @@ void POCSMinMax(MultidimArray<double> &V, double v1m, double v1M) {
 void POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
 		MultidimArray<std::complex<double>> &FI) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(phase)
-    		DIRECT_MULTIDIM_ELEM(FI, n) =
-    				std::abs(DIRECT_MULTIDIM_ELEM(FI, n)) * DIRECT_MULTIDIM_ELEM(phase, n);
+    						DIRECT_MULTIDIM_ELEM(FI, n) =
+    								std::abs(DIRECT_MULTIDIM_ELEM(FI, n)) * DIRECT_MULTIDIM_ELEM(phase, n);
 }
 
 /* Other methods needed to pre-process and operate with the volumes */
@@ -233,16 +236,19 @@ void centerFFTMagnitude(MultidimArray<double> &VolRad,
 	VolFourierMagRad.setXmippOrigin();
 }
 
-void radialAverage(const MultidimArray<double> &VolFourierMagRad,
+MultidimArray<double> radialAverage(const MultidimArray<double> &VolFourierMagRad,
 		const MultidimArray<std::complex<double>> &VolFourierRad,
-		MultidimArray<double> const &Volrad,
-		MultidimArray<double> radial_mean) {
+		MultidimArray<double> const &Volrad) {
 	Matrix1D<int> center(2);
 	center.initZeros();
+	MultidimArray<double> radial_mean;
 	MultidimArray<int> radial_count;
 	radialAverageNonCubic(VolFourierMagRad, center, radial_mean, radial_count);
-	FOR_ALL_ELEMENTS_IN_ARRAY1D(VolFourierRad)
-	Volrad(i) = radial_mean(i);
+	FOR_ALL_ELEMENTS_IN_ARRAY1D(VolFourierRad){
+		Volrad(i) = radial_mean(i);
+	}
+	return radial_mean;
+
 }
 
 MultidimArray<double> computeRadialMean(MultidimArray<double> volume) {
@@ -250,8 +256,7 @@ MultidimArray<double> computeRadialMean(MultidimArray<double> volume) {
 	MultidimArray<std::complex<double>> fourierRad;
 	MultidimArray<double> fourierMagRad;
 	centerFFTMagnitude(volume, fourierRad, fourierMagRad);
-	MultidimArray<double> radialMean;
-	radialAverage(fourierMagRad, fourierRad, volume, radialMean);
+	auto radialMean = radialAverage(fourierMagRad, fourierRad, volume);
 	return radialMean;
 }
 
@@ -264,7 +269,6 @@ MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1,
 	radQuotient = radial_meanV1 / radial_meanV;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 	radQuotient(i) = std::min(radQuotient(i), 1.0);
-
 	return radQuotient;
 }
 
@@ -273,12 +277,12 @@ void subtraction(MultidimArray<double> &V1,
 		const MultidimArray<double> &V,
 		const MultidimArray<double> &mask) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1)
-    		DIRECT_MULTIDIM_ELEM(V1, n) =
-    				DIRECT_MULTIDIM_ELEM(V1, n) * (1 - DIRECT_MULTIDIM_ELEM(mask, n)) +
-					(DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
-							std::min(DIRECT_MULTIDIM_ELEM(V, n),
-									DIRECT_MULTIDIM_ELEM(V1Filtered, n))) *
-									DIRECT_MULTIDIM_ELEM(mask, n);
+    						DIRECT_MULTIDIM_ELEM(V1, n) =
+    								DIRECT_MULTIDIM_ELEM(V1, n) * (1 - DIRECT_MULTIDIM_ELEM(mask, n)) +
+									(DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
+											std::min(DIRECT_MULTIDIM_ELEM(V, n),
+													DIRECT_MULTIDIM_ELEM(V1Filtered, n))) *
+													DIRECT_MULTIDIM_ELEM(mask, n);
 }
 
 FourierFilter Filter2;

@@ -74,7 +74,7 @@ TEST_F(POCSTest, pocsamplituderadAvg)
 	transformer.completeFourierTransform(img(), IFourier);
 	CenterFFT(IFourier, true);
 	FFT_magnitude(IFourier,IFourierMag);
-	radialAverage(IFourierMag, IFourier, img(), radial_meanI);
+	radial_meanI = radialAverage(IFourierMag, IFourier, img());
 	radQuotient = radial_meanI/radial_meanI;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 		radQuotient(i) = std::min(radQuotient(i), 1.0);
