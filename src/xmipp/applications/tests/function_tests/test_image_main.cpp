@@ -234,62 +234,32 @@ TEST_F( ImageTest, writeIMAGICstack)
     XMIPP_CATCH
 }
 
-TEST_F( ImageTest, writeMRCimage)
+void checkMRC(Image<double> &myImage, const FileName &suffixIn, const FileName &suffixOut)
 {
     XMIPP_TRY
     FileName auxFn;
     auxFn.initUniqueName("/tmp/temp_mrc_XXXXXX");
-    auxFn = auxFn + ":mrc";
-    myImage.write(auxFn);
+    myImage.write(auxFn+suffixIn);
     Image<double> auxImage;
-    auxImage.read(auxFn);
+    auxImage.read(auxFn+suffixOut);
     EXPECT_EQ(myImage,auxImage);
     auxFn.deleteFile();
     XMIPP_CATCH
 }
 
+TEST_F( ImageTest, writeMRCimage)
+{
+	checkMRC(myImage,":mrc",":mrc");
+}
+
 TEST_F( ImageTest, writeMRCstack)
 {
-    XMIPP_TRY
-    FileName auxFn;
-    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
-    auxFn = auxFn + ":mrcs";
-    myStack.write(auxFn);
-    Image<double> auxStack;
-    auxStack.read(auxFn);
-    EXPECT_EQ(myStack,auxStack);
-    auxFn.deleteFile();
-    XMIPP_CATCH
-}
+	checkMRC(myImage,":mrcs",":mrcs");
+	checkMRC(myImage,".ali:mrcs",".ali");
+	checkMRC(myImage,".preali:mrcs",".preali");
 
-TEST_F( ImageTest, writeMRCstack2)
-{
-    XMIPP_TRY
-    FileName auxFn;
-    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
-    auxFn = auxFn + ".ali";
-    myStack.write(auxFn+":mrcs");
-    Image<double> auxStack;
-    auxStack.read(auxFn);
-    EXPECT_EQ(myStack,auxStack);
-    auxFn.deleteFile();
-    XMIPP_CATCH
-}
-
-TEST_F( ImageTest, writeMRCstack3)
-{
-    XMIPP_TRY
 	setenv("XMIPP_MRC_EXTENSIONS", "aux", 1);
-
-    FileName auxFn;
-    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
-    auxFn = auxFn + ".aux";
-    myStack.write(auxFn);
-    Image<double> auxStack;
-    auxStack.read(auxFn);
-    EXPECT_EQ(myStack,auxStack);
-    auxFn.deleteFile();
-    XMIPP_CATCH
+	checkMRC(myImage,".aux",".aux");
 }
 
 TEST_F( ImageTest, writeMRCVOLstack)
