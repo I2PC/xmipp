@@ -262,6 +262,36 @@ TEST_F( ImageTest, writeMRCstack)
     XMIPP_CATCH
 }
 
+TEST_F( ImageTest, writeMRCstack2)
+{
+    XMIPP_TRY
+    FileName auxFn;
+    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
+    auxFn = auxFn + ".ali";
+    myStack.write(auxFn+":mrcs");
+    Image<double> auxStack;
+    auxStack.read(auxFn);
+    EXPECT_EQ(myStack,auxStack);
+    auxFn.deleteFile();
+    XMIPP_CATCH
+}
+
+TEST_F( ImageTest, writeMRCstack3)
+{
+    XMIPP_TRY
+	setenv("XMIPP_MRC_EXTENSIONS", "aux", 1);
+
+    FileName auxFn;
+    auxFn.initUniqueName("/tmp/temp_mrcstk_XXXXXX");
+    auxFn = auxFn + ".aux";
+    myStack.write(auxFn);
+    Image<double> auxStack;
+    auxStack.read(auxFn);
+    EXPECT_EQ(myStack,auxStack);
+    auxFn.deleteFile();
+    XMIPP_CATCH
+}
+
 TEST_F( ImageTest, writeMRCVOLstack)
 {
     XMIPP_TRY
@@ -277,6 +307,27 @@ TEST_F( ImageTest, writeMRCVOLstack)
     myVolStack.getDimensions(StackArrayDim);
     auxStack.getDimensions(auxStackArrayDim);
     EXPECT_TRUE(StackArrayDim==auxStackArrayDim);
+    auxFn.deleteFile();
+    XMIPP_CATCH
+}
+
+TEST_F( ImageTest, writeMRCVOLstack2)
+{
+    XMIPP_TRY
+    FileName auxFn;
+    auxFn.initUniqueName("/tmp/temp_mrcvol_XXXXXX");
+    auxFn = auxFn + ".rec";
+    myVolStack.write(auxFn+":mrc");
+    Image<double> auxVol;
+    auxVol.read(auxFn);
+    EXPECT_EQ(myVolStack,auxVol);
+    ArrayDim volArrayDim;
+    ArrayDim stackArrayDim;
+    myVolStack.getDimensions(stackArrayDim);
+    auxVol.getDimensions(volArrayDim);
+    EXPECT_TRUE(stackArrayDim.xdim==volArrayDim.xdim);
+    EXPECT_TRUE(stackArrayDim.ydim==volArrayDim.ydim);
+    EXPECT_TRUE(stackArrayDim.ndim==volArrayDim.zdim);
     auxFn.deleteFile();
     XMIPP_CATCH
 }
