@@ -778,14 +778,14 @@ void ProgNormalize::preProcess()
         FileName fn_img;
         ImageGeneric Ig;
         MetaData * md = getInputMd();
-        FOR_ALL_OBJECTS_IN_METADATA(*md)
+        for (size_t objId: md->ids())
         {
-            md->getValue(image_label, fn_img, __iter.objId);
+            md->getValue(image_label, fn_img, objId);
 
             if (fn_img.empty())
                 break;
 
-            if (!md->getValue(MDL_ANGLE_TILT,tiltTemp,__iter.objId))
+            if (!md->getValue(MDL_ANGLE_TILT,tiltTemp, objId))
             {
                 Ig.readMapped(fn_img);
                 tiltTemp = ABS(Ig.tilt());

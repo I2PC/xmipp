@@ -154,10 +154,10 @@ void ProgAngularDiscreteAssign::preProcess()
     rot.resize(SF_ref.size());
     tilt.resize(SF_ref.size());
     int i = 0;
-    FOR_ALL_OBJECTS_IN_METADATA(SF_ref)
+    for (size_t objId : SF_ref.ids())
     {
-        SF_ref.getValue(MDL_ANGLE_ROT, rot[i],__iter.objId);
-        SF_ref.getValue(MDL_ANGLE_TILT, tilt[i],__iter.objId);
+        SF_ref.getValue(MDL_ANGLE_ROT, rot[i], objId);
+        SF_ref.getValue(MDL_ANGLE_TILT, tilt[i], objId);
         i++;
     }
 
@@ -210,7 +210,7 @@ void ProgAngularDiscreteAssign::preProcess()
 void ProgAngularDiscreteAssign::postProcess()
 {
 	if (single_image)
-		getOutputMd()->write(fn_out);
+		getOutputMd().write(fn_out);
 }
 
 // Produce library -----------------------------------------------------------
@@ -236,9 +236,9 @@ void ProgAngularDiscreteAssign::produce_library()
         init_progress_bar(number_of_imgs);
     }
     int n = 0, nstep = XMIPP_MAX(1, number_of_imgs / 60); // For progress bar
-    FOR_ALL_OBJECTS_IN_METADATA(SF_ref)
+    for (size_t objId : SF_ref.ids())
     {
-        I.readApplyGeo(SF_ref,__iter.objId);
+        I.readApplyGeo(SF_ref, objId);
         library_name.push_back(I.name());
 
         // Make and distribute its DWT coefficients in the different PCA bins
@@ -715,7 +715,7 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
     img.read(fnImg);
     img.setGeo(rowIn);
     if (rowIn.containsLabel(MDL_ANGLE_PSI))
-    	img.setPsi(-img.psi());
+        img.setPsi(-img.psi());
 
     double best_rot, best_tilt, best_psi, best_shiftX, best_shiftY,
     best_score = 0, best_rate;

@@ -85,6 +85,12 @@ void AProgMovieAlignmentCorrelation<T>::checkSettings() {
                 "Check the intervals of the alignment and summation "
                 "(--frameRange and --frameRangeSum).");
     }
+    if (getScaleFactor() >= 1) {
+        REPORT_ERROR(ERR_LOGIC_ERROR, "The correlation scale factor is bigger than one. "
+                "Check that the sampling rate (--sampling) and maximal resolution to align "
+                "(--maxResForCorrelation) are correctly set. For current sampling, you can "
+                "use maximal resolution of " + std::to_string(this->Ts * 8 * getC()) + " or higher.");
+    }
 }
 
 template<typename T>
@@ -390,26 +396,24 @@ void AProgMovieAlignmentCorrelation<T>::storeGlobalShifts(
     int j = 0;
     int n = 0;
     auto negateToDouble = [] (T v) {return (double) (v * -1);};
-        FOR_ALL_OBJECTS_IN_METADATA(movie)
+        for (size_t objId : movie.ids())
         {
             if (n >= nfirst && n <= nlast) {
                 auto shift = alignment.shifts.at(j);
                 // we should store shift that should be applied
-                movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x),
-                        __iter.objId);
-                movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y),
-                        __iter.objId);
+                movie.setValue(MDL_SHIFT_X, negateToDouble(shift.x), objId);
+                movie.setValue(MDL_SHIFT_Y, negateToDouble(shift.y), objId);
                 j++;
-            movie.setValue(MDL_ENABLED, 1, __iter.objId);
+            movie.setValue(MDL_ENABLED, 1, objId);
         } else {
-            movie.setValue(MDL_ENABLED, -1, __iter.objId);
-            movie.setValue(MDL_SHIFT_X, 0.0, __iter.objId);
-            movie.setValue(MDL_SHIFT_Y, 0.0, __iter.objId);
+            movie.setValue(MDL_ENABLED, -1, objId);
+            movie.setValue(MDL_SHIFT_X, 0.0, objId);
+            movie.setValue(MDL_SHIFT_Y, 0.0, objId);
         }
-        movie.setValue(MDL_WEIGHT, 1.0, __iter.objId);
+        movie.setValue(MDL_WEIGHT, 1.0, objId);
         n++;
     }
-    MetaData mdIref;
+    MetaDataVec mdIref;
     mdIref.setValue(MDL_REF, (int)(nfirst + alignment.refFrame), mdIref.addObject());
     mdIref.write((FileName) ("referenceFrame@") + fnOut, MD_APPEND);
 }
@@ -420,11 +424,11 @@ AlignmentResult<T> AProgMovieAlignmentCorrelation<T>::loadGlobalShifts(MetaData 
     int n = 0;
     T shiftX;
     T shiftY;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         if (n >= nfirst && n <= nlast) {
-            movie.getValue(MDL_SHIFT_X, shiftX, __iter.objId);
-            movie.getValue(MDL_SHIFT_Y, shiftY, __iter.objId);
+            movie.getValue(MDL_SHIFT_X, shiftX, objId);
+            movie.getValue(MDL_SHIFT_Y, shiftY, objId);
 
             // loaded values are shift that should be applied
             // so we have to negate it
@@ -528,7 +532,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
         auto globalShift = alignment.globalHint.shifts.at(tileIdxT);
         shifts.emplace_back(hypot(shift.first - globalShift.x, shift.second - globalShift.y));
     }
-    MetaData mdIref;
+    MetaDataVec mdIref;
     size_t id = mdIref.addObject();
     // Store confidence interval
     std::sort(shifts.begin(), shifts.end(), std::less<double>());
@@ -576,7 +580,7 @@ void AProgMovieAlignmentCorrelation<T>::run() {
     show();
     checkSettings();
     // preprocess input data
-    MetaData movie;
+    MetaDataVec movie;
     readMovie(movie);
     correctLoopIndices(movie);
 

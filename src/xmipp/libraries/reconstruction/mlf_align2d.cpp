@@ -102,12 +102,12 @@ void ProgMLF2D::readParams()
     do_restart = checkParam("--restart");
     if (do_restart)
     {
-        MetaData MDrestart;
+        MetaDataVec MDrestart;
         char *copy  = NULL;
 
         MDrestart.read(getParameter(argc, argv, "--restart"));
         cline = MDrestart.getComment();
-        size_t id = MDrestart.firstObject();
+        size_t id = MDrestart.firstRowId();
         MDrestart.getValue(MDL_SIGMAOFFSET, restart_offset, id);
         MDrestart.getValue(MDL_IMGMD, restart_imgmd, id);
         MDrestart.getValue(MDL_REFMD, restart_refmd, id);
@@ -385,7 +385,7 @@ void ProgMLF2D::produceSideInfo()
         FileName fn_ctf;
 
         //CTF info now comes on input metadatas
-        MetaData mdCTF;
+        MetaDataDb mdCTF;
         std::vector<MDLabel> groupby;
         groupCTFMetaData(MDimg, mdCTF, groupby);
 
@@ -404,23 +404,21 @@ void ProgMLF2D::produceSideInfo()
         //FOR_ALL_DEFOCUS_GROUPS()
         int ifocus = 0;
         count_defocus.resize(nr_focus);
-        size_t id;
         MultidimArray<double> dum(hdim);
 
-        FOR_ALL_OBJECTS_IN_METADATA(mdCTF)
+        for (size_t objId : mdCTF.ids())
         {
-            id = __iter.objId;
             //Set defocus group
-            mdCTF.setValue(MDL_DEFGROUP, ifocus, id);
+            mdCTF.setValue(MDL_DEFGROUP, ifocus, objId);
             //Read number of images in group
             size_t c;
-            mdCTF.getValue(MDL_COUNT, c, id);
+            mdCTF.getValue(MDL_COUNT, c, objId);
             count_defocus[ifocus] = (int)c;
             if (count_defocus[ifocus] < 50 && verbose)
                 std::cerr << "WARNING%% CTF group " << (ifocus + 1) << " contains less than 50 images!" << std::endl;
 
             //Read ctf from disk
-            ctf.readFromMetadataRow(mdCTF, id);
+            ctf.readFromMetadataRow(mdCTF, objId);
 
             double astigmCTFFactor = fabs( (ctf.DeltafV - ctf.DeltafU) / (std::max(ctf.DeltafV, ctf.DeltafU)) );
             // we discard the CTF with a normalized diference between deltaU and deltaV of 10%
@@ -479,7 +477,7 @@ void ProgMLF2D::produceSideInfo()
         }
 
         // Make a join to set the MDL_DEFGROUP to each image
-        MetaData md(MDimg);
+        MetaDataDb md(MDimg);
         MDimg.joinNatural(md, mdCTF);
     }
 
@@ -537,9 +535,9 @@ void ProgMLF2D::produceSideInfo2()
     double ref_fraction = (double)1. / model.n_ref;
     double ref_weight = (double)nr_images_global / model.n_ref;
 
-    FOR_ALL_OBJECTS_IN_METADATA(MDref)
+    for (size_t objId : MDref.ids())
     {
-        MDref.getValue(MDL_IMAGE, fn_tmp, __iter.objId);
+        MDref.getValue(MDL_IMAGE, fn_tmp, objId);
         img.read(fn_tmp);
         img().setXmippOrigin();
         model.Iref.push_back(img);
@@ -624,15 +622,15 @@ void ProgMLF2D::produceSideInfo2()
         // read Model parameters
         refno = 0;
         double sumw = 0.;
-        FOR_ALL_OBJECTS_IN_METADATA(MDref)
+        for (size_t objId : MDref.ids())
         {
-            MDref.getValue(MDL_WEIGHT, alpha_k[refno], __iter.objId);
+            MDref.getValue(MDL_WEIGHT, alpha_k[refno], objId);
             sumw += alpha_k[refno];
             if (do_mirror)
                 MDref.getValue(MDL_MIRRORFRAC,
-                               mirror_fraction[refno], __iter.objId);
+                               mirror_fraction[refno], objId);
             if (do_norm)
-                MDref.getValue(MDL_INTSCALE, refs_avgscale[refno], __iter.objId);
+                MDref.getValue(MDL_INTSCALE, refs_avgscale[refno], objId);
             refno++;
         }
         FOR_ALL_MODELS()
@@ -691,17 +689,19 @@ void ProgMLF2D::produceSideInfo2()
 
     // Read in Vsig-vectors with fixed file names
     FileName fn_base = FN_ITER_BASE(istart - 1);
-    MetaData md;
+    MetaDataVec md;
 
     FOR_ALL_DEFOCUS_GROUPS()
     {
         fn_tmp = FN_VSIG(fn_base, ifocus, "noise.xmd");
         md.read(fn_tmp);
 
-        FOR_ALL_OBJECTS_IN_METADATA(md)
+        size_t i = 0;
+        for (size_t objId : md.ids())
         {
-            md.getValue(MDL_MLF_NOISE, aux, __iter.objId);
-            dAi(Vsig[ifocus], __iter.objIndex) = aux;
+            md.getValue(MDL_MLF_NOISE, aux, objId);
+            dAi(Vsig[ifocus], i) = aux;
+            i++;
         }
 
 #ifdef OLD_FILE
@@ -777,12 +777,12 @@ void ProgMLF2D::estimateInitialNoiseSpectra()
         Maux.initZeros(dim, dim);
         int imgno = 0;
 
-        FOR_ALL_OBJECTS_IN_METADATA(MDimg)
+        for (size_t objId : MDimg.ids())
         {
             focus = 0;
             if (do_ctf_correction)
-                MDimg.getValue(MDL_DEFGROUP, focus, __iter.objId);
-            MDimg.getValue(MDL_IMAGE, fn_tmp, __iter.objId);
+                MDimg.getValue(MDL_DEFGROUP, focus, objId);
+            MDimg.getValue(MDL_IMAGE, fn_tmp, objId);
             //img.read(fn_tmp, false, false, false, false);
             //TODO: Check this????
             img.read(fn_tmp);
@@ -993,7 +993,7 @@ void ProgMLF2D::updateWienerFilters(const MultidimArray<double> &spectral_signal
     double resol_step = 1. / (sampling * dim);
     double resol_freq = 0;
     double resol_real = 999.;
-    MDRow row;
+    MDRowVec row;
 
     if (verbose > 0)
     {
@@ -1002,7 +1002,7 @@ void ProgMLF2D::updateWienerFilters(const MultidimArray<double> &spectral_signal
         FOR_ALL_DEFOCUS_GROUPS()
         {
             resol_freq = 0;
-            MetaData md;
+            MetaDataVec md;
             FOR_ALL_DIGITAL_FREQS()
             {
                 noise = 2. * VSIG_ITEM * sumw_defocus[ifocus];
@@ -2614,7 +2614,8 @@ void ProgMLF2D::maximization()
             rmean_sigma2.initZeros();
             radialAverage(Maux, center, rmean_sigma2, radial_count, true);
             // Factor 2 here, because the Gaussian distribution is 2D!
-            for (size_t irr = 0; irr <= current_highres_limit; irr++)
+            size_t maxIrr = std::min(current_highres_limit, MULTIDIM_SIZE(Vsig[ifocus]) - 1);
+            for (size_t irr = 0; irr <= maxIrr; irr++)
             {
                 aux = dAi(rmean_sigma2, irr) / (2. * sumw_defocus[ifocus]);
                 if (aux > 0.)
@@ -2690,7 +2691,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
 
     FileName          fn_tmp, fn_base;
     Image<double>        Itmp;
-    MetaData          MDo;
+    MetaDataVec          MDo;
     String       comment;
     std::ofstream     fh;
     size_t id;
@@ -2715,34 +2716,40 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     // Write out current reference images and fill sel & log-file
     // First time for _ref, second time for _cref
     FileName fn_base_cref = FN_CREF_IMG;
-    MDRow row;
-    MDIterator mdIter(MDref);
     MDo = MDref;
+    auto iterMDo = MDo.begin();
+    auto iterMDref = MDref.ids().begin();
 
-    for (int refno = 0; refno < model.n_ref; ++refno, mdIter.moveNext())
+    for (int refno = 0; refno < model.n_ref; ++refno, ++iterMDo, ++iterMDref)
     {
-        //row.setValue(MDL_ITER, iter);
-        row.setValue(MDL_REF, refno + 1);
+        MDRowSql sqlRow;
+        (*iterMDo).setValue(MDL_REF, refno + 1);
+        sqlRow.setValue(MDL_REF, refno + 1);
 
-        if (do_mirror)
-            row.setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+        if (do_mirror) {
+            (*iterMDo).setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+            sqlRow.setValue(MDL_MIRRORFRAC, mirror_fraction[refno]);
+        }
 
-        if (write_conv)
-            row.setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+        if (write_conv) {
+            (*iterMDo).setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+            sqlRow.setValue(MDL_SIGNALCHANGE, conv[refno]*1000);
+        }
 
-        if (do_norm)
-            row.setValue(MDL_INTSCALE, refs_avgscale[refno]);
+        if (do_norm) {
+            (*iterMDo).setValue(MDL_INTSCALE, refs_avgscale[refno]);
+            sqlRow.setValue(MDL_INTSCALE, refs_avgscale[refno]);
+        }
 
         //write ctf
         fn_tmp.compose(refno + 1, fn_base_cref);
-        writeImage(Ictf[refno], fn_tmp, row);
-        MDo.setRow(row, mdIter.objId);
+        writeImage(Ictf[refno], fn_tmp, *iterMDo);
 
         //write image
         fn_tmp = FN_REF(fn_base, refno + 1);
         Itmp = model.Iref[refno];
-        writeImage(Itmp, fn_tmp, row);
-        MDref.setRow(row, mdIter.objId);
+        writeImage(Itmp, fn_tmp, sqlRow);
+        MDref.setRow(sqlRow, *iterMDref);
     }
 
     // Write out reference md file
@@ -2751,7 +2758,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     MDref.write(outRefsMd);
 
     // Write out log-file
-    MetaData mdLog;
+    MetaDataVec mdLog;
     //mdLog.setComment(cline);
     id = mdLog.addObject();
     mdLog.setValue(MDL_ITER, iter, id);
@@ -2771,7 +2778,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
 
     if (outputType != OUT_REFS)
     {
-        MetaData mdImgs;
+        MetaDataVec mdImgs;
         int n = (int) MDref.size(); //Avoid int and size_t comparison warning
         for (int ref = 1; ref <= n; ++ref)
         {
@@ -2850,7 +2857,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
 void ProgMLF2D::writeNoiseFile(const FileName &fn_base, int ifocus)
 {
     LOG_LEVEL(writeNoiseFile);
-    MetaData md;
+    MetaDataVec md;
     // Calculate resolution step
     double resol_step = 1. / (sampling * dim);
     md.addLabel(MDL_RESOLUTION_FREQ);

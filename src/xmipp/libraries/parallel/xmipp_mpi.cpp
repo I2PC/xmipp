@@ -28,6 +28,7 @@
 #include "core/xmipp_filename.h"
 #include "core/xmipp_error.h"
 #include "core/xmipp_macros.h"
+#include "core/metadata_db.h"
 
 MpiTaskDistributor::MpiTaskDistributor(size_t nTasks, size_t bSize,
                                        MpiNode *node) :
@@ -195,7 +196,9 @@ size_t MpiNode::getActiveNodes()
 }
 
 #endif
-void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
+
+template <typename T>
+void MpiNode::gatherMetadatas(T &MD, const FileName &rootname)
 {
     if (size == 1)
         return;
@@ -211,7 +214,7 @@ void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
     barrierWait();
     if (isMaster()) //master should collect and join workers results
     {
-        MetaData mdAll(MD), mdSlave;
+        MetaDataDb mdAll(MD), mdSlave;
         for (size_t nodeRank = 1; nodeRank < size; nodeRank++)
         {
             fn = formatString("%s_node%d.xmd", rootname.c_str(), nodeRank);
@@ -227,9 +230,12 @@ void MpiNode::gatherMetadatas(MetaData &MD, const FileName &rootname)
         fn = formatString("%s_node%d.xmd", rootname.c_str(), 1);
         fn = fn.removeBlockName();
         remove(fn.c_str());
-        MD=mdAll;
+        MD = T(mdAll);
     }
 }
+
+template void MpiNode::gatherMetadatas<MetaDataVec>(MetaDataVec&, const FileName&);
+template void MpiNode::gatherMetadatas<MetaDataDb>(MetaDataDb&, const FileName&);
 
 /* -------------------- XmippMPIProgram ---------------------- */
 

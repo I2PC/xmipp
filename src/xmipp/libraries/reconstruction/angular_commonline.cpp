@@ -382,9 +382,9 @@ void Prog_Angular_CommonLine::produceSideInfo()
     initialSolution.resize(3*Nimg);
     int idx=0;
     Image<double> I;
-    FOR_ALL_OBJECTS_IN_METADATA(SF)
+    for (size_t objId : SF.ids())
     {
-        I.readApplyGeo(SF,__iter.objId);
+        I.readApplyGeo(SF,objId);
         img.push_back(I());
         initialSolution(3*idx)=I.rot();
         initialSolution(3*idx+1)=I.tilt();
@@ -1278,14 +1278,14 @@ void Prog_Angular_CommonLine::run()
         Matrix1D<double> solution;
         optimize(solution);
 
-        MetaData DF;
+        MetaDataVec DF;
 
         int idx=0;
         Image<double> I;
         size_t id;
-        FOR_ALL_OBJECTS_IN_METADATA(SF)
+        for (size_t objId : SF.ids())
         {
-            I.readApplyGeo(SF,__iter.objId);
+            I.readApplyGeo(SF,objId);
             I.setEulerAngles(currentSolution(idx),currentSolution(idx+1),
             		currentSolution(idx+2));
             idx+=3;

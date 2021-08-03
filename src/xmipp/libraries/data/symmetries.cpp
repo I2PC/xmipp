@@ -2104,32 +2104,29 @@ void SymList::computeDistance(MetaData &md,
                               bool projdir_mode, bool check_mirrors,
                               bool object_rotation)
 {
-    MDRow row;
     double rot1, tilt1, psi1;
     double rot2, tilt2, psi2;
     double angDistance;
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    for (auto& row : md)
     {
-        md.getRow(row,__iter.objId);
+        row.getValue(MDL_ANGLE_ROT, rot1);
+        row.getValue(MDL_ANGLE_ROT2, rot2);
 
-        row.getValue(MDL_ANGLE_ROT,rot1);
-        row.getValue(MDL_ANGLE_ROT2,rot2);
+        row.getValue(MDL_ANGLE_TILT, tilt1);
+        row.getValue(MDL_ANGLE_TILT2, tilt2);
 
-        row.getValue(MDL_ANGLE_TILT,tilt1);
-        row.getValue(MDL_ANGLE_TILT2,tilt2);
-
-        row.getValue(MDL_ANGLE_PSI,psi1);
-        row.getValue(MDL_ANGLE_PSI2,psi2);
+        row.getValue(MDL_ANGLE_PSI, psi1);
+        row.getValue(MDL_ANGLE_PSI2, psi2);
 
         angDistance=computeDistance( rot1,  tilt1,  psi1,
                                      rot2,  tilt2,  psi2,
                                      projdir_mode,  check_mirrors,
                                      object_rotation);
 
-        md.setValue(MDL_ANGLE_ROT_DIFF,rot1 - rot2,__iter.objId);
-        md.setValue(MDL_ANGLE_TILT_DIFF,tilt1 - tilt2,__iter.objId);
-        md.setValue(MDL_ANGLE_PSI_DIFF,psi1 - psi2,__iter.objId);
-        md.setValue(MDL_ANGLE_DIFF,angDistance,__iter.objId);
+        md.setValue(MDL_ANGLE_ROT_DIFF,rot1 - rot2, row.id());
+        md.setValue(MDL_ANGLE_TILT_DIFF,tilt1 - tilt2, row.id());
+        md.setValue(MDL_ANGLE_PSI_DIFF,psi1 - psi2, row.id());
+        md.setValue(MDL_ANGLE_DIFF,angDistance, row.id());
     }
 
 }
@@ -2292,7 +2289,7 @@ double interpolatedElement3DHelical(const MultidimArray<double> &Vin, double x, 
 }
 
 void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &Vin, double zHelical, double rotHelical,
-                      double rot0, MultidimArray<int> *mask, bool dihedral, double heightFraction)
+                      double rot0, MultidimArray<int> *mask, bool dihedral, double heightFraction, int Cn)
 {
 	int zFirst=FIRST_XMIPP_INDEX(round(heightFraction*ZSIZE(Vin)));
 	int zLast=LAST_XMIPP_INDEX(round(heightFraction*ZSIZE(Vin)));
@@ -2302,6 +2299,16 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
     double sinRotHelical, cosRotHelical;
     sincos(rotHelical,&sinRotHelical,&cosRotHelical);
     int Llength=ceil(ZSIZE(Vin)*izHelical);
+
+    Matrix1D<double> sinCn, cosCn;
+    sinCn.initZeros(Cn);
+    cosCn.initZeros(Cn);
+	for (int n=0; n<Cn; ++n)
+	{
+		VEC_ELEM(sinCn,n)=sin(n*TWOPI/Cn);
+		VEC_ELEM(cosCn,n)=cos(n*TWOPI/Cn);
+	}
+
     FOR_ALL_ELEMENTS_IN_ARRAY3D(Vin)
     {
         if (mask!=NULL && !A3D_ELEM(*mask,k,i,j))
@@ -2324,10 +2331,24 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 				jp*=rho;
 				finalValue+=interpolatedElement3DHelical(Vin,jp,ip,kp,zHelical,sinRotHelical,cosRotHelical);
 				L+=1.0;
+				for (int n=1; n<Cn; ++n)
+				{
+					double jpp=VEC_ELEM(cosCn,n)*jp-VEC_ELEM(sinCn,n)*ip;
+					double ipp=VEC_ELEM(sinCn,n)*jp+VEC_ELEM(cosCn,n)*ip;
+					finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,kp,zHelical,sinRotHelical,cosRotHelical);
+					L+=1.0;
+				}
 				if (dihedral)
 				{
 					finalValue+=interpolatedElement3DHelical(Vin,jp,-ip,-kp,zHelical,sinRotHelical,cosRotHelical);
 					L+=1.0;
+					for (int n=1; n<Cn; ++n)
+					{
+						double jpp=VEC_ELEM(cosCn,n)*(jp)-VEC_ELEM(sinCn,n)*(-ip);
+						double ipp=VEC_ELEM(sinCn,n)*(jp)+VEC_ELEM(cosCn,n)*(-ip);
+						finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,-kp,zHelical,sinRotHelical,cosRotHelical);
+						L+=1.0;
+					}
 				}
             }
         }

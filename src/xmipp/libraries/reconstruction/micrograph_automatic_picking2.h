@@ -71,7 +71,6 @@ public:
     ProgImageRotationalPCA rotPcaAnalyzer;
     Point p1,p2;
     FeaturesThread * thread;
-//    MetaData micList;
     Micrograph m, mPrev;
 
     Image<double> microImage, micrographStack, micrographStackPre, microImagePrev;
@@ -80,7 +79,7 @@ public:
     std::vector<Particle2> rejected_particles;
     std::vector<Particle2> accepted_particles;
     std::vector<Particle2> negative_candidates;
-    std::vector<MDRow> micList;
+    std::vector<MDRowSql> micList;
 
     FileName fn_micrograph, fn_model, fnPCAModel, fnPCARotModel, fnAvgModel;
     FileName fnVector, fnSVMModel, fnSVMModel2, fnInvariant, fnParticles;
@@ -96,7 +95,7 @@ public:
 //    AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
 //                         const FileName &model_name=NULL, const FileName &micsFn=NULL);
     AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
-                         const FileName &model_name=NULL, const std::vector<MDRow> &vMicList = std::vector<MDRow>());
+                         const FileName &model_name=NULL, const std::vector<MDRowSql> &vMicList={});
 
     AutoParticlePicking2();
 
@@ -110,12 +109,9 @@ public:
 
     void filterBankGenerator();
 
-//    void batchBuildInvariant(const MetaData &MD);
+    void batchBuildInvariant(const std::vector<MDRowSql> &MD);
 
-    void batchBuildInvariant(const std::vector<MDRow> &MD);
-
-//    void buildInvariant(const MetaData &MD);
-    void buildInvariant(const std::vector<MDRow> &MD);
+    void buildInvariant(const std::vector<MDRowSql> &MD);
     void extractInvariant();
 
     void extractPositiveInvariant();
@@ -126,26 +122,21 @@ public:
 
     void add2Dataset(int flagNegPos);
 
-//    void train(const MetaData &MD, bool corrFlag, int x, int y, int width, int height);
+    void train(const std::vector<MDRowSql> &MD, bool corrFlag, int x, int y, int width, int height);
 
-    void train(const std::vector<MDRow> &MD, bool corrFlag, int x, int y, int width, int height);
-
-//    void correction(const MetaData &addedParticlesMD,const MetaData &removedParticlesMD);
-    void correction(const std::vector<MDRow> &addedParticlesMD,const std::vector<MDRow> &removedParticlesMD);
+    void correction(const std::vector<MDRowSql> &addedParticlesMD,const std::vector<MDRowSql> &removedParticlesMD);
 
     void add2Dataset(const MetaData &removedParticlesMD);
 
     void saveTrainingSet();
 
-//    int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, MetaData &md);
-
-    int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRow> &md);
+    int automaticallySelectParticles(FileName fnmicrograph, int proc_prec, std::vector<MDRowSql> &md);
 
     int automaticWithouThread(FileName fnmicrograph, int proc_prec, const FileName &fn);
 
     void saveAutoParticles(MetaData &md);
 
-    void saveAutoParticles(std::vector<MDRow> &md);
+    void saveAutoParticles(std::vector<MDRowSql> &md);
     /// Define the parameters of the main program
     static void defineParams(XmippProgram * program);
 

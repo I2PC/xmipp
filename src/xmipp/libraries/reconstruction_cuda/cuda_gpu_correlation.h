@@ -8,7 +8,9 @@ void cuda_cart2polar(GpuMultidimArrayAtGpu<float> &image, GpuMultidimArrayAtGpu<
 void waitGpu(myStreamHandle &myStream, bool allStreams);
 void calculateAbs (std::complex<float> *data, float *out, int size, myStreamHandle &myStream);
 
-
+/**@defgroup GpuCorrelation Cuda GPU Correlation
+   @ingroup ReconsLibrary */
+//@{
 class StructuresAux {
 public:
 	GpuMultidimArrayAtGpu<float> padded_image_gpu;
@@ -72,4 +74,5 @@ void cuda_calculate_correlation_two(GpuCorrelationAux &referenceAux, GpuCorrelat
 		StructuresAux &myStructureAuxRT, myStreamHandle &myStreamRT,
 		TransformMatrix<float> &resultTR, TransformMatrix<float> &resultRT,
 		mycufftHandle &ifftcb, bool saveMaxVector);
+//@}
 #endif
