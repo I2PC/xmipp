@@ -47,18 +47,18 @@ void ProgVolumeSubtraction::defineParams() {
 	addParamsLine("--i2 <volume>			: Volume to modify");
 	addParamsLine("[-o <structure=\"\">]\t: Volume 2 modified or "
 			"volume difference");
-	addParamsLine("					: If no name is given, "
+	addParamsLine("\t: If no name is given, "
 			"then output_volume.mrc");
-	addParamsLine("[--sub]				: Perform the "
+	addParamsLine("[--sub]\t: Perform the "
 			"subtraction of the volumes. Output will be the difference");
-	addParamsLine("[--sigma <s=3>]			: Decay of the filter "
+	addParamsLine("[--sigma <s=3>]\t: Decay of the filter "
 			"(sigma) to smooth the mask transition");
 	addParamsLine(
 			"[--iter <n=5>]\t: Number of iterations for the adjustment process");
 	addParamsLine("[--mask1 <mask=\"\">]		: Mask for volume 1");
 	addParamsLine("[--mask2 <mask=\"\">]		: Mask for volume 2");
 	addParamsLine(
-			"[--maskSub <mask=\"\">]		: Mask for subtraction region");
+			"[--maskSub <mask=\"\">]\t: Mask for subtraction region");
 	addParamsLine(
 			"[--cutFreq <f=0>]\t: Filter both volumes with a filter which "
 			"specified cutoff frequency (i.e. resolution inverse, <0.5)");
@@ -84,7 +84,13 @@ void ProgVolumeSubtraction::defineParams() {
 }
 
 // Variables to store read parameters
-FileName fnVol1, fnVol1F, fnVol2A, fnMaskSub, fnMask1, fnMask2, fnOutVol;
+FileName fnVol1;
+FileName fnVol1F;
+FileName fnVol2A;
+FileName fnMaskSub;
+FileName fnMask1;
+FileName fnMask2;
+FileName fnOutVol;
 bool performSubtraction;
 int sigma;
 double cutFreq;
@@ -122,7 +128,7 @@ void ProgVolumeSubtraction::readParams() {
 
 // Show ====================================================================
 void ProgVolumeSubtraction::show() const {
-	std::cout << "Input volume 1:    		" << fnVol1 << std::endl
+	std::cout << "Input volume 1:\t" << fnVol1 << std::endl
 			<< "Input volume 2:    	   	" << fnVol2 << std::endl
 			<< "Input mask 1:    	   	" << fnMask1 << std::endl
 			<< "Input mask 2:    	   	" << fnMask2 << std::endl
@@ -132,7 +138,7 @@ void ProgVolumeSubtraction::show() const {
 			<< "Cutoff frequency:		" << cutFreq << std::endl
 			<< "Relaxation factor:		" << lambda << std::endl
 			<< "Match radial averages:\t" << radavg << std::endl
-			<< "Output:			" << fnOutVol << std::endl;
+			<< "Output:\t" << fnOutVol << std::endl;
 }
 
 /* Methods used to adjust an input volume (V) to a another reference volume (V1) through
@@ -217,7 +223,7 @@ void extractPhase(MultidimArray<std::complex<double>> &FI) {
 	}
 }
 
-void computeEnergy(MultidimArray<double> &Vdiff, MultidimArray<double> &Vact) {
+void computeEnergy(MultidimArray<double> &Vdiff, const MultidimArray<double> &Vact) {
 	Vdiff = Vdiff - Vact;
 	double energy = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
@@ -335,7 +341,7 @@ MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &volume) 
 /* The output of this program is either a modified
  * version of V2 (V2') or the subtraction between
  * V1 and V2 if performSubtraction flag is activated' */
-void writeResults(Image<double> &V, Image<double> &V1,
+void writeResults(Image<double> &V1, Image<double> &V,
 		MultidimArray<double> &mask) {
 	if (performSubtraction) {
 		Image<double> V1Filtered;
@@ -370,8 +376,8 @@ MultidimArray<std::complex<double>> V2Fourier;
  * this processing should be run. */
 template <bool computeE>
 void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
-		Image<double> &V1, MultidimArray<double> &radQuotient,
-		MultidimArray<double> &V1FourierMag, double std1,
+		Image<double> &V1, const MultidimArray<double> &radQuotient,
+		const MultidimArray<double> &V1FourierMag, double std1,
 		const MultidimArray<std::complex<double>> &V2FourierPhase) {
 	if (computeE)
 		std::cout << "---Iter " << n << std::endl;
