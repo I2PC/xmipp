@@ -274,10 +274,10 @@ PyMethodDef MetaData_methods[] =
         { "addObject", (PyCFunction) MetaData_addObject,
           METH_NOARGS,
           "Add a new object and return its id" },
-        { "firstObject", (PyCFunction) MetaData_firstObject,
+        { "firstObject", (PyCFunction) MetaData_firstObject, // FIXME: change to firstRowId
           METH_NOARGS,
           "Goto first metadata object, return its object id" },
-        { "lastObject", (PyCFunction) MetaData_lastObject,
+        { "lastObject", (PyCFunction) MetaData_lastObject, // FIXME: change to lastRowId
           METH_NOARGS,
           "Goto last metadata object, return its object id" },
         { "size", (PyCFunction) MetaData_size, METH_NOARGS,
@@ -817,7 +817,7 @@ PyObject *
 MetaData_lastObject(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     MetaDataObject *self = (MetaDataObject*) obj;
-    return PyLong_FromUnsignedLong(self->metadata->lastObject());
+    return PyLong_FromUnsignedLong(self->metadata->lastRowId());
 }
 /* size */
 PyObject *
