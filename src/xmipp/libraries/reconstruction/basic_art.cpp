@@ -31,7 +31,6 @@
 
 #include "basic_art.h"
 #include "data/projection.h"
-#include "core/metadata.h"
 #include "core/metadata_sql.h"
 #include "core/metadata_extension.h"
 #include "recons_misc.h"

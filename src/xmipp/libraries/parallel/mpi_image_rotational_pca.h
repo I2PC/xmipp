@@ -26,7 +26,6 @@
 #define _MPI_PROG_IMAGE_ROTATIONAL_PCA
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 #include <classification/pca.h>
 #include <reconstruction/image_rotational_pca.h>
 

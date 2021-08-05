@@ -30,7 +30,6 @@
 #include <core/args.h>
 #include <core/xmipp_funcs.h>
 
-#include <core/metadata.h>
 #include <core/metadata_extension.h>
 #include <core/xmipp_image.h>
 #include <core/geometry.h>
