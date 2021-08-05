@@ -27,7 +27,6 @@
 #ifndef _PYTHON_METADATA_H
 #define _PYTHON_METADATA_H
 
-#include "core/metadata.h"
 #include "core/metadata_db.h"
 #include "core/metadata_object.h"
 #include "Python.h"

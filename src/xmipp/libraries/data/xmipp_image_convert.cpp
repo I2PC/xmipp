@@ -25,7 +25,6 @@
  ***************************************************************************/
 
 #include "xmipp_image_convert.h"
-#include "core/metadata.h"
 
 ProgConvImg::ProgConvImg()
 {
