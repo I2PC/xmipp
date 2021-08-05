@@ -156,6 +156,53 @@ TEST_F(MetadataTest, SimilarToOperator)
     ASSERT_FALSE(auxMetadata == mDsource);
 }
 
+TEST_F(MetadataTest, AssignmentFromVecOperator)
+{
+    MetaDataVec orig, assigned;
+    MDRowVec row;
+    row.setValue(MDL_X, 10.);
+    orig.addRow(row);
+    row.setValue(MDL_Y, 100.);
+    assigned.addRow(row);
+    assigned.addRow(row);
+
+    assigned = orig;
+
+    ASSERT_EQ(orig.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_EQ(orig.size(), assigned.size());
+    EXPECT_EQ(assigned.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_FALSE(assigned.containsLabel(MDL_Y));
+    EXPECT_EQ(orig, assigned);
+}
+
+TEST_F(MetadataTest, AssignmentFromDbOperator)
+{
+    MetaDataDb orig;
+    MetaDataVec assigned;
+
+    {
+        MDRowSql row;
+        row.setValue(MDL_X, 10.);
+        orig.addRow(row);
+    }
+
+    {
+        MDRowVec row;
+        row.setValue(MDL_X, 10.);
+        row.setValue(MDL_Y, 100.);
+        assigned.addRow(row);
+        assigned.addRow(row);
+    }
+
+    assigned = orig;
+
+    ASSERT_EQ(orig.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_EQ(orig.size(), assigned.size());
+    EXPECT_EQ(assigned.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_FALSE(assigned.containsLabel(MDL_Y));
+    EXPECT_EQ(orig, assigned);
+}
+
 TEST_F(MetadataTest, AddLabel)
 {
     MetaDataVec auxMetadata = mDunion;
