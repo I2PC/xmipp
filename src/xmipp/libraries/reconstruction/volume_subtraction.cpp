@@ -83,14 +83,7 @@ void ProgVolumeSubtraction::defineParams() {
 			"output of the program is this file");
 }
 
-// Variables to store read parameters
-FileName fnVol1;
-FileName fnVol1F;
-FileName fnVol2A;
-FileName fnMaskSub;
-FileName fnMask1;
-FileName fnMask2;
-FileName fnOutVol;
+// Variables to store parameters
 bool performSubtraction;
 int sigma;
 double cutFreq;
@@ -145,12 +138,12 @@ void ProgVolumeSubtraction::show() const {
 the use of Projectors Onto Convex Sets (POCS) */
 void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-							DIRECT_MULTIDIM_ELEM(I, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
+		DIRECT_MULTIDIM_ELEM(I, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
 }
 
 void POCSnonnegative(MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-							DIRECT_MULTIDIM_ELEM(I, n) = std::max(0.0, DIRECT_MULTIDIM_ELEM(I, n));
+		DIRECT_MULTIDIM_ELEM(I, n) = std::max(0.0, DIRECT_MULTIDIM_ELEM(I, n));
 }
 
 void POCSFourierAmplitude(const MultidimArray<double> &A,
@@ -278,25 +271,36 @@ MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1,
 	return radQuotient;
 }
 
-void subtraction(MultidimArray<double> &V1,
-		const MultidimArray<double> &V1Filtered,
-		const MultidimArray<double> &V,
-		const MultidimArray<double> &mask) {
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1)
-    						DIRECT_MULTIDIM_ELEM(V1, n) =
-    								DIRECT_MULTIDIM_ELEM(V1, n) * (1 - DIRECT_MULTIDIM_ELEM(mask, n)) +
-									(DIRECT_MULTIDIM_ELEM(V1Filtered, n) -
-											std::min(DIRECT_MULTIDIM_ELEM(V, n),
-													DIRECT_MULTIDIM_ELEM(V1Filtered, n))) *
-													DIRECT_MULTIDIM_ELEM(mask, n);
-}
-
 FourierFilter Filter2;
 void createFilter() {
 	Filter2.FilterBand = LOWPASS;
 	Filter2.FilterShape = RAISED_COSINE;
 	Filter2.raised_w = 0.02;
 	Filter2.w1 = cutFreq;
+}
+
+Image<double> subtraction(Image<double> V1, Image<double> V,
+		MultidimArray<double> &mask,
+		FileName fnVol1F, FileName fnVol2A) {
+	Image<double> V1Filtered;
+	V1Filtered() = V1();
+	if (cutFreq != 0){
+		Filter2.applyMaskSpace(V1Filtered()); // FAILS!!
+	}
+	if (saveVol1Filt) {
+		V1Filtered.write(fnVol1F);
+	}
+	if (saveVol2Adj) {
+		V.write(fnVol2A);
+	}
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
+    						DIRECT_MULTIDIM_ELEM(V1(), n) =
+    								DIRECT_MULTIDIM_ELEM(V1(), n) * (1 - DIRECT_MULTIDIM_ELEM(mask, n)) +
+									(DIRECT_MULTIDIM_ELEM(V1Filtered(), n) -
+											std::min(DIRECT_MULTIDIM_ELEM(V(), n),
+													DIRECT_MULTIDIM_ELEM(V1Filtered(), n))) *
+													DIRECT_MULTIDIM_ELEM(mask, n);
+	return V1;
 }
 
 MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
@@ -308,8 +312,8 @@ MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
 	return magnitude;
 }
 
-MultidimArray<double> mask;
-void createMask(const Image<double> &volume) {
+MultidimArray<double> createMask(const Image<double> &volume, FileName fnMask1, FileName fnMask2) {
+	MultidimArray<double> mask;
 	if (fnMask1 != "" && fnMask2 != "") {
 		Image<double> mask1;
 		Image<double> mask2;
@@ -320,6 +324,7 @@ void createMask(const Image<double> &volume) {
 		mask.resizeNoCopy(volume());
 		mask.initConstant(1.0);
 	}
+	return mask;
 }
 
 void filterMask(MultidimArray<double> &mask) {
@@ -338,31 +343,16 @@ MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &volume) 
 	return phase;
 }
 
-/* The output of this program is either a modified
- * version of V2 (V2') or the subtraction between
- * V1 and V2 if performSubtraction flag is activated' */
-void writeResults(Image<double> &V1, Image<double> &V,
-		MultidimArray<double> &mask) {
-	if (performSubtraction) {
-		Image<double> V1Filtered;
-		V1.read(fnVol1);
-		V1Filtered() = V1();
-		if (cutFreq != 0){
-			Filter2.applyMaskSpace(V1Filtered());
-		}
-		if (saveVol1Filt) {
-			V1Filtered.write(fnVol1F);
-		}
-		if (saveVol2Adj) {
-			V.write(fnVol2A);
-		}
-		if (fnMaskSub.isEmpty()) {
-			filterMask(mask);
-		}
-		subtraction(V1(), V1Filtered(), V(), mask);
-		V1.write(fnOutVol);
-	} else {
-		V.write(fnOutVol);
+MultidimArray<double> getSubtractionMask(FileName fnMaskSub, MultidimArray<double> mask){
+	if (fnMaskSub.isEmpty()){
+		filterMask(mask);
+		return mask;
+	}
+
+	else {
+		Image<double> masksub;
+		masksub.read(fnMaskSub);
+		return masksub();
 	}
 }
 
@@ -378,7 +368,8 @@ template <bool computeE>
 void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 		Image<double> &V1, const MultidimArray<double> &radQuotient,
 		const MultidimArray<double> &V1FourierMag, double std1,
-		const MultidimArray<std::complex<double>> &V2FourierPhase) {
+		const MultidimArray<std::complex<double>> &V2FourierPhase,
+		MultidimArray<double> mask) {
 	if (computeE)
 		std::cout << "---Iter " << n << std::endl;
 	if (radavg) {
@@ -440,14 +431,12 @@ void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 
 void ProgVolumeSubtraction::run() {
 	show();
-
 	Image<double> V1;
 	V1.read(fnVol1);
-	createMask(V1);
+	auto mask = createMask(V1, fnMask1, fnMask2);
 	POCSmask(mask, V1());
 	POCSnonnegative(V1());
 	V1().computeDoubleMinMax(v1min, v1max);
-
 	Image<double> V;
 	V.read(fnVol2);
 	POCSmask(mask, V());
@@ -459,16 +448,20 @@ void ProgVolumeSubtraction::run() {
 	auto radQuotient = computeRadQuotient(V1(), V());
 	auto V1FourierMag = computeMagnitude(V1());
 	createFilter();
-
-	for (size_t n = 0; n < iter; ++n) {
+	for (size_t n = 0; n < iter; ++n) {  // Ends with "aborted core dumped" (but works until the end)
 		computeE ? runIteration<true>(n, V, Vdiff, V1, radQuotient, V1FourierMag,
-				std1, V2FourierPhase)
+				std1, V2FourierPhase, mask)
 				: runIteration<false>(n, V, Vdiff, V1, radQuotient, V1FourierMag,
-						std1, V2FourierPhase);
+						std1, V2FourierPhase, mask);
 	}
-	if (!fnMaskSub.isEmpty()) {
-		Image<double> tmp(mask);
-		tmp.read(fnMaskSub);
+
+	/* The output of this program is either a modified
+	 * version of V (V') or the subtraction between
+	 * V1 and V' if performSubtraction flag is activated' */
+	if (performSubtraction) {
+		auto masksub = getSubtractionMask(fnMaskSub, mask);
+		V1.read(fnVol1);
+		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A);
 	}
-	writeResults(V1, V, mask);
+	V.write(fnOutVol);
 }

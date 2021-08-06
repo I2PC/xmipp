@@ -18,7 +18,7 @@ protected:
     }
 
     Image<double> img;
-
+    FourierFilter Filter2;
 };
 
 TEST_F(VolSubtractionTest, subtraction)
@@ -29,7 +29,8 @@ TEST_F(VolSubtractionTest, subtraction)
 	empty().initZeros(4, 64, 64);
 	mask().initZeros(4, 64, 64);
 	mask().initConstant(1);
-	subtraction(img(), img(), img(), mask());
+    createFilter();
+	subtraction(img(), img(), mask(), "", "");
 	ASSERT_EQ(img(), empty());
 }
 

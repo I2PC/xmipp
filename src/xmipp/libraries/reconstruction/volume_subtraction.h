@@ -36,6 +36,14 @@ class ProgVolumeSubtraction: public XmippProgram {
  are used to pre-process and operate with the volumes*/
 public:
   FileName fnVol2;
+  FileName fnVol1;
+  FileName fnOutVol;
+  FileName fnMask1;
+  FileName fnMask2;
+  FileName fnMaskSub;
+  FileName fnVol1F;
+  FileName fnVol2A;
+
   bool computeE;
   size_t iter;
 
@@ -51,6 +59,7 @@ public:
 
     /** Run */
     void run();
+
 };
 //@}
 #endif
