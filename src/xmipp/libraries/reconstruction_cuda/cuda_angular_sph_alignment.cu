@@ -83,6 +83,9 @@ struct ImageMetaData
 #define GET_IDX(ImD,k,i,j) \
     ((ImD).xDim * (ImD).yDim * (k) + (ImD).xDim * (i) + (j))
 
+#define GET_IDX_PADDED(ImD,k,i,j) \
+    (((ImD).xDim + 2) * ((ImD).yDim + 2) * ((k) + 1) + ((ImD).xDim + 2) * ((i) + 1) + ((j) + 1))
+
 // Logical index = Physical index + shift
 #define P2L_X_IDX(ImD,j) \
     ((j) + (ImD).xShift)
@@ -107,6 +110,9 @@ struct ImageMetaData
 #define ELEM_3D(ImD,meta,k,i,j) \
     ((ImD)[GET_IDX((meta), (k), (i), (j))])
 
+#define ELEM_3D_PADDED(ImD,meta,k,i,j) \
+    ((ImD)[GET_IDX_PADDED((meta), (k), (i), (j))])
+
 #define ELEM_2D(data,ImD,i,j) \
     ((data)[GET_IDX((ImD), 0, (i), (j))])
 
@@ -116,6 +122,9 @@ struct ImageMetaData
 
 #define ELEM_3D_SHIFTED(ImD,meta,k,i,j) \
     (ELEM_3D((ImD), (meta), (k) - (meta).zShift, (i) - (meta).yShift, (j) - (meta).xShift))
+
+#define ELEM_3D_SHIFTED_PADDED(ImD,meta,k,i,j) \
+    (ELEM_3D_PADDED((ImD), (meta), (k) - (meta).zShift, (i) - (meta).yShift, (j) - (meta).xShift))
 
 #define ELEM_2D_SHIFTED(data,ImD,i,j) \
     (ELEM_2D((data), (ImD), (i) - (ImD).yShift, (j) - (ImD).xShift))
@@ -129,6 +138,11 @@ struct ImageMetaData
     ((j) < (ImD).xShift || (j) > (ImD).xShift + (ImD).xDim - 1 || \
      (i) < (ImD).yShift || (i) > (ImD).yShift + (ImD).yDim - 1 || \
      (k) < (ImD).zShift || (k) > (ImD).zShift + (ImD).zDim - 1)
+
+#define IS_OUTSIDE_PADDED(ImD,k,i,j) \
+    ((j) < (ImD).xShift - 1 || (j) > (ImD).xShift + (ImD).xDim - 1 || \
+     (i) < (ImD).yShift - 1 || (i) > (ImD).yShift + (ImD).yDim - 1 || \
+     (k) < (ImD).zShift - 1 || (k) > (ImD).zShift + (ImD).zDim - 1)
 
 #define IS_OUTSIDE_PHYS(ImD,k,i,j) \
     ((j) < 0 || (ImD).xDim <= (j) || \
@@ -150,6 +164,10 @@ __device__ PrecisionType interpolatedElement3D(
         const PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z,
         PrecisionType doutside_value = 0);
+
+__device__ PrecisionType interpolateNoChecks(
+        const PrecisionType* ImD, ImageMetaData imgMeta,
+        PrecisionType x, PrecisionType y, PrecisionType z);
 
 __forceinline__ __device__ void rotateCoordinates(PrecisionType* pos, const PrecisionType* rotation)
 {
@@ -261,8 +279,13 @@ __global__ void projectionKernel(
     PrecisionType localCount = 0.0, localSumVD = 0.0, localModg = 0.0;
 
     if (maskVoxel == 1) {
-        PrecisionType voxelI = interpolatedElement3D(volData, volMeta,
-                pos[0] + gx, pos[1] + gy, pos[2] + gz);
+        PrecisionType voxelI = 0.0;
+        //    voxelI = interpolatedElement3D(volData, volMeta,
+        //            pos[0] + gx, pos[1] + gy, pos[2] + gz);
+        //if (!IS_OUTSIDE_PADDED(volMeta, pos[2] + gz, pos[1] + gy, pos[0] + gx)) {
+        //    voxelI = interpolateNoChecks(volData, volMeta,
+        //            pos[0] + gx, pos[1] + gy, pos[2] + gz);
+        //}
         //ELEM_2D_SHIFTED(projectionPlane, volMeta,
         //        P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)) += voxelI;
         atomicAdd(ELEM_2D_SHIFTED_ADDR(projectionPlane, volMeta,
@@ -389,6 +412,41 @@ __device__ PrecisionType interpolatedElement3D(
         PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
 
         return LIN_INTERP(fz, dxy0, dxy1);
+}
+
+__device__ PrecisionType interpolateNoChecks(
+        PrecisionType* ImD, ImageMetaData imgMeta,
+        PrecisionType x, PrecisionType y, PrecisionType z)
+{
+    int x0 = (int)CUDA_FLOOR(x);
+    PrecisionType fx = x - x0;
+    int x1 = x0 + 1;
+
+    int y0 = (int)CUDA_FLOOR(y);
+    PrecisionType fy = y - y0;
+    int y1 = y0 + 1;
+
+    int z0 = (int)CUDA_FLOOR(z);
+    PrecisionType fz = z - z0;
+    int z1 = z0 + 1;
+
+    PrecisionType d000 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x0);
+    PrecisionType d001 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x1);
+    PrecisionType d010 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x0);
+    PrecisionType d011 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x1);
+    PrecisionType d100 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x0);
+    PrecisionType d101 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x1);
+    PrecisionType d110 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x0);
+    PrecisionType d111 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x1);
+
+    PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
+    PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
+    PrecisionType dx10 = LIN_INTERP(fx, d010, d011);
+    PrecisionType dx11 = LIN_INTERP(fx, d110, d111);
+    PrecisionType dxy0 = LIN_INTERP(fy, dx00, dx10);
+    PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
+
+    return LIN_INTERP(fz, dxy0, dxy1);
 }
 
 template<int _L1, int _L2>
@@ -666,5 +724,24 @@ __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n
 
     return R * Y;
 }
+
+// Cast input volume to the result type. Depending on template parameter may add padding.
+template<bool PADDING = false>
+__global__ void prepareVolumeKernel(PrecisionType* output, double* input, ImageMetaData metaData)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+    // TODO maybe more work per thread would be better
+    if (!IS_OUTSIDE_PHYS(metaData, z, y, x)) {
+        if (PADDING) {
+            ELEM_3D_PADDED(output, metaData, z, y, x) = ELEM_3D(input, metaData, z, y, x);
+        } else {
+            ELEM_3D(output, metaData, z, y, x) = ELEM_3D(input, metaData, z, y, x);
+        }
+    }
+}
+
 
 } // namespace AngularAlignmentGpu

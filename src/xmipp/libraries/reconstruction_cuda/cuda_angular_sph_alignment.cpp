@@ -106,14 +106,14 @@ void AngularSphAlignment::setupConstantParameters()
     // kernel arguments
     this->Rmax2 = program->RmaxDef * program->RmaxDef;
     this->iRmax = 1.0 / program->RmaxDef;
-    setupImageMetaData(program->V);
+    //setupImageMetaData(program->V);
 
-    setupVolumeData();
+    //setupVolumeData();
     setupVolumeMask();
     setupZSHparams();
     setupOutputs();
 
-    setupGpuBlocks();
+    //setupGpuBlocks();
 
     setupOutputArray();
 
@@ -173,14 +173,18 @@ void AngularSphAlignment::setupClnm()
 
 void AngularSphAlignment::setupOutputs()
 {
-    if (cudaMallocHost(&outputs, sizeof(KernelOutputs)) != cudaSuccess)
-        processCudaError();
+    if (outputs == nullptr){//FIXME do this better
+        if (cudaMallocHost(&outputs, sizeof(KernelOutputs)) != cudaSuccess)
+            processCudaError();
+    }
 }
 
 void AngularSphAlignment::setupOutputArray()
 {
-    if (cudaMalloc(&reductionArray, 3 * totalGridSize * sizeof(PrecisionType)) != cudaSuccess)
-        processCudaError();
+    if (reductionArray == nullptr){//FIXME do this better
+        if (cudaMalloc(&reductionArray, 3 * totalGridSize * sizeof(PrecisionType)) != cudaSuccess)
+            processCudaError();
+    }
 }
 
 KernelOutputs AngularSphAlignment::getOutputs()
@@ -197,10 +201,56 @@ void AngularSphAlignment::transferImageData(Image<double>& outputImage, Precisio
     memcpy(outputImage().data, dVec.data(), sizeof(double) * elements);
 }
 
+void AngularSphAlignment::init()
+{
+    setupImageMetaData(program->V);
+    setupGpuBlocks();
+    cudaStreamCreate(&prepStream);
+
+    int size = imageMetaData.xDim * imageMetaData.yDim * imageMetaData.zDim * sizeof(double);
+    int paddedSize = (imageMetaData.xDim + 2) * (imageMetaData.yDim + 2) * (imageMetaData.zDim + 2) * sizeof(PrecisionType);
+    if (cudaMalloc(&dVolData, paddedSize) != cudaSuccess)
+        processCudaError();
+    if (cudaMalloc(&dPrepVolume, size) != cudaSuccess)
+        processCudaError();
+}
+
 void AngularSphAlignment::setupVolumeData()
 {
     const auto& vol = program->V();
     transformData(&dVolData, vol.data, vol.zyxdim, dVolData == nullptr);
+}
+
+void AngularSphAlignment::prepareVolumeData()
+{
+    prepareVolume<true>(program->V().data, dPrepVolume, dVolData);
+}
+
+template<bool PADDING>
+void AngularSphAlignment::prepareVolume(const double* mdaData, double* prepVol, PrecisionType* volume)
+{
+    int size = imageMetaData.xDim * imageMetaData.yDim * imageMetaData.zDim * sizeof(double);
+    int paddedSize = (imageMetaData.xDim + 2) * (imageMetaData.yDim + 2) * (imageMetaData.zDim + 2) * sizeof(PrecisionType);
+    if (cudaMemsetAsync(volume, 0, paddedSize, prepStream) != cudaSuccess)
+        processCudaError();
+    if (cudaMemcpyAsync(prepVol, mdaData, size, cudaMemcpyHostToDevice, prepStream) != cudaSuccess)
+        processCudaError();
+    prepareVolumeKernel<PADDING><<<grid, block, 0, prepStream>>>(volume, prepVol, imageMetaData);
+    processCudaError();
+}
+
+void AngularSphAlignment::waitToFinishPreparations()
+{
+    if (cudaStreamSynchronize(prepStream) != cudaSuccess)
+        processCudaError();
+}
+
+void AngularSphAlignment::cleanupPreparations()
+{
+    if (cudaFree(dPrepVolume) != cudaSuccess)
+        processCudaError();
+    if (cudaStreamDestroy(prepStream) != cudaSuccess)
+        processCudaError();
 }
 
 void AngularSphAlignment::setupRotation()
@@ -210,7 +260,7 @@ void AngularSphAlignment::setupRotation()
 
 void AngularSphAlignment::setupVolumeMask()
 {
-    if (dVolMask == nullptr) {
+    if (dVolMask == nullptr) {//FIXME do this better
         if (cudaMallocAndCopy(&dVolMask, program->V_mask.data, program->V_mask.getSize())
                 != cudaSuccess)
             processCudaError();
@@ -308,7 +358,7 @@ void AngularSphAlignment::setupZSHparams()
         zshparamsVec[i].z = program->vM[i];
     }
 
-    if (dZshParams == nullptr) {
+    if (dZshParams == nullptr) {//FIXME do this better
         if (cudaMallocAndCopy(&dZshParams, zshparamsVec.data(), zshparamsVec.size()) != cudaSuccess)
             processCudaError();
     } else {
