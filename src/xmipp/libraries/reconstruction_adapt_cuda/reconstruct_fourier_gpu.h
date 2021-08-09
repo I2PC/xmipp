@@ -297,7 +297,7 @@ private:
 		case 2: return bessi2(blob.alpha);
 		case 3: return bessi3(blob.alpha);
 		case 4: return bessi4(blob.alpha);
-		REPORT_ERROR(ERR_VALUE_INCORRECT,"Order must be in interval [0..4]");
+		default: REPORT_ERROR(ERR_VALUE_INCORRECT,"Order must be in interval [0..4]");
 		}
 	}
 
