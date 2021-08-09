@@ -39,6 +39,10 @@ public:
         setDefault();
     }
 
+    virtual ~CudaBSplineGeoTransformer() {
+        release();
+    }
+
     void setSrc(const T *data) override;
 
     const T *getSrc() const override {
