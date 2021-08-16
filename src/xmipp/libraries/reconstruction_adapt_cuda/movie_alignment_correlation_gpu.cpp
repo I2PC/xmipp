@@ -24,6 +24,13 @@
  ***************************************************************************/
 
 #include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
+#include "core/utils/memory_utils.h"
+#include <thread>
+#include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
+#include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
+#include "data/filters.h"
+#include "core/userSettings.h"
+#include "reconstruction_cuda/cuda_fft.h"
 
 template<typename T>
 void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
@@ -87,6 +94,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
+    gpu.value().updateMemoryInfo();
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
     this->loadFrame(movie, movie.firstObject(), frame);
@@ -103,6 +111,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &s) {
+    gpu.value().updateMemoryInfo();
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
         size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
         while ((size / (float)v) < minScale) {
@@ -126,6 +135,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
+    gpu.value().updateMemoryInfo();
     const auto reqSize = this->getRequestedPatchSize();
     Dimensions hint(reqSize.first, reqSize.second,
             orig.dim.z(), orig.dim.n());
@@ -254,7 +264,6 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
             && UserSettings::get(storage).find(*this,
                     getKey(minMemoryStr, dim, applyCrop), neededMB);
     // check available memory
-    gpu.value().updateMemoryInfo();
     res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
     if (res) {
         return core::optional<FFTSettings<T>>(
@@ -324,6 +333,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
+    }
+    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x() 
+        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+            throw std::logic_error("More control points than patches. Decrease the number of control points.");
     }
 
     if ((movieSettings.dim.x() < patchSettings.dim.x())
@@ -585,13 +598,13 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    T *data = new T[elems];
+    T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
     getCroppedMovie(movieSettings, data);
 
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);
-    delete[] data;
+    free(data);
     return result;
 }
 
@@ -636,7 +649,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
     Image<T> frame;
 
     int movieImgIndex = -1;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         // update variables
         movieImgIndex++;
@@ -644,13 +657,13 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, igain, __iter.objId, frame);
+        this->loadFrame(movie, dark, igain, objId, frame);
 
         if (nullptr == imgs) {
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,
                     this->nlast - this->nfirst + 1);
             auto settings = FFTSettings<T>(rawMovieDim, 1, false);
-            imgs = new T[std::max(settings.elemsFreq(), settings.elemsSpacial())]();
+            imgs = memoryUtils::page_aligned_alloc<T>(std::max(settings.elemsFreq(), settings.elemsSpacial()), true);
         }
 
         // copy all frames to memory, consecutively. There will be a space behind

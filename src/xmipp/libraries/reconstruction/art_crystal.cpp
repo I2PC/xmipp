@@ -35,16 +35,14 @@
 /* Define parameters ===================================================== */
 void CrystalARTRecons::defineParams(XmippProgram *program, const char* prefix, const char* comment)
 {
-    char tempLine[256];
+    std::string line = "  [--crystal ]   : Crystal mode activation";
 
-    if(prefix == NULL)
-        sprintf(tempLine, "  [--crystal ]   : Crystal mode activation");
-    else
-        sprintf(tempLine,"%s   [--crystal ]   : Crystal mode activation", prefix);
-    if (comment != NULL)
-        sprintf(tempLine, "%s : %s", tempLine, comment);
+    if(nullptr != prefix)
+        line = prefix + line;
+    if (nullptr != comment)
+        line = line + " : " + comment;
 
-    program->addParamsLine(tempLine);
+    program->addParamsLine(line);
     program->addParamsLine("   [--mag_a <mag>]         : Magnitude of the first  lattice vector");
     program->addParamsLine("   [--mag_b <mag>]         : Magnitude of the second lattice vector");
     program->addParamsLine("   [--ang_a2b_deg <angle>] : Angle from vector a to vector b");

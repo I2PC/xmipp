@@ -306,11 +306,14 @@ for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
     else:
         addProg(pname)
 
-for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
-    if not cuda and 'cuda' in p:
-        continue # if user doesn't want cuda, skip all programs / tests that use it
-    pname = os.path.basename(p).replace('.cpp','')
-    addProg(pname)
+
+build_tests = get('BUILD_TESTS')
+if build_tests:
+    for p in glob(os.path.join(XMIPP_PATH,'applications','tests','function_tests','*.cpp')):
+        if not cuda and 'cuda' in p:
+            continue # if user doesn't want cuda, skip all programs / tests that use it
+        pname = os.path.basename(p).replace('.cpp','')
+        addProg(pname)
 
 addLib('xmippLib.so',
        dirs=['bindings'],
@@ -368,7 +371,7 @@ def compileMatlabBinding(target, source, env):
     libs = ' '.join('-l%s' % lib for lib in ['Xmipp','XmippCore'])
 
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
-    command = '%s -O CFLAGS="\$CFLAGS -std=c99 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
+    command = '%s -O CFLAGS="\$CFLAGS -std=c++11 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
     print(command)
     os.system(command)
 

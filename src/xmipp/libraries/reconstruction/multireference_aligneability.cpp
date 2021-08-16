@@ -78,8 +78,8 @@ void MultireferenceAligneability::run()
 	//xmipp_multireference_aligneability --volume 1BRD.vol --sym c3 --odir testMultiReference/ --angles_file testMultiReference/angles_iter001_00.xmd --angles_file_ref testMultiReference/gallery_alignment/angles_iter001_00.xmd &
     randomize_random_generator();
 
-    MetaData mdOutQ;
-	MetaData mdExp, mdExpSort, mdProj, mdGallery, mdInputParticles, mdInputParticlesRef;
+    MetaDataVec mdOutQ;
+	MetaDataDb mdExp, mdExpSort, mdProj, mdGallery, mdInputParticles, mdInputParticlesRef;
 	size_t maxNImg;
 	FileName fnOutCL, fnOutQ;
 	fnOutCL = fnDir+"/pruned_particles_alignability.xmd";
@@ -98,7 +98,7 @@ void MultireferenceAligneability::run()
 	mdExpSort.getValue(MDL_IMAGE_IDX,maxNImg,sz);
 
 	String expression;
-	MDRow row,rowInput,rowInputRef;
+	MDRowSql row,rowInput,rowInputRef;
 
 	double validationAlignabilityPrecision, validationAlignabilityAccuracy, validationAlignability, validationMirror;
 	validationAlignabilityPrecision = 0;
@@ -109,7 +109,7 @@ void MultireferenceAligneability::run()
 	if (rank==0)
 		init_progress_bar(maxNImg);
 
-	MetaData tempMdExp, tempMdProj;
+	MetaDataVec tempMdExp, tempMdProj;
 	double sum_w_exp;
 	double sum_w_proj;
 	double sum_noise;
@@ -210,11 +210,11 @@ void MultireferenceAligneability::run()
 		mdPartialParticles.write(fnOutCL);
 		row.clear();
 
-		FOR_ALL_OBJECTS_IN_METADATA(mdPartialParticles)
+		for (size_t objId : mdPartialParticles.ids())
 		{
-			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_PRECISION,rankPrec,__iter.objId);
-			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_ACCURACY,rankAccMirror,__iter.objId);
-			mdPartialParticles.getValue(MDL_SCORE_BY_MIRROR,rankAccNoMirror,__iter.objId);
+			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_PRECISION,rankPrec,objId);
+			mdPartialParticles.getValue(MDL_SCORE_BY_ALIGNABILITY_ACCURACY,rankAccMirror,objId);
+			mdPartialParticles.getValue(MDL_SCORE_BY_MIRROR,rankAccNoMirror,objId);
 
 			validationAlignabilityPrecision += (rankPrec>0.5);
 			validationAlignabilityAccuracy += (rankAccMirror > 0.5);
@@ -259,9 +259,6 @@ void MultireferenceAligneability::write_projection_file()
 	myfile.close();
 }
 
-#define _FOR_ALL_OBJECTS_IN_METADATA2(__md) \
-        for(MDIterator __iter2(__md); __iter2.hasNext(); __iter2.moveNext())
-
 void MultireferenceAligneability::calc_sumu(const MetaData & tempMd, double & sum_W, double & mirrorProb)
 {
     double a;
@@ -276,19 +273,19 @@ void MultireferenceAligneability::calc_sumu(const MetaData & tempMd, double & su
     sum_W = 0;
     mirrorProb = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(tempMd)
+    for (size_t objId : tempMd.ids())
     {
-        tempMd.getValue(MDL_ANGLE_ROT,rotRef,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_TILT,tiltRef,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_PSI,psiRef,__iter.objId);
-        tempMd.getValue(MDL_MAXCC,wRef,__iter.objId);
+        tempMd.getValue(MDL_ANGLE_ROT,rotRef,objId);
+        tempMd.getValue(MDL_ANGLE_TILT,tiltRef,objId);
+        tempMd.getValue(MDL_ANGLE_PSI,psiRef,objId);
+        tempMd.getValue(MDL_MAXCC,wRef,objId);
 
-        _FOR_ALL_OBJECTS_IN_METADATA2(tempMd)
+        for (size_t objId2 : tempMd.ids())
         {
-        	tempMd.getValue(MDL_ANGLE_ROT,rot,__iter2.objId);
-        	tempMd.getValue(MDL_ANGLE_TILT,tilt,__iter2.objId);
-            tempMd.getValue(MDL_ANGLE_PSI,psi,__iter2.objId);
-        	tempMd.getValue(MDL_MAXCC,w2,__iter2.objId);
+        	tempMd.getValue(MDL_ANGLE_ROT,rot,objId2);
+        	tempMd.getValue(MDL_ANGLE_TILT,tilt,objId2);
+            tempMd.getValue(MDL_ANGLE_PSI,psi,objId2);
+        	tempMd.getValue(MDL_MAXCC,w2,objId2);
 
 
 #ifdef DEBUG
@@ -503,13 +500,13 @@ void MultireferenceAligneability::obtainAngularAccuracy(const MetaData & tempMd,
     accuracy = 0;
 	sumOfW = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(tempMd)
+    for (size_t objId : tempMd.ids())
     {
-        tempMd.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-        tempMd.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-        tempMd.getValue(MDL_MAXCC,w,__iter.objId);
-        tempMd.getValue(MDL_FLIP,mirror,__iter.objId);
+        tempMd.getValue(MDL_ANGLE_ROT,rot,objId);
+        tempMd.getValue(MDL_ANGLE_TILT,tilt,objId);
+        tempMd.getValue(MDL_ANGLE_PSI,psi,objId);
+        tempMd.getValue(MDL_MAXCC,w,objId);
+        tempMd.getValue(MDL_FLIP,mirror,objId);
 
         rotAux = rot;
         tiltAux = tilt;

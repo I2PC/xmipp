@@ -30,6 +30,9 @@
 #include "CTPL/ctpl_stl.h"
 #include "data/cpu.h"
 
+/**@defgroup BSplineTransformSettings BSpline Transform Settings
+   @ingroup ReconsLibrary */
+//@{
 template<typename T>
 class BSplineTransformSettings : public GeoTransformerSettings<T> {
 public:
@@ -83,6 +86,5 @@ private:
     const T *m_src;
     ctpl::thread_pool m_threadPool;
 };
-
-
+//@{
 #endif /* LIBRARIES_RECONSTRUCTION_BSPLINE_GEO_TRANSFORMER_H_ */

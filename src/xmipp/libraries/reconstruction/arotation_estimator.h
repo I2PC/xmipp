@@ -34,6 +34,9 @@
 #include <assert.h>
 #include <limits>
 
+/**@defgroup RotationEstimationSetting Rotation Estimation Setting
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 class RotationEstimationSetting {
@@ -180,5 +183,5 @@ private:
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_AROTATION_ESTIMATOR_H_ */

@@ -57,7 +57,7 @@ void ProgClassifySignificant::readParams()
     	numFsc = getIntParam("--fsc", 0);
     	for (int i=1; i<=numFsc; i++){
     		fnFsc = getParam("--fsc", i);
-    		setFsc.push_back(fnFsc);
+    		setFsc.emplace_back(fnFsc);
     	}
     }
 }
@@ -97,49 +97,49 @@ void ProgClassifySignificant::defineParams()
 // Produce side information ================================================
 void ProgClassifySignificant::produceSideInfo()
 {
-	if (verbose>0)
-		std::cerr << "Producing side info ..." << std::endl;
+    if (verbose>0)
+        std::cerr << "Producing side info ..." << std::endl;
     // Read the reference volumes
     Image<double> V;
-    MetaData mdVols, mdAngles, mdAnglesSorted;
+    MetaDataVec mdVols;
     mdVols.read(fnVols);
     FileName fnVol;
     int i=1;
-    FOR_ALL_OBJECTS_IN_METADATA(mdVols)
+    for (size_t objId : mdVols.ids())
     {
-    	mdVols.getValue(MDL_IMAGE,fnVol,__iter.objId);
-    	std::cout << fnVol << std::endl;
+        mdVols.getValue(MDL_IMAGE,fnVol, objId);
+        std::cout << fnVol << std::endl;
         V.read(fnVol);
         V().setXmippOrigin();
-        projector.push_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
+        projector.emplace_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
         currentRowIdx.push_back(0);
+
+        MetaDataVec mdAngles, mdAnglesSorted;
 
         mdAngles.read(formatString("angles_%02d@%s",i,fnAngles.c_str()));
         mdAnglesSorted.sort(mdAngles, MDL_ITEM_ID, true);
-        VMetaData *vmd=new VMetaData();
-        mdAnglesSorted.asVMetaData(*vmd);
-        setAngles.push_back(*vmd);
-        classifiedAngles.push_back(*(new VMetaData()));
 
-        subsetAngles.push_back(*(new VMetaData()));
-        subsetProjectionIdx.push_back(* (new std::vector<size_t>));
-        i+=1;
+        setAngles.emplace_back(mdAnglesSorted);
+        classifiedAngles.emplace_back(MetaDataVec());
+        subsetAngles.emplace_back(MetaDataVec());
+        subsetProjectionIdx.emplace_back(* (new std::vector<size_t>));
+        i += 1;
     }
 
     //Read FSC if present
-    MetaData mdFsc;
+    MetaDataVec mdFsc;
     std::vector<double> fscAux;
     if(isFsc){
     	for (int i=0; i<numFsc; i++){
     		std::cout << " fnFsc: " << setFsc[i] << std::endl;
 			mdFsc.read(setFsc[i]);
 			mdFsc.getColumnValues(MDL_RESOLUTION_FRC,fscAux);
-			setFscValues.push_back(fscAux);
+			setFscValues.emplace_back(fscAux);
     	}
     }
 
     // Read the Ids
-    MetaData mdIds;
+    MetaDataVec mdIds;
     mdIds.read(fnIds);
     mdIds.getColumnValues(MDL_PARTICLE_ID,setIds);
 }
@@ -171,7 +171,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	projectVolume(*(projector[volumeIdx]), Paux, xdim, xdim,  rot, tilt, psi);
 
 	if (poolIdx>=subsetProjections.size())
-		subsetProjections.push_back(new MultidimArray<double>);
+		subsetProjections.emplace_back(new MultidimArray<double>);
 	subsetProjections[poolIdx]->resizeNoCopy(xdim, xdim);
 	applyGeometry(LINEAR,*(subsetProjections[poolIdx]),Paux(),A,IS_INV,DONT_WRAP,0.);
 
@@ -197,7 +197,8 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 		size_t crIdx=currentRowIdx[i];
 		if (crIdx>=setAngles[i].size())
 			return;
-		MDRow & currentRow=setAngles[i][crIdx];
+		MDRowVec currentRow;
+		setAngles[i].getRow(currentRow, crIdx);
 		/*if (i==0) // First time we see this image
 		{
 			currentRow.getValue(MDL_IMAGE,fnImg);
@@ -212,10 +213,10 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 			if (currentParticleId==particleId)
 			{
 				flagEmpty=false;
-				subsetAngles[i].push_back(currentRow);
-				subsetProjectionIdx[i].push_back(poolIdx);
+				subsetAngles[i].addRow(currentRow);
+				subsetProjectionIdx[i].emplace_back(poolIdx);
 				currentRow.getValue(MDL_IMAGE,fnImg);
-				Iexp.push_back(new Image<double>);
+				Iexp.emplace_back(new Image<double>);
 				Iexp[poolIdx]->read(fnImg);
 				//std::cout << "Particle fnImg: " << fnImg << " in " << poolIdx << std::endl;
 				generateProjection(i,poolIdx,currentRow);
@@ -224,7 +225,7 @@ void ProgClassifySignificant::selectSubset(size_t particleId, bool &flagEmpty)
 			crIdx+=1;
 			if (crIdx<idxMax)
 			{
-				currentRow=setAngles[i][crIdx];
+				setAngles[i].getRow(currentRow, crIdx);
 				currentRow.getValue(MDL_PARTICLE_ID,currentParticleId);
 			}
 			else
@@ -823,23 +824,24 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 void ProgClassifySignificant::updateClass(int n, double wn)
 {
 	double CCbest=-1e38;
-	int iCCbest=-1;
-	VMetaData &subsetAngles_n=subsetAngles[n];
-	for (int i=0; i<subsetAngles_n.size(); i++)
+	int idCCbest=-1;
+	MetaDataVec &subsetAngles_n = subsetAngles[n];
+	for (size_t objId : subsetAngles_n.ids())
 	{
 		double cc;
-		subsetAngles_n[i].getValue(MDL_MAXCC,cc);
+		subsetAngles_n.getValue(MDL_MAXCC, cc, objId);
 		if (cc>CCbest)
 		{
 			CCbest=cc;
-			iCCbest=i;
+			idCCbest=objId;
 		}
 	}
-	if (iCCbest>=0)
+	if (idCCbest>=0)
 	{
-		MDRow newRow=subsetAngles_n[iCCbest];
+		MDRowVec newRow;
+		subsetAngles_n.getRow(newRow, idCCbest);
 		// COSS newRow.setValue(MDL_WEIGHT,wn);
-		classifiedAngles[n].push_back(newRow);
+		classifiedAngles[n].addRow(newRow);
 	}
 }
 
@@ -1032,7 +1034,7 @@ void ProgClassifySignificant::run()
 	progress_bar(setIds.size());
 
 	// Write output
-	MetaData md;
+	MetaDataDb md;
 	for (size_t ivol=0; ivol<projector.size(); ivol++)
 	{
 		size_t objId=md.addObject();
@@ -1045,7 +1047,7 @@ void ProgClassifySignificant::run()
 		md.clear();
 		if (classifiedAngles[ivol].size()>0)
 		{
-			md.fromVMetaData(classifiedAngles[ivol]);
+			md = classifiedAngles[ivol];
 			double currentWmax=md.getColumnMax(MDL_WEIGHT);
 			double currentWmin=md.getColumnMin(MDL_WEIGHT);
 			if (currentWmax>currentWmin)

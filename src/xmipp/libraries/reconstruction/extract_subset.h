@@ -27,10 +27,13 @@
 #define EXTRACT_SUBSET_H_
 
 #include "core/xmipp_filename.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include <iosfwd>
 #include "core/xmipp_image.h"
 
+/**@defgroup ExtractSubset Extracting Particles From Metadata
+   @ingroup ReconsLibrary */
+//@{
 /**
  * Class responsible for extracting particles from metadata / stack file into
  * a new metadata / stack file
@@ -40,7 +43,7 @@ class ExtractSubset final {
 public:
     class Settings {
     public:
-        MetaData md; // input
+        MetaDataVec md; // input
         FileName outXmd; // parent directory expected to exist
         FileName outStk; // parent directory expected to exist
         size_t first; // 0-based index
@@ -58,5 +61,5 @@ public:
      */
     static void createSubset(const Settings &s);
 };
-
+//@}
 #endif /* EXTRACT_SUBSET_H_ */

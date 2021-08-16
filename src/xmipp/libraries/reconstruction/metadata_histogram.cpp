@@ -23,14 +23,14 @@
  ***************************************************************************/
 
 #include "core/histogram.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_program.h"
 
 class ProgMetadataHistogram: public XmippProgram
 {
 public:
-    MetaData         mdIn;
+    MetaDataVec      mdIn;
     FileName         fn_in, fn_out, fn_img;
     MDLabel          col, col2;         // Columns for histogram
     double           m, M, m2, M2;      // range for histogram

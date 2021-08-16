@@ -26,7 +26,7 @@
 #include <fstream>
 #include "recons_misc.h"
 #include "basic_art.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/symmetries.h"
 #include "data/mask.h"
 #include "data/projection.h"
@@ -34,7 +34,7 @@
 #include "symmetrize.h"
 
 /* Fill Reconstruction info structure -------------------------------------- */
-void buildReconsInfo(MetaData &selfile,
+void buildReconsInfo(MetaDataVec &selfile,
                      const FileName &fn_ctf, const SymList &SL,
                      ReconsInfo * &IMG_Inf, bool do_not_use_symproj)
 {
@@ -46,7 +46,7 @@ void buildReconsInfo(MetaData &selfile,
     bool              is_ctf_unique = false;
 
     int trueIMG = selfile.size();
-    selfile.firstObject();
+    selfile.firstRowId();
     int numIMG;
     if (!do_not_use_symproj)
         numIMG = trueIMG * (SL.symsNo() + 1);
@@ -74,18 +74,19 @@ void buildReconsInfo(MetaData &selfile,
     int i = 0; // It will account for the number of valid projections processed
     std::cout << "Reading angle information ...\n";
     init_progress_bar(trueIMG);
-    FOR_ALL_OBJECTS_IN_METADATA(selfile)
+    for (size_t objId : selfile.ids())
     {
         ReconsInfo &imgInfo = IMG_Inf[i];
-        selfile.getValue(MDL_IMAGE,fn_proj,__iter.objId);
+        selfile.getValue(MDL_IMAGE,fn_proj,objId);
         if (is_there_ctf && !is_ctf_unique)
-            selfile.getValue(MDL_CTF_MODEL,fn_ctf1,__iter.objId);
+            selfile.getValue(MDL_CTF_MODEL,fn_ctf1,objId);
         if (fn_proj != "")
         {
             //            read_proj.read(fn_proj, false, HEADER);
             // Filling structure
             imgInfo.fn_proj = fn_proj;
-            selfile.getRow(imgInfo.row, __iter.objId);
+            imgInfo.row = selfile.getRowVec(objId);
+            imgInfo.row.detach();
             if (is_ctf_unique)
                 imgInfo.fn_ctf = fn_ctf;
             else if (is_there_ctf)
@@ -95,9 +96,9 @@ void buildReconsInfo(MetaData &selfile,
 
             imgInfo.rot = imgInfo.tilt = imgInfo.psi = 0;
 
-            selfile.getValue(MDL_ANGLE_ROT, imgInfo.rot,__iter.objId);
-            selfile.getValue(MDL_ANGLE_TILT, imgInfo.tilt,__iter.objId);
-            selfile.getValue(MDL_ANGLE_PSI, imgInfo.psi,__iter.objId);
+            selfile.getValue(MDL_ANGLE_ROT, imgInfo.rot,objId);
+            selfile.getValue(MDL_ANGLE_TILT, imgInfo.tilt,objId);
+            selfile.getValue(MDL_ANGLE_PSI, imgInfo.psi,objId);
             //            read_proj.getEulerAngles(imgInfo.rot, imgInfo.tilt, imgInfo.psi);
             EULER_CLIPPING(imgInfo.rot, imgInfo.tilt, imgInfo.psi);
 

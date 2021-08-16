@@ -33,7 +33,7 @@
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 // Forward declaration
 class DocFile;

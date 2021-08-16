@@ -94,7 +94,7 @@ public:
             ProgNmaAlignment::showProgress();
     }
     //Now use the distributor to grasp images
-    bool getImageToProcess(size_t &objId, size_t &objIndex)
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         size_t first, last;
         bool moreTasks = distributor->getTasks(first, last);

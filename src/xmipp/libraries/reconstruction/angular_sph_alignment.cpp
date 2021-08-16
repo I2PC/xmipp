@@ -136,9 +136,9 @@ void ProgAngularSphAlignment::defineParams()
 
 // Produce side information ================================================
 void ProgAngularSphAlignment::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
-	mdTodo = *pmdIn;
+	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+	MetaDataDb mdTodo, mdDone;
+	mdTodo = dynamic_cast<MetaDataDb&>(*pmdIn);
 	FileName fn(fnOutDir+"/sphDone.xmd");
 	if (fn.exists() && resume) {
 		mdDone.read(fn);
@@ -378,7 +378,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
     	rowIn.getValue(MDL_FLIP,old_flip);
 	else
 		old_flip = false;
-	
+
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && !ignoreCTF)
 	{
 		hasCTF=true;
@@ -527,7 +527,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 				}
                 std::cout << "Radius=" << RmaxDef << std::endl;
 				std::cout << " Dshift=(" << p(totalSize-5) << "," << p(totalSize-4) << ") "
-						  << "Drot=" << p(totalSize-3) << " Dtilt=" << p(totalSize-2) 
+						  << "Drot=" << p(totalSize-3) << " Dtilt=" << p(totalSize-2)
                           << " Dpsi=" << p(totalSize-1) << std::endl;
 				std::cout << " Total deformation=" << totalDeformation << std::endl;
 				std::cout<<std::endl;
@@ -550,7 +550,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 #undef DEBUG
 
 void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
-	MetaData md;
+    MetaDataVec md;
     int pos = 3*vecSize;
 	size_t objId = md.addObject();
 	//std::cout << "AQUIIIII " << objId << " " << flagEnabled << std::endl;
@@ -630,7 +630,7 @@ void ProgAngularSphAlignment::minimizepos(int L1, int l2, Matrix1D<double> &step
         VEC_ELEM(steps,idx) = 1.;
         VEC_ELEM(steps,idx+totalSize) = 1.;
         VEC_ELEM(steps,idx+2*totalSize) = 1.;
-    }	
+    }
 }
 
 // void ProgAngularSphAlignment::copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect)
@@ -651,7 +651,7 @@ void ProgAngularSphAlignment::minimizepos(int L1, int l2, Matrix1D<double> &step
 // 	}
 // }
 
-void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN,
 									          Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
     int idx = 0;

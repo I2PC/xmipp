@@ -29,7 +29,8 @@
 #include <mpi.h>
 #include "core/xmipp_threads.h"
 #include "core/xmipp_program.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
+#include "core/metadata_db.h"
 
 class FileName;
 
@@ -59,7 +60,8 @@ public:
     void barrierWait();
 
     /** Gather metadatas */
-    void gatherMetadatas(MetaData &MD, const FileName &rootName);
+    template <typename T> // T = MetaData*
+    void gatherMetadatas(T &MD, const FileName &rootName);
 
     /** Update the MPI communicator to connect the currently active nodes */
 //    void updateComm();
@@ -255,17 +257,17 @@ public:\
             baseClassName::showProgress();\
         }\
     }\
-    bool getImageToProcess(size_t &objId, size_t &objIndex)\
+    bool getImageToProcess(size_t &objId, size_t &objIndex) override\
     {\
         return getTaskToProcess(objId, objIndex);\
     }\
     void finishProcessing()\
     {\
-        node->gatherMetadatas(*getOutputMd(), fn_out);\
-    	MetaData MDaux; \
-    	MDaux.sort(*getOutputMd(), MDL_GATHER_ID); \
+        node->gatherMetadatas(getOutputMd(), fn_out);\
+    	MetaDataVec MDaux; \
+    	MDaux.sort(getOutputMd(), MDL_GATHER_ID); \
         MDaux.removeLabel(MDL_GATHER_ID); \
-        *getOutputMd()=MDaux; \
+        getOutputMd() = MDaux; \
         if (node->isMaster())\
             baseClassName::finishProcessing();\
     }\

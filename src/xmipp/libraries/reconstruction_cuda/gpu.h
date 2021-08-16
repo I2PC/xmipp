@@ -30,6 +30,9 @@
 #include "data/hw.h"
 #include "core/xmipp_error.h"
 
+/**@defgroup GPU GPU
+   @ingroup ReconsLibrary */
+//@{
 class GPU : public HW {
 public:
     explicit GPU(int device = 0, int stream = 0):
@@ -128,5 +131,5 @@ private:
 
     void obtainUUID();
 };
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_CUDA_GPU_H_ */

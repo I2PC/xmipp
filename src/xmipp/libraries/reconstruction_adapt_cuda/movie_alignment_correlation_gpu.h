@@ -26,23 +26,13 @@
 #ifndef MOVIE_ALIGNMENT_CORRELATION_GPU
 #define MOVIE_ALIGNMENT_CORRELATION_GPU
 
-#include <thread>
-#include <mutex>
-#include <future>
 #include "reconstruction/movie_alignment_correlation_base.h"
-#include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
-#include "reconstruction_cuda/cuda_gpu_geo_shift_transformer.h"
-#include "reconstruction_cuda/cuda_gpu_geo_transformer.h"
-#include "data/filters.h"
 #include "data/fft_settings.h"
-#include "data/fft_settings_new.h"
-#include "data/bspline_grid.h"
-#include "core/userSettings.h"
-#include "reconstruction/bspline_helper.h"
 #include "reconstruction_cuda/gpu.h"
-#include "core/optional.h"
-#include "reconstruction_cuda/cuda_fft.h"
 
+/**@defgroup ProgMovieAlignmentCorrelationGPU Movie Alignment Correlation GPU
+   @ingroup ReconsCUDALibrary */
+//@{
 template<typename T>
 class ProgMovieAlignmentCorrelationGPU: public AProgMovieAlignmentCorrelation<T> {
 public:
@@ -61,7 +51,7 @@ private:
      * Inherited, see parent
      */
     void releaseAll() {
-        delete[] movieRawData;
+        free(movieRawData);
         movieRawData = nullptr;
     };
 
@@ -316,5 +306,5 @@ private:
     std::string optSizeYStr = std::string("optSizeY");
     std::string optBatchSizeStr = std::string("optBatchSize");
 };
-
+//@}
 #endif /* MOVIE_ALIGNMENT_CORRELATION_GPU */

@@ -52,11 +52,11 @@ void ProgAngularEstimateTiltAxis::readParams()
 // Main program  ===============================================================
 void ProgAngularEstimateTiltAxis::run()
 {
-	MetaData mdU, mdT;
+	MetaDataVec mdU, mdT;
 	mdU.read(fnUntilted);
 	mdT.read(fnTilted);
 	TiltPairAligner aligner;
-	MetaData mdOut;
+	MetaDataVec mdOut;
 	size_t id;
 	double alphaU, alphaT, gamma;
 	if (mdU.size()==0)
@@ -68,13 +68,16 @@ void ProgAngularEstimateTiltAxis::run()
 		mdOut.write(fnOut);
 		return;
 	}
-	FOR_ALL_OBJECTS_IN_METADATA2(mdU,mdT)
+
+	auto idItU = mdU.ids().begin();
+	auto idItT = mdT.ids().begin();
+	for (; idItU != mdU.ids().end(); ++idItU, ++idItT)
 	{
 		int xu, yu, xt, yt;
-		mdU.getValue(MDL_XCOOR,xu,__iter.objId);
-		mdU.getValue(MDL_YCOOR,yu,__iter.objId);
-		mdT.getValue(MDL_XCOOR,xt,__iter2.objId);
-		mdT.getValue(MDL_YCOOR,yt,__iter2.objId);
+		mdU.getValue(MDL_XCOOR,xu,*idItU);
+		mdU.getValue(MDL_YCOOR,yu,*idItU);
+		mdT.getValue(MDL_XCOOR,xt,*idItT);
+		mdT.getValue(MDL_YCOOR,yt,*idItT);
 
         aligner.addCoordinatePair(xu,yu,xt,yt);
 	}

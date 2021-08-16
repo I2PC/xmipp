@@ -69,7 +69,7 @@ String Basis::basisName() const
 void Basis::defineParams(XmippProgram * program, const char* prefix, const char* comment)
 {
     char tempLine[256];
-    char lineOut[256];
+    char lineOut[512];
 
     if(prefix == NULL)
         sprintf(tempLine, "  [--basis <basis_type=blobs>] ");

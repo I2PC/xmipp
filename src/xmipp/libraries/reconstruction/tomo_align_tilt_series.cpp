@@ -29,6 +29,7 @@
 #include "core/metadata_sql.h"
 #include "core/xmipp_image.h"
 #include "core/transformations.h"
+#include "core/utils/memory_utils.h"
 #include "data/fourier_filter.h"
 #include "data/mask.h"
 #include "data/morphology.h"
@@ -785,9 +786,9 @@ void ProgTomographAlignment::produceSideInfo()
         bool nonZeroTilt=false;
         Image<double> imgaux;
         FileName fn;
-        FOR_ALL_OBJECTS_IN_METADATA(SF)
+        for (size_t objId : SF.ids())
         {
-            SF.getValue( MDL_IMAGE, fn ,__iter.objId);
+            SF.getValue( MDL_IMAGE, fn, objId);
             imgaux.read(fn);
             if (difficult)
             {
@@ -840,7 +841,7 @@ void ProgTomographAlignment::produceSideInfo()
 
             double tiltAngle;
             if (SF.containsLabel(MDL_ANGLE_TILT))
-                SF.getValue(MDL_ANGLE_TILT,tiltAngle,__iter.objId);
+                SF.getValue(MDL_ANGLE_TILT,tiltAngle, objId);
             else
                 tiltAngle=imgaux.tilt();
             tiltList.push_back(tiltAngle);
@@ -2278,13 +2279,13 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         REPORT_ERROR(ERR_VALUE_INCORRECT,"There is no landmark at 0 degrees");
     z0/=z0N;
     std::cout << "Average height of the landmarks at 0 degrees=" << z0 << std::endl;
-    MetaData DF;
+    MetaDataVec DF;
 
-    MDIterator * iter = NULL;
+    std::unique_ptr<MetaDataVec::id_iterator> idIter;
 
     if (!fnSelOrig.empty())
     {
-        iter = new MDIterator(SForig);
+        idIter = memoryUtils::make_unique<MetaDataVec::id_iterator>(SForig.ids().begin());
     }
     DF.setComment("First shift by -(shiftX,shiftY), then rotate by psi");
 
@@ -2328,11 +2329,11 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         if (fnSelOrig!="")
         {
             FileName auxFn;
-            SForig.getValue( MDL_IMAGE, auxFn, iter->objId);
+            SForig.getValue( MDL_IMAGE, auxFn, **idIter);
             Image<double> Iorig;
             Iorig.read( auxFn );
             //SForig.nextObject();
-            iter->moveNext();
+            ++(*idIter);
             mask.initZeros(Iorig());
             FOR_ALL_ELEMENTS_IN_ARRAY2D(Iorig())
             if (Iorig(i,j)!=0)
@@ -2367,7 +2368,6 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         DF.setValue(MDL_SHIFT_Y, YY(alignment.di[n]+alignment.diaxis[n]), id);
     }
     DF.write(fnRoot+"_correction_parameters.txt");
-    delete iter;
 #ifdef DEBUG
 
     Image<double> save;

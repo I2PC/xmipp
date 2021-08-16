@@ -32,6 +32,9 @@
 #include "data/hw.h"
 #include <vector>
 
+/**@defgroup GeoTransformerSettings GeoTransformerSettings
+   @ingroup ReconsLibrary */
+//@{
 enum class InterpolationDegree { Linear, Cubic };
 enum class InterpolationType {
     OneToN, // we have one original item, output are multiple items derived from the original one
@@ -110,6 +113,6 @@ private:
     bool m_isInit;
     bool m_isSrcSet;
 };
-
+//@}
 
 #endif /* LIBRARIES_RECONSTRUCTION_AGEO_TRANSFORMER_H_ */

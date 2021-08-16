@@ -34,6 +34,9 @@
 #include "core/xmipp_error.h"
 #include "core/multidim_array.h"
 
+/// @defgroup Python Python Utils
+/// @ingroup DataLibrary
+//@{
 namespace Python {
 /**
  * This function outputs traceback of the last exception to the standard output
@@ -96,4 +99,5 @@ PyObject* convertToNumpy(const MultidimArray<T> &array);
 void initNumpy();
 
 } // namespace
+//@}
 #endif /* PYTHON_UTILS_H_ */

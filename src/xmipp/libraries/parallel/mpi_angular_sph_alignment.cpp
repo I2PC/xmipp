@@ -125,7 +125,7 @@ public:
         }
         node->barrierWait();
     }
-    bool getImageToProcess(size_t &objId, size_t &objIndex)
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
     {
         //return getTaskToProcess(objId, objIndex);
         size_t first, last;
