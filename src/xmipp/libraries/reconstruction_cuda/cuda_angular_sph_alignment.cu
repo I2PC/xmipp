@@ -280,12 +280,12 @@ __global__ void projectionKernel(
 
     if (maskVoxel == 1) {
         PrecisionType voxelI = 0.0;
-        //    voxelI = interpolatedElement3D(volData, volMeta,
-        //            pos[0] + gx, pos[1] + gy, pos[2] + gz);
-        //if (!IS_OUTSIDE_PADDED(volMeta, pos[2] + gz, pos[1] + gy, pos[0] + gx)) {
-        //    voxelI = interpolateNoChecks(volData, volMeta,
-        //            pos[0] + gx, pos[1] + gy, pos[2] + gz);
-        //}
+        //voxelI = interpolatedElement3D(volData, volMeta,
+        //        pos[0] + gx, pos[1] + gy, pos[2] + gz);
+        if (!IS_OUTSIDE_PADDED(volMeta, pos[2] + gz, pos[1] + gy, pos[0] + gx)) {
+            voxelI = interpolateNoChecks(volData, volMeta,
+                    pos[0] + gx, pos[1] + gy, pos[2] + gz);
+        }
         //ELEM_2D_SHIFTED(projectionPlane, volMeta,
         //        P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)) += voxelI;
         atomicAdd(ELEM_2D_SHIFTED_ADDR(projectionPlane, volMeta,
@@ -415,7 +415,7 @@ __device__ PrecisionType interpolatedElement3D(
 }
 
 __device__ PrecisionType interpolateNoChecks(
-        PrecisionType* ImD, ImageMetaData imgMeta,
+        const PrecisionType* ImD, ImageMetaData imgMeta,
         PrecisionType x, PrecisionType y, PrecisionType z)
 {
     int x0 = (int)CUDA_FLOOR(x);

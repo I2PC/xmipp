@@ -245,12 +245,16 @@ void AngularSphAlignment::waitToFinishPreparations()
         processCudaError();
 }
 
+bool once = true;//FIXME just tmp debug solution
 void AngularSphAlignment::cleanupPreparations()
 {
-    if (cudaFree(dPrepVolume) != cudaSuccess)
-        processCudaError();
-    if (cudaStreamDestroy(prepStream) != cudaSuccess)
-        processCudaError();
+    if (once) {
+        if (cudaFree(dPrepVolume) != cudaSuccess)
+            processCudaError();
+        once = false;
+    }
+    //if (cudaStreamDestroy(prepStream) != cudaSuccess)
+    //    processCudaError();
 }
 
 void AngularSphAlignment::setupRotation()
@@ -317,6 +321,8 @@ void AngularSphAlignment::runKernel()
                     reductionArray
                     );
     }
+    // FIXME remove, just for debug
+    processCudaError();
 
     PrecisionType* countPtr = reductionArray;
     PrecisionType* sumVDPtr = countPtr + totalGridSize;

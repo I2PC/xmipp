@@ -126,7 +126,7 @@ private:
     PrecisionType* dProjectionPlane = nullptr;
     std::vector<PrecisionType> projectionPlaneVec;
 
-    KernelOutputs* outputs;
+    KernelOutputs* outputs = nullptr;
 
     // helper methods for simplifying and transfering data to gpu
 
