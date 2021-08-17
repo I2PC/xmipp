@@ -146,9 +146,9 @@ void AngularSphAlignment::setupGpuBlocks()
     grid.y = ((imageMetaData.yDim + block.y - 1) / block.y);
     grid.z = ((imageMetaData.zDim + block.z - 1) / block.z);
 
-    totalGridSize = grid.x * grid.y * grid.z;
+    //totalGridSize = grid.x * grid.y * grid.z;
     // prepped for warp only reduction
-    //totalGridSize = grid.x * grid.y * grid.z * (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM / 32);
+    totalGridSize = grid.x * grid.y * grid.z * (BLOCK_X_DIM * BLOCK_Y_DIM * BLOCK_Z_DIM / 32);
 }
 
 void AngularSphAlignment::setupClnm()
