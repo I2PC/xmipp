@@ -34,7 +34,7 @@ struct ImageMetaData
     int zDim = 0;
 };
 
-struct Volumes 
+struct Volumes
 {
     PrecisionType* I = nullptr;
     PrecisionType* R = nullptr;
@@ -42,21 +42,21 @@ struct Volumes
     unsigned volumeSize = 0;
 };
 
-struct IROimages 
+struct IROimages
 {
     PrecisionType* VI;
     PrecisionType* VR;
     PrecisionType* VO;
 };
 
-struct DeformImages 
+struct DeformImages
 {
     PrecisionType* Gx;
     PrecisionType* Gy;
     PrecisionType* Gz;
 };
 
-struct KernelOutputs 
+struct KernelOutputs
 {
     PrecisionType sumVD = 0.0;
     PrecisionType modg = 0.0;
@@ -66,6 +66,11 @@ struct KernelOutputs
 class AngularSphAlignment
 {
 public:
+    void init();
+    void prepareVolumeData();
+    void waitToFinishPreparations();
+    void cleanupPreparations();
+
     void setupConstantParameters();
     void setupChangingParameters();
 
@@ -101,6 +106,7 @@ private:
 
     ImageMetaData imageMetaData;
 
+    double* dPrepVolume = nullptr;
     PrecisionType* dVolData = nullptr;
     std::vector<PrecisionType> volDataVec;
 
@@ -120,7 +126,7 @@ private:
     PrecisionType* dProjectionPlane = nullptr;
     std::vector<PrecisionType> projectionPlaneVec;
 
-    KernelOutputs* outputs;
+    KernelOutputs* outputs = nullptr;
 
     // helper methods for simplifying and transfering data to gpu
 
@@ -133,6 +139,9 @@ private:
     void setupZSHparams();
     void setupClnm();
     void setupGpuBlocks();
+
+    template<bool PADDING = false>
+    void prepareVolume(const double* mdaData, double* prepVol, PrecisionType* volume);
 
     void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
     void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);

@@ -218,6 +218,9 @@ void ProgAngularSphAlignmentGpu::preProcess()
 
     createWorkFiles();
 
+    //FIXME for now here, move it up so it starts as soon as possible
+    angularAlignGpu.init();
+    angularAlignGpu.prepareVolumeData();
 }
 
 void ProgAngularSphAlignmentGpu::finishProcessing() {
@@ -386,6 +389,8 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 
     // GPU preparation
     angularAlignGpu.setupConstantParameters();
+    angularAlignGpu.waitToFinishPreparations();
+    angularAlignGpu.cleanupPreparations();
 
 	for (int h=1;h<=L2;h++)
 	{
