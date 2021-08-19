@@ -48,8 +48,6 @@ CUFFTADVISOR = 'cuFFTAdvisor'
 CTPL = 'CTPL'
 GTEST = 'googletest'
 
-XMIPP_SCRIPT_VERSION = ''
-
 REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
                 XMIPP_CORE: 'https://github.com/I2PC/xmippCore.git',
                 XMIPP_VIZ: 'https://github.com/I2PC/xmippViz.git',
@@ -378,82 +376,12 @@ def getScipionHome():
     return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
 
 
-def configStarPU(configDict):
-    # TODO(Jan Polak): This check would be probably better done with pkg-config
-    if configDict["STARPU"]=="":
-        if checkProgram("starpu_sched_display", show=False): # Heuristic only, StarPU has no main executable
-            configDict["STARPU"]="True"
-        else:
-            configDict["STARPU"]="False"
-    if configDict["STARPU"]=="True":
-        if configDict["STARPU_HOME"]=="" and checkProgram("starpu_sched_display"):
-            starpuBinDir = os.path.dirname(os.path.realpath(distutils.spawn.find_executable("starpu_sched_display")))
-            configDict["STARPU_HOME"] = starpuBinDir.replace("/bin","")
-    if configDict["STARPU_INCLUDE"]=="":
-        configDict["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
-    if configDict["STARPU_LIB"]=="":
-        configDict["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
-    if configDict["STARPU_LIBRARY"]=="":
-        configDict["STARPU_LIBRARY"] = "libstarpu-1.3"
-
-def checkStarPU(configDict):
-    ans = True
-    if configDict["STARPU"] == "True":
-        if configDict["CUDA"] != "True":
-            ans = False
-            print(red("CUDA must be enabled together with STARPU"))
-        if configDict["STARPU_INCLUDE"] == "" or not os.path.isdir(configDict["STARPU_INCLUDE"]):
-            ans = False
-            print(red("Check the STARPU_INCLUDE directory: " + configDict["STARPU_INCLUDE"]))
-        if configDict["STARPU_LIB"] == "" or not os.path.isdir(configDict["STARPU_LIB"]):
-            ans = False
-            print(red("Check the STARPU_LIB directory: " + configDict["STARPU_LIB"]))
-        if configDict["STARPU_LIBRARY"] == "":
-            ans = False
-            print(red("STARPU_LIBRARY must be specified (link library name)"))
-
-        if ans:
-            with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
-                cppFile.write("""
-                #include <starpu.h>
-                int dummy(){}
-                """)
-
-            if not runJob("%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o"% \
-                    (configDict["NVCC"], configDict["NVCC_CXXFLAGS"], configDict["INCDIRFLAGS"],
-                     configDict["STARPU_INCLUDE"], configDict["STARPU_LIB"], configDict["STARPU_LIBRARY"])):
-                print(red("Check STARPU_* settings"))
-                ans = False
-            runJob("rm xmipp_starpu_config_test*")
-    return ans
-
-
 def updateConfig(updatingDict):
     cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
     for k, v in updatingDict.items():
         print(blue("Setting %s=%s" % (k, v)))
         runJob(cmdTemplate % (k, k, v.replace('/', '\/'), Config.FILE_NAME),
                show_command=False)
-
-
-def config_DL(configDict):
-    k = 'USE_DL'
-    if (k in configDict) and (configDict[k] != 'True'):
-        configDict[k] = 'False'
-
-
-def configConfigVersion(configDict):
-    key = 'CONFIG_VERSION'
-    configDict[key] = getScriptVersion()
-
-
-def ensureConfigVersion(configDict):
-    key = 'CONFIG_VERSION'
-    if key not in configDict or configDict[key] != XMIPP_SCRIPT_VERSION:
-        print(red("We did some changes which are not compatible with your current config file. "
-                  "Please, run './xmipp config' to generate a new config file."
-                  "We recommend you to create a backup before regenerating it (use --help for additional info)"))
-        exit(-1)
 
 
 def configTests(configDict):
@@ -530,8 +458,7 @@ def compile_googletest():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
-    ensureConfig()
-    ensureConfigVersion(configDict)
+    buildConfig.ensure_version()
     if not compileDependencies(Nproc):
         return False
     return compileXmipp(Nproc)
@@ -899,49 +826,6 @@ def usage(msg=''):
           )
 
 
-
-
-def ensureConfig(): # FIXME remove
-    # assuming the config file is not loaded in the main(), i.e. it does not exists yet and has not been created
-    # by another function
-    if not configDict:
-        print(red("There is no config file. Make sure to run config"))
-        sys.exit(-6)
-
-
-def ensureGit(critical=False):
-    if not checkProgram('git', critical):
-        if critical or os.path.isdir('.git'):
-            # .git dir found means devel mode, which needs git
-            print(red("Git not found."))
-            sys.exit(-1)
-        else:
-            return False
-    return True
-
-
-def getScriptVersion():
-    """ If git not present means it is in production mode
-        and version can be retrieved from the commit.info file
-    """
-    commitFn = os.path.join('src', 'xmipp', 'commit.info')
-    notFound = "(no git repo detected)"
-    if ensureGit(False):
-        scriptName = os.path.basename(__file__)
-        lastCommit = []
-        # get hash of the last commit changing this script
-        if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
-            return lastCommit[0].strip()
-        elif os.path.isfile(commitFn):
-            with open(commitFn, 'r') as file:
-                commitInfo = file.readline()
-            return commitInfo
-        else:
-            return notFound
-    else:
-        return notFound
-
-
 if __name__ == '__main__':
     # Running always under this own directory.
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -965,8 +849,6 @@ if __name__ == '__main__':
 
     # if not ensureGit():
     #     sys.exit(-1)
-
-    XMIPP_SCRIPT_VERSION = getScriptVersion()
 
     buildConfig = Config(askUser)
     buildConfig.read()

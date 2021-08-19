@@ -211,3 +211,14 @@ def installDepConda(dep, askUser):
                       (dep, condaEnv)))
                 return True
     return False
+
+
+def ensureGit(critical=False):
+    if not checkProgram('git', critical):
+        if critical or path.isdir('.git'):
+            # .git dir found means devel mode, which needs git
+            print(red("Git not found."))
+            exit(-1)
+        else:
+            return False
+    return True
