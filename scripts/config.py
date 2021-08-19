@@ -48,7 +48,7 @@ class Config:
 
         self._config_compiler()
         self._config_CUDA()
-        # configMPI(new_config_dict)
+        self._config_MPI()
         # configJava(new_config_dict)
 
         # configMatlab(new_config_dict)
@@ -57,9 +57,9 @@ class Config:
         # configConfigVersion(new_config_dict)
         # configTests(new_config_dict)
 
-        # writeConfig(new_config_dict)
-        # tmp.writeEnviron()
-        # print(blue("Configuration completed....."))
+        self.write()
+        self.environment.write()
+        print(blue("Configuration completed....."))
 
     def check(self):
         print("Checking configuration ------------------------------")
@@ -77,10 +77,10 @@ class Config:
                       "take into account the new system configuration.")
                 runJob("rm xmipp_test_main*")
                 return False
-            # if not checkMPI(configDict):
-            #     print(red("Cannot compile with MPI or use it"))
-            #     runJob("rm xmipp_mpi_test_main*")
-            #     return False
+            if not self._check_MPI():
+                print(red("Cannot compile with MPI or use it"))
+                runJob("rm xmipp_mpi_test_main*")
+                return False
             # if not checkJava(configDict):
             #     print(red("Cannot compile with Java"))
             #     runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
@@ -137,6 +137,12 @@ class Config:
         except:
             sys.exit("%s\nPlease fix the configuration file %s." %
                      (sys.exc_info()[1], fnConfig))
+
+    def write(self):
+        with open(Config.FILE_NAME, "w") as configFile:
+            configFile.write("[BUILD]\n")
+            for label in sorted(self.configDict.keys()):
+                configFile.write("%s=%s\n" % (label, self.configDict[label]))
 
     def _create_empty(self):
         labels = [Config.KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
@@ -589,4 +595,94 @@ class Config:
                 print(red("Check the CXX and NVCC_LINKFLAGS"))
                 return False
             runJob("rm xmipp_cuda_test*")
+        return True
+
+    def _config_MPI(self):
+        mpiBinCandidates = [os.environ.get('MPI_BINDIR', 'None'),
+                            '/usr/lib/openmpi/bin',
+                            '/usr/lib64/openmpi/bin']
+        if self.configDict["MPI_RUN"] == "":
+            if checkProgram("mpirun", False):
+                self.configDict["MPI_RUN"] = "mpirun"
+                print(green("'mpirun' detected."))
+            elif checkProgram("mpiexec", False):
+                self.configDict["MPI_RUN"] = "mpiexec"
+                print(green("'mpiexec' detected."))
+            else:
+                print(yellow("\n'mpirun' and 'mpiexec' not found in the PATH"))
+                mpiDir = findFileInDirList('mpirun', mpiBinCandidates)
+                mpiDir = askPath(mpiDir, self.ask)
+                if mpiDir:
+                    self.configDict["MPI_RUN"] = os.path.join(mpiDir, "mpirun")
+                    checkProgram(self.configDict["MPI_RUN"])
+                    self.environment.update(PATH=mpiDir)
+        if self.configDict["MPI_CC"] == "":
+            if checkProgram("mpicc", False):
+                self.configDict["MPI_CC"] = "mpicc"
+                print(green("'mpicc' detected."))
+            else:
+                print(yellow("\n'mpicc' not found in the PATH"))
+                mpiDir = findFileInDirList('mpicc', mpiBinCandidates)
+                mpiDir = askPath(mpiDir, self.ask)
+                if mpiDir:
+                    self.configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
+                    checkProgram(self.configDict["MPI_CC"])
+        if self.configDict["MPI_CXX"] == "":
+            if checkProgram("mpicxx", False):
+                self.configDict["MPI_CXX"] = "mpicxx"
+                print(green("'mpicxx' detected."))
+            else:
+                print(yellow("\n'mpicxx' not found in the PATH"))
+                mpiDir = findFileInDirList('mpicxx', mpiBinCandidates)
+                mpiDir = askPath(mpiDir, self.ask)
+                if mpiDir:
+                    self.configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
+                    checkProgram(self.configDict["MPI_CXX"])
+
+        mpiLib_env = os.environ.get('MPI_LIBDIR', '')
+        if mpiLib_env:
+            self.configDict['MPI_CXXFLAGS'] += ' -L'+mpiLib_env
+
+        mpiInc_env = os.environ.get('MPI_INCLUDE', '')
+        if mpiInc_env:
+            self.configDict['MPI_CXXFLAGS'] += ' -I'+mpiInc_env
+
+        if self.configDict["MPI_LINKERFORPROGRAMS"] == "":
+            self.configDict["MPI_LINKERFORPROGRAMS"] = self.configDict["MPI_CXX"]
+
+    def _check_MPI(self):
+        print("Checking MPI configuration ...")
+        cppProg = """
+    #include <mpi.h>
+    int main(){}
+    """
+        with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+
+        if not runJob("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
+                      % (self.configDict["MPI_CXX"], self.configDict["INCDIRFLAGS"],
+                         self.configDict["CXXFLAGS"], self.configDict["MPI_CXXFLAGS"])):
+            print(red(
+                "MPI compilation failed. Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
+            print(red("In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations."
+                      "'%s --showme:compile' might help" % self.configDict['MPI_CXX']))
+            return False
+
+        libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
+        if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
+                      "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread"
+                      % (self.configDict["MPI_LINKERFORPROGRAMS"], self.configDict["LINKFLAGS"],
+                         self.configDict["MPI_LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5)):
+            print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
+            print(red("In addition, MPI_LINKFLAGS can also be used to add flags to MPI links. "
+                      "'%s --showme:compile' might help" % self.configDict['MPI_CXX']))
+            return False
+        runJob("rm xmipp_mpi_test_main*")
+
+        echoString = blue(
+            "   > This sentence should be printed 2 times if mpi runs fine")
+        if not (runJob("%s -np 2 echo '%s.'" % (self.configDict['MPI_RUN'], echoString)) or
+                runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (self.configDict['MPI_RUN'], echoString))):
+            print(red("mpirun or mpiexec have failed."))
+            return False
         return True
