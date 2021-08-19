@@ -51,7 +51,7 @@ class Config:
         self._config_MPI()
         self._config_Java()
 
-        # configMatlab(new_config_dict)
+        self._config_Matlab()
         # configStarPU(new_config_dict)
         # config_DL(new_config_dict)
         # configConfigVersion(new_config_dict)
@@ -90,10 +90,10 @@ class Config:
                 # if fails, the test files remains
                 runJob("rm xmipp_cuda_test*")
                 self.configDict["CUDA"] = "False"
-            # if not checkMatlab(configDict):
-            #     print(red("Cannot compile with Matlab, continuing without Matlab"))
-            #     self.configDict["MATLAB"]="False"
-            #     runJob("rm xmipp_mex*")
+            if not self._check_Matlab():
+                print(red("Cannot compile with Matlab, continuing without Matlab"))
+                self.configDict["MATLAB"]="False"
+                runJob("rm xmipp_mex*")
             # if not checkStarPU(configDict):
             #     print(red("Cannot compile with StarPU, continuing without StarPU"))
             #     self.configDict["STARPU"]="False"
@@ -754,3 +754,37 @@ class Config:
             return False
         runJob("rm xmipp_jni_test*")
         return True
+
+    def _config_Matlab(self):
+        if self.configDict["MATLAB"]=="":
+            if checkProgram("matlab",False):
+                self.configDict["MATLAB"]="True"
+            else:
+                self.configDict["MATLAB"]="False"
+        if self.configDict["MATLAB"]=="True":
+            if self.configDict["MATLAB_DIR"]=="":
+                if checkProgram("matlab"):
+                    matlabBinDir = whereis("matlab", findReal=True)
+                    self.environment.update(MATLAB_BIN_DIR=matlabBinDir)
+                    self.configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
+                    print(green("Matlab detected at " + matlabBinDir))
+
+
+    def _check_Matlab(self):
+        ans = True
+        if self.configDict["MATLAB"]=="True":
+            if not checkProgram("matlab"):
+                return False
+            print("Checking Matlab configuration ...")
+            cppProg="""
+        #include <mex.h>
+        int dummy(){}
+        """
+            with open("xmipp_mex.cpp", "w") as cppFile:
+                cppFile.write(cppProg)
+
+            if not runJob("%s/bin/mex -silent xmipp_mex.cpp"%self.configDict["MATLAB_DIR"]):
+                print(red("Check the MATLAB_DIR"))
+                ans = False
+            runJob("rm xmipp_mex*")
+        return ans
