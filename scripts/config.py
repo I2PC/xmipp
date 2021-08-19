@@ -28,17 +28,34 @@
 import os
 import sys
 from .utils import *
+from.environment import Environment
 
 
 class Config:
     FILE_NAME = 'xmipp.conf'
     KEY_BUILD_TESTS = 'BUILD_TESTS'
 
-    def __init__(self):
+    def __init__(self, askUser=False):
+        self.ask = askUser
         self._create_empty()
+
+    def create(self):
+        print("Configuring -----------------------------------------")
+        self._create_empty()
+
+        if self.configDict['VERIFIED'] == '':
+            self.configDict['VERIFIED'] = 'False'
+
+        self._config_compiler()
 
     def get(self):
         return self.configDict
+
+    def writeEnviron(self): # FIXME remove
+        self.environment.write()
+
+    def updateXmippEnv(self, pos='begin', realPath=True, **kwargs): # FIXME remove
+        self.environment.update(pos, realPath, **kwargs)
 
     def is_true(self, key):
         return self.configDict and (key in self.configDict) and (self.configDict[key].lower() == 'true')
@@ -75,6 +92,7 @@ class Config:
                   'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
                   'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
         self.configDict = {}
+        self.environment = Environment()
         for label in labels:
             # We let to set up the xmipp configuration via environ.
             self.configDict[label] = os.environ.get(label, "")
@@ -131,3 +149,110 @@ class Config:
             print(green("OPENCV-%s detected %s CUDA support"
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
+
+    def _config_compiler(self):
+        if self.configDict["DEBUG"] == "":
+            self.configDict["DEBUG"] = "False"
+
+        if self.configDict["CC"] == "" and checkProgram("gcc"):
+            self.configDict["CC"] = "gcc"
+            print(green('gcc detected'))
+        if self.configDict["CXX"] == "":
+            if isCIBuild():
+                # we can use cache to speed up the build
+                self.configDict["CXX"] = "ccache g++" if checkProgram(
+                    "g++") else ""
+            else:
+                self.configDict["CXX"] = "g++" if checkProgram("g++") else ""
+        if self.configDict["LINKERFORPROGRAMS"] == "":
+            if isCIBuild():
+                # we can use cache to speed up the build
+                self.configDict["LINKERFORPROGRAMS"] = "ccache g++" if checkProgram(
+                    "g++") else ""
+            else:
+                self.configDict["LINKERFORPROGRAMS"] = "g++" if checkProgram(
+                    "g++") else ""
+
+        if self.configDict["CC"] == "gcc":
+            if not "-std=c99" in self.configDict["CCFLAGS"]:
+                self.configDict["CCFLAGS"] += " -std=c99"
+        if 'g++' in self.configDict["CXX"]:
+            # optimize for current machine
+            self.configDict["CXXFLAGS"] += " -mtune=native -march=native"
+            if "-std=c99" not in self.configDict["CXXFLAGS"]:
+                self.configDict["CXXFLAGS"] += " -std=c++11"
+            if isCIBuild():
+                # don't tolerate any warnings on build machine
+                self.configDict["CXXFLAGS"] += " -Werror"
+                # don't optimize, as it slows down the build
+                self.configDict["CXXFLAGS"] += " -O0"
+            else:
+                self.configDict["CXXFLAGS"] += " -O3"
+            if self.is_true("DEBUG"):
+                self.configDict["CXXFLAGS"] += " -g"
+        # Nothing special to add to LINKFLAGS
+        from sysconfig import get_paths
+        info = get_paths()
+
+        if self.configDict["LIBDIRFLAGS"] == "":
+            # /usr/local/lib or /path/to/virtEnv/lib
+            localLib = "%s/lib" % info['data']
+            self.configDict["LIBDIRFLAGS"] = "-L%s" % localLib
+            self.environment.update(LD_LIBRARY_PATH=localLib)
+
+            # extra libs
+            hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
+            isHdf5CppLinking = checkLib(self.configDict['CXX'], '-lhdf5_cpp')
+            isHdf5Linking = checkLib(self.configDict['CXX'], '-lhdf5')
+            if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
+                print(yellow("\n'libhdf5' not found at '%s'." % localLib))
+                hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
+                                                         "/usr/lib/x86_64-linux-gnu"])
+                hdf5Lib = askPath(hdf5Lib, self.ask)
+                if hdf5Lib:
+                    self.configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
+                    self.environment.update(LD_LIBRARY_PATH=hdf5Lib)
+                else:
+                    installDepConda('hdf5', self.ask)
+
+        if not checkLib(self.configDict['CXX'], '-lfftw3'):
+            print(red("'libfftw3' not found in the system"))
+            installDepConda('fftw', self.ask)
+        if not checkLib(self.configDict['CXX'], '-ltiff'):
+            print(red("'libtiff' not found in the system"))
+            installDepConda('libtiff', self.ask)
+
+        if self.configDict["INCDIRFLAGS"] == "":
+            # /usr/local/include or /path/to/virtEnv/include
+            localInc = "%s/include" % info['data']
+            self.configDict["INCDIRFLAGS"] += ' '.join(
+                map(lambda x: '-I' + str(x), getDependenciesInclude()))
+            self.configDict["INCDIRFLAGS"] += " -I%s" % localInc
+
+            # extra includes
+            if not findFileInDirList("hdf5.h", [localInc, "/usr/include"]):
+                print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
+                # Add more candidates if needed
+                hdf5Inc = findFileInDirList(
+                    "hdf5.h", "/usr/include/hdf5/serial")
+                hdf5Inc = askPath(hdf5Inc, self.ask)
+                if hdf5Inc:
+                    self.configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
+
+        if self.configDict["PYTHON_LIB"] == "":
+            # malloc flavour is not needed from 3.8
+            malloc = "m" if sys.version_info.minor < 8 else ""
+            self.configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
+                                                               sys.version_info.minor,
+                                                               malloc)
+
+        if self.configDict["PYTHONINCFLAGS"] == "":
+            import numpy
+            incDirs = [info['include'], numpy.get_include()]
+
+            self.configDict["PYTHONINCFLAGS"] = ' '.join(
+                ["-I%s" % iDir for iDir in incDirs])
+
+        self.configDict["OPENCV"] = os.environ.get("OPENCV", "")
+        if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"] or self.configDict["OPENCV3"]:
+            self._config_OpenCV()
