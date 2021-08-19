@@ -463,9 +463,9 @@ def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
     if buildConfig.is_true('CUDA'):
-        cudaBinDir, nvccBaseName = os.path.split(configDict['NVCC'])
+        cudaBinDir, nvccBaseName = os.path.split(buildConfig.get()['NVCC'])
         # cuFFTAdvisor compilation needs 'nvcc' accessible through the PATH
-        if not checkProgram(nvccBaseName, False) and checkProgram(configDict['NVCC'], False):
+        if not checkProgram(nvccBaseName, False) and checkProgram(buildConfig.get()['NVCC'], False):
             # if nvcc basename is not found but absolute path yes, adding the dir to the path.
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', True) or installDepConda('make'))
@@ -847,7 +847,6 @@ if __name__ == '__main__':
 
     buildConfig = Config(askUser)
     buildConfig.read()
-    configDict = buildConfig.get()
 
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
@@ -886,9 +885,7 @@ if __name__ == '__main__':
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
     elif mode=="config":
-        buildConfig = Config(askUser)
         buildConfig.create()
-        configDict = buildConfig.get()
     elif mode=="check_config":
         if not buildConfig.check():
             print(red("\nCheck failed! Something wrong with the configuration.\n"))
@@ -960,7 +957,6 @@ if __name__ == '__main__':
             print(blue("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
-        configDict = buildConfig.get()
         ok = (buildConfig.check()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
