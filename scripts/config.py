@@ -34,6 +34,8 @@ from.environment import Environment
 class Config:
     FILE_NAME = 'xmipp.conf'
     KEY_BUILD_TESTS = 'BUILD_TESTS'
+    KEY_USE_DL = 'USE_DL'
+    KEY_VERSION = 'CONFIG_VERSION'
 
     def __init__(self, askUser=False):
         self.ask = askUser
@@ -52,9 +54,9 @@ class Config:
         self._config_Java()
 
         self._config_Matlab()
-        # configStarPU(new_config_dict)
-        # config_DL(new_config_dict)
-        # configConfigVersion(new_config_dict)
+        self._config_StarPU()
+        self._config_DL()
+        self.configDict[Config.KEY_VERSION] = self._get_version()
         # configTests(new_config_dict)
 
         self.write()
@@ -92,12 +94,13 @@ class Config:
                 self.configDict["CUDA"] = "False"
             if not self._check_Matlab():
                 print(red("Cannot compile with Matlab, continuing without Matlab"))
-                self.configDict["MATLAB"]="False"
+                self.configDict["MATLAB"] = "False"
                 runJob("rm xmipp_mex*")
-            # if not checkStarPU(configDict):
-            #     print(red("Cannot compile with StarPU, continuing without StarPU"))
-            #     self.configDict["STARPU"]="False"
+            if not self._check_StarPU():
+                print(red("Cannot compile with StarPU, continuing without StarPU"))
+                self.configDict["STARPU"] = "False"
             self.configDict['VERIFIED'] = "True"
+            self.write()  # store result
         else:
             print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
                        % Config.FILE_NAME))
@@ -756,35 +759,123 @@ class Config:
         return True
 
     def _config_Matlab(self):
-        if self.configDict["MATLAB"]=="":
-            if checkProgram("matlab",False):
-                self.configDict["MATLAB"]="True"
+        if self.configDict["MATLAB"] == "":
+            if checkProgram("matlab", False):
+                self.configDict["MATLAB"] = "True"
             else:
-                self.configDict["MATLAB"]="False"
-        if self.configDict["MATLAB"]=="True":
-            if self.configDict["MATLAB_DIR"]=="":
+                self.configDict["MATLAB"] = "False"
+        if self.configDict["MATLAB"] == "True":
+            if self.configDict["MATLAB_DIR"] == "":
                 if checkProgram("matlab"):
                     matlabBinDir = whereis("matlab", findReal=True)
                     self.environment.update(MATLAB_BIN_DIR=matlabBinDir)
-                    self.configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
+                    self.configDict["MATLAB_DIR"] = matlabBinDir.replace(
+                        "/bin", "")
                     print(green("Matlab detected at " + matlabBinDir))
-
 
     def _check_Matlab(self):
         ans = True
-        if self.configDict["MATLAB"]=="True":
+        if self.configDict["MATLAB"] == "True":
             if not checkProgram("matlab"):
                 return False
             print("Checking Matlab configuration ...")
-            cppProg="""
+            cppProg = """
         #include <mex.h>
         int dummy(){}
         """
             with open("xmipp_mex.cpp", "w") as cppFile:
                 cppFile.write(cppProg)
 
-            if not runJob("%s/bin/mex -silent xmipp_mex.cpp"%self.configDict["MATLAB_DIR"]):
+            if not runJob("%s/bin/mex -silent xmipp_mex.cpp" % self.configDict["MATLAB_DIR"]):
                 print(red("Check the MATLAB_DIR"))
                 ans = False
             runJob("rm xmipp_mex*")
         return ans
+
+    def _config_StarPU(self):
+        # TODO(Jan Polak): This check would be probably better done with pkg-config
+        if self.configDict["STARPU"] == "":
+            # Heuristic only, StarPU has no main executable
+            if checkProgram("starpu_sched_display", show=False):
+                self.configDict["STARPU"] = "True"
+            else:
+                self.configDict["STARPU"] = "False"
+        if self.configDict["STARPU"] == "True":
+            if self.configDict["STARPU_HOME"] == "" and checkProgram("starpu_sched_display"):
+                starpuBinDir = os.path.dirname(os.path.realpath(
+                    distutils.spawn.find_executable("starpu_sched_display")))
+                self.configDict["STARPU_HOME"] = starpuBinDir.replace(
+                    "/bin", "")
+        if self.configDict["STARPU_INCLUDE"] == "":
+            self.configDict["STARPU_INCLUDE"] = "%(STARPU_HOME)s/include/starpu/1.3"
+        if self.configDict["STARPU_LIB"] == "":
+            self.configDict["STARPU_LIB"] = "%(STARPU_HOME)s/lib"
+        if self.configDict["STARPU_LIBRARY"] == "":
+            self.configDict["STARPU_LIBRARY"] = "libstarpu-1.3"
+
+    def _check_StarPU(self):
+        ans = True
+        if self.configDict["STARPU"] == "True":
+            if self.configDict["CUDA"] != "True":
+                ans = False
+                print(red("CUDA must be enabled together with STARPU"))
+            if self.configDict["STARPU_INCLUDE"] == "" or not os.path.isdir(self.configDict["STARPU_INCLUDE"]):
+                ans = False
+                print(red("Check the STARPU_INCLUDE directory: " +
+                      self.configDict["STARPU_INCLUDE"]))
+            if self.configDict["STARPU_LIB"] == "" or not os.path.isdir(self.configDict["STARPU_LIB"]):
+                ans = False
+                print(red("Check the STARPU_LIB directory: " +
+                      self.configDict["STARPU_LIB"]))
+            if self.configDict["STARPU_LIBRARY"] == "":
+                ans = False
+                print(red("STARPU_LIBRARY must be specified (link library name)"))
+
+            if ans:
+                with open("xmipp_starpu_config_test.cpp", "w") as cppFile:
+                    cppFile.write("""
+                    #include <starpu.h>
+                    int dummy(){}
+                    """)
+
+                if not runJob("%s -c -w %s %s -I%s -L%s -l%s xmipp_starpu_config_test.cpp -o xmipp_starpu_config_test.o" %
+                              (self.configDict["NVCC"], self.configDict["NVCC_CXXFLAGS"], self.configDict["INCDIRFLAGS"],
+                               self.configDict["STARPU_INCLUDE"], self.configDict["STARPU_LIB"], self.configDict["STARPU_LIBRARY"])):
+                    print(red("Check STARPU_* settings"))
+                    ans = False
+                runJob("rm xmipp_starpu_config_test*")
+        return ans
+
+    def _config_DL(self):
+        if (Config.KEY_USE_DL in self.configDict) and (self.configDict[Config.KEY_USE_DL] != 'True'):
+            self.configDict[Config.KEY_USE_DL] = 'False'
+
+    def ensure_version(self):
+        if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self.get_version():
+            print(red("We did some changes which are not compatible with your current config file. "
+                      "Please, run './xmipp config' to generate a new config file."
+                      "We recommend you to create a backup before regenerating it (use --help for additional info)"))
+            exit(-1)
+
+    def _get_version(self):
+        """ If git not present means it is in production mode
+            and version can be retrieved from the commit.info file
+        """
+        commitFn = os.path.join(
+            'src', 'xmipp', 'commit.info')  # FIXME check if this is still true
+        notFound = "(no git repo detected)"
+        if ensureGit(False):
+            scriptName = ''
+            runJob('git ls-files --full-name ' + os.path.basename(__file__), '.', False, scriptName, False)
+            lastCommit = []
+            # get hash of the last commit changing this script
+            if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
+                return lastCommit[0].strip()
+            elif os.path.isfile(commitFn):
+                with open(commitFn, 'r') as file:
+                    commitInfo = file.readline()
+                return commitInfo
+            else:
+                return notFound
+        else:
+            return notFound
