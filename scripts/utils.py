@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # ***************************************************************************
-# * Authors:     David Strelak (dstrelak@cnb.csic.es)
-# *
+# * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+# *              David Maluenda (dmaluenda@cnb.csic.es)
+# *              David Strelak (dstrelak@cnb.csic.es)
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by

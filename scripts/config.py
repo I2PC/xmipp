@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # ***************************************************************************
-# * Authors:     David Strelak (dstrelak@cnb.csic.es)
+# * Authors:     Carlos Oscar S. Sorzano (coss@cnb.csic.es)
+# *              David Maluenda (dmaluenda@cnb.csic.es)
+# *              David Strelak (dstrelak@cnb.csic.es)
 # *
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -25,10 +27,7 @@
 
 import os
 import sys
-
-
-def red(text):
-    return '\033[91m ' + text + '\033[0m'
+from .utils import *
 
 
 class Config:
@@ -69,13 +68,66 @@ class Config:
 
     def _create_empty(self):
         labels = [Config.KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
-                'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
-                'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
-                'MATLAB_DIR', 'CUDA','DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
-                'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
-                'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
-                'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
+                  'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
+                  'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
+                  'MATLAB_DIR', 'CUDA', 'DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
+                  'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
+                  'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
+                  'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
         self.configDict = {}
         for label in labels:
             # We let to set up the xmipp configuration via environ.
             self.configDict[label] = os.environ.get(label, "")
+
+    def _config_OpenCV(self):
+        cppProg = "#include <opencv2/core/core.hpp>\n"
+        cppProg += "int main(){}\n"
+        with open("xmipp_test_opencv.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+
+        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
+                      % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
+                         self.configDict["INCDIRFLAGS"]), show_output=False):
+            print(yellow("OpenCV not found"))
+            self.configDict["OPENCV"] = False
+            self.configDict["OPENCVSUPPORTSCUDA"] = False
+            self.configDict["OPENCV3"] = False
+        else:
+            self.configDict["OPENCV"] = True
+
+            # Check version
+            with open("xmipp_test_opencv.cpp", "w") as cppFile:
+                cppFile.write('#include <opencv2/core/version.hpp>\n')
+                cppFile.write('#include <fstream>\n')
+                cppFile.write('int main()'
+                              '{std::ofstream fh;'
+                              ' fh.open("xmipp_test_opencv.txt");'
+                              ' fh << CV_MAJOR_VERSION << std::endl;'
+                              ' fh.close();'
+                              '}\n')
+            if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
+                          % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
+                             self.configDict["INCDIRFLAGS"]), show_output=False):
+                self.configDict["OPENCV3"] = False
+                version = 2  # Just in case
+            else:
+                runJob("./xmipp_test_opencv")
+                f = open("xmipp_test_opencv.txt")
+                versionStr = f.readline()
+                f.close()
+                version = int(versionStr.split('.', 1)[0])
+                self.configDict["OPENCV3"] = version >= 3
+
+            # Check CUDA Support
+            cppProg = "#include <opencv2/core/version.hpp>\n"
+            cppProg += "#include <opencv2/cudaoptflow.hpp>\n" if self.configDict[
+                "OPENCV3"] else "#include <opencv2/core/cuda.hpp>\n"
+            cppProg += "int main(){}\n"
+            with open("xmipp_test_opencv.cpp", "w") as cppFile:
+                cppFile.write(cppProg)
+            self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
+                                                           (self.configDict["CXX"], self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
+
+            print(green("OPENCV-%s detected %s CUDA support"
+                        % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
+        runJob("rm -v xmipp_test_opencv*", show_output=False)
