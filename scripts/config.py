@@ -23,17 +23,45 @@
 # ***************************************************************************/
 
 
+import os
+import sys
+
+
+def red(text):
+    return "\033[91m "+text+"\033[0m"
+
+
 class Config:
     FILE_NAME = "xmipp.conf"
 
     def __init__(self):
         self.configDict = {}
 
-    def set(self, d):
-        self.configDict = d
-
     def get(self):
         return self.configDict
 
     def is_true(self, key):
         return self.configDict and (key in self.configDict) and (self.configDict[key].lower() == 'true')
+
+    def read(self, fnConfig=FILE_NAME):
+        try:
+            from ConfigParser import ConfigParser, ParsingError
+        except ImportError:
+            from configparser import ConfigParser, ParsingError  # Python 3
+        cf = ConfigParser()
+        cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
+        try:
+            if os.path.isdir(fnConfig):
+                if os.path.exists(os.path.join(fnConfig, Config.FILE_NAME)):
+                    fnConfig = os.path.join(fnConfig, Config.FILE_NAME)
+                else:
+                    fnConfig = os.path.join(fnConfig, "xmipp.template")
+            if os.path.exists(fnConfig):
+                cf.read(fnConfig)
+                if not 'BUILD' in cf.sections():
+                    print(red("Cannot find section BUILD in %s" % fnConfig))
+                    self.configDict = {}
+                self.configDict = dict(cf.items('BUILD'))
+        except:
+            sys.exit("%s\nPlease fix the configuration file %s." %
+                     (sys.exc_info()[1], fnConfig))
