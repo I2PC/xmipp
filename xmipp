@@ -384,11 +384,6 @@ def updateConfig(updatingDict):
                show_command=False)
 
 
-def configTests(configDict):
-    if configDict[Config.KEY_BUILD_TESTS] == "":
-        configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False, actually_ask=askUser)
-
-
 def compileModule(Nproc,module):
     shutil.copyfile(Config.FILE_NAME,"src/%s/install/%s" % (module, Config.FILE_NAME))
     if module == "xmipp":
