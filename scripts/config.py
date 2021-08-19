@@ -49,7 +49,7 @@ class Config:
         self._config_compiler()
         self._config_CUDA()
         self._config_MPI()
-        # configJava(new_config_dict)
+        self._config_Java()
 
         # configMatlab(new_config_dict)
         # configStarPU(new_config_dict)
@@ -81,10 +81,10 @@ class Config:
                 print(red("Cannot compile with MPI or use it"))
                 runJob("rm xmipp_mpi_test_main*")
                 return False
-            # if not checkJava(configDict):
-            #     print(red("Cannot compile with Java"))
-            #     runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
-            #     return False
+            if not self._check_Java():
+                print(red("Cannot compile with Java"))
+                runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
+                return False
             if not self._check_CUDA():
                 print(red("Cannot compile with NVCC, continuing without CUDA"))
                 # if fails, the test files remains
@@ -685,4 +685,72 @@ class Config:
                 runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (self.configDict['MPI_RUN'], echoString))):
             print(red("mpirun or mpiexec have failed."))
             return False
+        return True
+
+    def _config_Java(self):
+        if self.configDict["JAVA_HOME"] == "":
+            javaProgramPath = whereis('javac', findReal=True)
+            if not javaProgramPath:
+                print(yellow("\n'javac' not found in the PATH"))
+                javaProgramPath = findFileInDirList(
+                    'javac', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
+                javaProgramPath = askPath(javaProgramPath, self.ask)
+            if not os.path.isdir(javaProgramPath):
+                installDepConda('openjdk')
+                javaProgramPath = whereis('javac', findReal=True)
+
+            if javaProgramPath:
+                self.environment.update(PATH=javaProgramPath)
+                javaHomeDir = javaProgramPath.replace("/jre/bin", "")
+                javaHomeDir = javaHomeDir.replace("/bin", "")
+                self.configDict["JAVA_HOME"] = javaHomeDir
+
+        if self.configDict["JAVA_BINDIR"] == "" and self.configDict["JAVA_HOME"]:
+            self.configDict["JAVA_BINDIR"] = "%(JAVA_HOME)s/bin"
+        if self.configDict["JAVAC"] == "" and self.configDict["JAVA_HOME"]:
+            self.configDict["JAVAC"] = "%(JAVA_BINDIR)s/javac"
+        if self.configDict["JAR"] == "" and self.configDict["JAVA_HOME"]:
+            self.configDict["JAR"] = "%(JAVA_BINDIR)s/jar"
+        if self.configDict["JNI_CPPPATH"] == "" and self.configDict["JAVA_HOME"]:
+            self.configDict["JNI_CPPPATH"] = "%(JAVA_HOME)s/include:%(JAVA_HOME)s/include/linux"
+
+        if (os.path.isfile((self.configDict["JAVAC"] % self.configDict) % self.configDict) and
+                os.path.isfile((self.configDict["JAR"] % self.configDict) % self.configDict) and
+                os.path.isdir("%(JAVA_HOME)s/include" % self.configDict)):
+            print(green("Java detected at: %s" % self.configDict["JAVA_HOME"]))
+        else:
+            print(red("No development environ for 'java' found. "
+                      "Please, check JAVA_HOME, JAVAC, JAR and JNI_CPPPATH variables."))
+
+    def _check_Java(self):
+        if not checkProgram(self.configDict['JAVAC']):
+            return False
+        print("Checking Java configuration...")
+        javaProg = """
+        public class Xmipp {
+        public static void main(String[] args) {}
+        }
+    """
+        with open("Xmipp.java", "w") as javaFile:
+            javaFile.write(javaProg)
+        if not runJob("%s Xmipp.java" % self.configDict["JAVAC"]):
+            print(red("Check the JAVAC"))
+            return False
+        runJob("rm Xmipp.java Xmipp.class")
+
+        cppProg = """
+    #include <jni.h>
+    int dummy(){}
+    """
+        with open("xmipp_jni_test.cpp", "w") as cppFile:
+            cppFile.write(cppProg)
+
+        incs = ""
+        for x in self.configDict['JNI_CPPPATH'].split(':'):
+            incs += " -I"+x
+        if not runJob("%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %
+                      (self.configDict["CXX"], incs, self.configDict["INCDIRFLAGS"])):
+            print(red("Check the JNI_CPPPATH, CXX and INCDIRFLAGS"))
+            return False
+        runJob("rm xmipp_jni_test*")
         return True
