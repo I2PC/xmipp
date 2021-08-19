@@ -1,3 +1,28 @@
+/***************************************************************************
+ *
+ * Authors:    David Myska (davidmyska@mail.muni.cz)
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
 #pragma once
 
 // Compilation settings
@@ -7,7 +32,6 @@
 #include "cuda_angular_sph_alignment.h"
 #endif
 
-namespace AngularAlignmentGpu {
 #if USE_DOUBLE_PRECISION == 1
 // Types
 using PrecisionType = double;
@@ -61,7 +85,7 @@ using PrecisionType3 = float3;
 // Define data structures
 #ifdef KTT_USED
 
-struct ImageMetaData
+struct VolumeMetaData
 {
     int xShift;
     int yShift;
@@ -171,20 +195,16 @@ template<int _L1 = 5, int _L2 = 5>
 __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType r);
 
-__device__ PrecisionType interpolatedElement3D(
-        const PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType doutside_value = 0);
+__device__ PrecisionType interpolate(const PrecisionType* __restrict__ ImD,
+        VolumeMetaData imgMeta, PrecisionType x, PrecisionType y, PrecisionType z);
 
-__device__ PrecisionType interpolateNoChecks(
-        const PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z);
-
-__forceinline__ __device__ void rotateCoordinates(PrecisionType* pos, const PrecisionType* rotation)
+__forceinline__ __device__ void rotateCoordinates(PrecisionType* __restrict__ pos, const PrecisionType* __restrict__ rotation)
 {
     PrecisionType tmp[3] = {0};
 
+    #pragma unroll
     for (size_t i = 0; i < 3; i++)
+        #pragma unroll
         for (size_t j = 0; j < 3; j++)
             tmp[i] += rotation[3 * i + j] * pos[j];
 
@@ -197,20 +217,13 @@ template<int _BLOCK_SIZE = BLOCK_SIZE, int _L1 = 5, int _L2 = 5>
 __global__ void projectionKernel(
         PrecisionType Rmax2,
         PrecisionType iRmax,
-        ImageMetaData volMeta,
-        const PrecisionType* volData,
-        const PrecisionType* rotation,
+        VolumeMetaData volMeta,
+        const PrecisionType* __restrict__ volData,
         unsigned steps,
-        const int4* zshparams,
-        const PrecisionType3* clnm,
-        const int* volMask,
-        PrecisionType* projectionPlane,
-        PrecisionType* outArrayGlobal
-        )
+        const int* __restrict__ volMask,
+        PrecisionType* __restrict__ projectionPlane,
+        PrecisionType* __restrict__ outArrayGlobal)
 {
-    extern __shared__ char sharedBuffer[];
-    //unsigned sharedBufferOffset = 0;
-
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -226,30 +239,7 @@ __global__ void projectionKernel(
     pos[0] = P2L_X_IDX(volMeta, jPhys);
 
     rotateCoordinates(pos, cRotation);
-/*
-    int4* zshShared = (int4*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(int4) * steps;
 
-    PrecisionType3* clnmShared = (PrecisionType3*)(sharedBuffer + sharedBufferOffset);
-    sharedBufferOffset += sizeof(PrecisionType3) * steps;
-
-    // Load zsh, clnm parameters to the shared memory
-    if (steps <= _BLOCK_SIZE) {
-        if (tIdx < steps) {
-            zshShared[tIdx] = zshparams[tIdx];
-            clnmShared[tIdx] = clnm[tIdx];
-        }
-    } else {
-        if (tIdx == 0) {
-            for (unsigned idx = 0; idx < steps; idx++) {
-                zshShared[idx] = zshparams[idx];
-                clnmShared[idx] = clnm[idx];
-            }
-        }
-    }
-
-    __syncthreads();
-*/
     // Define and compute necessary values
     PrecisionType r2 = pos[2]*pos[2] + pos[1]*pos[1] + pos[0]*pos[0];
     PrecisionType rr = SQRT(r2) * iRmax;
@@ -288,14 +278,10 @@ __global__ void projectionKernel(
 
     if (maskVoxel == 1) {
         PrecisionType voxelI = 0.0;
-        //voxelI = interpolatedElement3D(volData, volMeta,
-        //        pos[0] + gx, pos[1] + gy, pos[2] + gz);
         if (!IS_OUTSIDE_PADDED(volMeta, pos[2] + gz, pos[1] + gy, pos[0] + gx)) {
-            voxelI = interpolateNoChecks(volData, volMeta,
+            voxelI = interpolate(volData, volMeta,
                     pos[0] + gx, pos[1] + gy, pos[2] + gz);
         }
-        //ELEM_2D_SHIFTED(projectionPlane, volMeta,
-        //        P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)) += voxelI;
         atomicAdd(ELEM_2D_SHIFTED_ADDR(projectionPlane, volMeta,
                 P2L_Y_IDX(volMeta, iPhys), P2L_X_IDX(volMeta, jPhys)), voxelI);
         localSumVD += voxelI;
@@ -310,12 +296,12 @@ __global__ void projectionKernel(
         localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
     }
 
-    bool isFirstThreadInWarp = tIdx % 32 == 0;//FIXME modulo is slow, can it be done without modulo?? (n & (d - 1))
+    bool isFirstThreadInWarp = (tIdx & 31) == 0;// (tIdx % 32), but modulo is slow
 
     // Save values to the global memory for later
     if (isFirstThreadInWarp) {
-        unsigned warpsInBlock = BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division?
-        unsigned warpInCurrentBlock = tIdx / 32;//FIXME division is slow, can it be done without division?
+        unsigned warpsInBlock = BLOCK_SIZE >> 5;// BLOCK_SIZE / 32
+        unsigned warpInCurrentBlock = tIdx >> 5;// tIdx / 32
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned wIdx = bIdx * warpsInBlock + warpInCurrentBlock;
         unsigned WARP_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z * warpsInBlock;
@@ -325,55 +311,8 @@ __global__ void projectionKernel(
     }
 }
 
-/*
- * Linear interpolation
- */
-__device__ PrecisionType interpolatedElement3D(
-        const PrecisionType* ImD, ImageMetaData imgMeta,
-        PrecisionType x, PrecisionType y, PrecisionType z,
-        PrecisionType outside_value)
-{
-        int x0 = (int)CUDA_FLOOR(x);
-        PrecisionType fx = x - x0;
-        int x1 = x0 + 1;
-
-        int y0 = (int)CUDA_FLOOR(y);
-        PrecisionType fy = y - y0;
-        int y1 = y0 + 1;
-
-        int z0 = (int)CUDA_FLOOR(z);
-        PrecisionType fz = z - z0;
-        int z1 = z0 + 1;
-
-        PrecisionType d000 = (IS_OUTSIDE(imgMeta, z0, y0, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x0);
-        PrecisionType d001 = (IS_OUTSIDE(imgMeta, z0, y0, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y0, x1);
-        PrecisionType d010 = (IS_OUTSIDE(imgMeta, z0, y1, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x0);
-        PrecisionType d011 = (IS_OUTSIDE(imgMeta, z0, y1, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z0, y1, x1);
-        PrecisionType d100 = (IS_OUTSIDE(imgMeta, z1, y0, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x0);
-        PrecisionType d101 = (IS_OUTSIDE(imgMeta, z1, y0, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y0, x1);
-        PrecisionType d110 = (IS_OUTSIDE(imgMeta, z1, y1, x0)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x0);
-        PrecisionType d111 = (IS_OUTSIDE(imgMeta, z1, y1, x1)) ?
-            outside_value : ELEM_3D_SHIFTED(ImD, imgMeta, z1, y1, x1);
-
-        PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
-        PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
-        PrecisionType dx10 = LIN_INTERP(fx, d010, d011);
-        PrecisionType dx11 = LIN_INTERP(fx, d110, d111);
-        PrecisionType dxy0 = LIN_INTERP(fy, dx00, dx10);
-        PrecisionType dxy1 = LIN_INTERP(fy, dx01, dx11);
-
-        return LIN_INTERP(fz, dxy0, dxy1);
-}
-
-__device__ PrecisionType interpolateNoChecks(
-        const PrecisionType* ImD, ImageMetaData imgMeta,
+__device__ PrecisionType interpolate(
+        const PrecisionType* __restrict__ ImD, VolumeMetaData volMeta,
         PrecisionType x, PrecisionType y, PrecisionType z)
 {
     int x0 = (int)CUDA_FLOOR(x);
@@ -388,14 +327,14 @@ __device__ PrecisionType interpolateNoChecks(
     PrecisionType fz = z - z0;
     int z1 = z0 + 1;
 
-    PrecisionType d000 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x0);
-    PrecisionType d001 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x1);
-    PrecisionType d010 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x0);
-    PrecisionType d011 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x1);
-    PrecisionType d100 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x0);
-    PrecisionType d101 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x1);
-    PrecisionType d110 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x0);
-    PrecisionType d111 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x1);
+    PrecisionType d000 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z0, y0, x0);
+    PrecisionType d001 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z0, y0, x1);
+    PrecisionType d010 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z0, y1, x0);
+    PrecisionType d011 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z0, y1, x1);
+    PrecisionType d100 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z1, y0, x0);
+    PrecisionType d101 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z1, y0, x1);
+    PrecisionType d110 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z1, y1, x0);
+    PrecisionType d111 = ELEM_3D_SHIFTED_PADDED(ImD, volMeta, z1, y1, x1);
 
     PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
     PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
@@ -685,7 +624,7 @@ __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n
 
 // Cast input volume to the result type. Depending on template parameter may add padding.
 template<bool PADDING = false>
-__global__ void prepareVolumeKernel(PrecisionType* output, double* input, ImageMetaData metaData)
+__global__ void prepareVolumeKernel(PrecisionType* __restrict__ output, const double* __restrict__ input, VolumeMetaData metaData)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -700,6 +639,3 @@ __global__ void prepareVolumeKernel(PrecisionType* output, double* input, ImageM
         }
     }
 }
-
-
-} // namespace AngularAlignmentGpu

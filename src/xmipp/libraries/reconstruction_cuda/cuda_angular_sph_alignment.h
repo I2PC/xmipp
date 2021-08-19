@@ -1,3 +1,28 @@
+/***************************************************************************
+ *
+ * Authors:    David Myska (davidmyska@mail.muni.cz)
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
 #pragma once
 
 // Xmipp includes
@@ -13,8 +38,6 @@ struct int4;
 struct float3;
 struct double3;
 
-namespace AngularAlignmentGpu {
-
 #ifdef USE_DOUBLE_PRECISION
 using PrecisionType = double;
 using PrecisionType3 = double3;
@@ -23,7 +46,7 @@ using PrecisionType = float;
 using PrecisionType3 = float3;
 #endif
 
-struct ImageMetaData
+struct VolumeMetaData
 {
     int xShift = 0;
     int yShift = 0;
@@ -74,7 +97,6 @@ public:
     void setupConstantParameters();
     void setupChangingParameters();
 
-    void pretuneKernel();
     void runKernel();
 
     void transferResults();
@@ -86,17 +108,12 @@ public:
 private:
     ProgAngularSphAlignmentGpu* program = nullptr;
 
-    GpuReduction<PrecisionType> reduceDiff;
+    GpuReduction<PrecisionType> reduceCount;
     GpuReduction<PrecisionType> reduceModg;
     GpuReduction<PrecisionType> reduceSumVD;
     PrecisionType* reductionArray = nullptr;
 
-    // Kernel stuff
-    size_t constantSharedMemSize;
-    size_t changingSharedMemSize;
-
-    //FIXME better naming, it is not really grid size, but size of output arrays, kernelOutputSize??
-    size_t totalGridSize;
+    size_t kernelOutputSize;
 
     // Variables transfered to the GPU memory
 
@@ -104,33 +121,23 @@ private:
 
     PrecisionType iRmax;
 
-    ImageMetaData imageMetaData;
+    VolumeMetaData volumeMetaData;
 
     double* dPrepVolume = nullptr;
     PrecisionType* dVolData = nullptr;
-    std::vector<PrecisionType> volDataVec;
-
-    PrecisionType* dRotation = nullptr;
-    std::vector<PrecisionType> rotationVec;
 
     int steps;
 
-    int4* dZshParams = nullptr;
-    std::vector<int4> zshparamsVec;
-
-    PrecisionType3* dClnm = nullptr;
-    std::vector<PrecisionType3> clnmVec;
+    std::vector<PrecisionType3> clnmPrepVec;
 
     int* dVolMask = nullptr;
 
     PrecisionType* dProjectionPlane = nullptr;
-    std::vector<PrecisionType> projectionPlaneVec;
 
     KernelOutputs* outputs = nullptr;
 
     // helper methods for simplifying and transfering data to gpu
 
-    void setupVolumeData();
     void setupRotation();
     void setupVolumeMask();
     void setupProjectionPlane();
@@ -142,14 +149,7 @@ private:
 
     template<bool PADDING = false>
     void prepareVolume(const double* mdaData, double* prepVol, PrecisionType* volume);
-
-    void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
-    void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
-    void setupImageMetaData(const Image<double>& inputImage);
+    void setupVolumeMetaData(const Image<double>& inputImage);
 
     void transferProjectionPlane();
-
-    void transferImageData(Image<double>& outputImage, PrecisionType* inputData);
 };
-
-} // namespace AngularAlignmentGpu

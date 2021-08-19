@@ -2,6 +2,7 @@
  *
  * Authors:    Carlos Oscar Sanchez Sorzano (coss@cnb.csic.es)
  *             David Herreros Calero (dherreros@cnb.csic.es)
+ *             David Myska (davidmyska@mail.muni.cz)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -91,45 +92,45 @@ public:
     // Volume size
     size_t Xdim;
     // Input image
-	Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
-	// Theoretical projection
-	Image<double> P;
-	// Filter
+    Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
+    // Theoretical projection
+    Image<double> P;
+    // Filter
     FourierFilter filter;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
     double old_rot, old_tilt, old_psi;
     // Original shift
-	double old_shiftX, old_shiftY;
-	// Original flip
-	bool old_flip;
+    double old_shiftX, old_shiftY;
+    // Original flip
+    bool old_flip;
     // CTF Check
     bool hasCTF;
     // Original defocus
-	double old_defocusU, old_defocusV, old_defocusAngle;
+    double old_defocusU, old_defocusV, old_defocusAngle;
     // Current defoci
-	double currentDefocusU, currentDefocusV, currentAngle;
-	// CTF
-	CTFDescription ctf;
+    double currentDefocusU, currentDefocusV, currentAngle;
+    // CTF
+    CTFDescription ctf;
     // CTF filter
     FourierFilter FilterCTF;
-	// CTF image
-	MultidimArray<double> *ctfImage;
-	// Vector Size
-	int vecSize;
-	// Vector containing the degree of the spherical harmonics
-	Matrix1D<double> clnm;
+    // CTF image
+    MultidimArray<double> *ctfImage;
+    // Vector Size
+    int vecSize;
+    // Vector containing the degree of the spherical harmonics
+    Matrix1D<double> clnm;
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
-	//Total Deformation, sumV, sumVd
-	double totalDeformation, sumV, sumVd;
-	// Show optimization
-	bool showOptimization;
-	// Correlation
-	double correlation;
+    //Total Deformation, sumV, sumVd
+    double totalDeformation, sumV, sumVd;
+    // Show optimization
+    bool showOptimization;
+    // Correlation
+    double correlation;
     // GPU compute class
-    AngularAlignmentGpu::AngularSphAlignment angularAlignGpu;
+    AngularSphAlignment angularAlignGpu;
     // Number of ones in steps array
     int onesInSteps;
     // Rotation matrix
@@ -137,23 +138,23 @@ public:
 
 public:
     /// Empty constructor
-	ProgAngularSphAlignmentGpu();
+    ProgAngularSphAlignmentGpu();
 
     /// Destructor
     ~ProgAngularSphAlignmentGpu();
 
     /// Read argument from command line
-    void readParams();
+    void readParams() override;
 
     /// Show
-    void show();
+    void show() const override;
 
     /// Define parameters
-    void defineParams();
+    void defineParams() override;
 
     /** Produce side info.
-        An exception is thrown if any of the files is not found*/
-    void preProcess();
+      An exception is thrown if any of the files is not found*/
+    void preProcess() override;
 
     /** Create the processing working files.
      * The working files are:
@@ -163,34 +164,32 @@ public:
     virtual void createWorkFiles();
 
     /** Predict angles and shift.
-        At the input the pose parameters must have an initial guess of the
-        parameters. At the output they have the estimated pose.*/
-    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
+      At the input the pose parameters must have an initial guess of the
+      parameters. At the output they have the estimated pose.*/
+    void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut) override;
 
     /// Length of coefficients vector
     void numCoefficients(int l1, int l2, int &vecSize);
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    // void minimizepos(Matrix1D<double> &vectpos);
     void minimizepos(int L1, int l2, Matrix1D<double> &steps);
 
     /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
+    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN,
+            Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
-                   double rot, double tilt, double psi);
+    void deformVolumeAsync(double &def, double rot, double tilt, double psi);
 
     void updateCTFImage(double defocusU, double defocusV, double angle);
 
-    double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-    		                Matrix2D<double> &A, double deltaDefocusU, 
-                            double deltaDefocusV, double deltaDefocusAngle);
+    double transformImageSph(double *pclnm, double rot, double tilt, double psi,
+            Matrix2D<double> &A, double deltaDefocusU,
+            double deltaDefocusV, double deltaDefocusAngle);
 
     //AJ new
     /** Write the final parameters. */
-    virtual void finishProcessing();
+    virtual void finishProcessing() override;
 
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
