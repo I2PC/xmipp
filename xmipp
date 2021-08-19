@@ -33,6 +33,7 @@ import shutil
 import sys
 import subprocess
 from datetime import datetime
+from scripts import Config
 
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
@@ -68,7 +69,6 @@ DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
                 GTEST: ('release-1.10.0', KEY_BUILD_TESTS)}
 
-CONFIG_FILE_NAME = "xmipp.conf"
 
 # if a skippable compilation fails (if 'key' found in the failed code),
 # a hint is printed in order to export 'value' or edit the config file
@@ -314,7 +314,7 @@ def cleanBinaries():
     for ext in ['so', 'os', 'o']:
         runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
     runJob('find . -iname "*.pyc" -delete')
-    runJob("rm -rf %s build" % CONFIG_FILE_NAME)
+    runJob("rm -rf %s build" % Config.FILE_NAME)
     # I'm getting ValueError : unsupported pickle protocol: 5' when switching from one python version to another
     # This seems to be cached at dblite file.
     runJob('find . -iname "*.dblite" -delete')
@@ -508,8 +508,8 @@ def readConfigFile(fnConfig):
     cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
     try:
         if os.path.isdir(fnConfig):
-            if os.path.exists(os.path.join(fnConfig,CONFIG_FILE_NAME)):
-                fnConfig = os.path.join(fnConfig,CONFIG_FILE_NAME)
+            if os.path.exists(os.path.join(fnConfig, Config.FILE_NAME)):
+                fnConfig = os.path.join(fnConfig, Config.FILE_NAME)
             else:
                 fnConfig = os.path.join(fnConfig, "xmipp.template")
         if os.path.exists(fnConfig):
@@ -1089,7 +1089,7 @@ def configCuda(configDict):
                              " > NVCC_LINKFLAGS = -L/my/cuda/lib -L/my/cuda/lib/stubs\n"
                              "         If the problem persist, set 'CUDA=False' before "
                              "compiling to skip cuda compilation."
-                             % (CONFIG_FILE_NAME)))
+                             % (Config.FILE_NAME)))
 
 def checkCuda(configDict):
     if configDict["CUDA"]=="True":
@@ -1203,7 +1203,7 @@ def checkStarPU(configDict):
     return ans
 
 def writeConfig(configDict):
-    with open(CONFIG_FILE_NAME, "w") as configFile:
+    with open(Config.FILE_NAME, "w") as configFile:
         configFile.write("[BUILD]\n")
         for label in sorted(configDict.keys()):
             configFile.write("%s=%s\n"%(label,configDict[label]))
@@ -1212,7 +1212,7 @@ def updateConfig(updatingDict):
     cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
     for k, v in updatingDict.items():
         print(blue("Setting %s=%s" % (k, v)))
-        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), CONFIG_FILE_NAME),
+        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), Config.FILE_NAME),
                show_command=False)
 
 def writeEnviron():
@@ -1308,12 +1308,12 @@ def checkConfig():
         updateConfig(newConf)
     else:
         print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
-                   % CONFIG_FILE_NAME))
+                   % Config.FILE_NAME))
     return True
 
 
 def compileModule(Nproc,module):
-    shutil.copyfile(CONFIG_FILE_NAME,"src/%s/install/%s" % (module, CONFIG_FILE_NAME))
+    shutil.copyfile(Config.FILE_NAME,"src/%s/install/%s" % (module, Config.FILE_NAME))
     if module == "xmipp":
         stampVersion()
     log = []
@@ -1480,7 +1480,7 @@ def runTests(testNames):
     args = "%s %s %s" % ("tests/data", url, dataset)
     runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
-    configDict = readConfigFile(CONFIG_FILE_NAME)
+    configDict = readConfigFile(Config.FILE_NAME)
     noCudaStr = '--noCuda' if not is_config_true('CUDA') else ''
     print(" Tests to do: %s" % ', '.join(testNames))
     if not runJob("(cd src/xmipp/tests; %s test.py %s %s)"
@@ -1742,7 +1742,7 @@ def usage(msg=''):
           "   all [op1=opt1 op2=opt2...]: (Default) Retrieve [br=branch], configure, check, compile [N=8], install [dir=build]\n"
           "   get_dependencies:           Retrieve dependencies from github\n"
           "   get_devel_sources [branch]: Retrieve development sources from github for a given branch (devel branch by default)\n"
-          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + CONFIG_FILE_NAME + ")\n"
+          "   cleanBin:                   Clean all already compiled files (build, .so,.os,.o in src/* and " + Config.FILE_NAME + ")\n"
           "   cleanAll:                   Delete all (sources and build directories)\n"
           "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
@@ -1878,7 +1878,7 @@ if __name__ == '__main__':
 
     XMIPP_SCRIPT_VERSION = getScriptVersion()
 
-    configDict = readConfigFile(CONFIG_FILE_NAME)
+    configDict = readConfigFile(Config.FILE_NAME)
 
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
@@ -1982,12 +1982,12 @@ if __name__ == '__main__':
                 sys.exit(1)
 
         # create config if not there
-        if not os.path.isfile(CONFIG_FILE_NAME):
+        if not os.path.isfile(Config.FILE_NAME):
             config()
         else:
-            print(blue("'%s' detected." % CONFIG_FILE_NAME))
+            print(blue("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
-        configDict = readConfigFile(CONFIG_FILE_NAME)
+        configDict = readConfigFile(Config.FILE_NAME)
         ok = (checkConfig()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
