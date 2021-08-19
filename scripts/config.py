@@ -85,10 +85,11 @@ class Config:
             #     print(red("Cannot compile with Java"))
             #     runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
             #     return False
-            # if not checkCuda(configDict):
-            #     print(red("Cannot compile with NVCC, continuing without CUDA"))
-            #     runJob("rm xmipp_cuda_test*")  # if fails, the test files remains
-            #     self.configDict["CUDA"]="False"
+            if not self._check_CUDA():
+                print(red("Cannot compile with NVCC, continuing without CUDA"))
+                # if fails, the test files remains
+                runJob("rm xmipp_cuda_test*")
+                self.configDict["CUDA"] = "False"
             # if not checkMatlab(configDict):
             #     print(red("Cannot compile with Matlab, continuing without Matlab"))
             #     self.configDict["MATLAB"]="False"
@@ -561,3 +562,31 @@ class Config:
                                  "         If the problem persist, set 'CUDA=False' before "
                                  "compiling to skip cuda compilation."
                                  % (Config.FILE_NAME)))
+
+    def _check_CUDA(self):
+        if self.configDict["CUDA"] == "True":
+            if not checkProgram(self.configDict["NVCC"]):
+                return False
+            print("Checking CUDA configuration ...")
+            cppProg = """
+        #include <cuda_runtime.h>
+        #include <cufft.h>
+        int main(){}
+        """
+            with open("xmipp_cuda_test.cpp", "w") as cppFile:
+                cppFile.write(cppProg)
+
+            if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o" %
+                          (self.configDict["NVCC"], self.configDict["NVCC_CXXFLAGS"], self.configDict["INCDIRFLAGS"])):
+                print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
+                return False
+            if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" %
+                          (self.configDict["NVCC"], self.configDict["NVCC_LINKFLAGS"])):
+                print(red("Check the NVCC and NVCC_LINKFLAGS"))
+                return False
+            if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" %
+                          (self.configDict["CXX"], self.configDict["NVCC_LINKFLAGS"])):
+                print(red("Check the CXX and NVCC_LINKFLAGS"))
+                return False
+            runJob("rm xmipp_cuda_test*")
+        return True

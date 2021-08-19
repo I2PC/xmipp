@@ -535,34 +535,6 @@ int dummy(){}
     return True
 
 
-def checkCuda(configDict):
-    if configDict["CUDA"]=="True":
-        if not checkProgram(configDict["NVCC"]):
-            return False
-        print("Checking CUDA configuration ...")
-        cppProg="""
-    #include <cuda_runtime.h>
-    #include <cufft.h>
-    int main(){}
-    """
-        with open("xmipp_cuda_test.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-
-        if not runJob("%s -c -w %s %s xmipp_cuda_test.cpp -o xmipp_cuda_test.o"%\
-                  (configDict["NVCC"],configDict["NVCC_CXXFLAGS"],configDict["INCDIRFLAGS"])):
-            print(red("Check the NVCC, NVCC_CXXFLAGS and INCDIRFLAGS"))
-            return False
-        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" % \
-                  (configDict["NVCC"], configDict["NVCC_LINKFLAGS"])):
-            print(red("Check the NVCC and NVCC_LINKFLAGS"))
-            return False
-        if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" % \
-                  (configDict["CXX"], configDict["NVCC_LINKFLAGS"])):
-            print(red("Check the CXX and NVCC_LINKFLAGS"))
-            return False
-        runJob("rm xmipp_cuda_test*")
-    return True
-
 def configMatlab(configDict):
     if configDict["MATLAB"]=="":
         if checkProgram("matlab",False):
