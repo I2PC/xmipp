@@ -132,7 +132,7 @@ private:
 
     int* dVolMask = nullptr;
 
-    PrecisionType* dProjectionPlane = nullptr;
+    double* dProjectionPlane = nullptr;
 
     KernelOutputs* outputs = nullptr;
 

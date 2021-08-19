@@ -45,7 +45,25 @@ using PrecisionType3 = double3;
 #define SIN sin
 #define CUDA_FLOOR floor
 
-#if __CUDA_ARCH__ < 600
+#else
+// Types
+using PrecisionType = float;
+using PrecisionType3 = float3;
+// Constants
+#define _PI_ (3.1415926535897f)
+// Functions
+#define SQRT sqrtf
+#define ATAN2 atan2f
+#define COS cosf
+#define SIN sinf
+#define CUDA_FLOOR floorf
+
+#endif// USE_DOUBLE_PRECISION
+
+// Need own definition of atomicAdd for doubles for older architectures
+// otherwise, the compilation would fail
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#else
 __device__ double atomicAdd(double* address, double val)
 {
     unsigned long long int* address_as_ull =
@@ -64,21 +82,6 @@ __device__ double atomicAdd(double* address, double val)
     return __longlong_as_double(old);
 }
 #endif
-
-#else
-// Types
-using PrecisionType = float;
-using PrecisionType3 = float3;
-// Constants
-#define _PI_ (3.1415926535897f)
-// Functions
-#define SQRT sqrtf
-#define ATAN2 atan2f
-#define COS cosf
-#define SIN sinf
-#define CUDA_FLOOR floorf
-
-#endif// USE_DOUBLE_PRECISION
 
 // Compilation settings - end
 
@@ -179,9 +182,9 @@ struct VolumeMetaData
 
 #define LIN_INTERP(a, l, h) ((l) + ((h) - (l)) * (a))
 
-// For the current supported degrees L1, L2, the max is 56 coeficients
-// if there is added support for higher degrees of L1, L2 then the
-// max number of coeficient NEEDS to be recalculated and updated
+// XXX For the current supported degrees L1, L2, the max is 56 coeficients
+// XXX if there is added support for higher degrees of L1, L2 then the
+// XXX max number of coeficient NEEDS to be recalculated and updated
 #ifndef MAX_COEF_COUNT
 #define MAX_COEF_COUNT 56
 #endif
@@ -221,7 +224,7 @@ __global__ void projectionKernel(
         const PrecisionType* __restrict__ volData,
         unsigned steps,
         const int* __restrict__ volMask,
-        PrecisionType* __restrict__ projectionPlane,
+        double* __restrict__ projectionPlane,
         PrecisionType* __restrict__ outArrayGlobal)
 {
     // Thread index in a block
@@ -290,6 +293,7 @@ __global__ void projectionKernel(
     }
 
     // Reduce warp
+    #pragma unroll
     for (int offset = 32 / 2; offset > 0; offset >>= 1) {
         localCount += __shfl_down_sync(0xFFFFFFFF, localCount, offset);
         localSumVD += __shfl_down_sync(0xFFFFFFFF, localSumVD, offset);

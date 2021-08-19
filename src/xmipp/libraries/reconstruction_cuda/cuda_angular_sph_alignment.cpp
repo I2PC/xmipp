@@ -201,9 +201,9 @@ void AngularSphAlignment::setupProjectionPlane()
 {
     const auto& projPlane = program->P();
     if (dProjectionPlane == nullptr) {
-        gpuErrchk(cudaMalloc(&dProjectionPlane, projPlane.yxdim * sizeof(PrecisionType)));
+        gpuErrchk(cudaMalloc(&dProjectionPlane, projPlane.yxdim * sizeof(double)));
     }
-    cudaMemset(dProjectionPlane, 0, projPlane.yxdim * sizeof(PrecisionType));
+    cudaMemset(dProjectionPlane, 0, projPlane.yxdim * sizeof(double));
 }
 
 void AngularSphAlignment::runKernelAsync()
@@ -252,24 +252,15 @@ void AngularSphAlignment::runKernelAsync()
     reduceModg.reduceDeviceArrayAsync(modgPtr, kernelOutputSize, &outputs->modg);
 }
 
-//FIXME tmp test 
-    std::vector<PrecisionType> tmp;
 void AngularSphAlignment::transferProjectionPlaneAsync()
 {
-    tmp.resize(program->P().zyxdim);
-    // mozna lepsi nez neustale pretypovavat a kopirovat vectory, to proste ukladat v double na GPU
-    // nic se tam nepocita jen se to ulozi (tzn "jedno" pretypovani z float na double)
-    gpuErrchk(cudaMemcpyAsync(tmp.data(), dProjectionPlane, tmp.size() * sizeof(PrecisionType),
+    gpuErrchk(cudaMemcpyAsync(program->P().data, dProjectionPlane, program->P().yxdim * sizeof(double),
                 cudaMemcpyDeviceToHost, prepStream));
 }
 
 void AngularSphAlignment::synchronize()
 {
     gpuErrchk(cudaStreamSynchronize(prepStream));
-    //FIXME tmp test
-    std::vector<double> tmpDouble(tmp.begin(), tmp.end());
-    memcpy(program->P().data, tmpDouble.data(), tmpDouble.size() * sizeof(double));
-    //FIXME tmp test
     reduceCount.synchronize();
     reduceSumVD.synchronize();
     reduceModg.synchronize();
