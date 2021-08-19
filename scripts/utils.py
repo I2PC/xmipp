@@ -24,7 +24,9 @@
 # ***************************************************************************/
 
 import subprocess
-from os import environ
+from os import environ, path, remove
+import distutils.spawn
+import glob
 
 
 def green(text):
@@ -63,3 +65,149 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return p
     else:
         return 0 == p.poll()
+
+
+def whereis(program, findReal=False, env=None):
+    programPath = distutils.spawn.find_executable(program, path=env)
+    if programPath:
+        if findReal:
+            programPath = path.realpath(programPath)
+        return path.dirname(programPath)
+    else:
+        return None
+
+
+def checkProgram(programName, show=True):
+    systems = ["Ubuntu/Debian", "ManjaroLinux"]
+    try:
+        osInfo = subprocess.Popen(["lsb_release", "--id"],
+                                  stdout=subprocess.PIPE, env=environ).stdout.read().decode("utf-8")
+        osName = osInfo.split('\t')[1].strip('\n')
+        osId = -1  # no default OS
+        for idx, system in enumerate(systems):
+            if osName in system:
+                osId = idx
+    except:
+        osId = -1
+
+    systemInstructions = {}  # Ubuntu/Debian          ;      ManjaroLinux
+    systemInstructions["git"] = [
+        "sudo apt-get -y install git", "sudo pacman -Syu --noconfirm git"]
+    systemInstructions["gcc"] = [
+        "sudo apt-get -y install gcc", "sudo pacman -Syu --noconfirm gcc"]
+    systemInstructions["g++"] = ["sudo apt-get -y install g++",
+                                 "sudo pacman -Syu --noconfirm g++"]
+    systemInstructions["mpicc"] = [
+        "sudo apt-get -y install libopenmpi-dev", "sudo pacman -Syu --noconfirm openmpi"]
+    systemInstructions["mpicxx"] = [
+        "sudo apt-get -y install libopenmpi-dev", "sudo pacman -Syu --noconfirm openmpi"]
+    systemInstructions["scons"] = [
+        'sudo apt-get -y install scons or make sure that Scipion Scons is in the path', "sudo pacman -Syu --noconfirm scons"]
+    systemInstructions["javac"] = [
+        'sudo apt-get -y install default-jdk default-jre', "sudo pacman -Syu --noconfirm jre"]
+    systemInstructions["rsync"] = [
+        "sudo apt-get -y install rsync", "sudo pacman -Syu --noconfirm rsync"]
+    systemInstructions["pip"] = [
+        "sudo apt-get -y install python3-pip", "sudo pacman -Syu --noconfirm pip"]
+    systemInstructions["make"] = [
+        "sudo apt-get -y install make", "sudo pacman -Syu --noconfirm make"]
+    ok = True
+    cont = True
+    if not whereis(programName):
+        if cont:
+            if show:
+                print(red("Cannot find '%s'." % path.basename(programName)))
+                idx = 0
+                if programName in systemInstructions:
+                    if osId >= 0:
+                        print(red(" - %s OS detected, please try: %s"
+                                  % (systems[osId],
+                                     systemInstructions[programName][osId])))
+                    else:
+                        print(red("   Do:"))
+                        for instructions in systemInstructions[programName]:
+                            print(red("    - In %s: %s" %
+                                  (systems[idx], instructions)))
+                            idx += 1
+                    print("\nRemember to re-run './xmipp config' after install new software in order to "
+                          "take into account the new system configuration.")
+            ok = False
+        else:
+            ok = False
+    return ok
+
+
+def isCIBuild():
+    return 'CIBuild' in environ
+
+
+def findFileInDirList(fnH, dirlist):
+    """ :returns the dir where found or an empty string if not found.
+        dirs can contain *, then first found is returned.
+    """
+    if isinstance(dirlist, str):
+        dirlist = [dirlist]
+
+    for dir in dirlist:
+        validDirs = glob.glob(path.join(dir, fnH))
+        if len(validDirs) > 0:
+            return path.dirname(validDirs[0])
+    return ''
+
+
+def checkLib(gxx, libFlag):
+    """ Returns True if lib is found. """
+    result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
+                    gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
+                    show_output=False, show_command=False)
+    remove('xmipp_check_lib.cpp')
+    remove('a.out') if path.isfile('a.out') else None
+    return result
+
+
+def askPath(default='', ask=True):
+    question = "type a path where to locate it"
+    if ask:
+        if default:
+            print(yellow("Alternative found at '%s'." % default))
+            question = "press [return] to use it or " + question
+        else:
+            question = question+" or press [return] to continue"
+        result = input(yellow("Please, "+question+": "))
+        if not result and default:
+            print(green(" -> "+default))
+        print()
+        return result if result else default
+    else:
+        if default:
+            print(yellow("Using '%s'." % default))
+        else:
+            print(red("No alternative found in the system."))
+        return default
+
+
+def askYesNo(msg='', default=True, actually_ask=True):
+    if not actually_ask:
+        print(msg, default)
+        return default
+    r = input(msg)
+    return (r.lower() not in ['n', 'no', '0'] if default else
+            r.lower() in ['y', 'yes', '1'])
+
+
+def getDependenciesInclude():
+    return ['../']
+
+
+def installDepConda(dep, askUser):
+    condaEnv = environ.get('CONDA_DEFAULT_ENV', 'base')
+    if condaEnv != 'base':
+        if not askUser or askYesNo(yellow("'%s' dependency not found. Do you want "
+                                          "to install it using conda? [YES/no] "
+                                          % dep)):
+            print(yellow("Trying to install %s with conda" % dep))
+            if runJob("conda activate %s ; conda install %s -y -c defaults" % (condaEnv, dep)):
+                print(green("'%s' installed in conda environ '%s'.\n" %
+                      (dep, condaEnv)))
+                return True
+    return False
