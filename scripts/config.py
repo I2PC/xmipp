@@ -28,14 +28,15 @@ import sys
 
 
 def red(text):
-    return "\033[91m "+text+"\033[0m"
+    return '\033[91m ' + text + '\033[0m'
 
 
 class Config:
-    FILE_NAME = "xmipp.conf"
+    FILE_NAME = 'xmipp.conf'
+    KEY_BUILD_TESTS = 'BUILD_TESTS'
 
     def __init__(self):
-        self.configDict = {}
+        self._create_empty()
 
     def get(self):
         return self.configDict
@@ -60,8 +61,21 @@ class Config:
                 cf.read(fnConfig)
                 if not 'BUILD' in cf.sections():
                     print(red("Cannot find section BUILD in %s" % fnConfig))
-                    self.configDict = {}
+                    self._create_empty()
                 self.configDict = dict(cf.items('BUILD'))
         except:
             sys.exit("%s\nPlease fix the configuration file %s." %
                      (sys.exc_info()[1], fnConfig))
+
+    def _create_empty(self):
+        labels = [Config.KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
+                'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
+                'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
+                'MATLAB_DIR', 'CUDA','DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
+                'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
+                'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
+                'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
+        self.configDict = {}
+        for label in labels:
+            # We let to set up the xmipp configuration via environ.
+            self.configDict[label] = os.environ.get(label, "")
