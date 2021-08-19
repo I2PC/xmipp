@@ -378,95 +378,6 @@ def getScipionHome():
     return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
 
 
-def configMPI(configDict):
-    mpiBinCandidates = [os.environ.get('MPI_BINDIR', 'None'),
-                        '/usr/lib/openmpi/bin',
-                        '/usr/lib64/openmpi/bin']
-    if configDict["MPI_RUN"] == "":
-        if checkProgram("mpirun", False):
-            configDict["MPI_RUN"] = "mpirun"
-            print(green("'mpirun' detected."))
-        elif checkProgram("mpiexec", False):
-            configDict["MPI_RUN"] = "mpiexec"
-            print(green("'mpiexec' detected."))
-        else:
-            print(yellow("\n'mpirun' and 'mpiexec' not found in the PATH"))
-            mpiDir = findFileInDirList('mpirun', mpiBinCandidates)
-            mpiDir = askPath(mpiDir, askUser)
-            if mpiDir:
-                configDict["MPI_RUN"] = os.path.join(mpiDir, "mpirun")
-                checkProgram(configDict["MPI_RUN"])
-                buildConfig.updateXmippEnv(PATH=mpiDir)
-    if configDict["MPI_CC"] == "":
-        if checkProgram("mpicc", False):
-            configDict["MPI_CC"] = "mpicc"
-            print(green("'mpicc' detected."))
-        else:
-            print(yellow("\n'mpicc' not found in the PATH"))
-            mpiDir = findFileInDirList('mpicc', mpiBinCandidates)
-            mpiDir = askPath(mpiDir, askUser)
-            if mpiDir:
-                configDict["MPI_CC"] = os.path.join(mpiDir, "mpicc")
-                checkProgram(configDict["MPI_CC"])
-    if configDict["MPI_CXX"] == "":
-        if checkProgram("mpicxx", False):
-            configDict["MPI_CXX"] = "mpicxx"
-            print(green("'mpicxx' detected."))
-        else:
-            print(yellow("\n'mpicxx' not found in the PATH"))
-            mpiDir = findFileInDirList('mpicxx', mpiBinCandidates)
-            mpiDir = askPath(mpiDir, askUser)
-            if mpiDir:
-                configDict["MPI_CXX"] = os.path.join(mpiDir, "mpicxx")
-                checkProgram(configDict["MPI_CXX"])
-
-    mpiLib_env = os.environ.get('MPI_LIBDIR', '')
-    if mpiLib_env:
-        configDict['MPI_CXXFLAGS'] += ' -L'+mpiLib_env
-
-    mpiInc_env = os.environ.get('MPI_INCLUDE', '')
-    if mpiInc_env:
-        configDict['MPI_CXXFLAGS'] += ' -I'+mpiInc_env
-
-    if configDict["MPI_LINKERFORPROGRAMS"] == "":
-        configDict["MPI_LINKERFORPROGRAMS"] = configDict["MPI_CXX"]
-
-def checkMPI(configDict):
-    print("Checking MPI configuration ...")
-    cppProg="""
-#include <mpi.h>
-int main(){}
-"""
-    with open("xmipp_mpi_test_main.cpp", "w") as cppFile:
-        cppFile.write(cppProg)
-
-    if not runJob("%s -c -w %s %s %s xmipp_mpi_test_main.cpp -o xmipp_mpi_test_main.o"
-                  % (configDict["MPI_CXX"], configDict["INCDIRFLAGS"],
-                     configDict["CXXFLAGS"], configDict["MPI_CXXFLAGS"])):
-        print(red("MPI compilation failed. Check the INCDIRFLAGS, MPI_CXX and CXXFLAGS in 'xmipp.conf'"))
-        print(red("In addition, MPI_CXXFLAGS can also be used to add flags to MPI compilations."
-                  "'%s --showme:compile' might help" % configDict['MPI_CXX']))
-        return False
-
-    libhdf5=getHdf5Name(configDict["LIBDIRFLAGS"])
-    if not runJob("%s %s %s %s xmipp_mpi_test_main.o -o xmipp_mpi_test_main "
-                  "-lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread"
-                  % (configDict["MPI_LINKERFORPROGRAMS"], configDict["LINKFLAGS"],
-                     configDict["MPI_LINKFLAGS"], configDict["LIBDIRFLAGS"], libhdf5)):
-        print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
-        print(red("In addition, MPI_LINKFLAGS can also be used to add flags to MPI links. "
-                  "'%s --showme:compile' might help" % configDict['MPI_CXX']))
-        return False
-    runJob("rm xmipp_mpi_test_main*")
-
-    echoString = blue("   > This sentence should be printed 2 times if mpi runs fine")
-    if not (runJob("%s -np 2 echo '%s.'" % (configDict['MPI_RUN'], echoString)) or
-            runJob("%s -np 2 --allow-run-as-root echo '%s.'" % (configDict['MPI_RUN'], echoString))):
-        print(red("mpirun or mpiexec have failed."))
-        return False
-    return True
-
-
 def configJava(configDict):
     if configDict["JAVA_HOME"]=="":
         javaProgramPath = whereis('javac', findReal=True)
@@ -618,11 +529,6 @@ def checkStarPU(configDict):
             runJob("rm xmipp_starpu_config_test*")
     return ans
 
-def writeConfig(configDict):
-    with open(Config.FILE_NAME, "w") as configFile:
-        configFile.write("[BUILD]\n")
-        for label in sorted(configDict.keys()):
-            configFile.write("%s=%s\n"%(label,configDict[label]))
 
 def updateConfig(updatingDict):
     cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
@@ -630,7 +536,6 @@ def updateConfig(updatingDict):
         print(blue("Setting %s=%s" % (k, v)))
         runJob(cmdTemplate % (k, k, v.replace('/', '\/'), Config.FILE_NAME),
                show_command=False)
-
 
 
 def config_DL(configDict):
@@ -656,27 +561,6 @@ def ensureConfigVersion(configDict):
 def configTests(configDict):
     if configDict[Config.KEY_BUILD_TESTS] == "":
         configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow('\nDo you want to build tests [yes/NO]'), default=False, actually_ask=askUser)
-
-
-def config():
-    tmp = Config(True)
-    tmp.create()
-    new_config_dict = tmp.get()
-
-    configMPI(new_config_dict)
-    configJava(new_config_dict)
-    
-    configMatlab(new_config_dict)
-    configStarPU(new_config_dict)
-    config_DL(new_config_dict)
-    configConfigVersion(new_config_dict)
-    configTests(new_config_dict)
-
-    writeConfig(new_config_dict)
-    tmp.writeEnviron()
-    print(blue("Configuration completed....."))
-
-    return new_config_dict
 
 
 def compileModule(Nproc,module):
@@ -1227,7 +1111,9 @@ if __name__ == '__main__':
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
     elif mode=="config":
-        configDict = config()
+        buildConfig = Config(askUser)
+        buildConfig.create()
+        configDict = buildConfig.get()
     elif mode=="check_config":
         if not buildConfig.check():
             print(red("\nCheck failed! Something wrong with the configuration.\n"))
@@ -1293,7 +1179,8 @@ if __name__ == '__main__':
 
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
-            config()
+            buildConfig = Config(askUser)
+            buildConfig.create()
         else:
             print(blue("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
