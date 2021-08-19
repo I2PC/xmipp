@@ -8,6 +8,7 @@ public:
     ~GpuReduction();
     T reduceDeviceArray(const T* d_inData, size_t n);
     void reduceDeviceArrayAsync(const T* d_inData, size_t n, T* h_output);
+    void synchronize();
     void reset();
 private:
     void initializeReductionBuffers(size_t n);

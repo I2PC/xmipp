@@ -206,7 +206,7 @@ void AngularSphAlignment::setupProjectionPlane()
     cudaMemset(dProjectionPlane, 0, projPlane.yxdim * sizeof(PrecisionType));
 }
 
-void AngularSphAlignment::runKernel()
+void AngularSphAlignment::runKernelAsync()
 {
     // Before and after running the kernel is no need for explicit synchronization,
     // because it is being run in the default cuda stream, therefore it is synchronized automatically
@@ -237,6 +237,10 @@ void AngularSphAlignment::runKernel()
                     );
     }
 
+    // Transfer will start only after projectionKernel ends, because it is being
+    // run in the default stream
+    transferProjectionPlaneAsync();
+
     PrecisionType* countPtr = reductionArray;
     PrecisionType* sumVDPtr = countPtr + kernelOutputSize;
     PrecisionType* modgPtr = sumVDPtr + kernelOutputSize;
@@ -246,24 +250,29 @@ void AngularSphAlignment::runKernel()
     reduceCount.reduceDeviceArrayAsync(countPtr, kernelOutputSize, &outputs->count);
     reduceSumVD.reduceDeviceArrayAsync(sumVDPtr, kernelOutputSize, &outputs->sumVD);
     reduceModg.reduceDeviceArrayAsync(modgPtr, kernelOutputSize, &outputs->modg);
-
-    // FIXME maybe not needed here, can be done asynch and synchro when outputs are requested
-    gpuErrchk(cudaDeviceSynchronize());
 }
 
-void AngularSphAlignment::transferProjectionPlane()
+//FIXME tmp test 
+    std::vector<PrecisionType> tmp;
+void AngularSphAlignment::transferProjectionPlaneAsync()
 {
+    tmp.resize(program->P().zyxdim);
     // mozna lepsi nez neustale pretypovavat a kopirovat vectory, to proste ukladat v double na GPU
     // nic se tam nepocita jen se to ulozi (tzn "jedno" pretypovani z float na double)
-    std::vector<PrecisionType> tmp(program->P().zyxdim);
-    gpuErrchk(cudaMemcpy(tmp.data(), dProjectionPlane, tmp.size() * sizeof(PrecisionType), cudaMemcpyDeviceToHost));
-    std::vector<double> tmpDouble(tmp.begin(), tmp.end());
-    memcpy(program->P().data, tmpDouble.data(), tmpDouble.size() * sizeof(double));
+    gpuErrchk(cudaMemcpyAsync(tmp.data(), dProjectionPlane, tmp.size() * sizeof(PrecisionType),
+                cudaMemcpyDeviceToHost, prepStream));
 }
 
-void AngularSphAlignment::transferResults()
+void AngularSphAlignment::synchronize()
 {
-    transferProjectionPlane();
+    gpuErrchk(cudaStreamSynchronize(prepStream));
+    //FIXME tmp test
+    std::vector<double> tmpDouble(tmp.begin(), tmp.end());
+    memcpy(program->P().data, tmpDouble.data(), tmpDouble.size() * sizeof(double));
+    //FIXME tmp test
+    reduceCount.synchronize();
+    reduceSumVD.synchronize();
+    reduceModg.synchronize();
 }
 
 void AngularSphAlignment::setupZSHparams()

@@ -97,9 +97,9 @@ public:
     void setupConstantParameters();
     void setupChangingParameters();
 
-    void runKernel();
+    void runKernelAsync();
+    void synchronize();
 
-    void transferResults();
     KernelOutputs getOutputs();
 
     AngularSphAlignment(ProgAngularSphAlignmentGpu* prog);
@@ -151,5 +151,5 @@ private:
     void prepareVolume(const double* mdaData, double* prepVol, PrecisionType* volume);
     void setupVolumeMetaData(const Image<double>& inputImage);
 
-    void transferProjectionPlane();
+    void transferProjectionPlaneAsync();
 };

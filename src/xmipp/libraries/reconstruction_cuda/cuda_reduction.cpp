@@ -90,19 +90,22 @@ void GpuReduction<T>::reduceDeviceArrayAsync(const T* d_inData, size_t n, T* h_o
     int gridSize = (n + blockSize - 1) / blockSize;
     reduction(d_inData, d_output, n, blockSize, gridSize);
     n = gridSize;
-    //cudaStreamSynchronize(*cudaStream);
 
     while (n > 1) { 
         std::swap(d_input, d_output);
         gridSize = (n + blockSize - 1) / blockSize;
         reduction(d_input, d_output, n, blockSize, gridSize);
         n = gridSize;
-        //cudaStreamSynchronize(*cudaStream);
     }
 
     //check
     if (cudaMemcpyAsync(h_output, d_output, sizeof(T), cudaMemcpyDeviceToHost, *cudaStream) != cudaSuccess)
         throw std::runtime_error(cudaGetErrorString(cudaGetLastError()));
+}
+
+template<typename T>
+void GpuReduction<T>::synchronize() {
+    cudaStreamSynchronize(*reinterpret_cast<cudaStream_t*>(stream));
 }
 
 template<typename T>

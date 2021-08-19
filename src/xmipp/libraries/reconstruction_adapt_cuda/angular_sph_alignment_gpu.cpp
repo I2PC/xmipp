@@ -243,7 +243,7 @@ double ProgAngularSphAlignmentGpu::transformImageSph(
     P().setXmippOrigin();
     // deformVol not needed, substitute with call to "runKernel"
     deformVolumeAsync(deformation, rot, tilt, psi);
-
+bool sync = false;
 
     if (hasCTF)
     {
@@ -255,6 +255,8 @@ double ProgAngularSphAlignmentGpu::transformImageSph(
         }
         FilterCTF.ctf = ctf;
         // FIXME synchro here
+        angularAlignGpu.synchronize();
+        sync = true;
         FilterCTF.generateMask(P());
         if (phaseFlipped)
             FilterCTF.correctPhase();
@@ -271,6 +273,8 @@ double ProgAngularSphAlignmentGpu::transformImageSph(
     applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
 
     // FIXME synchro here
+    if (!sync)
+        angularAlignGpu.synchronize();
     filter.applyMaskSpace(P());
     const MultidimArray<double> &mP=P();
     const MultidimArray<int> &mMask2D=mask2D;
@@ -307,7 +311,12 @@ double ProgAngularSphAlignmentGpu::transformImageSph(
         std::cout << "Press any key" << std::endl;
         char c; std::cin >> c;
     }
-
+    //FIXME tmp test
+    auto o = angularAlignGpu.getOutputs();
+    sumVd = o.sumVD;
+    deformation = sqrt(o.modg/o.count);
+    totalDeformation = deformation;
+    // ---
     double massDiff=std::abs(sumV-sumVd)/sumV;
     double retval=cost+lambda*(deformation + massDiff);
     if (showOptimization)
@@ -583,13 +592,13 @@ void ProgAngularSphAlignmentGpu::deformVolumeAsync(
 
     angularAlignGpu.setupChangingParameters();
 
-    angularAlignGpu.runKernel();
+    angularAlignGpu.runKernelAsync();
 
-    angularAlignGpu.transferResults();
-    auto outputs = angularAlignGpu.getOutputs();
+    //angularAlignGpu.transferResults();
+    //auto outputs = angularAlignGpu.getOutputs();
 
-    sumVd = outputs.sumVD;
-    def = sqrt(outputs.modg/outputs.count);
-    totalDeformation = def;
+    //sumVd = outputs.sumVD;
+    //def = sqrt(outputs.modg/outputs.count);
+    //totalDeformation = def;
 }
 
