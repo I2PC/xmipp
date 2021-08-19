@@ -24,9 +24,16 @@
 
 
 class Config:
-    FILE_NAME = "xmipp.conf" 
+    FILE_NAME = "xmipp.conf"
+
     def __init__(self):
         self.configDict = {}
+
+    def set(self, d):
+        self.configDict = d
+
+    def get(self):
+        return self.configDict
 
     def is_true(self, key):
         return self.configDict and (key in self.configDict) and (self.configDict[key].lower() == 'true')

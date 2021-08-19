@@ -475,8 +475,7 @@ def getSources(branch):
     return True
 
 
-def is_config_true(key):
-    return configDict and (key in configDict) and (configDict[key].lower() == 'true')
+
 
 
 def getDependencies():
@@ -486,7 +485,7 @@ def getDependencies():
     result = True
     for dep, args in DEPENDENCIES.items():
         branch = args[0]
-        configChecked = not args[1] or is_config_true(args[1])
+        configChecked = not args[1] or buildConfig.is_true(args[1])
         if configChecked and result:
             result = cloneOrCheckout(dep, branch)
     if not result:
@@ -670,7 +669,7 @@ def configCompiler(configDict):
             configDict["CXXFLAGS"] += " -O0"  # don't optimize, as it slows down the build
         else:
             configDict["CXXFLAGS"] += " -O3"
-        if is_config_true("DEBUG"):
+        if buildConfig.is_true("DEBUG"):
             configDict["CXXFLAGS"] += " -g"
     # Nothing special to add to LINKFLAGS
     from sysconfig import get_paths
@@ -1411,7 +1410,7 @@ def installDepConda(dep):
 def compileDependencies(Nproc):
     print("Building Dependencies -------------------------------------")
     result = True
-    if is_config_true('CUDA'):
+    if buildConfig.is_true('CUDA'):
         cudaBinDir, nvccBaseName = os.path.split(configDict['NVCC'])
         # cuFFTAdvisor compilation needs 'nvcc' accessible through the PATH
         if not checkProgram(nvccBaseName, False) and checkProgram(configDict['NVCC'], False):
@@ -1419,7 +1418,7 @@ def compileDependencies(Nproc):
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
-    if is_config_true(KEY_BUILD_TESTS):
+    if buildConfig.is_true(KEY_BUILD_TESTS):
         result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))
@@ -1481,7 +1480,7 @@ def runTests(testNames):
     runJob("bin/xmipp_sync_data %s %s" % (task, args), cwd='src/xmipp')
 
     configDict = readConfigFile(Config.FILE_NAME)
-    noCudaStr = '--noCuda' if not is_config_true('CUDA') else ''
+    noCudaStr = '--noCuda' if not buildConfig.is_true('CUDA') else ''
     print(" Tests to do: %s" % ', '.join(testNames))
     if not runJob("(cd src/xmipp/tests; %s test.py %s %s)"
                   % (getPython(), ' '.join(testNames), noCudaStr)):
@@ -1553,7 +1552,7 @@ def addDeepLearninModel(login, modelPath='', update=None):
 
 pDLdownload = None
 def downloadDeepLearningModels(cwd, dedicatedMode=False):
-    if not is_config_true('USE_DL') and not dedicatedMode:
+    if not buildConfig.is_true('USE_DL') and not dedicatedMode:
         return True
     url = "http://scipion.cnb.csic.es/downloads/scipion/software/em"
     dest = "models"
@@ -1878,7 +1877,9 @@ if __name__ == '__main__':
 
     XMIPP_SCRIPT_VERSION = getScriptVersion()
 
-    configDict = readConfigFile(Config.FILE_NAME)
+    buildConfig = Config()
+    buildConfig.set(readConfigFile(Config.FILE_NAME))
+    configDict = buildConfig.get()
 
     if mode=="cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
