@@ -376,14 +376,6 @@ def getScipionHome():
     return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
 
 
-def updateConfig(updatingDict):
-    cmdTemplate = "sed -i -e 's/^%s=.*/%s=%s/' %s"
-    for k, v in updatingDict.items():
-        print(blue("Setting %s=%s" % (k, v)))
-        runJob(cmdTemplate % (k, k, v.replace('/', '\/'), Config.FILE_NAME),
-               show_command=False)
-
-
 def compileModule(Nproc,module):
     shutil.copyfile(Config.FILE_NAME,"src/%s/install/%s" % (module, Config.FILE_NAME))
     if module == "xmipp":
@@ -951,7 +943,6 @@ if __name__ == '__main__':
 
         # create config if not there
         if not os.path.isfile(Config.FILE_NAME):
-            buildConfig = Config(askUser)
             buildConfig.create()
         else:
             print(blue("'%s' detected." % Config.FILE_NAME))

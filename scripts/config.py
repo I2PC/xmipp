@@ -110,12 +110,6 @@ class Config:
     def get(self):
         return self.configDict
 
-    def writeEnviron(self):  # FIXME remove
-        self.environment.write()
-
-    def updateXmippEnv(self, pos='begin', realPath=True, **kwargs):  # FIXME remove
-        self.environment.update(pos, realPath, **kwargs)
-
     def is_true(self, key):
         return self.configDict and (key in self.configDict) and (self.configDict[key].lower() == 'true')
 
