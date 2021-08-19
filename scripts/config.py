@@ -56,9 +56,10 @@ class Config:
         self._config_Matlab()
         self._config_StarPU()
         self._config_DL()
-        self.configDict[Config.KEY_VERSION] = self._get_version()
-        # configTests(new_config_dict)
+        self._config_tests()
 
+        self.configDict[Config.KEY_VERSION] = self._get_version()
+        
         self.write()
         self.environment.write()
         print(blue("Configuration completed....."))
@@ -866,7 +867,8 @@ class Config:
         notFound = "(no git repo detected)"
         if ensureGit(False):
             scriptName = ''
-            runJob('git ls-files --full-name ' + os.path.basename(__file__), '.', False, scriptName, False)
+            runJob('git ls-files --full-name ' +
+                   os.path.basename(__file__), '.', False, scriptName, False)
             lastCommit = []
             # get hash of the last commit changing this script
             if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
@@ -879,3 +881,8 @@ class Config:
                 return notFound
         else:
             return notFound
+
+    def _config_tests(self):
+        if self.configDict[Config.KEY_BUILD_TESTS] == "":
+            self.configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow(
+                '\nDo you want to build tests [yes/NO]'), default=False, actually_ask=self.ask)
