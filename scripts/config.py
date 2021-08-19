@@ -852,7 +852,7 @@ class Config:
             self.configDict[Config.KEY_USE_DL] = 'False'
 
     def ensure_version(self):
-        if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self.get_version():
+        if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
             print(red("We did some changes which are not compatible with your current config file. "
                       "Please, run './xmipp config' to generate a new config file."
                       "We recommend you to create a backup before regenerating it (use --help for additional info)"))
