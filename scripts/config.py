@@ -59,7 +59,7 @@ class Config:
         self._config_tests()
 
         self.configDict[Config.KEY_VERSION] = self._get_version()
-        
+
         self.write()
         self.environment.write()
         print(blue("Configuration completed....."))
