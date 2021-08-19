@@ -378,40 +378,6 @@ def getScipionHome():
     return os.environ.get("SCIPION_HOME", whereis("scipion3")) or ''
 
 
-def configMatlab(configDict):
-    if configDict["MATLAB"]=="":
-        if checkProgram("matlab",False):
-            configDict["MATLAB"]="True"
-        else:
-            configDict["MATLAB"]="False"
-    if configDict["MATLAB"]=="True":
-        if configDict["MATLAB_DIR"]=="":
-            if checkProgram("matlab"):
-                matlabBinDir = whereis("matlab", findReal=True)
-                buildConfig.updateXmippEnv(MATLAB_BIN_DIR=matlabBinDir)
-                configDict["MATLAB_DIR"]=matlabBinDir.replace("/bin","")
-                print(green("Matlab detected at " + matlabBinDir))
-
-
-def checkMatlab(configDict):
-    ans = True
-    if configDict["MATLAB"]=="True":
-        if not checkProgram("matlab"):
-            return False
-        print("Checking Matlab configuration ...")
-        cppProg="""
-    #include <mex.h>
-    int dummy(){}
-    """
-        with open("xmipp_mex.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
-
-        if not runJob("%s/bin/mex -silent xmipp_mex.cpp"%configDict["MATLAB_DIR"]):
-            print(red("Check the MATLAB_DIR"))
-            ans = False
-        runJob("rm xmipp_mex*")
-    return ans
-
 def configStarPU(configDict):
     # TODO(Jan Polak): This check would be probably better done with pkg-config
     if configDict["STARPU"]=="":
