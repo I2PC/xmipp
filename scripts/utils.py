@@ -22,6 +22,43 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # ***************************************************************************/
 
+import subprocess
+from os import environ
 
-from .config import *
-from .utils import *
+
+def green(text):
+    return "\033[92m "+text+"\033[0m"
+
+
+def yellow(text):
+    return "\033[93m " + text + "\033[0m"
+
+
+def red(text):
+    return "\033[91m "+text+"\033[0m"
+
+
+def blue(text):
+    return "\033[34m "+text+"\033[0m"
+
+
+def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
+           inParallel=False):
+    if show_command:
+        print(green(cmd))
+    p = subprocess.Popen(cmd, cwd=cwd, env=environ,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    while not inParallel:
+        output = p.stdout.readline().decode("utf-8")
+        if output == '' and p.poll() is not None:
+            break
+        if output:
+            l = output.rstrip()
+            if show_output:
+                print(l)
+            if log is not None:
+                log.append(l)
+    if inParallel:
+        return p
+    else:
+        return 0 == p.poll()

@@ -33,7 +33,7 @@ import shutil
 import sys
 import subprocess
 from datetime import datetime
-from scripts import Config
+from scripts import *
 
 
 # ----K-E-E-P----U-P-D-A-T-E-D---- #
@@ -263,39 +263,7 @@ def checkProgram(programName, show=True):
             ok = False
     return ok
 
-def green(text):
-    return "\033[92m "+text+"\033[0m"
 
-def yellow(text):
-    return "\033[93m " + text + "\033[0m"
-
-def red(text):
-    return "\033[91m "+text+"\033[0m"
-
-def blue(text):
-    return "\033[34m "+text+"\033[0m"
-
-
-def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
-           inParallel=False):
-    if show_command:
-        print(green(cmd))
-    p = subprocess.Popen(cmd, cwd=cwd, env=os.environ,
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-    while not inParallel:
-        output = p.stdout.readline().decode("utf-8")
-        if output == '' and p.poll() is not None:
-            break
-        if output:
-            l = output.rstrip()
-            if show_output:
-                print(l)
-            if log is not None:
-                log.append(l)
-    if inParallel:
-        return p
-    else:
-        return 0 == p.poll()
 
 def cleanSources():
     for dep in DEPENDENCIES.keys():
