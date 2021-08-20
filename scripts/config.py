@@ -93,7 +93,7 @@ class Config:
         self._create_default()
         self.configDict = self.get()  # FIXME remove (use _set() etc.)
 
-        self._config_compiler()
+        self._set_compilers()
         self._config_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -167,6 +167,14 @@ class Config:
     def _set_version(self):
         self._set(Config.OPT_CONFIG_VERSION, Config.get_version())
 
+    def _set_if_not_empty(self, option, value):
+        if self.is_empty(option):
+            self._set(option, value)
+
+    def _append(self, option, value):
+        vals = self.get()[option]
+        self._set(option, vals + ' ' + value)
+
     def is_true(self, option):
         if self.has(option):
             return self.get()[option].lower() == 'true'
@@ -191,8 +199,10 @@ class Config:
     def _is_up_to_date(self):
         return self.get(Config.OPT_CONFIG_VERSION) == Config.get_version()
 
-    def has(self, option):
-        return option in self.get()
+    def has(self, option, value=None):
+        if value is None:
+            return option in self.get()
+        return option in self.get() and value in self.get()[option]
 
     def read(self, file=FILE_NAME):
         self.config.read(file)
@@ -280,46 +290,69 @@ class Config:
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
 
-    def _config_compiler(self):
-        if self.configDict["DEBUG"] == "":
-            self.configDict["DEBUG"] = "False"
+    def get_supported_GCC():
+        # we need GCC with C++14 support
+        # https://gcc.gnu.org/projects/cxx-status.html
+        return [11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
+                9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
+                7.5, 7.4, 7.3, 7.2, 7.1, 7, 6.5, 6.4, 6.3, 6.2, 6.1, 6,
+                5.5, 5.4, 5.3, 5.2, 5.1, 5, '']
 
-        if self.configDict["CC"] == "" and checkProgram("gcc"):
-            self.configDict["CC"] = "gcc"
-            print(green('gcc detected'))
-        if self.configDict["CXX"] == "":
-            if isCIBuild():
-                # we can use cache to speed up the build
-                self.configDict["CXX"] = "ccache g++" if checkProgram(
-                    "g++") else ""
-            else:
-                self.configDict["CXX"] = "g++" if checkProgram("g++") else ""
-        if self.configDict["LINKERFORPROGRAMS"] == "":
-            if isCIBuild():
-                # we can use cache to speed up the build
-                self.configDict["LINKERFORPROGRAMS"] = "ccache g++" if checkProgram(
-                    "g++") else ""
-            else:
-                self.configDict["LINKERFORPROGRAMS"] = "g++" if checkProgram(
-                    "g++") else ""
+    def _set_compiler_linker_helper(self, opt, prg, versions):
+        if self.is_empty(opt):
+            prg = find_newest(prg, versions, None, True)
+            if is_CI_build() and prg:
+                prg = 'ccache ' + prg
+            self._set(opt, prg)
 
-        if self.configDict["CC"] == "gcc":
-            if not "-std=c99" in self.configDict["CCFLAGS"]:
-                self.configDict["CCFLAGS"] += " -std=c99"
-        if 'g++' in self.configDict["CXX"]:
-            # optimize for current machine
-            self.configDict["CXXFLAGS"] += " -mtune=native -march=native"
-            if "-std=c99" not in self.configDict["CXXFLAGS"]:
-                self.configDict["CXXFLAGS"] += " -std=c++11"
-            if isCIBuild():
-                # don't tolerate any warnings on build machine
-                self.configDict["CXXFLAGS"] += " -Werror"
-                # don't optimize, as it slows down the build
-                self.configDict["CXXFLAGS"] += " -O0"
-            else:
-                self.configDict["CXXFLAGS"] += " -O3"
-            if self.is_true("DEBUG"):
-                self.configDict["CXXFLAGS"] += " -g"
+    def _set_cc(self):
+        self._set_compiler_linker_helper(
+            Config.OPT_CC, 'gcc', Config.get_supported_GCC())
+
+    def _set_cxx(self):
+        self._set_compiler_linker_helper(
+            Config.OPT_CXX, 'g++', Config.get_supported_GCC())
+
+    def _set_linker(self):
+        self._set_compiler_linker_helper(
+            Config.OPT_LINKERFORPROGRAMS, 'g++', Config.get_supported_GCC())
+
+    def _set_cc_flags(self):
+        std = '-std=c99'
+        opt = Config.OPT_CCFLAGS
+        if self.has(opt, std):
+            return
+        self._append(opt, std)
+
+    def _set_cxx_flags(self):
+        opt = Config.OPT_CXXFLAGS
+        if not self.is_empty(opt):
+            return
+        # optimize for current machine
+        self._append(opt, ' -mtune=native -march=native')
+        # c++ standard
+        self._append(opt, '-std=c++11')
+        if is_CI_build():
+            # don't tolerate any warnings on build machine
+            self._append(opt, '-Werror')
+        # set optimization level
+        level = '-O0' if is_CI_build() else '-O3'
+        level = '-O1' if self.is_true(Config.OPT_DEBUG) else level
+        self._append(opt, level)
+        if self.is_true(Config.OPT_DEBUG):
+            self._append(opt, '-g')
+            self._append(opt, '-fno-omit-frame-pointer')
+
+
+    def _set_compilers(self):
+        self._set_if_not_empty(Config.OPT_DEBUG, False)
+
+        self._set_cc()
+        self._set_cc_flags()
+        self._set_cxx()
+        self._set_cxx_flags()
+        self._set_linker()
+
         # Nothing special to add to LINKFLAGS
         from sysconfig import get_paths
         info = get_paths()

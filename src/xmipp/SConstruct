@@ -445,7 +445,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     return program
 
 
-def compilerConfig(env):
+def compilerConfig(env): # FIXME probably not used, remove
     """Check the good state of the C and C++ compilers and return the proper env."""
 
     conf = Configure(env)

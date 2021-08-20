@@ -27,6 +27,8 @@ import subprocess
 from os import environ, path, remove
 import distutils.spawn
 import glob
+from shutil import which
+from os.path import realpath
 
 
 def green(text):
@@ -65,6 +67,30 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return p
     else:
         return 0 == p.poll()
+
+
+def find_newest(program, versions, path, show):
+    for v in versions:
+        p = program + '-' + str(v) if v else program
+        loc = find(p, path)
+        if loc:
+            if show:
+                print(green(p + ' found in ' + loc))
+            return loc
+    if show:
+        print(red(program + ' not found'))
+    return ''
+
+
+def find(program, path=None):
+    location = which(program)
+    if location:
+        return location
+    else:
+        location = which(program, path)
+        if location:
+            return realpath(location)
+        return None
 
 
 def whereis(program, findReal=False, env=None):
@@ -137,7 +163,11 @@ def checkProgram(programName, show=True):
     return ok
 
 
-def isCIBuild():
+def isCIBuild():  # FIXME deprecated (use is_CI_build())
+    return 'CIBuild' in environ
+
+
+def is_CI_build():
     return 'CIBuild' in environ
 
 
