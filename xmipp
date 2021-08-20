@@ -59,7 +59,7 @@ REPOSITORIES = {XMIPP: 'https://github.com/I2PC/xmipp.git',
 #              {dep-repo:     (branch, check-conf)}
 DEPENDENCIES = {CUFFTADVISOR: ('master', 'CUDA'),
                 CTPL: ('master', None),
-                GTEST: ('release-1.10.0', Config.KEY_BUILD_TESTS)}
+                GTEST: ('release-1.10.0', Config.OPT_BUILD_TESTS)}
 
 
 # if a skippable compilation fails (if 'key' found in the failed code),
@@ -462,7 +462,7 @@ def compileDependencies(Nproc):
             os.environ['PATH'] = os.pathsep.join([cudaBinDir, os.environ['PATH']])
         result = result and (checkProgram('make', True) or installDepConda('make'))
         result = result and compile_cuFFTAdvisor()
-    if buildConfig.is_true(Config.KEY_BUILD_TESTS):
+    if buildConfig.is_true(Config.OPT_BUILD_TESTS):
         result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))

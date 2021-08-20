@@ -25,6 +25,7 @@
 # ***************************************************************************/
 
 
+from configparser import ConfigParser
 import os
 import sys
 from .utils import *
@@ -33,20 +34,64 @@ from.environment import Environment
 
 class Config:
     FILE_NAME = 'xmipp.conf'
-    KEY_BUILD_TESTS = 'BUILD_TESTS'
-    KEY_USE_DL = 'USE_DL'
-    KEY_VERSION = 'CONFIG_VERSION'
+
+    SECTION_BUILD = "BUILD"
+
+    OPT_BUILD_TESTS = 'BUILD_TESTS'
+    OPT_CC = 'CC'
+    OPT_CCFLAGS = 'CCFLAGS'
+    OPT_CONFIG_VERSION = 'CONFIG_VERSION'
+    OPT_CXX = 'CXX'
+    OPT_CXXFLAGS = 'CXXFLAGS'
+    OPT_INCDIRFLAGS = 'INCDIRFLAGS'
+    OPT_JAVA_HOME = 'JAVA_HOME'
+    OPT_JAVA_BINDIR = 'JAVA_BINDIR'
+    OPT_JAVAC = 'JAVAC'
+    OPT_JAR = 'JAR'
+    OPT_JNI_CPPPATH = 'JNI_CPPPATH'
+    OPT_LIBDIRFLAGS = 'LIBDIRFLAGS'
+    OPT_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
+    OPT_LINKFLAGS = 'LINKFLAGS'
+    OPT_PYTHONINCFLAGS = 'PYTHONINCFLAGS'
+    OPT_MPI_CC = 'MPI_CC'
+    OPT_MPI_CXX = 'MPI_CXX'
+    OPT_MPI_RUN = 'MPI_RUN'
+    OPT_MPI_LINKERFORPROGRAMS = 'MPI_LINKERFORPROGRAMS'
+    OPT_MPI_CXXFLAGS = 'MPI_CXXFLAGS'
+    OPT_MATLAB_DIR = 'MATLAB_DIR'
+    OPT_CUDA = 'CUDA'
+    OPT_DEBUG = 'DEBUG'
+    OPT_MATLAB = 'MATLAB'
+    OPT_OPENCV = 'OPENCV'
+    OPT_OPENCVSUPPORTSCUDA = 'OPENCVSUPPORTSCUDA'
+    OPT_OPENCV3 = 'OPENCV3'
+    OPT_MPI_LINKFLAGS = 'MPI_LINKFLAGS'
+    OPT_NVCC = 'NVCC'
+    OPT_CXX_CUDA = 'CXX_CUDA'
+    OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
+    OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
+    OPT_STARPU = 'STARPU'
+    OPT_STARPU_HOME = 'STARPU_HOME'
+    OPT_STARPU_INCLUDE = 'STARPU_INCLUDE'
+    OPT_STARPU_LIB = 'STARPU_LIB'
+    OPT_STARPU_LIBRARY = 'STARPU_LIBRARY'
+    OPT_USE_DL = 'USE_DL'
+    OPT_USE_DL = 'USE_DL'
+    OPT_VERIFIED = 'VERIFIED'
+    OPT_CONFIG_VERSION = 'CONFIG_VERSION'
+    OPT_PYTHON_LIB = 'PYTHON_LIB'
 
     def __init__(self, askUser=False):
         self.ask = askUser
-        self._create_empty()
+        self.config = ConfigParser()
+        # keep case (stackoverflow.com/questions/1611799)
+        self.environment = Environment()
+        self.configDict = {}  # FIXME remove (use _set() etc.)
 
     def create(self):
         print("Configuring -----------------------------------------")
-        self._create_empty()
-
-        if self.configDict['VERIFIED'] == '':
-            self.configDict['VERIFIED'] = 'False'
+        self._create_default()
+        self.configDict = self.get()  # FIXME remove (use _set() etc.)
 
         self._config_compiler()
         self._config_CUDA()
@@ -57,8 +102,6 @@ class Config:
         self._config_StarPU()
         self._config_DL()
         self._config_tests()
-
-        self.configDict[Config.KEY_VERSION] = self._get_version()
 
         self.write()
         self.environment.write()
@@ -107,11 +150,37 @@ class Config:
                        % Config.FILE_NAME))
         return True
 
-    def get(self):
-        return self.configDict
+    def get(self, option=None):
+        tmp = self.config['BUILD']
+        if option:
+            return tmp[option]
+        return tmp
 
-    def is_true(self, key):
-        return self.configDict and (key in self.configDict) and (self.configDict[key].lower() == 'true')
+    def _set(self, option, value):
+        self.get()[option] = str(value)
+
+    def _set_version(self):
+        self._set(Config.OPT_CONFIG_VERSION, Config.get_version())
+
+    def is_true(self, option):
+        if self.has(option):
+            return self.get()[option].lower() == 'true'
+        return False
+
+    def is_empty(self, option):
+        return self.has(option) and self.get(option) == ''
+
+    def is_valid(self):
+        return self._is_verified() and self._is_up_to_date()
+
+    def _is_verified(self):
+        return self.is_true(Config.OPT_VERIFIED)
+
+    def _is_up_to_date(self):
+        return self.get(Config.OPT_CONFIG_VERSION) == Config.get_version()
+
+    def has(self, option):
+        return option in self.get()
 
     def read(self, fnConfig=FILE_NAME):
         try:
@@ -136,25 +205,23 @@ class Config:
             sys.exit("%s\nPlease fix the configuration file %s." %
                      (sys.exc_info()[1], fnConfig))
 
-    def write(self):
-        with open(Config.FILE_NAME, "w") as configFile:
-            configFile.write("[BUILD]\n")
-            for label in sorted(self.configDict.keys()):
-                configFile.write("%s=%s\n" % (label, self.configDict[label]))
+    def get_opts():
+        import inspect
+        attrs = inspect.getmembers(Config, lambda a: not(inspect.isroutine(a)))
+        return [a[1] for a in attrs if a[0].startswith('OPT')]
 
-    def _create_empty(self):
-        labels = [Config.KEY_BUILD_TESTS, 'CC', 'CXX', 'LINKERFORPROGRAMS', 'INCDIRFLAGS', 'LIBDIRFLAGS', 'CCFLAGS', 'CXXFLAGS',
-                  'LINKFLAGS', 'PYTHONINCFLAGS', 'MPI_CC', 'MPI_CXX', 'MPI_RUN', 'MPI_LINKERFORPROGRAMS', 'MPI_CXXFLAGS',
-                  'MPI_LINKFLAGS', 'NVCC', 'CXX_CUDA', 'NVCC_CXXFLAGS', 'NVCC_LINKFLAGS',
-                  'MATLAB_DIR', 'CUDA', 'DEBUG', 'MATLAB', 'OPENCV', 'OPENCVSUPPORTSCUDA', 'OPENCV3',
-                  'JAVA_HOME', 'JAVA_BINDIR', 'JAVAC', 'JAR', 'JNI_CPPPATH',
-                  'STARPU', 'STARPU_HOME', 'STARPU_INCLUDE', 'STARPU_LIB', 'STARPU_LIBRARY',
-                  'USE_DL', 'VERIFIED', 'CONFIG_VERSION', 'PYTHON_LIB']
-        self.configDict = {}
-        self.environment = Environment()
-        for label in labels:
-            # We let to set up the xmipp configuration via environ.
-            self.configDict[label] = os.environ.get(label, "")
+    def write(self):
+        with open(Config.FILE_NAME, "w") as f:
+            self.config.write(f)
+
+    def _create_default(self):
+        options = Config.get_opts()
+        self.config.optionxform = str
+        self.config.add_section(Config.SECTION_BUILD)
+        for o in options:
+            self.config[Config.SECTION_BUILD][o] = environ.get(o, '')
+        self._set_version()
+        self._set(Config.OPT_VERIFIED, False)
 
     def _config_OpenCV(self):
         cppProg = "#include <opencv2/core/core.hpp>\n"
@@ -166,9 +233,9 @@ class Config:
                       % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
                          self.configDict["INCDIRFLAGS"]), show_output=False):
             print(yellow("OpenCV not found"))
-            self.configDict["OPENCV"] = False
-            self.configDict["OPENCVSUPPORTSCUDA"] = False
-            self.configDict["OPENCV3"] = False
+            self._set(Config.OPT_OPENCV, False)
+            self._set(Config.OPT_OPENCVSUPPORTSCUDA, False)
+            self._set(Config.OPT_OPENCV3, False)
         else:
             self.configDict["OPENCV"] = True
 
@@ -842,17 +909,17 @@ class Config:
         return ans
 
     def _config_DL(self):
-        if (Config.KEY_USE_DL in self.configDict) and (self.configDict[Config.KEY_USE_DL] != 'True'):
-            self.configDict[Config.KEY_USE_DL] = 'False'
+        if (Config.OPT_USE_DL in self.configDict) and (self.configDict[Config.OPT_USE_DL] != 'True'):
+            self.configDict[Config.OPT_USE_DL] = 'False'
 
     def ensure_version(self):
-        if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
+        if Config.OPT_VERSION not in self.configDict or self.configDict[Config.OPT_VERSION] != Config.get_version():
             print(red("We did some changes which are not compatible with your current config file. "
                       "Please, run './xmipp config' to generate a new config file."
                       "We recommend you to create a backup before regenerating it (use --help for additional info)"))
             exit(-1)
 
-    def _get_version(self):
+    def get_version():
         """ If git not present means it is in production mode
             and version can be retrieved from the commit.info file
         """
@@ -877,6 +944,6 @@ class Config:
             return notFound
 
     def _config_tests(self):
-        if self.configDict[Config.KEY_BUILD_TESTS] == "":
-            self.configDict[Config.KEY_BUILD_TESTS] = askYesNo(yellow(
-                '\nDo you want to build tests [yes/NO]'), default=False, actually_ask=self.ask)
+        if self.configDict[Config.OPT_BUILD_TESTS] == "":
+            self._set(Config.OPT_BUILD_TESTS, askYesNo(yellow(
+                '\nDo you want to build tests [yes/NO]'), default=False, actually_ask=self.ask))
