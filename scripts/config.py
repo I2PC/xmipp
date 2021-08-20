@@ -109,45 +109,50 @@ class Config:
 
     def check(self):
         print("Checking configuration ------------------------------")
-        if self.configDict['VERIFIED'] != 'True':
-            if not self._check_compiler:
-                print(red("Cannot compile"))
-                print("Possible solutions")  # FIXME: check libraries
-                print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "
-                      "python3-numpy python3-scipy python3-mpi4py")
-                print(
-                    "In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
-                print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
-                      "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
-                print("\nRemember to re-run './xmipp config' after installing libraries in order to "
-                      "take into account the new system configuration.")
-                runJob("rm xmipp_test_main*")
-                return False
-            if not self._check_MPI():
-                print(red("Cannot compile with MPI or use it"))
-                runJob("rm xmipp_mpi_test_main*")
-                return False
-            if not self._check_Java():
-                print(red("Cannot compile with Java"))
-                runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
-                return False
-            if not self._check_CUDA():
-                print(red("Cannot compile with NVCC, continuing without CUDA"))
-                # if fails, the test files remains
-                runJob("rm xmipp_cuda_test*")
-                self.configDict["CUDA"] = "False"
-            if not self._check_Matlab():
-                print(red("Cannot compile with Matlab, continuing without Matlab"))
-                self.configDict["MATLAB"] = "False"
-                runJob("rm xmipp_mex*")
-            if not self._check_StarPU():
-                print(red("Cannot compile with StarPU, continuing without StarPU"))
-                self.configDict["STARPU"] = "False"
-            self.configDict['VERIFIED'] = "True"
-            self.write()  # store result
-        else:
+        if self._is_verified():
             print(blue("'%s' is already checked. Set VERIFIED=False to re-checked"
                        % Config.FILE_NAME))
+            return True
+        if not self._is_up_to_date():
+            print(blue("'%s' is obsolete and has to be updated. Please check ./xmipp --help"
+                       % Config.FILE_NAME))
+            return True
+        if not self._check_compiler:
+            print(red("Cannot compile"))
+            print("Possible solutions")  # FIXME: check libraries
+            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "
+                  "python3-numpy python3-scipy python3-mpi4py")
+            print(
+                "In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
+            print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
+                  "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
+            print("\nRemember to re-run './xmipp config' after installing libraries in order to "
+                  "take into account the new system configuration.")
+            runJob("rm xmipp_test_main*")
+            return False
+        if not self._check_MPI():
+            print(red("Cannot compile with MPI or use it"))
+            runJob("rm xmipp_mpi_test_main*")
+            return False
+        if not self._check_Java():
+            print(red("Cannot compile with Java"))
+            runJob("rm Xmipp.java Xmipp.class xmipp_jni_test*")
+            return False
+        if not self._check_CUDA():
+            print(red("Cannot compile with NVCC, continuing without CUDA"))
+            # if fails, the test files remains
+            runJob("rm xmipp_cuda_test*")
+            self.configDict["CUDA"] = "False"
+        if not self._check_Matlab():
+            print(red("Cannot compile with Matlab, continuing without Matlab"))
+            self.configDict["MATLAB"] = "False"
+            runJob("rm xmipp_mex*")
+        if not self._check_StarPU():
+            print(red("Cannot compile with StarPU, continuing without StarPU"))
+            self.configDict["STARPU"] = "False"
+        self.configDict['VERIFIED'] = "True"
+        self.write()  # store result
+
         return True
 
     def get(self, option=None):
@@ -173,6 +178,13 @@ class Config:
     def is_valid(self):
         return self._is_verified() and self._is_up_to_date()
 
+    def ensure_is_valid(self):
+        if not (Config.config_file_exists() and self.is_valid()):
+            sys.exit(red(self._get_help_msg()))
+
+    def config_file_exists():
+        return os.path.isfile(Config.FILE_NAME)
+
     def _is_verified(self):
         return self.is_true(Config.OPT_VERIFIED)
 
@@ -182,28 +194,8 @@ class Config:
     def has(self, option):
         return option in self.get()
 
-    def read(self, fnConfig=FILE_NAME):
-        try:
-            from ConfigParser import ConfigParser, ParsingError
-        except ImportError:
-            from configparser import ConfigParser, ParsingError  # Python 3
-        cf = ConfigParser()
-        cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
-        try:
-            if os.path.isdir(fnConfig):
-                if os.path.exists(os.path.join(fnConfig, Config.FILE_NAME)):
-                    fnConfig = os.path.join(fnConfig, Config.FILE_NAME)
-                else:
-                    fnConfig = os.path.join(fnConfig, "xmipp.template")
-            if os.path.exists(fnConfig):
-                cf.read(fnConfig)
-                if not 'BUILD' in cf.sections():
-                    print(red("Cannot find section BUILD in %s" % fnConfig))
-                    self._create_empty()
-                self.configDict = dict(cf.items('BUILD'))
-        except:
-            sys.exit("%s\nPlease fix the configuration file %s." %
-                     (sys.exc_info()[1], fnConfig))
+    def read(self, file=FILE_NAME):
+        self.config.read(file)
 
     def get_opts():
         import inspect
@@ -214,9 +206,21 @@ class Config:
         with open(Config.FILE_NAME, "w") as f:
             self.config.write(f)
 
+    def _get_help_msg(self):
+        msg_missing = 'The config file %s is missing.\n' % Config.FILE_NAME
+        msg_obsolete = ('The config file %s is obsolete and has to be regenerated.\n'
+                        'We recommend you do create a manual backup of it first\n' % Config.FILE_NAME)
+        msg_common = 'Please, run ./xmipp --help or check the online documention for further details'
+        if not Config.config_file_exists():
+            return msg_missing + msg_common
+        if not self._is_up_to_date():
+            return msg_obsolete + msg_common
+
     def _create_default(self):
         options = Config.get_opts()
         self.config.optionxform = str
+        # remove existing section, if any (e.g. regenerating existing config)
+        self.config.remove_section(Config.SECTION_BUILD)
         self.config.add_section(Config.SECTION_BUILD)
         for o in options:
             self.config[Config.SECTION_BUILD][o] = environ.get(o, '')
@@ -911,13 +915,6 @@ class Config:
     def _config_DL(self):
         if (Config.OPT_USE_DL in self.configDict) and (self.configDict[Config.OPT_USE_DL] != 'True'):
             self.configDict[Config.OPT_USE_DL] = 'False'
-
-    def ensure_version(self):
-        if Config.OPT_VERSION not in self.configDict or self.configDict[Config.OPT_VERSION] != Config.get_version():
-            print(red("We did some changes which are not compatible with your current config file. "
-                      "Please, run './xmipp config' to generate a new config file."
-                      "We recommend you to create a backup before regenerating it (use --help for additional info)"))
-            exit(-1)
 
     def get_version():
         """ If git not present means it is in production mode
