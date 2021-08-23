@@ -133,6 +133,7 @@ def appendUnique(elist, element):
 #  ************************************************************************
 cf = ConfigParser()
 cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
+cf.read("install/xmipp.conf")
 if not 'BUILD' in cf.sections():
     sys.exit("Cannot find section BUILD in install/xmipp.conf.\nYou will probably have to generate new config file.\nPlease see online documentation on how to procede.")
 os.environ.update(dict(cf.items('BUILD')))
