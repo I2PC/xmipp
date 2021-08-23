@@ -29,6 +29,7 @@ import distutils.spawn
 import glob
 from shutil import which
 from os.path import realpath
+from pathlib import Path
 
 
 def green(text):
@@ -80,6 +81,10 @@ def find_newest(program, versions, path, show):
     if show:
         print(red(program + ' not found'))
     return ''
+
+
+def get_script_dir(f):
+    return Path(f).parent.resolve()
 
 
 def find(program, path=None):

@@ -25,6 +25,7 @@
 # ***************************************************************************/
 
 
+from sysconfig import get_paths
 from configparser import ConfigParser
 import os
 import sys
@@ -94,6 +95,9 @@ class Config:
         self.configDict = self.get()  # FIXME remove (use _set() etc.)
 
         self._set_compilers()
+        self._set_paths()
+        self._set_OpenCV()
+        # FIXME refactor methods below, rename them to _set_XXX()
         self._config_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -237,58 +241,52 @@ class Config:
         self._set_version()
         self._set(Config.OPT_VERIFIED, False)
 
-    def _config_OpenCV(self):
-        cppProg = "#include <opencv2/core/core.hpp>\n"
-        cppProg += "int main(){}\n"
-        with open("xmipp_test_opencv.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
+    def _set_OpenCV(self):
+        if not self.is_empty(Config.OPT_OPENCV) or not self.is_empty(Config.OPT_OPENCV3):
+            return
+        # default values
+        self._set(Config.OPT_OPENCV, False)
+        self._set(Config.OPT_OPENCV3, False)
+        self._set(Config.OPT_OPENCVSUPPORTSCUDA, False)
 
-        if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-                      % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
-                         self.configDict["INCDIRFLAGS"]), show_output=False):
-            print(yellow("OpenCV not found"))
-            self._set(Config.OPT_OPENCV, False)
-            self._set(Config.OPT_OPENCVSUPPORTSCUDA, False)
-            self._set(Config.OPT_OPENCV3, False)
+        # try to compile C++ file which reports the version
+        curr_dir = get_script_dir(__file__)
+        cpp = os.path.join(curr_dir, 'templates', 'opencv_version.cpp')
+        bin = os.path.join(curr_dir, 'templates', 'opencv_version')
+        cmd_version = '%s %s -o %s %s %s' % (self.get(
+            Config.OPT_CXX), cpp, bin, self.get(Config.OPT_CXXFLAGS), self.get(Config.OPT_INCDIRFLAGS))
+        if not runJob(cmd_version, show_output=False, show_command=False):
+            print(red(
+                'Cannot compile OpenCV test file. The CXX related configuration is probably invalid'))
+            return
+        # execute the binary to get the version
+        log = []
+        runJob(bin, show_output=False, log=log, show_command=False)
+        os.remove(bin)
+        version = int(log[0])
+        if 2 == version:
+            self._set(Config.OPT_OPENCV, True)
+        elif 3 == version:
+            self._set(Config.OPT_OPENCV3, True)
         else:
-            self.configDict["OPENCV"] = True
+            print(yellow('Unsupported version of OpenCV (%s) detected.' % version))
+            return
+        print(green('OpenCV %s detected' % version))
 
-            # Check version
-            with open("xmipp_test_opencv.cpp", "w") as cppFile:
-                cppFile.write('#include <opencv2/core/version.hpp>\n')
-                cppFile.write('#include <fstream>\n')
-                cppFile.write('int main()'
-                              '{std::ofstream fh;'
-                              ' fh.open("xmipp_test_opencv.txt");'
-                              ' fh << CV_MAJOR_VERSION << std::endl;'
-                              ' fh.close();'
-                              '}\n')
-            if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
-                          % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
-                             self.configDict["INCDIRFLAGS"]), show_output=False):
-                self.configDict["OPENCV3"] = False
-                version = 2  # Just in case
-            else:
-                runJob("./xmipp_test_opencv")
-                f = open("xmipp_test_opencv.txt")
-                versionStr = f.readline()
-                f.close()
-                version = int(versionStr.split('.', 1)[0])
-                self.configDict["OPENCV3"] = version >= 3
-
-            # Check CUDA Support
-            cppProg = "#include <opencv2/core/version.hpp>\n"
-            cppProg += "#include <opencv2/cudaoptflow.hpp>\n" if self.configDict[
-                "OPENCV3"] else "#include <opencv2/core/cuda.hpp>\n"
-            cppProg += "int main(){}\n"
-            with open("xmipp_test_opencv.cpp", "w") as cppFile:
-                cppFile.write(cppProg)
-            self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                                                           (self.configDict["CXX"], self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
-
-            print(green("OPENCV-%s detected %s CUDA support"
-                        % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
-        runJob("rm -v xmipp_test_opencv*", show_output=False)
+        # check if CUDA is supported
+        cpp = os.path.join(curr_dir, 'templates',
+                           'opencv' + str(version) + '_cuda.cpp')
+        bin = os.path.join(curr_dir, 'templates', 'opencv_cuda')
+        cmd_cuda = '%s %s -o %s %s %s' % (self.get(
+            Config.OPT_CXX), cpp, bin, self.get(Config.OPT_CXXFLAGS), self.get(Config.OPT_INCDIRFLAGS))
+        cuda_supported = runJob(
+            cmd_cuda, show_output=False, show_command=False)
+        os.remove(bin)
+        self._set(Config.OPT_OPENCVSUPPORTSCUDA, cuda_supported)
+        if cuda_supported:
+            print(green('CUDA support for OpenCV detected'))
+        else:
+            print(yellow('CUDA support for OpenCV NOT detected'))
 
     def get_supported_GCC():
         # we need GCC with C++14 support
@@ -339,68 +337,57 @@ class Config:
         level = '-O0' if is_CI_build() else '-O3'
         level = '-O1' if self.is_true(Config.OPT_DEBUG) else level
         self._append(opt, level)
+        # optimize at the link time
+        self._append(opt, '-flto')
         if self.is_true(Config.OPT_DEBUG):
             self._append(opt, '-g')
             self._append(opt, '-fno-omit-frame-pointer')
 
-
     def _set_compilers(self):
         self._set_if_not_empty(Config.OPT_DEBUG, False)
-
         self._set_cc()
         self._set_cc_flags()
         self._set_cxx()
         self._set_cxx_flags()
         self._set_linker()
 
-        # Nothing special to add to LINKFLAGS
-        from sysconfig import get_paths
-        info = get_paths()
+    def _get_conda_include_dir(self):
+        tmp = os.environ.get('CONDA_PREFIX', '')
+        return os.path.join(tmp, 'include') if tmp else ''
 
-        if self.configDict["LIBDIRFLAGS"] == "":
-            # /usr/local/lib or /path/to/virtEnv/lib
-            localLib = "%s/lib" % info['data']
-            self.configDict["LIBDIRFLAGS"] = "-L%s" % localLib
-            self.environment.update(LD_LIBRARY_PATH=localLib)
+    def _get_conda_lib_dir(self):
+        tmp = os.environ.get('CONDA_PREFIX', '')
+        return os.path.join(tmp, 'lib') if tmp else ''
 
-            # extra libs
-            hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
-            isHdf5CppLinking = checkLib(self.configDict['CXX'], '-lhdf5_cpp')
-            isHdf5Linking = checkLib(self.configDict['CXX'], '-lhdf5')
-            if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
-                print(yellow("\n'libhdf5' not found at '%s'." % localLib))
-                hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
-                                                         "/usr/lib/x86_64-linux-gnu"])
-                hdf5Lib = askPath(hdf5Lib, self.ask)
-                if hdf5Lib:
-                    self.configDict["LIBDIRFLAGS"] += " -L%s" % hdf5Lib
-                    self.environment.update(LD_LIBRARY_PATH=hdf5Lib)
-                else:
-                    installDepConda('hdf5', self.ask)
+    def _get_python_include_dir(self):
+        return os.path.join(get_paths()['data'], 'include')
 
+    def _get_python_lib_dir(self):
+        return os.path.join(get_paths()['data'], 'lib')
+
+    def _get_include_dirs(self):
+        dirs = set([self._get_conda_include_dir(),
+                   self._get_python_include_dir()])
+        return ' -I'.join([''] + list(dirs))
+
+    def _get_lib_dirs(self):
+        dirs = set([self._get_conda_lib_dir(), self._get_python_lib_dir()])
+        return ' -L'.join([''] + list(dirs))
+
+    def _set_paths(self):
+        self._set_if_not_empty(Config.OPT_INCDIRFLAGS,
+                               self._get_include_dirs())
+        self._set_if_not_empty(Config.OPT_LIBDIRFLAGS, self._get_lib_dirs())
+
+        if not checkLib(self.configDict['CXX'], '-lhdf5_cpp'):
+            print(red("'lhdf5_cpp' not found in the system"))
+            installDepConda('hdf5', self.ask)
         if not checkLib(self.configDict['CXX'], '-lfftw3'):
             print(red("'libfftw3' not found in the system"))
             installDepConda('fftw', self.ask)
         if not checkLib(self.configDict['CXX'], '-ltiff'):
             print(red("'libtiff' not found in the system"))
             installDepConda('libtiff', self.ask)
-
-        if self.configDict["INCDIRFLAGS"] == "":
-            # /usr/local/include or /path/to/virtEnv/include
-            localInc = "%s/include" % info['data']
-            self.configDict["INCDIRFLAGS"] += ' '.join(
-                map(lambda x: '-I' + str(x), getDependenciesInclude()))
-            self.configDict["INCDIRFLAGS"] += " -I%s" % localInc
-
-            # extra includes
-            if not findFileInDirList("hdf5.h", [localInc, "/usr/include"]):
-                print(yellow("\nHeaders for 'libhdf5' not found at '%s'." % localInc))
-                # Add more candidates if needed
-                hdf5Inc = findFileInDirList(
-                    "hdf5.h", "/usr/include/hdf5/serial")
-                hdf5Inc = askPath(hdf5Inc, self.ask)
-                if hdf5Inc:
-                    self.configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
         if self.configDict["PYTHON_LIB"] == "":
             # malloc flavour is not needed from 3.8
@@ -409,16 +396,9 @@ class Config:
                                                                sys.version_info.minor,
                                                                malloc)
 
-        if self.configDict["PYTHONINCFLAGS"] == "":
-            import numpy
-            incDirs = [info['include'], numpy.get_include()]
-
-            self.configDict["PYTHONINCFLAGS"] = ' '.join(
-                ["-I%s" % iDir for iDir in incDirs])
-
-        self.configDict["OPENCV"] = os.environ.get("OPENCV", "")
-        if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"] or self.configDict["OPENCV3"]:
-            self._config_OpenCV()
+        import numpy
+        self._set_if_not_empty(
+            Config.OPT_PYTHONINCFLAGS, self._get_include_dirs() + '-I' + numpy.get_include())
 
     def _get_GCC_version(self, compiler):
         log = []
@@ -435,11 +415,13 @@ class Config:
         if not checkProgram(compiler, True):
             sys.exit(-7)
         gccVersion, fullVersion = self._get_GCC_version(compiler)
-
-        if gccVersion < 4.8:  # join first two numbers, i.e. major and minor version
+        if gccVersion < 5.0:
             print(red('Detected ' + compiler + " in version " +
-                  fullVersion + '. Version 4.8 or higher is required.'))
+                  fullVersion + '. Version 5.0 or higher is required.'))
             sys.exit(-8)
+        elif gccVersion < 7.0:
+            print(yellow(
+                'Consider updating your compiler. Xmipp will require GCC 7 or newer soon'))
         else:
             print(green(compiler + ' ' + fullVersion + ' detected'))
 
@@ -464,7 +446,7 @@ class Config:
         # in case user specified some wrapper of the compiler
         # get rid of it: 'ccache g++' -> 'g++'
         currentCxx = self.configDict["CXX"].split()[-1]
-        self._ensure_compiler_versionensureCompilerVersion(currentCxx)
+        self._ensure_compiler_version(currentCxx)
 
         cppProg = """
     #include <fftw3.h>
