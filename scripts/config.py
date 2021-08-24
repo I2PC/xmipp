@@ -34,6 +34,14 @@ from.environment import Environment
 
 
 class Config:
+    '''
+    This class is responsible for generation and validation of the Xmipp config file.
+    The main idea is that the config file is a dictionary with multiple values.
+    Newly generated config follows these rules:
+    1. By default, all values are undefined
+    2. Existing values found in the Environment take precedence
+    3. We do our best to look for the rest
+    '''
     FILE_NAME = 'xmipp.conf'
 
     SECTION_BUILD = "BUILD"
@@ -92,12 +100,12 @@ class Config:
     def create(self):
         print("Configuring -----------------------------------------")
         self._create_default()
-        self.configDict = self.get()  # FIXME remove (use _set() etc.)
 
         self._set_compilers()
         self._set_paths()
         self._set_OpenCV()
         # FIXME refactor methods below, rename them to _set_XXX()
+        self.configDict = self.get()  # FIXME remove (use _set() etc.)
         self._config_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -118,9 +126,8 @@ class Config:
                        % Config.FILE_NAME))
             return True
         if not self._is_up_to_date():
-            print(blue("'%s' is obsolete and has to be updated. Please check ./xmipp --help"
-                       % Config.FILE_NAME))
-            return True
+            print(blue(self._get_help_msg()))
+            return False
         if not self._check_compiler:
             print(red("Cannot compile"))
             print("Possible solutions")  # FIXME: check libraries
@@ -171,7 +178,7 @@ class Config:
     def _set_version(self):
         self._set(Config.OPT_CONFIG_VERSION, Config.get_version())
 
-    def _set_if_not_empty(self, option, value):
+    def _set_if_empty(self, option, value):
         if self.is_empty(option):
             self._set(option, value)
 
@@ -297,11 +304,12 @@ class Config:
                 5.5, 5.4, 5.3, 5.2, 5.1, 5, '']
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
-        if self.is_empty(opt):
-            prg = find_newest(prg, versions, None, True)
-            if is_CI_build() and prg:
-                prg = 'ccache ' + prg
-            self._set(opt, prg)
+        if not self.is_empty(opt):
+            return
+        prg = find_newest(prg, versions, None, True)
+        if is_CI_build() and prg:
+            prg = 'ccache ' + prg
+        self._set(opt, prg)
 
     def _set_cc(self):
         self._set_compiler_linker_helper(
@@ -312,8 +320,14 @@ class Config:
             Config.OPT_CXX, 'g++', Config.get_supported_GCC())
 
     def _set_linker(self):
+        opt = Config.OPT_LINKERFORPROGRAMS
         self._set_compiler_linker_helper(
-            Config.OPT_LINKERFORPROGRAMS, 'g++', Config.get_supported_GCC())
+            opt, 'g++', Config.get_supported_GCC())
+        # optimize at the link time
+        f = '-flto'
+        if self.has(opt, f):
+            return
+        self._append(opt, f)
 
     def _set_cc_flags(self):
         std = '-std=c99'
@@ -327,9 +341,9 @@ class Config:
         if not self.is_empty(opt):
             return
         # optimize for current machine
-        self._append(opt, ' -mtune=native -march=native')
+        self._append(opt, '-mtune=native -march=native')
         # c++ standard
-        self._append(opt, '-std=c++11')
+        self._append(opt, '-std=c++14')
         if is_CI_build():
             # don't tolerate any warnings on build machine
             self._append(opt, '-Werror')
@@ -344,7 +358,7 @@ class Config:
             self._append(opt, '-fno-omit-frame-pointer')
 
     def _set_compilers(self):
-        self._set_if_not_empty(Config.OPT_DEBUG, False)
+        self._set_if_empty(Config.OPT_DEBUG, False)
         self._set_cc()
         self._set_cc_flags()
         self._set_cxx()
@@ -366,38 +380,44 @@ class Config:
         return os.path.join(get_paths()['data'], 'lib')
 
     def _get_include_dirs(self):
-        dirs = set([self._get_conda_include_dir(),
-                   self._get_python_include_dir()])
+        dirs = {self._get_conda_include_dir(),
+                self._get_python_include_dir()}
         return ' -I'.join([''] + list(dirs))
 
     def _get_lib_dirs(self):
-        dirs = set([self._get_conda_lib_dir(), self._get_python_lib_dir()])
+        dirs = {self._get_conda_lib_dir(), self._get_python_lib_dir()}
         return ' -L'.join([''] + list(dirs))
 
-    def _set_paths(self):
-        self._set_if_not_empty(Config.OPT_INCDIRFLAGS,
-                               self._get_include_dirs())
-        self._set_if_not_empty(Config.OPT_LIBDIRFLAGS, self._get_lib_dirs())
+    def _exists(self, lib):
+        # see https://serverfault.com/a/679586
+        log = []
+        runJob('%s %s' % (self.get(Config.OPT_CXX), lib),
+                    show_output=False, show_command=False, log=log)
+        print(log)
+        return any('undefined reference' in l for l in log)
 
-        if not checkLib(self.configDict['CXX'], '-lhdf5_cpp'):
+    def _set_paths(self):
+        self._set_if_empty(Config.OPT_INCDIRFLAGS,
+                           self._get_include_dirs())
+        self._set_if_empty(Config.OPT_LIBDIRFLAGS, self._get_lib_dirs())
+
+        if not self._exists('-lhdf5_cpp'):
             print(red("'lhdf5_cpp' not found in the system"))
             installDepConda('hdf5', self.ask)
-        if not checkLib(self.configDict['CXX'], '-lfftw3'):
+        if not self._exists('-lfftw3'):
             print(red("'libfftw3' not found in the system"))
             installDepConda('fftw', self.ask)
-        if not checkLib(self.configDict['CXX'], '-ltiff'):
+        if not self._exists('-ltiff'):
             print(red("'libtiff' not found in the system"))
             installDepConda('libtiff', self.ask)
 
-        if self.configDict["PYTHON_LIB"] == "":
-            # malloc flavour is not needed from 3.8
-            malloc = "m" if sys.version_info.minor < 8 else ""
-            self.configDict["PYTHON_LIB"] = "python%s.%s%s" % (sys.version_info.major,
-                                                               sys.version_info.minor,
-                                                               malloc)
-
+        # set python, assume we have python 3
+        # pymalloc flag is not needed from 3.8, see https://docs.python.org/3/whatsnew/3.8.html
+        pymalloc = 'm' if sys.version_info.minor < 8 else ''
+        lib = 'python%s.%s%s' % (sys.version_info.major,sys.version_info.minor,pymalloc)
+        self._set_if_empty(Config.PYTHON_LIB, lib)
         import numpy
-        self._set_if_not_empty(
+        self._set_if_empty(
             Config.OPT_PYTHONINCFLAGS, self._get_include_dirs() + '-I' + numpy.get_include())
 
     def _get_GCC_version(self, compiler):

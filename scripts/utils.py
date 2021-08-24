@@ -190,16 +190,6 @@ def findFileInDirList(fnH, dirlist):
     return ''
 
 
-def checkLib(gxx, libFlag):
-    """ Returns True if lib is found. """
-    result = runJob('echo "int main(){}" > xmipp_check_lib.cpp ; ' +
-                    gxx + ' ' + libFlag + ' xmipp_check_lib.cpp',
-                    show_output=False, show_command=False)
-    remove('xmipp_check_lib.cpp')
-    remove('a.out') if path.isfile('a.out') else None
-    return result
-
-
 def askPath(default='', ask=True):
     question = "type a path where to locate it"
     if ask:
