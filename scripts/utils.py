@@ -70,10 +70,10 @@ def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
         return 0 == p.poll()
 
 
-def find_newest(program, versions, path, show):
+def find_newest(program, versions, show):
     for v in versions:
         p = program + '-' + str(v) if v else program
-        loc = find(p, path)
+        loc = find(p)
         if loc:
             if show:
                 print(green(p + ' found in ' + loc))
@@ -87,14 +87,15 @@ def get_script_dir(f):
     return Path(f).parent.resolve()
 
 
-def find(program, path=None):
+def find(program, path=[]):
     location = which(program)
     if location:
         return location
     else:
-        location = which(program, path)
-        if location:
-            return realpath(location)
+        for p in path:
+            location = which(program, path=p)
+            if location:
+                return realpath(location)
         return None
 
 
