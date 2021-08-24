@@ -127,19 +127,10 @@ class Config:
         if not self._is_up_to_date():
             print(blue(self._get_help_msg()))
             return False
-        if not self._check_compiler:
-            print(red("Cannot compile"))
-            print("Possible solutions")  # FIXME: check libraries
-            print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "
-                  "python3-numpy python3-scipy python3-mpi4py")
-            print(
-                "In Manjaro: sudo pacman -Syu install hdf5 python3-numpy python3-scipy --noconfirm")
-            print("Please, see 'https://scipion-em.github.io/docs/docs/scipion-modes/"
-                  "install-from-sources.html#step-2-dependencies' for more information about libraries dependencies.")
-            print("\nRemember to re-run './xmipp config' after installing libraries in order to "
-                  "take into account the new system configuration.")
-            runJob("rm xmipp_test_main*")
+        if not self._check_compilers():
+            print(red('Cannot compile. ' + self._get_help_msg()))
             return False
+        self.configDict = self.get()  # FIXME remove (use _set() etc.)
         if not self._check_MPI():
             print(red("Cannot compile with MPI or use it"))
             runJob("rm xmipp_mpi_test_main*")
@@ -248,13 +239,17 @@ class Config:
         self._set_version()
         self._set(Config.OPT_VERIFIED, False)
 
+    def _get_template_dir(self):
+        curr_dir = get_script_dir(__file__)
+        return os.path.join(curr_dir, 'templates')
+
     def _set_OpenCV(self):
         if not self.is_empty(Config.OPT_OPENCV) or not self.is_empty(Config.OPT_OPENCV3):
             return
 
         # try to compile C++ file which reports the version
         curr_dir = get_script_dir(__file__)
-        cpp = os.path.join(curr_dir, 'templates', 'opencv_version.cpp')
+        cpp = os.path.join(self._get_template_dir(), 'opencv_version.cpp')
         bin = os.path.splitext(cpp)[0]
         cmd_version = '%s %s -o %s %s %s' % (self.get(
             Config.OPT_CXX), cpp, bin, self.get(Config.OPT_CXXFLAGS), self.get(Config.OPT_INCDIRFLAGS))
@@ -281,7 +276,7 @@ class Config:
         print(green('OpenCV %s found' % version))
 
         # check if CUDA is supported
-        cpp = os.path.join(curr_dir, 'templates',
+        cpp = os.path.join(self._get_template_dir(),
                            'opencv' + str(version) + '_cuda.cpp')
         bin = os.path.splitext(cpp)[0]
         cmd_cuda = '%s %s -o %s %s %s' % (self.get(
@@ -370,14 +365,22 @@ class Config:
         return os.path.join(tmp, 'lib') if tmp else ''
 
     def _get_python_include_dir(self):
-        return os.path.join(get_paths()['data'], 'include')
+        return os.path.join(get_paths()['include'])
+
+    def _get_hdf5_include_dir(self):
+        candidates = ['/usr/include/hdf5', '/usr/include/hdf5/serial']
+        for c in candidates:
+            if os.path.isfile(os.path.join(c, 'hdf5.h')):
+                return c
+        return ''
 
     def _get_python_lib_dir(self):
         return os.path.join(get_paths()['data'], 'lib')
 
     def _get_include_dirs(self):
         dirs = {self._get_conda_include_dir(),
-                self._get_python_include_dir()}
+                self._get_python_include_dir(),
+                self._get_hdf5_include_dir()}
         return self._join_with_prefix(dirs, '-I')
 
     def _get_lib_dirs(self):
@@ -420,7 +423,7 @@ class Config:
         self._set_if_empty(Config.OPT_PYTHON_LIB, lib)
         import numpy
         self._set_if_empty(
-            Config.OPT_PYTHONINCFLAGS, self._get_include_dirs() + '-I' + numpy.get_include())
+            Config.OPT_PYTHONINCFLAGS, self._get_include_dirs() + ' -I' + numpy.get_include())
 
     def _get_GCC_version(self, compiler):
         log = []
@@ -433,8 +436,9 @@ class Config:
         gccVersion = float(str(tokens[0] + '.' + tokens[1]))
         return gccVersion, full_version
 
-    def _ensure_GCC_GPP_version(self, compiler):
-        if not checkProgram(compiler, True):
+    def _ensure_GCC_version(self, compiler):
+        if not find(compiler):
+            print(red(compiler + ' not found'))
             sys.exit(-7)
         gccVersion, fullVersion = self._get_GCC_version(compiler)
         if gccVersion < 5.0:
@@ -444,12 +448,13 @@ class Config:
         elif gccVersion < 7.0:
             print(yellow(
                 'Consider updating your compiler. Xmipp will require GCC 7 or newer soon'))
-        else:
-            print(green(compiler + ' ' + fullVersion + ' found'))
 
-    def _ensure_compiler_version(self, compiler):
+    def _ensure_compiler_version(self):
+        # in case user specified some wrapper of the compiler
+        # get rid of it: 'ccache g++' -> 'g++'
+        compiler = self.get(Config.OPT_CXX).split()[-1]
         if 'g++' in compiler or 'gcc' in compiler:
-            self._ensure_GCC_GPP_version(compiler)
+            self._ensure_GCC_version(compiler)
         else:
             print(red('Version detection for \'' +
                   compiler + '\' is not implemented.'))
@@ -463,48 +468,35 @@ class Config:
                 return "hdf5_serial"
         return "hdf5"
 
-    def _check_compiler(self):
-        print("Checking compiler configuration ...")
-        # in case user specified some wrapper of the compiler
-        # get rid of it: 'ccache g++' -> 'g++'
-        currentCxx = self.configDict["CXX"].split()[-1]
-        self._ensure_compiler_version(currentCxx)
+    def _check_compilers(self):
+        self._ensure_compiler_version()
 
-        cppProg = """
-    #include <fftw3.h>
-    #include <hdf5.h>
-    #include <tiffio.h>
-    #include <jpeglib.h>
-    #include <sqlite3.h>
-    #include <pthread.h>
-    #include <Python.h>
-    #include <numpy/ndarraytypes.h>
-        """
-        if self.configDict["OPENCV"] == "True":
-            cppProg += "#include <opencv2/core/core.hpp>\n"
-            if self.configDict["OPENCVSUPPORTSCUDA"] == "True":
-                if self.configDict["OPENCV3"] == "True":
-                    cppProg += "#include <opencv2/cudaoptflow.hpp>\n"
-                else:
-                    cppProg += "#include <opencv2/core/cuda.hpp>\n"
-        cppProg += "\n int main(){}\n"
-        with open("xmipp_test_main.cpp", "w") as cppFile:
-            cppFile.write(cppProg)
+        cpp = os.path.join(self._get_template_dir(), 'compilation.cpp')
+        obj = os.path.splitext(cpp)[0] + '.o'
+        bin = os.path.splitext(cpp)[0]
+        result = runJob('%s -c %s -o %s %s %s %s' %
+                        (self.get(Config.OPT_CXX), cpp, obj,
+                         self.get(Config.OPT_CXXFLAGS),
+                         self.get(Config.OPT_INCDIRFLAGS),
+                         self.get(Config.OPT_PYTHONINCFLAGS)), show_command=False)
+        if not result:
+            print(red('Problem detected in %s %s %s %s' % (Config.OPT_CXX,
+                  Config.OPT_CXXFLAGS, Config.OPT_INCDIRFLAGS, Config.OPT_PYTHONINCFLAGS)))
+        else:
+            result = runJob('%s %s -o %s %s %s -lfftw3 -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread' %
+                            (self.get(Config.OPT_LINKERFORPROGRAMS),
+                             obj, bin,
+                             self.get(Config.OPT_LINKFLAGS),
+                             self.get(Config.OPT_LIBDIRFLAGS)), show_command=False)
+        if not result:
+            print(red('Problem detected in %s %s %s' % (
+                Config.OPT_LINKERFORPROGRAMS, Config.OPT_LINKFLAGS, Config.OPT_LIBDIRFLAGS)))
+        os.remove(obj)
+        os.remove(bin)
 
-        if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s" %
-                      (self.configDict["CXX"], self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"], self.configDict["PYTHONINCFLAGS"])):
-            print(
-                red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf"))
-            # FIXME: Check the dependencies list
-            print(red("If some of the libraries headers fail, try installing fftw3_dev, tiff_dev, jpeg_dev, sqlite_dev, hdf5, pthread"))
-            return False
-        libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
-        if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-                      (self.configDict["LINKERFORPROGRAMS"], self.configDict["LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5)):
-            print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
-            return False
-        runJob("rm xmipp_test_main*")
-        return True
+        if result:
+            print(green('Compilation configuration seems to be fine'))
+        return result
 
     def _get_CUDA_version(self, nvcc):
         log = []
@@ -618,7 +610,8 @@ class Config:
                 'WARNING: CUDA libraries (libcudart.so) not found. ' + self._get_help_msg()))
             return False
         # nvidia-ml is in stubs folder
-        self._set(opt, self._join_with_prefix([path, os.path.join(path, 'stubs')], '-L'))
+        self._set(opt, self._join_with_prefix(
+            [path, os.path.join(path, 'stubs')], '-L'))
         return True
 
     def _set_CUDA(self):
