@@ -27,7 +27,7 @@
 
 #include <data/pdb.h>
 #include <core/xmipp_program.h>
-#include <core/metadata.h>
+#include <core/xmipp_metadata_program.h>
 #include <core/matrix1d.h>
 
 class ProgPdbSphDeform: public XmippProgram
