@@ -1,3 +1,26 @@
+/***************************************************************************
+ *
+ * Authors:    David Myska              davidmyska@mail.muni.cz
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.uam.es'
+ ***************************************************************************/
+
 #ifndef VOLUME_DEFORM_SPH_H
 #define VOLUME_DEFORM_SPH_H
 // Xmipp includes
@@ -21,7 +44,7 @@ using PrecisionType = float;
 using PrecisionType3 = float3;
 #endif
 
-struct ImageMetaData
+struct VolumeMetaData
 {
     int xShift = 0;
     int yShift = 0;
@@ -95,12 +118,8 @@ private:
     GpuReduction<PrecisionType> reduceSumVD;
     PrecisionType* reductionArray = nullptr;
 
-    // Kernel stuff
-    size_t constantSharedMemSize;
-    size_t changingSharedMemSize;
 
-    //FIXME better naming, it is not really grid size, but size of output arrays
-    size_t totalGridSize;
+    size_t kernelOutputSize;
 
     // Variables transfered to the GPU memory
 
@@ -114,14 +133,12 @@ private:
 
     bool saveDeformation;
 
-    // Inside pointers point to the GPU memory
-
     IROimages images;
     double* dTmpVI;
 
     DeformImages deformImages;
 
-    ImageMetaData imageMetaData;
+    VolumeMetaData volMetaData;
 
     Volumes<PrecisionType> volumes;
     Volumes<double> prepVolumes;
@@ -132,9 +149,8 @@ private:
 
     // helper methods for simplifying and transfering data to gpu
 
-    void setupImage(Image<double>& inputImage, PrecisionType** outputImageData);
-    void setupImage(const ImageMetaData& inputImage, PrecisionType** outputImageData);
-    void setupImageMetaData(const Image<double>& inputImage);
+    void setupImage(const VolumeMetaData& inputImage, PrecisionType** outputImageData);
+    void setupVolumeMetaData(const Image<double>& inputImage);
 
     void setupVolumes();
     template<bool PADDING = false>

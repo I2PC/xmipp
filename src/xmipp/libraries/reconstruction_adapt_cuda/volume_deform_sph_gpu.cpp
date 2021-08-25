@@ -1,7 +1,8 @@
 /***************************************************************************
  *
  * Authors:    Carlos Oscar             coss@cnb.csic.es
- * 			   David Herreros Calero    dherreros@cnb.csic.es
+ *             David Herreros Calero    dherreros@cnb.csic.es
+ *             David Myska              davidmyska@mail.muni.cz
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
