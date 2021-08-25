@@ -1,3 +1,26 @@
+/***************************************************************************
+ *
+ * Authors:    David Myska              davidmyska@mail.muni.cz
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.uam.es'
+ ***************************************************************************/
+
 #ifndef CUDA_VOLUME_DEFORM_SPH_CU
 #define CUDA_VOLUME_DEFORM_SPH_CU
 
@@ -41,7 +64,7 @@ using PrecisionType3 = float3;
 // Define data structures
 #ifdef KTT_USED
 
-struct ImageMetaData
+struct VolumeMetaData
 {
     int xShift;
     int yShift;
@@ -144,8 +167,6 @@ struct DeformImages
 // ...just shorter static_cast
 #define CST(num) (static_cast<PrecisionType>((num)))
 
-#define FLOOR(x) (((x) == (int)(x)) ? (int)(x):(((x) > 0) ? (int)(x) : \
-                  (int)((x) - 1)))
 #define LIN_INTERP(a, l, h) ((l) + ((h) - (l)) * (a))
 
 // Forward declarations
@@ -153,8 +174,8 @@ template<int _L1 = 5, int _L2 = 5>
 __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n, int l2, int m,
         PrecisionType xr, PrecisionType yr, PrecisionType zr, PrecisionType r);
 
-__device__ PrecisionType interpolateNoChecks(
-        PrecisionType* ImD, ImageMetaData imgMeta,
+__device__ PrecisionType interpolate(
+        PrecisionType* ImD, VolumeMetaData volMetaData,
         PrecisionType x, PrecisionType y, PrecisionType z);
 
 // For the current supported degrees L1, L2, the max is 56 coeficients
@@ -164,8 +185,8 @@ __device__ PrecisionType interpolateNoChecks(
 #define MAX_COEF_COUNT 56
 #endif
 
-__constant__ PrecisionType3 clnmShared[MAX_COEF_COUNT];
-__constant__ int4 zshShared[MAX_COEF_COUNT];
+__constant__ PrecisionType3 cClnm[MAX_COEF_COUNT];
+__constant__ int4 cZsh[MAX_COEF_COUNT];
 
 template<int _BLOCK_SIZE = BLOCK_SIZE, int _L1 = 5, int _L2 = 5>
 __global__ void computeDeform(
@@ -173,7 +194,7 @@ __global__ void computeDeform(
         PrecisionType iRmax,
         IROimages images,
         unsigned steps,
-        ImageMetaData imageMetaData,
+        VolumeMetaData volMetaData,
         Volumes<PrecisionType> volumes,
         DeformImages deformImages,
         bool applyTransformation,
@@ -181,8 +202,6 @@ __global__ void computeDeform(
         PrecisionType* outArrayGlobal
         )
 {
-    extern __shared__ char sharedBuffer[];
-    //unsigned sharedBufferOffset = 0;
 
     // Thread index in a block
     unsigned tIdx = threadIdx.z * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
@@ -193,9 +212,9 @@ __global__ void computeDeform(
     int jPhys = blockIdx.x * blockDim.x + threadIdx.x;
 
     // Update to logical indexes (calculations expect logical indexing)
-    int k = P2L_Z_IDX(imageMetaData, kPhys);
-    int i = P2L_Y_IDX(imageMetaData, iPhys);
-    int j = P2L_X_IDX(imageMetaData, jPhys);
+    int k = P2L_Z_IDX(volMetaData, kPhys);
+    int i = P2L_Y_IDX(volMetaData, iPhys);
+    int j = P2L_X_IDX(volMetaData, jPhys);
 
     // Define and compute necessary values
     PrecisionType r2 = k*k + i*i + j*j;
@@ -204,18 +223,18 @@ __global__ void computeDeform(
 
     if (r2 < Rmax2) {
         for (unsigned idx = 0; idx < steps; idx++) {
-            int l1 = zshShared[idx].w;
-            int n = zshShared[idx].x;
-            int l2 = zshShared[idx].y;
-            int m = zshShared[idx].z;
+            int l1 = cZsh[idx].w;
+            int n = cZsh[idx].x;
+            int l2 = cZsh[idx].y;
+            int m = cZsh[idx].z;
 
             PrecisionType zsph = ZernikeSphericalHarmonics<_L1, _L2>(l1, n, l2, m,
                     j * iRmax, i * iRmax, k * iRmax, rr);
 
             if (rr > 0 || l2 == 0) {
-                gx += zsph * clnmShared[idx].x;
-                gy += zsph * clnmShared[idx].y;
-                gz += zsph * clnmShared[idx].z;
+                gx += zsph * cClnm[idx].x;
+                gy += zsph * cClnm[idx].y;
+                gz += zsph * cClnm[idx].z;
             }
         }
     }
@@ -225,30 +244,29 @@ __global__ void computeDeform(
 
     PrecisionType localDiff2 = 0.0, localSumVD = 0.0, localModg = 0.0;
 
-    bool isOutside = IS_OUTSIDE_PHYS(imageMetaData, kPhys, iPhys, jPhys);
+    bool isOutside = IS_OUTSIDE_PHYS(volMetaData, kPhys, iPhys, jPhys);
     PrecisionType kDef = k + gz;
     PrecisionType iDef = i + gy;
     PrecisionType jDef = j + gx;
 
     if (applyTransformation && !isOutside) {
         // Logical indexes used to check whether the point is in the matrix
-        if (!IS_OUTSIDE_PADDED(imageMetaData, kDef, iDef, jDef)) {
-            voxelI = interpolateNoChecks(images.VI,
-                    imageMetaData, jDef, iDef, kDef);
+        if (!IS_OUTSIDE_PADDED(volMetaData, kDef, iDef, jDef)) {
+            voxelI = interpolate(images.VI, volMetaData, jDef, iDef, kDef);
         } else {
             voxelI = 0.0;
         }
 
-        ELEM_3D(images.VO, imageMetaData, kPhys, iPhys, jPhys) = voxelI;
+        ELEM_3D(images.VO, volMetaData, kPhys, iPhys, jPhys) = voxelI;
     }
 
     if (!isOutside) {
         for (unsigned idv = 0; idv < volumes.count; idv++) {
             voxelR = ELEM_3D(volumes.R + idv * volumes.volumeSize,
-                    imageMetaData, kPhys, iPhys, jPhys);
-            if (!IS_OUTSIDE_PADDED(imageMetaData, kDef, iDef, jDef)) {
-                voxelI = interpolateNoChecks(volumes.I + idv * volumes.volumePaddedSize,
-                        imageMetaData, jDef, iDef, kDef);
+                    volMetaData, kPhys, iPhys, jPhys);
+            if (!IS_OUTSIDE_PADDED(volMetaData, kDef, iDef, jDef)) {
+                voxelI = interpolate(volumes.I + idv * volumes.volumePaddedSize,
+                        volMetaData, jDef, iDef, kDef);
             } else {
                 voxelI = 0.0;
             }
@@ -269,12 +287,12 @@ __global__ void computeDeform(
         localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
     }
 
-    bool isFirstThreadInWarp = tIdx % 32 == 0;//FIXME modulo is slow, can it be done without modulo?? (n & (d - 1))
+    bool isFirstThreadInWarp = (tIdx & 31) == 0;// tIdx % 32, modulo is slow
 
     // Save values to the global memory for later
     if (isFirstThreadInWarp) {
-        unsigned warpsInBlock = _BLOCK_SIZE / 32;//FIXME division is slow, can it be done without division?
-        unsigned warpInCurrentBlock = tIdx / 32;//FIXME division is slow, can it be done without division?
+        unsigned warpsInBlock = _BLOCK_SIZE >> 5;// _BLOCK_SIZE / 32, division is slow
+        unsigned warpInCurrentBlock = tIdx >> 5;// tIdx / 32, division is slow
         unsigned bIdx = blockIdx.z * gridDim.x * gridDim.y + blockIdx.y * gridDim.x + blockIdx.x;
         unsigned wIdx = bIdx * warpsInBlock + warpInCurrentBlock;
         unsigned WARP_GRID_SIZE = gridDim.x * gridDim.y * gridDim.z * warpsInBlock;
@@ -284,17 +302,17 @@ __global__ void computeDeform(
     }
 
     if (saveDeformation && !isOutside) {
-        ELEM_3D(deformImages.Gx, imageMetaData, kPhys, iPhys, jPhys) = gx;
-        ELEM_3D(deformImages.Gy, imageMetaData, kPhys, iPhys, jPhys) = gy;
-        ELEM_3D(deformImages.Gz, imageMetaData, kPhys, iPhys, jPhys) = gz;
+        ELEM_3D(deformImages.Gx, volMetaData, kPhys, iPhys, jPhys) = gx;
+        ELEM_3D(deformImages.Gy, volMetaData, kPhys, iPhys, jPhys) = gy;
+        ELEM_3D(deformImages.Gz, volMetaData, kPhys, iPhys, jPhys) = gz;
     }
 }
 
 /*
  * Linear interpolation
  */
-__device__ PrecisionType interpolateNoChecks(
-        PrecisionType* ImD, ImageMetaData imgMeta,
+__device__ PrecisionType interpolate(
+        PrecisionType* ImD, VolumeMetaData volMetaData,
         PrecisionType x, PrecisionType y, PrecisionType z)
 {
         int x0 = (int)CUDA_FLOOR(x);
@@ -309,14 +327,14 @@ __device__ PrecisionType interpolateNoChecks(
         PrecisionType fz = z - z0;
         int z1 = z0 + 1;
 
-        PrecisionType d000 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x0);
-        PrecisionType d001 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y0, x1);
-        PrecisionType d010 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x0);
-        PrecisionType d011 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z0, y1, x1);
-        PrecisionType d100 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x0);
-        PrecisionType d101 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y0, x1);
-        PrecisionType d110 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x0);
-        PrecisionType d111 = ELEM_3D_SHIFTED_PADDED(ImD, imgMeta, z1, y1, x1);
+        PrecisionType d000 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z0, y0, x0);
+        PrecisionType d001 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z0, y0, x1);
+        PrecisionType d010 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z0, y1, x0);
+        PrecisionType d011 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z0, y1, x1);
+        PrecisionType d100 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z1, y0, x0);
+        PrecisionType d101 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z1, y0, x1);
+        PrecisionType d110 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z1, y1, x0);
+        PrecisionType d111 = ELEM_3D_SHIFTED_PADDED(ImD, volMetaData, z1, y1, x1);
 
         PrecisionType dx00 = LIN_INTERP(fx, d000, d001);
         PrecisionType dx01 = LIN_INTERP(fx, d100, d101);
@@ -606,7 +624,7 @@ __forceinline__ __device__ PrecisionType ZernikeSphericalHarmonics(int l1, int n
 
 // Cast input volume to the result type. Depending on template parameter may add padding.
 template<bool PADDING = false>
-__global__ void prepareVolumes(PrecisionType* output, double* input, ImageMetaData metaData)
+__global__ void prepareVolumes(PrecisionType* output, double* input, VolumeMetaData metaData)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
