@@ -26,7 +26,6 @@
 #define _PROG_CLASSIFY_CL2D_CORE_ANALYSIS
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 
 /**@defgroup ClassifyCL2DCore Core analysis for CL2D
    @ingroup ReconsLibrary */

@@ -125,11 +125,9 @@ void ProgTomoMapBack::run()
     MultidimArray<double> referenceRotated;
     Matrix2D<double> A;
     A.initIdentity(4);
-    MDRow row;
 
-    FOR_ALL_OBJECTS_IN_METADATA(mdGeom)
+    for (const auto& row : mdGeom)
     {
-    	mdGeom.getRow(row,__iter.objId);
     	row.getValue(MDL_XCOOR,x);
     	row.getValue(MDL_YCOOR,y);
     	row.getValue(MDL_ZCOOR,z);

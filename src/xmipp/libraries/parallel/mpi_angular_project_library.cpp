@@ -372,47 +372,48 @@ public:
             if(rank==0)
             {
 
-                MetaData  mySFin;
+                MetaDataVec  mySFin;
                 mySFin.read(output_file_root + "_angles.doc");
 #define ANGLESDOC
 #ifdef ANGLESDOC
 //       std::cerr << "DEBUG_ROB, output_file_root + angle.doc:"
 //    		     << output_file_root + "_angles.doc" << std::endl;
 #endif
-                MetaData  mySF;
+                MetaDataVec  mySF;
                 FileName fn_temp;
 
                 size_t myCounter = 0;
                 size_t id;
                 int ref;
-                for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i)
-                    //for (int i=0;i<=mysampling.no_redundant_sampling_points_angles.size()-1;i++)
-                    FOR_ALL_OBJECTS_IN_METADATA(mySFin)
+
+                for (size_t objId : mySFin.ids())
                 {
-
+                    // FIXME: read whole row at once
                     double x,y,z, rot, tilt, psi;
-                    mySFin.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-                    mySFin.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-                    mySFin.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-                    mySFin.getValue(MDL_X,x,__iter.objId);
-                    mySFin.getValue(MDL_Y,y,__iter.objId);
-                    mySFin.getValue(MDL_Z,z,__iter.objId);
-                    mySFin.getValue(MDL_REF,ref,__iter.objId);
+                    mySFin.getValue(MDL_ANGLE_ROT,rot,objId);
+                    mySFin.getValue(MDL_ANGLE_TILT,tilt,objId);
+                    mySFin.getValue(MDL_ANGLE_PSI,psi,objId);
+                    mySFin.getValue(MDL_X,x,objId);
+                    mySFin.getValue(MDL_Y,y,objId);
+                    mySFin.getValue(MDL_Z,z,objId);
+                    mySFin.getValue(MDL_REF,ref,objId);
 
-                    //FIXME, do I have order?
-                    fn_temp.compose( ++myCounter,output_file);
-                    id = mySF.addObject();
-                    mySF.setValue(MDL_IMAGE,fn_temp, id);
-                    mySF.setValue(MDL_ENABLED,1, id);
+                    for (int i = 0; i < std::ceil(360.0 / psi_sampling); ++i) {
+                        //FIXME, do I have order?
+                        fn_temp.compose(++myCounter,output_file);
+                        id = mySF.addObject();
+                        mySF.setValue(MDL_IMAGE,fn_temp, id);
+                        mySF.setValue(MDL_ENABLED,1, id);
 
-                    mySF.setValue(MDL_ANGLE_ROT,rot, id);
-                    mySF.setValue(MDL_ANGLE_TILT,tilt, id);
-                    mySF.setValue(MDL_ANGLE_PSI,psi + i * psi_sampling, id);
-                    mySF.setValue(MDL_X,x, id);
-                    mySF.setValue(MDL_Y,y, id);
-                    mySF.setValue(MDL_Z,z, id);
-                    mySF.setValue(MDL_SCALE,1.0,id);
-                    mySF.setValue(MDL_REF,ref,id);
+                        mySF.setValue(MDL_ANGLE_ROT,rot, id);
+                        mySF.setValue(MDL_ANGLE_TILT,tilt, id);
+                        mySF.setValue(MDL_ANGLE_PSI,psi + i * psi_sampling, id);
+                        mySF.setValue(MDL_X,x, id);
+                        mySF.setValue(MDL_Y,y, id);
+                        mySF.setValue(MDL_Z,z, id);
+                        mySF.setValue(MDL_SCALE,1.0,id);
+                        mySF.setValue(MDL_REF,ref,id);
+                    }
                 }
                 fn_temp=output_file_root+".doc";
                 mySF.setComment("x,y,z refer to the coordinates of the unitary vector at direction given by the euler angles");

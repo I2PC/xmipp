@@ -118,9 +118,9 @@ void ProgAngularSphAlignment::defineParams()
 
 // Produce side information ================================================
 void ProgAngularSphAlignment::createWorkFiles() {
-	MetaData *pmdIn = getInputMd();
-	MetaData mdTodo, mdDone;
-	mdTodo = *pmdIn;
+	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+	MetaDataDb mdTodo, mdDone;
+	mdTodo = dynamic_cast<MetaDataDb&>(*pmdIn);
 	FileName fn(fnOutDir+"/sphDone.xmd");
 	if (fn.exists() && resume) {
 		mdDone.read(fn);
@@ -455,7 +455,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 #undef DEBUG
 
 void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
-	MetaData md;
+	MetaDataVec md;
 	size_t objId = md.addObject();
 	//std::cout << "AQUIIIII " << objId << " " << flagEnabled << std::endl;
 	md.setValue(MDL_IMAGE, fnImg, objId);

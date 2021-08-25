@@ -28,8 +28,9 @@
 
 #include "data/grids.h"
 #include "core/multidim_array.h"
+#include "core/multidim_array.h"
 
-class MetaData;
+class MetaDataVec;
 class SymList;
 class BasicARTParameters;
 class Projection;
@@ -38,7 +39,7 @@ struct ReconsInfo;
 /** Build from a Selection File and a Symmetry List.
     The result is stored in the Recons_info array which should point
     to NULL when it is not initialized. */
-void buildReconsInfo(MetaData &selfile,
+void buildReconsInfo(MetaDataVec &selfile,
                      const FileName &fn_ctf, const SymList &SL, ReconsInfo * &IMG_Inf,
                      bool do_not_use_symproj);
 

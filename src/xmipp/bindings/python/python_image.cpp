@@ -1136,7 +1136,7 @@ Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDRow &mainHeader = self->image->image->MD[0];
+            MDRow &mainHeader = *(self->image->image->MD[0]);
             if (mainHeader.containsLabel((MDLabel)label))
             {
                 MDObject * object = mainHeader.getObject((MDLabel) label);
@@ -1166,7 +1166,7 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            MDRow &mainHeader = self->image->image->MD[0];
+            MDRow &mainHeader = *(self->image->image->MD[0]);
 
             MDObject * object = createMDObject(label, pyValue);
             if (!object)
@@ -1241,6 +1241,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
     } catch (XmippError &xe) {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
+    return Py_BuildValue("");
 }
 
 /* Return image dimensions as a tuple */
@@ -1903,4 +1904,5 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	    } catch (XmippError &xe) {
 	        PyErr_SetString(PyXmippError, xe.msg.c_str());
 	    }
+    return Py_BuildValue("");
 }

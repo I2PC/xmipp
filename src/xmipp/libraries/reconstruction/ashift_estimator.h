@@ -33,6 +33,9 @@
 #include "align_type.h"
 #include <vector>
 
+/**@defgroup AShiftEstimator AShiftEstimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -100,5 +103,5 @@ protected:
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ASHIFT_ESTIMATOR_H_ */

@@ -27,7 +27,7 @@
 
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 /**@defgroup NMAAlignment Alignment with Normal modes
    @ingroup ReconsLibrary */
@@ -147,7 +147,7 @@ public:
     Matrix1D<double> bestStage1;
 
     // Temporary document file
-    MetaData DF_out;
+    MetaDataVec DF_out;
 
     // Template for temporal filename generation
     char nameTemplate[256];

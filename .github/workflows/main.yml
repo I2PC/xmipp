@@ -17,7 +17,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     # Disabling shallow clone is recommended for improving relevancy of reporting
@@ -50,23 +50,20 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.0.3
                 
       - name: Install CUDA
-        run: source scripts/install_cuda_github.sh
-        env: 
-          CUDA_VER: 10.2.89
-          
-      - name: Create Travis variables
-        run: |
-          echo "TRAVIS_PULL_REQUEST_BRANCH=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
-          echo "TRAVIS_BRANCH=${GITHUB_REF}" >> $GITHUB_ENV
+        uses: Jimver/cuda-toolkit@v0.2.0
+        with: 
+          cuda: 10.2.89
+          method: network
+          sub-packages: '["nvcc", "cufft-dev", "cudart-dev", "nvml-dev"]'
 
       - name: Install dependencies
-        run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip
+        run: sudo apt-get install -y scons libfftw3-dev libopenmpi-dev openmpi-bin libhdf5-dev python3-numpy python3-dev libtiff5-dev unzip libopencv-dev
 
       - name: Compile Xmipp
         run: build-wrapper-linux-x86-64 --out-dir bw-outputs ./xmipp noAsk
         env:
-          TRAVIS: 1
-          BUILD_TESTS: False
+          CIBuild: 1
+          BUILD_TESTS: True
           
       - name: SonarCloud Scan
         run: |

@@ -132,7 +132,7 @@ void computeSumSumSqr(const T * __restrict__ in,
     if (isSameSignalInWarp) {
         // intrawarp sum
         for (int offset = 16; offset > 0; offset /= 2) {
-#if defined(CUDART_VERSION) && CUDART_VERSION >= 900
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 9000
           sum += __shfl_down_sync(0xffffffff, sum, offset);
           sum2 += __shfl_down_sync(0xffffffff, sum2, offset);
 #else

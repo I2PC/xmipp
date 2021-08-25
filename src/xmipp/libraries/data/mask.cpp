@@ -1218,7 +1218,7 @@ void Mask::write_mask(const FileName &fn)
 void Mask::defineParams(XmippProgram * program, int allowed_data_types,
                         const char* prefix, const char* comment, bool moreOptions)
 {
-    char tempLine[256], tempLine2[256];
+    char tempLine[256], tempLine2[512];
 
     char advanced=' ';
     if (moreOptions)

@@ -481,7 +481,7 @@ void MpiProgMLTomo::generateInitialReferences()
 }
 
 /// Integrate over all experimental images
-void MpiProgMLTomo::expectation(MetaData &MDimg, std::vector< Image<double> > &Iref, int iter,
+void MpiProgMLTomo::expectation(MetaDataVec &MDimg, std::vector< Image<double> > &Iref, int iter,
                                 double &LL, double &sumfracweight,
                                 std::vector<MultidimArray<double> > &wsumimgs,
                                 std::vector<MultidimArray<double> > &wsumweds,

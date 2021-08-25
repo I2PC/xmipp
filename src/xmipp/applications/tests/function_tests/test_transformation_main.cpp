@@ -155,7 +155,7 @@ TEST_F(TransformationTest, geo2TransformationMatrix)
     double z2=-1000;
     bool flip2 = false;
 
-    MDRow rowIn,rowOut;
+    MDRowVec rowIn,rowOut;
     rowIn.setValue(MDL_SCALE,scale);
     rowIn.setValue(MDL_ANGLE_PSI,psi);
     rowIn.setValue(MDL_SHIFT_X,x);

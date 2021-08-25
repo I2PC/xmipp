@@ -30,6 +30,9 @@
 #include "xmipp_mpi.h"
 #include <reconstruction/reconstruct_wbp.h>
 
+/**@defgroup ProgMPIRecWbp ProgMPIRecWbp
+   @ingroup Programs */
+//@{
 class ProgMPIRecWbp: public ProgRecWbp, public MpiMetadataProgram
 {
 public:
@@ -44,9 +47,9 @@ public:
     void read(int argc, char **argv);
     void produceSideInfo();
     void showProgress();
-    bool getImageToProcess(size_t &objId, size_t &objIndex);
+    bool getImageToProcess(size_t &objId) override;
     void finishProcessing();
 };
-
+//@}
 
 #endif /* MPI_RECONSTRUCT_WBP_H_ */

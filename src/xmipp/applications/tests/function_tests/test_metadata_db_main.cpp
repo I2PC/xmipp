@@ -10,6 +10,8 @@
 #include <fstream>
 #include <sys/time.h>
 #include "core/metadata_sql.h"
+#include "core/metadata_db.h"
+#include "core/metadata_vec.h"
 
 #define N_ROWS_TEST 2
 #define N_ROWS_PERFORMANCE_TEST 8000
@@ -29,11 +31,15 @@ protected:
             REPORT_ERROR(ERR_UNCLASSIFIED,"Could not change directory");
         //Md1
         id = mDsource.addObject();
+        mDsourceIds.push_back(id);
         mDsource.setValue(MDL_X,1.,id);
         mDsource.setValue(MDL_Y,2.,id);
+
         id = mDsource.addObject();
+        mDsourceIds.push_back(id);
         mDsource.setValue(MDL_X,3.,id);
         mDsource.setValue(MDL_Y,4.,id);
+
         //Mdjoin
         id = mDjoin.addObject();
         mDjoin.setValue(MDL_X,1.,id);
@@ -41,6 +47,7 @@ protected:
         id = mDjoin.addObject();
         mDjoin.setValue(MDL_X,3.,id);
         mDjoin.setValue(MDL_Z,444.,id);
+
         //mDanotherSource
         id = mDanotherSource.addObject();
         mDanotherSource.setValue(MDL_X,11.,id);
@@ -61,17 +68,46 @@ protected:
 
     // virtual void TearDown() {}//Destructor
 
-    MetaData mDsource,mDanotherSource;
-    MetaData mDunion, mDjoin;
+    MetaDataDb mDsource,mDanotherSource;
+    MetaDataDb mDunion, mDjoin;
     size_t id, id1,id2;
+    std::vector<int> mDsourceIds;
 };
+
+TEST_F( MetadataTest, IdIteration)
+{
+    auto it = mDsource.ids().begin();
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it); // reach end of MetaData
+    ASSERT_EQ(it, mDsource.ids().end());
+
+    size_t i = 0;
+    for (size_t objId : mDsource.ids()) {
+        ASSERT_EQ(objId, mDsourceIds[i]);
+        i++;
+    }
+    ASSERT_EQ(i, mDsourceIds.size());
+}
+
+TEST_F( MetadataTest, RowIteration)
+{
+    auto it = mDsource.begin();
+    for (size_t i = 0; i < mDsourceIds.size(); i++, ++it);
+    ASSERT_EQ(it, mDsource.end());
+
+    size_t i = 0;
+    for (const auto& row : mDsource) {
+        ASSERT_EQ(row.id(), mDsourceIds[i]);
+        i++;
+    }
+    ASSERT_EQ(i, mDsourceIds.size());
+}
 
 TEST_F( MetadataTest, SimilarToOperator)
 {
     ASSERT_EQ(mDsource,mDsource);
     ASSERT_FALSE(mDsource==mDanotherSource);
     //attribute order should not be important
-    MetaData auxMetadata ;
+    MetaDataDb auxMetadata ;
     id = auxMetadata.addObject();
     auxMetadata.setValue(MDL_Y,2.,id);
     auxMetadata.setValue(MDL_X,1.,id);
@@ -93,13 +129,61 @@ TEST_F( MetadataTest, SimilarToOperator)
     ASSERT_FALSE(auxMetadata==mDsource);
 
 }
+
+TEST_F(MetadataTest, AssignmentFromDbOperator)
+{
+    MetaDataDb orig, assigned;
+    MDRowSql row;
+    row.setValue(MDL_X, 10.);
+    orig.addRow(row);
+    row.setValue(MDL_Y, 100.);
+    assigned.addRow(row);
+    assigned.addRow(row);
+
+    assigned = orig;
+
+    ASSERT_EQ(orig.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_EQ(orig.size(), assigned.size());
+    EXPECT_EQ(assigned.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_FALSE(assigned.containsLabel(MDL_Y));
+    EXPECT_EQ(orig, assigned);
+}
+
+TEST_F(MetadataTest, AssignmentFromVecOperator)
+{
+    MetaDataVec orig;
+    MetaDataDb assigned;
+
+    {
+        MDRowVec row;
+        row.setValue(MDL_X, 10.);
+        orig.addRow(row);
+    }
+
+    {
+        MDRowSql row;
+        row.setValue(MDL_X, 10.);
+        row.setValue(MDL_Y, 100.);
+        assigned.addRow(row);
+        assigned.addRow(row);
+    }
+
+    assigned = orig;
+
+    ASSERT_EQ(orig.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_EQ(orig.size(), assigned.size());
+    EXPECT_EQ(assigned.getColumnValues<double>(MDL_X), (std::vector<double>{10.}));
+    EXPECT_FALSE(assigned.containsLabel(MDL_Y));
+    EXPECT_EQ(orig, assigned);
+}
+
 /** SORT FOR ROUTINE ALPHABETIC ORDER
  *
  */
 
 TEST_F( MetadataTest, AddLabel)
 {
-    MetaData auxMetadata = mDunion;
+    MetaDataDb auxMetadata = mDunion;
     auxMetadata.addLabel(MDL_Z);
     std::vector<MDLabel> v1,v2;
     v1.push_back(MDL_X);
@@ -111,7 +195,7 @@ TEST_F( MetadataTest, AddLabel)
 
 TEST_F( MetadataTest, AddIndex)
 {
-    MetaData auxMetadata = mDunion;
+    MetaDataDb auxMetadata = mDunion;
     auxMetadata.addIndex(MDL_X);
     EXPECT_EQ(1,1);
 }
@@ -119,12 +203,13 @@ TEST_F( MetadataTest, AddIndex)
 
 TEST_F( MetadataTest, AddRow)
 {
-    MetaData md, md2;
+    MetaDataDb md, md2;
 
-    MDRow row;
+    MDRowSql row;
     row.setValue(MDL_X, 1.);
     row.setValue(MDL_Y, 2.);
     md.addRow(row);
+
     row.setValue(MDL_X, 3.);
     row.setValue(MDL_Y, 4.);
     md.addRow(row);
@@ -144,8 +229,8 @@ TEST_F( MetadataTest, AddRows)
 {
     int i;                  // Loop counter.
     bool inserted;          // Insertion return value.
-    MetaData md;
-    MDRow row[N_ROWS_TEST];     // Rows array.
+    MetaDataDb md;
+    MDRowSql row[N_ROWS_TEST];     // Rows array.
 
     // Initialize rows.
     row[0].setValue(MDL_X, 1.);
@@ -176,8 +261,8 @@ TEST_F( MetadataTest, AddRows)
 
 TEST_F( MetadataTest, AddRowsPerformance)
 {
-    MetaData md, md2, md3;
-    MDRow row;  // Sample row
+    MetaDataDb md, md2, md3;
+    MDRowSql row;  // Sample row
 
     printf("N_ROWS_PERFORMANCE_TEST = %d\n", N_ROWS_PERFORMANCE_TEST);
 
@@ -252,7 +337,7 @@ TEST_F( MetadataTest, addLabelAlias)
     //metada with no xmipp labels    //metada with no xmipp labels
     FileName fnNonXmippSTAR = (String)"metadata/noXmipp.xmd";
     MDL::addLabelAlias(MDL_Y,(String)"noExixtingLabel");
-    MetaData md = MetaData(fnNonXmippSTAR);
+    MetaDataDb md = MetaDataDb(fnNonXmippSTAR);
     EXPECT_EQ(mDsource, md);
 }
 
@@ -264,7 +349,7 @@ TEST_F( MetadataTest, getNewAlias)
     MDLabel newLabel = MDL::getNewAlias(labelStr);
     EXPECT_EQ(newLabel, BUFFER_01);
     EXPECT_EQ(MDL::label2Str(newLabel), labelStr);
-    MetaData md = MetaData(fnNonXmippSTAR);
+    MetaDataDb md = MetaDataDb(fnNonXmippSTAR);
 
     std::vector<double> yValues;
     std::vector<std::string> y2Values;
@@ -277,10 +362,10 @@ TEST_F( MetadataTest, getNewAlias)
 TEST_F( MetadataTest, Aggregate1)
 {
     //simple aggregation
-    MetaData md,mdOut;
+    MetaDataDb md,mdOut;
     size_t count;
 
-    MDRow row;
+    MDRowSql row;
     row.setValue(MDL_ORDER, (size_t)1);
     row.setValue(MDL_Y, 2.);
     row.setValue(MDL_DEFGROUP, 2);
@@ -291,39 +376,32 @@ TEST_F( MetadataTest, Aggregate1)
     md.addRow(row);
 
     mdOut.aggregate(md, AGGR_COUNT, MDL_ORDER, MDL_ORDER, MDL_COUNT);
-    mdOut.getValue(MDL_COUNT,count,mdOut.firstObject());
+    mdOut.getValue(MDL_COUNT,count,mdOut.firstRowId());
     EXPECT_EQ(count, (size_t)2);
     mdOut.clear();
     mdOut.aggregate(md, AGGR_COUNT, MDL_Y, MDL_Y, MDL_COUNT);
-    mdOut.getValue(MDL_COUNT,count,mdOut.firstObject());
+    mdOut.getValue(MDL_COUNT,count,mdOut.firstRowId());
     EXPECT_EQ(count,(size_t)1);
 
     MDObject mdValueOut(MDL_Y);
-    double d;
     md.aggregateSingle(mdValueOut, AGGR_MAX ,MDL_Y);
-    mdValueOut.getValue(d);
-    EXPECT_EQ(d,4);
+    EXPECT_EQ(mdValueOut.getValue2(double()), 4);
 
     MDObject mdValueOut2(MDL_ORDER);
-    size_t t;
     md.aggregateSingleSizeT(mdValueOut2, AGGR_MAX ,MDL_ORDER);
-    mdValueOut2.getValue(t);
-    EXPECT_EQ(t,(size_t)1);
+    EXPECT_EQ(mdValueOut2.getValue2(size_t()), 1);
 
     MDObject mdValueOut3(MDL_DEFGROUP);
-    int i;
     md.aggregateSingleInt(mdValueOut3, AGGR_MAX ,MDL_DEFGROUP);
-    mdValueOut3.getValue(i);
-    EXPECT_EQ(i,(int)23);
-
+    EXPECT_EQ(mdValueOut3.getValue2(int()), 23);
 }
 
 TEST_F( MetadataTest, Aggregate2)
 {
     //multiple aggregarion
-    MetaData md,mdOut;
+    MetaDataDb md,mdOut;
 
-    MDRow row;
+    MDRowSql row;
     row.setValue(MDL_ORDER, (size_t)1);
     row.setValue(MDL_Y, 2.);
     md.addRow(row);
@@ -377,9 +455,9 @@ TEST_F( MetadataTest, Aggregate2)
 TEST_F( MetadataTest, AggregateGroupBy)
 {
     //aggregation simple grouped by several attributes
-    MetaData md,mdOut;
+    MetaDataDb md,mdOut;
 
-    MDRow row;
+    MDRowSql row;
     row.setValue(MDL_ORDER, (size_t)1);
     row.setValue(MDL_DEFGROUP, 2);
     row.setValue(MDL_Y, 2.);
@@ -416,7 +494,7 @@ TEST_F( MetadataTest, AggregateGroupBy)
 
 TEST_F( MetadataTest, Clear)
 {
-    MetaData auxMetadata = mDsource;
+    MetaDataDb auxMetadata = mDsource;
     EXPECT_EQ((size_t)2,auxMetadata.size());
     auxMetadata.clear();
     EXPECT_EQ((size_t)0,auxMetadata.size());
@@ -424,7 +502,7 @@ TEST_F( MetadataTest, Clear)
 
 TEST_F( MetadataTest, Copy)
 {
-    MetaData auxMetadata = mDsource;
+    MetaDataDb auxMetadata = mDsource;
     EXPECT_EQ(mDsource,auxMetadata);
 }
 
@@ -446,10 +524,10 @@ TEST_F( MetadataTest, MDInfo)
     mDsource.write(fnDB);
     mDsource.write(fnSTAR);
 
-    MetaData md;
+    MetaDataDb md;
     //Read from sqlite
     md.read(fnDB);
-    MetaData mdOnlyOne;
+    MetaDataDb mdOnlyOne;
     mdOnlyOne.setMaxRows(1);
     mdOnlyOne.read(fnDB);
     EXPECT_EQ(md.size(), mdOnlyOne.getParsedLines());
@@ -514,9 +592,9 @@ TEST_F( MetadataTest,multiWriteSqlite)
     fnDB = fn + ".sqlite";
     FileName fnDBref   =(String)"metadata/mDsource.sqlite";
 
-    MetaData md = MetaData();
-    MetaData mdRead = MetaData();
-    MDRow row;
+    MetaDataDb md = MetaDataDb();
+    MetaDataDb mdRead = MetaDataDb();
+    MDRowSql row;
 
     row.setValue(MDL_ORDER, (size_t)1);
     row.setValue(MDL_DEFGROUP, 2);
@@ -535,24 +613,24 @@ TEST_F( MetadataTest,multiWriteSqlite)
     XMIPP_TRY
     fileNameA.compose("block001", fnDB);
 
-    md.setValue(MDL_ORDER,(size_t)11, md.firstObject());
+    md.setValue(MDL_ORDER,(size_t)11, md.firstRowId());
     md.write(fileNameA);
     mdRead.read(fileNameA);
     EXPECT_EQ(md,mdRead);
 
-    md.setValue(MDL_ORDER,(size_t)22, md.firstObject());
+    md.setValue(MDL_ORDER,(size_t)22, md.firstRowId());
     fileNameA.compose("block002", fnDB);
     md.write(fileNameA,MD_APPEND);
     mdRead.read(fileNameA);
     EXPECT_EQ(md,mdRead);
 
-    md.setValue(MDL_ORDER,(size_t)33, md.firstObject());
+    md.setValue(MDL_ORDER,(size_t)33, md.firstRowId());
     fileNameA.compose("block003", fnDB);
     md.write(fileNameA,MD_APPEND);
     mdRead.read(fileNameA);
     EXPECT_EQ(md,mdRead);
 
-    md.setValue(MDL_ORDER,(size_t)44, md.firstObject());
+    md.setValue(MDL_ORDER,(size_t)44, md.firstRowId());
     fileNameA.compose("block003", fnDB);
     md.write(fileNameA,MD_APPEND);
     mdRead.read(fileNameA);
@@ -575,7 +653,7 @@ TEST_F( MetadataTest, ReadEmptyBlock)
     strncpy(sfn, "/tmp/testGetBlocks_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
-    MetaData md;
+    MetaDataDb md;
     FileName fn = (String)"block_Empty@"+sfn;
     md.write(fn, MD_OVERWRITE);
     md.clear();
@@ -583,7 +661,7 @@ TEST_F( MetadataTest, ReadEmptyBlock)
     md.setValue(MDL_IMAGE,(String)"image_data_2_2.xmp",md.addObject());
     md.write((String)"block_B1@"+sfn,MD_APPEND);
 
-    EXPECT_NO_THROW(MetaData md2(fn););
+    EXPECT_NO_THROW(MetaDataDb md2(fn););
 
     unlink(sfn);
 }
@@ -595,7 +673,7 @@ TEST_F( MetadataTest, GetBlocksInMetadata)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     auxMetadata.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMetadata.addObject());
     auxMetadata.setValue(MDL_IMAGE,(String)"image_2.xmp",auxMetadata.addObject());
     auxMetadata.write(sfn,MD_OVERWRITE);
@@ -628,7 +706,7 @@ TEST_F( MetadataTest, CheckRegularExpression)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMd, auxMd2;
+    MetaDataDb auxMd, auxMd2;
     auxMd.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMd.addObject());
     auxMd.setValue(MDL_IMAGE,(String)"image_2.xmp",auxMd.addObject());
     auxMd.write(sfn,MD_OVERWRITE);
@@ -671,7 +749,7 @@ TEST_F( MetadataTest, CheckRegularExpression2)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMd, auxMd2;
+    MetaDataDb auxMd, auxMd2;
     auxMd.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMd.addObject());
     auxMd.setValue(MDL_IMAGE,(String)"image_2.xmp",auxMd.addObject());
     auxMd.write(sfn,MD_OVERWRITE);
@@ -717,7 +795,7 @@ TEST_F( MetadataTest, compareTwoMetadataFiles)
     if (mkstemp(sfn3)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMd, auxMd2;
+    MetaDataDb auxMd, auxMd2;
     auxMd.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMd.addObject());
     auxMd.setValue(MDL_IMAGE,(String)"image_2.xmp",auxMd.addObject());
     auxMd.write(sfn,MD_OVERWRITE);
@@ -772,11 +850,12 @@ TEST_F( MetadataTest, FillExpand)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
     //create 2 CTFs
-    MetaData ctfMd1, ctfMd2, md;
+    MetaDataDb ctfMd1, ctfMd2, md;
     ctfMd1.setColumnFormat(false);
     ctfMd2.setColumnFormat(false);
-    size_t id1 =ctfMd1.addObject();
-    size_t id2 =ctfMd2.addObject();
+
+    size_t id1 = ctfMd1.addObject();
+    size_t id2 = ctfMd2.addObject();
     ctfMd1.setValue(MDL_CTF_SAMPLING_RATE,1.,id1);
     ctfMd2.setValue(MDL_CTF_SAMPLING_RATE,1.,id2);
     ctfMd1.setValue(MDL_CTF_VOLTAGE,100.,id1);
@@ -785,38 +864,46 @@ TEST_F( MetadataTest, FillExpand)
     ctfMd2.setValue(MDL_CTF_DEFOCUSU,1500.,id2);
     ctfMd1.write(sfn1,MD_OVERWRITE);
     ctfMd2.write(sfn2,MD_OVERWRITE);
+
     //create 1 md referring the ctf
-    size_t id =md.addObject();
+    size_t id = md.addObject();
     md.setValue(MDL_IMAGE,(String)"image1",id);
     md.setValue(MDL_CTF_MODEL,(String)sfn1,id);
-    id =md.addObject();
+
+    id = md.addObject();
     md.setValue(MDL_IMAGE,(String)"image2",id);
     md.setValue(MDL_CTF_MODEL,(String)sfn1,id);
-    id =md.addObject();
+
+    id = md.addObject();
     md.setValue(MDL_IMAGE,(String)"image3",id);
     md.setValue(MDL_CTF_MODEL,(String)sfn2,id);
+
     // call fillExpand
     md.fillExpand(MDL_CTF_MODEL);
+
     //create md with results
-    MetaData mdResults;
-    id =mdResults.addObject();
+    MetaDataDb mdResults;
+    id = mdResults.addObject();
     mdResults.setValue(MDL_IMAGE,(String)"image1",id);
     mdResults.setValue(MDL_CTF_MODEL,(String)sfn1,id);
     mdResults.setValue(MDL_CTF_SAMPLING_RATE,1.,id);
     mdResults.setValue(MDL_CTF_VOLTAGE,100.,id);
     mdResults.setValue(MDL_CTF_DEFOCUSU,1000.,id);
-    id =mdResults.addObject();
+
+    id = mdResults.addObject();
     mdResults.setValue(MDL_IMAGE,(String)"image2",id);
     mdResults.setValue(MDL_CTF_MODEL,(String)sfn1,id);
     mdResults.setValue(MDL_CTF_SAMPLING_RATE,1.,id);
     mdResults.setValue(MDL_CTF_VOLTAGE,100.,id);
     mdResults.setValue(MDL_CTF_DEFOCUSU,1000.,id);
-    id =mdResults.addObject();
+
+    id = mdResults.addObject();
     mdResults.setValue(MDL_IMAGE,(String)"image3",id);
     mdResults.setValue(MDL_CTF_MODEL,(String)sfn2,id);
     mdResults.setValue(MDL_CTF_SAMPLING_RATE,1.,id);
     mdResults.setValue(MDL_CTF_VOLTAGE,100.,id);
     mdResults.setValue(MDL_CTF_DEFOCUSU,1500.,id);
+
     EXPECT_EQ(md,mdResults);
     //mdResults.setValue(MDL_CTF_DEFOCUSU,15000.,id);
     //EXPECT_NE(md,mdResults);
@@ -829,7 +916,7 @@ TEST_F( MetadataTest, FillExpand)
 TEST_F( MetadataTest, ImportObject)
 {
     //FIXME importObjects test is in the test named select
-    MetaData auxMetadata = mDsource;
+    MetaDataDb auxMetadata = mDsource;
     auxMetadata.importObject(mDunion,id1,false);
     auxMetadata.importObject(mDunion,id2,false);
     EXPECT_EQ(auxMetadata,mDunion);
@@ -837,52 +924,52 @@ TEST_F( MetadataTest, ImportObject)
 
 TEST_F( MetadataTest, LeftJoin)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadata2 = mDsource;
-    auxMetadata2.setValue(MDL_Z,222.,auxMetadata2.firstObject());
-    auxMetadata2.setValue(MDL_Z,444.,auxMetadata2.firstObject()+1);//A little bit irregular
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadata2 = mDsource;
+    auxMetadata2.setValue(MDL_Z,222.,auxMetadata2.firstRowId());
+    auxMetadata2.setValue(MDL_Z,444.,auxMetadata2.firstRowId()+1);//A little bit irregular
     auxMetadata.join1(mDsource, mDjoin, MDL_X);
     EXPECT_EQ(auxMetadata,auxMetadata2)<< mDjoin;//print mDjoin if error
 }
 
 TEST_F( MetadataTest, InnerJoin1)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadataResult;
-    MetaData auxMetadataLeft = mDsource;
-    MetaData auxMetadataRight;
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadataResult;
+    MetaDataDb auxMetadataLeft = mDsource;
+    MetaDataDb auxMetadataRight;
 
-    auxMetadataRight.setValue(MDL_Z,1.,auxMetadataRight.firstObject());
-    auxMetadataRight.setValue(MDL_ANGLE_PSI,11.,auxMetadataRight.firstObject());
+    auxMetadataRight.setValue(MDL_Z,1.,auxMetadataRight.firstRowId());
+    auxMetadataRight.setValue(MDL_ANGLE_PSI,11.,auxMetadataRight.firstRowId());
 
     auxMetadata.join2(auxMetadataLeft,auxMetadataRight,MDL_X,MDL_Z,INNER);
-    auxMetadataResult.setValue(MDL_X,1.,auxMetadataRight.firstObject());
-    auxMetadataResult.setValue(MDL_Y,2.,auxMetadataRight.firstObject());
-    auxMetadataResult.setValue(MDL_ANGLE_PSI,11.,auxMetadataRight.firstObject());
+    auxMetadataResult.setValue(MDL_X,1.,auxMetadataRight.firstRowId());
+    auxMetadataResult.setValue(MDL_Y,2.,auxMetadataRight.firstRowId());
+    auxMetadataResult.setValue(MDL_ANGLE_PSI,11.,auxMetadataRight.firstRowId());
 
     EXPECT_EQ(auxMetadata,auxMetadataResult)<< mDjoin;//print mDjoin if error
 }
 
 TEST_F( MetadataTest, InnerJoin2)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadataResult;
-    MetaData auxMetadataLeft = mDsource;
-    MetaData auxMetadataRight;
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadataResult;
+    MetaDataDb auxMetadataLeft = mDsource;
+    MetaDataDb auxMetadataRight;
 
-    auxMetadataRight.setValue(MDL_Z,1.,auxMetadataRight.firstObject());
-    auxMetadataRight.setValue(MDL_Y,11.,auxMetadataRight.firstObject());
+    auxMetadataRight.setValue(MDL_Z,1.,auxMetadataRight.firstRowId());
+    auxMetadataRight.setValue(MDL_Y,11.,auxMetadataRight.firstRowId());
 
     auxMetadata.join2(auxMetadataLeft,auxMetadataRight,MDL_X,MDL_Z,INNER);
-    auxMetadataResult.setValue(MDL_X,1.,auxMetadataRight.firstObject());
-    auxMetadataResult.setValue(MDL_Y,2.,auxMetadataRight.firstObject());
+    auxMetadataResult.setValue(MDL_X,1.,auxMetadataRight.firstRowId());
+    auxMetadataResult.setValue(MDL_Y,2.,auxMetadataRight.firstRowId());
 
     EXPECT_EQ(auxMetadata,auxMetadataResult)<< mDjoin;//print mDjoin if error
 }
 
 TEST_F( MetadataTest, Intersect)
 {
-    MetaData auxMetadata = mDunion;
+    MetaDataDb auxMetadata = mDunion;
     auxMetadata.intersection(mDsource,MDL_X);
     EXPECT_EQ(auxMetadata,mDsource);
 }
@@ -891,7 +978,7 @@ TEST_F( MetadataTest, Merge)
 {
     //FIXME is columns not in the same order equal to operator does not return OK
     //should not be like this
-    MetaData auxMetadata3, auxMetadata,auxMetadata2;
+    MetaDataDb auxMetadata3, auxMetadata,auxMetadata2;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_Z,222.,id);
     id = auxMetadata3.addObject();
@@ -905,8 +992,8 @@ TEST_F( MetadataTest, Merge)
 
 TEST_F( MetadataTest, MultiQuery)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadata3;
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadata3;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_X,1.,id);
     auxMetadata3.setValue(MDL_Y,2.,id);
@@ -933,7 +1020,7 @@ TEST_F( MetadataTest, MultiQuery)
 
     auxMetadata.importObjects(auxMetadata3, multi);
 
-    MetaData outMetadata;
+    MetaDataDb outMetadata;
     id = outMetadata.addObject();
     outMetadata.setValue(MDL_X,3.,id);
     outMetadata.setValue(MDL_Y,4.,id);
@@ -948,8 +1035,8 @@ TEST_F( MetadataTest, MultiQuery)
 
 TEST_F( MetadataTest, JoinVector)
 {
-    MetaData auxMetadata, auxMetadata2;
-    MetaData auxMetadata3;
+    MetaDataDb auxMetadata, auxMetadata2;
+    MetaDataDb auxMetadata3;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_X,1.,id);
     auxMetadata3.setValue(MDL_Y,2.,id);
@@ -979,7 +1066,7 @@ TEST_F( MetadataTest, JoinVector)
     labels.push_back(MDL_Y);
     auxMetadata.join1(auxMetadata2,auxMetadata3,labels,LEFT);
 
-    MetaData outMetadata;
+    MetaDataDb outMetadata;
     id = outMetadata.addObject();
     outMetadata.setValue(MDL_X,1.,id);
     outMetadata.setValue(MDL_Y,2.,id);
@@ -1003,19 +1090,19 @@ TEST_F( MetadataTest, MDValueEQ)
 {
     try
     {
-        MetaData md;
+        MetaDataDb md;
         md.setValue(MDL_IMAGE, (String)"a", md.addObject());
         md.setValue(MDL_IMAGE, (String)"b", md.addObject());
         md.setValue(MDL_IMAGE, (String)"c", md.addObject());
         md.setValue(MDL_IMAGE, (String)"a", md.addObject());
 
-        MetaData md2;
+        MetaDataDb md2;
         md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
         md2.setValue(MDL_IMAGE, (String)"a", md2.addObject());
 
         MDValueEQ eq(MDL_IMAGE,(String)"a");
         //Test empty query
-        MetaData md3;
+        MetaDataDb md3;
         md3.importObjects(md, eq);
         EXPECT_EQ(md2, md3);
     }
@@ -1027,8 +1114,8 @@ TEST_F( MetadataTest, MDValueEQ)
 
 TEST_F( MetadataTest, NaturalJoin)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadata3;
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadata3;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_X,1.,id);
     auxMetadata3.setValue(MDL_Y,2.,id);
@@ -1049,14 +1136,14 @@ TEST_F( MetadataTest, NaturalJoin)
 
 TEST_F( MetadataTest, Operate)
 {
-    MetaData auxMetadata = mDunion;
-    MetaData auxMetadata2 = mDunion;
+    MetaDataDb auxMetadata = mDunion;
+    MetaDataDb auxMetadata2 = mDunion;
     auxMetadata.operate((String)"X=2*X");
     double x;
-    FOR_ALL_OBJECTS_IN_METADATA(auxMetadata2)
+    for (size_t objId : auxMetadata2.ids())
     {
-        auxMetadata2.getValue(MDL_X,x,__iter.objId);
-        auxMetadata2.setValue(MDL_X,x*2,__iter.objId);
+        auxMetadata2.getValue(MDL_X, x, objId);
+        auxMetadata2.setValue(MDL_X, x*2, objId);
     }
 
     EXPECT_EQ(auxMetadata,auxMetadata2);
@@ -1064,15 +1151,15 @@ TEST_F( MetadataTest, Operate)
 #include <math.h>
 TEST_F( MetadataTest, OperateExt)
 {
-    MetaData auxMetadata = mDunion;
-    MetaData auxMetadata2 = mDunion;
+    MetaDataDb auxMetadata = mDunion;
+    MetaDataDb auxMetadata2 = mDunion;
     MDSql::activateMathExtensions();
     auxMetadata.operate((String)"X=sqrt(X)");
     double x;
-    FOR_ALL_OBJECTS_IN_METADATA(auxMetadata2)
+    for (size_t objId: auxMetadata2.ids())
     {
-        auxMetadata2.getValue(MDL_X,x,__iter.objId);
-        auxMetadata2.setValue(MDL_X,sqrt(x),__iter.objId);
+        auxMetadata2.getValue(MDL_X, x, objId);
+        auxMetadata2.setValue(MDL_X, sqrt(x), objId);
     }
 
     EXPECT_EQ(auxMetadata,auxMetadata2);
@@ -1096,7 +1183,7 @@ TEST_F( MetadataTest, RegularExp)
     fn.initUniqueName("/tmp/testReadMultipleBlocks_XXXXXX");
     FileName sfnStar;
     sfnStar = fn + ".xmd";
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     auxMetadata.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMetadata.addObject());
     auxMetadata.setValue(MDL_IMAGE,(String)"image_2.xmp",auxMetadata.addObject());
     auxMetadata.write(sfnStar,MD_OVERWRITE);
@@ -1122,7 +1209,7 @@ TEST_F( MetadataTest, RegularExp)
     auxMetadata.write((String)"block_000003@"+sfnStar,MD_APPEND);
 //    auxMetadata.write((String)"block_000003@"+sfnSqlite,MD_APPEND);
     auxMetadata.clear();
-    MetaData auxMetadata2;
+    MetaDataDb auxMetadata2;
     auxMetadata2.setValue(MDL_IMAGE,(String)"image_data_1_1.xmp",auxMetadata2.addObject());
     auxMetadata2.setValue(MDL_IMAGE,(String)"image_data_1_2.xmp",auxMetadata2.addObject());
     auxMetadata2.setValue(MDL_IMAGE,(String)"image_data_2_1.xmp",auxMetadata2.addObject());
@@ -1130,7 +1217,7 @@ TEST_F( MetadataTest, RegularExp)
     MDSql::activateRegExtensions();
     auxMetadata2.write("/tmp/kk.sqlite");
     //query file
-    MetaData md;
+    MetaDataDb md;
     FileName blockFileName;
     md.read((String)"block_000001@"+sfnStar);
     //compare with reference metada
@@ -1147,8 +1234,8 @@ TEST_F( MetadataTest, RegularExp)
 
 TEST_F( MetadataTest, Query)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadata3;
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadata3;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_X,1.,id);
     auxMetadata3.setValue(MDL_Y,2.,id);
@@ -1164,7 +1251,7 @@ TEST_F( MetadataTest, Query)
 
     auxMetadata.importObjects(auxMetadata3, MDValueEQ(MDL_X, 3.));
 
-    MetaData outMetadata;
+    MetaDataDb outMetadata;
     id = outMetadata.addObject();
     outMetadata.setValue(MDL_X,3.,id);
     outMetadata.setValue(MDL_Y,4.,id);
@@ -1180,7 +1267,7 @@ TEST_F( MetadataTest, Query)
 
 TEST_F( MetadataTest, Randomize)
 {
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     const int tries = 50;
     for (int var = 0; var < tries; var++)
     {
@@ -1205,7 +1292,7 @@ TEST_F( MetadataTest, ReadMultipleBlocks)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     auxMetadata.setValue(MDL_IMAGE,(String)"image_1.xmp",auxMetadata.addObject());
     auxMetadata.setValue(MDL_IMAGE,(String)"image_2.xmp",auxMetadata.addObject());
     auxMetadata.write(sfn,MD_OVERWRITE);
@@ -1227,7 +1314,7 @@ TEST_F( MetadataTest, ReadMultipleBlocks)
     auxMetadata.write((String)"block_000003@"+sfn,MD_APPEND);
     auxMetadata.clear();
 
-    MetaData compMetadata;
+    MetaDataDb compMetadata;
     compMetadata.setValue(MDL_IMAGE,(String)"image_data_1_1.xmp",compMetadata.addObject());
     compMetadata.setValue(MDL_IMAGE,(String)"image_data_1_2.xmp",compMetadata.addObject());
     compMetadata.setValue(MDL_IMAGE,(String)"image_data_2_1.xmp",compMetadata.addObject());
@@ -1258,7 +1345,7 @@ TEST_F( MetadataTest, ReadEmptyBlocks)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     id=auxMetadata.addObject();
     auxMetadata.setValue(MDL_X,1.,id);
     auxMetadata.setValue(MDL_Y,2.,id);
@@ -1300,7 +1387,7 @@ TEST_F( MetadataTest, ReadEmptyBlocksII)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
 
     auxMetadata.addLabel(MDL_X);
     auxMetadata.addLabel(MDL_Y);
@@ -1320,7 +1407,7 @@ TEST_F( MetadataTest, ReadWrite)
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     mDsource.write(sfn);
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     auxMetadata.read(sfn);
 
     EXPECT_EQ(mDsource,auxMetadata);
@@ -1333,15 +1420,15 @@ TEST_F( MetadataTest, WriteIntermediateBlock)
     FileName filename("metadata/WriteIntermediateBlock.xmd");
     FileName blockFileName;
     blockFileName.compose("two", filename);
-    MetaData auxMetadata(blockFileName);
-    MDRow row;
+    MetaDataDb auxMetadata(blockFileName);
+    MDRowSql row;
     row.setValue(MDL_X, 11.);
     row.setValue(MDL_Y, 22.);
     auxMetadata.addRow(row);
     row.setValue(MDL_X, 33.);
     row.setValue(MDL_Y, 44.);
     auxMetadata.addRow(row);
-    auxMetadata.setValue(MDL_X,111.,auxMetadata.firstObject());
+    auxMetadata.setValue(MDL_X,111.,auxMetadata.firstRowId());
 
     //temporal file for modified metadata
     char sfn2[32] = "";
@@ -1379,7 +1466,7 @@ TEST_F( MetadataTest, ExistsBlock)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
     FileName tmpFileName((String) "kk@" + sfn);
     mDsource.write(tmpFileName);
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     bool result1 = auxMetadata.existsBlock(tmpFileName);
     EXPECT_EQ(result1,true);
     tmpFileName =(String) "kk2@" + sfn;
@@ -1399,7 +1486,7 @@ TEST_F( MetadataTest, ReadWriteAppendBlock)
     mDsource.write((String)"one@"+sfn);
     mDsource.write((String)"two@"+sfn,MD_APPEND);
     mDsource.write((String)"three@"+sfn,MD_APPEND);
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     FileName sfn2 = "metadata/ReadWriteAppendBlock.xmd";
     EXPECT_TRUE(compareTwoFiles(sfn,sfn2,0));
     unlink(sfn);
@@ -1408,7 +1495,7 @@ TEST_F( MetadataTest, ReadWriteAppendBlock)
 
 TEST_F( MetadataTest, RemoveDuplicates)
 {
-    MetaData auxMetadata1,auxMetadata3;
+    MetaDataDb auxMetadata1,auxMetadata3;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_X,1.,id);
     auxMetadata3.setValue(MDL_Y,2.,id);
@@ -1424,7 +1511,7 @@ TEST_F( MetadataTest, RemoveDuplicates)
 
 TEST_F( MetadataTest, Distinct)
 {
-    MetaData auxMetadata1,auxMetadata3;
+    MetaDataDb auxMetadata1,auxMetadata3;
     id = auxMetadata3.addObject();
     auxMetadata3.setValue(MDL_X,1.,id);
     auxMetadata3.setValue(MDL_Y,2.,id);
@@ -1446,7 +1533,7 @@ TEST_F( MetadataTest, Distinct)
 
 TEST_F( MetadataTest, Removelabel)
 {
-    MetaData auxMetadata = mDunion;
+    MetaDataDb auxMetadata = mDunion;
     auxMetadata.removeLabel(MDL_X);
     std::vector<MDLabel> v1,v2;
     v1.push_back(MDL_Y);
@@ -1456,8 +1543,8 @@ TEST_F( MetadataTest, Removelabel)
 
 TEST_F( MetadataTest, Select)
 {
-    MetaData auxMetadata;
-    MetaData auxMetadata2;
+    MetaDataDb auxMetadata;
+    MetaDataDb auxMetadata2;
     id = auxMetadata2.addObject();
     auxMetadata2.setValue(MDL_X,3.,id);
     auxMetadata2.setValue(MDL_Y,4.,id);
@@ -1474,7 +1561,7 @@ TEST_F( MetadataTest, Size)
 
 TEST_F( MetadataTest, Sort)
 {
-    MetaData auxMetadata,auxMetadata2,auxMetadata3,outMetadata;
+    MetaDataDb auxMetadata,auxMetadata2,auxMetadata3,outMetadata;
     id = auxMetadata.addObject();
     auxMetadata.setValue(MDL_X,3.,id);
     auxMetadata.setValue(MDL_Y,4.,id);
@@ -1509,7 +1596,7 @@ TEST_F( MetadataTest, Sort)
 
 TEST_F( MetadataTest, Substraction)
 {
-    MetaData auxMetadata = mDunion;
+    MetaDataDb auxMetadata = mDunion;
     auxMetadata.subtraction(mDanotherSource,MDL_X);
     EXPECT_EQ(auxMetadata,mDsource);
 }
@@ -1517,7 +1604,7 @@ TEST_F( MetadataTest, Substraction)
 TEST_F( MetadataTest, Union)
 {
     //FIXME union all is missing
-    MetaData auxMetadata = mDsource;
+    MetaDataDb auxMetadata = mDsource;
     auxMetadata.unionAll(mDanotherSource);
     EXPECT_EQ(auxMetadata,mDunion);
 }
@@ -1529,12 +1616,12 @@ TEST_F( MetadataTest, setGetValue)
     size_t t;
     int i;
     EXPECT_EQ(MDL::labelType(MDL_ORDER),LABEL_SIZET);
-    MetaData auxMetadata;
+    MetaDataDb auxMetadata;
     id = auxMetadata.addObject();
     auxMetadata.setValue(MDL_ORDER,(size_t)1, id);
     auxMetadata.getValue(MDL_ORDER,t, id);
     EXPECT_EQ((size_t)1,t);
-    //We expect that MetaData will throw an exception
+    //We expect that MetaDataDb will throw an exception
     //if you use getValue with a variable of type that
     // doesn't match the label type
     std::cerr << "TEST COMMENT: you should get the ERROR: Mismatch Label (order_) and value type(INT)" <<std::endl;
@@ -1544,7 +1631,7 @@ TEST_F( MetadataTest, Comment)
 {
     XMIPP_TRY
     char sfn[64] = "";
-    MetaData md1(mDsource);
+    MetaDataDb md1(mDsource);
     strncpy(sfn, "/tmp/testComment_XXXXXX", sizeof sfn);
     if (mkstemp(sfn)==-1)
         REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
@@ -1553,7 +1640,7 @@ TEST_F( MetadataTest, Comment)
               " Let us see what happened");
     md1.setComment(s1);
     md1.write(sfn, MD_OVERWRITE);
-    MetaData md2;
+    MetaDataDb md2;
     md2.read(sfn);
     String s2;
     s2=md2.getComment();
@@ -1568,13 +1655,13 @@ TEST_F( MetadataTest, getValue)
     XMIPP_TRY
     std::vector<double> v1(3);
     std::vector<double> v2(3);
-    MetaData auxMD1;
+    MetaDataDb auxMD1;
     id = auxMD1.addObject();
     v1[0]=1.;
     v1[1]=2.;
     v1[2]=3.;
     auxMD1.setValue(MDL_CLASSIFICATION_DATA,v1,id);
-    id = auxMD1.firstObject();
+    id = auxMD1.firstRowId();
     auxMD1.getValue(MDL_CLASSIFICATION_DATA,v2, id);
 
     EXPECT_EQ(v1[0],v2[0]);
@@ -1586,15 +1673,15 @@ TEST_F( MetadataTest, getValue)
 TEST_F( MetadataTest, getValueDefault)
 {
     XMIPP_TRY
-    MetaData auxMD1;
-    MetaData auxMD2;
+    MetaDataDb auxMD1;
+    MetaDataDb auxMD2;
     double rot=1., tilt=2., psi=3.;
     double rot2=0., tilt2=0., psi2=0.;
     id = auxMD1.addObject();
     auxMD1.setValue(MDL_ANGLE_ROT,rot,id);
     auxMD1.setValue(MDL_ANGLE_TILT,tilt,id);
     //psi assigned by defaults
-    id = auxMD1.firstObject();
+    id = auxMD1.firstRowId();
     auxMD1.getValueOrDefault(MDL_ANGLE_ROT,rot2, id, 0.);
     auxMD1.getValueOrDefault(MDL_ANGLE_TILT,tilt2, id, 0.);
     auxMD1.getValueOrDefault(MDL_ANGLE_PSI,psi2, id, 3.);
@@ -1603,7 +1690,7 @@ TEST_F( MetadataTest, getValueDefault)
     EXPECT_EQ(tilt,tilt2);
     EXPECT_EQ(psi,psi2);
 
-    MDRow  rowIn;
+    MDRowSql  rowIn;
     psi2=0;
     auxMD1.getRow(rowIn, id);
     rowIn.getValueOrDefault(MDL_ANGLE_PSI,psi2,3.);
@@ -1618,15 +1705,15 @@ TEST_F( MetadataTest, getValueDefault)
 TEST_F( MetadataTest, getValueAbort)
 {
     XMIPP_TRY
-    MetaData auxMD1;
+    MetaDataDb auxMD1;
     double rot=1.;
     id = auxMD1.addObject();
     auxMD1.setValue(MDL_ANGLE_ROT,rot,id);
     //psi assigned by defaults
-    id = auxMD1.firstObject();
+    id = auxMD1.firstRowId();
     std::cerr << "TEST COMMENT: You should get the error  Cannot find label: order_" <<std::endl;
     EXPECT_THROW(auxMD1.getValueOrAbort(MDL_ORDER, rot, id), XmippError);
-    MDRow  rowIn;
+    MDRowSql rowIn;
     auxMD1.getRow(rowIn, id);
     std::cerr << "TEST COMMENT: You should get the error  Cannot find label: anglePsi" <<std::endl;
     EXPECT_THROW(rowGetValueOrAbort(rowIn,MDL_ANGLE_PSI,rot), XmippError);
@@ -1636,13 +1723,13 @@ TEST_F( MetadataTest, getValueAbort)
 TEST_F( MetadataTest, CopyColumn)
 {
     XMIPP_TRY
-    MetaData md1(mDsource), md2(mDsource);
+    MetaDataDb md1(mDsource), md2(mDsource);
     double value;
 
-    FOR_ALL_OBJECTS_IN_METADATA(md1)
+    for (size_t objId : md1.ids())
     {
-        md1.getValue(MDL_Y, value, __iter.objId);
-        md1.setValue(MDL_Z, value, __iter.objId);
+        md1.getValue(MDL_Y, value, objId);
+        md1.setValue(MDL_Z, value, objId);
     }
 
     md2.copyColumn(MDL_Z, MDL_Y);
@@ -1654,8 +1741,8 @@ TEST_F( MetadataTest, CopyColumn)
 TEST_F( MetadataTest, RenameColumn)
 {
     XMIPP_TRY
-    MetaData md1(mDsource);
-    MetaData md2;
+    MetaDataDb md1(mDsource);
+    MetaDataDb md2;
     md1.renameColumn(MDL_Y,MDL_Z);
     id = md2.addObject();
     md2.setValue(MDL_X,1.,id);
@@ -1679,10 +1766,10 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //      REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 //    bsoftRemoveLoopBlock(fnSTAR,sfn);
 //    size_t id;
-//    MetaData readMd;
+//    MetaDataDb readMd;
 //
 //    //md1a
-//    MetaData md1a;
+//    MetaDataDb md1a;
 //    md1a.setColumnFormat(false);
 //    id = md1a.addObject();
 //    md1a.setValue(BSOFT_SYMMETRY_INT_TABLES_NUMBER,1,id);
@@ -1692,7 +1779,7 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    EXPECT_EQ(md1a, readMd);
 //
 //    //md1b
-//    MetaData md1b;
+//    MetaDataDb md1b;
 //    md1a.setColumnFormat(true);
 //    id = md1b.addObject();
 //    md1b.setValue(BSOFT_SYMMETRY_EQUIV_ID,1,id);
@@ -1701,7 +1788,7 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    EXPECT_EQ(md1b, readMd);
 //
 //    //md2a
-//    MetaData md2a;
+//    MetaDataDb md2a;
 //    md1a.setColumnFormat(false);
 //    id = md2a.addObject();
 //    md2a.setValue(BSOFT_SYMMETRY_INT_TABLES_NUMBER,2,id);
@@ -1710,7 +1797,7 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    readMd.read((std::string)"A2@"+sfn);
 //    EXPECT_EQ(md2a, readMd);
 //    //md2b
-//    MetaData md2b;
+//    MetaDataDb md2b;
 //    md1a.setColumnFormat(true);
 //    id = md2b.addObject();
 //    md2b.setValue(BSOFT_SYMMETRY_EQUIV_ID,1,id);
@@ -1722,7 +1809,7 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    EXPECT_EQ(md2b, readMd);
 //
 //    //md5090row
-//    MetaData md5090row;
+//    MetaDataDb md5090row;
 //    md5090row.setColumnFormat(true);
 //    id = md5090row.addObject();
 //    md5090row.setValue(BSOFT_SYMMETRY_EQUIV_ID,1,id);
@@ -1736,7 +1823,7 @@ TEST_F( MetadataTest, BsoftRemoveLoopBlock)
 //    readMd.read((std::string)"A5090row@"+sfn);
 //    EXPECT_EQ(md5090row, readMd);
 ////    //md5090col
-//    MetaData md5090col;
+//    MetaDataDb md5090col;
 //    md5090col.setColumnFormat(false);
 //    id = md5090col.addObject();
 //    md5090col.setValue(BSOFT_SYMMETRY_INT_TABLES_NUMBER,5090,id);
@@ -1763,10 +1850,10 @@ TEST_F( MetadataTest, bsoftRestoreLoopBlock)
 //    if (mkstemps(sfn2,5)==-1)
 //      REPORT_ERROR(ERR_IO_NOTOPEN,"Cannot create temporary file");
 //    size_t id;
-//    MetaData readMd;
+//    MetaDataDb readMd;
 //
 //    //md1a
-//    MetaData md1a;
+//    MetaDataDb md1a;
 //    md1a.setColumnFormat(false);
 //    id = md1a.addObject();
 //    md1a.setValue(BSOFT_SYMMETRY_INT_TABLES_NUMBER,1,id);
@@ -1774,7 +1861,7 @@ TEST_F( MetadataTest, bsoftRestoreLoopBlock)
 //    md1a.setValue(BSOFT_SYMMETRY_CELL_SETTING,(String)"TRICLINIC",id);
 //    md1a.write((std::string)"A1@"+sfn, MD_OVERWRITE);
 //    //md1b
-//    MetaData md1b;
+//    MetaDataDb md1b;
 //    md1a.setColumnFormat(true);
 //    id = md1b.addObject();
 //    md1b.setValue(BSOFT_SYMMETRY_EQUIV_ID,1,id);
@@ -1793,74 +1880,12 @@ TEST_F( MetadataTest, bsoftRestoreLoopBlock)
 //    XMIPP_CATCH
 }
 
-//Copy images on metadata using ImageConvert logic
-TEST_F( MetadataTest, copyImages)
-{
-    XMIPP_TRY
-    FileName fn = "metadata/smallStack.stk";
-    FileName out;
-    FileName oroot;
-    oroot.initUniqueName("/tmp/smallImg_XXXXXX");
-    oroot.deleteFile();
-    out = oroot.addExtension("xmd");
-    oroot = oroot + ":mrc";
-
-    FileName fn1, fn2;
-    MetaData md(fn);
-    ProgConvImg conv;
-    conv.verbose = 0;
-    conv.setup(&md, out, oroot);
-    conv.tryRun();
-    MetaData *mdOut = conv.getOutputMd();
-
-    FOR_ALL_OBJECTS_IN_METADATA2(md, *mdOut)
-    {
-        md.getValue(MDL_IMAGE, fn1, __iter.objId);
-        mdOut->getValue(MDL_IMAGE, fn2, __iter2.objId);
-        EXPECT_TRUE(compareImage(fn1, fn2));
-        fn2.deleteFile();
-    }
-
-    out.deleteFile();
-    out.initUniqueName("/tmp/smallStack_XXXXXX");
-    out = out + ":mrcs";
-    conv.setup(&md, out);
-    conv.tryRun();
-
-    FOR_ALL_OBJECTS_IN_METADATA2(md, *mdOut)
-    {
-        md.getValue(MDL_IMAGE, fn1, __iter.objId);
-        mdOut->getValue(MDL_IMAGE, fn2, __iter2.objId);
-        EXPECT_TRUE(compareImage(fn1, fn2));
-    }
-    out.deleteFile();
-
-    out.initUniqueName("/tmp/smallStackVol_XXXXXX");
-    out = out + ":mrc";
-    conv.setup(&md, out);
-    conv.setType("vol");
-    conv.tryRun();
-    Image<float> imgStk, imgVol;
-    imgStk.read(fn);
-    imgVol.read(out);
-
-    int n = imgStk.getDimensions().ndim;
-    for (int i = FIRST_IMAGE; i <= n; ++i)
-    {
-        imgStk.movePointerTo(1, i);
-        imgVol.movePointerTo(i);
-        EXPECT_TRUE(imgStk == imgVol);
-    }
-    out.deleteFile();
-    XMIPP_CATCH
-}
-
 TEST_F( MetadataTest, updateRow)
 {
     ASSERT_EQ(mDsource,mDsource);
     ASSERT_FALSE(mDsource==mDanotherSource);
     //attribute order should not be important
-    MetaData auxMetadata ;
+    MetaDataDb auxMetadata ;
     id1 = auxMetadata.addObject();
     auxMetadata.setValue(MDL_Y,0.,id);
     auxMetadata.setValue(MDL_X,0.,id);
@@ -1869,7 +1894,7 @@ TEST_F( MetadataTest, updateRow)
     auxMetadata.setValue(MDL_X,0.,id);
     ASSERT_FALSE(auxMetadata==mDsource);
 
-    MDRow row;
+    MDRowSql row;
     row.setValue(MDL_X, 1.);
     row.setValue(MDL_Y, 2.);
     auxMetadata.setRow( row, id1);
@@ -1905,9 +1930,56 @@ TEST_F( MetadataTest, updateRow)
     auxMetadata.setValue(MDL_Y,4.,id);
     auxMetadata.setValue(MDL_X,3.,id);
 
-    MDRow row;
+    MDRowSql row;
     row.setValue(MDL_X, 1.);
     row.setValue(MDL_Y, 2.);
     md.addRow(row);
     */
+}
+
+TEST_F(MetadataTest, DbToVecAndBack)
+{
+    MetaDataVec mdVec(mDsource);
+    ASSERT_EQ(mdVec.size(), mDsource.size());
+    MetaDataDb mdDb(mdVec);
+    ASSERT_EQ(mDsource, mdDb);
+}
+
+TEST_F(MetadataTest, split)
+{
+    MetaDataDb original;
+    for (int value = 3; value >= 0; value--) {
+        MDRowSql row;
+        row.setValue(MDL_X, static_cast<double>(value));
+        original.addRow(row);
+    }
+    ASSERT_EQ(original.size(), 4);
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+
+    std::vector<MetaDataDb> splitted;
+
+    original.split(1, splitted, MDL_X);
+    ASSERT_EQ(splitted.size(), 1);
+    ASSERT_EQ(splitted[0].size(), 4);
+    ASSERT_EQ(splitted[0].getColumnValues<double>(MDL_X), (std::vector<double>{0., 1., 2., 3.}));
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+
+    original.split(2, splitted, MDL_X);
+    ASSERT_EQ(splitted.size(), 2);
+    ASSERT_EQ(splitted[0].size(), 2);
+    ASSERT_EQ(splitted[1].size(), 2);
+    ASSERT_EQ(splitted[0].getColumnValues<double>(MDL_X), (std::vector<double>{0., 1.}));
+    ASSERT_EQ(splitted[1].getColumnValues<double>(MDL_X), (std::vector<double>{2., 3.}));
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
+
+    original.split(3, splitted, MDL_X);
+    size_t total_size = 0;
+    ASSERT_EQ(splitted.size(), 3);
+    for (const auto& split : splitted) {
+        ASSERT_TRUE(split.size() >= 1);
+        ASSERT_TRUE(split.size() <= 2);
+        total_size += split.size();
+    }
+    ASSERT_EQ(total_size, original.size());
+    ASSERT_EQ(original.getColumnValues<double>(MDL_X), (std::vector<double>{3., 2., 1., 0.}));
 }

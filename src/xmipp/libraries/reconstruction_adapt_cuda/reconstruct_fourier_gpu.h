@@ -31,7 +31,7 @@
 #define __RECONSTRUCT_FOURIER_GPU_H
 
 #include "core/xmipp_threads.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/matrix2d.h"
 #include "core/numerical_recipes.h"
 #include "data/blobs.h"
@@ -52,7 +52,7 @@ struct RecFourierWorkThread
     ProgRecFourierGPU * parent;
     int startImageIndex; // index of the first projection to process
     int endImageIndex; // index of the last projection to process
-    MetaData* selFile; // used for loading data
+    MetaDataDb* selFile; // used for loading data
     RecFourierBufferData* buffer; // where data are loaded
     int gpuStream; // index of stream on GPU device
 };
@@ -83,7 +83,7 @@ protected:
     RecFourierWorkThread* workThreads;
 
     /** SelFile containing all projections */
-    MetaData SF;
+    MetaDataDb SF;
 
     /** Output file name */
     FileName fn_out;
@@ -297,7 +297,7 @@ private:
 		case 2: return bessi2(blob.alpha);
 		case 3: return bessi3(blob.alpha);
 		case 4: return bessi4(blob.alpha);
-		REPORT_ERROR(ERR_VALUE_INCORRECT,"Order must be in interval [0..4]");
+		default: REPORT_ERROR(ERR_VALUE_INCORRECT,"Order must be in interval [0..4]");
 		}
 	}
 

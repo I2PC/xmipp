@@ -90,7 +90,7 @@ void ProgScoreMicrograph::run()
 	prmEstimateCTFFromMicrograph.fn_root = "/home/jvargas/Linux/Proyectos/LUMC/set_001_challenge/kk";
 	prmEstimateCTFFromMicrograph.run();
 
-	MetaData MD;
+	MetaDataVec MD;
 	size_t id=MD.addObject();
 	MD.setValue(MDL_MICROGRAPH,fn_micrographDwn,id);
 	MD.setValue(MDL_PSD,prmEstimateCTFFromMicrograph.fn_root+".psd",id);
@@ -171,12 +171,12 @@ void ProgScoreMicrograph::run()
     std::cout << prmPSDSort.fn_out.c_str() << std::endl;
 
     MD.read(prmPSDSort.fn_out);
-    FOR_ALL_OBJECTS_IN_METADATA(MD)
+    for (size_t objId : MD.ids())
     {
-    	MD.getValue(MDL_CTF_CRIT_MAXFREQ,maxFreq,__iter.objId);
-    	MD.getValue(MDL_CTF_CRIT_FITTINGSCORE,fitting,__iter.objId);
-    	MD.getValue(MDL_CTF_CRIT_PSDCORRELATION90,psdCorr90,__iter.objId);
-    	MD.getValue(MDL_CTF_CRIT_PSDRADIALINTEGRAL,psdRadialInt,__iter.objId);
+        MD.getValue(MDL_CTF_CRIT_MAXFREQ,maxFreq,objId);
+        MD.getValue(MDL_CTF_CRIT_FITTINGSCORE,fitting,objId);
+        MD.getValue(MDL_CTF_CRIT_PSDCORRELATION90,psdCorr90,objId);
+        MD.getValue(MDL_CTF_CRIT_PSDRADIALINTEGRAL,psdRadialInt,objId);
     }
 
     std::cout << "partDensity : " << partDensity << std::endl;

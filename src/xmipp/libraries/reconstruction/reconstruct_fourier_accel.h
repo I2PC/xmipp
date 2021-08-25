@@ -34,7 +34,7 @@
 #include "recons.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_threads.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/matrix1d.h"
 #include "data/blobs.h"
 
@@ -123,7 +123,7 @@ protected:
     LoadThreadParams loadThread;
 
     /** SelFile containing all projections */
-    MetaData SF;
+    MetaDataVec SF;
 
     /** Output file name */
     FileName fn_out;

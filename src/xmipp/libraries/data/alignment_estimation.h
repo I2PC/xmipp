@@ -28,6 +28,9 @@
 
 #include "core/matrix2d.h"
 
+/**@defgroup Alignment Alignment Estimation
+   @ingroup DataLibrary */
+//@{
 namespace Alignment {
 
 struct AlignmentEstimation {
@@ -46,5 +49,5 @@ struct AlignmentEstimation {
 };
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_DATA_ALIGNMENT_ESTIMATION_H_ */

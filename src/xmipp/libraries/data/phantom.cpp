@@ -30,7 +30,7 @@
 #include "phantom.h"
 #include "core/geometry.h"
 #include "core/metadata_label.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/xmipp_error.h"
 #include "data/blobs.h"
 #include "data/fourier_projection.h"
@@ -2193,8 +2193,8 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
 
     if (fn_phantom.isMetaData())
     {
-        MetaData MD1;  //MetaData for the first block (phantom parameters)
-        MetaData MD2; //MetaData for the second block (phantom parameters)
+        MetaDataVec MD1;  //MetaData for the first block (phantom parameters)
+        MetaDataVec MD2; //MetaData for the second block (phantom parameters)
         std::vector <double> TempVec; // A temporary vector for reading vector data
         size_t objId;
 
@@ -2203,7 +2203,7 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
         MD2.read((std::string)"block2@"+fn_phantom.c_str());
 
         // Read the first block containing parameters of phantom
-        objId = MD1.firstObject();
+        objId = MD1.firstRowId();
         MD1.getValue(MDL_DIMENSIONS_3D, TempVec, objId);
         if (TempVec.size()<3)
             REPORT_ERROR(ERR_ARG_MISSING, MDL::label2Str(MDL_DIMENSIONS_3D) + " problems with project dimensions");
@@ -2225,10 +2225,8 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
             current_scale = scale;
 
         // Read the second block
-        MDRow FeatureRow;
-        FOR_ALL_OBJECTS_IN_METADATA(MD2)
+        for (auto& FeatureRow: MD2)
         {
-            MD2.getRow(FeatureRow, __iter.objId);
             if(!FeatureRow.getValue(MDL_PHANTOM_FEATURE_TYPE, feat_type))
                 REPORT_ERROR(ERR_ARG_MISSING, MDL::label2Str(MDL_PHANTOM_FEATURE_TYPE) + " feature type not present");
             if (feat_type == "sph")
@@ -2437,8 +2435,8 @@ std::ostream& operator << (std::ostream &o, const Phantom &P)
 /* Write Volume Description ------------------------------------------------ */
 void Phantom::write(const FileName &fn_phantom)
 {
-    MetaData MD1;  //MetaData for phanto global parameters
-    MetaData MD2;  //MetaData for Feature parameters
+    MetaDataVec MD1;  //MetaData for phanto global parameters
+    MetaDataVec MD2;  //MetaData for Feature parameters
     std::vector<double> FCVect(3);  //For the center of feature
     size_t id;
     // Write global parameters to the first block

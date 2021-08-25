@@ -26,7 +26,7 @@
 #define _PROG_COMPARE_CLASSES
 
 #include <core/xmipp_fftw.h>
-#include <core/metadata.h>
+#include <core/xmipp_filename.h>
 #include <core/xmipp_program.h>
 
 /**@defgroup CompareClasses Compare Classes

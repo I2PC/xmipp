@@ -26,10 +26,11 @@
 #define _PROG_PERFORMANCE_TEST
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 #include <classification/pca.h>
 
-
+/// @defgroup ProgPerformanceTest MPI Performance Test
+/// @ingroup ParallelLibrary
+//@{
 class ProgPerformanceTest: public XmippProgram
 {
 public:
@@ -60,4 +61,5 @@ public:
     /** Run. */
     void run();
 };
+//@}
 #endif

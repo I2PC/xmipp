@@ -1,4 +1,5 @@
 #include "unitCell.h"
+#include "core/metadata_db.h"
 #include <math.h>
 // 60 is the angle between the vectors
 // icosahedron from_5f_to_2f and from_5f_2fp: vector that joing a vertex with the two closes 2-fold symmetry axis
@@ -899,7 +900,7 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 			iMaxX = iMaxX + x_offset;
 		}
 		imageMap2->selfWindow(iMinZ, iMinY, iMinX, iMaxZ, iMaxY, iMaxX, 0.);
-		MDRow MD;
+		MDRowSql MD;
 		out3DDmap.setDataMode(_DATA_ALL);
 		//CCP save routine multiplies by sampling rate
 		MD.setValue(MDL_ORIGIN_X, (double) (iMinX - x_offset) );

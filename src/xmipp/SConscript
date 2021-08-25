@@ -371,7 +371,7 @@ def compileMatlabBinding(target, source, env):
     libs = ' '.join('-l%s' % lib for lib in ['Xmipp','XmippCore'])
 
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
-    command = '%s -O CFLAGS="\$CFLAGS -std=c99 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
+    command = '%s -O CFLAGS="\$CFLAGS -std=c++11 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
     print(command)
     os.system(command)
 

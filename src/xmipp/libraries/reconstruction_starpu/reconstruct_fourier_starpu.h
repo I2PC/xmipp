@@ -31,7 +31,6 @@
 #ifndef __RECONSTRUCT_FOURIER_GPU_H
 #define __RECONSTRUCT_FOURIER_GPU_H
 
-#include "core/metadata.h"
 #include "data/blobs.h"
 #include "core/xmipp_filename.h"
 #include "reconstruction/recons.h" // Used only as a base class for this program's class

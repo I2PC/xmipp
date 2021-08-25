@@ -77,7 +77,7 @@ void computeSumSumSqr2D(const T * __restrict__ in,
         // perform additional (column-wise) sum
         // intrawarp sum
         for (int offset = 16; offset > 0; offset /= 2) {
-#if defined(CUDART_VERSION) && CUDART_VERSION >= 900
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 9000
           sum += __shfl_down_sync(0xffffffff, sum, offset);
           sum2 += __shfl_down_sync(0xffffffff, sum2, offset);
 #else
@@ -154,7 +154,7 @@ void computeCorrIndexStat2DOneToN(
         // perform additional (column-wise) sum
         // intrawarp sum
         for (int offset = 16; offset > 0; offset /= 2) {
-#if defined(CUDART_VERSION) && CUDART_VERSION >= 900
+#if defined(CUDART_VERSION) && CUDART_VERSION >= 9000
           corr += __shfl_down_sync(0xffffffff, corr, offset);
           sum += __shfl_down_sync(0xffffffff, sum, offset);
           sum2 += __shfl_down_sync(0xffffffff, sum2, offset);

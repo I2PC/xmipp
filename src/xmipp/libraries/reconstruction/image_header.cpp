@@ -35,7 +35,7 @@ class ProgHeader: public XmippMetadataProgram
 protected:
     HeaderOperation operation;
     bool round_shifts;
-    MDRow row;
+    MDRowVec row;
     ApplyGeoParams params;
     double sampling;
 
