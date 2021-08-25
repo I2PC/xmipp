@@ -26,7 +26,6 @@
 #include <fstream>
 #include "volume_correct_bfactor.h"
 #include "core/xmipp_image.h"
-#include "core/metadata.h"
 #include "core/xmipp_fftw.h"
 
 void ProgVolumeCorrectBfactor::defineParams()

@@ -97,7 +97,7 @@ void extract_angles(MetaData &SF_in, DocFile &DF_out,
 
     FileName auxFn;
 
-    SF_in.getValue( MDL_IMAGE, auxFn, SF_in.firstObject() );
+    SF_in.getValue( MDL_IMAGE, auxFn, SF_in.firstRowId() );
 
     DF_out.append_comment((std::string)"Angles for " + auxFn +
                           ".   Angle order: " + ang1 + " " + ang2 + " " + ang3);

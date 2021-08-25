@@ -2257,7 +2257,7 @@ void Sampling::fillExpDataProjectionDirectionByLR(const MetaData &DFi)
 {
     std::vector <Matrix1D<double> > exp_data_projection_direction;
     Matrix1D<double>  direction(3);
-    DFi.firstObject();
+    DFi.firstRowId();
     //#define CHIMERA
 #ifdef CHIMERA
 

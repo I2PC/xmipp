@@ -24,7 +24,6 @@
  ***************************************************************************/
 
 #include "image_eliminate_byEnergy.h"
-#include "core/metadata.h"
 #include "core/xmipp_image.h"
 
 /* Read parameters --------------------------------------------------------- */

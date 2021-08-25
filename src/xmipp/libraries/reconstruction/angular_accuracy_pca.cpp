@@ -114,7 +114,7 @@ void ProgAngularAccuracyPCA::run()
 		MDRowSql row;
 		MetaDataDb MDSort, tempMd, MDOut, MDOutQ;
 		MDSort.sort(mdPartial,MDL_ITEM_ID,true,-1,0);
-		MDSort.getValue(MDL_ITEM_ID,maxIdx,MDSort.lastObject());
+		MDSort.getValue(MDL_ITEM_ID,maxIdx,MDSort.lastRowId());
 
 		for (size_t i=0; i<=maxIdx;i++)
 		{
