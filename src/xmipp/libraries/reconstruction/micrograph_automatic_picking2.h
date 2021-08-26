@@ -69,7 +69,7 @@ public:
     SVMClassifier classifier, classifier2;
     PCAMahalanobisAnalyzer pcaAnalyzer;
     ProgImageRotationalPCA rotPcaAnalyzer;
-    Point p1,p2;
+    Micrograph::Point p1,p2;
     FeaturesThread * thread;
     Micrograph m, mPrev;
 
