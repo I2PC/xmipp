@@ -38,6 +38,7 @@ class Config:
     KEY_VERSION = 'CONFIG_VERSION'
     KEY_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
     KEY_CXX = 'CXX'
+    KEY_LINKFLAGS = 'LINKFLAGS'
 
     def __init__(self, askUser=False):
         self.ask = askUser
@@ -262,7 +263,7 @@ class Config:
                 self.configDict["CCFLAGS"] += " -std=c99"
         if 'g++' in self.get(Config.KEY_CXX):
             # optimize for current machine
-            self.configDict["CXXFLAGS"] += " -mtune=native -march=native"
+            self.configDict["CXXFLAGS"] += " -mtune=native -march=native -flto"
             if "-std=c99" not in self.configDict["CXXFLAGS"]:
                 self.configDict["CXXFLAGS"] += " -std=c++14"
             if isCIBuild():
@@ -274,7 +275,10 @@ class Config:
                 self.configDict["CXXFLAGS"] += " -O3"
             if self.is_true("DEBUG"):
                 self.configDict["CXXFLAGS"] += " -g"
-        # Nothing special to add to LINKFLAGS
+        
+        if self.is_empty(Config.KEY_LINKFLAGS):
+            self._set(Config.KEY_LINKFLAGS, '-flto')
+        
         from sysconfig import get_paths
         info = get_paths()
 
