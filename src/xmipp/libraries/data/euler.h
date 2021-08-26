@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <core/matrix1d.h>
 #include <core/matrix2d.h>
-#include <core/metadata.h>
 //@{
 /** Routines for computing Euler angles following different
  * approaches

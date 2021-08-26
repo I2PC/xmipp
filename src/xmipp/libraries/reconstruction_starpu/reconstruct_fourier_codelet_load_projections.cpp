@@ -24,7 +24,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "core/metadata.h"
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
 #include "data/fourier_projection.h"
