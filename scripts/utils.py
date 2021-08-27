@@ -27,6 +27,8 @@ import subprocess
 from os import environ, path, remove
 import distutils.spawn
 import glob
+from shutil import which
+from os.path import realpath
 
 
 def green(text):
@@ -43,6 +45,31 @@ def red(text):
 
 def blue(text):
     return "\033[34m "+text+"\033[0m"
+
+
+def find_newest(program, versions, show):
+    for v in versions:
+        p = program + '-' + str(v) if v else program
+        loc = find(p)
+        if loc:
+            if show:
+                print(green(p + ' found in ' + loc))
+            return loc
+    if show:
+        print(red(program + ' not found'))
+    return ''
+
+
+def find(program, path=[]):
+    location = which(program)
+    if location:
+        return location
+    else:
+        for p in path:
+            location = which(program, path=p)
+            if location:
+                return realpath(location)
+        return None
 
 
 def runJob(cmd, cwd='./', show_output=True, log=None, show_command=True,
