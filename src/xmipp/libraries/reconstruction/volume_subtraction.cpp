@@ -285,7 +285,7 @@ Image<double> subtraction(Image<double> V1, Image<double> V,
 	Image<double> V1Filtered;
 	V1Filtered() = V1();
 	if (cutFreq != 0){
-		Filter2.applyMaskSpace(V1Filtered()); // FAILS!!
+		Filter2.applyMaskSpace(V1Filtered());
 	}
 	if (saveVol1Filt) {
 		V1Filtered.write(fnVol1F);
@@ -364,12 +364,11 @@ MultidimArray<std::complex<double>> V2Fourier;
 /* Core of the program: processing needed to adjust input
  * volume V2 to reference volume V1. Several iteration of
  * this processing should be run. */
-template <bool computeE>
 void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 		Image<double> &V1, const MultidimArray<double> &radQuotient,
 		const MultidimArray<double> &V1FourierMag, double std1,
 		const MultidimArray<std::complex<double>> &V2FourierPhase,
-		MultidimArray<double> mask) {
+		MultidimArray<double> mask, bool computeE) {
 	if (computeE)
 		std::cout << "---Iter " << n << std::endl;
 	if (radavg) {
@@ -380,11 +379,13 @@ void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 		CenterFFT(V2Fourier, true);
 		POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x,
 				V1size_y, V1size_z);
+		transformer2.inverseFourierTransform(V2Fourier, V());
+
 	} else {
 		transformer2.FourierTransform(V(), V2Fourier, false);
+		POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
+		transformer2.inverseFourierTransform();
 	}
-	POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
-	transformer2.inverseFourierTransform();
 	if (computeE) {
 		computeEnergy(Vdiff(), V());
 		Vdiff = V;
@@ -441,20 +442,15 @@ void ProgVolumeSubtraction::run() {
 	V.read(fnVol2);
 	POCSmask(mask, V());
 	POCSnonnegative(V());
-
 	double std1 = V1().computeStddev();
 	Image<double> Vdiff = V;
 	auto V2FourierPhase = computePhase(V());
 	auto radQuotient = computeRadQuotient(V1(), V());
 	auto V1FourierMag = computeMagnitude(V1());
 	createFilter();
-	for (size_t n = 0; n < iter; ++n) {  // Ends with "aborted core dumped" (but works until the end)
-		computeE ? runIteration<true>(n, V, Vdiff, V1, radQuotient, V1FourierMag,
-				std1, V2FourierPhase, mask)
-				: runIteration<false>(n, V, Vdiff, V1, radQuotient, V1FourierMag,
-						std1, V2FourierPhase, mask);
+	for (size_t n = 0; n < iter; ++n) {
+		runIteration(n, V, Vdiff, V1, radQuotient, V1FourierMag, std1, V2FourierPhase, mask, computeE);
 	}
-
 	/* The output of this program is either a modified
 	 * version of V (V') or the subtraction between
 	 * V1 and V' if performSubtraction flag is activated' */
