@@ -97,111 +97,121 @@ class ScriptAngularDensityAlign(XmippScript):
 
         # Main contact radius loop
         overall_cost = sys.maxsize
-        for contactRadius in contactRadius_list:
+        size = 4
+        while size <= 50:
+            size += 1
+            for contactRadius in contactRadius_list:
 
-            # Initial neighbour search (neighobur distances + indeces)
-            refDist, refIndeces = refTree.query(ref_atoms, k=size)
-            inputDist, inputIndeces = inputTree.query(input_atoms, k=size)
+                # Initial neighbour search (neighobur distances + indeces)
+                refDist, refIndeces = refTree.query(ref_atoms, k=size)
+                inputDist, inputIndeces = inputTree.query(input_atoms, k=size)
 
-            # Filter neighbours by distance and compute density vectors
-            inputIndeces = self.filterNeighbours(inputIndeces, inputDist, contactRadius)
-            refIndeces = self.filterNeighbours(refIndeces, refDist, contactRadius)
-            vectors_input, filtered_input, inputDelete = self.computeDensityVectors(input_atoms, inputIndeces)
-            vectors_ref, filtered_ref, refDelete = self.computeDensityVectors(ref_atoms, refIndeces)
+                # Filter neighbours by distance and compute density vectors
+                inputIndeces = self.filterNeighbours(inputIndeces, inputDist, contactRadius)
+                refIndeces = self.filterNeighbours(refIndeces, refDist, contactRadius)
+                vectors_input, filtered_input, inputDelete = self.computeDensityVectors(input_atoms, inputIndeces)
+                vectors_ref, filtered_ref, refDelete = self.computeDensityVectors(ref_atoms, refIndeces)
 
-            # Now we need more neighbours to compute and appropiate histogram
-            refDist, refIndeces = refTree.query(ref_atoms, k=size)
-            inputDist, inputIndeces = inputTree.query(input_atoms, k=size)
+                # Now we need more neighbours to compute and appropiate histogram
+                refDist, refIndeces = refTree.query(ref_atoms, k=size)
+                inputDist, inputIndeces = inputTree.query(input_atoms, k=size)
 
-            # Filter neighbours by distance
-            inputIndeces = self.filterNeighbours(inputIndeces, inputDist, contactRadius)
-            refIndeces = self.filterNeighbours(refIndeces, refDist, contactRadius)
+                # Filter neighbours by distance
+                inputIndeces = self.filterNeighbours(inputIndeces, inputDist, contactRadius)
+                refIndeces = self.filterNeighbours(refIndeces, refDist, contactRadius)
 
-            # Update indexes according to density vectors
-            inputIndeces = self.updateIndex(inputIndeces, inputDelete)
-            refIndeces = self.updateIndex(refIndeces, refDelete)
+                # Update indexes according to density vectors
+                inputIndeces = self.updateIndex(inputIndeces, inputDelete)
+                refIndeces = self.updateIndex(refIndeces, refDelete)
 
-            # Compute SPFH
-            spfh_input, filtered_input, vectors_input, inputIndeces, inputDelete = self.SPFH(filtered_input,
-                                                                                             vectors_input, bins,
-                                                                                             inputIndeces)
-            spfh_ref, filtered_ref, vectors_ref, refIndeces, refDelete = self.SPFH(filtered_ref, vectors_ref, bins,
-                                                                                   refIndeces)
+                # Compute SPFH
+                spfh_input, filtered_input, vectors_input, inputIndeces, inputDelete = self.SPFH(filtered_input,
+                                                                                                vectors_input, bins,
+                                                                                                inputIndeces)
+                spfh_ref, filtered_ref, vectors_ref, refIndeces, refDelete = self.SPFH(filtered_ref, vectors_ref, bins,
+                                                                                    refIndeces)
 
-            # Update indexes according to density vectors
-            inputIndeces = self.updateIndex(inputIndeces, inputDelete, onlyUpdate=True)
-            refIndeces = self.updateIndex(refIndeces, refDelete, onlyUpdate=True)
+                # Update indexes according to density vectors
+                inputIndeces = self.updateIndex(inputIndeces, inputDelete, onlyUpdate=True)
+                refIndeces = self.updateIndex(refIndeces, refDelete, onlyUpdate=True)
 
-            # Compute FPFH
-            f_input = np.asarray(self.FPFH(filtered_input, spfh_input, inputIndeces))
-            f_ref = np.asarray(self.FPFH(filtered_ref, spfh_ref, refIndeces))
+                # Compute FPFH
+                f_input = np.asarray(self.FPFH(filtered_input, spfh_input, inputIndeces))
+                f_ref = np.asarray(self.FPFH(filtered_ref, spfh_ref, refIndeces))
 
-            # Find correspondences in both directions
-            correspondence_s_t, correspondence_t_s = self.findCorrespondences(f_input, f_ref)
+                # Find correspondences in both directions
+                correspondence_s_t, correspondence_t_s = self.findCorrespondences(f_input, f_ref)
 
-            # Get only matching correspondences
-            correspondence = []
-            for idp in range(len(correspondence_s_t)):
-                pair = correspondence_s_t[idp]
-                if pair[0] == correspondence_t_s[pair[1]][1]:
-                    correspondence.append(pair)
+                # Get only matching correspondences
+                correspondence = []
+                for idp in range(len(correspondence_s_t)):
+                    pair = correspondence_s_t[idp]
+                    if pair[0] == correspondence_t_s[pair[1]][1]:
+                        correspondence.append(pair)
 
-            # Get 1 percentile
-            cost = np.asarray([pair[2] for pair in correspondence])
-            percentile = np.percentile(cost, 1)
+                p = 0
+                l = 0
+                while l <= 2:
+                    # Get 1 percentile
+                    p += 1
+                    cost = np.asarray([pair[2] for pair in correspondence])
+                    percentile = np.percentile(cost, p)
 
-            # Get point clouds using correspondences
-            pdb_matching = []
-            aux = []
-            chain_matching = []
-            for pair in correspondence:
-                if pair[2] < percentile:
-                    pdb_matching.append(vectors_ref[pair[1]])
-                    aux.append(filtered_ref[pair[1]])
-                    chain_matching.append(vectors_input[pair[0]])
-            pdb_matching = np.asarray(pdb_matching)
-            aux = np.asarray(aux)
-            chain_matching = np.asarray(chain_matching)
+                    # Get point clouds using correspondences
+                    pdb_matching = []
+                    aux = []
+                    chain_matching = []
+                    for pair in correspondence:
+                        if pair[2] < percentile:
+                            pdb_matching.append(vectors_ref[pair[1]])
+                            aux.append(filtered_ref[pair[1]])
+                            chain_matching.append(vectors_input[pair[0]])
+                    pdb_matching = np.asarray(pdb_matching)
+                    aux = np.asarray(aux)
+                    chain_matching = np.asarray(chain_matching)
 
-            # Create final transoformation due to correspondences
-            center = self.createTransformation(np.eye(3), np.mean(aux, axis=0))
-            M = self.superimposition_matrix(chain_matching.T, pdb_matching.T)
-            Tr = center @ M
+                    l = len(chain_matching)
 
-            # ICP Refinement of previous alignment
-            transformed_cloud = input_atoms
-            refTree = KDTree(ref_atoms)
-            for _ in range(100):
-                X0 = np.ones((transformed_cloud.shape[0], 1))
-                transformed_cloud_step = np.hstack([transformed_cloud, X0])
-                transformed_cloud_step = np.transpose(Tr @ transformed_cloud_step.T)[:, :3]
-                _, indeces = refTree.query(transformed_cloud_step, k=1)
-                neighbours = ref_atoms[indeces]
-                M = self.superimposition_matrix(transformed_cloud_step.T, neighbours.T)
-                Tr = M @ Tr
+                # Create final transoformation due to correspondences
+                center = self.createTransformation(np.eye(3), np.mean(aux, axis=0))
+                M = self.superimposition_matrix(chain_matching.T, pdb_matching.T)
+                Tr = center @ M
 
-            # Final transformation matrix
-            Tr_trial = center_with_ref @ Tr @ center_input
+                # ICP Refinement of previous alignment
+                transformed_cloud = input_atoms
+                refTree = KDTree(ref_atoms)
+                for _ in range(100):
+                    X0 = np.ones((transformed_cloud.shape[0], 1))
+                    transformed_cloud_step = np.hstack([transformed_cloud, X0])
+                    transformed_cloud_step = np.transpose(Tr @ transformed_cloud_step.T)[:, :3]
+                    _, indeces = refTree.query(transformed_cloud_step, k=1)
+                    neighbours = ref_atoms[indeces]
+                    M = self.superimposition_matrix(transformed_cloud_step.T, neighbours.T)
+                    Tr = M @ Tr
 
-            # Get trial cost (bidirectional RMSD based on KDTree)
-            X0 = np.ones((input_atoms.shape[0], 1))
-            transformed_input_atoms = np.hstack([input_atoms, X0])
-            transformed_input_atoms = np.transpose(Tr @ transformed_input_atoms.T)[:, :3]
+                # Final transformation matrix
+                Tr_trial = center_with_ref @ Tr @ center_input
 
-            _, indeces = refTree.query(transformed_input_atoms, k=1)
-            neighbours_input_in_reference = ref_atoms[indeces]
-            rmsd_input_in_reference = np.sqrt(np.mean((transformed_input_atoms - neighbours_input_in_reference) ** 2))
+                # Get trial cost (bidirectional RMSD based on KDTree)
+                X0 = np.ones((input_atoms.shape[0], 1))
+                transformed_input_atoms = np.hstack([input_atoms, X0])
+                transformed_input_atoms = np.transpose(Tr @ transformed_input_atoms.T)[:, :3]
 
-            transformed_input_tree = KDTree(transformed_input_atoms)
-            _, indeces = transformed_input_tree.query(ref_atoms, k=1)
-            neighbours_reference_in_input = transformed_input_atoms[indeces]
-            rmsd_reference_in_input = np.sqrt(np.mean((ref_atoms - neighbours_reference_in_input) ** 2))
+                _, indeces = refTree.query(transformed_input_atoms, k=1)
+                neighbours_input_in_reference = ref_atoms[indeces]
+                rmsd_input_in_reference = np.sqrt(np.mean((transformed_input_atoms - neighbours_input_in_reference) ** 2))
 
-            trial_cost = 0.5 * (rmsd_input_in_reference + rmsd_reference_in_input)
+                transformed_input_tree = KDTree(transformed_input_atoms)
+                _, indeces = transformed_input_tree.query(ref_atoms, k=1)
+                neighbours_reference_in_input = transformed_input_atoms[indeces]
+                rmsd_reference_in_input = np.sqrt(np.mean((ref_atoms - neighbours_reference_in_input) ** 2))
 
-            if trial_cost < overall_cost:
-                Tr_final = Tr_trial
-                overall_cost = trial_cost
+                # trial_cost = 0.5 * (rmsd_input_in_reference + rmsd_reference_in_input)
+                trial_cost = rmsd_input_in_reference
+
+                if trial_cost < overall_cost:
+                    Tr_final = Tr_trial
+                    overall_cost = trial_cost
 
         # Save results
 
