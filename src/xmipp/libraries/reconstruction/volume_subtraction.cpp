@@ -170,18 +170,18 @@ void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
 	double wx;
 	double wy;
 	double wz;
-	for (int k=0; k<V1size_z; ++k)
+	for (int k=0; k<ZSIZE(V); ++k)
 	{
 		FFT_IDX2DIGFREQ_FAST(k,V1size_z,V1size2_z,V1sizei_z,wz)
-				double wz2 = wz*wz;
-		for (int i=0; i<V1size_y; ++i)
+		double wz2 = wz*wz;
+		for (int i=0; i<YSIZE(V); ++i)
 		{
 			FFT_IDX2DIGFREQ_FAST(i,V1size_y,V1size2_y,V1sizei_y,wy)
-					double wy2 = wy*wy;
-			for (int j=0; j<V1size_x; ++j)
+			double wy2_wz2 = wy*wy + wz2;
+			for (int j=0; j<XSIZE(V); ++j)
 			{
 				FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx)
-						double w = sqrt(wx*wx + wy2 + wz2);
+				double w = sqrt(wx*wx + wy2_wz2);
 				auto iw = (int)round(w*V1size_x);
 				DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
 			}
@@ -235,57 +235,71 @@ void centerFFTMagnitude(MultidimArray<double> &VolRad,
 	VolFourierMagRad.setXmippOrigin();
 }
 
-MultidimArray<double> radialAverage(const MultidimArray<double> &VolFourierMagRad,
-		const MultidimArray<std::complex<double>> &VolFourierRad,
-		MultidimArray<double> const &Volrad) {
-	Matrix1D<int> center(2);
-	center.initZeros();
-	MultidimArray<double> radial_mean;
-	MultidimArray<int> radial_count;
-	radialAverageNonCubic(VolFourierMagRad, center, radial_mean, radial_count);
-	FOR_ALL_ELEMENTS_IN_ARRAY1D(VolFourierRad){
-		Volrad(i) = radial_mean(i);
-	}
-	return radial_mean;
+void radialAverage(const MultidimArray<double> &VolFourierMag,
+		const MultidimArray<double> &V, MultidimArray<double> &radial_mean) {
+	MultidimArray<double> radial_count;
 
+	int Vsize2_x = XSIZE(V)/2;
+	double Vsizei_x = 1.0/XSIZE(V);
+	int Vsize2_y = YSIZE(V)/2;
+	double Vsizei_y = 1.0/YSIZE(V);
+	int Vsize2_z = ZSIZE(V)/2;
+	double Vsizei_z = 1.0/ZSIZE(V);
+	double wx;
+	double wy;
+	double wz;
+	int maxrad = ceil(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z));
+	radial_count.initZeros(maxrad);
+	radial_mean.initZeros(maxrad);
+	for (int k=0; k<Vsize2_z; ++k)
+		{
+			FFT_IDX2DIGFREQ_FAST(k,ZSIZE(V),Vsize2_z,Vsizei_z,wz)
+			double wz2 = wz*wz;
+			for (int i=0; i<Vsize2_y; ++i)
+			{
+				FFT_IDX2DIGFREQ_FAST(i,YSIZE(V),Vsize2_y,Vsizei_y,wy)
+				double wy2_wz2 = wy*wy + wz2;
+				for (int j=0; j<Vsize2_x; ++j)
+				{
+					FFT_IDX2DIGFREQ_FAST(j,XSIZE(V),Vsize2_x,Vsizei_x,wx)
+					double w = sqrt(wx*wx + wy2_wz2);
+					auto iw = (int)round(w*XSIZE(V));
+					DIRECT_A1D_ELEM(radial_mean,iw)+=DIRECT_A3D_ELEM(VolFourierMag,k,i,j);
+					DIRECT_A1D_ELEM(radial_count,iw)+=1.0;
+				}
+			}
+		}
+	radial_mean/= radial_count;
 }
 
-MultidimArray<double> computeRadialMean(MultidimArray<double> volume) {
-	volume.setXmippOrigin();
-	MultidimArray<std::complex<double>> fourierRad;
-	MultidimArray<double> fourierMagRad;
-	centerFFTMagnitude(volume, fourierRad, fourierMagRad);
-	auto radialMean = radialAverage(fourierMagRad, fourierRad, volume);
-	return radialMean;
-}
-
-MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1,
-		const MultidimArray<double> &v) {
+MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1Mag,
+		const MultidimArray<double> &vMag, const MultidimArray<double> &V1,
+		const MultidimArray<double> &V) {
 	// Compute the quotient of the radial mean of the volumes to use it in POCS amplitude
-	MultidimArray<double> radQuotient;
-	MultidimArray<double> radial_meanV1 = computeRadialMean(v1);
-	MultidimArray<double> radial_meanV = computeRadialMean(v);
-	radQuotient = radial_meanV1 / radial_meanV;
+	MultidimArray<double> radial_meanV1;
+	radialAverage(v1Mag, V1, radial_meanV1);
+	MultidimArray<double> radial_meanV;
+	radialAverage(vMag, V, radial_meanV);
+	MultidimArray<double> radQuotient = radial_meanV1 / radial_meanV;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
 	radQuotient(i) = std::min(radQuotient(i), 1.0);
 	return radQuotient;
 }
 
-FourierFilter Filter2;
-void createFilter() {
-	Filter2.FilterBand = LOWPASS;
-	Filter2.FilterShape = RAISED_COSINE;
-	Filter2.raised_w = 0.02;
-	Filter2.w1 = cutFreq;
+void createFilter(FourierFilter &filter2) {
+	filter2.FilterBand = LOWPASS;
+	filter2.FilterShape = RAISED_COSINE;
+	filter2.raised_w = 0.02;
+	filter2.w1 = cutFreq;
 }
 
-Image<double> subtraction(Image<double> V1, Image<double> V,
-		MultidimArray<double> &mask,
-		FileName fnVol1F, FileName fnVol2A) {
+Image<double> subtraction(Image<double> V1, Image<double> &V,
+		MultidimArray<double> &mask, const FileName &fnVol1F,
+		const FileName &fnVol2A, FourierFilter &filter2) {
 	Image<double> V1Filtered;
 	V1Filtered() = V1();
 	if (cutFreq != 0){
-		Filter2.applyMaskSpace(V1Filtered());
+		filter2.applyMaskSpace(V1Filtered());
 	}
 	if (saveVol1Filt) {
 		V1Filtered.write(fnVol1F);
@@ -359,33 +373,28 @@ MultidimArray<double> getSubtractionMask(FileName fnMaskSub, MultidimArray<doubl
 // Declaration of variables needed to perform an iteration
 double v1min;
 double v1max;
-MultidimArray<std::complex<double>> V2Fourier;
-
 /* Core of the program: processing needed to adjust input
  * volume V2 to reference volume V1. Several iteration of
  * this processing should be run. */
 void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
-		Image<double> &V1, const MultidimArray<double> &radQuotient,
+		Image<double> &V1, MultidimArray<std::complex<double>> V2Fourier,
+		const MultidimArray<double> &radQuotient,
 		const MultidimArray<double> &V1FourierMag, double std1,
 		const MultidimArray<std::complex<double>> &V2FourierPhase,
-		MultidimArray<double> mask, bool computeE) {
+		MultidimArray<double> &mask, bool computeE, FourierFilter &filter2) {
 	if (computeE)
 		std::cout << "---Iter " << n << std::endl;
+
+	transformer2.FourierTransform(V(), V2Fourier, false);
 	if (radavg) {
 		auto V1size_x = (int)XSIZE(V1());
 		auto V1size_y = (int)YSIZE(V1());
 		auto V1size_z = (int)ZSIZE(V1());
-		transformer2.completeFourierTransform(V(), V2Fourier);
-		CenterFFT(V2Fourier, true);
-		POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x,
-				V1size_y, V1size_z);
-		transformer2.inverseFourierTransform(V2Fourier, V());
-
+		POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
 	} else {
-		transformer2.FourierTransform(V(), V2Fourier, false);
 		POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
-		transformer2.inverseFourierTransform();
 	}
+	transformer2.inverseFourierTransform();
 	if (computeE) {
 		computeEnergy(Vdiff(), V());
 		Vdiff = V;
@@ -420,9 +429,9 @@ void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 	}
 
 	if (cutFreq != 0) {
-		Filter2.generateMask(V());
-		Filter2.do_generate_3dmask = true;
-		Filter2.applyMaskSpace(V());
+		filter2.generateMask(V());
+		filter2.do_generate_3dmask = true;
+		filter2.applyMaskSpace(V());
 		if (computeE) {
 			computeEnergy(Vdiff(), V());
 			Vdiff = V;
@@ -445,11 +454,15 @@ void ProgVolumeSubtraction::run() {
 	double std1 = V1().computeStddev();
 	Image<double> Vdiff = V;
 	auto V2FourierPhase = computePhase(V());
-	auto radQuotient = computeRadQuotient(V1(), V());
 	auto V1FourierMag = computeMagnitude(V1());
-	createFilter();
+	auto V2FourierMag = computeMagnitude(V());
+	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), V());
+	FourierFilter filter2;
+	createFilter(filter2);
+	MultidimArray<std::complex<double>> V2Fourier;
+
 	for (size_t n = 0; n < iter; ++n) {
-		runIteration(n, V, Vdiff, V1, radQuotient, V1FourierMag, std1, V2FourierPhase, mask, computeE);
+		runIteration(n, V, Vdiff, V1, V2Fourier, radQuotient, V1FourierMag, std1, V2FourierPhase, mask, computeE, filter2);
 	}
 	/* The output of this program is either a modified
 	 * version of V (V') or the subtraction between
@@ -457,7 +470,7 @@ void ProgVolumeSubtraction::run() {
 	if (performSubtraction) {
 		auto masksub = getSubtractionMask(fnMaskSub, mask);
 		V1.read(fnVol1);
-		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A);
+		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2);
 	}
 	V.write(fnOutVol);
 }
