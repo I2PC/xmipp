@@ -146,15 +146,15 @@ void POCSnonnegative(MultidimArray<double> &I) {
 		DIRECT_MULTIDIM_ELEM(I, n) = std::max(0.0, DIRECT_MULTIDIM_ELEM(I, n));
 }
 
-void POCSFourierAmplitude(const MultidimArray<double> &A,
-		MultidimArray<std::complex<double>> &FI,
+void POCSFourierAmplitude(const MultidimArray<double> &V1FourierMag,
+		MultidimArray<std::complex<double>> &V2Fourier,
 		double lambda) {
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A) {
-		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI, n));
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1FourierMag) {
+		double mod = std::abs(DIRECT_MULTIDIM_ELEM(V2Fourier, n));
 		if (mod > 1e-10) // Condition to avoid divide by zero, values smaller than
 			// this threshold are considered zero
-			DIRECT_MULTIDIM_ELEM(FI, n) *=
-					((1 - lambda) + lambda * DIRECT_MULTIDIM_ELEM(A, n)) / mod;
+			DIRECT_MULTIDIM_ELEM(V2Fourier, n) *=
+					((1 - lambda) + lambda * DIRECT_MULTIDIM_ELEM(V1FourierMag, n)) / mod;
 	}
 }
 
@@ -248,7 +248,7 @@ void radialAverage(const MultidimArray<double> &VolFourierMag,
 	double wx;
 	double wy;
 	double wz;
-	int maxrad = ceil(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z));
+	int maxrad = floor(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z));
 	radial_count.initZeros(maxrad);
 	radial_mean.initZeros(maxrad);
 	for (int k=0; k<Vsize2_z; ++k)
@@ -370,7 +370,6 @@ MultidimArray<double> getSubtractionMask(FileName fnMaskSub, MultidimArray<doubl
 	}
 }
 
-// Declaration of variables needed to perform an iteration
 double v1min;
 double v1max;
 /* Core of the program: processing needed to adjust input
@@ -391,7 +390,8 @@ void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 		auto V1size_y = (int)YSIZE(V1());
 		auto V1size_z = (int)ZSIZE(V1());
 		POCSFourierAmplitudeRadAvg(V2Fourier, lambda, radQuotient, V1size_x, V1size_y, V1size_z);
-	} else {
+	}
+	else {
 		POCSFourierAmplitude(V1FourierMag, V2Fourier, lambda);
 	}
 	transformer2.inverseFourierTransform();
@@ -460,17 +460,16 @@ void ProgVolumeSubtraction::run() {
 	FourierFilter filter2;
 	createFilter(filter2);
 	MultidimArray<std::complex<double>> V2Fourier;
-
 	for (size_t n = 0; n < iter; ++n) {
 		runIteration(n, V, Vdiff, V1, V2Fourier, radQuotient, V1FourierMag, std1, V2FourierPhase, mask, computeE, filter2);
 	}
-	/* The output of this program is either a modified
-	 * version of V (V') or the subtraction between
-	 * V1 and V' if performSubtraction flag is activated' */
 	if (performSubtraction) {
 		auto masksub = getSubtractionMask(fnMaskSub, mask);
 		V1.read(fnVol1);
 		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2);
 	}
+	/* The output of this program is either a modified
+	 * version of V (V') or the subtraction between
+	 * V1 and V' if performSubtraction flag is activated' */
 	V.write(fnOutVol);
 }
