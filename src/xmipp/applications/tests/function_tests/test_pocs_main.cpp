@@ -14,9 +14,9 @@ protected:
     virtual void SetUp()
     {
         //get example volume
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test/image")).c_str())==-1)
+        if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
-        img.read("smallVolume.vol");
+        img.read("V1.mrc");
         //get results to compare
         pocsmask.read("pocsmask.mrc");
         pocsnonnegative.read("pocsnonnegative.mrc");
@@ -49,7 +49,7 @@ protected:
 TEST_F(POCSTest, pocsmask)
 {
 	Image<double> mask;
-	mask().initZeros(4, 64, 64);
+	mask().initZeros(XSIZE(img()),YSIZE(img()),YSIZE(img()));
 	mask().initConstant(1);
 	POCSmask(mask(), img());
 	ASSERT_EQ(img(), pocsmask());

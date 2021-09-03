@@ -12,25 +12,28 @@ protected:
     virtual void SetUp()
     {
         //get example volume
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test/image")).c_str())==-1)
+        if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
-        img.read("smallVolume.vol");
+        img.read("V1.mrc");
+        img2.read("V.mrc");
+        //get results to compare
+        result.read("subtraction.mrc");
     }
 
     Image<double> img;
+    Image<double> img2;
+    Image<double> result;
     FourierFilter filter;
 };
 
 TEST_F(VolSubtractionTest, subtraction)
 {
-	// Substract two identical images with a non-specific mask (all 1s)
-	// expecting for the result to be an empty image (all 0s)
-	Image<double> empty, mask;
-	empty().initZeros(4, 64, 64);
-	mask().initZeros(4, 64, 64);
+	// Substract two identical volumes with a non-specific mask (all 1s)
+	Image<double> mask;
+	mask().initZeros(XSIZE(img()),YSIZE(img()),YSIZE(img()));
 	mask().initConstant(1);
 	createFilter(filter);
-	subtraction(img, img, mask(), "", "", filter);
-	ASSERT_EQ(img(), empty());
+	img = subtraction(img, img2, mask(), "", "", filter);
+	ASSERT_EQ(img(), result());
 }
 
