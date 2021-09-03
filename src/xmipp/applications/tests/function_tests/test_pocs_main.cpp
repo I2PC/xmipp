@@ -37,6 +37,7 @@ protected:
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > IFourier;
 	MultidimArray<double> IFourierMag;
+	MultidimArray<double> IFourierMag2;
 	MultidimArray<double> radial_meanI;
 	MultidimArray<double> radQuotient;
 	MultidimArray<std::complex<double> > IFourierPhase;
@@ -71,12 +72,10 @@ TEST_F(POCSTest, pocsamplitude)
 
 TEST_F(POCSTest, pocsamplituderadAvg)
 {
+	IFourierMag = computeMagnitude(img());
+	IFourierMag2 = computeMagnitude(img());
+	radQuotient = computeRadQuotient(IFourierMag, IFourierMag2, img(), img());
 	transformer.FourierTransform(img(), IFourier);
-	FFT_magnitude(IFourier,IFourierMag);
-	radialAverage(IFourierMag, img(), radial_meanI);
-	radQuotient = radial_meanI/radial_meanI;
-	FOR_ALL_ELEMENTS_IN_ARRAY1D(radQuotient)
-		radQuotient(i) = std::min(radQuotient(i), 1.0);
 	POCSFourierAmplitudeRadAvg(IFourier, 1, radQuotient, XSIZE(img()),  YSIZE(img()),  ZSIZE(img()));
 	transformer.inverseFourierTransform();
 	ASSERT_EQ(img(), pocsamplitude_radavg());
