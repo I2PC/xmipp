@@ -36,6 +36,9 @@ class Config:
     KEY_BUILD_TESTS = 'BUILD_TESTS'
     KEY_USE_DL = 'USE_DL'
     KEY_VERSION = 'CONFIG_VERSION'
+    KEY_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
+    KEY_CXX = 'CXX'
+    KEY_LINKFLAGS = 'LINKFLAGS'
 
     def __init__(self, askUser=False):
         self.ask = askUser
@@ -67,7 +70,7 @@ class Config:
     def check(self):
         print("Checking configuration ------------------------------")
         if self.configDict['VERIFIED'] != 'True':
-            if not self._check_compiler:
+            if not self._check_compiler():
                 print(red("Cannot compile"))
                 print("Possible solutions")  # FIXME: check libraries
                 print("In Ubuntu: sudo apt-get -y install libsqlite3-dev libfftw3-dev libhdf5-dev libopencv-dev python3-dev "
@@ -107,11 +110,24 @@ class Config:
                        % Config.FILE_NAME))
         return True
 
-    def get(self):
+    def get(self, option=None):
+        if option:
+            return self.configDict[option]
         return self.configDict
+
+    def _set(self, option, value):
+        self.get()[option] = str(value)
 
     def is_true(self, key):
         return self.configDict and (key in self.configDict) and (self.configDict[key].lower() == 'true')
+
+    def is_empty(self, option):
+        return self.has(option) and self.get(option) == ''
+
+    def has(self, option, value=None):
+        if value is None:
+            return option in self.get()
+        return option in self.get() and value in self.get()[option]
 
     def read(self, fnConfig=FILE_NAME):
         try:
@@ -163,7 +179,7 @@ class Config:
             cppFile.write(cppProg)
 
         if not runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s"
-                      % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
+                      % (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
                          self.configDict["INCDIRFLAGS"]), show_output=False):
             print(yellow("OpenCV not found"))
             self.configDict["OPENCV"] = False
@@ -183,7 +199,7 @@ class Config:
                               ' fh.close();'
                               '}\n')
             if not runJob("%s -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv %s "
-                          % (self.configDict["CXX"], self.configDict["CXXFLAGS"],
+                          % (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"],
                              self.configDict["INCDIRFLAGS"]), show_output=False):
                 self.configDict["OPENCV3"] = False
                 version = 2  # Just in case
@@ -203,11 +219,35 @@ class Config:
             with open("xmipp_test_opencv.cpp", "w") as cppFile:
                 cppFile.write(cppProg)
             self.configDict["OPENCVSUPPORTSCUDA"] = runJob("%s -c -w %s xmipp_test_opencv.cpp -o xmipp_test_opencv.o %s" %
-                                                           (self.configDict["CXX"], self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
+                                                           (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"]), show_output=False)
 
             print(green("OPENCV-%s detected %s CUDA support"
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
+
+    def get_supported_GCC():
+        # we need GCC with C++14 support
+        # https://gcc.gnu.org/projects/cxx-status.html
+        return [11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
+                9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
+                7.5, 7.4, 7.3, 7.2, 7.1, 7, 6.5, 6.4, 6.3, 6.2, 6.1, 6,
+                5.5, 5.4, 5.3, 5.2, 5.1, 5, '']
+
+    def _set_compiler_linker_helper(self, opt, prg, versions):
+        if not self.is_empty(opt):
+            return
+        prg = find_newest(prg, versions, True)
+        if isCIBuild() and prg:
+            prg = 'ccache ' + prg
+        self._set(opt, prg)
+
+    def _set_cxx(self):
+        self._set_compiler_linker_helper(
+            Config.KEY_CXX, 'g++', Config.get_supported_GCC())
+
+    def _set_linker(self):
+        self._set_compiler_linker_helper(
+            Config.KEY_LINKERFORPROGRAMS, 'g++', Config.get_supported_GCC())
 
     def _config_compiler(self):
         if self.configDict["DEBUG"] == "":
@@ -216,30 +256,16 @@ class Config:
         if self.configDict["CC"] == "" and checkProgram("gcc"):
             self.configDict["CC"] = "gcc"
             print(green('gcc detected'))
-        if self.configDict["CXX"] == "":
-            if isCIBuild():
-                # we can use cache to speed up the build
-                self.configDict["CXX"] = "ccache g++" if checkProgram(
-                    "g++") else ""
-            else:
-                self.configDict["CXX"] = "g++" if checkProgram("g++") else ""
-        if self.configDict["LINKERFORPROGRAMS"] == "":
-            if isCIBuild():
-                # we can use cache to speed up the build
-                self.configDict["LINKERFORPROGRAMS"] = "ccache g++" if checkProgram(
-                    "g++") else ""
-            else:
-                self.configDict["LINKERFORPROGRAMS"] = "g++" if checkProgram(
-                    "g++") else ""
-
+        self._set_cxx()
+        self._set_linker()
         if self.configDict["CC"] == "gcc":
             if not "-std=c99" in self.configDict["CCFLAGS"]:
                 self.configDict["CCFLAGS"] += " -std=c99"
-        if 'g++' in self.configDict["CXX"]:
+        if 'g++' in self.get(Config.KEY_CXX):
             # optimize for current machine
-            self.configDict["CXXFLAGS"] += " -mtune=native -march=native"
+            self.configDict["CXXFLAGS"] += " -mtune=native -march=native -flto"
             if "-std=c99" not in self.configDict["CXXFLAGS"]:
-                self.configDict["CXXFLAGS"] += " -std=c++11"
+                self.configDict["CXXFLAGS"] += " -std=c++14"
             if isCIBuild():
                 # don't tolerate any warnings on build machine
                 self.configDict["CXXFLAGS"] += " -Werror"
@@ -249,7 +275,10 @@ class Config:
                 self.configDict["CXXFLAGS"] += " -O3"
             if self.is_true("DEBUG"):
                 self.configDict["CXXFLAGS"] += " -g"
-        # Nothing special to add to LINKFLAGS
+        
+        if self.is_empty(Config.KEY_LINKFLAGS):
+            self._set(Config.KEY_LINKFLAGS, '-flto')
+        
         from sysconfig import get_paths
         info = get_paths()
 
@@ -261,8 +290,8 @@ class Config:
 
             # extra libs
             hdf5InLocalLib = findFileInDirList("libhdf5*", localLib)
-            isHdf5CppLinking = checkLib(self.configDict['CXX'], '-lhdf5_cpp')
-            isHdf5Linking = checkLib(self.configDict['CXX'], '-lhdf5')
+            isHdf5CppLinking = checkLib(self.get(Config.KEY_CXX), '-lhdf5_cpp')
+            isHdf5Linking = checkLib(self.get(Config.KEY_CXX), '-lhdf5')
             if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
                 print(yellow("\n'libhdf5' not found at '%s'." % localLib))
                 hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
@@ -274,10 +303,10 @@ class Config:
                 else:
                     installDepConda('hdf5', self.ask)
 
-        if not checkLib(self.configDict['CXX'], '-lfftw3'):
+        if not checkLib(self.get(Config.KEY_CXX), '-lfftw3'):
             print(red("'libfftw3' not found in the system"))
             installDepConda('fftw', self.ask)
-        if not checkLib(self.configDict['CXX'], '-ltiff'):
+        if not checkLib(self.get(Config.KEY_CXX), '-ltiff'):
             print(red("'libtiff' not found in the system"))
             installDepConda('libtiff', self.ask)
 
@@ -331,11 +360,14 @@ class Config:
         if not checkProgram(compiler, True):
             sys.exit(-7)
         gccVersion, fullVersion = self._get_GCC_version(compiler)
-
-        if gccVersion < 4.8:  # join first two numbers, i.e. major and minor version
-            print(red('Detected ' + compiler + " in version " +
-                  fullVersion + '. Version 4.8 or higher is required.'))
+        print(green('Detected ' + compiler + " in version " +
+                    fullVersion + '.'))
+        if gccVersion < 5.0:
+            print(red('Version 5.0 or higher is required.'))
             sys.exit(-8)
+        elif gccVersion < 8.0:
+            print(yellow(
+                'Consider updating your compiler. Xmipp will soon require GCC 8 or newer.'))
         else:
             print(green(compiler + ' ' + fullVersion + ' detected'))
 
@@ -359,8 +391,8 @@ class Config:
         print("Checking compiler configuration ...")
         # in case user specified some wrapper of the compiler
         # get rid of it: 'ccache g++' -> 'g++'
-        currentCxx = self.configDict["CXX"].split()[-1]
-        self._ensure_compiler_versionensureCompilerVersion(currentCxx)
+        currentCxx = self.get(Config.KEY_CXX).split()[-1]
+        self._ensure_compiler_version(currentCxx)
 
         cppProg = """
     #include <fftw3.h>
@@ -384,7 +416,7 @@ class Config:
             cppFile.write(cppProg)
 
         if not runJob("%s -c -w %s xmipp_test_main.cpp -o xmipp_test_main.o %s %s" %
-                      (self.configDict["CXX"], self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"], self.configDict["PYTHONINCFLAGS"])):
+                      (self.get(Config.KEY_CXX), self.configDict["CXXFLAGS"], self.configDict["INCDIRFLAGS"], self.configDict["PYTHONINCFLAGS"])):
             print(
                 red("Check the INCDIRFLAGS, CXX, CXXFLAGS and PYTHONINCFLAGS in xmipp.conf"))
             # FIXME: Check the dependencies list
@@ -392,7 +424,7 @@ class Config:
             return False
         libhdf5 = self._get_Hdf5_name(self.configDict["LIBDIRFLAGS"])
         if not runJob("%s %s %s xmipp_test_main.o -o xmipp_test_main -lfftw3 -lfftw3_threads -l%s  -lhdf5_cpp -ltiff -ljpeg -lsqlite3 -lpthread" %
-                      (self.configDict["LINKERFORPROGRAMS"], self.configDict["LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5)):
+                      (self.get(Config.KEY_LINKERFORPROGRAMS), self.configDict["LINKFLAGS"], self.configDict["LIBDIRFLAGS"], libhdf5)):
             print(red("Check the LINKERFORPROGRAMS, LINKFLAGS and LIBDIRFLAGS"))
             return False
         runJob("rm xmipp_test_main*")
@@ -477,7 +509,7 @@ class Config:
             if self.configDict["NVCC_CXXFLAGS"] == "":
                 # in case user specified some wrapper of the compiler
                 # get rid of it: 'ccache g++' -> 'g++'
-                currentCxx = self.configDict["CXX"].split()[-1]
+                currentCxx = self.get(Config.KEY_CXX).split()[-1]
                 cxxVersion, cxxStrVersion = self._get_GCC_version(currentCxx)
                 nvccVersion, nvccFullVersion = self._get_CUDA_version(
                     self.configDict["NVCC"])
@@ -589,7 +621,7 @@ class Config:
                 print(red("Check the NVCC and NVCC_LINKFLAGS"))
                 return False
             if not runJob("%s %s xmipp_cuda_test.o -o xmipp_cuda_test -lcudart -lcufft" %
-                          (self.configDict["CXX"], self.configDict["NVCC_LINKFLAGS"])):
+                          (self.get(Config.KEY_CXX), self.configDict["NVCC_LINKFLAGS"])):
                 print(red("Check the CXX and NVCC_LINKFLAGS"))
                 return False
             runJob("rm xmipp_cuda_test*")
@@ -747,7 +779,7 @@ class Config:
         for x in self.configDict['JNI_CPPPATH'].split(':'):
             incs += " -I"+x
         if not runJob("%s -c -w %s %s xmipp_jni_test.cpp -o xmipp_jni_test.o" %
-                      (self.configDict["CXX"], incs, self.configDict["INCDIRFLAGS"])):
+                      (self.get(Config.KEY_CXX), incs, self.configDict["INCDIRFLAGS"])):
             print(red("Check the JNI_CPPPATH, CXX and INCDIRFLAGS"))
             return False
         runJob("rm xmipp_jni_test*")
