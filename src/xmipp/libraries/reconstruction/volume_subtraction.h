@@ -48,16 +48,16 @@ public:
   size_t iter;
 
 	/// Read arguments
-	void readParams();
+	void readParams() override;
 
 	/// Show
-	void show() const;
+	void show() const override;
 
 	/// Define parameters
-	void defineParams();
+	void defineParams() override;
 
 	/** Run */
-	void run();
+	void run() override;
 
 };
 //@}

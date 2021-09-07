@@ -248,7 +248,7 @@ void radialAverage(const MultidimArray<double> &VolFourierMag,
 	double wx;
 	double wy;
 	double wz;
-	int maxrad = int(floor(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z)));
+	auto maxrad = int(floor(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z)));
 	radial_count.initZeros(maxrad);
 	radial_mean.initZeros(maxrad);
 	for (int k=0; k<Vsize2_z; ++k)
