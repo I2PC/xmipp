@@ -47,18 +47,17 @@ public:
   bool computeE;
   size_t iter;
 
-public:
-    /// Read arguments
-    void readParams();
+	/// Read arguments
+	void readParams();
 
-    /// Show
-    void show() const;
+	/// Show
+	void show() const;
 
-    /// Define parameters
-    void defineParams();
+	/// Define parameters
+	void defineParams();
 
-    /** Run */
-    void run();
+	/** Run */
+	void run();
 
 };
 //@}

@@ -148,18 +148,18 @@ void POCSnonnegative(MultidimArray<double> &I) {
 
 void POCSFourierAmplitude(const MultidimArray<double> &V1FourierMag,
 		MultidimArray<std::complex<double>> &V2Fourier,
-		double lambda) {
+		double l) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1FourierMag) {
 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(V2Fourier, n));
 		if (mod > 1e-10) // Condition to avoid divide by zero, values smaller than
 			// this threshold are considered zero
 			DIRECT_MULTIDIM_ELEM(V2Fourier, n) *=
-					((1 - lambda) + lambda * DIRECT_MULTIDIM_ELEM(V1FourierMag, n)) / mod;
+					((1 - l) + l * DIRECT_MULTIDIM_ELEM(V1FourierMag, n)) / mod;
 	}
 }
 
 void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
-		double lambda, const MultidimArray<double> &rQ,
+		double l, const MultidimArray<double> &rQ,
 		int V1size_x, int V1size_y, int V1size_z) {
 	int V1size2_x = V1size_x/2;
 	double V1sizei_x = 1.0/V1size_x;
@@ -183,7 +183,7 @@ void POCSFourierAmplitudeRadAvg(MultidimArray<std::complex<double>> &V,
 				FFT_IDX2DIGFREQ_FAST(j,V1size_x,V1size2_x,V1sizei_x,wx)
 				double w = sqrt(wx*wx + wy2_wz2);
 				auto iw = (int)round(w*V1size_x);
-				DIRECT_A3D_ELEM(V,k,i,j)*=(1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(rQ,iw);
+				DIRECT_A3D_ELEM(V,k,i,j)*=(1-l)+l*DIRECT_MULTIDIM_ELEM(rQ,iw);
 			}
 		}
 	}
@@ -239,16 +239,16 @@ void radialAverage(const MultidimArray<double> &VolFourierMag,
 		const MultidimArray<double> &V, MultidimArray<double> &radial_mean) {
 	MultidimArray<double> radial_count;
 
-	int Vsize2_x = XSIZE(V)/2;
-	double Vsizei_x = 1.0/XSIZE(V);
-	int Vsize2_y = YSIZE(V)/2;
-	double Vsizei_y = 1.0/YSIZE(V);
-	int Vsize2_z = ZSIZE(V)/2;
-	double Vsizei_z = 1.0/ZSIZE(V);
+	int Vsize2_x = int(XSIZE(V))/2;
+	double Vsizei_x = 1.0/int(XSIZE(V));
+	int Vsize2_y = int(YSIZE(V))/2;
+	double Vsizei_y = 1.0/int(YSIZE(V));
+	int Vsize2_z = int(ZSIZE(V))/2;
+	double Vsizei_z = 1.0/int(ZSIZE(V));
 	double wx;
 	double wy;
 	double wz;
-	int maxrad = floor(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z));
+	int maxrad = int(floor(sqrt(Vsize2_x*Vsize2_x + Vsize2_y*Vsize2_y + Vsize2_z*Vsize2_z)));
 	radial_count.initZeros(maxrad);
 	radial_mean.initZeros(maxrad);
 	for (int k=0; k<Vsize2_z; ++k)
@@ -263,7 +263,7 @@ void radialAverage(const MultidimArray<double> &VolFourierMag,
 				{
 					FFT_IDX2DIGFREQ_FAST(j,XSIZE(V),Vsize2_x,Vsizei_x,wx)
 					double w = sqrt(wx*wx + wy2_wz2);
-					auto iw = (int)round(w*XSIZE(V));
+					auto iw = (int)round(w*int(XSIZE(V)));
 					DIRECT_A1D_ELEM(radial_mean,iw)+=DIRECT_A3D_ELEM(VolFourierMag,k,i,j);
 					DIRECT_A1D_ELEM(radial_count,iw)+=1.0;
 				}
@@ -294,7 +294,7 @@ void createFilter(FourierFilter &filter2) {
 }
 
 Image<double> subtraction(Image<double> V1, Image<double> &V,
-		MultidimArray<double> &mask, const FileName &fnVol1F,
+		const MultidimArray<double> &mask, const FileName &fnVol1F,
 		const FileName &fnVol2A, FourierFilter &filter2) {
 	Image<double> V1Filtered;
 	V1Filtered() = V1();
@@ -326,7 +326,7 @@ MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
 	return magnitude;
 }
 
-MultidimArray<double> createMask(const Image<double> &volume, FileName fnMask1, FileName fnMask2) {
+MultidimArray<double> createMask(const Image<double> &volume, const FileName &fnMask1, const FileName &fnMask2) {
 	MultidimArray<double> mask;
 	if (fnMask1 != "" && fnMask2 != "") {
 		Image<double> mask1;
@@ -357,7 +357,7 @@ MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &volume) 
 	return phase;
 }
 
-MultidimArray<double> getSubtractionMask(FileName fnMaskSub, MultidimArray<double> mask){
+MultidimArray<double> getSubtractionMask(const FileName &fnMaskSub, MultidimArray<double> mask){
 	if (fnMaskSub.isEmpty()){
 		filterMask(mask);
 		return mask;
@@ -380,7 +380,7 @@ void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
 		const MultidimArray<double> &radQuotient,
 		const MultidimArray<double> &V1FourierMag, double std1,
 		const MultidimArray<std::complex<double>> &V2FourierPhase,
-		MultidimArray<double> &mask, bool computeE, FourierFilter &filter2) {
+		const MultidimArray<double> &mask, bool computeE, FourierFilter &filter2) {
 	if (computeE)
 		std::cout << "---Iter " << n << std::endl;
 
