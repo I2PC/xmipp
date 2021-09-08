@@ -295,6 +295,40 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 }
 
 
+void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
+{
+	std::vector<size_t> histogramOfLandmarkAppearance(ySize);
+
+	for(size_t i = 0; i < ySize; i++)
+	{
+		for(size_t j = 0; j < coordinates3Dy.size(); j++)
+		{
+			if(coordinates3Dy[j] == i)
+			{
+				histogramOfLandmarkAppearance[i] += 1;
+			}
+			else if (j-1 > 0 && coordinates3Dy[j-1] == i)
+			{
+				histogramOfLandmarkAppearance[i] += 1;
+			}
+			else if (j+1 < coordinates3Dy.size() && coordinates3Dy[j+1] == i)
+			{
+				histogramOfLandmarkAppearance[i] += 1;
+			}
+			
+		}
+	}
+
+	std::cout << "histogramOfLandmarkAppearance.size() " << histogramOfLandmarkAppearance.size();
+
+
+	for(size_t e; e < histogramOfLandmarkAppearance.size(); e++)
+	{
+		std::cout << histogramOfLandmarkAppearance[e] << std::endl;
+	}
+}
+
+
 void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inputCoordMd)
 {
 	#ifdef VERBOSE_OUTPUT
@@ -372,21 +406,21 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 			{
 				for(size_t k = 0; k < coordinatesInSlice.size(); k ++)
 				{
-					def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
-								 YY(projectedGoldBeads[randomIndexes[0]]),
-								 XX(projectedGoldBeads[randomIndexes[1]]),
-								 YY(projectedGoldBeads[randomIndexes[1]]),
-								 XX(projectedGoldBeads[randomIndexes[2]]),
-								 YY(projectedGoldBeads[randomIndexes[2]]),
-								 XX(coordinatesInSlice[i]),
-								 YY(coordinatesInSlice[i]),
-								 XX(coordinatesInSlice[j]),
-								 YY(coordinatesInSlice[j]),
-								 XX(coordinatesInSlice[k]),
-								 YY(coordinatesInSlice[k]),
-								 A_alignment,
-								 T_alignment,
-								 invW_alignment)
+					// def_affinity(XX(projectedGoldBeads[randomIndexes[0]]),
+					// 			 YY(projectedGoldBeads[randomIndexes[0]]),
+					// 			 XX(projectedGoldBeads[randomIndexes[1]]),
+					// 			 YY(projectedGoldBeads[randomIndexes[1]]),
+					// 			 XX(projectedGoldBeads[randomIndexes[2]]),
+					// 			 YY(projectedGoldBeads[randomIndexes[2]]),
+					// 			 XX(coordinatesInSlice[i]),
+					// 			 YY(coordinatesInSlice[i]),
+					// 			 XX(coordinatesInSlice[j]),
+					// 			 YY(coordinatesInSlice[j]),
+					// 			 XX(coordinatesInSlice[k]),
+					// 			 YY(coordinatesInSlice[k]),
+					// 			 A_alignment,
+					// 			 T_alignment,
+					// 			 invW_alignment)
 
 					MAT_ELEM(alignment_matrix, 0, 0) = MAT_ELEM(A_alignment, 0, 0);
 					MAT_ELEM(alignment_matrix, 0, 1) = MAT_ELEM(A_alignment, 0, 1);
@@ -400,10 +434,6 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 				}
 			}
 		}
-
-
-
-
 
 			// #ifdef DEBUG_RESID
 			// std::cout << XX(goldBead3d) << " " << YY(goldBead3d) << " " << ZZ(goldBead3d) << std::endl;
@@ -428,7 +458,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 			residualCoordinateX.push_back(XX(projectedGoldBead));
 			residualCoordinateY.push_back(YY(projectedGoldBead));
 			residualCoordinateZ.push_back(n);
-		}
+
 	}
 
 	#ifdef VERBOSE_OUTPUT
@@ -629,6 +659,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	writeOutputCoordinates();
+	detectLandmarkChains();
 
 	if(checkInputCoord)
 	{
@@ -760,6 +791,8 @@ std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_
 {
 	std::vector<size_t> indexes;
 	size_t randomIndex;
+
+	randomIndex = rand() % size;
 
 	indexes.push_back(randomIndex);
 

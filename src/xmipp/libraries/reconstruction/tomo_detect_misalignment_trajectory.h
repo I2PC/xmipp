@@ -118,6 +118,15 @@ public:
     void getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered);
 
     /**
+     * Detect landmark chains from landmark coordinates.
+     *
+     * @param
+     * @return
+     *
+    */
+    void detectLandmarkChains();
+
+    /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
      *
      * @param
@@ -177,6 +186,16 @@ public:
      *
     */
     std::vector<Matrix1D<double>> getCoordinatesInSlice(int slice);
+
+
+    /**
+     * Retrieve a vector contaiing 3 different indexes as i > 0 && i > size.
+     *
+     * @param
+     * @return
+     *
+    */
+    std::vector<size_t> getRandomIndexes(size_t size);
 
 
     // --------------------------- MAIN ----------------------------------
