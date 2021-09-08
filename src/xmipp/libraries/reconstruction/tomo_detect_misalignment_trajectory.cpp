@@ -307,15 +307,16 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			{
 				histogramOfLandmarkAppearance[i] += 1;
 			}
+
 			else if (j-1 > 0 && coordinates3Dy[j-1] == i)
 			{
 				histogramOfLandmarkAppearance[i] += 1;
 			}
+
 			else if (j+1 < coordinates3Dy.size() && coordinates3Dy[j+1] == i)
 			{
 				histogramOfLandmarkAppearance[i] += 1;
 			}
-			
 		}
 	}
 
