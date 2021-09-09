@@ -25,7 +25,7 @@
 #include "xmippmodule.h"
 #include "core/geometry.h"
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/metadata_extension.h"
 #include "core/metadata_sql.h"
 #include "core/transformations.h"

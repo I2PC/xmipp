@@ -27,7 +27,6 @@
 
 #include <algorithm>
 #include "movie_estimate_gain.h"
-#include <core/metadata.h>
 #include <core/xmipp_image_generic.h>
 
 void ProgMovieEstimateGain::defineParams()

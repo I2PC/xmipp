@@ -32,7 +32,6 @@
 #include <core/xmipp_image.h>
 //#include <data/symmetries.h>
 #include <data/sampling.h>
-#include <core/metadata.h>
 //#include <data/matrix2d.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>

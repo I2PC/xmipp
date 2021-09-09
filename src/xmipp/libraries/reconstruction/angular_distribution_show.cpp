@@ -27,7 +27,6 @@
 #include <core/args.h>
 #include <core/geometry.h>
 #include <core/histogram.h>
-#include <core/metadata.h>
 #include <core/xmipp_program.h>
 #include <interface/spider.h>
 #include <fstream>

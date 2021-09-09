@@ -69,12 +69,12 @@ void generateCTFImageWith2CTFs(const MetaData &MD1, const MetaData &MD2, int Xdi
     CTFDescription CTF1, CTF2;
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
     CTF2.enable_CTF=true;
     CTF2.enable_CTFnoise=false;
-    CTF2.readFromMetadataRow(MD2,MD2.firstObject());
+    CTF2.readFromMetadataRow(MD2,MD2.firstRowId());
     CTF2.produceSideInfo();
 
     imgOut.initZeros(Xdim,Xdim);
@@ -116,12 +116,12 @@ double errorBetween2CTFs( MetaData &MD1,
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
     CTF2.enable_CTF=true;
     CTF2.enable_CTFnoise=false;
-    CTF2.readFromMetadataRow(MD2,MD2.firstObject());
+    CTF2.readFromMetadataRow(MD2,MD2.firstRowId());
     CTF2.produceSideInfo();
 
     double iTm=1.0/CTF1.Tm;
@@ -188,7 +188,7 @@ double errorMaxFreqCTFs( MetaData &MD1,
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
 
@@ -219,12 +219,12 @@ double errorMaxFreqCTFs2D( MetaData &MD1,
 
     CTF1.enable_CTF=true;
     CTF1.enable_CTFnoise=false;
-    CTF1.readFromMetadataRow(MD1,MD1.firstObject());
+    CTF1.readFromMetadataRow(MD1,MD1.firstRowId());
     CTF1.produceSideInfo();
 
     CTF2.enable_CTF=true;
     CTF2.enable_CTFnoise=false;
-    CTF2.readFromMetadataRow(MD2,MD2.firstObject());
+    CTF2.readFromMetadataRow(MD2,MD2.firstRowId());
     CTF2.produceSideInfo();
 
     double iTm=1.0/CTF1.Tm;
@@ -330,7 +330,7 @@ void generatePSDCTFImage(MultidimArray<double> &img, const MetaData &MD)
     CTFDescription CTF;
     CTF.enable_CTF=true;
     CTF.enable_CTFnoise=false;
-    CTF.readFromMetadataRow(MD,MD.firstObject());
+    CTF.readFromMetadataRow(MD,MD.firstRowId());
     CTF.produceSideInfo();
 
     Matrix1D<int> idx(2);
@@ -531,8 +531,6 @@ void CTFDescription1D::readParams(XmippProgram * program)
 		REPORT_ERROR(ERR_ARG_MISSING,"--voltage");
 	if (program->checkParam("--spherical_aberration"))
 		Cs=program->getDoubleParam("--spherical_aberration");
-	if (Cs==0)
-		REPORT_ERROR(ERR_ARG_MISSING,"--spherical_aberration");
 	if (program->checkParam("--defocusU"))
 		Defocus=program->getDoubleParam("--defocusU");
 	if (program->checkParam("--Q0"))

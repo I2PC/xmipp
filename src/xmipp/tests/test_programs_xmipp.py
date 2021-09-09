@@ -281,15 +281,22 @@ class CtfEstimateFromMicrograph(XmippProgramTest):
     def test_case1(self):
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --dont_estimate_ctf",
                 outputs=["micrograph.psd"])
+    
     def test_case2(self):
+        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        print(yellow('test_case2 is skipped as ' + cause))
+        self.skipTest(cause)
         self.setTimeOut(400)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000",
                 postruns=["xmipp_metadata_utilities -i %o/micrograph.ctfparam --operate keep_column 'ctfDefocusU ctfDefocusV' -o %o/Defocus.xmd" ,
                           'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusU = round(ctfDefocusU/100.0)" ',
                           'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusV = round(ctfDefocusV/100.0)" '],
                 outputs=["micrograph.psd","micrograph_enhanced_psd.xmp","micrograph.ctfparam","Defocus.xmd"])
-
+    
     def test_case3(self):
+        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        print(yellow('test_case3 is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000 --acceleration1D",
         postruns=["xmipp_metadata_utilities -i %o/micrograph.ctfparam --operate keep_column 'ctfDefocusU ctfDefocusV' -o %o/Defocus.xmd",
             'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusU = round(ctfDefocusU/100.0)" ',
@@ -951,6 +958,9 @@ class TomoExtractSubvolume(XmippProgramTest):
         return 'xmipp_tomo_extract_subvolume'
 
     def test_case1(self):
+        cause = 'it is testing a deprecated program'
+        print(yellow('test TomoExtractSubvolume is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("-i input/ico.vol --oroot %o/vertices --center 0 0 50 --size 30 --sym i3",
                 outputs=["vertices.stk","vertices.xmd"])
 

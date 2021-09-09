@@ -25,7 +25,6 @@
 
 #include "micrograph.h"
 #include <core/args.h>
-#include <core/metadata.h>
 #include <data/mask.h>
 #include <core/geometry.h>
 
