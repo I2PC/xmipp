@@ -248,10 +248,10 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 
  	int ix_particle = 0;
 
-    FOR_ALL_OBJECTS_IN_METADATA(mdParticles)
+    for (size_t i = 0; i < mdParticles.size(); ++i)
     {
     	// Read particle image
-    	mdParticles.getRow(row,__iter.objId);
+    	row = mdParticles.getRowVec(i);
     	row.getValue(MDL_IMAGE, fnImage);
 		std::cout<< "Particle: " << fnImage << std::endl;
     	I.read(fnImage);
