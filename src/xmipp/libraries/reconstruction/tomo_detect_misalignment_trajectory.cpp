@@ -323,10 +323,61 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	std::cout << "histogramOfLandmarkAppearance.size() " << histogramOfLandmarkAppearance.size();
 
 
-	for(size_t e; e < histogramOfLandmarkAppearance.size(); e++)
+	// for(size_t e; e < histogramOfLandmarkAppearance.size(); e++)
+	// {
+	// 	std::cout << histogramOfLandmarkAppearance[e] << std::endl;
+	// }
+
+
+
+	// *** This cannot be a literal number, need some criteria
+	size_t chainsIndexVectorSize = 10;
+	std::vector<size_t> chainsIndexVector(chainsIndexVectorSize, 0);
+
+
+
+	for (size_t i = 0; i < chainsIndexVectorSize; i++)
 	{
-		std::cout << histogramOfLandmarkAppearance[e] << std::endl;
+		// *** optimize searching and erasing max elem (searching 2 times in vector)
+		size_t maxElem = *max_element(std::begin(histogramOfLandmarkAppearance),
+									  std::end(histogramOfLandmarkAppearance));
+
+		histogramOfLandmarkAppearance.erase(
+			std::remove(histogramOfLandmarkAppearance.begin(), histogramOfLandmarkAppearance.end(), maxElem), 
+			histogramOfLandmarkAppearance.end()
+			);
+
+		chainsIndexVector[i] = maxElem;
 	}
+
+	for (size_t i = 0; i < chainsIndexVectorSize; i++)
+	{
+		std::cout << chainsIndexVector[i] << std::endl;
+	}
+
+	std::vector<std::vector<float>> chainList(chainsIndexVectorSize);
+
+	for (size_t i = 0; i < chainsIndexVectorSize; i++)
+	{
+		std::vector<float>	chain(0);
+
+		for(size_t j = 0; j < coordinates3Dy.size(); j++)
+		{
+			if(coordinates3Dy[j] == i)
+			{
+				chain.push_back(coordinates3Dx[j]);
+			}
+		}
+
+		chainList[i] = chain;
+	}
+
+
+	// SPLIT CHAINS ---> make function of this and interate in the loop
+
+
+	
+	
 }
 
 
