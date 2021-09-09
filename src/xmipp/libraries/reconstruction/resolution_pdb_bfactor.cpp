@@ -25,7 +25,7 @@
 
 #include "resolution_pdb_bfactor.h"
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -129,8 +129,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	double resolution_mean = 0;
 	int N_elems = 0;
 
-	MetaData md;
-	size_t objId;
+	MetaDataVec md;
 
 	// Selecting the residue
 	int resi, last_resi;
@@ -232,7 +231,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	std::vector<double> residuesToChimera_aux(at_pos.residue[idx_residue[last_index]]);
 
 	// Creation of the output metadata with the local resolution per residue
-	MetaData mdSmooth;
+	MetaDataVec mdSmooth;
 	size_t objsmth;
 	for (size_t nn = 0; nn<resolution_per_residue.size(); ++nn)
 	{

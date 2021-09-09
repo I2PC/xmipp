@@ -36,6 +36,9 @@
 
 #include "cuda_single_extrema_finder.h"
 
+/**@defgroup CudaShiftCorrEstimator CudaShiftCorrEstimator
+   @ingroup ReconsLibrary */
+//@{
 namespace Alignment {
 
 template<typename T>
@@ -129,6 +132,6 @@ private:
 
 
 } /* namespace Alignment */
-
+//@}
 #endif /* LIBRARIES_RECONSTRUCTION_ADAPT_CUDA_CUDA_SHIFT_ALIGNER_H_ */
 

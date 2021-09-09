@@ -23,14 +23,14 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_program.h>
 
 class ProgMetadataImport: public XmippProgram
 {
     FileName fn_in, fn_out;
     String labels, sep;
-    MetaData md;
+    MetaDataVec md;
 
 protected:
 

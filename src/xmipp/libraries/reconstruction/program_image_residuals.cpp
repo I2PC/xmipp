@@ -26,7 +26,6 @@
 
 #include "program_image_residuals.h"
 #include "data/filters.h"
-#include "core/metadata.h"
 
 void ProgImageResiduals::defineParams()
 {
@@ -82,9 +81,9 @@ void updateRavg(MetaData &mdR, Matrix2D<double> &Ravg)
 	Matrix2D<double> R, Rinv, newRavg;
 	Image<double> IR;
 	newRavg.initZeros(Ravg);
-	FOR_ALL_OBJECTS_IN_METADATA(mdR)
+	for (size_t objId : mdR.ids())
 	{
-		mdR.getValue(MDL_IMAGE_COVARIANCE,fnR,__iter.objId);
+		mdR.getValue(MDL_IMAGE_COVARIANCE,fnR,objId);
 		IR.read(fnR);
 		IR().copy(R);
 
@@ -127,7 +126,7 @@ double computeCovarianceMatrixDivergence(const Matrix2D<double> &C1, const Matri
 void ProgImageResiduals::postProcess()
 {
 	FileName fnMDout=fn_out.replaceExtension("xmd");
-	MetaData mdR(fnMDout);
+	MetaDataVec mdR(fnMDout);
 
 	// Ravg
 	Matrix2D<double> Ravg;
@@ -157,29 +156,30 @@ void ProgImageResiduals::postProcess()
 	init_progress_bar(mdR.size());
 	size_t n=0;
 	double minD=1e38;
-	FOR_ALL_OBJECTS_IN_METADATA(mdR)
+	for (size_t objId : mdR.ids())
 	{
-		mdR.getValue(MDL_IMAGE_COVARIANCE,fnR,__iter.objId);
+		mdR.getValue(MDL_IMAGE_COVARIANCE,fnR,objId);
 		IR.read(fnR);
 		IR().copy(R);
 
 		double d=computeCovarianceMatrixDivergence(Ravg,R);
 		if (d<minD)
 			minD=d;
-		mdR.setValue(MDL_ZSCORE_RESMEAN,fabs(A1D_ELEM(resmean,n)),__iter.objId);
-		mdR.setValue(MDL_ZSCORE_RESVAR,fabs(A1D_ELEM(resvar,n)),__iter.objId);
-		mdR.setValue(MDL_ZSCORE_RESCOV,d,__iter.objId);
+		mdR.setValue(MDL_ZSCORE_RESMEAN,fabs(A1D_ELEM(resmean,n)),objId);
+		mdR.setValue(MDL_ZSCORE_RESVAR,fabs(A1D_ELEM(resvar,n)),objId);
+		mdR.setValue(MDL_ZSCORE_RESCOV,d,objId);
 		n++;
 		if (n%100==0)
 			progress_bar(n);
 	}
 	progress_bar(mdR.size());
-	if (normalizeDivergence)
-		FOR_ALL_OBJECTS_IN_METADATA(mdR)
+	if (normalizeDivergence) {
+		for (size_t objId : mdR.ids())
 		{
 			double d;
-			mdR.getValue(MDL_ZSCORE_RESCOV,d,__iter.objId);
-			mdR.setValue(MDL_ZSCORE_RESCOV,d/minD-1,__iter.objId);
+			mdR.getValue(MDL_ZSCORE_RESCOV,d,objId);
+			mdR.setValue(MDL_ZSCORE_RESCOV,d/minD-1,objId);
 		}
+	}
 	mdR.write(fnMDout);
 }

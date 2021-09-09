@@ -26,6 +26,7 @@
 
 #include "angular_projection_matching.h"
 #include "core/xmipp_image.h"
+#include "core/metadata_vec.h"
 #include "data/fourier_projection.h"
 #include "data/ctf.h"
 #include "data/filters.h"
@@ -209,8 +210,8 @@ void ProgAngularProjectionMatching::produceSideInfo()
 
     Image<double>    img,empty;
     Projection       proj;
-    MetaData         DF;
-    MetaData         SFr,emptySF;
+    MetaDataVec      DF;
+    MetaDataVec      SFr,emptySF;
     SymList          SL;
     FileName         fn_img;
     MultidimArray<double> Maux;
@@ -219,8 +220,8 @@ void ProgAngularProjectionMatching::produceSideInfo()
     Polar<std::complex <double> > fP;
 
     // Read Selfile and get dimensions
-    MetaData MetaDataLeft;
-    MetaData MetaDataRight;
+    MetaDataDb MetaDataLeft;
+    MetaDataDb MetaDataRight;
     String blockName = "all_exp_images";
 
     FileName inputFn = fn_exp.removeBlockName();
@@ -243,7 +244,7 @@ void ProgAngularProjectionMatching::produceSideInfo()
     barrier_init(&thread_barrier, threads);
 
     // Read one image to get dim
-    DFexp.getValue(MDL_IMAGE,fn_img,DFexp.firstObject());
+    DFexp.getValue(MDL_IMAGE,fn_img,DFexp.firstRowId());
     img.read(fn_img);
     dim = XSIZE(img());
 

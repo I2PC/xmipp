@@ -31,7 +31,7 @@
 #include "core/xmipp_program.h"
 #include "core/xmipp_hdf5.h"
 #include "core/xmipp_threads.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 
 ///@defgroup XrayImport Xray import
 ///@ingroup ReconsLibrary
@@ -82,11 +82,11 @@ public:
     Matrix1D<double> expTimeArray, cBeamArray, slitWidthArray, anglesArray;
 
     /// List of input images
-    MetaData inMD;
+    MetaDataDb inMD;
     /// List of output images
-    MetaData outMD;
+    MetaDataDb outMD;
     /// List of flatfield images
-    MetaData fMD;
+    MetaDataDb fMD;
 
     // Intermediate results
     Image<double> IavgFlat;

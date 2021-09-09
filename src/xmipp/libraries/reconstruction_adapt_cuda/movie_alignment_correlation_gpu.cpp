@@ -94,9 +94,10 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
+    gpu.value().updateMemoryInfo();
     Image<T> frame;
     int noOfImgs = this->nlast - this->nfirst + 1;
-    this->loadFrame(movie, movie.firstObject(), frame);
+    this->loadFrame(movie, movie.firstRowId(), frame);
     Dimensions dim(frame.data.xdim, frame.data.ydim, 1, noOfImgs);
 
     if (optimize) {
@@ -110,6 +111,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
         const FFTSettings<T> &s) {
+    gpu.value().updateMemoryInfo();
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
         size_t size = std::ceil(getCenterSize(shift) / 2.f) * 2; // to get even size
         while ((size / (float)v) < minScale) {
@@ -133,6 +135,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 template<typename T>
 FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
+    gpu.value().updateMemoryInfo();
     const auto reqSize = this->getRequestedPatchSize();
     Dimensions hint(reqSize.first, reqSize.second,
             orig.dim.z(), orig.dim.n());
@@ -261,7 +264,6 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
             && UserSettings::get(storage).find(*this,
                     getKey(minMemoryStr, dim, applyCrop), neededMB);
     // check available memory
-    gpu.value().updateMemoryInfo();
     res = res && (neededMB <= memoryUtils::MB(gpu.value().lastFreeBytes()));
     if (res) {
         return core::optional<FFTSettings<T>>(
@@ -331,6 +333,10 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         std::cout << "Actual scale factor (X): " << actualScale << std::endl;
         std::cout << "Settings for the patches: " << patchSettings << std::endl;
         std::cout << "Settings for the correlation: " << correlationSettings << std::endl;
+    }
+    if (this->localAlignPatches.first <= this->localAlignmentControlPoints.x() 
+        || this->localAlignPatches.second <= this->localAlignmentControlPoints.y()) {
+            throw std::logic_error("More control points than patches. Decrease the number of control points.");
     }
 
     if ((movieSettings.dim.x() < patchSettings.dim.x())
@@ -643,7 +649,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
     Image<T> frame;
 
     int movieImgIndex = -1;
-    FOR_ALL_OBJECTS_IN_METADATA(movie)
+    for (size_t objId : movie.ids())
     {
         // update variables
         movieImgIndex++;
@@ -651,7 +657,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
         if (movieImgIndex > this->nlast) break;
 
         // load image
-        this->loadFrame(movie, dark, igain, __iter.objId, frame);
+        this->loadFrame(movie, dark, igain, objId, frame);
 
         if (nullptr == imgs) {
             rawMovieDim = Dimensions(frame().xdim, frame().ydim, 1,

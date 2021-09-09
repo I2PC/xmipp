@@ -50,14 +50,14 @@ void translate_to_Spider_sel(MetaData &SF_in, DocFile &DF_out, bool new_style)
     DF_out.clear();
     DF_out.append_comment((std::string)"Translation for Spider of " + SF_in.getFilename());
     int i=1;
-    FOR_ALL_OBJECTS_IN_METADATA(SF_in)
+    for (size_t objId : SF_in.ids())
     {
         bool store = true;
         //if (!SF_in.Is_COMMENT())
         {
             int enabled;
 
-            SF_in.getValue( MDL_ENABLED, enabled ,__iter.objId);
+            SF_in.getValue(MDL_ENABLED, enabled, objId);
 
             if ( enabled ==1)
             {
@@ -97,7 +97,7 @@ void extract_angles(MetaData &SF_in, DocFile &DF_out,
 
     FileName auxFn;
 
-    SF_in.getValue( MDL_IMAGE, auxFn, SF_in.firstObject() );
+    SF_in.getValue( MDL_IMAGE, auxFn, SF_in.firstRowId() );
 
     DF_out.append_comment((std::string)"Angles for " + auxFn +
                           ".   Angle order: " + ang1 + " " + ang2 + " " + ang3);
@@ -111,26 +111,26 @@ void extract_angles(MetaData &SF_in, DocFile &DF_out,
     ApplyGeoParams params;
     params.datamode = HEADER;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF_in)
+    for (size_t objId: SF_in.ids())
     {
         if (fromMetadata)
         {
             double rot;
-            SF_in.getValue(MDL_ANGLE_ROT,rot, __iter.objId);
+            SF_in.getValue(MDL_ANGLE_ROT, rot, objId);
             double tilt;
-            SF_in.getValue(MDL_ANGLE_TILT,tilt, __iter.objId);
+            SF_in.getValue(MDL_ANGLE_TILT, tilt, objId);
             double psi;
-            SF_in.getValue(MDL_ANGLE_PSI,psi, __iter.objId);
+            SF_in.getValue(MDL_ANGLE_PSI, psi, objId);
             DF_out.append_angles(rot, tilt, psi,
                                  ang1, ang2, ang3);
         }
         else
         {
             // Read image
-            SF_in.getValue( MDL_IMAGE, fn_img, __iter.objId);
+            SF_in.getValue(MDL_IMAGE, fn_img, objId);
             if (fn_img=="")
                 break;
-            P.readApplyGeo(fn_img,SF_in,__iter.objId, params);
+            P.readApplyGeo(fn_img, SF_in, objId, params);
             DF_out.append_angles(P.rot(), P.tilt(), P.psi(),
                                  ang1, ang2, ang3);
         }
@@ -150,9 +150,9 @@ void rename_for_Spider(MetaData &SF_in, MetaData &SF_out, const FileName &fn_roo
     int counter = 1;
     size_t id;
 
-    FOR_ALL_OBJECTS_IN_METADATA(SF_out)
+    for (size_t objId : SF_out.ids())
     {
-        SF_in.getValue( MDL_IMAGE, fn_in, __iter.objId);
+        SF_in.getValue( MDL_IMAGE, fn_in, objId);
         if (fn_in=="")
             break;
         fn_out = fn_root + integerToString(counter, 5);

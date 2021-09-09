@@ -26,6 +26,10 @@
 #ifndef ARRAY_2D_H_
 #define ARRAY_2D_H_
 
+/**@defgroup Array2D Array2D
+   @ingroup DataLibrary */
+//@{
+
 // struct is used for compatibility with OpenCL / C for Cuda
 /* Instance of this struct represent a 2D array of arbitrary type.
  * Data are being stored as a dynamic 2D array (i.e. not continuous block of memory).
@@ -103,6 +107,6 @@ private:
 	int ySize;
 	T** data;
 };
-
+//@}
 #endif /* ARRAY_2D_H_ */
 

@@ -26,7 +26,6 @@
 
 #include "condor/ObjectiveFunction.h"
 #include "core/matrix1d.h"
-#include "core/metadata.h"
 #include "core/xmipp_image.h"
 #include "core/xmipp_metadata_program.h"
 

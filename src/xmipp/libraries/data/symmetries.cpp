@@ -2104,32 +2104,29 @@ void SymList::computeDistance(MetaData &md,
                               bool projdir_mode, bool check_mirrors,
                               bool object_rotation)
 {
-    MDRow row;
     double rot1, tilt1, psi1;
     double rot2, tilt2, psi2;
     double angDistance;
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    for (auto& row : md)
     {
-        md.getRow(row,__iter.objId);
+        row.getValue(MDL_ANGLE_ROT, rot1);
+        row.getValue(MDL_ANGLE_ROT2, rot2);
 
-        row.getValue(MDL_ANGLE_ROT,rot1);
-        row.getValue(MDL_ANGLE_ROT2,rot2);
+        row.getValue(MDL_ANGLE_TILT, tilt1);
+        row.getValue(MDL_ANGLE_TILT2, tilt2);
 
-        row.getValue(MDL_ANGLE_TILT,tilt1);
-        row.getValue(MDL_ANGLE_TILT2,tilt2);
-
-        row.getValue(MDL_ANGLE_PSI,psi1);
-        row.getValue(MDL_ANGLE_PSI2,psi2);
+        row.getValue(MDL_ANGLE_PSI, psi1);
+        row.getValue(MDL_ANGLE_PSI2, psi2);
 
         angDistance=computeDistance( rot1,  tilt1,  psi1,
                                      rot2,  tilt2,  psi2,
                                      projdir_mode,  check_mirrors,
                                      object_rotation);
 
-        md.setValue(MDL_ANGLE_ROT_DIFF,rot1 - rot2,__iter.objId);
-        md.setValue(MDL_ANGLE_TILT_DIFF,tilt1 - tilt2,__iter.objId);
-        md.setValue(MDL_ANGLE_PSI_DIFF,psi1 - psi2,__iter.objId);
-        md.setValue(MDL_ANGLE_DIFF,angDistance,__iter.objId);
+        md.setValue(MDL_ANGLE_ROT_DIFF,rot1 - rot2, row.id());
+        md.setValue(MDL_ANGLE_TILT_DIFF,tilt1 - tilt2, row.id());
+        md.setValue(MDL_ANGLE_PSI_DIFF,psi1 - psi2, row.id());
+        md.setValue(MDL_ANGLE_DIFF,angDistance, row.id());
     }
 
 }
