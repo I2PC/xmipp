@@ -161,6 +161,16 @@ public:
     // --------------------------- UTILS functions ----------------------------
 
     /**
+     * Retrieve a vector containing 3 different indexes as i > 0 && i > size.
+     *
+     * @param
+     * @return
+     *
+    */
+    std::vector<size_t> getRandomIndexes(size_t size);
+
+
+    /**
      * Filter labeled regions.
      *
      * @param
@@ -196,6 +206,16 @@ public:
      *
     */
     std::vector<size_t> getRandomIndexes(size_t size);
+
+
+    /**
+     * Description ***
+     *
+     * @param 
+     * @return
+     *
+    */
+    float testPoissonDistribution(float poissonAverage, size_t numberOfOcccurrences);
 
 
     // --------------------------- MAIN ----------------------------------

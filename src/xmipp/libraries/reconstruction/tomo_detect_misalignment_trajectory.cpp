@@ -320,58 +320,19 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
-	std::cout << "histogramOfLandmarkAppearance.size() " << histogramOfLandmarkAppearance.size();
+	// Take the average of the three most populated indexes as the expected value for a Possion distribution testing
+	size_t numberOfIndexesForPossionAverage = 3;
+	float poissonAverage = 0;
 
-
-	// for(size_t e; e < histogramOfLandmarkAppearance.size(); e++)
-	// {
-	// 	std::cout << histogramOfLandmarkAppearance[e] << std::endl;
-	// }
-
-
-
-	// *** This cannot be a literal number, need some criteria
-	size_t chainsIndexVectorSize = 10;
-	std::vector<size_t> chainsIndexVector(chainsIndexVectorSize, 0);
-
-
-
-	for (size_t i = 0; i < chainsIndexVectorSize; i++)
+	for (size_t i = 0; i < numberOfIndexesForPossionAverage; i++)
 	{
-		// *** optimize searching and erasing max elem (searching 2 times in vector)
-		size_t maxElem = *max_element(std::begin(histogramOfLandmarkAppearance),
+		poissonAverage += *max_element(std::begin(histogramOfLandmarkAppearance),
 									  std::end(histogramOfLandmarkAppearance));
-
-		histogramOfLandmarkAppearance.erase(
-			std::remove(histogramOfLandmarkAppearance.begin(), histogramOfLandmarkAppearance.end(), maxElem), 
-			histogramOfLandmarkAppearance.end()
-			);
-
-		chainsIndexVector[i] = maxElem;
 	}
 
-	for (size_t i = 0; i < chainsIndexVectorSize; i++)
-	{
-		std::cout << chainsIndexVector[i] << std::endl;
-	}
+	poissonAverage /= 3;
 
-	std::vector<std::vector<float>> chainList(chainsIndexVectorSize);
-
-	for (size_t i = 0; i < chainsIndexVectorSize; i++)
-	{
-		std::vector<float>	chain(0);
-
-		for(size_t j = 0; j < coordinates3Dy.size(); j++)
-		{
-			if(coordinates3Dy[j] == i)
-			{
-				chain.push_back(coordinates3Dx[j]);
-			}
-		}
-
-		chainList[i] = chain;
-	}
-
+	
 
 	// SPLIT CHAINS ---> make function of this and interate in the loop
 
@@ -742,6 +703,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 // --------------------------- UTILS functions ----------------------------
 
+
 bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Check number of elements of the label
@@ -864,4 +826,26 @@ std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_
 	
 	return indexes;
 }
+
+
+float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float poissonAverage, size_t numberOfOcccurrences)
+{
+	size_t factorialNumberOfOcccurrences=1
+	for (size_t i = 0; i < numberOfOcccurrences+1; i++)
+	{
+		factorialNumberOfOcccurrences *= i;
+	}
+	
+	return (pow(poissonAverage, numberOfOcccurrences)*exp(-poissonAverage), numberOfOcccurrences))/factorialNumberOfOcccurrences;
+
+}
+
+
+float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX)
+{
+
+	return ((cos(theta2)/cos(theta1))-1)*coordinateProjX;
+
+}
+
 
