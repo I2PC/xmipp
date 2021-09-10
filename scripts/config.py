@@ -726,7 +726,7 @@ class Config:
                     'javac', ['/usr/lib/jvm/java-*/bin'])  # put candidates here
                 javaProgramPath = askPath(javaProgramPath, self.ask)
             if not os.path.isdir(javaProgramPath):
-                installDepConda('openjdk')
+                installDepConda('openjdk', self.ask)
                 javaProgramPath = whereis('javac', findReal=True)
 
             if javaProgramPath:
