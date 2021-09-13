@@ -324,21 +324,102 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	size_t numberOfIndexesForPossionAverage = 3;
 	float poissonAverage = 0;
 
+	std::vector<size_t> histogramOfLandmarkAppearanceSorted = histogramOfLandmarkAppearance;
+
+	// *** TODO: optimize, get n maximum elements without sorting
+	sort(histogramOfLandmarkAppearanceSorted.begin(), histogramOfLandmarkAppearanceSorted.end());
+	
 	for (size_t i = 0; i < numberOfIndexesForPossionAverage; i++)
 	{
-		poissonAverage += *max_element(std::begin(histogramOfLandmarkAppearance),
-									  std::end(histogramOfLandmarkAppearance));
+		poissonAverage += histogramOfLandmarkAppearanceSorted[i];
 	}
 
 	poissonAverage /= 3;
 
-	
+	std::vector<size_t> chainIndexesY;
+
+	// Test possion probability
+	for (size_t i = 0; i < histogramOfLandmarkAppearance.size(); i++)
+	{
+		if (testPoissonDistribution(poissonAverage, histogramOfLandmarkAppearance[i])<0.05)
+		{
+			chainIndexesY.push_back(i);
+		}
+	}
 
 	// SPLIT CHAINS ---> make function of this and interate in the loop
+	for (size_t i = 0; i < chainIndexesY.size(); i++)
+	{
+		size_t chainIndexY = chainIndexesY[i];
+
+		// Binary vector with one's in the x coordinates belonging to each y coordinate
+		std::vector<size_t> chainLineY(xSize, 0);
+		
+		for (size_t j = 0; j < chainLineY.size() ; j++)
+		{
+			for(size_t x = 0; x < coordinates3Dx.size(); x++)
+			{
+				if(coordinates3Dy[x] == chainIndexY)
+				{
+					chainLineY[coordinates3Dx[x]] = 1;
+				}		
+				else if(x-1 > 0 && coordinates3Dy[x-1] == chainIndexY)
+				{
+					chainLineY[coordinates3Dx[x]] = 1;
+				}	
+				else if(x+1 < coordinates3Dy.size() && coordinates3Dy[x+1] == chainIndexY)
+				{
+					chainLineY[coordinates3Dx[x]] = 1;
+				}	
+			}
+		}
+
+		// Cluser the chainLineY vector
+		std::vector<size_t> clusteredChainLineY(xSize, 0);
+		size_t clusterId = 1;
 
 
-	
-	
+		for (size_t j = 0; j < chainLineY.size(); j++)
+		{
+
+			if(chainLineY[i]==1 && clusteredChainLineY[i]==0)
+			{
+				clusteredChainLineY[i] = clusterId;
+
+				float landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(0, 1, 0); //*** TODO complete
+
+				for (size_t k = 1; k <=  landmarkDisplacementThreshold; k++)
+				{
+					if(chainLineY[i+k]==1)
+					{
+						clusteredChainLineY[i+k] = clusterId;
+					}
+				}
+			}
+			else if (clusteredChainLineY[i]!=0)
+			{
+				float landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(0, 1, 0); //*** TODO complete
+
+				bool found = false;
+
+				for (size_t k = 1; k <=  landmarkDisplacementThreshold; k++)
+				{
+					if(chainLineY[i+k]==1)
+					{
+						found = true;
+						clusteredChainLineY[i+k] = clusterId;
+					}
+				}
+
+				if (!found)
+				{
+					clusterId += 1;
+				}
+			}
+		}
+
+		// Complete the overall 2D chain map
+	}
 }
 
 
@@ -830,13 +911,13 @@ std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_
 
 float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float poissonAverage, size_t numberOfOcccurrences)
 {
-	size_t factorialNumberOfOcccurrences=1
-	for (size_t i = 0; i < numberOfOcccurrences+1; i++)
+	size_t factorialNumberOfOcccurrences=1;
+	for (size_t i = 1; i < numberOfOcccurrences+1; i++)
 	{
 		factorialNumberOfOcccurrences *= i;
 	}
 	
-	return (pow(poissonAverage, numberOfOcccurrences)*exp(-poissonAverage), numberOfOcccurrences))/factorialNumberOfOcccurrences;
+	return (pow(poissonAverage, numberOfOcccurrences)*exp(-poissonAverage), numberOfOcccurrences)/factorialNumberOfOcccurrences;
 
 }
 
