@@ -11,17 +11,17 @@
 class POCSTest : public ::testing::Test
 {
 public:
-	void POCSTest()
+	POCSTest()
 	{
-        //get results to compare
-        if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
-            REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
-        pocsmask.read("pocsmask.mrc");
-        pocsnonnegative.read("pocsnonnegative.mrc");
-        pocsamplitude.read("pocsamplitude.mrc");
-        pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
-        pocsminmax.read("pocsminmax.mrc");
-        pocsphase.read("pocsphase.mrc");
+		//get results to compare
+		if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
+			REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
+		pocsmask.read("pocsmask.mrc");
+		pocsnonnegative.read("pocsnonnegative.mrc");
+		pocsamplitude.read("pocsamplitude.mrc");
+		pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
+		pocsminmax.read("pocsminmax.mrc");
+		pocsphase.read("pocsphase.mrc");
 	}
 protected:
     virtual void SetUp()

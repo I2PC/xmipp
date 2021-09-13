@@ -136,6 +136,7 @@ void ProgVolumeSubtraction::show() const {
 
 /* Methods used to adjust an input volume (V) to a another reference volume (V1) through
 the use of Projectors Onto Convex Sets (POCS) */
+//void ProgVolumeSubtraction::POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I) {
 void POCSmask(const MultidimArray<double> &mask, MultidimArray<double> &I) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
 		DIRECT_MULTIDIM_ELEM(I, n) *= DIRECT_MULTIDIM_ELEM(mask, n);
