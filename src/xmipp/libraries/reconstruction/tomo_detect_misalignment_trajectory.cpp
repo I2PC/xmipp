@@ -50,7 +50,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  -inputTiltAngleFile <xmd_file=\"\">      				: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coodinates.");
+	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coordinates.");
 	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
@@ -320,6 +320,8 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
+	std::cout << "Test1"  << std::endl;
+
 	// Take the average of the three most populated indexes as the expected value for a Possion distribution testing
 	size_t numberOfIndexesForPossionAverage = 3;
 	float poissonAverage = 0;
@@ -338,16 +340,30 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 
 	std::vector<size_t> chainIndexesY;
 
+	std::cout << "Test2"  << std::endl;
+
+	std::cout << "histogramOfLandmarkAppearance.size()" << histogramOfLandmarkAppearance.size() << std::endl;
+
+
 	// Test possion probability
 	for (size_t i = 0; i < histogramOfLandmarkAppearance.size(); i++)
 	{
+		std::cout << "i=" << i << std::endl;
+				std::cout << "histogramOfLandmarkAppearance[" << i << "]=" <<histogramOfLandmarkAppearance[i] << std::endl;
+
+
 		if (testPoissonDistribution(poissonAverage, histogramOfLandmarkAppearance[i])<0.05)
 		{
 			chainIndexesY.push_back(i);
 		}
 	}
 
+	std::cout << "Test3"  << std::endl;
+
 	// SPLIT CHAINS ---> make function of this and interate in the loop
+	MultidimArray<size_t> chain2dMap;
+	chain2dMap.initZeros(xSize, ySize);
+
 	for (size_t i = 0; i < chainIndexesY.size(); i++)
 	{
 		size_t chainIndexY = chainIndexesY[i];
@@ -373,10 +389,13 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 				}	
 			}
 		}
+		std::cout << "Test4"  << std::endl;
 
 		// Cluser the chainLineY vector
 		std::vector<size_t> clusteredChainLineY(xSize, 0);
 		size_t clusterId = 1;
+		size_t clusterIdSize = 0;
+		std::vector<size_t> clusterSizeVector;
 
 
 		for (size_t j = 0; j < chainLineY.size(); j++)
@@ -385,6 +404,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			if(chainLineY[i]==1 && clusteredChainLineY[i]==0)
 			{
 				clusteredChainLineY[i] = clusterId;
+				clusterIdSize += 1;
 
 				float landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(0, 1, 0); //*** TODO complete
 
@@ -393,6 +413,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 					if(chainLineY[i+k]==1)
 					{
 						clusteredChainLineY[i+k] = clusterId;
+						clusterIdSize += 1;
 					}
 				}
 			}
@@ -408,18 +429,47 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 					{
 						found = true;
 						clusteredChainLineY[i+k] = clusterId;
+						clusterIdSize += 1;
+
 					}
 				}
 
 				if (!found)
 				{
 					clusterId += 1;
+					clusterSizeVector.push_back(clusterIdSize);
+					clusterIdSize = 0;
 				}
 			}
 		}
 
+		std::cout << "Test5"  << std::endl;
+
 		// Complete the overall 2D chain map
+		// *** TODO Make threshold more clever
+		size_t numberOfElementsInChainThreshold = 5;
+
+		for (size_t j = 0; j < clusteredChainLineY.size(); j++)
+		{	
+			if(clusteredChainLineY[i] != 0 && clusterSizeVector[clusteredChainLineY[i]] > numberOfElementsInChainThreshold)
+			{		
+				DIRECT_A2D_ELEM(chain2dMap, i, j) = 1;
+			}
+		}
 	}
+
+	std::cout << "Test6"  << std::endl;
+
+	#ifdef DEBUG_OUTPUT_FILES
+	size_t lastindex = fnOut.find_last_of(".");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameFilteredVolume;
+    outputFileNameFilteredVolume = rawname + "_filteredChains.mrc";
+
+	Image<size_t> saveImage;
+	saveImage() = chain2dMap;
+	saveImage.write(outputFileNameFilteredVolume);
+	#endif
 }
 
 
@@ -911,11 +961,13 @@ std::vector<size_t> ProgTomoDetectMisalignmentTrajectory::getRandomIndexes(size_
 
 float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float poissonAverage, size_t numberOfOcccurrences)
 {
-	size_t factorialNumberOfOcccurrences=1;
+	long factorialNumberOfOcccurrences=1;
 	for (size_t i = 1; i < numberOfOcccurrences+1; i++)
 	{
 		factorialNumberOfOcccurrences *= i;
 	}
+
+	std::cout << "factorialNumberOfOcccurrences = " << factorialNumberOfOcccurrences << std::endl;
 	
 	return (pow(poissonAverage, numberOfOcccurrences)*exp(-poissonAverage), numberOfOcccurrences)/factorialNumberOfOcccurrences;
 
