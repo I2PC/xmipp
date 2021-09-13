@@ -10,6 +10,19 @@
 
 class POCSTest : public ::testing::Test
 {
+public:
+	void POCSTest()
+	{
+        //get results to compare
+        if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
+            REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
+        pocsmask.read("pocsmask.mrc");
+        pocsnonnegative.read("pocsnonnegative.mrc");
+        pocsamplitude.read("pocsamplitude.mrc");
+        pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
+        pocsminmax.read("pocsminmax.mrc");
+        pocsphase.read("pocsphase.mrc");
+	}
 protected:
     virtual void SetUp()
     {
@@ -17,13 +30,6 @@ protected:
         if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
             REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
         img.read("V1.mrc");
-        //get results to compare
-        pocsmask.read("pocsmask.mrc");
-        pocsnonnegative.read("pocsnonnegative.mrc");
-        pocsamplitude.read("pocsamplitude.mrc");
-        pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
-        pocsminmax.read("pocsminmax.mrc");
-        pocsphase.read("pocsphase.mrc");
     }
 
     Image<double> img;
@@ -33,7 +39,8 @@ protected:
     Image<double> pocsamplitude_radavg;
     Image<double> pocsminmax;
     Image<double> pocsphase;
-	double min, max;
+	double min;
+	double max;
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > IFourier;
 	MultidimArray<double> IFourierMag;
