@@ -196,7 +196,7 @@ void POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
 }
 
 /* Other methods needed to pre-process and operate with the volumes */
-void ProgVolumeSubtraction::extractPhase(MultidimArray<std::complex<double>> &FI) {
+void ProgVolumeSubtraction::extractPhase(MultidimArray<std::complex<double>> &FI) const{
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
 		double *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI, n);
 		double phi = atan2(*(ptr + 1), *ptr);
@@ -204,7 +204,7 @@ void ProgVolumeSubtraction::extractPhase(MultidimArray<std::complex<double>> &FI
 	}
 }
 
-void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const MultidimArray<double> &Vact) {
+void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const MultidimArray<double> &Vact) const{
 	Vdif = Vdif - Vact;
 	double energy = 0;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdif)
@@ -215,7 +215,7 @@ void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const Mul
 
 void ProgVolumeSubtraction::centerFFTMagnitude(MultidimArray<double> &VolRad,
 		MultidimArray<std::complex<double>> &VolFourierRad,
-		MultidimArray<double> &VolFourierMagRad) {
+		MultidimArray<double> &VolFourierMagRad) const{
 	FourierTransformer transformerRad;
 	transformerRad.completeFourierTransform(VolRad, VolFourierRad);
 	CenterFFT(VolFourierRad, true);
@@ -328,7 +328,7 @@ MultidimArray<double> ProgVolumeSubtraction::createMask(const Image<double> &vol
 	return mask;
 }
 
-void ProgVolumeSubtraction::filterMask(MultidimArray<double> &mask) {
+void ProgVolumeSubtraction::filterMask(MultidimArray<double> &mask) const{
 	FourierFilter Filter;
 	Filter.FilterShape = REALGAUSSIAN;
 	Filter.FilterBand = LOWPASS;
