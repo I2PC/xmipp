@@ -32,8 +32,8 @@ TEST_F(VolSubtractionTest, subtraction)
 	Image<double> mask;
 	mask().initZeros(XSIZE(img()),YSIZE(img()),YSIZE(img()));
 	mask().initConstant(1);
-	createFilter(filter);
-	img = subtraction(img, img2, mask(), "", "", filter);
+	createFilter(filter, 0);
+	img = subtraction(img, img2, mask(), "", "", filter, 0);
 	ASSERT_EQ(img(), result());
 }
 
