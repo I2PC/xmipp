@@ -958,6 +958,9 @@ class TomoExtractSubvolume(XmippProgramTest):
         return 'xmipp_tomo_extract_subvolume'
 
     def test_case1(self):
+        cause = 'it is testing a deprecated program'
+        print(yellow('test TomoExtractSubvolume is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("-i input/ico.vol --oroot %o/vertices --center 0 0 50 --size 30 --sym i3",
                 outputs=["vertices.stk","vertices.xmd"])
 
