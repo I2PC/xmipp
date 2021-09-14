@@ -53,8 +53,6 @@ private:
   int sigma;
   double cutFreq;
   double lambda;
-  bool saveVol1Filt;
-  bool saveVol2Adj;
   bool radavg;
   double std1;
   size_t n;
@@ -72,11 +70,11 @@ private:
 	void defineParams() override;
 
 	/// Processing methods
-	void extractPhase(MultidimArray<std::complex<double>> &);
-	void computeEnergy(MultidimArray<double> &, const MultidimArray<double> &);
-	void centerFFTMagnitude(MultidimArray<double> &, MultidimArray<std::complex<double>> &,MultidimArray<double> &);
+	void extractPhase(MultidimArray<std::complex<double>> &) const;
+	void computeEnergy(MultidimArray<double> &, const MultidimArray<double> &) const;
+	void centerFFTMagnitude(MultidimArray<double> &, MultidimArray<std::complex<double>> &,MultidimArray<double> &) const;
 	MultidimArray<double> createMask(const Image<double> &, const FileName &, const FileName &);
-	void filterMask(MultidimArray<double> &);
+	void filterMask(MultidimArray<double> &) const;
 	MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &);
 	MultidimArray<double> getSubtractionMask(const FileName &, MultidimArray<double>);
 	void runIteration(Image<double> &,Image<double> &,const MultidimArray<double> &,const MultidimArray<double> &,

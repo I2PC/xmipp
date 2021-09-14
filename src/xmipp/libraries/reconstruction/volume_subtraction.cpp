@@ -204,12 +204,12 @@ void ProgVolumeSubtraction::extractPhase(MultidimArray<std::complex<double>> &FI
 	}
 }
 
-void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdiff, const MultidimArray<double> &Vact) {
-	Vdiff = Vdiff - Vact;
+void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const MultidimArray<double> &Vact) {
+	Vdif = Vdif - Vact;
 	double energy = 0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
-	energy += DIRECT_MULTIDIM_ELEM(Vdiff, n) * DIRECT_MULTIDIM_ELEM(Vdiff, n);
-	energy = sqrt(energy / MULTIDIM_SIZE(Vdiff));
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdif)
+	energy += DIRECT_MULTIDIM_ELEM(Vdif, n) * DIRECT_MULTIDIM_ELEM(Vdif, n);
+	energy = sqrt(energy / MULTIDIM_SIZE(Vdif));
 	std::cout << "Energy: " << energy << std::endl;
 }
 
@@ -313,13 +313,13 @@ MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
 	return magnitude;
 }
 
-MultidimArray<double> ProgVolumeSubtraction::createMask(const Image<double> &volume, const FileName &fnMask1, const FileName &fnMask2) {
+MultidimArray<double> ProgVolumeSubtraction::createMask(const Image<double> &volume, const FileName &fnM1, const FileName &fnM2) {
 	MultidimArray<double> mask;
-	if (fnMask1 != "" && fnMask2 != "") {
+	if (fnM1 != "" && fnM2 != "") {
 		Image<double> mask1;
 		Image<double> mask2;
-		mask1.read(fnMask1);
-		mask2.read(fnMask2);
+		mask1.read(fnM1);
+		mask2.read(fnM2);
 		mask = mask1() * mask2();
 	} else {
 		mask.resizeNoCopy(volume());
@@ -343,14 +343,14 @@ MultidimArray<std::complex<double>> ProgVolumeSubtraction::computePhase(Multidim
 	return phase;
 }
 
-MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &fnMaskSub, MultidimArray<double> mask){
-	if (fnMaskSub.isEmpty()){
+MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &fnMSub, MultidimArray<double> mask){
+	if (fnMSub.isEmpty()){
 		filterMask(mask);
 		return mask;
 	}
 	else {
 		Image<double> masksub;
-		masksub.read(fnMaskSub);
+		masksub.read(fnMSub);
 		return masksub();
 	}
 }
