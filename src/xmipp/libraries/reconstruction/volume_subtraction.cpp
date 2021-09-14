@@ -83,15 +83,6 @@ void ProgVolumeSubtraction::defineParams() {
 			"output of the program is this file");
 }
 
-// Variables to store parameters
-bool performSubtraction;
-int sigma;
-double cutFreq;
-double lambda;
-bool saveVol1Filt;
-bool saveVol2Adj;
-bool radavg;
-
 // Read arguments ==========================================================
 void ProgVolumeSubtraction::readParams() {
 	fnVol1 = getParam("--i1");
@@ -107,8 +98,6 @@ void ProgVolumeSubtraction::readParams() {
 	fnMaskSub = getParam("--maskSub");
 	cutFreq = getDoubleParam("--cutFreq");
 	lambda = getDoubleParam("--lambda");
-	saveVol1Filt = checkParam("--saveV1");
-	saveVol2Adj = checkParam("--saveV2");
 	fnVol1F = getParam("--saveV1");
 	if (fnVol1F.isEmpty())
 		fnVol1F = "volume1_filtered.mrc";
@@ -147,8 +136,7 @@ void POCSnonnegative(MultidimArray<double> &I) {
 }
 
 void POCSFourierAmplitude(const MultidimArray<double> &V1FourierMag,
-		MultidimArray<std::complex<double>> &V2Fourier,
-		double l) {
+		MultidimArray<std::complex<double>> &V2Fourier, double l) {
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1FourierMag) {
 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(V2Fourier, n));
 		if (mod > 1e-10) // Condition to avoid divide by zero, values smaller than
@@ -208,7 +196,7 @@ void POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
 }
 
 /* Other methods needed to pre-process and operate with the volumes */
-void extractPhase(MultidimArray<std::complex<double>> &FI) {
+void ProgVolumeSubtraction::extractPhase(MultidimArray<std::complex<double>> &FI) const{
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
 		double *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI, n);
 		double phi = atan2(*(ptr + 1), *ptr);
@@ -216,18 +204,18 @@ void extractPhase(MultidimArray<std::complex<double>> &FI) {
 	}
 }
 
-void computeEnergy(MultidimArray<double> &Vdiff, const MultidimArray<double> &Vact) {
-	Vdiff = Vdiff - Vact;
+void ProgVolumeSubtraction::computeEnergy(MultidimArray<double> &Vdif, const MultidimArray<double> &Vact) const{
+	Vdif = Vdif - Vact;
 	double energy = 0;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdiff)
-	energy += DIRECT_MULTIDIM_ELEM(Vdiff, n) * DIRECT_MULTIDIM_ELEM(Vdiff, n);
-	energy = sqrt(energy / MULTIDIM_SIZE(Vdiff));
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vdif)
+	energy += DIRECT_MULTIDIM_ELEM(Vdif, n) * DIRECT_MULTIDIM_ELEM(Vdif, n);
+	energy = sqrt(energy / MULTIDIM_SIZE(Vdif));
 	std::cout << "Energy: " << energy << std::endl;
 }
 
-void centerFFTMagnitude(MultidimArray<double> &VolRad,
+void ProgVolumeSubtraction::centerFFTMagnitude(MultidimArray<double> &VolRad,
 		MultidimArray<std::complex<double>> &VolFourierRad,
-		MultidimArray<double> &VolFourierMagRad) {
+		MultidimArray<double> &VolFourierMagRad) const{
 	FourierTransformer transformerRad;
 	transformerRad.completeFourierTransform(VolRad, VolFourierRad);
 	CenterFFT(VolFourierRad, true);
@@ -238,7 +226,6 @@ void centerFFTMagnitude(MultidimArray<double> &VolRad,
 void radialAverage(const MultidimArray<double> &VolFourierMag,
 		const MultidimArray<double> &V, MultidimArray<double> &radial_mean) {
 	MultidimArray<double> radial_count;
-
 	int Vsize2_x = int(XSIZE(V))/2;
 	double Vsizei_x = 1.0/int(XSIZE(V));
 	int Vsize2_y = int(YSIZE(V))/2;
@@ -286,7 +273,7 @@ MultidimArray<double> computeRadQuotient(const MultidimArray<double> &v1Mag,
 	return radQuotient;
 }
 
-void createFilter(FourierFilter &filter2) {
+void createFilter(FourierFilter &filter2, double cutFreq) {
 	filter2.FilterBand = LOWPASS;
 	filter2.FilterShape = RAISED_COSINE;
 	filter2.raised_w = 0.02;
@@ -295,16 +282,16 @@ void createFilter(FourierFilter &filter2) {
 
 Image<double> subtraction(Image<double> V1, Image<double> &V,
 		const MultidimArray<double> &mask, const FileName &fnVol1F,
-		const FileName &fnVol2A, FourierFilter &filter2) {
+		const FileName &fnVol2A, FourierFilter &filter2, double cutFreq) {
 	Image<double> V1Filtered;
 	V1Filtered() = V1();
 	if (cutFreq != 0){
 		filter2.applyMaskSpace(V1Filtered());
 	}
-	if (saveVol1Filt) {
+	if (!fnVol1F.isEmpty()) {
 		V1Filtered.write(fnVol1F);
 	}
-	if (saveVol2Adj) {
+	if (!fnVol2A.isEmpty()) {
 		V.write(fnVol2A);
 	}
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V1())
@@ -326,13 +313,13 @@ MultidimArray<double> computeMagnitude(MultidimArray<double> &volume) {
 	return magnitude;
 }
 
-MultidimArray<double> createMask(const Image<double> &volume, const FileName &fnMask1, const FileName &fnMask2) {
+MultidimArray<double> ProgVolumeSubtraction::createMask(const Image<double> &volume, const FileName &fnM1, const FileName &fnM2) {
 	MultidimArray<double> mask;
-	if (fnMask1 != "" && fnMask2 != "") {
+	if (fnM1 != "" && fnM2 != "") {
 		Image<double> mask1;
 		Image<double> mask2;
-		mask1.read(fnMask1);
-		mask2.read(fnMask2);
+		mask1.read(fnM1);
+		mask2.read(fnM2);
 		mask = mask1() * mask2();
 	} else {
 		mask.resizeNoCopy(volume());
@@ -341,7 +328,7 @@ MultidimArray<double> createMask(const Image<double> &volume, const FileName &fn
 	return mask;
 }
 
-void filterMask(MultidimArray<double> &mask) {
+void ProgVolumeSubtraction::filterMask(MultidimArray<double> &mask) const{
 	FourierFilter Filter;
 	Filter.FilterShape = REALGAUSSIAN;
 	Filter.FilterBand = LOWPASS;
@@ -349,38 +336,31 @@ void filterMask(MultidimArray<double> &mask) {
 	Filter.applyMaskSpace(mask);
 }
 
-FourierTransformer transformer2;
-MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &volume) {
+MultidimArray<std::complex<double>> ProgVolumeSubtraction::computePhase(MultidimArray<double> &volume) {
 	MultidimArray<std::complex<double>> phase;
 	transformer2.FourierTransform(volume, phase, true);
 	extractPhase(phase);
 	return phase;
 }
 
-MultidimArray<double> getSubtractionMask(const FileName &fnMaskSub, MultidimArray<double> mask){
-	if (fnMaskSub.isEmpty()){
+MultidimArray<double> ProgVolumeSubtraction::getSubtractionMask(const FileName &fnMSub, MultidimArray<double> mask){
+	if (fnMSub.isEmpty()){
 		filterMask(mask);
 		return mask;
 	}
-
 	else {
 		Image<double> masksub;
-		masksub.read(fnMaskSub);
+		masksub.read(fnMSub);
 		return masksub();
 	}
 }
 
-double v1min;
-double v1max;
 /* Core of the program: processing needed to adjust input
  * volume V2 to reference volume V1. Several iteration of
  * this processing should be run. */
-void runIteration(size_t n, Image<double> &V, Image<double> &Vdiff,
-		Image<double> &V1, MultidimArray<std::complex<double>> V2Fourier,
-		const MultidimArray<double> &radQuotient,
-		const MultidimArray<double> &V1FourierMag, double std1,
-		const MultidimArray<std::complex<double>> &V2FourierPhase,
-		const MultidimArray<double> &mask, bool computeE, FourierFilter &filter2) {
+void ProgVolumeSubtraction::runIteration(Image<double> &V,Image<double> &V1,const MultidimArray<double> &radQuotient,
+		const MultidimArray<double> &V1FourierMag,const MultidimArray<std::complex<double>> &V2FourierPhase,
+		const MultidimArray<double> &mask, FourierFilter &filter2) {
 	if (computeE)
 		std::cout << "---Iter " << n << std::endl;
 
@@ -451,22 +431,21 @@ void ProgVolumeSubtraction::run() {
 	V.read(fnVol2);
 	POCSmask(mask, V());
 	POCSnonnegative(V());
-	double std1 = V1().computeStddev();
-	Image<double> Vdiff = V;
+	std1 = V1().computeStddev();
+	Vdiff = V;
 	auto V2FourierPhase = computePhase(V());
 	auto V1FourierMag = computeMagnitude(V1());
 	auto V2FourierMag = computeMagnitude(V());
 	auto radQuotient = computeRadQuotient(V1FourierMag, V2FourierMag, V1(), V());
 	FourierFilter filter2;
-	createFilter(filter2);
-	MultidimArray<std::complex<double>> V2Fourier;
-	for (size_t n = 0; n < iter; ++n) {
-		runIteration(n, V, Vdiff, V1, V2Fourier, radQuotient, V1FourierMag, std1, V2FourierPhase, mask, computeE, filter2);
+	createFilter(filter2, cutFreq);
+	for (n = 0; n < iter; ++n) {
+		runIteration(V, V1, radQuotient, V1FourierMag, V2FourierPhase, mask, filter2);
 	}
 	if (performSubtraction) {
 		auto masksub = getSubtractionMask(fnMaskSub, mask);
 		V1.read(fnVol1);
-		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2);
+		V = subtraction(V1, V, masksub, fnVol1F, fnVol2A, filter2, cutFreq);
 	}
 	/* The output of this program is either a modified
 	 * version of V (V') or the subtraction between

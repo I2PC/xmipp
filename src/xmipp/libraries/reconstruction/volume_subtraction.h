@@ -34,7 +34,8 @@ class ProgVolumeSubtraction: public XmippProgram {
 /*This class contains methods that are use to adjust an input volume (V) to a another reference volume (V1) through the use
  of Projectors Onto Convex Sets (POCS) and to perform the subtraction between them. Other methods contained in this class
  are used to pre-process and operate with the volumes*/
-public:
+
+private:
   FileName fnVol2;
   FileName fnVol1;
   FileName fnOutVol;
@@ -46,6 +47,18 @@ public:
 
   bool computeE;
   size_t iter;
+  double v1min;
+  double v1max;
+  bool performSubtraction;
+  int sigma;
+  double cutFreq;
+  double lambda;
+  bool radavg;
+  double std1;
+  size_t n;
+  FourierTransformer transformer2;
+  MultidimArray<std::complex<double>> V2Fourier;
+  Image<double> Vdiff;
 
 	/// Read arguments
 	void readParams() override;
@@ -55,6 +68,17 @@ public:
 
 	/// Define parameters
 	void defineParams() override;
+
+	/// Processing methods
+	void extractPhase(MultidimArray<std::complex<double>> &) const;
+	void computeEnergy(MultidimArray<double> &, const MultidimArray<double> &) const;
+	void centerFFTMagnitude(MultidimArray<double> &, MultidimArray<std::complex<double>> &,MultidimArray<double> &) const;
+	MultidimArray<double> createMask(const Image<double> &, const FileName &, const FileName &);
+	void filterMask(MultidimArray<double> &) const;
+	MultidimArray<std::complex<double>> computePhase(MultidimArray<double> &);
+	MultidimArray<double> getSubtractionMask(const FileName &, MultidimArray<double>);
+	void runIteration(Image<double> &,Image<double> &,const MultidimArray<double> &,const MultidimArray<double> &,
+			const MultidimArray<std::complex<double>> &,const MultidimArray<double> &,FourierFilter &);
 
 	/** Run */
 	void run() override;
