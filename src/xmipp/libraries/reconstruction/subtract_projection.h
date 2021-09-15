@@ -71,8 +71,6 @@
  	// CTF image
 
  public:
-    /// Empty constructor
-// 	ProgSubtractProjection();
 
     /// Read argument from command line
     void readParams();

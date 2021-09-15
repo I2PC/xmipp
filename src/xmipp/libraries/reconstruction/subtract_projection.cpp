@@ -248,7 +248,7 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 
  	int ix_particle = 0;
 
-    for (size_t i = 0; i < mdParticles.size(); ++i)
+    for (size_t i = 1; i < mdParticles.size(); ++i)
     {
     	// Read particle image
     	row = mdParticles.getRowVec(i);
@@ -373,8 +373,8 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 			POCSFourierAmplitudeProj(IFourierMag,PFourier, lambda, radQuotient, (int)XSIZE(I()));
 			transformer.inverseFourierTransform();
 			P.write(formatString("%s/Pamp.mrc", fnProj.c_str()));
-//			POCSMinMaxProj(P(), Imin, Imax);
-//			P.write(formatString("%s/Pminmax.mrc", fnProj.c_str()));
+			POCSMinMaxProj(P(), Imin, Imax);
+			P.write(formatString("%s/Pminmax.mrc", fnProj.c_str()));
 			transformer.FourierTransform();
 			POCSFourierPhaseProj(PFourierPhase,PFourier);
 			transformer.inverseFourierTransform();
@@ -388,11 +388,11 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 			}
 		}
 
-//		Image<double> IFiltered;
-//    	I.read(fnImage);
-//		IFiltered() = I();
-//		if (cutFreq!=0)
-//			Filter2.applyMaskSpace(IFiltered());
+		Image<double> IFiltered;
+    	I.read(fnImage);
+		IFiltered() = I();
+		if (cutFreq!=0)
+			Filter2.applyMaskSpace(IFiltered());
 
 		// Project subtraction mask
 		MultidimArray<double> &mMask=mask();
@@ -400,7 +400,6 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
     	Pmask.write(formatString("%s/maskFocus.mrc", fnProj.c_str()));
     	// Binarize subtraction mask
     	binarizeMask(Pmask());
-//    	normMask(Pmask());
     	Pmask.write(formatString("%s/maskFocusBin.mrc", fnProj.c_str()));
 
     	// Invert projected mask
@@ -413,12 +412,12 @@ void percentileMinMax(const MultidimArray<double> &I, double &min, double &max)
 		FilterG.applyMaskSpace(Pmask());
     	Pmask.write(formatString("%s/maskFocusBinGauss.mrc", fnProj.c_str()));
 
-		// Save particle and projection adjusted
-//		if (fnPart!="" && fnProj!="")
-//		{
-		I.write(formatString("%s/Ifilt.mrc", fnProj.c_str()));
-		P.write(formatString("%s/Padj.mrc", fnProj.c_str()));
-//		}
+    	// Save particle and projection adjusted
+		if (fnPart!="" && fnProj!="")
+		{
+			I.write(formatString("%s/Ifilt.mrc", fnProj.c_str()));
+			P.write(formatString("%s/Padj.mrc", fnProj.c_str()));
+		}
 
     	// SUBTRACTION
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I())
