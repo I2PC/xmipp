@@ -76,6 +76,9 @@ private:
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
 
+    /** Angle step */
+    float tiltAngleStep;
+
     /** Vectors for peaked coordinates components */
     std::vector<double> coordinates3Dx;
     std::vector<double> coordinates3Dy;
@@ -98,6 +101,15 @@ public:
 
 
     // --------------------------- HEAD functions ----------------------------
+
+    /**
+     * Generate side info usefull for the rest of protocols
+     *
+     * @param
+     * @return
+     *
+    */
+    void generateSideInfo();
 
     /**
      * Bandpass filtering the input tilt-series.
@@ -124,7 +136,7 @@ public:
      * @return
      *
     */
-    void detectLandmarkChains();
+    void detectLandmarkChains(MultidimArray<int> projectedCoordinates);
 
     /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
