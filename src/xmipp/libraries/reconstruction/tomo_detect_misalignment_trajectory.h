@@ -136,7 +136,8 @@ public:
      * @return
      *
     */
-    void detectLandmarkChains(MultidimArray<int> projectedCoordinates);
+    void detectLandmarkChains();
+    // void detectLandmarkChains(MultidimArray<int> projectedCoordinates);
 
     /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
