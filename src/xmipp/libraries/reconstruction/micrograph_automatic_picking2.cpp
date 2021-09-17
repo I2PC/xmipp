@@ -1354,7 +1354,7 @@ void AutoParticlePicking2::extractNegativeInvariant(const FileName &fnInvariantF
     MultidimArray<double> pieceImage;
     MultidimArray<int> randomIndexes;
     std::vector<Particle2> negativeSamples;
-    std::vector<Point> positionVec;
+    std::vector<Micrograph::Point> positionVec;
 
     int num_part=mPrev.ParticleNo();
     if (num_part==0)

@@ -531,8 +531,6 @@ void CTFDescription1D::readParams(XmippProgram * program)
 		REPORT_ERROR(ERR_ARG_MISSING,"--voltage");
 	if (program->checkParam("--spherical_aberration"))
 		Cs=program->getDoubleParam("--spherical_aberration");
-	if (Cs==0)
-		REPORT_ERROR(ERR_ARG_MISSING,"--spherical_aberration");
 	if (program->checkParam("--defocusU"))
 		Defocus=program->getDoubleParam("--defocusU");
 	if (program->checkParam("--Q0"))
