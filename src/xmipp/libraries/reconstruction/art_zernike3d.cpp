@@ -34,7 +34,7 @@
 ProgArtZernike3D::ProgArtZernike3D()
 {
 	resume = false;
-    produces_a_metadata = false;
+    produces_a_metadata = true;
     each_image_produces_an_output = false;
     ctfImage = NULL;
     showOptimization = false;
@@ -60,6 +60,7 @@ void ProgArtZernike3D::readParams()
 	resume = checkParam("--resume");
 	fnDone = fnOutDir + "/sphDone.xmd";
 	fnVolO = fnOutDir + "/Refined.vol";
+	keep_input_columns = true;
 }
 
 // Show ====================================================================
@@ -106,25 +107,13 @@ void ProgArtZernike3D::defineParams()
 void ProgArtZernike3D::createWorkFiles() {
 	if (resume && fnDone.exists()) {
 		MetaDataDb done(fnDone);
+		done.read(fnDone);
+		getOutputMd() = done;
 		auto *candidates = getInputMd();
 		MetaDataDb toDo(*candidates);
 		toDo.subtraction(done, MDL_IMAGE);
+		toDo.write(fnOutDir + "/sphTodo.xmd");
 		*candidates = toDo;
-	} else //if not exists create metadata only with headers
-	{
-		MetaDataVec done;
-		done.addLabel(MDL_IMAGE);
-		done.addLabel(MDL_ENABLED);
-		done.addLabel(MDL_ANGLE_ROT);
-		done.addLabel(MDL_ANGLE_TILT);
-		done.addLabel(MDL_ANGLE_PSI);
-		done.addLabel(MDL_SHIFT_X);
-		done.addLabel(MDL_SHIFT_Y);
-		done.addLabel(MDL_FLIP);
-		done.addLabel(MDL_SPH_DEFORMATION);
-		done.addLabel(MDL_SPH_COEFFICIENTS);
-		done.addLabel(MDL_COST);
-		done.write(fnDone);
 	}
 }
 
@@ -348,6 +337,7 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 #undef DEBUG
 
 void ProgArtZernike3D::checkPoint() {
+	getOutputMd().write(fnDone);
 	Vrefined.write(fnVolO);
 }
 
