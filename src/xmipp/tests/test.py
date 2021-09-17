@@ -43,6 +43,7 @@ JMRT = 'delarosatrevin'
 JOTON = 'joton'
 DISCONTINUED = 'nobody'
 JMOTA = 'javimota'
+EFG = 'estrellafg'
 
 
 class Command(object):
