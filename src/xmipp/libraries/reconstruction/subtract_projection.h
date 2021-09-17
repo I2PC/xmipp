@@ -38,40 +38,56 @@
  public:
     /** Filename of the reference volume */
     FileName fnVolR;
-    /// Filename of input xmd particles and particle images
-    FileName fnParticles, fnImage;
-    /// Filename of output particles
+    FileName fnParticles;
+	FileName fnImage;
     FileName fnOut;
-    /// Filename of input mask
-    FileName fnMask, fnMaskVol;
-    /// Filenames for intermediate results
-    FileName fnPart, fnProj;
+    FileName fnMask;
+    FileName fnMaskVol;
+    FileName fnPart;
+    FileName fnProj;
 
  public:
-    // Input particles metadata
     MetaDataVec mdParticles;
     MDRowVec row;
-    // Input subtraction parameters and particle angles
-    double cutFreq, lambda, rot, tilt, psi;
- 	int sigma, iter;
-    // Input volume, particle, subtraction mask, inverse subtraction mask, gaussian-filtered subtraction mask, volume mask
- 	Image<double> V, I, mask, PmaskInv, PmaskG, maskVol;
- 	// Theoretical projection of volume, subtraction mask and volume mask
- 	Projection P, Pmask, PmaskVol;
- 	// Filter
+    double cutFreq;
+    double lambda;
+    double rot;
+    double tilt;
+	double psi;
+ 	int sigma;
+ 	int iter;
+ 	Image<double> V;
+ 	Image<double> mask;
+ 	Image<double> PmaskInv;
+ 	Image<double> PmaskFilt;
+ 	Image<double> PmaskVolI;
+ 	Image<double> PmaskG;
+ 	Image<double> maskVol;
+ 	Image<double> I;
+ 	Projection P;
+ 	Projection Pmask;
+ 	Projection PmaskVol;
     FourierFilter filter;
-    // CTF Check
+	FourierFilter FilterG;
+	FourierFilter Filter2;
     bool hasCTF;
-    // CTF params
- 	double defocusU, defocusV, ctfAngle;
- 	// CTF
+ 	double defocusU;
+ 	double defocusV;
+ 	double ctfAngle;
  	CTFDescription ctf;
-    // CTF filter
     FourierFilter FilterCTF;
- 	// CTF image
+	MultidimArray<double> radial_meanI;
+	MultidimArray<double> radial_meanP;
+	MultidimArray<double> radQuotient;
+	FourierTransformer transformer;
+	MultidimArray< std::complex<double> > IFourier;
+	MultidimArray< std::complex<double> > PFourier;
+	MultidimArray<double> IFourierMag;
+	MultidimArray<std::complex<double> > PFourierPhase;
+	double Imin;
+	double Imax;
 
  public:
-
     /// Read argument from command line
     void readParams();
 
@@ -81,7 +97,22 @@
     /// Define parameters
     void defineParams();
 
-    /// Project volume and subtraction
+    /// Processing methods
+    Image<double> createMask(FileName, Image<double>);
+    FourierFilter createGaussianFilter(FourierFilter);
+    void readParticle(MDRowVec);
+    void percentileMinMax(const MultidimArray<double> &img, double &m, double &M);
+    void applyCTF(MDRowVec);
+    MultidimArray<double> computeRadialAvg(Image<double>, MultidimArray<double>);
+    MultidimArray<double> computeRadQuotient(MultidimArray<double>, MultidimArray<double>, MultidimArray<double>);
+    void runIteration();
+    Image<double> binarizeMask(Projection m);
+    Image<double> normMask(Image<double> m);
+    Image<double> invert(Image<double>);
+    Image<double> subtraction(Image<double>, Image<double>, Image<double>, Image<double>);
+    void writeParticle(int, Image<double>);
+
+    /// Run
     void run();
 
  };

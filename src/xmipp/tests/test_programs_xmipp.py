@@ -1597,3 +1597,26 @@ class VolSubtraction(XmippProgramTest):
     def validate_case4(self):
         import filecmp
         self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))
+
+
+class ProjSubtraction(XmippProgramTest):
+    _owner = EFG
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_subtract_projection'
+
+    def test_case1(self):
+        """Test projection subtraction"""
+        self.runCase("-i xmipp_subtract_projection/images.xmd "
+                     "--ref xmipp_subtract_projection/volume.vol "
+                     "-o %o/output_particles --iter 5 --lambda 1.0 --cutFreq 1.333333 --sigma 3 "
+                     "--maskVol xmipp_subtract_projection/mask_volume.vol "
+                     "--mask xmipp_subtract_projection/mask_keep.vol"
+                     "--savePart xmipp_subtract_projection/particle_mask.mrc"
+                     "--saveProj gold/xmipp_subtract_projection/",
+                     outputs=["output_particles.mrcs"],
+                     validate=self.validate_case1())
+
+    def validate_case1(self):
+        import filecmp
+        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_subtract_projection/output_particles.mrcs"))
