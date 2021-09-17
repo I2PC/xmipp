@@ -133,7 +133,12 @@ void ProgArtZernike3D::preProcess()
     V.read(fnVolR);
     V().setXmippOrigin();
     Xdim=XSIZE(V());
-    Vrefined() = V();
+
+	if (resume && fnVolO.exists()) {
+		Vrefined.read(fnVolO);
+	} else {
+		Vrefined() = V();
+	}
 	Vrefined().setXmippOrigin();
 
 	if (RmaxDef<0)
@@ -335,14 +340,16 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 
 	// Forward Model
 	forwardModel();
-	std::cout << "Forward Ok" << std::endl;
 
 	// ART update
 	updateART();
-	std::cout << "Update Ok" << std::endl;
 
 }
 #undef DEBUG
+
+void ProgArtZernike3D::checkPoint() {
+	Vrefined.write(fnVolO);
+}
 
 void ProgArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
 {

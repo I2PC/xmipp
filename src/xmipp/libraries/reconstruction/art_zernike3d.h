@@ -157,8 +157,8 @@ public:
 
     Matrix1D<double> weightsInterpolation3D(double x, double y, double z);
 
-    //AJ new
-    /** Write the final parameters. */
+    virtual void checkPoint();
+    
     virtual void finishProcessing();
 
 };
