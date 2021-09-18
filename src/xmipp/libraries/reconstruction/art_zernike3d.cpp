@@ -190,6 +190,9 @@ void ProgArtZernike3D::forwardModel()
 		if (DIRECT_A2D_ELEM(W(), i, j) != 0) {
 			DIRECT_A2D_ELEM(Idiff(), i, j) = lambda * (DIRECT_A2D_ELEM(I_shifted(), i, j) - DIRECT_A2D_ELEM(P(), i, j)) / DIRECT_A2D_ELEM(W(), i, j);
 		}
+		// } else {
+			// DIRECT_A2D_ELEM(Idiff(), i, j) = lambda * (DIRECT_A2D_ELEM(I_shifted(), i, j) - DIRECT_A2D_ELEM(P(), i, j));
+		// }
 	}
 }
 
@@ -197,8 +200,8 @@ void ProgArtZernike3D::updateART() {
 	int l1,n,l2,m;
 	double r_x, r_y, r_z;
 	const auto mV = V();
-	auxV.initZeros(Vrefined());
-	auxV.setXmippOrigin();
+	// auxV.initZeros(Vrefined());
+	// auxV.setXmippOrigin();
 	r_x = 0.0;
 	r_y = 0.0;
 	r_z = 0.0;
@@ -259,27 +262,31 @@ void ProgArtZernike3D::updateART() {
 					int z1 = z0 + 1;
 					double Idiff_val = A2D_ELEM(Idiff(),i,j);
 					w = weightsInterpolation3D(r_x,r_y,r_z);
-					if (!auxV.outside(z0, y0, x0))
-						A3D_ELEM(auxV,z0,y0,x0) += A3D_ELEM(Vrefined(),z0,y0,x0) + Idiff_val * VEC_ELEM(w,0);
-					if (!auxV.outside(z1,y0,x0))
-						A3D_ELEM(auxV,z1,y0,x0) += A3D_ELEM(Vrefined(),z1,y0,x0) + Idiff_val * VEC_ELEM(w,1);
-					if (!auxV.outside(z0,y1,x0))
-						A3D_ELEM(auxV,z0,y1,x0) += A3D_ELEM(Vrefined(),z0,y1,x0) + Idiff_val * VEC_ELEM(w,2);
-					if (!auxV.outside(z1,y1,x0))
-						A3D_ELEM(auxV,z1,y1,x0) += A3D_ELEM(Vrefined(),z1,y1,x0) + Idiff_val * VEC_ELEM(w,3);
-					if (!auxV.outside(z0,y0,x1))
-						A3D_ELEM(auxV,z0,y0,x1) += A3D_ELEM(Vrefined(),z0,y0,x1) + Idiff_val * VEC_ELEM(w,4);
-					if (!auxV.outside(z1,y0,x1))
-						A3D_ELEM(auxV,z1,y0,x1) += A3D_ELEM(Vrefined(),z1,y0,x1) + Idiff_val * VEC_ELEM(w,5);
-					if (!auxV.outside(z0,y1,x1))
-						A3D_ELEM(auxV,z0,y1,x1) += A3D_ELEM(Vrefined(),z0,y1,x1) + Idiff_val * VEC_ELEM(w,6);
-					if (!auxV.outside(z1,y1,x1))
-						A3D_ELEM(auxV,z1,y1,x1) += A3D_ELEM(Vrefined(),z1,y1,x1) + Idiff_val * VEC_ELEM(w,7);
+					if (!Vrefined().outside(z0, y0, x0))
+						A3D_ELEM(Vrefined(),z0,y0,x0) += Idiff_val * VEC_ELEM(w,0);
+					if (!Vrefined().outside(z1,y0,x0))
+						A3D_ELEM(Vrefined(),z1,y0,x0) += Idiff_val * VEC_ELEM(w,1);
+					if (!Vrefined().outside(z0,y1,x0))
+						A3D_ELEM(Vrefined(),z0,y1,x0) += Idiff_val * VEC_ELEM(w,2);
+					if (!Vrefined().outside(z1,y1,x0))
+						A3D_ELEM(Vrefined(),z1,y1,x0) += Idiff_val * VEC_ELEM(w,3);
+					if (!Vrefined().outside(z0,y0,x1))
+						A3D_ELEM(Vrefined(),z0,y0,x1) += Idiff_val * VEC_ELEM(w,4);
+					if (!Vrefined().outside(z1,y0,x1))
+						A3D_ELEM(Vrefined(),z1,y0,x1) += Idiff_val * VEC_ELEM(w,5);
+					if (!Vrefined().outside(z0,y1,x1))
+						A3D_ELEM(Vrefined(),z0,y1,x1) += Idiff_val * VEC_ELEM(w,6);
+					if (!Vrefined().outside(z1,y1,x1))
+						A3D_ELEM(Vrefined(),z1,y1,x1) += Idiff_val * VEC_ELEM(w,7);
 				}
 			}
 		}
 	}
-	Vrefined() = auxV;
+	// double norm_factor = std::abs(auxV.computeMax()) + std::abs(auxV.computeMin());
+	// norm_factor = 1 / norm_factor;
+	// FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxV)
+	// 	DIRECT_A3D_ELEM(auxV,k,i,j) += DIRECT_A3D_ELEM(Vrefined(),k,i,j);
+	// Vrefined() = auxV;
 }
 
 // Predict =================================================================
@@ -300,6 +307,7 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 	for(int i=0; i < vectortemp.size()-8; i++){
    		VEC_ELEM(clnm,i) = vectortemp[i];
 	}
+	removeOverdeformation();
 	if (rowIn.containsLabel(MDL_FLIP))
     	rowIn.getValue(MDL_FLIP,flip);
 	else
@@ -478,4 +486,25 @@ Matrix1D<double> ProgArtZernike3D::weightsInterpolation3D(double x, double y, do
 	VEC_ELEM(w,7) = fx0 * fy0 * fz0;  // w111 (x1,y1,z1)
 
 	return w;
+}
+
+void ProgArtZernike3D::removeOverdeformation() {
+	int pos = 3*vecSize;
+	size_t idxY0=(VEC_XSIZE(clnm))/3;
+	size_t idxZ0=2*idxY0;
+
+	Matrix2D<double> R, R_inv;
+	R.initIdentity(3);
+	R_inv.initIdentity(3);
+    Euler_angles2matrix(rot, tilt, psi, R, false);
+    R_inv = R.inv();
+	Matrix1D<double> c;
+	c.initZeros(3);
+	for (size_t idx=0; idx<idxY0; idx++) {
+		XX(c) = VEC_ELEM(clnm,idx); YY(c) = VEC_ELEM(clnm,idx+idxY0); ZZ(c) = VEC_ELEM(clnm,idx+idxZ0);
+		c = R * c;
+		ZZ(c) = 0.0;
+		c = R_inv * c;
+		VEC_ELEM(clnm,idx) = XX(c); VEC_ELEM(clnm,idx+idxY0) = YY(c); VEC_ELEM(clnm,idx+idxZ0) = ZZ(c);
+	}
 }

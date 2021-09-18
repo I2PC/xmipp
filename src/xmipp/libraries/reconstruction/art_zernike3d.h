@@ -157,6 +157,8 @@ public:
 
     Matrix1D<double> weightsInterpolation3D(double x, double y, double z);
 
+    void removeOverdeformation();
+
     virtual void checkPoint();
     
     virtual void finishProcessing();
