@@ -35,7 +35,7 @@
 
  class ProgSubtractProjection: public XmippProgram
  {
- public:
+ private:
     /** Filename of the reference volume */
     FileName fnVolR;
     FileName fnParticles;
@@ -45,8 +45,6 @@
     FileName fnMaskVol;
     FileName fnPart;
     FileName fnProj;
-
- public:
     MetaDataVec mdParticles;
     MDRowVec row;
     double cutFreq;
@@ -87,31 +85,25 @@
 	double Imin;
 	double Imax;
 
- public:
     /// Read argument from command line
     void readParams();
-
     /// Show
     void show();
-
     /// Define parameters
     void defineParams();
-
     /// Processing methods
-    Image<double> createMask(FileName, Image<double>);
-    FourierFilter createGaussianFilter(FourierFilter);
-    void readParticle(MDRowVec);
-    void percentileMinMax(const MultidimArray<double> &img, double &m, double &M);
-    void applyCTF(MDRowVec);
-    MultidimArray<double> computeRadialAvg(Image<double>, MultidimArray<double>);
-    MultidimArray<double> computeRadQuotient(MultidimArray<double>, MultidimArray<double>, MultidimArray<double>);
+    Image<double> createMask(FileName &, Image<double> &);
+    void readParticle(const MDRowVec &);
+    void percentileMinMax(const MultidimArray<double> &, double &, double &);
+    void applyCTF(const MDRowVec &);
+//    MultidimArray<double> computeRadialAvg(const Image<double> &, MultidimArray<double> &);
+//    MultidimArray<double> computeRadQuotient(MultidimArray<double> &, const MultidimArray<double> &, const MultidimArray<double> &);
     void runIteration();
-    Image<double> binarizeMask(Projection m);
-    Image<double> normMask(Image<double> m);
-    Image<double> invert(Image<double>);
-    Image<double> subtraction(Image<double>, Image<double>, Image<double>, Image<double>);
-    void writeParticle(int, Image<double>);
-
+    Image<double> binarizeMask(Projection &);
+    Image<double> normMask(Image<double> &);
+//    Image<double> invert(const Image<double> &);
+//    Image<double> subtraction(Image<double> &, const Image<double> &, const Image<double> &, const Image<double> &);
+    void writeParticle(const int &, Image<double> &);
     /// Run
     void run();
 

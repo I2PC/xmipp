@@ -157,7 +157,7 @@
  	DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
  }
 
- Image<double> ProgSubtractProjection::createMask(FileName fnM, Image<double> m) {
+ Image<double> ProgSubtractProjection::createMask(FileName &fnM, Image<double> &m) {
 	if (fnM.isEmpty()) {
 		m().resizeNoCopy(I());
 		m().initConstant(1.0);
@@ -169,7 +169,7 @@
 	return m;
  }
 
- void ProgSubtractProjection::readParticle(MDRowVec r){
+ void ProgSubtractProjection::readParticle(const MDRowVec &r){
 	r.getValue(MDL_IMAGE, fnImage);
 	std::cout<< "Particle: " << fnImage << std::endl;
 	I.read(fnImage);
@@ -188,7 +188,7 @@
  	M = sortedI(p99);
  }
 
- void ProgSubtractProjection::applyCTF(MDRowVec r) {
+ void ProgSubtractProjection::applyCTF(const MDRowVec &r) {
 	if ((r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL))){
 		hasCTF=true;
 		ctf.readFromMdRow(r);
@@ -205,8 +205,8 @@
 	}
  }
 
- MultidimArray<double> ProgSubtractProjection::computeRadialAvg(Image<double> img, MultidimArray<double> radial_mean){
-	 Image<double> imgRad;
+ MultidimArray<double> computeRadialAvg(const Image<double> &img, MultidimArray<double> &radial_mean){
+	Image<double> imgRad;
  	imgRad = img;
 	FourierTransformer transformerRad;
 	MultidimArray< std::complex<double> > IFourierRad;
@@ -220,22 +220,20 @@
 	center.initZeros();
 	MultidimArray<int> radial_count;
 	radialAverage(IFourierMagRad, center, radial_mean, radial_count);
-	radial_mean.write(formatString("%s/Irad.txt", fnProj.c_str()));
 	int my_rad;
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(IFourierMagRad) {
 		my_rad = (int)floor(sqrt((double)(i * i + j * j + k * k)));
 		imgRad(k, i, j) = radial_mean(my_rad);
 	}
-	imgRad.write(formatString("%s/Irad.mrc", fnProj.c_str()));
 	return radial_mean;
  }
 
- MultidimArray<double> ProgSubtractProjection::computeRadQuotient(MultidimArray<double> rq, MultidimArray<double> rmI, MultidimArray<double> rmP){
+ MultidimArray<double> computeRadQuotient(MultidimArray<double> &rq, const MultidimArray<double> & rmI,
+		 const MultidimArray<double> &rmP){
 	rq = rmI/rmP;
 	FOR_ALL_ELEMENTS_IN_ARRAY1D(rq) {
 		rq(i) = std::min(rq(i), 1.0);
 	}
-	rq.write(formatString("%s/radQuotient.txt", fnProj.c_str()));
 	return rq;
  }
 
@@ -252,8 +250,7 @@
 	P.write(formatString("%s/Pphase.mrc", fnProj.c_str()));
  }
 
- Image<double> ProgSubtractProjection::binarizeMask(Projection m) {
-	PmaskFilt = m;
+ Image<double> ProgSubtractProjection::binarizeMask(Projection &m) {
  	double maxMaskVol, minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
@@ -261,7 +258,7 @@
  	return m;
  }
 
- Image<double> ProgSubtractProjection::normMask(Image<double> m) {
+ Image<double> ProgSubtractProjection::normMask(Image<double> &m) {
  	double maxMaskVol, minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
@@ -269,21 +266,21 @@
  	return m;
  }
 
- Image<double> ProgSubtractProjection::invert(Image<double> m) {
-	PmaskInv = m;
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskInv())
-		DIRECT_MULTIDIM_ELEM(PmaskInv,n) = (DIRECT_MULTIDIM_ELEM(PmaskInv,n)*(-1))+1;
-	PmaskInv.write(formatString("%s/maskFocusInv.mrc", fnProj.c_str()));
-	return PmaskInv;
+ Image<double> invertMask(const Image<double> &m) {
+	Image<double> PmaskI = m;
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskI())
+		DIRECT_MULTIDIM_ELEM(PmaskI,n) = (DIRECT_MULTIDIM_ELEM(PmaskI,n)*(-1))+1;
+	return PmaskI;
  }
 
- Image<double> ProgSubtractProjection::subtraction(Image<double> I1, Image<double> I2, Image<double>minv, Image<double>m){
+ Image<double> subtraction(Image<double> &I1, const Image<double> &I2,
+		 const Image<double> &minv, const Image<double> &m){
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1())
-			DIRECT_MULTIDIM_ELEM(I1,n) = (DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n))) * DIRECT_MULTIDIM_ELEM(m,n);
+		DIRECT_MULTIDIM_ELEM(I1,n) = (DIRECT_MULTIDIM_ELEM(I1,n)-(DIRECT_MULTIDIM_ELEM(I2,n)*DIRECT_MULTIDIM_ELEM(minv,n))) * DIRECT_MULTIDIM_ELEM(m,n);
 	return I1;
  }
 
- void ProgSubtractProjection::writeParticle(int ix, Image<double> img) {
+ void ProgSubtractProjection::writeParticle(const int &ix, Image<double> &img) {
 	FileName out = formatString("%d@%s.mrcs", ix, fnOut.c_str());
 	img.write(out);
 	mdParticles.setValue(MDL_IMAGE, out, ix);
@@ -325,8 +322,11 @@
 		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
 		applyCTF(row);
 		radial_meanI = computeRadialAvg(I, radial_meanI);
+		radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
 		radial_meanP = computeRadialAvg(P, radial_meanP);
+		radial_meanP.write(formatString("%s/Prad.txt", fnProj.c_str()));
 		radQuotient = computeRadQuotient(radQuotient, radial_meanI, radial_meanP);
+		radQuotient.write(formatString("%s/radQuotient.txt", fnProj.c_str()));
 		percentileMinMax(I(), Imin, Imax);
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
@@ -351,7 +351,8 @@
     	PmaskFilt = binarizeMask(Pmask);
     	PmaskFilt = normMask(PmaskFilt);
     	PmaskFilt.write(formatString("%s/maskFocusBin.mrc", fnProj.c_str()));
-		PmaskInv = invert(PmaskFilt);
+		PmaskInv = invertMask(PmaskFilt);
+		PmaskInv.write(formatString("%s/maskFocusInv.mrc", fnProj.c_str()));
 		FilterG.applyMaskSpace(PmaskFilt());
 		PmaskFilt.write(formatString("%s/maskFocusBinGauss.mrc", fnProj.c_str()));
 		I.write(formatString("%s/Ifilt.mrc", fnProj.c_str()));
