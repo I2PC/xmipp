@@ -89,8 +89,8 @@
      addParamsLine("[--iter <n=1>]\t: Number of iterations");
      addParamsLine("[--cutFreq <f=0>]\t: Cutoff frequency (<0.5)");
      addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
-	 addParamsLine("[--savePart <structure=\"\"> ]	: Save subtraction intermediate files (particle filtered)");
-	 addParamsLine("[--saveProj <structure=\"\"> ]	: Save subtraction intermediate files (projection adjusted)");
+	 addParamsLine("[--savePart <structure=\"\"> ]\t: Save subtraction intermediate files (particle filtered)");
+	 addParamsLine("[--saveProj <structure=\"\"> ]\t: Save subtraction intermediate files (projection adjusted)");
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
@@ -177,9 +177,9 @@
 
  void ProgSubtractProjection::percentileMinMax(const MultidimArray<double> &img, double &m, double &M) const{
  	MultidimArray<double> sortedI;
- 	double p0005;
- 	double p99;
- 	double size;
+ 	long p0005;
+ 	long p99;
+ 	long size;
  	size = img.xdim * img.ydim;
  	p0005 = size * 0.005;
  	p99 = size * 0.995;
