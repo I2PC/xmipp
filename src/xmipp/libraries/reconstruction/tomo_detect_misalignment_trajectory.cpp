@@ -413,8 +413,10 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 				if(coordinates3Dy[x] == chainIndexY)
 				{
 					chainLineY[coordinates3Dx[x]] = 1;
-					if(tiltAngles[coordinates3Dn[x]]>chainLineYAngles[coordinates3Dx[x]])
+					
+					if(abs(tiltAngles[coordinates3Dn[x]])>abs(chainLineYAngles[coordinates3Dx[x]]))
 					{
+						std::cout << "tiltAngles[coordinates3Dn[x]]=" << tiltAngles[coordinates3Dn[x]] << std::endl;
 						chainLineYAngles[coordinates3Dx[x]] = tiltAngles[coordinates3Dn[x]];
 					}
 				}		
@@ -443,13 +445,13 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		std::vector<size_t> clusterSizeVector;
 		float landmarkDisplacementThreshold;
 
-		// std::cout << "[" << std::endl;
+		std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ANGLES" << std::endl;
+		for (size_t j = 0; j < chainLineYAngles.size(); j++)
+		{
+			std::cout << chainLineYAngles[j]  << std::endl ;
+		}
 
-		// for (size_t j = 0; j < chainLineY.size(); j++)
-		// {
-		// 	std::cout << chainLineY[j]  << std::endl ;
-		// }
-		// std::cout << "]" << std::endl;
+		exit(0);
 
 		for (size_t j = 0; j < chainLineY.size(); j++)
 		{
@@ -462,6 +464,9 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			{
 				landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+3*tiltAngleStep, j); // *** criterio para coger numero angulos
 			}
+
+			std::cout << "j=" << j << std::endl;
+			std::cout << "landmarkDisplacementThreshold=" << landmarkDisplacementThreshold << std::endl;
 
 			if(chainLineY[j]==1 && clusteredChainLineY[j]==0)
 			{
@@ -541,14 +546,14 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		{	
 			if(clusteredChainLineY[j] != 0)
 			{
-				std::cout << "j=" << j << std::endl; 
-				std::cout << "clusteredChainLineY[j]=" << clusteredChainLineY[j] << std::endl; 
-				std::cout << "clusterSizeVector[clusteredChainLineY[j]-1]=" << clusterSizeVector[clusteredChainLineY[j]-1] << std::endl;
+				// std::cout << "j=" << j << std::endl; 
+				// std::cout << "clusteredChainLineY[j]=" << clusteredChainLineY[j] << std::endl; 
+				// std::cout << "clusterSizeVector[clusteredChainLineY[j]-1]=" << clusterSizeVector[clusteredChainLineY[j]-1] << std::endl;
 
-				if (clusteredChainLineY[j]!=1)
-				{
-					std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! clusteredChainLineY[j]!=1" << std::endl; 
-				}
+				// if (clusteredChainLineY[j]!=1)
+				// {
+				// 	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! clusteredChainLineY[j]!=1" << std::endl; 
+				// }
 				 
 
 				if (clusterSizeVector[clusteredChainLineY[j]-1] > numberOfElementsInChainThreshold)
@@ -1315,8 +1320,11 @@ float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda
 
 float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplacement(float theta1, float theta2, float coordinateProjX)
 {
-
-	return ((cos(theta2)/cos(theta1))-1)*coordinateProjX;
+	float xCoor = xSize/2 - coordinateProjX;
+	std::cout << "xCoor=" << xCoor << std::endl;
+	std::cout << "theta1=" << theta1 << std::endl;
+	std::cout << "theta2=" << theta2 << std::endl;
+	return abs(((cos(theta2)/cos(theta1))-1)*xCoor);
 
 }
 
