@@ -1,27 +1,27 @@
-// /***************************************************************************
-//  *
-//  * Authors:    Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
-//  *
-//  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
-//  *
-//  * This program is free software; you can redistribute it and/or modify
-//  * it under the terms of the GNU General Public License as published by
-//  * the Free Software Foundation; either version 2 of the License, or
-//  * (at your option) any later version.
-//  *
-//  * This program is distributed in the hope that it will be useful,
-//  * but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  * GNU General Public License for more details.
-//  *
-//  * You should have received a copy of the GNU General Public License
-//  * along with this program; if not, write to the Free Software
-//  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-//  * 02111-1307  USA
-//  *
-//  *  All comments concerning this program package may be sent to the
-//  *  e-mail address 'xmipp@cnb.csic.es'
-//  ***************************************************************************/
+/***************************************************************************
+ *
+ * Authors:    Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
 
  #include "subtract_projection.h"
  #include "core/transformations.h"
@@ -59,21 +59,18 @@
  }
 
  // Show ====================================================================
- void ProgSubtractProjection::show()
- {
+ void ProgSubtractProjection::show() const{
     if (!verbose)
         return;
-	std::cout
-	<< "Input particles:   	" << fnParticles << std::endl
-	<< "Reference volume:   " << fnVolR      << std::endl
-	<< "Volume mask:  		" << fnMaskVol   << std::endl
-	<< "Mask:    	   		" << fnMask      << std::endl
-	<< "Sigma:				" << sigma       << std::endl
-	<< "Iterations:    	   	" << iter        << std::endl
-	<< "Cutoff frequency:  	" << cutFreq     << std::endl
-	<< "Relaxation factor:  " << lambda      << std::endl
-	<< "Output particles: 	" << fnOut 	     << std::endl
-	;
+	std::cout<< "Input particles:\t" << fnParticles << std::endl
+	<< "Reference volume:\t" << fnVolR      << std::endl
+	<< "Volume mask:\t" << fnMaskVol   << std::endl
+	<< "Mask:\t" << fnMask      << std::endl
+	<< "Sigma:\t" << sigma       << std::endl
+	<< "Iterations:\t" << iter        << std::endl
+	<< "Cutoff frequency:\t" << cutFreq     << std::endl
+	<< "Relaxation factor:\t" << lambda      << std::endl
+	<< "Output particles:\t" << fnOut 	     << std::endl;
  }
 
  // usage ===================================================================
@@ -82,18 +79,18 @@
      //Usage
      addUsageLine("");
      //Parameters
-     addParamsLine("-i <particles>          	: Particles metadata (.xmd file)");
-     addParamsLine("--ref <volume>      		: Reference volume to subtract");
-     addParamsLine("[-o <structure=\"\">] 		: Output filename suffix for subtracted particles");
-     addParamsLine("                      		: If no name is given, then output_particles.xmd");
-     addParamsLine("[--maskVol <maskVol=\"\">]  : 3D mask for input volume");
-     addParamsLine("[--mask <mask=\"\">]  		: 3D mask for the region of subtraction");
-     addParamsLine("[--sigma <s=3>]    			: Decay of the filter (sigma) to smooth the mask transition");
-     addParamsLine("[--iter <n=1>]        		: Number of iterations");
-     addParamsLine("[--cutFreq <f=0>]       	: Cutoff frequency (<0.5)");
-     addParamsLine("[--lambda <l=0>]       		: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
-	 addParamsLine("[--savePart <structure=\"\"> ]  : Save subtraction intermediate files (particle filtered)");
-	 addParamsLine("[--saveProj <structure=\"\"> ]  : Save subtraction intermediate files (projection adjusted)");
+     addParamsLine("-i <particles>\t: Particles metadata (.xmd file)");
+     addParamsLine("--ref <volume>\t: Reference volume to subtract");
+     addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for subtracted particles");
+     addParamsLine("\t: If no name is given, then output_particles.xmd");
+     addParamsLine("[--maskVol <maskVol=\"\">]\t: 3D mask for input volume");
+     addParamsLine("[--mask <mask=\"\">]\t: 3D mask for the region of subtraction");
+     addParamsLine("[--sigma <s=3>]\t: Decay of the filter (sigma) to smooth the mask transition");
+     addParamsLine("[--iter <n=1>]\t: Number of iterations");
+     addParamsLine("[--cutFreq <f=0>]\t: Cutoff frequency (<0.5)");
+     addParamsLine("[--lambda <l=0>]\t: Relaxation factor for Fourier Amplitude POCS (between 0 and 1)");
+	 addParamsLine("[--savePart <structure=\"\"> ]	: Save subtraction intermediate files (particle filtered)");
+	 addParamsLine("[--saveProj <structure=\"\"> ]	: Save subtraction intermediate files (projection adjusted)");
      addExampleLine("A typical use is:",false);
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
@@ -108,17 +105,18 @@
  	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
  }
 
- void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, MultidimArray<double> &rQ, int Isize) {
+ void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, const MultidimArray<double> &rQ, int Isize) {
  	int Isize2 = Isize/2;
  	double Isizei = 1.0/Isize;
- 	double wx, wy;
+ 	double wx;
+ 	double wy;
  	for (int i=0; i<YSIZE(A); ++i) {
- 		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isizei,wy);
+ 		FFT_IDX2DIGFREQ_FAST(i,Isize,Isize2,Isizei,wy)
  		double wy2 = wy*wy;
  		for (int j=0; j<XSIZE(A); ++j) {
- 			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isizei,wx);
+ 			FFT_IDX2DIGFREQ_FAST(j,Isize,Isize2,Isizei,wx)
  			double w = sqrt(wx*wx + wy2);
- 			int iw = (int)round(w*Isize);
+ 			auto iw = (int)round(w*Isize);
  			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
  			if (mod>1e-6)
  				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
@@ -146,7 +144,7 @@
 
  void extractPhaseProj(MultidimArray< std::complex<double> > &FI) {
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
- 		double *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI,n);
+ 		const auto *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI,n);
  		double phi = atan2(*(ptr+1),*ptr);
  		DIRECT_MULTIDIM_ELEM(FI,n) = std::complex<double>(cos(phi),sin(phi));
  	}
@@ -157,7 +155,7 @@
  	DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
  }
 
- Image<double> ProgSubtractProjection::createMask(FileName &fnM, Image<double> &m) {
+ Image<double> ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
 	if (fnM.isEmpty()) {
 		m().resizeNoCopy(I());
 		m().initConstant(1.0);
@@ -177,9 +175,11 @@
 	I.write(formatString("%s/I.mrc", fnProj.c_str()));
  }
 
- void ProgSubtractProjection::percentileMinMax(const MultidimArray<double> &img, double &m, double &M) {
+ void ProgSubtractProjection::percentileMinMax(const MultidimArray<double> &img, double &m, double &M) const{
  	MultidimArray<double> sortedI;
- 	int p0005, p99, size;
+ 	double p0005;
+ 	double p99;
+ 	double size;
  	size = img.xdim * img.ydim;
  	p0005 = size * 0.005;
  	p99 = size * 0.995;
@@ -189,7 +189,7 @@
  }
 
  void ProgSubtractProjection::applyCTF(const MDRowVec &r) {
-	if ((r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL))){
+	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		hasCTF=true;
 		ctf.readFromMdRow(r);
 		ctf.produceSideInfo();
@@ -250,16 +250,18 @@
 	P.write(formatString("%s/Pphase.mrc", fnProj.c_str()));
  }
 
- Image<double> ProgSubtractProjection::binarizeMask(Projection &m) {
- 	double maxMaskVol, minMaskVol;
+ Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
+ 	double maxMaskVol;
+ 	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
  		DIRECT_MULTIDIM_ELEM(m(),n) =(DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0;
  	return m;
  }
 
- Image<double> ProgSubtractProjection::normMask(Image<double> &m) {
- 	double maxMaskVol, minMaskVol;
+ Image<double> ProgSubtractProjection::normMask(Image<double> &m) const{
+ 	double maxMaskVol;
+ 	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
  		DIRECT_MULTIDIM_ELEM(m(),n) /= maxMaskVol;
@@ -358,7 +360,7 @@
 		I.write(formatString("%s/Ifilt.mrc", fnProj.c_str()));
 		P.write(formatString("%s/Padj.mrc", fnProj.c_str()));
 		I = subtraction(I, P, PmaskInv, PmaskFilt);
-		writeParticle(i, I);
+		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
  }

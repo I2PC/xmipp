@@ -1,27 +1,27 @@
-// /***************************************************************************
-// *
-// * Authors:    Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
-// *
-// * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
-// *
-// * This program is free software; you can redistribute it and/or modify
-// * it under the terms of the GNU General Public License as published by
-// * the Free Software Foundation; either version 2 of the License, or
-// * (at your option) any later version.
-// *
-// * This program is distributed in the hope that it will be useful,
-// * but WITHOUT ANY WARRANTY; without even the implied warranty of
-// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// * GNU General Public License for more details.
-// *
-// * You should have received a copy of the GNU General Public License
-// * along with this program; if not, write to the Free Software
-// * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-// * 02111-1307  USA
-// *
-// *  All comments concerning this program package may be sent to the
-// *  e-mail address 'xmipp@cnb.csic.es'
-// ***************************************************************************/
+ /***************************************************************************
+ *
+ * Authors:    Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
 
  #ifndef _PROG_SUBTRACT_PROJECTION
  #define _PROG_SUBTRACT_PROJECTION
@@ -86,26 +86,22 @@
 	double Imax;
 
     /// Read argument from command line
-    void readParams();
+    void readParams() override;
     /// Show
-    void show();
+    void show() const override;
     /// Define parameters
-    void defineParams();
+    void defineParams() override;
     /// Processing methods
-    Image<double> createMask(FileName &, Image<double> &);
+    Image<double> createMask(const FileName &, Image<double> &);
     void readParticle(const MDRowVec &);
-    void percentileMinMax(const MultidimArray<double> &, double &, double &);
+    void percentileMinMax(const MultidimArray<double> &, double &, double &) const;
     void applyCTF(const MDRowVec &);
-//    MultidimArray<double> computeRadialAvg(const Image<double> &, MultidimArray<double> &);
-//    MultidimArray<double> computeRadQuotient(MultidimArray<double> &, const MultidimArray<double> &, const MultidimArray<double> &);
     void runIteration();
-    Image<double> binarizeMask(Projection &);
-    Image<double> normMask(Image<double> &);
-//    Image<double> invert(const Image<double> &);
-//    Image<double> subtraction(Image<double> &, const Image<double> &, const Image<double> &, const Image<double> &);
+    Image<double> binarizeMask(Projection &) const;
+    Image<double> normMask(Image<double> &) const;
     void writeParticle(const int &, Image<double> &);
     /// Run
-    void run();
+    void run() override;
 
  };
  //@}
