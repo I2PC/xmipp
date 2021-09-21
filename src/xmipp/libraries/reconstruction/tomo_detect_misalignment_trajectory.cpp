@@ -465,7 +465,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			if(chainLineY[j]==1 && clusteredChainLineY[j]==0)
 			{
 				// Check angle range to calculate landmarkDisplacementThreshold does not go further that the size of the image
-				if (chainLineYAngles[j]+5*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
+				if (chainLineYAngles[j]+7*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
 				{
 					std::cout << "############################################################################## calculateLandmarkProjectionDiplacement DEFAULT"<< std::endl;
 					std::cout << tiltAngles[tiltAngles.size()-1]<< std::endl;
@@ -474,7 +474,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 				else
 				{
 					std::cout << "############################################################################## calculateLandmarkProjectionDiplacement CALCULATED"<< std::endl;
-					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+5*tiltAngleStep, j); // *** criterio para coger numero angulos
+					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+7*tiltAngleStep, j); // *** criterio para coger numero angulos
 				}
 
 				if(clusterIdSize > 0)
@@ -507,7 +507,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			else if (chainLineY[j]==1 && clusteredChainLineY[j]!=0 && clusterIdSize>0)
 			{
 				// Check angle range to calculate landmarkDisplacementThreshold does not go further that the size of the image
-				if (chainLineYAngles[j]+5*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
+				if (chainLineYAngles[j]+7*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
 				{
 					std::cout << "############################################################################## calculateLandmarkProjectionDiplacement DEFAULT"<< std::endl;
 					std::cout << tiltAngles[tiltAngles.size()-1]<< std::endl;
@@ -516,7 +516,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 				else
 				{
 					std::cout << "############################################################################## calculateLandmarkProjectionDiplacement CALCULATED"<< std::endl;
-					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+5*tiltAngleStep, j); // *** criterio para coger numero angulos
+					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+7*tiltAngleStep, j); // *** criterio para coger numero angulos
 				}
 
 				std::cout << "j=" << j << std::endl;
@@ -624,234 +624,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	#endif
 }
 
-// void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains(MultidimArray<int> projectedCoordinates)
-// {
-// 	std::vector<size_t> counterLinesOfLandmarkAppearance(ySize);
-
-// 	for(size_t i = 0; i < ySize; i++)
-// 	{
-// 		for(int j = 0; j < coordinates3Dy.size(); j++)
-// 		{
-// 			if(coordinates3Dy[j] == i)
-// 			{
-// 				counterLinesOfLandmarkAppearance[i] += 1;
-// 			}
-
-// 			if (coordinates3Dy[j-1] == i && j-1 > 0)
-// 			{
-// 				counterLinesOfLandmarkAppearance[i] += 1;
-// 			}
-
-// 			else if (coordinates3Dy[j+1] == i && j+1 < coordinates3Dy.size())
-// 			{
-// 				counterLinesOfLandmarkAppearance[i] += 1;
-// 			}
-// 		}
-// 	}
-
-// 	std::cout << "Test 1" << std::endl;
-
-// 	// Take the average of the three most populated indexes as the expected value for a Possion distribution testing
-// 	size_t numberOfIndexesForPossionAverage = 3;
-// 	float poissonAverage = 0;
-
-// 	std::vector<size_t> histogramOfLandmarkAppearanceSorted = counterLinesOfLandmarkAppearance;
-
-// 	// *** TODO: optimize, get n maxima elements without sorting
-// 	sort(histogramOfLandmarkAppearanceSorted.begin(), histogramOfLandmarkAppearanceSorted.end());
-	
-// 	for (size_t i = 0; i < numberOfIndexesForPossionAverage; i++)
-// 	{
-// 		poissonAverage += histogramOfLandmarkAppearanceSorted[histogramOfLandmarkAppearanceSorted.size()-i];
-// 	}
-
-// 	poissonAverage /= 3;
-
-// 	std::vector<size_t> chainIndexesY;
-
-//     std::cout << "Test 2" << std::endl;
-
-// 	// Test possion probability
-// 	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
-// 	{
-// 		if (testPoissonDistribution(poissonAverage, counterLinesOfLandmarkAppearance[i])<0.05)
-// 		{
-// 			chainIndexesY.push_back(i);
-// 		}
-// 	}
-
-
-// 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// CHAIN INDEXESS
-
-// 	MultidimArray<int> chainCoordinates;
-// 	chainCoordinates.initZeros(ySize, xSize);
-
-// 	for (size_t j = 0; j < chainIndexesY.size(); j++)
-// 	{
-// 		size_t yCoor = chainIndexesY[j];
-
-// 		std::vector<size_t> clusteredChainLineY(xSize, 0);
-
-// 		for(size_t i = 0; i < xSize; i++)
-// 		{
-// 			if(DIRECT_A2D_ELEM(projectedCoordinates, j, i) == 1 ||
-// 			   DIRECT_A2D_ELEM(projectedCoordinates, i, j+1) == 1 ||
-// 			   DIRECT_A2D_ELEM(projectedCoordinates, i, j-1) == 1 ||)
-// 			{
-				
-// 			}
-
-// 		}
-// 	}
-	
-
-// 	// SPLIT CHAINS 
-// 	MultidimArray<int> chain2dMap;
-// 	chain2dMap.initZeros(ySize, xSize);
-
-// 	std::cout << "Test 3" << std::endl;
-// 	std::cout << "------------------------------------------------------------chainIndexesY.size()" << chainIndexesY.size() << std::endl;
-
-
-// 	for (size_t i = 0; i < chainIndexesY.size(); i++)
-// 	{
-// 		size_t chainIndexY = chainIndexesY[i];
-
-// 		// Binary vector with one's in the x coordinates belonging to each y coordinate
-// 		std::vector<size_t> chainLineY(xSize, 0);
-
-// 		// Vector containing the angles of the selected coordinates
-// 		std::vector<size_t> chainLineYAngles(xSize, 0);
-		
-// 		for (size_t j = 0; j < chainLineY.size() ; j++)
-// 		{
-// 			for(int x = 0; x < coordinates3Dx.size(); x++)
-// 			{
-// 				if(coordinates3Dy[x] == chainIndexY)
-// 				{
-// 					chainLineY[coordinates3Dx[x]] = 1;
-// 					chainLineYAngles[coordinates3Dx[x]] = tiltAngles[coordinates3Dn[x]];
-// 				}		
-// 				else if(x-1 > 0 && coordinates3Dy[x-1] == chainIndexY)
-// 				{
-// 					chainLineY[coordinates3Dx[x-1]] = 1;
-// 					chainLineYAngles[coordinates3Dx[x-1]] = tiltAngles[coordinates3Dn[x-1]];
-
-// 				}	
-// 				else if(x+1 < coordinates3Dy.size() && coordinates3Dy[x+1] == chainIndexY)
-// 				{
-// 					chainLineY[coordinates3Dx[x+1]] = 1;
-// 					chainLineYAngles[coordinates3Dx[x+1]] = tiltAngles[coordinates3Dn[x+1]];
-
-// 				}	
-// 			}
-// 		}
-
-// 		std::cout << "Test 4" << std::endl;
-
-
-// 		// Cluser the chainLineY vector
-// 		std::vector<size_t> clusteredChainLineY(xSize, 0);
-// 		size_t clusterId = 1;
-// 		size_t clusterIdSize = 0;
-// 		std::vector<size_t> clusterSizeVector;
-
-// 		// std::cout << "[" << std::endl;
-
-// 		// for (size_t j = 0; j < chainLineY.size(); j++)
-// 		// {
-// 		// 	std::cout << chainLineY[j]  << std::endl ;
-// 		// }
-// 		// std::cout << "]" << std::endl;
-
-// 		for (size_t j = 0; j < chainLineY.size(); j++)
-// 		{
-// 			if(chainLineY[j]==1 && clusteredChainLineY[j]==0)
-// 			{
-// 				clusteredChainLineY[j] = clusterId;
-// 				clusterIdSize += 1;
-
-// 				float landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+2*tiltAngleStep, j);
-
-// 				for (size_t k = 1; k <= landmarkDisplacementThreshold; k++)
-// 				{
-// 					if(chainLineY[j+k]==1)
-// 					{
-// 						clusteredChainLineY[j+k] = clusterId;
-// 						clusterIdSize += 1;
-// 					}
-// 				}
-// 			}
-// 			else if (chainLineY[j]==1 && clusteredChainLineY[j]!=0)
-// 			{
-// 				float landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+2*tiltAngleStep, j);
-
-// 				int found = 0;
-
-// 				for (size_t k = 1; k <= landmarkDisplacementThreshold; k++)
-// 				{
-// 					if(chainLineY[j+k]==1)
-// 					{
-// 						found = 1;
-// 						clusteredChainLineY[j+k] = clusterId;
-// 						clusterIdSize += 1;
-// 					}
-// 				}
-
-// 				if (found==0)
-// 				{
-// 					clusterId += 1;
-// 					clusterSizeVector.push_back(clusterIdSize);
-// 					clusterIdSize = 0;
-// 				}
-// 			}
-// 		}
-
-// 		if(clusterIdSize>0)
-// 		{
-// 			clusterSizeVector.push_back(clusterIdSize);
-// 			clusterIdSize = 0;
-// 		}
-
-// 		std::cout << "Test 5" << std::endl;
-
-// 		// Complete the overall 2D chain map
-// 		// *** TODO Make threshold more clever
-// 		size_t numberOfElementsInChainThreshold = 10;
-
-// 		// std::cout << "clusteredChainLineY.size()=" << clusteredChainLineY.size() << std::endl; 
-// 		// std::cout << "clusterSizeVector.size()=" << clusterSizeVector.size() << std::endl; 
-
-// 		for (size_t j = 0; j < clusteredChainLineY.size(); j++)
-// 		{	
-// 			// std::cout << "j=" << j << std::endl; 
-// 			// std::cout << "clusteredChainLineY[j]=" << clusteredChainLineY[j] << std::endl; 
-// 			// std::cout << "clusterSizeVector[clusteredChainLineY[j]]=" << clusterSizeVector[clusteredChainLineY[j]] << std::endl; 
-
-// 			if(clusteredChainLineY[j] != 0)
-// 			{
-// 				if (clusterSizeVector[clusteredChainLineY[j]] > numberOfElementsInChainThreshold)
-// 				{
-// 					DIRECT_A2D_ELEM(chain2dMap, chainIndexY, j) = 1;
-// 				}			
-// 			}
-// 		}
-// 	}
-
-// 	std::cout << "Test 6" << std::endl;
-
-
-// 	#ifdef DEBUG_OUTPUT_FILES
-// 	size_t lastindex = fnOut.find_last_of(".");
-// 	std::string rawname = fnOut.substr(0, lastindex);
-// 	std::string outputFileNameFilteredVolume;
-//     outputFileNameFilteredVolume = rawname + "_filteredChains.mrc";
-
-// 	Image<int> saveImage;
-// 	saveImage() = chain2dMap;
-// 	saveImage.write(outputFileNameFilteredVolume);
-// 	#endif
-// }
 
 void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inputCoordMd)
 {
