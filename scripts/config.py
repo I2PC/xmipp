@@ -295,6 +295,7 @@ class Config:
             if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
                 print(yellow("\n'libhdf5' not found at '%s'." % localLib))
                 hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
+                                                         "/usr/lib/x86_64-linux-gnu/hdf5/serial"
                                                          "/usr/lib/x86_64-linux-gnu"])
                 hdf5Lib = askPath(hdf5Lib, self.ask)
                 if hdf5Lib:
