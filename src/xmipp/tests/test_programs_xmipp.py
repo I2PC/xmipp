@@ -281,15 +281,22 @@ class CtfEstimateFromMicrograph(XmippProgramTest):
     def test_case1(self):
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --dont_estimate_ctf",
                 outputs=["micrograph.psd"])
+    
     def test_case2(self):
+        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        print(yellow('test_case2 is skipped as ' + cause))
+        self.skipTest(cause)
         self.setTimeOut(400)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000",
                 postruns=["xmipp_metadata_utilities -i %o/micrograph.ctfparam --operate keep_column 'ctfDefocusU ctfDefocusV' -o %o/Defocus.xmd" ,
                           'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusU = round(ctfDefocusU/100.0)" ',
                           'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusV = round(ctfDefocusV/100.0)" '],
                 outputs=["micrograph.psd","micrograph_enhanced_psd.xmp","micrograph.ctfparam","Defocus.xmd"])
-
+    
     def test_case3(self):
+        cause = 'ouputs of xmipp_ctf_estimate_from_micrograph are highly unstable'
+        print(yellow('test_case3 is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("--micrograph input/Protocol_Preprocess_Micrographs/Micrographs/01nov26b.001.001.001.002.mrc --oroot %o/micrograph --sampling_rate 1.4 --voltage 200 --spherical_aberration 2.5 --pieceDim 256 --downSamplingPerformed 2.5 --ctfmodelSize 256  --defocusU 14900 --defocusV 14900 --min_freq 0.01 --max_freq 0.3 --defocus_range 1000 --acceleration1D",
         postruns=["xmipp_metadata_utilities -i %o/micrograph.ctfparam --operate keep_column 'ctfDefocusU ctfDefocusV' -o %o/Defocus.xmd",
             'xmipp_metadata_utilities -i %o/Defocus.xmd --operate  modify_values "ctfDefocusU = round(ctfDefocusU/100.0)" ',
@@ -951,6 +958,9 @@ class TomoExtractSubvolume(XmippProgramTest):
         return 'xmipp_tomo_extract_subvolume'
 
     def test_case1(self):
+        cause = 'it is testing a deprecated program'
+        print(yellow('test TomoExtractSubvolume is skipped as ' + cause))
+        self.skipTest(cause)
         self.runCase("-i input/ico.vol --oroot %o/vertices --center 0 0 50 --size 30 --sym i3",
                 outputs=["vertices.stk","vertices.xmd"])
 
@@ -1530,3 +1540,60 @@ class MlTomoMpi(XmippProgramTest):
                 outputs=["test1/iter22_img.xmd","test1/iter22_it000001_ref.xmd","test1/iter22_ref.xmd"])
 
 
+class VolSubtraction(XmippProgramTest):
+    _owner = EFG
+    @classmethod
+    def getProgram(cls):
+        return 'xmipp_volume_subtraction'
+
+    def test_case1(self):
+        """Test subtraction with radial average"""
+        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
+                     "-o %o/output_volume1.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
+                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
+                     "--cutFreq 1.333333 --sigma 3 --radavg --computeEnergy",
+                     outputs=["output_volume1.mrc"],
+                     validate=self.validate_case1())
+
+    def validate_case1(self):
+        import filecmp
+        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/subtraction_radAvg.mrc"))
+
+    def test_case2(self):
+        """Test subtraction without radial average"""
+        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
+                     "-o %o/output_volume2.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
+                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --sub "
+                     "--cutFreq 1.333333 --sigma 3 --computeEnergy",
+                     outputs=["output_volume2.mrc"],
+                     validate=self.validate_case2())
+
+    def validate_case2(self):
+        import filecmp
+        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/subtraction.mrc"))
+
+    def test_case3(self):
+        """Test adjustment without radial average"""
+        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
+                     "-o %o/output_volume3.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
+                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 "
+                     "--cutFreq 1.333333 --sigma 3 --computeEnergy",
+                     outputs=["output_volume3.mrc"],
+                     validate=self.validate_case3())
+
+    def validate_case3(self):
+        import filecmp
+        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust.mrc"))
+
+    def test_case4(self):
+        """Test adjustment with radial average"""
+        self.runCase("--i1 data/gold/xmipp_volume_subtraction/V1.mrc --i2 data/gold/xmipp_volume_subtraction/V.mrc "
+                     "-o %o/output_volume4.mrc --mask1 data/gold/xmipp_volume_subtraction/V1_mask.mrc "
+                     "--mask2 data/gold/xmipp_volume_subtraction/V_mask.mrc --iter 5 --lambda 1.0 --radavg "
+                     "--cutFreq 1.333333 --sigma 3 --computeEnergy",
+                     outputs=["output_volume4.mrc"],
+                     validate=self.validate_case4())
+
+    def validate_case4(self):
+        import filecmp
+        self.assertTrue(filecmp.cmp(self.outputs[0], "data/gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))

@@ -70,10 +70,6 @@ struct Particle_coords
     double scoreGini;
 };
 
-struct Point
-{
-    double x,y;
-};
 
 /** Micrography class.
     This class manages a large micrograph on disk. The image is not loaded
@@ -82,6 +78,10 @@ struct Point
 class Micrograph
 {
 public:
+    struct Point
+    {
+        double x,y;
+    };
     /* This image will contain a single particle from the micrograph,
        this is done to avoid asking/freeing memory all time. */
     Image<double>            single_particle;
