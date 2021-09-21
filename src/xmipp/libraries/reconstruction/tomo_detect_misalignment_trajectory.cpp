@@ -1144,25 +1144,3 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 
 }
 
-
-
-// float ProgTomoDetectMisalignmentTrajectory::getSortedProyectedCoordinatesInLine(size_t y, size_t tolerance)
-// {
-// 	size_t numberOfCoordinates = coordinates3Dn.size()
-
-// 	for (size_t i = 0; i < numberOfCoordinates; i++)
-// 	{
-// 		size_t coordY = coordinates3Dy[i];
-
-// 		if (size_t t = -tolerance; i <= tolerance; t++)
-// 		{
-			
-// 		}
-		
-// 	}
-	
-
-// }
-
-
-
