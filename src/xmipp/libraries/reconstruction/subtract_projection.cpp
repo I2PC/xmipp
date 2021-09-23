@@ -50,10 +50,7 @@
 	sigma=getIntParam("--sigma");
 	cutFreq=getDoubleParam("--cutFreq");
 	lambda=getDoubleParam("--lambda");
-	fnPart=getParam("--savePart");
-	if (fnPart=="")
-		fnPart="particle_filtered.mrc";
-	fnProj=getParam("--saveProj");
+	fnProj=getParam("--saveProj");  ///////// REMOVE!!
 	if (fnProj=="")
 		fnProj="projection_adjusted.mrc";
  }
@@ -169,7 +166,6 @@
 
  void ProgSubtractProjection::readParticle(const MDRowVec &r){
 	r.getValue(MDL_IMAGE, fnImage);
-	std::cout<< "Particle: " << fnImage << std::endl;
 	I.read(fnImage);
 	I().setXmippOrigin();
 	I.write(formatString("%s/I.mrc", fnProj.c_str()));
@@ -295,24 +291,28 @@
  	mdParticles.read(fnParticles);
  	maskVol = createMask(fnMaskVol, maskVol);
  	mask = createMask(fnMask, mask);
-	// Gaussian LPF to smooth mask => after projection!
+	// Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
-	// LPF to filter at desired resolution => just for volume projection?
+	// LPF to filter at desired resolution
 	Filter2.FilterBand=LOWPASS;
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
-    for (size_t i = 1; i < mdParticles.size(); ++i) {
+    for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
      	row.getValue(MDL_ANGLE_ROT, rot);
      	row.getValue(MDL_ANGLE_TILT, tilt);
      	row.getValue(MDL_ANGLE_PSI, psi);
-    	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+     	roffset.initZeros(2);
+     	row.getValue(MDL_SHIFT_X, roffset(0));
+     	row.getValue(MDL_SHIFT_Y, roffset(1));
+     	roffset *= -1;
+    	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
 		P.write(formatString("%s/P.mrc", fnProj.c_str()));
-    	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	PmaskVol.write(formatString("%s/mask.mrc", fnProj.c_str()));
     	PmaskVolI = binarizeMask(PmaskVol);
     	PmaskVolI.write(formatString("%s/maskBin.mrc", fnProj.c_str()));
@@ -348,7 +348,7 @@
 		IFiltered() = I();
 		if (cutFreq!=0)
 			Filter2.applyMaskSpace(IFiltered());
-    	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi);
+    	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	Pmask.write(formatString("%s/maskFocus.mrc", fnProj.c_str()));
     	PmaskFilt = binarizeMask(Pmask);
     	PmaskFilt = normMask(PmaskFilt);

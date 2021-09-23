@@ -52,6 +52,7 @@
     double rot;
     double tilt;
 	double psi;
+    Matrix1D<double> roffset;
  	int sigma;
  	int iter;
  	Image<double> V;
