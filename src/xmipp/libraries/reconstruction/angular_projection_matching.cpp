@@ -30,6 +30,7 @@
 #include "data/fourier_projection.h"
 #include "data/ctf.h"
 #include "data/filters.h"
+#include <memory>
 
 //#define DEBUG
 //#define TIMING
@@ -999,30 +1000,24 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
                                       //opt_yoff=0.,
                                                //opt_scale=0.;
                                                          //maxcorr=-99.e99;
-    bool * opt_flip; //=false;
-    int * opt_refno; //-1;
-    double * opt_psi;
-    double * maxcorr;
-    double * opt_xoff;
-    double * opt_yoff;
-    double * opt_scale;
-    double * opt_rot;
-    double * opt_tilt;
+                                                         
+    std::unique_ptr<bool[]> opt_flip(new bool[numOrientations]());
+    std::unique_ptr<int[]> opt_refno(new int[numOrientations]());
+    std::unique_ptr<double[]> opt_psi(new double[numOrientations]());
+    std::unique_ptr<double[]> maxcorr(new double[numOrientations]());
+    std::unique_ptr<double[]> opt_xoff(new double[numOrientations]());
+    std::unique_ptr<double[]> opt_yoff(new double[numOrientations]());
+    std::unique_ptr<double[]> opt_scale(new double[numOrientations]());
+    std::unique_ptr<double[]> opt_rot(new double[numOrientations]());
+    std::unique_ptr<double[]> opt_tilt(new double[numOrientations]());
+
     size_t itemId=0;
     size_t nr_images = imagesToProcess.size();
     size_t idNew, imgid;
     FileName fn;
+
     // Call threads to calculate the rotational alignment of each image in the selfile
     pthread_t * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
-    opt_refno  = (int *)malloc (sizeof(int)*numOrientations);
-    opt_psi    = (double *)calloc (numOrientations, sizeof(double));
-    opt_flip   = (bool *)calloc (numOrientations, sizeof(bool));
-    maxcorr    = (double *)malloc (sizeof(double)*numOrientations);
-    opt_xoff   = (double *)calloc (numOrientations, sizeof(double));
-    opt_yoff   = (double *)calloc (numOrientations, sizeof(double));
-    opt_scale  = (double *)calloc (numOrientations, sizeof(double));
-    opt_rot    = (double *)calloc (numOrientations, sizeof(double));
-    opt_tilt   = (double *)calloc (numOrientations, sizeof(double));
 
     // Allocate threads.
     structThreadRotationallyAlignOneImage * threads_d = (structThreadRotationallyAlignOneImage *)
@@ -1193,15 +1188,6 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
         free(threads_d[c].maxcorr);
     }
 
-    free(opt_refno);
-    free(opt_psi);
-    free(opt_flip);
-    free(maxcorr);
-    free(opt_xoff);
-    free(opt_yoff);
-    free(opt_scale);
-    free(opt_rot);
-    free(opt_tilt);
     free(threads_d);
 
 }//function processSomeImages
