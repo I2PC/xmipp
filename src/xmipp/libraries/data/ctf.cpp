@@ -889,11 +889,11 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
 {
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
-    double angle = 0.0;
 
-    while (angle < 360) //Angulo??? En 1D no hay. Con que itero?
+    for (int angle=0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
     {
-        double cosinus = cos(angle);
+        double angle2 = float(angle);
+        double cosinus = cos(angle2);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)
@@ -913,7 +913,6 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
             A2D_ELEM(profiles, i, 2) += 10*log10(bgNoise + ctf * ctf);
             A2D_ELEM(profiles, i, 3) += getValuePureNoKAt();
         }
-        angle += 1.0;
     }
     profiles*=1.0/360;
 }
@@ -1612,10 +1611,11 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
     profiles.initZeros(nsamples, 4);
     double angle = 0.0;
 
-    while (angle < 360)
+    for(int angle=0; angle < 360; angle++)
     {
-        double sinus = sin(angle);
-        double cosinus = cos(angle);
+        double angle2 = float(angle);
+        double sinus = sin(angle2);
+        double cosinus = cos(angle2);
         double f;
         size_t i;
         for (i = 0, f = 0; i < YSIZE(profiles); i++, f += step)
@@ -1636,7 +1636,6 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
             A2D_ELEM(profiles, i, 2) += 10*log10(bgNoise + ctf * ctf);
             A2D_ELEM(profiles, i, 3) += getValuePureNoKAt();
         }
-        angle += 1.0;
     }
     profiles*=1.0/360;
 }
