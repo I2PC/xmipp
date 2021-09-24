@@ -400,6 +400,7 @@ void ProgVolumeHalvesRestoration::filterBank()
 			double w2=cdfN.getProbability(e2);
 
 			double weight;
+			weight = 0;
 			switch (weightFun)
 			{
 			case 0: weight=0.5*(w1+w2); break;
