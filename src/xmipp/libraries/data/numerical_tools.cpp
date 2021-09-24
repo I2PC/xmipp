@@ -374,9 +374,7 @@ void regularizedLeastSquare(const Matrix2D< double >& A,
     X.inv(Xinv);
 
     // Now multiply Xinv * A^t * d
-    x.initZeros(Nx);
-    FOR_ALL_ELEMENTS_IN_MATRIX2D(Xinv)
-    x(i) += Xinv(i,j) * Atd(j);
+    matrixOperation_Ax(Xinv, Atd, x);
 }
 
 
@@ -739,7 +737,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r1 = (int)rnd_unif(0.0, (double)nPop);
         }
         while (*r1 == candidate);
-    }
+    } else
+    	return;
 
     if (r2)
     {
@@ -748,7 +747,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r2 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r2 == candidate) || (*r2 == *r1));
-    }
+    } else
+    	return;
 
     if (r3)
     {
@@ -757,7 +757,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r3 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r3 == candidate) || (*r3 == *r2) || (*r3 == *r1));
-    }
+    } else
+    	return;
 
     if (r4)
     {
@@ -766,7 +767,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r4 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r4 == candidate) || (*r4 == *r3) || (*r4 == *r2) || (*r4 == *r1));
-    }
+    } else
+    	return;
 
     if (r5)
     {
@@ -777,8 +779,6 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
         while ((*r5 == candidate) || (*r5 == *r4) || (*r5 == *r3)
                || (*r5 == *r2) || (*r5 == *r1));
     }
-
-    return;
 }
 
 /* Check Randomness ------------------------------------------------------- */
