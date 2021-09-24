@@ -158,7 +158,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
             */
             applyGeometry(spline, V_aux, V_in, R.transpose(), IS_NOT_INV, wrap, avg, BcoeffsPtr);
 
-            if ( mask=nullptr)
+            if ( mask==nullptr)
                 arrayByArray(V_out, V_aux, V_out, '+');
             else               // op1, op2 ,  result
                 selfArrayByArrayMask(V_in, V_aux, V_out, '+', mask);
