@@ -692,12 +692,12 @@ void removeSmallComponents(MultidimArray<double> &I, int size,
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
     	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
-    	A1D_ELEM(nlabel,l)++;
+    	DIRECT_A1D_ELEM(nlabel,l)++;
     }
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
     	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
-    	if (A1D_ELEM(nlabel,l)<size)
+    	if (DIRECT_A1D_ELEM(nlabel,l)<size)
     		DIRECT_MULTIDIM_ELEM(I,n)=0;
     }
 }
