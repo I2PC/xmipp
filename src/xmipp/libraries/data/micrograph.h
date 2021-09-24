@@ -113,6 +113,8 @@ public:
     /** Constructor */
     Micrograph();
 
+    Micrograph(const Micrograph &)=delete; // Do not use the default copy constructor
+
     /** Destructor */
     ~Micrograph();
 
