@@ -64,7 +64,7 @@ public:
     /**
     * Constructs an empty SOM
     **/
-   explicit  ClassificationMap(): CodeBook() {};
+   explicit  ClassificationMap(const ClassificationMap &op1);
 
    /**
     * Constructs a SOM with initial code vectors filled with zero.
