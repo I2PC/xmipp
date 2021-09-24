@@ -63,7 +63,9 @@ double Cylindrical_Wave_Decomposition::interpolate(
 // Compute CWD -------------------------------------------------------------
 void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
 {
-    double coseno[1281], ampcos[5191], ampsen[5191];
+    double coseno[1281]={0};
+    double ampcos[5191]={0};
+    double ampsen[5191]={0};
     double ac, as, bc, bs, b1, coefca, coefcb, coefsa, coefsb;
     double d1, e1, fi, g1, h, hdpi, rh, r11, r, th, ys, x, y, zs, z, ys2;
     int ir, ind, i1c, i1s, i2c, i2s;
