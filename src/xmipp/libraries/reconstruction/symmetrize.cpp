@@ -141,7 +141,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
     if (!helical && !dihedral && !helicalDihedral)
     {
     	MultidimArray<double> Bcoeffs;
-    	MultidimArray<double> *BcoeffsPtr=NULL;
+    	MultidimArray<double> *BcoeffsPtr=nullptr;
     	if (spline==3)
     	{
     		produceSplineCoefficients(BSPLINE3, Bcoeffs, V_in);
@@ -158,7 +158,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
             */
             applyGeometry(spline, V_aux, V_in, R.transpose(), IS_NOT_INV, wrap, avg, BcoeffsPtr);
 
-            if ( mask==NULL)
+            if ( mask=nullptr)
                 arrayByArray(V_out, V_aux, V_out, '+');
             else               // op1, op2 ,  result
                 selfArrayByArrayMask(V_in, V_aux, V_out, '+', mask);
@@ -168,10 +168,10 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
             arrayByScalar(V_out, 1.0/(SL.symsNo() + 1.0f), V_out, '*');
     }
     else if (helical)
-        symmetry_Helical(V_out,V_in,zHelical,rotHelical,rotPhaseHelical,NULL,false,heightFraction,Cn);
+        symmetry_Helical(V_out,V_in,zHelical,rotHelical,rotPhaseHelical,nullptr,false,heightFraction,Cn);
     else if (helicalDihedral)
     {
-        symmetry_Helical(V_out,V_in,zHelical,rotHelical,rotPhaseHelical,NULL,true,heightFraction,Cn);
+        symmetry_Helical(V_out,V_in,zHelical,rotHelical,rotPhaseHelical,nullptr,true,heightFraction,Cn);
         MultidimArray<double> Vrotated;
         rotate(spline,Vrotated,V_out,180.0,'X',WRAP);
         V_out+=Vrotated;
@@ -202,7 +202,7 @@ void symmetrizeImage(int symorder, const MultidimArray<double> &I_in,
     }
     I_out = I_in;
     MultidimArray<double> rotatedImg;
-    if ( (mask)!=NULL)
+    if ( (mask)!=nullptr)
          REPORT_ERROR(ERR_NOT_IMPLEMENTED,"mask symmetrization not implemented for images");
     for (int i = 1; i < symorder; i++)
     {
@@ -235,7 +235,7 @@ void ProgSymmetrize::processImage(const FileName &fnImg, const FileName &fnImgOu
     Image<double> Iin;
     Image<double> Iout;
     Image<double> mask;
-    MultidimArray<double> *mmask=NULL;
+    MultidimArray<double> *mmask=nullptr;
 
     Iin.readApplyGeo(fnImg, rowIn);
     Iin().setXmippOrigin();
