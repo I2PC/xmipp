@@ -51,7 +51,17 @@ public:
 public:
 
     //SVMClassifier(double c,double gamma);
+
+    SVMClassifier()
+	{
+    	model=nullptr;
+	}
+    SVMClassifier(const SVMClassifier &other)
+    {
+    	*this=other;
+    }
     ~SVMClassifier();
+    SVMClassifier & operator=(const SVMClassifier &other);
     void SVMTrain(MultidimArray<double> &trainSet,MultidimArray<double> &lable);
     double  predict(MultidimArray<double> &featVec,double &score);
     void SaveModel(const FileName &fnModel);
