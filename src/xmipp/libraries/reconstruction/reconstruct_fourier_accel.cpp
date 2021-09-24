@@ -729,14 +729,12 @@ void ProgRecFourierAccel::processProjection(
 	normal = getNormal(u, v);
 
 	// prepare traversing
-	int minY, minX, minZ;
-	int maxY, maxX, maxZ;
+	int minY, minZ;
+	int maxY, maxZ;
 	minZ = floor(AABB[0].z);
 	minY = floor(AABB[0].y);
-	minX = floor(AABB[0].x);
 	maxZ = ceil(AABB[1].z);
 	maxY = ceil(AABB[1].y);
-	maxX = ceil(AABB[1].x);
 
 	for(int z = minZ; z <= maxZ; z++) {
 		for(int y = minY; y <= maxY; y++) {
