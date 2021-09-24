@@ -98,7 +98,9 @@ void ProgMLF2D::readParams()
     double restart_offset = 0;
     FileName restart_imgmd, restart_refmd;
     int restart_iter, restart_seed;
+    restart_iter = 0;
     restart_seed = 0;
+    
 
     do_restart = checkParam("--restart");
     if (do_restart)
