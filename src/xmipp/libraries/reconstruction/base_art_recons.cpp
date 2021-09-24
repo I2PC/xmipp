@@ -67,7 +67,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
     //    preIterations(vol_basis);
 
     // Reconstruction results ...............................................
-    double          mean_error;
+    double          mean_error = 0.0;
     double          global_mean_error,global_mean_error_1stblock;
 
     // Initialize residual image vector for wlsART ..........................
