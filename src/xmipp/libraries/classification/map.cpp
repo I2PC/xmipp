@@ -62,9 +62,7 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
  * Parameter: other  other SOM
  */
  ClassificationMap::ClassificationMap(const ClassificationMap &other): CodeBook() {
-    std::stringstream _str;
-    other.printSelf(_str);
-    readSelf(_str);
+    this->operator=(other)
  }
 
 
@@ -357,6 +355,19 @@ SomPos ClassificationMap::applyPos(const SomIn& _in)
 }
 #endif
 
+
+/**
+    * Operator "="
+    * Parameter: op1 ClassificationMap
+*/
+ClassificationMap& ClassificationMap:: operator= (const ClassificationMap &op1)
+{
+    std::stringstream _str;
+    op1.printSelf(_str);
+    readSelf(_str);
+    return *this;
+}
+
 /**
  * Standard output for a SOM
  * Parameter: _os The output stream
@@ -367,7 +378,6 @@ void ClassificationMap::printSelf(std::ostream& _os) const
     somLayout->id() << " " << somWidth << " " << somHeight << " gaussian" << std::endl;
     writeItems(_os);
 }
-
 
 /**
  * Standard input for a SOM
@@ -833,6 +843,9 @@ FuzzyMap::FuzzyMap(std::istream& _is, const unsigned _size, bool _cv) : FuzzyCod
         loadObject(_is);
 }
 
+FuzzyMap:: FuzzyMap(const FuzzyMap& other): FuzzyCodeBook(false){
+    this->operator=(other)
+}
 
 /**
  * This method throws an exception if called. There is no sense in adding
@@ -1066,6 +1079,18 @@ SomPos FuzzyMap::applyPos(const unsigned& _in)
     return codVecPos(fuzzyTest(_in));
 }
 
+
+/**
+ * Operator "="
+ * Parameter: op1 FuzzyMap
+*/
+FuzzyMap& operator= (const FuzzyMap &op1)
+{
+    std::stringstream _str;
+    op1.printSelf(_str);
+    readSelf(_str);
+    return *this;
+}
 
 /**
  * Standard output for a Fuzzy SOM

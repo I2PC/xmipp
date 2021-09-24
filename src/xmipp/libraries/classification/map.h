@@ -249,14 +249,7 @@ public:
     * Operator "="
     * Parameter: op1 ClassificationMap
     */
-    ClassificationMap& operator= (const ClassificationMap &op1)
-    {
-	std::stringstream _str;
-        op1.printSelf(_str);
-        readSelf(_str);
-        return *this;
-    }
-
+    ClassificationMap& operator= (const ClassificationMap &op1);
 
     /**
      * Standard output for a map
@@ -354,6 +347,8 @@ public:
      * @exception   runtime_error  If there are problems with the stream
      */
     FuzzyMap(std::istream& _is, const unsigned _size = 0, bool _cv = true);
+
+    explicit FuzzyMap(const FuzzyMap& other);
 
     /**
      * Virtual destructor is needed
@@ -504,13 +499,8 @@ public:
     * Operator "="
     * Parameter: op1 FuzzyMap
     */
-    FuzzyMap& operator= (const FuzzyMap &op1)
-    {
-        std::stringstream _str;
-        op1.printSelf(_str);
-        readSelf(_str);
-        return *this;
-    }
+    FuzzyMap& operator= (const FuzzyMap &op1);
+
 
 
     /**
