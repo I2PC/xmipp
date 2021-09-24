@@ -50,7 +50,7 @@ void runSystem(const String &program, const String &arguments, bool useSystem) {
 
 int runProgram(XmippProgram * program, const String &arguments, bool destroy)
 {
-    if (program == NULL)
+    if (program == nullptr)
         REPORT_ERROR(ERR_PARAM_INCORRECT, "Received a NULL as program pointer");
     program->read(arguments);
     int retCode = program->tryRun();
@@ -100,7 +100,7 @@ XmippProgram * getProgramByName(const String &programName)
     if (programName == "xmipp_transform_filter")
         return new ProgFilter();
 
-    return NULL;
+    return nullptr;
 }
 
 
