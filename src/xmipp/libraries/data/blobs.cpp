@@ -455,8 +455,7 @@ void * blobs2voxels_SimpleGrid( void * data )
     Matrix1D<double> beginY(3);              // Coord: Voxel coordinates of the
     // blob at the 3D point
     // (z0,y0,XX(lowest))
-    Matrix1D<double> corner2(3), corner1(3); // Coord: Corners of the
-    // blob in the voxel volume
+    Matrix1D<double> corner2(3), corner1(3); // Coord: Corners of the blob in the voxel volume
     Matrix1D<double> gcurrent(3);            // Position in g of current point
     MultidimArray<double> blob_table;             // Something like a blobprint
     // but with the values of the
@@ -466,7 +465,7 @@ void * blobs2voxels_SimpleGrid( void * data )
     int           id;                        // index inside the blob value
     // table for tha blob value at
     // a distance d
-    double         intx, inty, intz;         // Nearest integer voxel
+    int           intx, inty, intz;          // Nearest integer voxel
     int           i, j, k;                   // Index within the blob volume
     int           process;                   // True if this blob has to be
     // processed
@@ -685,17 +684,16 @@ void * blobs2voxels_SimpleGrid( void * data )
                     // Effectively convert
                     long N_eq;
                     N_eq = 0;
-                    for (intz = ZZ(corner1); intz <= ZZ(corner2); intz++)
-                        for (inty = YY(corner1); inty <= YY(corner2); inty++)
-                            for (intx = XX(corner1); intx <= XX(corner2); intx++)
+                    for (intz = (int)ZZ(corner1); intz <=(int)ZZ(corner2); intz++)
+                        for (inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
+                            for (intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
                             {
-                                int iz = (int)intz, iy = (int)inty, ix = (int)intx;
                                 if (vol_mask != NULL)
-                                    if (!A3D_ELEM(*vol_mask, iz, iy, ix))
+                                    if (!A3D_ELEM(*vol_mask, intz, inty, intx))
                                         continue;
 
                                 // Compute distance to the center of the blob
-                                VECTOR_R3(gcurrent, intx, inty, intz);
+                                VECTOR_R3(gcurrent, (double)intx, (double)inty, (double)intz);
 #ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
                                 // ROB
                                 //if (D!=NULL)
@@ -723,7 +721,7 @@ void * blobs2voxels_SimpleGrid( void * data )
 
                                 if (FORW)
                                 {
-                                    A3D_ELEM(*vol_voxels, iz, iy, ix) +=
+                                    A3D_ELEM(*vol_voxels, intz, inty, intx) +=
                                         A3D_ELEM(*vol_blobs, k, i, j) *
                                         A1D_ELEM(blob_table, id);
 #ifdef DEBUG_MORE
@@ -738,12 +736,12 @@ void * blobs2voxels_SimpleGrid( void * data )
                                     }
 #endif
                                     if (vol_corr != NULL)
-                                        A3D_ELEM(*vol_corr, iz, iy, ix) +=
+                                        A3D_ELEM(*vol_corr, intz, inty, intx) +=
                                             A1D_ELEM(blob_table, id) * A1D_ELEM(blob_table, id);
                                 }
                                 else
                                 {
-                                    double contrib = A3D_ELEM(*vol_corr, iz, iy, ix) *
+                                    double contrib = A3D_ELEM(*vol_corr, intz, inty, intx) *
                                                      A1D_ELEM(blob_table, id);
                                     switch (eq_mode)
                                     {
