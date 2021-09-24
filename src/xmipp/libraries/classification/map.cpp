@@ -57,6 +57,15 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 }
 
 
+/**
+ * Constructs a SOM from other SOM
+ * Parameter: other  other SOM
+ */
+ ClassificationMap::ClassificationMap(const ClassificationMap &other): CodeBook() {
+    std::stringstream _str;
+    other.printSelf(_str);
+    readSelf(_str);
+ }
 
 
 /**
