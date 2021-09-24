@@ -72,6 +72,7 @@ class Cache
 {
 public:
 	Cache(int l,long int size);
+	Cache(const Cache &)=delete; // Avoid default copy constructor, Sonarcloud complains
 	~Cache();
 
 	// request data [0,len)
@@ -207,6 +208,7 @@ class Kernel: public QMatrix {
 public:
 	Kernel(int l, svm_node * const * x, const svm_parameter& param);
 	virtual ~Kernel();
+	Kernel(const Kernel &)=delete; // Avoid default copy constructor, Sonarcloud complains
 
 	static double k_function(const svm_node *x, const svm_node *y,
 				 const svm_parameter& param);
