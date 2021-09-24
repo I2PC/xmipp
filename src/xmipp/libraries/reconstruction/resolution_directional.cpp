@@ -1543,8 +1543,8 @@ void ProgResDir::run()
 
 	std::cout << "Analyzing directions " << std::endl;
 
-	double w = 0
-	double wH = 0;
+	double w = 0.0;
+	double wH = 0.0;
 	int volsize = ZSIZE(VRiesz);
 
 	//Checking with MonoRes at 50A;
