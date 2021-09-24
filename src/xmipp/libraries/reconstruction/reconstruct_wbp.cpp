@@ -234,6 +234,8 @@ void ProgRecWbp::getSampledMatrices(MetaData &SF)
     Matrix2D<double> A(3, 3);
     Matrix2D<double> L(4, 4), R(4, 4);
     double newrot, newtilt, newpsi, rot, tilt, dum, weight, totimgs = 0.;
+    rot = 0;
+    tilt = 0;
     bool dumB;
     std::vector<double> count_imgs;
 
