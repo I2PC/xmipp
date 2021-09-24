@@ -116,7 +116,7 @@ public:
     void selectSubset(size_t particleId, bool &flagEmpty);
 
     /** Update class */
-    void updateClass(int n, double wn);
+    void updateClass(int n);
 };
 //@}
 #endif

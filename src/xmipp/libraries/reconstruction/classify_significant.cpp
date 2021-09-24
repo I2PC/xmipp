@@ -305,7 +305,7 @@ void calculateRadialAvg(MultidimArray<double> &I, MultidimArray< std::complex<do
 
 
 void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double> &Iproj2, MultidimArray<double> &Iexp1,
-		MultidimArray<double> &Iexp2, double &ccI1Iexp1, double &ccI1Iexp2, double &ccI2Iexp2, double &ccI2Iexp1,
+		MultidimArray<double> &Iexp2, double &ccI1Iexp1, double &ccI2Iexp2,
 		bool isFsc, std::vector< std::vector<double> > &setFscValues, int numFsc){
 
 	double w1=0;
@@ -494,7 +494,7 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 
 void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double> &I2, MultidimArray<double> &Iexp1,
 		MultidimArray<double> &Iexp2, double &corr1exp, double &corr2exp, bool I1isEmpty, bool I2isEmpty, int xdim,
-		bool onlyIntersection, int numVotes, size_t id, std::ofstream *fs, double ccI1Iexp1=-1.0, double ccI2Iexp2=-1.0)
+		bool onlyIntersection, int numVotes, double ccI1Iexp1=-1.0, double ccI2Iexp2=-1.0)
 {
 
 	MultidimArray<double> Idiff, I2Aligned, Iexp2Aligned;
@@ -821,7 +821,7 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 //	std::cout << "votes= " << votes << std::endl;
 }
 
-void ProgClassifySignificant::updateClass(int n, double wn)
+void ProgClassifySignificant::updateClass(int n)
 {
 	double CCbest=-1e38;
 	int idCCbest=-1;
@@ -928,7 +928,7 @@ void ProgClassifySignificant::run()
 						double ccI1Iexp2;
 						double ccI2Iexp1;
 						double ccI2Iexp2;
-						calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI1Iexp2, ccI2Iexp2, ccI2Iexp1, isFsc, setFsc1, setFsc2);
+						calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI2Iexp2, isFsc, setFsc1, setFsc2);
 						if (std::isnan(ccI1Iexp1))
 							ccI1Iexp1=-1.0;
 						if (std::isnan(ccI2Iexp2))
@@ -937,7 +937,7 @@ void ProgClassifySignificant::run()
 						//////////////////////////////////
 						//AJ ORIGINAL CORRELATION MEASURE
 						computeWeightedCorrelation(I1, I2, Iexp1, Iexp2, corr1exp, corr2exp, I1isEmpty, I2isEmpty,
-								xdim, onlyIntersection, numVotes, id, &fs);
+								xdim, onlyIntersection, numVotes);
 
 						if (std::isnan(corr1exp))
 							corr1exp=-1.0;
@@ -966,7 +966,7 @@ void ProgClassifySignificant::run()
 							double ccI1Iexp2;
 							double ccI2Iexp1;
 							double ccI2Iexp2;
-							calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI1Iexp2, ccI2Iexp2, ccI2Iexp1, isFsc, setFsc1, setFsc2);
+							calculateNewCorrelation(I1, I2, Iexp1, Iexp2, ccI1Iexp1, ccI2Iexp2, isFsc, setFsc1, setFsc2);
 							if (std::isnan(ccI1Iexp1))
 								ccI1Iexp1=-1.0;
 							if (std::isnan(ccI2Iexp2))
@@ -1026,7 +1026,7 @@ void ProgClassifySignificant::run()
 		int nBest=weight.maxIndex();
 		double wBest=VEC_ELEM(weight,nBest);
 		if (wBest>0)
-			updateClass(nBest,wBest);
+			updateClass(nBest);
 		if (verbose>0)
 			progress_bar(iid);
 
