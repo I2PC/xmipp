@@ -49,7 +49,7 @@ public:
         addParamsLine("  [--range <m> <M>]             : range for the histogram, automatic calculated if not provided");
         addParamsLine("  [--steps <N=100>]             : number of subdivisions");
         addParamsLine("  [--norm]                      : normalize histogram ");
-        mask.defineParams(this, INT_MASK, NULL, "Histogram constrained to the mask area.");
+        mask.defineParams(this, INT_MASK, nullptr, "Histogram constrained to the mask area.");
 
         addExampleLine("Create the histogram from an stack setting number of steps to 20", false);
         addExampleLine("xmipp_histogram -i input/images_some.stk -o hist.txt --steps 20");
