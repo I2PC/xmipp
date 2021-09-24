@@ -223,6 +223,8 @@ public:
 
     void eulerRotate (Matrix2D <double> &M, const Matrix1D <double> &r);
 
+    ~Euler() {}; // do nothing
+
 protected:
 
 bool  _frameStatic  :
