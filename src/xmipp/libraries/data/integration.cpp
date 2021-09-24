@@ -80,7 +80,7 @@ double Trapeze::operator()()
             return s;
         olds = s;
     }
-    XMIPP_ERROR(ERR_NUMERICAL,"Too many steps in routine qtrap_y\n");
+    REPORT_ERROR(ERR_NUMERICAL,"Too many steps in routine qtrap_y\n");
 }
 
 
