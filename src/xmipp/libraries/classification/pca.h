@@ -192,6 +192,12 @@ public:
     std::vector<PCAAnalyzer *> PCA;
 
 public:
+    /** Copy constructor */
+    PCA_set(const PCA_set &other)
+	{
+		*this=other;
+	}
+
     /** Destructor */
     ~PCA_set();
 
@@ -200,6 +206,8 @@ public:
         Creates space for n new PCA and returns the index of the first one */
     int create_empty_PCA(int n = 1);
 #endif
+
+    PCA_set & operator = (const PCA_set &other);
 
     /** Returns the number of PCA analysis.*/
     int PCANo() const

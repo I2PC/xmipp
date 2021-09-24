@@ -358,6 +358,7 @@ NaiveBayes & NaiveBayes::operator=(const NaiveBayes &other)
     	__leafs.push_back(newLeaf);
     }
    __cost=other.__cost;
+   return *this;
 }
 
 /* Set cost matrix --------------------------------------------------------- */
@@ -565,6 +566,7 @@ EnsembleNaiveBayes & EnsembleNaiveBayes::operator=(const EnsembleNaiveBayes &oth
     ensembleFeatures=other.ensembleFeatures;
     K=other.K;
     judgeCombination=other.judgeCombination;
+    return *this;
 }
 
 

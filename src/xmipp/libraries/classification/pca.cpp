@@ -421,10 +421,28 @@ std::istream& operator >> (std::istream &in, PCAAnalyzer &PC)
 /* PCA set destructor ------------------------------------------------------ */
 PCA_set::~PCA_set()
 {
-    int imax = PCA.size();
+    size_t imax = PCA.size();
     for (int i = 0; i < imax; i++)
         delete PCA[i];
 }
+
+/* Assignment -------------------------------------------------------------- */
+PCA_set & PCA_set::operator = (const PCA_set &other)
+{
+	size_t imax = PCA.size();
+    for (size_t i = 0; i < imax; i++)
+        delete PCA[i];
+	PCA.clear();
+
+    imax=other.PCA.size();
+    for (size_t i = 0; i < imax; i++)
+    {
+        PCA_set *set=new PCA_set(*(other.PCA[i]));
+        PCA.push_back(set);
+    }
+	return *this;
+}
+
 
 #ifdef UNUSED // detected as unused 29.6.2018
 /* Create empty PCA -------------------------------------------------------- */
