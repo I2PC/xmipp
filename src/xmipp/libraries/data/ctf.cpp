@@ -891,7 +891,7 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
     profiles.initZeros(nsamples, 4);
     double angle = 0.0;
 
-    while (angle < 360) ) //Angulo??? En 1D no hay. Con que itero?
+    while (angle < 360) //Angulo??? En 1D no hay. Con que itero?
     {
         double cosinus = cos(angle);
         double f;
