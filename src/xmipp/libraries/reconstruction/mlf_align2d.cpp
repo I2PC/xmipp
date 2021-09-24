@@ -184,7 +184,7 @@ void ProgMLF2D::readParams()
         model.n_ref = 0; // Just to be sure (not strictly necessary)
         sigma_offset = restart_offset;
         //sigma_noise = restart_noise;
-        seed = restart_seed;
+        seed = int(restart_seed);
         istart = restart_iter + 1;
     }
 
