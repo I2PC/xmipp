@@ -548,6 +548,26 @@ EnsembleNaiveBayes::~EnsembleNaiveBayes()
         delete ensemble[n];
 }
 
+/* Assignment -------------------------------------------------------------- */
+EnsembleNaiveBayes & EnsembleNaiveBayes::operator=(const EnsembleNaiveBayes &other)
+{
+    size_t imax=ensemble.size();
+    for (size_t i=0; i<imax; ++i)
+    	delete ensemble[i];
+    ensemble.clear();
+    imax=other.ensemble.size();
+    for (size_t i=0; i<imax; ++i)
+    {
+    	NaiveBayes *classifier=new NaiveBayes(*(other.ensemble[i]));
+    	ensemble.push_back(classifier);
+    }
+
+    ensembleFeatures=other.ensembleFeatures;
+    K=other.K;
+    judgeCombination=other.judgeCombination;
+}
+
+
 /* Set cost matrix --------------------------------------------------------- */
 void EnsembleNaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
 {
