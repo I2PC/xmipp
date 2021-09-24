@@ -821,7 +821,7 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 //	std::cout << "votes= " << votes << std::endl;
 }
 
-void ProgClassifySignificant::updateClass(int n)
+void ProgClassifySignificant::updateClass(int n, double wn)
 {
 	double CCbest=-1e38;
 	int idCCbest=-1;
@@ -1026,7 +1026,7 @@ void ProgClassifySignificant::run()
 		int nBest=weight.maxIndex();
 		double wBest=VEC_ELEM(weight,nBest);
 		if (wBest>0)
-			updateClass(nBest);
+			updateClass(nBest,wBest);
 		if (verbose>0)
 			progress_bar(iid);
 
