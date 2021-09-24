@@ -1020,7 +1020,7 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
     maxcorr    = (double *)malloc (sizeof(double)*numOrientations);
     opt_xoff   = (double *)calloc (numOrientations, sizeof(double));
     opt_yoff   = (double *)calloc (numOrientations, sizeof(double));
-    opt_scale  = (double *)calloc (numOrientations*sizeof(double));
+    opt_scale  = (double *)calloc (numOrientations, sizeof(double));
     opt_rot    = (double *)calloc (numOrientations, sizeof(double));
     opt_tilt   = (double *)calloc (numOrientations, sizeof(double));
 
