@@ -61,15 +61,18 @@ public:
 
     //---------------------------------------------------------------------------
 
-
-
     /**
-     * Constructs a SOM with initial code vectors filled with zero.
-     * Parameter: _layout  Type of layout
-     * Parameter: _width   Width of the output plane
-     * Parameter: _height  Height of the output plane
-     * Parameter: _size    Size of code vectors
-     */
+    * Constructs an empty SOM
+    **/
+   explicit  ClassificationMap(): CodeBook() {};
+
+   /**
+    * Constructs a SOM with initial code vectors filled with zero.
+    * Parameter: _layout  Type of layout
+    * Parameter: _width   Width of the output plane
+    * Parameter: _height  Height of the output plane
+    * Parameter: _size    Size of code vectors
+    */
     ClassificationMap(const std::string& _layout,  unsigned _width,
              const unsigned& _height, const unsigned& _size);
 
