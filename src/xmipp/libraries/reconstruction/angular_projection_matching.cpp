@@ -1014,14 +1014,14 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
     FileName fn;
     // Call threads to calculate the rotational alignment of each image in the selfile
     pthread_t * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
-    opt_refno = (int *)malloc (sizeof(int)*numOrientations);
-    opt_psi   = (double *)calloc (numOrientations, sizeof(double));
-    opt_flip = (bool *)calloc (numOrientations, sizeof(bool));
-    maxcorr   = (double *)malloc (sizeof(double)*numOrientations);
+    opt_refno  = (int *)malloc (sizeof(int)*numOrientations);
+    opt_psi    = (double *)calloc (numOrientations, sizeof(double));
+    opt_flip   = (bool *)calloc (numOrientations, sizeof(bool));
+    maxcorr    = (double *)malloc (sizeof(double)*numOrientations);
     opt_xoff   = (double *)calloc (numOrientations, sizeof(double));
     opt_yoff   = (double *)calloc (numOrientations, sizeof(double));
-    opt_scale   = (double *)malloc (numOrientations*sizeof(double));
-    opt_rot   = (double *)calloc (numOrientations, sizeof(double));
+    opt_scale  = (double *)calloc (numOrientations*sizeof(double));
+    opt_rot    = (double *)calloc (numOrientations, sizeof(double));
     opt_tilt   = (double *)calloc (numOrientations, sizeof(double));
 
     // Allocate threads.
