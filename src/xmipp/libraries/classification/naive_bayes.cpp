@@ -213,7 +213,8 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
         imax=intervals.size();
         for (int i=0; i<imax; i++)
         {
-            A1D_ELEM(newBins,i) = intervals.front()(1);
+        	if (i<__discreteLevels)
+            	A1D_ELEM(newBins,i) = intervals.front()(1);
             intervals.pop();
         }
 
