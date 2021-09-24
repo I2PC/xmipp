@@ -700,8 +700,9 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
     int found = 0;
     double last_ctf = getValuePureNoPrecomputedAt(0), ctf=0.0, state=1;
 
-    double w;
-    for (w = 0; w <= wmax; w += wstep)
+    double w = 0;
+
+    while (w <= wmax)
     {
         V2_BY_CT(freq, u, w);
         ctf = getValuePureNoPrecomputedAt(XX(freq));
@@ -755,6 +756,7 @@ void CTFDescription1D::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double
 		}
 
         last_ctf = ctf;
+        w += wstep;
     }
     if (found != n)
     {
@@ -887,8 +889,9 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
 {
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
+    double angle = 0.0;
 
-    for (double angle = 0.0; angle < 360; angle++) //Angulo??? En 1D no hay. Con que itero?
+    while (angle < 360) ) //Angulo??? En 1D no hay. Con que itero?
     {
         double cosinus = cos(angle);
         double f;
@@ -910,6 +913,7 @@ void CTFDescription1D::getAverageProfile(double fmax, int nsamples,
             A2D_ELEM(profiles, i, 2) += 10*log10(bgNoise + ctf * ctf);
             A2D_ELEM(profiles, i, 3) += getValuePureNoKAt();
         }
+        angle += 1.0;
     }
     profiles*=1.0/360;
 }
@@ -1420,8 +1424,8 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
     double wstep = wmax / 300;
     int found = 0;
     double last_ctf = getValuePureNoDampingNoPrecomputedAt(0,0) , ctf=0.0, state=1; //getValuePureWithoutDampingAt()
-    double w;
-    for (w = 0; w <= wmax; w += wstep)
+    double w = 0;
+    while (w <= wmax)
     {
         V2_BY_CT(freq, u, w);
         ctf = getValuePureNoDampingNoPrecomputedAt(XX(freq),YY(freq));
@@ -1472,6 +1476,7 @@ void CTFDescription::lookFor(int n, const Matrix1D<double> &u, Matrix1D<double> 
 			break;
 
         last_ctf = ctf;
+        w += wstep;
     }
     if (found != n)
     {
@@ -1604,8 +1609,9 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
 {
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
+    double angle = 0.0;
 
-    for (double angle = 0.0; angle < 360; angle++)
+    while (angle < 360)
     {
         double sinus = sin(angle);
         double cosinus = cos(angle);
@@ -1629,6 +1635,7 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
             A2D_ELEM(profiles, i, 2) += 10*log10(bgNoise + ctf * ctf);
             A2D_ELEM(profiles, i, 3) += getValuePureNoKAt();
         }
+        angle += 1.0;
     }
     profiles*=1.0/360;
 }
