@@ -437,8 +437,8 @@ PCA_set & PCA_set::operator = (const PCA_set &other)
     imax=other.PCA.size();
     for (size_t i = 0; i < imax; i++)
     {
-        PCA_set *set=new PCA_set(*(other.PCA[i]));
-        PCA.push_back(set);
+    	PCAAnalyzer *analyzer=new PCAAnalyzer(*(other.PCA[i]));
+        PCA.push_back(analyzer);
     }
 	return *this;
 }
