@@ -223,7 +223,7 @@ public:
 
     void eulerRotate (Matrix2D <double> &M, const Matrix1D <double> &r);
 
-    ~Euler() {}; // do nothing
+    ~Euler() = default; // do nothing
 
 protected:
 
