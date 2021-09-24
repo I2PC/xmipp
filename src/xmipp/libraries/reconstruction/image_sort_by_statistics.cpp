@@ -347,7 +347,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     }
 
     if (imgno == 0)
-        throw new std::runtime_error("All metadata images are disable. Skipping...\n");
+        REPORT_ERROR(ERR_MD_NOACTIVE, "All metadata images are disable. Skipping...\n");
 
     std::size_t beg = fn.find_last_of("@") + 1;
     std::size_t end = fn.find_last_of("/") + 1;

@@ -321,7 +321,7 @@ void ProgAngularDistance::computeWeights()
 		weightLabel=MDL_WEIGHT_JUMPER0;
 		break;
     default:
-        throw new std::runtime_error("Set value is out of range. It shoudl be 0, 1 or 2.\n");
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Set value is out of range. It shoudl be 0, 1 or 2.\n");
 	}
 
     auto iter1(DF1sorted.ids().begin());
