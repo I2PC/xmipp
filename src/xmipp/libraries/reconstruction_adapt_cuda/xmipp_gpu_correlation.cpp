@@ -88,7 +88,7 @@ void primeFactors(int n, int *out)
 
 
 void preprocess_images_reference(MetaDataVec &SF, int firstIdx, int numImages, Mask &mask, GpuCorrelationAux &d_correlationAux,
-		mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar, mycufftHandle &myhandleAux,
+		mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar,
 		StructuresAux &myStructureAux, MetaDataVec::id_iterator iter, myStreamHandle myStream)
 {
 	size_t Xdim, Ydim, Zdim, Ndim;
