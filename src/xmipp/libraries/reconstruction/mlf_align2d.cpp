@@ -93,7 +93,7 @@ void ProgMLF2D::readParams()
     // Generate new command line for restart procedure
     cline = "";
     int argc2 = 0;
-    char ** argv2 = NULL;
+    char ** argv2 = nullptr;
 
     double restart_offset;
     FileName restart_imgmd, restart_refmd;
@@ -103,7 +103,7 @@ void ProgMLF2D::readParams()
     if (do_restart)
     {
         MetaDataVec MDrestart;
-        char *copy  = NULL;
+        char *copy  = nullptr;
 
         MDrestart.read(getParameter(argc, argv, "--restart"));
         cline = MDrestart.getComment();
@@ -189,7 +189,7 @@ void ProgMLF2D::readParams()
     }
 
     if (seed == -1)
-        seed = time(NULL);
+        seed = time(nullptr);
 
 }
 
