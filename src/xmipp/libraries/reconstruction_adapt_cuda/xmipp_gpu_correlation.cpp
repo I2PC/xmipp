@@ -315,8 +315,8 @@ void preprocess_images_experimental_transform_two(MetaDataVec &SF, FileName &fnI
 
 
 void preprocess_images_experimental_transform(GpuCorrelationAux &d_correlationAux, GpuMultidimArrayAtGpu<float> &mask,
-		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, bool rotation, int step, mycufftHandle &myhandlePadded,
-		mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar, StructuresAux &myStructureAux, myStreamHandle myStream)
+		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, bool rotation, mycufftHandle &myhandlePadded,
+		mycufftHandle &myhandlePolar, StructuresAux &myStructureAux, myStreamHandle myStream)
 {
 
 	size_t Xdim = d_correlationAux.d_transform_image.Xdim;
@@ -469,8 +469,8 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 				apply_transform(d_experimentalAuxTR.d_original_image, d_experimentalAuxTR.d_transform_image, transMat_tr, myStreamTR);
 
 				//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
-				preprocess_images_experimental_transform(d_experimentalAuxTR, d_referenceAux.d_mask, d_referenceAux.d_maskFFT, false, step,
-							myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myStructureAux_tr, myStreamTR);
+				preprocess_images_experimental_transform(d_experimentalAuxTR, d_referenceAux.d_mask, d_referenceAux.d_maskFFT, false,
+							myhandlePadded_tr, myhandlePolar_tr, myStructureAux_tr, myStreamTR);
 				d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
 				d_experimentalAuxTR.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr,
 						d_referenceAux.maskAutocorrelation, myStreamTR);
