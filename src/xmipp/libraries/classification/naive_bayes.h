@@ -113,6 +113,15 @@ public:
     // Destructor
     ~NaiveBayes();
 
+    // Copy constructor
+    NaiveBayes(const NaiveBayes &other)
+    {
+    	*this=other;
+    }
+
+    // Assignment
+    NaiveBayes & operator=(const NaiveBayes &other);
+
     // Set cost matrix
     void setCostMatrix(const Matrix2D<double> &cost);
 

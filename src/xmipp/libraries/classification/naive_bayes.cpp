@@ -340,6 +340,26 @@ NaiveBayes::~NaiveBayes()
     delete dummyLeaf;
 }
 
+// Assignment --------------------------------------------------------------
+NaiveBayes & NaiveBayes::operator=(const NaiveBayes &other)
+{
+	K=other.K;
+	Nfeatures=other.Nfeatures;
+    __priorProbsLog10=other.__priorProbsLog10;
+    __weights=other.__weights;
+    size_t imax=__leafs.size();
+    for (size_t i=0; i<imax; ++i)
+    	delete __leafs[i];
+    __leafs.clear();
+    imax=other.__leafs.size();
+    for (size_t i=0; i<imax; ++i)
+    {
+    	LeafNode *newLeaf=new LeafNode(*(other.__leafs[i]));
+    	__leafs.push_back(newLeaf);
+    }
+   __cost=other.__cost;
+}
+
 /* Set cost matrix --------------------------------------------------------- */
 void NaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
 {
