@@ -62,7 +62,7 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
  * Parameter: other  other SOM
  */
  ClassificationMap::ClassificationMap(const ClassificationMap &other): CodeBook() {
-    this->operator=(other)
+    *this = other
  }
 
 
@@ -844,7 +844,7 @@ FuzzyMap::FuzzyMap(std::istream& _is, const unsigned _size, bool _cv) : FuzzyCod
 }
 
 FuzzyMap:: FuzzyMap(const FuzzyMap& other): FuzzyCodeBook(false){
-    this->operator=(other)
+    *this=other
 }
 
 /**
