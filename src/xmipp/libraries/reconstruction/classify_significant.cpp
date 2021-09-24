@@ -613,7 +613,7 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 	double sumWI1exp2=0.0, sumWI2exp1=0.0, corrWI1exp2, corrWI2exp1;
 	double sumI1exp2=0.0, sumI2exp1=0.0, corrI1exp2, corrI2exp1;
 
-	double avg1, avgExp1, avgM1 = 0, avgMExp1 = 0, avgW1 = 0, avgWExp1, avg2, avgExp2, avgM2 = 0, avgMExp2 = 0, avgW2 = 0, avgWExp2, iN1 = 0, iN2 = 0, iN = 0;
+	double avg1, avgExp1, avgM1 = 0, avgMExp1 = 0, avgW1 = 0, avgWExp1 = 0, avg2, avgExp2, avgM2 = 0, avgMExp2 = 0, avgW2 = 0, avgWExp2, iN1 = 0, iN2 = 0, iN = 0;
 	double isize=1.0/MULTIDIM_SIZE(Idiff);
 	avg1=sumI1*isize;
 	avgExp1=sumIexp1*isize;
