@@ -95,7 +95,7 @@ void ProgMLF2D::readParams()
     int argc2 = 0;
     char ** argv2 = NULL;
 
-    double restart_offset;
+    double restart_offset = 0;
     FileName restart_imgmd, restart_refmd;
     int restart_iter, restart_seed;
 
