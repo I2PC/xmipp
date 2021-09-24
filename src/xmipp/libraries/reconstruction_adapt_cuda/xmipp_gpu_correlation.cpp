@@ -151,7 +151,7 @@ void preprocess_images_reference(MetaDataVec &SF, int firstIdx, int numImages, M
 
 void preprocess_images_experimental(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT, GpuCorrelationAux &d_correlationAux, bool rotation,
-		int firstStep, bool mirror, mycufftHandle &myhandlePadded, mycufftHandle &myhandleMask, mycufftHandle &myhandlePolar,
+		int firstStep, bool mirror, mycufftHandle &myhandlePadded, mycufftHandle &myhandlePolar,
 		StructuresAux &myStructureAux, myStreamHandle myStream)
 {
 	size_t Xdim, Ydim, Zdim, Ndim;
@@ -207,13 +207,12 @@ void preprocess_images_experimental(MetaDataVec &SF, FileName &fnImg, int numIma
 void preprocess_images_experimental_two(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT,
 		GpuCorrelationAux &d_correlationAuxTR, GpuCorrelationAux &d_correlationAuxRT,
-		bool rotation, int firstStep, bool mirror,
-		mycufftHandle &myhandlePaddedTR, mycufftHandle &myhandleMaskTR, mycufftHandle &myhandlePolarTR,
-		mycufftHandle &myhandlePaddedRT, mycufftHandle &myhandleMaskRT, mycufftHandle &myhandlePolarRT,
+		int firstStep, bool mirror,
+		mycufftHandle &myhandlePaddedTR, mycufftHandle &myhandleMaskTR,
+		mycufftHandle &myhandlePolarRT,
 		StructuresAux &myStructureAuxTR, StructuresAux &myStructureAuxRT,
 		myStreamHandle &myStreamTR, myStreamHandle &myStreamRT,
-		GpuMultidimArrayAtCpu<float> &original_image_stack,
-		mycufftHandle &ifftcb)
+		GpuMultidimArrayAtCpu<float> &original_image_stack)
 {
 
 
@@ -380,11 +379,10 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 
 	preprocess_images_experimental_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-			d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT, true, 0, mirror,
-					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
-					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
-					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, original_image_stack,
-					ifftcb);
+			d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,  0, mirror,
+					myhandlePadded_tr,
+					myhandleMask_rt, myhandlePolar_rt,
+					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, original_image_stack);
 
 	d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
 	d_experimentalAuxTR.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr,
@@ -1526,7 +1524,7 @@ void ProgGpuCorrelation::run()
 
 		//SF
 		preprocess_images_reference(SFexp, firstIdx, available_images_proj, mask, d_referenceAux,
-				myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myhandleAux_tr, myStructureAux_tr, iter, myStreamTR);
+				myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,  myStructureAux_tr, iter, myStreamTR);
 
 	    d_referenceAux.maskCount=maskCount;
 		d_referenceAux.produceSideInfo(myhandlePaddedB_tr, myhandleMaskB_tr, myStructureAux_tr, myStreamTR);
