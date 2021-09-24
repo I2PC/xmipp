@@ -276,9 +276,8 @@ void preprocess_images_experimental_two(MetaDataVec &SF, FileName &fnImg, int nu
 void preprocess_images_experimental_transform_two(MetaDataVec &SF, FileName &fnImg, int numImagesRef, GpuMultidimArrayAtGpu<float> &mask,
 		GpuMultidimArrayAtGpu< std::complex<float> > &d_maskFFT,
 		GpuCorrelationAux &d_correlationAuxOne, GpuCorrelationAux &d_correlationAuxTwo,
-		bool rotation, int firstStep, bool mirror,
-		mycufftHandle &myhandlePaddedOne, mycufftHandle &myhandleMaskOne, mycufftHandle &myhandlePolarOne,
-		mycufftHandle &myhandlePaddedTwo, mycufftHandle &myhandleMaskTwo, mycufftHandle &myhandlePolarTwo,
+		mycufftHandle &myhandlePaddedOne,
+		mycufftHandle &myhandlePolarTwo,
 		StructuresAux &myStructureAuxOne, StructuresAux &myStructureAuxTwo,
 		myStreamHandle &myStreamOne, myStreamHandle &myStreamTwo, int step)
 {
@@ -420,9 +419,9 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 			//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
 			preprocess_images_experimental_transform_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-					d_referenceAux.d_maskFFT, d_experimentalAuxRT, d_experimentalAuxTR,	true, 0, mirror,
-					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
-					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
+					d_referenceAux.d_maskFFT, d_experimentalAuxRT, d_experimentalAuxTR,
+					myhandlePadded_rt,
+					myhandlePolar_tr,
 					myStructureAux_rt, myStructureAux_tr, myStreamRT, myStreamTR, 1);
 
 			d_experimentalAuxRT.maskCount=d_referenceAux.maskCount;
@@ -454,9 +453,9 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 
 				//PREPROCESS TO PREPARE DATA TO THE NEXT STEP
 				preprocess_images_experimental_transform_two(SFexp, fnImgExp, available_images_proj, d_referenceAux.d_mask,
-						d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,	true, 0, mirror,
-						myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr,
-						myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt,
+						d_referenceAux.d_maskFFT, d_experimentalAuxTR, d_experimentalAuxRT,
+						myhandlePadded_tr,
+						myhandlePolar_rt,
 						myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT, 2);
 
 				d_experimentalAuxTR.maskCount=d_referenceAux.maskCount;
