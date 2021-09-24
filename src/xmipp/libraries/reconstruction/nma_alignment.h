@@ -195,7 +195,7 @@ class ObjFunc_nma_alignment: public UnconstrainedObjectiveFunction
   public:
     ObjFunc_nma_alignment(int _t, int _n=0);
     ~ObjFunc_nma_alignment(){};
-    double eval(Vector v, int *nerror=NULL);
+    double eval(Vector v, int *nerror=nullptr);
 };
 
 //@}

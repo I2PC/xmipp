@@ -348,7 +348,7 @@ protected:
             REPORT_ERROR(ERR_PARAM_INCORRECT, "You should provide at least one label to fill out");
 
         operation = getParam("--fill", 1);
-        MDValueGenerator * generator=NULL;
+        MDValueGenerator * generator=nullptr;
 
         // Select which generator to use
         if (operation == "expand")

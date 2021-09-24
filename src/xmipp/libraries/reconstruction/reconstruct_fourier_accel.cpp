@@ -46,7 +46,7 @@ void ProjectionData::clean() {
 }
 
 void ProgRecFourierAccel::allocateVoutFourier(MultidimArray<std::complex<double> >&VoutFourier) {
-    if ((NULL == VoutFourier.data) || (0 == VoutFourier.getSize())) {
+    if ((nullptr == VoutFourier.data) || (0 == VoutFourier.getSize())) {
         VoutFourier.initZeros(paddedImgSize, paddedImgSize, paddedImgSize/2 +1);
     }
 }
@@ -157,10 +157,10 @@ void ProgRecFourierAccel::run()
 
 void ProgRecFourierAccel::createLoadingThread() {
 	barrier_init( &barrier, 2 ); // two barries - for main and loading thread
-	loadThread.buffer1 = loadThread.buffer2 = NULL;
+	loadThread.buffer1 = loadThread.buffer2 = nullptr;
 	loadThread.parent = this;
 	loadThread.selFile = &SF;
-	pthread_create( &loadThread.id , NULL, loadImageThread, (void *)(&loadThread) );
+	pthread_create( &loadThread.id , nullptr, loadImageThread, (void *)(&loadThread) );
 	threadOpCode = PRELOAD_IMAGE;
 }
 
@@ -168,7 +168,7 @@ void ProgRecFourierAccel::cleanLoadingThread() {
 	threadOpCode = EXIT_THREAD;
 	// Waiting for thread to finish
 	barrier_wait( &barrier );
-	pthread_join(*(&loadThread.id), NULL);
+	pthread_join(*(&loadThread.id), nullptr);
 	barrier_destroy( &barrier );
 }
 
@@ -410,7 +410,7 @@ void * ProgRecFourierAccel::loadImageThread( void * threadArgs )
                 break;
             }
         case EXIT_THREAD:
-            return NULL;
+            return nullptr;
         default:
             break;
         }
@@ -845,7 +845,7 @@ void ProgRecFourierAccel::release(T***& array, int ySize, int zSize) {
 		delete[] array[z];
 	}
 	delete[] array;
-	array = NULL;
+	array = nullptr;
 }
 
 template<typename T>
@@ -1030,10 +1030,10 @@ void ProgRecFourierAccel::processImages( int firstImageIndex, int lastImageIndex
     int loops = ceil((lastImageIndex-firstImageIndex+1)/(float)bufferSize);
 
 	// the +1 is to prevent outOfBound reading when mirroring the result (later)
-    if (NULL == tempVolume) {
+    if (nullptr == tempVolume) {
     	allocate(tempVolume, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1);
     }
-    if (NULL == tempWeights) {
+    if (nullptr == tempWeights) {
     	allocate(tempWeights, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1, maxVolumeIndexYZ+1);
     }
 
@@ -1050,7 +1050,7 @@ void ProgRecFourierAccel::processImages( int firstImageIndex, int lastImageIndex
     }
 	delete[] loadThread.buffer1;
 	delete[] loadThread.buffer2;
-	loadThread.buffer1 = loadThread.buffer2 = NULL;
+	loadThread.buffer1 = loadThread.buffer2 = nullptr;
 }
 
 void ProgRecFourierAccel::releaseTempSpaces() {

@@ -287,7 +287,7 @@ void setupAffineFitness(AffineFitness &fitness, const MultidimArray<double> &I1,
         Mask1.setXmippOrigin();
         Mask2.setXmippOrigin();
 
-        MultidimArray<double> *dummy=NULL;
+        MultidimArray<double> *dummy=nullptr;
         dummy=new MultidimArray<double>;
         *dummy=I1aux;
         fitness.I1.push_back(dummy);
@@ -668,7 +668,7 @@ void * threadComputeTransform( void * args )
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void ProgTomographAlignment::computeAffineTransformations(
@@ -685,12 +685,12 @@ void ProgTomographAlignment::computeAffineTransformations(
         // Passing parameters to each thread
         th_args[nt].parent = this;
         th_args[nt].myThreadID = nt;
-        pthread_create( (th_ids+nt) , NULL, threadComputeTransform, (void *)(th_args+nt) );
+        pthread_create( (th_ids+nt) , nullptr, threadComputeTransform, (void *)(th_args+nt) );
     }
 
     // Waiting for threads to finish
     for( int nt = 0 ; nt < numThreads ; nt ++ )
-        pthread_join(*(th_ids+nt), NULL);
+        pthread_join(*(th_ids+nt), nullptr);
 
     // Threads structures are not needed any more
     delete[] th_ids;
@@ -754,7 +754,7 @@ void ProgTomographAlignment::produceSideInfo()
 
     bestPreviousAlignment=new Alignment(this);
     // Read input data
-    SF.read(fnSel,NULL);
+    SF.read(fnSel,nullptr);
     if (SF.containsLabel(MDL_ENABLED))
         SF.removeObjects(MDValueEQ(MDL_ENABLED, -1));
     Nimg=SF.size();
@@ -865,7 +865,7 @@ void ProgTomographAlignment::produceSideInfo()
     // Read images at original scale
     if (!fnSelOrig.empty())
     {
-        SForig.read(fnSelOrig,NULL);
+        SForig.read(fnSelOrig,nullptr);
         SForig.removeDisabled();
 
         if (SForig.size()!=SF.size())
@@ -1210,7 +1210,7 @@ void * threadgenerateLandmarkSetGrid( void * args )
     }
     if (thread_id==0)
         progress_bar(gridSamples);
-    return NULL;
+    return nullptr;
 }
 
 void * threadgenerateLandmarkSetBlind( void * args )
@@ -1364,7 +1364,7 @@ void * threadgenerateLandmarkSetBlind( void * args )
     }
     if (thread_id==0)
         progress_bar(gridSamples);
-    return NULL;
+    return nullptr;
 }
 
 //#define DEBUG
@@ -1614,7 +1614,7 @@ void * threadgenerateLandmarkSetCriticalPoints( void * args )
     }
     if (thread_id==0)
         progress_bar(Nimg);
-    return NULL;
+    return nullptr;
 }
 #undef DEBUG
 
@@ -1649,16 +1649,16 @@ void ProgTomographAlignment::generateLandmarkSet()
             th_args[nt].parent = this;
             th_args[nt].myThreadID = nt;
             if (useCriticalPoints)
-                pthread_create( (th_ids+nt) , NULL, threadgenerateLandmarkSetCriticalPoints, (void *)(th_args+nt) );
+                pthread_create( (th_ids+nt) , nullptr, threadgenerateLandmarkSetCriticalPoints, (void *)(th_args+nt) );
             else
-                pthread_create( (th_ids+nt) , NULL, threadgenerateLandmarkSetGrid, (void *)(th_args+nt) );
+                pthread_create( (th_ids+nt) , nullptr, threadgenerateLandmarkSetGrid, (void *)(th_args+nt) );
         }
 
         std::vector<LandmarkChain> chainList;
         int includedPoints=0;
         for( int nt = 0 ; nt < numThreads ; nt ++ )
         {
-            pthread_join(*(th_ids+nt), NULL);
+            pthread_join(*(th_ids+nt), nullptr);
             int imax=th_args[nt].chainList->size();
             for (int i=0; i<imax; i++)
             {
@@ -1679,12 +1679,12 @@ void ProgTomographAlignment::generateLandmarkSet()
             {
                 th_args[nt].parent = this;
                 th_args[nt].myThreadID = nt;
-                pthread_create( (th_ids+nt) , NULL, threadgenerateLandmarkSetBlind, (void *)(th_args+nt) );
+                pthread_create( (th_ids+nt) , nullptr, threadgenerateLandmarkSetBlind, (void *)(th_args+nt) );
             }
 
             for( int nt = 0 ; nt < numThreads ; nt ++ )
             {
-                pthread_join(*(th_ids+nt), NULL);
+                pthread_join(*(th_ids+nt), nullptr);
                 int imax=th_args[nt].chainList->size();
                 for (int i=0; i<imax; i++)
                 {
@@ -2559,7 +2559,7 @@ void ProgTomographAlignment::run()
     double fitness;
     int iter;
     TomographAlignment::global_prm=this;
-    powellOptimizer(axisAngles,1,2,&wrapperError, NULL,
+    powellOptimizer(axisAngles,1,2,&wrapperError, nullptr,
                     0.01,fitness,iter,steps,true);
 
     // Outlier removal
@@ -2581,7 +2581,7 @@ void ProgTomographAlignment::run()
         fitness=bestPreviousAlignment->optimizeGivenAxisDirection();
 
         // Optimize again
-        powellOptimizer(axisAngles,1,2,&wrapperError,NULL,
+        powellOptimizer(axisAngles,1,2,&wrapperError,nullptr,
                         0.01,fitness,iter,steps,true);
     }
     bestPreviousAlignment->rot=axisAngles(0);
