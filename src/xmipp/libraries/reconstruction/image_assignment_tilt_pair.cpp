@@ -156,16 +156,23 @@ void ProgassignmentTiltPair::search_affine_transform(float u1x, float u1y, float
 		if (counter == 0)
 			continue;
 
-		estimator = dist2/inliers2;
-		A_coarse = A_matrix;
-		T_coarse = T;
 		if (inliers2 > bestInliers)
 		{
+			estimator = dist2/inliers2;
 			bestInliers = inliers2;
 			if (contingency)
 				if (bestInliers>0.3*thrs)
 					break;
+
+			A_coarse = A_matrix;
+			T_coarse = T;
 			std::cout << bestInliers << std::endl;
+		}
+		else if ((inliers2 == bestInliers) && (dist2/inliers2 < estimator) )
+		{
+			estimator = dist2/inliers2;
+			A_coarse = A_matrix;
+			T_coarse = T;
 		}
 	}
 }
