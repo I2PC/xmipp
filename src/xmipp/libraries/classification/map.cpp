@@ -1084,7 +1084,7 @@ SomPos FuzzyMap::applyPos(const unsigned& _in)
  * Operator "="
  * Parameter: op1 FuzzyMap
 */
-FuzzyMap& operator= (const FuzzyMap &op1)
+FuzzyMap& FuzzyMap::operator= (const FuzzyMap &op1)
 {
     std::stringstream _str;
     op1.printSelf(_str);
