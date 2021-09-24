@@ -1001,15 +1001,15 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
                                                //opt_scale=0.;
                                                          //maxcorr=-99.e99;
                                                          
-    std::unique_ptr<bool[]> opt_flip(new bool[numOrientations]());
-    std::unique_ptr<int[]> opt_refno(new int[numOrientations]());
-    std::unique_ptr<double[]> opt_psi(new double[numOrientations]());
-    std::unique_ptr<double[]> maxcorr(new double[numOrientations]());
-    std::unique_ptr<double[]> opt_xoff(new double[numOrientations]());
-    std::unique_ptr<double[]> opt_yoff(new double[numOrientations]());
-    std::unique_ptr<double[]> opt_scale(new double[numOrientations]());
-    std::unique_ptr<double[]> opt_rot(new double[numOrientations]());
-    std::unique_ptr<double[]> opt_tilt(new double[numOrientations]());
+    auto opt_flip  = std::vector<bool> (numOrientations, false);
+    auto opt_refno = std::vector<int> (numOrientations, 0);
+    auto opt_psi   = std::vector<double> (numOrientations, 0);
+    auto maxcorr   = std::vector<double> (numOrientations, 0);
+    auto opt_xoff  = std::vector<double> (numOrientations, 0);
+    auto opt_yoff  = std::vector<double> (numOrientations, 0);
+    auto opt_scale = std::vector<double> (numOrientations, 0);
+    auto opt_rot   = std::vector<double> (numOrientations, 0);
+    auto opt_tilt  = std::vector<double> (numOrientations, 0);
 
     size_t itemId=0;
     size_t nr_images = imagesToProcess.size();
