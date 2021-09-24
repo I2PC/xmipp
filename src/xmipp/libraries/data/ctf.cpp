@@ -1608,7 +1608,6 @@ void CTFDescription::getAverageProfile(double fmax, int nsamples,
 {
     double step = fmax / nsamples;
     profiles.initZeros(nsamples, 4);
-    double angle = 0.0;
 
     for(int angle=0; angle < 360; angle++)
     {
