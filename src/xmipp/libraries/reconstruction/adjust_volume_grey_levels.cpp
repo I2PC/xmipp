@@ -85,7 +85,7 @@ void ProgAdjustVolume::run()
     ImOut().setXmippOrigin();
 
     // Read input metadataFile
-    SF.read(fn_sel,NULL);
+    SF.read(fn_sel,nullptr);
 
     apply(ImOut());
 
@@ -247,7 +247,7 @@ void ProgAdjustVolume::apply(MultidimArray<float> &out)
         double ftol = 0.01, fret;
         int iter;
         globalAdjustVolumeProg = this;
-        powellOptimizer(p, 1, 2, &projectionMismatching, NULL,
+        powellOptimizer(p, 1, 2, &projectionMismatching, nullptr,
                         ftol, fret, iter, steps, true);
         a = p(0);
         b = p(1);
