@@ -168,7 +168,7 @@ public:
     double computeFitness(Matrix1D<double> &trial) const;
 
     /** Update the best fitness and the corresponding best trial*/
-    void updateBestFit(double fitness, int dim);
+    void updateBestFit(double fitness);
 
     /** Create the processing working files.
      * The working files are:
