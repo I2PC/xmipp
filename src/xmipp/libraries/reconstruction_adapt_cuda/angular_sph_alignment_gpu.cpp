@@ -473,7 +473,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 				std::cout<<std::endl;
 			}
 		}
-		catch (XmippError XE)
+		catch (XmippError &XE)
 		{
 			std::cerr << XE << std::endl;
 			std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
