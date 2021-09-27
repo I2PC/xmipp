@@ -115,7 +115,7 @@ public:
     // CTF filter
     FourierFilter FilterCTF;
 	// CTF image
-	MultidimArray<double> *ctfImage;
+	MultidimArray<double> *ctfImage=nullptr;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics

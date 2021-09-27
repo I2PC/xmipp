@@ -37,7 +37,6 @@ ProgAngularSphAlignment::ProgAngularSphAlignment()
 	resume = false;
     produces_a_metadata = true;
     each_image_produces_an_output = false;
-    ctfImage = NULL;
     showOptimization = false;
 }
 
@@ -158,7 +157,6 @@ void ProgAngularSphAlignment::preProcess()
     V().setXmippOrigin();
     Xdim=XSIZE(V());
     Vdeformed().initZeros(V());
-    // sumV=V().sum();
 
     Ifilteredp().initZeros(Xdim,Xdim);
     Ifilteredp().setXmippOrigin();
@@ -290,7 +288,6 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		save.write("PPPfilteredp.xmp");
 		save()=Ifiltered();
 		save.write("PPPfiltered.xmp");
-		// Vdeformed.write("PPPVdeformed.vol");
 		std::cout << "Cost=" << cost << " corr=" << corr << std::endl;
 		std::cout << "Deformation=" << totalDeformation << std::endl;
 		std::cout << "Press any key" << std::endl;
@@ -345,11 +342,6 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 
 	flagEnabled=1;
 
-	// Read input image and initial parameters
-//  ApplyGeoParams geoParams;
-//	geoParams.only_apply_shifts=false;
-//	geoParams.wrap=DONT_WRAP;
-
 	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
 	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
 	rowIn.getValue(MDL_ANGLE_PSI,old_psi);
@@ -360,7 +352,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	else
 		old_flip = false;
 	
-	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
+	if (rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL))
 	{
 		hasCTF=true;
 		ctf.readFromMdRow(rowIn);
@@ -455,7 +447,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 				std::cout<<std::endl;
 			}
 		}
-		catch (XmippError XE)
+		catch (XmippError &XE)
 		{
 			std::cerr << XE << std::endl;
 			std::cerr << "Warning: Cannot refine " << fnImg << std::endl;
@@ -602,7 +594,6 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 				double r2=k2i2+XX(pos)*XX(pos);
 				double jr=XX(pos)*iRmaxF;
 				double rr=sqrt(r2)*iRmaxF;
-				// if (r2<RmaxF2 && A3D_ELEM(V_mask, (int)round(ZZ(pos)), (int)round(YY(pos)), (int)round(XX(pos))) == 1) {
 				if (r2<RmaxF2) {
 					for (size_t idx=0; idx<idxY0; idx++) {
 						if (VEC_ELEM(steps_cp,idx) == 1) {
@@ -630,20 +621,16 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 					}
 					if (voxelI_mask == 1) {
 						double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);
-						// double voxelR=mV.interpolatedElement3D(XX(pos),YY(pos),ZZ(pos));
 						A2D_ELEM(mP,i,j) += voxelI;
 						sumVd += voxelI;
 						modg += gx*gx+gy*gy+gz*gz;
 						Ncount++;
 					}
-					// double diff=voxelR-voxelI;
-					// diff2+=diff*diff;
 				}
 			}
 		}
 	}
 
-    // def=sqrt(modg/Ncount);
 	def = sqrt(modg/Ncount);
 	totalDeformation = def;
 }

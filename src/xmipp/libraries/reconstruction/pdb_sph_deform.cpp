@@ -65,6 +65,7 @@ void ProgPdbSphDeform::run()
 	clnm = string2vector(line);
 	fillVectorTerms(vL1,vN,vL2,vM);
 	int l1,n,l2,m;
+	l1=0; n=0; l2=0; m=0;
 	size_t idxY0=clnm.size()/3;
 	size_t idxZ0=2*idxY0;
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
