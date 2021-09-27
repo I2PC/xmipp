@@ -62,45 +62,6 @@ public:
             ProgAngularSphAlignment::showProgress();
         }
     }
-
-    // void preProcess()
-    // {
-    // 	rank=node->rank;
-    //     ProgAngularSphAlignment::preProcess();
-   	// 	node->barrierWait();
-
-   	// 	// Get the volume padded size from rank 0
-   	// 	int realSize, origin;
-   	// 	if (node->rank==0)
-   	// 	{
-   	// 		realSize = XSIZE(projector->VfourierRealCoefs);
-   	// 		origin = STARTINGX(projector->VfourierRealCoefs);
-   	// 	}
-    //     MPI_Bcast(&realSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //     MPI_Bcast(&origin, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //     MPI_Bcast(&(projector->volumePaddedSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-    //     MPI_Bcast(&(projector->volumeSize), 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    //     if (rank!=0)
-    //     {
-    //     	projector->VfourierRealCoefs.resizeNoCopy(realSize,realSize,realSize);
-    //     	projector->VfourierImagCoefs.resizeNoCopy(realSize,realSize,realSize);
-    //     	STARTINGX(projector->VfourierRealCoefs)=STARTINGY(projector->VfourierRealCoefs)=STARTINGZ(projector->VfourierRealCoefs)=origin;
-    //     	STARTINGX(projector->VfourierImagCoefs)=STARTINGY(projector->VfourierImagCoefs)=STARTINGZ(projector->VfourierImagCoefs)=origin;
-    //     }
-    //     MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierRealCoefs), MULTIDIM_SIZE(projector->VfourierRealCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    //     MPI_Bcast(MULTIDIM_ARRAY(projector->VfourierImagCoefs), MULTIDIM_SIZE(projector->VfourierImagCoefs), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    // 	if (rank!=0)
-    //     	projector->produceSideInfoProjection();
-    // }
-    /*void preProcess()
-    {
-    	ProgAngularSphAlignment::preProcess();
-        MetaData &mdIn = *getInputMd();
-        mdIn.addLabel(MDL_GATHER_ID);
-        mdIn.fillLinear(MDL_GATHER_ID,1,1);
-        createTaskDistributor(mdIn, blockSize);
-    }*/
     void createWorkFiles()
     {
         //Master node should prepare some stuff before start working
@@ -143,20 +104,6 @@ public:
         objIndex = BAD_INDEX;
         return false;
     }
-    /*void gatherMetadatas()
-    {
-        node->gatherMetadatas(*getOutputMd(), fn_out);
-    	MetaData MDaux;
-    	MDaux.sort(*getOutputMd(), MDL_GATHER_ID);
-        MDaux.removeLabel(MDL_GATHER_ID);
-        *getOutputMd()=MDaux;
-    }
-    void finishProcessing()
-    {
-    	gatherMetadatas();
-        if (node->isMaster())
-            ProgAngularSphAlignment::finishProcessing();
-    }*/
     void finishProcessing()
     {
     	distributor->wait();
