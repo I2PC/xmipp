@@ -32,6 +32,7 @@
 #include <core/xmipp_filename.h>
 #include <core/xmipp_image.h>
 #include <data/point3D.h>
+#include <core/metadata_vec.h>
 
 
 class ProgTomoFilterCoordinates : public XmippProgram
@@ -56,7 +57,7 @@ private:
     size_t xDim, yDim, zDim;
 
     /** Input coordinates */
-    std::vector<Point3D> inputCoords;
+    std::vector<Point3D<double>> inputCoords;
 
 
 public:
@@ -76,10 +77,13 @@ public:
 
     void readInputCoordinates();
 
+    void writeOutputCoordinates();
+
 
     // --------------------------- MAIN ----------------------------------
 
     void run();
+
 
 };
 

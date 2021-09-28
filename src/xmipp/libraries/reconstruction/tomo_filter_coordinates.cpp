@@ -46,7 +46,6 @@ void ProgTomoFilterCoordinates::readParams()
 	}
 
    	fnOutCoord = getParam("-outCoord");
-
 }
 
 
@@ -70,14 +69,15 @@ void ProgTomoFilterCoordinates::defineParams()
 
 void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<int> &inputVolume)
 {
-	Point3D coord3D;
+	Point3D<double> coord3D;
 	for (size_t i = 0; i < inputCoords.size(); i++)
 	{
 		coord3D = inputCoords[i];
 
-		if(DIRECT_A3D_ELEM(inputVolume, coord3D.z, coord3D.y, coord3D.x) == 0)
+		if(DIRECT_A3D_ELEM(inputVolume, (int)coord3D.z, (int)coord3D.y, (int)coord3D.x) == 0)
 		{
 			inputCoords.erase(inputCoords.begin()+i);
+			i--;
 		}
 	}
 }
@@ -87,25 +87,58 @@ void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<int> &in
 
 void ProgTomoFilterCoordinates::readInputCoordinates()
 {
-	MetaData inCoordMd;
+	MetaDataVec inCoordMd;
 	inCoordMd.read(fnInCoord);
 
 	size_t objId;
 	Point3D<double> coordinate3D;
 
-	FOR_ALL_OBJECTS_IN_METADATA(inCoordMd)
-	{
-		objId = __iter.objId;
+	// FOR_ALL_OBJECTS_IN_METADATA(inCoordMd)
+	// {
+	// 	// objId = __iter.objId;
+	// 	objId = inCoordMd.ids;
 
-		inputCoordMd.getValue(MDL_XCOOR, coordinate3D.x, objId);
-		inputCoordMd.getValue(MDL_YCOOR, coordinate3D.y, objId);
-		inputCoordMd.getValue(MDL_ZCOOR, coordinate3D.z, objId);
+	// 	inCoordMd.getValue(MDL_XCOOR, coordinate3D.x, objId);
+	// 	inCoordMd.getValue(MDL_YCOOR, coordinate3D.y, objId);
+	// 	inCoordMd.getValue(MDL_ZCOOR, coordinate3D.z, objId);
+
+	// 	inputCoords.push_back(coordinate3D);
+	// }
+
+	for(size_t objId : inCoordMd.ids())
+	{
+		inCoordMd.getValue(MDL_XCOOR, coordinate3D.x, objId);
+		inCoordMd.getValue(MDL_YCOOR, coordinate3D.y, objId);
+		inCoordMd.getValue(MDL_ZCOOR, coordinate3D.z, objId);
 
 		inputCoords.push_back(coordinate3D);
 	}
+
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Input coordinates metadata read from: " << fnInCoord << std::endl;
+	#endif
 }
 
+void ProgTomoFilterCoordinates::writeOutputCoordinates()
+{
+	MetaDataVec outCoordMd;
+	size_t id;
 
+	for(size_t i = 0; i < inputCoords.size(); i++)
+	{
+		id = outCoordMd.addObject();
+		outCoordMd.setValue(MDL_XCOOR, inputCoords[i].x, id);
+		outCoordMd.setValue(MDL_YCOOR, inputCoords[i].y, id);
+		outCoordMd.setValue(MDL_ZCOOR, inputCoords[i].z, id);
+	}
+
+	outCoordMd.write(fnOutCoord);
+	
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Output coordinates metadata saved at: " << fnOutCoord << std::endl;
+	#endif
+}
 
 
 // --------------------------- MAIN ----------------------------------
@@ -124,46 +157,49 @@ void ProgTomoFilterCoordinates::run()
 	if(execMode)
 	{
 		Image<double> inputVolume;
+		inputVolume.read(fnInVol);
+
 	}else
 	{
 		Image<int> inputVolume;
+		inputVolume.read(fnInVol);
+
+		auto &inVol=inputVolume();
+
+		xDim = XSIZE(inVol);
+		yDim = YSIZE(inVol);
+		zDim = ZSIZE(inVol);
+
+		#ifdef DEBUG_DIM
+		std::cout << "Input volume dimensions:" << std::endl;
+		std::cout << "x " << XSIZE(inputTomo) << std::endl;
+		std::cout << "y " << YSIZE(inputTomo) << std::endl;
+		std::cout << "z " << ZSIZE(inputTomo) << std::endl;
+		std::cout << "n " << NSIZE(inputTomo) << std::endl;
+		#endif
+
+		readInputCoordinates();
+
+		#ifdef VERBOSE_OUTPUT
+		std::cout << "Number of coordinates before filtering: " << inputCoords.size() << std::endl;
+		#endif
+
+
+		if(execMode)
+		{
+			std::cout << "Filtering with resolution map..." << std::endl;
+		}else
+		{
+			std::cout << "Filtering with mask..." << std::endl;
+			filterCoordinatesWithMask(inVol);
+		}
+
+		#ifdef VERBOSE_OUTPUT
+		std::cout << "Number of coordinates after filtering: " << inputCoords.size() << std::endl;
+		#endif
+
+		writeOutputCoordinates();
 	}
-	
-	inputVolume.read(fnInVol);
-
-	auto &inVol=inputVolume();
-
-	xDim = XSIZE(inVol);
-	yDim = YSIZE(inVol);
-	zDim = ZSIZE(inVol);
-
-	#ifdef DEBUG_DIM
-	std::cout << "Input volume dimensions:" << std::endl;
-	std::cout << "x " << XSIZE(inputTomo) << std::endl;
-	std::cout << "y " << YSIZE(inputTomo) << std::endl;
-	std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-	std::cout << "n " << NSIZE(inputTomo) << std::endl;
-	#endif
-
-	readInputCoordinates();
-
-	#ifdef VERBOSE
-	std::cout << "Number of coordinates before filtering: " << inputCoords.size() << std::endl;
-	#endif
-
-
-	if(execMode)
-	{
-		std::cout << "Filtering with resolution map..." << std::endl;
-	}else
-	{
-		std::cout << "Filtering with mask..." << std::endl;
-		filterCoordinatesWithMask(inVol);
-	}
-
-	#ifdef VERBOSE
-	std::cout << "Number of coordinates after filtering: " << inputCoords.size() << std::endl;
-	#endif
 	
 	auto t2 = high_resolution_clock::now();
 	/* Getting number of milliseconds as an integer. */
