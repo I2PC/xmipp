@@ -156,12 +156,14 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	std::cout << "Picking coordinates..." << std::endl;
 	#endif
 
+	// *** reutilizar binaryCoordinatesMapSlice slice a slice y descartar labelCoordiantesMap	
     MultidimArray<double> binaryCoordinatesMapSlice;
     MultidimArray<double> labelCoordiantesMapSlice;
     MultidimArray<double> labelCoordiantesMap;
 
 	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
 	
+	// *** renombrar k por z
 	for(size_t k = 0; k < nSize; ++k)
 	{
 		std::vector<int> sliceVector;
@@ -291,9 +293,11 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 			if(keep)
 			{
-				coordinates3Dx.push_back(xCoorCM);
-				coordinates3Dy.push_back(yCoorCM);
-				coordinates3Dn.push_back(k);
+				Point3D point3D(xCoorCM, yCoorCM, k);
+				// coordinates3Dx.push_back(xCoorCM);
+				// coordinates3Dy.push_back(yCoorCM);
+				// coordinates3Dn.push_back(k);
+				coordinates3D.push_back(point3D);
 
 				#ifdef DEBUG
 				numberOfNewPeakedCoordinates += 1;
@@ -423,17 +427,22 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 						std::cout << "tiltAngles[coordinates3Dn[" << x << "]]=" << tiltAngles[coordinates3Dn[x]] << std::endl;
 						chainLineYAngles[coordinates3Dx[x]] = tiltAngles[coordinates3Dn[x]];
 					}
-				}		
+				}
+
 				else if(x-1 > 0 && coordinates3Dy[x-1] == chainIndexY)
 				{
 					chainLineY[coordinates3Dx[x-1]] = 1;
 					chainLineYAngles[coordinates3Dx[x-1]] = tiltAngles[coordinates3Dn[x-1]];
+					// *** add if condition in angle
 
-				}	
+				}
+
 				else if(x+1 < coordinates3Dy.size() && coordinates3Dy[x+1] == chainIndexY)
 				{
 					chainLineY[coordinates3Dx[x+1]] = 1;
 					chainLineYAngles[coordinates3Dx[x+1]] = tiltAngles[coordinates3Dn[x+1]];
+
+					// *** add if condition in angle
 
 				}	
 			}
@@ -603,9 +612,11 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 				DIRECT_A2D_ELEM(clustered2dMap, chainIndexY-1, j+1) = clusteredChainLineY[j];//1;
 				DIRECT_A2D_ELEM(clustered2dMap, chainIndexY+1, j-1) = clusteredChainLineY[j];//1;
 
+				std::cout << "clusterSizeVector[" << clusteredChainLineY[j] << "]=" << clusterSizeVector[clusteredChainLineY[j]] << std::endl;
+
+
 				if (clusterSizeVector[clusteredChainLineY[j]-1] > numberOfElementsInChainThreshold)
 				{
-					// std::cout << "clusterSizeVector[clusteredChainLineY[" << j << "]]=" << clusterSizeVector[clusteredChainLineY[j]] << std::endl;
 					DIRECT_A2D_ELEM(chain2dMap, chainIndexY, j) 	= clusteredChainLineY[j];//1;
 					DIRECT_A2D_ELEM(chain2dMap, chainIndexY+1, j) 	= clusteredChainLineY[j];//1;
 					DIRECT_A2D_ELEM(chain2dMap, chainIndexY-1, j) 	= clusteredChainLineY[j];//1;
@@ -1014,7 +1025,9 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	double maxSquareDistance = 0;
 	double distance;
 
+	#ifdef DEBUG_FILTERLABEL
 	size_t debugN;
+	#endif
 
 	for(size_t n = 0; n < coordinatesPerLabelX.size(); n++)
 	{
@@ -1022,7 +1035,10 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 		if(distance > maxSquareDistance)
 		{
+			#ifdef DEBUG_FILTERLABEL
 			debugN = n;
+			#endif
+
 			maxSquareDistance = distance;
 		}
 	}

@@ -42,6 +42,7 @@
 #include "symmetrize.h"
 #include <data/morphology.h>
 #include "core/xmipp_image_generic.h"
+#include "point3D.h"
 
 #define VERBOSE_OUTPUT
 #define DEBUG
@@ -83,6 +84,8 @@ private:
     std::vector<double> coordinates3Dx;
     std::vector<double> coordinates3Dy;
     std::vector<int> coordinates3Dn;
+
+    std::vector<Point3D> coordinates3D;
 
     /** Vectors for calculated residuals components */
     std::vector<double> residualX;
