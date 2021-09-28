@@ -147,4 +147,8 @@ void computeCorrelations(size_t centerSize, int noOfImgs,
         T*& result);
 //@}
 
+void *Allocate(size_t bytes);
+
+void Free(void *ptr);
+
 #endif

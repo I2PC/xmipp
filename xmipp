@@ -203,6 +203,7 @@ def cleanBinaries():
 
 
 def checkout(branch):
+    return True
     r, currentBranch = getCurrentBranch()
     if currentBranch == branch:
         return True
@@ -231,6 +232,7 @@ def pull():
 
 
 def cloneOrCheckout(repo, branch):
+    return True
     repo_dir = os.path.join('src', repo) if repo != XMIPP else '.'
     if branch not in getAllBranchesAndTags(repo)[1]:
         branch = getBranch(repo, repo_dir)[1]

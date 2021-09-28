@@ -265,7 +265,7 @@ class Config:
             # optimize for current machine
             self.configDict["CXXFLAGS"] += " -mtune=native -march=native -flto"
             if "-std=c99" not in self.configDict["CXXFLAGS"]:
-                self.configDict["CXXFLAGS"] += " -std=c++14"
+                self.configDict["CXXFLAGS"] += " -std=c++17"
             if isCIBuild():
                 # don't tolerate any warnings on build machine
                 self.configDict["CXXFLAGS"] += " -Werror"

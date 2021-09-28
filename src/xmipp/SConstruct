@@ -220,6 +220,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         _libs.append("cufft")
         _libs.append("nvidia-ml")
         _libs.append("cuFFTAdvisor")
+        _libs.append("umpalumpa")
     _incs = list(incs)#+external_incdirs
     lastTarget = deps
     prefix = 'lib' if prefix is None else prefix
@@ -261,7 +262,7 @@ def addCppLibrary(env, name, dirs=[], tars=[], untarTargets=['configure'], patte
         if not 'LINKFLAGS' in env2:
             env2['LINKFLAGS']=[]
         env2['CXXFLAGS'] = env['NVCC_CXXFLAGS']
-        _libs.append(['cudart', 'cufft', 'cuFFTAdvisor'])
+        _libs.append(['cudart', 'cufft', 'cuFFTAdvisor', 'umpalumpa'])
         extraArgs = {'CC': env['NVCC'], 'CXX': env['NVCC'], 'LINK': env['LINKERFORPROGRAMS']}
 
     _incs.append(env['CPPPATH'])
@@ -390,7 +391,7 @@ def addProgram(env, name, src=None, pattern=None, installDir=None,
     libPathsCopy = libPaths + [Dir('lib').abspath]
     incsCopy = list(incs) or []
     if cuda or nvcc:
-        libs += ['cuFFTAdvisor', 'cudart', 'cufft', 'nvidia-ml', 'pthread']
+        libs += ['cuFFTAdvisor', 'umpalumpa', 'cudart', 'cufft', 'nvidia-ml', 'pthread']
 
     sources = []
     for s, p in izip(src, pattern):

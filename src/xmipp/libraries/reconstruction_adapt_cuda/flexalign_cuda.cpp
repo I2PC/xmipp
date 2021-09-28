@@ -23,7 +23,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "reconstruction_adapt_cuda/movie_alignment_correlation_gpu.h"
+#include "reconstruction_adapt_cuda/flexalign_cuda.h"
 #include "core/utils/memory_utils.h"
 #include <thread>
 #include "reconstruction_cuda/cuda_gpu_movie_alignment_correlation.h"
@@ -31,10 +31,11 @@
 #include "data/filters.h"
 #include "core/userSettings.h"
 #include "reconstruction_cuda/cuda_fft.h"
+#include "reconstruction_cuda/cuda_flexalign.h"
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
-    AProgMovieAlignmentCorrelation<T>::defineParams();
+void FlexAlignCuda<T>::defineParams() {
+    FlexAlign<T>::defineParams();
     this->addParamsLine("  [--device <dev=0>]                 : GPU device to use. 0th by default");
     this->addParamsLine("  [--storage <fn=\"\">]              : Path to file that can be used to store results of the benchmark");
     this->addParamsLine("  [--patchesAvg <avg=3>]             : Number of near frames used for averaging a single patch");
@@ -45,8 +46,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::defineParams() {
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::show() {
-    AProgMovieAlignmentCorrelation<T>::show();
+void FlexAlignCuda<T>::show() {
+    FlexAlign<T>::show();
     std::cout << "Device:              " << gpu.value().device() << " (" << gpu.value().getUUID() << ")" << "\n";
     std::cout << "Benchmark storage    " << (storage.empty() ? "Default" : storage) << "\n";
     std::cout << "Patches avg:         " << patchesAvg << "\n";
@@ -54,15 +55,15 @@ void ProgMovieAlignmentCorrelationGPU<T>::show() {
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
-    AProgMovieAlignmentCorrelation<T>::readParams();
+void FlexAlignCuda<T>::readParams() {
+    FlexAlign<T>::readParams();
 
     // read GPU
     int device = this->getIntParam("--device");
     if (device < 0)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Invalid GPU device");
-    gpu = core::optional<GPU>(device);
+    gpu = core::optional<GPU>(GPU(device));
     gpu.value().set();
 
     // read permanent storage
@@ -78,7 +79,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
 }
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
+FFTSettings<T> FlexAlignCuda<T>::getSettingsOrBenchmark(
         const Dimensions &d, size_t extraBytes, bool crop) {
     auto optSetting = getStoredSizes(d, crop);
     FFTSettings<T> result =
@@ -91,7 +92,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getSettingsOrBenchmark(
 }
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
+FFTSettings<T> FlexAlignCuda<T>::getMovieSettings(
         const MetaData &movie, bool optimize) {
     gpu.value().updateMemoryInfo();
     Image<T> frame;
@@ -108,7 +109,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getMovieSettings(
 }
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
+FFTSettings<T> FlexAlignCuda<T>::getCorrelationSettings(
         const FFTSettings<T> &s) {
     gpu.value().updateMemoryInfo();
     auto getNearestEven = [this] (size_t v, T minScale, size_t shift) { // scale is less than 1
@@ -132,7 +133,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getCorrelationSettings(
 }
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
+FFTSettings<T> FlexAlignCuda<T>::getPatchSettings(
         const FFTSettings<T> &orig) {
     gpu.value().updateMemoryInfo();
     const auto reqSize = this->getRequestedPatchSize();
@@ -145,7 +146,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::getPatchSettings(
 }
 
 template<typename T>
-std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLocation(
+std::vector<FramePatchMeta<T>> FlexAlignCuda<T>::getPatchesLocation(
         const std::pair<T, T> &borders,
         const Dimensions &movie, const Dimensions &patch) {
     size_t patchesX = this->localAlignPatches.first;
@@ -177,7 +178,7 @@ std::vector<FramePatchMeta<T>> ProgMovieAlignmentCorrelationGPU<T>::getPatchesLo
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
+void FlexAlignCuda<T>::getPatchData(const T *allFrames,
         const Rectangle<Point2D<T>> &patch, const AlignmentResult<T> &globAlignment,
         const Dimensions &movie, T *result) {
     size_t n = movie.n();
@@ -232,7 +233,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::getPatchData(const T *allFrames,
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
+void FlexAlignCuda<T>::storeSizes(const Dimensions &dim,
         const FFTSettings<T> &s, bool applyCrop) {
     UserSettings::get(storage).insert(*this,
             getKey(optSizeXStr, dim, applyCrop), s.dim.x());
@@ -246,7 +247,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::storeSizes(const Dimensions &dim,
 }
 
 template<typename T>
-core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSizes(
+core::optional<FFTSettings<T>> FlexAlignCuda<T>::getStoredSizes(
         const Dimensions &dim, bool applyCrop) {
     size_t x, y, batch, neededMB;
     bool res = true;
@@ -274,7 +275,7 @@ core::optional<FFTSettings<T>> ProgMovieAlignmentCorrelationGPU<T>::getStoredSiz
 
 
 template<typename T>
-FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimensions &d,
+FFTSettings<T> FlexAlignCuda<T>::runBenchmark(const Dimensions &d,
         size_t extraBytes, bool crop) {
     // FIXME DS remove tmp
     auto tmp1 = FFTSettingsNew<T>(d, d.n(), false);
@@ -293,7 +294,7 @@ FFTSettings<T> ProgMovieAlignmentCorrelationGPU<T>::runBenchmark(const Dimension
 }
 
 template<typename T>
-std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
+std::pair<T,T> FlexAlignCuda<T>::getMovieBorders(
         const AlignmentResult<T> &globAlignment, int verbose) {
     T minX = std::numeric_limits<T>::max();
     T maxX = std::numeric_limits<T>::min();
@@ -314,7 +315,7 @@ std::pair<T,T> ProgMovieAlignmentCorrelationGPU<T>::getMovieBorders(
 }
 
 template<typename T>
-LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignment(
+LocalAlignmentResult<T> FlexAlignCuda<T>::computeLocalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain,
         const AlignmentResult<T> &globAlignment) {
     using memoryUtils::MB;
@@ -372,8 +373,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     size_t patchesElements = std::max(
         patchSettings.elemsFreq(),
         patchSettings.elemsSpacial());
-    T *patchesData1 = new T[patchesElements];
-    T *patchesData2 = new T[patchesElements];
+    T *patchesData1 = reinterpret_cast<T*>(Allocate(patchesElements * sizeof(T)));
+    T *patchesData2 = reinterpret_cast<T*>(Allocate(patchesElements * sizeof(T)));
 
     std::thread* processing_thread = nullptr;
 
@@ -396,9 +397,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
         wait_and_delete(processing_thread);
 
         // swap buffers
-        auto tmp = patchesData2;
-        patchesData2 = patchesData1;
-        patchesData1 = tmp;
+        std::swap(patchesData1, patchesData2);
         // run processing thread on the background
 
         processing_thread = new std::thread([&, p]() {
@@ -429,8 +428,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     // wait for the last processing thread
     wait_and_delete(processing_thread);
 
-    delete[] patchesData1;
-    delete[] patchesData2;
+    Free(patchesData1);
+    Free(patchesData2);
 
     auto coeffs = BSplineHelper::computeBSplineCoeffs(movieSettings.dim, result,
             this->localAlignmentControlPoints, this->localAlignPatches,
@@ -442,7 +441,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
 }
 
 template<typename T>
-LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
+LocalAlignmentResult<T> FlexAlignCuda<T>::localFromGlobal(
         const MetaData& movie,
         const AlignmentResult<T> &globAlignment) {
     auto movieSettings = getMovieSettings(movie, false);
@@ -472,7 +471,7 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::localFromGlobal(
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+void FlexAlignCuda<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const AlignmentResult<T> &globAlignment) {
@@ -481,7 +480,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
+void FlexAlignCuda<T>::applyShiftsComputeAverage(
         const MetaData& movie, const Image<T>& dark, const Image<T>& igain,
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
@@ -566,7 +565,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
 }
 
 template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
+AlignmentResult<T> FlexAlignCuda<T>::computeGlobalAlignment(
         const MetaData &movie, const Image<T> &dark, const Image<T> &igain) {
     using memoryUtils::MB;
     auto movieSettings = this->getMovieSettings(movie, true);
@@ -597,27 +596,31 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeGlobalAlignment(
     // FIXME DS in case of big movies (EMPIAR 10337), we have to optimize the memory management
     // also, when autotuning is off, we don't need to create the copy at all
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
-    T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
+    // T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
+    T *data = reinterpret_cast<T*>(Allocate(elems * sizeof(T)));
     getCroppedMovie(movieSettings, data);
 
     auto result = align(data, movieSettings, correlationSetting,
                     filter, reference,
             this->maxShift, framesInBuffer, this->verbose);
-    free(data);
+    Free(data);
     return result;
 }
 
+
+
 template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
+AlignmentResult<T> FlexAlignCuda<T>::align(T *data,
         const FFTSettings<T> &in, const FFTSettings<T> &correlation,
         MultidimArray<T> &filter,
         core::optional<size_t> &refFrame,
         size_t maxShift, size_t framesInCorrelationBuffer, int verbose) {
     assert(nullptr != data);
+
     size_t N = in.dim.n();
     // scale and transform to FFT on GPU
     performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
-            correlation.x_freq, correlation.dim.y(), filter);
+            correlation.x_freq, correlation.dim.y(), filter.data);
 
     auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
             in.dim.y() / (T) correlation.dim.y());
@@ -628,7 +631,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
 }
 
 template<typename T>
-void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &settings,
+void FlexAlignCuda<T>::getCroppedMovie(const FFTSettings<T> &settings,
         T *output) {
     for (size_t n = 0; n < settings.dim.n(); ++n) {
         T *src = movieRawData + (n * rawMovieDim.xy()); // points to first float in the image
@@ -642,7 +645,7 @@ void ProgMovieAlignmentCorrelationGPU<T>::getCroppedMovie(const FFTSettings<T> &
 }
 
 template<typename T>
-T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
+T* FlexAlignCuda<T>::loadMovie(const MetaData& movie,
         const Image<T>& dark, const Image<T>& igain) {
     T* imgs = nullptr;
     Image<T> frame;
@@ -675,7 +678,7 @@ T* ProgMovieAlignmentCorrelationGPU<T>::loadMovie(const MetaData& movie,
 }
 
 template<typename T>
-AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbose,
+AlignmentResult<T> FlexAlignCuda<T>::computeShifts(int verbose,
         size_t maxShift,
         std::complex<T>* data, const FFTSettings<T>& settings, size_t N,
         std::pair<T, T>& scale,
@@ -731,7 +734,7 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeShifts(int verbos
 }
 
 template<typename T>
-size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
+size_t FlexAlignCuda<T>::getMaxFilterBytes(
         const Image<T> &frame) {
     size_t maxXPow2 = std::ceil(log(frame.data.xdim) / log(2));
     size_t maxX = std::pow(2, maxXPow2);
@@ -743,4 +746,4 @@ size_t ProgMovieAlignmentCorrelationGPU<T>::getMaxFilterBytes(
 }
 
 // explicit specialization
-template class ProgMovieAlignmentCorrelationGPU<float> ;
+template class FlexAlignCuda<float> ;

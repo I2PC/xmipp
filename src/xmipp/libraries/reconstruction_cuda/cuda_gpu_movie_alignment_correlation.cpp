@@ -29,6 +29,15 @@
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
 
+
+void *Allocate(size_t bytes) {
+  void *ptr;
+  gpuErrchk(cudaMallocManaged(&ptr, bytes));
+  return ptr;
+}
+
+void Free(void *ptr) { gpuErrchk(cudaFree(ptr)); }
+
 template void performFFTAndScale<float>(float* inOutData, int noOfImgs, int inX,
     int inY, int inBatch, int outFFTX, int outY, MultidimArray<float> &filter);
 template<typename T>
