@@ -67,18 +67,35 @@ void ProgTomoFilterCoordinates::defineParams()
 
 // --------------------------- HEAD functions ----------------------------
 
-void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<int> &inputVolume)
+void ProgTomoFilterCoordinates::filterCoordinatesWithMask(MultidimArray<double> &inputVolume)
 {
-	Point3D<double> coord3D;
+	Point3D<int> coord3D;
 	for (size_t i = 0; i < inputCoords.size(); i++)
 	{
 		coord3D = inputCoords[i];
 
-		if(DIRECT_A3D_ELEM(inputVolume, (int)coord3D.z, (int)coord3D.y, (int)coord3D.x) == 0)
+		if(coord3D.z < 0 || coord3D.z > (zDim-1) || coord3D.y < 0 || coord3D.y > (yDim-1) || coord3D.x < 0 || coord3D.x > (xDim-1))
 		{
+			std::cout << "WARNNING: Coordinate at (x=" << coord3D.x<< ", y=" << coord3D.y << ", z=" << coord3D.z << ") erased due to its out of the mask." << std::endl;
 			inputCoords.erase(inputCoords.begin()+i);
 			i--;
 		}
+
+		else if(DIRECT_A3D_ELEM(inputVolume, coord3D.z, coord3D.y, coord3D.x) == 0)
+		{
+			#ifdef VERBOSE_OUTPUT
+			std::cout << "Coordinate erased with value " << DIRECT_A3D_ELEM(inputVolume, coord3D.z, coord3D.y, coord3D.x) << " at (x=" << coord3D.x << ", y=" << coord3D.y << ", z=" << coord3D.z << ")" << std::endl;
+			#endif 
+			inputCoords.erase(inputCoords.begin()+i);
+			i--;
+		}
+		
+		#ifdef VERBOSE_OUTPUT
+		else
+		{
+			std::cout << "Coordinate saved with value " << DIRECT_A3D_ELEM(inputVolume, coord3D.z, coord3D.y, coord3D.x) << " at (x=" << coord3D.x << ", y=" << coord3D.y << ", z=" << coord3D.z << ")" << std::endl;
+		}
+		#endif 
 	}
 }
 
@@ -91,19 +108,7 @@ void ProgTomoFilterCoordinates::readInputCoordinates()
 	inCoordMd.read(fnInCoord);
 
 	size_t objId;
-	Point3D<double> coordinate3D;
-
-	// FOR_ALL_OBJECTS_IN_METADATA(inCoordMd)
-	// {
-	// 	// objId = __iter.objId;
-	// 	objId = inCoordMd.ids;
-
-	// 	inCoordMd.getValue(MDL_XCOOR, coordinate3D.x, objId);
-	// 	inCoordMd.getValue(MDL_YCOOR, coordinate3D.y, objId);
-	// 	inCoordMd.getValue(MDL_ZCOOR, coordinate3D.z, objId);
-
-	// 	inputCoords.push_back(coordinate3D);
-	// }
+	Point3D<int> coordinate3D;
 
 	for(size_t objId : inCoordMd.ids())
 	{
@@ -156,15 +161,21 @@ void ProgTomoFilterCoordinates::run()
 
 	if(execMode)
 	{
+		std::cout << "Resolution mode" << std::endl;
 		Image<double> inputVolume;
 		inputVolume.read(fnInVol);
 
 	}else
 	{
-		Image<int> inputVolume;
+		std::cout << "Mask mode" << std::endl;
+		Image<double> inputVolume;
 		inputVolume.read(fnInVol);
 
+		std::cout << "Volume read" << std::endl;
+
 		auto &inVol=inputVolume();
+
+		std::cout << "Volume loaded" << std::endl;
 
 		xDim = XSIZE(inVol);
 		yDim = YSIZE(inVol);
@@ -172,10 +183,10 @@ void ProgTomoFilterCoordinates::run()
 
 		#ifdef DEBUG_DIM
 		std::cout << "Input volume dimensions:" << std::endl;
-		std::cout << "x " << XSIZE(inputTomo) << std::endl;
-		std::cout << "y " << YSIZE(inputTomo) << std::endl;
-		std::cout << "z " << ZSIZE(inputTomo) << std::endl;
-		std::cout << "n " << NSIZE(inputTomo) << std::endl;
+		std::cout << "x " << XSIZE(inVol) << std::endl;
+		std::cout << "y " << YSIZE(inVol) << std::endl;
+		std::cout << "z " << ZSIZE(inVol) << std::endl;
+		std::cout << "n " << NSIZE(inVol) << std::endl;
 		#endif
 
 		readInputCoordinates();

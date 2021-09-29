@@ -34,6 +34,9 @@
 #include <data/point3D.h>
 #include <core/metadata_vec.h>
 
+#define VERBOSE_OUTPUT
+//#define DEBUG_DIM
+
 
 class ProgTomoFilterCoordinates : public XmippProgram
 {
@@ -57,7 +60,7 @@ private:
     size_t xDim, yDim, zDim;
 
     /** Input coordinates */
-    std::vector<Point3D<double>> inputCoords;
+    std::vector<Point3D<int>> inputCoords;
 
 
 public:
@@ -70,7 +73,7 @@ public:
 
     // --------------------------- HEAD functions ----------------------------
 
-    void filterCoordinatesWithMask(MultidimArray<int> &inputVolume);
+    void filterCoordinatesWithMask(MultidimArray<double> &inputVolume);
 
 
     // --------------------------- I/O functions ----------------------------
