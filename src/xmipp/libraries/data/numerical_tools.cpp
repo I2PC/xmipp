@@ -1097,7 +1097,11 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 		case 3:
 			R = -0.5*std::sqrt(13.0)*r2*r*(5.5*(1-2*r2)+3.5);
 			break;
+        case 5:
+            R = std::sqrt(13.0)*r2*r2*r;
+            break;
 		} break;
+    default: break;
 	}
 
 	// Spherical harmonic
@@ -1233,6 +1237,7 @@ double ZernikeSphericalHarmonics(int n, int m, double xr, double yr, double zr, 
 			Y = (3.0/16.0)*sqrt(77.0/(2.0*PI))*sint2*sint2*sint*cos(5.0*phi);
 			break;
 		}break;
+    default: break;
 	}
 
 	return R*Y;
@@ -1520,125 +1525,22 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
 
 void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int max_l1)
 {
-    int numR = std::floor((4+4*max_l1+std::pow(max_l1,2))/4);
+    int numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
     float aux_id = std::floor(idx-(idx/numR)*numR);
-    l1 = std::floor((1.0+std::sqrt(1.0+4.0*aux_id))/2.0) + std::floor((2.0+2.0*std::sqrt(aux_id))/2.0) - 2.0;
-    n = std::ceil((4.0*aux_id - l1*(l1+2.0))/2.0);
-    l2 = std::floor(std::sqrt(std::floor(idx/numR)));
-    m = std::floor(idx/numR)-l2*(l2+1);
+    l1 = static_cast<int>(std::floor((1.0+std::sqrt(1.0+4.0*aux_id))/2.0) + std::floor((2.0+2.0*std::sqrt(aux_id))/2.0) - 2.0);
+    n = static_cast<int>(std::ceil((4.0*aux_id - l1*(l1+2.0))/2.0));
+    l2 = static_cast<int>(std::floor(std::sqrt(std::floor(idx/numR))));
+    m = static_cast<int>(std::floor(idx/numR)-l2*(l2+1));
 }
-
-// void spherical_index2lnm(int idx, int &l, int &n, int &m)
-
-// {
-// 	if (idx==0)
-// 	{
-// 		l=0; n=0; n=0;
-// 	}
-// 	else if (idx<=3)
-// 	{
-// 		l=1; n=1; m=idx-2;
-// 	}
-// 	else if (idx<=13)
-// 	{
-// 		l=2;
-// 		if (idx<=8)
-// 		{
-// 			n=0; m=idx-6;
-// 		}
-// 		else
-// 		{
-// 			n=2; m=idx-11;
-// 		}
-
-// 	}
-// 	else if (idx<=27)
-// 	{
-// 		l=3;
-// 		if (idx<=20)
-// 		{
-// 			n=1; m=idx-17;
-// 		}
-// 		else
-// 		{
-// 			n=3; m=idx-24;
-// 		}
-// 	}
-// 	else if (idx<=54)
-// 	{
-// 		l=4;
-// 		if (idx<=36)
-// 		{
-// 			n=0; m=idx-32;
-// 		}
-// 		else if (idx>36&idx<=45)
-// 		{
-// 			n=2; m=idx-41;
-// 		}
-// 		else
-// 		{
-// 			n=4; m = idx-50;
-// 		}
-// 	}
-// }
 
 int spherical_lnm2index(int l1, int n, int l2, int m, int max_l1)
 {
-    int numR = std::floor((4+4*max_l1+std::pow(max_l1,2))/4);
+    int numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
     int id_SH = l2*(l2+1)+m;
-    int id_R = std::floor((2*n + l1*(l1 + 2))/4);
+    int id_R = static_cast<int>(std::floor((2*n + l1*(l1 + 2))/4));
     int id_Z = id_SH*numR+id_R;
     return id_Z;
 }
-
-// int spherical_lnm2index(int l, int n, int m)
-// {
-// 	int idx=0;
-
-// 	switch (l)
-// 	{
-// 	case 0:
-// 		idx=0;
-// 		break;
-// 	case 1:
-// 		idx=m+2;
-// 		break;
-// 	case 2:
-// 		switch (n)
-// 		{
-// 		case 0:
-// 			idx=m+6;
-// 			break;
-// 		case 2:
-// 			idx=m+11;
-// 			break;
-// 		}break;
-// 	case 3:
-// 		switch (n)
-// 		{
-// 		case 1:
-// 			idx=m+17;
-// 			break;
-// 		case 3:
-// 			idx=m+24;
-// 			break;
-// 		}break;
-// 	case 4:
-// 		switch (n)
-// 		{
-// 		case 0:
-// 			idx=m+32;
-// 			break;
-// 		case 2:
-// 			idx=m+41;
-// 			break;
-// 		case 4:
-// 			idx=m+50;
-// 			break;
-// 		}break;
-// 	}
-// 	return idx;
-// }
 
 template<typename T>
 void solveBySVD(const Matrix2D< T >& A, const Matrix1D< T >& b,
