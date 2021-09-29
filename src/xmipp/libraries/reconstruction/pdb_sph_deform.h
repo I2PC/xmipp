@@ -32,7 +32,7 @@
 
 class ProgPdbSphDeform: public XmippProgram
 {
-public:
+private:
     /** PDB file */
     FileName fn_pdb;
 

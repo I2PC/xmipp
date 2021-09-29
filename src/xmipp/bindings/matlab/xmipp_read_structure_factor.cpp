@@ -22,16 +22,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
   // Allocate output
   plhs[0]=mxCreateDoubleMatrix((mwSize)nSamples, (mwSize)1, mxREAL);
-  double *ptrFreq2=mxGetPr(plhs[0]);
   plhs[1]=mxCreateDoubleMatrix((mwSize)nSamples, (mwSize)1, mxREAL);
-  double *ptrLogStruct=mxGetPr(plhs[1]);
 
   // Fill output
-  int i=0;
-  FOR_ALL_OBJECTS_IN_METADATA(md)
-  {
-	  md.getValue(MDL_RESOLUTION_FREQ2,*ptrFreq2++,objId);
-	  md.getValue(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR,*ptrLogStruct++,objId);
-  }
+  std::vector<double> freq2 = md.getColumnValues<double>(MDL_RESOLUTION_FREQ2);
+  std::vector<double> logStruct = md.getColumnValues<double>(MDL_RESOLUTION_LOG_STRUCTURE_FACTOR);
+  memcpy(mxGetData(plhs[0]), &freq2[0], nSamples*sizeof(double));
+  memcpy(mxGetData(plhs[1]), &logStruct[0], nSamples*sizeof(double));
   
 }

@@ -40,10 +40,7 @@ ProgAngularSphAlignment::ProgAngularSphAlignment()
     showOptimization = false;
 }
 
-ProgAngularSphAlignment::~ProgAngularSphAlignment()
-{
-	delete ctfImage;
-}
+ProgAngularSphAlignment::~ProgAngularSphAlignment(){}
 
 // Read arguments ==========================================================
 void ProgAngularSphAlignment::readParams()
@@ -211,7 +208,7 @@ void ProgAngularSphAlignment::preProcess()
 
 	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
-    fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
+    fillVectorTerms(L1,L2);
 
     createWorkFiles();
 }
@@ -223,7 +220,7 @@ void ProgAngularSphAlignment::finishProcessing() {
 
 // #define DEBUG
 double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-		Matrix2D<double> &A, double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
+		double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
 {
 	const MultidimArray<double> &mV=V();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
@@ -326,7 +323,7 @@ double continuousSphCost(double *x, void *_prm)
 	MAT_ELEM(prm->A,1,1)=1;
 
 	return prm->tranformImageSph(x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
-			prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
+			deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
 }
 
 // Predict =================================================================
@@ -395,7 +392,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 				steps(totalSize-3)=steps(totalSize-2)=steps(totalSize-1)=1.;
 			if (optimizeDeformation)
 			{
-		        minimizepos(L1,h,steps);
+		        minimizepos(h,steps);
 			}
 			steps_cp = steps;
 			powellOptimizer(p, 1, totalSize, &continuousSphCost, this, 0.01, cost, iter, steps, verbose>=2);
@@ -489,7 +486,7 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	md.append(fnDone);
 }
 
-void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &vecSize)
+void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &nc)
 {
     for (int h=0; h<=l2; h++)
     {
@@ -497,19 +494,19 @@ void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &vecSize)
         int count=l1-h+1;
         int numEven=(count>>1)+(count&1 && !(h&1));
         if (h%2 == 0) {
-            vecSize += numSPH*numEven;
+            nc += numSPH*numEven;
 		}
         else {
-        	vecSize += numSPH*(l1-h+1-numEven);
+        	nc += numSPH*(l1-h+1-numEven);
 		}
     }
 }
 
-void ProgAngularSphAlignment::minimizepos(int L1, int l2, Matrix1D<double> &steps)
+void ProgAngularSphAlignment::minimizepos(int l2, Matrix1D<double> &steps)
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
-    int totalSize = (steps.size()-8)/3;
+    int totalSize = (int)((steps.size()-8)/3);
     for (int idx=0; idx<size; idx++) {
         VEC_ELEM(steps,idx) = 1.;
         VEC_ELEM(steps,idx+totalSize) = 1.;
@@ -517,8 +514,7 @@ void ProgAngularSphAlignment::minimizepos(int L1, int l2, Matrix1D<double> &step
     }	
 }
 
-void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-									          Matrix1D<int> &vL2, Matrix1D<int> &vM)
+void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2)
 {
     int idx = 0;
 	vL1.initZeros(vecSize);
@@ -527,7 +523,7 @@ void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1
 	vM.initZeros(vecSize);
     for (int h=0; h<=l2; h++) {
         int totalSPH = 2*h+1;
-        int aux = std::floor(totalSPH/2);
+        int aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=l1; l+=2) {
             for (int m=0; m<totalSPH; m++) {
                 VEC_ELEM(vL1,idx) = l;
@@ -552,11 +548,6 @@ void ProgAngularSphAlignment::updateCTFImage(double defocusU, double defocusV, d
 void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const MultidimArray<double> &mV, double &def,
                                         double rot, double tilt, double psi)
 {
-    int l1,n,l2,m;
-	l1 = 0;
-	n = 0;
-	l2 = 0;
-	m = 0;
 	size_t idxY0=(VEC_XSIZE(clnm)-8)/3;
 	double Ncount=0.0;
     double modg=0.0;
@@ -598,10 +589,10 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 					for (size_t idx=0; idx<idxY0; idx++) {
 						if (VEC_ELEM(steps_cp,idx) == 1) {
 							double zsph=0.0;
-							l1 = VEC_ELEM(vL1,idx);
-							n = VEC_ELEM(vN,idx);
-							l2 = VEC_ELEM(vL2,idx);
-							m = VEC_ELEM(vM,idx);
+							int l1 = VEC_ELEM(vL1,idx);
+							int n = VEC_ELEM(vN,idx);
+							int l2 = VEC_ELEM(vL2,idx);
+							int m = VEC_ELEM(vM,idx);
 							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 							if (rr>0 || l2==0) {
 								gx += VEC_ELEM(clnm,idx)        *(zsph);
@@ -610,14 +601,12 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 							}
 						}
 					}
-					int k_mask, i_mask, j_mask;
-					int voxelI_mask;
-					k_mask = (int)(ZZ(pos)+gz); i_mask = (int)(YY(pos)+gy); j_mask = (int)(XX(pos)+gx);
-					if (V_mask.outside(k_mask, i_mask, j_mask)) {
-						voxelI_mask = 0;
-					}
-					else {
-						voxelI_mask = A3D_ELEM(V_mask, k_mask, i_mask, j_mask);
+					int k_mask = (int)(ZZ(pos)+gz);
+					int i_mask = (int)(YY(pos)+gy);
+					int j_mask = (int)(XX(pos)+gx);
+					int voxelI_mask = 0;
+					if (!V_mask.outside(k_mask, i_mask, j_mask)) {
+						voxelI_mask = A3D_ELEM(V_mask, k_mask, i_mask, j_mask);;
 					}
 					if (voxelI_mask == 1) {
 						double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);

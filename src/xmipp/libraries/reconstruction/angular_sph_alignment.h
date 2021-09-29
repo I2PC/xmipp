@@ -114,8 +114,6 @@ public:
 	CTFDescription ctf;
     // CTF filter
     FourierFilter FilterCTF;
-	// CTF image
-	MultidimArray<double> *ctfImage=nullptr;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
@@ -162,15 +160,14 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
     /// Length of coefficients vector
-    void numCoefficients(int l1, int l2, int &vecSize);
+    void numCoefficients(int l1, int l2, int &nc);
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
     // void minimizepos(Matrix1D<double> &vectpos);
-    void minimizepos(int L1, int l2, Matrix1D<double> &steps);
+    void minimizepos(int l2, Matrix1D<double> &steps);
 
     /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
+    void fillVectorTerms(int l1, int l2);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
@@ -179,8 +176,7 @@ public:
     void updateCTFImage(double defocusU, double defocusV, double angle);
 
     double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-    		                Matrix2D<double> &A, double deltaDefocusU, 
-                            double deltaDefocusV, double deltaDefocusAngle);
+    		                double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle);
 
     //AJ new
     /** Write the final parameters. */
