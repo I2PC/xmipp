@@ -228,10 +228,9 @@ class Config:
     def get_supported_GCC():
         # we need GCC with C++14 support
         # https://gcc.gnu.org/projects/cxx-status.html
-        return [11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
+        return ['', 11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
                 9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
-                7.5, 7.4, 7.3, 7.2, 7.1, 7, 6.5, 6.4, 6.3, 6.2, 6.1, 6,
-                5.5, 5.4, 5.3, 5.2, 5.1, 5, '']
+                7.5, 7.4, 7.3, 7.2, 7.1, 7, 6.5, 6.4, 6.3, 6.2, 6.1, 6]
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
         if not self.is_empty(opt):
@@ -295,6 +294,7 @@ class Config:
             if not (hdf5InLocalLib or (isHdf5CppLinking and isHdf5Linking)):
                 print(yellow("\n'libhdf5' not found at '%s'." % localLib))
                 hdf5Lib = findFileInDirList("libhdf5*", ["/usr/lib",
+                                                         "/usr/lib/x86_64-linux-gnu/hdf5/serial",
                                                          "/usr/lib/x86_64-linux-gnu"])
                 hdf5Lib = askPath(hdf5Lib, self.ask)
                 if hdf5Lib:
@@ -362,8 +362,8 @@ class Config:
         gccVersion, fullVersion = self._get_GCC_version(compiler)
         print(green('Detected ' + compiler + " in version " +
                     fullVersion + '.'))
-        if gccVersion < 5.0:
-            print(red('Version 5.0 or higher is required.'))
+        if gccVersion < 6.0:
+            print(red('Version 6.0 or higher is required.'))
             sys.exit(-8)
         elif gccVersion < 8.0:
             print(yellow(
