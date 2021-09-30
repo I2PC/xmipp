@@ -63,7 +63,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 {
-	MetaData inputTiltAnglesMd;
+	MetaDataVec inputTiltAnglesMd;
 	double tiltAngle;
 	size_t objId;
 
@@ -71,9 +71,8 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 	tiltAngleStep=0;
 
-	FOR_ALL_OBJECTS_IN_METADATA(inputTiltAnglesMd)
+	for(size_t objId : inputTiltAnglesMd.ids())
 	{
-		objId = __iter.objId;
 		inputTiltAnglesMd.getValue(MDL_ANGLE_TILT, tiltAngle, objId);
 		tiltAngles.push_back(tiltAngle);
 
@@ -82,7 +81,10 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 	tiltAngleStep /= tiltAngles.size();
 
-	// std::cout << "Tilt angles:" << tiltAngleStep << std::endl;
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Input tilt angles read from: " << fnTiltAngles << std::endl;
+	#endif
+
 
 	// for (size_t h = 0; h < tiltAngles.size(); h++)
 	// {
@@ -349,7 +351,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			}
 
 			// if (coordinates3Dy[j-1] == i && j-1 > 0)
-			if (coordinates3D[j-1] == i && j-1 > 0)
+			if (coordinates3D[j-1].y == i && j-1 > 0)
 			{
 				counterLinesOfLandmarkAppearance[i] += 1;
 			}
@@ -682,7 +684,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 }
 
 
-void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inputCoordMd)
+void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaDataVec inputCoordMd)
 {
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Calculating residual vectors" << std::endl;
@@ -733,11 +735,10 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 		#endif 
 
 		// Iterate through every input 3d gold bead coordinate and project it onto the tilt image
-		FOR_ALL_OBJECTS_IN_METADATA(inputCoordMd)
+		for(size_t objId : inputCoordMd.ids())
 		{
 			maxDistance = MAXDOUBLE;
 
-			objId = __iter.objId;
 			inputCoordMd.getValue(MDL_XCOOR, goldBeadX, objId);
 			inputCoordMd.getValue(MDL_YCOOR, goldBeadY, objId);
 			inputCoordMd.getValue(MDL_ZCOOR, goldBeadZ, objId);
@@ -824,7 +825,7 @@ void ProgTomoDetectMisalignmentTrajectory::calculateResidualVectors(MetaData inp
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 {
-	MetaData md;
+	MetaDataVec md;
 	size_t id;
 
 	// for(size_t i = 0; i < coordinates3Dx.size(); i++)
@@ -847,7 +848,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 	md.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Coordinates metadata saved at: " << fnOut << std::endl;
+	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
 	#endif
 
 }
@@ -855,7 +856,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputResidualVectors()
 {
-	MetaData md;
+	MetaDataVec md;
 	size_t id;
 
 	for(size_t i = 0; i < residualX.size(); i++)
@@ -899,7 +900,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	generateSideInfo();
 	
-	MetaData tiltseriesmd;
+	MetaDataVec tiltseriesmd;
     ImageGeneric tiltSeriesImages;
 
     if (fnVol.isMetaData())
@@ -954,9 +955,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	MultidimArray<double> filteredTiltSeries;
 	filteredTiltSeries.initZeros(Ndim, 1, Ydim, Xdim);
 
-	FOR_ALL_OBJECTS_IN_METADATA(tiltseriesmd)
+	for(size_t objId : tiltseriesmd.ids())
 	{
-		objId = __iter.objId;
 		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
 		#ifdef DEBUG
@@ -1029,7 +1029,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	if(checkInputCoord)
 	{
-		MetaData inputCoordMd;
+		MetaDataVec inputCoordMd;
 		inputCoordMd.read(fnInputCoord);
 
 		calculateResidualVectors(inputCoordMd);

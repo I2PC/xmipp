@@ -29,7 +29,7 @@
 #include <iostream>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
 #include <core/geometry.h>
@@ -42,7 +42,7 @@
 #include "symmetrize.h"
 #include <data/morphology.h>
 #include "core/xmipp_image_generic.h"
-#include "point3D.h"
+#include <data/point3D.h>
 
 #define VERBOSE_OUTPUT
 #define DEBUG
@@ -149,7 +149,7 @@ public:
      * @return
      *
     */
-    void calculateResidualVectors(MetaData inputCoordMd);
+    void calculateResidualVectors(MetaDataVec inputCoordMd);
 
 
     // --------------------------- I/O functions ----------------------------
