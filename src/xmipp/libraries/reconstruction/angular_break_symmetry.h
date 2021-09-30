@@ -26,7 +26,7 @@
 #define _PROG_ANGULAR_DISTANCE
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_program.h>
 #include <core/symmetries.h>
 
@@ -45,7 +45,7 @@ public:
     FileName fn_out;
 public:
     // DocFile 1
-    MetaData DF;
+    MetaDataVec DF;
     // Symmetry List
     SymList SL;
 public:

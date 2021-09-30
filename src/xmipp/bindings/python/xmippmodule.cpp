@@ -25,7 +25,7 @@
 #include "xmippmodule.h"
 #include "core/geometry.h"
 #include "core/matrix2d.h"
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/metadata_extension.h"
 #include "core/metadata_sql.h"
 #include "core/transformations.h"
@@ -262,14 +262,14 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 PyObject* repr = PyObject_Str(pyValue);
                 char * str = (char*)PyUnicode_AsUTF8(pyValue);
-                md = new MetaData();
+                md = new MetaDataDb();
                 md->setMaxRows(1);
                 md->read(str);
                 size = md->getParsedLines();
             }
             else if (FileName_Check(pyValue))
             {
-                md = new MetaData();
+                md = new MetaDataDb();
                 md->setMaxRows(1);
                 md->read(FileName_Value(pyValue));
                 size = md->getParsedLines();

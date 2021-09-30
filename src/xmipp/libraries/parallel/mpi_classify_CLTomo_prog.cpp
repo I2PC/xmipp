@@ -570,7 +570,7 @@ void CL3D::readImage(Image<double> &I, size_t objId, bool applyGeo) const
 
 /* CL3D initialization ------------------------------------------------ */
 //#define DEBUG
-void CL3D::initialize(MetaData &_SF,
+void CL3D::initialize(MetaDataDb &_SF,
                       std::vector<MultidimArray<double> > &_codes0)
 {
     if (prmCL3Dprog->node->rank == 0)
@@ -600,7 +600,7 @@ void CL3D::initialize(MetaData &_SF,
     MultidimArray<double> Iaux, Ibest;
     CL3DAssignment bestAssignment;
     size_t imgCounter=0, localCounter=0;
-    FOR_ALL_OBJECTS_IN_METADATA(prmCL3Dprog->SF)
+    for (size_t _ : prmCL3Dprog->SF.ids())
     {
         if ((imgCounter+1)%prmCL3Dprog->node->size==prmCL3Dprog->node->rank)
         {
@@ -666,7 +666,7 @@ void CL3D::initialize(MetaData &_SF,
 void CL3D::write(const FileName &fnRoot, int level) const
 {
     int Q = P.size();
-    MetaData SFout;
+    MetaDataDb SFout;
     Image<double> I;
     FileName fnOut = formatString("%s_classes_level_%02d.stk",fnRoot.c_str(),level), fnClass;
     fnOut.deleteFile();
@@ -685,10 +685,10 @@ void CL3D::write(const FileName &fnRoot, int level) const
 
     // Make the selfiles of each class
     FileName fnImg;
-    MDRow row;
+    MDRowSql row;
     for (int q = 0; q < Q; q++)
     {
-        MetaData SFq;
+        MetaDataVec SFq;
         std::vector<CL3DAssignment> &currentListImg = P[q]->currentListImg;
         int imax = currentListImg.size();
         for (int i = 0; i < imax; i++)
@@ -703,7 +703,7 @@ void CL3D::write(const FileName &fnRoot, int level) const
             row.setValue(MDL_ANGLE_PSI, assignment.psi);
             SFq.addRow(row);
         }
-        MetaData SFq_sorted;
+        MetaDataVec SFq_sorted;
         SFq_sorted.sort(SFq, MDL_IMAGE);
         SFq_sorted.write(formatString("class%06d_images@%s",q+1, fnSFout.c_str()), MD_APPEND);
     }
@@ -812,7 +812,7 @@ void CL3D::run(const FileName &fnOut, int level)
 
     int iter = 1;
     bool goOn = true;
-    MetaData MDChanges;
+    MetaDataDb MDChanges;
     Image<double> I;
     int progressStep = XMIPP_MAX(1,Nimgs/60);
     CL3DAssignment assignment;
@@ -840,7 +840,7 @@ void CL3D::run(const FileName &fnOut, int level)
             *ptrOld -= 1;
         SF->fillConstant(MDL_REF, "-1");
         size_t imgCounter=0;
-        FOR_ALL_OBJECTS_IN_METADATA(prmCL3Dprog->SF)
+        for (size_t _ : prmCL3Dprog->SF.ids())
         {
             if ((imgCounter+1)%prmCL3Dprog->node->size==prmCL3Dprog->node->rank)
             {
@@ -1458,11 +1458,11 @@ void ProgClassifyCL3D::produceSideInfo()
     if (fnCodes0 != "")
     {
         Image<double> I;
-        MetaData SFCodes(fnCodes0);
+        MetaDataDb SFCodes(fnCodes0);
 
-        FOR_ALL_OBJECTS_IN_METADATA(SFCodes)
+        for (size_t objId : SFCodes.ids())
         {
-            I.readApplyGeo(SFCodes, __iter.objId);
+            I.readApplyGeo(SFCodes, objId);
             I().setXmippOrigin();
             codes0.push_back(I());
         }
@@ -1510,7 +1510,7 @@ void ProgClassifyCL3D::run()
     {
         std::sort(vq.P.begin(), vq.P.end(), SDescendingClusterSort());
         Q = vq.P.size();
-        MetaData SFq, SFclassified, SFaux, SFaux2;
+        MetaDataDb SFq, SFclassified, SFaux, SFaux2;
         for (int q = 0; q < Q; q++)
         {
             SFq.read(formatString("class%06d_images@%s_classes_level_%02d.xmd", q + 1,
@@ -1534,7 +1534,7 @@ void ProgClassifyCL3D::run()
     if (generateAlignedVolumes)
     {
     	node->barrierWait();
-    	MetaData MDimages, MDaligned;
+    	MetaDataDb MDimages, MDaligned;
     	MDimages.read(fnOut+"_images.xmd");
     	FileName fnAligned=fnOut+"_aligned.stk";
     	FileName fnAlignedMD=fnOut+"_aligned.xmd";
@@ -1547,20 +1547,20 @@ void ProgClassifyCL3D::run()
     	Matrix2D<double> A,E,T;
         Matrix1D<double> r(3);
         size_t itemId;
-    	FOR_ALL_OBJECTS_IN_METADATA(MDimages)
+        for (size_t objId: MDimages.ids())
     	{
     		if (idx%node->size==node->rank)
     		{
-    			MDimages.getValue(MDL_IMAGE,fnImg,__iter.objId);
+    			MDimages.getValue(MDL_IMAGE,fnImg,objId);
     			V.read(fnImg);
     			V().setXmippOrigin();
     			double x,y,z,rot,tilt,psi;
-    			MDimages.getValue(MDL_ANGLE_ROT,rot,__iter.objId);
-    			MDimages.getValue(MDL_ANGLE_TILT,tilt,__iter.objId);
-    			MDimages.getValue(MDL_ANGLE_PSI,psi,__iter.objId);
-    			MDimages.getValue(MDL_SHIFT_X,x,__iter.objId);
-    			MDimages.getValue(MDL_SHIFT_Y,y,__iter.objId);
-    			MDimages.getValue(MDL_SHIFT_Z,z,__iter.objId);
+    			MDimages.getValue(MDL_ANGLE_ROT,rot,objId);
+    			MDimages.getValue(MDL_ANGLE_TILT,tilt,objId);
+    			MDimages.getValue(MDL_ANGLE_PSI,psi,objId);
+    			MDimages.getValue(MDL_SHIFT_X,x,objId);
+    			MDimages.getValue(MDL_SHIFT_Y,y,objId);
+    			MDimages.getValue(MDL_SHIFT_Z,z,objId);
 
     	        Euler_angles2matrix(rot, tilt, psi, E, true);
     	        XX(r)=x;
@@ -1574,7 +1574,7 @@ void ProgClassifyCL3D::run()
     		}
     		if (node->rank==0)
     		{
-    			MDimages.getValue(MDL_ITEM_ID,itemId,__iter.objId);
+    			MDimages.getValue(MDL_ITEM_ID,itemId,objId);
 				size_t newId=MDaligned.addObject();
 				MDaligned.setValue(MDL_IMAGE,formatString("%06d@%s",idx,fnAligned.c_str()),newId);
 				MDaligned.setValue(MDL_ITEM_ID,itemId,newId);
@@ -1588,7 +1588,7 @@ void ProgClassifyCL3D::run()
 
 			// Correct the class groups
 			Q = vq.P.size();
-			MetaData SFq, SFqaligned;
+			MetaDataDb SFq, SFqaligned;
 			FileName fnClass;
 			for (int q = 0; q < Q; q++)
 			{

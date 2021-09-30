@@ -59,7 +59,7 @@ public:
     /// Sampling rate
     double sampling;
     /// Metadata with projections info
-    MetaData MDin;
+    MetaDataVec MDin;
     /// Basis function. By default, blobs
     Basis basis;
     /// Microscope parameters

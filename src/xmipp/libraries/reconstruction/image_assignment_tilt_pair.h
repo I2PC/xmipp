@@ -28,7 +28,7 @@
 
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 
 template<typename T>
 class Matrix1D;
@@ -58,7 +58,7 @@ public:
     /** Tilt estimation angle*/
     double tiltest;
 
-    MetaData mdPartial;
+    MetaDataVec mdPartial;
 
 public:
 

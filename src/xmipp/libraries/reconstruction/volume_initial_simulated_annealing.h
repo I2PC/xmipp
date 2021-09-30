@@ -39,7 +39,7 @@
 class ThreadVolumeInitialAlignment
 {
 public:
-	MetaData mdReconstruction;
+	MetaDataDb mdReconstruction;
 	double sumCorr, sumImprovement;
 };
 
@@ -86,7 +86,7 @@ public:
     double angularSampling;
 
 public: // Internal members
-    MetaData mdIn, mdReconstruction;
+    MetaDataDb mdIn, mdReconstruction;
 
     // Set of images in the gallery, it should be a metadata but metadatas do not support threads
     std::vector<GalleryImage> mdGallery;

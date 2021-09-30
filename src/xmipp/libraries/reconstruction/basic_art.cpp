@@ -31,7 +31,6 @@
 
 #include "basic_art.h"
 #include "data/projection.h"
-#include "core/metadata.h"
 #include "core/metadata_sql.h"
 #include "core/metadata_extension.h"
 #include "recons_misc.h"
@@ -469,7 +468,7 @@ void BasicARTParameters::readParams(XmippProgram * program)
 void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
         int rank)
 {
-    MetaData     selfile;
+    MetaDataVec     selfile;
 
     /* If checking the variability --------------------------------------------- */
     if (variability_analysis)
@@ -490,14 +489,15 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
         //take into account weights here
         if (WLS)
         {
-            MetaData SF_aux;
+            MetaDataDb SF_aux;
             SF_aux.read(fn_sel);
             if (SF_aux.containsLabel(MDL_ENABLED))
                 SF_aux.removeObjects(MDValueEQ(MDL_ENABLED, -1));
-            selfile.clear();
-            selfile.importObjects(SF_aux, MDValueRange(MDL_WEIGHT, 1e-9, 99e99));
-            if (selfile.size() == 0)
+            MetaDataDb tmp; // so that we can easily import
+            tmp.importObjects(SF_aux, MDValueRange(MDL_WEIGHT, 1e-9, 99e99));
+            if (tmp.size() == 0)
                 REPORT_ERROR(ERR_MD_OBJECTNUMBER, "There is no input file with weight!=0");
+            selfile = tmp; // copy results to the vector version
         }
         else
         {

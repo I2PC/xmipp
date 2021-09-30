@@ -26,8 +26,9 @@
 #define _PROG_EVALUATE_CLASSES
 
 #include <core/xmipp_fftw.h>
-#include <core/metadata.h>
+#include <core/xmipp_filename.h>
 #include <core/xmipp_program.h>
+#include <core/metadata_base.h>
 
 /**@defgroup EvaluateClasses Evaluate Classes
    @ingroup ReconsLibrary */

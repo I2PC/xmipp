@@ -581,9 +581,9 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
 
     if (FilterShape==FSCPROFILE)
     {
-    	MetaData mdFSC(fnFSC);
-        mdFSC.getColumnValues(MDL_RESOLUTION_FREQ,freqContFSC);
-        mdFSC.getColumnValues(MDL_RESOLUTION_FRC,FSC);
+        MetaDataVec mdFSC(fnFSC);
+        mdFSC.getColumnValues(MDL_RESOLUTION_FREQ, freqContFSC);
+        mdFSC.getColumnValues(MDL_RESOLUTION_FRC, FSC);
     }
     // std::cout << "Generating mask " << do_generate_3dmask << std::endl;
 

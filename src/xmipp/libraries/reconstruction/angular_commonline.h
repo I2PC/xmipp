@@ -27,7 +27,7 @@
 #define _PROG_ANGULAR_COMMON_LINES
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <data/numerical_tools.h>
 #include <core/matrix2d.h>
 #include <vector>
@@ -135,7 +135,7 @@ public:
     void run();
 public:
     // Selfile with images
-    MetaData SF;
+    MetaDataVec SF;
     
     // Optimizer
     EulerSolver *solver;

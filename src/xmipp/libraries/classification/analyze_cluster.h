@@ -26,7 +26,7 @@
 #define _PROG_ANALYZE_CLUSTER
 
 #include <core/xmipp_funcs.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/metadata_extension.h>
 #include <data/basic_pca.h>
 #include <core/xmipp_program.h>
@@ -66,7 +66,7 @@ public:
     bool basis;
 
     // SelFiles of images
-    MetaData SFin, SFout;
+    MetaDataVec SFin, SFout;
 
     // Mask of the background
     MultidimArray<int> mask;

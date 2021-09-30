@@ -27,7 +27,7 @@
 #define _CORE_CTF_HH
 
 #include <complex>
-#include "core/metadata.h"
+#include "core/metadata_db.h"
 #include "core/numerical_recipes.h"
 #include "core/xmipp_fft.h"
 #include "core/xmipp_macros.h"
@@ -73,7 +73,7 @@ bool containsCTFBasicLabels(const MetaData &md);
  * Raise error if neither CTF_MODEL or ALL CTF_BASIC_LABELS are found
  * in input images metadata.
  * */
-void groupCTFMetaData(const MetaData &imgMd, MetaData &ctfMd, std::vector<MDLabel> &groupbyLabels);
+void groupCTFMetaData(const MetaDataDb &imgMd, MetaDataDb &ctfMd, std::vector<MDLabel> &groupbyLabels);
 
 /**@defgroup CTFSupport CTF support classes
    @ingroup DataLibrary */
