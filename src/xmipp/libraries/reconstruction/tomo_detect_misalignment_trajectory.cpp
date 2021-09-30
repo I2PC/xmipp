@@ -293,7 +293,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 			if(keep)
 			{
-				Point3D point3D(xCoorCM, yCoorCM, k);
+				Point3D<double> point3D(xCoorCM, yCoorCM, k);
 				// coordinates3Dx.push_back(xCoorCM);
 				// coordinates3Dy.push_back(yCoorCM);
 				// coordinates3Dn.push_back(k);
@@ -308,13 +308,15 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		#ifdef DEBUG
 		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
-		std::cout << "Accumulated number of coordinates: " << coordinates3Dx.size() <<std::endl;
+		// std::cout << "Accumulated number of coordinates: " << coordinates3Dx.size() <<std::endl;
+		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
 		#endif
 
     }
 
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
+	// std::cout << "Number of peaked coordinates: " << coordinates3Dx.size() << std::endl;
+	std::cout << "Number of peaked coordinates: " << coordinates3D.size() << std::endl;
 	#endif
 
 	#ifdef DEBUG_OUTPUT_FILES
@@ -336,19 +338,24 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 
 	for(size_t i = 0; i < ySize; i++)
 	{
-		for(int j = 0; j < coordinates3Dy.size(); j++)
+		// for(int j = 0; j < coordinates3Dy.size(); j++)
+		for(int j = 0; j < coordinates3D.size(); j++)
 		{
-			if(coordinates3Dy[j] == i)
+
+			// if(coordinates3Dy[j] == i)
+			if(coordinates3D[j].y == i)
 			{
 				counterLinesOfLandmarkAppearance[i] += 1;
 			}
 
-			if (coordinates3Dy[j-1] == i && j-1 > 0)
+			// if (coordinates3Dy[j-1] == i && j-1 > 0)
+			if (coordinates3D[j-1] == i && j-1 > 0)
 			{
 				counterLinesOfLandmarkAppearance[i] += 1;
 			}
 
-			else if (coordinates3Dy[j+1] == i && j+1 < coordinates3Dy.size())
+			// else if (coordinates3Dy[j+1] == i && j+1 < coordinates3Dy.size())
+			else if (coordinates3D[j+1].y == i && j+1 < coordinates3D.size())
 			{
 				counterLinesOfLandmarkAppearance[i] += 1;
 			}
@@ -416,31 +423,48 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		
 		for (size_t j = 0; j < chainLineY.size() ; j++)
 		{
-			for(int x = 0; x < coordinates3Dy.size(); x++)
+			// for(int x = 0; x < coordinates3Dy.size(); x++)
+			for(int x = 0; x < coordinates3D.size(); x++)
 			{
-				if(coordinates3Dy[x] == chainIndexY)
+				Point3D<double> coordinate3D = coordinates3D[x];
+				Point3D<double> preCoordinate3D = coordinates3D[x-1];
+				Point3D<double> postCoordinate3D = coordinates3D[x+1];
+				// if(coordinates3Dy[x] == chainIndexY)
+				if(coordinate3D.y == chainIndexY)
 				{
-					chainLineY[coordinates3Dx[x]] = 1;
+					// chainLineY[coordinates3Dx[x]] = 1;
+					chainLineY[coordinate3D.x] = 1;
 					
-					if(abs(tiltAngles[coordinates3Dn[x]])>abs(chainLineYAngles[coordinates3Dx[x]]))
+					// if(abs(tiltAngles[coordinates3Dn[x]])>abs(chainLineYAngles[coordinates3Dx[x]]))
+					if(abs(tiltAngles[coordinate3D.z])>abs(chainLineYAngles[coordinate3D.x]))
 					{
-						std::cout << "tiltAngles[coordinates3Dn[" << x << "]]=" << tiltAngles[coordinates3Dn[x]] << std::endl;
-						chainLineYAngles[coordinates3Dx[x]] = tiltAngles[coordinates3Dn[x]];
+						// std::cout << "tiltAngles[coordinates3Dn[" << x << "]]=" << tiltAngles[coordinates3Dn[x]] << std::endl;
+						// chainLineYAngles[coordinates3Dx[x]] = tiltAngles[coordinates3Dn[x]];
+						std::cout << "tiltAngles[coordinates3D[" << x << "].z]=" << tiltAngles[coordinate3D.z] << std::endl;
+						chainLineYAngles[coordinate3D.x] = tiltAngles[coordinate3D.z];
 					}
 				}
 
-				else if(x-1 > 0 && coordinates3Dy[x-1] == chainIndexY)
+
+				// else if(x-1 > 0 && coordinates3Dy[x-1] == chainIndexY)
+				else if(x-1 > 0 && preCoordinate3D.y == chainIndexY)
 				{
-					chainLineY[coordinates3Dx[x-1]] = 1;
-					chainLineYAngles[coordinates3Dx[x-1]] = tiltAngles[coordinates3Dn[x-1]];
+					// chainLineY[coordinates3Dx[x-1]] = 1;
+					// chainLineYAngles[coordinates3Dx[x-1]] = tiltAngles[coordinates3Dn[x-1]];
+					chainLineY[preCoordinate3D.x] = 1;
+					chainLineYAngles[preCoordinate3D.x] = tiltAngles[preCoordinate3D.z];
+					
 					// *** add if condition in angle
 
 				}
 
-				else if(x+1 < coordinates3Dy.size() && coordinates3Dy[x+1] == chainIndexY)
+				// else if(x+1 < coordinates3Dy.size() && coordinates3Dy[x+1] == chainIndexY)
+				else if(x+1 < coordinates3D.size() && postCoordinate3D.y == chainIndexY)
 				{
-					chainLineY[coordinates3Dx[x+1]] = 1;
-					chainLineYAngles[coordinates3Dx[x+1]] = tiltAngles[coordinates3Dn[x+1]];
+					// chainLineY[coordinates3Dx[x+1]] = 1;
+					// chainLineYAngles[coordinates3Dx[x+1]] = tiltAngles[coordinates3Dn[x+1]];
+					chainLineY[postCoordinate3D.x] = 1;
+					chainLineYAngles[postCoordinate3D.x] = tiltAngles[postCoordinate3D.z];
 
 					// *** add if condition in angle
 
@@ -803,13 +827,22 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 	MetaData md;
 	size_t id;
 
-	for(size_t i = 0; i < coordinates3Dx.size(); i++)
+	// for(size_t i = 0; i < coordinates3Dx.size(); i++)
+	// {
+	// 	id = md.addObject();
+	// 	md.setValue(MDL_XCOOR, (int)coordinates3Dx[i], id);
+	// 	md.setValue(MDL_YCOOR, (int)coordinates3Dy[i], id);
+	// 	md.setValue(MDL_ZCOOR, coordinates3Dn[i], id);
+	// }
+
+	for(size_t i = 0; i < coordinates3D.size(); i++)
 	{
 		id = md.addObject();
-		md.setValue(MDL_XCOOR, (int)coordinates3Dx[i], id);
-		md.setValue(MDL_YCOOR, (int)coordinates3Dy[i], id);
-		md.setValue(MDL_ZCOOR, coordinates3Dn[i], id);
+		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+		md.setValue(MDL_YCOOR, (int)coordinates3D[i].y, id);
+		md.setValue(MDL_ZCOOR, (int)coordinates3D[i].z, id);
 	}
+
 
 	md.write(fnOut);
 	

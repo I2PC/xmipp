@@ -85,7 +85,7 @@ private:
     std::vector<double> coordinates3Dy;
     std::vector<int> coordinates3Dn;
 
-    std::vector<Point3D> coordinates3D;
+    std::vector<Point3D<double>> coordinates3D;
 
     /** Vectors for calculated residuals components */
     std::vector<double> residualX;
