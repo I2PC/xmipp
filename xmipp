@@ -196,7 +196,7 @@ def cleanBinaries():
     for ext in ['so', 'os', 'o']:
         runJob('find src/* -name "*.%s" -exec rm -rf {} \;' % ext)
     runJob('find . -iname "*.pyc" -delete')
-    runJob("rm -rf %s build" % Config.FILE_NAME)
+    #runJob("rm -rf %s build" % Config.FILE_NAME)
     # I'm getting ValueError : unsupported pickle protocol: 5' when switching from one python version to another
     # This seems to be cached at dblite file.
     runJob('find . -iname "*.dblite" -delete')
@@ -628,7 +628,7 @@ def install(dirname):
     print("Installing ------------------------------------------")
     cpCmd = "rsync -LptgoD" if checkProgram("rsync", False) else "cp"
     ok = True
-
+    runJob("rm -rf " + dirname)
     createDir(dirname)
 
     createDir(dirname+"/lib")

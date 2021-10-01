@@ -85,6 +85,7 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
             (std::complex<T>*)imagesGPU.d_data,
             inBatch, resultingFFT.Xdim, resultingFFT.Ydim,
             outFFTX, outY, d_filter, 1.f/imagesGPU.yxdim, false);
+        std::cout << "size for normalize: " << imagesGPU.Xdim << " " << imagesGPU.Ydim << std::endl;
         gpuErrchk( cudaPeekAtLastError() );
 
         std::complex<T>* h_imgStore = h_result + counter * outFFTX * outY;

@@ -1,3 +1,5 @@
 - zatim pouzivam CUDA jmeno jak pro program, tak pro jmena trid. Je to kvuli tomu aby mi fungoval build. Vyhledove by to melo byt kompletne odstraneno
 
 musel sem rucne pridat linky na external knihovny do xmipp/lib
+
+z nejakeho duvodu to chce linkovat libumpaumpa.so.0 -> musel jsem ruco prejmenovat verzi

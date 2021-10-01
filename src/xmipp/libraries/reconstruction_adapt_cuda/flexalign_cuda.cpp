@@ -598,6 +598,7 @@ AlignmentResult<T> FlexAlignCuda<T>::computeGlobalAlignment(
     size_t elems = std::max(movieSettings.elemsFreq(), movieSettings.elemsSpacial());
     // T *data = memoryUtils::page_aligned_alloc<T>(elems, false);
     T *data = reinterpret_cast<T*>(Allocate(elems * sizeof(T)));
+    std::cout << "needed GPU memory: " << elems * sizeof(T) / 1024 / 1024 << " MB" << std::endl;
     getCroppedMovie(movieSettings, data);
 
     auto result = align(data, movieSettings, correlationSetting,
@@ -619,8 +620,13 @@ AlignmentResult<T> FlexAlignCuda<T>::align(T *data,
 
     size_t N = in.dim.n();
     // scale and transform to FFT on GPU
-    performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
-            correlation.x_freq, correlation.dim.y(), filter.data);
+    performFFT<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
+            correlation.dim.x(), // this used to be correlation.x_freq
+            correlation.dim.y(), filter.data);
+
+    auto wrapper = MultidimArray<float>(N, 1, correlation.dim.y(), correlation.x_freq, data);
+    auto tmp = Image<float>(wrapper);
+    tmp.write("cropped.mrc");
 
     auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
             in.dim.y() / (T) correlation.dim.y());

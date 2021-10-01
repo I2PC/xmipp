@@ -1,0 +1,42 @@
+[BUILD]
+BUILD_TESTS=False
+CC=gcc
+CCFLAGS=-std=c99
+CONFIG_VERSION=b5154f2ee9683423e2acd66f0caa8b74d5e7d249
+CUDA=True
+CXX=/usr/bin/g++-10
+CXXFLAGS=-mtune=native -march=native -flto -std=c++17 -O0 -g
+CXX_CUDA=g++-9
+DEBUG=False
+INCDIRFLAGS=-I../ -I/usr/include -I/usr/include/hdf5/serial -I../KTT_Source
+JAR=/usr/lib/jvm/java-11-openjdk-amd64/bin/jar
+JAVAC=/usr/lib/jvm/java-11-openjdk-amd64/bin/javac
+JAVA_BINDIR=/usr/lib/jvm/java-11-openjdk-amd64/bin
+JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+JNI_CPPPATH=/usr/lib/jvm/java-11-openjdk-amd64/include:/usr/lib/jvm/java-11-openjdk-amd64/include/linux
+LIBDIRFLAGS=-L/usr/lib -L/usr/lib/x86_64-linux-gnu
+LINKERFORPROGRAMS=/usr/bin/g++-10
+LINKFLAGS=-flto
+MATLAB=False
+MATLAB_DIR=
+MPI_CC=mpicc
+MPI_CXX=mpicxx
+MPI_CXXFLAGS=
+MPI_LINKERFORPROGRAMS=mpicxx
+MPI_LINKFLAGS=
+MPI_RUN=mpirun
+NVCC=/usr/local/cuda-11.2/bin/nvcc
+NVCC_CXXFLAGS=--x cu -D_FORCE_INLINES -Xcompiler -fPIC -ccbin g++-9 -std=c++17 --expt-extended-lambda -gencode=arch=compute_60,code=compute_60 -gencode=arch=compute_61,code=compute_61 -gencode=arch=compute_75,code=compute_75 -gencode=arch=compute_86,code=compute_86 -DPROJECT_ROOT=\"/home/david/git/umpalumpa\"
+NVCC_LINKFLAGS=-L/usr/local/cuda-11.2/targets/x86_64-linux/lib -L/usr/local/cuda-11.2/targets/x86_64-linux/lib/stubs
+OPENCV=False
+OPENCV3=False
+OPENCVSUPPORTSCUDA=False
+PYTHONINCFLAGS=-I/usr/include/python3.8 -I/usr/lib/python3/dist-packages/numpy/core/include
+PYTHON_LIB=python3.8
+STARPU=False
+STARPU_HOME=
+STARPU_INCLUDE=/include/starpu/1.3
+STARPU_LIB=/lib
+STARPU_LIBRARY=libstarpu-1.3
+USE_DL=False
+VERIFIED=True
