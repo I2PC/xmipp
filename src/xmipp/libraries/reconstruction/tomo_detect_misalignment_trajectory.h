@@ -80,11 +80,7 @@ private:
     /** Angle step */
     float tiltAngleStep;
 
-    /** Vectors for peaked coordinates components */
-    std::vector<double> coordinates3Dx;
-    std::vector<double> coordinates3Dy;
-    std::vector<int> coordinates3Dn;
-
+    /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;
 
     /** Vectors for calculated residuals components */
