@@ -48,6 +48,7 @@
 #define DEBUG
 // #define DEBUG_DIM
 // #define DEBUG_FILTERLABEL
+#define DEBUG_CHAINS
 #define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
 
@@ -89,6 +90,11 @@ private:
     std::vector<int> residualCoordinateX;
     std::vector<int> residualCoordinateY;
     std::vector<int> residualCoordinateZ;
+
+    /** Thresholds */
+    size_t poissonLandmarkPercentile = 50; //*** update with more clever meassurement
+    float minimumDistance; // Minimum distance to cosider that 2 landmarks belong to the same chain
+    size_t numberOfElementsInChainThreshold = 6; // Minimum number of landmarks to keep a chain
 
 public:
 
