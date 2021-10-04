@@ -43,7 +43,7 @@ void ProgPdbSphDeform::readParams()
 	fn_out=getParam("-o");
 }
 
-void ProgPdbSphDeform::show()
+void ProgPdbSphDeform::show() const
 {
 	if (verbose==0)
 		return;
@@ -63,18 +63,18 @@ void ProgPdbSphDeform::run()
 	basisParams = string2vector(line);
 	line = readNthLine(1);
 	clnm = string2vector(line);
-	fillVectorTerms(vL1,vN,vL2,vM);
-	int l1,n,l2,m;
-	l1=0; n=0; l2=0; m=0;
+	fillVectorTerms();
 	size_t idxY0=clnm.size()/3;
 	size_t idxZ0=2*idxY0;
 	for (size_t a=0; a<pdb.getNumberOfAtoms(); a++)
 	{
-		double gx=0.0, gy=0.0, gz=0.0;
+		double gx=0.0; 
+		double gy=0.0; 
+		double gz=0.0;
 		RichAtom& atom_i=pdb.atomList[a];
-		int k = atom_i.z;
-		int i = atom_i.y;
-		int j = atom_i.x;
+		int k = (int)(atom_i.z);
+		int i = (int)(atom_i.y);
+		int j = (int)(atom_i.x);
 		for (size_t idx=0; idx<idxY0; idx++)
 		{
 			double Rmax=basisParams[2];
@@ -90,19 +90,17 @@ void ProgPdbSphDeform::run()
 			double zsph=0.0;
 			if (r2<Rmax2)
 			{
-				// spherical_index2lnm(idx,l1,n,l2,m,maxl1);
-				l1 = VEC_ELEM(vL1,idx);
-				n = VEC_ELEM(vN,idx);
-				l2 = VEC_ELEM(vL2,idx);
-				m = VEC_ELEM(vM,idx);
+				int l1 = VEC_ELEM(vL1,idx);
+				int n = VEC_ELEM(vN,idx);
+				int l2 = VEC_ELEM(vL2,idx);
+				int m = VEC_ELEM(vM,idx);
 				zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-			}
-			// if (rr>0 || (l2==0 && l1==0))
-			if (rr>0 || l2==0)
-			{
-				gx += clnm[idx]        *(zsph);
-				gy += clnm[idx+idxY0]  *(zsph);
-				gz += clnm[idx+idxZ0]  *(zsph);
+				if (rr>0 || l2==0)
+				{
+					gx += clnm[idx]        *zsph;
+					gy += clnm[idx+idxY0]  *zsph;
+					gz += clnm[idx+idxZ0]  *zsph;
+				}
 			}
 		}
 		atom_i.x += gx;
@@ -112,7 +110,7 @@ void ProgPdbSphDeform::run()
 	pdb.write(fn_out);
 }
 
-std::string ProgPdbSphDeform::readNthLine(int N)
+std::string ProgPdbSphDeform::readNthLine(int N) const
 {
 	std::ifstream in(fn_sph.getString());
 	std::string s;  
@@ -125,7 +123,7 @@ std::string ProgPdbSphDeform::readNthLine(int N)
 	return s;
 }
 
-std::vector<double> ProgPdbSphDeform::string2vector(std::string s)
+std::vector<double> ProgPdbSphDeform::string2vector(std::string const &s) const
 {
 	std::stringstream iss(s);
     double number;
@@ -135,11 +133,10 @@ std::vector<double> ProgPdbSphDeform::string2vector(std::string s)
     return v;
 }
 
-void ProgPdbSphDeform::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
+void ProgPdbSphDeform::fillVectorTerms()
 {
     int idx = 0;
-	int vecSize = clnm.size()/3;
+	int vecSize = (int)(clnm.size()/3);
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
@@ -147,7 +144,7 @@ void ProgPdbSphDeform::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN,
     for (int h=0; h<=basisParams[1]; h++)
     {
         int totalSPH = 2*h+1;
-        int aux = std::floor(totalSPH/2);
+        int aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=basisParams[0]; l+=2)
         {
             for (int m=0; m<totalSPH; m++)

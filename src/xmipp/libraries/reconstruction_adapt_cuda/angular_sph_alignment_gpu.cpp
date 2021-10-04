@@ -32,6 +32,8 @@
 #include "data/mask.h"
 #include "reconstruction_cuda/gpu.h"
 
+// TODO: Refactor this code to reuse the CPU version when possible
+
 // Empty constructor =======================================================
 ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
 {
@@ -68,7 +70,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 	L2 = getIntParam("--l2");
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
-    useFakeKernel = checkParam("--fakeKernel");
+    useFakeKernel = checkParam("--useCPU");
 	device = getIntParam("--device");
 }
 
@@ -109,7 +111,7 @@ void ProgAngularSphAlignmentGpu::defineParams()
 	defaultComments["-o"].addComment("Metadata with the angular alignment and deformation parameters");
     XmippMetadataProgram::defineParams();
     addParamsLine("   --ref <volume>              : Reference volume");
-	addParamsLine("  [--mask <m=\"\">]            : Reference volume");
+	addParamsLine("  [--mask <m=\"\">]            : Reference volume mask");
 	addParamsLine("  [--odir <outputDir=\".\">]   : Output directory");
     addParamsLine("  [--max_shift <s=-1>]         : Maximum shift allowed in pixels");
     addParamsLine("  [--max_angular_change <a=5>] : Maximum angular change allowed (in degrees)");
@@ -125,10 +127,10 @@ void ProgAngularSphAlignmentGpu::defineParams()
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
 	addParamsLine("  [--resume]                   : Resume processing");
-	addParamsLine("  [--fakeKernel]               : Uses fake kernel (CPU) instead of GPU kernel");
+	addParamsLine("  [--useCPU]                   : Uses fake kernel (CPU) instead of GPU kernel");
 	addParamsLine("  [--device <dev=0>]           : GPU device to use. 0th by default");
     addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
+    addExampleLine("xmipp_cuda_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
 
 // Produce side information ================================================
@@ -298,8 +300,7 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
    if (showOptimization)
    {
 		std::cout << "A=" << A << std::endl;
-		Image<double> save;
-		save()=P();
+		Image<double> save(P);
 		save.write("PPPtheo.xmp");
 		save()=Ifilteredp();
 		save.write("PPPfilteredp.xmp");

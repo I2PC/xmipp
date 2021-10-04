@@ -106,11 +106,9 @@ void ProgVolDeformSph::computeShift(int k) {
     const auto &mVR = VR();
     const double Rmax2=Rmax*Rmax;
     const double iRmax = 1.0 / Rmax;
-//    size_t vec_idx = 0;
     size_t vec_idx = mVR.yxdim * (k - STARTINGZ(mVR));
     const auto &clnm_c = m_clnm;
     const auto &zsh_vals_c = m_zshVals;
-//    for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
         for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
             for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++vec_idx) {
                 const auto r_vals = Radius_vals(i, j, k, iRmax);
@@ -123,9 +121,9 @@ void ProgVolDeformSph::computeShift(int k) {
                                 double zsph=ZernikeSphericalHarmonics(tmp.l1,tmp.n,tmp.l2,tmp.m,
                                         r_vals.jr, r_vals.ir, r_vals.kr, r_vals.rr);
                                 auto &c = clnm_c[idx];
-                                g.x += c.x * (zsph);
-                                g.y += c.y * (zsph);
-                                g.z += c.z * (zsph);
+                                g.x += c.x * zsph;
+                                g.y += c.y * zsph;
+                                g.z += c.z * zsph;
                             }
                         }
                     }
@@ -182,13 +180,10 @@ void ProgVolDeformSph::computeDistance(Distance_vals &vals) {
 
 void ProgVolDeformSph::computeDistance(int k, Distance_vals &vals) {
     const auto &mVR = VR();
-//    auto vals = Distance_vals{0};
     for (int idv=0; idv<volumesR.size(); idv++) {
-//        size_t voxel_idx = 0;
         size_t voxel_idx = mVR.yxdim * (k - STARTINGZ(mVR));
         const auto &volR = volumesR[idv]();
         const auto &volI = volumesI[idv]();
-//        for (int k=STARTINGZ(mVR); k<=FINISHINGZ(mVR); k++) {
             for (int i=STARTINGY(mVR); i<=FINISHINGY(mVR); i++) {
                 for (int j=STARTINGX(mVR); j<=FINISHINGX(mVR); j++, ++voxel_idx) {
                     const auto &g = m_shifts[voxel_idx];
@@ -295,13 +290,7 @@ double volDeformSphGoal(double *p, void *vprm)
 
 // Run =====================================================================
 void ProgVolDeformSph::run() {
-	// Matrix1D<int> nh;
-	// nh.resize(depth+2);
-	// nh.initConstant(0);
-	// nh(1)=1;
-
 	saveDeformation=false;
-	// Numsph(nh);
 
 	VI.read(fnVolI);
 	VR.read(fnVolR);
@@ -319,7 +308,6 @@ void ProgVolDeformSph::run() {
 	filter.generateMask(VI());
 
 	// We need also to normalized the filtered volumes to compare them appropiately
-	double maxVoxelR;
 	Image<double> auxI = VI;
 	Image<double> auxR = VR;
 
@@ -327,10 +315,8 @@ void ProgVolDeformSph::run() {
 	bg_mask.resizeNoCopy(VI().zdim, VI().ydim, VI().xdim);
     bg_mask.setXmippOrigin();
 	normalize_Robust(auxI(), bg_mask, true);
-	// auxI.write("input_filt.vol");
 	bg_mask *= 0;
 	normalize_Robust(auxR(), bg_mask, true);
-	// auxR.write("ref_filt.vol");
 
 	FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(auxI())
 	{
@@ -338,19 +324,10 @@ void ProgVolDeformSph::run() {
     		sumVI += DIRECT_A3D_ELEM(auxI(),k,i,j);
 	}
 
-	if (sigma.size() == 1 && sigma[0] == 0)
+	volumesI.push_back(auxI());
+	volumesR.push_back(auxR());
+	if (sigma.size() > 1 || sigma[0] != 0)
 	{
-		volumesI.push_back(auxI());
-		volumesR.push_back(auxR());
-		// maxVoxelR = auxR().computeMax();
-		// absMaxR_vec.push_back(fabs(maxVoxelR));
-	}
-	else
-	{
-		volumesI.push_back(auxI());
-		volumesR.push_back(auxR());
-		// maxVoxelR = auxR().computeMax();
-		// absMaxR_vec.push_back(fabs(maxVoxelR));
 		for (int ids=0; ids<sigma.size(); ids++)
 		{
 			Image<double> auxI = VI;
@@ -368,20 +345,17 @@ void ProgVolDeformSph::run() {
 				if (DIRECT_A3D_ELEM(auxI(),k,i,j) >= 0.0)
     				sumVI += DIRECT_A3D_ELEM(auxI(),k,i,j);
 			}
-			// auxI.write("input_filt.vol");
 
 			// Filter ref vol
 			filter.applyMaskSpace(auxR());
 			bg_mask *= 0;
 			normalize_Robust(auxR(), bg_mask, true);
 			volumesR.push_back(auxR);
-			// auxR.write("ref_filt.vol"); 
-			// maxVoxelR = auxR().computeMax();
-			// absMaxR_vec.push_back(fabs(maxVoxelR));
 		}
 	}
 
-    Matrix1D<double> steps, x;
+    Matrix1D<double> steps;
+	Matrix1D<double> x;
 	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
 	size_t totalSize = 3*vecSize;
@@ -390,31 +364,12 @@ void ProgVolDeformSph::run() {
 	x.initZeros(totalSize);
     for (int h=0;h<=L2;h++)
     {
-    	// L = nh(h+1);
-    	// prevL = nh(h);
-    	// prevsteps=steps;
 		steps.clear();
     	steps.initZeros(totalSize);
 		minimizepos(L1,h,steps);
 
     	std::cout<<std::endl;
     	std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<h<<") --------------------------"<<std::endl;
-    	// if (h==0)
-    	// {
-
-    	// }
-    	// else
-    	// {
-    	// 	x.resize(VEC_XSIZE(steps),false);
-    	// 	copyvectors(clnm,x);
-    	// 	clnm=x;
-    	// }
-
-        // for(int d=VEC_XSIZE(x)-L+prevL;d<VEC_XSIZE(x);d++)
-    	// {
-    	// 	x(d)=Rmax;
-    	// 	clnm(d)=Rmax;
-    	// }
 #ifdef NEVERDEFINED
         for (int d=0;d<VEC_XSIZE(x);d++)
         {
@@ -434,17 +389,9 @@ void ProgVolDeformSph::run() {
         }
         //std::cout<<std::endl;
 #endif
-        // if (h!=0)
-        // {
-        //     minimizepos(steps,prevsteps);
-        // }
-        // else
-        // {
-        // 	steps(VEC_XSIZE(steps)-1)=0;
-        // }
         int iter;
         double fitness;
-        powellOptimizer(x, 1, totalSize, &volDeformSphGoal, this,
+        powellOptimizer(x, 1, (int)(totalSize), &volDeformSphGoal, this,
 		                0.01, fitness, iter, steps, true);
 
         std::cout<<std::endl;
@@ -470,7 +417,6 @@ void ProgVolDeformSph::run() {
 
     }
     applyTransformation=true;
-	// x.write(fnRoot+"_clnm.txt");
 	Matrix1D<double> degrees;
 	degrees.initZeros(3);
 	VEC_ELEM(degrees,0) = L1;
@@ -505,57 +451,11 @@ void ProgVolDeformSph::run() {
     	computeStrain();
 }
 
-// // Copy Vectors ============================================================
-// void ProgVolDeformSph::copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect)
-// {
-// 	size_t groups = 4;
-// 	size_t olditems = VEC_XSIZE(oldvect)/groups;
-// 	size_t newitems = VEC_XSIZE(newvect)/groups;
-// 	for (int g=0;g<groups;g++)
-// 	{
-// 		for (int i=0;i<olditems;i++)
-// 			{
-// 			    newvect(g*newitems+i) = oldvect(g*olditems+i);
-// 			}
-// 	}
-// }
-
-// // Minimize Positions ======================================================
-// void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos)
-// {
-// 	size_t groups = 4;
-// 	size_t olditems = VEC_XSIZE(prevpos)/groups;
-// 	size_t newitems = VEC_XSIZE(vectpos)/groups;
-// 	for (int i=0;i<olditems;i++)
-// 	{
-// 		vectpos(3*newitems+i) = 0;
-// 	}
-// 	if (!optimizeRadius)
-// 	{
-// 		for (int j=olditems;j<newitems;j++)
-// 		{
-// 			vectpos(3*newitems+j) = 0;
-// 		}
-// 	}
-// }
-
-// Minimize Positions ======================================================
-// void ProgVolDeformSph::minimizepos(Matrix1D<double> &vectpos, int &current_l2)
-// {
-// 	size_t currentSize = std::floor((4+4*L1+std::pow(L1,2))/4)*std::pow(current_l2+1,2);
-// 	for (int i=0;i<currentSize;i++)
-// 	{
-// 		VEC_ELEM(vectpos,i) = 1;
-// 		VEC_ELEM(vectpos,i+vecSize) = 1;
-// 		VEC_ELEM(vectpos,i+2*vecSize) = 1;
-// 	}
-// }
-
 void ProgVolDeformSph::minimizepos(int L1, int l2, Matrix1D<double> &steps)
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
-    int totalSize = steps.size()/3;
+    int totalSize = (int)(steps.size()/3);
     for (int idx=0; idx<size; idx++)
     {
         VEC_ELEM(steps,idx) = 1;
@@ -564,39 +464,22 @@ void ProgVolDeformSph::minimizepos(int L1, int l2, Matrix1D<double> &steps)
     }	
 }
 
-// // Number Spherical Harmonics ==============================================
-// void ProgVolDeformSph::Numsph(Matrix1D<int> &sphD)
-// {
-// 	for (int d=1;d<(VEC_XSIZE(sphD)-1);d++)
-// 	{
-// 	    if (d%2==0)
-// 	    {
-// 	    	sphD(d+1) = sphD(d)+((d/2)+1)*(2*d+1);
-// 	    }
-// 	    else
-// 	    {
-// 	    	sphD(d+1) = sphD(d)+(((d-1)/2)+1)*(2*d+1);
-// 	    }
-// 	}
-// }
-
-// Length of coefficients vector
-// void ProgVolDeformSph::numCoefficients(int l1, int l2, int &vecSize)
-// {
-// 	vecSize = std::floor((4+4*l1+std::pow(l1,2))/4)*std::pow(l2+1,2);
-// }
-
-void ProgVolDeformSph::numCoefficients(int l1, int l2, int &vecSize)
+void ProgVolDeformSph::numCoefficients(int l1, int l2, int &nc) const
 {
+	// l1 -> Degree Zernike
+	// l2 & h --> Degree SPH
     for (int h=0; h<=l2; h++)
     {
+		// For the current SPH degree (h), determine the number of SPH components/equations
         int numSPH = 2*h+1;
+		// Finf the total number of radial components with even degree for a given l1 and h
         int count=l1-h+1;
         int numEven=(count>>1)+(count&1 && !(h&1));
+		// Total number of components is the number of SPH as many times as Zernike components
         if (h%2 == 0)
-            vecSize += numSPH*numEven;
+            nc += numSPH*numEven;
         else
-        	vecSize += numSPH*(l1-h+1-numEven);
+        	nc += numSPH*(l1-h+1-numEven);
     }
 }
 
@@ -607,7 +490,7 @@ void ProgVolDeformSph::fillVectorTerms(int l1, int l2)
     for (int h=0; h<=l2; h++)
     {
         int totalSPH = 2*h+1;
-        int aux = std::floor(totalSPH/2);
+        int aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=l1; l+=2)
         {
             for (int m=0; m<totalSPH; m++)
@@ -622,23 +505,6 @@ void ProgVolDeformSph::fillVectorTerms(int l1, int l2)
         }
     }
 }
-
-// void ProgVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, Matrix1D<int> &vL2, Matrix1D<int> &vM)
-// {
-// 	vL1.initZeros(vecSize);
-// 	vN.initZeros(vecSize);
-// 	vL2.initZeros(vecSize);
-// 	vM.initZeros(vecSize);
-// 	for (int idx=0;idx<vecSize;idx++)
-// 	{
-// 		int l1,n,l2,m;
-// 		spherical_index2lnm(idx,l1,n,l2,m,L1);
-// 		VEC_ELEM(vL1,idx) = l1;
-// 		VEC_ELEM(vN,idx)  = n;
-// 		VEC_ELEM(vL2,idx) = l2;
-// 		VEC_ELEM(vM,idx)  = m;
-// 	}
-// }
 
 // Number Spherical Harmonics ==============================================
 #define Dx(V) (A3D_ELEM(V,k,i,jm2)-8*A3D_ELEM(V,k,i,jm1)+8*A3D_ELEM(V,k,i,jp1)-A3D_ELEM(V,k,i,jp2))/12.0
@@ -726,13 +592,14 @@ void ProgVolDeformSph::computeStrain()
 	}
 }
 
-void ProgVolDeformSph::writeVector(std::string outPath, Matrix1D<double> v, bool append)
+void ProgVolDeformSph::writeVector(std::string const &outPath, Matrix1D<double> const &v, 
+								   bool append) const
 {
     std::ofstream outFile;
-    if (append == false)
-        outFile.open(outPath);
+    if (append)
+		outFile.open(outPath, std::ios_base::app);
     else
-        outFile.open(outPath, std::ios_base::app);
+        outFile.open(outPath);
     FOR_ALL_ELEMENTS_IN_MATRIX1D(v)
         outFile << VEC_ELEM(v,i) << " ";
     outFile << std::endl;

@@ -57,13 +57,15 @@ public:
     bool optimizeRadius;
 
     /// Degree of Zernike polynomials and spherical harmonics
-    int L1, L2;
+    int L1; 
+    int L2;
 
     /// Gaussian width to filter the volumes
     std::vector<double> sigma;
 
     /// Image Vector
-    std::vector<Image<double>> volumesI, volumesR;
+    std::vector<Image<double>> volumesI;
+    std::vector<Image<double>> volumesR;
 
     /// Maximum radius for the transformation
 	double Rmax;
@@ -73,13 +75,20 @@ public:
 	int vecSize;
 
     /// Images
-	Image<double> VI, VR, VO, Gx, Gy, Gz;
+	Image<double> VI;
+    Image<double> VR;
+    Image<double> VO;
+    Image<double> Gx;
+    Image<double> Gy;
+    Image<double> Gz;
 
     /// Maxima of reference volumes (in absolute value)
     std::vector<double> absMaxR_vec;
 
 	//Deformation in pixels, sumVI, sumVD
-	double deformation, sumVI, sumVD;
+	double deformation;
+    double sumVI;
+    double sumVD;
 
     // Regularization
     double lambda;
@@ -106,20 +115,11 @@ public:
     /// Run
     void run();
 
-    // /// Copy the coefficients from harmonical depth n-1 vector to harmonical depth n vector
-    // void copyvectors(Matrix1D<double> &oldvect,Matrix1D<double> &newvect);
-
-    // /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    // void minimizepos(Matrix1D<double> &vectpos, Matrix1D<double> &prevpos);
-
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
     void minimizepos(int L1, int l2, Matrix1D<double> &steps);
 
-    // ///Compute the number of spherical harmonics in l=0,1,...,depth
-    // void Numsph(Matrix1D<int> &sphD);
-
     /// Length of coefficients vector
-    void numCoefficients(int l1, int l2, int &vecSize);
+    void numCoefficients(int l1, int l2, int &nc) const;
 
     /// Zernike and SPH coefficients allocation
     void fillVectorTerms(int l1, int l2);
@@ -128,7 +128,7 @@ public:
     void computeStrain();
 
     /// Save vector to file
-    void writeVector(std::string outPath, Matrix1D<double> v, bool append);
+    void writeVector(std::string const &outPath, Matrix1D<double> const &v, bool append) const;
 
 private:
     ctpl::thread_pool m_threadPool;

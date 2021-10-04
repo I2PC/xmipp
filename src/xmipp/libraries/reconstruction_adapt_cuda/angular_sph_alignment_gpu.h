@@ -193,13 +193,11 @@ public:
     		                Matrix2D<double> &A, double deltaDefocusU, 
                             double deltaDefocusV, double deltaDefocusAngle);
 
-    //AJ new
     /** Write the final parameters. */
     virtual void finishProcessing();
 
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
-    //END AJ
 
 };
 //@}

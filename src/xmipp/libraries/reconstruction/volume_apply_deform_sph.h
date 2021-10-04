@@ -30,7 +30,7 @@
 
 class ProgApplyVolDeformSph: public XmippProgram
 {
-public:
+private:
     /** PDB file */
     FileName fn_vol;
 
@@ -43,40 +43,37 @@ public:
     /** Vector containing the deformation coefficients */
 	std::vector<double> clnm;
 
-    /** Vector containing the basis constants */
-	std::vector<double> const_zsph;
-
     /** Vector containing the degrees and Rmax of the basis */
 	std::vector<double> basisParams;
 
     /** Zernike and SPH coefficients vectors */
-    Matrix1D<int> vL1, vN, vL2, vM;
+    Matrix1D<int> vL1;
+    Matrix1D<int> vN;
+    Matrix1D<int> vL2;
+    Matrix1D<int> vM;
 
 public:
     /** Params definitions */
-    void defineParams();
+    void defineParams() override;
 
     /** Read from a command line. */
-    void readParams();
+    void readParams() override;
 
     /** Show parameters. */
-    void show();
+    void show() const;
 
     /** Run. */
-    void run();
+    void run() override;
 
     /** Read Nth line of file */
-    std::string readNthLine(int N);
+    std::string readNthLine(int N) const;
 
     /** Convert String to Vector */
-    std::vector<double> string2vector(std::string s);
+    std::vector<double> string2vector(std::string const &s) const;
 
     /** Fill degree and order vectors */
-    void fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-						 Matrix1D<int> &vL2, Matrix1D<int> &vM);
+    void fillVectorTerms();
 
-    /** Fill basis constants vector */
-    void getBasisConstants(Matrix1D<int> &vL1, Matrix1D<int> &vL2);
 };
 //@}
 #endif

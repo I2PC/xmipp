@@ -50,9 +50,13 @@ public:
     // Metadata with already processed images
     FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
-    int L1, L2;
+    int L1;
+    int L2;
     /** Zernike and SPH coefficients vectors */
-    Matrix1D<int> vL1, vN, vL2, vM;
+    Matrix1D<int> vL1;
+    Matrix1D<int>vN;
+    Matrix1D<int> vL2;
+    Matrix1D<int> vM;
     /** Maximum shift allowed */
     double maxShift;
     /** Maximum angular change allowed */
@@ -87,11 +91,17 @@ public:
     /** Resume computations */
     bool resume;
     // 2D and 3D masks in real space
-    MultidimArray<int> mask2D, V_mask;
+    MultidimArray<int> mask2D;
+    MultidimArray<int> V_mask;
     // Volume size
     size_t Xdim;
-    // Input image
-	Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
+    // Input images
+	Image<double> V;
+    Image<double> Vdeformed;
+    Image<double> I;
+    Image<double> Ip;
+    Image<double> Ifiltered;
+    Image<double> Ifilteredp;
 	// Theoretical projection
 	Image<double> P;
 	// Filter
@@ -99,17 +109,24 @@ public:
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
-    double old_rot, old_tilt, old_psi;
+    double old_rot;
+    double old_tilt;
+    double old_psi;
     // Original shift
-	double old_shiftX, old_shiftY;
+	double old_shiftX;
+    double old_shiftY;
 	// Original flip
 	bool old_flip;
     // CTF Check
     bool hasCTF;
     // Original defocus
-	double old_defocusU, old_defocusV, old_defocusAngle;
+	double old_defocusU;
+    double old_defocusV;
+    double old_defocusAngle;
     // Current defoci
-	double currentDefocusU, currentDefocusV, currentAngle;
+	double currentDefocusU;
+    double currentDefocusV;
+    double currentAngle;
 	// CTF
 	CTFDescription ctf;
     // CTF filter
@@ -121,7 +138,9 @@ public:
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
 	//Total Deformation, sumV, sumVd
-	double totalDeformation, sumV, sumVd;
+	double totalDeformation;
+    double sumV;
+    double sumVd;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
@@ -160,10 +179,9 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
     /// Length of coefficients vector
-    void numCoefficients(int l1, int l2, int &nc);
+    void numCoefficients(int l1, int l2, int &nc) const;
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    // void minimizepos(Matrix1D<double> &vectpos);
     void minimizepos(int l2, Matrix1D<double> &steps);
 
     /// Zernike and SPH coefficients allocation
@@ -173,18 +191,19 @@ public:
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
                    double rot, double tilt, double psi);
 
+    void applyCTFImage(double const &deltaDefocusU, double const &deltaDefocusV, 
+					   double const &deltaDefocusAngle);
+
     void updateCTFImage(double defocusU, double defocusV, double angle);
 
     double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
     		                double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle);
 
-    //AJ new
     /** Write the final parameters. */
     virtual void finishProcessing();
 
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
-    //END AJ
 
 };
 //@}

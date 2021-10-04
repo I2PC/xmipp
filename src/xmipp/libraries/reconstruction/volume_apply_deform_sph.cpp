@@ -27,6 +27,8 @@
 #include <data/numerical_tools.h>
 #include <fstream>
 
+// TODO: Refactor this file so it is not so similar to angular_sph_alignment
+
 void ProgApplyVolDeformSph::defineParams()
 {
 	addUsageLine("Deform a PDB according to a list of SPH deformation coefficients");
@@ -43,7 +45,7 @@ void ProgApplyVolDeformSph::readParams()
 	fn_out=getParam("-o");
 }
 
-void ProgApplyVolDeformSph::show()
+void ProgApplyVolDeformSph::show() const
 {
 	if (verbose==0)
 		return;
@@ -56,7 +58,8 @@ void ProgApplyVolDeformSph::show()
 
 void ProgApplyVolDeformSph::run()
 {
-	Image<double> VI, VO;
+	Image<double> VI;
+	Image<double> VO;
 	VI.read(fn_vol);
 	VI().setXmippOrigin();
 	VO().initZeros(VI());
@@ -66,9 +69,7 @@ void ProgApplyVolDeformSph::run()
 	basisParams = string2vector(line);
 	line = readNthLine(1);
 	clnm = string2vector(line);
-	fillVectorTerms(vL1,vN,vL2,vM);
-	getBasisConstants(vL1,vL2);
-	int l1,n,l2,m;
+	fillVectorTerms();
 	size_t idxY0=(clnm.size())/3;
 	size_t idxZ0=2*idxY0;
 	const MultidimArray<double> &mVI=VI();
@@ -77,14 +78,15 @@ void ProgApplyVolDeformSph::run()
 	double Rmax2=Rmax*Rmax;
 	double iRmax=1.0/Rmax;
 	double zsph=0.0;
-	double constant_zsph = 0.0;
 	for (int k=STARTINGZ(mVI); k<=FINISHINGZ(mVI); k++)
 	{
 		for (int i=STARTINGY(mVI); i<=FINISHINGY(mVI); i++)
 		{
 			for (int j=STARTINGX(mVI); j<=FINISHINGX(mVI); j++)
 			{
-				double gx=0.0, gy=0.0, gz=0.0;
+				double gx=0.0;
+				double gy=0.0;
+				double gz=0.0;
 				double k2=k*k;
 				double kr=k*iRmax;
 				double k2i2=k2+i*i;
@@ -96,19 +98,16 @@ void ProgApplyVolDeformSph::run()
 				{
 					for (size_t idx=0; idx<idxY0; idx++)
 					{
-						l1 = VEC_ELEM(vL1,idx);
-						n = VEC_ELEM(vN,idx);
-						l2 = VEC_ELEM(vL2,idx);
-						m = VEC_ELEM(vM,idx);
-						constant_zsph = const_zsph[idx];
+						int l1 = VEC_ELEM(vL1,idx);
+						int n = VEC_ELEM(vN,idx);
+						int l2 = VEC_ELEM(vL2,idx);
+						int m = VEC_ELEM(vM,idx);
 						zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-						// if (rr>0 || (l2==0 && l1==0))
-						if (rr>0 && l2!=0)  //? Seems to work
-						// if (rr>0 || l2==0)
+						if (rr>0 && l2!=0)
 						{
-							gx += clnm[idx]        *(zsph);
-							gy += clnm[idx+idxY0]  *(zsph);
-							gz += clnm[idx+idxZ0]  *(zsph);
+							gx += clnm[idx]        *zsph;
+							gy += clnm[idx+idxY0]  *zsph;
+							gz += clnm[idx+idxZ0]  *zsph;
 						}
 					}
 				}
@@ -120,7 +119,7 @@ void ProgApplyVolDeformSph::run()
 	VO.write(fn_out);
 }
 
-std::string ProgApplyVolDeformSph::readNthLine(int N)
+std::string ProgApplyVolDeformSph::readNthLine(int N) const
 {
 	std::ifstream in(fn_sph.getString());
 	std::string s;  
@@ -133,7 +132,7 @@ std::string ProgApplyVolDeformSph::readNthLine(int N)
 	return s;
 }
 
-std::vector<double> ProgApplyVolDeformSph::string2vector(std::string s)
+std::vector<double> ProgApplyVolDeformSph::string2vector(std::string const &s) const
 {
 	std::stringstream iss(s);
     double number;
@@ -143,11 +142,10 @@ std::vector<double> ProgApplyVolDeformSph::string2vector(std::string s)
     return v;
 }
 
-void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &vN, 
-									   Matrix1D<int> &vL2, Matrix1D<int> &vM)
+void ProgApplyVolDeformSph::fillVectorTerms()
 {
     int idx = 0;
-	int vecSize = (clnm.size())/3;
+	int vecSize = (int)((clnm.size())/3);
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
@@ -155,7 +153,7 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
     for (int h=0; h<=basisParams[1]; h++)
     {
         int totalSPH = 2*h+1;
-        int aux = std::floor(totalSPH/2);
+        int aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=basisParams[0]; l+=2)
         {
             for (int m=0; m<totalSPH; m++)
@@ -168,19 +166,4 @@ void ProgApplyVolDeformSph::fillVectorTerms(Matrix1D<int> &vL1, Matrix1D<int> &v
             }
         }
     }
-}
-
-void ProgApplyVolDeformSph::getBasisConstants(Matrix1D<int> &vL1, Matrix1D<int> &vL2) 
-{
-	double constant = 0.0;
-	FOR_ALL_ELEMENTS_IN_MATRIX1D(vL2) {
-		if (VEC_ELEM(vL2,i) == 0) {
-			int l1 = VEC_ELEM(vL1,i);
-			constant = -ZernikeSphericalHarmonics(l1,0,0,0,0,0,0,0);
-			const_zsph.push_back(constant);
-		}
-		else {
-			const_zsph.push_back(0.0);
-		}
-	}
 }

@@ -102,7 +102,7 @@ void ProgAngularSphAlignment::defineParams()
 	defaultComments["-o"].addComment("Metadata with the angular alignment and deformation parameters");
     XmippMetadataProgram::defineParams();
     addParamsLine("   --ref <volume>              : Reference volume");
-	addParamsLine("  [--mask <m=\"\">]            : Reference volume");
+	addParamsLine("  [--mask <m=\"\">]            : Reference volume mask");
 	addParamsLine("  [--odir <outputDir=\".\">]   : Output directory");
     addParamsLine("  [--max_shift <s=-1>]         : Maximum shift allowed in pixels");
     addParamsLine("  [--max_angular_change <a=5>] : Maximum angular change allowed (in degrees)");
@@ -230,19 +230,8 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 	P().initZeros((int)XSIZE(I()),(int)XSIZE(I()));
     P().setXmippOrigin();
 	deformVol(P(), mV, deformation, rot, tilt, psi);
-	if (hasCTF)
-    {
-    	double defocusU=old_defocusU+deltaDefocusU;
-    	double defocusV=old_defocusV+deltaDefocusV;
-    	double angle=old_defocusAngle+deltaDefocusAngle;
-    	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
-    		updateCTFImage(defocusU,defocusV,angle);
-		}
-		FilterCTF.ctf = ctf;
-		FilterCTF.generateMask(P());
-		if (phaseFlipped)
-			FilterCTF.correctPhase();
-		FilterCTF.applyMaskSpace(P());
+	if (hasCTF) {
+		applyCTFImage(deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
 	}
     double cost=0;
 	if (old_flip)
@@ -278,8 +267,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
    if (showOptimization)
    {
 		std::cout << "A=" << A << std::endl;
-		Image<double> save;
-		save()=P();
+		Image<double> save(P);
 		save.write("PPPtheo.xmp");
 		save()=Ifilteredp();
 		save.write("PPPfilteredp.xmp");
@@ -486,18 +474,23 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	md.append(fnDone);
 }
 
-void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &nc)
-{
+void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &nc) const
+{	
+	// l1 -> Degree Zernike
+	// l2 & h --> Degree SPH
     for (int h=0; h<=l2; h++)
     {
+		// For the current SPH degree (h), determine the number of SPH components/equations
         int numSPH = 2*h+1;
+		// Finf the total number of radial components with even degree for a given l1 and h
         int count=l1-h+1;
         int numEven=(count>>1)+(count&1 && !(h&1));
+		// Total number of components is the number of SPH as many times as Zernike components
         if (h%2 == 0) {
             nc += numSPH*numEven;
 		}
         else {
-        	nc += numSPH*(l1-h+1-numEven);
+        	nc += numSPH*(count-numEven);
 		}
     }
 }
@@ -535,6 +528,21 @@ void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2)
         }
     }
 }
+
+void ProgAngularSphAlignment::applyCTFImage(double const &deltaDefocusU, double const &deltaDefocusV, 
+											double const &deltaDefocusAngle) {
+	double defocusU=old_defocusU+deltaDefocusU;
+	double defocusV=old_defocusV+deltaDefocusV;
+	double angle=old_defocusAngle+deltaDefocusAngle;
+	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
+		updateCTFImage(defocusU,defocusV,angle);
+	}
+	FilterCTF.ctf = ctf;
+	FilterCTF.generateMask(P());
+	if (phaseFlipped)
+		FilterCTF.correctPhase();
+	FilterCTF.applyMaskSpace(P());
+} 
 
 void ProgAngularSphAlignment::updateCTFImage(double defocusU, double defocusV, double angle)
 {
@@ -576,7 +584,9 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 			{
                 ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
                 pos = R * pos;
-				double gx=0.0, gy=0.0, gz=0.0;
+				double gx=0.0;
+				double gy=0.0;
+				double gz=0.0;
 				// TODO: Sacar al bucle de z
 				double k2=ZZ(pos)*ZZ(pos);
 				double kr=ZZ(pos)*iRmaxF;
@@ -595,9 +605,9 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 							int m = VEC_ELEM(vM,idx);
 							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
 							if (rr>0 || l2==0) {
-								gx += VEC_ELEM(clnm,idx)        *(zsph);
-								gy += VEC_ELEM(clnm,idx+idxY0)  *(zsph);
-								gz += VEC_ELEM(clnm,idx+idxZ0)  *(zsph);
+								gx += VEC_ELEM(clnm,idx)        *zsph;
+								gy += VEC_ELEM(clnm,idx+idxY0)  *zsph;
+								gz += VEC_ELEM(clnm,idx+idxZ0)  *zsph;
 							}
 						}
 					}

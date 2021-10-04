@@ -423,10 +423,9 @@ void ProgPdbConverter::createProteinAtHighSamplingRate()
     fh_pdb.close();
 
     // Save centered PDB
-    if (doCenter)
+    if (doCenter && fn_out!="")
     {
-        if (fn_out!="")
-            centered_pdb.write(fn_out + ".pdb");
+        centered_pdb.write(fn_out + ".pdb");
     }
 }
 
@@ -601,10 +600,9 @@ void ProgPdbConverter::createProteinUsingScatteringProfiles()
     fh_pdb.close();
 
     // Save centered PDB
-    if (doCenter)
+    if (doCenter  && fn_out!="")
     {
-        if (fn_out!="")
-            centered_pdb.write(fn_out + ".pdb");
+        centered_pdb.write(fn_out + ".pdb");
     }
 }
 
