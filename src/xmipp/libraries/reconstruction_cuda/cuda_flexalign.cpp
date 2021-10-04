@@ -7,8 +7,7 @@
 using namespace umpalumpa::data;
 using namespace umpalumpa;
 
-template <typename T> auto createFilterPayload(T *ptrCPU, int x, int y) {
-  auto size = Size(x, y, 1, 1);
+template <typename T> auto createFilterPayload(T *ptrCPU, const Size &size) {
   auto ld = LogicalDescriptor(size, size, "Filter");
   auto pd = PhysicalDescriptor(
       ld.GetPaddedSize().total * Sizeof(DataType::kFloat), DataType::kFloat);
@@ -25,6 +24,9 @@ void performFFT(T *inOutData, int noOfImgs, int inX, int inY, int batchSize,
   auto sizeInFull = Size(inX, inY, 1, noOfImgs);
   auto sizeInBatch = Size(inX, inY, 1, batchSize);
   auto sizeOutFull = Size(outX, outY, 1, noOfImgs);
+  auto sizeFilter =
+      Size(outX / 2 + 1, outY, 1,
+           1); // FIXME maybe create method to get the hermitian half size?
 
   // define settings
   auto fftSettings = fourier_transformation::Settings(
@@ -38,31 +40,42 @@ void performFFT(T *inOutData, int noOfImgs, int inX, int inY, int batchSize,
 
   // create input Payload
   auto ldInFull = FourierDescriptor(sizeInFull, sizeInFull);
-  auto pdInFull = PhysicalDescriptor(ldInFull.GetPaddedSize().total *
-                                         Sizeof(DataType::kFloat),
-                                     DataType::kFloat);
+  auto pdInFull =
+      PhysicalDescriptor(ldInFull.GetPaddedSize().total *
+                             Sizeof(umpalumpa::data::DataType::kFloat),
+                         umpalumpa::data::DataType::kFloat);
   auto inFull = Payload(inOutData, ldInFull, pdInFull, "Input data");
 
   // create intermediary Payload
   auto ldBatch = FourierDescriptor(sizeInBatch, sizeInBatch,
                                    FourierDescriptor::FourierSpaceDescriptor());
-  auto bytesBatch =
-      ldBatch.GetPaddedSize().total * Sizeof(DataType::kFloat) * 2;
-  auto pdBatch = PhysicalDescriptor(bytesBatch, DataType::kFloat);
+  printf("ldBatch size in: %lu %lu %lu %lu\n", sizeInBatch.x, sizeInBatch.y,
+         sizeInBatch.z, sizeInBatch.n);
+  auto bytesBatch = ldBatch.GetPaddedSize().total *
+                    Sizeof(umpalumpa::data::DataType::kFloat) * 2;
+  printf("ldBatch size in: %lu %lu %lu %lu\n", ldBatch.GetPaddedSize().x,
+         ldBatch.GetPaddedSize().y, ldBatch.GetPaddedSize().z,
+         ldBatch.GetPaddedSize().n);
+  printf("bytesBatch: %lu\n", bytesBatch);
+  auto pdBatch =
+      PhysicalDescriptor(bytesBatch, umpalumpa::data::DataType::kFloat);
   void *batchPtr = nullptr;
   gpuErrchk(cudaMalloc(&batchPtr, pdBatch.bytes));
   auto outBatch = Payload(batchPtr, ldBatch, pdBatch, "Batch data");
 
   // create output Payload
+  // FIXME make sure that we cannot overwrite the input data by the resulting
+  // cropped data
   auto ldOutFull = FourierDescriptor(
       sizeOutFull, sizeOutFull, FourierDescriptor::FourierSpaceDescriptor());
-  auto bytesOutFull =
-      ldOutFull.GetPaddedSize().total * Sizeof(DataType::kFloat) * 2;
-  auto pdOutFull = PhysicalDescriptor(bytesOutFull, DataType::kFloat);
+  auto bytesOutFull = ldOutFull.GetPaddedSize().total *
+                      Sizeof(umpalumpa::data::DataType::kFloat) * 2;
+  auto pdOutFull =
+      PhysicalDescriptor(bytesOutFull, umpalumpa::data::DataType::kFloat);
   auto outFull = Payload(inOutData, ldOutFull, pdOutFull, "Output data");
 
   // create filter Payload
-  auto filterP = createFilterPayload(filter, outX, outY);
+  auto filterP = createFilterPayload(filter, sizeFilter);
 
   // create transformers
   auto fftTransformer = fourier_transformation::FFTCUDA(0);
@@ -72,6 +85,10 @@ void performFFT(T *inOutData, int noOfImgs, int inX, int inY, int batchSize,
   for (size_t offset = 0; offset < noOfImgs; offset += batchSize) {
     auto inFFT = fourier_transformation::AFFT::InputData(
         inFull.Subset(offset, batchSize));
+    // trying to prefetch data to avoid page faults
+    gpuErrchk(
+        cudaMemPrefetchAsync(inFFT.data.ptr, inFFT.data.dataInfo.bytes, 0));
+
     auto batch = inFFT.data.info.GetSize().n;
     std::cout << "Processing images " << offset << "-" << batch << std::endl;
     // start at 0 to reuse the temporal storage, set N according to what is left
@@ -79,14 +96,16 @@ void performFFT(T *inOutData, int noOfImgs, int inX, int inY, int batchSize,
         fourier_transformation::AFFT::ResultData(outBatch.Subset(0, batch));
     auto inCrop = fourier_processing::AFP::InputData(outBatch.Subset(0, batch),
                                                      std::move(filterP));
-    auto outCrop =
-        fourier_processing::AFP::OutputData(outFull.Subset(offset, batch));
-    printf("inFFT: %p %p\n", inFFT.data.ptr, inOutData + (offset * inX * inY));
-    printf("outFFT: %p %p\n", outFFT.data.ptr, batchPtr);
-    printf("inCrop: %p %p\n", inCrop.data.ptr, batchPtr);
-    printf("outCrop: %p %p\n", outCrop.data.ptr, inOutData + (offset * (outX/2+1) * outY));
-    
-    if (batchSize != inFFT.data.info.GetSize().n) {
+    auto outTmp = outFull.Subset(offset, batch);
+    outTmp.ptr = inOutData + (outTmp.info.GetSize().single * offset * 2);
+    auto outCrop = fourier_processing::AFP::OutputData(std::move(outTmp));
+    // printf("inFFT: %p %p\n", inFFT.data.ptr, inOutData + (offset * inX *
+    // inY)); printf("outFFT: %p %p\n", outFFT.data.ptr, batchPtr);
+    // printf("inCrop: %p %p\n", inCrop.data.ptr, batchPtr);
+    // printf("outCrop: %p %p\n", outCrop.data.ptr,
+    //        inOutData + (offset * (outX / 2 + 1) * outY));
+
+    if (batchSize != batch) {
       std::cout << "Calling cleanup" << std::endl;
       fftTransformer.Cleanup();
       cropTransformer.Cleanup();
@@ -99,7 +118,25 @@ void performFFT(T *inOutData, int noOfImgs, int inX, int inY, int batchSize,
       doInit = false;
     }
     std::cout << "Calling execute" << std::endl;
+    // cudaMemset(outFFT.data.ptr, 0, pdBatch.bytes);
     assert(fftTransformer.Execute(outFFT, inFFT));
+
+    // auto &s = outFFT.data.info.GetSize();
+    // auto *tmp = new std::complex<float>[s.total];
+    // printf("%lu %lu %lu %lu -> %lu %lu\n", s.x, s.y, s.z, s.n, s.total,
+    //        outFFT.data.dataInfo.bytes);
+    // cudaMemcpy(tmp, outFFT.data.ptr, outFFT.data.dataInfo.bytes * 2,
+    //            cudaMemcpyDeviceToHost);
+    // Image<float> img(s.x, s.y, s.z, s.n);
+    // for (size_t i = 0; i < s.total; ++i) {
+    //   img.data.data[i] = tmp[i].real();
+    // }
+    // img.write("fft_new_" + std::to_string(offset) + ".mrc");
+    // delete[] tmp;
+    // gpuErrchk(cudaPeekAtLastError());
+
+    // cudaMemset(inFFT.data.ptr, 0, inFFT.data.dataInfo.bytes);
+
     assert(cropTransformer.Execute(outCrop, inCrop));
     std::cout << "iteration done" << std::endl;
   }
@@ -126,21 +163,24 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
   auto cropSettings = fourier_processing::Settings(
       fourier_transformation::Locality::kOutOfPlace);
   auto ldSpatial = FourierDescriptor(inSize, inSize);
-  auto pdSpatial = PhysicalDescriptor(ldSpatial.GetPaddedSize().total *
-                                          Sizeof(DataType::kFloat),
-                                      DataType::kFloat);
+  auto pdSpatial =
+      PhysicalDescriptor(ldSpatial.GetPaddedSize().total *
+                             Sizeof(umpalumpa::data::DataType::kFloat),
+                         umpalumpa::data::DataType::kFloat);
 
   auto ldFrequency = FourierDescriptor(
       inSize, inSize, FourierDescriptor::FourierSpaceDescriptor());
-  auto frequencySizeInBytes =
-      ldFrequency.GetPaddedSize().total * Sizeof(DataType::kFloat) * 2;
-  auto pdFrequency = PhysicalDescriptor(frequencySizeInBytes, DataType::kFloat);
+  auto frequencySizeInBytes = ldFrequency.GetPaddedSize().total *
+                              Sizeof(umpalumpa::data::DataType::kFloat) * 2;
+  auto pdFrequency = PhysicalDescriptor(frequencySizeInBytes,
+                                        umpalumpa::data::DataType::kFloat);
 
   auto ldOut = FourierDescriptor(outSize, outSize,
                                  FourierDescriptor::FourierSpaceDescriptor());
-  auto outSizeInBytes =
-      ldOut.GetPaddedSize().total * Sizeof(DataType::kFloat) * 2;
-  auto pdOut = PhysicalDescriptor(outSizeInBytes, DataType::kFloat);
+  auto outSizeInBytes = ldOut.GetPaddedSize().total *
+                        Sizeof(umpalumpa::data::DataType::kFloat) * 2;
+  auto pdOut =
+      PhysicalDescriptor(outSizeInBytes, umpalumpa::data::DataType::kFloat);
 
   auto inFullP = Payload(inOutData, ldSpatial, pdSpatial, "Input data (full)");
   auto outFFTFullP =
@@ -149,9 +189,10 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
 
   auto ldFilter =
       LogicalDescriptor(outSize.CopyFor(1), outSize.CopyFor(1), "Filter");
-  auto pdFilter = PhysicalDescriptor(ldFilter.GetPaddedSize().total *
-                                         Sizeof(DataType::kFloat),
-                                     DataType::kFloat);
+  auto pdFilter =
+      PhysicalDescriptor(ldFilter.GetPaddedSize().total *
+                             Sizeof(umpalumpa::data::DataType::kFloat),
+                         umpalumpa::data::DataType::kFloat);
   auto filterP = Payload(filter, ldFilter, pdFilter, "Filter");
 
   void *dataFreq = nullptr;

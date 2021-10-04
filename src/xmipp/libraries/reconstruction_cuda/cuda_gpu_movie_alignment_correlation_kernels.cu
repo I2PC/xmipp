@@ -53,11 +53,11 @@ void scaleFFT2DKernel(const T* __restrict__ in, T* __restrict__ out,
     int idy = blockIdx.y*blockDim.y + threadIdx.y;
 
 
-    if (idx ==0 && idy == 0) {
-        printf("inSize: %lu %lu %lu %d\noutSize: %lu %lu %lu %d\n", 
-        inX, inY, 1l, noOfImages, outX, outY, 1l, noOfImages);
-        printf("normFactor: %f\n", normFactor);
-      }
+    // if (idx ==0 && idy == 0) {
+    //     printf("inSize: %lu %lu %lu %d\noutSize: %lu %lu %lu %d\n", 
+    //     inX, inY, 1l, noOfImages, outX, outY, 1l, noOfImages);
+    //     printf("normFactor: %f\n", normFactor);
+    //   }
 
     if (idx >= outX || idy >= outY ) return;
     size_t fIndex = idy*outX + idx; // index within single image

@@ -28,6 +28,7 @@
 #include "cuda_gpu_movie_alignment_correlation.h"
 #include "reconstruction_cuda/cuda_basic_math.h"
 #include "cuda_gpu_movie_alignment_correlation_kernels.cu"
+#include "core/xmipp_image.h"
 
 
 void *Allocate(size_t bytes) {
@@ -78,6 +79,22 @@ void performFFTAndScale(T* inOutData, int noOfImgs, int inX, int inY,
         }
         // perform FFT (out of place) and scale
         imagesGPU.fft(resultingFFT, handle);
+
+
+
+        // int imgToProcess = std::min(inBatch, noOfImgs - static_cast<int>(counter));
+        // Image<float> img((inX / 2 + 1), inY, 1, imgToProcess);
+        // auto *t = new std::complex<float>[img.data.nzyxdim];
+        // cudaMemcpy(t, resultingFFT.d_data, img.data.nzyxdim * sizeof(std::complex<float>), cudaMemcpyDeviceToHost);
+        // for (size_t i = 0; i < img.data.nzyxdim; ++i) {
+        //     img.data.data[i] = t[i].real();
+        // }
+        // img.write("fft_old_" + std::to_string(counter) + ".mrc");
+        // delete[] t;
+        // gpuErrchk( cudaPeekAtLastError() );
+
+
+
         dim3 dimBlock(BLOCK_DIM_X, BLOCK_DIM_X);
         dim3 dimGrid(ceil(outFFTX/(float)dimBlock.x), ceil(outY/(float)dimBlock.y));
         scaleFFT2D(&dimGrid, &dimBlock,

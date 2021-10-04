@@ -619,9 +619,9 @@ AlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::align(T *data,
     performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
             correlation.x_freq, correlation.dim.y(), filter);
 
-    auto wrapper = MultidimArray<float>(N, 1, correlation.dim.y(), correlation.x_freq, data);
-    auto tmp = Image<float>(wrapper);
-    tmp.write("croppedOrig.mrc");
+    // auto wrapper = MultidimArray<float>(N, 1, correlation.dim.y(), correlation.x_freq, data);
+    // auto tmp = Image<float>(wrapper);
+    // tmp.write("croppedOrig.mrc");
 
     auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
             in.dim.y() / (T) correlation.dim.y());

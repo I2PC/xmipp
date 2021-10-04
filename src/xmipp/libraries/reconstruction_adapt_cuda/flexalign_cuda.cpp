@@ -624,9 +624,9 @@ AlignmentResult<T> FlexAlignCuda<T>::align(T *data,
             correlation.dim.x(), // this used to be correlation.x_freq
             correlation.dim.y(), filter.data);
 
-    auto wrapper = MultidimArray<float>(N, 1, correlation.dim.y(), correlation.x_freq, data);
-    auto tmp = Image<float>(wrapper);
-    tmp.write("cropped.mrc");
+    // auto wrapper = MultidimArray<float>(2*N, 1, correlation.dim.y(), correlation.x_freq, data);
+    // auto tmp = Image<float>(wrapper);
+    // tmp.write("cropped.mrc");
 
     auto scale = std::make_pair(in.dim.x() / (T) correlation.dim.x(),
             in.dim.y() / (T) correlation.dim.y());
