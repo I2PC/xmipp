@@ -74,6 +74,7 @@ private:
 	size_t ySize;
 	size_t zSize;
     size_t nSize;
+    size_t biggestSize;
 
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
@@ -83,6 +84,9 @@ private:
 
     /** Vector for peaked coordinates components */
     std::vector<Point3D<double>> coordinates3D;
+
+    /** Map of clustered and filtered chains */
+    MultidimArray<int> chain2dMap;
 
     /** Vectors for calculated residuals components */
     std::vector<double> residualX;
@@ -95,6 +99,7 @@ private:
     size_t poissonLandmarkPercentile = 50; //*** update with more clever meassurement
     float minimumDistance; // Minimum distance to cosider that 2 landmarks belong to the same chain
     size_t numberOfElementsInChainThreshold = 6; // Minimum number of landmarks to keep a chain
+    double thrChainDistance = 10; // Maximum distance of a detected landmark to a chain
 
 public:
 
@@ -142,7 +147,15 @@ public:
      *
     */
     void detectLandmarkChains();
-    // void detectLandmarkChains(MultidimArray<int> projectedCoordinates);
+
+    /**
+     * Detect images from the tilt-series misaligned from the detected landmark chains.
+     *
+     * @param
+     * @return
+     *
+    */
+    void detectMisalignedTiltImages();
 
     /**
      * Calculate residual vectors from the 3D landmark and the obtained coordinates.
