@@ -145,7 +145,7 @@ std::vector<double> ProgApplyVolDeformSph::string2vector(std::string const &s) c
 void ProgApplyVolDeformSph::fillVectorTerms()
 {
     int idx = 0;
-	int vecSize = (int)((clnm.size())/3);
+	auto vecSize = (int)((clnm.size())/3);
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
@@ -153,7 +153,7 @@ void ProgApplyVolDeformSph::fillVectorTerms()
     for (int h=0; h<=basisParams[1]; h++)
     {
         int totalSPH = 2*h+1;
-        int aux = (int)(std::floor(totalSPH/2));
+        auto aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=basisParams[0]; l+=2)
         {
             for (int m=0; m<totalSPH; m++)

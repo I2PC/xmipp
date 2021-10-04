@@ -1525,8 +1525,8 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
 
 void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int max_l1)
 {
-    int numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
-    float aux_id = std::floor(idx-(idx/numR)*numR);
+    auto numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
+    double aux_id = std::floor(idx-(idx/numR)*numR);
     l1 = static_cast<int>(std::floor((1.0+std::sqrt(1.0+4.0*aux_id))/2.0) + std::floor((2.0+2.0*std::sqrt(aux_id))/2.0) - 2.0);
     n = static_cast<int>(std::ceil((4.0*aux_id - l1*(l1+2.0))/2.0));
     l2 = static_cast<int>(std::floor(std::sqrt(std::floor(idx/numR))));
@@ -1535,9 +1535,9 @@ void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int max_l1)
 
 int spherical_lnm2index(int l1, int n, int l2, int m, int max_l1)
 {
-    int numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
+    auto numR = static_cast<int>(std::floor((4+4*max_l1+std::pow(max_l1,2))/4));
     int id_SH = l2*(l2+1)+m;
-    int id_R = static_cast<int>(std::floor((2*n + l1*(l1 + 2))/4));
+    auto id_R = static_cast<int>(std::floor((2*n + l1*(l1 + 2))/4));
     int id_Z = id_SH*numR+id_R;
     return id_Z;
 }

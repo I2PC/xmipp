@@ -60,7 +60,7 @@ public:
     void readParams() override;
 
     /** Show parameters. */
-    void show() const;
+    void show() const override;
 
     /** Run. */
     void run() override;

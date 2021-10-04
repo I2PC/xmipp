@@ -366,7 +366,7 @@ void ProgVolDeformSph::run() {
     {
 		steps.clear();
     	steps.initZeros(totalSize);
-		minimizepos(L1,h,steps);
+		minimizepos(h,steps);
 
     	std::cout<<std::endl;
     	std::cout<<"-------------------------- Basis Degrees: ("<<L1<<","<<h<<") --------------------------"<<std::endl;
@@ -451,11 +451,11 @@ void ProgVolDeformSph::run() {
     	computeStrain();
 }
 
-void ProgVolDeformSph::minimizepos(int L1, int l2, Matrix1D<double> &steps)
+void ProgVolDeformSph::minimizepos(int l2, Matrix1D<double> &steps) const
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
-    int totalSize = (int)(steps.size()/3);
+    auto totalSize = (int)(steps.size()/3);
     for (int idx=0; idx<size; idx++)
     {
         VEC_ELEM(steps,idx) = 1;
@@ -490,7 +490,7 @@ void ProgVolDeformSph::fillVectorTerms(int l1, int l2)
     for (int h=0; h<=l2; h++)
     {
         int totalSPH = 2*h+1;
-        int aux = (int)(std::floor(totalSPH/2));
+        auto aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=l1; l+=2)
         {
             for (int m=0; m<totalSPH; m++)

@@ -182,7 +182,7 @@ public:
     void numCoefficients(int l1, int l2, int &nc) const;
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    void minimizepos(int l2, Matrix1D<double> &steps);
+    void minimizepos(int l2, Matrix1D<double> &steps) const;
 
     /// Zernike and SPH coefficients allocation
     void fillVectorTerms(int l1, int l2);

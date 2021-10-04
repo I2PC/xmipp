@@ -72,9 +72,9 @@ void ProgPdbSphDeform::run()
 		double gy=0.0; 
 		double gz=0.0;
 		RichAtom& atom_i=pdb.atomList[a];
-		int k = (int)(atom_i.z);
-		int i = (int)(atom_i.y);
-		int j = (int)(atom_i.x);
+		auto k = (int)(atom_i.z);
+		auto i = (int)(atom_i.y);
+		auto j = (int)(atom_i.x);
 		for (size_t idx=0; idx<idxY0; idx++)
 		{
 			double Rmax=basisParams[2];
@@ -136,7 +136,7 @@ std::vector<double> ProgPdbSphDeform::string2vector(std::string const &s) const
 void ProgPdbSphDeform::fillVectorTerms()
 {
     int idx = 0;
-	int vecSize = (int)(clnm.size()/3);
+	auto vecSize = (int)(clnm.size()/3);
 	vL1.initZeros(vecSize);
 	vN.initZeros(vecSize);
 	vL2.initZeros(vecSize);
@@ -144,7 +144,7 @@ void ProgPdbSphDeform::fillVectorTerms()
     for (int h=0; h<=basisParams[1]; h++)
     {
         int totalSPH = 2*h+1;
-        int aux = (int)(std::floor(totalSPH/2));
+        auto aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=basisParams[0]; l+=2)
         {
             for (int m=0; m<totalSPH; m++)

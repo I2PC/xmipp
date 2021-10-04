@@ -495,11 +495,11 @@ void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &nc) const
     }
 }
 
-void ProgAngularSphAlignment::minimizepos(int l2, Matrix1D<double> &steps)
+void ProgAngularSphAlignment::minimizepos(int l2, Matrix1D<double> &steps) const
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
-    int totalSize = (int)((steps.size()-8)/3);
+    auto totalSize = (int)((steps.size()-8)/3);
     for (int idx=0; idx<size; idx++) {
         VEC_ELEM(steps,idx) = 1.;
         VEC_ELEM(steps,idx+totalSize) = 1.;
@@ -516,7 +516,7 @@ void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2)
 	vM.initZeros(vecSize);
     for (int h=0; h<=l2; h++) {
         int totalSPH = 2*h+1;
-        int aux = (int)(std::floor(totalSPH/2));
+        auto aux = (int)(std::floor(totalSPH/2));
         for (int l=h; l<=l1; l+=2) {
             for (int m=0; m<totalSPH; m++) {
                 VEC_ELEM(vL1,idx) = l;
@@ -611,12 +611,12 @@ void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const Multidi
 							}
 						}
 					}
-					int k_mask = (int)(ZZ(pos)+gz);
-					int i_mask = (int)(YY(pos)+gy);
-					int j_mask = (int)(XX(pos)+gx);
+					auto k_mask = (int)(ZZ(pos)+gz);
+					auto i_mask = (int)(YY(pos)+gy);
+					auto j_mask = (int)(XX(pos)+gx);
 					int voxelI_mask = 0;
 					if (!V_mask.outside(k_mask, i_mask, j_mask)) {
-						voxelI_mask = A3D_ELEM(V_mask, k_mask, i_mask, j_mask);;
+						voxelI_mask = A3D_ELEM(V_mask, k_mask, i_mask, j_mask);
 					}
 					if (voxelI_mask == 1) {
 						double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);

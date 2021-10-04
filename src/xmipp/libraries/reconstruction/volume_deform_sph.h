@@ -116,7 +116,7 @@ public:
     void run();
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    void minimizepos(int L1, int l2, Matrix1D<double> &steps);
+    void minimizepos(int l2, Matrix1D<double> &steps) const;
 
     /// Length of coefficients vector
     void numCoefficients(int l1, int l2, int &nc) const;

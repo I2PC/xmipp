@@ -251,7 +251,7 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
     {
         Image<double> mask;
         mask() = I;
-        double th = EntropySegmentation(mask());
+        static_cast<void>(EntropySegmentation(mask()));
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask())
         {
             if (DIRECT_MULTIDIM_ELEM(mask(), n) == 0)
@@ -267,10 +267,12 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
 
     std::sort(voxel_vector.begin(), voxel_vector.end());
 
-	double medianBg, p99, ip99;
+	double medianBg;
+    double p99;
+    double ip99;
     int idx;
 	I.computeMedian_within_binary_mask(bg_mask, medianBg);
-	idx = voxel_vector.size() * 0.99;
+	idx = (int)(voxel_vector.size() * 0.99);
     p99 = voxel_vector[idx];
 	ip99 = 1 / p99;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
