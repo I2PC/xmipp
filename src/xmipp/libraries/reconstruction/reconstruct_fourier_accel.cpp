@@ -27,6 +27,7 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
+#include <limits>
 #include "reconstruct_fourier_accel.h"
 #include "core/bilib/kernel.h"
 #include "core/symmetries.h"
