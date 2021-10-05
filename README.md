@@ -85,7 +85,7 @@ Please refer to `./xmipp --help` for additional info on the compilation process 
 
 # Linking standalone version to Scipion
 
-Once the Standalone version has been installed (se previous section), the user can link such installation to Scipion to have the posibility of use Xmipp inside and outside Scipion. Linking with Scipion requires to install the next repository
+Once the Standalone version has been installed (se previous section), the user can link such installation to Scipion to have the posibility of use Xmipp inside and outside Scipion. Linking with Scipion requires to install the [next repository](https://github.com/I2PC/scipion-em-xmipp#)
 
 `git clone https://github.com/I2PC/scipion-em-xmipp`
 
