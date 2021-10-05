@@ -24,7 +24,7 @@ Have a look at the Supported OS and dependencies below, before you install Xmipp
 ## Supported OS
 We have tested Xmipp compilation on the following operating systems:
 - [Ubuntu 16.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-16.04)
-- Ubuntu 18.04
+- [Ubuntu 18.04](https://github.com/I2PC/xmipp/wiki/Installing-Xmipp-on-Ubuntu-18.04)
 - Ubuntu 20.04
 - Centos 7
 
