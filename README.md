@@ -70,7 +70,7 @@ Follow the official [installation guide](https://scipion-em.github.io/docs/docs/
 
 
 # Standalone installation
-Standalone installation of Xmipp is recommended for researchers and developers. 
+Standalone installation of Xmipp is recommended for researchers and developers. This installation allows you to use Xmipp without Scipion. However, in the next section it is explained how to make link it with Scipion.
 Start by cloning the repository and then navigate to the right directory.
 
 `git clone https://github.com/I2PC/xmipp.git && cd xmipp`
