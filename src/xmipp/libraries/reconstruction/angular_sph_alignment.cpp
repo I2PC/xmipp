@@ -40,7 +40,7 @@ ProgAngularSphAlignment::ProgAngularSphAlignment()
     showOptimization = false;
 }
 
-ProgAngularSphAlignment::~ProgAngularSphAlignment(){}
+ProgAngularSphAlignment::~ProgAngularSphAlignment() = default;
 
 // Read arguments ==========================================================
 void ProgAngularSphAlignment::readParams()
@@ -126,7 +126,7 @@ void ProgAngularSphAlignment::defineParams()
 void ProgAngularSphAlignment::createWorkFiles() {
 	if (resume && fnDone.exists()) {
 		MetaDataDb done(fnDone);
-		auto *candidates = getInputMd();
+		auto *candidates = dynamic_cast<MetaDataDb*>(getInputMd());
 		MetaDataDb toDo(*candidates);
 		toDo.subtraction(done, MDL_IMAGE);
 		*candidates = toDo;
@@ -320,7 +320,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 {
     Matrix1D<double> steps;
     int totalSize = 3*vecSize+8;
-	p.resize(totalSize);
+	p.initZeros(totalSize);
 	clnm.initZeros(totalSize);
 
 	rowOut=rowIn;
