@@ -94,7 +94,7 @@ This repository contains the files that Scipion needs to execute Xmipp programs.
 where `scipion-em-xmipp` is the folder of the repository, it means `src/scipion-em-xmipp`.
 This command should work in most of the cases. However, if you do this and Scipion does not find Xmipp, you can link Scipion and Xmipp manually by editting the config file of Scipion. This file is located in `scipion/config/scipion.conf`, and it should looks like
 
-`
+```
 [PYWORKFLOW]
 CONDA_ACTIVATION_CMD = eval "$(/home/username/opt/miniconda3/bin/conda shell.bash hook)"
 SCIPION_FONT_SIZE = 6
@@ -103,8 +103,10 @@ SCIPION_FONT_SIZE = 6
 EM_ROOT = software/em
 MAXIT_HOME = %(EM_ROOT)s/maxit-10.1
 XMIPP_HOME = /home/username/xmipp-bundle/build
-`
-The link between Scipion and Xmipp consist in the last line. `XMIPP_HOME = /home/username/xmipp-bundle/build` if this line does not exist, it must be added.
+```
+
+The link between Scipion and Xmipp consist in the last line.
+```XMIPP_HOME = /home/username/xmipp-bundle/build```. If this line does not exist, it must be added.
 
 # Using Xmipp
 Xmipp is installed in the build directory located in the same directory where the xmipp script is located. To set all necessary environment variables and paths to all Xmipp programs, you can simply 
