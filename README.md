@@ -87,12 +87,12 @@ Please refer to `./xmipp --help` for additional info on the compilation process 
 
 Once the Standalone version has been installed (se previous section), the user can link such installation to Scipion to have the posibility of use Xmipp inside and outside Scipion. Linking with Scipion requires to the repository of `scipion-em-xmipp` which can be found in the folder `src/scipion-em-xmipp`
 
-This repository contains the files that Scipion needs to execute Xmipp programs. However, it remains to link the Xmipp binaries with Scipion. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#)), then just launch the next command
+This repository contains the files that Scipion needs to execute Xmipp programs. However, it remains to link the Xmipp binaries with Scipion. To do that we need Scipion installed ([see Scipion installation web page](https://scipion-em.github.io/docs/docs/scipion-modes/how-to-install.html#)). With Scipion installed just just launch the next command to link the binaries
 
 `scipion3 installp -p ~/scipion-em-xmipp --devel`
 
 where `scipion-em-xmipp` is the folder of the repository, it means `src/scipion-em-xmipp`.
-To link Scipion with the binaries, the config file of Scipion must be edited. This file is located in `scipion/config/scipion.conf`, and it should looks like
+This command should work in most of the cases. However, if you do this and Scipion does not find Xmipp, you can link Scipion and Xmipp manually by editting the config file of Scipion. This file is located in `scipion/config/scipion.conf`, and it should looks like
 
 `
 [PYWORKFLOW]
