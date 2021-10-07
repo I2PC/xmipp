@@ -43,12 +43,15 @@
 #include <data/morphology.h>
 #include "core/xmipp_image_generic.h"
 #include <data/point3D.h>
+#include <data/point2D.h>
 
 #define VERBOSE_OUTPUT
 #define DEBUG
 // #define DEBUG_DIM
 // #define DEBUG_FILTERLABEL
-#define DEBUG_CHAINS
+// #define DEBUG_POISSON
+// #define DEBUG_CHAINS
+#define DEBUG_MISALI
 #define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
 
@@ -164,7 +167,7 @@ public:
      * @return
      *
     */
-    void calculateResidualVectors(MetaDataVec inputCoordMd);
+    // void calculateResidualVectors(MetaDataVec inputCoordMd);
 
 
     // --------------------------- I/O functions ----------------------------
@@ -216,7 +219,7 @@ public:
      * @return
      *
     */
-    std::vector<Matrix1D<double>> getCoordinatesInSlice(int slice);
+    std::vector<Point2D<double>> getCoordinatesInSlice(size_t slice);
 
 
     /**
