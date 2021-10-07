@@ -149,7 +149,7 @@
 
  void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, MultidimArray< std::complex<double> > &FI) {
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(phase)
- 	DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
+ 		DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
  }
 
  Image<double> ProgSubtractProjection::createMask(const FileName &fnM, Image<double> &m) {
@@ -184,7 +184,7 @@
  	M = sortedI(p99);
  }
 
- void ProgSubtractProjection::applyCTF(const MDRowVec &r) {
+ void ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		hasCTF=true;
 		ctf.readFromMdRow(r);
@@ -195,8 +195,8 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-		FilterCTF.generateMask(P());
-		FilterCTF.applyMaskSpace(P());
+		FilterCTF.generateMask(proj());
+		FilterCTF.applyMaskSpace(proj());
 		P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
 	}
  }
@@ -210,7 +210,7 @@
 	transformerRad.completeFourierTransform(imgRad(),IFourierRad);
 	CenterFFT(IFourierRad, true);
 	FFT_magnitude(IFourierRad,IFourierMagRad);
-	// Compute IradAvg profile (1D)
+	// Compute radial average profile (1D)
 	IFourierMagRad.setXmippOrigin();
 	Matrix1D<int> center(2);
 	center.initZeros();
@@ -244,6 +244,15 @@
 	POCSFourierPhaseProj(PFourierPhase,PFourier);
 	transformer.inverseFourierTransform();
 	P.write(formatString("%s/Pphase.mrc", fnProj.c_str()));
+ }
+
+ Projection ProgSubtractProjection::thresholdMask(Projection &m) const{
+ 	double maxMaskVol;
+ 	double minMaskVol;
+ 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
+		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>maxMaskVol/20)) ? 1:0;
+ 	return m;
  }
 
  Image<double> ProgSubtractProjection::binarizeMask(Projection &m) const{
@@ -322,7 +331,7 @@
 		POCSmaskProj(PmaskVolI(), I());
 		I.write(formatString("%s/ImaskVol.mrc", fnProj.c_str()));
 		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
-		applyCTF(row);
+		applyCTF(row, P);
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
 		radial_meanP = computeRadialAvg(P, radial_meanP);
@@ -350,6 +359,10 @@
 			Filter2.applyMaskSpace(IFiltered());
     	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	Pmask.write(formatString("%s/maskFocus.mrc", fnProj.c_str()));
+		applyCTF(row, Pmask);
+    	Pmask.write(formatString("%s/maskFocusCTF.mrc", fnProj.c_str()));
+		Pmask = thresholdMask(Pmask);
+    	Pmask.write(formatString("%s/maskFocusTh.mrc", fnProj.c_str()));
     	PmaskFilt = binarizeMask(Pmask);
     	PmaskFilt = normMask(PmaskFilt);
     	PmaskFilt.write(formatString("%s/maskFocusBin.mrc", fnProj.c_str()));
