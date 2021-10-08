@@ -156,16 +156,27 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
     MultidimArray<double> labelCoordiantesMap;
 
 	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
-	
+
 	// *** renombrar k por z
 	for(size_t k = 0; k < nSize; ++k)
 	{
 		std::vector<int> sliceVector;
+
+		// search in the cosine streched region common for all the images
+		int xSizeCS = (int)xSize * abs(cos(tiltAngles[k] * PI/180.0));
+		int xCSmin = (int)(xSize-xSizeCS)/2;
+		int xCSmax = (int)(xSize+xSizeCS)/2;
+
+		std::cout << tiltAngles[k] << "º" << std::endl;
+		std::cout << xSizeCS << std::endl;
+		std::cout << xCSmin << std::endl;
+		std::cout << xCSmax << std::endl;
 		
 		// Calculate threshold value for each image of the series
         for(size_t i = 0; i < ySize; ++i)
         {
-            for(size_t j = 0; j < xSize; ++j)
+			// search in the cosine streched region common for all the images
+            for(size_t j = xCSmin; j < xCSmax; ++j)
             {
                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
             }
@@ -203,7 +214,8 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		for(size_t i = 0; i < ySize; i++)
 		{
-			for(size_t j = 0; j < xSize; j++)
+			// search in the cosine streched region common for all the images
+            for(size_t j = xCSmin; j < xCSmax; ++j)
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
 
@@ -225,10 +237,11 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		// The value 8 is the neighbourhood
 		int colour = labelImage2D(binaryCoordinatesMapSlice, labelCoordiantesMapSlice, 8);
 
-        for (size_t i = 0; i < ySize; ++i)
-        {
-            for (size_t j = 0; j < xSize; ++j)
-            {
+		for(size_t i = 0; i < ySize; i++)
+		{
+			// search in the cosine streched region common for all the images
+            for(size_t j = xCSmin; j < xCSmax; ++j)
+			{
 				double value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 				
 				if (value > 0)
@@ -245,10 +258,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		std::vector<std::vector<int>> coordinatesPerLabelX (colour);
 		std::vector<std::vector<int>> coordinatesPerLabelY (colour);
 
-
-		for(size_t j = 0; j < xSize; j++)
+		for(size_t i = 0; i < ySize; i++)
 		{
-			for(size_t i = 0; i < ySize; i++)
+			// search in the cosine streched region common for all the images
+            for(size_t j = xCSmin; j < xCSmax; ++j)
 			{
 				int value = DIRECT_A2D_ELEM(labelCoordiantesMapSlice, i, j);
 
