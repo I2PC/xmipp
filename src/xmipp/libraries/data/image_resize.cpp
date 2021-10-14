@@ -56,7 +56,7 @@ void ProgImageResize::defineParams()
     //params
     addParamsLine("--factor <n=0.5>                 : Resize a factor of dimensions, 0.5 halves and 2 doubles (uses splines or linear interpolation).");
     addParamsLine(" alias -n;");
-    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions (uses splines or linear interpolation)");
+    addParamsLine("or --dim <x> <y=x> <z=x>         : New x,y and z dimensions (uses splines / linear interpolation or nearest neighbour method).");
     addParamsLine(" alias -d;");
     addParamsLine("or --fourier <x> <y=x> <z=x> <thr=1>   : Use padding/windowing in Fourier Space to resize. thr=number of threads");
     addParamsLine(" alias -f;");
@@ -66,6 +66,7 @@ void ProgImageResize::defineParams()
     addParamsLine("      where <interpolation_type>");
     addParamsLine("        spline          : Use spline interpolation");
     addParamsLine("        linear          : Use bilinear/trilinear interpolation");
+    addParamsLine("        nearest         : Use nearest neighbour to set new value");
 }
 
 void ProgImageResize::readParams()
@@ -77,6 +78,8 @@ void ProgImageResize::readParams()
         splineDegree = BSPLINE3;
     else if (degree == "linear")
         splineDegree = LINEAR;
+    else if (degree == "nearest")
+        splineDegree = NEAREST;
 
     scale_type = RESIZE_NONE;
 }

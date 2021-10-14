@@ -24,26 +24,33 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include "angular_sph_alignment.h"
+#include "angular_sph_alignment_gpu.h"
 #include "core/transformations.h"
 #include "core/xmipp_image_extension.h"
 #include "core/xmipp_image_generic.h"
 #include "data/projection.h"
 #include "data/mask.h"
+#include "reconstruction_cuda/gpu.h"
+
+// TODO: Refactor this code to reuse the CPU version when possible
 
 // Empty constructor =======================================================
-ProgAngularSphAlignment::ProgAngularSphAlignment()
+ProgAngularSphAlignmentGpu::ProgAngularSphAlignmentGpu()
 {
 	resume = false;
     produces_a_metadata = true;
     each_image_produces_an_output = false;
+    ctfImage = NULL;
     showOptimization = false;
 }
 
-ProgAngularSphAlignment::~ProgAngularSphAlignment() = default;
+ProgAngularSphAlignmentGpu::~ProgAngularSphAlignmentGpu()
+{
+	delete ctfImage;
+}
 
 // Read arguments ==========================================================
-void ProgAngularSphAlignment::readParams()
+void ProgAngularSphAlignmentGpu::readParams()
 {
 	XmippMetadataProgram::readParams();
 	fnVolR = getParam("--ref");
@@ -63,11 +70,12 @@ void ProgAngularSphAlignment::readParams()
 	L2 = getIntParam("--l2");
     lambda = getDoubleParam("--regularization");
 	resume = checkParam("--resume");
-	fnDone = fnOutDir + "/sphDone.xmd";
+    useFakeKernel = checkParam("--useCPU");
+	device = getIntParam("--device");
 }
 
 // Show ====================================================================
-void ProgAngularSphAlignment::show()
+void ProgAngularSphAlignmentGpu::show()
 {
     if (!verbose)
         return;
@@ -89,11 +97,12 @@ void ProgAngularSphAlignment::show()
 	<< "Optimize defocus;    " << optimizeDefocus    << std::endl
     << "Phase flipped:       " << phaseFlipped       << std::endl
     << "Regularization:      " << lambda             << std::endl
+	<< "Device:              " << device             << std::endl
     ;
 }
 
 // usage ===================================================================
-void ProgAngularSphAlignment::defineParams()
+void ProgAngularSphAlignmentGpu::defineParams()
 {
     addUsageLine("Make a continuous angular assignment with deformations");
 	defaultComments["-i"].clear();
@@ -118,42 +127,51 @@ void ProgAngularSphAlignment::defineParams()
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
 	addParamsLine("  [--resume]                   : Resume processing");
+	addParamsLine("  [--useCPU]                   : Uses fake kernel (CPU) instead of GPU kernel");
+	addParamsLine("  [--device <dev=0>]           : GPU device to use. 0th by default");
     addExampleLine("A typical use is:",false);
-    addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
+    addExampleLine("xmipp_cuda_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
 }
 
 // Produce side information ================================================
-void ProgAngularSphAlignment::createWorkFiles() {
-	if (resume && fnDone.exists()) {
-		MetaDataDb done(fnDone);
-		auto *candidates = dynamic_cast<MetaDataDb*>(getInputMd());
-		MetaDataDb toDo(*candidates);
-		toDo.subtraction(done, MDL_IMAGE);
-		*candidates = toDo;
+void ProgAngularSphAlignmentGpu::createWorkFiles() {
+	auto gpu = GPU(device);
+	gpu.set();
+	// ? Could it be MetaDataVec (not MetaDataDb), dynamic_cast and no casting when equal pointer?
+	MetaDataVec *pmdIn = dynamic_cast<MetaDataVec*>(getInputMd());
+	MetaDataDb mdTodo, mdDone;
+	mdTodo =*pmdIn;
+	FileName fn(fnOutDir+"/sphDone.xmd");
+	if (fn.exists() && resume) {
+		mdDone.read(fn);
+		mdTodo.subtraction(mdDone, MDL_IMAGE);
+		mdTodo.write(fnOutDir + "/sphTodo.xmd");
+		mdTodo.read(fnOutDir + "/sphTodo.xmd");
 	} else //if not exists create metadata only with headers
 	{
-		MetaDataVec done;
-		done.addLabel(MDL_IMAGE);
-		done.addLabel(MDL_ENABLED);
-		done.addLabel(MDL_ANGLE_ROT);
-		done.addLabel(MDL_ANGLE_TILT);
-		done.addLabel(MDL_ANGLE_PSI);
-		done.addLabel(MDL_SHIFT_X);
-		done.addLabel(MDL_SHIFT_Y);
-		done.addLabel(MDL_FLIP);
-		done.addLabel(MDL_SPH_DEFORMATION);
-		done.addLabel(MDL_SPH_COEFFICIENTS);
-		done.addLabel(MDL_COST);
-		done.write(fnDone);
+		mdDone.addLabel(MDL_IMAGE);
+		mdDone.addLabel(MDL_ENABLED);
+		mdDone.addLabel(MDL_ANGLE_ROT);
+		mdDone.addLabel(MDL_ANGLE_TILT);
+		mdDone.addLabel(MDL_ANGLE_PSI);
+		mdDone.addLabel(MDL_SHIFT_X);
+		mdDone.addLabel(MDL_SHIFT_Y);
+		mdDone.addLabel(MDL_FLIP);
+		mdDone.addLabel(MDL_SPH_DEFORMATION);
+		mdDone.addLabel(MDL_SPH_COEFFICIENTS);
+		mdDone.addLabel(MDL_COST);
+		mdDone.write(fn);
 	}
+	*pmdIn = mdTodo;
 }
 
-void ProgAngularSphAlignment::preProcess()
+void ProgAngularSphAlignmentGpu::preProcess()
 {
     V.read(fnVolR);
     V().setXmippOrigin();
     Xdim=XSIZE(V());
     Vdeformed().initZeros(V());
+    // sumV=V().sum();
 
     Ifilteredp().initZeros(Xdim,Xdim);
     Ifilteredp().setXmippOrigin();
@@ -208,19 +226,23 @@ void ProgAngularSphAlignment::preProcess()
 
 	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
-    fillVectorTerms(L1,L2);
+    fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
 
     createWorkFiles();
+
+    // GPU preparation
+    angularAlignGpu.associateWith(this);
 }
 
-void ProgAngularSphAlignment::finishProcessing() {
+void ProgAngularSphAlignmentGpu::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename(fnDone.c_str(), fn_out.c_str());
+	rename((fnOutDir+"/sphDone.xmd").c_str(), fn_out.c_str());
 }
 
 // #define DEBUG
-double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-		double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
+double ProgAngularSphAlignmentGpu::tranformImageSph(
+        double *pclnm, double rot, double tilt, double psi, Matrix2D<double> &A,
+        double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle)
 {
 	const MultidimArray<double> &mV=V();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
@@ -230,8 +252,19 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 	P().initZeros((int)XSIZE(I()),(int)XSIZE(I()));
     P().setXmippOrigin();
 	deformVol(P(), mV, deformation, rot, tilt, psi);
-	if (hasCTF) {
-		applyCTFImage(deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
+	if (hasCTF)
+    {
+    	double defocusU=old_defocusU+deltaDefocusU;
+    	double defocusV=old_defocusV+deltaDefocusV;
+    	double angle=old_defocusAngle+deltaDefocusAngle;
+    	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
+    		updateCTFImage(defocusU,defocusV,angle);
+		}
+		FilterCTF.ctf = ctf;
+		FilterCTF.generateMask(P());
+		if (phaseFlipped)
+			FilterCTF.correctPhase();
+		FilterCTF.applyMaskSpace(P());
 	}
     double cost=0;
 	if (old_flip)
@@ -243,7 +276,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 
 	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
 	filter.applyMaskSpace(P());
-	const MultidimArray<double> mP=P();
+	const MultidimArray<double> &mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
 	MultidimArray<double> &mIfilteredp=Ifilteredp();
 	double corr=correlationIndex(mIfilteredp,mP,&mMask2D);
@@ -273,6 +306,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		save.write("PPPfilteredp.xmp");
 		save()=Ifiltered();
 		save.write("PPPfiltered.xmp");
+		// Vdeformed.write("PPPVdeformed.vol");
 		std::cout << "Cost=" << cost << " corr=" << corr << std::endl;
 		std::cout << "Deformation=" << totalDeformation << std::endl;
 		std::cout << "Press any key" << std::endl;
@@ -288,7 +322,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 
 double continuousSphCost(double *x, void *_prm)
 {
-	ProgAngularSphAlignment *prm=(ProgAngularSphAlignment *)_prm;
+	ProgAngularSphAlignmentGpu *prm=(ProgAngularSphAlignmentGpu *)_prm;
     int idx = 3*(prm->vecSize);
 	double deltax=x[idx+1];
 	double deltay=x[idx+2];
@@ -311,12 +345,12 @@ double continuousSphCost(double *x, void *_prm)
 	MAT_ELEM(prm->A,1,1)=1;
 
 	return prm->tranformImageSph(x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
-			deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
+			prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
 }
 
 // Predict =================================================================
 //#define DEBUG
-void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
+void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
 {
     Matrix1D<double> steps;
     int totalSize = 3*vecSize+8;
@@ -326,6 +360,11 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	rowOut=rowIn;
 
 	flagEnabled=1;
+
+	// Read input image and initial parameters
+//  ApplyGeoParams geoParams;
+//	geoParams.only_apply_shifts=false;
+//	geoParams.wrap=DONT_WRAP;
 
 	rowIn.getValue(MDL_ANGLE_ROT,old_rot);
 	rowIn.getValue(MDL_ANGLE_TILT,old_tilt);
@@ -337,7 +376,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 	else
 		old_flip = false;
 	
-	if (rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL))
+	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
 	{
 		hasCTF=true;
 		ctf.readFromMdRow(rowIn);
@@ -357,6 +396,9 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 
 	Ifiltered()=I();
 	filter.applyMaskSpace(Ifiltered());
+
+    // GPU preparation
+    angularAlignGpu.setupConstantParameters();
 
 	for (int h=1;h<=L2;h++)
 	{
@@ -380,7 +422,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 				steps(totalSize-3)=steps(totalSize-2)=steps(totalSize-1)=1.;
 			if (optimizeDeformation)
 			{
-		        minimizepos(h,steps);
+		        minimizepos(L1,h,steps);
 			}
 			steps_cp = steps;
 			powellOptimizer(p, 1, totalSize, &continuousSphCost, this, 0.01, cost, iter, steps, verbose>=2);
@@ -447,7 +489,7 @@ void ProgAngularSphAlignment::processImage(const FileName &fnImg, const FileName
 }
 #undef DEBUG
 
-void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
+void ProgAngularSphAlignmentGpu::writeImageParameters(const FileName &fnImg) {
 	MetaDataVec md;
     int pos = 3*vecSize;
 	size_t objId = md.addObject();
@@ -471,35 +513,31 @@ void ProgAngularSphAlignment::writeImageParameters(const FileName &fnImg) {
 	}
 	md.setValue(MDL_SPH_COEFFICIENTS, vectortemp, objId);
 	md.setValue(MDL_COST,        correlation, objId);
-	md.append(fnDone);
+	md.append(fnOutDir+"/sphDone.xmd");
 }
 
-void ProgAngularSphAlignment::numCoefficients(int l1, int l2, int &nc) const
-{	
-	// l1 -> Degree Zernike
-	// l2 & h --> Degree SPH
+void ProgAngularSphAlignmentGpu::numCoefficients(int l1, int l2, int &vecSize)
+{
     for (int h=0; h<=l2; h++)
     {
-		// For the current SPH degree (h), determine the number of SPH components/equations
         int numSPH = 2*h+1;
-		// Finf the total number of radial components with even degree for a given l1 and h
         int count=l1-h+1;
         int numEven=(count>>1)+(count&1 && !(h&1));
-		// Total number of components is the number of SPH as many times as Zernike components
         if (h%2 == 0) {
-            nc += numSPH*numEven;
+            vecSize += numSPH*numEven;
 		}
         else {
-        	nc += numSPH*(count-numEven);
+        	vecSize += numSPH*(l1-h+1-numEven);
 		}
     }
 }
 
-void ProgAngularSphAlignment::minimizepos(int l2, Matrix1D<double> &steps) const
+void ProgAngularSphAlignmentGpu::minimizepos(int L1, int l2, Matrix1D<double> &steps)
 {
     int size = 0;
 	numCoefficients(L1,l2,size);
-    auto totalSize = (int)((steps.size()-8)/3);
+    onesInSteps = size;
+    int totalSize = (steps.size()-8)/3;
     for (int idx=0; idx<size; idx++) {
         VEC_ELEM(steps,idx) = 1.;
         VEC_ELEM(steps,idx+totalSize) = 1.;
@@ -507,7 +545,8 @@ void ProgAngularSphAlignment::minimizepos(int l2, Matrix1D<double> &steps) const
     }	
 }
 
-void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2)
+void ProgAngularSphAlignmentGpu::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+									          Matrix1D<int> &vL2, Matrix1D<int> &vM)
 {
     int idx = 0;
 	vL1.initZeros(vecSize);
@@ -516,7 +555,7 @@ void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2)
 	vM.initZeros(vecSize);
     for (int h=0; h<=l2; h++) {
         int totalSPH = 2*h+1;
-        auto aux = (int)(std::floor(totalSPH/2));
+        int aux = std::floor(totalSPH/2);
         for (int l=h; l<=l1; l+=2) {
             for (int m=0; m<totalSPH; m++) {
                 VEC_ELEM(vL1,idx) = l;
@@ -529,22 +568,7 @@ void ProgAngularSphAlignment::fillVectorTerms(int l1, int l2)
     }
 }
 
-void ProgAngularSphAlignment::applyCTFImage(double const &deltaDefocusU, double const &deltaDefocusV, 
-											double const &deltaDefocusAngle) {
-	double defocusU=old_defocusU+deltaDefocusU;
-	double defocusV=old_defocusV+deltaDefocusV;
-	double angle=old_defocusAngle+deltaDefocusAngle;
-	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
-		updateCTFImage(defocusU,defocusV,angle);
-	}
-	FilterCTF.ctf = ctf;
-	FilterCTF.generateMask(P());
-	if (phaseFlipped)
-		FilterCTF.correctPhase();
-	FilterCTF.applyMaskSpace(P());
-} 
-
-void ProgAngularSphAlignment::updateCTFImage(double defocusU, double defocusV, double angle)
+void ProgAngularSphAlignmentGpu::updateCTFImage(double defocusU, double defocusV, double angle)
 {
 	ctf.K=1; // get pure CTF with no envelope
 	currentDefocusU=ctf.DeltafU=defocusU;
@@ -553,84 +577,33 @@ void ProgAngularSphAlignment::updateCTFImage(double defocusU, double defocusV, d
 	ctf.produceSideInfo();
 }
 
-void ProgAngularSphAlignment::deformVol(MultidimArray<double> &mP, const MultidimArray<double> &mV, double &def,
-                                        double rot, double tilt, double psi)
+void ProgAngularSphAlignmentGpu::deformVol(
+        MultidimArray<double> &mP,
+        const MultidimArray<double> &mV,
+        double &def,
+        double rot,
+        double tilt,
+        double psi)
 {
 	size_t idxY0=(VEC_XSIZE(clnm)-8)/3;
-	double Ncount=0.0;
-    double modg=0.0;
-	double diff2=0.0;
 
-	def=0.0;
-	size_t idxZ0=2*idxY0;
-	sumVd=0.0;
-	double RmaxF=RmaxDef;
-	double RmaxF2=RmaxF*RmaxF;
-	double iRmaxF=1.0/RmaxF;
     // Rotation Matrix
-    Matrix2D<double> R;
     R.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
     R = R.inv();
-    Matrix1D<double> pos;
-    pos.initZeros(3);
 
-	// TODO: Poner primero i y j en el loop, acumular suma y guardar al final
-	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
-	{
-		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
-		{
-			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++)
-			{
-                ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
-                pos = R * pos;
-				double gx=0.0;
-				double gy=0.0;
-				double gz=0.0;
-				// TODO: Sacar al bucle de z
-				double k2=ZZ(pos)*ZZ(pos);
-				double kr=ZZ(pos)*iRmaxF;
-				double k2i2=k2+YY(pos)*YY(pos);
-				double ir=YY(pos)*iRmaxF;
-				double r2=k2i2+XX(pos)*XX(pos);
-				double jr=XX(pos)*iRmaxF;
-				double rr=sqrt(r2)*iRmaxF;
-				if (r2<RmaxF2) {
-					for (size_t idx=0; idx<idxY0; idx++) {
-						if (VEC_ELEM(steps_cp,idx) == 1) {
-							double zsph=0.0;
-							int l1 = VEC_ELEM(vL1,idx);
-							int n = VEC_ELEM(vN,idx);
-							int l2 = VEC_ELEM(vL2,idx);
-							int m = VEC_ELEM(vM,idx);
-							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-							if (rr>0 || l2==0) {
-								gx += VEC_ELEM(clnm,idx)        *zsph;
-								gy += VEC_ELEM(clnm,idx+idxY0)  *zsph;
-								gz += VEC_ELEM(clnm,idx+idxZ0)  *zsph;
-							}
-						}
-					}
-					auto k_mask = (int)(ZZ(pos)+gz);
-					auto i_mask = (int)(YY(pos)+gy);
-					auto j_mask = (int)(XX(pos)+gx);
-					int voxelI_mask = 0;
-					if (!V_mask.outside(k_mask, i_mask, j_mask)) {
-						voxelI_mask = A3D_ELEM(V_mask, k_mask, i_mask, j_mask);
-					}
-					if (voxelI_mask == 1) {
-						double voxelI=mV.interpolatedElement3D(XX(pos)+gx,YY(pos)+gy,ZZ(pos)+gz);
-						A2D_ELEM(mP,i,j) += voxelI;
-						sumVd += voxelI;
-						modg += gx*gx+gy*gy+gz*gz;
-						Ncount++;
-					}
-				}
-			}
-		}
-	}
+	double RmaxF=RmaxDef;
 
-	def = sqrt(modg/Ncount);
+    angularAlignGpu.setupChangingParameters();
+
+    angularAlignGpu.runKernel();
+    //angularAlignGpu.runKernelTest(clnm, idxY0, RmaxF * RmaxF, 1.0/RmaxF, R, mV, steps_cp, vL1, vN, vL2, vM, V_mask, mP);
+
+    angularAlignGpu.transferResults();
+    auto outputs = angularAlignGpu.getOutputs();
+
+    sumVd = outputs.sumVD;
+	def = sqrt(outputs.modg/outputs.count);
 	totalDeformation = def;
 }
 
