@@ -184,10 +184,14 @@ class DeepTFSupervised(object):
       cBacks+= [ keras.callbacks.ReduceLROnPlateau(monitor='val_acc', factor=0.1, patience=3, cooldown=1, 
                  min_lr= learningRate*1e-3, verbose=1) ]
 
-      self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
+      history = self.nNetModel.fit_generator(dataManagerTrain.getTrainIterator(),steps_per_epoch= CHECK_POINT_AT,
                                  validation_data=dataManagerTrain.getValidationIterator( batchesPerEpoch= n_batches_per_epoch_val), 
                                  validation_steps=n_batches_per_epoch_val, callbacks=cBacks, epochs=nEpochs, 
                                  use_multiprocessing=True, verbose=2)
+
+      print('The val accuracy of this model is %f' %history.history['val_accuracy'])
+      print('The path of this model is::' + self.rootPath)
+
       self.closeSession()
       
       
