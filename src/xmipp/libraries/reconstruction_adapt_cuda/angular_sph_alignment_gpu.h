@@ -24,8 +24,8 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#ifndef _PROG_ANGULAR_SPH_ALIGNMENT
-#define _PROG_ANGULAR_SPH_ALIGNMENT
+#ifndef _PROG_ANGULAR_SPH_ALIGNMENT_GPU
+#define _PROG_ANGULAR_SPH_ALIGNMENT_GPU
 
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
@@ -33,12 +33,14 @@
 #include "data/fourier_filter.h"
 #include "data/fourier_projection.h"
 
+#include "reconstruction_cuda/cuda_angular_sph_alignment.h"
+
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */
 //@{
 
 /** Predict Continuous Parameters. */
-class ProgAngularSphAlignment: public XmippMetadataProgram
+class ProgAngularSphAlignmentGpu: public XmippMetadataProgram
 {
 public:
     /** Filename of the reference volume */
@@ -47,16 +49,10 @@ public:
     FileName fnMaskR;
     /// Output directory
     FileName fnOutDir;
-    // Metadata with already processed images
-    FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
-    int L1;
-    int L2;
+    int L1, L2;
     /** Zernike and SPH coefficients vectors */
-    Matrix1D<int> vL1;
-    Matrix1D<int>vN;
-    Matrix1D<int> vL2;
-    Matrix1D<int> vM;
+    Matrix1D<int> vL1, vN, vL2, vM;
     /** Maximum shift allowed */
     double maxShift;
     /** Maximum angular change allowed */
@@ -87,21 +83,18 @@ public:
     Matrix1D<double> p;
     int flagEnabled;
 
+    // CUDA device to use
+    int device;
+
 public:
     /** Resume computations */
     bool resume;
     // 2D and 3D masks in real space
-    MultidimArray<int> mask2D;
-    MultidimArray<int> V_mask;
+    MultidimArray<int> mask2D, V_mask;
     // Volume size
     size_t Xdim;
-    // Input images
-	Image<double> V;
-    Image<double> Vdeformed;
-    Image<double> I;
-    Image<double> Ip;
-    Image<double> Ifiltered;
-    Image<double> Ifilteredp;
+    // Input image
+	Image<double> V, Vdeformed, I, Ip, Ifiltered, Ifilteredp;
 	// Theoretical projection
 	Image<double> P;
 	// Filter
@@ -109,28 +102,23 @@ public:
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
-    double old_rot;
-    double old_tilt;
-    double old_psi;
+    double old_rot, old_tilt, old_psi;
     // Original shift
-	double old_shiftX;
-    double old_shiftY;
+	double old_shiftX, old_shiftY;
 	// Original flip
 	bool old_flip;
     // CTF Check
     bool hasCTF;
     // Original defocus
-	double old_defocusU;
-    double old_defocusV;
-    double old_defocusAngle;
+	double old_defocusU, old_defocusV, old_defocusAngle;
     // Current defoci
-	double currentDefocusU;
-    double currentDefocusV;
-    double currentAngle;
+	double currentDefocusU, currentDefocusV, currentAngle;
 	// CTF
 	CTFDescription ctf;
     // CTF filter
     FourierFilter FilterCTF;
+	// CTF image
+	MultidimArray<double> *ctfImage;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
@@ -138,20 +126,26 @@ public:
     //Copy of Optimizer steps
     Matrix1D<double> steps_cp;
 	//Total Deformation, sumV, sumVd
-	double totalDeformation;
-    double sumV;
-    double sumVd;
+	double totalDeformation, sumV, sumVd;
 	// Show optimization
 	bool showOptimization;
 	// Correlation
 	double correlation;
+    // GPU compute class
+    AngularAlignmentGpu::AngularSphAlignment angularAlignGpu;
+    // Number of ones in steps array
+    int onesInSteps;
+    // Switch between GPU and CPU version
+    bool useFakeKernel;
+    // Rotation matrix
+    Matrix2D<double> R;
 
 public:
     /// Empty constructor
-	ProgAngularSphAlignment();
+	ProgAngularSphAlignmentGpu();
 
     /// Destructor
-    ~ProgAngularSphAlignment();
+    ~ProgAngularSphAlignmentGpu();
 
     /// Read argument from command line
     void readParams();
@@ -179,25 +173,25 @@ public:
     void processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut);
 
     /// Length of coefficients vector
-    void numCoefficients(int l1, int l2, int &nc) const;
+    void numCoefficients(int l1, int l2, int &vecSize);
 
     /// Determine the positions to be minimize of a vector containing spherical harmonic coefficients
-    void minimizepos(int l2, Matrix1D<double> &steps) const;
+    // void minimizepos(Matrix1D<double> &vectpos);
+    void minimizepos(int L1, int l2, Matrix1D<double> &steps);
 
     /// Zernike and SPH coefficients allocation
-    void fillVectorTerms(int l1, int l2);
+    void fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+                         Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
                    double rot, double tilt, double psi);
 
-    void applyCTFImage(double const &deltaDefocusU, double const &deltaDefocusV, 
-					   double const &deltaDefocusAngle);
-
     void updateCTFImage(double defocusU, double defocusV, double angle);
 
     double tranformImageSph(double *pclnm, double rot, double tilt, double psi,
-    		                double deltaDefocusU, double deltaDefocusV, double deltaDefocusAngle);
+    		                Matrix2D<double> &A, double deltaDefocusU, 
+                            double deltaDefocusV, double deltaDefocusAngle);
 
     /** Write the final parameters. */
     virtual void finishProcessing();
