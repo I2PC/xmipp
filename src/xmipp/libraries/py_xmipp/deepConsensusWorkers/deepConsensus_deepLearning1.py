@@ -73,6 +73,38 @@ def writeNetShape(netDataPath, shape, nTrue, nModels):
       os.makedirs(netDataPath )
     with open(netInfoFname, "w" ) as f:
         f.write("inputShape: %d %d %d\ninputNTrue: %d\nnModels: %d" % (shape+(nTrue, nModels)))
+
+def writeNetAccuracy(netDataPath, val_acc):
+  '''
+    netDataPath= self._getExtraPath("nnetData")
+  '''
+  netAccFname = os.path.join(os.path.dirname(netDataPath), "netValAcc.txt")
+  if not os.path.exists(netDataPath):
+    os.makedirs(netDataPath)
+  with open(netAccFname, "w") as f:
+    f.write("val_acc: %f" %val_acc)
+
+def loadANDwriteNetAccuracy(netDataPath, nModels):
+  '''
+      netDataPath= self._getExtraPath("nnetData")
+  '''
+  list_Acc = []
+  for n in range(nModels):
+    checkPointsName = os.path.join(netDataPath, "tfchkpoints_%d"%n)
+    valAccFn = os.path.join(checkPointsName, "netValAcc.txt")
+    with open(valAccFn) as f:
+      lines = f.readlines()
+      accuracy = float(lines[0].split()[1])
+      list_Acc.append(accuracy)
+
+  mean_acc = np.mean(list_Acc)
+  print('Mean validation accuracy %f of n %d models' %(mean_acc, nModels))
+
+  netMeanAccFname = os.path.join(netDataPath, "netsMeanValAcc.txt")
+  if not os.path.exists(netDataPath):
+    os.makedirs(netDataPath)
+  with open(netMeanAccFname, "w") as f:
+    f.write("mean_val_acc: %f" % mean_acc)
         
 class DeepTFSupervised(object):
   def __init__(self, numberOfThreads, rootPath, numberOfModels=1, effective_data_size=-1):
@@ -173,7 +205,6 @@ class DeepTFSupervised(object):
         self.createNet(dataManagerTrain.shape[0], dataManagerTrain.shape[1], dataManagerTrain.shape[2], effective_data_size,
                        learningRate, l2RegStrength)
 #      print(self.nNetModel.summary())
-      
       print("nEpochs : %.1f --> Epochs: %d.\nTraining begins: Epoch 0/%d"%(nEpochs__, nEpochs, nEpochs))
       sys.stdout.flush()
       cBacks= [ keras.callbacks.ModelCheckpoint((currentCheckPointName) , monitor='val_acc', verbose=1,
@@ -189,10 +220,11 @@ class DeepTFSupervised(object):
                                  validation_steps=n_batches_per_epoch_val, callbacks=cBacks, epochs=nEpochs, 
                                  use_multiprocessing=True, verbose=2)
 
-      print('The val accuracy of this model is %f' %history.history['val_accuracy'])
-      print('The path of this model is::' + self.rootPath)
-
+      last_val_acc = history.history['val_acc'][-1]
+      writeNetAccuracy(currentCheckPointName, last_val_acc)
       self.closeSession()
+
+    loadANDwriteNetAccuracy(self.rootPath, self.numberOfModels)
       
       
   def predictNet(self, dataManger):
