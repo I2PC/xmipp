@@ -620,7 +620,7 @@ AlignmentResult<T> FlexAlignCuda<T>::align(T *data,
 
     size_t N = in.dim.n();
     // scale and transform to FFT on GPU
-    performFFT<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
+    performFFTAndScale<T>(data, N, in.dim.x(), in.dim.y(), in.batch,
             correlation.dim.x(), // this used to be correlation.x_freq
             correlation.dim.y(), filter.data);
 
