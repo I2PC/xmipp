@@ -29,28 +29,39 @@
 // Read arguments ==========================================================
 void ProgShiftVolume::readParams()
 {
-
     fn_vol = getParam("-i");
     fn_out = getParam("-o");
     if (fn_out=="")
     	fn_out=fn_vol;
+    shiftx = getDoubleParam("-x");
+    shifty = getDoubleParam("-y");
+    shiftz = getDoubleParam("-z");
 }
 
 // Show ====================================================================
 void ProgShiftVolume::show() const
 {
-	if (verbose>0)
-	{
-		std::cout
-		<< "Input volume:\t" << fn_vol << std::endl
-		<< "Output (shifted) volume:\t" << fn_vol << std::endl;
-	}
+    if (!verbose)
+        return;
+	std::cout
+	<< "Input volume:\t" << fn_vol << std::endl
+	<< "Output (shifted) volume:\t" << fn_vol << std::endl
+	<< "Shift x:\t" << shiftx << std::endl
+	<< "Shift y:\t" << shifty << std::endl
+	<< "Shift z:\t" << shiftz << std::endl;
 }
 
 // usage ===================================================================
 void ProgShiftVolume::defineParams()
 {
-	addUsageLine("This program takes a volume and shifts it to its original position.");
+	addUsageLine("This program takes a volume and shifts it according to the input shifts.");
+	addParamsLine("-i <volume>\t: Input volume (.mrc)");
+	addParamsLine("[-o <structure=\"\">]\t: Output filename suffix for shifted volume");
+	addParamsLine("-x <x=1.0>: Shift to apply in x");
+	addParamsLine("-y <y=1.0>: Shift to apply in y");
+	addParamsLine("-z <z=1.0>: Shift to apply in z");
+    addExampleLine("A typical use is:",false);
+    addExampleLine("xmipp_shift_volume -i volume.mrc -o shift_volume.mrc -x 1.0 -y 1.0 -z 1.0");
 }
 
 #define GET_VOL_COORD \
@@ -66,28 +77,33 @@ if (zp<0 || zp>=ZSIZE(mOutVol))\
 
 void ProgShiftVolume::run()
 {
-
     show();
     vol.read(fn_vol);
     const MultidimArray<double> &mVol=vol();
     outVol().resizeNoCopy(vol());
     outVol().initConstant(0.0);
-    MultidimArray<double> &mOutVol=outVol();
-    MultidimArray<double> shiftVol;
+//    MultidimArray<double> &mOutVol=outVol();
+//    MultidimArray<double> shiftVol;
     Matrix2D<double> A;
-    A.initIdentity(4);
+    Matrix1D<double> t(3);
+    t(0)=shiftx;
+    t(1)=shifty;
+    t(2)=shiftz;
+    translation3DMatrix(t, A, false);
+//    applyGeometry(outVol, A, vol);
+	applyGeometry(BSPLINE3, outVol(), vol(), A, IS_NOT_INV, DONT_WRAP);
 
-	geo2TransformationMatrix(row,A);
-	applyGeometry(LINEAR, shiftVol, mVol, A, IS_NOT_INV, DONT_WRAP);
-
-	double avg=0;
-	double avgN=0;
-	FOR_ALL_ELEMENTS_IN_ARRAY3D(mOutVol)
-	{
-		GET_VOL_COORD
-		double val=A3D_ELEM(mOutVol,k,i,j);
-	}
-    vol.write(fn_out);
+//	double avg=0;
+//	double avgN=0;
+//	FOR_ALL_ELEMENTS_IN_ARRAY3D(mOutVol)
+//	{
+//		GET_VOL_COORD
+//	    std::cout << "xp: " << xp << std::endl;
+//	    std::cout << "yp: " << yp << std::endl;
+//	    std::cout << "zp: " << zp << std::endl;
+//		double val=A3D_ELEM(mOutVol,k,i,j);
+//	}
+    outVol.write(fn_out);
 }
 
 

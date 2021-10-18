@@ -39,6 +39,10 @@ private:
     // Output (shifted) volume
     FileName fn_out;
     Image<double> outVol;
+    // Input shifts
+    double shiftx;
+    double shifty;
+    double shiftz;
     // Coordinates
     int x;
     int y;
