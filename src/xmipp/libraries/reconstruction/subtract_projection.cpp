@@ -184,7 +184,7 @@
  	M = sortedI(p99);
  }
 
- void ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
+ void ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj, FileName &fnpart) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		hasCTF=true;
 		ctf.readFromMdRow(r);
@@ -195,6 +195,45 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
+		std::cout << "0" << std::endl;
+		ImageGeneric Iin;
+		DataType dataType = Iin.getDatatype();
+		ImageGeneric result(dataType);
+		int x0, y0, z0;
+		int xF, yF, zF;
+		int size = (int)XSIZE(I())*2;
+		std::cout << "0" << std::endl;
+		x0 = FIRST_XMIPP_INDEX(size);
+		y0 = FIRST_XMIPP_INDEX(size);
+		z0 = FIRST_XMIPP_INDEX(size);
+		xF = LAST_XMIPP_INDEX(size);
+		yF = LAST_XMIPP_INDEX(size);
+		zF = LAST_XMIPP_INDEX(size);
+		std::cout << "1" << std::endl;
+//		Iin = proj;
+//		Iin().setXmippOrigin();
+		proj().setXmippOrigin();
+		std::cout << "2" << std::endl;
+		result.mapFile2Write(xF - x0 + 1, yF - y0 + 1, 1, fnpart);
+		std::cout << "3" << std::endl;
+//		Iin().window(result(),
+//		STARTINGZ(Iin()()) + z0,
+//		STARTINGY(Iin()()) + y0,
+//		STARTINGX(Iin()()) + x0,
+//		STARTINGZ(Iin()()) + zF,
+//		STARTINGY(Iin()()) + yF,
+//		STARTINGX(Iin()()) + xF, 0);
+
+//		proj().window(result(),
+//		STARTINGZ(proj()()) + z0,
+//		STARTINGY(proj()()) + y0,
+//		STARTINGX(proj()()) + x0,
+//		STARTINGZ(proj()()) + zF,
+//		STARTINGY(proj()()) + yF,
+//		STARTINGX(proj()()) + xF, 0);
+		std::cout << "4" << std::endl;
+	    result.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
+
 		FilterCTF.generateMask(proj());
 		FilterCTF.applyMaskSpace(proj());
 		P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
@@ -252,6 +291,7 @@
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
 		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>maxMaskVol/20)) ? 1:0;
+//	keepBiggestComponent(img(),0,neig2D);
  	return m;
  }
 
@@ -331,7 +371,8 @@
 		POCSmaskProj(PmaskVolI(), I());
 		I.write(formatString("%s/ImaskVol.mrc", fnProj.c_str()));
 		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
-		applyCTF(row, P);
+		row.getValue(MDL_IMAGE, fnPart);
+		applyCTF(row, P, fnPart);
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
 		radial_meanP = computeRadialAvg(P, radial_meanP);
@@ -359,7 +400,7 @@
 			Filter2.applyMaskSpace(IFiltered());
     	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	Pmask.write(formatString("%s/maskFocus.mrc", fnProj.c_str()));
-		applyCTF(row, Pmask);
+		applyCTF(row, Pmask, fnPart);
     	Pmask.write(formatString("%s/maskFocusCTF.mrc", fnProj.c_str()));
 		Pmask = thresholdMask(Pmask);
     	Pmask.write(formatString("%s/maskFocusTh.mrc", fnProj.c_str()));
