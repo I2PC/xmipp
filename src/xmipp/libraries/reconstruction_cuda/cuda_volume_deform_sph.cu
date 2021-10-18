@@ -36,6 +36,14 @@ using PrecisionType3 = float3;
 
 #endif// USE_DOUBLE_PRECISION
 
+__device__ __inline__ PrecisionType shfl_down(PrecisionType val, int offset) {
+#if (CUDART_VERSION >= 9000)
+    return __shfl_down_sync(0xFFFFFFFF, val, offset);
+#else
+    return __shfl_down(val, offset);
+#endif
+}
+
 // Compilation settings - end
 
 // Define data structures
@@ -306,9 +314,9 @@ extern "C" __global__ void computeDeform(
         }
         // Reduce warp
         for (int offset = 32 / 2; offset > 0; offset >>= 1) {
-            localDiff2 += __shfl_down_sync(0xFFFFFFFF, localDiff2, offset);
-            localSumVD += __shfl_down_sync(0xFFFFFFFF, localSumVD, offset);
-            localModg += __shfl_down_sync(0xFFFFFFFF, localModg, offset);
+            localDiff2 += shfl_down(localDiff2, offset);
+            localSumVD += shfl_down(localSumVD, offset);
+            localModg += shfl_down(localModg, offset);
         }
     }
 
