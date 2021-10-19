@@ -891,7 +891,7 @@ class Config:
         commitFn = os.path.join(
             'src', 'xmipp', 'commit.info')  # FIXME check if this is still true
         notFound = "(no git repo detected)"
-        if ensureGit(False):
+        if ensureGit(False) and isGitRepo():
             scriptName = ''
             runJob('git ls-files --full-name ' +
                    os.path.basename(__file__), '.', False, scriptName, False)
@@ -899,12 +899,10 @@ class Config:
             # get hash of the last commit changing this script
             if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
                 return lastCommit[0].strip()
-            elif os.path.isfile(commitFn):
-                with open(commitFn, 'r') as file:
-                    commitInfo = file.readline()
-                return commitInfo
-            else:
-                return notFound
+        elif os.path.isfile(commitFn):
+            with open(commitFn, 'r') as file:
+                commitInfo = file.readline()
+            return commitInfo
         else:
             return notFound
 
