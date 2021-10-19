@@ -29,11 +29,16 @@
 
 #include "core/xmipp_metadata_program.h"
 #include "core/matrix1d.h"
+#include "core/matrix2d.h"
 #include "core/xmipp_image.h"
-#include "data/fourier_filter.h"
-#include "data/fourier_projection.h"
+// #include "data/fourier_filter.h"
+// #include "data/fourier_projection.h"
+#include "data/numerical_tools.h"
 
 #include "reconstruction_cuda/cuda_angular_sph_alignment.h"
+
+class FourierFilter;
+class CTFDescription;
 
 /**@defgroup AngularPredictContinuous2 angular_continuous_assign2 (Continuous angular assignment)
    @ingroup ReconsLibrary */
@@ -98,7 +103,7 @@ public:
 	// Theoretical projection
 	Image<double> P;
 	// Filter
-    FourierFilter filter;
+    FourierFilter* filter;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
@@ -114,11 +119,9 @@ public:
     // Current defoci
 	double currentDefocusU, currentDefocusV, currentAngle;
 	// CTF
-	CTFDescription ctf;
+	CTFDescription* ctf;
     // CTF filter
-    FourierFilter FilterCTF;
-	// CTF image
-	MultidimArray<double> *ctfImage;
+    FourierFilter* FilterCTF;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
