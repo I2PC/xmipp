@@ -208,18 +208,24 @@ void ProgAngularSphAlignmentGpu::preProcess()
     mask.generate_mask(Xdim,Xdim);
     mask2D=mask.get_binary_mask();
 
+	// Define pointers
+	filter = std::make_unique<FourierFilter>();
+	FilterCTF = std::make_unique<FourierFilter>();
+	ctf = std::make_unique<CTFDescription>();
+
     // Low pass filter
-    // filter.FilterBand=LOWPASS;
-    // filter.w1=Ts/maxResol;
-    // filter.raised_w=0.02;
+	std::cout << "Preprocess begins" << std::endl;
+    filter->FilterBand=LOWPASS;
+    filter->w1=Ts/maxResol;
+    filter->raised_w=0.02;
 
     // Transformation matrix
     A.initIdentity(3);
 
 	// CTF Filter
-	// FilterCTF.FilterBand = CTF;
-	// FilterCTF.ctf.enable_CTFnoise = false;
-	// FilterCTF.ctf.produceSideInfo();
+	FilterCTF->FilterBand = CTF;
+	FilterCTF->ctf.enable_CTFnoise = false;
+	FilterCTF->ctf.produceSideInfo();
 
 	vecSize = 0;
 	numCoefficients(L1,L2,vecSize);
@@ -249,20 +255,20 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
 	P().initZeros((int)XSIZE(I()),(int)XSIZE(I()));
     P().setXmippOrigin();
 	deformVol(P(), mV, deformation, rot, tilt, psi);
-	// if (hasCTF)
-    // {
-    // 	double defocusU=old_defocusU+deltaDefocusU;
-    // 	double defocusV=old_defocusV+deltaDefocusV;
-    // 	double angle=old_defocusAngle+deltaDefocusAngle;
-    // 	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
-    // 		updateCTFImage(defocusU,defocusV,angle);
-	// 	}
-	// 	FilterCTF.ctf = ctf;
-	// 	FilterCTF.generateMask(P());
-	// 	if (phaseFlipped)
-	// 		FilterCTF.correctPhase();
-	// 	FilterCTF.applyMaskSpace(P());
-	// }
+	if (hasCTF)
+    {
+    	double defocusU=old_defocusU+deltaDefocusU;
+    	double defocusV=old_defocusV+deltaDefocusV;
+    	double angle=old_defocusAngle+deltaDefocusAngle;
+    	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
+    		updateCTFImage(defocusU,defocusV,angle);
+		}
+		FilterCTF->ctf = *ctf;
+		FilterCTF->generateMask(P());
+		if (phaseFlipped)
+			FilterCTF->correctPhase();
+		FilterCTF->applyMaskSpace(P());
+	}
     double cost=0;
 	if (old_flip)
 	{
@@ -272,7 +278,7 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
 	}
 
 	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
-	// filter.applyMaskSpace(P());
+	filter->applyMaskSpace(P());
 	const MultidimArray<double> &mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;
 	MultidimArray<double> &mIfilteredp=Ifilteredp();
@@ -373,18 +379,18 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 	else
 		old_flip = false;
 	
-	// if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
-	// {
-	// 	hasCTF=true;
-	// 	ctf.readFromMdRow(rowIn);
-	// 	ctf.Tm = Ts;
-	// 	ctf.produceSideInfo();
-	// 	old_defocusU=ctf.DeltafU;
-	// 	old_defocusV=ctf.DeltafV;
-	// 	old_defocusAngle=ctf.azimuthal_angle;
-	// }
-	// else
-	// 	hasCTF=false;
+	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
+	{
+		hasCTF=true;
+		ctf->readFromMdRow(rowIn);
+		ctf->Tm = Ts;
+		ctf->produceSideInfo();
+		old_defocusU=ctf->DeltafU;
+		old_defocusV=ctf->DeltafV;
+		old_defocusAngle=ctf->azimuthal_angle;
+	}
+	else
+		hasCTF=false;
 
 	if (verbose>=2)
 		std::cout << "Processing " << fnImg << std::endl;
@@ -392,7 +398,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 	I().setXmippOrigin();
 
 	Ifiltered()=I();
-	// filter.applyMaskSpace(Ifiltered());
+	filter->applyMaskSpace(Ifiltered());
 
     // GPU preparation
     angularAlignGpu.setupConstantParameters();
@@ -567,11 +573,11 @@ void ProgAngularSphAlignmentGpu::fillVectorTerms(int l1, int l2, Matrix1D<int> &
 
 void ProgAngularSphAlignmentGpu::updateCTFImage(double defocusU, double defocusV, double angle)
 {
-	// ctf.K=1; // get pure CTF with no envelope
-	// currentDefocusU=ctf.DeltafU=defocusU;
-	// currentDefocusV=ctf.DeltafV=defocusV;
-	// currentAngle=ctf.azimuthal_angle=angle;
-	// ctf.produceSideInfo();
+	ctf->K=1; // get pure CTF with no envelope
+	currentDefocusU=ctf->DeltafU=defocusU;
+	currentDefocusV=ctf->DeltafV=defocusV;
+	currentAngle=ctf->azimuthal_angle=angle;
+	ctf->produceSideInfo();
 }
 
 void ProgAngularSphAlignmentGpu::deformVol(
