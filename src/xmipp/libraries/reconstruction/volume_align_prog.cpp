@@ -162,7 +162,7 @@ public:
         addParamsLine("  [--copyGray <file=\"\">] : copy gray scale and shift txt file.)");
         addParamsLine("  [--store <file=\"\">] : copy angles and shifts to a txt file.");
         addParamsLine(" == Mask Options == ");
-        mask.defineParams(this,INT_MASK,NULL,NULL,true);
+        mask.defineParams(this,INT_MASK,nullptr,nullptr,true);
         addExampleLine("Typically you first look for a rough approximation of the alignment using exhaustive search. For instance, for a global rotational alignment use",false);
         addExampleLine("xmipp_volume_align --i1 volume1.vol --i2 volume2.vol --rot 0 360 15 --tilt 0 180 15 --psi 0 360 15");
         addExampleLine("Then, assume the best alignment is obtained for rot=45, tilt=60, psi=90",false);
@@ -294,7 +294,7 @@ public:
             params.mask_ptr = &(mask.get_binary_mask());
         }
         else
-            params.mask_ptr = NULL;
+            params.mask_ptr = nullptr;
 
         // Exhaustive search
         if (!usePowell && !useFRM)
@@ -395,7 +395,7 @@ public:
             x(7)=y0;
             x(8)=x0;
 
-            powellOptimizer(x,1,9,&wrapperFitness,NULL,0.01,fitness,iter,steps,true);
+            powellOptimizer(x,1,9,&wrapperFitness,nullptr,0.01,fitness,iter,steps,true);
             best_align=x;
             best_fit=fitness;
             first=false;

@@ -373,7 +373,9 @@ def compileMatlabBinding(target, source, env):
     mex = join(env['MATLAB_DIR'], 'bin', 'mex')
     command = '%s -O CFLAGS="\$CFLAGS -std=c++11 -fpermissive" -outdir %s %s %s %s %s ' % (mex, matlabDir, incStr, libStr, libs, source[0])
     print(command)
-    os.system(command)
+    matlab_ok = os.system(command)
+    if matlab_ok != 0:
+        raise Exception('MatLab Binding compilation failed...')
 
 # Matlab programs
 def addMatlabBinding(name):

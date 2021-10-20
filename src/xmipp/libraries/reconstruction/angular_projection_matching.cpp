@@ -769,7 +769,7 @@ void * threadRotationallyAlignOneImage( void * data )
 #endif
     //pthread_mutex_unlock(  &debug_mutex );
     //std::cerr << "DEBUG_JM: threadRotationallyAlignOneImage END" <<std::endl;
-    return NULL;
+    return nullptr;
 }
 
 void ProgAngularProjectionMatching::translationallyAlignOneImage(MultidimArray<double> &img,
@@ -1059,11 +1059,11 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
             	opt_scale[i] = 1;
             	opt_refno[i] = -1;
             }
-            pthread_create( (th_ids+c), NULL, threadRotationallyAlignOneImage, (void *)(threads_d+c) );
+            pthread_create( (th_ids+c), nullptr, threadRotationallyAlignOneImage, (void *)(threads_d+c) );
         }
         // Wait for threads to finish
         for( int c = 0 ; c < threads ; c++ )
-            pthread_join(*(th_ids+c),NULL);
+            pthread_join(*(th_ids+c),nullptr);
 
         //Get optimal refno, psi, flip and maxcorr
         int * indexThreads = new int[threads](); // init to zero

@@ -325,7 +325,7 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &phantom, XRayPSF &ps
 
 
 
-    projectXrayVolume(phantom.rotVol, IgeoVol, psf, P, NULL, thMgr);
+    projectXrayVolume(phantom.rotVol, IgeoVol, psf, P, nullptr, thMgr);
 
     int outXDim = XMIPP_MIN(Xdim,iniXdim);
     int outYDim = XMIPP_MIN(Ydim,iniYdim);
@@ -475,7 +475,7 @@ void threadXrayProject(ThreadArgument &thArg)
     imOut.setXmippOrigin();
     projNormTemp.setXmippOrigin();
 
-    MultidimArray<double> imTemp(psf.Noy, psf.Nox),intExp(psf.Noy, psf.Nox),imTempSc(imOut),*imTempP=NULL;
+    MultidimArray<double> imTemp(psf.Noy, psf.Nox),intExp(psf.Noy, psf.Nox),imTempSc(imOut),*imTempP=nullptr;
     intExp.setXmippOrigin();
     imTemp.setXmippOrigin();
     imTempSc.setXmippOrigin();
@@ -554,7 +554,7 @@ void threadXrayProject(ThreadArgument &thArg)
 
         /// Calculate projNorm
 
-        if (projNorm != NULL)
+        if (projNorm != nullptr)
         {
 
             FOR_ALL_ELEMENTS_IN_ARRAY2D(imTemp)
@@ -575,7 +575,7 @@ void threadXrayProject(ThreadArgument &thArg)
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(imOut)
     dAij(MULTIDIM_ARRAY(imOutGlobal),i,j) += dAij(imOut,i,j);
 
-    if (projNorm != NULL)
+    if (projNorm != nullptr)
     {
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(projNormTemp)
         dAij(*projNorm,i,j) += dAij(projNormTemp,i,j);
@@ -632,7 +632,7 @@ void calculateIgeo(MultidimArray<double> &muVol, double sampling,
 
     ThreadManager * myThMgr;
 
-    if (ThrMgr == NULL)
+    if (ThrMgr == nullptr)
         myThMgr = new ThreadManager(nThreads);
     else
         myThMgr = ThrMgr;
@@ -649,7 +649,7 @@ void calculateIgeo(MultidimArray<double> &muVol, double sampling,
 
     delete iGeoArgs.td;
 
-    if (ThrMgr == NULL)
+    if (ThrMgr == nullptr)
         delete myThMgr;
 }
 
@@ -712,8 +712,8 @@ void projectXrayGridVolume(
     projThrData.projOut = &proj;
     projThrData.projNorm = projNorm;
     projThrData.forw = FORW;
-    projThrData.phantomSlabIdx = NULL;
-    projThrData.psfSlicesIdx = NULL;
+    projThrData.phantomSlabIdx = nullptr;
+    projThrData.psfSlicesIdx = nullptr;
 
     //    //Create the job handler to distribute thread jobs
     //    size_t blockSize, numberOfJobs = psfSlicesIdx.size() ;

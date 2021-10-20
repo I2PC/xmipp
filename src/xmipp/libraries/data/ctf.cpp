@@ -1367,6 +1367,7 @@ void CTFDescription::clearNoise()
     sqU = sqV = sqrt_K = sqrt_angle = 0;
     cU2 = cV2 = sigmaU2 = sigmaV2 = gaussian_angle2 = gaussian_K2 = 0;
     bgR1 = bgR2 = bgR3 = 0.0;
+    VPP_radius = phase_shift = 0.0;
     isLocalCTF = false;
 }
 

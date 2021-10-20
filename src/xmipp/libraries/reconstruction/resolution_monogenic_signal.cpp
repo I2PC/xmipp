@@ -399,8 +399,7 @@ void ProgMonogenicSignalRes::run()
 						freq, freqH,
 						last_fourier_idx, volsize,
 						continueIter, breakIter,
-						sampling, minRes, maxRes,
-						doNextIteration);
+						sampling, maxRes);
 
 		if (continueIter)
 			continue;

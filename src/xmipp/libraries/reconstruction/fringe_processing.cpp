@@ -850,7 +850,7 @@ void demodulate(MultidimArray<double> & im, double lambda, int size, int x, int 
     }
 }
 
-void demodulate2(MultidimArray<double> & im, double lambda, int size, int x, int y, int rmin, int rmax,
+void demodulate2(MultidimArray<double> & im, double lambda, int size,int rmin, int rmax,
                                    Matrix1D<double> & coeffs, int verbose)
 {
     //Initial Setup :

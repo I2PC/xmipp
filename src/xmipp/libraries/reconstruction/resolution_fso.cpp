@@ -1071,8 +1071,8 @@ void ProgFSO::getCompleteFourier(MultidimArray<double> &V, MultidimArray<double>
 			if (m1sizeY==1)
 				ndim=1;
 		}
-		double *ptrSource=NULL;
-		double *ptrDest=NULL;
+		double *ptrSource=nullptr;
+		double *ptrDest=nullptr;
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(newV)
 		{
 			ptrDest=(double*)&DIRECT_A3D_ELEM(newV,k,i,j);

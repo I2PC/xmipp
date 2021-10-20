@@ -101,7 +101,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
                       bool wrap=true, bool do_outside_avg=false, bool sum=false, bool helical=false, bool dihedral=false,
                       bool helicalDihedral=false,
                       double rotHelical=0.0, double rotPhaseHelical=0.0, double zHelical=0.0, double heightFraction=0.95,
-                      const MultidimArray<double> * mask=NULL, int Cn=1);
+                      const MultidimArray<double> * mask=nullptr, int Cn=1);
 
 /** Symmetrize image.*/
 void symmetrizeImage(int symorder, const MultidimArray<double> &I_in,

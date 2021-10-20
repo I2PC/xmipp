@@ -90,7 +90,7 @@ public:
         addParamsLine("[--rotHelical <rot0=-357> <rotF=357> <step=3>]: Search space for rotation around Z");
         addParamsLine("[--localHelical <z> <rot>]      : Perform a local search around this angle and shift");
         addParamsLine("[--heightFraction <f=1>]        : Use this fraction of the volume");
-        mask_prm.defineParams(this,INT_MASK,NULL,"Restrict the comparison to the mask area.",true);
+        mask_prm.defineParams(this,INT_MASK,nullptr,"Restrict the comparison to the mask area.",true);
         addExampleLine("A typical application for a rotational symmetry axis is ",false);
         addExampleLine("xmipp_volume_center -i volume.vol");
         addExampleLine("xmipp_volume_find_symmetry -i volume.vol --sym rot 3");
@@ -209,7 +209,7 @@ public:
         volume().setXmippOrigin();
         mask_prm.generate_mask(volume());
         double best_corr, best_rot, best_tilt, best_z;
-        td=NULL;
+        td=nullptr;
 
         if (!helical && !helicalDihedral)
         {
