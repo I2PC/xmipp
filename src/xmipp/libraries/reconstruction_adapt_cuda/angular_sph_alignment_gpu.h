@@ -31,12 +31,13 @@
 #include "core/matrix1d.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_image.h"
-// #include "data/fourier_filter.h"
-// #include "data/fourier_projection.h"
 #include "data/numerical_tools.h"
+#include "memory"
 
 #include "reconstruction_cuda/cuda_angular_sph_alignment.h"
 
+// This dummy classes added here are needed so we can move the fftw library include 
+// to the cpp code (Cuda 8.x compatibility)
 class FourierFilter;
 class CTFDescription;
 
@@ -103,7 +104,7 @@ public:
 	// Theoretical projection
 	Image<double> P;
 	// Filter
-    FourierFilter* filter;
+    std::unique_ptr<FourierFilter> filter;
     // Transformation matrix
     Matrix2D<double> A;
     // Original angles
@@ -119,9 +120,9 @@ public:
     // Current defoci
 	double currentDefocusU, currentDefocusV, currentAngle;
 	// CTF
-	CTFDescription* ctf;
+	std::unique_ptr<CTFDescription> ctf;
     // CTF filter
-    FourierFilter* FilterCTF;
+    std::unique_ptr<FourierFilter> FilterCTF;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
