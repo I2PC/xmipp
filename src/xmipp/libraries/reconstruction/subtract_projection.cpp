@@ -195,48 +195,29 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-		std::cout << "0" << std::endl;
-		ImageGeneric Iin;
-		DataType dataType = Iin.getDatatype();
-		ImageGeneric result(dataType);
-		int x0, y0, z0;
-		int xF, yF, zF;
-		int size = (int)XSIZE(I())*2;
-		std::cout << "0" << std::endl;
-		x0 = FIRST_XMIPP_INDEX(size);
-		y0 = FIRST_XMIPP_INDEX(size);
-		z0 = FIRST_XMIPP_INDEX(size);
-		xF = LAST_XMIPP_INDEX(size);
-		yF = LAST_XMIPP_INDEX(size);
-		zF = LAST_XMIPP_INDEX(size);
-		std::cout << "1" << std::endl;
-//		Iin = proj;
-//		Iin().setXmippOrigin();
-		proj().setXmippOrigin();
-		std::cout << "2" << std::endl;
-		result.mapFile2Write(xF - x0 + 1, yF - y0 + 1, 1, fnpart);
-		std::cout << "3" << std::endl;
-//		Iin().window(result(),
-//		STARTINGZ(Iin()()) + z0,
-//		STARTINGY(Iin()()) + y0,
-//		STARTINGX(Iin()()) + x0,
-//		STARTINGZ(Iin()()) + zF,
-//		STARTINGY(Iin()()) + yF,
-//		STARTINGX(Iin()()) + xF, 0);
-
-//		proj().window(result(),
-//		STARTINGZ(proj()()) + z0,
-//		STARTINGY(proj()()) + y0,
-//		STARTINGX(proj()()) + x0,
-//		STARTINGZ(proj()()) + zF,
-//		STARTINGY(proj()()) + yF,
-//		STARTINGX(proj()()) + xF, 0);
-		std::cout << "4" << std::endl;
-	    result.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
-
-		FilterCTF.generateMask(proj());
-		FilterCTF.applyMaskSpace(proj());
-		P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
+		// padding proj
+		padp().initZeros(sizepad, sizepad);
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(padp()){
+			if (i<=limit1 || i>=limit2){
+				DIRECT_A2D_ELEM(padp(),i,j)=0;
+			}
+			else if (j<=limit1 || j>=limit2){
+				DIRECT_A2D_ELEM(padp(),i,j)=0;
+			}
+			else{
+				DIRECT_A2D_ELEM(padp(),i,j)=DIRECT_A2D_ELEM(proj(),(i-limit1),(j-limit1));
+			}
+		}
+		padp.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
+		FilterCTF.generateMask(padp());
+		FilterCTF.applyMaskSpace(padp());
+		padp.write(formatString("%s/Ppadctf.mrc", fnProj.c_str()));
+		// crop padp
+		proj().initZeros();
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(proj()){
+			DIRECT_A2D_ELEM(proj(),i,j)=DIRECT_A2D_ELEM(padp(),i+limit1,j+limit1);
+		}
+		proj.write(formatString("%s/PctfCrop.mrc", fnProj.c_str()));
 	}
  }
 
@@ -349,6 +330,10 @@
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
+	// sizes for padding
+	sizepad = XSIZE(V())*2;
+	limit1 = sizepad/4;
+	limit2 = sizepad*3/4;
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
@@ -373,6 +358,7 @@
 		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
 		row.getValue(MDL_IMAGE, fnPart);
 		applyCTF(row, P, fnPart);
+		P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
 		radial_meanP = computeRadialAvg(P, radial_meanP);

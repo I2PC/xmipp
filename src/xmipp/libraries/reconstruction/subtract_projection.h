@@ -85,7 +85,10 @@
 	MultidimArray<std::complex<double> > PFourierPhase;
 	double Imin;
 	double Imax;
-
+	Image<double> padp;
+	int sizepad;
+	int limit1;
+	int limit2;
     /// Read argument from command line
     void readParams() override;
     /// Show
