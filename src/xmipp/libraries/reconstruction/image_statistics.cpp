@@ -28,14 +28,14 @@
 #include <cstdio>
 #include <core/xmipp_program.h>
 #include <core/xmipp_image_generic.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <data/mask.h>
 
 /* PROGRAM ----------------------------------------------------------------- */
 class ProgStatistics: public XmippMetadataProgram
 {
 protected:
-    MetaData        DF_stats;
+    MetaDataVec     DF_stats;
     ImageGeneric    image;
     MultidimArray<double>    averageArray;
     MultidimArray<double>    stdArray;

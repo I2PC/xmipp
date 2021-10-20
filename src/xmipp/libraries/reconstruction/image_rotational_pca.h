@@ -25,7 +25,7 @@
 #ifndef _PROG_IMAGE_ROTATIONAL_PCA
 #define _PROG_IMAGE_ROTATIONAL_PCA
 
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_program.h"
 #include "core/xmipp_filename.h"
@@ -64,7 +64,7 @@ public:
 
 public:
     // Input metadata
-    std::vector<MetaData> MD;
+    std::vector<MetaDataVec> MD;
     // Number of images
     size_t Nimg;
     // Number of angles

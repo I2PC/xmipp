@@ -99,16 +99,16 @@ public: // Internal members
     size_t rank, Nprocessors;
 
     // Metadata with input images and input volumes
-    MetaData mdIn;
+    MetaDataDb mdIn;
 
     // Size of the images
     size_t Xdim;
 
     // Partial reconstruction metadatas
-    std::vector<MetaData> mdReconstructionPartial;
+    std::vector<MetaDataDb> mdReconstructionPartial;
 
     // Projection matching metadata
-    std::vector<MetaData> mdReconstructionProjectionMatching;
+    std::vector<MetaDataDb> mdReconstructionProjectionMatching;
 
     // Set of all correlations
     MultidimArray<double> cc;

@@ -32,7 +32,6 @@
 #include <core/xmipp_image.h>
 //#include <data/symmetries.h>
 #include <data/sampling.h>
-#include <core/metadata.h>
 //#include <data/matrix2d.h>
 #include <core/xmipp_fft.h>
 #include <core/xmipp_fftw.h>
@@ -114,7 +113,7 @@ public:
 			MultidimArray<double> &doaResolution_1,
 			MultidimArray<double> &doaResolution_2,
     		double &radial_Thr, double &azimuthal_Thr,
-			MetaData &mdprefDirs);
+			MetaDataVec &mdprefDirs);
 
 //    void radialAverageInMask(MultidimArray<int> &mask,
 //    						MultidimArray<double> &inputVol, MetaData &md);
@@ -122,7 +121,7 @@ public:
     void radialAverageInMask(MultidimArray<int> &mask,
     		MultidimArray<double> &inputVol_1, MultidimArray<double> &inputVol_2,
     		MultidimArray<double> &inputVol_3, MultidimArray<double> &inputVol_4,
-    		MultidimArray<double> &inputVol_5, MetaData &md);
+    		MultidimArray<double> &inputVol_5, MetaDataVec &md);
 
     void run();
 

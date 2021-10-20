@@ -27,7 +27,7 @@
 #define EXTRACT_SUBSET_H_
 
 #include "core/xmipp_filename.h"
-#include "core/metadata.h"
+#include "core/metadata_vec.h"
 #include <iosfwd>
 #include "core/xmipp_image.h"
 
@@ -43,7 +43,7 @@ class ExtractSubset final {
 public:
     class Settings {
     public:
-        MetaData md; // input
+        MetaDataVec md; // input
         FileName outXmd; // parent directory expected to exist
         FileName outStk; // parent directory expected to exist
         size_t first; // 0-based index

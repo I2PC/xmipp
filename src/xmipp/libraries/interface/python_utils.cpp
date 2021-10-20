@@ -129,6 +129,7 @@ void initNumpy() {
 #endif
     auto init = []() -> std::nullptr_t { // explicit on purpose
         import_array();
+        return nullptr;
     };
     init();
 }

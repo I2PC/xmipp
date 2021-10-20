@@ -146,7 +146,7 @@ void ProgRecFourier::run()
         // Passing parameters to each thread
         th_args[nt].parent = this;
         th_args[nt].myThreadID = nt;
-        th_args[nt].selFile = new MetaData(SF);
+        th_args[nt].selFile = new MetaDataVec(SF);
         pthread_create( (th_ids+nt) , NULL, processImageThread, (void *)(th_args+nt) );
     }
 
@@ -192,7 +192,7 @@ void ProgRecFourier::produceSideinfo()
     SF.removeDisabled();
 
     // Ask for memory for the output volume and its Fourier transform
-    size_t objId = SF.firstObject();
+    size_t objId = SF.firstRowId();
     FileName fnImg;
     SF.getValue(MDL_IMAGE,fnImg,objId);
     Image<double> I;

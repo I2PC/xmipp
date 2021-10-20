@@ -35,7 +35,7 @@
 #include <core/multidim_array.h>
 #include <core/xmipp_image.h>
 #include <core/xmipp_fftw.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 #include <core/xmipp_error.h>
 
 /* ************************************************************************* */
@@ -70,10 +70,6 @@ struct Particle_coords
     double scoreGini;
 };
 
-struct Point
-{
-    double x,y;
-};
 
 /** Micrography class.
     This class manages a large micrograph on disk. The image is not loaded
@@ -82,18 +78,22 @@ struct Point
 class Micrograph
 {
 public:
+    struct Point
+    {
+        double x,y;
+    };
     /* This image will contain a single particle from the micrograph,
        this is done to avoid asking/freeing memory all time. */
     Image<double>            single_particle;
     std::vector<Particle_coords> coords;
     FileName                 fn_coords;
     FileName                 fn_micrograph;
-    MDRow                    ctfRow; //MetaData row with CTF params
+    MDRowVec                 ctfRow; //MetaData row with CTF params
     FileName                 fn_inf;
     int                      X_window_size;
     int                      Y_window_size;
     size_t                   Xdim,Ydim,Zdim,Ndim;
-    Point				     point1, point2;
+    Point                    point1, point2;
     int                      datatype;
     int                      swapbyte;
     int                      __offset;
@@ -148,9 +148,11 @@ public:
     }
 
     /** Set the CTF parameters */
-    void set_ctfparams(const MDRow &ctf)
+    // TODO: when needed, change this function to take MDRow&
+    void set_ctfparams(const MDRowVec &ctf)
     {
         ctfRow = ctf;
+        ctfRow.detach();
     }
 
     /** Return the row with CTF params. */

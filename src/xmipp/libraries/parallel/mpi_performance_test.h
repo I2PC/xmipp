@@ -26,7 +26,6 @@
 #define _PROG_PERFORMANCE_TEST
 
 #include <parallel/xmipp_mpi.h>
-#include <core/metadata.h>
 #include <classification/pca.h>
 
 /// @defgroup ProgPerformanceTest MPI Performance Test

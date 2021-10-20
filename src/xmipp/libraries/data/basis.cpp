@@ -69,7 +69,7 @@ String Basis::basisName() const
 void Basis::defineParams(XmippProgram * program, const char* prefix, const char* comment)
 {
     char tempLine[256];
-    char lineOut[256];
+    char lineOut[512];
 
     if(prefix == NULL)
         sprintf(tempLine, "  [--basis <basis_type=blobs>] ");
@@ -397,7 +397,7 @@ double Basis::projectionAt(const Matrix1D<double> & u, const Matrix1D<double> & 
     return 0.0;
 }
 
-void createZernike3DBasis(const MultidimArray<double> &Vin, MultidimArray<double> &Vbasis, int l, int n, int m, int Rmax)
+void createZernike3DBasis(const MultidimArray<double> &Vin, MultidimArray<double> &Vbasis, int l1, int n, int l2, int m, int Rmax)
 {
 	Vbasis.initZeros(Vin);
 	Vbasis.setXmippOrigin();
@@ -423,7 +423,7 @@ void createZernike3DBasis(const MultidimArray<double> &Vin, MultidimArray<double
 				if (r2>Rmax2)
 					continue;
 				double jr=j*iRmax;
-				A3D_ELEM(Vbasis,k,i,j)=ZernikeSphericalHarmonics(l,n,m,jr,ir,kr,sqrt(r2)*iRmax);
+				A3D_ELEM(Vbasis,k,i,j)=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,sqrt(r2)*iRmax);
 			}
 		}
 

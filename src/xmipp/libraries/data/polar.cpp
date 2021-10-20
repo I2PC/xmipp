@@ -81,6 +81,7 @@ void Polar<T>::ensureAngleCache(int firstRing, int lastRing) {
         }
     }
 }
+template void Polar<double>::ensureAngleCache(int, int);
 
 
 void inverseFourierTransformRings(Polar<std::complex<double> > & in,
@@ -172,6 +173,9 @@ void polarFourierTransform(const MultidimArray<double> &in,
     }
     fourierTransformRings(inAux, out, *plans, conjugated);
 }
+template void polarFourierTransform<true>(MultidimArray<double> const&, 
+		Polar<double>&, Polar<std::complex<double> >&, bool, int, int, 
+		Polar_fftw_plans*&, int);
 
 
 template<bool NORMALIZE>

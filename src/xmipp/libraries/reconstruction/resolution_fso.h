@@ -32,7 +32,7 @@
 #include <core/matrix2d.h>
 #include <core/xmipp_fftw.h>
 #include <core/xmipp_filename.h>
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 
 class ProgFSO : public XmippProgram
@@ -117,7 +117,7 @@ private:
 
         /* SAVEANISOTROPYTOMETADATA - The FSO is stored in metadata file. The FSO comes from
         * anisotropy and the frequencies from freq. */
-        void saveAnisotropyToMetadata(MetaData &mdAnisotropy,
+        void saveAnisotropyToMetadata(MetaDataVec &mdAnisotropy,
     		                    	const MultidimArray<double> &freq,
 			                      	const MultidimArray<float> &anisotropy);
 

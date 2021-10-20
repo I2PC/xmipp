@@ -151,7 +151,7 @@ public:
 	AdmmKernel           kernel;
 	Image<double>        CHtb; // First reconstructed volume
 	Image<double>        Ck, Vk; // Reconstructed volume
-	MetaData             mdIn; // Set of images and angles
+	MetaDataVec          mdIn; // Set of images and angles
 	MultidimArray<std::complex<double> > fourierKernelV;
 	MultidimArray<double> paddedx;
 	FourierTransformer    transformerPaddedx, transformerL;

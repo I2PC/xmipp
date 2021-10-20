@@ -33,7 +33,7 @@
 #include <ctime>
 
 #include "gaussian_kerdensom.h"
-#include <core/metadata.h>
+#include <core/metadata_vec.h>
 
 #define  MAXZ -11282
 
@@ -48,8 +48,8 @@
 void GaussianKerDenSOM::train(FuzzyMap& _som, TS& _examples, FileName& _fn,
                               bool _update, double _sigma, bool _saveIntermediate)
 {
-	MetaData MDconvergence;
-	FileName tmpN;
+    MetaDataVec MDconvergence;
+    FileName tmpN;
     numNeurons = _som.size();
     numVectors = _examples.size();
     dim = _examples.theItems[0].size();

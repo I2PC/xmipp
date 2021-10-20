@@ -63,7 +63,7 @@ typedef struct
     int thread_id;
     int thread_num;
     ProgMLTomo *prm;
-    MetaData *MDimg;
+    MetaDataVec *MDimg;
     int *iter;
     double *wsum_sigma_noise;
     double *wsum_sigma_offset;
@@ -126,7 +126,7 @@ public:
     /** Stopping criterium */
     double eps;
     /** SelFile images, references and missingregions */
-    MetaData MDimg, MDref, MDmissing;
+    MetaDataVec MDimg, MDref, MDmissing;
     /** Flag whether md_contains_angles */
     bool mdimg_contains_angles;
     /** Vector for images to hold references (new & old) */
@@ -322,7 +322,7 @@ public:
                                        int &opt_refno, int &opt_angno, Matrix1D<double> &opt_offsets);
 
     /// Integrate over all experimental images
-    virtual void expectation(MetaData &MDimg, std::vector< Image<double> > &Iref, int iter,
+    virtual void expectation(MetaDataVec &MDimg, std::vector< Image<double> > &Iref, int iter,
                      double &LL, double &sumfracweight,
                      std::vector<MultidimArray<double> > &wsumimgs,
                      std::vector<MultidimArray<double> > &wsumweds,

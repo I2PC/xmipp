@@ -27,11 +27,11 @@
 #ifndef _PYTHON_METADATA_H
 #define _PYTHON_METADATA_H
 
+#include "core/metadata_db.h"
+#include "core/metadata_object.h"
 #include "Python.h"
 
 class MDQuery;
-class MetaData;
-class MDIterator;
 class MDObject;
 extern PyObject * PyXmippError;
 
@@ -121,8 +121,8 @@ extern PyTypeObject MDQueryType;
 typedef struct
 {
     PyObject_HEAD
-    MetaData * metadata;
-    MDIterator * iter;
+    MetaDataDb * metadata;
+    MetaDataDb::id_iterator * iter;
 }
 MetaDataObject;
 

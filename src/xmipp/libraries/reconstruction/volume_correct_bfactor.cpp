@@ -26,7 +26,6 @@
 #include <fstream>
 #include "volume_correct_bfactor.h"
 #include "core/xmipp_image.h"
-#include "core/metadata.h"
 #include "core/xmipp_fftw.h"
 
 void ProgVolumeCorrectBfactor::defineParams()
@@ -244,7 +243,7 @@ void ProgVolumeCorrectBfactor::get_snr_weights_old(std::vector<double> &snr)
 void ProgVolumeCorrectBfactor::get_snr_weights(std::vector<double> &snr)
 {
 
-	MetaData md;
+	MetaDataVec md;
 	md.read(fn_fsc);
 
     double fsc;
@@ -252,9 +251,9 @@ void ProgVolumeCorrectBfactor::get_snr_weights(std::vector<double> &snr)
 
     snr.clear();
 
-    FOR_ALL_OBJECTS_IN_METADATA(md)
+    for (size_t objId : md.ids())
     {
-        md.getValue(MDL_RESOLUTION_FRC, fsc, __iter.objId);
+        md.getValue(MDL_RESOLUTION_FRC, fsc, objId);
         double mysnr = XMIPP_MAX( (2*fsc) / (1+fsc), 0.);
         snr.push_back( sqrt(mysnr) );
     }
