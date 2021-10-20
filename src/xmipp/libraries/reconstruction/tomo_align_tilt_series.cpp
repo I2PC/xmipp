@@ -2758,27 +2758,6 @@ void Alignment::computeErrorForLandmarks()
 /* Update model ------------------------------------------------------------ */
 //#define DEBUG
 //UTILS
-//void UpdatePositionsLandmarks()
-//{
-//    for (int j=0; j<Nlandmark; j++)
-//    {
-//        A.initZeros();
-//        b.initZeros();
-//        // Compute the part corresponding to Vj
-//        int iimax=prm->Vsetj[j].size();
-//        for (int ii=0; ii<iimax; ii++)
-//        {
-//            int i=prm->Vsetj[j][ii];
-//            XX(pij)=MAT_ELEM(prm->allLandmarksX,j,i);
-//            YY(pij)=MAT_ELEM(prm->allLandmarksY,j,i);
-//            A+=Ait[i]*Ai[i];
-//            b+=Ait[i]*(pij-(di[i]+diaxis[i]));
-//        }
-//
-//        // Update rj[j]
-//        rj[j]=A.inv()*b;
-//    }
-//}
 void Alignment::updateModel()
 {
     Matrix1D<double> pij(2), piN(2);
