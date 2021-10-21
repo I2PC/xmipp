@@ -997,19 +997,19 @@ class TransformAddNoise(XmippProgramTest):
         return 'xmipp_transform_add_noise'
 
     def test_case1(self):
+        ''' Test to check if noise is properly simulated '''
         self.runCase("-i input/cleanImage.spi --type gaussian 10 5 -o %o/noisyGaussian.spi",
                 outputs=["noisyGaussian.spi"], random=True)
 
-
-class TransformAdjustVolumeGreyLevels(XmippProgramTest):
-    _owner = RM
-    @classmethod
-    def getProgram(cls):
-        return 'xmipp_transform_adjust_volume_grey_levels'
-
-    def test_case1(self):
-        self.runCase("-i input/phantomBacteriorhodopsin.vol -m input/projectionsBacteriorhodopsin.xmd -o %o/adjusted.vol",
-                outputs=["adjusted.vol"])
+    def test_case2(self):
+        ''' Test to check if particle alignment is not applied '''
+        self.runCase("-i input/projectionsBacteriorhodopsin.xmd --type gaussian 0 0 -o %o/notNoisyGaussian.stk",
+                outputs=["notNoisyGaussian.stk"], random=True, validate=self.validate_case2)
+    
+    def validate_case2(self):
+        import filecmp
+        output = os.path.join(self.outputDir, "notNoisyGaussian.stk")
+        self.assertTrue(filecmp.cmp(output, "input/projectionsBacteriorhodopsin.stk"))
 
 
 class TransformCenterImage(XmippProgramTest):
