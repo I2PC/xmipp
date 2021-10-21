@@ -27,6 +27,7 @@
 #include "normalize.h"
 #include "core/transformations.h"
 #include "core/xmipp_image_generic.h"
+#include "filters.h"
 
 /* Normalizations ---------------------------------------------------------- */
 void normalize_OldXmipp(MultidimArray<double> &I)
@@ -245,6 +246,18 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
     std::vector<double> voxel_vector;
     double maxI, minI;
     SPEED_UP_temps;
+
+    if (bg_mask.computeMax() == 0)
+    {
+        Image<double> mask;
+        mask() = I;
+        static_cast<void>(EntropySegmentation(mask()));
+        FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mask())
+        {
+            if (DIRECT_MULTIDIM_ELEM(mask(), n) == 0)
+                DIRECT_MULTIDIM_ELEM(bg_mask,n) = 1;
+        }
+    }
     
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
     {
@@ -254,25 +267,27 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
 
     std::sort(voxel_vector.begin(), voxel_vector.end());
 
-	double medianBg, p95, ip95;
+	double medianBg;
+    double p99;
+    double ip99;
     int idx;
 	I.computeMedian_within_binary_mask(bg_mask, medianBg);
-	idx = voxel_vector.size() * 0.95;
-    p95 = voxel_vector[idx];
-	ip95 = 1 / p95;
+	idx = (int)(voxel_vector.size() * 0.99);
+    p99 = voxel_vector[idx];
+	ip99 = 1 / p99;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip95;
+        DIRECT_MULTIDIM_ELEM(I,n)=(DIRECT_MULTIDIM_ELEM(I,n) - medianBg) * ip99;
 
     if (clip)
     {
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
-            if (DIRECT_MULTIDIM_ELEM(I,n) > 1.8787)
+            if (DIRECT_MULTIDIM_ELEM(I,n) > 1.3284)
             {
-                DIRECT_MULTIDIM_ELEM(I,n) = 1.8787;
+                DIRECT_MULTIDIM_ELEM(I,n) = 1.3284;
             }
-            else if (DIRECT_MULTIDIM_ELEM(I,n) < -1.8787)
+            else if (DIRECT_MULTIDIM_ELEM(I,n) < -1.3284)
             {
-                DIRECT_MULTIDIM_ELEM(I,n) = -1.8787;
+                DIRECT_MULTIDIM_ELEM(I,n) = -1.3284;
             }           
     }
 }
@@ -579,8 +594,7 @@ void ProgNormalize::readParams()
     // Get background mask
     background_mode = NOBACKGROUND;
     if (method == NEWXMIPP || method == NEWXMIPP2 || method == MICHAEL ||
-        method == NEAR_OLDXMIPP || method == RAMP || method == NEIGHBOUR ||
-		method == ROBUST)
+        method == NEAR_OLDXMIPP || method == RAMP || method == NEIGHBOUR)
     {
         enable_mask = checkParam("--mask");
         if (enable_mask)
@@ -603,6 +617,16 @@ void ProgNormalize::readParams()
                 background_mode = CIRCLE;
             else
                 REPORT_ERROR(ERR_VALUE_INCORRECT, "Normalize: Unknown background mode");
+        }
+    }
+
+    if (method == ROBUST)
+    {
+        enable_mask = checkParam("--mask");
+        if (enable_mask)
+        {
+            mask_prm.allowed_data_types = INT_MASK;
+            mask_prm.readParams(this);
         }
     }
 
