@@ -84,6 +84,8 @@ or alternatively 2) Compile Xmipp via Scipion (if you want to use Xmipp in Scipi
 
 `scipion3 installb xmippDev -j 8`
 
+It is important to highlight that this step only compiles Xmipp, but it does not link to Scipion. The linking to Scipion is explained in the next section.
+
 Please refer to `./xmipp --help` for additional info on the compilation process and possible customizations.
 
 
