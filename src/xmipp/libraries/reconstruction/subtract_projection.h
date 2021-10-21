@@ -68,6 +68,7 @@
  	Projection PmaskVol;
     FourierFilter filter;
 	FourierFilter FilterG;
+	FourierFilter FilterG2;
 	FourierFilter Filter2;
     bool hasCTF;
  	double defocusU;
@@ -89,6 +90,9 @@
 	int sizepad;
 	int limit1;
 	int limit2;
+	Image<double> Pctf;
+	Image<double> Pmaskctf;
+
     /// Read argument from command line
     void readParams() override;
     /// Show
@@ -99,11 +103,12 @@
     Image<double> createMask(const FileName &, Image<double> &);
     void readParticle(const MDRowVec &);
     void percentileMinMax(const MultidimArray<double> &, double &, double &) const;
-    void applyCTF(const MDRowVec &, Projection &, FileName &);
+    Image<double> applyCTF(const MDRowVec &, Projection &, FileName &);
     void runIteration();
-    Projection thresholdMask(Projection &) const;
+    Image<double> thresholdMask(Image<double> &);
     Image<double> binarizeMask(Projection &) const;
-    Image<double> normMask(Image<double> &) const;
+//    Image<double> binarizeMask2(Projection &) const;
+//    Image<double> normMask(Image<double> &) const;
     void writeParticle(const int &, Image<double> &);
     /// Run
     void run() override;

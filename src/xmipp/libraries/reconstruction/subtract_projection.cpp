@@ -31,6 +31,7 @@
  #include "core/xmipp_fftw.h"
  #include "data/projection.h"
  #include "data/mask.h"
+ #include "data/filters.h"
  #include <iostream>
  #include <string>
  #include <sstream>
@@ -184,7 +185,7 @@
  	M = sortedI(p99);
  }
 
- void ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj, FileName &fnpart) {
+ Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj, FileName &fnpart) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		hasCTF=true;
 		ctf.readFromMdRow(r);
@@ -219,6 +220,7 @@
 		}
 		proj.write(formatString("%s/PctfCrop.mrc", fnProj.c_str()));
 	}
+	return proj;
  }
 
  MultidimArray<double> computeRadialAvg(const Image<double> &img, MultidimArray<double> &radial_mean){
@@ -266,13 +268,23 @@
 	P.write(formatString("%s/Pphase.mrc", fnProj.c_str()));
  }
 
- Projection ProgSubtractProjection::thresholdMask(Projection &m) const{
+ Image<double> ProgSubtractProjection::thresholdMask(Image<double> &m){
  	double maxMaskVol;
  	double minMaskVol;
  	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
 		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>maxMaskVol/20)) ? 1:0;
-//	keepBiggestComponent(img(),0,neig2D);
+	m.write(formatString("%s/maskFocusTh.mrc", fnProj.c_str()));
+	FilterG2.applyMaskSpace(m());
+	m.write(formatString("%s/maskFocusThFilt.mrc", fnProj.c_str()));
+	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
+		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>0.5)) ? 1:0;
+	m.write(formatString("%s/maskFocusThFiltTh.mrc", fnProj.c_str()));
+	keepBiggestComponent(m(),0);
+	m.write(formatString("%s/maskFocusThFiltBig.mrc", fnProj.c_str()));
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
+//	 		DIRECT_MULTIDIM_ELEM(m(),n) /= maxMaskVol;
+//	m.write(formatString("%s/maskFocusThFiltThNorm.mrc", fnProj.c_str()));
  	return m;
  }
 
@@ -285,14 +297,23 @@
  	return m;
  }
 
- Image<double> ProgSubtractProjection::normMask(Image<double> &m) const{
- 	double maxMaskVol;
- 	double minMaskVol;
- 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
- 		DIRECT_MULTIDIM_ELEM(m(),n) /= maxMaskVol;
- 	return m;
- }
+// Image<double> ProgSubtractProjection::binarizeMask2(Projection &m) const{
+// 	double maxMaskVol;
+// 	double minMaskVol;
+// 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
+//// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
+//// 		DIRECT_MULTIDIM_ELEM(m(),n) =(DIRECT_MULTIDIM_ELEM(m(),n)>0.05*maxMaskVol) ? 1:0;
+// 	return m;
+// }
+
+// Image<double> ProgSubtractProjection::normMask(Image<double> &m) const{
+// 	double maxMaskVol;
+// 	double minMaskVol;
+// 	m().computeDoubleMinMax(minMaskVol, maxMaskVol);
+// 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
+// 		DIRECT_MULTIDIM_ELEM(m(),n) /= maxMaskVol;
+// 	return m;
+// }
 
  Image<double> invertMask(const Image<double> &m) {
 	Image<double> PmaskI = m;
@@ -321,16 +342,20 @@
  	mdParticles.read(fnParticles);
  	maskVol = createMask(fnMaskVol, maskVol);
  	mask = createMask(fnMask, mask);
-	// Gaussian LPF to smooth mask
+	// Initialize Gaussian LPF to smooth mask
 	FilterG.FilterShape=REALGAUSSIAN;
 	FilterG.FilterBand=LOWPASS;
 	FilterG.w1=sigma;
-	// LPF to filter at desired resolution
+	// Initialize Gaussian LPF to threshold mask with ctf
+	FilterG2.FilterShape=REALGAUSSIAN;
+	FilterG2.FilterBand=LOWPASS;
+	FilterG2.w1=2;
+	// Initialize LPF to filter at desired resolution
 	Filter2.FilterBand=LOWPASS;
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
-	// sizes for padding
+	// Sizes for padding
 	sizepad = XSIZE(V())*2;
 	limit1 = sizepad/4;
 	limit2 = sizepad*3/4;
@@ -357,25 +382,25 @@
 		I.write(formatString("%s/ImaskVol.mrc", fnProj.c_str()));
 		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
 		row.getValue(MDL_IMAGE, fnPart);
-		applyCTF(row, P, fnPart);
+		Pctf = applyCTF(row, P, fnPart);
 		P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
-		radial_meanP = computeRadialAvg(P, radial_meanP);
+		radial_meanP = computeRadialAvg(Pctf, radial_meanP);
 		radial_meanP.write(formatString("%s/Prad.txt", fnProj.c_str()));
 		radQuotient = computeRadQuotient(radQuotient, radial_meanI, radial_meanP);
 		radQuotient.write(formatString("%s/radQuotient.txt", fnProj.c_str()));
 		percentileMinMax(I(), Imin, Imax);
 		transformer.FourierTransform(I(),IFourier,false);
 		FFT_magnitude(IFourier,IFourierMag);
-		transformer.FourierTransform(P(),PFourierPhase,true);
+		transformer.FourierTransform(Pctf(),PFourierPhase,true);
 		extractPhaseProj(PFourierPhase);
 		for (int n=0; n<iter; ++n) {
 			runIteration();
 			if (cutFreq!=0) {
-				Filter2.generateMask(P());
+				Filter2.generateMask(Pctf());
 				Filter2.do_generate_3dmask=true;
-				Filter2.applyMaskSpace(P());
+				Filter2.applyMaskSpace(Pctf());
 				P.write(formatString("%s/Pfilt.mrc", fnProj.c_str()));
 			}
 		}
@@ -386,20 +411,29 @@
 			Filter2.applyMaskSpace(IFiltered());
     	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	Pmask.write(formatString("%s/maskFocus.mrc", fnProj.c_str()));
-		applyCTF(row, Pmask, fnPart);
+    	Pmaskctf = applyCTF(row, Pmask, fnPart);
     	Pmask.write(formatString("%s/maskFocusCTF.mrc", fnProj.c_str()));
-		Pmask = thresholdMask(Pmask);
-    	Pmask.write(formatString("%s/maskFocusTh.mrc", fnProj.c_str()));
-    	PmaskFilt = binarizeMask(Pmask);
-    	PmaskFilt = normMask(PmaskFilt);
-    	PmaskFilt.write(formatString("%s/maskFocusBin.mrc", fnProj.c_str()));
-		PmaskInv = invertMask(PmaskFilt);
+    	Pmaskctf = thresholdMask(Pmaskctf);
+    	Pmaskctf.write(formatString("%s/maskFocusThALL.mrc", fnProj.c_str()));
+//    	PmaskFilt = binarizeMask2(Pmask);
+//    	FilterG.w1=2;
+//    	FilterG.applyMaskSpace(PmaskFilt());
+////    	PmaskFilt.write(formatString("%s/maskFocusThFilt.mrc", fnProj.c_str()));
+//    	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PmaskFilt())
+//    		DIRECT_MULTIDIM_ELEM(PmaskFilt(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(PmaskFilt(),n)>0.5)) ? 1:0;
+////    	PmaskFilt.write(formatString("%s/maskFocusThFiltTh.mrc", fnProj.c_str()));
+//    	keepBiggestComponent(PmaskFilt(),0);
+//    	PmaskFilt.write(formatString("%s/maskFocusThFiltBig.mrc", fnProj.c_str()));
+//    	PmaskFilt = normMask(PmaskFilt);
+//    	PmaskFilt.write(formatString("%s/maskFocusNorm.mrc", fnProj.c_str()));
+		PmaskInv = invertMask(Pmaskctf);
 		PmaskInv.write(formatString("%s/maskFocusInv.mrc", fnProj.c_str()));
-		FilterG.applyMaskSpace(PmaskFilt());
-		PmaskFilt.write(formatString("%s/maskFocusBinGauss.mrc", fnProj.c_str()));
+    	FilterG.w1=sigma;
+		FilterG.applyMaskSpace(Pmaskctf());
+		Pmaskctf.write(formatString("%s/maskFocusBinGauss.mrc", fnProj.c_str()));
 		I.write(formatString("%s/Ifilt.mrc", fnProj.c_str()));
 		P.write(formatString("%s/Padj.mrc", fnProj.c_str()));
-		I = subtraction(I, P, PmaskInv, PmaskFilt);
+		I = subtraction(I, P, PmaskInv, Pmaskctf);
 		writeParticle(int(i), I);
     }
     mdParticles.write(fnParticles);
