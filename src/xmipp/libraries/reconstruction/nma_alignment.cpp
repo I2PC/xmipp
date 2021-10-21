@@ -336,7 +336,7 @@ double ProgNmaAlignment::performContinuousAssignment(const FileName &fnRandom,
 	return tempvar;
 }
 
-void ProgNmaAlignment::updateBestFit(double fitness, int dim) {
+void ProgNmaAlignment::updateBestFit(double fitness) {
 	if (fitness < fitness_min(0)) {
 		fitness_min(0) = fitness;
 		trial_best = trial;
@@ -392,7 +392,7 @@ double ObjFunc_nma_alignment::eval(Vector X, int *nerror) {
 
 	runSystem("rm", formatString("-rf %s* &", randStr));
 
-	global_nma_prog->updateBestFit(fitness, dim);
+	global_nma_prog->updateBestFit(fitness);
 	return fitness;
 }
 

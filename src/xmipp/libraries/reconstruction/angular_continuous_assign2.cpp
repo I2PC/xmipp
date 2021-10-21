@@ -34,8 +34,8 @@ ProgAngularContinuousAssign2::ProgAngularContinuousAssign2()
 {
     produces_a_metadata = true;
     each_image_produces_an_output = true;
-    projector = NULL;
-    ctfImage = NULL;
+    projector = nullptr;
+    ctfImage = nullptr;
     rank = 0;
 }
 
@@ -225,7 +225,7 @@ void ProgAngularContinuousAssign2::updateCTFImage(double defocusU, double defocu
 	currentDefocusV=ctf.DeltafV=defocusV;
 	currentAngle=ctf.azimuthal_angle=angle;
 	ctf.produceSideInfo();
-	if (ctfImage==NULL)
+	if (ctfImage==nullptr)
 	{
 		ctfImage = new MultidimArray<double>();
 		ctfImage->resizeNoCopy(projector->projection());

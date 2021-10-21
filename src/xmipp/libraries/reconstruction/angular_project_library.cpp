@@ -32,8 +32,8 @@ ProgAngularProjectLibrary::ProgAngularProjectLibrary()
 {
     /** sampling object 1 by default*/
     mysampling.setSampling(1);
-    Vshears=NULL;
-    Vfourier=NULL;
+    Vshears=nullptr;
+    Vfourier=nullptr;
 
 }
 
@@ -217,9 +217,9 @@ void ProgAngularProjectLibrary::project_angle_vector (int my_init, int my_end, b
 
 //    if (shears && XSIZE(inputVol())!=0 && VShears==NULL)
 //        VShears=new RealShearsInfo(inputVol());
-    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==NULL)
+    if (projType == SHEARS && XSIZE(inputVol())!=0 && Vshears==nullptr)
         Vshears=new RealShearsInfo(inputVol());
-    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==NULL)
+    if (projType == FOURIER && XSIZE(inputVol())!=0 && Vfourier==nullptr)
         Vfourier=new FourierProjector(inputVol(),
         		                      paddFactor,
         		                      maxFrequency,
@@ -267,7 +267,7 @@ void ProgAngularProjectLibrary::run()
     show();
     //all ranks
     mysampling.setSampling(sampling);
-    srand ( time(NULL) );
+    srand ( time(nullptr) );
     //process the symmetry file
     //only checks symmetry and set pg_order and pg_group, no memory allocation
     if (!mysampling.SL.isSymmetryGroup(fn_sym, symmetry, sym_order))
