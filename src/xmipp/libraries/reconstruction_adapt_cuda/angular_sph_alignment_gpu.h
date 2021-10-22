@@ -36,8 +36,7 @@
 
 #include "reconstruction_cuda/cuda_angular_sph_alignment.h"
 
-// This dummy classes added here are needed so we can move the fftw library include 
-// to the cpp code (Cuda 8.x compatibility)
+// Forward declaration: fourier filter includes fftw, which doesn't compile with cuda 8 
 class FourierFilter;
 class CTFDescription;
 
