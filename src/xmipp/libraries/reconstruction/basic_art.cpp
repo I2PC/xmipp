@@ -49,7 +49,7 @@ BasicARTParameters::~BasicARTParameters()
 /* Default values ========================================================== */
 void BasicARTParameters::defaultValues()
 {
-    fh_hist            = NULL;
+    fh_hist            = nullptr;
     fn_start           = "";
     fn_sym             = "";
     force_sym          = 0;
@@ -85,12 +85,12 @@ void BasicARTParameters::defaultValues()
     refine             = false;
     noisy_reconstruction = false;
 
-    IMG_Inf            = NULL;
-    D                  = NULL;
-    Dinv               = NULL;
-    GVNeq              = NULL;
+    IMG_Inf            = nullptr;
+    D                  = nullptr;
+    Dinv               = nullptr;
+    GVNeq              = nullptr;
 
-    surface_mask       = NULL;
+    surface_mask       = nullptr;
     POCS_freq          = 1;
 
     known_volume       = -1;
@@ -603,7 +603,7 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
                 Image<double> imTemp;
                 imTemp.read(fn_start);
                 basis.changeFromVoxels(imTemp(), vol_basis0, grid_type, grid_relative_size,
-                                       NULL, NULL, R, threads);
+                                       nullptr, nullptr, R, threads);
             }
         }
         else
@@ -692,7 +692,7 @@ void BasicARTParameters::produceSideInfo(GridVolume &vol_basis0, int level,
 void BasicARTParameters::computeCAVWeights(GridVolume &vol_basis0,
         int numProjs_node, int debug_level)
 {
-    if (GVNeq == NULL)
+    if (GVNeq == nullptr)
         GVNeq = new GridVolumeT<int>;
     GVNeq->resize(vol_basis0);
     GVNeq->initZeros();

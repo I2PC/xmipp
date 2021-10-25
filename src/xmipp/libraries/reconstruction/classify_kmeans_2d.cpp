@@ -415,7 +415,7 @@ void ProgClassifyKmeans2D::run()
     std::vector<Point> points;
     std::vector<Cluster> clusters;
     ProgExtractFeatures ef;
-    srand (time(NULL));
+    srand (time(nullptr));
 
     // reading new images from input file
     SF.read(fnSel);

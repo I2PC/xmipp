@@ -71,7 +71,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   int i=0;
   String fnImg;
   std::vector<double> lambda;
-  FOR_ALL_OBJECTS_IN_METADATA(mdImages)
+  for (auto objId : mdImages.ids())
   {
 	  mdImages.getValue(MDL_IMAGE,fnImg,objId);
 	  mxSetCell(plhs[0], i, mxCreateString(fnImg.c_str()));

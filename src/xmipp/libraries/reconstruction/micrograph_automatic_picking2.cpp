@@ -85,7 +85,7 @@ AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum
     }
 
     // Initalize the thread to one
-    thread = NULL;
+    thread = nullptr;
 }
 
 // This method is required by the JAVA part.
@@ -548,7 +548,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
     MultidimArray<double> featVec, featVecNN;
     std::vector<Particle2> positionArray;
 
-    if (thread == NULL)
+    if (thread == nullptr)
     {
         thread = new FeaturesThread(this);
         thread->start();

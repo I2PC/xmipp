@@ -77,7 +77,7 @@ struct RecFourierBufferData
 		FFTs = CTFs = paddedImages = modulators = nullptr;
 
 		free(spaces);
-		spaces = NULL;
+		spaces = nullptr;
 	}
 
 	/**
@@ -111,7 +111,7 @@ struct RecFourierBufferData
 		if (array == CTFs) return array + (fftSizeX * fftSizeY * itemIndex);
 		if (array == modulators) return array + (fftSizeX * fftSizeY * itemIndex);
 		if (array == paddedImages) return array + (paddedImgSize * paddedImgSize * itemIndex);
-		return NULL; // undefined
+		return nullptr; // undefined
 	}
 
 	/**
@@ -192,8 +192,8 @@ struct RecFourierBufferData
 		noOfImages = fftSizeX = fftSizeY = paddedImgSize
 				= maxNoOfImages = noOfSymmetries = -1;
 
-		FFTs = CTFs = paddedImages = modulators = NULL;
-		spaces = NULL;
+		FFTs = CTFs = paddedImages = modulators = nullptr;
+		spaces = nullptr;
 	}
 
 protected:

@@ -2167,7 +2167,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
         action = 3;
         evaluation_reduction = 1;
 
-        double error = -CTF_fitness(adjust_params->vdata-1,NULL);
+        double error = -CTF_fitness(adjust_params->vdata-1,nullptr);
         if ( error <= -0.1)
         {
             *adjust_params = initialGlobalAdjust;
