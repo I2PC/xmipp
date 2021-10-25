@@ -8,7 +8,7 @@ using namespace umpalumpa::data;
 using namespace umpalumpa;
 
 template <typename T> auto createFilterPayload(T *ptrCPU, const Size &size) {
-  auto ld = LogicalDescriptor(size, size, "Filter");
+  auto ld = LogicalDescriptor(size);
   auto pd = PhysicalDescriptor(
       ld.GetPaddedSize().total * Sizeof(DataType::kFloat), DataType::kFloat);
   void *ptr = nullptr;
@@ -39,14 +39,14 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
   cropSettings.SetNormalize(true);
 
   // create input Payload
-  auto ldInFull = FourierDescriptor(sizeInFull, sizeInFull);
+  auto ldInFull = FourierDescriptor(sizeInFull, PaddingDescriptor());
   auto pdInFull = PhysicalDescriptor(ldInFull.GetPaddedSize().total *
                                          Sizeof(DataType::kFloat),
                                      DataType::kFloat);
   auto inFull = Payload(inOutData, ldInFull, pdInFull, "Input data");
 
   // create intermediary Payload
-  auto ldBatch = FourierDescriptor(sizeInBatch, sizeInBatch,
+  auto ldBatch = FourierDescriptor(sizeInBatch, PaddingDescriptor(),
                                    FourierDescriptor::FourierSpaceDescriptor());
   printf("ldBatch size in: %lu %lu %lu %lu\n", sizeInBatch.x, sizeInBatch.y,
          sizeInBatch.z, sizeInBatch.n);
@@ -65,7 +65,7 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
   // FIXME make sure that we cannot overwrite the input data by the resulting
   // cropped data
   auto ldOutFull = FourierDescriptor(
-      sizeOutFull, sizeOutFull, FourierDescriptor::FourierSpaceDescriptor());
+      sizeOutFull, PaddingDescriptor(), FourierDescriptor::FourierSpaceDescriptor());
   auto bytesOutFull =
       ldOutFull.GetPaddedSize().total * Sizeof(DataType::kComplexFloat);
   auto pdOutFull = PhysicalDescriptor(bytesOutFull, DataType::kComplexFloat);
@@ -84,21 +84,21 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
         inFull.Subset(offset, batchSize));
     // trying to prefetch data to avoid page faults
     gpuErrchk(
-        cudaMemPrefetchAsync(inFFT.data.ptr, inFFT.data.dataInfo.bytes, 0));
+        cudaMemPrefetchAsync(inFFT.payload.ptr, inFFT.payload.dataInfo.bytes, 0));
 
-    auto batch = inFFT.data.info.GetSize().n;
+    auto batch = inFFT.payload.info.GetSize().n;
     std::cout << "Processing images " << offset << "-" << batch << std::endl;
     // start at 0 to reuse the temporal storage, set N according to what is left
     auto outFFT =
-        fourier_transformation::AFFT::ResultData(outBatch.Subset(0, batch));
+        fourier_transformation::AFFT::OutputData(outBatch.Subset(0, batch));
     auto inCrop = fourier_processing::AFP::InputData(outBatch.Subset(0, batch),
                                                      std::move(filterP));
     auto outCrop =
         fourier_processing::AFP::OutputData(outFull.Subset(offset, batch));
-    // printf("inFFT: %p %p\n", inFFT.data.ptr, inOutData + (offset * inX *
-    // inY)); printf("outFFT: %p %p\n", outFFT.data.ptr, batchPtr);
-    // printf("inCrop: %p %p\n", inCrop.data.ptr, batchPtr);
-    // printf("outCrop: %p %p\n", outCrop.data.ptr,
+    // printf("inFFT: %p %p\n", inFFT.payload.ptr, inOutData + (offset * inX *
+    // inY)); printf("outFFT: %p %p\n", outFFT.payload.ptr, batchPtr);
+    // printf("inCrop: %p %p\n", inCrop.payload.ptr, batchPtr);
+    // printf("outCrop: %p %p\n", outCrop.payload.ptr,
     //        inOutData + (offset * (outX / 2 + 1) * outY));
 
     if (batchSize != batch) {
@@ -114,24 +114,24 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
       doInit = false;
     }
     std::cout << "Calling execute" << std::endl;
-    // cudaMemset(outFFT.data.ptr, 0, pdBatch.bytes);
+    // cudaMemset(outFFT.payload.ptr, 0, pdBatch.bytes);
     assert(fftTransformer.Execute(outFFT, inFFT));
 
-    // auto &s = outFFT.data.info.GetSize();
+    // auto &s = outFFT.payload.info.GetSize();
     // auto *tmp = new std::complex<float>[s.total];
     // printf("%lu %lu %lu %lu -> %lu %lu\n", s.x, s.y, s.z, s.n, s.total,
-    //        outFFT.data.dataInfo.bytes);
-    // cudaMemcpy(tmp, outFFT.data.ptr, outFFT.data.dataInfo.bytes * 2,
+    //        outFFT.payload.dataInfo.bytes);
+    // cudaMemcpy(tmp, outFFT.payload.ptr, outFFT.payload.dataInfo.bytes * 2,
     //            cudaMemcpyDeviceToHost);
     // Image<float> img(s.x, s.y, s.z, s.n);
     // for (size_t i = 0; i < s.total; ++i) {
-    //   img.data.data[i] = tmp[i].real();
+    //   img.payload.data[i] = tmp[i].real();
     // }
     // img.write("fft_new_" + std::to_string(offset) + ".mrc");
     // delete[] tmp;
     // gpuErrchk(cudaPeekAtLastError());
 
-    // cudaMemset(inFFT.data.ptr, 0, inFFT.data.dataInfo.bytes);
+    // cudaMemset(inFFT.payload.ptr, 0, inFFT.payload.dataInfo.bytes);
 
     assert(cropTransformer.Execute(outCrop, inCrop));
     std::cout << "iteration done" << std::endl;
