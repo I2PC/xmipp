@@ -49,7 +49,7 @@ void ProgFSO::defineParams()
 	addUsageLine("+ calculated at different frequencies (resolutions). Note that this ratio is between 0 (resolution of all directions is worse than the global FSC)");
 	addUsageLine("+ resolution than the global FSC)  and 1 (all directions present better resolution than the FSC) at a given resolution.");
 	addUsageLine("+ In the particular case, FSO curve takes the value of 0.5 (FSO=0.5), then half of the directions are better, and.");
-	addUsageLine("+ the other half are worse than the FSC, this situation occurs at the resoltuion of hte map. It means the FSO = 0.5 at the ");
+	addUsageLine("+ the other half are worse than the FSC, this situation occurs at the resoltuion of the map. It means the FSO = 0.5 at the ");
 	addUsageLine("+ FSC resolution. A map is isotropic if all directional resolution are similar, and anisotropic is there are significant resolution values along");
 	addUsageLine("+ different directions. Thus, when the FSO presents a sharp cliff, a step-like function, the map will be isotropic.");
 	addUsageLine("+ In contrast, when the OFSC shows a slope the map will be anisotropic. The lesser slope the higher resolution isotropy.");
@@ -514,7 +514,9 @@ double ProgFSO::incompleteGammaFunction(double &x)
 
 	float val;
 
-	//Table with the values of the incomplete gamma function 
+	// Table with the values of the incomplete lower gamma function. The set of values of the table can be 
+	// obtained in matlab with the function gammainc(x,5). The implementation of this funcitonis not easy
+	// for that reason, a numerical table was put here.
 	Matrix1D<double> incompgamma;
 	incompgamma.initZeros(41);
 	VEC_ELEM(incompgamma,0) =0.0f;
@@ -1335,12 +1337,12 @@ void ProgFSO::run()
 	//    		std::cout << trT2 << std::endl;
 				dAi(isotropyMatrix, i) = 0.5*pdim*(pdim+2)*(2*aniParams.at(0)[i])*(trT2 - 1./pdim);
 				// The factor 2 is because we need to compute the point in the whole sphere, but currently
-				// we are measuing half of the sphere due to the symmetry of hte problem
+				// we are measuing half of the sphere due to the symmetry of the problem
 				// S = 0.5 * p * (p+2) * n * (trace(T2) - 1/p); Where p is the
 				// dimension of the sphere (p=3) and n the number of points to
-				// determine if they are uniformly or not distributed. T = x*x';
+				// determine if they are uniformly or not. T = x*x';
 
-				// The hypohtesis test considersp = 0.05.
+				// The hypohtesis test considers p = 0.05.
 				// p=0.05; nu = 5; x = chi2inv(p,nu);
 			}
     	}
