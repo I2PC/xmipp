@@ -353,10 +353,7 @@ NaiveBayes & NaiveBayes::operator=(const NaiveBayes &other)
     __leafs.clear();
     imax=other.__leafs.size();
     for (size_t i=0; i<imax; ++i)
-    {
-    	LeafNode *newLeaf=new LeafNode(*(other.__leafs[i]));
-    	__leafs.push_back(newLeaf);
-    }
+    	__leafs.emplace_back(new LeafNode(*(other.__leafs[i])));
    __cost=other.__cost;
    return *this;
 }
@@ -558,10 +555,7 @@ EnsembleNaiveBayes & EnsembleNaiveBayes::operator=(const EnsembleNaiveBayes &oth
     ensemble.clear();
     imax=other.ensemble.size();
     for (size_t i=0; i<imax; ++i)
-    {
-    	NaiveBayes *classifier=new NaiveBayes(*(other.ensemble[i]));
-    	ensemble.push_back(classifier);
-    }
+    	ensemble.emplace_back(new NaiveBayes(*(other.ensemble[i])));
 
     ensembleFeatures=other.ensembleFeatures;
     K=other.K;

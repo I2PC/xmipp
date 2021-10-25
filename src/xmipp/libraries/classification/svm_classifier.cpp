@@ -62,6 +62,7 @@ SVMClassifier & SVMClassifier::operator=(const SVMClassifier &other)
 {
     param=other.param;
     prob=other.prob;
+    delete model;
     model=new svm_model(*other.model);
     return *this;
 }

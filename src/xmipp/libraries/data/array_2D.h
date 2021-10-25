@@ -60,10 +60,8 @@ public:
 	void allocateZeros(int xSize, int ySize)
 	{
 		data = new T*[ySize];
-		for (int y = 0; y < ySize; y++) {
-			data[y] = new T[xSize];
-			memset(data[y],0,xSize*sizeof(T));
-		}
+		for (int y = 0; y < ySize; y++)
+			data[y] = new T[xSize]();
 	#if DEBUG
 		std::cout << "Array2D created (" << getXSize() << "x" << getYSize()
 			<< ") at " << data << std::endl;
