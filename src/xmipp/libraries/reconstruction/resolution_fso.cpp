@@ -1343,9 +1343,6 @@ void ProgFSO::run()
 				// The hypohtesis test considersp = 0.05.
 				// p=0.05; nu = 5; x = chi2inv(p,nu);
 			}
-			
-			std::cout << i << "   " << trT2 << "   " << aniParams.at(0)[i] << "   " <<dAi(isotropyMatrix, i) << std::endl;
-			std::cout << "------------------------------" << std::endl;
     	}
 
 
