@@ -30,7 +30,7 @@
 #include "data/fourier_projection.h"
 #include "data/ctf.h"
 #include "data/filters.h"
-#include <memory>
+
 
 //#define DEBUG
 //#define TIMING
