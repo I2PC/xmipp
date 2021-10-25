@@ -3228,7 +3228,7 @@ ProgMLTomo::regularize(int iter)
         FileName fnt;
         for (int refno = 0; refno < nr_ref; refno++)
         {
-            fnt = formatString("%s_it%06d_oriref%06d.vol", fn_root.c_str(), iter,
+            fnt = formatString("%s_it%06d_oriref%06d.mrc", fn_root.c_str(), iter,
                                refno + 1);
             Iref[refno].write(fnt);
         }
@@ -3414,7 +3414,7 @@ ProgMLTomo::writeOutputFiles(const int iter,
     //for (int refno = 0; refno < nr_ref; refno++)
     for (size_t objId : MDref.ids())
     {
-        fn_tmp = formatString("%s_ref%06d.vol", fn_base.c_str(), refno + 1);
+        fn_tmp = formatString("%s_ref%06d.mrc", fn_base.c_str(), refno + 1);
         Vt = Iref[refno];
         reScaleVolume(Vt(), false);
         Vt.write(fn_tmp);
@@ -3450,7 +3450,7 @@ ProgMLTomo::writeOutputFiles(const int iter,
 
             CenterFFT(Vt(), true);
             reScaleVolume(Vt(), false);
-            fn_tmp = formatString("%s_wedge%06d.vol", fn_base.c_str(), refno + 1);
+            fn_tmp = formatString("%s_wedge%06d.mrc", fn_base.c_str(), refno + 1);
             Vt.write(fn_tmp);
         }
         refno++;
