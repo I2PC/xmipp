@@ -2384,7 +2384,6 @@ ProgMLTomo::expectationSingleImage(MultidimArray<double> &Mimg, int imgno,
     // 2nd term: for subtracting mindiff
     // 3rd term: for (sqrt(2pi)*sigma_noise)^-1 term in formula (12) Sigworth (1998)
     // TODO: check this!!
-    dLL = 0;
     if (do_missing)
 
         dLL =

@@ -399,8 +399,7 @@ void ProgVolumeHalvesRestoration::filterBank()
 			double e2=DIRECT_MULTIDIM_ELEM(Vfiltered2,n)*DIRECT_MULTIDIM_ELEM(Vfiltered2,n);
 			double w2=cdfN.getProbability(e2);
 
-			double weight;
-			weight = 0;
+			double weight = 0;
 			switch (weightFun)
 			{
 			case 0: weight=0.5*(w1+w2); break;
