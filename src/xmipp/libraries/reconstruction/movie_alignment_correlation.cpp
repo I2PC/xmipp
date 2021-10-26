@@ -132,7 +132,7 @@ void ProgMovieAlignmentCorrelation<T>::computeShifts(size_t N,
     for (size_t i = 0; i < N - 1; ++i) {
         for (size_t j = i + 1; j < N; ++j) {
             bestShift(*frameFourier[i], *frameFourier[j], Mcorr, bX(idx),
-                    bY(idx), aux, NULL, this->maxShift * sizeFactor);
+                    bY(idx), aux, nullptr, this->maxShift * sizeFactor);
             bX(idx) /= sizeFactor; // scale to expected size
             bY(idx) /= sizeFactor;
             if (this->verbose)

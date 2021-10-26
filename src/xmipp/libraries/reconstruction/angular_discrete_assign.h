@@ -170,10 +170,6 @@ public:
     int pick_view(int method,
                   std::vector< std::vector<int> > &groups,
                   std::vector<double> &vscore,
-                  std::vector<double> &vrot,
-                  std::vector<double> &vtilt,
-                  std::vector<double> &vpsi,
-                  const std::vector<int> &best_idx,
                   const std::vector<int> &candidate_idx, const std::vector<double> &candidate_rates);
 
     /** Predict rotational and tilting angles.

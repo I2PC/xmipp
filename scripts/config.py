@@ -327,6 +327,9 @@ class Config:
                 if hdf5Inc:
                     self.configDict["INCDIRFLAGS"] += " -I%s" % hdf5Inc
 
+            if findFileInDirList("opencv4/opencv2/core/core.hpp", ["/usr/include"]):
+                self.configDict["INCDIRFLAGS"] += " -I%s" % "/usr/include/opencv4"
+
         if self.configDict["PYTHON_LIB"] == "":
             # malloc flavour is not needed from 3.8
             malloc = "m" if sys.version_info.minor < 8 else ""
@@ -891,7 +894,7 @@ class Config:
         commitFn = os.path.join(
             'src', 'xmipp', 'commit.info')  # FIXME check if this is still true
         notFound = "(no git repo detected)"
-        if ensureGit(False):
+        if ensureGit(False) and isGitRepo():
             scriptName = ''
             runJob('git ls-files --full-name ' +
                    os.path.basename(__file__), '.', False, scriptName, False)
@@ -899,12 +902,10 @@ class Config:
             # get hash of the last commit changing this script
             if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
                 return lastCommit[0].strip()
-            elif os.path.isfile(commitFn):
-                with open(commitFn, 'r') as file:
-                    commitInfo = file.readline()
-                return commitInfo
-            else:
-                return notFound
+        elif os.path.isfile(commitFn):
+            with open(commitFn, 'r') as file:
+                commitInfo = file.readline()
+            return commitInfo
         else:
             return notFound
 

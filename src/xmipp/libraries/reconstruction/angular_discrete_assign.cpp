@@ -598,10 +598,6 @@ void ProgAngularDiscreteAssign::group_views(const std::vector<double> &vrot,
 int ProgAngularDiscreteAssign::pick_view(int method,
         std::vector< std::vector<int> > &groups,
         std::vector<double> &vscore,
-        std::vector<double> &vrot,
-        std::vector<double> &vtilt,
-        std::vector<double> &vpsi,
-        const std::vector<int> &best_idx,
         const std::vector<int> &candidate_idx, const std::vector<double> &candidate_rate)
 {
     if (method == 0)
@@ -1032,8 +1028,8 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
             std::cout << "Partition: " << groups << std::endl;
 
         // Pick the best image from the groups
-        jbest = pick_view(pick, groups, vscore, vrot, vtilt, vpsi,
-                          best_idx, candidate_local_maxima, candidate_rate);
+        jbest = pick_view(pick, groups, vscore,
+                          candidate_local_maxima, candidate_rate);
         ibest = candidate_local_maxima[jbest];
     }
 
