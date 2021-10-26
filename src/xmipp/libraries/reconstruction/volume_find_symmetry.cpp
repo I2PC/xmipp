@@ -214,8 +214,6 @@ public:
         if (!helical && !helicalDihedral)
         {
             // Look for the rotational symmetry axis
-            best_rot=rot0;
-            best_tilt=tilt0;
             if (!local)
             {
                 if (verbose>0)
@@ -251,6 +249,8 @@ public:
                 steps.initConstant(1);
                 powellOptimizer(p,1,2,&evaluateSymmetryWrapper,this,0.01,
                                 fitness,iter,steps,true);
+                best_rot=p(0);
+                best_tilt=p(1);
             }
             Matrix2D<double> Euler;
             Matrix1D<double> sym_axis;
@@ -287,8 +287,6 @@ public:
         				A3D_ELEM(mask,k,i,j)=0;
         	}
 
-            best_rot=rotLocal;
-            best_z=zLocal;
             if (!local)
             {
                 int ydim=0, xdim=0;
@@ -330,6 +328,8 @@ public:
                 steps.initConstant(1);
                 powellOptimizer(p,1,2,&evaluateSymmetryWrapper,this,0.01,
                                 fitness,iter,steps,true);
+                best_rot=p(0);
+                best_z=p(1);
                 best_corr=-fitness;
 
             }
