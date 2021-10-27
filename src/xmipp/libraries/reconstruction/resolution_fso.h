@@ -93,6 +93,10 @@ private:
 		void arrangeFSC_and_fscGlobal(double sampling_rate,
 				                    	double &thrs, MultidimArray<double> &freq);
 
+        /* 
+        * */
+        double incompleteGammaFunction(double &x);
+
         /* Defines a Matrix2D with coordinates Rot and tilt achieving a uniform coverage of the
         * projection sphere. Bool alot = True, implies a dense coverage */
         void generateDirections(Matrix2D<float> &angles, bool alot);
@@ -108,7 +112,7 @@ private:
 		void fscDir_fast(MultidimArray<float> &fsc, double rot, double tilt,
 				                      MultidimArray<float> &threeD_FSC, 
 						              MultidimArray<float> &normalizationMap,
-						              double &thrs, double &resol);
+						              double &thrs, double &resol, std::vector<Matrix2D<double>> &freqMat, size_t dirnum);
 
         /* PREPAREDATA: Data are prepared to be taken by the algorithm. 
         * The half maps will be read and stored in the multidimarray half1, and half2.
@@ -119,7 +123,7 @@ private:
         * anisotropy and the frequencies from freq. */
         void saveAnisotropyToMetadata(MetaDataVec &mdAnisotropy,
     		                    	const MultidimArray<double> &freq,
-			                      	const MultidimArray<float> &anisotropy);
+			                      	const MultidimArray<float> &anisotropy, const MultidimArray<double> &isotropyMatrix);
 
         /* DIRECTIONALFILTER: The half maps are summed to get the full map, and are filtered
         * by an anisotropic filter with cutoff the isosurface of the fsc at the given threshold

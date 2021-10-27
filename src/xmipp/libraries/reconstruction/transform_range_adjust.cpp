@@ -56,7 +56,7 @@ protected:
         addParamsLine("   --range <min_val> <max_val> : Output minimum and maximum values.");
         addParamsLine("   alias -r;");
         addParamsLine("   [--noise <sigma=0>] : Variation of the limit range values.");
-        mask_prm.defineParams(this,INT_MASK, NULL, "Pixels in the mask area are guaranteed to be into the specified range.");
+        mask_prm.defineParams(this,INT_MASK, nullptr, "Pixels in the mask area are guaranteed to be into the specified range.");
 
         addExampleLine("Adjust an image in the range [-1, 1]:", false);
         addExampleLine("xmipp_transform_range_adjust -i image.xmp -o image_adjust.xmp --range -1 1");

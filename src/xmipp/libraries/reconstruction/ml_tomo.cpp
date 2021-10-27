@@ -239,7 +239,7 @@ ProgMLTomo::readParams()
     // Generate new command line for restart procedure
     cline = "";
     int argc2 = 0;
-    char ** argv2 = NULL;
+    char ** argv2 = nullptr;
 
     if (checkParameter(argc, argv, "-restart"))
     {
@@ -2832,7 +2832,7 @@ threadMLTomoExpectationSingleImage(void * data)
 
     std::cerr<<"finished threadMLTomoExpectationSingleImage"<<std::endl;
 #endif
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -2902,12 +2902,12 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
         threads_d[c].imgs_id = &imgs_id;
         threads_d[c].distributor = distributor;
         pthread_create(
-            (th_ids + c), NULL, threadMLTomoExpectationSingleImage, (void *)(threads_d+c) );
+            (th_ids + c), nullptr, threadMLTomoExpectationSingleImage, (void *)(threads_d+c) );
     }
     // Wait for threads to finish and get joined MetaData
     for (int c = 0; c < threads; c++)
     {
-        pthread_join(*(th_ids + c), NULL);
+        pthread_join(*(th_ids + c), nullptr);
     }
     //Free some memory
     delete distributor;

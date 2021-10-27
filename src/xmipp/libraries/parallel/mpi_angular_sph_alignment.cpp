@@ -62,14 +62,6 @@ public:
             ProgAngularSphAlignment::showProgress();
         }
     }
-    /*void preProcess()
-    {
-    	ProgAngularSphAlignment::preProcess();
-        MetaData &mdIn = *getInputMd();
-        mdIn.addLabel(MDL_GATHER_ID);
-        mdIn.fillLinear(MDL_GATHER_ID,1,1);
-        createTaskDistributor(mdIn, blockSize);
-    }*/
     void createWorkFiles()
     {
         //Master node should prepare some stuff before start working
@@ -112,20 +104,6 @@ public:
         objIndex = BAD_INDEX;
         return false;
     }
-    /*void gatherMetadatas()
-    {
-        node->gatherMetadatas(*getOutputMd(), fn_out);
-    	MetaData MDaux;
-    	MDaux.sort(*getOutputMd(), MDL_GATHER_ID);
-        MDaux.removeLabel(MDL_GATHER_ID);
-        *getOutputMd()=MDaux;
-    }
-    void finishProcessing()
-    {
-    	gatherMetadatas();
-        if (node->isMaster())
-            ProgAngularSphAlignment::finishProcessing();
-    }*/
     void finishProcessing()
     {
     	distributor->wait();

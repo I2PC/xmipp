@@ -729,7 +729,7 @@ ProgReconsBase * ProgMLRefine3D::createReconsProgram(FileName &input, FileName &
         //        // Reconstruct using weighted least-squares ART
         //        Basic_ROUT_Art(art_prm, dummy, new_vol, new_blobs);
     }
-    return NULL;
+    return nullptr;
 }
 
 // Reconstruction using the ML-weights ==========================================
