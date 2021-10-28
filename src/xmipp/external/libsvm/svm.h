@@ -1,11 +1,11 @@
-/* This file has been taken from LibSVM 3.12 */
+/* This file has been taken from LibSVM 3.25 */
 /* Authors: Chih-Chung Chang and Chih-Jen Lin, LIBSVM : */
 /* Software available at http://www.csie.ntu.edu.tw/~cjlin/libsvm */
 
 #ifndef _LIBSVM_H
 #define _LIBSVM_H
 
-#define LIBSVM_VERSION 312
+#define LIBSVM_VERSION 325
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,8 +26,10 @@ struct svm_problem
 	struct svm_node **x;
 };
 
-enum { C_SVC, NU_SVC, ONE_CLASS, EPSILON_SVR, NU_SVR };	/* svm_type */
-enum { LINEAR1, POLY, RBF, SIGMOID, PRECOMPUTED }; /* kernel_type */
+namespace libsvm {
+	enum { C_SVC, NU_SVC, ONE_CLASS, EPSILON_SVR, NU_SVR };	/* svm_type */
+	enum { LINEAR, POLY, RBF, SIGMOID, PRECOMPUTED }; /* kernel_type */
+}
 
 struct svm_parameter
 {
@@ -52,7 +54,7 @@ struct svm_parameter
 
 //
 // svm_model
-// 
+//
 struct svm_model
 {
 	struct svm_parameter param;	/* parameter */
@@ -63,6 +65,7 @@ struct svm_model
 	double *rho;		/* constants in decision functions (rho[k*(k-1)/2]) */
 	double *probA;		/* pariwise probability information */
 	double *probB;
+	int *sv_indices;        /* sv_indices[0,...,nSV-1] are values in [1,...,num_traning_data] to indicate SVs in the training set */
 
 	/* for classification only */
 
@@ -80,16 +83,12 @@ void svm_cross_validation(const struct svm_problem *prob, const struct svm_param
 int svm_save_model(const char *model_file_name, const struct svm_model *model);
 struct svm_model *svm_load_model(const char *model_file_name);
 
-#ifdef UNUSED // detected as unused 29.6.2018
 int svm_get_svm_type(const struct svm_model *model);
-#endif
-
 int svm_get_nr_class(const struct svm_model *model);
-
-#ifdef UNUSED // detected as unused 29.6.2018
 void svm_get_labels(const struct svm_model *model, int *label);
+void svm_get_sv_indices(const struct svm_model *model, int *sv_indices);
+int svm_get_nr_sv(const struct svm_model *model);
 double svm_get_svr_probability(const struct svm_model *model);
-#endif
 
 double svm_predict_values(const struct svm_model *model, const struct svm_node *x, double* dec_values);
 double svm_predict(const struct svm_model *model, const struct svm_node *x);
@@ -100,12 +99,9 @@ void svm_free_and_destroy_model(struct svm_model **model_ptr_ptr);
 void svm_destroy_param(struct svm_parameter *param);
 
 const char *svm_check_parameter(const struct svm_problem *prob, const struct svm_parameter *param);
-
-#ifdef UNUSED // detected as unused 29.6.2018
 int svm_check_probability_model(const struct svm_model *model);
 
 void svm_set_print_string_function(void (*print_func)(const char *));
-#endif
 
 #ifdef __cplusplus
 }

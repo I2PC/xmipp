@@ -151,8 +151,8 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
             ImirrorAligned=Ialigned;
             ImirrorAligned.selfReverseX();
             ImirrorAligned.setXmippOrigin();
-            alignImages(mIref,Ialigned,M,WRAP,aux,aux2,aux3);
-            alignImages(mIref,ImirrorAligned,M,WRAP,aux,aux2,aux3);
+            alignImages(mIref,Ialigned,M,xmippTransformation::WRAP,aux,aux2,aux3);
+            alignImages(mIref,ImirrorAligned,M,xmippTransformation::WRAP,aux,aux2,aux3);
             double corr=correlationIndex(mIref,Ialigned,&mask);
             double corrMirror=correlationIndex(mIref,ImirrorAligned,&mask);
             if (corr>corrMirror)

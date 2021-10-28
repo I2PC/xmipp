@@ -320,8 +320,8 @@ void XRayPSF::calculateParams(double _dxo, double _dzo, double threshold)
 
         mdaPsfVol.setXmippOrigin();
 
-        applyGeometry(LINEAR, mdaPsfVol, psfGen(), T,
-                      IS_INV, DONT_WRAP);
+        applyGeometry(xmippTransformation::LINEAR, mdaPsfVol, psfGen(), T,
+        		      xmippTransformation::IS_INV, xmippTransformation::DONT_WRAP);
 
         psfGen.clear(); // Free mem in case image is not mapped
 
@@ -484,8 +484,8 @@ void XRayPSF::generateOTF(MultidimArray<std::complex<double> > &OTF, double Zpos
             {   /* Actually T transform matrix is set to identity, as sampling is the same for both psfVol and phantom
                                                                                                                  * It is only missing to set Z shift to select the slice */
                 dMij(T, 2, 3) = zIndexPSF; // Distance from the focal plane
-                applyGeometry(LINEAR, PSFi, mPsfVol, T,
-                              IS_INV, DONT_WRAP, dAkij(mPsfVol,0,0,0));
+                applyGeometry(xmippTransformation::LINEAR, PSFi, mPsfVol, T,
+                              xmippTransformation::IS_INV, xmippTransformation::DONT_WRAP, dAkij(mPsfVol,0,0,0));
                 CenterFFT(PSFi, true);
             }
             break;

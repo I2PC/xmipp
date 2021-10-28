@@ -78,7 +78,7 @@ void IterativeAlignmentEstimator<T>::sApplyTransform(ctpl::thread_pool &pool, co
         in.setXmippOrigin();
         out.setXmippOrigin();
         // compensate the movement
-        applyGeometry(LINEAR, out, in, estimation.poses.at(signalId), false, DONT_WRAP);
+        applyGeometry(xmippTransformation::LINEAR, out, in, estimation.poses.at(signalId), false, xmippTransformation::DONT_WRAP);
     };
 
     for (size_t i = 0; i < n; ++i) {

@@ -773,14 +773,14 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 					if (shiftX != 0 || shiftY != 0)
 					{
 						VECTOR_R2(shift, shiftX, shiftY);
-						selfTranslate(LINEAR,Ip(),shift,WRAP);
+						selfTranslate(xmippTransformation::LINEAR,Ip(),shift,xmippTransformation::WRAP);
 					}
 
 					// Rotate image if necessary
 					// Adding 2 is a trick to avoid that the 0, 90, 180 and 270
 					// are treated in a different way
-					selfRotate(LINEAR,Ip(),psi + 2, WRAP);
-					selfRotate(LINEAR,Ip(),-2, WRAP);
+					selfRotate(xmippTransformation::LINEAR,Ip(),psi + 2, xmippTransformation::WRAP);
+					selfRotate(xmippTransformation::LINEAR,Ip(),-2, xmippTransformation::WRAP);
 #ifdef DEBUG
 					Image<double> Ipsave;
 					Ipsave()=Ip();
@@ -1041,13 +1041,13 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
         //TODO: Check if this is correct
         Iref.read(library_name[vref_idx[ibest]]);
         Iref().setXmippOrigin();
-        selfRotate(LINEAR,Iref(),-vpsi[ibest]);
+        selfRotate(xmippTransformation::LINEAR,Iref(),-vpsi[ibest]);
         if (Xoff == 0 && Yoff == 0)
             Ip() = img();
         else
         {
             VECTOR_R2(shift, Xoff, Yoff);
-            translate(LINEAR,Ip(),img(),shift,WRAP);
+            translate(xmippTransformation::LINEAR,Ip(),img(),shift,xmippTransformation::WRAP);
         }
         Ip().setXmippOrigin();
 

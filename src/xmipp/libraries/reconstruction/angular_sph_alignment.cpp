@@ -241,7 +241,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	applyGeometry(xmippTransformation::LINEAR,Ifilteredp(),Ifiltered(),A,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP,0.);
 	filter.applyMaskSpace(P());
 	const MultidimArray<double> mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;

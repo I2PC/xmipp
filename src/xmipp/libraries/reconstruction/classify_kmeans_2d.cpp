@@ -70,7 +70,7 @@ void ProgClassifyKmeans2D::defineParams()
 }
 
 
-class Point
+class KPoint
 {
 private:
 	int id_point;
@@ -79,7 +79,7 @@ private:
 	int total_values;
 
 public:
-	Point(int id_point, std::vector<double>& values)
+	KPoint(int id_point, std::vector<double>& values)
 	{
 		this->id_point = id_point;
 		total_values = values.size();
@@ -127,10 +127,10 @@ class Cluster
 private:
 	int id_cluster;
 	std::vector<double> central_values;
-	std::vector<Point> points;
+	std::vector<KPoint> points;
 
 public:
-	Cluster(int id_cluster, Point point)
+	Cluster(int id_cluster, KPoint point)
 	{
 		this->id_cluster = id_cluster;
 
@@ -142,7 +142,7 @@ public:
 		points.push_back(point);
 	}
 
-	void addPoint(Point point)
+	void addPoint(KPoint point)
 	{
 		points.push_back(point);
 	}
@@ -172,7 +172,7 @@ public:
 		central_values[index] = value;
 	}
 
-	Point getPoint(int index)
+	KPoint getPoint(int index)
 	{
 		return points[index];
 	}
@@ -197,7 +197,7 @@ private:
 	std::vector<Cluster> clusters;
 
 	// return ID of nearest center (uses euclidean distance)
-	int getIDNearestCenter(Point point)
+	int getIDNearestCenter(KPoint point)
 	{
 		double sum = 0.0, min_dist;
 		int id_cluster_center = 0;
@@ -240,7 +240,7 @@ public:
 		this->maxObjects = maxObjects;
 	}
 
-	std::vector<Cluster> run(std::vector<Point> & points,
+	std::vector<Cluster> run(std::vector<KPoint> & points,
 	                         FileName fnClusters, FileName fnPoints)
 	{
         // create clusters and choose K points as their centers centers
@@ -412,7 +412,7 @@ void ProgClassifyKmeans2D::run()
     CorrelationAux aux;
     std::vector<std::vector<double> > fvs;
     std::vector<double> fv, fv_temp;
-    std::vector<Point> points;
+    std::vector<KPoint> points;
     std::vector<Cluster> clusters;
     ProgExtractFeatures ef;
     srand (time(nullptr));
@@ -453,7 +453,7 @@ void ProgClassifyKmeans2D::run()
     for (size_t objId : SF.ids())
     {
         allItems++;
-        Point p(allItems, fvs.front());
+        KPoint p(allItems, fvs.front());
         points.push_back(p);
         fvs.erase(fvs.begin());
     }
@@ -482,7 +482,7 @@ void ProgClassifyKmeans2D::run()
             ss >> point_value;
             fv_load.push_back(point_value);
         }
-        Point p(allItems, fv_load);
+        KPoint p(allItems, fv_load);
         points.push_back(p);
     }
 

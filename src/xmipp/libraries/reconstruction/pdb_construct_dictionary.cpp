@@ -254,7 +254,7 @@ void ProgPDBDictionary::reconstructPatch(size_t idxTransf, std::vector<size_t> &
 	const Matrix2D<double> &A=rotationGroup[idxTransf];
 	for (size_t j=0; j<VEC_XSIZE(alpha); ++j)
 	{
-		applyGeometry(LINEAR,auxPatch,dictionaryHigh[selectedPatchesIdx[j]],A,IS_NOT_INV,DONT_WRAP);
+		applyGeometry(xmippTransformation::LINEAR,auxPatch,dictionaryHigh[selectedPatchesIdx[j]],A,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
 		const double *ptr=MULTIDIM_ARRAY(auxPatch);
 		for (size_t n=0; n<MULTIDIM_SIZE(highResolutionPatch); ++n, ++ptr)
 			DIRECT_MULTIDIM_ELEM(highResolutionPatch,n)+=VEC_ELEM(alpha,j)*(*ptr);
@@ -472,7 +472,7 @@ size_t ProgPDBDictionary::canonicalOrientation2D(const MultidimArray<double> &pa
 	size_t bestIdx=0;
 	for (size_t n=0; n<nmax; ++n)
 	{
-		applyGeometry(LINEAR,auxPatch,patch,rotationGroup[n],IS_INV,DONT_WRAP);
+		applyGeometry(xmippTransformation::LINEAR,auxPatch,patch,rotationGroup[n],xmippTransformation::IS_INV,xmippTransformation::DONT_WRAP);
 		// Calculate gradients
 		double momentX=0, momentY=0, momentXmY=0, momentXY=0;
 		auxPatch.setXmippOrigin();
@@ -511,7 +511,7 @@ size_t ProgPDBDictionary::canonicalOrientation3D(const MultidimArray<double> &pa
 	size_t bestIdx=0;
 	for (size_t n=0; n<nmax; ++n)
 	{
-		applyGeometry(LINEAR,auxPatch,patch,rotationGroup[n],IS_INV,DONT_WRAP);
+		applyGeometry(xmippTransformation::LINEAR,auxPatch,patch,rotationGroup[n],xmippTransformation::IS_INV,xmippTransformation::DONT_WRAP);
 		// Calculate gradients
 		double momentX=0, momentY=0, momentZ=0;
 		auxPatch.setXmippOrigin();
@@ -678,7 +678,7 @@ void ProgConstructPDBDictionary::run()
                  		if (introduceInDictionary)
                  		{
                  			++NsuccessfulPatches;
-                 			selfApplyGeometry(LINEAR,patchHigh,rotationGroup[canonicalIdx],IS_INV,DONT_WRAP);
+                 			selfApplyGeometry(xmippTransformation::LINEAR,patchHigh,rotationGroup[canonicalIdx],xmippTransformation::IS_INV,xmippTransformation::DONT_WRAP);
 
                  			dictionaryLow.push_back(canonicalPatch);
                      		patchHigh*=inormPatchLow;

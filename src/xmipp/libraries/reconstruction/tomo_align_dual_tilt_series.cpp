@@ -93,7 +93,7 @@ void ProgAlignDualTiltSeries::readDual()
             fnDual0=fnImg;
         }
         I.read(fnImg);
-        selfScaleToSize(BSPLINE3,I(),ROUND(YSIZE(I())*scaleFactor),
+        selfScaleToSize(xmippTransformation::BSPLINE3,I(),ROUND(YSIZE(I())*scaleFactor),
                         ROUND(XSIZE(I())*scaleFactor));
         I().setXmippOrigin();
         Xdim=XSIZE(I());
@@ -130,7 +130,7 @@ void ProgAlignDualTiltSeries::produceSideInfo()
             fnRef0=fnImg;
         }
         I.read(fnImg);
-        selfScaleToSize(BSPLINE3,I(),ROUND(YSIZE(I())*scaleFactor),
+        selfScaleToSize(xmippTransformation::BSPLINE3,I(),ROUND(YSIZE(I())*scaleFactor),
                         ROUND(XSIZE(I())*scaleFactor));
         I().setXmippOrigin();
         imgRef.push_back(I());
@@ -163,7 +163,7 @@ void ProgAlignDualTiltSeries::findParametersAt0degrees(bool rotateDual)
     Iref().setXmippOrigin();
     Idual().setXmippOrigin();
     if (rotateDual)
-        selfRotate(BSPLINE3,Idual(),180);
+        selfRotate(xmippTransformation::BSPLINE3,Idual(),180);
     Matrix2D<double> M0,M0inv;
 #ifdef DEBUG
 
@@ -252,7 +252,7 @@ double ProgAlignDualTiltSeries::distanceBetweenCommonLines(
     save.write("PPPref.xmp");
 #endif
 
-    selfRotate(LINEAR,I, -angi, DONT_WRAP);
+    selfRotate(xmippTransformation::LINEAR,I, -angi, xmippTransformation::DONT_WRAP);
     profilei.initZeros();
     FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
     A1D_ELEM(profilei,j)+=A2D_ELEM(I,i,j);
@@ -281,7 +281,7 @@ double ProgAlignDualTiltSeries::distanceBetweenCommonLines(
     MAT_ELEM(A,0,1)=-sj;
     MAT_ELEM(A,0,2)=cj*X-sj*Y;
     MAT_ELEM(A,1,2)=sj*X+cj*Y;
-    selfApplyGeometry(LINEAR, I, A, IS_NOT_INV, DONT_WRAP);
+    selfApplyGeometry(xmippTransformation::LINEAR, I, A, xmippTransformation::IS_NOT_INV, xmippTransformation::DONT_WRAP);
     profilej.initZeros();
     FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
     A1D_ELEM(profilej,j)+=A2D_ELEM(I,i,j);
@@ -414,8 +414,8 @@ void ProgAlignDualTiltSeries::alignDual()
         Idual.read(fnImg);
         Idual().setXmippOrigin();
         if (rotatedDual)
-            selfRotate(BSPLINE3,Idual(),180,DONT_WRAP);
-        selfTranslate(BSPLINE3,Idual(),shift2D,DONT_WRAP);
+            selfRotate(xmippTransformation::BSPLINE3,Idual(),180,xmippTransformation::DONT_WRAP);
+        selfTranslate(xmippTransformation::BSPLINE3,Idual(),shift2D,xmippTransformation::DONT_WRAP);
         shiftProjectionInZ(Idual(), n, ZZ(shift3D));
         Euler_angles2matrix(0., tiltDual(n), 0., Edual);
         Edual=Edual*E;
@@ -445,7 +445,7 @@ void ProgAlignDualTiltSeries::run()
 
     int Ndual=imgDual.size();
     for (int ndual=0; ndual<Ndual; ndual++)
-        selfRotate(BSPLINE3,imgDual[ndual],180);
+        selfRotate(xmippTransformation::BSPLINE3,imgDual[ndual],180);
     findParametersAt0degrees(true);
     double objective180=evaluateAlignment(alignment);
     std::cout << "objective0=" << objective0 << " objective180=" << objective180 << std::endl;

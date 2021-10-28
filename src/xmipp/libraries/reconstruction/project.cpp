@@ -49,11 +49,11 @@ void ProgProject::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmippTransformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmippTransformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmippTransformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The values for interpolation can be : nearest, linear, bspline");
 
@@ -1090,7 +1090,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
             Matrix1D<double> shifts(2);
             XX(shifts) = shiftX;
             YY(shifts) = shiftY;
-            selfTranslate(LINEAR,IMGMATRIX(proj), shifts);
+            selfTranslate(xmippTransformation::LINEAR,IMGMATRIX(proj), shifts);
         }
         else if (side.phantomMode==PROJECT_Side_Info::PDB)
         {

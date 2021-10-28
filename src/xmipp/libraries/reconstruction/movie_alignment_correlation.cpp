@@ -201,14 +201,14 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                 } else {
                     if (this->outsideMode == OUTSIDE_WRAP)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, WRAP);
+                                croppedFrame(), shift, xmippTransformation::WRAP);
                     else if (this->outsideMode == OUTSIDE_VALUE)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmippTransformation::DONT_WRAP,
                                 this->outsideValue);
                     else
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmippTransformation::DONT_WRAP,
                                 croppedFrame().computeAvg());
                 }
                 if (this->fnAligned != "")
