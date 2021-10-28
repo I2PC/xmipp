@@ -253,7 +253,7 @@ void ProgTomoExtractSubvolume::processImage(const FileName &fnImg2
 
     FileName fnOutStack, fnOutMd;
 
-    size_t image_num;
+    size_t image_num = 0;
     FileName dump;
     if (mdInSize > 1)// Other case, is a unique volume name so there is no need to add the number
     {

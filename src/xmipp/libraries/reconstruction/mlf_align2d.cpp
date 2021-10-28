@@ -95,9 +95,11 @@ void ProgMLF2D::readParams()
     int argc2 = 0;
     char ** argv2 = nullptr;
 
-    double restart_offset;
+    double restart_offset = 0;
     FileName restart_imgmd, restart_refmd;
-    int restart_iter, restart_seed;
+    int restart_iter = 0;
+    int restart_seed = 0;
+    
 
     do_restart = checkParam("--restart");
     if (do_restart)
@@ -184,7 +186,7 @@ void ProgMLF2D::readParams()
         model.n_ref = 0; // Just to be sure (not strictly necessary)
         sigma_offset = restart_offset;
         //sigma_noise = restart_noise;
-        seed = restart_seed;
+        seed = int(restart_seed);
         istart = restart_iter + 1;
     }
 

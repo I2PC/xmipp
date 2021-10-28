@@ -300,7 +300,8 @@ void ProgValidationTiltPairs::run()
 					double rott=XX(anglesj);
 					double tiltt=YY(anglesj);
 					double psit=ZZ(anglesj);
-					double alpha_x, alpha_y;
+					double alpha_x = 0;
+					double alpha_y = 0;
 					Euler_angles2matrix(rott,tiltt,psit,Et,false);
 					//////////////////////////////////////////////////////////////////
 					double untilt_angles[3]={rotu, tiltu, psiu}, tilt_angles[3]={rott, tiltt, psit};
