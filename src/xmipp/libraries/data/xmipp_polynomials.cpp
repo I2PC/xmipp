@@ -114,7 +114,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, c
 
     FOR_ALL_ELEMENTS_IN_ARRAY2D(im)
     {
-        if ( (A2D_ELEM(ROI,i,j)))
+        if (A2D_ELEM(ROI,i,j))
         {
             //For one i we swap the different j
             double y=i*iMaxDim2;
