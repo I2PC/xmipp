@@ -123,7 +123,7 @@ void CL3DClass::updateProjection(MultidimArray<double> &I,
         {
             double *ptrIfourier=(double*)&DIRECT_MULTIDIM_ELEM(Ifourier,n);
             double *ptrPupdate=(double*)&DIRECT_MULTIDIM_ELEM(Pupdate,n);
-            *(ptrPupdate)+=(*(ptrIfourier))*assigned.score;
+            *ptrPupdate+=(*ptrIfourier)*assigned.score;
             *(ptrPupdate+1)+=(*(ptrIfourier+1))*assigned.score;
             DIRECT_MULTIDIM_ELEM(PupdateMask,n)+=assigned.score;
         }
@@ -180,12 +180,12 @@ void CL3DClass::transferUpdate()
             if (maskVal>0 && DIRECT_MULTIDIM_ELEM(prmCL3Dprog->maxFreqMask,n))
             {
                 double iMask=1./maskVal;
-                *(ptrPupdate)*=iMask;
+                *ptrPupdate*=iMask;
                 *(ptrPupdate+1)*=iMask;
             }
             else
             {
-            	*(ptrPupdate)=*(ptrPupdate+1)=0.;
+            	*ptrPupdate=*(ptrPupdate+1)=0.;
             }
             ptrPupdate+=2;
         }
