@@ -288,7 +288,7 @@ double ProgAngularSphAlignment::tranformImageSph(double *pclnm, double rot, doub
 
 double continuousSphCost(double *x, void *_prm)
 {
-	ProgAngularSphAlignment *prm=(ProgAngularSphAlignment *)_prm;
+	auto *prm=(ProgAngularSphAlignment *)_prm;
     int idx = 3*(prm->vecSize);
 	double deltax=x[idx+1];
 	double deltay=x[idx+2];
