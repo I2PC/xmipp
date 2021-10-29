@@ -165,7 +165,7 @@ double SOM::test(const ClassificationMap& _som, const TS& _examples) const
         qerror += euclideanDistance(theBest, _examples.theItems[i]);
         if (verbosity)
         {
-            int tmp = (int)((_examples.size() * 5) / 100);
+        	auto tmp = (int)((_examples.size() * 5) / 100);
             if ((tmp == 0) && (i != 0))
                 tmp = i;
             else
