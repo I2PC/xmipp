@@ -77,7 +77,7 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
     I.setXmippOrigin();
     MultidimArray<int> mask;
     mask.initZeros(I);
-    int auto=(int)XMIPP_MIN(FLOOR(0.5*(XSIZE(I)*cos(DEG2RAD(tilt)))),
+    int Xdimtilt=(int)XMIPP_MIN(FLOOR(0.5*(XSIZE(I)*cos(DEG2RAD(tilt)))),
                            0.5*(XSIZE(I)-(2*L+1)));
     int N=0;
     for (int i=STARTINGY(I); i<=FINISHINGY(I); i++)
