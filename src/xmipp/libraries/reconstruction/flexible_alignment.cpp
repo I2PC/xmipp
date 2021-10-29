@@ -45,10 +45,6 @@ ProgFlexibleAlignment::ProgFlexibleAlignment() {
 	produces_an_output = true;
 }
 
-ProgFlexibleAlignment::~ProgFlexibleAlignment() {
-	//delete progVolumeFromPDB;
-}
-
 // Params definition ============================================================
 void ProgFlexibleAlignment::defineParams() {
 	addUsageLine(
