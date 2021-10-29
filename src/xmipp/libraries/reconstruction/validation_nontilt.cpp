@@ -112,7 +112,7 @@ void ProgValidationNonTilt::run()
 
 	for (size_t idx=0; idx<=maxNImg;idx++)
 	{
-		if ((idx)%Nprocessors==rank)
+		if (idx%Nprocessors==rank)
 		{
 			if (useSignificant)
 				expression = formatString("imageIndex == %lu",idx);
@@ -141,7 +141,7 @@ void ProgValidationNonTilt::run()
 				p.at(j) = H0.at(j)/H.at(j);
 			}
 
-			P /= (nSamplesRandom);
+			P /= nSamplesRandom;
 
 			if (useSignificant)
 				rowP.setValue(MDL_IMAGE_IDX,idx);
@@ -175,7 +175,7 @@ void ProgValidationNonTilt::run()
 				validation += 1.;
 			num_images += 1.;
 		}
-		validation /= (num_images);
+		validation /= num_images;
 
 		row2.setValue(MDL_IMAGE,fnInit);
 		row2.setValue(MDL_WEIGHT,validation);

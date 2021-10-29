@@ -202,7 +202,7 @@ void symmetrizeImage(int symorder, const MultidimArray<double> &I_in,
     }
     I_out = I_in;
     MultidimArray<double> rotatedImg;
-    if ( (mask)!=nullptr)
+    if (mask!=nullptr)
          REPORT_ERROR(ERR_NOT_IMPLEMENTED,"mask symmetrization not implemented for images");
     for (int i = 1; i < symorder; i++)
     {
@@ -222,7 +222,7 @@ void ProgSymmetrize::preProcess()
             symorder=textToInteger(fn_sym);
         else
         {
-            double accuracy = (do_not_generate_subgroup) ? -1 : 1e-6;
+            double accuracy = do_not_generate_subgroup ? -1 : 1e-6;
             SL.readSymmetryFile(fn_sym, accuracy);
             symorder=-1;
         }
