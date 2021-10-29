@@ -71,8 +71,8 @@ public:
     ProgMpiAngularProjectLibrary()
     {
         //parent class constructor will be called by deault without parameters
-        MPI_Comm_size(MPI_COMM_WORLD, &(nProcs));
-        MPI_Comm_rank(MPI_COMM_WORLD, &(rank));
+        MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         //Blocks until all process have reached this routine.
         //very likelly this is
         MPI_Barrier(MPI_COMM_WORLD);
