@@ -1997,7 +1997,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
 
     for (int i = 1; i < numElem; i++)
     {
-        if ( ( ((fmax - min_freq)/min_freq) > 0.5))
+        if (((fmax - min_freq)/min_freq) > 0.5)
         {
             demodulate(centeredEnhancedPSD,lambdaPhase,sizeWindowPhase,
                           x,x,
