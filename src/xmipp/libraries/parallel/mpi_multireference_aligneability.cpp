@@ -27,7 +27,7 @@
 
 MpiMultireferenceAligneability::MpiMultireferenceAligneability()
 {
-	node=NULL;
+	node=nullptr;
 }
 
 MpiMultireferenceAligneability::~MpiMultireferenceAligneability()
