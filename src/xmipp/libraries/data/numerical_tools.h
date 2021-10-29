@@ -120,7 +120,7 @@ public:
         if (x>xmax) return 0;
         else
         {
-            int iaux=(int)round(x*ixstep);
+            auto iaux=(int)round(x*ixstep);
             return DIRECT_A1D_ELEM(v,iaux);
         }
     }
