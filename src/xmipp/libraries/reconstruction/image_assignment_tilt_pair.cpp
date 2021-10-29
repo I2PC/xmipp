@@ -94,7 +94,7 @@ void ProgassignmentTiltPair::search_affine_transform(float u1x, float u1y, float
 //		if ( fabs(det_A - cos_tilt_max)>0.1)
 //			continue;
 
-		double discriminant_A = 0.25*(trace_A)*(trace_A) - det_A;
+		double discriminant_A = 0.25*trace_A*trace_A - det_A;
 
 		if (discriminant_A < DBL_EPSILON)
 			continue;
@@ -362,7 +362,7 @@ void ProgassignmentTiltPair::run()
 		for (int j=0; j<tri_number_tilt; j++)
 		{
 			//std::cout << "Iteration k = " << k << "     Iteration j = " << j << std::endl;
-			if ( (trig_untilt_area(k) < trig_tilt_area(j)) )
+			if (trig_untilt_area(k) < trig_tilt_area(j))
 				continue;
 
 			if ( (trig_untilt_area(k)*cos_tilt_min < trig_tilt_area(j)) || (trig_untilt_area(k)*cos_tilt_max > trig_tilt_area(j)) )
