@@ -529,7 +529,7 @@ void ProgAngularProjectionMatching::getCurrentReference(int refno,
 
 void * threadRotationallyAlignOneImage( void * data )
 {
-    structThreadRotationallyAlignOneImage * thread_data = (structThreadRotationallyAlignOneImage *) data;
+	auto * thread_data = (structThreadRotationallyAlignOneImage *) data;
 
     // Variables from above
     size_t thread_id = thread_data->thread_id;
@@ -1017,10 +1017,10 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
     FileName fn;
 
     // Call threads to calculate the rotational alignment of each image in the selfile
-    pthread_t * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
+    auto * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
 
     // Allocate threads.
-    structThreadRotationallyAlignOneImage * threads_d = (structThreadRotationallyAlignOneImage *)
+    auto * threads_d = (structThreadRotationallyAlignOneImage *)
             malloc ( threads * sizeof( structThreadRotationallyAlignOneImage ) );
 
     // Allocate threads vectors.
@@ -1061,7 +1061,7 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
             pthread_join(*(th_ids+c),nullptr);
 
         //Get optimal refno, psi, flip and maxcorr
-        int * indexThreads = new int[threads](); // init to zero
+        auto * indexThreads = new int[threads](); // init to zero
         size_t bestThreadCorr = 0;
         double tempCorr;
         size_t counterValidCorrs = 0;
