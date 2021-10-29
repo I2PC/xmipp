@@ -1690,7 +1690,7 @@ int return_gradhesscost(
           int  cstregistration(struct cstregistrationStruct *Data)
           {
               const long      OrderOfSpline = 3L;
-              const double   epsilon = DBL_EPSILON;
+              const auto   epsilon = DBL_EPSILON;
 
               int      Status = !ERROR, DoDesProj, IteratingStop, FlagMaxIter;
 
