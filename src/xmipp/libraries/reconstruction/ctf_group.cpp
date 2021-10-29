@@ -632,7 +632,8 @@ void ProgCtfGroup::writeOutputToDisc()
     }
 
     //(4)create average ctf
-    int olddefGroup,defGroup;
+    int olddefGroup=-1;
+    int defGroup=-1;
     size_t order, count;
     double sumimg=0.;
 
@@ -640,8 +641,6 @@ void ProgCtfGroup::writeOutputToDisc()
     Image<double> Ictf2D;
     Ictf2D.data.alias(ctf2D);
 
-    olddefGroup=-1;
-    //defGroup=-1;
     FileName outFileNameCTF,outFileNameWIEN,outFileName;
     outFileNameCTF = fn_root + "_ctf."+format;
     outFileNameWIEN = fn_root + "_wien."+format;
