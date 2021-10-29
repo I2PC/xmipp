@@ -50,13 +50,13 @@ Micrograph::Micrograph()
 }
 Micrograph::~Micrograph()
 {
-    delete (auxI);
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    delete auxI;
+    delete IUChar;
+    delete IShort;
+    delete IUShort;
+    delete IInt;
+    delete IUInt;
+    delete IFloat;
 }
 /* Clear ------------------------------------------------------------------- */
 void Micrograph::clear()
@@ -70,12 +70,12 @@ void Micrograph::clear()
     datatype = -1;
     compute_transmitance = false;
     compute_inverse = false;
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    delete IUChar;
+    delete IShort;
+    delete IUShort;
+    delete IInt;
+    delete IUInt;
+    delete IFloat;
 }
 
 /* Open micrograph --------------------------------------------------------- */
@@ -164,27 +164,27 @@ void Micrograph::close_micrograph()
     {
     case DT_UHalfByte:
     case DT_UChar:
-        delete (IUChar);
+        delete IUChar;
         IUChar = NULL;
         break;
     case DT_UShort:
-        delete (IUShort);
+        delete IUShort;
         IUShort = NULL;
         break;
     case DT_Short:
-        delete (IShort);
+        delete IShort;
         IShort = NULL;
         break;
     case DT_Int:
-        delete (IInt);
+        delete IInt;
         IInt = NULL;
         break;
     case DT_UInt:
-        delete (IUInt);
+        delete IUInt;
         IUInt = NULL;
         break;
     case DT_Float:
-        delete (IFloat);
+        delete IFloat;
         IFloat = NULL;
         break;
     default:
