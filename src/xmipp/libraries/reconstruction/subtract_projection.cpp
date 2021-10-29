@@ -198,25 +198,27 @@
 		FilterCTF.ctf = ctf;
 		// padding proj
 		padp().initZeros(sizepad, sizepad);
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(padp()){
+		MultidimArray <double> &mpad = padp();
+
+		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mpad){
 			if (i<=limit1 || i>=limit2){
-				DIRECT_A2D_ELEM(padp(),i,j)=0;
+				DIRECT_A2D_ELEM(mpad,i,j)=0;
 			}
 			else if (j<=limit1 || j>=limit2){
-				DIRECT_A2D_ELEM(padp(),i,j)=0;
+				DIRECT_A2D_ELEM(mpad,i,j)=0;
 			}
 			else{
-				DIRECT_A2D_ELEM(padp(),i,j)=DIRECT_A2D_ELEM(proj(),(i-limit1),(j-limit1));
+				DIRECT_A2D_ELEM(mpad,i,j)=DIRECT_A2D_ELEM(proj(),(i-limit1),(j-limit1));
 			}
 		}
 		padp.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
-		FilterCTF.generateMask(padp());
-		FilterCTF.applyMaskSpace(padp());
+		FilterCTF.generateMask(mpad);
+		FilterCTF.applyMaskSpace(mpad);
 		padp.write(formatString("%s/Ppadctf.mrc", fnProj.c_str()));
 		// crop padp
 		proj().initZeros();
 		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(proj()){
-			DIRECT_A2D_ELEM(proj(),i,j)=DIRECT_A2D_ELEM(padp(),i+limit1,j+limit1);
+			DIRECT_A2D_ELEM(proj(),i,j)=DIRECT_A2D_ELEM(mpad,i+limit1,j+limit1);
 		}
 		proj.write(formatString("%s/PctfCrop.mrc", fnProj.c_str()));
 	}
