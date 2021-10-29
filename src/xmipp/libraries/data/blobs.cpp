@@ -683,21 +683,20 @@ void * blobs2voxels_SimpleGrid( void * data )
                     // Effectively convert
                     long N_eq;
                     N_eq = 0;
-                    for (int intz = (int)ZZ(corner1); intz <=(int)ZZ(corner2); intz++)
-                        for (int inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
-                            for (int intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
+                    for (auto intz = (int)ZZ(corner1); intz <=(int)ZZ(corner2); intz++)
+                        for (auto inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
+                            for (auto intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
                             {
-                                if (vol_mask != NULL)
-                                    if (A3D_ELEM(*vol_mask, intz, inty, intx)!=0.0)
-                                        continue;
+                                if (vol_mask != NULL && A3D_ELEM(*vol_mask, intz, inty, intx)!=0.0)
+                                	continue;
 
                                 // Compute distance to the center of the blob
                                 VECTOR_R3(gcurrent, (double)intx, (double)inty, (double)intz);
-#ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
+//#ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
                                 // ROB
                                 //if (D!=NULL)
                                 //   M3x3_BY_V3x1(gcurrent,Dinv,gcurrent);
-#endif
+//#endif
 
                                 V3_MINUS_V3(gcurrent, real_position, gcurrent);
                                 d = sqrt(XX(gcurrent) * XX(gcurrent) +
