@@ -1629,10 +1629,10 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
 
     sum_refw2 = 0.;
     //change std::vectors by arrays
-    double *sigma2=new double[nr_points_2d];
-    double *inv_sigma2=new double [nr_points_2d];
-    double *ctf=new double[nr_points_2d];
-    double *decctf=new double[nr_points_2d];
+    auto *sigma2=new double[nr_points_2d];
+    auto *inv_sigma2=new double [nr_points_2d];
+    auto *ctf=new double[nr_points_2d];
+    auto *decctf=new double[nr_points_2d];
 
     const int &ifocus = focus;
     FOR_ALL_POINTS()
@@ -2781,7 +2781,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     if (outputType != OUT_REFS)
     {
         MetaDataVec mdImgs;
-        int n = (int) MDref.size(); //Avoid int and size_t comparison warning
+        auto n = (int) MDref.size(); //Avoid int and size_t comparison warning
         for (int ref = 1; ref <= n; ++ref)
         {
             mdImgs.importObjects(MDimg, MDValueEQ(MDL_REF, ref));

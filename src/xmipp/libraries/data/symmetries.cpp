@@ -341,10 +341,10 @@ void symmetry_P2_122(Image<double> &vol, const SimpleGrid &grid,
                      int grid_type)
 {
 
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = STARTINGY(mask);
     int XX_lowest = STARTINGX(mask);
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = FINISHINGY(mask);
     int XX_highest = FINISHINGX(mask);
 
@@ -566,10 +566,10 @@ void symmetry_P22_12(Image<double> &vol, const SimpleGrid &grid,
                      int grid_type)
 {
 
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = STARTINGY(mask);
     int XX_lowest = STARTINGX(mask);
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = FINISHINGY(mask);
     int XX_highest = FINISHINGX(mask);
 
@@ -788,10 +788,10 @@ void symmetry_P4(Image<double> &vol, const SimpleGrid &grid,
                  const Matrix1D<double> &eprm_bint,
                  const MultidimArray<int> &mask, int volume_no, int grid_type)
 {
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = STARTINGY(mask);
     int XX_lowest = STARTINGX(mask);
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = FINISHINGY(mask);
     int XX_highest = FINISHINGX(mask);
 
@@ -984,10 +984,10 @@ void symmetry_P42_12(Image<double> &vol, const SimpleGrid &grid,
                      int grid_type)
 {
 
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = STARTINGY(mask);
     int XX_lowest = STARTINGX(mask);
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = FINISHINGY(mask);
     int XX_highest = FINISHINGX(mask);
 
@@ -1306,10 +1306,10 @@ void symmetry_P6(Image<double> &vol, const SimpleGrid &grid,
                  int grid_type)
 {
 
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = STARTINGY(mask);
     int XX_lowest = STARTINGX(mask);
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = FINISHINGY(mask);
     int XX_highest = FINISHINGX(mask);
 

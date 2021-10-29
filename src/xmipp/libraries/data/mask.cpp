@@ -558,9 +558,9 @@ void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
     // ROB: A=A.inv(); A no const
     FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
     {
-        double di=(double)i;
-        double dj=(double)j;
-        double dk=(double)k;
+        auto di=(double)i;
+        auto dj=(double)j;
+        auto dk=(double)k;
         xp = MAT_ELEM(A, 0, 0) * dj + MAT_ELEM(A, 0, 1) * di + MAT_ELEM(A, 0, 2) * dk;
         zp = MAT_ELEM(A, 2, 0) * dj + MAT_ELEM(A, 2, 1) * di + MAT_ELEM(A, 2, 2) * dk;
 
