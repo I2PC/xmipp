@@ -168,7 +168,7 @@ public:
     void show();
 
    /** Create deformed PDB */
-    FileName createDeformedPDB();
+    FileName createDeformedPDB() const;
 
     /** Perform a complete search with the given image and reference
         volume at the given level of pyramid. Return the values

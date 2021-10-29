@@ -193,7 +193,7 @@ void ProgFlexibleAlignment::finishProcessing() {
 }
 
 // Create deformed PDB =====================================================
-FileName ProgFlexibleAlignment::createDeformedPDB() {
+FileName ProgFlexibleAlignment::createDeformedPDB() const {
 	String program;
 	String arguments;
 	FileName fnRandom;
@@ -218,8 +218,6 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 {
 	//double S_mu;
 	int psi_max = (int) (sqrt(3) * Ywidth / 2);
-	int kx;
-	int ky;
 	double a0;
 	double a1;
 	double a2;
@@ -320,9 +318,9 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 			ksi_v[2] = (double) ksi;
 			MatrixMultiply(R, ksi_v.data(), ro_ksi_v.data(), 4L, 4L, 1L);
 
-			for (ky = 0; ky < Ywidth; ky++) {
+			for (int ky = 0; ky < Ywidth; ky++) {
 				coord_img[1] = (double) ky - centre_Ywidth;
-				for (kx = 0; kx < Xwidth; kx++) {
+				for (int kx = 0; kx < Xwidth; kx++) {
 					coord_img[0] = (double) kx - centre_Xwidth;
 					MatrixMultiply(Tr, coord_img.data(), ro_coord_img.data(), 4L, 4L, 1L);
 
