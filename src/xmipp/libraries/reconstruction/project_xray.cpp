@@ -354,7 +354,7 @@ void projectXrayVolume(MultidimArray<double> &muVol,
     std::vector<int> phantomSlabIdx, psfSlicesIdx;
 
     // Search for the PSFslab of the beginning of the volume
-    int firstSlab = (int)(STARTINGZ(muVol)*psf.dzo/psf.dzoPSF);
+    auto firstSlab = (int)(STARTINGZ(muVol)*psf.dzo/psf.dzoPSF);
 
     if (!XMIPP_EQUAL_ZERO(psf.slabThr))
     {
@@ -372,13 +372,13 @@ void projectXrayVolume(MultidimArray<double> &muVol,
 
         for (size_t kk = firstSlab+1; kk < psf.slabIndex.size(); ++kk)
         {
-            int tempK = (int)(psf.slabIndex[kk] * psf.dzoPSF / psf.dzo);
+            auto tempK = (int)(psf.slabIndex[kk] * psf.dzoPSF / psf.dzo);
 
             if (tempK <= FINISHINGZ(muVol))
             {
                 phantomSlabIdx.push_back(tempK);
                 int tempKK = psf.slabIndex[kk-1];
-                int psfMeanSlice = (int)((tempK + tempKK)*0.5 * psf.dzoPSF / psf.dzo);
+                auto psfMeanSlice = (int)((tempK + tempKK)*0.5 * psf.dzoPSF / psf.dzo);
                 psfSlicesIdx.push_back(psfMeanSlice);
             }
             else
@@ -448,7 +448,7 @@ void threadXrayProject(ThreadArgument &thArg)
 
     int thread_id = thArg.thread_id;
 
-    XrayThreadArgument *dataThread = (XrayThreadArgument*) thArg.data;
+    auto *dataThread = (XrayThreadArgument*) thArg.data;
     const XRayPSF &psf = *(dataThread->psf);
     MultidimArray<double> &muVol =  *(dataThread->muVol);
     MultidimArray<double> &IgeoVol =  *(dataThread->IgeoVol);
@@ -655,7 +655,7 @@ void calculateIgeo(MultidimArray<double> &muVol, double sampling,
 
 void calculateIgeoThread(ThreadArgument &thArg)
 {
-    CIGTArgument *dataThread = (CIGTArgument*) thArg.data;
+    auto *dataThread = (CIGTArgument*) thArg.data;
 
     double sampling = dataThread->samplingZ;
     MultidimArray<double> &muVol = *(dataThread->muVol);
@@ -734,7 +734,7 @@ void projectXraySimpleGridThread(ThreadArgument &thArg)
 
     int threadId = thArg.thread_id;
 
-    XrayThreadArgument *dataThread = (XrayThreadArgument*) thArg.data;
+    auto *dataThread = (XrayThreadArgument*) thArg.data;
     const XRayPSF &psf = *(dataThread->psf);
     MultidimArray<double> *muVol =  (dataThread->muVol);
     MultidimArray<double> *IgeoVol =  (dataThread->IgeoVol);
