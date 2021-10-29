@@ -33,8 +33,8 @@
 /*Constructor */
 MpiProgAngularProjectionMatching::MpiProgAngularProjectionMatching()
 {
-    imagesBuffer = NULL;
-    last_chunk = NULL;
+    imagesBuffer = nullptr;
+    last_chunk = nullptr;
 }
 /* Destructor */
 MpiProgAngularProjectionMatching::~MpiProgAngularProjectionMatching()
