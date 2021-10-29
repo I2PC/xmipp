@@ -81,7 +81,7 @@ void ProgAngularAccuracyPCA::run()
     		if (md.size() <= 1)
     			continue;
 
-    		else if ( (md.size() > 20) )
+    		else if ( md.size() > 20 )
     			numPCAs = 3;
     		else if ( (md.size() >= 5) & (md.size() < 20) )
     			numPCAs = 2;
@@ -191,7 +191,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	size_t  Xdim, Ydim, Zdim, Ndim;
 	phantomVol().getDimensions(Xdim,Ydim,Zdim,Ndim);
 
-	if (  (newXdim == -1) )
+	if (  newXdim == -1 )
 	{
 		newXdim = Xdim;
 		newYdim = Ydim;
@@ -283,7 +283,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		SF.getValue(MDL_SHIFT_Y, shiftY, objId);
 		SF.getValue(MDL_FLIP, mirror, objId);
 
-		if ( (enabled==-1)  )
+		if ( enabled==-1  )
 		{
 			imgno++;
 			continue;
@@ -383,7 +383,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 	{
 		int enabled;
 		SF.getValue(MDL_ENABLED, enabled, objId);
-		if ( (enabled==-1)  )
+		if ( enabled==-1  )
 		{
 			imgno++;
 			continue;
