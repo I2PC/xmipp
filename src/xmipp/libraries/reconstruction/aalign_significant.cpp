@@ -401,8 +401,8 @@ void AProgAlignSignificant<T>::computeAssignment(
                 continue; // skip saving the particles which have non-positive figure of merit to the reference
             }
             const auto &p = IS_ESTIMATION_TRANSPOSED
-                    ? (est.at(i).poses.at(refIndex).inv())
-                    : (est.at(refIndex).poses.at(i));
+                    ? est.at(i).poses.at(refIndex).inv()
+                    : est.at(refIndex).poses.at(i);
             m_assignments.emplace_back(refIndex, i,
                     m_weights.at(refIndex).at(i), val,
                     p);
