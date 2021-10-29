@@ -141,7 +141,7 @@ ProgFlexibleAlignment *global_flexible_prog;
 
 void ProgFlexibleAlignment::createWorkFiles()
 {
-    MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+    auto *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
     MetaDataDb mdTodo, mdDone;
     mdTodo = *pmdIn;
     FileName fn(fnOutDir+"/nmaDone.xmd");
@@ -222,7 +222,7 @@ void  ProjectionRefencePoint(Matrix1D<double>  &Parameters,
     double *ksi_v,*coord_img;
     double *ro_ksi_v, *ro_coord_img, *ro_coord_gaussian;
     //double S_mu;
-    int    psi_max = (int)(sqrt(3)*Ywidth/2);
+    auto    psi_max = (int)(sqrt(3)*Ywidth/2);
     int    kx,ky;
     double    a0,a1,a2;
     double centre_Xwidth, centre_Ywidth;
@@ -406,7 +406,7 @@ int partialpfunction(Matrix1D<double>  &Parameters,
                      int               Xwidth,
                      int               Ywidth)
 {
-    int     psi_max = (int)(sqrt(3)*128/(global_flexible_prog->sampling_rate));
+    auto     psi_max = (int)(sqrt(3)*128/(global_flexible_prog->sampling_rate));
     double  help, a0,a1,a2;
     help = 0.0;
     double  *help_v,*coord_gaussian,*coord_img;
@@ -1055,7 +1055,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
                   return(ERROR);
               }
 
-              double *helpgr = (double *)malloc((size_t)((long)trialSize) * sizeof(double));
+              auto *helpgr = (double *)malloc((size_t)((long)trialSize) * sizeof(double));
               if (helpgr == nullptr)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for helpgr");
@@ -1211,7 +1211,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               double   *t;
               double   wmax, thresh;
               int      i, j;
-              long     ma = (long) VEC_XSIZE(global_flexible_prog->trial);
+              auto     ma = (long) VEC_XSIZE(global_flexible_prog->trial);
               if (ma <=0) {
             	  WRITE_ERROR(levenberg_cst2, "ERROR - degenerated vector");
             	  return(ERROR);
@@ -1504,7 +1504,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               double          LambdaScale=2., OldCost, tol_angle, tol_shift,tol_defamp;
               double          OneIterInSeconds, *Gradient, *Hessian;
               time_t          time1, time2, *tp1 = nullptr, *tp2 = nullptr;
-              long            dim = (long) global_flexible_prog->numberOfModes;
+              auto            dim = (long) global_flexible_prog->numberOfModes;
               long            MaxNoIter,MaxNoFailure,SatisfNoSuccess;
 
               double lambda=1000.;
