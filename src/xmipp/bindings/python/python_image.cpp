@@ -206,7 +206,7 @@ PyTypeObject ImageType = {
 PyObject *
 Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*)type->tp_alloc(type, 0);
+    auto *self = (ImageObject*)type->tp_alloc(type, 0);
     if (self != NULL)
     {
         PyObject *input = NULL;
@@ -261,7 +261,7 @@ Image_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_repr(PyObject * obj)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     String s;
     self->image->toString(s);
     return PyUnicode_FromString(s.c_str());
@@ -306,7 +306,7 @@ PyObject *
 Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     XMIPP_TRY
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         double precision = 1.e-3;
@@ -334,7 +334,7 @@ Image_equal(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         PyObject *input = NULL;
@@ -382,7 +382,7 @@ Image_write(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
@@ -440,7 +440,7 @@ void readImagePreview(ImageGeneric *ig, FileName fn, size_t xdim, int slice)
 PyObject *
 Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
@@ -479,7 +479,7 @@ Image_readPreview(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_readPreviewSmooth(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
@@ -594,7 +594,7 @@ static NumpyStaticImport _npyImport;
 PyObject *
 Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
@@ -614,7 +614,7 @@ Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
             void *mymem = image().getArrayPointer();
             NPY_TYPES type = datatype2NpyType(dt);
             //dims pointer is shifted if ndim or zdim are 1
-            PyArrayObject * arr = (PyArrayObject*) PyArray_SimpleNew(nd, dims+4-nd, type);
+            auto * arr = (PyArrayObject*) PyArray_SimpleNew(nd, dims+4-nd, type);
             void * data = PyArray_DATA(arr);
             memcpy(data, mymem, adim.nzyxdim * gettypesize(dt));
 
@@ -634,7 +634,7 @@ Image_getData(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_setData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     PyArrayObject * arr = NULL;
 
     if (self != NULL && PyArg_ParseTuple(args, "O", &arr))
@@ -670,7 +670,7 @@ Image_setData(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_getPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int i, j, k, n;
     double value;
 
@@ -697,7 +697,7 @@ Image_getPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_setPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int i, j, k, n;
     double value = -1;
 
@@ -724,7 +724,7 @@ Image_setPixel(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_initConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     double value = -1;
 
     if (self != NULL && PyArg_ParseTuple(args, "d", &value))
@@ -746,7 +746,7 @@ Image_initConstant(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     try
     {
         self->image->mirrorY();
@@ -763,7 +763,7 @@ Image_mirrorY(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_initRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     double op1 = 0;
     double op2 = 1;
     RandomMode mode = RND_UNIFORM;
@@ -791,7 +791,7 @@ Image_initRandom(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_resize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int xDim = 0, yDim = 0, zDim = 1;
     size_t nDim = 1;
 
@@ -814,7 +814,7 @@ Image_resize(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int xDim = 0, yDim = 0, zDim = 1;
     int forceVolume=0;
     if (self != NULL && PyArg_ParseTuple(args, "ii|ii", &xDim, &yDim, &zDim, &forceVolume))
@@ -842,7 +842,7 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int axis = VIEW_Z_NEG;
 
     if (self != NULL && PyArg_ParseTuple(args, "i", &axis))
@@ -864,7 +864,7 @@ Image_reslice(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         PyObject *oRootname = NULL;
@@ -912,7 +912,7 @@ Image_writeSlices(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     PyObject *patch;
     int x = 0, y = 0;
 
@@ -935,7 +935,7 @@ Image_patch(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_getDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
@@ -957,7 +957,7 @@ Image_getDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_setDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int datatype;
 
     if (self != NULL && PyArg_ParseTuple(args, "i", &datatype))
@@ -979,7 +979,7 @@ Image_setDataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_convert2DataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     int datatype;
     int castMode=CW_CONVERT;
 
@@ -1002,7 +1002,7 @@ Image_convert2DataType(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_getDimensions(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         try
@@ -1023,7 +1023,7 @@ Image_getDimensions(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_resetOrigin(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         try
@@ -1043,7 +1043,7 @@ Image_resetOrigin(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_getEulerAngles(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         try
@@ -1066,7 +1066,7 @@ Image_getEulerAngles(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_getMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     PyObject *pyValue;
     int label;
 
@@ -1096,7 +1096,7 @@ Image_getMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     int label;
     PyObject *pyValue; //Only used to skip label and value
@@ -1126,7 +1126,7 @@ Image_setMainHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     PyObject *pyValue;
     int label;
 
@@ -1155,7 +1155,7 @@ Image_getHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     int label;
     PyObject *pyValue; //Only used to skip label and value
@@ -1185,7 +1185,7 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         try
@@ -1208,7 +1208,7 @@ Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (nullptr == self) return nullptr;
     try {
         // keep default values consistent with the python
@@ -1216,7 +1216,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
         int dimX = 384;
         int dimY = 384;
         unsigned threads = 1;
-        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+        auto *result = PyObject_New(ImageObject, &ImageType);
         if (PyArg_ParseTuple(args, "|fIIb", &overlap, &dimX, &dimY, &threads)
                 && (nullptr != result)) {
             // prepare dims
@@ -1248,14 +1248,14 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     ImageObject *self = (ImageObject*) obj;
     PyObject *pimg2 = NULL;
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = PyObject_New(ImageObject, &ImageType);
     if (self != NULL)
     {
         try
         {
             if (PyArg_ParseTuple(args, "O", &pimg2))
             {
-                ImageObject *img2=(ImageObject *)pimg2;
+                auto *img2=(ImageObject *)pimg2;
                 result->image = new ImageGeneric(Image_Value(img2));
                 MULTIDIM_ARRAY_GENERIC(*result->image).rangeAdjust(MULTIDIM_ARRAY_GENERIC(*self->image));
                 MULTIDIM_ARRAY_GENERIC(*result->image) *=-1;
@@ -1274,7 +1274,7 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     if (self != NULL)
     {
         try
@@ -1287,7 +1287,7 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
 	            MultidimArray<double> * pImage=NULL;
 	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
 
-	            ImageObject *img2=(ImageObject *)pimg2;
+	            auto *img2=(ImageObject *)pimg2;
 	            ImageGeneric *image2 = img2->image;
 	            image2->convert2Datatype(DT_Double);
 	            MultidimArray<double> * pImage2=NULL;
@@ -1310,7 +1310,7 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_add(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = PyObject_New(ImageObject, &ImageType);
     if (result != NULL)
     {
         try
@@ -1385,7 +1385,7 @@ Image_inplaceAdd(PyObject *self, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_subtract(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = PyObject_New(ImageObject, &ImageType);
     if (result != NULL)
     {
         try
@@ -1451,7 +1451,7 @@ Image_inplaceSubtract(PyObject *self, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_multiply(PyObject *obj1, PyObject *obj2)
 {
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = PyObject_New(ImageObject, &ImageType);
     if (result != NULL)
     {
         try
@@ -1526,7 +1526,7 @@ PyObject *
 Image_true_divide(PyObject *obj1, PyObject *obj2)
 {
     std::cerr << "TODO: not working Image_divide_____________________________" << std::endl;
-    ImageObject * result = PyObject_New(ImageObject, &ImageType);
+    auto * result = PyObject_New(ImageObject, &ImageType);
     if (result != NULL)
     {
         try
@@ -1609,9 +1609,9 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 	PyObject * list = NULL;
     PyObject * item = NULL;
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     ImageBase * img;
-    PyObject *only_apply_shifts = Py_False;
+    auto *only_apply_shifts = Py_False;
     PyObject *wrap = (WRAP ? Py_True : Py_False);
     img = self->image->image;
     bool boolOnly_apply_shifts = false;
@@ -1669,12 +1669,12 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
         PyObject *md = NULL;
-        PyObject *only_apply_shifts = Py_False;
+        auto *only_apply_shifts = Py_False;
         PyObject *wrap = (WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
@@ -1719,10 +1719,10 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
 	PyObject * list = NULL;
     PyObject * item = NULL;
     PyObject * dsize = NULL;
-    PyObject * wrap = Py_True;
+    auto * wrap = Py_True;
     PyObject * border_value = NULL;
 
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
     ImageGeneric * image = self->image;
     double doubleBorder_value = 1.0;
     size_t Xdim, Ydim, Zdim;
@@ -1759,7 +1759,7 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
             MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(in);
             in->setXmippOrigin();
 
-            ImageObject *result = PyObject_New(ImageObject, &ImageType);
+            auto *result = PyObject_New(ImageObject, &ImageType);
             result->image = new ImageGeneric(DT_Double);
             MultidimArray<double> *out;
             MULTIDIM_ARRAY_GENERIC(*result->image).getMultidimArrayPointer(out);
@@ -1787,12 +1787,12 @@ Image_warpAffine(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ImageObject *self = (ImageObject*) obj;
+    auto *self = (ImageObject*) obj;
 
     if (self != NULL)
     {
         PyObject *md = NULL;
-        PyObject *only_apply_shifts = Py_False;
+        auto *only_apply_shifts = Py_False;
         PyObject *wrap = (WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
@@ -1830,11 +1830,11 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-	ImageObject *self = (ImageObject*) obj;
+	auto *self = (ImageObject*) obj;
 	    if (nullptr == self) return nullptr;
 	    try {
 	    	char axis = 'z';
-	        ImageObject *result = PyObject_New(ImageObject, &ImageType);
+	        auto *result = PyObject_New(ImageObject, &ImageType);
 	        if (PyArg_ParseTuple(args, "|c", &axis)
 	                && (nullptr != result)) {
 	            // prepare input image
