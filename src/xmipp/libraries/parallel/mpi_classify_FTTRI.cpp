@@ -296,7 +296,7 @@ double ProgClassifyFTTRI::fttri_distance(const MultidimArray<double> &fttri_i,
     for (n=0, ptrI=MULTIDIM_ARRAY(fttri_i),ptrJ=MULTIDIM_ARRAY(fttri_j);
          n<nmax; n+=unroll, ptrI+=unroll, ptrJ+=unroll)
     {
-        double diff0=*(ptrI)-*(ptrJ);
+        double diff0=*ptrI-*ptrJ;
         retval+=diff0*diff0;
         double diff1=*(ptrI+1)-*(ptrJ+1);
         retval+=diff1*diff1;
@@ -308,7 +308,7 @@ double ProgClassifyFTTRI::fttri_distance(const MultidimArray<double> &fttri_i,
     for (n=nmax, ptrI=MULTIDIM_ARRAY(fttri_i)+nmax, ptrJ=MULTIDIM_ARRAY(fttri_j)+nmax;
          n<MULTIDIM_SIZE(fttri_i); ++n, ++ptrI, ++ptrJ)
     {
-        double diff0=*(ptrI)-*(ptrJ);
+        double diff0=*ptrI-*ptrJ;
         retval+=diff0*diff0;
     }
     return retval/(MULTIDIM_SIZE(fttri_i));

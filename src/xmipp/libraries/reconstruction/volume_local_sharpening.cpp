@@ -190,7 +190,7 @@ void ProgLocSharpening::bandPassFilterFunction(const MultidimArray< std::complex
         double w_inf = w-delta;
         // Filter the input volume and add it to amplitude
         long n=0;
-        double ideltal=PI/(delta);
+        double ideltal=PI/delta;
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(myfftV)
         {
                 double un=DIRECT_MULTIDIM_ELEM(iu,n);

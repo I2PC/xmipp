@@ -605,7 +605,7 @@ void ProgCTFEstimateFromMicrograph::run()
                 	if (xe.__errno==ERR_NUMERICAL)
                 		REPORT_ERROR(ERR_NUMERICAL,"There is no variance in the PSD, check that the micrograph is not constant");
                 	else
-                		throw(xe);
+                		throw xe;
                 }
 
 #ifdef DEBUG

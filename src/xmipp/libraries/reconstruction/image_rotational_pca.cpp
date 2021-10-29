@@ -304,7 +304,7 @@ void threadApplyT(ThreadArgument &thArg)
                 double *ptrHblock=&MAT_ELEM(Hblock,block_idx,0);
                 for (int j=0; j<jmax; j+=unroll, ptrHblock+=unroll, ptrWnode+=unroll)
                 {
-                  (*(ptrWnode )) +=pixval*(*ptrHblock );
+                  (*ptrWnode) +=pixval*(*ptrHblock);
                   (*(ptrWnode+1)) +=pixval*(*(ptrHblock+1));
                   (*(ptrWnode+2)) +=pixval*(*(ptrHblock+2));
                   (*(ptrWnode+3)) +=pixval*(*(ptrHblock+3));
@@ -314,7 +314,7 @@ void threadApplyT(ThreadArgument &thArg)
                   (*(ptrWnode+7)) +=pixval*(*(ptrHblock+7));
                 }
                 for (size_t j=jmax; j<MAT_XSIZE(Wnode); ++j, ptrHblock+=1, ptrWnode+=1)
-                (*(ptrWnode )) +=pixval*(*ptrHblock );
+                (*ptrWnode) +=pixval*(*ptrHblock );
                 ++i;
               }
             }
@@ -412,8 +412,8 @@ void threadApplyTt(ThreadArgument &thArg)
                 const double *ptrWtranspose=&MAT_ELEM(Wtranspose,j,0);
                 for (size_t n=0; n<nmax; n+=unroll, ptrIaux+=unroll, ptrMask+=unroll)
                 {
-                  if (*(ptrMask ))
-                  dotproduct+=(*(ptrIaux ))*(*ptrWtranspose++);
+                  if (*ptrMask)
+                  dotproduct+=(*ptrIaux)*(*ptrWtranspose++);
                   if (*(ptrMask+1))
                   dotproduct+=(*(ptrIaux+1))*(*ptrWtranspose++);
                   if (*(ptrMask+2))

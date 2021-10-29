@@ -648,7 +648,7 @@ void Sampling::fillDistance(const Matrix1D<double> &starting_point,
 
     for (int i1 = 1; i1 < my_number_of_samples; i1++)
     {
-        gamma  = (double)i1 / (my_number_of_samples);
+        gamma  = (double)i1 / my_number_of_samples;
         alpha  = sin((1. - gamma) * upsilon) / (sin(upsilon));
         beta   = sin(gamma * upsilon) / sin(upsilon);
         v_aux = alpha * starting_point + beta * ending_point;
@@ -767,8 +767,8 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
     {
         for (size_t i = 0; i < sampling_points_angles.size(); i++)
         {
-            if (XX(sampling_points_angles[i]) >= -180. / (sym_order)  + 90. &&
-                XX(sampling_points_angles[i]) <=  180. / (sym_order)  + 90. &&
+            if (XX(sampling_points_angles[i]) >= -180. / sym_order  + 90. &&
+                XX(sampling_points_angles[i]) <=  180. / sym_order  + 90. &&
                 YY(sampling_points_angles[i]) <=    90.
                )
             {
@@ -782,7 +782,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
         for (size_t i = 0; i < sampling_points_angles.size(); i++)
         {
             if (XX(sampling_points_angles[i]) >=    0. + 90. &&
-                XX(sampling_points_angles[i]) <=  180. / (sym_order) +90. &&
+                XX(sampling_points_angles[i]) <=  180. / sym_order +90. &&
                 YY(sampling_points_angles[i]) <=    90.
                )
             {
@@ -796,7 +796,7 @@ void Sampling::removeRedundantPoints(const int symmetry, int sym_order)
         for (size_t i = 0; i < sampling_points_angles.size(); i++)
         {
             if (XX(sampling_points_angles[i]) >= 0. &&
-                XX(sampling_points_angles[i]) <=  180. / (sym_order) &&
+                XX(sampling_points_angles[i]) <=  180. / sym_order &&
                 YY(sampling_points_angles[i]) <=   90.
                )
             {
