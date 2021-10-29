@@ -177,7 +177,7 @@ double sum_blob_SimpleGrid(const struct blobtype &blob, const SimpleGrid &grid,
     // Compute the limits of the blob in the grid coordinate system
     grid.universe2grid(vectorR3(-blob.radius, -blob.radius, -blob.radius), corner1);
     grid.universe2grid(vectorR3(blob.radius, blob.radius, blob.radius), corner2);
-    if (D != NULL)
+    if (D != nullptr)
         box_enclosing(corner1, corner2, *D, corner1, corner2);
 
     // Compute the sum in the points inside the grid
@@ -189,7 +189,7 @@ double sum_blob_SimpleGrid(const struct blobtype &blob, const SimpleGrid &grid,
             {
                 VECTOR_R3(gr, i, j, k);
                 grid.grid2universe(gr, ur);
-                if (D != NULL)
+                if (D != nullptr)
                     M3x3_BY_V3x1(ur, *D, ur);
                 actual_radius = ur.module();
                 if (actual_radius < blob.radius)
@@ -497,7 +497,7 @@ void * blobs2voxels_SimpleGrid( void * data )
 #endif
 
     // Invert deformation matrix ............................................
-    if (D != NULL)
+    if (D != nullptr)
         Dinv = D->inv();
 
     // Compute a blob value table ...........................................
@@ -526,7 +526,7 @@ void * blobs2voxels_SimpleGrid( void * data )
             if( slices_processed == z_planes )
             {
                 pthread_mutex_unlock(&blobs_conv_mutex);
-                return (void*)NULL;
+                return (void*)nullptr;
             }
 
             for(int w = 0 ; w < z_planes ; w++ )
@@ -586,7 +586,7 @@ void * blobs2voxels_SimpleGrid( void * data )
 #endif
 
                 // Place act_coord in its right place
-                if (D != NULL)
+                if (D != nullptr)
                 {
                     M3x3_BY_V3x1(real_position, *D, act_coord);
 #ifdef DEBUG
@@ -690,7 +690,7 @@ void * blobs2voxels_SimpleGrid( void * data )
                             for (intx = XX(corner1); intx <= XX(corner2); intx++)
                             {
                                 int iz = (int)intz, iy = (int)inty, ix = (int)intx;
-                                if (vol_mask != NULL)
+                                if (vol_mask != nullptr)
                                     if (!A3D_ELEM(*vol_mask, iz, iy, ix))
                                         continue;
 
@@ -737,7 +737,7 @@ void * blobs2voxels_SimpleGrid( void * data )
                                         std::cout.flush();
                                     }
 #endif
-                                    if (vol_corr != NULL)
+                                    if (vol_corr != nullptr)
                                         A3D_ELEM(*vol_corr, iz, iy, ix) +=
                                             A1D_ELEM(blob_table, id) * A1D_ELEM(blob_table, id);
                                 }
@@ -813,7 +813,7 @@ void * blobs2voxels_SimpleGrid( void * data )
     }
     while(1);
 
-    return (void*)NULL;
+    return (void*)nullptr;
 }
 #undef x0
 #undef y0
@@ -941,21 +941,21 @@ void blobs2voxels(const GridVolume &vol_blobs,
             threads_d[c].vol_voxels = vol_voxels;
             threads_d[c].D = D;
             threads_d[c].istep = 50;
-            threads_d[c].vol_corr = NULL;
-            threads_d[c].vol_mask = NULL;
+            threads_d[c].vol_corr = nullptr;
+            threads_d[c].vol_mask = nullptr;
             threads_d[c].FORW = true;
             threads_d[c].eq_mode = VARTK;
             threads_d[c].thread_id = c;
             threads_d[c].threads_num = threads;
             threads_d[c].min_separation = min_distance;
 
-            pthread_create( (th_ids+c), NULL, blobs2voxels_SimpleGrid, (void *)(threads_d+c) );
+            pthread_create( (th_ids+c), nullptr, blobs2voxels_SimpleGrid, (void *)(threads_d+c) );
         }
 
         // Wait for threads to finish
         for( int c = 0 ; c < threads ; c++ )
         {
-            pthread_join(*(th_ids+c),NULL);
+            pthread_join(*(th_ids+c),nullptr);
         }
 
 #ifdef DEBUG
@@ -1010,7 +1010,7 @@ void blobs2space_coefficients(const GridVolume &vol_blobs,
 
     // Compute vol_coefs shape
     Matrix1D<int> corner1, size;
-    voxel_volume_shape(vol_blobs, blob, NULL, corner1, size);
+    voxel_volume_shape(vol_blobs, blob, nullptr, corner1, size);
     double g_2 = vol_blobs.grid(0).relative_size / 2;
     XX(corner1) = (int)(FLOOR(XX(corner1)) / g_2);
     XX(size) = (int)(CEIL(XX(size)) / g_2);
@@ -1087,11 +1087,11 @@ void ART_voxels2blobs_single_step(
 {
 
     // Resize output volumes ................................................
-    if (read_vol != NULL)
+    if (read_vol != nullptr)
     {
         (*theo_vol).initZeros(*read_vol);
     }
-    else if (mask_vol != NULL)
+    else if (mask_vol != nullptr)
     {
         (*theo_vol).initZeros(*mask_vol);
     }
@@ -1130,13 +1130,13 @@ void ART_voxels2blobs_single_step(
             threads_d[c].threads_num = threads;
             threads_d[c].min_separation = min_distance;
 
-            pthread_create( (th_ids+c), NULL, blobs2voxels_SimpleGrid, (void *)(threads_d+c) );
+            pthread_create( (th_ids+c), nullptr, blobs2voxels_SimpleGrid, (void *)(threads_d+c) );
         }
 
         // Wait for threads to finish
         for( int c = 0 ; c < threads ; c++ )
         {
-            pthread_join(*(th_ids+c),NULL);
+            pthread_join(*(th_ids+c),nullptr);
         }
 
         free( slices_status );
@@ -1175,7 +1175,7 @@ void ART_voxels2blobs_single_step(
     // Compute differences ..................................................
     mean_error = 0;
     double read_val;
-    if (read_vol != NULL)
+    if (read_vol != nullptr)
         read_val = A3D_ELEM(*read_vol, 0, 0, 0);
     else
         read_val = 0;
@@ -1186,12 +1186,12 @@ void ART_voxels2blobs_single_step(
     FOR_ALL_ELEMENTS_IN_ARRAY3D(*theo_vol)
     {
         // Compute difference volume and error
-        if (read_vol != NULL)
+        if (read_vol != nullptr)
             read_val = A3D_ELEM(*read_vol, k, i, j);
         else
             read_val = 0;
 
-        if (mask_vol == NULL)
+        if (mask_vol == nullptr)
         {
             diff = read_val - A3D_ELEM(*theo_vol, k, i, j);
             N++;
@@ -1261,13 +1261,13 @@ void ART_voxels2blobs_single_step(
             threads_d[c].threads_num = threads;
             threads_d[c].min_separation = 1;
 
-            pthread_create( (th_ids+c), NULL, blobs2voxels_SimpleGrid, (void *)(threads_d+c) );
+            pthread_create( (th_ids+c), nullptr, blobs2voxels_SimpleGrid, (void *)(threads_d+c) );
         }
 
         // Wait for threads to finish
         for( int c = 0 ; c < threads ; c++ )
         {
-            pthread_join(*(th_ids+c),NULL);
+            pthread_join(*(th_ids+c), nullptr);
         }
         free( slices_status );
         //        blobs2voxels_SimpleGrid((*vol_out)(i)(), (*vol_out).grid(i), blob,

@@ -1223,11 +1223,11 @@ void Mask::defineParams(XmippProgram * program, int allowed_data_types,
     char advanced=' ';
     if (moreOptions)
     	advanced='+';
-    if(prefix == NULL)
+    if(prefix == nullptr)
         sprintf(tempLine, "  [--mask%c <mask_type=circular>] ",advanced);
     else
         sprintf(tempLine,"%s --mask%c <mask_type=circular> ", prefix,advanced);
-    if (comment != NULL)
+    if (comment != nullptr)
         sprintf(tempLine2, "%s : %s", tempLine, comment);
     else
     	strcpy(tempLine2,tempLine);
@@ -1759,7 +1759,7 @@ void rangeAdjust_within_mask(const MultidimArray<double> *mask,
     b.initZeros();
     SPEED_UP_tempsInt;
     // Compute Least squares solution
-    if (mask == NULL)
+    if (mask == nullptr)
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(m1, m2)
         {

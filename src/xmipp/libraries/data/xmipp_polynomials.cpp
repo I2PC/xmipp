@@ -139,7 +139,7 @@ void PolyZernikes::fit(const Matrix1D<int> & coef, MultidimArray<double> & im, c
             {
                 fMat = &fMatV[k];
 
-                if (fMat == NULL)
+                if (fMat == nullptr)
                     continue;
 
                 double temp = 0;

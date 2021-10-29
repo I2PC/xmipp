@@ -103,7 +103,7 @@ public:
       * direction is computed and stored in the Projection structure.
       */
     void read(const FileName& fn, const bool only_apply_shifts = false,
-              DataMode datamode = DATA, MDRow * row = NULL );
+              DataMode datamode = DATA, MDRow * row = nullptr);
 
     /** Assignment.
      */
@@ -164,7 +164,7 @@ public:
     /**
      * This method gets the volume's Fourier and the Euler's angles as the inputs and interpolates the related projection
      */
-    void project(double rot, double tilt, double psi, const MultidimArray<double> *ctf=NULL);
+    void project(double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
 
     /** Update volume */
     void updateVolume(MultidimArray<double> &V);
@@ -180,7 +180,7 @@ public:
  * This function gets an object form the FourierProjection class and makes the desired projection in Fourier space
  */
 void projectVolume(FourierProjector &projector, Projection &P, int Ydim, int Xdim,
-                   double rot, double tilt, double psi, const MultidimArray<double> *ctf=NULL);
+                   double rot, double tilt, double psi, const MultidimArray<double> *ctf=nullptr);
 
 //@}
 

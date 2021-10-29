@@ -297,7 +297,7 @@ void footprint_blob(ImageOver &blobprint, const struct blobtype &blob,
    D*(i,j,k)'.
 */
 double sum_blob_Grid(const struct blobtype &blob, const Grid &grid,
-                     const Matrix2D<double> *D = NULL);
+                     const Matrix2D<double> *D = nullptr);
 
 
 /** Voxel shape for a blob volume.
@@ -342,7 +342,7 @@ void voxel_volume_shape(const GridVolume &vol_blobs,
 */
 void blobs2voxels(const GridVolume &vol_blobs,
                   const struct blobtype &blob, MultidimArray<double> *vol_voxels,
-                  const Matrix2D<double> *D = NULL, int threads = 1, int Zdim = 0, int Ydim = 0, int Xdim = 0);
+                  const Matrix2D<double> *D = nullptr, int threads = 1, int Zdim = 0, int Ydim = 0, int Xdim = 0);
 
 /** Blob coefficients as a voxel volume.
     This function returns a volume with the blob coefficients in their right position
@@ -371,8 +371,8 @@ void blobs2space_coefficients(const GridVolume &vol_blobs, const struct blobtype
 void voxels2blobs(const MultidimArray<double> *vol_voxels,
                   const struct blobtype &blob, GridVolume &vol_blobs,
                   int grid_type, double grid_relative_size,
-                  double lambda, const MultidimArray<double> *vol_mask = NULL,
-                  const Matrix2D<double> *D = NULL,
+                  double lambda, const MultidimArray<double> *vol_mask = nullptr,
+                  const Matrix2D<double> *D = nullptr,
                   double final_error_change = 0.01, int tell = 0, double R = -1, int threads = 1);
 
 #define VARTK 1

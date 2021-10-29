@@ -1756,7 +1756,7 @@ void Sampling::computeNeighbors(bool only_winner)
     	}
     	else
     	{
-			size_t * aux_neighborsArray = NULL;
+			size_t * aux_neighborsArray = nullptr;
 			for (size_t k = 0; k < R_repository.size(); k++,j++)
 			{
 				winner_dotProduct = -1.;
