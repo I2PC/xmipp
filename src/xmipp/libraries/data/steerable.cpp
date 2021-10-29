@@ -251,7 +251,7 @@ void Steerable::generate1DFilters(double sigma,
 
     double sigma2=sigma*sigma;       
     double k1 =  1.0/pow((2.0*PI*sigma),(3.0/2.0));
-    double k2 = -1.0/(sigma2);
+    double k2 = -1.0/sigma2;
     
     FOR_ALL_ELEMENTS_IN_ARRAY1D(hx1[0])
     {        
