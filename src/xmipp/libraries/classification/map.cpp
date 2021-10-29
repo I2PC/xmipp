@@ -46,12 +46,12 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -75,12 +75,12 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -107,12 +107,12 @@ ClassificationMap::ClassificationMap(const std::string& _layout,  unsigned _widt
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -375,12 +375,12 @@ void ClassificationMap::readSelf(std::istream& _is)
 
     if (layout == "hexa")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
@@ -435,12 +435,12 @@ void ClassificationMap::loadObject(std::istream& _is)
     _is >> layout;
     if (layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
@@ -768,12 +768,12 @@ FuzzyMap::FuzzyMap(const std::string& _layout,  unsigned _width,
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -799,12 +799,12 @@ FuzzyMap::FuzzyMap(const std::string& _layout,  unsigned _width,
 {
     if (_layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
 }
@@ -1083,12 +1083,12 @@ void FuzzyMap::readSelf(std::istream& _is, const unsigned _size)
     _is >> layout;
     if (layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
@@ -1131,12 +1131,12 @@ void FuzzyMap::loadObject(std::istream& _is)
     _is >> layout;
     if (layout == "HEXA")
     {
-        HEXALayout *tmpLayout = new HEXALayout();
+        auto *tmpLayout = new HEXALayout();
         somLayout = tmpLayout;
     }
     else
     {
-        RECTLayout *tmpLayout = new RECTLayout();
+        auto *tmpLayout = new RECTLayout();
         somLayout = tmpLayout;
     }
     _is >> somWidth;
