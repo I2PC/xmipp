@@ -291,7 +291,7 @@ void ProgVolumeHalvesRestoration::convolveS()
 
 double restorationSigmaCost(double *x, void *_prm)
 {
-	ProgVolumeHalvesRestoration *prm=(ProgVolumeHalvesRestoration *) _prm;
+	auto *prm=(ProgVolumeHalvesRestoration *) _prm;
 	double sigma1=x[1];
 	double sigma2=x[2];
 	if (sigma1<0 || sigma2<0 || sigma1>2 || sigma2>2)
