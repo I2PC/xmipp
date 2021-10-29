@@ -284,7 +284,7 @@ double ProgVolDeformSph::distance(double *pclnm)
 
 double volDeformSphGoal(double *p, void *vprm)
 {
-    ProgVolDeformSph *prm=(ProgVolDeformSph *) vprm;
+	auto *prm=(ProgVolDeformSph *) vprm;
 	return prm->distance(p);
 }
 

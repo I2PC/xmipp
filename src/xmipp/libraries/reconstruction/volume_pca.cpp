@@ -177,7 +177,7 @@ void ProgVolumePCA::run()
 		std::cout << "listOfPercentiles.size()=" << listOfPercentiles.size() << std::endl;
 		for (size_t i=0; i<listOfPercentiles.size(); i++)
 		{
-			int idx=(int)round(textToFloat(listOfPercentiles[i].c_str())/100.0*VEC_XSIZE(p));
+			auto idx=(int)round(textToFloat(listOfPercentiles[i].c_str())/100.0*VEC_XSIZE(p));
 			std::cout << "Percentile " << listOfPercentiles[i] << " -> idx=" << idx << " p(idx)=" << psorted(idx) << std::endl;
 			Vpca()+=psorted(idx)*V();
 			Vpca.write(fnOutStack,i+1,true,WRITE_REPLACE);
