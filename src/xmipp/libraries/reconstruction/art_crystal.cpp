@@ -348,8 +348,8 @@ void CrystalARTRecons::singleStep(
         //copy theo_proj to a temporal matrix
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(theo_proj())
         dAij(alig_proj(), i, j) = dAij(read_proj(), i, j);
-        applyGeometry(xmippTransformation::LINEAR, IMGMATRIX(alig_proj), IMGMATRIX(read_proj), Correction,
-                      xmippTransformation::IS_NOT_INV, xmippTransformation::WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, IMGMATRIX(alig_proj), IMGMATRIX(read_proj), Correction,
+                      xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
     }
     // Now compute differences .................................................
     double applied_lambda = lambda / numIMG; // In ART mode, numIMG=1

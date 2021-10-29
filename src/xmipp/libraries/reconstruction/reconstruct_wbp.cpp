@@ -551,7 +551,7 @@ void ProgRecWbp::apply2DFilterArbitraryGeometry()
         proj.setWeight(weight);
         proj.getTransformationMatrix(A, true);
         if (!A.isIdentity())
-            selfApplyGeometry(xmippTransformation::BSPLINE3, proj(), A, xmippTransformation::IS_INV, xmippTransformation::WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, proj(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
         if (do_weights)
             proj() *= proj.weight();
         proj().setXmippOrigin();

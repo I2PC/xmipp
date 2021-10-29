@@ -526,7 +526,7 @@ public:
 double alignImages(const MultidimArray< double >& Iref,
                    MultidimArray< double >& I,
                    Matrix2D< double >&M,
-                   bool wrap=xmippTransformation::WRAP);
+                   bool wrap=xmipp_transformation::WRAP);
 
 /** Align two images considering mirrors */
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, MultidimArray<double>& I,
@@ -607,7 +607,7 @@ double alignImagesConsideringMirrors(const MultidimArray< double >& Iref,
                                      AlignmentAux &aux,
                                      CorrelationAux &aux2,
                                      RotationalCorrelationAux &aux3,
-                                     bool wrap=xmippTransformation::WRAP,
+                                     bool wrap=xmipp_transformation::WRAP,
                                      const MultidimArray< int >* mask = NULL);
 
 /** Align a set of images.

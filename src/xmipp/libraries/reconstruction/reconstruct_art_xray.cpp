@@ -150,7 +150,7 @@ double ProgReconsXrayART::singleStep(MultidimArray<double> &muVol, const Project
 
     double outside = 0; //phantom.iniVol.getPixel(0,0,0,0);
 
-    applyGeometry(xmippTransformation::LINEAR, rotVol, muVol, R, xmippTransformation::IS_NOT_INV, xmippTransformation::DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, rotVol, muVol, R, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
     psf.adjustParam(rotVol);
 

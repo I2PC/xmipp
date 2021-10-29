@@ -75,11 +75,11 @@ void ProgImageResize::readParams()
     String degree = getParam("--interp");
 
     if (degree == "spline")
-        splineDegree = xmippTransformation::BSPLINE3;
+        splineDegree = xmipp_transformation::BSPLINE3;
     else if (degree == "linear")
-        splineDegree = xmippTransformation::LINEAR;
+        splineDegree = xmipp_transformation::LINEAR;
     else if (degree == "nearest")
-        splineDegree = xmippTransformation::NEAREST;
+        splineDegree = xmipp_transformation::NEAREST;
 
     scale_type = RESIZE_NONE;
 }

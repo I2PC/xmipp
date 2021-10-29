@@ -166,13 +166,13 @@ public:
 
             // Produce the transformed images
             MultidimArray<double> transformedI1, transformedI2;
-            applyGeometry(xmippTransformation::LINEAR,transformedI1,*(I1[level]),A12level,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
-            applyGeometry(xmippTransformation::LINEAR,transformedI2,*(I2[level]),A21level,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,transformedI1,*(I1[level]),A12level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,transformedI2,*(I2[level]),A21level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 
             // Produce masks for the comparison
             MultidimArray<int> maskInTheSpaceOf1, maskInTheSpaceOf2;
             MultidimArray<double> maskAux;
-            applyGeometry(xmippTransformation::LINEAR,maskAux,Mask1_level,A12level,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,maskAux,Mask1_level,A12level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
             maskInTheSpaceOf2.initZeros(YSIZE(maskAux),XSIZE(maskAux));
             maskInTheSpaceOf2.setXmippOrigin();
             FOR_ALL_ELEMENTS_IN_ARRAY2D(maskAux)
@@ -182,7 +182,7 @@ public:
             }
 
             maskAux.initZeros();
-            applyGeometry(xmippTransformation::LINEAR,maskAux,Mask2_level,A21level,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
+            applyGeometry(xmipp_transformation::LINEAR,maskAux,Mask2_level,A21level,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
             maskInTheSpaceOf1.initZeros(YSIZE(maskAux),XSIZE(maskAux));
             maskInTheSpaceOf1.setXmippOrigin();
             FOR_ALL_ELEMENTS_IN_ARRAY2D(maskAux)
@@ -305,10 +305,10 @@ void setupAffineFitness(AffineFitness &fitness, const MultidimArray<double> &I1,
         level++;
         if (pyramidLevel>=level)
         {
-            selfScaleToSize(xmippTransformation::LINEAR,I1aux,YSIZE(I1aux)/2,XSIZE(I1aux)/2);
-            selfScaleToSize(xmippTransformation::LINEAR,I2aux,YSIZE(I2aux)/2,XSIZE(I2aux)/2);
-            selfScaleToSize(xmippTransformation::LINEAR,Mask1,YSIZE(Mask1)/2,XSIZE(Mask1)/2);
-            selfScaleToSize(xmippTransformation::LINEAR,Mask2,YSIZE(Mask2)/2,XSIZE(Mask2)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,I1aux,YSIZE(I1aux)/2,XSIZE(I1aux)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,I2aux,YSIZE(I2aux)/2,XSIZE(I2aux)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,Mask1,YSIZE(Mask1)/2,XSIZE(Mask1)/2);
+            selfScaleToSize(xmipp_transformation::LINEAR,Mask2,YSIZE(Mask2)/2,XSIZE(Mask2)/2);
             FOR_ALL_ELEMENTS_IN_ARRAY2D(Mask1)
             Mask1(i,j)=(Mask1(i,j)>0.5)? 1:0;
             FOR_ALL_ELEMENTS_IN_ARRAY2D(Mask2)
@@ -1813,7 +1813,7 @@ bool ProgTomographAlignment::refineLandmark(int ii, int jj,
             bestNonwrappingShift(pieceii,piecejj,shiftX,shiftY,aux);
             Matrix1D<double> fftShift(2);
             VECTOR_R2(fftShift,shiftX,shiftY);
-            selfTranslate(xmippTransformation::LINEAR,piecejj,fftShift,xmippTransformation::WRAP);
+            selfTranslate(xmipp_transformation::LINEAR,piecejj,fftShift,xmipp_transformation::WRAP);
             double corrFFT=correlationIndex(pieceii,piecejj);
             if (corrFFT>corrOriginal)
             {
@@ -2307,8 +2307,8 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
         rotation2DMatrix(90-alignment.rot+alignment.psi(n),M2);
         translation2DMatrix(-(alignment.di[n]+alignment.diaxis[n]),M3);
         M=M1*M2*M3;
-        selfApplyGeometry(xmippTransformation::BSPLINE3,I(),M,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
-        selfApplyGeometry(xmippTransformation::LINEAR,mask,M,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3,I(),M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
+        selfApplyGeometry(xmipp_transformation::LINEAR,mask,M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
         mask.binarize(0.5);
         typeCast(mask,iMask);
         double minval, maxval, avg, stddev;
@@ -2344,8 +2344,8 @@ void ProgTomographAlignment::alignImages(const Alignment &alignment)
             translation2DMatrix(-(alignment.di[n]+alignment.diaxis[n])*
                                 (((double)XSIZE(Iorig()))/XSIZE(I())),M3);
             M=M1*M2*M3;
-            selfApplyGeometry(xmippTransformation::BSPLINE3,Iorig(),M,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
-            selfApplyGeometry(xmippTransformation::LINEAR,mask,M,xmippTransformation::IS_NOT_INV,xmippTransformation::DONT_WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3,Iorig(),M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
+            selfApplyGeometry(xmipp_transformation::LINEAR,mask,M,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
             mask.binarize(0.5);
             typeCast(mask,iMask);
             computeStats_within_binary_mask(iMask,Iorig(),minval, maxval,
