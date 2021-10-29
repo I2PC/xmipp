@@ -1733,15 +1733,15 @@ int count_with_mask(const MultidimArray<int> &mask,
     if (A2D_ELEM(mask, i, j))
         switch (mode)
         {
-        case (COUNT_ABOVE):
+        case COUNT_ABOVE:
                         if (abs(A3D_ELEM(m, k, i, j)) >= th1)
                             N++;
             break;
-        case (COUNT_BELOW):
+        case COUNT_BELOW:
                         if (abs(A3D_ELEM(m, k, i, j)) <= th1)
                             N++;
             break;
-        case (COUNT_BETWEEN):
+        case COUNT_BETWEEN:
                         if (abs(A3D_ELEM(m, k, i, j)) >= th1 && abs(A3D_ELEM(m, k, i, j)) <= th2)
                             N++;
             break;
