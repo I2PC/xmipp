@@ -661,7 +661,7 @@ void ProgMPIRecFourier::run()
         iter++;
     }
     while(iter<NiterWeight);
-    delete ranks;
+    delete[] ranks;
 }
 
 int  ProgMPIRecFourier::sendDataInChunks( double * pointer, int dest, int totalSize, int buffSize, MPI_Comm comm )
