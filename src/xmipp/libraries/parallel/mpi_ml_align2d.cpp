@@ -32,7 +32,7 @@
 
 MpiML2DBase::MpiML2DBase(XmippProgram * prm)
 {
-    node = NULL;
+    node = nullptr;
     program = prm;
 }
 
@@ -51,7 +51,7 @@ MpiML2DBase::~MpiML2DBase()
 
 void MpiML2DBase::readMpi(int argc, char** argv)
 {
-    if (node == NULL)
+    if (node == nullptr)
     {
         node = new MpiNode(argc, argv);
         created_node = true;
@@ -439,7 +439,7 @@ void MpiProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputTyp
 /** Constructor */
 MpiProgMLTomo::MpiProgMLTomo()
 {
-    node = NULL;
+    node = nullptr;
 }
 /** Destructor */
 MpiProgMLTomo::~MpiProgMLTomo()
@@ -450,7 +450,7 @@ MpiProgMLTomo::~MpiProgMLTomo()
 /** Redefine the basic Program read to do it sequentially */
 void MpiProgMLTomo::read(int argc, char ** argv, bool reportErrors)
 {
-    if (node == NULL)
+    if (node == nullptr)
         node = new MpiNode(argc, argv);
     //The following makes the asumption that 'this' also
     //inherits from an XmippProgram
