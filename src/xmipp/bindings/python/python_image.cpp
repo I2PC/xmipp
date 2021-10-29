@@ -1640,10 +1640,12 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
                 item  = PyList_GetItem(list, i);
                 MAT_ELEM(A,i/4,i%4 ) = PyFloat_AsDouble(item);
             }
-            double scale, shiftX, shiftY, psi;
+            double scale, shiftX, shiftY, rot,tilt, psi;
+            tilt = 0.0;
+            rot = 0.0;
             bool flip;
-            transformationMatrix2Parameters2D(A, flip, scale, shiftX, shiftY, psi);
-            img->setEulerAngles(0,0.,psi);
+            transformationMatrix2Parameters2D(A, flip, scale, shiftX, shiftY, psi);//, shiftZ, rot,tilt, psi);
+            img->setEulerAngles(rot,tilt,psi);
             img->setShifts(shiftX,shiftY);
             img->setScale(scale);
             img->setFlip(flip);

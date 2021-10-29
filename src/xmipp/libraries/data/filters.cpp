@@ -1369,7 +1369,7 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 	{
 		double p1=DIRECT_MULTIDIM_ELEM(I1,n);
 		double p2=DIRECT_MULTIDIM_ELEM(I2,n);
-		if(p1>th1){
+		if(p1>=th1){
 			sumMI1+=p1;
 			sumMI2+=p2;
 			N1+=1.0;
@@ -1385,6 +1385,7 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 	}
 	else
 		return 0;
+
 	double p1a, p2a;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)
 	{

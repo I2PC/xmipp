@@ -444,7 +444,7 @@ void ProgassignmentTiltPair::run()
 		A_con.initZeros(2,2);
 		def_A.initZeros(2,2);
 		def_T.initZeros(2);
-		bool flag;
+		bool flag = false;
 
 
 		if ((count >= bestInliers) && (count >= 0.2*thrs))
