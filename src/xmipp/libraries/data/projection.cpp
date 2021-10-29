@@ -1212,7 +1212,7 @@ void *project_SimpleGridThread( void * params )
 
     int FORW;
     int eq_mode;
-    const Image<int> *VNeq=null;
+    const Image<int> *VNeq=NULL;
     Matrix2D<double> *M=NULL;
     const MultidimArray<int> *mask=NULL;
     double ray_length;
