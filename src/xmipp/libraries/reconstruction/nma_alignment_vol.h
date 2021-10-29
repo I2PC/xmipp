@@ -190,7 +190,7 @@ class ObjFunc_nma_alignment_vol: public UnconstrainedObjectiveFunction
   public:
     ObjFunc_nma_alignment_vol(int _t, int _n=0);
     ~ObjFunc_nma_alignment_vol(){};
-    double eval(Vector v, int *nerror=NULL);
+    double eval(Vector v, int *nerror=nullptr);
 };
 
 #endif

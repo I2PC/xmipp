@@ -31,7 +31,7 @@ ProgTransformImageGreyLevels::ProgTransformImageGreyLevels()
 {
     produces_a_metadata = true;
     each_image_produces_an_output = true;
-    projector = NULL;
+    projector = nullptr;
 }
 
 ProgTransformImageGreyLevels::~ProgTransformImageGreyLevels()

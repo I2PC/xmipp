@@ -1369,7 +1369,7 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 	{
 		double p1=DIRECT_MULTIDIM_ELEM(I1,n);
 		double p2=DIRECT_MULTIDIM_ELEM(I2,n);
-		if(p1>th1){
+		if(p1>=th1){
 			sumMI1+=p1;
 			sumMI2+=p2;
 			N1+=1.0;
@@ -1378,11 +1378,10 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 
 	double sumMI1I2=0.0, sumMI1I1=0.0, sumMI2I2=0.0;
 	double iN1, avgM1, avgM2, corrM1M2;
-	if (N1>0){
-		iN1=1.0/N1;
-		avgM1=sumMI1*iN1;
-		avgM2=sumMI2*iN1;
-	}
+    // Either this or throw and exception if division by zero?
+    iN1=1.0/N1;
+    avgM1=sumMI1*iN1;
+    avgM2=sumMI2*iN1;
 	double p1a, p2a;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)
 	{

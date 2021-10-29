@@ -32,6 +32,7 @@
 #include "angular_discrete_assign.h"
 #include "volume_from_pdb.h"
 #include "pdb_nma_deform.h"
+#include "pdb_sph_deform.h"
 #include "angular_continuous_assign.h"
 #include "micrograph_automatic_picking2.h"
 #include "program_filter.h"
@@ -90,6 +91,9 @@ XmippProgram * getProgramByName(const String &programName)
 
     if (programName == "xmipp_pdb_nma_deform")
         return new ProgPdbNmaDeform();
+    
+    if (programName == "xmipp_pdb_sph_deform")
+        return new ProgPdbSphDeform();
 
     if (programName == "xmipp_micrograph_automatic_picking")
         return new ProgMicrographAutomaticPicking2();

@@ -78,7 +78,7 @@ void ProgML2D::readParams()
 
     cline = "";
     int argc2 = 0;
-    char ** argv2 = NULL;
+    char ** argv2 = nullptr;
 
     double restart_noise=0, restart_offset=0;
     FileName restart_imgmd, restart_refmd;
@@ -164,7 +164,7 @@ void ProgML2D::readParams()
     seed = getIntParam("--random_seed");
 
     if (seed == -1)
-        seed = time(NULL);
+        seed = time(nullptr);
     else if (!do_restart && verbose)
         std::cerr << "WARNING: *** Using a non random seed and not in restarting ***" <<std::endl;
 
@@ -943,7 +943,7 @@ void ProgML2D::createThreads()
         threads_d[i].thread_id = i;
         threads_d[i].prm = this;
 
-        int result = pthread_create((th_ids + i), NULL, doThreadsTasks,
+        int result = pthread_create((th_ids + i), nullptr, doThreadsTasks,
                                     (void *) (threads_d + i));
 
         if (result != 0)
@@ -1007,7 +1007,7 @@ void * doThreadsTasks(void * data)
             break;
 
         case TH_EXIT:
-            pthread_exit(NULL);
+            pthread_exit(nullptr);
             break;
 
         }
@@ -1288,7 +1288,7 @@ void ProgML2D::doThreadExpectationSingleImageRefno()
 {
     double diff;
     double aux, pdf, fracpdf, A2_plus_Xi2;
-    double weight, stored_weight, weight2, my_maxweight;
+    double weight, stored_weight, weight2 = 0, my_maxweight;
     double my_sumweight, my_sumstoredweight, ref_scale = 1.;
     int irot, output_irefmir, refnoipsi, output_refnoipsi;
     //Some local variables to store partial sums of global sums variables

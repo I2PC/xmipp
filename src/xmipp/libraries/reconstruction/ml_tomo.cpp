@@ -239,7 +239,7 @@ ProgMLTomo::readParams()
     // Generate new command line for restart procedure
     cline = "";
     int argc2 = 0;
-    char ** argv2 = NULL;
+    char ** argv2 = nullptr;
 
     if (checkParameter(argc, argv, "-restart"))
     {
@@ -2832,7 +2832,7 @@ threadMLTomoExpectationSingleImage(void * data)
 
     std::cerr<<"finished threadMLTomoExpectationSingleImage"<<std::endl;
 #endif
-    return NULL;
+    return nullptr;
 }
 
 void
@@ -2902,12 +2902,12 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
         threads_d[c].imgs_id = &imgs_id;
         threads_d[c].distributor = distributor;
         pthread_create(
-            (th_ids + c), NULL, threadMLTomoExpectationSingleImage, (void *)(threads_d+c) );
+            (th_ids + c), nullptr, threadMLTomoExpectationSingleImage, (void *)(threads_d+c) );
     }
     // Wait for threads to finish and get joined MetaData
     for (int c = 0; c < threads; c++)
     {
-        pthread_join(*(th_ids + c), NULL);
+        pthread_join(*(th_ids + c), nullptr);
     }
     //Free some memory
     delete distributor;
@@ -3228,7 +3228,7 @@ ProgMLTomo::regularize(int iter)
         FileName fnt;
         for (int refno = 0; refno < nr_ref; refno++)
         {
-            fnt = formatString("%s_it%06d_oriref%06d.vol", fn_root.c_str(), iter,
+            fnt = formatString("%s_it%06d_oriref%06d.mrc", fn_root.c_str(), iter,
                                refno + 1);
             Iref[refno].write(fnt);
         }
@@ -3414,7 +3414,7 @@ ProgMLTomo::writeOutputFiles(const int iter,
     //for (int refno = 0; refno < nr_ref; refno++)
     for (size_t objId : MDref.ids())
     {
-        fn_tmp = formatString("%s_ref%06d.vol", fn_base.c_str(), refno + 1);
+        fn_tmp = formatString("%s_ref%06d.mrc", fn_base.c_str(), refno + 1);
         Vt = Iref[refno];
         reScaleVolume(Vt(), false);
         Vt.write(fn_tmp);
@@ -3450,7 +3450,7 @@ ProgMLTomo::writeOutputFiles(const int iter,
 
             CenterFFT(Vt(), true);
             reScaleVolume(Vt(), false);
-            fn_tmp = formatString("%s_wedge%06d.vol", fn_base.c_str(), refno + 1);
+            fn_tmp = formatString("%s_wedge%06d.mrc", fn_base.c_str(), refno + 1);
             Vt.write(fn_tmp);
         }
         refno++;

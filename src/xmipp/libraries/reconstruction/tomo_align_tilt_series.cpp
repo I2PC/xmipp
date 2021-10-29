@@ -358,7 +358,7 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                            pyramidLevel);
 
         // Return result
-        double cost;
+        double cost = 0.0;
 
         // Optimize with differential evolution
         Matrix1D<double> A(6);
@@ -2757,6 +2757,7 @@ void Alignment::computeErrorForLandmarks()
 
 /* Update model ------------------------------------------------------------ */
 //#define DEBUG
+//UTILS
 void Alignment::updateModel()
 {
     Matrix1D<double> pij(2), piN(2);
