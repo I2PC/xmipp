@@ -967,7 +967,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     args.pieceSmoother = &pieceSmoother;
     args.Nprocessed = 0;
     args.mutex = &mutex;
-    auto thMgr = std::unique_ptr<ThreadManager>(new ThreadManager(numberOfThreads, &args));
+    auto thMgr = std::unique_ptr<ThreadManager>(std::make_unique<ThreadManager>(numberOfThreads, &args));
     thMgr->run(threadFastEstimateEnhancedPSD);
     if (args.Nprocessed != 0)
         *(args.PSD) /= args.Nprocessed;
