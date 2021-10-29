@@ -980,9 +980,7 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 	int dim = numberOfModes;
 	int ModMaxdeDefamp, ModpowDim, help;
 	double SinPhi, CosPhi, SinPsi, CosPsi;
-	double phi, theta, psi;
 	double S_muMin = 1e30;
-	double x0, y0;
 	//double    *cost;
 	costfunctionvalue = 0.0;
 	Matrix1D<double> Parameters(dim + 5);
@@ -1022,7 +1020,12 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 	std::vector<double> R(16,0);
 	std::vector<double> Tr(16,0);
 
-	for (phi = 0; phi < 360; phi += minAngularSampling) {
+	int phiSteps=360/minAngularSampling;
+	int thetaSteps=180/minAngularSampling;
+	int psiSteps=360/minAngularSampling;
+	int transSteps=maxtransl/translsampling;
+	for (int iphi = 0; iphi <= phiSteps; iphi++) {
+		double phi=iphi*minAngularSampling;
 		Parameters(0) = phi;
 		trial(0) = phi;
 		SinPhi = sin(phi / 180 * PI);
@@ -1039,7 +1042,8 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 		hlp += (std::ptrdiff_t) 2L;
 		*hlp = CosPhi;
 
-		for (theta = 0; theta < 180; theta += minAngularSampling) {
+		for (int itheta = 0; itheta <=thetaSteps; itheta++) {
+			double theta=itheta*minAngularSampling;
 			Parameters(1) = theta;
 			trial(1) = theta;
 
@@ -1052,7 +1056,8 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 			*hlp++ = -SinPhi;
 			*hlp = CosPhi;
 
-			for (psi = 0; psi < 360; psi += minAngularSampling) {
+			for (int ipsi = 0; ipsi<=psiSteps; ipsi++) {
+				double psi=ipsi*minAngularSampling;
 				Parameters(2) = psi;
 				trial(2) = psi;
 				SinPsi = sin(psi / 180 * PI);
@@ -1069,10 +1074,12 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 
 				multiply_3Matrices(Rz2.data(), Ry.data(), Rz1.data(), R.data(), 4L, 4L, 4L, 4L);
 
-				for (x0 = 0; x0 <= maxtransl; x0 += translsampling) {
+				for (int ix0=0; ix0<=transSteps; ix0++) {
+					double x0=ix0*translsampling;
 					Parameters(3) = x0 / reduce_rate;
 					trial(3) = x0;
-					for (y0 = 0; y0 <= maxtransl; y0 += translsampling) {
+					for (int iy0=0; iy0<=transSteps; iy0++) {
+						double y0=iy0*translsampling;
 						Parameters(4) = y0 / reduce_rate;
 						trial(4) = y0;
 
@@ -1216,7 +1223,7 @@ void ProgFlexibleAlignment::processImage(const FileName &fnImg,
 
 	parameters.initZeros(dim + 5);
 	currentImgName = fnImg;
-	sprintf(nameTemplate, "_node%d_img%ld_XXXXXX", rangen,
+	snprintf(nameTemplate, 256, "_node%d_img%ld_XXXXXX", rangen,
 			(long int) imageCounter);
 
 	trial.initZeros(dim + 5);
