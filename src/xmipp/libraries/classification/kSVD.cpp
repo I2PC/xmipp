@@ -150,8 +150,6 @@ double lasso(const Matrix1D<double> &x,
     double lambda, Matrix1D<double> &alpha,
     const int maxIter, const double tol)
 {
-    int K=D.Xdim();
-
     // Compute the ridge least squares solution
     // Compute D^t*x
     Matrix1D<double> Dtx;
