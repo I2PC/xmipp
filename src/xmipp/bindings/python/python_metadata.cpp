@@ -713,7 +713,7 @@ MetaData_readBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
                 {
                     str = PyUnicode_AsUTF8(pyStr);
                     strBlock = PyUnicode_AsUTF8(pyStrBlock);
-                    self->metadata->read((std::string) (strBlock) + "@" + str,
+                    self->metadata->read((std::string) strBlock + "@" + str,
                                          NULL);
                     Py_RETURN_NONE;
                 }
