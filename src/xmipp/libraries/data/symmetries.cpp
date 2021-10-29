@@ -52,208 +52,235 @@ void symmetrizeCrystalVectors(Matrix1D<double> &aint,
     switch (space_group)
     {
     case(sym_undefined):
-                case(sym_P1):
-                        XX(aint) =   XX(eprm_aint);
+    case sym_P1:
+        XX(aint) = XX(eprm_aint);
         YY(aint) =                   YY(eprm_aint);
         XX(bint) =   XX(eprm_bint);
         YY(bint) =                   YY(eprm_bint);
         break;
-    case(sym_P2):       std::cerr << "\n Group P2 not implemented\n";
+    case sym_P2:       std::cerr << "\n Group P2 not implemented\n";
         exit(1);
         break;
-    case(sym_P2_1):     std::cerr << "\n Group P2_1 not implemented\n";
+    case sym_P2_1:     std::cerr << "\n Group P2_1 not implemented\n";
         exit(1);
         break;
-    case(sym_C2):       std::cerr << "\n Group C2 not implemented\n";
+    case sym_C2:       std::cerr << "\n Group C2 not implemented\n";
         exit(1);
         break;
-    case(sym_P222):     std::cerr << "\n Group P222 not implemented\n";
+    case sym_P222:     std::cerr << "\n Group P222 not implemented\n";
         exit(1);
         break;
-    case(sym_P2_122):
-                    switch (sym_no)
-            {
-            case(-1): XX(aint) =   XX(eprm_aint);
-                YY(aint) =                   YY(eprm_aint);
-                XX(bint) =   XX(eprm_bint);
-                YY(bint) =                   YY(eprm_bint);
-                break;
-            case(0):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                break;
-            case(1):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                 + YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                 + YY(eprm_bint);
-                VECTOR_R3(shift, 0.5, 0.0, 0.0);
-                break;
-            case(2):  XX(aint) = + XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) = + XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                VECTOR_R3(shift, 0.5, 0.0, 0.0);
-                break;
+    case sym_P2_122:
+        switch (sym_no)
+        {
+        case -1:
+            XX(aint) = XX(eprm_aint);
+            YY(aint) = YY(eprm_aint);
+            XX(bint) = XX(eprm_bint);
+            YY(bint) = YY(eprm_bint);
+            break;
+        case 0:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            break;
+        case 1:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = +YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = +YY(eprm_bint);
+            VECTOR_R3(shift, 0.5, 0.0, 0.0);
+            break;
+        case 2:
+            XX(aint) = +XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = +XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            VECTOR_R3(shift, 0.5, 0.0, 0.0);
+            break;
             }//switch P2_122 end
         break;
-    case(sym_P22_12):
-                    switch (sym_no)
-            {
-            case(-1): XX(aint) =   XX(eprm_aint);
-                YY(aint) =                   YY(eprm_aint);
-                XX(bint) =   XX(eprm_bint);
-                YY(bint) =                   YY(eprm_bint);
-                break;
-            case(0):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                break;
-            case(1):  XX(aint) =   XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) =   XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                VECTOR_R3(shift, 0.0, 0.5, 0.0);
-                break;
-            case(2):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                  YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                  YY(eprm_bint);
-                VECTOR_R3(shift, 0.0, 0.5, 0.0);
-                break;
+    case sym_P22_12:
+        switch (sym_no)
+        {
+        case -1:
+            XX(aint) = XX(eprm_aint);
+            YY(aint) = YY(eprm_aint);
+            XX(bint) = XX(eprm_bint);
+            YY(bint) = YY(eprm_bint);
+            break;
+        case 0:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            break;
+        case 1:
+            XX(aint) = XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            VECTOR_R3(shift, 0.0, 0.5, 0.0);
+            break;
+        case 2:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = YY(eprm_bint);
+            VECTOR_R3(shift, 0.0, 0.5, 0.0);
+            break;
             }//switch P22_12 end
         break;
 
-    case(sym_P22_12_1): std::cerr << "\n Group P22_12_1 not implemented\n";
+    case sym_P22_12_1: std::cerr << "\n Group P22_12_1 not implemented\n";
         exit(1);
         break;
-    case(sym_P4):
-                    switch (sym_no)
-            {
-            case(-1): XX(aint) =   XX(eprm_aint);
-                YY(aint) =                   YY(eprm_aint);
-                XX(bint) =   XX(eprm_bint);
-                YY(bint) =                   YY(eprm_bint);
-                break;
-            case(0):  XX(aint) =                 - YY(eprm_aint);
-                YY(aint) =   XX(eprm_aint);
-                XX(bint) =                 - YY(eprm_bint);
-                YY(bint) =   XX(eprm_bint);
-                break;
-            case(1):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                break;
-            case(2):  XX(aint) =                   YY(eprm_aint);
-                YY(aint) = - XX(eprm_aint);
-                XX(bint) =                   YY(eprm_bint);
-                YY(bint) = - XX(eprm_bint);
-                break;
+    case sym_P4:
+        switch (sym_no)
+        {
+        case -1:
+            XX(aint) = XX(eprm_aint);
+            YY(aint) = YY(eprm_aint);
+            XX(bint) = XX(eprm_bint);
+            YY(bint) = YY(eprm_bint);
+            break;
+        case 0:
+            XX(aint) = -YY(eprm_aint);
+            YY(aint) = XX(eprm_aint);
+            XX(bint) = -YY(eprm_bint);
+            YY(bint) = XX(eprm_bint);
+            break;
+        case 1:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            break;
+        case 2:
+            XX(aint) = YY(eprm_aint);
+            YY(aint) = -XX(eprm_aint);
+            XX(bint) = YY(eprm_bint);
+            YY(bint) = -XX(eprm_bint);
+            break;
             }//switch P4 end
         break;
-    case(sym_P422):     REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Group P422 not implemented");
+    case sym_P422:     REPORT_ERROR(ERR_NOT_IMPLEMENTED, "Group P422 not implemented");
         break;
-    case(sym_P42_12):
-                    switch (sym_no)
-            {
-            case(-1): XX(aint) =   XX(eprm_aint);
-                YY(aint) =                   YY(eprm_aint);
-                XX(bint) =   XX(eprm_bint);
-                YY(bint) =                   YY(eprm_bint);
-                break;
-            case(0):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                break;
-            case(1):  XX(aint) =                 + YY(eprm_aint);
-                YY(aint) = + XX(eprm_aint);
-                XX(bint) =                 + YY(eprm_bint);
-                YY(bint) = + XX(eprm_bint);
-                break;
-            case(2):  XX(aint) =                 - YY(eprm_aint);
-                YY(aint) = - XX(eprm_aint);
-                XX(bint) =                 - YY(eprm_bint);
-                YY(bint) = - XX(eprm_bint);
-                break;
-            case(3):  XX(aint) =                 + YY(eprm_aint);
-                YY(aint) = - XX(eprm_aint);
-                XX(bint) =                 + YY(eprm_bint);
-                YY(bint) = - XX(eprm_bint);
-                VECTOR_R3(shift, 0.5, 0.5, 0);
-                break;
-            case(4):  XX(aint) =          - YY(eprm_aint);
-                YY(aint) = + XX(eprm_aint);
-                XX(bint) =   - YY(eprm_bint);
-                YY(bint) = + XX(eprm_bint);
-                VECTOR_R3(shift, 0.5, 0.5, 0);
-                break;
-            case(5):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =          + YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =          + YY(eprm_bint);
-                VECTOR_R3(shift, 0.5, 0.5, 0);
-                break;
-            case(6):  XX(aint) = + XX(eprm_aint);
-                YY(aint) =          - YY(eprm_aint);
-                XX(bint) = + XX(eprm_bint);
-                YY(bint) =          - YY(eprm_bint);
-                VECTOR_R3(shift, 0.5, 0.5, 0);
-                break;
-            default:
-                std::cout << "\n Wrong symmetry number "
-                "in symmetrize_crystal_vectors, bye" << std::endl;
-                exit(1);
-                break;
+    case sym_P42_12:
+        switch (sym_no)
+        {
+        case -1:
+            XX(aint) = XX(eprm_aint);
+            YY(aint) = YY(eprm_aint);
+            XX(bint) = XX(eprm_bint);
+            YY(bint) = YY(eprm_bint);
+            break;
+        case 0:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            break;
+        case 1:
+            XX(aint) = +YY(eprm_aint);
+            YY(aint) = +XX(eprm_aint);
+            XX(bint) = +YY(eprm_bint);
+            YY(bint) = +XX(eprm_bint);
+            break;
+        case 2:
+            XX(aint) = -YY(eprm_aint);
+            YY(aint) = -XX(eprm_aint);
+            XX(bint) = -YY(eprm_bint);
+            YY(bint) = -XX(eprm_bint);
+            break;
+        case 3:
+            XX(aint) = +YY(eprm_aint);
+            YY(aint) = -XX(eprm_aint);
+            XX(bint) = +YY(eprm_bint);
+            YY(bint) = -XX(eprm_bint);
+            VECTOR_R3(shift, 0.5, 0.5, 0);
+            break;
+        case 4:
+            XX(aint) = -YY(eprm_aint);
+            YY(aint) = +XX(eprm_aint);
+            XX(bint) = -YY(eprm_bint);
+            YY(bint) = +XX(eprm_bint);
+            VECTOR_R3(shift, 0.5, 0.5, 0);
+            break;
+        case 5:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = +YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = +YY(eprm_bint);
+            VECTOR_R3(shift, 0.5, 0.5, 0);
+            break;
+        case 6:
+            XX(aint) = +XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = +XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            VECTOR_R3(shift, 0.5, 0.5, 0);
+            break;
+        default:
+            std::cout << "\n Wrong symmetry number "
+                         "in symmetrize_crystal_vectors, bye"
+                      << std::endl;
+            exit(1);
+            break;
 
 
             }//switch P4212 end
         break;
-    case(sym_P3):       std::cerr << "\n Group P3 not implemented\n";
+    case sym_P3:       std::cerr << "\n Group P3 not implemented\n";
         exit(1);
         break;
-    case(sym_P312):     std::cerr << "\n Group P312 not implemented\n";
+    case sym_P312:     std::cerr << "\n Group P312 not implemented\n";
         exit(1);
         break;
-    case(sym_P6):
-                    switch (sym_no)
-            {
-            case(-1): XX(aint) =   XX(eprm_aint);
-                YY(aint) =                   YY(eprm_aint);
-                XX(bint) =   XX(eprm_bint);
-                YY(bint) =                   YY(eprm_bint);
-                break;
-            case(0):  XX(aint) =   XX(eprm_aint) - YY(eprm_aint);
-                YY(aint) =   XX(eprm_aint);
-                XX(bint) =   XX(eprm_bint) - YY(eprm_bint);
-                YY(bint) =   XX(eprm_bint);
-                break;
-            case(1):  XX(aint) =                 - YY(eprm_aint);
-                YY(aint) =   XX(eprm_aint) - YY(eprm_aint);
-                XX(bint) =                 - YY(eprm_bint);
-                YY(bint) =   XX(eprm_bint) - YY(eprm_bint);
-                break;
-            case(2):  XX(aint) = - XX(eprm_aint);
-                YY(aint) =                 - YY(eprm_aint);
-                XX(bint) = - XX(eprm_bint);
-                YY(bint) =                 - YY(eprm_bint);
-                break;
-            case(3):  XX(aint) = - XX(eprm_aint) + YY(eprm_aint);
-                YY(aint) = - XX(eprm_aint);
-                XX(bint) = - XX(eprm_bint) + YY(eprm_bint);
-                YY(bint) = - XX(eprm_bint);
-                break;
-            case(4):  XX(aint) =                 + YY(eprm_aint);
-                YY(aint) = - XX(eprm_aint) + YY(eprm_aint);
-                XX(bint) =                 + YY(eprm_bint);
-                YY(bint) = - XX(eprm_bint) + YY(eprm_bint);
-                break;
+    case sym_P6:
+        switch (sym_no)
+        {
+        case -1:
+            XX(aint) = XX(eprm_aint);
+            YY(aint) = YY(eprm_aint);
+            XX(bint) = XX(eprm_bint);
+            YY(bint) = YY(eprm_bint);
+            break;
+        case 0:
+            XX(aint) = XX(eprm_aint) - YY(eprm_aint);
+            YY(aint) = XX(eprm_aint);
+            XX(bint) = XX(eprm_bint) - YY(eprm_bint);
+            YY(bint) = XX(eprm_bint);
+            break;
+        case 1:
+            XX(aint) = -YY(eprm_aint);
+            YY(aint) = XX(eprm_aint) - YY(eprm_aint);
+            XX(bint) = -YY(eprm_bint);
+            YY(bint) = XX(eprm_bint) - YY(eprm_bint);
+            break;
+        case 2:
+            XX(aint) = -XX(eprm_aint);
+            YY(aint) = -YY(eprm_aint);
+            XX(bint) = -XX(eprm_bint);
+            YY(bint) = -YY(eprm_bint);
+            break;
+        case 3:
+            XX(aint) = -XX(eprm_aint) + YY(eprm_aint);
+            YY(aint) = -XX(eprm_aint);
+            XX(bint) = -XX(eprm_bint) + YY(eprm_bint);
+            YY(bint) = -XX(eprm_bint);
+            break;
+        case 4:
+            XX(aint) = +YY(eprm_aint);
+            YY(aint) = -XX(eprm_aint) + YY(eprm_aint);
+            XX(bint) = +YY(eprm_bint);
+            YY(bint) = -XX(eprm_bint) + YY(eprm_bint);
+            break;
             }//switch P6 end
         break;
 
-    case(sym_P622):     std::cerr << "\n Group P622 not implemented\n";
+    case sym_P622:     std::cerr << "\n Group P622 not implemented\n";
         exit(1);
         break;
     }
@@ -279,49 +306,49 @@ void symmetrizeCrystalVolume(GridVolume &vol_in,
     //ONE SINCE REQUIRE INTERPOLATION IS IGNORED
     switch (eprm_space_group)
     {
-    case(sym_undefined):
-                case(sym_P1):
+    case sym_undefined:
+                case sym_P1:
                         break;
-    case(sym_P2):       std::cerr << "\n Group P2 not implemented\n";
+    case sym_P2:       std::cerr << "\n Group P2 not implemented\n";
         exit(1);
         break;
-    case(sym_P2_1):     std::cerr << "\n Group P2_1 not implemented\n";
+    case sym_P2_1:     std::cerr << "\n Group P2_1 not implemented\n";
         exit(1);
         break;
-    case(sym_C2):       std::cerr << "\n Group C2 not implemented\n";
+    case sym_C2:       std::cerr << "\n Group C2 not implemented\n";
         exit(1);
         break;
-    case(sym_P222):     std::cerr << "\n Group P222 not implemented\n";
+    case sym_P222:     std::cerr << "\n Group P222 not implemented\n";
         exit(1);
         break;
-    case(sym_P2_122):
+    case sym_P2_122:
                     Symmetrize_Vol(symmetry_P2_122)//already has ;
                     break;
-    case(sym_P22_12):
+    case sym_P22_12:
                     Symmetrize_Vol(symmetry_P22_12)//already has ;
                     break;
-    case(sym_P22_12_1): std::cerr << "\n Group P22_12_1 not implemented\n";
+    case sym_P22_12_1: std::cerr << "\n Group P22_12_1 not implemented\n";
         exit(1);
         break;
-    case(sym_P4):
+    case sym_P4:
                     Symmetrize_Vol(symmetry_P4)//already has ;
                     break;
-    case(sym_P422):     std::cerr << "\n Group P422 not implemented\n";
+    case sym_P422:     std::cerr << "\n Group P422 not implemented\n";
         exit(1);
         break;
-    case(sym_P42_12):
+    case sym_P42_12:
                     Symmetrize_Vol(symmetry_P42_12)//already has ;
                     break;
-    case(sym_P3):       std::cerr << "\n Group P3 not implemented\n";
+    case sym_P3:       std::cerr << "\n Group P3 not implemented\n";
         exit(1);
         break;
-    case(sym_P312):     std::cerr << "\n Group P312 not implemented\n";
+    case sym_P312:     std::cerr << "\n Group P312 not implemented\n";
         exit(1);
         break;
-    case(sym_P6):
+    case sym_P6:
                     Symmetrize_Vol(symmetry_P6)//already has ;
                     break;
-    case(sym_P622):     std::cerr << "\n Group P622 not implemented\n";
+    case sym_P622:     std::cerr << "\n Group P622 not implemented\n";
         exit(1);
         break;
     }
@@ -351,7 +378,7 @@ void symmetry_P2_122(Image<double> &vol, const SimpleGrid &grid,
     //if there is an extra slice in the z direction there is no way
     //to calculate the -z slice
     if (ABS(ZZ_lowest) > ABS(ZZ_highest))
-        ZZ_lowest = -(ZZ_highest);
+        ZZ_lowest = -ZZ_highest;
     else
         ZZ_highest = ABS(ZZ_lowest);
 
@@ -576,7 +603,7 @@ void symmetry_P22_12(Image<double> &vol, const SimpleGrid &grid,
     //if there is an extra slice in the z direction there is no way
     //to calculate the -z slice
     if (ABS(ZZ_lowest) > ABS(ZZ_highest))
-        ZZ_lowest = -(ZZ_highest);
+        ZZ_lowest = -ZZ_highest;
     else
         ZZ_highest = ABS(ZZ_lowest);
 
@@ -994,7 +1021,7 @@ void symmetry_P42_12(Image<double> &vol, const SimpleGrid &grid,
     //if there is an extra slice in the z direction there is no way
     //to calculate the -z slice
     if (ABS(ZZ_lowest) > ABS(ZZ_highest))
-        ZZ_lowest = -(ZZ_highest);
+        ZZ_lowest = -ZZ_highest;
     else
         ZZ_highest = ABS(ZZ_lowest);
 
@@ -2344,8 +2371,8 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 					L+=1.0;
 					for (int n=1; n<Cn; ++n)
 					{
-						double jpp=VEC_ELEM(cosCn,n)*(jp)-VEC_ELEM(sinCn,n)*(-ip);
-						double ipp=VEC_ELEM(sinCn,n)*(jp)+VEC_ELEM(cosCn,n)*(-ip);
+						double jpp=VEC_ELEM(cosCn,n)*jp-VEC_ELEM(sinCn,n)*(-ip);
+						double ipp=VEC_ELEM(sinCn,n)*jp+VEC_ELEM(cosCn,n)*(-ip);
 						finalValue+=interpolatedElement3DHelical(Vin,jpp,ipp,-kp,zHelical,sinRotHelical,cosRotHelical);
 						L+=1.0;
 					}
