@@ -181,7 +181,7 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
             FileName fn_tmp;
             fn_tmp = fnRoot + "_wien";
             fn_tmp.compose(fn_tmp, ii+1, "txt");
-            fh.open((fn_tmp).c_str(), std::ios::out);
+            fh.open(fn_tmp.c_str(), std::ios::out);
             if (!fh)
                 REPORT_ERROR(ERR_IO_NOWRITE, fn_tmp);
             for (size_t step = 0; step < nr_steps; step++)
