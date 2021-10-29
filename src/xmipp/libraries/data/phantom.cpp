@@ -290,8 +290,8 @@ void Feature::readCommon(char *line)
     Center.resize(3);
     stat = sscanf(line, "%s %c %lf %lf %lf %lf",
                   straux,
-                  &(Add_Assign),
-                  &(Density),
+                  &Add_Assign,
+                  &Density,
                   &(XX(Center)),
                   &(YY(Center)),
                   &(ZZ(Center)));

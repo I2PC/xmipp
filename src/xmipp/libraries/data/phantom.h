@@ -498,7 +498,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled sphere.
@@ -810,7 +810,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled cylinder.
@@ -942,7 +942,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled double cylinder.
@@ -1064,7 +1064,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled cube.
@@ -1184,7 +1184,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled elliposoid.
@@ -1302,7 +1302,7 @@ public:
         for constant valued features is trivial*/
     double density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     {
-        return (1.);
+        return 1.;
     }
 
     /** Return a scaled cone.
