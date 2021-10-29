@@ -341,7 +341,7 @@ double continuous2cost(double *x, void *_prm)
 	double deltaDefocusU=x[11];
 	double deltaDefocusV=x[12];
 	double deltaDefocusAngle=x[13];
-	ProgAngularContinuousAssign2 *prm=(ProgAngularContinuousAssign2 *)_prm;
+	auto *prm=(ProgAngularContinuousAssign2 *)_prm;
 	if (prm->maxShift>0 && deltax*deltax+deltay*deltay>prm->maxShift*prm->maxShift)
 		return 1e38;
 	if (fabs(scalex)>prm->maxScale || fabs(scaley)>prm->maxScale)
