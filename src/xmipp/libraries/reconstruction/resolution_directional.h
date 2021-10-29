@@ -78,8 +78,7 @@ public:
      * the monogenic amplitud is calculated and low pass filtered at frequency w1*/
     void amplitudeMonogenicSignal3D_fast(const MultidimArray< std::complex<double> > &myfftV,
     		double w1, double w1l, double wH, MultidimArray<double> &amplitude,
-    		int count, int dir, FileName fnDebug,
-    		double rot, double tilt);
+    		int count, int dir, FileName fnDebug);
 
     void defineCone(MultidimArray< std::complex<double> > &myfftV,
     		MultidimArray< std::complex<double> > &conefilter, double rot, double tilt);
@@ -98,10 +97,9 @@ public:
 
     void generateGridProjectionMatching(Matrix2D<double> &angles);
 
-    void removeOutliers(Matrix2D<double> &anglesMat, Matrix2D<double> &resolutionMat);
+    void removeOutliers(Matrix2D<double> &resolutionMat);
 
-    void ellipsoidFitting(Matrix2D<double> &anglesMat,
-			Matrix2D<double> &resolutionMat,
+    void ellipsoidFitting(Matrix2D<double> &resolutionMat,
 			Matrix2D<double> &axis);
 
     void radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
