@@ -104,7 +104,7 @@
         	 MultidimArray<double> *pdata;
         	 Image_Value(image).data->getMultidimArrayPointer(pdata);
         	 pdata->setXmippOrigin();
-        	 self->fourier_projector = new FourierProjector(*(pdata), padding_factor, max_freq, spline_degree);
+        	 self->fourier_projector = new FourierProjector(*pdata, padding_factor, max_freq, spline_degree);
 
          }
      }

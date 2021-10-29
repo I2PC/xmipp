@@ -1989,7 +1989,7 @@ bool ProgTomographAlignment::refineLandmark(const MultidimArray<double> &pieceii
         std::cin >> c;
     }
     maxCorr=maxval;
-    return (accept);
+    return accept;
 }
 
 /* Refine chain ------------------------------------------------------------ */

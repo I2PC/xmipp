@@ -710,8 +710,8 @@ void * ProgRecFourier::processImageThread( void * threadArgs )
                                         int iy=A1D_ELEM(yWrapped,inty);
                                         int iyneg=A1D_ELEM(yNegWrapped,inty);
 
-                                        int	size1=YXSIZE(VoutFourier)*(izneg)+((iyneg)*XSIZE(VoutFourier));
-                                        int	size2=YXSIZE(VoutFourier)*(iz)+((iy)*XSIZE(VoutFourier));
+                                        int	size1=YXSIZE(VoutFourier)*izneg+(iyneg*XSIZE(VoutFourier));
+                                        int	size2=YXSIZE(VoutFourier)*iz+(iy*XSIZE(VoutFourier));
                                         int	fixSize=0;
 
                                         for (int intx = XX(corner1); intx <= XX(corner2); ++intx)
@@ -1161,7 +1161,7 @@ void ProgRecFourier::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
         if (NiterWeight!=0)
         {
             A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);

@@ -929,8 +929,8 @@ void blobs2voxels(const GridVolume &vol_blobs,
     {
         int min_distance = (int)ceil((2*(vol_blobs.grid(i)).relative_size ) / blob.radius ) + 1;
 
-        slices_status = (int *)malloc(sizeof(int)*(int)((ZZ((&(vol_blobs.grid(i)))->highest)-ZZ((&(vol_blobs.grid(i)))->lowest)+1)));
-        memset(slices_status,0,sizeof(int)*(int)((ZZ((&(vol_blobs.grid(i)))->highest)-ZZ((&(vol_blobs.grid(i)))->lowest)+1)));
+        slices_status = (int *)malloc(sizeof(int)*(int)(ZZ((&(vol_blobs.grid(i)))->highest)-ZZ((&(vol_blobs.grid(i)))->lowest)+1));
+        memset(slices_status,0,sizeof(int)*(int)(ZZ((&(vol_blobs.grid(i)))->highest)-ZZ((&(vol_blobs.grid(i)))->lowest)+1));
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -1110,8 +1110,8 @@ void ART_voxels2blobs_single_step(
     {
         int min_distance = (int)ceil((2*(vol_in.grid(i)).relative_size ) / blob.radius ) + 1;
 
-        slices_status = (int *)malloc(sizeof(int)*(int)((ZZ((&(vol_in.grid(i)))->highest)-ZZ((&(vol_in.grid(i)))->lowest)+1)));
-        memset(slices_status,0,sizeof(int)*(int)((ZZ((&(vol_in.grid(i)))->highest)-ZZ((&(vol_in.grid(i)))->lowest)+1)));
+        slices_status = (int *)malloc(sizeof(int)*(int)(ZZ((&(vol_in.grid(i)))->highest)-ZZ((&(vol_in.grid(i)))->lowest)+1));
+        memset(slices_status,0,sizeof(int)*(int)(ZZ((&(vol_in.grid(i)))->highest)-ZZ((&(vol_in.grid(i)))->lowest)+1));
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -1241,8 +1241,8 @@ void ART_voxels2blobs_single_step(
     // Backprojection of correction volume ..................................
     for (size_t i = 0; i < vol_in.VolumesNo(); i++)
     {
-        slices_status = (int *)malloc(sizeof(int)*(int)((ZZ((&(vol_out->grid(i)))->highest)-ZZ((&(vol_out->grid(i)))->lowest)+1)));
-        memset(slices_status,0,sizeof(int)*(int)((ZZ((&(vol_out->grid(i)))->highest)-ZZ((&(vol_out->grid(i)))->lowest)+1)));
+        slices_status = (int *)malloc(sizeof(int)*(int)(ZZ((&(vol_out->grid(i)))->highest)-ZZ((&(vol_out->grid(i)))->lowest)+1));
+        memset(slices_status,0,sizeof(int)*(int)(ZZ((&(vol_out->grid(i)))->highest)-ZZ((&(vol_out->grid(i)))->lowest)+1));
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -1318,13 +1318,13 @@ void voxels2blobs(const MultidimArray<double> *vol_voxels,
 
         switch (grid_type)
         {
-        case (CC):
+        case CC:
                         grid_blobs = Create_CC_grid(grid_relative_size, corner1, corner2);
             break;
-        case (FCC):
+        case FCC:
                         grid_blobs = Create_FCC_grid(grid_relative_size, corner1, corner2);
             break;
-        case (BCC):
+        case BCC:
                         grid_blobs = Create_BCC_grid(grid_relative_size, corner1, corner2);
             break;
         }
@@ -1333,13 +1333,13 @@ void voxels2blobs(const MultidimArray<double> *vol_voxels,
 {
         switch (grid_type)
         {
-        case (CC):
+        case CC:
                         grid_blobs = Create_CC_grid(grid_relative_size, R);
             break;
-        case (FCC):
+        case FCC:
                         grid_blobs = Create_FCC_grid(grid_relative_size, R);
             break;
-        case (BCC):
+        case BCC:
                         grid_blobs = Create_BCC_grid(grid_relative_size, R);
             break;
         }

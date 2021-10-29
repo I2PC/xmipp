@@ -176,7 +176,7 @@ void ProgXrayImport::readParams()
         BPFactor = -1;
 
     selfAttFix   = checkParam("--correct");
-    logFix   = (selfAttFix)? true : checkParam("--log");
+    logFix   = selfAttFix? true : checkParam("--log");
 }
 
 // Show ====================================================================
