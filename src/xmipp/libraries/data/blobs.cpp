@@ -457,16 +457,15 @@ void * blobs2voxels_SimpleGrid( void * data )
     // (z0,y0,XX(lowest))
     Matrix1D<double> corner2(3), corner1(3); // Coord: Corners of the blob in the voxel volume
     Matrix1D<double> gcurrent(3);            // Position in g of current point
-    MultidimArray<double> blob_table;             // Something like a blobprint
-    // but with the values of the
-    // blob in space
+    MultidimArray<double> blob_table;        // Something like a blobprint but with the values of the
+                                             // blob in space
     double         d;                        // Distance between the center
-    // of the blob and a voxel position
+                                             // of the blob and a voxel position
     int           id;                        // index inside the blob value
-    // table for tha blob value at
-    // a distance d
-    int           intx, inty, intz;          // Nearest integer voxel
-    int           i, j, k;                   // Index within the blob volume
+                                             // table for the blob value at a distance d
+    int           i;
+    int           j;
+    int           k;                         // Index within the blob volume
     int           process;                   // True if this blob has to be
     // processed
     double         vol_correction=0;         // Correction to apply to the
@@ -684,12 +683,12 @@ void * blobs2voxels_SimpleGrid( void * data )
                     // Effectively convert
                     long N_eq;
                     N_eq = 0;
-                    for (intz = (int)ZZ(corner1); intz <=(int)ZZ(corner2); intz++)
-                        for (inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
-                            for (intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
+                    for (int intz = (int)ZZ(corner1); intz <=(int)ZZ(corner2); intz++)
+                        for (int inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
+                            for (int intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
                             {
                                 if (vol_mask != NULL)
-                                    if (!A3D_ELEM(*vol_mask, intz, inty, intx))
+                                    if (A3D_ELEM(*vol_mask, intz, inty, intx)!=0.0)
                                         continue;
 
                                 // Compute distance to the center of the blob

@@ -117,7 +117,7 @@ public:
     void readParams();
 
     /// Show
-    void show();
+    void show() const;
 
     /// Distance
     double distance(double *pclnm);

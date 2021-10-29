@@ -49,6 +49,7 @@ public:
     svm_problem prob;
     svm_model *model=nullptr;
 public:
+    SVMClassifier() {}
 
     SVMClassifier(const SVMClassifier &other)
     {
