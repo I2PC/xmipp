@@ -41,7 +41,7 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 	PyObject *pyIref = Python::convertToNumpy(Iref);
 	PyObject *pyI = Python::convertToNumpy(I);
 	PyObject *pyMask=Py_None;
-	if (mask!=NULL)
+	if (mask!=nullptr)
 		pyMask=Python::convertToNumpy(*mask);
 
 //#define DEBUG
@@ -66,9 +66,9 @@ void alignVolumesFRM(PyObject *pFunc, const MultidimArray<double> &Iref, Multidi
 	Py_DECREF(arglistfrm);
 	Py_DECREF(pyIref);
 	Py_DECREF(pyI);
-	if (mask!=NULL)
+	if (mask!=nullptr)
 		Py_DECREF(pyMask);
-	if (resultfrm!=NULL)
+	if (resultfrm!=nullptr)
 	{
 		PyObject *shift=PyTuple_GetItem(resultfrm,0);
 		PyObject *euler=PyTuple_GetItem(resultfrm,1);
