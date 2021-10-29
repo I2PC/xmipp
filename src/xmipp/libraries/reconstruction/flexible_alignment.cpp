@@ -1133,7 +1133,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
 
               for (int i=0;i<trialSize;i++)
               {
-                  Hessian[i*(trialSize) + i] += lambda*Hessian[i*trialSize + i] ;
+                  Hessian[i*trialSize + i] += lambda*Hessian[i*trialSize + i] ;
                   if(i+1<trialSize)
                       for(int j=i+1;j<trialSize;j++)
                       {
