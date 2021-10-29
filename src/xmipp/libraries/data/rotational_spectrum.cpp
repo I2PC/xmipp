@@ -51,8 +51,8 @@ double Cylindrical_Wave_Decomposition::interpolate(
 {
     y = y - 1; // Since Fortran starts indexing at 1
     x = x - 1;
-    int iy = (int)y; /* Trunc the x, y coordinates to int */
-    int ix = (int)x;
+    auto iy = (int)y; /* Trunc the x, y coordinates to int */
+    auto ix = (int)x;
     double scale =  y - iy;
     double *ptr_yx = &DIRECT_A2D_ELEM(img, iy, ix);
     double *ptr_y1x = ptr_yx + XSIZE(img);
