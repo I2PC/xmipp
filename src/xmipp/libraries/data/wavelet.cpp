@@ -45,7 +45,7 @@ void Bilib_DWT(const MultidimArray<double> &input,
 {
     if (iterations < 1)
         REPORT_ERROR(ERR_INDEX_OUTOFBOUNDS, "Bilib_DWT: iterations must be >=1");
-    int size_multiple = (int)pow(2.0, (double) iterations);
+    auto size_multiple = (int)pow(2.0, (double) iterations);
     if (XSIZE(input) % size_multiple != 0)
         REPORT_ERROR(ERR_MULTIDIM_SIZE,
                      (std::string)"Bilib_DWT: Xsize must be a multiple of " +
@@ -902,7 +902,7 @@ void phaseCongMono(MultidimArray< double >& I,
             	double radius=sqrt(wy2+wx2);
             	if (radius < 1e-10) radius=1;
             	A2D_ELEM(Radius,i,j)=radius;
-            	double *ptr=(double*)&A2D_ELEM(H,i,j);
+            	auto *ptr=(double*)&A2D_ELEM(H,i,j);
             	*ptr=wy/radius;
             	*(ptr+1)=wx/radius;
             	A2D_ELEM(lowPass,i,j)= 1.0/(1.0+std::pow(radius/cutoff,n));
@@ -956,7 +956,7 @@ void phaseCongMono(MultidimArray< double >& I,
     		A2D_ELEM(logGabor,i,j) = std::exp(-(temp1*temp1) /(2 * temp2*temp2))*A2D_ELEM(lowPass,i,j);
     		if (A2D_ELEM(Radius,i,j)<=1e-10) (A2D_ELEM(logGabor,i,j)=0);
 
-    		double *ptr= (double*)&A2D_ELEM(fullFftIm,i,j);
+    		auto *ptr= (double*)&A2D_ELEM(fullFftIm,i,j);
     		temp1 = *ptr;
     		temp2 = *(ptr+1);
     		ptr= (double*)&A2D_ELEM(fftImF,i,j);
