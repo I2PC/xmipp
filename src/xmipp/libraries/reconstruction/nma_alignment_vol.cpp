@@ -224,7 +224,7 @@ FileName ProgNmaAlignmentVol::createDeformedPDB() const {
 	return fnRandom;
 }
 
-bool ProgNmaAlignmentVol::updateBestFit(double fitness, int dim) {
+bool ProgNmaAlignmentVol::updateBestFit(double fitness) {
 	if (fitness < fitness_min) {
 		fitness_min = fitness;
 		trial_best = trial;
@@ -286,7 +286,7 @@ double ObjFunc_nma_alignment_vol::eval(Vector X, int *nerror) {
 		//std::cout << correlationIndex(global_nma_vol_prog->V(),global_nma_vol_prog->Vdeformed()) << std::endl;
 	}
 
-	if(global_nma_vol_prog->updateBestFit(retval, dim) && global_nma_vol_prog->alignVolumes){
+	if(global_nma_vol_prog->updateBestFit(retval) && global_nma_vol_prog->alignVolumes){
 		global_nma_vol_prog->AnglesShiftsAndScore = fopen(shifts_angles, "r");
 		for (int i = 0; i < 6; i++){
 			err = fscanf(global_nma_vol_prog->AnglesShiftsAndScore, "%f,", &global_nma_vol_prog->Best_Angles_Shifts[i]);
