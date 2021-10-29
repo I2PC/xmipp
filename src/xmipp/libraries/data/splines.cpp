@@ -205,7 +205,7 @@ double spatial_Bspline03_proj(
 void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_splines,
         const SimpleGrid &grid,
         MultidimArray<double> *vol_voxels,
-        const MultidimArray<double> *vol_mask = NULL)
+        const MultidimArray<double> *vol_mask = nullptr)
 {
     Matrix1D<double> act_coord(3);           // Coord: Actual position inside
     // the voxel volume without deforming
@@ -320,7 +320,7 @@ void spatial_Bspline032voxels_SimpleGrid(const MultidimArray<double> &vol_spline
                             for (intx = XX(corner1); intx <= XX(corner2); intx++)
                             {
                                 int iz = (int)intz, iy = (int)inty, ix = (int)intx;
-                                if (vol_mask != NULL)
+                                if (vol_mask != nullptr)
                                     if (!A3D_ELEM(*vol_mask, iz, iy, ix)) continue;
 
                                 // Compute the spline value at this point

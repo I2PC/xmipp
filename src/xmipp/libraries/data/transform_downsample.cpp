@@ -270,7 +270,7 @@ void downsampleSmooth(const ImageGeneric &M, ImageGeneric &Mp)
     size_t Ydim, Xdim, Ypdim, Xpdim;
     M().getDimensions(Xdim, Ydim);
     Mp().getDimensions(Xpdim, Ypdim);
-    byte *inputImage=NULL;
+    byte *inputImage=nullptr;
     MultidimArray<unsigned char> Maux;
     if (M.datatype==DT_UChar)
         M().getArrayPointer(inputImage);

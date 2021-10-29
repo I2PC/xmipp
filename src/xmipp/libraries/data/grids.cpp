@@ -162,7 +162,7 @@ void Grid::voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
                     Matrix1D<double> grid_index(3), univ_position(3);
                     VECTOR_R3(grid_index, j, i, k);
                     LG[n].grid2universe(grid_index, univ_position);
-                    if (V != NULL)
+                    if (V != nullptr)
                     {
                         M3x3_BY_V3x1(univ_position, *V, univ_position);
                     }
