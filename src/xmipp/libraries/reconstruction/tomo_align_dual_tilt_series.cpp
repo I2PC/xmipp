@@ -32,7 +32,7 @@
 
 double wrapperDualAligment(double *p, void *prm)
 {
-    ProgAlignDualTiltSeries *eprm=(ProgAlignDualTiltSeries *)prm;
+    auto *eprm=(ProgAlignDualTiltSeries *)prm;
     Matrix1D<double> aux(6);
     FOR_ALL_ELEMENTS_IN_MATRIX1D(aux)
     aux(i)=p[i+1];

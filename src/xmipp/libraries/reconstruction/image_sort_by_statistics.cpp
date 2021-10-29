@@ -548,7 +548,7 @@ void ProgSortByStatistics::run()
         sortedZscoreSNR1.indexSort(sortedSNR1);
         sortedZscoreSNR2.indexSort(sortedSNR2);
         sortedZscoreHist.indexSort(sortedHist);
-        size_t numPartReject = (size_t)std::floor((per/100)*SF.size());
+        auto numPartReject = (size_t)std::floor((per/100)*SF.size());
 
         for (size_t numPar = SF.size()-1; numPar > (SF.size()-numPartReject); --numPar)
         {

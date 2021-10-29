@@ -448,7 +448,7 @@ void addGradientTerm(double mu, AdmmKernel &kernel, MultidimArray<double> &L, Fo
 
 	transformer.FourierTransform();
 	double K=mu*MULTIDIM_SIZE(L);
-	double xdim_2=(double)(XSIZE(L)/2);
+	auto xdim_2=(double)(XSIZE(L)/2);
 	double Kargument=2*PI*xdim_2/XSIZE(L);
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(fourierKernelV)
 	{
@@ -763,7 +763,7 @@ void AdmmKernel::applyCTFToKernelAutocorrelation(CTFDescription &ctf, double Ts,
 {
 	double dig2cont=1.0/Ts;
 	double wx, wy;
-	int xdim=(int)XSIZE(projectionAutocorrWithCTF);
+	auto xdim=(int)XSIZE(projectionAutocorrWithCTF);
 	int xdim_2=xdim/2;
 	double ixdim=1.0/xdim;
 	double maxFreq=2*autocorrStep;

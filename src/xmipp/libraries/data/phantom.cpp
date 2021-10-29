@@ -1495,8 +1495,8 @@ void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
 
     // Study the projection for each point in the projection plane ..........
     // (u,v) are in the deformed projection plane (if any deformation)
-    for (int v = (int)YY(corner1); v <= (int)YY(corner2); v++)
-        for (int u = (int)XX(corner1); u <= (int)XX(corner2); u++)
+    for (auto v = (int)YY(corner1); v <= (int)YY(corner2); v++)
+        for (auto u = (int)XX(corner1); u <= (int)XX(corner2); u++)
         {
             double length = 0;
 #ifdef DEBUG_EVEN_MORE

@@ -224,7 +224,7 @@ void ProgAngularDiscreteAssign::produce_library()
     Matrix1D<int> SBidx(SBNo);
     for (int m = 0; m < SBNo; m++)
     {
-        MultidimArray<double> *subband = new MultidimArray<double>;
+        auto *subband = new MultidimArray<double>;
         subband->resize(number_of_imgs, SBsize(m));
         library.push_back(subband);
     }
@@ -343,7 +343,7 @@ void ProgAngularDiscreteAssign::refine_candidate_list_with_correlation(
         }
     }
     std::sort(sortedCorr.begin(),sortedCorr.end());
-    int idx=(int)floor(sortedCorr.size()*(1-th/100.0));
+    auto idx=(int)floor(sortedCorr.size()*(1-th/100.0));
 
     double corr_th = sortedCorr[idx];
 
@@ -367,7 +367,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
                      "experimental images must be of a size that is power of 2");
 
     // Build initial candidate list
-    bool* candidate_list=new bool[rot.size()];
+    auto* candidate_list=new bool[rot.size()];
     std::vector<double> cumulative_corr;
     std::vector<double> sumxy;
     build_ref_candidate_list(I, candidate_list, cumulative_corr, sumxy);
@@ -380,7 +380,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
     SBidx.initZeros();
     for (int m = 0; m < SBNo; m++)
     {
-        Matrix1D<double> *subband = new Matrix1D<double>;
+        auto *subband = new Matrix1D<double>;
         subband->resize(SBsize(m));
         Idwt.push_back(subband);
     }

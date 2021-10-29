@@ -379,7 +379,7 @@ void ProgExtractFeatures::extractLBP(const MultidimArray<double> &I,
     for (int i = 0; i < 256; i++)
     {
         code = i;
-        int code_min = (int) code;
+        auto code_min = (int) code;
         for (int ii = 0; ii < 7; ii++)
         {
             unsigned char c = code & 1;

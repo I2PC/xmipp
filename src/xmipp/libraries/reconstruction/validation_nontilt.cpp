@@ -191,9 +191,9 @@ void ProgValidationNonTilt::obtainSumU(const MetaData & tempMd,std::vector<doubl
     double xRan,yRan,zRan;
     double x,y;
     double sumWRan;
-    double * xRanArray = new double[tempMdSz];
-    double * yRanArray = new double[tempMdSz];
-    double * zRanArray  = new double[tempMdSz];
+    auto * xRanArray = new double[tempMdSz];
+    auto * yRanArray = new double[tempMdSz];
+    auto * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
     std::random_device rd;
@@ -382,9 +382,9 @@ void ProgValidationNonTilt::obtainSumU_2(const MetaData & mdGallery, const MetaD
     double xRan,yRan,zRan;
     size_t indx;
     double sumWRan;
-    double * xRanArray = new double[tempMdSz];
-    double * yRanArray = new double[tempMdSz];
-    double * zRanArray  = new double[tempMdSz];
+    auto * xRanArray = new double[tempMdSz];
+    auto * yRanArray = new double[tempMdSz];
+    auto * zRanArray  = new double[tempMdSz];
     std::vector<double> weightV;
     double a;
 

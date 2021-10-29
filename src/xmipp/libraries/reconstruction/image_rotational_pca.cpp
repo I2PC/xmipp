@@ -233,7 +233,7 @@ void ProgImageRotationalPCA::flushHBuffer()
 // Apply T ================================================================
 void threadApplyT(ThreadArgument &thArg)
 {
-  ProgImageRotationalPCA *self=(ProgImageRotationalPCA *) thArg.workClass;
+  auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
   ThreadTaskDistributor *taskDistributor=self->taskDistributor;
@@ -349,7 +349,7 @@ void ProgImageRotationalPCA::applyT()
 // Apply T ================================================================
 void threadApplyTt(ThreadArgument &thArg)
 {
-  ProgImageRotationalPCA *self=(ProgImageRotationalPCA *) thArg.workClass;
+  auto *self=(ProgImageRotationalPCA *) thArg.workClass;
   //MpiNode *node=self->node;
   int rank = self->rank;
   ThreadTaskDistributor *taskDistributor=self->taskDistributor;

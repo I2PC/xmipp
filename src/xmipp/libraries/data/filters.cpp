@@ -691,12 +691,12 @@ void removeSmallComponents(MultidimArray<double> &I, int size,
     MultidimArray<int> nlabel(imax + 1);
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
     	A1D_ELEM(nlabel,l)++;
     }
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
     	if (A1D_ELEM(nlabel,l)<size)
     		DIRECT_MULTIDIM_ELEM(I,n)=0;
     }
@@ -715,7 +715,7 @@ void keepBiggestComponent(MultidimArray<double> &I, double percentage,
     MultidimArray<int> nlabel(imax + 1);
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
     	if (l>0)
     		A1D_ELEM(nlabel,l)++;
     }
@@ -734,7 +734,7 @@ void keepBiggestComponent(MultidimArray<double> &I, double percentage,
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
         bool among_the_best = false;
         for (int k = nbest; k < imax + 1; k++)
             if (l == A1D_ELEM(best,k))
@@ -1250,8 +1250,8 @@ double imedDistance(const MultidimArray<double>& I1, const MultidimArray<double>
     int imiddle=YSIZE(I1)/2;
     int jmiddle=XSIZE(I1)/2;
     int R2max=imiddle*imiddle;
-    int ysize=(int)YSIZE(I1);
-    int xsize=(int)XSIZE(I1);
+    auto ysize=(int)YSIZE(I1);
+    auto xsize=(int)XSIZE(I1);
     for (int i=3; i<ysize-3; ++i)
     {
     	int i2=(i-imiddle)*(i-imiddle);
@@ -3410,7 +3410,7 @@ void computeEdges(const MultidimArray<double>& vol,
 void forceDWTSparsity(MultidimArray<double> &V, double eps)
 {
 	int size0=XSIZE(V);
-	int sizeF=(int)NEXT_POWER_OF_2(size0);
+	auto sizeF=(int)NEXT_POWER_OF_2(size0);
     selfScaleToSize(BSPLINE3,V,sizeF,sizeF,sizeF);
     MultidimArray<double> vol_wavelets, vol_wavelets_abs;
     set_DWT_type(DAUB12);

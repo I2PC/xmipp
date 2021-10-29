@@ -103,7 +103,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     reducedFrame());
 
             // Now do the Fourier transform and filter
-            MultidimArray<std::complex<T> > *reducedFrameFourier =
+            auto *reducedFrameFourier =
                     new MultidimArray<std::complex<T> >;
             transformer.FourierTransform(reducedFrame(), *reducedFrameFourier,
                     true);

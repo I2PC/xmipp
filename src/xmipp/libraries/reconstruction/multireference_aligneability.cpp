@@ -331,9 +331,9 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
 	size_t trials=500;
     double xRan,yRan,zRan;
     double x,y;
-    double * xRanArray = new double[num];
-    double * yRanArray = new double[num];
-    double * zRanArray  = new double[num];
+    auto * xRanArray = new double[num];
+    auto * yRanArray = new double[num];
+    auto * zRanArray  = new double[num];
 
     sumw=0;
 
@@ -395,11 +395,11 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
 	const size_t numGallery= mdGallery.size()+1;
 	const double trials = 500;
     size_t indx;
-    size_t * indxArray = new size_t[numGallery];
+    auto * indxArray = new size_t[numGallery];
     double sumWRan;
-    double * rotArray = new double[num];
-    double * tiltArray = new double[num];
-    double * psiArray  = new double[num];
+    auto * rotArray = new double[num];
+    auto * tiltArray = new double[num];
+    auto * psiArray  = new double[num];
     double rot,tilt,psi;
     sumWRan = 0;
 
