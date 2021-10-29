@@ -890,13 +890,14 @@ int cstregistrationcontinuous(Matrix1D<double> &centerOfMass,
 	long MaxIter, MaxIter1, iter;
 	long MaxNumberOfFailures, SatisfNumberOfSuccesses, nSuccess, nFailure;
 	double LambdaScale = 2., OldCost, tol_angle, tol_shift, tol_defamp;
-	double OneIterInSeconds, *Gradient, *Hessian;
-	time_t time1, time2, *tp1 = nullptr, *tp2 = nullptr;
+	double OneIterInSeconds;
+	time_t *tp1 = nullptr;
+	time_t *tp2 = nullptr;
 	long dim = (long) global_flexible_prog->numberOfModes;
 	long MaxNoIter, MaxNoFailure, SatisfNoSuccess;
 
 	double lambda = 1000.;
-	time1 = time(tp1);
+	time_t time1 = time(tp1);
 	DoDesProj = 0;
 	MaxNoIter = global_flexible_prog->max_no_iter;
 	MaxNoFailure = (long) (0.3 * MaxNoIter);
@@ -910,21 +911,8 @@ int cstregistrationcontinuous(Matrix1D<double> &centerOfMass,
 	tol_shift = 0.0;
 	tol_defamp = 0.0;
 
-	Gradient = (double*) malloc((size_t) (dim + 5L) * sizeof(double));
-	if (Gradient == (double*) NULL) {
-		WRITE_ERROR(cstregistrationcontinuous,
-				"ERROR - Not enough memory for Gradient");
-		return (ERROR);
-	}
-
-	Hessian = (double*) malloc(
-			(size_t) (dim + 5L) * (dim + 5L) * sizeof(double));
-	if (Hessian == (double*) NULL) {
-		WRITE_ERROR(cstregistrationcontinuous,
-				"ERROR - Not enough memory for Hessian");
-		free(Gradient);
-		return (ERROR);
-	}
+	std::vector<double> Gradient(dim + 5,0);
+	std::vector<double> Hessian((dim + 5) * (dim + 5),0);
 
 	if (DoDesProj && (global_flexible_prog->currentStage == 2)) {
 		Parameters(0) = 10;
@@ -936,32 +924,21 @@ int cstregistrationcontinuous(Matrix1D<double> &centerOfMass,
 		//Parameters(6)=0;
 	}
 
-	if (return_gradhesscost(centerOfMass, Gradient, Hessian, Parameters, dim,
+	if (return_gradhesscost(centerOfMass, Gradient.data(), Hessian.data(), Parameters, dim,
 			cst_P_mu_image, P_esp_image, Xwidth, Ywidth) == ERROR) {
-		WRITE_ERROR(cstregistrationcontinuous,
-				"Error returned by return_gradhesscost");
-		//free(Parameters);
-		free(Gradient);
-		free(Hessian);
+		WRITE_ERROR(cstregistrationcontinuous, "Error returned by return_gradhesscost");
 		return (ERROR);
 	}
-	time2 = time(tp2);
+	time_t time2 = time(tp2);
 	OneIterInSeconds = difftime(time2, time1);
 	if (DoDesProj && (global_flexible_prog->currentStage == 2)) {
 		Image<double> Itemp;
-		//Itemp().setXmippOrigin();
 		Itemp() = cst_P_mu_image;
 		Itemp.write("test_refimage.spi");
-
-		free(Gradient);
-		free(Hessian);
 		return (!ERROR);
 	}
-	if ((MaxIter == 0L) && (!DoDesProj)) {
-		free(Gradient);
-		free(Hessian);
+	if ((MaxIter == 0L) && (!DoDesProj))
 		return (!ERROR);
-	}
 	nSuccess = 0L;
 	nFailure = 0L;
 	OldCost = global_flexible_prog->costfunctionvalue_cst;
@@ -972,15 +949,11 @@ int cstregistrationcontinuous(Matrix1D<double> &centerOfMass,
 		global_flexible_prog->costfunctionvalue_cst = -1.0;
 
 	do {
-		if (levenberg_cst2(cst_P_mu_image, P_esp_image, centerOfMass, Gradient,
-				Hessian, Parameters, OldCost, &lambda, LambdaScale, &iter,
+		if (levenberg_cst2(cst_P_mu_image, P_esp_image, centerOfMass, Gradient.data(),
+				Hessian.data(), Parameters, OldCost, &lambda, LambdaScale, &iter,
 				tol_angle, tol_shift, tol_defamp, &IteratingStop, Xwidth,
 				Ywidth) == ERROR) {
-			WRITE_ERROR(cstregistrationcontinuous,
-					"Error returned by levenberg_cst2");
-			//free(Parameters);
-			free(Gradient);
-			free(Hessian);
+			WRITE_ERROR(cstregistrationcontinuous, "Error returned by levenberg_cst2");
 			return (ERROR);
 		}
 
@@ -999,10 +972,6 @@ int cstregistrationcontinuous(Matrix1D<double> &centerOfMass,
 
 	} while ((nFailure <= MaxNumberOfFailures) && (iter < MaxIter1)
 			&& FlagMaxIter);
-
-	free(Gradient);
-	free(Hessian);
-
 	return (!ERROR);
 }
 
@@ -1012,10 +981,7 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 	int ModMaxdeDefamp, ModpowDim, help;
 	double SinPhi, CosPhi, SinPsi, CosPsi;
 	double phi, theta, psi;
-	double *Rz1, *Ry, *Rz2, *hlp;
 	double S_muMin = 1e30;
-
-	double *R, *Tr;
 	double x0, y0;
 	//double    *cost;
 	costfunctionvalue = 0.0;
@@ -1050,11 +1016,11 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 	ModMaxdeDefamp = (int) floor(maxdefamp / defampsampling) + 1;
 	ModpowDim = (int) pow(ModMaxdeDefamp, dim);
 
-	Rz1 = (double*) malloc((size_t) 16L * sizeof(double));
-	Ry = (double*) malloc((size_t) 16L * sizeof(double));
-	Rz2 = (double*) malloc((size_t) 16L * sizeof(double));
-	R = (double*) malloc((size_t) 16L * sizeof(double));
-	Tr = (double*) malloc((size_t) 16L * sizeof(double));
+	std::vector<double> Rz1(16,0);
+	std::vector<double> Ry(16,0);
+	std::vector<double> Rz2(16,0);
+	std::vector<double> R(16,0);
+	std::vector<double> Tr(16,0);
 
 	for (phi = 0; phi < 360; phi += minAngularSampling) {
 		Parameters(0) = phi;
@@ -1062,9 +1028,9 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 		SinPhi = sin(phi / 180 * PI);
 		CosPhi = cos(phi / 180 * PI);
 
-		GetIdentitySquareMatrix(Ry, 4L);
+		GetIdentitySquareMatrix(Ry.data(), 4L);
 
-		hlp = Ry;
+		double *hlp = Ry.data();
 		*hlp = CosPhi;
 		hlp += (std::ptrdiff_t) 2L;
 		*hlp = -SinPhi;
@@ -1077,9 +1043,9 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 			Parameters(1) = theta;
 			trial(1) = theta;
 
-			GetIdentitySquareMatrix(Rz1, 4L);
+			GetIdentitySquareMatrix(Rz1.data(), 4L);
 
-			hlp = Rz1;
+			hlp = Rz1.data();
 			*hlp++ = CosPhi;
 			*hlp = SinPhi;
 			hlp += (std::ptrdiff_t) 3L;
@@ -1092,16 +1058,16 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 				SinPsi = sin(psi / 180 * PI);
 				CosPsi = cos(psi / 180 * PI);
 
-				GetIdentitySquareMatrix(Rz2, 4L);
+				GetIdentitySquareMatrix(Rz2.data(), 4L);
 
-				hlp = Rz2;
+				hlp = Rz2.data();
 				*hlp++ = CosPsi;
 				*hlp = SinPsi;
 				hlp += (std::ptrdiff_t) 3L;
 				*hlp++ = -SinPsi;
 				*hlp = CosPsi;
 
-				multiply_3Matrices(Rz2, Ry, Rz1, R, 4L, 4L, 4L, 4L);
+				multiply_3Matrices(Rz2.data(), Ry.data(), Rz1.data(), R.data(), 4L, 4L, 4L, 4L);
 
 				for (x0 = 0; x0 <= maxtransl; x0 += translsampling) {
 					Parameters(3) = x0 / reduce_rate;
@@ -1110,14 +1076,14 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 						Parameters(4) = y0 / reduce_rate;
 						trial(4) = y0;
 
-						GetIdentitySquareMatrix(Tr, 4L);
-						hlp = Tr;
+						GetIdentitySquareMatrix(Tr.data(), 4L);
+						hlp = Tr.data();
 						hlp += (std::ptrdiff_t) 3L;
 						*hlp = -x0;
 						hlp += (std::ptrdiff_t) 5L;
 						*hlp = -y0;
 
-						MatrixMultiply(R, Tr, Tr, 4L, 4L, 4L);
+						MatrixMultiply(R.data(), Tr.data(), Tr.data(), 4L, 4L, 4L);
 
 						for (int i = 0; i < ModpowDim; i++) {
 							help = i;
@@ -1130,7 +1096,7 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 
 							}
 
-							ProjectionRefencePoint(Parameters, dim, R, Tr,
+							ProjectionRefencePoint(Parameters, dim, R.data(), Tr.data(),
 									P_mu_image, imgtemp(), Xwidth, Ywidth,
 									sigma);
 
@@ -1140,12 +1106,12 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 									trial_best(k) = trial(k);
 								}
 
-							} //2--2213
+							}
 							std::cout << "trial" << trial << "  cost="
 									<< costfunctionvalue << std::endl;
 							std::cout << "trial_best" << trial_best
 									<< "  cost_best=" << S_muMin << std::endl;
-						} //3--
+						}
 					}
 				}
 			}
