@@ -291,7 +291,7 @@ public:
     /// Get relative_size
     double get_relative_size() const
     {
-        return (relative_size);
+        return relative_size;
     }
 
     /** Prepare grid for work.
@@ -1287,7 +1287,7 @@ public:
             {
                 // We use a trick to save the grid information in the volume
                 // If the following if is true the trick can not be used
-                if ((sizeof(float) != sizeof(int)))
+                if (sizeof(float) != sizeof(int))
                     REPORT_ERROR(ERR_TYPE_INCORRECT,
                                  "GridVolume is integer and (sizeof(float)!= sizeof(int)");
 
@@ -1408,7 +1408,7 @@ public:
                 {
                     // We use a trick to save the grid information in the volume
                     // If the following if is true the trick can not be used
-                    if ((sizeof(float) != sizeof(int)))
+                    if (sizeof(float) != sizeof(int))
                         REPORT_ERROR(ERR_TYPE_INCORRECT,
                                      "GridVolume is integer and (sizeof(float)!= sizeof(int)");
 
