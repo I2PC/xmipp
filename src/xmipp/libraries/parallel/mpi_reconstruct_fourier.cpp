@@ -161,7 +161,7 @@ void ProgMPIRecFourier::run()
     {
         if (node->isMaster())
         {
-            gettimeofday(&start_time,NULL);
+            gettimeofday(&start_time,nullptr);
 
             std::cerr<<std::endl;
             if (iter != NiterWeight)
@@ -183,7 +183,7 @@ void ProgMPIRecFourier::run()
 #endif
 #undef DEBUG
 
-                MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                          MPI_COMM_WORLD, &status);
 
                 if ( status.MPI_TAG != TAG_FREEWORKER )
@@ -210,7 +210,7 @@ void ProgMPIRecFourier::run()
                         // sending every worker COLLECT_FOR_FSC
                         for ( size_t worker = 1 ; worker <= nProcs ; worker ++ )
                         {
-                            MPI_Recv(0,
+                            MPI_Recv(nullptr,
                                      0,
                                      MPI_INT,
                                      MPI_ANY_SOURCE,
@@ -218,7 +218,7 @@ void ProgMPIRecFourier::run()
                                      MPI_COMM_WORLD,
                                      &status);
 
-                            MPI_Send( 0,
+                            MPI_Send( nullptr,
                                       0,
                                       MPI_INT,
                                       status.MPI_SOURCE,
@@ -237,7 +237,7 @@ void ProgMPIRecFourier::run()
             // so time statistics are correct
             for ( size_t i = 1 ; i <= nProcs ; i ++ )
             {
-                MPI_Recv(0,
+                MPI_Recv(nullptr,
                          0,
                          MPI_INT,
                          MPI_ANY_SOURCE,
@@ -248,31 +248,31 @@ void ProgMPIRecFourier::run()
 
             if (iter != NiterWeight)
             {
-                gettimeofday(&end_time,NULL);
+                gettimeofday(&end_time,nullptr);
 
                 total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
                 total_time_weightening += ((double)total_usecs/(double)1000000);
             }
             else
             {
-                gettimeofday(&end_time,NULL);
+                gettimeofday(&end_time,nullptr);
 
                 total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
                 total_time_processing += ((double)total_usecs/(double)1000000);
             }
 
-            gettimeofday(&start_time,NULL);
+            gettimeofday(&start_time,nullptr);
             // Start collecting results
             for ( size_t i = 1 ; i <= nProcs ; i ++ )
             {
-                MPI_Send(0,
+                MPI_Send(nullptr,
                          0,
                          MPI_INT,
                          i,
                          TAG_TRANSFER,
                          MPI_COMM_WORLD );
             }
-            gettimeofday(&end_time,NULL);
+            gettimeofday(&end_time,nullptr);
             total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
             total_time_communicating += ((double)total_usecs/(double)1000000);
 
@@ -298,8 +298,8 @@ void ProgMPIRecFourier::run()
 
             //First
             barrier_init( &barrier, numThreads+1);
-            pthread_mutex_init( &workLoadMutex, NULL );
-            statusArray = NULL;
+            pthread_mutex_init( &workLoadMutex, nullptr );
+            statusArray = nullptr;
             th_ids = (pthread_t *)malloc(numThreads * sizeof(pthread_t));
             th_args = (ImageThreadParams *)malloc(numThreads * sizeof(ImageThreadParams));
 
@@ -308,7 +308,7 @@ void ProgMPIRecFourier::run()
                 th_args[nt].parent=this;
                 th_args[nt].myThreadID = nt;
                 th_args[nt].selFile = new MetaDataVec(SF);
-                pthread_create((th_ids+nt),NULL,processImageThread,(void*)(th_args+nt));
+                pthread_create((th_ids+nt),nullptr,processImageThread,(void*)(th_args+nt));
             }
 
             while (1)
@@ -322,7 +322,7 @@ void ProgMPIRecFourier::run()
 #endif
      #undef DEBUG
                 //I am free
-                MPI_Send(0, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
+                MPI_Send(nullptr, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
                 MPI_Probe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
                 if (status.MPI_TAG == TAG_COLLECT_FOR_FSC)
@@ -330,7 +330,7 @@ void ProgMPIRecFourier::run()
                     //If I  do not read this tag
                     //master will no further process
                     //a posibility is a non-blocking send
-                    MPI_Recv(0, 0, MPI_INT, 0, TAG_COLLECT_FOR_FSC, MPI_COMM_WORLD, &status);
+                    MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_COLLECT_FOR_FSC, MPI_COMM_WORLD, &status);
 
                     if( node->rank == 1 )
                     {
@@ -346,7 +346,7 @@ void ProgMPIRecFourier::run()
                             // Receive from other workers
                             for ( size_t i = 2 ; i <= nProcs ; i++)
                             {
-                                MPI_Recv(0,0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                                MPI_Recv(nullptr,0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                                          MPI_COMM_WORLD, &status);
 
                                 currentSource = status.MPI_SOURCE;
@@ -359,7 +359,7 @@ void ProgMPIRecFourier::run()
 
                                     if ( status.MPI_TAG == TAG_FREEWORKER )
                                     {
-                                        MPI_Recv(0,0, MPI_INT, currentSource, TAG_FREEWORKER, MPI_COMM_WORLD, &status );
+                                        MPI_Recv(nullptr,0, MPI_INT, currentSource, TAG_FREEWORKER, MPI_COMM_WORLD, &status );
                                         break;
                                     }
 
@@ -407,11 +407,11 @@ void ProgMPIRecFourier::run()
                     else
                     {
 
-                        MPI_Send( 0,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
+                        MPI_Send( nullptr,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
 
                         sendDataInChunks( fourierVolume, 1, 2*sizeout, BUFFSIZE, MPI_COMM_WORLD );
 
-                        MPI_Send( 0,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
+                        MPI_Send( nullptr,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
 
                         Vout().initZeros(volPadSizeZ, volPadSizeY, volPadSizeX);
                         transformerVol.setReal(Vout());
@@ -425,7 +425,7 @@ void ProgMPIRecFourier::run()
                 {
                     //If I  do not read this tag
                     //master will no further process
-                    MPI_Recv(0, 0, MPI_INT, 0, TAG_TRANSFER, MPI_COMM_WORLD, &status);
+                    MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_TRANSFER, MPI_COMM_WORLD, &status);
 #ifdef DEBUG
 
                     std::cerr << "Wr" << node->rank << " " << "TAG_STOP" << std::endl;
@@ -466,7 +466,7 @@ void ProgMPIRecFourier::run()
                         pointer = fourierVolume;
                         int currentSource;
 
-                        gettimeofday(&start_time,NULL);
+                        gettimeofday(&start_time,nullptr);
 
                         if ( nProcs > 1 )
                         {
@@ -474,7 +474,7 @@ void ProgMPIRecFourier::run()
 
                             for (size_t i = 0 ; i <= (nProcs-2) ; i++)
                             {
-                                MPI_Recv(0,0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                                MPI_Recv(nullptr,0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                                          MPI_COMM_WORLD, &status);
 
                                 currentSource = status.MPI_SOURCE;
@@ -487,7 +487,7 @@ void ProgMPIRecFourier::run()
 
                                     if ( status.MPI_TAG == TAG_FREEWORKER )
                                     {
-                                        MPI_Recv(0,0, MPI_INT, currentSource, TAG_FREEWORKER, MPI_COMM_WORLD, &status );
+                                        MPI_Recv(nullptr,0, MPI_INT, currentSource, TAG_FREEWORKER, MPI_COMM_WORLD, &status );
 
                                         break;
                                     }
@@ -531,7 +531,7 @@ void ProgMPIRecFourier::run()
                         }
                         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(FourierWeights)
                                 A3D_ELEM(FourierWeights,k,i,j)=0;
-                        gettimeofday(&end_time,NULL);
+                        gettimeofday(&end_time,nullptr);
 
                         if( fn_fsc != "")
                         {
@@ -558,11 +558,11 @@ void ProgMPIRecFourier::run()
                             //int x,y,z;
 
                             //FourierWeights.getDimension(y,x,z);
-                            gettimeofday(&start_time,NULL);
+                            gettimeofday(&start_time,nullptr);
 
                             auxVolume2.sumWithFile((std::string) fn_fsc + "_1_Weights.vol");
 
-                            gettimeofday(&end_time,NULL);
+                            gettimeofday(&end_time,nullptr);
                             total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
                             total_time=(double)total_usecs/(double)1000000;
                             if (verbose > 0)
@@ -579,7 +579,7 @@ void ProgMPIRecFourier::run()
                             remove(((std::string) fn_fsc + "_2_Weights.vol").c_str());
                             remove(((std::string) fn_fsc + "_1_Fourier.vol").c_str());
                             remove(((std::string) fn_fsc + "_2_Fourier.vol").c_str());
-                            gettimeofday(&end_time,NULL);
+                            gettimeofday(&end_time,nullptr);
                             total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
                             total_time=(double)total_usecs/(double)1000000;
                             if (verbose > 0)
@@ -609,11 +609,11 @@ void ProgMPIRecFourier::run()
                     }
                     else
                     {
-                        MPI_Send( 0,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
+                        MPI_Send( nullptr,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
 
                         sendDataInChunks( fourierVolume, 1, 2 * sizeout, BUFFSIZE, MPI_COMM_WORLD);
 
-                        MPI_Send( 0,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
+                        MPI_Send( nullptr,0,MPI_INT,1,TAG_FREEWORKER, MPI_COMM_WORLD );
 
                         break;
                     }
@@ -654,7 +654,7 @@ void ProgMPIRecFourier::run()
 
             for ( int nt=0; nt<numThreads; nt++)
             {
-                pthread_join(*(th_ids+nt),NULL);
+                pthread_join(*(th_ids+nt),nullptr);
             }
             barrier_destroy( &barrier );
         }
