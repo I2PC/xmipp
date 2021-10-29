@@ -130,7 +130,6 @@ public:
     // Best trial parameters
     Matrix1D<double> trial_best;
 
-
     // Number of modes
     int numberOfModes;
 
@@ -158,9 +157,6 @@ public:
 public:
     /// Empty constructor
     ProgFlexibleAlignment();
-
-    /// Destructor
-    ~ProgFlexibleAlignment();
 
     /// Define params
     void defineParams();
