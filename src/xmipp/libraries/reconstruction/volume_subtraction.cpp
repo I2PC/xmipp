@@ -198,7 +198,7 @@ void POCSFourierPhase(const MultidimArray<std::complex<double>> &phase,
 /* Other methods needed to pre-process and operate with the volumes */
 void ProgVolumeSubtraction::extractPhase(MultidimArray<std::complex<double>> &FI) const{
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
-		double *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI, n);
+		auto *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI, n);
 		double phi = atan2(*(ptr + 1), *ptr);
 		DIRECT_MULTIDIM_ELEM(FI, n) = std::complex<double>(cos(phi), sin(phi));
 	}
