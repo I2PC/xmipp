@@ -115,7 +115,7 @@ public:
             if (!rowIn.getValue( MDL_ENABLED, enabled))
                 enabled=1;
             if (enabled == 1)
-                aux(0) = (new_style) ? currentImage : 1;
+                aux(0) = new_style ? currentImage : 1;
             else
             {
                 if (new_style)
