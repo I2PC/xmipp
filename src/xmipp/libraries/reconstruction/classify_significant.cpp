@@ -151,7 +151,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	bool flip;
 	Matrix2D<double> A;
 	Image<double> &Iaux = *Iexp[0];
-	int xdim = (int)XSIZE(Iaux());
+	auto xdim = (int)XSIZE(Iaux());
 
 	currentRow.getValue(MDL_ANGLE_ROT,rot);
 	currentRow.getValue(MDL_ANGLE_TILT,tilt);
@@ -389,7 +389,7 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 					continue;
 
 				R = sqrt(R2);
-				int idx = (int)round(R * XSIZE(Iproj1));
+				auto idx = (int)round(R * XSIZE(Iproj1));
 				double fscAvg = 0.0;
 				std::vector<double> setFsc1;
 				for(int i=0; i<numFsc; i++){
@@ -880,7 +880,7 @@ void ProgClassifySignificant::run()
 		winning.initZeros();
 		corrDiff.initZeros();
 		Image<double> Iaux = *Iexp[0];
-		int xdim = (int)XSIZE(Iaux());
+		auto xdim = (int)XSIZE(Iaux());
 		I1.initZeros(1, 1, xdim, xdim);
 		I2.initZeros(1, 1, xdim, xdim);
 		Iexp1.initZeros(1, 1, xdim, xdim);
