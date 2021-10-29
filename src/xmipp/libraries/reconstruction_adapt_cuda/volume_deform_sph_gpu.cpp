@@ -161,7 +161,7 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
 
 double volDeformSphGoal(double *p, void *vprm)
 {
-    ProgVolumeDeformSphGpu *prm=(ProgVolumeDeformSphGpu *) vprm;
+    auto *prm=(ProgVolumeDeformSphGpu *) vprm;
 	return prm->distance(p);
 }
 
