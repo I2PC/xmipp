@@ -77,7 +77,7 @@ void normalize_tomography(MultidimArray<double> &I, double tilt, double &mui,
     I.setXmippOrigin();
     MultidimArray<int> mask;
     mask.initZeros(I);
-    int Xdimtilt=(int)XMIPP_MIN(FLOOR(0.5*(XSIZE(I)*cos(DEG2RAD(tilt)))),
+    int auto=(int)XMIPP_MIN(FLOOR(0.5*(XSIZE(I)*cos(DEG2RAD(tilt)))),
                            0.5*(XSIZE(I)-(2*L+1)));
     int N=0;
     for (int i=STARTINGY(I); i<=FINISHINGY(I); i++)
@@ -333,7 +333,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     {
         int idx=0;
     	bg_mask->setXmippOrigin();
-        FitPoint *allpoints=new FitPoint[Npoints];
+        auto *allpoints=new FitPoint[Npoints];
 
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
         {
@@ -410,8 +410,8 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
     I.checkDimension(2);
 
     // Fit a least squares plane through the background pixels
-    int Npoints=(int)bg_mask.sum();
-    FitPoint *allpoints=new FitPoint[Npoints];
+    auto Npoints=(int)bg_mask.sum();
+    auto *allpoints=new FitPoint[Npoints];
     I.setXmippOrigin();
 
     // Get initial statistics
