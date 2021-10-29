@@ -93,10 +93,10 @@ double fitness(double *p)
     double fit=0.;
     switch (params.alignment_method)
     {
-    case (COVARIANCE):
+    case COVARIANCE:
                     fit = -correlationIndex(params.V1(), params.Vaux(), params.mask_ptr);
         break;
-    case (LEAST_SQUARES):
+    case LEAST_SQUARES:
                     fit = rms(params.V1(), params.Vaux(), params.mask_ptr);
         break;
     }
