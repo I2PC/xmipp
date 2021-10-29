@@ -2413,6 +2413,7 @@ void fourierBesselDecomposition(const MultidimArray<double> &img_in,
 //                           MultidimArray<double> &v_out)
 //{}
 
+
 /* Shah energy ------------------------------------------------------------- */
 /* This function computes the current functional energy */
 double Shah_energy(const MultidimArray<double> &img,

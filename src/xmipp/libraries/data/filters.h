@@ -767,6 +767,7 @@ void fourierBesselDecomposition(const MultidimArray< double >& img_in,
                                 int k1,
                                 int k2);
 
+
 /** Harmonic decomposition
  * @ingroup Filters
  */
