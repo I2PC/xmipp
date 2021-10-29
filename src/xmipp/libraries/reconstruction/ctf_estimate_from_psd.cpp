@@ -1993,7 +1993,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     lambdaPhase = 0.8;
     sizeWindowPhase = 10;
 
-    Matrix1D<double> initialGlobalAdjust = (*adjust_params);
+    Matrix1D<double> initialGlobalAdjust = *adjust_params;
 
     for (int i = 1; i < numElem; i++)
     {
