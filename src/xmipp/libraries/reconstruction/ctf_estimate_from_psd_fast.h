@@ -62,12 +62,12 @@ public:
 	void run();
 
 	/* Assign ctfmodel from a vector and viceversa ----------------------------- */
-	void assignCTFfromParameters_fast(double *p, CTFDescription1D &ctf1Dmodel, int ia, int l, int modelSimplification);
+	void assignCTFfromParameters_fast(double *p, CTFDescription1D &ctf1Dmodel, int ia, int l);
 
-	void assignParametersFromCTF_fast(const CTFDescription1D &ctfmodel, double *p, int ia, int l, int modelSimplification);
+	void assignParametersFromCTF_fast(const CTFDescription1D &ctfmodel, double *p, int ia, int l);
 
 	/* Center focus ----------------------------------------------------------- */
-	void center_optimization_focus_fast(bool adjust_freq, bool adjust_th, double margin);
+	void center_optimization_focus_fast(bool adjust_th, double margin);
 
 	/* The model is taken from global_adjust and global_ctfmodel is modified */
 	void generateModelSoFar_fast(MultidimArray<double> &I, bool apply_log);
