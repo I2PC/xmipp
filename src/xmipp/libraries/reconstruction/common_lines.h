@@ -43,20 +43,17 @@ class CommonLine
 {
 public:
     /// Angle of the best common line in image i
-    double angi;
+    double angi=0.0;
     /// Angle of the best common line in image j
-    double angj;
+    double angj=0.0;
     /// Distance between both common lines
-    double distanceij;
+    double distanceij=-1;
     /// Index of the maximum
     /// jmax=-5 -> line j has to be shifted 5 pixels to the left  to match line i
     /// jmax= 5 -> line j has to be shifted 5 pixels to the right to match line i
-    int jmax;
+    int jmax=0;
     /// Percentile (good common lines have very high percentiles)
-    double percentile;
-public:
-    /// Empty constructor
-    CommonLine();
+    double percentile=-1;
 };
 
 /// CommonLine Parameters
