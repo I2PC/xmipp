@@ -906,7 +906,7 @@ void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
             transformer.getCompleteFourier(Periodogram);
             FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(localPSD)
             {
-            	auto *ptr = (double*) &DIRECT_MULTIDIM_ELEM(Periodogram, n);
+            	const auto *ptr = (double*) &DIRECT_MULTIDIM_ELEM(Periodogram, n);
                 double re=*ptr;
                 double im=*(ptr+1);
                 double magnitude2=re*re+im*im;
@@ -967,7 +967,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     args.pieceSmoother = &pieceSmoother;
     args.Nprocessed = 0;
     args.mutex = &mutex;
-    auto *thMgr = new ThreadManager(numberOfThreads, &args);
+    auto thMgr = std::unique_ptr<ThreadManager>(new ThreadManager(numberOfThreads, &args));
     thMgr->run(threadFastEstimateEnhancedPSD);
     if (args.Nprocessed != 0)
         *(args.PSD) /= args.Nprocessed;
@@ -982,7 +982,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     prog2.applyFilter(*(args.PSD));
     enhancedPSD = *(args.PSD);
 
-    auto downXdim = (int) (XSIZE(enhancedPSD) / downsampling);
+    auto downXdim = (int) ((double)XSIZE(enhancedPSD) / downsampling);
     int firstIndex = FIRST_XMIPP_INDEX(downXdim);
     int lastIndex = LAST_XMIPP_INDEX(downXdim);
     enhancedPSD.setXmippOrigin();
