@@ -931,10 +931,10 @@ void project_Crystal_SimpleGrid(Image<double> &vol, const SimpleGrid &grid,
 #endif
 
     // This type conversion gives more speed
-    int ZZ_lowest = (int) ZZ(grid.lowest);
+    auto ZZ_lowest = (int) ZZ(grid.lowest);
     int YY_lowest = XMIPP_MAX((int) YY(grid.lowest), STARTINGY(mask));
     int XX_lowest = XMIPP_MAX((int) XX(grid.lowest), STARTINGX(mask));
-    int ZZ_highest = (int) ZZ(grid.highest);
+    auto ZZ_highest = (int) ZZ(grid.highest);
     int YY_highest = XMIPP_MIN((int) YY(grid.highest), FINISHINGY(mask));
     int XX_highest = XMIPP_MIN((int) XX(grid.highest), FINISHINGX(mask));
 
@@ -1191,7 +1191,7 @@ void count_eqs_in_projection(GridVolumeT<int> &GVNeq,
 template <class T>
 void *project_SimpleGridThread( void * params )
 {
-    project_thread_params * thread_data = (project_thread_params *)params;
+	auto * thread_data = (project_thread_params *)params;
 
     Image<T> * vol;
     const SimpleGrid * grid;
@@ -1204,8 +1204,8 @@ void *project_SimpleGridThread( void * params )
     Projection * proj;
     Projection * norm_proj;
 
-    Projection * forw_proj = new Projection();
-    Projection * forw_norm_proj = new Projection();
+    auto * forw_proj = new Projection();
+    auto * forw_norm_proj = new Projection();
 
     Projection * global_proj;
     Projection * global_norm_proj;
@@ -1408,16 +1408,16 @@ void project_SimpleGrid(Image<T> *vol, const SimpleGrid *grid,
 
     // This type conversion gives more speed
 
-    int ZZ_lowest = (int) ZZ(grid->lowest);
+    auto ZZ_lowest = (int) ZZ(grid->lowest);
 
     if( thread_id != -1 )
         ZZ_lowest += thread_id;
 
-    int YY_lowest = (int) YY(grid->lowest);
-    int XX_lowest = (int) XX(grid->lowest);
-    int ZZ_highest = (int) ZZ(grid->highest);
-    int YY_highest = (int) YY(grid->highest);
-    int XX_highest = (int) XX(grid->highest);
+    auto YY_lowest = (int) YY(grid->lowest);
+    auto XX_lowest = (int) XX(grid->lowest);
+    auto ZZ_highest = (int) ZZ(grid->highest);
+    auto YY_highest = (int) YY(grid->highest);
+    auto XX_highest = (int) XX(grid->highest);
 
     beginZ = (double)XX_lowest * prjX + (double)YY_lowest * prjY + (double)ZZ_lowest * prjZ + prjOrigin;
 
