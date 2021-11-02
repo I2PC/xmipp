@@ -583,7 +583,7 @@ public:
         The returned vectors Gcorner1 and Gcorner2 enclose this grid.
         You can supply a deformation matrix (see \ref blobs2voxels )*/
     void voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
-                       const Matrix2D<double> *V = NULL) const;
+                       const Matrix2D<double> *V = nullptr) const;
 };
 
 /*****************************************************************************/
@@ -857,7 +857,7 @@ public:
     {
         // Clear old list of volumes
         for (size_t i = 0; i < VolumesNo(); i++)
-            if (LV[i]!=NULL)
+            if (LV[i]!=nullptr)
                 delete LV[i];
         LV.clear();
 

@@ -144,7 +144,7 @@ void ProgMPIRecFourierGPU::run()
 
 	if (node->isMaster())
 	{
-		gettimeofday(&start_time,NULL);
+		gettimeofday(&start_time,nullptr);
 		std::cerr<<"Computing volume"<<std::endl;
 		if ( verbose )
 			init_progress_bar(numberOfJobs);
@@ -158,7 +158,7 @@ void ProgMPIRecFourierGPU::run()
 #endif
 #undef DEBUG
 
-			MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+			MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
 					 MPI_COMM_WORLD, &status);
 
 			if ( status.MPI_TAG != TAG_FREEWORKER )
@@ -184,7 +184,7 @@ void ProgMPIRecFourierGPU::run()
 		// so time statistics are correct
 		for ( size_t i = 1 ; i <= nProcs ; i ++ )
 		{
-			MPI_Recv(0,
+			MPI_Recv(nullptr,
 					 0,
 					 MPI_INT,
 					 MPI_ANY_SOURCE,
@@ -194,15 +194,15 @@ void ProgMPIRecFourierGPU::run()
 		}
 
 		// update progress
-		gettimeofday(&end_time,NULL);
+		gettimeofday(&end_time,nullptr);
 		total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
 		total_time_processing += ((double)total_usecs/(double)1000000);
 
-		gettimeofday(&start_time,NULL);
+		gettimeofday(&start_time,nullptr);
 		// Start collecting results
 		for ( size_t i = 1 ; i <= nProcs ; i ++ )
 		{
-			MPI_Send(0,
+			MPI_Send(nullptr,
 					 0,
 					 MPI_INT,
 					 i,
@@ -210,7 +210,7 @@ void ProgMPIRecFourierGPU::run()
 					 MPI_COMM_WORLD );
 		}
 
-		gettimeofday(&end_time,NULL);
+		gettimeofday(&end_time,nullptr);
 		total_usecs = (end_time.tv_sec-start_time.tv_sec) * 1000000 + (end_time.tv_usec-start_time.tv_usec);
 		total_time_communicating += ((double)total_usecs/(double)1000000);
 
@@ -231,7 +231,7 @@ void ProgMPIRecFourierGPU::run()
 #endif
      #undef DEBUG
 			//I am free
-			MPI_Send(0, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
+			MPI_Send(nullptr, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
 			MPI_Probe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
 			if (status.MPI_TAG == TAG_TRANSFER)
@@ -243,7 +243,7 @@ void ProgMPIRecFourierGPU::run()
 
 				//If I  do not read this tag
 				//master will no further process
-				MPI_Recv(0, 0, MPI_INT, 0, TAG_TRANSFER, MPI_COMM_WORLD, &status);
+				MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_TRANSFER, MPI_COMM_WORLD, &status);
 #ifdef DEBUG
 				std::cerr << "Wr" << node->rank << " " << "TAG_STOP" << std::endl;
 #endif
@@ -269,7 +269,7 @@ void ProgMPIRecFourierGPU::run()
 
 				if ( node->rank == 1 )
 				{
-					gettimeofday(&end_time,NULL);
+					gettimeofday(&end_time,nullptr);
 					finishComputations(fn_out);
 					break;
 				}

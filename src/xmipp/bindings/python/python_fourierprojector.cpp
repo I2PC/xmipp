@@ -36,13 +36,13 @@
  {
     { "projectVolume", (PyCFunction) FourierProjector_projectVolume,
       METH_VARARGS, "projects Volume" },
-    { NULL } /* Sentinel */
+    { nullptr } /* Sentinel */
  };//FourierProjector_methods
 
  /*FourierProjector Type */
  PyTypeObject FourierProjectorType =
  {
-     PyObject_HEAD_INIT(NULL)
+     PyObject_HEAD_INIT(nullptr)
      "xmipp.FourierProjector", /*tp_name*/
      sizeof(FourierProjectorObject), /*tp_basicsize*/
      0, /*tp_itemsize*/
@@ -91,9 +91,9 @@
      auto *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
      XMIPP_TRY
 
-     if (self != NULL)
+     if (self != nullptr)
      {
-         PyObject *image = NULL;
+         PyObject *image = nullptr;
          double padding_factor, max_freq, spline_degree;
          padding_factor = 2;
          max_freq = 0.5;
@@ -127,8 +127,8 @@ PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObje
 {
       auto *self = (FourierProjectorObject*) obj;
       double rot, tilt, psi;
-      PyObject *projection_image = NULL;
-      if (self != NULL && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))
+      PyObject *projection_image = nullptr;
+      if (self != nullptr && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))
       {
           try
           {

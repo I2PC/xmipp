@@ -375,8 +375,8 @@ void ProgOperate::defineParams()
 void ProgOperate::readParams()
 {
     XmippMetadataProgram::readParams();
-    binaryOperator = NULL;
-    unaryOperator = NULL;
+    binaryOperator = nullptr;
+    unaryOperator = nullptr;
     isValue = false;
     // Check operation to do
     //Binary operations
@@ -513,7 +513,7 @@ void ProgOperate::readParams()
     else
         REPORT_ERROR(ERR_VALUE_INCORRECT, "No valid operation specified");
     int dotProduct = false;
-    if (binaryOperator != NULL)
+    if (binaryOperator != nullptr)
     {
         if (!file_or_value.exists())
         {
@@ -550,7 +550,7 @@ void ProgOperate::processImage(const FileName &fnImg, const FileName &fnImgOut, 
     Image<double> img;
     img.readApplyGeo(fnImg, rowIn);
 
-    if (unaryOperator != NULL)
+    if (unaryOperator != nullptr)
         unaryOperator(img);
     else
     {

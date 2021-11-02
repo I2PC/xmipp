@@ -54,7 +54,7 @@ xmipp_str2Label(PyObject *obj, PyObject *args)
     char * str;
     if (PyArg_ParseTuple(args, "s", &str))
         return Py_BuildValue("i", (int) MDL::str2Label(str));
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -66,7 +66,7 @@ xmipp_label2Str(PyObject *obj, PyObject *args)
         String labelStr = MDL::label2Str((MDLabel) label);
         return PyUnicode_FromString(labelStr.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -80,15 +80,15 @@ xmipp_colorStr(PyObject *obj, PyObject *args)
         String labelStr = colorString(str, color, attrib);
         return PyUnicode_FromString(labelStr.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
 xmipp_labelType(PyObject *obj, PyObject *args)
 {
     PyObject * input;
-    PyObject* str_exc_type = NULL;
-    PyObject* pyStr = NULL;
+    PyObject* str_exc_type = nullptr;
+    PyObject* pyStr = nullptr;
     if (PyArg_ParseTuple(args, "O", &input))
     {
         if (PyUnicode_Check(input))
@@ -101,15 +101,15 @@ xmipp_labelType(PyObject *obj, PyObject *args)
             PyErr_SetString(PyExc_TypeError,
                             "labelType: Only int or string are allowed as input");
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
 xmipp_labelHasTag(PyObject *obj, PyObject *args)
 {
     PyObject * input;
-    PyObject* str_exc_type = NULL;
-    PyObject* pyStr = NULL;
+    PyObject* str_exc_type = nullptr;
+    PyObject* pyStr = nullptr;
     int tag;
 
     if (PyArg_ParseTuple(args, "Oi", &input, &tag))
@@ -137,13 +137,13 @@ xmipp_labelHasTag(PyObject *obj, PyObject *args)
         PyErr_SetString(PyExc_TypeError,
                         "labelHasTag: Input label should be int or string");
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
 xmipp_labelIsImage(PyObject *obj, PyObject *args)
 {
-    PyObject * input, *str_exc_type = NULL, *pyStr = NULL ;
+    PyObject * input, *str_exc_type = nullptr, *pyStr = nullptr ;
     int tag = TAGLABEL_IMAGE;
 
     if (PyArg_ParseTuple(args, "O", &input))
@@ -167,7 +167,7 @@ xmipp_labelIsImage(PyObject *obj, PyObject *args)
         PyErr_SetString(PyExc_TypeError,
                         "labelIsImage: Input label should be int or string");
     }
-    return NULL;
+    return nullptr;
 }
 
 /* isInStack */
@@ -181,7 +181,7 @@ xmipp_isValidLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
     else if (PyArg_ParseTuple(args, "i", &label))
         ;
     else
-        return NULL;
+        return nullptr;
     if (MDL::isValidLabel((MDLabel) label))
         Py_RETURN_TRUE;
     else
@@ -199,7 +199,7 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     Ndim=1;
     DataType dataType = DT_Float;
 
-    PyObject * input, *str_exc_type = NULL, *pyStr = NULL ;
+    PyObject * input, *str_exc_type = nullptr, *pyStr = nullptr ;
     if (PyArg_ParseTuple(args, "Oii|iii", &input, &Xdim, &Ydim, &Zdim,
                          &Ndim, &dataType))
     {
@@ -217,13 +217,13 @@ xmipp_createEmptyFile(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 /* getImageSize */
 PyObject *
 xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pyValue, *str_exc_type = NULL, *pyStr1 = NULL; //Only used to skip label and value
+    PyObject *pyValue, *str_exc_type = nullptr, *pyStr1 = nullptr; //Only used to skip label and value
 
     if (PyArg_ParseTuple(args, "O", &pyValue))
     {
@@ -242,19 +242,19 @@ xmipp_getImageSize(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     PyObject *pyValue; //Only used to skip label and value
-    PyObject *pyStr = NULL;
+    PyObject *pyStr = nullptr;
 
     if (PyArg_ParseTuple(args, "O", &pyValue))
     {
         try
         {
-            MetaData *md = NULL;
+            MetaData *md = nullptr;
             size_t size; //number of elements in the metadata
             bool destroyMd = true;
 
@@ -283,7 +283,7 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             else
             {
                 PyErr_SetString(PyXmippError, "Invalid argument: expected String, FileName or MetaData");
-                return NULL;
+                return nullptr;
             }
             size_t xdim, ydim, zdim, ndim;
             getImageSize(*md, xdim, ydim, zdim, ndim);
@@ -297,7 +297,7 @@ PyObject * xmipp_MetaDataInfo(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }/* Metadata info (from metadata filename)*/
 /* check if block exists in file*/
 
@@ -305,13 +305,13 @@ PyObject *
 xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
 
-    PyObject *input = NULL, *pyStr = NULL, *pyStr1 = NULL;
-    char *str = NULL;
+    PyObject *input = nullptr, *pyStr = nullptr, *pyStr1 = nullptr;
+    char *str = nullptr;
     if (PyArg_ParseTuple(args, "O", &input))
     {
         try
         {
-            if ((pyStr = PyObject_Str(input)) != NULL )
+            if ((pyStr = PyObject_Str(input)) != nullptr )
             {
                 str = (char*)PyUnicode_AsUTF8(pyStr);
                 if (existsBlockInMetaDataFile( (std::string) str))
@@ -320,16 +320,16 @@ xmipp_existsBlockInMetaDataFile(PyObject *obj, PyObject *args, PyObject *kwargs)
                     Py_RETURN_FALSE;
             }
             else
-                return NULL;
+                return nullptr;
         }
         catch (XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
-            return NULL;
+            return nullptr;
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -355,7 +355,7 @@ xmipp_CheckImageFileSize(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -381,7 +381,7 @@ xmipp_CheckImageCorners(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -411,7 +411,7 @@ xmipp_ImgCompare(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -441,7 +441,7 @@ xmipp_compareTwoFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -468,7 +468,7 @@ xmipp_bsoftRemoveLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -495,7 +495,7 @@ xmipp_bsoftRestoreLoopBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -544,7 +544,7 @@ xmipp_compareTwoImageTolerance(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /***************************************************************/
@@ -585,7 +585,7 @@ xmipp_readMetaDataWithTwoPossibleImages(PyObject *obj, PyObject *args,
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* substituteOriginalImages */
@@ -637,7 +637,7 @@ xmipp_substituteOriginalImages(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 bool validateInputImageString(PyObject * pyImage, PyObject *pyStrFn, FileName &fn)
@@ -675,13 +675,13 @@ xmipp_compareTwoMetadataFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
 
             pyStrAux = PyObject_Str(pyStrFn1);
 
-            if (pyStrAux != NULL)
+            if (pyStrAux != nullptr)
                 fn1 = (char*)PyUnicode_AsUTF8(pyStrAux);
             else
                 PyErr_SetString(PyExc_TypeError, "Expected string or FileName as first argument");
 
             pyStrAux = PyObject_Str(pyStrFn2);
-            if (pyStrAux != NULL)
+            if (pyStrAux != nullptr)
                   fn2 = (char*)PyUnicode_AsUTF8(pyStrAux);
 
             else
@@ -698,7 +698,7 @@ xmipp_compareTwoMetadataFiles(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /** Some helper macros repeated in filter functions*/
@@ -735,14 +735,14 @@ xmipp_dumpToFile(PyObject *obj, PyObject *args, PyObject *kwargs)
     if (PyArg_ParseTuple(args, "O", &pyStrFn))
     {
         pyStrAux = PyObject_Str(pyStrFn);
-        if (pyStrAux != NULL)
+        if (pyStrAux != nullptr)
         {
             fn = (char*)PyUnicode_AsUTF8(pyStrAux);
             MDSql::dumpToFile(fn);
             Py_RETURN_NONE;
         }
     }
-    return NULL;
+    return nullptr;
 }
 PyObject *
 xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
@@ -761,7 +761,7 @@ xmipp_Euler_angles2matrix(PyObject *obj, PyObject *args, PyObject *kwargs)
         memcpy(data, (euler.mdata), 9 * sizeof(double));
         return (PyObject*)arr;
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -783,7 +783,7 @@ xmipp_Euler_matrix2angles(PyObject *obj, PyObject *args, PyObject *kwargs)
         Euler_matrix2angles(euler,rot, tilt, psi);
         return Py_BuildValue("fff", rot, tilt, psi);//fff three real
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -797,7 +797,7 @@ xmipp_Euler_direction(PyObject *obj, PyObject *args, PyObject *kwargs)
         Euler_direction(rot, tilt, psi, direction);
         return Py_BuildValue("fff", VEC_ELEM(direction, 0), VEC_ELEM(direction, 1), VEC_ELEM(direction, 2));//fff three real
     }
-    return NULL;
+    return nullptr;
 }
 /* activateMathExtensions */
 PyObject *
@@ -814,7 +814,7 @@ xmipp_activateMathExtensions(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* activateRegExtensions */
@@ -832,7 +832,7 @@ xmipp_activateRegExtensions(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* calculate enhanced psd and return preview*/
@@ -864,7 +864,7 @@ xmipp_fastEstimateEnhancedPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /** Some helper macros repeated in filter functions*/
@@ -907,7 +907,7 @@ xmipp_bandPassFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
         bandpassFilter(data, w1, w2, raised_w);
         FILTER_CATCH()
     }
-    return NULL;
+    return nullptr;
 }
 
 /* calculate enhanced psd and return preview
@@ -926,7 +926,7 @@ xmipp_gaussianFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
         gaussianFilter(data, freqSigma);
         FILTER_CATCH()
     }
-    return NULL;
+    return nullptr;
 }
 
 /* calculate enhanced psd and return preview
@@ -945,7 +945,7 @@ xmipp_realGaussianFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
         realGaussianFilter(data, realSigma);
         FILTER_CATCH()
     }
-    return NULL;
+    return nullptr;
 }
 
 /* calculate enhanced psd and return preview
@@ -967,7 +967,7 @@ xmipp_badPixelFilter(PyObject *obj, PyObject *args, PyObject *kwargs)
         filter.apply(data);
         FILTER_CATCH()
     }
-    return NULL;
+    return nullptr;
 }
 
 PyObject *
@@ -1003,7 +1003,7 @@ xmipp_errorBetween2CTFs(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 
 }
 
@@ -1033,7 +1033,7 @@ xmipp_errorMaxFreqCTFs(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 
 }
 
@@ -1065,7 +1065,7 @@ xmipp_errorMaxFreqCTFs2D(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 
 }
 
@@ -1075,7 +1075,7 @@ Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (ImageObject*) obj;
 
-    if (self != NULL)
+    if (self != nullptr)
     {
         try
         {
@@ -1092,15 +1092,15 @@ Image_convertPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_convertPSD
 
 /* I2aligned=align(I1,I2) */
 PyObject *
 Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pimg1 = NULL;
-    PyObject *pimg2 = NULL;
+    PyObject *pimg1 = nullptr;
+    PyObject *pimg2 = nullptr;
     auto * result = PyObject_New(ImageObject, &ImageType);
 	try
 	{
@@ -1140,8 +1140,8 @@ Image_align(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pimg = NULL;
-    PyObject *input = NULL;
+    PyObject *pimg = nullptr;
+    PyObject *input = nullptr;
     double Ts=1.0;
     size_t rowId;
     auto *pyReplace = Py_False;
@@ -1150,7 +1150,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
     try
     {
         PyArg_ParseTuple(args, "OOd|kO", &pimg, &input,&Ts,&rowId,&pyReplace);
-        if (pimg!=NULL && input != NULL)
+        if (pimg != nullptr && input != nullptr)
         {
 			if(PyBool_Check(pyReplace))
 				absPhase = pyReplace == Py_True;
@@ -1161,7 +1161,7 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
 				auto *img = (ImageObject*) pimg;
 				ImageGeneric *image = img->image;
 				image->convert2Datatype(DT_Double);
-				MultidimArray<double> * mImage=NULL;
+				MultidimArray<double> * mImage=nullptr;
 				MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(mImage);
 
 				// COSS: This is redundant? image->data->getMultidimArrayPointer(mImage);
@@ -1187,15 +1187,15 @@ Image_applyCTF(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyErr_SetString(PyXmippError, xe.msg.c_str());
     }
-    return NULL;
+    return nullptr;
 }
 
 /* projectVolumeDouble */
 PyObject *
 Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pvol = NULL;
-    ImageObject * result = NULL;
+    PyObject *pvol = nullptr;
+    ImageObject * result = nullptr;
     double rot, tilt, psi;
 
     if (PyArg_ParseTuple(args, "Oddd", &pvol, &rot,&tilt,&psi))
@@ -1227,7 +1227,7 @@ Image_projectVolumeDouble(PyObject *obj, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }//function Image_projectVolumeDouble
 
 
@@ -1337,7 +1337,7 @@ xmipp_methods[] =
 		  "Apply CTF to this image. Ts is the sampling rate of the image." },
 		{ "projectVolumeDouble", (PyCFunction) Image_projectVolumeDouble, METH_VARARGS,
 		  "project a volume using Euler angles" },
-        { NULL } /* Sentinel */
+        { nullptr } /* Sentinel */
     };//xmipp_methods
 
 #define INIT_TYPE(type) if (PyType_Ready(&type##Type) < 0) return module; Py_INCREF(&type##Type);\
@@ -1370,7 +1370,7 @@ PyInit_xmippLib(void) {
 
     //Add PyXmippError
     char message[32]="xmipp.XmippError";
-    PyXmippError = PyErr_NewException(message, NULL, NULL);
+    PyXmippError = PyErr_NewException(message, nullptr, nullptr);
     Py_INCREF(PyXmippError);
     PyModule_AddObject(module, "XmippError", PyXmippError);
 

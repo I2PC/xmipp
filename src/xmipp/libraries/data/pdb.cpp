@@ -929,7 +929,7 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     Matrix1D<double> steps(3);
     steps.initConstant(1);
     powellOptimizer(globalHlpfPrm, 1, 3,
-                    &Hlpf_fitness, NULL, 0.05, fitness, iter, steps, false);
+                    &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
     hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }

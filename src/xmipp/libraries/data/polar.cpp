@@ -167,7 +167,7 @@ void polarFourierTransform(const MultidimArray<double> &in,
         inAux.computeAverageAndStddev(mean, stddev);
         inAux.normalize(mean, stddev);
     }
-    if (plans == NULL) {
+    if (plans == nullptr) {
         plans = new Polar_fftw_plans();
         inAux.calculateFftwPlans(*plans);
     }
@@ -199,7 +199,7 @@ void normalizedPolarFourierTransform(Polar<double> &polarIn,
     double mean, stddev;
     polarIn.computeAverageAndStddev(mean, stddev);
     polarIn.normalize(mean, stddev);
-    if (plans == NULL) {
+    if (plans == nullptr) {
         plans = new Polar_fftw_plans();
         polarIn.calculateFftwPlans(*plans);
     }
@@ -216,7 +216,7 @@ double best_rotation(const Polar<std::complex<double> > &I1,
 	const MultidimArray<double> &corr = aux.local_transformer.getReal();
 	int imax = 0;
 	double maxval = DIRECT_MULTIDIM_ELEM(corr,0);
-	double* ptr = NULL;
+	double* ptr = nullptr;
 	unsigned long int n;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY_ptr(corr,n,ptr)
 		if (*ptr > maxval) {
@@ -234,7 +234,7 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 	I1.setXmippOrigin();
 	I2.setXmippOrigin();
 
-	Polar_fftw_plans *plans = NULL;
+	Polar_fftw_plans *plans = nullptr;
 	Polar<std::complex<double> > polarFourierI2, polarFourierI1;
 	polarFourierTransform<true>(I1, polarFourierI1, false, XSIZE(I1) / 5,
 			XSIZE(I1) / 2, plans);

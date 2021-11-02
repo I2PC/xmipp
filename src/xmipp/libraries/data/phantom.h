@@ -1603,14 +1603,14 @@ public:
         deformed position=A*undeformed position
         @endcode*/
     void project_to(Projection &P, int Ydim, int Xdim,
-                    double rot, double tilt, double psi, const Matrix2D<double> *A = NULL) const;
+                    double rot, double tilt, double psi, const Matrix2D<double> *A = nullptr) const;
 
     /** Project phantom from a direction.
         The same as before but this time the projection is supposed to be
         already resized and with the right center. The phantom projection
         is added to the already drawn projection. */
     void project_to(Projection &P,
-                    double rot, double tilt, double psi, const Matrix2D<double> *A = NULL) const;
+                    double rot, double tilt, double psi, const Matrix2D<double> *A = nullptr) const;
 
     /** Project phantom using a conversion matrix.
         The same as before but this time the projection is supposed to be

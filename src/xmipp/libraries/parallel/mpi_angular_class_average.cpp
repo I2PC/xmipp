@@ -211,7 +211,7 @@ void MpiProgAngularClassAverage::run()
                 jobListRows[0]=size;
 
                 //read worker call just to remove it from the queue
-                MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_I_AM_FREE, MPI_COMM_WORLD,
+                MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_I_AM_FREE, MPI_COMM_WORLD,
                          &status);
                 if(size > 0)
                 {
@@ -228,7 +228,7 @@ void MpiProgAngularClassAverage::run()
                 }
                 else
                 {
-                    MPI_Send(0, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
+                    MPI_Send(nullptr, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
                     finishedNodes ++;
                     if (finishedNodes >= node->size)
                         whileLoop=false;
@@ -250,7 +250,7 @@ void MpiProgAngularClassAverage::run()
 
                 if (dAij(lockArray,order_index,ref3d_index))
                 {//Locked
-                    MPI_Send(0, 0, MPI_INT, status.MPI_SOURCE,
+                    MPI_Send(nullptr, 0, MPI_INT, status.MPI_SOURCE,
                              TAG_DO_NOT_DARE_TO_WRITE, MPI_COMM_WORLD);
                 }
                 else
@@ -317,14 +317,14 @@ void MpiProgAngularClassAverage::run()
             std::cerr << "[" << node->rank << "] Asking for a job " <<std::endl;
 #endif
             //I am free
-            MPI_Send(0, 0, MPI_INT, 0, TAG_I_AM_FREE, MPI_COMM_WORLD);
+            MPI_Send(nullptr, 0, MPI_INT, 0, TAG_I_AM_FREE, MPI_COMM_WORLD);
             //wait for message
             MPI_Probe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
             switch (status.MPI_TAG)
             {
             case TAG_STOP://I am free
-                MPI_Recv(0, 0, MPI_INT, 0, TAG_STOP,
+                MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_STOP,
                          MPI_COMM_WORLD, &status);
                 whileLoop=false;
                 break;
@@ -926,7 +926,7 @@ void MpiProgAngularClassAverage::mpi_writeController(
         switch (status.MPI_TAG)
         {
         case TAG_DO_NOT_DARE_TO_WRITE://I am free
-            MPI_Recv(0, 0, MPI_INT, 0, MPI_ANY_TAG,
+            MPI_Recv(nullptr, 0, MPI_INT, 0, MPI_ANY_TAG,
                      MPI_COMM_WORLD, &status);
             //usleep(100000);//microsecond
             break;

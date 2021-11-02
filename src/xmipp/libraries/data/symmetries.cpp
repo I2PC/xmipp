@@ -2207,7 +2207,7 @@ void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
     int i;
     if (doRandomize)
     {
-        srand ( time(NULL) );
+        srand ( time(nullptr) );
         doRandomize=false;
     }
     int symOrder = symsNo()+1;
@@ -2311,7 +2311,7 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(Vin)
     {
-        if (mask!=NULL && !A3D_ELEM(*mask,k,i,j))
+        if (mask!=nullptr && !A3D_ELEM(*mask,k,i,j))
             continue;
         double rot=atan2((double)i,(double)j)+rot0;
         double rho=sqrt((double)i*i+(double)j*j);
@@ -2378,7 +2378,7 @@ void symmetry_HelicalLowRes(MultidimArray<double> &Vout, const MultidimArray<dou
     	Vout+=Vaux;
     }
     Vout/=2*ZSIZE(Vin);
-    if (mask!=NULL)
+    if (mask!=nullptr)
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vout)
     	if (!DIRECT_MULTIDIM_ELEM(*mask,n))
     		DIRECT_MULTIDIM_ELEM(Vout,n)=0.0;
