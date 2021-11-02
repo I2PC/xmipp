@@ -39,7 +39,7 @@ ProgClassifyFTTRI::ProgClassifyFTTRI(int argc, char **argv)
     node=new MpiNode(argc,argv);
     if (!node->isMaster())
         verbose=0;
-    taskDistributor=NULL;
+    taskDistributor=nullptr;
 }
 
 // MPI destructor
@@ -290,8 +290,8 @@ double ProgClassifyFTTRI::fttri_distance(const MultidimArray<double> &fttri_i,
     double retval=0;
     const size_t unroll=4;
     size_t nmax=unroll*(MULTIDIM_SIZE(fttri_i)/unroll);
-    double* ptrI=NULL;
-    double* ptrJ=NULL;
+    double* ptrI=nullptr;
+    double* ptrJ=nullptr;
     size_t n;
     for (n=0, ptrI=MULTIDIM_ARRAY(fttri_i),ptrJ=MULTIDIM_ARRAY(fttri_j);
          n<nmax; n+=unroll, ptrI+=unroll, ptrJ+=unroll)
@@ -849,7 +849,7 @@ void ProgClassifyFTTRI::computeClassNeighbours(bool FTTRI)
 {
     if (node->isMaster())
         std::cerr << "Computing class neighbours ..." << std::endl;
-    MultidimArray<double> *ptrCentroids=NULL;
+    MultidimArray<double> *ptrCentroids=nullptr;
     if (FTTRI)
     {
         fttriCentroids.read(fnRoot+"_FTTRI_centroids.mrcs");
@@ -943,7 +943,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
         init_progress_bar(nref);
     }
 
-    MultidimArray<double> *ptrCentroids=NULL;
+    MultidimArray<double> *ptrCentroids=nullptr;
     if (FTTRI)
         ptrCentroids=&fttriCentroids();
     else
