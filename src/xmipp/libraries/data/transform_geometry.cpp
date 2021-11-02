@@ -80,7 +80,6 @@ void ProgTransformGeometry::defineParams()
     addParamsLine("[--dont_wrap]                       : By default, the image/volume is wrapped");
     addParamsLine("[--write_matrix]                    : Print transformation matrix to screen");
     addParamsLine("[--shift_to <x=0> <y=0> <z=0>]      : Shift each particle to x,y,z position");
-    addParamsLine("[--center_of_mass <volume>]		   : Shift each particle to the center of mass of the provided volume, this option is only valid using --shift_to option but without arguments");
     //examples
     addExampleLine("Write a metadata with geometrical transformations keeping the reference to original images:", false);
     addExampleLine("xmipp_transform_geometry -i mD1.xmd --shift 2 3 4 --scale 1.2 --rotate 23 -o newGeo.xmd");
@@ -251,26 +250,9 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
     	Matrix1D<double> pos, posp;
     	pos.initZeros(3);
     	posp.initZeros(3);
-        if (checkParam("--center_of_mass"))
-    	{
-        	FileName fnvol;
-        	fnvol = getParam("--center_of_mass");
-        	Image<double> vol;
-        	vol.read(fnvol);
-            Matrix1D<double> centerOfMass;
-            Mask mask_prm;
-            mask_prm.generate_mask(vol());
-            vol().centerOfMass(centerOfMass, &mask_prm.get_binary_mask());
-    		pos(0) = centerOfMass(0);
-    		pos(1) = centerOfMass(1);
-    		pos(2) = centerOfMass(2);
-    	}
-        else
-        {
-    		pos(0) = getDoubleParam("--shift_to", 0);
-    		pos(1) = getDoubleParam("--shift_to", 1);
-    		pos(2) = getDoubleParam("--shift_to", 2);
-        }
+		pos(0) = getDoubleParam("--shift_to", 0);
+		pos(1) = getDoubleParam("--shift_to", 1);
+		pos(2) = getDoubleParam("--shift_to", 2);
 		R.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, R, false);
 		if (checkParam("--inverse"))
