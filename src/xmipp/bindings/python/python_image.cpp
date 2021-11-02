@@ -1869,7 +1869,7 @@ Image_centerOfMass(PyObject *obj, PyObject *args, PyObject *kwargs)
         try
         {
             Matrix1D< double > center;
-            *self->image->convert2Datatype(DT_Double);
+            self->image->convert2Datatype(DT_Double);
             MultidimArray<double> *in;
             MULTIDIM_ARRAY_GENERIC(*self->image).getMultidimArrayPointer(in);
             in->centerOfMass(center);
