@@ -1210,7 +1210,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 	int xrows = angles.mdimx;
 	int idx = 0;
 
-	double count_radial, count_azimuthal;
+	double count_radial = 0.0, count_azimuthal = 0.0;
 
 	Matrix1D<int> PrefferredDirHist, resolutionMeanVector;
 	PrefferredDirHist.initZeros(xrows);
@@ -1224,8 +1224,6 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		if (A3D_ELEM(pmask,k,i,j) > 0 )
 		{
 			iu = 1/sqrt(i*i + j*j + k*k);
-			count_radial = 0;
-			count_azimuthal = 0;
 			std::vector<double> ResList;
 
 			double lastRes = 100; //A non-sense value
@@ -1544,7 +1542,8 @@ void ProgResDir::run()
 
 	std::cout << "Analyzing directions " << std::endl;
 
-	double w, wH;
+	double w = 0.0;
+	double wH = 0.0;
 	int volsize = ZSIZE(VRiesz);
 
 	//Checking with MonoRes at 50A;

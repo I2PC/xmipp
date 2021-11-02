@@ -358,7 +358,7 @@ double computeAffineTransformation(const MultidimArray<unsigned char> &I1,
                            pyramidLevel);
 
         // Return result
-        double cost;
+        double cost = 0.0;
 
         // Optimize with differential evolution
         Matrix1D<double> A(6);

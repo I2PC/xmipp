@@ -186,11 +186,11 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
         int     lineNo = 0;
         char    *auxstr;
 
-        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == NULL)
+        if ((fh_param = fopen(fn_proj_param.c_str(), "r")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (std::string)"ParametersProjectionTomography::read: There is a problem "
                          "opening the file " + fn_proj_param);
-        while (fgets(line, 200, fh_param) != NULL)
+        while (fgets(line, 200, fh_param) != nullptr)
         {
             if (line[0] == 0)
                 continue;
@@ -209,7 +209,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
                     firstWord(line);
                 // Next two parameters are optional
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     starting =
                         textToInteger(auxstr);
                 fn_projection_extension = nextToken();
@@ -241,7 +241,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
             case 6:
                 Nangle_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Nangle_avg = textToFloat(auxstr);
                 else
                     Nangle_avg = 0;
@@ -250,7 +250,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
             case 7:
                 Npixel_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Npixel_avg = textToFloat(auxstr);
                 else
                     Npixel_avg = 0;
@@ -259,7 +259,7 @@ void ParametersProjectionTomography::read(const FileName &fn_proj_param)
             case 8:
                 Ncenter_dev = textToFloat(firstWord(line));
                 auxstr = nextToken();
-                if (auxstr != NULL)
+                if (auxstr != nullptr)
                     Ncenter_avg = textToFloat(auxstr);
                 else
                     Ncenter_avg = 0;
@@ -403,7 +403,7 @@ void projectVolume(MultidimArray<double> &V, Projection &P, int Ydim, int Xdim,
             }
 
             // Express r_p in the universal coordinate system
-            if (roffset!=NULL)
+            if (roffset!=nullptr)
                 r_p-=*roffset;
             M3x3_BY_V3x1(p1, P.eulert, r_p);
             XX(p1_shifted)=XX(p1)-half_x_sign;

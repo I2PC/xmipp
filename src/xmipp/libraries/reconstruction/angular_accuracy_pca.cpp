@@ -281,6 +281,7 @@ void ProgAngularAccuracyPCA::obtainPCAs(MetaData &SF, size_t numPCAs)
 		SF.getValue(MDL_ENABLED, enabled, objId);
 		SF.getValue(MDL_SHIFT_X, shiftX, objId);
 		SF.getValue(MDL_SHIFT_Y, shiftY, objId);
+		SF.getValue(MDL_FLIP, mirror, objId);
 
 		if ( (enabled==-1)  )
 		{

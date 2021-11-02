@@ -1288,7 +1288,7 @@ void ProgML2D::doThreadExpectationSingleImageRefno()
 {
     double diff;
     double aux, pdf, fracpdf, A2_plus_Xi2;
-    double weight, stored_weight, weight2, my_maxweight;
+    double weight, stored_weight, weight2 = 0, my_maxweight;
     double my_sumweight, my_sumstoredweight, ref_scale = 1.;
     int irot, output_irefmir, refnoipsi, output_refnoipsi;
     //Some local variables to store partial sums of global sums variables

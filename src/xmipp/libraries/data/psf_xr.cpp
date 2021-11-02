@@ -150,7 +150,7 @@ void XRayPSF::read(const FileName &fn, bool readVolume)
     else
     {
         FILE *fh_param;
-        if ((fh_param = fopen(fn.c_str(), "r")) == NULL)
+        if ((fh_param = fopen(fn.c_str(), "r")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN,
                          (std::string)"XmippXROTF::read: There is a problem "
                          "opening the file " + fn);

@@ -320,6 +320,8 @@ void ProgAngularDistance::computeWeights()
 		shiftDiffLabel=MDL_SHIFT_DIFF0;
 		weightLabel=MDL_WEIGHT_JUMPER0;
 		break;
+    default:
+        REPORT_ERROR(ERR_VALUE_INCORRECT, "Set value is out of range. It shoudl be 0, 1 or 2.\n");
 	}
 
     auto iter1(DF1sorted.ids().begin());
