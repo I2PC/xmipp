@@ -100,7 +100,7 @@ void normalize_Near_OldXmipp(MultidimArray<double> &I, const MultidimArray<int> 
       of the OldXmipp method in two steps.
 */
 void normalize_OldXmipp_decomposition(MultidimArray<double> &I,
-                                      const MultidimArray<int> &bg_mask, const MultidimArray<double> *mask = NULL);
+                                      const MultidimArray<int> &bg_mask, const MultidimArray<double> *mask = nullptr);
 
 /** Tomography normalization.
     @ingroup NormalizationProcedures
@@ -186,7 +186,7 @@ void normalize_Robust(MultidimArray<double> &I, const MultidimArray<int> &bg_mas
     fitting of a least squares plane through the pixels in the
     bg_mask, then subtraction of the plane, and division by the
     standard deviation of the pixels in the bg_mask */
-void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask=NULL);
+void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask=nullptr);
 
 /** Removal of neighbouring particles.
     @ingroup NormalizationProcedures

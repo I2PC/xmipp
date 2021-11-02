@@ -52,7 +52,7 @@ bool MpiTaskDistributor::distributeMaster()
     while (finalizedWorkers < size - 1)
     {
         //wait for request form workers
-        MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_WORK_REQUEST, MPI_COMM_WORLD, &status);
+        MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_WORK_REQUEST, MPI_COMM_WORLD, &status);
 
         workBuffer[0] = ThreadTaskDistributor::distribute(workBuffer[1], workBuffer[2]) ? 1 : 0;
 
@@ -74,7 +74,7 @@ bool MpiTaskDistributor::distributeSlaves(size_t &first, size_t &last)
   size_t workBuffer[3];
   MPI_Status status;
   //any message from the master, is tag is TAG_STOP then stop
-  MPI_Send(0, 0, MPI_INT, 0, TAG_WORK_REQUEST, MPI_COMM_WORLD);
+  MPI_Send(nullptr, 0, MPI_INT, 0, TAG_WORK_REQUEST, MPI_COMM_WORLD);
   MPI_Recv(workBuffer, 3, MPI_LONG_LONG_INT, 0, TAG_WORK_RESPONSE, MPI_COMM_WORLD, &status);
 
   first = workBuffer[1];
@@ -93,7 +93,7 @@ MpiFileMutex::MpiFileMutex(MpiNode * node)
 {
     fileCreator = false;
 
-    if (node == NULL || node->isMaster())
+    if (node == nullptr || node->isMaster())
     {
         fileCreator = true;
         strcpy(lockFilename, "pijol_XXXXXX");
@@ -105,7 +105,7 @@ MpiFileMutex::MpiFileMutex(MpiNode * node)
         close(lockFile);
     }
     //if using mpi broadcast the filename from master to slaves
-    if (node != NULL)
+    if (node != nullptr)
         MPI_Bcast(lockFilename, L_tmpnam, MPI_CHAR, 0, MPI_COMM_WORLD);
 
     if ((lockFile = open(lockFilename, O_RDWR)) == -1)
@@ -241,7 +241,7 @@ template void MpiNode::gatherMetadatas<MetaDataDb>(MetaDataDb&, const FileName&)
 
 XmippMpiProgram::XmippMpiProgram()
 {
-    node = NULL;
+    node = nullptr;
 }
 /** destructor */
 XmippMpiProgram::~XmippMpiProgram()
@@ -254,7 +254,7 @@ void XmippMpiProgram::read(int argc, char **argv)
 {
     errorCode = 0; //suppose no errors
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         node = new MpiNode(argc, argv);
         nProcs = node->size;
@@ -293,8 +293,8 @@ int XmippMpiProgram::tryRun()
 /* -------------------- MpiMetadataProgram ------------------- */
 MpiMetadataProgram::MpiMetadataProgram()
 {
-    node = NULL;
-    distributor = NULL;
+    node = nullptr;
+    distributor = nullptr;
 }
 
 MpiMetadataProgram::~MpiMetadataProgram()

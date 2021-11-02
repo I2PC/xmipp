@@ -687,8 +687,9 @@ void * blobs2voxels_SimpleGrid( void * data )
                         for (auto inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
                             for (auto intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
                             {
+                                int iz = (int)intz, iy = (int)inty, ix = (int)intx;
                                 if (vol_mask != nullptr && A3D_ELEM(*vol_mask, intz, inty, intx)!=0.0)
-                                	continue;
+                                        continue;
 
                                 // Compute distance to the center of the blob
                                 VECTOR_R3(gcurrent, (double)intx, (double)inty, (double)intz);
@@ -1263,7 +1264,7 @@ void ART_voxels2blobs_single_step(
         // Wait for threads to finish
         for( int c = 0 ; c < threads ; c++ )
         {
-            pthread_join(*(th_ids+c),nullptr);
+            pthread_join(*(th_ids+c), nullptr);
         }
         free( slices_status );
         //        blobs2voxels_SimpleGrid((*vol_out)(i)(), (*vol_out).grid(i), blob,

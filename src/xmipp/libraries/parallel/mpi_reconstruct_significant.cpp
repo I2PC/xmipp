@@ -27,7 +27,7 @@
 
 MpiProgReconstructSignificant::MpiProgReconstructSignificant()
 {
-	node=NULL;
+	node=nullptr;
 }
 
 MpiProgReconstructSignificant::~MpiProgReconstructSignificant()

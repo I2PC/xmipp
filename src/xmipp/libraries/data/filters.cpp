@@ -1546,7 +1546,7 @@ T bestShift(MultidimArray<T> &Mcorr,
      */
 
     // Adjust statistics within shiftmask to average 0 and stddev 1
-    if (mask != NULL)
+    if (mask != nullptr)
     {
         if ((*mask).sum() < 2)
         {
@@ -1707,7 +1707,7 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
      */
 
     // Adjust statistics within shiftmask to average 0 and stddev 1
-    if (mask != NULL)
+    if (mask != nullptr)
     {
         if ((*mask).sum() < 2)
         {
@@ -1946,7 +1946,7 @@ double bestShiftRealSpace(const MultidimArray<double> &I1, MultidimArray<double>
 /* Align two images -------------------------------------------------------- */
 AlignmentAux::AlignmentAux()
 {
-    plans = NULL;
+    plans = nullptr;
 }
 AlignmentAux::~AlignmentAux()
 {
@@ -2078,7 +2078,7 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const Al
 
     double corr=alignImages(Iref, IrefTransforms, I, M, wrap, aux, aux2, aux3);
     double corrMirror=alignImages(Iref, IrefTransforms, Imirror, Mmirror, wrap, aux, aux2, aux3);
-    if (mask!=NULL)
+    if (mask!=nullptr)
     {
     	corr = correlationIndex(Iref, I, mask);
     	corrMirror = correlationIndex(Iref, Imirror, mask);
@@ -2101,7 +2101,7 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, Multidim
     AlignmentAux aux;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
-    return alignImagesConsideringMirrors(Iref, I, M, aux, aux2, aux3, wrap, NULL);
+    return alignImagesConsideringMirrors(Iref, I, M, aux, aux2, aux3, wrap, nullptr);
 }
 
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref,
@@ -2813,7 +2813,7 @@ void rotationalInvariantMoments(const MultidimArray<double> &img,
     // Compute low-level moments
     FOR_ALL_ELEMENTS_IN_ARRAY2D(img)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(i, j))
                 continue;
         double val = img(i, j);
@@ -2876,7 +2876,7 @@ void inertiaMoments(const MultidimArray<double> &img,
     // Compute low-level moments
     FOR_ALL_ELEMENTS_IN_ARRAY2D(img)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(i, j))
                 continue;
         double val = img(i, j);
@@ -3059,7 +3059,7 @@ void localThresholding(MultidimArray<double> &img, double C, double dimLocal,
     convolved.initZeros(img);
     FOR_ALL_ELEMENTS_IN_ARRAY2D(convolved)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(i, j))
                 continue;
         int ii0 = XMIPP_MAX(STARTINGY(convolved), FLOOR(i - dimLocal));
@@ -3070,7 +3070,7 @@ void localThresholding(MultidimArray<double> &img, double C, double dimLocal,
         for (int ii = ii0; ii <= iiF; ii++)
             for (int jj = jj0; jj <= jjF; jj++)
             {
-                if (mask == NULL)
+                if (mask == nullptr)
                 {
                     convolved(i, j) += img(ii, jj);
                     ++N;
@@ -3089,7 +3089,7 @@ void localThresholding(MultidimArray<double> &img, double C, double dimLocal,
     result.initZeros(img);
     FOR_ALL_ELEMENTS_IN_ARRAY2D(convolved)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(i, j))
                 continue;
         if (img(i, j) - convolved(i, j) > C)
@@ -3140,7 +3140,7 @@ void centerImageRotationally(MultidimArray<double> &I,
     Ix.selfReverseX();
     Ix.setXmippOrigin();
 
-    Polar_fftw_plans *plans = NULL;
+    Polar_fftw_plans *plans = nullptr;
     Polar<std::complex<double> > polarFourierI, polarFourierIx;
     polarFourierTransform<true>(Ix, polarFourierIx, false, XSIZE(Ix) / 5,
                                     XSIZE(Ix) / 2, plans);
@@ -3183,7 +3183,7 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
     lineX.initZeros(XSIZE(I));
     STARTINGX(lineX) = STARTINGX(I);
 
-    Polar_fftw_plans *plans = NULL;
+    Polar_fftw_plans *plans = nullptr;
     Polar<std::complex<double> > polarFourierI, polarFourierIx;
     MultidimArray<double> rotationalCorr;
     Matrix2D<double> R;
@@ -3719,7 +3719,7 @@ void RetinexFilter::readParams(XmippProgram * program)
     percentile = program->getDoubleParam("--retinex",0);
     String fnMask = program->getParam("--retinex",1);
     if (fnMask=="")
-    	mask = NULL;
+    	mask = nullptr;
     else
     {
         mask = new Image<int>;
@@ -3783,9 +3783,9 @@ void RetinexFilter::apply(MultidimArray<double> &img)
     fft.inverseFourierTransform();
 
     // Compute the threshold outside the mask
-    double *sortedValues=NULL;
+    double *sortedValues=nullptr;
     size_t Nsorted=0;
-    if (mask==NULL)
+    if (mask==nullptr)
     {
         Nsorted=MULTIDIM_SIZE(img);
         sortedValues=new double[Nsorted];
@@ -4162,7 +4162,7 @@ double mutualInformation(const MultidimArray< T >& x,
 
     FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(k, i, j))
                 continue;
 

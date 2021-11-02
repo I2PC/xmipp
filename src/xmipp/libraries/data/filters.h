@@ -249,7 +249,7 @@ double EntropyOtsuSegmentation(MultidimArray<double> &V, double percentil=0.05,
 template <typename T>
 double correlation(const MultidimArray< T >& x,
                    const MultidimArray< T >& y,
-                   const MultidimArray< int >* mask = NULL,
+                   const MultidimArray< int >* mask = nullptr,
                    int l = 0,
                    int m = 0,
                    int q = 0)
@@ -282,7 +282,7 @@ double correlation(const MultidimArray< T >& x,
 
                 if (jp >= 0 && jp < Cols)
                 {
-                    if (mask != NULL)
+                    if (mask != nullptr)
                         if (!DIRECT_A3D_ELEM((*mask), k, i, j))
                             continue;
 
@@ -406,7 +406,7 @@ double correlationWeighted(MultidimArray<double>& I1, MultidimArray<double>& I2)
 /** SVD correlation.
  *
  */
-double svdCorrelation(const MultidimArray<double>& I1, const MultidimArray<double>& I2, const MultidimArray< int >* mask = NULL);
+double svdCorrelation(const MultidimArray<double>& I1, const MultidimArray<double>& I2, const MultidimArray< int >* mask = nullptr);
 
 /** Translational search
  * @ingroup Filters
@@ -428,7 +428,7 @@ double bestShift(const MultidimArray< double >& I1,
                double& shiftX,
                double& shiftY,
                CorrelationAux &aux,
-               const MultidimArray< int >* mask = NULL,
+               const MultidimArray< int >* mask = nullptr,
                int maxShift=-1);
 
 /** Translational search.
@@ -437,7 +437,7 @@ double bestShift(const MultidimArray< double >& I1,
 double bestShift(const MultidimArray<double> &I1, const MultidimArray< std::complex<double> > &FFTI1,
 		       const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, CorrelationAux &aux,
-               const MultidimArray<int> *mask=NULL, int maxShift=-1);
+               const MultidimArray<int> *mask=nullptr, int maxShift=-1);
 
 /** Translational search.
  * Assumes that FFTI1 and FFTI2 are already computed. Mcorr must already have the right size.
@@ -446,7 +446,7 @@ double bestShift(const MultidimArray< std::complex<double> > &FFTI1,
 				const MultidimArray< std::complex<double> > &FFTI2,
 				MultidimArray<double> &Mcorr,
                double &shiftX, double &shiftY, CorrelationAux &aux,
-               const MultidimArray<int> *mask=NULL, int maxShift=-1);
+               const MultidimArray<int> *mask=nullptr, int maxShift=-1);
 
 /** Translational search (3D)
  * @ingroup Filters
@@ -460,7 +460,7 @@ double bestShift(const MultidimArray< std::complex<double> > &FFTI1,
  */
 void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, double &shiftZ, CorrelationAux &aux,
-               const MultidimArray<int> *mask=NULL);
+               const MultidimArray<int> *mask=nullptr);
 
 template<typename T>
 T bestShift(MultidimArray<T> &Mcorr,
@@ -493,7 +493,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
  */
 double bestShiftRealSpace(const MultidimArray<double> &I1, MultidimArray<double> &I2,
                double &shiftX, double &shiftY,
-               const MultidimArray<int> *mask=NULL, int maxShift=5, double shiftStep=1.0);
+               const MultidimArray<int> *mask=nullptr, int maxShift=5, double shiftStep=1.0);
 
 /** Auxiliary class for fast image alignment */
 class AlignmentAux
@@ -539,7 +539,7 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, Multidim
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms,
                                      MultidimArray<double>& I, Matrix2D<double> &M, AlignmentAux& aux,
                                      CorrelationAux& aux2, RotationalCorrelationAux &aux3, bool wrap,
-                                     const MultidimArray<int>* mask=NULL);
+                                     const MultidimArray<int>* mask=nullptr);
 
 /** Fast version of align two images
  * @ingroup Filters
@@ -609,7 +609,7 @@ double alignImagesConsideringMirrors(const MultidimArray< double >& Iref,
                                      CorrelationAux &aux2,
                                      RotationalCorrelationAux &aux3,
                                      bool wrap=WRAP,
-                                     const MultidimArray< int >* mask = NULL);
+                                     const MultidimArray< int >* mask = nullptr);
 
 /** Align a set of images.
  * Align a set of images and produce a class average as well as the set of
@@ -653,7 +653,7 @@ void estimateGaussian2D(const MultidimArray<double> &I,
 template <typename T>
 double euclidianDistance(const MultidimArray< T >& x,
                          const MultidimArray< T >& y,
-                         const MultidimArray< int >* mask = NULL)
+                         const MultidimArray< int >* mask = nullptr)
 {
     SPEED_UP_temps;
 
@@ -662,7 +662,7 @@ double euclidianDistance(const MultidimArray< T >& x,
 
     FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
     {
-        if (mask != NULL)
+        if (mask != nullptr)
             if (!(*mask)(k, i, j))
                 continue;
 
@@ -698,7 +698,7 @@ double mutualInformation(const MultidimArray< T >& x,
                          const MultidimArray< T >& y,
                          int nx = 0,
                          int ny = 0,
-                         const MultidimArray< int >* mask = NULL);
+                         const MultidimArray< int >* mask = nullptr);
 
 /** RMS nD
  * @ingroup Filters
@@ -706,8 +706,8 @@ double mutualInformation(const MultidimArray< T >& x,
 template <typename T>
 double rms(const MultidimArray< T >& x,
            const MultidimArray< T >& y,
-           const MultidimArray< int >* mask = NULL,
-           MultidimArray< double >* Contributions = NULL)
+           const MultidimArray< int >* mask = nullptr,
+           MultidimArray< double >* Contributions = nullptr)
 {
     SPEED_UP_tempsInt;
 
@@ -716,11 +716,11 @@ double rms(const MultidimArray< T >& x,
     int n = 0;
 
     // If contributions are desired
-    if (Contributions != NULL)
+    if (Contributions != nullptr)
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
         {
-            if (mask != NULL)
+            if (mask != nullptr)
                 if (!(*mask)(k, i, j))
                     continue;
 
@@ -739,7 +739,7 @@ double rms(const MultidimArray< T >& x,
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(x, y)
         {
-            if (mask != NULL)
+            if (mask != nullptr)
                 if (!(*mask)(k, i, j))
                     continue;
 
@@ -1233,7 +1233,7 @@ void localThresholding(MultidimArray< double >& img,
                        double C,
                        double dimLocal,
                        MultidimArray< int >& result,
-                       MultidimArray< int >* mask = NULL);
+                       MultidimArray< int >* mask = nullptr);
 
 /** Center an image translationally
  * @ingroup Filters
