@@ -45,7 +45,7 @@ void powellOptimizer(Matrix1D<double> &p, int i0, int n,
                      double ftol, double &fret,
                      int &iter, const Matrix1D<double> &steps, bool show)
 {
-    double *xi = NULL;
+    double *xi = nullptr;
 
     // Adapt indexes of p
     double *pptr = p.adaptForNumericalRecipes();
@@ -104,7 +104,7 @@ double solveNonNegative(const Matrix2D<double> &C, const Matrix1D<double> &d,
     int success = nnls(MATRIX2D_ARRAY(Ct), Ct.Xdim(), Ct.Ydim(),
                        MATRIX1D_ARRAY(d),
                        MATRIX1D_ARRAY(result),
-                       &rnorm, NULL, NULL, NULL);
+                       &rnorm, nullptr, nullptr, nullptr);
     if (success == 1)
         std::cerr << "Warning, too many iterations in nnls\n";
     else if (success == 2)
@@ -412,7 +412,7 @@ DESolver::~DESolver(void)
     if (population)
         delete [] population;
 
-    trialSolution = bestSolution = popEnergy = population = NULL;
+    trialSolution = bestSolution = popEnergy = population = nullptr;
     return;
 }
 

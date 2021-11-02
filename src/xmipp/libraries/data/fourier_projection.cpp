@@ -55,7 +55,7 @@ void Projection::read(const FileName &fn, const bool only_apply_shifts,
                       DataMode datamode , MDRow * row)
 {
     Image<double>::read(fn, datamode);
-    if (row != NULL)
+    if (row != nullptr)
         applyGeo(*row, only_apply_shifts);
     Euler_angles2matrix(rot(), tilt(), psi(), euler);
     eulert = euler.transpose();
@@ -86,7 +86,7 @@ FourierProjector::FourierProjector(double paddFactor, double maxFreq, int degree
     paddingFactor = paddFactor;
     maxFrequency = maxFreq;
     BSplineDeg = degree;
-    volume = NULL;
+    volume = nullptr;
 }
 
 FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
@@ -237,7 +237,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
-            if (ctf!=NULL)
+            if (ctf!=nullptr)
             {
             	double ctfij=DIRECT_A2D_ELEM(*ctf,i,j);
             	a*=ctfij;

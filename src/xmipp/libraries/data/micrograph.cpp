@@ -40,12 +40,12 @@
 Micrograph::Micrograph()
 {
     auxI = new (Image<char> );
-    IUChar = NULL;
-    IShort = NULL;
-    IUShort = NULL;
-    IInt = NULL;
-    IUInt = NULL;
-    IFloat = NULL;
+    IUChar = nullptr;
+    IShort = nullptr;
+    IUShort = nullptr;
+    IInt = nullptr;
+    IUInt = nullptr;
+    IFloat = nullptr;
     stdevFilter = -1;
 }
 Micrograph::~Micrograph()
@@ -165,27 +165,27 @@ void Micrograph::close_micrograph()
     case DT_UHalfByte:
     case DT_UChar:
         delete IUChar;
-        IUChar = NULL;
+        IUChar = nullptr;
         break;
     case DT_UShort:
         delete IUShort;
-        IUShort = NULL;
+        IUShort = nullptr;
         break;
     case DT_Short:
         delete IShort;
-        IShort = NULL;
+        IShort = nullptr;
         break;
     case DT_Int:
         delete IInt;
-        IInt = NULL;
+        IInt = nullptr;
         break;
     case DT_UInt:
         delete IUInt;
-        IUInt = NULL;
+        IUInt = nullptr;
         break;
     case DT_Float:
         delete IFloat;
-        IFloat = NULL;
+        IFloat = nullptr;
         break;
     default:
         std::cerr << "Micrograph::close_micrograph: Unknown datatype "
@@ -548,7 +548,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     this->Ndim = 1;
     if (datatype == DT_UChar || datatype == DT_UHalfByte)
     {
-        if (IUChar == NULL)
+        if (IUChar == nullptr)
             IUChar = new Image<unsigned char>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -558,7 +558,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_UShort)
     {
-        if (IUShort == NULL)
+        if (IUShort == nullptr)
             IUShort = new Image<unsigned short int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -568,7 +568,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_Short)
     {
-        if (IShort == NULL)
+        if (IShort == nullptr)
             IShort = new Image<short int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -578,7 +578,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_UInt)
     {
-        if (IUInt == NULL)
+        if (IUInt == nullptr)
             IUInt = new Image<unsigned int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -588,7 +588,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_Int)
     {
-        if (IInt == NULL)
+        if (IInt == nullptr)
             IInt = new Image<int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -598,7 +598,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_Float)
     {
-        if (IFloat == NULL)
+        if (IFloat == nullptr)
             IFloat = new Image<float>(Xdim, Ydim, 1, 1, filename);
         else
         {

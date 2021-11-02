@@ -677,7 +677,7 @@ void  Cone::feat_printm(MetaData &MD, size_t id)
 /* Show feat --------------------------------------------------------------- */
 std::ostream& operator << (std::ostream &o, const Feature *F)
 {
-    if (F != NULL)
+    if (F != nullptr)
     {
         o << "Feature --------" << std::endl;
         o << "   Type:        " << F->Type << std::endl;
@@ -2295,14 +2295,14 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
     else
     {
         // Open Volume Description File
-        if ((fh_phantom = fopen(fn_phantom.c_str(), "r")) == NULL)
+        if ((fh_phantom = fopen(fn_phantom.c_str(), "r")) == nullptr)
             REPORT_ERROR(ERR_IO_NOTOPEN, (std::string)"Phantom::read: Cannot open the phantom file: "
                          + fn_phantom);
         fn = fn_phantom;
 
         size_t lineNumber = 0;
         // Read the file
-        while (fgets(line, 256, fh_phantom) != NULL)
+        while (fgets(line, 256, fh_phantom) != nullptr)
         {
             ++lineNumber;
             if (line[0] == 0)
@@ -2601,7 +2601,7 @@ void Phantom::project_to(Projection &P, int Ydim, int Xdim,
 
     // Compute volume to Projection matrix
     Matrix2D<double> VP = P.euler;
-    if (A != NULL)
+    if (A != nullptr)
         VP = (*A) * VP;
     Matrix2D<double> PV = VP.inv();
     // Project all features
@@ -2617,7 +2617,7 @@ void Phantom::project_to(Projection &P,
 
     // Compute volume to Projection matrix
     Matrix2D<double> VP = P.euler;
-    if (A != NULL)
+    if (A != nullptr)
         VP = (*A) * VP;
     Matrix2D<double> PV = VP.inv();
 
