@@ -84,9 +84,9 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
         inFull.Subset(offset, batchSize));
     // trying to prefetch data to avoid page faults
     gpuErrchk(
-        cudaMemPrefetchAsync(inFFT.payload.ptr, inFFT.payload.dataInfo.bytes, 0));
+        cudaMemPrefetchAsync(inFFT.GetData().ptr, inFFT.GetData().dataInfo.bytes, 0));
 
-    auto batch = inFFT.payload.info.GetSize().n;
+    auto batch = inFFT.GetData().info.GetSize().n;
     std::cout << "Processing images " << offset << "-" << batch << std::endl;
     // start at 0 to reuse the temporal storage, set N according to what is left
     auto outFFT =
@@ -95,16 +95,17 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
                                                      std::move(filterP));
     auto outCrop =
         fourier_processing::AFP::OutputData(outFull.Subset(offset, batch));
-    // printf("inFFT: %p %p\n", inFFT.payload.ptr, inOutData + (offset * inX *
-    // inY)); printf("outFFT: %p %p\n", outFFT.payload.ptr, batchPtr);
-    // printf("inCrop: %p %p\n", inCrop.payload.ptr, batchPtr);
-    // printf("outCrop: %p %p\n", outCrop.payload.ptr,
+    // printf("inFFT: %p %p\n", inFFT.GetData().ptr, inOutData + (offset * inX *
+    // inY)); printf("outFFT: %p %p\n", outFFT.GetData().ptr, batchPtr);
+    // printf("inCrop: %p %p\n", inCrop.GetData().ptr, batchPtr);
+    // printf("outCrop: %p %p\n", outCrop.GetData().ptr,
     //        inOutData + (offset * (outX / 2 + 1) * outY));
 
     if (batchSize != batch) {
       std::cout << "Calling cleanup" << std::endl;
       fftTransformer.Cleanup();
       cropTransformer.Cleanup();
+
       doInit = true;
     }
     if (doInit) {
@@ -114,24 +115,24 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
       doInit = false;
     }
     std::cout << "Calling execute" << std::endl;
-    // cudaMemset(outFFT.payload.ptr, 0, pdBatch.bytes);
+    // cudaMemset(outFFT.GetData().ptr, 0, pdBatch.bytes);
     assert(fftTransformer.Execute(outFFT, inFFT));
 
-    // auto &s = outFFT.payload.info.GetSize();
+    // auto &s = outFFT.GetData().info.GetSize();
     // auto *tmp = new std::complex<float>[s.total];
     // printf("%lu %lu %lu %lu -> %lu %lu\n", s.x, s.y, s.z, s.n, s.total,
-    //        outFFT.payload.dataInfo.bytes);
-    // cudaMemcpy(tmp, outFFT.payload.ptr, outFFT.payload.dataInfo.bytes * 2,
+    //        outFFT.GetData().dataInfo.bytes);
+    // cudaMemcpy(tmp, outFFT.GetData().ptr, outFFT.GetData().dataInfo.bytes * 2,
     //            cudaMemcpyDeviceToHost);
     // Image<float> img(s.x, s.y, s.z, s.n);
     // for (size_t i = 0; i < s.total; ++i) {
-    //   img.payload.data[i] = tmp[i].real();
+    //   img.GetData().data[i] = tmp[i].real();
     // }
     // img.write("fft_new_" + std::to_string(offset) + ".mrc");
     // delete[] tmp;
     // gpuErrchk(cudaPeekAtLastError());
 
-    // cudaMemset(inFFT.payload.ptr, 0, inFFT.payload.dataInfo.bytes);
+    // cudaMemset(inFFT.GetData().ptr, 0, inFFT.GetData().dataInfo.bytes);
 
     assert(cropTransformer.Execute(outCrop, inCrop));
     std::cout << "iteration done" << std::endl;
