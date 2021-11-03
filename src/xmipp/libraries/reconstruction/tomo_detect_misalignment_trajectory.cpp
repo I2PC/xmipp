@@ -367,7 +367,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	// *** TODO: optimize, get n maxima elements without sorting
 	sort(histogramOfLandmarkAppearanceSorted.begin(), histogramOfLandmarkAppearanceSorted.end(), std::greater<int>());
 
-	// Poisson lambda = median of the 20 first most populated indexes
+	// Poisson lambda
 	float poissonAverage = histogramOfLandmarkAppearanceSorted[poissonLandmarkPercentile];
 	
 	std::vector<size_t> chainIndexesY;
@@ -375,16 +375,20 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	// Test possion probability
 	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
 	{
-		if (testPoissonDistribution(100*(poissonAverage/poissonAverage), 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) > 0.00175)
+		// Normalize the input values (make lambda=100 and make k=100(k'/lambda)) to fix a threshold value for the distribution.
+		if (testPoissonDistribution(100*(poissonAverage/poissonAverage), 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) > 0.001)
 		{
 			#ifdef DEBUG_POISSON
 			std::cout << "Index " << i << " added with testPoissonDistribution=" << testPoissonDistribution(100*(poissonAverage/poissonAverage), 
-																												 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) << std::endl;
+						 100*(counterLinesOfLandmarkAppearance[i]/poissonAverage)) << std::endl;
 			#endif
 
 			chainIndexesY.push_back(i);
 		}
 	}
+
+	bool foo = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
+	std::cout << foo << std::endl;
 
 	#ifdef DEBUG_CHAINS
 	std::cout << "chainIndexesY.size()=" << chainIndexesY.size() << std::endl;
@@ -647,13 +651,13 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
     outputFileNameChain2dMap = rawname + "_filteredChains.mrc";
     outputFileNameClustered2dMap = rawname + "_clusteredChains.mrc";
 
-	Image<int> saveImage;
-	saveImage() = chain2dMap;
-	saveImage.write(outputFileNameChain2dMap);
-
 	Image<int> saveImageBis;
 	saveImageBis() = clustered2dMap;
 	saveImageBis.write(outputFileNameClustered2dMap);
+	
+	Image<int> saveImage;
+	saveImage() = chain2dMap;
+	saveImage.write(outputFileNameChain2dMap);
 	#endif
 }
 
@@ -734,7 +738,8 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 			std::cout << vectorDistance[i];
 		}
 		
-		std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << lmOutRange[n]/coordinatesInSlice.size() << "\n"<< std::endl;
+		std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
+		(float)(lmOutRange[n]/coordinatesInSlice.size()) << "\n"<< std::endl;
 		#endif
 	}
 
@@ -1190,6 +1195,23 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	{
 		return false;
 	}
+}
+
+
+bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
+{
+	size_t totalLandmarks = 0;
+
+	std::cout << counterLinesOfLandmarkAppearance.size() << std::endl;
+	std::cout << chainIndexesY.size() << std::endl;
+
+	for (size_t i = 0; i < chainIndexesY.size(); i++)
+	{
+		totalLandmarks += counterLinesOfLandmarkAppearance[(int)chainIndexesY[i]];
+	}
+
+	std::cout << "landmarksInChain!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << totalLandmarks << std::endl;
+	std::cout << "totalLandmarks!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << coordinates3D.size() << std::endl;
 }
 
 

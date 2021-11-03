@@ -99,12 +99,15 @@ private:
     std::vector<int> residualCoordinateZ;
 
     /** Thresholds */
-    size_t poissonLandmarkPercentile = 50; //*** update with more clever meassurement
-    float minimumDistance; // Minimum distance to cosider that 2 landmarks belong to the same chain
-    size_t numberOfElementsInChainThreshold = 6; // Minimum number of landmarks to keep a chain
-    double thrChainDistance = 10; // Maximum distance of a detected landmark to a chain
+    size_t poissonLandmarkPercentile = 50;          //*** update with more clever meassurement
+    float minimumDistance;                          // Minimum distance to cosider that 2 landmarks belong to the same chain
+    size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
+    double thrChainDistance = 15; // 2*samplingRate;       // Maximum distance of a detected landmark to a chain
 
 public:
+
+    bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
+
 
     // --------------------------- INFO functions ----------------------------
 
