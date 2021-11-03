@@ -98,7 +98,7 @@ void unwrapping(const MultidimArray<double> & wrappedPhase, MultidimArray<double
 //verbose == 3 saves the direction map
 //verbose == 4 saves the wrapped phase map
 //verbose == 5 saves all
-void demodulate(MultidimArray<double> & im, double lambda, int size, int rmin, int rmax,
+void demodulate(MultidimArray<double> & im, double lambda, int size, int x, int y, int rmin, int rmax,
 		MultidimArray<double> & phase, MultidimArray<double> & mod, Matrix1D<double> & coeffs, int verbose=0);
 
 void demodulate2(MultidimArray<double> & im, double lambda, int size, int rmin, int rmax,
