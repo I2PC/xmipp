@@ -387,8 +387,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
-	bool foo = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
-	std::cout << foo << std::endl;
+	bool globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
 
 	#ifdef DEBUG_CHAINS
 	std::cout << "chainIndexesY.size()=" << chainIndexesY.size() << std::endl;
@@ -1202,16 +1201,47 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 {
 	size_t totalLandmarks = 0;
 
-	std::cout << counterLinesOfLandmarkAppearance.size() << std::endl;
-	std::cout << chainIndexesY.size() << std::endl;
+	std::cout << "counterLinesOfLandmarkAppearance.size()" << counterLinesOfLandmarkAppearance.size() << std::endl;
+	std::cout << "chainIndexesY.size()" << chainIndexesY.size() << std::endl;
 
 	for (size_t i = 0; i < chainIndexesY.size(); i++)
 	{
 		totalLandmarks += counterLinesOfLandmarkAppearance[(int)chainIndexesY[i]];
 	}
 
-	std::cout << "landmarksInChain!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << totalLandmarks << std::endl;
-	std::cout << "totalLandmarks!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << coordinates3D.size() << std::endl;
+	sort(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), std::greater<int>());
+
+	std::cout << "counterLinesOfLandmarkAppearance[0]" << counterLinesOfLandmarkAppearance[0] << std::endl;
+	std::cout << "counterLinesOfLandmarkAppearance[counterLinesOfLandmarkAppearance.size()-1]" << counterLinesOfLandmarkAppearance[counterLinesOfLandmarkAppearance.size()-1] << std::endl;
+
+	size_t top10Landmarks = 0;
+
+	for (size_t i = 0; i < 10; i++)
+	{
+		top10Landmarks += counterLinesOfLandmarkAppearance[i];
+	}
+
+	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"  << std::endl;
+	std::cout << "totalLandmarks" << totalLandmarks << std::endl;
+	std::cout << "totalLandmarks/chainIndexesY.size()" << (float)totalLandmarks/(float)chainIndexesY.size() << std::endl;
+	std::cout << "top10Landmarks" << (float)top10Landmarks << std::endl;
+	std::cout << "coordinates3D.size()!" << coordinates3D.size() << std::endl;
+
+	std::cout << "totalLandmarks/(10*chainIndexesY.size())" << (float)totalLandmarks/(100*(float)chainIndexesY.size()) << std::endl;
+	std::cout << "top10Landmarks/10" << (float)top10Landmarks/10.0 << std::endl;
+
+
+	//*** make thresholds global and more accurate
+	if((float)totalLandmarks/(100*(float)chainIndexesY.size())<0.4 || top10Landmarks/10 < 100)
+	{
+		// Bad alignment
+		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 
