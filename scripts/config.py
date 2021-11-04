@@ -242,11 +242,11 @@ class Config:
 
     def _set_cxx(self):
         self._set_compiler_linker_helper(
-            Config.KEY_CXX, 'g++', Config.get_supported_GCC())
+            Config.KEY_CXX, 'g++', self.get_supported_GCC())
 
     def _set_linker(self):
         self._set_compiler_linker_helper(
-            Config.KEY_LINKERFORPROGRAMS, 'g++', Config.get_supported_GCC())
+            Config.KEY_LINKERFORPROGRAMS, 'g++', self.get_supported_GCC())
 
     def _config_compiler(self):
         if self.configDict["DEBUG"] == "":
