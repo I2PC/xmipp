@@ -31,7 +31,7 @@
 void ProgTomoDetectMisalignmentTrajectory::readParams()
 {
 	fnVol = getParam("-i");
-	fnOut = getParam("--oroot");
+	fnOut = getParam("-o");
 	fnTiltAngles = getParam("--tlt");
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
@@ -51,8 +51,8 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
 	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coordinates.");
-	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to conisder that it belongs to a high contrast feature.");
-  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it.");
+	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
+  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
@@ -914,6 +914,56 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 
 // --------------------------- I/O functions ----------------------------
 
+void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
+{
+
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+
+	std::string alignmentReportPath;
+    alignmentReportPath = rawname + "/alingmentReport.xmd";
+
+	size_t lastindexInputTS = fnOut.find_last_of(":");
+	std::string rawnameTS = fnOut.substr(0, lastindex);
+	
+	MetaDataVec md;
+
+	FileName fn;
+
+	std::cout << "****************************************************" << globalAlignment << std::endl;
+
+	if(!globalAlignment)
+	{
+		size_t id;
+
+		for(size_t i = 0; i < localAlignment.size(); i++)
+		{
+			fn.compose(i + FIRST_IMAGE, rawnameTS);
+		
+			id = md.addObject();
+			md.setValue(MDL_IMAGE, fn, id);
+			md.setValue(MDL_ENABLED, -1, id);
+		}
+	}
+	// else
+	// {
+	// 	size_t id;
+
+	// 	for(size_t i = 0; i < localAlignment.size(); i++)
+	// 	{
+	// 		std::string rawnameTI = rawnameTS + 
+	// 		id = md.addObject();
+	// 		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
+	// 	}
+	// }
+
+	md.write(alignmentReportPath);
+	
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Alignment report saved at: " << alignmentReportPath << std::endl;
+	#endif
+}
+
 void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 {
 	MetaDataVec md;
@@ -1121,6 +1171,8 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	writeOutputCoordinates();
 	detectLandmarkChains();
 	detectMisalignedTiltImages();
+
+	writeOutputAlignmentReport();
 
 	// if(checkInputCoord)
 	// {

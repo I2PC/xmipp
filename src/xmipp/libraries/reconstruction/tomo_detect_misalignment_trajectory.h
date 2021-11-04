@@ -111,6 +111,8 @@ private:
 public:
 
     bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
+    void writeOutputAlignmentReport();
+
 
 
     // --------------------------- INFO functions ----------------------------
