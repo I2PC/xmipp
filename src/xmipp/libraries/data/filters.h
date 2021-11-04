@@ -763,17 +763,16 @@ double rms(const MultidimArray< T >& x,
  * k1 and k2 determines the harmonic coefficients to be computed.
  */
 void fourierBesselDecomposition(const MultidimArray< double >& img_in,
-                                MultidimArray< double >& m_out,
-                                double r1,
                                 double r2,
                                 int k1,
                                 int k2);
 
+
 /** Harmonic decomposition
  * @ingroup Filters
  */
-void harmonicDecomposition(const MultidimArray< double >& img_in,
-                           MultidimArray< double >& v_out);
+//void harmonicDecomposition(const MultidimArray< double >& img_in,
+//                           MultidimArray< double >& v_out);
 
 // Function needed by median filtering
 template <typename T>

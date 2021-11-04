@@ -2376,7 +2376,7 @@ void estimateGaussian2D(const MultidimArray<double> &I, double &a, double &b,
 
 /* Fourier-Bessel decomposition. ------------------------------------------- */
 void fourierBesselDecomposition(const MultidimArray<double> &img_in,
-                                MultidimArray<double> &m_out, double r1, double r2, int k1, int k2)
+                                double r2, int k1, int k2)
 {
     img_in.checkDimension(2);
 
@@ -2409,9 +2409,10 @@ void fourierBesselDecomposition(const MultidimArray<double> &img_in,
 }
 
 /* Harmonic decomposition. ------------------------------------------------- */
-void harmonicDecomposition(const MultidimArray<double> &img_in,
-                           MultidimArray<double> &v_out)
-{}
+//void harmonicDecomposition(const MultidimArray<double> &img_in,
+//                           MultidimArray<double> &v_out)
+//{}
+
 
 /* Shah energy ------------------------------------------------------------- */
 /* This function computes the current functional energy */

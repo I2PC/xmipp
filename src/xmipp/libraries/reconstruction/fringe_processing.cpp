@@ -668,7 +668,7 @@ void unwrapping(const MultidimArray<double> & wrappedPhase, MultidimArray<double
     }
 }
 
-void demodulate(MultidimArray<double> & im, double lambda, int size, int x, int y, int rmin, int rmax,
+void demodulate(MultidimArray<double> & im, double lambda, int size,  int x, int y, int rmin, int rmax,
                                   MultidimArray<double> & phase, MultidimArray<double> & mod, Matrix1D<double> & coeffs, int verbose)
 {
     //Initial Setup
