@@ -31,7 +31,7 @@
 void ProgTomoDetectMisalignmentTrajectory::readParams()
 {
 	fnVol = getParam("-i");
-	fnOut = getParam("-o");
+	fnOut = getParam("--oroot");
 	fnTiltAngles = getParam("--tlt");
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
@@ -63,6 +63,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 {
+	// Read tilt angles file
 	MetaDataVec inputTiltAnglesMd;
 	double tiltAngle;
 	size_t objId;
@@ -84,6 +85,10 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	#ifdef VERBOSE_OUTPUT
 	std::cout << "Input tilt angles read from: " << fnTiltAngles << std::endl;
 	#endif
+
+
+	// Initialize local alignment vector
+	localAlignment.resize(zSize, true);
 }
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries) //*** tiltImage*
@@ -387,7 +392,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
-	bool globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
+	globalAlignment = detectGlobalAlignmentPoisson(counterLinesOfLandmarkAppearance, chainIndexesY);
 
 	#ifdef DEBUG_CHAINS
 	std::cout << "chainIndexesY.size()=" << chainIndexesY.size() << std::endl;
@@ -763,6 +768,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 	{
 		if(lmOutRange[n] > (m + 3*sd))
 		{
+			localAlignment[n] = false;
 			std::cout << "MISALIGNMENT DETECTED IN IMAGE " << n << std::endl;
 		}
 	}

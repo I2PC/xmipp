@@ -104,6 +104,10 @@ private:
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
     double thrChainDistance = 15; // 2*samplingRate;       // Maximum distance of a detected landmark to a chain
 
+    /** Alignment report. True = aligned - False = misaligned */
+    bool globalAlignment;
+    std::vector<bool> localAlignment;
+
 public:
 
     bool detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY);
