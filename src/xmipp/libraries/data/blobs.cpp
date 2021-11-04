@@ -929,7 +929,7 @@ void blobs2voxels(const GridVolume &vol_blobs,
     {
         int min_distance = (int)ceil((2*(vol_blobs.grid(i)).relative_size ) / blob.radius ) + 1;
 
-        slices_status = new int[sizeof(int)*(int)(ZZ(vol_blobs.grid(i).highest)-ZZ(vol_blobs.grid(i).lowest)+1)];
+        slices_status = new int[(int)(ZZ(vol_blobs.grid(i).highest)-ZZ(vol_blobs.grid(i).lowest)+1)];
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -1109,8 +1109,7 @@ void ART_voxels2blobs_single_step(
     {
         int min_distance = (int)ceil((2*(vol_in.grid(i)).relative_size ) / blob.radius ) + 1;
 
-        slices_status = (int *)malloc(sizeof(int)*(int)(ZZ((&(vol_in.grid(i)))->highest)-ZZ((&(vol_in.grid(i)))->lowest)+1));
-        memset(slices_status,0,sizeof(int)*(int)(ZZ((&(vol_in.grid(i)))->highest)-ZZ((&(vol_in.grid(i)))->lowest)+1));
+        slices_status = new int[(int)(ZZ(vol_in.grid(i).highest)-ZZ(vol_in.grid(i).lowest)+1)];
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -1138,7 +1137,7 @@ void ART_voxels2blobs_single_step(
             pthread_join(*(th_ids+c),nullptr);
         }
 
-        free( slices_status );
+        delete[] slices_status;
         //        blobs2voxels_SimpleGrid(vol_in(i)(), vol_in.grid(i), blob, theo_vol, D,
         //                                50, corr_vol, mask_vol, FORWARD, eq_mode);
 #ifdef DEBUG
@@ -1240,8 +1239,7 @@ void ART_voxels2blobs_single_step(
     // Backprojection of correction volume ..................................
     for (size_t i = 0; i < vol_in.VolumesNo(); i++)
     {
-        slices_status = (int *)malloc(sizeof(int)*(int)(ZZ((&(vol_out->grid(i)))->highest)-ZZ((&(vol_out->grid(i)))->lowest)+1));
-        memset(slices_status,0,sizeof(int)*(int)(ZZ((&(vol_out->grid(i)))->highest)-ZZ((&(vol_out->grid(i)))->lowest)+1));
+        slices_status = new int[(int)(ZZ(vol_out->grid(i).highest)-ZZ(vol_out->grid(i).lowest)+1)];
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -1268,7 +1266,7 @@ void ART_voxels2blobs_single_step(
         {
             pthread_join(*(th_ids+c), nullptr);
         }
-        free( slices_status );
+        delete[] slices_status;
         //        blobs2voxels_SimpleGrid((*vol_out)(i)(), (*vol_out).grid(i), blob,
         //                                theo_vol, D, 50, corr_vol, mask_vol, BACKWARD, eq_mode);
 #ifdef DEBUG

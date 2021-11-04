@@ -407,15 +407,15 @@ void ProgReconsADMM::computeHtKH(MultidimArray<double> &kernelV)
 			E.getRow(0,r1);
 			E.getRow(1,r2);
 			double iStep=1.0/kernel.autocorrStep;
-			for (int k=(kernelV.zinit); k<=(kernelV.zinit + (int)kernelV.zdim - 1); ++k)
+			for (auto k=(kernelV.zinit); k<=(kernelV.zinit + (int)kernelV.zdim - 1); ++k)
 			{
 				double r1_z=k*ZZ(r1);
 				double r2_z=k*ZZ(r2);
-				for (int i=(kernelV.yinit); i<=(kernelV.yinit + (int)kernelV.ydim - 1); ++i)
+				for (auto i=(kernelV.yinit); i<=(kernelV.yinit + (int)kernelV.ydim - 1); ++i)
 				{
 					double r1_yz=i*YY(r1)+r1_z;
 					double r2_yz=i*YY(r2)+r2_z;
-					for (int j=(kernelV.xinit); j<=(kernelV.xinit + (int)kernelV.xdim - 1); ++j)
+					for (auto j=(kernelV.xinit); j<=(kernelV.xinit + (int)kernelV.xdim - 1); ++j)
 					{
 						double r1_xyz=j*XX(r1)+r1_yz;
 						double r2_xyz=j*XX(r2)+r2_yz;
