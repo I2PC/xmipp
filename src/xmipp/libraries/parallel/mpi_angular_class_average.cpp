@@ -517,7 +517,7 @@ void MpiProgAngularClassAverage::mpi_process(double * Def_3Dref_2Dref_JobNo)
         // Apply in-plane transformation
         img.getTransformationMatrix(A);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, img(), A, IS_INV, DONT_WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), A, xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP);
 
         MultidimArray<float> auxImg(img().nzyxdim);
         const MultidimArray<double> &mImg=img();
@@ -1045,7 +1045,7 @@ void MpiProgAngularClassAverage::mpi_produceSideInfo()
     Polar<double> P;
     Polar<std::complex<double> > fP;
 
-    produceSplineCoefficients(BSPLINE3, Maux, Iempty());
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3, Maux, Iempty());
     P.getPolarFromCartesianBSpline(Maux, Ri, Ro);
     P.calculateFftwPlans(global_plans);
     fourierTransformRings(P, fP, global_plans, false);
@@ -1528,7 +1528,7 @@ void MpiProgAngularClassAverage::getPolar(MultidimArray<double> &img,
     Polar<double> P;
 
     // Calculate FTs of polar rings and its stddev
-    produceSplineCoefficients(BSPLINE3, Maux, img);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3, Maux, img);
     P.getPolarFromCartesianBSpline(Maux, Ri, Ro, 3, xoff, yoff);
     fourierTransformRings(P, fP, global_plans, conjugated);
 }
@@ -1612,12 +1612,12 @@ void MpiProgAngularClassAverage::reAlignClass(Image<double> &avg1,
                     A.initIdentity();
                     A(0, 0) *= -1.;
                     A(0, 1) *= -1.;
-                    applyGeometry(LINEAR, Mimg, imgs[imgno](), A, IS_INV,
-                                  DONT_WRAP);
-                    selfRotate(BSPLINE3, Mimg, opt_psi, DONT_WRAP);
+                    applyGeometry(xmipp_transformation::LINEAR, Mimg, imgs[imgno](), A, xmipp_transformation::IS_INV,
+                                  xmipp_transformation::DONT_WRAP);
+                    selfRotate(xmipp_transformation::BSPLINE3, Mimg, opt_psi, xmipp_transformation::DONT_WRAP);
                 }
                 else
-                    rotate(BSPLINE3, Mimg, imgs[imgno](), opt_psi, DONT_WRAP);
+                    rotate(xmipp_transformation::BSPLINE3, Mimg, imgs[imgno](), opt_psi, xmipp_transformation::DONT_WRAP);
             }
 
             if (!do_discard)

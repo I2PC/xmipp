@@ -206,10 +206,10 @@ void ProgReconstructSignificant::alignImagesToGallery()
 					double corr;
 					if (! dontCheckMirrors)
 						corr=alignImagesConsideringMirrors(mGalleryProjection,transforms[nDir],
-								mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP);
+								mCurrentImageAligned,M,aux,aux2,aux3,xmipp_transformation::DONT_WRAP);
 					else
 						corr = alignImages(mGalleryProjection, mCurrentImageAligned,
-						                   M, DONT_WRAP);
+						                   M, xmipp_transformation::DONT_WRAP);
 
 //					double corr=alignImagesConsideringMirrors(mGalleryProjection,
 //							mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP);

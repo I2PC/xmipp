@@ -479,7 +479,7 @@ void ProgCTFEstimateFromPSD::generate_model_quadrant(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // Generate the CTF model
@@ -543,7 +543,7 @@ void ProgCTFEstimateFromPSD::generate_model_halfplane(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // The left part is the CTF model
