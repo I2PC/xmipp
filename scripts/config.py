@@ -529,12 +529,11 @@ class Config:
                         else:
                             p = 'g++'
                         if checkProgram(p, False):
-                            if p != '':
+                            if c != '':
                                 self.configDict["CXX_CUDA"] = p
                             else:
-                                print('else')
                                 gccVersion, gccFullVersion = self._get_gcc_version('g++')
-                                self.configDict["CXX_CUDA"] = 'g++-' + gccVersion
+                                self.configDict["CXX_CUDA"] = 'g++-' + str(gccVersion.split('.')[0])
                             break
 
                     if self.configDict["CXX_CUDA"]:
