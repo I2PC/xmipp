@@ -93,7 +93,7 @@ def getHdf5Name(libdirs):
     return "hdf5"
 
 ALL_LIBS = {'fftw3',
-    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3',
+    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3', 'libsvm',
     getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
@@ -203,7 +203,7 @@ PROG_DEPS = XMIPP_LIBS
 
 PROG_LIBS = XMIPP_LIBS + [
     getHdf5Name(env['EXTERNAL_LIBDIRS']),
-    'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f',
+    'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f', 'libsvm',
     'fftw3f_threads', PYTHON_LIB, 'pthread'
 ]
 TEST_LIBS = ['libgtest', 'libgtest_main']

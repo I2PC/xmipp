@@ -432,7 +432,6 @@ def compile_cuFFTAdvisor():
     os.chdir(currDir)
     return ok and runJob("cp " + advisorDir + "build/libcuFFTAdvisor.so" + " " + libDir)
 
-
 def compile_googletest():
     currDir = os.getcwd()
     buildDir = os.path.join("src", "googletest", "build")
@@ -443,6 +442,14 @@ def compile_googletest():
     os.chdir(currDir)
     return ok
 
+def compile_libsvm():
+    currDir = os.getcwd()
+    libsvmDir = os.path.join("src", "libsvm")
+    os.chdir(libsvmDir)
+    ok = runJob("make lib")
+    libDir = "src/xmipp/lib"
+    os.chdir(currDir)
+    return ok and runJob("cp " + libsvmDir + "/libsvm.so.2" + " " + libDir+"/libsvm.so")
 
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
@@ -466,6 +473,7 @@ def compileDependencies(Nproc):
         result = result and compile_cuFFTAdvisor()
     if buildConfig.is_true(Config.KEY_BUILD_TESTS):
         result = result and compile_googletest()
+    result = result and compile_libsvm()
     if not result:
         print(red("Cannot build dependencies"))
     return result
