@@ -534,7 +534,7 @@ class Config:
                             else:
                                 gccVersion, gccFullVersion = self._get_gcc_version('g++')
                                 self.configDict["CXX_CUDA"] = 'g++'
-                                print(yellow(gccVersion, 'found'))
+                                print(yellow('%s found' %gccVersion))
                             break
 
                     if self.configDict["CXX_CUDA"]:
