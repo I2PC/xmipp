@@ -562,7 +562,7 @@ void AProgMovieAlignmentCorrelation<T>::storeResults(
                 localAlignmentControlPoints.n()},
             id);
     // Safe to file
-    mdIref.write((FileName) "localAlignment@" + fnOut, MD_APPEND);
+    mdIref.write("localAlignment@" + fnOut, MD_APPEND);
 }
 
 template<typename T>
