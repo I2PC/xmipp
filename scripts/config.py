@@ -470,6 +470,8 @@ class Config:
 
     def _config_CUDA(self):
         self.configDict["CUDA"] = os.environ.get("CUDA", "")
+        if self.configDict["CUDA"]!="False" and self.configDict["CUDA"]!="True":
+            self.configDict["CUDA"]=""
         nvcc = 'nvcc'
         if self.configDict["CUDA"] == "":
             environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
