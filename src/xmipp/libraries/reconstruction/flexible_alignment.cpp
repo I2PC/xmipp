@@ -289,6 +289,7 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 	std::string line;
 	std::string atom_type;
 	int ttt = 0;
+	int kx, ky;
 
 	while (!fh_deformedPDB.eof()) {
 		ttt++;
@@ -318,9 +319,9 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 			ksi_v[2] = (double) ksi;
 			MatrixMultiply(R, ksi_v.data(), ro_ksi_v.data(), 4L, 4L, 1L);
 
-			for (int ky = 0; ky < Ywidth; ky++) {
+			for (ky = 0; ky < Ywidth; ky++) {
 				coord_img[1] = (double) ky - centre_Ywidth;
-				for (int kx = 0; kx < Xwidth; kx++) {
+				for (kx = 0; kx < Xwidth; kx++) {
 					coord_img[0] = (double) kx - centre_Xwidth;
 					MatrixMultiply(Tr, coord_img.data(), ro_coord_img.data(), 4L, 4L, 1L);
 
