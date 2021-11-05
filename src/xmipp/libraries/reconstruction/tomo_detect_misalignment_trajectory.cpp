@@ -50,7 +50,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  [-o <output=\"coordinates3D.xmd\">]       				: Output file containing the 3D coordinates.");
+	addParamsLine("  [-o <output=\"./coordinates3D.xmd\">]       			: Output file containing the 3D coordinates.");
 	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
@@ -933,7 +933,6 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 	FileName fn;
 	size_t id;
 
-	alignmentReportPath = "/home/fede/AA_detectMisali/misali/alignmentReport.xmd";
 
 	if(!globalAlignment)
 	{
