@@ -527,7 +527,6 @@ class Config:
                     candidates = self._get_compatible_GCC(nvccVersion)
                     for c in candidates:
                         if len(c) > 0:
-                            print('candidate: ', c)
                             p = 'g++-' + c
                         else:
                             p = 'g++'
@@ -535,8 +534,9 @@ class Config:
                             if p != '':
                                 self.configDict["CXX_CUDA"] = p
                             else:
-                                gcccVersion, gccFullVersion = self._get_gcc_version('g++')
-                                self.configDict["CXX_CUDA"] = 'g++-' + gcccVersion
+                                print('else')
+                                gccVersion, gccFullVersion = self._get_gcc_version('g++')
+                                self.configDict["CXX_CUDA"] = 'g++-' + gccVersion
                             break
 
                     if self.configDict["CXX_CUDA"]:
