@@ -88,7 +88,10 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 
 
 	// Initialize local alignment vector
-	localAlignment.resize(zSize, true);
+	localAlignment.resize(nSize, true);
+
+	// Update image dimensions depending thresholds (non-absolute values)
+	minimumDistance = 0.01*xSize;
 }
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries) //*** tiltImage*
@@ -927,35 +930,41 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 	std::string rawnameTS = fnOut.substr(0, lastindex);
 	
 	MetaDataVec md;
-
 	FileName fn;
+	size_t id;
 
-	std::cout << "****************************************************" << globalAlignment << std::endl;
+	alignmentReportPath = "/home/fede/AA_detectMisali/misali/alignmentReport.xmd";
 
 	if(!globalAlignment)
 	{
-		size_t id;
-
+		for(size_t i = 0; i < ySize; i++)
+		{
+			fn.compose(i + FIRST_IMAGE, rawnameTS);
+			id = md.addObject();
+			
+			md.setValue(MDL_ENABLED, -1, id);
+			md.setValue(MDL_IMAGE, fn, id);
+		}
+	}
+	else
+	{
 		for(size_t i = 0; i < localAlignment.size(); i++)
 		{
 			fn.compose(i + FIRST_IMAGE, rawnameTS);
-		
 			id = md.addObject();
+
+			if(localAlignment[i])
+			{
+				md.setValue(MDL_ENABLED, 1, id);
+			}
+			else
+			{
+				md.setValue(MDL_ENABLED, -1, id);
+			}
+
 			md.setValue(MDL_IMAGE, fn, id);
-			md.setValue(MDL_ENABLED, -1, id);
 		}
 	}
-	// else
-	// {
-	// 	size_t id;
-
-	// 	for(size_t i = 0; i < localAlignment.size(); i++)
-	// 	{
-	// 		std::string rawnameTI = rawnameTS + 
-	// 		id = md.addObject();
-	// 		md.setValue(MDL_XCOOR, (int)coordinates3D[i].x, id);
-	// 	}
-	// }
 
 	md.write(alignmentReportPath);
 	
@@ -1031,8 +1040,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 
 	size_t Xdim, Ydim;
 
-	generateSideInfo();
-	
 	MetaDataVec tiltseriesmd;
     ImageGeneric tiltSeriesImages;
 
@@ -1060,19 +1067,17 @@ void ProgTomoDetectMisalignmentTrajectory::run()
         }
     }
 
-	#ifdef DEBUG_DIM
-	size_t checkXdim, checkYdim, checkZdim, checkNdim;
-	tiltSeriesImages.getDimensions(checkXdim, checkYdim, checkZdim, checkNdim);
+	tiltSeriesImages.getDimensions(xSize, ySize, zSize, nSize);
 
+	//#ifdef DEBUG_DIM
 	std::cout << "Input tilt-series dimensions:" << std::endl;
-	std::cout << "x " << checkXdim << std::endl;
-	std::cout << "y " << checkYdim << std::endl;
-	std::cout << "z " << checkZdim << std::endl;
-	std::cout << "n " << checkNdim << std::endl;
-	#endif
+	std::cout << "x " << xSize << std::endl;
+	std::cout << "y " << ySize << std::endl;
+	std::cout << "z " << zSize << std::endl;
+	std::cout << "n " << nSize << std::endl;
+	//#endif
 
-	// Update non-absolute thresholds
-	minimumDistance = 0.01*xSize;
+	generateSideInfo();
 
 	FileName fnTSimg;
 	size_t objId, objId_ts;
@@ -1124,11 +1129,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImage() = filteredTiltSeries;
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
-
-	xSize = XSIZE(filteredTiltSeries);
-	ySize = YSIZE(filteredTiltSeries);
-	zSize = ZSIZE(filteredTiltSeries);
-	nSize = NSIZE(filteredTiltSeries);
 
 	if(xSize > ySize)
 	{
@@ -1269,9 +1269,6 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 
 	sort(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), std::greater<int>());
 
-	std::cout << "counterLinesOfLandmarkAppearance[0]" << counterLinesOfLandmarkAppearance[0] << std::endl;
-	std::cout << "counterLinesOfLandmarkAppearance[counterLinesOfLandmarkAppearance.size()-1]" << counterLinesOfLandmarkAppearance[counterLinesOfLandmarkAppearance.size()-1] << std::endl;
-
 	size_t top10Landmarks = 0;
 
 	for (size_t i = 0; i < 10; i++)
@@ -1280,17 +1277,18 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	}
 
 	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"  << std::endl;
-	std::cout << "totalLandmarks" << totalLandmarks << std::endl;
-	std::cout << "totalLandmarks/chainIndexesY.size()" << (float)totalLandmarks/(float)chainIndexesY.size() << std::endl;
-	std::cout << "top10Landmarks" << (float)top10Landmarks << std::endl;
-	std::cout << "coordinates3D.size()!" << coordinates3D.size() << std::endl;
+	std::cout << "totalLandmarks=" << totalLandmarks << std::endl;
+	std::cout << "totalLandmarks/chainIndexesY.size()=" << (float)totalLandmarks/(float)chainIndexesY.size() << std::endl;
+	std::cout << "top10Landmarks=" << (float)top10Landmarks << std::endl;
+	std::cout << "coordinates3D.size()!=" << coordinates3D.size() << std::endl;
 
-	std::cout << "totalLandmarks/(10*chainIndexesY.size())" << (float)totalLandmarks/(100*(float)chainIndexesY.size()) << std::endl;
-	std::cout << "top10Landmarks/10" << (float)top10Landmarks/10.0 << std::endl;
+	std::cout << "(float)totalLandmarks/((float)chainIndexesY.size())=" << (float)totalLandmarks/((float)chainIndexesY.size()) << std::endl;
+	std::cout << "top10Landmarks/10=" << (float)top10Landmarks/10.0 << std::endl;
 
+	// *** NORMALIZE THRESHOLDS WITH THE XSIZE OF THE TOMOGRAM
 
 	//*** make thresholds global and more accurate
-	if((float)totalLandmarks/(100*(float)chainIndexesY.size())<0.4 || top10Landmarks/10 < 100)
+	if(((float)totalLandmarks/((float)chainIndexesY.size()))<20 || ((float)top10Landmarks/10.0) < 50)
 	{
 		// Bad alignment
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
