@@ -530,7 +530,7 @@ class Config:
                         if c == '':
                             if checkProgram('g++', False):
                                 gccVersion, gccFullVersion = self._get_gcc_version('g++')
-                                self.configDict["CXX_CUDA"] = 'g++-' + gccVersion[0]
+                                self.configDict["CXX_CUDA"] = 'g++-' + str(gccVersion)[0]
                                 self.outOfUsrBinGCC = True
                                 break
                         else:
