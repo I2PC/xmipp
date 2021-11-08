@@ -520,34 +520,33 @@ class Config:
                 nvccVersion, nvccFullVersion = self._get_CUDA_version(
                     self.configDict["NVCC"])
                 if self.configDict["CXX_CUDA"] == '':
+                    self.outOfUsrBinGCC = False
                     print(
                         yellow('Checking for compatible GCC to be used with your CUDA'))
                     candidates = self._get_compatible_GCC(nvccVersion)
                     for c in candidates:
-                        if len(c) > 0:
-                            p = 'g++-' + c
-                        else:
-                            p = 'g++'
-                        if checkProgram(p, False):
-                            if c != '':
-                                self.configDict["CXX_CUDA"] = p
-                            else:
+                        if c == '':
+                            if checkProgram('g++', False):
                                 gccVersion, gccFullVersion = self._get_gcc_version('g++')
-                                self.configDict["CXX_CUDA"] = 'g++'
-                                print(yellow('%s found' %gccVersion))
-                            break
+                                self.configDict["CXX_CUDA"] = 'g++-' + gccVersion[0]
+                                self.outOfUsrBinGCC = True
+                                break
+                        else:
+                            if checkProgram('g++-' + c, False):
+                                self.configDict["CXX_CUDA"] = 'g++-' + c
+                                break
 
                     if self.configDict["CXX_CUDA"]:
-                        self.configDict["CXX_CUDA"] = askPath(
-                            self.configDict["CXX_CUDA"], self.ask)
-                    if not checkProgram(self.configDict["CXX_CUDA"], False):
-                        print(red("No valid compiler found. "
-                                  "Skipping CUDA compilation.\n"
-                                  "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "
-                                  "run again 'xmipp config'."))
-                        self.configDict["CUDA"] = "False"
-                        self.environment.update(CUDA=False, pos='replace')
-                        return
+                        vCUDA = askPath(self.configDict["CXX_CUDA"], self.ask)
+                        if vCUDA != self.configDict["CXX_CUDA"] and not checkProgram(vCUDA, False):#changes the path in the askPath()
+                            print(red("No valid compiler found. "
+                                      "Skipping CUDA compilation.\n"
+                                      "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "
+                                      "run again 'xmipp config'."))
+                            self.configDict["CUDA"] = "False"
+                            self.environment.update(CUDA=False, pos='replace')
+                            return
+
                 if nvccVersion >= 11:
                     self.configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                                         "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
