@@ -9,12 +9,13 @@ using namespace umpalumpa;
 
 template <typename T> auto createFilterPayload(T *ptrCPU, const Size &size) {
   auto ld = LogicalDescriptor(size);
-  auto pd = PhysicalDescriptor(
-      ld.GetPaddedSize().total * Sizeof(DataType::kFloat), DataType::kFloat);
+  auto bytes = ld.GetPaddedSize().total * Sizeof(DataType::kFloat);
   void *ptr = nullptr;
-  gpuErrchk(cudaMalloc(&ptr, pd.bytes));
-  gpuErrchk(cudaMemcpy(ptr, ptrCPU, pd.bytes, cudaMemcpyDefault));
-  return Payload(ptr, ld, pd, "Filter");
+  gpuErrchk(cudaMalloc(&ptr, bytes));
+  gpuErrchk(cudaMemcpy(ptr, ptrCPU, bytes, cudaMemcpyDefault));
+  auto pd =
+      PhysicalDescriptor(ptr, bytes, DataType::kFloat, ManagedBy::CUDA, 0);
+  return Payload(ld, pd, "Filter");
 }
 
 template <typename T>
@@ -40,10 +41,10 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
 
   // create input Payload
   auto ldInFull = FourierDescriptor(sizeInFull, PaddingDescriptor());
-  auto pdInFull = PhysicalDescriptor(ldInFull.GetPaddedSize().total *
-                                         Sizeof(DataType::kFloat),
-                                     DataType::kFloat);
-  auto inFull = Payload(inOutData, ldInFull, pdInFull, "Input data");
+  auto pdInFull = PhysicalDescriptor(
+      inOutData, ldInFull.GetPaddedSize().total * Sizeof(DataType::kFloat),
+      DataType::kFloat, ManagedBy::CUDA, 0);
+  auto inFull = Payload(ldInFull, pdInFull, "Input data");
 
   // create intermediary Payload
   auto ldBatch = FourierDescriptor(sizeInBatch, PaddingDescriptor(),
@@ -56,38 +57,41 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
          ldBatch.GetPaddedSize().y, ldBatch.GetPaddedSize().z,
          ldBatch.GetPaddedSize().n);
   printf("bytesBatch: %lu\n", bytesBatch);
-  auto pdBatch = PhysicalDescriptor(bytesBatch, DataType::kComplexFloat);
   void *batchPtr = nullptr;
-  gpuErrchk(cudaMalloc(&batchPtr, pdBatch.bytes));
-  auto outBatch = Payload(batchPtr, ldBatch, pdBatch, "Batch data");
+  gpuErrchk(cudaMalloc(&batchPtr, bytesBatch));
+  auto pdBatch = PhysicalDescriptor(
+      batchPtr, bytesBatch, DataType::kComplexFloat, ManagedBy::CUDA, 0);
+  auto outBatch = Payload(ldBatch, pdBatch, "Batch data");
 
   // create output Payload
   // FIXME make sure that we cannot overwrite the input data by the resulting
   // cropped data
-  auto ldOutFull = FourierDescriptor(
-      sizeOutFull, PaddingDescriptor(), FourierDescriptor::FourierSpaceDescriptor());
+  auto ldOutFull =
+      FourierDescriptor(sizeOutFull, PaddingDescriptor(),
+                        FourierDescriptor::FourierSpaceDescriptor());
   auto bytesOutFull =
       ldOutFull.GetPaddedSize().total * Sizeof(DataType::kComplexFloat);
-  auto pdOutFull = PhysicalDescriptor(bytesOutFull, DataType::kComplexFloat);
-  auto outFull = Payload(inOutData, ldOutFull, pdOutFull, "Output data");
+  auto pdOutFull = PhysicalDescriptor(
+      inOutData, bytesOutFull, DataType::kComplexFloat, ManagedBy::CUDA, 0);
+  auto outFull = Payload(ldOutFull, pdOutFull, "Output data");
 
   // create filter Payload
   auto filterP = createFilterPayload(filter, sizeFilter);
 
   // create transformers
   auto fftTransformer = fourier_transformation::FFTCUDA(0);
-  auto cropTransformer = fourier_processing::FP_CUDA(0);
+  auto cropTransformer = fourier_processing::FPCUDA(0);
 
   bool doInit = true;
   for (size_t offset = 0; offset < noOfImgs; offset += batchSize) {
     auto inFFT = fourier_transformation::AFFT::InputData(
         inFull.Subset(offset, batchSize));
     // trying to prefetch data to avoid page faults
-    gpuErrchk(
-        cudaMemPrefetchAsync(inFFT.GetData().ptr, inFFT.GetData().dataInfo.bytes, 0));
+    gpuErrchk(cudaMemPrefetchAsync(inFFT.GetData().GetPtr(),
+                                   inFFT.GetData().dataInfo.GetBytes(), 0));
 
     auto batch = inFFT.GetData().info.GetSize().n;
-    std::cout << "Processing images " << offset << "-" << batch << std::endl;
+    std::cout << "Processing images " << offset << "-" << offset + batch << std::endl;
     // start at 0 to reuse the temporal storage, set N according to what is left
     auto outFFT =
         fourier_transformation::AFFT::OutputData(outBatch.Subset(0, batch));
@@ -95,10 +99,10 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
                                                      std::move(filterP));
     auto outCrop =
         fourier_processing::AFP::OutputData(outFull.Subset(offset, batch));
-    // printf("inFFT: %p %p\n", inFFT.GetData().ptr, inOutData + (offset * inX *
-    // inY)); printf("outFFT: %p %p\n", outFFT.GetData().ptr, batchPtr);
-    // printf("inCrop: %p %p\n", inCrop.GetData().ptr, batchPtr);
-    // printf("outCrop: %p %p\n", outCrop.GetData().ptr,
+    // printf("inFFT: %p %p\n", inFFT.GetData().GetPtr(), inOutData + (offset *
+    // inX * inY)); printf("outFFT: %p %p\n", outFFT.GetData().GetPtr(),
+    // batchPtr); printf("inCrop: %p %p\n", inCrop.GetData().GetPtr(),
+    // batchPtr); printf("outCrop: %p %p\n", outCrop.GetData().GetPtr(),
     //        inOutData + (offset * (outX / 2 + 1) * outY));
 
     if (batchSize != batch) {
@@ -115,14 +119,15 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
       doInit = false;
     }
     std::cout << "Calling execute" << std::endl;
-    // cudaMemset(outFFT.GetData().ptr, 0, pdBatch.bytes);
+    // cudaMemset(outFFT.GetData().GetPtr(), 0, pdBatch.bytes);
     assert(fftTransformer.Execute(outFFT, inFFT));
 
     // auto &s = outFFT.GetData().info.GetSize();
     // auto *tmp = new std::complex<float>[s.total];
     // printf("%lu %lu %lu %lu -> %lu %lu\n", s.x, s.y, s.z, s.n, s.total,
     //        outFFT.GetData().dataInfo.bytes);
-    // cudaMemcpy(tmp, outFFT.GetData().ptr, outFFT.GetData().dataInfo.bytes * 2,
+    // cudaMemcpy(tmp, outFFT.GetData().GetPtr(),
+    // outFFT.GetData().dataInfo.bytes * 2,
     //            cudaMemcpyDeviceToHost);
     // Image<float> img(s.x, s.y, s.z, s.n);
     // for (size_t i = 0; i < s.total; ++i) {
@@ -132,7 +137,7 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
     // delete[] tmp;
     // gpuErrchk(cudaPeekAtLastError());
 
-    // cudaMemset(inFFT.GetData().ptr, 0, inFFT.GetData().dataInfo.bytes);
+    // cudaMemset(inFFT.GetData().GetPtr(), 0, inFFT.GetData().dataInfo.bytes);
 
     assert(cropTransformer.Execute(outCrop, inCrop));
     std::cout << "iteration done" << std::endl;
@@ -141,7 +146,7 @@ void performFFTAndScale(T *inOutData, int noOfImgs, int inX, int inY,
   fftTransformer.Synchronize();
   cropTransformer.Synchronize();
   gpuErrchk(cudaFree(batchPtr));
-  gpuErrchk(cudaFree(filterP.ptr));
+  gpuErrchk(cudaFree(filterP.GetPtr()));
 }
 
 template void performFFTAndScale<float>(float *inOutData, int noOfImgs, int inX,
