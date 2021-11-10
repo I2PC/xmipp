@@ -465,7 +465,6 @@ def compileDependencies(Nproc):
         result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))
-    buildConfig.ensure_version()
     return result
 
 
