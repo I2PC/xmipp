@@ -25,6 +25,7 @@
 
  #include "subtract_projection.h"
  #include "core/transformations.h"
+ #include "core/multidim_array.h"
  #include "core/xmipp_image_extension.h"
  #include "core/xmipp_image_generic.h"
  #include "core/xmipp_fft.h"
@@ -199,18 +200,23 @@
 		// padding proj
 		padp().initZeros(sizepad, sizepad);
 		MultidimArray <double> &mpad = padp();
-
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mpad){
-			if (i<=limit1 || i>=limit2){
-				DIRECT_A2D_ELEM(mpad,i,j)=0;
-			}
-			else if (j<=limit1 || j>=limit2){
-				DIRECT_A2D_ELEM(mpad,i,j)=0;
-			}
-			else{
-				DIRECT_A2D_ELEM(mpad,i,j)=DIRECT_A2D_ELEM(proj(),(i-limit1),(j-limit1));
-			}
-		}
+		mpad.setXmippOrigin();
+		int pad = XSIZE(mpad)/2;
+		std::cout << "starting: " << STARTINGY(mpad) << std::endl;
+		std::cout << "finishing: " << FINISHINGY(mpad) << std::endl;
+		std::cout << "PAD: " << pad << std::endl;
+	    mpad.window(mpad,STARTINGY(mpad)-pad, STARTINGX(mpad)-pad, FINISHINGY(mpad)+pad, FINISHINGX(mpad)+pad);
+//		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mpad){
+//			if (i<=limit1 || i>=limit2){
+//				DIRECT_A2D_ELEM(mpad,i,j)=0;
+//			}
+//			else if (j<=limit1 || j>=limit2){
+//				DIRECT_A2D_ELEM(mpad,i,j)=0;
+//			}
+//			else{
+//				DIRECT_A2D_ELEM(mpad,i,j)=DIRECT_A2D_ELEM(proj(),(i-limit1),(j-limit1));
+//			}
+//		}
 		padp.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
@@ -385,7 +391,7 @@
 		P.write(formatString("%s/PmaskVol.mrc", fnProj.c_str()));
 		row.getValue(MDL_IMAGE, fnPart);
 		Pctf = applyCTF(row, P, fnPart);
-		P.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
+		Pctf.write(formatString("%s/Pctf.mrc", fnProj.c_str()));
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanI.write(formatString("%s/Irad.txt", fnProj.c_str()));
 		radial_meanP = computeRadialAvg(Pctf, radial_meanP);
