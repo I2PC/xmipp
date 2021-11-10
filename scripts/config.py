@@ -365,20 +365,6 @@ class Config:
         return gccVersion, full_version
 
 
-    # def _get_gcc_version(self, gcc):
-    #     log = []
-    #     runJob(gcc + " -v", show_output=False,
-    #            show_command=False, log=log)
-    #     # find 'gcc version' line (last one)
-    #     # expected format: '...\n gcc version X.X.X (... X.X.X.X-X...)'
-    #     full_version_line = next(l for l in log if 'gcc version ' in l)
-    #     full_version = full_version_line.split(' ')[2]
-    #     tokens = full_version.split('.')
-    #     if len(tokens) < 2:
-    #         tokens.append('0')  # just in case when only one digit is returned
-    #     gccVersion = float(str(tokens[0] + '.' + tokens[1]))
-    #     return gccVersion, full_version
-
     def _ensure_GCC_GPP_version(self, compiler):
         if not checkProgram(compiler, True):
             sys.exit(-7)
