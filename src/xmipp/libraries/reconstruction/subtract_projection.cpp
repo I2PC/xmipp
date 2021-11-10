@@ -188,6 +188,7 @@
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj, FileName &fnpart) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
+		proj.write(formatString("%s/PalentrarenCTF.mrc", fnProj.c_str()));
 		hasCTF=true;
 		ctf.readFromMdRow(r);
 		ctf.produceSideInfo();
@@ -201,31 +202,21 @@
 		padp().initZeros(sizepad, sizepad);
 		MultidimArray <double> &mpad = padp();
 		mpad.setXmippOrigin();
-		int pad = XSIZE(mpad)/2;
-		std::cout << "starting: " << STARTINGY(mpad) << std::endl;
-		std::cout << "finishing: " << FINISHINGY(mpad) << std::endl;
-		std::cout << "PAD: " << pad << std::endl;
-	    mpad.window(mpad,STARTINGY(mpad)-pad, STARTINGX(mpad)-pad, FINISHINGY(mpad)+pad, FINISHINGX(mpad)+pad);
-//		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mpad){
-//			if (i<=limit1 || i>=limit2){
-//				DIRECT_A2D_ELEM(mpad,i,j)=0;
-//			}
-//			else if (j<=limit1 || j>=limit2){
-//				DIRECT_A2D_ELEM(mpad,i,j)=0;
-//			}
-//			else{
-//				DIRECT_A2D_ELEM(mpad,i,j)=DIRECT_A2D_ELEM(proj(),(i-limit1),(j-limit1));
-//			}
-//		}
+	    MultidimArray<double> &mproj = proj();
+	    mproj.setXmippOrigin();
+		int pad = XSIZE(mproj)/2;
+		proj.write(formatString("%s/PantesdePAD.mrc", fnProj.c_str()));
+		mproj.window(mpad,STARTINGY(mproj)-pad, STARTINGX(mproj)-pad, FINISHINGY(mproj)+pad, FINISHINGX(mproj)+pad);
 		padp.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
 		padp.write(formatString("%s/Ppadctf.mrc", fnProj.c_str()));
 		// crop padp
-		proj().initZeros();
-		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(proj()){
-			DIRECT_A2D_ELEM(proj(),i,j)=DIRECT_A2D_ELEM(mpad,i+limit1,j+limit1);
-		}
+		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
+//		proj().initZeros();
+//		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(proj()){
+//			DIRECT_A2D_ELEM(proj(),i,j)=DIRECT_A2D_ELEM(mproj,i+limit1,j+limit1);
+//		}
 		proj.write(formatString("%s/PctfCrop.mrc", fnProj.c_str()));
 	}
 	return proj;
