@@ -348,25 +348,36 @@ class Config:
         if self.configDict["OPENCV"] == "" or self.configDict["OPENCVSUPPORTSCUDA"] or self.configDict["OPENCV3"]:
             self._config_OpenCV()
 
-
-    def _get_gcc_version(self, gcc):
+    def _get_GCC_version(self, compiler):
         log = []
-        runJob(gcc + " -v", show_output=False,
+        runJob(compiler + " -dumpfullversion", show_output=False,
                show_command=False, log=log)
-        # find 'gcc version' line (last one)
-        # expected format: '...\n gcc version X.X.X (... X.X.X.X-X...)'
-        full_version_line = next(l for l in log if 'gcc version ' in l)
-        full_version = full_version_line.split(' ')[2]
+        full_version = log[0].strip()
         tokens = full_version.split('.')
         if len(tokens) < 2:
-            tokens.append('0')  # just in case when only one digit is returned
+            tokens.append('0')  # for version 5.0, only '5' is returned
         gccVersion = float(str(tokens[0] + '.' + tokens[1]))
         return gccVersion, full_version
+
+
+    # def _get_gcc_version(self, gcc):
+    #     log = []
+    #     runJob(gcc + " -v", show_output=False,
+    #            show_command=False, log=log)
+    #     # find 'gcc version' line (last one)
+    #     # expected format: '...\n gcc version X.X.X (... X.X.X.X-X...)'
+    #     full_version_line = next(l for l in log if 'gcc version ' in l)
+    #     full_version = full_version_line.split(' ')[2]
+    #     tokens = full_version.split('.')
+    #     if len(tokens) < 2:
+    #         tokens.append('0')  # just in case when only one digit is returned
+    #     gccVersion = float(str(tokens[0] + '.' + tokens[1]))
+    #     return gccVersion, full_version
 
     def _ensure_GCC_GPP_version(self, compiler):
         if not checkProgram(compiler, True):
             sys.exit(-7)
-        gccVersion, fullVersion = self._get_gcc_version(compiler)
+        gccVersion, fullVersion = self._get_GCC_version(compiler)
         print(green('Detected ' + compiler + " in version " +
                     fullVersion + '.'))
         if gccVersion < 6.0:
@@ -529,7 +540,7 @@ class Config:
                     for c in candidates:
                         if c == '':
                             if checkProgram('g++', False):
-                                gccVersion, gccFullVersion = self._get_gcc_version('g++')
+                                gccVersion, gccFullVersion = self._get_GCC_version('g++')
                                 self.configDict["CXX_CUDA"] = 'g++-' + str(gccVersion)[0]
                                 self.outOfUsrBinGCC = True
                                 break
