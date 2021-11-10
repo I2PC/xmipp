@@ -545,9 +545,9 @@ class Config:
                         if checkProgram('g++-' + c, False):
                             self.configDict["CXX_CUDA"] = 'g++-' + c
                             break
-                    if self.configDict["CXX_CUDA"] == '' and checkProgram('g++', False):
+                    if self.configDict["CXX_CUDA"] == '' and checkProgram('g++', False): #searching a g++ out of /usr/bin/...
                             print(yellow('gcc version: %s'% self._get_GCC_version('g++')[1]))
-                            self.configDict["CXX_CUDA"] = 'g++' #found a g++ out of /usr/bin/...
+                            self.configDict["CXX_CUDA"] = 'g++'
                     if self.configDict["CXX_CUDA"]:
                         vCUDA = askPath(self.configDict["CXX_CUDA"], self.ask)
                         if vCUDA != self.configDict["CXX_CUDA"] and not checkProgram(vCUDA, False):#changes the path in the askPath()
