@@ -885,12 +885,8 @@ class Config:
     def ensure_version(self):
         if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
             print(yellow("We did some changes in repository which may not be compatible with your current config file. "
-                      "Run './xmipp config' to generate a new config file. "
+                      "Run './xmipp config' to generate a new config file and compile Xmipp again. "
                       "We recommend you to create a backup before regenerating it (use --help for additional info)"))
-            if not askYesNo(yellow(
-                '\nDo you want to compile without generating a new config file [YES/no]'), default=True, actually_ask=self.ask):
-                exit(-1)
-
 
     def _get_version(self):
         """ If git not present means it is in production mode

@@ -445,7 +445,6 @@ def compile_googletest():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
-    buildConfig.ensure_version()
     if not compileDependencies(Nproc):
         return False
     return compileXmipp(Nproc)
@@ -466,18 +465,22 @@ def compileDependencies(Nproc):
         result = result and compile_googletest()
     if not result:
         print(red("Cannot build dependencies"))
+    buildConfig.ensure_version()
     return result
 
 
 def compileXmipp(Nproc):
-
     print("Compiling -------------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
+        buildConfig.ensure_version()
         return False
     if not compileModule(Nproc,"xmipp"):
+        buildConfig.ensure_version()
         return False
     if not compileModule(Nproc,"xmippViz"):
+        buildConfig.ensure_version()
         return False
+    buildConfig.ensure_version()
     return True
 
 def runTests(testNames):
