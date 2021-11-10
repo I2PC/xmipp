@@ -355,6 +355,7 @@ class Config:
         full_version = log[0].strip()
         tokens = full_version.split('.')
         if len(tokens) < 2:
+            log = []
             runJob(compiler + " -dumpfullversion", show_output=False,
                    show_command=False, log=log)
             full_version = log[0].strip()
@@ -539,12 +540,14 @@ class Config:
                 if self.configDict["CXX_CUDA"] == '':
                     print(
                         yellow('Checking for compatible GCC to be used with your CUDA'))
+                    print(yellow('gcc version: %s'% self._get_GCC_version('g++')[1]))
                     candidates = self._get_compatible_GCC(nvccVersion)
                     for c in candidates:
                         if checkProgram('g++-' + c, False):
                             self.configDict["CXX_CUDA"] = 'g++-' + c
                             break
                     if self.configDict["CXX_CUDA"] == '' and checkProgram('g++', False):
+                            print(yellow('gcc version: %s'% self._get_GCC_version('g++')[1]))
                             self.configDict["CXX_CUDA"] = 'g++' #found a g++ out of /usr/bin/...
                     if self.configDict["CXX_CUDA"]:
                         vCUDA = askPath(self.configDict["CXX_CUDA"], self.ask)
