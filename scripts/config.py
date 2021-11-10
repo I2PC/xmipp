@@ -350,12 +350,17 @@ class Config:
 
     def _get_GCC_version(self, compiler):
         log = []
-        runJob(compiler + " -dumpfullversion", show_output=False,
+        runJob(compiler + " -dumpversion", show_output=False,
                show_command=False, log=log)
         full_version = log[0].strip()
         tokens = full_version.split('.')
         if len(tokens) < 2:
-            tokens.append('0')  # for version 5.0, only '5' is returned
+            log = []
+            runJob(compiler + " -dumpfullversion", show_output=False,
+                   show_command=False, log=log)
+            full_version = log[0].strip()
+            tokens = full_version.split('.')
+
         gccVersion = float(str(tokens[0] + '.' + tokens[1]))
         return gccVersion, full_version
 
