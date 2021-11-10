@@ -130,7 +130,7 @@ T *BSplineGeoTransformer<T>::interpolate(const std::vector<float> &matrices) {
         for (int i = 0; i < 9; ++i) {
             m.mdata[i] = f[i];
         }
-        applyGeometry(LINEAR, out, in, m, true, DONT_WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, out, in, m, true, xmipp_transformation::DONT_WRAP);
     };
 
     for (size_t i = 0; i < n; ++i) {

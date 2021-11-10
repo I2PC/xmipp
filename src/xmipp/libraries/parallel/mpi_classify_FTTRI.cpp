@@ -589,7 +589,7 @@ int ProgClassifyFTTRI::findFarthest(const MultidimArray<double> &seed,
         if (FTTRI)
             d=fttri_distance(seed,candidate());
         else
-            d=alignImages(seed,candidate(),M,WRAP,aux,aux2,aux3);
+            d=alignImages(seed,candidate(),M,xmipp_transformation::WRAP,aux,aux2,aux3);
         if ((d>maxDistance && FTTRI) || (d<maxDistance && !FTTRI))
         {
             maxDistance=d;
@@ -676,8 +676,8 @@ void ProgClassifyFTTRI::splitLargeClasses(bool FTTRI)
                 {
                     candidate().setXmippOrigin();
                     candidateCopy=candidate();
-                    double d1=alignImages(mSeed1,candidate(),M,WRAP,aux,aux2,aux3);
-                    double d2=alignImages(mSeed2,candidateCopy,M,WRAP,aux,aux2,aux3);
+                    double d1=alignImages(mSeed1,candidate(),M,xmipp_transformation::WRAP,aux,aux2,aux3);
+                    double d2=alignImages(mSeed2,candidateCopy,M,xmipp_transformation::WRAP,aux,aux2,aux3);
                     if (d1>d2)
                         c1.memberIdx.push_back(trueIdx);
                     else
@@ -905,7 +905,7 @@ void ProgClassifyFTTRI::computeClassNeighbours(bool FTTRI)
                     centroid_i2p.aliasImageInStack(mCentroids,i2);
                     centroid_i2p.setXmippOrigin();
                     centroid_i2=centroid_i2p;
-                    A2D_ELEM(corr,i2,i1)=A2D_ELEM(corr,i1,i2)=alignImages(centroid_i1,centroid_i2,M,WRAP,aux,aux2,aux3);
+                    A2D_ELEM(corr,i2,i1)=A2D_ELEM(corr,i1,i2)=alignImages(centroid_i1,centroid_i2,M,xmipp_transformation::WRAP,aux,aux2,aux3);
                 }
             }
             if (node->isMaster())
@@ -986,7 +986,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
                 else
                 {
                     candidateCopy=candidate();
-                    bestD=alignImages(own_class,candidateCopy,M,WRAP,aux,aux2,aux3);
+                    bestD=alignImages(own_class,candidateCopy,M,xmipp_transformation::WRAP,aux,aux2,aux3);
                 }
                 VEC_ELEM(newAssignment,trueIdx)=i;
 
@@ -1003,7 +1003,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
                     else
                     {
                         candidateCopy=candidate();
-                        d=alignImages(neighbour,candidateCopy,M,WRAP,aux,aux2,aux3);
+                        d=alignImages(neighbour,candidateCopy,M,xmipp_transformation::WRAP,aux,aux2,aux3);
                     }
                     if ((d<bestD && FTTRI) || (d>bestD && !FTTRI))
                     {
@@ -1095,7 +1095,7 @@ void ProgClassifyFTTRI::writeResults(bool FTTRI)
                 mdIn.getValue(MDL_IMAGE,fnCandidate,imgsId[trueIdx]);
                 candidate.read(fnCandidate);
                 candidate().setXmippOrigin();
-                A1D_ELEM(distance,n)=1-alignImages(centroid,candidate(),M,WRAP,aux,aux2,aux3);
+                A1D_ELEM(distance,n)=1-alignImages(centroid,candidate(),M,xmipp_transformation::WRAP,aux,aux2,aux3);
             }
         }
         distance.indexSort(idx);

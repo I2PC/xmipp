@@ -102,9 +102,9 @@ void ProgTransformGeometry::readParams()
     wrap = ! checkParam("--dont_wrap");
     String degree = getParam("--interp");
     if (degree == "spline")
-        splineDegree = BSPLINE3;
+        splineDegree = xmipp_transformation::BSPLINE3;
     else if (degree == "linear")
-        splineDegree = LINEAR;
+        splineDegree = xmipp_transformation::LINEAR;
     flip = checkParam("--flip");
 
     /** In most cases output "-o" is a metadata with the new geometry keeping 
@@ -268,7 +268,7 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
         imgOut.setDatatype(img.getDatatype());
         imgOut().resize(1, zdimOut, ydimOut, xdimOut, false);
         imgOut().setXmippOrigin();
-        applyGeometry(splineDegree, imgOut(), img(), T, IS_NOT_INV, wrap, 0.);
+        applyGeometry(splineDegree, imgOut(), img(), T, xmipp_transformation::IS_NOT_INV, wrap, 0.);
         imgOut.write(fnImgOut);
         rowOut.resetGeo(false);
     }

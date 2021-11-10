@@ -869,7 +869,7 @@ void DocFile::get_image(int key, Image<double> &I, bool apply_geo)
         Matrix2D<double> A;
         I.getTransformationMatrix(A, true);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, I(), A, IS_INV, WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, I(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
     }
 }
 

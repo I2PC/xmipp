@@ -828,7 +828,7 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
             I.getDimensions(xdim, ydim, zdim, ndim);
             if (forceVolume && zdim==1 && ndim>1)
                I.setDimensions(xdim,ydim,ndim,1);
-            selfScaleToSize(LINEAR, I, xDim, yDim, zDim);
+            selfScaleToSize(xmipp_transformation::LINEAR, I, xDim, yDim, zDim);
             Py_RETURN_NONE;
         }
         catch (XmippError &xe)
@@ -1613,10 +1613,10 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     ImageBase * img;
     PyObject *only_apply_shifts = Py_False;
-    PyObject *wrap = (WRAP ? Py_True : Py_False);
+    PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
     img = self->image->image;
     bool boolOnly_apply_shifts = false;
-    bool boolWrap = WRAP;
+    bool boolWrap = xmipp_transformation::WRAP;
 
     try
     {
@@ -1650,7 +1650,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
             img->setShifts(shiftX,shiftY);
             img->setScale(scale);
             img->setFlip(flip);
-            img->selfApplyGeometry(LINEAR, boolWrap, boolOnly_apply_shifts);//wrap, onlyShifts
+            img->selfApplyGeometry(xmipp_transformation::LINEAR, boolWrap, boolOnly_apply_shifts);//wrap, onlyShifts
             Py_RETURN_NONE;
         }
         else
@@ -1676,10 +1676,10 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyObject *md = nullptr;
         PyObject *only_apply_shifts = Py_False;
-        PyObject *wrap = (WRAP ? Py_True : Py_False);
+        PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
-        bool boolWrap = WRAP;
+        bool boolWrap = xmipp_transformation::WRAP;
         int datamode = DATA;
         size_t select_img = ALL_IMAGES;
 
@@ -1794,10 +1794,10 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyObject *md = nullptr;
         PyObject *only_apply_shifts = Py_False;
-        PyObject *wrap = (WRAP ? Py_True : Py_False);
+        PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
-        bool boolWrap = WRAP;
+        bool boolWrap = xmipp_transformation::WRAP;
 
         if (PyArg_ParseTuple(args, "Ok|OO", &md, &objectId, &only_apply_shifts, &wrap))
         {
