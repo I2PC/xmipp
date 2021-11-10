@@ -540,7 +540,6 @@ class Config:
                 if self.configDict["CXX_CUDA"] == '':
                     print(
                         yellow('Checking for compatible GCC to be used with your CUDA'))
-                    print(yellow('gcc version: %s'% self._get_GCC_version('g++')[1]))
                     candidates = self._get_compatible_GCC(nvccVersion)
                     for c in candidates:
                         if checkProgram('g++-' + c, False):
