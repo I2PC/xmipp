@@ -355,7 +355,6 @@ class Config:
         full_version = log[0].strip()
         tokens = full_version.split('.')
         if len(tokens) < 2:
-            log = []
             runJob(compiler + " -dumpfullversion", show_output=False,
                    show_command=False, log=log)
             full_version = log[0].strip()
@@ -475,7 +474,7 @@ class Config:
              '7.5', '7.4', '7.3', '7.2', '7.1', '7',
              '6.5', '6.4', '6.3', '6.2', '6.1', '6',
              '5.5', '5.4', '5.3', '5.2', '5.1', '5',
-             '4.9', '4.8', '']
+             '4.9', '4.8']
         if 8.0 <= nvcc_version < 9.0:
             return v[v.index('5.3'):]
         elif 9.0 <= nvcc_version < 9.2:
@@ -538,22 +537,15 @@ class Config:
                 nvccVersion, nvccFullVersion = self._get_CUDA_version(
                     self.configDict["NVCC"])
                 if self.configDict["CXX_CUDA"] == '':
-                    self.outOfUsrBinGCC = False
                     print(
                         yellow('Checking for compatible GCC to be used with your CUDA'))
                     candidates = self._get_compatible_GCC(nvccVersion)
                     for c in candidates:
-                        if c == '':
-                            if checkProgram('g++', False):
-                                gccVersion, gccFullVersion = self._get_GCC_version('g++')
-                                self.configDict["CXX_CUDA"] = 'g++-' + str(gccVersion)[0]
-                                self.outOfUsrBinGCC = True
-                                break
-                        else:
-                            if checkProgram('g++-' + c, False):
-                                self.configDict["CXX_CUDA"] = 'g++-' + c
-                                break
-
+                        if checkProgram('g++-' + c, False):
+                            self.configDict["CXX_CUDA"] = 'g++-' + c
+                            break
+                    if self.configDict["CXX_CUDA"] == '' and checkProgram('g++', False):
+                            self.configDict["CXX_CUDA"] = 'g++' #found a g++ out of /usr/bin/...
                     if self.configDict["CXX_CUDA"]:
                         vCUDA = askPath(self.configDict["CXX_CUDA"], self.ask)
                         if vCUDA != self.configDict["CXX_CUDA"] and not checkProgram(vCUDA, False):#changes the path in the askPath()
