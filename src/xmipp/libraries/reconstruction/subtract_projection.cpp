@@ -188,7 +188,6 @@
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj, FileName &fnpart) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
-		proj.write(formatString("%s/PalentrarenCTF.mrc", fnProj.c_str()));
 		hasCTF=true;
 		ctf.readFromMdRow(r);
 		ctf.produceSideInfo();
@@ -198,26 +197,17 @@
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
-		// padding proj
-		padp().initZeros(sizepad, sizepad);
+		// padding
+		padp().initZeros(pad*2, pad*2);
 		MultidimArray <double> &mpad = padp();
 		mpad.setXmippOrigin();
 	    MultidimArray<double> &mproj = proj();
 	    mproj.setXmippOrigin();
-		int pad = XSIZE(mproj)/2;
-		proj.write(formatString("%s/PantesdePAD.mrc", fnProj.c_str()));
 		mproj.window(mpad,STARTINGY(mproj)-pad, STARTINGX(mproj)-pad, FINISHINGY(mproj)+pad, FINISHINGX(mproj)+pad);
-		padp.write(formatString("%s/Ppad.mrc", fnProj.c_str()));
 		FilterCTF.generateMask(mpad);
 		FilterCTF.applyMaskSpace(mpad);
-		padp.write(formatString("%s/Ppadctf.mrc", fnProj.c_str()));
-		// crop padp
+		// crop
 		mpad.window(mproj,STARTINGY(mproj), STARTINGX(mproj), FINISHINGY(mproj), FINISHINGX(mproj));
-//		proj().initZeros();
-//		FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(proj()){
-//			DIRECT_A2D_ELEM(proj(),i,j)=DIRECT_A2D_ELEM(mproj,i+limit1,j+limit1);
-//		}
-		proj.write(formatString("%s/PctfCrop.mrc", fnProj.c_str()));
 	}
 	return proj;
  }
@@ -355,9 +345,7 @@
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
 	// Sizes for padding
-	sizepad = XSIZE(V())*2;
-	limit1 = sizepad/4;
-	limit2 = sizepad*3/4;
+	pad = XSIZE(V())/2;
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);

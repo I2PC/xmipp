@@ -87,9 +87,7 @@
 	double Imin;
 	double Imax;
 	Image<double> padp;
-	int sizepad;
-	int limit1;
-	int limit2;
+	int pad;
 	Image<double> Pctf;
 	Image<double> Pmaskctf;
 
