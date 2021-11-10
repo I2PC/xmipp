@@ -58,7 +58,7 @@ void normalize_OldXmipp_decomposition(MultidimArray<double> &I, const MultidimAr
                                     stddevbg);
     I -= avgbg;
     I /= stddevbg;
-    if (mask != NULL)
+    if (mask != nullptr)
         I *= *mask;
     normalize_OldXmipp(I);
 }
@@ -313,7 +313,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     I.checkDimension(2);
 
     // Check if mask is NULL.
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	Npoints = I.xdim*I.ydim;
     }
@@ -325,7 +325,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
 
     // Fit a least squares plane through the background pixels
     I.setXmippOrigin();
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	least_squares_plane_fit_All_Points(I, pA, pB, pC);
     }
@@ -354,7 +354,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     // Subtract the plane from the image and compute stddev within mask
     double sum1 = 0;
     double sum2 = 0;
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
         double *ref;
         for (int i=STARTINGY(I); i<=FINISHINGY(I); i++)
@@ -834,7 +834,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
 
         // Instead of IS_INV for images use IS_NOT_INV for masks!
         I.getTransformationMatrix(A);
-        selfApplyGeometry(BSPLINE3, tmp, A, IS_NOT_INV, DONT_WRAP, outside);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3, tmp, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
         dAi(bg_mask,n)=(int)round(dAi(tmp,n));

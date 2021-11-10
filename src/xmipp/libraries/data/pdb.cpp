@@ -841,7 +841,7 @@ double Hlpf_fitness(double *p, void *prm)
     int imax=CEIL(Rmax/(globalM*globalT));
     MultidimArray<double> fhlpfCoarselySampled(2*imax+1);
     MultidimArray<double> splineCoeffsfhlpfFinelySampled;
-    produceSplineCoefficients(BSPLINE3,splineCoeffsfhlpfFinelySampled,fhlpfFinelySampled);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffsfhlpfFinelySampled,fhlpfFinelySampled);
     fhlpfCoarselySampled.setXmippOrigin();
     FOR_ALL_ELEMENTS_IN_ARRAY1D(fhlpfCoarselySampled)
     {
@@ -929,7 +929,7 @@ void optimizeHlpf(MultidimArray<double> &f, int M, double T, const std::string &
     Matrix1D<double> steps(3);
     steps.initConstant(1);
     powellOptimizer(globalHlpfPrm, 1, 3,
-                    &Hlpf_fitness, NULL, 0.05, fitness, iter, steps, false);
+                    &Hlpf_fitness, nullptr, 0.05, fitness, iter, steps, false);
     bestPrm=globalHlpfPrm;
     hlpf(f, M, T, "SincKaiser", filter, bestPrm(0), bestPrm(1), bestPrm(2));
 }
@@ -1057,7 +1057,7 @@ void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
 
     // Atomic profile
     atomRadialProfile(M, highTs, atom, profile);
-    produceSplineCoefficients(BSPLINE3,splineCoeffs,profile);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffs,profile);
     volumeProfileCoefficients.push_back(splineCoeffs);
 
     // Radius
@@ -1067,7 +1067,7 @@ void AtomInterpolator::addAtom(const std::string &atom, bool computeProjection)
     if (computeProjection)
     {
         atomProjectionRadialProfile(M, splineCoeffs, profile);
-        produceSplineCoefficients(BSPLINE3,splineCoeffs,profile);
+        produceSplineCoefficients(xmipp_transformation::BSPLINE3,splineCoeffs,profile);
         projectionProfileCoefficients.push_back(splineCoeffs);
     }
 }

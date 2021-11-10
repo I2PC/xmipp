@@ -142,7 +142,7 @@ protected:
 
         image().setXmippOrigin();
 
-        double rot, tilt, psi;
+        double rot = 0, tilt = 0, psi = 0;
         if (show_angles)
             image.getEulerAngles(rot,tilt,psi);
 

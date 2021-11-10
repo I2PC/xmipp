@@ -1223,11 +1223,11 @@ void Mask::defineParams(XmippProgram * program, int allowed_data_types,
     char advanced=' ';
     if (moreOptions)
     	advanced='+';
-    if(prefix == NULL)
+    if(prefix == nullptr)
         sprintf(tempLine, "  [--mask%c <mask_type=circular>] ",advanced);
     else
         sprintf(tempLine,"%s --mask%c <mask_type=circular> ", prefix,advanced);
-    if (comment != NULL)
+    if (comment != nullptr)
         sprintf(tempLine2, "%s : %s", tempLine, comment);
     else
     	strcpy(tempLine2,tempLine);
@@ -1703,7 +1703,7 @@ void apply_geo_binary_2D_mask(MultidimArray<int> &mask,
     MultidimArray<double> tmp2;
     tmp2 = tmp;
     // Instead of IS_INV for images use IS_NOT_INV for masks!
-    applyGeometry(1, tmp, tmp2, A, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, tmp, tmp2, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
     // The type cast gives strange results here, using round instead
     //typeCast(tmp, mask);
     FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(mask)
@@ -1720,7 +1720,7 @@ void apply_geo_cont_2D_mask(MultidimArray<double> &mask,
     double outside = DIRECT_A2D_ELEM(mask, 0, 0);
     MultidimArray<double> tmp = mask;
     // Instead of IS_INV for images use IS_NOT_INV for masks!
-    applyGeometry(1, tmp, mask, A, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, tmp, mask, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 }
 
 int count_with_mask(const MultidimArray<int> &mask,
@@ -1759,7 +1759,7 @@ void rangeAdjust_within_mask(const MultidimArray<double> *mask,
     b.initZeros();
     SPEED_UP_tempsInt;
     // Compute Least squares solution
-    if (mask == NULL)
+    if (mask == nullptr)
     {
         FOR_ALL_ELEMENTS_IN_COMMON_IN_ARRAY3D(m1, m2)
         {

@@ -67,7 +67,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
     //    preIterations(vol_basis);
 
     // Reconstruction results ...............................................
-    double          mean_error;
+    double          mean_error = 0.0;
     double          global_mean_error,global_mean_error_1stblock;
 
     // Initialize residual image vector for wlsART ..........................
@@ -530,7 +530,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
             {
                 artPrm.basis.changeToVoxels(vol_basis, &(vol_voxels()),
                                             Zoutput_volume_size, Youtput_volume_size, Xoutput_volume_size);
-                selfScaleToSize(BSPLINE3,vol_voxels(),
+                selfScaleToSize(xmipp_transformation::BSPLINE3,vol_voxels(),
                                 (size_t)NEXT_POWER_OF_2(XSIZE(vol_voxels())),
                                 (size_t)NEXT_POWER_OF_2(YSIZE(vol_voxels())),
                                 (size_t)NEXT_POWER_OF_2(ZSIZE(vol_voxels())));
@@ -548,7 +548,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
                 std::cout << "Threshold=" << threshold1 << std::endl;
                 vol_wavelets().threshold("abs_below", threshold1, 0.0);
                 IDWT(vol_wavelets(),vol_voxels());
-                selfScaleToSize(BSPLINE3,vol_voxels(),
+                selfScaleToSize(xmipp_transformation::BSPLINE3,vol_voxels(),
                                 Xoutput_volume_size,
                                 Youtput_volume_size,
                                 Zoutput_volume_size);

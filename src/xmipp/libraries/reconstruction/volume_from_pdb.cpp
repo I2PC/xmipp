@@ -438,13 +438,13 @@ void ProgPdbConverter::createProteinAtLowSamplingRate()
 
     // Use Bsplines pyramid if possible
     int levels = FLOOR(log10((double)M) / log10(2.0) + XMIPP_EQUAL_ACCURACY);
-    pyramidReduce(BSPLINE3, Vlow(), Vhigh(), levels);
+    pyramidReduce(xmipp_transformation::BSPLINE3, Vlow(), Vhigh(), levels);
     current_Ts *= pow(2.0, levels);
     Vhigh.clear();
 
     // Now scale using Bsplines
     int new_output_dim = CEIL(XSIZE(Vlow()) * current_Ts / Ts);
-    scaleToSize(BSPLINE3, Vhigh(), Vlow(),
+    scaleToSize(xmipp_transformation::BSPLINE3, Vhigh(), Vlow(),
                 new_output_dim, new_output_dim, new_output_dim);
     Vlow() = Vhigh();
     Vlow().setXmippOrigin();

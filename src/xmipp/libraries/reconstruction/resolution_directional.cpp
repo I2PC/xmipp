@@ -345,8 +345,7 @@ void ProgResDir::generateGridProjectionMatching(Matrix2D<double> &angles)
 
 
 void ProgResDir::amplitudeMonogenicSignal3D_fast(const MultidimArray< std::complex<double> > &myfftV,
-		double freq, double freqH, double freqL, MultidimArray<double> &amplitude, int count, int dir, FileName fnDebug,
-		double rot, double tilt)
+		double freq, double freqH, double freqL, MultidimArray<double> &amplitude, int count, int dir, FileName fnDebug)
 {
 	fftVRiesz.initZeros(myfftV);
 //	MultidimArray<double> coneVol;
@@ -717,8 +716,7 @@ void ProgResDir::resolution2eval_(int &fourier_idx, double min_step,
 }
 
 
-void ProgResDir::removeOutliers(Matrix2D<double> &anglesMat,
-		Matrix2D<double> &resolutionMat)
+void ProgResDir::removeOutliers(Matrix2D<double> &resolutionMat)
 {
 	std::cout << "Removing outliers..." << std::endl;
 
@@ -827,8 +825,7 @@ void ProgResDir::removeOutliers(Matrix2D<double> &anglesMat,
 
 
 
-void ProgResDir::ellipsoidFitting(Matrix2D<double> &anglesMat,
-									Matrix2D<double> &resolutionMat,
+void ProgResDir::ellipsoidFitting(Matrix2D<double> &resolutionMat,
 									Matrix2D<double> &axis)
 {
 
@@ -1210,7 +1207,7 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 	int xrows = angles.mdimx;
 	int idx = 0;
 
-	double count_radial, count_azimuthal;
+	double count_radial = 0.0, count_azimuthal = 0.0;
 
 	Matrix1D<int> PrefferredDirHist, resolutionMeanVector;
 	PrefferredDirHist.initZeros(xrows);
@@ -1224,8 +1221,6 @@ void ProgResDir::radialAzimuthalResolution(Matrix2D<double> &resolutionMat,
 		if (A3D_ELEM(pmask,k,i,j) > 0 )
 		{
 			iu = 1/sqrt(i*i + j*j + k*k);
-			count_radial = 0;
-			count_azimuthal = 0;
 			std::vector<double> ResList;
 
 			double lastRes = 100; //A non-sense value
@@ -1544,7 +1539,8 @@ void ProgResDir::run()
 
 	std::cout << "Analyzing directions " << std::endl;
 
-	double w, wH;
+	double w = 0.0;
+	double wH = 0.0;
 	int volsize = ZSIZE(VRiesz);
 
 	//Checking with MonoRes at 50A;
@@ -1640,7 +1636,7 @@ void ProgResDir::run()
 
 			fnDebug = "Signal";
 
-			amplitudeMonogenicSignal3D_fast(conefilter, freq, freqH, freqL, amplitudeMS, iter, dir, fnDebug, rot, tilt);
+			amplitudeMonogenicSignal3D_fast(conefilter, freq, freqH, freqL, amplitudeMS, iter, dir, fnDebug);
 
 			double sumS=0, sumS2=0, sumN=0, sumN2=0, NN = 0, NS = 0;
 			noiseValues.clear();
@@ -1848,7 +1844,7 @@ void ProgResDir::run()
 	int maskPos = 0;
 
 	//Remove outliers
-	removeOutliers(trigProducts, resolutionMatrix);
+	removeOutliers(resolutionMatrix);
 
 	MultidimArray<double> radial, azimuthal, lowestResolution, highestResolution, doavol1, doavol2;
 	MetaDataVec prefDir;

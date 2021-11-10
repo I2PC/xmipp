@@ -729,91 +729,32 @@ void ProgRecFourierAccel::processProjection(
 	normal = getNormal(u, v);
 
 	// prepare traversing
-	int minY, minX, minZ;
-	int maxY, maxX, maxZ;
+	int minY, minZ;
+	int maxY, maxZ;
 	minZ = floor(AABB[0].z);
 	minY = floor(AABB[0].y);
-	minX = floor(AABB[0].x);
 	maxZ = ceil(AABB[1].z);
 	maxY = ceil(AABB[1].y);
-	maxX = ceil(AABB[1].x);
-	// iterate along the longest axes, because it has the shortest projection to traverse plane
-	int nX, nY, nZ;
-	nX = std::abs(nX);
-	nY = std::abs(nY);
-	nZ = std::abs(nZ);
 
-	if (nZ >= nX && nZ >= nY) { // iterate XY plane
+	for(int z = minZ; z <= maxZ; z++) {
 		for(int y = minY; y <= maxY; y++) {
-			for(int x = minX; x <= maxX; x++) {
-				if (useFast) {
-					float hitZ;
-					if (getZ(x, y, hitZ, u, v, *cuboid)) {
-						int z = (int)(hitZ + 0.5f); // rounding
-						processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
-					}
-				} else {
-					float z1, z2;
-					bool hit1 = getZ(x, y, z1, u, v, *cuboid); // lower plane
-					bool hit2 = getZ(x, y, z2, u, v, *(cuboid + 4)); // upper plane
-					if (hit1 || hit2) {
-						z1 = clamp(z1, 0, maxVolumeIndexYZ);
-						z2 = clamp(z2, 0, maxVolumeIndexYZ);
-						float lower = std::min(z1, z2);
-						float upper = std::max(z1, z2);
-						for (int z = std::floor(lower); z <= std::ceil(upper); z++) {
-							processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
-						}
-					}
+			if (useFast) {
+				float hitX;
+				if (getX(hitX, y, z, u, v, *cuboid)) {
+					int x = (int)(hitX + 0.5f); // rounding
+					processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
 				}
-			}
-		}
-	} else if (nY >= nX && nY >= nZ) { // iterate XZ plane
-		for(int z = minZ; z <= maxZ; z++) {
-			for(int x = minX; x <= maxX; x++) {
-				if (useFast) {
-					float hitY;
-					if (getY(x, hitY, z, u, v, *cuboid)) {
-						int y = (int)(hitY + 0.5f); // rounding
-						processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
-					}
-				} else {
-					float y1, y2;
-					bool hit1 = getY(x, y1, z, u, v, *cuboid); // lower plane
-					bool hit2 = getY(x, y2, z, u, v, *(cuboid + 4)); // upper plane
-					if (hit1 || hit2) {
-						y1 = clamp(y1, 0, maxVolumeIndexYZ);
-						y2 = clamp(y2, 0, maxVolumeIndexYZ);
-						float lower = std::min(y1, y2);
-						float upper = std::max(y1, y2);
-						for (int y = std::floor(lower); y <= std::ceil(upper); y++) {
-							processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
-						}
-					}
-				}
-			}
-		}
-	} else if(nX >= nY  && nX >= nZ) { // iterate YZ plane
-		for(int z = minZ; z <= maxZ; z++) {
-			for(int y = minY; y <= maxY; y++) {
-				if (useFast) {
-					float hitX;
-					if (getX(hitX, y, z, u, v, *cuboid)) {
-						int x = (int)(hitX + 0.5f); // rounding
-						processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
-					}
-				} else {
-					float x1, x2;
-					bool hit1 = getX(x1, y, z, u, v, *cuboid); // lower plane
-					bool hit2 = getX(x2, y, z, u, v, *(cuboid + 4)); // upper plane
-					if (hit1 || hit2) {
-						x1 = clamp(x1, 0, maxVolumeIndexX);
-						x2 = clamp(x2, 0, maxVolumeIndexX);
-						float lower = std::min(x1, x2);
-						float upper = std::max(x1, x2);
-						for (int x = std::floor(lower); x <= std::ceil(upper); x++) {
-							processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
-						}
+			} else {
+				float x1, x2;
+				bool hit1 = getX(x1, y, z, u, v, *cuboid); // lower plane
+				bool hit2 = getX(x2, y, z, u, v, *(cuboid + 4)); // upper plane
+				if (hit1 || hit2) {
+					x1 = clamp(x1, 0, maxVolumeIndexX);
+					x2 = clamp(x2, 0, maxVolumeIndexX);
+					float lower = std::min(x1, x2);
+					float upper = std::max(x1, x2);
+					for (int x = std::floor(lower); x <= std::ceil(upper); x++) {
+						processVoxelBlob(x, y, z, transformInv, maxDistanceSqr, projectionData);
 					}
 				}
 			}

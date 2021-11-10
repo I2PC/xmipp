@@ -520,7 +520,7 @@ void DocFile::get_selfile(MetaData& sel)
     go_beginning();
 
     if ((*current_line).Is_comment())
-        if (strstr(((*current_line).get_text()).c_str(), "Headerinfo") == NULL)
+        if (strstr(((*current_line).get_text()).c_str(), "Headerinfo") == nullptr)
             REPORT_ERROR(ERR_DOCFILE,
                          "DocFile::get_selfile: Docfile is of non-NewXmipp type!");
 
@@ -529,7 +529,7 @@ void DocFile::get_selfile(MetaData& sel)
     FileName img;
     while (!eof())
     {
-        if (strstr(((*current_line).get_text()).c_str(), " ; ") != NULL)
+        if (strstr(((*current_line).get_text()).c_str(), " ; ") != nullptr)
         {
             img = (*current_line).get_text();
             sel.setValue(MDL_IMAGE,img.removeSubstring(" ; "), sel.addObject());
@@ -561,7 +561,7 @@ int DocFile::getColNumberFromHeader(const char * pattern)
     if ((*current_line).Is_comment())
     {
         header = (*current_line).get_text();
-        if (strstr(header.c_str(), "Headerinfo") == NULL)
+        if (strstr(header.c_str(), "Headerinfo") == nullptr)
             REPORT_ERROR(ERR_DOCFILE,"DocFile:: docfile is of non-NewXmipp type!");
         else
         {
@@ -569,7 +569,7 @@ int DocFile::getColNumberFromHeader(const char * pattern)
             tokenize(header,tokens," \t()");
             for (size_t i = 0; i < tokens.size(); i++)
             {
-                if (strstr(tokens[i].c_str(), pattern) != NULL)
+                if (strstr(tokens[i].c_str(), pattern) != nullptr)
                 {
                     return textToInteger(tokens[i+1]);
                 }
@@ -869,7 +869,7 @@ void DocFile::get_image(int key, Image<double> &I, bool apply_geo)
         Matrix2D<double> A;
         I.getTransformationMatrix(A, true);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, I(), A, IS_INV, WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, I(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
     }
 }
 
@@ -1491,7 +1491,7 @@ void get_subset_docfile(DocFile& DFin, MetaData& SF, DocFile& DFout)
     DL = DFin.get_current_line();
     if (DL.Is_comment())
         fn_tmp = DL.get_text();
-    if (strstr(fn_tmp.c_str(), "Headerinfo") == NULL)
+    if (strstr(fn_tmp.c_str(), "Headerinfo") == nullptr)
         REPORT_ERROR(ERR_DOCFILE,"Input docfile is not of NewXmipp-style");
     else
         // append the same header to DFout
