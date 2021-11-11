@@ -471,13 +471,10 @@ def compileDependencies(Nproc):
 def compileXmipp(Nproc):
     print("Compiling -------------------------------------------")
     if not compileModule(Nproc,"xmippCore"):
-        buildConfig.ensure_version()
         return False
     if not compileModule(Nproc,"xmipp"):
-        buildConfig.ensure_version()
         return False
     if not compileModule(Nproc,"xmippViz"):
-        buildConfig.ensure_version()
         return False
     buildConfig.ensure_version()
     return True
