@@ -475,9 +475,14 @@ class Config:
         return []  # not supported
 
     def _config_CUDA(self):
+        strPrintNoGCCValid = "No valid compiler found. "\
+                             "Skipping CUDA compilation.\n"\
+                             "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "\
+                             "run again 'xmipp config'."
         self.configDict["CUDA"] = os.environ.get("CUDA", "")
-        if self.configDict["CUDA"]!="False" and self.configDict["CUDA"]!="True":
-            self.configDict["CUDA"]=""
+        self.configDict["CXX_CUDA"] = os.environ.get("CXX_CUDA", "")
+        if self.configDict["CUDA"] != "False" and self.configDict["CUDA"] != "True":
+            self.configDict["CUDA"] = ""
         nvcc = 'nvcc'
         if self.configDict["CUDA"] == "":
             environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
@@ -502,7 +507,6 @@ class Config:
                     print(
                         yellow("CUDA not found. Continuing only with CPU integration."))
                     self.configDict["CUDA"] = "False"
-        self.environment.update(CUDA=self.configDict["CUDA"] == "True")
         if self.configDict["CUDA"] == "True":
             if self.configDict["NVCC"] == "":
                 if checkProgram(nvcc):
@@ -523,28 +527,37 @@ class Config:
                 currentCxx = self.get(Config.KEY_CXX).split()[-1]
                 nvccVersion, nvccFullVersion = self._get_CUDA_version(
                     self.configDict["NVCC"])
+                candidates = self._get_compatible_GCC(nvccVersion)
                 if self.configDict["CXX_CUDA"] == '':
                     print(
                         yellow('Checking for compatible GCC to be used with your CUDA'))
-                    candidates = self._get_compatible_GCC(nvccVersion)
                     for c in candidates:
                         if checkProgram('g++-' + c, False):
                             self.configDict["CXX_CUDA"] = 'g++-' + c
                             break
                     if self.configDict["CXX_CUDA"] == '' and checkProgram('g++', False): #searching a g++ out of /usr/bin/...
+                        if str(self._get_GCC_version('g++')[0]) in candidates:
                             print(yellow('gcc version: %s'% self._get_GCC_version('g++')[1]))
                             self.configDict["CXX_CUDA"] = 'g++'
-                    if self.configDict["CXX_CUDA"]:
-                        vCUDA = askPath(self.configDict["CXX_CUDA"], self.ask)
-                        if vCUDA != self.configDict["CXX_CUDA"] and not checkProgram(vCUDA, False):#changes the path in the askPath()
-                            print(red("No valid compiler found. "
-                                      "Skipping CUDA compilation.\n"
-                                      "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "
-                                      "run again 'xmipp config'."))
+                    vCUDA = askPath(self.configDict["CXX_CUDA"], self.ask)
+                    if checkProgram(vCUDA, False):
+                        if str(self._get_GCC_version(vCUDA)[0]) in candidates:
+                            self.configDict["CXX_CUDA"] = vCUDA
+                        else:
                             self.configDict["CUDA"] = "False"
                             self.environment.update(CUDA=False, pos='replace')
+                            print(red(strPrintNoGCCValid))
                             return
-
+                    else:
+                        self.configDict["CUDA"] = "False"
+                        self.environment.update(CUDA=False, pos='replace')
+                        print(red(strPrintNoGCCValid))
+                        return
+                elif not str(self._get_GCC_version(self.configDict["CXX_CUDA"])[0]) in candidates:
+                        self.configDict["CUDA"] = "False"
+                        self.environment.update(CUDA=False, pos='replace')
+                        print(red(strPrintNoGCCValid))
+                        return
                 if nvccVersion >= 11:
                     self.configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
                                                         "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
