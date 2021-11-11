@@ -270,7 +270,7 @@ private:
         auto refWrapper = convert(ref, dims);
         refWrapper.setXmippOrigin();
 
-        corr = alignImages(refWrapper, I, M, DONT_WRAP);
+        corr = alignImages(refWrapper, I, M, xmipp_transformation::DONT_WRAP);
         return M;
     }
 

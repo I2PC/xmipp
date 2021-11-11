@@ -163,7 +163,7 @@ public:
     double computeFitness(Matrix1D<double> &trial) const;
 
     /** Update the best fitness and the corresponding best trial*/
-    bool updateBestFit(double fitness, int dim);
+    bool updateBestFit(double fitness);
 
     /** Create the processing working files.
      * The working files are:
@@ -190,7 +190,7 @@ class ObjFunc_nma_alignment_vol: public UnconstrainedObjectiveFunction
   public:
     ObjFunc_nma_alignment_vol(int _t, int _n=0);
     ~ObjFunc_nma_alignment_vol(){};
-    double eval(Vector v, int *nerror=NULL);
+    double eval(Vector v, int *nerror=nullptr);
 };
 
 #endif

@@ -206,10 +206,10 @@ void ProgReconstructSignificant::alignImagesToGallery()
 					double corr;
 					if (! dontCheckMirrors)
 						corr=alignImagesConsideringMirrors(mGalleryProjection,transforms[nDir],
-								mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP);
+								mCurrentImageAligned,M,aux,aux2,aux3,xmipp_transformation::DONT_WRAP);
 					else
 						corr = alignImages(mGalleryProjection, mCurrentImageAligned,
-						                   M, DONT_WRAP);
+						                   M, xmipp_transformation::DONT_WRAP);
 
 //					double corr=alignImagesConsideringMirrors(mGalleryProjection,
 //							mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP);
@@ -684,7 +684,7 @@ void ProgReconstructSignificant::generateProjections()
 
 		// Calculate transforms of this gallery
 		size_t kmax=NSIZE(gallery[n]());
-		if (galleryTransforms[n]==NULL)
+		if (galleryTransforms[n]==nullptr)
 		{
 			delete galleryTransforms[n];
 			galleryTransforms[n]=new AlignmentTransforms[kmax];
@@ -860,7 +860,7 @@ void ProgReconstructSignificant::produceSideinfo()
 			mdIn.write(fnAngles);
 		}
 		gallery.push_back(galleryDummy);
-		galleryTransforms.push_back(NULL);
+		galleryTransforms.push_back(nullptr);
 		mdReconstructionPartial.push_back(mdPartial);
 		mdReconstructionProjectionMatching.push_back(mdProjMatch);
 	}

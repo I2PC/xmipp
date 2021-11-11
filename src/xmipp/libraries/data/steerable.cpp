@@ -224,7 +224,7 @@ void Steerable::singleFilter(const MultidimArray<double>& Vin,
         }
     
     // If Missing wedge
-    if (MW!=NULL)
+    if (MW!=nullptr)
         MW->removeWedge(Vout);
 }
 

@@ -420,7 +420,7 @@ double checkRandomness(const std::string &sequence);
  * https://en.wikipedia.org/wiki/Table_of_spherical_harmonics#Real_spherical_harmonics.
  * The cartesian coordinates xr, yr and zr are supposed to be normalized between -1 and 1, that is,
  * xr=x/r, yr=y/r, and zr=z/r. r is supposed to be between 0 and 1. */
-double ZernikeSphericalHarmonics(int l, int n, int m, double xr, double yr, double zr, double r);
+double ZernikeSphericalHarmonics(int l1, int n, int l2, int m, double xr, double yr, double zr, double r);
 
 #ifdef NEVERDEFINED
 /** Spherical harmonics.
@@ -440,11 +440,11 @@ double ALegendreSphericalHarmonics(int l, int m, double xr, double yr, double zr
  * Given an integer consecutive index (0,1,2,3,...) this function returns the corresponding (n,l,m)
  * for the spherical harmonics basis.
  */
-void spherical_index2lnm(int idx, int &l, int &n, int &m);
+void spherical_index2lnm(int idx, int &l1, int &n, int &l2, int &m, int maxl1);
 
 /** Index to Spherical harmonics index.
  * Given the corresponding (n,l,m), this function returns an integer consecutive index (0,1,2,3,...)
  * for the spherical harmonics basis.
  */
-int spherical_lnm2index(int l, int n, int m);
+int spherical_lnm2index(int l1, int n, int l2, int m, int maxl1);
 #endif

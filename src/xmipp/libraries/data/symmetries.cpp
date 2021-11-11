@@ -2207,7 +2207,7 @@ void SymList::breakSymmetry(double rot1, double tilt1, double psi1,
     int i;
     if (doRandomize)
     {
-        srand ( time(NULL) );
+        srand ( time(nullptr) );
         doRandomize=false;
     }
     int symOrder = symsNo()+1;
@@ -2311,7 +2311,7 @@ void symmetry_Helical(MultidimArray<double> &Vout, const MultidimArray<double> &
 
     FOR_ALL_ELEMENTS_IN_ARRAY3D(Vin)
     {
-        if (mask!=NULL && !A3D_ELEM(*mask,k,i,j))
+        if (mask!=nullptr && !A3D_ELEM(*mask,k,i,j))
             continue;
         double rot=atan2((double)i,(double)j)+rot0;
         double rho=sqrt((double)i*i+(double)j*j);
@@ -2369,16 +2369,16 @@ void symmetry_HelicalLowRes(MultidimArray<double> &Vout, const MultidimArray<dou
     	double angle=RAD2DEG(helicalStep*k)+rot0;
         rotation3DMatrix(angle,'Z',A,true);
     	MAT_ELEM(A,2,3)=-k;
-    	applyGeometry(LINEAR,Vaux,Vin,A,IS_NOT_INV,false,0.0);
+    	applyGeometry(xmipp_transformation::LINEAR,Vaux,Vin,A,xmipp_transformation::IS_NOT_INV,false,0.0);
     	Vout+=Vaux;
 
         rotation3DMatrix(-angle,'Z',A,true);
     	MAT_ELEM(A,2,3)=k;
-    	applyGeometry(LINEAR,Vaux,Vin,A,IS_NOT_INV,false,0.0);
+    	applyGeometry(xmipp_transformation::LINEAR,Vaux,Vin,A,xmipp_transformation::IS_NOT_INV,false,0.0);
     	Vout+=Vaux;
     }
     Vout/=2*ZSIZE(Vin);
-    if (mask!=NULL)
+    if (mask!=nullptr)
     	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Vout)
     	if (!DIRECT_MULTIDIM_ELEM(*mask,n))
     		DIRECT_MULTIDIM_ELEM(Vout,n)=0.0;
@@ -2391,7 +2391,7 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 	MultidimArray<double> V180;
 	Matrix2D<double> AZ, AX;
 	rotation3DMatrix(180,'X',AX,true);
-	applyGeometry(LINEAR,V180,Vin,AX,IS_NOT_INV,DONT_WRAP);
+	applyGeometry(xmipp_transformation::LINEAR,V180,Vin,AX,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 	double bestCorr, bestRot, bestZ;
 	bestCorr = bestRot = bestZ = std::numeric_limits<double>::min();
 	for (double rot=-180; rot<180; rot+=rotStep)
@@ -2400,7 +2400,7 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 		for (double z=zmin; z<=zmax; z+=zStep)
 		{
 			MAT_ELEM(AZ,2,3)=z;
-			applyGeometry(LINEAR,Vout,Vin,AZ,IS_NOT_INV,DONT_WRAP);
+			applyGeometry(xmipp_transformation::LINEAR,Vout,Vin,AZ,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 			double corr=correlationIndex(Vout,V180,mask);
 			if (corr>bestCorr)
 			{
@@ -2413,10 +2413,10 @@ void symmetry_Dihedral(MultidimArray<double> &Vout, const MultidimArray<double> 
 
 	rotation3DMatrix(-bestRot/2,'Z',AZ,true);
 	MAT_ELEM(AZ,2,3)=-bestZ/2;
-	applyGeometry(BSPLINE3,V180,Vin,AZ*AX,IS_NOT_INV,DONT_WRAP);
+	applyGeometry(xmipp_transformation::BSPLINE3,V180,Vin,AZ*AX,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 	rotation3DMatrix(bestRot/2,'Z',AZ,true);
 	MAT_ELEM(AZ,2,3)=bestZ/2;
-	applyGeometry(BSPLINE3,Vout,Vin,AZ,IS_NOT_INV,DONT_WRAP);
+	applyGeometry(xmipp_transformation::BSPLINE3,Vout,Vin,AZ,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 	Vout+=V180;
 	Vout*=0.5;
 }

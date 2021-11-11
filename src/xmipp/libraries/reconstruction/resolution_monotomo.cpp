@@ -588,7 +588,7 @@ void ProgMonoTomo::localNoise(MultidimArray<double> &noiseMap, Matrix2D<double> 
 
 
 void ProgMonoTomo::postProcessingLocalResolutions(MultidimArray<double> &resolutionVol,
-		std::vector<double> &list, MultidimArray<double> &resolutionChimera, double &cut_value, MultidimArray<int> &pMask, double &resolutionThreshold)
+		std::vector<double> &list)
 {
 	MultidimArray<double> resolutionVol_aux = resolutionVol;
 	double init_res, last_res;
@@ -669,8 +669,7 @@ void ProgMonoTomo::resolution2eval(int &count_res, double step,
 								double &resolution, double &last_resolution,
 								double &freq, double &freqL,
 								int &last_fourier_idx,
-								bool &continueIter,	bool &breakIter,
-								bool &doNextIteration)
+								bool &continueIter,	bool &breakIter)
 {
 	resolution = maxRes - count_res*step;
 	freq = sampling/resolution;
@@ -784,7 +783,7 @@ void ProgMonoTomo::run()
 		resolution2eval(count_res, R_,
 						resolution, last_resolution,
 						freq, freqH,
-						last_fourier_idx, continueIter, breakIter, doNextIteration);
+						last_fourier_idx, continueIter, breakIter);
 
 		if (continueIter)
 			continue;
@@ -953,7 +952,7 @@ void ProgMonoTomo::run()
 	Image<double> outputResolutionImage;
 	MultidimArray<double> resolutionFiltered, resolutionChimera;
 
-	postProcessingLocalResolutions(FilteredResolution, list, resolutionChimera, cut_value, pMask, resolutionThreshold);
+	postProcessingLocalResolutions(FilteredResolution, list);
 
 	outputResolutionImage() = FilteredResolution;
 	outputResolutionImage.write(fnOut);

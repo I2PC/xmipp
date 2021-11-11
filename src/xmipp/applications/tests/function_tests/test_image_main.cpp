@@ -355,7 +355,7 @@ TEST_F( ImageTest, readPreview)
     img1.read(auxFn);
 
     img1().setXmippOrigin();
-    selfScaleToSize(NEAREST, img1(),32,32,4);
+    selfScaleToSize(xmipp_transformation::NEAREST, img1(),32,32,4);
 
     img2.readPreview(auxFn, 32,32, ALL_SLICES);
     img1().setXmippOrigin();
@@ -375,7 +375,7 @@ TEST_F( ImageTest, getPreview)
     img1.getPreview(&img2, 32,32, ALL_SLICES);
 
     img1().setXmippOrigin();
-    selfScaleToSize(NEAREST, img1(),32,32,4);
+    selfScaleToSize(xmipp_transformation::NEAREST, img1(),32,32,4);
 
     img1().setXmippOrigin();
     img2().setXmippOrigin();

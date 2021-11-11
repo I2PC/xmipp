@@ -662,7 +662,7 @@ void ProgCtfGroup::writeOutputToDisc()
     }
     for (size_t objId : sortedCtfMD.ids())
     {
-        sortedCtfMD.getValue(MDL_DEFGROUP,defGroup,objId);
+        sortedCtfMD.getValueOrDefault(MDL_DEFGROUP,defGroup,objId,-1);
         if (olddefGroup<0)
             olddefGroup=defGroup;
         sortedCtfMD.getValue(MDL_ORDER,order,objId);

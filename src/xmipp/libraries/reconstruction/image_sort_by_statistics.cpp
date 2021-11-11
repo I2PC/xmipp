@@ -103,7 +103,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
     double sign = 1;//;-1;
     int numNorm = 3;
     int numDescriptors0=numNorm;
-    int numDescriptors1;
+    int numDescriptors1=0;
     int numDescriptors2=4;
     int numDescriptors3=11;
     int numDescriptors4=10;
@@ -193,7 +193,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
 
         img.readApplyGeo(SF, objId);
         if (targetXdim!=-1 && targetXdim<XSIZE(img()))
-        	selfScaleToSize(LINEAR,img(),targetXdim,targetXdim,1);
+        	selfScaleToSize(xmipp_transformation::LINEAR,img(),targetXdim,targetXdim,1);
 
         MultidimArray<double> &mI=img();
         mI.setXmippOrigin();
@@ -345,6 +345,9 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         if (imgno % c == 0 && verbose>0)
             progress_bar(imgno);
     }
+
+    if (imgno == 0)
+        REPORT_ERROR(ERR_MD_NOACTIVE, "All metadata images are disable. Skipping...\n");
 
     std::size_t beg = fn.find_last_of("@") + 1;
     std::size_t end = fn.find_last_of("/") + 1;

@@ -33,7 +33,7 @@
 double evaluatePlane(double rot, double tilt,
                      const MultidimArray<double> *V, const MultidimArray<double> *Vmag,
                      double maxFreq, double planeWidth, int direction,
-                     MultidimArray<double> *Vdraw=NULL,
+                     MultidimArray<double> *Vdraw=nullptr,
                      bool setPos=false, double rotPos=0, double tiltPos=0)
 {
     if (rot<0 || rot>360 || tilt<-90 || tilt>90)
@@ -114,14 +114,14 @@ double evaluatePlane(double rot, double tilt,
                 {
                     sumNeg+=val;
                     Nneg++;
-                    if (Vdraw!=NULL)
+                    if (Vdraw!=nullptr)
                         (*Vdraw)(idx)=2*direction*val;
                 }
                 else
                 {
                     sumPos+=val;
                     Npos++;
-                    if (Vdraw!=NULL)
+                    if (Vdraw!=nullptr)
                         (*Vdraw)(idx)=1.0/2.0*direction*val;
                 }
             }
@@ -162,14 +162,14 @@ public:
 
     ~WedgeSolver()
     {
-        V = NULL;
-        Vmag = NULL;
+        V = nullptr;
+        Vmag = nullptr;
     }
 
     double EnergyFunction(double trial[],bool &bAtSolution)
     {
         double result=evaluatePlane(trial[0],trial[1],V,Vmag,
-                                    maxFreq, planeWidth, direction, NULL, setPos, rotPos, tiltPos);
+                                    maxFreq, planeWidth, direction, nullptr, setPos, rotPos, tiltPos);
         if (count++ % (5*nPop) == 0)
             std::cout << "Evaluations= " << count/nPop
             << " energy= "     << Energy()
@@ -238,7 +238,7 @@ void lookForPlane(const MultidimArray<double> *V, const MultidimArray<double> *V
 
     delete solver;
 
-    solver = NULL;
+    solver = nullptr;
 }
 
 // Draw wedge --------------------------------------------------------------

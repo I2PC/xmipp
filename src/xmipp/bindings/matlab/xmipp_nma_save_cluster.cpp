@@ -1,5 +1,5 @@
 #include <mex.h>
-#include <core/metadata.h>
+#include <core/xmipp_metadata_program.h>
 
 /* the gateway function */
 /* xmipp_nma_save_cluster(NMAdirectory,clusterName,inCluster) */
@@ -18,19 +18,16 @@ void mexFunction( int nlhs, mxArray *plhs[],
   double *ptrInCluster = mxGetPr(prhs[2]);
   
   /* Read images */
-  MetaData mdImages, mdImagesOut;
+  MetaDataVec mdImages, mdImagesOut;
   mdImages.read(((String)nmaDir)+"/images.xmd");
   mdImages.removeDisabled();
 
   // Fill output
-  MDRow row;
-  FOR_ALL_OBJECTS_IN_METADATA(mdImages)
+  for (auto& row : mdImages)
   {
 	  if (*ptrInCluster!=0)
 	  {
-		  mdImages.getRow(row,__iter.objId);
-		  size_t id=mdImagesOut.addObject();
-		  mdImagesOut.setRow(row,id);
+      mdImagesOut.addRow(row);
 	  }
 	  ptrInCluster++;
   }

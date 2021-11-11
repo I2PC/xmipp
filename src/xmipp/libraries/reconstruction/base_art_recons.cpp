@@ -67,7 +67,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
     //    preIterations(vol_basis);
 
     // Reconstruction results ...............................................
-    double          mean_error;
+    double          mean_error = 0.0;
     double          global_mean_error,global_mean_error_1stblock;
 
     // Initialize residual image vector for wlsART ..........................
@@ -275,7 +275,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
 
             // Is there a mask ...............................................
             MultidimArray<int> mask;
-            const MultidimArray<int> *maskPtr=NULL;
+            const MultidimArray<int> *maskPtr=nullptr;
             if (artPrm.goldmask<1e6 || artPrm.shiftedTomograms)
             {
                 mask.resize(read_proj());
@@ -350,7 +350,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
                     std::cout << "Regularization error = " << regError << std::endl;
                 *artPrm.fh_hist << "Regularization error = " << regError << std::endl;
                 artPrm.basis.changeFromVoxels(vol_voxels(),vol_basis,artPrm.grid_type,
-                                              artPrm.grid_relative_size, NULL, NULL, artPrm.R, artPrm.threads);
+                                              artPrm.grid_relative_size, nullptr, nullptr, artPrm.R, artPrm.threads);
             }
 
             // Apply sparsity constraint .....................................
@@ -363,7 +363,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
                                             Zoutput_volume_size, Youtput_volume_size, Xoutput_volume_size);
                 forceDWTSparsity(vol_voxels(),artPrm.sparseEps);
                 artPrm.basis.changeFromVoxels(vol_voxels(),vol_basis,artPrm.grid_type,
-                                              artPrm.grid_relative_size, NULL, NULL, artPrm.R, artPrm.threads);
+                                              artPrm.grid_relative_size, nullptr, nullptr, artPrm.R, artPrm.threads);
             }
 
             // Show results ..................................................
@@ -530,7 +530,7 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
             {
                 artPrm.basis.changeToVoxels(vol_basis, &(vol_voxels()),
                                             Zoutput_volume_size, Youtput_volume_size, Xoutput_volume_size);
-                selfScaleToSize(BSPLINE3,vol_voxels(),
+                selfScaleToSize(xmipp_transformation::BSPLINE3,vol_voxels(),
                                 (size_t)NEXT_POWER_OF_2(XSIZE(vol_voxels())),
                                 (size_t)NEXT_POWER_OF_2(YSIZE(vol_voxels())),
                                 (size_t)NEXT_POWER_OF_2(ZSIZE(vol_voxels())));
@@ -548,12 +548,12 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
                 std::cout << "Threshold=" << threshold1 << std::endl;
                 vol_wavelets().threshold("abs_below", threshold1, 0.0);
                 IDWT(vol_wavelets(),vol_voxels());
-                selfScaleToSize(BSPLINE3,vol_voxels(),
+                selfScaleToSize(xmipp_transformation::BSPLINE3,vol_voxels(),
                                 Xoutput_volume_size,
                                 Youtput_volume_size,
                                 Zoutput_volume_size);
                 artPrm.basis.changeFromVoxels(vol_voxels(),vol_basis,artPrm.grid_type,
-                                              artPrm.grid_relative_size, NULL, NULL, artPrm.R, artPrm.threads);
+                                              artPrm.grid_relative_size, nullptr, nullptr, artPrm.R, artPrm.threads);
             }
         }
 
@@ -819,7 +819,7 @@ void SinPartARTRecons::preProcess(GridVolume & vol_basis0, int level, int rank)
             project_threads[c].threads_count = artPrm.threads;
             project_threads[c].destroy = false;
 
-            pthread_create( (th_ids+c), NULL, project_SimpleGridThread<double>, (void *)(project_threads+c) );
+            pthread_create( (th_ids+c), nullptr, project_SimpleGridThread<double>, (void *)(project_threads+c) );
         }
     }
 }
@@ -893,7 +893,7 @@ void SinPartARTRecons::singleStep(GridVolume &vol_in, GridVolume *vol_out,
     // Project structure .......................................................
     // The correction image is reused in this call to store the normalising
     // projection, ie, the projection of an all-1 volume
-    Matrix2D<double> *A = NULL;
+    Matrix2D<double> *A = nullptr;
     if (artPrm.print_system_matrix)
         A = new Matrix2D<double>;
     corr_proj().initZeros();
@@ -991,7 +991,7 @@ void SinPartARTRecons::singleStep(GridVolume &vol_in, GridVolume *vol_out,
         long int Nmean=0;
         FOR_ALL_ELEMENTS_IN_ARRAY2D(IMGMATRIX(read_proj))
         {
-            if (maskPtr!=NULL)
+            if (maskPtr!=nullptr)
                 if ((*maskPtr)(i,j)<0.5)
                     continue;
             // Compute difference image and error
@@ -1011,7 +1011,7 @@ void SinPartARTRecons::singleStep(GridVolume &vol_in, GridVolume *vol_out,
     project_GridVolume(*vol_out, artPrm.basis, theo_proj,
                        corr_proj, YSIZE(read_proj()), XSIZE(read_proj()),
                        read_proj.rot(), read_proj.tilt(), read_proj.psi(), BACKWARD, artPrm.eq_mode,
-                       artPrm.GVNeq, NULL, maskPtr, artPrm.ray_length, artPrm.threads);
+                       artPrm.GVNeq, nullptr, maskPtr, artPrm.ray_length, artPrm.threads);
 
     // Remove footprints if necessary
     if (remove_footprints)
@@ -1041,7 +1041,7 @@ void SinPartARTRecons::postProcess(GridVolume & vol_basis)
         // Wait for effective threads death
         for( int c = 0 ; c < artPrm.threads ; c++ )
         {
-            pthread_join(*(th_ids+c),NULL);
+            pthread_join(*(th_ids+c),nullptr);
         }
 
         // Destroy barrier and mutex, as they are no longer needed.

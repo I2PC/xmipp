@@ -274,7 +274,7 @@ void ProgResLocalFilter::run()
 
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(filtered_aux)
 		{
-			double weight, sumweight, digitalfreq;
+			double weight, sumweight = 0., digitalfreq;
 			//TODO: make the converstion in the produdesideinfo
 			digitalfreq = sampling/DIRECT_MULTIDIM_ELEM(resVol, n);
 

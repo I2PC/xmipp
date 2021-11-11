@@ -281,7 +281,7 @@ void * thread_process_plane( void * args )
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 /* Define params ------------------------------------------------------------------- */
@@ -332,12 +332,12 @@ void MeanShiftFilter::apply(MultidimArray<double> &input)
             th_args[nt].output = &output;
             th_args[nt].fast = fast;
 
-            pthread_create( (th_ids+nt), NULL, thread_process_plane, (void *)(th_args+nt));
+            pthread_create( (th_ids+nt), nullptr, thread_process_plane, (void *)(th_args+nt));
         }
 
         for( int nt = 0; nt < numThreads ; nt++ )
         {
-            pthread_join( *(th_ids+nt), NULL);
+            pthread_join( *(th_ids+nt), nullptr);
         }
 
         if( save_iters )

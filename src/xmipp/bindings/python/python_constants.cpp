@@ -52,11 +52,11 @@ void addLabels(PyObject * dict)
 {
 
     //Add constants
-    ADD_CONST(NEAREST);
-    ADD_CONST(LINEAR);
-    ADD_CONST(BSPLINE2);
-    ADD_CONST(BSPLINE3);
-    ADD_CONST(BSPLINE4);
+    ADD_CONST(xmipp_transformation::NEAREST);
+    ADD_CONST(xmipp_transformation::LINEAR);
+    ADD_CONST(xmipp_transformation::BSPLINE2);
+    ADD_CONST(xmipp_transformation::BSPLINE3);
+    ADD_CONST(xmipp_transformation::BSPLINE4);
 
 
     ADD_CONST(AGGR_COUNT);
@@ -213,6 +213,7 @@ void addLabels(PyObject * dict)
     ADD_CONST(MDL_DATATYPE);
     ADD_CONST(MDL_DATE);
     ADD_CONST(MDL_DEFGROUP);
+    ADD_CONST(MDL_DIMRED);
     ADD_CONST(MDL_DIMENSIONS_3D);
     ADD_CONST(MDL_DIMENSIONS_2D);
     ADD_CONST(MDL_DM3_IDTAG);
@@ -488,7 +489,7 @@ void addLabels(PyObject * dict)
     ADD_CONST2("HEADER_ALL", _HEADER_ALL);
     ADD_CONST(DATA);
     ADD_CONST2("DATA_ALL", _DATA_ALL);
-    ADD_CONST(WRAP);
+    ADD_CONST(xmipp_transformation::WRAP);
     ADD_CONST(ALL_IMAGES);
     ADD_CONST(FILENAMENUMBERLENGTH);
     ADD_CONST2("XMIPP_BLACK", BLACK);

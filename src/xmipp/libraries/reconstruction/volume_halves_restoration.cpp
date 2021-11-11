@@ -99,7 +99,7 @@ void ProgVolumeHalvesRestoration::produceSideInfo()
 		pMaskSize=(size_t)(pMask->sum());
 	}
 	else
-		pMask = NULL;
+		pMask = nullptr;
 
 	V1r()=V1(); // Copy the restored volumes
 	V2r()=V2();
@@ -180,7 +180,7 @@ void ProgVolumeHalvesRestoration::estimateS()
 	DIRECT_MULTIDIM_ELEM(mS,n)=0.5*(DIRECT_MULTIDIM_ELEM(mV1r,n)+DIRECT_MULTIDIM_ELEM(mV2r,n));
 
 	// Apply mask
-	if (pMask!=NULL)
+	if (pMask!=nullptr)
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(mS)
 		if (DIRECT_MULTIDIM_ELEM(*pMask,n)==0)
 			DIRECT_MULTIDIM_ELEM(mS,n)=0;
@@ -199,7 +199,7 @@ void ProgVolumeHalvesRestoration::estimateS()
 
 	// Calculate HS CDF in real space
 	MultidimArray<double> aux;
-	if (pMask==NULL)
+	if (pMask==nullptr)
 	{
 		aux=S();
 		aux*=aux;
@@ -399,7 +399,7 @@ void ProgVolumeHalvesRestoration::filterBank()
 			double e2=DIRECT_MULTIDIM_ELEM(Vfiltered2,n)*DIRECT_MULTIDIM_ELEM(Vfiltered2,n);
 			double w2=cdfN.getProbability(e2);
 
-			double weight;
+			double weight = 0;
 			switch (weightFun)
 			{
 			case 0: weight=0.5*(w1+w2); break;
@@ -459,7 +459,7 @@ void ProgVolumeHalvesRestoration::evaluateDifference()
 
 	// Compute the std within the signal mask
 	double mean, stddev;
-	if (pMask==NULL)
+	if (pMask==nullptr)
 		N().computeAvgStdev(mean,stddev);
 	else
 		N().computeAvgStdev_within_binary_mask(*pMask,mean,stddev);

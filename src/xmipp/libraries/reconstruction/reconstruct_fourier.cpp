@@ -135,8 +135,8 @@ void ProgRecFourier::run()
     }
     // Create threads stuff
     barrier_init( &barrier, numThreads+1 );
-    pthread_mutex_init( &workLoadMutex, NULL );
-    statusArray = NULL;
+    pthread_mutex_init( &workLoadMutex, nullptr);
+    statusArray = nullptr;
     th_ids = (pthread_t *)malloc( numThreads * sizeof( pthread_t));
     th_args = (ImageThreadParams *) malloc ( numThreads * sizeof( ImageThreadParams ) );
 
@@ -147,7 +147,7 @@ void ProgRecFourier::run()
         th_args[nt].parent = this;
         th_args[nt].myThreadID = nt;
         th_args[nt].selFile = new MetaDataVec(SF);
-        pthread_create( (th_ids+nt) , NULL, processImageThread, (void *)(th_args+nt) );
+        pthread_create( (th_ids+nt) , nullptr, processImageThread, (void *)(th_args+nt) );
     }
 
     //Computing interpolated volume
@@ -164,11 +164,11 @@ void ProgRecFourier::run()
     // Waiting for threads to finish
     barrier_wait( &barrier );
     for ( int nt = 0 ; nt < numThreads ; nt ++ )
-        pthread_join(*(th_ids+nt), NULL);
+        pthread_join(*(th_ids+nt), nullptr);
     barrier_destroy( &barrier );
 
     // Deallocate resources.
-    if ( statusArray != NULL)
+    if ( statusArray != nullptr)
     {
         free(statusArray);
     }
@@ -449,7 +449,7 @@ void * ProgRecFourier::processImageThread( void * threadArgs )
                 break;
             }
         case EXIT_THREAD:
-            return NULL;
+            return nullptr;
         case PROCESS_WEIGHTS:
             {
 
@@ -916,7 +916,7 @@ void ProgRecFourier::processImages( int firstImageIndex, int lastImageIndex, boo
                 #undef DEBUG22
 
                 // Initialized just once
-                if ( statusArray == NULL )
+                if ( statusArray == nullptr )
                 {
                     statusArray = (int *) malloc ( sizeof(int) * paddedFourier->ydim );
                 }

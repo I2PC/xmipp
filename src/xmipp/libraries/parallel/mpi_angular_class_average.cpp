@@ -211,7 +211,7 @@ void MpiProgAngularClassAverage::run()
                 jobListRows[0]=size;
 
                 //read worker call just to remove it from the queue
-                MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_I_AM_FREE, MPI_COMM_WORLD,
+                MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_I_AM_FREE, MPI_COMM_WORLD,
                          &status);
                 if(size > 0)
                 {
@@ -228,7 +228,7 @@ void MpiProgAngularClassAverage::run()
                 }
                 else
                 {
-                    MPI_Send(0, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
+                    MPI_Send(nullptr, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
                     finishedNodes ++;
                     if (finishedNodes >= node->size)
                         whileLoop=false;
@@ -250,7 +250,7 @@ void MpiProgAngularClassAverage::run()
 
                 if (dAij(lockArray,order_index,ref3d_index))
                 {//Locked
-                    MPI_Send(0, 0, MPI_INT, status.MPI_SOURCE,
+                    MPI_Send(nullptr, 0, MPI_INT, status.MPI_SOURCE,
                              TAG_DO_NOT_DARE_TO_WRITE, MPI_COMM_WORLD);
                 }
                 else
@@ -317,14 +317,14 @@ void MpiProgAngularClassAverage::run()
             std::cerr << "[" << node->rank << "] Asking for a job " <<std::endl;
 #endif
             //I am free
-            MPI_Send(0, 0, MPI_INT, 0, TAG_I_AM_FREE, MPI_COMM_WORLD);
+            MPI_Send(nullptr, 0, MPI_INT, 0, TAG_I_AM_FREE, MPI_COMM_WORLD);
             //wait for message
             MPI_Probe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
             switch (status.MPI_TAG)
             {
             case TAG_STOP://I am free
-                MPI_Recv(0, 0, MPI_INT, 0, TAG_STOP,
+                MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_STOP,
                          MPI_COMM_WORLD, &status);
                 whileLoop=false;
                 break;
@@ -517,7 +517,7 @@ void MpiProgAngularClassAverage::mpi_process(double * Def_3Dref_2Dref_JobNo)
         // Apply in-plane transformation
         img.getTransformationMatrix(A);
         if (!A.isIdentity())
-            selfApplyGeometry(BSPLINE3, img(), A, IS_INV, DONT_WRAP);
+            selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), A, xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP);
 
         MultidimArray<float> auxImg(img().nzyxdim);
         const MultidimArray<double> &mImg=img();
@@ -926,7 +926,7 @@ void MpiProgAngularClassAverage::mpi_writeController(
         switch (status.MPI_TAG)
         {
         case TAG_DO_NOT_DARE_TO_WRITE://I am free
-            MPI_Recv(0, 0, MPI_INT, 0, MPI_ANY_TAG,
+            MPI_Recv(nullptr, 0, MPI_INT, 0, MPI_ANY_TAG,
                      MPI_COMM_WORLD, &status);
             //usleep(100000);//microsecond
             break;
@@ -1045,7 +1045,7 @@ void MpiProgAngularClassAverage::mpi_produceSideInfo()
     Polar<double> P;
     Polar<std::complex<double> > fP;
 
-    produceSplineCoefficients(BSPLINE3, Maux, Iempty());
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3, Maux, Iempty());
     P.getPolarFromCartesianBSpline(Maux, Ri, Ro);
     P.calculateFftwPlans(global_plans);
     fourierTransformRings(P, fP, global_plans, false);
@@ -1528,7 +1528,7 @@ void MpiProgAngularClassAverage::getPolar(MultidimArray<double> &img,
     Polar<double> P;
 
     // Calculate FTs of polar rings and its stddev
-    produceSplineCoefficients(BSPLINE3, Maux, img);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3, Maux, img);
     P.getPolarFromCartesianBSpline(Maux, Ri, Ro, 3, xoff, yoff);
     fourierTransformRings(P, fP, global_plans, conjugated);
 }
@@ -1612,12 +1612,12 @@ void MpiProgAngularClassAverage::reAlignClass(Image<double> &avg1,
                     A.initIdentity();
                     A(0, 0) *= -1.;
                     A(0, 1) *= -1.;
-                    applyGeometry(LINEAR, Mimg, imgs[imgno](), A, IS_INV,
-                                  DONT_WRAP);
-                    selfRotate(BSPLINE3, Mimg, opt_psi, DONT_WRAP);
+                    applyGeometry(xmipp_transformation::LINEAR, Mimg, imgs[imgno](), A, xmipp_transformation::IS_INV,
+                                  xmipp_transformation::DONT_WRAP);
+                    selfRotate(xmipp_transformation::BSPLINE3, Mimg, opt_psi, xmipp_transformation::DONT_WRAP);
                 }
                 else
-                    rotate(BSPLINE3, Mimg, imgs[imgno](), opt_psi, DONT_WRAP);
+                    rotate(xmipp_transformation::BSPLINE3, Mimg, imgs[imgno](), opt_psi, xmipp_transformation::DONT_WRAP);
             }
 
             if (!do_discard)

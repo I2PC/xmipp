@@ -160,7 +160,7 @@ void ProgVolumeToPseudoatoms::defineParams()
     addParamsLine("  [--dontScale+]                     : Don't scale atom weights in the PDB");
     addParamsLine("  [--binarize+ <threshold>]          : Binarize the volume for a more uniform distribution");
     addParamsLine("  [--thr <n=1>]                      : Number of threads");
-    mask_prm.defineParams(this,INT_MASK,NULL,"Statistics restricted to the mask area.",true);
+    mask_prm.defineParams(this,INT_MASK,nullptr,"Statistics restricted to the mask area.",true);
     addExampleLine("Convert volume to pseudoatoms, each pseudoatom with a different weight",false);
     addExampleLine("xmipp_volume_to_pseudoatoms -i volume.vol -o pseudoatoms");
     addExampleLine("Convert volume to pseudoatoms, all pseudoatoms with the same weight",false);
@@ -232,7 +232,7 @@ void ProgVolumeToPseudoatoms::produceSideInfo()
     {
         threadArgs[i].myThreadID=i;
         threadArgs[i].parent=this;
-        pthread_create( (threadIds+i), NULL, optimizeCurrentAtomsThread,
+        pthread_create( (threadIds+i), nullptr, optimizeCurrentAtomsThread,
                         (void *) (threadArgs+i));
     }
 
@@ -726,7 +726,7 @@ void* ProgVolumeToPseudoatoms::optimizeCurrentAtomsThread(
     {
         barrier_wait( barrier );
         if (parent->threadOpCode==KILLTHREAD)
-            return NULL;
+            return nullptr;
 
         myArgs->Nintensity=0;
         myArgs->Nmovement=0;
@@ -919,7 +919,7 @@ void ProgVolumeToPseudoatoms::writeResults()
     if (dontScale)
         a=1;
 
-    FILE *fhOut=NULL;
+    FILE *fhOut=nullptr;
     fhOut=fopen((fnOut+".pdb").c_str(),"w");
     if (!fhOut)
         REPORT_ERROR(ERR_IO_NOWRITE,fnOut+".pdb");

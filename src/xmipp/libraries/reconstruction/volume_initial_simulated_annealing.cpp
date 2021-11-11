@@ -111,7 +111,7 @@ void alignSingleImage(size_t nImg, ProgVolumeInitialSimulatedAnnealing &prm, Met
 		mCurrentImageAligned=mCurrentImage;
 		mGalleryProjection.aliasImageInStack(prm.gallery(),nGallery);
 		mGalleryProjection.setXmippOrigin();
-		double corr=alignImagesConsideringMirrors(mGalleryProjection,mCurrentImageAligned,M,DONT_WRAP);
+		double corr=alignImagesConsideringMirrors(mGalleryProjection,mCurrentImageAligned,M,xmipp_transformation::DONT_WRAP);
 #ifdef DEBUG
 		mdGallery.getValue(MDL_MAXCC,corr,__iter.objId);
 #endif

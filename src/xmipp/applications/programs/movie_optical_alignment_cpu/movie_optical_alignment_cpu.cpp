@@ -411,7 +411,7 @@ public:
                 	if (fabs(XX(shift))>0 || fabs(YY(shift))>0)
                 	{
 //                		std::cout << "Translating " << fnFrame << " by " << shift.transpose() << std::endl;
-						translate(BSPLINE3, translatedImage(), frameImage(), shift, WRAP);
+						translate(xmipp_transformation::BSPLINE3, translatedImage(), frameImage(), shift, xmipp_transformation::WRAP);
 						frameImage()=translatedImage();
                 	}
                 }

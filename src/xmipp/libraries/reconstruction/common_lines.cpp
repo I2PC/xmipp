@@ -207,7 +207,7 @@ void * threadPrepareImages(void * args)
 		}
 		ii++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ProgCommonLine::getAndPrepareBlock(int i,
@@ -237,13 +237,13 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 		th_args[nt].SFi = &SFi;
 		th_args[nt].blockRTFs = &blockRTFs;
 		th_args[nt].blockRTs = &blockRTs;
-		pthread_create((th_ids + nt), NULL, threadPrepareImages,
+		pthread_create((th_ids + nt), nullptr, threadPrepareImages,
 				(void *) (th_args + nt));
 	}
 
 	// Waiting for threads to finish
 	for (int nt = 0; nt < Nthr; nt++)
-		pthread_join(*(th_ids + nt), NULL);
+		pthread_join(*(th_ids + nt), nullptr);
 
     // Threads structures are not needed any more
     delete []th_ids;
@@ -346,7 +346,7 @@ void * threadCompareImages(void * args)
 			parent->CLmatrix[idx_ji].jmax = -parent->CLmatrix[idx_ij].jmax;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ProgCommonLine::processBlock(int i, int j)
@@ -383,13 +383,13 @@ void ProgCommonLine::processBlock(int i, int j)
 			th_args[nt].RTFsj = &RTFsi;
 			th_args[nt].RTsj = &RTsi;
 		}
-		pthread_create((th_ids + nt), NULL, threadCompareImages,
+		pthread_create((th_ids + nt), nullptr, threadCompareImages,
 				(void *) (th_args + nt));
 	}
 
     // Waiting for threads to finish
     for (int nt = 0; nt < Nthr; nt++)
-        pthread_join(*(th_ids + nt), NULL);
+        pthread_join(*(th_ids + nt), nullptr);
 
     // Threads structures are not needed any more
     delete[] th_ids;

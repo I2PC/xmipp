@@ -55,7 +55,7 @@ void Projection::read(const FileName &fn, const bool only_apply_shifts,
                       DataMode datamode , MDRow * row)
 {
     Image<double>::read(fn, datamode);
-    if (row != NULL)
+    if (row != nullptr)
         applyGeo(*row, only_apply_shifts);
     Euler_angles2matrix(rot(), tilt(), psi(), euler);
     eulert = euler.transpose();
@@ -86,7 +86,7 @@ FourierProjector::FourierProjector(double paddFactor, double maxFreq, int degree
     paddingFactor = paddFactor;
     maxFrequency = maxFreq;
     BSplineDeg = degree;
-    volume = NULL;
+    volume = nullptr;
 }
 
 FourierProjector::FourierProjector(MultidimArray<double> &V, double paddFactor, double maxFreq, int degree)
@@ -139,7 +139,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             double freqvol_Z=freqYvol_Z+MAT_ELEM(E,0,2)*freqx;
 
             double c,d;
-            if (BSplineDeg==0)
+            if (BSplineDeg==xmipp_transformation::NEAREST)
             {
                 // 0 order interpolation
                 // Compute corresponding index in the volume
@@ -149,7 +149,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
                 c = A3D_ELEM(VfourierRealCoefs,kVolume,iVolume,jVolume);
                 d = A3D_ELEM(VfourierImagCoefs,kVolume,iVolume,jVolume);
             }
-            else if (BSplineDeg==1)
+            else if (BSplineDeg==xmipp_transformation::LINEAR)
             {
                 // B-spline linear interpolation
                 double kVolume=freqvol_Z*volumePaddedSize;
@@ -237,7 +237,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             // Phase shift to move the origin of the image to the corner
             double a=DIRECT_A2D_ELEM(phaseShiftImgA,i,j);
             double b=DIRECT_A2D_ELEM(phaseShiftImgB,i,j);
-            if (ctf!=NULL)
+            if (ctf!=nullptr)
             {
             	double ctfij=DIRECT_A2D_ELEM(*ctf,i,j);
             	a*=ctfij;
@@ -280,12 +280,12 @@ void FourierProjector::produceSideInfo()
     DIRECT_MULTIDIM_ELEM(Vfourier,n)*=K;
     Vpadded.clear();
     // Compute Bspline coefficients
-    if (BSplineDeg==3)
+    if (BSplineDeg==xmipp_transformation::BSPLINE3)
     {
         MultidimArray< double > VfourierRealAux, VfourierImagAux;
         Complex2RealImag(Vfourier, VfourierRealAux, VfourierImagAux);
         Vfourier.clear();
-        produceSplineCoefficients(BSPLINE3,VfourierRealCoefs,VfourierRealAux);
+        produceSplineCoefficients(xmipp_transformation::BSPLINE3,VfourierRealCoefs,VfourierRealAux);
 
         // Release memory as soon as you can
         VfourierRealAux.clear();
@@ -297,7 +297,7 @@ void FourierProjector::produceSideInfo()
         int idxMin=std::max(-idxMax,STARTINGX(VfourierRealCoefs));
         VfourierRealCoefs.selfWindow(idxMin,idxMin,idxMin,idxMax,idxMax,idxMax);
 
-        produceSplineCoefficients(BSPLINE3,VfourierImagCoefs,VfourierImagAux);
+        produceSplineCoefficients(xmipp_transformation::BSPLINE3,VfourierImagCoefs,VfourierImagAux);
         VfourierImagAux.clear();
         VfourierImagCoefs.selfWindow(idxMin,idxMin,idxMin,idxMax,idxMax,idxMax);
     }

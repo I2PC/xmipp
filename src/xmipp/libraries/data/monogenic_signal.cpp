@@ -206,8 +206,7 @@ void Monogenic::resolution2eval(int &count_res, double step,
 		int &last_fourier_idx,
 		int &volsize,
 		bool &continueIter,	bool &breakIter,
-		double &sampling, double &minRes, double &maxRes,
-		bool &doNextIteration)
+		double &sampling, double &maxRes)
 {
 //TODO: simplify this function
 	resolution = maxRes - count_res*step;
@@ -659,7 +658,7 @@ void Monogenic::addNoise(MultidimArray<double> &vol, double mean, double stddev)
 // as a multidimArray, with  dimensions given by xdim, ydim and zdim. The 
 // wavelength of the pattern is given by double wavelength
 MultidimArray<double> Monogenic::createDataTest(size_t xdim, size_t ydim, size_t zdim,
-		double wavelength, double mean, double sigma)
+		double wavelength)
 {
 	int siz_z, siz_y, siz_x;
 	double x, y, z;

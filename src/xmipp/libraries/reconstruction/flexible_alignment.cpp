@@ -1056,7 +1056,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               }
 
               double *helpgr = (double *)malloc((size_t)((long)trialSize) * sizeof(double));
-              if (helpgr == NULL)
+              if (helpgr == nullptr)
               {
                   WRITE_ERROR(return_gradhesscost, "ERROR - Not enough memory for helpgr");
                   free(Rz1);
@@ -1217,7 +1217,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
             	  return(ERROR);
               }
               double   hlp;
-              double   *costchanged=NULL,max_defamp;
+              double   *costchanged=nullptr,max_defamp;
               int      dim = global_flexible_prog->numberOfModes;
               double   *a;
               int     Status = !ERROR;
@@ -1503,7 +1503,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
               long            MaxNumberOfFailures, SatisfNumberOfSuccesses, nSuccess, nFailure;
               double          LambdaScale=2., OldCost, tol_angle, tol_shift,tol_defamp;
               double          OneIterInSeconds, *Gradient, *Hessian;
-              time_t          time1, time2, *tp1 = NULL, *tp2 = NULL;
+              time_t          time1, time2, *tp1 = nullptr, *tp2 = nullptr;
               long            dim = (long) global_flexible_prog->numberOfModes;
               long            MaxNoIter,MaxNoFailure,SatisfNoSuccess;
 
@@ -1663,7 +1663,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
           	if (pyramidLevel != 0) {
           		Image<double> I;
           		I.read(currentImgName);
-          		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+          		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
           		I.write(fnDown);
           	} 
                 /*else
@@ -1980,7 +1980,7 @@ std::cout << "2074" << fnDown << std::endl;
 
                   Image<double> I;
           	  I.read(currentImgName);
-                  selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+                  selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
                   I.write(fnDown);
           	
 

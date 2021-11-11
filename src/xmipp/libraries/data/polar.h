@@ -841,7 +841,7 @@ double best_rotation(const Polar< std::complex<double> > &I1,
 /** Align I2 rotationally to I1 */
 void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 					   RotationalCorrelationAux &aux,
-                       int splineOrder=1, int wrap=WRAP);
+                       int splineOrder=1, int wrap=xmipp_transformation::WRAP);
 
 /** Produce a polar image from a cartesian image.
  * You can give the minimum and maximum radius for the interpolation, the

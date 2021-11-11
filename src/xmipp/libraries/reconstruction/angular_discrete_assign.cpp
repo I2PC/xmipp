@@ -598,10 +598,6 @@ void ProgAngularDiscreteAssign::group_views(const std::vector<double> &vrot,
 int ProgAngularDiscreteAssign::pick_view(int method,
         std::vector< std::vector<int> > &groups,
         std::vector<double> &vscore,
-        std::vector<double> &vrot,
-        std::vector<double> &vtilt,
-        std::vector<double> &vpsi,
-        const std::vector<int> &best_idx,
         const std::vector<int> &candidate_idx, const std::vector<double> &candidate_rate)
 {
     if (method == 0)
@@ -777,14 +773,14 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 					if (shiftX != 0 || shiftY != 0)
 					{
 						VECTOR_R2(shift, shiftX, shiftY);
-						selfTranslate(LINEAR,Ip(),shift,WRAP);
+						selfTranslate(xmipp_transformation::LINEAR,Ip(),shift,xmipp_transformation::WRAP);
 					}
 
 					// Rotate image if necessary
 					// Adding 2 is a trick to avoid that the 0, 90, 180 and 270
 					// are treated in a different way
-					selfRotate(LINEAR,Ip(),psi + 2, WRAP);
-					selfRotate(LINEAR,Ip(),-2, WRAP);
+					selfRotate(xmipp_transformation::LINEAR,Ip(),psi + 2, xmipp_transformation::WRAP);
+					selfRotate(xmipp_transformation::LINEAR,Ip(),-2, xmipp_transformation::WRAP);
 #ifdef DEBUG
 					Image<double> Ipsave;
 					Ipsave()=Ip();
@@ -1032,8 +1028,8 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
             std::cout << "Partition: " << groups << std::endl;
 
         // Pick the best image from the groups
-        jbest = pick_view(pick, groups, vscore, vrot, vtilt, vpsi,
-                          best_idx, candidate_local_maxima, candidate_rate);
+        jbest = pick_view(pick, groups, vscore,
+                          candidate_local_maxima, candidate_rate);
         ibest = candidate_local_maxima[jbest];
     }
 
@@ -1045,13 +1041,13 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
         //TODO: Check if this is correct
         Iref.read(library_name[vref_idx[ibest]]);
         Iref().setXmippOrigin();
-        selfRotate(LINEAR,Iref(),-vpsi[ibest]);
+        selfRotate(xmipp_transformation::LINEAR,Iref(),-vpsi[ibest]);
         if (Xoff == 0 && Yoff == 0)
             Ip() = img();
         else
         {
             VECTOR_R2(shift, Xoff, Yoff);
-            translate(LINEAR,Ip(),img(),shift,WRAP);
+            translate(xmipp_transformation::LINEAR,Ip(),img(),shift,xmipp_transformation::WRAP);
         }
         Ip().setXmippOrigin();
 

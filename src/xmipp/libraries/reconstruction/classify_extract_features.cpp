@@ -32,12 +32,12 @@
 
 ProgExtractFeatures::ProgExtractFeatures(): XmippProgram()
 {
-	fitPoints=NULL;
+	fitPoints=nullptr;
 }
 
 ProgExtractFeatures::~ProgExtractFeatures()
 {
-	if (fitPoints!=NULL)
+	if (fitPoints!=nullptr)
 		delete []fitPoints;
 }
 
