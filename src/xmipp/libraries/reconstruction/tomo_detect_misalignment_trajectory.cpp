@@ -924,7 +924,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 	std::string rawname = fnOut.substr(0, lastindex);
 
 	std::string alignmentReportPath;
-    alignmentReportPath = rawname + "/alingmentReport.xmd";
+    alignmentReportPath = rawname + "/alignmentReport.xmd";
 
 	size_t lastindexInputTS = fnOut.find_last_of(":");
 	std::string rawnameTS = fnOut.substr(0, lastindex);
