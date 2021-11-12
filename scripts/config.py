@@ -148,6 +148,9 @@ class Config:
                     print(red("Cannot find section BUILD in %s" % fnConfig))
                     self._create_empty()
                 self.configDict = dict(cf.items('BUILD'))
+            else:
+                print(red("There is no xmipp.conf. Please, run ./xmipp config to generate it."))
+                sys.exit(-1)
         except:
             sys.exit("%s\nPlease fix the configuration file %s." %
                      (sys.exc_info()[1], fnConfig))
