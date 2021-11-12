@@ -897,6 +897,7 @@ if __name__ == '__main__':
             ok, strConfigInfo = compile(Nproc)
             module = 'Xmipp'
         else:
+            strConfigInfo = buildConfig.ensure_version()
             compileDependencies(Nproc)
             ok = compileModule(Nproc,sys.argv[3])
             module = sys.argv[3]
@@ -908,6 +909,8 @@ if __name__ == '__main__':
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
         else:
+            if strConfigInfo:
+                print(yellow(strConfigInfo))
             print(red("\nSome error occurred during the compilation\n"))
             sys.exit(1)
     elif mode == "compileAndInstall":
@@ -926,8 +929,6 @@ if __name__ == '__main__':
         if not ok:
             print(red("\nSome error occurred...\n"))
             sys.exit(1)
-
-
     elif mode=="install":
         if n==3:
             dir=sys.argv[2]
