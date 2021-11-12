@@ -454,9 +454,10 @@ def compile_libsvm():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
+    strConfigInfo = buildConfig.ensure_version()
     if not compileDependencies(Nproc):
-        return False
-    return compileXmipp(Nproc)
+        return False, strConfigInfo
+    return compileXmipp(Nproc), strConfigInfo
 
 
 def compileDependencies(Nproc):
@@ -892,9 +893,8 @@ if __name__ == '__main__':
             sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
-        strConfigInfo = buildConfig.ensure_version()
         if n<=3:
-            ok = compile(Nproc)
+            ok, strConfigInfo = compile(Nproc)
             module = 'Xmipp'
         else:
             compileDependencies(Nproc)
@@ -919,11 +919,14 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
-        ok = compile(Nproc)
+        ok, strConfigInfo = compile(Nproc)
         ok = ok and install(dir)
+        if strConfigInfo:
+            print(yellow(strConfigInfo))
         if not ok:
             print(red("\nSome error occurred...\n"))
             sys.exit(1)
+
 
     elif mode=="install":
         if n==3:
@@ -956,17 +959,20 @@ if __name__ == '__main__':
             buildConfig.create()
         else:
             print(blue("'%s' detected." % Config.FILE_NAME))
-        strConfigInfo = buildConfig.ensure_version()
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
         ok = (buildConfig.check()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
-            and getSources(branch)
-            and compile(Nproc)
+            and getSources(branch))
+        okCom, strConfigInfo = compile(Nproc)
+        ok = (ok
+            and okCom
             and install(buildDir))
+
         if strConfigInfo:
             print(yellow(strConfigInfo))
+
         if ok:
            sys.exit(0)
         else:
