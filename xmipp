@@ -454,9 +454,15 @@ def compile_libsvm():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
+    strConfigInfo = buildConfig.ensure_version()
     if not compileDependencies(Nproc):
+        if strConfigInfo:
+            print(yellow(strConfigInfo))
         return False
-    return compileXmipp(Nproc)
+    compileStatus = compileXmipp(Nproc)
+    if strConfigInfo:
+        print(yellow(strConfigInfo))
+    return compileStatus
 
 
 def compileDependencies(Nproc):
@@ -486,7 +492,6 @@ def compileXmipp(Nproc):
         return False
     if not compileModule(Nproc,"xmippViz"):
         return False
-    buildConfig.ensure_version()
     return True
 
 def runTests(testNames):
