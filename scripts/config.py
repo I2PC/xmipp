@@ -884,9 +884,9 @@ class Config:
 
     def ensure_version(self):
         if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
-            return "We did some changes in repository which may not be compatible with your current config file. " \
-                   "Run './xmipp config' to generate a new config file and compile Xmipp again. " \
-                   "We recommend you to create a backup before regenerating it (use --help for additional info)"
+            return "We did some changes in repository which may not be compatible with your current config file.\n" \
+                   "Run './xmipp config' to generate a new config file and compile Xmipp again.\n" \
+                   "We recommend you to create a backup before regenerating it (use --help for additional info)\n"
         else:
             return ''
 

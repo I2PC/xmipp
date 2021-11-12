@@ -454,15 +454,9 @@ def compile_libsvm():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
-    strConfigInfo = buildConfig.ensure_version()
     if not compileDependencies(Nproc):
-        if strConfigInfo:
-            print(yellow(strConfigInfo))
         return False
-    compileStatus = compileXmipp(Nproc)
-    if strConfigInfo:
-        print(yellow(strConfigInfo))
-    return compileStatus
+    return compileXmipp(Nproc)
 
 
 def compileDependencies(Nproc):
@@ -898,6 +892,7 @@ if __name__ == '__main__':
             sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
+        strConfigInfo = buildConfig.ensure_version()
         if n<=3:
             ok = compile(Nproc)
             module = 'Xmipp'
@@ -906,6 +901,8 @@ if __name__ == '__main__':
             ok = compileModule(Nproc,sys.argv[3])
             module = sys.argv[3]
         if ok:
+            if strConfigInfo:
+                print(yellow(strConfigInfo))
             print("\n"
                   "  * %s have been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
@@ -922,7 +919,6 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
-
         ok = compile(Nproc)
         ok = ok and install(dir)
         if not ok:
@@ -960,6 +956,7 @@ if __name__ == '__main__':
             buildConfig.create()
         else:
             print(blue("'%s' detected." % Config.FILE_NAME))
+        strConfigInfo = buildConfig.ensure_version()
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
         ok = (buildConfig.check()
@@ -968,6 +965,8 @@ if __name__ == '__main__':
             and getSources(branch)
             and compile(Nproc)
             and install(buildDir))
+        if strConfigInfo:
+            print(yellow(strConfigInfo))
         if ok:
            sys.exit(0)
         else:
