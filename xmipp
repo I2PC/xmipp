@@ -454,10 +454,9 @@ def compile_libsvm():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
-    strConfigInfo = buildConfig.ensure_version()
     if not compileDependencies(Nproc):
-        return False, strConfigInfo
-    return compileXmipp(Nproc), strConfigInfo
+        return False
+    return compileXmipp(Nproc)
 
 
 def compileDependencies(Nproc):
@@ -893,11 +892,11 @@ if __name__ == '__main__':
             sys.exit(1)
     elif mode=="compile":
         Nproc = 8 if n<3 else sys.argv[2]
+        strConfigInfo = buildConfig.ensure_version()
         if n<=3:
-            ok, strConfigInfo = compile(Nproc)
+            ok = compile(Nproc)
             module = 'Xmipp'
         else:
-            strConfigInfo = buildConfig.ensure_version()
             compileDependencies(Nproc)
             ok = compileModule(Nproc,sys.argv[3])
             module = sys.argv[3]
@@ -922,7 +921,8 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
-        ok, strConfigInfo = compile(Nproc)
+        strConfigInfo = buildConfig.ensure_version()
+        ok = compile(Nproc)
         ok = ok and install(dir)
         if strConfigInfo:
             print(yellow(strConfigInfo))
@@ -962,18 +962,17 @@ if __name__ == '__main__':
             print(blue("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
+        strConfigInfo = buildConfig.ensure_version()
         ok = (buildConfig.check()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
             and getSources(branch))
-        okCom, strConfigInfo = compile(Nproc)
+        okCom = compile(Nproc)
         ok = (ok
             and okCom
             and install(buildDir))
-
         if strConfigInfo:
             print(yellow(strConfigInfo))
-
         if ok:
            sys.exit(0)
         else:
