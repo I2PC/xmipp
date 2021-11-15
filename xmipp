@@ -901,15 +901,13 @@ if __name__ == '__main__':
             ok = compileModule(Nproc,sys.argv[3])
             module = sys.argv[3]
         if ok:
-            if strConfigInfo:
-                print(yellow(strConfigInfo))
+            printIfConfigNotLatest(strConfigInfo)
             print("\n"
                   "  * %s have been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
         else:
-            if strConfigInfo:
-                print(yellow(strConfigInfo))
+            printIfConfigNotLatest(strConfigInfo)
             print(red("\nSome error occurred during the compilation\n"))
             sys.exit(1)
     elif mode == "compileAndInstall":
@@ -924,8 +922,7 @@ if __name__ == '__main__':
         strConfigInfo = buildConfig.ensure_version()
         ok = compile(Nproc)
         ok = ok and install(dir)
-        if strConfigInfo:
-            print(yellow(strConfigInfo))
+        printIfConfigNotLatest(strConfigInfo)
         if not ok:
             print(red("\nSome error occurred...\n"))
             sys.exit(1)
@@ -971,8 +968,7 @@ if __name__ == '__main__':
         ok = (ok
             and okCom
             and install(buildDir))
-        if strConfigInfo:
-            print(yellow(strConfigInfo))
+        printIfConfigNotLatest(strConfigInfo)
         if ok:
            sys.exit(0)
         else:

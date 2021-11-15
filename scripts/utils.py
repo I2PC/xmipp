@@ -254,3 +254,8 @@ def ensureGit(critical=False):
 def isGitRepo(path='./'):
     return runJob('git rev-parse --git-dir > /dev/null 2>&1', cwd=path,
                   show_command=False, show_output=False)
+
+
+def printIfConfigNotLatest(strConfigInfo):
+    if strConfigInfo:
+        print(yellow(strConfigInfo))
