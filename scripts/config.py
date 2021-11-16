@@ -479,10 +479,6 @@ class Config:
                              "Skipping CUDA compilation.\n"\
                              "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "\
                              "run again 'xmipp config'."
-        self.configDict["CUDA"] = os.environ.get("CUDA", "")
-        self.configDict["CXX_CUDA"] = os.environ.get("CXX_CUDA", "")
-        if self.configDict["CUDA"] != "False" and self.configDict["CUDA"] != "True":
-            self.configDict["CUDA"] = ""
         nvcc = 'nvcc'
         if self.configDict["CUDA"] == "":
             environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
