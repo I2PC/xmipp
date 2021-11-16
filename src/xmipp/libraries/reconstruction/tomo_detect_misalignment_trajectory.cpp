@@ -38,6 +38,7 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	sdThreshold = getIntParam("--sdThreshold");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
 	checkInputCoord = checkParam("--inputCoord");
+
 	if(checkInputCoord)
 	{
 		fnInputCoord = getParam("--inputCoord");
@@ -50,7 +51,7 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addUsageLine("This function determines the location of high contrast features in a volume.");
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
-	addParamsLine("  [-o <output=\"./coordinates3D.xmd\">]       			: Output file containing the 3D coordinates.");
+	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
 	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
   	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
   	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
@@ -330,10 +331,10 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	#endif
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of(".");
+	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
 	std::string outputFileNameLabeledVolume;
-    outputFileNameLabeledVolume = rawname + "_label.mrcs";
+    outputFileNameLabeledVolume = rawname + "/ts_labeled.mrcs";
 
 	Image<double> saveImage;
 	saveImage() = labelCoordiantesMap; 
@@ -649,14 +650,14 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	}
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of(".");
+	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
 
 	std::string outputFileNameChain2dMap;
 	std::string outputFileNameClustered2dMap;
 
-    outputFileNameChain2dMap = rawname + "_filteredChains.mrc";
-    outputFileNameClustered2dMap = rawname + "_clusteredChains.mrc";
+    outputFileNameChain2dMap = rawname + "/ts_filteredChains.mrc";
+    outputFileNameClustered2dMap = rawname + "/ts_clusteredChains.mrc";
 
 	Image<int> saveImageBis;
 	saveImageBis() = clustered2dMap;
@@ -919,15 +920,11 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 {
-
-	size_t lastindex = fnOut.find_last_of("\\/");
-	std::string rawname = fnOut.substr(0, lastindex);
-
 	std::string alignmentReportPath;
-    alignmentReportPath = rawname + "/alignmentReport.xmd";
+    alignmentReportPath = fnOut;
 
 	size_t lastindexInputTS = fnOut.find_last_of(":");
-	std::string rawnameTS = fnOut.substr(0, lastindex);
+	std::string rawnameTS = fnOut.substr(0, lastindexInputTS);
 	
 	MetaDataVec md;
 	FileName fn;
@@ -936,7 +933,7 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 
 	if(!globalAlignment)
 	{
-		for(size_t i = 0; i < ySize; i++)
+		for(size_t i = 0; i < nSize; i++)
 		{
 			fn.compose(i + FIRST_IMAGE, rawnameTS);
 			id = md.addObject();
@@ -974,6 +971,11 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 {
+	size_t lastindex = fnOut.find_last_of("\\/");
+	std::string rawname = fnOut.substr(0, lastindex);
+	std::string outputFileNameLandmarkCoordinates;
+    outputFileNameLandmarkCoordinates = rawname + "/ts_landmarkCoordinates.xmd";
+
 	MetaDataVec md;
 	size_t id;
 
@@ -986,10 +988,10 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputCoordinates()
 	}
 
 
-	md.write(fnOut);
+	md.write(outputFileNameLandmarkCoordinates);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Output coordinates metadata saved at: " << fnOut << std::endl;
+	std::cout << "Output coordinates metadata saved at: " << outputFileNameLandmarkCoordinates << std::endl;
 	#endif
 
 }
@@ -1119,10 +1121,10 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	}
 	
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindex = fnOut.find_last_of(".");
+	size_t lastindex = fnOut.find_last_of("\\/");
 	std::string rawname = fnOut.substr(0, lastindex);
 	std::string outputFileNameFilteredVolume;
-    outputFileNameFilteredVolume = rawname + "_filter.mrc";
+    outputFileNameFilteredVolume = rawname + "/ts_filtered.mrcs";
 
 	Image<double> saveImage;
 	saveImage() = filteredTiltSeries;
@@ -1157,17 +1159,20 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	}
 
 	#ifdef DEBUG_OUTPUT_FILES
-	size_t lastindexBis = fnOut.find_last_of(".");
+	size_t lastindexBis = fnOut.find_last_of("\\/");
 	std::string rawnameBis = fnOut.substr(0, lastindexBis);
 	std::string outputFileNameFilteredVolumeBis;
-    outputFileNameFilteredVolumeBis = rawnameBis + "_proyected.mrc";
+    outputFileNameFilteredVolumeBis = rawnameBis + "/ts_proyected.mrc";
 
 	Image<int> saveImageBis;
 	saveImageBis() = proyectedCoordinates;
 	saveImageBis.write(outputFileNameFilteredVolumeBis);
 	#endif
 
+	#ifdef DEBUG_OUTPUT_FILES
 	writeOutputCoordinates();
+	#endif
+
 	detectLandmarkChains();
 	detectMisalignedTiltImages();
 
