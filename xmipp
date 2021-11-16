@@ -449,8 +449,7 @@ def compile_libsvm():
     ok = runJob("make lib")
     libDir = "src/xmipp/lib"
     os.chdir(currDir)
-    fnSo = os.path.join(libDir, "libsvm.so")
-    ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + fnSo)
+    ok = ok and runJob("cp " + libsvmDir + "/libsvm.so" + " " + libDir)
     return ok
 
 def compile(Nproc):
