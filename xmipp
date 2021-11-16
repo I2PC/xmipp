@@ -963,10 +963,8 @@ if __name__ == '__main__':
         ok = (buildConfig.check()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
-            and getSources(branch))
-        okCom = compile(Nproc)
-        ok = (ok
-            and okCom
+            and getSources(branch)
+            and compile(Nproc)
             and install(buildDir))
         printIfConfigNotLatest(strConfigInfo)
         if ok:
