@@ -892,16 +892,15 @@ if __name__ == '__main__':
             sys.exit(1)
     elif mode == "compile":
         Nproc = 8 if n < 3 else sys.argv[2]
+        buildConfig.check_version()
         ok = compile(Nproc)
         module = 'Xmipp'
         if ok:
-            printIfConfigNotLatest(strConfigInfo)
             print("\n"
                   "  * %s have been successfully compiled * \n"
                   "    > > > Don't forget to install! < < <   \n\n"
                   % module)
         else:
-            printIfConfigNotLatest(strConfigInfo)
             print(red("\nSome error occurred during the compilation\n"))
             sys.exit(1)
     elif mode == "compileAndInstall":
@@ -913,10 +912,9 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
-        strConfigInfo = buildConfig.ensure_version()
+        buildConfig.check_version()
         ok = compile(Nproc)
         ok = ok and install(dir)
-        printIfConfigNotLatest(strConfigInfo)
         if not ok:
             print(red("\nSome error occurred...\n"))
             sys.exit(1)
@@ -953,14 +951,13 @@ if __name__ == '__main__':
             print(blue("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
-        strConfigInfo = buildConfig.ensure_version()
+        buildConfig.check_version()
         ok = (buildConfig.check()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
             and getSources(branch)
             and compile(Nproc)
             and install(buildDir))
-        printIfConfigNotLatest(strConfigInfo)
         if ok:
            sys.exit(0)
         else:
