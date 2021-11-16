@@ -454,6 +454,7 @@ def compile_libsvm():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
+    buildConfig.check_version()
     if not compileDependencies(Nproc):
         return False
     return compileXmipp(Nproc)
@@ -888,7 +889,6 @@ if __name__ == '__main__':
             sys.exit(1)
     elif mode == "compile":
         Nproc = 8 if n < 3 else sys.argv[2]
-        buildConfig.check_version()
         ok = compile(Nproc)
         module = 'Xmipp'
         if ok:
@@ -908,7 +908,6 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
-        buildConfig.check_version()
         ok = compile(Nproc)
         ok = ok and install(dir)
         if not ok:
@@ -947,7 +946,6 @@ if __name__ == '__main__':
             print(blue("'%s' detected." % Config.FILE_NAME))
         # HACK: re-read it from file to resolve paths
         buildConfig.read()
-        buildConfig.check_version()
         ok = (buildConfig.check()
             and downloadDeepLearningModels(buildDir)
             and getDependencies()
