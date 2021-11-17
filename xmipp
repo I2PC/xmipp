@@ -443,6 +443,7 @@ def compile_googletest():
     return ok
 
 def compile_libsvm():
+    #if the libsvm repo is updated, remember that the repoFork/Makefile was edited to remove references to libsvm-so.2
     currDir = os.getcwd()
     libsvmDir = os.path.join("src", "libsvm")
     os.chdir(libsvmDir)
