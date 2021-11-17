@@ -454,7 +454,7 @@ def compile_libsvm():
 def compile(Nproc):
     if isinstance(Nproc, str) and Nproc.startswith('N='):
         Nproc = int(Nproc.split('N=')[1])
-    buildConfig.ensure_version()
+    buildConfig.check_version()
     if not compileDependencies(Nproc):
         return False
     return compileXmipp(Nproc)
@@ -798,12 +798,8 @@ def usage(msg=''):
           "   config [noAsk]:             Configure compilation variables. If 'noAsk' is passed, it will try to automatically found some libraries and compilers. \n"
           "                               for compiling using system libraries\n"
           "   check_config:               Check that the configuration is correct\n"
-          "   compile [N]:                Compile all modules with N processors (8 by default)\n"
-          "   compile N dependencies:     Compile dependencies\n"
-          "   compileAndInstall [N] [dir] Compile all modules with N processors (8 by default) and install in the dir directory ('build' by default)\n"
-          "   compile  N xmippCore:       Compile xmippCore\n"
-          "   compile  N xmipp:           Compile xmipp\n"
-          "   compile  N xmippViz:        Compile xmippViz\n"
+          "   compile [N]:                Compile with N processors (8 by default)\n"
+          "   compileAndInstall [N] [dir] Compile with N processors (8 by default) and install in the dir directory ('build' by default)\n"
           "   install [dir]:              Install at dir (./build by default)\n"
           "   get_models [dir]:           Download the Deep Learning Models at dir/models (./build/models by default).\n"
           "   test [--show] testName:     Run tests to check Xmipp programs (without args, it shows a detailed help).\n"
@@ -838,7 +834,7 @@ if __name__ == '__main__':
     for idx, arg in enumerate(sys.argv):
         if ' ' in arg:  # to preserve spaces between "comas"
             sys.argv[idx] = '"%s"' % sys.argv[idx]
-    if n>=2:
+    if n >= 2:
         mode = sys.argv[1]
     else:
         mode = "all"
@@ -849,7 +845,7 @@ if __name__ == '__main__':
     buildConfig = Config(askUser)
     buildConfig.read()
 
-    if mode=="cleanAll":
+    if mode == "cleanAll":
         print("WARNING: This will DELETE ALL content from src and build")
         print("         Notice that if you have unpushed changes, \n"
               "           they will be deleted.\n")
@@ -863,11 +859,11 @@ if __name__ == '__main__':
             print("Nothing cleaned")
             if yesno.lower()=="yes":
                 print("Pay attention to capital letters of YeS")
-    elif mode=="get_dependencies":
+    elif mode == "get_dependencies":
         getDependencies()
-    elif mode=="cleanBin":
+    elif mode == "cleanBin":
         cleanBinaries()
-    elif mode=="version":
+    elif mode == "version":
         buildDir = 'build'
         shortFlag = ''
         for arg in sys.argv[2:]:
@@ -882,24 +878,19 @@ if __name__ == '__main__':
         else:
             runJob(". %s ; %s %s" % (envSetting, versionBin, shortFlag),
                    show_command=False)
-    elif mode=="get_devel_sources":
+    elif mode == "get_devel_sources":
         branch = None if n==2 else sys.argv[2]
         getSources(branch)
-    elif mode=="config":
+    elif mode == "config":
         buildConfig.create()
-    elif mode=="check_config":
+    elif mode == "check_config":
         if not buildConfig.check():
             print(red("\nCheck failed! Something wrong with the configuration.\n"))
             sys.exit(1)
-    elif mode=="compile":
-        Nproc = 8 if n<3 else sys.argv[2]
-        if n<=3:
-            ok = compile(Nproc)
-            module = 'Xmipp'
-        else:
-            compileDependencies(Nproc)
-            ok = compileModule(Nproc,sys.argv[3])
-            module = sys.argv[3]
+    elif mode == "compile":
+        Nproc = 8 if n < 3 else sys.argv[2]
+        ok = compile(Nproc)
+        module = 'Xmipp'
         if ok:
             print("\n"
                   "  * %s have been successfully compiled * \n"
@@ -917,25 +908,23 @@ if __name__ == '__main__':
                     Nproc = arg
                 else:
                     dir = arg
-
         ok = compile(Nproc)
         ok = ok and install(dir)
         if not ok:
             print(red("\nSome error occurred...\n"))
             sys.exit(1)
-
-    elif mode=="install":
-        if n==3:
-            dir=sys.argv[2]
+    elif mode == "install":
+        if n == 3:
+            dir = sys.argv[2]
         else:
-            dir="build"
+            dir = "build"
         install(dir)
-    elif mode=="get_models":
+    elif mode == "get_models":
         modelsDir = 'build' if n==2 else sys.argv[2]
         downloadDeepLearningModels(modelsDir, dedicatedMode=True)
-    elif mode=="test" or mode=="tests":
+    elif mode == "test" or mode == "tests":
         runTests(sys.argv[2:])
-    elif mode=="all":
+    elif mode == "all":
         Nproc = 8
         branch = ''
         buildDir = 'build'
@@ -967,32 +956,32 @@ if __name__ == '__main__':
            sys.exit(0)
         else:
            sys.exit(1)
-    elif mode=="create_devel_paths":
-        if n==3:
-            dir=sys.argv[2]
+    elif mode == "create_devel_paths":
+        if n == 3:
+            dir = sys.argv[2]
         else:
-            dir="."
+            dir = "."
         writeDevelPaths(dir)
-    elif mode=="git":
+    elif mode == "git":
         ensureGit(True)
         runJob("(cd src/xmippCore; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmipp; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/xmippViz; git %s)"%" ".join(sys.argv[2:]))
         runJob("(cd src/scipion-em-xmipp; git %s)"%" ".join(sys.argv[2:]))
-    elif mode=="gitConfig":
+    elif mode == "gitConfig":
         ensureGit(True)
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippCore/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' .git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/xmippViz/.git/config")
         runJob("sed -i 's/https:\/\/github.com\//git@github.com:/g' src/scipion-em-xmipp/.git/config")
-    elif mode=='addModel':
+    elif mode == 'addModel':
         update = False
-        if not (n == 4 or (n==5 and sys.argv[4] == '--update') or (n==3 and sys.argv[2] == '--help')):
+        if not (n == 4 or (n == 5 and sys.argv[4] == '--update') or (n == 3 and sys.argv[2] == '--help')):
             print("Incorrect number of parameters.\n")
             usage()
             sys.exit(1)
         addDeepLearninModel(*sys.argv[2:])
-    elif mode=='tar':
+    elif mode == 'tar':
         if len(sys.argv) < 3:
             runJob("scripts/tar.py --help")
             sys.exit(0)
