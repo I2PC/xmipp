@@ -681,63 +681,75 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 		// Calculate distances
 		coordinatesInSlice = getCoordinatesInSlice(n);
 
-		#ifdef DEBUG_MISALI
-		// Vector holding the distance of each landmark to its closest chain
-		std::vector<double> vectorDistance;
-		#endif
-
-		for (size_t coord = 0; coord < coordinatesInSlice.size(); coord++)
+		if coordinatesInSlice.size() > 0
 		{
-			Point2D<double> coord2D = coordinatesInSlice[coord];
-			size_t matchCoordX = (size_t)-1; // Maximum possible size_t datatype
-			size_t matchCoordY = (size_t)-1; // Maximum possible size_t datatype
 
-			bool found = false;
+			#ifdef DEBUG_MISALI
+			// Vector holding the distance of each landmark to its closest chain
+			std::vector<double> vectorDistance;
+			#endif
 
-			// Find distance to closest neighbour
-			for (int distance = 1; distance < thrChainDistance; distance++)
+			for (size_t coord = 0; coord < coordinatesInSlice.size(); coord++)
 			{
-				for (int i = -distance; i < distance; i++)
-				{
-					for (int j = -(distance - abs(i)); j <= (distance - abs(i)); j++)
-					{
-						if ((abs(j)+abs(i) == distance) && (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0))
-						{
-							if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
-							{
-								#ifdef DEBUG_MISALI
-								// std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
-								#endif
+				Point2D<double> coord2D = coordinatesInSlice[coord];
+				size_t matchCoordX = (size_t)-1; // Maximum possible size_t datatype
+				size_t matchCoordY = (size_t)-1; // Maximum possible size_t datatype
 
-								found = true;
-								matchCoordX = i;
-								matchCoordX = j;
+				bool found = false;
+
+				// Find distance to closest neighbour
+				for (int distance = 1; distance < thrChainDistance; distance++)
+				{
+					for (int i = -distance; i < distance; i++)
+					{
+						for (int j = -(distance - abs(i)); j <= (distance - abs(i)); j++)
+						{
+							if ((abs(j)+abs(i) == distance) && (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0))
+							{
+								if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
+								{
+									#ifdef DEBUG_MISALI
+									// std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
+									#endif
+
+									found = true;
+									matchCoordX = i;
+									matchCoordX = j;
+								}
 							}
 						}
 					}
+					
+					if(found)
+					{
+						break;
+					}
 				}
-				
-				if(found)
-				{
-					break;
-				}
-			}
 
-			if(!found)
-			{
+				if(!found)
+				{
+					#ifdef DEBUG_MISALI
+					// std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
+					#endif
+
+					vectorDistance.push_back(0);
+					lmOutRange[n] += 1;
+				}
 				#ifdef DEBUG_MISALI
-				// std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
+				else
+				{
+					vectorDistance.push_back(sqrt(matchCoordX*matchCoordX + matchCoordY*matchCoordY));
+				}
+				#endif
+			}
+		}else
+			{
+				#ifdef VERBOSE_OUTPUT
+				std::cout << "No landmarks detected in slice " << n << ". IMPOSSIBLE TO DETECT POTENTIAL MISALIGNMENT IN THIS IMAGE." std::endl;
 				#endif
 
-				vectorDistance.push_back(0);
-				lmOutRange[n] += 1;
+				lmOutRange[n] = 0;
 			}
-			#ifdef DEBUG_MISALI
-			else
-			{
-				vectorDistance.push_back(sqrt(matchCoordX*matchCoordX + matchCoordY*matchCoordY));
-			}
-			#endif
 		}
 
 		#ifdef DEBUG_MISALI
