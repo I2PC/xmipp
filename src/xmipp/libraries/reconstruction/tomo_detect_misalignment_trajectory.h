@@ -50,7 +50,7 @@
 // #define DEBUG_DIM
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
-// #define DEBUG_CHAINS
+#define DEBUG_CHAINS
 #define DEBUG_MISALI
 #define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
