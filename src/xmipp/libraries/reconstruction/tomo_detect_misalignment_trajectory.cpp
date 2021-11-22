@@ -681,7 +681,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 		// Calculate distances
 		coordinatesInSlice = getCoordinatesInSlice(n);
 
-		if coordinatesInSlice.size() > 0
+		if(coordinatesInSlice.size() > 0)
 		{
 
 			#ifdef DEBUG_MISALI
@@ -742,25 +742,29 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 				}
 				#endif
 			}
-		}else
+
+			#ifdef DEBUG_MISALI
+			for (size_t i = 0; i < vectorDistance.size(); i++)
 			{
-				#ifdef VERBOSE_OUTPUT
-				std::cout << "No landmarks detected in slice " << n << ". IMPOSSIBLE TO DETECT POTENTIAL MISALIGNMENT IN THIS IMAGE." std::endl;
-				#endif
-
-				lmOutRange[n] = 0;
+				std::cout << vectorDistance[i];
 			}
+			
+			std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
+			(float)(lmOutRange[n]/coordinatesInSlice.size()) << "\n"<< std::endl;
+			#endif
+		}
+		else
+		{
+			#ifdef VERBOSE_OUTPUT
+			std::cout << "No landmarks detected in slice " << n << ". IMPOSSIBLE TO DETECT POTENTIAL MISALIGNMENT IN THIS IMAGE." << std::endl;
+			#endif
+
+			lmOutRange[n] = 0;
+			#ifdef DEBUG_MISALI
+			std::cout << "lmOutRange[" << n << "]=" << lmOutRange[n] << "\n"<< std::endl;
+			#endif
 		}
 
-		#ifdef DEBUG_MISALI
-		for (size_t i = 0; i < vectorDistance.size(); i++)
-		{
-			std::cout << vectorDistance[i];
-		}
-		
-		std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
-		(float)(lmOutRange[n]/coordinatesInSlice.size()) << "\n"<< std::endl;
-		#endif
 	}
 
 	// Detect misalignment
@@ -1301,13 +1305,19 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	std::cout << "(float)totalLandmarks/((float)chainIndexesY.size())=" << (float)totalLandmarks/((float)chainIndexesY.size()) << std::endl;
 	std::cout << "top10Landmarks/10=" << (float)top10Landmarks/10.0 << std::endl;
 
-	// *** NORMALIZE THRESHOLDS WITH THE XSIZE OF THE TOMOGRAM
+	// Global misalignment criteria (we divide by xSize to normalize according to the width of the tilt-series images)
+	float thrTop10Landmarks = (float)top10Landmarks/(10.0*xSize);
+	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size()*xSize);
+
+	std::cout << "thrTop10Landmarks=" << thrTop10Landmarks << std::endl;
+	std::cout << "thrAvgLandmarkPerChain=" << thrAvgLandmarkPerChain << std::endl;
 
 	//*** make thresholds global and more accurate
-	if(((float)totalLandmarks/((float)chainIndexesY.size()))<20 || ((float)top10Landmarks/10.0) < 50)
+	if(thrAvgLandmarkPerChain < 20/xSize || thrTop10Landmarks < 50/xSize)
 	{
-		// Bad alignment
+		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
+		#endif
 		return false;
 	}
 	else
