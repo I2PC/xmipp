@@ -1861,10 +1861,10 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* Return center of mass as a tuple */
 PyObject *
-Image_centerOfMass(PyObject *obj, PyObject *args, PyObject *kwargs)
+Image_centerOfMass(PyObject *obj)
 {
-    ImageObject *self = (ImageObject*) obj;
-    if (self != NULL)
+    auto *self = (ImageObject*) obj;
+    if (self != nullptr)
     {
         try
         {
@@ -1875,10 +1875,10 @@ Image_centerOfMass(PyObject *obj, PyObject *args, PyObject *kwargs)
             in->centerOfMass(center);
             return Py_BuildValue("fff", XX(center), YY(center), ZZ(center));
         }
-        catch (XmippError &xe)
+        catch (const XmippError &xe)
         {
             PyErr_SetString(PyXmippError, xe.msg.c_str());
         }
     }
-    return NULL;
+    return nullptr;
 }
