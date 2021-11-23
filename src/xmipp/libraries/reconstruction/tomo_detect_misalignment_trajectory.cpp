@@ -1306,14 +1306,14 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	std::cout << "top10Landmarks/10=" << (float)top10Landmarks/10.0 << std::endl;
 
 	// Global misalignment criteria (we divide by xSize to normalize according to the width of the tilt-series images)
-	float thrTop10Landmarks = (float)top10Landmarks/(10.0*xSize);
-	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size()*xSize);
+	float thrTop10Landmarks = (float)top10Landmarks/(10.0*xSize); // 26.2    0.0255
+	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size()*xSize); // 17.31    0.01690
 
 	std::cout << "thrTop10Landmarks=" << thrTop10Landmarks << std::endl;
 	std::cout << "thrAvgLandmarkPerChain=" << thrAvgLandmarkPerChain << std::endl;
 
 	//*** make thresholds global and more accurate
-	if(thrAvgLandmarkPerChain < 20/xSize || thrTop10Landmarks < 50/xSize)
+	if(thrTop10Landmarks < float(50)/xSize || thrAvgLandmarkPerChain < float(20)/xSize) // 50 0.48828   20 0.019531
 	{
 		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
