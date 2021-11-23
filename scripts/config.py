@@ -39,6 +39,10 @@ class Config:
     KEY_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
     KEY_CXX = 'CXX'
     KEY_LINKFLAGS = 'LINKFLAGS'
+    OPT_CUDA = 'CUDA'
+    OPT_CXX_CUDA = 'CXX_CUDA'
+    OPT_NVCC = 'NVCC'
+
 
     def __init__(self, askUser=False):
         self.ask = askUser
@@ -52,6 +56,7 @@ class Config:
             self.configDict['VERIFIED'] = 'False'
 
         self._config_compiler()
+        self._set_CUDA()
         self._config_CUDA()
         self._config_MPI()
         self._config_Java()
@@ -473,6 +478,96 @@ class Config:
         elif 11.0 <= nvcc_version <= 11.2:
             return v[v.index('9.3'):]
         return []  # not supported
+
+    def _set_nvcc(self):
+        if not self.is_empty(Config.OPT_NVCC):
+            return True
+
+        nvcc_loc_candidates = {os.environ.get('XMIPP_CUDA_BIN', ''),
+                               os.environ.get('CUDA_BIN', ''),
+                               '/usr/local/cuda/bin',
+                               '/usr/local/cuda*/bin'} #if there is no -ln on /usr/local/cuda ?
+        nvcc_loc = find('nvcc', nvcc_loc_candidates)
+        if not nvcc_loc:
+            print(yellow('nvcc not found (searched in %s). If you want to enable CUDA, add \'nvcc\' to PATH. %s' % (
+                nvcc_loc_candidates, self._get_help_msg())))
+            return False
+        print(green('nvcc found in ' + nvcc_loc))
+        self._set(Config.OPT_NVCC, nvcc_loc)
+        return True
+
+    def _set_nvcc_cxx(self, nvcc_version):
+        if not self.is_empty(Config.OPT_CXX_CUDA):
+            return True
+        candidates = self._get_compatible_GCC(nvcc_version)
+        prg = find_newest('g++', candidates,  True)
+        if not prg:# searching a g++ for devToolSet on CentOS
+            if str(self._get_GCC_version('g++')[0]) in candidates:
+                prg = whereis('g++')
+                if not prg:
+                    print(yellow('No valid compiler found for CUDA host code. '
+                                 + self._get_help_msg()))
+                    return False
+        self._set(Config.OPT_CXX_CUDA, prg)
+        return True
+
+    def _set_nvcc_lib_dir(self):
+        opt = Config.OPT_NVCC_LINKFLAGS
+        if not self.is_empty(opt):
+            return True
+
+        dirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
+                'lib/x86_64-linux-gnu']
+        # assume cuda_dir/bin/nvcc
+        locs = [os.path.dirname(os.path.dirname(self.get(Config.OPT_NVCC))),
+                os.environ.get('XMIPP_CUDA_LIB', ''),
+                os.environ.get('CUDA_LIB', ''),
+                os.environ.get('LD_LIBRARY_PATH', ''),
+                '/usr'
+                ]
+
+        def search():
+            for l in locs:
+                for d in dirs:
+                    tmp = os.path.join(l, d, 'libcudart.so')
+                    if os.path.isfile(tmp):
+                        return os.path.dirname(tmp)
+            return None
+
+        path = search()
+        if path is None:
+            print(yellow(
+                'WARNING: CUDA libraries (libcudart.so) not found. ' + self._get_help_msg()))
+            return False
+        # nvidia-ml is in stubs folder
+        self._set(opt, self._join_with_prefix(
+            [path, os.path.join(path, 'stubs')], '-L'))
+        return True
+
+    def _set_nvcc_flags(self):
+        pass
+
+    def _set_CUDA(self):
+        if not self.is_empty(Config.OPT_CUDA):
+            return
+
+        if not self._set_nvcc():
+            return
+
+        nvcc_version, nvcc_full_version = self._get_CUDA_version(
+            self.get(Config.OPT_NVCC))
+        print(green('CUDA-' + nvcc_full_version + ' found.'))
+        if nvcc_version != 10.2:
+            print(yellow('CUDA-10.2 is recommended.'))
+        if not self._set_nvcc_cxx(nvcc_version) or not self._set_nvcc_lib_dir():
+            return
+        self._set_nvcc_flags(nvcc_version)
+
+        # update config and environment
+        self._set(Config.OPT_CUDA, True)
+        self.environment.update(CUDA=True)
+        LD = ':'.join(self.get(Config.OPT_NVCC_LINKFLAGS).split('-L'))
+        self.environment.update(LD_LIBRARY_PATH=LD)
 
     def _config_CUDA(self):
         strPrintNoGCCValid = "No valid compiler found. "\
