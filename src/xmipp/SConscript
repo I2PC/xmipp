@@ -94,7 +94,7 @@ def getHdf5Name(libdirs):
     return "hdf5"
 
 ALL_LIBS = {'fftw3',
-    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3',
+    'fftw3_threads', 'tiff', 'jpeg', 'sqlite3','libsvm',
     getHdf5Name(env['EXTERNAL_LIBDIRS']), 'hdf5_cpp','XmippCore'}
 
 # Create a shortcut and customized function
@@ -148,11 +148,11 @@ else:
     python_incdirs = []
 
 # Basic libraries
-dirs = ['external','external','external','libraries','libraries','libraries','libraries','libraries']
-patterns=['condor/*.cpp','delaunay/*.cpp','libsvm/*cpp','data/*.cpp','reconstruction/*.cpp',
+dirs = ['external','external','libraries','libraries','libraries','libraries','libraries']
+patterns=['condor/*.cpp','delaunay/*.cpp','data/*.cpp','reconstruction/*.cpp',
           'classification/*.cpp','dimred/*.cpp','interface/*.cpp']
 addLib('Xmipp', dirs=dirs, patterns=patterns, incs=python_incdirs,
-       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads'])
+       libs=['pthread', PYTHON_LIB, 'fftw3f', 'fftw3f_threads','svm'])
 
 
 # FRM library
@@ -205,7 +205,7 @@ PROG_DEPS = XMIPP_LIBS
 PROG_LIBS = XMIPP_LIBS + [
     getHdf5Name(env['EXTERNAL_LIBDIRS']),
     'hdf5_cpp', 'fftw3', 'fftw3_threads', 'jpeg', 'tiff', 'fftw3f',
-    'fftw3f_threads', PYTHON_LIB, 'pthread'
+    'fftw3f_threads', PYTHON_LIB, 'pthread','libsvm'
 ]
 TEST_LIBS = ['libgtest', 'libgtest_main']
 
