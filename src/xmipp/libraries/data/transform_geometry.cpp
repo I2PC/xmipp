@@ -259,6 +259,14 @@ void ProgTransformGeometry::processImage(const FileName &fnImg,
 		rowOut.setValue(MDL_SHIFT_X, -posp(0));
 		rowOut.setValue(MDL_SHIFT_Y, -posp(1));
 		T.initIdentity(3);
+		int nx;
+		rowIn.getValue(MDL_XCOOR, nx);
+		nx += - posp(0);
+		rowOut.setValue(MDL_XCOOR, nx);
+		int ny;
+		rowIn.getValue(MDL_YCOOR, ny);
+		ny += - posp(1);
+		rowOut.setValue(MDL_YCOOR, ny);
 		geo2TransformationMatrix(rowOut, T, true);
     }
 
