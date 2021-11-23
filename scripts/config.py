@@ -42,6 +42,8 @@ class Config:
     OPT_CUDA = 'CUDA'
     OPT_CXX_CUDA = 'CXX_CUDA'
     OPT_NVCC = 'NVCC'
+    OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
+    OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
 
 
     def __init__(self, askUser=False):
@@ -57,7 +59,7 @@ class Config:
 
         self._config_compiler()
         self._set_CUDA()
-        self._config_CUDA()
+        #self._config_CUDA()
         self._config_MPI()
         self._config_Java()
 
@@ -133,6 +135,10 @@ class Config:
         if value is None:
             return option in self.get()
         return option in self.get() and value in self.get()[option]
+
+    def _set_if_empty(self, option, value):
+        if self.is_empty(option):
+            self._set(option, value)
 
     def read(self, fnConfig=FILE_NAME):
         try:
@@ -479,6 +485,9 @@ class Config:
             return v[v.index('9.3'):]
         return []  # not supported
 
+    def _join_with_prefix(self, collection, prefix):
+        return ' '.join([prefix + i for i in collection if i])
+
     def _set_nvcc(self):
         if not self.is_empty(Config.OPT_NVCC):
             return True
@@ -508,6 +517,7 @@ class Config:
                     print(yellow('No valid compiler found for CUDA host code. '
                                  + self._get_help_msg()))
                     return False
+
         self._set(Config.OPT_CXX_CUDA, prg)
         return True
 
@@ -544,8 +554,23 @@ class Config:
             [path, os.path.join(path, 'stubs')], '-L'))
         return True
 
-    def _set_nvcc_flags(self):
-        pass
+    def _set_nvcc_flags(self, nvcc_version):
+        flags = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                 "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
+                 # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                 "-gencode=arch=compute_35,code=compute_35 "
+                 "-gencode=arch=compute_50,code=compute_50 "
+                 "-gencode=arch=compute_60,code=compute_60 "
+                 "-gencode=arch=compute_61,code=compute_61")
+        if nvcc_version >= 11:
+            flags = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                     "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
+                     # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                     "-gencode=arch=compute_60,code=compute_60 "
+                     "-gencode=arch=compute_61,code=compute_61 "
+                     "-gencode=arch=compute_75,code=compute_75 "
+                     "-gencode=arch=compute_86,code=compute_86")
+        self._set_if_empty(Config.OPT_NVCC_CXXFLAGS, flags)
 
     def _set_CUDA(self):
         if not self.is_empty(Config.OPT_CUDA):
