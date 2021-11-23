@@ -154,7 +154,8 @@ PyMethodDef Image_methods[] =
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
 		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
 		  "compute radial average around an axis" },
-
+        { "centerOfMass", (PyCFunction) Image_centerOfMass, METH_VARARGS,
+          "Return image center of mass as a tuple" },
 
         { nullptr } /* Sentinel */
     };//Image_methods
@@ -1856,4 +1857,28 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	        PyErr_SetString(PyXmippError, xe.msg.c_str());
 	    }
     return Py_BuildValue("");
+}
+
+/* Return center of mass as a tuple */
+PyObject *
+Image_centerOfMass(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (self != NULL)
+    {
+        try
+        {
+            Matrix1D< double > center;
+            self->image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*self->image).getMultidimArrayPointer(in);
+            in->centerOfMass(center);
+            return Py_BuildValue("fff", XX(center), YY(center), ZZ(center));
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return NULL;
 }

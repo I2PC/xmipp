@@ -263,6 +263,9 @@ Image_inplaceDivide(PyObject *self, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+PyObject *
+Image_centerOfMass(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 
 extern PyNumberMethods Image_NumberMethods;
 extern PyMethodDef Image_methods[];
