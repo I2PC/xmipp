@@ -282,7 +282,7 @@
 	// contours vector
 	std::vector<std::vector<Point>> contours;
 	std::vector<Vec4i> hierarchy;
-	char *fnmaskth="Runs/001567_XmippProtSubtractProjection/extra/maskFocusTh.vol";
+	char *fnmaskth="Runs/003868_XmippProtSubtractProjection/extra/maskFocusTh.vol";
 	std::cout << "-----" << fnmaskth << std::endl;
 	Mat src = imread(fnmaskth);
 	// find contours for the thresholded image
