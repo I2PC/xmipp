@@ -95,11 +95,11 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	minimumDistance = 0.01*xSize;
 }
 
-void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &inputTiltSeries) //*** tiltImage*
+void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
 {
 	FourierTransformer transformer1(FFTW_BACKWARD);
 	MultidimArray<std::complex<double>> fftImg;
-	transformer1.FourierTransform(inputTiltSeries, fftImg, true);
+	transformer1.FourierTransform(tiltImage, fftImg, true);
 
 	double w = 0.03;
 
@@ -113,8 +113,8 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
     double uy, ux, u, uy2;
 
-    size_t ydimImg = YSIZE(inputTiltSeries);
-    size_t xdimImg = XSIZE(inputTiltSeries);
+    size_t ydimImg = YSIZE(tiltImage);
+    size_t xdimImg = XSIZE(tiltImage);
 
 	long n=0;
 
@@ -149,7 +149,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 		}
 	}
 
-	transformer1.inverseFourierTransform(fftImg, inputTiltSeries);
+	transformer1.inverseFourierTransform(fftImg, tiltImage);
 }
 
 
