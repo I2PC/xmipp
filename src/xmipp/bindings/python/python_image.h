@@ -264,7 +264,7 @@ PyObject *
 Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 PyObject *
-Image_centerOfMass(PyObject *obj, PyObject *args, PyObject *kwargs);
+Image_centerOfMass(PyObject *obj);
 
 
 extern PyNumberMethods Image_NumberMethods;
