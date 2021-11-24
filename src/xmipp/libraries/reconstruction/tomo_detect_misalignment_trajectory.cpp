@@ -166,7 +166,6 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 	labelCoordiantesMap.initZeros(nSize, zSize, ySize, xSize);
 
-	// *** renombrar k por z
 	for(size_t k = 0; k < nSize; ++k)
 	{
 		std::vector<int> sliceVector;
@@ -187,6 +186,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			// search in the cosine streched region common for all the images
             for(size_t j = xCSmin; j < xCSmax; ++j)
             {
+				/// *** enhance performance: do not use slice vector, sum directly from image
                 sliceVector.push_back(DIRECT_NZYX_ELEM(tiltSeriesFiltered, k, 0, i ,j));
             }
         }
@@ -223,7 +223,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 
 		for(size_t i = 0; i < ySize; i++)
 		{
-			// search in the cosine streched region common for all the images
+			// Search in the cosine streched region common for all the images
             for(size_t j = xCSmin; j < xCSmax; ++j)
 			{
 				double value = DIRECT_A3D_ELEM(tiltSeriesFiltered, k, i, j);
@@ -1306,14 +1306,14 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	std::cout << "top10Landmarks/10=" << (float)top10Landmarks/10.0 << std::endl;
 
 	// Global misalignment criteria (we divide by xSize to normalize according to the width of the tilt-series images)
-	float thrTop10Landmarks = (float)top10Landmarks/(10.0*xSize); // 26.2    0.0255
-	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size()*xSize); // 17.31    0.01690
+	float thrTop10Landmarks = (float)top10Landmarks/(10.0*xSize);
+	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size()*xSize);
 
 	std::cout << "thrTop10Landmarks=" << thrTop10Landmarks << std::endl;
 	std::cout << "thrAvgLandmarkPerChain=" << thrAvgLandmarkPerChain << std::endl;
 
 	//*** make thresholds global and more accurate
-	if(thrTop10Landmarks < float(50)/xSize || thrAvgLandmarkPerChain < float(20)/xSize) // 50 0.48828   20 0.019531
+	if(thrTop10Landmarks < float(50)/xSize || thrAvgLandmarkPerChain < float(20)/xSize)
 	{
 		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
