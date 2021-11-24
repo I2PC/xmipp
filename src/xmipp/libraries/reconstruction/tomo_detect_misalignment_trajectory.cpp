@@ -111,21 +111,21 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	double delta = PI / w;
 
-    double uy, ux, u, uy2;
-
-    size_t ydimImg = YSIZE(tiltImage);
-    size_t xdimImg = XSIZE(tiltImage);
+    double uy;
+	double ux;
+	double u;
+	double uy2;
 
 	long n=0;
 
 	for(size_t i=0; i<YSIZE(fftImg); ++i)
 	{
-		FFT_IDX2DIGFREQ(i, ydimImg, uy);
+		FFT_IDX2DIGFREQ(i, ySize, uy);
 		uy2=uy*uy;
 
 		for(size_t j=0; j<XSIZE(fftImg); ++j)
 		{
-			FFT_IDX2DIGFREQ(j, xdimImg, ux);
+			FFT_IDX2DIGFREQ(j, xSize, ux);
 			u=sqrt(uy2+ux*ux);
 
 			if (u > tail_high || u < tail_low)
