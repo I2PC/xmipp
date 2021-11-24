@@ -285,13 +285,19 @@
 	char *fnmaskth="Runs/003868_XmippProtSubtractProjection/extra/maskFocusTh.vol";
 	std::cout << "-----" << fnmaskth << std::endl;
 	Mat src = imread(fnmaskth);
+	std::cout << "--0---" << std::endl;
+	std::cout << "--src---" << src << std::endl;
 	// find contours for the thresholded image
 	cv::findContours(src, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
+	std::cout << "--1---" << std::endl;
 	// create convex hull vector
 	vector< vector<Point> > hull;
+	std::cout << "--2---" << std::endl;
 	// find convex hull the contour
 	cv::convexHull(Mat(contours), hull, false);
+	std::cout << "--3---" << std::endl;
 	m.write(formatString("%s/maskFocusThFiltCH.mrc", fnProj.c_str()));
+	std::cout << "--4---" << std::endl;
  	return m;
  }
 
