@@ -1274,6 +1274,115 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 	}
 }
 
+// bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<std::vector<int>> coordinatesPerLabelX, 
+// 																std::vector<std::vector<int>> coordinatesPerLabelY)
+// {
+// 	std::vector<int> coordsX;
+// 	std::vector<int> coordsY;
+
+// 	std::vector<float> sphericityOccupationVector (coordinatesPerLabelX.size());
+
+
+
+// 	for (size_t i = 0; i < coordinatesPerLabelX.size(); i++)
+// 	{
+// 		coordsX = coordinatesPerLabelX[i];
+// 		coordsY = coordinatesPerLabelY[i];
+
+// 		// Only consider coordinates with enough number of elements
+// 		if(coordsX.size() < numberOfCoordinatesThr)
+// 		{
+// 			// Calculate the center of mass of the label			
+// 			numberOfCoordinatesPerValue =  coordsX.size();
+
+// 			int xCoor = 0;
+// 			int yCoor = 0;
+
+// 			for(size_t coordinate=0; coordinate < coordsX.size(); coordinate++)
+// 			{
+// 				xCoor += coordsX[value][coordinate];
+// 				yCoor += coordsX[value][coordinate];
+// 			}
+
+// 			double xCoorCM = xCoor/numberOfCoordinatesPerValue;
+// 			double yCoorCM = yCoor/numberOfCoordinatesPerValue;
+
+// 			// Calculate sphericity of the label
+// 			double maxSquareDistance = 0;
+// 			double distance;
+
+// 			#ifdef DEBUG_FILTERLABEL
+// 			size_t debugN;
+// 			#endif
+
+// 			for(size_t n = 0; n < coordsX.size(); n++)
+// 			{
+// 				distance = (coordsX[n]-xCoorCM)*(coordsX[n]-xCoorCM)+(coordsY[n]-yCoorCM)*(coordsY[n]-yCoorCM);
+
+// 				if(distance > maxSquareDistance)
+// 				{
+// 					#ifdef DEBUG_FILTERLABEL
+// 					debugN = n;
+// 					#endif
+
+// 					maxSquareDistance = distance;
+// 				}
+// 			}
+
+// 			double maxDistace;
+// 			maxDistace = sqrt(maxSquareDistance);
+			
+// 			double area;
+// 			double ocupation;
+
+// 			area = PI * (maxDistace * maxDistace);
+
+// 			ocupation = 0.0 + (double)coordinatesPerLabelX.size();
+// 			ocupation = ocupation  / area;
+
+// 			#ifdef DEBUG_FILTERLABEL
+// 			std::cout << "x max distance " << coordinatesPerLabelX[debugN] << std::endl;
+// 			std::cout << "y max distance " << coordinatesPerLabelY[debugN] << std::endl;
+// 			std::cout << "xCoorCM " << xCoorCM << std::endl;
+// 			std::cout << "yCoorCM " << yCoorCM << std::endl;
+// 			std::cout << "area " << area << std::endl;
+// 			std::cout << "maxDistace " << maxDistace << std::endl;
+// 			std::cout << "ocupation " << ocupation << std::endl;
+// 			#endif
+
+// 			sphericityOccupationVector.push_back(ocupation);
+// 		}
+// 		else
+// 		{
+// 			sphericityOccupationVector.push_back(0);
+// 		}
+// 	}
+
+// 	std::vector<int> sphericityOccupationVectorSorted;
+// 	sphericityOccupationVectorSorted = sphericityOccupationVector;
+
+// 	// *** TODO: optimize, get n maxima elements without sorting
+// 	sort(sphericityOccupationVectorSorted.begin(), sphericityOccupationVectorSorted.end(), std::greater<int>());
+
+// 	// *** TODO: convert in input variable
+// 	int numberOfLandmarksThr = 20;
+// 	float sphericityOccupationThr = sphericityOccupationVectorSorted[numberOfLandmarksThr];
+
+// 	for (size_t i = 0; i < sphericityOccupationVector.size(); i++)
+// 	{
+// 		if(sphericityOccupationVector[i] > sphericityOccupationThr)
+// 		{
+// 			// Add coordinate
+// 			return true;
+// 		}
+// 		if(sphericityOccupationVector[i] <= sphericityOccupationThr)
+// 		{
+// 			// Remove coordinate
+// 			return false;
+// 		}
+// 	}
+// }
+
 
 bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
 {
