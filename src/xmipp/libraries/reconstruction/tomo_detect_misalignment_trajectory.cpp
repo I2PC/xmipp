@@ -101,7 +101,10 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(tiltImage, fftImg, true);
 
-	double w = 0.0;
+	size_t biggerSize = (xSize>ySize) ? xSize : ySize;
+
+	// 43.2 = 1440 * 0.03. Basically this 43.2  value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+	double w = 43.2 / biggerSize;
 
     double lowFreqFilt = samplingRate/(1.1*fiducialSize);
 	double highFreqFilt = samplingRate/(0.9*fiducialSize);
@@ -132,18 +135,18 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 			{
 				DIRECT_MULTIDIM_ELEM(fftImg, n) = 0;
 			}
-			// else
-			// {
-			// 	if (u >= highFreqFilt && u <=tail_high)
-			// 	{
-			// 		DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
-			// 	}
+			else
+			{
+				if (u >= highFreqFilt && u <=tail_high)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-highFreqFilt)*delta));
+				}
 
-			// 	if (u <= lowFreqFilt && u >= tail_low)
-			// 	{
-			// 		DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
-			// 	}
-			// }
+				if (u <= lowFreqFilt && u >= tail_low)
+				{
+					DIRECT_MULTIDIM_ELEM(fftImg, n) *= 0.5*(1+cos((u-lowFreqFilt)*delta));
+				}
+			}
 
 			++n;
 		}
