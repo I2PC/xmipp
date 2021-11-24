@@ -112,7 +112,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	double tail_high = highFreqFilt + w;
     double tail_low = lowFreqFilt - w;
 
-	// double delta = PI / w;
+	double delta = PI / w;
 
     double uy;
 	double ux;
