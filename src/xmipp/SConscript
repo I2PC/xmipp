@@ -54,7 +54,8 @@ if opencv:
                   'opencv_imgproc',
                   'opencv_video',
                   'libopencv_calib3d',
-		  'opencv_highgui']
+                  'opencv_highgui',
+                  'opencv_imgproc']
     if opencvsupportscuda:
         if opencv_3:
             opencvLibs+=['libopencv_cudaoptflow', 'libopencv_cudaarithm']
