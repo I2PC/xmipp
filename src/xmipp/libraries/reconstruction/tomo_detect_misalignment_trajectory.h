@@ -100,9 +100,15 @@ private:
 
     /** Thresholds */
     size_t poissonLandmarkPercentile = 50;          //*** update with more clever meassurement
-    float minimumDistance;                          // Minimum distance to cosider that 2 landmarks belong to the same chain
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
-    double thrChainDistance = 15; // 2*samplingRate;       // Maximum distance of a detected landmark to a chain
+
+    // Thresholds are saved in angstroms in order to be independent of the sampling rate and image size
+    float minDistanceAng = 70;                      // Minimum distance to cosider that 2 landmarks belong to the same chain
+    float thrChainDistanceAng = 100;                // Maximum distance of a detected landmark to a chain
+    
+    // Thresholds measured in pixels updated in generateSideInfo function
+    float minDistancePx;                          
+    double thrChainDistancePx;
 
     /** Alignment report. True = aligned - False = misaligned */
     bool globalAlignment;

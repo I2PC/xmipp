@@ -88,11 +88,12 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	#endif
 
 
-	// Initialize local alignment vector
+	// Initialize local alignment vector (depends on the number acquisition angles)
 	localAlignment.resize(nSize, true);
 
-	// Update image dimensions depending thresholds (non-absolute values)
-	minimumDistance = 0.01*xSize;
+	// Update thresholds depending on input tilt-series sampling rate
+	minDistancePx = minDistanceAng * samplingRate;
+	thrChainDistancePx = thrChainDistanceAng * samplingRate;
 }
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
@@ -701,7 +702,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 				bool found = false;
 
 				// Find distance to closest neighbour
-				for (int distance = 1; distance < thrChainDistance; distance++)
+				for (int distance = 1; distance < thrChainDistancePx; distance++)
 				{
 					for (int i = -distance; i < distance; i++)
 					{
@@ -712,7 +713,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 								if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
 								{
 									#ifdef DEBUG_MISALI
-									// std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
+									std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
 									#endif
 
 									found = true;
@@ -753,7 +754,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 			}
 			
 			std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
-			(float)(lmOutRange[n]/coordinatesInSlice.size()) << "\n"<< std::endl;
+			float(lmOutRange[n])/float(coordinatesInSlice.size()) << "\n"<< std::endl;
 			#endif
 		}
 		else
@@ -767,7 +768,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 			std::cout << "lmOutRange[" << n << "]=" << lmOutRange[n] << "\n"<< std::endl;
 			#endif
 		}
-
 	}
 
 	// Detect misalignment
@@ -1543,9 +1543,9 @@ float ProgTomoDetectMisalignmentTrajectory::calculateLandmarkProjectionDiplaceme
 
 	float distance = abs(((cos(theta2 * PI/180.0)/cos(theta1 * PI/180.0))-1)*xCoor);
 
-	if (distance<minimumDistance)
+	if (distance<minDistancePx)
 	{
-		return (int)minimumDistance;
+		return (int)minDistancePx;
 	}
 	
 	return (int)distance;
