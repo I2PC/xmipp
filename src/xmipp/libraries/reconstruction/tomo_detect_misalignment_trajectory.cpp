@@ -64,6 +64,10 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 
 void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Generating side info..." << std::endl;
+	#endif
+
 	// Read tilt angles file
 	MetaDataVec inputTiltAnglesMd;
 	double tiltAngle;
@@ -94,6 +98,10 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	// Update thresholds depending on input tilt-series sampling rate
 	minDistancePx = minDistanceAng * samplingRate;
 	thrChainDistancePx = thrChainDistanceAng * samplingRate;
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Side info generated succesfully!" << std::endl;
+	#endif
 }
 
 void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> &tiltImage)
@@ -160,7 +168,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimArray<double> tiltSeriesFiltered)
 {
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Picking coordinates..." << std::endl;
+	std::cout << "Picking high contrast coordinates..." << std::endl;
 	#endif
 
 	// *** reutilizar binaryCoordinatesMapSlice slice a slice y descartar labelCoordiantesMap	
@@ -344,11 +352,19 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 	saveImage() = labelCoordiantesMap; 
 	saveImage.write(outputFileNameLabeledVolume);
 	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "High contrast coordinates picked succesfully!" << std::endl;
+	#endif
 }
 
 
 void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Detecting landmark chains..." << std::endl;
+	#endif
+
 	std::vector<int> counterLinesOfLandmarkAppearance(ySize);
 
 	// Calculate the number of landmarks per row (y index)
@@ -671,11 +687,18 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	saveImage() = chain2dMap;
 	saveImage.write(outputFileNameChain2dMap);
 	#endif
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Landmark chains detected succesfully!" << std::endl;
+	#endif
 }
 
 
 void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 {
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Detecting misaligned tilt-images..." << std::endl;
+	#endif
 
 	std::vector<Point2D<double>> coordinatesInSlice;
 	std::vector<size_t> lmOutRange(nSize, 0);
@@ -708,17 +731,22 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 					{
 						for (int j = -(distance - abs(i)); j <= (distance - abs(i)); j++)
 						{
-							if ((abs(j)+abs(i) == distance) && (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0))
-							{
-								if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
-								{
-									#ifdef DEBUG_MISALI
-									std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
-									#endif
 
-									found = true;
-									matchCoordX = i;
-									matchCoordX = j;
+							if (j + coord2D.y > 0 && i + coord2D.x  > 0 && j + coord2D.y < ySize && i + coord2D.x < xSize )
+							{
+								if ((abs(j)+abs(i) == distance) && (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0))
+								{
+
+									if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
+									{
+										#ifdef DEBUG_MISALI
+										//std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
+										#endif
+
+										found = true;
+										matchCoordX = i;
+										matchCoordX = j;
+									}
 								}
 							}
 						}
@@ -733,7 +761,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 				if(!found)
 				{
 					#ifdef DEBUG_MISALI
-					// std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
+					//std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
 					#endif
 
 					vectorDistance.push_back(0);
@@ -792,9 +820,16 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 		if(lmOutRange[n] > (m + 3*sd))
 		{
 			localAlignment[n] = false;
+
+			#ifdef VERBOSE_OUTPUT
 			std::cout << "MISALIGNMENT DETECTED IN IMAGE " << n << std::endl;
+			#endif
 		}
 	}
+
+	#ifdef VERBOSE_OUTPUT
+	std::cout << "Misalignment in tilt-images succesfully detected!" << std::endl;
+	#endif
 }
 
 
@@ -1193,7 +1228,9 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	#endif
 
 	detectLandmarkChains();
-	detectMisalignedTiltImages();
+	if(globalAlignment){
+		detectMisalignedTiltImages();
+	}
 
 	writeOutputAlignmentReport();
 
