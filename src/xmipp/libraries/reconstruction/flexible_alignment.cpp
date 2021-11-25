@@ -35,7 +35,7 @@
 #include "program_extension.h"
 
 // Empty constructor =======================================================
-ProgFlexibleAlignment::ProgFlexibleAlignment()
+ProgFlexibleAlignment::ProgFlexibleAlignment() : Rerunable("")
 {
     rangen = 0;
     resume = false;
@@ -87,6 +87,7 @@ void ProgFlexibleAlignment::readParams()
     XmippMetadataProgram::readParams();
     fnPDB = getParam("--pdb");
     fnOutDir = getParam("--odir");
+    Rerunable::setFileName(fnOutDir+"/nmaDone.xmd");
     fnModeList = getParam("--modes");
     resume = checkParam("--resume");
     maxdefamp = getDoubleParam("--maxdefamp");
@@ -139,33 +140,6 @@ void ProgFlexibleAlignment::show()
 // Produce side information ================================================
 ProgFlexibleAlignment *global_flexible_prog;
 
-void ProgFlexibleAlignment::createWorkFiles()
-{
-    MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
-    MetaDataDb mdTodo, mdDone;
-    mdTodo = *pmdIn;
-    FileName fn(fnOutDir+"/nmaDone.xmd");
-    if (fn.exists() && resume)
-    {
-        mdDone.read(fn);
-        mdTodo.subtraction(mdDone, MDL_IMAGE);
-    }
-    else //if not exists create metadata only with headers
-    {
-        mdDone.addLabel(MDL_IMAGE);
-        mdDone.addLabel(MDL_ENABLED);
-        mdDone.addLabel(MDL_ANGLE_ROT);
-        mdDone.addLabel(MDL_ANGLE_TILT);
-        mdDone.addLabel(MDL_ANGLE_PSI);
-        mdDone.addLabel(MDL_SHIFT_X);
-        mdDone.addLabel(MDL_SHIFT_Y);
-        mdDone.addLabel(MDL_NMA);
-        mdDone.addLabel(MDL_COST);
-        mdDone.write(fn);
-    }
-    *pmdIn = mdTodo;
-}
-
 void ProgFlexibleAlignment::preProcess()
 {
     MetaDataVec SF(fnModeList);
@@ -183,7 +157,7 @@ void ProgFlexibleAlignment::preProcess()
 void ProgFlexibleAlignment::finishProcessing()
 {
     XmippMetadataProgram::finishProcessing();
-    rename((fnOutDir+"/nmaDone.xmd").c_str(), fn_out.c_str());
+    rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // Create deformed PDB =====================================================
@@ -2154,7 +2128,7 @@ std::cout << "step6" << std::endl;
 
 std::cout << "step7" << std::endl;
 
-              md.append(fnOutDir+"/nmaDone.xmd");
+              md.append(Rerunable::getFileName());
 
 std::cout << "step8" << std::endl;
           }

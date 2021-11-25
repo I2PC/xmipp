@@ -28,6 +28,7 @@
 #define _PROG_ANGULAR_SPH_ALIGNMENT_GPU
 
 #include "core/xmipp_metadata_program.h"
+#include "core/rerunable_program.h"
 #include "core/matrix1d.h"
 #include "core/matrix2d.h"
 #include "core/xmipp_image.h"
@@ -45,7 +46,7 @@ class CTFDescription;
 //@{
 
 /** Predict Continuous Parameters. */
-class ProgAngularSphAlignmentGpu: public XmippMetadataProgram
+class ProgAngularSphAlignmentGpu: public XmippMetadataProgram, public Rerunable
 {
 public:
     /** Filename of the reference volume */
@@ -163,13 +164,6 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    virtual void createWorkFiles();
-
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
@@ -202,6 +196,25 @@ public:
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
 
+  protected:
+    void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
+
+  private:
+    std::vector<MDLabel> getLabelsForEmpty() override {
+      return std::vector<MDLabel>{MDL_IMAGE,
+                                  MDL_ENABLED,
+                                  MDL_ANGLE_ROT,
+                                  MDL_ANGLE_TILT,
+                                  MDL_ANGLE_PSI,
+                                  MDL_SHIFT_X,
+                                  MDL_SHIFT_Y,
+                                  MDL_FLIP,
+                                  MDL_SPH_DEFORMATION,
+                                  MDL_SPH_COEFFICIENTS,
+                                  MDL_COST};
+    }
 };
 //@}
 #endif
