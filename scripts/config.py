@@ -511,6 +511,7 @@ class Config:
         candidates = self._get_compatible_GCC(nvcc_version)
         prg = find_newest('g++', candidates,  True)
         if not prg:# searching a g++ for devToolSet on CentOS
+            print(' searching a g++ for devToolSet on CentOS')
             if str(self._get_GCC_version('g++')[0]) in candidates:
                 prg = whereis('g++')
                 if not prg:
