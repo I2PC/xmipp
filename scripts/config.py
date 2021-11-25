@@ -509,16 +509,15 @@ class Config:
         if not self.is_empty(Config.OPT_CXX_CUDA):
             return True
         candidates = self._get_compatible_GCC(nvcc_version)
-        prg = find_newest('g++', candidates,  True)
+        prg = find_newest('g++', candidates,  False)
         if not prg:# searching a g++ for devToolSet on CentOS
-            print(' searching a g++ for devToolSet on CentOS')
             if str(self._get_GCC_version('g++')[0]) in candidates:
                 prg = whereis('g++')
                 if not prg:
                     print(yellow('No valid compiler found for CUDA host code. '
                                  + self._get_help_msg()))
                     return False
-
+        print(green('g++' + ' found in ' + prg))
         self._set(Config.OPT_CXX_CUDA, prg)
         return True
 
