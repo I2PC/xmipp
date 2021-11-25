@@ -512,7 +512,7 @@ class Config:
         prg = find_newest('g++', candidates,  False)
         if not prg:# searching a g++ for devToolSet on CentOS
             if str(self._get_GCC_version('g++')[0]) in candidates:
-                prg = whereis('g++')
+                prg = whereis('g++', True)
                 if not prg:
                     print(yellow('No valid compiler found for CUDA host code. '
                                  + self._get_help_msg()))
