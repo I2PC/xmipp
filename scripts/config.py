@@ -572,19 +572,26 @@ class Config:
                      "-gencode=arch=compute_86,code=compute_86")
         self._set_if_empty(Config.OPT_NVCC_CXXFLAGS, flags)
 
+
+
     def _set_CUDA(self):
+        def print_no_CUDA():
+            print(red("No valid compiler found. "
+                  "Skipping CUDA compilation.\n"))
+
         if not self.is_empty(Config.OPT_CUDA):
+            print_no_CUDA()
             return
-
         if not self._set_nvcc():
+            print_no_CUDA()
             return
-
         nvcc_version, nvcc_full_version = self._get_CUDA_version(
             self.get(Config.OPT_NVCC))
         print(green('CUDA-' + nvcc_full_version + ' found.'))
         if nvcc_version != 10.2:
             print(yellow('CUDA-10.2 is recommended.'))
         if not self._set_nvcc_cxx(nvcc_version) or not self._set_nvcc_lib_dir():
+            print_no_CUDA()
             return
         self._set_nvcc_flags(nvcc_version)
 
