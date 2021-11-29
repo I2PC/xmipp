@@ -993,7 +993,7 @@ void ProgFlexibleAlignment::performCompleteSearch(int pyramidLevel) {
 	if (pyramidLevel != 0) {
 		Image<double> I;
 		I.read(currentImgName);
-		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
 		I.write(fnDown);
 	}
 	Image<double> imgtemp;
@@ -1157,7 +1157,7 @@ double ProgFlexibleAlignment::performContinuousAssignment(int pyramidLevel) {
 
 		Image<double> I;
 		I.read(currentImgName);
-		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
 		I.write(fnDown);
 	}
 
