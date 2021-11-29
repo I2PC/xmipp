@@ -60,20 +60,30 @@ public:
     bool ignoreCTF;
     // Regularization ART
     double lambda;
+    // Save each # iter
+    int save_iter;
+    // Correct CTF
+    bool useCTF;
+    // Apply Zernike
+    bool useZernike;
 
     int flagEnabled;
 
 public:
     /** Resume computations */
     bool resume;
+    // Number of ART iterations
+    int niter;
+    // Sort last N projections
+    int sort_last_N;
     // 2D and 3D masks in real space
     MultidimArray<int> mask2D;
     // Volume size
     size_t Xdim;
     // Input image
 	Image<double> V, Vrefined, I, Ip, Ifiltered, Ifilteredp;
-    // Auxiliar volume for updating ART
-    MultidimArray<double> auxV;
+    // Spherical mask
+    MultidimArray<int> Vmask;
 	// Theoretical projection
 	Image<double> P;
     // Weight Image
@@ -104,7 +114,11 @@ public:
 	Matrix1D<double> clnm;
 	// Show optimization
 	bool showOptimization;
-
+    double w_i;
+    MultidimArray<size_t> ordered_list;
+    int current_save_iter;
+    int num_images;
+    int current_iter;
 public:
     /// Empty constructor
 	ProgArtZernike3D();
@@ -151,17 +165,22 @@ public:
 
     void updateCTFImage(double defocusU, double defocusV, double angle);
 
-    void forwardModel();
+    void artModel(int direction);
 
-    void updateART();
+    template<bool USESZERNIKE, int DIRECTION>
+    void zernikeModel();
 
-    Matrix1D<double> weightsInterpolation3D(double x, double y, double z);
+    void weightsInterpolation3D(double x, double y, double z, Matrix1D<double> &w);
 
     void removeOverdeformation();
 
     virtual void checkPoint();
     
     virtual void finishProcessing();
+
+    virtual void run();
+
+    void sortOrthogonal();
 
 };
 //@}
