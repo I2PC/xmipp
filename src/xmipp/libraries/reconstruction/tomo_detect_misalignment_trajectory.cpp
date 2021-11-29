@@ -92,7 +92,7 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	#endif
 
 
-	// Initialize local alignment vector (depends on the number acquisition angles)
+	// Initialize local alignment vector (depends on the number of acquisition angles)
 	localAlignment.resize(nSize, true);
 
 	// Update thresholds depending on input tilt-series sampling rate
@@ -110,10 +110,10 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(tiltImage, fftImg, true);
 
-	size_t biggerSize = (xSize>ySize) ? xSize : ySize;
+	size_t normDim = (xSize>ySize) ? xSize : ySize;
 
 	// 43.2 = 1440 * 0.03. Basically this 43.2  value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
-	double w = 43.2 / biggerSize;
+	double w = 43.2 / normDim;
 
     double lowFreqFilt = samplingRate/(1.1*fiducialSize);
 	double highFreqFilt = samplingRate/(0.9*fiducialSize);
@@ -1451,18 +1451,17 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	std::cout << "top10Landmarks=" << (float)top10Landmarks << std::endl;
 	std::cout << "coordinates3D.size()!=" << coordinates3D.size() << std::endl;
 
-	std::cout << "(float)totalLandmarks/((float)chainIndexesY.size())=" << (float)totalLandmarks/((float)chainIndexesY.size()) << std::endl;
-	std::cout << "top10Landmarks/10=" << (float)top10Landmarks/10.0 << std::endl;
+	std::cout << "top10Landmarks/(10.0)=" << (float)top10Landmarks/(10.0) << std::endl;
+	std::cout << "totalLandmarks/((float)chainIndexesY.size())" << (float)totalLandmarks/((float)chainIndexesY.size()) << std::endl;
 
-	// Global misalignment criteria (we divide by xSize to normalize according to the width of the tilt-series images)
-	float thrTop10Landmarks = (float)top10Landmarks/(10.0*xSize);
-	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size()*xSize);
+	float thrTop10Landmarks = (float)top10Landmarks/(10.0);
+	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size());
 
 	std::cout << "thrTop10Landmarks=" << thrTop10Landmarks << std::endl;
 	std::cout << "thrAvgLandmarkPerChain=" << thrAvgLandmarkPerChain << std::endl;
 
 	//*** make thresholds global and more accurate
-	if(thrTop10Landmarks < float(50)/xSize || thrAvgLandmarkPerChain < float(20)/xSize)
+	if(thrTop10Landmarks < float(50) || thrAvgLandmarkPerChain < float(25))
 	{
 		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
