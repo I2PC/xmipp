@@ -32,6 +32,7 @@
 #include "core/xmipp_image.h"
 #include "data/fourier_filter.h"
 #include "data/fourier_projection.h"
+#include <core/xmipp_error.h>
 
 
 /** Predict Continuous Parameters. */
@@ -45,7 +46,7 @@ public:
     /// Output directory
     FileName fnOutDir;
     // Metadata with already processed images
-    FileName fnDone;
+    // FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
     int L1, L2;
     /** Zernike and SPH coefficients vectors */
@@ -106,8 +107,6 @@ public:
 	CTFDescription ctf;
     // CTF filter
     FourierFilter FilterCTF;
-	// CTF image
-	MultidimArray<double> *ctfImage;
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
@@ -144,7 +143,7 @@ public:
      * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
      * nmaDone.xmd image already processed (could exists from a previous run)
      */
-    virtual void createWorkFiles();
+    // virtual void createWorkFiles();
 
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
@@ -174,7 +173,7 @@ public:
 
     void removeOverdeformation();
 
-    virtual void checkPoint();
+    // virtual void checkPoint();
     
     virtual void finishProcessing();
 

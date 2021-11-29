@@ -39,14 +39,10 @@ ProgArtZernike3D::ProgArtZernike3D()
 	resume = false;
     produces_a_metadata = true;
     each_image_produces_an_output = false;
-    ctfImage = NULL;
     showOptimization = false;
 }
 
-ProgArtZernike3D::~ProgArtZernike3D()
-{
-	delete ctfImage;
-}
+ProgArtZernike3D::~ProgArtZernike3D() = default;
 
 // Read arguments ==========================================================
 void ProgArtZernike3D::readParams()
@@ -66,7 +62,7 @@ void ProgArtZernike3D::readParams()
 	niter = getIntParam("--niter");
 	save_iter = getIntParam("--save_iter");
 	sort_last_N = getIntParam("--sort_last");
-	fnDone = fnOutDir + "/sphDone.xmd";
+	// fnDone = fnOutDir + "/sphDone.xmd";
 	fnVolO = fnOutDir + "/Refined.vol";
 	keep_input_columns = true;
 }
@@ -123,23 +119,32 @@ void ProgArtZernike3D::defineParams()
     addExampleLine("xmipp_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
 }
 
-// Produce side information ================================================
-void ProgArtZernike3D::createWorkFiles() {
-	// w_i = 1 / getInputMd()->size();
-	if (resume && fnDone.exists()) {
-		MetaDataDb done(fnDone);
-		done.read(fnDone);
-		getOutputMd() = done;
-		auto *candidates = getInputMd();
-		MetaDataDb toDo(*candidates);
-		toDo.subtraction(done, MDL_IMAGE);
-		toDo.write(fnOutDir + "/sphTodo.xmd");
-		*candidates = toDo;
-	}
-}
+// // Produce side information ================================================
+// void ProgArtZernike3D::createWorkFiles() {
+// 	// w_i = 1 / getInputMd()->size();
+// 	if (resume && fnDone.exists()) {
+// 		MetaDataDb done(fnDone);
+// 		done.read(fnDone);
+// 		getOutputMd() = done;
+// 		auto *candidates = getInputMd();
+// 		MetaDataDb toDo(*candidates);
+// 		toDo.subtraction(done, MDL_IMAGE);
+// 		toDo.write(fnOutDir + "/sphTodo.xmd");
+// 		*candidates = toDo;
+// 	}
+// }
 
 void ProgArtZernike3D::preProcess()
 {
+
+	// Check that metadata has all information neede
+	if (!getInputMd()->containsLabel(MDL_ANGLE_ROT) || 
+		!getInputMd()->containsLabel(MDL_ANGLE_TILT) ||
+		!getInputMd()->containsLabel(MDL_ANGLE_PSI))
+	{
+		REPORT_ERROR(ERR_MD_MISSINGLABEL,"Input metadata projection angles are missing. Exiting...");
+	}
+
 	if (fnVolR != "")
 	{
     V.read(fnVolR);
@@ -197,7 +202,7 @@ void ProgArtZernike3D::preProcess()
 	numCoefficients(L1,L2,vecSize);
     fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
 
-    createWorkFiles();
+    // createWorkFiles();
 }
 
 void ProgArtZernike3D::finishProcessing() {
@@ -215,8 +220,8 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 	rowIn.getValue(MDL_ANGLE_ROT,rot);
 	rowIn.getValue(MDL_ANGLE_TILT,tilt);
 	rowIn.getValue(MDL_ANGLE_PSI,psi);
-	rowIn.getValue(MDL_SHIFT_X,shiftX);
-	rowIn.getValue(MDL_SHIFT_Y,shiftY);
+	rowIn.getValueOrDefault(MDL_SHIFT_X,shiftX,0.0);
+	rowIn.getValueOrDefault(MDL_SHIFT_Y,shiftY,0.0);
 	std::vector<double> vectortemp;
 	if (useZernike) {
 		rowIn.getValue(MDL_SPH_COEFFICIENTS,vectortemp);
@@ -226,10 +231,7 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 		}
 		removeOverdeformation();
 	}
-	if (rowIn.containsLabel(MDL_FLIP))
-    	rowIn.getValue(MDL_FLIP,flip);
-	else
-		flip = false;
+	rowIn.getValueOrDefault(MDL_FLIP,flip, false);
 	
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && useCTF)
 	{
@@ -265,10 +267,10 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 }
 #undef DEBUG
 
-void ProgArtZernike3D::checkPoint() {
-	getOutputMd().write(fnDone);
-	// Vrefined.write(fnVolO);
-}
+// void ProgArtZernike3D::checkPoint() {
+// 	getOutputMd().write(fnDone);
+// 	// Vrefined.write(fnVolO);
+// }
 
 void ProgArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
 {
