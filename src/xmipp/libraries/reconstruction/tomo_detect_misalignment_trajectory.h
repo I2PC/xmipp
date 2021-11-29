@@ -46,12 +46,15 @@
 #include <data/point2D.h>
 
 #define VERBOSE_OUTPUT
-#define DEBUG
+
 // #define DEBUG_DIM
+#define DEBUG_PREPROCESS
+#define DEBUG_HCC
 // #define DEBUG_FILTERLABEL
 // #define DEBUG_POISSON
 // #define DEBUG_CHAINS
-#define DEBUG_MISALI
+#define DEBUG_GLOBAL_MISALI
+#define DEBUG_LOCAL_MISALI
 #define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
 
@@ -109,6 +112,10 @@ private:
     // Thresholds measured in pixels updated in generateSideInfo function
     float minDistancePx;                          
     double thrChainDistancePx;
+
+
+    float top10ChainThr = 35                        // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
+    float lmChainThr = 1.25                         // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
     /** Alignment report. True = aligned - False = misaligned */
     bool globalAlignment;

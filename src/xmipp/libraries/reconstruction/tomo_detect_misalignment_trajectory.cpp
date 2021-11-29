@@ -112,7 +112,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 
 	size_t normDim = (xSize>ySize) ? xSize : ySize;
 
-	// 43.2 = 1440 * 0.03. Basically this 43.2  value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
+	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
 	double w = 43.2 / normDim;
 
     double lowFreqFilt = samplingRate/(1.1*fiducialSize);
@@ -187,11 +187,12 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 		int xCSmin = (int)(xSize-xSizeCS)/2;
 		int xCSmax = (int)(xSize+xSizeCS)/2;
 
-		std::cout << tiltAngles[k] << "º" << std::endl;
-		std::cout << xSizeCS << std::endl;
-		std::cout << xCSmin << std::endl;
-		std::cout << xCSmax << std::endl;
-		
+		#ifdef DEBUG_HCC
+		std::cout << "Tilt angle: "<< tiltAngles[k] << "º" << std::endl;
+		std::cout << "Cosine streched searching region: (" << xCSmin << ", " <<  xCSmax << ")" << std::endl;
+		std::cout << "Cosine streched searching region size: " << xSizeCS << std::endl;
+		#endif
+
 		// Calculate threshold value for each image of the series
         for(size_t i = 0; i < ySize; ++i)
         {
@@ -223,13 +224,13 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         double threshold = average - sdThreshold * standardDeviation;
 
 
-        #ifdef VERBOSE_OUTPUT
+        #ifdef DEBUG_HCC
 		std::cout << "Slice: " << k+1 << " Average: " << average << " SD: " << standardDeviation << " Threshold: " << threshold << std::endl;
         #endif
 
 		binaryCoordinatesMapSlice.initZeros(ySize, xSize);
 
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		int numberOfPointsAddedBinaryMap = 0;
 		#endif
 
@@ -244,14 +245,14 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				{
 					DIRECT_A2D_ELEM(binaryCoordinatesMapSlice, i, j) = 1.0;
 					
-					#ifdef DEBUG
+					#ifdef DEBUG_HCC
 					numberOfPointsAddedBinaryMap += 1;
 					#endif
 				}
 			}
 		}
 
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		std::cout << "Number of points in the binary map: " << numberOfPointsAddedBinaryMap << std::endl;
 		#endif
 
@@ -272,7 +273,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			}
 		}
 
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		std::cout << "Colour: " << colour << std::endl;
 		#endif
 
@@ -294,7 +295,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 			}
 		}
 
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		int numberOfNewPeakedCoordinates = 0;
 		#endif
 
@@ -324,14 +325,14 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 				Point3D<double> point3D(xCoorCM, yCoorCM, k);
 				coordinates3D.push_back(point3D);
 
-				#ifdef DEBUG
+				#ifdef DEBUG_HCC
 				numberOfNewPeakedCoordinates += 1;
 				#endif
 			
 			}
 		}
 
-		#ifdef DEBUG
+		#ifdef DEBUG_HCC
 		std::cout << "Number of coordinates added: " << numberOfNewPeakedCoordinates <<std::endl;
 		std::cout << "Accumulated number of coordinates: " << coordinates3D.size() <<std::endl;
 		#endif
@@ -711,7 +712,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 		if(coordinatesInSlice.size() > 0)
 		{
 
-			#ifdef DEBUG_MISALI
+			#ifdef DEBUG_LOCAL_MISALI
 			// Vector holding the distance of each landmark to its closest chain
 			std::vector<double> vectorDistance;
 			#endif
@@ -739,7 +740,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 
 									if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
 									{
-										#ifdef DEBUG_MISALI
+										#ifdef DEBUG_LOCAL_MISALI
 										//std::cout << "Found!! (" <<j<<"+"<<coord2D.y<<", "<<i<<"+"<<coord2D.x<<", "<< n << ")" << std::endl;
 										#endif
 
@@ -760,14 +761,14 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 
 				if(!found)
 				{
-					#ifdef DEBUG_MISALI
+					#ifdef DEBUG_LOCAL_MISALI
 					//std::cout << "Not found!! (" <<coord2D.y<<", "<<coord2D.x<<", "<< n << ")" << std::endl;
 					#endif
 
 					vectorDistance.push_back(0);
 					lmOutRange[n] += 1;
 				}
-				#ifdef DEBUG_MISALI
+				#ifdef DEBUG_LOCAL_MISALI
 				else
 				{
 					vectorDistance.push_back(sqrt(matchCoordX*matchCoordX + matchCoordY*matchCoordY));
@@ -775,7 +776,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 				#endif
 			}
 
-			#ifdef DEBUG_MISALI
+			#ifdef DEBUG_LOCAL_MISALI
 			for (size_t i = 0; i < vectorDistance.size(); i++)
 			{
 				std::cout << vectorDistance[i];
@@ -792,7 +793,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 			#endif
 
 			lmOutRange[n] = 0;
-			#ifdef DEBUG_MISALI
+			#ifdef DEBUG_LOCAL_MISALI
 			std::cout << "lmOutRange[" << n << "]=" << lmOutRange[n] << "\n"<< std::endl;
 			#endif
 		}
@@ -1155,7 +1156,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	{
 		tiltseriesmd.getValue(MDL_IMAGE, fnTSimg, objId);
 
-		#ifdef DEBUG
+		#ifdef DEBUG_PREPROCESS
         std::cout << "Preprocessing slice: " << fnTSimg << std::endl;
 		#endif
 
@@ -1426,46 +1427,49 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
 {
-	size_t totalLandmarks = 0;
+	float totalLM = coordinates3D.size();
+	float totalChainLM = 0;
+	float totalIndexes = chainIndexesY.size();
+	float top10LM = 0;
 
-	std::cout << "counterLinesOfLandmarkAppearance.size()" << counterLinesOfLandmarkAppearance.size() << std::endl;
-	std::cout << "chainIndexesY.size()" << chainIndexesY.size() << std::endl;
-
-	for (size_t i = 0; i < chainIndexesY.size(); i++)
+	for (size_t i = 0; i < totalIndexes; i++)
 	{
-		totalLandmarks += counterLinesOfLandmarkAppearance[(int)chainIndexesY[i]];
+		totalChainLM += counterLinesOfLandmarkAppearance[(int)chainIndexesY[i]];
 	}
 
 	sort(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), std::greater<int>());
 
-	size_t top10Landmarks = 0;
-
 	for (size_t i = 0; i < 10; i++)
 	{
-		top10Landmarks += counterLinesOfLandmarkAppearance[i];
+		top10LM += counterLinesOfLandmarkAppearance[i];
 	}
 
-	std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"  << std::endl;
-	std::cout << "totalLandmarks=" << totalLandmarks << std::endl;
-	std::cout << "totalLandmarks/chainIndexesY.size()=" << (float)totalLandmarks/(float)chainIndexesY.size() << std::endl;
-	std::cout << "top10Landmarks=" << (float)top10Landmarks << std::endl;
-	std::cout << "coordinates3D.size()!=" << coordinates3D.size() << std::endl;
+	// Thresholds calculation
+	float top10Chain = 100 * (top10LM / totalLM); // Compare to top10ChainThr
+	float lmChain = 100 * (totalChainLM / (totalIndexes * totalLM)); // Compare to lmChainThr
 
-	std::cout << "top10Landmarks/(10.0)=" << (float)top10Landmarks/(10.0) << std::endl;
-	std::cout << "totalLandmarks/((float)chainIndexesY.size())" << (float)totalLandmarks/((float)chainIndexesY.size()) << std::endl;
+	#ifdef DEBUG_LOCAL_MISALI
+	std::cout << "Global misalignment detection parameters:" << std::endl;
+	std::cout << "Total number of landmarks: " << totalLM << std::endl;
+	std::cout << "Total number of landmarks belonging to the selected chains: " << totalChainLM << std::endl;
+	std::cout << "Total number of landmarks belonging to the top 10 most populated indexes: " << top10LM << std::endl;
 
-	float thrTop10Landmarks = (float)top10Landmarks/(10.0);
-	float thrAvgLandmarkPerChain = (float)totalLandmarks/((float)chainIndexesY.size());
 
-	std::cout << "thrTop10Landmarks=" << thrTop10Landmarks << std::endl;
-	std::cout << "thrAvgLandmarkPerChain=" << thrAvgLandmarkPerChain << std::endl;
+	std::cout << "Precentage of LM belonging to the top 10 populated chains: " << top10Chain << std::endl;
+	std::cout << "Percentage of number of average LM belonging to the selected chains: " << lmChain << std::endl;
 
-	//*** make thresholds global and more accurate
-	if(thrTop10Landmarks < float(50) || thrAvgLandmarkPerChain < float(25))
+	std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10Chain < top10ChainThr << std::endl;
+	std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChain < lmChainThr << std::endl;
+	#endif
+
+	if(top10Chain < top10ChainThr || lmChain < lmChainThr)
 	{
 		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
+		std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10Chain < top10ChainThr << std::endl;
+		std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChain < lmChainThr << std::endl;
 		#endif
+		
 		return false;
 	}
 	else
