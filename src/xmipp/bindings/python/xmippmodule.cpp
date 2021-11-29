@@ -853,7 +853,7 @@ xmipp_fastEstimateEnhancedPSD(PyObject *obj, PyObject *args, PyObject *kwargs)
             {
                 MultidimArray<double> data;
                 fastEstimateEnhancedPSD(fn, downsampling, data, Nthreads);
-                selfScaleToSize(LINEAR, data, dim, dim);
+                selfScaleToSize(xmipp_transformation::LINEAR, data, dim, dim);
                 Image_Value(pyImage).setDatatype(DT_Double);
                 Image_Value(pyImage).data->setImage(data);
                 Py_RETURN_NONE;
@@ -877,12 +877,13 @@ MultidimArray<double> &data = MULTIDIM_ARRAY(img);\
 ArrayDim idim;\
 data.getDimensions(idim);
 
+#undef FILTER_CATCH
 #define FILTER_CATCH()\
 size_t w = dim, h = dim, &x = idim.xdim, &y = idim.ydim;\
 if (x > y) h = y * (dim/x);\
 else if (y > x)\
   w = x * (dim/y);\
-selfScaleToSize(LINEAR, data, w, h);\
+selfScaleToSize(xmipp_transformation::LINEAR, data, w, h);\
 Image_Value(pyImage).setDatatype(DT_Double);\
 data.resetOrigin();\
 MULTIDIM_ARRAY_GENERIC(Image_Value(pyImage)).setImage(data);\

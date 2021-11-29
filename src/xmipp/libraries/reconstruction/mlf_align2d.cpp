@@ -1349,7 +1349,7 @@ void ProgMLF2D::rotateReference(std::vector<double> &out)
             // Add arbitrary number (small_angle) to avoid 0-degree rotation (lacking interpolation)
             psi = (double)(ipsi * psi_max / nr_psi) + SMALLANGLE;
             //model.Iref[refno]().rotateBSpline(3, psi, Maux, WRAP);
-            rotate(BSPLINE3, Maux, model.Iref[refno](), -psi, 'Z', WRAP);
+            rotate(xmipp_transformation::BSPLINE3, Maux, model.Iref[refno](), -psi, 'Z', xmipp_transformation::WRAP);
             FourierTransformHalf(Maux, Faux);
 
             // Normalize the magnitude of the rotated references to 1st rot of that ref
@@ -1400,7 +1400,7 @@ void ProgMLF2D::reverseRotateReference(const std::vector<double> &in,
             getFTfromVector(in, refno*nr_psi*dnr_points_2d + ipsi*dnr_points_2d, Faux);
             InverseFourierTransformHalf(Faux, Maux, dim);
             //Maux.rotateBSpline(3, -psi, Maux2, WRAP);
-            rotate(BSPLINE3, Maux2, Maux, psi, 'Z', WRAP);
+            rotate(xmipp_transformation::BSPLINE3, Maux2, Maux, psi, 'Z', xmipp_transformation::WRAP);
             out[refno] += Maux2;
         }
     }
@@ -1508,7 +1508,7 @@ void ProgMLF2D::calculateFourierOffsets(const MultidimArray<double> &Mimg,
     FOR_ALL_FLIPS()
     {
         Maux.setXmippOrigin();
-        applyGeometry(LINEAR, Maux, Mimg, F[iflip], IS_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Maux, Mimg, F[iflip], xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 
         FourierTransformHalf(Maux, Fimg);
         appendFTtoVector(Fimg,Fimg_flip);

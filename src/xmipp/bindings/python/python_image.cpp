@@ -154,7 +154,8 @@ PyMethodDef Image_methods[] =
           "apply a warp affine transformation equivalent to cv2.warpaffine and used by Scipion" },
 		{ "radialAverageAxis", (PyCFunction) Image_radialAvgAxis, METH_VARARGS,
 		  "compute radial average around an axis" },
-
+        { "centerOfMass", (PyCFunction) Image_centerOfMass, METH_VARARGS,
+          "Return image center of mass as a tuple" },
 
         { nullptr } /* Sentinel */
     };//Image_methods
@@ -827,7 +828,7 @@ Image_scale(PyObject *obj, PyObject *args, PyObject *kwargs)
             I.getDimensions(xdim, ydim, zdim, ndim);
             if (forceVolume && zdim==1 && ndim>1)
                I.setDimensions(xdim,ydim,ndim,1);
-            selfScaleToSize(LINEAR, I, xDim, yDim, zDim);
+            selfScaleToSize(xmipp_transformation::LINEAR, I, xDim, yDim, zDim);
             Py_RETURN_NONE;
         }
         catch (XmippError &xe)
@@ -1612,10 +1613,10 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
     ImageObject *self = (ImageObject*) obj;
     ImageBase * img;
     PyObject *only_apply_shifts = Py_False;
-    PyObject *wrap = (WRAP ? Py_True : Py_False);
+    PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
     img = self->image->image;
     bool boolOnly_apply_shifts = false;
-    bool boolWrap = WRAP;
+    bool boolWrap = xmipp_transformation::WRAP;
 
     try
     {
@@ -1649,7 +1650,7 @@ Image_applyTransforMatScipion(PyObject *obj, PyObject *args, PyObject *kwargs)
             img->setShifts(shiftX,shiftY);
             img->setScale(scale);
             img->setFlip(flip);
-            img->selfApplyGeometry(LINEAR, boolWrap, boolOnly_apply_shifts);//wrap, onlyShifts
+            img->selfApplyGeometry(xmipp_transformation::LINEAR, boolWrap, boolOnly_apply_shifts);//wrap, onlyShifts
             Py_RETURN_NONE;
         }
         else
@@ -1675,10 +1676,10 @@ Image_readApplyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyObject *md = nullptr;
         PyObject *only_apply_shifts = Py_False;
-        PyObject *wrap = (WRAP ? Py_True : Py_False);
+        PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
-        bool boolWrap = WRAP;
+        bool boolWrap = xmipp_transformation::WRAP;
         int datamode = DATA;
         size_t select_img = ALL_IMAGES;
 
@@ -1793,10 +1794,10 @@ Image_applyGeo(PyObject *obj, PyObject *args, PyObject *kwargs)
     {
         PyObject *md = nullptr;
         PyObject *only_apply_shifts = Py_False;
-        PyObject *wrap = (WRAP ? Py_True : Py_False);
+        PyObject *wrap = (xmipp_transformation::WRAP ? Py_True : Py_False);
         size_t objectId = BAD_OBJID;
         bool boolOnly_apply_shifts = false;
-        bool boolWrap = WRAP;
+        bool boolWrap = xmipp_transformation::WRAP;
 
         if (PyArg_ParseTuple(args, "Ok|OO", &md, &objectId, &only_apply_shifts, &wrap))
         {
@@ -1856,4 +1857,28 @@ Image_radialAvgAxis(PyObject *obj, PyObject *args, PyObject *kwargs)
 	        PyErr_SetString(PyXmippError, xe.msg.c_str());
 	    }
     return Py_BuildValue("");
+}
+
+/* Return center of mass as a tuple */
+PyObject *
+Image_centerOfMass(PyObject *obj)
+{
+    auto *self = (ImageObject*) obj;
+    if (self != nullptr)
+    {
+        try
+        {
+            Matrix1D< double > center;
+            self->image->convert2Datatype(DT_Double);
+            MultidimArray<double> *in;
+            MULTIDIM_ARRAY_GENERIC(*self->image).getMultidimArrayPointer(in);
+            in->centerOfMass(center);
+            return Py_BuildValue("fff", XX(center), YY(center), ZZ(center));
+        }
+        catch (const XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
 }

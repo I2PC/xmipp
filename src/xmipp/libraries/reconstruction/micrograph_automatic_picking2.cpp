@@ -1704,7 +1704,7 @@ void AutoParticlePicking2::applyConvolution(bool fast)
         avgRotatedLarge=particleAvg;
         for (int deg=3;deg<360;deg+=3)
         {
-            rotate(LINEAR,avgRotated,particleAvg,double(deg));
+            rotate(xmipp_transformation::LINEAR,avgRotated,particleAvg,double(deg));
             avgRotated.setXmippOrigin();
             avgRotatedLarge.setXmippOrigin();
             avgRotatedLarge+=avgRotated;
@@ -1731,7 +1731,7 @@ void AutoParticlePicking2::applyConvolution(bool fast)
         {
             // We first rotate the template and then put it in the big image in order to
             // the convolution
-            rotate(LINEAR,avgRotated,particleAvg,double(deg));
+            rotate(xmipp_transformation::LINEAR,avgRotated,particleAvg,double(deg));
             avgRotatedLarge=avgRotated;
             avgRotatedLarge.setXmippOrigin();
             avgRotatedLarge.selfWindow(FIRST_XMIPP_INDEX(sizeY),FIRST_XMIPP_INDEX(sizeX),

@@ -834,7 +834,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
 
         // Instead of IS_INV for images use IS_NOT_INV for masks!
         I.getTransformationMatrix(A);
-        selfApplyGeometry(BSPLINE3, tmp, A, IS_NOT_INV, DONT_WRAP, outside);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3, tmp, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
         dAi(bg_mask,n)=(int)round(dAi(tmp,n));

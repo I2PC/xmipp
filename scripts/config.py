@@ -225,7 +225,7 @@ class Config:
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
 
-    def get_supported_GCC():
+    def get_supported_GCC(self):
         # we need GCC with C++14 support
         # https://gcc.gnu.org/projects/cxx-status.html
         return ['', 11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
@@ -242,11 +242,11 @@ class Config:
 
     def _set_cxx(self):
         self._set_compiler_linker_helper(
-            Config.KEY_CXX, 'g++', Config.get_supported_GCC())
+            Config.KEY_CXX, 'g++', self.get_supported_GCC())
 
     def _set_linker(self):
         self._set_compiler_linker_helper(
-            Config.KEY_LINKERFORPROGRAMS, 'g++', Config.get_supported_GCC())
+            Config.KEY_LINKERFORPROGRAMS, 'g++', self.get_supported_GCC())
 
     def _config_compiler(self):
         if self.configDict["DEBUG"] == "":
@@ -470,6 +470,8 @@ class Config:
 
     def _config_CUDA(self):
         self.configDict["CUDA"] = os.environ.get("CUDA", "")
+        if self.configDict["CUDA"]!="False" and self.configDict["CUDA"]!="True":
+            self.configDict["CUDA"]=""
         nvcc = 'nvcc'
         if self.configDict["CUDA"] == "":
             environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
@@ -880,12 +882,15 @@ class Config:
         if (Config.KEY_USE_DL in self.configDict) and (self.configDict[Config.KEY_USE_DL] != 'True'):
             self.configDict[Config.KEY_USE_DL] = 'False'
 
-    def ensure_version(self):
+    def check_version(self):
         if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
-            print(red("We did some changes which are not compatible with your current config file. "
-                      "Please, run './xmipp config' to generate a new config file."
-                      "We recommend you to create a backup before regenerating it (use --help for additional info)"))
-            exit(-1)
+            print(yellow("We did some changes in repository which may not be compatible with your current config file.\n" \
+                   "Run './xmipp config' to generate a new config file and compile Xmipp again.\n" \
+                   "We recommend you to create a backup before regenerating it (use --help for additional info)\n"))
+            if not askYesNo(yellow(
+                    '\nDo you want to compile without generating a new config file [YES/no]'), default=True,
+                    actually_ask=self.ask):
+                exit(-1)
 
     def _get_version(self):
         """ If git not present means it is in production mode

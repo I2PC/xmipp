@@ -527,7 +527,7 @@ public:
 double alignImages(const MultidimArray< double >& Iref,
                    MultidimArray< double >& I,
                    Matrix2D< double >&M,
-                   bool wrap=WRAP);
+                   bool wrap=xmipp_transformation::WRAP);
 
 /** Align two images considering mirrors */
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, MultidimArray<double>& I,
@@ -608,8 +608,8 @@ double alignImagesConsideringMirrors(const MultidimArray< double >& Iref,
                                      AlignmentAux &aux,
                                      CorrelationAux &aux2,
                                      RotationalCorrelationAux &aux3,
-                                     bool wrap=WRAP,
-                                     const MultidimArray< int >* mask = nullptr);
+                                     bool wrap=xmipp_transformation::WRAP,
+                                     const MultidimArray< int >* mask = NULL);
 
 /** Align a set of images.
  * Align a set of images and produce a class average as well as the set of
@@ -764,17 +764,16 @@ double rms(const MultidimArray< T >& x,
  * k1 and k2 determines the harmonic coefficients to be computed.
  */
 void fourierBesselDecomposition(const MultidimArray< double >& img_in,
-                                MultidimArray< double >& m_out,
-                                double r1,
                                 double r2,
                                 int k1,
                                 int k2);
 
+
 /** Harmonic decomposition
  * @ingroup Filters
  */
-void harmonicDecomposition(const MultidimArray< double >& img_in,
-                           MultidimArray< double >& v_out);
+//void harmonicDecomposition(const MultidimArray< double >& img_in,
+//                           MultidimArray< double >& v_out);
 
 // Function needed by median filtering
 template <typename T>

@@ -222,7 +222,7 @@ void ProgAlign2d::refinement()
             corr=alignImages(Irefm,Im,M);
         else
             corr=alignImagesConsideringMirrors(Irefm,Im,M,aux1,aux2,aux3);
-        applyGeometry(LINEAR, Ialigned, Ibackup, M, IS_NOT_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Ialigned, Ibackup, M, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
         Im=Ialigned;
 
         // Save alignment

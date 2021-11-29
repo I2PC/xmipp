@@ -124,11 +124,11 @@ void ProgClassifyFirstSplit3::calculateProjectedIms (size_t id, double &corrI_P1
 	}
 	int xdim = (int)XSIZE(V());
 	projectVolume(*projectorV1, PV, xdim, xdim,  rot, tilt, psi);
-	applyGeometry(LINEAR,projV,PV(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,projV,PV(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 	corrI_P1 = correlation(imgV(), projV);
 
 	projectVolume(*projectorV2, PV, xdim, xdim,  rot, tilt, psi);
-	applyGeometry(LINEAR,projV,PV(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,projV,PV(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 	corrI_P2 = correlation(imgV(), projV);
 }
 
@@ -154,8 +154,8 @@ void ProgClassifyFirstSplit3::run()
             objIds2.push_back(objId);
     }
 
-	projectorV1 = new FourierProjector(2,0.5,BSPLINE3);
-	projectorV2 = new FourierProjector(2,0.5,BSPLINE3);
+	projectorV1 = new FourierProjector(2,0.5,xmipp_transformation::BSPLINE3);
+	projectorV2 = new FourierProjector(2,0.5,xmipp_transformation::BSPLINE3);
 
 	updateVolume(objIds1, fnRoot+"_avg1", *projectorV1);
 	updateVolume(objIds2, fnRoot+"_avg2", *projectorV2);
