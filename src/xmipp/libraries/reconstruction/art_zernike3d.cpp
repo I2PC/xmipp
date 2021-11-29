@@ -1,0 +1,764 @@
+/***************************************************************************
+ *
+ * Authors:    David Herreros Calero dherreros@cnb.csic.es
+ *
+ * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+ * 02111-1307  USA
+ *
+ *  All comments concerning this program package may be sent to the
+ *  e-mail address 'xmipp@cnb.csic.es'
+ ***************************************************************************/
+
+#include "art_zernike3d.h"
+#include "core/transformations.h"
+#include "core/xmipp_image_extension.h"
+#include "core/xmipp_image_generic.h"
+#include "data/projection.h"
+#include "data/mask.h"
+
+#define FORWARD_ART   1
+#define BACKWARD_ART -1
+
+// Empty constructor =======================================================
+ProgArtZernike3D::ProgArtZernike3D()
+{
+	resume = false;
+    produces_a_metadata = true;
+    each_image_produces_an_output = false;
+    ctfImage = NULL;
+    showOptimization = false;
+}
+
+ProgArtZernike3D::~ProgArtZernike3D()
+{
+	delete ctfImage;
+}
+
+// Read arguments ==========================================================
+void ProgArtZernike3D::readParams()
+{
+	XmippMetadataProgram::readParams();
+	fnVolR = getParam("--ref");
+	fnOutDir = getParam("--odir");
+    RmaxDef = getIntParam("--RDef");
+    phaseFlipped = checkParam("--phaseFlipped");
+	useCTF = checkParam("--useCTF");
+	Ts = getDoubleParam("--sampling");
+    L1 = getIntParam("--l1");
+	L2 = getIntParam("--l2");
+	useZernike = checkParam("--useZernike");
+    lambda = getDoubleParam("--regularization");
+	resume = checkParam("--resume");
+	niter = getIntParam("--niter");
+	save_iter = getIntParam("--save_iter");
+	sort_last_N = getIntParam("--sort_last");
+	fnDone = fnOutDir + "/sphDone.xmd";
+	fnVolO = fnOutDir + "/Refined.vol";
+	keep_input_columns = true;
+}
+
+// Show ====================================================================
+void ProgArtZernike3D::show()
+{
+    if (!verbose)
+        return;
+	XmippMetadataProgram::show();
+    std::cout
+    << "Output directory:          "   << fnOutDir 		   << std::endl
+    << "Reference volume:          "   << fnVolR           << std::endl
+	<< "Sampling:                  "   << Ts               << std::endl
+    << "Max. Radius Deform.        "   << RmaxDef          << std::endl
+    << "Zernike Degree:            "   << L1               << std::endl
+    << "SH Degree:                 "   << L2               << std::endl
+	<< "Correct CTF:               "   << useCTF           << std::endl
+	<< "Correct heretogeneity:     "   << useZernike       << std::endl
+    << "Phase flipped:             "   << phaseFlipped     << std::endl
+    << "Regularization:            "   << lambda           << std::endl
+	<< "Number of iterations:      "   << niter            << std::endl
+	<< "Save every # iterations:   "   << save_iter        << std::endl
+    ;
+}
+
+// usage ===================================================================
+void ProgArtZernike3D::defineParams()
+{
+    addUsageLine("Template-based canonical volume reconstruction through Zernike3D coefficients");
+	defaultComments["-i"].clear();
+	defaultComments["-i"].addComment("Metadata with initial alignment");
+	defaultComments["-o"].clear();
+	defaultComments["-o"].addComment("Refined volume");
+    XmippMetadataProgram::defineParams();
+    addParamsLine("  [--ref <volume=\"\">]       : Reference volume");
+	addParamsLine("  [--odir <outputDir=\".\">]   : Output directory");
+	addParamsLine("  [--sampling <Ts=1>]          : Sampling rate (A/pixel)");
+    addParamsLine("  [--RDef <r=-1>]              : Maximum radius of the deformation (px). -1=Half of volume size");
+    addParamsLine("  [--l1 <l1=3>]                : Degree Zernike Polynomials=1,2,3,...");
+	addParamsLine("  [--l2 <l2=2>]                : Harmonical depth of the deformation=1,2,3,...");
+	addParamsLine("  [--useZernike]               : Correct heterogeneity with Zernike3D coefficients");
+	addParamsLine("  [--useCTF]                   : Correct CTF during ART reconstruction");
+    addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
+    addParamsLine("  [--regularization <l=0.01>]  : ART regularization weight");
+	addParamsLine("  [--niter <n=1>]              : Number of ART iterations");
+	addParamsLine("  [--save_iter <s=0>]          : Save intermidiate volume after #save_iter iterations");
+	addParamsLine("  [--sort_last <N=2>]          : The algorithm sorts projections in the most orthogonally possible way. ");
+    addParamsLine("                               : The most orthogonal way is defined as choosing the projection which maximizes the ");
+    addParamsLine("                               : dot product with the N previous inserted projections. Use -1 to sort with all  ");
+    addParamsLine("                               : previous projections");
+	addParamsLine("  [--resume]                   : Resume processing");
+    addExampleLine("A typical use is:",false);
+    addExampleLine("xmipp_art_zernike3d -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --l1 3 --l2 2");
+}
+
+// Produce side information ================================================
+void ProgArtZernike3D::createWorkFiles() {
+	// w_i = 1 / getInputMd()->size();
+	if (resume && fnDone.exists()) {
+		MetaDataDb done(fnDone);
+		done.read(fnDone);
+		getOutputMd() = done;
+		auto *candidates = getInputMd();
+		MetaDataDb toDo(*candidates);
+		toDo.subtraction(done, MDL_IMAGE);
+		toDo.write(fnOutDir + "/sphTodo.xmd");
+		*candidates = toDo;
+	}
+}
+
+void ProgArtZernike3D::preProcess()
+{
+	if (fnVolR != "")
+	{
+    V.read(fnVolR);
+	}
+	else 
+	{
+		FileName fn_first_image;
+		Image<double> first_image;
+		getInputMd()->getRow(1)->getValue(MDL_IMAGE,fn_first_image);
+		first_image.read(fn_first_image);
+		size_t Xdim_first = XSIZE(first_image());
+		V().initZeros(Xdim_first, Xdim_first, Xdim_first);
+
+	}
+    V().setXmippOrigin();
+
+    Xdim=XSIZE(V());
+
+	if (resume && fnVolO.exists()) {
+		Vrefined.read(fnVolO);
+	} else {
+		Vrefined() = V();
+	}
+	// Vrefined().initZeros(V());
+	Vrefined().setXmippOrigin();
+
+	if (RmaxDef<0)
+		RmaxDef = Xdim/2;
+
+    // Transformation matrix
+    A.initIdentity(3);
+
+	// CTF Filter
+	FilterCTF.FilterBand = CTFINV;
+	FilterCTF.FilterShape = CTFINV;
+	FilterCTF.ctf.enable_CTFnoise = false;
+	FilterCTF.ctf.enable_CTF = true;
+	// FilterCTF.ctf.produceSideInfo();
+
+	// Area where Zernike3D basis is computed (and volume is updated)
+	Mask mask;
+	mask.type = BINARY_CIRCULAR_MASK;
+	mask.mode = INNER_MASK;
+	mask.R1 = RmaxDef;
+	mask.generate_mask(V());
+	Vmask = mask.get_binary_mask();
+	Vmask.setXmippOrigin();
+
+	// Area Zernike3D in 2D
+	mask.generate_mask(XSIZE(V()), XSIZE(V()));
+	mask2D = mask.get_binary_mask();
+	mask2D.setXmippOrigin();
+
+	vecSize = 0;
+	numCoefficients(L1,L2,vecSize);
+    fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
+
+    createWorkFiles();
+}
+
+void ProgArtZernike3D::finishProcessing() {
+	// XmippMetadataProgram::finishProcessing();
+	Vrefined.write(fnVolO);
+}
+
+// Predict =================================================================
+//#define DEBUG
+void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImgOut, const MDRow &rowIn, MDRow &rowOut)
+{
+	rowOut=rowIn;
+	flagEnabled=1;
+
+	rowIn.getValue(MDL_ANGLE_ROT,rot);
+	rowIn.getValue(MDL_ANGLE_TILT,tilt);
+	rowIn.getValue(MDL_ANGLE_PSI,psi);
+	rowIn.getValue(MDL_SHIFT_X,shiftX);
+	rowIn.getValue(MDL_SHIFT_Y,shiftY);
+	std::vector<double> vectortemp;
+	if (useZernike) {
+		rowIn.getValue(MDL_SPH_COEFFICIENTS,vectortemp);
+		clnm.initZeros(vectortemp.size()-8);
+		for(int i=0; i < vectortemp.size()-8; i++){
+			VEC_ELEM(clnm,i) = vectortemp[i];
+		}
+		removeOverdeformation();
+	}
+	if (rowIn.containsLabel(MDL_FLIP))
+    	rowIn.getValue(MDL_FLIP,flip);
+	else
+		flip = false;
+	
+	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && useCTF)
+	{
+		// std::cout << "Applying CTF" << std::endl;
+		hasCTF=true;
+		FilterCTF.ctf.readFromMdRow(rowIn, false);
+		FilterCTF.ctf.Tm = Ts;
+		FilterCTF.ctf.produceSideInfo();
+	}
+	else
+		hasCTF=false;
+	MAT_ELEM(A,0,2)=shiftX;
+	MAT_ELEM(A,1,2)=shiftY;
+	MAT_ELEM(A,0,0)=1;
+	MAT_ELEM(A,0,1)=0;
+	MAT_ELEM(A,1,0)=0;
+	MAT_ELEM(A,1,1)=1;
+
+	if (verbose>=2)
+		std::cout << "Processing " << fnImg << std::endl;
+	
+	I.read(fnImg);
+	I().setXmippOrigin();
+
+	// Forward Model
+	artModel(FORWARD_ART);
+	// forwardModel();
+
+	// ART update
+	artModel(BACKWARD_ART);
+	// updateART();
+
+}
+#undef DEBUG
+
+void ProgArtZernike3D::checkPoint() {
+	getOutputMd().write(fnDone);
+	// Vrefined.write(fnVolO);
+}
+
+void ProgArtZernike3D::numCoefficients(int l1, int l2, int &vecSize)
+{
+    for (int h=0; h<=l2; h++)
+    {
+        int numSPH = 2*h+1;
+        int count=l1-h+1;
+        int numEven=(count>>1)+(count&1 && !(h&1));
+        if (h%2 == 0) {
+            vecSize += numSPH*numEven;
+		}
+        else {
+        	vecSize += numSPH*(l1-h+1-numEven);
+		}
+    }
+}
+
+void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matrix1D<int> &vN, 
+									          Matrix1D<int> &vL2, Matrix1D<int> &vM)
+{
+    int idx = 0;
+	vL1.initZeros(vecSize);
+	vN.initZeros(vecSize);
+	vL2.initZeros(vecSize);
+	vM.initZeros(vecSize);
+    for (int h=0; h<=l2; h++) {
+        int totalSPH = 2*h+1;
+        int aux = std::floor(totalSPH/2);
+        for (int l=h; l<=l1; l+=2) {
+            for (int m=0; m<totalSPH; m++) {
+                VEC_ELEM(vL1,idx) = l;
+                VEC_ELEM(vN,idx) = h;
+                VEC_ELEM(vL2,idx) = h;
+                VEC_ELEM(vM,idx) = m-aux;
+                idx++;
+            }
+        }
+    }
+}
+
+void ProgArtZernike3D::updateCTFImage(double defocusU, double defocusV, double angle)
+{
+	ctf.K=1; // get pure CTF with no envelope
+	ctf.produceSideInfo();
+}
+
+void ProgArtZernike3D::weightsInterpolation3D(double x, double y, double z, Matrix1D<double> &w) {
+	int x0 = FLOOR(x);
+	double fx0 = x - x0;
+	int x1 = x0 + 1;
+	double fx1 = x1 - x;
+
+	int y0 = FLOOR(y);
+	double fy0 = y - y0;
+	int y1 = y0 + 1;
+	double fy1 = y1 - y;
+
+	int z0 = FLOOR(z);
+	double fz0 = z - z0;
+	int z1 = z0 + 1;
+	double fz1 = z1 - z;
+
+	VEC_ELEM(w,0) = fx1 * fy1 * fz1;  // w000 (x0,y0,z0)
+	VEC_ELEM(w,1) = fx1 * fy1 * fz0;  // w001 (x0,y0,z1)
+	VEC_ELEM(w,2) = fx1 * fy0 * fz1;  // w010 (x0,y1,z0)
+	VEC_ELEM(w,3) = fx1 * fy0 * fz0;  // w011 (x0,y1,z1)
+	VEC_ELEM(w,4) = fx0 * fy1 * fz1;  // w100 (x1,y0,z0)
+	VEC_ELEM(w,5) = fx0 * fy1 * fz0;  // w101 (x1,y0,z1)
+	VEC_ELEM(w,6) = fx0 * fy0 * fz1;  // w110 (x1,y1,z0)
+	VEC_ELEM(w,7) = fx0 * fy0 * fz0;  // w111 (x1,y1,z1)
+}
+
+void ProgArtZernike3D::removeOverdeformation() {
+	int pos = 3*vecSize;
+	size_t idxY0=(VEC_XSIZE(clnm))/3;
+	size_t idxZ0=2*idxY0;
+
+	Matrix2D<double> R, R_inv;
+	R.initIdentity(3);
+	R_inv.initIdentity(3);
+    Euler_angles2matrix(rot, tilt, psi, R, false);
+    R_inv = R.inv();
+	Matrix1D<double> c;
+	c.initZeros(3);
+	for (size_t idx=0; idx<idxY0; idx++) {
+		XX(c) = VEC_ELEM(clnm,idx); YY(c) = VEC_ELEM(clnm,idx+idxY0); ZZ(c) = VEC_ELEM(clnm,idx+idxZ0);
+		c = R * c;
+		ZZ(c) = 0.0;
+		c = R_inv * c;
+		VEC_ELEM(clnm,idx) = XX(c); VEC_ELEM(clnm,idx+idxY0) = YY(c); VEC_ELEM(clnm,idx+idxZ0) = ZZ(c);
+	}
+}
+
+void ProgArtZernike3D::run()
+{
+    FileName fnImg, fnImgOut, fullBaseName;
+    getOutputMd().clear(); //this allows multiple runs of the same Program object
+
+    //Perform particular preprocessing
+    preProcess();
+
+    startProcessing();
+
+	sortOrthogonal();
+
+    if (!oroot.empty())
+    {
+        if (oext.empty())
+        oext           = oroot.getFileFormat();
+        oextBaseName   = oext;
+        fullBaseName   = oroot.removeFileFormat();
+        baseName       = fullBaseName.getBaseName();
+        pathBaseName   = fullBaseName.getDir();
+    }
+
+	size_t objId;
+	size_t objIndex;
+	current_save_iter = 1;
+	num_images = 1;
+	for (current_iter=0; current_iter<niter; current_iter++) {
+		std::cout << "Running iteration " << current_iter+1 << " with lambda=" << lambda << std::endl;
+		objId = 0;
+		objIndex = 0;
+		time_bar_done = 0;
+		FOR_ALL_ELEMENTS_IN_ARRAY1D(ordered_list)
+		{
+			objId = A1D_ELEM(ordered_list,i) + 1;
+			++objIndex;
+			auto rowIn = getInputMd()->getRow(objId);
+			rowIn->getValue(image_label, fnImg);
+
+			if (fnImg.empty())
+				break;
+
+			fnImgOut = fnImg;
+
+			MDRowVec rowOut;
+
+			if (each_image_produces_an_output)
+			{
+				if (!oroot.empty()) // Compose out name to save as independent images
+				{
+					if (oext.empty()) // If oext is still empty, then use ext of indep input images
+					{
+						if (input_is_stack)
+							oextBaseName = "spi";
+						else
+							oextBaseName = fnImg.getFileFormat();
+					}
+
+					if (!baseName.empty() )
+						fnImgOut.compose(fullBaseName, objIndex, oextBaseName);
+					else if (fnImg.isInStack())
+						fnImgOut.compose(pathBaseName + (fnImg.withoutExtension()).getDecomposedFileName(), objIndex, oextBaseName);
+					else
+						fnImgOut = pathBaseName + fnImg.withoutExtension()+ "." + oextBaseName;
+				}
+				else if (!fn_out.empty() )
+				{
+					if (single_image)
+						fnImgOut = fn_out;
+					else
+						fnImgOut.compose(objIndex, fn_out); // Compose out name to save as stacks
+				}
+				else
+					fnImgOut = fnImg;
+				setupRowOut(fnImg, *rowIn.get(), fnImgOut, rowOut);
+			}
+			else if (produces_a_metadata)
+				setupRowOut(fnImg, *rowIn.get(), fnImgOut, rowOut);
+
+			processImage(fnImg, fnImgOut, *rowIn.get(), rowOut);
+
+			if (each_image_produces_an_output || produces_a_metadata)
+				getOutputMd().addRow(rowOut);
+
+			checkPoint();
+			showProgress();
+
+			// Save refined volume every num_images
+			if (current_save_iter == save_iter && save_iter > 0) {
+				Mask mask;
+				mask.type = BINARY_CIRCULAR_MASK;
+				mask.mode = INNER_MASK;
+				mask.R1 = RmaxDef - 2;
+				mask.generate_mask(Vrefined());
+				mask.apply_mask(Vrefined(), Vrefined());
+				Vrefined.write(fnVolO.removeAllExtensions() + "it" + std::to_string(current_iter+1) + "proj" + std::to_string(num_images) + ".mrc");
+				current_save_iter = 1;
+			}
+			current_save_iter++;
+			num_images++;
+		}
+		num_images = 1;
+		current_save_iter = 1;
+
+		// Vrefined().threshold("below", 0, 0);
+		// Mask mask;
+		// mask.type = BINARY_CIRCULAR_MASK;
+		// mask.mode = INNER_MASK;
+		// mask.R1 = RmaxDef - 2;
+		// mask.generate_mask(Vrefined());
+		// mask.apply_mask(Vrefined(), Vrefined());
+		// Vrefined.write(fnOutDir + "/Refined_masked.mrc");
+	}
+    wait();
+
+    /* Generate name to save mdOut when output are independent images. It uses as prefix
+     * the dirBaseName in order not overwriting files when repeating same command on
+     * different directories. If baseName is set it is used, otherwise, input name is used.
+     * Then, the suffix _oext is added.*/
+    if (fn_out.empty() )
+    {
+        if (!oroot.empty())
+        {
+            if (!baseName.empty() )
+                fn_out = findAndReplace(pathBaseName,"/","_") + baseName + "_" + oextBaseName + ".xmd";
+            else
+                fn_out = findAndReplace(pathBaseName,"/","_") + fn_in.getBaseName() + "_" + oextBaseName + ".xmd";
+        }
+        else if (input_is_metadata) /// When nor -o neither --oroot is passed and want to overwrite input metadata
+            fn_out = fn_in;
+    }
+
+    finishProcessing();
+
+    postProcess();
+
+    /* Reset the default values of the program in case
+     * to be reused.*/
+    init();
+}
+
+void ProgArtZernike3D::sortOrthogonal() {
+	int i, j;
+	size_t numIMG = getInputMd()->size();
+	MultidimArray<short> chosen(numIMG);
+	MultidimArray<double> product(numIMG);
+	double min_prod = MAXFLOAT;;
+    int min_prod_proj = 0;
+	std::vector<double> rot;
+	std::vector<double> tilt;
+	Matrix2D<double> v(numIMG, 3);
+	Matrix2D<double> euler;
+	getInputMd()->getColumnValues(MDL_ANGLE_ROT, rot);
+	getInputMd()->getColumnValues(MDL_ANGLE_TILT, tilt);
+
+	// Initialization
+    ordered_list.resize(numIMG);
+    for (i = 0; i < numIMG; i++)
+    {
+        Matrix1D<double> z;
+        // Initially no image is chosen
+        A1D_ELEM(chosen, i) = 0;
+
+        // Compute the Euler matrix for each image and keep only
+        // the third row of each one
+        Euler_angles2matrix(rot[i], tilt[i], 0., euler);
+        euler.getRow(2, z);
+        v.setRow(i, z);
+    }
+
+	// Pick first projection as the first one to be presented
+    i = 0;
+    A1D_ELEM(chosen, i) = 1;
+    A1D_ELEM(ordered_list, 0) = i;
+
+    // Choose the rest of projections
+    std::cout << "Sorting projections orthogonally...\n" << std::endl;
+    Matrix1D<double> rowj, rowi_1, rowi_N_1;
+    for (i = 1; i < numIMG; i++)
+    {
+        // Compute the product of not already chosen vectors with the just
+        // chosen one, and select that which has minimum product
+		min_prod = MAXFLOAT;
+        v.getRow(A1D_ELEM(ordered_list, i - 1),rowi_1);
+        if (sort_last_N != -1 && i > sort_last_N)
+            v.getRow(A1D_ELEM(ordered_list, i - sort_last_N - 1),rowi_N_1);
+        for (j = 0; j < numIMG; j++)
+        {
+            if (!A1D_ELEM(chosen, j))
+            {
+                v.getRow(j,rowj);
+                A1D_ELEM(product, j) += ABS(dotProduct(rowi_1,rowj));
+                if (sort_last_N != -1 && i > sort_last_N)
+                    A1D_ELEM(product, j) -= ABS(dotProduct(rowi_N_1,rowj));
+                if (A1D_ELEM(product, j) < min_prod)
+                {
+                    min_prod = A1D_ELEM(product, j);
+                    min_prod_proj = j;
+                }
+            }
+        }
+
+		// Store the chosen vector and mark it as chosen
+        A1D_ELEM(ordered_list, i) = min_prod_proj;
+        A1D_ELEM(chosen, min_prod_proj) = 1;
+
+	}
+}
+
+void ProgArtZernike3D::artModel(int direction)
+{
+	if (direction == FORWARD_ART)
+	{
+		Image<double> I_shifted;
+		P().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+		P().setXmippOrigin();
+		W().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+		W().setXmippOrigin();
+		Idiff().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+		Idiff().setXmippOrigin();
+		I_shifted().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
+		I_shifted().setXmippOrigin();
+
+		if (useZernike)
+			zernikeModel<true, FORWARD_ART>();
+		else
+			zernikeModel<false, FORWARD_ART>();
+
+		if (hasCTF)
+		{
+			// updateCTFImage(defocusU, defocusV, defocusAngle);
+			// FilterCTF.ctf = ctf;
+			if (phaseFlipped)
+				FilterCTF.correctPhase();
+			FilterCTF.generateMask(I());
+			FilterCTF.applyMaskSpace(I());
+		}
+		if (flip)
+		{
+			MAT_ELEM(A, 0, 0) *= -1;
+			MAT_ELEM(A, 0, 1) *= -1;
+			MAT_ELEM(A, 0, 2) *= -1;
+		}
+
+		applyGeometry(xmipp_transformation::LINEAR, I_shifted(), I(), A, 
+					  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.);
+
+		// P.write(fnOutDir + "/PPPtheo.xmp");
+		// I_shifted.write(fnOutDir + "/PPPexp.xmp");
+		// std::cout << "Press any key" << std::endl;
+		// char c; std::cin >> c;
+
+		// Compute difference image and divide by weights
+		double error = 0.0;
+		double N = 0.0;
+		FOR_ALL_ELEMENTS_IN_ARRAY2D(I())
+		{
+			if (A2D_ELEM(mask2D, i, j) == 1)
+			{
+				A2D_ELEM(Idiff(), i, j) = lambda * (A2D_ELEM(I_shifted(), i, j) - A2D_ELEM(P(), i, j)) / XMIPP_MAX(A2D_ELEM(W(), i, j), 1.0);
+				error += (A2D_ELEM(I_shifted(), i, j) - A2D_ELEM(P(), i, j)) * (A2D_ELEM(I_shifted(), i, j) - A2D_ELEM(P(), i, j));
+				N++;
+			}
+		}
+		// Creo que Carlos no usa un RMSE si no un MSE
+		error = std::sqrt(error / N);
+		std::cout << "Error for image " << num_images << " in iteration " << current_iter+1 << " : " << error << std::endl;
+	}
+	else if (direction == BACKWARD_ART)
+	{
+		if (useZernike)
+			zernikeModel<true, BACKWARD_ART>();
+		else
+			zernikeModel<false, BACKWARD_ART>();
+	}	
+}
+
+template<bool USESZERNIKE, int DIRECTION>
+void ProgArtZernike3D::zernikeModel() {
+	int l1,n,l2,m;
+	double r_x, r_y, r_z;
+	const auto mV = V();
+	size_t idxY0 = 0;
+	size_t idxZ0 = 0;
+	double RmaxF = 0.0;
+	double RmaxF2 = 0.0;
+	double iRmaxF = 0.0;
+	r_x = 0.0;
+	r_y = 0.0;
+	r_z = 0.0;
+	l1 = 0;
+	n = 0;
+	l2 = 0;
+	m = 0;
+	if (USESZERNIKE)
+	{
+		idxY0 = VEC_XSIZE(clnm) / 3;
+		idxZ0 = 2 * idxY0;
+		RmaxF = RmaxDef;
+		RmaxF2 = RmaxF * RmaxF;
+		iRmaxF = 1.0 / RmaxF;
+	}
+    // Rotation Matrix
+    Matrix2D<double> R;
+    R.initIdentity(3);
+    Euler_angles2matrix(rot, tilt, psi, R, false);
+    R = R.inv();
+    Matrix1D<double> pos, w;
+    pos.initZeros(3);
+	w.initZeros(8);
+
+	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
+	{
+		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
+		{
+			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++)
+			{
+				ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
+				pos = R * pos;
+				double gx=0.0, gy=0.0, gz=0.0;
+				if (A3D_ELEM(Vmask,k,i,j) == 1) {
+					// double irr2 = 1 / ((1+rr) * (1+rr));
+					if (USESZERNIKE)
+					{
+						double k2 = ZZ(pos) * ZZ(pos);
+						double kr = ZZ(pos) * iRmaxF;
+						double k2i2 = k2 + YY(pos) * YY(pos);
+						double ir = YY(pos) * iRmaxF;
+						double r2 = k2i2 + XX(pos) * XX(pos);
+						double jr = XX(pos) * iRmaxF;
+						double rr = sqrt(r2) * iRmaxF;
+						for (size_t idx = 0; idx < idxY0; idx++)
+						{
+							double zsph = 0.0;
+							l1 = VEC_ELEM(vL1, idx);
+							n = VEC_ELEM(vN, idx);
+							l2 = VEC_ELEM(vL2, idx);
+							m = VEC_ELEM(vM, idx);
+							zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+							if (rr > 0 || l2 == 0)
+							{
+								gx += VEC_ELEM(clnm, idx) * (zsph);
+								gy += VEC_ELEM(clnm, idx + idxY0) * (zsph);
+								gz += VEC_ELEM(clnm, idx + idxZ0) * (zsph);
+							}
+						}
+					}
+					// }
+					r_x = XX(pos) + gx;
+					r_y = YY(pos) + gy;
+					r_z = ZZ(pos) + gz;
+					int x0 = FLOOR(r_x);
+					int x1 = x0 + 1;
+					int y0 = FLOOR(r_y);
+					int y1 = y0 + 1;
+					int z0 = FLOOR(r_z);
+					int z1 = z0 + 1;
+					weightsInterpolation3D(r_x, r_y, r_z, w);
+
+					if (DIRECTION == FORWARD_ART)
+					{
+						double voxelI = Vrefined().interpolatedElement3D(r_x, r_y, r_z, NAN);
+						if (!isnan(voxelI))
+						{
+							A2D_ELEM(P(), i, j) += voxelI;
+							double module = w.module();
+							A2D_ELEM(W(), i, j) +=  module * module;
+						}
+					}
+					else if (DIRECTION == BACKWARD_ART)
+					{
+						// int x0 = FLOOR(r_x);
+						// int x1 = x0 + 1;
+						// int y0 = FLOOR(r_y);
+						// int y1 = y0 + 1;
+						// int z0 = FLOOR(r_z);
+						// int z1 = z0 + 1;
+						double Idiff_val = A2D_ELEM(Idiff(), i, j);
+						// weightsInterpolation3D(r_x, r_y, r_z, w);
+						if (!Vrefined().outside(z0, y0, x0))
+							A3D_ELEM(Vrefined(), z0, y0, x0) += Idiff_val * VEC_ELEM(w, 0);
+						if (!Vrefined().outside(z1, y0, x0))
+							A3D_ELEM(Vrefined(), z1, y0, x0) += Idiff_val * VEC_ELEM(w, 1);
+						if (!Vrefined().outside(z0, y1, x0))
+							A3D_ELEM(Vrefined(), z0, y1, x0) += Idiff_val * VEC_ELEM(w, 2);
+						if (!Vrefined().outside(z1, y1, x0))
+							A3D_ELEM(Vrefined(), z1, y1, x0) += Idiff_val * VEC_ELEM(w, 3);
+						if (!Vrefined().outside(z0, y0, x1))
+							A3D_ELEM(Vrefined(), z0, y0, x1) += Idiff_val * VEC_ELEM(w, 4);
+						if (!Vrefined().outside(z1, y0, x1))
+							A3D_ELEM(Vrefined(), z1, y0, x1) += Idiff_val * VEC_ELEM(w, 5);
+						if (!Vrefined().outside(z0, y1, x1))
+							A3D_ELEM(Vrefined(), z0, y1, x1) += Idiff_val * VEC_ELEM(w, 6);
+						if (!Vrefined().outside(z1, y1, x1))
+							A3D_ELEM(Vrefined(), z1, y1, x1) += Idiff_val * VEC_ELEM(w, 7);
+					}
+				}
+			}
+		}
+	}
+}
