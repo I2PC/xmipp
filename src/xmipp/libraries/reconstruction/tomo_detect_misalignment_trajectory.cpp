@@ -60,8 +60,8 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 
 
-	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      					: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
-  	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]	: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
+	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      						: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
+  	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]				: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
 
 	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
@@ -111,8 +111,8 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	std::cout << "Thresholds:" << std::endl;
 	std::cout << "thrChainDistancePx: "<< thrChainDistancePx << std::endl;
 	std::cout << "minDistancePx: "<< minDistancePx << std::endl;
-	std::cout << "top10ChainThr: "<< top10ChainThr << std::endl;
-	std::cout << "lmChainThr: "<< lmChainThr << std::endl;
+	std::cout << "thrTop10Chain: "<< thrTop10Chain << std::endl;
+	std::cout << "thrLMChain: "<< thrLMChain << std::endl;
 	std::cout << "numberOfElementsInChainThreshold: "<< numberOfElementsInChainThreshold << std::endl;
 	#endif
 
@@ -1456,12 +1456,12 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	}
 
 	// Thresholds calculation
-	float top10Chain = 100 * (top10LM / totalLM); // Compare to top10ChainThr
-	float lmChain = 100 * (totalChainLM / (totalIndexes * totalLM)); // Compare to lmChainThr
+	float top10Chain = 100 * (top10LM / totalLM); // Compare to thrTop10Chain
+	float lmChain = 100 * (totalChainLM / (totalIndexes * totalLM)); // Compare to thrLMChain
 
 	// Thresholds comparison
-	bool top10ChainBool = top10Chain < top10ChainThr;
-	bool lmChainBool = lmChain < lmChainThr;
+	bool top10ChainBool = top10Chain < thrTop10Chain;
+	bool lmChainBool = lmChain < thrLMChain;
 
 	#ifdef DEBUG_LOCAL_MISALI
 	std::cout << "Global misalignment detection parameters:" << std::endl;
@@ -1472,16 +1472,16 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	std::cout << "Precentage of LM belonging to the top 10 populated chains: " << top10Chain << std::endl;
 	std::cout << "Percentage of number of average LM belonging to the selected chains: " << lmChain << std::endl;
 
-	std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10ChainBool << std::endl;
-	std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChainBool << std::endl;
+	std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
+	std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
 	#endif
 
 	if(top10ChainBool || lmChainBool)
 	{
 		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
-		std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10ChainBool << std::endl;
-		std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChainBool << std::endl;
+		std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
+		std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
 		#endif
 
 		return false;

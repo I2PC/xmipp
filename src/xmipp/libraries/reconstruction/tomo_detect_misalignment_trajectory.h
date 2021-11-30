@@ -72,7 +72,7 @@ public:
     /** Input info */
     double fiducialSize;
     double samplingRate;
-    
+
     bool checkInputCoord;
 
     /** Thresholds */
@@ -120,8 +120,8 @@ private:
     double thrChainDistancePx;
 
     // Global alignment thresholds
-    float top10ChainThr = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
-    float lmChainThr = 1.05;                        // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
+    float thrTop10Chain = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
+    float thrLMChain = 1.05;                        // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
     /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment;
