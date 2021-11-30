@@ -106,8 +106,8 @@ private:
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
 
     // Thresholds are saved in angstroms in order to be independent of the sampling rate and image size
-    float minDistanceAng = 40;                      // Minimum distance to cosider that 2 landmarks belong to the same chain
-    float thrChainDistanceAng = 20;                // Maximum distance of a detected landmark to a chain
+    float minDistanceAng = 20;                      // Minimum distance to cosider that 2 landmarks belong to the same chain
+    float thrChainDistanceAng;                 // Maximum distance of a detected landmark to consider it belongs to a chain
     
     // Thresholds measured in pixels updated in generateSideInfo function
     float minDistancePx;                          

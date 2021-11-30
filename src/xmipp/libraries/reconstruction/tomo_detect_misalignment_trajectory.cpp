@@ -31,14 +31,17 @@
 void ProgTomoDetectMisalignmentTrajectory::readParams()
 {
 	fnVol = getParam("-i");
-	fnOut = getParam("-o");
 	fnTiltAngles = getParam("--tlt");
+	fnOut = getParam("-o");
+
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
+
 	sdThreshold = getIntParam("--sdThreshold");
 	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
+	thrChainDistanceAng = getDoubleParam("--thrChainDistanceAng");
+	
 	checkInputCoord = checkParam("--inputCoord");
-
 	if(checkInputCoord)
 	{
 		fnInputCoord = getParam("--inputCoord");
@@ -52,10 +55,15 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  -i <mrcs_file=\"\">                   					: Input tilt-series.");
 	addParamsLine("  --tlt <xmd_file=\"\">      							: Input file containning the tilt angles of the tilt-series in .xmd format.");
 	addParamsLine("  [-o <output=\"./alignemntReport.xmd\">]       			: Output file containing the alignemnt report.");
-	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
-  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
-  	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
+
+	addParamsLine("  [--samplingRate <samplingRate=1>]						: Sampling rate of the input tomogram (A/px).");
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
+
+
+	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
+  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
+	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
+
 	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
 }
 
