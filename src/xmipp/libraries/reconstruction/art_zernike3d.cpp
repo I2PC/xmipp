@@ -642,68 +642,54 @@ void ProgArtZernike3D::artModel(int direction)
 
 template<bool USESZERNIKE, int DIRECTION>
 void ProgArtZernike3D::zernikeModel() {
-	int l1,n,l2,m;
-	double r_x, r_y, r_z;
-	const auto mV = V();
-	size_t idxY0 = 0;
-	size_t idxZ0 = 0;
-	double RmaxF = 0.0;
-	double RmaxF2 = 0.0;
-	double iRmaxF = 0.0;
-	r_x = 0.0;
-	r_y = 0.0;
-	r_z = 0.0;
-	l1 = 0;
-	n = 0;
-	l2 = 0;
-	m = 0;
-	if (USESZERNIKE)
-	{
-		idxY0 = VEC_XSIZE(clnm) / 3;
-		idxZ0 = 2 * idxY0;
-		RmaxF = RmaxDef;
-		RmaxF2 = RmaxF * RmaxF;
-		iRmaxF = 1.0 / RmaxF;
-	}
+	const auto &mV = V();
+	const size_t idxY0 = USESZERNIKE ? (VEC_XSIZE(clnm) / 3) : 0;
+	const size_t idxZ0 = USESZERNIKE ? (2 * idxY0) : 0;
+	const double RmaxF = USESZERNIKE ? RmaxDef : 0;
+	const double RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0;
+	const double iRmaxF = USESZERNIKE ? (1.0 / RmaxF) : 0;
     // Rotation Matrix
-    Matrix2D<double> R;
-    R.initIdentity(3);
-    Euler_angles2matrix(rot, tilt, psi, R, false);
-    R = R.inv();
-    Matrix1D<double> pos, w;
-    pos.initZeros(3);
+    const Matrix2D<double> R = [this](){
+		auto tmp = Matrix2D<double>();
+		tmp.initIdentity(3);
+		Euler_angles2matrix(rot, tilt, psi, tmp, false);
+		return tmp.inv();
+	}();
+    Matrix1D<double> p, w;
+    p.initZeros(3);
 	w.initZeros(8);
 
 	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k++)
 	{
+		ZZ(p) = k; 
 		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i++)
 		{
+			YY(p) = i; 
 			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j++)
 			{
-				ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
-				pos = R * pos;
-				double gx=0.0, gy=0.0, gz=0.0;
 				if (A3D_ELEM(Vmask,k,i,j) == 1) {
+					XX(p) = j;
+					const auto pos = R * p;
+					double gx=0.0, gy=0.0, gz=0.0;
 					// double irr2 = 1 / ((1+rr) * (1+rr));
 					if (USESZERNIKE)
 					{
-						double k2 = ZZ(pos) * ZZ(pos);
-						double kr = ZZ(pos) * iRmaxF;
-						double k2i2 = k2 + YY(pos) * YY(pos);
-						double ir = YY(pos) * iRmaxF;
-						double r2 = k2i2 + XX(pos) * XX(pos);
-						double jr = XX(pos) * iRmaxF;
-						double rr = sqrt(r2) * iRmaxF;
+						auto k2 = ZZ(pos) * ZZ(pos);
+						auto kr = ZZ(pos) * iRmaxF;
+						auto k2i2 = k2 + YY(pos) * YY(pos);
+						auto ir = YY(pos) * iRmaxF;
+						auto r2 = k2i2 + XX(pos) * XX(pos);
+						auto jr = XX(pos) * iRmaxF;
+						auto rr = sqrt(r2) * iRmaxF;
 						for (size_t idx = 0; idx < idxY0; idx++)
 						{
-							double zsph = 0.0;
-							l1 = VEC_ELEM(vL1, idx);
-							n = VEC_ELEM(vN, idx);
-							l2 = VEC_ELEM(vL2, idx);
-							m = VEC_ELEM(vM, idx);
-							zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
+							auto l1 = VEC_ELEM(vL1, idx);
+							auto n = VEC_ELEM(vN, idx);
+							auto l2 = VEC_ELEM(vL2, idx);
+							auto m = VEC_ELEM(vM, idx);
 							if (rr > 0 || l2 == 0)
 							{
+								auto zsph = ZernikeSphericalHarmonics(l1, n, l2, m, jr, ir, kr, rr);
 								gx += VEC_ELEM(clnm, idx) * (zsph);
 								gy += VEC_ELEM(clnm, idx + idxY0) * (zsph);
 								gz += VEC_ELEM(clnm, idx + idxZ0) * (zsph);
@@ -711,15 +697,9 @@ void ProgArtZernike3D::zernikeModel() {
 						}
 					}
 					// }
-					r_x = XX(pos) + gx;
-					r_y = YY(pos) + gy;
-					r_z = ZZ(pos) + gz;
-					int x0 = FLOOR(r_x);
-					int x1 = x0 + 1;
-					int y0 = FLOOR(r_y);
-					int y1 = y0 + 1;
-					int z0 = FLOOR(r_z);
-					int z1 = z0 + 1;
+					auto r_x = XX(pos) + gx;
+					auto r_y = YY(pos) + gy;
+					auto r_z = ZZ(pos) + gz;
 					weightsInterpolation3D(r_x, r_y, r_z, w);
 
 					if (DIRECTION == FORWARD_ART)
@@ -734,12 +714,12 @@ void ProgArtZernike3D::zernikeModel() {
 					}
 					else if (DIRECTION == BACKWARD_ART)
 					{
-						// int x0 = FLOOR(r_x);
-						// int x1 = x0 + 1;
-						// int y0 = FLOOR(r_y);
-						// int y1 = y0 + 1;
-						// int z0 = FLOOR(r_z);
-						// int z1 = z0 + 1;
+						int x0 = FLOOR(r_x);
+						auto x1 = x0 + 1;
+						int y0 = FLOOR(r_y);
+						auto y1 = y0 + 1;
+						int z0 = FLOOR(r_z);
+						auto z1 = z0 + 1;
 						double Idiff_val = A2D_ELEM(Idiff(), i, j);
 						// weightsInterpolation3D(r_x, r_y, r_z, w);
 						if (!Vrefined().outside(z0, y0, x0))
