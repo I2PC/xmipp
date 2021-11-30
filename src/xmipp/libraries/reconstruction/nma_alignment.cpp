@@ -211,7 +211,7 @@ FileName ProgNmaAlignment::createDeformedPDB(int pyramidLevel) const {
 		Image<double> I;
 		FileName fnDeformed = formatString("%s_deformedPDB.vol",randStr);
 		I.read(fnDeformed);
-		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
 		I.write(fnDeformed);
 	}
 	return fnRandom;
@@ -229,7 +229,7 @@ void ProgNmaAlignment::performCompleteSearch(const FileName &fnRandom,
 	if (pyramidLevel != 0) {
 		Image<double> I;
 		I.read(currentImgName);
-		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
 		I.write(fnDown);
 	} else
 		copyImage(currentImgName.c_str(), fnDown.c_str());

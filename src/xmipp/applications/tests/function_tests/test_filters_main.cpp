@@ -117,7 +117,7 @@ TEST_F( FiltersTest, alignImages)
     rotation2DMatrix(15.,A,true);
     MAT_ELEM(A,0,2)=-4;
     MAT_ELEM(A,1,2)= 6;
-    selfApplyGeometry(BSPLINE3,Itransformed(),A,IS_NOT_INV,DONT_WRAP);
+    selfApplyGeometry(xmipp_transformation::BSPLINE3,Itransformed(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
     Itransformed.write(fileTemp);
 
     ItransformedMirror()=Itransformed();
@@ -130,16 +130,16 @@ TEST_F( FiltersTest, alignImages)
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
     MultidimArray<double> Ialigned1=ItransformedMirror();
-    alignImages(I(),Ialigned1,M1,DONT_WRAP,aux,aux2,aux3);
+    alignImages(I(),Ialigned1,M1,xmipp_transformation::DONT_WRAP,aux,aux2,aux3);
 
     MultidimArray<double> Ialigned2;
-    applyGeometry(BSPLINE3, Ialigned2, ItransformedMirror(), M1, IS_NOT_INV, DONT_WRAP);
+    applyGeometry(xmipp_transformation::BSPLINE3, Ialigned2, ItransformedMirror(), M1, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 
     Matrix2D<double> M2=M1;
     MAT_ELEM(M2,0,0)*=-1;
     MAT_ELEM(M2,1,0)*=-1;
     MultidimArray<double> Ialigned3;
-    applyGeometry(BSPLINE3, Ialigned3, Itransformed(), M2, IS_NOT_INV, DONT_WRAP);
+    applyGeometry(xmipp_transformation::BSPLINE3, Ialigned3, Itransformed(), M2, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 
     bool flip;
     double scale, shiftX, shiftY, psi;

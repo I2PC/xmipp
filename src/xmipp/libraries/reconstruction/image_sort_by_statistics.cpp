@@ -193,7 +193,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
 
         img.readApplyGeo(SF, objId);
         if (targetXdim!=-1 && targetXdim<XSIZE(img()))
-        	selfScaleToSize(LINEAR,img(),targetXdim,targetXdim,1);
+        	selfScaleToSize(xmipp_transformation::LINEAR,img(),targetXdim,targetXdim,1);
 
         MultidimArray<double> &mI=img();
         mI.setXmippOrigin();

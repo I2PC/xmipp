@@ -187,7 +187,7 @@ void substractBackgroundRollingBall(MultidimArray<double> &I, int radius)
 
     // Now rescale the background
     MultidimArray<double> bgEnlarged;
-    scaleToSize(LINEAR, bgEnlarged, Irolled, XSIZE(I), YSIZE(I));
+    scaleToSize(xmipp_transformation::LINEAR, bgEnlarged, Irolled, XSIZE(I), YSIZE(I));
     bgEnlarged.copyShape(I);
     I -= bgEnlarged;
 }
@@ -691,12 +691,12 @@ void removeSmallComponents(MultidimArray<double> &I, int size,
     MultidimArray<int> nlabel(imax + 1);
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
     	A1D_ELEM(nlabel,l)++;
     }
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
     	if (A1D_ELEM(nlabel,l)<size)
     		DIRECT_MULTIDIM_ELEM(I,n)=0;
     }
@@ -715,7 +715,7 @@ void keepBiggestComponent(MultidimArray<double> &I, double percentage,
     MultidimArray<int> nlabel(imax + 1);
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
     	if (l>0)
     		A1D_ELEM(nlabel,l)++;
     }
@@ -734,7 +734,7 @@ void keepBiggestComponent(MultidimArray<double> &I, double percentage,
 
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
-    	auto l=(int)DIRECT_MULTIDIM_ELEM(label,n);
+    	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
         bool among_the_best = false;
         for (int k = nbest; k < imax + 1; k++)
             if (l == A1D_ELEM(best,k))
@@ -1250,8 +1250,8 @@ double imedDistance(const MultidimArray<double>& I1, const MultidimArray<double>
     int imiddle=YSIZE(I1)/2;
     int jmiddle=XSIZE(I1)/2;
     int R2max=imiddle*imiddle;
-    auto ysize=(int)YSIZE(I1);
-    auto xsize=(int)XSIZE(I1);
+    int ysize=(int)YSIZE(I1);
+    int xsize=(int)XSIZE(I1);
     for (int i=3; i<ysize-3; ++i)
     {
     	int i2=(i-imiddle)*(i-imiddle);
@@ -1830,7 +1830,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     double bestCorr, corr;
     MultidimArray<double> Iaux;
 
-    translate(1, Iaux, I1, vectorR2(-shiftX, -shiftY), DONT_WRAP);
+    translate(1, Iaux, I1, vectorR2(-shiftX, -shiftY), xmipp_transformation::DONT_WRAP);
     //I1.translate(vectorR2(-shiftX,-shiftY),Iaux, DONT_WRAP);
     bestCorr = corr = fastCorrelation(I2, Iaux);
     double finalX = shiftX;
@@ -1851,7 +1851,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     Iaux.initZeros();
     double testX = (shiftX > 0) ? (shiftX - XSIZE(I1)) : (shiftX + XSIZE(I1));
     double testY = shiftY;
-    translate(1, Iaux, I1, vectorR2(-testX, -testY), DONT_WRAP);
+    translate(1, Iaux, I1, vectorR2(-testX, -testY), xmipp_transformation::DONT_WRAP);
     //I1.translate(vectorR2(-testX,-testY),Iaux,DONT_WRAP);
     corr = fastCorrelation(I2, Iaux);
     if (corr > bestCorr)
@@ -1867,7 +1867,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     Iaux.initZeros();
     testX = shiftX;
     testY = (shiftY > 0) ? (shiftY - YSIZE(I1)) : (shiftY + YSIZE(I1));
-    translate(1, Iaux, I1, vectorR2(-testX, -testY), DONT_WRAP);
+    translate(1, Iaux, I1, vectorR2(-testX, -testY), xmipp_transformation::DONT_WRAP);
     //I1.translate(vectorR2(-testX,-testY),Iaux,DONT_WRAP);
     corr = fastCorrelation(I2, Iaux);
     if (corr > bestCorr)
@@ -1883,7 +1883,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     Iaux.initZeros();
     testX = (shiftX > 0) ? (shiftX - XSIZE(I1)) : (shiftX + XSIZE(I1));
     testY = (shiftY > 0) ? (shiftY - YSIZE(I1)) : (shiftY + YSIZE(I1));
-    translate(1, Iaux, I1, vectorR2(-testX, -testY), DONT_WRAP);
+    translate(1, Iaux, I1, vectorR2(-testX, -testY), xmipp_transformation::DONT_WRAP);
     //I1.translate(vectorR2(-testX,-testY),Iaux,DONT_WRAP);
     corr = fastCorrelation(I2, Iaux);
     if (corr > bestCorr)
@@ -1923,7 +1923,7 @@ double bestShiftRealSpace(const MultidimArray<double> &I1, MultidimArray<double>
     			continue;
     		YY(shift)=y;
     		XX(shift)=x;
-    		translate(LINEAR,alignedI2,I2,shift,DONT_WRAP,0.0);
+    		translate(xmipp_transformation::LINEAR,alignedI2,I2,shift,xmipp_transformation::DONT_WRAP,0.0);
 
     		double corr=correlationIndex(I1,alignedI2,mask);
     		if (corr>bestCorr)
@@ -1989,7 +1989,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 			bestNonwrappingShift(Iref, IrefTransforms.FFTI, aux.IauxSR, shiftXSR, shiftYSR, aux2);
 			MAT_ELEM(aux.ASR,0,2) += shiftXSR;
 			MAT_ELEM(aux.ASR,1,2) += shiftYSR;
-			applyGeometry(LINEAR, aux.IauxSR, I, aux.ASR, IS_NOT_INV, wrap);
+			applyGeometry(xmipp_transformation::LINEAR, aux.IauxSR, I, aux.ASR, xmipp_transformation::IS_NOT_INV, wrap);
 		}
 
 		if (bestRotSR > ROTATE_THRESHOLD)
@@ -2000,7 +2000,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 			bestRotSR = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3);
 			rotation2DMatrix(bestRotSR, aux.R);
 			aux.ASR = aux.R * aux.ASR;
-			applyGeometry(LINEAR, aux.IauxSR, I, aux.ASR, IS_NOT_INV, wrap);
+			applyGeometry(xmipp_transformation::LINEAR, aux.IauxSR, I, aux.ASR, xmipp_transformation::IS_NOT_INV, wrap);
 		}
 
         // Rotate then shift
@@ -2011,7 +2011,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 			bestRotRS = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3);
 			rotation2DMatrix(bestRotRS, aux.R);
 			aux.ARS = aux.R * aux.ARS;
-			applyGeometry(LINEAR, aux.IauxRS, I, aux.ARS, IS_NOT_INV, wrap);
+			applyGeometry(xmipp_transformation::LINEAR, aux.IauxRS, I, aux.ARS, xmipp_transformation::IS_NOT_INV, wrap);
 		}
 
 		if (((shiftXRS > SHIFT_THRESHOLD) || (shiftXRS < (-SHIFT_THRESHOLD))) ||
@@ -2020,7 +2020,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 			bestNonwrappingShift(Iref, IrefTransforms.FFTI, aux.IauxRS, shiftXRS, shiftYRS, aux2);
 			MAT_ELEM(aux.ARS,0,2) += shiftXRS;
 			MAT_ELEM(aux.ARS,1,2) += shiftYRS;
-			applyGeometry(LINEAR, aux.IauxRS, I, aux.ARS, IS_NOT_INV, wrap);
+			applyGeometry(xmipp_transformation::LINEAR, aux.IauxRS, I, aux.ARS, xmipp_transformation::IS_NOT_INV, wrap);
 		}
     }
 
@@ -2136,9 +2136,9 @@ void alignSetOfImages(MetaData &MD, MultidimArray<double>& Iavg, int Niter,
             double corr;
             if (considerMirror)
                 corr = alignImagesConsideringMirrors(Iavg, I(), M, aux, aux2,
-                                                     aux3, WRAP);
+                                                     aux3, xmipp_transformation::WRAP);
             else
-                corr = alignImages(Iavg, I(), M, WRAP, aux, aux2, aux3);
+                corr = alignImages(Iavg, I(), M, xmipp_transformation::WRAP, aux, aux2, aux3);
             InewAvg += I();
             if (n == 0)
                 Iavg = InewAvg;
@@ -2244,7 +2244,7 @@ void fastBestRotation(const MultidimArray<double>& IrefCylZ,
     Matrix2D<double> Raux;
     rotation3DMatrix(bestAngle, axis, Raux);
     R=Raux*R;
-    applyGeometry(LINEAR, Ifinal, I, R, IS_NOT_INV, WRAP);
+    applyGeometry(xmipp_transformation::LINEAR, Ifinal, I, R, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 }
 
 void fastBestRotation(const MultidimArray<double>& IrefCylZ,
@@ -2376,7 +2376,7 @@ void estimateGaussian2D(const MultidimArray<double> &I, double &a, double &b,
 
 /* Fourier-Bessel decomposition. ------------------------------------------- */
 void fourierBesselDecomposition(const MultidimArray<double> &img_in,
-                                MultidimArray<double> &m_out, double r1, double r2, int k1, int k2)
+                                double r2, int k1, int k2)
 {
     img_in.checkDimension(2);
 
@@ -2409,9 +2409,10 @@ void fourierBesselDecomposition(const MultidimArray<double> &img_in,
 }
 
 /* Harmonic decomposition. ------------------------------------------------- */
-void harmonicDecomposition(const MultidimArray<double> &img_in,
-                           MultidimArray<double> &v_out)
-{}
+//void harmonicDecomposition(const MultidimArray<double> &img_in,
+//                           MultidimArray<double> &v_out)
+//{}
+
 
 /* Shah energy ------------------------------------------------------------- */
 /* This function computes the current functional energy */
@@ -3149,7 +3150,7 @@ void centerImageRotationally(MultidimArray<double> &I,
     double bestRot = best_rotation(polarFourierIx, polarFourierI, aux);
 
     MultidimArray<double> auxI = I;
-    rotate(3, I, auxI, -bestRot / 2, WRAP);
+    rotate(3, I, auxI, -bestRot / 2, xmipp_transformation::WRAP);
     //I.selfRotateBSpline(3,-bestRot/2,WRAP);
 }
 
@@ -3265,7 +3266,7 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
         MAT_ELEM(A,0,2) += -meanShiftX / 2;
         MAT_ELEM(A,1,2) += -meanShiftY / 2;
         Iaux.initZeros();
-        applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
         FOR_ALL_ELEMENTS_IN_ARRAY2D(mask)
         if (!A2D_ELEM(mask,i,j))
             A2D_ELEM(Iaux,i,j) = 0;
@@ -3301,7 +3302,7 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
         rotation2DMatrix(bestRot / 2, R);
         A = R * A;
         Iaux.initZeros();
-        applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
         FOR_ALL_ELEMENTS_IN_ARRAY2D(mask)
         if (!A2D_ELEM(mask,i,j))
             A2D_ELEM(Iaux,i,j) = 0;
@@ -3350,7 +3351,7 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
             rotation2DMatrix(-90., R);
             A = R * A;
         }
-        applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
 #ifdef DEBUG
 
         lineX.write("PPPlineX.txt");
@@ -3365,7 +3366,7 @@ Matrix2D<double> centerImage(MultidimArray<double> &I, CorrelationAux &aux,
 #endif
 
     }
-    applyGeometry(BSPLINE3, Iaux, I, A, IS_NOT_INV, WRAP);
+    applyGeometry(xmipp_transformation::BSPLINE3, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::WRAP);
     I = Iaux;
     I += avg;
     delete plans;
@@ -3410,8 +3411,8 @@ void computeEdges(const MultidimArray<double>& vol,
 void forceDWTSparsity(MultidimArray<double> &V, double eps)
 {
 	int size0=XSIZE(V);
-	auto sizeF=(int)NEXT_POWER_OF_2(size0);
-    selfScaleToSize(BSPLINE3,V,sizeF,sizeF,sizeF);
+	int sizeF=(int)NEXT_POWER_OF_2(size0);
+    selfScaleToSize(xmipp_transformation::BSPLINE3,V,sizeF,sizeF,sizeF);
     MultidimArray<double> vol_wavelets, vol_wavelets_abs;
     set_DWT_type(DAUB12);
     DWT(V,vol_wavelets);
@@ -3424,7 +3425,7 @@ void forceDWTSparsity(MultidimArray<double> &V, double eps)
                                            (long int)((1.0-eps)*MULTIDIM_SIZE(vol_wavelets_abs)));
     vol_wavelets.threshold("abs_below", threshold1, 0.0);
     IDWT(vol_wavelets,V);
-    selfScaleToSize(BSPLINE3,V,size0, size0, size0);
+    selfScaleToSize(xmipp_transformation::BSPLINE3,V,size0, size0, size0);
 }
 
 /////////////// FILTERS IMPLEMENTATIONS /////////////////

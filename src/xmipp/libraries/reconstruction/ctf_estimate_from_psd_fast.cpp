@@ -74,7 +74,7 @@ using namespace AdjustCTF1D;
 
 /* Assign ctf1Dmodel from a vector and viceversa ----------------------------- */
 void ProgCTFEstimateFromPSDFast::assignCTFfromParameters_fast(double *p, CTFDescription1D &ctf1Dmodel, int ia,
-                             int l, int modelSimplification)
+                             int l)
 {
     ctf1Dmodel.Tm = Tm;
 
@@ -112,7 +112,7 @@ void ProgCTFEstimateFromPSDFast::assignCTFfromParameters_fast(double *p, CTFDesc
 #define ASSIGN_PARAM_CTF(index, paramName) if (ia <= index && l > 0) { p[index] = ctf1Dmodel.paramName; --l; }
 
 void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(const CTFDescription1D &ctf1Dmodel, double *p, int ia,
-                             int l, int modelSimplification)
+                             int l)
 {
 
 	 	ASSIGN_PARAM_CTF(0, Defocus);
@@ -148,8 +148,7 @@ void ProgCTFEstimateFromPSDFast::assignParametersFromCTF_fast(const CTFDescripti
 
 #define COPY_ctfmodel_TO_CURRENT_GUESS \
     global_prm->assignParametersFromCTF_fast(global_prm->current_ctfmodel, \
-                               MATRIX1D_ARRAY(*global_prm->adjust_params),0,ALL_CTF_PARAMETERS, \
-                               global_prm->modelSimplification);
+                               MATRIX1D_ARRAY(*global_prm->adjust_params),0,ALL_CTF_PARAMETERS);
 
 
 /* Read parameters --------------------------------------------------------- */
@@ -191,7 +190,7 @@ void ProgCTFEstimateFromPSDFast::produceSideInfo()
     adjust.initZeros();
     current_ctfmodel.clear();
     ctfmodel_defoci.clear();
-    assignParametersFromCTF_fast(initial_ctfmodel, MATRIX1D_ARRAY(adjust), 0, ALL_CTF_PARAMETERS, true);
+    assignParametersFromCTF_fast(initial_ctfmodel, MATRIX1D_ARRAY(adjust), 0, ALL_CTF_PARAMETERS);
     // Read the CTF file, supposed to be the uncentered squared amplitudes
     if (fn_psd != "")
         ctftomodel.read(fn_psd);
@@ -207,7 +206,7 @@ void ProgCTFEstimateFromPSDFast::generateModelSoFar_fast(MultidimArray<double> &
     Matrix1D<double> freq(1); // Frequencies for Fourier plane
 
     assignCTFfromParameters_fast(MATRIX1D_ARRAY(*adjust_params), current_ctfmodel,
-                            0, ALL_CTF_PARAMETERS, modelSimplification);
+                            0, ALL_CTF_PARAMETERS);
     current_ctfmodel.produceSideInfo();
 
     I.initZeros(psd_exp_radial);
@@ -296,8 +295,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         // Remind that p is a vector whose first element is at index 1
     case 0:
         assignCTFfromParameters_fast(p - FIRST_SQRT_PARAMETER + 1,
-        						current_ctfmodel, FIRST_SQRT_PARAMETER, SQRT_CTF_PARAMETERS,
-                                modelSimplification);
+        						current_ctfmodel, FIRST_SQRT_PARAMETER, SQRT_CTF_PARAMETERS);
 
         if (show_inf >= 2)
         {
@@ -310,7 +308,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     case 1:
             assignCTFfromParameters_fast(p - FIRST_SQRT_PARAMETER + 1,
             					current_ctfmodel, FIRST_SQRT_PARAMETER,
-                                    BACKGROUND_CTF_PARAMETERS, modelSimplification);
+                                    BACKGROUND_CTF_PARAMETERS);
         if (show_inf >= 2)
         {
             std::cout << "Input vector:";
@@ -321,8 +319,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         break;
     case 2:
             assignCTFfromParameters_fast(p - FIRST_ENVELOPE_PARAMETER + 1,
-            					current_ctfmodel, FIRST_ENVELOPE_PARAMETER, ENVELOPE_PARAMETERS,
-                                   	   modelSimplification);
+            					current_ctfmodel, FIRST_ENVELOPE_PARAMETER, ENVELOPE_PARAMETERS);
         if (show_inf >= 2)
         {
             std::cout << "Input vector:";
@@ -333,8 +330,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         break;
     case 3:
             assignCTFfromParameters_fast(p - FIRST_DEFOCUS_PARAMETER + 1,
-            						current_ctfmodel, FIRST_DEFOCUS_PARAMETER, DEFOCUS_PARAMETERS,
-                                    modelSimplification);
+            						current_ctfmodel, FIRST_DEFOCUS_PARAMETER, DEFOCUS_PARAMETERS);
         psd_theo_radial_derivative.initZeros();
         if (show_inf >= 2)
         {
@@ -346,7 +342,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
         break;
     case 4:
             assignCTFfromParameters_fast(p - 0 + 1, current_ctfmodel, 0,
-                                    CTF_PARAMETERS, modelSimplification);
+                                    CTF_PARAMETERS);
         psd_theo_radial.initZeros();
         if (show_inf >= 2)
         {
@@ -360,7 +356,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
     case 6:
     case 7:
 		assignCTFfromParameters_fast(p - 0 + 1, current_ctfmodel, 0,
-								ALL_CTF_PARAMETERS, modelSimplification);
+								ALL_CTF_PARAMETERS);
         psd_theo_radial.initZeros();
         if (show_inf >= 2)
         {
@@ -638,7 +634,7 @@ double CTF_fitness_fast(double *p, void *vprm)
 }
 
 /* Center focus ----------------------------------------------------------- */
-void ProgCTFEstimateFromPSDFast::center_optimization_focus_fast(bool adjust_freq, bool adjust_th, double margin = 1)
+void ProgCTFEstimateFromPSDFast::center_optimization_focus_fast(bool adjust_th, double margin = 1)
 {
     if (show_optimization)
         std::cout << "Freq frame before focusing=" << min_freq_psd << ","
@@ -781,7 +777,7 @@ void ProgCTFEstimateFromPSDFast::estimate_background_sqrt_parameters_fast()
 		saveIntermediateResults_fast("step01b_best_penalized_sqrt_fit_fast", true);
     }
 
-   center_optimization_focus_fast(false, true, 1.5);
+   center_optimization_focus_fast(true, 1.5);
 
 }
 
@@ -990,7 +986,7 @@ void ProgCTFEstimateFromPSDFast::estimate_background_gauss_parameters_fast()
             std::cout << "First Background Fit:\n" << current_ctfmodel << std::endl;
             saveIntermediateResults_fast("step01c_first_background_fit_fast", true);
         }
-        center_optimization_focus_fast(false, true, 1.5);
+        center_optimization_focus_fast(true, 1.5);
 
     }
 }

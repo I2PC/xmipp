@@ -992,7 +992,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 					MAT_ELEM(E,2,1)=0.0;
 					MAT_ELEM(E,2,2)=1.0;
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 					//applyGeometry(LINEAR,Iexp_out(),Iexp_aux(),auxtrMatrix,IS_NOT_INV,DONT_WRAP,0.0);
 
 					Iexp_aux().resetOrigin();
@@ -1064,7 +1064,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 					MAT_ELEM(E,1,0)*=-1; //E
 					//FIN AJ NEW//
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 
 					Iexp_aux().resetOrigin();
 

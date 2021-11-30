@@ -380,11 +380,11 @@ public:
             {
                 rotation3DMatrix(360.0 / rot_sym * n, sym_axis, sym_matrix);
                 if (useSplines)
-                    applyGeometry(BSPLINE3, volume_aux, mVolume, sym_matrix,
-                                  IS_NOT_INV, DONT_WRAP);
+                    applyGeometry(xmipp_transformation::BSPLINE3, volume_aux, mVolume, sym_matrix,
+                                  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
                 else
-                    applyGeometry(LINEAR, volume_aux, mVolume, sym_matrix,
-                                  IS_NOT_INV, DONT_WRAP);
+                    applyGeometry(xmipp_transformation::LINEAR, volume_aux, mVolume, sym_matrix,
+                                  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
                 volume_sym += volume_aux;
             }
             return -correlationIndex(mVolume, volume_sym, &mask_prm.get_binary_mask());

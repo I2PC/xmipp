@@ -277,7 +277,7 @@ double ProgAngularSphAlignmentGpu::tranformImageSph(
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(LINEAR,Ifilteredp(),Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,Ifilteredp(),Ifiltered(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
 	filter->applyMaskSpace(P());
 	const MultidimArray<double> &mP=P();
 	const MultidimArray<int> &mMask2D=mask2D;

@@ -311,7 +311,7 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &phantom, XRayPSF &ps
     double outside = 0; //phantom.iniVol.getPixel(0,0,0,0);
     MULTIDIM_ARRAY(phantom.iniVol).setXmippOrigin();
 
-    applyGeometry(1, phantom.rotVol, MULTIDIM_ARRAY(phantom.iniVol), T*R, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, phantom.rotVol, MULTIDIM_ARRAY(phantom.iniVol), T*R, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
     psf.adjustParam(phantom.rotVol);
 
@@ -516,7 +516,7 @@ void threadXrayProject(ThreadArgument &thArg)
         {
         case PSFXR_INT:
             imTempP = &imTempSc;
-            scaleToSize(LINEAR,*imTempP,imTemp,psf.Nix,psf.Niy);
+            scaleToSize(xmipp_transformation::LINEAR,*imTempP,imTemp,psf.Nix,psf.Niy);
             break;
 
         case PSFXR_STD:
@@ -599,7 +599,7 @@ void threadXrayProject(ThreadArgument &thArg)
             // Do nothing;
             break;
         case PSFXR_INT:
-            selfScaleToSize(LINEAR,imOutGlobal(), psf.Nox, psf.Noy);
+            selfScaleToSize(xmipp_transformation::LINEAR,imOutGlobal(), psf.Nox, psf.Noy);
             break;
         case PSFXR_ZPAD:
             MULTIDIM_ARRAY(imOutGlobal).selfWindow(-ROUND(psf.Noy/2)+1,-ROUND(psf.Nox/2)+1,ROUND(psf.Noy/2)-1,ROUND(psf.Nox/2)-1);

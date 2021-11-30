@@ -225,7 +225,7 @@ void CL3DClass::transferUpdate()
         save.write("PPPtransfer2.vol");
 #endif
         // Symmetrize
-        symmetrizeVolume(prmCL3Dprog->SL,Paux,P,WRAP);
+        symmetrizeVolume(prmCL3Dprog->SL,Paux,P,xmipp_transformation::WRAP);
 #ifdef DEBUG
         save()=P;
         save.write("PPPtransfer3.vol");
@@ -352,7 +352,7 @@ void CL3DClass::fitBasic(MultidimArray<double> &I, CL3DAssignment &result)
     	if (prmCL3Dprog->dontAlign)
     		Iaux=I;
     	else
-    		applyGeometry(LINEAR, Iaux, I, A, IS_NOT_INV, DONT_WRAP);
+    		applyGeometry(xmipp_transformation::LINEAR, Iaux, I, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 		apply_binary_mask(prmCL3Dprog->mask.get_binary_mask(),Iaux,I,0.0);
 		constructFourierMask(I);
 		result.score=frmScore;
@@ -623,7 +623,7 @@ void CL3D::initialize(MetaDataDb &_SF,
 					double psi=rnd_unif(0,360);
 					Matrix2D<double> E;
 					Euler_angles2matrix(rot,tilt,psi,E,true);
-					selfApplyGeometry(LINEAR,I(),E,IS_NOT_INV,DONT_WRAP,0.0);
+					selfApplyGeometry(xmipp_transformation::LINEAR,I(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0);
                 }
                 P[q]->updateProjection(I(), bestAssignment);
             }
@@ -1569,7 +1569,7 @@ void ProgClassifyCL3D::run()
     	        translation3DMatrix(r,T);
     	        A=E*T;
 
-    			applyGeometry(BSPLINE3,Valigned(),V(),A,IS_NOT_INV,DONT_WRAP,0.);
+    			applyGeometry(xmipp_transformation::BSPLINE3,Valigned(),V(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
     	        Valigned.write(fnAligned,idx,true,WRITE_REPLACE);
     		}
     		if (node->rank==0)

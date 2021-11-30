@@ -244,7 +244,7 @@ void ProgPSDSort::processImage(const FileName &fnImg, const FileName &fnImgOut, 
 
     // Rotate 90 degrees and compute correlation
     Image<double> PSDrotated;
-    rotate(LINEAR,PSDrotated(),PSD(),90);
+    rotate(xmipp_transformation::LINEAR,PSDrotated(),PSD(),90);
     evaluation.PSDcorrelation90=correlationIndex(PSD(), PSDrotated());
 
     // Get the fitting score and other quality criteria computed by ctf_estimate_from_micrograph

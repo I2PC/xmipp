@@ -269,7 +269,7 @@ void ProgCTFEstimateFromMicrograph::PSD_piece_by_averaging(
 #endif
 
     CenterFFT(psd, true);
-    selfScaleToSize(BSPLINE3, psd, YSIZE(piece), XSIZE(piece));
+    selfScaleToSize(xmipp_transformation::BSPLINE3, psd, YSIZE(piece), XSIZE(piece));
     CenterFFT(psd, false);
     psd.threshold("below", 0, 0);
 

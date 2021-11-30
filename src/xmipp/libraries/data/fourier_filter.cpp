@@ -615,7 +615,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         {
         	Image<double> filter;
         	filter.read(fnFilter);
-            scaleToSize(BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
+            scaleToSize(xmipp_transformation::BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
             maskFourierd.resize(Fourier);
             return;
         }
@@ -650,7 +650,7 @@ void FourierFilter::generateMask(MultidimArray<double> &v)
         {
         	Image<double> filter;
         	filter.read(fnFilter);
-            scaleToSize(BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
+            scaleToSize(xmipp_transformation::BSPLINE3, maskFourierd, filter(), XSIZE(v), YSIZE(v), ZSIZE(v));
             maskFourierd.resize(Fourier);
             return;
         }

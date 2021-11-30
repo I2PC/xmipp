@@ -258,7 +258,7 @@ void ProgReconsADMM::constructHtb()
 	double weight=1.;
 	ApplyGeoParams geoParams;
 	geoParams.only_apply_shifts=true;
-	geoParams.wrap=DONT_WRAP;
+	geoParams.wrap=xmipp_transformation::DONT_WRAP;
 	for (size_t objId : mdIn.ids())
 	{
 		if ((i+1)%Nprocs==rank)
