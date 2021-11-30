@@ -513,7 +513,7 @@ bool DESolver::Solve(int maxGenerations)
         }
 
     generations = generation;
-    return(bAtSolution);
+    return bAtSolution;
 }
 
 void DESolver::Best1Exp(int candidate)

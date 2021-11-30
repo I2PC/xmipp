@@ -340,8 +340,8 @@ void UnitCell::tetrahedralSymmetry(const Matrix1D<double> & sym_centroid,
 	from_3f_to_2fp.selfNormalize();
 	from_2f_to_3f.selfNormalize();
 	Matrix1D<double> first_expandedUnitCell_0 = sym_3f
-			+ (amplified_expanded / sin60) * (-1) * (from_3f_to_2fp)
-			+ (amplified_expanded / sin60) * (from_2f_to_3f);
+			+ (amplified_expanded / sin60) * (-1) * from_3f_to_2fp
+			+ (amplified_expanded / sin60) * from_2f_to_3f;
 
 	Matrix1D<double> first_expandedUnitCell_1 = sym_2f + vectExpansion[0]
 			+ vectExpansion[1];
@@ -441,8 +441,8 @@ void UnitCell::octahedralSymmetry(const Matrix1D<double> & sym_centre,
 	from_4f_to_2f.selfNormalize();
 	from_2fp_to_4f.selfNormalize();
 	Matrix1D<double> first_expandedUnitCell_0 = sym_4f
-			+ (amplified_expanded / sin60) * (-1) * (from_4f_to_2f)
-			+ (amplified_expanded / sin60) * (from_2fp_to_4f);
+			+ (amplified_expanded / sin60) * (-1) * from_4f_to_2f
+			+ (amplified_expanded / sin60) * from_2fp_to_4f;
 	Matrix1D<double> first_expandedUnitCell_1 = sym_2f + vectExpansion[1]
 			+ vectExpansion[2];
 	Matrix1D<double> v4 = (from_2f_to_3f - from_3f_to_2fp);
@@ -546,7 +546,7 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 		from_5f_to_2f.selfNormalize();
 		//sym_5f expands to expandedUnitCell[0]
 		expandedUnitCell.push_back(
-				sym_5f + mod * ((from_2fp_to_5f) + ((-1) * from_5f_to_2f)));
+				sym_5f + mod * (from_2fp_to_5f + ((-1) * from_5f_to_2f)));
 		//sym_2f expands to expandedUnitCell[1]
 		expandedUnitCell.push_back(sym_2f + vectExpansion[0] + vectExpansion[1]);
 		//mod: proyection (module) of expanded in the negative direction of the from_3f_to_2fp vector

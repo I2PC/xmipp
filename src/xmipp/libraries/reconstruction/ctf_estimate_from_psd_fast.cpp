@@ -1233,7 +1233,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 
 		//double maxValue = *max_element(amplitud.begin(),amplitud.end());
 		//int finalIndex = distance(amplitud.begin(),max_element(amplitud.begin(),amplitud.end()));
-		current_ctfmodel.Defocus = (floor((finalIndex+startIndex+1))*pow(2*current_ctfmodel.Tm,2))/
+		current_ctfmodel.Defocus = (floor(finalIndex+startIndex+1)*pow(2*current_ctfmodel.Tm,2))/
 												current_ctfmodel.lambda;
 
 #ifdef DEBUG

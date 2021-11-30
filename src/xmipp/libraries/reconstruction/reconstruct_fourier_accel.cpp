@@ -669,7 +669,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 
 				float wCTF = (*data->CTF)(j, i);
 				float wModulator = (*data->modulator)(j, i);
-				int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+				int aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 				float wBlob = blobTableSqrt[aux];
 				float weight = wBlob * wModulator * data->weight;
 				*targetWeight += weight;
@@ -687,7 +687,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 				float distanceSqr = xD*xD + yzSqr;
 				if (distanceSqr > radiusSqr) continue;
 
-				int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+				int aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 				float wBlob = blobTableSqrt[aux];
 
 				float weight = wBlob * data->weight;
@@ -815,7 +815,7 @@ T*** ProgRecFourierAccel::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+							int aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -1043,7 +1043,7 @@ void ProgRecFourierAccel::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
 		A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);
 		meanFactor2+=factor2;
     }
