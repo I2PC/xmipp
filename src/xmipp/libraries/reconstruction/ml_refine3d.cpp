@@ -1005,8 +1005,8 @@ void ProgMLRefine3D::postProcessVolumes()
         REPORT_ERROR(ERR_NUMERICAL, (String)"ml_refine3d::run Invalid symmetry" +  fn_sym);
     locsampling.SL.readSymmetryFile(fn_sym);
 
-    if ( !(fn_sym == "c1" || fn_sym == "C1" ) || (lowpass > 0) ||
-         (fn_solv != "") || (do_prob_solvent) || (threshold_solvent != 999))
+    if ( !(fn_sym == "c1" || fn_sym == "C1" ) || lowpass > 0 ||
+         fn_solv != "" || do_prob_solvent || threshold_solvent != 999)
     {
     	LOG_LEVEL(postProcessVolumes_IF);
 

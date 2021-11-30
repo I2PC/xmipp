@@ -115,7 +115,7 @@ void Monogenic::findCliffValue(MultidimArray<double> &inputmap,
 	FOR_ALL_ELEMENTS_IN_ARRAY3D(mask)
 	{
 		double aux = k*k + i*i + j*j;
-		if ( aux>=(raux) )
+		if (aux>=raux)
 			A3D_ELEM(mask, k, i, j) = -1;
 	}
 
@@ -238,7 +238,7 @@ void Monogenic::resolution2eval(int &count_res, double step,
 		last_resolution = resolution;
         }
 
-	if ( ( resolution<Nyquist ))// || (resolution > last_resolution) )
+	if (resolution<Nyquist)// || (resolution > last_resolution) )
 	{
 		breakIter = true;
 		return;
@@ -382,7 +382,7 @@ void Monogenic::amplitudeMonoSig3D_LPF(const MultidimArray< std::complex<double>
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(fftVRiesz)
 	{
 		double un=1.0/DIRECT_MULTIDIM_ELEM(iu,n);
-		if ((freqL)>=un && un>=freq)
+		if (freqL>=un && un>=freq)
 		{
 			DIRECT_MULTIDIM_ELEM(fftVRiesz,n) *= 0.5*(1 + cos(raised_w*(un-freq)));
 		}
@@ -684,7 +684,7 @@ MultidimArray<double> Monogenic::createDataTest(size_t xdim, size_t ydim, size_t
 				x = (j - siz_x);
 				x = x*x;
 				x = sqrt(x + y);
-				DIRECT_MULTIDIM_ELEM(testmap, n) = cos(2*PI/(wavelength)*x);
+				DIRECT_MULTIDIM_ELEM(testmap, n) = cos(2*PI/wavelength*x);
 				++n;
 			}
 		}

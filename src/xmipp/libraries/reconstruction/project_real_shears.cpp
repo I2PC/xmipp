@@ -234,7 +234,7 @@ void projectionRealShears2(MultidimArray<double> &CoefVolume,
                         double rows = 0.0;
                         for (int l = l1; l <= l2; l++)
                         {
-                            if ((l < Xdim && l > -1))
+                            if (l < Xdim && l > -1)
                             {
                                 double gminusl = g - (double) l;
                                 BSPLINE03(aux,gminusl);

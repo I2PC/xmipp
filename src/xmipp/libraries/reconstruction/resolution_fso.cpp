@@ -1380,7 +1380,7 @@ void ProgFSO::run()
 					if (std::isnan(value))
 						value = 1.0;
 
-					if ((DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs) )//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
+					if (DIRECT_MULTIDIM_ELEM(threeD_FSC, n)> thrs)//&& (DIRECT_MULTIDIM_ELEM(aniFilter, n) <1))
 						DIRECT_MULTIDIM_ELEM(aniFilter, n) = 1;
 
 					size_t idx = DIRECT_MULTIDIM_ELEM(arr2indx, n);

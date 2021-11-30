@@ -506,7 +506,7 @@ void MpiProgAngularClassAverage::mpi_process(double * Def_3Dref_2Dref_JobNo)
             exp_number.push_back(this_image);
         }
 
-        if ( (nr_iter > 0))
+        if (nr_iter > 0)
 #ifdef NEVERDEFINED
 || do_pcaSorting)
 #endif

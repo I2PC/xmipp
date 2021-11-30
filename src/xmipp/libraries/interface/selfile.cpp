@@ -81,10 +81,10 @@ std::ostream& operator << (std::ostream& o, const SelLine &SFL)
 {
     switch (SFL.line_type)
     {
-    case (SelLine::DATALINE):
+    case SelLine::DATALINE:
                     o << SFL.text << " " << SFL.label << std::endl;
         break;
-    case (SelLine::COMMENT):
+    case SelLine::COMMENT:
                     o << SFL.text << std::endl;
         break;
     default:
@@ -268,13 +268,13 @@ void SelFile::read(const FileName &sel_name, int overriding)
             }
             switch (temp.line_type)
             {
-            case (SelLine::NOT_ASSIGNED): break; // Line with an error
-            case (SelLine::DATALINE):
+            case SelLine::NOT_ASSIGNED: break; // Line with an error
+            case SelLine::DATALINE:
                             if (temp.label != SelLine::DISCARDED)
                                 no_imgs++;
                 text_line.push_back(temp);
                 break;
-            case (SelLine::COMMENT):
+            case SelLine::COMMENT:
                             text_line.push_back(temp);
                 break;
             default:

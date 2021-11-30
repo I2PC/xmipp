@@ -385,7 +385,7 @@ std::ostream& operator << (std::ostream &o, const Euler &euler)
 
 double Euler::angleMod (double angle)
 {
-    angle = fmod( (angle),  (2. * M_PI));
+    angle = fmod(angle,  (2. * M_PI));
 
     if (angle < -M_PI)
         angle += 2 * M_PI;

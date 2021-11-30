@@ -258,7 +258,7 @@ void normalize(FourierTransformer &ftrans, MultidimArray<double> & im, MultidimA
         	double j2=dj*dj;
         	double i2_j2=i2+j2;
 			// temp= std::exp(-std::pow((std::sqrt(std::pow((double)i,2)+std::pow((double)j,2))-R),2)/(2*std::pow(S,2)))*(1-(std::exp((-1)*(std::pow(double(i),2) + std::pow(double(j),2)) /(2*1))));
-			temp= std::exp(-std::pow((std::sqrt(i2_j2)-R),2)*K)*(1-(std::exp(-0.5*(i2_j2))));
+			temp= std::exp(-std::pow((std::sqrt(i2_j2)-R),2)*K)*(1-(std::exp(-0.5*i2_j2)));
 			auto *ptr=(double*)&A2D_ELEM(H,i,j);
 			*ptr=*(ptr+1)=temp;
 		}
@@ -320,7 +320,7 @@ void normalizeWB(MultidimArray<double> & im, MultidimArray<double > & imN,  Mult
     FOR_ALL_ELEMENTS_IN_ARRAY2D(im)
     {
         double r2=i*i+j*j;
-        double temp= (1/(1+std::exp(((std::sqrt(r2)-freq1))/(10))))*
+        double temp= (1/(1+std::exp((std::sqrt(r2)-freq1)/10)))*
                      (1-(std::exp(-r2 /(2*freq2*freq2))));
         A2D_ELEM(H,i,j) = std::complex<double>(temp,temp);
     }
@@ -383,7 +383,7 @@ void normalizeWB2(MultidimArray<double> & im, MultidimArray<double > & imN,  Mul
     FOR_ALL_ELEMENTS_IN_ARRAY2D(im)
     {
         double r2=i*i+j*j;
-        double temp= (1/(1+std::exp(((std::sqrt(r2)-freq1))/(10))))*
+        double temp= (1/(1+std::exp((std::sqrt(r2)-freq1)/10)))*
                      (1-(std::exp(-r2 /(2*freq2*freq2))));
         A2D_ELEM(H,i,j) = std::complex<double>(temp,temp);
     }
@@ -446,7 +446,7 @@ void direction(const MultidimArray<double> & orMap, MultidimArray<double> & qual
 
     double maxQualityMapValue = (A2D_ELEM(qualityMap,imax,jmax));
 
-    MultidimArray<double> qualityMapInt = (((qualityMap/maxQualityMapValue)*(max_levels-1)));
+    MultidimArray<double> qualityMapInt = ((qualityMap/maxQualityMapValue)*(max_levels-1));
     qualityMapInt.selfROUND();
 
     MultidimArray<double> ds, dc, px, py;
@@ -562,7 +562,7 @@ void unwrapping(const MultidimArray<double> & wrappedPhase, MultidimArray<double
     qualityMap.maxIndex(imax,jmax);
 
     double maxQualityMapValue = A2D_ELEM(qualityMap,imax,jmax);
-    MultidimArray<double> qualityMapInt = (((qualityMap/maxQualityMapValue)*(max_levels-1)));
+    MultidimArray<double> qualityMapInt = ((qualityMap/maxQualityMapValue)*(max_levels-1));
     qualityMapInt.selfROUND();
 
     Matrix2D<double> gaussian;
@@ -644,7 +644,7 @@ void unwrapping(const MultidimArray<double> & wrappedPhase, MultidimArray<double
 
                             pred += (uw*g);
                             cor  += (up*g);
-                            norm += (g);
+                            norm += g;
 
                         }
                     }
@@ -1158,7 +1158,7 @@ void fitEllipse(Matrix1D<double> & xPts, Matrix1D<double> & yPts, double & x0, d
 
     Matrix1D<double> bv(2);
     Matrix2D<double> C =(B.inv());
-    V = C*(squareXPts);
+    V = C*squareXPts;
 
     dMij(A,0,0) = 1-VEC_ELEM(V,1);
     dMij(A,0,1) = VEC_ELEM(V,0);
@@ -1186,7 +1186,7 @@ void fitEllipse(Matrix1D<double> & xPts, Matrix1D<double> & yPts, double & x0, d
     minorAxis = std::sqrt(-c_h / VEC_ELEM(w,1));
     ellipseAngle = std::atan2(dMij(u,0,0),-dMij(u,1,0));
 
-    if ( (VEC_ELEM(w,0)==0) || (VEC_ELEM(w,1)==0) || (VEC_ELEM(w,0)*c_h>0) || ((VEC_ELEM(w,1)*c_h>0)) )
+    if ( (VEC_ELEM(w,0)==0) || (VEC_ELEM(w,1)==0) || (VEC_ELEM(w,0)*c_h>0) || (VEC_ELEM(w,1)*c_h>0) )
     {
     	majorAxis=0;
     	minorAxis=0;

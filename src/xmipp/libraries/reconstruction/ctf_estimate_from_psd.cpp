@@ -1993,11 +1993,11 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     lambdaPhase = 0.8;
     sizeWindowPhase = 10;
 
-    Matrix1D<double> initialGlobalAdjust = (*adjust_params);
+    Matrix1D<double> initialGlobalAdjust = *adjust_params;
 
     for (int i = 1; i < numElem; i++)
     {
-        if ( ( ((fmax - min_freq)/min_freq) > 0.5))
+        if (((fmax - min_freq)/min_freq) > 0.5)
         {
             demodulate(centeredEnhancedPSD,lambdaPhase,sizeWindowPhase,
             x,x,

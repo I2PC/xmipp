@@ -379,7 +379,7 @@ void ProgAngularSphAlignmentGpu::processImage(const FileName &fnImg, const FileN
 	else
 		old_flip = false;
 	
-	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
+	if (rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL))
 	{
 		hasCTF=true;
 		ctf->readFromMdRow(rowIn);
