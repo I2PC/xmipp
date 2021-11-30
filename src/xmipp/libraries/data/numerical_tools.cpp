@@ -194,7 +194,7 @@ void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void*
 }
 
 /* To calculate the value of the derivative of objective function */
-void quadraticProgramming_grob32(int nparam, int j, double* x, double* gradfj, void(*mydummy)(int, int, double*, double*, void*), void *cd)
+void quadraticProgramming_grob32(int nparam,  double* x, double* gradfj, void *cd)
 {
     CDAB* in = (CDAB *)cd;
     Matrix2D<double> X(1,nparam);
@@ -208,7 +208,7 @@ void quadraticProgramming_grob32(int nparam, int j, double* x, double* gradfj, v
 }
 
 /* To calculate the value of the derivative of jth constraint */
-void quadraticProgramming_grcn32(int nparam, int j, double *x, double *gradgj, void(*mydummy)(int, int, double*, double*, void*), void *cd)
+void quadraticProgramming_grcn32(int nparam, int j, double *gradgj, void *cd)
 {
     CDAB* in = (CDAB *)cd;
     for (int k = 0; k < nparam; k++)

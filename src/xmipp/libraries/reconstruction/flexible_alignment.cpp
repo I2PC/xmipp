@@ -1663,7 +1663,7 @@ std::cout << "1060 Parameters =" << Parameters << "*cost = "<< global_flexible_p
           	if (pyramidLevel != 0) {
           		Image<double> I;
           		I.read(currentImgName);
-          		selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+          		selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
           		I.write(fnDown);
           	} 
                 /*else
@@ -1980,7 +1980,7 @@ std::cout << "2074" << fnDown << std::endl;
 
                   Image<double> I;
           	  I.read(currentImgName);
-                  selfPyramidReduce(BSPLINE3, I(), pyramidLevel);
+                  selfPyramidReduce(xmipp_transformation::BSPLINE3, I(), pyramidLevel);
                   I.write(fnDown);
           	
 

@@ -479,7 +479,7 @@ void ProgCTFEstimateFromPSD::generate_model_quadrant(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // Generate the CTF model
@@ -543,7 +543,7 @@ void ProgCTFEstimateFromPSD::generate_model_halfplane(int Ydim, int Xdim,
     MultidimArray<double> enhancedPSD;
     enhancedPSD = enhanced_ctftomodel_fullsize();
     CenterFFT(enhancedPSD, false);
-    selfScaleToSize(BSPLINE3, enhancedPSD, Ydim, Xdim);
+    selfScaleToSize(xmipp_transformation::BSPLINE3, enhancedPSD, Ydim, Xdim);
     CenterFFT(enhancedPSD, true);
 
     // The left part is the CTF model
@@ -2000,7 +2000,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
         if (((fmax - min_freq)/min_freq) > 0.5)
         {
             demodulate(centeredEnhancedPSD,lambdaPhase,sizeWindowPhase,
-                          x,x,
+            x,x,
                           (int)(min_freq*XSIZE(centeredEnhancedPSD)),
                           (int)(fmax*XSIZE(centeredEnhancedPSD)),
                           phase, mod, coefs, 0);

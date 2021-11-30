@@ -2575,7 +2575,7 @@ void Phantom::selfApplyGeometry(const Matrix2D<double> &A, int inv)
     if (A.isIdentity())
         return;
     Matrix2D<double> T;
-    if (inv == IS_INV)
+    if (inv == xmipp_transformation::IS_INV)
         T = A.inv();
     else
         T = A;

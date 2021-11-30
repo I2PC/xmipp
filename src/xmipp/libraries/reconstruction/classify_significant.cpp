@@ -111,7 +111,7 @@ void ProgClassifySignificant::produceSideInfo()
         std::cout << fnVol << std::endl;
         V.read(fnVol);
         V().setXmippOrigin();
-        projector.emplace_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
+        projector.emplace_back(new FourierProjector(V(),pad,0.5,xmipp_transformation::BSPLINE3));
         currentRowIdx.push_back(0);
 
         MetaDataVec mdAngles, mdAnglesSorted;
@@ -173,7 +173,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	if (poolIdx>=subsetProjections.size())
 		subsetProjections.emplace_back(new MultidimArray<double>);
 	subsetProjections[poolIdx]->resizeNoCopy(xdim, xdim);
-	applyGeometry(LINEAR,*(subsetProjections[poolIdx]),Paux(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,*(subsetProjections[poolIdx]),Paux(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 
 #ifdef DEBUG
 	std::cout << "Row: " << " rot: " << rot << " tilt: " << tilt
@@ -553,7 +553,7 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 	corr1exp=corr2exp=0.0;
 
 	if (!I1isEmpty && !I2isEmpty){
-		applyGeometry(LINEAR, Iexp2Aligned, Iexp2, M, IS_NOT_INV, false);
+		applyGeometry(xmipp_transformation::LINEAR, Iexp2Aligned, Iexp2, M, xmipp_transformation::IS_NOT_INV, false);
 	}
 	/*save()=Iexp2Aligned;
 	save.write("Iexp2Aligned.xmp");*/

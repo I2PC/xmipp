@@ -231,8 +231,8 @@ void ProgSSNR::estimateSSNR(int dim, Matrix2D<double> &output)
     FourierProjector *Nprojector=nullptr;
     if (fourierProjections)
     {
-    	Sprojector=new FourierProjector(S(),2,0.5,LINEAR);
-    	Nprojector=new FourierProjector(N(),2,0.5,LINEAR);
+    	Sprojector=new FourierProjector(S(),2,0.5,xmipp_transformation::LINEAR);
+    	Nprojector=new FourierProjector(N(),2,0.5,xmipp_transformation::LINEAR);
     }
 
     auto iterIdS = SF_S.ids().begin();

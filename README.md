@@ -30,6 +30,9 @@ We have tested Xmipp compilation on the following operating systems:
 
 While compilation and execution might be possible on other systems, it might not be straightforward. If you encounter a problem, please refer to known and fixed [issues](https://github.com/I2PC/xmipp/issues?q=is%3Aissue). Let us know if something is not working!
 
+## Hardware requirements
+At least 2 processors are required to run Xmipp. In some virtual machine tools only one is assigned, please check that at least two processors are assigned to the virtual machine
+
 ## Additional dependencies
 ### Compiler
 Xmipp requires C++14 compatible compiler. We recommend either GCC or CLANG, in the newest version possible. We have good experience with GCC-8 and bad experience with GCC-7.

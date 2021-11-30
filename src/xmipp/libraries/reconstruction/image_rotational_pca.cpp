@@ -291,7 +291,7 @@ void threadApplyT(ThreadArgument &thArg)
               MAT_ELEM(A,0,2)=x;
 
               // Rotate and shift image
-              applyGeometry(1,Iaux,mI,A,IS_INV,true);
+              applyGeometry(xmipp_transformation::LINEAR,Iaux,mI,A,xmipp_transformation::IS_INV,true);
 
               // Update Wnode
               int i=0;
@@ -401,7 +401,7 @@ void threadApplyTt(ThreadArgument &thArg)
               MAT_ELEM(A,0,2)=x;
 
               // Rotate and shift image
-              applyGeometry(1,Iaux,mI,A,IS_INV,true);
+              applyGeometry(xmipp_transformation::LINEAR,Iaux,mI,A,xmipp_transformation::IS_INV,true);
 
               // Update Hblock
               for (size_t j=0; j<MAT_XSIZE(Hblock); j++)
