@@ -37,8 +37,8 @@ void ProgTomoDetectMisalignmentTrajectory::readParams()
 	samplingRate = getDoubleParam("--samplingRate");
 	fiducialSize = getDoubleParam("--fiducialSize");
 
-	sdThreshold = getIntParam("--sdThreshold");
-	numberOfCoordinatesThr = getIntParam("--numberOfCoordinatesThr");
+	thrSDHCC = getIntParam("--thrSDHCC");
+	thrNumberCoords = getIntParam("--thrNumberCoords");
 	thrChainDistanceAng = getDoubleParam("--thrChainDistanceAng");
 	
 	checkInputCoord = checkParam("--inputCoord");
@@ -60,8 +60,8 @@ void ProgTomoDetectMisalignmentTrajectory::defineParams()
 	addParamsLine("  [--fiducialSize <fiducialSize=100>]					: Fiducial size in Angstroms (A).");
 
 
-	addParamsLine("  [--sdThreshold <sdThreshold=5>]      					: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
-  	addParamsLine("  [--numberOfCoordinatesThr <numberOfCoordinatesThr=10>]	: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
+	addParamsLine("  [--thrSDHCC <thrSDHCC=5>]      					: Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.");
+  	addParamsLine("  [--thrNumberCoords <thrNumberCoords=10>]	: Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.");
 	addParamsLine("  [--thrChainDistanceAng <thrChainDistanceAng=20>]		: Threshold maximum distance in angstroms of a detected landmark to consider it belongs to a chain.");
 
 	addParamsLine("  [--inputCoord <output=\"\">]							: Input coordinates of the 3D landmarks to calculate the residual vectors.");
@@ -127,7 +127,7 @@ void ProgTomoDetectMisalignmentTrajectory::bandPassFilter(MultidimArray<double> 
 	MultidimArray<std::complex<double>> fftImg;
 	transformer1.FourierTransform(tiltImage, fftImg, true);
 
-	size_t normDim = (xSize>ySize) ? xSize : ySize;
+	normDim = (xSize>ySize) ? xSize : ySize;
 
 	// 43.2 = 1440 * 0.03. This 43.2 value makes w = 0.03 (standard value) for an image whose bigger dimension is 1440 px.
 	double w = 43.2 / normDim;
@@ -238,7 +238,7 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
         average = sum / sliceVectorSize;
         standardDeviation = sqrt(sum2/Nelems - average*average);
 
-        double threshold = average - sdThreshold * standardDeviation;
+        double threshold = average - thrSDHCC * standardDeviation;
 
 
         #ifdef DEBUG_HCC
@@ -1206,15 +1206,6 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 	saveImage.write(outputFileNameFilteredVolume);
 	#endif
 
-	if(xSize > ySize)
-	{
-		biggestSize = xSize;
-	}
-	else
-	{
-		biggestSize = ySize;
-	}
-
 	#ifdef DEBUG_DIM
 	std::cout << "Filtered tilt-series dimensions:" << std::endl;
 	std::cout << "x " << xSize << std::endl;
@@ -1277,7 +1268,7 @@ void ProgTomoDetectMisalignmentTrajectory::run()
 bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int> coordinatesPerLabelX, std::vector<int> coordinatesPerLabelY, double centroX, double centroY)
 {
 	// Check number of elements of the label
-	if(coordinatesPerLabelX.size() < numberOfCoordinatesThr)
+	if(coordinatesPerLabelX.size() < thrNumberCoords)
 	{
 		return false;
 	}
@@ -1351,7 +1342,7 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 // 		coordsY = coordinatesPerLabelY[i];
 
 // 		// Only consider coordinates with enough number of elements
-// 		if(coordsX.size() < numberOfCoordinatesThr)
+// 		if(coordsX.size() < thrNumberCoords)
 // 		{
 // 			// Calculate the center of mass of the label			
 // 			numberOfCoordinatesPerValue =  coordsX.size();

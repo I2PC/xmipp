@@ -63,16 +63,23 @@ class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
 
 public:
     /** Filenames */
-    FileName fnVol, fnOut, fnInputCoord, fnTiltAngles;
+    FileName fnVol;
+    FileName fnOut;
+    FileName fnTiltAngles;
 
-    /** Threshold */
-    double fiducialSize, samplingRate, sdThreshold;
+    FileName fnInputCoord;
 
-    /** Number of slices and original centers of mass */
-    int boxSize, numberSampSlices, numberCenterOfMass, distanceThr, numberOfCoordinatesThr;
-
-    /** Center features **/
+    /** Input info */
+    double fiducialSize;
+    double samplingRate;
+    
     bool checkInputCoord;
+
+    /** Thresholds */
+    int thrNumberCoords;         //Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.
+    float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
+    float thrChainDistanceAng;   // Maximum distance of a detected landmark to consider it belongs to a chain
+
     
 private:
     /** Input tilt-series dimensions */
@@ -80,7 +87,7 @@ private:
 	size_t ySize;
 	size_t zSize;
     size_t nSize;
-    size_t biggestSize;
+    size_t normDim;
 
     /** Vector containig the tilt angles from the series */
     std::vector<double> tiltAngles;
@@ -105,19 +112,18 @@ private:
     size_t poissonLandmarkPercentile = 50;          //*** update with more clever meassurement
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
 
-    // Thresholds are saved in angstroms in order to be independent of the sampling rate and image size
+    // Distance thresholds are saved in angstroms in order to be independent of the sampling rate and image size
     float minDistanceAng = 20;                      // Minimum distance to cosider that 2 landmarks belong to the same chain
-    float thrChainDistanceAng;                 // Maximum distance of a detected landmark to consider it belongs to a chain
     
     // Thresholds measured in pixels updated in generateSideInfo function
     float minDistancePx;                          
     double thrChainDistancePx;
 
-
+    // Global alignment thresholds
     float top10ChainThr = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
     float lmChainThr = 1.05;                        // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
-    /** Alignment report. True = aligned - False = misaligned */
+    /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment;
     std::vector<bool> localAlignment;
 
