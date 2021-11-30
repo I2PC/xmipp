@@ -100,6 +100,15 @@ void ProgTomoDetectMisalignmentTrajectory::generateSideInfo()
 	thrChainDistancePx = thrChainDistanceAng * samplingRate;
 
 	#ifdef VERBOSE_OUTPUT
+	std::cout << "Thresholds:" << std::endl;
+	std::cout << "thrChainDistancePx: "<< thrChainDistancePx << std::endl;
+	std::cout << "minDistancePx: "<< minDistancePx << std::endl;
+	std::cout << "top10ChainThr: "<< top10ChainThr << std::endl;
+	std::cout << "lmChainThr: "<< lmChainThr << std::endl;
+	std::cout << "numberOfElementsInChainThreshold: "<< numberOfElementsInChainThreshold << std::endl;
+	#endif
+
+	#ifdef VERBOSE_OUTPUT
 	std::cout << "Side info generated succesfully!" << std::endl;
 	#endif
 }
@@ -747,6 +756,9 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 										found = true;
 										matchCoordX = i;
 										matchCoordX = j;
+
+										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)
+										// break;
 									}
 								}
 							}
@@ -779,7 +791,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 			#ifdef DEBUG_LOCAL_MISALI
 			for (size_t i = 0; i < vectorDistance.size(); i++)
 			{
-				std::cout << vectorDistance[i];
+				std::cout << vectorDistance[i] << "  ";
 			}
 			
 			std::cout << "\nlmOutRange[" << n << "]=" << lmOutRange[n] << "/" << coordinatesInSlice.size() << "=" << 
@@ -1448,28 +1460,31 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	float top10Chain = 100 * (top10LM / totalLM); // Compare to top10ChainThr
 	float lmChain = 100 * (totalChainLM / (totalIndexes * totalLM)); // Compare to lmChainThr
 
+	// Thresholds comparison
+	bool top10ChainBool = top10Chain < top10ChainThr;
+	bool lmChainBool = lmChain < lmChainThr;
+
 	#ifdef DEBUG_LOCAL_MISALI
 	std::cout << "Global misalignment detection parameters:" << std::endl;
 	std::cout << "Total number of landmarks: " << totalLM << std::endl;
 	std::cout << "Total number of landmarks belonging to the selected chains: " << totalChainLM << std::endl;
 	std::cout << "Total number of landmarks belonging to the top 10 most populated indexes: " << top10LM << std::endl;
 
-
 	std::cout << "Precentage of LM belonging to the top 10 populated chains: " << top10Chain << std::endl;
 	std::cout << "Percentage of number of average LM belonging to the selected chains: " << lmChain << std::endl;
 
-	std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10Chain < top10ChainThr << std::endl;
-	std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChain < lmChainThr << std::endl;
+	std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10ChainBool << std::endl;
+	std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChainBool << std::endl;
 	#endif
 
-	if(top10Chain < top10ChainThr || lmChain < lmChainThr)
+	if(top10ChainBool || lmChainBool)
 	{
 		#ifdef VERBOSE_OUTPUT
 		std::cout << "GLOBAL MISALIGNMENT DETECTED IN TILT-SERIES" << std::endl;
-		std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10Chain < top10ChainThr << std::endl;
-		std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChain < lmChainThr << std::endl;
+		std::cout << "Compare top10Chain < top10ChainThr (" << top10Chain << "<" << top10ChainThr << "): " << top10ChainBool << std::endl;
+		std::cout << "Compare lmChain < lmChainThr (" << lmChain << "<" << lmChainThr << "): " << lmChainBool << std::endl;
 		#endif
-		
+
 		return false;
 	}
 	else
