@@ -203,6 +203,13 @@ void ProgArtZernike3D::preProcess()
     fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
 
     // createWorkFiles();
+	voxelI = 0.0;
+	initX = STARTINGX(Vrefined());
+	endX = FINISHINGX(Vrefined());
+	initY = STARTINGY(Vrefined());
+	endY = FINISHINGY(Vrefined());		
+	initZ = STARTINGZ(Vrefined());
+	endZ = FINISHINGZ(Vrefined());
 }
 
 void ProgArtZernike3D::finishProcessing() {
@@ -311,12 +318,13 @@ void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matri
     }
 }
 
-void ProgArtZernike3D::updateCTFImage(double defocusU, double defocusV, double angle)
-{
-	ctf.K=1; // get pure CTF with no envelope
-	ctf.produceSideInfo();
-}
+// void ProgArtZernike3D::updateCTFImage(double defocusU, double defocusV, double angle)
+// {
+// 	ctf.K=1; // get pure CTF with no envelope
+// 	ctf.produceSideInfo();
+// }
 
+template<bool INTERPOLATE>
 void ProgArtZernike3D::weightsInterpolation3D(double x, double y, double z, Matrix1D<double> &w) {
 	int x0 = FLOOR(x);
 	double fx0 = x - x0;
@@ -341,6 +349,25 @@ void ProgArtZernike3D::weightsInterpolation3D(double x, double y, double z, Matr
 	VEC_ELEM(w,5) = fx0 * fy1 * fz0;  // w101 (x1,y0,z1)
 	VEC_ELEM(w,6) = fx0 * fy0 * fz1;  // w110 (x1,y1,z0)
 	VEC_ELEM(w,7) = fx0 * fy0 * fz0;  // w111 (x1,y1,z1)
+
+	if (INTERPOLATE) {
+		const auto &mVr = Vrefined();
+		if (x0 < initX || y0 < initY || z0 < initZ || x1 > endX || y1 > endY || z1 > endZ)
+		{
+			voxelI = NAN;
+		}
+		else
+		{
+			voxelI = A3D_ELEM(mVr, z0, y0, x0) * VEC_ELEM(w, 0) +
+					 A3D_ELEM(mVr, z1, y0, x0) * VEC_ELEM(w, 1) +
+					 A3D_ELEM(mVr, z0, y1, x0) * VEC_ELEM(w, 2) +
+					 A3D_ELEM(mVr, z1, y1, x0) * VEC_ELEM(w, 3) +
+					 A3D_ELEM(mVr, z0, y0, x1) * VEC_ELEM(w, 4) +
+					 A3D_ELEM(mVr, z1, y0, x1) * VEC_ELEM(w, 5) +
+					 A3D_ELEM(mVr, z0, y1, x1) * VEC_ELEM(w, 6) +
+					 A3D_ELEM(mVr, z1, y1, x1) * VEC_ELEM(w, 7);
+		}
+	}
 }
 
 void ProgArtZernike3D::removeOverdeformation() {
@@ -468,13 +495,12 @@ void ProgArtZernike3D::run()
 		current_save_iter = 1;
 
 		// Vrefined().threshold("below", 0, 0);
-		// Mask mask;
-		// mask.type = BINARY_CIRCULAR_MASK;
-		// mask.mode = INNER_MASK;
-		// mask.R1 = RmaxDef - 2;
-		// mask.generate_mask(Vrefined());
-		// mask.apply_mask(Vrefined(), Vrefined());
-		// Vrefined.write(fnOutDir + "/Refined_masked.mrc");
+		Mask mask;
+		mask.type = BINARY_CIRCULAR_MASK;
+		mask.mode = INNER_MASK;
+		mask.R1 = RmaxDef - 2;
+		mask.generate_mask(Vrefined());
+		mask.apply_mask(Vrefined(), Vrefined());
 	}
     wait();
 
@@ -655,7 +681,8 @@ void ProgArtZernike3D::zernikeModel() {
 		Euler_angles2matrix(rot, tilt, psi, tmp, false);
 		return tmp.inv();
 	}();
-    Matrix1D<double> p, w;
+    Matrix1D<double> p, pos, w;
+	pos.initZeros(3);
     p.initZeros(3);
 	w.initZeros(8);
 
@@ -669,9 +696,13 @@ void ProgArtZernike3D::zernikeModel() {
 			{
 				if (A3D_ELEM(Vmask,k,i,j) == 1) {
 					XX(p) = j;
-					const auto pos = R * p;
+
+					XX(pos) = 0.0; YY(pos) = 0.0; ZZ(pos) = 0.0;
+					for (size_t i = 0; i < R.mdimy; i++)
+						for (size_t j = 0; j < R.mdimx; j++)
+							VEC_ELEM(pos, i) += MAT_ELEM(R, i, j) * VEC_ELEM(p, j);
+
 					double gx=0.0, gy=0.0, gz=0.0;
-					// double irr2 = 1 / ((1+rr) * (1+rr));
 					if (USESZERNIKE)
 					{
 						auto k2 = ZZ(pos) * ZZ(pos);
@@ -700,11 +731,11 @@ void ProgArtZernike3D::zernikeModel() {
 					auto r_x = XX(pos) + gx;
 					auto r_y = YY(pos) + gy;
 					auto r_z = ZZ(pos) + gz;
-					weightsInterpolation3D(r_x, r_y, r_z, w);
 
 					if (DIRECTION == FORWARD_ART)
 					{
-						double voxelI = Vrefined().interpolatedElement3D(r_x, r_y, r_z, NAN);
+						weightsInterpolation3D<true>(r_x, r_y, r_z, w);
+						// double voxelI = Vrefined().interpolatedElement3D(r_x, r_y, r_z, NAN);
 						if (!isnan(voxelI))
 						{
 							A2D_ELEM(P(), i, j) += voxelI;
@@ -721,7 +752,7 @@ void ProgArtZernike3D::zernikeModel() {
 						int z0 = FLOOR(r_z);
 						auto z1 = z0 + 1;
 						double Idiff_val = A2D_ELEM(Idiff(), i, j);
-						// weightsInterpolation3D(r_x, r_y, r_z, w);
+						weightsInterpolation3D<false>(r_x, r_y, r_z, w);
 						if (!Vrefined().outside(z0, y0, x0))
 							A3D_ELEM(Vrefined(), z0, y0, x0) += Idiff_val * VEC_ELEM(w, 0);
 						if (!Vrefined().outside(z1, y0, x0))

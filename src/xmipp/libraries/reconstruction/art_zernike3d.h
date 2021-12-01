@@ -67,7 +67,7 @@ public:
     bool useCTF;
     // Apply Zernike
     bool useZernike;
-
+    // Flag for enable/disabled image
     int flagEnabled;
 
 public:
@@ -113,11 +113,18 @@ public:
 	Matrix1D<double> clnm;
 	// Show optimization
 	bool showOptimization;
-    double w_i;
+    // Row ids ordered in a orthogonal fashion
     MultidimArray<size_t> ordered_list;
+    // Save iter counter
     int current_save_iter;
+    // Image counter
     int num_images;
+    // Current ART iteration
     int current_iter;
+    // Interpolated voxel
+    double voxelI;
+    // Volume dimensions
+    int initX, endX, initY, endY, initZ, endZ;
 public:
     /// Empty constructor
 	ProgArtZernike3D();
@@ -162,15 +169,20 @@ public:
                    const MultidimArray<double> &mV,
                    double rot, double tilt, double psi);
 
-    void updateCTFImage(double defocusU, double defocusV, double angle);
+    // void updateCTFImage(double defocusU, double defocusV, double angle);
 
+    // ART algorithm
     void artModel(int direction);
 
+    // Apply Zernike codeformation
     template<bool USESZERNIKE, int DIRECTION>
     void zernikeModel();
 
+    // Interpolation weights + interpolation in 3D
+    template<bool INTERPOLATE>
     void weightsInterpolation3D(double x, double y, double z, Matrix1D<double> &w);
 
+    // Remove overdeformation from coefficients
     void removeOverdeformation();
 
     // virtual void checkPoint();
@@ -179,6 +191,7 @@ public:
 
     virtual void run();
 
+    // Sort images in an orthogonal fashion
     void sortOrthogonal();
 
 };
