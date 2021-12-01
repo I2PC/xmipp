@@ -105,7 +105,7 @@ struct ThreadPrepareImages {
 
 void * threadPrepareImages(void * args)
 {
-    ThreadPrepareImages * master = (ThreadPrepareImages *) args;
+    auto * master = (ThreadPrepareImages *) args;
     ProgCommonLine * parent = master->parent;
     MetaDataVec SFi = *(master->SFi);
     size_t Ydim, Xdim, Zdim, Ndim;
@@ -115,7 +115,7 @@ void * threadPrepareImages(void * args)
     mask.resize(Ydim, Xdim);
     mask.setXmippOrigin();
     BinaryCircularMask(mask, Xdim / 2, OUTSIDE_MASK);
-    int NInsideMask = (int)(XSIZE(mask) * YSIZE(mask) - mask.sum());
+    auto NInsideMask = (int)(XSIZE(mask) * YSIZE(mask) - mask.sum());
 
     FourierFilter Filter;
     Filter.w1 = -1;
@@ -221,8 +221,8 @@ void ProgCommonLine::getAndPrepareBlock(int i,
 	}
 
 	// Read and preprocess the images
-	pthread_t * th_ids = new pthread_t[Nthr];
-	ThreadPrepareImages * th_args = new ThreadPrepareImages[Nthr];
+	auto * th_ids = new pthread_t[Nthr];
+	auto * th_args = new ThreadPrepareImages[Nthr];
 	for (int nt = 0; nt < Nthr; nt++) {
 		// Passing parameters to each thread
 		th_args[nt].parent = this;
@@ -305,7 +305,7 @@ struct ThreadCompareImages {
 
 void * threadCompareImages(void * args)
 {
-    ThreadCompareImages * master = (ThreadCompareImages *) args;
+    auto * master = (ThreadCompareImages *) args;
     ProgCommonLine * parent = master->parent;
 
 	int blockIsize = master->RTFsi->size();
@@ -356,8 +356,8 @@ void ProgCommonLine::processBlock(int i, int j)
 
 	// Compare all versus all
 	// Read and preprocess the images
-	pthread_t * th_ids = new pthread_t[Nthr];
-	ThreadCompareImages * th_args = new ThreadCompareImages[Nthr];
+	auto * th_ids = new pthread_t[Nthr];
+	auto * th_args = new ThreadCompareImages[Nthr];
 	for (int nt = 0; nt < Nthr; nt++) {
 		// Passing parameters to each thread
 		th_args[nt].parent = this;

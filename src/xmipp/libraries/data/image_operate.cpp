@@ -47,7 +47,7 @@ double minusAdjusted_L1(double *x, void *_prm)
 	double b=x[2];
 
 	double retval=0;
-	MinusAdjustedPrm *prm = (MinusAdjustedPrm *) _prm;
+	auto *prm = (MinusAdjustedPrm *) _prm;
 	const MultidimArray<double> &pI1=*(prm->I1);
 	const MultidimArray<double> &pI2=*(prm->I2);
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pI1)

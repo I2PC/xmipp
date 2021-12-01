@@ -148,11 +148,11 @@ void Program_dealloc(ProgramObject* self)
 PyObject *
 Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) type->tp_alloc(type, 0);
+    auto *self = (ProgramObject*) type->tp_alloc(type, 0);
     if (self != nullptr)
     {
         self->program = new PythonProgram();
-        PyObject * runWithoutArgs = Py_False;
+        auto * runWithoutArgs = Py_False;
         if (PyArg_ParseTuple(args, "|O", &runWithoutArgs))
         {
             try
@@ -175,8 +175,8 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    PyObject *verbatim = Py_False;
+    auto *self = (ProgramObject*) obj;
+    auto *verbatim = Py_False;
     if (self != nullptr)
     {
         char * line = nullptr;
@@ -205,8 +205,8 @@ Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
-    PyObject *verbatim = Py_True;
+    auto *self = (ProgramObject*) obj;
+    auto *verbatim = Py_True;
     if (self != nullptr)
     {
         char * line = nullptr;
@@ -235,7 +235,7 @@ Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         char * line = nullptr;
@@ -259,7 +259,7 @@ Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         int verbose = 0;
@@ -283,7 +283,7 @@ Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         try
@@ -303,7 +303,7 @@ Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         PyObject *list = nullptr;
@@ -314,7 +314,7 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
                 size_t size = PyList_Size(list);
                 PyObject * item = nullptr;
                 PyObject *pyStr1 = nullptr, *str_exc_type = nullptr;
-                char ** argv = new char*[size];
+                auto ** argv = new char*[size];
                 std::vector<double> vValue(size);
                 for (size_t i = 0; i < size; ++i)
                 {
@@ -352,7 +352,7 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         char * param = nullptr;
@@ -378,7 +378,7 @@ Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         char * param = nullptr;
@@ -403,7 +403,7 @@ Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    ProgramObject *self = (ProgramObject*) obj;
+    auto *self = (ProgramObject*) obj;
     if (self != nullptr)
     {
         char * param = nullptr;

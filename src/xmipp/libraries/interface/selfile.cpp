@@ -444,7 +444,7 @@ void SelFile::split_in_N(int N, std::vector<SelFile> &SF)
     // Create space for all SelFiles
     for (int n = 0; n < N; n++)
     {
-        SelFile *ptr_SF = new SelFile;
+        auto *ptr_SF = new SelFile;
         ptr_SF->reserve(CEIL(Nimg / N));
         SF.push_back(*ptr_SF);
     }

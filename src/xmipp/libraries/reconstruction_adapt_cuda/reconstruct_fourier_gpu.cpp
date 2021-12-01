@@ -227,7 +227,7 @@ void ProgRecFourierGPU::produceSideinfo()
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"This algorithm only works for squared images");
     imgSize=Xdim;
     paddedImgSize = Xdim*padding_factor_vol;
-	size_t conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
+	auto conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
 	conserveRows = (size_t) ceil((double) conserveRows / 2.0);
 	maxVolumeIndexX = maxVolumeIndexYZ = 2 * conserveRows;
 
@@ -417,7 +417,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
 	XMIPP_TRY // in case some method throws a xmipp exception
 
-    RecFourierWorkThread* threadParams = (RecFourierWorkThread *) threadArgs;
+    auto* threadParams = (RecFourierWorkThread *) threadArgs;
     ProgRecFourierGPU* parent = threadParams->parent;
     std::vector<size_t> objId;
 
@@ -649,7 +649,7 @@ T*** ProgRecFourierGPU::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int)(distanceSqr * iDeltaSqrt + 0.5); //Same as ROUND but avoid comparison
+							auto aux = (int)(distanceSqr * iDeltaSqrt + 0.5); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -818,7 +818,7 @@ void ProgRecFourierGPU::computeTraverseSpace(int imgSizeX, int imgSizeY, int pro
 }
 
 void ProgRecFourierGPU::logProgress(int increment) {
-	static int repaintAfter = (int)ceil((double)SF.size()/60);
+	static auto repaintAfter = (int)ceil((double)SF.size()/60);
 	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	static int noOfDone = 0;
 	static int noOfLogs = 0;

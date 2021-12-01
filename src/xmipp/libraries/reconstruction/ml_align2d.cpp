@@ -966,7 +966,7 @@ void ProgML2D::destroyThreads()
 /// Function for threads do different tasks
 void * doThreadsTasks(void * data)
 {
-    structThreadTasks * thread_data = (structThreadTasks *) data;
+    auto * thread_data = (structThreadTasks *) data;
 
     ProgML2D * prm = thread_data->prm;
 

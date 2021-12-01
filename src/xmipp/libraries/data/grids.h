@@ -827,7 +827,7 @@ public:
             G = RV.G;
             for (size_t i = 0; i < RV.VolumesNo(); i++)
             {
-                Image<T>  *V = new Image<T>;
+                auto  *V = new Image<T>;
                 *V = RV(i);
                 LV.push_back(V);
             }

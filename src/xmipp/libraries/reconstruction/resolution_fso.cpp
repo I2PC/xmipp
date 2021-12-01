@@ -246,9 +246,9 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 		den2 = num;
 
 
-		int ZdimFT1=(int)ZSIZE(FT1);
-		int YdimFT1=(int)YSIZE(FT1);
-		int XdimFT1=(int)XSIZE(FT1);
+		auto ZdimFT1=(int)ZSIZE(FT1);
+		auto YdimFT1=(int)YSIZE(FT1);
+		auto XdimFT1=(int)XSIZE(FT1);
 
 		// fx, fy, fz, defined in the .h are the frequencies of each pixel with frequency
 		// lesser than Nyquist along each axis. They are used to compute the dot product
@@ -281,7 +281,7 @@ void ProgFSO::arrangeFSC_and_fscGlobal(double sampling_rate,
 						continue;
 					
 					// Index of each frequency
-					int idx = (int) round(f * xvoldim);
+					auto idx = (int) round(f * xvoldim);
 					
 					int idx_count = DIRECT_MULTIDIM_ELEM(cumpos, idx) + DIRECT_MULTIDIM_ELEM(pos, idx); 
 
@@ -1013,7 +1013,7 @@ void ProgFSO::prepareData(MultidimArray<double> &half1, MultidimArray<double> &h
 		mask.read(fnmask);
 		FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(pmask)
 		{
-			double valmask = (double) DIRECT_MULTIDIM_ELEM(pmask, n);
+			auto valmask = (double) DIRECT_MULTIDIM_ELEM(pmask, n);
 			DIRECT_MULTIDIM_ELEM(half1, n) = DIRECT_MULTIDIM_ELEM(half1, n) * valmask;
 			DIRECT_MULTIDIM_ELEM(half2, n) = DIRECT_MULTIDIM_ELEM(half2, n) * valmask;
 		}

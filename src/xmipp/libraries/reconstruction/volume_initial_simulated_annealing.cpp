@@ -232,7 +232,7 @@ void threadAlignSubset(ThreadArgument &thArg)
 
 	results.sumCorr=results.sumImprovement=0.0;
 	results.mdReconstruction.clear();
-	int nMax=(int)prm.mdInp.size();
+	auto nMax=(int)prm.mdInp.size();
 	for (int nImg=0; nImg<nMax; ++nImg)
 	{
 		if ((nImg+1)%prm.Nthr==thArg.thread_id)
@@ -307,7 +307,7 @@ void ProgVolumeInitialSimulatedAnnealing::filterByCorrelation()
 	std::vector<double> correlations;
 	mdAux.getColumnValues(MDL_MAXCC,correlations);
 	std::sort(correlations.begin(),correlations.end());
-	size_t skip=(size_t)floor(correlations.size()*(rejection/100.0));
+	auto skip=(size_t)floor(correlations.size()*(rejection/100.0));
 	double minCorr=correlations[skip];
 	//double maxCorr=correlations[correlations.size()-skip/4-1];
 

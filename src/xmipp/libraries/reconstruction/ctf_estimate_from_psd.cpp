@@ -978,7 +978,7 @@ double ProgCTFEstimateFromPSD::CTF_fitness_object(double *p)
 
 double CTF_fitness(double *p, void *vprm)
 {
-	ProgCTFEstimateFromPSD *prm=(ProgCTFEstimateFromPSD *) vprm;
+	auto *prm=(ProgCTFEstimateFromPSD *) vprm;
 	return prm->CTF_fitness_object(p);
 }
 
@@ -1952,7 +1952,7 @@ void ProgCTFEstimateFromPSD::estimate_defoci_Zernike(const MultidimArray<double>
     VEC_ELEM(coefs,5) = 1;
     VEC_ELEM(coefs,12) =1;
 
-    int x=(int)((0.3*max_freq+0.7*min_freq)*std::cos(PI/4)*XSIZE(centeredEnhancedPSD)+XSIZE(centeredEnhancedPSD)/2);
+    auto x=(int)((0.3*max_freq+0.7*min_freq)*std::cos(PI/4)*XSIZE(centeredEnhancedPSD)+XSIZE(centeredEnhancedPSD)/2);
     DEBUG_TEXTFILE(formatString("Zernike1 %d",x));
     DEBUG_TEXTFILE(formatString("centeredEnhancedPSD80x80 %f",centeredEnhancedPSD(80,80)));
     DEBUG_TEXTFILE(formatString("centeredEnhancedPSD120x120 %f",centeredEnhancedPSD(120,120)));

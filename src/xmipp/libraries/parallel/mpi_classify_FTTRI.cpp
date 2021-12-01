@@ -326,7 +326,7 @@ void ProgClassifyFTTRI::skipRandomNumberOfUnassignedClasses(
             currentPointer=(currentPointer+1)%VEC_XSIZE(notAssigned);
 
         // Now skip some non empty
-        size_t skip=(size_t) (remaining*rnd_unif());
+        auto skip=(size_t) (remaining*rnd_unif());
         while (skip>0)
         {
             currentPointer=(currentPointer+1)%VEC_XSIZE(notAssigned);
@@ -365,7 +365,7 @@ void ProgClassifyFTTRI::epsilonClassification(double epsilon)
 {
     epsilonClasses.clear();
     notAssigned=notAssigned0;
-    size_t remaining=(size_t)notAssigned.sum();
+    auto remaining=(size_t)notAssigned.sum();
     size_t currentPointer=0;
     EpsilonClass newClass;
     FileName fnSeed, fnCandidate;

@@ -66,7 +66,7 @@ void ProgVolumeSetAlign::readParams() {
 // Produce side information ================================================
 
 void ProgVolumeSetAlign::createWorkFiles() {
-	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+	auto *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
 	// this will serve to resume
 	MetaDataDb mdTodo;
 	MetaDataDb mdDone;

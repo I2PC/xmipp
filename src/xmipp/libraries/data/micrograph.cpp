@@ -836,7 +836,7 @@ void TiltPairAligner::computeGamma()
 /* Compute alphas ---------------------------------------------------------- */
 double matrix_fitness(double *p, void *prm)
 {
-    TiltPairAligner *aligner = (TiltPairAligner *) prm;
+	auto *aligner = (TiltPairAligner *) prm;
     Euler_angles2matrix(-p[1], p[3], p[2], aligner->pair_E);
     double retval = 0;
     for (int i = 0; i < 2; i++)

@@ -314,7 +314,7 @@ double GaussianKerDenSOM::updateSigmaII(FuzzyMap* _som, const TS* _examples, con
     for (cc = 0; cc < numNeurons; cc++)
     {
         _som->localAve(_som->indexToPos(cc), tmpV);
-        double t1 = (double) _som->getLayout().numNeig(_som, (SomPos) _som->indexToPos(cc));
+        auto t1 = (double) _som->getLayout().numNeig(_som, (SomPos) _som->indexToPos(cc));
         for (j = 0; j < dim; j++)
             q += (t1 * ((double)_som->theItems[cc][j]) - (double)(tmpV[j])) * ((double)_som->theItems[cc][j]);
     }

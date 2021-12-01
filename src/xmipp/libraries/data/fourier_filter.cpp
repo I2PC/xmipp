@@ -689,8 +689,8 @@ void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, Multid
     }
     else if (XSIZE(maskFourierd)!=0)
     {
-        double *ptrV=(double*)&DIRECT_MULTIDIM_ELEM(V,0);
-        double *ptrMask=(double*)&DIRECT_MULTIDIM_ELEM(maskFourierd,0);
+        auto *ptrV=(double*)&DIRECT_MULTIDIM_ELEM(V,0);
+        auto *ptrMask=(double*)&DIRECT_MULTIDIM_ELEM(maskFourierd,0);
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         {
             *ptrV++ *= *ptrMask;
@@ -706,7 +706,7 @@ void FourierFilter::applyMaskFourierSpace(const MultidimArray<double> &v, Multid
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(V)
         if (DIRECT_MULTIDIM_ELEM(vMag,n)<minMagnitude)
         {
-            double *ptr=(double*)&DIRECT_MULTIDIM_ELEM(V,n);
+            auto *ptr=(double*)&DIRECT_MULTIDIM_ELEM(V,n);
             *ptr=0;
             *(ptr+1)=0;
         }

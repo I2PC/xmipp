@@ -103,12 +103,12 @@ int SimpleGrid::get_number_of_samples() const
     }
     else
     {
-        int ZZ_lowest = (int) ZZ(lowest);
-        int YY_lowest = (int) YY(lowest);
-        int XX_lowest = (int) XX(lowest);
-        int ZZ_highest = (int) ZZ(highest);
-        int YY_highest = (int) YY(highest);
-        int XX_highest = (int) XX(highest);
+        auto ZZ_lowest = (int) ZZ(lowest);
+        auto YY_lowest = (int) YY(lowest);
+        auto XX_lowest = (int) XX(lowest);
+        auto ZZ_highest = (int) ZZ(highest);
+        auto YY_highest = (int) YY(highest);
+        auto XX_highest = (int) XX(highest);
         Matrix1D<double> grid_index(3), univ_position(3);
         int N = 0;
         for (int k = ZZ_lowest; k <= ZZ_highest; k++)
@@ -155,9 +155,9 @@ void Grid::voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
         // Find box for this grid
         bool first;
         first = true;
-        for (int k = (int)ZZ(LG[n].lowest); k <= ZZ(LG[n].highest); k++)
-            for (int i = (int)YY(LG[n].lowest); i <= YY(LG[n].highest); i++)
-                for (int j = (int)XX(LG[n].lowest); j <= XX(LG[n].highest); j++)
+        for (auto k = (int)ZZ(LG[n].lowest); k <= ZZ(LG[n].highest); k++)
+            for (auto i = (int)YY(LG[n].lowest); i <= YY(LG[n].highest); i++)
+                for (auto j = (int)XX(LG[n].lowest); j <= XX(LG[n].highest); j++)
                 {
                     Matrix1D<double> grid_index(3), univ_position(3);
                     VECTOR_R3(grid_index, j, i, k);

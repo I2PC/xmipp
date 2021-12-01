@@ -150,6 +150,31 @@ void ProgFlexibleAlignment::show() {
 // Produce side information ================================================
 ProgFlexibleAlignment *global_flexible_prog;
 
+void ProgFlexibleAlignment::createWorkFiles()
+{
+    auto *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
+    MetaDataDb mdTodo, mdDone;
+    mdTodo = *pmdIn;
+    FileName fn(fnOutDir+"/nmaDone.xmd");
+    if (fn.exists() && resume)
+    {
+        mdDone.read(fn);
+        mdTodo.subtraction(mdDone, MDL_IMAGE);
+    }
+    else //if not exists create metadata only with headers
+    {
+        mdDone.addLabel(MDL_IMAGE);
+        mdDone.addLabel(MDL_ENABLED);
+        mdDone.addLabel(MDL_ANGLE_ROT);
+        mdDone.addLabel(MDL_ANGLE_TILT);
+        mdDone.addLabel(MDL_ANGLE_PSI);
+        mdDone.addLabel(MDL_SHIFT_X);
+        mdDone.addLabel(MDL_SHIFT_Y);
+        mdDone.addLabel(MDL_NMA);
+        mdDone.addLabel(MDL_COST);
+        mdDone.write(fn);
+    }
+    *pmdIn = mdTodo;
 void ProgFlexibleAlignment::createWorkFiles() {
 	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
 	MetaDataDb mdTodo, mdDone;
@@ -216,13 +241,15 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 		//double   *S_mu,
 		int Xwidth, int Ywidth, double sigma)
 {
-	//double S_mu;
-	int psi_max = (int) (sqrt(3) * Ywidth / 2);
-	double a0;
-	double a1;
-	double a2;
-	double centre_Xwidth, centre_Ywidth;
-	double sum2, hlp;
+    double *coord_gaussian;
+    double *ksi_v,*coord_img;
+    double *ro_ksi_v, *ro_coord_img, *ro_coord_gaussian;
+    //double S_mu;
+    auto    psi_max = (int) (sqrt(3) * Ywidth / 2);
+    int    kx,ky;
+    double    a0,a1,a2;
+    double centre_Xwidth, centre_Ywidth;
+    double sum2,hlp;
 
 	proj_help_test.initZeros(Xwidth, Ywidth);
 	std::vector<double> ksi_v(4,0);
@@ -366,7 +393,7 @@ int partialpfunction(Matrix1D<double> &Parameters,
 		//double            *cost,
 		MultidimArray<double> &P_mu_image, MultidimArray<double> &P_esp_image,
 		int Xwidth, int Ywidth) {
-	int psi_max = (int) (sqrt(3) * 128 / (global_flexible_prog->sampling_rate));
+	auto psi_max = (int) (sqrt(3) * 128 / (global_flexible_prog->sampling_rate));
 	double help, a0, a1, a2;
 	help = 0.0;
 	int Line_number = 0;
@@ -750,7 +777,7 @@ int levenberg_cst2(MultidimArray<double> &lc_P_mu_image,
 		double LambdaScale, long *iter, double tol_angle, double tol_shift,
 		double tol_defamp, int *IteratingStop, size_t Xwidth, size_t Ywidth) {
 
-	long ma = (long) VEC_XSIZE(global_flexible_prog->trial);
+	auto ma = (long) VEC_XSIZE(global_flexible_prog->trial);
 	if (ma <= 0) {
 		WRITE_ERROR(levenberg_cst2, "ERROR - degenerated vector");
 		return (ERROR);
@@ -888,7 +915,7 @@ int cstregistrationcontinuous(Matrix1D<double> &centerOfMass,
 	double OneIterInSeconds;
 	time_t *tp1 = nullptr;
 	time_t *tp2 = nullptr;
-	long dim = (long) global_flexible_prog->numberOfModes;
+	auto dim = (long) global_flexible_prog->numberOfModes;
 	long MaxNoIter, MaxNoFailure, SatisfNoSuccess;
 
 	double lambda = 1000.;

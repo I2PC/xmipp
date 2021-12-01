@@ -291,7 +291,7 @@ void ProgMPIRecFourier::run()
             // job number
             // job size
             // aux variable
-            double * fourierVolume = (double *)VoutFourier.data;
+        	auto * fourierVolume = (double *)VoutFourier.data;
             double * fourierWeights = FourierWeights.data;
 
             sizeout = MULTIDIM_SIZE(FourierWeights);
@@ -335,7 +335,7 @@ void ProgMPIRecFourier::run()
                     if( node->rank == 1 )
                     {
                         // Reserve memory for the receive buffer
-                        double * recBuffer = (double *) malloc (sizeof(double)*BUFFSIZE);
+                    	auto * recBuffer = (double *) malloc (sizeof(double)*BUFFSIZE);
                         int receivedSize;
                         double * pointer;
                         pointer = fourierVolume;
@@ -460,7 +460,7 @@ void ProgMPIRecFourier::run()
                     if ( node->rank == 1 )
                     {
                         // Reserve memory for the receive buffer
-                        double * recBuffer = (double *) malloc (sizeof(double)*BUFFSIZE);
+                    	auto * recBuffer = (double *) malloc (sizeof(double)*BUFFSIZE);
                         int receivedSize;
                         double * pointer;
                         pointer = fourierVolume;
@@ -518,14 +518,14 @@ void ProgMPIRecFourier::run()
                             VoutFourierTmp=VoutFourier;
                             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(VoutFourier)
                             {
-                                double *ptrOut=(double *)&(DIRECT_A3D_ELEM(VoutFourier, k,i,j));
+                            	auto *ptrOut=(double *)&(DIRECT_A3D_ELEM(VoutFourier, k,i,j));
                                 ptrOut[0] = 1;
                             }
                         }
                         forceWeightSymmetry(FourierWeights);
                         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(VoutFourier)
                         {
-                            double *ptrOut=(double *)&(DIRECT_A3D_ELEM(VoutFourier, k,i,j));
+                        	auto *ptrOut=(double *)&(DIRECT_A3D_ELEM(VoutFourier, k,i,j));
                             if (fabs(A3D_ELEM(FourierWeights,k,i,j))>1e-3)
                             	ptrOut[0]/=A3D_ELEM(FourierWeights,k,i,j);
                         }
@@ -598,7 +598,7 @@ void ProgMPIRecFourier::run()
                             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY3D(VoutFourier)
                             {
                                 // Put back the weights to FourierWeights from temporary variable VoutFourier
-                                double *ptrOut=(double *)&(DIRECT_A3D_ELEM(VoutFourier, k,i,j));
+                            	auto *ptrOut=(double *)&(DIRECT_A3D_ELEM(VoutFourier, k,i,j));
                                 A3D_ELEM(FourierWeights,k,i,j) = ptrOut[0];
                             }
                             VoutFourier=VoutFourierTmp;
@@ -668,7 +668,7 @@ int  ProgMPIRecFourier::sendDataInChunks( double * pointer, int dest, int totalS
 {
     double * localPointer = pointer;
 
-    int numChunks =(int)ceil((double)totalSize/(double)buffSize);
+    auto numChunks =(int)ceil((double)totalSize/(double)buffSize);
     int packetSize;
     int err=0;
 
