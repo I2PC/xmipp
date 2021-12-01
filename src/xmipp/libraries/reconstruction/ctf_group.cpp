@@ -213,7 +213,7 @@ void ProgCtfGroup::produceSideInfo()
                 jj=(paddim-j);
 
             d      = sqrt(ii*ii+jj*jj);
-            int idd = (int) d ;
+            auto idd = (int) d ;
             dAij(diff, i,j)=d-idd;
             dAij(dd, i,j)=idd;
         }
@@ -334,7 +334,7 @@ void ProgCtfGroup::produceSideInfo()
         {
             ctfMD.getValue(MDL_COUNT,count, objId);
             ctfMD.getValue(MDL_ORDER,counter,objId);
-            double dCount = (double)count;
+            auto dCount = (double)count;
             sumimg += dCount;
             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
             {
@@ -667,7 +667,7 @@ void ProgCtfGroup::writeOutputToDisc()
             olddefGroup=defGroup;
         sortedCtfMD.getValue(MDL_ORDER,order,objId);
         sortedCtfMD.getValue(MDL_COUNT,count,objId);
-        double dCount = (double)count;
+        auto dCount = (double)count;
 
         if (defGroup != olddefGroup)
         {

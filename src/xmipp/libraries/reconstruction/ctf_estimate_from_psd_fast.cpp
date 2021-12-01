@@ -629,7 +629,7 @@ double ProgCTFEstimateFromPSDFast::CTF_fitness_object_fast(double *p)
 
 double CTF_fitness_fast(double *p, void *vprm)
 {
-	ProgCTFEstimateFromPSDFast *prm=(ProgCTFEstimateFromPSDFast *) vprm;
+	auto *prm=(ProgCTFEstimateFromPSDFast *) vprm;
 	return prm->CTF_fitness_object_fast(p);
 }
 
@@ -1233,7 +1233,7 @@ void ProgCTFEstimateFromPSDFast::estimate_defoci_fast()
 
 		//double maxValue = *max_element(amplitud.begin(),amplitud.end());
 		//int finalIndex = distance(amplitud.begin(),max_element(amplitud.begin(),amplitud.end()));
-		current_ctfmodel.Defocus = (floor((finalIndex+startIndex+1))*pow(2*current_ctfmodel.Tm,2))/
+		current_ctfmodel.Defocus = (floor(finalIndex+startIndex+1)*pow(2*current_ctfmodel.Tm,2))/
 												current_ctfmodel.lambda;
 
 #ifdef DEBUG
@@ -1555,7 +1555,7 @@ double ROUT_Adjust_CTFFast(ProgCTFEstimateFromPSDFast &prm, CTFDescription1D &ou
 	/* STEP 12: 2D estimation parameters          							*/
 	/************************************************************************/
 	prm.adjust_params->resize(ALL_CTF_PARAMETERS2D);
-	ProgCTFEstimateFromPSD *prm2D = new ProgCTFEstimateFromPSD(&prm);
+	auto *prm2D = new ProgCTFEstimateFromPSD(&prm);
 	if (prm.noDefocusEstimate)
 	{
 		prm2D->current_ctfmodel.DeltafU=prm.initial_ctfmodel2D.DeltafU;

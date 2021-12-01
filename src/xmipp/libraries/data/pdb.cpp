@@ -77,7 +77,7 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				at_pos.z.push_back(z);
 
                                 // Residue Number
-				int resi = (int) textToFloat(line.substr(23,5));
+				auto resi = (int) textToFloat(line.substr(23,5));
 				at_pos.residue.push_back(resi);
 
 				// Getting the bfactor = 8pi^2*u
@@ -745,7 +745,7 @@ void hlpf(MultidimArray<double> &f, int M, double T, const std::string &filterTy
     filter.initZeros(XSIZE(f));
     filter.setXmippOrigin();
 
-    int Nmax=(int)CEIL(M/2.0);
+    auto Nmax=(int)CEIL(M/2.0);
     if (filterType=="SimpleAveraging")
     {
         FOR_ALL_ELEMENTS_IN_ARRAY1D(filter)
@@ -790,7 +790,7 @@ void fhlpf(const MultidimArray<double> &f, const MultidimArray<double> &filter,
     const double K1=2*PI*(STARTINGX(auxFilter)-1);
     const double K2=XSIZE(auxFilter);
     std::complex<double> aux;
-    double * ptrAux=(double*)&aux;
+    auto * ptrAux=(double*)&aux;
     FOR_ALL_ELEMENTS_IN_ARRAY1D(F)
     {
         double w;
@@ -941,7 +941,7 @@ void atomRadialProfile(int M, double T, const std::string &atom,
     // Compute the electron form factor in real space
     double largestb1=76.7309/(4*PI*PI);
     double Rmax=4*sqrt(2*largestb1);
-    int imax=(int)CEIL(Rmax/T);
+    auto imax=(int)CEIL(Rmax/T);
     Matrix1D<double> descriptors;
     atomDescriptors(atom, descriptors);
     MultidimArray<double> f(2*imax+1);
@@ -1164,8 +1164,8 @@ void projectAtom(const Atom &atom, Projection &P,
 
     // Study the projection for each point in the projection plane ..........
     // (u,v) are in the deformed projection plane (if any deformation)
-    for (int v = (int)YY(corner1); v <= (int)YY(corner2); v++)
-        for (int u = (int)XX(corner1); u <= (int)XX(corner2); u++)
+    for (auto v = (int)YY(corner1); v <= (int)YY(corner2); v++)
+        for (auto u = (int)XX(corner1); u <= (int)XX(corner2); u++)
         {
             double length = 0;
             //#define DEBUG_EVEN_MORE

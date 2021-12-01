@@ -1629,10 +1629,10 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
 
     sum_refw2 = 0.;
     //change std::vectors by arrays
-    double *sigma2=new double[nr_points_2d];
-    double *inv_sigma2=new double [nr_points_2d];
-    double *ctf=new double[nr_points_2d];
-    double *decctf=new double[nr_points_2d];
+    auto *sigma2=new double[nr_points_2d];
+    auto *inv_sigma2=new double [nr_points_2d];
+    auto *ctf=new double[nr_points_2d];
+    auto *decctf=new double[nr_points_2d];
 
     const int &ifocus = focus;
     FOR_ALL_POINTS()
@@ -1652,7 +1652,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
 
     // Precalculate normalization constant
     logsigma2 = 0.;
-    double factor = (do_student) ? PI * df * 0.5 : PI;
+    double factor = do_student ? PI * df * 0.5 : PI;
     // Multiply by two because we treat real and imaginary parts!
     for (size_t ipoint = 0; ipoint < nr_points_prob; ipoint++)
         logsigma2 += 2 * log( sqrt(factor * sigma2[ipoint]));
@@ -2110,7 +2110,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
             hist /= hist.sum()*hist.step_size;
             FileName fn_hist = fn_img + ".hist";
             std::ofstream fh_hist;
-            fh_hist.open((fn_hist).c_str(), std::ios::out);
+            fh_hist.open(fn_hist.c_str(), std::ios::out);
             if (!fh_hist)
                 REPORT_ERROR(ERR_IO_NOTOPEN, (String)"Cannot write histogram file "+ fn_hist);
             FOR_ALL_ELEMENTS_IN_ARRAY1D(hist)
@@ -2149,7 +2149,7 @@ void ProgMLF2D::processOneImage(const MultidimArray<double> &Mimg,
             }
             else
             {
-                sumwsc[refno] += (refw[refno] + refw_mirror[refno]) * (opt_scale) / sum_refw;
+                sumwsc[refno] += (refw[refno] + refw_mirror[refno]) * opt_scale / sum_refw;
                 sumwsc2[refno] += (refw[refno] + refw_mirror[refno]) * (opt_scale * opt_scale) / sum_refw;
             }
             sumw_mirror[refno] += refw_mirror[refno] / sum_refw;
@@ -2781,7 +2781,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
     if (outputType != OUT_REFS)
     {
         MetaDataVec mdImgs;
-        int n = (int) MDref.size(); //Avoid int and size_t comparison warning
+        auto n = (int) MDref.size(); //Avoid int and size_t comparison warning
         for (int ref = 1; ref <= n; ++ref)
         {
             mdImgs.importObjects(MDimg, MDValueEQ(MDL_REF, ref));
@@ -2804,7 +2804,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         std::ofstream fh_hist;
 
         fn_tmp = fn_base + "avg.hist.log";
-        fh_hist.open((fn_tmp).c_str(), std::ios::out);
+        fh_hist.open(fn_tmp.c_str(), std::ios::out);
         if (!fh_hist)
             REPORT_ERROR(ERR_IO_NOTOPEN, (String)"Cannot write histogram file "+ fn_tmp);
         sumhist /= (sumhist.sum()*sumhist.step_size);
@@ -2821,7 +2821,7 @@ void ProgMLF2D::writeOutputFiles(const ModelML2D &model, OutputType outputType)
         fh_hist.close();
 
         fn_tmp = fn_base + "_resol.hist";
-        fh_hist.open((fn_tmp).c_str(), std::ios::out);
+        fh_hist.open(fn_tmp.c_str(), std::ios::out);
         if (!fh_hist)
             REPORT_ERROR(ERR_IO_NOTOPEN, (String)"Cannot write histogram file "+ fn_tmp);
         FOR_ALL_ELEMENTS_IN_ARRAY1D(sumhist)

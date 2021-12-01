@@ -446,7 +446,7 @@ void ProgClassifyKmeans2D::run()
         max_item = *std::max_element(fv_temp.begin(), fv_temp.end());
         min_item = *std::min_element(fv_temp.begin(), fv_temp.end());
         for (int j = 0; j < fvs.size(); j++)
-            fvs[j][i] = ((fvs[j][i] - min_item)) / (max_item - min_item);
+            fvs[j][i] = (fvs[j][i] - min_item) / (max_item - min_item);
     }
 
     int allItems = 0;

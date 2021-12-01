@@ -173,7 +173,7 @@ CDAB;
 /* To calculate the value of the objective function */
 void quadraticProgramming_obj32(int nparam, int j, double* x, double* fj, void* cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     Matrix2D<double> X(nparam,1);
     for (int i=0; i<nparam; ++i)
         X(i,0)=x[i];
@@ -186,7 +186,7 @@ void quadraticProgramming_obj32(int nparam, int j, double* x, double* fj, void* 
 /* To calculate the value of the jth constraint */
 void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void* cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     *gj = 0;
     for (int k = 0; k < nparam; k++)
         *gj += in->A(j - 1, k) * x[k];
@@ -196,7 +196,7 @@ void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void*
 /* To calculate the value of the derivative of objective function */
 void quadraticProgramming_grob32(int nparam,  double* x, double* gradfj, void *cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     Matrix2D<double> X(1,nparam);
     for (int i=0; i<nparam; ++i)
         X(0,i)=x[i];
@@ -210,7 +210,7 @@ void quadraticProgramming_grob32(int nparam,  double* x, double* gradfj, void *c
 /* To calculate the value of the derivative of jth constraint */
 void quadraticProgramming_grcn32(int nparam, int j, double *gradgj, void *cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     for (int k = 0; k < nparam; k++)
         gradgj[k] = in->A(j - 1, k);
 }
@@ -513,7 +513,7 @@ bool DESolver::Solve(int maxGenerations)
         }
 
     generations = generation;
-    return(bAtSolution);
+    return bAtSolution;
 }
 
 void DESolver::Best1Exp(int candidate)

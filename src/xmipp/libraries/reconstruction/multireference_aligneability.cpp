@@ -331,9 +331,9 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
 	size_t trials=500;
     double xRan,yRan,zRan;
     double x,y;
-    double * xRanArray = new double[num];
-    double * yRanArray = new double[num];
-    double * zRanArray  = new double[num];
+    auto * xRanArray = new double[num];
+    auto * yRanArray = new double[num];
+    auto * zRanArray  = new double[num];
 
     sumw=0;
 
@@ -373,7 +373,7 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
             for (size_t nS2=0; nS2<num; nS2++)
             {
                 a = std::abs(std::acos(xRanArray[nS1]*xRanArray[nS2]+yRanArray[nS1]*yRanArray[nS2]+zRanArray[nS1]*zRanArray[nS2]));
-                if ( (a != 0))
+                if (a != 0)
                     WRan += a;
             }
         }
@@ -395,11 +395,11 @@ void MultireferenceAligneability::calc_sumw2(const size_t num, double & sumw, co
 	const size_t numGallery= mdGallery.size()+1;
 	const double trials = 500;
     size_t indx;
-    size_t * indxArray = new size_t[numGallery];
+    auto * indxArray = new size_t[numGallery];
     double sumWRan;
-    double * rotArray = new double[num];
-    double * tiltArray = new double[num];
-    double * psiArray  = new double[num];
+    auto * rotArray = new double[num];
+    auto * tiltArray = new double[num];
+    auto * psiArray  = new double[num];
     double rot,tilt,psi;
     sumWRan = 0;
 
@@ -545,8 +545,8 @@ void MultireferenceAligneability::obtainAngularAccuracy(const MetaData & tempMd,
 
     }
 
-    accuracy /= (sumOfW);
-    accuracyMirror /= (sumOfW);
+    accuracy /= sumOfW;
+    accuracyMirror /= sumOfW;
 
 #ifdef DEBUG
         std::cout << " accuracy : " << " " << accuracy << " " << std::endl;

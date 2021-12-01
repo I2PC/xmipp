@@ -120,7 +120,7 @@ public:
         if (x>xmax) return 0;
         else
         {
-            int iaux=(int)round(x*ixstep);
+            auto iaux=(int)round(x*ixstep);
             return DIRECT_A1D_ELEM(v,iaux);
         }
     }
@@ -340,31 +340,31 @@ public:
     /// Return dimension
     int Dimension() const
     {
-        return (nDim);
+        return nDim;
     }
 
     /// Return population
     int Population() const
     {
-        return (nPop);
+        return nPop;
     }
 
     /// Call these functions after Solve() to get results.
     double Energy() const
     {
-        return (bestEnergy);
+        return bestEnergy;
     }
 
     /// Return best solution
     double* Solution(void)
     {
-        return (bestSolution);
+        return bestSolution;
     }
 
     /// Return the number of generations
     int Generations() const
     {
-        return (generations);
+        return generations;
     }
 
 protected:
