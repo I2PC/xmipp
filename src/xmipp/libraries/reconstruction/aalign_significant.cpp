@@ -434,7 +434,7 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
     size_t indexAssign = 0; // if we're here, we have at least one assignment
     rows.reserve(m_assignments.size());
     for (const auto& _row : md) {
-        const MDRowVec& row = dynamic_cast<const MDRowVec&>(_row);
+        const auto& row = dynamic_cast<const MDRowVec&>(_row);
         // we migh have skipped some images due to bad reference
         if (indexMeta != m_assignments.at(indexAssign).imgIndex) {
             indexMeta++;

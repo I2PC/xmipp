@@ -88,7 +88,7 @@
  FourierProjector_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
  {
 
-     FourierProjectorObject *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
+     auto *self = (FourierProjectorObject*)type->tp_alloc(type, 0);
      XMIPP_TRY
 
      if (self != nullptr)
@@ -125,7 +125,7 @@
 
 PyObject * FourierProjector_projectVolume(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-      FourierProjectorObject *self = (FourierProjectorObject*) obj;
+      auto *self = (FourierProjectorObject*) obj;
       double rot, tilt, psi;
       PyObject *projection_image = nullptr;
       if (self != nullptr && PyArg_ParseTuple(args, "O|ddd", &projection_image, &rot, &tilt, &psi))

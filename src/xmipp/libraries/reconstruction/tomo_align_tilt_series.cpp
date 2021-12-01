@@ -583,7 +583,7 @@ struct ThreadComputeTransformParams
 
 void * threadComputeTransform( void * args )
 {
-    ThreadComputeTransformParams * master =
+    auto * master =
         (ThreadComputeTransformParams *) args;
 
     ProgTomographAlignment * parent = master->parent;
@@ -677,8 +677,8 @@ void ProgTomographAlignment::computeAffineTransformations(
     bool oldglobalAffine=globalAffine;
     globalAffine=globalAffineToUse;
 
-    pthread_t * th_ids = new pthread_t[numThreads];
-    ThreadComputeTransformParams * th_args = new ThreadComputeTransformParams[numThreads];
+    auto * th_ids = new pthread_t[numThreads];
+    auto * th_args = new ThreadComputeTransformParams[numThreads];
 
     for( int nt = 0 ; nt < numThreads ; nt ++ )
     {
@@ -827,13 +827,13 @@ void ProgTomographAlignment::produceSideInfo()
 
             if (!useCriticalPoints)
             {
-                MultidimArray<unsigned char>* mask_i=new MultidimArray<unsigned char>;
+                auto* mask_i=new MultidimArray<unsigned char>;
                 generateMask(imgaux(),*mask_i,
                              XMIPP_MAX(ROUND(localSize*XSIZE(imgaux()))/2,5));
                 maskImg.push_back(mask_i);
             }
 
-            MultidimArray<unsigned char>* img_i=new MultidimArray<unsigned char>;
+            auto* img_i=new MultidimArray<unsigned char>;
             imgaux().rangeAdjust(0,255);
             typeCast(imgaux(),*img_i);
             img_i->setXmippOrigin();
@@ -964,10 +964,10 @@ void ProgTomographAlignment::produceSideInfo()
     // Check which is the distribution of correlation
     if (!useCriticalPoints)
     {
-        int X0=(int)(STARTINGX(*(img[0]))+2*localSize*XSIZE(*(img[0])));
-        int XF=(int)(FINISHINGX(*(img[0]))-2*localSize*XSIZE(*(img[0])));
-        int Y0=(int)(STARTINGY(*(img[0]))+2*localSize*YSIZE(*(img[0])));
-        int YF=(int)(FINISHINGY(*(img[0]))-2*localSize*YSIZE(*(img[0])));
+        auto X0=(int)(STARTINGX(*(img[0]))+2*localSize*XSIZE(*(img[0])));
+        auto XF=(int)(FINISHINGX(*(img[0]))-2*localSize*XSIZE(*(img[0])));
+        auto Y0=(int)(STARTINGY(*(img[0]))+2*localSize*YSIZE(*(img[0])));
+        auto YF=(int)(FINISHINGY(*(img[0]))-2*localSize*YSIZE(*(img[0])));
         avgForwardPatchCorr.initZeros(Nimg);
         avgBackwardPatchCorr.initZeros(Nimg);
         avgForwardPatchCorr.initConstant(1);
@@ -1046,7 +1046,7 @@ struct ThreadGenerateLandmarkSetParams
 
 void * threadgenerateLandmarkSetGrid( void * args )
 {
-    ThreadGenerateLandmarkSetParams * master =
+    auto * master =
         (ThreadGenerateLandmarkSetParams *) args;
     ProgTomographAlignment * parent = master->parent;
     int thread_id = master->myThreadID;
@@ -1056,7 +1056,7 @@ void * threadgenerateLandmarkSetGrid( void * args )
         parent->affineTransformations;
     int gridSamples=parent->gridSamples;
 
-    int deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
+    auto deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
     master->chainList=new std::vector<LandmarkChain>;
     Matrix1D<double> rii(3), rjj(3);
     ZZ(rii)=1;
@@ -1215,7 +1215,7 @@ void * threadgenerateLandmarkSetGrid( void * args )
 
 void * threadgenerateLandmarkSetBlind( void * args )
 {
-    ThreadGenerateLandmarkSetParams * master =
+    auto * master =
         (ThreadGenerateLandmarkSetParams *) args;
     ProgTomographAlignment * parent = master->parent;
     int thread_id = master->myThreadID;
@@ -1225,7 +1225,7 @@ void * threadgenerateLandmarkSetBlind( void * args )
         parent->affineTransformations;
     int gridSamples=parent->gridSamples;
 
-    int deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
+    auto deltaShift=(int)floor(XSIZE(*(parent->img)[0])/gridSamples);
     master->chainList=new std::vector<LandmarkChain>;
     Matrix1D<double> rii(3), rjj(3);
     ZZ(rii)=1;
@@ -1278,8 +1278,8 @@ void * threadgenerateLandmarkSetBlind( void * args )
                     Aij=affineTransformations[jj][jj_1];
                     Aji=affineTransformations[jj_1][jj];
                     rjj=Aji*rcurrent;
-                    int iYYrjj=(int)YY(rjj);
-                    int iXXrjj=(int)XX(rjj);
+                    auto iYYrjj=(int)YY(rjj);
+                    auto iXXrjj=(int)XX(rjj);
                     if (!(*(parent->maskImg[jj])).outside(iYYrjj,iXXrjj))
                         acceptLandmark=(*(parent->maskImg[jj]))(iYYrjj,iXXrjj);
                     else
@@ -1319,8 +1319,8 @@ void * threadgenerateLandmarkSetBlind( void * args )
                     Aij=affineTransformations[jj_1][jj];
                     Aji=affineTransformations[jj][jj_1];
                     rjj=Aij*rcurrent;
-                    int iYYrjj=(int)YY(rjj);
-                    int iXXrjj=(int)XX(rjj);
+                    auto iYYrjj=(int)YY(rjj);
+                    auto iXXrjj=(int)XX(rjj);
                     if (!(*(parent->maskImg[jj])).outside(iYYrjj,iXXrjj))
                         acceptLandmark=(*(parent->maskImg[jj]))(iYYrjj,iXXrjj);
                     else
@@ -1370,7 +1370,7 @@ void * threadgenerateLandmarkSetBlind( void * args )
 //#define DEBUG
 void * threadgenerateLandmarkSetCriticalPoints( void * args )
 {
-    ThreadGenerateLandmarkSetParams * master =
+    auto * master =
         (ThreadGenerateLandmarkSetParams *) args;
     ProgTomographAlignment * parent = master->parent;
     int thread_id = master->myThreadID;
@@ -1641,8 +1641,8 @@ void ProgTomographAlignment::generateLandmarkSet()
     FileName fn_tmp = fnRoot+"_landmarks.txt";
     if (!fn_tmp.exists())
     {
-        pthread_t * th_ids = new pthread_t[numThreads];
-        ThreadGenerateLandmarkSetParams * th_args=
+        auto * th_ids = new pthread_t[numThreads];
+        auto * th_args=
             new ThreadGenerateLandmarkSetParams[numThreads];
         for( int nt = 0 ; nt < numThreads ; nt ++ )
         {
@@ -1888,8 +1888,8 @@ bool ProgTomographAlignment::refineLandmark(const MultidimArray<double> &pieceii
         while (!Q.empty())
         {
             // Get the first position to evaluate
-            int shifty=(int)YY(Q.front());
-            int shiftx=(int)XX(Q.front());
+            auto shifty=(int)YY(Q.front());
+            auto shiftx=(int)XX(Q.front());
             Q.pop();
             if (!corr(shifty,shiftx)<-1)
                 continue;
@@ -2523,7 +2523,7 @@ void ProgTomographAlignment::run()
     std::cerr << "produceInformationFromLandmarks" << std::endl;
     produceInformationFromLandmarks();
     std::cerr << "alignment" << std::endl;
-    Alignment *alignment=new Alignment(this);
+    auto *alignment=new Alignment(this);
 
     // Exhaustive search for rot
     double bestError=0, bestRot=-1;

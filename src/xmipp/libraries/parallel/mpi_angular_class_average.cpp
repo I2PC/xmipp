@@ -169,7 +169,7 @@ void MpiProgAngularClassAverage::run()
 
     double lockWeightIndexes[lockWeightIndexesSize];
 
-    double * jobListRows = new double[ArraySize * mpi_job_size + 1];
+    auto * jobListRows = new double[ArraySize * mpi_job_size + 1];
 
     if (node->rank == 0)
     {
@@ -771,7 +771,7 @@ void MpiProgAngularClassAverage::mpi_process(double * Def_3Dref_2Dref_JobNo)
 
         // Reserve memory for output from class realignment
         int reserve = DF.size();
-        double *my_output=new double[AVG_OUPUT_SIZE * reserve + 1];
+        auto *my_output=new double[AVG_OUPUT_SIZE * reserve + 1];
 
         reAlignClass(avg1, avg2, SFclass1, SFclass2, exp_imgs, exp_split,
                      exp_number, order_number, my_output);
@@ -1373,7 +1373,7 @@ void MpiProgAngularClassAverage::mpi_postprocess()
     MDValueEQ eq1(MDL_REF3D, 0), eq2(MDL_ORDER, (size_t) 0);
     MDMultiQuery multi;
 
-    String
+    auto
     comment =
         (String) "This file contains a list of class averages with direction projections and weights.";
     auxMd2.setComment(comment);

@@ -1208,8 +1208,8 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
                                      currentListImgLargest[ii].objId);
 
                     // Now split the largest node
-                    CL2DClass *node1 = new CL2DClass();
-                    CL2DClass *node2 = new CL2DClass();
+                    auto *node1 = new CL2DClass();
+                    auto *node2 = new CL2DClass();
                     std::vector<size_t> splitAssignment;
                     splitNode(P[largestNode], node1, node2, splitAssignment);
                     delete P[largestNode];

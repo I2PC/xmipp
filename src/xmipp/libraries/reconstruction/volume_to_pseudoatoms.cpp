@@ -713,8 +713,7 @@ static pthread_mutex_t mutexUpdateVolume=PTHREAD_MUTEX_INITIALIZER;
 void* ProgVolumeToPseudoatoms::optimizeCurrentAtomsThread(
     void * threadArgs)
 {
-    Prog_Convert_Vol2Pseudo_ThreadParams *myArgs=
-        (Prog_Convert_Vol2Pseudo_ThreadParams *) threadArgs;
+	auto *myArgs=(Prog_Convert_Vol2Pseudo_ThreadParams *) threadArgs;
     ProgVolumeToPseudoatoms *parent=myArgs->parent;
     std::vector< PseudoAtom > &atoms=parent->atoms;
     bool allowIntensity=parent->allowIntensity;

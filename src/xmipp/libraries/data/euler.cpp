@@ -439,7 +439,7 @@ Euler::makeNear (const Euler &target)
 {
     Matrix1D<double> xyzRot ;
     toXYZVector(xyzRot);
-    Euler targetSameOrder = Euler(target, order());
+    auto targetSameOrder = Euler(target, order());
     Matrix1D<double> targetXyz;
     targetSameOrder.toXYZVector(targetXyz);
 

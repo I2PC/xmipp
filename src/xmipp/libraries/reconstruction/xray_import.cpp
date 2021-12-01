@@ -519,7 +519,7 @@ void ProgXrayImport::getFlatfield(const FileName &fnFFinput,
 void runThread(ThreadArgument &thArg)
 {
     int thread_id = thArg.thread_id;
-    ProgXrayImport * ptrProg= (ProgXrayImport *)thArg.workClass;
+    auto * ptrProg= (ProgXrayImport *)thArg.workClass;
 
     MetaDataDb localMD;
     Image<double> Iaux;

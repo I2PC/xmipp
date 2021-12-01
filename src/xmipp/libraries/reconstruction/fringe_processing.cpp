@@ -134,7 +134,7 @@ void SPTH(FourierTransformer &ftrans, MultidimArray<double> & im, MultidimArray<
 				iR=1.0/std::sqrt(i2+j2);
 			else
 				iR=0.;
-			double *ptr=(double*)&A2D_ELEM(H,i,j);
+			auto *ptr=(double*)&A2D_ELEM(H,i,j);
 			*ptr=j*iR;
 			*(ptr+1)=i*iR;
     	}
@@ -259,7 +259,7 @@ void normalize(FourierTransformer &ftrans, MultidimArray<double> & im, MultidimA
         	double i2_j2=i2+j2;
 			// temp= std::exp(-std::pow((std::sqrt(std::pow((double)i,2)+std::pow((double)j,2))-R),2)/(2*std::pow(S,2)))*(1-(std::exp((-1)*(std::pow(double(i),2) + std::pow(double(j),2)) /(2*1))));
 			temp= std::exp(-std::pow((std::sqrt(i2_j2)-R),2)*K)*(1-(std::exp(-0.5*i2_j2)));
-			double *ptr=(double*)&A2D_ELEM(H,i,j);
+			auto *ptr=(double*)&A2D_ELEM(H,i,j);
 			*ptr=*(ptr+1)=temp;
 		}
     }
@@ -747,7 +747,7 @@ void demodulate(MultidimArray<double> & im, double lambda, int size,  int x, int
     STARTINGX(ROI)=STARTINGY(ROI)=0;
 
     // We obtain the wrapped phase
-    std::complex<double> ci = std::complex<double>(0,1.0);
+    auto ci = std::complex<double>(0,1.0);
     std::complex<double> temp;
 
     //tempTheta is the Theta coordinate in polar. This is because we want to subtract in ROI the crux of the CTF
@@ -921,7 +921,7 @@ void demodulate2(MultidimArray<double> & im, double lambda, int size,int rmin, i
     STARTINGX(ROI)=STARTINGY(ROI)=0;
 
     // We obtain the wrapped phase
-    std::complex<double> ci = std::complex<double>(0,1.0);
+    auto ci = std::complex<double>(0,1.0);
     std::complex<double> temp;
 
     //tempTheta is the Theta magnitude in polar coordinates. This is because we want to subtract in ROI the crux of the CTF

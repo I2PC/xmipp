@@ -242,7 +242,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 		bf = bfactor_per_residue[nn];
 		resnumber = resNumberList[nn];
 
-		int idx_resnumber = (int) resnumber;
+		auto idx_resnumber = (int) resnumber;
 
 		lr = smoothedResolution[nn];
 		residuesToChimera_aux[idx_resnumber-1] = lr;
@@ -361,7 +361,7 @@ void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChim
 			std::string lineEnd = line.substr(66,  std::string::npos);
 
                         // The residue is read
-			int resi = (int) textToFloat(line.substr(23,5));
+			auto resi = (int) textToFloat(line.substr(23,5));
 			std::string lineMiddle;
 			int digitNumber = 5;
 			

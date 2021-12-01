@@ -122,7 +122,7 @@ void ProgClassifyFirstSplit3::calculateProjectedIms (size_t id, double &corrI_P1
 		MAT_ELEM(A,0,1)*=-1;
 		MAT_ELEM(A,0,2)*=-1;
 	}
-	int xdim = (int)XSIZE(V());
+	auto xdim = (int)XSIZE(V());
 	projectVolume(*projectorV1, PV, xdim, xdim,  rot, tilt, psi);
 	applyGeometry(xmipp_transformation::LINEAR,projV,PV(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 	corrI_P1 = correlation(imgV(), projV);

@@ -179,7 +179,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
     }
     else if (dihedral)
     {
-    	int zmax=(int)(0.1*ZSIZE(V_in));
+    	auto zmax=(int)(0.1*ZSIZE(V_in));
         symmetry_Dihedral(V_out,V_in,1,-zmax,zmax,0.5);
     }
 }

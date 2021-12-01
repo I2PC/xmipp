@@ -178,7 +178,7 @@ void ProgAlignSignificantGPU<T>::updateRefs(
         unsigned device,
         size_t refOffset) {
     const size_t elems = otherDims.sizeSingle();
-    T *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
+    auto *workCopy = new T[m_maxBatchSize * refDims.sizeSingle()];
     std::vector<float> workMatrices;
     workMatrices.reserve(9 * m_maxBatchSize);
     std::vector<float> workWeights;

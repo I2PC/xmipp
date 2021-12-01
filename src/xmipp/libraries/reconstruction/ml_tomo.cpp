@@ -2701,7 +2701,7 @@ ProgMLTomo::maxConstrainedCorrSingleImage(MultidimArray<double> &Mimg,
 void *
 threadMLTomoExpectationSingleImage(void * data)
 {
-    structThreadExpectationSingleImage * thread_data =
+    auto * thread_data =
         (structThreadExpectationSingleImage *) data;
 
     // Variables from above
@@ -2871,7 +2871,7 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
     sumw.initZeros(nr_ref);
     //Create a task distributor to distribute images to process
     //each thread will process images one by one
-    ThreadTaskDistributor * distributor = new ThreadTaskDistributor(
+    auto * distributor = new ThreadTaskDistributor(
                                               nr_images_local, 1);
 
     Mzero.initZeros();
@@ -2880,8 +2880,8 @@ ProgMLTomo::expectation(MetaDataVec &MDimg, std::vector<Image<double> > &Iref,
     wsumimgs.assign(2 * nr_ref, Mzero2);
     wsumweds.assign(2 * nr_ref, Mzero);
     // Call threads to calculate the expectation of each image in the selfile
-    pthread_t * th_ids = (pthread_t *) malloc(threads * sizeof(pthread_t));
-    structThreadExpectationSingleImage * threads_d =
+    auto * th_ids = (pthread_t *) malloc(threads * sizeof(pthread_t));
+    auto * threads_d =
         (structThreadExpectationSingleImage *) malloc(
             threads * sizeof(structThreadExpectationSingleImage));
     for (int c = 0; c < threads; c++)

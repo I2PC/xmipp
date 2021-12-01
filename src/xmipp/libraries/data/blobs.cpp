@@ -426,7 +426,7 @@ void footprint_blob(
 #define DEFORM_BLOB_WHEN_IN_CRYSTAL
 void * blobs2voxels_SimpleGrid( void * data )
 {
-    ThreadBlobsToVoxels * thread_data = (ThreadBlobsToVoxels *) data;
+	auto * thread_data = (ThreadBlobsToVoxels *) data;
 
     const MultidimArray<double> *vol_blobs = thread_data->vol_blobs;
     const SimpleGrid *grid = thread_data->grid;
@@ -442,7 +442,7 @@ void * blobs2voxels_SimpleGrid( void * data )
 
     int min_separation = thread_data->min_separation;
 
-    int z_planes = (int)(ZZ(grid->highest) - ZZ(grid->lowest) + 1);
+    auto z_planes = (int)(ZZ(grid->highest) - ZZ(grid->lowest) + 1);
 
     Matrix2D<double> Dinv;                   // Inverse of D
     Matrix1D<double> act_coord(3);           // Coord: Actual position inside
@@ -921,8 +921,8 @@ void blobs2voxels(const GridVolume &vol_blobs,
         (*vol_voxels).setXmippOrigin();
     }
 
-    pthread_t * th_ids = new pthread_t [threads];
-    ThreadBlobsToVoxels * threads_d = new ThreadBlobsToVoxels [threads];
+    auto * th_ids = new pthread_t [threads];
+    auto * threads_d = new ThreadBlobsToVoxels [threads];
 
     // Convert each subvolume ...............................................
     for (size_t i = 0; i < vol_blobs.VolumesNo(); i++)
@@ -1025,12 +1025,12 @@ void blobs2space_coefficients(const GridVolume &vol_blobs,
     // Set all blob coefficients at the right position
     for (size_t n = 0; n < vol_blobs.VolumesNo(); n++)
     {
-        int ZZ_lowest = (int)ZZ(vol_blobs.grid(n).lowest);
-        int YY_lowest = (int)YY(vol_blobs.grid(n).lowest);
-        int XX_lowest = (int)XX(vol_blobs.grid(n).lowest);
-        int ZZ_highest = (int)ZZ(vol_blobs.grid(n).highest);
-        int YY_highest = (int)YY(vol_blobs.grid(n).highest);
-        int XX_highest = (int)XX(vol_blobs.grid(n).highest);
+    	auto ZZ_lowest = (int)ZZ(vol_blobs.grid(n).lowest);
+    	auto YY_lowest = (int)YY(vol_blobs.grid(n).lowest);
+    	auto XX_lowest = (int)XX(vol_blobs.grid(n).lowest);
+    	auto ZZ_highest = (int)ZZ(vol_blobs.grid(n).highest);
+    	auto YY_highest = (int)YY(vol_blobs.grid(n).highest);
+    	auto XX_highest = (int)XX(vol_blobs.grid(n).highest);
         for (int k = ZZ_lowest; k <= ZZ_highest; k++)
             for (int i = YY_lowest; i <= YY_highest; i++)
                 for (int j = XX_lowest; j <= XX_highest; j++)
@@ -1101,8 +1101,8 @@ void ART_voxels2blobs_single_step(
     }
     (*corr_vol).initZeros(*theo_vol);
 
-    pthread_t * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
-    ThreadBlobsToVoxels * threads_d = (ThreadBlobsToVoxels *) malloc ( threads * sizeof( ThreadBlobsToVoxels ) );
+    auto * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
+    auto * threads_d = (ThreadBlobsToVoxels *) malloc ( threads * sizeof( ThreadBlobsToVoxels ) );
 
     // Translate actual blob volume to voxels ...............................
     for (size_t i = 0; i < vol_in.VolumesNo(); i++)

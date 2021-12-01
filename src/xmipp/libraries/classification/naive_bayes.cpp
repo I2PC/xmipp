@@ -294,7 +294,7 @@ NaiveBayes::NaiveBayes(
     {
         for (int k=0; k<K; k++)
             features[k].getCol(f, aux[k]);
-        LeafNode *leaf=new LeafNode(aux,discreteLevels);
+        auto *leaf=new LeafNode(aux,discreteLevels);
         if (leaf->__discreteLevels>0)
         {
             __leafs.push_back(leaf);
@@ -342,7 +342,7 @@ NaiveBayes::~NaiveBayes()
 /* Set cost matrix --------------------------------------------------------- */
 void NaiveBayes::setCostMatrix(const Matrix2D<double> &cost)
 {
-    size_t iK=(size_t) K;
+    auto iK=(size_t) K;
     if (MAT_XSIZE(cost)!=iK || MAT_YSIZE(cost)!=iK)
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"Cost matrix does not have the appropriate size");
     __cost=cost;
@@ -449,7 +449,7 @@ EnsembleNaiveBayes::EnsembleNaiveBayes(
 
 #ifdef WEIGHTED_SAMPLING
     // Measure the classification power of each variable
-    NaiveBayes *nb_weights=new NaiveBayes(features, priorProbs, discreteLevels);
+    auto *nb_weights=new NaiveBayes(features, priorProbs, discreteLevels);
     MultidimArray<double> weights=nb_weights->__weights;
     delete nb_weights;
     double sumWeights=weights.sum();
@@ -513,7 +513,7 @@ EnsembleNaiveBayes::EnsembleNaiveBayes(
         }
 
         // Create a Naive Bayes classifier with this data
-        NaiveBayes *nb=new NaiveBayes(newFeatures, priorProbs, discreteLevels);
+        auto *nb=new NaiveBayes(newFeatures, priorProbs, discreteLevels);
         ensemble.push_back(nb);
         ensembleFeatures.push_back(subFeatures);
     }

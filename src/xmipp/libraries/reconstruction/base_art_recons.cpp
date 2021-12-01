@@ -835,8 +835,8 @@ void SinPartARTRecons::singleStep(GridVolume &vol_in, GridVolume *vol_out,
 {
     // Prepare to work with CTF ................................................
     FourierFilter ctf;
-    ImageOver *footprint = (ImageOver *) & artPrm.basis.blobprint;
-    ImageOver *footprint2 = (ImageOver *) & artPrm.basis.blobprint2;
+    auto *footprint = (ImageOver *) & artPrm.basis.blobprint;
+    auto *footprint2 = (ImageOver *) & artPrm.basis.blobprint2;
     bool remove_footprints = false;
     double weight, sqrtweight;
 
