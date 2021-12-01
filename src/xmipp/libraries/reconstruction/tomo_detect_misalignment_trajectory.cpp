@@ -390,7 +390,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 	{
 		for(int j = 0; j < coordinates3D.size(); j++)
 		{
-
 			if(coordinates3D[j].y == i)
 			{
 				counterLinesOfLandmarkAppearance[i] += 1;
@@ -408,14 +407,50 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
-	std::vector<int> histogramOfLandmarkAppearanceSorted;
-	histogramOfLandmarkAppearanceSorted = counterLinesOfLandmarkAppearance;
+	//std::vector<int> histogramOfLandmarkAppearanceSorted;
+	//histogramOfLandmarkAppearanceSorted = counterLinesOfLandmarkAppearance;
+
+
+	// Calculate poisson lambda
+	int numberEmptyRows = std::count(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), 0);
+	std::vector<int> histogramOfLandmarkAppearanceSorted (counterLinesOfLandmarkAppearance.size()-numberEmptyRows); 
+
+	size_t sideIndex = 0;
+	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
+	{
+		if(counterLinesOfLandmarkAppearance[i]!=0)
+		{
+			histogramOfLandmarkAppearanceSorted[sideIndex] = counterLinesOfLandmarkAppearance[i];
+			sideIndex += 1;
+		}
+	}
+	
 
 	// *** TODO: optimize, get n maxima elements without sorting
 	sort(histogramOfLandmarkAppearanceSorted.begin(), histogramOfLandmarkAppearanceSorted.end(), std::greater<int>());
 
 	// Poisson lambda
-	float poissonAverage = histogramOfLandmarkAppearanceSorted[poissonLandmarkPercentile];
+	std::cout <<  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" <<std::endl;
+	for (size_t p = 0; p < counterLinesOfLandmarkAppearance.size(); p++)
+	{
+		std::cout <<  counterLinesOfLandmarkAppearance[p] <<std::endl;
+	}
+
+
+	std::cout <<  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" <<std::endl;
+
+
+	for (size_t p = 0; p < histogramOfLandmarkAppearanceSorted.size(); p++)
+	{
+		std::cout <<  histogramOfLandmarkAppearanceSorted[p] <<std::endl;
+	}
+
+
+	float absolutePossionPercetile = histogramOfLandmarkAppearanceSorted.size()*poissonLandmarkPercentile;
+	std::cout << absolutePossionPercetile <<std::endl;
+	std::cout << (int)absolutePossionPercetile <<std::endl;
+
+	float poissonAverage = histogramOfLandmarkAppearanceSorted[(int)absolutePossionPercetile];
 	
 	std::vector<size_t> chainIndexesY;
 
@@ -1564,6 +1599,11 @@ float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda
 {
 	double quotient=1;
 
+	#ifdef DEBUG_POISSON
+	std::cout << "k="<< k <<std::endl;
+	std::cout << "lambda="<< lambda <<std::endl;
+	#endif
+
 	// Since k! can not be holded we calculate the quotient lambda^k/k!= (lambda/k) * (lambda/(k-1)) * ... * (lambda/1)
 	for (size_t i = 1; i < k+1; i++)
 	{
@@ -1571,8 +1611,6 @@ float ProgTomoDetectMisalignmentTrajectory::testPoissonDistribution(float lambda
 	}
 
 	#ifdef DEBUG_POISSON
-	std::cout << "k="<< k <<std::endl;
-	std::cout << "lambda="<< lambda <<std::endl;
 	std::cout << "quotient="<< quotient <<std::endl;
 	std::cout << "quotient*exp(-lambda)="<< quotient*exp(-lambda) <<std::endl;
 	#endif

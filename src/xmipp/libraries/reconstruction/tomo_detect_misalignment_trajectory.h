@@ -50,8 +50,8 @@
 // #define DEBUG_DIM
 #define DEBUG_PREPROCESS
 #define DEBUG_HCC
-// #define DEBUG_FILTERLABEL
-// #define DEBUG_POISSON
+#define DEBUG_FILTERLABEL
+#define DEBUG_POISSON
 #define DEBUG_CHAINS
 #define DEBUG_GLOBAL_MISALI
 #define DEBUG_LOCAL_MISALI
@@ -109,7 +109,7 @@ private:
     std::vector<int> residualCoordinateZ;
 
     /** Thresholds */
-    size_t poissonLandmarkPercentile = 50;          //*** update with more clever meassurement
+    float poissonLandmarkPercentile = 0.2;          // Percentencile of the number of landmarks per row among the populated rows (exclude empty rows), taken as the lambda for poisson probability calculation
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
 
     // Distance thresholds are saved in angstroms in order to be independent of the sampling rate and image size
