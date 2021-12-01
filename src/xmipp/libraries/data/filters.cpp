@@ -3947,7 +3947,7 @@ void denoiseTVgradient(double mu,
         dTV = Xij * (2.0*dij + d_left + d_up) - X_left*d_left - X_up*d_up - dij*(X_right + X_down);
 
         if (K2*Xij + K1 > 0)
-            dE = K3 - (q / (s*s)) * Yij / sqrt((Xij * (q / (s*s)) * lambda + K1));
+            dE = K3 - (q / (s*s)) * Yij / sqrt(Xij * (q / (s*s)) * lambda + K1);
         else
             dE = 0;
 

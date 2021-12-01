@@ -730,7 +730,7 @@ int return_gradhesscost(Matrix1D<double> &centerOfMass, double *Gradient,
 		}
 
 	for (int i = 0; i < trialSize; i++) {
-		Hessian[i * (trialSize) + i] += lambda * Hessian[i * trialSize + i];
+		Hessian[i * trialSize + i] += lambda * Hessian[i * trialSize + i];
 		if (i + 1 < trialSize)
 			for (int j = i + 1; j < trialSize; j++) {
 				Hessian[i * trialSize + j] = Hessian[j * trialSize + i];

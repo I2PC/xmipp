@@ -662,7 +662,7 @@ double HEXALayout::dist(const SomPos& _center, const SomPos& _v) const
     diff = _center.second - _v.second;
     ret += 0.75 * diff * diff;
     ret = (double) sqrt(ret);
-    return(ret);
+    return ret;
 }
 
 

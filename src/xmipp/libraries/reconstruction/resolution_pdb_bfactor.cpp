@@ -278,7 +278,7 @@ void ProgResBFactor::estimatingResolutionOfResidue(int k, int i, int j, int totR
 		size_t jj2kk2 = jj * jj + kk2;
 		for (size_t ii = 0; ii<totRad; ++ii)
 		{
-			size_t dist2 = (ii)*(ii) + (jj)*(jj) + (kk)*(kk);
+			size_t dist2 = ii*ii + jj*jj + kk*kk;
 			if (dist2 <= dim)
 			{
 				A3D_ELEM(mask, k-kk, i-ii, j-jj) = 1;

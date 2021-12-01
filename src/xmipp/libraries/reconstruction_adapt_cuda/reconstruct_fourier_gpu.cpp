@@ -366,7 +366,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 		for (int j = 0; j < parent->R_repository.size(); j++) {
 			RecFourierProjectionTraverseSpace* space = &buffer->spaces[travSpaceOffset + j];
 
-			Matrix2D<double> A_SL=parent->R_repository[j]*(Ainv);
+			Matrix2D<double> A_SL=parent->R_repository[j]*Ainv;
 			Matrix2D<double> A_SLInv=A_SL.inv();
 			A_SL.convertTo(transf);
 			A_SLInv.convertTo(transfInv);
@@ -649,7 +649,7 @@ T*** ProgRecFourierGPU::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5)); //Same as ROUND but avoid comparison
+							int aux = (int)(distanceSqr * iDeltaSqrt + 0.5); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -924,7 +924,7 @@ void ProgRecFourierGPU::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
 		A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);
 		meanFactor2+=factor2;
     }

@@ -127,7 +127,7 @@ double ProgVolumeDeformSphGpu::distance(double *pclnm)
     sumVD = result.sumVD;
 // GPU computation end
 
-	deformation=std::sqrt(modg/(Ncount));
+	deformation=std::sqrt(modg/Ncount);
 
 #ifdef DEBUG
 	Image<double> save;

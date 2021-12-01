@@ -373,7 +373,7 @@ void MultireferenceAligneability::calc_sumw(const size_t num, double & sumw)
             for (size_t nS2=0; nS2<num; nS2++)
             {
                 a = std::abs(std::acos(xRanArray[nS1]*xRanArray[nS2]+yRanArray[nS1]*yRanArray[nS2]+zRanArray[nS1]*zRanArray[nS2]));
-                if ( (a != 0))
+                if (a != 0)
                     WRan += a;
             }
         }
@@ -545,8 +545,8 @@ void MultireferenceAligneability::obtainAngularAccuracy(const MetaData & tempMd,
 
     }
 
-    accuracy /= (sumOfW);
-    accuracyMirror /= (sumOfW);
+    accuracy /= sumOfW;
+    accuracyMirror /= sumOfW;
 
 #ifdef DEBUG
         std::cout << " accuracy : " << " " << accuracy << " " << std::endl;

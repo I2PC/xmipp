@@ -583,7 +583,7 @@ int AutoParticlePicking2::automaticallySelectParticles(FileName fnmicrograph, in
         double max=featVec.computeMax();
         double min=featVec.computeMin();
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY1D(featVec)
-        DIRECT_A1D_ELEM(featVec,i)=0+((1)*((DIRECT_A1D_ELEM(featVec,i)-min)/(max-min)));
+        DIRECT_A1D_ELEM(featVec,i)=0+(1*((DIRECT_A1D_ELEM(featVec,i)-min)/(max-min)));
         int j=positionArray[k].x;
         int i=positionArray[k].y;
         label= classifier.predict(featVec, score);

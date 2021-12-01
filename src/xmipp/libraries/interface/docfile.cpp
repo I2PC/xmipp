@@ -117,7 +117,7 @@ std::ostream& operator<<(std::ostream& o, const DocLine& line)
     char aux[30];
     switch (line.line_type)
     {
-    case (DocLine::DATALINE):
+    case DocLine::DATALINE:
                     // Print a data line
                     sprintf(aux, "%5d ", line.key);
         o << aux;
@@ -135,7 +135,7 @@ std::ostream& operator<<(std::ostream& o, const DocLine& line)
         o << std::endl;
         break;
 
-    case (DocLine::COMMENT):
+    case DocLine::COMMENT:
                     // Print a comment
                     o << line.text << std::endl;
         break;
@@ -399,15 +399,15 @@ void DocFile::read(const FileName& name, int overriding)
 
         switch (temp.line_type)
         {
-        case (DocLine::NOT_ASSIGNED):
+        case DocLine::NOT_ASSIGNED:
                         break; // Line with an error
 
-        case (DocLine::DATALINE):
+        case DocLine::DATALINE:
                         no_lines++;
             m.push_back(temp);
             break;
 
-        case (DocLine::COMMENT):
+        case DocLine::COMMENT:
                         m.push_back(temp);
             break;
         default:
@@ -1311,25 +1311,25 @@ void DocFile::merge(DocFile& DF, int mode, int sumcol)
         {
             switch (mode)
             {
-            case(DOCMERGE_KEEP_OLD):
+            case DOCMERGE_KEEP_OLD:
                 {
                     // just keep what's there and do nothing
                     break;
                 }
-            case(DOCMERGE_KEEP_NEW):
+            case DOCMERGE_KEEP_NEW:
                 {
                     //Replace current data line with the new one
                     (*current_line) = DL;
                     break;
                 }
-            case(DOCMERGE_SUM_COLUMN):
+            case DOCMERGE_SUM_COLUMN:
                 {
                     // Just sum column
                     w = (*current_line).data[sumcol] + DF(sumcol);
                     (*current_line).set(sumcol, w);
                     break;
                 }
-            case(DOCMERGE_ERROR):
+            case DOCMERGE_ERROR:
                             std::cerr<<"image name = "<<fn_img;
                 REPORT_ERROR(ERR_DOCFILE,"Image occurred in two docfiles to be merged");
             }

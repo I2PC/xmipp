@@ -1662,14 +1662,14 @@ void ProgML2D::doThreadESIUpdateRefno()
 
             if (model.do_student)
             {
-                sumwsc[output_refno] += refw2[output_refno] * (opt_scale) / sum_refw;
+                sumwsc[output_refno] += refw2[output_refno] * opt_scale / sum_refw;
                 sumwsc2[output_refno] += refw2[output_refno] * (opt_scale * opt_scale)
                                          / sum_refw;
             }
             else
             {
                 sumwsc[output_refno] += (refw[output_refno] + refw_mirror[output_refno])
-                                        * (opt_scale) / sum_refw;
+                                        * opt_scale / sum_refw;
                 sumwsc2[output_refno] += (refw[output_refno] + refw_mirror[output_refno])
                                          * (opt_scale * opt_scale) / sum_refw;
             }

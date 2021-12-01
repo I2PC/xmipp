@@ -140,7 +140,7 @@ public:
     /** Get micrograph filename. */
     const FileName& micrograph_name()
     {
-        return(fn_micrograph);
+        return fn_micrograph;
     }
 
     /** Set micrograph filename. */
