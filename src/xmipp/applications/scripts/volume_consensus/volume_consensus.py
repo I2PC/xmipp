@@ -53,41 +53,75 @@ class ScriptVolumeConsensus(XmippScript):
         self.computeVolumeConsensus(inputFile, outVolFn)
 
     def computeVolumeConsensus(self, inputFile, outVolFn, wavelet='sym11'):
+        print("----------0----------")
         outputWt = None
+        print("----------1----------")
         outputMin = None
+        print("----------2----------")
         fnCoef = splitext(outVolFn)[0] + '_coef.txt'
+        print("----------3----------")
         fhCoef = open(fnCoef, 'w')
+        print("----------4----------")
         with open(inputFile) as f:
             for line in f:
+                print("----------5----------")
                 fileName = line.split()[0]
+                print("----------6----------")
                 if fileName.endswith('.mrc'):
                     fileName += ':mrc'
+                print("----------7----------")
                 V = xmippLib.Image(line.split()[0])
+                print("----------8----------")
                 vol = V.getData()
+                print("----------9----------")
                 nlevel = pywt.swt_max_level(len(vol))
+                print("----------10----------")
                 wt = pywt.swtn(vol, wavelet, nlevel, 0)
+                print("----------11----------")
                 if outputWt == None:
+                    print("----------12----------")
                     outputWt = wt
+                    print("----------13----------")
                     outputMin = wt[0]['aaa']*0
+                    print("----------14----------")
                 else:
+                    print("----------15----------")
                     for level in range(0, nlevel):
+                        print("----------16----------")
                         wtLevel = wt[level]
+                        print("----------17----------")
                         outputWtLevel = outputWt[level]
+                        print("----------18----------")
                         for key in wtLevel:
+                            print("----------19----------")
                             outputWtLevel[key] = np.where(np.abs(outputWtLevel[key]) > np.abs(wtLevel[key]),
                                                           outputWtLevel[key], wtLevel[key])
+                            print("----------20----------")
                             fhCoef.write(str(outputWtLevel[key]))
+                            print("----------21----------")
                             diff = np.abs(np.abs(outputWtLevel[key]) - np.abs(wtLevel[key]))
+                            print("----------22----------")
                             outputMin = np.where(outputMin > diff, outputMin, diff)
+                            print("----------23----------")
+
             f.close()
+            print("----------24----------")
         fhCoef.close()
+        print("----------25----------")
         consensus = pywt.iswtn(outputWt, wavelet)
+        print("----------26----------")
         V = xmippLib.Image()
+        print("----------27----------")
         V.setData(consensus)
+        print("----------28----------")
         V.write(outVolFn)
+        print("----------29----------")
         V.setData(outputMin)
+        print("----------30----------")
         outVolFn2 = splitext(outVolFn)[0] + '_diff.mrc'
+        print("----------31----------")
         V.write(outVolFn2)
+        print("----------32----------")
 
 
 if __name__=="__main__":
