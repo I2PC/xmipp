@@ -172,7 +172,8 @@ public:
     // void updateCTFImage(double defocusU, double defocusV, double angle);
 
     // ART algorithm
-    void artModel(int direction);
+    template <int DIRECTION>
+    void artModel();
 
     // Apply Zernike codeformation
     template<bool USESZERNIKE, int DIRECTION>

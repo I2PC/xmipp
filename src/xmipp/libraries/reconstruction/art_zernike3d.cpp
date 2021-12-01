@@ -264,11 +264,11 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 	I().setXmippOrigin();
 
 	// Forward Model
-	artModel(FORWARD_ART);
+	artModel<FORWARD_ART>();
 	// forwardModel();
 
 	// ART update
-	artModel(BACKWARD_ART);
+	artModel<BACKWARD_ART>();
 	// updateART();
 
 }
@@ -598,9 +598,10 @@ void ProgArtZernike3D::sortOrthogonal() {
 	}
 }
 
-void ProgArtZernike3D::artModel(int direction)
+template <int DIRECTION>
+void ProgArtZernike3D::artModel()
 {
-	if (direction == FORWARD_ART)
+	if (DIRECTION == FORWARD_ART)
 	{
 		Image<double> I_shifted;
 		P().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
@@ -644,12 +645,17 @@ void ProgArtZernike3D::artModel(int direction)
 		// Compute difference image and divide by weights
 		double error = 0.0;
 		double N = 0.0;
+		const auto &mP = P();
+		const auto &mW = W();
+		const auto &mIsh = I_shifted();
+		auto &mId = Idiff();
 		FOR_ALL_ELEMENTS_IN_ARRAY2D(I())
 		{
 			if (A2D_ELEM(mask2D, i, j) == 1)
 			{
-				A2D_ELEM(Idiff(), i, j) = lambda * (A2D_ELEM(I_shifted(), i, j) - A2D_ELEM(P(), i, j)) / XMIPP_MAX(A2D_ELEM(W(), i, j), 1.0);
-				error += (A2D_ELEM(I_shifted(), i, j) - A2D_ELEM(P(), i, j)) * (A2D_ELEM(I_shifted(), i, j) - A2D_ELEM(P(), i, j));
+				auto diffVal = A2D_ELEM(mIsh, i, j) - A2D_ELEM(mP, i, j);
+				A2D_ELEM(mId, i, j) = lambda * (diffVal) / XMIPP_MAX(A2D_ELEM(mW, i, j), 1.0);
+				error += (diffVal) * (diffVal);
 				N++;
 			}
 		}
@@ -657,7 +663,7 @@ void ProgArtZernike3D::artModel(int direction)
 		error = std::sqrt(error / N);
 		std::cout << "Error for image " << num_images << " in iteration " << current_iter+1 << " : " << error << std::endl;
 	}
-	else if (direction == BACKWARD_ART)
+	else if (DIRECTION == BACKWARD_ART)
 	{
 		if (useZernike)
 			zernikeModel<true, BACKWARD_ART>();
