@@ -80,7 +80,7 @@ void ProgVolumeDeformSphGpu::readParams() {
 }
 
 // Show ====================================================================
-void ProgVolumeDeformSphGpu::show() {
+void ProgVolumeDeformSphGpu::show() const {
 	if (verbose==0)
 		return;
 	std::cout

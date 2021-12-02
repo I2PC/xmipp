@@ -692,12 +692,12 @@ void removeSmallComponents(MultidimArray<double> &I, int size,
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
     	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
-    	A1D_ELEM(nlabel,l)++;
+    	DIRECT_A1D_ELEM(nlabel,l)++;
     }
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(label)
     {
     	int l=(int)DIRECT_MULTIDIM_ELEM(label,n);
-    	if (A1D_ELEM(nlabel,l)<size)
+    	if (DIRECT_A1D_ELEM(nlabel,l)<size)
     		DIRECT_MULTIDIM_ELEM(I,n)=0;
     }
 }
@@ -1377,11 +1377,15 @@ double correlationMasked(const MultidimArray<double>& I1, const MultidimArray<do
 	}
 
 	double sumMI1I2=0.0, sumMI1I1=0.0, sumMI2I2=0.0;
-	double iN1, avgM1, avgM2, corrM1M2;
-    // Either this or throw and exception if division by zero?
-    iN1=1.0/N1;
-    avgM1=sumMI1*iN1;
-    avgM2=sumMI2*iN1;
+	double iN1=1, avgM1=0, avgM2=0, corrM1M2;
+	if (N1>0){
+		iN1=1.0/N1;
+		avgM1=sumMI1*iN1;
+		avgM2=sumMI2*iN1;
+	}
+	else
+		return 0;
+
 	double p1a, p2a;
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1)
 	{

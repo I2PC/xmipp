@@ -126,7 +126,7 @@ void ProgMPIRecFourier::run()
     long int total_usecs;
     double total_time_processing=0., total_time_weightening=0., total_time_communicating=0., total_time;
     int iter=0;
-    int * ranks;
+    int * ranks = nullptr;
 
     // Real workers, rank=0 is the master, does not work
     nProcs = nProcs - 1;
@@ -661,6 +661,7 @@ void ProgMPIRecFourier::run()
         iter++;
     }
     while(iter<NiterWeight);
+    delete[] ranks;
 }
 
 int  ProgMPIRecFourier::sendDataInChunks( double * pointer, int dest, int totalSize, int buffSize, MPI_Comm comm )

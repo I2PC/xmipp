@@ -455,19 +455,17 @@ void * blobs2voxels_SimpleGrid( void * data )
     Matrix1D<double> beginY(3);              // Coord: Voxel coordinates of the
     // blob at the 3D point
     // (z0,y0,XX(lowest))
-    Matrix1D<double> corner2(3), corner1(3); // Coord: Corners of the
-    // blob in the voxel volume
+    Matrix1D<double> corner2(3), corner1(3); // Coord: Corners of the blob in the voxel volume
     Matrix1D<double> gcurrent(3);            // Position in g of current point
-    MultidimArray<double> blob_table;             // Something like a blobprint
-    // but with the values of the
-    // blob in space
+    MultidimArray<double> blob_table;        // Something like a blobprint but with the values of the
+                                             // blob in space
     double         d;                        // Distance between the center
-    // of the blob and a voxel position
+                                             // of the blob and a voxel position
     int           id;                        // index inside the blob value
-    // table for tha blob value at
-    // a distance d
-    double         intx, inty, intz;         // Nearest integer voxel
-    int           i, j, k;                   // Index within the blob volume
+                                             // table for the blob value at a distance d
+    int           i;
+    int           j;
+    int           k;                         // Index within the blob volume
     int           process;                   // True if this blob has to be
     // processed
     double         vol_correction=0;         // Correction to apply to the
@@ -610,12 +608,12 @@ void * blobs2voxels_SimpleGrid( void * data )
                 //This is OK if blob.radius is in Cartesian space as I think is the case
                 V3_PLUS_CT(corner1, real_position, -blob->radius);
                 V3_PLUS_CT(corner2, real_position, blob->radius);
-#ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
+//#ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
                 //ROB
                 //we do not need this, it is already in Cartesian space
                 //if (D!=NULL)
                 //   box_enclosing(corner1,corner2, *D, corner1, corner2);
-#endif
+//#endif
 
                 if (XX(corner1) >= xF)
                     process = false;
@@ -685,22 +683,21 @@ void * blobs2voxels_SimpleGrid( void * data )
                     // Effectively convert
                     long N_eq;
                     N_eq = 0;
-                    for (intz = ZZ(corner1); intz <= ZZ(corner2); intz++)
-                        for (inty = YY(corner1); inty <= YY(corner2); inty++)
-                            for (intx = XX(corner1); intx <= XX(corner2); intx++)
+                    for (auto intz = (int)ZZ(corner1); intz <=(int)ZZ(corner2); intz++)
+                        for (auto inty = (int)YY(corner1); inty <= (int)YY(corner2); inty++)
+                            for (auto intx = (int)XX(corner1); intx <= (int)XX(corner2); intx++)
                             {
                                 int iz = (int)intz, iy = (int)inty, ix = (int)intx;
-                                if (vol_mask != nullptr)
-                                    if (!A3D_ELEM(*vol_mask, iz, iy, ix))
+                                if (vol_mask != nullptr && A3D_ELEM(*vol_mask, intz, inty, intx)!=0.0)
                                         continue;
 
                                 // Compute distance to the center of the blob
-                                VECTOR_R3(gcurrent, intx, inty, intz);
-#ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
+                                VECTOR_R3(gcurrent, (double)intx, (double)inty, (double)intz);
+//#ifdef DEFORM_BLOB_WHEN_IN_CRYSTAL
                                 // ROB
                                 //if (D!=NULL)
                                 //   M3x3_BY_V3x1(gcurrent,Dinv,gcurrent);
-#endif
+//#endif
 
                                 V3_MINUS_V3(gcurrent, real_position, gcurrent);
                                 d = sqrt(XX(gcurrent) * XX(gcurrent) +
@@ -723,7 +720,7 @@ void * blobs2voxels_SimpleGrid( void * data )
 
                                 if (FORW)
                                 {
-                                    A3D_ELEM(*vol_voxels, iz, iy, ix) +=
+                                    A3D_ELEM(*vol_voxels, intz, inty, intx) +=
                                         A3D_ELEM(*vol_blobs, k, i, j) *
                                         A1D_ELEM(blob_table, id);
 #ifdef DEBUG_MORE
@@ -738,12 +735,12 @@ void * blobs2voxels_SimpleGrid( void * data )
                                     }
 #endif
                                     if (vol_corr != nullptr)
-                                        A3D_ELEM(*vol_corr, iz, iy, ix) +=
+                                        A3D_ELEM(*vol_corr, intz, inty, intx) +=
                                             A1D_ELEM(blob_table, id) * A1D_ELEM(blob_table, id);
                                 }
                                 else
                                 {
-                                    double contrib = A3D_ELEM(*vol_corr, iz, iy, ix) *
+                                    double contrib = A3D_ELEM(*vol_corr, intz, inty, intx) *
                                                      A1D_ELEM(blob_table, id);
                                     switch (eq_mode)
                                     {
