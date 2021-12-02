@@ -63,6 +63,7 @@ void ProgForwardZernikeImages::readParams()
 	L2 = getIntParam("--l2");
 	loop_step = getIntParam("--step");
     lambda = getDoubleParam("--regularization");
+	image_mode = getIntParam("--image_mode");
 	resume = checkParam("--resume");
 	Rerunable::setFileName(fnOutDir + "/sphDone.xmd");
 	blob_r = getDoubleParam("--blobr");
@@ -94,6 +95,7 @@ void ProgForwardZernikeImages::show()
     << "Phase flipped:       " << phaseFlipped       << std::endl
     << "Regularization:      " << lambda             << std::endl
 	<< "Blob radius:         " << blob_r             << std::endl
+	<< "Image mode:          " << image_mode         << std::endl
     ;
 }
 
@@ -124,6 +126,7 @@ void ProgForwardZernikeImages::defineParams()
     addParamsLine("  [--phaseFlipped]             : Input images have been phase flipped");
     addParamsLine("  [--regularization <l=0.01>]  : Regularization weight");
 	addParamsLine("  [--blobr <b=4>]              : Blob radius for forward mapping splatting");
+	addParamsLine("  [--image_mode <im=-1>]       : Image mode (single, pairs, triplets). By default, it will be automatically identified.");
 	addParamsLine("  [--resume]                   : Resume processing");
     addExampleLine("A typical use is:",false);
     addExampleLine("xmipp_angular_sph_alignment -i anglesFromContinuousAssignment.xmd --ref reference.vol -o assigned_anglesAndDeformations.xmd --optimizeAlignment --optimizeDeformation --depth 1");
@@ -230,14 +233,20 @@ void ProgForwardZernikeImages::preProcess()
     blob.alpha  = 3.6;      // Smoothness parameter
 
 	// Check execution mode (single, pair, or triplet)
-	num_images = 1; // Single image
-	if (getInputMd()->containsLabel(MDL_IMAGE1) && !getInputMd()->containsLabel(MDL_IMAGE2)) 
+	if (image_mode > 0)
 	{
-		num_images = 2; // Pair
+		num_images = image_mode;
 	}
-	else if (getInputMd()->containsLabel(MDL_IMAGE1) && getInputMd()->containsLabel(MDL_IMAGE2))
-	{
-		num_images = 3; // Triplet
+	else{
+		num_images = 1; // Single image
+		if (getInputMd()->containsLabel(MDL_IMAGE1) && !getInputMd()->containsLabel(MDL_IMAGE2))
+		{
+			num_images = 2; // Pair
+		}
+		else if (getInputMd()->containsLabel(MDL_IMAGE1) && getInputMd()->containsLabel(MDL_IMAGE2))
+		{
+			num_images = 3; // Triplet
+		}
 	}
 	
 

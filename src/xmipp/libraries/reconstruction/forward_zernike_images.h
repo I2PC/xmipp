@@ -87,6 +87,7 @@ public:
     int ctf_params;
     Matrix1D<double> p;
     int flagEnabled;
+    int image_mode;
 
 public:
     /** Resume computations */
