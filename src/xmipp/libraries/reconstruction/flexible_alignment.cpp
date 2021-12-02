@@ -37,7 +37,8 @@
 #include "program_extension.h"
 
 // Empty constructor =======================================================
-ProgFlexibleAlignment::ProgFlexibleAlignment() {
+ProgFlexibleAlignment::ProgFlexibleAlignment()
+{
 	rangen = 0;
 	resume = false;
 	currentImgName = "";
@@ -150,31 +151,7 @@ void ProgFlexibleAlignment::show() {
 // Produce side information ================================================
 ProgFlexibleAlignment *global_flexible_prog;
 
-void ProgFlexibleAlignment::createWorkFiles()
-{
-    auto *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
-    MetaDataDb mdTodo, mdDone;
-    mdTodo = *pmdIn;
-    FileName fn(fnOutDir+"/nmaDone.xmd");
-    if (fn.exists() && resume)
-    {
-        mdDone.read(fn);
-        mdTodo.subtraction(mdDone, MDL_IMAGE);
-    }
-    else //if not exists create metadata only with headers
-    {
-        mdDone.addLabel(MDL_IMAGE);
-        mdDone.addLabel(MDL_ENABLED);
-        mdDone.addLabel(MDL_ANGLE_ROT);
-        mdDone.addLabel(MDL_ANGLE_TILT);
-        mdDone.addLabel(MDL_ANGLE_PSI);
-        mdDone.addLabel(MDL_SHIFT_X);
-        mdDone.addLabel(MDL_SHIFT_Y);
-        mdDone.addLabel(MDL_NMA);
-        mdDone.addLabel(MDL_COST);
-        mdDone.write(fn);
-    }
-    *pmdIn = mdTodo;
+
 void ProgFlexibleAlignment::createWorkFiles() {
 	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
 	MetaDataDb mdTodo, mdDone;
@@ -241,12 +218,12 @@ void ProjectionRefencePoint(Matrix1D<double> &Parameters, int dim, double *R,
 		//double   *S_mu,
 		int Xwidth, int Ywidth, double sigma)
 {
-    double *coord_gaussian;
-    double *ksi_v,*coord_img;
-    double *ro_ksi_v, *ro_coord_img, *ro_coord_gaussian;
+//    double *coord_gaussian;
+//    double *ksi_v,*coord_img;
+//    double *ro_ksi_v, *ro_coord_img, *ro_coord_gaussian;
     //double S_mu;
     auto    psi_max = (int) (sqrt(3) * Ywidth / 2);
-    int    kx,ky;
+//    int    kx,ky;
     double    a0,a1,a2;
     double centre_Xwidth, centre_Ywidth;
     double sum2,hlp;
