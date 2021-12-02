@@ -33,6 +33,7 @@
  #include "data/projection.h"
  #include "data/mask.h"
  #include "data/filters.h"
+ #include "data/morphology.h"
  #include <iostream>
  #include <string>
  #include <sstream>
@@ -277,40 +278,43 @@
 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(m())
 		DIRECT_MULTIDIM_ELEM(m(),n)=(std::abs(DIRECT_MULTIDIM_ELEM(m(),n)>0.5)) ? 1:0;
 	m.write(formatString("%smaskFocusThFiltTh.mrc", fnProj.c_str()));
-	// CONVEX HULL
-	using namespace cv;
 
-//	#include"stdafx.h"
-//	#include<fstream>
-	// contours vector
-	std::vector<std::vector<Point>> contours;
-	std::vector<Vec4i> hierarchy;
-//	const char *fnmaskth="Runs/003868_XmippProtSubtractProjection/extra/maskFocusThFiltTh.txt";
-//	std::cout << "-----" << fnmaskth << std::endl;
-
-	Image<double> th;
-	th.read(formatString("%smaskFocusThFiltTh.mrc", fnProj.c_str()));
-    Mat src = Mat::zeros(XSIZE(th()), YSIZE(th()), CV_8UC1);//Matrix to store values
-	int cnt = 0;//index starts from 0
-	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(th())
-	{
-		int temprow = cnt / XSIZE(th());
-		int tempcol = cnt % YSIZE(th());
-		src.at<double>(temprow, tempcol) = DIRECT_MULTIDIM_ELEM(th,n);;
-		cnt++;
+	for (int n=0; n<10; ++n) {
+		closing2D(m(), m(), 4, 0, 16);
 	}
-	std::cout << "--src---" << std::endl;
-	// find contours for the thresholded image
-	cv::findContours(src, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
-	std::cout << "--1---" << std::endl;
-	// create convex hull vector
-	vector< vector<Point> > hull;
-	std::cout << "--2---" << std::endl;
-	// find convex hull the contour
-	cv::convexHull(Mat(contours), hull, false);
-	std::cout << "--3---" << std::endl;
+
+	// CONVEX HULL
+//	using namespace cv;
+//
+////	#include"stdafx.h"
+////	#include<fstream>
+//	// contours vector
+//	std::vector<std::vector<Point>> contours;
+//	std::vector<Vec4i> hierarchy;
+////	const char *fnmaskth="Runs/003868_XmippProtSubtractProjection/extra/maskFocusThFiltTh.txt";
+////	std::cout << "-----" << fnmaskth << std::endl;
+//	Image<double> th;
+//	th.read(formatString("%smaskFocusThFiltTh.mrc", fnProj.c_str()));
+//    Mat src = Mat::zeros(XSIZE(th()), YSIZE(th()), CV_8UC1);//Matrix to store values
+//	int cnt = 0;//index starts from 0
+//	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(th())
+//	{
+//		int temprow = cnt / XSIZE(th());
+//		int tempcol = cnt % YSIZE(th());
+//		src.at<double>(temprow, tempcol) = DIRECT_MULTIDIM_ELEM(th,n);;
+//		cnt++;
+//	}
+//	std::cout << "--src---" << std::endl;
+//	// find contours for the thresholded image
+//	cv::findContours(src, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
+//	std::cout << "--1---" << std::endl;
+//	// create convex hull vector
+//	vector< vector<Point> > hull;
+//	std::cout << "--2---" << std::endl;
+//	// find convex hull the contour
+//	cv::convexHull(Mat(contours), hull, false);
+//	std::cout << "--3---" << std::endl;
 	m.write(formatString("%s/maskFocusThFiltCH.mrc", fnProj.c_str()));
-	std::cout << "--4---" << std::endl;
  	return m;
  }
 
