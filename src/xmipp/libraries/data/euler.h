@@ -219,7 +219,9 @@ public:
     }
 
     Matrix1D <double> vec3;
-    double x,y,z;
+    double x;
+    double y;
+    double z;
 
     void eulerRotate (Matrix2D <double> &M, const Matrix1D <double> &r);
 
