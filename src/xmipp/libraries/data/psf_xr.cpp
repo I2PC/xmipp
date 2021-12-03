@@ -582,7 +582,8 @@ void XRayPSF::generatePSFIdealLens(MultidimArray<double> &PSFi, double Zpos) con
 {
     double focalEquiv = 1/(1/Zpos - 1/Zo); // inverse of defocus = 1/Z - 1/Zo
 
-    MultidimArray< std::complex<double> > OTFTemp(Niy, Nix), PSFiTemp;
+    MultidimArray< std::complex<double> > OTFTemp(Niy, Nix);
+    MultidimArray< std::complex<double> > PSFiTemp;
     //    Mask_Params mask_prm; TODO do we have to include masks using this class?
 
     lensPD(OTFTemp, focalEquiv, lambda, dxl, dyl);
@@ -609,7 +610,8 @@ void XRayPSF::generatePSFIdealLens(MultidimArray<double> &PSFi, double Zpos) con
 
     FourierTransformer transformer(FFTW_BACKWARD);
     transformer.FourierTransform(OTFTemp, PSFiTemp, false);
-    double norm=0, iNorm;
+    double norm=0;
+    double iNorm;
 
     PSFi.resizeNoCopy(PSFiTemp);
 
@@ -621,7 +623,8 @@ void XRayPSF::generatePSFIdealLens(MultidimArray<double> &PSFi, double Zpos) con
     _Im.write("psfitemp.spi");
 #endif
 
-    double aux, aux2;
+    double aux;
+    double aux2;
     FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(PSFi)
     {
         aux=abs(DIRECT_MULTIDIM_ELEM(PSFiTemp,n));
@@ -811,7 +814,9 @@ void XRayPSF::adjustParam()
 void lensPD(MultidimArray<std::complex<double> > &Im, double Flens, double lambda, double dx, double dy)
 {
 
-    double x, y, phase;
+    double x;
+    double y;
+    double phase;
 
     Im.setXmippOrigin();
 
