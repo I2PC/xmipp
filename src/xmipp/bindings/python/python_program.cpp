@@ -146,7 +146,7 @@ void Program_dealloc(ProgramObject* self)
 
 /* Constructor */
 PyObject *
-Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Program_new(PyTypeObject *type, PyObject *args)
 {
     auto *self = (ProgramObject*) type->tp_alloc(type, 0);
     if (self != nullptr)
@@ -173,7 +173,7 @@ Program_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
 /* addUsageLine */
 PyObject *
-Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_addUsageLine(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     auto *verbatim = Py_False;
@@ -203,7 +203,7 @@ Program_addUsageLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* addExampleLine */
 PyObject *
-Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_addExampleLine(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     auto *verbatim = Py_True;
@@ -233,7 +233,7 @@ Program_addExampleLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* addParamsLine */
 PyObject *
-Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_addParamsLine(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
@@ -257,7 +257,7 @@ Program_addParamsLine(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* usage */
 PyObject *
-Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_usage(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
@@ -281,7 +281,7 @@ Program_usage(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* endDefinition */
 PyObject *
-Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_endDefinition(PyObject *obj)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
@@ -301,7 +301,7 @@ Program_endDefinition(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* read */
 PyObject *
-Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_read(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
@@ -350,7 +350,7 @@ Program_read(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* checkParam */
 PyObject *
-Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_checkParam(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
@@ -376,7 +376,7 @@ Program_checkParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* getParam */
 PyObject *
-Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_getParam(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
@@ -401,7 +401,7 @@ Program_getParam(PyObject *obj, PyObject *args, PyObject *kwargs)
 
 /* getListParam */
 PyObject *
-Program_getListParam(PyObject *obj, PyObject *args, PyObject *kwargs)
+Program_getListParam(PyObject *obj, PyObject *args)
 {
     auto *self = (ProgramObject*) obj;
     if (self != nullptr)
