@@ -148,10 +148,12 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
     else
     {
         // Compute the minimum and maximum of each class
-        double minval=0., maxval=0.;
+        double minval=0.;
+        double maxval=0.;
         for(int k=0; k<K; k++)
         {
-            double minvalk=0., maxvalk=0.;
+            double minvalk=0.;
+            double maxvalk=0.;
             leafFeatures[k].computeDoubleMinMax(minvalk, maxvalk);
             if (k==0)
             {
@@ -180,7 +182,8 @@ LeafNode::LeafNode(const std::vector < MultidimArray<double> > &leafFeatures,
         }
 
         // Split the histograms into discrete_level (power of 2) bins
-        std::queue< Matrix1D<int> > intervals, splittedIntervals;
+        std::queue< Matrix1D<int> > intervals;
+        std::queue< Matrix1D<int> > splittedIntervals;
         Matrix1D<int> limits(2);
         VECTOR_R2(limits,0,99);
         intervals.push(limits);
@@ -578,7 +581,8 @@ int EnsembleNaiveBayes::doInference(const Matrix1D<double> &newFeatures,
                                     Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts)
 {
     int nmax=ensemble.size();
-    MultidimArray<double> minCost, maxCost;
+    MultidimArray<double> minCost;
+    MultidimArray<double> maxCost;
     votes.initZeros(K);
     minCost.initZeros(K);
     minCost.initConstant(1);
