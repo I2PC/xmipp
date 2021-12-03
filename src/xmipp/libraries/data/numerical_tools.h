@@ -316,6 +316,7 @@ public:
     DESolver(int dim, int popSize);
 
     DESolver(const DESolver &)=delete; // Do not use the default copy constructor
+    DESolver& operator=(const DESolver &)=delete; // Do not use the default copy assignment
 
     /// Destructor
     virtual ~DESolver(void);
