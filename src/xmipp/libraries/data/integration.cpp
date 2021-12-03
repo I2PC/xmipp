@@ -68,7 +68,8 @@ double integrateNewtonCotes(double(*f)(double),
 
 double Trapeze::operator()()
 {   //adapted from qtrap
-    double s,olds;
+    double s;
+    double olds;
     int j;
     olds = -1.0e30;
     for (j = 1;j <= JMAX;j++)
@@ -86,8 +87,11 @@ double Trapeze::operator()()
 
 double Trapeze::Trap(int n)
 { //adapted from trapzd
-    double tnm, sum, del;
-    int j, it;
+    double tnm;
+    double sum;
+    double del;
+    int j;
+    int it;
     if (n == 1)
     {
         it = 1;
@@ -120,7 +124,10 @@ double Trapeze::Trap(int n)
 double Romberg::operator()()
 {  //adapted from qromb
     int j;
-    double ss,dss, h[JMAXP+2], s[JMAXP+2];
+    double ss;
+    double dss;
+    double h[JMAXP+2];
+    double s[JMAXP+2];
     h[1] = 1.0;
     for (j = 1;j <= JMAXP;j++)
     {
@@ -142,8 +149,12 @@ double Romberg::operator()()
 //*
 double Romberg::midpnt(int n)
 {   //adapted from midpoint
-    double tnm, sum, del, ddel;
-    int it, j;
+    double tnm;
+    double sum;
+    double del;
+    double ddel;
+    int it;
+    int j;
     if (n == 1)
     {
         x = 0.5 * (a + b);     //changed; set x
