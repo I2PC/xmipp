@@ -53,9 +53,7 @@ if opencv:
     opencvLibs = ['opencv_core',
                   'opencv_imgproc',
                   'opencv_video',
-                  'libopencv_calib3d',
-                  'opencv_highgui',
-                  'opencv_imgproc']
+                  'libopencv_calib3d']
     if opencvsupportscuda:
         if opencv_3:
             opencvLibs+=['libopencv_cudaoptflow', 'libopencv_cudaarithm']
@@ -273,7 +271,7 @@ def addProg(progName, **kwargs):
 
 # Define the list of all programs
 PROGRAMS_WITH_PYTHON = ['volume_align_prog','mpi_classify_CLTomo_prog']
-PROGRAMS_WITH_OPENCV = ['movie_optical_alignment_cpu','mpi_volume_homogenizer','subtract_projection']
+PROGRAMS_WITH_OPENCV = ['movie_optical_alignment_cpu','mpi_volume_homogenizer']
 PROGRAMS_WITH_OPENCV_AND_CUDA = ['movie_optical_alignment_gpu']
 for p in glob(os.path.join(XMIPP_PATH,'applications','programs','*')):
     pname = os.path.basename(p)

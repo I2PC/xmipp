@@ -105,8 +105,6 @@
     void runIteration();
     Image<double> thresholdMask(Image<double> &);
     Image<double> binarizeMask(Projection &) const;
-//    Image<double> binarizeMask2(Projection &) const;
-//    Image<double> normMask(Image<double> &) const;
     void writeParticle(const int &, Image<double> &);
     /// Run
     void run() override;
