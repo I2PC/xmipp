@@ -106,7 +106,6 @@ public:
     SparseMatrix2D();
 
     SparseMatrix2D(const SparseMatrix2D&)=delete; // Removal of the copy constructor
-    SparseMatrix2D & operator=(const SparseMatrix2D&)=delete; // Removal of the copy assignment
 
     /** Constructor from a set of i,j indexes and their corresponding values.
      * N is the total dimension of the square, sparse matrix.
