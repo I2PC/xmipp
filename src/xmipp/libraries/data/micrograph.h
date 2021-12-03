@@ -80,7 +80,8 @@ class Micrograph
 public:
     struct Point
     {
-        double x,y;
+        double x;
+        double y;
     };
     /* This image will contain a single particle from the micrograph,
        this is done to avoid asking/freeing memory all time. */
@@ -92,8 +93,12 @@ public:
     FileName                 fn_inf;
     int                      X_window_size;
     int                      Y_window_size;
-    size_t                   Xdim,Ydim,Zdim,Ndim;
-    Point                    point1, point2;
+    size_t                   Xdim;
+    size_t                   Ydim;
+    size_t                   Zdim;
+    size_t                   Ndim;
+    Point                    point1;
+    Point                    point2;
     int                      datatype;
     int                      swapbyte;
     int                      __offset;
