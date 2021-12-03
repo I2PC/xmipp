@@ -98,25 +98,25 @@ public:
         A three letters string telling what kind of feature this object is.
         For example, "cyl", "con", "cub", ... See the specific classes to
         know exactly which is each label. */
-    std::string       Type;
+    std::string       type;
 
     /** Feature behaviour.
         This flag indicates how the feature behaves inside the voxel volume.
         If this flag is set to '+' then the voxels occupied by this feature
         are incremented with the feature value. If the flag is set to '='
         then the voxels are set to to the same value of the feature. */
-    char              Add_Assign;
+    char              add_assign;
 
     /** Feature Density.
         Density of the feature in grey level values. It needn't be between
         0 and 1, or 0 and 255. What is more, it can be even negative, and so
         you can build holes inside volumes. */
-    double             Density;
+    double             density;
 
     /** Center of the feature.
         The center of the feature is understood differently according to the
         specific class, see them to know exactly how this value is interpreted. */
-    Matrix1D<double>   Center;
+    Matrix1D<double>   center;
 
     /** Maximum distance from the center.
         This value is a precalculated and tells the maximum distance from any
@@ -126,8 +126,15 @@ public:
     double             max_distance;
 
 public:
+    /** Empty constructor */
+    Feature() {}
+
+    /** Destructor */
     virtual ~Feature()
     {}
+
+    /** Copy constructor */
+    Feature(const Feature &other);
 
     /** Prepare feature for work.
         This function computes the maximum distance and possibly the Euler
@@ -440,16 +447,22 @@ public:
     /// Inverse Euler matrix
     Matrix2D<double>   eulert;
 public:
+    /** Empty constructor */
+    Oriented_Feature() {}
+
     virtual ~Oriented_Feature()
     {}
+
+    /** Copy constructor */
+    Oriented_Feature(const Oriented_Feature &other);
 
     /** Compute Euler and inverse Euler matrices from the Euler angles. */
     void prepare_Euler();
 
-    /// Assigment
+    /// Assignment
     Oriented_Feature & operator = (const Oriented_Feature & OF);
 
-    /** Another function for assigment.*/
+    /** Another function for assignment.*/
     void assign(const Oriented_Feature & OF);
 
     /** Rotate.
