@@ -847,7 +847,8 @@ double Gaussian::density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux
 int Cylinder::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 {
     SPEED_UP_temps012;
-    double tx, ty;
+    double tx;
+    double ty;
 
     // Express r in the feature coord. system
     V3_MINUS_V3(aux, r, Center);
@@ -902,7 +903,9 @@ int Cube::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 int Ellipsoid::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 {
     SPEED_UP_temps012;
-    double tx, ty, tz;
+    double tx;
+    double ty;
+    double tz;
 
     // Express r in the feature coord. system
     V3_MINUS_V3(aux, r, Center);
@@ -1080,8 +1083,12 @@ void Feature::corners(const MultidimArray<double> &V, Matrix1D<double> &corner1,
 #define Vr A3D_ELEM(V,(int)ZZ(r),(int)YY(r),(int)XX(r))
 void Feature::draw_in(MultidimArray<double> &V, int colour_mode, double colour)
 {
-    Matrix1D<double>   aux1(3), aux2(3), corner1(3), corner2(3), r(3);
-    int               add;
+    Matrix1D<double>   aux1(3);
+    Matrix1D<double>   aux2(3);
+    Matrix1D<double>   corner1(3);
+    Matrix1D<double>   corner2(3);
+    Matrix1D<double>   r(3);
+    int                add;
     double             inside;
     double             final_colour;
 
@@ -1144,8 +1151,12 @@ void Feature::draw_in(MultidimArray<double> &V, int colour_mode, double colour)
 /* Sketch a feature -------------------------------------------------------- */
 void Feature::sketch_in(MultidimArray<double> &V, double colour)
 {
-    Matrix1D<double>   aux1(3), aux2(3), corner1(3), corner2(3), r(3);
-    int               inside;
+    Matrix1D<double>   aux1(3);
+    Matrix1D<double>   aux2(3);
+    Matrix1D<double>   corner1(3);
+    Matrix1D<double>   corner2(3);
+    Matrix1D<double>   r(3);
+    int                inside;
 
     corners(V, corner1, corner2);
     FOR_ALL_ELEMENTS_IN_ARRAY3D_BETWEEN(corner1, corner2)
@@ -1392,7 +1403,8 @@ void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
     Matrix1D<double> direction;
     VP.getRow(2, direction);
     direction.selfTranspose();
-    Matrix1D<double> corner1(3), corner2(3);
+    Matrix1D<double> corner1(3);
+    Matrix1D<double> corner2(3);
     Matrix1D<double> act(3);
     SPEED_UP_temps012;
 
@@ -2021,7 +2033,9 @@ void Feature::mean_variance_in_plane(Image<double> *V, double z, double &mean,
     double sum1 = 0;
     double sum2 = 0;
     double no_points = 0;
-    Matrix1D<double> r(3), aux1(3), aux2(3);
+    Matrix1D<double> r(3);
+    Matrix1D<double> aux1(3);
+    Matrix1D<double> aux2(3);
 
     mean = 0;
     var = 0;
@@ -2183,7 +2197,8 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
     Cube       *cub;
     Ellipsoid  *ell;
     Cone       *con;
-    Feature    *feat, *scaled_feat;
+    Feature    *feat; 
+    Feature    *scaled_feat;
     std::string feat_type;
     double     scale = 1.;          // The scale factor is not stored
     char       straux[6];
@@ -2476,7 +2491,8 @@ void Phantom::write(const FileName &fn_phantom)
 int Phantom::voxel_inside_any_feat(const Matrix1D<double> &r,
                                    Matrix1D<double> &aux1, Matrix1D<double> &aux2) const
 {
-    int inside, current_i;
+    int inside;
+    int current_i;
     double current_density;
     current_i = 0;
     current_density = Background_Density;
@@ -2522,7 +2538,9 @@ void Phantom::draw_in(MultidimArray<double> &V)
 // Always suppose CC grid
 void Phantom::label(MultidimArray<double> &V)
 {
-    Matrix1D<double> r(3), aux1(3), aux2(3);
+    Matrix1D<double> r(3);
+    Matrix1D<double> aux1(3);
+    Matrix1D<double> aux2(3);
     V.resize(zdim, ydim, xdim);
     V.setXmippOrigin();
     FOR_ALL_ELEMENTS_IN_ARRAY3D(V)
@@ -2653,7 +2671,10 @@ const
     std::cout << "zdim:      " << zdim      << std::endl;
 #endif
 
-    Matrix1D<double> aux1(3), aux2(3), aux3(3), r(3);
+    Matrix1D<double> aux1(3);
+    Matrix1D<double> aux2(3);
+    Matrix1D<double> aux3(3);
+    Matrix1D<double> r(3);
     if (XSIZE((*P)()) == 0)
     {
         (*P)().resize(ydim, xdim);
