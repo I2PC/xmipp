@@ -197,10 +197,10 @@ public:
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
 
-protected:
-    virtual void createWorkFiles() { 
-        printf("createWorkFiles %p\n", getInputMd());fflush(stdout);
-        return Rerunable::createWorkFiles(resume, getInputMd()); }
+  protected:
+    virtual void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
 
   private:
     using Rerunable::createWorkFiles;
