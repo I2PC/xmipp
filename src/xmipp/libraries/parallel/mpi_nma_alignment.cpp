@@ -65,7 +65,7 @@ public:
         ProgNmaAlignment::read(argc, argv);
     }
     /** main body */
-    void createWorkFiles()
+    void createWorkFiles() override
     {
         //Master node should prepare some stuff before start working
         MetaData &mdIn = *getInputMd(); //get a reference to input metadata
