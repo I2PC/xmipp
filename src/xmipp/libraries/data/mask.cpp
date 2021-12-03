@@ -359,7 +359,9 @@ void BinaryDWTCircularMask2D(MultidimArray<int> &mask, double radius,
     mask.initZeros();
     for (int s = smin; s <= smax; s++)
     {
-        Matrix1D<int> corner1(2), corner2(2), r(2);
+        Matrix1D<int> corner1(2);
+        Matrix1D<int> corner2(2);
+        Matrix1D<int> r(2);
         Matrix1D<double> center(2);
         if (quadrant == "xx")
         {
@@ -444,7 +446,9 @@ void BinaryDWTSphericalMask3D(MultidimArray<int> &mask, double radius,
     double radius2 = radius * radius / (4 * (smin + 1));
     for (int s = smin; s <= smax; s++)
     {
-        Matrix1D<int> corner1(3), corner2(3), r(3);
+        Matrix1D<int> corner1(3);
+        Matrix1D<int> corner2(3);
+        Matrix1D<int> r(3);
         Matrix1D<double> center(3);
         if (quadrant == "xxx")
         {
@@ -483,10 +487,18 @@ void BinaryCylinderMask(MultidimArray<int> &mask,
 void BinaryConeMask(MultidimArray<int> &mask, double theta, int mode,bool centerOrigin)
 {
 
-    int halfX, halfY,halfZ;
-    int minX,minY,minZ;
-    int maxX,maxY,maxZ;
-    int ipp,jpp,kpp;
+    int halfX;
+    int halfY;
+    int halfZ;
+    int minX;
+    int minY;
+    int minZ;
+    int maxX;
+    int maxY;
+    int maxZ;
+    int ipp;
+    int jpp;
+    int kpp;
 
     halfX = mask.xdim/2;
     halfY = mask.ydim/2;
@@ -528,10 +540,18 @@ void BinaryConeMask(MultidimArray<int> &mask, double theta, int mode,bool center
 void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
                      const Matrix2D<double> &A, bool centerOrigin)
 {
-    int halfX, halfY,halfZ;
-    int minX,minY,minZ;
-    int maxX,maxY,maxZ;
-    int ipp,jpp,kpp;
+    int halfX;
+    int halfY;
+    int halfZ;
+    int minX;
+    int minY;
+    int minZ;
+    int maxX;
+    int maxY;
+    int maxZ;
+    int ipp;
+    int jpp;
+    int kpp;
 
     halfX = mask.xdim/2;
     halfY = mask.ydim/2;
@@ -546,8 +566,12 @@ void BinaryWedgeMask(MultidimArray<int> &mask, double theta0, double thetaF,
     maxZ = (int)((mask.zdim-0.5)/2);
 
 
-    double xp, zp;
-    double tg0, tgF, limx0, limxF;
+    double xp;
+    double zp;
+    double tg0;
+    double tgF;
+    double limx0;
+    double limxF;
 
     tg0 = -tan(PI * (-90. - thetaF) / 180.);
     tgF = -tan(PI * (90. - theta0) / 180.);
@@ -1218,7 +1242,8 @@ void Mask::write_mask(const FileName &fn)
 void Mask::defineParams(XmippProgram * program, int allowed_data_types,
                         const char* prefix, const char* comment, bool moreOptions)
 {
-    char tempLine[256], tempLine2[512];
+    char tempLine[256];
+    char tempLine2[512];
 
     char advanced=' ';
     if (moreOptions)
