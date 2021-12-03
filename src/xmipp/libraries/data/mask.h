@@ -429,7 +429,8 @@ public:
     int blob_order;
     
     /** Blob parameters */
-    double blob_radius, blob_alpha;
+    double blob_radius;
+    double blob_alpha;
 
     /** Height
      * Height for cylinders.
@@ -907,8 +908,10 @@ void compute_hist_within_binary_mask(const MultidimArray< int >& mask,
                                      MultidimArray< T >& v, Histogram1D &hist,
                                      int no_steps)
 {
-    T min_val, max_val;
-    double avg, stddev;
+    T min_val;
+    T max_val;
+    double avg;
+    double stddev;
 
     computeStats_within_binary_mask(mask, v, min_val, max_val, avg, stddev);
     compute_hist_within_binary_mask(mask, v, hist, min_val, max_val, no_steps);
