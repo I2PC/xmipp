@@ -85,6 +85,9 @@ public:
      */
     SelLine(const SelLine& line);
 
+    /** Destructor */
+    ~SelLine() {}
+
     /** Assignment.
      */
     SelLine& operator=(const SelLine& line);
@@ -226,6 +229,9 @@ public:
      * @endcode
      */
     SelFile(const SelFile& sel);
+
+    /** Destructor */
+    ~SelFile() {}
 
     /** Reserve memory for N entries.
      *
