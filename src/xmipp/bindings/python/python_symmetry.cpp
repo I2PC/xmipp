@@ -76,7 +76,7 @@ SymList_readSymmetryFile(PyObject * obj, PyObject *args, PyObject *kwargs)
 
 /* getTrueSymsNo */
 PyObject *
-SymList_getTrueSymsNo(PyObject * obj, PyObject *args, PyObject *kwargs)
+SymList_getTrueSymsNo(PyObject * obj)
 {
     auto *self = (SymListObject*) obj;
     return PyLong_FromLong(self->symlist->true_symNo);
@@ -84,7 +84,7 @@ SymList_getTrueSymsNo(PyObject * obj, PyObject *args, PyObject *kwargs)
 
 /* getSymmetryMatrices, return list with symmetry matrices */
 PyObject *
-SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
+SymList_getSymmetryMatrices(PyObject * obj, PyObject *args)
 {
     Matrix2D<double>  L(4, 4), R(4, 4);
     PyObject * symMatrices;
@@ -136,7 +136,7 @@ SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
 
 /* computeDistance */
 PyObject *
-SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
+SymList_computeDistance(PyObject * obj, PyObject *args)
 {
 
     PyObject *pyMd = nullptr;
@@ -179,7 +179,7 @@ SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
 
 /* computeDistance */
 PyObject *
-SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
+SymList_computeDistanceAngles(PyObject * obj, PyObject *args)
 {
 	double rot1, tilt1, psi1, rot2, tilt2, psi2;
     auto *pyProjdirMode = Py_False;
@@ -217,7 +217,7 @@ SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
 
 /* computeDistance */
 PyObject *
-SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
+SymList_symmetricAngles(PyObject * obj, PyObject *args)
 {
 	double rot, tilt, psi;
     if (PyArg_ParseTuple(args, "ddd", &rot, &tilt, &psi))
