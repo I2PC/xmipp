@@ -125,9 +125,11 @@ FileName_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     if (self != nullptr)
     {
 
-        PyObject *input = nullptr, *pyStr = nullptr;
+        PyObject *input = nullptr; 
+        PyObject *pyStr = nullptr;
         PyObject *pyStr2 = nullptr;
-        char str[1024] = "", ext[1024] = "";
+        char str[1024] = "";
+        char ext[1024] = "";
         int number = ALL_IMAGES;
         if (PyArg_ParseTuple(args, "|Ois", &input, &number, &ext))
             //|| PyArg_ParseTuple(args, "|Os", &input, &ext)) FIXME
@@ -161,11 +163,14 @@ PyObject *
 FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
-    PyObject* pyStr1 = nullptr, *pyStr2 = nullptr, *pyStr3 = nullptr;
+    PyObject* pyStr1 = nullptr; 
+    PyObject* pyStr2 = nullptr;
+    PyObject* pyStr3 = nullptr;
 
     if (self != nullptr)
     {
-        PyObject *input = nullptr, *pyStr = nullptr;
+        PyObject *input = nullptr;
+        PyObject *pyStr = nullptr;
         PyObject *input2 = nullptr;
         char str[1024] = "";
         char * ext = nullptr;
@@ -216,7 +221,9 @@ FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 
     if (self != nullptr)
     {
-        char root[1024] = "", ext[32] = "", block[1024] ="";
+        char root[1024] = "";
+        char ext[32] = "";
+        char block[1024] ="";
         int number = 1;
         PyArg_ParseTuple(args, "sis|s", &block, &number, &root, &ext);
         self->filename->composeBlock(block, number, root, ext);
