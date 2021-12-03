@@ -106,7 +106,8 @@ void FourierProjector::updateVolume(MultidimArray<double> &V)
 
 void FourierProjector::project(double rot, double tilt, double psi, const MultidimArray<double> *ctf)
 {
-    double freqy, freqx;
+    double freqy;
+    double freqx;
     std::complex< double > f;
     Euler_angles2matrix(rot,tilt,psi,E);
 
@@ -138,7 +139,8 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             double freqvol_Y=freqYvol_Y+MAT_ELEM(E,0,1)*freqx;
             double freqvol_Z=freqYvol_Z+MAT_ELEM(E,0,2)*freqx;
 
-            double c,d;
+            double c;
+            double d;
             if (BSplineDeg==xmipp_transformation::NEAREST)
             {
                 // 0 order interpolation
@@ -197,7 +199,8 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
                         equivalent_nn=-nn-1;
                     else if (nn>=Zdim)
                         equivalent_nn=2*Zdim-nn-1;
-                    double yxsumRe = 0.0, yxsumIm = 0.0;
+                    double yxsumRe = 0.0;
+                    double yxsumIm = 0.0;
                     for (int m = m1; m <= m2; m++)
                     {
                         int equivalent_m=m;
@@ -205,7 +208,8 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
                             equivalent_m=-m-1;
                         else if (m>=Ydim)
                             equivalent_m=2*Ydim-m-1;
-                        double xsumRe = 0.0, xsumIm = 0.0;
+                        double xsumRe = 0.0;
+                        double xsumIm = 0.0;
                         for (int l = l1; l <= l2; l++)
                         {
                             double xminusl = x - (double) l;
@@ -282,7 +286,8 @@ void FourierProjector::produceSideInfo()
     // Compute Bspline coefficients
     if (BSplineDeg==xmipp_transformation::BSPLINE3)
     {
-        MultidimArray< double > VfourierRealAux, VfourierImagAux;
+        MultidimArray< double > VfourierRealAux;
+        MultidimArray< double > VfourierImagAux;
         Complex2RealImag(Vfourier, VfourierRealAux, VfourierImagAux);
         Vfourier.clear();
         produceSplineCoefficients(xmipp_transformation::BSPLINE3,VfourierRealCoefs,VfourierRealAux);
