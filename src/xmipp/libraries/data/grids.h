@@ -183,6 +183,11 @@ public:
         \\ Ex: SimpleGrid sg2(sg1); */
     SimpleGrid(const SimpleGrid &SG);
 
+    /** Destructor.
+     * Explicitly defined to avoid Sonarcloud complains
+     */
+    ~SimpleGrid() {}
+
     /** Show a Simple grid.
         Shows all information about the simple grid.
         \\Ex: std::cout << sg; */
@@ -490,6 +495,11 @@ class Grid
     /* Structure --------------------------------------------------------------- */
     std::vector<SimpleGrid>   LG;                 // List of grids
 public:
+    /** Destructor.
+     * Explicitly defined to avoid SonarCloud complaining
+     */
+    ~Grid() {}
+
     /* Protoypes --------------------------------------------------------------- */
     /** Add a grid to the set.
         The complex grid is a list of simple grids, use this function to
