@@ -292,9 +292,13 @@ public:
 	/// Second Gaussian center
 	double Gc2;
 	// Background polynomial
-	double bgR1, bgR2, bgR3;
+	double bgR1;
+	double bgR2;
+	double bgR3;
 	// Envelope polynomial
-	double envR0, envR1, envR2;
+	double envR0;
+	double envR1;
+	double envR2;
 	//Maximum frequency to estimate values
 	double freq_max;
 	//Extra parameters for VPP
@@ -454,7 +458,8 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 *precomputed.u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part, &cosine_part); // OK
 		double Eespr = exp(-K3 * precomputed.u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
@@ -498,7 +503,8 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 *precomputed.u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part, &cosine_part); // OK
 		double Eespr = exp(-K3 * precomputed.u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
@@ -560,7 +566,8 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * precomputed.deltaf * precomputed.u2 + K2 * precomputed.u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part,&cosine_part);
 
 		if (show)
@@ -592,7 +599,8 @@ public:
 		else
 			VPP = 0;
 		double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-		double sine_part, cosine_part;
+		double sine_part;
+		double cosine_part;
 		sincos(argument,&sine_part, &cosine_part); // OK
 		double Eespr = exp(-K3 * u4); // OK
 		//CO: double Eispr=exp(-K4*u4); // OK
@@ -1076,7 +1084,8 @@ public:
 		else
 			VPP = 0;
         double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-        double sine_part, cosine_part;
+        double sine_part;
+		double cosine_part;
         sincos(argument,&sine_part, &cosine_part); // OK
         double Eespr = exp(-K3 * u4); // OK
         //CO: double Eispr=exp(-K4*u4); // OK
@@ -1121,7 +1130,8 @@ public:
 		else
 			VPP = 0;
         double argument = VPP + K1 * deltaf * u2 + K2 * u4;
-        double sine_part, cosine_part;
+        double sine_part;
+		double cosine_part;
         sincos(argument,&sine_part, &cosine_part); // OK
         return -(Ksin*sine_part - Kcos*cosine_part);
     }
