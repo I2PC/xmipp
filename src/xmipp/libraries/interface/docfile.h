@@ -86,6 +86,9 @@ public:
      */
     DocLine(const DocLine& line);
 
+    /** Destructor */
+    ~DocLine() {}
+
     /** Assignment.
      */
     DocLine& operator=(const DocLine& line);
@@ -265,6 +268,9 @@ public:
      * @endcode
      */
     DocFile(const DocFile& DF);
+
+    /** Destructor */
+    ~DocFile() {}
 
     /** Empties the object.
      *
