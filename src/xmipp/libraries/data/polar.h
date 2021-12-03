@@ -581,7 +581,9 @@ public:
         double last_ring   = ring_radius[rings.size()-1];
         float outer       = last_ring + extra_shell;
         float inner       = XMIPP_MAX(0.,first_ring - extra_shell);
-        for (float radius = 0.; radius < outer; radius +=1.)
+        
+        // for (float radius = 0.; radius < outer; radius +=1.)
+        for (int radius = 0; radius < outer; radius++)
         {
             if ( (radius >= inner && radius < first_ring) ||
                  ( radius <= outer && radius > last_ring) )
