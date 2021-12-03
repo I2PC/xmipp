@@ -65,6 +65,12 @@ public:
     	*this=other;
     }
 
+    /** Destructor.
+     * Explicitly defined to avoid sonarcloud complaining */
+    ~Projection()
+    {
+    }
+
     /** Vector perpendicular to the projection plane.
      * It is calculated as a function of rot and tilt.
      */
