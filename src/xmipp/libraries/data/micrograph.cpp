@@ -368,7 +368,10 @@ void Micrograph::produce_all_images(int label, double minCost,
     }
 
     // Set scale for particles
-    int MXdim, MYdim, thisXdim, thisYdim;
+    int MXdim;
+    int MYdim;
+    int thisXdim;
+    int thisYdim;
     M->size(MXdim, MYdim);
     this->size(thisXdim, thisYdim);
     double scaleX = (double) MXdim / thisXdim;
@@ -376,7 +379,8 @@ void Micrograph::produce_all_images(int label, double minCost,
 
     // Compute max and minimum if compute_transmitance
     // or compute_inverse flags are ON
-    double Dmax=0., Dmin=0.;
+    double Dmax=0.;
+    double Dmin=0.;
     if (compute_transmitance || compute_inverse)
     {
         (*this).computeDoubleMinMax(Dmin, Dmax);
@@ -778,12 +782,18 @@ void TiltPairAligner::computeGamma()
 #define MIN_AREA       15
 #define MAX_AREA   250000
     gamma = 0;
-    Matrix1D<int> iju(2), iku(2), ijt(2), ikt(2); // From i to j in untilted
+    Matrix1D<int> iju(2); // From i to j in untilted
+    Matrix1D<int> iku(2); // From i to j in untilted
+    Matrix1D<int> ijt(2); // From i to j in untilted
+    Matrix1D<int> ikt(2); // From i to j in untilted
     // From i to k in untilted
     // From i to j in tilted
     // From i to k in tilted
     int triang = 0; // Number of triangles considered
-    int i, j, k, counter1;
+    int i;
+    int j;
+    int k;
+    int counter1;
     counter1 = 0;
     randomize_random_generator();
     long noCombinations;
@@ -861,7 +871,9 @@ void TiltPairAligner::computeAngles(double &ualpha, double &talpha, double &ogam
 
     // Coarse search
     double *aux = angles.adaptForNumericalRecipes();
-    double best_alpha_u = 0, best_alpha_t = 0, best_fit = 1e8;
+    double best_alpha_u = 0;
+    double best_alpha_t = 0;
+    double best_fit = 1e8;
     aux[3] = gamma;
     for (aux[1] = 0; aux[1] < 180; aux[1] += 5)
         for (aux[2] = 0; aux[2] < 180; aux[2] += 5)
