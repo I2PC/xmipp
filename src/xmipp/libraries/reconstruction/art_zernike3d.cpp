@@ -24,11 +24,11 @@
  ***************************************************************************/
 
 #include "art_zernike3d.h"
-#include "core/transformations.h"
-#include "core/xmipp_image_extension.h"
-#include "core/xmipp_image_generic.h"
-#include "data/projection.h"
-#include "data/mask.h"
+#include <core/transformations.h>
+#include <core/xmipp_image_extension.h>
+#include <core/xmipp_image_generic.h>
+#include <data/projection.h>
+#include <data/mask.h>
 
 #define FORWARD_ART   1
 #define BACKWARD_ART -1
@@ -152,7 +152,7 @@ void ProgArtZernike3D::preProcess()
 	else 
 	{
 		FileName fn_first_image;
-		Image<double> first_image;
+		Image<float> first_image;
 		getInputMd()->getRow(1)->getValue(MDL_IMAGE,fn_first_image);
 		first_image.read(fn_first_image);
 		size_t Xdim_first = XSIZE(first_image());
@@ -203,7 +203,7 @@ void ProgArtZernike3D::preProcess()
     fillVectorTerms(L1,L2,vL1,vN,vL2,vM);
 
     // createWorkFiles();
-	voxelI = 0.0;
+	voxelI = 0.0f;
 	initX = STARTINGX(Vrefined());
 	endX = FINISHINGX(Vrefined());
 	initY = STARTINGY(Vrefined());
@@ -224,16 +224,29 @@ void ProgArtZernike3D::processImage(const FileName &fnImg, const FileName &fnImg
 	rowOut=rowIn;
 	flagEnabled=1;
 
+	// double auxRot, auxTilt, auxPsi, auxShiftX, auxShiftY;
 	rowIn.getValue(MDL_ANGLE_ROT,rot);
 	rowIn.getValue(MDL_ANGLE_TILT,tilt);
 	rowIn.getValue(MDL_ANGLE_PSI,psi);
 	rowIn.getValueOrDefault(MDL_SHIFT_X,shiftX,0.0);
 	rowIn.getValueOrDefault(MDL_SHIFT_Y,shiftY,0.0);
-	std::vector<double> vectortemp;
+	// rowIn.getValue(MDL_ANGLE_ROT,auxRot);
+	// rowIn.getValue(MDL_ANGLE_TILT,auxTilt);
+	// rowIn.getValue(MDL_ANGLE_PSI,auxPsi);
+	// rowIn.getValueOrDefault(MDL_SHIFT_X,auxShiftX,0.0);
+	// rowIn.getValueOrDefault(MDL_SHIFT_Y,auxShiftY,0.0);
+	// rot = static_cast<float>(auxRot);
+	// tilt = static_cast<float>(auxTilt);
+	// psi = static_cast<float>(auxPsi);
+	// shiftX = static_cast<float>(auxShiftX);
+	// shiftY = static_cast<float>(auxShiftY);
+	// std::vector<double> vectortemp;
+	std::vector<float> vectortemp;
 	if (useZernike) {
 		rowIn.getValue(MDL_SPH_COEFFICIENTS,vectortemp);
 		clnm.initZeros(vectortemp.size()-8);
 		for(int i=0; i < vectortemp.size()-8; i++){
+			// VEC_ELEM(clnm,i) = static_cast<float>(vectortemp[i]);
 			VEC_ELEM(clnm,i) = vectortemp[i];
 		}
 		removeOverdeformation();
@@ -318,28 +331,28 @@ void ProgArtZernike3D::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL1, Matri
     }
 }
 
-// void ProgArtZernike3D::updateCTFImage(double defocusU, double defocusV, double angle)
+// void ProgArtZernike3D::updateCTFImage(float defocusU, float defocusV, float angle)
 // {
 // 	ctf.K=1; // get pure CTF with no envelope
 // 	ctf.produceSideInfo();
 // }
 
 template<bool INTERPOLATE>
-void ProgArtZernike3D::weightsInterpolation3D(double x, double y, double z, Matrix1D<double> &w) {
+void ProgArtZernike3D::weightsInterpolation3D(float x, float y, float z, Matrix1D<float> &w) {
 	int x0 = FLOOR(x);
-	double fx0 = x - x0;
+	float fx0 = x - x0;
 	int x1 = x0 + 1;
-	double fx1 = x1 - x;
+	float fx1 = x1 - x;
 
 	int y0 = FLOOR(y);
-	double fy0 = y - y0;
+	float fy0 = y - y0;
 	int y1 = y0 + 1;
-	double fy1 = y1 - y;
+	float fy1 = y1 - y;
 
 	int z0 = FLOOR(z);
-	double fz0 = z - z0;
+	float fz0 = z - z0;
 	int z1 = z0 + 1;
-	double fz1 = z1 - z;
+	float fz1 = z1 - z;
 
 	VEC_ELEM(w,0) = fx1 * fy1 * fz1;  // w000 (x0,y0,z0)
 	VEC_ELEM(w,1) = fx1 * fy1 * fz0;  // w001 (x0,y0,z1)
@@ -375,17 +388,17 @@ void ProgArtZernike3D::removeOverdeformation() {
 	size_t idxY0=(VEC_XSIZE(clnm))/3;
 	size_t idxZ0=2*idxY0;
 
-	Matrix2D<double> R, R_inv;
+	Matrix2D<float> R, R_inv;
 	R.initIdentity(3);
 	R_inv.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
     R_inv = R.inv();
-	Matrix1D<double> c;
+	Matrix1D<float> c;
 	c.initZeros(3);
 	for (size_t idx=0; idx<idxY0; idx++) {
 		XX(c) = VEC_ELEM(clnm,idx); YY(c) = VEC_ELEM(clnm,idx+idxY0); ZZ(c) = VEC_ELEM(clnm,idx+idxZ0);
 		c = R * c;
-		ZZ(c) = 0.0;
+		ZZ(c) = 0.0f;
 		c = R_inv * c;
 		VEC_ELEM(clnm,idx) = XX(c); VEC_ELEM(clnm,idx+idxY0) = YY(c); VEC_ELEM(clnm,idx+idxZ0) = ZZ(c);
 	}
@@ -603,7 +616,7 @@ void ProgArtZernike3D::artModel()
 {
 	if (DIRECTION == FORWARD_ART)
 	{
-		Image<double> I_shifted;
+		Image<float> I_shifted;
 		P().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
 		P().setXmippOrigin();
 		W().initZeros((int)XSIZE(I()), (int)XSIZE(I()));
@@ -635,7 +648,7 @@ void ProgArtZernike3D::artModel()
 		}
 
 		applyGeometry(xmipp_transformation::LINEAR, I_shifted(), I(), A, 
-					  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.);
+					  xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, 0.f);
 
 		// P.write(fnOutDir + "/PPPtheo.xmp");
 		// I_shifted.write(fnOutDir + "/PPPexp.xmp");
@@ -643,8 +656,8 @@ void ProgArtZernike3D::artModel()
 		// char c; std::cin >> c;
 
 		// Compute difference image and divide by weights
-		double error = 0.0;
-		double N = 0.0;
+		float error = 0.0f;
+		float N = 0.0f;
 		const auto &mP = P();
 		const auto &mW = W();
 		const auto &mIsh = I_shifted();
@@ -677,17 +690,17 @@ void ProgArtZernike3D::zernikeModel() {
 	const auto &mV = V();
 	const size_t idxY0 = USESZERNIKE ? (VEC_XSIZE(clnm) / 3) : 0;
 	const size_t idxZ0 = USESZERNIKE ? (2 * idxY0) : 0;
-	const double RmaxF = USESZERNIKE ? RmaxDef : 0;
-	const double RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0;
-	const double iRmaxF = USESZERNIKE ? (1.0 / RmaxF) : 0;
+	const float RmaxF = USESZERNIKE ? RmaxDef : 0;
+	const float RmaxF2 = USESZERNIKE ? (RmaxF * RmaxF) : 0;
+	const float iRmaxF = USESZERNIKE ? (1.0 / RmaxF) : 0;
     // Rotation Matrix
-    const Matrix2D<double> R = [this](){
-		auto tmp = Matrix2D<double>();
+    const Matrix2D<float> R = [this](){
+		auto tmp = Matrix2D<float>();
 		tmp.initIdentity(3);
 		Euler_angles2matrix(rot, tilt, psi, tmp, false);
 		return tmp.inv();
 	}();
-    Matrix1D<double> p, pos, w;
+    Matrix1D<float> p, pos, w;
 	pos.initZeros(3);
     p.initZeros(3);
 	w.initZeros(8);
@@ -703,12 +716,12 @@ void ProgArtZernike3D::zernikeModel() {
 				if (A3D_ELEM(Vmask,k,i,j) == 1) {
 					XX(p) = j;
 
-					XX(pos) = 0.0; YY(pos) = 0.0; ZZ(pos) = 0.0;
+					XX(pos) = 0.0f; YY(pos) = 0.0f; ZZ(pos) = 0.0f;
 					for (size_t i = 0; i < R.mdimy; i++)
 						for (size_t j = 0; j < R.mdimx; j++)
 							VEC_ELEM(pos, i) += MAT_ELEM(R, i, j) * VEC_ELEM(p, j);
 
-					double gx=0.0, gy=0.0, gz=0.0;
+					float gx=0.0f, gy=0.0f, gz=0.0f;
 					if (USESZERNIKE)
 					{
 						auto k2 = ZZ(pos) * ZZ(pos);
@@ -741,11 +754,11 @@ void ProgArtZernike3D::zernikeModel() {
 					if (DIRECTION == FORWARD_ART)
 					{
 						weightsInterpolation3D<true>(r_x, r_y, r_z, w);
-						// double voxelI = Vrefined().interpolatedElement3D(r_x, r_y, r_z, NAN);
+						// float voxelI = Vrefined().interpolatedElement3D(r_x, r_y, r_z, NAN);
 						if (!isnan(voxelI))
 						{
 							A2D_ELEM(P(), i, j) += voxelI;
-							double module = w.module();
+							float module = w.module();
 							A2D_ELEM(W(), i, j) +=  module * module;
 						}
 					}
@@ -757,7 +770,7 @@ void ProgArtZernike3D::zernikeModel() {
 						auto y1 = y0 + 1;
 						int z0 = FLOOR(r_z);
 						auto z1 = z0 + 1;
-						double Idiff_val = A2D_ELEM(Idiff(), i, j);
+						float Idiff_val = A2D_ELEM(Idiff(), i, j);
 						weightsInterpolation3D<false>(r_x, r_y, r_z, w);
 						if (!Vrefined().outside(z0, y0, x0))
 							A3D_ELEM(Vrefined(), z0, y0, x0) += Idiff_val * VEC_ELEM(w, 0);

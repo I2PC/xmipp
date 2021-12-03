@@ -27,11 +27,11 @@
 #ifndef _PROG_ART_ZERNIKE3D
 #define _PROG_ART_ZERNIKE3D
 
-#include "core/xmipp_metadata_program.h"
-#include "core/matrix1d.h"
-#include "core/xmipp_image.h"
-#include "data/fourier_filter.h"
-#include "data/fourier_projection.h"
+#include <core/xmipp_metadata_program.h>
+#include <core/matrix1d.h>
+#include <core/xmipp_image.h>
+#include <data/fourier_filter.h>
+#include <data/fourier_projection.h>
 #include <core/xmipp_error.h>
 
 
@@ -60,7 +60,7 @@ public:
     // Ignore CTF
     bool ignoreCTF;
     // Regularization ART
-    double lambda;
+    float lambda;
     // Save each # iter
     int save_iter;
     // Correct CTF
@@ -82,27 +82,29 @@ public:
     // Volume size
     size_t Xdim;
     // Input image
-	Image<double> V, Vrefined, I, Ip, Ifiltered, Ifilteredp;
+	Image<float> V, Vrefined, Ifilteredp;
+    // INput image
+    Image<double> I;
     // Spherical mask
     MultidimArray<int> Vmask;
 	// Theoretical projection
-	Image<double> P;
+	Image<float> P;
     // Weight Image
-    Image<double> W;
+    Image<float> W;
     // Difference Image
-    Image<double> Idiff;
+    Image<float> Idiff;
     // Transformation matrix
-    Matrix2D<double> A;
+    Matrix2D<float> A;
     // Original angles
-    double rot, tilt, psi;
+    float rot, tilt, psi;
     // Original shift
-	double shiftX, shiftY;
+	float shiftX, shiftY;
 	// Original flip
 	bool flip;
     // CTF Check
     bool hasCTF;
     // Original defocus
-	double defocusU, defocusV, defocusAngle;
+	float defocusU, defocusV, defocusAngle;
 	// CTF
 	CTFDescription ctf;
     // CTF filter
@@ -110,7 +112,7 @@ public:
 	// Vector Size
 	int vecSize;
 	// Vector containing the degree of the spherical harmonics
-	Matrix1D<double> clnm;
+	Matrix1D<float> clnm;
 	// Show optimization
 	bool showOptimization;
     // Row ids ordered in a orthogonal fashion
@@ -122,7 +124,7 @@ public:
     // Current ART iteration
     int current_iter;
     // Interpolated voxel
-    double voxelI;
+    float voxelI;
     // Volume dimensions
     int initX, endX, initY, endY, initZ, endZ;
 public:
@@ -165,11 +167,11 @@ public:
                          Matrix1D<int> &vL2, Matrix1D<int> &vM);
 
     ///Deform a volumen using Zernike-Spherical harmonic basis
-    void deformVol(MultidimArray<double> &mP, MultidimArray<double> &mW,
-                   const MultidimArray<double> &mV,
-                   double rot, double tilt, double psi);
+    void deformVol(MultidimArray<float> &mP, MultidimArray<float> &mW,
+                   const MultidimArray<float> &mV,
+                   float rot, float tilt, float psi);
 
-    // void updateCTFImage(double defocusU, double defocusV, double angle);
+    // void updateCTFImage(float defocusU, float defocusV, float angle);
 
     // ART algorithm
     template <int DIRECTION>
@@ -181,7 +183,7 @@ public:
 
     // Interpolation weights + interpolation in 3D
     template<bool INTERPOLATE>
-    void weightsInterpolation3D(double x, double y, double z, Matrix1D<double> &w);
+    void weightsInterpolation3D(float x, float y, float z, Matrix1D<float> &w);
 
     // Remove overdeformation from coefficients
     void removeOverdeformation();
