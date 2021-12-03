@@ -88,7 +88,9 @@ void ProgImageResize::readParams()
 void ProgImageResize::preProcess()
 {
     double factor=1.0;
-    double oxdim = xdimOut, oydim = ydimOut, ozdim = zdimOut;
+    double oxdim = xdimOut;
+    double oydim = ydimOut;
+    double ozdim = zdimOut;
 
     //If zdimOut greater than 1, is a volume and should apply transform
     dim = (isVol = (zdimOut > 1)) ? 3 : 2;
@@ -149,7 +151,9 @@ void ProgImageResize::preProcess()
     {
         //        if (isVol)
         //            REPORT_ERROR(ERR_PARAM_INCORRECT, "The 'fourier' scaling type is only valid for images");
-        int oxdim = xdimOut, oydim = ydimOut, ozdim = zdimOut;
+        int oxdim = xdimOut;
+        int oydim = ydimOut;
+        int ozdim = zdimOut;
         scale_type = RESIZE_FOURIER;
 
         xdimOut = getIntParam("--fourier", 0);
