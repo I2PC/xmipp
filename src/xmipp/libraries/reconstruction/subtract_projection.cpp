@@ -327,7 +327,7 @@
 		POCSmaskProj(PmaskVolI(), P());
 		POCSmaskProj(PmaskVolI(), I());
 		row.getValue(MDL_IMAGE, fnPart);
-		Pctf = applyCTF(row, P, fnPart);
+		Pctf = applyCTF(row, P);
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanP = computeRadialAvg(Pctf, radial_meanP);
 		radQuotient = computeRadQuotient(radQuotient, radial_meanI, radial_meanP);
@@ -350,7 +350,7 @@
 		if (cutFreq!=0)
 			Filter2.applyMaskSpace(IFiltered());
     	projectVolume(mask(), Pmask, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
-    	Pmaskctf = applyCTF(row, Pmask, fnPart);
+    	Pmaskctf = applyCTF(row, Pmask);
     	Pmaskctf = thresholdMask(Pmaskctf);
 		PmaskInv = invertMask(Pmaskctf);
     	FilterG.w1=sigma;
