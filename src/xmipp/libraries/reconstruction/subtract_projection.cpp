@@ -101,11 +101,6 @@
  	DIRECT_MULTIDIM_ELEM(I,n)*=DIRECT_MULTIDIM_ELEM(mask,n);
  }
 
- void POCSnonnegativeProj(MultidimArray<double> &I) {
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
- 	DIRECT_MULTIDIM_ELEM(I,n)=std::max(0.0,DIRECT_MULTIDIM_ELEM(I,n));
- }
-
  void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, const MultidimArray<double> &rQ, int Isize) {
  	int Isize2 = Isize/2;
  	double Isizei = 1.0/Isize;
@@ -123,14 +118,6 @@
  				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
  		}
  	}
- }
-
- void POCSFourierAmplitudeProj0(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda) {
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(A) {
- 		double mod = std::abs(DIRECT_MULTIDIM_ELEM(FI,n));
- 		if (mod>1e-6)
- 			DIRECT_MULTIDIM_ELEM(FI,n)*=((1-lambda)+lambda*DIRECT_MULTIDIM_ELEM(A,n))/mod;
- 		}
  }
 
  void POCSMinMaxProj(MultidimArray<double> &P, double Im, double IM) {
