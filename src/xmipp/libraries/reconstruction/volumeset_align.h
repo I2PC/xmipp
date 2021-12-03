@@ -26,12 +26,13 @@
 #define _PROG_VOLUMESET_ALIGN
 
 #include "core/xmipp_metadata_program.h"
+#include "core/rerunable_program.h"
 #include "core/matrix1d.h"
 
 /**@defgroup ProgVolumeSetAlign Volume Set Align
    @ingroup ReconsLibrary */
 //@{
-class ProgVolumeSetAlign: public XmippMetadataProgram
+class ProgVolumeSetAlign: public XmippMetadataProgram, public Rerunable
 {
 public:
 
@@ -86,13 +87,6 @@ public:
 
     /// Read arguments from command line
     void readParams();
-    
-    /** Create the processing working files.
-     * The working files are:
-     * To_Do.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * Done.xmd image already processed (could exists from a previous run)
-     */
-    virtual void createWorkFiles();
 
     /** Produce side info.
         An exception is thrown if any of the files is not found*/
@@ -107,7 +101,22 @@ public:
     /** Write the parameters found for one image */
     virtual void writeVolumeParameters(const FileName &fnImg);
 
-private:
+  protected:
+    virtual void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
+
+  private:
+
+    using Rerunable::createWorkFiles;
+
+    std::vector<MDLabel> getLabelsForEmpty() override {
+      return std::vector<MDLabel>{MDL_IMAGE,     MDL_ENABLED,    MDL_IMAGE,
+                                  MDL_ANGLE_ROT, MDL_ANGLE_TILT, MDL_ANGLE_PSI,
+                                  MDL_SHIFT_X,   MDL_SHIFT_Y,    MDL_SHIFT_Z,
+                                  MDL_MAXCC,     MDL_ANGLE_Y};
+    }
+
     void computeFitness();
    
 };
