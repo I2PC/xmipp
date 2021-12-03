@@ -68,10 +68,50 @@ void Cylindrical_Wave_Decomposition::compute_cwd(MultidimArray<double> &img)
     std::array<double,5191> ampcos = {};
     std::array<double,5191> ampsen = {};
 
-    double ac, as, bc, bs, b1, coefca, coefcb, coefsa, coefsb;
-    double d1, e1, fi, g1, h, hdpi, rh, r11, r, th, ys, x, y, zs, z, ys2;
-    int ir, ind, i1c, i1s, i2c, i2s;
-    int jr, k, kk, ntot, my, my2, my3, my4, my5, i, j, numin1, numax1;
+    double ac;
+    double as;
+    double bc;
+    double bs;
+    double b1;
+    double coefca;
+    double coefcb;
+    double coefsa;
+    double coefsb;
+    double d1;
+    double e1;
+    double fi;
+    double g1;
+    double h;
+    double hdpi;
+    double rh;
+    double r11;
+    double r;
+    double th;
+    double ys;
+    double x;
+    double y;
+    double zs;
+    double z;
+    double ys2;
+    int ir; 
+    int ind;
+    int i1c;
+    int i1s;
+    int i2c;
+    int i2s;
+    int jr;
+    int k;
+    int kk;
+    int ntot;
+    int my;
+    int my2;
+    int my3;
+    int my4;
+    int my5;
+    int i;
+    int j;
+    int numin1;
+    int numax1;
 
     rh = XMIPP_MIN(r2, x0 - 4.);
     rh = XMIPP_MIN(rh, y0 - 4.);
@@ -232,10 +272,30 @@ void Rotational_Spectrum::compute_rotational_spectrum(
     Cylindrical_Wave_Decomposition &cwd,
     double xr1, double xr2, double xdr, double xr)
 {
-    double *e[MAX_HARMONIC], *rv, *st, *ep[MAX_HARMONIC], *erp [MAX_HARMONIC],
-    *rp1, *rp2, *sp, *c, *s;
-    int n, m, i, j1, k, j, ir1, ir2, ndr, nr, ncol, nvez,
-    irk, k1;
+    double *e[MAX_HARMONIC];
+    double *rv;
+    double *st;
+    double *ep[MAX_HARMONIC];
+    double *erp [MAX_HARMONIC];
+    double *rp1;
+    double *rp2;
+    double *sp;
+    double *c;
+    double *s;
+    int n;
+    int m;
+    int i;
+    int j1;
+    int k;
+    int j;
+    int ir1;
+    int ir2;
+    int ndr;
+    int nr;
+    int ncol;
+    int nvez;
+    int irk;
+    int k1;
 
     // Read the information from the Cylindrical Wave Decomposition .........
     c = (double *) calloc(5191, sizeof(double));
