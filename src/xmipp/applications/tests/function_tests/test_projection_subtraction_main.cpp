@@ -17,8 +17,6 @@ public:
 		if (chdir(((String)(getXmippPath() + (String)"/resources/test/pocs")).c_str())==-1)
 			REPORT_ERROR(ERR_UNCLASSIFIED,"Cannot change directory");
 		pocsmask.read("pocsmask.mrc");
-		pocsnonnegative.read("pocsnonnegative.mrc");
-		pocsamplitude.read("pocsamplitude.mrc");
 		pocsamplitude_radavg.read("pocsamplitude_radavg.mrc");
 		pocsminmax.read("pocsminmax.mrc");
 		pocsphase.read("pocsphase.mrc");
@@ -35,7 +33,6 @@ protected:
     Image<double> img;
     Image<double> pocsmask;
     Image<double> pocsnonnegative;
-    Image<double> pocsamplitude;
     Image<double> pocsamplitude_radavg;
     Image<double> pocsminmax;
     Image<double> pocsphase;
@@ -61,21 +58,6 @@ TEST_F(POCSTestProj, pocsmask)
 	mask().initConstant(1);
 	POCSmaskProj(mask(), img());
 	ASSERT_EQ(img(), pocsmask());
-}
-
-TEST_F(POCSTestProj, pocsnonnegative)
-{
-	POCSnonnegativeProj(img());
-	ASSERT_EQ(img(), pocsnonnegative());
-}
-
-TEST_F(POCSTestProj, pocsamplitude)
-{
-	transformer.completeFourierTransform(img(), IFourier);
-	FFT_magnitude(IFourier,IFourierMag);
-	POCSFourierAmplitudeProj0(IFourierMag, IFourier, 1);
-	transformer.inverseFourierTransform();
-	ASSERT_EQ(img(), pocsamplitude());
 }
 
 TEST_F(POCSTestProj, pocsamplituderadAvg)
