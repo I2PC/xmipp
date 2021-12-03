@@ -101,7 +101,7 @@
     Image<double> createMask(const FileName &, Image<double> &);
     void readParticle(const MDRowVec &);
     void percentileMinMax(const MultidimArray<double> &, double &, double &) const;
-    Image<double> applyCTF(const MDRowVec &, Projection &, FileName &);
+    Image<double> applyCTF(const MDRowVec &, Projection &);
     void runIteration();
     Image<double> thresholdMask(Image<double> &);
     Image<double> binarizeMask(Projection &) const;

@@ -167,14 +167,14 @@
  	long p99;
  	long size;
  	size = img.xdim * img.ydim;
- 	p0005 = size * 0.005;
- 	p99 = size * 0.995;
+ 	p0005 = size * long(0.005);
+ 	p99 = size * long(0.995);
  	img.sort(sortedI);
- 	m = sortedI(p0005);
- 	M = sortedI(p99);
+ 	m = sortedI(int(p0005));
+ 	M = sortedI(int(p99));
  }
 
- Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj, FileName &fnpart) {
+ Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
 		hasCTF=true;
 		ctf.readFromMdRow(r);
@@ -309,7 +309,7 @@
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
 	// Sizes for padding
-	pad = XSIZE(V())/2;
+	pad = int(XSIZE(V())/2);
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
