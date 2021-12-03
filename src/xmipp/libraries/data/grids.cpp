@@ -97,7 +97,9 @@ int SimpleGrid::get_number_of_samples() const
 {
     if (R2 == -1)
     {
-        int Zdim, Ydim, Xdim;
+        int Zdim;
+        int Ydim;
+        int Xdim;
         getSize(Zdim, Ydim, Xdim);
         return Zdim*Ydim*Xdim;
     }
@@ -109,7 +111,8 @@ int SimpleGrid::get_number_of_samples() const
         auto ZZ_highest = (int) ZZ(highest);
         auto YY_highest = (int) YY(highest);
         auto XX_highest = (int) XX(highest);
-        Matrix1D<double> grid_index(3), univ_position(3);
+        Matrix1D<double> grid_index(3);
+        Matrix1D<double> univ_position(3);
         int N = 0;
         for (int k = ZZ_lowest; k <= ZZ_highest; k++)
             for (int i = YY_lowest; i <= YY_highest; i++)
@@ -144,7 +147,8 @@ void SimpleGrid::prepare_grid()
 void Grid::voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
                          const Matrix2D<double> *V) const
 {
-    Matrix1D<double> SGcorner1(3), SGcorner2(3);     // Subgrid corners
+    Matrix1D<double> SGcorner1(3);     // Subgrid corners
+    Matrix1D<double> SGcorner2(3);     // Subgrid corners
     SPEED_UP_temps012;
 
     // Look for the lowest and highest volume coordinate
@@ -159,7 +163,8 @@ void Grid::voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
             for (auto i = (int)YY(LG[n].lowest); i <= YY(LG[n].highest); i++)
                 for (auto j = (int)XX(LG[n].lowest); j <= XX(LG[n].highest); j++)
                 {
-                    Matrix1D<double> grid_index(3), univ_position(3);
+                    Matrix1D<double> grid_index(3);
+                    Matrix1D<double> univ_position(3);
                     VECTOR_R3(grid_index, j, i, k);
                     LG[n].grid2universe(grid_index, univ_position);
                     if (V != nullptr)
@@ -415,7 +420,8 @@ SimpleGrid Create_grid_within_sphere(double relative_size,
 
     // Find grid limits
     int iR = CEIL(R);
-    Matrix1D<double> univ_position(3), grid_position(3);
+    Matrix1D<double> univ_position(3);
+    Matrix1D<double> grid_position(3);
     for (int k = -iR; k <= iR; k++)
         for (int i = -iR; i <= iR; i++)
             for (int j = -iR; j <= iR; j++)
@@ -452,7 +458,9 @@ Grid Create_CC_grid(double relative_size, double R)
 
     Matrix1D<double> origin(3);
     origin.initZeros();
-    Matrix1D<double> x(3), y(3), z(3);
+    Matrix1D<double> x(3);
+    Matrix1D<double> y(3);
+    Matrix1D<double> z(3);
     VECTOR_R3(x, 1, 0, 0);
     VECTOR_R3(y, 0, 1, 0);
     VECTOR_R3(z, 0, 0, 1);
@@ -469,7 +477,9 @@ Grid Create_BCC_grid(double relative_size, double R)
 
     Matrix1D<double> origin(3);
     origin.initZeros();
-    Matrix1D<double> x(3), y(3), z(3);
+    Matrix1D<double> x(3);
+    Matrix1D<double> y(3);
+    Matrix1D<double> z(3);
     VECTOR_R3(x, 0.5, 0.5, -0.5);
     VECTOR_R3(y, 0.5, -0.5, 0.5);
     VECTOR_R3(z, -0.5, 0.5, 0.5);
@@ -486,7 +496,9 @@ Grid Create_FCC_grid(double relative_size, double R)
 
     Matrix1D<double> origin(3);
     origin.initZeros();
-    Matrix1D<double> x(3), y(3), z(3);
+    Matrix1D<double> x(3);
+    Matrix1D<double> y(3);
+    Matrix1D<double> z(3);
     VECTOR_R3(x, 0.5, 0.5, 0);
     VECTOR_R3(y, 0.5, 0, 0.5);
     VECTOR_R3(z, 0, 0.5, 0.5);
