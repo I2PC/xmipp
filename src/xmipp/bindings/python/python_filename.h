@@ -64,45 +64,45 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 /* composeBlock */
 PyObject *
-FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_composeBlock(PyObject *obj, PyObject *args);
 
 /* exists */
 PyObject *
-FileName_exists(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_exists(PyObject *obj);
 
 /* isInStack */
 PyObject *
-FileName_isInStack(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_isInStack(PyObject *obj);
 
 /* isMetadata */
 PyObject *
-FileName_isMetaData(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_isMetaData(PyObject *obj);
 
 /* isImage */
 PyObject *
-FileName_isImage(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_isImage(PyObject *obj);
 
 /* isStar1 */
 PyObject *
-FileName_isStar1(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_isStar1(PyObject *obj);
 
 PyObject *
-FileName_getExtension(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_getExtension(PyObject *obj);
 
 PyObject *
-FileName_getNumber(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_getNumber(PyObject *obj);
 
 PyObject *
-FileName_getBaseName(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_getBaseName(PyObject *obj);
 
 PyObject *
-FileName_decompose(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_decompose(PyObject *obj);
 
 PyObject *
-FileName_withoutExtension(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_withoutExtension(PyObject *obj);
 
 PyObject *
-FileName_removeBlockName(PyObject *obj, PyObject *args, PyObject *kwargs);
+FileName_removeBlockName(PyObject *obj);
 
 extern PyMethodDef FileName_methods[];
 extern PyTypeObject FileNameType;
