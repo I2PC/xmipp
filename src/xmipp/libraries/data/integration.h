@@ -97,7 +97,8 @@ class Trapeze: public doubleFunction
 {
     double s;
     doubleFunction& func; // the generic function to be NumericalIntegration
-    double a, b; // integral limits
+    double a; // integral limits
+    double b; // integral limits
     double& x; // integration variable
     double EPS; // desired accuracy
     int JMAX; // 2**(JMAX) = max number of func. evaluation
@@ -189,7 +190,8 @@ class Romberg : public doubleFunction
 {
     double s;
     doubleFunction& func; // the function to be Numerical_interationd
-    double a, b; // integral limits
+    double a; // integral limits
+    double b; // integral limits
     double& x; // integration variable
     double EPS; // desired accuracy
 
