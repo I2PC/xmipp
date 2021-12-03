@@ -208,7 +208,8 @@ void PCAMahalanobisAnalyzer::learnPCABasis(size_t NPCA, size_t Niter)
             }
         }
 
-        Matrix2D<double> CtY, X;
+        Matrix2D<double> CtY;
+        Matrix2D<double> X;
         projectOnPCABasis(CtY);
         X=CtC.inv()*CtY;
 
@@ -312,7 +313,8 @@ void PCAMahalanobisAnalyzer::learnPCABasis(size_t NPCA, size_t Niter)
    */
 void PCAMahalanobisAnalyzer::gramSchmidt()
 {
-    MultidimArray<double> v,orthonormalBasis;
+    MultidimArray<double> v;
+    MultidimArray<double> orthonormalBasis;
     for (size_t ii=0;ii<PCAbasis.size();ii++)
     {
         /// Take the current vector
