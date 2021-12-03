@@ -315,6 +315,8 @@ public:
     /// Empty constructor
     DESolver(int dim, int popSize);
 
+    DESolver(const DESolver &)=delete; // Do not use the default copy constructor
+
     /// Destructor
     virtual ~DESolver(void);
 
@@ -370,10 +372,10 @@ public:
 protected:
     void SelectSamples(int candidate,
                        int* r1,
-                       int* r2 = 0,
-                       int* r3 = 0,
-                       int* r4 = 0,
-                       int* r5 = 0);
+                       int* r2 = nullptr,
+                       int* r3 = nullptr,
+                       int* r4 = nullptr,
+                       int* r5 = nullptr);
 
     int nDim;
     int nPop;

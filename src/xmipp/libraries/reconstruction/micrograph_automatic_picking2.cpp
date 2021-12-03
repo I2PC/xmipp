@@ -35,9 +35,6 @@
 
 int flagAbort=0;
 
-AutoParticlePicking2::AutoParticlePicking2()
-{}
-
 AutoParticlePicking2::AutoParticlePicking2(int pSize, int filterNum, int corrNum, int basisPCA,
         const FileName &model_name, const std::vector<MDRowSql> &vMicList)
 {

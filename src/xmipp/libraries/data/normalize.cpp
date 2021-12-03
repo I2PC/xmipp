@@ -696,7 +696,7 @@ void ProgNormalize::show()
         std::cout << "Background mode: ";
         switch (background_mode)
         {
-        case NONE :
+        case NOBACKGROUND :
             std::cout << "None\n";
             break;
         case FRAME:

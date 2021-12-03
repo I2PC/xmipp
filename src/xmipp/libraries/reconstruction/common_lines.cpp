@@ -31,13 +31,6 @@
 #include "reconstruction/radon.h"
 #include "core/linear_system_helper.h"
 
-/* Common line ------------------------------------------------------------- */
-CommonLine::CommonLine()
-{
-    angi = angj = 0;
-    distanceij = -1;
-}
-
 /* Read parameters --------------------------------------------------------- */
 void ProgCommonLine::readParams() {
 	fn_sel = getParam("-i");
