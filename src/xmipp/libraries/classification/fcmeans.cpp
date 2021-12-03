@@ -67,9 +67,16 @@ void FuzzyCMeans::train(FuzzyCodeBook& _xmippDS, TS& _examples) const
 
     unsigned numClusters = _xmippDS.size();
     unsigned numVectors = _examples.size();
-    unsigned i, j, k;
-    double stopError = 0, auxError = 0;
-    double auxDist, auxProd, tmp, auxExp, auxSum;
+    unsigned i;
+    unsigned j;
+    unsigned k;
+    double stopError = 0;
+    double auxError = 0;
+    double auxDist;
+    double auxProd;
+    double tmp;
+    double auxExp;
+    double auxSum;
     unsigned t = 0;  // Iteration index
     FeatureVector zero(_xmippDS.theItems[0].size()) ;
     fill(zero.begin(), zero.end(), 0.0);
