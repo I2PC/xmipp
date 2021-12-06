@@ -59,6 +59,7 @@ void ProgForwardZernikeImages::readParams()
     optimizeDeformation = checkParam("--optimizeDeformation");
 	optimizeDefocus = checkParam("--optimizeDefocus");
     phaseFlipped = checkParam("--phaseFlipped");
+	useCTF = checkParam("--useCTF");
     L1 = getIntParam("--l1");
 	L2 = getIntParam("--l2");
 	loop_step = getIntParam("--step");
@@ -89,6 +90,7 @@ void ProgForwardZernikeImages::show()
     << "Zernike Degree:      " << L1                 << std::endl
     << "SH Degree:           " << L2                 << std::endl
 	<< "Step:                " << loop_step          << std::endl
+	<< "Correct CTF:         "   << useCTF           << std::endl
     << "Optimize alignment:  " << optimizeAlignment  << std::endl
     << "Optimize deformation:" << optimizeDeformation<< std::endl
 	<< "Optimize defocus:    " << optimizeDefocus    << std::endl
@@ -120,6 +122,7 @@ void ProgForwardZernikeImages::defineParams()
     addParamsLine("  [--l1 <l1=3>]                : Degree Zernike Polynomials=1,2,3,...");
 	addParamsLine("  [--l2 <l2=2>]                : Harmonical depth of the deformation=1,2,3,...");
 	addParamsLine("  [--step <step=1>]            : Voxel index step");
+	addParamsLine("  [--useCTF]                   : Correct CTF");
     addParamsLine("  [--optimizeAlignment]        : Optimize alignment");
     addParamsLine("  [--optimizeDeformation]      : Optimize deformation");
 	addParamsLine("  [--optimizeDefocus]          : Optimize defocus");
@@ -367,20 +370,20 @@ double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
 		break;
 	}
 
-	// if (hasCTF)
-    // {
-    // 	double defocusU=old_defocusU+deltaDefocusU;
-    // 	double defocusV=old_defocusV+deltaDefocusV;
-    // 	double angle=old_defocusAngle+deltaDefocusAngle;
-    // 	if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
-    // 		updateCTFImage(defocusU,defocusV,angle);
-	// 	}
-	// 	FilterCTF.ctf = ctf;
-	// 	FilterCTF.generateMask(P1());
-	// 	if (phaseFlipped)
-	// 		FilterCTF.correctPhase();
-	// 	FilterCTF.applyMaskSpace(P1());
-	// }
+	if (hasCTF)
+    {
+    	// double defocusU=old_defocusU+deltaDefocusU;
+    	// double defocusV=old_defocusV+deltaDefocusV;
+    	// double angle=old_defocusAngle+deltaDefocusAngle;
+    	// if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
+    	// 	updateCTFImage(defocusU,defocusV,angle);
+		// }
+		// FilterCTF1.ctf = ctf;
+		FilterCTF1.generateMask(P[0]());
+		if (phaseFlipped)
+			FilterCTF1.correctPhase();
+		FilterCTF1.applyMaskSpace(P[0]());
+	}
 
 
 	const MultidimArray<double> mP1=P[0]();
@@ -674,19 +677,19 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 	else
 		old_flip = false;
 	
-	// FIXME: Do we need a defocus per image??
-	// if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)))
-	// {
-	// 	hasCTF=true;
-	// 	ctf.readFromMdRow(rowIn);
-	// 	ctf.Tm = Ts;
-	// 	ctf.produceSideInfo();
-	// 	old_defocusU=ctf.DeltafU;
-	// 	old_defocusV=ctf.DeltafV;
-	// 	old_defocusAngle=ctf.azimuthal_angle;
-	// }
-	// else
-	// 	hasCTF=false;
+	// FIXME: Add defocus per image and make CTF correction available
+	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && useCTF)
+	{
+		hasCTF=true;
+		FilterCTF1.ctf.readFromMdRow(rowIn);
+		FilterCTF1.ctf.Tm = Ts;
+		FilterCTF1.ctf.produceSideInfo();
+		// old_defocusU=ctf.DeltafU;
+		// old_defocusV=ctf.DeltafV;
+		// old_defocusAngle=ctf.azimuthal_angle;
+	}
+	else
+		hasCTF=false;
 
 	for (int h=1;h<=L2;h++)
 	{
@@ -970,9 +973,11 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
     R.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
     R_inv = R.inv();
-    Matrix1D<double> pos, c, w;
+    Matrix1D<double> p, pos, c, c_rot, w;
+	p.initZeros(3);
     pos.initZeros(3);
 	c.initZeros(3);
+	c_rot.initZeros(3);
 	w.initZeros(8);
 	Vdeformed().initZeros(mV);
 
@@ -984,17 +989,16 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j+=loop_step)
 			{
 				if (A3D_ELEM(V_mask,k,i,j) == 1) {
-					ZZ(pos) = k; YY(pos) = i; XX(pos) = j;
+					ZZ(p) = k; YY(p) = i; XX(p) = j;
 					// pos = R_inv * pos;
 					// pos = R * pos;
 					double gx=0.0, gy=0.0, gz=0.0;
-					// TODO: Sacar al bucle de z
-					double k2=ZZ(pos)*ZZ(pos);
-					double kr=ZZ(pos)*iRmaxF;
-					double k2i2=k2+YY(pos)*YY(pos);
-					double ir=YY(pos)*iRmaxF;
-					double r2=k2i2+XX(pos)*XX(pos);
-					double jr=XX(pos)*iRmaxF;
+					double k2=k*k;
+					double kr=k*iRmaxF;
+					double k2i2=k2+i*i;
+					double ir=i*iRmaxF;
+					double r2=k2i2+j*j;
+					double jr=j*iRmaxF;
 					double rr=sqrt(r2)*iRmaxF;
 					for (size_t idx=0; idx<idxY0; idx++) {
 						if (VEC_ELEM(steps_cp,idx) == 1) {
@@ -1004,10 +1008,16 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 							l2 = VEC_ELEM(vL2,idx);
 							m = VEC_ELEM(vM,idx);
 							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-							XX(c) = VEC_ELEM(clnm,idx); YY(c) = VEC_ELEM(clnm,idx+idxY0); ZZ(c) = VEC_ELEM(clnm,idx+idxZ0);
+							XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
 							if (num_images == 1)
 							{
-								c = R_inv * c;
+								XX(c) = 0.0; YY(c) = 0.0; ZZ(c) = 0.0;
+								for (size_t i = 0; i < R_inv.mdimy; i++)
+									for (size_t j = 0; j < R_inv.mdimx; j++)
+										VEC_ELEM(c, i) += MAT_ELEM(R_inv, i, j) * VEC_ELEM(c_rot, j);
+							}
+							else {
+								c = c_rot;
 							}
 							if (rr>0 || l2==0) {
 								gx += XX(c)  *(zsph);
@@ -1016,8 +1026,11 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 							}
 						}
 					}
-					XX(pos) += gx; YY(pos) += gy; ZZ(pos) += gz;
-					pos = R * pos;
+					XX(p) += gx; YY(p) += gy; ZZ(p) += gz;
+					XX(pos) = 0.0; YY(pos) = 0.0; ZZ(pos) = 0.0;
+					for (size_t i = 0; i < R.mdimy; i++)
+						for (size_t j = 0; j < R.mdimx; j++)
+							VEC_ELEM(pos, i) += MAT_ELEM(R, i, j) * VEC_ELEM(p, j);
 					double voxel_mV = A3D_ELEM(mV,k,i,j);
 					splattingAtPos(pos, voxel_mV, mP, mV);
 					// int x0 = FLOOR(XX(pos));
@@ -1114,20 +1127,31 @@ Matrix1D<double> ProgForwardZernikeImages::weightsInterpolation3D(double x, doub
 
 void ProgForwardZernikeImages::splattingAtPos(Matrix1D<double> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV) {
 	// Find the part of the volume that must be updated
-	int k0 = XMIPP_MAX(FLOOR(ZZ(r) - blob_r), STARTINGZ(mV));
-	int kF = XMIPP_MIN(CEIL(ZZ(r) + blob_r), FINISHINGZ(mV));
-	int i0 = XMIPP_MAX(FLOOR(YY(r) - blob_r), STARTINGY(mV));
-	int iF = XMIPP_MIN(CEIL(YY(r) + blob_r), FINISHINGY(mV));
-	int j0 = XMIPP_MAX(FLOOR(XX(r) - blob_r), STARTINGX(mV));
-	int jF = XMIPP_MIN(CEIL(XX(r) + blob_r), FINISHINGX(mV));
+	double x_pos = XX(r);
+	double y_pos = YY(r);
+	// double z_pos = ZZ(r);
+	// int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
+	// int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
+	int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
+	int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
+	int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
+	int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
 	// Perform splatting at this position r
-	Matrix1D<double> rdiff(3);
-	for (int k = k0; k <= kF; k++)
-		for (int i = i0; i <= iF; i++)
-			for (int j = j0; j <= jF; j++)
-			{
-				VECTOR_R3(rdiff, XX(r) - j, YY(r) - i, ZZ(r) - k);
-				A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-				A2D_ELEM(mP,i,j) += weight * blob_val(rdiff.module(), blob);
-			}
+	for (int i = i0; i <= iF; i++)
+		for (int j = j0; j <= jF; j++)
+		{
+			double mod = sqrt((x_pos - j) * (x_pos - j) + (y_pos - i) * (y_pos - i));
+			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
+			A2D_ELEM(mP,i,j) += weight * blob_proj(mod, blob);
+		}
+	// The old version (following commented code) gives slightly different results
+	// Matrix1D<double> rdiff(3);
+	// for (int k = k0; k <= kF; k++)
+	// 	for (int i = i0; i <= iF; i++)
+	// 		for (int j = j0; j <= jF; j++)
+	// 		{
+	// 			VECTOR_R3(rdiff, x_pos - j, y_pos - i, z_pos - k);
+	// 			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
+	// 			A2D_ELEM(mP, i, j) += weight * blob_val(rdiff.module(), blob);
+	// 		}
 }

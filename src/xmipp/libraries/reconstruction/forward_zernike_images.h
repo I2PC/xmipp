@@ -88,6 +88,7 @@ public:
     Matrix1D<double> p;
     int flagEnabled;
     int image_mode;
+    bool useCTF;
 
 public:
     /** Resume computations */
