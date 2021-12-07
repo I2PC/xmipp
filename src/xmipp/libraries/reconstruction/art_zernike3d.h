@@ -123,8 +123,6 @@ public:
     int num_images;
     // Current ART iteration
     int current_iter;
-    // Interpolated voxel
-    float voxelI;
     // Volume dimensions
     int initX, endX, initY, endY, initZ, endZ;
 public:
@@ -173,17 +171,20 @@ public:
 
     // void updateCTFImage(float defocusU, float defocusV, float angle);
 
+  private:
+    enum class Direction { Forward, Backward };
+
     // ART algorithm
-    template <int DIRECTION>
+    template <Direction DIRECTION>
     void artModel();
 
     // Apply Zernike codeformation
-    template<bool USESZERNIKE, int DIRECTION>
+    template<bool USESZERNIKE, Direction DIRECTION>
     void zernikeModel();
 
     // Interpolation weights + interpolation in 3D
     template<bool INTERPOLATE>
-    void weightsInterpolation3D(float x, float y, float z, Matrix1D<float> &w);
+    float weightsInterpolation3D(float x, float y, float z, std::array<float, 8> &w);
 
     // Remove overdeformation from coefficients
     void removeOverdeformation();
