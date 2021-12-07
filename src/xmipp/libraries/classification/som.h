@@ -164,7 +164,8 @@ public:
      */
     virtual ~SOM()
     {}
-    ;
+
+    SOM(const SOM &)=delete; // Remove default copy constructor because Sonarcloud complains
 
     /**
      * Sets the alpha descent function

@@ -325,7 +325,7 @@ void  ProgVolumeCorrectBfactor::write_guinierfile(const FileName &fn_guinier,
         std::vector<fit_point2D> &guinierref)
 {
     std::ofstream fh;
-    fh.open((fn_guinier).c_str(), std::ios::out);
+    fh.open(fn_guinier.c_str(), std::ios::out);
     if (!fh)
         REPORT_ERROR(ERR_IO_NOWRITE, fn_guinier);
 

@@ -168,7 +168,7 @@ public:
             ts.normalize();        // Normalize input data
         }
 
-        FuzzyMap *myMap = new FuzzyMap(layout, xdim, ydim, ts);
+        auto *myMap = new FuzzyMap(layout, xdim, ydim, ts);
 
         KerDenSOM *thisSOM= new GaussianKerDenSOM(reg0, reg1, annSteps, eps, iter);        // Creates KerDenSOM Algorithm
 

@@ -152,7 +152,7 @@ FileName_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_repr(PyObject * obj)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     return PyUnicode_FromString(self->filename->c_str());
 }
 
@@ -160,7 +160,7 @@ FileName_repr(PyObject * obj)
 PyObject *
 FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     PyObject* pyStr1 = nullptr, *pyStr2 = nullptr, *pyStr3 = nullptr;
 
     if (self != nullptr)
@@ -212,7 +212,7 @@ FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self != nullptr)
     {
@@ -228,7 +228,7 @@ FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_exists(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self->filename->existsTrim())
         Py_RETURN_TRUE;
@@ -240,7 +240,7 @@ FileName_exists(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_isInStack(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self->filename->isInStack())
         Py_RETURN_TRUE;
@@ -252,7 +252,7 @@ FileName_isInStack(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_isMetaData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     try
     {
         if(self->filename->isMetaData(false))
@@ -285,7 +285,7 @@ FileName_isImage(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_isStar1(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     if (self->filename->isStar1(false))
         Py_RETURN_TRUE;
@@ -296,7 +296,7 @@ FileName_isStar1(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_getExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     return PyUnicode_FromString(self->filename->getExtension().c_str());
 }
@@ -304,7 +304,7 @@ FileName_getExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_getNumber(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     return PyLong_FromLong(self->filename->getNumber());
 }
@@ -312,7 +312,7 @@ FileName_getNumber(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_getBaseName(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
 
     return PyUnicode_FromString(self->filename->getBaseName().c_str());
 }
@@ -320,7 +320,7 @@ FileName_getBaseName(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_decompose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     size_t no;
     String str;
     self->filename->decompose(no, str);
@@ -330,13 +330,13 @@ FileName_decompose(PyObject *obj, PyObject *args, PyObject *kwargs)
 PyObject *
 FileName_withoutExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     return PyUnicode_FromString(self->filename->withoutExtension().c_str());
 }
 
 PyObject *
 FileName_removeBlockName(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
-    FileNameObject *self = (FileNameObject*) obj;
+    auto *self = (FileNameObject*) obj;
     return PyUnicode_FromString(self->filename->removeBlockName().c_str());
 }

@@ -184,7 +184,7 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         {
             int enabled;
             SF.getValue(MDL_ENABLED,enabled, objId);
-            if ( (enabled==-1)  )
+            if (enabled==-1)
             {
                 imgno++;
                 continue;
@@ -285,8 +285,8 @@ void ProgSortByStatistics::processInputPrepareSPTH(MetaData &SF, bool trained)
         size_t area=0;
         fitEllipse(nI,x0,y0,majorAxis,minorAxis,ellipAng,area);
 
-        A1D_ELEM(v2,0)=majorAxis/((img().xdim) );
-        A1D_ELEM(v2,1)=minorAxis/((img().xdim) );
+        A1D_ELEM(v2,0)=majorAxis/(img().xdim);
+        A1D_ELEM(v2,1)=minorAxis/(img().xdim);
         A1D_ELEM(v2,2)= (fabs((img().xdim)/2-x0)+fabs((img().ydim)/2-y0))/((img().xdim)/2);
         A1D_ELEM(v2,3)=area/( (double)((img().xdim)/2)*((img().ydim)/2) );
 
@@ -416,7 +416,7 @@ void ProgSortByStatistics::run()
     for (size_t objId: SF.ids())
     {
         SF.getValue(MDL_ENABLED,enabled, objId);
-        if ( (enabled==-1)  )
+        if (enabled==-1)
         {
             A1D_ELEM(finalZscore,imgno) = 1e3;
             A1D_ELEM(ZscoreShape1,imgno) = 1e3;
@@ -548,7 +548,7 @@ void ProgSortByStatistics::run()
         sortedZscoreSNR1.indexSort(sortedSNR1);
         sortedZscoreSNR2.indexSort(sortedSNR2);
         sortedZscoreHist.indexSort(sortedHist);
-        size_t numPartReject = (size_t)std::floor((per/100)*SF.size());
+        auto numPartReject = (size_t)std::floor((per/100)*SF.size());
 
         for (size_t numPar = SF.size()-1; numPar > (SF.size()-numPartReject); --numPar)
         {

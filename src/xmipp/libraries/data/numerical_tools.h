@@ -120,7 +120,7 @@ public:
         if (x>xmax) return 0;
         else
         {
-            int iaux=(int)round(x*ixstep);
+            auto iaux=(int)round(x*ixstep);
             return DIRECT_A1D_ELEM(v,iaux);
         }
     }
@@ -315,6 +315,8 @@ public:
     /// Empty constructor
     DESolver(int dim, int popSize);
 
+    DESolver(const DESolver &)=delete; // Do not use the default copy constructor
+
     /// Destructor
     virtual ~DESolver(void);
 
@@ -340,40 +342,40 @@ public:
     /// Return dimension
     int Dimension() const
     {
-        return (nDim);
+        return nDim;
     }
 
     /// Return population
     int Population() const
     {
-        return (nPop);
+        return nPop;
     }
 
     /// Call these functions after Solve() to get results.
     double Energy() const
     {
-        return (bestEnergy);
+        return bestEnergy;
     }
 
     /// Return best solution
     double* Solution(void)
     {
-        return (bestSolution);
+        return bestSolution;
     }
 
     /// Return the number of generations
     int Generations() const
     {
-        return (generations);
+        return generations;
     }
 
 protected:
     void SelectSamples(int candidate,
                        int* r1,
-                       int* r2 = 0,
-                       int* r3 = 0,
-                       int* r4 = 0,
-                       int* r5 = 0);
+                       int* r2 = nullptr,
+                       int* r3 = nullptr,
+                       int* r4 = nullptr,
+                       int* r5 = nullptr);
 
     int nDim;
     int nPop;

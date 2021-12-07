@@ -373,8 +373,8 @@ LocalAlignmentResult<T> ProgMovieAlignmentCorrelationGPU<T>::computeLocalAlignme
     size_t patchesElements = std::max(
         patchSettings.elemsFreq(),
         patchSettings.elemsSpacial());
-    T *patchesData1 = new T[patchesElements];
-    T *patchesData2 = new T[patchesElements];
+    auto *patchesData1 = new T[patchesElements];
+    auto *patchesData2 = new T[patchesElements];
 
     std::thread* processing_thread = nullptr;
 

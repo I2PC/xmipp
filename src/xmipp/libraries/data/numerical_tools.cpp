@@ -173,7 +173,7 @@ CDAB;
 /* To calculate the value of the objective function */
 void quadraticProgramming_obj32(int nparam, int j, double* x, double* fj, void* cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     Matrix2D<double> X(nparam,1);
     for (int i=0; i<nparam; ++i)
         X(i,0)=x[i];
@@ -186,7 +186,7 @@ void quadraticProgramming_obj32(int nparam, int j, double* x, double* fj, void* 
 /* To calculate the value of the jth constraint */
 void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void* cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     *gj = 0;
     for (int k = 0; k < nparam; k++)
         *gj += in->A(j - 1, k) * x[k];
@@ -196,7 +196,7 @@ void quadraticProgramming_cntr32(int nparam, int j, double* x, double* gj, void*
 /* To calculate the value of the derivative of objective function */
 void quadraticProgramming_grob32(int nparam,  double* x, double* gradfj, void *cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     Matrix2D<double> X(1,nparam);
     for (int i=0; i<nparam; ++i)
         X(0,i)=x[i];
@@ -210,7 +210,7 @@ void quadraticProgramming_grob32(int nparam,  double* x, double* gradfj, void *c
 /* To calculate the value of the derivative of jth constraint */
 void quadraticProgramming_grcn32(int nparam, int j, double *gradgj, void *cd)
 {
-    CDAB* in = (CDAB *)cd;
+    auto* in = (CDAB *)cd;
     for (int k = 0; k < nparam; k++)
         gradgj[k] = in->A(j - 1, k);
 }
@@ -374,9 +374,7 @@ void regularizedLeastSquare(const Matrix2D< double >& A,
     X.inv(Xinv);
 
     // Now multiply Xinv * A^t * d
-    x.initZeros(Nx);
-    FOR_ALL_ELEMENTS_IN_MATRIX2D(Xinv)
-    x(i) += Xinv(i,j) * Atd(j);
+    matrixOperation_Ax(Xinv, Atd, x);
 }
 
 
@@ -513,7 +511,7 @@ bool DESolver::Solve(int maxGenerations)
         }
 
     generations = generation;
-    return(bAtSolution);
+    return bAtSolution;
 }
 
 void DESolver::Best1Exp(int candidate)
@@ -739,7 +737,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r1 = (int)rnd_unif(0.0, (double)nPop);
         }
         while (*r1 == candidate);
-    }
+    } else
+    	return;
 
     if (r2)
     {
@@ -748,7 +747,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r2 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r2 == candidate) || (*r2 == *r1));
-    }
+    } else
+    	return;
 
     if (r3)
     {
@@ -757,7 +757,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r3 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r3 == candidate) || (*r3 == *r2) || (*r3 == *r1));
-    }
+    } else
+    	return;
 
     if (r4)
     {
@@ -766,7 +767,8 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
             *r4 = (int)rnd_unif(0.0, (double)nPop);
         }
         while ((*r4 == candidate) || (*r4 == *r3) || (*r4 == *r2) || (*r4 == *r1));
-    }
+    } else
+    	return;
 
     if (r5)
     {
@@ -777,8 +779,6 @@ void DESolver::SelectSamples(int candidate, int *r1, int *r2,
         while ((*r5 == candidate) || (*r5 == *r4) || (*r5 == *r3)
                || (*r5 == *r2) || (*r5 == *r1));
     }
-
-    return;
 }
 
 /* Check Randomness ------------------------------------------------------- */

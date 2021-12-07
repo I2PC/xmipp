@@ -176,7 +176,7 @@ void ProgConvImg::readParams()
 
     if (checkParam("--depth"))
     {
-        String depthTemp = (String)getParam("--depth");
+        auto depthTemp = (String)getParam("--depth");
         if (depthTemp != "default")
             depth = "%" + depthTemp;
     }

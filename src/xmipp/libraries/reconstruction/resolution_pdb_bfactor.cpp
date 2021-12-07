@@ -242,7 +242,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 		bf = bfactor_per_residue[nn];
 		resnumber = resNumberList[nn];
 
-		int idx_resnumber = (int) resnumber;
+		auto idx_resnumber = (int) resnumber;
 
 		lr = smoothedResolution[nn];
 		residuesToChimera_aux[idx_resnumber-1] = lr;
@@ -278,7 +278,7 @@ void ProgResBFactor::estimatingResolutionOfResidue(int k, int i, int j, int totR
 		size_t jj2kk2 = jj * jj + kk2;
 		for (size_t ii = 0; ii<totRad; ++ii)
 		{
-			size_t dist2 = (ii)*(ii) + (jj)*(jj) + (kk)*(kk);
+			size_t dist2 = ii*ii + jj*jj + kk*kk;
 			if (dist2 <= dim)
 			{
 				A3D_ELEM(mask, k-kk, i-ii, j-jj) = 1;
@@ -361,7 +361,7 @@ void ProgResBFactor::generateOutputPDB(const std::vector<double> &residuesToChim
 			std::string lineEnd = line.substr(66,  std::string::npos);
 
                         // The residue is read
-			int resi = (int) textToFloat(line.substr(23,5));
+			auto resi = (int) textToFloat(line.substr(23,5));
 			std::string lineMiddle;
 			int digitNumber = 5;
 			
