@@ -226,11 +226,11 @@ class Config:
         runJob("rm -v xmipp_test_opencv*", show_output=False)
 
     def get_supported_GCC(self):
-        # we need GCC with C++14 support
+        # we need GCC with C++17 support
         # https://gcc.gnu.org/projects/cxx-status.html
         return ['', 11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
                 9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
-                7.5, 7.4, 7.3, 7.2, 7.1, 7, 6.5, 6.4, 6.3, 6.2, 6.1, 6]
+                7.5, 7.4, 7.3, 7.2, 7.1, 7]
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
         if not self.is_empty(opt):
@@ -264,7 +264,7 @@ class Config:
             # optimize for current machine
             self.configDict["CXXFLAGS"] += " -mtune=native -march=native -flto"
             if "-std=c99" not in self.configDict["CXXFLAGS"]:
-                self.configDict["CXXFLAGS"] += " -std=c++14"
+                self.configDict["CXXFLAGS"] += " -std=c++17"
             if isCIBuild():
                 # don't tolerate any warnings on build machine
                 self.configDict["CXXFLAGS"] += " -Werror"
