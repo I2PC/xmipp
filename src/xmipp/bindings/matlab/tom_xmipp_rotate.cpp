@@ -74,7 +74,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
         getMatrix2D(prhs[0],img());
         if (MAT_XSIZE(A2D) != 0)
         {
-			applyGeometry(BSPLINE3,img_out(), img(), A2D, IS_NOT_INV, wrap);
+			applyGeometry(xmipp_transformation::BSPLINE3,img_out(), img(), 
+                          A2D, xmipp_transformation::IS_NOT_INV, wrap);
 			setMatrix2D(img_out(),plhs[0]);
         }
         else 
@@ -86,7 +87,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
     {
         Image<double> vol, vol_out;
         getMatrix3D(prhs[0],vol());
-		applyGeometry(BSPLINE3, vol_out(), vol(), A3D, IS_NOT_INV, wrap);
+		applyGeometry(xmipp_transformation::BSPLINE3, vol_out(), vol(), 
+                      A3D, xmipp_transformation::IS_NOT_INV, wrap);
 		setMatrix3D(vol_out(),plhs[0]);
     }
 }
