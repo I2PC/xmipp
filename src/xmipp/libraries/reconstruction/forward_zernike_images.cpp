@@ -90,7 +90,7 @@ void ProgForwardZernikeImages::show()
     << "Zernike Degree:      " << L1                 << std::endl
     << "SH Degree:           " << L2                 << std::endl
 	<< "Step:                " << loop_step          << std::endl
-	<< "Correct CTF:         "   << useCTF           << std::endl
+	<< "Correct CTF:         " << useCTF             << std::endl
     << "Optimize alignment:  " << optimizeAlignment  << std::endl
     << "Optimize deformation:" << optimizeDeformation<< std::endl
 	<< "Optimize defocus:    " << optimizeDefocus    << std::endl
@@ -952,11 +952,6 @@ void ProgForwardZernikeImages::rotateCoefficients() {
 void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const MultidimArray<double> &mV, double &def,
                                         double rot, double tilt, double psi)
 {
-    int l1,n,l2,m;
-	l1 = 0;
-	n = 0;
-	l2 = 0;
-	m = 0;
 	size_t idxY0=(VEC_XSIZE(clnm)-algn_params-ctf_params)/3;
 	double Ncount=0.0;
     double modg=0.0;
@@ -973,23 +968,33 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
     R.initIdentity(3);
     Euler_angles2matrix(rot, tilt, psi, R, false);
     R_inv = R.inv();
-    Matrix1D<double> p, pos, c, c_rot, w;
-	p.initZeros(3);
-    pos.initZeros(3);
-	c.initZeros(3);
-	c_rot.initZeros(3);
-	w.initZeros(8);
-	Vdeformed().initZeros(mV);
+    // Matrix1D<double> p, pos, c, c_rot, w;
+	// p.initZeros(3);
+    // pos.initZeros(3);
+	// c.initZeros(3);
+	// c_rot.initZeros(3);
+	// w.initZeros(8);
+	// Vdeformed().initZeros(mV);
+
+	auto stepsMask = std::vector<size_t>();
+    for (size_t idx = 0; idx < idxY0; idx++) {
+      if (1 == VEC_ELEM(steps_cp, idx)) {
+        stepsMask.emplace_back(idx);
+      }
+	}
 
 	// TODO: Poner primero i y j en el loop, acumular suma y guardar al final
-	for (int k=STARTINGZ(mV); k<=FINISHINGZ(mV); k+=loop_step)
+	const auto lastZ = FINISHINGZ(mV);
+	const auto lastY = FINISHINGY(mV);
+	const auto lastX = FINISHINGX(mV);
+	for (int k=STARTINGZ(mV); k<=lastZ; k+=loop_step)
 	{
-		for (int i=STARTINGY(mV); i<=FINISHINGY(mV); i+=loop_step)
+		for (int i=STARTINGY(mV); i<=lastY; i+=loop_step)
 		{
-			for (int j=STARTINGX(mV); j<=FINISHINGX(mV); j+=loop_step)
+			for (int j=STARTINGX(mV); j<=lastX; j+=loop_step)
 			{
 				if (A3D_ELEM(V_mask,k,i,j) == 1) {
-					ZZ(p) = k; YY(p) = i; XX(p) = j;
+					// ZZ(p) = k; YY(p) = i; XX(p) = j;
 					// pos = R_inv * pos;
 					// pos = R * pos;
 					double gx=0.0, gy=0.0, gz=0.0;
@@ -1000,37 +1005,48 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 					double r2=k2i2+j*j;
 					double jr=j*iRmaxF;
 					double rr=sqrt(r2)*iRmaxF;
-					for (size_t idx=0; idx<idxY0; idx++) {
-						if (VEC_ELEM(steps_cp,idx) == 1) {
-							double zsph=0.0;
-							l1 = VEC_ELEM(vL1,idx);
-							n = VEC_ELEM(vN,idx);
-							l2 = VEC_ELEM(vL2,idx);
-							m = VEC_ELEM(vM,idx);
-							zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
-							XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
-							if (num_images == 1)
-							{
-								XX(c) = 0.0; YY(c) = 0.0; ZZ(c) = 0.0;
-								for (size_t i = 0; i < R_inv.mdimy; i++)
-									for (size_t j = 0; j < R_inv.mdimx; j++)
-										VEC_ELEM(c, i) += MAT_ELEM(R_inv, i, j) * VEC_ELEM(c_rot, j);
-							}
-							else {
-								c = c_rot;
-							}
-							if (rr>0 || l2==0) {
-								gx += XX(c)  *(zsph);
-								gy += YY(c)  *(zsph);
-								gz += ZZ(c)  *(zsph);
-							}
+					for (auto idx : stepsMask) {
+						auto l1 = VEC_ELEM(vL1,idx);
+						auto n = VEC_ELEM(vN,idx);
+						auto l2 = VEC_ELEM(vL2,idx);
+						auto m = VEC_ELEM(vM,idx);
+						auto zsph=ZernikeSphericalHarmonics(l1,n,l2,m,jr,ir,kr,rr);
+						auto c = std::array<double, 3>{};
+						// XX(c_rot) = VEC_ELEM(clnm,idx); YY(c_rot) = VEC_ELEM(clnm,idx+idxY0); ZZ(c_rot) = VEC_ELEM(clnm,idx+idxZ0);
+						if (num_images == 1)
+						{
+							double c_x = VEC_ELEM(clnm,idx);
+							double c_y = VEC_ELEM(clnm,idx+idxY0);
+							double c_z = VEC_ELEM(clnm,idx+idxZ0);
+							c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
+							c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
+							c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
+						}
+						else {
+							c[0] = VEC_ELEM(clnm,idx);
+							c[1] = VEC_ELEM(clnm,idx+idxY0);
+							c[2] = VEC_ELEM(clnm,idx+idxZ0);
+						}
+						if (rr>0 || l2==0) {
+							gx += c[0]  *(zsph);
+							gy += c[1]  *(zsph);
+							gz += c[2]  *(zsph);
 						}
 					}
-					XX(p) += gx; YY(p) += gy; ZZ(p) += gz;
-					XX(pos) = 0.0; YY(pos) = 0.0; ZZ(pos) = 0.0;
-					for (size_t i = 0; i < R.mdimy; i++)
-						for (size_t j = 0; j < R.mdimx; j++)
-							VEC_ELEM(pos, i) += MAT_ELEM(R, i, j) * VEC_ELEM(p, j);
+					// XX(p) += gx; YY(p) += gy; ZZ(p) += gz;
+					// XX(pos) = 0.0; YY(pos) = 0.0; ZZ(pos) = 0.0;
+					// for (size_t i = 0; i < R.mdimy; i++)
+					// 	for (size_t j = 0; j < R.mdimx; j++)
+					// 		VEC_ELEM(pos, i) += MAT_ELEM(R, i, j) * VEC_ELEM(p, j);
+
+					auto pos = std::array<double, 3>{};
+					double r_x = j + gx;
+					double r_y = i + gy;
+					double r_z = k + gz;
+					pos[0] = R.mdata[0] * r_x + R.mdata[1] * r_y + R.mdata[2] * r_z;
+					pos[1] = R.mdata[3] * r_x + R.mdata[4] * r_y + R.mdata[5] * r_z;
+					pos[2] = R.mdata[6] * r_x + R.mdata[7] * r_y + R.mdata[8] * r_z;
+					
 					double voxel_mV = A3D_ELEM(mV,k,i,j);
 					splattingAtPos(pos, voxel_mV, mP, mV);
 					// int x0 = FLOOR(XX(pos));
@@ -1125,11 +1141,11 @@ Matrix1D<double> ProgForwardZernikeImages::weightsInterpolation3D(double x, doub
 	return w;
 }
 
-void ProgForwardZernikeImages::splattingAtPos(Matrix1D<double> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV) {
+void ProgForwardZernikeImages::splattingAtPos(std::array<double, 3> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV) {
 	// Find the part of the volume that must be updated
-	double x_pos = XX(r);
-	double y_pos = YY(r);
-	// double z_pos = ZZ(r);
+	double x_pos = r[0];
+	double y_pos = r[1];
+	// double z_pos = r[2];
 	// int k0 = XMIPP_MAX(FLOOR(z_pos - blob_r), STARTINGZ(mV));
 	// int kF = XMIPP_MIN(CEIL(z_pos + blob_r), FINISHINGZ(mV));
 	int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
@@ -1137,6 +1153,7 @@ void ProgForwardZernikeImages::splattingAtPos(Matrix1D<double> r, double weight,
 	int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
 	int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
 	// Perform splatting at this position r
+	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
 	for (int i = i0; i <= iF; i++)
 		for (int j = j0; j <= jF; j++)
 		{

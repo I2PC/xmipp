@@ -207,7 +207,7 @@ public:
 
     Matrix1D<double> weightsInterpolation3D(double x, double y, double z);
     
-    void splattingAtPos(Matrix1D<double> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV);
+    void splattingAtPos(std::array<double, 3> r, double weight, MultidimArray<double> &mP, const MultidimArray<double> &mV);
 
 protected:
     void createWorkFiles() { return Rerunable::createWorkFiles(resume, getInputMd()); }
