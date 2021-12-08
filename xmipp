@@ -379,7 +379,6 @@ def getScipionHome():
 
 
 def compileModule(Nproc,module):
-    shutil.copyfile(Config.FILE_NAME,"src/%s/install/%s" % (module, Config.FILE_NAME))
     if module == "xmipp":
         stampVersion()
     log = []
