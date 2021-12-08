@@ -207,7 +207,7 @@ public:
     /** Preprocess */
     void preProcess();
     /** finishProcessing */
-    void finishProcessing();
+    virtual void finishProcessing() {};
     /** Get task to process */
     bool getTaskToProcess(size_t &objId, size_t &objIndex);
 };
@@ -216,23 +216,18 @@ public:
  * of a program based on XmippMetaDataProgram */
 template <typename BASE_CLASS>
 class BasicMpiMetadataProgram : public BASE_CLASS, public MpiMetadataProgram {
-public:
-  void read(int argc, char **argv, bool reportErrors = true) {
-    MpiMetadataProgram::read(argc, argv);
-  }
-
 protected:
-  void defineParams() {
+  void defineParams() override {
     BASE_CLASS::defineParams();
     MpiMetadataProgram::defineParams();
   }
 
-  void readParams() {
+  void readParams() override {
     MpiMetadataProgram::readParams();
     BASE_CLASS::readParams();
   }
 
-  void preProcess() {
+  void preProcess() override {
     BASE_CLASS::preProcess();
     MetaData &mdIn = *this->getInputMd();
     mdIn.addLabel(MDL_GATHER_ID);
@@ -259,7 +254,7 @@ protected:
     return getTaskToProcess(objId, objIndex);
   }
 
-  void finishProcessing() {
+  void finishProcessing() override {
     node->gatherMetadatas(this->getOutputMd(), BASE_CLASS::fn_out);
     MetaDataVec MDaux;
     MDaux.sort(this->getOutputMd(), MDL_GATHER_ID);
