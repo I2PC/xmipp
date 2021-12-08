@@ -205,9 +205,9 @@ public:
     /** Create task distributor */
     void createTaskDistributor(MetaData &mdIn, size_t blockSize = 0);
     /** Preprocess */
-    void preProcess();
+    virtual void preProcess() { /* nothing to do */ };
     /** finishProcessing */
-    virtual void finishProcessing() {};
+    virtual void finishProcessing() { /* nothing to do */ };
     /** Get task to process */
     bool getTaskToProcess(size_t &objId, size_t &objIndex);
 };
