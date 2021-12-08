@@ -187,7 +187,7 @@ public:
     void deformVol(MultidimArray<double> &mVD, const MultidimArray<double> &mV, double &def,
                    double rot, double tilt, double psi);
 
-    // void updateCTFImage(double defocusU, double defocusV, double angle);
+    void updateCTFImage(double defocusU, double defocusV, double angle);
 
     double tranformImageSph(double *pclnm);
 

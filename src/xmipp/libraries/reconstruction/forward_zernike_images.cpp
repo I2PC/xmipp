@@ -372,12 +372,12 @@ double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
 
 	if (hasCTF)
     {
-    	// double defocusU=old_defocusU+deltaDefocusU;
-    	// double defocusV=old_defocusV+deltaDefocusV;
-    	// double angle=old_defocusAngle+deltaDefocusAngle;
-    	// if (defocusU!=currentDefocusU || defocusV!=currentDefocusV || angle!=currentAngle) {
-    	// 	updateCTFImage(defocusU,defocusV,angle);
-		// }
+    	double defocusU=old_defocusU[0]+deltaDefocusU[0];
+    	double defocusV=old_defocusV[0]+deltaDefocusV[0];
+    	double angle=old_defocusAngle[0]+deltaDefocusAngle[0];
+    	if (defocusU!=currentDefocusU[0] || defocusV!=currentDefocusV[0] || angle!=currentAngle[0]) {
+    		updateCTFImage(defocusU,defocusV,angle);
+		}
 		// FilterCTF1.ctf = ctf;
 		FilterCTF1.generateMask(P[0]());
 		if (phaseFlipped)
@@ -577,9 +577,9 @@ double continuousZernikeCost(double *x, void *_prm)
 		prm->deltaRot[0] = x[idx + 3];
 		prm->deltaTilt[0] = x[idx + 4];
 		prm->deltaPsi[0] = x[idx + 5];
-		// prm->deltaDefocusU[0]=x[idx + 6];
-		// prm->deltaDefocusV[0]=x[idx + 7];
-		// prm->deltaDefocusAngle[0]=x[idx + 8];
+		prm->deltaDefocusU[0]=x[idx + 6];
+		prm->deltaDefocusV[0]=x[idx + 7];
+		prm->deltaDefocusAngle[0]=x[idx + 8];
 
 		MAT_ELEM(prm->A1, 0, 2) = prm->old_shiftX[0] + prm->deltaX[0];
 		MAT_ELEM(prm->A1, 1, 2) = prm->old_shiftY[0] + prm->deltaY[0];
@@ -684,9 +684,9 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
 		FilterCTF1.ctf.readFromMdRow(rowIn);
 		FilterCTF1.ctf.Tm = Ts;
 		FilterCTF1.ctf.produceSideInfo();
-		// old_defocusU=ctf.DeltafU;
-		// old_defocusV=ctf.DeltafV;
-		// old_defocusAngle=ctf.azimuthal_angle;
+		old_defocusU[0]=FilterCTF1.ctf.DeltafU;
+		old_defocusV[0]=FilterCTF1.ctf.DeltafV;
+		old_defocusAngle[0]=FilterCTF1.ctf.azimuthal_angle;
 	}
 	else
 		hasCTF=false;
@@ -918,14 +918,14 @@ void ProgForwardZernikeImages::fillVectorTerms(int l1, int l2, Matrix1D<int> &vL
     }
 }
 
-// void ProgForwardZernikeImages::updateCTFImage(double defocusU, double defocusV, double angle)
-// {
-// 	ctf.K=1; // get pure CTF with no envelope
-// 	currentDefocusU=ctf.DeltafU=defocusU;
-// 	currentDefocusV=ctf.DeltafV=defocusV;
-// 	currentAngle=ctf.azimuthal_angle=angle;
-// 	ctf.produceSideInfo();
-// }
+void ProgForwardZernikeImages::updateCTFImage(double defocusU, double defocusV, double angle)
+{
+	FilterCTF1.ctf.K=1; // get pure CTF with no envelope
+	currentDefocusU[0]=FilterCTF1.ctf.DeltafU=defocusU;
+	currentDefocusV[0]=FilterCTF1.ctf.DeltafV=defocusV;
+	currentAngle[0]=FilterCTF1.ctf.azimuthal_angle=angle;
+	FilterCTF1.ctf.produceSideInfo();
+}
 
 void ProgForwardZernikeImages::rotateCoefficients() {
 	int pos = 3*vecSize;
