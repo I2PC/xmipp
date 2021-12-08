@@ -134,13 +134,13 @@ def appendUnique(elist, element):
 cf = ConfigParser()
 cf.optionxform = str  # keep case (stackoverflow.com/questions/1611799)
 try:
-    if not os.path.exists("install/xmipp.conf"):
-        shutil.copy("install/xmipp.template", "install/xmipp.conf")
-    cf.read("install/xmipp.conf")        
+    cf.read_file(open("../../xmipp.conf"))
+except OSError:
+    sys.exit("Config file not found.")
 except ParsingError:
-    sys.exit("%s\nPlease fix the configuration file install/xmipp.conf." % sys.exc_info()[1])
+    sys.exit("%s\nError while parsing the config file." % sys.exc_info()[1])
 if not 'BUILD' in cf.sections():
-    print("Cannot find section BUILD in install/xmipp.conf")
+    print("Cannot find section BUILD in the config file.")
 os.environ.update(dict(cf.items('BUILD')))
 
 env['CPPPATH'] = os.environ.get('CPPPATH', [])
