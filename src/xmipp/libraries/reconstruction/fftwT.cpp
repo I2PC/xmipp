@@ -24,6 +24,10 @@
  ***************************************************************************/
 
 #include "fftwT.h"
+#include "core/xmipp_error.h"
+#include <array>
+#include <typeinfo>
+#include <mutex>
 
 // Make sure that the class is initialized
 FFTwT_Startup fftwt_startup;
@@ -378,6 +382,9 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function,
     fftw_plan_with_nthreads(threads);
     fftwf_plan_with_nthreads(threads);
 
+    // planning is not thread safe -> lock it
+    static std::mutex mutex;
+    const std::lock_guard<std::mutex> lock(mutex);
     auto tmp = function(rank, &n[offset], settings.batch(),
             in, nullptr,
             1, idist,
