@@ -214,68 +214,63 @@ public:
 
 /** Macro to define a simple MPI parallelization
  * of a program based on XmippMetaDataProgram */
-#define CREATE_MPI_METADATA_PROGRAM(baseClassName, mpiClassName) \
-class mpiClassName: public baseClassName, public MpiMetadataProgram\
-{\
-public:\
-    void defineParams()\
-    {\
-        baseClassName::defineParams();\
-        MpiMetadataProgram::defineParams();\
-    }\
-    void readParams()\
-    {\
-        MpiMetadataProgram::readParams();\
-        baseClassName::readParams();\
-    }\
-    void read(int argc, char **argv, bool reportErrors = true)\
-    {\
-        MpiMetadataProgram::read(argc,argv);\
-    }\
-    void preProcess()\
-    {\
-        baseClassName::preProcess();\
-        MetaData &mdIn = *getInputMd();\
-        mdIn.addLabel(MDL_GATHER_ID);\
-        mdIn.fillLinear(MDL_GATHER_ID,1,1);\
-        createTaskDistributor(mdIn, blockSize);\
-    }\
-    void startProcessing()\
-    {\
-        if (node->rank==1)\
-        { \
-        	verbose=1; \
-            baseClassName::startProcessing();\
-        } \
-        node->barrierWait();\
-    }\
-    void showProgress()\
-    {\
-        if (node->rank==1)\
-        {\
-            time_bar_done=first+1;\
-            baseClassName::showProgress();\
-        }\
-    }\
-    bool getImageToProcess(size_t &objId, size_t &objIndex) override\
-    {\
-        return getTaskToProcess(objId, objIndex);\
-    }\
-    void finishProcessing()\
-    {\
-        node->gatherMetadatas(getOutputMd(), fn_out);\
-    	MetaDataVec MDaux; \
-    	MDaux.sort(getOutputMd(), MDL_GATHER_ID); \
-        MDaux.removeLabel(MDL_GATHER_ID); \
-        getOutputMd() = MDaux; \
-        if (node->isMaster())\
-            baseClassName::finishProcessing();\
-    }\
-    void wait()\
-    {\
-		distributor->wait();\
-    }\
-};\
+template <typename BASE_CLASS>
+class BasicMpiMetadataProgram : public BASE_CLASS, public MpiMetadataProgram {
+public:
+  void read(int argc, char **argv, bool reportErrors = true) {
+    MpiMetadataProgram::read(argc, argv);
+  }
+
+protected:
+  void defineParams() {
+    BASE_CLASS::defineParams();
+    MpiMetadataProgram::defineParams();
+  }
+
+  void readParams() {
+    MpiMetadataProgram::readParams();
+    BASE_CLASS::readParams();
+  }
+
+  void preProcess() {
+    BASE_CLASS::preProcess();
+    MetaData &mdIn = *this->getInputMd();
+    mdIn.addLabel(MDL_GATHER_ID);
+    mdIn.fillLinear(MDL_GATHER_ID, 1, 1);
+    createTaskDistributor(mdIn, blockSize);
+  }
+
+  void startProcessing() {
+    if (node->rank == 1) {
+      verbose = 1;
+      BASE_CLASS::startProcessing();
+    }
+    node->barrierWait();
+  }
+
+  void showProgress() {
+    if (node->rank == 1) {
+      BASE_CLASS::time_bar_done = first + 1;
+      BASE_CLASS::showProgress();
+    }
+  }
+
+  bool getImageToProcess(size_t &objId, size_t &objIndex) override {
+    return getTaskToProcess(objId, objIndex);
+  }
+
+  void finishProcessing() {
+    node->gatherMetadatas(this->getOutputMd(), BASE_CLASS::fn_out);
+    MetaDataVec MDaux;
+    MDaux.sort(this->getOutputMd(), MDL_GATHER_ID);
+    MDaux.removeLabel(MDL_GATHER_ID);
+    this->getOutputMd() = MDaux;
+    if (node->isMaster())
+      BASE_CLASS::finishProcessing();
+  }
+
+  void wait() { distributor->wait(); }
+};
 
 /** MPI Reduce with memory constraint.
  * MPI_Reduce may give a segmentation fault when sharing large objects
