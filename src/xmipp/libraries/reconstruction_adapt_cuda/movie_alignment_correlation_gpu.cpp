@@ -520,10 +520,13 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                 Image<double> croppedFrameDouble;
                 Image<double> reducedFrameDouble;
                 typeCast(croppedFrame, croppedFrameDouble());
-
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame) / binning),
-                        floor(XSIZE(croppedFrame) / binning),
-                        croppedFrameDouble(), reducedFrameDouble());
+                auto scale = [binning](auto dim) {
+                  return static_cast<int>(
+                      std::floor(static_cast<T>(dim) / binning));
+                };
+                scaleToSizeFourier(1, scale(croppedFrame.ydim),
+                                   scale(croppedFrame.xdim),
+                                   croppedFrameDouble(), reducedFrameDouble());
 
                 typeCast(reducedFrameDouble(), reducedFrame());
                 croppedFrame.clear(); // forget whatever it pointed to before
