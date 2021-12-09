@@ -131,7 +131,7 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
     double tot_nr_imgs = 0;
     // Oversample the 1D CTF and Wiener filter vectors OVERSAMPLE times
     // Use 0.55*sqrt(3) to make sure all pixels fit in...
-    size_t nr_steps= (size_t)ceil(OVERSAMPLE * 0.55 * sqrt((double)(Zdim*Zdim + Ydim*Ydim + Xdim*Xdim)));
+    auto nr_steps= (size_t)ceil(OVERSAMPLE * 0.55 * sqrt((double)(Zdim*Zdim + Ydim*Ydim + Xdim*Xdim)));
 
     Vctfs1D.clear();
     Vwien1D.clear();
@@ -181,7 +181,7 @@ void ProgCtfCorrectAmplitude3D::generateWienerFilters()
             FileName fn_tmp;
             fn_tmp = fnRoot + "_wien";
             fn_tmp.compose(fn_tmp, ii+1, "txt");
-            fh.open((fn_tmp).c_str(), std::ios::out);
+            fh.open(fn_tmp.c_str(), std::ios::out);
             if (!fh)
                 REPORT_ERROR(ERR_IO_NOWRITE, fn_tmp);
             for (size_t step = 0; step < nr_steps; step++)
@@ -234,7 +234,7 @@ void ProgCtfCorrectAmplitude3D::generateVolumes()
             YY(idx) = i;
             ZZ(idx) = k;
             FFT_idx2digfreq(fft, idx, freq);
-            int ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
+            auto ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
                                                  YY(freq)*YY(freq)*Ydim2+
                                                  ZZ(freq)*ZZ(freq)*Zdim2));
             A3D_ELEM(fft_out,k,i,j)+=A1D_ELEM(Vwien1D_ii,ires)*A3D_ELEM(fft,k,i,j);
@@ -260,7 +260,7 @@ void ProgCtfCorrectAmplitude3D::generateVolumes()
             YY(idx) = i;
             ZZ(idx) = k;
             FFT_idx2digfreq(fft, idx, freq);
-            int ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
+            auto ires= (int)round(OVERSAMPLE*sqrt(XX(freq)*XX(freq)*Xdim2+
                                                  YY(freq)*YY(freq)*Ydim2+
                                                  ZZ(freq)*ZZ(freq)*Zdim2));
             A3D_ELEM(fft,k,i,j)+=A1D_ELEM(Vwien1D_ii,ires)*A3D_ELEM(fft_out,k,i,j);

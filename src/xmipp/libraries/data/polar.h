@@ -697,7 +697,7 @@ public:
         for (size_t iring = 0; iring < rings.size(); iring++)
         {
             (out.arrays)[iring] = rings[iring];
-            FourierTransformer *ptr_transformer = new FourierTransformer();
+            auto *ptr_transformer = new FourierTransformer();
             ptr_transformer->setReal((out.arrays)[iring]);
             out.transformers.push_back(ptr_transformer);
         }

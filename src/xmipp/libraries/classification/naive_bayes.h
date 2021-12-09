@@ -80,40 +80,49 @@ public:
 class NaiveBayes
 {
 public:
-    // Number of classes
+    /// Number of classes
     int K;
 
-    // Number of features
+    /// Number of features
     int Nfeatures;
 
-    // Prior probabilities of the classes
+    /// Prior probabilities of the classes
     Matrix1D<double> __priorProbsLog10;
 
-    // Weight of each feature
+    /// Weight of each feature
     MultidimArray<double> __weights;
 
-    // The vector containing the Leafs (as many leafs as features)   
+    /// The vector containing the Leafs (as many leafs as features)
     std::vector<LeafNode*>  __leafs;
     
-    // Cost matrix
-    // C(i,j) is the cost of predicting class j when the true
-    // class is class i.
+    /** Cost matrix
+        C(i,j) is the cost of predicting class j when the true
+       class is class i.*/
     Matrix2D<double> __cost;
 
 public:
     // Dummy leaf for non-classificatory features
     LeafNode *dummyLeaf;
 public:	
-    // Constructor
+    /// Constructor
     NaiveBayes(
         const std::vector < MultidimArray<double> >  &features,
         const Matrix1D<double> &priorProbs,
         int discreteLevels);
 
-    // Destructor
+    /// Destructor
     ~NaiveBayes();
 
-    // Set cost matrix
+    // Copy constructor
+    NaiveBayes(const NaiveBayes &other)
+    {
+    	*this=other;
+    }
+
+    /// Assignment
+    NaiveBayes & operator=(const NaiveBayes &other);
+
+    /// Set cost matrix
     void setCostMatrix(const Matrix2D<double> &cost);
 
     /** Returns the class with the largest probability given a set of features.
@@ -133,19 +142,19 @@ public:
 class EnsembleNaiveBayes
 {
 public:
-    // Ensemble of classifiers
+    /// Ensemble of classifiers
     std::vector< NaiveBayes * > ensemble;
     
-    // Ensemble of features for each classifier
+    /// Ensemble of features for each classifier
     std::vector< MultidimArray<int> > ensembleFeatures;
     
-    // Number of classes
+    /// Number of classes
     int K;
     
-    // Judge combination
+    /// Judge combination
     std::string judgeCombination;
 public:
-    // Constructor
+    /// Constructor
     EnsembleNaiveBayes(
         const std::vector < MultidimArray<double> >  &features,
         const Matrix1D<double> &priorProbs,
@@ -153,13 +162,22 @@ public:
         double samplingFeatures, double samplingIndividuals,
         const std::string &newJudgeCombination);
 
-    // Destructor
+    /// Destructor
     ~EnsembleNaiveBayes();
 
-    // Set cost matrix
+    /// Copy constructor
+    EnsembleNaiveBayes(const EnsembleNaiveBayes &other)
+    {
+    	*this=other;
+    }
+
+    /// Assignment
+    EnsembleNaiveBayes & operator=(const EnsembleNaiveBayes &other);
+
+    /// Set cost matrix
     void setCostMatrix(const Matrix2D<double> &cost);
 
-    // Returns the class with the largest probability given a set of features
+    /// Returns the class with the largest probability given a set of features
     int doInference(const Matrix1D<double> &newFeatures, double &cost,
         MultidimArray<int> &votes,
 		Matrix1D<double> &classesProbs, Matrix1D<double> &allCosts);

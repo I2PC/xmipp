@@ -194,7 +194,7 @@ void ProgRecFourierAccel::produceSideinfo()
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"This algorithm only works for squared images");
     imgSize=Xdim;
     paddedImgSize = Xdim*padding_factor_vol;
-	size_t conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
+	auto conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
 	conserveRows = (size_t) ceil((double) conserveRows / 2.0);
 	maxVolumeIndexX = maxVolumeIndexYZ = 2 * conserveRows;
 
@@ -273,7 +273,7 @@ Array2D<std::complex<float> >* ProgRecFourierAccel::cropAndShift(MultidimArray<s
 	int sizeX = parent->maxVolumeIndexX / 2; // input Fourier contains just one half of the space, second is complex conjugate
 	int sizeY = parent->maxVolumeIndexYZ;
 
-	Array2D<std::complex<float> >* result = new Array2D<std::complex<float> >(sizeX, sizeY);
+	auto* result = new Array2D<std::complex<float> >(sizeX, sizeY);
 	// convert image (shift to center and remove high frequencies)
 	std::complex<double> paddedFourierTmp;
 	int halfY = paddedFourier.ydim / 2;
@@ -351,8 +351,8 @@ void ProgRecFourierAccel::preloadBuffer(LoadThreadParams* threadParams,
 		data->img = cropAndShift(localPaddedFourier, parent);
 		data->imgIndex = imgIndex;
 		if (hasCTF) {
-			Array2D<float>* CTF = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
-			Array2D<float>* modulator = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
+			auto* CTF = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
+			auto* modulator = new Array2D<float>(data->img->getXSize(), data->img->getYSize());
 			preloadCTF(threadParams, objId[imgIndex],parent, CTF, modulator);
 		}
 		// set data as usable
@@ -389,7 +389,7 @@ void ProgRecFourierAccel::preloadBuffer(LoadThreadParams* threadParams,
 
 void * ProgRecFourierAccel::loadImageThread( void * threadArgs )
 {
-    LoadThreadParams * threadParams = (LoadThreadParams *) threadArgs;
+    auto * threadParams = (LoadThreadParams *) threadArgs;
     ProgRecFourierAccel * parent = threadParams->parent;
     barrier_t * barrier = &(parent->barrier);
 
@@ -669,7 +669,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 
 				float wCTF = (*data->CTF)(j, i);
 				float wModulator = (*data->modulator)(j, i);
-				int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+				auto aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 				float wBlob = blobTableSqrt[aux];
 				float weight = wBlob * wModulator * data->weight;
 				*targetWeight += weight;
@@ -687,7 +687,7 @@ inline void ProgRecFourierAccel::processVoxelBlob(int x, int y, int z, const flo
 				float distanceSqr = xD*xD + yzSqr;
 				if (distanceSqr > radiusSqr) continue;
 
-				int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+				auto aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 				float wBlob = blobTableSqrt[aux];
 
 				float weight = wBlob * data->weight;
@@ -741,7 +741,7 @@ void ProgRecFourierAccel::processProjection(
 			if (useFast) {
 				float hitX;
 				if (getX(hitX, y, z, u, v, *cuboid)) {
-					int x = (int)(hitX + 0.5f); // rounding
+					auto x = (int)(hitX + 0.5f); // rounding
 					processVoxel(x, y, z, transformInv, maxDistanceSqr, projectionData);
 				}
 			} else {
@@ -815,7 +815,7 @@ T*** ProgRecFourierAccel::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5f)); //Same as ROUND but avoid comparison
+							auto aux = (int) (distanceSqr * iDeltaSqrt + 0.5f); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -938,7 +938,7 @@ void ProgRecFourierAccel::swapLoadBuffers() {
 
 void ProgRecFourierAccel::processBuffer(ProjectionData* buffer)
 {
-	int repaint = (int)ceil((double)SF.size()/60);
+	auto repaint = (int)ceil((double)SF.size()/60);
 	for ( int i = 0 ; i < bufferSize; i++ ) {
 		ProjectionData* projData = &buffer[i];
 		if (projData->skip) {
@@ -1043,7 +1043,7 @@ void ProgRecFourierAccel::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
 		A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);
 		meanFactor2+=factor2;
     }

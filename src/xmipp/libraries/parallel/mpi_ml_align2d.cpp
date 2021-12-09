@@ -88,7 +88,7 @@ void MpiML2DBase::sendDocfile(const MultidimArray<double> &docfiledata)
     {
         // Master fills docfile
         // Master's own contribution
-        ML2DBaseProgram * ml2d = (ML2DBaseProgram*)program;
+        auto * ml2d = (ML2DBaseProgram*)program;
         ml2d->addPartialDocfileData(docfiledata, ml2d->myFirstImg, ml2d->myLastImg);
         int s_size;
         size_t first_img, last_img;

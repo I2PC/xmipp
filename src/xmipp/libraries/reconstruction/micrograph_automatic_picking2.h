@@ -97,7 +97,7 @@ public:
     AutoParticlePicking2(int particle_size, int filter_num = 6, int corr_num = 2, int NPCA = 4,
                          const FileName &model_name=nullptr, const std::vector<MDRowSql> &vMicList={});
 
-    AutoParticlePicking2();
+    AutoParticlePicking2()=default;
 
     /// Destructor
     ~AutoParticlePicking2();
