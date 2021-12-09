@@ -26,11 +26,12 @@
 #include "fftwT.h"
 #include "core/xmipp_error.h"
 #include <array>
-#include <typeinfo>
 #include <mutex>
 
 // Make sure that the class is initialized
 FFTwT_Startup fftwt_startup;
+
+static inline auto fftwtMutex = std::mutex();
 
 template<typename T>
 bool FFTwT<T>::needsAuxArray(const FFTSettingsNew<T> &settings) {
@@ -378,13 +379,14 @@ U FFTwT<T>::planHelper(const FFTSettingsNew<T> &settings, F function,
         idist = settings.fDim().xyzPadded();
         odist = settings.sDim().xyzPadded();
     }
+
+    // planning is not thread safe -> lock it
+    std::lock_guard lck(fftwtMutex);
+
     // set threads
     fftw_plan_with_nthreads(threads);
     fftwf_plan_with_nthreads(threads);
 
-    // planning is not thread safe -> lock it
-    static std::mutex mutex;
-    const std::lock_guard<std::mutex> lock(mutex);
     auto tmp = function(rank, &n[offset], settings.batch(),
             in, nullptr,
             1, idist,
@@ -400,6 +402,7 @@ void* FFTwT<T>::m_mockOut = {};
 template<>
 template<>
 void FFTwT<float>::release(fftwf_plan plan) {
+    std::lock_guard lck(fftwtMutex);
     fftwf_destroy_plan(plan);
     plan = nullptr;
 }
@@ -407,6 +410,7 @@ void FFTwT<float>::release(fftwf_plan plan) {
 template<>
 template<>
 void FFTwT<double>::release(fftw_plan plan) {
+    std::lock_guard lck(fftwtMutex);
     fftw_destroy_plan(plan);
     plan = nullptr;
 }
