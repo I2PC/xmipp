@@ -23,11 +23,9 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <parallel/xmipp_mpi.h>
 #include <data/mask.h>
+#include <parallel/xmipp_mpi.h>
 
-
-CREATE_MPI_METADATA_PROGRAM(ProgMask, MpiProgMask)
+class MpiProgMask : public BasicMpiMetadataProgram<ProgMask> {};
 
 RUN_XMIPP_PROGRAM(MpiProgMask)
-
