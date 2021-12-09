@@ -62,9 +62,8 @@ void ProgMovieAlignmentCorrelationGPU<T>::readParams() {
     if (device < 0)
         REPORT_ERROR(ERR_ARG_INCORRECT,
             "Invalid GPU device");
-    auto tmp = GPU(device);
-    tmp.set();
-    gpu = core::optional<GPU>(tmp);
+    gpu = core::optional<GPU>(device);
+    gpu.value().set();
 
     // read permanent storage
     storage = this->getParam("--storage");
