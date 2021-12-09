@@ -486,8 +486,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
         Image<T>& initialMic, size_t& Ninitial, Image<T>& averageMicrograph,
         size_t& N, const LocalAlignmentResult<T> &alignment) {
     // Apply shifts and compute average
-    Image<T> croppedFrame(rawMovieDim.x(), rawMovieDim.y());
-    T *croppedFrameData = croppedFrame.data.data;
     Image<T> reducedFrame, shiftedFrame;
     int frameIndex = -1;
     Ninitial = N = 0;
@@ -509,8 +507,9 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             // by deducting the first frame that was aligned, we get proper offset to the stored memory
             int frameOffset = frameIndex - this->nfirst;
             // load frame
-            // we can point to proper part of the already loaded movie
-            croppedFrame.data.data = movieRawData + (frameOffset * rawMovieDim.xy());
+            // we can point to proper part of the already loaded 
+            auto *data = movieRawData + (frameOffset * rawMovieDim.xy());
+            auto croppedFrame = MultidimArray(1, 1, rawMovieDim.y(), rawMovieDim.x(), data);
 
             if (binning > 0) {
                 // FIXME add templates to respective functions/classes to avoid type casting
@@ -520,29 +519,29 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
                  */
                 Image<double> croppedFrameDouble;
                 Image<double> reducedFrameDouble;
-                typeCast(croppedFrame(), croppedFrameDouble());
+                typeCast(croppedFrame, croppedFrameDouble());
 
-                scaleToSizeFourier(1, floor(YSIZE(croppedFrame()) / binning),
-                        floor(XSIZE(croppedFrame()) / binning),
+                scaleToSizeFourier(1, floor(YSIZE(croppedFrame) / binning),
+                        floor(XSIZE(croppedFrame) / binning),
                         croppedFrameDouble(), reducedFrameDouble());
 
                 typeCast(reducedFrameDouble(), reducedFrame());
-
-                croppedFrame() = reducedFrame();
+                croppedFrame.clear(); // forget whatever it pointed to before
+                croppedFrame = reducedFrame(); // assign new content
             }
 
             if ( ! this->fnInitialAvg.isEmpty()) {
                 if (frameIndex == this->nfirstSum)
-                    initialMic() = croppedFrame();
+                    initialMic() = croppedFrame;
                 else
-                    initialMic() += croppedFrame();
+                    initialMic() += croppedFrame;
                 Ninitial++;
             }
 
             if (this->fnAligned != "" || this->fnAvg != "") {
-                transformer.initLazyForBSpline(croppedFrame.data.xdim, croppedFrame.data.ydim, alignment.movieDim.n(),
+                transformer.initLazyForBSpline(croppedFrame.xdim, croppedFrame.ydim, alignment.movieDim.n(),
                         this->localAlignmentControlPoints.x(), this->localAlignmentControlPoints.y(), this->localAlignmentControlPoints.n());
-                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame(), coeffs, frameOffset);
+                transformer.applyBSplineTransform(this->BsplineOrder, shiftedFrame(), croppedFrame, coeffs, frameOffset);
 
 
                 if (this->fnAligned != "")
@@ -561,8 +560,6 @@ void ProgMovieAlignmentCorrelationGPU<T>::applyShiftsComputeAverage(
             }
         }
     }
-    // assign original data to avoid memory leak
-    croppedFrame.data.data = croppedFrameData;
 }
 
 template<typename T>
