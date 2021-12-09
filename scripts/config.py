@@ -376,18 +376,15 @@ class Config:
             self._config_OpenCV()
 
     def _get_GCC_version(self, compiler):
-        log = []
-        version_lambda = lambda v: runJob(compiler + v, show_output=False,
-                                          show_command=False, log=log)
-        version_lambda(" -dumpversion")
-        full_version = log[0].strip()
-        tokens = full_version.split('.')
-        if len(tokens) < 2:
+        def get_version_tokens(v):
             log = []
-            version_lambda(" -dumpfullversion")
-            full_version = log[0].strip()
-            tokens = full_version.split('.')
+            runJob(compiler + v, show_output=False,
+                   show_command=False, log=log)
+            return log[0].strip(), log[0].strip().split('.')
 
+        full_version, tokens = get_version_tokens(" -dumpversion")
+        if len(tokens) < 2:
+            full_version, tokens = get_version_tokens(" -dumpfullversion")
         gccVersion = float(str(tokens[0] + '.' + tokens[1]))
         return gccVersion, full_version
 
