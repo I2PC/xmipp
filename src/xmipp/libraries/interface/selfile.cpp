@@ -38,27 +38,6 @@
 /*****************************************************************************/
 /* SEL FILE LINE                                                 */
 /*****************************************************************************/
-/* Copy Constructor */
-SelLine::SelLine(const SelLine &l)
-{
-    line_type = l.line_type;
-    text      = l.text;
-    label     = l.label;
-    number    = l.number;
-}
-
-SelLine& SelLine::operator = (const SelLine &SL)
-{
-    if (this != &SL)
-    {
-        line_type = SL.line_type;
-        text      = SL.text;
-        label     = SL.label;
-        number    = SL.number;
-    }
-    return *this;
-}
-
 void SelLine::assign(const SelLine &SL)
 {
     *this = SL;
@@ -147,15 +126,6 @@ SelFile::SelFile()
     current_line = text_line.begin();
 }
 
-/* Copy Constructor -------------------------------------------------------- */
-SelFile::SelFile(const SelFile &SF)
-{
-    fn_sel       = SF.fn_sel;
-    text_line    = SF.text_line;
-    no_imgs      = SF.no_imgs;
-    current_line = SF.current_line;
-}
-
 /* Clear ------------------------------------------------------------------- */
 void SelFile::clear()
 {
@@ -163,19 +133,6 @@ void SelFile::clear()
     text_line.erase(text_line.begin(), text_line.end());
     no_imgs = 0;
     current_line = text_line.begin();
-}
-
-/* Assignment -------------------------------------------------------------- */
-SelFile& SelFile::operator = (const SelFile &SF)
-{
-    if (this != &SF)
-    {
-        fn_sel       = SF.fn_sel;
-        text_line    = SF.text_line;
-        no_imgs      = SF.no_imgs;
-        current_line = SF.current_line;
-    }
-    return *this;
 }
 
 /* Another function for assignment ----------------------------------------- */

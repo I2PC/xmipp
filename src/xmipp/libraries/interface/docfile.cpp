@@ -30,27 +30,6 @@
 #include "docfile.h"
 #include <core/args.h>
 
-DocLine::DocLine(const DocLine& line)
-{
-    line_type = line.line_type;
-    text = line.text;
-    key = line.key;
-    data = line.data;
-}
-
-DocLine& DocLine::operator=(const DocLine& line)
-{
-    if (this != &line)
-    {
-        line_type = line.line_type;
-        text = line.text;
-        key = line.key;
-        data = line.data;
-    }
-
-    return *this;
-}
-
 double& DocLine::operator[](size_t i)
 {
     if (i+1 > data.size())
@@ -198,15 +177,6 @@ void DocLine::read(std::istream& in)
     }
 }
 
-DocFile::DocFile(const DocFile& doc)
-{
-    fn_doc = doc.fn_doc;
-    m = doc.m;
-    no_lines = doc.no_lines;
-    first_key = doc.first_key;
-    current_line = doc.current_line;
-}
-
 void DocFile::clear()
 {
     fn_doc = "";
@@ -214,20 +184,6 @@ void DocFile::clear()
     no_lines = 0;
     first_key = 1;
     current_line = m.begin();
-}
-
-DocFile& DocFile::operator=(const DocFile& doc)
-{
-    if (this != &doc)
-    {
-        fn_doc = doc.fn_doc;
-        m = doc.m;
-        no_lines = doc.no_lines;
-        first_key = doc.first_key;
-        current_line = doc.current_line;
-    }
-
-    return *this;
 }
 
 DocFile& DocFile::operator=(const Matrix2D< double >& A)

@@ -43,17 +43,6 @@ SimpleGrid::SimpleGrid()
     R2            = -1;
 }
 
-SimpleGrid::SimpleGrid(const SimpleGrid &SG)
-{
-    basis         = SG.basis;
-    inv_basis     = SG.inv_basis;
-    lowest        = SG.lowest;
-    highest       = SG.highest;
-    relative_size = SG.relative_size;
-    origin        = SG.origin;
-    R2            = SG.R2;
-}
-
 // std::cout --------------------------------------------------------------------
 std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid)
 {
@@ -68,22 +57,6 @@ std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid)
     o << "   Highest (grid. coord)  " << grid.highest.transpose() << std::endl;
     o << "   Lowest (grid. coord)   " << grid.lowest.transpose()  << std::endl;
     return o;
-}
-
-// Assignment --------------------------------------------------------------
-SimpleGrid& SimpleGrid::operator = (const SimpleGrid &SG)
-{
-    if (&SG != this)
-    {
-        basis         = SG.basis;
-        inv_basis     = SG.inv_basis;
-        lowest        = SG.lowest;
-        highest       = SG.highest;
-        relative_size = SG.relative_size;
-        R2            = SG.R2;
-        origin        = SG.origin;
-    }
-    return *this;
 }
 
 // Another function for assignment -----------------------------------------
