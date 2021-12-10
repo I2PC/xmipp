@@ -102,7 +102,6 @@ public:
     // Input image
 	Image<double> V, Vdeformed;
     std::vector<Image<double>> I;
-    std::vector<Image<double>> Ip;
     std::vector<Image<double>> Ifiltered;
     std::vector<Image<double>> Ifilteredp;
 	// Theoretical projections
@@ -123,8 +122,6 @@ public:
 	std::vector<double> old_defocusU, old_defocusV, old_defocusAngle, deltaDefocusU, deltaDefocusV, deltaDefocusAngle;
     // Current defoci
 	std::vector<double> currentDefocusU, currentDefocusV, currentAngle;
-	// CTF
-	CTFDescription ctf;
     // CTF filter
     FourierFilter FilterCTF1;
     FourierFilter FilterCTF2;
@@ -189,7 +186,7 @@ public:
 
     void updateCTFImage(double defocusU, double defocusV, double angle);
 
-    double tranformImageSph(double *pclnm);
+    double transformImageSph(double *pclnm);
 
     void rotateCoefficients();
 

@@ -56,7 +56,7 @@ public:
     }
     void showProgress()
     {
-        if (node->rank==1)
+        if (node->isMaster())
         {
             time_bar_done=first+1;
             ProgForwardZernikeImages::showProgress();

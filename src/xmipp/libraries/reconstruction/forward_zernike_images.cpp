@@ -144,19 +144,54 @@ void ProgForwardZernikeImages::preProcess()
 	Vdeformed().setXmippOrigin();
     // sumV=V().sum();
 
-	// Preallocate vectors (always size 2 as we have an image pair)
-	fnImage.resize(3);
-	I.resize(3); Ip.resize(3); Ifiltered.resize(3); Ifilteredp.resize(3);
-	P.resize(3);
-	old_rot.resize(3); old_tilt.resize(3); old_psi.resize(3);
-	deltaRot.resize(3); deltaTilt.resize(3); deltaPsi.resize(3);
-	old_shiftX.resize(3); old_shiftY.resize(3);
-	deltaX.resize(3); deltaY.resize(3);
-	old_defocusU.resize(3); old_defocusV.resize(3); old_defocusAngle.resize(3);
-	deltaDefocusU.resize(3); deltaDefocusV.resize(3); deltaDefocusAngle.resize(3);
-	currentDefocusU.resize(3); currentDefocusV.resize(3); currentAngle.resize(3);
-    Ifilteredp[0]().initZeros(Xdim,Xdim); Ifilteredp[1]().initZeros(Xdim,Xdim); Ifilteredp[2]().initZeros(Xdim,Xdim);
-    Ifilteredp[0]().setXmippOrigin(); Ifilteredp[1]().setXmippOrigin(); Ifilteredp[2]().setXmippOrigin();
+	// Check execution mode (single, pair, or triplet)
+	if (image_mode > 0)
+	{
+		num_images = image_mode;
+	}
+	else{
+		num_images = 1; // Single image
+		if (getInputMd()->containsLabel(MDL_IMAGE1) && !getInputMd()->containsLabel(MDL_IMAGE2))
+		{
+			num_images = 2; // Pair
+		}
+		else if (getInputMd()->containsLabel(MDL_IMAGE1) && getInputMd()->containsLabel(MDL_IMAGE2))
+		{
+			num_images = 3; // Triplet
+		}
+	}
+
+	// Preallocate vectors (Size depends on image number)
+	fnImage.resize(num_images, "");
+	I.resize(num_images); Ifiltered.resize(num_images); Ifilteredp.resize(num_images);
+	P.resize(num_images);
+	old_rot.resize(num_images, 0.); old_tilt.resize(num_images, 0.); old_psi.resize(num_images, 0.);
+	deltaRot.resize(num_images, 0.); deltaTilt.resize(num_images, 0.); deltaPsi.resize(num_images, 0.);
+	old_shiftX.resize(num_images, 0.); old_shiftY.resize(num_images, 0.);
+	deltaX.resize(num_images, 0.); deltaY.resize(num_images, 0.);
+	old_defocusU.resize(num_images, 0.); old_defocusV.resize(num_images, 0.); old_defocusAngle.resize(num_images, 0.);
+	deltaDefocusU.resize(num_images, 0.); deltaDefocusV.resize(num_images, 0.); deltaDefocusAngle.resize(num_images, 0.);
+	currentDefocusU.resize(num_images, 0.); currentDefocusV.resize(num_images, 0.); currentAngle.resize(num_images, 0.);
+
+	switch (num_images)
+	{
+	case 2:
+		Ifilteredp[0]().initZeros(Xdim,Xdim); Ifilteredp[1]().initZeros(Xdim,Xdim);
+    	Ifilteredp[0]().setXmippOrigin(); Ifilteredp[1]().setXmippOrigin();
+		P[0]().initZeros(Xdim,Xdim); P[1]().initZeros(Xdim,Xdim);
+		break;
+	case 3:
+		Ifilteredp[0]().initZeros(Xdim,Xdim); Ifilteredp[1]().initZeros(Xdim,Xdim); Ifilteredp[2]().initZeros(Xdim,Xdim);
+    	Ifilteredp[0]().setXmippOrigin(); Ifilteredp[1]().setXmippOrigin(); Ifilteredp[2]().setXmippOrigin();
+		P[0]().initZeros(Xdim,Xdim); P[1]().initZeros(Xdim,Xdim); P[2]().initZeros(Xdim,Xdim);
+		break;
+	
+	default:
+		Ifilteredp[0]().initZeros(Xdim,Xdim);
+    	Ifilteredp[0]().setXmippOrigin();
+		P[0]().initZeros(Xdim,Xdim);
+		break;
+	}
 
 	if (RmaxDef<0)
 		RmaxDef = Xdim/2;
@@ -235,24 +270,6 @@ void ProgForwardZernikeImages::preProcess()
 	blob.order  = 2;        // Order of the Bessel function
     blob.alpha  = 3.6;      // Smoothness parameter
 
-	// Check execution mode (single, pair, or triplet)
-	if (image_mode > 0)
-	{
-		num_images = image_mode;
-	}
-	else{
-		num_images = 1; // Single image
-		if (getInputMd()->containsLabel(MDL_IMAGE1) && !getInputMd()->containsLabel(MDL_IMAGE2))
-		{
-			num_images = 2; // Pair
-		}
-		else if (getInputMd()->containsLabel(MDL_IMAGE1) && getInputMd()->containsLabel(MDL_IMAGE2))
-		{
-			num_images = 3; // Triplet
-		}
-	}
-	
-
 }
 
 void ProgForwardZernikeImages::finishProcessing() {
@@ -261,7 +278,7 @@ void ProgForwardZernikeImages::finishProcessing() {
 }
 
 // #define DEBUG
-double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
+double ProgForwardZernikeImages::transformImageSph(double *pclnm)
 {
 	const MultidimArray<double> &mV=V();
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(clnm)
@@ -269,7 +286,7 @@ double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
 	double deformation=0.0;
 	totalDeformation=0.0;
 
-	P[0]().initZeros((int)XSIZE(I[0]()),(int)XSIZE(I[0]()));
+	P[0]().initZeros(Xdim,Xdim);
 	P[0]().setXmippOrigin();
 	double currentRot=old_rot[0] + deltaRot[0];
 	double currentTilt=old_tilt[0] + deltaTilt[0];
@@ -280,13 +297,12 @@ double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
 	const MultidimArray<int> &mMask2D=mask2D;
 	double corr2 = 0.0;
 	double corr3 = 0.0;
-	// filter.applyMaskSpace(P[0]());
 
 	switch (num_images)
 	{
 	case 2:
 	{
-		P[1]().initZeros((int)XSIZE(I[1]()), (int)XSIZE(I[1]()));
+		P[1]().initZeros(Xdim,Xdim);
 		P[1]().setXmippOrigin();
 		currentRot = old_rot[1] + deltaRot[1];
 		currentTilt = old_tilt[1] + deltaTilt[1];
@@ -315,14 +331,14 @@ double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
 
 	case 3:
 	{
-		P[1]().initZeros((int)XSIZE(I[1]()), (int)XSIZE(I[1]()));
+		P[1]().initZeros(Xdim,Xdim);
 		P[1]().setXmippOrigin();
 		currentRot = old_rot[1] + deltaRot[1];
 		currentTilt = old_tilt[1] + deltaTilt[1];
 		currentPsi = old_psi[1] + deltaPsi[1];
 		deformVol(P[1](), mV, deformation, currentRot, currentTilt, currentPsi);
 
-		P[2]().initZeros((int)XSIZE(I[2]()), (int)XSIZE(I[2]()));
+		P[2]().initZeros(Xdim,Xdim);
 		P[2]().setXmippOrigin();
 		currentRot = old_rot[2] + deltaRot[2];
 		currentTilt = old_tilt[2] + deltaTilt[2];
@@ -384,12 +400,25 @@ double ProgForwardZernikeImages::tranformImageSph(double *pclnm)
 			FilterCTF1.correctPhase();
 		FilterCTF1.applyMaskSpace(P[0]());
 	}
+	filter.applyMaskSpace(P[0]());
 
 
 	const MultidimArray<double> mP1=P[0]();
 	MultidimArray<double> &mI1filteredp=Ifilteredp[0]();
 	double corr1=correlationIndex(mI1filteredp,mP1,&mMask2D);
-	cost=-(corr1+corr2+corr3) / 3.0;
+
+	switch (num_images)
+	{
+	case 2:
+		cost=-(corr1+corr2+corr3) / 2.0;
+		break;
+	case 3:
+		cost=-(corr1+corr2+corr3) / 3.0;
+		break;	
+	default:
+		cost=-(corr1+corr2+corr3);
+		break;
+	}
 
 #ifdef DEBUG
 	std::cout << "A=" << A << std::endl;
@@ -590,9 +619,9 @@ double continuousZernikeCost(double *x, void *_prm)
 		break;
 	}
 
-	return prm->tranformImageSph(x);
+	return prm->transformImageSph(x);
 
-	// return prm->tranformImageSph(x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
+	// return prm->transformImageSph(x,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
 	// 		prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle);
 }
 
@@ -1017,10 +1046,10 @@ void ProgForwardZernikeImages::deformVol(MultidimArray<double> &mP, const Multid
 						{
 							double c_x = VEC_ELEM(clnm,idx);
 							double c_y = VEC_ELEM(clnm,idx+idxY0);
-							double c_z = VEC_ELEM(clnm,idx+idxZ0);
-							c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y + R_inv.mdata[2] * c_z;
-							c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y + R_inv.mdata[5] * c_z;
-							c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y + R_inv.mdata[8] * c_z;
+							// double c_z = VEC_ELEM(clnm,idx+idxZ0);
+							c[0] = R_inv.mdata[0] * c_x + R_inv.mdata[1] * c_y;
+							c[1] = R_inv.mdata[3] * c_x + R_inv.mdata[4] * c_y;
+							c[2] = R_inv.mdata[6] * c_x + R_inv.mdata[7] * c_y;
 						}
 						else {
 							c[0] = VEC_ELEM(clnm,idx);
@@ -1163,12 +1192,12 @@ void ProgForwardZernikeImages::splattingAtPos(std::array<double, 3> r, double we
 		}
 	// The old version (following commented code) gives slightly different results
 	// Matrix1D<double> rdiff(3);
-	// for (int k = k0; k <= kF; k++)
-	// 	for (int i = i0; i <= iF; i++)
-	// 		for (int j = j0; j <= jF; j++)
-	// 		{
-	// 			VECTOR_R3(rdiff, x_pos - j, y_pos - i, z_pos - k);
-	// 			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-	// 			A2D_ELEM(mP, i, j) += weight * blob_val(rdiff.module(), blob);
-	// 		}
+// 	for (int k = k0; k <= kF; k++)
+// 		for (int i = i0; i <= iF; i++)
+// 			for (int j = j0; j <= jF; j++)
+// 			{
+// 				double mod = sqrt((x_pos - j) * (x_pos - j) + (y_pos - i) * (y_pos - i) + (z_pos - k) * (z_pos - k));
+// 				// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
+// 				A2D_ELEM(mP, i, j) += weight * blob_val(mod, blob);
+// 			}
 }
