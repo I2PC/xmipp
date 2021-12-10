@@ -126,23 +126,10 @@ public:
     double             max_distance;
 
 public:
-    /** Empty constructor */
-    Feature() {}
-
-    /** Destructor */
-    virtual ~Feature()
-    {}
-
-    /** Copy constructor */
-    Feature(const Feature &other);
-
     /** Prepare feature for work.
         This function computes the maximum distance and possibly the Euler
         and inverse Euler matrices. */
     virtual void prepare() = 0;
-
-    /// Assignment
-    Feature & operator = (const Feature &F);
 
     /** Another function for assigmnet.*/
     void assign(const Feature &F);
@@ -447,20 +434,8 @@ public:
     /// Inverse Euler matrix
     Matrix2D<double>   eulert;
 public:
-    /** Empty constructor */
-    Oriented_Feature() {}
-
-    virtual ~Oriented_Feature()
-    {}
-
-    /** Copy constructor */
-    Oriented_Feature(const Oriented_Feature &other);
-
     /** Compute Euler and inverse Euler matrices from the Euler angles. */
     void prepare_Euler();
-
-    /// Assignment
-    Oriented_Feature & operator = (const Oriented_Feature & OF);
 
     /** Another function for assignment.*/
     void assign(const Oriented_Feature & OF);
@@ -494,9 +469,6 @@ public:
     /** Prepare sphere for work.
         Computes the maximum distance, in this case, equal to "radius" */
     void prepare();
-
-    /// Assignment
-    Sphere & operator = (const Sphere &F);
 
     /** Another function for assignment.*/
     void assign(const Sphere &F);
@@ -601,9 +573,6 @@ public:
         Computes the maximum distance, in this case, equal to "radius" */
     void prepare();
 
-    /// Assignment
-    Blob & operator = (const Blob &F);
-
     /** Another function for assignment.*/
     void assign(const Blob &F);
 
@@ -695,9 +664,6 @@ public:
     /** Prepare Gaussian for work.
         Computes the maximum distance, in this case, equal to "4sigma" */
     void prepare();
-
-    /// Assignment
-    Gaussian & operator = (const Gaussian &F);
 
     /** Another function for assignment.*/
     void assign(const Gaussian &F);
@@ -806,9 +772,6 @@ public:
         "sqrt(height*height/4+radius*radius)", and computes the Euler and inverse
         Euler matrices as a function of the Euler angles */
     void prepare();
-
-    /// Assignment
-    Cylinder & operator = (const Cylinder &F);
 
     /** Another function for assignment.*/
     void assign(const Cylinder &F);
@@ -939,9 +902,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    DCylinder & operator = (const DCylinder &F);
-
     /** Another function for assignment.*/
     void assign(const DCylinder &F);
 
@@ -1061,9 +1021,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    Cube & operator = (const Cube &F);
-
     /** Another function for assignment.*/
     void assign(const Cube &F);
 
@@ -1181,9 +1138,6 @@ public:
         Euler matrices as a function of the Euler angles */
     void prepare();
 
-    /// Assignment
-    Ellipsoid & operator = (const Ellipsoid &F);
-
     /** Another function for assignment.*/
     void assign(const Ellipsoid &F);
 
@@ -1298,9 +1252,6 @@ public:
         "sqrt(height*height/4+radius*radius)", and computes the Euler and inverse
         Euler matrices as a function of the Euler angles */
     void prepare();
-
-    /// Assignment
-    Cone & operator = (const Cone &F);
 
     /** Another function for assignment.*/
     void assign(const Cone &F);
@@ -1444,6 +1395,9 @@ public:
         clear();
     }
 
+    /// Assignment
+    Phantom & operator = (const Phantom &P);
+
     /** Clear the phantom.
         Force the phantom to be empty. All features are freed. */
     void clear();
@@ -1476,9 +1430,6 @@ public:
     {
         VF.push_back(f);
     }
-
-    /// Assignment
-    Phantom & operator = (const Phantom &P);
 
     /** Another function for assignment.*/
     void assign(const Phantom &P);

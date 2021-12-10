@@ -89,52 +89,9 @@ void Cone::prepare()
 /* ------------------------------------------------------------------------- */
 /* Assignment                                                                */
 /* ------------------------------------------------------------------------- */
-Feature::Feature(const Feature &other)
-{
-	   type=other.type;
-	   add_assign=other.add_assign;
-	   density=other.density;
-       center=other.center;
-	   max_distance=other.max_distance;
-}
-
-Feature & Feature::operator = (const Feature &F)
-{
-    if (this == &F)
-        return *this;
-    type         = F.type;
-    add_assign   = F.add_assign;
-    density      = F.density;
-    center       = F.center;
-    max_distance = F.max_distance;
-    return *this;
-}
-
 void Feature::assign(const Feature &F)
 {
     *this = F;
-}
-
-Oriented_Feature::Oriented_Feature(const Oriented_Feature &other): Feature(other)
-{
-    rot=other.rot;
-    tilt=other.tilt;
-    psi=other.psi;
-    euler=other.euler;
-    eulert=other.eulert;
-}
-
-Oriented_Feature & Oriented_Feature::operator = (const Oriented_Feature &OF)
-{
-    if (this == &OF)
-        return *this;
-    rot    = OF.rot;
-    tilt   = OF.tilt;
-    psi    = OF.psi;
-    euler  = OF.euler;
-    eulert = OF.eulert;
-    Feature::operator = (OF);
-    return *this;
 }
 
 void Oriented_Feature::assign(const Oriented_Feature &OF)
@@ -148,30 +105,9 @@ void Oriented_Feature::prepare_Euler()
     eulert = euler.transpose();
 }
 
-
-Sphere & Sphere::operator = (const Sphere &F)
-{
-    if (this == &F)
-        return *this;
-    Feature::operator = (F);
-    radius = F.radius;
-    return *this;
-}
-
 void Sphere::assign(const Sphere &F)
 {
     *this = F;
-}
-
-Blob & Blob::operator = (const Blob &F)
-{
-    if (this == &F)
-        return *this;
-    Feature::operator = (F);
-    radius = F.radius;
-    alpha  = F.alpha;
-    m      = F.m;
-    return *this;
 }
 
 void Blob::assign(const Blob &F)
@@ -179,29 +115,9 @@ void Blob::assign(const Blob &F)
     *this = F;
 }
 
-Gaussian & Gaussian::operator = (const Gaussian &F)
-{
-    if (this == &F)
-        return *this;
-    Feature::operator = (F);
-    sigma = F.sigma;
-    return *this;
-}
-
 void Gaussian::assign(const Gaussian &F)
 {
     *this = F;
-}
-
-Cylinder & Cylinder::operator = (const Cylinder &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    xradius = F.xradius;
-    yradius = F.yradius;
-    height  = F.height;
-    return *this;
 }
 
 void Cylinder::assign(const Cylinder &F)
@@ -209,31 +125,9 @@ void Cylinder::assign(const Cylinder &F)
     *this = F;
 }
 
-DCylinder & DCylinder::operator = (const DCylinder &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    radius     = F.radius;
-    height     = F.height;
-    separation = F.separation;
-    return *this;
-}
-
 void DCylinder::assign(const DCylinder &F)
 {
     *this = F;
-}
-
-Cube & Cube::operator = (const Cube &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    xdim = F.xdim;
-    ydim = F.ydim;
-    zdim = F.zdim;
-    return *this;
 }
 
 void Cube::assign(const Cube &F)
@@ -241,30 +135,9 @@ void Cube::assign(const Cube &F)
     *this = F;
 }
 
-Ellipsoid & Ellipsoid::operator = (const Ellipsoid &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    xradius = F.xradius;
-    yradius = F.yradius;
-    zradius = F.zradius;
-    return *this;
-}
-
 void Ellipsoid::assign(const Ellipsoid &F)
 {
     *this = F;
-}
-
-Cone & Cone::operator = (const Cone &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    radius     = F.radius;
-    height     = F.height;
-    return *this;
 }
 
 void Cone::assign(const Cone &F)
