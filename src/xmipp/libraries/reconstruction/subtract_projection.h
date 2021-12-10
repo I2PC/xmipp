@@ -98,6 +98,11 @@
     /// Define parameters
     void defineParams() override;
     /// Processing methods
+    void POCSmaskProj(const MultidimArray<double> &, MultidimArray<double> &);
+    void POCSFourierAmplitudeProj(const MultidimArray<double> &, MultidimArray< std::complex<double> > &, double, const MultidimArray<double> &, int);
+    void POCSMinMaxProj(MultidimArray<double> &, double, double);
+    void extractPhaseProj(MultidimArray< std::complex<double> > &);
+    void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &, MultidimArray< std::complex<double> > &);
     Image<double> createMask(const FileName &, Image<double> &);
     void readParticle(const MDRowVec &);
     void percentileMinMax(const MultidimArray<double> &, double &, double &) const;
