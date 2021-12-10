@@ -178,24 +178,10 @@ public:
         \\ Ex: SimpleGrid sg; */
     SimpleGrid();
 
-    /** Copy constructor.
-        This constructor builds an exact copy of the simple grid.
-        \\ Ex: SimpleGrid sg2(sg1); */
-    SimpleGrid(const SimpleGrid &SG);
-
-    /** Destructor.
-     * Explicitly defined to avoid Sonarcloud complains
-     */
-    ~SimpleGrid() {}
-
     /** Show a Simple grid.
         Shows all information about the simple grid.
         \\Ex: std::cout << sg; */
     friend std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid);
-
-    /** Assignment.
-        \\ Ex: sg2=sg1; */
-    SimpleGrid& operator = (const SimpleGrid &SG);
 
     /** Another function for assigment.*/
     void assign(const SimpleGrid &SG);
@@ -495,11 +481,6 @@ class Grid
     /* Structure --------------------------------------------------------------- */
     std::vector<SimpleGrid>   LG;                 // List of grids
 public:
-    /** Destructor.
-     * Explicitly defined to avoid SonarCloud complaining
-     */
-    ~Grid() {}
-
     /* Protoypes --------------------------------------------------------------- */
     /** Add a grid to the set.
         The complex grid is a list of simple grids, use this function to
