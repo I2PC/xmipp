@@ -96,12 +96,12 @@
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
 
- void POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I) {
+ void ProgSubtractProjection::POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I) {
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
  	DIRECT_MULTIDIM_ELEM(I,n)*=DIRECT_MULTIDIM_ELEM(mask,n);
  }
 
- void POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, const MultidimArray<double> &rQ, int Isize) {
+ void ProgSubtractProjection::POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, const MultidimArray<double> &rQ, int Isize) {
  	int Isize2 = Isize/2;
  	double Isizei = 1.0/Isize;
  	double wx;
@@ -120,7 +120,7 @@
  	}
  }
 
- void POCSMinMaxProj(MultidimArray<double> &P, double Im, double IM) {
+ void ProgSubtractProjection::POCSMinMaxProj(MultidimArray<double> &P, double Im, double IM) {
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P) {
  		double val = DIRECT_MULTIDIM_ELEM(P,n);
  		if (val<Im)
@@ -130,7 +130,7 @@
  		}
  }
 
- void extractPhaseProj(MultidimArray< std::complex<double> > &FI) {
+ void ProgSubtractProjection::extractPhaseProj(MultidimArray< std::complex<double> > &FI) {
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
  		const auto *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI,n);
  		double phi = atan2(*(ptr+1),*ptr);
@@ -138,7 +138,7 @@
  	}
  }
 
- void POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, MultidimArray< std::complex<double> > &FI) {
+ void ProgSubtractProjection::POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, MultidimArray< std::complex<double> > &FI) {
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(phase)
  		DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
  }
@@ -156,22 +156,20 @@
  }
 
  void ProgSubtractProjection::readParticle(const MDRowVec &r){
-	r.getValue(MDL_IMAGE, fnImage);
+	r.getValueOrDefault(MDL_IMAGE, fnImage);
 	I.read(fnImage);
 	I().setXmippOrigin();
  }
 
  void ProgSubtractProjection::percentileMinMax(const MultidimArray<double> &img, double &m, double &M) const{
  	MultidimArray<double> sortedI;
- 	long p0005;
- 	long p99;
  	long size;
  	size = img.xdim * img.ydim;
- 	p0005 = size * long(0.005);
- 	p99 = size * long(0.995);
  	img.sort(sortedI);
- 	m = sortedI(int(p0005));
- 	M = sortedI(int(p99));
+ 	auto p005 = static_cast<double>(size) * 0.005;
+ 	auto p995 = static_cast<double>(size) * 0.995;
+ 	m = sortedI(int(p005));
+ 	M = sortedI(int(p995));
  }
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
@@ -313,12 +311,12 @@
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
-     	row.getValue(MDL_ANGLE_ROT, rot);
-     	row.getValue(MDL_ANGLE_TILT, tilt);
-     	row.getValue(MDL_ANGLE_PSI, psi);
+     	row.getValueOrDefault(MDL_ANGLE_ROT, rot);
+     	row.getValueOrDefault(MDL_ANGLE_TILT, tilt);
+     	row.getValueOrDefault(MDL_ANGLE_PSI, psi);
      	roffset.initZeros(2);
-     	row.getValue(MDL_SHIFT_X, roffset(0));
-     	row.getValue(MDL_SHIFT_Y, roffset(1));
+     	row.getValueOrDefault(MDL_SHIFT_X, roffset(0));
+     	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1));
      	roffset *= -1;
     	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
@@ -326,7 +324,7 @@
 		FilterG.applyMaskSpace(PmaskVolI());
 		POCSmaskProj(PmaskVolI(), P());
 		POCSmaskProj(PmaskVolI(), I());
-		row.getValue(MDL_IMAGE, fnPart);
+		row.getValueOrDefault(MDL_IMAGE, fnPart);
 		Pctf = applyCTF(row, P);
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanP = computeRadialAvg(Pctf, radial_meanP);
