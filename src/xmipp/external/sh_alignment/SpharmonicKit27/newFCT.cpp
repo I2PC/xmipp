@@ -278,7 +278,7 @@ static void OURpermuteX(double *data,
 			struct lowhigh *result,
 			int n)
 {
-  register int i, dummy;
+  int i, dummy;
   const int *pptr;
 
   dummy = n / 2;
@@ -644,7 +644,7 @@ void kFCTX( double *data,
 {
   double dn2;
   int p2, p3;
-  register int i, j;
+  int i, j;
   int levelsize, highsize, lowsize, loopcntr;
 
   int dummy_int, dummy_int2;
@@ -654,7 +654,7 @@ void kFCTX( double *data,
 
   struct lowhigh *lowptr, *highptr, *temp;
   const double *modptrlow, *modptrhigh;
-  register double modptrlow0, modptrhigh0;
+  double modptrlow0, modptrhigh0;
   struct lowhigh *tmphigh;
   struct lowhigh *tmplowa, *tmplowb;
 

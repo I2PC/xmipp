@@ -72,7 +72,7 @@ void ProgAngularSphAlignmentGpu::readParams()
 }
 
 // Show ====================================================================
-void ProgAngularSphAlignmentGpu::show()
+void ProgAngularSphAlignmentGpu::show() const
 {
     if (!verbose)
         return;
