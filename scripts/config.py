@@ -469,10 +469,7 @@ class Config:
                show_command=False, log=log)
         # find 'Cuda compilation tools' line (last for older versions, one before last otherwise)
         # expected format: 'Cuda compilation tools, release 8.0, V8.0.61'
-        try:
-            full_version_line = next(l for l in log if 'compilation tools' in l)
-        except StopIteration:
-            return False, False
+        full_version_line = next(l for l in log if 'compilation tools' in l)
         full_version = full_version_line.strip().split(', ')[-1].lstrip('V')
         tokens = full_version.split('.')
         if len(tokens) < 2:
@@ -599,11 +596,7 @@ class Config:
             return
         nvcc_version, nvcc_full_version = self._get_CUDA_version(
             self.get(Config.OPT_NVCC))
-        if nvcc_version == False:
-            print_no_CUDA()
-            return
-        else:
-            print(green('CUDA-' + nvcc_full_version + ' found.'))
+        print(green('CUDA-' + nvcc_full_version + ' found.'))
         if nvcc_version != 10.2:
             print(yellow('CUDA-10.2 is recommended.'))
         if not self._set_nvcc_cxx(nvcc_version) or not self._set_nvcc_lib_dir():
