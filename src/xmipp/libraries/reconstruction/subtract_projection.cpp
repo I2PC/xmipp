@@ -174,16 +174,23 @@
 
  Image<double> ProgSubtractProjection::applyCTF(const MDRowVec &r, Projection &proj) {
 	if (r.containsLabel(MDL_CTF_DEFOCUSU) || r.containsLabel(MDL_CTF_MODEL)){
-		hasCTF=true;
+	 	CTFDescription ctf;
 		ctf.readFromMdRow(r);
 		ctf.produceSideInfo();
+	 	double defocusU;
 		defocusU=ctf.DeltafU;
+	 	double defocusV;
 		defocusV=ctf.DeltafV;
+	 	double ctfAngle;
 		ctfAngle=ctf.azimuthal_angle;
+	    FourierFilter FilterCTF;
 	 	FilterCTF.FilterBand = CTF;
 	 	FilterCTF.ctf.enable_CTFnoise = false;
 		FilterCTF.ctf = ctf;
 		// padding
+		Image<double> padp;
+		int pad;
+		pad = int(XSIZE(V())/2);
 		padp().initZeros(pad*2, pad*2);
 		MultidimArray <double> &mpad = padp();
 		mpad.setXmippOrigin();
@@ -306,8 +313,6 @@
 	Filter2.FilterShape=RAISED_COSINE;
 	Filter2.raised_w=0.02;
 	Filter2.w1=cutFreq;
-	// Sizes for padding
-	pad = int(XSIZE(V())/2);
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);

@@ -66,16 +66,9 @@
  	Projection P;
  	Projection Pmask;
  	Projection PmaskVol;
-    FourierFilter filter;
 	FourierFilter FilterG;
 	FourierFilter FilterG2;
 	FourierFilter Filter2;
-    bool hasCTF;
- 	double defocusU;
- 	double defocusV;
- 	double ctfAngle;
- 	CTFDescription ctf;
-    FourierFilter FilterCTF;
 	MultidimArray<double> radial_meanI;
 	MultidimArray<double> radial_meanP;
 	MultidimArray<double> radQuotient;
@@ -86,8 +79,6 @@
 	MultidimArray<std::complex<double> > PFourierPhase;
 	double Imin;
 	double Imax;
-	Image<double> padp;
-	int pad;
 	Image<double> Pctf;
 	Image<double> Pmaskctf;
 
