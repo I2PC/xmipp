@@ -156,7 +156,7 @@
  }
 
  void ProgSubtractProjection::readParticle(const MDRowVec &r){
-	r.getValueOrDefault(MDL_IMAGE, fnImage);
+	r.getValueOrDefault(MDL_IMAGE, fnImage, "no_filename");
 	I.read(fnImage);
 	I().setXmippOrigin();
  }
@@ -311,12 +311,12 @@
     for (size_t i = 1; i <= mdParticles.size(); ++i) {
     	row = mdParticles.getRowVec(i);
     	readParticle(row);
-     	row.getValueOrDefault(MDL_ANGLE_ROT, rot);
-     	row.getValueOrDefault(MDL_ANGLE_TILT, tilt);
-     	row.getValueOrDefault(MDL_ANGLE_PSI, psi);
+     	row.getValueOrDefault(MDL_ANGLE_ROT, rot, 0);
+     	row.getValueOrDefault(MDL_ANGLE_TILT, tilt, 0);
+     	row.getValueOrDefault(MDL_ANGLE_PSI, psi, 0);
      	roffset.initZeros(2);
-     	row.getValueOrDefault(MDL_SHIFT_X, roffset(0));
-     	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1));
+     	row.getValueOrDefault(MDL_SHIFT_X, roffset(0), 0);
+     	row.getValueOrDefault(MDL_SHIFT_Y, roffset(1), 0);
      	roffset *= -1;
     	projectVolume(V(), P, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
     	projectVolume(maskVol(), PmaskVol, (int)XSIZE(I()), (int)XSIZE(I()), rot, tilt, psi, &roffset);
@@ -324,7 +324,7 @@
 		FilterG.applyMaskSpace(PmaskVolI());
 		POCSmaskProj(PmaskVolI(), P());
 		POCSmaskProj(PmaskVolI(), I());
-		row.getValueOrDefault(MDL_IMAGE, fnPart);
+		row.getValueOrDefault(MDL_IMAGE, fnPart, "no_filename");
 		Pctf = applyCTF(row, P);
 		radial_meanI = computeRadialAvg(I, radial_meanI);
 		radial_meanP = computeRadialAvg(Pctf, radial_meanP);
