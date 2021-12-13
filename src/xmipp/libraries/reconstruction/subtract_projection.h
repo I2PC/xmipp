@@ -58,9 +58,7 @@
  	Image<double> V;
  	Image<double> mask;
  	Image<double> PmaskInv;
- 	Image<double> PmaskFilt;
  	Image<double> PmaskVolI;
- 	Image<double> PmaskG;
  	Image<double> maskVol;
  	Image<double> I;
  	Projection P;
