@@ -96,12 +96,13 @@
      addExampleLine("xmipp_subtract_projection -i input_particles.xmd --ref input_map.mrc --maskVol mask_vol.vol --mask mask.vol -o output_particles --iter 5 --lambda 1 --cutFreq 0.44 --sigma 3");
  }
 
- void ProgSubtractProjection::POCSmaskProj(const MultidimArray<double> &mask, MultidimArray<double> &I) {
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I)
- 	DIRECT_MULTIDIM_ELEM(I,n)*=DIRECT_MULTIDIM_ELEM(mask,n);
+ void ProgSubtractProjection::POCSmaskProj(const MultidimArray<double> &maskpocs, MultidimArray<double> &Ipocs) const{
+ 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ipocs)
+ 	DIRECT_MULTIDIM_ELEM(Ipocs,n)*=DIRECT_MULTIDIM_ELEM(maskpocs,n);
  }
 
- void ProgSubtractProjection::POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI, double lambda, const MultidimArray<double> &rQ, int Isize) {
+ void ProgSubtractProjection::POCSFourierAmplitudeProj(const MultidimArray<double> &A, MultidimArray< std::complex<double> > &FI,
+		 double lambdapocs, const MultidimArray<double> &rQ, int Isize) const{
  	int Isize2 = Isize/2;
  	double Isizei = 1.0/Isize;
  	double wx;
@@ -115,22 +116,22 @@
  			auto iw = (int)round(w*Isize);
  			double mod = std::abs(DIRECT_A2D_ELEM(FI,i,j));
  			if (mod>1e-6)
- 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambda)+lambda*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
+ 				DIRECT_A2D_ELEM(FI,i,j)*=(((1-lambdapocs)+lambdapocs*DIRECT_A2D_ELEM(A,i,j))/mod)*DIRECT_MULTIDIM_ELEM(rQ,iw);
  		}
  	}
  }
 
- void ProgSubtractProjection::POCSMinMaxProj(MultidimArray<double> &P, double Im, double IM) {
- 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(P) {
- 		double val = DIRECT_MULTIDIM_ELEM(P,n);
+ void ProgSubtractProjection::POCSMinMaxProj(MultidimArray<double> &Ppocs, double Im, double IM) const{
+ 	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(Ppocs) {
+ 		double val = DIRECT_MULTIDIM_ELEM(Ppocs,n);
  		if (val<Im)
- 			DIRECT_MULTIDIM_ELEM(P,n) = Im;
+ 			DIRECT_MULTIDIM_ELEM(Ppocs,n) = Im;
  		else if (val>IM)
- 			DIRECT_MULTIDIM_ELEM(P,n) = IM;
+ 			DIRECT_MULTIDIM_ELEM(Ppocs,n) = IM;
  		}
  }
 
- void ProgSubtractProjection::extractPhaseProj(MultidimArray< std::complex<double> > &FI) {
+ void ProgSubtractProjection::extractPhaseProj(MultidimArray< std::complex<double> > &FI) const{
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(FI) {
  		const auto *ptr = (double *)&DIRECT_MULTIDIM_ELEM(FI,n);
  		double phi = atan2(*(ptr+1),*ptr);
@@ -138,7 +139,7 @@
  	}
  }
 
- void ProgSubtractProjection::POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, MultidimArray< std::complex<double> > &FI) {
+ void ProgSubtractProjection::POCSFourierPhaseProj(const MultidimArray< std::complex<double> > &phase, MultidimArray< std::complex<double> > &FI) const{
  	FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(phase)
  		DIRECT_MULTIDIM_ELEM(FI,n)=std::abs(DIRECT_MULTIDIM_ELEM(FI,n))*DIRECT_MULTIDIM_ELEM(phase,n);
  }
