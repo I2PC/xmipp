@@ -47,14 +47,17 @@
     FileName fnProj;
     MetaDataVec mdParticles;
     MDRowVec row;
-    double cutFreq;
-    double lambda;
-    double rot;
-    double tilt;
-	double psi;
+	double cutFreq;
+	double lambda;
+	int sigma;
+	int iter;
+    struct Angles
+    {
+    	double rot;
+    	double tilt;
+    	double psi;
+    };
     Matrix1D<double> roffset;
- 	int sigma;
- 	int iter;
  	Image<double> V;
  	Image<double> mask;
  	Image<double> PmaskInv;
@@ -67,8 +70,11 @@
 	FourierFilter FilterG;
 	FourierFilter FilterG2;
 	FourierFilter Filter2;
-	MultidimArray<double> radial_meanI;
-	MultidimArray<double> radial_meanP;
+    struct Radial
+    {
+		MultidimArray<double> meanI;
+		MultidimArray<double> meanP;
+    };
 	MultidimArray<double> radQuotient;
 	FourierTransformer transformer;
 	MultidimArray< std::complex<double> > IFourier;
