@@ -383,6 +383,7 @@ def addMatlabBinding(name):
     matlabDir = join(XMIPP_PATH, 'bindings', 'matlab')
     source = join(matlabDir, name)
     target = join(matlabDir, name.replace(".cpp",".mexa64"))
+    env.Depends(target = target, dependency = XMIPP_LIBS)
 
     cmdTarget = env.Command(target, source, compileMatlabBinding, deps=XMIPP_LIBS)
     env.Alias('xmipp-matlab', cmdTarget)
