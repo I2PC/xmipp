@@ -89,34 +89,9 @@ void Cone::prepare()
 /* ------------------------------------------------------------------------- */
 /* Assignment                                                                */
 /* ------------------------------------------------------------------------- */
-Feature & Feature::operator = (const Feature &F)
-{
-    if (this == &F)
-        return *this;
-    Type         = F.Type;
-    Add_Assign   = F.Add_Assign;
-    Density      = F.Density;
-    Center       = F.Center;
-    max_distance = F.max_distance;
-    return *this;
-}
-
 void Feature::assign(const Feature &F)
 {
     *this = F;
-}
-
-Oriented_Feature & Oriented_Feature::operator = (const Oriented_Feature &OF)
-{
-    if (this == &OF)
-        return *this;
-    rot    = OF.rot;
-    tilt   = OF.tilt;
-    psi    = OF.psi;
-    euler  = OF.euler;
-    eulert = OF.eulert;
-    Feature::operator = (OF);
-    return *this;
 }
 
 void Oriented_Feature::assign(const Oriented_Feature &OF)
@@ -130,30 +105,9 @@ void Oriented_Feature::prepare_Euler()
     eulert = euler.transpose();
 }
 
-
-Sphere & Sphere::operator = (const Sphere &F)
-{
-    if (this == &F)
-        return *this;
-    Feature::operator = (F);
-    radius = F.radius;
-    return *this;
-}
-
 void Sphere::assign(const Sphere &F)
 {
     *this = F;
-}
-
-Blob & Blob::operator = (const Blob &F)
-{
-    if (this == &F)
-        return *this;
-    Feature::operator = (F);
-    radius = F.radius;
-    alpha  = F.alpha;
-    m      = F.m;
-    return *this;
 }
 
 void Blob::assign(const Blob &F)
@@ -161,29 +115,9 @@ void Blob::assign(const Blob &F)
     *this = F;
 }
 
-Gaussian & Gaussian::operator = (const Gaussian &F)
-{
-    if (this == &F)
-        return *this;
-    Feature::operator = (F);
-    sigma = F.sigma;
-    return *this;
-}
-
 void Gaussian::assign(const Gaussian &F)
 {
     *this = F;
-}
-
-Cylinder & Cylinder::operator = (const Cylinder &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    xradius = F.xradius;
-    yradius = F.yradius;
-    height  = F.height;
-    return *this;
 }
 
 void Cylinder::assign(const Cylinder &F)
@@ -191,31 +125,9 @@ void Cylinder::assign(const Cylinder &F)
     *this = F;
 }
 
-DCylinder & DCylinder::operator = (const DCylinder &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    radius     = F.radius;
-    height     = F.height;
-    separation = F.separation;
-    return *this;
-}
-
 void DCylinder::assign(const DCylinder &F)
 {
     *this = F;
-}
-
-Cube & Cube::operator = (const Cube &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    xdim = F.xdim;
-    ydim = F.ydim;
-    zdim = F.zdim;
-    return *this;
 }
 
 void Cube::assign(const Cube &F)
@@ -223,30 +135,9 @@ void Cube::assign(const Cube &F)
     *this = F;
 }
 
-Ellipsoid & Ellipsoid::operator = (const Ellipsoid &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    xradius = F.xradius;
-    yradius = F.yradius;
-    zradius = F.zradius;
-    return *this;
-}
-
 void Ellipsoid::assign(const Ellipsoid &F)
 {
     *this = F;
-}
-
-Cone & Cone::operator = (const Cone &F)
-{
-    if (this == &F)
-        return *this;
-    Oriented_Feature::operator = (F);
-    radius     = F.radius;
-    height     = F.height;
-    return *this;
 }
 
 void Cone::assign(const Cone &F)
@@ -261,8 +152,8 @@ void Feature::rotate_center(const Matrix2D<double> &E)
 {
     Matrix2D<double> inverse_angles_matrix;
     inverse_angles_matrix = E.inv();
-    Center = inverse_angles_matrix * Center;
-    //Center=E*Center;
+    center = inverse_angles_matrix * center;
+    //center=E*center;
 }
 
 void Feature::rotate(const Matrix2D<double> &E)
@@ -287,35 +178,35 @@ void Feature::readCommon(char *line)
 {
     int        stat;
     char       straux[6];
-    Center.resize(3);
+    center.resize(3);
     stat = sscanf(line, "%s %c %lf %lf %lf %lf",
                   straux,
-                  &Add_Assign,
-                  &Density,
-                  &(XX(Center)),
-                  &(YY(Center)),
-                  &(ZZ(Center)));
+                  &add_assign,
+                  &density,
+                  &(XX(center)),
+                  &(YY(center)),
+                  &(ZZ(center)));
     if (stat != 6)
         REPORT_ERROR(ERR_IO_NOREAD,
                      (std::string)"Error when reading common part of feature: " + line);
-    Type = straux;
+    type = straux;
 }
 
 // Read the common parameters for a feature
 void Feature::readCommon(MDRow & row)
 {
-    Center.resize(3);
+    center.resize(3);
     std::vector <double> VecFeatureCenter;  // Keep the center of the feature
     std::string s_op;  // As no label for char in MD_TYPE  (for add/assign)
-    if (!row.getValue(MDL_PHANTOM_FEATURE_TYPE,Type) ||
+    if (!row.getValue(MDL_PHANTOM_FEATURE_TYPE,type) ||
         !row.getValue(MDL_PHANTOM_FEATURE_OPERATION,s_op) ||
-        !row.getValue(MDL_PHANTOM_FEATURE_DENSITY,Density) ||
+        !row.getValue(MDL_PHANTOM_FEATURE_DENSITY,density) ||
         !row.getValue(MDL_PHANTOM_FEATURE_CENTER,VecFeatureCenter))
         REPORT_ERROR(ERR_ARG_MISSING, (std::string)"Error when reading common part of feature");
-    XX(Center) = VecFeatureCenter[0];
-    YY(Center) = VecFeatureCenter[1];
-    ZZ(Center) = VecFeatureCenter[2];
-    Add_Assign = s_op[0];
+    XX(center) = VecFeatureCenter[0];
+    YY(center) = VecFeatureCenter[1];
+    ZZ(center) = VecFeatureCenter[2];
+    add_assign = s_op[0];
 }
 
 // Read all the related parameters of the feature
@@ -514,7 +405,7 @@ void Cone::read_specific(const std::vector<double> &vect)
 void  Sphere::feat_printf(FILE *fh) const
 {
     fprintf(fh, "sph    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             radius);
 }
 
@@ -531,7 +422,7 @@ void  Blob::feat_printf(FILE *fh) const
 {
     fprintf(fh, "blo    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f"
             "    % 7.2f    %1d\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             radius, alpha, m);
 }
 
@@ -549,7 +440,7 @@ void  Blob::feat_printm(MetaData &MD, size_t id)
 void  Gaussian::feat_printf(FILE *fh) const
 {
     fprintf(fh, "blo    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             sigma);
 }
 
@@ -566,7 +457,7 @@ void  Cylinder::feat_printf(FILE *fh) const
 {
     fprintf(fh, "cyl    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f    "
             "% 7.2f    % 7.2f    % 7.2f    % 7.2f    % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             xradius, yradius, height,
             rot, tilt, psi);
 }
@@ -588,7 +479,7 @@ void  DCylinder::feat_printf(FILE *fh) const
 {
     fprintf(fh, "dcy    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f    "
             "% 7.2f    % 7.2f    % 7.2f    % 7.2f    % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             radius, height, separation,
             rot, tilt, psi);
 }
@@ -610,7 +501,7 @@ void  Cube::feat_printf(FILE *fh) const
 {
     fprintf(fh, "cub    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f    "
             "% 7.2f    % 7.2f    % 7.2f    % 7.2f   % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             xdim, ydim, zdim,
             rot, tilt, psi);
 }
@@ -633,7 +524,7 @@ void  Ellipsoid::feat_printf(FILE *fh) const
 {
     fprintf(fh, "ell    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f    "
             "% 7.2f    % 7.2f    % 7.2f    % 7.2f   % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             xradius, yradius, zradius,
             rot, tilt, psi);
 }
@@ -656,7 +547,7 @@ void  Cone::feat_printf(FILE *fh) const
 {
     fprintf(fh, "con    %c     %1.4f    % 7.2f   % 7.2f    % 7.2f    % 7.2f    "
             "% 7.2f    % 7.2f    % 7.2f    % 7.2f\n",
-            Add_Assign, Density, XX(Center), YY(Center), ZZ(Center),
+            add_assign, density, XX(center), YY(center), ZZ(center),
             radius, height,
             rot, tilt, psi);
 }
@@ -680,25 +571,25 @@ std::ostream& operator << (std::ostream &o, const Feature *F)
     if (F != nullptr)
     {
         o << "Feature --------" << std::endl;
-        o << "   Type:        " << F->Type << std::endl;
-        o << "   Add_Assign:  " << F->Add_Assign << std::endl;
-        o << "   Density:     " << F->Density << std::endl;
-        o << "   Center:      " << F->Center.transpose() << std::endl;
-        if (F->Type == "sph")
+        o << "   type:        " << F->type << std::endl;
+        o << "   add_assign:  " << F->add_assign << std::endl;
+        o << "   density:     " << F->density << std::endl;
+        o << "   center:      " << F->center.transpose() << std::endl;
+        if (F->type == "sph")
             o << *((Sphere *) F);
-        else if (F->Type == "blo")
+        else if (F->type == "blo")
             o << *((Blob *) F);
-        else if (F->Type == "gau")
+        else if (F->type == "gau")
             o << *((Gaussian *) F);
-        else if (F->Type == "cyl")
+        else if (F->type == "cyl")
             o << *((Cylinder *) F);
-        else if (F->Type == "dcy")
+        else if (F->type == "dcy")
             o << *((DCylinder *) F);
-        else if (F->Type == "cub")
+        else if (F->type == "cub")
             o << *((Cube *) F);
-        else if (F->Type == "ell")
+        else if (F->type == "ell")
             o << *((Ellipsoid *) F);
-        else if (F->Type == "con")
+        else if (F->type == "con")
             o << *((Cone *) F);
     }
     return o;
@@ -794,7 +685,7 @@ std::ostream& operator << (std::ostream &o, const Cone &f)
 
 #define DEF_Sph_Blob_point_inside {\
         /*Express r in the feature coord. system*/\
-        V3_MINUS_V3(aux,r,Center);\
+        V3_MINUS_V3(aux,r,center);\
         /*Check if it is inside*/\
         if (XX(aux)*XX(aux) + YY(aux)*YY(aux) +ZZ(aux)*ZZ(aux) <= radius*radius)\
             return 1;\
@@ -813,11 +704,11 @@ int Blob::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 }
 #undef DEF_Sph_Blob_point_inside
 
-/* Density inside a Blob --------------------------------------------------- */
+/* density inside a Blob --------------------------------------------------- */
 double Blob::density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 {
     /*Express r in the feature coord. system*/
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     /*Calculate density*/
     return (kaiser_value(aux.module(), radius,  alpha,  m));
 }
@@ -825,17 +716,17 @@ double Blob::density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) co
 /* Point inside a Gaussian ------------------------------------------------- */
 int Gaussian::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 {
-    V3_MINUS_V3(aux,r,Center);
+    V3_MINUS_V3(aux,r,center);
     if (XX(aux)*XX(aux) + YY(aux)*YY(aux) +ZZ(aux)*ZZ(aux) <= 16*sigma*sigma)
         return 1;
     return 0;
 }
 
-/* Density inside a Gaussian ----------------------------------------------- */
+/* density inside a Gaussian ----------------------------------------------- */
 double Gaussian::density_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
 {
     /*Express r in the feature coord. system*/
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     /*Calculate density*/
     const double norm=1.0/sqrt(2.0*PI);
     double rmod=aux.module();
@@ -850,7 +741,7 @@ int Cylinder::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) con
     double tx, ty;
 
     // Express r in the feature coord. system
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     M3x3_BY_V3x1(aux, euler, aux);
 
     // Check if it is inside
@@ -867,7 +758,7 @@ int DCylinder::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) co
     SPEED_UP_temps012;
 
     // Express r in the feature coord. system
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     M3x3_BY_V3x1(aux, euler, aux);
 
     // Check if inside
@@ -888,7 +779,7 @@ int Cube::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     SPEED_UP_temps012;
 
     // Express r in the feature coord. system
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     M3x3_BY_V3x1(aux, euler, aux);
 
     // Check if inside
@@ -905,7 +796,7 @@ int Ellipsoid::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) co
     double tx, ty, tz;
 
     // Express r in the feature coord. system
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     M3x3_BY_V3x1(aux, euler, aux);
 
     // Check if inside
@@ -924,7 +815,7 @@ int Cone::point_inside(const Matrix1D<double> &r, Matrix1D<double> &aux) const
     double Zradius;
 
     // Express r in the feature coord. system
-    V3_MINUS_V3(aux, r, Center);
+    V3_MINUS_V3(aux, r, center);
     M3x3_BY_V3x1(aux, euler, aux);
 
     // Check if inside
@@ -989,7 +880,7 @@ double Feature::voxel_inside_by_normalized_density(
     Matrix1D<double> &aux2) const
 {
 #ifdef NEVER
-    if (Type == "blo")
+    if (type == "blo")
     {
         std::cout << "den=" <<   density_inside(r, aux2) << std::endl;
         return(density_inside(r, aux2));
@@ -1067,12 +958,12 @@ void Feature::corners(const MultidimArray<double> &V, Matrix1D<double> &corner1,
 {
     corner1.resize(3);
     corner2.resize(3);
-    XX(corner1) = XMIPP_MAX(FLOOR(XX(Center) - max_distance), STARTINGX(V));
-    YY(corner1) = XMIPP_MAX(FLOOR(YY(Center) - max_distance), STARTINGY(V));
-    ZZ(corner1) = XMIPP_MAX(FLOOR(ZZ(Center) - max_distance), STARTINGZ(V));
-    XX(corner2) = XMIPP_MIN(CEIL(XX(Center) + max_distance), FINISHINGX(V));
-    YY(corner2) = XMIPP_MIN(CEIL(YY(Center) + max_distance), FINISHINGY(V));
-    ZZ(corner2) = XMIPP_MIN(CEIL(ZZ(Center) + max_distance), FINISHINGZ(V));
+    XX(corner1) = XMIPP_MAX(FLOOR(XX(center) - max_distance), STARTINGX(V));
+    YY(corner1) = XMIPP_MAX(FLOOR(YY(center) - max_distance), STARTINGY(V));
+    ZZ(corner1) = XMIPP_MAX(FLOOR(ZZ(center) - max_distance), STARTINGZ(V));
+    XX(corner2) = XMIPP_MIN(CEIL(XX(center) + max_distance), FINISHINGX(V));
+    YY(corner2) = XMIPP_MIN(CEIL(YY(center) + max_distance), FINISHINGY(V));
+    ZZ(corner2) = XMIPP_MIN(CEIL(ZZ(center) + max_distance), FINISHINGZ(V));
 }
 
 /* Draw a feature ---------------------------------------------------------- */
@@ -1087,8 +978,8 @@ void Feature::draw_in(MultidimArray<double> &V, int colour_mode, double colour)
 
     if (colour_mode == INTERNAL)
     {
-        final_colour = Density;
-        add = Add_Assign == '+';
+        final_colour = density;
+        add = add_assign == '+';
     }
     else
     {
@@ -1102,7 +993,7 @@ void Feature::draw_in(MultidimArray<double> &V, int colour_mode, double colour)
     std::cout << "Drawing \n";
     std::cout << this;
     std::cout << "colour_mode=" << colour_mode << std::endl;
-    std::cout << "Add_Assign= " << Add_Assign  << std::endl;
+    std::cout << "add_assign= " << add_assign  << std::endl;
     std::cout << "add=        " << add         << std::endl;
     std::cout << "   Corner 1" << corner1.transpose() << std::endl;
     std::cout << "   Corner 2" << corner2.transpose() << std::endl;
@@ -1159,23 +1050,23 @@ void Feature::sketch_in(MultidimArray<double> &V, double colour)
 /* Shift a feature --------------------------------------------------------- */
 void Feature::shift(double shiftX, double shiftY, double shiftZ)
 {
-    XX(Center) += shiftX;
-    YY(Center) += shiftY;
-    ZZ(Center) += shiftZ;
+    XX(center) += shiftX;
+    YY(center) += shiftY;
+    ZZ(center) += shiftZ;
 }
 
 /* Apply a general transformation to a feature ------------------------------ */
 void Feature::selfApplyGeometry(const Matrix2D<double> &A)
 {
     Matrix1D<double> r(4);
-    XX(r) = XX(Center);
-    YY(r) = YY(Center);
-    ZZ(r) = ZZ(Center);
+    XX(r) = XX(center);
+    YY(r) = YY(center);
+    ZZ(r) = ZZ(center);
     r(3) = 1;
     r = A * r;
-    XX(Center) = XX(r);
-    YY(Center) = YY(r);
-    ZZ(Center) = ZZ(r);
+    XX(center) = XX(r);
+    YY(center) = YY(r);
+    ZZ(center) = ZZ(r);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1202,7 +1093,7 @@ double Sphere::intersection(
 
     // Set the passing point in the ellipsoid coordinate system
     // and normalise to a unit sphere
-    V3_MINUS_V3(r, passing_point, Center);
+    V3_MINUS_V3(r, passing_point, center);
     V3_BY_CT(r, r, 1 / radius);
     V3_BY_CT(u, direction, 1 / radius);
     return intersection_unit_sphere(u, r) / norm;
@@ -1214,7 +1105,7 @@ double Blob::intersection(
     Matrix1D<double> &r,
     Matrix1D<double> &u) const
 {
-    return(kaiser_proj(point_line_distance_3D(Center, passing_point, direction),
+    return(kaiser_proj(point_line_distance_3D(center, passing_point, direction),
                        radius, alpha, m));
 }
 
@@ -1224,7 +1115,7 @@ double Gaussian::intersection(
     Matrix1D<double> &r,
     Matrix1D<double> &u) const
 {
-    double rmod=point_line_distance_3D(Center, passing_point, direction);
+    double rmod=point_line_distance_3D(center, passing_point, direction);
     double sigma2=sigma*sigma;
     return 1.0/sigma2*exp(-0.5*rmod*rmod/sigma2);
 }
@@ -1241,7 +1132,7 @@ double Cylinder::intersection(
 
     // Set the passing point in the cylinder coordinate system
     // and normalise to a unit cylinder
-    V3_MINUS_V3(r, passing_point, Center);
+    V3_MINUS_V3(r, passing_point, center);
     M3x3_BY_V3x1(r, euler, r);
     XX(r) /= xradius;
     YY(r) /= yradius;
@@ -1288,7 +1179,7 @@ double DCylinder::intersection(
     // Top cylinder
     // Set the passing point in the cylinder coordinate system
     // and normalise to a unit cylinder
-    V3_MINUS_V3(r, passing_point, Center);
+    V3_MINUS_V3(r, passing_point, center);
     M3x3_BY_V3x1(r, euler, r);
     ZZ(r) -= (separation / 2 + height / 2);
     XX(r) /= radius;
@@ -1299,7 +1190,7 @@ double DCylinder::intersection(
     // Bottom cylinder
     // Set the passing point in the cylinder coordinate system
     // and normalise to a unit cylinder
-    V3_MINUS_V3(r, passing_point, Center);
+    V3_MINUS_V3(r, passing_point, center);
     M3x3_BY_V3x1(r, euler, r);
     ZZ(r) += (separation / 2 + height / 2);
     XX(r) /= radius;
@@ -1321,7 +1212,7 @@ double Cube::intersection(
 
     // Set the passing point in the cube coordinate system
     // and normalise to a unit cube
-    V3_MINUS_V3(r, passing_point, Center);
+    V3_MINUS_V3(r, passing_point, center);
     M3x3_BY_V3x1(r, euler, r);
     XX(r) /= xdim;
     YY(r) /= ydim;
@@ -1348,7 +1239,7 @@ double Ellipsoid::intersection(
 
     // Set the passing point in the ellipsoid coordinate system
     // and normalise to a unit sphere
-    V3_MINUS_V3(r, passing_point, Center);
+    V3_MINUS_V3(r, passing_point, center);
     M3x3_BY_V3x1(r, euler, r);
     XX(r) /= xradius;
     YY(r) /= yradius;
@@ -1399,16 +1290,16 @@ void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
     // Find center of the feature in the projection plane ...................
     // Step 1). Project the center to the plane, the result is in the
     //          universal coord system
-    M3x3_BY_V3x1(origin, VP, Center);
+    M3x3_BY_V3x1(origin, VP, center);
 
     //   Matrix1D<double> origin_debug(3);
-    //   Uproject_to_plane(Center,P.direction,0,origin_debug);
+    //   Uproject_to_plane(center,P.direction,0,origin_debug);
 
     //#define DEBUG_LITTLE
 #ifdef DEBUG_LITTLE
 
     std::cout << "Actual feature\n"     << this << std::endl;
-    std::cout << "Center              " << Center.transpose() << std::endl;
+    std::cout << "center              " << center.transpose() << std::endl;
     std::cout << "VP matrix\n"          << VP << std::endl;
     std::cout << "P.direction         " << P.direction.transpose() << std::endl;
     std::cout << "direction           " << direction.transpose() << std::endl;
@@ -1549,7 +1440,7 @@ void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
 #endif
 
             // Add at the correspondent pixel the found intersection ,,,,,,,,,,
-            IMGPIXEL(P, v, u) += length * Density;
+            IMGPIXEL(P, v, u) += length * density;
         }
 }
 #undef DEBUG_LITTLE
@@ -1560,10 +1451,10 @@ void Feature::project_to(Projection &P, const Matrix2D<double> &VP,
 /* Scaling by a factor                                                       */
 /* ------------------------------------------------------------------------- */
 #define COPY_COMMON_PART \
-    f->Type         = Type; \
-    f->Add_Assign   = Add_Assign; \
-    f->Density      = Density; \
-    f->Center       = Center;
+    f->type         = type; \
+    f->add_assign   = add_assign; \
+    f->density      = density; \
+    f->center       = center;
 
 #define COPY_ANGLES \
     f->rot          = rot; \
@@ -1738,10 +1629,10 @@ Feature *Feature::encircle(double radius) const
     if (radius == 0)
         radius = 1.5 * max_distance;
 
-    f->Type         = "sph";
-    f->Add_Assign   = Add_Assign;
-    f->Density      = Density;
-    f->Center       = Center;
+    f->type         = "sph";
+    f->add_assign   = add_assign;
+    f->density      = density;
+    f->center       = center;
     f->max_distance = radius;
     f->radius       = radius;
 
@@ -1775,13 +1666,13 @@ void Sphere::init_rnd(
     double minz0,     double maxz0)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "sph";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "sph";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     radius         = rnd_unif(minradius, maxradius);
 
@@ -1798,13 +1689,13 @@ void Blob::init_rnd(
     double minz0,     double maxz0)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "blo";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "blo";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     radius         = rnd_unif(minradius, maxradius);
     alpha   = rnd_unif(minalpha, maxalpha);
@@ -1820,13 +1711,13 @@ void Gaussian::init_rnd(
     double minz0,    double maxz0)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "gau";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "gau";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     sigma          = rnd_unif(minsigma, maxsigma);
     max_distance   = 4*sigma;
@@ -1845,13 +1736,13 @@ void Cylinder::init_rnd(
     double minpsi,      double maxpsi)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "cyl";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "cyl";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     xradius        = rnd_unif(minxradius, maxxradius);
     yradius        = rnd_unif(minyradius, maxyradius);
@@ -1878,13 +1769,13 @@ void DCylinder::init_rnd(
     double minpsi,      double maxpsi)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "dcy";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "dcy";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     radius         = rnd_unif(minradius, maxradius);
     height         = rnd_unif(minheight, maxheight);
@@ -1912,13 +1803,13 @@ void Cube::init_rnd(
     double minpsi,      double maxpsi)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "cub";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "cub";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     if (minYdim == 0)
         minYdim = minXdim;
@@ -1953,13 +1844,13 @@ void Ellipsoid::init_rnd(
     double minpsi,      double maxpsi)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "ell";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "ell";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     if (minYradius == 0)
         minYradius = minXradius;
@@ -1993,13 +1884,13 @@ void Cone::init_rnd(
     double minpsi,      double maxpsi)
 {
     randomize_random_generator();
-    Center.resize(3);
-    Type           = "con";
-    Add_Assign     = '+';
-    Density        = rnd_unif(minden, maxden);
-    XX(Center)     = rnd_unif(minx0, maxx0);
-    YY(Center)     = rnd_unif(miny0, maxy0);
-    ZZ(Center)     = rnd_unif(minz0, maxz0);
+    center.resize(3);
+    type           = "con";
+    add_assign     = '+';
+    density        = rnd_unif(minden, maxden);
+    XX(center)     = rnd_unif(minx0, maxx0);
+    YY(center)     = rnd_unif(miny0, maxy0);
+    ZZ(center)     = rnd_unif(minz0, maxz0);
 
     radius         = rnd_unif(minradius, maxradius);
     height         = rnd_unif(minheight, maxheight);
@@ -2090,49 +1981,49 @@ Phantom & Phantom::operator = (const Phantom &P)
     Ellipsoid  *ell;
     Cone       *con;
     for (size_t i = 0; i < P.VF.size(); i++)
-        if (P.VF[i]->Type == "sph")
+        if (P.VF[i]->type == "sph")
         {
             sph = new Sphere;
             *sph = *((Sphere *)    P.VF[i]);
             add(sph);
         }
-        else if (P.VF[i]->Type == "blo")
+        else if (P.VF[i]->type == "blo")
         {
             blo = new Blob;
             *blo = *((Blob *)      P.VF[i]);
             add(blo);
         }
-        else if (P.VF[i]->Type == "gau")
+        else if (P.VF[i]->type == "gau")
         {
             gau = new Gaussian;
             *gau = *((Gaussian *)  P.VF[i]);
             add(gau);
         }
-        else if (P.VF[i]->Type == "cyl")
+        else if (P.VF[i]->type == "cyl")
         {
             cyl = new Cylinder;
             *cyl = *((Cylinder *)  P.VF[i]);
             add(cyl);
         }
-        else if (P.VF[i]->Type == "dcy")
+        else if (P.VF[i]->type == "dcy")
         {
             dcy = new DCylinder;
             *dcy = *((DCylinder *) P.VF[i]);
             add(dcy);
         }
-        else if (P.VF[i]->Type == "cub")
+        else if (P.VF[i]->type == "cub")
         {
             cub = new Cube;
             *cub = *((Cube *)      P.VF[i]);
             add(cub);
         }
-        else if (P.VF[i]->Type == "ell")
+        else if (P.VF[i]->type == "ell")
         {
             ell = new Ellipsoid;
             *ell = *((Ellipsoid *) P.VF[i]);
             add(ell);
         }
-        else if (P.VF[i]->Type == "con")
+        else if (P.VF[i]->type == "con")
         {
             con = new Cone;
             *con = *((Cone      *) P.VF[i]);
@@ -2153,7 +2044,7 @@ double Phantom::max_distance() const
 {
     double retval = 0;
     for (size_t i = 0; i < VF.size(); i++)
-        retval = XMIPP_MAX(retval, VF[i]->max_distance + VF[i]->Center.module());
+        retval = XMIPP_MAX(retval, VF[i]->max_distance + VF[i]->center.module());
     return retval;
 }
 
@@ -2282,7 +2173,7 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
             if (apply_scale)
             {
                 scaled_feat = feat->scale(scale);
-                scaled_feat->Center = scaled_feat->Center * scale;
+                scaled_feat->center = scaled_feat->center * scale;
                 delete feat;
 
                 // Store feature
@@ -2406,7 +2297,7 @@ void Phantom::read(const FileName &fn_phantom, bool apply_scale)
             if (apply_scale)
             {
                 scaled_feat = feat->scale(scale);
-                scaled_feat->Center = scaled_feat->Center * scale;
+                scaled_feat->center = scaled_feat->center * scale;
                 delete feat;
 
                 // Store feature
@@ -2459,13 +2350,13 @@ void Phantom::write(const FileName &fn_phantom)
     for (size_t i = 0; i < VF.size(); i++)
     {
         id = MD2.addObject();
-        SAddAssign = VF[i]->Add_Assign;
-        MD2.setValue(MDL_PHANTOM_FEATURE_TYPE,VF[i]->Type, id);
+        SAddAssign = VF[i]->add_assign;
+        MD2.setValue(MDL_PHANTOM_FEATURE_TYPE,VF[i]->type, id);
         MD2.setValue(MDL_PHANTOM_FEATURE_OPERATION, SAddAssign, id);
-        MD2.setValue(MDL_PHANTOM_FEATURE_DENSITY, VF[i]->Density, id);
-        FCVect[0] = XX(VF[i]->Center);
-        FCVect[1] = YY(VF[i]->Center);
-        FCVect[2] = ZZ(VF[i]->Center);
+        MD2.setValue(MDL_PHANTOM_FEATURE_DENSITY, VF[i]->density, id);
+        FCVect[0] = XX(VF[i]->center);
+        FCVect[1] = YY(VF[i]->center);
+        FCVect[2] = ZZ(VF[i]->center);
         MD2.setValue(MDL_PHANTOM_FEATURE_CENTER, FCVect, id);
         VF[i]->feat_printm(MD2, id);
     }
@@ -2483,10 +2374,10 @@ int Phantom::voxel_inside_any_feat(const Matrix1D<double> &r,
     for (size_t i = 0; i < VF.size(); i++)
     {
         inside = VF[i]->voxel_inside(r, aux1, aux2);
-        if (inside != 0 && VF[i]->Density > current_density)
+        if (inside != 0 && VF[i]->density > current_density)
         {
             current_i = i + 1;
-            current_density = VF[i]->Density;
+            current_density = VF[i]->density;
         }
     }
     return current_i;
