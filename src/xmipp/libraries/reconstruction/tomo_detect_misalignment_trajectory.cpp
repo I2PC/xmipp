@@ -552,7 +552,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 			if(chainLineY[j] != 0){
 
 				// Check angle range to calculate landmarkDisplacementThreshold does not go further that the size of the image
-				if (chainLineYAngles[j]+3*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
+				if (chainLineYAngles[j]+thrNumberDistanceAngleChain*tiltAngleStep > tiltAngles[tiltAngles.size()-1])
 				{
 					#ifdef DEBUG_CHAINS
 					std::cout << chainLineYAngles[j] << "calculateLandmarkProjectionDiplacement DEFAULT"<< std::endl;
@@ -564,7 +564,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 					#ifdef DEBUG_CHAINS
 					std::cout << chainLineYAngles[j] << "calculateLandmarkProjectionDiplacement CALCULATED"<< std::endl;
 					#endif
-					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+3*tiltAngleStep, j); // *** criterio para coger numero angulos
+					landmarkDisplacementThreshold = calculateLandmarkProjectionDiplacement(chainLineYAngles[j], chainLineYAngles[j]+thrNumberDistanceAngleChain*tiltAngleStep, j);
 				}
 
 				#ifdef DEBUG_CHAINS

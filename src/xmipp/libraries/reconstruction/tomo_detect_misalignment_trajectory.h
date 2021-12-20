@@ -76,7 +76,7 @@ public:
     bool checkInputCoord;
 
     /** Thresholds */
-    int thrNumberCoords;         //Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.
+    int thrNumberCoords;         // Threshold minimum number of coordinates attracted to a center of mass to consider it as a high contrast feature.
     float thrSDHCC;              // Threshold number of SD a coordinate value must be over the mean to consider that it belongs to a high contrast feature.
     float thrChainDistanceAng;   // Maximum distance of a detected landmark to consider it belongs to a chain
 
@@ -111,6 +111,7 @@ private:
     /** Thresholds */
     float poissonLandmarkPercentile = 0.2;          // Percentencile of the number of landmarks per row among the populated rows (exclude empty rows), taken as the lambda for poisson probability calculation
     size_t numberOfElementsInChainThreshold = 6;    // Minimum number of landmarks to keep a chain
+    size_t thrNumberDistanceAngleChain = 3;         // Angular distance (number of angular steps) for two coordinates to belong to the same chain, multiplied by the distance to the tilt axis
 
     // Distance thresholds are saved in angstroms in order to be independent of the sampling rate and image size
     float minDistanceAng = 20;                      // Minimum distance to cosider that 2 landmarks belong to the same chain
