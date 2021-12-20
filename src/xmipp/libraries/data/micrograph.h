@@ -115,6 +115,9 @@ public:
 
     Micrograph(const Micrograph &)=delete; // Do not use the default copy constructor
 
+    /// Copy assignment
+    Micrograph& operator=(const Micrograph &);
+
     /** Destructor */
     ~Micrograph();
 

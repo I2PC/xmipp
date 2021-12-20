@@ -37,7 +37,7 @@
 #include "program_extension.h"
 
 // Empty constructor =======================================================
-ProgFlexibleAlignment::ProgFlexibleAlignment()
+ProgFlexibleAlignment::ProgFlexibleAlignment() : Rerunable("")
 {
 	rangen = 0;
 	resume = false;
@@ -95,6 +95,7 @@ void ProgFlexibleAlignment::defineParams() {
 			"  [--max_iter  <N=60>]                 : Maximum number of iterations");
 	addExampleLine(
 			"xmipp_nma_alignment -i images.sel --pdb 2tbv.pdb --modes modelist.xmd --sampling_rate 6.4 -o output.xmd --resume");
+	Rerunable::setFileName(fnOutDir+"/nmaDone.xmd");
 }
 
 // Read arguments ==========================================================
@@ -151,31 +152,6 @@ void ProgFlexibleAlignment::show() {
 // Produce side information ================================================
 ProgFlexibleAlignment *global_flexible_prog;
 
-
-void ProgFlexibleAlignment::createWorkFiles() {
-	MetaDataDb *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
-	MetaDataDb mdTodo, mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir + "/nmaDone.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_NMA);
-		mdDone.addLabel(MDL_COST);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
-
 void ProgFlexibleAlignment::preProcess() {
 	MetaDataVec SF(fnModeList);
 	numberOfModes = SF.size();
@@ -191,7 +167,7 @@ void ProgFlexibleAlignment::preProcess() {
 
 void ProgFlexibleAlignment::finishProcessing() {
 	XmippMetadataProgram::finishProcessing();
-	rename((fnOutDir + "/nmaDone.xmd").c_str(), fn_out.c_str());
+	rename(Rerunable::getFileName().c_str(), fn_out.c_str());
 }
 
 // Create deformed PDB =====================================================
@@ -1277,5 +1253,5 @@ void ProgFlexibleAlignment::writeImageParameters(const FileName &fnImg) {
 		vectortemp.push_back(parameters(j));
 	md.setValue(MDL_NMA, vectortemp, objId);
 	md.setValue(MDL_COST, parameters(5 + dim), objId);
-	md.append(fnOutDir + "/nmaDone.xmd");
+	md.append(Rerunable::getFileName());
 }

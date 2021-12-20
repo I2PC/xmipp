@@ -609,7 +609,6 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 			 minY = rmax;
 			 minZ = _minZ;
 			 maxX = rmin;
-			 maxY;
 			if (symmetry == pg_CN || symmetry == pg_DN) {
 				maxY = rmax;
 				if (sym_order == 2){
@@ -697,7 +696,6 @@ void UnitCell::icoSymmetry(const Matrix1D<double> & sym_centre,
 		}
 #endif
 
-		in3Dmap.data->im;
 		MultidimArray<float> * map;
 		MultidimArray<float> * imageMap2;
 		in3Dmap().getMultidimArrayPointer(map);

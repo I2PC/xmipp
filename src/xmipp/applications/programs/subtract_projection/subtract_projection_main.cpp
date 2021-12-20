@@ -1,6 +1,6 @@
 /***************************************************************************
- * Authors:     AUTHOR_NAME (jvargas@cnb.csic.es)
  *
+ * Authors:     Estrella Fernandez Gimenez (me.fernandez@cnb.csic.es)
  *
  * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
  *
@@ -23,10 +23,6 @@
  *  e-mail address 'xmipp@cnb.csic.es'
  ***************************************************************************/
 
-#include <parallel/xmipp_mpi.h>
-#include <reconstruction/ctf_correct_wiener2d.h>
+#include <reconstruction/subtract_projection.cpp>
 
-class MpiProgCorrectWiener2D
-    : public BasicMpiMetadataProgram<ProgCorrectWiener2D> {};
-
-RUN_XMIPP_PROGRAM(MpiProgCorrectWiener2D)
+RUN_XMIPP_PROGRAM(ProgSubtractProjection)

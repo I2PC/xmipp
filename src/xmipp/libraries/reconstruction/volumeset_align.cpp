@@ -28,7 +28,7 @@
 #include "core/metadata_db.h"
 
 // Empty constructor =======================================================
-ProgVolumeSetAlign::ProgVolumeSetAlign() {
+ProgVolumeSetAlign::ProgVolumeSetAlign() : Rerunable("") {
 	each_image_produces_an_output = false;
 	produces_an_output = true;
 }
@@ -55,6 +55,7 @@ void ProgVolumeSetAlign::readParams() {
 	XmippMetadataProgram::readParams();
 	fnREF = getParam("--ref");
 	fnOutDir = getParam("--odir");
+	Rerunable::setFileName(fnOutDir+"/AlignedSoFar.xmd");
 	resume = checkParam("--resume");
 	frm_freq = getDoubleParam("--frm_parameters",0);
 	frm_shift= getIntParam("--frm_parameters",1);
@@ -64,35 +65,6 @@ void ProgVolumeSetAlign::readParams() {
 }
 
 // Produce side information ================================================
-
-void ProgVolumeSetAlign::createWorkFiles() {
-	auto *pmdIn = dynamic_cast<MetaDataDb*>(getInputMd());
-	// this will serve to resume
-	MetaDataDb mdTodo;
-	MetaDataDb mdDone;
-	mdTodo = *pmdIn;
-	FileName fn(fnOutDir+"/AlignedSoFar.xmd");
-	if (fn.exists() && resume) {
-		mdDone.read(fn);
-		mdTodo.subtraction(mdDone, MDL_IMAGE);
-	} 
-	else //if not exists create metadata only with headers
-	{
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ENABLED);
-		mdDone.addLabel(MDL_IMAGE);
-		mdDone.addLabel(MDL_ANGLE_ROT);
-		mdDone.addLabel(MDL_ANGLE_TILT);
-		mdDone.addLabel(MDL_ANGLE_PSI);
-		mdDone.addLabel(MDL_SHIFT_X);
-		mdDone.addLabel(MDL_SHIFT_Y);
-		mdDone.addLabel(MDL_SHIFT_Z);
-		mdDone.addLabel(MDL_MAXCC);
-		mdDone.addLabel(MDL_ANGLE_Y);
-		mdDone.write(fn);
-	}
-	*pmdIn = mdTodo;
-}
 
 void ProgVolumeSetAlign::preProcess() {
 	// Set the pointer of the program to this object
@@ -185,6 +157,6 @@ void ProgVolumeSetAlign::writeVolumeParameters(const FileName &fnImg) {
 	else{
 		md.setValue(MDL_ANGLE_Y, 0.0 , objId);
 	}
-	md.append(fnOutDir+"/AlignedSoFar.xmd");
+	md.append(Rerunable::getFileName());
 }
 
