@@ -48,14 +48,14 @@
 #define VERBOSE_OUTPUT
 
 // #define DEBUG_DIM
-#define DEBUG_PREPROCESS
-#define DEBUG_HCC
-#define DEBUG_FILTERLABEL
+// #define DEBUG_PREPROCESS
+// #define DEBUG_HCC
+// #define DEBUG_FILTERLABEL
 #define DEBUG_POISSON
 #define DEBUG_CHAINS
 #define DEBUG_GLOBAL_MISALI
 #define DEBUG_LOCAL_MISALI
-#define DEBUG_RESID
+// #define DEBUG_RESID
 #define DEBUG_OUTPUT_FILES
 
 class ProgTomoDetectMisalignmentTrajectory : public XmippProgram
@@ -122,7 +122,7 @@ private:
 
     // Global alignment thresholds
     float thrTop10Chain = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
-    float thrLMChain = 1.05;                        // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
+    float thrLMChain = 30;                        // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
     /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment;

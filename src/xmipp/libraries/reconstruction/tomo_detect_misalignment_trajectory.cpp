@@ -407,10 +407,6 @@ void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 		}
 	}
 
-	//std::vector<int> histogramOfLandmarkAppearanceSorted;
-	//histogramOfLandmarkAppearanceSorted = counterLinesOfLandmarkAppearance;
-
-
 	// Calculate poisson lambda
 	int numberEmptyRows = std::count(counterLinesOfLandmarkAppearance.begin(), counterLinesOfLandmarkAppearance.end(), 0);
 	std::vector<int> histogramOfLandmarkAppearanceSorted (counterLinesOfLandmarkAppearance.size()-numberEmptyRows); 
@@ -778,18 +774,17 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 				bool found = false;
 
 				// Find distance to closest neighbour
+				// *** optimizar: cada vez que se aumenta la distancia se revisitan los pixeles ya comprobados en distancias menores
 				for (int distance = 1; distance < thrChainDistancePx; distance++)
 				{
 					for (int i = -distance; i < distance; i++)
 					{
 						for (int j = -(distance - abs(i)); j <= (distance - abs(i)); j++)
 						{
-
 							if (j + coord2D.y > 0 && i + coord2D.x  > 0 && j + coord2D.y < ySize && i + coord2D.x < xSize )
 							{
 								if ((abs(j)+abs(i) == distance) && (DIRECT_A2D_ELEM(chain2dMap, (int)(j + coord2D.y), (int)(i + coord2D.x)) != 0))
 								{
-
 									if(std::min(matchCoordX, matchCoordY) > std::min(i, j))
 									{
 										#ifdef DEBUG_LOCAL_MISALI
@@ -800,7 +795,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 										matchCoordX = i;
 										matchCoordX = j;
 
-										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)
+										// Here we could break the loop but we do not to get the minimum distance to a chain (as a measurement of quality)*** no estoy seguro de esto
 										// break;
 									}
 								}
@@ -1470,10 +1465,16 @@ bool ProgTomoDetectMisalignmentTrajectory::filterLabeledRegions(std::vector<int>
 
 bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vector<int> counterLinesOfLandmarkAppearance, std::vector<size_t> chainIndexesY)
 {
-	float totalLM = coordinates3D.size();
+	// float totalLM = coordinates3D.size();
+	float totalLM = 0;
 	float totalChainLM = 0;
 	float totalIndexes = chainIndexesY.size();
 	float top10LM = 0;
+
+	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
+	{
+		totalLM += counterLinesOfLandmarkAppearance[i];
+	}
 
 	for (size_t i = 0; i < totalIndexes; i++)
 	{
@@ -1488,21 +1489,21 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	}
 
 	// Thresholds calculation
-	float top10Chain = 100 * (top10LM / totalLM); // Compare to thrTop10Chain
-	float lmChain = 100 * (totalChainLM / (totalIndexes * totalLM)); // Compare to thrLMChain
+	float top10Chain = 100 * (top10LM / totalLM); 								// Compare to thrTop10Chain
+	float lmChain = 100 * (totalChainLM / (totalLM)); 	// Compare to thrLMChain
 
 	// Thresholds comparison
 	bool top10ChainBool = top10Chain < thrTop10Chain;
 	bool lmChainBool = lmChain < thrLMChain;
 
-	#ifdef DEBUG_LOCAL_MISALI
+	#ifdef DEBUG_GLOBAL_MISALI
 	std::cout << "Global misalignment detection parameters:" << std::endl;
 	std::cout << "Total number of landmarks: " << totalLM << std::endl;
 	std::cout << "Total number of landmarks belonging to the selected chains: " << totalChainLM << std::endl;
 	std::cout << "Total number of landmarks belonging to the top 10 most populated indexes: " << top10LM << std::endl;
 
-	std::cout << "Precentage of LM belonging to the top 10 populated chains: " << top10Chain << std::endl;
-	std::cout << "Percentage of number of average LM belonging to the selected chains: " << lmChain << std::endl;
+	std::cout << "Precentage of LM belonging to the top 10 populated chains respecto to the total number of LM: " << top10Chain << std::endl;
+	std::cout << "Percentage of number LM belonging to the selected chains respect to the number of populated lines and the total number of LM: " << lmChain << std::endl;
 
 	std::cout << "Compare top10Chain < thrTop10Chain (" << top10Chain << "<" << thrTop10Chain << "): " << top10ChainBool << std::endl;
 	std::cout << "Compare lmChain < thrLMChain (" << lmChain << "<" << thrLMChain << "): " << lmChainBool << std::endl;
