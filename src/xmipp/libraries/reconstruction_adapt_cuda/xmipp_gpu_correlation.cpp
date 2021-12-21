@@ -356,7 +356,7 @@ void align_experimental_image(FileName &fnImgExp, GpuCorrelationAux &d_reference
 		GpuCorrelationAux &d_experimentalAuxTR, GpuCorrelationAux &d_experimentalAuxRT,
 		TransformMatrix<float> &transMat_tr, TransformMatrix<float> &transMat_rt, float *max_vector_tr, float *max_vector_rt,
 		MetaDataVec &SFexp, int available_images_proj, bool mirror, int maxShift,
-		mycufftHandle &myhandlePadded_tr, mycufftHandle &myhandlePolar_tr,
+		mycufftHandle &myhandlePadded_tr, mycufftHandle &myhandleMask_tr, mycufftHandle &myhandlePolar_tr,
 		mycufftHandle &myhandlePaddedB_tr, mycufftHandle &myhandleMaskB_tr, mycufftHandle &myhandlePolarB_tr,
 		mycufftHandle &myhandlePadded_rt, mycufftHandle &myhandleMask_rt, mycufftHandle &myhandlePolar_rt,
 		mycufftHandle &myhandlePaddedB_rt, mycufftHandle &myhandleMaskB_rt, mycufftHandle &myhandlePolarB_rt,
@@ -1580,7 +1580,7 @@ void ProgGpuCorrelation::run()
 			//SFexp
 			align_experimental_image(fnImgExp, d_referenceAux, d_experimentalAuxTR, d_experimentalAuxRT, transMat_tr, transMat_rt,
 					max_vector_tr, max_vector_rt, SF, available_images_proj, mirror, maxShift,
-					myhandlePadded_tr,  myhandlePolar_tr, myhandlePaddedB_tr, myhandleMaskB_tr, myhandlePolarB_tr,
+					myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myhandlePaddedB_tr, myhandleMaskB_tr, myhandlePolarB_tr,
 					myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt, myhandlePaddedB_rt, myhandleMaskB_rt, myhandlePolarB_rt,
 					myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT,
 					resultTR, resultRT, original_image_stack, ifftcb);
@@ -1590,7 +1590,7 @@ void ProgGpuCorrelation::run()
 			//SFexp
 			align_experimental_image(fnImgExp, d_referenceAux, d_experimentalAuxTR, d_experimentalAuxRT, transMat_tr_mirror, transMat_rt_mirror,
 							max_vector_tr_mirror, max_vector_rt_mirror, SF, available_images_proj, mirror, maxShift,
-							myhandlePadded_tr,myhandlePolar_tr, myhandlePaddedB_tr, myhandleMaskB_tr, myhandlePolarB_tr,
+							myhandlePadded_tr, myhandleMask_tr, myhandlePolar_tr, myhandlePaddedB_tr, myhandleMaskB_tr, myhandlePolarB_tr,
 							myhandlePadded_rt, myhandleMask_rt, myhandlePolar_rt, myhandlePaddedB_rt, myhandleMaskB_rt, myhandlePolarB_rt,
 							myStructureAux_tr, myStructureAux_rt, myStreamTR, myStreamRT,
 							resultTR, resultRT, original_image_stack, ifftcb);
