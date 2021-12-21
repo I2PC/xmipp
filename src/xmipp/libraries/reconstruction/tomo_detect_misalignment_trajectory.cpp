@@ -1030,11 +1030,8 @@ void ProgTomoDetectMisalignmentTrajectory::detectMisalignedTiltImages()
 
 void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 {
-	std::string alignmentReportPath;
-    alignmentReportPath = fnOut;
-
-	size_t lastindexInputTS = fnOut.find_last_of(":");
-	std::string rawnameTS = fnOut.substr(0, lastindexInputTS);
+	size_t lastindexInputTS = fnVol.find_last_of(":");
+	std::string rawnameTS = fnVol.substr(0, lastindexInputTS);
 	
 	MetaDataVec md;
 	FileName fn;
@@ -1072,10 +1069,10 @@ void ProgTomoDetectMisalignmentTrajectory::writeOutputAlignmentReport()
 		}
 	}
 
-	md.write(alignmentReportPath);
+	md.write(fnOut);
 	
 	#ifdef VERBOSE_OUTPUT
-	std::cout << "Alignment report saved at: " << alignmentReportPath << std::endl;
+	std::cout << "Alignment report saved at: " << fnOut << std::endl;
 	#endif
 }
 
