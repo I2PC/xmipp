@@ -158,7 +158,7 @@ FileName_repr(PyObject * obj)
 
 /* compose */
 PyObject *
-FileName_compose(PyObject *obj, PyObject *args)
+FileName_compose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
     PyObject* pyStr1 = nullptr, *pyStr2 = nullptr, *pyStr3 = nullptr;
@@ -210,7 +210,7 @@ FileName_compose(PyObject *obj, PyObject *args)
 }
 /* composeBlock */
 PyObject *
-FileName_composeBlock(PyObject *obj, PyObject *args)
+FileName_composeBlock(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -226,7 +226,7 @@ FileName_composeBlock(PyObject *obj, PyObject *args)
 
 /* exists */
 PyObject *
-FileName_exists(PyObject *obj)
+FileName_exists(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -238,7 +238,7 @@ FileName_exists(PyObject *obj)
 
 /* isInStack */
 PyObject *
-FileName_isInStack(PyObject *obj)
+FileName_isInStack(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -250,7 +250,7 @@ FileName_isInStack(PyObject *obj)
 
 /* isMetadata */
 PyObject *
-FileName_isMetaData(PyObject *obj)
+FileName_isMetaData(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
     try
@@ -273,7 +273,7 @@ FileName_isMetaData(PyObject *obj)
 
 /* isImage */
 PyObject *
-FileName_isImage(PyObject *obj)
+FileName_isImage(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     if (isImage(FileName_Value(obj)))
         Py_RETURN_TRUE;
@@ -283,7 +283,7 @@ FileName_isImage(PyObject *obj)
 
 /* isStar1 */
 PyObject *
-FileName_isStar1(PyObject *obj)
+FileName_isStar1(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -294,7 +294,7 @@ FileName_isStar1(PyObject *obj)
 }
 
 PyObject *
-FileName_getExtension(PyObject *obj)
+FileName_getExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -302,7 +302,7 @@ FileName_getExtension(PyObject *obj)
 }
 
 PyObject *
-FileName_getNumber(PyObject *obj)
+FileName_getNumber(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -310,7 +310,7 @@ FileName_getNumber(PyObject *obj)
 }
 
 PyObject *
-FileName_getBaseName(PyObject *obj)
+FileName_getBaseName(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
 
@@ -318,7 +318,7 @@ FileName_getBaseName(PyObject *obj)
 }
 
 PyObject *
-FileName_decompose(PyObject *obj)
+FileName_decompose(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
     size_t no;
@@ -328,14 +328,14 @@ FileName_decompose(PyObject *obj)
 }
 
 PyObject *
-FileName_withoutExtension(PyObject *obj)
+FileName_withoutExtension(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
     return PyUnicode_FromString(self->filename->withoutExtension().c_str());
 }
 
 PyObject *
-FileName_removeBlockName(PyObject *obj )
+FileName_removeBlockName(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     auto *self = (FileNameObject*) obj;
     return PyUnicode_FromString(self->filename->removeBlockName().c_str());
