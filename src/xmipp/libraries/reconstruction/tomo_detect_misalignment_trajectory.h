@@ -114,7 +114,7 @@ private:
     size_t thrNumberDistanceAngleChain = 3;         // Angular distance (number of angular steps) for two coordinates to belong to the same chain, multiplied by the distance to the tilt axis
 
     // Distance thresholds are saved in angstroms in order to be independent of the sampling rate and image size
-    float minDistanceAng = 20;                      // Minimum distance to cosider that 2 landmarks belong to the same chain
+    float minDistanceAng = 20;                      // Minimum distance to consider that 2 landmarks belong to the same chain
     
     // Thresholds measured in pixels updated in generateSideInfo function
     float minDistancePx;                          
@@ -122,7 +122,7 @@ private:
 
     // Global alignment thresholds
     float thrTop10Chain = 20;                       // Percentage of LM belonging to the top 10 populated chains (top10ChainLM/coordinates3D.size())
-    float thrLMChain = 30;                        // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
+    float thrLMChain = 30;                          // Percentage of number of average LM belonging to the selected chains (avgChainLM/(chainIndexes.seiz()*coordinates3D.size()))
 
     /** Alignment report. True = aligned / False = misaligned */
     bool globalAlignment;

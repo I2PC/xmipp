@@ -1471,6 +1471,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	float totalIndexes = chainIndexesY.size();
 	float top10LM = 0;
 
+	// We need to recalculate the number of total landmark considering those HCC counted more than once due to the sliding window effect
 	for (size_t i = 0; i < counterLinesOfLandmarkAppearance.size(); i++)
 	{
 		totalLM += counterLinesOfLandmarkAppearance[i];
@@ -1489,7 +1490,7 @@ bool ProgTomoDetectMisalignmentTrajectory::detectGlobalAlignmentPoisson(std::vec
 	}
 
 	// Thresholds calculation
-	float top10Chain = 100 * (top10LM / totalLM); 								// Compare to thrTop10Chain
+	float top10Chain = 100 * (top10LM / totalLM); 		// Compare to thrTop10Chain
 	float lmChain = 100 * (totalChainLM / (totalLM)); 	// Compare to thrLMChain
 
 	// Thresholds comparison
