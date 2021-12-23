@@ -177,7 +177,6 @@ void ProgReconsART::run()
         std::cout << " Projections                  : "  << artRecons->artPrm.numIMG << std::endl;
         std::cout << " ---------------------------------------------------------------------" << std::endl;
     }
-    std::cout<<"\nhola1\n"<<std::flush;
 
     // Show parameters and initiate history
     artRecons->initHistory(vol_basis);
@@ -189,11 +188,7 @@ void ProgReconsART::run()
     gettimeofday(&start_time,nullptr);
 
     // Iterations
-    std::cout<<"\nhola2\n"<<std::flush;
-
     artRecons->iterations(vol_basis);
-
-    std::cout<<"\nhola3\n"<<std::flush;
 
     gettimeofday(&end_time,nullptr);
 

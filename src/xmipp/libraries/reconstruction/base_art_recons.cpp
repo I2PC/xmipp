@@ -52,7 +52,6 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
     // case of saving intermediate volumes
     int Xoutput_volume_size, Youtput_volume_size, Zoutput_volume_size;
     double aux_tilt;
-    std::cout<<"\nARTReconsBase::iterations_1\n"<<std::flush;
     // Projection related ...................................................
     Projection      read_proj;          // Projection read from file
     Projection      theo_proj;          // Projection from the
@@ -108,7 +107,6 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
         vol_basis_noisy = vol_basis;
         vol_basis_noisy.initZeros();
     }
-    std::cout<<"\nARTReconsBase::iterations_2\n"<<std::flush;
 
     // If SIRT set normalizing factor and create output volume ..............
     if (artPrm.parallel_mode==BasicARTParameters::SIRT )
@@ -146,8 +144,6 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
         // input one
     }
     // Now iterate ..........................................................
-        std::cout<<"\nARTReconsBase::iterations_3\n"<<std::flush;
-
     ProcessorTimeStamp time0;                    // For measuring the elapsed time
     annotate_processor_time(&time0);
     int images=0;
@@ -577,7 +573,6 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
         if (images==artPrm.stop_at)
             break;
     }
-    std::cout<<"\nARTReconsBase::iterations_4\n"<<std::flush;
 
     // Times on screen
     if (rank==-1)
@@ -585,27 +580,20 @@ void ARTReconsBase::iterations(GridVolume &vol_basis, int rank)
         std::cout << "\nTime of " << artPrm.no_it << " iterations: \n";
         print_elapsed_time(time0);
     }
-    std::cout<<"\nARTReconsBase::iterations_5\n"<<std::flush;
 
     // Finish variability analysis
     VC.finishAnalysis();
-    std::cout<<"\nARTReconsBase::iterations_6\n"<<std::flush;
 
     // Save the noisy reconstruction
     if (artPrm.noisy_reconstruction)
     {
-        std::cout<<"\nARTReconsBase::iterations_7\n"<<std::flush;
 
         Image<double> vol_voxels_noisy;
         artPrm.basis.changeToVoxels(vol_basis_noisy, &(vol_voxels_noisy()),
                                     Zoutput_volume_size, Youtput_volume_size, Xoutput_volume_size);
-        std::cout<<"\nARTReconsBase::iterations_8\n"<<std::flush;
         vol_voxels_noisy.write(artPrm.fn_out.insertBeforeExtension("_noise"));
-        std::cout<<"\nARTReconsBase::iterations_9\n"<<std::flush;
         SF_noise.write(artPrm.fn_root+"_noise_proj.xmd");
-        std::cout<<"\nARTReconsBase::iterations_10\n"<<std::flush;
         SF_signal.write(artPrm.fn_root+"_signal_proj.xmd");
-        std::cout<<"\nARTReconsBase::iterations_11\n"<<std::flush;
     }
 
 }

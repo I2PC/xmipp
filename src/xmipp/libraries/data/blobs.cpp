@@ -901,7 +901,6 @@ void blobs2voxels(const GridVolume &vol_blobs,
                   const struct blobtype &blob, MultidimArray<double> *vol_voxels,
                   const Matrix2D<double> *D, int threads, int Zdim, int Ydim, int Xdim)
 {
-        std::cout<<"\nblobs::blobs2voxels\n"<<std::flush;
 
     // Resize and set starting corner .......................................
     if (Zdim == 0 || Ydim == 0 || Xdim == 0)
@@ -918,21 +917,19 @@ void blobs2voxels(const GridVolume &vol_blobs,
         (*vol_voxels).initZeros(Zdim, Ydim, Xdim);
         (*vol_voxels).setXmippOrigin();
     }
-        std::cout<<"\nblobs::blobs2voxels_1\n"<<std::flush;
 
     auto * th_ids = new pthread_t [threads];
     auto * threads_d = new ThreadBlobsToVoxels [threads];
     std::cout<<"\nblobs::blobs2voxels_2\n"<<std::flush;
 
     // Convert each subvolume ...............................................
-     std::cout<<"\nvol_blobs.VolumesNo(): " << vol_blobs.VolumesNo()<<std::flush;
-
     for (size_t i = 0; i < vol_blobs.VolumesNo(); i++)
     {
        std::cout<<"\ni: " << i <<std::flush;
         int min_distance = (int)ceil((2*(vol_blobs.grid(i)).relative_size ) / blob.radius ) + 1;
 
         slices_status = new int[(int)(ZZ(vol_blobs.grid(i).highest)-ZZ(vol_blobs.grid(i).lowest)+1)];
+        memset(slices_status,0,sizeof(int)*(int)((ZZ((&(vol_blobs.grid(i)))->highest)-ZZ((&(vol_blobs.grid(i)))->lowest)+1)));
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
@@ -958,12 +955,10 @@ void blobs2voxels(const GridVolume &vol_blobs,
         // Wait for threads to finish
         for( int c = 0 ; c < threads ; c++ )
         {
-            std::cout<<"\nc_threads: \n" <<std::flush;
             pthread_join(*(th_ids+c),NULL);
         }
 
 #ifdef DEBUG
-        std::cout << "Blob grid no " << i << " stats: ";
         vol_blobs(i)().printStats();
         std::cout << std::endl;
         std::cout << "So far vol stats: ";
@@ -973,17 +968,13 @@ void blobs2voxels(const GridVolume &vol_blobs,
         save() = *vol_voxels;
         save.write((std::string)"PPPvoxels" + integerToString(i));
 #endif
-
         delete[] slices_status;
     }
-        std::cout<<"\nblobs::blobs2voxels_3\n"<<std::flush;
 
     // Now normalise the resulting volume ..................................
     double inorm = 1.0 / sum_blob_Grid(blob, vol_blobs.grid(), D); // Aqui tambien hay que multiplicar ****!!!!
     FOR_ALL_ELEMENTS_IN_ARRAY3D(*vol_voxels)
     A3D_ELEM(*vol_voxels, k, i, j) *= inorm;
-        std::cout<<"\nblobs::blobs2voxels_4\n"<<std::flush;
-
     // Set voxels outside interest region to minimum value .................
     double R = vol_blobs.grid(0).get_interest_radius();
     if (R != -1)
