@@ -390,7 +390,7 @@ void ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
 	};
 
     std::vector<Point3D<double>> sortXcoordinates3D = coordinates3D;
-	std::sort(sortXcoordinates3D.begin(), sortXcoordinates3D.end(), SortByX());
+	std::sort(sortXcoordinates3D.begin(), sortXcoordinates3D.end(),b   SortByX());
 
 	// Vector 
 	std::vector<size_t> coordinatesIndexID (sortXcoordinates3D, 0);
