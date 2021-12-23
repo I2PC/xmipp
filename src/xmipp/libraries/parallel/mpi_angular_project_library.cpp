@@ -71,8 +71,8 @@ public:
     ProgMpiAngularProjectLibrary()
     {
         //parent class constructor will be called by deault without parameters
-        MPI_Comm_size(MPI_COMM_WORLD, &(nProcs));
-        MPI_Comm_rank(MPI_COMM_WORLD, &(rank));
+        MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
         //Blocks until all process have reached this routine.
         //very likelly this is
         MPI_Barrier(MPI_COMM_WORLD);
@@ -319,7 +319,7 @@ public:
                 // worker is free
                 if (status.MPI_TAG == TAG_FREEWORKER)
                 {
-                    MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                    MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                              MPI_COMM_WORLD, &status);
                     //#define DEBUG
 #ifdef DEBUG
@@ -356,7 +356,7 @@ public:
             //send TAG_STOP
             while (stopTagsSent < (nProcs-1))
             {
-                MPI_Recv(0, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
+                MPI_Recv(nullptr, 0, MPI_INT, MPI_ANY_SOURCE, TAG_FREEWORKER,
                          MPI_COMM_WORLD, &status);
 #ifdef DEBUG
 
@@ -365,7 +365,7 @@ public:
 #endif
     #undef DEBUG
 
-                MPI_Send(0, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
+                MPI_Send(nullptr, 0, MPI_INT, status.MPI_SOURCE, TAG_STOP, MPI_COMM_WORLD);
                 stopTagsSent++;
             }
             //only rank 0 create sel file
@@ -434,7 +434,7 @@ public:
             {
                 int jobNumber;
                 //I am free
-                MPI_Send(0, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
+                MPI_Send(nullptr, 0, MPI_INT, 0, TAG_FREEWORKER, MPI_COMM_WORLD);
                 //#define DEBUG
 #ifdef DEBUG
 
@@ -453,7 +453,7 @@ public:
                     //If I  do not read this tag
                     //master will no further process
                     //a posibility is a non-blocking send
-                    MPI_Recv(0, 0, MPI_INT, 0, TAG_STOP,
+                    MPI_Recv(nullptr, 0, MPI_INT, 0, TAG_STOP,
                              MPI_COMM_WORLD, &status);
 #ifdef DEBUG
 

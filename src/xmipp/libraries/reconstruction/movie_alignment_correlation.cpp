@@ -103,7 +103,7 @@ void ProgMovieAlignmentCorrelation<T>::loadData(const MetaData& movie,
                     reducedFrame());
 
             // Now do the Fourier transform and filter
-            MultidimArray<std::complex<T> > *reducedFrameFourier =
+            auto *reducedFrameFourier =
                     new MultidimArray<std::complex<T> >;
             transformer.FourierTransform(reducedFrame(), *reducedFrameFourier,
                     true);
@@ -201,14 +201,14 @@ void ProgMovieAlignmentCorrelation<T>::applyShiftsComputeAverage(
                 } else {
                     if (this->outsideMode == OUTSIDE_WRAP)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, WRAP);
+                                croppedFrame(), shift, xmipp_transformation::WRAP);
                     else if (this->outsideMode == OUTSIDE_VALUE)
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 this->outsideValue);
                     else
                         translate(this->BsplineOrder, shiftedFrame(),
-                                croppedFrame(), shift, DONT_WRAP,
+                                croppedFrame(), shift, xmipp_transformation::DONT_WRAP,
                                 croppedFrame().computeAvg());
                 }
                 if (this->fnAligned != "")

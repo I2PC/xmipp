@@ -249,7 +249,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				MAT_ELEM(ASR,0,2) += shiftXSR;
 				MAT_ELEM(ASR,1,2) += shiftYSR;
 				ASR.inv(INV);
-				applyGeometry(LINEAR, IauxSR, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxSR, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -268,7 +268,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				rotation2DMatrix(bestRotSR, R);
 				M3x3_BY_M3x3(ASR,R,ASR);
 				ASR.inv(INV);
-				applyGeometry(LINEAR, IauxSR, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxSR, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -287,7 +287,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				rotation2DMatrix(bestRotRS, R);
 				M3x3_BY_M3x3(ARS,R,ARS);
 				ARS.inv(INV);
-				applyGeometry(LINEAR, IauxRS, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxRS, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 #ifdef DEBUG_MORE
@@ -303,7 +303,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				MAT_ELEM(ARS,0,2) += shiftXRS;
 				MAT_ELEM(ARS,1,2) += shiftYRS;
 				ARS.inv(INV);
-				applyGeometry(LINEAR, IauxRS, I, INV, IS_INV, WRAP);
+				applyGeometry(xmipp_transformation::LINEAR, IauxRS, I, INV, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
 			}
 
 	#ifdef DEBUG_MORE
@@ -1208,8 +1208,8 @@ void CL2D::run(const FileName &fnODir, const FileName &fnOut, int level)
                                      currentListImgLargest[ii].objId);
 
                     // Now split the largest node
-                    CL2DClass *node1 = new CL2DClass();
-                    CL2DClass *node2 = new CL2DClass();
+                    auto *node1 = new CL2DClass();
+                    auto *node2 = new CL2DClass();
                     std::vector<size_t> splitAssignment;
                     splitNode(P[largestNode], node1, node2, splitAssignment);
                     delete P[largestNode];

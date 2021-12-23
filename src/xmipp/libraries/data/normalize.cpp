@@ -58,7 +58,7 @@ void normalize_OldXmipp_decomposition(MultidimArray<double> &I, const MultidimAr
                                     stddevbg);
     I -= avgbg;
     I /= stddevbg;
-    if (mask != NULL)
+    if (mask != nullptr)
         I *= *mask;
     normalize_OldXmipp(I);
 }
@@ -313,7 +313,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     I.checkDimension(2);
 
     // Check if mask is NULL.
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	Npoints = I.xdim*I.ydim;
     }
@@ -325,7 +325,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
 
     // Fit a least squares plane through the background pixels
     I.setXmippOrigin();
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
     	least_squares_plane_fit_All_Points(I, pA, pB, pC);
     }
@@ -333,7 +333,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     {
         int idx=0;
     	bg_mask->setXmippOrigin();
-        FitPoint *allpoints=new FitPoint[Npoints];
+        auto *allpoints=new FitPoint[Npoints];
 
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
         {
@@ -354,7 +354,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     // Subtract the plane from the image and compute stddev within mask
     double sum1 = 0;
     double sum2 = 0;
-    if (bg_mask == NULL)
+    if (bg_mask == nullptr)
     {
         double *ref;
         for (int i=STARTINGY(I); i<=FINISHINGY(I); i++)
@@ -410,8 +410,8 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
     I.checkDimension(2);
 
     // Fit a least squares plane through the background pixels
-    int Npoints=(int)bg_mask.sum();
-    FitPoint *allpoints=new FitPoint[Npoints];
+    auto Npoints=(int)bg_mask.sum();
+    auto *allpoints=new FitPoint[Npoints];
     I.setXmippOrigin();
 
     // Get initial statistics
@@ -696,7 +696,7 @@ void ProgNormalize::show()
         std::cout << "Background mode: ";
         switch (background_mode)
         {
-        case NONE :
+        case NOBACKGROUND :
             std::cout << "None\n";
             break;
         case FRAME:
@@ -834,7 +834,7 @@ void ProgNormalize::processImage(const FileName &fnImg, const FileName &fnImgOut
 
         // Instead of IS_INV for images use IS_NOT_INV for masks!
         I.getTransformationMatrix(A);
-        selfApplyGeometry(BSPLINE3, tmp, A, IS_NOT_INV, DONT_WRAP, outside);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3, tmp, A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(bg_mask)
         dAi(bg_mask,n)=(int)round(dAi(tmp,n));

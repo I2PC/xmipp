@@ -180,7 +180,7 @@ public:
             img().resizeNoCopy(Zdim,Ydim,Xdim);
             const MultidimArray<double> &mimg=img();
             FileName fnImg, fnIdx;
-            float *buffer=new float[vectorSize];
+            auto *buffer=new float[vectorSize];
             FileName fnInRaw=formatString("%s.vec",fnIn.withoutExtension().c_str());
             std::ifstream fhInRaw(fnInRaw.c_str(),std::ios::binary);
             if (!fhInRaw)

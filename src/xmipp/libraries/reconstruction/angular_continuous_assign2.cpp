@@ -199,9 +199,9 @@ void ProgAngularContinuousAssign2::preProcess()
 
     // Construct projector
     if (rank==0)
-    	projector = new FourierProjector(V(),pad,Ts/maxResol,BSPLINE3);
+    	projector = new FourierProjector(V(),pad,Ts/maxResol,xmipp_transformation::BSPLINE3);
     else
-    	projector = new FourierProjector(pad,Ts/maxResol,BSPLINE3);
+    	projector = new FourierProjector(pad,Ts/maxResol,xmipp_transformation::BSPLINE3);
 
     // Low pass filter
     filter.FilterBand=LOWPASS;
@@ -258,7 +258,7 @@ double tranformImage(ProgAngularContinuousAssign2 *prm, double rot, double tilt,
 		MAT_ELEM(A,0,2)*=-1;
 	}
 
-	applyGeometry(degree,prm->Ifilteredp(),prm->Ifiltered(),A,IS_NOT_INV,DONT_WRAP,0.);
+	applyGeometry(degree,prm->Ifilteredp(),prm->Ifiltered(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.);
 	const MultidimArray<double> &mP=prm->P();
 	const MultidimArray<int> &mMask2D=prm->mask2D;
 	MultidimArray<double> &mIfilteredp=prm->Ifilteredp();
@@ -341,7 +341,7 @@ double continuous2cost(double *x, void *_prm)
 	double deltaDefocusU=x[11];
 	double deltaDefocusV=x[12];
 	double deltaDefocusAngle=x[13];
-	ProgAngularContinuousAssign2 *prm=(ProgAngularContinuousAssign2 *)_prm;
+	auto *prm=(ProgAngularContinuousAssign2 *)_prm;
 	if (prm->maxShift>0 && deltax*deltax+deltay*deltay>prm->maxShift*prm->maxShift)
 		return 1e38;
 	if (fabs(scalex)>prm->maxScale || fabs(scaley)>prm->maxScale)
@@ -372,7 +372,7 @@ double continuous2cost(double *x, void *_prm)
 	MAT_ELEM(prm->A,0,2)=prm->old_shiftX+deltax;
 	MAT_ELEM(prm->A,1,2)=prm->old_shiftY+deltay;
 	return tranformImage(prm,prm->old_rot+deltaRot, prm->old_tilt+deltaTilt, prm->old_psi+deltaPsi,
-			a, b, prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle, LINEAR);
+			a, b, prm->A, deltaDefocusU, deltaDefocusV, deltaDefocusAngle, xmipp_transformation::LINEAR);
 }
 
 // Predict =================================================================
@@ -538,7 +538,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 			I.read(fnImg);
 			if (XSIZE(Ip())!=XSIZE(I()))
 			{
-				scaleToSize(BSPLINE3,Ip(),I(),XSIZE(Ip()),YSIZE(Ip()));
+				scaleToSize(xmipp_transformation::BSPLINE3,Ip(),I(),XSIZE(Ip()),YSIZE(Ip()));
 				I()=Ip();
 			}
 			A(0,2)=p(2)+old_shiftX;
@@ -561,7 +561,7 @@ void ProgAngularContinuousAssign2::processImage(const FileName &fnImg, const Fil
 				MAT_ELEM(A,0,1)*=-1;
 				MAT_ELEM(A,0,2)*=-1;
 			}
-			applyGeometry(BSPLINE3,Ip(),I(),A,IS_NOT_INV,DONT_WRAP);
+			applyGeometry(xmipp_transformation::BSPLINE3,Ip(),I(),A,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP);
 			if (optimizeGrayValues)
 			{
 				MultidimArray<double> &mIp=Ip();

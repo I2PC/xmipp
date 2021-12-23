@@ -731,7 +731,7 @@ void ProgML2D::expectationSingleImage(Matrix1D<double> &opt_offsets)
     for (size_t iflip = 0; iflip < nr_flip; iflip++)
     {
         Maux.setXmippOrigin();
-        applyGeometry(LINEAR, Maux, Mimg, F[iflip], IS_INV, WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Maux, Mimg, F[iflip], xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
         local_transformer.FourierTransform(Maux, Faux, false);
 
         if (model.do_norm)
@@ -810,8 +810,8 @@ void ProgML2D::expectationSingleImage(Matrix1D<double> &opt_offsets)
     {
         // 1. Calculate optimal setting of Mimg
         MultidimArray<double> Maux2 = Mimg;
-        selfTranslate(LINEAR, Maux2, opt_offsets, true);
-        selfApplyGeometry(LINEAR, Maux2, F[iopt_flip], IS_INV, WRAP);
+        selfTranslate(xmipp_transformation::LINEAR, Maux2, opt_offsets, true);
+        selfApplyGeometry(xmipp_transformation::LINEAR, Maux2, F[iopt_flip], xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
         // 2. Calculate optimal setting of Mref
         int refnoipsi = (opt_refno % model.n_ref) * nr_psi + iopt_psi;
         FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Faux)
@@ -966,7 +966,7 @@ void ProgML2D::destroyThreads()
 /// Function for threads do different tasks
 void * doThreadsTasks(void * data)
 {
-    structThreadTasks * thread_data = (structThreadTasks *) data;
+    auto * thread_data = (structThreadTasks *) data;
 
     ProgML2D * prm = thread_data->prm;
 
@@ -1078,7 +1078,7 @@ void ProgML2D::doThreadRotateReferenceRefno()
             refnoipsi = refno * nr_psi + ipsi;
             // Add arbitrary number (small_angle) to avoid 0-degree rotation (lacking interpolation)
             psi = (double) (ipsi * psi_max / nr_psi) + SMALLANGLE;
-            rotate(BSPLINE3, Maux, model.Iref[refno](), -psi, 'Z', WRAP);
+            rotate(xmipp_transformation::BSPLINE3, Maux, model.Iref[refno](), -psi, 'Z', xmipp_transformation::WRAP);
             apply_binary_mask(mask, Maux, Maux, avg);
             // Normalize the magnitude of the rotated references to 1st rot of that ref
             // This is necessary because interpolation due to rotation can lead to lower overall Fref
@@ -1146,7 +1146,7 @@ void ProgML2D::doThreadReverseRotateReferenceRefno()
             //CenterFFT(Maux3, true);
             centerFFT2(Maux3);
             computeStats_within_binary_mask(omask, Maux3, dum, dum, avg, dum);
-            rotate(BSPLINE3, Maux2, Maux3, psi, 'Z', WRAP);
+            rotate(xmipp_transformation::BSPLINE3, Maux2, Maux3, psi, 'Z', xmipp_transformation::WRAP);
             apply_binary_mask(mask, Maux2, Maux2, avg);
             wsum_Mref[refno] += Maux2;
         }
@@ -1203,10 +1203,10 @@ void ProgML2D::doThreadPreselectFastSignificantRefno()
                 }
                 else
                 {
-                    translate(LINEAR, Mtrans, Mimg, trans, true);
+                    translate(xmipp_transformation::LINEAR, Mtrans, Mimg, trans, true);
                     for (size_t iflip = 0; iflip < nr_nomirror_flips; iflip++)
                     {
-                        applyGeometry(LINEAR, Mflip, Mtrans, F[IIFLIP], IS_INV, WRAP);
+                        applyGeometry(xmipp_transformation::LINEAR, Mflip, Mtrans, F[IIFLIP], xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
                         for (size_t ipsi = 0; ipsi < nr_psi; ipsi++)
                         {
                             diff = A2_plus_Xi2;
@@ -1662,14 +1662,14 @@ void ProgML2D::doThreadESIUpdateRefno()
 
             if (model.do_student)
             {
-                sumwsc[output_refno] += refw2[output_refno] * (opt_scale) / sum_refw;
+                sumwsc[output_refno] += refw2[output_refno] * opt_scale / sum_refw;
                 sumwsc2[output_refno] += refw2[output_refno] * (opt_scale * opt_scale)
                                          / sum_refw;
             }
             else
             {
                 sumwsc[output_refno] += (refw[output_refno] + refw_mirror[output_refno])
-                                        * (opt_scale) / sum_refw;
+                                        * opt_scale / sum_refw;
                 sumwsc2[output_refno] += (refw[output_refno] + refw_mirror[output_refno])
                                          * (opt_scale * opt_scale) / sum_refw;
             }

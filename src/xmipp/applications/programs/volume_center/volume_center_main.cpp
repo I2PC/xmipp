@@ -73,7 +73,7 @@ public:
         volume().centerOfMass(centerOfMass, &mask_prm.get_binary_mask());
 
         // Move origin to that center of mass
-        selfTranslate(BSPLINE3,volume(),-centerOfMass, DONT_WRAP);
+        selfTranslate(xmipp_transformation::BSPLINE3,volume(),-centerOfMass, xmipp_transformation::DONT_WRAP);
         volume.write(fnImgOut);
     }
 };

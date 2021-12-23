@@ -269,7 +269,7 @@ void ProgCTFEstimateFromMicrograph::PSD_piece_by_averaging(
 #endif
 
     CenterFFT(psd, true);
-    selfScaleToSize(BSPLINE3, psd, YSIZE(piece), XSIZE(piece));
+    selfScaleToSize(xmipp_transformation::BSPLINE3, psd, YSIZE(piece), XSIZE(piece));
     CenterFFT(psd, false);
     psd.threshold("below", 0, 0);
 
@@ -605,7 +605,7 @@ void ProgCTFEstimateFromMicrograph::run()
                 	if (xe.__errno==ERR_NUMERICAL)
                 		REPORT_ERROR(ERR_NUMERICAL,"There is no variance in the PSD, check that the micrograph is not constant");
                 	else
-                		throw(xe);
+                		throw xe;
                 }
 
 #ifdef DEBUG
@@ -838,8 +838,8 @@ void ProgCTFEstimateFromMicrograph::run()
                 posFile.getValue(MDL_IMAGE, fn_img, objId);
                 posFile.getValue(MDL_X, X, objId);
                 posFile.getValue(MDL_Y, Y, objId);
-                int idx_X = (int)floor((double) X / pieceDim);
-                int idx_Y = (int)floor((double) Y / pieceDim);
+                auto idx_X = (int)floor((double) X / pieceDim);
+                auto idx_Y = (int)floor((double) Y / pieceDim);
                 int N = idx_Y * div_NumberX + idx_X + 1;
 
                 fn_psd_piece.compose(N, fn_psd);
@@ -866,8 +866,7 @@ public:
 
 void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
 {
-    ThreadFastEstimateEnhancedPSDParams *args =
-        (ThreadFastEstimateEnhancedPSDParams*) thArg.workClass;
+	auto *args = (ThreadFastEstimateEnhancedPSDParams*) thArg.workClass;
     int Nthreads = thArg.getNumberOfThreads();
     int id = thArg.thread_id;
     ImageGeneric &I = *(args->I);
@@ -907,7 +906,7 @@ void threadFastEstimateEnhancedPSD(ThreadArgument &thArg)
             transformer.getCompleteFourier(Periodogram);
             FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(localPSD)
             {
-                double *ptr = (double*) &DIRECT_MULTIDIM_ELEM(Periodogram, n);
+            	const auto *ptr = (double*) &DIRECT_MULTIDIM_ELEM(Periodogram, n);
                 double re=*ptr;
                 double im=*(ptr+1);
                 double magnitude2=re*re+im*im;
@@ -968,7 +967,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     args.pieceSmoother = &pieceSmoother;
     args.Nprocessed = 0;
     args.mutex = &mutex;
-    ThreadManager *thMgr = new ThreadManager(numberOfThreads, &args);
+    auto thMgr = std::unique_ptr<ThreadManager>(std::make_unique<ThreadManager>(numberOfThreads, &args));
     thMgr->run(threadFastEstimateEnhancedPSD);
     if (args.Nprocessed != 0)
         *(args.PSD) /= args.Nprocessed;
@@ -983,7 +982,7 @@ void fastEstimateEnhancedPSD(const FileName &fnMicrograph, double downsampling,
     prog2.applyFilter(*(args.PSD));
     enhancedPSD = *(args.PSD);
 
-    int downXdim = (int) (XSIZE(enhancedPSD) / downsampling);
+    auto downXdim = (int) ((double)XSIZE(enhancedPSD) / downsampling);
     int firstIndex = FIRST_XMIPP_INDEX(downXdim);
     int lastIndex = LAST_XMIPP_INDEX(downXdim);
     enhancedPSD.setXmippOrigin();

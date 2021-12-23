@@ -144,7 +144,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
     	MultidimArray<double> *BcoeffsPtr=nullptr;
     	if (spline==3)
     	{
-    		produceSplineCoefficients(BSPLINE3, Bcoeffs, V_in);
+    		produceSplineCoefficients(xmipp_transformation::BSPLINE3, Bcoeffs, V_in);
     		BcoeffsPtr=&Bcoeffs;
     	}
         for (int i = 0; i < SL.symsNo(); i++)
@@ -156,7 +156,7 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
                R(3, 1) = sh(1) * YSIZE(V_aux);
                R(3, 2) = sh(2) * ZSIZE(V_aux);
             */
-            applyGeometry(spline, V_aux, V_in, R.transpose(), IS_NOT_INV, wrap, avg, BcoeffsPtr);
+            applyGeometry(spline, V_aux, V_in, R.transpose(), xmipp_transformation::IS_NOT_INV, wrap, avg, BcoeffsPtr);
 
             if ( mask==nullptr)
                 arrayByArray(V_out, V_aux, V_out, '+');
@@ -173,13 +173,13 @@ void symmetrizeVolume(const SymList &SL, const MultidimArray<double> &V_in,
     {
         symmetry_Helical(V_out,V_in,zHelical,rotHelical,rotPhaseHelical,nullptr,true,heightFraction,Cn);
         MultidimArray<double> Vrotated;
-        rotate(spline,Vrotated,V_out,180.0,'X',WRAP);
+        rotate(spline,Vrotated,V_out,180.0,'X',xmipp_transformation::WRAP);
         V_out+=Vrotated;
         V_out*=0.5;
     }
     else if (dihedral)
     {
-    	int zmax=(int)(0.1*ZSIZE(V_in));
+    	auto zmax=(int)(0.1*ZSIZE(V_in));
         symmetry_Dihedral(V_out,V_in,1,-zmax,zmax,0.5);
     }
 }
@@ -202,7 +202,7 @@ void symmetrizeImage(int symorder, const MultidimArray<double> &I_in,
     }
     I_out = I_in;
     MultidimArray<double> rotatedImg;
-    if ( (mask)!=nullptr)
+    if (mask!=nullptr)
          REPORT_ERROR(ERR_NOT_IMPLEMENTED,"mask symmetrization not implemented for images");
     for (int i = 1; i < symorder; i++)
     {
@@ -222,7 +222,7 @@ void ProgSymmetrize::preProcess()
             symorder=textToInteger(fn_sym);
         else
         {
-            double accuracy = (do_not_generate_subgroup) ? -1 : 1e-6;
+            double accuracy = do_not_generate_subgroup ? -1 : 1e-6;
             SL.readSymmetryFile(fn_sym, accuracy);
             symorder=-1;
         }

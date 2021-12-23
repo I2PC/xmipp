@@ -894,7 +894,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 	Mask mask;
     mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	size_t rad = (size_t)std::min(xAux*0.5, yAux*0.5);
+	auto rad = (size_t)std::min(xAux*0.5, yAux*0.5);
 	mask.R1 = rad;
 	mask.resize(yAux,xAux);
 	mask.get_binary_mask().setXmippOrigin();
@@ -992,7 +992,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 					MAT_ELEM(E,2,1)=0.0;
 					MAT_ELEM(E,2,2)=1.0;
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 					//applyGeometry(LINEAR,Iexp_out(),Iexp_aux(),auxtrMatrix,IS_NOT_INV,DONT_WRAP,0.0);
 
 					Iexp_aux().resetOrigin();
@@ -1064,7 +1064,7 @@ void generate_output_classes(MetaDataVec SF, MetaDataVec SFexp, FileName fnDir, 
 					MAT_ELEM(E,1,0)*=-1; //E
 					//FIN AJ NEW//
 
-					selfApplyGeometry(LINEAR,Iexp_aux(),E,IS_NOT_INV,DONT_WRAP,0.0); //E
+					selfApplyGeometry(xmipp_transformation::LINEAR,Iexp_aux(),E,xmipp_transformation::IS_NOT_INV,xmipp_transformation::DONT_WRAP,0.0); //E
 
 					Iexp_aux().resetOrigin();
 
@@ -1355,10 +1355,10 @@ void ProgGpuCorrelation::run()
 	Mask mask;
     mask.type = BINARY_CIRCULAR_MASK;
 	mask.mode = INNER_MASK;
-	size_t rad = (size_t)std::min(Xdim*0.48, Ydim*0.48);
+	auto rad = (size_t)std::min(Xdim*0.48, Ydim*0.48);
 
 	int number = rad;
-	int *out = new int[5];
+	auto *out = new int[5];
 
 	while(true){
 		if (number%2!=0){
@@ -1408,10 +1408,10 @@ void ProgGpuCorrelation::run()
 
 
 	//matrix with all the best transformations in CPU
-	MultidimArray<float> *matrixTransCpu = new MultidimArray<float> [mdInSize]; //mdExpSize
+	auto *matrixTransCpu = new MultidimArray<float> [mdInSize]; //mdExpSize
 	for(int i=0; i<mdInSize; i++) //mdExpSize
 		matrixTransCpu[i].coreAllocate(1, mdExpSize, 3, 3); //mdInSize
-	MultidimArray<float> *matrixTransCpu_mirror = new MultidimArray<float> [mdInSize]; //mdExpSize
+	auto *matrixTransCpu_mirror = new MultidimArray<float> [mdInSize]; //mdExpSize
 	for(int i=0; i<mdInSize; i++) //mdExpSize
 		matrixTransCpu_mirror[i].coreAllocate(1, mdExpSize, 3, 3); //mdInSize
 

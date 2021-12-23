@@ -28,7 +28,7 @@
 #define XMIPP__SVM_CLASSIFIER_HH__
 
 /* Includes ---------------------------------------------------------------- */
-#include "svm.h"
+#include <libsvm/svm.h>
 
 template<typename T>
 class MultidimArray;
@@ -47,11 +47,17 @@ class SVMClassifier
 public:
     svm_parameter param;
     svm_problem prob;
-    svm_model *model;
+    svm_model *model=nullptr;
 public:
+    SVMClassifier()=default;
 
-    //SVMClassifier(double c,double gamma);
+    SVMClassifier(const SVMClassifier &other)
+    {
+    	*this=other;
+    }
+
     ~SVMClassifier();
+    SVMClassifier & operator=(const SVMClassifier &other);
     void SVMTrain(MultidimArray<double> &trainSet,MultidimArray<double> &lable);
     double  predict(MultidimArray<double> &featVec,double &score);
     void SaveModel(const FileName &fnModel);

@@ -274,7 +274,7 @@ void ProgAngularProjectionMatching::produceSideInfo()
         Ro=(dim/2)-1;
 
     // Calculate necessary memory per image
-    produceSplineCoefficients(BSPLINE3,Maux,img());
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,Maux,img());
     P.getPolarFromCartesianBSpline(Maux,Ri,Ro);
     P.calculateFftwPlans(global_plans);
     fourierTransformRings(P,fP,global_plans,false);
@@ -481,7 +481,7 @@ void ProgAngularProjectionMatching::getCurrentReference(int refno,
     }
 
     // Calculate FTs of polar rings and its stddev
-    produceSplineCoefficients(BSPLINE3,Maux,img());
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,Maux,img());
     P.getPolarFromCartesianBSpline(Maux,Ri,Ro);
     P.computeAverageAndStddev(mean,stddev);
     P -= mean;
@@ -529,7 +529,7 @@ void ProgAngularProjectionMatching::getCurrentReference(int refno,
 
 void * threadRotationallyAlignOneImage( void * data )
 {
-    structThreadRotationallyAlignOneImage * thread_data = (structThreadRotationallyAlignOneImage *) data;
+	auto * thread_data = (structThreadRotationallyAlignOneImage *) data;
 
     // Variables from above
     size_t thread_id = thread_data->thread_id;
@@ -566,7 +566,7 @@ void * threadRotationallyAlignOneImage( void * data )
     annotate_time(&t2);
 #endif
 
-    produceSplineCoefficients(BSPLINE3,Maux,*img);
+    produceSplineCoefficients(xmipp_transformation::BSPLINE3,Maux,*img);
     // Precalculate polar transform of each translation
     // This loop is also threaded
     myinit = thread_id;
@@ -809,7 +809,7 @@ void ProgAngularProjectionMatching::translationallyAlignOneImage(MultidimArray<d
     }
 
     // Rotate stored reference projection by phi degrees
-    rotate(BSPLINE3,Mref,proj_ref[refno],opt_psi,DONT_WRAP);
+    rotate(xmipp_transformation::BSPLINE3,Mref,proj_ref[refno],opt_psi,xmipp_transformation::DONT_WRAP);
     //rotate(BSPLINE3,Mref,proj_ref[refno],-opt_psi,DONT_WRAP);
 
 #ifdef DEBUG
@@ -824,7 +824,7 @@ void ProgAngularProjectionMatching::translationallyAlignOneImage(MultidimArray<d
         A.initIdentity();
         MAT_ELEM(A,0, 0) = -1.;
         //MAT_ELEM(A,0, 1) *= -1.;
-        applyGeometry(LINEAR, Mimg, img, A, IS_INV, DONT_WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Mimg, img, A, xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP);
     }
     else
         Mimg = img;
@@ -847,7 +847,7 @@ void ProgAngularProjectionMatching::translationallyAlignOneImage(MultidimArray<d
 #endif
 
     // Calculate standard cross-correlation coefficient
-    translate(LINEAR,Mtrans,Mimg,vectorR2(opt_xoff,opt_yoff),true);
+    translate(xmipp_transformation::LINEAR,Mtrans,Mimg,vectorR2(opt_xoff,opt_yoff),true);
     maxcorr = correlationIndex(Mref,Mtrans);
 
 #ifdef DEBUG
@@ -930,7 +930,7 @@ void ProgAngularProjectionMatching::scaleAlignOneImage(MultidimArray<double> &im
         getCurrentReference(opt_refno,global_plans);
         refno = pointer_allrefs2refsinmem[opt_refno];
     }
-    applyGeometry(LINEAR, Mref, proj_ref[refno], A, IS_NOT_INV, DONT_WRAP);
+    applyGeometry(xmipp_transformation::LINEAR, Mref, proj_ref[refno], A, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP);
 
 
     Mtrans = img;
@@ -952,7 +952,7 @@ void ProgAngularProjectionMatching::scaleAlignOneImage(MultidimArray<double> &im
         // apply current scale
         A.initIdentity();
         A /= scale;
-        applyGeometry(LINEAR, Mscale, Mtrans, A, IS_INV, DONT_WRAP);
+        applyGeometry(xmipp_transformation::LINEAR, Mscale, Mtrans, A, xmipp_transformation::IS_INV, xmipp_transformation::DONT_WRAP);
 
         //Image spread correction (if scale != 1) for scale search
         Mscale = Mscale / (scale * scale * old_scale * old_scale);
@@ -1017,10 +1017,10 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
     FileName fn;
 
     // Call threads to calculate the rotational alignment of each image in the selfile
-    pthread_t * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
+    auto * th_ids = (pthread_t *)malloc( threads * sizeof( pthread_t));
 
     // Allocate threads.
-    structThreadRotationallyAlignOneImage * threads_d = (structThreadRotationallyAlignOneImage *)
+    auto * threads_d = (structThreadRotationallyAlignOneImage *)
             malloc ( threads * sizeof( structThreadRotationallyAlignOneImage ) );
 
     // Allocate threads vectors.
@@ -1061,7 +1061,7 @@ void ProgAngularProjectionMatching::processSomeImages(const std::vector<size_t> 
             pthread_join(*(th_ids+c),nullptr);
 
         //Get optimal refno, psi, flip and maxcorr
-        int * indexThreads = new int[threads](); // init to zero
+        auto * indexThreads = new int[threads](); // init to zero
         size_t bestThreadCorr = 0;
         double tempCorr;
         size_t counterValidCorrs = 0;
@@ -1231,7 +1231,7 @@ void ProgAngularProjectionMatching::getCurrentImage(size_t imgid, Image<double> 
     //std::cerr << "DEBUG_ROB, A:" << A << std::endl;
     //img.write("before.spi");
     if (!A.isIdentity())
-        selfApplyGeometry(BSPLINE3, img(), A, IS_INV, WRAP);
+        selfApplyGeometry(xmipp_transformation::BSPLINE3, img(), A, xmipp_transformation::IS_INV, xmipp_transformation::WRAP);
     //img.write("after.spi");
     //exit(0);
 }

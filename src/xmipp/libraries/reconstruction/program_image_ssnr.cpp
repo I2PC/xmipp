@@ -160,7 +160,7 @@ void ProgImageSSNR::postProcess()
 		std::vector<double> ssnr;
 		getOutputMd().getColumnValues(MDL_CUMULATIVE_SSNR,ssnr);
 		std::sort(ssnr.begin(),ssnr.end());
-		size_t idx=(size_t)(ssnrpercent/100.0*ssnr.size());
+		auto idx=(size_t)(ssnrpercent/100.0*ssnr.size());
 		thresholdSSNR(getOutputMd(),ssnr[idx]);
 	}
 

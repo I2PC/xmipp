@@ -54,6 +54,11 @@ class Polar_fftw_plans
 public:
     std::vector<FourierTransformer *>    transformers;
     std::vector<MultidimArray<double> >  arrays;
+    /// Empty constructor
+    Polar_fftw_plans() {}
+    Polar_fftw_plans(const Polar_fftw_plans&)=delete; // Remove the copy constructor
+    Polar_fftw_plans & operator=(const Polar_fftw_plans&)=delete; // Remove the copy assignment
+    /// Destructor
     ~Polar_fftw_plans();
 };
 
@@ -697,7 +702,7 @@ public:
         for (size_t iring = 0; iring < rings.size(); iring++)
         {
             (out.arrays)[iring] = rings[iring];
-            FourierTransformer *ptr_transformer = new FourierTransformer();
+            auto *ptr_transformer = new FourierTransformer();
             ptr_transformer->setReal((out.arrays)[iring]);
             out.transformers.push_back(ptr_transformer);
         }
@@ -841,7 +846,7 @@ double best_rotation(const Polar< std::complex<double> > &I1,
 /** Align I2 rotationally to I1 */
 void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 					   RotationalCorrelationAux &aux,
-                       int splineOrder=1, int wrap=WRAP);
+                       int splineOrder=1, int wrap=xmipp_transformation::WRAP);
 
 /** Produce a polar image from a cartesian image.
  * You can give the minimum and maximum radius for the interpolation, the

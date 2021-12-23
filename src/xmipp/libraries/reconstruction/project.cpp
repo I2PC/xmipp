@@ -37,6 +37,7 @@ void ProgProject::readParams()
     fnPhantom = getParam("-i");
     fnOut = getParam("-o");
     samplingRate  = getDoubleParam("--sampling_rate");
+    highTs = getDoubleParam("--high_sampling_rate");
     singleProjection = false;
     if (STR_EQUAL(getParam("--method"), "real_space"))
         projType = REALSPACE;
@@ -49,11 +50,11 @@ void ProgProject::readParams()
         maxFrequency = getDoubleParam("--method", 2);
         String degree = getParam("--method", 3);
         if (degree == "nearest")
-            BSplineDeg = NEAREST;
+            BSplineDeg = xmipp_transformation::NEAREST;
         else if (degree == "linear")
-            BSplineDeg = LINEAR;
+            BSplineDeg = xmipp_transformation::LINEAR;
         else if (degree == "bspline")
-            BSplineDeg = BSPLINE3;
+            BSplineDeg = xmipp_transformation::BSPLINE3;
         else
             REPORT_ERROR(ERR_ARG_BADCMDLINE, "The values for interpolation can be : nearest, linear, bspline");
 
@@ -96,6 +97,7 @@ void ProgProject::defineParams()
     addParamsLine("   -i <volume_file>                           : Voxel volume, PDB or description file");
     addParamsLine("   -o <image_file>                            : Output stack or image");
     addParamsLine("  [--sampling_rate <Ts=1>]                    : It is only used for PDB phantoms");
+    addParamsLine("  [--high_sampling_rate <highTs=0.08333333>]  : Sampling rate before downsampling. It is only used for PDB phantoms");
     addParamsLine("  [--method <method=real_space>]              : Projection method");
     addParamsLine("        where <method>");
     addParamsLine("                real_space                    : Makes projections by ray tracing in real space");
@@ -896,8 +898,13 @@ void PROJECT_Side_Info::produce_Side_Info(ParametersProjection &prm,
     else if (prog_prm.fnPhantom.getExtension()=="pdb")
     {
         phantomPDB.read(prog_prm.fnPhantom);
-        const double highTs=1.0/12.0;
-        int M=ROUND(prog_prm.samplingRate/highTs);
+        for (int i=0; i<phantomPDB.atomList.size(); i++)
+        {
+		phantomPDB.atomList[i].x /=prog_prm.samplingRate;
+		phantomPDB.atomList[i].y /=prog_prm.samplingRate;
+		phantomPDB.atomList[i].z /=prog_prm.samplingRate;
+        }
+        int M=ROUND(prog_prm.samplingRate/prog_prm.highTs);
         interpolator.setup(M,prog_prm.samplingRate/M,true);
         phantomMode = PDB;
         if (prog_prm.singleProjection)
@@ -1090,7 +1097,7 @@ int PROJECT_Effectively_project(const FileName &fnOut,
             Matrix1D<double> shifts(2);
             XX(shifts) = shiftX;
             YY(shifts) = shiftY;
-            selfTranslate(LINEAR,IMGMATRIX(proj), shifts);
+            selfTranslate(xmipp_transformation::LINEAR,IMGMATRIX(proj), shifts);
         }
         else if (side.phantomMode==PROJECT_Side_Info::PDB)
         {

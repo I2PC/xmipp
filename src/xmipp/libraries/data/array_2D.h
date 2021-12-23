@@ -30,32 +30,47 @@
    @ingroup DataLibrary */
 //@{
 
-// struct is used for compatibility with OpenCL / C for Cuda
-/* Instance of this struct represent a 2D array of arbitrary type.
- * Data are being stored as a dynamic 2D array (i.e. not continuous block of memory).
- * Access to elements will be the fastest if traversing in Y -> X order. */
+/** struct is used for compatibility with OpenCL / C for Cuda
+  Instance of this struct represent a 2D array of arbitrary type.
+  Data are being stored as a dynamic 2D array (i.e. not continuous block of memory).
+  Access to elements will be the fastest if traversing in Y -> X order. */
 template<typename T>
 struct Array2D {
 public:
-	/* Empty constructor */
-	Array2D() : xSize(0), ySize(0), data(NULL) {};
-	/* Constructor, allocates the data immediately */
+	/** Empty constructor */
+	Array2D() : xSize(0), ySize(0), data(nullptr) {};
+
+	/** Constructor, allocates the data immediately */
 	Array2D(int xSize, int ySize) :
 			xSize(xSize), ySize(ySize) {
+		allocateZeros(xSize, ySize);
+	}
+
+	/// Copy constructor
+	Array2D(const Array2D &other) {
+		*this=other;
+	}
+
+	/// Destructor
+	~Array2D() {
+		clear();
+	}
+
+	/// Allocate memory and initialized with zeros
+	void allocateZeros(int xSize, int ySize)
+	{
 		data = new T*[ySize];
-		for (int y = 0; y < ySize; y++) {
-			data[y] = new T[xSize];
-			for (int x = 0; x < xSize; x++) {
-				data[y][x] = (T) 0;
-			}
-		}
+		for (int y = 0; y < ySize; y++)
+			data[y] = new T[xSize]();
 	#if DEBUG
 		std::cout << "Array2D created (" << getXSize() << "x" << getYSize()
 			<< ") at " << data << std::endl;
 	#endif
 	}
 
-	~Array2D() {
+	/// Clear memory
+	void clear()
+	{
 		for (int y = 0; y < ySize; y++) {
 			delete[] data[y];
 		}
@@ -64,10 +79,26 @@ public:
 		std::cout << "Array2D deleted (" << getXSize() << "x" << getYSize()
 			<< ") at " << data << std::endl;
 	#endif
-		data = 0;
+		data = nullptr;
 	}
 
-	/* Method to access elements of the array */
+	/// Assignment
+	Array2D& operator=(const Array2D &other)
+	{
+		clear();
+		xSize=other.xSize;
+		ySize=other.ySize;
+
+		data = new T*[ySize];
+		for (int y = 0; y < ySize; y++) {
+			data[y] = new T[xSize];
+			memcpy(data[y],other.data[y],xSize*sizeof(T));
+		}
+
+		return *this;
+	}
+
+	/** Method to access elements of the array */
 	T& operator()(int x, int y) const {
 	#if DEBUG
 		if (0 > x || x >= xSize)
@@ -79,26 +110,32 @@ public:
 		return data[y][x];
 	}
 
+	/// get Xsize
 	int getXSize() const {
 		return xSize;
 	}
 
+	/// get Ysize
 	int getYSize() const {
 		return ySize;
 	}
 
+	/// check if in range
 	bool inRange(int x, int y) const {
 		return inRangeX(x) && inRangeY(y);
 	}
 
+	/// check x in range
 	bool inRangeX(int x) const {
 		return (x >= 0) && (x < xSize);
 	}
 
+	/// check Y in range
 	bool inRangeY(int y) const {
 		return (y >= 0) && (y < ySize);
 	}
 
+	/// get y-th row
 	T* getRow(int y) const {
 		return data[y];
 	}

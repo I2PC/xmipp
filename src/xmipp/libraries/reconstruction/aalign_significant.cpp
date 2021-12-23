@@ -401,8 +401,8 @@ void AProgAlignSignificant<T>::computeAssignment(
                 continue; // skip saving the particles which have non-positive figure of merit to the reference
             }
             const auto &p = IS_ESTIMATION_TRANSPOSED
-                    ? (est.at(i).poses.at(refIndex).inv())
-                    : (est.at(refIndex).poses.at(i));
+                    ? est.at(i).poses.at(refIndex).inv()
+                    : est.at(refIndex).poses.at(i);
             m_assignments.emplace_back(refIndex, i,
                     m_weights.at(refIndex).at(i), val,
                     p);
@@ -434,7 +434,7 @@ void AProgAlignSignificant<T>::storeAlignedImages() {
     size_t indexAssign = 0; // if we're here, we have at least one assignment
     rows.reserve(m_assignments.size());
     for (const auto& _row : md) {
-        const MDRowVec& row = dynamic_cast<const MDRowVec&>(_row);
+        const auto& row = dynamic_cast<const MDRowVec&>(_row);
         // we migh have skipped some images due to bad reference
         if (indexMeta != m_assignments.at(indexAssign).imgIndex) {
             indexMeta++;

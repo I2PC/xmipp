@@ -311,7 +311,7 @@ void XrayRotateAndProjectVolumeOffCentered(XrayProjPhantom &phantom, XRayPSF &ps
     double outside = 0; //phantom.iniVol.getPixel(0,0,0,0);
     MULTIDIM_ARRAY(phantom.iniVol).setXmippOrigin();
 
-    applyGeometry(1, phantom.rotVol, MULTIDIM_ARRAY(phantom.iniVol), T*R, IS_NOT_INV, DONT_WRAP, outside);
+    applyGeometry(xmipp_transformation::LINEAR, phantom.rotVol, MULTIDIM_ARRAY(phantom.iniVol), T*R, xmipp_transformation::IS_NOT_INV, xmipp_transformation::DONT_WRAP, outside);
 
     psf.adjustParam(phantom.rotVol);
 
@@ -354,7 +354,7 @@ void projectXrayVolume(MultidimArray<double> &muVol,
     std::vector<int> phantomSlabIdx, psfSlicesIdx;
 
     // Search for the PSFslab of the beginning of the volume
-    int firstSlab = (int)(STARTINGZ(muVol)*psf.dzo/psf.dzoPSF);
+    auto firstSlab = (int)(STARTINGZ(muVol)*psf.dzo/psf.dzoPSF);
 
     if (!XMIPP_EQUAL_ZERO(psf.slabThr))
     {
@@ -372,13 +372,13 @@ void projectXrayVolume(MultidimArray<double> &muVol,
 
         for (size_t kk = firstSlab+1; kk < psf.slabIndex.size(); ++kk)
         {
-            int tempK = (int)(psf.slabIndex[kk] * psf.dzoPSF / psf.dzo);
+            auto tempK = (int)(psf.slabIndex[kk] * psf.dzoPSF / psf.dzo);
 
             if (tempK <= FINISHINGZ(muVol))
             {
                 phantomSlabIdx.push_back(tempK);
                 int tempKK = psf.slabIndex[kk-1];
-                int psfMeanSlice = (int)((tempK + tempKK)*0.5 * psf.dzoPSF / psf.dzo);
+                auto psfMeanSlice = (int)((tempK + tempKK)*0.5 * psf.dzoPSF / psf.dzo);
                 psfSlicesIdx.push_back(psfMeanSlice);
             }
             else
@@ -448,7 +448,7 @@ void threadXrayProject(ThreadArgument &thArg)
 
     int thread_id = thArg.thread_id;
 
-    XrayThreadArgument *dataThread = (XrayThreadArgument*) thArg.data;
+    auto *dataThread = (XrayThreadArgument*) thArg.data;
     const XRayPSF &psf = *(dataThread->psf);
     MultidimArray<double> &muVol =  *(dataThread->muVol);
     MultidimArray<double> &IgeoVol =  *(dataThread->IgeoVol);
@@ -516,7 +516,7 @@ void threadXrayProject(ThreadArgument &thArg)
         {
         case PSFXR_INT:
             imTempP = &imTempSc;
-            scaleToSize(LINEAR,*imTempP,imTemp,psf.Nix,psf.Niy);
+            scaleToSize(xmipp_transformation::LINEAR,*imTempP,imTemp,psf.Nix,psf.Niy);
             break;
 
         case PSFXR_STD:
@@ -599,7 +599,7 @@ void threadXrayProject(ThreadArgument &thArg)
             // Do nothing;
             break;
         case PSFXR_INT:
-            selfScaleToSize(LINEAR,imOutGlobal(), psf.Nox, psf.Noy);
+            selfScaleToSize(xmipp_transformation::LINEAR,imOutGlobal(), psf.Nox, psf.Noy);
             break;
         case PSFXR_ZPAD:
             MULTIDIM_ARRAY(imOutGlobal).selfWindow(-ROUND(psf.Noy/2)+1,-ROUND(psf.Nox/2)+1,ROUND(psf.Noy/2)-1,ROUND(psf.Nox/2)-1);
@@ -655,7 +655,7 @@ void calculateIgeo(MultidimArray<double> &muVol, double sampling,
 
 void calculateIgeoThread(ThreadArgument &thArg)
 {
-    CIGTArgument *dataThread = (CIGTArgument*) thArg.data;
+    auto *dataThread = (CIGTArgument*) thArg.data;
 
     double sampling = dataThread->samplingZ;
     MultidimArray<double> &muVol = *(dataThread->muVol);
@@ -734,7 +734,7 @@ void projectXraySimpleGridThread(ThreadArgument &thArg)
 
     int threadId = thArg.thread_id;
 
-    XrayThreadArgument *dataThread = (XrayThreadArgument*) thArg.data;
+    auto *dataThread = (XrayThreadArgument*) thArg.data;
     const XRayPSF &psf = *(dataThread->psf);
     MultidimArray<double> *muVol =  (dataThread->muVol);
     MultidimArray<double> *IgeoVol =  (dataThread->IgeoVol);

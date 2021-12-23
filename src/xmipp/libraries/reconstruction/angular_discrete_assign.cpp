@@ -224,7 +224,7 @@ void ProgAngularDiscreteAssign::produce_library()
     Matrix1D<int> SBidx(SBNo);
     for (int m = 0; m < SBNo; m++)
     {
-        MultidimArray<double> *subband = new MultidimArray<double>;
+        auto *subband = new MultidimArray<double>;
         subband->resize(number_of_imgs, SBsize(m));
         library.push_back(subband);
     }
@@ -343,7 +343,7 @@ void ProgAngularDiscreteAssign::refine_candidate_list_with_correlation(
         }
     }
     std::sort(sortedCorr.begin(),sortedCorr.end());
-    int idx=(int)floor(sortedCorr.size()*(1-th/100.0));
+    auto idx=(int)floor(sortedCorr.size()*(1-th/100.0));
 
     double corr_th = sortedCorr[idx];
 
@@ -367,7 +367,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
                      "experimental images must be of a size that is power of 2");
 
     // Build initial candidate list
-    bool* candidate_list=new bool[rot.size()];
+    auto* candidate_list=new bool[rot.size()];
     std::vector<double> cumulative_corr;
     std::vector<double> sumxy;
     build_ref_candidate_list(I, candidate_list, cumulative_corr, sumxy);
@@ -380,7 +380,7 @@ double ProgAngularDiscreteAssign::predict_rot_tilt_angles(Image<double> &I,
     SBidx.initZeros();
     for (int m = 0; m < SBNo; m++)
     {
-        Matrix1D<double> *subband = new Matrix1D<double>;
+        auto *subband = new Matrix1D<double>;
         subband->resize(SBsize(m));
         Idwt.push_back(subband);
     }
@@ -773,14 +773,14 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
 					if (shiftX != 0 || shiftY != 0)
 					{
 						VECTOR_R2(shift, shiftX, shiftY);
-						selfTranslate(LINEAR,Ip(),shift,WRAP);
+						selfTranslate(xmipp_transformation::LINEAR,Ip(),shift,xmipp_transformation::WRAP);
 					}
 
 					// Rotate image if necessary
 					// Adding 2 is a trick to avoid that the 0, 90, 180 and 270
 					// are treated in a different way
-					selfRotate(LINEAR,Ip(),psi + 2, WRAP);
-					selfRotate(LINEAR,Ip(),-2, WRAP);
+					selfRotate(xmipp_transformation::LINEAR,Ip(),psi + 2, xmipp_transformation::WRAP);
+					selfRotate(xmipp_transformation::LINEAR,Ip(),-2, xmipp_transformation::WRAP);
 #ifdef DEBUG
 					Image<double> Ipsave;
 					Ipsave()=Ip();
@@ -1041,13 +1041,13 @@ void ProgAngularDiscreteAssign::processImage(const FileName &fnImg, const FileNa
         //TODO: Check if this is correct
         Iref.read(library_name[vref_idx[ibest]]);
         Iref().setXmippOrigin();
-        selfRotate(LINEAR,Iref(),-vpsi[ibest]);
+        selfRotate(xmipp_transformation::LINEAR,Iref(),-vpsi[ibest]);
         if (Xoff == 0 && Yoff == 0)
             Ip() = img();
         else
         {
             VECTOR_R2(shift, Xoff, Yoff);
-            translate(LINEAR,Ip(),img(),shift,WRAP);
+            translate(xmipp_transformation::LINEAR,Ip(),img(),shift,xmipp_transformation::WRAP);
         }
         Ip().setXmippOrigin();
 

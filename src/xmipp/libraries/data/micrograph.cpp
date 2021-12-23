@@ -40,24 +40,65 @@
 Micrograph::Micrograph()
 {
     auxI = new (Image<char> );
-    IUChar = NULL;
-    IShort = NULL;
-    IUShort = NULL;
-    IInt = NULL;
-    IUInt = NULL;
-    IFloat = NULL;
+    IUChar = nullptr;
+    IShort = nullptr;
+    IUShort = nullptr;
+    IInt = nullptr;
+    IUInt = nullptr;
+    IFloat = nullptr;
     stdevFilter = -1;
 }
 Micrograph::~Micrograph()
 {
-    delete (auxI);
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    delete auxI;
+    delete IUChar;
+    delete IShort;
+    delete IUShort;
+    delete IInt;
+    delete IUInt;
+    delete IFloat;
 }
+
+Micrograph & Micrograph::operator=(const Micrograph &other)
+{
+    single_particle=other.single_particle;
+    coords=other.coords;
+    fn_coords=other.fn_coords;
+    fn_micrograph=other.fn_micrograph;
+    ctfRow=other.ctfRow;
+    fn_inf=other.fn_inf;
+    X_window_size=other.X_window_size;
+    Y_window_size=other.Y_window_size;
+    Xdim=other.Xdim;
+    Ydim=other.Ydim;
+    Zdim=other.Zdim;
+    Ndim=other.Ndim;
+    point1=other.point1;
+    point2=other.point2;
+    datatype=other.datatype;
+    swapbyte=other.swapbyte;
+    __offset=other.__offset;
+    compute_transmitance=other.compute_transmitance;
+    compute_inverse=other.compute_inverse;
+    fh_micrograph=other.fh_micrograph;
+    labels=other.labels;
+    stdevFilter=other.stdevFilter;
+#define COPYPTR(Itype,Iptr)\
+    if (Iptr!=nullptr)\
+    {\
+    	Iptr=new Itype();\
+    	*Iptr=*(other.Iptr);\
+    }
+    COPYPTR(Image<char>,auxI);
+    COPYPTR(Image<unsigned char>,IUChar);
+    COPYPTR(Image<short int>,IShort);
+    COPYPTR(Image<unsigned short int>,IUShort);
+    COPYPTR(Image<int>,IInt);
+    COPYPTR(Image<unsigned int>,IUInt);
+    COPYPTR(Image<float>,IFloat);
+}
+#undef COPYPTR
+
 /* Clear ------------------------------------------------------------------- */
 void Micrograph::clear()
 {
@@ -70,12 +111,12 @@ void Micrograph::clear()
     datatype = -1;
     compute_transmitance = false;
     compute_inverse = false;
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    delete IUChar;
+    delete IShort;
+    delete IUShort;
+    delete IInt;
+    delete IUInt;
+    delete IFloat;
 }
 
 /* Open micrograph --------------------------------------------------------- */
@@ -164,28 +205,28 @@ void Micrograph::close_micrograph()
     {
     case DT_UHalfByte:
     case DT_UChar:
-        delete (IUChar);
-        IUChar = NULL;
+        delete IUChar;
+        IUChar = nullptr;
         break;
     case DT_UShort:
-        delete (IUShort);
-        IUShort = NULL;
+        delete IUShort;
+        IUShort = nullptr;
         break;
     case DT_Short:
-        delete (IShort);
-        IShort = NULL;
+        delete IShort;
+        IShort = nullptr;
         break;
     case DT_Int:
-        delete (IInt);
-        IInt = NULL;
+        delete IInt;
+        IInt = nullptr;
         break;
     case DT_UInt:
-        delete (IUInt);
-        IUInt = NULL;
+        delete IUInt;
+        IUInt = nullptr;
         break;
     case DT_Float:
-        delete (IFloat);
-        IFloat = NULL;
+        delete IFloat;
+        IFloat = nullptr;
         break;
     default:
         std::cerr << "Micrograph::close_micrograph: Unknown datatype "
@@ -548,7 +589,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     this->Ndim = 1;
     if (datatype == DT_UChar || datatype == DT_UHalfByte)
     {
-        if (IUChar == NULL)
+        if (IUChar == nullptr)
             IUChar = new Image<unsigned char>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -558,7 +599,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_UShort)
     {
-        if (IUShort == NULL)
+        if (IUShort == nullptr)
             IUShort = new Image<unsigned short int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -568,7 +609,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_Short)
     {
-        if (IShort == NULL)
+        if (IShort == nullptr)
             IShort = new Image<short int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -578,7 +619,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_UInt)
     {
-        if (IUInt == NULL)
+        if (IUInt == nullptr)
             IUInt = new Image<unsigned int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -588,7 +629,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_Int)
     {
-        if (IInt == NULL)
+        if (IInt == nullptr)
             IInt = new Image<int>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -598,7 +639,7 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     }
     else if (datatype == DT_Float)
     {
-        if (IFloat == NULL)
+        if (IFloat == nullptr)
             IFloat = new Image<float>(Xdim, Ydim, 1, 1, filename);
         else
         {
@@ -836,7 +877,7 @@ void TiltPairAligner::computeGamma()
 /* Compute alphas ---------------------------------------------------------- */
 double matrix_fitness(double *p, void *prm)
 {
-    TiltPairAligner *aligner = (TiltPairAligner *) prm;
+	auto *aligner = (TiltPairAligner *) prm;
     Euler_angles2matrix(-p[1], p[3], p[2], aligner->pair_E);
     double retval = 0;
     for (int i = 0; i < 2; i++)

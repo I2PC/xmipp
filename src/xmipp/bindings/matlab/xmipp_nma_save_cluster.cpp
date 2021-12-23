@@ -27,7 +27,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   {
 	  if (*ptrInCluster!=0)
 	  {
-      mdImagesOut.addRow(row);
+              mdImagesOut.addRow(row);
 	  }
 	  ptrInCluster++;
   }

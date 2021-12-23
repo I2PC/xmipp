@@ -111,7 +111,7 @@ void ProgClassifySignificant::produceSideInfo()
         std::cout << fnVol << std::endl;
         V.read(fnVol);
         V().setXmippOrigin();
-        projector.emplace_back(new FourierProjector(V(),pad,0.5,BSPLINE3));
+        projector.emplace_back(new FourierProjector(V(),pad,0.5,xmipp_transformation::BSPLINE3));
         currentRowIdx.push_back(0);
 
         MetaDataVec mdAngles, mdAnglesSorted;
@@ -151,7 +151,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	bool flip;
 	Matrix2D<double> A;
 	Image<double> &Iaux = *Iexp[0];
-	int xdim = (int)XSIZE(Iaux());
+	auto xdim = (int)XSIZE(Iaux());
 
 	currentRow.getValue(MDL_ANGLE_ROT,rot);
 	currentRow.getValue(MDL_ANGLE_TILT,tilt);
@@ -173,7 +173,7 @@ void ProgClassifySignificant::generateProjection(size_t volumeIdx, size_t poolId
 	if (poolIdx>=subsetProjections.size())
 		subsetProjections.emplace_back(new MultidimArray<double>);
 	subsetProjections[poolIdx]->resizeNoCopy(xdim, xdim);
-	applyGeometry(LINEAR,*(subsetProjections[poolIdx]),Paux(),A,IS_INV,DONT_WRAP,0.);
+	applyGeometry(xmipp_transformation::LINEAR,*(subsetProjections[poolIdx]),Paux(),A,xmipp_transformation::IS_INV,xmipp_transformation::DONT_WRAP,0.);
 
 #ifdef DEBUG
 	std::cout << "Row: " << " rot: " << rot << " tilt: " << tilt
@@ -353,12 +353,12 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 			for(size_t jj=0; jj<XSIZE(fftIproj1); ++jj)
 			{
 				double snrTermIexp1 = sqrt(1+(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI1, jj)));
-				double snrTermIproj1 = sqrt((DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI1, jj)));
+				double snrTermIproj1 = sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI1, jj));
 				DIRECT_MULTIDIM_ELEM(fftIexp1, nn) = DIRECT_MULTIDIM_ELEM(fftIexp1, nn)*snrTermIexp1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp1, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj1, nn) = DIRECT_MULTIDIM_ELEM(fftIproj1, nn)*snrTermIproj1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj));
 
 				double snrTermIexp2 = sqrt(1+(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI2, jj)));
-				double snrTermIproj2 = sqrt((DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI2, jj)));
+				double snrTermIproj2 = sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj)/DIRECT_MULTIDIM_ELEM(radialAvgErrorI2, jj));
 				DIRECT_MULTIDIM_ELEM(fftIexp2, nn) = DIRECT_MULTIDIM_ELEM(fftIexp2, nn)*snrTermIexp2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp2, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj2, nn) = DIRECT_MULTIDIM_ELEM(fftIproj2, nn)*snrTermIproj2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj));
 	/*
@@ -389,7 +389,7 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 					continue;
 
 				R = sqrt(R2);
-				int idx = (int)round(R * XSIZE(Iproj1));
+				auto idx = (int)round(R * XSIZE(Iproj1));
 				double fscAvg = 0.0;
 				std::vector<double> setFsc1;
 				for(int i=0; i<numFsc; i++){
@@ -406,12 +406,12 @@ void calculateNewCorrelation(MultidimArray<double> &Iproj1, MultidimArray<double
 				//std::cout << "fscValue1 = " << fscValue1 << " fscValue2 = " << fscValue2 << " fscAvg = " << fscAvg << std::endl;
 
 				double snrTermIexp1 = sqrt(1+((2*fscAvg)/(1-fscAvg)));
-				double snrTermIproj1 = sqrt(((2*fscAvg)/(1-fscAvg)));
+				double snrTermIproj1 = sqrt((2*fscAvg)/(1-fscAvg));
 				DIRECT_MULTIDIM_ELEM(fftIexp1, nn) = DIRECT_MULTIDIM_ELEM(fftIexp1, nn)*snrTermIexp1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp1, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj1, nn) = DIRECT_MULTIDIM_ELEM(fftIproj1, nn)*snrTermIproj1/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj1, jj));
 
 				double snrTermIexp2 = sqrt(1+((2*fscAvg)/(1-fscAvg)));
-				double snrTermIproj2 = sqrt(((2*fscAvg)/(1-fscAvg)));
+				double snrTermIproj2 = sqrt((2*fscAvg)/(1-fscAvg));
 				DIRECT_MULTIDIM_ELEM(fftIexp2, nn) = DIRECT_MULTIDIM_ELEM(fftIexp2, nn)*snrTermIexp2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIexp2, jj));
 				DIRECT_MULTIDIM_ELEM(fftIproj2, nn) = DIRECT_MULTIDIM_ELEM(fftIproj2, nn)*snrTermIproj2/sqrt(DIRECT_MULTIDIM_ELEM(radialAvgIproj2, jj));
 
@@ -553,7 +553,7 @@ void computeWeightedCorrelation(MultidimArray<double> &I1, MultidimArray<double>
 	corr1exp=corr2exp=0.0;
 
 	if (!I1isEmpty && !I2isEmpty){
-		applyGeometry(LINEAR, Iexp2Aligned, Iexp2, M, IS_NOT_INV, false);
+		applyGeometry(xmipp_transformation::LINEAR, Iexp2Aligned, Iexp2, M, xmipp_transformation::IS_NOT_INV, false);
 	}
 	/*save()=Iexp2Aligned;
 	save.write("Iexp2Aligned.xmp");*/
@@ -880,7 +880,7 @@ void ProgClassifySignificant::run()
 		winning.initZeros();
 		corrDiff.initZeros();
 		Image<double> Iaux = *Iexp[0];
-		int xdim = (int)XSIZE(Iaux());
+		auto xdim = (int)XSIZE(Iaux());
 		I1.initZeros(1, 1, xdim, xdim);
 		I2.initZeros(1, 1, xdim, xdim);
 		Iexp1.initZeros(1, 1, xdim, xdim);

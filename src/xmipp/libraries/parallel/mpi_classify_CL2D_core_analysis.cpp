@@ -40,7 +40,7 @@ ProgClassifyCL2DCore::ProgClassifyCL2DCore(int argc, char **argv)
     node=new MpiNode(argc,argv);
     if (!node->isMaster())
         verbose=0;
-    taskDistributor=NULL;
+    taskDistributor=nullptr;
     maxLevel=-1;
     tolerance=0;
     thPCAZscore=3;
@@ -233,7 +233,7 @@ void ProgClassifyCL2DCore::computeStableCores()
                 {
                     try {
                        coocurrence.initZeros(NthisClass,NthisClass);
-                    } catch (XmippError e)
+                    } catch (XmippError &e)
                     {
                        std::cerr << e << std::endl;
                        std::cerr << "There is a memory allocation error. Most likely there are too many images in this class ("

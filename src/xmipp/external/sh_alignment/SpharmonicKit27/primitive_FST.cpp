@@ -121,7 +121,7 @@ void seanindex2(int m,
 void transpose(double *array,
 	       int size)
 {
-  register int i, j;
+  int i, j;
   double t1, t2, t3, t4;
 
   for(i = 0; i < size; i += 2)

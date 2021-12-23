@@ -39,6 +39,12 @@ class Config:
     KEY_LINKERFORPROGRAMS = 'LINKERFORPROGRAMS'
     KEY_CXX = 'CXX'
     KEY_LINKFLAGS = 'LINKFLAGS'
+    OPT_CUDA = 'CUDA'
+    OPT_CXX_CUDA = 'CXX_CUDA'
+    OPT_NVCC = 'NVCC'
+    OPT_NVCC_LINKFLAGS = 'NVCC_LINKFLAGS'
+    OPT_NVCC_CXXFLAGS = 'NVCC_CXXFLAGS'
+
 
     def __init__(self, askUser=False):
         self.ask = askUser
@@ -52,7 +58,7 @@ class Config:
             self.configDict['VERIFIED'] = 'False'
 
         self._config_compiler()
-        self._config_CUDA()
+        self._set_CUDA()
         self._config_MPI()
         self._config_Java()
 
@@ -128,6 +134,10 @@ class Config:
         if value is None:
             return option in self.get()
         return option in self.get() and value in self.get()[option]
+
+    def _set_if_empty(self, option, value):
+        if self.is_empty(option):
+            self._set(option, value)
 
     def read(self, fnConfig=FILE_NAME):
         try:
@@ -225,12 +235,29 @@ class Config:
                         % (version, 'with' if self.configDict["OPENCVSUPPORTSCUDA"] else 'without')))
         runJob("rm -v xmipp_test_opencv*", show_output=False)
 
-    def get_supported_GCC():
-        # we need GCC with C++14 support
+    def _get_help_msg(self):
+        msg_missing = 'The config file %s is missing.\n' % Config.FILE_NAME
+        msg_obsolete = ('The config file %s is obsolete and has to be regenerated.\n'
+                        'We recommend you do create a manual backup of it first\n' % Config.FILE_NAME)
+        msg_common = 'Please, run ./xmipp --help or check the online documention for further details'
+        if not self.config_file_exists():
+            return msg_missing + msg_common
+        if not self._is_up_to_date():
+            return msg_obsolete + msg_common
+        return msg_common
+
+    def config_file_exists(self):
+        return os.path.isfile(Config.FILE_NAME)
+
+    def _is_up_to_date(self):
+        return self.get(Config.KEY_VERSION) == self._get_version()
+
+    def get_supported_GCC(self):
+        # we need GCC with C++17 support
         # https://gcc.gnu.org/projects/cxx-status.html
         return ['', 11.2, 11.1, 11, 10.3, 10.2, 10.1, 10,
                 9.3, 9.2, 9.1, 9, 8.5, 8.4, 8.3, 8.2, 8.1, 8,
-                7.5, 7.4, 7.3, 7.2, 7.1, 7, 6.5, 6.4, 6.3, 6.2, 6.1, 6]
+                7.5, 7.4, 7.3, 7.2, 7.1, 7]
 
     def _set_compiler_linker_helper(self, opt, prg, versions):
         if not self.is_empty(opt):
@@ -242,11 +269,11 @@ class Config:
 
     def _set_cxx(self):
         self._set_compiler_linker_helper(
-            Config.KEY_CXX, 'g++', Config.get_supported_GCC())
+            Config.KEY_CXX, 'g++', self.get_supported_GCC())
 
     def _set_linker(self):
         self._set_compiler_linker_helper(
-            Config.KEY_LINKERFORPROGRAMS, 'g++', Config.get_supported_GCC())
+            Config.KEY_LINKERFORPROGRAMS, 'g++', self.get_supported_GCC())
 
     def _config_compiler(self):
         if self.configDict["DEBUG"] == "":
@@ -264,7 +291,7 @@ class Config:
             # optimize for current machine
             self.configDict["CXXFLAGS"] += " -mtune=native -march=native -flto"
             if "-std=c99" not in self.configDict["CXXFLAGS"]:
-                self.configDict["CXXFLAGS"] += " -std=c++14"
+                self.configDict["CXXFLAGS"] += " -std=c++17"
             if isCIBuild():
                 # don't tolerate any warnings on build machine
                 self.configDict["CXXFLAGS"] += " -Werror"
@@ -349,15 +376,18 @@ class Config:
             self._config_OpenCV()
 
     def _get_GCC_version(self, compiler):
-        log = []
-        runJob(compiler + " -dumpversion", show_output=False,
-               show_command=False, log=log)
-        full_version = log[0].strip()
-        tokens = full_version.split('.')
+        def get_version_tokens(v):
+            log = []
+            runJob(compiler + v, show_output=False,
+                   show_command=False, log=log)
+            return log[0].strip(), log[0].strip().split('.')
+
+        full_version, tokens = get_version_tokens(" -dumpversion")
         if len(tokens) < 2:
-            tokens.append('0')  # for version 5.0, only '5' is returned
+            full_version, tokens = get_version_tokens(" -dumpfullversion")
         gccVersion = float(str(tokens[0] + '.' + tokens[1]))
         return gccVersion, full_version
+
 
     def _ensure_GCC_GPP_version(self, compiler):
         if not checkProgram(compiler, True):
@@ -468,139 +498,117 @@ class Config:
             return v[v.index('9.3'):]
         return []  # not supported
 
-    def _config_CUDA(self):
-        self.configDict["CUDA"] = os.environ.get("CUDA", "")
-        nvcc = 'nvcc'
-        if self.configDict["CUDA"] == "":
-            environCudaBin = os.environ.get('XMIPP_CUDA_BIN',
-                                            os.environ.get('CUDA_BIN', ''))
-            cudaBin = whereis(nvcc, findReal=True,
-                              env=environCudaBin + ':' + os.environ.get('PATH', ''))
-            if cudaBin:
-                self.configDict["CUDA"] = "True"
-                nvcc = os.path.join(cudaBin, nvcc)
+    def _join_with_prefix(self, collection, prefix):
+        return ' '.join([prefix + i for i in collection if i])
+
+    def _set_nvcc(self):
+        if not self.is_empty(Config.OPT_NVCC):
+            return True
+
+        nvcc_loc_candidates = {os.environ.get('XMIPP_CUDA_BIN', ''),
+                               os.environ.get('CUDA_BIN', ''),
+                               '/usr/local/cuda/bin',
+                               '/usr/local/cuda*/bin'} #if there is no -ln on /usr/local/cuda ?
+        nvcc_loc = find('nvcc', nvcc_loc_candidates)
+        if not nvcc_loc:
+            print(yellow('nvcc not found (searched in %s). If you want to '
+                         'enable CUDA, add \'nvcc\' to PATH. %s' % (
+                nvcc_loc_candidates, self._get_help_msg())))
+            return False
+        print(green('nvcc found in ' + nvcc_loc))
+        self._set(Config.OPT_NVCC, nvcc_loc)
+        return True
+
+    def _set_nvcc_cxx(self, nvcc_version):
+        if not self.is_empty(Config.OPT_CXX_CUDA):
+            return True
+        candidates = self._get_compatible_GCC(nvcc_version)
+        prg = find_newest('g++', candidates,  False)
+        if not prg:# searching a g++ for devToolSet on CentOS
+            if str(self._get_GCC_version('g++')[0]) in candidates:
+                prg = whereis('g++', True)
             else:
-                print(yellow("\n'nvcc' not found in the PATH "
-                             "(either in CUDA_BIN/XMIPP_CUDA_BIN)"))
-                cudaBin = findFileInDirList('nvcc', ["/usr/local/cuda/bin",
-                                                     "/usr/local/cuda*/bin"])  # check order
-                cudaBin = askPath(cudaBin, self.ask)
-                if os.path.isfile(os.path.join(cudaBin, 'nvcc')):
-                    self.configDict["CUDA"] = "True"
-                    # If using generic cuda, expliciting the version
-                    cudaBin = os.path.realpath(cudaBin)
-                    nvcc = os.path.join(cudaBin, nvcc)
-                else:
-                    print(
-                        yellow("CUDA not found. Continuing only with CPU integration."))
-                    self.configDict["CUDA"] = "False"
-        self.environment.update(CUDA=self.configDict["CUDA"] == "True")
-        if self.configDict["CUDA"] == "True":
-            if self.configDict["NVCC"] == "":
-                if checkProgram(nvcc):
-                    nvccVersion, nvccFullVersion = self._get_CUDA_version(nvcc)
-                    print(green('CUDA-' + nvccFullVersion + ' detected.'))
-                    if nvccVersion != 10.2:
-                        print(yellow('CUDA-10.2 is recommended.'))
-                    self.configDict["NVCC"] = nvcc
-                else:
-                    print(yellow("Warning: 'nvcc' not found. "
-                                 "'NVCC_CXXFLAGS' and 'NVCC_LINKFLAGS' cannot be "
-                                 "automatically set. Please, manual set them or "
-                                 "set 'CUDA=False' in the config file."))
-                    return
-            if self.configDict["NVCC_CXXFLAGS"] == "":
-                # in case user specified some wrapper of the compiler
-                # get rid of it: 'ccache g++' -> 'g++'
-                currentCxx = self.get(Config.KEY_CXX).split()[-1]
-                cxxVersion, cxxStrVersion = self._get_GCC_version(currentCxx)
-                nvccVersion, nvccFullVersion = self._get_CUDA_version(
-                    self.configDict["NVCC"])
-                if self.configDict["CXX_CUDA"] == '':
-                    print(
-                        yellow('Checking for compatible GCC to be used with your CUDA'))
-                    candidates = self._get_compatible_GCC(nvccVersion)
-                    for c in candidates:
-                        p = 'g++-' + c
-                        if checkProgram(p, False):
-                            self.configDict["CXX_CUDA"] = p
-                            break
-                    if self.configDict["CXX_CUDA"]:
-                        self.configDict["CXX_CUDA"] = askPath(
-                            self.configDict["CXX_CUDA"], self.ask)
-                    if not checkProgram(self.configDict["CXX_CUDA"], False):
-                        print(red("No valid compiler found. "
-                                  "Skipping CUDA compilation.\n"
-                                  "To manually set the compiler, export CXX_CUDA=/path/to/requested_compiler' and "
-                                  "run again 'xmipp config'."))
-                        self.configDict["CUDA"] = "False"
-                        self.environment.update(CUDA=False, pos='replace')
-                        return
-                if nvccVersion >= 11:
-                    self.configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                                        "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
-                                                        # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
-                                                        "-gencode=arch=compute_60,code=compute_60 "
-                                                        "-gencode=arch=compute_61,code=compute_61 "
-                                                        "-gencode=arch=compute_75,code=compute_75 "
-                                                        "-gencode=arch=compute_86,code=compute_86")
-                else:
-                    self.configDict["NVCC_CXXFLAGS"] = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
-                                                        "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
-                                                        # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
-                                                        "-gencode=arch=compute_35,code=compute_35 "
-                                                        "-gencode=arch=compute_50,code=compute_50 "
-                                                        "-gencode=arch=compute_60,code=compute_60 "
-                                                        "-gencode=arch=compute_61,code=compute_61")
+                print(yellow('No valid compiler found for CUDA host code. '
+                             + self._get_help_msg()))
+                return False
+        print(green('g++' + ' found in ' + prg))
+        self._set(Config.OPT_CXX_CUDA, prg)
+        return True
 
-            if self.configDict["NVCC_LINKFLAGS"] == "":
-                # Looking for Cuda libraries:
-                libDirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
-                           'lib/x86_64-linux-gnu']  # add more condidates
+    def _set_nvcc_lib_dir(self):
+        opt = Config.OPT_NVCC_LINKFLAGS
+        if not self.is_empty(opt):
+            return True
 
-                def checkCudaLib(x): return os.path.isfile(x+"/libcudart.so")
+        dirs = ['lib', 'lib64', 'targets/x86_64-linux/lib',
+                'lib/x86_64-linux-gnu']
+        # assume cuda_dir/bin/nvcc
+        locs = [os.path.dirname(os.path.dirname(self.get(Config.OPT_NVCC))),
+                os.environ.get('XMIPP_CUDA_LIB', ''),
+                os.environ.get('CUDA_LIB', ''),
+                os.environ.get('LD_LIBRARY_PATH', ''),
+                '/usr'
+                ]
 
-                def searchCudaLib(root, cudaLib, ask=False):
-                    check = False
-                    for lib in libDirs:
-                        candidate = os.path.join(root, lib)
-                        if checkCudaLib(candidate):
-                            cudaLib = candidate
-                            check = True
-                            break
-                    if check:
-                        cudaLib = os.path.realpath(cudaLib)
-                        cudaLib = askPath(cudaLib, ask=ask)
-                    return cudaLib
+        def search():
+            for l in locs:
+                for d in dirs:
+                    tmp = os.path.join(l, d, 'libcudart.so')
+                    if os.path.isfile(tmp):
+                        return os.path.dirname(tmp)
+            return None
 
-                # Looking for user defined XMIPP_CUDA_LIB and CUDA_LIB
-                cudaLib = os.environ.get('XMIPP_CUDA_LIB',
-                                         os.environ.get('CUDA_LIB', ''))
+        path = search()
+        if path is None:
+            print(yellow(
+                'WARNING: CUDA libraries (libcudart.so) not found. ' + self._get_help_msg()))
+            return False
+        # nvidia-ml is in stubs folder
+        self._set(opt, self._join_with_prefix(
+            [path, os.path.join(path, 'stubs')], '-L'))
+        return True
 
-                nvccDir = whereis(self.configDict["NVCC"])
-                if not checkCudaLib(cudaLib) and nvccDir:
-                    # Looking for Cuda libs under active nvcc.
-                    cudaLib = searchCudaLib(
-                        os.path.dirname(nvccDir), cudaLib, False)
+    def _set_nvcc_flags(self, nvcc_version):
+        flags = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                 "-ccbin %(CXX_CUDA)s -std=c++11 --expt-extended-lambda "
+                 # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                 "-gencode=arch=compute_35,code=compute_35 "
+                 "-gencode=arch=compute_50,code=compute_50 "
+                 "-gencode=arch=compute_60,code=compute_60 "
+                 "-gencode=arch=compute_61,code=compute_61")
+        if nvcc_version >= 11:
+            flags = ("--x cu -D_FORCE_INLINES -Xcompiler -fPIC "
+                     "-ccbin %(CXX_CUDA)s -std=c++14 --expt-extended-lambda "
+                     # generate PTX only, and SASS at the runtime (by setting code=virtual_arch)
+                     "-gencode=arch=compute_60,code=compute_60 "
+                     "-gencode=arch=compute_61,code=compute_61 "
+                     "-gencode=arch=compute_75,code=compute_75 "
+                     "-gencode=arch=compute_86,code=compute_86")
+        self._set_if_empty(Config.OPT_NVCC_CXXFLAGS, flags)
 
-                if not checkCudaLib(cudaLib):
-                    # Looking for Cuda libs in user root libs.
-                    cudaLib = searchCudaLib('/usr', cudaLib, self.ask)
+    def _set_CUDA(self):
+        def print_no_CUDA():
+            print(red("No valid compiler found. "
+                  "Skipping CUDA compilation.\n"))
 
-                if checkCudaLib(cudaLib):
-                    self.configDict["NVCC_LINKFLAGS"] = ("-L%s" % cudaLib +
-                                                         " -L%s/stubs" % cudaLib)  # nvidia-ml is in stubs folder
-                    self.environment.update(LD_LIBRARY_PATH=cudaLib)
-                    self.environment.update(LD_LIBRARY_PATH=cudaLib+"/stubs")
-                else:
-                    print(yellow("WARNING: system libraries for CUDA not found!\n"
-                                 "         If cuda code is not compiling, "
-                                 "please, find 'libcudart.so' and manually add\n"
-                                 "         the containing folder (e.g. '/my/cuda/lib') at %s\n"
-                                 " > NVCC_LINKFLAGS = -L/my/cuda/lib -L/my/cuda/lib/stubs\n"
-                                 "         If the problem persist, set 'CUDA=False' before "
-                                 "compiling to skip cuda compilation."
-                                 % (Config.FILE_NAME)))
+        if not self._set_nvcc():
+            print_no_CUDA()
+            return
+        nvcc_version, nvcc_full_version = self._get_CUDA_version(
+            self.get(Config.OPT_NVCC))
+        print(green('CUDA-' + nvcc_full_version + ' found.'))
+        if nvcc_version != 10.2:
+            print(yellow('CUDA-10.2 is recommended.'))
+        if not self._set_nvcc_cxx(nvcc_version) or not self._set_nvcc_lib_dir():
+            print_no_CUDA()
+            return
+        self._set_nvcc_flags(nvcc_version)
+
+        # update config and environment
+        self._set(Config.OPT_CUDA, True)
+        self.environment.update(CUDA=True)
+        LD = ':'.join(self.get(Config.OPT_NVCC_LINKFLAGS).split('-L'))
+        self.environment.update(LD_LIBRARY_PATH=LD)
 
     def _check_CUDA(self):
         if self.configDict["CUDA"] == "True":
@@ -880,12 +888,15 @@ class Config:
         if (Config.KEY_USE_DL in self.configDict) and (self.configDict[Config.KEY_USE_DL] != 'True'):
             self.configDict[Config.KEY_USE_DL] = 'False'
 
-    def ensure_version(self):
+    def check_version(self):
         if Config.KEY_VERSION not in self.configDict or self.configDict[Config.KEY_VERSION] != self._get_version():
-            print(red("We did some changes which are not compatible with your current config file. "
-                      "Please, run './xmipp config' to generate a new config file."
-                      "We recommend you to create a backup before regenerating it (use --help for additional info)"))
-            exit(-1)
+            print(yellow("We did some changes in repository which may not be compatible with your current config file.\n" \
+                   "Run './xmipp config' to generate a new config file and compile Xmipp again.\n" \
+                   "We recommend you to create a backup before regenerating it (use --help for additional info)\n"))
+            if not askYesNo(yellow(
+                    '\nDo you want to compile without generating a new config file [YES/no]'), default=True,
+                    actually_ask=self.ask):
+                exit(-1)
 
     def _get_version(self):
         """ If git not present means it is in production mode
@@ -895,12 +906,12 @@ class Config:
             'src', 'xmipp', 'commit.info')  # FIXME check if this is still true
         notFound = "(no git repo detected)"
         if ensureGit(False) and isGitRepo():
-            scriptName = ''
+            scriptName = []
             runJob('git ls-files --full-name ' +
-                   os.path.basename(__file__), '.', False, scriptName, False)
+                   __file__, show_command=False, log=scriptName, show_output=False)
             lastCommit = []
             # get hash of the last commit changing this script
-            if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName, '.', False, lastCommit, False):
+            if runJob('git log -n 1 --pretty=format:%H -- ' + scriptName[0].strip(), '.', False, lastCommit, False):
                 return lastCommit[0].strip()
         elif os.path.isfile(commitFn):
             with open(commitFn, 'r') as file:
