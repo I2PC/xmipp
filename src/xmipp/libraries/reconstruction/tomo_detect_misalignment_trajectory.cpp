@@ -377,6 +377,47 @@ void ProgTomoDetectMisalignmentTrajectory::getHighContrastCoordinates(MultidimAr
 }
 
 
+void ProgTomoDetectMisalignmentTrajectory::detectGlobalMisalignment()
+{
+
+	// *** MAKE GLOBAL THRESHOLD FOR MINIMUM ANGLE------------------------------------------------------- esto puede que necesite ir en ang y pasar a px
+	float thrChainDeviation = 5;
+
+	// Struct to sort 3D coordinates (point3D class) by its x component
+	struct SortByX
+	{
+		bool operator() const (Point3D const & L, Point3D const & R) { return L.x < R.x; }
+	};
+
+    std::vector<Point3D<double>> sortXcoordinates3D = coordinates3D;
+	std::sort(sortXcoordinates3D.begin(), sortXcoordinates3D.end(), SortByX());
+
+	// Vector 
+	std::vector<size_t> coordinatesIndexID (sortXcoordinates3D, 0);
+	size_t indexID = 1;
+
+	for (size_t i = 0; i < sortXcoordinates3D.size(); i++)
+	{
+		Point3D referenceCoord3D = sortXcoordinates3D[i];
+
+		for (size_t j = 0; j < sortXcoordinates3D.size(); j++)
+		{
+			Point3D coord3D = sortXcoordinates3D[j];
+
+			if (coordinatesIndexID[i] == 0)
+			{
+				float deviation = abs(coord3D.y - referenceCoord3D.y);
+
+				if (deviation < thrChainDeviation)
+				{
+					chain.push_back(coord3D);		
+				}
+			}
+		}
+	}
+}
+
+
 void ProgTomoDetectMisalignmentTrajectory::detectLandmarkChains()
 {
 	#ifdef VERBOSE_OUTPUT
