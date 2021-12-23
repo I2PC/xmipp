@@ -265,6 +265,7 @@ void Basis::changeToVoxels(GridVolume &vol_basis, MultidimArray<double> *vol_vox
     switch (type)
     {
     case blobs:
+        std::cout<<"\nBasis::changeToVoxels_blobs\n"<<std::flush;
         blobs2voxels(vol_basis, blob, vol_voxels, D, threads , Zdim, Ydim, Xdim );
         break;
     case voxels:
