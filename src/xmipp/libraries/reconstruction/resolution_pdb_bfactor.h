@@ -49,7 +49,7 @@ private:
 	/** Number of atoms in the pdb or alpha-carbons*/
 	int numberOfAtoms;
 
-	bool medianTrue;
+	bool medianTrue, centered;
 
 	std::vector<double> residuesToChimera;
 	double fscResolution;

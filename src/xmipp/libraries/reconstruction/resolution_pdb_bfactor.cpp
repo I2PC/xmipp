@@ -40,6 +40,7 @@ void ProgResBFactor::readParams()
 	fn_locres = getParam("--vol");
 	sampling = getDoubleParam("--sampling");
 	medianTrue = checkParam("--useMedian");
+	centered = checkParam("--centered");
 	fscResolution = getDoubleParam("--fscResolution");
 	fnOut = getParam("-o");
 }
@@ -52,6 +53,7 @@ void ProgResBFactor::defineParams()
 	addParamsLine("  --vol <vol_file=\"\">			: Local resolution map");
 	addParamsLine("  [--sampling <sampling=1>]		: Sampling Rate (A)");
 	addParamsLine("  [--useMedian]			        : The resolution an bfactor per residue are averaged instead of computed the median");
+	addParamsLine("  [--centered]			        : True if the atomic model centered in midle of the local resolution map");
 	addParamsLine("  [--fscResolution <fscResolution=-1>]	: If this is provided, the FSC resolution, R, in Angstrom is used to normalized the local resolution, LR, as (LR-R)/R, where LR is the local resoluion and R is the global resolution");
 	addParamsLine("  -o <output=\"amap.mrc\">		: Output of the algorithm");
 }
@@ -76,7 +78,8 @@ std::vector<size_t> ProgResBFactor::sort_indexes(const std::vector<T> &v)
 
 
 
-void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
+//void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
+void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera_aux)
 {
 	// Reading Local Resolution Map
 	Image<double> imgResVol;
@@ -85,7 +88,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	resvol = imgResVol();
 
 	// The mask is initialized with the same dimentions of the local resolution map
-        MultidimArray<int> mask;
+    MultidimArray<int> mask;
 	mask.resizeNoCopy(resvol);
 	mask.initZeros();
 
@@ -129,7 +132,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	double resolution_mean = 0;
 	int N_elems = 0;
 
-	MetaDataVec md;
+
 
 	// Selecting the residue
 	int resi, last_resi;
@@ -137,7 +140,7 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	size_t first_index = 0;
 	size_t last_index = idx_residue.size()-1;
 
-	last_resi = at_pos.residue[idx_residue[first_index]];
+	last_resi = at_pos.residue[first_index];
 
 	for (size_t r=first_index; r<numberOfAtoms; ++r)
 	{
@@ -165,10 +168,9 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 				bfactor_resi = bfactor_mean/bfactor_to_estimate.size();
 			}
 
-                        // If the fsc is provided, then, the local resolution is normalized
+            // If the fsc is provided, then, the local resolution is normalized
 			if (fscResolution>0)
 			{
-				res_resi -= fscResolution;
 				res_resi /= fscResolution;
 			}
 
@@ -191,10 +193,21 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 			bfactor_to_estimate.clear();
 		}
 
-		// Getting the atom position
-		int k = round(at_pos.z[idx]/sampling) + floor(zdim/2);
-		int i = round(at_pos.y[idx]/sampling) + floor(ydim/2);
-		int j = round(at_pos.x[idx]/sampling) + floor(xdim/2);
+		int k, i, j;
+		if (centered)
+		{
+			// Getting the atom position
+			k = round(at_pos.z[idx]/sampling) + floor(zdim/2);
+			i = round(at_pos.y[idx]/sampling) + floor(ydim/2);
+			j = round(at_pos.x[idx]/sampling) + floor(xdim/2);
+		}
+		else
+		{
+			// Getting the atom position
+			k = round(at_pos.z[idx]/sampling);
+			i = round(at_pos.y[idx]/sampling);
+			j = round(at_pos.x[idx]/sampling);
+		}
 
 		// Covalent Radius of the atom
 		double covRad = at_pos.atomCovRad[idx];
@@ -228,11 +241,14 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	}
 	smoothedResolution[ma_c.size()-1] = (ma_c[ma_c.size()-1]+ma_l[ma_c.size()-2])/(0.3+0.4);
 
-	std::vector<double> residuesToChimera_aux(at_pos.residue[idx_residue[last_index]]);
+	//std::vector<double> residuesToChimera_aux(at_pos.residue[idx_residue[last_index]]);
 
+	residuesToChimera_aux.resize(at_pos.residue[idx_residue[last_index]]);
 	// Creation of the output metadata with the local resolution per residue
 	MetaDataVec mdSmooth;
+	MetaDataVec md;
 	size_t objsmth;
+
 	for (size_t nn = 0; nn<resolution_per_residue.size(); ++nn)
 	{
 		double bf, lr;
@@ -242,9 +258,10 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 		bf = bfactor_per_residue[nn];
 		resnumber = resNumberList[nn];
 
-		auto idx_resnumber = (int) resnumber;
+		int idx_resnumber = (int) resnumber;
 
 		lr = smoothedResolution[nn];
+
 		residuesToChimera_aux[idx_resnumber-1] = lr;
 
 		objsmth = md.addObject();
@@ -258,10 +275,11 @@ void ProgResBFactor::sweepByResidue(std::vector<double> &residuesToChimera)
 	fn = fnOut + "/bfactor_resolution.xmd";
 	md.write(fn);
 
-        residuesToChimera = residuesToChimera_aux;
+    //residuesToChimera = residuesToChimera_aux;
+
 	Image<int> imMask;
 	imMask() = mask;
-        fn = fnOut + "/mask.mrc";
+    fn = fnOut + "/mask.mrc";
 	imMask.write(fn);
 
 }
@@ -392,12 +410,12 @@ void ProgResBFactor::run()
 {
 	std::cout << "Start" << std::endl;
 
-        // Reading the atomic model and getting the atom positions
+	// Reading the atomic model and getting the atom positions
 	//analyzePDB();
 
-        std::string typeOfAtom = "CA";
-        numberOfAtoms = 0;
-        analyzePDBAtoms(fn_pdb, typeOfAtom, numberOfAtoms, at_pos);
+	std::string typeOfAtom = "CA";
+	numberOfAtoms = 0;
+	analyzePDBAtoms(fn_pdb, typeOfAtom, numberOfAtoms, at_pos);
 
 	// Estimating the local resolution per residue
 	std::vector<double> residuesToChimera;
