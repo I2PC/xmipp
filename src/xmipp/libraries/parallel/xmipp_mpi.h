@@ -210,6 +210,8 @@ public:
     virtual void finishProcessing() { /* nothing to do */ };
     /** Get task to process */
     bool getTaskToProcess(size_t &objId, size_t &objIndex);
+    /** Get image to process */
+    virtual bool getImageToProcess(size_t &objId, size_t &objIndex);
 };
 
 /** Macro to define a simple MPI parallelization

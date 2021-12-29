@@ -98,11 +98,6 @@ public:
             ProgAngularContinuousAssign2::showProgress();
         }
     }
-
-    virtual bool getImageToProcess(size_t &objId, size_t &objIndex) override
-    {
-        return getTaskToProcess(objId, objIndex);
-    }
     void finishProcessing()
     {
         node->gatherMetadatas(getOutputMd(), fn_out);

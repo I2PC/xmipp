@@ -349,6 +349,11 @@ bool MpiMetadataProgram::getTaskToProcess(size_t &objId, size_t &objIndex)
     return false;
 }
 
+bool MpiMetadataProgram::getImageToProcess(size_t &objId, size_t &objIndex)
+{
+    return getTaskToProcess(objId, objIndex);
+}
+
 void xmipp_MPI_Reduce(
     void* send_data,
     void* recv_data,
