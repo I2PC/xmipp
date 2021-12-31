@@ -1184,20 +1184,29 @@ void ProgForwardZernikeImages::splattingAtPos(std::array<double, 3> r, double we
 	// Perform splatting at this position r
 	// ? Probably we can loop only a quarter of the region and use the symmetry to make this faster?
 	for (int i = i0; i <= iF; i++)
+	{
+		double y2 = (y_pos - i) * (y_pos - i);
 		for (int j = j0; j <= jF; j++)
 		{
-			double mod = sqrt((x_pos - j) * (x_pos - j) + (y_pos - i) * (y_pos - i));
+			double mod = sqrt((x_pos - j) * (x_pos - j) + y2);
 			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-			A2D_ELEM(mP,i,j) += weight * blob_proj(mod, blob);
+			A2D_ELEM(mP,i,j) += weight * kaiser_proj(mod, blob.radius, blob.alpha, blob.order);
 		}
+	}
 	// The old version (following commented code) gives slightly different results
 	// Matrix1D<double> rdiff(3);
-// 	for (int k = k0; k <= kF; k++)
-// 		for (int i = i0; i <= iF; i++)
-// 			for (int j = j0; j <= jF; j++)
-// 			{
-// 				double mod = sqrt((x_pos - j) * (x_pos - j) + (y_pos - i) * (y_pos - i) + (z_pos - k) * (z_pos - k));
-// 				// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
-// 				A2D_ELEM(mP, i, j) += weight * blob_val(mod, blob);
-// 			}
+	// for (int k = k0; k <= kF; k++)
+	// {
+	// 	double k2 = (z_pos - k) * (z_pos - k);
+	// 	for (int i = i0; i <= iF; i++)
+	// 	{
+	// 		double y2 = (y_pos - i) * (y_pos - i);
+	// 		for (int j = j0; j <= jF; j++)
+	// 		{
+	// 			double mod = sqrt((x_pos - j) * (x_pos - j) + y2 + k2);
+	// 			// A3D_ELEM(Vdeformed(),k, i, j) += weight * blob_val(rdiff.module(), blob);
+	// 			A2D_ELEM(mP, i, j) += weight * kaiser_value(mod, blob.radius, blob.alpha, blob.order);
+	// 		}
+	// 	}
+	// }
 }
