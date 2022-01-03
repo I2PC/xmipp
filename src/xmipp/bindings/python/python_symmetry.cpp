@@ -36,7 +36,7 @@
 PyObject *
 SymList_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    SymListObject *self = (SymListObject*)type->tp_alloc(type, 0);
+    auto *self = (SymListObject*)type->tp_alloc(type, 0);
     if (self != nullptr)
     {
         self->symlist = new SymList();
@@ -62,7 +62,7 @@ SymList_readSymmetryFile(PyObject * obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             self->symlist->readSymmetryFile(str);
             Py_RETURN_NONE;
         }
@@ -78,7 +78,7 @@ SymList_readSymmetryFile(PyObject * obj, PyObject *args, PyObject *kwargs)
 PyObject *
 SymList_getTrueSymsNo(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
-    SymListObject *self = (SymListObject*) obj;
+    auto *self = (SymListObject*) obj;
     return PyLong_FromLong(self->symlist->true_symNo);
 }
 
@@ -96,7 +96,7 @@ SymList_getSymmetryMatrices(PyObject * obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             
             //create symmetry object
             self->symlist->readSymmetryFile(str);
@@ -140,9 +140,9 @@ SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
 
     PyObject *pyMd = nullptr;
-    PyObject *pyProjdirMode = Py_False;
-    PyObject *pyCheckMirrors = Py_False;
-    PyObject *pyObjectRotation = Py_False;
+    auto *pyProjdirMode = Py_False;
+    auto *pyCheckMirrors = Py_False;
+    auto *pyObjectRotation = Py_False;
 
     if (PyArg_ParseTuple(args, "O|OOO", &pyMd,
                          &pyProjdirMode,
@@ -163,7 +163,7 @@ SymList_computeDistance(PyObject * obj, PyObject *args, PyObject *kwargs)
                 check_mirrors = (pyCheckMirrors == Py_True);
             if (PyBool_Check(pyObjectRotation))
                 object_rotation = (pyObjectRotation == Py_True);
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             self->symlist->computeDistance(MetaData_Value(pyMd),projdir_mode,
                                                                 check_mirrors,
                                                                 object_rotation);
@@ -182,9 +182,9 @@ PyObject *
 SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
 {
 	double rot1, tilt1, psi1, rot2, tilt2, psi2;
-    PyObject *pyProjdirMode = Py_False;
-    PyObject *pyCheckMirrors = Py_False;
-    PyObject *pyObjectRotation = Py_False;
+    auto *pyProjdirMode = Py_False;
+    auto *pyCheckMirrors = Py_False;
+    auto *pyObjectRotation = Py_False;
 
     if (PyArg_ParseTuple(args, "dddddd|OOO", &rot1, &tilt1, &psi1, &rot2, &tilt2, &psi2,
                          &pyProjdirMode,
@@ -202,7 +202,7 @@ SymList_computeDistanceAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
                 check_mirrors = (pyCheckMirrors == Py_True);
             if (PyBool_Check(pyObjectRotation))
                 object_rotation = (pyObjectRotation == Py_True);
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             double dist=self->symlist->computeDistance(rot1,tilt1,psi1,rot2,tilt2,psi2,
             		projdir_mode,check_mirrors,object_rotation);
             return PyFloat_FromDouble(dist);
@@ -224,7 +224,7 @@ SymList_symmetricAngles(PyObject * obj, PyObject *args, PyObject *kwargs)
     {
         try
         {
-            SymListObject *self = (SymListObject*) obj;
+            auto *self = (SymListObject*) obj;
             SymList symlist=*(self->symlist);
 
             PyObject * retval = PyList_New(symlist.symsNo()+1);

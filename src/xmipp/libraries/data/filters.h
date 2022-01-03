@@ -504,6 +504,8 @@ public:
     Polar_fftw_plans *plans;
     Polar< std::complex<double> > polarFourierI;
     AlignmentAux();
+    AlignmentAux(const AlignmentAux &)=delete; // Do not use the default copy constructor
+    AlignmentAux & operator=(const AlignmentAux&) = delete; // Do not use the default copy assignment
     ~AlignmentAux();
 };
 

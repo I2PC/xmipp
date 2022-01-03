@@ -50,14 +50,55 @@ Micrograph::Micrograph()
 }
 Micrograph::~Micrograph()
 {
-    delete (auxI);
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    delete auxI;
+    delete IUChar;
+    delete IShort;
+    delete IUShort;
+    delete IInt;
+    delete IUInt;
+    delete IFloat;
 }
+
+Micrograph & Micrograph::operator=(const Micrograph &other)
+{
+    single_particle=other.single_particle;
+    coords=other.coords;
+    fn_coords=other.fn_coords;
+    fn_micrograph=other.fn_micrograph;
+    ctfRow=other.ctfRow;
+    fn_inf=other.fn_inf;
+    X_window_size=other.X_window_size;
+    Y_window_size=other.Y_window_size;
+    Xdim=other.Xdim;
+    Ydim=other.Ydim;
+    Zdim=other.Zdim;
+    Ndim=other.Ndim;
+    point1=other.point1;
+    point2=other.point2;
+    datatype=other.datatype;
+    swapbyte=other.swapbyte;
+    __offset=other.__offset;
+    compute_transmitance=other.compute_transmitance;
+    compute_inverse=other.compute_inverse;
+    fh_micrograph=other.fh_micrograph;
+    labels=other.labels;
+    stdevFilter=other.stdevFilter;
+#define COPYPTR(Itype,Iptr)\
+    if (Iptr!=nullptr)\
+    {\
+    	Iptr=new Itype();\
+    	*Iptr=*(other.Iptr);\
+    }
+    COPYPTR(Image<char>,auxI);
+    COPYPTR(Image<unsigned char>,IUChar);
+    COPYPTR(Image<short int>,IShort);
+    COPYPTR(Image<unsigned short int>,IUShort);
+    COPYPTR(Image<int>,IInt);
+    COPYPTR(Image<unsigned int>,IUInt);
+    COPYPTR(Image<float>,IFloat);
+}
+#undef COPYPTR
+
 /* Clear ------------------------------------------------------------------- */
 void Micrograph::clear()
 {
@@ -70,12 +111,12 @@ void Micrograph::clear()
     datatype = -1;
     compute_transmitance = false;
     compute_inverse = false;
-    delete (IUChar);
-    delete (IShort);
-    delete (IUShort);
-    delete (IInt);
-    delete (IUInt);
-    delete (IFloat);
+    delete IUChar;
+    delete IShort;
+    delete IUShort;
+    delete IInt;
+    delete IUInt;
+    delete IFloat;
 }
 
 /* Open micrograph --------------------------------------------------------- */
@@ -164,27 +205,27 @@ void Micrograph::close_micrograph()
     {
     case DT_UHalfByte:
     case DT_UChar:
-        delete (IUChar);
+        delete IUChar;
         IUChar = nullptr;
         break;
     case DT_UShort:
-        delete (IUShort);
+        delete IUShort;
         IUShort = nullptr;
         break;
     case DT_Short:
-        delete (IShort);
+        delete IShort;
         IShort = nullptr;
         break;
     case DT_Int:
-        delete (IInt);
+        delete IInt;
         IInt = nullptr;
         break;
     case DT_UInt:
-        delete (IUInt);
+        delete IUInt;
         IUInt = nullptr;
         break;
     case DT_Float:
-        delete (IFloat);
+        delete IFloat;
         IFloat = nullptr;
         break;
     default:
@@ -836,7 +877,7 @@ void TiltPairAligner::computeGamma()
 /* Compute alphas ---------------------------------------------------------- */
 double matrix_fitness(double *p, void *prm)
 {
-    TiltPairAligner *aligner = (TiltPairAligner *) prm;
+	auto *aligner = (TiltPairAligner *) prm;
     Euler_angles2matrix(-p[1], p[3], p[2], aligner->pair_E);
     double retval = 0;
     for (int i = 0; i < 2; i++)

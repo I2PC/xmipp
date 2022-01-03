@@ -29,10 +29,6 @@
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
 
-/* Empty constructor ======================================================= */
-Projection::Projection(): Image<double>()
-{}
-
 /* Reset =================================================================== */
 void Projection::reset(int Ydim, int Xdim)
 {
@@ -112,9 +108,9 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
 
     projectionFourier.initZeros();
     double maxFreq2=maxFrequency*maxFrequency;
-    int Xdim=(int)XSIZE(VfourierRealCoefs);
-    int Ydim=(int)YSIZE(VfourierRealCoefs);
-    int Zdim=(int)ZSIZE(VfourierRealCoefs);
+    auto Xdim=(int)XSIZE(VfourierRealCoefs);
+    auto Ydim=(int)YSIZE(VfourierRealCoefs);
+    auto Zdim=(int)ZSIZE(VfourierRealCoefs);
 
     for (size_t i=0; i<YSIZE(projectionFourier); ++i)
     {
@@ -143,9 +139,9 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             {
                 // 0 order interpolation
                 // Compute corresponding index in the volume
-                int kVolume=(int)round(freqvol_Z*volumePaddedSize);
-                int iVolume=(int)round(freqvol_Y*volumePaddedSize);
-                int jVolume=(int)round(freqvol_X*volumePaddedSize);
+            	auto kVolume=(int)round(freqvol_Z*volumePaddedSize);
+            	auto iVolume=(int)round(freqvol_Y*volumePaddedSize);
+            	auto jVolume=(int)round(freqvol_X*volumePaddedSize);
                 c = A3D_ELEM(VfourierRealCoefs,kVolume,iVolume,jVolume);
                 d = A3D_ELEM(VfourierImagCoefs,kVolume,iVolume,jVolume);
             }
@@ -179,13 +175,13 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
                 y -= STARTINGY(VfourierRealCoefs);
                 x -= STARTINGX(VfourierRealCoefs);
 
-                int l1 = (int)ceil(x - 2);
+                auto l1 = (int)ceil(x - 2);
                 int l2 = l1 + 3;
 
-                int m1 = (int)ceil(y - 2);
+                auto m1 = (int)ceil(y - 2);
                 int m2 = m1 + 3;
 
-                int n1 = (int)ceil(z - 2);
+                auto n1 = (int)ceil(z - 2);
                 int n2 = n1 + 3;
 
                 c = d = 0.0;
@@ -214,8 +210,8 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
                                 equivalent_l=-l-1;
                             else if (l>=Xdim)
                                 equivalent_l=2*Xdim-l-1;
-                            double CoeffRe = (double) DIRECT_A3D_ELEM(VfourierRealCoefs,equivalent_nn,equivalent_m,equivalent_l);
-                            double CoeffIm = (double) DIRECT_A3D_ELEM(VfourierImagCoefs,equivalent_nn,equivalent_m,equivalent_l);
+                            auto CoeffRe = (double) DIRECT_A3D_ELEM(VfourierRealCoefs,equivalent_nn,equivalent_m,equivalent_l);
+                            auto CoeffIm = (double) DIRECT_A3D_ELEM(VfourierImagCoefs,equivalent_nn,equivalent_m,equivalent_l);
                             BSPLINE03(aux,xminusl);
                             xsumRe += CoeffRe * aux;
                             xsumIm += CoeffIm * aux;
@@ -250,7 +246,7 @@ void FourierProjector::project(double rot, double tilt, double psi, const Multid
             double ab_cd = (a + b) * (c + d);
 
             // And store the multiplication
-            double *ptrI_ij=(double *)&DIRECT_A2D_ELEM(projectionFourier,i,j);
+            auto *ptrI_ij=(double *)&DIRECT_A2D_ELEM(projectionFourier,i,j);
             *ptrI_ij = ac - bd;
             *(ptrI_ij+1) = ab_cd - ac - bd;
         }
@@ -262,7 +258,7 @@ void FourierProjector::produceSideInfo()
 {
     // Zero padding
     MultidimArray<double> Vpadded;
-    int paddedDim=(int)(paddingFactor*volumeSize);
+    auto paddedDim=(int)(paddingFactor*volumeSize);
     volume->window(Vpadded,FIRST_XMIPP_INDEX(paddedDim),FIRST_XMIPP_INDEX(paddedDim),FIRST_XMIPP_INDEX(paddedDim),
                    LAST_XMIPP_INDEX(paddedDim),LAST_XMIPP_INDEX(paddedDim),LAST_XMIPP_INDEX(paddedDim));
     volume->clear();

@@ -233,7 +233,7 @@ void ProgClassifyCL2DCore::computeStableCores()
                 {
                     try {
                        coocurrence.initZeros(NthisClass,NthisClass);
-                    } catch (XmippError e)
+                    } catch (XmippError &e)
                     {
                        std::cerr << e << std::endl;
                        std::cerr << "There is a memory allocation error. Most likely there are too many images in this class ("

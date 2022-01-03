@@ -56,9 +56,6 @@
 class Projection: public Image<double>
 {
 public:
-    /** Empty constructor */
-    Projection();
-
     /** Vector perpendicular to the projection plane.
      * It is calculated as a function of rot and tilt.
      */

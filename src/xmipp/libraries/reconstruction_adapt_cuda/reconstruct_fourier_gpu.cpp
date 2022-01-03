@@ -227,7 +227,7 @@ void ProgRecFourierGPU::produceSideinfo()
         REPORT_ERROR(ERR_MULTIDIM_SIZE,"This algorithm only works for squared images");
     imgSize=Xdim;
     paddedImgSize = Xdim*padding_factor_vol;
-	size_t conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
+	auto conserveRows = (size_t) ceil((double) paddedImgSize * maxResolution * 2.0);
 	conserveRows = (size_t) ceil((double) conserveRows / 2.0);
 	maxVolumeIndexX = maxVolumeIndexYZ = 2 * conserveRows;
 
@@ -366,7 +366,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 		for (int j = 0; j < parent->R_repository.size(); j++) {
 			RecFourierProjectionTraverseSpace* space = &buffer->spaces[travSpaceOffset + j];
 
-			Matrix2D<double> A_SL=parent->R_repository[j]*(Ainv);
+			Matrix2D<double> A_SL=parent->R_repository[j]*Ainv;
 			Matrix2D<double> A_SLInv=A_SL.inv();
 			A_SL.convertTo(transf);
 			A_SLInv.convertTo(transfInv);
@@ -417,7 +417,7 @@ void ProgRecFourierGPU::prepareBuffer(RecFourierWorkThread* threadParams,
 void* ProgRecFourierGPU::threadRoutine(void* threadArgs) {
 	XMIPP_TRY // in case some method throws a xmipp exception
 
-    RecFourierWorkThread* threadParams = (RecFourierWorkThread *) threadArgs;
+    auto* threadParams = (RecFourierWorkThread *) threadArgs;
     ProgRecFourierGPU* parent = threadParams->parent;
     std::vector<size_t> objId;
 
@@ -649,7 +649,7 @@ T*** ProgRecFourierGPU::applyBlob(T***& input, float blobSize,
 							if (distanceSqr > blobSizeSqr) {
 								continue;
 							}
-							int aux = (int) ((distanceSqr * iDeltaSqrt + 0.5)); //Same as ROUND but avoid comparison
+							auto aux = (int)(distanceSqr * iDeltaSqrt + 0.5); //Same as ROUND but avoid comparison
 							float tmpWeight = blobTableSqrt[aux];
 							tmp += tmpWeight * input[z][y][x];
 						}
@@ -818,7 +818,7 @@ void ProgRecFourierGPU::computeTraverseSpace(int imgSizeX, int imgSizeY, int pro
 }
 
 void ProgRecFourierGPU::logProgress(int increment) {
-	static int repaintAfter = (int)ceil((double)SF.size()/60);
+	static auto repaintAfter = (int)ceil((double)SF.size()/60);
 	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	static int noOfDone = 0;
 	static int noOfLogs = 0;
@@ -924,7 +924,7 @@ void ProgRecFourierGPU::finishComputations( const FileName &out_name )
         double radius=sqrt((double)(k*k+i*i+j*j));
         double aux=radius*iDeltaFourier;
         double factor = Fourier_blob_table(ROUND(aux));
-        double factor2=(pow(Sinc(radius/(2*(imgSize))),2));
+        double factor2=(pow(Sinc(radius/(2*imgSize)),2));
 		A3D_ELEM(mVout,k,i,j) /= (ipad_relation*factor2*factor);
 		meanFactor2+=factor2;
     }

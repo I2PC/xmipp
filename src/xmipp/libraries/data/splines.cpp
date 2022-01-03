@@ -39,7 +39,7 @@ double Bspline03LUT(double x)
         table(i) = Bspline03(i * deltax);
         firstCall = false;
     }
-    size_t i = (size_t)round(fabs(x) * ideltax);
+    auto i = (size_t)round(fabs(x) * ideltax);
     if (i >= XSIZE(table)) return 0;
     else return table(i);
 }

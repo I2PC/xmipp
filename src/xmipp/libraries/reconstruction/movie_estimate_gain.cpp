@@ -119,7 +119,7 @@ void ProgMovieEstimateGain::produceSideInfo()
 	{
 	    int jmax=ceil(3*listOfSigmas[i]);
 	    listOfWidths.push_back(jmax);
-	    double *weights=new double[jmax+1];
+	    auto *weights=new double[jmax+1];
 	    double K=1;
             if (listOfSigmas[i]>0)
                K=-0.5/(listOfSigmas[i]*listOfSigmas[i]);
@@ -261,8 +261,8 @@ void ProgMovieEstimateGain::run()
 
 void ProgMovieEstimateGain::computeHistograms(const MultidimArray<double> &Iframe)
 {
-		double* auxElemC=new double[Ydim];
-		double* auxElemR=new double[Xdim];
+	auto* auxElemC=new double[Ydim];
+	auto* auxElemR=new double[Xdim];
 
 		for(size_t j=0; j<XSIZE(columnH); j++)
 		{

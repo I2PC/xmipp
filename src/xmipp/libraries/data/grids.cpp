@@ -43,17 +43,6 @@ SimpleGrid::SimpleGrid()
     R2            = -1;
 }
 
-SimpleGrid::SimpleGrid(const SimpleGrid &SG)
-{
-    basis         = SG.basis;
-    inv_basis     = SG.inv_basis;
-    lowest        = SG.lowest;
-    highest       = SG.highest;
-    relative_size = SG.relative_size;
-    origin        = SG.origin;
-    R2            = SG.R2;
-}
-
 // std::cout --------------------------------------------------------------------
 std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid)
 {
@@ -68,22 +57,6 @@ std::ostream& operator <<(std::ostream& o, const SimpleGrid &grid)
     o << "   Highest (grid. coord)  " << grid.highest.transpose() << std::endl;
     o << "   Lowest (grid. coord)   " << grid.lowest.transpose()  << std::endl;
     return o;
-}
-
-// Assignment --------------------------------------------------------------
-SimpleGrid& SimpleGrid::operator = (const SimpleGrid &SG)
-{
-    if (&SG != this)
-    {
-        basis         = SG.basis;
-        inv_basis     = SG.inv_basis;
-        lowest        = SG.lowest;
-        highest       = SG.highest;
-        relative_size = SG.relative_size;
-        R2            = SG.R2;
-        origin        = SG.origin;
-    }
-    return *this;
 }
 
 // Another function for assignment -----------------------------------------
@@ -103,12 +76,12 @@ int SimpleGrid::get_number_of_samples() const
     }
     else
     {
-        int ZZ_lowest = (int) ZZ(lowest);
-        int YY_lowest = (int) YY(lowest);
-        int XX_lowest = (int) XX(lowest);
-        int ZZ_highest = (int) ZZ(highest);
-        int YY_highest = (int) YY(highest);
-        int XX_highest = (int) XX(highest);
+        auto ZZ_lowest = (int) ZZ(lowest);
+        auto YY_lowest = (int) YY(lowest);
+        auto XX_lowest = (int) XX(lowest);
+        auto ZZ_highest = (int) ZZ(highest);
+        auto YY_highest = (int) YY(highest);
+        auto XX_highest = (int) XX(highest);
         Matrix1D<double> grid_index(3), univ_position(3);
         int N = 0;
         for (int k = ZZ_lowest; k <= ZZ_highest; k++)
@@ -155,9 +128,9 @@ void Grid::voxel_corners(Matrix1D<double> &Gcorner1, Matrix1D<double> &Gcorner2,
         // Find box for this grid
         bool first;
         first = true;
-        for (int k = (int)ZZ(LG[n].lowest); k <= ZZ(LG[n].highest); k++)
-            for (int i = (int)YY(LG[n].lowest); i <= YY(LG[n].highest); i++)
-                for (int j = (int)XX(LG[n].lowest); j <= XX(LG[n].highest); j++)
+        for (auto k = (int)ZZ(LG[n].lowest); k <= ZZ(LG[n].highest); k++)
+            for (auto i = (int)YY(LG[n].lowest); i <= YY(LG[n].highest); i++)
+                for (auto j = (int)XX(LG[n].lowest); j <= XX(LG[n].highest); j++)
                 {
                     Matrix1D<double> grid_index(3), univ_position(3);
                     VECTOR_R3(grid_index, j, i, k);

@@ -333,7 +333,7 @@ void normalize_ramp(MultidimArray<double> &I, MultidimArray<int> *bg_mask)
     {
         int idx=0;
     	bg_mask->setXmippOrigin();
-        FitPoint *allpoints=new FitPoint[Npoints];
+        auto *allpoints=new FitPoint[Npoints];
 
         FOR_ALL_ELEMENTS_IN_ARRAY2D(I)
         {
@@ -410,8 +410,8 @@ void normalize_remove_neighbours(MultidimArray<double> &I,
     I.checkDimension(2);
 
     // Fit a least squares plane through the background pixels
-    int Npoints=(int)bg_mask.sum();
-    FitPoint *allpoints=new FitPoint[Npoints];
+    auto Npoints=(int)bg_mask.sum();
+    auto *allpoints=new FitPoint[Npoints];
     I.setXmippOrigin();
 
     // Get initial statistics
@@ -696,7 +696,7 @@ void ProgNormalize::show()
         std::cout << "Background mode: ";
         switch (background_mode)
         {
-        case NONE :
+        case NOBACKGROUND :
             std::cout << "None\n";
             break;
         case FRAME:

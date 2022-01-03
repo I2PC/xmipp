@@ -379,11 +379,10 @@ def getScipionHome():
 
 
 def compileModule(Nproc,module):
-    shutil.copyfile(Config.FILE_NAME,"src/%s/install/%s" % (module, Config.FILE_NAME))
     if module == "xmipp":
         stampVersion()
     log = []
-    ok = runJob("scons -j%s" % Nproc, "src/%s" % module, log=log)
+    ok = runJob("/usr/bin/env python3 $(which scons) -j%s" % Nproc, "src/%s" % module, log=log)
     if not ok:
         failingBin = None
         for l in log[-30:]:  # inspecting last 30 lines

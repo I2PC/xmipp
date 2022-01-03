@@ -174,19 +174,8 @@ void ProgCtfGroup::produceSideInfo()
         return;
 
     paddim=xpaddim = ROUND(pad*dim);
-    if(do1Dctf)
-    {
-        ypaddim=1;
-        ctfxpaddim =  (size_t)(sqrt(2.) *  xpaddim + 1);
-    }
-    else
-    {
-        //ypaddim = xpaddim;
-        //This is ready for the day in which we use anisotropic ctf
-        ypaddim=1;
-        //ctfxpaddim = xpaddim;
-        ctfxpaddim =  (size_t)(sqrt(2.) *  xpaddim + 1);
-    }
+    ypaddim=1;
+    ctfxpaddim =  (size_t)(sqrt(2.) *  xpaddim + 1);
     Mctf.resize(ypaddim,ctfxpaddim);
 
     if (do_wiener)
@@ -213,7 +202,7 @@ void ProgCtfGroup::produceSideInfo()
                 jj=(paddim-j);
 
             d      = sqrt(ii*ii+jj*jj);
-            int idd = (int) d ;
+            auto idd = (int) d ;
             dAij(diff, i,j)=d-idd;
             dAij(dd, i,j)=idd;
         }
@@ -334,7 +323,7 @@ void ProgCtfGroup::produceSideInfo()
         {
             ctfMD.getValue(MDL_COUNT,count, objId);
             ctfMD.getValue(MDL_ORDER,counter,objId);
-            double dCount = (double)count;
+            auto dCount = (double)count;
             sumimg += dCount;
             FOR_ALL_DIRECT_ELEMENTS_IN_ARRAY2D(Mwien)
             {
@@ -643,7 +632,8 @@ void ProgCtfGroup::writeOutputToDisc()
     }
 
     //(4)create average ctf
-    int olddefGroup,defGroup;
+    int olddefGroup=-1;
+    int defGroup=-1;
     size_t order, count;
     double sumimg=0.;
 
@@ -651,8 +641,6 @@ void ProgCtfGroup::writeOutputToDisc()
     Image<double> Ictf2D;
     Ictf2D.data.alias(ctf2D);
 
-    olddefGroup=-1;
-    //defGroup=-1;
     FileName outFileNameCTF,outFileNameWIEN,outFileName;
     outFileNameCTF = fn_root + "_ctf."+format;
     outFileNameWIEN = fn_root + "_wien."+format;
@@ -667,7 +655,7 @@ void ProgCtfGroup::writeOutputToDisc()
             olddefGroup=defGroup;
         sortedCtfMD.getValue(MDL_ORDER,order,objId);
         sortedCtfMD.getValue(MDL_COUNT,count,objId);
-        double dCount = (double)count;
+        auto dCount = (double)count;
 
         if (defGroup != olddefGroup)
         {
