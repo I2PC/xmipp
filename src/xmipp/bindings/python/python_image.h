@@ -224,6 +224,9 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs);
 
+/* corrAfterAlignment(I1,I2) */
+PyObject *
+Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs);
 
 /* applyWarpAffine */
 PyObject *

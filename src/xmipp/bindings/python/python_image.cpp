@@ -27,6 +27,7 @@
 #include "python_metadata.h"
 #include "core/transformations.h"
 #include "data/dimensions.h"
+#include "data/filters.h"
 #include "reconstruction/psd_estimator.h"
 
 /***************************************************************/
@@ -142,6 +143,8 @@ PyMethodDef Image_methods[] =
           "I1=I1-adjusted(I2)" },
 		{ "correlation", (PyCFunction) Image_correlation, METH_VARARGS,
 		  "correlation(I1,I2)" },
+		{ "correlationAfterAlignment", (PyCFunction) Image_correlationAfterAlignment, METH_VARARGS,
+		  "correlationAfterAlignment(I1,I2). I2 is aligned to I1 (including mirrors), and then the correlation is returned" },
         { "inplaceAdd", (PyCFunction) Image_inplaceAdd, METH_VARARGS,
           "Add another image to self (does not create another Image instance)" },
         { "inplaceSubtract", (PyCFunction) Image_inplaceSubtract, METH_VARARGS,
@@ -1182,7 +1185,7 @@ Image_setHeaderValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
-/* Return image dimensions as a tuple */
+/* Compute statistics */
 PyObject *
 Image_computeStats(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
@@ -1243,7 +1246,7 @@ Image_computePSD(PyObject *obj, PyObject *args, PyObject *kwargs)
     return Py_BuildValue("");
 }
 
-/* Return image dimensions as a tuple */
+/* Adjust and subtract */
 PyObject *
 Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
@@ -1271,7 +1274,7 @@ Image_adjustAndSubtract(PyObject *obj, PyObject *args, PyObject *kwargs)
     return (PyObject *)result;
 }//function Image_adjustAndSubtract
 
-/* Return image dimensions as a tuple */
+/* Correlation */
 PyObject *
 Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
@@ -1306,6 +1309,45 @@ Image_correlation(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }//function Image_correlation
 
+/* Correlation after alignment of I2 to I1 */
+PyObject *
+Image_correlationAfterAlignment(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    ImageObject *self = (ImageObject*) obj;
+    if (self != nullptr)
+    {
+        try
+        {
+            PyObject *pimg2 = nullptr;
+            if (PyArg_ParseTuple(args, "O", &pimg2))
+            {
+	            ImageGeneric *image = self->image;
+	            image->convert2Datatype(DT_Double);
+	            MultidimArray<double> * pImage=nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image).getMultidimArrayPointer(pImage);
+
+	            ImageObject *img2=(ImageObject *)pimg2;
+	            ImageGeneric *image2 = img2->image;
+	            image2->convert2Datatype(DT_Double);
+	            MultidimArray<double> * pImage2=nullptr;
+	            MULTIDIM_ARRAY_GENERIC(*image2).getMultidimArrayPointer(pImage2);
+	            pImage->setXmippOrigin();
+	            pImage2->setXmippOrigin();
+
+	            Matrix2D<double> M;
+	            MultidimArray<double> I2Copy=*pImage2;
+
+	            double corr=alignImagesConsideringMirrors(*pImage, I2Copy, M, xmipp_transformation::WRAP);
+                return Py_BuildValue("f", corr);
+            }
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
 
 /* Add two images, operator + */
 PyObject *
