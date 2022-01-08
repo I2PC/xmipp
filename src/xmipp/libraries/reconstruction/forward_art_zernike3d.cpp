@@ -252,7 +252,7 @@ void ProgForwardArtZernike3D::preProcess()
 	blob.order = 2;		  // Order of the Bessel function
 	blob.alpha = 3.6;	  // Smoothness parameter
 
-	sigma4 = 4 * sigma;
+	sigma4 = 2 * sigma;
 	gaussianProjectionTable.resize(CEIL(sigma4 * sqrt(2) * 1000));
 	FOR_ALL_ELEMENTS_IN_MATRIX1D(gaussianProjectionTable)
 	gaussianProjectionTable(i) = gaussian1D(i / 1000.0, sigma);
@@ -395,10 +395,10 @@ void ProgForwardArtZernike3D::splattingAtPos(std::array<float, 2> r, float weigh
 	// Find the part of the volume that must be updated
 	float x_pos = r[0];
 	float y_pos = r[1];
-	int i0 = XMIPP_MAX(FLOOR(y_pos - blob_r), STARTINGY(mV));
-	int iF = XMIPP_MIN(CEIL(y_pos + blob_r), FINISHINGY(mV));
-	int j0 = XMIPP_MAX(FLOOR(x_pos - blob_r), STARTINGX(mV));
-	int jF = XMIPP_MIN(CEIL(x_pos + blob_r), FINISHINGX(mV));
+	int i0 = XMIPP_MAX(FLOOR(y_pos - sigma4), STARTINGY(mV));
+	int iF = XMIPP_MIN(CEIL(y_pos + sigma4), FINISHINGY(mV));
+	int j0 = XMIPP_MAX(FLOOR(x_pos - sigma4), STARTINGX(mV));
+	int jF = XMIPP_MIN(CEIL(x_pos + sigma4), FINISHINGX(mV));
 	auto alpha = blob.alpha;
 	auto order = blob.order;
 	// Perform splatting at this position r
