@@ -705,6 +705,17 @@ void ProgForwardZernikeImages::processImage(const FileName &fnImg, const FileNam
     	rowIn.getValue(MDL_FLIP,old_flip);
 	else
 		old_flip = false;
+
+	if (rowIn.containsLabel(MDL_SPH_COEFFICIENTS))
+	{
+		std::vector<double> vectortemp;
+		rowIn.getValue(MDL_SPH_COEFFICIENTS, vectortemp);
+		for (int i=0; i<3*vecSize; i++)
+		{
+			clnm[i] = vectortemp[i];
+			p[i] = vectortemp[i];
+		}
+	}	
 	
 	// FIXME: Add defocus per image and make CTF correction available
 	if ((rowIn.containsLabel(MDL_CTF_DEFOCUSU) || rowIn.containsLabel(MDL_CTF_MODEL)) && useCTF)
