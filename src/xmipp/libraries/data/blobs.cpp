@@ -926,7 +926,6 @@ void blobs2voxels(const GridVolume &vol_blobs,
     {
         int min_distance = (int)ceil((2*(vol_blobs.grid(i)).relative_size ) / blob.radius ) + 1;
         slices_status = new int[(int)(ZZ(vol_blobs.grid(i).highest)-ZZ(vol_blobs.grid(i).lowest)+1)]();
-        //memset(slices_status,0,sizeof(int)*(int)((ZZ((&(vol_blobs.grid(i)))->highest)-ZZ((&(vol_blobs.grid(i)))->lowest)+1)));
         slices_processed = 0;
 
         for( int c = 0 ; c < threads ; c++ )
