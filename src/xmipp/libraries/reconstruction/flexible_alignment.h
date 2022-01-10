@@ -26,6 +26,7 @@
 #define _PROG_FLEXIBLE_ALIGNMENT
 
 #include "core/xmipp_metadata_program.h"
+#include "core/rerunable_program.h"
 #include "core/matrix1d.h"
 #include "core/metadata_vec.h"
 
@@ -33,7 +34,7 @@
    @ingroup ReconsLibrary */
 //@{
 /** NMA Alignment Parameters. */
-class ProgFlexibleAlignment: public XmippMetadataProgram
+class ProgFlexibleAlignment: public XmippMetadataProgram, public Rerunable
 {
 public:
     /** MPI version */
@@ -183,13 +184,6 @@ public:
     /** Alignment */
     double eval();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    virtual void createWorkFiles();
-
     /** Produce side info.
         An exception is thrown if any of the files is not found*/
     virtual void preProcess();
@@ -201,7 +195,20 @@ public:
 
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
+  
+  protected:
+    virtual void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
 
+  private:
+    using Rerunable::createWorkFiles;
+    
+    std::vector<MDLabel> getLabelsForEmpty() override {
+      return std::vector<MDLabel>{MDL_IMAGE,      MDL_ENABLED,   MDL_ANGLE_ROT,
+                                  MDL_ANGLE_TILT, MDL_ANGLE_PSI, MDL_SHIFT_X,
+                                  MDL_SHIFT_Y,    MDL_NMA,       MDL_COST};
+    }
 };
 
 

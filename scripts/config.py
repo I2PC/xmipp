@@ -240,7 +240,7 @@ class Config:
         msg_obsolete = ('The config file %s is obsolete and has to be regenerated.\n'
                         'We recommend you do create a manual backup of it first\n' % Config.FILE_NAME)
         msg_common = 'Please, run ./xmipp --help or check the online documention for further details'
-        if not Config.config_file_exists():
+        if not self.config_file_exists():
             return msg_missing + msg_common
         if not self._is_up_to_date():
             return msg_obsolete + msg_common

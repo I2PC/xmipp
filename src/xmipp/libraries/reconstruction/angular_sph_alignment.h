@@ -28,6 +28,7 @@
 #define _PROG_ANGULAR_SPH_ALIGNMENT
 
 #include "core/xmipp_metadata_program.h"
+#include "core/rerunable_program.h"
 #include "core/matrix1d.h"
 #include "core/xmipp_image.h"
 #include "data/fourier_filter.h"
@@ -38,7 +39,7 @@
 //@{
 
 /** Predict Continuous Parameters. */
-class ProgAngularSphAlignment: public XmippMetadataProgram
+class ProgAngularSphAlignment: public XmippMetadataProgram, public Rerunable
 {
 public:
     /** Filename of the reference volume */
@@ -47,8 +48,6 @@ public:
     FileName fnMaskR;
     /// Output directory
     FileName fnOutDir;
-    // Metadata with already processed images
-    FileName fnDone;
     /** Degrees of Zernike polynomials and spherical harmonics */
     int L1;
     int L2;
@@ -166,13 +165,6 @@ public:
         An exception is thrown if any of the files is not found*/
     void preProcess();
 
-    /** Create the processing working files.
-     * The working files are:
-     * nmaTodo.xmd for images to process (nmaTodo = mdIn - nmaDone)
-     * nmaDone.xmd image already processed (could exists from a previous run)
-     */
-    virtual void createWorkFiles();
-
     /** Predict angles and shift.
         At the input the pose parameters must have an initial guess of the
         parameters. At the output they have the estimated pose.*/
@@ -205,6 +197,27 @@ public:
     /** Write the parameters found for one image */
     virtual void writeImageParameters(const FileName &fnImg);
 
+  protected:
+    virtual void createWorkFiles() {
+      return Rerunable::createWorkFiles(resume, getInputMd());
+    }
+
+  private:
+    using Rerunable::createWorkFiles;
+
+    std::vector<MDLabel> getLabelsForEmpty() override {
+      return std::vector<MDLabel>{MDL_IMAGE,
+                                  MDL_ENABLED,
+                                  MDL_ANGLE_ROT,
+                                  MDL_ANGLE_TILT,
+                                  MDL_ANGLE_PSI,
+                                  MDL_SHIFT_X,
+                                  MDL_SHIFT_Y,
+                                  MDL_FLIP,
+                                  MDL_SPH_DEFORMATION,
+                                  MDL_SPH_COEFFICIENTS,
+                                  MDL_COST};
+    }
 };
 //@}
 #endif
