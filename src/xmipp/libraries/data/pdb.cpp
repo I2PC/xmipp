@@ -72,15 +72,13 @@ void analyzePDBAtoms(const FileName &fn_pdb, const std::string &typeOfAtom, int 
 				double z = textToFloat(line.substr(46,8));
 				std::string ch = line.substr(21,1);
 
-				std::cout << "chain = " << ch << std::endl;
-
 				// storing coordinates
 				at_pos.x.push_back(x);
 				at_pos.y.push_back(y);
 				at_pos.z.push_back(z);
 				at_pos.chain.push_back(ch);
 
-                                // Residue Number
+                // Residue Number
 				auto resi = (int) textToFloat(line.substr(23,5));
 				at_pos.residue.push_back(resi);
 
