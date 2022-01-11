@@ -37,69 +37,7 @@
 //#ifdef LINUX
 //#include <unistd.h>
 //#endif
-Micrograph::Micrograph()
-{
-    auxI = new (Image<char> );
-    IUChar = nullptr;
-    IShort = nullptr;
-    IUShort = nullptr;
-    IInt = nullptr;
-    IUInt = nullptr;
-    IFloat = nullptr;
-    stdevFilter = -1;
-}
-Micrograph::~Micrograph()
-{
-    delete auxI;
-    delete IUChar;
-    delete IShort;
-    delete IUShort;
-    delete IInt;
-    delete IUInt;
-    delete IFloat;
-}
 
-Micrograph & Micrograph::operator=(const Micrograph &other)
-{
-    single_particle=other.single_particle;
-    coords=other.coords;
-    fn_coords=other.fn_coords;
-    fn_micrograph=other.fn_micrograph;
-    ctfRow=other.ctfRow;
-    fn_inf=other.fn_inf;
-    X_window_size=other.X_window_size;
-    Y_window_size=other.Y_window_size;
-    Xdim=other.Xdim;
-    Ydim=other.Ydim;
-    Zdim=other.Zdim;
-    Ndim=other.Ndim;
-    point1=other.point1;
-    point2=other.point2;
-    datatype=other.datatype;
-    swapbyte=other.swapbyte;
-    __offset=other.__offset;
-    compute_transmitance=other.compute_transmitance;
-    compute_inverse=other.compute_inverse;
-    fh_micrograph=other.fh_micrograph;
-    labels=other.labels;
-    stdevFilter=other.stdevFilter;
-#define COPYPTR(Itype,Iptr)\
-    if (Iptr!=nullptr)\
-    {\
-    	Iptr=new Itype();\
-    	*Iptr=*(other.Iptr);\
-    }
-    COPYPTR(Image<char>,auxI);
-    COPYPTR(Image<unsigned char>,IUChar);
-    COPYPTR(Image<short int>,IShort);
-    COPYPTR(Image<unsigned short int>,IUShort);
-    COPYPTR(Image<int>,IInt);
-    COPYPTR(Image<unsigned int>,IUInt);
-    COPYPTR(Image<float>,IFloat);
-}
-#undef COPYPTR
-
-/* Clear ------------------------------------------------------------------- */
 void Micrograph::clear()
 {
     single_particle.clear();
@@ -111,12 +49,12 @@ void Micrograph::clear()
     datatype = -1;
     compute_transmitance = false;
     compute_inverse = false;
-    delete IUChar;
-    delete IShort;
-    delete IUShort;
-    delete IInt;
-    delete IUInt;
-    delete IFloat;
+    IUChar.clear();
+    IShort.clear();
+    IUShort.clear();
+    IInt.clear();
+    IUInt.clear();
+    IFloat.clear();
 }
 
 /* Open micrograph --------------------------------------------------------- */
@@ -126,16 +64,17 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
     // Micrograph name
     fn_micrograph = _fn_micrograph;
     // Look for micrograph dimensions
-    auxI->read(fn_micrograph, HEADER);
+    Image<char> auxI = {};
+    auxI.read(fn_micrograph, HEADER);
 
-    auxI->getDimensions(Xdim, Ydim, Zdim, Ndim);
+    auxI.getDimensions(Xdim, Ydim, Zdim, Ndim);
     if ((Zdim > 1) || (Ndim > 1))
         REPORT_ERROR(
             ERR_MULTIDIM_DIM,
             "Micrograph::open_micrograph: Only files with a single micrograph may be processed. Error reading " + fn_micrograph);
-    auxI->MDMainHeader.getValue(MDL_DATATYPE, datatype);
+    auxI.MDMainHeader.getValue(MDL_DATATYPE, datatype);
     __offset = 0;
-    auxI->clear();
+    auxI.clear();
     //#define DEBUG
 #ifdef DEBUG
 
@@ -155,34 +94,28 @@ void Micrograph::open_micrograph(const FileName &_fn_micrograph)
     {
         case DT_UHalfByte:
     case DT_UChar:
-        IUChar = new (Image<unsigned char> );
-        result = IUChar->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IUChar->data, stdevFilter);
+        result = IUChar.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IUChar.data, stdevFilter);
         break;
     case DT_UShort:
-        IUShort = new (Image<unsigned short> );
-        result = IUShort->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IUShort->data, stdevFilter);
+        result = IUShort.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IUShort.data, stdevFilter);
         break;
     case DT_Short:
-        IShort = new (Image<short> );
-        result = IShort->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IShort->data, stdevFilter);
+        result = IShort.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IShort.data, stdevFilter);
         break;
     case DT_Int:
-        IInt = new (Image<int> );
-        result = IInt->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IInt->data, stdevFilter);
+        result = IInt.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IInt.data, stdevFilter);
         break;
     case DT_UInt:
-        IUInt = new (Image<unsigned int> );
-        result = IUInt->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IUChar->data, stdevFilter);
+        result = IUInt.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IUChar.data, stdevFilter);
         break;
     case DT_Float:
-        IFloat = new (Image<float> );
-        result = IFloat->readMapped(fn_micrograph, FIRST_IMAGE);
-        pixelDesvFilter(IFloat->data, stdevFilter);
+        result = IFloat.readMapped(fn_micrograph, FIRST_IMAGE);
+        pixelDesvFilter(IFloat.data, stdevFilter);
         break;
     default:
         std::cerr << "Micrograph::open_micrograph: Unknown datatype "
@@ -205,28 +138,22 @@ void Micrograph::close_micrograph()
     {
     case DT_UHalfByte:
     case DT_UChar:
-        delete IUChar;
-        IUChar = nullptr;
+        IUChar.clear();
         break;
     case DT_UShort:
-        delete IUShort;
-        IUShort = nullptr;
+        IUShort.clear();
         break;
     case DT_Short:
-        delete IShort;
-        IShort = nullptr;
+        IShort.clear();
         break;
     case DT_Int:
-        delete IInt;
-        IInt = nullptr;
+        IInt.clear();
         break;
     case DT_UInt:
-        delete IUInt;
-        IUInt = nullptr;
+        IUInt.clear();
         break;
     case DT_Float:
-        delete IFloat;
-        IFloat = nullptr;
+        IFloat.clear();
         break;
     default:
         std::cerr << "Micrograph::close_micrograph: Unknown datatype "
@@ -363,22 +290,22 @@ int Micrograph::scissor(const Particle_coords &P, MultidimArray<double> &result,
         REPORT_ERROR(ERR_MULTIDIM_SIZE,
                      "Micrograph::scissor: window size not set");
     if (datatype == DT_UChar || datatype == DT_UHalfByte)
-        return templateScissor(*IUChar, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IUChar, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_UShort)
-        return templateScissor(*IUShort, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IUShort, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_Short)
-        return templateScissor(*IShort, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IShort, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_UInt)
-        return templateScissor(*IUInt, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IUInt, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_Int)
-        return templateScissor(*IInt, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IInt, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else if (datatype == DT_Float)
-        return templateScissor(*IFloat, P, result, Dmin, Dmax, scaleX, scaleY,
+        return templateScissor(IFloat, P, result, Dmin, Dmax, scaleX, scaleY,
                                only_check, fillBorders);
     else
         REPORT_ERROR(ERR_TYPE_INCORRECT,
@@ -589,63 +516,33 @@ void Micrograph::resize(int Xdim, int Ydim, const FileName &filename)
     this->Ndim = 1;
     if (datatype == DT_UChar || datatype == DT_UHalfByte)
     {
-        if (IUChar == nullptr)
-            IUChar = new Image<unsigned char>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IUChar->data.setMmap(true);
-            IUChar->data.resize(1, 1, Ydim, Xdim);
-        }
+        IUChar.data.setMmap(true);
+        IUChar.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_UShort)
     {
-        if (IUShort == nullptr)
-            IUShort = new Image<unsigned short int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IUShort->data.setMmap(true);
-            IUShort->data.resize(1, 1, Ydim, Xdim);
-        }
+        IUShort.data.setMmap(true);
+        IUShort.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_Short)
     {
-        if (IShort == nullptr)
-            IShort = new Image<short int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IShort->data.setMmap(true);
-            IShort->data.resize(1, 1, Ydim, Xdim);
-        }
+        IShort.data.setMmap(true);
+        IShort.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_UInt)
     {
-        if (IUInt == nullptr)
-            IUInt = new Image<unsigned int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IUInt->data.setMmap(true);
-            IUInt->data.resize(1, 1, Ydim, Xdim);
-        }
+        IUInt.data.setMmap(true);
+        IUInt.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_Int)
     {
-        if (IInt == nullptr)
-            IInt = new Image<int>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IInt->data.setMmap(true);
-            IInt->data.resize(1, 1, Ydim, Xdim);
-        }
+        IInt.data.setMmap(true);
+        IInt.data.resize(1, 1, Ydim, Xdim);
     }
     else if (datatype == DT_Float)
     {
-        if (IFloat == nullptr)
-            IFloat = new Image<float>(Xdim, Ydim, 1, 1, filename);
-        else
-        {
-            IFloat->data.setMmap(true);
-            IFloat->data.resize(1, 1, Ydim, Xdim);
-        }
+        IFloat.data.setMmap(true);
+        IFloat.data.resize(1, 1, Ydim, Xdim);
     }
     else
         REPORT_ERROR(ERR_TYPE_INCORRECT, "Unknown datatype");
@@ -655,7 +552,7 @@ void Micrograph::write(const FileName &fileName, CastWriteMode castMode)
 {
     if (datatype == DT_UChar)
     {
-        IUChar->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IUChar.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_UHalfByte)
     {
@@ -664,23 +561,23 @@ void Micrograph::write(const FileName &fileName, CastWriteMode castMode)
     }
     else if (datatype == DT_UShort)
     {
-        IUShort->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IUShort.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_Short)
     {
-        IShort->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IShort.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_UInt)
     {
-        IUInt->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IUInt.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_Int)
     {
-        IInt->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IInt.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else if (datatype == DT_Float)
     {
-        IFloat->write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
+        IFloat.write(fileName, FIRST_IMAGE, false, WRITE_OVERWRITE, castMode);
     }
     else
         REPORT_ERROR(ERR_TYPE_INCORRECT,
