@@ -219,6 +219,8 @@ public:
     /** Empty constructor. */
     XRayPSF();
 
+    XRayPSF(const XRayPSF&)=delete; // Removal of copy constructor
+
     /* Destructor
      */
     ~XRayPSF();

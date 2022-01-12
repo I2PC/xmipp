@@ -39,11 +39,11 @@ unsigned long choose( unsigned n, unsigned k )
 {
 	const unsigned long uupSize = 100;
 	static unsigned long uup[uupSize];
-	register unsigned long *up;
+	unsigned long *up;
 	static unsigned long Nold = 0;
 	static unsigned long Kold = 0;
-	register unsigned long l,m;
-	register unsigned i,j;
+	unsigned long l,m;
+	unsigned i,j;
 
 	if ( (n < k) || !n ) return 0;
 

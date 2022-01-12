@@ -58,6 +58,47 @@ Micrograph::~Micrograph()
     delete IUInt;
     delete IFloat;
 }
+
+Micrograph & Micrograph::operator=(const Micrograph &other)
+{
+    single_particle=other.single_particle;
+    coords=other.coords;
+    fn_coords=other.fn_coords;
+    fn_micrograph=other.fn_micrograph;
+    ctfRow=other.ctfRow;
+    fn_inf=other.fn_inf;
+    X_window_size=other.X_window_size;
+    Y_window_size=other.Y_window_size;
+    Xdim=other.Xdim;
+    Ydim=other.Ydim;
+    Zdim=other.Zdim;
+    Ndim=other.Ndim;
+    point1=other.point1;
+    point2=other.point2;
+    datatype=other.datatype;
+    swapbyte=other.swapbyte;
+    __offset=other.__offset;
+    compute_transmitance=other.compute_transmitance;
+    compute_inverse=other.compute_inverse;
+    fh_micrograph=other.fh_micrograph;
+    labels=other.labels;
+    stdevFilter=other.stdevFilter;
+#define COPYPTR(Itype,Iptr)\
+    if (Iptr!=nullptr)\
+    {\
+    	Iptr=new Itype();\
+    	*Iptr=*(other.Iptr);\
+    }
+    COPYPTR(Image<char>,auxI);
+    COPYPTR(Image<unsigned char>,IUChar);
+    COPYPTR(Image<short int>,IShort);
+    COPYPTR(Image<unsigned short int>,IUShort);
+    COPYPTR(Image<int>,IInt);
+    COPYPTR(Image<unsigned int>,IUInt);
+    COPYPTR(Image<float>,IFloat);
+}
+#undef COPYPTR
+
 /* Clear ------------------------------------------------------------------- */
 void Micrograph::clear()
 {

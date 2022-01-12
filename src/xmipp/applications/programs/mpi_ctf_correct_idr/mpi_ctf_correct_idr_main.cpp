@@ -26,6 +26,7 @@
 #include <parallel/xmipp_mpi.h>
 #include <reconstruction/ctf_correct_idr.h>
 
-CREATE_MPI_METADATA_PROGRAM(ProgCtfCorrectIdr, MpiProgCtfCorrectIdr)
+class MpiProgCtfCorrectIdr : public BasicMpiMetadataProgram<ProgCtfCorrectIdr> {
+};
 
 RUN_XMIPP_PROGRAM(MpiProgCtfCorrectIdr)

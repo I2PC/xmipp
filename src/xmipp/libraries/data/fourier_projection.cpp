@@ -29,10 +29,6 @@
 #include "core/transformations.h"
 #include "core/xmipp_fftw.h"
 
-/* Empty constructor ======================================================= */
-Projection::Projection(): Image<double>()
-{}
-
 /* Reset =================================================================== */
 void Projection::reset(int Ydim, int Xdim)
 {
