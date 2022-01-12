@@ -253,11 +253,12 @@ MetaData_setValueCol(PyObject *obj, PyObject *args, PyObject *kwargs);
 PyObject *
 MetaData_removeLabel(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-/* getValue */
 PyObject *
 MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs);
 
-/* getValue */
+PyObject *
+MetaData_getRowDict(PyObject *obj, PyObject *args, PyObject *kwargs);
+
 PyObject *
 MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs);
 

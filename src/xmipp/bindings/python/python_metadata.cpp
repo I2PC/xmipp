@@ -305,6 +305,8 @@ PyMethodDef MetaData_methods[] =
           "Remove a label if exists. The values are still in the table." },
         { "getValue", (PyCFunction) MetaData_getValue,
           METH_VARARGS, "Get the value for column(label)" },
+        { "getRowDict", (PyCFunction) MetaData_getRowDict,
+          METH_VARARGS, "Get values in the row as Dictionary" },
         { "getColumnValues", (PyCFunction) MetaData_getColumnValues,
           METH_VARARGS, "Get all values value from column(label)" },
         { "setColumnValues", (PyCFunction) MetaData_setColumnValues,
@@ -991,29 +993,24 @@ MetaData_removeLabel(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
-/* getValue */
 PyObject *
 MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
     int label;
     size_t objectId = BAD_OBJID;
-    PyObject *pyValue;
 
     if (PyArg_ParseTuple(args, "ik", &label, &objectId))
     {
         try
         {
-            auto * object = new MDObject((MDLabel) label);
+            auto object = MDObject((MDLabel) label);
             auto *self = (MetaDataObject*) obj;
             if (self->metadata->getValue(*object, objectId))
             {
-                pyValue = getMDObjectValue(object);
-                delete object;
-                return pyValue;
+                return getMDObjectValue(object);
             }
             else
             {
-                delete object;
                 Py_RETURN_NONE;
             }
         }
@@ -1025,7 +1022,31 @@ MetaData_getValue(PyObject *obj, PyObject *args, PyObject *kwargs)
     return nullptr;
 }
 
-/* getValue */
+PyObject *
+MetaData_getRowDict(PyObject *obj, PyObject *args, PyObject *kwargs)
+{
+    size_t objectId = BAD_OBJID;
+
+    if (PyArg_ParseTuple(args, "k", &objectId))
+    {
+        try
+        {
+            auto *self = (MetaDataObject*) obj;
+            auto row = self->metadata->getRow();
+            auto *dict = PyDict_New();
+            for (auto *obj : row) {
+                PyDict_SetItem(dict, PyLong_FromLong(obj->label), getMDObjectValue(obj))
+            }
+            return dict;
+        }
+        catch (XmippError &xe)
+        {
+            PyErr_SetString(PyXmippError, xe.msg.c_str());
+        }
+    }
+    return nullptr;
+}
+
 PyObject *
 MetaData_getColumnValues(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
