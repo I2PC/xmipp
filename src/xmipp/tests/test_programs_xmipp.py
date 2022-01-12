@@ -1607,15 +1607,15 @@ class VolSubtraction(XmippProgramTest):
         """Test subtraction with radial average"""
         str = "--i1 gold/xmipp_volume_subtraction/V1.mrc " \
               "--i2 gold/xmipp_volume_subtraction/V.mrc " +\
-              "-o %o/subtraction.mrc " \
+              "-o %o/output_volume1.mrc " \
               "--mask1 gold/xmipp_volume_subtraction/V1_mask.mrc " +\
               "--mask2 gold/xmipp_volume_subtraction/V_mask.mrc" \
               " --iter 5 --lambda 1.0 --sub --cutFreq 1.333333 --sigma 3 --radavg --computeEnergy"
-        self.runCase(str, outputs=["subtraction.mrc"], validate=self.validate_case1)
+        self.runCase(str, outputs=["output_volume1.mrc"], validate=self.validate_case1)
 
     def validate_case1(self):
         import filecmp
-        output = os.path.join(self.outputDir, "subtraction.mrc")
+        output = os.path.join(self.outputDir, "output_volume1.mrc")
         self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/subtraction_radAvg.mrc"))
 
     def test_case2(self):
@@ -1629,7 +1629,7 @@ class VolSubtraction(XmippProgramTest):
 
     def validate_case2(self):
         import filecmp
-        output = os.path.join(self.outputDir, "subtraction.mrc")
+        output = os.path.join(self.outputDir, "output_volume2.mrc")
         self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/subtraction.mrc"))
 
     def test_case3(self):
@@ -1643,7 +1643,7 @@ class VolSubtraction(XmippProgramTest):
 
     def validate_case3(self):
         import filecmp
-        output = os.path.join(self.outputDir, "subtraction.mrc")
+        output = os.path.join(self.outputDir, "output_volume3.mrc")
         self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/Vadjust.mrc"))
 
     def test_case4(self):
@@ -1657,5 +1657,5 @@ class VolSubtraction(XmippProgramTest):
 
     def validate_case4(self):
         import filecmp
-        output = os.path.join(self.outputDir, "subtraction.mrc")
+        output = os.path.join(self.outputDir, "output_volume4.mrc")
         self.assertTrue(filecmp.cmp(output, "gold/xmipp_volume_subtraction/Vadjust_radAvg.mrc"))
